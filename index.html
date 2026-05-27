@@ -1,0 +1,1182 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Budget Assistant</title>
+  
+  <!-- SEO Meta Tags -->
+  <meta name="description" content="Collaborative Budget Assistant web app with real-time cloud sync and Excel import/export. Manage expenses, incomes, and assets.">
+  <meta name="theme-color" content="#1e222b">
+  
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon.png" type="image/png">
+  <link rel="apple-touch-icon" href="icon.png">
+  
+  <!-- Google Fonts & FontAwesome Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Core Stylesheet -->
+  <link rel="stylesheet" href="style.css?v=75">
+  
+
+  <!-- Supabase client JS CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Chart.js CDN for Statistics -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Chart.js Datalabels Plugin CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+  <!-- SheetJS xlsx CDN for Excel Import/Export -->
+  <script src="xlsx.full.min.js"></script>
+</head>
+<body>
+
+  <div class="app-container">
+
+    <!-- Selection mode overlay bar -->
+    <div id="selection-bar" class="selection-bar-container">
+      <div class="selection-bar-left">
+        <button class="icon-btn" id="selection-cancel-btn" onclick="exitSelectionMode()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+        <span id="selection-count">0 επιλεγμένα</span>
+      </div>
+      <div class="selection-bar-right">
+        <button class="icon-btn" id="selection-select-all-btn" onclick="toggleSelectAll()" title="Επιλογή όλων">
+          <i class="fa-solid fa-check-double"></i>
+        </button>
+        <button class="icon-btn text-danger" id="selection-delete-btn" onclick="deleteSelectedTransactions()" title="Διαγραφή" style="color: var(--accent);">
+          <i class="fa-solid fa-trash-can"></i>
+        </button>
+      </div>
+    </div>
+    
+    <!-- Top Header App Bar -->
+    <header class="app-header">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <h1 class="app-title" id="app-heading-title" style="margin: 0;">
+          <i class="fa-solid fa-wallet" id="header-wallet-icon" style="color: var(--accent); transition: var(--transition);"></i>
+          <span class="header-title-text">Budget Assistant</span>
+        </h1>
+      </div>
+      
+      <!-- Wallet Switcher Removed (Unified Wallet Mode) -->
+
+      <div class="header-actions">
+        <div id="user-profile-badge" class="user-profile-badge" style="display: none;" onclick="switchTab('more')">
+          <!-- Initials like MB -->
+        </div>
+        <!-- Permanent Cloud Sync Status Icon -->
+        <button id="header-sync-icon" class="icon-btn header-sync-btn" onclick="openSupabaseSettings()" title="Λογαριασμός Cloud" style="position:relative;">
+          <i class="fa-solid fa-cloud" id="header-sync-cloud-icon"></i>
+          <span id="header-sync-dot" style="
+            position:absolute; top:4px; right:4px;
+            width:7px; height:7px; border-radius:50%;
+            background:#9e9e9e;
+            border:1.5px solid var(--app-bg,#0f0f1a);
+            transition:background 0.3s;
+          "></span>
+        </button>
+        <button class="icon-btn" onclick="openSupabaseSettings()" title="Λογαριασμός Cloud" id="btn-cloud-settings" style="display: none;">
+          <i class="fa-solid fa-cloud"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- App Content Scroll Area -->
+    <main class="app-content">
+
+      <!-- Pull to Refresh Indicator -->
+      <div id="pull-to-refresh" class="pull-to-refresh-container" style="height: 0px;">
+        <div class="pull-to-refresh-content" style="opacity: 0; transform: scale(0.8);">
+          <div class="pull-to-refresh-icon">
+            <i class="fa-solid fa-arrow-down"></i>
+          </div>
+          <div class="pull-to-refresh-spinner">
+            <i class="fa-solid fa-circle-notch fa-spin"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================== -->
+      <!-- TAB 1: TRANSACTIONS SCREEN -->
+      <!-- ============================================== -->
+      <section id="trans-screen" class="tab-screen active">
+        <!-- Date Navigator Bar -->
+        <div class="stats-header-bar">
+          <div class="month-selector">
+            <button class="icon-btn" id="period-prev"><i class="fa-solid fa-chevron-left"></i></button>
+            <span id="current-period-title" style="cursor: pointer; font-size: 15px; font-weight: 700;">Μαΐ 2026</span>
+            <button class="icon-btn" id="period-next"><i class="fa-solid fa-chevron-right"></i></button>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button class="icon-btn" id="trans-select-btn" title="Επιλογή" onclick="enterSelectionMode()">
+              <i class="fa-solid fa-list-check" style="font-size: 15px;"></i>
+            </button>
+            <button class="icon-btn" id="trans-search-btn" title="Αναζήτηση">
+              <i class="fa-solid fa-magnifying-glass" style="font-size: 15px;"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Summary Bar -->
+        <div class="summary-bar">
+          <div class="summary-item">
+            <div data-i18n="summary_income">Έσοδα</div>
+            <span id="summary-income-val" class="summary-income">€ 0,00</span>
+          </div>
+          <div class="summary-item">
+            <div data-i18n="summary_expense">Έξοδα</div>
+            <span id="summary-expense-val" class="summary-expense">€ 0,00</span>
+          </div>
+          <div class="summary-item">
+            <div data-i18n="summary_total">Υπόλοιπο</div>
+            <span id="summary-total-val" class="summary-total">€ 0,00</span>
+          </div>
+        </div>
+
+        <!-- Grouped Transactions List -->
+        <div id="transactions-list" style="margin-top: 8px;">
+          <!-- Dynamically populated day groups and transactions -->
+        </div>
+      </section>
+
+      <!-- ============================================== -->
+      <!-- TAB 2: STATISTICS SCREEN -->
+      <!-- ============================================== -->
+      <section id="stats-screen" class="tab-screen">
+        <!-- Stats Category Header / Toggler -->
+        <div class="stats-header-bar">
+          <div class="month-selector">
+            <button class="icon-btn" id="stats-period-prev"><i class="fa-solid fa-chevron-left"></i></button>
+            <span id="stats-period-title" style="cursor: pointer; font-size: 15px; font-weight: 700;">Μαΐ 2026</span>
+            <button class="icon-btn" id="stats-period-next"><i class="fa-solid fa-chevron-right"></i></button>
+          </div>
+          
+          <div class="stats-period-dropdown-container" style="position: relative;">
+            <button class="stats-period-btn" id="stats-period-dropdown-btn">
+              Μηνιαία <i class="fa-solid fa-chevron-down" style="font-size: 9px; margin-left: 4px;"></i>
+            </button>
+            <div class="stats-dropdown-menu" id="stats-period-dropdown-menu">
+              <div class="stats-dropdown-item" data-value="weekly">Εβδομαδιαία</div>
+              <div class="stats-dropdown-item active" data-value="monthly">Μηνιαία</div>
+              <div class="stats-dropdown-item" data-value="annually">Ετήσια</div>
+              <div class="stats-dropdown-item" data-value="period">Περίοδος</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Expense vs Income Switcher Row (STICKY) -->
+        <div class="stats-subheader-bar">
+          <div class="stats-tabs">
+            <button class="stats-tab-btn" id="stats-tab-income">
+              <span class="stats-tab-label">Έσοδα</span>
+              <span id="stats-tab-income-amt" class="stats-tab-amt income-amt">€ 0,00</span>
+            </button>
+            <button class="stats-tab-btn active" id="stats-tab-expense">
+              <span class="stats-tab-label">Έξοδα</span>
+              <span id="stats-tab-expense-amt" class="stats-tab-amt expense-amt">€ 0,00</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Net Savings Balance Bar -->
+        <div id="stats-net-savings-bar" class="stats-net-bar">
+          <span data-i18n="stats_tab_net_label">Υπόλοιπο:</span>
+          <span id="stats-net-savings-val" class="stats-net-val">€ 0,00</span>
+        </div>
+
+        <!-- Chart Visualization Container -->
+        <div class="chart-container">
+          <div class="chart-wrapper">
+            <canvas id="statsChart"></canvas>
+            <div id="chart-center-val" class="chart-center-val" style="display: none;">
+              <div id="chart-center-title" class="chart-center-title">Έξοδα</div>
+              <div id="chart-center-amount" class="chart-center-amount">€ 0,00</div>
+            </div>
+          </div>
+          <!-- Income vs Expense Ratio Bar -->
+          <div class="chart-ratio-bar-wrapper" id="chart-ratio-wrapper" style="display:none;">
+            <div class="chart-ratio-labels">
+              <span class="ratio-income-label"><i class="fa-solid fa-arrow-trend-up"></i> <span id="ratio-income-pct">0%</span></span>
+              <span class="ratio-expense-label"><span id="ratio-expense-pct">0%</span> <i class="fa-solid fa-arrow-trend-down"></i></span>
+            </div>
+            <div class="chart-ratio-track">
+              <div class="chart-ratio-fill-income" id="ratio-fill-income" style="width:50%"></div>
+              <div class="chart-ratio-fill-expense" id="ratio-fill-expense" style="width:50%"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Statistics Breakdown List -->
+        <div id="stats-breakdown-list" class="stats-list">
+          <!-- Dynamically populated stats breakdown list rows -->
+        </div>
+      </section>
+
+      <!-- ============================================== -->
+      <!-- TAB 3: ACCOUNTS SCREEN -->
+      <!-- ============================================== -->
+      <section id="accounts-screen" class="tab-screen">
+        <!-- Assets & Liabilities Summary Card -->
+        <div class="accounts-overview-card">
+          <!-- Overall History Section -->
+          <div id="accounts-overall-history" style="font-size: 11px; line-height: 1.5; color: var(--text-secondary); margin-bottom: 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 8px;">
+            <div style="font-size: 10px; color: var(--text-muted); font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;" data-i18n="overall_history_title">Συνολική Ιστορική Αναδρομή</div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span><span data-i18n="overall_history_period_label">Περίοδος:</span> <strong id="overall-history-dates" style="color: var(--text-primary); font-weight: 500;">-</strong></span>
+              <span id="overall-history-math" style="font-weight: 600; color: var(--blue-positive); display: none;">-</span>
+            </div>
+          </div>
+
+          <div class="overview-grid" style="margin-bottom: 0;">
+            <div>
+              <div style="font-size: 11px; color: var(--text-secondary);" data-i18n="assets_title">Έσοδα</div>
+              <div class="overview-val positive"><span class="currency-symbol">€</span> <span id="total-assets-val">0,00</span></div>
+            </div>
+            <div>
+              <div style="font-size: 11px; color: var(--text-secondary);" data-i18n="liabilities_title">Έξοδα</div>
+              <div class="overview-val negative"><span class="currency-symbol">€</span> <span id="total-liabilities-val">0,00</span></div>
+            </div>
+            <div>
+              <div style="font-size: 11px; color: var(--text-secondary);" data-i18n="total_title">Υπόλοιπο</div>
+              <div id="total-net-val-container" class="overview-val"><span class="currency-symbol">€</span> <span id="total-net-val">0,00</span></div>
+            </div>
+          </div>
+          
+          <!-- Period Breakdown Section -->
+          <div id="accounts-periods-breakdown" style="border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 12px; margin-top: 12px; display: none;">
+            <div style="font-size: 10px; color: var(--text-secondary); margin-bottom: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;" data-i18n="yearly_savings_title">Ετήσια Αποταμίευση</div>
+            <div id="accounts-periods-list" style="display: flex; flex-direction: column; gap: 6px;"></div>
+          </div>
+        </div>
+
+        <div>
+          <div class="account-section-title" data-i18n="accounts_header_title">Λογαριασμοί</div>
+          <div id="accounts-assets-list">
+            <!-- Dynamically populated assets (Cash, Bank) -->
+          </div>
+
+          <div class="account-section-title" data-i18n="cards_header_title">Κάρτες</div>
+          <div id="accounts-liabilities-list">
+            <!-- Dynamically populated liabilities (Cards) -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================== -->
+      <!-- TAB 4: MORE / SETTINGS SCREEN -->
+      <!-- ============================================== -->
+      <section id="more-screen" class="tab-screen">
+        <div class="settings-section-title" data-i18n="section_data_mgmt">Διαχείριση Δεδομένων</div>
+        
+        <!-- Settings Grid Icons -->
+        <div class="settings-grid">
+          <div class="settings-card" onclick="openSupabaseSettings()">
+            <div class="settings-card-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+            <span class="settings-card-title" data-i18n="card_sync">Συγχρονισμός</span>
+          </div>
+          <div class="settings-card" onclick="openModal('excel-modal')">
+            <div class="settings-card-icon"><i class="fa-solid fa-file-import"></i></div>
+            <span class="settings-card-title" data-i18n="card_import_excel">Εισαγωγή Excel</span>
+          </div>
+          <div class="settings-card" onclick="exportToExcel()">
+            <div class="settings-card-icon"><i class="fa-solid fa-file-export"></i></div>
+            <span class="settings-card-title" data-i18n="card_export_excel">Εξαγωγή Excel</span>
+          </div>
+        </div>
+
+        <!-- Extra Settings Lists -->
+        <div class="settings-section-title" data-i18n="section_settings">Προτιμήσεις</div>
+        <div class="settings-list-item" onclick="toggleLanguageSetting()">
+          <span class="settings-item-label" data-i18n="item_language">Γλώσσα</span>
+          <span class="settings-item-value" id="lang-setting-val">Ελληνικά</span>
+        </div>
+        <div class="settings-list-item">
+          <span class="settings-item-label" data-i18n="item_month_start">Έναρξη Μήνα</span>
+          <select id="settings-month-start" class="settings-select" onchange="changeMonthStartSetting(this.value)">
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <option value="6">6</option>
+            <option value="7">7</option>
+            <option value="8">8</option>
+            <option value="9">9</option>
+            <option value="10">10</option>
+            <option value="11">11</option>
+            <option value="12">12</option>
+            <option value="13">13</option>
+            <option value="14">14</option>
+            <option value="15">15</option>
+            <option value="16">16</option>
+            <option value="17">17</option>
+            <option value="18">18</option>
+            <option value="19">19</option>
+            <option value="20">20</option>
+            <option value="21">21</option>
+            <option value="22">22</option>
+            <option value="23">23</option>
+            <option value="24">24</option>
+            <option value="25">25</option>
+            <option value="26">26</option>
+            <option value="27">27</option>
+            <option value="28">28</option>
+          </select>
+        </div>
+        <div class="settings-list-item">
+          <span class="settings-item-label" data-i18n="item_week_start">Έναρξη Εβδομάδας</span>
+          <select id="settings-week-start" class="settings-select" onchange="changeWeekStartSetting(this.value)">
+            <option value="1" data-i18n="val_week_start">Δευτέρα</option>
+            <option value="0" data-i18n="val_week_start_sun">Κυριακή</option>
+            <option value="6" data-i18n="val_week_start_sat">Σάββατο</option>
+          </select>
+        </div>
+        <div class="settings-list-item">
+          <span class="settings-item-label" data-i18n="item_currency">Κύριο Νόμισμα</span>
+          <select id="settings-currency" class="settings-select" onchange="changeCurrencySetting(this.value)">
+            <option value="EUR">EUR (€)</option>
+            <option value="USD">USD ($)</option>
+            <option value="GBP">GBP (£)</option>
+            <option value="JPY">JPY (¥)</option>
+          </select>
+        </div>
+        <div class="settings-list-item" onclick="openSupabaseSettings()">
+          <span class="settings-item-label" data-i18n="item_sync_status">Κατάσταση Συγχρονισμού</span>
+          <span class="settings-item-value off" id="val_sync_status">Ρύθμιση</span>
+        </div>
+        <div class="settings-list-item">
+          <span class="settings-item-label">Θέμα Εμφάνισης</span>
+          <select id="settings-theme" class="settings-select" onchange="changeThemeSetting(this.value)">
+            <option value="dark">Premium Dark</option>
+            <option value="oled">OLED Black</option>
+            <option value="light">Classic Light</option>
+            <option value="emerald">Emerald Forest</option>
+            <option value="ocean">Ocean Breeze</option>
+            <option value="pink">Blossom Pink</option>
+          </select>
+        </div>
+        <div class="settings-list-item">
+          <span class="settings-item-label">Κλείδωμα Εφαρμογής (PIN)</span>
+          <input type="checkbox" id="settings-app-lock" onchange="toggleAppLock(this.checked)" style="width: 20px; height: 20px; cursor: pointer; accent-color: var(--accent);">
+        </div>
+        <div class="settings-list-item" id="settings-biometrics-container" style="display: none;">
+          <span class="settings-item-label">Face ID / Αποτύπωμα</span>
+          <input type="checkbox" id="settings-biometrics" onchange="toggleBiometrics(this.checked)" style="width: 20px; height: 20px; cursor: pointer; accent-color: var(--accent);">
+        </div>
+
+        <!-- Shared Wallet settings block -->
+        <div class="settings-section-title" style="margin-top: 24px;">👥 Κοινός Προϋπολογισμός</div>
+        <div id="partner-linking-container" class="partner-linking-card">
+          <div class="partner-status">Φόρτωση στοιχείων...</div>
+        </div>
+
+        <div class="settings-section-title" style="margin-top: 24px;">Λογαριασμός Χρήστη</div>
+        <div class="settings-list-item" id="settings-user-email-item" style="background: rgba(var(--accent-rgb,124,106,247),0.06); border-radius: 12px; margin-bottom: 4px;">
+          <span class="settings-item-label" style="font-size: 12px; color: var(--text-secondary);"><i class="fa-solid fa-envelope" style="margin-right: 8px; color: var(--accent);"></i>Συνδεδεμένος ως</span>
+          <span class="settings-item-value" id="settings-user-email-value" style="font-size: 12px; font-weight: 700; color: var(--text-primary); max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">—</span>
+        </div>
+        <div class="settings-list-item text-danger" onclick="handleLogout()" style="cursor: pointer;">
+          <span class="settings-item-label" style="color: var(--accent); font-weight: 600;"><i class="fa-solid fa-right-from-bracket" style="margin-right: 8px;"></i> Αποσύνδεση Λογαριασμού</span>
+        </div>
+        <div class="settings-list-item" onclick="forceAppUpdate()" style="cursor: pointer;">
+          <span class="settings-item-label" style="color: var(--blue-positive); font-weight: 600;"><i class="fa-solid fa-arrows-rotate" style="margin-right: 8px;"></i> Αναγκαστική Ενημέρωση (Καθαρισμός Cache)</span>
+        </div>
+
+        <div class="settings-section-title" style="margin-top: 24px;">Νομικά</div>
+        <div class="settings-list-item" onclick="window.open('privacy.html', '_blank')" style="cursor: pointer;">
+          <span class="settings-item-label">Πολιτική Απορρήτου</span>
+          <span class="settings-item-value"><i class="fa-solid fa-arrow-up-right-from-square" style="font-size:12px;"></i></span>
+        </div>
+        <div class="settings-list-item">
+          <span class="settings-item-label" style="color: var(--text-muted); font-size: 12px;">Έκδοση 1.0.0 (build v128)</span>
+          <span class="settings-item-value" style="font-size: 12px;">Budget Assistant</span>
+        </div>
+      </section>
+
+      <!-- Floating Action Button for Adding Transaction -->
+      <button class="fab" id="fab-btn" title="Προσθήκη Συναλλαγής">
+        <i class="fa-solid fa-plus"></i>
+      </button>
+
+    </main>
+
+    <!-- Bottom Navigation Bar -->
+    <nav class="bottom-nav">
+      <a href="#" class="nav-item active" data-tab="trans" id="tab-nav-trans">
+        <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+        <span data-i18n="nav_trans">Κινήσεις</span>
+      </a>
+      <a href="#" class="nav-item" data-tab="stats" id="tab-nav-stats">
+        <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
+        <span data-i18n="nav_stats">Στατιστικά</span>
+      </a>
+      <a href="#" class="nav-item" data-tab="accounts" id="tab-nav-accounts">
+        <svg viewBox="0 0 24 24"><path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
+        <span data-i18n="nav_accounts">Λογαριασμοί</span>
+      </a>
+      <a href="#" class="nav-item" data-tab="more" id="tab-nav-more">
+        <svg viewBox="0 0 24 24"><path d="M6 10c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm12 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm-6 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
+        <span data-i18n="nav_more">Περισσότερα</span>
+      </a>
+    </nav>
+
+    <!-- ============================================== -->
+    <!-- MODAL 1: TRANSACTION ADD/EDIT FORM (BOTTOM SHEET) -->
+    <!-- ============================================== -->
+    <div id="transaction-modal" class="modal-overlay">
+      <div class="modal-content" style="max-height: 98vh; display: flex; flex-direction: column;">
+        <div class="modal-header">
+          <button type="button" class="icon-btn" onclick="closeModal('transaction-modal')"><i class="fa-solid fa-arrow-left"></i></button>
+          <h3 class="modal-title" id="modal-trans-title">Έξοδο</h3>
+          <div style="display: flex; gap: 12px; align-items: center;">
+            <button type="button" id="trans-delete-btn" class="icon-btn" style="color: var(--accent); display: none;" title="Διαγραφή"><i class="fa-solid fa-trash-can"></i></button>
+            <button type="button" class="icon-btn" style="color: var(--text-secondary);"><i class="fa-solid fa-star-of-life"></i></button>
+          </div>
+        </div>
+        <div class="modal-body" style="padding: 16px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 16px;">
+          <form id="transaction-form" style="display: flex; flex-direction: column; gap: 16px;">
+            <input type="hidden" id="trans-id">
+
+            <!-- Type Selector Tabs (Income, Expense, Transfer) -->
+            <div class="type-selector-tabs">
+              <button type="button" class="type-tab-btn" data-type="income">Έσοδο</button>
+              <button type="button" class="type-tab-btn active expense" data-type="expense">Έξοδο</button>
+              <button type="button" class="type-tab-btn" data-type="transfer">Μεταφορά</button>
+            </div>
+
+            <!-- Date Row -->
+            <div class="form-row">
+              <label class="form-row-label">Ημερομηνία</label>
+              <div class="form-row-value-container" style="position: relative;">
+                <span id="trans-date-display" class="form-row-display-text">24/5/26 (Kυρ) 19:38</span>
+                <input type="datetime-local" id="trans-date" style="position: absolute; opacity: 0; width: 100%; left: 0; top: 0; height: 100%; cursor: pointer;" required>
+              </div>
+            </div>
+
+            <!-- Amount Row -->
+            <div class="form-row focusable" id="form-row-amount" onclick="openCalculatorKeypad()">
+              <label class="form-row-label">Ποσό</label>
+              <div class="form-row-value-container">
+                <input type="text" id="trans-amount" class="form-row-input" placeholder="0" readonly required>
+              </div>
+            </div>
+
+            <!-- Category Row (Hidden for transfers) -->
+            <div class="form-row" id="form-row-category">
+              <label class="form-row-label" data-i18n="row_category">Κατηγορία</label>
+              <div class="form-row-value-container">
+                <input type="hidden" id="trans-category">
+                <div id="trans-category-trigger" class="custom-select-trigger" onclick="openCategoryModal()">
+                  <div class="custom-select-trigger-content" id="trans-category-display">
+                    <span class="custom-select-placeholder">Επιλέξτε...</span>
+                  </div>
+                  <i class="fa-solid fa-chevron-down" style="color: var(--text-muted); font-size: 12px;"></i>
+                </div>
+              </div>
+            </div>
+
+            <!-- Subcategory Row (Hidden for transfers) -->
+            <div class="form-row" id="form-row-subcategory" style="display: none;">
+              <label class="form-row-label" data-i18n="row_subcategory">Υποκατηγορία</label>
+              <div class="form-row-value-container" style="display: flex; align-items: center; width: 100%;">
+                <input type="hidden" id="trans-subcategory-select">
+                <div id="trans-subcategory-trigger" class="custom-select-trigger" onclick="openSubcategoryModal()" style="flex: 1;">
+                  <div class="custom-select-trigger-content" id="trans-subcategory-display">
+                    <span class="custom-select-placeholder" data-i18n="placeholder_subcategory">Πατήστε για επιλογή</span>
+                  </div>
+                  <i class="fa-solid fa-chevron-down" style="color: var(--text-muted); font-size: 12px;"></i>
+                </div>
+                <input type="text" id="trans-subcategory-custom" class="form-row-input" placeholder="Πληκτρολογήστε νέα υποκατηγορία" style="display: none; flex: 1;">
+                <button type="button" id="btn-cancel-custom-sub" class="icon-btn" style="display: none; font-size: 14px; margin-left: 8px;" onclick="hideSubcategorySelect()"><i class="fa-solid fa-xmark"></i></button>
+              </div>
+            </div>
+
+            <!-- Account From Row -->
+            <div class="form-row" id="form-row-account-from">
+              <label class="form-row-label" id="label-account-from" data-i18n="row_account_from">Λογαριασμός</label>
+              <div class="form-row-value-container">
+                <select id="trans-account-from" class="form-row-select" required></select>
+              </div>
+            </div>
+
+            <!-- Account To Row (Only for Transfers) -->
+            <div class="form-row" id="form-row-account-to" style="display: none;">
+              <label class="form-row-label" data-i18n="row_account_to">Προς</label>
+              <div class="form-row-value-container">
+                <select id="trans-account-to" class="form-row-select"></select>
+              </div>
+            </div>
+
+            <!-- Note Row -->
+            <div class="form-row">
+              <label class="form-row-label" data-i18n="row_note">Σημείωση</label>
+              <div class="form-row-value-container">
+                <input type="text" id="trans-note" class="form-row-input" placeholder="Πατήστε για σημείωση">
+              </div>
+            </div>
+
+            <!-- Description Row -->
+            <div class="form-row" style="margin-top: 8px;">
+              <div class="form-row-value-container" style="display: flex; align-items: center; width: 100%;">
+                <input type="text" id="trans-description" class="form-row-input" placeholder="Περιγραφή" style="flex: 1;">
+                <i class="fa-solid fa-camera" style="color: var(--text-muted); font-size: 16px; margin-left: 8px; cursor: pointer;"></i>
+              </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="modal-action-buttons">
+              <button type="submit" class="btn-primary-save" id="btn-save-transaction" data-i18n="btn_save">Αποθήκευση</button>
+              <button type="button" class="btn-secondary-continue" id="btn-continue-transaction" onclick="closeModal('transaction-modal')" data-i18n="btn_continue">Συνέχεια</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Custom Calculator Keypad -->
+        <div id="custom-calculator-keypad" class="calc-keypad-container">
+          <div class="calc-keypad-header">
+            <span class="calc-keypad-title" data-i18n="keypad_title">Ποσό</span>
+            <div style="display: flex; gap: 16px; align-items: center;">
+              <i class="fa-solid fa-globe" style="color: var(--text-secondary); font-size: 16px;"></i>
+              <i class="fa-solid fa-xmark" style="color: var(--text-secondary); font-size: 16px; cursor: pointer;" onclick="closeCalculatorKeypad()"></i>
+            </div>
+          </div>
+          <div class="calc-keypad-grid">
+            <button type="button" class="calc-key-btn" data-val="1">1</button>
+            <button type="button" class="calc-key-btn" data-val="2">2</button>
+            <button type="button" class="calc-key-btn" data-val="3">3</button>
+            <button type="button" class="calc-key-btn backspace-key" data-val="backspace"><i class="fa-solid fa-delete-left"></i></button>
+            
+            <button type="button" class="calc-key-btn" data-val="4">4</button>
+            <button type="button" class="calc-key-btn" data-val="5">5</button>
+            <button type="button" class="calc-key-btn" data-val="6">6</button>
+            <button type="button" class="calc-key-btn minus-key" data-val="-">-</button>
+            
+            <button type="button" class="calc-key-btn" data-val="7">7</button>
+            <button type="button" class="calc-key-btn" data-val="8">8</button>
+            <button type="button" class="calc-key-btn" data-val="9">9</button>
+            <button type="button" class="calc-key-btn calc-op-key" data-val="calc"><i class="fa-solid fa-calculator"></i></button>
+            
+            <button type="button" class="calc-key-btn" data-val="00">00</button>
+            <button type="button" class="calc-key-btn" data-val="0">0</button>
+            <button type="button" class="calc-key-btn" data-val=".">.</button>
+            <button type="button" class="calc-key-btn done-key" data-val="done" data-i18n="keypad_btn_done">Τέλος</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- MODAL 2: SUPABASE CLOUD SYNC CONFIGURATION -->
+    <!-- ============================================== -->
+    <div id="supabase-modal" class="modal-overlay">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 class="modal-title" data-i18n="modal_sync_title">Συγχρονισμός</h3>
+          <span class="modal-close" onclick="closeModal('supabase-modal')">&times;</span>
+        </div>
+        <div class="modal-body">
+          <!-- User Sync Status (Main screen for simple users) -->
+          <div id="supabase-user-settings">
+            <!-- Populated dynamically via updateSupabaseUserModal() -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- MODAL 3: EXCEL CSV IMPORT WIZARD -->
+    <!-- ============================================== -->
+    <div id="excel-modal" class="modal-overlay">
+      <div class="modal-content" style="max-height: 95vh;">
+        <div class="modal-header">
+          <h3 class="modal-title">Εισαγωγή Ιστορικού από Excel / CSV</h3>
+          <span class="modal-close" onclick="closeModal('excel-modal')">&times;</span>
+        </div>
+        <div class="modal-body">
+          <form id="excel-upload-form" onsubmit="event.preventDefault();">
+            <div class="form-group">
+              <label class="form-label">Επιλέξτε Αρχείο Excel (.xlsx, .xls) ή CSV</label>
+              <input type="file" id="excel-file-input" accept=".xlsx, .xls, .csv" class="form-input" onchange="handleExcelUpload(event)" required>
+            </div>
+
+            <!-- Mapping Section (Displays after file uploaded) -->
+            <div id="excel-mapping-section" style="display: none; margin-top: 16px;">
+              <h4 style="font-size: 13px; margin-bottom: 8px; font-weight: 700;">Αντιστοίχιση Στηλών</h4>
+              <p style="font-size: 11px; color: var(--text-secondary); margin-bottom: 6px;">
+                Αντιστοιχίστε τις στήλες του δικού σας αρχείου Excel με τα πεδία της εφαρμογής.
+              </p>
+              <label style="display:flex;align-items:center;gap:6px;font-size:11px;margin-bottom:12px;color:var(--accent);">
+                <input type="checkbox" id="clear-before-import" style="accent-color:var(--accent);">
+                ⚠️ Διαγραφή παλιών δεδομένων πριν την εισαγωγή (καθαρή επανεισαγωγή)
+              </label>
+              
+              <table class="mapping-table">
+                <thead>
+                  <tr>
+                    <th>Πεδίο Εφαρμογής</th>
+                    <th>Στήλη Excel</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Ημερομηνία *</strong></td>
+                    <td><select id="map-date" class="mapping-select" required></select></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Λογαριασμός</strong></td>
+                    <td><select id="map-account" class="mapping-select"></select></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Κατηγορία</strong></td>
+                    <td><select id="map-category" class="mapping-select"></select></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Υποκατηγορία</strong></td>
+                    <td><select id="map-subcategory" class="mapping-select"></select></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Σημείωση / Note</strong></td>
+                    <td><select id="map-note" class="mapping-select"></select></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Ποσό (Amount)</strong></td>
+                    <td><select id="map-amount" class="mapping-select"></select></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Εισροή / Credit (Inflow)</strong></td>
+                    <td><select id="map-inflow" class="mapping-select"></select></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Εκροή / Debit (Outflow)</strong></td>
+                    <td><select id="map-outflow" class="mapping-select"></select></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Τύπος (Expense/Income)</strong></td>
+                    <td><select id="map-type" class="mapping-select"></select></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Περιγραφή (Description)</strong></td>
+                    <td><select id="map-description" class="mapping-select"></select></td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <div class="btn-container">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('excel-modal')">Ακύρωση</button>
+                <button type="button" id="excel-mapping-form" class="btn btn-primary" onclick="processExcelImport()">Έναρξη Εισαγωγής</button>
+              </div>
+
+              <!-- Import Progress Section -->
+              <div id="import-progress-section" style="display:none; margin-top:18px;">
+                <div id="import-phase-label" style="font-size:13px; font-weight:700; color:var(--accent); margin-bottom:8px; text-align:center;">Προετοιμασία...</div>
+                <div style="background:var(--card-border,#e0e0e0); border-radius:999px; height:10px; overflow:hidden; width:100%;">
+                  <div id="import-progress-bar" style="height:100%; width:0%; background:linear-gradient(90deg,var(--accent),var(--income,#4caf50)); border-radius:999px; transition:width 0.35s ease;"></div>
+                </div>
+                <div id="import-progress-pct" style="font-size:12px; color:var(--text-secondary); text-align:center; margin-top:5px;">0%</div>
+                <div id="import-phase-steps" style="display:flex; justify-content:center; gap:12px; margin-top:10px; font-size:11px; flex-wrap:wrap;"></div>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- MODAL 4: CUSTOM PERIOD SELECTOR -->
+    <!-- ============================================== -->
+    <div id="custom-period-modal" class="modal-overlay">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 class="modal-title">Επιλογή Περιόδου</h3>
+          <span class="modal-close" onclick="closeModal('custom-period-modal')">&times;</span>
+        </div>
+        <div class="modal-body">
+          <form id="custom-period-form" onsubmit="event.preventDefault(); handleCustomPeriodSave();">
+            <div class="form-group">
+              <label class="form-label" for="custom-period-start">Από</label>
+              <input type="date" id="custom-period-start" class="form-input" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="custom-period-end">Έως</label>
+              <input type="date" id="custom-period-end" class="form-input" required>
+            </div>
+            <div class="btn-container">
+              <button type="button" class="btn btn-secondary" onclick="closeModal('custom-period-modal')">Ακύρωση</button>
+              <button type="submit" class="btn btn-primary">Εφαρμογή</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- OVERLAY: TRANSACTION SEARCH & ADVANCED FILTERS -->
+    <!-- ============================================== -->
+    <div id="search-overlay" class="search-overlay-container">
+      <div class="search-overlay-header">
+        <button class="icon-btn" id="search-back-btn" onclick="closeSearchOverlay()"><i class="fa-solid fa-arrow-left"></i></button>
+        <span class="search-header-title">Αναζήτηση & Φίλτρα</span>
+        <button class="text-link-btn" onclick="resetSearchFilters()">Καθαρισμός</button>
+      </div>
+      
+      <div class="search-overlay-body">
+        <!-- Search Keyword Input Box -->
+        <div class="search-input-wrapper">
+          <i class="fa-solid fa-magnifying-glass search-input-icon"></i>
+          <input type="text" id="search-input" placeholder="Λέξεις, κατηγορία, σημείωση..." oninput="handleSearchChange()">
+          <button class="search-clear-btn" id="search-clear-btn" onclick="clearSearchInput()" title="Καθαρισμός">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        
+        <!-- Collapsible / Advanced Filter Sections -->
+        <div class="search-filters-section-title">Φίλτρα</div>
+        <div class="search-filters-grid">
+          <div class="search-filter-group">
+            <label class="search-filter-label">Τύπος</label>
+            <div class="custom-select-container" id="custom-select-container-type">
+              <select id="search-filter-type" class="search-filter-select-hidden" onchange="handleSearchChange()">
+                <option value="">Όλοι οι τύποι</option>
+                <option value="expense">Έξοδο</option>
+                <option value="income">Έσοδο</option>
+                <option value="transfer">Μεταφορά</option>
+              </select>
+              <div class="custom-select-trigger" onclick="toggleCustomDropdown(event, 'type')">
+                <span class="custom-select-trigger-text">Όλοι οι τύποι</span>
+                <i class="fa-solid fa-chevron-down custom-select-arrow"></i>
+              </div>
+              <div class="custom-select-options" id="custom-options-type"></div>
+            </div>
+          </div>
+          <div class="search-filter-group">
+            <label class="search-filter-label">Λογαριασμός</label>
+            <div class="custom-select-container" id="custom-select-container-account">
+              <select id="search-filter-account" class="search-filter-select-hidden" onchange="handleSearchChange()">
+                <option value="">Όλοι οι λογαριασμοί</option>
+              </select>
+              <div class="custom-select-trigger" onclick="toggleCustomDropdown(event, 'account')">
+                <span class="custom-select-trigger-text">Όλοι οι λογαριασμοί</span>
+                <i class="fa-solid fa-chevron-down custom-select-arrow"></i>
+              </div>
+              <div class="custom-select-options" id="custom-options-account"></div>
+            </div>
+          </div>
+          <div class="search-filter-group">
+            <label class="search-filter-label">Κατηγορία</label>
+            <div class="custom-select-container" id="custom-select-container-category">
+              <select id="search-filter-category" class="search-filter-select-hidden">
+                <option value="">Όλες οι κατηγορίες</option>
+              </select>
+              <div class="custom-select-trigger" onclick="toggleCustomDropdown(event, 'category')">
+                <span class="custom-select-trigger-text">Όλες οι κατηγορίες</span>
+                <i class="fa-solid fa-chevron-down custom-select-arrow"></i>
+              </div>
+              <div class="custom-select-options" id="custom-options-category"></div>
+            </div>
+          </div>
+          <div class="search-filter-group">
+            <label class="search-filter-label">Υποκατηγορία</label>
+            <div class="custom-select-container" id="custom-select-container-subcategory">
+              <select id="search-filter-subcategory" class="search-filter-select-hidden" onchange="handleSearchChange()">
+                <option value="">Όλες</option>
+              </select>
+              <div class="custom-select-trigger" onclick="toggleCustomDropdown(event, 'subcategory')">
+                <span class="custom-select-trigger-text">Όλες</span>
+                <i class="fa-solid fa-chevron-down custom-select-arrow"></i>
+              </div>
+              <div class="custom-select-options" id="custom-options-subcategory"></div>
+            </div>
+          </div>
+          <div class="search-filter-group">
+            <label class="search-filter-label">Ποσό από</label>
+            <input type="number" id="search-filter-amount-min" class="search-filter-input" placeholder="0.00" step="0.01" oninput="handleSearchChange()">
+          </div>
+          <div class="search-filter-group">
+            <label class="search-filter-label">Ποσό έως</label>
+            <input type="number" id="search-filter-amount-max" class="search-filter-input" placeholder="0.00" step="0.01" oninput="handleSearchChange()">
+          </div>
+          <div class="search-filter-group">
+            <label class="search-filter-label">Από ημερομηνία</label>
+            <input type="date" id="search-filter-date-start" class="search-filter-input" onchange="handleSearchChange()">
+          </div>
+          <div class="search-filter-group">
+            <label class="search-filter-label">Έως ημερομηνία</label>
+            <input type="date" id="search-filter-date-end" class="search-filter-input" onchange="handleSearchChange()">
+          </div>
+        </div>
+
+        <div class="search-results-header">
+          <span>Αποτελέσματα</span>
+          <span id="search-results-count">0</span>
+        </div>
+        
+        <!-- Search Results List -->
+        <div id="search-results-list" class="transactions-list-scroll">
+          <!-- Populated dynamically with grouped transactions -->
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- MODAL 5: MONTH GRID PICKER -->
+    <!-- ============================================== -->
+    <div id="month-picker-modal" class="modal-overlay">
+      <div class="modal-content" style="max-width: 320px; border-radius: 12px; margin: auto; border: 1px solid var(--border);">
+        <div class="modal-header" style="border-bottom: 1px solid var(--border); padding: 12px 16px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+            <button type="button" class="icon-btn" onclick="adjustMonthPickerYear(-1)"><i class="fa-solid fa-chevron-left"></i></button>
+            <span id="month-picker-year" style="font-size: 16px; font-weight: 800; color: var(--text-main);">2026</span>
+            <button type="button" class="icon-btn" onclick="adjustMonthPickerYear(1)"><i class="fa-solid fa-chevron-right"></i></button>
+          </div>
+        </div>
+        <div class="modal-body" style="padding: 16px;">
+          <div class="month-picker-grid" id="month-picker-grid-container">
+            <!-- 12 months generated dynamically in Greek -->
+          </div>
+          <button type="button" class="btn btn-secondary" style="width: 100%; margin-top: 16px;" onclick="closeModal('month-picker-modal')">Κλείσιμο</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- MODAL: PIN SETUP -->
+  <div id="pin-modal" class="modal-overlay">
+    <div class="modal-content" style="max-width: 320px; text-align: center; border-radius: 12px; border: 1px solid var(--border);">
+      <h3 class="modal-title" id="pin-modal-title" style="margin-bottom: 8px;">Ορισμός PIN</h3>
+      <p style="margin: 12px 0; color: var(--text-secondary); font-size: 13px;" id="pin-modal-desc">Εισάγετε ένα 4ψήφιο PIN για το κλείδωμα της εφαρμογής.</p>
+      <input type="password" id="pin-input-field" pattern="[0-9]*" inputmode="numeric" maxlength="4" style="font-size: 24px; text-align: center; letter-spacing: 12px; width: 150px; padding: 8px; margin: 16px auto; display: block; background: var(--bg-input); border: 1px solid var(--border); color: var(--text-main); border-radius: 8px;">
+      <div class="modal-buttons" style="margin-top: 16px; display: flex; gap: 8px;">
+        <button class="btn btn-secondary" onclick="closePinModal()" style="flex: 1; padding: 10px;">Ακύρωση</button>
+        <button class="btn btn-primary" id="btn-pin-submit" onclick="submitPinSetup()" style="flex: 1; padding: 10px;">Επόμενο</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lock Screen Overlay -->
+  <div id="lock-screen" class="lock-screen-overlay">
+    <div class="lock-header">
+      <div class="lock-logo"><i class="fa-solid fa-shield-halved"></i></div>
+      <div class="lock-title" id="lock-title">Εισάγετε PIN</div>
+      <div class="lock-subtitle" id="lock-subtitle">Κλειδωμένο</div>
+    </div>
+    <div class="lock-dots">
+      <div class="lock-dot" id="dot-0"></div>
+      <div class="lock-dot" id="dot-1"></div>
+      <div class="lock-dot" id="dot-2"></div>
+      <div class="lock-dot" id="dot-3"></div>
+    </div>
+    <div class="lock-keypad">
+      <div class="keypad-btn" onclick="pressKey(1)">1</div>
+      <div class="keypad-btn" onclick="pressKey(2)">2</div>
+      <div class="keypad-btn" onclick="pressKey(3)">3</div>
+      <div class="keypad-btn" onclick="pressKey(4)">4</div>
+      <div class="keypad-btn" onclick="pressKey(5)">5</div>
+      <div class="keypad-btn" onclick="pressKey(6)">6</div>
+      <div class="keypad-btn" onclick="pressKey(7)">7</div>
+      <div class="keypad-btn" onclick="pressKey(8)">8</div>
+      <div class="keypad-btn" onclick="pressKey(9)">9</div>
+      <div class="keypad-btn action" id="btn-biometric" onclick="triggerBiometricAuth()"><i class="fa-solid fa-fingerprint"></i></div>
+      <div class="keypad-btn" onclick="pressKey(0)">0</div>
+      <div class="keypad-btn action" onclick="pressBackspace()"><i class="fa-solid fa-backspace"></i></div>
+    </div>
+  </div>
+
+  <!-- MODAL: CUSTOM CATEGORY PICKER -->
+  <div id="category-picker-modal" class="modal-overlay" style="z-index: 10000;">
+    <div class="modal-content" style="max-height: 90vh; display: flex; flex-direction: column;">
+      <div class="modal-header">
+        <h3 class="modal-title">Επιλογή Κατηγορίας</h3>
+        <span class="modal-close" onclick="closeModal('category-picker-modal')">&times;</span>
+      </div>
+      <div class="modal-body" style="padding: 16px; flex: 1; overflow-y: auto;">
+        <div id="category-picker-grid" class="category-picker-grid">
+          <!-- Categories injected here -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CUSTOM SUBCATEGORY PICKER -->
+  <div id="subcategory-picker-modal" class="modal-overlay" style="z-index: 10000;">
+    <div class="modal-content" style="max-height: 90vh; display: flex; flex-direction: column;">
+      <div class="modal-header">
+        <h3 class="modal-title">Επιλογή Υποκατηγορίας</h3>
+        <span class="modal-close" onclick="closeModal('subcategory-picker-modal')">&times;</span>
+      </div>
+      <div class="modal-body" style="padding: 16px; flex: 1; overflow-y: auto;">
+        <div id="subcategory-picker-list" class="subcategory-list">
+          <!-- Subcategories injected here -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: PROFILE SETTINGS SHEET (iOS-STYLE) -->
+  <div id="profile-settings-modal" class="modal-overlay profile-sheet-overlay" onclick="handleProfileSheetOverlayClick(event)">
+    <div class="modal-content profile-sheet-content" id="profile-sheet-content">
+      <!-- Drag handle indicator at top -->
+      <div class="profile-sheet-handle"></div>
+      
+      <div class="profile-sheet-header">
+        <h3 class="profile-sheet-title">Προφίλ & Ρυθμίσεις</h3>
+        <span class="profile-sheet-close" onclick="closeProfileSheet()">&times;</span>
+      </div>
+      
+      <div class="profile-sheet-body">
+        <!-- Avatar Preview & Camera overlay for upload -->
+        <div class="profile-avatar-container">
+          <div id="profile-sheet-avatar-preview" class="profile-sheet-avatar"></div>
+          <div class="profile-avatar-edit-badge" onclick="triggerAvatarUpload()" title="Αλλαγή φωτογραφίας">
+            <i class="fa-solid fa-camera"></i>
+          </div>
+        </div>
+        
+        <!-- Nickname (editable inline) and Email -->
+        <div class="profile-info-section">
+          <div class="profile-name-edit-group">
+            <input type="text" id="profile-name-input" class="profile-name-input" placeholder="Το όνομά σας" value="" onblur="saveProfileName()" onkeydown="handleProfileNameKeydown(event)">
+            <i class="fa-solid fa-pen profile-name-edit-icon"></i>
+          </div>
+          <div id="profile-email-display" class="profile-email-display">—</div>
+        </div>
+        
+        <!-- Preset Avatar Selection -->
+        <div class="profile-presets-title">Επιλέξτε Avatar</div>
+        <div class="profile-presets-grid">
+          <div class="preset-avatar-option" data-preset="1" onclick="selectPresetAvatar(1)">
+            <div class="preset-avatar-inner preset-1"><i class="fa-solid fa-user"></i></div>
+          </div>
+          <div class="preset-avatar-option" data-preset="2" onclick="selectPresetAvatar(2)">
+            <div class="preset-avatar-inner preset-2"><i class="fa-solid fa-rocket"></i></div>
+          </div>
+          <div class="preset-avatar-option" data-preset="3" onclick="selectPresetAvatar(3)">
+            <div class="preset-avatar-inner preset-3"><i class="fa-solid fa-gem"></i></div>
+          </div>
+          <div class="preset-avatar-option" data-preset="4" onclick="selectPresetAvatar(4)">
+            <div class="preset-avatar-inner preset-4"><i class="fa-solid fa-cat"></i></div>
+          </div>
+          <div class="preset-avatar-option" data-preset="5" onclick="selectPresetAvatar(5)">
+            <div class="preset-avatar-inner preset-5"><i class="fa-solid fa-heart"></i></div>
+          </div>
+          <div class="preset-avatar-option" data-preset="6" onclick="selectPresetAvatar(6)">
+            <div class="preset-avatar-inner preset-6"><i class="fa-solid fa-crown"></i></div>
+          </div>
+          <div class="preset-avatar-option preset-custom-trigger" onclick="triggerAvatarUpload()" title="Μεταφόρτωση εικόνας">
+            <div class="preset-avatar-inner preset-custom-icon"><i class="fa-solid fa-upload"></i></div>
+          </div>
+        </div>
+        
+        <!-- Hidden file input for custom photo -->
+        <input type="file" id="profile-avatar-file-input" accept="image/*" style="display: none;" onchange="handleCustomAvatarUpload(event)">
+        
+        <!-- iOS Style Grouped Settings Rows -->
+        <div class="ios-settings-group">
+          <!-- 1. Partner status shortcut -->
+          <div class="ios-settings-row" onclick="openPartnerFromProfile()">
+            <div class="ios-row-left">
+              <div class="ios-row-icon icon-partner"><i class="fa-solid fa-user-group"></i></div>
+              <span class="ios-row-label">Κοινός Προϋπολογισμός</span>
+            </div>
+            <div class="ios-row-right">
+              <span id="profile-partner-status" class="ios-row-value">—</span>
+              <i class="fa-solid fa-chevron-right ios-row-arrow"></i>
+            </div>
+          </div>
+          
+          <!-- 2. Manual Cloud Sync -->
+          <div class="ios-settings-row" onclick="triggerProfileSync()">
+            <div class="ios-row-left">
+              <div class="ios-row-icon icon-sync"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+              <span class="ios-row-label">Συγχρονισμός Cloud</span>
+            </div>
+            <div class="ios-row-right">
+              <span id="profile-sync-status" class="ios-row-value">—</span>
+              <i class="fa-solid fa-arrows-rotate ios-row-arrow" id="profile-sync-spinner"></i>
+            </div>
+          </div>
+
+          <!-- 3. Export to Excel shortcut -->
+          <div class="ios-settings-row" onclick="triggerProfileExport()">
+            <div class="ios-row-left">
+              <div class="ios-row-icon icon-export"><i class="fa-solid fa-file-export"></i></div>
+              <span class="ios-row-label">Εξαγωγή Excel</span>
+            </div>
+            <div class="ios-row-right">
+              <i class="fa-solid fa-chevron-right ios-row-arrow"></i>
+            </div>
+          </div>
+
+          <!-- 4. Cycle Theme shortcut -->
+          <div class="ios-settings-row" onclick="cycleThemeFromProfile()">
+            <div class="ios-row-left">
+              <div class="ios-row-icon icon-theme"><i class="fa-solid fa-palette"></i></div>
+              <span class="ios-row-label">Θέμα Εμφάνισης</span>
+            </div>
+            <div class="ios-row-right">
+              <span id="profile-theme-status" class="ios-row-value">—</span>
+              <i class="fa-solid fa-chevron-right ios-row-arrow"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- Logout button -->
+        <button class="btn btn-secondary profile-logout-btn" onclick="handleProfileLogout()">
+          <i class="fa-solid fa-right-from-bracket" style="margin-right: 8px;"></i>Αποσύνδεση Λογαριασμού
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Core Application Scripts -->
+  <script src="app.js?v=128"></script>
+  
+  <!-- Register PWA Service Worker -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      const resetKey = 'sw_reset_v128';
+      if (!localStorage.getItem(resetKey)) {
+        localStorage.removeItem('offline_transactions');
+        localStorage.removeItem('offline_categories');
+        navigator.serviceWorker.getRegistrations().then(registrations => {
+          let promises = registrations.map(r => r.unregister());
+          if ('caches' in window) {
+            caches.keys().then(names => {
+              let cachePromises = names.map(name => caches.delete(name));
+              Promise.all([...promises, ...cachePromises]).then(() => {
+                localStorage.setItem(resetKey, 'true');
+                window.location.reload();
+              });
+            });
+          } else {
+            Promise.all(promises).then(() => {
+              localStorage.setItem(resetKey, 'true');
+              window.location.reload();
+            });
+          }
+        });
+      } else {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('sw.js').then(reg => {
+            console.log('Service Worker Registered successfully', reg.scope);
+            
+            // Check for service worker updates immediately on load
+            reg.update().catch(err => console.log('SW manual update check failed:', err));
+            
+            // Check for updates every time the user brings the app back to focus
+            document.addEventListener('visibilitychange', () => {
+              if (document.visibilityState === 'visible') {
+                reg.update().catch(err => console.log('SW visibility update check failed:', err));
+              }
+            });
+
+            // If a new service worker is installing, listen for when it activates to refresh the page
+            reg.addEventListener('updatefound', () => {
+              const newWorker = reg.installing;
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'activated') {
+                  window.location.reload();
+                }
+              });
+            });
+          }).catch(err => console.log('Service Worker Registration failed', err));
+        });
+
+        // Reload the page when the active service worker changes (new version takes control)
+        let refreshing = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (!refreshing) {
+            refreshing = true;
+            window.location.reload();
+          }
+        });
+      }
+    }
+  </script>
+
+  <!-- Premium Glassmorphic Auth Screen Overlay -->
+  <div id="auth-overlay" class="auth-overlay" style="display: none;">
+    <div class="auth-card">
+      <!-- Loading State Overlay for OAuth redirects -->
+      <div id="auth-loading-state" style="display: none; text-align: center; padding: 40px 20px;">
+        <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 3.5rem; color: #4361ee; margin-bottom: 25px;"></i>
+        <h3 style="margin-bottom: 12px; font-weight: 700; color: #fff; font-size: 1.5rem;" id="auth-loading-title" data-i18n="auth_loading_title">Σύνδεση σε εξέλιξη</h3>
+        <p style="color: rgba(255,255,255,0.7); font-size: 14.5px; line-height: 1.5; max-width: 280px; margin: 0 auto; margin-bottom: 15px;" id="auth-loading-desc" data-i18n="auth_loading_desc">Παρακαλώ περιμένετε όσο ολοκληρώνεται η ταυτοποίηση με το λογαριασμό σας...</p>
+        <div id="auth-debug-logs" style="text-align: left; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 10px; font-family: monospace; font-size: 11px; color: #00ffcc; max-height: 120px; overflow-y: auto; margin-top: 15px; display: none;"></div>
+      </div>
+
+      <div id="auth-forms-container">
+        <!-- Language Selector -->
+        <div class="auth-lang-selector">
+          <button type="button" class="lang-pill active" id="auth-lang-el" onclick="applyLanguage('el')">🇬🇷 EL</button>
+          <button type="button" class="lang-pill" id="auth-lang-en" onclick="applyLanguage('en')">🇬🇧 EN</button>
+        </div>
+
+        <div class="auth-header">
+          <div class="auth-logo"><i class="fa-solid fa-wallet"></i></div>
+          <h2 class="auth-title">Budget Assistant</h2>
+          <p class="auth-subtitle" id="auth-subtitle" data-i18n="auth_welcome">Καλώς ορίσατε! Συνδεθείτε για συγχρονισμό</p>
+        </div>
+        
+        <!-- Tab selectors for Password / Magic Link / Google -->
+        <div class="auth-tabs">
+          <button type="button" class="auth-tab-btn active" id="tab-btn-password" onclick="switchAuthTab('password')" data-i18n="auth_tab_password">Κωδικός</button>
+          <button type="button" class="auth-tab-btn" id="tab-btn-magic" onclick="switchAuthTab('magic')" data-i18n="auth_tab_magic">Magic Link</button>
+          <button type="button" class="auth-tab-btn" id="tab-btn-google" onclick="switchAuthTab('google')" data-i18n="auth_tab_google">Google</button>
+        </div>
+
+        <!-- Password Auth Form -->
+        <form id="auth-password-form" class="auth-form-section active" onsubmit="handlePasswordAuth(event)">
+          <div class="auth-mode-switch">
+            <button type="button" class="auth-mode-btn active" id="btn-auth-mode-login" onclick="setAuthMode('login')" data-i18n="auth_mode_login">Σύνδεση</button>
+            <button type="button" class="auth-mode-btn" id="btn-auth-mode-signup" onclick="setAuthMode('signup')" data-i18n="auth_mode_signup">Εγγραφή</button>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="auth-email" data-i18n="auth_email_label">Email</label>
+            <input type="email" id="auth-email" class="form-input" placeholder="name@example.com" required autocomplete="username">
+          </div>
+          <div class="form-group" id="password-group">
+            <label class="form-label" for="auth-password" data-i18n="auth_password_label">Κωδικός</label>
+            <input type="password" id="auth-password" class="form-input" placeholder="••••••••" required autocomplete="current-password">
+          </div>
+          <button type="submit" class="btn btn-primary btn-block auth-submit-btn" id="auth-password-submit-btn" data-i18n="auth_submit_login">Είσοδος</button>
+        </form>
+
+        <!-- Magic Link Auth Form -->
+        <form id="auth-magic-form" class="auth-form-section" onsubmit="handleMagicAuth(event)" style="display: none;">
+          <p class="auth-desc" data-i18n="auth_magic_desc">Εισάγετε το email σας για να λάβετε έναν σύνδεσμο σύνδεσης (Magic Link) ή OTP στα εισερχόμενά σας.</p>
+          <div class="form-group">
+            <label class="form-label" for="auth-magic-email" data-i18n="auth_email_label">Email</label>
+            <input type="email" id="auth-magic-email" class="form-input" placeholder="name@example.com" required autocomplete="email">
+          </div>
+          <button type="submit" class="btn btn-primary btn-block auth-submit-btn" id="auth-magic-submit-btn" data-i18n="auth_magic_submit">Αποστολή Συνδέσμου</button>
+        </form>
+
+        <!-- Google Auth Form -->
+        <div id="auth-google-form" class="auth-form-section" style="display: none;">
+          <p class="auth-desc" data-i18n="auth_google_desc">Συνδεθείτε γρήγορα και με ασφάλεια χρησιμοποιώντας τον Google λογαριασμό σας.</p>
+          <button type="button" class="btn btn-google btn-block" onclick="handleGoogleAuth()">
+            <i class="fa-brands fa-google google-icon"></i> <span data-i18n="auth_google_submit">Σύνδεση με Google</span>
+          </button>
+        </div>
+
+        <!-- Error/Status Info Box -->
+        <div id="auth-status-message" class="auth-status-box" style="display: none;"></div>
+
+        <!-- Guest Mode Action -->
+        <div style="margin-top: 8px; border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 16px; text-align: center;">
+          <button type="button" class="btn btn-secondary btn-block" onclick="enterGuestMode()" style="font-size: 13.5px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px;" data-i18n="auth_btn_guest">
+            👤 Χρήση ως Επισκέπτης (Offline)
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
