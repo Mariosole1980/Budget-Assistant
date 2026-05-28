@@ -852,6 +852,11 @@ function initSupabaseAuth() {
         processingRedirect = false;
         if (loadingState) loadingState.style.display = 'none';
         if (formsContainer) formsContainer.style.display = 'block';
+      } else if (data.session && data.session.user) {
+        // Fallback for browsers where INITIAL_SESSION event may be delayed/missed
+        state.currentUser = data.session.user;
+        localStorage.setItem('cached_current_user', JSON.stringify(data.session.user));
+        updateHeaderSyncIcon('synced');
       }
     }
   }).catch(err => {
@@ -1279,7 +1284,26 @@ async function loadData() {
         }
       }
 
-      state.transactions = allTransactions;
+      // Preserve pending local transactions that failed to sync (offline fallback),
+      // so they are not lost when fresh cloud data overwrites local cache.
+      const pendingLocal = (() => {
+        try {
+          const cached = JSON.parse(localStorage.getItem('offline_transactions') || '[]');
+          const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+          return cached.filter(t => {
+            if (!t || typeof t !== 'object') return false;
+            if (!t.id) return true;
+            if (String(t.id).startsWith('local_')) return true;
+            if (t.user_id === null || t.user_id === undefined) return true;
+            return !uuidRegex.test(String(t.id));
+          });
+        } catch (_) {
+          return [];
+        }
+      })();
+
+      const mergedTransactions = [...allTransactions, ...pendingLocal];
+      state.transactions = mergedTransactions;
       state.categories = categories;
       state.accounts = accounts;
       
@@ -1290,6 +1314,11 @@ async function loadData() {
       localStorage.setItem('offline_categories', JSON.stringify(state.categories));
       
       updateHeaderSyncIcon('synced');
+
+      // Try to flush pending local items in background without blocking UI.
+      if (pendingLocal.length > 0) {
+        syncLocalTransactionsToCloud(userId, { silent: true }).catch(() => {});
+      }
     } catch (err) {
       console.error('Supabase fetch failed, falling back to offline cache:', err);
       // Load from cache and show offline state (not error) so user knows data is still visible
@@ -1909,34 +1938,30 @@ function renderAccountsTab() {
     return acc.name;
   };
 
-  const icons = { cash: '💵', bank: '🏦', card: '💳', investment: '📈' };
+  const icons = { cash: '💵', bank: '🏦', card: '💳' };
 
   // Payment method breakdown (expenses by payment method: card vs cash)
   // Compute totals per account type for expense transactions
   const accountTypeByName = {};
   state.accounts.forEach(a => { accountTypeByName[a.name] = a.type; });
-  const paymentTotals = { card: 0, cash: 0, bank: 0, other: 0 };
+  const paymentTotals = { card: 0, cash: 0 };
   activeTrans.forEach(t => {
     if (t.type !== 'expense') return;
-    const accType = accountTypeByName[t.account_from] || 'other';
-    paymentTotals[accType] = (paymentTotals[accType] || 0) + (parseFloat(t.amount) || 0);
+    const accType = accountTypeByName[t.account_from];
+    if (accType !== 'card' && accType !== 'cash') return;
+    paymentTotals[accType] += (parseFloat(t.amount) || 0);
   });
 
   // Inject a small summary at the top of the liabilities list showing Card vs Cash totals
   if (liabEl) {
     const pmSummary = document.createElement('div');
     pmSummary.style.display = 'flex';
-    pmSummary.style.justifyContent = 'space-between';
+    pmSummary.style.justifyContent = 'flex-start';
     pmSummary.style.alignItems = 'center';
     pmSummary.style.marginBottom = '8px';
     pmSummary.style.fontSize = '13px';
     pmSummary.innerHTML = `
       <div style="font-weight:600; color:var(--text-secondary);">${state.lang === 'el' ? 'Κατανομή Πληρωμών' : 'Payment Breakdown'}</div>
-      <div style="font-weight:600; color:var(--text-primary);">
-        ${state.lang === 'el' ? 'Κάρτα' : 'Card'} ${getCurrencySymbol()} ${formatCurrency(paymentTotals.card || 0)}
-        &nbsp;&nbsp;|&nbsp;&nbsp;
-        ${state.lang === 'el' ? 'Μετρητά' : 'Cash'} ${getCurrencySymbol()} ${formatCurrency(paymentTotals.cash || 0)}
-      </div>
     `;
     liabEl.appendChild(pmSummary);
   }
@@ -1992,9 +2017,9 @@ function renderAccountsTab() {
     if (assetsEl) assetsEl.appendChild(row);
   });
 
-  // 5. Render Expenses section (Cash, Bank Account & Cards)
+  // 5. Render Expenses section (Cash & Cards only)
   state.accounts.forEach(acc => {
-    if (acc.type !== 'cash' && acc.type !== 'bank' && acc.type !== 'card') return;
+    if (acc.type !== 'cash' && acc.type !== 'card') return;
 
     // Calculate expenses and date range for this account
     let accExpense = 0;
@@ -5922,7 +5947,8 @@ function showAuthOverlay() {
   }
 }
 
-async function syncLocalTransactionsToCloud(userId) {
+async function syncLocalTransactionsToCloud(userId, options = {}) {
+  const silent = !!options.silent;
   const transStr = localStorage.getItem('offline_transactions');
   if (!transStr) return;
   
@@ -5976,7 +6002,9 @@ async function syncLocalTransactionsToCloud(userId) {
         const cleanOffline = allTrans.filter(t => !localTrans.includes(t));
         localStorage.setItem('offline_transactions', JSON.stringify(cleanOffline));
         
-        alert(`🎉 ${localTrans.length} τοπικές κινήσεις που είχατε καταγράψει μεταφέρθηκαν αυτόματα στον λογαριασμό σας!`);
+        if (!silent) {
+          alert(`🎉 ${localTrans.length} τοπικές κινήσεις που είχατε καταγράψει μεταφέρθηκαν αυτόματα στον λογαριασμό σας!`);
+        }
       }
     }
   } catch (err) {

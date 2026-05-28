@@ -226,7 +226,7 @@
         <div class="accounts-overview-card">
           <!-- Overall History Section -->
           <div id="accounts-overall-history" style="font-size: 11px; line-height: 1.5; color: var(--text-secondary); margin-bottom: 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 8px;">
-            <div style="font-size: 10px; color: var(--text-muted); font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;" data-i18n="overall_history_title">Συνολική Ιστορική Αναδρομή</div>
+            <div class="overall-history-title" data-i18n="overall_history_title">Ιστορικό</div>
             <div style="display: flex; justify-content: space-between; align-items: center;">
               <span><span data-i18n="overall_history_period_label">Περίοδος:</span> <strong id="overall-history-dates" style="color: var(--text-primary); font-weight: 500;">-</strong></span>
               <span id="overall-history-math" style="font-weight: 600; color: var(--blue-positive); display: none;">-</span>
@@ -256,12 +256,12 @@
         </div>
 
         <div>
-          <div class="account-section-title" data-i18n="accounts_header_title">Λογαριασμοί</div>
+          <div class="account-section-title income-section-title" data-i18n="accounts_header_title">Λογαριασμοί</div>
           <div id="accounts-assets-list">
             <!-- Dynamically populated assets (Cash, Bank) -->
           </div>
 
-          <div class="account-section-title" data-i18n="cards_header_title">Κάρτες</div>
+          <div class="account-section-title expense-section-title" data-i18n="cards_header_title">Έξοδα</div>
           <div id="accounts-liabilities-list">
             <!-- Dynamically populated liabilities (Cards) -->
           </div>
@@ -394,7 +394,7 @@
           <span class="settings-item-value"><i class="fa-solid fa-arrow-up-right-from-square" style="font-size:12px;"></i></span>
         </div>
         <div class="settings-list-item">
-          <span class="settings-item-label" style="color: var(--text-muted); font-size: 12px;">Έκδοση 1.0.0 (build v128)</span>
+          <span class="settings-item-label" style="color: var(--text-muted); font-size: 12px;">Έκδοση 1.0.0 (build v131)</span>
           <span class="settings-item-value" style="font-size: 12px;">Budget Assistant</span>
         </div>
       </section>
@@ -1035,12 +1035,12 @@
   </div>
 
   <!-- Core Application Scripts -->
-  <script src="app.js?v=128"></script>
+  <script src="app.js?v=131"></script>
   
   <!-- Register PWA Service Worker -->
   <script>
     if ('serviceWorker' in navigator) {
-      const resetKey = 'sw_reset_v128';
+      const resetKey = 'sw_reset_v131';
       if (!localStorage.getItem(resetKey)) {
         localStorage.removeItem('offline_transactions');
         localStorage.removeItem('offline_categories');
@@ -1063,7 +1063,7 @@
         });
       } else {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('sw.js').then(reg => {
+          navigator.serviceWorker.register('sw.js?v=131', { updateViaCache: 'none' }).then(reg => {
             console.log('Service Worker Registered successfully', reg.scope);
             
             // Check for service worker updates immediately on load
@@ -1085,6 +1085,11 @@
                 }
               });
             });
+
+            // If an update is waiting, activate it immediately
+            if (reg.waiting) {
+              reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+            }
           }).catch(err => console.log('Service Worker Registration failed', err));
         });
 

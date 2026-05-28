@@ -953,6 +953,34 @@ button:active,
   letter-spacing: 0.5px;
 }
 
+.overall-history-title {
+  font-size: 12px;
+  color: var(--text-primary);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 6px;
+}
+
+.income-section-title,
+.expense-section-title {
+  margin: 10px 0 0;
+  border-radius: 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  border-left: none;
+  border-right: none;
+  background: var(--bg-card);
+}
+
+.income-section-title {
+  color: var(--blue-positive);
+}
+
+.expense-section-title {
+  color: var(--red-negative);
+}
+
 .account-row {
   background-color: var(--bg-card);
   padding: 14px 16px;
