@@ -3264,7 +3264,10 @@ function updateCategoryDropdowns(type = 'expense') {
   const currentCategory = document.getElementById('trans-category').value;
   let categoryExists = false;
   
-  state.categories.filter(c => c.type === type).forEach(c => {
+  // Dynamic categories from state (filter by type, exclude hidden)
+  const visibleCategories = state.categories.filter(c => c.type === type && !c.hidden);
+  
+  visibleCategories.forEach(c => {
     const div = document.createElement('div');
     div.className = 'category-picker-item';
     if (c.name === currentCategory) {
@@ -3275,6 +3278,13 @@ function updateCategoryDropdowns(type = 'expense') {
     div.onclick = () => selectCategory(c.name, c.icon, c.color, true);
     grid.appendChild(div);
   });
+  
+  // "+" New Category box at the end of the grid
+  const addBox = document.createElement('div');
+  addBox.className = 'category-picker-item category-picker-add';
+  addBox.innerHTML = `<span class="category-picker-icon" style="font-size:28px;color:var(--accent);">+</span><span class="category-picker-name">${state.lang === 'el' ? 'Νέα Κατηγορία' : 'New Category'}</span>`;
+  addBox.onclick = () => openNewCategoryDialog(type);
+  grid.appendChild(addBox);
   
   if (!categoryExists && currentCategory !== '') {
     document.getElementById('trans-category').value = '';
@@ -3340,7 +3350,150 @@ function openCategoryModal() {
   if (form && form.getAttribute('data-readonly') === 'true') return;
   const currentType = document.querySelector('.type-tab-btn.active').getAttribute('data-type');
   updateCategoryDropdowns(currentType);
+  closeNewCategoryDialog(); // Reset dialog state
   openModal('category-picker-modal');
+}
+
+// New Category inline dialog state
+let newCategoryDialogType = 'expense';
+let newCategorySelectedEmoji = '💸';
+
+const EMOJI_OPTIONS = ['💰','💸','🏡','🛒','🚗','❤️','🎉','🧾','🏋️','👕','🚇','💻','🎬','🎓','🧩','🤑','🎁','💼','💶','🏛️','📦','🏅','👨','💵','🔧','⭐','🔥','🎯','📱','☕','🎵','✈️','🏖️','📚','🐶','🌱','💡','🗂️','🛠️','🎮'];
+
+function openNewCategoryDialog(type) {
+  newCategoryDialogType = type;
+  newCategorySelectedEmoji = type === 'income' ? '💰' : '💸';
+  
+  const dialog = document.getElementById('new-category-inline-dialog');
+  const nameInput = document.getElementById('new-cat-name-input');
+  const titleEl = document.getElementById('new-cat-dialog-title');
+  
+  if (!dialog || !nameInput) return;
+  
+  // Update title based on type
+  if (titleEl) {
+    titleEl.textContent = type === 'income' 
+      ? (state.lang === 'el' ? 'Νέα Κατηγορία Εσόδου' : 'New Income Category')
+      : (state.lang === 'el' ? 'Νέα Κατηγορία Εξόδου' : 'New Expense Category');
+  }
+  
+  nameInput.value = '';
+  nameInput.placeholder = state.lang === 'el' ? 'Όνομα κατηγορίας' : 'Category name';
+  
+  // Render emoji grid
+  const emojiGrid = document.getElementById('new-cat-emoji-grid');
+  if (emojiGrid) {
+    emojiGrid.innerHTML = '';
+    EMOJI_OPTIONS.forEach(emoji => {
+      const btn = document.createElement('span');
+      btn.textContent = emoji;
+      btn.style.cssText = `font-size:22px; padding:6px 8px; cursor:pointer; border-radius:8px; transition:all 0.15s; border:2px solid ${emoji === newCategorySelectedEmoji ? 'var(--accent)' : 'transparent'}; background:${emoji === newCategorySelectedEmoji ? 'var(--accent-light)' : 'transparent'};`;
+      btn.onclick = () => {
+        newCategorySelectedEmoji = emoji;
+        emojiGrid.querySelectorAll('span').forEach(s => {
+          s.style.borderColor = 'transparent';
+          s.style.background = 'transparent';
+        });
+        btn.style.borderColor = 'var(--accent)';
+        btn.style.background = 'var(--accent-light)';
+      };
+      emojiGrid.appendChild(btn);
+    });
+  }
+  
+  // Update save button text
+  const saveBtn = dialog.querySelector('.btn-primary');
+  if (saveBtn) {
+    saveBtn.textContent = state.lang === 'el' ? 'Αποθήκευση' : 'Save';
+  }
+  const cancelBtn = dialog.querySelector('.btn-secondary');
+  if (cancelBtn) {
+    cancelBtn.textContent = state.lang === 'el' ? 'Άκυρο' : 'Cancel';
+  }
+  
+  dialog.style.display = 'block';
+  setTimeout(() => nameInput.focus(), 100);
+}
+
+function closeNewCategoryDialog() {
+  const dialog = document.getElementById('new-category-inline-dialog');
+  if (dialog) dialog.style.display = 'none';
+  newCategoryDialogType = 'expense';
+  newCategorySelectedEmoji = '💸';
+}
+
+function saveNewCategoryFromPicker() {
+  const nameInput = document.getElementById('new-cat-name-input');
+  const name = nameInput ? nameInput.value.trim() : '';
+  
+  if (!name) {
+    alert(state.lang === 'el' ? 'Παρακαλώ εισάγετε όνομα κατηγορίας' : 'Please enter a category name');
+    return;
+  }
+  
+  // Check for duplicate
+  const exists = state.categories.find(c => 
+    c.name && c.name.toUpperCase() === name.toUpperCase()
+  );
+  if (exists) {
+    alert(state.lang === 'el' ? 'Αυτή η κατηγορία υπάρχει ήδη' : 'This category already exists');
+    return;
+  }
+  
+  // Create new category
+  const newCategory = {
+    name: name,
+    type: newCategoryDialogType,
+    icon: newCategorySelectedEmoji,
+    color: getRandomColor(),
+    user_id: state.currentUser ? state.currentUser.id : null
+  };
+  
+  state.categories.push(newCategory);
+  saveCategoriesToStorage();
+  
+  // Sync to cloud if enabled
+  if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
+    try {
+      state.supabaseClient
+        .from('categories')
+        .upsert({
+          user_id: state.currentUser.id,
+          name: newCategory.name,
+          type: newCategory.type,
+          icon: newCategory.icon,
+          color: newCategory.color
+        }, { onConflict: 'user_id,name' })
+        .then(({ error }) => {
+          if (error) console.warn('Cloud category sync warning:', error);
+        });
+    } catch (e) {
+      console.warn('Cloud category sync failed:', e);
+    }
+  }
+  
+  // Close dialog
+  closeNewCategoryDialog();
+  
+  // Refresh grid
+  updateCategoryDropdowns(newCategoryDialogType);
+  
+  // Auto-select the new category
+  document.getElementById('trans-category').value = newCategory.name;
+  document.querySelectorAll('.category-picker-item').forEach(item => {
+    item.classList.remove('selected');
+    const nameEl = item.querySelector('.category-picker-name');
+    if (nameEl && nameEl.textContent === name) {
+      item.classList.add('selected');
+    }
+  });
+  
+  updateCategoryDisplay();
+  updateSubcategorySuggestions();
+  updateSubcategoryRowVisibility();
+  
+  // Close the category picker modal
+  closeModal('category-picker-modal');
 }
 
 function openSubcategoryModal() {

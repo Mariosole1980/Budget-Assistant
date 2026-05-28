@@ -2555,6 +2555,27 @@ body.theme-ocean {
   line-height: 1.2;
 }
 
+/* "+" New Category box */
+.category-picker-add {
+  border-style: dashed;
+  border-color: var(--accent);
+  opacity: 0.85;
+}
+.category-picker-add:active {
+  opacity: 1;
+  background-color: var(--accent-light);
+}
+
+/* New Category Inline Dialog */
+#new-category-inline-dialog .form-input {
+  width: 100%;
+  box-sizing: border-box;
+}
+#new-cat-emoji-grid span:hover {
+  background: var(--accent-light) !important;
+  border-color: var(--accent) !important;
+}
+
 /* Subcategory List */
 .subcategory-list {
   display: flex;

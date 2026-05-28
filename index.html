@@ -922,6 +922,23 @@
         <div id="category-picker-grid" class="category-picker-grid">
           <!-- Categories injected here -->
         </div>
+        <!-- Inline New Category Dialog (hidden by default) -->
+        <div id="new-category-inline-dialog" style="display:none; margin-top:12px; padding:16px; background:var(--card-bg2,rgba(255,255,255,0.04)); border:1px solid var(--border); border-radius:12px;">
+          <div style="font-size:13px; font-weight:700; margin-bottom:12px; color:var(--text-primary);">
+            <span id="new-cat-dialog-title">Νέα Κατηγορία</span>
+          </div>
+          <input type="text" id="new-cat-name-input" class="form-input" placeholder="Όνομα κατηγορίας" style="margin-bottom:10px; font-size:13px; padding:10px; border-radius:8px;">
+          <div style="margin-bottom:10px;">
+            <label style="font-size:11px; color:var(--text-muted); font-weight:600; display:block; margin-bottom:6px;">Εικονίδιο</label>
+            <div id="new-cat-emoji-grid" style="display:flex; flex-wrap:wrap; gap:6px;">
+              <!-- Emoji options injected by JS -->
+            </div>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button onclick="saveNewCategoryFromPicker()" class="btn btn-primary" style="flex:1; padding:10px; font-size:13px; font-weight:700; border-radius:8px;">Αποθήκευση</button>
+            <button onclick="closeNewCategoryDialog()" class="btn btn-secondary" style="padding:10px 16px; font-size:13px; border-radius:8px;">Άκυρο</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
