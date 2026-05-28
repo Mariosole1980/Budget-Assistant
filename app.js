@@ -301,7 +301,12 @@ const TRANSLATIONS = {
     theme_light: 'Classic Light',
     theme_emerald: 'Emerald Forest',
     theme_ocean: 'Ocean Breeze',
-    theme_pink: 'Blossom Pink'
+    theme_pink: 'Blossom Pink',
+    logged_in_as: 'Συνδεδεμένος ως',
+    force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
+    section_legal: 'Νομικά',
+    app_version: 'Έκδοση 1.0.0',
+    fab_add_transaction: 'Προσθήκη Συναλλαγής'
   },
   en: {
     nav_trans: 'Transactions',
@@ -468,7 +473,12 @@ const TRANSLATIONS = {
     theme_light: 'Classic Light',
     theme_emerald: 'Emerald Forest',
     theme_ocean: 'Ocean Breeze',
-    theme_pink: 'Blossom Pink'
+    theme_pink: 'Blossom Pink',
+    logged_in_as: 'Logged in as',
+    force_update: 'Force Update (Clear Cache)',
+    section_legal: 'Legal',
+    app_version: 'Version 1.0.0',
+    fab_add_transaction: 'Add Transaction'
   }
 };
 
@@ -514,7 +524,6 @@ function applyLanguage(lang) {
       if (el.children.length === 0) {
         el.textContent = translation;
       } else {
-        // Look for text node to replace or update safely
         let updated = false;
         for (let i = 0; i < el.childNodes.length; i++) {
           const node = el.childNodes[i];
@@ -529,6 +538,13 @@ function applyLanguage(lang) {
         }
       }
     }
+  });
+
+  // Update elements with data-i18n-title
+  document.querySelectorAll('[data-i18n-title]').forEach(el => {
+    const key = el.getAttribute('data-i18n-title');
+    const translation = TRANSLATIONS[lang][key];
+    if (translation) el.title = translation;
   });
 
   // Update Language Settings UI value
