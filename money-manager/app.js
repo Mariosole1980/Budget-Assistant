@@ -1723,7 +1723,7 @@ function renderTransactionsTab() {
         <div class="trans-left">
           <div class="trans-category-container">
             <div class="trans-cat-icon">${catInfo.icon || '💰'}</div>
-            <div class="trans-cat-name">${stripLeadingEmoji(catInfo.name) || ''}</div>
+            <div class="trans-cat-name">${getCategoryDisplayName(catInfo.name) || ''}</div>
             ${t.subcategory ? `<div class="trans-sub-name">${t.subcategory}</div>` : ''}
           </div>
           <div class="trans-details">
@@ -1759,6 +1759,158 @@ function getCategoryInfo(categoryName, transType) {
   if (cleaned2) return cleaned2;
 
   return { icon: transType === 'income' ? '💰' : '💸', name: cleaned || categoryName, color: '#78909c' };
+}
+
+// Get category display name - maps Greek categories statically, preserves custom categories
+function getCategoryDisplayName(categoryName) {
+  if (!categoryName) return '';
+  
+  // Static Greek category mappings
+  const greekMappings = {
+    '🏡 ΣΠΙΤΙ': '🏡 ΣΠΙΤΙ',
+    '🏠ΓΡΑΦΕΙΟ Β2': '🏠ΓΡΑΦΕΙΟ Β2',
+    '🚗 ΑΥΤΟΚΙΝΗΤΟ': '🚗 ΑΥΤΟΚΙΝΗΤΟ',
+    '🛒 ΔΙΑΤΡΟΦΗ': '🛒 ΔΙΑΤΡΟΦΗ',
+    '🏋️ΓΥΜΝΑΣΤΗΡΙΟ': '🏋️ΓΥΜΝΑΣΤΗΡΙΟ',
+    '🎉ΔΙΑΣΚΕΔΑΣΗ/ΕΞΟΔΟΙ': '🎉ΔΙΑΣΚΕΔΑΣΗ/ΕΞΟΔΟΙ',
+    '🧾ΦΟΡΟΙ/ΛΟΓΙΣΤΗΣ': '🧾ΦΟΡΟΙ/ΛΟΓΙΣΤΗΣ',
+    '👕 ΠΡΟΣΩΠΙΚΗ ΦΡΟΝΤΙΔΑ': '👕 ΠΡΟΣΩΠΙΚΗ ΦΡΟΝΤΙΔΑ',
+    '🚇 ΜΕΤΑΚΙΝΗΣΗ': '🚇 ΜΕΤΑΚΙΝΗΣΗ',
+    '💻 ΤΕΧΝΟΛΟΓΙΑ': '💻 ΤΕΧΝΟΛΟΓΙΑ',
+    '💼 ΜΙΣΘΟΣ': '💼 ΜΙΣΘΟΣ',
+    '🧩ΔΙΑΦΟΡΑ ΕΞΟΔΑ': '🧩ΔΙΑΦΟΡΑ ΕΞΟΔΑ',
+    '🎬 ΣΥΝΔΡΟΜΕΣ': '🎬 ΣΥΝΔΡΟΜΕΣ',
+    '❤️ ΥΓΕΙΑ': '❤️ ΥΓΕΙΑ',
+    '🤑 ΕΞΤΡΑ ΕΙΣΟΔΗΜΑΤΑ': '🤑 ΕΞΤΡΑ ΕΙΣΟΔΗΜΑΤΑ',
+    '🎁ΔΩΡΑ/ΕΣΟΔΑ': '🎁ΔΩΡΑ/ΕΣΟΔΑ',
+    'ΕΠΙΣΤΡΟΦΕΣ': 'ΕΠΙΣΤΡΟΦΕΣ',
+    'ΠΩΛΗΣΕΙΣ': 'ΠΩΛΗΣΕΙΣ',
+    'BONUS': 'BONUS',
+    'ΑΛΛΑ ΕΣΟΔΑ': 'ΑΛΛΑ ΕΣΟΔΑ',
+    '🎓 ΕΚΠΑΙΔΕΥΣΗ': '🎓 ΕΚΠΑΙΔΕΥΣΗ',
+    '💶  ΕΝΟΙΚΙΟ Β2 (Έσοδο)': '💶  ΕΝΟΙΚΙΟ Β2 (Έσοδο)',
+    '🏛️ΜΕΡΙΔΙΟ ΔΟΣΗΣ ΔΑΝΕΙΟΥ (ΓΟΝΕΙΣ)': '🏛️ΜΕΡΙΔΙΟ ΔΟΣΗΣ ΔΑΝΕΙΟΥ (ΓΟΝΕΙΣ)'
+  };
+  
+  // Check if it's a known Greek category
+  if (greekMappings[categoryName]) {
+    return greekMappings[categoryName];
+  }
+  
+  // For custom categories, return as-is (preserve user input)
+  return categoryName;
+}
+
+// Category Manager Functions
+function openCategoryManagerModal() {
+  openModal('category-manager-modal');
+  renderCategoryManagerList();
+}
+
+function renderCategoryManagerList() {
+  const container = document.getElementById('category-manager-list');
+  if (!container) return;
+  
+  container.innerHTML = '';
+  
+  // Combine default categories with custom categories
+  const allCategories = [...DEFAULT_CATEGORIES];
+  
+  // Add custom categories from state
+  state.categories.forEach(cat => {
+    if (!DEFAULT_CATEGORIES.find(dc => dc.name === cat.name)) {
+      allCategories.push(cat);
+    }
+  });
+  
+  allCategories.forEach(cat => {
+    const item = document.createElement('div');
+    item.className = 'settings-list-item';
+    item.style.padding = '12px';
+    
+    const isCustom = !DEFAULT_CATEGORIES.find(dc => dc.name === cat.name);
+    
+    item.innerHTML = `
+      <div style="display: flex; align-items: center; gap: 10px; flex: 1;">
+        <span style="font-size: 20px;">${cat.icon}</span>
+        <div style="display: flex; flex-direction: column;">
+          <span style="font-size: 13px; font-weight: 600; color: var(--text-main);">${getCategoryDisplayName(cat.name)}</span>
+          <span style="font-size: 10px; color: var(--text-muted);">${cat.type === 'income' ? 'Έσοδο' : 'Έξοδο'}</span>
+        </div>
+      </div>
+      ${isCustom ? `
+        <div style="display: flex; gap: 8px;">
+          <button onclick="toggleCategoryHidden('${cat.name}')" class="icon-btn" style="font-size: 14px;" title="${cat.hidden ? 'Εμφάνιση' : 'Απόκρυψη'}">
+            <i class="fa-solid ${cat.hidden ? 'fa-eye-slash' : 'fa-eye'}"></i>
+          </button>
+          <button onclick="deleteCustomCategory('${cat.name}')" class="icon-btn" style="font-size: 14px; color: var(--accent);" title="Διαγραφή">
+            <i class="fa-solid fa-trash"></i>
+          </button>
+        </div>
+      ` : ''}
+    `;
+    
+    container.appendChild(item);
+  });
+}
+
+function toggleCategoryHidden(categoryName) {
+  const cat = state.categories.find(c => c.name === categoryName);
+  if (cat) {
+    cat.hidden = !cat.hidden;
+    saveCategoriesToStorage();
+    renderCategoryManagerList();
+    updateUI();
+  }
+}
+
+function deleteCustomCategory(categoryName) {
+  if (!confirm(state.lang === 'el' ? 'Είστε σίγουρος ότι θέλετε να διαγράψετε αυτή την κατηγορία;' : 'Are you sure you want to delete this category?')) {
+    return;
+  }
+  
+  state.categories = state.categories.filter(c => c.name !== categoryName);
+  saveCategoriesToStorage();
+  renderCategoryManagerList();
+  updateUI();
+}
+
+function addNewCustomCategory() {
+  const nameInput = document.getElementById('new-category-name');
+  const typeSelect = document.getElementById('new-category-type');
+  
+  const name = nameInput.value.trim();
+  const type = typeSelect.value;
+  
+  if (!name) {
+    alert(state.lang === 'el' ? 'Παρακαλώ εισάγετε όνομα κατηγορίας' : 'Please enter a category name');
+    return;
+  }
+  
+  // Check if category already exists
+  if (state.categories.find(c => c.name === name) || DEFAULT_CATEGORIES.find(c => c.name === name)) {
+    alert(state.lang === 'el' ? 'Αυτή η κατηγορία υπάρχει ήδη' : 'This category already exists');
+    return;
+  }
+  
+  // Create new category with default icon and color
+  const newCategory = {
+    name: name,
+    type: type,
+    icon: type === 'income' ? '💰' : '💸',
+    color: type === 'income' ? '#4caf50' : '#e05e55'
+  };
+  
+  state.categories.push(newCategory);
+  saveCategoriesToStorage();
+  
+  nameInput.value = '';
+  renderCategoryManagerList();
+  updateUI();
+}
+
+function saveCategoriesToStorage() {
+  localStorage.setItem('offline_categories', JSON.stringify(state.categories));
 }
 
 // ============================================================
@@ -1942,7 +2094,7 @@ function renderStatsTab() {
       <div class="stats-row-left">
         <span class="stats-pct-badge ${isIncome ? 'income' : ''}">${Math.round(item.percentage)}%</span>
         <span class="stats-cat-icon">${item.icon}</span>
-        <span class="stats-category-name">${stripLeadingEmoji(item.name)}</span>
+        <span class="stats-category-name">${getCategoryDisplayName(item.name)}</span>
       </div>
       <div class="stats-row-right">${getCurrencySymbol()} ${formatCurrency(item.amount)}</div>`;
     listContainer.appendChild(row);
@@ -1972,7 +2124,7 @@ function renderChart(dataList) {
   statsChartInstance = new Chart(ctx, {
     type: 'doughnut',
     data: {
-      labels: dataList.map(d => `${d.icon} ${stripLeadingEmoji(d.name)}`),
+      labels: dataList.map(d => `${d.icon} ${getCategoryDisplayName(d.name)}`),
       datasets: [{
         data: dataList.map(d => d.amount),
         backgroundColor: bgColors,
@@ -3298,6 +3450,27 @@ function updateHeaderSyncIcon(state_) {
   const btn = document.getElementById('header-sync-icon');
   const labels = { offline:'Τοπική αποθήκευση', syncing:'Συγχρονισμός...', synced:'Συγχρονισμένο ✅', error:'Σφάλμα συγχρονισμού ⚠️' };
   if (btn) btn.title = labels[state_] || 'Συγχρονισμός';
+  
+  // Update sync status text in settings
+  const syncStatusEl = document.getElementById('val_sync_status');
+  if (syncStatusEl) {
+    const statusLabels = { 
+      offline:'Τοπική Αποθήκευση', 
+      syncing:'Συγχρονισμός...', 
+      synced:'Ενεργός', 
+      error:'Σφάλμα' 
+    };
+    syncStatusEl.textContent = statusLabels[state_] || 'Τοπική Αποθήκευση';
+    
+    // Update color based on status
+    if (state_ === 'synced') {
+      syncStatusEl.style.color = '#4caf50'; // Green for active
+    } else if (state_ === 'error') {
+      syncStatusEl.style.color = '#ef5350'; // Red for error
+    } else {
+      syncStatusEl.style.color = 'var(--text-secondary)';
+    }
+  }
 }
 
 // Excel: Date | Account | Category | Subcategory | Note | EUR | Income/Expense | Description | Amount
@@ -3618,7 +3791,8 @@ async function processExcelImport() {
       let matchedCat = state.categories.find(c =>
         c.name && c.name.toUpperCase() === categoryName.toUpperCase()
       );
-      if (!matchedCat && catInfo) {
+      if (!matchedCat) {
+        // Create new category with proper icon and color
         const newCat = {
           name: categoryName,
           type: catInfo.type || type,
@@ -3629,6 +3803,7 @@ async function processExcelImport() {
         state.categories.push(newCat);
         newCategories.push(newCat);
         localStorage.setItem('offline_categories', JSON.stringify(state.categories));
+        matchedCat = newCat;
       }
 
       // 5. Subcategory
@@ -4441,7 +4616,7 @@ function renderGroupedTransactions(transactions, container) {
         <div class="trans-left">
           <div class="trans-category-container">
             <div class="trans-cat-icon">${catInfo.icon || '💰'}</div>
-            <div class="trans-cat-name">${stripLeadingEmoji(catInfo.name) || ''}</div>
+            <div class="trans-cat-name">${getCategoryDisplayName(catInfo.name) || ''}</div>
             ${t.subcategory ? `<div class="trans-sub-name">${t.subcategory}</div>` : ''}
           </div>
           <div class="trans-details">
@@ -5007,7 +5182,7 @@ function initSwipeToBack() {
           ensureHistoryPushed();
         }
 
-        // Render the new tab
+        // Render the new tab with deferred heavy rendering to prevent flicker
         if (prevTabName === 'trans') {
           const today = new Date();
           state.selectedMonth = today.getMonth();
@@ -5015,8 +5190,14 @@ function initSwipeToBack() {
           state.statsDate.setFullYear(state.selectedYear);
           state.statsDate.setMonth(state.selectedMonth);
           updateUI();
-        } else if (prevTabName === 'stats') renderStatsTab();
-        else if (prevTabName === 'accounts') renderAccountsTab();
+        } else if (prevTabName === 'stats') {
+          // Defer heavy chart rendering until transition settles
+          requestAnimationFrame(() => {
+            setTimeout(() => {
+              renderStatsTab();
+            }, 50);
+          });
+        } else if (prevTabName === 'accounts') renderAccountsTab();
         else if (prevTabName === 'more') renderPartnerSection();
 
         currentScreen = null;
@@ -5979,7 +6160,12 @@ function renderPartnerSection() {
     // === CONNECTED FAMILY STATE ===
     let familyName = state.familyGroup ? state.familyGroup.name : '';
     if (!familyName || familyName.toLowerCase() === 'null') {
-      familyName = state.lang === 'el' ? 'Οικογενειακός Προϋπολογισμός' : 'Family Budget';
+      // Fallback to "Οικογένεια [Admin Name]" format
+      const adminProfile = state.familyProfiles.find(p => p.role === 'admin');
+      const adminName = adminProfile ? (adminProfile.display_name || adminProfile.email.split('@')[0]) : '';
+      familyName = adminName 
+        ? (state.lang === 'el' ? `Οικογένεια [${adminName}]` : `Family [${adminName}]`)
+        : (state.lang === 'el' ? 'Οικογενειακός Προϋπολογισμός' : 'Family Budget');
     }
     const inviteCode = state.familyGroup ? state.familyGroup.invite_code : '';
     
@@ -6077,10 +6263,19 @@ function renderPartnerSection() {
             <label style="font-size:11px;color:var(--text-muted);font-weight:600;margin-bottom:2px;">
               ${state.lang === 'el' ? 'Ρόλος Νέου Μέλους' : 'New Member Role'}
             </label>
-            <select id="invite-role-select" class="form-row-select" style="font-size:12.5px;padding:8px 10px;border-radius:8px;background:var(--card-bg2, #1f2230);border:1px solid var(--border);color:var(--text-primary);cursor:pointer;margin-bottom:6px;width:100%;">
-              <option value="member" selected>${state.lang === 'el' ? 'Μέλος (Προεπιλογή) - Μόνο δικές του κινήσεις' : 'Member (Default) - Own transactions only'}</option>
-              <option value="admin">${state.lang === 'el' ? 'Διαχειριστής - Πλήρη δικαιώματα CRUD' : 'Admin - Full CRUD permissions'}</option>
-            </select>
+            <div style="display:flex;gap:10px;margin-bottom:6px;">
+              <div id="role-card-member" onclick="selectInviteRole('member')" style="flex:1;padding:12px;border:2px solid var(--accent);border-radius:8px;background:var(--card-bg2,rgba(255,255,255,0.04));cursor:pointer;transition:all 0.2s;">
+                <div style="font-size:16px;margin-bottom:4px;">👤</div>
+                <div style="font-size:12px;font-weight:700;color:var(--text-primary);margin-bottom:2px;">${state.lang === 'el' ? 'Μέλος' : 'Member'}</div>
+                <div style="font-size:10px;color:var(--text-muted);">${state.lang === 'el' ? 'Μόνο δικές του κινήσεις' : 'Own transactions only'}</div>
+              </div>
+              <div id="role-card-admin" onclick="selectInviteRole('admin')" style="flex:1;padding:12px;border:2px solid var(--border);border-radius:8px;background:var(--card-bg2,rgba(255,255,255,0.04));cursor:pointer;transition:all 0.2s;">
+                <div style="font-size:16px;margin-bottom:4px;">👑</div>
+                <div style="font-size:12px;font-weight:700;color:var(--text-primary);margin-bottom:2px;">${state.lang === 'el' ? 'Διαχειριστής' : 'Admin'}</div>
+                <div style="font-size:10px;color:var(--text-muted);">${state.lang === 'el' ? 'Πλήρη δικαιώματα' : 'Full permissions'}</div>
+              </div>
+            </div>
+            <input type="hidden" id="invite-role-select" value="member">
             <div style="display:flex;gap:6px;">
               <input type="email" id="invite-email-input" class="form-input" placeholder="${state.lang === 'el' ? 'email@family.com' : 'email@family.com'}" style="flex:1;font-size:12.5px;padding:8px 10px;margin-bottom:0;border-radius:8px;">
               <button onclick="inviteMemberByEmail()" class="btn btn-primary" style="padding:8px 14px;font-size:12.5px;font-weight:700;border-radius:8px;white-space:nowrap;">
@@ -6420,6 +6615,23 @@ window.inviteMemberByEmail = inviteMemberByEmail;
 window.renderPartnerSection = renderPartnerSection;
 window.promptRenameFamilyGroup = promptRenameFamilyGroup;
 window.toggleMemberMenu = toggleMemberMenu;
+window.selectInviteRole = selectInviteRole;
+
+function selectInviteRole(role) {
+  const memberCard = document.getElementById('role-card-member');
+  const adminCard = document.getElementById('role-card-admin');
+  const hiddenInput = document.getElementById('invite-role-select');
+  
+  if (role === 'member') {
+    memberCard.style.borderColor = 'var(--accent)';
+    adminCard.style.borderColor = 'var(--border)';
+    hiddenInput.value = 'member';
+  } else {
+    memberCard.style.borderColor = 'var(--border)';
+    adminCard.style.borderColor = 'var(--accent)';
+    hiddenInput.value = 'admin';
+  }
+}
 async function forceAppUpdate() {
   if (confirm(state.lang === 'en' ? 'Force update and reload the app?' : 'Θέλετε να επιβάλλετε ενημέρωση και επαναφόρτωση της εφαρμογής;')) {
     if ('serviceWorker' in navigator) {

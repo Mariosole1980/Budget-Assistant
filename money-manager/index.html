@@ -359,8 +359,15 @@
           </select>
         </div>
         <div class="settings-list-item" onclick="openSupabaseSettings()">
-          <span class="settings-item-label" data-i18n="item_sync_status">Κατάσταση Συγχρονισμού</span>
-          <span class="settings-item-value off" id="val_sync_status">Ρύθμιση</span>
+          <div style="display: flex; flex-direction: column; flex: 1;">
+            <span class="settings-item-label" data-i18n="item_sync_status">Κατάσταση Συγχρονισμού</span>
+            <span class="settings-item-value" id="val_sync_status" style="font-size: 11px; margin-top: 2px;">Τοπική Αποθήκευση</span>
+          </div>
+          <i class="fa-solid fa-chevron-right" style="color: var(--text-muted); font-size: 12px;"></i>
+        </div>
+        <div class="settings-list-item" onclick="openModal('category-manager-modal')">
+          <span class="settings-item-label">Διαχείριση Κατηγοριών</span>
+          <i class="fa-solid fa-chevron-right" style="color: var(--text-muted); font-size: 12px;"></i>
         </div>
         <div class="settings-list-item">
           <span class="settings-item-label">Θέμα Εμφάνισης</span>
@@ -375,11 +382,17 @@
         </div>
         <div class="settings-list-item">
           <span class="settings-item-label">Κλείδωμα Εφαρμογής (PIN)</span>
-          <input type="checkbox" id="settings-app-lock" onchange="toggleAppLock(this.checked)" style="width: 20px; height: 20px; cursor: pointer; accent-color: var(--accent);">
+          <label class="switch">
+            <input type="checkbox" id="settings-app-lock" onchange="toggleAppLock(this.checked)">
+            <span class="slider round"></span>
+          </label>
         </div>
         <div class="settings-list-item" id="settings-biometrics-container" style="display: none;">
           <span class="settings-item-label">Face ID / Αποτύπωμα</span>
-          <input type="checkbox" id="settings-biometrics" onchange="toggleBiometrics(this.checked)" style="width: 20px; height: 20px; cursor: pointer; accent-color: var(--accent);">
+          <label class="switch">
+            <input type="checkbox" id="settings-biometrics" onchange="toggleBiometrics(this.checked)">
+            <span class="slider round"></span>
+          </label>
         </div>
 
         <!-- Family Group settings block -->
@@ -923,6 +936,38 @@
       <div class="modal-body" style="padding: 16px; flex: 1; overflow-y: auto;">
         <div id="subcategory-picker-list" class="subcategory-list">
           <!-- Subcategories injected here -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CATEGORY MANAGER (iOS-STYLE) -->
+  <div id="category-manager-modal" class="modal-overlay">
+    <div class="modal-content" style="max-height: 90vh; display: flex; flex-direction: column;">
+      <div class="modal-header">
+        <h3 class="modal-title">⚙️ Διαχείριση Κατηγοριών</h3>
+        <span class="modal-close" onclick="closeModal('category-manager-modal')">&times;</span>
+      </div>
+      <div class="modal-body" style="padding: 16px; flex: 1; overflow-y: auto;">
+        <!-- Add New Category Section -->
+        <div style="margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border);">
+          <h4 style="font-size: 13px; margin-bottom: 12px; font-weight: 700; color: var(--text-secondary);">Προσθήκη Νέας Κατηγορίας</h4>
+          <div style="display: flex; gap: 8px;">
+            <input type="text" id="new-category-name" class="form-input" placeholder="Όνομα κατηγορίας" style="flex: 1;">
+            <select id="new-category-type" class="form-select" style="width: 100px;">
+              <option value="expense">Έξοδο</option>
+              <option value="income">Έσοδο</option>
+            </select>
+          </div>
+          <button onclick="addNewCustomCategory()" class="btn btn-primary" style="width: 100%; margin-top: 12px; padding: 10px; font-weight: 700;">
+            <i class="fa-solid fa-plus" style="margin-right: 6px;"></i> Προσθήκη
+          </button>
+        </div>
+
+        <!-- Category List -->
+        <h4 style="font-size: 13px; margin-bottom: 12px; font-weight: 700; color: var(--text-secondary);">Λίστα Κατηγοριών</h4>
+        <div id="category-manager-list" style="display: flex; flex-direction: column; gap: 8px;">
+          <!-- Categories injected here -->
         </div>
       </div>
     </div>
