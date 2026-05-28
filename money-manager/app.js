@@ -306,7 +306,9 @@ const TRANSLATIONS = {
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
     app_version: 'Έκδοση 1.0.0',
-    fab_add_transaction: 'Προσθήκη Συναλλαγής'
+    fab_add_transaction: 'Προσθήκη Συναλλαγής',
+    yearly_savings_title: 'Ετήσια Αποταμίευση',
+    period_label: 'Περίοδος'
   },
   en: {
     nav_trans: 'Transactions',
@@ -478,7 +480,9 @@ const TRANSLATIONS = {
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
     app_version: 'Version 1.0.0',
-    fab_add_transaction: 'Add Transaction'
+    fab_add_transaction: 'Add Transaction',
+    yearly_savings_title: 'Yearly Savings',
+    period_label: 'Period'
   }
 };
 
@@ -2693,7 +2697,7 @@ function renderAccountsTab() {
           return dStr;
         };
 
-        const label = `Περίοδος ${formatDateStr(data.minDate)} - ${formatDateStr(data.maxDate)}`;
+        const label = TRANSLATIONS[state.lang]['period_label'] + ' ' + formatDateStr(data.minDate) + ' - ' + formatDateStr(data.maxDate);
         const colorStyle = 'color: var(--blue-positive);'; // Surpluses are positive/green
         const sign = '+';
 
