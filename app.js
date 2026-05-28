@@ -1,7 +1,7 @@
 ﻿// Global error boundary to capture and display initialization or runtime errors
 window.onerror = function (message, source, lineno, colno, error) {
   console.error("Global Error Boundary Caught:", message, "at", source, ":", lineno, ":", colno, error);
-  alert("❌ Σφάλμα Εφαρμογής:\n" + message + "\nΓραμμή: " + lineno + ", Στήλη: " + colno);
+  alert("❌ " + (state.lang === 'en' ? 'Application Error' : 'Σφάλμα Εφαρμογής') + ":\n" + message + "\n" + (state.lang === 'en' ? 'Line' : 'Γραμμή') + ": " + lineno + ", " + (state.lang === 'en' ? 'Column' : 'Στήλη') + ": " + colno);
 };
 
 window.addEventListener('unhandledrejection', function (event) {
@@ -230,7 +230,78 @@ const TRANSLATIONS = {
     invite_email_placeholder: 'email@family.com',
     invite_email_btn: 'Αποστολή Πρόσκλησης',
     stats_filter_member: 'Μέλος Οικογένειας',
-    only_creator_edit_warning: 'Μόνο ο δημιουργός ή ο διαχειριστής μπορεί να επεξεργαστεί αυτή την κίνηση'
+    only_creator_edit_warning: 'Μόνο ο δημιουργός ή ο διαχειριστής μπορεί να επεξεργαστεί αυτή την κίνηση',
+    item_category_manager: 'Διαχείριση Κατηγοριών',
+    item_theme: 'Θέμα Εμφάνισης',
+    item_app_lock: 'Κλείδωμα Εφαρμογής (PIN)',
+    item_biometrics: 'Face ID / Αποτύπωμα',
+    item_user_account: 'Λογαριασμός Χρήστη',
+    item_logout: 'Αποσύνδεση',
+    item_delete_account: 'Διαγραφή Λογαριασμού',
+    item_export_data: 'Εξαγωγή Δεδομένων',
+    item_clear_data: 'Καθαρισμός Δεδομένων',
+    item_about: 'Σχετικά',
+    item_privacy: 'Πολιτική Απορρήτου',
+    modal_category_title: 'Επιλογή Κατηγορίας',
+    modal_subcategory_title: 'Επιλογή Υποκατηγορίας',
+    modal_category_manager_title: 'Διαχείριση Κατηγοριών',
+    modal_excel_title: 'Εισαγωγή Ιστορικού από Excel / CSV',
+    modal_excel_mapping: 'Αντιστοίχιση Στηλών',
+    modal_excel_mapping_desc: 'Αντιστοιχίστε τις στήλες του δικού σας αρχείου Excel με τα πεδία της εφαρμογής.',
+    modal_pin_title: 'Ορισμός PIN',
+    modal_pin_desc: 'Εισάγετε ένα 4ψήφιο PIN για το κλείδωμα της εφαρμογής.',
+    modal_period_title: 'Επιλογή Περιόδου',
+    modal_profile_title: 'Προφίλ & Ρυθμίσεις',
+    new_category_label: 'Νέα Κατηγορία',
+    new_category_title_expense: 'Νέα Κατηγορία Εξόδου',
+    new_category_title_income: 'Νέα Κατηγορία Εσόδου',
+    new_category_name_placeholder: 'Όνομα κατηγορίας',
+    new_category_icon_label: 'Εικονίδιο',
+    new_category_add_title: 'Προσθήκη Νέας Κατηγορίας',
+    new_category_list_title: 'Λίστα Κατηγοριών',
+    btn_cancel: 'Άκυρο',
+    btn_add: 'Προσθήκη',
+    btn_delete: 'Διαγραφή',
+    btn_edit: 'Επεξεργασία',
+    btn_close: 'Κλείσιμο',
+    btn_back: 'Πίσω',
+    btn_export: 'Εξαγωγή',
+    btn_import: 'Εισαγωγή',
+    btn_select_file: 'Επιλογή Αρχείου',
+    btn_start_import: 'Έναρξη Εισαγωγής',
+    error_app: 'Σφάλμα Εφαρμογής',
+    error_csv: 'Σφάλμα CSV',
+    error_csv_read: 'Σφάλμα ανάγνωσης αρχείου CSV',
+    error_excel: 'Σφάλμα Excel',
+    error_excel_read: 'Σφάλμα ανάγνωσης αρχείου Excel',
+    error_xlsx_lib: 'Η βιβλιοθήκη XLSX δεν φορτώθηκε!\nΑνανεώστε τη σελίδα (Ctrl+Shift+R) και δοκιμάστε ξανά.',
+    error_line: 'Γραμμή',
+    error_column: 'Στήλη',
+    sync_status_offline: 'Τοπική Αποθήκευση',
+    sync_status_syncing: 'Συγχρονισμός...',
+    sync_status_synced: 'Ενεργός',
+    confirm_delete_transaction: 'Να διαγραφεί η συναλλαγή;',
+    confirm_delete_category: 'Είστε σίγουρος ότι θέλετε να διαγράψετε αυτή την κατηγορία;',
+    alert_enter_category_name: 'Παρακαλώ εισάγετε όνομα κατηγορίας',
+    alert_category_exists: 'Αυτή η κατηγορία υπάρχει ήδη',
+    alert_select_category_first: 'Παρακαλώ επιλέξτε πρώτα Κατηγορία!',
+    alert_csv_empty: 'Το αρχείο CSV είναι άδειο ή μη έγκυρο!',
+    alert_excel_empty: 'Το αρχείο Excel είναι άδειο!',
+    alert_date_required: 'Η στήλη Ημερομηνία είναι υποχρεωτική!',
+    alert_date_order: 'Η ημερομηνία έναρξης πρέπει να είναι προγενέστερη της ημερομηνίας λήξης!',
+    label_from: 'Από',
+    label_to: 'Προς',
+    label_account: 'Λογαριασμός',
+    label_select: 'Επιλέξτε...',
+    label_search: 'Αναζήτηση',
+    label_cloud_account: 'Λογαριασμός Cloud',
+    label_loading: 'Φόρτωση στοιχείων...',
+    theme_dark: 'Premium Dark',
+    theme_oled: 'OLED Black',
+    theme_light: 'Classic Light',
+    theme_emerald: 'Emerald Forest',
+    theme_ocean: 'Ocean Breeze',
+    theme_pink: 'Blossom Pink'
   },
   en: {
     nav_trans: 'Transactions',
@@ -326,7 +397,78 @@ const TRANSLATIONS = {
     invite_email_placeholder: 'email@family.com',
     invite_email_btn: 'Send Invitation',
     stats_filter_member: 'Family Member',
-    only_creator_edit_warning: 'Only the creator or admin can edit this transaction'
+    only_creator_edit_warning: 'Only the creator or admin can edit this transaction',
+    item_category_manager: 'Category Manager',
+    item_theme: 'Appearance Theme',
+    item_app_lock: 'App Lock (PIN)',
+    item_biometrics: 'Face ID / Fingerprint',
+    item_user_account: 'User Account',
+    item_logout: 'Log Out',
+    item_delete_account: 'Delete Account',
+    item_export_data: 'Export Data',
+    item_clear_data: 'Clear Data',
+    item_about: 'About',
+    item_privacy: 'Privacy Policy',
+    modal_category_title: 'Select Category',
+    modal_subcategory_title: 'Select Subcategory',
+    modal_category_manager_title: 'Category Manager',
+    modal_excel_title: 'Import History from Excel / CSV',
+    modal_excel_mapping: 'Column Mapping',
+    modal_excel_mapping_desc: 'Map your Excel columns to the application fields.',
+    modal_pin_title: 'Set PIN',
+    modal_pin_desc: 'Enter a 4-digit PIN to lock the application.',
+    modal_period_title: 'Select Period',
+    modal_profile_title: 'Profile & Settings',
+    new_category_label: 'New Category',
+    new_category_title_expense: 'New Expense Category',
+    new_category_title_income: 'New Income Category',
+    new_category_name_placeholder: 'Category name',
+    new_category_icon_label: 'Icon',
+    new_category_add_title: 'Add New Category',
+    new_category_list_title: 'Category List',
+    btn_cancel: 'Cancel',
+    btn_add: 'Add',
+    btn_delete: 'Delete',
+    btn_edit: 'Edit',
+    btn_close: 'Close',
+    btn_back: 'Back',
+    btn_export: 'Export',
+    btn_import: 'Import',
+    btn_select_file: 'Select File',
+    btn_start_import: 'Start Import',
+    error_app: 'Application Error',
+    error_csv: 'CSV Error',
+    error_csv_read: 'Error reading CSV file',
+    error_excel: 'Excel Error',
+    error_excel_read: 'Error reading Excel file',
+    error_xlsx_lib: 'XLSX library not loaded!\nRefresh the page (Ctrl+Shift+R) and try again.',
+    error_line: 'Line',
+    error_column: 'Column',
+    sync_status_offline: 'Local Storage',
+    sync_status_syncing: 'Syncing...',
+    sync_status_synced: 'Active',
+    confirm_delete_transaction: 'Delete this transaction?',
+    confirm_delete_category: 'Are you sure you want to delete this category?',
+    alert_enter_category_name: 'Please enter a category name',
+    alert_category_exists: 'This category already exists',
+    alert_select_category_first: 'Please select a Category first!',
+    alert_csv_empty: 'CSV file is empty or invalid!',
+    alert_excel_empty: 'Excel file is empty!',
+    alert_date_required: 'Date column is required!',
+    alert_date_order: 'Start date must be earlier than end date!',
+    label_from: 'From',
+    label_to: 'To',
+    label_account: 'Account',
+    label_select: 'Select...',
+    label_search: 'Search',
+    label_cloud_account: 'Cloud Account',
+    label_loading: 'Loading...',
+    theme_dark: 'Premium Dark',
+    theme_oled: 'OLED Black',
+    theme_light: 'Classic Light',
+    theme_emerald: 'Emerald Forest',
+    theme_ocean: 'Ocean Breeze',
+    theme_pink: 'Blossom Pink'
   }
 };
 
@@ -454,6 +596,114 @@ function applyLanguage(lang) {
     else if (val === 'monthly') item.textContent = TRANSLATIONS[lang]['stats_period_monthly'];
     else if (val === 'annually') item.textContent = TRANSLATIONS[lang]['stats_period_annually'];
     else if (val === 'period') item.textContent = TRANSLATIONS[lang]['stats_period_custom'];
+  });
+
+  // Update stats period dropdown button text
+  const periodBtn = document.getElementById('stats-period-dropdown-btn');
+  if (periodBtn) {
+    const currentPeriod = state.statsPeriodType || 'monthly';
+    const periodLabels = {
+      weekly: TRANSLATIONS[lang]['stats_period_weekly'],
+      monthly: TRANSLATIONS[lang]['stats_period_monthly'],
+      annually: TRANSLATIONS[lang]['stats_period_annually'],
+      period: TRANSLATIONS[lang]['stats_period_custom']
+    };
+    periodBtn.childNodes[0].nodeValue = periodLabels[currentPeriod] + ' ';
+  }
+
+  // Update stats tab labels
+  const statsTabIncome = document.querySelector('#stats-tab-income .stats-tab-label');
+  const statsTabExpense = document.querySelector('#stats-tab-expense .stats-tab-label');
+  if (statsTabIncome) statsTabIncome.textContent = TRANSLATIONS[lang]['stats_tab_income'];
+  if (statsTabExpense) statsTabExpense.textContent = TRANSLATIONS[lang]['stats_tab_expense'];
+
+  // Update chart center title
+  const chartCenterTitle = document.getElementById('chart-center-title');
+  if (chartCenterTitle) {
+    chartCenterTitle.textContent = state.statsType === 'income' 
+      ? TRANSLATIONS[lang]['stats_tab_income'] 
+      : TRANSLATIONS[lang]['stats_tab_expense'];
+  }
+
+  // Update selection bar text
+  const selectionCount = document.getElementById('selection-count');
+  if (selectionCount && state.selectionMode) {
+    const count = state.selectedIds.size;
+    selectionCount.textContent = count + ' ' + TRANSLATIONS[lang]['selection_count_text'];
+  }
+  const selectAllBtn = document.getElementById('selection-select-all-btn');
+  if (selectAllBtn) selectAllBtn.title = TRANSLATIONS[lang]['selection_select_all'];
+  const deleteBtn = document.getElementById('selection-delete-btn');
+  if (deleteBtn) deleteBtn.title = TRANSLATIONS[lang]['selection_delete'];
+
+  // Update header sync icon tooltip
+  const headerSyncIcon = document.getElementById('header-sync-icon');
+  if (headerSyncIcon) headerSyncIcon.title = TRANSLATIONS[lang]['label_cloud_account'];
+
+  // Update transaction form type labels
+  const typeTabBtns = document.querySelectorAll('.type-tab-btn');
+  typeTabBtns.forEach(btn => {
+    const type = btn.getAttribute('data-type');
+    if (type === 'income') btn.textContent = TRANSLATIONS[lang]['type_tab_income'];
+    else if (type === 'expense') btn.textContent = TRANSLATIONS[lang]['type_tab_expense'];
+    else if (type === 'transfer') btn.textContent = TRANSLATIONS[lang]['type_tab_transfer'];
+  });
+
+  // Update transaction form labels
+  const fromAccLabel = document.getElementById('label-account-from');
+  if (fromAccLabel) {
+    const activeType = document.querySelector('.type-tab-btn.active')?.getAttribute('data-type');
+    if (activeType === 'transfer') fromAccLabel.textContent = TRANSLATIONS[lang]['label_from'];
+    else fromAccLabel.textContent = TRANSLATIONS[lang]['label_account'];
+  }
+
+  // Update modal titles
+  const catPickerTitle = document.querySelector('#category-picker-modal .modal-title');
+  if (catPickerTitle) catPickerTitle.textContent = TRANSLATIONS[lang]['modal_category_title'];
+  const subcatPickerTitle = document.querySelector('#subcategory-picker-modal .modal-title');
+  if (subcatPickerTitle) subcatPickerTitle.textContent = TRANSLATIONS[lang]['modal_subcategory_title'];
+  const catManagerTitle = document.querySelector('#category-manager-modal .modal-title');
+  if (catManagerTitle) catManagerTitle.textContent = TRANSLATIONS[lang]['modal_category_manager_title'];
+  const excelTitle = document.querySelector('#excel-modal .modal-title');
+  if (excelTitle) excelTitle.textContent = TRANSLATIONS[lang]['modal_excel_title'];
+  const pinTitle = document.querySelector('#pin-modal .modal-title');
+  if (pinTitle) pinTitle.textContent = TRANSLATIONS[lang]['modal_pin_title'];
+  const periodTitle = document.querySelector('#period-modal .modal-title');
+  if (periodTitle) periodTitle.textContent = TRANSLATIONS[lang]['modal_period_title'];
+  const profileTitle = document.querySelector('#profile-modal .modal-title');
+  if (profileTitle) profileTitle.textContent = TRANSLATIONS[lang]['modal_profile_title'];
+
+  // Update category manager add section
+  const catAddTitle = document.querySelector('#category-manager-modal .settings-section-title');
+  if (catAddTitle) catAddTitle.textContent = TRANSLATIONS[lang]['new_category_add_title'];
+  const catListTitle = document.querySelectorAll('#category-manager-modal .settings-section-title')[1];
+  if (catListTitle) catListTitle.textContent = TRANSLATIONS[lang]['new_category_list_title'];
+
+  // Update new category dialog in picker
+  const newCatDialogTitle = document.getElementById('new-cat-dialog-title');
+  if (newCatDialogTitle) {
+    const dialogType = newCategoryDialogType || 'expense';
+    newCatDialogTitle.textContent = dialogType === 'income' 
+      ? TRANSLATIONS[lang]['new_category_title_income']
+      : TRANSLATIONS[lang]['new_category_title_expense'];
+  }
+  const newCatNameInput = document.getElementById('new-cat-name-input');
+  if (newCatNameInput) newCatNameInput.placeholder = TRANSLATIONS[lang]['new_category_name_placeholder'];
+  const newCatIconLabel = document.querySelector('#new-category-inline-dialog label');
+  if (newCatIconLabel) newCatIconLabel.textContent = TRANSLATIONS[lang]['new_category_icon_label'];
+
+  // Update "+" New Category box text in grid
+  const addBoxName = document.querySelector('.category-picker-add .category-picker-name');
+  if (addBoxName) addBoxName.textContent = TRANSLATIONS[lang]['new_category_label'];
+
+  // Update category type labels in category manager
+  document.querySelectorAll('#category-manager-list .settings-list-item').forEach(item => {
+    const typeSpan = item.querySelector('span[style*="color: var(--text-muted)"]');
+    if (typeSpan) {
+      const catType = typeSpan.textContent;
+      if (catType === 'Έσοδο' || catType === 'Income') typeSpan.textContent = TRANSLATIONS[lang]['type_tab_income'];
+      else if (catType === 'Έξοδο' || catType === 'Expense') typeSpan.textContent = TRANSLATIONS[lang]['type_tab_expense'];
+    }
   });
 
   updateUI();
@@ -1761,43 +2011,43 @@ function getCategoryInfo(categoryName, transType) {
   return { icon: transType === 'income' ? '💰' : '💸', name: cleaned || categoryName, color: '#78909c' };
 }
 
-// Get category display name - maps Greek categories statically, preserves custom categories
+// Category name translations for default categories (UI only, never applied to user data)
+const CATEGORY_NAME_TRANSLATIONS = {
+  '🏡 ΣΠΙΤΙ': '🏡 Home',
+  '🏠ΓΡΑΦΕΙΟ Β2': '🏠 Office B2',
+  '🚗 ΑΥΤΟΚΙΝΗΤΟ': '🚗 Car',
+  '🛒 ΔΙΑΤΡΟΦΗ': '🛒 Food/Groceries',
+  '🏋️ΓΥΜΝΑΣΤΗΡΙΟ': '🏋️ Gym',
+  '🎉ΔΙΑΣΚΕΔΑΣΗ/ΕΞΟΔΟΙ': '🎉 Entertainment',
+  '🧾ΦΟΡΟΙ/ΛΟΓΙΣΤΗΣ': '🧾 Taxes/Accountant',
+  '👕 ΠΡΟΣΩΠΙΚΗ ΦΡΟΝΤΙΔΑ': '👕 Personal Care',
+  '🚇 ΜΕΤΑΚΙΝΗΣΗ': '🚇 Transport',
+  '💻 ΤΕΧΝΟΛΟΓΙΑ': '💻 Technology',
+  '💼 ΜΙΣΘΟΣ': '💼 Salary',
+  '🧩ΔΙΑΦΟΡΑ ΕΞΟΔΑ': '🧩 Misc Expenses',
+  '🎬 ΣΥΝΔΡΟΜΕΣ': '🎬 Subscriptions',
+  '❤️ ΥΓΕΙΑ': '❤️ Health',
+  '🤑 ΕΞΤΡΑ ΕΙΣΟΔΗΜΑΤΑ': '🤑 Extra Income',
+  '🎁ΔΩΡΑ/ΕΣΟΔΑ': '🎁 Gifts/Income',
+  'ΕΠΙΣΤΡΟΦΕΣ': 'Refunds',
+  'ΠΩΛΗΣΕΙΣ': 'Sales',
+  'BONUS': 'Bonus',
+  'ΑΛΛΑ ΕΣΟΔΑ': 'Other Income',
+  '🎓 ΕΚΠΑΙΔΕΥΣΗ': '🎓 Education',
+  '💶  ΕΝΟΙΚΙΟ Β2 (Έσοδο)': '💶 Rent B2 (Income)',
+  '🏛️ΜΕΡΙΔΙΟ ΔΟΣΗΣ ΔΑΝΕΙΟΥ (ΓΟΝΕΙΣ)': '🏛️ Loan Share (Parents)'
+};
+
+// Get category display name - translates default categories, preserves custom/user categories
 function getCategoryDisplayName(categoryName) {
   if (!categoryName) return '';
   
-  // Static Greek category mappings
-  const greekMappings = {
-    '🏡 ΣΠΙΤΙ': '🏡 ΣΠΙΤΙ',
-    '🏠ΓΡΑΦΕΙΟ Β2': '🏠ΓΡΑΦΕΙΟ Β2',
-    '🚗 ΑΥΤΟΚΙΝΗΤΟ': '🚗 ΑΥΤΟΚΙΝΗΤΟ',
-    '🛒 ΔΙΑΤΡΟΦΗ': '🛒 ΔΙΑΤΡΟΦΗ',
-    '🏋️ΓΥΜΝΑΣΤΗΡΙΟ': '🏋️ΓΥΜΝΑΣΤΗΡΙΟ',
-    '🎉ΔΙΑΣΚΕΔΑΣΗ/ΕΞΟΔΟΙ': '🎉ΔΙΑΣΚΕΔΑΣΗ/ΕΞΟΔΟΙ',
-    '🧾ΦΟΡΟΙ/ΛΟΓΙΣΤΗΣ': '🧾ΦΟΡΟΙ/ΛΟΓΙΣΤΗΣ',
-    '👕 ΠΡΟΣΩΠΙΚΗ ΦΡΟΝΤΙΔΑ': '👕 ΠΡΟΣΩΠΙΚΗ ΦΡΟΝΤΙΔΑ',
-    '🚇 ΜΕΤΑΚΙΝΗΣΗ': '🚇 ΜΕΤΑΚΙΝΗΣΗ',
-    '💻 ΤΕΧΝΟΛΟΓΙΑ': '💻 ΤΕΧΝΟΛΟΓΙΑ',
-    '💼 ΜΙΣΘΟΣ': '💼 ΜΙΣΘΟΣ',
-    '🧩ΔΙΑΦΟΡΑ ΕΞΟΔΑ': '🧩ΔΙΑΦΟΡΑ ΕΞΟΔΑ',
-    '🎬 ΣΥΝΔΡΟΜΕΣ': '🎬 ΣΥΝΔΡΟΜΕΣ',
-    '❤️ ΥΓΕΙΑ': '❤️ ΥΓΕΙΑ',
-    '🤑 ΕΞΤΡΑ ΕΙΣΟΔΗΜΑΤΑ': '🤑 ΕΞΤΡΑ ΕΙΣΟΔΗΜΑΤΑ',
-    '🎁ΔΩΡΑ/ΕΣΟΔΑ': '🎁ΔΩΡΑ/ΕΣΟΔΑ',
-    'ΕΠΙΣΤΡΟΦΕΣ': 'ΕΠΙΣΤΡΟΦΕΣ',
-    'ΠΩΛΗΣΕΙΣ': 'ΠΩΛΗΣΕΙΣ',
-    'BONUS': 'BONUS',
-    'ΑΛΛΑ ΕΣΟΔΑ': 'ΑΛΛΑ ΕΣΟΔΑ',
-    '🎓 ΕΚΠΑΙΔΕΥΣΗ': '🎓 ΕΚΠΑΙΔΕΥΣΗ',
-    '💶  ΕΝΟΙΚΙΟ Β2 (Έσοδο)': '💶  ΕΝΟΙΚΙΟ Β2 (Έσοδο)',
-    '🏛️ΜΕΡΙΔΙΟ ΔΟΣΗΣ ΔΑΝΕΙΟΥ (ΓΟΝΕΙΣ)': '🏛️ΜΕΡΙΔΙΟ ΔΟΣΗΣ ΔΑΝΕΙΟΥ (ΓΟΝΕΙΣ)'
-  };
-  
-  // Check if it's a known Greek category
-  if (greekMappings[categoryName]) {
-    return greekMappings[categoryName];
+  // Check if it's a known default category with translation
+  if (state.lang === 'en' && CATEGORY_NAME_TRANSLATIONS[categoryName]) {
+    return CATEGORY_NAME_TRANSLATIONS[categoryName];
   }
   
-  // For custom categories, return as-is (preserve user input)
+  // For custom/user categories, return as-is (never translate user data)
   return categoryName;
 }
 
@@ -1865,7 +2115,7 @@ function toggleCategoryHidden(categoryName) {
 }
 
 function deleteCustomCategory(categoryName) {
-  if (!confirm(state.lang === 'el' ? 'Είστε σίγουρος ότι θέλετε να διαγράψετε αυτή την κατηγορία;' : 'Are you sure you want to delete this category?')) {
+  if (!confirm(TRANSLATIONS[state.lang]['confirm_delete_category'])) {
     return;
   }
   
@@ -1883,13 +2133,13 @@ function addNewCustomCategory() {
   const type = typeSelect.value;
   
   if (!name) {
-    alert(state.lang === 'el' ? 'Παρακαλώ εισάγετε όνομα κατηγορίας' : 'Please enter a category name');
+    alert(TRANSLATIONS[state.lang]['alert_enter_category_name']);
     return;
   }
   
   // Check if category already exists
   if (state.categories.find(c => c.name === name) || DEFAULT_CATEGORIES.find(c => c.name === name)) {
-    alert(state.lang === 'el' ? 'Αυτή η κατηγορία υπάρχει ήδη' : 'This category already exists');
+    alert(TRANSLATIONS[state.lang]['alert_category_exists']);
     return;
   }
   
@@ -2603,7 +2853,7 @@ function setupEventListeners() {
 
   document.getElementById('trans-delete-btn').addEventListener('click', async () => {
     const id = document.getElementById('trans-id').value;
-    const confirmMsg = state.lang === 'en' ? 'Delete this transaction?' : 'Να διαγραφεί η συναλλαγή;';
+    const confirmMsg = TRANSLATIONS[state.lang]['confirm_delete_transaction'];
     if (id && confirm(confirmMsg)) {
       await deleteTransaction(id);
       closeModal('transaction-modal');
@@ -2801,9 +3051,7 @@ function handleCustomPeriodSave() {
   const endVal = document.getElementById('custom-period-end').value;
   if (startVal && endVal) {
     if (new Date(startVal) > new Date(endVal)) {
-      const msg = state.lang === 'en'
-        ? 'Start date must be earlier than end date!'
-        : 'Η ημερομηνία έναρξης πρέπει να είναι προγενέστερη της ημερομηνίας λήξης!';
+      const msg = TRANSLATIONS[state.lang]['alert_date_order'];
       alert(msg);
       return;
     }
@@ -3232,10 +3480,10 @@ function setTransactionFormType(type) {
     modalEl.classList.add(type);
   }
   
-  let typeGreek = 'Έξοδο';
-  if (type === 'income') typeGreek = 'Έσοδο';
-  else if (type === 'transfer') typeGreek = 'Μεταφορά';
-  document.getElementById('modal-trans-title').textContent = typeGreek;
+  let typeLabel = TRANSLATIONS[state.lang]['type_tab_expense'];
+  if (type === 'income') typeLabel = TRANSLATIONS[state.lang]['type_tab_income'];
+  else if (type === 'transfer') typeLabel = TRANSLATIONS[state.lang]['type_tab_transfer'];
+  document.getElementById('modal-trans-title').textContent = typeLabel;
   
   const catGroup      = document.getElementById('form-row-category');
   const toAccGroup    = document.getElementById('form-row-account-to');
@@ -3245,12 +3493,12 @@ function setTransactionFormType(type) {
     if (catGroup) catGroup.style.display = 'none';
     updateSubcategoryRowVisibility();
     if (toAccGroup) toAccGroup.style.display = 'flex';
-    if (fromAccLabel) fromAccLabel.textContent = 'Από';
+    if (fromAccLabel) fromAccLabel.textContent = TRANSLATIONS[state.lang]['label_from'];
   } else {
     if (catGroup) catGroup.style.display = 'flex';
     updateSubcategoryRowVisibility();
     if (toAccGroup) toAccGroup.style.display = 'none';
-    if (fromAccLabel) fromAccLabel.textContent = 'Λογαριασμός';
+    if (fromAccLabel) fromAccLabel.textContent = TRANSLATIONS[state.lang]['label_account'];
     updateCategoryDropdowns(type);
     updateSubcategorySuggestions();
   }
@@ -3427,7 +3675,7 @@ function saveNewCategoryFromPicker() {
   const name = nameInput ? nameInput.value.trim() : '';
   
   if (!name) {
-    alert(state.lang === 'el' ? 'Παρακαλώ εισάγετε όνομα κατηγορίας' : 'Please enter a category name');
+    alert(TRANSLATIONS[state.lang]['alert_enter_category_name']);
     return;
   }
   
@@ -3436,7 +3684,7 @@ function saveNewCategoryFromPicker() {
     c.name && c.name.toUpperCase() === name.toUpperCase()
   );
   if (exists) {
-    alert(state.lang === 'el' ? 'Αυτή η κατηγορία υπάρχει ήδη' : 'This category already exists');
+    alert(TRANSLATIONS[state.lang]['alert_category_exists']);
     return;
   }
   
@@ -3500,7 +3748,7 @@ function openSubcategoryModal() {
   const form = document.getElementById('transaction-form');
   if (form && form.getAttribute('data-readonly') === 'true') return;
   if(!document.getElementById('trans-category').value) {
-    alert(state.lang === 'en' ? 'Please select a Category first!' : 'Παρακαλώ επιλέξτε πρώτα Κατηγορία!');
+    alert(TRANSLATIONS[state.lang]['alert_select_category_first']);
     return;
   }
   updateSubcategorySuggestions();
@@ -3670,7 +3918,7 @@ function handleExcelUpload(event) {
 
         const rows = parseCSVText(text);
         if (!rows || !rows.length) {
-          alert(state.lang === 'en' ? 'CSV file is empty or invalid!' : 'Το αρχείο CSV είναι άδειο ή μη έγκυρο!');
+          alert(TRANSLATIONS[state.lang]['alert_csv_empty']);
           return;
         }
 
@@ -3680,17 +3928,17 @@ function handleExcelUpload(event) {
         document.getElementById('excel-mapping-section').style.display = 'block';
       } catch (err) {
         console.error('[CSV Error]', err);
-        alert('❌ Σφάλμα CSV:\n' + (err.message || err));
+        alert('❌ ' + (state.lang === 'en' ? 'CSV Error' : 'Σφάλμα CSV') + ':\n' + (err.message || err));
       }
     };
     reader.onerror = function() {
-      alert('❌ Σφάλμα ανάγνωσης αρχείου CSV');
+      alert('❌ ' + (state.lang === 'en' ? 'Error reading CSV file' : 'Σφάλμα ανάγνωσης αρχείου CSV'));
     };
     reader.readAsArrayBuffer(file);
   } else {
     // Excel file — check XLSX library loaded
     if (typeof XLSX === 'undefined') {
-      alert('❌ Η βιβλιοθήκη XLSX δεν φορτώθηκε!\nΑνανεώστε τη σελίδα (Ctrl+Shift+R) και δοκιμάστε ξανά.');
+      alert('❌ ' + (state.lang === 'en' ? 'XLSX library not loaded!\nRefresh the page (Ctrl+Shift+R) and try again.' : 'Η βιβλιοθήκη XLSX δεν φορτώθηκε!\nΑνανεώστε τη σελίδα (Ctrl+Shift+R) και δοκιμάστε ξανά.'));
       return;
     }
     reader.onload = function(e) {
@@ -3702,7 +3950,7 @@ function handleExcelUpload(event) {
         const json = XLSX.utils.sheet_to_json(sheet, { defval: '', raw: true });
         console.log('[Excel] Parsed rows:', json.length);
         if (!json.length) { 
-          alert(state.lang === 'en' ? 'Excel file is empty!' : 'Το αρχείο Excel είναι άδειο!'); 
+          alert(TRANSLATIONS[state.lang]['alert_excel_empty']); 
           return; 
         }
         state.excelData = json;
@@ -3711,11 +3959,11 @@ function handleExcelUpload(event) {
         document.getElementById('excel-mapping-section').style.display = 'block';
       } catch (err) {
         console.error('[Excel Error]', err);
-        alert('❌ Σφάλμα Excel:\n' + (err.message || err));
+        alert('❌ ' + (state.lang === 'en' ? 'Excel Error' : 'Σφάλμα Excel') + ':\n' + (err.message || err));
       }
     };
     reader.onerror = function() {
-      alert('❌ Σφάλμα ανάγνωσης αρχείου Excel');
+      alert('❌ ' + (state.lang === 'en' ? 'Error reading Excel file' : 'Σφάλμα ανάγνωσης αρχείου Excel'));
     };
     reader.readAsArrayBuffer(file);
   }
@@ -3848,7 +4096,7 @@ async function processExcelImport() {
   const descCol    = get('map-description');
 
   if (!dateCol) {
-    const msg = isEn ? 'Date column is required!' : 'Η στήλη Ημερομηνία είναι υποχρεωτική!';
+    const msg = TRANSLATIONS[state.lang]['alert_date_required'];
     alert(msg);
     cleanupButtons();
     return;
