@@ -671,9 +671,9 @@ button:active,
   background-color: var(--bg-main);
   color: var(--text-main);
   border: 1px solid var(--border-light);
-  border-radius: 4px;
-  padding: 5px 12px;
-  font-size: 12px;
+  border-radius: 6px;
+  padding: 8px 14px;
+  font-size: 13.5px;
   font-weight: 600;
   cursor: pointer;
   display: flex;
@@ -3695,7 +3695,7 @@ body.shared-wallet-active .day-header {
   }
   #stats-screen .stats-header-bar .stats-period-dropdown-container {
     flex: 1 !important;
-    max-width: 160px !important;
+    max-width: 180px !important;
   }
   #stats-screen .stats-header-bar .stats-period-btn {
     width: 100% !important;
