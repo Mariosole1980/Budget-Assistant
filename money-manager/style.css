@@ -3681,4 +3681,26 @@ body.shared-wallet-active .day-header {
   }
 }
 
+/* Mobile Stats Header wrapping to prevent cramping */
+@media (max-width: 600px) {
+  #stats-screen .stats-header-bar {
+    flex-direction: column !important;
+    gap: 10px !important;
+    align-items: center !important;
+    padding: 10px 12px !important;
+  }
+  #stats-screen .stats-header-bar .stats-header-controls {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+  #stats-screen .stats-header-bar .stats-period-dropdown-container {
+    flex: 1 !important;
+    max-width: 160px !important;
+  }
+  #stats-screen .stats-header-bar .stats-period-btn {
+    width: 100% !important;
+    justify-content: space-between !important;
+  }
+}
+
 

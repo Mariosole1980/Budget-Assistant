@@ -1496,7 +1496,8 @@ async function saveTransaction(transaction) {
           account_from: dbPayload.account_from, account_to: dbPayload.account_to || null,
           note: dbPayload.note || '',
           user_id: dbPayload.user_id,
-          is_shared: dbPayload.is_shared
+          is_shared: dbPayload.is_shared,
+          family_id: dbPayload.family_id
         }).eq('id', transaction.id);
       } else {
         result = await state.supabaseClient.from('transactions').insert([dbPayload]);
@@ -2437,10 +2438,12 @@ function setupEventListeners() {
       if (existing) {
         t.user_id = existing.user_id;
         t.is_shared = existing.is_shared;
+        t.family_id = existing.family_id;
       }
     } else {
       t.user_id = state.currentUser ? state.currentUser.id : null;
       t.is_shared = state.partnerProfile !== null;
+      t.family_id = state.userProfile ? state.userProfile.family_id : null;
     }
     await saveTransaction(t);
     closeModal('transaction-modal');

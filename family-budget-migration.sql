@@ -516,20 +516,24 @@ BEGIN
         BEGIN
             UPDATE public.accounts SET family_id = new_fam_id WHERE user_id = r.u1_id;
         EXCEPTION WHEN OTHERS THEN
+            NULL;
         END;
         BEGIN
             UPDATE public.accounts SET family_id = new_fam_id WHERE user_id = r.u2_id;
         EXCEPTION WHEN OTHERS THEN
+            NULL;
         END;
 
         -- Safe migrate categories
         BEGIN
             UPDATE public.categories SET family_id = new_fam_id WHERE user_id = r.u1_id;
         EXCEPTION WHEN OTHERS THEN
+            NULL;
         END;
         BEGIN
             UPDATE public.categories SET family_id = new_fam_id WHERE user_id = r.u2_id;
         EXCEPTION WHEN OTHERS THEN
+            NULL;
         END;
     END LOOP;
 END;
