@@ -1,4 +1,4 @@
-﻿// Global error boundary to capture and display initialization or runtime errors
+// Global error boundary to capture and display initialization or runtime errors
 window.onerror = function (message, source, lineno, colno, error) {
   console.error("Global Error Boundary Caught:", message, "at", source, ":", lineno, ":", colno, error);
   alert("❌ " + (state.lang === 'en' ? 'Application Error' : 'Σφάλμα Εφαρμογής') + ":\n" + message + "\n" + (state.lang === 'en' ? 'Line' : 'Γραμμή') + ": " + lineno + ", " + (state.lang === 'en' ? 'Column' : 'Στήλη') + ": " + colno);
@@ -4774,7 +4774,357 @@ function openSearchOverlay() {
 function closeSearchOverlay() {
   const overlay = document.getElementById('search-overlay');
   if (overlay) overlay.classList.remove('active');
+  closeSearchBottomSheet();
 }
+
+function openSearchBottomSheet(type) {
+  // Hide all bottom sheets first
+  closeSearchBottomSheet(false);
+
+  // Show backdrop
+  const backdrop = document.getElementById('search-bottom-sheet-backdrop');
+  if (backdrop) backdrop.classList.add('active');
+
+  // Show target sheet
+  const sheet = document.getElementById(`search-bottom-sheet-${type}`);
+  if (sheet) {
+    sheet.classList.add('active');
+    
+    // Dynamic populating based on type
+    if (type === 'category') {
+      populateSearchCategorySheet();
+    } else if (type === 'account') {
+      populateSearchAccountSheet();
+    } else if (type === 'member') {
+      populateSearchMemberSheet();
+    } else if (type === 'advanced') {
+      // Sync visual inputs with the hidden ones
+      document.getElementById('search-filter-amount-min-visual').value = document.getElementById('search-filter-amount-min').value;
+      document.getElementById('search-filter-amount-max-visual').value = document.getElementById('search-filter-amount-max').value;
+      document.getElementById('search-filter-date-start-visual').value = document.getElementById('search-filter-date-start').value;
+      document.getElementById('search-filter-date-end-visual').value = document.getElementById('search-filter-date-end').value;
+    }
+  }
+}
+
+function closeSearchBottomSheet(hideBackdrop = true) {
+  document.querySelectorAll('.search-bottom-sheet').forEach(sheet => {
+    sheet.classList.remove('active');
+  });
+  if (hideBackdrop) {
+    const backdrop = document.getElementById('search-bottom-sheet-backdrop');
+    if (backdrop) backdrop.classList.remove('active');
+  }
+}
+
+function selectTypeSearchFilter(val) {
+  const hiddenSelect = document.getElementById('search-filter-type');
+  if (hiddenSelect) {
+    hiddenSelect.value = val;
+  }
+  
+  // Update Type Chip UI
+  const chip = document.getElementById('search-chip-type');
+  const label = chip.querySelector('.chip-label');
+  if (val) {
+    let text = val === 'expense' ? 'Έξοδο' : val === 'income' ? 'Έσοδο' : 'Μεταφορά';
+    label.textContent = `✓ ${text}`;
+    chip.classList.add('active');
+  } else {
+    label.textContent = 'Τύπος';
+    chip.classList.remove('active');
+  }
+  
+  // Update active option styling in sheet
+  const sheet = document.getElementById('search-bottom-sheet-type');
+  if (sheet) {
+    sheet.querySelectorAll('.bottom-sheet-option').forEach(opt => {
+      opt.classList.toggle('active', opt.getAttribute('data-value') === val);
+    });
+  }
+
+  closeSearchBottomSheet();
+  handleSearchChange();
+}
+
+function populateSearchAccountSheet() {
+  const container = document.getElementById('search-bottom-sheet-account-list');
+  if (!container) return;
+
+  const currentVal = document.getElementById('search-filter-account').value;
+
+  let html = `
+    <div class="bottom-sheet-option ${currentVal === '' ? 'active' : ''}" onclick="selectAccountSearchFilter('')">
+      <span class="option-label">Όλοι οι λογαριασμοί</span>
+      <i class="fa-solid fa-check option-check-icon"></i>
+    </div>
+  `;
+
+  state.accounts.forEach(acc => {
+    const isActive = acc.name === currentVal;
+    html += `
+      <div class="bottom-sheet-option ${isActive ? 'active' : ''}" onclick="selectAccountSearchFilter('${acc.name}')">
+        <span class="option-label"><i class="fa-solid fa-wallet" style="margin-right: 8px; color: var(--accent);"></i> ${acc.name}</span>
+        <i class="fa-solid fa-check option-check-icon"></i>
+      </div>
+    `;
+  });
+
+  container.innerHTML = html;
+}
+
+function selectAccountSearchFilter(val) {
+  const hiddenSelect = document.getElementById('search-filter-account');
+  if (hiddenSelect) {
+    hiddenSelect.value = val;
+  }
+
+  // Update Account Chip UI
+  const chip = document.getElementById('search-chip-account');
+  const label = chip.querySelector('.chip-label');
+  if (val) {
+    label.textContent = `✓ ${val}`;
+    chip.classList.add('active');
+  } else {
+    label.textContent = 'Λογαριασμός';
+    chip.classList.remove('active');
+  }
+
+  closeSearchBottomSheet();
+  handleSearchChange();
+}
+
+function populateSearchCategorySheet() {
+  const container = document.getElementById('search-bottom-sheet-category-list');
+  if (!container) return;
+
+  const currentCat = document.getElementById('search-filter-category').value;
+  const currentSub = document.getElementById('search-filter-subcategory').value;
+
+  let html = `
+    <div class="bottom-sheet-option ${currentCat === '' && currentSub === '' ? 'active' : ''}" onclick="selectCategorySearchFilter('', '')">
+      <span class="option-label">Όλες οι κατηγορίες</span>
+      <i class="fa-solid fa-check option-check-icon"></i>
+    </div>
+  `;
+
+  // Get all unique category names
+  const allCats = new Set();
+  state.categories.forEach(c => allCats.add(c.name));
+  state.transactions.forEach(t => { if (t.category) allCats.add(t.category); });
+  const sortedCats = Array.from(allCats).sort();
+
+  sortedCats.forEach(catName => {
+    const isCatActive = catName === currentCat && !currentSub;
+    const catObj = state.categories.find(c => c.name === catName);
+    const emoji = catObj?.icon || '📁';
+
+    html += `
+      <div class="bottom-sheet-option ${isCatActive ? 'active' : ''}" onclick="selectCategorySearchFilter('${catName}', '')">
+        <span class="option-label">${emoji} ${getCategoryDisplayName(catName)}</span>
+        <i class="fa-solid fa-check option-check-icon"></i>
+      </div>
+    `;
+
+    // Find subcategories for this category
+    const subcats = new Set();
+    state.transactions.forEach(t => {
+      if (t.category === catName && t.subcategory && t.subcategory.trim()) {
+        subcats.add(t.subcategory.trim());
+      }
+    });
+
+    if (catObj?.subcategories) {
+      catObj.subcategories.forEach(s => subcats.add(s.trim()));
+    }
+
+    if (subcats.size > 0) {
+      Array.from(subcats).sort().forEach(subName => {
+        const isSubActive = catName === currentCat && subName === currentSub;
+        html += `
+          <div class="bottom-sheet-option subcategory-option ${isSubActive ? 'active' : ''}" onclick="selectCategorySearchFilter('${catName}', '${subName}')" style="padding-left: 36px; font-size: 12.5px; opacity: 0.9;">
+            <span class="option-label"><i class="fa-solid fa-turn-up" style="transform: rotate(90deg); margin-right: 8px; color: var(--text-muted); font-size: 10px;"></i> ${subName}</span>
+            <i class="fa-solid fa-check option-check-icon"></i>
+          </div>
+        `;
+      });
+    }
+  });
+
+  container.innerHTML = html;
+}
+
+function selectCategorySearchFilter(cat, sub) {
+  const hiddenCat = document.getElementById('search-filter-category');
+  const hiddenSub = document.getElementById('search-filter-subcategory');
+  if (hiddenCat) hiddenCat.value = cat;
+  if (hiddenSub) hiddenSub.value = sub;
+
+  // Update Category Chip UI
+  const chip = document.getElementById('search-chip-category');
+  const label = chip.querySelector('.chip-label');
+  if (cat) {
+    if (sub) {
+      label.textContent = `✓ ${sub}`;
+    } else {
+      label.textContent = `✓ ${getCategoryDisplayName(cat)}`;
+    }
+    chip.classList.add('active');
+  } else {
+    label.textContent = 'Κατηγορία';
+    chip.classList.remove('active');
+  }
+
+  closeSearchBottomSheet();
+  handleSearchChange();
+}
+
+function populateSearchMemberSheet() {
+  const container = document.getElementById('search-bottom-sheet-member-list');
+  if (!container) return;
+
+  const currentVal = document.getElementById('search-filter-member').value;
+
+  const myName = state.userProfile?.display_name || state.currentUser?.email?.split('@')[0] || (state.lang === 'el' ? 'Εσείς' : 'You');
+  const myId = state.currentUser?.id || '';
+
+  let html = `
+    <div class="bottom-sheet-option ${currentVal === '' ? 'active' : ''}" onclick="selectMemberSearchFilter('')">
+      <span class="option-label">${state.lang === 'el' ? 'Όλα τα μέλη' : 'All members'}</span>
+      <i class="fa-solid fa-check option-check-icon"></i>
+    </div>
+  `;
+
+  // My option
+  html += `
+    <div class="bottom-sheet-option ${currentVal === myId ? 'active' : ''}" onclick="selectMemberSearchFilter('${myId}')">
+      <span class="option-label"><i class="fa-solid fa-user" style="margin-right: 8px; color: var(--accent);"></i> ${myName}</span>
+      <i class="fa-solid fa-check option-check-icon"></i>
+    </div>
+  `;
+
+  // Partner option if exists
+  if (state.partnerProfile) {
+    const partnerName = state.partnerProfile.display_name || state.partnerProfile.email.split('@')[0] || (state.lang === 'el' ? 'Σύντροφος' : 'Partner');
+    const partnerId = state.partnerProfile.id;
+    html += `
+      <div class="bottom-sheet-option ${currentVal === partnerId ? 'active' : ''}" onclick="selectMemberSearchFilter('${partnerId}')">
+        <span class="option-label"><i class="fa-solid fa-user-group" style="margin-right: 8px; color: var(--accent);"></i> ${partnerName}</span>
+        <i class="fa-solid fa-check option-check-icon"></i>
+      </div>
+    `;
+  }
+
+  container.innerHTML = html;
+}
+
+function selectMemberSearchFilter(val) {
+  const hiddenInput = document.getElementById('search-filter-member');
+  if (hiddenInput) {
+    hiddenInput.value = val;
+  }
+
+  // Update Member Chip UI
+  const chip = document.getElementById('search-chip-member');
+  const label = chip.querySelector('.chip-label');
+  if (val) {
+    let name = '';
+    const myId = state.currentUser?.id || '';
+    if (val === myId) {
+      name = state.userProfile?.display_name || state.currentUser?.email?.split('@')[0] || (state.lang === 'el' ? 'Εσείς' : 'You');
+    } else if (state.partnerProfile && val === state.partnerProfile.id) {
+      name = state.partnerProfile.display_name || state.partnerProfile.email.split('@')[0] || (state.lang === 'el' ? 'Σύντροφος' : 'Partner');
+    }
+    label.textContent = `✓ ${name}`;
+    chip.classList.add('active');
+  } else {
+    label.textContent = 'Μέλος';
+    chip.classList.remove('active');
+  }
+
+  closeSearchBottomSheet();
+  handleSearchChange();
+}
+
+function applyAdvancedSearchFiltersVisual() {
+  const minVal = document.getElementById('search-filter-amount-min-visual').value;
+  const maxVal = document.getElementById('search-filter-amount-max-visual').value;
+  const startVal = document.getElementById('search-filter-date-start-visual').value;
+  const endVal = document.getElementById('search-filter-date-end-visual').value;
+
+  document.getElementById('search-filter-amount-min').value = minVal;
+  document.getElementById('search-filter-amount-max').value = maxVal;
+  document.getElementById('search-filter-date-start').value = startVal;
+  document.getElementById('search-filter-date-end').value = endVal;
+
+  // Update Advanced Chip UI
+  const chip = document.getElementById('search-chip-advanced');
+  const hasValues = minVal || maxVal || startVal || endVal;
+  if (hasValues) {
+    chip.classList.add('active');
+  } else {
+    chip.classList.remove('active');
+  }
+
+  closeSearchBottomSheet();
+  handleSearchChange();
+}
+
+function resetAdvancedSearchFiltersVisual() {
+  document.getElementById('search-filter-amount-min-visual').value = '';
+  document.getElementById('search-filter-amount-max-visual').value = '';
+  document.getElementById('search-filter-date-start-visual').value = '';
+  document.getElementById('search-filter-date-end-visual').value = '';
+
+  document.getElementById('search-filter-amount-min').value = '';
+  document.getElementById('search-filter-amount-max').value = '';
+  document.getElementById('search-filter-date-start').value = '';
+  document.getElementById('search-filter-date-end').value = '';
+
+  const chip = document.getElementById('search-chip-advanced');
+  chip.classList.remove('active');
+
+  closeSearchBottomSheet();
+  handleSearchChange();
+}
+
+function resetAllSearchChips() {
+  const typeChip = document.getElementById('search-chip-type');
+  if (typeChip) {
+    typeChip.querySelector('.chip-label').textContent = 'Τύπος';
+    typeChip.classList.remove('active');
+  }
+  const catChip = document.getElementById('search-chip-category');
+  if (catChip) {
+    catChip.querySelector('.chip-label').textContent = 'Κατηγορία';
+    catChip.classList.remove('active');
+  }
+  const accChip = document.getElementById('search-chip-account');
+  if (accChip) {
+    accChip.querySelector('.chip-label').textContent = 'Λογαριασμός';
+    accChip.classList.remove('active');
+  }
+  const memChip = document.getElementById('search-chip-member');
+  if (memChip) {
+    memChip.querySelector('.chip-label').textContent = 'Μέλος';
+    memChip.classList.remove('active');
+  }
+  const advChip = document.getElementById('search-chip-advanced');
+  if (advChip) {
+    advChip.classList.remove('active');
+  }
+}
+
+// Bind to window to ensure HTML inline onclick works perfectly
+window.openSearchBottomSheet = openSearchBottomSheet;
+window.closeSearchBottomSheet = closeSearchBottomSheet;
+window.selectTypeSearchFilter = selectTypeSearchFilter;
+window.selectAccountSearchFilter = selectAccountSearchFilter;
+window.selectCategorySearchFilter = selectCategorySearchFilter;
+window.selectMemberSearchFilter = selectMemberSearchFilter;
+window.applyAdvancedSearchFiltersVisual = applyAdvancedSearchFiltersVisual;
+window.resetAdvancedSearchFiltersVisual = resetAdvancedSearchFiltersVisual;
+window.resetAllSearchChips = resetAllSearchChips;
 
 function populateSearchFilterDropdowns() {
   // Populate accounts filter
@@ -4853,10 +5203,18 @@ function resetSearchFilters() {
   document.getElementById('search-filter-amount-max').value = '';
   document.getElementById('search-filter-date-start').value = '';
   document.getElementById('search-filter-date-end').value = '';
+  
+  // Reset member filter
+  const memSel = document.getElementById('search-filter-member');
+  if (memSel) memSel.value = '';
+
   populateSearchSubcategoryDropdown('');
   
   // Sync the custom UI trigger labels and selections
   updateCustomSelectTriggers();
+
+  // Reset visual chip elements to default labels
+  resetAllSearchChips();
   
   handleSearchChange();
 }
@@ -4896,6 +5254,9 @@ function handleSearchChange() {
   const maxAmt = parseFloat(document.getElementById('search-filter-amount-max').value) || null;
   const dateStart = document.getElementById('search-filter-date-start').value;
   const dateEnd = document.getElementById('search-filter-date-end').value;
+  
+  // Member Filter value
+  const filterMember = document.getElementById('search-filter-member')?.value || '';
 
   const filtered = state.transactions.filter(t => {
     // 1. Text Query (Search in Note, Category, Subcategory, Description, Account)
@@ -4923,6 +5284,9 @@ function handleSearchChange() {
 
     // 4b. Subcategory Filter
     if (filterSub && (t.subcategory || '').trim() !== filterSub) return false;
+
+    // 4c. Member Filter (user_id matching)
+    if (filterMember && t.user_id !== filterMember) return false;
 
     // 5. Amount Range Filter
     const amt = parseFloat(t.amount) || 0;
@@ -5610,7 +5974,11 @@ function initSwipeToBack() {
           state.selectedYear = today.getFullYear();
           state.statsDate.setFullYear(state.selectedYear);
           state.statsDate.setMonth(state.selectedMonth);
-          updateUI();
+          requestAnimationFrame(() => {
+            setTimeout(() => {
+              updateUI();
+            }, 50);
+          });
         } else if (prevTabName === 'stats') {
           // Defer heavy chart rendering until transition settles
           requestAnimationFrame(() => {

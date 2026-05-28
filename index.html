@@ -742,96 +742,62 @@
     <!-- OVERLAY: TRANSACTION SEARCH & ADVANCED FILTERS -->
     <!-- ============================================== -->
     <div id="search-overlay" class="search-overlay-container">
-      <div class="search-overlay-header">
-        <button class="icon-btn" id="search-back-btn" onclick="closeSearchOverlay()"><i class="fa-solid fa-arrow-left"></i></button>
-        <span class="search-header-title">Αναζήτηση & Φίλτρα</span>
-        <button class="text-link-btn" onclick="resetSearchFilters()">Καθαρισμός</button>
-      </div>
-      
-      <div class="search-overlay-body">
-        <!-- Search Keyword Input Box -->
-        <div class="search-input-wrapper">
-          <i class="fa-solid fa-magnifying-glass search-input-icon"></i>
-          <input type="text" id="search-input" placeholder="Λέξεις, κατηγορία, σημείωση..." oninput="handleSearchChange()">
-          <button class="search-clear-btn" id="search-clear-btn" onclick="clearSearchInput()" title="Καθαρισμός">
+      <div class="search-overlay-header-modern">
+        <button class="icon-btn search-back-btn-modern" onclick="closeSearchOverlay()"><i class="fa-solid fa-arrow-left"></i></button>
+        <div class="search-input-wrapper-modern">
+          <i class="fa-solid fa-magnifying-glass search-input-icon-modern"></i>
+          <input type="text" id="search-input" placeholder="Αναζήτηση σε κινήσεις, σημειώσεις..." oninput="handleSearchChange()">
+          <button class="search-clear-btn-modern" id="search-clear-btn" onclick="clearSearchInput()" title="Καθαρισμός">
             <i class="fa-solid fa-xmark"></i>
           </button>
         </div>
-        
-        <!-- Collapsible / Advanced Filter Sections -->
-        <div class="search-filters-section-title">Φίλτρα</div>
-        <div class="search-filters-grid">
-          <div class="search-filter-group">
-            <label class="search-filter-label">Τύπος</label>
-            <div class="custom-select-container" id="custom-select-container-type">
-              <select id="search-filter-type" class="search-filter-select-hidden" onchange="handleSearchChange()">
-                <option value="">Όλοι οι τύποι</option>
-                <option value="expense">Έξοδο</option>
-                <option value="income">Έσοδο</option>
-                <option value="transfer">Μεταφορά</option>
-              </select>
-              <div class="custom-select-trigger" onclick="toggleCustomDropdown(event, 'type')">
-                <span class="custom-select-trigger-text">Όλοι οι τύποι</span>
-                <i class="fa-solid fa-chevron-down custom-select-arrow"></i>
-              </div>
-              <div class="custom-select-options" id="custom-options-type"></div>
-            </div>
-          </div>
-          <div class="search-filter-group">
-            <label class="search-filter-label">Λογαριασμός</label>
-            <div class="custom-select-container" id="custom-select-container-account">
-              <select id="search-filter-account" class="search-filter-select-hidden" onchange="handleSearchChange()">
-                <option value="">Όλοι οι λογαριασμοί</option>
-              </select>
-              <div class="custom-select-trigger" onclick="toggleCustomDropdown(event, 'account')">
-                <span class="custom-select-trigger-text">Όλοι οι λογαριασμοί</span>
-                <i class="fa-solid fa-chevron-down custom-select-arrow"></i>
-              </div>
-              <div class="custom-select-options" id="custom-options-account"></div>
-            </div>
-          </div>
-          <div class="search-filter-group">
-            <label class="search-filter-label">Κατηγορία</label>
-            <div class="custom-select-container" id="custom-select-container-category">
-              <select id="search-filter-category" class="search-filter-select-hidden">
-                <option value="">Όλες οι κατηγορίες</option>
-              </select>
-              <div class="custom-select-trigger" onclick="toggleCustomDropdown(event, 'category')">
-                <span class="custom-select-trigger-text">Όλες οι κατηγορίες</span>
-                <i class="fa-solid fa-chevron-down custom-select-arrow"></i>
-              </div>
-              <div class="custom-select-options" id="custom-options-category"></div>
-            </div>
-          </div>
-          <div class="search-filter-group">
-            <label class="search-filter-label">Υποκατηγορία</label>
-            <div class="custom-select-container" id="custom-select-container-subcategory">
-              <select id="search-filter-subcategory" class="search-filter-select-hidden" onchange="handleSearchChange()">
-                <option value="">Όλες</option>
-              </select>
-              <div class="custom-select-trigger" onclick="toggleCustomDropdown(event, 'subcategory')">
-                <span class="custom-select-trigger-text">Όλες</span>
-                <i class="fa-solid fa-chevron-down custom-select-arrow"></i>
-              </div>
-              <div class="custom-select-options" id="custom-options-subcategory"></div>
-            </div>
-          </div>
-          <div class="search-filter-group">
-            <label class="search-filter-label">Ποσό από</label>
-            <input type="number" id="search-filter-amount-min" class="search-filter-input" placeholder="0.00" step="0.01" oninput="handleSearchChange()">
-          </div>
-          <div class="search-filter-group">
-            <label class="search-filter-label">Ποσό έως</label>
-            <input type="number" id="search-filter-amount-max" class="search-filter-input" placeholder="0.00" step="0.01" oninput="handleSearchChange()">
-          </div>
-          <div class="search-filter-group">
-            <label class="search-filter-label">Από ημερομηνία</label>
-            <input type="date" id="search-filter-date-start" class="search-filter-input" onchange="handleSearchChange()">
-          </div>
-          <div class="search-filter-group">
-            <label class="search-filter-label">Έως ημερομηνία</label>
-            <input type="date" id="search-filter-date-end" class="search-filter-input" onchange="handleSearchChange()">
-          </div>
+        <button class="search-reset-btn-modern" onclick="resetSearchFilters()">Καθαρισμός</button>
+      </div>
+      
+      <!-- Horizontal Chips Scrollable Row -->
+      <div class="search-chips-row">
+        <div class="search-chips-scroll">
+          <button class="search-chip" id="search-chip-type" onclick="openSearchBottomSheet('type')">
+            <span class="chip-label">Τύπος</span> <i class="fa-solid fa-chevron-down chip-arrow"></i>
+          </button>
+          <button class="search-chip" id="search-chip-category" onclick="openSearchBottomSheet('category')">
+            <span class="chip-label">Κατηγορία</span> <i class="fa-solid fa-chevron-down chip-arrow"></i>
+          </button>
+          <button class="search-chip" id="search-chip-account" onclick="openSearchBottomSheet('account')">
+            <span class="chip-label">Λογαριασμός</span> <i class="fa-solid fa-chevron-down chip-arrow"></i>
+          </button>
+          <button class="search-chip" id="search-chip-member" onclick="openSearchBottomSheet('member')">
+            <span class="chip-label">Μέλος</span> <i class="fa-solid fa-chevron-down chip-arrow"></i>
+          </button>
+          <button class="search-chip search-chip-settings" id="search-chip-advanced" onclick="openSearchBottomSheet('advanced')" title="Σύνθετα Φίλτρα">
+            <i class="fa-solid fa-sliders"></i>
+          </button>
+        </div>
+      </div>
+      
+      <div class="search-overlay-body" style="padding-top: 8px;">
+        <!-- Hidden inputs for legacy code compatibility -->
+        <div style="display: none;">
+          <select id="search-filter-type" onchange="handleSearchChange()">
+            <option value="">Όλοι οι τύποι</option>
+            <option value="expense">Έξοδο</option>
+            <option value="income">Έσοδο</option>
+            <option value="transfer">Μεταφορά</option>
+          </select>
+          <select id="search-filter-account" onchange="handleSearchChange()">
+            <option value="">Όλοι οι λογαριασμοί</option>
+          </select>
+          <select id="search-filter-category" onchange="handleSearchChange()">
+            <option value="">Όλες οι κατηγορίες</option>
+          </select>
+          <select id="search-filter-subcategory" onchange="handleSearchChange()">
+            <option value="">Όλες</option>
+          </select>
+          <input type="number" id="search-filter-amount-min" step="0.01" oninput="handleSearchChange()">
+          <input type="number" id="search-filter-amount-max" step="0.01" oninput="handleSearchChange()">
+          <input type="date" id="search-filter-date-start" onchange="handleSearchChange()">
+          <input type="date" id="search-filter-date-end" onchange="handleSearchChange()">
+          <input type="hidden" id="search-filter-member" onchange="handleSearchChange()" value="">
         </div>
 
         <div class="search-results-header">
@@ -842,6 +808,103 @@
         <!-- Search Results List -->
         <div id="search-results-list" class="transactions-list-scroll">
           <!-- Populated dynamically with grouped transactions -->
+        </div>
+      </div>
+    </div>
+
+    <!-- BOTTOM SHEET BACKDROP -->
+    <div id="search-bottom-sheet-backdrop" class="search-bottom-sheet-backdrop" onclick="closeSearchBottomSheet()"></div>
+
+    <!-- BOTTOM SHEET: TYPE -->
+    <div id="search-bottom-sheet-type" class="search-bottom-sheet">
+      <div class="bottom-sheet-header">
+        <div class="bottom-sheet-drag-handle"></div>
+        <span class="bottom-sheet-title">Επιλογή Τύπου</span>
+        <button class="bottom-sheet-close-btn" onclick="closeSearchBottomSheet()">&times;</button>
+      </div>
+      <div class="bottom-sheet-body">
+        <div class="bottom-sheet-option active" data-value="" onclick="selectTypeSearchFilter('')">
+          <span class="option-label">Όλοι οι τύποι</span>
+          <i class="fa-solid fa-check option-check-icon"></i>
+        </div>
+        <div class="bottom-sheet-option" data-value="expense" onclick="selectTypeSearchFilter('expense')">
+          <span class="option-label"><span class="type-indicator expense-indicator"></span> Έξοδο</span>
+          <i class="fa-solid fa-check option-check-icon"></i>
+        </div>
+        <div class="bottom-sheet-option" data-value="income" onclick="selectTypeSearchFilter('income')">
+          <span class="option-label"><span class="type-indicator income-indicator"></span> Έσοδο</span>
+          <i class="fa-solid fa-check option-check-icon"></i>
+        </div>
+        <div class="bottom-sheet-option" data-value="transfer" onclick="selectTypeSearchFilter('transfer')">
+          <span class="option-label"><span class="type-indicator transfer-indicator"></span> Μεταφορά</span>
+          <i class="fa-solid fa-check option-check-icon"></i>
+        </div>
+      </div>
+    </div>
+
+    <!-- BOTTOM SHEET: CATEGORY -->
+    <div id="search-bottom-sheet-category" class="search-bottom-sheet">
+      <div class="bottom-sheet-header">
+        <div class="bottom-sheet-drag-handle"></div>
+        <span class="bottom-sheet-title">Επιλογή Κατηγορίας</span>
+        <button class="bottom-sheet-close-btn" onclick="closeSearchBottomSheet()">&times;</button>
+      </div>
+      <div class="bottom-sheet-body" id="search-bottom-sheet-category-list">
+        <!-- Categories and subcategories populated dynamically -->
+      </div>
+    </div>
+
+    <!-- BOTTOM SHEET: ACCOUNT -->
+    <div id="search-bottom-sheet-account" class="search-bottom-sheet">
+      <div class="bottom-sheet-header">
+        <div class="bottom-sheet-drag-handle"></div>
+        <span class="bottom-sheet-title">Επιλογή Λογαριασμού</span>
+        <button class="bottom-sheet-close-btn" onclick="closeSearchBottomSheet()">&times;</button>
+      </div>
+      <div class="bottom-sheet-body" id="search-bottom-sheet-account-list">
+        <!-- Accounts populated dynamically -->
+      </div>
+    </div>
+
+    <!-- BOTTOM SHEET: MEMBER -->
+    <div id="search-bottom-sheet-member" class="search-bottom-sheet">
+      <div class="bottom-sheet-header">
+        <div class="bottom-sheet-drag-handle"></div>
+        <span class="bottom-sheet-title">Επιλογή Μέλους</span>
+        <button class="bottom-sheet-close-btn" onclick="closeSearchBottomSheet()">&times;</button>
+      </div>
+      <div class="bottom-sheet-body" id="search-bottom-sheet-member-list">
+        <!-- Members populated dynamically -->
+      </div>
+    </div>
+
+    <!-- BOTTOM SHEET: ADVANCED FILTERS -->
+    <div id="search-bottom-sheet-advanced" class="search-bottom-sheet">
+      <div class="bottom-sheet-header">
+        <div class="bottom-sheet-drag-handle"></div>
+        <span class="bottom-sheet-title">Σύνθετα Φίλτρα</span>
+        <button class="bottom-sheet-close-btn" onclick="closeSearchBottomSheet()">&times;</button>
+      </div>
+      <div class="bottom-sheet-body">
+        <div class="advanced-filter-group">
+          <label class="advanced-filter-label">Ποσό από (€)</label>
+          <input type="number" id="search-filter-amount-min-visual" class="advanced-filter-input" placeholder="0.00" step="0.01">
+        </div>
+        <div class="advanced-filter-group">
+          <label class="advanced-filter-label">Ποσό έως (€)</label>
+          <input type="number" id="search-filter-amount-max-visual" class="advanced-filter-input" placeholder="0.00" step="0.01">
+        </div>
+        <div class="advanced-filter-group">
+          <label class="advanced-filter-label">Από ημερομηνία</label>
+          <input type="date" id="search-filter-date-start-visual" class="advanced-filter-input">
+        </div>
+        <div class="advanced-filter-group">
+          <label class="advanced-filter-label">Έως ημερομηνία</label>
+          <input type="date" id="search-filter-date-end-visual" class="advanced-filter-input">
+        </div>
+        <div class="advanced-bottom-buttons">
+          <button type="button" class="btn btn-secondary" onclick="resetAdvancedSearchFiltersVisual()" style="flex:1;">Καθαρισμός</button>
+          <button type="button" class="btn btn-primary" onclick="applyAdvancedSearchFiltersVisual()" style="flex:1;">Εφαρμογή</button>
         </div>
       </div>
     </div>
