@@ -105,6 +105,8 @@ const state = {
   currentUser: null,
   userProfile: null,
   partnerProfile: null,
+  familyProfiles: [],
+  selectedFamilyMemberId: 'all',
   historyPushed: false,
 };
 
@@ -218,7 +220,17 @@ const TRANSLATIONS = {
     auth_signup_success: '🎉 Η εγγραφή ολοκληρώθηκε! Ελέγξτε το email σας για το σύνδεσμο επιβεβαίωσης.',
     auth_loading_title: 'Σύνδεση σε εξέλιξη',
     auth_loading_desc: 'Παρακαλώ περιμένετε όσο ολοκληρώνεται η ταυτοποίηση με το λογαριασμό σας...',
-    modal_sync_title: 'Συγχρονισμός'
+    modal_sync_title: 'Συγχρονισμός',
+    family_management_title: 'Διαχείριση Οικογένειας',
+    create_family_btn: 'Δημιουργία Οικογένειας',
+    join_family_btn: 'Εισαγωγή Κωδικού',
+    role_admin: 'Διαχειριστής',
+    role_member: 'Μέλος',
+    invite_code_label: 'Κωδικός Πρόσκλησης:',
+    invite_email_placeholder: 'email@family.com',
+    invite_email_btn: 'Αποστολή Πρόσκλησης',
+    stats_filter_member: 'Μέλος Οικογένειας',
+    only_creator_edit_warning: 'Μόνο ο δημιουργός ή ο διαχειριστής μπορεί να επεξεργαστεί αυτή την κίνηση'
   },
   en: {
     nav_trans: 'Transactions',
@@ -304,7 +316,17 @@ const TRANSLATIONS = {
     auth_signup_success: '🎉 Registration completed! Check your email for the confirmation link.',
     auth_loading_title: 'Signing in',
     auth_loading_desc: 'Please wait while we complete the authentication with your account...',
-    modal_sync_title: 'Cloud Sync'
+    modal_sync_title: 'Cloud Sync',
+    family_management_title: 'Family Management',
+    create_family_btn: 'Create Family Group',
+    join_family_btn: 'Enter Invite Code',
+    role_admin: 'Admin',
+    role_member: 'Member',
+    invite_code_label: 'Invite Code:',
+    invite_email_placeholder: 'email@family.com',
+    invite_email_btn: 'Send Invitation',
+    stats_filter_member: 'Family Member',
+    only_creator_edit_warning: 'Only the creator or admin can edit this transaction'
   }
 };
 
@@ -731,6 +753,20 @@ function initSupabase() {
 function initSupabaseAuth() {
   if (!state.supabaseClient) return;
 
+  const urlParams = new URLSearchParams(window.location.search);
+  const inviteCode = urlParams.get('invite');
+  const inviteRole = urlParams.get('role');
+  if (inviteCode) {
+    localStorage.setItem('pending_invite_code', inviteCode.trim().toUpperCase());
+    if (inviteRole) {
+      localStorage.setItem('pending_invite_role', inviteRole.trim().toLowerCase());
+    } else {
+      localStorage.removeItem('pending_invite_role');
+    }
+    const cleanUrl = window.location.origin + window.location.pathname;
+    window.history.replaceState({}, document.title, cleanUrl);
+  }
+
   function logAuthDebug(msg) {
     console.log('[AuthDebug]', msg);
     const logDiv = document.getElementById('auth-debug-logs');
@@ -1035,62 +1071,121 @@ async function loadUserProfiles(user) {
       updateHeaderProfileBadge();
     }
     
-    // 2. Perform automatic handshake if someone has set us as partner but we haven't linked them back
-    if (state.userProfile && !state.userProfile.partner_id) {
-      const { data: autoPartners, error: autoErr } = await promiseTimeout(
-        state.supabaseClient
-          .from('profiles')
-          .select('*')
-          .eq('partner_id', user.id)
-          .then(r => r),
-        6000
-      ).catch(e => ({ data: null, error: e }));
-         
-      if (autoPartners && autoPartners.length > 0) {
-        const partner = autoPartners[0];
-        console.log('Performing auto-handshake link with:', partner.email);
-        const { data: updatedProfile, error: updateErr } = await promiseTimeout(
-          state.supabaseClient
-            .from('profiles')
-            .update({ partner_id: partner.id })
-            .eq('id', user.id)
-            .select()
-            .single()
-            .then(r => r),
-          6000
-        ).catch(e => ({ data: null, error: e }));
-           
-        if (!updateErr && updatedProfile) {
-          state.userProfile = updatedProfile;
+    // 2. Load family profiles & family group details
+    if (state.userProfile && state.userProfile.family_id) {
+      const [famRes, groupRes] = await Promise.all([
+        state.supabaseClient.from('profiles').select('*').eq('family_id', state.userProfile.family_id),
+        state.supabaseClient.from('family_groups').select('*').eq('id', state.userProfile.family_id).single()
+      ]);
+
+      if (famRes.data) {
+        state.familyProfiles = famRes.data;
+        const otherMember = state.familyProfiles.find(p => p.id !== user.id);
+        if (state.familyProfiles.length === 2 && otherMember) {
+          state.partnerProfile = otherMember;
+          localStorage.setItem('cached_partner_profile', JSON.stringify(otherMember));
+        } else {
+          state.partnerProfile = null;
+          localStorage.removeItem('cached_partner_profile');
+        }
+      } else {
+        state.familyProfiles = [];
+      }
+      
+      if (groupRes.data) {
+        state.familyGroup = groupRes.data;
+      } else {
+        state.familyGroup = null;
+      }
+    } else {
+      state.familyProfiles = [];
+      state.familyGroup = null;
+      state.partnerProfile = null;
+      localStorage.removeItem('cached_partner_profile');
+
+      // 3. Scan pending invitations for this user's email
+      const pendingInviteCode = localStorage.getItem('pending_invite_code');
+      if (pendingInviteCode) {
+        localStorage.removeItem('pending_invite_code'); // Clear immediately
+        setTimeout(() => showPendingInviteCodePrompt(pendingInviteCode), 1000);
+      } else if (user.email) {
+        const { data: pending } = await state.supabaseClient
+          .from('pending_invitations')
+          .select('*, family_groups(name, invite_code)')
+          .eq('invited_email', user.email.trim().toLowerCase());
+
+        if (pending && pending.length > 0) {
+          setTimeout(() => showPendingInvitationPrompt(pending[0]), 1000);
         }
       }
     }
-    
-    // 3. Load partner profile details if linked
-    if (state.userProfile && state.userProfile.partner_id) {
-      const { data: partner, error: partnerErr } = await promiseTimeout(
-        state.supabaseClient
-          .from('profiles')
-          .select('*')
-          .eq('id', state.userProfile.partner_id)
-          .single()
-          .then(r => r),
-        8000
-      ).catch(e => ({ data: null, error: e }));
-         
-      if (!partnerErr && partner) {
-        state.partnerProfile = partner;
-        localStorage.setItem('cached_partner_profile', JSON.stringify(partner));
-      } else {
-        state.partnerProfile = null;
-        localStorage.removeItem('cached_partner_profile');
-      }
-    } else {
-      state.partnerProfile = null;
-      localStorage.removeItem('cached_partner_profile');
-    }
   } catch(e) {
     console.error('Error loading user profiles:', e);
+  }
+}
+
+function showPendingInviteCodePrompt(inviteCode) {
+  if (!state.supabaseClient || !state.currentUser) return;
+  
+  state.supabaseClient
+    .from('family_groups')
+    .select('name')
+    .eq('invite_code', inviteCode)
+    .single()
+    .then(({ data, error }) => {
+      if (error || !data) {
+        console.warn('Could not find family group for invite code:', inviteCode);
+        return;
+      }
+      
+      const familyName = data.name;
+      const confirmMsg = state.lang === 'el'
+        ? `📬 Εκκρεμής πρόσκληση!\nΈχετε έναν σύνδεσμο πρόσκλησης για την οικογένεια «${familyName}» (Κωδικός: ${inviteCode}).\n\nΘέλετε να γίνετε μέλος αυτής της οικογένειας;`
+        : `📬 Pending invitation!\nYou have an invitation link for the family group "${familyName}" (Code: ${inviteCode}).\n\nDo you want to join this family group?`;
+        
+      if (confirm(confirmMsg)) {
+        const inviteRole = localStorage.getItem('pending_invite_role') || 'member';
+        localStorage.removeItem('pending_invite_role');
+        
+        state.supabaseClient.rpc('join_family_group', { invite_code_input: inviteCode, invite_role_input: inviteRole })
+          .then(({ data: joinData, error: joinErr }) => {
+            if (joinErr) {
+              alert(state.lang === 'el' ? 'Σφάλμα κατά τη σύνδεση: ' + joinErr.message : 'Error joining family: ' + joinErr.message);
+            } else {
+              alert(state.lang === 'el' ? '🎉 Συνδεθήκατε επιτυχώς στην οικογένεια!' : '🎉 Joined the family successfully!');
+              window.location.reload();
+            }
+          });
+      }
+    });
+}
+
+function showPendingInvitationPrompt(invite) {
+  if (!state.supabaseClient || !state.currentUser) return;
+  const familyName = invite.family_groups ? invite.family_groups.name : 'Οικογένεια';
+  const confirmMsg = state.lang === 'el' 
+    ? `📬 Εκκρεμής πρόσκληση!\nΈχετε προσκληθεί να συνδεθείτε στην οικογένεια «${familyName}».\n\nΘέλετε να γίνετε μέλος αυτής της οικογένειας;`
+    : `📬 Pending invitation!\nYou have been invited to join the family group "${familyName}".\n\nDo you want to join this family group?`;
+    
+  if (confirm(confirmMsg)) {
+    const inviteCode = invite.family_groups ? invite.family_groups.invite_code : '';
+    if (!inviteCode) return;
+    const inviteRole = invite.role || 'member';
+    
+    state.supabaseClient.rpc('join_family_group', { invite_code_input: inviteCode, invite_role_input: inviteRole })
+      .then(async ({ data, error }) => {
+        if (error) {
+          alert(state.lang === 'el' ? 'Σφάλμα κατά τη σύνδεση: ' + error.message : 'Error joining family: ' + error.message);
+        } else {
+          alert(state.lang === 'el' ? '🎉 Συνδεθήκατε επιτυχώς στην οικογένεια!' : '🎉 Joined the family successfully!');
+          window.location.reload();
+        }
+      });
+  } else {
+    // Delete the pending invitation from database so they are not prompted again
+    state.supabaseClient.from('pending_invitations').delete().eq('id', invite.id).then(() => {
+      console.log('Rejected and deleted pending invitation:', invite.id);
+    });
   }
 }
 
@@ -1131,21 +1226,21 @@ window.applyWalletTheme = applyWalletTheme;
 function getActiveTransactions() {
   const currentUserId = state.currentUser ? state.currentUser.id : null;
   const partnerId = state.partnerProfile ? state.partnerProfile.id : null;
+  const familyId = state.userProfile ? state.userProfile.family_id : null;
 
   return state.transactions.filter(t => {
-    // If the database has no user_id column yet, t.user_id will be undefined.
-    // In this case, we treat it as belonging to the current user so they don't lose access.
     if (t.user_id === undefined) {
       return true;
     }
     
     if (currentUserId) {
-      // Logged in user: show their own, partner's, or local pending transactions
+      if (familyId) {
+        return t.family_id === familyId || (t.id && String(t.id).startsWith('local_'));
+      }
       return t.user_id === currentUserId || 
              t.user_id === partnerId || 
              (t.id && String(t.id).startsWith('local_'));
     } else {
-      // Guest user: show guest transactions (user_id is null or undefined)
       return t.user_id === null || t.user_id === undefined;
     }
   });
@@ -1188,7 +1283,11 @@ async function loadData() {
       const partnerId = state.partnerProfile ? state.partnerProfile.id : null;
 
       // Fetch categories & accounts first
-      const userFilter = partnerId ? `user_id.eq.${userId},user_id.eq.${partnerId}` : `user_id.eq.${userId}`;
+      const familyId = state.userProfile ? state.userProfile.family_id : null;
+      const userFilter = familyId 
+        ? `family_id.eq.${familyId}` 
+        : (partnerId ? `user_id.eq.${userId},user_id.eq.${partnerId}` : `user_id.eq.${userId}`);
+
       const [catsRes, accsRes] = await promiseTimeout(
         Promise.all([
           state.supabaseClient.from('categories').select('*').or(userFilter),
@@ -1212,7 +1311,9 @@ async function loadData() {
           .order('date', { ascending: false })
           .range(page * pageSize, (page + 1) * pageSize - 1);
 
-        if (partnerId) {
+        if (familyId) {
+          transQuery = transQuery.eq('family_id', familyId);
+        } else if (partnerId) {
           transQuery = transQuery.or(`user_id.eq.${userId},user_id.eq.${partnerId}`);
         } else {
           transQuery = transQuery.eq('user_id', userId);
@@ -1246,7 +1347,8 @@ async function loadData() {
           type: c.type,
           icon: c.icon,
           color: c.color,
-          user_id: userId
+          user_id: userId,
+          family_id: familyId
         }));
         try {
           const { data: newCats, error: catErr } = await state.supabaseClient.from('categories').insert(catsToInsert).select();
@@ -1268,7 +1370,8 @@ async function loadData() {
           name: a.name,
           type: a.type,
           balance: a.balance,
-          user_id: userId
+          user_id: userId,
+          family_id: familyId
         }));
         try {
           const { data: newAccs, error: accErr } = await state.supabaseClient.from('accounts').insert(accsToInsert).select();
@@ -1680,8 +1783,76 @@ function renderStatsTab() {
     item.classList.toggle('active', item.getAttribute('data-value') === state.statsPeriodType);
   });
 
+  // Dynamically populate Family Member Filter Dropdown
+  const familyFilterContainer = document.getElementById('stats-family-dropdown-container');
+  const familyFilterMenu = document.getElementById('stats-family-dropdown-menu');
+  const familyFilterBtn = document.getElementById('stats-family-dropdown-btn');
+
+  if (state.userProfile && state.userProfile.family_id) {
+    if (familyFilterContainer) familyFilterContainer.style.display = 'block';
+    
+    if (familyFilterMenu) {
+      familyFilterMenu.innerHTML = '';
+      
+      const allText = state.lang === 'el' ? 'Όλη η Οικογένεια' : 'All Family';
+      const allItem = document.createElement('div');
+      allItem.className = 'stats-dropdown-item' + (state.selectedFamilyMemberId === 'all' ? ' active' : '');
+      allItem.setAttribute('data-value', 'all');
+      allItem.textContent = allText;
+      allItem.addEventListener('click', (e) => {
+        e.stopPropagation();
+        state.selectedFamilyMemberId = 'all';
+        familyFilterMenu.classList.remove('active');
+        renderStatsTab();
+      });
+      familyFilterMenu.appendChild(allItem);
+      
+      const members = state.familyProfiles || [];
+      members.forEach(member => {
+        const isMe = member.id === state.currentUser.id;
+        const meSuffix = isMe ? ` (${state.lang === 'el' ? 'Εσείς' : 'You'})` : '';
+        const name = (member.display_name || member.email.split('@')[0]) + meSuffix;
+        
+        const item = document.createElement('div');
+        item.className = 'stats-dropdown-item' + (state.selectedFamilyMemberId === member.id ? ' active' : '');
+        item.setAttribute('data-value', member.id);
+        item.textContent = name;
+        item.addEventListener('click', (e) => {
+          e.stopPropagation();
+          state.selectedFamilyMemberId = member.id;
+          familyFilterMenu.classList.remove('active');
+          renderStatsTab();
+        });
+        familyFilterMenu.appendChild(item);
+      });
+    }
+    
+    if (familyFilterBtn) {
+      let activeText = state.lang === 'el' ? 'Όλη η Οικογένεια' : 'All Family';
+      if (state.selectedFamilyMemberId !== 'all') {
+        const activeMember = (state.familyProfiles || []).find(m => m.id === state.selectedFamilyMemberId);
+        if (activeMember) {
+          const isMe = activeMember.id === state.currentUser.id;
+          const meSuffix = isMe ? ` (${state.lang === 'el' ? 'Εσείς' : 'You'})` : '';
+          activeText = (activeMember.display_name || activeMember.email.split('@')[0]) + meSuffix;
+        }
+      }
+      familyFilterBtn.innerHTML = `${activeText} <i class="fa-solid fa-chevron-down" style="font-size: 9px; margin-left: 4px;"></i>`;
+    }
+  } else {
+    if (familyFilterContainer) familyFilterContainer.style.display = 'none';
+    state.selectedFamilyMemberId = 'all';
+  }
+
   const walletTrans = getActiveTransactions();
-  const filteredTrans = walletTrans.filter(t => {
+  
+  // Filter by selected family member
+  let memberFilteredTrans = walletTrans;
+  if (state.userProfile && state.userProfile.family_id && state.selectedFamilyMemberId !== 'all') {
+    memberFilteredTrans = walletTrans.filter(t => t.user_id === state.selectedFamilyMemberId);
+  }
+
+  const filteredTrans = memberFilteredTrans.filter(t => {
     if (!t.date) return false;
     const datePart = t.date.split('T')[0];
     const tDate = new Date(datePart + 'T00:00:00');
@@ -2309,6 +2480,8 @@ function setupEventListeners() {
   });
 
   function openCalculatorKeypad() {
+    const form = document.getElementById('transaction-form');
+    if (form && form.getAttribute('data-readonly') === 'true') return;
     ensureHistoryPushed();
     const keypad = document.getElementById('custom-calculator-keypad');
     if (keypad) {
@@ -2390,8 +2563,23 @@ function setupEventListeners() {
     dropdownMenu.classList.toggle('active');
   });
 
+  const familyFilterBtn = document.getElementById('stats-family-dropdown-btn');
+  const familyFilterMenu = document.getElementById('stats-family-dropdown-menu');
+  if (familyFilterBtn && familyFilterMenu) {
+    familyFilterBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      familyFilterMenu.classList.toggle('active');
+    });
+  }
+
   document.addEventListener('click', () => {
     dropdownMenu.classList.remove('active');
+    if (familyFilterMenu) {
+      familyFilterMenu.classList.remove('active');
+    }
+    document.querySelectorAll('.member-dropdown-menu').forEach(menu => {
+      menu.style.display = 'none';
+    });
   });
 
   document.querySelectorAll('.stats-dropdown-item').forEach(item => {
@@ -2671,7 +2859,90 @@ function closeModal(id) {
   }
 }
 
+function toggleTransactionFormLock(locked) {
+  const form = document.getElementById('transaction-form');
+  if (!form) return;
+  
+  if (locked) {
+    form.setAttribute('data-readonly', 'true');
+  } else {
+    form.removeAttribute('data-readonly');
+  }
+  
+  const inputsToToggle = [
+    'trans-date',
+    'trans-note',
+    'trans-description',
+    'trans-account-from',
+    'trans-account-to',
+    'trans-subcategory-custom'
+  ];
+  inputsToToggle.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.disabled = locked;
+    }
+  });
+
+  const pointerContainers = [
+    document.querySelector('.type-selector-tabs'),
+    document.getElementById('trans-category-trigger'),
+    document.getElementById('trans-subcategory-trigger'),
+    document.getElementById('form-row-amount')
+  ];
+  pointerContainers.forEach(el => {
+    if (el) {
+      if (locked) {
+        el.style.pointerEvents = 'none';
+        el.style.opacity = '0.6';
+      } else {
+        el.style.pointerEvents = '';
+        el.style.opacity = '';
+      }
+    }
+  });
+
+  const saveBtn = document.getElementById('btn-save-transaction');
+  if (saveBtn) {
+    saveBtn.style.display = locked ? 'none' : 'block';
+  }
+
+  let warningEl = document.getElementById('trans-readonly-warning');
+  if (locked) {
+    if (!warningEl) {
+      warningEl = document.createElement('div');
+      warningEl.id = 'trans-readonly-warning';
+      warningEl.style.padding = '10px 12px';
+      warningEl.style.borderRadius = '8px';
+      warningEl.style.backgroundColor = 'rgba(239, 83, 80, 0.15)';
+      warningEl.style.color = '#ef5350';
+      warningEl.style.fontSize = '12px';
+      warningEl.style.fontWeight = '500';
+      warningEl.style.textAlign = 'center';
+      warningEl.style.marginBottom = '8px';
+      warningEl.style.display = 'flex';
+      warningEl.style.alignItems = 'center';
+      warningEl.style.justifyContent = 'center';
+      warningEl.style.gap = '8px';
+      warningEl.innerHTML = `<i class="fa-solid fa-circle-info"></i> <span>${TRANSLATIONS[state.lang]['only_creator_edit_warning']}</span>`;
+      
+      const form = document.getElementById('transaction-form');
+      if (form) {
+        form.parentNode.insertBefore(warningEl, form);
+      }
+    } else {
+      warningEl.querySelector('span').textContent = TRANSLATIONS[state.lang]['only_creator_edit_warning'];
+      warningEl.style.display = 'flex';
+    }
+  } else {
+    if (warningEl) {
+      warningEl.style.display = 'none';
+    }
+  }
+}
+
 function openAddTransactionModal() {
+  toggleTransactionFormLock(false);
   document.getElementById('transaction-form').reset();
   document.getElementById('trans-id').value = '';
   
@@ -2698,6 +2969,13 @@ function openAddTransactionModal() {
 }
 
 function openEditTransactionModal(t) {
+  const isFamilyMember = state.userProfile && state.userProfile.family_id;
+  const isNotAdmin = state.userProfile && state.userProfile.role !== 'admin';
+  const isNotOwner = t.user_id && state.currentUser && t.user_id !== state.currentUser.id;
+  const shouldLock = !!(isFamilyMember && isNotAdmin && isNotOwner);
+
+  toggleTransactionFormLock(shouldLock);
+
   document.getElementById('trans-id').value     = t.id;
   
   let dateVal = t.date;
@@ -2721,7 +2999,12 @@ function openEditTransactionModal(t) {
   }
   document.getElementById('trans-description').value = descVal;
   document.getElementById('trans-note').value        = noteVal;
-  document.getElementById('trans-delete-btn').style.display = 'block';
+  
+  if (shouldLock) {
+    document.getElementById('trans-delete-btn').style.display = 'none';
+  } else {
+    document.getElementById('trans-delete-btn').style.display = 'block';
+  }
   
   setTransactionFormType(t.type);
   setTimeout(() => {
@@ -2806,6 +3089,8 @@ function updateSubcategoryRowVisibility() {
 }
 
 function setTransactionFormType(type) {
+  const form = document.getElementById('transaction-form');
+  if (form && form.getAttribute('data-readonly') === 'true') return;
   document.querySelectorAll('.type-tab-btn').forEach(btn =>
     btn.classList.toggle('active', btn.getAttribute('data-type') === type)
   );
@@ -2920,12 +3205,16 @@ function selectSubcategory(name) {
 }
 
 function openCategoryModal() {
+  const form = document.getElementById('transaction-form');
+  if (form && form.getAttribute('data-readonly') === 'true') return;
   const currentType = document.querySelector('.type-tab-btn.active').getAttribute('data-type');
   updateCategoryDropdowns(currentType);
   openModal('category-picker-modal');
 }
 
 function openSubcategoryModal() {
+  const form = document.getElementById('transaction-form');
+  if (form && form.getAttribute('data-readonly') === 'true') return;
   if(!document.getElementById('trans-category').value) {
     alert(state.lang === 'en' ? 'Please select a Category first!' : 'Παρακαλώ επιλέξτε πρώτα Κατηγορία!');
     return;
@@ -4151,8 +4440,23 @@ function renderGroupedTransactions(transactions, container) {
                          : (t.subcategory && t.subcategory.trim()) ? t.subcategory.trim()
                          : (t.category || '');
 
-      const isPartner = state.partnerProfile && t.user_id === state.partnerProfile.id;
-      const partnerBadge = isPartner ? ` <i class="fa-solid fa-user-group partner-badge-icon" title="Προστέθηκε από τον σύντροφο"></i>` : '';
+      let memberBadge = '';
+      if (state.userProfile && state.userProfile.family_id && t.user_id) {
+        const creator = state.familyProfiles.find(p => p.id === t.user_id);
+        if (creator) {
+          const initials = getMemberInitials(creator);
+          const gradient = getMemberColorGradient(creator.id);
+          const creatorName = creator.display_name || creator.email.split('@')[0];
+          memberBadge = `
+            <span class="trans-member-badge" style="background:${gradient};color:white;display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;font-size:7.5px;font-weight:800;text-transform:uppercase;margin-left:6px;vertical-align:middle;box-shadow:0 1px 3px rgba(0,0,0,0.15);border:none;" title="${state.lang === 'el' ? 'Προστέθηκε από: ' : 'Added by: '}${creatorName}">
+              ${initials}
+            </span>
+          `;
+        }
+      } else {
+        const isPartner = state.partnerProfile && t.user_id === state.partnerProfile.id;
+        memberBadge = isPartner ? ` <i class="fa-solid fa-user-group partner-badge-icon" title="${state.lang === 'el' ? 'Προστέθηκε από τον σύντροφο' : 'Added by partner'}"></i>` : '';
+      }
 
       item.innerHTML = `
         <div class="trans-left">
@@ -4162,7 +4466,7 @@ function renderGroupedTransactions(transactions, container) {
             ${t.subcategory ? `<div class="trans-sub-name">${t.subcategory}</div>` : ''}
           </div>
           <div class="trans-details">
-            <span class="trans-title">${displayTitle}${partnerBadge}</span>
+            <span class="trans-title">${displayTitle}${memberBadge}</span>
             <span class="trans-acc-label">${accountText}</span>
           </div>
         </div>
@@ -5677,193 +5981,469 @@ function renderPartnerSection() {
     container.innerHTML = `
       <div style="text-align:center;padding:10px 0;">
         <div style="font-size:32px;margin-bottom:8px;">🔒</div>
-        <p style="font-size:13px;color:var(--text-secondary);margin-bottom:14px;">Συνδεθείτε για να ξεκλειδώσετε τον <strong>Κοινό Προϋπολογισμό 👥</strong></p>
+        <p style="font-size:13px;color:var(--text-secondary);margin-bottom:14px;">
+          ${state.lang === 'el' ? 'Συνδεθείτε για να ξεκλειδώσετε τον <strong>Οικογενειακό Προϋπολογισμό 👥</strong>' : 'Sign in to unlock <strong>Family Budgeting 👥</strong>'}
+        </p>
         <button class="btn btn-primary" onclick="showAuthOverlay()" style="width:100%;padding:12px;font-weight:700;">
-          <i class="fa-solid fa-right-to-bracket" style="margin-right:6px;"></i>Σύνδεση / Εγγραφή
+          <i class="fa-solid fa-right-to-bracket" style="margin-right:6px;"></i>${state.lang === 'el' ? 'Σύνδεση / Εγγραφή' : 'Sign In / Register'}
         </button>
       </div>
     `;
     return;
   }
 
-  const partnerProfile = state.partnerProfile;
-  const myEmail = state.currentUser.email;
+  const userProfile = state.userProfile;
+  const familyId = userProfile ? userProfile.family_id : null;
+  const myRole = userProfile ? userProfile.role : 'member';
 
-  if (partnerProfile) {
-    // ✅ CONNECTED STATE
-    container.innerHTML = `
-      <div style="background:linear-gradient(135deg,rgba(var(--accent-rgb,124,106,247),0.12),rgba(76,175,80,0.08));border:1px solid rgba(76,175,80,0.3);border-radius:16px;padding:16px;">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
-          <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#4caf50);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">👥</div>
-          <div>
-            <div style="font-size:13px;font-weight:700;color:var(--text-primary);">Κοινός Προϋπολογισμός Ενεργός</div>
-            <div style="font-size:11px;color:#4caf50;font-weight:600;">● Συγχρονισμένο σε πραγματικό χρόνο</div>
+  if (familyId) {
+    // === CONNECTED FAMILY STATE ===
+    let familyName = state.familyGroup ? state.familyGroup.name : '';
+    if (!familyName || familyName.toLowerCase() === 'null') {
+      const adminProfile = (state.familyProfiles || []).find(p => p.role === 'admin') || state.userProfile;
+      const adminName = adminProfile ? (adminProfile.display_name || adminProfile.email.split('@')[0]) : '';
+      familyName = state.lang === 'el' ? `Οικογένεια ${adminName}` : `${adminName} Family`;
+    }
+    const inviteCode = state.familyGroup ? state.familyGroup.invite_code : '';
+    
+    // Build members list HTML
+    let membersHtml = '';
+    state.familyProfiles.forEach(m => {
+      const isMe = m.id === state.currentUser.id;
+      const meSuffix = isMe ? ` (${state.lang === 'el' ? 'Εσείς' : 'You'})` : '';
+      const roleBadge = m.role === 'admin' 
+        ? `<span style="background:var(--accent-light);color:var(--accent);font-size:9.5px;padding:2px 6px;border-radius:4px;font-weight:700;margin-left:8px;">${state.lang === 'el' ? 'Διαχειριστής' : 'Admin'}</span>`
+        : `<span style="background:rgba(255,255,255,0.06);color:var(--text-secondary);font-size:9.5px;padding:2px 6px;border-radius:4px;font-weight:600;margin-left:8px;">${state.lang === 'el' ? 'Μέλος' : 'Member'}</span>`;
+      
+      let actionButtons = '';
+      if (myRole === 'admin' && !isMe) {
+        const demoteText = state.lang === 'el' ? 'Ορισμός ως Μέλος' : 'Set as Member';
+        const promoteText = state.lang === 'el' ? 'Ορισμός ως Διαχειριστής' : 'Set as Admin';
+        const removeText = state.lang === 'el' ? 'Αφαίρεση από την Οικογένεια' : 'Remove from Family';
+        
+        actionButtons = `
+          <div style="position:relative;display:inline-block;">
+            <button type="button" onclick="toggleMemberMenu(event, '${m.id}')" class="icon-btn" style="color:var(--text-secondary);padding:6px;font-size:14px;cursor:pointer;background:none;border:none;" title="${state.lang === 'el' ? 'Επιλογές' : 'Options'}">
+              <i class="fa-solid fa-ellipsis-vertical"></i>
+            </button>
+            <div id="member-menu-${m.id}" class="member-dropdown-menu" style="display:none;position:absolute;right:0;top:100%;z-index:1000;background:var(--card-bg2, #1f2230);border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.4);min-width:180px;padding:4px 0;text-align:left;">
+              ${m.role === 'admin' ? `
+                <div onclick="changeMemberRole('${m.id}', 'member')" 
+                     onmouseenter="this.style.background='rgba(255,255,255,0.05)'" 
+                     onmouseleave="this.style.background=''" 
+                     style="padding:10px 12px;font-size:12.5px;cursor:pointer;color:var(--text-primary);transition:background 0.2s;white-space:nowrap;">
+                  <i class="fa-solid fa-user-tag" style="margin-right:8px;width:14px;"></i>${demoteText}
+                </div>
+              ` : `
+                <div onclick="changeMemberRole('${m.id}', 'admin')" 
+                     onmouseenter="this.style.background='rgba(255,255,255,0.05)'" 
+                     onmouseleave="this.style.background=''" 
+                     style="padding:10px 12px;font-size:12.5px;cursor:pointer;color:var(--text-primary);transition:background 0.2s;white-space:nowrap;">
+                  <i class="fa-solid fa-user-shield" style="margin-right:8px;width:14px;"></i>${promoteText}
+                </div>
+              `}
+              <div onclick="kickFamilyMember('${m.id}')" 
+                   onmouseenter="this.style.background='rgba(239,83,80,0.08)'" 
+                   onmouseleave="this.style.background=''" 
+                   style="padding:10px 12px;font-size:12.5px;cursor:pointer;color:#ef5350;border-top:1px solid var(--border-light);transition:background 0.2s;white-space:nowrap;">
+                <i class="fa-solid fa-user-minus" style="margin-right:8px;width:14px;"></i>${removeText}
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      const initials = getMemberInitials(m);
+      const gradient = getMemberColorGradient(m.id);
+
+      membersHtml += `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border-light);gap:10px;">
+          <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">
+            <div style="width:28px;height:28px;border-radius:50%;background:${gradient};color:white;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;text-transform:uppercase;box-shadow:0 1px 4px rgba(0,0,0,0.15);flex-shrink:0;">
+              ${initials}
+            </div>
+            <div style="display:flex;flex-direction:column;min-width:0;flex:1;">
+              <span style="font-size:12px;font-weight:600;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                ${m.display_name || m.email.split('@')[0]}${meSuffix}
+              </span>
+              <span style="font-size:10px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                ${m.email}
+              </span>
+            </div>
+            ${roleBadge}
+          </div>
+          ${actionButtons}
+        </div>
+      `;
+    });
+
+    // Admin invite block
+    let inviteBlockHtml = '';
+    if (myRole === 'admin') {
+      inviteBlockHtml = `
+        <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:10px;">
+          <div style="font-size:12px;font-weight:700;">👤 ${state.lang === 'el' ? 'Πρόσκληση Νέου Μέλους' : 'Invite New Member'}</div>
+          
+          <div style="background:var(--card-bg2,rgba(255,255,255,0.04));border:1px solid var(--card-border);border-radius:8px;padding:8px 10px;display:flex;align-items:center;justify-content:space-between;gap:8px;">
+            <span style="font-size:12px;font-weight:700;color:var(--accent);letter-spacing:1.5px;font-family:monospace;">${inviteCode}</span>
+            <div style="display:flex;gap:4px;">
+              <button onclick="navigator.clipboard.writeText('${inviteCode}').then(()=>showSyncToast('${state.lang === 'el' ? '✓ Αντεγράφη ο κωδικός' : '✓ Code copied'}', 2000))" class="btn btn-secondary" style="padding:4px 8px;font-size:10px;border-radius:6px;line-height:1;">
+                📋 ${state.lang === 'el' ? 'Κωδικός' : 'Code'}
+              </button>
+              <button onclick="navigator.clipboard.writeText('${window.location.origin + window.location.pathname}?invite=${inviteCode}').then(()=>showSyncToast('${state.lang === 'el' ? '✓ Αντεγράφη ο σύνδεσμος' : '✓ Link copied'}', 2000))" class="btn btn-secondary" style="padding:4px 8px;font-size:10px;border-radius:6px;line-height:1;">
+                🔗 ${state.lang === 'el' ? 'Σύνδεσμος' : 'Link'}
+              </button>
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:6px;margin-top:4px;">
+            <label style="font-size:11px;color:var(--text-muted);font-weight:600;margin-bottom:2px;">
+              ${state.lang === 'el' ? 'Ρόλος Νέου Μέλους' : 'New Member Role'}
+            </label>
+            <select id="invite-role-select" class="form-row-select" style="font-size:12.5px;padding:8px 10px;border-radius:8px;background:var(--card-bg2, #1f2230);border:1px solid var(--border);color:var(--text-primary);cursor:pointer;margin-bottom:6px;width:100%;">
+              <option value="member" selected>${state.lang === 'el' ? 'Μέλος (Προεπιλογή) - Μόνο δικές του κινήσεις' : 'Member (Default) - Own transactions only'}</option>
+              <option value="admin">${state.lang === 'el' ? 'Διαχειριστής - Πλήρη δικαιώματα CRUD' : 'Admin - Full CRUD permissions'}</option>
+            </select>
+            <div style="display:flex;gap:6px;">
+              <input type="email" id="invite-email-input" class="form-input" placeholder="${state.lang === 'el' ? 'email@family.com' : 'email@family.com'}" style="flex:1;font-size:12.5px;padding:8px 10px;margin-bottom:0;border-radius:8px;">
+              <button onclick="inviteMemberByEmail()" class="btn btn-primary" style="padding:8px 14px;font-size:12.5px;font-weight:700;border-radius:8px;white-space:nowrap;">
+                <i class="fa-solid fa-paper-plane" style="margin-right:4px;"></i>${state.lang === 'el' ? 'Πρόσκληση' : 'Invite'}
+              </button>
+            </div>
           </div>
         </div>
-        <div style="background:var(--card-bg2,rgba(255,255,255,0.04));border-radius:10px;padding:10px 12px;margin-bottom:12px;">
-          <div style="font-size:11px;color:var(--text-secondary);margin-bottom:4px;">Εσείς</div>
-          <div style="font-size:13px;font-weight:600;">${myEmail}</div>
-          <div style="height:1px;background:var(--card-border);margin:8px 0;"></div>
-          <div style="font-size:11px;color:var(--text-secondary);margin-bottom:4px;">Σύντροφος</div>
-          <div style="font-size:13px;font-weight:600;">${partnerProfile.display_name || partnerProfile.email}</div>
-          <div style="font-size:11px;color:var(--text-muted);">${partnerProfile.email}</div>
-        </div>
-        <div style="display:flex;gap:8px;">
-          <button class="btn" onclick="loadData().then(()=>updateUI())" style="flex:1;padding:9px;font-size:12px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-weight:600;">
-            <i class="fa-solid fa-rotate" style="margin-right:5px;"></i>Ανανέωση
-          </button>
-          <button class="btn btn-secondary unlink-btn" onclick="unlinkPartner()" style="padding:9px 12px;font-size:12px;">
-            <i class="fa-solid fa-user-minus" style="margin-right:5px;"></i>Αποσύνδεση
+      `;
+    }
+
+    let nameHtml = `<div style="font-size:13px;font-weight:700;color:var(--text-primary);">${familyName}</div>`;
+    if (myRole === 'admin') {
+      nameHtml = `
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div style="font-size:13px;font-weight:700;color:var(--text-primary);">${familyName}</div>
+          <button onclick="promptRenameFamilyGroup()" class="icon-btn" style="color:var(--text-muted);font-size:11px;padding:2px;cursor:pointer;background:none;border:none;" title="${state.lang === 'el' ? 'Μετονομασία' : 'Rename'}">
+            <i class="fa-solid fa-pen" style="font-size:10px;"></i>
           </button>
         </div>
+      `;
+    }
+
+    container.innerHTML = `
+      <div style="background:linear-gradient(135deg,rgba(var(--accent-rgb,124,106,247),0.06),rgba(255,255,255,0.01));border:1px solid var(--border);border-radius:16px;padding:16px;box-shadow:var(--shadow);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;border-bottom:1px solid var(--border);padding-bottom:10px;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#4caf50);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">👥</div>
+            <div>
+              ${nameHtml}
+              <div style="font-size:10px;color:#4caf50;font-weight:600;">● ${state.lang === 'el' ? 'Κοινό Ιστορικό' : 'Shared History'}</div>
+            </div>
+          </div>
+          <button class="btn btn-secondary unlink-btn" onclick="leaveFamilyGroup()" style="padding:6px 10px;font-size:11px;border-radius:8px;margin-left:0;">
+            <i class="fa-solid fa-right-from-bracket" style="margin-right:5px;"></i>${state.lang === 'el' ? 'Αποχώρηση' : 'Leave'}
+          </button>
+        </div>
+        
+        <div style="font-size:12px;font-weight:700;margin-bottom:8px;color:var(--text-secondary);">
+          👥 ${state.lang === 'el' ? 'Μέλη Οικογένειας' : 'Family Members'} (${state.familyProfiles.length})
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          ${membersHtml}
+        </div>
+
+        ${inviteBlockHtml}
       </div>
     `;
   } else {
-    // 📋 SETUP GUIDE STATE
+    // === SETUP / JOIN / CREATE FAMILY STATE ===
     container.innerHTML = `
-      <div style="font-size:13px;color:var(--text-secondary);margin-bottom:14px;line-height:1.5;">
-        Συνδέστε τον λογαριασμό σας με το email του συντρόφου σας. Και οι δύο πρέπει να έχουν λογαριασμό στην εφαρμογή.
-      </div>
+      <div style="display:flex;flex-direction:column;gap:16px;padding:4px 0;">
+        <div style="font-size:13px;color:var(--text-secondary);line-height:1.5;">
+          ${state.lang === 'el' 
+            ? 'Διαχειριστείτε τα κοινά οικονομικά του σπιτιού δημιουργώντας ένα Οικογενειακό Group, ή συνδεθείτε σε ένα υπάρχον με κωδικό πρόσκλησης.' 
+            : 'Manage shared household finances by creating a Family Group, or join an existing one using an invite code.'}
+        </div>
 
-      <!-- Step 1 -->
-      <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:14px;">
-        <div style="width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">1</div>
-        <div style="flex:1;">
-          <div style="font-size:12px;font-weight:700;margin-bottom:4px;">Στείλτε το email σας στον σύντροφό σας</div>
-          <div style="background:var(--card-bg2,rgba(255,255,255,0.04));border:1px solid var(--card-border);border-radius:8px;padding:8px 10px;display:flex;align-items:center;justify-content:space-between;gap:8px;">
-            <span style="font-size:12px;font-weight:600;color:var(--accent);">${myEmail}</span>
-            <button onclick="navigator.clipboard.writeText('${myEmail}').then(()=>this.textContent='✓ Αντεγράφη').catch(()=>{})" style="background:transparent;border:1px solid var(--accent);color:var(--accent);border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer;white-space:nowrap;">
-              📋 Αντιγραφή
+        <!-- Section A: Create Family -->
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px;">
+          <div style="font-size:12px;font-weight:700;color:var(--text-primary);">⭐ ${state.lang === 'el' ? 'Δημιουργία Νέας Οικογένειας' : 'Create New Family Group'}</div>
+          <div style="display:flex;gap:6px;">
+            <input type="text" id="create-family-name-input" class="form-input" placeholder="${state.lang === 'el' ? 'Όνομα Οικογένειας (π.χ. Οικ. Παπαδόπουλου)' : 'Family Name (e.g. Smith Family)'}" style="flex:1;font-size:13px;padding:8px 10px;margin-bottom:0;">
+            <button class="btn btn-primary" onclick="createFamilyGroup()" style="padding:8px 14px;font-size:12.5px;font-weight:700;white-space:nowrap;">
+              ${state.lang === 'el' ? 'Δημιουργία' : 'Create'}
+            </button>
+          </div>
+        </div>
+
+        <!-- Section B: Join Family -->
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px;">
+          <div style="font-size:12px;font-weight:700;color:var(--text-primary);">👥 ${state.lang === 'el' ? 'Σύνδεση σε Οικογένεια με Κωδικό' : 'Join Family Group via Code'}</div>
+          <div style="display:flex;gap:6px;">
+            <input type="text" id="join-family-code-input" class="form-input" placeholder="X1Y2Z3" style="flex:1;font-size:13px;padding:8px 10px;text-transform:uppercase;letter-spacing:1.5px;font-family:monospace;text-align:center;margin-bottom:0;">
+            <button class="btn btn-primary" onclick="joinFamilyGroup()" style="padding:8px 14px;font-size:12.5px;font-weight:700;white-space:nowrap;">
+              ${state.lang === 'el' ? 'Σύνδεση' : 'Join'}
             </button>
           </div>
         </div>
       </div>
-
-      <!-- Step 2 -->
-      <div style="display:flex;align-items:flex-start;gap:10px;">
-        <div style="width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">2</div>
-        <div style="flex:1;">
-          <div style="font-size:12px;font-weight:700;margin-bottom:6px;">Εισάγετε το email του συντρόφου σας</div>
-          <input type="email" id="partner-email-input" class="form-input" placeholder="email@partner.com" style="margin-bottom:8px;font-size:13px;">
-          <button class="btn btn-primary" onclick="linkPartner()" style="width:100%;padding:11px;font-size:13px;font-weight:700;">
-            <i class="fa-solid fa-link" style="margin-right:6px;"></i>Σύνδεση Κοινού Προϋπολογισμού
-          </button>
-        </div>
-      </div>
     `;
   }
 }
 
-async function linkPartner() {
-  const emailInput = document.getElementById('partner-email-input');
-  if (!emailInput) return;
-  
-  const partnerEmail = emailInput.value.trim().toLowerCase();
-  if (!partnerEmail) {
-    alert('Παρακαλώ εισάγετε ένα έγκυρο email.');
-    return;
+function getMemberInitials(m) {
+  const name = m.display_name || m.email.split('@')[0] || '';
+  if (name.length >= 2) {
+    return name.substring(0, 2);
   }
-  
-  if (partnerEmail === state.currentUser.email.toLowerCase()) {
-    alert('Δεν μπορείτε να συνδεθείτε με το δικό σας email!');
-    return;
+  return name.substring(0, 1) || '?';
+}
+
+function getMemberColorGradient(userId) {
+  let hash = 0;
+  if (userId) {
+    for (let i = 0; i < userId.length; i++) {
+      hash = userId.charCodeAt(i) + ((hash << 5) - hash);
+    }
   }
+  const gradients = [
+    'linear-gradient(135deg, #e05e55 0%, #ff8a80 100%)', // Original Coral/Red-ish
+    'linear-gradient(135deg, #2ec4b6 0%, #8fd3f4 100%)', // Emerald Green
+    'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', // Neon Blue
+    'linear-gradient(135deg, #ab47bc 0%, #fccb90 100%)', // Purple/Gold
+    'linear-gradient(135deg, #4caf50 0%, #81c784 100%)', // Green
+    'linear-gradient(135deg, #f5576c 0%, #f093fb 100%)', // Pink/Purple
+    'linear-gradient(135deg, #ffa726 0%, #ffcc80 100%)', // Orange/Peach
+    'linear-gradient(135deg, #00b4d8 0%, #90e0ef 100%)'  // Teal/Sky
+  ];
+  const index = Math.abs(hash) % gradients.length;
+  return gradients[index];
+}
+
+async function createFamilyGroup() {
+  if (!state.supabaseClient || !state.currentUser) return;
+  const nameInput = document.getElementById('create-family-name-input');
+  if (!nameInput) return;
   
+  let groupName = nameInput.value.trim();
+  if (!groupName) {
+    const adminName = state.userProfile ? (state.userProfile.display_name || state.currentUser.email.split('@')[0]) : state.currentUser.email.split('@')[0];
+    groupName = state.lang === 'el' ? `Οικογένεια ${adminName}` : `${adminName} Family`;
+  }
+
   try {
-    // 1. Find the partner in profiles table
-    const { data: partner, error } = await state.supabaseClient
-      .from('profiles')
-      .select('*')
-      .eq('email', partnerEmail)
-      .single();
-      
-    if (error || !partner) {
-      alert('❌ Δεν βρέθηκε χρήστης με αυτό το email. Βεβαιωθείτε ότι ο σύντροφός σας έχει ήδη εγγραφεί στην εφαρμογή.');
-      return;
-    }
+    const { data: newFamilyId, error } = await state.supabaseClient.rpc('create_family_group', { group_name: groupName });
+    if (error) throw error;
     
-    // 2. Update my profile with partner_id = partner.id
-    const { data: myUpdatedProfile, error: myUpdateErr } = await state.supabaseClient
-      .from('profiles')
-      .update({ partner_id: partner.id })
-      .eq('id', state.currentUser.id)
-      .select()
-      .single();
-      
-    if (myUpdateErr || !myUpdatedProfile) {
-      throw new Error(myUpdateErr?.message || 'Update failed');
-    }
-    
-    state.userProfile = myUpdatedProfile;
-    state.partnerProfile = partner;
-    localStorage.setItem('cached_partner_profile', JSON.stringify(partner));
-    
-    // 3. Try to update partner's profile as well (mutual handshake).
-    try {
-      await state.supabaseClient
-        .from('profiles')
-        .update({ partner_id: state.currentUser.id })
-        .eq('id', partner.id);
-    } catch(e) {
-      console.log('Direct mutual link update failed (expected if RLS is enabled):', e);
-    }
-    
-    alert(`🎉 Επιτυχής σύνδεση με τον χρήστη ${partner.email}!`);
-    renderPartnerSection();
-    startPartnerSyncPolling();
-    
-    // Reload transactions and update UI
-    await loadData();
-    updateUI();
+    alert(state.lang === 'el' ? '🎉 Η οικογένεια δημιουργήθηκε με επιτυχία!' : '🎉 Family group created successfully!');
+    window.location.reload();
   } catch (err) {
-    console.error('Error linking partner:', err);
-    alert('Σφάλμα κατά τη σύνδεση: ' + err.message);
+    console.error('Error creating family group:', err);
+    alert(state.lang === 'el' ? 'Σφάλμα κατά τη δημιουργία: ' + err.message : 'Error creating group: ' + err.message);
   }
 }
 
-async function unlinkPartner() {
-  if (!confirm('Είστε σίγουροι ότι θέλετε να αποσυνδεθείτε από τον σύντροφό σας;')) return;
+async function joinFamilyGroup() {
+  if (!state.supabaseClient || !state.currentUser) return;
+  const codeInput = document.getElementById('join-family-code-input');
+  if (!codeInput) return;
   
+  const code = codeInput.value.trim().toUpperCase();
+  if (!code) {
+    alert(state.lang === 'el' ? 'Παρακαλώ εισάγετε τον κωδικό πρόσκλησης.' : 'Please enter the invite code.');
+    return;
+  }
+
   try {
-    const partnerId = state.userProfile ? state.userProfile.partner_id : null;
-    
-    // 1. Clear partner_id on my profile
-    const { data: myUpdatedProfile, error: myUpdateErr } = await state.supabaseClient
-      .from('profiles')
-      .update({ partner_id: null })
-      .eq('id', state.currentUser.id)
-      .select()
-      .single();
-      
-    if (myUpdateErr) throw myUpdateErr;
-    state.userProfile = myUpdatedProfile;
-    state.partnerProfile = null;
-    localStorage.removeItem('cached_partner_profile');
-    
-    // 2. Try to clear partner_id on partner's profile (handshake cleanup)
-    if (partnerId) {
-      try {
-        await state.supabaseClient
-          .from('profiles')
-          .update({ partner_id: null })
-          .eq('id', partnerId);
-      } catch(e) {
-        console.log('Mutual unlink update failed (expected if RLS is enabled):', e);
-      }
-    }
-    
-    alert('Αποσυνδεθήκατε με επιτυχία!');
-    stopPartnerSyncPolling();
-    renderPartnerSection();
-    
-    // Reload data and update UI
-    await loadData();
-    updateUI();
+    const { data, error } = await state.supabaseClient.rpc('join_family_group', { invite_code_input: code });
+    if (error) throw error;
+
+    alert(state.lang === 'el' ? '🎉 Συνδεθήκατε επιτυχώς στην οικογένεια!' : '🎉 Joined the family successfully!');
+    window.location.reload();
   } catch (err) {
-    console.error('Error unlinking partner:', err);
-    alert('Σφάλμα κατά την αποσύνδεση: ' + err.message);
+    console.error('Error joining family group:', err);
+    alert(state.lang === 'el' ? 'Σφάλμα κατά τη σύνδεση: ' + err.message : 'Error joining family: ' + err.message);
   }
 }
+
+async function leaveFamilyGroup() {
+  if (!state.supabaseClient || !state.currentUser) return;
+  
+  const confirmMsg = state.lang === 'el' 
+    ? 'Είστε σίγουροι ότι θέλετε να αποχωρήσετε από τον οικογενειακό προϋπολογισμό; Οι κινήσεις σας θα παραμείνουν στην οικογένεια.' 
+    : 'Are you sure you want to leave the family budget? Your transactions will remain in the family group.';
+    
+  if (!confirm(confirmMsg)) return;
+
+  try {
+    const { data, error } = await state.supabaseClient.rpc('leave_family_group');
+    if (error) throw error;
+
+    alert(state.lang === 'el' ? 'Αποχωρήσατε με επιτυχία!' : 'Left the family successfully!');
+    window.location.reload();
+  } catch (err) {
+    console.error('Error leaving family group:', err);
+    alert(state.lang === 'el' ? 'Σφάλμα κατά την αποχώρηση: ' + err.message : 'Error leaving family: ' + err.message);
+  }
+}
+
+async function kickFamilyMember(memberId) {
+  if (!state.supabaseClient || !state.currentUser) return;
+  
+  const confirmMsg = state.lang === 'el'
+    ? 'Είστε σίγουροι ότι θέλετε να αποβάλλετε αυτό το μέλος από την οικογένεια;'
+    : 'Are you sure you want to kick this member from the family?';
+    
+  if (!confirm(confirmMsg)) return;
+
+  try {
+    const { data, error } = await state.supabaseClient.rpc('kick_family_member', { member_id_input: memberId });
+    if (error) throw error;
+
+    alert(state.lang === 'el' ? 'Το μέλος αφαιρέθηκε με επιτυχία!' : 'Member kicked successfully!');
+    window.location.reload();
+  } catch (err) {
+    console.error('Error kicking member:', err);
+    alert(state.lang === 'el' ? 'Σφάλμα κατά την αφαίρεση: ' + err.message : 'Error kicking member: ' + err.message);
+  }
+}
+
+async function changeMemberRole(memberId, role) {
+  if (!state.supabaseClient || !state.currentUser) return;
+  
+  const confirmMsg = state.lang === 'el'
+    ? `Είστε σίγουροι ότι θέλετε να αλλάξετε το ρόλο αυτού του μέλους σε ${role === 'admin' ? 'Διαχειριστή' : 'Μέλος'};`
+    : `Are you sure you want to change this member's role to ${role === 'admin' ? 'Admin' : 'Member'}?`;
+    
+  if (!confirm(confirmMsg)) return;
+
+  try {
+    const { data, error } = await state.supabaseClient.rpc('change_member_role', { member_id_input: memberId, new_role: role });
+    if (error) throw error;
+
+    alert(state.lang === 'el' ? 'Ο ρόλος άλλαξε με επιτυχία!' : 'Role updated successfully!');
+    window.location.reload();
+  } catch (err) {
+    console.error('Error changing role:', err);
+    alert(state.lang === 'el' ? 'Σφάλμα κατά την αλλαγή ρόλου: ' + err.message : 'Error updating role: ' + err.message);
+  }
+}
+
+async function inviteMemberByEmail() {
+  if (!state.supabaseClient || !state.currentUser || !state.familyGroup) return;
+  const emailInput = document.getElementById('invite-email-input');
+  if (!emailInput) return;
+
+  const email = emailInput.value.trim().toLowerCase();
+  if (!email) {
+    alert(state.lang === 'el' ? 'Παρακαλώ εισάγετε ένα έγκυρο email.' : 'Please enter a valid email.');
+    return;
+  }
+
+  if (email === state.currentUser.email.toLowerCase()) {
+    alert(state.lang === 'el' ? 'Δεν μπορείτε να προσκαλέσετε το δικό σας email!' : 'You cannot invite your own email!');
+    return;
+  }
+
+  try {
+    const isAlreadyMember = state.familyProfiles.some(m => m.email.toLowerCase() === email);
+    if (isAlreadyMember) {
+      alert(state.lang === 'el' ? 'Αυτός ο χρήστης είναι ήδη μέλος της οικογένειας!' : 'This user is already a member of your family!');
+      return;
+    }
+
+    const roleSelect = document.getElementById('invite-role-select');
+    const selectedRole = roleSelect ? roleSelect.value : 'member';
+
+    const { error } = await state.supabaseClient
+      .from('pending_invitations')
+      .insert([{
+        family_id: state.familyGroup.id,
+        invited_email: email,
+        invited_by: state.currentUser.id,
+        role: selectedRole
+      }]);
+
+    if (error && error.code !== '23505') { // 23505 is unique constraint (already invited)
+      throw error;
+    }
+
+    const adminName = state.userProfile ? (state.userProfile.display_name || state.currentUser.email.split('@')[0]) : state.currentUser.email.split('@')[0];
+    const familyName = state.familyGroup.name;
+    const inviteCode = state.familyGroup.invite_code;
+    const deepLink = `${window.location.origin}${window.location.pathname}?invite=${inviteCode}&role=${selectedRole}`;
+
+    const subject = state.lang === 'el'
+      ? `Πρόσκληση Σύνδεσης στο Budget Assistant`
+      : `Invitation to Join Budget Assistant`;
+
+    const body = state.lang === 'el'
+      ? `Γεια σου!\n\nΟ/Η ${adminName} σε προσκαλεί να γίνεις μέλος στην οικογένεια «${familyName}» στο Budget Assistant ως ${selectedRole === 'admin' ? 'Διαχειριστής' : 'Μέλος'}.\n\nΚάνε κλικ στον παρακάτω σύνδεσμο για να συνδεθείς αυτόματα:\n${deepLink}\n\nΉ χρησιμοποίησε τον κωδικό πρόσκλησης: ${inviteCode}\n\nΦιλικά,\nΗ ομάδα του Budget Assistant`
+      : `Hi!\n\n${adminName} has invited you to join the family group "${familyName}" on Budget Assistant as ${selectedRole === 'admin' ? 'Admin' : 'Member'}.\n\nClick the link below to join automatically:\n${deepLink}\n\nOr use the invite code: ${inviteCode}\n\nBest regards,\nBudget Assistant Team`;
+
+    const mailtoUrl = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.location.href = mailtoUrl;
+
+    alert(state.lang === 'el' 
+      ? '🎉 Η πρόσκληση καταχωρήθηκε στη βάση! Ανοίγει το πρόγραμμα email σας για την αποστολή του συνδέσμου.' 
+      : '🎉 Invitation saved! Your email client will now open to send the link.');
+      
+    emailInput.value = '';
+  } catch (err) {
+    console.error('Error inviting member:', err);
+    alert(state.lang === 'el' ? 'Σφάλμα κατά την πρόσκληση: ' + err.message : 'Error sending invitation: ' + err.message);
+  }
+}
+
+async function promptRenameFamilyGroup() {
+  if (!state.supabaseClient || !state.currentUser || !state.familyGroup) return;
+  const currentName = state.familyGroup.name || '';
+  const newName = prompt(state.lang === 'el' ? 'Εισάγετε το νέο όνομα της οικογένειας:' : 'Enter new family name:', currentName);
+  if (newName === null) return;
+  const trimmed = newName.trim();
+  if (!trimmed) {
+    alert(state.lang === 'el' ? 'Το όνομα δεν μπορεί να είναι κενό.' : 'Name cannot be empty.');
+    return;
+  }
+  
+  try {
+    const { data, error } = await state.supabaseClient.rpc('rename_family_group', { new_name: trimmed });
+    if (error) throw error;
+    
+    state.familyGroup.name = trimmed;
+    showSyncToast(state.lang === 'el' ? '✓ Το όνομα ενημερώθηκε' : '✓ Name updated successfully', 2000);
+    renderPartnerSection();
+  } catch (err) {
+    console.error('Error renaming family group:', err);
+    alert(state.lang === 'el' ? 'Σφάλμα κατά τη μετονομασία: ' + err.message : 'Error renaming family group: ' + err.message);
+  }
+}
+
+function toggleMemberMenu(event, memberId) {
+  event.stopPropagation();
+  document.querySelectorAll('.member-dropdown-menu').forEach(menu => {
+    if (menu.id !== `member-menu-${memberId}`) {
+      menu.style.display = 'none';
+    }
+  });
+  
+  const menu = document.getElementById(`member-menu-${memberId}`);
+  if (menu) {
+    if (menu.style.display === 'none' || !menu.style.display) {
+      menu.style.display = 'block';
+    } else {
+      menu.style.display = 'none';
+    }
+  }
+}
+
+// Bind to window for HTML accessibility
+window.createFamilyGroup = createFamilyGroup;
+window.joinFamilyGroup = joinFamilyGroup;
+window.leaveFamilyGroup = leaveFamilyGroup;
+window.kickFamilyMember = kickFamilyMember;
+window.changeMemberRole = changeMemberRole;
+window.inviteMemberByEmail = inviteMemberByEmail;
+window.renderPartnerSection = renderPartnerSection;
+window.promptRenameFamilyGroup = promptRenameFamilyGroup;
+window.toggleMemberMenu = toggleMemberMenu;
 async function forceAppUpdate() {
   if (confirm(state.lang === 'en' ? 'Force update and reload the app?' : 'Θέλετε να επιβάλλετε ενημέρωση και επαναφόρτωση της εφαρμογής;')) {
     if ('serviceWorker' in navigator) {
@@ -5906,8 +6486,6 @@ window.handlePasswordAuth = handlePasswordAuth;
 window.handleMagicAuth = handleMagicAuth;
 window.handleGoogleAuth = handleGoogleAuth;
 window.handleLogout = handleLogout;
-window.linkPartner = linkPartner;
-window.unlinkPartner = unlinkPartner;
 
 // ============================================================
 // GUEST MODE & OFFLINE CLOUD SYNC
@@ -6025,10 +6603,13 @@ let _partnerSyncInterval = null;
 function startPartnerSyncPolling() {
   if (_partnerSyncInterval) clearInterval(_partnerSyncInterval);
   _partnerSyncInterval = setInterval(async () => {
-    if (!state.partnerProfile || !state.supabaseClient || !state.currentUser) return;
+    const hasFamily = state.userProfile && state.userProfile.family_id;
+    if (!hasFamily && !state.partnerProfile) return;
+    if (!state.supabaseClient || !state.currentUser) return;
     try {
       const userId = state.currentUser.id;
-      const partnerId = state.partnerProfile.id;
+      const partnerId = state.partnerProfile ? state.partnerProfile.id : null;
+      const familyId = state.userProfile ? state.userProfile.family_id : null;
       
       let allTransactions = [];
       let page = 0;
@@ -6042,7 +6623,13 @@ function startPartnerSyncPolling() {
           .order('date', { ascending: false })
           .range(page * pageSize, (page + 1) * pageSize - 1);
           
-        transQuery = transQuery.or(`user_id.eq.${userId},user_id.eq.${partnerId}`);
+        if (familyId) {
+          transQuery = transQuery.eq('family_id', familyId);
+        } else if (partnerId) {
+          transQuery = transQuery.or(`user_id.eq.${userId},user_id.eq.${partnerId}`);
+        } else {
+          transQuery = transQuery.eq('user_id', userId);
+        }
 
         const { data: pageData, error: pageErr } = await promiseTimeout(
           transQuery,

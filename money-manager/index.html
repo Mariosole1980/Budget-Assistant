@@ -157,15 +157,27 @@
             <button class="icon-btn" id="stats-period-next"><i class="fa-solid fa-chevron-right"></i></button>
           </div>
           
-          <div class="stats-period-dropdown-container" style="position: relative;">
-            <button class="stats-period-btn" id="stats-period-dropdown-btn">
-              Μηνιαία <i class="fa-solid fa-chevron-down" style="font-size: 9px; margin-left: 4px;"></i>
-            </button>
-            <div class="stats-dropdown-menu" id="stats-period-dropdown-menu">
-              <div class="stats-dropdown-item" data-value="weekly">Εβδομαδιαία</div>
-              <div class="stats-dropdown-item active" data-value="monthly">Μηνιαία</div>
-              <div class="stats-dropdown-item" data-value="annually">Ετήσια</div>
-              <div class="stats-dropdown-item" data-value="period">Περίοδος</div>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <div class="stats-period-dropdown-container" style="position: relative;">
+              <button class="stats-period-btn" id="stats-period-dropdown-btn">
+                Μηνιαία <i class="fa-solid fa-chevron-down" style="font-size: 9px; margin-left: 4px;"></i>
+              </button>
+              <div class="stats-dropdown-menu" id="stats-period-dropdown-menu">
+                <div class="stats-dropdown-item" data-value="weekly">Εβδομαδιαία</div>
+                <div class="stats-dropdown-item active" data-value="monthly">Μηνιαία</div>
+                <div class="stats-dropdown-item" data-value="annually">Ετήσια</div>
+                <div class="stats-dropdown-item" data-value="period">Περίοδος</div>
+              </div>
+            </div>
+
+            <!-- Family Member Filter Dropdown -->
+            <div id="stats-family-dropdown-container" class="stats-period-dropdown-container" style="position: relative; display: none;">
+              <button class="stats-period-btn" id="stats-family-dropdown-btn" style="white-space: nowrap; max-width: 120px; overflow: hidden; text-overflow: ellipsis;">
+                <span data-i18n="stats_filter_member">Μέλος</span> <i class="fa-solid fa-chevron-down" style="font-size: 9px; margin-left: 4px;"></i>
+              </button>
+              <div class="stats-dropdown-menu" id="stats-family-dropdown-menu" style="right: 0; left: auto; min-width: 140px; max-height: 250px; overflow-y: auto;">
+                <!-- Dynamically populated options -->
+              </div>
             </div>
           </div>
         </div>
@@ -370,8 +382,8 @@
           <input type="checkbox" id="settings-biometrics" onchange="toggleBiometrics(this.checked)" style="width: 20px; height: 20px; cursor: pointer; accent-color: var(--accent);">
         </div>
 
-        <!-- Shared Wallet settings block -->
-        <div class="settings-section-title" style="margin-top: 24px;">👥 Κοινός Προϋπολογισμός</div>
+        <!-- Family Group settings block -->
+        <div class="settings-section-title" style="margin-top: 24px;" data-i18n="family_management_title">👥 Διαχείριση Οικογένειας</div>
         <div id="partner-linking-container" class="partner-linking-card">
           <div class="partner-status">Φόρτωση στοιχείων...</div>
         </div>
