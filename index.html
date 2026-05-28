@@ -1107,73 +1107,57 @@
   </div>
 
   <!-- Core Application Scripts -->
-  <script src="app.js?v=131"></script>
+  <script src="app.js"></script>
   
   <!-- Register PWA Service Worker -->
   <script>
     if ('serviceWorker' in navigator) {
-      const resetKey = 'sw_reset_v131';
-      if (!localStorage.getItem(resetKey)) {
-        localStorage.removeItem('offline_transactions');
-        localStorage.removeItem('offline_categories');
-        navigator.serviceWorker.getRegistrations().then(registrations => {
-          let promises = registrations.map(r => r.unregister());
-          if ('caches' in window) {
-            caches.keys().then(names => {
-              let cachePromises = names.map(name => caches.delete(name));
-              Promise.all([...promises, ...cachePromises]).then(() => {
-                localStorage.setItem(resetKey, 'true');
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(reg => {
+          console.log('Service Worker Registered successfully', reg.scope);
+          
+          // Check for updates immediately
+          reg.update().catch(() => {});
+          
+          // Check for updates when app comes back to focus
+          document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+              reg.update().catch(() => {});
+            }
+          });
+
+          // When a new SW is found, track its installation
+          reg.addEventListener('updatefound', () => {
+            const newWorker = reg.installing;
+            newWorker.addEventListener('statechange', () => {
+              if (newWorker.state === 'activated' && navigator.serviceWorker.controller) {
                 window.location.reload();
-              });
-            });
-          } else {
-            Promise.all(promises).then(() => {
-              localStorage.setItem(resetKey, 'true');
-              window.location.reload();
-            });
-          }
-        });
-      } else {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('sw.js?v=131', { updateViaCache: 'none' }).then(reg => {
-            console.log('Service Worker Registered successfully', reg.scope);
-            
-            // Check for service worker updates immediately on load
-            reg.update().catch(err => console.log('SW manual update check failed:', err));
-            
-            // Check for updates every time the user brings the app back to focus
-            document.addEventListener('visibilitychange', () => {
-              if (document.visibilityState === 'visible') {
-                reg.update().catch(err => console.log('SW visibility update check failed:', err));
               }
             });
+          });
 
-            // If a new service worker is installing, listen for when it activates to refresh the page
-            reg.addEventListener('updatefound', () => {
-              const newWorker = reg.installing;
-              newWorker.addEventListener('statechange', () => {
-                if (newWorker.state === 'activated') {
-                  window.location.reload();
-                }
-              });
-            });
-
-            // If an update is waiting, activate it immediately
-            if (reg.waiting) {
-              reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-            }
-          }).catch(err => console.log('Service Worker Registration failed', err));
-        });
-
-        // Reload the page when the active service worker changes (new version takes control)
-        let refreshing = false;
-        navigator.serviceWorker.addEventListener('controllerchange', () => {
-          if (!refreshing) {
-            refreshing = true;
-            window.location.reload();
+          // If an update is already waiting, activate it
+          if (reg.waiting) {
+            reg.waiting.postMessage({ type: 'SKIP_WAITING' });
           }
-        });
-      }
+        }).catch(err => console.log('SW registration failed', err));
+      });
+
+      // Listen for NEW_VERSION_AVAILABLE from service worker
+      navigator.serviceWorker.addEventListener('message', (event) => {
+        if (event.data && event.data.type === 'NEW_VERSION_AVAILABLE') {
+          window.location.reload();
+        }
+      });
+
+      // Reload when a new SW takes control
+      let refreshing = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!refreshing) {
+          refreshing = true;
+          window.location.reload();
+        }
+      });
     }
   </script>
 
