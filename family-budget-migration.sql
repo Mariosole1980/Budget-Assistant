@@ -531,6 +531,7 @@ BEGIN
             UPDATE public.categories SET family_id = new_fam_id WHERE user_id = r.u2_id;
         EXCEPTION WHEN OTHERS THEN
         END;
+    END LOOP;
 END;
 $$;
 
