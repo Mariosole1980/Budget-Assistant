@@ -503,7 +503,7 @@ BEGIN
 
         -- Create family group
         INSERT INTO public.family_groups (name, invite_code)
-        VALUES ('Οικογένεια ' || split_part(r.u1_email, '@', 1), invite_code_val)
+        VALUES ('Οικογενειακός Προϋπολογισμός', invite_code_val)
         RETURNING id INTO new_fam_id;
 
         -- Update profiles

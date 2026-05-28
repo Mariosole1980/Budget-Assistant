@@ -2111,31 +2111,7 @@ function renderAccountsTab() {
 
   const icons = { cash: '💵', bank: '🏦', card: '💳' };
 
-  // Payment method breakdown (expenses by payment method: card vs cash)
-  // Compute totals per account type for expense transactions
-  const accountTypeByName = {};
-  state.accounts.forEach(a => { accountTypeByName[a.name] = a.type; });
-  const paymentTotals = { card: 0, cash: 0 };
-  activeTrans.forEach(t => {
-    if (t.type !== 'expense') return;
-    const accType = accountTypeByName[t.account_from];
-    if (accType !== 'card' && accType !== 'cash') return;
-    paymentTotals[accType] += (parseFloat(t.amount) || 0);
-  });
-
-  // Inject a small summary at the top of the liabilities list showing Card vs Cash totals
-  if (liabEl) {
-    const pmSummary = document.createElement('div');
-    pmSummary.style.display = 'flex';
-    pmSummary.style.justifyContent = 'flex-start';
-    pmSummary.style.alignItems = 'center';
-    pmSummary.style.marginBottom = '8px';
-    pmSummary.style.fontSize = '13px';
-    pmSummary.innerHTML = `
-      <div style="font-weight:600; color:var(--text-secondary);">${state.lang === 'el' ? 'Κατανομή Πληρωμών' : 'Payment Breakdown'}</div>
-    `;
-    liabEl.appendChild(pmSummary);
-  }
+  // Payment method breakdown removed as requested
 
   // 4. Render Income section (Cash & Bank Account only)
   state.accounts.forEach(acc => {
@@ -6000,9 +5976,7 @@ function renderPartnerSection() {
     // === CONNECTED FAMILY STATE ===
     let familyName = state.familyGroup ? state.familyGroup.name : '';
     if (!familyName || familyName.toLowerCase() === 'null') {
-      const adminProfile = (state.familyProfiles || []).find(p => p.role === 'admin') || state.userProfile;
-      const adminName = adminProfile ? (adminProfile.display_name || adminProfile.email.split('@')[0]) : '';
-      familyName = state.lang === 'el' ? `Οικογένεια ${adminName}` : `${adminName} Family`;
+      familyName = state.lang === 'el' ? 'Οικογενειακός Προϋπολογισμός' : 'Family Budget';
     }
     const inviteCode = state.familyGroup ? state.familyGroup.invite_code : '';
     
@@ -6224,8 +6198,7 @@ async function createFamilyGroup() {
   
   let groupName = nameInput.value.trim();
   if (!groupName) {
-    const adminName = state.userProfile ? (state.userProfile.display_name || state.currentUser.email.split('@')[0]) : state.currentUser.email.split('@')[0];
-    groupName = state.lang === 'el' ? `Οικογένεια ${adminName}` : `${adminName} Family`;
+    groupName = state.lang === 'el' ? 'Οικογενειακός Προϋπολογισμός' : 'Family Budget';
   }
 
   try {

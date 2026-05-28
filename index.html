@@ -448,7 +448,6 @@
           <h3 class="modal-title" id="modal-trans-title">Έξοδο</h3>
           <div style="display: flex; gap: 12px; align-items: center;">
             <button type="button" id="trans-delete-btn" class="icon-btn" style="color: var(--accent); display: none;" title="Διαγραφή"><i class="fa-solid fa-trash-can"></i></button>
-            <button type="button" class="icon-btn" style="color: var(--text-secondary);"><i class="fa-solid fa-star-of-life"></i></button>
           </div>
         </div>
         <div class="modal-body" style="padding: 16px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 16px;">
@@ -475,7 +474,7 @@
             <div class="form-row focusable" id="form-row-amount" onclick="openCalculatorKeypad()">
               <label class="form-row-label">Ποσό</label>
               <div class="form-row-value-container">
-                <input type="text" id="trans-amount" class="form-row-input" placeholder="0" readonly required>
+                <input type="text" id="trans-amount" class="form-row-input" placeholder="0" readonly required inputmode="none" onfocus="this.blur()">
               </div>
             </div>
 
@@ -541,12 +540,13 @@
               </div>
             </div>
 
-            <!-- Action Buttons -->
-            <div class="modal-action-buttons">
-              <button type="submit" class="btn-primary-save" id="btn-save-transaction" data-i18n="btn_save">Αποθήκευση</button>
-              <button type="button" class="btn-secondary-continue" id="btn-continue-transaction" onclick="closeModal('transaction-modal')" data-i18n="btn_continue">Συνέχεια</button>
-            </div>
           </form>
+        </div>
+
+        <!-- Action Buttons (Moved outside scrollable area to be sticky at the bottom) -->
+        <div class="modal-action-buttons" style="display: flex; flex-direction: row; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--border-light); background: var(--bg-main); flex-shrink: 0; z-index: 10; margin-top: 0;">
+          <button type="button" class="btn-secondary-continue" id="btn-continue-transaction" onclick="closeModal('transaction-modal')" data-i18n="btn_continue" style="flex: 1; margin: 0; padding: 10px; border-radius: 20px; font-size: 13.5px; width: auto;">Συνέχεια</button>
+          <button type="submit" form="transaction-form" class="btn-primary-save" id="btn-save-transaction" data-i18n="btn_save" style="flex: 2; margin: 0; padding: 10px; border-radius: 20px; font-size: 13.5px; width: auto;">Αποθήκευση</button>
         </div>
 
         <!-- Custom Calculator Keypad -->
@@ -554,14 +554,13 @@
           <div class="calc-keypad-header">
             <span class="calc-keypad-title" data-i18n="keypad_title">Ποσό</span>
             <div style="display: flex; gap: 16px; align-items: center;">
-              <i class="fa-solid fa-globe" style="color: var(--text-secondary); font-size: 16px;"></i>
               <i class="fa-solid fa-xmark" style="color: var(--text-secondary); font-size: 16px; cursor: pointer;" onclick="closeCalculatorKeypad()"></i>
             </div>
           </div>
           <div class="calc-keypad-grid">
-            <button type="button" class="calc-key-btn" data-val="1">1</button>
-            <button type="button" class="calc-key-btn" data-val="2">2</button>
-            <button type="button" class="calc-key-btn" data-val="3">3</button>
+            <button type="button" class="calc-key-btn" data-val="7">7</button>
+            <button type="button" class="calc-key-btn" data-val="8">8</button>
+            <button type="button" class="calc-key-btn" data-val="9">9</button>
             <button type="button" class="calc-key-btn backspace-key" data-val="backspace"><i class="fa-solid fa-delete-left"></i></button>
             
             <button type="button" class="calc-key-btn" data-val="4">4</button>
@@ -569,9 +568,9 @@
             <button type="button" class="calc-key-btn" data-val="6">6</button>
             <button type="button" class="calc-key-btn minus-key" data-val="-">-</button>
             
-            <button type="button" class="calc-key-btn" data-val="7">7</button>
-            <button type="button" class="calc-key-btn" data-val="8">8</button>
-            <button type="button" class="calc-key-btn" data-val="9">9</button>
+            <button type="button" class="calc-key-btn" data-val="1">1</button>
+            <button type="button" class="calc-key-btn" data-val="2">2</button>
+            <button type="button" class="calc-key-btn" data-val="3">3</button>
             <button type="button" class="calc-key-btn calc-op-key" data-val="calc"><i class="fa-solid fa-calculator"></i></button>
             
             <button type="button" class="calc-key-btn" data-val="00">00</button>
