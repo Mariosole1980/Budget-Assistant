@@ -191,13 +191,12 @@ button:active,
   left: 0;
   right: 0;
   background-color: #1a1d26 !important;
-  border-top: 1px solid var(--border);
   display: flex;
   justify-content: space-around;
-  padding: 12px 0 10px 0;
+  padding: 14px 0 10px 0;
   padding-bottom: calc(10px + env(safe-area-inset-bottom));
   z-index: 100;
-  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.45) !important;
+  box-shadow: inset 0 1px 0 0 var(--border), 0 -2px 12px rgba(0, 0, 0, 0.35) !important;
 }
 
 .nav-item {
@@ -3733,6 +3732,7 @@ body.shared-wallet-active .day-header {
     gap: 12px !important;
     border-top: none !important;
     border-right: 1px solid var(--border) !important;
+    box-shadow: none !important;
     background-color: var(--bg-card) !important;
   }
 
