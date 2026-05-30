@@ -125,7 +125,7 @@ button:active,
   max-width: 480px; /* Force phone aspect ratio on desktop */
   margin: 0 auto;
   background-color: var(--bg-main);
-  box-shadow: 0 0 30px rgba(0,0,0,0.5);
+  box-shadow: var(--shadow-lg);
   position: relative;
   overflow-x: hidden;
 }
@@ -2849,7 +2849,6 @@ body.shared-wallet-active .app-header {
 
 body.shared-wallet-active .bottom-nav {
   border-top-color: var(--border);
-  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4);
 }
 
 body.shared-wallet-active .summary-item {
