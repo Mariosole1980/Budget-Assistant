@@ -6496,9 +6496,14 @@ window.initSettingsFromStorage = initSettingsFromStorage;
 
 // Theme & Appearance Helpers
 function applyTheme(theme) {
-  document.body.classList.remove('theme-oled', 'theme-light', 'theme-emerald', 'theme-ocean', 'theme-pink');
+  const themeClasses = ['theme-oled', 'theme-light', 'theme-emerald', 'theme-ocean', 'theme-pink'];
+  themeClasses.forEach(cls => {
+    document.body.classList.remove(cls);
+    document.documentElement.classList.remove(cls);
+  });
   if (theme !== 'dark') {
     document.body.classList.add(`theme-${theme}`);
+    document.documentElement.classList.add(`theme-${theme}`);
   }
   
   // Dynamically update meta theme-color to match theme's card/header background
