@@ -22,6 +22,9 @@
   --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   --shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.4);
+  
+  /* Safe Area Safe Insets */
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 /* Reset and Global Styles */
@@ -177,7 +180,7 @@ button:active,
   overflow-x: hidden;
   width: 100%;
   min-width: 0;
-  padding-bottom: 70px; /* Space for bottom nav */
+  padding-bottom: calc(70px + var(--safe-area-bottom)); /* Space for bottom nav + safe area */
 }
 
 /* Bottom Navigation Bar Styles */
@@ -192,7 +195,7 @@ button:active,
   display: flex;
   justify-content: space-around;
   margin-top: -1px;
-  padding: 1px 0 10px 0;
+  padding: 8px 0 calc(10px + var(--safe-area-bottom)) 0;
   z-index: 100;
   transform: translateZ(0);
   -webkit-transform: translateZ(0);
@@ -550,7 +553,7 @@ button:active,
 /* Float Action Button (FAB) */
 .fab {
   position: fixed;
-  bottom: 66px;
+  bottom: calc(66px + var(--safe-area-bottom));
   right: 20px;
   width: 50px;
   height: 50px;

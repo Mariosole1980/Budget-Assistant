@@ -6501,6 +6501,20 @@ function applyTheme(theme) {
     document.body.classList.add(`theme-${theme}`);
   }
   
+  // Dynamically update meta theme-color to match theme's card/header background
+  const themeColors = {
+    'dark': '#222731',
+    'oled': '#0d0d0d',
+    'light': '#ffffff',
+    'emerald': '#182823',
+    'ocean': '#1c2541',
+    'pink': '#2d1b24'
+  };
+  const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+  if (metaThemeColor) {
+    metaThemeColor.setAttribute('content', themeColors[theme] || '#222731');
+  }
+  
   if (window.Chart) {
     const textSecondary = getComputedStyle(document.body).getPropertyValue('--text-secondary').trim() || '#8a99ad';
     Chart.defaults.color = textSecondary;
@@ -8738,4 +8752,24 @@ window.toggleCustomDropdown = toggleCustomDropdown;
 window.selectCustomDropdownOption = selectCustomDropdownOption;
 window.syncCustomSelect = syncCustomSelect;
 window.updateCustomSelectTriggers = updateCustomSelectTriggers;
-// Deployment retrigger 05/29/2026 00:32:48
+
+// Android safe-area fallback: check if env(safe-area-inset-bottom) returns 0 in standalone mode
+document.addEventListener('DOMContentLoaded', () => {
+  const isAndroid = /android/i.test(navigator.userAgent);
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+  if (!isAndroid || !isStandalone) return;
+  
+  // Check if env() actually returns a value > 0
+  const testEl = document.createElement('div');
+  testEl.style.position = 'fixed';
+  testEl.style.bottom = '0';
+  testEl.style.height = 'env(safe-area-inset-bottom, 0px)';
+  document.body.appendChild(testEl);
+  const safeBottom = testEl.offsetHeight;
+  document.body.removeChild(testEl);
+  
+  if (safeBottom === 0) {
+    // env() returns 0, update --safe-area-bottom to a default fallback of 16px to clear the gesture pill
+    document.documentElement.style.setProperty('--safe-area-bottom', '16px');
+  }
+});
