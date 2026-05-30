@@ -194,7 +194,7 @@ button:active,
   border-top: 1px solid var(--border);
   display: flex;
   justify-content: space-around;
-  padding: 8px 0 10px 0;
+  padding: 12px 0 10px 0;
   padding-bottom: calc(10px + env(safe-area-inset-bottom));
   z-index: 100;
   box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.45) !important;
@@ -204,13 +204,16 @@ button:active,
   display: flex;
   flex-direction: column;
   align-items: center;
-  color: #8a99ad !important; /* Brighter grey-blue for enhanced contrast */
+  color: #8a99ad !important;
   text-decoration: none;
   font-size: 11px;
-  font-weight: 600; /* Crisper legibility */
+  font-weight: 600;
+  line-height: 1.3;
   flex: 1;
   transition: var(--transition);
   gap: 4px;
+  overflow: visible;
+  min-height: 0;
 }
 
 .nav-item svg {
