@@ -201,7 +201,7 @@ button:active,
   outline: none !important;
   display: flex;
   justify-content: space-around;
-  padding: 8px 0 calc(10px + var(--safe-area-bottom)) 0;
+  padding: 8px 0 calc(6px + var(--safe-area-bottom)) 0;
   z-index: 100;
   box-shadow: none !important;
 }
