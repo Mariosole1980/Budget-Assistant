@@ -35,6 +35,10 @@
   scrollbar-width: none;
 }
 
+html {
+  background-color: #1a1d26;
+}
+
 html, body {
   width: 100%;
   max-width: 100%;

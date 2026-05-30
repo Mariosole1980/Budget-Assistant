@@ -8123,6 +8123,35 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 
+// Android safe-area fallback: some Android devices don't report env(safe-area-inset-bottom)
+// even in standalone PWA mode. We detect and apply a fallback.
+(function applyAndroidSafeAreaFallback() {
+  const isAndroid = /android/i.test(navigator.userAgent);
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+  if (!isAndroid || !isStandalone) return;
+  
+  // Check if env() actually returns a value > 0
+  const testEl = document.createElement('div');
+  testEl.style.position = 'fixed';
+  testEl.style.bottom = '0';
+  testEl.style.height = 'env(safe-area-inset-bottom, 0px)';
+  document.body.appendChild(testEl);
+  const safeBottom = testEl.offsetHeight;
+  document.body.removeChild(testEl);
+  
+  if (safeBottom === 0) {
+    // env() not supported or returns 0, apply fallback
+    const bottomNav = document.querySelector('.bottom-nav');
+    if (bottomNav) {
+      bottomNav.style.paddingBottom = '24px';
+    }
+    const appContent = document.querySelector('.app-content');
+    if (appContent) {
+      appContent.style.paddingBottom = '94px';
+    }
+  }
+})();
+
 // Start polling when app loads if user is logged in
 document.addEventListener('DOMContentLoaded', () => {
   setTimeout(() => {
