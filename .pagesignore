@@ -1,0 +1,9 @@
+Windsurf.exe
+*.exe
+*.zip
+*.tar.gz
+node_modules/
+.wrangler/
+.netlify/
+.git/
+*.log

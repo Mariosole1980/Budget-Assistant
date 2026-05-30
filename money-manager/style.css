@@ -201,9 +201,22 @@ button:active,
   outline: none !important;
   display: flex;
   justify-content: space-around;
-  padding: 8px 0 calc(6px + var(--safe-area-bottom)) 0;
+  padding: 8px 0 calc(2px + var(--safe-area-bottom)) 0;
   z-index: 100;
   box-shadow: none !important;
+}
+
+.bottom-nav::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 40px;
+  background-color: var(--bg-card);
+  transform: translateY(100%);
+  pointer-events: none;
+  z-index: -1;
 }
 
 .nav-item {
@@ -743,7 +756,7 @@ button:active,
 }
 
 .chart-container {
-  padding: 16px 20px 20px;
+  padding: 32px 20px 20px;
   background: linear-gradient(180deg, rgba(30,36,48,0.98) 0%, var(--bg-card) 100%);
   margin-bottom: 8px;
   display: flex;
@@ -771,7 +784,7 @@ button:active,
   position: relative;
   width: 100%;
   max-width: 260px;
-  height: 240px;
+  height: 260px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -902,9 +915,11 @@ button:active,
   font-weight: 800;
   padding: 4px 6px;
   border-radius: 5px;
-  min-width: 36px;
+  width: 45px;
   text-align: center;
   line-height: 1.2;
+  flex-shrink: 0;
+  min-width: 45px;
 }
 
 .stats-pct-badge.income {

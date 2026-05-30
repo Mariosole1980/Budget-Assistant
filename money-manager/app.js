@@ -2101,13 +2101,25 @@ const CATEGORY_NAME_TRANSLATIONS = {
 function getCategoryDisplayName(categoryName) {
   if (!categoryName) return '';
   
+  // Always strip leading emoji since icon is shown separately
+  const stripped = stripLeadingEmoji(categoryName);
+  
   // Check if it's a known default category with translation
-  if (state.lang === 'en' && CATEGORY_NAME_TRANSLATIONS[categoryName]) {
-    return CATEGORY_NAME_TRANSLATIONS[categoryName];
+  if (state.lang === 'en') {
+    // Try matching with the original name (emoji-prefixed)
+    if (CATEGORY_NAME_TRANSLATIONS[categoryName]) {
+      return stripLeadingEmoji(CATEGORY_NAME_TRANSLATIONS[categoryName]);
+    }
+    // Try matching stripped text against known translation keys
+    for (const [key, val] of Object.entries(CATEGORY_NAME_TRANSLATIONS)) {
+      if (stripLeadingEmoji(key).toUpperCase() === stripped.toUpperCase()) {
+        return stripLeadingEmoji(val);
+      }
+    }
   }
   
-  // For custom/user categories, return as-is (never translate user data)
-  return categoryName;
+  // For custom/user categories, return stripped text (no emoji prefix)
+  return stripped;
 }
 
 // Category Manager Functions
@@ -2403,7 +2415,7 @@ function renderStatsTab() {
       <div class="stats-row-left">
         <span class="stats-pct-badge ${isIncome ? 'income' : ''}">${Math.round(item.percentage)}%</span>
         <span class="stats-cat-icon">${item.icon}</span>
-        <span class="stats-category-name">${getCategoryDisplayName(item.name)}</span>
+        <span class="stats-category-name">${getCategoryDisplayName(stripLeadingEmoji(item.name))}</span>
       </div>
       <div class="stats-row-right">${getCurrencySymbol()} ${formatCurrency(item.amount)}</div>`;
     listContainer.appendChild(row);
