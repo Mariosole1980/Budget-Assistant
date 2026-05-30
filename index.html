@@ -7,7 +7,9 @@
   
   <!-- SEO Meta Tags -->
   <meta name="description" content="Collaborative Budget Assistant web app with real-time cloud sync and Excel import/export. Manage expenses, incomes, and assets.">
-  <meta name="theme-color" content="#1e222b">
+  <meta name="theme-color" content="#1a1d26">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   
   <!-- PWA Manifest -->
   <link rel="manifest" href="manifest.json">
@@ -71,7 +73,7 @@
           <!-- Initials like MB -->
         </div>
         <!-- Permanent Cloud Sync Status Icon -->
-        <button id="header-sync-icon" class="icon-btn header-sync-btn" onclick="openSupabaseSettings()" title="Λογαριασμός Cloud" style="position:relative;">
+        <button id="header-sync-icon" class="icon-btn header-sync-btn" onclick="forceSyncNow()" title="Λογαριασμός Cloud" style="position:relative;">
           <i class="fa-solid fa-cloud" id="header-sync-cloud-icon"></i>
           <span id="header-sync-dot" style="
             position:absolute; top:4px; right:4px;
@@ -364,6 +366,10 @@
             <span class="settings-item-value" id="val_sync_status" style="font-size: 11px; margin-top: 2px;">Τοπική Αποθήκευση</span>
           </div>
           <i class="fa-solid fa-chevron-right" style="color: var(--text-muted); font-size: 12px;"></i>
+        </div>
+        <div class="settings-list-item" onclick="forceSyncNow()" style="cursor: pointer;">
+          <span class="settings-item-label" style="color: var(--accent); font-weight: 600;" data-i18n="sync_now_btn"><i class="fa-solid fa-arrows-rotate" style="margin-right: 8px;"></i> Συγχρονισμός Τώρα</span>
+          <span class="settings-item-value" id="val_last_sync_time" style="font-size: 11px; color: var(--text-muted);"></span>
         </div>
         <div class="settings-list-item" onclick="openModal('category-manager-modal')">
           <span class="settings-item-label" data-i18n="item_category_manager">Διαχείριση Κατηγοριών</span>
@@ -1267,7 +1273,15 @@
           </div>
           <div class="form-group" id="password-group">
             <label class="form-label" for="auth-password" data-i18n="auth_password_label">Κωδικός</label>
-            <input type="password" id="auth-password" class="form-input" placeholder="••••••••" required autocomplete="current-password">
+            <div class="password-input-wrapper">
+              <input type="password" id="auth-password" class="form-input" placeholder="••••••••" required autocomplete="current-password">
+              <button type="button" id="toggle-password-visibility" class="toggle-password-btn" onclick="togglePasswordVisibility()">
+                <i class="fa-solid fa-eye" id="toggle-password-icon"></i>
+              </button>
+            </div>
+            <div class="forgot-password-container" id="forgot-password-container">
+              <a href="#" id="forgot-password-link" class="forgot-password-link" onclick="handleForgotPassword(); return false;" data-i18n="auth_forgot_password">Ξεχάσατε τον κωδικό σας;</a>
+            </div>
           </div>
           <button type="submit" class="btn btn-primary btn-block auth-submit-btn" id="auth-password-submit-btn" data-i18n="auth_submit_login">Είσοδος</button>
         </form>

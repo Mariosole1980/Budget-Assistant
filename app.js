@@ -210,6 +210,7 @@ const TRANSLATIONS = {
     auth_mode_signup: 'Εγγραφή',
     auth_email_label: 'Email',
     auth_password_label: 'Κωδικός',
+    auth_forgot_password: 'Ξεχάσατε τον κωδικό σας;',
     auth_submit_login: 'Είσοδος',
     auth_submit_signup: 'Δημιουργία Λογαριασμού',
     auth_magic_desc: 'Εισάγετε το email σας για να λάβετε έναν σύνδεσμο σύνδεσης (Magic Link) ή OTP στα εισερχόμενά σας.',
@@ -308,7 +309,8 @@ const TRANSLATIONS = {
     app_version: 'Έκδοση 1.0.0',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ετήσια Αποταμίευση',
-    period_label: 'Περίοδος'
+    period_label: 'Περίοδος',
+    sync_now_btn: 'Συγχρονισμός Τώρα'
   },
   en: {
     nav_trans: 'Transactions',
@@ -384,6 +386,7 @@ const TRANSLATIONS = {
     auth_mode_signup: 'Sign Up',
     auth_email_label: 'Email',
     auth_password_label: 'Password',
+    auth_forgot_password: 'Forgot your password?',
     auth_submit_login: 'Log In',
     auth_submit_signup: 'Create Account',
     auth_magic_desc: 'Enter your email to receive a login link (Magic Link) or OTP in your inbox.',
@@ -482,7 +485,8 @@ const TRANSLATIONS = {
     app_version: 'Version 1.0.0',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Yearly Savings',
-    period_label: 'Period'
+    period_label: 'Period',
+    sync_now_btn: 'Sync Now'
   }
 };
 
@@ -1237,6 +1241,15 @@ function initSupabaseAuth() {
           await loadData();
           updateUI();
           
+          // Start automatic polling sync
+          startPartnerSyncPolling();
+          
+          // Start realtime subscription
+          setupSupabaseRealtimeSubscription();
+          
+          // Replay offline sync queue if any items are pending
+          processSyncQueue();
+          
           // 3. Sync guest transactions in the background
           await syncLocalTransactionsToCloud(session.user.id);
         } catch (err) {
@@ -1244,6 +1257,12 @@ function initSupabaseAuth() {
         }
       })();
     } else {
+      // Stop automatic polling sync
+      stopPartnerSyncPolling();
+      
+      // Stop realtime subscription
+      stopSupabaseRealtimeSubscription();
+      
       state.currentUser = null;
       state.userProfile = null;
       state.partnerProfile = null;
@@ -1753,43 +1772,53 @@ function loadOfflineData() {
 async function saveTransaction(transaction) {
   transaction.amount = parseFloat(transaction.amount);
 
-  if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
-    try {
-      let result;
-      // Strip description field from database payload as the database schema does not contain it
-      const { description, ...dbPayload } = transaction;
-
-      if (transaction.id) {
-        result = await state.supabaseClient.from('transactions').update({
-          date: dbPayload.date, type: dbPayload.type, amount: dbPayload.amount,
-          category: dbPayload.category, subcategory: dbPayload.subcategory || '',
-          account_from: dbPayload.account_from, account_to: dbPayload.account_to || null,
-          note: dbPayload.note || '',
-          user_id: dbPayload.user_id,
-          is_shared: dbPayload.is_shared,
-          family_id: dbPayload.family_id
-        }).eq('id', transaction.id);
-      } else {
-        result = await state.supabaseClient.from('transactions').insert([dbPayload]);
-      }
-      if (result.error) throw result.error;
-    } catch (err) {
-      console.error('Save failed:', err);
-      saveTransactionOffline(transaction);
-    }
-  } else {
-    saveTransactionOffline(transaction);
+  // 1. Generate local UUID if it's a new transaction
+  if (!transaction.id) {
+    transaction.id = generateUUID();
   }
-  await loadData();
+
+  // 2. Optimistically save to local state and local storage immediately
+  saveTransactionOffline(transaction);
   updateUI();
+
+  // 3. Attempt to save to cloud in background
+  if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
+    if (!transaction.user_id) {
+      transaction.user_id = state.currentUser.id;
+    }
+    if (!transaction.family_id && state.userProfile && state.userProfile.family_id) {
+      transaction.family_id = state.userProfile.family_id;
+    }
+
+    const { description, ...dbPayload } = transaction;
+
+    (async () => {
+      try {
+        const { error } = await promiseTimeout(
+          state.supabaseClient
+            .from('transactions')
+            .upsert([dbPayload]),
+          12000
+        );
+        if (error) throw error;
+        console.log(`Cloud sync success for transaction: ${transaction.id}`);
+      } catch (err) {
+        console.warn(`Cloud save failed, queueing transaction: ${transaction.id}`, err);
+        enqueueSyncMutation('save', transaction);
+      }
+    })();
+  }
 }
 
 function saveTransactionOffline(transaction) {
+  if (!transaction.id) {
+    transaction.id = generateUUID();
+  }
   let trans = [...state.transactions];
-  if (transaction.id) {
-    trans = trans.map(t => t.id === transaction.id ? transaction : t);
+  const existingIdx = trans.findIndex(t => t.id === transaction.id);
+  if (existingIdx !== -1) {
+    trans[existingIdx] = transaction;
   } else {
-    transaction.id = 'local_' + Date.now();
     trans.unshift(transaction);
   }
   state.transactions = trans;
@@ -1797,19 +1826,29 @@ function saveTransactionOffline(transaction) {
 }
 
 async function deleteTransaction(id) {
-  if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
-    try {
-      const { error } = await state.supabaseClient.from('transactions').delete().eq('id', id);
-      if (error) throw error;
-    } catch (err) {
-      console.error('Delete failed:', err);
-      deleteTransactionOffline(id);
-    }
-  } else {
-    deleteTransactionOffline(id);
-  }
-  await loadData();
+  // 1. Optimistically delete from local state and update UI
+  deleteTransactionOffline(id);
   updateUI();
+
+  // 2. Perform background delete
+  if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
+    (async () => {
+      try {
+        const { error } = await promiseTimeout(
+          state.supabaseClient
+            .from('transactions')
+            .delete()
+            .eq('id', id),
+          12000
+        );
+        if (error) throw error;
+        console.log(`Cloud delete success for transaction: ${id}`);
+      } catch (err) {
+        console.warn(`Cloud delete failed, queueing delete: ${id}`, err);
+        enqueueSyncMutation('delete', id);
+      }
+    })();
+  }
 }
 
 function deleteTransactionOffline(id) {
@@ -6773,6 +6812,65 @@ function switchAuthTab(tab) {
   clearAuthStatus();
 }
 
+function togglePasswordVisibility() {
+  const passwordInput = document.getElementById('auth-password');
+  const icon = document.getElementById('toggle-password-icon');
+  if (!passwordInput || !icon) return;
+  
+  if (passwordInput.type === 'password') {
+    passwordInput.type = 'text';
+    icon.className = 'fa-solid fa-eye-slash';
+  } else {
+    passwordInput.type = 'password';
+    icon.className = 'fa-solid fa-eye';
+  }
+}
+
+async function handleForgotPassword() {
+  if (!state.supabaseClient) {
+    alert('Supabase is not initialized.');
+    return;
+  }
+  
+  const emailInput = document.getElementById('auth-email');
+  const email = emailInput ? emailInput.value.trim() : '';
+  const lang = state.lang || 'el';
+  
+  const promptMsg = lang === 'el' 
+    ? 'Εισάγετε το email σας για να λάβετε σύνδεσμο επαναφοράς κωδικού:' 
+    : 'Enter your email to receive a password reset link:';
+    
+  const successMsg = lang === 'el'
+    ? '✅ Στάλθηκε σύνδεσμος επαναφοράς κωδικού στα εισερχόμενά σας!'
+    : '✅ Password reset link has been sent to your inbox!';
+    
+  const enterEmailMsg = lang === 'el'
+    ? 'Παρακαλώ πληκτρολογήστε το email σας πρώτα.'
+    : 'Please enter your email first.';
+    
+  const userEmail = prompt(promptMsg, email);
+  if (userEmail === null) return; // User cancelled
+  
+  if (!userEmail.trim()) {
+    alert(enterEmailMsg);
+    return;
+  }
+  
+  try {
+    const { error } = await state.supabaseClient.auth.resetPasswordForEmail(userEmail.trim(), {
+      redirectTo: window.location.origin + window.location.pathname
+    });
+    if (error) throw error;
+    showAuthStatus(successMsg, 'success');
+  } catch (err) {
+    console.error('Reset password error:', err);
+    showAuthStatus('❌ Σφάλμα: ' + (err.message || err));
+  }
+}
+
+window.togglePasswordVisibility = togglePasswordVisibility;
+window.handleForgotPassword = handleForgotPassword;
+
 function setAuthMode(mode) {
   currentAuthMode = mode;
   document.getElementById('btn-auth-mode-login').classList.toggle('active', mode === 'login');
@@ -6780,6 +6878,11 @@ function setAuthMode(mode) {
   
   const submitBtn = document.getElementById('auth-password-submit-btn');
   const lang = state.lang || 'el';
+  
+  const forgotContainer = document.getElementById('forgot-password-container');
+  if (forgotContainer) {
+    forgotContainer.style.display = mode === 'login' ? 'flex' : 'none';
+  }
   
   if (mode === 'login') {
     submitBtn.textContent = TRANSLATIONS[lang]['auth_submit_login'];
@@ -7572,83 +7675,429 @@ window.showAuthOverlay = showAuthOverlay;
 window.syncLocalTransactionsToCloud = syncLocalTransactionsToCloud;
 
 // ============================================================
+// REAL-TIME SYNC & OFFLINE QUEUE SYSTEM
+// ============================================================
+function generateUUID() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
+function enqueueSyncMutation(action, payload) {
+  try {
+    const queue = JSON.parse(localStorage.getItem('money_manager_sync_queue') || '[]');
+    const itemId = action === 'delete' ? payload : payload.id;
+    
+    // Clean up duplicate saves/updates in queue if we are now deleting
+    let cleanQueue = queue.filter(item => {
+      const itemKey = item.action === 'delete' ? item.payload : item.payload.id;
+      return !(itemKey === itemId && item.action === 'save' && action === 'delete');
+    });
+    
+    cleanQueue.push({
+      id: generateUUID(),
+      action,
+      payload,
+      timestamp: Date.now()
+    });
+    
+    localStorage.setItem('money_manager_sync_queue', JSON.stringify(cleanQueue));
+    console.log(`Enqueued offline mutation: ${action} for ${itemId}`);
+  } catch (err) {
+    console.error('Failed to enqueue sync mutation:', err);
+  }
+}
+
+let _isProcessingSyncQueue = false;
+
+async function processSyncQueue() {
+  if (_isProcessingSyncQueue) return;
+  if (!state.isSupabaseEnabled || !state.supabaseClient || !state.currentUser) return;
+  
+  const queueStr = localStorage.getItem('money_manager_sync_queue');
+  if (!queueStr) return;
+  
+  let queue = [];
+  try {
+    queue = JSON.parse(queueStr) || [];
+  } catch (e) {
+    console.error('Failed to parse sync queue:', e);
+    return;
+  }
+  
+  if (queue.length === 0) return;
+  if (typeof navigator !== 'undefined' && !navigator.onLine) return;
+  
+  _isProcessingSyncQueue = true;
+  console.log(`Processing offline sync queue of ${queue.length} items...`);
+  
+  let successCount = 0;
+  
+  for (let i = 0; i < queue.length; i++) {
+    const item = queue[i];
+    try {
+      if (item.action === 'save') {
+        const transaction = item.payload;
+        const { description, ...dbPayload } = transaction;
+        
+        const { error } = await promiseTimeout(
+          state.supabaseClient
+            .from('transactions')
+            .upsert([dbPayload]),
+          15000
+        );
+        
+        if (error) {
+          if (error.message && (error.message.includes('Fetch') || error.message.includes('network') || error.message.includes('timeout'))) {
+            throw error;
+          }
+          console.warn(`Skipping invalid sync queue item:`, error);
+        }
+      } else if (item.action === 'delete') {
+        const transId = item.payload;
+        const { error } = await promiseTimeout(
+          state.supabaseClient
+            .from('transactions')
+            .delete()
+            .eq('id', transId),
+          15000
+        );
+        
+        if (error) {
+          if (error.message && (error.message.includes('Fetch') || error.message.includes('network') || error.message.includes('timeout'))) {
+            throw error;
+          }
+          console.warn(`Skipping invalid sync queue delete item:`, error);
+        }
+      }
+      
+      successCount++;
+    } catch (err) {
+      console.warn(`Network failure during sync queue replay at index ${i}:`, err);
+      break; // Abort and retry later to preserve sequence order
+    }
+  }
+  
+  if (successCount > 0) {
+    const remaining = queue.slice(successCount);
+    localStorage.setItem('money_manager_sync_queue', JSON.stringify(remaining));
+    console.log(`Synced ${successCount} mutations. ${remaining.length} remaining.`);
+    
+    await loadData();
+    updateUI();
+  }
+  
+  _isProcessingSyncQueue = false;
+}
+
+let _supabaseRealtimeChannel = null;
+
+function setupSupabaseRealtimeSubscription() {
+  if (!state.supabaseClient || !state.currentUser) return;
+  
+  if (_supabaseRealtimeChannel) {
+    state.supabaseClient.removeChannel(_supabaseRealtimeChannel);
+    _supabaseRealtimeChannel = null;
+  }
+  
+  const userId = state.currentUser.id;
+  const partnerId = state.partnerProfile ? state.partnerProfile.id : null;
+  const familyId = state.userProfile ? state.userProfile.family_id : null;
+  
+  console.log('Setting up Supabase Realtime channel subscription...');
+  
+  _supabaseRealtimeChannel = state.supabaseClient.channel('family-changes-channel');
+  
+  if (familyId) {
+    _supabaseRealtimeChannel.on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'transactions', filter: `family_id=eq.${familyId}` },
+      handleRealtimeTransactionChange
+    ).on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'categories', filter: `family_id=eq.${familyId}` },
+      handleRealtimeCategoryChange
+    );
+  } else {
+    _supabaseRealtimeChannel.on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'transactions', filter: `user_id=eq.${userId}` },
+      handleRealtimeTransactionChange
+    ).on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'categories', filter: `user_id=eq.${userId}` },
+      handleRealtimeCategoryChange
+    );
+    
+    if (partnerId) {
+      _supabaseRealtimeChannel.on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'transactions', filter: `user_id=eq.${partnerId}` },
+        handleRealtimeTransactionChange
+      ).on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'categories', filter: `user_id=eq.${partnerId}` },
+        handleRealtimeCategoryChange
+      );
+    }
+  }
+  
+  _supabaseRealtimeChannel.subscribe((status) => {
+    console.log(`Supabase Realtime subscription status: ${status}`);
+  });
+}
+
+function stopSupabaseRealtimeSubscription() {
+  if (_supabaseRealtimeChannel && state.supabaseClient) {
+    state.supabaseClient.removeChannel(_supabaseRealtimeChannel);
+    _supabaseRealtimeChannel = null;
+    console.log('Removed Supabase Realtime channel subscription.');
+  }
+}
+
+function handleRealtimeTransactionChange(payload) {
+  console.log('Realtime transaction event received:', payload.eventType, payload.new, payload.old);
+  
+  let trans = [...state.transactions];
+  const eventType = payload.eventType;
+  
+  if (eventType === 'INSERT') {
+    const newTrans = payload.new;
+    if (!trans.some(t => t.id === newTrans.id)) {
+      trans.unshift(newTrans);
+    }
+  } else if (eventType === 'UPDATE') {
+    const updatedTrans = payload.new;
+    trans = trans.map(t => t.id === updatedTrans.id ? updatedTrans : t);
+  } else if (eventType === 'DELETE') {
+    const deletedId = payload.old.id;
+    trans = trans.filter(t => t.id !== deletedId);
+  }
+  
+  trans.sort((a, b) => new Date(b.date) - new Date(a.date));
+  
+  state.transactions = trans;
+  localStorage.setItem('offline_transactions', JSON.stringify(trans));
+  
+  calculateInitialBalances();
+  updateUI();
+  
+  if (eventType === 'INSERT' && payload.new.user_id !== state.currentUser.id) {
+    showSyncToast('📥 Νέα κίνηση προστέθηκε από άλλο μέλος', 3000);
+  }
+}
+
+function handleRealtimeCategoryChange(payload) {
+  console.log('Realtime category event received:', payload.eventType, payload.new, payload.old);
+  
+  let cats = [...state.categories];
+  const eventType = payload.eventType;
+  
+  if (eventType === 'INSERT') {
+    const newCat = payload.new;
+    if (!cats.some(c => c.id === newCat.id)) {
+      cats.push(newCat);
+    }
+  } else if (eventType === 'UPDATE') {
+    const updatedCat = payload.new;
+    cats = cats.map(c => c.id === updatedCat.id ? updatedCat : c);
+  } else if (eventType === 'DELETE') {
+    const deletedId = payload.old.id;
+    cats = cats.filter(c => c.id !== deletedId);
+  }
+  
+  state.categories = cats;
+  localStorage.setItem('offline_categories', JSON.stringify(cats));
+  
+  updateUI();
+}
+
+window.generateUUID = generateUUID;
+window.enqueueSyncMutation = enqueueSyncMutation;
+window.processSyncQueue = processSyncQueue;
+window.setupSupabaseRealtimeSubscription = setupSupabaseRealtimeSubscription;
+window.stopSupabaseRealtimeSubscription = stopSupabaseRealtimeSubscription;
+
+// Handle online connectivity restore events
+window.addEventListener('online', () => {
+  console.log('Connection restored! Replaying sync queue...');
+  processSyncQueue();
+});
+
+// ============================================================
 // REAL-TIME PARTNER SYNC POLLING
-// Every 30 seconds, if partner is linked, silently refresh data
+// Every 15 seconds, if logged in, silently refresh data
 // ============================================================
 let _partnerSyncInterval = null;
 
-function startPartnerSyncPolling() {
-  if (_partnerSyncInterval) clearInterval(_partnerSyncInterval);
-  _partnerSyncInterval = setInterval(async () => {
-    const hasFamily = state.userProfile && state.userProfile.family_id;
-    if (!hasFamily && !state.partnerProfile) return;
-    if (!state.supabaseClient || !state.currentUser) return;
-    try {
-      const userId = state.currentUser.id;
-      const partnerId = state.partnerProfile ? state.partnerProfile.id : null;
-      const familyId = state.userProfile ? state.userProfile.family_id : null;
-      
-      let allTransactions = [];
-      let page = 0;
-      const pageSize = 1000;
-      let hasMore = true;
+// Sync status tracking
+state.lastSyncTime = state.lastSyncTime || null;
+state.syncStatus = state.syncStatus || 'idle'; // 'idle' | 'syncing' | 'success' | 'error'
+state.syncPendingCount = state.syncPendingCount || 0;
 
-      while (hasMore) {
-        let transQuery = state.supabaseClient
-          .from('transactions')
-          .select('*')
-          .order('date', { ascending: false })
-          .range(page * pageSize, (page + 1) * pageSize - 1);
-          
-        if (familyId) {
-          transQuery = transQuery.eq('family_id', familyId);
-        } else if (partnerId) {
-          transQuery = transQuery.or(`user_id.eq.${userId},user_id.eq.${partnerId}`);
-        } else {
-          transQuery = transQuery.eq('user_id', userId);
-        }
-
-        const { data: pageData, error: pageErr } = await promiseTimeout(
-          transQuery,
-          15000
-        );
-
-        if (pageErr) throw pageErr;
-
-        if (pageData && pageData.length > 0) {
-          allTransactions = allTransactions.concat(pageData);
-          if (pageData.length < pageSize) {
-            hasMore = false;
-          } else {
-            page++;
-          }
-        } else {
-          hasMore = false;
-        }
-      }
-
-      // Keep any local-only transactions (pending sync)
-      const localPending = (state.transactions || []).filter(t => t.id && String(t.id).startsWith('local_'));
-      
-      const prevCount = state.transactions.length;
-      state.transactions = [...allTransactions, ...localPending];
-      state.transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
-      
-      localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
-      calculateInitialBalances();
-      updateUI();
-
-      // Show subtle notification if new transactions arrived
-      if (allTransactions.length > prevCount) {
-        showSyncToast(`✅ +${allTransactions.length - prevCount} νέες κινήσεις συγχρονίστηκαν`, 3000);
-      }
-      
-      // Push any local stuck transactions to cloud
-      syncLocalTransactionsToCloud(state.currentUser.id);
-    } catch(e) {
-      // Silent fail — don't bother user with polling errors
+function updateSyncStatusIndicator() {
+  const dot = document.getElementById('header-sync-dot');
+  const icon = document.getElementById('header-sync-cloud-icon');
+  const btn = document.getElementById('header-sync-icon');
+  if (!dot || !icon) return;
+  
+  const colors = {
+    idle: '#9e9e9e',
+    syncing: '#ffb300',
+    success: '#4caf50',
+    error: '#e05e55'
+  };
+  
+  dot.style.background = colors[state.syncStatus] || colors.idle;
+  
+  if (state.syncStatus === 'syncing') {
+    icon.className = 'fa-solid fa-cloud-arrow-up';
+  } else if (state.syncStatus === 'error') {
+    icon.className = 'fa-solid fa-cloud-bolt';
+  } else {
+    icon.className = 'fa-solid fa-cloud';
+  }
+  
+  // Update tooltip with last sync time
+  if (btn) {
+    let tooltip = state.lang === 'en' ? 'Cloud Account' : 'Λογαριασμός Cloud';
+    if (state.lastSyncTime) {
+      const d = new Date(state.lastSyncTime);
+      const timeStr = d.toLocaleTimeString(state.lang === 'el' ? 'el-GR' : 'en-US', { hour: '2-digit', minute: '2-digit' });
+      tooltip += ' • ' + (state.lang === 'en' ? 'Last sync: ' : 'Τελ. συγχρονισμός: ') + timeStr;
     }
-  }, 30000); // every 30 seconds
+    if (state.syncPendingCount > 0) {
+      tooltip += ' • ' + state.syncPendingCount + ' ' + (state.lang === 'en' ? 'pending' : 'εκκρεμούν');
+    }
+    btn.title = tooltip;
+  }
+}
+
+async function forceSyncNow(silent = false) {
+  if (!state.supabaseClient || !state.currentUser) {
+    if (!silent) alert(state.lang === 'en' ? 'Please log in first to sync.' : 'Παρακαλώ συνδεθείτε πρώτα για συγχρονισμό.');
+    return false;
+  }
+  
+  state.syncStatus = 'syncing';
+  updateSyncStatusIndicator();
+  
+  try {
+    const userId = state.currentUser.id;
+    const partnerId = state.partnerProfile ? state.partnerProfile.id : null;
+    const familyId = state.userProfile ? state.userProfile.family_id : null;
+    
+    const userFilter = familyId 
+      ? `family_id.eq.${familyId}` 
+      : (partnerId ? `user_id.eq.${userId},user_id.eq.${partnerId}` : `user_id.eq.${userId}`);
+
+    // 1. Fetch categories and accounts
+    const [catsRes, accsRes] = await Promise.all([
+      state.supabaseClient.from('categories').select('*').or(userFilter),
+      state.supabaseClient.from('accounts').select('*').or(userFilter),
+    ]);
+    
+    if (!catsRes.error && catsRes.data) {
+      state.categories = catsRes.data;
+      localStorage.setItem('offline_categories', JSON.stringify(state.categories));
+    }
+    if (!accsRes.error && accsRes.data) {
+      state.accounts = accsRes.data;
+      localStorage.setItem('offline_accounts', JSON.stringify(state.accounts));
+    }
+
+    // 2. Fetch ALL transactions (paginated)
+    let allTransactions = [];
+    let page = 0;
+    const pageSize = 1000;
+    let hasMore = true;
+
+    while (hasMore) {
+      let transQuery = state.supabaseClient
+        .from('transactions')
+        .select('*')
+        .order('date', { ascending: false })
+        .range(page * pageSize, (page + 1) * pageSize - 1);
+        
+      if (familyId) {
+        transQuery = transQuery.eq('family_id', familyId);
+      } else if (partnerId) {
+        transQuery = transQuery.or(`user_id.eq.${userId},user_id.eq.${partnerId}`);
+      } else {
+        transQuery = transQuery.eq('user_id', userId);
+      }
+
+      const { data: pageData, error: pageErr } = await transQuery;
+      if (pageErr) throw pageErr;
+
+      if (pageData && pageData.length > 0) {
+        allTransactions = allTransactions.concat(pageData);
+        page++;
+        if (pageData.length < pageSize) hasMore = false;
+      } else {
+        hasMore = false;
+      }
+    }
+
+    // 3. Process offline queue first (push local changes to cloud)
+    await processSyncQueue();
+    
+    // 4. Keep local pending transactions
+    const localPending = (state.transactions || []).filter(t => t.id && String(t.id).startsWith('local_'));
+    
+    // 5. Update state
+    const prevCount = (state.transactions || []).filter(t => t.id && !String(t.id).startsWith('local_')).length;
+    state.transactions = [...allTransactions, ...localPending];
+    state.transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+    localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
+    
+    // 6. Check sync queue status
+    const queueStr = localStorage.getItem('money_manager_sync_queue');
+    if (queueStr) {
+      try {
+        const queue = JSON.parse(queueStr) || [];
+        state.syncPendingCount = queue.length;
+      } catch(e) { state.syncPendingCount = 0; }
+    } else {
+      state.syncPendingCount = 0;
+    }
+    
+    state.lastSyncTime = Date.now();
+    state.syncStatus = state.syncPendingCount > 0 ? 'error' : 'success';
+    updateSyncStatusIndicator();
+    
+    // Update last sync time display in settings
+    const lastSyncEl = document.getElementById('val_last_sync_time');
+    if (lastSyncEl) {
+      const d = new Date(state.lastSyncTime);
+      lastSyncEl.textContent = d.toLocaleTimeString(state.lang === 'el' ? 'el-GR' : 'en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    }
+    
+    calculateInitialBalances();
+    updateUI();
+    
+    const newCount = allTransactions.length - prevCount;
+    if (!silent && newCount > 0) {
+      showSyncToast('✅ +' + newCount + ' ' + (state.lang === 'en' ? 'new transactions synced' : 'νέες κινήσεις συγχρονίστηκαν'), 3000);
+    } else if (!silent && newCount === 0) {
+      showSyncToast('✅ ' + (state.lang === 'en' ? 'Everything is up to date' : 'Όλα είναι ενημερωμένα'), 2000);
+    }
+    
+    return true;
+  } catch(e) {
+    console.error('Force sync failed:', e);
+    state.syncStatus = 'error';
+    updateSyncStatusIndicator();
+    if (!silent) {
+      showSyncToast('❌ ' + (state.lang === 'en' ? 'Sync failed: ' : 'Αποτυχία συγχρονισμού: ') + (e.message || e), 4000);
+    }
+    return false;
+  }
 }
 
 function stopPartnerSyncPolling() {
@@ -7658,15 +8107,37 @@ function stopPartnerSyncPolling() {
   }
 }
 
-// Start polling when app loads if partner is already linked
+function startPartnerSyncPolling() {
+  if (_partnerSyncInterval) clearInterval(_partnerSyncInterval);
+  _partnerSyncInterval = setInterval(() => {
+    if (!state.supabaseClient || !state.currentUser) return;
+    forceSyncNow(true);
+  }, 15000); // every 15 seconds
+}
+
+// Sync on visibility change (user switches back to tab/app)
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && state.currentUser && state.supabaseClient) {
+    // Small delay to let the browser settle
+    setTimeout(() => forceSyncNow(true), 500);
+  }
+});
+
+// Start polling when app loads if user is logged in
 document.addEventListener('DOMContentLoaded', () => {
   setTimeout(() => {
-    if (state.partnerProfile) startPartnerSyncPolling();
+    if (state.currentUser) {
+      startPartnerSyncPolling();
+      setupSupabaseRealtimeSubscription();
+      processSyncQueue();
+    }
   }, 5000);
 });
 
 window.startPartnerSyncPolling = startPartnerSyncPolling;
 window.stopPartnerSyncPolling = stopPartnerSyncPolling;
+window.forceSyncNow = forceSyncNow;
+window.updateSyncStatusIndicator = updateSyncStatusIndicator;
 
 // ============================================================
 // PROFILE & SETTINGS SHEET FUNCTIONS
