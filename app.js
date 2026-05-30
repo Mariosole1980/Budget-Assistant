@@ -8787,6 +8787,6 @@ document.addEventListener('DOMContentLoaded', () => {
   
   if (safeBottom === 0) {
     // env() returns 0, update --safe-area-bottom to a default fallback of 16px to clear the gesture pill
-    document.documentElement.style.setProperty('--safe-area-bottom', '8px');
+    document.documentElement.style.setProperty('--safe-area-bottom', '12px');
   }
 });
