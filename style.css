@@ -41,7 +41,7 @@
 html, body {
   width: 100%;
   max-width: 100%;
-  height: 100dvh;
+  height: 100%;
   overflow: hidden;
   touch-action: manipulation;
 }
@@ -57,7 +57,7 @@ body {
   font-family: var(--font-family);
   font-size: 14px;
   line-height: 1.5;
-  height: 100dvh;
+  height: 100%;
   display: flex;
   flex-direction: column;
   -webkit-overflow-scrolling: touch;
@@ -128,12 +128,12 @@ button:active,
 .app-container {
   display: flex;
   flex-direction: column;
-  height: 100dvh;
+  height: 100%;
   width: 100%;
   max-width: 480px; /* Force phone aspect ratio on desktop */
   margin: 0 auto;
   background-color: var(--bg-main);
-  box-shadow: var(--shadow-lg);
+  box-shadow: none !important;
   position: relative;
   overflow-x: hidden;
 }
@@ -1915,7 +1915,7 @@ input:focus + .slider {
   background: var(--bg-card, #222731);
   border-top-left-radius: 20px;
   border-top-right-radius: 20px;
-  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.4);
+  box-shadow: none;
   transform: translateY(100%);
   transition: transform 0.3s cubic-bezier(0.1, 0.76, 0.55, 0.94);
   z-index: 1001;
@@ -1929,6 +1929,7 @@ input:focus + .slider {
 
 .search-bottom-sheet.active {
   transform: translateY(0);
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.4);
 }
 
 .bottom-sheet-header {
@@ -3324,7 +3325,7 @@ body.shared-wallet-active .day-header {
   border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
   border-bottom: none;
   padding: 0 16px 24px 16px !important;
-  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.4);
+  box-shadow: none;
   transform: translateY(100%);
   transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   box-sizing: border-box;
@@ -3332,6 +3333,7 @@ body.shared-wallet-active .day-header {
 
 .profile-sheet-overlay.active .profile-sheet-content {
   transform: translateY(0);
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.4);
 }
 
 .profile-sheet-handle {
