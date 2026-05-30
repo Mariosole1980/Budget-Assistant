@@ -121,7 +121,6 @@ button:active,
   display: flex;
   flex-direction: column;
   height: 100%;
-  min-height: -webkit-fill-available;
   width: 100%;
   max-width: 480px; /* Force phone aspect ratio on desktop */
   margin: 0 auto;
@@ -178,7 +177,7 @@ button:active,
   overflow-x: hidden;
   width: 100%;
   min-width: 0;
-  padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: 70px;
 }
 
 /* Bottom Navigation Bar Styles */
@@ -191,7 +190,8 @@ button:active,
   border-top: 1px solid var(--border);
   display: flex;
   justify-content: space-around;
-  padding: 8px 0 calc(10px + env(safe-area-inset-bottom, 0px)) 0 !important;
+  padding: 8px 0 10px 0;
+  padding-bottom: calc(10px + env(safe-area-inset-bottom));
   z-index: 100;
   box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.45) !important;
 }
