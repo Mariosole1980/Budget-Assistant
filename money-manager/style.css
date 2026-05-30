@@ -39,6 +39,8 @@ html, body {
   width: 100%;
   max-width: 100%;
   height: 100%;
+  height: 100dvh;
+  min-height: -webkit-fill-available;
   overflow: hidden;
   touch-action: manipulation;
 }
@@ -49,7 +51,8 @@ body {
   font-family: var(--font-family);
   font-size: 14px;
   line-height: 1.5;
-  height: 100%;
+  min-height: 100dvh;
+  min-height: -webkit-fill-available;
   display: flex;
   flex-direction: column;
   -webkit-overflow-scrolling: touch;
@@ -121,6 +124,8 @@ button:active,
   display: flex;
   flex-direction: column;
   height: 100%;
+  height: 100dvh;
+  min-height: -webkit-fill-available;
   width: 100%;
   max-width: 480px; /* Force phone aspect ratio on desktop */
   margin: 0 auto;
@@ -177,7 +182,7 @@ button:active,
   overflow-x: hidden;
   width: 100%;
   min-width: 0;
-  padding-bottom: 70px; /* Space for bottom nav */
+  padding-bottom: calc(70px + env(safe-area-inset-bottom, 16px));
 }
 
 /* Bottom Navigation Bar Styles */
@@ -186,22 +191,24 @@ button:active,
   bottom: 0;
   left: 0;
   right: 0;
-  background-color: var(--bg-card);
+  background-color: #1a1d26 !important;
   border-top: 1px solid var(--border);
   display: flex;
   justify-content: space-around;
-  padding: 8px 0 10px 0;
+  padding: 8px 0 calc(10px + env(safe-area-inset-bottom, 16px)) 0 !important;
+  padding-bottom: calc(10px + env(safe-area-inset-bottom, 16px)) !important;
   z-index: 100;
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.45) !important;
 }
 
 .nav-item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  color: var(--text-secondary);
+  color: #8a99ad !important; /* Brighter grey-blue for enhanced contrast */
   text-decoration: none;
   font-size: 11px;
-  font-weight: 500;
+  font-weight: 600; /* Crisper legibility */
   flex: 1;
   transition: var(--transition);
   gap: 4px;
@@ -215,7 +222,11 @@ button:active,
 }
 
 .nav-item.active {
-  color: var(--accent);
+  color: var(--accent) !important; /* Vivid accent color */
+}
+
+.nav-item.active svg {
+  fill: var(--accent) !important;
 }
 
 .nav-item.active svg {
@@ -1810,16 +1821,23 @@ input:focus + .slider {
 /* Scrollable Chips Row */
 .search-chips-row {
   width: 100%;
-  overflow-x: auto;
+  overflow-x: auto !important;
+  white-space: nowrap !important;
   padding: 10px 16px;
   background: var(--bg-main);
   border-bottom: 1px solid var(--border-light);
-  white-space: nowrap;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-x !important; /* Force native horizontal panning on mobile */
+  scrollbar-width: none; /* Hide scrollbar for Firefox */
+  -ms-overflow-style: none; /* Hide scrollbar for IE/Edge */
 }
-
+.search-chips-row::-webkit-scrollbar {
+  display: none !important; /* Hide scrollbar for Chrome/Safari */
+}
 .search-chips-scroll {
-  display: flex;
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
   gap: 8px;
   align-items: center;
 }
@@ -3112,6 +3130,7 @@ body.shared-wallet-active .day-header {
   border-radius: 10px;
   padding: 3px;
   border: 1px solid rgba(255, 255, 255, 0.05);
+  margin-bottom: 14px; /* More spacing between tabs block and forms */
 }
 
 .auth-tab-btn {
@@ -3135,6 +3154,59 @@ body.shared-wallet-active .day-header {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+/* Custom visibility and forgot password styles */
+.password-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.password-input-wrapper .form-input {
+  padding-right: 42px;
+  width: 100%;
+}
+
+.toggle-password-btn {
+  position: absolute;
+  right: 12px;
+  background: none !important;
+  border: none !important;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  height: 100%;
+  width: 30px;
+  transition: var(--transition);
+}
+
+.toggle-password-btn:hover {
+  color: var(--text-main);
+}
+
+.forgot-password-container {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.forgot-password-link {
+  font-size: 12px;
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 500;
+  transition: var(--transition);
+}
+
+.forgot-password-link:hover {
+  text-decoration: underline;
+  opacity: 0.95;
 }
 
 .auth-mode-switch {
@@ -3910,6 +3982,16 @@ body.shared-wallet-active .day-header {
   #stats-screen .stats-header-bar .stats-period-btn {
     width: 100% !important;
     justify-content: space-between !important;
+  }
+  #stats-screen .stats-subheader-bar {
+    position: sticky !important;
+    top: 88px !important;
+    z-index: 89 !important;
+  }
+  #stats-screen .stats-net-bar {
+    position: sticky !important;
+    top: 151px !important;
+    z-index: 88 !important;
   }
 }
 
