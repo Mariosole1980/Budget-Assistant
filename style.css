@@ -3464,10 +3464,9 @@ body.shared-wallet-active .day-header {
 
 .profile-name-edit-group {
   position: relative;
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
   margin-bottom: 4px;
 }
 
@@ -3492,6 +3491,8 @@ body.shared-wallet-active .day-header {
 }
 
 .profile-name-edit-icon {
+  position: absolute;
+  right: -20px;
   font-size: 12px;
   color: var(--text-secondary, #a0aec0);
   opacity: 0.7;
