@@ -8243,35 +8243,20 @@ function openProfileSheet() {
   const emailDisplay = document.getElementById('profile-email-display');
   if (emailDisplay) emailDisplay.textContent = email;
 
-  const partnerStatus = document.getElementById('profile-partner-status');
-  if (partnerStatus) {
-    if (state.userProfile && state.userProfile.partner_id) {
-      const partnerEmail = state.partnerProfile?.email || 'Συνδεδεμένος';
-      partnerStatus.textContent = partnerEmail;
-      partnerStatus.style.color = '#34c759';
+  // Update cloud sync status
+  const cloudStatus = document.getElementById('profile-cloud-status');
+  if (cloudStatus) {
+    const icon = cloudStatus.querySelector('i');
+    const span = cloudStatus.querySelector('span');
+    if (navigator.onLine) {
+      cloudStatus.className = 'profile-cloud-status online';
+      if (icon) icon.className = 'fa-solid fa-cloud-check';
+      if (span) span.textContent = state.lang === 'en' ? 'Cloud Sync: Active' : 'Συγχρονισμός Cloud: Ενεργός';
     } else {
-      partnerStatus.textContent = 'Μη συνδεδεμένος';
-      partnerStatus.style.color = 'var(--text-secondary)';
+      cloudStatus.className = 'profile-cloud-status offline';
+      if (icon) icon.className = 'fa-solid fa-cloud-slash';
+      if (span) span.textContent = state.lang === 'en' ? 'Cloud Sync: Offline' : 'Συγχρονισμός Cloud: Εκτός σύνδεσης';
     }
-  }
-
-  const syncStatus = document.getElementById('profile-sync-status');
-  if (syncStatus) {
-    syncStatus.textContent = navigator.onLine ? 'Συνδεδεμένο' : 'Εκτός σύνδεσης';
-  }
-
-  const themeStatus = document.getElementById('profile-theme-status');
-  if (themeStatus) {
-    const currentTheme = localStorage.getItem('app_theme') || 'dark';
-    const themeNames = {
-      'dark': 'Premium Dark',
-      'oled': 'OLED Black',
-      'light': 'Classic Light',
-      'emerald': 'Emerald Forest',
-      'ocean': 'Ocean Breeze',
-      'pink': 'Blossom Pink'
-    };
-    themeStatus.textContent = themeNames[currentTheme] || currentTheme;
   }
 
   updateProfileSheetAvatarPreview();

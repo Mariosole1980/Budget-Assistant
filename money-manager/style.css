@@ -3671,6 +3671,33 @@ body.shared-wallet-active .day-header {
   border-color: rgba(239, 68, 68, 0.35) !important;
 }
 
+/* Cloud Sync Status Line */
+.profile-cloud-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 0;
+  margin-top: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 10px;
+}
+
+.profile-cloud-status.online {
+  color: #34c759;
+  background: rgba(52, 199, 89, 0.08);
+}
+
+.profile-cloud-status.offline {
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.08);
+}
+
+.profile-cloud-status i {
+  font-size: 14px;
+}
+
 /* Header badge update */
 .user-profile-badge.avatar-img-badge {
   background-position: center;

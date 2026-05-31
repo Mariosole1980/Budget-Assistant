@@ -1069,7 +1069,7 @@
       <div class="profile-sheet-handle"></div>
       
       <div class="profile-sheet-header">
-        <h3 class="profile-sheet-title">Προφίλ & Ρυθμίσεις</h3>
+        <h3 class="profile-sheet-title" data-i18n="profile_title">Το Προφίλ μου</h3>
         <span class="profile-sheet-close" onclick="closeProfileSheet()">&times;</span>
       </div>
       
@@ -1094,6 +1094,9 @@
         <!-- Preset Avatar Selection -->
         <div class="profile-presets-title">Επιλέξτε Avatar</div>
         <div class="profile-presets-grid">
+          <div class="preset-avatar-option preset-custom-trigger" onclick="triggerAvatarUpload()" title="Μεταφόρτωση εικόνας">
+            <div class="preset-avatar-inner preset-custom-icon"><i class="fa-solid fa-upload"></i></div>
+          </div>
           <div class="preset-avatar-option" data-preset="1" onclick="selectPresetAvatar(1)">
             <div class="preset-avatar-inner preset-1"><i class="fa-solid fa-user"></i></div>
           </div>
@@ -1112,62 +1115,15 @@
           <div class="preset-avatar-option" data-preset="6" onclick="selectPresetAvatar(6)">
             <div class="preset-avatar-inner preset-6"><i class="fa-solid fa-crown"></i></div>
           </div>
-          <div class="preset-avatar-option preset-custom-trigger" onclick="triggerAvatarUpload()" title="Μεταφόρτωση εικόνας">
-            <div class="preset-avatar-inner preset-custom-icon"><i class="fa-solid fa-upload"></i></div>
-          </div>
         </div>
         
         <!-- Hidden file input for custom photo -->
         <input type="file" id="profile-avatar-file-input" accept="image/*" style="display: none;" onchange="handleCustomAvatarUpload(event)">
         
-        <!-- iOS Style Grouped Settings Rows -->
-        <div class="ios-settings-group">
-          <!-- 1. Partner status shortcut -->
-          <div class="ios-settings-row" onclick="openPartnerFromProfile()">
-            <div class="ios-row-left">
-              <div class="ios-row-icon icon-partner"><i class="fa-solid fa-user-group"></i></div>
-              <span class="ios-row-label">Κοινός Προϋπολογισμός</span>
-            </div>
-            <div class="ios-row-right">
-              <span id="profile-partner-status" class="ios-row-value">—</span>
-              <i class="fa-solid fa-chevron-right ios-row-arrow"></i>
-            </div>
-          </div>
-          
-          <!-- 2. Manual Cloud Sync -->
-          <div class="ios-settings-row" onclick="triggerProfileSync()">
-            <div class="ios-row-left">
-              <div class="ios-row-icon icon-sync"><i class="fa-solid fa-cloud-arrow-up"></i></div>
-              <span class="ios-row-label">Συγχρονισμός Cloud</span>
-            </div>
-            <div class="ios-row-right">
-              <span id="profile-sync-status" class="ios-row-value">—</span>
-              <i class="fa-solid fa-arrows-rotate ios-row-arrow" id="profile-sync-spinner"></i>
-            </div>
-          </div>
-
-          <!-- 3. Export to Excel shortcut -->
-          <div class="ios-settings-row" onclick="triggerProfileExport()">
-            <div class="ios-row-left">
-              <div class="ios-row-icon icon-export"><i class="fa-solid fa-file-export"></i></div>
-              <span class="ios-row-label">Εξαγωγή Excel</span>
-            </div>
-            <div class="ios-row-right">
-              <i class="fa-solid fa-chevron-right ios-row-arrow"></i>
-            </div>
-          </div>
-
-          <!-- 4. Cycle Theme shortcut -->
-          <div class="ios-settings-row" onclick="cycleThemeFromProfile()">
-            <div class="ios-row-left">
-              <div class="ios-row-icon icon-theme"><i class="fa-solid fa-palette"></i></div>
-              <span class="ios-row-label">Θέμα Εμφάνισης</span>
-            </div>
-            <div class="ios-row-right">
-              <span id="profile-theme-status" class="ios-row-value">—</span>
-              <i class="fa-solid fa-chevron-right ios-row-arrow"></i>
-            </div>
-          </div>
+        <!-- Cloud Sync Status -->
+        <div class="profile-cloud-status" id="profile-cloud-status">
+          <i class="fa-solid fa-cloud-check"></i>
+          <span data-i18n="cloud_sync_active">Συγχρονισμός Cloud: Ενεργός</span>
         </div>
 
         <!-- Logout button -->
