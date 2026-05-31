@@ -1,0 +1,105 @@
+/**
+ * PROFILE MODAL RESPONSIVE FIX (Desktop)
+ * - Fix horizontal scrollbar (overflow-x: hidden)
+ * - Fix cut-off avatars in avatar selection row
+ * v140+
+ */
+
+/* Profile modal container - prevent overflow */
+#profile-modal,
+.profile-modal-content,
+[data-profile-sheet] {
+  overflow-x: hidden !important;
+  max-width: 100% !important;
+}
+
+/* Avatar selection container - proper layout */
+.profile-avatar-selection,
+[data-avatar-grid],
+.avatar-grid,
+#avatar-select-row {
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  padding: 0 16px !important;
+  margin: 0 !important;
+}
+
+/* Avatar items - ensure all are visible */
+.profile-avatar-item,
+.avatar-item,
+[data-avatar-item] {
+  flex: 0 0 auto;
+  width: 60px;
+  height: 60px;
+  min-width: 60px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 2px solid var(--border, #2e3543);
+}
+
+.profile-avatar-item:active,
+.avatar-item:active {
+  transform: scale(0.9);
+  border-color: var(--accent, #e05e55);
+}
+
+/* Avatar grid wrapper - flex layout, no wrap */
+.avatar-flex-wrapper,
+.avatar-container {
+  display: flex !important;
+  gap: 12px !important;
+  align-items: center !important;
+  width: 100% !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  padding: 0 !important;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* Hide scrollbar for avatar row */
+.avatar-flex-wrapper::-webkit-scrollbar,
+.avatar-container::-webkit-scrollbar {
+  display: none;
+}
+
+.avatar-flex-wrapper,
+.avatar-container {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Ensure no horizontal scroll on page level */
+body,
+html {
+  overflow-x: hidden !important;
+  max-width: 100% !important;
+}
+
+.app-container {
+  overflow-x: hidden !important;
+  max-width: 480px !important;
+  margin: 0 auto !important;
+}
+
+/* Modal content - prevent overflow */
+.modal-content {
+  max-width: 100% !important;
+  width: 100% !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+}
+
+/* Profile modal body */
+#profile-modal .modal-body,
+[data-profile-body] {
+  width: 100% !important;
+  overflow-x: hidden !important;
+  max-width: 100% !important;
+}

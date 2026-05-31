@@ -1,0 +1,100 @@
+/**
+ * CUSTOM ACCOUNT DROPDOWN STYLING
+ * Bottom Sheet component with border-radius: 12px
+ * Replaces native unstyled dropdown
+ * v140+
+ */
+
+/* Backdrop for dropdown */
+.dropdown-backdrop {
+  background: rgba(0, 0, 0, 0.5) !important;
+  backdrop-filter: blur(2px);
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Bottom Sheet Container */
+.account-dropdown-sheet {
+  background: linear-gradient(180deg, var(--bg-card, #222731) 0%, var(--bg-main, #181b22) 100%) !important;
+  border: 1px solid var(--border-light, #384152) !important;
+  border-radius: 12px 12px 0 0 !important;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4) !important;
+  animation: slideUp 0.3s cubic-bezier(0.3, 0.8, 0.3, 1);
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Drag handle (visual indicator) */
+.account-dropdown-sheet::before {
+  content: '';
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40px;
+  height: 4px;
+  background: var(--border, #2e3543);
+  border-radius: 2px;
+}
+
+/* Sheet Options */
+.account-dropdown-option {
+  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+  position: relative;
+  overflow: hidden;
+}
+
+.account-dropdown-option::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 100%;
+  background: var(--accent-light, rgba(224, 94, 85, 0.1));
+  transition: width 0.3s ease;
+  z-index: -1;
+}
+
+.account-dropdown-option:hover::before {
+  width: 100%;
+}
+
+.account-dropdown-option:active {
+  transform: scale(0.96);
+}
+
+/* Trigger Button */
+[data-dropdown-trigger] {
+  background: linear-gradient(145deg, var(--bg-card, #222731), rgba(255, 255, 255, 0.03)) !important;
+  border: 1px solid var(--border-light, #384152) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+  transition: all 0.2s ease !important;
+}
+
+[data-dropdown-trigger]:hover {
+  border-color: var(--accent, #e05e55) !important;
+  box-shadow: 0 4px 12px rgba(var(--accent-rgb, 224, 94, 85), 0.2) !important;
+}
+
+[data-dropdown-trigger]:active {
+  transform: scale(0.98);
+}
+
+/* Hide native select dropdown */
+select[data-account-select] {
+  display: none !important;
+}
