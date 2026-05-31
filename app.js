@@ -2363,28 +2363,7 @@ function renderStatsTab() {
     icon: d.icon, color: d.color
   })).sort((a, b) => b.amount - a.amount);
 
-  // Group small categories (< 3%) into "Λοιπά" for cleaner chart
-  const MIN_PCT_THRESHOLD = 3;
-  const mainItems = [];
-  let othersAmount = 0;
-  breakdownList.forEach(item => {
-    if (item.percentage >= MIN_PCT_THRESHOLD || breakdownList.length <= 5) {
-      mainItems.push(item);
-    } else {
-      othersAmount += item.amount;
-    }
-  });
-  if (othersAmount > 0) {
-    const othersLabel = state.lang === 'en' ? 'Others' : 'Λοιπά';
-    mainItems.push({
-      name: othersLabel,
-      amount: othersAmount,
-      percentage: totalSum > 0 ? (othersAmount / totalSum) * 100 : 0,
-      icon: '📦',
-      color: '#6b7280'
-    });
-  }
-  const displayList = mainItems;
+  const displayList = breakdownList;
 
   const listContainer = document.getElementById('stats-breakdown-list');
   listContainer.innerHTML = '';
@@ -3035,6 +3014,8 @@ function setupEventListeners() {
   const dropdownMenu = document.getElementById('stats-period-dropdown-menu');
   dropdownBtn.addEventListener('click', (e) => {
     e.stopPropagation();
+    const familyFilterMenu = document.getElementById('stats-family-dropdown-menu');
+    if (familyFilterMenu) familyFilterMenu.classList.remove('active');
     dropdownMenu.classList.toggle('active');
   });
 
@@ -3043,6 +3024,7 @@ function setupEventListeners() {
   if (familyFilterBtn && familyFilterMenu) {
     familyFilterBtn.addEventListener('click', (e) => {
       e.stopPropagation();
+      dropdownMenu.classList.remove('active');
       familyFilterMenu.classList.toggle('active');
     });
   }

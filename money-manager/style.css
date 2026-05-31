@@ -701,8 +701,8 @@ button:active,
   color: var(--text-main);
   border: 1px solid var(--border-light);
   border-radius: 20px;
-  padding: 6px 16px;
-  font-size: 12.5px;
+  padding: 10px 18px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   display: flex;
@@ -710,6 +710,7 @@ button:active,
   justify-content: space-between;
   gap: 6px;
   white-space: nowrap;
+  min-height: 40px;
   transition: var(--transition);
 }
 
@@ -2265,32 +2266,36 @@ input:focus + .slider {
 .month-picker-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
+  gap: 4px;
   text-align: center;
 }
 
 .month-picker-item {
-  background-color: var(--bg-input);
-  border: 1px solid var(--border-light);
-  border-radius: 6px;
-  padding: 10px 4px;
-  font-size: 12px;
-  font-weight: 600;
+  background: transparent;
+  border: none;
+  border-radius: 20px;
+  padding: 12px 4px;
+  font-size: 13px;
+  font-weight: 500;
   color: var(--text-secondary);
   cursor: pointer;
-  transition: var(--transition);
+  transition: background 0.2s, color 0.2s;
 }
 
 .month-picker-item:hover {
-  background-color: var(--border);
+  background: rgba(128, 128, 128, 0.1);
   color: var(--text-main);
+}
+
+.month-picker-item:active {
+  background: rgba(128, 128, 128, 0.15);
 }
 
 .month-picker-item.active {
   background-color: var(--accent);
-  border-color: var(--accent);
   color: white;
   font-weight: 700;
+  box-shadow: 0 2px 8px rgba(var(--accent-rgb), 0.3);
 }
 
 /* Pull to Refresh styles */

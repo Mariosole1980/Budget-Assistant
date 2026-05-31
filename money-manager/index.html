@@ -921,8 +921,8 @@
     <!-- ============================================== -->
     <!-- MODAL 5: MONTH GRID PICKER -->
     <!-- ============================================== -->
-    <div id="month-picker-modal" class="modal-overlay">
-      <div class="modal-content" style="max-width: 320px; border-radius: 12px; margin: auto; border: 1px solid var(--border);">
+    <div id="month-picker-modal" class="modal-overlay" onclick="closeModal('month-picker-modal')">
+      <div class="modal-content" style="max-width: 300px; border-radius: 16px; margin: auto; border: 1px solid var(--border);" onclick="event.stopPropagation()">
         <div class="modal-header" style="border-bottom: 1px solid var(--border); padding: 12px 16px;">
           <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
             <button type="button" class="icon-btn" onclick="adjustMonthPickerYear(-1)"><i class="fa-solid fa-chevron-left"></i></button>
@@ -934,7 +934,6 @@
           <div class="month-picker-grid" id="month-picker-grid-container">
             <!-- 12 months generated dynamically in Greek -->
           </div>
-          <button type="button" class="btn btn-secondary" style="width: 100%; margin-top: 16px;" onclick="closeModal('month-picker-modal')">Κλείσιμο</button>
         </div>
       </div>
     </div>
