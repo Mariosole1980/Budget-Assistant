@@ -1561,6 +1561,102 @@ function calculateInitialBalances() {
 window.getActiveTransactions = getActiveTransactions;
 window.calculateInitialBalances = calculateInitialBalances;
 
+// Scan categories and transactions to clean up duplicates (e.g. Chinese characters)
+async function cleanDuplicateCategories() {
+  const targetCategoryName = '🧾ΦΟΡΟΙ/ΛΟΓΙΣΤΗΣ';
+  
+  // Find bad categories in the categories list
+  const badCategories = state.categories.filter(c => c.name && (
+    c.name.includes('茶') || 
+    /[\u4e00-\u9fff]/.test(c.name) ||
+    (c.name.includes('ΦΟΡΟΙ/ΛΟΓΙΣΤΗΣ') && c.name !== '🧾ΦΟΡΟΙ/ΛΟΓΙΣΤΗΣ')
+  ));
+  
+  // Find bad category names in transactions
+  const badCategoryNamesInTrans = new Set();
+  state.transactions.forEach(t => {
+    if (t.category && (
+      t.category.includes('茶') || 
+      /[\u4e00-\u9fff]/.test(t.category) ||
+      (t.category.includes('ΦΟΡΟΙ/ΛΟΓΙΣΤΗΣ') && t.category !== '🧾ΦΟΡΟΙ/ΛΟΓΙΣΤΗΣ')
+    )) {
+      badCategoryNamesInTrans.add(t.category);
+    }
+  });
+
+  if (badCategories.length === 0 && badCategoryNamesInTrans.size === 0) return;
+
+  console.log('Duplicate categories cleanup: found bad categories in list:', badCategories, 'and in transactions:', Array.from(badCategoryNamesInTrans));
+
+  let didChange = false;
+  const isOnline = state.supabaseClient && state.currentUser;
+
+  // 1. Process bad category names in transactions
+  for (const badCatName of badCategoryNamesInTrans) {
+    try {
+      if (isOnline) {
+        console.log(`Updating transactions from bad category name "${badCatName}" to "${targetCategoryName}" in Cloud`);
+        await state.supabaseClient
+          .from('transactions')
+          .update({ category: targetCategoryName })
+          .eq('category', badCatName);
+      }
+      
+      // Update local state transactions
+      state.transactions.forEach(t => {
+        if (t.category === badCatName) {
+          t.category = targetCategoryName;
+        }
+      });
+      didChange = true;
+    } catch (e) {
+      console.error(`Error during transaction update for category name "${badCatName}":`, e);
+    }
+  }
+
+  // 2. Process bad category objects from database list
+  for (const badCat of badCategories) {
+    try {
+      if (isOnline) {
+        console.log(`Updating transactions from bad category object name "${badCat.name}" to "${targetCategoryName}" in Cloud`);
+        await state.supabaseClient
+          .from('transactions')
+          .update({ category: targetCategoryName })
+          .eq('category', badCat.name);
+
+        console.log(`Deleting bad category "${badCat.name}" (ID: ${badCat.id}) from Cloud`);
+        await state.supabaseClient
+          .from('categories')
+          .delete()
+          .eq('id', badCat.id);
+      }
+
+      // Update local state transactions (just in case)
+      state.transactions.forEach(t => {
+        if (t.category === badCat.name) {
+          t.category = targetCategoryName;
+        }
+      });
+
+      // Update local state categories
+      state.categories = state.categories.filter(c => c.id !== badCat.id);
+      didChange = true;
+    } catch (e) {
+      console.error(`Error cleaning up bad category object "${badCat.name}":`, e);
+    }
+  }
+
+  if (didChange) {
+    console.log('Cleanup completed successfully. Saving to offline storage and updating UI.');
+    localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
+    localStorage.setItem('offline_categories', JSON.stringify(state.categories));
+    calculateInitialBalances();
+    if (typeof updateUI === 'function') {
+      updateUI();
+    }
+  }
+}
+
 // ============================================================
 // DATA LOADING
 // ============================================================
@@ -1707,6 +1803,9 @@ async function loadData() {
       
       updateHeaderSyncIcon('synced');
 
+      // Run automatic duplicate / corrupt category cleanup in background
+      cleanDuplicateCategories().catch(e => console.warn('Automatic categories cleanup error:', e));
+
       // Try to flush pending local items in background without blocking UI.
       if (pendingLocal.length > 0) {
         syncLocalTransactionsToCloud(userId, { silent: true }).catch(() => {});
@@ -1764,6 +1863,7 @@ function loadOfflineData() {
   }
   
   calculateInitialBalances();
+  cleanDuplicateCategories().catch(e => console.warn('Offline automatic categories cleanup error:', e));
 }
 
 // ============================================================
@@ -2750,7 +2850,14 @@ function renderAccountsTab() {
           return dStr;
         };
 
-        const label = TRANSLATIONS[state.lang]['period_label'] + ' ' + formatDateStr(data.minDate) + ' - ' + formatDateStr(data.maxDate);
+        // For current year, use today's date as end date instead of max transaction date
+        const currentYear = new Date().getFullYear();
+        const yearNum = parseInt(year, 10);
+        const endDate = (yearNum === currentYear)
+          ? new Date().toISOString().split('T')[0]
+          : data.maxDate;
+
+        const label = TRANSLATIONS[state.lang]['period_label'] + ' ' + formatDateStr(data.minDate) + ' - ' + formatDateStr(endDate);
         const colorStyle = 'color: var(--blue-positive);'; // Surpluses are positive/green
         const sign = '+';
 
@@ -4873,10 +4980,40 @@ function closeSearchBottomSheet(hideBackdrop = true) {
   }
 }
 
+// Get category type ('expense' or 'income') for search category filtering
+function getCategoryType(catName) {
+  if (!catName) return '';
+  const catObj = state.categories.find(c => c.name === catName);
+  if (catObj) return catObj.type;
+  
+  const trans = state.transactions.find(t => t.category === catName);
+  if (trans) return trans.type;
+  
+  return '';
+}
+
 function selectTypeSearchFilter(val) {
   const hiddenSelect = document.getElementById('search-filter-type');
   if (hiddenSelect) {
     hiddenSelect.value = val;
+  }
+  
+  // If the currently selected category doesn't match the new selected type, clear the category selection
+  const currentCat = document.getElementById('search-filter-category')?.value;
+  if (currentCat && val) {
+    const catType = getCategoryType(currentCat);
+    if (catType && catType !== val) {
+      const hiddenCat = document.getElementById('search-filter-category');
+      const hiddenSub = document.getElementById('search-filter-subcategory');
+      if (hiddenCat) hiddenCat.value = '';
+      if (hiddenSub) hiddenSub.value = '';
+      
+      const catChip = document.getElementById('search-chip-category');
+      if (catChip) {
+        catChip.querySelector('.chip-label').textContent = 'Κατηγορία';
+        catChip.classList.remove('active');
+      }
+    }
   }
   
   // Update Type Chip UI
@@ -4956,6 +5093,7 @@ function populateSearchCategorySheet() {
 
   const currentCat = document.getElementById('search-filter-category').value;
   const currentSub = document.getElementById('search-filter-subcategory').value;
+  const searchType = document.getElementById('search-filter-type')?.value || '';
 
   let html = `
     <div class="bottom-sheet-option ${currentCat === '' && currentSub === '' ? 'active' : ''}" onclick="selectCategorySearchFilter('', '')">
@@ -4968,7 +5106,26 @@ function populateSearchCategorySheet() {
   const allCats = new Set();
   state.categories.forEach(c => allCats.add(c.name));
   state.transactions.forEach(t => { if (t.category) allCats.add(t.category); });
-  const sortedCats = Array.from(allCats).sort();
+
+  // Map category name to type
+  const catTypeMap = {};
+  state.categories.forEach(c => {
+    if (c.name) catTypeMap[c.name] = c.type;
+  });
+  state.transactions.forEach(t => {
+    if (t.category && !catTypeMap[t.category]) {
+      catTypeMap[t.category] = t.type;
+    }
+  });
+
+  let sortedCats = Array.from(allCats);
+  if (searchType === 'income' || searchType === 'expense') {
+    sortedCats = sortedCats.filter(catName => {
+      const type = catTypeMap[catName];
+      return type === searchType;
+    });
+  }
+  sortedCats.sort();
 
   sortedCats.forEach(catName => {
     const isCatActive = catName === currentCat && !currentSub;
