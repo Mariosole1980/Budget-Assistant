@@ -343,7 +343,10 @@ const TRANSLATIONS = {
     export_no_data_range: 'Δεν υπάρχουν συναλλαγές σε αυτή την περίοδο!',
     row_receipt_photo: 'Φωτογραφία Απόδειξης',
     photo_mismatch_warning: 'Η εικόνα είναι διαθέσιμη μόνο στη συσκευή που καταχωρήθηκε.',
-    photo_delete_confirm: 'Διαγραφή φωτογραφίας απόδειξης;'
+    photo_delete_confirm: 'Διαγραφή φωτογραφίας απόδειξης;',
+    excel_dep_title: 'Εισαγωγή Excel/CSV (Υπό κατάργηση)',
+    excel_dep_text: 'Η εισαγωγή δεδομένων από αρχεία Excel ή CSV δεν υποστηρίζεται πλέον. Παρακαλώ εισάγετε τις συναλλαγές σας χειροκίνητα για την αποφυγή διπλότυπων και την καλύτερη συμβατότητα με τις νέες κατηγορίες.',
+    excel_dep_btn: 'Κατάλαβα'
   },
   en: {
     nav_trans: 'Transactions',
@@ -552,7 +555,10 @@ const TRANSLATIONS = {
     export_no_data_range: 'No transactions found in this period!',
     row_receipt_photo: 'Receipt Photo',
     photo_mismatch_warning: 'Image is only available on the device where it was recorded.',
-    photo_delete_confirm: 'Delete receipt photo?'
+    photo_delete_confirm: 'Delete receipt photo?',
+    excel_dep_title: 'Excel/CSV Import (Deprecated)',
+    excel_dep_text: 'Importing data from Excel or CSV files is no longer supported. Please input your transactions manually to avoid duplicates and ensure better compatibility with the new categories.',
+    excel_dep_btn: 'I Understand'
   }
 };
 
@@ -1732,7 +1738,10 @@ function getActiveTransactions() {
     
     if (currentUserId) {
       if (familyId) {
-        return t.family_id === familyId || (t.id && String(t.id).startsWith('local_'));
+        return t.family_id === familyId || 
+               t.user_id === currentUserId || 
+               t.user_id === partnerId || 
+               (t.id && String(t.id).startsWith('local_'));
       }
       return t.user_id === currentUserId || 
              t.user_id === partnerId || 
@@ -1878,7 +1887,7 @@ async function loadData() {
       // Fetch categories & accounts first
       const familyId = state.userProfile ? state.userProfile.family_id : null;
       const userFilter = familyId 
-        ? `family_id.eq.${familyId}` 
+        ? (partnerId ? `family_id.eq.${familyId},user_id.eq.${userId},user_id.eq.${partnerId}` : `family_id.eq.${familyId},user_id.eq.${userId}`)
         : (partnerId ? `user_id.eq.${userId},user_id.eq.${partnerId}` : `user_id.eq.${userId}`);
 
       const [catsRes, accsRes] = await promiseTimeout(
@@ -1905,7 +1914,11 @@ async function loadData() {
           .range(page * pageSize, (page + 1) * pageSize - 1);
 
         if (familyId) {
-          transQuery = transQuery.eq('family_id', familyId);
+          if (partnerId) {
+            transQuery = transQuery.or(`family_id.eq.${familyId},user_id.eq.${userId},user_id.eq.${partnerId}`);
+          } else {
+            transQuery = transQuery.or(`family_id.eq.${familyId},user_id.eq.${userId}`);
+          }
         } else if (partnerId) {
           transQuery = transQuery.or(`user_id.eq.${userId},user_id.eq.${partnerId}`);
         } else {
@@ -2572,113 +2585,7 @@ function getSubcategoryDisplayName(subName, categoryName) {
   return subName;
 }
 
-// Category Manager Functions
-function openCategoryManagerModal() {
-  openModal('category-manager-modal');
-  renderCategoryManagerList();
-}
 
-function renderCategoryManagerList() {
-  const container = document.getElementById('category-manager-list');
-  if (!container) return;
-  
-  container.innerHTML = '';
-  
-  // Combine default categories with custom categories
-  const allCategories = [...DEFAULT_CATEGORIES];
-  
-  // Add custom categories from state
-  state.categories.forEach(cat => {
-    if (!DEFAULT_CATEGORIES.find(dc => dc.name === cat.name)) {
-      allCategories.push(cat);
-    }
-  });
-  
-  allCategories.forEach(cat => {
-    const item = document.createElement('div');
-    item.className = 'settings-list-item';
-    item.style.padding = '12px';
-    
-    const isCustom = !DEFAULT_CATEGORIES.find(dc => dc.name === cat.name);
-    
-    item.innerHTML = `
-      <div style="display: flex; align-items: center; gap: 10px; flex: 1;">
-        <span style="font-size: 20px;">${cat.icon}</span>
-        <div style="display: flex; flex-direction: column;">
-          <span style="font-size: 13px; font-weight: 600; color: var(--text-main);">${getCategoryDisplayName(cat.name)}</span>
-          <span style="font-size: 10px; color: var(--text-muted);">${cat.type === 'income' ? 'Έσοδο' : 'Έξοδο'}</span>
-        </div>
-      </div>
-      ${isCustom ? `
-        <div style="display: flex; gap: 8px;">
-          <button onclick="toggleCategoryHidden('${cat.name}')" class="icon-btn" style="font-size: 14px;" title="${cat.hidden ? 'Εμφάνιση' : 'Απόκρυψη'}">
-            <i class="fa-solid ${cat.hidden ? 'fa-eye-slash' : 'fa-eye'}"></i>
-          </button>
-          <button onclick="deleteCustomCategory('${cat.name}')" class="icon-btn" style="font-size: 14px; color: var(--accent);" title="Διαγραφή">
-            <i class="fa-solid fa-trash"></i>
-          </button>
-        </div>
-      ` : ''}
-    `;
-    
-    container.appendChild(item);
-  });
-}
-
-function toggleCategoryHidden(categoryName) {
-  const cat = state.categories.find(c => c.name === categoryName);
-  if (cat) {
-    cat.hidden = !cat.hidden;
-    saveCategoriesToStorage();
-    renderCategoryManagerList();
-    updateUI();
-  }
-}
-
-function deleteCustomCategory(categoryName) {
-  if (!confirm(TRANSLATIONS[state.lang]['confirm_delete_category'])) {
-    return;
-  }
-  
-  state.categories = state.categories.filter(c => c.name !== categoryName);
-  saveCategoriesToStorage();
-  renderCategoryManagerList();
-  updateUI();
-}
-
-function addNewCustomCategory() {
-  const nameInput = document.getElementById('new-category-name');
-  const typeSelect = document.getElementById('new-category-type');
-  
-  const name = nameInput.value.trim();
-  const type = typeSelect.value;
-  
-  if (!name) {
-    alert(TRANSLATIONS[state.lang]['alert_enter_category_name']);
-    return;
-  }
-  
-  // Check if category already exists
-  if (state.categories.find(c => c.name === name) || DEFAULT_CATEGORIES.find(c => c.name === name)) {
-    alert(TRANSLATIONS[state.lang]['alert_category_exists']);
-    return;
-  }
-  
-  // Create new category with default icon and color
-  const newCategory = {
-    name: name,
-    type: type,
-    icon: type === 'income' ? '💰' : '💸',
-    color: type === 'income' ? '#4caf50' : '#e05e55'
-  };
-  
-  state.categories.push(newCategory);
-  saveCategoriesToStorage();
-  
-  nameInput.value = '';
-  renderCategoryManagerList();
-  updateUI();
-}
 
 function saveCategoriesToStorage() {
   localStorage.setItem('offline_categories', JSON.stringify(state.categories));
@@ -3847,11 +3754,6 @@ function openModal(id)  {
 }
 function closeModal(id) {
   document.getElementById(id).classList.remove('active');
-  if (id === 'excel-modal') {
-    document.getElementById('excel-file-input').value = '';
-    document.getElementById('excel-mapping-section').style.display = 'none';
-    state.excelData = null; state.excelColumns = [];
-  }
 }
 
 function toggleTransactionFormLock(locked) {
@@ -4178,6 +4080,100 @@ function setTransactionFormType(type) {
   }
 }
 
+let categoryPickerEditMode = false;
+
+function toggleCategoryPickerEditMode() {
+  categoryPickerEditMode = !categoryPickerEditMode;
+  const btn = document.getElementById('btn-toggle-cat-edit');
+  if (btn) {
+    btn.textContent = categoryPickerEditMode 
+      ? (state.lang === 'el' ? 'Τέλος' : 'Done')
+      : (state.lang === 'el' ? 'Διαχείριση' : 'Manage');
+    if (categoryPickerEditMode) {
+      btn.style.borderColor = 'var(--accent)';
+      btn.style.color = 'var(--accent)';
+    } else {
+      btn.style.borderColor = 'var(--border)';
+      btn.style.color = 'var(--text-secondary)';
+    }
+  }
+  const currentType = document.querySelector('.type-tab-btn.active').getAttribute('data-type');
+  updateCategoryDropdowns(currentType);
+}
+
+function inlineToggleCategoryHidden(categoryName, type) {
+  const cat = state.categories.find(c => c.name === categoryName);
+  if (cat) {
+    cat.hidden = !cat.hidden;
+    saveCategoriesToStorage();
+    
+    // Sync to cloud if enabled
+    if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
+      try {
+        state.supabaseClient
+          .from('categories')
+          .upsert({
+            user_id: state.currentUser.id,
+            name: cat.name,
+            type: cat.type,
+            icon: cat.icon,
+            color: cat.color,
+            hidden: cat.hidden
+          }, { onConflict: 'user_id,name' })
+          .then(({ error }) => {
+            if (error) console.warn('Cloud category sync warning:', error);
+          });
+      } catch (e) {
+        console.warn('Cloud category sync failed:', e);
+      }
+    }
+    
+    updateCategoryDropdowns(type);
+    updateUI();
+  }
+}
+
+function inlineDeleteCustomCategory(categoryName, type) {
+  const confirmMsg = state.lang === 'el' 
+    ? 'Είστε σίγουροι ότι θέλετε να διαγράψετε αυτή την κατηγορία;' 
+    : 'Are you sure you want to delete this category?';
+  if (!confirm(confirmMsg)) {
+    return;
+  }
+  
+  // Also check if any transactions use this category. If yes, warn the user
+  const count = state.transactions.filter(t => t.category === categoryName).length;
+  if (count > 0) {
+    const warningMsg = state.lang === 'el'
+      ? `Αυτή η κατηγορία χρησιμοποιείται σε ${count} συναλλαγές. Αν τη διαγράψετε, οι συναλλαγές θα παραμείνουν αλλά η κατηγορία δεν θα υπάρχει. Θέλετε να συνεχίσετε;`
+      : `This category is used in ${count} transactions. If you delete it, the transactions will remain but the category will not exist. Do you want to continue?`;
+    if (!confirm(warningMsg)) {
+      return;
+    }
+  }
+  
+  state.categories = state.categories.filter(c => c.name !== categoryName);
+  saveCategoriesToStorage();
+  
+  // Sync delete to cloud if enabled
+  if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
+    try {
+      state.supabaseClient
+        .from('categories')
+        .delete()
+        .match({ user_id: state.currentUser.id, name: categoryName })
+        .then(({ error }) => {
+          if (error) console.warn('Cloud category delete warning:', error);
+        });
+    } catch (e) {
+      console.warn('Cloud category delete failed:', e);
+    }
+  }
+  
+  updateCategoryDropdowns(type);
+  updateUI();
+}
+
 function updateCategoryDropdowns(type = 'expense') {
   const grid = document.getElementById('category-picker-grid');
   if (!grid) return;
@@ -4186,29 +4182,53 @@ function updateCategoryDropdowns(type = 'expense') {
   const currentCategory = document.getElementById('trans-category').value;
   let categoryExists = false;
   
-  // Dynamic categories from state (filter by type, exclude hidden)
-  const visibleCategories = state.categories.filter(c => c.type === type && !c.hidden);
+  // Filter by type. In edit mode, show all. Otherwise, hide hidden categories.
+  const visibleCategories = state.categories.filter(c => c.type === type && (categoryPickerEditMode || !c.hidden));
   
   visibleCategories.forEach(c => {
     const div = document.createElement('div');
     div.className = 'category-picker-item';
-    if (c.name === currentCategory) {
-      div.classList.add('selected');
-      categoryExists = true;
+    
+    const isCustom = !DEFAULT_CATEGORIES.find(dc => dc.name === c.name);
+    
+    if (categoryPickerEditMode) {
+      div.classList.add('in-edit-mode');
+      div.innerHTML = `
+        <span class="category-picker-icon">${c.icon}</span>
+        <span class="category-picker-name" style="opacity:${c.hidden ? '0.4' : '1'};">${stripLeadingEmoji(c.name)}</span>
+        ${isCustom ? `
+          <div class="category-item-edit-actions">
+            <span class="cat-action-btn hide-btn" onclick="event.stopPropagation(); inlineToggleCategoryHidden('${c.name}', '${type}')" title="${c.hidden ? (state.lang === 'el' ? 'Εμφάνιση' : 'Show') : (state.lang === 'el' ? 'Απόκρυψη' : 'Hide')}">
+              <i class="fa-solid ${c.hidden ? 'fa-eye-slash' : 'fa-eye'}"></i>
+            </span>
+            <span class="cat-action-btn delete-btn" onclick="event.stopPropagation(); inlineDeleteCustomCategory('${c.name}', '${type}')" title="${state.lang === 'el' ? 'Διαγραφή' : 'Delete'}">
+              <i class="fa-solid fa-trash"></i>
+            </span>
+          </div>
+        ` : `<div class="category-item-edit-actions"><span class="cat-action-btn-disabled" title="${state.lang === 'el' ? 'Προεπιλεγμένη' : 'System Default'}"><i class="fa-solid fa-lock"></i></span></div>`}
+      `;
+    } else {
+      if (c.name === currentCategory) {
+        div.classList.add('selected');
+        categoryExists = true;
+      }
+      div.innerHTML = `<span class="category-picker-icon">${c.icon}</span><span class="category-picker-name">${stripLeadingEmoji(c.name)}</span>`;
+      div.onclick = () => selectCategory(c.name, c.icon, c.color, true);
     }
-    div.innerHTML = `<span class="category-picker-icon">${c.icon}</span><span class="category-picker-name">${stripLeadingEmoji(c.name)}</span>`;
-    div.onclick = () => selectCategory(c.name, c.icon, c.color, true);
+    
     grid.appendChild(div);
   });
   
-  // "+" New Category box at the end of the grid
-  const addBox = document.createElement('div');
-  addBox.className = 'category-picker-item category-picker-add';
-  addBox.innerHTML = `<span class="category-picker-icon" style="font-size:28px;color:var(--accent);">+</span><span class="category-picker-name">${state.lang === 'el' ? 'Νέα Κατηγορία' : 'New Category'}</span>`;
-  addBox.onclick = () => openNewCategoryDialog(type);
-  grid.appendChild(addBox);
+  // "+" New Category box at the end of the grid (only in normal mode, or always? Let's show it always or only in normal mode. Normal mode is cleaner)
+  if (!categoryPickerEditMode) {
+    const addBox = document.createElement('div');
+    addBox.className = 'category-picker-item category-picker-add';
+    addBox.innerHTML = `<span class="category-picker-icon" style="font-size:28px;color:var(--accent);">+</span><span class="category-picker-name">${state.lang === 'el' ? 'Νέα Κατηγορία' : 'New Category'}</span>`;
+    addBox.onclick = () => openNewCategoryDialog(type);
+    grid.appendChild(addBox);
+  }
   
-  if (!categoryExists && currentCategory !== '') {
+  if (!categoryPickerEditMode && !categoryExists && currentCategory !== '') {
     document.getElementById('trans-category').value = '';
     updateCategoryDisplay();
   }
@@ -4218,7 +4238,8 @@ function selectCategory(name, icon, color, isManual = false) {
   document.getElementById('trans-category').value = name;
   document.querySelectorAll('.category-picker-item').forEach(item => {
     item.classList.remove('selected');
-    if(item.querySelector('.category-picker-name').textContent === stripLeadingEmoji(name)) {
+    const nameEl = item.querySelector('.category-picker-name');
+    if (nameEl && nameEl.textContent === stripLeadingEmoji(name)) {
       item.classList.add('selected');
     }
   });
@@ -4271,6 +4292,16 @@ function openCategoryModal() {
   const form = document.getElementById('transaction-form');
   if (form && form.getAttribute('data-readonly') === 'true') return;
   const currentType = document.querySelector('.type-tab-btn.active').getAttribute('data-type');
+  
+  // Reset edit mode on modal open
+  categoryPickerEditMode = false;
+  const btn = document.getElementById('btn-toggle-cat-edit');
+  if (btn) {
+    btn.textContent = state.lang === 'el' ? 'Διαχείριση' : 'Manage';
+    btn.style.borderColor = 'var(--border)';
+    btn.style.color = 'var(--text-secondary)';
+  }
+  
   updateCategoryDropdowns(currentType);
   closeNewCategoryDialog(); // Reset dialog state
   openModal('category-picker-modal');
@@ -4636,140 +4667,6 @@ function updateHeaderSyncIcon(state_) {
   }
 }
 
-// Excel: Date | Account | Category | Subcategory | Note | EUR | Income/Expense | Description | Amount
-// ============================================================
-function handleExcelUpload(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-
-  console.log('[Excel] Αρχείο:', file.name, '| Μέγεθος:', file.size, 'bytes');
-
-  const fileName = file.name.toLowerCase();
-  const reader = new FileReader();
-
-  const isCsv = fileName.endsWith('.csv') || fileName.endsWith('.txt') || file.type === 'text/csv' || file.type === 'text/plain';
-
-  if (isCsv) {
-    reader.onload = function(e) {
-      try {
-        const arrayBuffer = e.target.result;
-        let text = '';
-        let isGreekWindows = false;
-
-        // Try UTF-8 first
-        const utf8Decoder = new TextDecoder('utf-8', { fatal: true });
-        try {
-          text = utf8Decoder.decode(arrayBuffer);
-        } catch (err) {
-          isGreekWindows = true;
-        }
-
-        if (!isGreekWindows && text.includes('\uFFFD')) {
-          isGreekWindows = true;
-        }
-
-        if (isGreekWindows) {
-          try {
-            const greekDecoder = new TextDecoder('windows-1253');
-            text = greekDecoder.decode(arrayBuffer);
-          } catch (err) {
-            const lossyDecoder = new TextDecoder('utf-8');
-            text = lossyDecoder.decode(arrayBuffer);
-          }
-        }
-
-        const rows = parseCSVText(text);
-        if (!rows || !rows.length) {
-          alert(TRANSLATIONS[state.lang]['alert_csv_empty']);
-          return;
-        }
-
-        state.excelData = rows;
-        state.excelColumns = Object.keys(rows[0]);
-        populateExcelMappingOptions();
-        document.getElementById('excel-mapping-section').style.display = 'block';
-      } catch (err) {
-        console.error('[CSV Error]', err);
-        alert('❌ ' + (state.lang === 'en' ? 'CSV Error' : 'Σφάλμα CSV') + ':\n' + (err.message || err));
-      }
-    };
-    reader.onerror = function() {
-      alert('❌ ' + (state.lang === 'en' ? 'Error reading CSV file' : 'Σφάλμα ανάγνωσης αρχείου CSV'));
-    };
-    reader.readAsArrayBuffer(file);
-  } else {
-    // Excel file — check XLSX library loaded
-    if (typeof XLSX === 'undefined') {
-      alert('❌ ' + (state.lang === 'en' ? 'XLSX library not loaded!\nRefresh the page (Ctrl+Shift+R) and try again.' : 'Η βιβλιοθήκη XLSX δεν φορτώθηκε!\nΑνανεώστε τη σελίδα (Ctrl+Shift+R) και δοκιμάστε ξανά.'));
-      return;
-    }
-    reader.onload = function(e) {
-      try {
-        const data = new Uint8Array(e.target.result);
-        console.log('[Excel] XLSX.read, bytes:', data.length);
-        const workbook = XLSX.read(data, { type: 'array' });
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const json = XLSX.utils.sheet_to_json(sheet, { defval: '', raw: true });
-        console.log('[Excel] Parsed rows:', json.length);
-        if (!json.length) { 
-          alert(TRANSLATIONS[state.lang]['alert_excel_empty']); 
-          return; 
-        }
-        state.excelData = json;
-        state.excelColumns = Object.keys(json[0]);
-        populateExcelMappingOptions();
-        document.getElementById('excel-mapping-section').style.display = 'block';
-      } catch (err) {
-        console.error('[Excel Error]', err);
-        alert('❌ ' + (state.lang === 'en' ? 'Excel Error' : 'Σφάλμα Excel') + ':\n' + (err.message || err));
-      }
-    };
-    reader.onerror = function() {
-      alert('❌ ' + (state.lang === 'en' ? 'Error reading Excel file' : 'Σφάλμα ανάγνωσης αρχείου Excel'));
-    };
-    reader.readAsArrayBuffer(file);
-  }
-}
-
-function populateExcelMappingOptions() {
-  const fieldDefs = [
-    { id: 'date',        keywords: ['date', 'ημερομηνία', 'ημερομηνια', 'time', 'χρόνος', 'created', 'timestamp', 'datetime', 'date & time', 'trans_date', 'started date', 'completed date', 'transaction date', 'ημερομηνια συναλλαγης'] },
-    { id: 'account',     keywords: ['account', 'λογαριασμός', 'λογαριασμος', 'wallet', 'asset', 'card', 'payment', 'source', 'bank', 'wallet_name', 'payment type', 'payment_type', 'λογαριασμος χρεωσης', 'account name'] },
-    { id: 'category',    keywords: ['category', 'κατηγορία', 'κατηγορια', 'group', 'class', 'tag', 'main_category', 'category group/category', 'κατηγορια/υποκατηγορια'] },
-    { id: 'subcategory', keywords: ['subcategory', 'υποκατηγορία', 'υποκατηγορια', 'sub-category', 'sub', 'sub_category', 'υπο-κατηγορια'] },
-    { id: 'note',        keywords: ['note', 'σημείωση', 'σημειωση', 'memo', 'comment', 'σχόλιο', 'σχολιο', 'remarks', 'transaction note', 'commentary', 'details', 'λεπτομερειες', 'αιτιολογια'] },
-    { id: 'amount',      keywords: ['amount', 'eur', 'ποσό', 'ποσο', 'value', 'sum', 'cost', 'price', 'money', 'total', 'summa', 'amount_in', 'amount_out', 'υπολοιπο'] },
-    { id: 'inflow',      keywords: ['inflow', 'credit', 'incoming', 'deposit', 'income', 'επιταγη/καταθεση', 'πιστωση', 'εισροη', 'αυξηση'] },
-    { id: 'outflow',     keywords: ['outflow', 'debit', 'outgoing', 'withdrawal', 'expense', 'χρεωση/πληρωμη', 'χρεωση', 'εκροη', 'μειωση'] },
-    { id: 'type',        keywords: ['income/expense', 'type', 'τύπος', 'τυπος', 'direction', 'kind', 'transaction_type', 'εσοδο/εξοδο', 'product'] },
-    { id: 'description', keywords: ['description', 'descr', 'περιγρ', 'περιγραφή', 'merchant', 'payee', 'recipient', 'details', 'title', 'ονομα κίνησης', 'αιτιολογια', 'συναλλαγη'] },
-  ];
-
-  fieldDefs.forEach(field => {
-    const select = document.getElementById(`map-${field.id}`);
-    if (!select) return;
-    select.innerHTML = '<option value="">-- Επιλέξτε Στήλη --</option>';
-
-    let bestCol = null, maxScore = 0;
-    state.excelColumns.forEach(col => {
-      const low = col.toLowerCase();
-      let score = 0;
-      field.keywords.forEach((kw, i) => {
-        if (low === kw) score = Math.max(score, 10 - i);
-        else if (low.includes(kw)) score = Math.max(score, 5 - i);
-      });
-      if (score > maxScore) { maxScore = score; bestCol = col; }
-    });
-
-    state.excelColumns.forEach(col => {
-      const opt = document.createElement('option');
-      opt.value = col; opt.textContent = col;
-      if (col === bestCol) opt.selected = true;
-      select.appendChild(opt);
-    });
-  });
-}
-
 function promiseTimeout(promise, ms) {
   let timeout = new Promise((resolve, reject) => {
     let id = setTimeout(() => {
@@ -4778,694 +4675,6 @@ function promiseTimeout(promise, ms) {
     }, ms);
   });
   return Promise.race([promise, timeout]);
-}
-
-async function processExcelImport() {
-  if (!state.excelData) return;
-
-  const importBtn = document.getElementById('excel-mapping-form');
-  const cancelBtn = document.querySelector('#excel-modal .btn-secondary');
-  const originalBtnText = importBtn ? importBtn.textContent : '';
-  const isEn = state.lang === 'en';
-  const clearFirst = document.getElementById('clear-before-import')?.checked;
-
-  // --- Progress bar helpers ---
-  const progressSection = document.getElementById('import-progress-section');
-  const progressBar     = document.getElementById('import-progress-bar');
-  const progressPct     = document.getElementById('import-progress-pct');
-  const phaseLabel      = document.getElementById('import-phase-label');
-  const phaseSteps      = document.getElementById('import-phase-steps');
-
-  const phases = isEn
-    ? ['⚙️ Preparation', '📥 Importing', '✅ Done']
-    : ['⚙️ Προετοιμασία', '📥 Εισαγωγή', '✅ Ολοκλήρωση'];
-
-  function showProgress() {
-    if (progressSection) progressSection.style.display = 'block';
-    if (phaseSteps) {
-      phaseSteps.innerHTML = phases.map((p, i) =>
-        `<span id="phase-step-${i}" style="padding:3px 8px;border-radius:999px;background:var(--card-border,#eee);color:var(--text-secondary);">${p}</span>`
-      ).join('');
-    }
-  }
-
-  function setPhase(phaseIndex, pct) {
-    if (phaseLabel) phaseLabel.textContent = phases[phaseIndex] || '';
-    if (progressBar) progressBar.style.width = pct + '%';
-    if (progressPct) progressPct.textContent = pct + '%';
-    phases.forEach((_, i) => {
-      const el = document.getElementById(`phase-step-${i}`);
-      if (!el) return;
-      if (i < phaseIndex) {
-        el.style.background = 'var(--income,#4caf50)'; el.style.color = '#fff'; el.style.fontWeight = '';
-      } else if (i === phaseIndex) {
-        el.style.background = 'var(--accent)'; el.style.color = '#fff'; el.style.fontWeight = '700';
-      } else {
-        el.style.background = 'var(--card-border,#eee)'; el.style.color = 'var(--text-secondary)'; el.style.fontWeight = '';
-      }
-    });
-  }
-
-  function hideProgress() {
-    if (progressSection) { progressSection.style.display = 'none'; }
-    if (progressBar) progressBar.style.width = '0%';
-    if (progressPct) progressPct.textContent = '0%';
-  }
-  // --- End progress helpers ---
-
-  if (importBtn) { importBtn.disabled = true; importBtn.textContent = isEn ? 'Importing...' : 'Εισαγωγή σε εξέλιξη...'; }
-  if (cancelBtn) { cancelBtn.disabled = true; }
-
-  showProgress();
-  setPhase(0, 5);
-
-  const cleanupButtons = () => {
-    if (importBtn) { importBtn.disabled = false; importBtn.textContent = originalBtnText; }
-    if (cancelBtn) { cancelBtn.disabled = false; }
-    hideProgress();
-  };
-
-  const get = id => { const el = document.getElementById(id); return el ? el.value : ''; };
-  const dateCol    = get('map-date');
-  const accountCol = get('map-account');
-  const catCol     = get('map-category');
-  const subCatCol  = get('map-subcategory');
-  const noteCol    = get('map-note');
-  const amtCol     = get('map-amount');
-  const inflowCol  = get('map-inflow');
-  const outflowCol = get('map-outflow');
-  const typeCol    = get('map-type');
-  const descCol    = get('map-description');
-
-  if (!dateCol) {
-    const msg = TRANSLATIONS[state.lang]['alert_date_required'];
-    alert(msg);
-    cleanupButtons();
-    return;
-  }
-  if (!amtCol && !inflowCol && !outflowCol) {
-    const msg = state.lang === 'en' 
-      ? 'You must map either the Amount column or Inflow/Outflow columns!' 
-      : 'Πρέπει να ορίσετε είτε τη στήλη Ποσό είτε τις στήλες Εισροή/Εκροή!';
-    alert(msg);
-    cleanupButtons();
-    return;
-  }
-
-  const importedTransactions = [];
-  const newCategories = [];
-  const newAccounts   = [];
-  let skipped = 0;
-
-  for (const row of state.excelData) {
-    try {
-      // 1. Date
-      const formattedDate = parseExcelDate(row[dateCol]);
-      if (!formattedDate) { skipped++; continue; }
-
-      // 2. Amount and Type detection
-      let amount = 0;
-      let type = 'expense';
-
-      if (amtCol && row[amtCol] !== undefined && row[amtCol] !== '') {
-        const rawAmountVal = parseExcelAmount(row[amtCol]);
-        amount = Math.abs(rawAmountVal);
-        if (isNaN(amount)) { skipped++; continue; }
-
-        if (typeCol && row[typeCol]) {
-          const rawType = String(row[typeCol]).toLowerCase().trim();
-          if (rawType === 'income' || rawType.includes('εσοδ') || rawType.includes('έσοδ') || rawType === 'credit' || rawType.includes('deposit') || rawType.includes('in') || rawType.includes('incoming')) {
-            type = 'income';
-          } else if (rawType.includes('transfer') || rawType.includes('μεταφ') || rawType.includes('internal')) {
-            type = 'transfer';
-          } else {
-            type = 'expense';
-          }
-        } else {
-          // Fallback to sign of amount: negative is expense, positive is income
-          type = rawAmountVal < 0 ? 'expense' : 'income';
-        }
-      } else {
-        // We have inflow/outflow columns mapped
-        const inflowVal = inflowCol && row[inflowCol] ? parseExcelAmount(row[inflowCol]) : 0;
-        const outflowVal = outflowCol && row[outflowCol] ? parseExcelAmount(row[outflowCol]) : 0;
-
-        if (inflowVal > 0) {
-          amount = inflowVal;
-          type = 'income';
-        } else if (outflowVal !== 0) {
-          amount = Math.abs(outflowVal);
-          type = 'expense';
-        } else {
-          skipped++;
-          continue;
-        }
-      }
-
-      // 3. Account mapping
-      let account = accountCol && row[accountCol] ? String(row[accountCol]).trim() : 'Cash';
-      account = stripLeadingEmoji(account);
-      // Key mapping: "Accounts" in Excel = "Bank Account" in app
-      if (account.toLowerCase() === 'accounts') account = 'Bank Account';
-
-      let matchedAcc = state.accounts.find(a => a.name.toLowerCase() === account.toLowerCase());
-      if (!matchedAcc) {
-        const newAcc = { 
-          name: account, 
-          type: 'bank', 
-          balance: 0,
-          user_id: state.currentUser ? state.currentUser.id : null
-        };
-        state.accounts.push(newAcc);
-        newAccounts.push(newAcc);
-        matchedAcc = newAcc;
-        localStorage.setItem('offline_accounts', JSON.stringify(state.accounts));
-      }
-      account = matchedAcc.name;
-
-      // 4. Category
-      const rawCategory = catCol && row[catCol] ? String(row[catCol]) : '';
-      const catInfo = resolveCategoryInfo(rawCategory, type);
-      const categoryName = catInfo
-        ? catInfo.name
-        : (type === 'income' ? 'ΑΛΛΑ ΕΣΟΔΑ' : 'ΑΛΛΑ ΕΞΟΔΑ');
-
-      // Ensure category exists in state (create if new)
-      let matchedCat = state.categories.find(c =>
-        c.name && c.name.toUpperCase() === categoryName.toUpperCase()
-      );
-      if (!matchedCat) {
-        // Create new category with proper icon and color
-        const newCat = {
-          name: categoryName,
-          type: catInfo.type || type,
-          icon: catInfo.icon || (type === 'income' ? '💰' : '💸'),
-          color: catInfo.color || getRandomColor(),
-          user_id: state.currentUser ? state.currentUser.id : null
-        };
-        state.categories.push(newCat);
-        newCategories.push(newCat);
-        localStorage.setItem('offline_categories', JSON.stringify(state.categories));
-        matchedCat = newCat;
-      }
-
-      // 5. Subcategory
-      const rawSubcat = subCatCol && row[subCatCol] ? String(row[subCatCol]).trim() : '';
-      const subcategory = rawSubcat ? rawSubcat.trim() : '';
-
-      // 6. Note display logic
-      const rawNote = noteCol && row[noteCol] ? String(row[noteCol]).trim() : '';
-      const rawDesc = descCol && row[descCol] ? String(row[descCol]).trim() : '';
-      const noteIsMeaningful = rawNote && rawNote.length > 2;
-      const finalNote = noteIsMeaningful ? rawNote : (rawDesc || rawNote);
-
-      importedTransactions.push({
-        date: formattedDate, type, amount,
-        category: categoryName,
-        subcategory,
-        account_from: account,
-        account_to: type === 'transfer' ? account : null,
-        note: finalNote,
-        user_id: state.currentUser ? state.currentUser.id : null,
-        is_shared: state.partnerProfile !== null
-      });
-    } catch (err) {
-      console.warn('Skipping row:', err);
-      skipped++;
-    }
-  }
-
-  if (!importedTransactions.length) {
-    alert('Δεν βρέθηκαν έγκυρες συναλλαγές. Ελέγξτε τις στήλες!');
-    cleanupButtons();
-    return;
-  }
-
-  // ═══════════════════════════════════════════════════════
-  // STEP 1: SAVE LOCALLY FIRST (instant, never fails)
-  // ═══════════════════════════════════════════════════════
-  setPhase(1, 40);
-  
-  const localImported = importedTransactions.map((t, idx) => ({
-    ...t,
-    id: 'local_pending_' + Date.now() + '_' + idx + '_' + Math.random().toString(36).substr(2, 5)
-  }));
-
-  if (clearFirst) {
-    state.transactions = [...localImported];
-  } else {
-    state.transactions = [...state.transactions, ...localImported];
-  }
-  localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
-
-  setPhase(1, 50);
-
-  // ═══════════════════════════════════════════════════════
-  // STEP 2: TRY CLOUD SYNC (best-effort, won't block)
-  // ═══════════════════════════════════════════════════════
-  let cloudSuccess = false;
-  if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
-    let syncPhase = 'init';
-    try {
-      // Delete old if needed
-      if (clearFirst) {
-        syncPhase = 'delete-fetch-ids';
-        if (phaseLabel) phaseLabel.textContent = isEn ? '☁️ Cloud: Fetching IDs...' : '☁️ Cloud: Ανάκτηση IDs...';
-        
-        let existingRows = [];
-        let fetchPage = 0;
-        const fetchPageSize = 1000;
-        let fetchHasMore = true;
-
-        while (fetchHasMore) {
-          const { data: pageData, error: fetchErr } = await promiseTimeout(
-            state.supabaseClient
-              .from('transactions')
-              .select('id')
-              .eq('user_id', state.currentUser.id)
-              .range(fetchPage * fetchPageSize, (fetchPage + 1) * fetchPageSize - 1)
-              .then(r => r),
-            30000
-          );
-          if (fetchErr) throw fetchErr;
-
-          if (pageData && pageData.length > 0) {
-            existingRows = existingRows.concat(pageData);
-            if (pageData.length < fetchPageSize) {
-              fetchHasMore = false;
-            } else {
-              fetchPage++;
-            }
-          } else {
-            fetchHasMore = false;
-          }
-        }
-
-        if (existingRows && existingRows.length > 0) {
-          const allIds = existingRows.map(r => r.id);
-          const delBatchSize = 30;
-          const totalDelBatches = Math.ceil(allIds.length / delBatchSize);
-          
-          for (let d = 0; d < allIds.length; d += delBatchSize) {
-            const idBatch = allIds.slice(d, d + delBatchSize);
-            const delBatchNum = Math.floor(d / delBatchSize) + 1;
-            syncPhase = `delete-batch-${delBatchNum}/${totalDelBatches}`;
-
-            if (phaseLabel) {
-              phaseLabel.textContent = isEn
-                ? `🗑️ Cloud: Deleting ${delBatchNum}/${totalDelBatches}...`
-                : `🗑️ Cloud: Διαγραφή ${delBatchNum}/${totalDelBatches}...`;
-            }
-            const delPct = Math.round(50 + (delBatchNum / totalDelBatches) * 15);
-            if (progressBar) progressBar.style.width = delPct + '%';
-            if (progressPct) progressPct.textContent = delPct + '%';
-
-            await promiseTimeout(
-              state.supabaseClient.from('transactions').delete().in('id', idBatch).then(r => r),
-              30000
-            );
-          }
-        }
-      }
-
-      // Insert Categories & Accounts (Best-effort, will not block transaction import if they fail/timeout)
-      if (newCategories.length) {
-        syncPhase = 'categories';
-        const unique = [...new Map(newCategories.map(c => [`${c.name}|${c.type}`, c])).values()];
-        unique.forEach(c => {
-          c.user_id = state.currentUser.id;
-        });
-        console.log('Syncing categories to cloud (best-effort):', unique);
-        try {
-          const { error: catErr } = await promiseTimeout(
-            state.supabaseClient.from('categories').upsert(unique, { onConflict: 'user_id,name,type', ignoreDuplicates: true }).then(r => r),
-            15000
-          );
-          if (catErr) console.warn('Categories sync warning:', catErr);
-        } catch (catErr) {
-          console.warn('Categories sync timed out or failed:', catErr);
-        }
-      }
-      if (newAccounts.length) {
-        syncPhase = 'accounts';
-        const unique = [...new Map(newAccounts.map(a => [a.name, a])).values()];
-        unique.forEach(a => {
-          a.user_id = state.currentUser.id;
-        });
-        console.log('Syncing accounts to cloud (best-effort):', unique);
-        try {
-          const { error: accErr } = await promiseTimeout(
-            state.supabaseClient.from('accounts').upsert(unique, { onConflict: 'user_id,name', ignoreDuplicates: true }).then(r => r),
-            15000
-          );
-          if (accErr) console.warn('Accounts sync warning:', accErr);
-        } catch (accErr) {
-          console.warn('Accounts sync timed out or failed:', accErr);
-        }
-      }
-
-      // Insert transactions in small batches of 20 WITHOUT .select()
-      const batchSize = 20;
-      const totalRows = importedTransactions.length;
-      const totalBatches = Math.ceil(totalRows / batchSize);
-
-      for (let i = 0; i < totalRows; i += batchSize) {
-        const batch = importedTransactions.slice(i, i + batchSize);
-        const batchNum = Math.floor(i / batchSize) + 1;
-        syncPhase = `insert-batch-${batchNum}/${totalBatches}`;
-
-        if (phaseLabel) {
-          phaseLabel.textContent = isEn
-            ? `📥 Cloud: Uploading ${batchNum}/${totalBatches}...`
-            : `📥 Cloud: Ανέβασμα ${batchNum}/${totalBatches}...`;
-        }
-        const subPct = Math.round(65 + ((i + batch.length) / totalRows) * 25);
-        if (progressBar) progressBar.style.width = subPct + '%';
-        if (progressPct) progressPct.textContent = subPct + '%';
-
-        const { error: insertError } = await promiseTimeout(
-          state.supabaseClient.from('transactions').insert(batch).then(r => r),
-          30000
-        );
-        if (insertError) throw insertError;
-      }
-
-      // Reload fresh data from cloud
-      syncPhase = 'reload';
-      if (phaseLabel) phaseLabel.textContent = isEn ? '🔄 Reloading...' : '🔄 Επαναφόρτωση...';
-      if (progressBar) progressBar.style.width = '92%';
-
-      const userId = state.currentUser.id;
-      const partnerId = state.partnerProfile ? state.partnerProfile.id : null;
-      let allFreshTransactions = [];
-      let reloadPage = 0;
-      const reloadPageSize = 1000;
-      let reloadHasMore = true;
-
-      while (reloadHasMore) {
-        let reloadQuery = state.supabaseClient
-          .from('transactions')
-          .select('*')
-          .order('date', { ascending: false })
-          .range(reloadPage * reloadPageSize, (reloadPage + 1) * reloadPageSize - 1);
-
-        if (partnerId) {
-          reloadQuery = reloadQuery.or(`user_id.eq.${userId},user_id.eq.${partnerId}`);
-        } else {
-          reloadQuery = reloadQuery.eq('user_id', userId);
-        }
-
-        const { data: pageData, error: reloadErr } = await promiseTimeout(
-          reloadQuery.then(r => r),
-          30000
-        );
-        if (reloadErr) throw reloadErr;
-
-        if (pageData && pageData.length > 0) {
-          allFreshTransactions = allFreshTransactions.concat(pageData);
-          if (pageData.length < reloadPageSize) {
-            reloadHasMore = false;
-          } else {
-            reloadPage++;
-          }
-        } else {
-          reloadHasMore = false;
-        }
-      }
-
-      state.transactions = allFreshTransactions;
-      localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
-      updateHeaderSyncIcon('synced');
-      cloudSuccess = true;
-
-    } catch (err) {
-      console.error(`Cloud sync failed at phase [${syncPhase}]:`, err);
-      // DON'T block! Data is already saved locally
-      updateHeaderSyncIcon('error');
-      setTimeout(() => {
-        alert((isEn 
-          ? `⚠️ Data saved locally! Cloud sync failed at step [${syncPhase}]: ` 
-          : `⚠️ Τα δεδομένα αποθηκεύτηκαν τοπικά! Το cloud απέτυχε στο βήμα [${syncPhase}]: `) 
-          + (err.message || err));
-      }, 300);
-    }
-  } else {
-    // OFFLINE MODE
-    setPhase(1, 50);
-    const localImported = importedTransactions.map((t, idx) => ({
-      ...t,
-      id: 'local_import_' + Date.now() + '_' + idx + '_' + Math.random().toString(36).substr(2, 5)
-    }));
-    
-    if (clearFirst) {
-      state.transactions = [...localImported];
-    } else {
-      state.transactions = [...state.transactions, ...localImported];
-    }
-    localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
-    setPhase(2, 100);
-  }
-
-  // ═══════════════════════════════════════════════════════
-  // STEP 2: UPDATE UI
-  // ═══════════════════════════════════════════════════════
-  calculateInitialBalances();
-  updateUI();
-  cleanupButtons();
-  closeModal('excel-modal');
-  
-  if (!state.isSupabaseEnabled || !state.supabaseClient || !state.currentUser) {
-    const alertMsg = isEn
-      ? `✅ Imported ${importedTransactions.length} transactions locally (Offline Mode)!\n(Skipped: ${skipped})`
-      : `✅ Εισήχθησαν ${importedTransactions.length} συναλλαγές τοπικά (Offline Mode)!\n(Παραλείφθηκαν: ${skipped})`;
-    alert(alertMsg);
-  } else if (cloudSuccess) {
-    const alertMsg = isEn
-      ? `✅ Imported ${importedTransactions.length} transactions directly to Cloud!\n(Skipped: ${skipped})\n\nShowing: ${getMonthName(state.selectedMonth)} ${state.selectedYear}`
-      : `✅ Εισήχθησαν ${importedTransactions.length} συναλλαγές απευθείας στο Cloud!\n(Παραλείφθηκαν: ${skipped})\n\nΕμφάνιση: ${getMonthName(state.selectedMonth)} ${state.selectedYear}`;
-    alert(alertMsg);
-  }
-}
-
-// ============================================================
-// DATE / AMOUNT PARSERS
-// ============================================================
-function parseCSVText(text) {
-  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
-  if (!lines.length) return [];
-
-  const firstLine = lines[0];
-  const delimiters = [',', ';', '\t', '|'];
-  let delimiter = ',';
-  let maxCount = -1;
-  
-  delimiters.forEach(d => {
-    const count = (firstLine.match(new RegExp(d === '|' ? '\\|' : d, 'g')) || []).length;
-    if (count > maxCount) {
-      maxCount = count;
-      delimiter = d;
-    }
-  });
-
-  function splitCSVLine(line, delim) {
-    const result = [];
-    let current = '';
-    let inQuotes = false;
-    for (let i = 0; i < line.length; i++) {
-      const char = line[i];
-      if (char === '"') {
-        if (inQuotes && line[i + 1] === '"') {
-          current += '"';
-          i++;
-        } else {
-          inQuotes = !inQuotes;
-        }
-      } else if (char === delim && !inQuotes) {
-        result.push(current.trim());
-        current = '';
-      } else {
-        current += char;
-      }
-    }
-    result.push(current.trim());
-    return result;
-  }
-
-  const headers = splitCSVLine(lines[0], delimiter).map(h => {
-    return h.replace(/^\uFEFF/, '').replace(/^["']|["']$/g, '').trim();
-  });
-
-  const parsedRows = [];
-  for (let i = 1; i < lines.length; i++) {
-    const values = splitCSVLine(lines[i], delimiter).map(v => v.replace(/^["']|["']$/g, '').trim());
-    const rowObj = {};
-    headers.forEach((header, index) => {
-      rowObj[header] = values[index] !== undefined ? values[index] : '';
-    });
-    parsedRows.push(rowObj);
-  }
-  return parsedRows;
-}
-
-function parseExcelDate(val) {
-  if (!val && val !== 0) return null;
-  if (typeof val === 'number') {
-    // Excel serial date
-    const d = new Date((val - 25569) * 86400 * 1000);
-    return d.toISOString().split('T')[0];
-  }
-  let str = String(val).trim();
-  if (!str) return null;
-  
-  const num = Number(str);
-  if (!isNaN(num) && num > 30000 && num < 70000) {
-    const d = new Date((num - 25569) * 86400 * 1000);
-    return d.toISOString().split('T')[0];
-  }
-
-  // Strip time components
-  str = str.replace(/\b\d{1,2}:\d{2}(:\d{2})?(\s*(am|pm|AM|PM))?\b/g, '').trim();
-  
-  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
-
-  const tokens = str.split(/[\s\/\.\,-]+/).filter(t => t);
-  if (tokens.length < 2) return null;
-
-  const monthMap = {
-    'ιαν': 1, 'φεβ': 2, 'μαρ': 3, 'απρ': 4, 'μαι': 5, 'ιουν': 6, 'ιουλ': 7, 'αυγ': 8, 'σεπ': 9, 'οκτ': 10, 'νοε': 11, 'δεκ': 12,
-    'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6, 'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12
-  };
-
-  function cleanToken(t) {
-    return t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-  }
-
-  let day = null, month = null, year = null;
-
-  for (let i = 0; i < tokens.length; i++) {
-    const ct = cleanToken(tokens[i]);
-    for (const [key, mNum] of Object.entries(monthMap)) {
-      if (ct.startsWith(key)) {
-        month = mNum;
-        tokens.splice(i, 1);
-        break;
-      }
-    }
-    if (month !== null) break;
-  }
-
-  if (month === null && tokens.length === 3) {
-    const t0 = parseInt(tokens[0], 10);
-    const t1 = parseInt(tokens[1], 10);
-    const t2 = parseInt(tokens[2], 10);
-
-    if (!isNaN(t0) && !isNaN(t1) && !isNaN(t2)) {
-      if (t0 > 1000) {
-        year = t0;
-        month = t1;
-        day = t2;
-      } else if (t2 > 1000) {
-        year = t2;
-        if (t1 > 12) {
-          month = t0;
-          day = t1;
-        } else {
-          day = t0;
-          month = t1;
-        }
-      } else {
-        year = t2 < 50 ? 2000 + t2 : 1900 + t2;
-        day = t0;
-        month = t1;
-      }
-    }
-  } else if (month !== null && tokens.length === 2) {
-    const val1 = parseInt(tokens[0], 10);
-    const val2 = parseInt(tokens[1], 10);
-    if (!isNaN(val1) && !isNaN(val2)) {
-      if (val2 > 31) {
-        day = val1;
-        year = val2 > 1000 ? val2 : (val2 < 50 ? 2000 + val2 : 1900 + val2);
-      } else if (val1 > 31) {
-        day = val2;
-        year = val1 > 1000 ? val1 : (val1 < 50 ? 2000 + val1 : 1900 + val1);
-      } else {
-        day = val1;
-        year = val2 > 1000 ? val2 : (val2 < 50 ? 2000 + val2 : 1900 + val2);
-      }
-    }
-  }
-
-  if (day !== null && month !== null && year !== null) {
-    if (month < 1 || month > 12) return null;
-    if (day < 1 || day > 31) return null;
-    const dStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    const d = new Date(dStr);
-    return isNaN(d.getTime()) ? null : dStr;
-  }
-
-  const parsed = Date.parse(str);
-  if (!isNaN(parsed)) {
-    return new Date(parsed).toISOString().split('T')[0];
-  }
-  
-  return null;
-}
-
-function parseExcelAmount(val) {
-  if (typeof val === 'number') return val;
-  if (!val && val !== 0) return 0;
-  
-  let str = String(val).trim();
-  if (!str) return 0;
-  
-  let isNegative = false;
-  if (str.startsWith('(') && str.endsWith(')')) {
-    isNegative = true;
-    str = str.substring(1, str.length - 1).trim();
-  }
-  
-  if (str.endsWith('-')) {
-    isNegative = true;
-    str = str.substring(0, str.length - 1).trim();
-  }
-  
-  str = str.replace(/[€$£¥\s]/g, '');
-  if (str.startsWith('-')) {
-    isNegative = true;
-    str = str.substring(1);
-  } else if (str.startsWith('+')) {
-    str = str.substring(1);
-  }
-
-  if (str.includes('.') && str.includes(',')) {
-    if (str.indexOf('.') < str.indexOf(',')) {
-      str = str.replace(/\./g, '').replace(',', '.');
-    } else {
-      str = str.replace(/,/g, '');
-    }
-  } else if (str.includes(',')) {
-    const parts = str.split(',');
-    if (parts.length > 2) {
-      str = str.replace(/,/g, '');
-    } else {
-      const afterComma = parts[1];
-      if (afterComma && afterComma.length === 3 && parts[0].length <= 3) {
-        str = str.replace(',', '');
-      } else {
-        str = str.replace(',', '.');
-      }
-    }
-  } else if (str.includes('.')) {
-    const parts = str.split('.');
-    if (parts.length > 2) {
-      str = str.replace(/\./g, '');
-    }
-  }
-
-  let parsedVal = parseFloat(str);
-  if (isNaN(parsedVal)) return 0;
-  return isNegative ? -parsedVal : parsedVal;
 }
 
 // ============================================================
@@ -5781,7 +4990,7 @@ function populateSearchAccountSheet() {
     const isActive = acc.name === currentVal;
     html += `
       <div class="bottom-sheet-option ${isActive ? 'active' : ''}" onclick="selectAccountSearchFilter('${acc.name}')">
-        <span class="option-label"><i class="fa-solid fa-wallet" style="margin-right: 8px; color: var(--accent);"></i> ${acc.name}</span>
+        <span class="option-label"><i class="fa-solid fa-wallet" style="margin-right: 8px; color: var(--accent);"></i> ${getAccountDisplayName(acc)}</span>
         <i class="fa-solid fa-check option-check-icon"></i>
       </div>
     `;
@@ -5800,7 +5009,7 @@ function selectAccountSearchFilter(val) {
   const chip = document.getElementById('search-chip-account');
   const label = chip.querySelector('.chip-label');
   if (val) {
-    label.textContent = `✓ ${val}`;
+    label.textContent = `✓ ${getAccountDisplayName(val)}`;
     chip.classList.add('active');
   } else {
     label.textContent = TRANSLATIONS[state.lang]['search_chip_account'] || 'Λογαριασμός';
@@ -6067,11 +5276,11 @@ function populateSearchFilterDropdowns() {
   // Populate accounts filter
   const accSelect = document.getElementById('search-filter-account');
   if (accSelect) {
-    accSelect.innerHTML = '<option value="">Όλοι οι λογαριασμοί</option>';
+    accSelect.innerHTML = `<option value="">${state.lang === 'el' ? 'Όλοι οι λογαριασμοί' : 'All accounts'}</option>`;
     state.accounts.forEach(acc => {
       const opt = document.createElement('option');
       opt.value = acc.name;
-      opt.textContent = acc.name;
+      opt.textContent = getAccountDisplayName(acc);
       accSelect.appendChild(opt);
     });
   }
@@ -7360,6 +6569,136 @@ function changeCurrencySetting(val) {
   updateUI();
 }
 
+function updateSettingsDisplay() {
+  const monthStart = localStorage.getItem('app_month_start') || '1';
+  const weekStart = localStorage.getItem('app_week_start') || '1';
+  const currency = localStorage.getItem('app_currency') || 'EUR';
+  const theme = localStorage.getItem('app_theme') || 'dark';
+
+  const monthDisplay = document.getElementById('settings-month-start-display');
+  const weekDisplay = document.getElementById('settings-week-start-display');
+  const currencyDisplay = document.getElementById('settings-currency-display');
+  const themeDisplay = document.getElementById('settings-theme-display');
+
+  if (monthDisplay) {
+    monthDisplay.textContent = monthStart;
+  }
+  if (weekDisplay) {
+    const weekLabels = {
+      '1': state.lang === 'el' ? 'Δευτέρα' : 'Monday',
+      '0': state.lang === 'el' ? 'Κυριακή' : 'Sunday',
+      '6': state.lang === 'el' ? 'Σάββατο' : 'Saturday'
+    };
+    weekDisplay.textContent = weekLabels[weekStart] || weekStart;
+  }
+  if (currencyDisplay) {
+    const currencyLabels = {
+      'EUR': 'EUR (€)',
+      'USD': 'USD ($)',
+      'GBP': 'GBP (£)',
+      'JPY': 'JPY (¥)'
+    };
+    currencyDisplay.textContent = currencyLabels[currency] || currency;
+  }
+  if (themeDisplay) {
+    const themeLabels = {
+      'dark': 'Premium Dark',
+      'oled': 'OLED Black',
+      'light': 'Classic Light',
+      'emerald': 'Emerald Forest',
+      'ocean': 'Ocean Breeze',
+      'pink': 'Blossom Pink'
+    };
+    themeDisplay.textContent = themeLabels[theme] || theme;
+  }
+}
+
+function openSettingsPicker(type) {
+  const titleEl = document.getElementById('settings-picker-title');
+  const container = document.getElementById('settings-picker-list');
+  if (!titleEl || !container) return;
+
+  container.innerHTML = '';
+
+  let title = '';
+  let options = [];
+  let currentVal = '';
+  let onSelect = null;
+
+  if (type === 'currency') {
+    title = state.lang === 'el' ? 'Κύριο Νόμισμα' : 'Primary Currency';
+    currentVal = localStorage.getItem('app_currency') || 'EUR';
+    options = [
+      { value: 'EUR', label: 'EUR (€)' },
+      { value: 'USD', label: 'USD ($)' },
+      { value: 'GBP', label: 'GBP (£)' },
+      { value: 'JPY', label: 'JPY (¥)' }
+    ];
+    onSelect = (val) => {
+      changeCurrencySetting(val);
+    };
+  } else if (type === 'week-start') {
+    title = state.lang === 'el' ? 'Έναρξη Εβδομάδας' : 'Week Start';
+    currentVal = localStorage.getItem('app_week_start') || '1';
+    options = [
+      { value: '1', label: state.lang === 'el' ? 'Δευτέρα' : 'Monday' },
+      { value: '0', label: state.lang === 'el' ? 'Κυριακή' : 'Sunday' },
+      { value: '6', label: state.lang === 'el' ? 'Σάββατο' : 'Saturday' }
+    ];
+    onSelect = (val) => {
+      changeWeekStartSetting(val);
+    };
+  } else if (type === 'month-start') {
+    title = state.lang === 'el' ? 'Έναρξη Μήνα' : 'Month Start';
+    currentVal = localStorage.getItem('app_month_start') || '1';
+    for (let i = 1; i <= 28; i++) {
+      options.push({ value: String(i), label: String(i) });
+    }
+    onSelect = (val) => {
+      changeMonthStartSetting(val);
+    };
+  } else if (type === 'theme') {
+    title = state.lang === 'el' ? 'Θέμα Εμφάνισης' : 'Appearance Theme';
+    currentVal = localStorage.getItem('app_theme') || 'dark';
+    options = [
+      { value: 'dark', label: 'Premium Dark' },
+      { value: 'oled', label: 'OLED Black' },
+      { value: 'light', label: 'Classic Light' },
+      { value: 'emerald', label: 'Emerald Forest' },
+      { value: 'ocean', label: 'Ocean Breeze' },
+      { value: 'pink', label: 'Blossom Pink' }
+    ];
+    onSelect = (val) => {
+      changeThemeSetting(val);
+      updateUI();
+    };
+  }
+
+  titleEl.textContent = title;
+
+  options.forEach(opt => {
+    const item = document.createElement('div');
+    item.className = 'settings-picker-item';
+    if (opt.value === currentVal) {
+      item.classList.add('selected');
+    }
+
+    item.innerHTML = `
+      <span class="settings-picker-item-label">${opt.label}</span>
+      ${opt.value === currentVal ? '<i class="fa-solid fa-check settings-picker-item-check"></i>' : ''}
+    `;
+
+    item.onclick = () => {
+      onSelect(opt.value);
+      closeModal('settings-picker-modal');
+    };
+
+    container.appendChild(item);
+  });
+
+  openModal('settings-picker-modal');
+}
+
 function initSettingsFromStorage() {
   const monthStart = localStorage.getItem('app_month_start') || '1';
   const weekStart = localStorage.getItem('app_week_start') || '1';
@@ -7368,18 +6707,10 @@ function initSettingsFromStorage() {
   const appLockEnabled = localStorage.getItem('app_lock_enabled') === 'true';
   const appBiometricsEnabled = localStorage.getItem('app_biometrics_enabled') === 'true';
 
-  const monthSelect = document.getElementById('settings-month-start');
-  const weekSelect = document.getElementById('settings-week-start');
-  const currencySelect = document.getElementById('settings-currency');
-  const themeSelect = document.getElementById('settings-theme');
   const appLockCheckbox = document.getElementById('settings-app-lock');
-
-  if (monthSelect) monthSelect.value = monthStart;
-  if (weekSelect) weekSelect.value = weekStart;
-  if (currencySelect) currencySelect.value = currency;
-  if (themeSelect) themeSelect.value = theme;
   if (appLockCheckbox) appLockCheckbox.checked = appLockEnabled;
 
+  updateSettingsDisplay();
   applyTheme(theme);
   checkBiometricsSupport();
   
@@ -7394,6 +6725,8 @@ window.changeWeekStartSetting = changeWeekStartSetting;
 window.changeCurrencySetting = changeCurrencySetting;
 window.getCurrencySymbol = getCurrencySymbol;
 window.initSettingsFromStorage = initSettingsFromStorage;
+window.openSettingsPicker = openSettingsPicker;
+window.updateSettingsDisplay = updateSettingsDisplay;
 
 // Theme & Appearance Helpers
 function applyTheme(theme) {
@@ -7448,7 +6781,15 @@ function showLockScreen() {
     enteredPin = [];
     resetLockDots();
     
-    if (localStorage.getItem('app_biometrics_enabled') === 'true') {
+    // Show/hide biometric button based on settings
+    const biometricBtn = document.getElementById('btn-biometric');
+    const biometricsEnabled = localStorage.getItem('app_biometrics_enabled') === 'true';
+    if (biometricBtn) {
+      biometricBtn.style.display = biometricsEnabled ? 'flex' : 'none';
+    }
+    
+    // Auto-trigger biometric auth if enabled
+    if (biometricsEnabled) {
       setTimeout(() => {
         triggerBiometricAuth();
       }, 300);
@@ -8923,7 +8264,7 @@ async function forceSyncNow(silent = false) {
     const familyId = state.userProfile ? state.userProfile.family_id : null;
     
     const userFilter = familyId 
-      ? `family_id.eq.${familyId}` 
+      ? (partnerId ? `family_id.eq.${familyId},user_id.eq.${userId},user_id.eq.${partnerId}` : `family_id.eq.${familyId},user_id.eq.${userId}`)
       : (partnerId ? `user_id.eq.${userId},user_id.eq.${partnerId}` : `user_id.eq.${userId}`);
 
     // 1. Fetch categories and accounts
@@ -9369,12 +8710,8 @@ function cycleThemeFromProfile() {
   let nextIdx = (themes.indexOf(currentTheme) + 1) % themes.length;
   const nextTheme = themes[nextIdx];
 
-  const themeSelect = document.getElementById('settings-theme');
-  if (themeSelect) {
-    themeSelect.value = nextTheme;
-  }
-  
   changeThemeSetting(nextTheme);
+  updateSettingsDisplay();
 
   const themeStatus = document.getElementById('profile-theme-status');
   if (themeStatus) {
