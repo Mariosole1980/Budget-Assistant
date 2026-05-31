@@ -23,7 +23,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   
   <!-- Core Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=81">
+  <link rel="stylesheet" href="style.css?v=86">
   
 
   <!-- Supabase client JS CDN -->
@@ -298,7 +298,7 @@
             <div class="settings-card-icon"><i class="fa-solid fa-file-import"></i></div>
             <span class="settings-card-title" data-i18n="card_import_excel">Εισαγωγή Excel</span>
           </div>
-          <div class="settings-card" onclick="exportToExcel()">
+          <div class="settings-card" onclick="openExportPeriodSheet()">
             <div class="settings-card-icon"><i class="fa-solid fa-file-export"></i></div>
             <span class="settings-card-title" data-i18n="card_export_excel">Εξαγωγή Excel</span>
           </div>
@@ -371,10 +371,7 @@
           <span class="settings-item-label" style="color: var(--accent); font-weight: 600;" data-i18n="sync_now_btn"><i class="fa-solid fa-arrows-rotate" style="margin-right: 8px;"></i> Συγχρονισμός Τώρα</span>
           <span class="settings-item-value" id="val_last_sync_time" style="font-size: 11px; color: var(--text-muted);"></span>
         </div>
-        <div class="settings-list-item" onclick="openModal('category-manager-modal')">
-          <span class="settings-item-label" data-i18n="item_category_manager">Διαχείριση Κατηγοριών</span>
-          <i class="fa-solid fa-chevron-right" style="color: var(--text-muted); font-size: 12px;"></i>
-        </div>
+
         <div class="settings-list-item">
           <span class="settings-item-label" data-i18n="item_theme">Θέμα Εμφάνισης</span>
           <select id="settings-theme" class="settings-select" onchange="changeThemeSetting(this.value)">
@@ -425,11 +422,11 @@
           <span class="settings-item-value"><i class="fa-solid fa-arrow-up-right-from-square" style="font-size:12px;"></i></span>
         </div>
         <div class="settings-list-item">
-          <span class="settings-item-label" style="color: var(--text-muted); font-size: 12px;" data-i18n="app_version">Έκδοση 1.0.0 (build v136)</span>
+          <span class="settings-item-label" style="color: var(--text-muted); font-size: 12px;" data-i18n="app_version">Έκδοση 1.0.0 (build v140)</span>
           <span class="settings-item-value" style="font-size: 12px;">Budget Assistant</span>
         </div>
         <div class="settings-list-item" style="justify-content: center; padding: 6px 16px; min-height: auto;">
-          <span id="deploy-timestamp" style="color: var(--text-muted); font-size: 10px; opacity: 0.6;">Deploy v136 · 31/05/2026 13:28</span>
+          <span id="deploy-timestamp" style="color: var(--text-muted); font-size: 10px; opacity: 0.6;">Deploy v140 · 31/05/2026 16:45
         </div>
       </section>
 
@@ -534,7 +531,13 @@
             <div class="form-row" id="form-row-account-from">
               <label class="form-row-label" id="label-account-from" data-i18n="row_account_from">Λογαριασμός</label>
               <div class="form-row-value-container">
-                <select id="trans-account-from" class="form-row-select" required></select>
+                <input type="hidden" id="trans-account-from" required>
+                <div id="trans-account-from-trigger" class="custom-select-trigger" onclick="openAccountPickerModal('from')">
+                  <div class="custom-select-trigger-content" id="trans-account-from-display">
+                    <span class="custom-select-placeholder">Επιλέξτε...</span>
+                  </div>
+                  <i class="fa-solid fa-chevron-down" style="color: var(--text-muted); font-size: 12px;"></i>
+                </div>
               </div>
             </div>
 
@@ -542,7 +545,13 @@
             <div class="form-row" id="form-row-account-to" style="display: none;">
               <label class="form-row-label" data-i18n="row_account_to">Προς</label>
               <div class="form-row-value-container">
-                <select id="trans-account-to" class="form-row-select"></select>
+                <input type="hidden" id="trans-account-to">
+                <div id="trans-account-to-trigger" class="custom-select-trigger" onclick="openAccountPickerModal('to')">
+                  <div class="custom-select-trigger-content" id="trans-account-to-display">
+                    <span class="custom-select-placeholder">Επιλέξτε...</span>
+                  </div>
+                  <i class="fa-solid fa-chevron-down" style="color: var(--text-muted); font-size: 12px;"></i>
+                </div>
               </div>
             </div>
 
@@ -558,8 +567,28 @@
             <div class="form-row" style="margin-top: 8px;">
               <div class="form-row-value-container" style="display: flex; align-items: center; width: 100%;">
                 <input type="text" id="trans-description" class="form-row-input" placeholder="Περιγραφή" style="flex: 1;">
-                <i class="fa-solid fa-camera" style="color: var(--text-muted); font-size: 16px; margin-left: 8px; cursor: pointer;"></i>
+                <input type="file" id="trans-photo-input" accept="image/*" style="display: none;">
+                <i class="fa-solid fa-camera" id="trans-camera-btn" style="color: var(--text-muted); font-size: 16px; margin-left: 8px; cursor: pointer;"></i>
               </div>
+            </div>
+
+            <!-- Local Photo Preview Row -->
+            <div id="trans-photo-preview-container" style="display: none; flex-direction: column; gap: 8px; margin-top: 8px; position: relative;">
+              <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                <span class="form-row-label" data-i18n="row_receipt_photo">Φωτογραφία Απόδειξης</span>
+                <button type="button" id="btn-delete-photo" class="icon-btn" style="color: var(--accent); font-size: 14px; margin: 0; padding: 4px;" title="Διαγραφή">
+                  <i class="fa-solid fa-trash-can"></i>
+                </button>
+              </div>
+              <div style="width: 100%; max-height: 200px; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); display: flex; justify-content: center; background: rgba(0,0,0,0.2);">
+                <img id="trans-photo-preview-img" src="" alt="Receipt Preview" style="max-width: 100%; max-height: 200px; object-fit: contain; cursor: pointer;">
+              </div>
+            </div>
+
+            <!-- Device Mismatch Placeholder -->
+            <div id="trans-photo-placeholder-container" style="display: none;">
+              <i class="fa-solid fa-triangle-exclamation" style="font-size: 18px; color: var(--accent); margin-bottom: 8px; display: block; text-align: center;"></i>
+              <span id="trans-photo-placeholder-text" data-i18n="photo_mismatch_warning">Η εικόνα είναι διαθέσιμη μόνο στη συσκευή που καταχωρήθηκε</span>
             </div>
 
           </div>
@@ -760,7 +789,7 @@
             <i class="fa-solid fa-xmark"></i>
           </button>
         </div>
-        <button class="search-reset-btn-modern" onclick="resetSearchFilters()">Καθαρισμός</button>
+        <button class="search-reset-btn-modern" onclick="resetSearchFilters()" data-i18n="search_btn_clear">Καθαρισμός</button>
       </div>
       
       <!-- Horizontal Chips Scrollable Row -->
@@ -810,7 +839,7 @@
         </div>
 
         <div class="search-results-header">
-          <span>Αποτελέσματα</span>
+          <span data-i18n="search_results_header">Αποτελέσματα</span>
           <span id="search-results-count">0</span>
         </div>
         
@@ -828,24 +857,24 @@
     <div id="search-bottom-sheet-type" class="search-bottom-sheet">
       <div class="bottom-sheet-header">
         <div class="bottom-sheet-drag-handle"></div>
-        <span class="bottom-sheet-title">Επιλογή Τύπου</span>
+        <span class="bottom-sheet-title" data-i18n="search_title_type">Επιλογή Τύπου</span>
         <button class="bottom-sheet-close-btn" onclick="closeSearchBottomSheet()">&times;</button>
       </div>
       <div class="bottom-sheet-body">
         <div class="bottom-sheet-option active" data-value="" onclick="selectTypeSearchFilter('')">
-          <span class="option-label">Όλοι οι τύποι</span>
+          <span class="option-label" data-i18n="search_all_types">Όλοι οι τύποι</span>
           <i class="fa-solid fa-check option-check-icon"></i>
         </div>
         <div class="bottom-sheet-option" data-value="expense" onclick="selectTypeSearchFilter('expense')">
-          <span class="option-label"><span class="type-indicator expense-indicator"></span> Έξοδο</span>
+          <span class="option-label"><span class="type-indicator expense-indicator"></span> <span data-i18n="type_tab_expense">Έξοδο</span></span>
           <i class="fa-solid fa-check option-check-icon"></i>
         </div>
         <div class="bottom-sheet-option" data-value="income" onclick="selectTypeSearchFilter('income')">
-          <span class="option-label"><span class="type-indicator income-indicator"></span> Έσοδο</span>
+          <span class="option-label"><span class="type-indicator income-indicator"></span> <span data-i18n="type_tab_income">Έσοδο</span></span>
           <i class="fa-solid fa-check option-check-icon"></i>
         </div>
         <div class="bottom-sheet-option" data-value="transfer" onclick="selectTypeSearchFilter('transfer')">
-          <span class="option-label"><span class="type-indicator transfer-indicator"></span> Μεταφορά</span>
+          <span class="option-label"><span class="type-indicator transfer-indicator"></span> <span data-i18n="type_tab_transfer">Μεταφορά</span></span>
           <i class="fa-solid fa-check option-check-icon"></i>
         </div>
       </div>
@@ -855,7 +884,7 @@
     <div id="search-bottom-sheet-category" class="search-bottom-sheet">
       <div class="bottom-sheet-header">
         <div class="bottom-sheet-drag-handle"></div>
-        <span class="bottom-sheet-title">Επιλογή Κατηγορίας</span>
+        <span class="bottom-sheet-title" data-i18n="search_title_category">Επιλογή Κατηγορίας</span>
         <button class="bottom-sheet-close-btn" onclick="closeSearchBottomSheet()">&times;</button>
       </div>
       <div class="bottom-sheet-body" id="search-bottom-sheet-category-list">
@@ -867,7 +896,7 @@
     <div id="search-bottom-sheet-account" class="search-bottom-sheet">
       <div class="bottom-sheet-header">
         <div class="bottom-sheet-drag-handle"></div>
-        <span class="bottom-sheet-title">Επιλογή Λογαριασμού</span>
+        <span class="bottom-sheet-title" data-i18n="search_title_account">Επιλογή Λογαριασμού</span>
         <button class="bottom-sheet-close-btn" onclick="closeSearchBottomSheet()">&times;</button>
       </div>
       <div class="bottom-sheet-body" id="search-bottom-sheet-account-list">
@@ -879,7 +908,7 @@
     <div id="search-bottom-sheet-member" class="search-bottom-sheet">
       <div class="bottom-sheet-header">
         <div class="bottom-sheet-drag-handle"></div>
-        <span class="bottom-sheet-title">Επιλογή Μέλους</span>
+        <span class="bottom-sheet-title" data-i18n="search_title_member">Επιλογή Μέλους</span>
         <button class="bottom-sheet-close-btn" onclick="closeSearchBottomSheet()">&times;</button>
       </div>
       <div class="bottom-sheet-body" id="search-bottom-sheet-member-list">
@@ -891,29 +920,112 @@
     <div id="search-bottom-sheet-advanced" class="search-bottom-sheet">
       <div class="bottom-sheet-header">
         <div class="bottom-sheet-drag-handle"></div>
-        <span class="bottom-sheet-title">Σύνθετα Φίλτρα</span>
+        <span class="bottom-sheet-title" data-i18n="search_title_advanced">Σύνθετα Φίλτρα</span>
         <button class="bottom-sheet-close-btn" onclick="closeSearchBottomSheet()">&times;</button>
       </div>
       <div class="bottom-sheet-body">
         <div class="advanced-filter-group">
-          <label class="advanced-filter-label">Ποσό από (€)</label>
+          <label class="advanced-filter-label" data-i18n="adv_amount_from">Ποσό από (€)</label>
           <input type="number" id="search-filter-amount-min-visual" class="advanced-filter-input" placeholder="0.00" step="0.01">
         </div>
         <div class="advanced-filter-group">
-          <label class="advanced-filter-label">Ποσό έως (€)</label>
+          <label class="advanced-filter-label" data-i18n="adv_amount_to">Ποσό έως (€)</label>
           <input type="number" id="search-filter-amount-max-visual" class="advanced-filter-input" placeholder="0.00" step="0.01">
         </div>
         <div class="advanced-filter-group">
-          <label class="advanced-filter-label">Από ημερομηνία</label>
+          <label class="advanced-filter-label" data-i18n="adv_date_from">Από ημερομηνία</label>
           <input type="date" id="search-filter-date-start-visual" class="advanced-filter-input">
         </div>
         <div class="advanced-filter-group">
-          <label class="advanced-filter-label">Έως ημερομηνία</label>
+          <label class="advanced-filter-label" data-i18n="adv_date_to">Έως ημερομηνία</label>
           <input type="date" id="search-filter-date-end-visual" class="advanced-filter-input">
         </div>
         <div class="advanced-bottom-buttons">
-          <button type="button" class="btn btn-secondary" onclick="resetAdvancedSearchFiltersVisual()" style="flex:1;">Καθαρισμός</button>
-          <button type="button" class="btn btn-primary" onclick="applyAdvancedSearchFiltersVisual()" style="flex:1;">Εφαρμογή</button>
+          <button type="button" class="btn btn-secondary" onclick="resetAdvancedSearchFiltersVisual()" style="flex:1;" data-i18n="search_btn_clear">Καθαρισμός</button>
+          <button type="button" class="btn btn-primary" onclick="applyAdvancedSearchFiltersVisual()" style="flex:1;" data-i18n="btn_apply">Εφαρμογή</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- BOTTOM SHEET BACKDROP FOR EXCEL EXPORT PERIOD -->
+    <div id="export-period-backdrop" class="search-bottom-sheet-backdrop" onclick="closeExportPeriodSheet()"></div>
+
+    <!-- BOTTOM SHEET: EXCEL EXPORT PERIOD -->
+    <div id="export-period-bottom-sheet" class="search-bottom-sheet">
+      <div class="bottom-sheet-header">
+        <div class="bottom-sheet-drag-handle"></div>
+        <span class="bottom-sheet-title" data-i18n="export_sheet_title">Εξαγωγή Excel</span>
+        <button class="bottom-sheet-close-btn" onclick="closeExportPeriodSheet()">&times;</button>
+      </div>
+      <div class="bottom-sheet-body">
+        <!-- Options List -->
+        <div class="bottom-sheet-option active" id="export-opt-current-month" onclick="selectExportOption('current-month')">
+          <span class="option-label">
+            <i class="fa-regular fa-calendar-days" style="margin-right: 8px; color: var(--accent);"></i>
+            <span data-i18n="export_opt_current_month">Τρέχων Μήνας</span>
+            <span class="period-date-range" id="export-range-current-month" style="font-size: 11.5px; color: var(--text-secondary); margin-left: 6px;"></span>
+          </span>
+          <i class="fa-solid fa-check option-check-icon"></i>
+        </div>
+        <div class="bottom-sheet-option" id="export-opt-prev-month" onclick="selectExportOption('prev-month')">
+          <span class="option-label">
+            <i class="fa-regular fa-calendar-days" style="margin-right: 8px; color: var(--text-secondary);"></i>
+            <span data-i18n="export_opt_prev_month">Προηγούμενος Μήνας</span>
+            <span class="period-date-range" id="export-range-prev-month" style="font-size: 11.5px; color: var(--text-secondary); margin-left: 6px;"></span>
+          </span>
+          <i class="fa-solid fa-check option-check-icon"></i>
+        </div>
+        <div class="bottom-sheet-option" id="export-opt-current-year" onclick="selectExportOption('current-year')">
+          <span class="option-label">
+            <i class="fa-regular fa-calendar" style="margin-right: 8px; color: var(--text-secondary);"></i>
+            <span data-i18n="export_opt_current_year">Τρέχων Έτος</span>
+            <span class="period-date-range" id="export-range-current-year" style="font-size: 11.5px; color: var(--text-secondary); margin-left: 6px;"></span>
+          </span>
+          <i class="fa-solid fa-check option-check-icon"></i>
+        </div>
+        <div class="bottom-sheet-option" id="export-opt-prev-year" onclick="selectExportOption('prev-year')">
+          <span class="option-label">
+            <i class="fa-regular fa-calendar" style="margin-right: 8px; color: var(--text-secondary);"></i>
+            <span data-i18n="export_opt_prev_year">Προηγούμενο Έτος</span>
+            <span class="period-date-range" id="export-range-prev-year" style="font-size: 11.5px; color: var(--text-secondary); margin-left: 6px;"></span>
+          </span>
+          <i class="fa-solid fa-check option-check-icon"></i>
+        </div>
+        <div class="bottom-sheet-option" id="export-opt-all" onclick="selectExportOption('all')">
+          <span class="option-label">
+            <i class="fa-solid fa-database" style="margin-right: 8px; color: var(--text-secondary);"></i>
+            <span data-i18n="export_opt_all">Όλα τα δεδομένα</span>
+          </span>
+          <i class="fa-solid fa-check option-check-icon"></i>
+        </div>
+        <div class="bottom-sheet-option" id="export-opt-custom" onclick="selectExportOption('custom')">
+          <span class="option-label">
+            <i class="fa-solid fa-sliders" style="margin-right: 8px; color: var(--text-secondary);"></i>
+            <span data-i18n="export_opt_custom">Επιλογή συγκεκριμένων ημερομηνιών</span>
+          </span>
+          <i class="fa-solid fa-check option-check-icon"></i>
+        </div>
+
+        <!-- Custom Date Range Sub-Form (Collapsible) -->
+        <div id="export-custom-range-container" style="display: none; padding: 12px 14px 4px 14px; flex-direction: column; gap: 12px; margin-bottom: 8px; border-radius: 12px; background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.04);">
+          <div style="display: flex; gap: 12px;">
+            <div style="flex: 1; display: flex; flex-direction: column; gap: 6px;">
+              <label style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 0.5px;" data-i18n="export_label_from">Από:</label>
+              <input type="date" id="export-custom-from" class="advanced-filter-input" style="padding: 8px 10px; font-size: 13px;">
+            </div>
+            <div style="flex: 1; display: flex; flex-direction: column; gap: 6px;">
+              <label style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 0.5px;" data-i18n="export_label_to">Έως:</label>
+              <input type="date" id="export-custom-to" class="advanced-filter-input" style="padding: 8px 10px; font-size: 13px;">
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Button -->
+        <div style="margin-top: 12px; padding: 0 14px;">
+          <button type="button" class="btn btn-primary" onclick="confirmExcelExport()" style="width: 100%; font-size: 14.5px; padding: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 10px;">
+            <i class="fa-solid fa-file-excel"></i>
+            <span data-i18n="export_btn_confirm">Επιβεβαίωση Εξαγωγής</span>
+          </button>
         </div>
       </div>
     </div>
@@ -985,9 +1097,12 @@
   <!-- MODAL: CUSTOM CATEGORY PICKER -->
   <div id="category-picker-modal" class="modal-overlay" style="z-index: 10000;">
     <div class="modal-content" style="max-height: 90vh; display: flex; flex-direction: column;">
-      <div class="modal-header">
+      <div class="modal-header" style="display: flex; align-items: center; justify-content: space-between;">
         <h3 class="modal-title">Επιλογή Κατηγορίας</h3>
-        <span class="modal-close" onclick="closeModal('category-picker-modal')">&times;</span>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <button type="button" id="btn-toggle-cat-edit" onclick="toggleCategoryPickerEditMode()" style="background: none; border: 1px solid var(--border); color: var(--text-secondary); padding: 4px 10px; font-size: 12px; border-radius: 6px; cursor: pointer; transition: all 0.2s;">Διαχείριση</button>
+          <span class="modal-close" onclick="closeModal('category-picker-modal')">&times;</span>
+        </div>
       </div>
       <div class="modal-body" style="padding: 16px; flex: 1; overflow-y: auto;">
         <div id="category-picker-grid" class="category-picker-grid">
@@ -1024,6 +1139,21 @@
       <div class="modal-body" style="padding: 16px; flex: 1; overflow-y: auto;">
         <div id="subcategory-picker-list" class="subcategory-list">
           <!-- Subcategories injected here -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CUSTOM ACCOUNT PICKER -->
+  <div id="account-picker-modal" class="modal-overlay" style="z-index: 10000;">
+    <div class="modal-content" style="max-height: 90vh; display: flex; flex-direction: column;">
+      <div class="modal-header">
+        <h3 class="modal-title" id="account-picker-title">Επιλογή Λογαριασμού</h3>
+        <span class="modal-close" onclick="closeModal('account-picker-modal')">&times;</span>
+      </div>
+      <div class="modal-body" style="padding: 16px; flex: 1; overflow-y: auto;">
+        <div id="account-picker-list" class="account-picker-list" style="display: flex; flex-direction: column; gap: 12px;">
+          <!-- Accounts injected here -->
         </div>
       </div>
     </div>
@@ -1134,7 +1264,7 @@
   </div>
 
   <!-- Core Application Scripts -->
-  <script src="app.js"></script>
+  <script src="app.js?v=86"></script>
   
   <!-- Register PWA Service Worker -->
   <script>
@@ -1274,5 +1404,15 @@
       </div>
     </div>
   </div>
+  <!-- ============================================== -->
+  <!-- FULLSCREEN PHOTO LIGHTBOX MODAL -->
+  <!-- ============================================== -->
+  <div id="photo-lightbox-modal" onclick="closePhotoLightbox()" style="display: none; position: fixed; inset: 0; z-index: 99999; background: rgba(0,0,0,0.92); align-items: center; justify-content: center; cursor: pointer; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);">
+    <button type="button" onclick="closePhotoLightbox()" style="position: absolute; top: 16px; right: 16px; background: none; border: none; color: white; font-size: 28px; cursor: pointer; z-index: 10; opacity: 0.8;">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+    <img id="photo-lightbox-img" src="" alt="Receipt Full" style="max-width: 92vw; max-height: 88vh; object-fit: contain; border-radius: 12px;" onclick="event.stopPropagation();">
+  </div>
+
 </body>
 </html>

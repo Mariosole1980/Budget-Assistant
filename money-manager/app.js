@@ -306,11 +306,44 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0',
+    app_version: 'Έκδοση 1.0.0 (build v140)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ετήσια Αποταμίευση',
     period_label: 'Περίοδος',
-    sync_now_btn: 'Συγχρονισμός Τώρα'
+    sync_now_btn: 'Συγχρονισμός Τώρα',
+    search_btn_clear: 'Καθαρισμός',
+    search_results_header: 'Αποτελέσματα',
+    search_title_type: 'Επιλογή Τύπου',
+    search_title_category: 'Επιλογή Κατηγορίας',
+    search_title_account: 'Επιλογή Λογαριασμού',
+    search_title_member: 'Επιλογή Μέλους',
+    search_title_advanced: 'Σύνθετα Φίλτρα',
+    search_all_types: 'Όλοι οι τύποι',
+    search_chip_type: 'Τύπος',
+    search_chip_category: 'Κατηγορία',
+    search_chip_account: 'Λογαριασμός',
+    search_chip_member: 'Μέλος',
+    search_chip_advanced: 'Σύνθετη',
+    search_placeholder: 'Αναζήτηση σε κινήσεις, σημειώσεις...',
+    adv_amount_from: 'Ποσό από (€)',
+    adv_amount_to: 'Ποσό έως (€)',
+    adv_date_from: 'Από ημερομηνία',
+    adv_date_to: 'Έως ημερομηνία',
+    btn_apply: 'Εφαρμογή',
+    export_sheet_title: 'Εξαγωγή Excel',
+    export_opt_current_month: 'Τρέχων Μήνας',
+    export_opt_prev_month: 'Προηγούμενος Μήνας',
+    export_opt_current_year: 'Τρέχων Έτος',
+    export_opt_prev_year: 'Προηγούμενο Έτος',
+    export_opt_all: 'Όλα τα δεδομένα',
+    export_opt_custom: 'Επιλογή συγκεκριμένων ημερομηνιών',
+    export_label_from: 'Από:',
+    export_label_to: 'Έως:',
+    export_btn_confirm: 'Επιβεβαίωση Εξαγωγής',
+    export_no_data_range: 'Δεν υπάρχουν συναλλαγές σε αυτή την περίοδο!',
+    row_receipt_photo: 'Φωτογραφία Απόδειξης',
+    photo_mismatch_warning: 'Η εικόνα είναι διαθέσιμη μόνο στη συσκευή που καταχωρήθηκε.',
+    photo_delete_confirm: 'Διαγραφή φωτογραφίας απόδειξης;'
   },
   en: {
     nav_trans: 'Transactions',
@@ -482,13 +515,105 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0',
+    app_version: 'Version 1.0.0 (build v140)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Yearly Savings',
     period_label: 'Period',
-    sync_now_btn: 'Sync Now'
+    sync_now_btn: 'Sync Now',
+    search_btn_clear: 'Clear',
+    search_results_header: 'Results',
+    search_title_type: 'Select Type',
+    search_title_category: 'Select Category',
+    search_title_account: 'Select Account',
+    search_title_member: 'Select Member',
+    search_title_advanced: 'Advanced Filters',
+    search_all_types: 'All types',
+    search_chip_type: 'Type',
+    search_chip_category: 'Category',
+    search_chip_account: 'Account',
+    search_chip_member: 'Member',
+    search_chip_advanced: 'Advanced',
+    search_placeholder: 'Search in transactions, notes...',
+    adv_amount_from: 'Min Amount (€)',
+    adv_amount_to: 'Max Amount (€)',
+    adv_date_from: 'From Date',
+    adv_date_to: 'To Date',
+    btn_apply: 'Apply',
+    export_sheet_title: 'Export Excel',
+    export_opt_current_month: 'Current Month',
+    export_opt_prev_month: 'Previous Month',
+    export_opt_current_year: 'Current Year',
+    export_opt_prev_year: 'Previous Year',
+    export_opt_all: 'All data',
+    export_opt_custom: 'Custom Date Range',
+    export_label_from: 'From:',
+    export_label_to: 'To:',
+    export_btn_confirm: 'Confirm Export',
+    export_no_data_range: 'No transactions found in this period!',
+    row_receipt_photo: 'Receipt Photo',
+    photo_mismatch_warning: 'Image is only available on the device where it was recorded.',
+    photo_delete_confirm: 'Delete receipt photo?'
   }
 };
+
+// ============================================================
+// LOCAL RECEIPT PHOTO STORAGE (IndexedDB)
+// 100% free, no Supabase Storage costs
+// ============================================================
+const ReceiptStorage = {
+  _db: null,
+  DB_NAME: 'BudgetReceiptsDB',
+  STORE_NAME: 'receipts',
+
+  async _getDB() {
+    if (this._db) return this._db;
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open(this.DB_NAME, 1);
+      req.onupgradeneeded = (e) => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains(this.STORE_NAME)) {
+          db.createObjectStore(this.STORE_NAME, { keyPath: 'id' });
+        }
+      };
+      req.onsuccess = (e) => { this._db = e.target.result; resolve(this._db); };
+      req.onerror = (e) => { console.error('ReceiptStorage DB error:', e); reject(e); };
+    });
+  },
+
+  async save(transactionId, blob) {
+    const db = await this._getDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(this.STORE_NAME, 'readwrite');
+      tx.objectStore(this.STORE_NAME).put({ id: transactionId, blob, savedAt: Date.now() });
+      tx.oncomplete = () => resolve();
+      tx.onerror = (e) => reject(e);
+    });
+  },
+
+  async load(transactionId) {
+    const db = await this._getDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(this.STORE_NAME, 'readonly');
+      const req = tx.objectStore(this.STORE_NAME).get(transactionId);
+      req.onsuccess = () => resolve(req.result ? req.result.blob : null);
+      req.onerror = (e) => reject(e);
+    });
+  },
+
+  async remove(transactionId) {
+    const db = await this._getDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(this.STORE_NAME, 'readwrite');
+      tx.objectStore(this.STORE_NAME).delete(transactionId);
+      tx.oncomplete = () => resolve();
+      tx.onerror = (e) => reject(e);
+    });
+  }
+};
+
+// Pending receipt file for the current transaction form session
+let _pendingReceiptFile = null;
+let _pendingReceiptDeleted = false;
 
 const DEFAULT_SUBCATEGORIES_MAP = {
   'ΥΓΕΙΑ': ['Γιατρός', 'Εξετάσεις', 'Συμπληρώματα διατροφής', 'Φάρμακα'],
@@ -613,6 +738,97 @@ function applyLanguage(lang) {
     descInput.placeholder = TRANSLATIONS[lang]['placeholder_description'];
   }
 
+  // Update search overlay input placeholder
+  const searchInput = document.getElementById('search-input');
+  if (searchInput) {
+    searchInput.placeholder = TRANSLATIONS[lang]['search_placeholder'] || 'Αναζήτηση σε κινήσεις, σημειώσεις...';
+  }
+
+  // Update search reset/clear visual button and titles
+  const searchResetBtn = document.querySelector('.search-reset-btn-modern');
+  if (searchResetBtn) {
+    searchResetBtn.textContent = TRANSLATIONS[lang]['search_btn_clear'] || 'Καθαρισμός';
+  }
+  const searchClearBtn = document.getElementById('search-clear-btn');
+  if (searchClearBtn) {
+    searchClearBtn.title = TRANSLATIONS[lang]['search_btn_clear'] || 'Καθαρισμός';
+  }
+
+  // Update Advanced search chip title
+  const advChip = document.getElementById('search-chip-advanced');
+  if (advChip) {
+    advChip.title = TRANSLATIONS[lang]['search_title_advanced'] || 'Σύνθετα Φίλτρα';
+  }
+
+  // Update Type search chip
+  const typeChip = document.getElementById('search-chip-type');
+  if (typeChip) {
+    const val = document.getElementById('search-filter-type')?.value;
+    const label = typeChip.querySelector('.chip-label');
+    if (label) {
+      if (val) {
+        let text = val === 'expense' ? TRANSLATIONS[lang]['type_tab_expense'] : val === 'income' ? TRANSLATIONS[lang]['type_tab_income'] : TRANSLATIONS[lang]['type_tab_transfer'];
+        label.textContent = `✓ ${text}`;
+      } else {
+        label.textContent = TRANSLATIONS[lang]['search_chip_type'] || 'Τύπος';
+      }
+    }
+  }
+
+  // Update Category search chip
+  const catChip = document.getElementById('search-chip-category');
+  if (catChip) {
+    const cat = document.getElementById('search-filter-category')?.value;
+    const sub = document.getElementById('search-filter-subcategory')?.value;
+    const label = catChip.querySelector('.chip-label');
+    if (label) {
+      if (cat) {
+        if (sub) {
+          label.textContent = `✓ ${getSubcategoryDisplayName(sub, cat)}`;
+        } else {
+          label.textContent = `✓ ${getCategoryDisplayName(cat)}`;
+        }
+      } else {
+        label.textContent = TRANSLATIONS[lang]['search_chip_category'] || 'Κατηγορία';
+      }
+    }
+  }
+
+  // Update Account search chip
+  const accChip = document.getElementById('search-chip-account');
+  if (accChip) {
+    const val = document.getElementById('search-filter-account')?.value;
+    const label = accChip.querySelector('.chip-label');
+    if (label) {
+      if (val) {
+        label.textContent = `✓ ${val}`;
+      } else {
+        label.textContent = TRANSLATIONS[lang]['search_chip_account'] || 'Λογαριασμός';
+      }
+    }
+  }
+
+  // Update Member search chip
+  const memChip = document.getElementById('search-chip-member');
+  if (memChip) {
+    const val = document.getElementById('search-filter-member')?.value;
+    const label = memChip.querySelector('.chip-label');
+    if (label) {
+      if (val) {
+        let name = '';
+        const myId = state.currentUser?.id || '';
+        if (val === myId) {
+          name = state.userProfile?.display_name || state.currentUser?.email?.split('@')[0] || (lang === 'el' ? 'Εσείς' : 'You');
+        } else if (state.partnerProfile && val === state.partnerProfile.id) {
+          name = state.partnerProfile.display_name || state.partnerProfile.email.split('@')[0] || (lang === 'el' ? 'Σύντροφος' : 'Partner');
+        }
+        label.textContent = `✓ ${name}`;
+      } else {
+        label.textContent = TRANSLATIONS[lang]['search_chip_member'] || 'Μέλος';
+      }
+    }
+  }
+
   // Update period dropdown choice labels in stats screen dropdown menu
   document.querySelectorAll('.stats-dropdown-item').forEach(item => {
     const val = item.getAttribute('data-value');
@@ -730,6 +946,9 @@ function applyLanguage(lang) {
     }
   });
 
+  if (state.activeTab === 'more') {
+    renderPartnerSection();
+  }
   updateUI();
 }
 
@@ -960,17 +1179,6 @@ window.addEventListener('DOMContentLoaded', async () => {
   // If Supabase client is NOT initialized, we are in pure local mode — done.
   // If it IS initialized, onAuthStateChange (in initSupabaseAuth) will fire and
   // call loadData() which fetches fresh data from cloud and overwrites the cache.
-  
-  // App Lock Visibility Check: Locks app when closed/minimized and reopened
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') {
-      const appLockEnabled = localStorage.getItem('app_lock_enabled') === 'true';
-      const lockScreen = document.getElementById('lock-screen');
-      if (appLockEnabled && lockScreen && !lockScreen.classList.contains('active')) {
-        showLockScreen();
-      }
-    }
-  });
   
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('trans-date').value = today;
@@ -1926,11 +2134,18 @@ function saveTransactionOffline(transaction) {
 }
 
 async function deleteTransaction(id) {
-  // 1. Optimistically delete from local state and update UI
+  // 1. Clean up local receipt photo from IndexedDB
+  try {
+    await ReceiptStorage.remove(id);
+  } catch (err) {
+    console.warn('Failed to remove receipt during transaction delete:', err);
+  }
+  
+  // 2. Optimistically delete from local state and update UI
   deleteTransactionOffline(id);
   updateUI();
 
-  // 2. Perform background delete
+  // 3. Perform background delete
   if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
     (async () => {
       try {
@@ -1964,6 +2179,7 @@ function updateUI() {
   if (state.activeTab === 'trans') renderTransactionsTab();
   else if (state.activeTab === 'stats') renderStatsTab();
   else if (state.activeTab === 'accounts') renderAccountsTab();
+  else if (state.activeTab === 'more') renderPartnerSection();
   updateCategoryDropdowns();
   updateAccountDropdowns();
   updateCurrencySymbols();
@@ -2119,10 +2335,12 @@ function renderTransactionsTab() {
       else if (t.type === 'income')   { amountClass += ' income'; }
       else if (t.type === 'transfer') { amountClass += ' transfer'; accountText = `${t.account_from} → ${t.account_to}`; }
 
+      const translatedSub = getSubcategoryDisplayName(t.subcategory, t.category);
+      const translatedCat = getCategoryDisplayName(t.category);
       const displayTitle = (t.note && t.note.trim()) ? t.note.trim()
                          : (t.description && t.description.trim()) ? t.description.trim()
-                         : (t.subcategory && t.subcategory.trim()) ? t.subcategory.trim()
-                         : (t.category || '');
+                         : (translatedSub && translatedSub.trim()) ? translatedSub.trim()
+                         : (translatedCat || '');
       
       const isPartner = state.partnerProfile && t.user_id === state.partnerProfile.id;
       const partnerBadge = isPartner ? ` <i class="fa-solid fa-user-group partner-badge-icon" title="Προστέθηκε από τον σύντροφο"></i>` : '';
@@ -2132,8 +2350,8 @@ function renderTransactionsTab() {
         <div class="trans-left">
           <div class="trans-category-container">
             <div class="trans-cat-icon">${catInfo.icon || '💰'}</div>
-            <div class="trans-cat-name">${getCategoryDisplayName(catInfo.name) || ''}</div>
-            ${t.subcategory ? `<div class="trans-sub-name">${t.subcategory}</div>` : ''}
+            <div class="trans-cat-name">${translatedCat || ''}</div>
+            ${t.subcategory ? `<div class="trans-sub-name">${translatedSub}</div>` : ''}
           </div>
           <div class="trans-details">
             <span class="trans-title">${displayTitle}${partnerBadge}</span>
@@ -2194,32 +2412,164 @@ const CATEGORY_NAME_TRANSLATIONS = {
   'ΑΛΛΑ ΕΣΟΔΑ': 'Other Income',
   '🎓 ΕΚΠΑΙΔΕΥΣΗ': '🎓 Education',
   '💶  ΕΝΟΙΚΙΟ Β2 (Έσοδο)': '💶 Rent B2 (Income)',
-  '🏛️ΜΕΡΙΔΙΟ ΔΟΣΗΣ ΔΑΝΕΙΟΥ (ΓΟΝΕΙΣ)': '🏛️ Loan Share (Parents)'
+  '🏛️ΜΕΡΙΔΙΟ ΔΟΣΗΣ ΔΑΝΕΙΟΥ (ΓΟΝΕΙΣ)': '🏛️ Loan Share (Parents)',
+  'ΑΛΛΑ ΕΞΟΔΑ': 'Other Expenses',
+  'Άλλα': 'Other',
+  'ΑΛΛΑ': 'Other',
+  'ΑΛΛΑ ΕΣΟΔΑ': 'Other Income'
 };
 
 // Get category display name - translates default categories, preserves custom/user categories
 function getCategoryDisplayName(categoryName) {
   if (!categoryName) return '';
+  const stripped = stripLeadingEmoji(categoryName).trim();
+  const lang = state.lang || 'el';
   
-  // Always strip leading emoji since icon is shown separately
-  const stripped = stripLeadingEmoji(categoryName);
-  
-  // Check if it's a known default category with translation
-  if (state.lang === 'en') {
-    // Try matching with the original name (emoji-prefixed)
-    if (CATEGORY_NAME_TRANSLATIONS[categoryName]) {
-      return stripLeadingEmoji(CATEGORY_NAME_TRANSLATIONS[categoryName]);
+  for (const [elKey, enVal] of Object.entries(CATEGORY_NAME_TRANSLATIONS)) {
+    const strippedEl = stripLeadingEmoji(elKey).trim().toUpperCase();
+    const strippedEn = stripLeadingEmoji(enVal).trim().toUpperCase();
+    
+    if (stripped.toUpperCase() === strippedEl || stripped.toUpperCase() === strippedEn) {
+      const target = lang === 'en' ? enVal : elKey;
+      return stripLeadingEmoji(target).trim();
     }
-    // Try matching stripped text against known translation keys
-    for (const [key, val] of Object.entries(CATEGORY_NAME_TRANSLATIONS)) {
-      if (stripLeadingEmoji(key).toUpperCase() === stripped.toUpperCase()) {
-        return stripLeadingEmoji(val);
+  }
+  return stripped;
+}
+
+const SUBCATEGORY_NAME_TRANSLATIONS = {
+  'Γιατρός': 'Doctor',
+  'Εξετάσεις': 'Medical Exams',
+  'Συμπληρώματα διατροφής': 'Supplements',
+  'Φάρμακα': 'Medicines',
+  'Parking': 'Parking',
+  'Service/Ανταλλακτικά': 'Service/Parts',
+  'Αγορά αυτοκινήτου/Δόσεις': 'Car Purchase/Installments',
+  'Ασφάλεια αυτοκινήτου': 'Car Insurance',
+  'Βενζίνες': 'Gas',
+  'Διόδια e-pass': 'Tolls e-pass',
+  'Τέλη κυκλορίσας': 'Road Tax',
+  'ΔΙΑΦΟΡΑ Β2': 'Misc B2',
+  'ΕΝΟΙΚΙΟ Β2': 'Rent B2',
+  'ΦΟΡΟΛΟΓΊΑ Β2': 'Tax B2',
+  'Έξοδος/Βόλτα': 'Going Out',
+  'Ταξίδια': 'Travel',
+  'Delivery/φαγητό απέξω/γλυκά': 'Delivery/Takeout',
+  'Κρεοπωλείο': 'Butcher',
+  'Λαϊκή': 'Farmers Market',
+  'Νερό rainbow': 'Water Rainbow',
+  'Σουπερμάρκετ': 'Supermarket',
+  'Tips/Προμήθειες': 'Tips/Fees',
+  'Διαφήμιση': 'Advertising',
+  'Μικροέξοδα': 'Petty Cash',
+  'Μισθώματα Αποθήκης Ι. Σούτσου 18': 'Warehouse Rent I. Soutsou 18',
+  'Στοίχημα/Καζίνο': 'Betting/Casino',
+  'Βιβλία': 'Books',
+  '🎁ΑΛΛΑ ΕΞΤΡΑ': '🎁 Other Extras',
+  '🎁 ΑΛΛΑ ΕΞΤΡΑ': '🎁 Other Extras',
+  '🏅 BONUS': '🏅 Bonus',
+  '👨‍👩‍👦ΟΙΚΟΓΕΝΕΙΑ/ΒΟΗΘΕΙΑ': '👨‍👩‍👦 Family Help',
+  '👨‍👩‍👦 ΟΙΚΟΓΕΝΕΙΑ/ΒΟΗΘΕΙΑ': '👨‍👩‍👦 Family Help',
+  '💰ΤΟΚΟΙ/CASHBACK/ΤΡΑΠΕΖΕΣ': '💰 Interests/Cashback/Banks',
+  '💰 ΤΟΚΟΙ/CASHBACK/ΤΡΑΠΕΖΕΣ': '💰 Interests/Cashback/Banks',
+  '💻ΙΝΣΤΑ': '💻 Instagram',
+  '💻 ΙΝΣΤΑ': '💻 Instagram',
+  '📦VINTED': '📦 Vinted',
+  '📦 VINTED': '📦 Vinted',
+  '🧑‍🎓ΕΠΙΔΟΜΑΤΑ/ΣΕΜΙΝΑΡΙΑ': '🧑‍🎓 Allowances/Seminars',
+  '🧑‍🎓 ΕΠΙΔΟΜΑΤΑ/ΣΕΜΙΝΑΡΙΑ': '🧑‍🎓 Allowances/Seminars',
+  'Taxi': 'Taxi',
+  'Μετρό - Λεωφορείο': 'Metro - Bus',
+  'ΜΙΣΘΟΣ ΒΑΣΟΥΛΑ': 'Salary Vasoula',
+  'ΜΙΣΘΟΣ ΓΡΑΦΕΙΩΝ ΒΑΣΟΥΛΑ': 'Office Salary Vasoula',
+  'ΜΙΣΘΟΣ ΜΑΡΙΟΣ': 'Salary Marios',
+  'Accessories': 'Accessories',
+  'Makeup': 'Makeup',
+  'Εσώρουχα': 'Underwear',
+  'Καλλυντικά': 'Cosmetics',
+  'Κομμωτήριο': 'Hair Salon',
+  'Παπούτσια': 'Shoes',
+  'Ρούχα': 'Clothing',
+  'Τσάντες/Τσαντάκια': 'Bags',
+  'Υπηρεσίες': 'Services',
+  'Vodafone': 'Vodafone',
+  'ΔΕΗ': 'Electricity (PPC)',
+  'Έπιπλα/Διακόσμηση': 'Furniture/Decor',
+  'ΕΥΔΑΠ': 'Water (EYDAP)',
+  'Οικιακά Είδη': 'Household Goods',
+  'Στεγαστικό Δάνειο': 'Mortgage',
+  'Συντήρηση Σπιτιού': 'Home Maintenance',
+  'Συσκευές Σπιτιού': 'Home Appliances',
+  'Apple Music': 'Apple Music',
+  'Icloud': 'iCloud',
+  'Streaming': 'Streaming',
+  'Διάφορες': 'Various',
+  'Εφαρμογές/Appstore': 'Apps/Appstore',
+  'Συνδρομές Τραπεζικών Καρτών': 'Bank Card Subscriptions',
+  'ΕΝΦΙΑ': 'ENFIA (Property Tax)',
+  'ΛΟΓΙΣΤΗΣ': 'Accountant',
+  'ΠΑΡΑΒΟΛΑ/ΚΡΑΤΗΣΕΙΣ': 'Government Fees'
+};
+
+function isDefaultSubcategory(categoryName, subcategoryName) {
+  if (!subcategoryName) return false;
+  
+  // Normalize categoryName to Greek default category name key
+  let greekCategoryName = categoryName || '';
+  if (categoryName) {
+    const stripped = stripLeadingEmoji(categoryName).trim().toUpperCase();
+    for (const [elKey, enVal] of Object.entries(CATEGORY_NAME_TRANSLATIONS)) {
+      const strippedEl = stripLeadingEmoji(elKey).trim().toUpperCase();
+      const strippedEn = stripLeadingEmoji(enVal).trim().toUpperCase();
+      if (stripped === strippedEl || stripped === strippedEn) {
+        greekCategoryName = elKey;
+        break;
       }
     }
   }
   
-  // For custom/user categories, return stripped text (no emoji prefix)
-  return stripped;
+  const cleanedCat = stripLeadingEmoji(greekCategoryName).trim().toUpperCase();
+  const subcats = DEFAULT_SUBCATEGORIES_MAP[cleanedCat];
+  const normSub = stripLeadingEmoji(subcategoryName).trim().toUpperCase();
+  
+  if (subcats) {
+    const found = subcats.some(s => {
+      return s.trim().toUpperCase() === subcategoryName.trim().toUpperCase() ||
+             stripLeadingEmoji(s).trim().toUpperCase() === normSub;
+    });
+    if (found) return true;
+  }
+  
+  for (const subcats of Object.values(DEFAULT_SUBCATEGORIES_MAP)) {
+    const found = subcats.some(s => {
+      return s.trim().toUpperCase() === subcategoryName.trim().toUpperCase() ||
+             stripLeadingEmoji(s).trim().toUpperCase() === normSub;
+    });
+    if (found) return true;
+  }
+  
+  return false;
+}
+
+function getSubcategoryDisplayName(subName, categoryName) {
+  if (!subName) return '';
+  const stripped = stripLeadingEmoji(subName).trim();
+  const lang = state.lang || 'el';
+  
+  if (!isDefaultSubcategory(categoryName, subName)) {
+    return subName; // Custom entries are never translated
+  }
+  
+  for (const [elKey, enVal] of Object.entries(SUBCATEGORY_NAME_TRANSLATIONS)) {
+    const strippedEl = stripLeadingEmoji(elKey).trim().toUpperCase();
+    const strippedEn = stripLeadingEmoji(enVal).trim().toUpperCase();
+    
+    if (stripped.toUpperCase() === strippedEl || stripped.toUpperCase() === strippedEn) {
+      const target = lang === 'en' ? enVal : elKey;
+      return stripLeadingEmoji(target).trim();
+    }
+  }
+  return subName;
 }
 
 // Category Manager Functions
@@ -2453,7 +2803,7 @@ function renderStatsTab() {
   const catGroups = {};
   activeTrans.forEach(t => {
     const catInfo = getCategoryInfo(t.category, t.type);
-    const key = catInfo.name || t.category || 'Άλλα';
+    const key = catInfo.name || t.category || (state.lang === 'el' ? 'Άλλα' : 'Other');
     if (!catGroups[key]) catGroups[key] = { amount: 0, icon: catInfo.icon, color: catInfo.color };
     catGroups[key].amount += parseFloat(t.amount || 0);
   });
@@ -3028,6 +3378,30 @@ function setupEventListeners() {
       t.family_id = state.userProfile ? state.userProfile.family_id : null;
     }
     await saveTransaction(t);
+    
+    // Save or delete receipt photo in IndexedDB
+    if (_pendingReceiptFile && t.id) {
+      try {
+        await ReceiptStorage.save(t.id, _pendingReceiptFile);
+        t.photo_local_uri = 'local-file://' + t.id;
+        saveTransactionOffline(t);
+        console.log('Receipt photo saved locally for:', t.id);
+      } catch (err) {
+        console.warn('Failed to save receipt photo:', err);
+      }
+    } else if (_pendingReceiptDeleted && t.id) {
+      try {
+        await ReceiptStorage.remove(t.id);
+        t.photo_local_uri = null;
+        saveTransactionOffline(t);
+        console.log('Receipt photo deleted for:', t.id);
+      } catch (err) {
+        console.warn('Failed to delete receipt photo:', err);
+      }
+    }
+    _pendingReceiptFile = null;
+    _pendingReceiptDeleted = false;
+    
     closeModal('transaction-modal');
   });
 
@@ -3039,6 +3413,65 @@ function setupEventListeners() {
       closeModal('transaction-modal');
     }
   });
+
+  // ============================================================
+  // RECEIPT PHOTO LISTENERS
+  // ============================================================
+  const cameraBtnEl = document.getElementById('trans-camera-btn');
+  const photoInputEl = document.getElementById('trans-photo-input');
+  
+  if (cameraBtnEl && photoInputEl) {
+    cameraBtnEl.addEventListener('click', () => {
+      const form = document.getElementById('transaction-form');
+      if (form && form.getAttribute('data-readonly') === 'true') return;
+      photoInputEl.click();
+    });
+    
+    photoInputEl.addEventListener('change', (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      _pendingReceiptFile = file;
+      _pendingReceiptDeleted = false;
+      
+      const previewContainer = document.getElementById('trans-photo-preview-container');
+      const previewImg = document.getElementById('trans-photo-preview-img');
+      const placeholderContainer = document.getElementById('trans-photo-placeholder-container');
+      if (placeholderContainer) placeholderContainer.style.display = 'none';
+      
+      if (previewImg && previewContainer) {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          previewImg.src = ev.target.result;
+          previewContainer.style.display = 'flex';
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  }
+  
+  // Photo preview click -> open lightbox
+  const previewImgEl = document.getElementById('trans-photo-preview-img');
+  if (previewImgEl) {
+    previewImgEl.addEventListener('click', () => {
+      openPhotoLightbox(previewImgEl.src);
+    });
+  }
+  
+  // Photo delete button
+  const photoDeleteBtn = document.getElementById('btn-delete-photo');
+  if (photoDeleteBtn) {
+    photoDeleteBtn.addEventListener('click', () => {
+      const confirmMsg = TRANSLATIONS[state.lang]['photo_delete_confirm'] || 'Διαγραφή φωτογραφίας απόδειξης;';
+      if (confirm(confirmMsg)) {
+        _pendingReceiptFile = null;
+        _pendingReceiptDeleted = true;
+        const photoInput = document.getElementById('trans-photo-input');
+        if (photoInput) photoInput.value = '';
+        const previewContainer = document.getElementById('trans-photo-preview-container');
+        if (previewContainer) previewContainer.style.display = 'none';
+      }
+    });
+  }
 
   function openCalculatorKeypad() {
     const form = document.getElementById('transaction-form');
@@ -3519,6 +3952,16 @@ function openAddTransactionModal() {
   
   document.getElementById('trans-delete-btn').style.display = 'none';
   
+  // Reset photo state
+  _pendingReceiptFile = null;
+  _pendingReceiptDeleted = false;
+  const photoInput = document.getElementById('trans-photo-input');
+  if (photoInput) photoInput.value = '';
+  const previewContainer = document.getElementById('trans-photo-preview-container');
+  if (previewContainer) previewContainer.style.display = 'none';
+  const placeholderContainer = document.getElementById('trans-photo-placeholder-container');
+  if (placeholderContainer) placeholderContainer.style.display = 'none';
+  
   const now = new Date();
   const tzOffset = now.getTimezoneOffset() * 60000;
   const localISOTime = (new Date(now.getTime() - tzOffset)).toISOString().slice(0, 16);
@@ -3568,6 +4011,35 @@ function openEditTransactionModal(t) {
     document.getElementById('trans-delete-btn').style.display = 'block';
   }
   
+  // Reset photo state and load existing photo if available
+  _pendingReceiptFile = null;
+  _pendingReceiptDeleted = false;
+  const photoInput = document.getElementById('trans-photo-input');
+  if (photoInput) photoInput.value = '';
+  const previewContainer = document.getElementById('trans-photo-preview-container');
+  const placeholderContainer = document.getElementById('trans-photo-placeholder-container');
+  const previewImg = document.getElementById('trans-photo-preview-img');
+  if (previewContainer) previewContainer.style.display = 'none';
+  if (placeholderContainer) placeholderContainer.style.display = 'none';
+  
+  // Load receipt photo from IndexedDB
+  if (t.photo_local_uri && t.id) {
+    ReceiptStorage.load(t.id).then(blob => {
+      if (blob && previewImg && previewContainer) {
+        const url = URL.createObjectURL(blob);
+        previewImg.src = url;
+        previewContainer.style.display = 'flex';
+      } else if (placeholderContainer) {
+        // Photo exists in cloud record but not locally (different device)
+        placeholderContainer.style.display = 'flex';
+        const placeholderText = document.getElementById('trans-photo-placeholder-text');
+        if (placeholderText) {
+          placeholderText.textContent = TRANSLATIONS[state.lang]['photo_mismatch_warning'] || 'Η εικόνα είναι διαθέσιμη μόνο στη συσκευή που καταχωρήθηκε.';
+        }
+      }
+    }).catch(err => console.warn('Failed to load receipt:', err));
+  }
+  
   setTransactionFormType(t.type);
   setTimeout(() => {
     if (t.type !== 'transfer') {
@@ -3592,6 +4064,25 @@ function openEditTransactionModal(t) {
   openModal('transaction-modal');
 }
 
+// ============================================================
+// RECEIPT PHOTO LIGHTBOX
+// ============================================================
+function openPhotoLightbox(src) {
+  const modal = document.getElementById('photo-lightbox-modal');
+  const img = document.getElementById('photo-lightbox-img');
+  if (modal && img && src) {
+    img.src = src;
+    modal.style.display = 'flex';
+  }
+}
+
+function closePhotoLightbox() {
+  const modal = document.getElementById('photo-lightbox-modal');
+  if (modal) {
+    modal.style.display = 'none';
+  }
+}
+
 function updateCategoryDisplay() {
   const categoryHidden = document.getElementById('trans-category');
   const categoryDisplay = document.getElementById('trans-category-display');
@@ -3606,7 +4097,7 @@ function updateCategoryDisplay() {
   const type = document.querySelector('.type-tab-btn.active')?.getAttribute('data-type') || 'expense';
   const catInfo = getCategoryInfo(categoryVal, type);
   const icon = catInfo.icon || '';
-  const cleanName = stripLeadingEmoji(categoryVal);
+  const cleanName = getCategoryDisplayName(categoryVal);
   
   const subcatSelect = document.getElementById('trans-subcategory-select')?.value || '';
   const subcatCustom = document.getElementById('trans-subcategory-custom')?.value || '';
@@ -3615,7 +4106,7 @@ function updateCategoryDisplay() {
   if (subcatSelect === '__NEW__') {
     subcatText = subcatCustom.trim();
   } else if (subcatSelect) {
-    subcatText = subcatSelect.trim();
+    subcatText = getSubcategoryDisplayName(subcatSelect.trim(), categoryVal);
   }
   
   if (subcatText) {
@@ -3938,17 +4429,105 @@ function openSubcategoryModal() {
   openModal('subcategory-picker-modal');
 }
 
-function updateAccountDropdowns() {
-  ['trans-account-from','trans-account-to'].forEach(id => {
-    const sel = document.getElementById(id);
-    sel.innerHTML = '';
-    state.accounts.forEach(a => {
-      const opt = document.createElement('option');
-      opt.value = a.name; opt.textContent = a.name;
-      sel.appendChild(opt);
-    });
+function getAccountDisplayName(accOrName) {
+  if (!accOrName) return '';
+  const name = typeof accOrName === 'string' ? accOrName : accOrName.name;
+  const type = typeof accOrName === 'object' ? accOrName.type : null;
+  const lowerName = name.toLowerCase().trim();
+  const lang = state.lang || 'el';
+  
+  if (lang === 'el') {
+    if (lowerName === 'cash' || lowerName === 'μετρητά' || type === 'cash') return 'Μετρητά';
+    if (lowerName === 'bank account' || lowerName === 'bank' || lowerName === 'τράπεζα' || type === 'bank') return 'Τράπεζα';
+    if (lowerName === 'card' || lowerName === 'κάρτα' || type === 'card') return 'Κάρτα';
+  } else {
+    if (lowerName === 'cash' || lowerName === 'μετρητά' || type === 'cash') return 'Cash';
+    if (lowerName === 'bank account' || lowerName === 'bank' || lowerName === 'τράπεζα' || type === 'bank') return 'Bank Account';
+    if (lowerName === 'card' || lowerName === 'κάρτα' || type === 'card') return 'Card';
+  }
+  return name;
+}
+
+let _currentAccountPickerTarget = 'from';
+
+function openAccountPickerModal(target) {
+  const form = document.getElementById('transaction-form');
+  if (form && form.getAttribute('data-readonly') === 'true') return;
+  _currentAccountPickerTarget = target;
+  
+  const titleEl = document.getElementById('account-picker-title');
+  if (titleEl) {
+    titleEl.textContent = state.lang === 'el' ? 'Επιλογή Λογαριασμού' : 'Select Account';
+  }
+  
+  renderAccountPickerOptions();
+  openModal('account-picker-modal');
+}
+
+function renderAccountPickerOptions() {
+  const container = document.getElementById('account-picker-list');
+  if (!container) return;
+  
+  container.innerHTML = '';
+  
+  const currentVal = document.getElementById(`trans-account-${_currentAccountPickerTarget}`).value;
+  const icons = { cash: '💵', bank: '🏦', card: '💳' };
+  
+  state.accounts.forEach(acc => {
+    const item = document.createElement('div');
+    item.className = 'account-picker-item';
+    if (acc.name === currentVal) {
+      item.classList.add('selected');
+    }
+    
+    const icon = icons[acc.type] || '💳';
+    const displayName = getAccountDisplayName(acc);
+    
+    item.innerHTML = `
+      <span class="account-picker-item-icon">${icon}</span>
+      <span class="account-picker-item-name">${displayName}</span>
+    `;
+    
+    item.onclick = () => selectAccountOption(acc.name);
+    container.appendChild(item);
   });
 }
+
+function selectAccountOption(name) {
+  const targetId = `trans-account-${_currentAccountPickerTarget}`;
+  document.getElementById(targetId).value = name;
+  
+  updateAccountTriggerDisplay(_currentAccountPickerTarget);
+  closeModal('account-picker-modal');
+}
+
+function updateAccountTriggerDisplay(target) {
+  const input = document.getElementById(`trans-account-${target}`);
+  if (!input) return;
+  const value = input.value;
+  const triggerDisplay = document.getElementById(`trans-account-${target}-display`);
+  if (!triggerDisplay) return;
+  
+  if (!value) {
+    triggerDisplay.innerHTML = `<span class="custom-select-placeholder">${state.lang === 'el' ? 'Επιλέξτε...' : 'Select...'}</span>`;
+  } else {
+    const acc = state.accounts.find(a => a.name === value);
+    const icons = { cash: '💵', bank: '🏦', card: '💳' };
+    const icon = acc ? (icons[acc.type] || '💳') : '💳';
+    const name = acc ? getAccountDisplayName(acc) : value;
+    triggerDisplay.innerHTML = `<span class="custom-select-icon" style="margin-right: 8px;">${icon}</span><span class="custom-select-text">${name}</span>`;
+  }
+}
+
+function updateAccountDropdowns() {
+  updateAccountTriggerDisplay('from');
+  updateAccountTriggerDisplay('to');
+}
+
+window.getAccountDisplayName = getAccountDisplayName;
+window.openAccountPickerModal = openAccountPickerModal;
+window.updateAccountTriggerDisplay = updateAccountTriggerDisplay;
+window.updateAccountDropdowns = updateAccountDropdowns;
 
 function openSupabaseSettings() {
   updateSupabaseUserModal();
@@ -4902,21 +5481,166 @@ function getRandomColor() {
   return colors[Math.floor(Math.random() * colors.length)];
 }
 
-function exportToExcel() {
+function formatISODateLocal(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function formatShortDate(date) {
+  const d = date.getDate();
+  const m = date.getMonth() + 1;
+  const y = String(date.getFullYear()).slice(-2);
+  return `${d}.${m}.${y}`;
+}
+
+function updateExportSheetDateLabels() {
+  const now = new Date();
+  
+  const curMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const curMonthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  const curMonthEl = document.getElementById('export-range-current-month');
+  if (curMonthEl) curMonthEl.textContent = `(${formatShortDate(curMonthStart)} ~ ${formatShortDate(curMonthEnd)})`;
+    
+  const prevMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const prevMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+  const prevMonthEl = document.getElementById('export-range-prev-month');
+  if (prevMonthEl) prevMonthEl.textContent = `(${formatShortDate(prevMonthStart)} ~ ${formatShortDate(prevMonthEnd)})`;
+    
+  const curYearStart = new Date(now.getFullYear(), 0, 1);
+  const curYearEnd = now;
+  const curYearEl = document.getElementById('export-range-current-year');
+  if (curYearEl) curYearEl.textContent = `(${formatShortDate(curYearStart)} ~ ${formatShortDate(curYearEnd)})`;
+    
+  const prevYearStart = new Date(now.getFullYear() - 1, 0, 1);
+  const prevYearEnd = new Date(now.getFullYear() - 1, 11, 31);
+  const prevYearEl = document.getElementById('export-range-prev-year');
+  if (prevYearEl) prevYearEl.textContent = `(${formatShortDate(prevYearStart)} ~ ${formatShortDate(prevYearEnd)})`;
+}
+
+let selectedExportPeriod = 'current-month';
+
+function openExportPeriodSheet() {
+  if (typeof closeSearchBottomSheet === 'function') {
+    closeSearchBottomSheet(true);
+  }
+  
+  updateExportSheetDateLabels();
+  
+  const backdrop = document.getElementById('export-period-backdrop');
+  if (backdrop) backdrop.classList.add('active');
+  
+  const sheet = document.getElementById('export-period-bottom-sheet');
+  if (sheet) sheet.classList.add('active');
+  
+  selectExportOption('current-month');
+  
+  const todayStr = new Date().toISOString().split('T')[0];
+  const fromEl = document.getElementById('export-custom-from');
+  const toEl = document.getElementById('export-custom-to');
+  if (fromEl) fromEl.value = todayStr;
+  if (toEl) toEl.value = todayStr;
+}
+
+function closeExportPeriodSheet() {
+  const sheet = document.getElementById('export-period-bottom-sheet');
+  if (sheet) sheet.classList.remove('active');
+  
+  const backdrop = document.getElementById('export-period-backdrop');
+  if (backdrop) backdrop.classList.remove('active');
+}
+
+function selectExportOption(option) {
+  selectedExportPeriod = option;
+  
+  const options = ['current-month', 'prev-month', 'current-year', 'prev-year', 'all', 'custom'];
+  options.forEach(opt => {
+    const el = document.getElementById(`export-opt-${opt}`);
+    if (el) {
+      el.classList.toggle('active', opt === option);
+    }
+  });
+  
+  const customContainer = document.getElementById('export-custom-range-container');
+  if (customContainer) {
+    customContainer.style.display = option === 'custom' ? 'flex' : 'none';
+  }
+}
+
+function confirmExcelExport() {
+  const now = new Date();
+  let startDate = null;
+  let endDate = null;
+  
+  if (selectedExportPeriod === 'current-month') {
+    startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  } else if (selectedExportPeriod === 'prev-month') {
+    startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    endDate = new Date(now.getFullYear(), now.getMonth(), 0);
+  } else if (selectedExportPeriod === 'current-year') {
+    startDate = new Date(now.getFullYear(), 0, 1);
+    endDate = now;
+  } else if (selectedExportPeriod === 'prev-year') {
+    startDate = new Date(now.getFullYear() - 1, 0, 1);
+    endDate = new Date(now.getFullYear() - 1, 11, 31);
+  } else if (selectedExportPeriod === 'custom') {
+    const fromStr = document.getElementById('export-custom-from').value;
+    const toStr = document.getElementById('export-custom-to').value;
+    if (!fromStr || !toStr) {
+      alert(state.lang === 'en' ? 'Please select both start and end dates!' : 'Παρακαλώ επιλέξτε ημερομηνία έναρξης και λήξης!');
+      return;
+    }
+    if (fromStr > toStr) {
+      alert(state.lang === 'en' ? 'Start date must be before end date!' : 'Η ημερομηνία έναρξης πρέπει να είναι προγενέστερη της ημερομηνίας λήξης!');
+      return;
+    }
+    exportToExcel(fromStr, toStr);
+    return;
+  }
+  
+  const startStr = startDate ? formatISODateLocal(startDate) : null;
+  const endStr = endDate ? formatISODateLocal(endDate) : null;
+  
+  exportToExcel(startStr, endStr);
+}
+
+function exportToExcel(startDate = null, endDate = null) {
   if (!state.transactions.length) {
     const msg = state.lang === 'en' ? 'No transactions to export!' : 'Δεν υπάρχουν συναλλαγές!';
     alert(msg);
     return;
   }
-  const rows = state.transactions.map(t => ({
+  
+  let transactionsToExport = state.transactions;
+  if (startDate || endDate) {
+    transactionsToExport = state.transactions.filter(t => {
+      if (!t.date) return false;
+      const tDate = t.date.split('T')[0].split(' ')[0];
+      if (startDate && tDate < startDate) return false;
+      if (endDate && tDate > endDate) return false;
+      return true;
+    });
+  }
+  
+  if (!transactionsToExport.length) {
+    const msg = TRANSLATIONS[state.lang]['export_no_data_range'] || 'Δεν υπάρχουν συναλλαγές σε αυτή την περίοδο!';
+    alert(msg);
+    return;
+  }
+  
+  const rows = transactionsToExport.map(t => ({
     'Ημερομηνία': t.date, 'Τύπος': t.type === 'expense' ? 'Expense' : (t.type === 'income' ? 'Income' : 'Transfer'),
     'Ποσό': t.amount, 'Κατηγορία': t.category, 'Υποκατηγορία': t.subcategory || '',
     'Λογαριασμός': t.account_from, 'Σημείωση': t.note || '',
   }));
+  
   const ws = XLSX.utils.json_to_sheet(rows);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Συναλλαγές');
   XLSX.writeFile(wb, `Budget_Assistant_Export_${new Date().toISOString().split('T')[0]}.xlsx`);
+  closeExportPeriodSheet();
 }
 
 // ============================================================
@@ -5010,7 +5734,7 @@ function selectTypeSearchFilter(val) {
       
       const catChip = document.getElementById('search-chip-category');
       if (catChip) {
-        catChip.querySelector('.chip-label').textContent = 'Κατηγορία';
+        catChip.querySelector('.chip-label').textContent = TRANSLATIONS[state.lang]['search_chip_category'] || 'Κατηγορία';
         catChip.classList.remove('active');
       }
     }
@@ -5020,11 +5744,11 @@ function selectTypeSearchFilter(val) {
   const chip = document.getElementById('search-chip-type');
   const label = chip.querySelector('.chip-label');
   if (val) {
-    let text = val === 'expense' ? 'Έξοδο' : val === 'income' ? 'Έσοδο' : 'Μεταφορά';
+    let text = val === 'expense' ? TRANSLATIONS[state.lang]['type_tab_expense'] : val === 'income' ? TRANSLATIONS[state.lang]['type_tab_income'] : TRANSLATIONS[state.lang]['type_tab_transfer'];
     label.textContent = `✓ ${text}`;
     chip.classList.add('active');
   } else {
-    label.textContent = 'Τύπος';
+    label.textContent = TRANSLATIONS[state.lang]['search_chip_type'] || 'Τύπος';
     chip.classList.remove('active');
   }
   
@@ -5048,7 +5772,7 @@ function populateSearchAccountSheet() {
 
   let html = `
     <div class="bottom-sheet-option ${currentVal === '' ? 'active' : ''}" onclick="selectAccountSearchFilter('')">
-      <span class="option-label">Όλοι οι λογαριασμοί</span>
+      <span class="option-label">${state.lang === 'el' ? 'Όλοι οι λογαριασμοί' : 'All accounts'}</span>
       <i class="fa-solid fa-check option-check-icon"></i>
     </div>
   `;
@@ -5079,7 +5803,7 @@ function selectAccountSearchFilter(val) {
     label.textContent = `✓ ${val}`;
     chip.classList.add('active');
   } else {
-    label.textContent = 'Λογαριασμός';
+    label.textContent = TRANSLATIONS[state.lang]['search_chip_account'] || 'Λογαριασμός';
     chip.classList.remove('active');
   }
 
@@ -5097,7 +5821,7 @@ function populateSearchCategorySheet() {
 
   let html = `
     <div class="bottom-sheet-option ${currentCat === '' && currentSub === '' ? 'active' : ''}" onclick="selectCategorySearchFilter('', '')">
-      <span class="option-label">Όλες οι κατηγορίες</span>
+      <span class="option-label">${state.lang === 'el' ? 'Όλες οι κατηγορίες' : 'All categories'}</span>
       <i class="fa-solid fa-check option-check-icon"></i>
     </div>
   `;
@@ -5156,7 +5880,7 @@ function populateSearchCategorySheet() {
         const isSubActive = catName === currentCat && subName === currentSub;
         html += `
           <div class="bottom-sheet-option subcategory-option ${isSubActive ? 'active' : ''}" onclick="selectCategorySearchFilter('${catName}', '${subName}')" style="padding-left: 36px; font-size: 12.5px; opacity: 0.9;">
-            <span class="option-label"><i class="fa-solid fa-turn-up" style="transform: rotate(90deg); margin-right: 8px; color: var(--text-muted); font-size: 10px;"></i> ${subName}</span>
+            <span class="option-label"><i class="fa-solid fa-turn-up" style="transform: rotate(90deg); margin-right: 8px; color: var(--text-muted); font-size: 10px;"></i> ${getSubcategoryDisplayName(subName, catName)}</span>
             <i class="fa-solid fa-check option-check-icon"></i>
           </div>
         `;
@@ -5178,13 +5902,13 @@ function selectCategorySearchFilter(cat, sub) {
   const label = chip.querySelector('.chip-label');
   if (cat) {
     if (sub) {
-      label.textContent = `✓ ${sub}`;
+      label.textContent = `✓ ${getSubcategoryDisplayName(sub, cat)}`;
     } else {
       label.textContent = `✓ ${getCategoryDisplayName(cat)}`;
     }
     chip.classList.add('active');
   } else {
-    label.textContent = 'Κατηγορία';
+    label.textContent = TRANSLATIONS[state.lang]['search_chip_category'] || 'Κατηγορία';
     chip.classList.remove('active');
   }
 
@@ -5251,7 +5975,7 @@ function selectMemberSearchFilter(val) {
     label.textContent = `✓ ${name}`;
     chip.classList.add('active');
   } else {
-    label.textContent = 'Μέλος';
+    label.textContent = TRANSLATIONS[state.lang]['search_chip_member'] || 'Μέλος';
     chip.classList.remove('active');
   }
 
@@ -5304,22 +6028,22 @@ function resetAdvancedSearchFiltersVisual() {
 function resetAllSearchChips() {
   const typeChip = document.getElementById('search-chip-type');
   if (typeChip) {
-    typeChip.querySelector('.chip-label').textContent = 'Τύπος';
+    typeChip.querySelector('.chip-label').textContent = TRANSLATIONS[state.lang]['search_chip_type'] || 'Τύπος';
     typeChip.classList.remove('active');
   }
   const catChip = document.getElementById('search-chip-category');
   if (catChip) {
-    catChip.querySelector('.chip-label').textContent = 'Κατηγορία';
+    catChip.querySelector('.chip-label').textContent = TRANSLATIONS[state.lang]['search_chip_category'] || 'Κατηγορία';
     catChip.classList.remove('active');
   }
   const accChip = document.getElementById('search-chip-account');
   if (accChip) {
-    accChip.querySelector('.chip-label').textContent = 'Λογαριασμός';
+    accChip.querySelector('.chip-label').textContent = TRANSLATIONS[state.lang]['search_chip_account'] || 'Λογαριασμός';
     accChip.classList.remove('active');
   }
   const memChip = document.getElementById('search-chip-member');
   if (memChip) {
-    memChip.querySelector('.chip-label').textContent = 'Μέλος';
+    memChip.querySelector('.chip-label').textContent = TRANSLATIONS[state.lang]['search_chip_member'] || 'Μέλος';
     memChip.classList.remove('active');
   }
   const advChip = document.getElementById('search-chip-advanced');
@@ -5587,10 +6311,12 @@ function renderGroupedTransactions(transactions, container) {
       else if (t.type === 'income')   { amountClass += ' income'; }
       else if (t.type === 'transfer') { amountClass += ' transfer'; accountText = `${t.account_from} → ${t.account_to}`; }
 
+      const translatedSub = getSubcategoryDisplayName(t.subcategory, t.category);
+      const translatedCat = getCategoryDisplayName(t.category);
       const displayTitle = (t.note && t.note.trim()) ? t.note.trim()
                          : (t.description && t.description.trim()) ? t.description.trim()
-                         : (t.subcategory && t.subcategory.trim()) ? t.subcategory.trim()
-                         : (t.category || '');
+                         : (translatedSub && translatedSub.trim()) ? translatedSub.trim()
+                         : (translatedCat || '');
 
       let memberBadge = '';
       if (state.userProfile && state.userProfile.family_id && t.user_id) {
@@ -5614,8 +6340,8 @@ function renderGroupedTransactions(transactions, container) {
         <div class="trans-left">
           <div class="trans-category-container">
             <div class="trans-cat-icon">${catInfo.icon || '💰'}</div>
-            <div class="trans-cat-name">${getCategoryDisplayName(catInfo.name) || ''}</div>
-            ${t.subcategory ? `<div class="trans-sub-name">${t.subcategory}</div>` : ''}
+            <div class="trans-cat-name">${translatedCat || ''}</div>
+            ${t.subcategory ? `<div class="trans-sub-name">${translatedSub}</div>` : ''}
           </div>
           <div class="trans-details">
             <span class="trans-title">${displayTitle}${memberBadge}</span>
@@ -6317,7 +7043,7 @@ function updateSubcategorySuggestions() {
     const div = document.createElement('div');
     div.className = 'subcategory-item';
     if (sub === currentSubcategory) div.classList.add('selected');
-    div.innerHTML = `<span>${sub}</span>`;
+    div.innerHTML = `<span>${getSubcategoryDisplayName(sub, category)}</span>`;
     div.onclick = () => selectSubcategory(sub);
     subcatList.appendChild(div);
   });
@@ -6640,6 +7366,7 @@ function initSettingsFromStorage() {
   const currency = localStorage.getItem('app_currency') || 'EUR';
   const theme = localStorage.getItem('app_theme') || 'dark';
   const appLockEnabled = localStorage.getItem('app_lock_enabled') === 'true';
+  const appBiometricsEnabled = localStorage.getItem('app_biometrics_enabled') === 'true';
 
   const monthSelect = document.getElementById('settings-month-start');
   const weekSelect = document.getElementById('settings-week-start');
@@ -6656,7 +7383,7 @@ function initSettingsFromStorage() {
   applyTheme(theme);
   checkBiometricsSupport();
   
-  if (appLockEnabled) {
+  if (appLockEnabled || appBiometricsEnabled) {
     showLockScreen();
   }
 }
@@ -6796,18 +7523,28 @@ function verifyEnteredPin() {
 async function checkBiometricsSupport() {
   const container = document.getElementById('settings-biometrics-container');
   const toggle = document.getElementById('settings-biometrics');
-  if (window.PublicKeyCredential && container && toggle) {
+  if (!container || !toggle) return;
+  
+  const appLockEnabled = localStorage.getItem('app_lock_enabled') === 'true';
+  if (!appLockEnabled) {
+    container.style.display = 'none';
+    return;
+  }
+  
+  if (window.PublicKeyCredential) {
     try {
       const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
       if (available) {
         container.style.display = 'flex';
         const enabled = localStorage.getItem('app_biometrics_enabled') === 'true';
         toggle.checked = enabled;
+        return;
       }
     } catch (e) {
       console.log('Biometrics support check failed:', e);
     }
   }
+  container.style.display = 'none';
 }
 
 async function registerBiometrics() {
@@ -8623,7 +9360,7 @@ async function triggerProfileSync() {
 
 function triggerProfileExport() {
   closeProfileSheet();
-  exportToExcel();
+  openExportPeriodSheet();
 }
 
 function cycleThemeFromProfile() {
