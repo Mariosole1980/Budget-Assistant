@@ -2363,6 +2363,29 @@ function renderStatsTab() {
     icon: d.icon, color: d.color
   })).sort((a, b) => b.amount - a.amount);
 
+  // Group small categories (< 3%) into "Λοιπά" for cleaner chart
+  const MIN_PCT_THRESHOLD = 3;
+  const mainItems = [];
+  let othersAmount = 0;
+  breakdownList.forEach(item => {
+    if (item.percentage >= MIN_PCT_THRESHOLD || breakdownList.length <= 5) {
+      mainItems.push(item);
+    } else {
+      othersAmount += item.amount;
+    }
+  });
+  if (othersAmount > 0) {
+    const othersLabel = state.lang === 'en' ? 'Others' : 'Λοιπά';
+    mainItems.push({
+      name: othersLabel,
+      amount: othersAmount,
+      percentage: totalSum > 0 ? (othersAmount / totalSum) * 100 : 0,
+      icon: '📦',
+      color: '#6b7280'
+    });
+  }
+  const displayList = mainItems;
+
   const listContainer = document.getElementById('stats-breakdown-list');
   listContainer.innerHTML = '';
 
@@ -2370,7 +2393,7 @@ function renderStatsTab() {
   const centerAmountEl = document.getElementById('chart-center-amount');
   const chartCenterVal = document.getElementById('chart-center-val');
 
-  if (!breakdownList.length) {
+  if (!displayList.length) {
     listContainer.innerHTML = `<div style="text-align:center;padding:40px;color:var(--text-secondary)"><h3>Δεν υπάρχουν δεδομένα</h3></div>`;
     if (statsChartInstance) { statsChartInstance.destroy(); statsChartInstance = null; }
     if (chartCenterVal) chartCenterVal.style.display = 'none';
@@ -2407,7 +2430,7 @@ function renderStatsTab() {
     ratioWrapper.style.display = 'none';
   }
 
-  breakdownList.forEach(item => {
+  displayList.forEach(item => {
     const row = document.createElement('div');
     row.className = 'stats-row';
     const isIncome = state.statsType === 'income';
@@ -2421,7 +2444,7 @@ function renderStatsTab() {
     listContainer.appendChild(row);
   });
 
-  renderChart(breakdownList);
+  renderChart(displayList);
 }
 
 function renderChart(dataList) {
