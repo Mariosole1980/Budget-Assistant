@@ -4916,7 +4916,7 @@ function exportToExcel() {
   const ws = XLSX.utils.json_to_sheet(rows);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Συναλλαγές');
-  XLSX.writeFile(wb, `MoneyManager_Export_${new Date().toISOString().split('T')[0]}.xlsx`);
+  XLSX.writeFile(wb, `Budget_Assistant_Export_${new Date().toISOString().split('T')[0]}.xlsx`);
 }
 
 // ============================================================
