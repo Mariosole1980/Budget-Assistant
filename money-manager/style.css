@@ -25,6 +25,7 @@
   
   /* Safe Area Safe Insets */
   --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --bg-day-header: #1b1f28;
 }
 
 /* Reset and Global Styles */
@@ -395,11 +396,12 @@ button:active,
 }
 
 .day-header {
-  background-color: #1b1f28;
-  padding: 8px 12px;
+  background-color: var(--bg-day-header, #1b1f28);
+  padding: 10px 12px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  border-top: 1.5px solid var(--border-light);
   border-bottom: 1px solid var(--border-light);
   font-size: 12.5px;
   font-weight: 600;
@@ -453,14 +455,14 @@ button:active,
 /* Transaction List Item */
 .transaction-item {
   background-color: var(--bg-card);
-  padding: 5px 12px;
+  padding: 8px 12px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   border-bottom: 1px solid var(--border);
   cursor: pointer;
   transition: var(--transition);
-  min-height: 41px;
+  min-height: 48px;
 }
 
 .transaction-item:hover {
@@ -480,9 +482,9 @@ button:active,
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 68px;
-  min-width: 68px;
-  margin-right: 8px;
+  width: 82px;
+  min-width: 82px;
+  margin-right: 10px;
   text-align: center;
   gap: 3px;
 }
@@ -497,7 +499,7 @@ button:active,
 }
 
 .trans-cat-name {
-  font-size: 10.5px;
+  font-size: 9.5px;
   font-weight: 700;
   color: var(--text-secondary);
   text-transform: uppercase;
@@ -510,7 +512,7 @@ button:active,
 }
 
 .trans-sub-name {
-  font-size: 10px;
+  font-size: 8.5px;
   color: var(--text-muted);
   max-width: 100%;
   overflow: hidden;
@@ -2483,6 +2485,7 @@ input:focus + .slider {
   --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.8);
   --accent-rgb: 46, 196, 182;
   --accent-light: rgba(46, 196, 182, 0.15);
+  --bg-day-header: #080808;
 }
 
 /* Blossom Pink Theme */
@@ -2495,6 +2498,7 @@ input:focus + .slider {
   --accent-light: rgba(255, 117, 143, 0.15);
   --border: #422533;
   --border-light: #522d3f;
+  --bg-day-header: #261820;
 }
 
 /* Classic Light Theme */
@@ -2511,6 +2515,7 @@ input:focus + .slider {
   --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.08);
   --accent-rgb: 46, 196, 182;
   --accent-light: rgba(46, 196, 182, 0.15);
+  --bg-day-header: #e9ecef;
 }
 
 /* Emerald Forest Theme */
@@ -2523,6 +2528,7 @@ input:focus + .slider {
   --accent-light: rgba(46, 196, 182, 0.15);
   --border: #233d35;
   --border-light: #2c4c42;
+  --bg-day-header: #13221e;
 }
 
 /* Ocean Breeze Theme */
@@ -2535,6 +2541,7 @@ input:focus + .slider {
   --accent-light: rgba(0, 180, 216, 0.15);
   --border: #2b3964;
   --border-light: #36487a;
+  --bg-day-header: #141c33;
 }
 
 /* Lock Screen Overlay */
