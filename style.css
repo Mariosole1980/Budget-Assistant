@@ -4305,11 +4305,13 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 .time-wheel-scroll {
   height: 100%;
   overflow-y: scroll;
+  overflow-x: hidden; /* Prevent horizontal scrolling */
   scroll-snap-type: y mandatory;
   padding-top: 0;
   padding-bottom: 0;
   box-sizing: border-box;
   scrollbar-width: none; /* Hide scrollbar Firefox */
+  touch-action: pan-y; /* Force vertical scroll gesture only, prevent horizontal tremble */
 }
 .time-wheel-scroll::-webkit-scrollbar {
   display: none; /* Hide scrollbar Chrome/Safari */
@@ -4322,12 +4324,13 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   font-weight: 700;
   color: var(--text-muted, #8a8f99);
   scroll-snap-align: center;
-  transition: color 0.15s ease, transform 0.15s ease;
+  transition: color 0.15s ease; /* Avoid transform transitions which cause font subpixel trembling */
   cursor: pointer;
+  user-select: none; /* Avoid text selection highlight on swipe */
 }
 .time-wheel-item.selected {
   color: #ffffff;
-  transform: scale(1.08);
+  font-weight: 800;
 }
 .time-wheel-highlighter {
   position: absolute;
