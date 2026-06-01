@@ -3799,9 +3799,14 @@ function toggleStatsType(type) {
 function openModal(id)  { 
   ensureHistoryPushed();
   document.getElementById(id).classList.add('active'); 
+  document.body.classList.add('modal-open');
 }
 function closeModal(id) {
   document.getElementById(id).classList.remove('active');
+  const activeModals = document.querySelectorAll('.modal-overlay.active');
+  if (activeModals.length === 0) {
+    document.body.classList.remove('modal-open');
+  }
   if (id === 'transaction-modal' && typeof window.closeCalculatorKeypad === 'function') {
     window.closeCalculatorKeypad();
   }
@@ -9130,6 +9135,37 @@ document.addEventListener('DOMContentLoaded', () => {
 // Custom Date Picker State Variables
 let customDatePickerSelectedDate = new Date();
 let customDatePickerViewingMonth = new Date();
+let timeWheelsInitialized = false;
+
+function setupTimeWheelScrollListeners() {
+  if (timeWheelsInitialized) return;
+  
+  const setupWheel = (scrollId) => {
+    const scrollEl = document.getElementById(scrollId);
+    if (!scrollEl) return;
+    
+    const updateSelection = () => {
+      const scrollTop = scrollEl.scrollTop;
+      const selectedIndex = Math.round(scrollTop / 40);
+      const items = scrollEl.querySelectorAll('.time-wheel-item');
+      items.forEach((item, idx) => {
+        if (idx === selectedIndex) {
+          item.classList.add('selected');
+        } else {
+          item.classList.remove('selected');
+        }
+      });
+    };
+    
+    scrollEl.addEventListener('scroll', updateSelection);
+    // Initial call
+    updateSelection();
+  };
+  
+  setupWheel('scroll-hours');
+  setupWheel('scroll-minutes');
+  timeWheelsInitialized = true;
+}
 
 function openCustomDatePicker() {
   const form = document.getElementById('transaction-form');
@@ -9148,21 +9184,46 @@ function openCustomDatePicker() {
   customDatePickerSelectedDate = new Date(currentDate);
   customDatePickerViewingMonth = new Date(currentDate);
   
-  // Populate hour and minute inputs
-  const hourInput = document.getElementById('custom-date-picker-hour');
-  const minuteInput = document.getElementById('custom-date-picker-minute');
-  if (hourInput && minuteInput) {
-    hourInput.value = String(currentDate.getHours()).padStart(2, '0');
-    minuteInput.value = String(currentDate.getMinutes()).padStart(2, '0');
+  // Populate scroll wheels if empty
+  const hoursScroll = document.getElementById('scroll-hours');
+  if (hoursScroll && hoursScroll.children.length === 0) {
+    for (let i = 0; i < 24; i++) {
+      const div = document.createElement('div');
+      div.className = 'time-wheel-item';
+      div.textContent = String(i).padStart(2, '0');
+      hoursScroll.appendChild(div);
+    }
   }
+  
+  const minutesScroll = document.getElementById('scroll-minutes');
+  if (minutesScroll && minutesScroll.children.length === 0) {
+    for (let i = 0; i < 60; i++) {
+      const div = document.createElement('div');
+      div.className = 'time-wheel-item';
+      div.textContent = String(i).padStart(2, '0');
+      minutesScroll.appendChild(div);
+    }
+  }
+  
+  // Setup listeners
+  setupTimeWheelScrollListeners();
   
   renderCustomDatePickerCalendar();
   
   // Open the modal
-  const modal = document.getElementById('custom-date-picker-modal');
-  if (modal) {
-    modal.classList.add('active');
-  }
+  openModal('custom-date-picker-modal');
+  
+  // Scroll wheels to correct initial values after rendering transition
+  setTimeout(() => {
+    const hs = document.getElementById('scroll-hours');
+    if (hs) {
+      hs.scrollTop = currentDate.getHours() * 40;
+    }
+    const ms = document.getElementById('scroll-minutes');
+    if (ms) {
+      ms.scrollTop = currentDate.getMinutes() * 40;
+    }
+  }, 100);
 }
 
 window.openCustomDatePicker = openCustomDatePicker;
@@ -9254,21 +9315,23 @@ function adjustCustomDatePickerMonth(direction) {
 window.adjustCustomDatePickerMonth = adjustCustomDatePickerMonth;
 
 function setCustomDatePickerValue() {
-  const hourInput = document.getElementById('custom-date-picker-hour');
-  const minuteInput = document.getElementById('custom-date-picker-minute');
-  if (hourInput && minuteInput) {
-    let hours = parseInt(hourInput.value, 10) || 0;
-    let minutes = parseInt(minuteInput.value, 10) || 0;
-    
-    // Validate bounds
+  const hoursScroll = document.getElementById('scroll-hours');
+  const minutesScroll = document.getElementById('scroll-minutes');
+  let hours = 0;
+  let minutes = 0;
+  if (hoursScroll) {
+    hours = Math.round(hoursScroll.scrollTop / 40);
     if (hours < 0) hours = 0;
     if (hours > 23) hours = 23;
+  }
+  if (minutesScroll) {
+    minutes = Math.round(minutesScroll.scrollTop / 40);
     if (minutes < 0) minutes = 0;
     if (minutes > 59) minutes = 59;
-    
-    customDatePickerSelectedDate.setHours(hours);
-    customDatePickerSelectedDate.setMinutes(minutes);
   }
+  
+  customDatePickerSelectedDate.setHours(hours);
+  customDatePickerSelectedDate.setMinutes(minutes);
   
   // Format as ISO Local String YYYY-MM-DDTHH:MM
   const yyyy = customDatePickerSelectedDate.getFullYear();
