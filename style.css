@@ -1362,7 +1362,7 @@ input:focus + .slider {
 .form-row {
   display: flex;
   align-items: center;
-  padding: 6px 0;
+  padding: 3px 0;
 }
 
 .form-row-label {
@@ -1378,7 +1378,7 @@ input:focus + .slider {
   display: flex;
   align-items: center;
   border-bottom: 2px solid var(--border-light);
-  padding-bottom: 6px;
+  padding-bottom: 3px;
   transition: border-color 0.25s ease;
 }
 
@@ -1497,7 +1497,7 @@ input:focus + .slider {
 }
 
 .calc-keypad-container.active {
-  max-height: 400px;
+  max-height: 330px;
 }
 
 .calc-keypad-header {
@@ -1530,8 +1530,8 @@ input:focus + .slider {
   background-color: #1a1d24;
   color: var(--text-main);
   padding: 0;
-  height: 68px;
-  font-size: 24px;
+  height: 52px;
+  font-size: 22px;
   font-weight: 600;
   text-align: center;
   display: flex;
