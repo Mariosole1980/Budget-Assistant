@@ -7676,11 +7676,8 @@ function renderPartnerSection() {
     let nameHtml = `<div style="font-size:13px;font-weight:700;color:var(--text-primary);">${familyName}</div>`;
     if (myRole === 'admin') {
       nameHtml = `
-        <div style="display:flex;align-items:center;gap:6px;">
-          <div style="font-size:13px;font-weight:700;color:var(--text-primary);">${familyName}</div>
-          <button onclick="promptRenameFamilyGroup()" class="icon-btn" style="color:var(--text-muted);font-size:11px;padding:2px;cursor:pointer;background:none;border:none;" title="${state.lang === 'el' ? 'Μετονομασία' : 'Rename'}">
-            <i class="fa-solid fa-pen" style="font-size:10px;"></i>
-          </button>
+        <div id="family-group-name-label" style="font-size:13px;font-weight:700;color:var(--text-primary);cursor:pointer;user-select:none;border-bottom:1px dashed var(--text-muted);display:inline-block;" title="${state.lang === 'el' ? 'Κρατήστε πατημένο για μετονομασία' : 'Long press to rename'}">
+          ${familyName}
         </div>
       `;
     }
@@ -7710,6 +7707,45 @@ function renderPartnerSection() {
         ${inviteBlockHtml}
       </div>
     `;
+
+    // Setup long press for renaming family name label (only if admin)
+    const familyNameLabel = document.getElementById('family-group-name-label');
+    if (familyNameLabel && myRole === 'admin') {
+      let pressTimer;
+      let isLongPress = false;
+
+      const handleStart = (e) => {
+        isLongPress = false;
+        pressTimer = setTimeout(() => {
+          isLongPress = true;
+          if (navigator.vibrate) {
+            try { navigator.vibrate(15); } catch(err) {}
+          }
+          promptRenameFamilyGroup();
+        }, 600);
+      };
+
+      const handleEnd = () => {
+        clearTimeout(pressTimer);
+      };
+
+      familyNameLabel.addEventListener('touchstart', handleStart, { passive: true });
+      familyNameLabel.addEventListener('touchend', handleEnd, { passive: true });
+      familyNameLabel.addEventListener('touchmove', handleEnd, { passive: true });
+      familyNameLabel.addEventListener('touchcancel', handleEnd, { passive: true });
+
+      familyNameLabel.addEventListener('mousedown', handleStart);
+      familyNameLabel.addEventListener('mouseup', handleEnd);
+      familyNameLabel.addEventListener('mouseleave', handleEnd);
+
+      familyNameLabel.onclick = (e) => {
+        if (isLongPress) {
+          isLongPress = false;
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      };
+    }
   } else {
     // === SETUP / JOIN / CREATE FAMILY STATE ===
     container.innerHTML = `
