@@ -7243,12 +7243,6 @@ async function checkBiometricsSupport() {
   const toggle = document.getElementById('settings-biometrics');
   if (!container || !toggle) return;
   
-  const appLockEnabled = localStorage.getItem('app_lock_enabled') === 'true';
-  if (!appLockEnabled) {
-    container.style.display = 'none';
-    return;
-  }
-  
   if (window.PublicKeyCredential) {
     container.style.display = 'flex';
     const enabled = localStorage.getItem('app_biometrics_enabled') === 'true';
@@ -7420,6 +7414,12 @@ function toggleAppLock(checked) {
 
 async function toggleBiometrics(checked) {
   if (checked) {
+    const appLockEnabled = localStorage.getItem('app_lock_enabled') === 'true';
+    if (!appLockEnabled) {
+      alert("⚠️ Παρακαλώ ενεργοποιήστε πρώτα το Κλείδωμα Εφαρμογής (PIN) πριν ενεργοποιήσετε τα βιομετρικά στοιχεία.");
+      document.getElementById('settings-biometrics').checked = false;
+      return;
+    }
     const result = await registerBiometrics();
     if (result === true) {
       localStorage.setItem('app_biometrics_enabled', 'true');
