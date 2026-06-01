@@ -1497,14 +1497,14 @@ input:focus + .slider {
 }
 
 .calc-keypad-container.active {
-  max-height: 380px;
+  max-height: 400px;
 }
 
 .calc-keypad-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 16px;
+  padding: 10px 16px;
   background-color: #121419;
   border-bottom: 1px solid var(--border-light);
 }
@@ -1520,29 +1520,34 @@ input:focus + .slider {
 .calc-keypad-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  background-color: var(--border);
-  gap: 1px;
+  background-color: transparent;
+  gap: 8px;
+  padding: 10px 16px 16px 16px;
   flex: 1;
 }
 
 .calc-key-btn {
-  background-color: #181b22;
+  background-color: #1a1d24;
   color: var(--text-main);
   padding: 0;
-  height: 72px;
-  font-size: 26px;
+  height: 68px;
+  font-size: 24px;
   font-weight: 600;
   text-align: center;
   display: flex;
   align-items: center;
   justify-content: center;
   user-select: none;
-  transition: background-color 0.12s ease;
+  border-radius: 12px;
+  transition: background-color 0.1s ease;
   -webkit-tap-highlight-color: transparent;
 }
 
 .calc-key-btn:active {
-  background-color: #2e3543;
+  transform: none !important;
+  opacity: 1 !important;
+  background-color: #2b303c !important;
+  transition: none !important;
 }
 
 .calc-key-btn.backspace-key,
@@ -1550,15 +1555,33 @@ input:focus + .slider {
 .calc-key-btn.calc-op-key {
   background-color: #121419;
   color: var(--text-secondary);
-  font-size: 22px;
+  font-size: 20px;
+}
+
+.calc-key-btn.backspace-key:active,
+.calc-key-btn.minus-key:active,
+.calc-key-btn.calc-op-key:active {
+  background-color: #20242e !important;
+  transform: none !important;
+  opacity: 1 !important;
+  transition: none !important;
 }
 
 .calc-key-btn.done-key {
   color: white;
   font-weight: 800;
-  font-size: 18px;
+  font-size: 17px;
   letter-spacing: 0.3px;
+  border-radius: 12px;
 }
+
+.calc-key-btn.done-key:active {
+  transform: none !important;
+  opacity: 1 !important;
+  filter: brightness(1.15) !important;
+  transition: none !important;
+}
+
 #transaction-modal.expense .calc-key-btn.done-key {
   background-color: var(--red-negative);
 }

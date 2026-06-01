@@ -3172,9 +3172,10 @@ function setupEventListeners() {
     });
   }
 
-  // Keypad keys click listeners
+  // Keypad keys pointerdown listeners (0ms mobile touch delay optimization)
   document.querySelectorAll('.calc-key-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
+    btn.addEventListener('pointerdown', (e) => {
+      e.preventDefault(); // Prevents emulated click events and double triggers
       e.stopPropagation();
       const val = btn.getAttribute('data-val');
       handleCalculatorKeyPress(val);
