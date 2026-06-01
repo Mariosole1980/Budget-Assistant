@@ -148,10 +148,6 @@ CREATE POLICY "Allow update transactions" ON public.transactions
         (
             family_id IS NOT NULL 
             AND family_id = (SELECT family_id FROM public.profiles WHERE id = auth.uid())
-            AND (
-                (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin'
-                OR user_id = auth.uid()
-            )
         )
         OR (family_id IS NULL AND user_id = auth.uid())
     );
@@ -161,10 +157,6 @@ CREATE POLICY "Allow delete transactions" ON public.transactions
         (
             family_id IS NOT NULL 
             AND family_id = (SELECT family_id FROM public.profiles WHERE id = auth.uid())
-            AND (
-                (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin'
-                OR user_id = auth.uid()
-            )
         )
         OR (family_id IS NULL AND user_id = auth.uid())
     );
