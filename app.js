@@ -4357,6 +4357,7 @@ function inlineRenameCategory(categoryName, type) {
 }
 
 window.inlineRenameCategory = inlineRenameCategory;
+window.openEditCategoryDialog = openEditCategoryDialog;
 
 let lastRenderedCategoryType = null;
 let lastRenderedCategoryEditMode = null;
@@ -4397,21 +4398,22 @@ function updateCategoryDropdowns(type = 'expense', force = false) {
     
     if (categoryPickerEditMode) {
       div.classList.add('in-edit-mode');
+      if (c.hidden) div.style.opacity = '0.55';
       div.innerHTML = `
         <span class="category-picker-icon">${c.icon}</span>
-        <span class="category-picker-name" style="opacity:${c.hidden ? '0.4' : '1'};">${displayName}</span>
-        <div class="category-item-edit-actions">
-          <span class="cat-action-btn rename-btn" onclick="event.stopPropagation(); inlineRenameCategory('${c.name}', '${type}')" title="${state.lang === 'el' ? 'Μετονομασία' : 'Rename'}">
-            <i class="fa-solid fa-pen"></i>
-          </span>
-          <span class="cat-action-btn hide-btn" onclick="event.stopPropagation(); inlineToggleCategoryHidden('${c.name}', '${type}')" title="${c.hidden ? (state.lang === 'el' ? 'Εμφάνιση' : 'Show') : (state.lang === 'el' ? 'Απόκρυψη' : 'Hide')}">
-            <i class="fa-solid ${c.hidden ? 'fa-eye-slash' : 'fa-eye'}"></i>
-          </span>
-          <span class="cat-action-btn delete-btn" onclick="event.stopPropagation(); inlineDeleteCustomCategory('${c.name}', '${type}')" title="${state.lang === 'el' ? 'Διαγραφή' : 'Delete'}">
-            <i class="fa-solid fa-trash"></i>
-          </span>
-        </div>
+        <span class="category-picker-name">${displayName}</span>
+        <span class="category-delete-badge" title="${state.lang === 'el' ? 'Διαγραφή' : 'Delete'}">
+          <i class="fa-solid fa-xmark"></i>
+        </span>
       `;
+      // Tap the badge = delete
+      div.querySelector('.category-delete-badge').addEventListener('pointerdown', (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        inlineDeleteCustomCategory(c.name, type);
+      });
+      // Tap the card body = edit
+      div.onclick = () => openEditCategoryDialog(c.name, type);
     } else {
       if (c.name === currentCategory) {
         div.classList.add('selected');
@@ -4424,20 +4426,24 @@ function updateCategoryDropdowns(type = 'expense', force = false) {
     grid.appendChild(div);
   });
   
-  // "+" New Category box at the end of the grid (only in normal mode, or always? Let's show it always or only in normal mode. Normal mode is cleaner)
-  if (!categoryPickerEditMode) {
-    const addBox = document.createElement('div');
-    addBox.className = 'category-picker-item category-picker-add';
+  // "+" New Category box (always visible, both in normal and edit mode)
+  const addBox = document.createElement('div');
+  addBox.className = 'category-picker-item category-picker-add';
+  if (categoryPickerEditMode) {
     addBox.innerHTML = `<span class="category-picker-icon" style="font-size:28px;color:var(--accent);">+</span><span class="category-picker-name">${state.lang === 'el' ? 'Νέα Κατηγορία' : 'New Category'}</span>`;
     addBox.onclick = () => openNewCategoryDialog(type);
-    grid.appendChild(addBox);
+  } else {
+    addBox.innerHTML = `<span class="category-picker-icon" style="font-size:28px;color:var(--accent);">+</span><span class="category-picker-name">${state.lang === 'el' ? 'Νέα Κατηγορία' : 'New Category'}</span>`;
+    addBox.onclick = () => openNewCategoryDialog(type);
   }
+  grid.appendChild(addBox);
   
   if (!categoryPickerEditMode && !categoryExists && currentCategory !== '') {
     document.getElementById('trans-category').value = '';
     updateCategoryDisplay();
   }
 }
+
 
 function selectCategory(name, icon, color, isManual = false) {
   document.getElementById('trans-category').value = name;
@@ -4515,10 +4521,66 @@ function openCategoryModal() {
 // New Category inline dialog state
 let newCategoryDialogType = 'expense';
 let newCategorySelectedEmoji = '💸';
+let editingCategoryName = null; // null = new, string = editing existing
 
 const EMOJI_OPTIONS = ['💰','💸','🏡','🛒','🚗','❤️','🎉','🧾','🏋️','👕','🚇','💻','🎬','🎓','🧩','🤑','🎁','💼','💶','🏛️','📦','🏅','👨','💵','🔧','⭐','🔥','🎯','📱','☕','🎵','✈️','🏖️','📚','🐶','🌱','💡','🗂️','🛠️','🎮'];
 
+function openEditCategoryDialog(categoryName, type) {
+  const cat = state.categories.find(c => c.name === categoryName);
+  if (!cat) return;
+  
+  editingCategoryName = categoryName;
+  newCategoryDialogType = type;
+  newCategorySelectedEmoji = cat.icon || (type === 'income' ? '💰' : '💸');
+  
+  const dialog = document.getElementById('new-category-inline-dialog');
+  const nameInput = document.getElementById('new-cat-name-input');
+  const titleEl = document.getElementById('new-cat-dialog-title');
+  
+  if (!dialog || !nameInput) return;
+  
+  if (titleEl) {
+    titleEl.textContent = state.lang === 'el' ? 'Επεξεργασία Κατηγορίας' : 'Edit Category';
+  }
+  
+  nameInput.value = getCategoryDisplayName(categoryName);
+  nameInput.placeholder = state.lang === 'el' ? 'Όνομα κατηγορίας' : 'Category name';
+  
+  // Render emoji grid with the current icon pre-selected
+  const emojiGrid = document.getElementById('new-cat-emoji-grid');
+  if (emojiGrid) {
+    emojiGrid.innerHTML = '';
+    // Ensure the current emoji is available
+    const emojiList = EMOJI_OPTIONS.includes(cat.icon) ? EMOJI_OPTIONS : [cat.icon, ...EMOJI_OPTIONS];
+    emojiList.forEach(emoji => {
+      const btn = document.createElement('span');
+      btn.textContent = emoji;
+      btn.style.cssText = `font-size:22px; padding:6px 8px; cursor:pointer; border-radius:8px; transition:all 0.15s; border:2px solid ${emoji === newCategorySelectedEmoji ? 'var(--accent)' : 'transparent'}; background:${emoji === newCategorySelectedEmoji ? 'var(--accent-light)' : 'transparent'};`;
+      btn.onclick = () => {
+        newCategorySelectedEmoji = emoji;
+        emojiGrid.querySelectorAll('span').forEach(s => {
+          s.style.borderColor = 'transparent';
+          s.style.background = 'transparent';
+        });
+        btn.style.borderColor = 'var(--accent)';
+        btn.style.background = 'var(--accent-light)';
+      };
+      emojiGrid.appendChild(btn);
+    });
+  }
+  
+  const saveBtn = dialog.querySelector('.btn-primary');
+  if (saveBtn) saveBtn.textContent = state.lang === 'el' ? 'Αποθήκευση' : 'Save';
+  const cancelBtn = dialog.querySelector('.btn-secondary');
+  if (cancelBtn) cancelBtn.textContent = state.lang === 'el' ? 'Άκυρο' : 'Cancel';
+  
+  dialog.style.display = 'block';
+  setTimeout(() => nameInput.focus(), 100);
+}
+
+
 function openNewCategoryDialog(type) {
+  editingCategoryName = null; // ensure we are in create mode
   newCategoryDialogType = type;
   newCategorySelectedEmoji = type === 'income' ? '💰' : '💸';
   
@@ -4578,6 +4640,7 @@ function closeNewCategoryDialog() {
   if (dialog) dialog.style.display = 'none';
   newCategoryDialogType = 'expense';
   newCategorySelectedEmoji = '💸';
+  editingCategoryName = null;
 }
 
 function saveNewCategoryFromPicker() {
@@ -4589,6 +4652,85 @@ function saveNewCategoryFromPicker() {
     return;
   }
   
+  // === EDIT MODE: Update existing category ===
+  if (editingCategoryName) {
+    const cat = state.categories.find(c => c.name === editingCategoryName);
+    if (!cat) {
+      closeNewCategoryDialog();
+      return;
+    }
+    
+    const oldName = cat.name;
+    const currentDisplayName = getCategoryDisplayName(oldName);
+    const nameChanged = name !== currentDisplayName;
+    const iconChanged = newCategorySelectedEmoji !== cat.icon;
+    
+    if (!nameChanged && !iconChanged) {
+      closeNewCategoryDialog();
+      return;
+    }
+    
+    // Check for name collision with another category (only if name changed)
+    if (nameChanged) {
+      const collision = state.categories.find(c => c.name !== oldName && getCategoryDisplayName(c.name).toLowerCase() === name.toLowerCase() && c.type === cat.type);
+      if (collision) {
+        alert(state.lang === 'el' ? 'Υπάρχει ήδη κατηγορία με αυτό το όνομα!' : 'A category with this name already exists!');
+        return;
+      }
+    }
+    
+    // Update name and icon
+    cat.name = name;
+    cat.icon = newCategorySelectedEmoji;
+    
+    // Update transactions using old name
+    let transactionsUpdated = 0;
+    if (nameChanged) {
+      state.transactions.forEach(t => {
+        if (t.category === oldName) {
+          t.category = name;
+          transactionsUpdated++;
+        }
+      });
+      if (transactionsUpdated > 0) {
+        localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
+      }
+    }
+    
+    saveCategoriesToStorage();
+    
+    // Cloud sync
+    if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
+      try {
+        if (nameChanged) {
+          // Delete old, upsert new
+          state.supabaseClient.from('categories').delete().match({ user_id: state.currentUser.id, name: oldName })
+            .then(() => {
+              state.supabaseClient.from('categories').upsert({ user_id: state.currentUser.id, name: cat.name, type: cat.type, icon: cat.icon, color: cat.color, hidden: cat.hidden }, { onConflict: 'user_id,name' })
+                .then(({ error }) => { if (error) console.warn('Cloud category rename sync warning:', error); });
+            });
+          if (transactionsUpdated > 0) {
+            state.supabaseClient.from('transactions').update({ category: name }).match({ user_id: state.currentUser.id, category: oldName })
+              .then(({ error }) => { if (error) console.warn('Cloud transactions rename warning:', error); });
+          }
+        } else {
+          // Only icon changed
+          state.supabaseClient.from('categories').upsert({ user_id: state.currentUser.id, name: cat.name, type: cat.type, icon: cat.icon, color: cat.color, hidden: cat.hidden }, { onConflict: 'user_id,name' })
+            .then(({ error }) => { if (error) console.warn('Cloud category icon sync warning:', error); });
+        }
+      } catch (e) {
+        console.warn('Cloud category edit sync failed:', e);
+      }
+    }
+    
+    closeNewCategoryDialog();
+    updateCategoryDropdowns(newCategoryDialogType, true);
+    updateUI();
+    showSyncToast(state.lang === 'el' ? '✓ Κατηγορία ενημερώθηκε' : '✓ Category updated', 2000);
+    return;
+  }
+  
+  // === CREATE MODE: New category ===
   // Check for duplicate
   const exists = state.categories.find(c => 
     c.name && c.name.toUpperCase() === name.toUpperCase()

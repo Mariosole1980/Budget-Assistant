@@ -2725,9 +2725,10 @@ input:focus + .slider {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 12px;
-  padding: 8px 0;
+  padding: 12px 4px 8px 4px;
   max-height: 50vh;
   overflow-y: auto;
+  overflow-x: visible;
 }
 
 .category-picker-item {
@@ -4354,35 +4355,90 @@ body.modal-open {
   overflow: hidden !important;
 }
 
-/* Category Picker Edit Mode Overlay Styles */
+/* === Category Picker Native Edit Mode (iOS-style) === */
+
+/* Wiggle keyframes */
+@keyframes categoryWiggle {
+  0%   { transform: rotate(0deg); }
+  20%  { transform: rotate(-1.5deg); }
+  50%  { transform: rotate(1.5deg); }
+  80%  { transform: rotate(-1deg); }
+  100% { transform: rotate(0deg); }
+}
+@keyframes categoryWiggleAlt {
+  0%   { transform: rotate(0deg); }
+  20%  { transform: rotate(1.5deg); }
+  50%  { transform: rotate(-1.5deg); }
+  80%  { transform: rotate(1deg); }
+  100% { transform: rotate(0deg); }
+}
+
 .category-picker-item.in-edit-mode {
   position: relative;
-  overflow: hidden;
+  overflow: visible; /* allow badge to poke out */
+  animation: categoryWiggle 0.6s ease-in-out infinite;
+  transform-origin: center bottom;
+  cursor: pointer;
 }
-.category-item-edit-actions {
+
+.category-picker-item.in-edit-mode:nth-child(2n) {
+  animation-name: categoryWiggleAlt;
+  animation-delay: 0.08s;
+}
+
+.category-picker-item.in-edit-mode:nth-child(3n) {
+  animation-delay: 0.16s;
+}
+
+.category-picker-item.in-edit-mode:nth-child(4n) {
+  animation-name: categoryWiggleAlt;
+  animation-delay: 0.24s;
+}
+
+/* Red delete badge in top-right corner */
+.category-delete-badge {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(16, 16, 24, 0.95);
-  border-radius: 11px;
+  top: -7px;
+  right: -7px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #ef5350;
+  color: #fff;
+  font-size: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
+  border: 2px solid var(--bg-card, #161622);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+  cursor: pointer;
+  z-index: 10;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.category-delete-badge:hover,
+.category-delete-badge:active {
+  transform: scale(1.25);
+  background: #d32f2f;
+}
+
+/* Keep old .category-item-edit-actions and .cat-action-btn rules for any
+   legacy usage in category-manager-modal list view */
+.category-item-edit-actions {
+  display: flex;
+  align-items: center;
   gap: 8px;
-  padding: 4px;
 }
 .cat-action-btn {
-  width: 26px;
-  height: 26px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   background: var(--bg-card, #2c2c3e);
   color: var(--text-secondary, #a8a8b8);
-  font-size: 11px;
+  font-size: 12px;
   cursor: pointer;
   transition: all 0.2s ease;
   border: 1px solid var(--border);
@@ -4400,11 +4456,6 @@ body.modal-open {
 .cat-action-btn.rename-btn:hover {
   background: var(--blue-positive, #3b82f6);
   border-color: var(--blue-positive, #3b82f6);
-}
-.cat-action-btn-disabled {
-  color: var(--text-muted);
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 
