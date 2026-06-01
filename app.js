@@ -3188,19 +3188,36 @@ function setupEventListeners() {
     if (el) {
       const scrollHandler = () => {
         const row = el.closest('.form-row');
-        if (row) {
+        const body = el.closest('.modal-body');
+        if (row && body) {
           setTimeout(() => {
-            row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // Prevent panning the main window
+            window.scrollTo(0, 0);
+            document.body.scrollTop = 0;
+            
+            // Scroll inside modal-body only
+            const bodyRect = body.getBoundingClientRect();
+            const rowRect = row.getBoundingClientRect();
+            const relativeTop = rowRect.top - bodyRect.top + body.scrollTop;
+            const targetScrollTop = relativeTop - (bodyRect.height / 2) + (rowRect.height / 2);
+            body.scrollTo({
+              top: targetScrollTop,
+              behavior: 'smooth'
+            });
           }, 300); // Allow time for keyboard or UI adjustment to settle
         }
       };
       el.addEventListener('focus', () => {
         closeCalculatorKeypad();
         scrollHandler();
+        // Prevent panning the main window
+        setTimeout(() => { window.scrollTo(0, 0); document.body.scrollTop = 0; }, 50);
       });
       el.addEventListener('click', () => {
         closeCalculatorKeypad();
         scrollHandler();
+        // Prevent panning the main window
+        setTimeout(() => { window.scrollTo(0, 0); document.body.scrollTop = 0; }, 50);
       });
     }
   });
@@ -3407,9 +3424,21 @@ function setupEventListeners() {
     if (amountRow) {
       amountRow.querySelector('.form-row-value-container').classList.add('focused');
       // Scroll amount row to center of modal body
-      setTimeout(() => {
-        amountRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }, 300); // Delay to let the keypad container slide open first
+      const body = amountRow.closest('.modal-body');
+      if (body) {
+        setTimeout(() => {
+          window.scrollTo(0, 0);
+          document.body.scrollTop = 0;
+          const bodyRect = body.getBoundingClientRect();
+          const rowRect = amountRow.getBoundingClientRect();
+          const relativeTop = rowRect.top - bodyRect.top + body.scrollTop;
+          const targetScrollTop = relativeTop - (bodyRect.height / 2) + (rowRect.height / 2);
+          body.scrollTo({
+            top: targetScrollTop,
+            behavior: 'smooth'
+          });
+        }, 300);
+      }
     }
     state.calcBuffer = document.getElementById('trans-amount').value.replace(/\,/g, '.') || '';
   }
@@ -9073,3 +9102,191 @@ document.addEventListener('DOMContentLoaded', () => {
     document.documentElement.style.setProperty('--safe-area-bottom', '12px');
   }
 });
+
+// Dynamic Visual Viewport Height Adjustment (for virtual keyboard support)
+document.addEventListener('DOMContentLoaded', () => {
+  if (window.visualViewport) {
+    const updateViewportHeight = () => {
+      const height = window.visualViewport.height;
+      document.documentElement.style.setProperty('--viewport-height', `${height}px`);
+    };
+    window.visualViewport.addEventListener('resize', updateViewportHeight);
+    window.visualViewport.addEventListener('scroll', updateViewportHeight);
+    updateViewportHeight();
+  } else {
+    document.documentElement.style.setProperty('--viewport-height', '100vh');
+  }
+
+  // Prevent browser window from panning/scrolling up when inputs are focused in modals
+  window.addEventListener('scroll', () => {
+    if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) {
+      if (window.scrollY !== 0) {
+        window.scrollTo(0, 0);
+      }
+    }
+  });
+});
+
+// Custom Date Picker State Variables
+let customDatePickerSelectedDate = new Date();
+let customDatePickerViewingMonth = new Date();
+
+function openCustomDatePicker() {
+  const form = document.getElementById('transaction-form');
+  if (form && form.getAttribute('data-readonly') === 'true') return;
+  ensureHistoryPushed();
+  
+  const dateInput = document.getElementById('trans-date');
+  let currentDate = new Date();
+  if (dateInput && dateInput.value) {
+    const parsed = new Date(dateInput.value);
+    if (!isNaN(parsed.getTime())) {
+      currentDate = parsed;
+    }
+  }
+  
+  customDatePickerSelectedDate = new Date(currentDate);
+  customDatePickerViewingMonth = new Date(currentDate);
+  
+  // Populate hour and minute inputs
+  const hourInput = document.getElementById('custom-date-picker-hour');
+  const minuteInput = document.getElementById('custom-date-picker-minute');
+  if (hourInput && minuteInput) {
+    hourInput.value = String(currentDate.getHours()).padStart(2, '0');
+    minuteInput.value = String(currentDate.getMinutes()).padStart(2, '0');
+  }
+  
+  renderCustomDatePickerCalendar();
+  
+  // Open the modal
+  const modal = document.getElementById('custom-date-picker-modal');
+  if (modal) {
+    modal.classList.add('active');
+  }
+}
+
+window.openCustomDatePicker = openCustomDatePicker;
+
+function renderCustomDatePickerCalendar() {
+  const grid = document.getElementById('custom-date-picker-days-grid');
+  const monthYearLabel = document.getElementById('custom-date-picker-month-year');
+  if (!grid || !monthYearLabel) return;
+  
+  const year = customDatePickerViewingMonth.getFullYear();
+  const month = customDatePickerViewingMonth.getMonth();
+  
+  // Update Greek Month and Year title
+  monthYearLabel.textContent = `${GREEK_MONTHS[month]} ${year}`;
+  
+  grid.innerHTML = '';
+  
+  // Get first day of the month and its weekday (0 = Mon, 6 = Sun)
+  const firstDay = new Date(year, month, 1);
+  let firstDayIndex = firstDay.getDay(); // 0 = Sun, 1 = Mon ...
+  firstDayIndex = (firstDayIndex + 6) % 7; // Convert to Mon=0, Sun=6
+  
+  // Get total days in month
+  const totalDays = new Date(year, month + 1, 0).getDate();
+  
+  // Get total days in previous month for padding
+  const prevMonthTotalDays = new Date(year, month, 0).getDate();
+  
+  // Render previous month's padding days
+  for (let i = firstDayIndex - 1; i >= 0; i--) {
+    const dayNum = prevMonthTotalDays - i;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'calendar-day-btn other-month';
+    btn.textContent = dayNum;
+    grid.appendChild(btn);
+  }
+  
+  // Render current month's days
+  const today = new Date();
+  for (let d = 1; d <= totalDays; d++) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'calendar-day-btn';
+    btn.textContent = d;
+    
+    // Check if selected
+    if (d === customDatePickerSelectedDate.getDate() && 
+        month === customDatePickerSelectedDate.getMonth() && 
+        year === customDatePickerSelectedDate.getFullYear()) {
+      btn.classList.add('active');
+    }
+    
+    // Check if today
+    if (d === today.getDate() && 
+        month === today.getMonth() && 
+        year === today.getFullYear()) {
+      btn.classList.add('today');
+    }
+    
+    // Add click handler to select this day
+    btn.addEventListener('click', () => {
+      customDatePickerSelectedDate.setFullYear(year);
+      customDatePickerSelectedDate.setMonth(month);
+      customDatePickerSelectedDate.setDate(d);
+      renderCustomDatePickerCalendar();
+    });
+    
+    grid.appendChild(btn);
+  }
+  
+  // Render next month's padding days to complete grid (multiples of 7)
+  const totalRendered = firstDayIndex + totalDays;
+  const remaining = (7 - (totalRendered % 7)) % 7;
+  for (let i = 1; i <= remaining; i++) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'calendar-day-btn other-month';
+    btn.textContent = i;
+    grid.appendChild(btn);
+  }
+}
+
+function adjustCustomDatePickerMonth(direction) {
+  customDatePickerViewingMonth.setMonth(customDatePickerViewingMonth.getMonth() + direction);
+  renderCustomDatePickerCalendar();
+}
+
+window.adjustCustomDatePickerMonth = adjustCustomDatePickerMonth;
+
+function setCustomDatePickerValue() {
+  const hourInput = document.getElementById('custom-date-picker-hour');
+  const minuteInput = document.getElementById('custom-date-picker-minute');
+  if (hourInput && minuteInput) {
+    let hours = parseInt(hourInput.value, 10) || 0;
+    let minutes = parseInt(minuteInput.value, 10) || 0;
+    
+    // Validate bounds
+    if (hours < 0) hours = 0;
+    if (hours > 23) hours = 23;
+    if (minutes < 0) minutes = 0;
+    if (minutes > 59) minutes = 59;
+    
+    customDatePickerSelectedDate.setHours(hours);
+    customDatePickerSelectedDate.setMinutes(minutes);
+  }
+  
+  // Format as ISO Local String YYYY-MM-DDTHH:MM
+  const yyyy = customDatePickerSelectedDate.getFullYear();
+  const mm = String(customDatePickerSelectedDate.getMonth() + 1).padStart(2, '0');
+  const dd = String(customDatePickerSelectedDate.getDate()).padStart(2, '0');
+  const hh = String(customDatePickerSelectedDate.getHours()).padStart(2, '0');
+  const min = String(customDatePickerSelectedDate.getMinutes()).padStart(2, '0');
+  
+  const isoLocal = `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+  
+  const dateInput = document.getElementById('trans-date');
+  if (dateInput) {
+    dateInput.value = isoLocal;
+    // Dispatch input event to trigger UI formatting update
+    dateInput.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+  
+  closeModal('custom-date-picker-modal');
+}
+
+window.setCustomDatePickerValue = setCustomDatePickerValue;
