@@ -110,6 +110,8 @@ const state = {
   historyPushed: false,
 };
 
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
 function ensureHistoryPushed() {
   if (!state.historyPushed) {
     history.pushState({ appState: 'active' }, '', window.location.pathname + window.location.search);
@@ -3191,7 +3193,7 @@ function setupEventListeners() {
   });
 
   // Close keypad when other form fields are clicked or focused, and scroll them into view
-  ['trans-note', 'trans-description', 'trans-category', 'trans-account-from', 'trans-account-to', 'trans-date'].forEach(id => {
+  ['trans-note', 'trans-description', 'trans-category', 'trans-account-from', 'trans-account-to', 'trans-date', 'trans-subcategory-custom'].forEach(id => {
     const el = document.getElementById(id);
     if (el) {
       const scrollHandler = () => {
@@ -3200,14 +3202,25 @@ function setupEventListeners() {
         if (row && body) {
           setTimeout(() => {
             // Prevent panning the main window
-            window.scrollTo(0, 0);
-            document.body.scrollTop = 0;
+            if (!isIOS) {
+              window.scrollTo(0, 0);
+              document.body.scrollTop = 0;
+            }
             
             // Scroll inside modal-body only
             const bodyRect = body.getBoundingClientRect();
             const rowRect = row.getBoundingClientRect();
             const relativeTop = rowRect.top - bodyRect.top + body.scrollTop;
-            const targetScrollTop = relativeTop - (bodyRect.height / 2) + (rowRect.height / 2);
+            
+            let targetScrollTop;
+            if (el.tagName === 'INPUT' && (el.type === 'text' || el.id === 'trans-subcategory-custom')) {
+              // For text fields (Note, Description, Custom Subcategory), scroll to the top of the modal body
+              targetScrollTop = Math.max(0, relativeTop - 12);
+            } else {
+              // For other rows, scroll to the center
+              targetScrollTop = relativeTop - (bodyRect.height / 2) + (rowRect.height / 2);
+            }
+
             body.scrollTo({
               top: targetScrollTop,
               behavior: 'smooth'
@@ -3219,13 +3232,26 @@ function setupEventListeners() {
         closeCalculatorKeypad();
         scrollHandler();
         // Prevent panning the main window
-        setTimeout(() => { window.scrollTo(0, 0); document.body.scrollTop = 0; }, 50);
+        if (!isIOS) {
+          setTimeout(() => { window.scrollTo(0, 0); document.body.scrollTop = 0; }, 50);
+        }
       });
       el.addEventListener('click', () => {
         closeCalculatorKeypad();
         scrollHandler();
         // Prevent panning the main window
-        setTimeout(() => { window.scrollTo(0, 0); document.body.scrollTop = 0; }, 50);
+        if (!isIOS) {
+          setTimeout(() => { window.scrollTo(0, 0); document.body.scrollTop = 0; }, 50);
+        }
+      });
+      el.addEventListener('blur', () => {
+        if (isIOS) {
+          // Reset scroll when input loses focus on iOS
+          setTimeout(() => {
+            window.scrollTo(0, 0);
+            document.body.scrollTop = 0;
+          }, 80);
+        }
       });
     }
   });
@@ -3243,8 +3269,6 @@ function setupEventListeners() {
 
   const customSubcatInput = document.getElementById('trans-subcategory-custom');
   if (customSubcatInput) {
-    customSubcatInput.addEventListener('focus', closeCalculatorKeypad);
-    customSubcatInput.addEventListener('click', closeCalculatorKeypad);
     customSubcatInput.addEventListener('input', updateCategoryDisplay);
   }
 
@@ -9418,6 +9442,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Prevent browser window from panning/scrolling up when inputs are focused in modals
   window.addEventListener('scroll', () => {
+    if (isIOS) return; // Let iOS Safari handle its viewport panning during focus; we will reset on blur
     if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) {
       if (window.scrollY !== 0) {
         window.scrollTo(0, 0);
@@ -9702,15 +9727,14 @@ function renderNoteAutocomplete(query) {
   const allNotes = getUniqueNotes();
   const q = (query || '').trim();
 
-  let filtered;
   if (q.length === 0) {
-    // Show 7 most recent unique notes
-    filtered = allNotes.slice(0, 7);
-  } else {
-    filtered = allNotes
-      .filter(n => n.toLowerCase().includes(q.toLowerCase()))
-      .slice(0, 7);
+    dropdown.style.display = 'none';
+    return;
   }
+
+  const filtered = allNotes
+    .filter(n => n.toLowerCase().includes(q.toLowerCase()))
+    .slice(0, 7);
 
   if (filtered.length === 0) {
     dropdown.style.display = 'none';
@@ -9748,25 +9772,26 @@ function initNoteAutocomplete() {
   const dropdown = document.getElementById('note-autocomplete-dropdown');
   if (!noteInput || !dropdown) return;
 
-  // Remove any existing listeners by cloning
-  const newInput = noteInput.cloneNode(true);
-  noteInput.parentNode.replaceChild(newInput, noteInput);
+  if (noteInput.dataset.autocompleteBound === 'true') {
+    return;
+  }
+  noteInput.dataset.autocompleteBound = 'true';
 
-  newInput.addEventListener('focus', () => {
-    renderNoteAutocomplete(newInput.value);
+  noteInput.addEventListener('focus', () => {
+    renderNoteAutocomplete(noteInput.value);
   });
 
-  newInput.addEventListener('input', () => {
-    renderNoteAutocomplete(newInput.value);
+  noteInput.addEventListener('input', () => {
+    renderNoteAutocomplete(noteInput.value);
   });
 
-  newInput.addEventListener('blur', () => {
+  noteInput.addEventListener('blur', () => {
     // Small delay to allow pointerdown on dropdown item to fire first
     setTimeout(closeNoteAutocomplete, 150);
   });
 
   // Close if user presses Escape
-  newInput.addEventListener('keydown', (e) => {
+  noteInput.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') closeNoteAutocomplete();
   });
 }

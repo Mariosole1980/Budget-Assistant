@@ -4462,16 +4462,16 @@ body.modal-open {
 /* === Note Autocomplete Dropdown === */
 .note-autocomplete-dropdown {
   position: absolute;
-  bottom: calc(100% + 6px);
+  top: calc(100% + 6px);
   left: 0;
   right: 0;
   z-index: 9999;
   background: var(--bg-card, #1e2130);
   border: 1px solid var(--border, rgba(255,255,255,0.1));
   border-radius: 12px;
-  box-shadow: 0 -8px 24px rgba(0,0,0,0.45);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.45);
   overflow: hidden;
-  max-height: 240px;
+  max-height: 180px;
   overflow-y: auto;
 }
 
