@@ -7110,18 +7110,25 @@ async function registerBiometrics() {
     const userId = new Uint8Array(16);
     window.crypto.getRandomValues(userId);
 
+    const rpId = window.location.hostname;
     const credentialOptions = {
       publicKey: {
         challenge: randomChallenge,
-        rp: { name: "Budget Assistant" },
+        rp: { 
+          name: "Budget Assistant",
+          id: rpId
+        },
         user: {
           id: userId,
           name: "user@moneymanager.local",
           displayName: "Local User"
         },
-        pubKeyCredParams: [{ type: "public-key", alg: -7 }],
+        pubKeyCredParams: [
+          { type: "public-key", alg: -7 },   // ES256
+          { type: "public-key", alg: -257 }  // RS256
+        ],
         authenticatorSelection: {
-          userVerification: "required",
+          userVerification: "preferred", // preferred instead of required to maximize compatibility
           authenticatorAttachment: "platform"
         },
         timeout: 60000
@@ -7136,8 +7143,9 @@ async function registerBiometrics() {
     }
   } catch (err) {
     console.error("Biometrics registration failed:", err);
+    return err.name || err.message || String(err);
   }
-  return false;
+  return "Unknown error";
 }
 
 async function verifyBiometrics() {
@@ -7156,7 +7164,7 @@ async function verifyBiometrics() {
           id: rawId,
           type: "public-key"
         }],
-        userVerification: "required",
+        userVerification: "preferred", // preferred instead of required to match registration
         timeout: 60000
       }
     };
@@ -7258,14 +7266,14 @@ function toggleAppLock(checked) {
 async function toggleBiometrics(checked) {
   if (checked) {
     alert("Θα σας ζητηθεί να επιβεβαιώσετε την ταυτότητά σας (Face ID/Αποτύπωμα) στη συσκευή σας για να συνδεθεί με την εφαρμογή.");
-    const registered = await registerBiometrics();
-    if (registered) {
+    const result = await registerBiometrics();
+    if (result === true) {
       localStorage.setItem('app_biometrics_enabled', 'true');
       alert("✅ Το Face ID / Αποτύπωμα ενεργοποιήθηκε επιτυχώς!");
     } else {
       localStorage.removeItem('app_biometrics_enabled');
       document.getElementById('settings-biometrics').checked = false;
-      alert("❌ Αποτυχία σύνδεσης βιομετρικών.");
+      alert("❌ Αποτυχία σύνδεσης βιομετρικών. Αιτία: " + result);
     }
   } else {
     localStorage.removeItem('app_biometrics_enabled');
