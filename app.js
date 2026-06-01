@@ -7420,7 +7420,6 @@ function toggleAppLock(checked) {
 
 async function toggleBiometrics(checked) {
   if (checked) {
-    alert("Θα σας ζητηθεί να επιβεβαιώσετε την ταυτότητά σας (Face ID/Αποτύπωμα) στη συσκευή σας για να συνδεθεί με την εφαρμογή.");
     const result = await registerBiometrics();
     if (result === true) {
       localStorage.setItem('app_biometrics_enabled', 'true');
