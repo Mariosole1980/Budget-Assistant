@@ -3182,12 +3182,26 @@ function setupEventListeners() {
     });
   });
 
-  // Close keypad when other form fields are clicked or focused
+  // Close keypad when other form fields are clicked or focused, and scroll them into view
   ['trans-note', 'trans-description', 'trans-category', 'trans-account-from', 'trans-account-to', 'trans-date'].forEach(id => {
     const el = document.getElementById(id);
     if (el) {
-      el.addEventListener('focus', closeCalculatorKeypad);
-      el.addEventListener('click', closeCalculatorKeypad);
+      const scrollHandler = () => {
+        const row = el.closest('.form-row');
+        if (row) {
+          setTimeout(() => {
+            row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }, 300); // Allow time for keyboard or UI adjustment to settle
+        }
+      };
+      el.addEventListener('focus', () => {
+        closeCalculatorKeypad();
+        scrollHandler();
+      });
+      el.addEventListener('click', () => {
+        closeCalculatorKeypad();
+        scrollHandler();
+      });
     }
   });
 
@@ -3392,6 +3406,10 @@ function setupEventListeners() {
     const amountRow = document.getElementById('form-row-amount');
     if (amountRow) {
       amountRow.querySelector('.form-row-value-container').classList.add('focused');
+      // Scroll amount row to center of modal body
+      setTimeout(() => {
+        amountRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 300); // Delay to let the keypad container slide open first
     }
     state.calcBuffer = document.getElementById('trans-amount').value.replace(/\,/g, '.') || '';
   }
