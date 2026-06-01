@@ -3301,15 +3301,8 @@ function setupEventListeners() {
       })(),
       account_from: document.getElementById('trans-account-from').value,
       account_to: type === 'transfer' ? document.getElementById('trans-account-to').value : null,
-      note: (() => {
-        const descVal = document.getElementById('trans-description').value.trim();
-        const noteVal = document.getElementById('trans-note').value.trim();
-        if (descVal && noteVal) {
-          return `${descVal} (${noteVal})`;
-        }
-        return descVal || noteVal;
-      })(),
-      description: '',
+      note: document.getElementById('trans-note').value.trim(),
+      description: document.getElementById('trans-description').value.trim(),
     };
     if (id) {
       t.id = id;
@@ -3940,6 +3933,7 @@ function openAddTransactionModal() {
   setTransactionFormType('expense');
 
   openModal('transaction-modal');
+  setTimeout(() => initNoteAutocomplete(), 50);
 }
 
 function openEditTransactionModal(t) {
@@ -3967,15 +3961,9 @@ function openEditTransactionModal(t) {
   
   document.getElementById('trans-amount').value = String(t.amount);
   
-  let descVal = t.note || '';
-  let noteVal = '';
-  const match = descVal.match(/^(.*) \((.*)\)$/);
-  if (match) {
-    descVal = match[1];
-    noteVal = match[2];
-  }
-  document.getElementById('trans-description').value = descVal;
-  document.getElementById('trans-note').value        = noteVal;
+  // Load note (primary title) and description (secondary) separately
+  document.getElementById('trans-note').value        = t.note || '';
+  document.getElementById('trans-description').value = t.description || '';
   
   if (shouldLock) {
     document.getElementById('trans-delete-btn').style.display = 'none';
@@ -4034,6 +4022,7 @@ function openEditTransactionModal(t) {
     }
   }, 10);
   openModal('transaction-modal');
+  setTimeout(() => initNoteAutocomplete(), 50);
 }
 
 // ============================================================
@@ -9674,3 +9663,113 @@ function setCustomDatePickerValue() {
 }
 
 window.setCustomDatePickerValue = setCustomDatePickerValue;
+
+// ============================================================
+// FEATURE: NOTE FIELD SMART AUTOCOMPLETE
+// ============================================================
+
+function highlightMatch(text, query) {
+  if (!query) return text;
+  // Escape special regex chars
+  const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const regex = new RegExp(`(${escaped})`, 'gi');
+  return text.replace(regex, '<span class="note-match-highlight">$1</span>');
+}
+
+function getUniqueNotes() {
+  const seen = new Set();
+  const notes = [];
+  // Sort by most recent first
+  const sorted = [...state.transactions].sort((a, b) => {
+    const da = a.date ? new Date(a.date) : new Date(0);
+    const db = b.date ? new Date(b.date) : new Date(0);
+    return db - da;
+  });
+  for (const t of sorted) {
+    const n = (t.note || '').trim();
+    if (n && !seen.has(n.toLowerCase())) {
+      seen.add(n.toLowerCase());
+      notes.push(n);
+    }
+  }
+  return notes;
+}
+
+function renderNoteAutocomplete(query) {
+  const dropdown = document.getElementById('note-autocomplete-dropdown');
+  if (!dropdown) return;
+
+  const allNotes = getUniqueNotes();
+  const q = (query || '').trim();
+
+  let filtered;
+  if (q.length === 0) {
+    // Show 7 most recent unique notes
+    filtered = allNotes.slice(0, 7);
+  } else {
+    filtered = allNotes
+      .filter(n => n.toLowerCase().includes(q.toLowerCase()))
+      .slice(0, 7);
+  }
+
+  if (filtered.length === 0) {
+    dropdown.style.display = 'none';
+    return;
+  }
+
+  dropdown.innerHTML = '';
+  filtered.forEach(note => {
+    const item = document.createElement('div');
+    item.className = 'note-autocomplete-item';
+    item.innerHTML = `<i class="fa-solid fa-clock-rotate-left" style="color:var(--text-muted);font-size:11px;flex-shrink:0;"></i><span style="overflow:hidden;text-overflow:ellipsis;">${highlightMatch(note, q)}</span>`;
+    // Use pointerdown so it fires before blur closes the dropdown
+    item.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      const noteInput = document.getElementById('trans-note');
+      if (noteInput) {
+        noteInput.value = note;
+        noteInput.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+      closeNoteAutocomplete();
+    });
+    dropdown.appendChild(item);
+  });
+
+  dropdown.style.display = 'block';
+}
+
+function closeNoteAutocomplete() {
+  const dropdown = document.getElementById('note-autocomplete-dropdown');
+  if (dropdown) dropdown.style.display = 'none';
+}
+
+function initNoteAutocomplete() {
+  const noteInput = document.getElementById('trans-note');
+  const dropdown = document.getElementById('note-autocomplete-dropdown');
+  if (!noteInput || !dropdown) return;
+
+  // Remove any existing listeners by cloning
+  const newInput = noteInput.cloneNode(true);
+  noteInput.parentNode.replaceChild(newInput, noteInput);
+
+  newInput.addEventListener('focus', () => {
+    renderNoteAutocomplete(newInput.value);
+  });
+
+  newInput.addEventListener('input', () => {
+    renderNoteAutocomplete(newInput.value);
+  });
+
+  newInput.addEventListener('blur', () => {
+    // Small delay to allow pointerdown on dropdown item to fire first
+    setTimeout(closeNoteAutocomplete, 150);
+  });
+
+  // Close if user presses Escape
+  newInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeNoteAutocomplete();
+  });
+}
+
+window.initNoteAutocomplete = initNoteAutocomplete;
+window.closeNoteAutocomplete = closeNoteAutocomplete;

@@ -422,11 +422,11 @@
           <span class="settings-item-value"><i class="fa-solid fa-arrow-up-right-from-square" style="font-size:12px;"></i></span>
         </div>
         <div class="settings-list-item">
-          <span class="settings-item-label" style="color: var(--text-muted); font-size: 12px;" data-i18n="app_version">Έκδοση 1.0.0 (build v158)</span>
+          <span class="settings-item-label" style="color: var(--text-muted); font-size: 12px;" data-i18n="app_version">Έκδοση 1.0.0 (build v159)</span>
           <span class="settings-item-value" style="font-size: 12px;">Budget Assistant</span>
         </div>
         <div class="settings-list-item" style="justify-content: center; padding: 6px 16px; min-height: auto;">
-          <span id="deploy-timestamp" style="color: var(--text-muted); font-size: 10px; opacity: 0.6;">Deploy v158 · 01/06/2026 12:42</span>
+          <span id="deploy-timestamp" style="color: var(--text-muted); font-size: 10px; opacity: 0.6;">Deploy v159 · 01/06/2026 12:57</span>
         </div>
       </section>
 
@@ -559,8 +559,9 @@
             <!-- Note Row -->
             <div class="form-row">
               <label class="form-row-label" data-i18n="row_note">Σημείωση</label>
-              <div class="form-row-value-container">
-                <input type="text" id="trans-note" class="form-row-input" placeholder="Πατήστε για σημείωση">
+              <div class="form-row-value-container" style="position: relative;">
+                <div id="note-autocomplete-dropdown" class="note-autocomplete-dropdown" style="display:none;"></div>
+                <input type="text" id="trans-note" class="form-row-input" placeholder="Πατήστε για σημείωση" autocomplete="off">
               </div>
             </div>
 

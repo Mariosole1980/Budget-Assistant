@@ -4459,3 +4459,48 @@ body.modal-open {
 }
 
 
+/* === Note Autocomplete Dropdown === */
+.note-autocomplete-dropdown {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  background: var(--bg-card, #1e2130);
+  border: 1px solid var(--border, rgba(255,255,255,0.1));
+  border-radius: 12px;
+  box-shadow: 0 -8px 24px rgba(0,0,0,0.45);
+  overflow: hidden;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.note-autocomplete-item {
+  padding: 11px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-main, #e3e8f0);
+  cursor: pointer;
+  border-bottom: 1px solid var(--border-light, rgba(255,255,255,0.05));
+  transition: background 0.15s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.note-autocomplete-item:last-child {
+  border-bottom: none;
+}
+
+.note-autocomplete-item:hover,
+.note-autocomplete-item:active {
+  background: rgba(255,255,255,0.06);
+}
+
+.note-autocomplete-item .note-match-highlight {
+  color: var(--accent, #e05e55);
+  font-weight: 700;
+}
