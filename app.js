@@ -6736,8 +6736,26 @@ function initSettingsFromStorage() {
   const weekStart = localStorage.getItem('app_week_start') || '1';
   const currency = localStorage.getItem('app_currency') || 'EUR';
   const theme = localStorage.getItem('app_theme') || 'dark';
-  const appLockEnabled = localStorage.getItem('app_lock_enabled') === 'true';
-  const appBiometricsEnabled = localStorage.getItem('app_biometrics_enabled') === 'true';
+  
+  let appLockEnabled = localStorage.getItem('app_lock_enabled') === 'true';
+  let appBiometricsEnabled = localStorage.getItem('app_biometrics_enabled') === 'true';
+
+  // Force state consistency between PIN lock and Biometrics
+  if (appBiometricsEnabled) {
+    const savedPin = localStorage.getItem('app_pin');
+    if (!savedPin) {
+      // If biometrics are active but no PIN is saved as a backup, disable both to prevent lockout
+      localStorage.removeItem('app_biometrics_enabled');
+      localStorage.removeItem('biometric_cred_id');
+      localStorage.removeItem('app_lock_enabled');
+      appBiometricsEnabled = false;
+      appLockEnabled = false;
+    } else if (!appLockEnabled) {
+      // If biometrics are active and backup PIN exists, ensure PIN lock is marked enabled
+      localStorage.setItem('app_lock_enabled', 'true');
+      appLockEnabled = true;
+    }
+  }
 
   const appLockCheckbox = document.getElementById('settings-app-lock');
   if (appLockCheckbox) appLockCheckbox.checked = appLockEnabled;
