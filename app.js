@@ -9166,7 +9166,7 @@ function setupTimeWheelScrollListeners() {
     
     const updateSelection = () => {
       const scrollTop = scrollEl.scrollTop;
-      const selectedIndex = Math.round(scrollTop / 40);
+      const selectedIndex = Math.round(scrollTop / 60);
       const items = scrollEl.querySelectorAll('.time-wheel-item');
       items.forEach((item, idx) => {
         if (idx === selectedIndex) {
@@ -9195,9 +9195,25 @@ function openCustomDatePicker() {
   const dateInput = document.getElementById('trans-date');
   let currentDate = new Date();
   if (dateInput && dateInput.value) {
-    const parsed = new Date(dateInput.value);
-    if (!isNaN(parsed.getTime())) {
-      currentDate = parsed;
+    // Timezone-safe manual parsing of local date-time YYYY-MM-DDTHH:MM
+    const parts = dateInput.value.split('T');
+    if (parts.length === 2) {
+      const dateParts = parts[0].split('-');
+      const timeParts = parts[1].split(':');
+      if (dateParts.length === 3 && timeParts.length >= 2) {
+        currentDate = new Date(
+          parseInt(dateParts[0], 10),
+          parseInt(dateParts[1], 10) - 1,
+          parseInt(dateParts[2], 10),
+          parseInt(timeParts[0], 10),
+          parseInt(timeParts[1], 10)
+        );
+      }
+    } else {
+      const parsed = new Date(dateInput.value);
+      if (!isNaN(parsed.getTime())) {
+        currentDate = parsed;
+      }
     }
   }
   
@@ -9237,11 +9253,11 @@ function openCustomDatePicker() {
   setTimeout(() => {
     const hs = document.getElementById('scroll-hours');
     if (hs) {
-      hs.scrollTop = currentDate.getHours() * 40;
+      hs.scrollTop = currentDate.getHours() * 60;
     }
     const ms = document.getElementById('scroll-minutes');
     if (ms) {
-      ms.scrollTop = currentDate.getMinutes() * 40;
+      ms.scrollTop = currentDate.getMinutes() * 60;
     }
   }, 100);
 }
@@ -9340,12 +9356,12 @@ function setCustomDatePickerValue() {
   let hours = 0;
   let minutes = 0;
   if (hoursScroll) {
-    hours = Math.round(hoursScroll.scrollTop / 40);
+    hours = Math.round(hoursScroll.scrollTop / 60);
     if (hours < 0) hours = 0;
     if (hours > 23) hours = 23;
   }
   if (minutesScroll) {
-    minutes = Math.round(minutesScroll.scrollTop / 40);
+    minutes = Math.round(minutesScroll.scrollTop / 60);
     if (minutes < 0) minutes = 0;
     if (minutes > 59) minutes = 59;
   }
