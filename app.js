@@ -6924,19 +6924,12 @@ async function checkBiometricsSupport() {
   }
   
   if (window.PublicKeyCredential) {
-    try {
-      const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
-      if (available) {
-        container.style.display = 'flex';
-        const enabled = localStorage.getItem('app_biometrics_enabled') === 'true';
-        toggle.checked = enabled;
-        return;
-      }
-    } catch (e) {
-      console.log('Biometrics support check failed:', e);
-    }
+    container.style.display = 'flex';
+    const enabled = localStorage.getItem('app_biometrics_enabled') === 'true';
+    toggle.checked = enabled;
+  } else {
+    container.style.display = 'none';
   }
-  container.style.display = 'none';
 }
 
 async function registerBiometrics() {
