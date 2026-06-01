@@ -4259,6 +4259,105 @@ function inlineDeleteCustomCategory(categoryName, type) {
   updateUI();
 }
 
+function inlineRenameCategory(categoryName, type) {
+  const cat = state.categories.find(c => c.name === categoryName);
+  if (!cat) return;
+  
+  const currentDisplayName = getCategoryDisplayName(categoryName);
+  const newName = prompt(
+    state.lang === 'el' ? 'Εισάγετε το νέο όνομα της κατηγορίας:' : 'Enter the new category name:',
+    currentDisplayName
+  );
+  
+  if (newName === null) return; // User cancelled
+  const trimmed = newName.trim();
+  if (trimmed === '') {
+    alert(state.lang === 'el' ? 'Το όνομα δεν μπορεί να είναι κενό!' : 'Category name cannot be empty!');
+    return;
+  }
+  
+  // If the display name did not change, do nothing
+  if (trimmed === currentDisplayName) return;
+  
+  // Check if another category with the same name and type already exists
+  const exists = state.categories.find(c => c.type === type && getCategoryDisplayName(c.name).toLowerCase() === trimmed.toLowerCase());
+  if (exists) {
+    alert(
+      state.lang === 'el' 
+        ? 'Υπάρχει ήδη κατηγορία με αυτό το όνομα!' 
+        : 'A category with this name already exists!'
+    );
+    return;
+  }
+  
+  const oldName = cat.name;
+  
+  // Update category name
+  cat.name = trimmed;
+  
+  // Update all transactions that were using the old category name
+  let transactionsUpdated = 0;
+  state.transactions.forEach(t => {
+    if (t.category === oldName) {
+      t.category = trimmed;
+      transactionsUpdated++;
+    }
+  });
+  
+  saveCategoriesToStorage();
+  
+  if (transactionsUpdated > 0) {
+    localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
+  }
+  
+  // Sync to Cloud if enabled
+  if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
+    try {
+      // 1. Delete the old category from cloud
+      state.supabaseClient
+        .from('categories')
+        .delete()
+        .match({ user_id: state.currentUser.id, name: oldName })
+        .then(({ error }) => {
+          if (error) console.warn('Cloud category old name delete warning:', error);
+          
+          // 2. Upsert the renamed category
+          state.supabaseClient
+            .from('categories')
+            .upsert({
+              user_id: state.currentUser.id,
+              name: cat.name,
+              type: cat.type,
+              icon: cat.icon,
+              color: cat.color,
+              hidden: cat.hidden
+            }, { onConflict: 'user_id,name' })
+            .then(({ error: upsertErr }) => {
+              if (upsertErr) console.warn('Cloud category renamed sync warning:', upsertErr);
+            });
+        });
+        
+      // 3. Update transactions in Supabase if any were updated locally
+      if (transactionsUpdated > 0) {
+        state.supabaseClient
+          .from('transactions')
+          .update({ category: trimmed })
+          .match({ user_id: state.currentUser.id, category: oldName })
+          .then(({ error: transErr }) => {
+            if (transErr) console.warn('Cloud transactions category update warning:', transErr);
+          });
+      }
+    } catch (e) {
+      console.warn('Cloud category rename sync failed:', e);
+    }
+  }
+  
+  updateCategoryDropdowns(type, true);
+  updateUI();
+}
+
+window.inlineRenameCategory = inlineRenameCategory;
+
 let lastRenderedCategoryType = null;
 let lastRenderedCategoryEditMode = null;
 
@@ -4294,7 +4393,6 @@ function updateCategoryDropdowns(type = 'expense', force = false) {
     div.className = 'category-picker-item';
     div.setAttribute('data-category-name', c.name);
     
-    const isCustom = !DEFAULT_CATEGORIES.find(dc => dc.name === c.name);
     const displayName = getCategoryDisplayName(c.name);
     
     if (categoryPickerEditMode) {
@@ -4302,16 +4400,17 @@ function updateCategoryDropdowns(type = 'expense', force = false) {
       div.innerHTML = `
         <span class="category-picker-icon">${c.icon}</span>
         <span class="category-picker-name" style="opacity:${c.hidden ? '0.4' : '1'};">${displayName}</span>
-        ${isCustom ? `
-          <div class="category-item-edit-actions">
-            <span class="cat-action-btn hide-btn" onclick="event.stopPropagation(); inlineToggleCategoryHidden('${c.name}', '${type}')" title="${c.hidden ? (state.lang === 'el' ? 'Εμφάνιση' : 'Show') : (state.lang === 'el' ? 'Απόκρυψη' : 'Hide')}">
-              <i class="fa-solid ${c.hidden ? 'fa-eye-slash' : 'fa-eye'}"></i>
-            </span>
-            <span class="cat-action-btn delete-btn" onclick="event.stopPropagation(); inlineDeleteCustomCategory('${c.name}', '${type}')" title="${state.lang === 'el' ? 'Διαγραφή' : 'Delete'}">
-              <i class="fa-solid fa-trash"></i>
-            </span>
-          </div>
-        ` : `<div class="category-item-edit-actions"><span class="cat-action-btn-disabled" title="${state.lang === 'el' ? 'Προεπιλεγμένη' : 'System Default'}"><i class="fa-solid fa-lock"></i></span></div>`}
+        <div class="category-item-edit-actions">
+          <span class="cat-action-btn rename-btn" onclick="event.stopPropagation(); inlineRenameCategory('${c.name}', '${type}')" title="${state.lang === 'el' ? 'Μετονομασία' : 'Rename'}">
+            <i class="fa-solid fa-pen"></i>
+          </span>
+          <span class="cat-action-btn hide-btn" onclick="event.stopPropagation(); inlineToggleCategoryHidden('${c.name}', '${type}')" title="${c.hidden ? (state.lang === 'el' ? 'Εμφάνιση' : 'Show') : (state.lang === 'el' ? 'Απόκρυψη' : 'Hide')}">
+            <i class="fa-solid ${c.hidden ? 'fa-eye-slash' : 'fa-eye'}"></i>
+          </span>
+          <span class="cat-action-btn delete-btn" onclick="event.stopPropagation(); inlineDeleteCustomCategory('${c.name}', '${type}')" title="${state.lang === 'el' ? 'Διαγραφή' : 'Delete'}">
+            <i class="fa-solid fa-trash"></i>
+          </span>
+        </div>
       `;
     } else {
       if (c.name === currentCategory) {
