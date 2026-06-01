@@ -2193,7 +2193,14 @@ function updateUI() {
   else if (state.activeTab === 'stats') renderStatsTab();
   else if (state.activeTab === 'accounts') renderAccountsTab();
   else if (state.activeTab === 'more') renderPartnerSection();
-  updateCategoryDropdowns();
+  
+  // Clear category render cache on UI refresh to pick up updates
+  lastRenderedCategoryType = null;
+  
+  const activeTypeBtn = document.querySelector('.type-tab-btn.active');
+  const currentType = activeTypeBtn ? activeTypeBtn.getAttribute('data-type') : 'expense';
+  
+  updateCategoryDropdowns(currentType);
   updateAccountDropdowns();
   updateCurrencySymbols();
 }
@@ -2589,6 +2596,7 @@ function getSubcategoryDisplayName(subName, categoryName) {
 
 function saveCategoriesToStorage() {
   localStorage.setItem('offline_categories', JSON.stringify(state.categories));
+  lastRenderedCategoryType = null;
 }
 
 // ============================================================
@@ -4251,10 +4259,21 @@ function inlineDeleteCustomCategory(categoryName, type) {
   updateUI();
 }
 
-function updateCategoryDropdowns(type = 'expense') {
+let lastRenderedCategoryType = null;
+let lastRenderedCategoryEditMode = null;
+
+function updateCategoryDropdowns(type = 'expense', force = false) {
   const grid = document.getElementById('category-picker-grid');
   if (!grid) return;
+  
+  // Performance optimization to prevent modal opening lag
+  if (!force && lastRenderedCategoryType === type && lastRenderedCategoryEditMode === categoryPickerEditMode) {
+    return;
+  }
+  
   grid.innerHTML = '';
+  lastRenderedCategoryType = type;
+  lastRenderedCategoryEditMode = categoryPickerEditMode;
   
   const currentCategory = document.getElementById('trans-category').value;
   let categoryExists = false;
@@ -4388,7 +4407,8 @@ function openCategoryModal() {
     btn.style.color = 'var(--text-secondary)';
   }
   
-  updateCategoryDropdowns(currentType);
+  // Force update to prevent any stale flash or lag when switching tabs
+  updateCategoryDropdowns(currentType, true);
   closeNewCategoryDialog(); // Reset dialog state
   openModal('category-picker-modal');
 }

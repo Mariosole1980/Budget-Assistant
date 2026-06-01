@@ -4295,7 +4295,7 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 /* Custom OLED Time Picker Scroll Wheels */
 .time-wheel-container {
   position: relative;
-  width: 72px;
+  width: 120px;
   height: 120px;
   background: #000000;
   border: 1px solid var(--border);
@@ -4318,7 +4318,7 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   height: 40px;
   line-height: 40px;
   text-align: center;
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 700;
   color: var(--text-muted, #8a8f99);
   scroll-snap-align: center;
