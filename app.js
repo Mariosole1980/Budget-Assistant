@@ -3754,6 +3754,9 @@ function openModal(id)  {
 }
 function closeModal(id) {
   document.getElementById(id).classList.remove('active');
+  if (id === 'transaction-modal' && typeof window.closeCalculatorKeypad === 'function') {
+    window.closeCalculatorKeypad();
+  }
 }
 
 function toggleTransactionFormLock(locked) {
@@ -3839,6 +3842,9 @@ function toggleTransactionFormLock(locked) {
 }
 
 function openAddTransactionModal() {
+  if (typeof window.closeCalculatorKeypad === 'function') {
+    window.closeCalculatorKeypad();
+  }
   toggleTransactionFormLock(false);
   document.getElementById('transaction-form').reset();
   document.getElementById('trans-id').value = '';
@@ -3876,6 +3882,9 @@ function openAddTransactionModal() {
 }
 
 function openEditTransactionModal(t) {
+  if (typeof window.closeCalculatorKeypad === 'function') {
+    window.closeCalculatorKeypad();
+  }
   const isFamilyMember = state.userProfile && state.userProfile.family_id;
   const isNotAdmin = state.userProfile && state.userProfile.role !== 'admin';
   const isNotOwner = t.user_id && state.currentUser && t.user_id !== state.currentUser.id;
@@ -4044,39 +4053,54 @@ function updateSubcategoryRowVisibility() {
 }
 
 function setTransactionFormType(type) {
-  const form = document.getElementById('transaction-form');
-  if (form && form.getAttribute('data-readonly') === 'true') return;
-  document.querySelectorAll('.type-tab-btn').forEach(btn =>
-    btn.classList.toggle('active', btn.getAttribute('data-type') === type)
-  );
-  
-  const modalEl = document.getElementById('transaction-modal');
-  if (modalEl) {
-    modalEl.classList.remove('expense', 'income', 'transfer');
-    modalEl.classList.add(type);
-  }
-  
-  let typeLabel = TRANSLATIONS[state.lang]['type_tab_expense'];
-  if (type === 'income') typeLabel = TRANSLATIONS[state.lang]['type_tab_income'];
-  else if (type === 'transfer') typeLabel = TRANSLATIONS[state.lang]['type_tab_transfer'];
-  document.getElementById('modal-trans-title').textContent = typeLabel;
-  
-  const catGroup      = document.getElementById('form-row-category');
-  const toAccGroup    = document.getElementById('form-row-account-to');
-  const fromAccLabel  = document.getElementById('label-account-from');
-  
-  if (type === 'transfer') {
-    if (catGroup) catGroup.style.display = 'none';
-    updateSubcategoryRowVisibility();
-    if (toAccGroup) toAccGroup.style.display = 'flex';
-    if (fromAccLabel) fromAccLabel.textContent = TRANSLATIONS[state.lang]['label_from'];
-  } else {
-    if (catGroup) catGroup.style.display = 'flex';
-    updateSubcategoryRowVisibility();
-    if (toAccGroup) toAccGroup.style.display = 'none';
-    if (fromAccLabel) fromAccLabel.textContent = TRANSLATIONS[state.lang]['label_account'];
-    updateCategoryDropdowns(type);
-    updateSubcategorySuggestions();
+  try {
+    if (!type) type = 'expense';
+    const form = document.getElementById('transaction-form');
+    if (form && form.getAttribute('data-readonly') === 'true') return;
+    
+    document.querySelectorAll('.type-tab-btn').forEach(btn => {
+      const btnType = btn.getAttribute('data-type');
+      if (btnType) {
+        btn.classList.toggle('active', btnType === type);
+      }
+    });
+    
+    const modalEl = document.getElementById('transaction-modal');
+    if (modalEl) {
+      modalEl.classList.remove('expense', 'income', 'transfer');
+      modalEl.classList.add(type);
+    }
+    
+    const currentLang = state.lang || 'el';
+    const langDict = TRANSLATIONS[currentLang] || TRANSLATIONS['el'];
+    let typeLabel = langDict['type_tab_expense'] || 'Έξοδο';
+    if (type === 'income') typeLabel = langDict['type_tab_income'] || 'Έσοδο';
+    else if (type === 'transfer') typeLabel = langDict['type_tab_transfer'] || 'Μεταφορά';
+    
+    const titleEl = document.getElementById('modal-trans-title');
+    if (titleEl) {
+      titleEl.textContent = typeLabel;
+    }
+    
+    const catGroup      = document.getElementById('form-row-category');
+    const toAccGroup    = document.getElementById('form-row-account-to');
+    const fromAccLabel  = document.getElementById('label-account-from');
+    
+    if (type === 'transfer') {
+      if (catGroup) catGroup.style.display = 'none';
+      updateSubcategoryRowVisibility();
+      if (toAccGroup) toAccGroup.style.display = 'flex';
+      if (fromAccLabel) fromAccLabel.textContent = langDict['label_from'] || 'Από';
+    } else {
+      if (catGroup) catGroup.style.display = 'flex';
+      updateSubcategoryRowVisibility();
+      if (toAccGroup) toAccGroup.style.display = 'none';
+      if (fromAccLabel) fromAccLabel.textContent = langDict['label_account'] || 'Λογαριασμός';
+      updateCategoryDropdowns(type);
+      updateSubcategorySuggestions();
+    }
+  } catch (err) {
+    console.error('Error in setTransactionFormType:', err);
   }
 }
 
@@ -4185,17 +4209,27 @@ function updateCategoryDropdowns(type = 'expense') {
   // Filter by type. In edit mode, show all. Otherwise, hide hidden categories.
   const visibleCategories = state.categories.filter(c => c.type === type && (categoryPickerEditMode || !c.hidden));
   
+  // Sort categories alphabetically based on display name in the active language
+  const lang = state.lang || 'el';
+  visibleCategories.sort((a, b) => {
+    const nameA = getCategoryDisplayName(a.name);
+    const nameB = getCategoryDisplayName(b.name);
+    return nameA.localeCompare(nameB, lang === 'el' ? 'el' : 'en', { sensitivity: 'base' });
+  });
+  
   visibleCategories.forEach(c => {
     const div = document.createElement('div');
     div.className = 'category-picker-item';
+    div.setAttribute('data-category-name', c.name);
     
     const isCustom = !DEFAULT_CATEGORIES.find(dc => dc.name === c.name);
+    const displayName = getCategoryDisplayName(c.name);
     
     if (categoryPickerEditMode) {
       div.classList.add('in-edit-mode');
       div.innerHTML = `
         <span class="category-picker-icon">${c.icon}</span>
-        <span class="category-picker-name" style="opacity:${c.hidden ? '0.4' : '1'};">${stripLeadingEmoji(c.name)}</span>
+        <span class="category-picker-name" style="opacity:${c.hidden ? '0.4' : '1'};">${displayName}</span>
         ${isCustom ? `
           <div class="category-item-edit-actions">
             <span class="cat-action-btn hide-btn" onclick="event.stopPropagation(); inlineToggleCategoryHidden('${c.name}', '${type}')" title="${c.hidden ? (state.lang === 'el' ? 'Εμφάνιση' : 'Show') : (state.lang === 'el' ? 'Απόκρυψη' : 'Hide')}">
@@ -4212,7 +4246,7 @@ function updateCategoryDropdowns(type = 'expense') {
         div.classList.add('selected');
         categoryExists = true;
       }
-      div.innerHTML = `<span class="category-picker-icon">${c.icon}</span><span class="category-picker-name">${stripLeadingEmoji(c.name)}</span>`;
+      div.innerHTML = `<span class="category-picker-icon">${c.icon}</span><span class="category-picker-name">${displayName}</span>`;
       div.onclick = () => selectCategory(c.name, c.icon, c.color, true);
     }
     
@@ -4238,8 +4272,7 @@ function selectCategory(name, icon, color, isManual = false) {
   document.getElementById('trans-category').value = name;
   document.querySelectorAll('.category-picker-item').forEach(item => {
     item.classList.remove('selected');
-    const nameEl = item.querySelector('.category-picker-name');
-    if (nameEl && nameEl.textContent === stripLeadingEmoji(name)) {
+    if (item.getAttribute('data-category-name') === name) {
       item.classList.add('selected');
     }
   });
@@ -4435,8 +4468,7 @@ function saveNewCategoryFromPicker() {
   document.getElementById('trans-category').value = newCategory.name;
   document.querySelectorAll('.category-picker-item').forEach(item => {
     item.classList.remove('selected');
-    const nameEl = item.querySelector('.category-picker-name');
-    if (nameEl && nameEl.textContent === name) {
+    if (item.getAttribute('data-category-name') === newCategory.name) {
       item.classList.add('selected');
     }
   });
