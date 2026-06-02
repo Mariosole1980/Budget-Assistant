@@ -3269,15 +3269,19 @@ function setupEventListeners() {
             const isAnotherInputFocused = activeEl && textInputs.includes(activeEl.id);
             if (!isAnotherInputFocused) {
               document.body.classList.remove('keyboard-active');
+              
+              // Reset scroll when input loses focus and keyboard actually closes
+              window.scrollTo(0, 0);
+              document.body.scrollTop = 0;
             }
-          }, 50);
+          }, 80);
+        } else {
+          // Reset scroll when input loses focus
+          setTimeout(() => {
+            window.scrollTo(0, 0);
+            document.body.scrollTop = 0;
+          }, 80);
         }
-        
-        // Reset scroll when input loses focus
-        setTimeout(() => {
-          window.scrollTo(0, 0);
-          document.body.scrollTop = 0;
-        }, 80);
       });
     }
   });
