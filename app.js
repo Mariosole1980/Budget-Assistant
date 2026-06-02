@@ -9468,17 +9468,51 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Dynamic Visual Viewport Height Adjustment (for virtual keyboard support)
 document.addEventListener('DOMContentLoaded', () => {
+  let maxViewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+
   if (window.visualViewport) {
     const updateViewportHeight = () => {
       const height = window.visualViewport.height;
       const offsetTop = window.visualViewport.offsetTop;
-      const keyboardHeight = window.innerHeight - height;
+      
+      // Update max viewport height on rotation or window resize when no keyboard is visible
+      if (height > maxViewportHeight) {
+        maxViewportHeight = height;
+      }
+      
+      const keyboardHeight = isIOS ? (window.innerHeight - height) : 0;
+      
       document.documentElement.style.setProperty('--viewport-height', `${height}px`);
       document.documentElement.style.setProperty('--viewport-offset-top', `${offsetTop}px`);
       document.documentElement.style.setProperty('--keyboard-height', `${Math.max(0, keyboardHeight)}px`);
+      
+      // Detect if keyboard is open
+      const isInputFocused = document.activeElement && 
+                             (document.activeElement.tagName === 'INPUT' || 
+                              document.activeElement.tagName === 'TEXTAREA');
+      const isKeyboardOpen = ((maxViewportHeight - height) > 120) && isInputFocused;
+      
+      if (isKeyboardOpen) {
+        document.body.classList.add('keyboard-active');
+      } else {
+        document.body.classList.remove('keyboard-active');
+      }
     };
+    
     window.visualViewport.addEventListener('resize', updateViewportHeight);
     window.visualViewport.addEventListener('scroll', updateViewportHeight);
+    
+    // Track orientation changes or resets when not focused
+    window.addEventListener('resize', () => {
+      const isInputFocused = document.activeElement && 
+                             (document.activeElement.tagName === 'INPUT' || 
+                              document.activeElement.tagName === 'TEXTAREA');
+      if (!isInputFocused && window.visualViewport) {
+        maxViewportHeight = window.visualViewport.height;
+      }
+      updateViewportHeight();
+    });
+    
     updateViewportHeight();
   } else {
     document.documentElement.style.setProperty('--viewport-height', '100vh');
@@ -9493,6 +9527,22 @@ document.addEventListener('DOMContentLoaded', () => {
       if (window.scrollY !== 0) {
         window.scrollTo(0, 0);
       }
+    }
+  });
+
+  // Force viewport layout updates on focus change events
+  document.addEventListener('focusin', () => {
+    if (window.visualViewport) {
+      setTimeout(() => {
+        window.visualViewport.dispatchEvent(new Event('resize'));
+      }, 50);
+    }
+  });
+  document.addEventListener('focusout', () => {
+    if (window.visualViewport) {
+      setTimeout(() => {
+        window.visualViewport.dispatchEvent(new Event('resize'));
+      }, 50);
     }
   });
 });
