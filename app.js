@@ -2138,6 +2138,9 @@ function saveTransactionOffline(transaction) {
   if (!transaction.id) {
     transaction.id = generateUUID();
   }
+  if (!transaction.created_at) {
+    transaction.created_at = new Date().toISOString();
+  }
   let trans = [...state.transactions];
   const existingIdx = trans.findIndex(t => t.id === transaction.id);
   if (existingIdx !== -1) {
@@ -2238,7 +2241,15 @@ function renderTransactionsTab() {
     if (!t.date) return false;
     const tDate = new Date(String(t.date).replace(' ', 'T'));
     return tDate >= start && tDate <= end;
-  }).sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+  }).sort((a, b) => {
+    const dateA = String(a.date || '').split('T')[0];
+    const dateB = String(b.date || '').split('T')[0];
+    if (dateA !== dateB) return dateB.localeCompare(dateA);
+    const timeA = a.created_at ? new Date(a.created_at).getTime() : (a.date ? new Date(a.date).getTime() : 0);
+    const timeB = b.created_at ? new Date(b.created_at).getTime() : (b.date ? new Date(b.date).getTime() : 0);
+    if (timeA !== timeB) return timeA - timeB;
+    return String(a.id || '').localeCompare(String(b.id || ''));
+  });
 
   let monthlyIncome = 0, monthlyExpense = 0;
   const groups = {};
@@ -3340,6 +3351,7 @@ function setupEventListeners() {
         t.user_id = existing.user_id;
         t.is_shared = existing.is_shared;
         t.family_id = existing.family_id;
+        t.created_at = existing.created_at;
       }
     } else {
       t.user_id = state.currentUser ? state.currentUser.id : null;
@@ -5812,7 +5824,15 @@ function handleSearchChange() {
   });
 
   // Sort transactions by date descending
-  filtered.sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+  filtered.sort((a, b) => {
+    const dateA = String(a.date || '').split('T')[0];
+    const dateB = String(b.date || '').split('T')[0];
+    if (dateA !== dateB) return dateB.localeCompare(dateA);
+    const timeA = a.created_at ? new Date(a.created_at).getTime() : (a.date ? new Date(a.date).getTime() : 0);
+    const timeB = b.created_at ? new Date(b.created_at).getTime() : (b.date ? new Date(b.date).getTime() : 0);
+    if (timeA !== timeB) return timeA - timeB;
+    return String(a.id || '').localeCompare(String(b.id || ''));
+  });
 
   // Update Badge Count
   document.getElementById('search-results-count').textContent = filtered.length;
@@ -8568,7 +8588,15 @@ function handleRealtimeTransactionChange(payload) {
     trans = trans.filter(t => t.id !== deletedId);
   }
   
-  trans.sort((a, b) => new Date(b.date) - new Date(a.date));
+  trans.sort((a, b) => {
+    const dateA = String(a.date || '').split('T')[0];
+    const dateB = String(b.date || '').split('T')[0];
+    if (dateA !== dateB) return dateB.localeCompare(dateA);
+    const timeA = a.created_at ? new Date(a.created_at).getTime() : (a.date ? new Date(a.date).getTime() : 0);
+    const timeB = b.created_at ? new Date(b.created_at).getTime() : (b.date ? new Date(b.date).getTime() : 0);
+    if (timeA !== timeB) return timeA - timeB;
+    return String(a.id || '').localeCompare(String(b.id || ''));
+  });
   
   state.transactions = trans;
   localStorage.setItem('offline_transactions', JSON.stringify(trans));
@@ -8742,7 +8770,15 @@ async function forceSyncNow(silent = false) {
     // 5. Update state
     const prevCount = (state.transactions || []).filter(t => t.id && !String(t.id).startsWith('local_')).length;
     state.transactions = [...allTransactions, ...localPending];
-    state.transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+    state.transactions.sort((a, b) => {
+      const dateA = String(a.date || '').split('T')[0];
+      const dateB = String(b.date || '').split('T')[0];
+      if (dateA !== dateB) return dateB.localeCompare(dateA);
+      const timeA = a.created_at ? new Date(a.created_at).getTime() : (a.date ? new Date(a.date).getTime() : 0);
+      const timeB = b.created_at ? new Date(b.created_at).getTime() : (b.date ? new Date(b.date).getTime() : 0);
+      if (timeA !== timeB) return timeA - timeB;
+      return String(a.id || '').localeCompare(String(b.id || ''));
+    });
     localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
     
     // 6. Check sync queue status
