@@ -4518,33 +4518,6 @@ body.keyboard-active #transaction-modal .modal-content {
   border-radius: 0 !important;
 }
 
-/* Compact spacings when keyboard is active to ensure all fields fit on screen without being cut off */
-body.keyboard-active #transaction-modal .modal-header {
-  padding: 8px 16px !important;
-}
-
-body.keyboard-active #transaction-modal .type-selector-tabs {
-  margin: 0 16px 4px 16px !important;
-}
-
-body.keyboard-active #transaction-modal .modal-body {
-  padding: 6px 16px 4px 16px !important;
-  gap: 4px !important;
-}
-
-body.keyboard-active #transaction-modal .form-row {
-  padding: 2px 0 !important;
-  margin-top: 0px !important;
-}
-
-body.keyboard-active #transaction-modal .form-row-value-container {
-  padding-bottom: 2px !important;
-}
-
-body.keyboard-active #transaction-modal .modal-action-buttons {
-  padding: 6px 16px !important;
-}
-
 body.keyboard-active .note-autocomplete-dropdown {
   max-height: 120px !important;
 }
