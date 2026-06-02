@@ -3233,8 +3233,12 @@ function setupEventListeners() {
             const relativeTop = rowRect.top - bodyRect.top + body.scrollTop;
             
             let targetScrollTop;
-            if (el.tagName === 'INPUT' && (el.type === 'text' || el.id === 'trans-subcategory-custom')) {
-              // For text fields (Note, Description, Custom Subcategory), scroll to the top of the modal body
+            if (el.id === 'trans-note') {
+              // Scroll Title so it sits near the bottom third of the modal body
+              // to maximize space above it for the autocomplete dropdown
+              targetScrollTop = relativeTop - (bodyRect.height * 0.7) + (rowRect.height / 2);
+            } else if (el.tagName === 'INPUT' && (el.type === 'text' || el.id === 'trans-subcategory-custom')) {
+              // For other text fields (Details, Custom Subcategory), scroll to the top of the modal body
               targetScrollTop = Math.max(0, relativeTop - 12);
             } else {
               // For other rows, scroll to the center
@@ -3248,9 +3252,17 @@ function setupEventListeners() {
           }, delayMs);
         }
       };
+
+      const textInputs = ['trans-note', 'trans-description', 'trans-subcategory-custom'];
+
       el.addEventListener('focus', () => {
         closeCalculatorKeypad();
         scrollHandler(300);
+        
+        if (textInputs.includes(id)) {
+          document.body.classList.add('keyboard-active');
+        }
+        
         // Prevent panning the main window
         if (!isIOS) {
           setTimeout(() => { window.scrollTo(0, 0); document.body.scrollTop = 0; }, 50);
@@ -3259,12 +3271,28 @@ function setupEventListeners() {
       el.addEventListener('click', () => {
         closeCalculatorKeypad();
         scrollHandler(300);
+        
+        if (textInputs.includes(id)) {
+          document.body.classList.add('keyboard-active');
+        }
+        
         // Prevent panning the main window
         if (!isIOS) {
           setTimeout(() => { window.scrollTo(0, 0); document.body.scrollTop = 0; }, 50);
         }
       });
       el.addEventListener('blur', () => {
+        if (textInputs.includes(id)) {
+          // Delay removal to see if focus transferred to another text input in the same modal
+          setTimeout(() => {
+            const activeEl = document.activeElement;
+            const isAnotherInputFocused = activeEl && textInputs.includes(activeEl.id);
+            if (!isAnotherInputFocused) {
+              document.body.classList.remove('keyboard-active');
+            }
+          }, 50);
+        }
+        
         if (isIOS) {
           // Reset scroll when input loses focus on iOS
           setTimeout(() => {
@@ -9493,18 +9521,6 @@ document.addEventListener('DOMContentLoaded', () => {
       document.documentElement.style.setProperty('--viewport-height', `${height}px`);
       document.documentElement.style.setProperty('--viewport-offset-top', `${offsetTop}px`);
       document.documentElement.style.setProperty('--keyboard-height', `${Math.max(0, keyboardHeight)}px`);
-      
-      // Detect if keyboard is open
-      const isInputFocused = document.activeElement && 
-                             (document.activeElement.tagName === 'INPUT' || 
-                              document.activeElement.tagName === 'TEXTAREA');
-      const isKeyboardOpen = ((maxViewportHeight - height) > 120) && isInputFocused;
-      
-      if (isKeyboardOpen) {
-        document.body.classList.add('keyboard-active');
-      } else {
-        document.body.classList.remove('keyboard-active');
-      }
     };
     
     window.visualViewport.addEventListener('resize', updateViewportHeight);
@@ -9535,22 +9551,6 @@ document.addEventListener('DOMContentLoaded', () => {
       if (window.scrollY !== 0) {
         window.scrollTo(0, 0);
       }
-    }
-  });
-
-  // Force viewport layout updates on focus change events
-  document.addEventListener('focusin', () => {
-    if (window.visualViewport) {
-      setTimeout(() => {
-        window.visualViewport.dispatchEvent(new Event('resize'));
-      }, 50);
-    }
-  });
-  document.addEventListener('focusout', () => {
-    if (window.visualViewport) {
-      setTimeout(() => {
-        window.visualViewport.dispatchEvent(new Event('resize'));
-      }, 50);
     }
   });
 });
