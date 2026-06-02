@@ -9483,13 +9483,16 @@ document.addEventListener('DOMContentLoaded', () => {
   if (window.visualViewport) {
     const updateViewportHeight = () => {
       const height = window.visualViewport.height;
+      const offsetTop = window.visualViewport.offsetTop;
       document.documentElement.style.setProperty('--viewport-height', `${height}px`);
+      document.documentElement.style.setProperty('--viewport-offset-top', `${offsetTop}px`);
     };
     window.visualViewport.addEventListener('resize', updateViewportHeight);
     window.visualViewport.addEventListener('scroll', updateViewportHeight);
     updateViewportHeight();
   } else {
     document.documentElement.style.setProperty('--viewport-height', '100vh');
+    document.documentElement.style.setProperty('--viewport-offset-top', '0px');
   }
 
   // Prevent browser window from panning/scrolling up when inputs are focused in modals
