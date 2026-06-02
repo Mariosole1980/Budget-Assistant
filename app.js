@@ -1173,6 +1173,9 @@ function resolveCategoryInfo(rawCategory, transType) {
 // INIT
 // ============================================================
 window.addEventListener('DOMContentLoaded', async () => {
+  if (isIOS) {
+    document.body.classList.add('is-ios');
+  }
   loadConfig();
   initSettingsFromStorage();
   initSupabase();
@@ -3234,6 +3237,10 @@ function setupEventListeners() {
         // After keyboard animates in, scroll the field into view within the modal body
         setTimeout(() => {
           if (!isIOS) {
+            window.scrollTo(0, 0);
+            document.body.scrollTop = 0;
+          } else {
+            // On iOS, snap background scroll back to 0 after keyboard finishes opening
             window.scrollTo(0, 0);
             document.body.scrollTop = 0;
           }
@@ -9490,8 +9497,9 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       
       // Keyboard height = difference between full screen and visual viewport
-      // This works for BOTH iOS and Android with resizes-visual
-      const rawKeyboardHeight = window.innerHeight - vvHeight - offsetTop;
+      // Subtract offsetTop ONLY on Android (where it is 0). On iOS, do NOT subtract offsetTop
+      // to keep keyboardHeight stable when iOS Safari pans the layout viewport.
+      const rawKeyboardHeight = isIOS ? (window.innerHeight - vvHeight) : (window.innerHeight - vvHeight - offsetTop);
       const keyboardHeight = Math.max(0, rawKeyboardHeight);
       
       // --viewport-height: the visible area height (visual viewport)
