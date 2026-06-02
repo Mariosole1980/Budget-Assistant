@@ -9943,7 +9943,12 @@ function renderNoteAutocomplete(query) {
           updateAccountTriggerDisplay('from');
         }
       }
-      
+    });
+
+    // Handle click to consume click event and prevent click-through to element underneath
+    item.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       closeNoteAutocomplete();
     });
     dropdown.appendChild(item);
