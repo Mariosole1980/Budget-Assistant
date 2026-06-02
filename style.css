@@ -4509,9 +4509,9 @@ body.modal-open {
 
 /* Compact styling when keyboard is active to show all fields */
 body.keyboard-active #transaction-modal .modal-content {
-  height: var(--viewport-height, 95vh) !important;
-  max-height: var(--viewport-height, 95vh) !important;
-  border-radius: 20px 20px 0 0 !important; /* Keep premium rounded corners at the top */
+  height: var(--viewport-height, 100vh) !important;
+  max-height: var(--viewport-height, 100vh) !important;
+  border-radius: 0 !important;
 }
 
 body.keyboard-active .modal-header {
