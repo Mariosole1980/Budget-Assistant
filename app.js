@@ -9472,8 +9472,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const updateViewportHeight = () => {
       const height = window.visualViewport.height;
       const offsetTop = window.visualViewport.offsetTop;
+      const keyboardHeight = window.innerHeight - height;
       document.documentElement.style.setProperty('--viewport-height', `${height}px`);
       document.documentElement.style.setProperty('--viewport-offset-top', `${offsetTop}px`);
+      document.documentElement.style.setProperty('--keyboard-height', `${Math.max(0, keyboardHeight)}px`);
     };
     window.visualViewport.addEventListener('resize', updateViewportHeight);
     window.visualViewport.addEventListener('scroll', updateViewportHeight);
@@ -9481,6 +9483,7 @@ document.addEventListener('DOMContentLoaded', () => {
   } else {
     document.documentElement.style.setProperty('--viewport-height', '100vh');
     document.documentElement.style.setProperty('--viewport-offset-top', '0px');
+    document.documentElement.style.setProperty('--keyboard-height', '0px');
   }
 
   // Prevent browser window from panning/scrolling up when inputs are focused in modals
