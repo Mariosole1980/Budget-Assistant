@@ -3238,10 +3238,13 @@ function setupEventListeners() {
           if (row && body) {
             const bodyRect = body.getBoundingClientRect();
             const rowRect = row.getBoundingClientRect();
-            // If the row is below the visible modal body area, scroll it into view
-            if (rowRect.bottom > bodyRect.bottom || rowRect.top < bodyRect.top) {
-              const relativeTop = rowRect.top - bodyRect.top + body.scrollTop;
-              body.scrollTo({ top: Math.max(0, relativeTop - 8), behavior: 'smooth' });
+            // If the row is below or above the visible modal body area, scroll it minimally into view
+            if (rowRect.bottom > bodyRect.bottom) {
+              const targetScroll = body.scrollTop + (rowRect.bottom - bodyRect.bottom) + 8;
+              body.scrollTo({ top: targetScroll, behavior: 'smooth' });
+            } else if (rowRect.top < bodyRect.top) {
+              const targetScroll = Math.max(0, body.scrollTop - (bodyRect.top - rowRect.top) - 8);
+              body.scrollTo({ top: targetScroll, behavior: 'smooth' });
             }
           }
         }, 350);

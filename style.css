@@ -4513,9 +4513,36 @@ body.modal-open {
 
 /* Styling when keyboard is active to stretch modal to full screen height above keyboard */
 body.keyboard-active #transaction-modal .modal-content {
-  height: var(--viewport-height, 100vh) !important;
-  max-height: var(--viewport-height, 100vh) !important;
+  height: calc(var(--viewport-height, 100vh) - var(--keyboard-height, 0px)) !important;
+  max-height: calc(var(--viewport-height, 100vh) - var(--keyboard-height, 0px)) !important;
   border-radius: 0 !important;
+}
+
+/* Compact spacings when keyboard is active to ensure all fields fit on screen without being cut off */
+body.keyboard-active #transaction-modal .modal-header {
+  padding: 8px 16px !important;
+}
+
+body.keyboard-active #transaction-modal .type-selector-tabs {
+  margin: 0 16px 4px 16px !important;
+}
+
+body.keyboard-active #transaction-modal .modal-body {
+  padding: 6px 16px 4px 16px !important;
+  gap: 4px !important;
+}
+
+body.keyboard-active #transaction-modal .form-row {
+  padding: 2px 0 !important;
+  margin-top: 0px !important;
+}
+
+body.keyboard-active #transaction-modal .form-row-value-container {
+  padding-bottom: 2px !important;
+}
+
+body.keyboard-active #transaction-modal .modal-action-buttons {
+  padding: 6px 16px !important;
 }
 
 body.keyboard-active .note-autocomplete-dropdown {
