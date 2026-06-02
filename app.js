@@ -3212,7 +3212,7 @@ function setupEventListeners() {
   ['trans-note', 'trans-description', 'trans-category', 'trans-account-from', 'trans-account-to', 'trans-date', 'trans-subcategory-custom'].forEach(id => {
     const el = document.getElementById(id);
     if (el) {
-      const scrollHandler = () => {
+      const scrollHandler = (delayMs = (isIOS ? 10 : 300)) => {
         const row = el.closest('.form-row');
         const body = el.closest('.modal-body');
         if (row && body) {
@@ -3239,25 +3239,37 @@ function setupEventListeners() {
 
             body.scrollTo({
               top: targetScrollTop,
-              behavior: 'smooth'
+              behavior: isIOS ? 'auto' : 'smooth'
             });
-          }, 300); // Allow time for keyboard or UI adjustment to settle
+          }, delayMs);
         }
       };
       el.addEventListener('focus', () => {
         closeCalculatorKeypad();
-        scrollHandler();
+        scrollHandler(isIOS ? 10 : 300);
         // Prevent panning the main window
         if (!isIOS) {
           setTimeout(() => { window.scrollTo(0, 0); document.body.scrollTop = 0; }, 50);
+        } else {
+          // On iOS, snap background scroll back to 0 after keyboard finishes opening
+          setTimeout(() => {
+            window.scrollTo(0, 0);
+            document.body.scrollTop = 0;
+          }, 350);
         }
       });
       el.addEventListener('click', () => {
         closeCalculatorKeypad();
-        scrollHandler();
+        scrollHandler(isIOS ? 10 : 300);
         // Prevent panning the main window
         if (!isIOS) {
           setTimeout(() => { window.scrollTo(0, 0); document.body.scrollTop = 0; }, 50);
+        } else {
+          // On iOS, snap background scroll back to 0 after keyboard finishes opening
+          setTimeout(() => {
+            window.scrollTo(0, 0);
+            document.body.scrollTop = 0;
+          }, 350);
         }
       });
       el.addEventListener('blur', () => {
