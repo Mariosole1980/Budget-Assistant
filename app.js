@@ -3224,26 +3224,13 @@ function setupEventListeners() {
       el.addEventListener('focus', () => {
         closeCalculatorKeypad();
         
+        const isKeyboardAlreadyActive = document.body.classList.contains('keyboard-active');
+        
         if (textInputs.includes(id)) {
           document.body.classList.add('keyboard-active');
         }
         
-        // Keep the page at top — prevent Android from panning the page body
-        if (!isIOS) {
-          window.scrollTo(0, 0);
-          document.body.scrollTop = 0;
-        }
-        
-        // After keyboard animates in, scroll the field into view within the modal body
-        setTimeout(() => {
-          if (!isIOS) {
-            window.scrollTo(0, 0);
-            document.body.scrollTop = 0;
-          } else {
-            // On iOS, snap background scroll back to 0 after keyboard finishes opening
-            window.scrollTo(0, 0);
-            document.body.scrollTop = 0;
-          }
+        const scrollIntoViewIfNeeded = () => {
           const row = el.closest('.form-row');
           const body = el.closest('.modal-body');
           if (row && body) {
@@ -3258,7 +3245,33 @@ function setupEventListeners() {
               body.scrollTo({ top: targetScroll, behavior: 'smooth' });
             }
           }
-        }, 350);
+        };
+
+        if (!isKeyboardAlreadyActive) {
+          // Keep the page at top — prevent Android from panning the page body
+          if (!isIOS) {
+            window.scrollTo(0, 0);
+            document.body.scrollTop = 0;
+          }
+          
+          // After keyboard animates in, scroll the field into view within the modal body
+          setTimeout(() => {
+            if (!isIOS) {
+              window.scrollTo(0, 0);
+              document.body.scrollTop = 0;
+            } else {
+              // On iOS, snap background scroll back to 0 after keyboard finishes opening
+              window.scrollTo(0, 0);
+              document.body.scrollTop = 0;
+            }
+            scrollIntoViewIfNeeded();
+          }, 350);
+        } else {
+          // Keyboard is already open: scroll the new input into view immediately
+          setTimeout(() => {
+            scrollIntoViewIfNeeded();
+          }, 50);
+        }
       });
 
       el.addEventListener('blur', () => {
