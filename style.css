@@ -4508,36 +4508,11 @@ body.modal-open {
   font-weight: 700;
 }
 
-/* Compact styling when keyboard is active to show all fields */
+/* Styling when keyboard is active to stretch modal to full screen height above keyboard */
 body.keyboard-active #transaction-modal .modal-content {
   height: var(--viewport-height, 100vh) !important;
   max-height: var(--viewport-height, 100vh) !important;
   border-radius: 0 !important;
-}
-
-body.keyboard-active .modal-header {
-  padding: 12px 16px !important;
-}
-
-body.keyboard-active .type-selector-tabs {
-  margin: 0 16px 8px 16px !important;
-}
-
-body.keyboard-active .modal-body {
-  padding: 12px 16px !important;
-  gap: 8px !important;
-}
-
-body.keyboard-active .form-row {
-  padding: 3px 0 !important;
-}
-
-body.keyboard-active .form-row-value-container {
-  padding-bottom: 3px !important;
-}
-
-body.keyboard-active .modal-action-buttons {
-  padding: 8px 16px !important;
 }
 
 body.keyboard-active .note-autocomplete-dropdown {
