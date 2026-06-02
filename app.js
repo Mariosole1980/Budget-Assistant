@@ -3226,13 +3226,17 @@ function setupEventListeners() {
         }
         
         // Keep the page at top — prevent Android from panning the page body
-        window.scrollTo(0, 0);
-        document.body.scrollTop = 0;
+        if (!isIOS) {
+          window.scrollTo(0, 0);
+          document.body.scrollTop = 0;
+        }
         
         // After keyboard animates in, scroll the field into view within the modal body
         setTimeout(() => {
-          window.scrollTo(0, 0);
-          document.body.scrollTop = 0;
+          if (!isIOS) {
+            window.scrollTo(0, 0);
+            document.body.scrollTop = 0;
+          }
           const row = el.closest('.form-row');
           const body = el.closest('.modal-body');
           if (row && body) {
@@ -9520,6 +9524,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Prevent browser window from panning/scrolling up when inputs are focused in modals
   window.addEventListener('scroll', () => {
+    if (isIOS) return; // Let iOS Safari handle its viewport panning during focus; we will reset on blur
     if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) {
       if (window.scrollY !== 0) {
         window.scrollTo(0, 0);
