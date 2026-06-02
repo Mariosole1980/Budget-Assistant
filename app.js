@@ -2247,7 +2247,7 @@ function renderTransactionsTab() {
     if (dateA !== dateB) return dateB.localeCompare(dateA);
     const timeA = a.created_at ? new Date(a.created_at).getTime() : (a.date ? new Date(a.date).getTime() : 0);
     const timeB = b.created_at ? new Date(b.created_at).getTime() : (b.date ? new Date(b.date).getTime() : 0);
-    if (timeA !== timeB) return timeA - timeB;
+    if (timeA !== timeB) return timeB - timeA;
     return String(a.id || '').localeCompare(String(b.id || ''));
   });
 
@@ -5830,7 +5830,7 @@ function handleSearchChange() {
     if (dateA !== dateB) return dateB.localeCompare(dateA);
     const timeA = a.created_at ? new Date(a.created_at).getTime() : (a.date ? new Date(a.date).getTime() : 0);
     const timeB = b.created_at ? new Date(b.created_at).getTime() : (b.date ? new Date(b.date).getTime() : 0);
-    if (timeA !== timeB) return timeA - timeB;
+    if (timeA !== timeB) return timeB - timeA;
     return String(a.id || '').localeCompare(String(b.id || ''));
   });
 
@@ -8594,7 +8594,7 @@ function handleRealtimeTransactionChange(payload) {
     if (dateA !== dateB) return dateB.localeCompare(dateA);
     const timeA = a.created_at ? new Date(a.created_at).getTime() : (a.date ? new Date(a.date).getTime() : 0);
     const timeB = b.created_at ? new Date(b.created_at).getTime() : (b.date ? new Date(b.date).getTime() : 0);
-    if (timeA !== timeB) return timeA - timeB;
+    if (timeA !== timeB) return timeB - timeA;
     return String(a.id || '').localeCompare(String(b.id || ''));
   });
   
@@ -8776,7 +8776,7 @@ async function forceSyncNow(silent = false) {
       if (dateA !== dateB) return dateB.localeCompare(dateA);
       const timeA = a.created_at ? new Date(a.created_at).getTime() : (a.date ? new Date(a.date).getTime() : 0);
       const timeB = b.created_at ? new Date(b.created_at).getTime() : (b.date ? new Date(b.date).getTime() : 0);
-      if (timeA !== timeB) return timeA - timeB;
+      if (timeA !== timeB) return timeB - timeA;
       return String(a.id || '').localeCompare(String(b.id || ''));
     });
     localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
