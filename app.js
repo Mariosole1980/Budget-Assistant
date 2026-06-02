@@ -182,6 +182,7 @@ const TRANSLATIONS = {
     row_account_to: 'Προς',
     row_note: 'Τίτλος',
     row_description: 'Λεπτομέρειες',
+    item_autocomplete: 'Έξυπνος Τίτλος (Autocomplete)',
     btn_save: 'Αποθήκευση',
     btn_continue: 'Ακύρωση',
     keypad_title: 'Ποσό',
@@ -395,6 +396,7 @@ const TRANSLATIONS = {
     row_account_to: 'To',
     row_note: 'Title',
     row_description: 'Details',
+    item_autocomplete: 'Smart Title (Autocomplete)',
     btn_save: 'Save',
     btn_continue: 'Cancel',
     keypad_title: 'Amount',
@@ -7114,6 +7116,10 @@ function initSettingsFromStorage() {
   const appLockCheckbox = document.getElementById('settings-app-lock');
   if (appLockCheckbox) appLockCheckbox.checked = appLockEnabled;
 
+  const autocompleteEnabled = localStorage.getItem('settings_autocomplete_enabled') !== 'false';
+  const autocompleteCheckbox = document.getElementById('settings-autocomplete');
+  if (autocompleteCheckbox) autocompleteCheckbox.checked = autocompleteEnabled;
+
   updateSettingsDisplay();
   applyTheme(theme);
   checkBiometricsSupport();
@@ -9799,40 +9805,77 @@ function highlightMatch(text, query) {
   return text.replace(regex, '<span class="note-match-highlight">$1</span>');
 }
 
-function getUniqueNotes() {
-  const seen = new Set();
-  const notes = [];
-  // Sort by most recent first
-  const sorted = [...state.transactions].sort((a, b) => {
+function getAdvancedNotes(query) {
+  const allTransactions = state.transactions || [];
+  const noteDetails = new Map();
+  
+  // Sort transactions by date (desc) and time/id (desc) to get the most recent first
+  const sortedTrans = [...allTransactions].sort((a, b) => {
     const da = a.date ? new Date(a.date) : new Date(0);
     const db = b.date ? new Date(b.date) : new Date(0);
-    return db - da;
+    if (db - da !== 0) return db - da;
+    return (b.id || 0) - (a.id || 0);
   });
-  for (const t of sorted) {
-    const n = (t.note || '').trim();
-    if (n && !seen.has(n.toLowerCase())) {
-      seen.add(n.toLowerCase());
-      notes.push(n);
+  
+  for (const t of sortedTrans) {
+    const title = (t.note || '').trim();
+    if (!title) continue;
+    const titleLower = title.toLowerCase();
+    if (!noteDetails.has(titleLower)) {
+      noteDetails.set(titleLower, {
+        title: title,
+        category: t.category || '',
+        subcategory: t.subcategory || '',
+        account: t.account_from || t.account || ''
+      });
     }
   }
-  return notes;
+  
+  const q = (query || '').trim().toLowerCase();
+  const suggestions = [];
+  
+  for (const [key, details] of noteDetails.entries()) {
+    if (!q || key.includes(q)) {
+      suggestions.push(details);
+    }
+  }
+  
+  // Sort suggestions: if there is a query, prioritize matches that start with the query
+  if (q) {
+    suggestions.sort((a, b) => {
+      const aTitle = a.title.toLowerCase();
+      const bTitle = b.title.toLowerCase();
+      const aStarts = aTitle.startsWith(q);
+      const bStarts = bTitle.startsWith(q);
+      if (aStarts && !bStarts) return -1;
+      if (!aStarts && bStarts) return 1;
+      return aTitle.localeCompare(bTitle);
+    });
+  }
+  
+  return suggestions.slice(0, 7);
 }
 
 function renderNoteAutocomplete(query) {
   const dropdown = document.getElementById('note-autocomplete-dropdown');
   if (!dropdown) return;
 
-  const allNotes = getUniqueNotes();
-  const q = (query || '').trim();
+  // Respect setting switch
+  const autocompleteEnabled = localStorage.getItem('settings_autocomplete_enabled') !== 'false';
+  if (!autocompleteEnabled) {
+    dropdown.style.display = 'none';
+    return;
+  }
 
+  const q = (query || '').trim();
+  
+  // Always hide if empty query
   if (q.length === 0) {
     dropdown.style.display = 'none';
     return;
   }
 
-  const filtered = allNotes
-    .filter(n => n.toLowerCase().includes(q.toLowerCase()))
-    .slice(0, 7);
+  const filtered = getAdvancedNotes(q);
 
   if (filtered.length === 0) {
     dropdown.style.display = 'none';
@@ -9840,18 +9883,64 @@ function renderNoteAutocomplete(query) {
   }
 
   dropdown.innerHTML = '';
-  filtered.forEach(note => {
+  filtered.forEach(suggestion => {
     const item = document.createElement('div');
     item.className = 'note-autocomplete-item';
-    item.innerHTML = `<i class="fa-solid fa-clock-rotate-left" style="color:var(--text-muted);font-size:11px;flex-shrink:0;"></i><span style="overflow:hidden;text-overflow:ellipsis;">${highlightMatch(note, q)}</span>`;
+    
+    // Find category details to show badge
+    let categoryBadgeHTML = '';
+    if (suggestion.category) {
+      const catObj = state.categories.find(c => c.name === suggestion.category);
+      const icon = catObj ? catObj.icon : '🧩';
+      const catCleanName = stripLeadingEmoji(suggestion.category);
+      categoryBadgeHTML = `<span class="note-category-pill" style="font-size: 10px; opacity: 0.7; padding: 2px 6px; background: rgba(255,255,255,0.06); border-radius: 8px; margin-left: auto; flex-shrink: 0; display: flex; align-items: center; gap: 4px;">${icon} ${catCleanName}</span>`;
+    }
+    
+    item.innerHTML = `<i class="fa-solid fa-clock-rotate-left" style="color:var(--text-muted);font-size:11px;flex-shrink:0;"></i>
+                      <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-right:8px;">${highlightMatch(suggestion.title, q)}</span>
+                      ${categoryBadgeHTML}`;
+                      
     // Use pointerdown so it fires before blur closes the dropdown
     item.addEventListener('pointerdown', (e) => {
       e.preventDefault();
       const noteInput = document.getElementById('trans-note');
       if (noteInput) {
-        noteInput.value = note;
+        noteInput.value = suggestion.title;
         noteInput.dispatchEvent(new Event('input', { bubbles: true }));
       }
+      
+      // Auto-select Category, Subcategory, and Account
+      if (suggestion.category) {
+        const catObj = state.categories.find(c => c.name === suggestion.category);
+        if (catObj) {
+          selectCategory(catObj.name, catObj.icon, catObj.color, false);
+        }
+      }
+      if (suggestion.subcategory) {
+        const cleanedCat = stripLeadingEmoji(suggestion.category).toUpperCase();
+        const defaults = DEFAULT_SUBCATEGORIES_MAP[cleanedCat] || [];
+        const isDefault = defaults.includes(suggestion.subcategory);
+        
+        if (isDefault) {
+          hideSubcategorySelect();
+          selectSubcategory(suggestion.subcategory);
+        } else {
+          showSubcategorySelect();
+          const customInput = document.getElementById('trans-subcategory-custom');
+          if (customInput) {
+            customInput.value = suggestion.subcategory;
+            customInput.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+        }
+      }
+      if (suggestion.account) {
+        const accInput = document.getElementById('trans-account-from');
+        if (accInput) {
+          accInput.value = suggestion.account;
+          updateAccountTriggerDisplay('from');
+        }
+      }
+      
       closeNoteAutocomplete();
     });
     dropdown.appendChild(item);
@@ -9894,5 +9983,10 @@ function initNoteAutocomplete() {
   });
 }
 
+function toggleAutocompleteSetting(enabled) {
+  localStorage.setItem('settings_autocomplete_enabled', enabled ? 'true' : 'false');
+}
+
+window.toggleAutocompleteSetting = toggleAutocompleteSetting;
 window.initNoteAutocomplete = initNoteAutocomplete;
 window.closeNoteAutocomplete = closeNoteAutocomplete;
