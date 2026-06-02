@@ -2102,6 +2102,7 @@ async function saveTransaction(transaction) {
 
   // 2. Optimistically save to local state and local storage immediately
   saveTransactionOffline(transaction);
+  calculateInitialBalances();
   updateUI();
 
   // 3. Attempt to save to cloud in background
@@ -2158,6 +2159,7 @@ async function deleteTransaction(id) {
   
   // 2. Optimistically delete from local state and update UI
   deleteTransactionOffline(id);
+  calculateInitialBalances();
   updateUI();
 
   // 3. Perform background delete
@@ -2191,10 +2193,11 @@ function deleteTransactionOffline(id) {
 // ============================================================
 function updateUI() {
   updateHeaderAndSync();
-  if (state.activeTab === 'trans') renderTransactionsTab();
-  else if (state.activeTab === 'stats') renderStatsTab();
-  else if (state.activeTab === 'accounts') renderAccountsTab();
-  else if (state.activeTab === 'more') renderPartnerSection();
+  // Render all tabs sequentially to keep them fully synchronized in the background
+  renderTransactionsTab();
+  renderStatsTab();
+  renderAccountsTab();
+  renderPartnerSection();
   
   // Clear category render cache on UI refresh to pick up updates
   lastRenderedCategoryType = null;
@@ -2790,7 +2793,9 @@ function renderStatsTab() {
     listContainer.appendChild(row);
   });
 
-  renderChart(displayList);
+  if (state.activeTab === 'stats') {
+    renderChart(displayList);
+  }
 }
 
 function renderChart(dataList) {
