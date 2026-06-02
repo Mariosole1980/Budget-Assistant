@@ -1250,7 +1250,8 @@ input:focus + .slider {
   border-top-right-radius: 20px;
   width: 100%;
   max-width: 480px;
-  max-height: calc(var(--viewport-height, 100vh) * 0.90);
+  /* Max height = available space minus keyboard (so modal doesn't extend under keyboard) */
+  max-height: calc(var(--viewport-height, 100vh) * 0.90 - var(--keyboard-height, 0px));
   display: flex;
   flex-direction: column;
   transform: translateY(100%);
@@ -1261,8 +1262,10 @@ input:focus + .slider {
 }
 
 #transaction-modal .modal-content {
+  /* Fixed height = 95% of screen. With keyboard open, overlay padding-bottom lifts the modal up.
+     max-height constrains so modal body scrolls rather than overflowing. */
   height: calc(var(--viewport-height, 100vh) * 0.95);
-  max-height: calc(var(--viewport-height, 100vh) * 0.95);
+  max-height: calc(var(--viewport-height, 100vh) * 0.95 - var(--keyboard-height, 0px));
 }
 
 .modal-overlay.active .modal-content {

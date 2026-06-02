@@ -3212,75 +3212,41 @@ function setupEventListeners() {
     });
   });
 
-  // Close keypad when other form fields are clicked or focused, and scroll them into view
+  // Close keypad when other form fields are clicked or focused
   ['trans-note', 'trans-description', 'trans-category', 'trans-account-from', 'trans-account-to', 'trans-date', 'trans-subcategory-custom'].forEach(id => {
     const el = document.getElementById(id);
     if (el) {
-      const scrollHandler = (delayMs = 300) => {
-        const row = el.closest('.form-row');
-        const body = el.closest('.modal-body');
-        if (row && body) {
-          setTimeout(() => {
-            // Prevent panning the main window
-            if (!isIOS) {
-              window.scrollTo(0, 0);
-              document.body.scrollTop = 0;
-            }
-            
-            // Scroll inside modal-body only
-            const bodyRect = body.getBoundingClientRect();
-            const rowRect = row.getBoundingClientRect();
-            const relativeTop = rowRect.top - bodyRect.top + body.scrollTop;
-            
-            let targetScrollTop;
-            if (el.id === 'trans-note') {
-              // Scroll Title so it sits near the bottom third of the modal body
-              // to maximize space above it for the autocomplete dropdown
-              targetScrollTop = relativeTop - (bodyRect.height * 0.7) + (rowRect.height / 2);
-            } else if (el.tagName === 'INPUT' && (el.type === 'text' || el.id === 'trans-subcategory-custom')) {
-              // For other text fields (Details, Custom Subcategory), scroll to the top of the modal body
-              targetScrollTop = Math.max(0, relativeTop - 12);
-            } else {
-              // For other rows, scroll to the center
-              targetScrollTop = relativeTop - (bodyRect.height / 2) + (rowRect.height / 2);
-            }
-
-            body.scrollTo({
-              top: targetScrollTop,
-              behavior: isIOS ? 'auto' : 'smooth'
-            });
-          }, delayMs);
-        }
-      };
-
       const textInputs = ['trans-note', 'trans-description', 'trans-subcategory-custom'];
 
       el.addEventListener('focus', () => {
         closeCalculatorKeypad();
-        scrollHandler(300);
         
         if (textInputs.includes(id)) {
           document.body.classList.add('keyboard-active');
         }
         
-        // Prevent panning the main window
-        if (!isIOS) {
-          setTimeout(() => { window.scrollTo(0, 0); document.body.scrollTop = 0; }, 50);
-        }
-      });
-      el.addEventListener('click', () => {
-        closeCalculatorKeypad();
-        scrollHandler(300);
+        // Keep the page at top — prevent Android from panning the page body
+        window.scrollTo(0, 0);
+        document.body.scrollTop = 0;
         
-        if (textInputs.includes(id)) {
-          document.body.classList.add('keyboard-active');
-        }
-        
-        // Prevent panning the main window
-        if (!isIOS) {
-          setTimeout(() => { window.scrollTo(0, 0); document.body.scrollTop = 0; }, 50);
-        }
+        // After keyboard animates in, scroll the field into view within the modal body
+        setTimeout(() => {
+          window.scrollTo(0, 0);
+          document.body.scrollTop = 0;
+          const row = el.closest('.form-row');
+          const body = el.closest('.modal-body');
+          if (row && body) {
+            const bodyRect = body.getBoundingClientRect();
+            const rowRect = row.getBoundingClientRect();
+            // If the row is below the visible modal body area, scroll it into view
+            if (rowRect.bottom > bodyRect.bottom || rowRect.top < bodyRect.top) {
+              const relativeTop = rowRect.top - bodyRect.top + body.scrollTop;
+              body.scrollTo({ top: Math.max(0, relativeTop - 8), behavior: 'smooth' });
+            }
+          }
+        }, 350);
       });
+
       el.addEventListener('blur', () => {
         if (textInputs.includes(id)) {
           // Delay removal to see if focus transferred to another text input in the same modal
@@ -3293,13 +3259,11 @@ function setupEventListeners() {
           }, 50);
         }
         
-        if (isIOS) {
-          // Reset scroll when input loses focus on iOS
-          setTimeout(() => {
-            window.scrollTo(0, 0);
-            document.body.scrollTop = 0;
-          }, 80);
-        }
+        // Reset scroll when input loses focus
+        setTimeout(() => {
+          window.scrollTo(0, 0);
+          document.body.scrollTop = 0;
+        }, 80);
       });
     }
   });
@@ -9503,24 +9467,31 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Dynamic Visual Viewport Height Adjustment (for virtual keyboard support)
+// With interactive-widget=resizes-visual, the layout viewport doesn't shrink on Android.
+// We use visualViewport to detect the keyboard height and push the modal above it.
 document.addEventListener('DOMContentLoaded', () => {
   let maxViewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
 
   if (window.visualViewport) {
     const updateViewportHeight = () => {
-      const height = window.visualViewport.height;
+      const vvHeight = window.visualViewport.height;
       const offsetTop = window.visualViewport.offsetTop;
       
-      // Update max viewport height on rotation or window resize when no keyboard is visible
-      if (height > maxViewportHeight) {
-        maxViewportHeight = height;
+      // Track the maximum height (when keyboard is hidden) for calculations
+      if (vvHeight > maxViewportHeight) {
+        maxViewportHeight = vvHeight;
       }
       
-      const keyboardHeight = isIOS ? (window.innerHeight - height) : 0;
+      // Keyboard height = difference between full screen and visual viewport
+      // This works for BOTH iOS and Android with resizes-visual
+      const rawKeyboardHeight = window.innerHeight - vvHeight - offsetTop;
+      const keyboardHeight = Math.max(0, rawKeyboardHeight);
       
-      document.documentElement.style.setProperty('--viewport-height', `${height}px`);
+      // --viewport-height: the visible area height (visual viewport)
+      // Use window.innerHeight for layout (unchanged with resizes-visual)
+      document.documentElement.style.setProperty('--viewport-height', `${window.innerHeight}px`);
       document.documentElement.style.setProperty('--viewport-offset-top', `${offsetTop}px`);
-      document.documentElement.style.setProperty('--keyboard-height', `${Math.max(0, keyboardHeight)}px`);
+      document.documentElement.style.setProperty('--keyboard-height', `${keyboardHeight}px`);
     };
     
     window.visualViewport.addEventListener('resize', updateViewportHeight);
@@ -9546,7 +9517,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Prevent browser window from panning/scrolling up when inputs are focused in modals
   window.addEventListener('scroll', () => {
-    if (isIOS) return; // Let iOS Safari handle its viewport panning during focus; we will reset on blur
     if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) {
       if (window.scrollY !== 0) {
         window.scrollTo(0, 0);
