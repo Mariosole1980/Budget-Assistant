@@ -699,6 +699,11 @@ button:active,
   padding: 0;
 }
 
+.stats-scroll-content {
+  display: flex;
+  flex-direction: column;
+}
+
 .stats-period-btn {
   background-color: var(--bg-main);
   color: var(--text-main);
@@ -1335,51 +1340,56 @@ input:focus + .slider {
 /* Add transaction type selector tabs */
 .type-selector-tabs {
   display: flex;
-  background-color: var(--bg-card);
+  background-color: rgba(0, 0, 0, 0.4);
   border: 1px solid var(--border);
-  border-radius: 20px;
+  border-radius: 8px; /* Slightly rounded rectangles like screenshot */
   overflow: hidden;
-  padding: 2px;
+  padding: 3px;
 }
 
 .type-tab-btn {
   flex: 1;
-  padding: 8px;
+  padding: 10px 8px;
   font-weight: 700;
   text-align: center;
   color: var(--text-secondary);
-  border-radius: 18px;
-  font-size: 13px;
+  border-radius: 6px;
+  font-size: 13.5px;
   transition: var(--transition);
+  border: 1.5px solid transparent;
+  background: transparent;
 }
 
 .type-tab-btn.active[data-type="expense"] {
-  background-color: var(--red-negative);
-  color: white;
+  border-color: var(--red-negative, #ef5350);
+  color: var(--red-negative, #ef5350);
+  background-color: rgba(239, 83, 80, 0.05);
 }
 
 .type-tab-btn.active[data-type="income"] {
-  background-color: var(--blue-positive);
-  color: white;
+  border-color: var(--blue-positive, #3b82f6);
+  color: var(--blue-positive, #3b82f6);
+  background-color: rgba(59, 130, 246, 0.05);
 }
 
 .type-tab-btn.active[data-type="transfer"] {
-  background-color: var(--text-secondary);
-  color: var(--bg-main);
+  border-color: var(--text-secondary, #8a8f99);
+  color: var(--text-secondary, #8a8f99);
+  background-color: rgba(138, 143, 153, 0.05);
 }
 
 /* Premium Form Row Underlined Styling */
 .form-row {
   display: flex;
   align-items: center;
-  padding: 5px 0;
+  padding: 4px 0; /* Compact vertical spacing to fit fully on mobile viewports */
 }
 
 .form-row-label {
   width: 90px;
   min-width: 90px;
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 13.5px;
+  font-weight: 500;
   color: var(--text-secondary);
 }
 
@@ -1387,17 +1397,17 @@ input:focus + .slider {
   flex: 1;
   display: flex;
   align-items: center;
-  border-bottom: 2px solid var(--border-light);
-  padding-bottom: 5px;
+  border-bottom: 1.5px solid var(--border-light);
+  padding-bottom: 4px;
   transition: border-color 0.25s ease;
 }
 
 /* Underline color based on modal active type */
 #transaction-modal.expense .form-row-value-container {
-  border-bottom-color: rgba(224, 94, 85, 0.25);
+  border-bottom-color: rgba(224, 94, 85, 0.2);
 }
 #transaction-modal.income .form-row-value-container {
-  border-bottom-color: rgba(74, 222, 128, 0.25);
+  border-bottom-color: rgba(74, 222, 128, 0.2);
 }
 #transaction-modal.transfer .form-row-value-container {
   border-bottom-color: var(--border-light);
@@ -1465,7 +1475,7 @@ input:focus + .slider {
   width: 100%;
   padding: 12px;
   border-radius: 24px;
-  font-size: 15px;
+  font-size: 14.5px;
   font-weight: 700;
   text-align: center;
   transition: var(--transition);
@@ -1486,12 +1496,12 @@ input:focus + .slider {
 
 .btn-secondary-continue {
   background-color: transparent;
-  border: 1px solid var(--border-light);
-  color: var(--text-secondary);
+  border: 1.5px solid var(--border);
+  color: var(--text-main);
 }
 .btn-secondary-continue:hover {
-  background-color: var(--bg-card);
-  color: var(--text-main);
+  background-color: rgba(255, 255, 255, 0.05);
+  border-color: var(--text-secondary);
 }
 
 /* Custom Calculator Keypad */
@@ -4168,6 +4178,10 @@ body.shared-wallet-active .day-header {
   #more-screen.active > .settings-section-title:first-child {
     margin-top: 0 !important;
   }
+
+  .stats-scroll-content {
+    display: contents !important;
+  }
 }
 
 /* Mobile Stats Header wrapping to prevent cramping */
@@ -4199,6 +4213,36 @@ body.shared-wallet-active .day-header {
     position: sticky !important;
     top: 151px !important;
     z-index: 88 !important;
+  }
+}
+
+/* Prevent stats screen header jitter on mobile viewports by isolating scroll */
+@media (max-width: 767px) {
+  body:has(#stats-screen.active) .app-content {
+    overflow-y: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  #stats-screen.active {
+    display: flex !important;
+    flex-direction: column !important;
+    height: 100% !important;
+    overflow: hidden !important;
+  }
+
+  .stats-scroll-content {
+    flex: 1 !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  #stats-screen .stats-header-bar,
+  #stats-screen .stats-subheader-bar,
+  #stats-screen .stats-net-bar {
+    position: static !important;
   }
 }
 
@@ -4524,4 +4568,14 @@ body.keyboard-active .note-autocomplete-dropdown {
 
 body.keyboard-active .note-autocomplete-item {
   padding: 9px 12px !important;
+}
+
+/* Mobile full-screen transaction modal */
+@media (max-width: 767px) {
+  #transaction-modal .modal-content {
+    height: 100% !important;
+    max-height: 100% !important;
+    border-radius: 0 !important;
+    border: none !important;
+  }
 }

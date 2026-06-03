@@ -204,31 +204,34 @@
           <span id="stats-net-savings-val" class="stats-net-val">€ 0,00</span>
         </div>
 
-        <!-- Chart Visualization Container -->
-        <div class="chart-container">
-          <div class="chart-wrapper">
-            <canvas id="statsChart"></canvas>
-            <div id="chart-center-val" class="chart-center-val" style="display: none;">
-              <div id="chart-center-title" class="chart-center-title">Έξοδα</div>
-              <div id="chart-center-amount" class="chart-center-amount">€ 0,00</div>
+        <!-- Scrollable content wrapper for mobile to prevent header jitter -->
+        <div class="stats-scroll-content">
+          <!-- Chart Visualization Container -->
+          <div class="chart-container">
+            <div class="chart-wrapper">
+              <canvas id="statsChart"></canvas>
+              <div id="chart-center-val" class="chart-center-val" style="display: none;">
+                <div id="chart-center-title" class="chart-center-title">Έξοδα</div>
+                <div id="chart-center-amount" class="chart-center-amount">€ 0,00</div>
+              </div>
+            </div>
+            <!-- Income vs Expense Ratio Bar -->
+            <div class="chart-ratio-bar-wrapper" id="chart-ratio-wrapper" style="display:none;">
+              <div class="chart-ratio-labels">
+                <span class="ratio-income-label"><i class="fa-solid fa-arrow-trend-up"></i> <span id="ratio-income-pct">0%</span></span>
+                <span class="ratio-expense-label"><span id="ratio-expense-pct">0%</span> <i class="fa-solid fa-arrow-trend-down"></i></span>
+              </div>
+              <div class="chart-ratio-track">
+                <div class="chart-ratio-fill-income" id="ratio-fill-income" style="width:50%"></div>
+                <div class="chart-ratio-fill-expense" id="ratio-fill-expense" style="width:50%"></div>
+              </div>
             </div>
           </div>
-          <!-- Income vs Expense Ratio Bar -->
-          <div class="chart-ratio-bar-wrapper" id="chart-ratio-wrapper" style="display:none;">
-            <div class="chart-ratio-labels">
-              <span class="ratio-income-label"><i class="fa-solid fa-arrow-trend-up"></i> <span id="ratio-income-pct">0%</span></span>
-              <span class="ratio-expense-label"><span id="ratio-expense-pct">0%</span> <i class="fa-solid fa-arrow-trend-down"></i></span>
-            </div>
-            <div class="chart-ratio-track">
-              <div class="chart-ratio-fill-income" id="ratio-fill-income" style="width:50%"></div>
-              <div class="chart-ratio-fill-expense" id="ratio-fill-expense" style="width:50%"></div>
-            </div>
-          </div>
-        </div>
 
-        <!-- Statistics Breakdown List -->
-        <div id="stats-breakdown-list" class="stats-list">
-          <!-- Dynamically populated stats breakdown list rows -->
+          <!-- Statistics Breakdown List -->
+          <div id="stats-breakdown-list" class="stats-list">
+            <!-- Dynamically populated stats breakdown list rows -->
+          </div>
         </div>
       </section>
 
@@ -430,11 +433,11 @@
           <span class="settings-item-value"><i class="fa-solid fa-arrow-up-right-from-square" style="font-size:12px;"></i></span>
         </div>
         <div class="settings-list-item">
-          <span class="settings-item-label" style="color: var(--text-muted); font-size: 12px;" data-i18n="app_version">Έκδοση 1.0.0 (build v185)</span>
+          <span class="settings-item-label" style="color: var(--text-muted); font-size: 12px;" data-i18n="app_version">Έκδοση 1.0.0 (build v186)</span>
           <span class="settings-item-value" style="font-size: 12px;">Budget Assistant</span>
         </div>
         <div class="settings-list-item" style="justify-content: center; padding: 6px 16px; min-height: auto;">
-          <span id="deploy-timestamp" style="color: var(--text-muted); font-size: 10px; opacity: 0.6;">Deploy v185 · 03/06/2026 00:04</span>
+          <span id="deploy-timestamp" style="color: var(--text-muted); font-size: 10px; opacity: 0.6;">Deploy v186 · 03/06/2026 00:08</span>
         </div>
       </section>
 
@@ -480,13 +483,13 @@
           </div>
 
           <!-- Type Selector Tabs (Income, Expense, Transfer) -->
-          <div class="type-selector-tabs" style="margin: 0 16px 12px 16px; flex-shrink: 0;">
+          <div class="type-selector-tabs" style="margin: 0 auto 4px auto; max-width: 340px; width: calc(100% - 32px); flex-shrink: 0;">
             <button type="button" class="type-tab-btn" data-type="income">Έσοδο</button>
             <button type="button" class="type-tab-btn active expense" data-type="expense">Έξοδο</button>
             <button type="button" class="type-tab-btn" data-type="transfer">Μεταφορά</button>
           </div>
 
-          <div class="modal-body" style="padding: 16px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 12px; min-height: 0;">
+          <div class="modal-body" style="padding: 8px 16px 16px 16px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 6px; min-height: 0;">
             <input type="hidden" id="trans-id">
 
             <!-- Date Row -->
@@ -574,10 +577,9 @@
             </div>
 
             <!-- Description Row -->
-            <div class="form-row" style="margin-top: 8px;">
-              <label class="form-row-label" data-i18n="row_description">Λεπτομέρειες</label>
+            <div class="form-row" style="margin-top: 12px;">
               <div class="form-row-value-container" style="display: flex; align-items: center; width: 100%;">
-                <input type="text" id="trans-description" class="form-row-input" placeholder="Προσθέστε λεπτομέρειες..." style="flex: 1;">
+                <textarea id="trans-description" class="form-row-input" placeholder="Λεπτομέρειες" style="flex: 1; resize: none; min-height: 24px; height: 24px; overflow-y: hidden; font-family: inherit; font-size: inherit; border: none; outline: none; background: transparent;"></textarea>
                 <input type="file" id="trans-photo-input" accept="image/*" style="display: none;">
                 <i class="fa-solid fa-camera" id="trans-camera-btn" style="color: var(--text-muted); font-size: 16px; margin-left: 8px; cursor: pointer;"></i>
               </div>
@@ -602,11 +604,12 @@
               <span id="trans-photo-placeholder-text" data-i18n="photo_mismatch_warning">Η εικόνα είναι διαθέσιμη μόνο στη συσκευή που καταχωρήθηκε</span>
             </div>
 
-          </div>
-          <!-- Action Buttons (Moved outside scrollable area to be sticky at the bottom) -->
-          <div class="modal-action-buttons" style="display: flex; flex-direction: row; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--border-light); background: var(--bg-main); flex-shrink: 0; z-index: 10; margin-top: 0;">
-            <button type="button" class="btn-secondary-continue" id="btn-continue-transaction" onclick="closeModal('transaction-modal')" data-i18n="btn_continue" style="flex: 1; margin: 0; padding: 10px; border-radius: 20px; font-size: 13.5px; width: auto;">Ακύρωση</button>
-            <button type="submit" class="btn-primary-save" id="btn-save-transaction" data-i18n="btn_save" style="flex: 2; margin: 0; padding: 10px; border-radius: 20px; font-size: 13.5px; width: auto;">Αποθήκευση</button>
+            <!-- Action Buttons (Moved inside scrollable area to flow naturally) -->
+            <div class="modal-action-buttons" style="display: flex; flex-direction: row; gap: 12px; margin-top: 8px; margin-bottom: 8px; flex-shrink: 0; width: 100%;">
+              <button type="submit" class="btn-primary-save" id="btn-save-transaction" data-i18n="btn_save" style="flex: 2.2; margin: 0; padding: 12px 16px; border-radius: 24px; font-size: 14.5px; font-weight: 700; width: auto; border: none; cursor: pointer;">Αποθήκευση</button>
+              <button type="button" class="btn-secondary-continue" id="btn-continue-transaction" onclick="closeModal('transaction-modal')" data-i18n="btn_continue" style="flex: 1; margin: 0; padding: 12px 16px; border-radius: 24px; font-size: 14.5px; font-weight: 700; width: auto; cursor: pointer;">Ακύρωση</button>
+            </div>
+
           </div>
         </form>
 
@@ -1072,6 +1075,35 @@
       <div class="modal-buttons" style="margin-top: 16px; display: flex; gap: 8px;">
         <button class="btn btn-secondary" onclick="closePinModal()" style="flex: 1; padding: 10px;">Ακύρωση</button>
         <button class="btn btn-primary" id="btn-pin-submit" onclick="submitPinSetup()" style="flex: 1; padding: 10px;">Επόμενο</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: BIOMETRICS PIN REQUIREMENT WIZARD -->
+  <div id="biometrics-pin-modal" class="modal-overlay" style="align-items: center; justify-content: center;">
+    <div class="modal-content" style="max-width: 320px; text-align: center; border-radius: 12px; border: 1px solid var(--border); padding: 20px; background-color: var(--bg-card, #161622);">
+      <h3 class="modal-title" style="margin-bottom: 12px; font-weight: 700; color: var(--text-main);">Ασφάλεια Εφαρμογής</h3>
+      <p style="margin: 12px 0; color: var(--text-secondary); font-size: 13.5px; line-height: 1.5; text-align: left;">
+        Για να ενεργοποιήσετε το Face ID / Αποτύπωμα, απαιτείται πρώτα ο ορισμός ενός PIN ως εναλλακτική μέθοδος εισόδου.
+      </p>
+      <div class="modal-buttons" style="margin-top: 20px; display: flex; gap: 8px;">
+        <button class="btn btn-secondary" onclick="closeBiometricsPinModal()" style="flex: 1; padding: 11px; border-radius: 8px;">Ακύρωση</button>
+        <button class="btn btn-primary" onclick="proceedToPinSetup()" style="flex: 1.5; padding: 11px; border-radius: 8px; background-color: var(--accent); color: white; border: none; font-weight: 600; cursor: pointer;">Ορισμός PIN</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: PIN VERIFICATION -->
+  <div id="pin-verify-modal" class="modal-overlay" style="align-items: center; justify-content: center;">
+    <div class="modal-content" style="max-width: 320px; text-align: center; border-radius: 12px; border: 1px solid var(--border); padding: 20px; background-color: var(--bg-card, #161622);">
+      <h3 class="modal-title" style="margin-bottom: 12px; font-weight: 700; color: var(--text-main);">Απενεργοποίηση Κλειδώματος</h3>
+      <p style="margin: 12px 0; color: var(--text-secondary); font-size: 13.5px; line-height: 1.5; text-align: left;">
+        Εισάγετε το τρέχον PIN σας για να απενεργοποιήσετε το κλείδωμα της εφαρμογής:
+      </p>
+      <input type="password" id="pin-verify-input" pattern="[0-9]*" inputmode="numeric" maxlength="4" style="font-size: 24px; text-align: center; letter-spacing: 12px; width: 150px; padding: 8px; margin: 16px auto; display: block; background: var(--bg-input, #000000); border: 1px solid var(--border); color: var(--text-main); border-radius: 8px; outline: none;">
+      <div class="modal-buttons" style="margin-top: 16px; display: flex; gap: 8px;">
+        <button class="btn btn-secondary" onclick="closePinVerifyModal()" style="flex: 1; padding: 11px; border-radius: 8px;">Ακύρωση</button>
+        <button class="btn btn-primary" onclick="submitPinVerification()" style="flex: 1.2; padding: 11px; border-radius: 8px; background-color: var(--accent); color: white; border: none; font-weight: 600; cursor: pointer;">Επιβεβαίωση</button>
       </div>
     </div>
   </div>

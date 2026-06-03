@@ -9,6 +9,8 @@ window.addEventListener('unhandledrejection', function (event) {
   alert("⚠️ Unhandled Promise Rejection:\n" + (event.reason?.message || event.reason));
 });
 
+window.autocompleteJustSelected = false;
+
 // Money Manager App - Rebuilt based on actual Excel data structure
 // Excel columns: Date | Account | Category | Subcategory | Note | EUR | Income/Expense | Description | Amount | Currency | Account
 
@@ -189,7 +191,7 @@ const TRANSLATIONS = {
     keypad_btn_done: 'Τέλος',
     placeholder_subcategory: 'Πατήστε για επιλογή ή πληκτρολόγηση',
     placeholder_note: 'Πατήστε για τίτλο',
-    placeholder_description: 'Προσθέστε λεπτομέρειες...',
+    placeholder_description: 'Λεπτομέρειες',
     placeholder_type_new_sub: 'Πληκτρολογήστε νέα υποκατηγορία',
     status_local_mode: 'Local Mode',
     status_cloud_mode: 'Cloud Mode',
@@ -403,7 +405,7 @@ const TRANSLATIONS = {
     keypad_btn_done: 'Done',
     placeholder_subcategory: 'Tap to select or type',
     placeholder_note: 'Tap for title',
-    placeholder_description: 'Add details...',
+    placeholder_description: 'Details',
     placeholder_type_new_sub: 'Type new subcategory',
     status_local_mode: 'Local Mode',
     status_cloud_mode: 'Cloud Mode',
@@ -3482,6 +3484,7 @@ function setupEventListeners() {
   }
 
   function openCalculatorKeypad() {
+    if (window.autocompleteJustSelected) return;
     const form = document.getElementById('transaction-form');
     if (form && form.getAttribute('data-readonly') === 'true') return;
     ensureHistoryPushed();
@@ -3724,6 +3727,31 @@ function switchTab(tab) {
     return;
   }
 
+  // Cancel any pending deferred UI rendering for a previous tab switch
+  if (state.tabRenderTimeoutId) {
+    clearTimeout(state.tabRenderTimeoutId);
+    state.tabRenderTimeoutId = null;
+  }
+
+  // If there is an active transition in progress, force-complete it immediately to prevent race conditions & jitter
+  if (typeof state.activeTransitionCleanup === 'function') {
+    try {
+      if (state.activeTransitionTimeoutId) {
+        clearTimeout(state.activeTransitionTimeoutId);
+        state.activeTransitionTimeoutId = null;
+      }
+      if (state.activeTransitionAnimEndTarget && state.activeTransitionAnimEndListener) {
+        state.activeTransitionAnimEndTarget.removeEventListener('animationend', state.activeTransitionAnimEndListener);
+      }
+      state.activeTransitionCleanup();
+    } catch (err) {
+      console.error("Error cleaning up active tab transition:", err);
+    }
+    state.activeTransitionCleanup = null;
+    state.activeTransitionAnimEndTarget = null;
+    state.activeTransitionAnimEndListener = null;
+  }
+
   if (state.selectionMode) {
     state.selectionMode = false;
     state.selectedIds.clear();
@@ -3799,7 +3827,15 @@ function switchTab(tab) {
           s.style.opacity = '';
         }
       });
+      // Clear transition state trackers
+      state.activeTransitionCleanup = null;
+      state.activeTransitionAnimEndTarget = null;
+      state.activeTransitionAnimEndListener = null;
+      state.activeTransitionTimeoutId = null;
     };
+
+    state.activeTransitionCleanup = cleanupHandler;
+    state.activeTransitionAnimEndTarget = newScreen;
 
     // Listen for animation end on the NEW screen (slide-in finishes)
     const onAnimEnd = (e) => {
@@ -3808,10 +3844,11 @@ function switchTab(tab) {
         cleanupHandler();
       }
     };
+    state.activeTransitionAnimEndListener = onAnimEnd;
     newScreen.addEventListener('animationend', onAnimEnd);
 
     // Safety fallback in case animationend doesn't fire (e.g. display issues)
-    setTimeout(() => {
+    state.activeTransitionTimeoutId = setTimeout(() => {
       newScreen.removeEventListener('animationend', onAnimEnd);
       cleanupHandler();
     }, 350);
@@ -3829,7 +3866,8 @@ function switchTab(tab) {
 
   // Defer heavy UI rendering until the horizontal slide transition has completely finished
   const delay = (oldScreen && newScreen) ? 310 : 16;
-  setTimeout(() => {
+  state.tabRenderTimeoutId = setTimeout(() => {
+    state.tabRenderTimeoutId = null;
     if (tab === 'trans') {
       // Reset month/year to today's date when opening the transactions screen
       const today = new Date();
@@ -3969,6 +4007,7 @@ function openAddTransactionModal() {
   }
   toggleTransactionFormLock(false);
   document.getElementById('transaction-form').reset();
+  if (window.updateDescriptionHeight) window.updateDescriptionHeight();
   document.getElementById('trans-id').value = '';
   
   // Reset Category
@@ -4032,6 +4071,7 @@ function openEditTransactionModal(t) {
   // Load note (primary title) and description (secondary) separately
   document.getElementById('trans-note').value        = t.note || '';
   document.getElementById('trans-description').value = t.description || '';
+  if (window.updateDescriptionHeight) window.updateDescriptionHeight();
   
   if (shouldLock) {
     document.getElementById('trans-delete-btn').style.display = 'none';
@@ -4556,6 +4596,7 @@ function selectSubcategory(name) {
 }
 
 function openCategoryModal() {
+  if (window.autocompleteJustSelected) return;
   const form = document.getElementById('transaction-form');
   if (form && form.getAttribute('data-readonly') === 'true') return;
   const currentType = document.querySelector('.type-tab-btn.active').getAttribute('data-type');
@@ -4853,6 +4894,7 @@ function saveNewCategoryFromPicker() {
 }
 
 function openSubcategoryModal() {
+  if (window.autocompleteJustSelected) return;
   const form = document.getElementById('transaction-form');
   if (form && form.getAttribute('data-readonly') === 'true') return;
   if(!document.getElementById('trans-category').value) {
@@ -4885,6 +4927,7 @@ function getAccountDisplayName(accOrName) {
 let _currentAccountPickerTarget = 'from';
 
 function openAccountPickerModal(target) {
+  if (window.autocompleteJustSelected) return;
   const form = document.getElementById('transaction-form');
   if (form && form.getAttribute('data-readonly') === 'true') return;
   _currentAccountPickerTarget = target;
@@ -6122,7 +6165,15 @@ function initPullToRefresh() {
 
   // TOUCH EVENTS
   container.addEventListener('touchstart', (e) => {
-    if (container.scrollTop === 0) {
+    let isScrollAtTop = false;
+    if (state.activeTab === 'stats') {
+      const statsScroll = document.querySelector('.stats-scroll-content');
+      isScrollAtTop = statsScroll ? (statsScroll.scrollTop === 0) : true;
+    } else {
+      isScrollAtTop = (container.scrollTop === 0);
+    }
+
+    if (isScrollAtTop) {
       const touch = e.touches[0];
       startX = touch.pageX;
       startY = touch.pageY;
@@ -7417,7 +7468,7 @@ function submitPinSetup() {
   const pin = pinField.value;
   
   if (pin.length !== 4 || isNaN(pin)) {
-    alert("Το PIN πρέπει να είναι ακριβώς 4 ψηφία!");
+    showSyncToast("❌ " + (state.lang === 'el' ? "Το PIN πρέπει να είναι ακριβώς 4 ψηφία!" : "PIN must be exactly 4 digits!"), 3000);
     return;
   }
   
@@ -7432,10 +7483,10 @@ function submitPinSetup() {
       localStorage.setItem('app_pin', pin);
       localStorage.setItem('app_lock_enabled', 'true');
       closePinModal();
-      alert("✅ Το κλείδωμα ενεργοποιήθηκε επιτυχώς!");
+      showSyncToast("✅ " + (state.lang === 'el' ? "Το κλείδωμα ενεργοποιήθηκε επιτυχώς!" : "App lock activated successfully!"), 3000);
       checkBiometricsSupport();
     } else {
-      alert("Τα PIN δεν ταιριάζουν! Προσπαθήστε ξανά.");
+      showSyncToast("❌ " + (state.lang === 'el' ? "Τα PIN δεν ταιριάζουν! Προσπαθήστε ξανά." : "PINs do not match! Try again."), 3000);
       pinSetupStep = 1;
       tempSetupPin = "";
       pinField.value = "";
@@ -7445,50 +7496,110 @@ function submitPinSetup() {
   }
 }
 
+function openPinVerifyModal() {
+  const modal = document.getElementById('pin-verify-modal');
+  if (modal) {
+    modal.classList.add('active');
+    const input = document.getElementById('pin-verify-input');
+    if (input) {
+      input.value = '';
+      setTimeout(() => input.focus(), 50);
+    }
+  }
+}
+
+function closePinVerifyModal() {
+  const modal = document.getElementById('pin-verify-modal');
+  if (modal) modal.classList.remove('active');
+}
+
+function submitPinVerification() {
+  const input = document.getElementById('pin-verify-input');
+  const entered = input ? input.value : '';
+  const currentPin = localStorage.getItem('app_pin');
+  
+  if (entered === currentPin) {
+    localStorage.removeItem('app_lock_enabled');
+    localStorage.removeItem('app_pin');
+    localStorage.removeItem('app_biometrics_enabled');
+    localStorage.removeItem('biometric_cred_id');
+    
+    // Hide biometric settings container
+    const bioContainer = document.getElementById('settings-biometrics-container');
+    if (bioContainer) bioContainer.style.display = 'none';
+    
+    const bioCheckbox = document.getElementById('settings-biometrics');
+    if (bioCheckbox) bioCheckbox.checked = false;
+    
+    // Uncheck app lock checkbox
+    const lockCheckbox = document.getElementById('settings-app-lock');
+    if (lockCheckbox) lockCheckbox.checked = false;
+    
+    closePinVerifyModal();
+    showSyncToast("🔓 " + (state.lang === 'el' ? "Το κλείδωμα απενεργοποιήθηκε." : "App lock disabled."), 3000);
+  } else {
+    showSyncToast("❌ " + (state.lang === 'el' ? "Λάθος PIN!" : "Incorrect PIN!"), 3000);
+    if (input) {
+      input.value = '';
+      input.focus();
+    }
+  }
+}
+
 function toggleAppLock(checked) {
   if (checked) {
     openPinModal();
   } else {
-    const currentPin = localStorage.getItem('app_pin');
-    const entered = prompt("Εισάγετε το τρέχον PIN σας για να απενεργοποιήσετε το κλείδωμα:");
-    if (entered === currentPin) {
-      localStorage.removeItem('app_lock_enabled');
-      localStorage.removeItem('app_pin');
-      localStorage.removeItem('app_biometrics_enabled');
-      localStorage.removeItem('biometric_cred_id');
-      document.getElementById('settings-biometrics-container').style.display = 'none';
-      document.getElementById('settings-biometrics').checked = false;
-      alert("🔓 Το κλείδωμα απενεργοποιήθηκε.");
-    } else {
-      if (entered !== null) {
-        alert("Λάθος PIN!");
-      }
-      document.getElementById('settings-app-lock').checked = true;
-    }
+    // Keep it checked visually until verified
+    const lockCheckbox = document.getElementById('settings-app-lock');
+    if (lockCheckbox) lockCheckbox.checked = true;
+    openPinVerifyModal();
   }
+}
+
+function openBiometricsPinModal() {
+  const modal = document.getElementById('biometrics-pin-modal');
+  if (modal) modal.classList.add('active');
+}
+
+function closeBiometricsPinModal() {
+  const modal = document.getElementById('biometrics-pin-modal');
+  if (modal) modal.classList.remove('active');
+}
+
+function proceedToPinSetup() {
+  closeBiometricsPinModal();
+  const appLockCheckbox = document.getElementById('settings-app-lock');
+  if (appLockCheckbox) {
+    appLockCheckbox.checked = true;
+  }
+  openPinModal();
 }
 
 async function toggleBiometrics(checked) {
   if (checked) {
     const appLockEnabled = localStorage.getItem('app_lock_enabled') === 'true';
     if (!appLockEnabled) {
-      alert("⚠️ Παρακαλώ ενεργοποιήστε πρώτα το Κλείδωμα Εφαρμογής (PIN) πριν ενεργοποιήσετε τα βιομετρικά στοιχεία.");
       document.getElementById('settings-biometrics').checked = false;
+      openBiometricsPinModal();
       return;
     }
     const result = await registerBiometrics();
     if (result === true) {
       localStorage.setItem('app_biometrics_enabled', 'true');
-      alert("✅ Το Face ID / Αποτύπωμα ενεργοποιήθηκε επιτυχώς!");
+      const msg = state.lang === 'el' ? 'Το Face ID / Αποτύπωμα ενεργοποιήθηκε επιτυχώς!' : 'Face ID / Fingerprint activated successfully!';
+      showSyncToast("✅ " + msg, 3000);
     } else {
       localStorage.removeItem('app_biometrics_enabled');
       document.getElementById('settings-biometrics').checked = false;
-      alert("❌ Αποτυχία σύνδεσης βιομετρικών. Αιτία: " + result);
+      const msg = state.lang === 'el' ? 'Αποτυχία σύνδεσης βιομετρικών. Αιτία: ' : 'Biometrics failed: ';
+      showSyncToast("❌ " + msg + result, 4000);
     }
   } else {
     localStorage.removeItem('app_biometrics_enabled');
     localStorage.removeItem('biometric_cred_id');
-    alert("🔓 Τα βιομετρικά απενεργοποιήθηκαν.");
+    const msg = state.lang === 'el' ? 'Τα βιομετρικά απενεργοποιήθηκαν.' : 'Biometrics deactivated.';
+    showSyncToast("🔓 " + msg, 3000);
   }
 }
 
@@ -8296,6 +8407,12 @@ window.changeThemeSetting = changeThemeSetting;
 window.toggleAppLock = toggleAppLock;
 window.toggleBiometrics = toggleBiometrics;
 window.closePinModal = closePinModal;
+window.openPinVerifyModal = openPinVerifyModal;
+window.closePinVerifyModal = closePinVerifyModal;
+window.submitPinVerification = submitPinVerification;
+window.openBiometricsPinModal = openBiometricsPinModal;
+window.closeBiometricsPinModal = closeBiometricsPinModal;
+window.proceedToPinSetup = proceedToPinSetup;
 window.submitPinSetup = submitPinSetup;
 window.pressKey = pressKey;
 window.pressBackspace = pressBackspace;
@@ -9594,6 +9711,7 @@ function setupTimeWheelScrollListeners() {
 }
 
 function openCustomDatePicker() {
+  if (window.autocompleteJustSelected) return;
   const form = document.getElementById('transaction-form');
   if (form && form.getAttribute('data-readonly') === 'true') return;
   ensureHistoryPushed();
@@ -9903,9 +10021,21 @@ function renderNoteAutocomplete(query) {
                       <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-right:8px;">${highlightMatch(suggestion.title, q)}</span>
                       ${categoryBadgeHTML}`;
                       
-    // Use pointerdown so it fires before blur closes the dropdown
+    // Use pointerdown only to prevent focus loss (prevent blur from closing dropdown)
     item.addEventListener('pointerdown', (e) => {
       e.preventDefault();
+    });
+
+    // Handle click to perform the actual selection, fill fields, and close the dropdown safely
+    item.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      window.autocompleteJustSelected = true;
+      setTimeout(() => {
+        window.autocompleteJustSelected = false;
+      }, 400);
+
       const noteInput = document.getElementById('trans-note');
       if (noteInput) {
         noteInput.value = suggestion.title;
@@ -9914,9 +10044,16 @@ function renderNoteAutocomplete(query) {
       
       // Auto-select Category, Subcategory, and Account
       if (suggestion.category) {
-        const catObj = state.categories.find(c => c.name === suggestion.category);
+        let catObj = state.categories.find(c => c.name === suggestion.category);
+        if (!catObj) {
+          // Robust matching: clean emojis & uppercase comparisons
+          const cleanSug = stripLeadingEmoji(suggestion.category).trim().toUpperCase();
+          catObj = state.categories.find(c => stripLeadingEmoji(c.name).trim().toUpperCase() === cleanSug);
+        }
         if (catObj) {
           selectCategory(catObj.name, catObj.icon, catObj.color, false);
+        } else {
+          selectCategory(suggestion.category, '🧩', 'var(--accent)', false);
         }
       }
       if (suggestion.subcategory) {
@@ -9943,12 +10080,7 @@ function renderNoteAutocomplete(query) {
           updateAccountTriggerDisplay('from');
         }
       }
-    });
-
-    // Handle click to consume click event and prevent click-through to element underneath
-    item.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
+      
       closeNoteAutocomplete();
     });
     dropdown.appendChild(item);
@@ -9997,4 +10129,32 @@ function toggleAutocompleteSetting(enabled) {
 
 window.toggleAutocompleteSetting = toggleAutocompleteSetting;
 window.initNoteAutocomplete = initNoteAutocomplete;
-window.closeNoteAutocomplete = closeNoteAutocomplete;
+window.closeNoteAutocomplete = closeNoteAutocomplete;
+
+// FEATURE: TEXTAREA AUTO-GROW FOR DESCRIPTION/DETAILS
+function initDescriptionAutoGrow() {
+  const descInput = document.getElementById('trans-description');
+  if (!descInput) return;
+  
+  if (descInput.dataset.autogrowBound === 'true') {
+    return;
+  }
+  descInput.dataset.autogrowBound = 'true';
+
+  const updateHeight = () => {
+    descInput.style.height = '24px';
+    const newHeight = Math.max(24, descInput.scrollHeight);
+    descInput.style.height = newHeight + 'px';
+  };
+
+  descInput.addEventListener('input', updateHeight);
+  descInput.addEventListener('focus', updateHeight);
+  
+  window.updateDescriptionHeight = updateHeight;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  initDescriptionAutoGrow();
+});
+
+window.initDescriptionAutoGrow = initDescriptionAutoGrow;
