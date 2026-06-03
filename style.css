@@ -4219,29 +4219,32 @@ body.shared-wallet-active .day-header {
 /* Prevent stats screen header jitter on mobile viewports by isolating scroll */
 @media (max-width: 767px) {
   body.stats-tab-active .app-content {
-    overflow-y: hidden !important;
+    overflow: hidden !important;
     display: flex !important;
     flex-direction: column !important;
     padding-bottom: 0 !important;
-    height: 100% !important;
-    min-height: 0 !important;
+    /* Use flex sizing only - no explicit height */
+  }
+
+  body.stats-tab-active .app-content > .tab-screen:not(.active) {
+    display: none !important;
   }
 
   #stats-screen.active {
     display: flex !important;
     flex-direction: column !important;
-    height: 100% !important;
+    flex: 1 1 0% !important;
     min-height: 0 !important;
     overflow: hidden !important;
   }
 
   .stats-scroll-content {
-    flex: 1 1 0 !important;
+    flex: 1 1 0% !important;
     min-height: 0 !important;
     overflow-y: auto !important;
+    overflow-x: hidden !important;
     -webkit-overflow-scrolling: touch !important;
-    display: flex !important;
-    flex-direction: column !important;
+    display: block !important;
     padding-bottom: calc(70px + var(--safe-area-bottom)) !important;
     overscroll-behavior-y: contain !important;
   }
