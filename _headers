@@ -4,3 +4,9 @@
   Cache-Control: no-cache, no-store, must-revalidate
 /
   Cache-Control: no-cache, no-store, must-revalidate
+/manifest.json
+  Cache-Control: max-age=0, no-cache, no-store, must-revalidate
+/icon.png
+  Cache-Control: max-age=0, no-cache, no-store, must-revalidate
+/icon-192.png
+  Cache-Control: max-age=0, no-cache, no-store, must-revalidate
