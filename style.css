@@ -4218,7 +4218,7 @@ body.shared-wallet-active .day-header {
 
 /* Prevent stats screen header jitter on mobile viewports by isolating scroll */
 @media (max-width: 767px) {
-  body:has(#stats-screen.active) .app-content {
+  body.stats-tab-active .app-content {
     overflow-y: hidden !important;
     display: flex !important;
     flex-direction: column !important;

@@ -3770,6 +3770,9 @@ function switchTab(tab) {
   const newTab = tab;
   state.activeTab = tab;
 
+  // Toggle body class for stats tab scroll isolation on mobile
+  document.body.classList.toggle('stats-tab-active', tab === 'stats');
+
   // Determine direction for premium horizontal slide transition
   const oldIdx = TAB_ORDER.indexOf(oldTab);
   const newIdx = TAB_ORDER.indexOf(newTab);
