@@ -1270,7 +1270,8 @@ function initSupabaseAuth() {
     console.log('[AuthDebug]', msg);
     const logDiv = document.getElementById('auth-debug-logs');
     if (logDiv) {
-      logDiv.style.display = 'block';
+      // Keep logs in developer console; do not show to end users
+      // logDiv.style.display = 'block';
       const time = new Date().toLocaleTimeString();
       logDiv.innerHTML += `<div>[${time}] ${msg}</div>`;
       logDiv.scrollTop = logDiv.scrollHeight;
