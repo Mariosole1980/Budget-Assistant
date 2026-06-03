@@ -3641,15 +3641,16 @@ function setupEventListeners() {
     let lastScrollTop = 0;
     let touchStartY = 0;
 
-    // Desktop scroll
-    appContent.addEventListener('scroll', () => {
-      const st = appContent.scrollTop;
+    // Desktop scroll (using capturing to catch scroll events from sub-scroll containers)
+    appContent.addEventListener('scroll', (e) => {
+      const target = e.target;
+      const st = target.scrollTop;
       const overlay = document.getElementById('search-overlay');
       if (overlay && overlay.classList.contains('active') && st > lastScrollTop + 8) {
         closeSearchOverlay();
       }
       lastScrollTop = st <= 0 ? 0 : st;
-    }, { passive: true });
+    }, { capture: true, passive: true });
 
     // Mobile touch: detect downward swipe
     appContent.addEventListener('touchstart', (e) => {
@@ -3773,9 +3774,11 @@ function switchTab(tab) {
   const newTab = tab;
   state.activeTab = tab;
 
-  // Toggle body class for stats/trans tab scroll isolation on mobile
-  document.body.classList.toggle('stats-tab-active', tab === 'stats');
+  // Toggle body class for scroll isolation on mobile
   document.body.classList.toggle('trans-tab-active', tab === 'trans');
+  document.body.classList.toggle('stats-tab-active', tab === 'stats');
+  document.body.classList.toggle('accounts-tab-active', tab === 'accounts');
+  document.body.classList.toggle('more-tab-active', tab === 'more');
 
   // Determine direction for premium horizontal slide transition
   const oldIdx = TAB_ORDER.indexOf(oldTab);
@@ -6172,13 +6175,8 @@ function initPullToRefresh() {
 
   // TOUCH EVENTS
   container.addEventListener('touchstart', (e) => {
-    let isScrollAtTop = false;
-    if (state.activeTab === 'stats') {
-      const statsScroll = document.querySelector('.stats-scroll-content');
-      isScrollAtTop = statsScroll ? (statsScroll.scrollTop === 0) : true;
-    } else {
-      isScrollAtTop = (container.scrollTop === 0);
-    }
+    const activeScrollEl = document.querySelector(`.tab-screen.active .${state.activeTab}-scroll-content`);
+    let isScrollAtTop = activeScrollEl ? (activeScrollEl.scrollTop === 0) : (container.scrollTop === 0);
 
     if (isScrollAtTop) {
       const touch = e.touches[0];
@@ -6575,8 +6573,10 @@ function initSwipeToBack() {
         // Update state
         const prevTabName = TAB_ORDER[currentTabIdx - 1];
         state.activeTab = prevTabName;
-        document.body.classList.toggle('stats-tab-active', prevTabName === 'stats');
         document.body.classList.toggle('trans-tab-active', prevTabName === 'trans');
+        document.body.classList.toggle('stats-tab-active', prevTabName === 'stats');
+        document.body.classList.toggle('accounts-tab-active', prevTabName === 'accounts');
+        document.body.classList.toggle('more-tab-active', prevTabName === 'more');
         document.querySelectorAll('.nav-item').forEach(i => i.classList.toggle('active', i.getAttribute('data-tab') === prevTabName));
 
         // Ensure history is correct

@@ -4179,7 +4179,10 @@ body.shared-wallet-active .day-header {
     margin-top: 0 !important;
   }
 
-  .stats-scroll-content {
+  .stats-scroll-content,
+  .trans-scroll-content,
+  .accounts-scroll-content,
+  .more-scroll-content {
     display: contents !important;
   }
 }
@@ -4293,6 +4296,72 @@ body.shared-wallet-active .day-header {
   #trans-screen .summary-bar {
     position: static !important;
     flex-shrink: 0 !important;
+  }
+}
+
+/* Prevent accounts screen header jitter on mobile viewports by isolating scroll */
+@media (max-width: 767px) {
+  body.accounts-tab-active .app-content {
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+    padding-bottom: 0 !important;
+  }
+
+  body.accounts-tab-active .app-content > .tab-screen:not(.active) {
+    display: none !important;
+  }
+
+  #accounts-screen.active {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 1 0% !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .accounts-scroll-content {
+    flex: 1 1 0% !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    display: block !important;
+    padding-bottom: calc(70px + var(--safe-area-bottom)) !important;
+    overscroll-behavior-y: contain !important;
+  }
+}
+
+/* Prevent more screen header jitter on mobile viewports by isolating scroll */
+@media (max-width: 767px) {
+  body.more-tab-active .app-content {
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+    padding-bottom: 0 !important;
+  }
+
+  body.more-tab-active .app-content > .tab-screen:not(.active) {
+    display: none !important;
+  }
+
+  #more-screen.active {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 1 0% !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .more-scroll-content {
+    flex: 1 1 0% !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    display: block !important;
+    padding-bottom: calc(70px + var(--safe-area-bottom)) !important;
+    overscroll-behavior-y: contain !important;
   }
 }
 
