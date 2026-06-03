@@ -6571,6 +6571,7 @@ function initSwipeToBack() {
         // Update state
         const prevTabName = TAB_ORDER[currentTabIdx - 1];
         state.activeTab = prevTabName;
+        document.body.classList.toggle('stats-tab-active', prevTabName === 'stats');
         document.querySelectorAll('.nav-item').forEach(i => i.classList.toggle('active', i.getAttribute('data-tab') === prevTabName));
 
         // Ensure history is correct

@@ -1,4 +1,4 @@
-// SW Version 131
+// SW Version 132
 const CACHE_VERSION = 'v' + Date.now();
 const CACHE_NAME = 'money-manager-' + CACHE_VERSION;
 const ASSETS = [
@@ -15,7 +15,16 @@ const ASSETS = [
 self.addEventListener('install', (e) => {
   e.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS);
+      const cachePromises = ASSETS.map(asset => {
+        const request = new Request(asset, { cache: 'reload' });
+        return fetch(request).then(response => {
+          if (!response.ok) {
+            throw new Error(`Request for ${asset} failed with status ${response.status}`);
+          }
+          return cache.put(asset, response);
+        });
+      });
+      return Promise.all(cachePromises);
     }).then(() => self.skipWaiting())
   );
 });
