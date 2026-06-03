@@ -1178,6 +1178,8 @@ window.addEventListener('DOMContentLoaded', async () => {
   if (isIOS) {
     document.body.classList.add('is-ios');
   }
+  // Set initial scroll isolation class for default trans tab
+  document.body.classList.add('trans-tab-active');
   loadConfig();
   initSettingsFromStorage();
   initSupabase();
@@ -3771,8 +3773,9 @@ function switchTab(tab) {
   const newTab = tab;
   state.activeTab = tab;
 
-  // Toggle body class for stats tab scroll isolation on mobile
+  // Toggle body class for stats/trans tab scroll isolation on mobile
   document.body.classList.toggle('stats-tab-active', tab === 'stats');
+  document.body.classList.toggle('trans-tab-active', tab === 'trans');
 
   // Determine direction for premium horizontal slide transition
   const oldIdx = TAB_ORDER.indexOf(oldTab);
@@ -6573,6 +6576,7 @@ function initSwipeToBack() {
         const prevTabName = TAB_ORDER[currentTabIdx - 1];
         state.activeTab = prevTabName;
         document.body.classList.toggle('stats-tab-active', prevTabName === 'stats');
+        document.body.classList.toggle('trans-tab-active', prevTabName === 'trans');
         document.querySelectorAll('.nav-item').forEach(i => i.classList.toggle('active', i.getAttribute('data-tab') === prevTabName));
 
         // Ensure history is correct

@@ -4257,6 +4257,45 @@ body.shared-wallet-active .day-header {
   }
 }
 
+/* Prevent trans screen header jitter on mobile viewports by isolating scroll */
+@media (max-width: 767px) {
+  body.trans-tab-active .app-content {
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+    padding-bottom: 0 !important;
+  }
+
+  body.trans-tab-active .app-content > .tab-screen:not(.active) {
+    display: none !important;
+  }
+
+  #trans-screen.active {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 1 0% !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .trans-scroll-content {
+    flex: 1 1 0% !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    display: block !important;
+    padding-bottom: calc(70px + var(--safe-area-bottom)) !important;
+    overscroll-behavior-y: contain !important;
+  }
+
+  #trans-screen .stats-header-bar,
+  #trans-screen .summary-bar {
+    position: static !important;
+    flex-shrink: 0 !important;
+  }
+}
+
 /* Excel Export Period Bottom Sheet Styling */
 .period-date-range {
   font-size: 11px;
