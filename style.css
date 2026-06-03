@@ -4222,6 +4222,8 @@ body.shared-wallet-active .day-header {
     overflow-y: hidden !important;
     display: flex !important;
     flex-direction: column !important;
+    padding-bottom: 0 !important;
+    height: 100% !important;
   }
 
   #stats-screen.active {
@@ -4237,6 +4239,8 @@ body.shared-wallet-active .day-header {
     -webkit-overflow-scrolling: touch !important;
     display: flex !important;
     flex-direction: column !important;
+    padding-bottom: calc(70px + var(--safe-area-bottom)) !important;
+    overscroll-behavior-y: contain !important;
   }
 
   #stats-screen .stats-header-bar,
