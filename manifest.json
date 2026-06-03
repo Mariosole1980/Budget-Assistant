@@ -42,29 +42,7 @@
       "purpose": "maskable"
     }
   ],
-  "screenshots": [
-    {
-      "src": "screenshots/screen1.png",
-      "sizes": "1080x1920",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "Κινήσεις - Καταγραφή εσόδων και εξόδων"
-    },
-    {
-      "src": "screenshots/screen2.png",
-      "sizes": "1080x1920",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "Στατιστικά - Γραφήματα ανάλυσης δαπανών"
-    },
-    {
-      "src": "screenshots/screen3.png",
-      "sizes": "1080x1920",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "Λογαριασμοί - Διαχείριση λογαριασμών"
-    }
-  ],
+
   "shortcuts": [
     {
       "name": "Νέα Κίνηση",
