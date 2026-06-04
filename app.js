@@ -1204,6 +1204,49 @@ window.addEventListener('DOMContentLoaded', async () => {
   applyLanguage(state.lang);
 });
 
+// ============================================================
+// CUSTOM ALERT & CONFIRM MODALS
+// ============================================================
+function showCustomDialog({ message, title = '', icon = '💬', showCancel = false }) {
+  return new Promise((resolve) => {
+    const modal = document.getElementById('custom-dialog-modal');
+    if (!modal) {
+      const res = showCancel ? confirm(message) : (alert(message), true);
+      resolve(res);
+      return;
+    }
+    
+    document.getElementById('custom-dialog-title').textContent = title || (showCancel ? (state.lang === 'el' ? 'Επιβεβαίωση' : 'Confirm') : (state.lang === 'el' ? 'Ειδοποίηση' : 'Alert'));
+    document.getElementById('custom-dialog-message').innerHTML = message;
+    document.getElementById('custom-dialog-icon').textContent = icon;
+    
+    const btnCancel = document.getElementById('custom-dialog-btn-cancel');
+    const btnOk = document.getElementById('custom-dialog-btn-ok');
+    
+    btnCancel.style.display = showCancel ? 'block' : 'none';
+    
+    const newBtnCancel = btnCancel.cloneNode(true);
+    const newBtnOk = btnOk.cloneNode(true);
+    btnCancel.parentNode.replaceChild(newBtnCancel, btnCancel);
+    btnOk.parentNode.replaceChild(newBtnOk, btnOk);
+    
+    modal.classList.add('active');
+    
+    newBtnCancel.addEventListener('click', () => {
+      modal.classList.remove('active');
+      resolve(false);
+    });
+    
+    newBtnOk.addEventListener('click', () => {
+      modal.classList.remove('active');
+      resolve(true);
+    });
+  });
+}
+
+window.showConfirm = (message, title = '', icon = '❓') => showCustomDialog({ message, title, icon, showCancel: true });
+window.showAlert = (message, title = '', icon = 'ℹ️') => showCustomDialog({ message, title, icon, showCancel: false });
+
 function loadConfig() {
   // Database credentials are strictly hardcoded in state.supabaseConfig.
   state.isSupabaseEnabled = true;
@@ -3427,7 +3470,8 @@ function setupEventListeners() {
   document.getElementById('trans-delete-btn').addEventListener('click', async () => {
     const id = document.getElementById('trans-id').value;
     const confirmMsg = TRANSLATIONS[state.lang]['confirm_delete_transaction'];
-    if (id && confirm(confirmMsg)) {
+    const confirmed = await showConfirm(confirmMsg, state.lang === 'el' ? 'Διαγραφή' : 'Delete', '🗑️');
+    if (id && confirmed) {
       await deleteTransaction(id);
       closeModal('transaction-modal');
     }
@@ -6337,7 +6381,8 @@ async function deleteSelectedTransactions() {
   if (ids.length === 0) return;
   
   const msg = ids.length === 1 ? 'Να διαγραφεί η επιλεγμένη συναλλαγή;' : `Να διαγραφούν οι ${ids.length} επιλεγμένες συναλλαγές;`;
-  if (!confirm(msg)) return;
+  const confirmed = await showConfirm(msg, state.lang === 'el' ? 'Διαγραφή' : 'Delete', '🗑️');
+  if (!confirmed) return;
   
   if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
     try {
@@ -7833,7 +7878,12 @@ async function handleGoogleAuth() {
 }
 
 async function handleLogout() {
-  if (!confirm('Είστε σίγουροι ότι θέλετε να αποσυνδεθείτε από το λογαριασμό σας;')) return;
+  const confirmed = await showConfirm(
+    state.lang === 'el' ? 'Είστε σίγουροι ότι θέλετε να αποσυνδεθείτε από το λογαριασμό σας;' : 'Are you sure you want to log out of your account?',
+    state.lang === 'el' ? 'Αποσύνδεση' : 'Logout',
+    '🚪'
+  );
+  if (!confirmed) return;
   if (!state.supabaseClient) return;
   
   try {
@@ -7848,7 +7898,11 @@ async function handleLogout() {
     localStorage.removeItem('auth_guest_mode');
     localStorage.removeItem('app_theme'); // Reset theme to default (Premium Dark) on logout
     
-    alert('👋 Αποσυνδεθήκατε με επιτυχία!');
+    await showAlert(
+      state.lang === 'el' ? '👋 Αποσυνδεθήκατε με επιτυχία!' : '👋 Logged out successfully!',
+      state.lang === 'el' ? 'Αντίο!' : 'Goodbye!',
+      '👋'
+    );
     // Reload page to clear memory state
     window.location.reload();
   } catch(err) {
