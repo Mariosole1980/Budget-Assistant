@@ -35,6 +35,28 @@
   <script src="xlsx.full.min.js"></script>
 </head>
 <body>
+  <script>
+    // Fast, synchronous check to prevent layout flash
+    (function() {
+      const hasCachedUser = localStorage.getItem('cached_current_user');
+      const isGuestMode = localStorage.getItem('auth_guest_mode') === 'true';
+      const isRedirect = window.location.hash.includes('access_token=') || 
+                         window.location.hash.includes('id_token=') || 
+                         window.location.hash.includes('error=') ||
+                         window.location.search.includes('code=') || 
+                         window.location.search.includes('error=');
+      
+      if ((!hasCachedUser && !isGuestMode) || isRedirect) {
+        const style = document.createElement('style');
+        style.id = 'early-auth-style';
+        style.innerHTML = `
+          #auth-overlay { display: flex !important; }
+          \${isRedirect ? '#auth-loading-state { display: flex !important; } .auth-card { display: none !important; }' : ''}
+        `;
+        document.head.appendChild(style);
+      }
+    })();
+  </script>
 
   <div class="app-container">
 
@@ -1430,15 +1452,14 @@
 
   <!-- Premium Glassmorphic Auth Screen Overlay -->
   <div id="auth-overlay" class="auth-overlay" style="display: none;">
-    <div class="auth-card">
-      <!-- Loading State Overlay for OAuth redirects -->
-      <div id="auth-loading-state" style="display: none; text-align: center; padding: 40px 20px;">
-        <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 3.5rem; color: #4361ee; margin-bottom: 25px;"></i>
-        <h3 style="margin-bottom: 12px; font-weight: 700; color: #fff; font-size: 1.5rem;" id="auth-loading-title" data-i18n="auth_loading_title">Σύνδεση σε εξέλιξη</h3>
-        <p style="color: rgba(255,255,255,0.7); font-size: 14.5px; line-height: 1.5; max-width: 280px; margin: 0 auto; margin-bottom: 15px;" id="auth-loading-desc" data-i18n="auth_loading_desc">Παρακαλώ περιμένετε όσο ολοκληρώνεται η ταυτοποίηση με το λογαριασμό σας...</p>
-        <div id="auth-debug-logs" style="text-align: left; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 10px; font-family: monospace; font-size: 11px; color: #00ffcc; max-height: 120px; overflow-y: auto; margin-top: 15px; display: none;"></div>
-      </div>
+    <!-- Loading State Overlay for OAuth redirects -->
+    <div id="auth-loading-state" class="auth-redirect-loader" style="display: none;">
+      <div class="auth-redirect-logo"><i class="fa-solid fa-wallet"></i></div>
+      <div class="auth-redirect-spinner"></div>
+      <div id="auth-debug-logs" style="text-align: left; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 10px; font-family: monospace; font-size: 11px; color: #00ffcc; max-height: 120px; overflow-y: auto; margin-top: 15px; display: none;"></div>
+    </div>
 
+    <div class="auth-card" id="auth-card">
       <div id="auth-forms-container">
         <!-- Language Selector -->
         <div class="auth-lang-selector">

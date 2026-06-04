@@ -1361,10 +1361,25 @@ function initSupabaseAuth() {
   const authOverlay = document.getElementById('auth-overlay');
   const loadingState = document.getElementById('auth-loading-state');
   const formsContainer = document.getElementById('auth-forms-container');
+  const authCard = document.getElementById('auth-card');
+
+  // Remove early style to allow JS style control
+  const earlyStyle = document.getElementById('early-auth-style');
+  if (earlyStyle) earlyStyle.remove();
+
+  function toggleLoader(show) {
+    if (show) {
+      if (loadingState) loadingState.style.display = 'flex';
+      if (authCard) authCard.style.display = 'none';
+    } else {
+      if (loadingState) loadingState.style.display = 'none';
+      if (authCard) authCard.style.display = 'flex';
+    }
+  }
   
   if (isAuthRedirect) {
     if (authOverlay) authOverlay.style.display = 'flex';
-    if (loadingState) loadingState.style.display = 'block';
+    toggleLoader(true);
     if (formsContainer) formsContainer.style.display = 'none';
     
     // Safety timeout to prevent getting stuck
@@ -1373,7 +1388,7 @@ function initSupabaseAuth() {
         logAuthDebug('TIMEOUT: Auth redirect timed out (6s).');
         console.warn('Auth redirect timed out or failed. Restoring login form.');
         processingRedirect = false;
-        if (loadingState) loadingState.style.display = 'none';
+        toggleLoader(false);
         if (formsContainer) formsContainer.style.display = 'block';
         showAuthStatus(state.lang === 'el' 
           ? '⚠️ Η σύνδεση καθυστερεί ή απέτυχε. Δοκιμάστε ξανά.' 
@@ -1400,7 +1415,7 @@ function initSupabaseAuth() {
       }
       
       processingRedirect = false;
-      if (loadingState) loadingState.style.display = 'none';
+      toggleLoader(false);
       if (formsContainer) formsContainer.style.display = 'block';
       showAuthStatus(errorMsg);
       // Clean URL hash so it doesn't reappear on refresh
@@ -1416,7 +1431,7 @@ function initSupabaseAuth() {
     if (reason && (reason.message || reason.error_description || String(reason).includes('Auth') || String(reason).includes('token'))) {
       const msg = reason.message || reason.error_description || String(reason);
       processingRedirect = false;
-      if (loadingState) loadingState.style.display = 'none';
+      toggleLoader(false);
       if (formsContainer) formsContainer.style.display = 'block';
       showAuthStatus('❌ Σφάλμα (Unhandled): ' + msg);
     }
@@ -1429,15 +1444,18 @@ function initSupabaseAuth() {
       logAuthDebug(`getSession error: ${error.message || error}`);
       console.error('Supabase getSession error:', error);
       processingRedirect = false;
-      if (loadingState) loadingState.style.display = 'none';
+      toggleLoader(false);
       if (formsContainer) formsContainer.style.display = 'block';
       showAuthStatus('❌ Σφάλμα ταυτοποίησης: ' + (error.message || error));
     } else {
       logAuthDebug(`getSession resolved. Session exists: ${!!(data && data.session)}`);
+      if (data && data.session && (window.location.hash || window.location.search)) {
+        window.history.replaceState(null, null, window.location.pathname);
+      }
       if (!data || !data.session) {
         // No session exists, stop showing loader and show the login form
         processingRedirect = false;
-        if (loadingState) loadingState.style.display = 'none';
+        toggleLoader(false);
         if (formsContainer) formsContainer.style.display = 'block';
       } else if (data.session && data.session.user) {
         // Fallback for browsers where INITIAL_SESSION event may be delayed/missed
@@ -1450,7 +1468,7 @@ function initSupabaseAuth() {
     logAuthDebug(`getSession catch error: ${err.message || err}`);
     console.error('Supabase getSession catch error:', err);
     processingRedirect = false;
-    if (loadingState) loadingState.style.display = 'none';
+    toggleLoader(false);
     if (formsContainer) formsContainer.style.display = 'block';
     showAuthStatus('❌ Σφάλμα ταυτοποίησης: ' + (err.message || err));
   });
@@ -1479,9 +1497,14 @@ function initSupabaseAuth() {
       state.guestMode = false;
       localStorage.removeItem('auth_guest_mode');
       
+      // Clear URL parameters so they don't persist or trigger reload loops
+      if (window.location.hash || window.location.search) {
+        window.history.replaceState(null, null, window.location.pathname);
+      }
+      
       // Hide auth overlay & reset elements
       if (authOverlay) authOverlay.style.display = 'none';
-      if (loadingState) loadingState.style.display = 'none';
+      toggleLoader(false);
       if (formsContainer) formsContainer.style.display = 'block';
       
       // Show switcher in header
@@ -1555,7 +1578,7 @@ function initSupabaseAuth() {
         
         // Hide auth overlay & reset elements
         if (authOverlay) authOverlay.style.display = 'none';
-        if (loadingState) loadingState.style.display = 'none';
+        toggleLoader(false);
         if (formsContainer) formsContainer.style.display = 'block';
         
         // Hide switcher (guest has no shared wallet)
@@ -1573,12 +1596,12 @@ function initSupabaseAuth() {
         // If we are currently processing a redirect, do not show the forms container yet
         if (processingRedirect) {
           if (authOverlay) authOverlay.style.display = 'flex';
-          if (loadingState) loadingState.style.display = 'block';
+          toggleLoader(true);
           if (formsContainer) formsContainer.style.display = 'none';
         } else {
           // Show auth overlay normally
           if (authOverlay) authOverlay.style.display = 'flex';
-          if (loadingState) loadingState.style.display = 'none';
+          toggleLoader(false);
           if (formsContainer) formsContainer.style.display = 'block';
         }
         
@@ -7898,12 +7921,7 @@ async function handleLogout() {
     localStorage.removeItem('auth_guest_mode');
     localStorage.removeItem('app_theme'); // Reset theme to default (Premium Dark) on logout
     
-    await showAlert(
-      state.lang === 'el' ? '👋 Αποσυνδεθήκατε με επιτυχία!' : '👋 Logged out successfully!',
-      state.lang === 'el' ? 'Αντίο!' : 'Goodbye!',
-      '👋'
-    );
-    // Reload page to clear memory state
+    // Reload page immediately to clear memory state and land on login screen instantly
     window.location.reload();
   } catch(err) {
     console.error('Sign out error:', err);
