@@ -1367,6 +1367,50 @@ function initSupabaseAuth() {
                          hashStr.includes('error=') ||
                          searchStr.includes('code=') ||
                          searchStr.includes('error=');
+
+  // Popup callback detection: if this window was opened as a popup tab and has auth redirect params
+  const isPopupTab = window.opener && window.opener !== window;
+  if (isPopupTab && isAuthRedirect) {
+    logAuthDebug('Detected popup callback tab. Processing auth...');
+    const authChannel = new BroadcastChannel('pwa-oauth-channel');
+    
+    // Set a timeout to auto-close in case state changes take too long
+    const autoCloseTimeout = setTimeout(() => {
+      logAuthDebug('Popup close timeout reached. Closing tab.');
+      window.close();
+    }, 8000);
+    
+    state.supabaseClient.auth.onAuthStateChange((event, session) => {
+      logAuthDebug(`Popup auth state change: ${event}`);
+      if (session) {
+        clearTimeout(autoCloseTimeout);
+        authChannel.postMessage({ type: 'OAUTH_SUCCESS' });
+        setTimeout(() => {
+          window.close();
+        }, 300);
+      }
+    });
+    return; // Halt further app initialization in the popup tab
+  }
+
+  // Main window: Listen for OAuth success from callback popups
+  const authChannel = new BroadcastChannel('pwa-oauth-channel');
+  authChannel.onmessage = (event) => {
+    if (event.data && event.data.type === 'OAUTH_SUCCESS') {
+      logAuthDebug('OAuth successful in popup tab. Reloading PWA window...');
+      window.location.reload();
+    }
+  };
+  
+  // Storage event listener fallback (for browsers without BroadcastChannel support or safety)
+  window.addEventListener('storage', (event) => {
+    if (event.key && (event.key === 'sb-money-manager-auth-token' || event.key.includes('auth-token'))) {
+      logAuthDebug('Auth token updated in storage. Reloading PWA window...');
+      window.location.reload();
+    }
+  });
+
+
                          
   let processingRedirect = isAuthRedirect;
   logAuthDebug(`Is redirect callback: ${isAuthRedirect}`);
