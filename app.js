@@ -1217,7 +1217,7 @@ function initSupabase() {
         state.supabaseConfig.key,
         {
           auth: {
-            flowType: 'pkce',
+            flowType: 'implicit',
             autoRefreshToken: true,
             persistSession: true
           }
@@ -1279,6 +1279,12 @@ function initSupabaseAuth() {
       logDiv.scrollTop = logDiv.scrollHeight;
     }
   }
+
+  // Global error handler to capture runtime JS errors and display them in the debug overlay
+  window.addEventListener('error', (event) => {
+    logAuthDebug(`Runtime Error: ${event.message} at ${event.filename}:${event.lineno}`);
+    console.error('Runtime error:', event.error);
+  });
 
   logAuthDebug('Starting auth checks...');
 
