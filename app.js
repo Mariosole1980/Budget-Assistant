@@ -7886,6 +7886,7 @@ async function handleMagicAuth(e) {
 async function handleGoogleAuth() {
   if (!state.supabaseClient) return;
   clearAuthStatus();
+  toggleLoader(true);
   try {
     const { error } = await state.supabaseClient.auth.signInWithOAuth({
       provider: 'google',
@@ -7896,6 +7897,7 @@ async function handleGoogleAuth() {
     if (error) throw error;
   } catch (err) {
     console.error('Google auth failed:', err);
+    toggleLoader(false);
     showAuthStatus('❌ Σφάλμα: ' + (err.message || 'Αποτυχία σύνδεσης με Google.'));
   }
 }
@@ -8516,13 +8518,12 @@ window.handleLogout = handleLogout;
 // GUEST MODE & OFFLINE CLOUD SYNC
 // ============================================================
 
-function enterGuestMode() {
+async function enterGuestMode() {
   state.guestMode = true;
   localStorage.setItem('auth_guest_mode', 'true');
   
-  // Hide auth overlay
-  const authOverlay = document.getElementById('auth-overlay');
-  if (authOverlay) authOverlay.style.display = 'none';
+  // Show premium splash loader immediately
+  toggleLoader(true);
   
   // Hide switcher in header (guest has no shared wallet)
   const switcher = document.getElementById('wallet-switcher-container');
@@ -8538,9 +8539,14 @@ function enterGuestMode() {
   }
   
   // Load data & update UI
-  loadData();
+  await loadData();
   updateUI();
   renderPartnerSection();
+  
+  // Hide auth overlay after UI updates
+  const authOverlay = document.getElementById('auth-overlay');
+  if (authOverlay) authOverlay.style.display = 'none';
+  toggleLoader(false);
 }
 
 function showAuthOverlay() {

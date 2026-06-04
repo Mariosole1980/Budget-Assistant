@@ -459,11 +459,11 @@
           <span class="settings-item-value"><i class="fa-solid fa-arrow-up-right-from-square" style="font-size:12px;"></i></span>
         </div>
         <div class="settings-list-item">
-          <span class="settings-item-label" style="color: var(--text-muted); font-size: 12px;" data-i18n="app_version">Έκδοση 1.0.0 (build v187)</span>
+          <span class="settings-item-label" style="color: var(--text-muted); font-size: 12px;" data-i18n="app_version">Έκδοση 1.0.0 (build v188)</span>
           <span class="settings-item-value" style="font-size: 12px;">Budget Assistant</span>
         </div>
         <div class="settings-list-item" style="justify-content: center; padding: 6px 16px; min-height: auto;">
-          <span id="deploy-timestamp" style="color: var(--text-muted); font-size: 10px; opacity: 0.6;">Deploy v187 · 04/06/2026 10:53</span>
+          <span id="deploy-timestamp" style="color: var(--text-muted); font-size: 10px; opacity: 0.6;">Deploy v188 · 04/06/2026 11:00</span>
         </div>
       </div>
     </section>
@@ -1396,7 +1396,7 @@
   </div>
 
   <!-- Core Application Scripts -->
-  <script src="app.js?v=98"></script>
+  <script src="app.js?v=188"></script>
   
   <!-- Register PWA Service Worker -->
   <script>
@@ -1418,11 +1418,16 @@
           // When a new SW is found, track its installation
           reg.addEventListener('updatefound', () => {
             const newWorker = reg.installing;
-            newWorker.addEventListener('statechange', () => {
-              if (newWorker.state === 'activated' && navigator.serviceWorker.controller) {
-                window.location.reload();
-              }
-            });
+            if (newWorker) {
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  newWorker.postMessage({ type: 'SKIP_WAITING' });
+                }
+                if (newWorker.state === 'activated' && navigator.serviceWorker.controller) {
+                  window.location.reload();
+                }
+              });
+            }
           });
 
           // If an update is already waiting, activate it
