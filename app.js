@@ -7947,59 +7947,39 @@ async function handleGoogleAuth() {
   if (!state.supabaseClient) return;
   clearAuthStatus();
   
-  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+  // Open a blank window synchronously inside the click handler to bypass popup blocker!
+  const loginWindow = window.open('about:blank', '_blank');
+  if (!loginWindow) {
+    showAuthStatus('⚠️ Παρακαλώ επιτρέψτε τα αναδυόμενα παράθυρα (popups) για τη σύνδεση.');
+    return;
+  }
   
-  if (isStandalone) {
-    // Open a blank window synchronously inside the click handler to bypass popup blocker!
-    const loginWindow = window.open('about:blank', '_blank');
-    if (!loginWindow) {
-      showAuthStatus('⚠️ Παρακαλώ επιτρέψτε τα αναδυόμενα παράθυρα (popups) για τη σύνδεση.');
-      return;
-    }
-    
-    // Show splash loader on the main standalone screen
-    toggleLoader(true);
-    
-    try {
-      // Get OAuth redirect URL from Supabase without redirecting the main page
-      const { data, error } = await state.supabaseClient.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: window.location.origin + window.location.pathname + '?oauth_callback=true',
-          skipBrowserRedirect: true
-        }
-      });
-      if (error) throw error;
-      
-      if (data && data.url) {
-        // Redirect the blank window to the Google auth URL
-        loginWindow.location.href = data.url;
-      } else {
-        loginWindow.close();
-        throw new Error('No redirect URL returned');
+  // Show splash loader on the main screen
+  toggleLoader(true);
+  
+  try {
+    // Get OAuth redirect URL from Supabase without redirecting the main page
+    const { data, error } = await state.supabaseClient.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin + window.location.pathname + '?oauth_callback=true',
+        skipBrowserRedirect: true
       }
-    } catch (err) {
-      console.error('Google auth standalone flow failed:', err);
-      if (loginWindow) loginWindow.close();
-      toggleLoader(false);
-      showAuthStatus('❌ Σφάλμα: ' + (err.message || 'Αποτυχία σύνδεσης με Google.'));
+    });
+    if (error) throw error;
+    
+    if (data && data.url) {
+      // Redirect the blank window to the Google auth URL
+      loginWindow.location.href = data.url;
+    } else {
+      loginWindow.close();
+      throw new Error('No redirect URL returned');
     }
-  } else {
-    // Standard browser behavior: redirect current tab
-    toggleLoader(true);
-    try {
-      const { error } = await state.supabaseClient.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: window.location.origin + window.location.pathname
-        }
-      });
-      if (error) throw error;
-    } catch (err) {
-      console.error('Google auth redirect failed:', err);
-      toggleLoader(false);
-      showAuthStatus('❌ Σφάλμα: ' + (err.message || 'Αποτυχία σύνδεσης με Google.'));
-    }
+  } catch (err) {
+    console.error('Google auth flow failed:', err);
+    if (loginWindow) loginWindow.close();
+    toggleLoader(false);
+    showAuthStatus('❌ Σφάλμα: ' + (err.message || 'Αποτυχία σύνδεσης με Google.'));
   }
 }
 
