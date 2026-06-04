@@ -7943,19 +7943,59 @@ async function handleMagicAuth(e) {
 async function handleGoogleAuth() {
   if (!state.supabaseClient) return;
   clearAuthStatus();
-  toggleLoader(true);
-  try {
-    const { error } = await state.supabaseClient.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: window.location.origin + window.location.pathname
+  
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+  
+  if (isStandalone) {
+    // Show splash loader on the main standalone screen
+    toggleLoader(true);
+    
+    try {
+      // Get OAuth redirect URL from Supabase without redirecting the main page
+      const { data, error } = await state.supabaseClient.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin + window.location.pathname,
+          skipBrowserRedirect: true
+        }
+      });
+      if (error) throw error;
+      
+      if (data && data.url) {
+        // Open the OAuth login flow in a new browser tab/window
+        const loginWindow = window.open(data.url, '_blank');
+        if (!loginWindow) {
+          // If popup is blocked, fallback to normal redirect
+          toggleLoader(false);
+          await state.supabaseClient.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+              redirectTo: window.location.origin + window.location.pathname
+            }
+          });
+        }
       }
-    });
-    if (error) throw error;
-  } catch (err) {
-    console.error('Google auth failed:', err);
-    toggleLoader(false);
-    showAuthStatus('❌ Σφάλμα: ' + (err.message || 'Αποτυχία σύνδεσης με Google.'));
+    } catch (err) {
+      console.error('Google auth standalone flow failed:', err);
+      toggleLoader(false);
+      showAuthStatus('❌ Σφάλμα: ' + (err.message || 'Αποτυχία σύνδεσης με Google.'));
+    }
+  } else {
+    // Standard browser behavior: redirect current tab
+    toggleLoader(true);
+    try {
+      const { error } = await state.supabaseClient.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin + window.location.pathname
+        }
+      });
+      if (error) throw error;
+    } catch (err) {
+      console.error('Google auth redirect failed:', err);
+      toggleLoader(false);
+      showAuthStatus('❌ Σφάλμα: ' + (err.message || 'Αποτυχία σύνδεσης με Google.'));
+    }
   }
 }
 
