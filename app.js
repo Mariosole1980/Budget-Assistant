@@ -1294,6 +1294,19 @@ function initSupabase() {
   }
 }
 
+function toggleLoader(show) {
+  const loadingState = document.getElementById('auth-loading-state');
+  const authCard = document.getElementById('auth-card');
+  if (show) {
+    if (loadingState) loadingState.style.display = 'flex';
+    if (authCard) authCard.style.display = 'none';
+  } else {
+    if (loadingState) loadingState.style.display = 'none';
+    if (authCard) authCard.style.display = 'flex';
+  }
+}
+window.toggleLoader = toggleLoader;
+
 function initSupabaseAuth() {
   if (!state.supabaseClient) return;
 
