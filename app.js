@@ -1368,26 +1368,28 @@ function initSupabaseAuth() {
                          searchStr.includes('code=') ||
                          searchStr.includes('error=');
 
-  // Popup callback detection: if this window was opened as a popup tab and has auth redirect params
-  const isPopupTab = window.opener && window.opener !== window;
+  // Popup callback detection: if this window is a callback window redirect tab
+  const isPopupTab = window.location.search.includes('oauth_callback=true');
   if (isPopupTab && isAuthRedirect) {
-    logAuthDebug('Detected popup callback tab. Processing auth...');
+    logAuthDebug('Detected PWA OAuth callback tab. Processing auth...');
     const authChannel = new BroadcastChannel('pwa-oauth-channel');
     
     // Set a timeout to auto-close in case state changes take too long
     const autoCloseTimeout = setTimeout(() => {
-      logAuthDebug('Popup close timeout reached. Closing tab.');
+      logAuthDebug('Popup callback close timeout reached. Closing tab.');
       window.close();
-    }, 8000);
+    }, 15000);
     
     state.supabaseClient.auth.onAuthStateChange((event, session) => {
       logAuthDebug(`Popup auth state change: ${event}`);
       if (session) {
         clearTimeout(autoCloseTimeout);
         authChannel.postMessage({ type: 'OAUTH_SUCCESS' });
+        // Set fallback in localStorage to trigger storage event on opener
+        localStorage.setItem('pwa_oauth_success', Date.now().toString());
         setTimeout(() => {
           window.close();
-        }, 300);
+        }, 600);
       }
     });
     return; // Halt further app initialization in the popup tab
@@ -1402,10 +1404,11 @@ function initSupabaseAuth() {
     }
   };
   
-  // Storage event listener fallback (for browsers without BroadcastChannel support or safety)
+  // Storage event listener fallback (handles cross-process localStorage changes)
   window.addEventListener('storage', (event) => {
-    if (event.key && (event.key === 'sb-money-manager-auth-token' || event.key.includes('auth-token'))) {
-      logAuthDebug('Auth token updated in storage. Reloading PWA window...');
+    if (event.key === 'pwa_oauth_success') {
+      logAuthDebug('OAuth success via storage event. Reloading PWA window...');
+      localStorage.removeItem('pwa_oauth_success');
       window.location.reload();
     }
   });
@@ -7947,6 +7950,13 @@ async function handleGoogleAuth() {
   const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
   
   if (isStandalone) {
+    // Open a blank window synchronously inside the click handler to bypass popup blocker!
+    const loginWindow = window.open('about:blank', '_blank');
+    if (!loginWindow) {
+      showAuthStatus('⚠️ Παρακαλώ επιτρέψτε τα αναδυόμενα παράθυρα (popups) για τη σύνδεση.');
+      return;
+    }
+    
     // Show splash loader on the main standalone screen
     toggleLoader(true);
     
@@ -7955,28 +7965,22 @@ async function handleGoogleAuth() {
       const { data, error } = await state.supabaseClient.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: window.location.origin + window.location.pathname,
+          redirectTo: window.location.origin + window.location.pathname + '?oauth_callback=true',
           skipBrowserRedirect: true
         }
       });
       if (error) throw error;
       
       if (data && data.url) {
-        // Open the OAuth login flow in a new browser tab/window
-        const loginWindow = window.open(data.url, '_blank');
-        if (!loginWindow) {
-          // If popup is blocked, fallback to normal redirect
-          toggleLoader(false);
-          await state.supabaseClient.auth.signInWithOAuth({
-            provider: 'google',
-            options: {
-              redirectTo: window.location.origin + window.location.pathname
-            }
-          });
-        }
+        // Redirect the blank window to the Google auth URL
+        loginWindow.location.href = data.url;
+      } else {
+        loginWindow.close();
+        throw new Error('No redirect URL returned');
       }
     } catch (err) {
       console.error('Google auth standalone flow failed:', err);
+      if (loginWindow) loginWindow.close();
       toggleLoader(false);
       showAuthStatus('❌ Σφάλμα: ' + (err.message || 'Αποτυχία σύνδεσης με Google.'));
     }
