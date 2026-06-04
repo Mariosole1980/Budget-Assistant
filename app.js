@@ -7846,6 +7846,7 @@ async function handleLogout() {
     localStorage.removeItem('offline_accounts');
     localStorage.removeItem('offline_categories');
     localStorage.removeItem('auth_guest_mode');
+    localStorage.removeItem('app_theme'); // Reset theme to default (Premium Dark) on logout
     
     alert('👋 Αποσυνδεθήκατε με επιτυχία!');
     // Reload page to clear memory state
