@@ -851,19 +851,41 @@
     </div>
 
     <!-- ============================================== -->
+    <!-- MODAL: SEARCH CUSTOM PERIOD SELECTOR -->
+    <!-- ============================================== -->
+    <div id="search-custom-period-modal" class="modal-overlay" style="z-index: 10005;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 class="modal-title" data-i18n="modal_period_title">Επιλογή Περιόδου</h3>
+          <span class="modal-close" onclick="closeModal('search-custom-period-modal')">&times;</span>
+        </div>
+        <div class="modal-body">
+          <form id="search-custom-period-form" onsubmit="event.preventDefault(); applySearchCustomPeriod();">
+            <div class="form-group">
+              <label class="form-label" for="search-custom-period-start" data-i18n="label_from">Από</label>
+              <input type="date" id="search-custom-period-start" class="form-input" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="search-custom-period-end" data-i18n="label_to">Έως</label>
+              <input type="date" id="search-custom-period-end" class="form-input" required>
+            </div>
+            <div class="btn-container">
+              <button type="button" class="btn btn-secondary" onclick="closeModal('search-custom-period-modal')" data-i18n="btn_cancel">Άκυρο</button>
+              <button type="submit" class="btn btn-primary" data-i18n="btn_apply">Εφαρμογή</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================== -->
     <!-- OVERLAY: TRANSACTION SEARCH & ADVANCED FILTERS -->
     <!-- ============================================== -->
     <div id="search-overlay" class="search-overlay-container">
       <div class="search-overlay-header-modern">
         <button class="icon-btn search-back-btn-modern" onclick="closeSearchOverlay()"><i class="fa-solid fa-arrow-left"></i></button>
-        <div class="search-input-wrapper-modern">
-          <i class="fa-solid fa-magnifying-glass search-input-icon-modern"></i>
-          <input type="text" id="search-input" placeholder="Search Expenses, Accounts, or date..." oninput="handleSearchChange()">
-          <button class="search-clear-btn-modern" id="search-clear-btn" onclick="clearSearchInput()" title="Καθαρισμός">
-            <i class="fa-solid fa-xmark"></i>
-          </button>
-        </div>
-        <button class="search-reset-btn-modern" onclick="resetSearchFilters()" data-i18n="search_btn_clear">Reset All</button>
+        <span class="search-overlay-title" data-i18n="label_search">Αναζήτηση</span>
+        <button class="icon-btn search-settings-btn-modern" onclick="resetSearchFilters()"><i class="fa-solid fa-sliders"></i></button>
       </div>
 
       <!-- Scrollable Container containing both Filters Dashboard and Results -->
@@ -892,91 +914,73 @@
           <input type="hidden" id="search-filter-member" onchange="handleSearchChange()" value="">
         </div>
 
-        <!-- Filters Dashboard -->
-        <div class="search-filters-dashboard">
+        <!-- Search Input Bar -->
+        <div class="search-input-wrapper-modern">
+          <i class="fa-solid fa-magnifying-glass search-input-icon-modern"></i>
+          <input type="text" id="search-input" placeholder="Search Expenses, Accounts, or date..." oninput="handleSearchChange()">
+          <button class="search-clear-btn-modern" id="search-clear-btn" onclick="clearSearchInput()" title="Καθαρισμός">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <!-- Filter Rows (Realbyte Style) -->
+        <div class="search-filter-rows-container">
+          <!-- Period Row -->
+          <div class="search-filter-row" onclick="openSearchPeriodSheet()">
+            <span class="filter-row-label" data-i18n="period_label">Period</span>
+            <div class="filter-row-value-wrapper">
+              <span id="search-val-period" class="filter-row-value">Όλη η περίοδος</span>
+              <i class="fa-solid fa-chevron-right filter-row-chevron"></i>
+            </div>
+          </div>
           
-          <!-- Period Section -->
-          <div class="filter-section">
-            <div class="filter-section-header">
-              <span class="filter-section-title" data-i18n="search_title_period">Period</span>
-              <button class="filter-reset-btn" onclick="resetPeriodFilter()" data-i18n="search_btn_clear">Reset All</button>
-            </div>
-            <div class="filter-chips-row" id="period-chips-container">
-              <!-- Populated in JS: Weekly, Monthly, Annually, Custom Period -->
-            </div>
-            <div class="filter-custom-date-container" id="custom-date-inputs" style="display: none;">
-              <input type="date" id="custom-date-start" onchange="applyCustomDates()">
-              <span style="color: var(--text-muted);">~</span>
-              <input type="date" id="custom-date-end" onchange="applyCustomDates()">
+          <!-- Account Row -->
+          <div class="search-filter-row" onclick="openSearchBottomSheet('account')">
+            <span class="filter-row-label" data-i18n="row_account_from">Account</span>
+            <div class="filter-row-value-wrapper">
+              <span id="search-val-account" class="filter-row-value">Όλοι</span>
+              <i class="fa-solid fa-chevron-right filter-row-chevron"></i>
             </div>
           </div>
-
-          <!-- Account Section -->
-          <div class="filter-section">
-            <div class="filter-section-header">
-              <span class="filter-section-title" data-i18n="search_title_account">Account</span>
-              <button class="filter-settings-btn" onclick="openAccountPickerModal('from')" title="Manage Accounts"><i class="fa-solid fa-sliders"></i></button>
-            </div>
-            <div class="filter-chips-row" id="account-chips-container">
-              <!-- Dynamically populated in JS -->
+          
+          <!-- Category Row -->
+          <div class="search-filter-row" onclick="openSearchBottomSheet('category')">
+            <span class="filter-row-label" data-i18n="row_category">Category</span>
+            <div class="filter-row-value-wrapper">
+              <span id="search-val-category" class="filter-row-value">Όλες</span>
+              <i class="fa-solid fa-chevron-right filter-row-chevron"></i>
             </div>
           </div>
-
-          <!-- Category Section -->
-          <div class="filter-section">
-            <div class="filter-section-header">
-              <span class="filter-section-title" data-i18n="search_title_category">Category</span>
-              <button class="filter-reset-btn" onclick="resetCategoryFilter()" data-i18n="search_btn_clear">Reset All</button>
-            </div>
-            
-            <!-- Category Switcher Segmented Control -->
-            <div class="segmented-control-container" id="category-segmented-control">
-              <div class="segmented-control-bg"></div>
-              <button type="button" class="segmented-tab active" id="seg-tab-expense" onclick="setCategoryTypeFilter('expense')" data-i18n="stats_tab_expense">Expenses</button>
-              <button type="button" class="segmented-tab" id="seg-tab-income" onclick="setCategoryTypeFilter('income')" data-i18n="stats_tab_income">Income</button>
-            </div>
-            
-            <!-- Category Chips wrap list -->
-            <div class="filter-chips-wrap" id="category-chips-container">
-              <!-- Dynamically populated in JS -->
-            </div>
-            
-            <!-- Subcategory Chips wrap list -->
-            <div class="filter-subcategories-container" id="subcategory-chips-wrapper" style="display: none; margin-top: 8px;">
-              <div class="filter-chips-wrap" id="subcategory-chips-container">
-                <!-- Subcategory chips -->
-              </div>
+          
+          <!-- Amount Row - Inline Min/Max inputs -->
+          <div class="search-filter-row search-amount-row">
+            <span class="filter-row-label" data-i18n="row_amount">Amount</span>
+            <div class="search-amount-inputs">
+              <input type="number" id="search-amount-min-inline" class="search-amount-input" placeholder="Min." step="0.01" oninput="syncAmountFiltersFromInline()">
+              <span class="search-amount-tilde">~</span>
+              <input type="number" id="search-amount-max-inline" class="search-amount-input" placeholder="Max." step="0.01" oninput="syncAmountFiltersFromInline()">
             </div>
           </div>
+        </div>
 
-          <!-- Amount Range Section -->
-          <div class="filter-section">
-            <div class="filter-section-header">
-              <span class="filter-section-title" data-i18n="search_title_amount">Amount</span>
-              <span class="amount-range-text" id="amount-range-val">0 ~ Max</span>
-            </div>
-            <div class="dual-range-slider-container">
-              <div class="dual-range-slider" id="amount-dual-slider">
-                <div class="slider-track" id="slider-track"></div>
-                <div class="slider-thumb" id="slider-thumb-min"></div>
-                <div class="slider-thumb" id="slider-thumb-max"></div>
-              </div>
-              <div class="slider-labels">
-                <span data-i18n="slider_min">Min</span>
-                <span data-i18n="slider_max">Max</span>
-              </div>
-            </div>
+        <!-- Search Results Summary Bar -->
+        <div class="search-summary-bar">
+          <div class="search-summary-item income">
+            <span class="summary-label" data-i18n="summary_income">Income</span>
+            <span id="search-summary-income-val" class="summary-val">€ 0,00</span>
           </div>
-
+          <div class="search-summary-item expense">
+            <span class="summary-label" data-i18n="summary_expense">Expenses</span>
+            <span id="search-summary-expense-val" class="summary-val">€ 0,00</span>
+          </div>
+          <div class="search-summary-item transfer">
+            <span class="summary-label">Transfer</span>
+            <span id="search-summary-transfer-val" class="summary-val">€ 0,00</span>
+          </div>
         </div>
 
         <!-- Results Section -->
         <div class="search-results-section">
-          <div class="search-results-header">
-            <span data-i18n="search_results_header">Αποτελέσματα</span>
-            <span id="search-results-count">0</span>
-          </div>
-          
           <!-- Search Results List -->
           <div id="search-results-list" class="transactions-list-scroll">
             <!-- Populated dynamically with grouped transactions -->
@@ -988,6 +992,32 @@
 
     <!-- BOTTOM SHEET BACKDROP -->
     <div id="search-bottom-sheet-backdrop" class="search-bottom-sheet-backdrop" onclick="closeSearchBottomSheet()"></div>
+
+    <!-- BOTTOM SHEET: PERIOD -->
+    <div id="search-bottom-sheet-period" class="search-bottom-sheet">
+      <div class="bottom-sheet-header">
+        <div class="bottom-sheet-drag-handle"></div>
+        <span class="bottom-sheet-title" data-i18n="period_label">Period</span>
+        <button class="bottom-sheet-close-btn" onclick="closeSearchBottomSheet()">&times;</button>
+      </div>
+      <div class="bottom-sheet-body">
+        <div class="bottom-sheet-option" onclick="selectPeriodSearchFilter('all')">
+          <span class="option-label" data-i18n="stats_period_all">Όλη η περίοδος</span>
+        </div>
+        <div class="bottom-sheet-option" onclick="selectPeriodSearchFilter('weekly')">
+          <span class="option-label" data-i18n="stats_period_weekly">Εβδομαδιαία</span>
+        </div>
+        <div class="bottom-sheet-option" onclick="selectPeriodSearchFilter('monthly')">
+          <span class="option-label" data-i18n="stats_period_monthly">Μηνιαία</span>
+        </div>
+        <div class="bottom-sheet-option" onclick="selectPeriodSearchFilter('annually')">
+          <span class="option-label" data-i18n="stats_period_annually">Ετήσια</span>
+        </div>
+        <div class="bottom-sheet-option" onclick="selectPeriodSearchFilter('custom')">
+          <span class="option-label" data-i18n="stats_period_custom">Περίοδος (Προσαρμοσμένη)</span>
+        </div>
+      </div>
+    </div>
 
     <!-- BOTTOM SHEET: TYPE -->
     <div id="search-bottom-sheet-type" class="search-bottom-sheet">

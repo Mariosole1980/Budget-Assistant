@@ -5180,3 +5180,255 @@ body.keyboard-active .note-autocomplete-item {
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* Realbyte Search Filters UI */
+.search-filter-rows-container {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-card, #1e2230);
+  margin: 12px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
+}
+
+.search-filter-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.search-filter-row:last-child {
+  border-bottom: none;
+}
+
+.search-filter-row:active {
+  background-color: rgba(255, 255, 255, 0.04);
+}
+
+.filter-row-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary, #94a3b8);
+}
+
+.filter-row-value-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.filter-row-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-main, #ffffff);
+}
+
+.filter-row-chevron {
+  font-size: 12px;
+  color: var(--text-muted, #4b5563);
+}
+
+/* Search Summary Bar styling */
+.search-summary-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #181b22;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 12px 16px;
+  margin-top: 12px;
+  margin-bottom: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.search-summary-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  text-align: center;
+  gap: 2px;
+}
+
+.search-summary-item:not(:last-child) {
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.summary-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-secondary, #94a3b8);
+  letter-spacing: 0.5px;
+}
+
+.summary-val {
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.search-summary-item.income .summary-val {
+  color: #3b82f6; /* Premium Cyan Blue */
+}
+
+.search-summary-item.expense .summary-val {
+  color: #ef4444; /* Premium Red/Pink */
+}
+
+.search-summary-item.transfer .summary-val {
+  color: #ffffff; /* White */
+}
+
+/* ============================================
+   SEARCH RESULT FLAT LIST (Screenshot Style)
+   ============================================ */
+
+/* Each transaction row in search results */
+.search-result-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 11px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  gap: 8px;
+}
+
+.search-result-item:last-child {
+  border-bottom: none;
+}
+
+.search-result-item:active {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.search-item-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.search-item-date {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary, #94a3b8);
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: 76px;
+}
+
+.search-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.search-item-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text-main, #ffffff);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+.search-item-sub {
+  font-size: 11px;
+  color: var(--text-secondary, #94a3b8);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Amount column in search results */
+.search-item-amount {
+  font-size: 13.5px;
+  font-weight: 800;
+  white-space: nowrap;
+  flex-shrink: 0;
+  color: var(--text-main);
+}
+
+.search-item-amount.expense {
+  color: #ef4444;
+}
+
+.search-item-amount.income {
+  color: #3b82f6;
+}
+
+.search-item-amount.transfer {
+  color: #ffffff;
+}
+
+/* ============================================
+   AMOUNT FILTER - INLINE INPUTS
+   ============================================ */
+
+.search-amount-row {
+  cursor: default !important;
+}
+
+.search-amount-row:active {
+  background: transparent !important;
+}
+
+.search-amount-inputs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.search-amount-input {
+  background: var(--bg-input, #2b313d);
+  border: 1.5px solid var(--border-light, #384152);
+  border-radius: 8px;
+  padding: 5px 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main, #ffffff);
+  outline: none;
+  width: 72px;
+  text-align: center;
+  transition: border-color 0.2s;
+}
+
+.search-amount-input::placeholder {
+  color: var(--text-muted, #4b5563);
+  font-weight: 400;
+}
+
+.search-amount-input:focus {
+  border-color: var(--accent);
+}
+
+/* Hide number input spinners */
+.search-amount-input::-webkit-outer-spin-button,
+.search-amount-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.search-amount-input[type=number] {
+  -moz-appearance: textfield;
+}
+
+.search-amount-tilde {
+  color: var(--text-secondary, #94a3b8);
+  font-size: 14px;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+

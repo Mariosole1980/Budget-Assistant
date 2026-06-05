@@ -869,6 +869,68 @@ function applyLanguage(lang) {
     }
   }
 
+  // Update new search filter row text values
+  const searchValPeriod = document.getElementById('search-val-period');
+  if (searchValPeriod) {
+    const sp = state.searchPeriod || 'all';
+    if (sp === 'all') {
+      searchValPeriod.textContent = lang === 'el' ? 'Όλη η περίοδος' : 'All period';
+    } else if (sp === 'weekly') {
+      searchValPeriod.textContent = lang === 'el' ? 'Εβδομαδιαία' : 'Weekly';
+    } else if (sp === 'monthly') {
+      searchValPeriod.textContent = lang === 'el' ? 'Μηνιαία' : 'Monthly';
+    } else if (sp === 'annually') {
+      searchValPeriod.textContent = lang === 'el' ? 'Ετήσια' : 'Annually';
+    } else if (sp === 'custom') {
+      const startVal = document.getElementById('search-filter-date-start')?.value;
+      const endVal = document.getElementById('search-filter-date-end')?.value;
+      if (startVal && endVal) {
+        searchValPeriod.textContent = `${startVal} ~ ${endVal}`;
+      } else {
+        searchValPeriod.textContent = lang === 'el' ? 'Όλη η περίοδος' : 'All period';
+      }
+    }
+  }
+
+  const searchValAccount = document.getElementById('search-val-account');
+  if (searchValAccount) {
+    const val = document.getElementById('search-filter-account')?.value;
+    if (val) {
+      searchValAccount.textContent = getAccountDisplayName(val);
+    } else {
+      searchValAccount.textContent = lang === 'el' ? 'Όλοι' : 'All';
+    }
+  }
+
+  const searchValCategory = document.getElementById('search-val-category');
+  if (searchValCategory) {
+    const cat = document.getElementById('search-filter-category')?.value;
+    const sub = document.getElementById('search-filter-subcategory')?.value;
+    if (cat) {
+      if (sub) {
+        searchValCategory.textContent = `${getCategoryDisplayName(cat)} > ${getSubcategoryDisplayName(sub, cat)}`;
+      } else {
+        searchValCategory.textContent = getCategoryDisplayName(cat);
+      }
+    } else {
+      searchValCategory.textContent = lang === 'el' ? 'Όλες' : 'All';
+    }
+  }
+
+  const searchValAmount = document.getElementById('search-val-amount');
+  if (searchValAmount) {
+    const minVal = document.getElementById('search-filter-amount-min')?.value;
+    const maxVal = document.getElementById('search-filter-amount-max')?.value;
+    if (minVal || maxVal) {
+      const minText = minVal ? `${minVal} €` : 'Min.';
+      const maxText = maxVal ? `${maxVal} €` : 'Max.';
+      searchValAmount.textContent = `${minText} ~ ${maxText}`;
+    } else {
+      searchValAmount.textContent = 'Min. ~ Max.';
+    }
+  }
+
+
   // Update period dropdown choice labels in stats screen dropdown menu
   document.querySelectorAll('.stats-dropdown-item').forEach(item => {
     const val = item.getAttribute('data-value');
@@ -5554,8 +5616,10 @@ function selectPeriodFilter(periodType, element) {
   
   if (element && element.getAttribute('data-active') === 'true') {
     element.removeAttribute('data-active');
-    document.getElementById('search-filter-date-start').value = '';
-    document.getElementById('search-filter-date-end').value = '';
+    const startEl = document.getElementById('search-filter-date-start');
+    if (startEl) startEl.value = '';
+    const endEl = document.getElementById('search-filter-date-end');
+    if (endEl) endEl.value = '';
     if (customInputs) customInputs.style.display = 'none';
   } else {
     chips.forEach(c => c.removeAttribute('data-active'));
@@ -5586,22 +5650,32 @@ function selectPeriodFilter(periodType, element) {
       if (customInputs) customInputs.style.display = 'none';
     } else if (periodType === 'Custom Period' || periodType === 'Προσαρμοσμένο') {
       if (customInputs) customInputs.style.display = 'flex';
-      dateStart = document.getElementById('custom-date-start').value;
-      dateEnd = document.getElementById('custom-date-end').value;
+      const customStart = document.getElementById('custom-date-start');
+      if (customStart) dateStart = customStart.value;
+      const customEnd = document.getElementById('custom-date-end');
+      if (customEnd) dateEnd = customEnd.value;
     }
     
-    document.getElementById('search-filter-date-start').value = dateStart;
-    document.getElementById('search-filter-date-end').value = dateEnd;
+    const startEl = document.getElementById('search-filter-date-start');
+    if (startEl) startEl.value = dateStart;
+    const endEl = document.getElementById('search-filter-date-end');
+    if (endEl) endEl.value = dateEnd;
   }
   
   handleSearchChange();
 }
 
 function applyCustomDates() {
-  const startVal = document.getElementById('custom-date-start').value;
-  const endVal = document.getElementById('custom-date-end').value;
-  document.getElementById('search-filter-date-start').value = startVal;
-  document.getElementById('search-filter-date-end').value = endVal;
+  const customStart = document.getElementById('custom-date-start');
+  const customEnd = document.getElementById('custom-date-end');
+  const startVal = customStart ? customStart.value : '';
+  const endVal = customEnd ? customEnd.value : '';
+  
+  const startEl = document.getElementById('search-filter-date-start');
+  if (startEl) startEl.value = startVal;
+  const endEl = document.getElementById('search-filter-date-end');
+  if (endEl) endEl.value = endVal;
+  
   handleSearchChange();
 }
 
@@ -5611,12 +5685,20 @@ function resetPeriodFilter() {
     c.classList.remove('active', 'active-blue');
     c.removeAttribute('data-active');
   });
-  document.getElementById('search-filter-date-start').value = '';
-  document.getElementById('search-filter-date-end').value = '';
-  document.getElementById('custom-date-start').value = '';
-  document.getElementById('custom-date-end').value = '';
+  
+  const startEl = document.getElementById('search-filter-date-start');
+  if (startEl) startEl.value = '';
+  const endEl = document.getElementById('search-filter-date-end');
+  if (endEl) endEl.value = '';
+  
+  const customStart = document.getElementById('custom-date-start');
+  if (customStart) customStart.value = '';
+  const customEnd = document.getElementById('custom-date-end');
+  if (customEnd) customEnd.value = '';
+  
   const customInputs = document.getElementById('custom-date-inputs');
   if (customInputs) customInputs.style.display = 'none';
+  
   handleSearchChange();
 }
 
@@ -5668,8 +5750,10 @@ function selectCategoryChipFilter(catName, element) {
     element.classList.remove('active');
     filterInput.value = '';
     
-    document.getElementById('subcategory-chips-wrapper').style.display = 'none';
-    document.getElementById('search-filter-subcategory').value = '';
+    const subWrapper1 = document.getElementById('subcategory-chips-wrapper');
+    if (subWrapper1) subWrapper1.style.display = 'none';
+    const subFilter1 = document.getElementById('search-filter-subcategory');
+    if (subFilter1) subFilter1.value = '';
   } else {
     chips.forEach(c => c.classList.remove('active'));
     if (element) element.classList.add('active');
@@ -5679,8 +5763,10 @@ function selectCategoryChipFilter(catName, element) {
     if (categoryObj && categoryObj.subcategories && categoryObj.subcategories.length > 0) {
       renderSubcategoryChips(categoryObj.subcategories);
     } else {
-      document.getElementById('subcategory-chips-wrapper').style.display = 'none';
-      document.getElementById('search-filter-subcategory').value = '';
+      const subWrapper2 = document.getElementById('subcategory-chips-wrapper');
+      if (subWrapper2) subWrapper2.style.display = 'none';
+      const subFilter2 = document.getElementById('search-filter-subcategory');
+      if (subFilter2) subFilter2.value = '';
     }
   }
   handleSearchChange();
@@ -5706,10 +5792,13 @@ function selectSubcategoryChipFilter(subName, element) {
 function resetCategoryFilter(triggerSearch = true) {
   const chips = document.querySelectorAll('#category-chips-container .filter-chip');
   chips.forEach(c => c.classList.remove('active'));
-  document.getElementById('search-filter-category').value = '';
+  const catFilter = document.getElementById('search-filter-category');
+  if (catFilter) catFilter.value = '';
   
-  document.getElementById('subcategory-chips-wrapper').style.display = 'none';
-  document.getElementById('search-filter-subcategory').value = '';
+  const subWrapper = document.getElementById('subcategory-chips-wrapper');
+  if (subWrapper) subWrapper.style.display = 'none';
+  const subFilter = document.getElementById('search-filter-subcategory');
+  if (subFilter) subFilter.value = '';
   
   if (triggerSearch) handleSearchChange();
 }
@@ -5918,6 +6007,94 @@ window.renderSubcategoryChips = renderSubcategoryChips;
 window.initAmountRangeSlider = initAmountRangeSlider;
 
 
+function openSearchPeriodSheet() {
+  openSearchBottomSheet('period');
+}
+
+function selectPeriodSearchFilter(val) {
+  const today = new Date();
+  let dateStart = '';
+  let dateEnd = '';
+  let labelText = '';
+
+  state.searchPeriod = val;
+
+  if (val === 'all') {
+    dateStart = '';
+    dateEnd = '';
+    labelText = state.lang === 'el' ? 'Όλη η περίοδος' : 'All period';
+    document.getElementById('search-filter-date-start').value = '';
+    document.getElementById('search-filter-date-end').value = '';
+    const valEl = document.getElementById('search-val-period');
+    if (valEl) valEl.textContent = labelText;
+    closeSearchBottomSheet();
+    handleSearchChange();
+  } else if (val === 'weekly') {
+    const start = new Date();
+    start.setDate(today.getDate() - 7);
+    dateStart = start.toISOString().split('T')[0];
+    dateEnd = today.toISOString().split('T')[0];
+    labelText = state.lang === 'el' ? 'Εβδομαδιαία' : 'Weekly';
+    document.getElementById('search-filter-date-start').value = dateStart;
+    document.getElementById('search-filter-date-end').value = dateEnd;
+    const valEl = document.getElementById('search-val-period');
+    if (valEl) valEl.textContent = labelText;
+    closeSearchBottomSheet();
+    handleSearchChange();
+  } else if (val === 'monthly') {
+    const start = new Date(today.getFullYear(), today.getMonth(), 1);
+    dateStart = start.toISOString().split('T')[0];
+    dateEnd = today.toISOString().split('T')[0];
+    labelText = state.lang === 'el' ? 'Μηνιαία' : 'Monthly';
+    document.getElementById('search-filter-date-start').value = dateStart;
+    document.getElementById('search-filter-date-end').value = dateEnd;
+    const valEl = document.getElementById('search-val-period');
+    if (valEl) valEl.textContent = labelText;
+    closeSearchBottomSheet();
+    handleSearchChange();
+  } else if (val === 'annually') {
+    const start = new Date(today.getFullYear(), 0, 1);
+    dateStart = start.toISOString().split('T')[0];
+    dateEnd = today.toISOString().split('T')[0];
+    labelText = state.lang === 'el' ? 'Ετήσια' : 'Annually';
+    document.getElementById('search-filter-date-start').value = dateStart;
+    document.getElementById('search-filter-date-end').value = dateEnd;
+    const valEl = document.getElementById('search-val-period');
+    if (valEl) valEl.textContent = labelText;
+    closeSearchBottomSheet();
+    handleSearchChange();
+  } else if (val === 'custom') {
+    closeSearchBottomSheet(false);
+    openModal('search-custom-period-modal');
+    const startVal = document.getElementById('search-filter-date-start').value;
+    const endVal = document.getElementById('search-filter-date-end').value;
+    document.getElementById('search-custom-period-start').value = startVal || today.toISOString().split('T')[0];
+    document.getElementById('search-custom-period-end').value = endVal || today.toISOString().split('T')[0];
+  }
+}
+
+function applySearchCustomPeriod() {
+  const startVal = document.getElementById('search-custom-period-start').value;
+  const endVal = document.getElementById('search-custom-period-end').value;
+
+  document.getElementById('search-filter-date-start').value = startVal;
+  document.getElementById('search-filter-date-end').value = endVal;
+
+  state.searchPeriod = 'custom';
+
+  const valEl = document.getElementById('search-val-period');
+  if (valEl) {
+    if (startVal && endVal) {
+      valEl.textContent = `${startVal} ~ ${endVal}`;
+    } else {
+      valEl.textContent = state.lang === 'el' ? 'Όλη η περίοδος' : 'All period';
+    }
+  }
+
+  closeModal('search-custom-period-modal');
+  handleSearchChange();
+}
+
 function openSearchBottomSheet(type) {
   // Hide all bottom sheets first
   closeSearchBottomSheet(false);
@@ -5942,8 +6119,12 @@ function openSearchBottomSheet(type) {
       // Sync visual inputs with the hidden ones
       document.getElementById('search-filter-amount-min-visual').value = document.getElementById('search-filter-amount-min').value;
       document.getElementById('search-filter-amount-max-visual').value = document.getElementById('search-filter-amount-max').value;
-      document.getElementById('search-filter-date-start-visual').value = document.getElementById('search-filter-date-start').value;
-      document.getElementById('search-filter-date-end-visual').value = document.getElementById('search-filter-date-end').value;
+      const startVis = document.getElementById('search-filter-date-start-visual');
+      const startHid = document.getElementById('search-filter-date-start');
+      if (startVis && startHid) startVis.value = startHid.value;
+      const endVis = document.getElementById('search-filter-date-end-visual');
+      const endHid = document.getElementById('search-filter-date-end');
+      if (endVis && endHid) endVis.value = endHid.value;
     }
   }
 }
@@ -5988,7 +6169,10 @@ function selectTypeSearchFilter(val) {
       
       const catChip = document.getElementById('search-chip-category');
       if (catChip) {
-        catChip.querySelector('.chip-label').textContent = TRANSLATIONS[state.lang]['search_chip_category'] || 'Κατηγορία';
+        const label = catChip.querySelector('.chip-label');
+        if (label) {
+          label.textContent = TRANSLATIONS[state.lang]['search_chip_category'] || 'Κατηγορία';
+        }
         catChip.classList.remove('active');
       }
     }
@@ -5996,14 +6180,18 @@ function selectTypeSearchFilter(val) {
   
   // Update Type Chip UI
   const chip = document.getElementById('search-chip-type');
-  const label = chip.querySelector('.chip-label');
-  if (val) {
-    let text = val === 'expense' ? TRANSLATIONS[state.lang]['type_tab_expense'] : val === 'income' ? TRANSLATIONS[state.lang]['type_tab_income'] : TRANSLATIONS[state.lang]['type_tab_transfer'];
-    label.textContent = `✓ ${text}`;
-    chip.classList.add('active');
-  } else {
-    label.textContent = TRANSLATIONS[state.lang]['search_chip_type'] || 'Τύπος';
-    chip.classList.remove('active');
+  if (chip) {
+    const label = chip.querySelector('.chip-label');
+    if (label) {
+      if (val) {
+        let text = val === 'expense' ? TRANSLATIONS[state.lang]['type_tab_expense'] : val === 'income' ? TRANSLATIONS[state.lang]['type_tab_income'] : TRANSLATIONS[state.lang]['type_tab_transfer'];
+        label.textContent = `✓ ${text}`;
+        chip.classList.add('active');
+      } else {
+        label.textContent = TRANSLATIONS[state.lang]['search_chip_type'] || 'Τύπος';
+        chip.classList.remove('active');
+      }
+    }
   }
   
   // Update active option styling in sheet
@@ -6050,15 +6238,29 @@ function selectAccountSearchFilter(val) {
     hiddenSelect.value = val;
   }
 
-  // Update Account Chip UI
+  // Update Account UI Row
+  const valDisplay = document.getElementById('search-val-account');
+  if (valDisplay) {
+    if (val) {
+      valDisplay.textContent = getAccountDisplayName(val);
+    } else {
+      valDisplay.textContent = state.lang === 'el' ? 'Όλοι' : 'All';
+    }
+  }
+
+  // Fallback update to Account Chip UI if it exists
   const chip = document.getElementById('search-chip-account');
-  const label = chip.querySelector('.chip-label');
-  if (val) {
-    label.textContent = `✓ ${getAccountDisplayName(val)}`;
-    chip.classList.add('active');
-  } else {
-    label.textContent = TRANSLATIONS[state.lang]['search_chip_account'] || 'Λογαριασμός';
-    chip.classList.remove('active');
+  if (chip) {
+    const label = chip.querySelector('.chip-label');
+    if (label) {
+      if (val) {
+        label.textContent = `✓ ${getAccountDisplayName(val)}`;
+        chip.classList.add('active');
+      } else {
+        label.textContent = TRANSLATIONS[state.lang]['search_chip_account'] || 'Λογαριασμός';
+        chip.classList.remove('active');
+      }
+    }
   }
 
   closeSearchBottomSheet();
@@ -6151,19 +6353,37 @@ function selectCategorySearchFilter(cat, sub) {
   if (hiddenCat) hiddenCat.value = cat;
   if (hiddenSub) hiddenSub.value = sub;
 
-  // Update Category Chip UI
-  const chip = document.getElementById('search-chip-category');
-  const label = chip.querySelector('.chip-label');
-  if (cat) {
-    if (sub) {
-      label.textContent = `✓ ${getSubcategoryDisplayName(sub, cat)}`;
+  // Update Category UI Row
+  const valDisplay = document.getElementById('search-val-category');
+  if (valDisplay) {
+    if (cat) {
+      if (sub) {
+        valDisplay.textContent = `${getCategoryDisplayName(cat)} > ${getSubcategoryDisplayName(sub, cat)}`;
+      } else {
+        valDisplay.textContent = getCategoryDisplayName(cat);
+      }
     } else {
-      label.textContent = `✓ ${getCategoryDisplayName(cat)}`;
+      valDisplay.textContent = state.lang === 'el' ? 'Όλες' : 'All';
     }
-    chip.classList.add('active');
-  } else {
-    label.textContent = TRANSLATIONS[state.lang]['search_chip_category'] || 'Κατηγορία';
-    chip.classList.remove('active');
+  }
+
+  // Fallback update to Category Chip UI if it exists
+  const chip = document.getElementById('search-chip-category');
+  if (chip) {
+    const label = chip.querySelector('.chip-label');
+    if (label) {
+      if (cat) {
+        if (sub) {
+          label.textContent = `✓ ${getSubcategoryDisplayName(sub, cat)}`;
+        } else {
+          label.textContent = `✓ ${getCategoryDisplayName(cat)}`;
+        }
+        chip.classList.add('active');
+      } else {
+        label.textContent = TRANSLATIONS[state.lang]['search_chip_category'] || 'Κατηγορία';
+        chip.classList.remove('active');
+      }
+    }
   }
 
   closeSearchBottomSheet();
@@ -6209,28 +6429,42 @@ function populateSearchMemberSheet() {
   container.innerHTML = html;
 }
 
+function syncAmountFiltersFromInline() {
+  const minVal = document.getElementById('search-amount-min-inline')?.value || '';
+  const maxVal = document.getElementById('search-amount-max-inline')?.value || '';
+  const hiddenMin = document.getElementById('search-filter-amount-min');
+  const hiddenMax = document.getElementById('search-filter-amount-max');
+  if (hiddenMin) hiddenMin.value = minVal;
+  if (hiddenMax) hiddenMax.value = maxVal;
+  handleSearchChange();
+}
+
 function selectMemberSearchFilter(val) {
   const hiddenInput = document.getElementById('search-filter-member');
   if (hiddenInput) {
     hiddenInput.value = val;
   }
 
-  // Update Member Chip UI
+  // Update Member Chip UI if exists
   const chip = document.getElementById('search-chip-member');
-  const label = chip.querySelector('.chip-label');
-  if (val) {
-    let name = '';
-    const myId = state.currentUser?.id || '';
-    if (val === myId) {
-      name = state.userProfile?.display_name || state.currentUser?.email?.split('@')[0] || (state.lang === 'el' ? 'Εσείς' : 'You');
-    } else if (state.partnerProfile && val === state.partnerProfile.id) {
-      name = state.partnerProfile.display_name || state.partnerProfile.email.split('@')[0] || (state.lang === 'el' ? 'Σύντροφος' : 'Partner');
+  if (chip) {
+    const label = chip.querySelector('.chip-label');
+    if (label) {
+      if (val) {
+        let name = '';
+        const myId = state.currentUser?.id || '';
+        if (val === myId) {
+          name = state.userProfile?.display_name || state.currentUser?.email?.split('@')[0] || (state.lang === 'el' ? 'Εσείς' : 'You');
+        } else if (state.partnerProfile && val === state.partnerProfile.id) {
+          name = state.partnerProfile.display_name || state.partnerProfile.email.split('@')[0] || (state.lang === 'el' ? 'Σύντροφος' : 'Partner');
+        }
+        label.textContent = `✓ ${name}`;
+        chip.classList.add('active');
+      } else {
+        label.textContent = TRANSLATIONS[state.lang]['search_chip_member'] || 'Μέλος';
+        chip.classList.remove('active');
+      }
     }
-    label.textContent = `✓ ${name}`;
-    chip.classList.add('active');
-  } else {
-    label.textContent = TRANSLATIONS[state.lang]['search_chip_member'] || 'Μέλος';
-    chip.classList.remove('active');
   }
 
   closeSearchBottomSheet();
@@ -6240,40 +6474,63 @@ function selectMemberSearchFilter(val) {
 function applyAdvancedSearchFiltersVisual() {
   const minVal = document.getElementById('search-filter-amount-min-visual').value;
   const maxVal = document.getElementById('search-filter-amount-max-visual').value;
-  const startVal = document.getElementById('search-filter-date-start-visual').value;
-  const endVal = document.getElementById('search-filter-date-end-visual').value;
+  const startVis = document.getElementById('search-filter-date-start-visual');
+  const endVis = document.getElementById('search-filter-date-end-visual');
 
   document.getElementById('search-filter-amount-min').value = minVal;
   document.getElementById('search-filter-amount-max').value = maxVal;
-  document.getElementById('search-filter-date-start').value = startVal;
-  document.getElementById('search-filter-date-end').value = endVal;
+  if (startVis) document.getElementById('search-filter-date-start').value = startVis.value;
+  if (endVis) document.getElementById('search-filter-date-end').value = endVis.value;
 
-  // Update Advanced Chip UI
+  // Update Amount UI Row
+  const valDisplay = document.getElementById('search-val-amount');
+  if (valDisplay) {
+    if (minVal || maxVal) {
+      const minText = minVal ? `${minVal} €` : 'Min.';
+      const maxText = maxVal ? `${maxVal} €` : 'Max.';
+      valDisplay.textContent = `${minText} ~ ${maxText}`;
+    } else {
+      valDisplay.textContent = 'Min. ~ Max.';
+    }
+  }
+
+  // Update Advanced Chip UI if exists
   const chip = document.getElementById('search-chip-advanced');
-  const hasValues = minVal || maxVal || startVal || endVal;
-  if (hasValues) {
-    chip.classList.add('active');
-  } else {
-    chip.classList.remove('active');
+  if (chip) {
+    const hasValues = minVal || maxVal || (startVis && startVis.value) || (endVis && endVis.value);
+    if (hasValues) {
+      chip.classList.add('active');
+    } else {
+      chip.classList.remove('active');
+    }
   }
 
   closeSearchBottomSheet();
   handleSearchChange();
 }
 
+// Clear visual dashboard filters if initialized
 function resetAdvancedSearchFiltersVisual() {
   document.getElementById('search-filter-amount-min-visual').value = '';
   document.getElementById('search-filter-amount-max-visual').value = '';
-  document.getElementById('search-filter-date-start-visual').value = '';
-  document.getElementById('search-filter-date-end-visual').value = '';
+  const startVis = document.getElementById('search-filter-date-start-visual');
+  if (startVis) startVis.value = '';
+  const endVis = document.getElementById('search-filter-date-end-visual');
+  if (endVis) endVis.value = '';
 
   document.getElementById('search-filter-amount-min').value = '';
   document.getElementById('search-filter-amount-max').value = '';
   document.getElementById('search-filter-date-start').value = '';
   document.getElementById('search-filter-date-end').value = '';
 
+  // Update Amount UI Row
+  const valDisplay = document.getElementById('search-val-amount');
+  if (valDisplay) {
+    valDisplay.textContent = 'Min. ~ Max.';
+  }
+
   const chip = document.getElementById('search-chip-advanced');
-  chip.classList.remove('active');
+  if (chip) chip.classList.remove('active');
 
   closeSearchBottomSheet();
   handleSearchChange();
@@ -6282,28 +6539,47 @@ function resetAdvancedSearchFiltersVisual() {
 function resetAllSearchChips() {
   const typeChip = document.getElementById('search-chip-type');
   if (typeChip) {
-    typeChip.querySelector('.chip-label').textContent = TRANSLATIONS[state.lang]['search_chip_type'] || 'Τύπος';
+    const label = typeChip.querySelector('.chip-label');
+    if (label) label.textContent = TRANSLATIONS[state.lang]['search_chip_type'] || 'Τύπος';
     typeChip.classList.remove('active');
   }
   const catChip = document.getElementById('search-chip-category');
   if (catChip) {
-    catChip.querySelector('.chip-label').textContent = TRANSLATIONS[state.lang]['search_chip_category'] || 'Κατηγορία';
+    const label = catChip.querySelector('.chip-label');
+    if (label) label.textContent = TRANSLATIONS[state.lang]['search_chip_category'] || 'Κατηγορία';
     catChip.classList.remove('active');
   }
   const accChip = document.getElementById('search-chip-account');
   if (accChip) {
-    accChip.querySelector('.chip-label').textContent = TRANSLATIONS[state.lang]['search_chip_account'] || 'Λογαριασμός';
+    const label = accChip.querySelector('.chip-label');
+    if (label) label.textContent = TRANSLATIONS[state.lang]['search_chip_account'] || 'Λογαριασμός';
     accChip.classList.remove('active');
   }
   const memChip = document.getElementById('search-chip-member');
   if (memChip) {
-    memChip.querySelector('.chip-label').textContent = TRANSLATIONS[state.lang]['search_chip_member'] || 'Μέλος';
+    const label = memChip.querySelector('.chip-label');
+    if (label) label.textContent = TRANSLATIONS[state.lang]['search_chip_member'] || 'Μέλος';
     memChip.classList.remove('active');
   }
   const advChip = document.getElementById('search-chip-advanced');
   if (advChip) {
     advChip.classList.remove('active');
   }
+
+  // Reset new search val elements
+  const periodVal = document.getElementById('search-val-period');
+  if (periodVal) periodVal.textContent = state.lang === 'el' ? 'Όλη η περίοδος' : 'All period';
+
+  const accountVal = document.getElementById('search-val-account');
+  if (accountVal) accountVal.textContent = state.lang === 'el' ? 'Όλοι' : 'All';
+
+  const categoryVal = document.getElementById('search-val-category');
+  if (categoryVal) categoryVal.textContent = state.lang === 'el' ? 'Όλες' : 'All';
+
+  const amountVal = document.getElementById('search-val-amount');
+  if (amountVal) amountVal.textContent = 'Min. ~ Max.';
+
+  state.searchPeriod = 'all';
 }
 
 // Bind to window to ensure HTML inline onclick works perfectly
@@ -6316,6 +6592,10 @@ window.selectMemberSearchFilter = selectMemberSearchFilter;
 window.applyAdvancedSearchFiltersVisual = applyAdvancedSearchFiltersVisual;
 window.resetAdvancedSearchFiltersVisual = resetAdvancedSearchFiltersVisual;
 window.resetAllSearchChips = resetAllSearchChips;
+window.openSearchPeriodSheet = openSearchPeriodSheet;
+window.selectPeriodSearchFilter = selectPeriodSearchFilter;
+window.applySearchCustomPeriod = applySearchCustomPeriod;
+
 
 function populateSearchFilterDropdowns() {
   // Populate accounts filter
@@ -6383,6 +6663,7 @@ function populateSearchSubcategoryDropdown(filterByCat) {
   syncCustomSelect('subcategory');
 }
 
+
 function resetSearchFilters() {
   document.getElementById('search-input').value = '';
   document.getElementById('search-filter-type').value = '';
@@ -6392,6 +6673,11 @@ function resetSearchFilters() {
   if (subSel) subSel.value = '';
   document.getElementById('search-filter-amount-min').value = '';
   document.getElementById('search-filter-amount-max').value = '';
+  // Also clear inline amount inputs
+  const inlineMin = document.getElementById('search-amount-min-inline');
+  const inlineMax = document.getElementById('search-amount-max-inline');
+  if (inlineMin) inlineMin.value = '';
+  if (inlineMax) inlineMax.value = '';
   document.getElementById('search-filter-date-start').value = '';
   document.getElementById('search-filter-date-end').value = '';
   
@@ -6529,17 +6815,46 @@ function handleSearchChange() {
     return String(a.id || '').localeCompare(String(b.id || ''));
   });
 
-  // Update Badge Count
-  document.getElementById('search-results-count').textContent = filtered.length;
+  // Update Badge Count if exists
+  const countBadge = document.getElementById('search-results-count');
+  if (countBadge) {
+    countBadge.textContent = filtered.length;
+  }
+
+  // Calculate Totals for search summary bar
+  let totalIncome = 0;
+  let totalExpense = 0;
+  let totalTransfer = 0;
+
+  filtered.forEach(t => {
+    const amt = parseFloat(t.amount) || 0;
+    if (t.type === 'income') {
+      totalIncome += amt;
+    } else if (t.type === 'expense') {
+      totalExpense += amt;
+    } else if (t.type === 'transfer') {
+      totalTransfer += amt;
+    }
+  });
+
+  const currencySymbol = getCurrencySymbol();
+  const incomeValEl = document.getElementById('search-summary-income-val');
+  const expenseValEl = document.getElementById('search-summary-expense-val');
+  const transferValEl = document.getElementById('search-summary-transfer-val');
+
+  if (incomeValEl) incomeValEl.textContent = `${currencySymbol} ${formatCurrency(totalIncome)}`;
+  if (expenseValEl) expenseValEl.textContent = `${currencySymbol} ${formatCurrency(totalExpense)}`;
+  if (transferValEl) transferValEl.textContent = `${currencySymbol} ${formatCurrency(totalTransfer)}`;
 
   // Render Day-Grouped search results
   const resultsContainer = document.getElementById('search-results-list');
   renderGroupedTransactions(filtered, resultsContainer);
+
 }
 
 function renderGroupedTransactions(transactions, container) {
   container.innerHTML = '';
-  
+
   if (transactions.length === 0) {
     container.innerHTML = `
       <div style="text-align:center;padding:40px 10px;color:var(--text-secondary)">
@@ -6549,100 +6864,58 @@ function renderGroupedTransactions(transactions, container) {
     return;
   }
 
-  const groups = {};
+  // Flat list matching the screenshot layout
   transactions.forEach(t => {
-    const dateKey = t.date.split('T')[0];
-    if (!groups[dateKey]) groups[dateKey] = { transactions: [], income: 0, expense: 0 };
-    groups[dateKey].transactions.push(t);
-    const amt = parseFloat(t.amount) || 0;
-    if (t.type === 'income') groups[dateKey].income += amt;
-    else if (t.type === 'expense') groups[dateKey].expense += amt;
-  });
+    const catInfo = getCategoryInfo(t.category, t.type);
+    const item = document.createElement('div');
+    item.className = 'search-result-item';
+    item.onclick = () => {
+      closeSearchOverlay();
+      openEditTransactionModal(t);
+    };
 
-  const todayStr = new Date().toLocaleDateString('sv');
+    let amountClass = 'search-item-amount';
+    let accountText = t.account_from || '';
+    if (t.type === 'expense')       { amountClass += ' expense'; }
+    else if (t.type === 'income')   { amountClass += ' income'; }
+    else if (t.type === 'transfer') { amountClass += ' transfer'; accountText = `${t.account_from} → ${t.account_to}`; }
 
-  Object.keys(groups).sort((a, b) => b.localeCompare(a)).forEach(dateStr => {
-    const group = groups[dateStr];
-    const [y, m, d] = dateStr.split('-').map(Number);
-    const dateObj = new Date(y, m - 1, d);
-    const dayOfWeek = dateObj.getDay();
-    const shortDay = getWeekdayName(dayOfWeek);
-    const weekendClass = dayOfWeek === 6 ? ' saturday' : dayOfWeek === 0 ? ' sunday' : '';
-    const isToday = (dateStr === todayStr);
+    const translatedSub = getSubcategoryDisplayName(t.subcategory, t.category);
+    const translatedCat = getCategoryDisplayName(t.category);
+    const displayTitle = (t.note && t.note.trim()) ? t.note.trim()
+                       : (t.description && t.description.trim()) ? t.description.trim()
+                       : (translatedSub && translatedSub.trim()) ? translatedSub.trim()
+                       : (translatedCat || '');
 
-    let rightTotals = '';
-    if (group.income > 0)  rightTotals += `<span class="day-group-income">${getCurrencySymbol()} ${formatCurrency(group.income)}</span>`;
-    if (group.expense > 0) rightTotals += `<span class="day-group-expense">${getCurrencySymbol()} ${formatCurrency(group.expense)}</span>`;
+    let memberBadge = '';
+    if (state.userProfile && state.userProfile.family_id && t.user_id) {
+      const creator = state.familyProfiles.find(p => p.id === t.user_id);
+      if (creator) {
+        const initials = getMemberInitials(creator);
+        const gradient = getMemberColorGradient(creator.id);
+        const creatorName = creator.display_name || creator.email.split('@')[0];
+        memberBadge = `<span class="trans-member-badge" style="background:${gradient};color:white;display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;font-size:7.5px;font-weight:800;text-transform:uppercase;margin-left:6px;vertical-align:middle;box-shadow:0 1px 3px rgba(0,0,0,0.15);border:none;" title="${state.lang === 'el' ? 'Προστέθηκε από: ' : 'Added by: '}${creatorName}">${initials}</span>`;
+      }
+    } else {
+      const isPartner = state.partnerProfile && t.user_id === state.partnerProfile.id;
+      memberBadge = isPartner ? ` <i class="fa-solid fa-user-group partner-badge-icon" title="${state.lang === 'el' ? 'Προστέθηκε από τον σύντροφο' : 'Added by partner'}"></i>` : '';
+    }
 
-    const header = document.createElement('div');
-    header.className = 'day-header' + (isToday ? ' is-today' : '');
-    const todayBadge = isToday ? ` <span class="today-badge">${state.lang === 'el' ? 'ΣΗΜΕΡΑ' : 'TODAY'}</span>` : '';
-    header.innerHTML = `
-      <div class="day-header-left">
-        <span class="day-num">${d}</span>
-        <div>
-          <span class="day-name${weekendClass}">${shortDay}</span>${todayBadge}
-          <span class="day-month">${getMonthName(m - 1, true)} ${y}</span>
+    const datePart = (t.date || '').split('T')[0];
+    const catSubLine = t.subcategory
+      ? `${catInfo.icon || ''} ${translatedCat}/${translatedSub}`
+      : `${catInfo.icon || ''} ${translatedCat}`;
+
+    item.innerHTML = `
+      <div class="search-item-left">
+        <span class="search-item-date">${datePart}</span>
+        <div class="search-item-info">
+          <span class="search-item-title">${displayTitle}${memberBadge}</span>
+          <span class="search-item-sub">${catSubLine}&nbsp;&nbsp;${accountText}</span>
         </div>
       </div>
-      <div class="day-header-right">${rightTotals}</div>`;
-    container.appendChild(header);
-
-    group.transactions.forEach(t => {
-      const catInfo = getCategoryInfo(t.category, t.type);
-      const item = document.createElement('div');
-      item.className = 'transaction-item';
-      item.onclick = () => {
-        closeSearchOverlay();
-        openEditTransactionModal(t);
-      };
-
-      let amountClass = 'trans-amount';
-      let accountText = t.account_from || '';
-      if (t.type === 'expense')       { amountClass += ' expense'; }
-      else if (t.type === 'income')   { amountClass += ' income'; }
-      else if (t.type === 'transfer') { amountClass += ' transfer'; accountText = `${t.account_from} → ${t.account_to}`; }
-
-      const translatedSub = getSubcategoryDisplayName(t.subcategory, t.category);
-      const translatedCat = getCategoryDisplayName(t.category);
-      const displayTitle = (t.note && t.note.trim()) ? t.note.trim()
-                         : (t.description && t.description.trim()) ? t.description.trim()
-                         : (translatedSub && translatedSub.trim()) ? translatedSub.trim()
-                         : (translatedCat || '');
-
-      let memberBadge = '';
-      if (state.userProfile && state.userProfile.family_id && t.user_id) {
-        const creator = state.familyProfiles.find(p => p.id === t.user_id);
-        if (creator) {
-          const initials = getMemberInitials(creator);
-          const gradient = getMemberColorGradient(creator.id);
-          const creatorName = creator.display_name || creator.email.split('@')[0];
-          memberBadge = `
-            <span class="trans-member-badge" style="background:${gradient};color:white;display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;font-size:7.5px;font-weight:800;text-transform:uppercase;margin-left:6px;vertical-align:middle;box-shadow:0 1px 3px rgba(0,0,0,0.15);border:none;" title="${state.lang === 'el' ? 'Προστέθηκε από: ' : 'Added by: '}${creatorName}">
-              ${initials}
-            </span>
-          `;
-        }
-      } else {
-        const isPartner = state.partnerProfile && t.user_id === state.partnerProfile.id;
-        memberBadge = isPartner ? ` <i class="fa-solid fa-user-group partner-badge-icon" title="${state.lang === 'el' ? 'Προστέθηκε από τον σύντροφο' : 'Added by partner'}"></i>` : '';
-      }
-
-      item.innerHTML = `
-        <div class="trans-left">
-          <div class="trans-category-container">
-            <div class="trans-cat-icon">${catInfo.icon || '💰'}</div>
-            <div class="trans-cat-name">${translatedCat || ''}</div>
-            ${t.subcategory ? `<div class="trans-sub-name">${translatedSub}</div>` : ''}
-          </div>
-          <div class="trans-details">
-            <span class="trans-title">${displayTitle}${memberBadge}</span>
-            <span class="trans-acc-label">${accountText}</span>
-          </div>
-        </div>
-        <div class="${amountClass}">${getCurrencySymbol()} ${formatCurrency(t.amount)}</div>`;
-      container.appendChild(item);
-    });
+      <div class="${amountClass}">${getCurrencySymbol()} ${formatCurrency(t.amount)}</div>`;
+    container.appendChild(item);
   });
 }
 
