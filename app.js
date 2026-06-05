@@ -88,6 +88,8 @@ const state = {
   accounts: [],
   categories: [],
   activeTab: 'trans',
+  hasInitialScrollDone: false,
+  syncStatus: 'offline',
   selectedYear: new Date().getFullYear(),
   selectedMonth: new Date().getMonth(),
   statsType: 'expense',
@@ -180,7 +182,7 @@ const TRANSLATIONS = {
     row_amount: 'Ποσό',
     row_category: 'Κατηγορία',
     row_subcategory: 'Υποκατηγορία',
-    row_account_from: 'Λογαριασμός',
+    row_account_from: 'Τρόπος πληρωμής',
     row_account_to: 'Προς',
     row_note: 'Τίτλος',
     row_description: 'Λεπτομέρειες',
@@ -298,7 +300,7 @@ const TRANSLATIONS = {
     alert_date_order: 'Η ημερομηνία έναρξης πρέπει να είναι προγενέστερη της ημερομηνίας λήξης!',
     label_from: 'Από',
     label_to: 'Προς',
-    label_account: 'Λογαριασμός',
+    label_account: 'Τρόπος πληρωμής',
     label_select: 'Επιλέξτε...',
     label_search: 'Αναζήτηση',
     label_cloud_account: 'Λογαριασμός Cloud',
@@ -312,7 +314,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v140)',
+    app_version: 'Έκδοση 1.0.0 (build v216)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ετήσια Αποταμίευση',
     period_label: 'Περίοδος',
@@ -321,16 +323,16 @@ const TRANSLATIONS = {
     search_results_header: 'Αποτελέσματα',
     search_title_type: 'Επιλογή Τύπου',
     search_title_category: 'Επιλογή Κατηγορίας',
-    search_title_account: 'Επιλογή Λογαριασμού',
+    search_title_account: 'Επιλογή τρόπου πληρωμής',
     search_title_member: 'Επιλογή Μέλους',
     search_title_advanced: 'Σύνθετα Φίλτρα',
     search_all_types: 'Όλοι οι τύποι',
     search_chip_type: 'Τύπος',
     search_chip_category: 'Κατηγορία',
-    search_chip_account: 'Λογαριασμός',
+    search_chip_account: 'Τρόπος πληρωμής',
     search_chip_member: 'Μέλος',
     search_chip_advanced: 'Σύνθετη',
-    search_placeholder: 'Αναζήτηση σε κινήσεις, σημειώσεις...',
+    search_placeholder: 'Αναζήτηση σε έξοδα, λογαριασμούς ή ημερομηνία...',
     adv_amount_from: 'Ποσό από (€)',
     adv_amount_to: 'Ποσό έως (€)',
     adv_date_from: 'Από ημερομηνία',
@@ -352,7 +354,17 @@ const TRANSLATIONS = {
     photo_delete_confirm: 'Διαγραφή φωτογραφίας απόδειξης;',
     excel_dep_title: 'Εισαγωγή Excel/CSV (Υπό κατάργηση)',
     excel_dep_text: 'Η εισαγωγή δεδομένων από αρχεία Excel ή CSV δεν υποστηρίζεται πλέον. Παρακαλώ εισάγετε τις συναλλαγές σας χειροκίνητα για την αποφυγή διπλότυπων και την καλύτερη συμβατότητα με τις νέες κατηγορίες.',
-    excel_dep_btn: 'Κατάλαβα'
+    excel_dep_btn: 'Κατάλαβα',
+    section_feedback: '💬 Σχόλια & Αξιολόγηση',
+    feedback_rating_title: 'Πώς θα βαθμολογούσατε την εφαρμογή;',
+    feedback_type_label: 'Τύπος Σχολίου',
+    feedback_type_bug: 'Σφάλμα (Bug)',
+    feedback_type_feature: 'Νέα Λειτουργία',
+    feedback_type_other: 'Άλλο',
+    feedback_comment_placeholder: 'Γράψτε τα σχόλιά σας εδώ...',
+    feedback_submit_btn: 'Αποστολή Σχολίων',
+    feedback_success_msg: 'Σας ευχαριστούμε για τα σχόλιά σας!',
+    feedback_reset_btn: 'Νέα Αξιολόγηση'
   },
   en: {
     nav_trans: 'Transactions',
@@ -394,7 +406,7 @@ const TRANSLATIONS = {
     row_amount: 'Amount',
     row_category: 'Category',
     row_subcategory: 'Subcategory',
-    row_account_from: 'Account',
+    row_account_from: 'Payment Method',
     row_account_to: 'To',
     row_note: 'Title',
     row_description: 'Details',
@@ -512,7 +524,7 @@ const TRANSLATIONS = {
     alert_date_order: 'Start date must be earlier than end date!',
     label_from: 'From',
     label_to: 'To',
-    label_account: 'Account',
+    label_account: 'Payment Method',
     label_select: 'Select...',
     label_search: 'Search',
     label_cloud_account: 'Cloud Account',
@@ -526,7 +538,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v140)',
+    app_version: 'Version 1.0.0 (build v216)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Yearly Savings',
     period_label: 'Period',
@@ -535,16 +547,16 @@ const TRANSLATIONS = {
     search_results_header: 'Results',
     search_title_type: 'Select Type',
     search_title_category: 'Select Category',
-    search_title_account: 'Select Account',
+    search_title_account: 'Select Payment Method',
     search_title_member: 'Select Member',
     search_title_advanced: 'Advanced Filters',
     search_all_types: 'All types',
     search_chip_type: 'Type',
     search_chip_category: 'Category',
-    search_chip_account: 'Account',
+    search_chip_account: 'Payment Method',
     search_chip_member: 'Member',
     search_chip_advanced: 'Advanced',
-    search_placeholder: 'Search in transactions, notes...',
+    search_placeholder: 'Search Expenses, Accounts, or date...',
     adv_amount_from: 'Min Amount (€)',
     adv_amount_to: 'Max Amount (€)',
     adv_date_from: 'From Date',
@@ -566,7 +578,17 @@ const TRANSLATIONS = {
     photo_delete_confirm: 'Delete receipt photo?',
     excel_dep_title: 'Excel/CSV Import (Deprecated)',
     excel_dep_text: 'Importing data from Excel or CSV files is no longer supported. Please input your transactions manually to avoid duplicates and ensure better compatibility with the new categories.',
-    excel_dep_btn: 'I Understand'
+    excel_dep_btn: 'I Understand',
+    section_feedback: '💬 Feedback & Rating',
+    feedback_rating_title: 'How would you rate the app?',
+    feedback_type_label: 'Feedback Type',
+    feedback_type_bug: 'Bug Report',
+    feedback_type_feature: 'Feature Request',
+    feedback_type_other: 'Other',
+    feedback_comment_placeholder: 'Write your feedback here...',
+    feedback_submit_btn: 'Submit Feedback',
+    feedback_success_msg: 'Thank you for your feedback!',
+    feedback_reset_btn: 'New Feedback'
   }
 };
 
@@ -750,6 +772,10 @@ function applyLanguage(lang) {
   const descInput = document.getElementById('trans-description');
   if (descInput) {
     descInput.placeholder = TRANSLATIONS[lang]['placeholder_description'];
+  }
+  const feedbackCommentInput = document.getElementById('feedback-comment');
+  if (feedbackCommentInput) {
+    feedbackCommentInput.placeholder = TRANSLATIONS[lang]['feedback_comment_placeholder'] || 'Γράψτε τα σχόλιά σας εδώ...';
   }
 
   // Update search overlay input placeholder
@@ -962,6 +988,10 @@ function applyLanguage(lang) {
 
   if (state.activeTab === 'more') {
     renderPartnerSection();
+  }
+  if (state.syncStatus) {
+    updateHeaderSyncIcon(state.syncStatus);
+    updateSyncStatusIndicator();
   }
   updateUI();
 }
@@ -1188,6 +1218,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   initSwipeToBack();
   initSwipeMonthNavigation();
   initRippleEffects();
+  initLightboxPinchZoom();
   
   // ALWAYS load cached local data immediately so the UI is never blank on refresh.
   // If Supabase is enabled, onAuthStateChange will call loadData() again with fresh cloud data.
@@ -1367,73 +1398,6 @@ function initSupabaseAuth() {
                          hashStr.includes('error=') ||
                          searchStr.includes('code=') ||
                          searchStr.includes('error=');
-
-  // Popup callback detection: if this window is a callback window redirect tab
-  const isPopupTab = window.location.search.includes('oauth_callback=true');
-  if (isPopupTab && isAuthRedirect) {
-    logAuthDebug('Detected PWA OAuth callback tab. Processing auth...');
-    const authChannel = new BroadcastChannel('pwa-oauth-channel');
-    
-    // Set a timeout to auto-close in case state changes take too long
-    const autoCloseTimeout = setTimeout(() => {
-      logAuthDebug('Popup callback close timeout reached. Closing tab.');
-      window.close();
-    }, 20000);
-    
-    state.supabaseClient.auth.onAuthStateChange((event, session) => {
-      logAuthDebug(`Popup auth state change: ${event}`);
-      if (session) {
-        clearTimeout(autoCloseTimeout);
-        authChannel.postMessage({ type: 'OAUTH_SUCCESS' });
-        // Set fallback in localStorage to trigger storage event on opener
-        localStorage.setItem('pwa_oauth_success', Date.now().toString());
-        
-        // Render a premium success UI inside the loader overlay with a guided button
-        const loaderDiv = document.getElementById('auth-loading-state');
-        if (loaderDiv) {
-          loaderDiv.innerHTML = `
-            <style>
-              @keyframes pulseBtn {
-                0%, 100% { transform: scale(1); box-shadow: 0 4px 15px rgba(67, 97, 238, 0.4); }
-                50% { transform: scale(1.05); box-shadow: 0 6px 22px rgba(67, 97, 238, 0.6); }
-              }
-              .success-pulse-icon {
-                font-size: 4.5rem;
-                color: #06d6a0;
-                text-shadow: 0 0 20px rgba(6, 214, 160, 0.4);
-                margin-bottom: 20px;
-                animation: pulseLogo 1.5s infinite ease-in-out;
-              }
-            </style>
-            <div class="success-pulse-icon"><i class="fa-solid fa-circle-check"></i></div>
-            <h3 style="color: #fff; margin-bottom: 12px; font-weight: 700; font-size: 22px; text-align: center;">Σύνδεση Επιτυχής!</h3>
-            <p style="color: rgba(255,255,255,0.7); font-size: 14px; margin-bottom: 26px; text-align: center; max-width: 280px; line-height: 1.5;">Είστε έτοιμοι! Πατήστε το κουμπί για να επιστρέψετε στην εφαρμογή σας.</p>
-            <a href="index.html" target="_self" style="display: inline-block; background: var(--accent); color: #fff; padding: 12px 30px; border-radius: 50px; font-weight: 600; text-decoration: none; font-size: 15px; box-shadow: 0 4px 15px rgba(67, 97, 238, 0.4); animation: pulseBtn 1.5s infinite ease-in-out; transition: all 0.2s;" onclick="setTimeout(() => window.close(), 1200)">Επιστροφή στην Εφαρμογή</a>
-          `;
-        }
-      }
-    });
-    return; // Halt further app initialization in the popup tab
-  }
-
-  // Main window: Listen for OAuth success from callback popups
-  const authChannel = new BroadcastChannel('pwa-oauth-channel');
-  authChannel.onmessage = (event) => {
-    if (event.data && event.data.type === 'OAUTH_SUCCESS') {
-      logAuthDebug('OAuth successful in popup tab. Reloading PWA window...');
-      window.location.reload();
-    }
-  };
-  
-  // Storage event listener fallback (handles cross-process localStorage changes)
-  window.addEventListener('storage', (event) => {
-    if (event.key === 'pwa_oauth_success') {
-      logAuthDebug('OAuth success via storage event. Reloading PWA window...');
-      localStorage.removeItem('pwa_oauth_success');
-      window.location.reload();
-    }
-  });
-
 
                          
   let processingRedirect = isAuthRedirect;
@@ -2376,6 +2340,15 @@ function updateUI() {
   updateCategoryDropdowns(currentType);
   updateAccountDropdowns();
   updateCurrencySymbols();
+  
+  // Scroll to today on startup once transactions are loaded
+  const list = document.getElementById('transactions-list');
+  if (!state.hasInitialScrollDone && list && list.children.length > 0) {
+    state.hasInitialScrollDone = true;
+    setTimeout(() => {
+      scrollToToday('auto');
+    }, 300);
+  }
 }
 
 function updateHeaderAndSync() {
@@ -2445,6 +2418,8 @@ function renderTransactionsTab() {
     return;
   }
 
+  const todayStr = new Date().toLocaleDateString('sv');
+
   Object.keys(groups).sort((a, b) => b.localeCompare(a)).forEach(dateStr => {
     const group = groups[dateStr];
     const [y, m, d] = dateStr.split('-').map(Number);
@@ -2453,18 +2428,20 @@ function renderTransactionsTab() {
     const dayNum = d;
     const shortDay = getWeekdayName(dayOfWeek);
     const weekendClass = dayOfWeek === 6 ? ' saturday' : dayOfWeek === 0 ? ' sunday' : '';
+    const isToday = (dateStr === todayStr);
 
     let rightTotals = '';
     if (group.income > 0)  rightTotals += `<span class="day-group-income">${getCurrencySymbol()} ${formatCurrency(group.income)}</span>`;
     if (group.expense > 0) rightTotals += `<span class="day-group-expense">${getCurrencySymbol()} ${formatCurrency(group.expense)}</span>`;
 
     const header = document.createElement('div');
-    header.className = 'day-header';
+    header.className = 'day-header' + (isToday ? ' is-today' : '');
+    const todayBadge = isToday ? ` <span class="today-badge">${state.lang === 'el' ? 'ΣΗΜΕΡΑ' : 'TODAY'}</span>` : '';
     header.innerHTML = `
       <div class="day-header-left">
         <span class="day-num">${dayNum}</span>
         <div>
-          <span class="day-name${weekendClass}">${shortDay}</span>
+          <span class="day-name${weekendClass}">${shortDay}</span>${todayBadge}
           <span class="day-month">${getMonthName(m - 1, true)} ${y}</span>
         </div>
       </div>
@@ -3328,7 +3305,17 @@ function setupEventListeners() {
   document.querySelectorAll('.nav-item').forEach(item => {
     item.addEventListener('click', e => {
       e.preventDefault();
-      switchTab(item.getAttribute('data-tab'));
+      const tab = item.getAttribute('data-tab');
+      if (tab === 'trans' && state.activeTab === 'trans') {
+        const today = new Date();
+        if (state.selectedMonth === today.getMonth() && state.selectedYear === today.getFullYear()) {
+          scrollToToday();
+        } else {
+          switchTab(tab);
+        }
+      } else {
+        switchTab(tab);
+      }
     });
   });
 
@@ -3338,6 +3325,7 @@ function setupEventListeners() {
     state.statsDate.setFullYear(state.selectedYear);
     state.statsDate.setMonth(state.selectedMonth);
     updateUI();
+    setTimeout(() => scrollToToday('auto'), 50);
   });
   document.getElementById('period-next').addEventListener('click', () => {
     state.selectedMonth++;
@@ -3345,6 +3333,7 @@ function setupEventListeners() {
     state.statsDate.setFullYear(state.selectedYear);
     state.statsDate.setMonth(state.selectedMonth);
     updateUI();
+    setTimeout(() => scrollToToday('auto'), 50);
   });
 
   document.getElementById('stats-tab-expense').addEventListener('click', () => toggleStatsType('expense'));
@@ -3509,12 +3498,35 @@ function setupEventListeners() {
     let rawAmount = document.getElementById('trans-amount').value || '0';
     rawAmount = rawAmount.replace(/\,/g, '.');
     const evaluatedVal = evaluateCalcBuffer(rawAmount);
+    const amountVal = parseFloat(evaluatedVal) || 0;
+    const categoryVal = type === 'transfer' ? 'ΜΕΤΑΦΟΡΑ' : document.getElementById('trans-category').value;
+    const noteVal = document.getElementById('trans-note').value.trim();
+    
+    // Validation: Amount, Category, Title (note) must be filled
+    const lang = state.lang || 'el';
+    if (amountVal <= 0) {
+      const msg = lang === 'el' ? 'Παρακαλώ εισάγετε ποσό μεγαλύτερο από 0!' : 'Please enter an amount greater than 0!';
+      await showCustomDialog({ message: msg, icon: '⚠️' });
+      return;
+    }
+    
+    if (!categoryVal || categoryVal.trim() === '') {
+      const msg = lang === 'el' ? 'Παρακαλώ επιλέξτε κατηγορία!' : 'Please select a category!';
+      await showCustomDialog({ message: msg, icon: '⚠️' });
+      return;
+    }
+    
+    if (!noteVal || noteVal === '') {
+      const msg = lang === 'el' ? 'Παρακαλώ εισάγετε τίτλο!' : 'Please enter a title!';
+      await showCustomDialog({ message: msg, icon: '⚠️' });
+      return;
+    }
     
     const t = {
       date: document.getElementById('trans-date').value,
       type,
-      amount: parseFloat(evaluatedVal) || 0,
-      category: type === 'transfer' ? 'ΜΕΤΑΦΟΡΑ' : document.getElementById('trans-category').value,
+      amount: amountVal,
+      category: categoryVal,
       subcategory: (() => {
         if (type === 'transfer') return '';
         const customInput = document.getElementById('trans-subcategory-custom');
@@ -3526,7 +3538,7 @@ function setupEventListeners() {
       })(),
       account_from: document.getElementById('trans-account-from').value,
       account_to: type === 'transfer' ? document.getElementById('trans-account-to').value : null,
-      note: document.getElementById('trans-note').value.trim(),
+      note: noteVal,
       description: document.getElementById('trans-description').value.trim(),
     };
     if (id) {
@@ -3820,6 +3832,22 @@ function setupEventListeners() {
       }
     }, { passive: true });
   }
+
+  // Feedback rating emojis clicks
+  document.querySelectorAll('.emoji-rate-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.emoji-rate-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
+
+  // Feedback type chips clicks
+  document.querySelectorAll('.feedback-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.feedback-chip').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
 }
 
 function adjustStatsPeriod(direction, startingDeltaX = 0) {
@@ -3864,6 +3892,38 @@ function handleCustomPeriodSave() {
   }
 }
 
+function scrollToToday(behavior = 'smooth') {
+  const isMobile = window.innerWidth <= 767;
+  const scrollContainer = isMobile
+    ? document.querySelector('.trans-scroll-content')
+    : document.querySelector('.app-content');
+  const list = document.getElementById('transactions-list');
+  if (!scrollContainer || !list) return;
+  
+  const todayHeader = list.querySelector('.day-header.is-today');
+  if (todayHeader) {
+    // Calculate layout-independent offset within scroll container using offsetParent chain
+    let relativeTop = 0;
+    let el = todayHeader;
+    while (el && el !== scrollContainer) {
+      relativeTop += el.offsetTop;
+      el = el.offsetParent;
+    }
+    
+    const offset = isMobile ? 0 : 105;
+    
+    scrollContainer.scrollTo({
+      top: Math.max(0, relativeTop - offset),
+      behavior: behavior
+    });
+  } else {
+    scrollContainer.scrollTo({
+      top: 0,
+      behavior: behavior
+    });
+  }
+}
+
 function switchTab(tab) {
   // Allow re-tapping 'trans' or 'stats' tab to reset month even if already active
   if (state.activeTab === tab) {
@@ -3874,6 +3934,7 @@ function switchTab(tab) {
       state.statsDate.setFullYear(state.selectedYear);
       state.statsDate.setMonth(state.selectedMonth);
       updateUI();
+      setTimeout(() => scrollToToday('smooth'), 50);
     } else if (tab === 'stats') {
       const today = new Date();
       state.selectedMonth = today.getMonth();
@@ -3923,9 +3984,7 @@ function switchTab(tab) {
   const bsInd = document.getElementById('back-swipe-indicator');
   if (bsInd) bsInd.style.display = 'none';
 
-  const TAB_ORDER = ['trans', 'stats', 'accounts', 'more'];
   const oldTab = state.activeTab;
-  const newTab = tab;
   state.activeTab = tab;
 
   // Toggle body class for scroll isolation on mobile
@@ -3934,64 +3993,39 @@ function switchTab(tab) {
   document.body.classList.toggle('accounts-tab-active', tab === 'accounts');
   document.body.classList.toggle('more-tab-active', tab === 'more');
 
-  // Determine direction for premium horizontal slide transition
-  const oldIdx = TAB_ORDER.indexOf(oldTab);
-  const newIdx = TAB_ORDER.indexOf(newTab);
-  const isForward = newIdx > oldIdx;
-
   const oldScreen = document.getElementById(`${oldTab}-screen`);
-  const newScreen = document.getElementById(`${newTab}-screen`);
+  const newScreen = document.getElementById(`${tab}-screen`);
 
-  if (newScreen) {
-    newScreen.style.display = ''; // Clear any inline display: none override
-    newScreen.style.visibility = '';
-    newScreen.style.opacity = '';
+  // Manage FAB visibility based on active tab
+  const fab = document.getElementById('fab-btn');
+  if (fab) {
+    if (tab === 'trans') {
+      fab.style.display = 'flex';
+    } else {
+      fab.style.display = 'none';
+    }
   }
 
   if (oldScreen && newScreen) {
-    // Clean up any old transition classes first
-    oldScreen.classList.remove('slide-out-left', 'slide-out-right', 'slide-in-left', 'slide-in-right');
-    newScreen.classList.remove('slide-out-left', 'slide-out-right', 'slide-in-left', 'slide-in-right');
-
-    // Add new slide classes (they apply display: block !important)
-    if (isForward) {
-      oldScreen.classList.add('slide-out-left');
-      newScreen.classList.add('slide-in-right');
-    } else {
-      oldScreen.classList.add('slide-out-right');
-      newScreen.classList.add('slide-in-left');
-    }
-
-    // Now safe to remove active class from oldScreen (will stay visible due to slide class)
-    oldScreen.classList.remove('active');
-
-    // Manage FAB visibility based on active tab
-    const fab = document.getElementById('fab-btn');
-    if (fab) {
-      if (newTab === 'trans') {
-        fab.style.display = 'flex';
-      } else {
-        fab.style.display = 'none';
+    // Hide old screen instantly, remove fade-in class from all screens
+    document.querySelectorAll('.tab-screen').forEach(s => {
+      s.classList.remove('fade-in-premium');
+      if (s.id !== `${tab}-screen`) {
+        s.classList.remove('active');
+        s.style.display = 'none';
+        s.style.visibility = 'hidden';
+        s.style.opacity = '0';
       }
-    }
+    });
 
-    // Use animationend event for reliable cleanup instead of fragile setTimeout
+    // Display and trigger animation on new screen
+    newScreen.style.display = '';
+    newScreen.style.visibility = '';
+    newScreen.style.opacity = '';
+    newScreen.classList.add('active', 'fade-in-premium');
+
     const cleanupHandler = () => {
-      // Immediately hide old screen to prevent any flash-back frames
-      oldScreen.style.display = 'none';
-      oldScreen.style.visibility = 'hidden';
-      oldScreen.style.opacity = '0';
-      // Clean up all transition classes
-      document.querySelectorAll('.tab-screen').forEach(s => {
-        s.classList.remove('slide-out-left', 'slide-out-right', 'slide-in-left', 'slide-in-right');
-        if (s.id === `${newTab}-screen`) {
-          s.classList.add('active');
-          s.style.display = '';
-          s.style.visibility = '';
-          s.style.opacity = '';
-        }
-      });
-      // Clear transition state trackers
+      newScreen.classList.remove('fade-in-premium');
       state.activeTransitionCleanup = null;
       state.activeTransitionAnimEndTarget = null;
       state.activeTransitionAnimEndListener = null;
@@ -4001,7 +4035,6 @@ function switchTab(tab) {
     state.activeTransitionCleanup = cleanupHandler;
     state.activeTransitionAnimEndTarget = newScreen;
 
-    // Listen for animation end on the NEW screen (slide-in finishes)
     const onAnimEnd = (e) => {
       if (e.target === newScreen) {
         newScreen.removeEventListener('animationend', onAnimEnd);
@@ -4011,53 +4044,44 @@ function switchTab(tab) {
     state.activeTransitionAnimEndListener = onAnimEnd;
     newScreen.addEventListener('animationend', onAnimEnd);
 
-    // Safety fallback in case animationend doesn't fire (e.g. display issues)
     state.activeTransitionTimeoutId = setTimeout(() => {
       newScreen.removeEventListener('animationend', onAnimEnd);
       cleanupHandler();
-    }, 350);
+    }, 200);
   } else {
-    // Fallback if elements are missing
     document.querySelectorAll('.tab-screen').forEach(s => s.classList.toggle('active', s.id === `${tab}-screen`));
   }
 
   document.querySelectorAll('.nav-item').forEach(i => i.classList.toggle('active', i.getAttribute('data-tab') === tab));
   
-  // Ensure dummy history entry is pushed if moving away from home tab ('trans')
   if (tab !== 'trans') {
     ensureHistoryPushed();
   }
 
-  // Defer heavy UI rendering until the horizontal slide transition has completely finished
-  const delay = (oldScreen && newScreen) ? 310 : 16;
-  state.tabRenderTimeoutId = setTimeout(() => {
-    state.tabRenderTimeoutId = null;
-    if (tab === 'trans') {
-      // Reset month/year to today's date when opening the transactions screen
-      const today = new Date();
-      state.selectedMonth = today.getMonth();
-      state.selectedYear = today.getFullYear();
-      state.statsDate.setFullYear(state.selectedYear);
-      state.statsDate.setMonth(state.selectedMonth);
-      updateUI();
-    }
-    else if (tab === 'stats')    renderStatsTab();
-    else if (tab === 'accounts') renderAccountsTab();
-    else if (tab === 'more') {
-      // Refresh partner section every time user opens the More tab
-      renderPartnerSection();
-      // Also update email display
-      if (state.currentUser) {
-        const emailDisplay = document.getElementById('settings-user-email-value');
-        if (emailDisplay) {
-          emailDisplay.textContent = state.currentUser.email;
-          emailDisplay.title = state.currentUser.email;
-        }
-        const emailItem = document.getElementById('settings-user-email-item');
-        if (emailItem) emailItem.style.display = 'flex';
+  // Render tab contents immediately to guarantee zero lag/blank states
+  if (tab === 'trans') {
+    const today = new Date();
+    state.selectedMonth = today.getMonth();
+    state.selectedYear = today.getFullYear();
+    state.statsDate.setFullYear(state.selectedYear);
+    state.statsDate.setMonth(state.selectedMonth);
+    updateUI();
+    setTimeout(() => scrollToToday('smooth'), 50);
+  }
+  else if (tab === 'stats')    renderStatsTab();
+  else if (tab === 'accounts') renderAccountsTab();
+  else if (tab === 'more') {
+    renderPartnerSection();
+    if (state.currentUser) {
+      const emailDisplay = document.getElementById('settings-user-email-value');
+      if (emailDisplay) {
+        emailDisplay.textContent = state.currentUser.email;
+        emailDisplay.title = state.currentUser.email;
       }
+      const emailItem = document.getElementById('settings-user-email-item');
+      if (emailItem) emailItem.style.display = 'flex';
     }
-  }, delay);
+  }
 }
 
 function toggleStatsType(type) {
@@ -4129,6 +4153,14 @@ function toggleTransactionFormLock(locked) {
   const saveBtn = document.getElementById('btn-save-transaction');
   if (saveBtn) {
     saveBtn.style.display = locked ? 'none' : 'block';
+  }
+  const deletePhotoBtn = document.getElementById('btn-delete-photo');
+  if (deletePhotoBtn) {
+    deletePhotoBtn.style.display = locked ? 'none' : 'block';
+  }
+  const cameraBtn = document.getElementById('trans-camera-btn');
+  if (cameraBtn) {
+    cameraBtn.style.display = locked ? 'none' : 'block';
   }
 
   let warningEl = document.getElementById('trans-readonly-warning');
@@ -4315,6 +4347,9 @@ function closePhotoLightbox() {
     modal.style.display = 'none';
   }
 }
+
+window.openPhotoLightbox = openPhotoLightbox;
+window.closePhotoLightbox = closePhotoLightbox;
 
 function updateCategoryDisplay() {
   const categoryHidden = document.getElementById('trans-category');
@@ -4725,25 +4760,8 @@ function selectCategory(name, icon, color, isManual = false) {
   updateSubcategoryRowVisibility();
   
   if (isManual) {
-    // Check if category has subcategories
-    const cleanedCat = stripLeadingEmoji(name).toUpperCase();
-    const defaults = DEFAULT_SUBCATEGORIES_MAP[cleanedCat];
-    
-    let hasTransSubcats = false;
-    for (let i = 0; i < state.transactions.length; i++) {
-      const t = state.transactions[i];
-      if (t.category && stripLeadingEmoji(t.category).toUpperCase() === cleanedCat && t.subcategory && t.subcategory.trim() !== '') {
-        hasTransSubcats = true;
-        break;
-      }
-    }
-    
-    if ((defaults && defaults.length > 0) || hasTransSubcats) {
-      closeModal('category-picker-modal');
-      openSubcategoryModal();
-    } else {
-      closeModal('category-picker-modal');
-    }
+    closeModal('category-picker-modal');
+    openSubcategoryModal();
   } else {
     closeModal('category-picker-modal');
   }
@@ -5098,7 +5116,7 @@ function openAccountPickerModal(target) {
   
   const titleEl = document.getElementById('account-picker-title');
   if (titleEl) {
-    titleEl.textContent = state.lang === 'el' ? 'Επιλογή Λογαριασμού' : 'Select Account';
+    titleEl.textContent = state.lang === 'el' ? 'Επιλογή τρόπου πληρωμής' : 'Select Payment Method';
   }
   
   renderAccountPickerOptions();
@@ -5229,20 +5247,33 @@ function showSyncToast(message, autoDismissMs = 0) {
     }, autoDismissMs);
   }
 }
-// Update the permanent cloud icon in the header
 function updateHeaderSyncIcon(state_) {
-  // state_: 'offline' | 'syncing' | 'synced' | 'error'
+  state.syncStatus = state_;
+  // state_: 'offline' | 'idle' | 'syncing' | 'synced' | 'success' | 'error'
   const dot  = document.getElementById('header-sync-dot');
   const icon = document.getElementById('header-sync-cloud-icon');
   if (!dot || !icon) return;
-  const colors = { offline:'#9e9e9e', syncing:'#ffd600', synced:'#4caf50', error:'#ef5350' };
-  dot.style.background = colors[state_] || '#9e9e9e';
+
+  // Normalize state for visual elements and translations
+  let normalized = state_;
+  if (state_ === 'success') normalized = 'synced';
+  if (state_ === 'idle') normalized = 'offline';
+
+  const colors = { 
+    offline: '#9e9e9e', 
+    syncing: '#ffd600', 
+    synced: '#4caf50', 
+    error: '#ef5350' 
+  };
+  dot.style.background = colors[normalized] || '#9e9e9e';
+  
   // Animate dot on sync
-  if (state_ === 'syncing') {
+  if (normalized === 'syncing') {
     dot.style.animation = 'syncDotPulse 0.8s infinite alternate';
   } else {
     dot.style.animation = 'none';
   }
+  
   // Inject dot keyframes once
   if (!document.getElementById('sync-dot-styles')) {
     const s = document.createElement('style');
@@ -5250,26 +5281,43 @@ function updateHeaderSyncIcon(state_) {
     s.textContent = `@keyframes syncDotPulse{from{opacity:1;transform:scale(1)}to{opacity:.3;transform:scale(1.6)}}`;
     document.head.appendChild(s);
   }
+  
   // Tooltip
   const btn = document.getElementById('header-sync-icon');
-  const labels = { offline:'Τοπική αποθήκευση', syncing:'Συγχρονισμός...', synced:'Συγχρονισμένο ✅', error:'Σφάλμα συγχρονισμού ⚠️' };
-  if (btn) btn.title = labels[state_] || 'Συγχρονισμός';
+  const lang = state.lang || 'el';
+  const labels = lang === 'en' ? {
+    offline: 'Local Storage',
+    syncing: 'Syncing...',
+    synced: 'Synced ✅',
+    error: 'Sync Error ⚠️'
+  } : {
+    offline: 'Τοπική αποθήκευση',
+    syncing: 'Συγχρονισμός...',
+    synced: 'Συγχρονισμένο ✅',
+    error: 'Σφάλμα συγχρονισμού ⚠️'
+  };
+  if (btn) btn.title = labels[normalized] || (lang === 'en' ? 'Sync' : 'Συγχρονισμός');
   
   // Update sync status text in settings
   const syncStatusEl = document.getElementById('val_sync_status');
   if (syncStatusEl) {
-    const statusLabels = { 
-      offline:'Τοπική Αποθήκευση', 
-      syncing:'Συγχρονισμός...', 
-      synced:'Ενεργός', 
-      error:'Σφάλμα' 
+    const statusLabels = lang === 'en' ? {
+      offline: 'Local Storage',
+      syncing: 'Syncing...',
+      synced: 'Active',
+      error: 'Error'
+    } : {
+      offline: 'Τοπική Αποθήκευση',
+      syncing: 'Συγχρονισμός...',
+      synced: 'Ενεργός',
+      error: 'Σφάλμα'
     };
-    syncStatusEl.textContent = statusLabels[state_] || 'Τοπική Αποθήκευση';
+    syncStatusEl.textContent = statusLabels[normalized] || (lang === 'en' ? 'Local Storage' : 'Τοπική Αποθήκευση');
     
     // Update color based on status
-    if (state_ === 'synced') {
+    if (normalized === 'synced') {
       syncStatusEl.style.color = '#4caf50'; // Green for active
-    } else if (state_ === 'error') {
+    } else if (normalized === 'error') {
       syncStatusEl.style.color = '#ef5350'; // Red for error
     } else {
       syncStatusEl.style.color = 'var(--text-secondary)';
@@ -5475,6 +5523,12 @@ function openSearchOverlay() {
 
   // Reset inputs and run initial query to show all
   resetSearchFilters();
+
+  // Render inline dashboard filters
+  renderPeriodChips();
+  renderAccountChips();
+  setCategoryTypeFilter('expense');
+  initAmountRangeSlider();
 }
 
 function closeSearchOverlay() {
@@ -5482,6 +5536,387 @@ function closeSearchOverlay() {
   if (overlay) overlay.classList.remove('active');
   closeSearchBottomSheet();
 }
+
+// State for custom slider dragging
+let sliderMinVal = 0;
+let sliderMaxVal = 1000;
+let currentMinVal = 0;
+let currentMaxVal = 1000;
+let isDraggingMin = false;
+let isDraggingMax = false;
+
+// 1. Period selection logic
+function selectPeriodFilter(periodType, element) {
+  const chips = document.querySelectorAll('#period-chips-container .filter-chip');
+  chips.forEach(c => c.classList.remove('active', 'active-blue'));
+  
+  const customInputs = document.getElementById('custom-date-inputs');
+  
+  if (element && element.getAttribute('data-active') === 'true') {
+    element.removeAttribute('data-active');
+    document.getElementById('search-filter-date-start').value = '';
+    document.getElementById('search-filter-date-end').value = '';
+    if (customInputs) customInputs.style.display = 'none';
+  } else {
+    chips.forEach(c => c.removeAttribute('data-active'));
+    if (element) {
+      element.classList.add(periodType === 'Custom Period' || periodType === 'Προσαρμοσμένο' ? 'active-blue' : 'active');
+      element.setAttribute('data-active', 'true');
+    }
+    
+    const today = new Date();
+    let dateStart = '';
+    let dateEnd = '';
+    
+    if (periodType === 'Weekly' || periodType === 'Εβδομάδα') {
+      const start = new Date();
+      start.setDate(today.getDate() - 7);
+      dateStart = start.toISOString().split('T')[0];
+      dateEnd = today.toISOString().split('T')[0];
+      if (customInputs) customInputs.style.display = 'none';
+    } else if (periodType === 'Monthly' || periodType === 'Μήνας') {
+      const start = new Date(today.getFullYear(), today.getMonth(), 1);
+      dateStart = start.toISOString().split('T')[0];
+      dateEnd = today.toISOString().split('T')[0];
+      if (customInputs) customInputs.style.display = 'none';
+    } else if (periodType === 'Annually' || periodType === 'Έτος') {
+      const start = new Date(today.getFullYear(), 0, 1);
+      dateStart = start.toISOString().split('T')[0];
+      dateEnd = today.toISOString().split('T')[0];
+      if (customInputs) customInputs.style.display = 'none';
+    } else if (periodType === 'Custom Period' || periodType === 'Προσαρμοσμένο') {
+      if (customInputs) customInputs.style.display = 'flex';
+      dateStart = document.getElementById('custom-date-start').value;
+      dateEnd = document.getElementById('custom-date-end').value;
+    }
+    
+    document.getElementById('search-filter-date-start').value = dateStart;
+    document.getElementById('search-filter-date-end').value = dateEnd;
+  }
+  
+  handleSearchChange();
+}
+
+function applyCustomDates() {
+  const startVal = document.getElementById('custom-date-start').value;
+  const endVal = document.getElementById('custom-date-end').value;
+  document.getElementById('search-filter-date-start').value = startVal;
+  document.getElementById('search-filter-date-end').value = endVal;
+  handleSearchChange();
+}
+
+function resetPeriodFilter() {
+  const chips = document.querySelectorAll('#period-chips-container .filter-chip');
+  chips.forEach(c => {
+    c.classList.remove('active', 'active-blue');
+    c.removeAttribute('data-active');
+  });
+  document.getElementById('search-filter-date-start').value = '';
+  document.getElementById('search-filter-date-end').value = '';
+  document.getElementById('custom-date-start').value = '';
+  document.getElementById('custom-date-end').value = '';
+  const customInputs = document.getElementById('custom-date-inputs');
+  if (customInputs) customInputs.style.display = 'none';
+  handleSearchChange();
+}
+
+// 2. Account selection logic
+function selectAccountChipFilter(accName, element) {
+  const chips = document.querySelectorAll('#account-chips-container .filter-chip');
+  const filterInput = document.getElementById('search-filter-account');
+  
+  if (element && element.classList.contains('active')) {
+    element.classList.remove('active');
+    filterInput.value = '';
+  } else {
+    chips.forEach(c => c.classList.remove('active'));
+    if (element) element.classList.add('active');
+    filterInput.value = accName;
+  }
+  handleSearchChange();
+}
+
+// 3. Category selection logic
+let currentCategoryType = 'expense';
+
+function setCategoryTypeFilter(type) {
+  currentCategoryType = type;
+  
+  const segExpense = document.getElementById('seg-tab-expense');
+  const segIncome = document.getElementById('seg-tab-income');
+  if (type === 'expense') {
+    if (segExpense) segExpense.className = 'segmented-tab active';
+    if (segIncome) segIncome.className = 'segmented-tab';
+    document.getElementById('category-segmented-control')?.style.setProperty('--segmented-active-bg', 'var(--red-negative, #ef5350)');
+  } else {
+    if (segExpense) segExpense.className = 'segmented-tab';
+    if (segIncome) segIncome.className = 'segmented-tab active income-active';
+    document.getElementById('category-segmented-control')?.style.setProperty('--segmented-active-bg', 'var(--blue-positive, #3b82f6)');
+  }
+  
+  document.getElementById('search-filter-type').value = type;
+  resetCategoryFilter(false);
+  renderCategoryChips();
+  handleSearchChange();
+}
+
+function selectCategoryChipFilter(catName, element) {
+  const chips = document.querySelectorAll('#category-chips-container .filter-chip');
+  const filterInput = document.getElementById('search-filter-category');
+  
+  if (element && element.classList.contains('active')) {
+    element.classList.remove('active');
+    filterInput.value = '';
+    
+    document.getElementById('subcategory-chips-wrapper').style.display = 'none';
+    document.getElementById('search-filter-subcategory').value = '';
+  } else {
+    chips.forEach(c => c.classList.remove('active'));
+    if (element) element.classList.add('active');
+    filterInput.value = catName;
+    
+    const categoryObj = state.categories.find(c => c.name === catName && c.type === currentCategoryType);
+    if (categoryObj && categoryObj.subcategories && categoryObj.subcategories.length > 0) {
+      renderSubcategoryChips(categoryObj.subcategories);
+    } else {
+      document.getElementById('subcategory-chips-wrapper').style.display = 'none';
+      document.getElementById('search-filter-subcategory').value = '';
+    }
+  }
+  handleSearchChange();
+}
+
+// Category tag checkmark helper
+function getCategorySelectionIconHTML(catName) {
+  const selectedCat = document.getElementById('search-filter-category').value;
+  return selectedCat === catName ? ' <i class="fa-solid fa-check" style="font-size:10px; margin-left: 2px;"></i>' : '';
+}
+
+function selectSubcategoryChipFilter(subName, element) {
+  const chips = document.querySelectorAll('#subcategory-chips-container .filter-chip');
+  const filterInput = document.getElementById('search-filter-subcategory');
+  
+  chips.forEach(c => c.classList.remove('active'));
+  if (element) element.classList.add('active');
+  
+  filterInput.value = (subName === 'all' || subName === 'Όλες') ? '' : subName;
+  handleSearchChange();
+}
+
+function resetCategoryFilter(triggerSearch = true) {
+  const chips = document.querySelectorAll('#category-chips-container .filter-chip');
+  chips.forEach(c => c.classList.remove('active'));
+  document.getElementById('search-filter-category').value = '';
+  
+  document.getElementById('subcategory-chips-wrapper').style.display = 'none';
+  document.getElementById('search-filter-subcategory').value = '';
+  
+  if (triggerSearch) handleSearchChange();
+}
+
+// 4. Renderers
+function renderPeriodChips() {
+  const container = document.getElementById('period-chips-container');
+  if (!container) return;
+  
+  const lang = state.lang || 'el';
+  const periodOptions = lang === 'en' 
+    ? ['Weekly', 'Monthly', 'Annually', 'Custom Period']
+    : ['Εβδομάδα', 'Μήνας', 'Έτος', 'Προσαρμοσμένο'];
+    
+  container.innerHTML = periodOptions.map(p => {
+    return `<button type="button" class="filter-chip" onclick="selectPeriodFilter('${p}', this)">${p}</button>`;
+  }).join('');
+}
+
+function renderAccountChips() {
+  const container = document.getElementById('account-chips-container');
+  if (!container) return;
+  
+  container.innerHTML = '';
+  
+  const getAccIcon = (type) => {
+    if (type === 'cash') return '💵';
+    if (type === 'card') return '💳';
+    if (type === 'bank') return '🏦';
+    return '💳';
+  };
+  
+  state.accounts.forEach(acc => {
+    const icon = getAccIcon(acc.type);
+    const displayName = getAccountDisplayName(acc);
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'filter-chip';
+    chip.innerHTML = `${icon} ${displayName}`;
+    chip.onclick = function() {
+      selectAccountChipFilter(acc.name, this);
+    };
+    container.appendChild(chip);
+  });
+}
+
+function renderCategoryChips() {
+  const container = document.getElementById('category-chips-container');
+  if (!container) return;
+  
+  container.innerHTML = '';
+  
+  const filteredCats = state.categories.filter(c => c.type === currentCategoryType);
+  
+  filteredCats.forEach(cat => {
+    const icon = cat.icon || '📁';
+    const hasSubcats = cat.subcategories && cat.subcategories.length > 0;
+    const arrow = hasSubcats ? ' <i class="fa-solid fa-chevron-down" style="font-size:8px; opacity:0.7;"></i>' : '';
+    
+    // Check if selected
+    const selectedCat = document.getElementById('search-filter-category').value;
+    const isSelected = selectedCat === cat.name;
+    const checkmark = isSelected ? ' <i class="fa-solid fa-check" style="font-size:9px; margin-left:2px; color:var(--accent);"></i>' : '';
+    
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = `filter-chip ${isSelected ? 'active' : ''}`;
+    chip.innerHTML = `${icon} ${cat.name}${arrow}${checkmark}`;
+    chip.onclick = function() {
+      selectCategoryChipFilter(cat.name, this);
+    };
+    container.appendChild(chip);
+  });
+}
+
+function renderSubcategoryChips(subcategories) {
+  const container = document.getElementById('subcategory-chips-container');
+  const wrapper = document.getElementById('subcategory-chips-wrapper');
+  if (!container || !wrapper) return;
+  
+  container.innerHTML = '';
+  
+  const allText = state.lang === 'en' ? 'All' : 'Όλες';
+  const allChip = document.createElement('button');
+  allChip.type = 'button';
+  allChip.className = 'filter-chip active';
+  allChip.textContent = allText;
+  allChip.onclick = function() {
+    selectSubcategoryChipFilter('all', this);
+  };
+  container.appendChild(allChip);
+  
+  subcategories.forEach(sub => {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'filter-chip';
+    chip.textContent = sub;
+    chip.onclick = function() {
+      selectSubcategoryChipFilter(sub, this);
+    };
+    container.appendChild(chip);
+  });
+  
+  wrapper.style.display = 'block';
+}
+
+function initAmountRangeSlider() {
+  const track = document.getElementById('slider-track');
+  const thumbMin = document.getElementById('slider-thumb-min');
+  const thumbMax = document.getElementById('slider-thumb-max');
+  const slider = document.getElementById('amount-dual-slider');
+  const valDisplay = document.getElementById('amount-range-val');
+  
+  if (!track || !thumbMin || !thumbMax || !slider) return;
+  
+  const amounts = state.transactions.map(t => parseFloat(t.amount) || 0);
+  const maxVal = amounts.length > 0 ? Math.ceil(Math.max(...amounts)) : 1000;
+  
+  sliderMinVal = 0;
+  sliderMaxVal = maxVal;
+  currentMinVal = 0;
+  currentMaxVal = maxVal;
+  
+  let pctMin = 0;
+  let pctMax = 100;
+  
+  updateSliderUI();
+  
+  function onStart(e, isMin) {
+    e.preventDefault();
+    if (isMin) isDraggingMin = true;
+    else isDraggingMax = true;
+    
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onEnd);
+    document.addEventListener('touchmove', onMove, { passive: false });
+    document.addEventListener('touchend', onEnd);
+  }
+  
+  function onMove(e) {
+    if (!isDraggingMin && !isDraggingMax) return;
+    if (e.cancelable) e.preventDefault();
+    
+    const rect = slider.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    let pct = ((clientX - rect.left) / rect.width) * 100;
+    pct = Math.max(0, Math.min(100, pct));
+    
+    if (isDraggingMin) {
+      if (pct > pctMax - 5) pct = pctMax - 5;
+      pctMin = pct;
+      currentMinVal = Math.round(sliderMinVal + (pctMin / 100) * (sliderMaxVal - sliderMinVal));
+    } else {
+      if (pct < pctMin + 5) pct = pctMin + 5;
+      pctMax = pct;
+      currentMaxVal = Math.round(sliderMinVal + (pctMax / 100) * (sliderMaxVal - sliderMinVal));
+    }
+    
+    updateSliderUI();
+    
+    document.getElementById('search-filter-amount-min').value = currentMinVal;
+    document.getElementById('search-filter-amount-max').value = (pctMax >= 99) ? '' : currentMaxVal;
+    
+    handleSearchChange();
+  }
+  
+  function onEnd() {
+    isDraggingMin = false;
+    isDraggingMax = false;
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onEnd);
+    document.removeEventListener('touchmove', onMove);
+    document.removeEventListener('touchend', onEnd);
+  }
+  
+  function updateSliderUI() {
+    thumbMin.style.left = pctMin + '%';
+    thumbMax.style.left = pctMax + '%';
+    track.style.left = pctMin + '%';
+    track.style.right = (100 - pctMax) + '%';
+    
+    const maxText = (pctMax >= 99) ? 'Max.' : currentMaxVal + ' €';
+    if (valDisplay) valDisplay.textContent = `${currentMinVal} € ~ ${maxText}`;
+  }
+  
+  thumbMin.addEventListener('mousedown', (e) => onStart(e, true));
+  thumbMin.addEventListener('touchstart', (e) => onStart(e, true), { passive: false });
+  
+  thumbMax.addEventListener('mousedown', (e) => onStart(e, false));
+  thumbMax.addEventListener('touchstart', (e) => onStart(e, false), { passive: false });
+}
+
+// Bind to window
+window.selectPeriodFilter = selectPeriodFilter;
+window.applyCustomDates = applyCustomDates;
+window.resetPeriodFilter = resetPeriodFilter;
+window.selectAccountChipFilter = selectAccountChipFilter;
+window.setCategoryTypeFilter = setCategoryTypeFilter;
+window.selectCategoryChipFilter = selectCategoryChipFilter;
+window.selectSubcategoryChipFilter = selectSubcategoryChipFilter;
+window.resetCategoryFilter = resetCategoryFilter;
+window.renderPeriodChips = renderPeriodChips;
+window.renderAccountChips = renderAccountChips;
+window.renderCategoryChips = renderCategoryChips;
+window.renderSubcategoryChips = renderSubcategoryChips;
+window.initAmountRangeSlider = initAmountRangeSlider;
+
 
 function openSearchBottomSheet(type) {
   // Hide all bottom sheets first
@@ -5964,6 +6399,32 @@ function resetSearchFilters() {
   const memSel = document.getElementById('search-filter-member');
   if (memSel) memSel.value = '';
 
+  // Reset visual dashboard filters if initialized
+  if (typeof resetPeriodFilter === 'function') {
+    resetPeriodFilter();
+  }
+  if (typeof resetCategoryFilter === 'function') {
+    resetCategoryFilter(false);
+  }
+  
+  // Reset segmented switcher
+  const segExpense = document.getElementById('seg-tab-expense');
+  const segIncome = document.getElementById('seg-tab-income');
+  if (segExpense && segIncome) {
+    segExpense.className = 'segmented-tab active';
+    segIncome.className = 'segmented-tab';
+    document.getElementById('category-segmented-control')?.style.setProperty('--segmented-active-bg', 'var(--red-negative, #ef5350)');
+  }
+  currentCategoryType = 'expense';
+  document.getElementById('search-filter-type').value = 'expense';
+  
+  if (typeof renderCategoryChips === 'function') {
+    renderCategoryChips();
+  }
+  if (typeof initAmountRangeSlider === 'function') {
+    initAmountRangeSlider();
+  }
+
   populateSearchSubcategoryDropdown('');
   
   // Sync the custom UI trigger labels and selections
@@ -6098,6 +6559,8 @@ function renderGroupedTransactions(transactions, container) {
     else if (t.type === 'expense') groups[dateKey].expense += amt;
   });
 
+  const todayStr = new Date().toLocaleDateString('sv');
+
   Object.keys(groups).sort((a, b) => b.localeCompare(a)).forEach(dateStr => {
     const group = groups[dateStr];
     const [y, m, d] = dateStr.split('-').map(Number);
@@ -6105,18 +6568,20 @@ function renderGroupedTransactions(transactions, container) {
     const dayOfWeek = dateObj.getDay();
     const shortDay = getWeekdayName(dayOfWeek);
     const weekendClass = dayOfWeek === 6 ? ' saturday' : dayOfWeek === 0 ? ' sunday' : '';
+    const isToday = (dateStr === todayStr);
 
     let rightTotals = '';
     if (group.income > 0)  rightTotals += `<span class="day-group-income">${getCurrencySymbol()} ${formatCurrency(group.income)}</span>`;
     if (group.expense > 0) rightTotals += `<span class="day-group-expense">${getCurrencySymbol()} ${formatCurrency(group.expense)}</span>`;
 
     const header = document.createElement('div');
-    header.className = 'day-header';
+    header.className = 'day-header' + (isToday ? ' is-today' : '');
+    const todayBadge = isToday ? ` <span class="today-badge">${state.lang === 'el' ? 'ΣΗΜΕΡΑ' : 'TODAY'}</span>` : '';
     header.innerHTML = `
       <div class="day-header-left">
         <span class="day-num">${d}</span>
         <div>
-          <span class="day-name${weekendClass}">${shortDay}</span>
+          <span class="day-name${weekendClass}">${shortDay}</span>${todayBadge}
           <span class="day-month">${getMonthName(m - 1, true)} ${y}</span>
         </div>
       </div>
@@ -6234,6 +6699,7 @@ function selectMonthPickerMonth(monthIndex) {
   renderStatsTab();
 
   closeModal('month-picker-modal');
+  setTimeout(() => scrollToToday('auto'), 50);
 }
 
 function initPullToRefresh() {
@@ -7099,6 +7565,7 @@ function navigateMonth(direction, startingDeltaX = 0) {
     state.statsDate.setFullYear(state.selectedYear);
     state.statsDate.setMonth(state.selectedMonth);
     updateUI();
+    setTimeout(() => scrollToToday('auto'), 50);
   }, startingDeltaX);
 }
 
@@ -7156,6 +7623,202 @@ function initRippleEffects() {
       }
     }, 450);
   }, { passive: true });
+}
+
+function initLightboxPinchZoom() {
+  const img = document.getElementById('photo-lightbox-img');
+  const modal = document.getElementById('photo-lightbox-modal');
+  if (!img || !modal) return;
+
+  let scale = 1;
+  let translateX = 0;
+  let translateY = 0;
+
+  let startDist = 0;
+  let startScale = 1;
+  let startCenter = { x: 0, y: 0 };
+  let startTx = 0;
+  let startTy = 0;
+  
+  let isDragging = false;
+  let startX = 0;
+  let startY = 0;
+  
+  let lastTapTime = 0;
+
+  function getDistance(touches) {
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
+  function getCenter(touches) {
+    return {
+      x: (touches[0].clientX + touches[1].clientX) / 2,
+      y: (touches[0].clientY + touches[1].clientY) / 2
+    };
+  }
+
+  img.addEventListener('touchstart', (e) => {
+    const now = Date.now();
+    
+    // Double tap to zoom/reset
+    if (e.touches.length === 1 && now - lastTapTime < 300) {
+      e.preventDefault();
+      if (scale > 1) {
+        resetTransform();
+      } else {
+        const touch = e.touches[0];
+        const rect = img.getBoundingClientRect();
+        const baseWidth = rect.width;
+        const baseHeight = rect.height;
+        const viewWidth = window.innerWidth;
+        const viewHeight = window.innerHeight;
+        
+        scale = 2.5;
+        const originX = viewWidth / 2;
+        const originY = viewHeight / 2;
+        translateX = (touch.clientX - originX) * (1 - scale);
+        translateY = (touch.clientY - originY) * (1 - scale);
+        
+        // Clamp translations
+        const maxTx = Math.max(0, (baseWidth * scale - viewWidth) / 2);
+        const maxTy = Math.max(0, (baseHeight * scale - viewHeight) / 2);
+        translateX = Math.max(-maxTx, Math.min(translateX, maxTx));
+        translateY = Math.max(-maxTy, Math.min(translateY, maxTy));
+        
+        img.style.transition = 'transform 0.25s cubic-bezier(0.25, 0.8, 0.25, 1)';
+        img.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+      }
+      lastTapTime = 0;
+      return;
+    }
+    
+    if (e.touches.length === 1) {
+      lastTapTime = now;
+      if (scale > 1) {
+        isDragging = true;
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        startTx = translateX;
+        startTy = translateY;
+      }
+    } else if (e.touches.length === 2) {
+      isDragging = false;
+      e.preventDefault();
+      startDist = getDistance(e.touches);
+      startScale = scale;
+      startCenter = getCenter(e.touches);
+      startTx = translateX;
+      startTy = translateY;
+    }
+  }, { passive: false });
+
+  img.addEventListener('touchmove', (e) => {
+    if (e.touches.length === 1 && isDragging && scale > 1) {
+      e.preventDefault();
+      const dx = e.touches[0].clientX - startX;
+      const dy = e.touches[0].clientY - startY;
+      
+      translateX = startTx + dx;
+      translateY = startTy + dy;
+      
+      // Boundaries with visual resistance
+      const rect = img.getBoundingClientRect();
+      const baseWidth = rect.width / scale;
+      const baseHeight = rect.height / scale;
+      const viewWidth = window.innerWidth;
+      const viewHeight = window.innerHeight;
+      
+      const maxTx = Math.max(0, (baseWidth * scale - viewWidth) / 2);
+      const maxTy = Math.max(0, (baseHeight * scale - viewHeight) / 2);
+      
+      if (translateX > maxTx) translateX = maxTx + (translateX - maxTx) * 0.3;
+      if (translateX < -maxTx) translateX = -maxTx + (translateX + maxTx) * 0.3;
+      if (translateY > maxTy) translateY = maxTy + (translateY - maxTy) * 0.3;
+      if (translateY < -maxTy) translateY = -maxTy + (translateY + maxTy) * 0.3;
+      
+      applyTransform();
+    } else if (e.touches.length === 2) {
+      e.preventDefault();
+      const dist = getDistance(e.touches);
+      if (dist > 10 && startDist > 10) {
+        const factor = dist / startDist;
+        const targetScale = startScale * factor;
+        
+        scale = Math.max(0.8, Math.min(targetScale, 5));
+        
+        const currentCenter = getCenter(e.touches);
+        const scaleRatio = scale / startScale;
+        translateX = currentCenter.x - (startCenter.x - startTx) * scaleRatio;
+        translateY = currentCenter.y - (startCenter.y - startTy) * scaleRatio;
+        
+        applyTransform();
+      }
+    }
+  }, { passive: false });
+
+  img.addEventListener('touchend', (e) => {
+    isDragging = false;
+    
+    // Snapping back transitions
+    if (scale < 1) {
+      resetTransform();
+    } else if (scale > 1) {
+      const rect = img.getBoundingClientRect();
+      const baseWidth = rect.width / scale;
+      const baseHeight = rect.height / scale;
+      const viewWidth = window.innerWidth;
+      const viewHeight = window.innerHeight;
+      
+      const maxTx = Math.max(0, (baseWidth * scale - viewWidth) / 2);
+      const maxTy = Math.max(0, (baseHeight * scale - viewHeight) / 2);
+      
+      let targetTx = translateX;
+      let targetTy = translateY;
+      let needsSnap = false;
+      
+      if (translateX > maxTx) { targetTx = maxTx; needsSnap = true; }
+      else if (translateX < -maxTx) { targetTx = -maxTx; needsSnap = true; }
+      
+      if (translateY > maxTy) { targetTy = maxTy; needsSnap = true; }
+      else if (translateY < -maxTy) { targetTy = -maxTy; needsSnap = true; }
+      
+      if (needsSnap) {
+        translateX = targetTx;
+        translateY = targetTy;
+        img.style.transition = 'transform 0.2s ease-out';
+        img.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+      }
+    }
+  });
+
+  function applyTransform() {
+    img.style.transition = 'none';
+    img.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+  }
+
+  function resetTransform() {
+    scale = 1;
+    translateX = 0;
+    translateY = 0;
+    img.style.transition = 'transform 0.25s cubic-bezier(0.25, 0.8, 0.25, 1)';
+    img.style.transform = `translate(0px, 0px) scale(1)`;
+  }
+  
+  window.resetLightboxPinchZoom = resetTransform;
+
+  const observer = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+      if (mutation.attributeName === 'style') {
+        const display = modal.style.display;
+        if (display === 'none') {
+          resetTransform();
+        }
+      }
+    });
+  });
+  observer.observe(modal, { attributes: true });
 }
 
 // ============================================================
@@ -7968,37 +8631,22 @@ async function handleGoogleAuth() {
   if (!state.supabaseClient) return;
   clearAuthStatus();
   
-  // Open a blank window synchronously inside the click handler to bypass popup blocker!
-  const loginWindow = window.open('about:blank', '_blank');
-  if (!loginWindow) {
-    showAuthStatus('⚠️ Παρακαλώ επιτρέψτε τα αναδυόμενα παράθυρα (popups) για τη σύνδεση.');
-    return;
-  }
-  
   // Show splash loader on the main screen
   toggleLoader(true);
   
   try {
-    // Get OAuth redirect URL from Supabase without redirecting the main page
-    const { data, error } = await state.supabaseClient.auth.signInWithOAuth({
+    // Standard redirect flow — stays in the SAME window (no popup, no new tab)
+    // This keeps the standalone PWA context on Android, avoiding the browser bar
+    const { error } = await state.supabaseClient.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: window.location.origin + window.location.pathname + '?oauth_callback=true',
-        skipBrowserRedirect: true
+        redirectTo: window.location.origin + (window.location.pathname || '/'),
       }
     });
     if (error) throw error;
-    
-    if (data && data.url) {
-      // Redirect the blank window to the Google auth URL
-      loginWindow.location.href = data.url;
-    } else {
-      loginWindow.close();
-      throw new Error('No redirect URL returned');
-    }
+    // The page will redirect to Google — on return, initSupabaseAuth handles the session
   } catch (err) {
     console.error('Google auth flow failed:', err);
-    if (loginWindow) loginWindow.close();
     toggleLoader(false);
     showAuthStatus('❌ Σφάλμα: ' + (err.message || 'Αποτυχία σύνδεσης με Google.'));
   }
@@ -9009,8 +9657,10 @@ function updateSyncStatusIndicator() {
   
   const colors = {
     idle: '#9e9e9e',
+    offline: '#9e9e9e',
     syncing: '#ffb300',
     success: '#4caf50',
+    synced: '#4caf50',
     error: '#e05e55'
   };
   
@@ -9036,6 +9686,38 @@ function updateSyncStatusIndicator() {
       tooltip += ' • ' + state.syncPendingCount + ' ' + (state.lang === 'en' ? 'pending' : 'εκκρεμούν');
     }
     btn.title = tooltip;
+  }
+
+  // Update sync status text in settings
+  const syncStatusEl = document.getElementById('val_sync_status');
+  if (syncStatusEl) {
+    const lang = state.lang || 'el';
+    const statusLabels = lang === 'en' ? {
+      offline: 'Local Storage',
+      idle: 'Local Storage',
+      syncing: 'Syncing...',
+      synced: 'Active',
+      success: 'Active',
+      error: 'Error'
+    } : {
+      offline: 'Τοπική Αποθήκευση',
+      idle: 'Τοπική Αποθήκευση',
+      syncing: 'Συγχρονισμός...',
+      synced: 'Ενεργός',
+      success: 'Ενεργός',
+      error: 'Σφάλμα'
+    };
+    const statusKey = state.syncStatus || 'offline';
+    syncStatusEl.textContent = statusLabels[statusKey] || (lang === 'en' ? 'Local Storage' : 'Τοπική Αποθήκευση');
+    
+    // Update color based on status
+    if (statusKey === 'synced' || statusKey === 'success') {
+      syncStatusEl.style.color = '#4caf50'; // Green for active
+    } else if (statusKey === 'error') {
+      syncStatusEl.style.color = '#ef5350'; // Red for error
+    } else {
+      syncStatusEl.style.color = 'var(--text-secondary)';
+    }
   }
 }
 
@@ -9603,16 +10285,23 @@ function updateSupabaseUserModal() {
   const container = document.getElementById('supabase-user-settings');
   if (!container) return;
 
+  const lang = state.lang || 'el';
+
   if (state.guestMode || !state.currentUser) {
     container.innerHTML = `
       <div style="text-align: center; padding: 10px 0;">
         <div style="font-size: 40px; margin-bottom: 12px;">☁️</div>
-        <h4 style="margin-bottom: 8px; font-weight: 700; color: var(--text-main);">Λειτουργία Επισκέπτη (Offline)</h4>
+        <h4 style="margin-bottom: 8px; font-weight: 700; color: var(--text-main);">
+          ${lang === 'en' ? 'Guest Mode (Offline)' : 'Λειτουργία Επισκέπτη (Offline)'}
+        </h4>
         <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.4; margin-bottom: 20px;">
-          Αυτή τη στιγμή τα δεδομένα σας αποθηκεύονται μόνο τοπικά στη συσκευή σας. Συνδεθείτε στο Cloud για να ενεργοποιήσετε αυτόματο backup και κοινό πορτοφόλι σε πραγματικό χρόνο με τον/την συνεργάτη σας.
+          ${lang === 'en' 
+            ? 'Currently, your data is saved only locally on your device. Connect to the Cloud to enable automatic backup and a real-time shared wallet with your partner.' 
+            : 'Αυτή τη στιγμή τα δεδομένα σας αποθηκεύονται μόνο τοπικά στη συσκευή σας. Συνδεθείτε στο Cloud για να ενεργοποιήσετε αυτόματο backup και κοινό πορτοφόλι σε πραγματικό χρόνο με τον/την συνεργάτη σας.'}
         </p>
         <button type="button" class="btn btn-primary btn-block" onclick="closeModal('supabase-modal'); showAuthOverlay();" style="padding: 12px;">
-          <i class="fa-solid fa-right-to-bracket" style="margin-right: 8px;"></i>Σύνδεση ή Εγγραφή
+          <i class="fa-solid fa-right-to-bracket" style="margin-right: 8px;"></i>
+          ${lang === 'en' ? 'Login or Register' : 'Σύνδεση ή Εγγραφή'}
         </button>
       </div>
     `;
@@ -9620,7 +10309,9 @@ function updateSupabaseUserModal() {
     container.innerHTML = `
       <div style="text-align: center; padding: 10px 0;">
         <div style="font-size: 40px; margin-bottom: 12px;">☁️✅</div>
-        <h4 style="margin-bottom: 4px; font-weight: 700; color: var(--text-main);">Συνδεδεμένος στο Cloud</h4>
+        <h4 style="margin-bottom: 4px; font-weight: 700; color: var(--text-main);">
+          ${lang === 'en' ? 'Connected to Cloud' : 'Συνδεδεμένος στο Cloud'}
+        </h4>
         <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 20px; word-break: break-all;">
           ${state.currentUser.email}
         </div>
@@ -9629,7 +10320,7 @@ function updateSupabaseUserModal() {
           <div class="ios-settings-row" onclick="triggerProfileSyncFromModal()">
             <div class="ios-row-left">
               <div class="ios-row-icon icon-sync"><i class="fa-solid fa-cloud-arrow-up"></i></div>
-              <span class="ios-row-label">Συγχρονισμός Τώρα</span>
+              <span class="ios-row-label">${lang === 'en' ? 'Sync Now' : 'Συγχρονισμός Τώρα'}</span>
             </div>
             <div class="ios-row-right">
               <i class="fa-solid fa-arrows-rotate ios-row-arrow" id="modal-sync-spinner"></i>
@@ -9638,7 +10329,8 @@ function updateSupabaseUserModal() {
         </div>
 
         <button type="button" class="btn btn-secondary btn-block" onclick="closeModal('supabase-modal'); handleLogout();" style="color: var(--accent); background: rgba(239,68,68,0.06); border: 1px solid rgba(239,68,68,0.15); padding: 11px;">
-          <i class="fa-solid fa-right-from-bracket" style="margin-right: 8px;"></i>Αποσύνδεση Λογαριασμού
+          <i class="fa-solid fa-right-from-bracket" style="margin-right: 8px;"></i>
+          ${lang === 'en' ? 'Logout Account' : 'Αποσύνδεση Λογαριασμού'}
         </button>
       </div>
     `;
@@ -10353,4 +11045,125 @@ document.addEventListener('DOMContentLoaded', () => {
   initDescriptionAutoGrow();
 });
 
-window.initDescriptionAutoGrow = initDescriptionAutoGrow;
+window.initDescriptionAutoGrow = initDescriptionAutoGrow;
+
+// ============================================================
+// USER FEEDBACK SUBMISSION LOGIC
+// ============================================================
+async function submitUserFeedback() {
+  const ratingBtn = document.querySelector('.emoji-rate-btn.active');
+  const rating = ratingBtn ? parseInt(ratingBtn.getAttribute('data-rate')) : null;
+  const chipBtn = document.querySelector('.feedback-chip.active');
+  const type = chipBtn ? chipBtn.getAttribute('data-type') : 'suggestion';
+  const commentVal = document.getElementById('feedback-comment').value.trim();
+  
+  if (!rating) {
+    alert(state.lang === 'el' ? 'Παρακαλώ επιλέξτε μια βαθμολογία!' : 'Please select a rating!');
+    return;
+  }
+  
+  const submitBtn = document.getElementById('feedback-submit-btn');
+  const textSpan = document.getElementById('feedback-btn-text');
+  const spinnerDiv = document.getElementById('feedback-btn-spinner');
+  
+  if (submitBtn) submitBtn.disabled = true;
+  if (textSpan) textSpan.style.opacity = '0.3';
+  if (spinnerDiv) spinnerDiv.style.display = 'block';
+  
+  const feedbackData = {
+    id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2),
+    rating,
+    type,
+    comment: commentVal,
+    user_email: state.currentUser ? state.currentUser.email : 'guest',
+    created_at: new Date().toISOString()
+  };
+  
+  // Save locally first
+  const existingFeedback = JSON.parse(localStorage.getItem('user_feedback') || '[]');
+  existingFeedback.push(feedbackData);
+  localStorage.setItem('user_feedback', JSON.stringify(existingFeedback));
+  
+  // Try sending to Supabase if logged in
+  if (state.supabaseClient && state.currentUser) {
+    try {
+      const { error } = await state.supabaseClient
+        .from('feedback')
+        .insert([{
+          rating: feedbackData.rating,
+          type: feedbackData.type,
+          comment: feedbackData.comment,
+          user_email: feedbackData.user_email
+        }]);
+        
+      if (error) {
+        console.warn('Supabase feedback insert failed (table might not exist):', error);
+      } else {
+        console.log('Feedback synced to Supabase!');
+      }
+    } catch (err) {
+      console.warn('Error syncing feedback to Supabase:', err);
+    }
+  }
+  
+  // Wait a small amount for a smooth premium loading state
+  setTimeout(() => {
+    if (spinnerDiv) spinnerDiv.style.display = 'none';
+    if (textSpan) textSpan.style.opacity = '1';
+    if (submitBtn) submitBtn.disabled = false;
+    
+    // Transition UI to success state
+    const cardContainer = document.getElementById('feedback-card-container');
+    
+    if (cardContainer) {
+      // Clear inputs
+      document.getElementById('feedback-comment').value = '';
+      document.querySelectorAll('.emoji-rate-btn').forEach(btn => btn.classList.remove('active'));
+      
+      // Toggle views inside card container
+      const formContents = cardContainer.querySelectorAll('.feedback-rating-container, .feedback-form-group, #feedback-submit-btn');
+      formContents.forEach(el => el.style.display = 'none');
+      
+      // Insert success elements inside card container if not already there
+      let successEl = document.getElementById('feedback-success-el');
+      if (!successEl) {
+        successEl = document.createElement('div');
+        successEl.id = 'feedback-success-el';
+        successEl.className = 'feedback-success-container';
+        successEl.innerHTML = `
+          <div class="success-icon-wrapper">
+            <i class="fa-solid fa-circle-check"></i>
+          </div>
+          <div class="success-message" data-i18n="feedback_success_msg">${TRANSLATIONS[state.lang]['feedback_success_msg']}</div>
+          <button type="button" class="feedback-reset-btn" onclick="resetFeedbackForm()" data-i18n="feedback_reset_btn">${TRANSLATIONS[state.lang]['feedback_reset_btn'] || 'Νέα Αξιολόγηση'}</button>
+        `;
+        cardContainer.appendChild(successEl);
+      } else {
+        successEl.style.display = 'flex';
+      }
+    }
+  }, 800);
+}
+
+function resetFeedbackForm() {
+  const cardContainer = document.getElementById('feedback-card-container');
+  if (cardContainer) {
+    const successEl = document.getElementById('feedback-success-el');
+    if (successEl) successEl.style.display = 'none';
+    
+    const formContents = cardContainer.querySelectorAll('.feedback-rating-container, .feedback-form-group, #feedback-submit-btn');
+    formContents.forEach(el => {
+      el.style.display = '';
+    });
+    
+    // Reset inputs
+    document.getElementById('feedback-comment').value = '';
+    document.querySelectorAll('.emoji-rate-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.feedback-chip').forEach((btn, idx) => {
+      btn.classList.toggle('active', idx === 0);
+    });
+  }
+}
+
+window.submitUserFeedback = submitUserFeedback;
+window.resetFeedbackForm = resetFeedbackForm;
