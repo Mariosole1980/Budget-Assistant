@@ -62,7 +62,7 @@ body {
   display: flex;
   flex-direction: column;
   -webkit-overflow-scrolling: touch;
-  zoom: 0.90;
+  zoom: 0.93;
 }
 
 button, input, select, textarea {
