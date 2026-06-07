@@ -5593,12 +5593,29 @@ function loadMoreSearchResults() {
   handleSearchChange(false);
 }
 
+function toggleSearchFiltersPanel() {
+  const panel = document.getElementById('search-filters-panel');
+  const btn = document.querySelector('.search-settings-btn-modern');
+  if (panel) {
+    const isActive = panel.classList.toggle('active');
+    if (btn) {
+      btn.classList.toggle('active', isActive);
+    }
+  }
+}
+
 function openSearchOverlay() {
   ensureHistoryPushed();
   const overlay = document.getElementById('search-overlay');
   if (overlay) overlay.classList.add('active');
 
   searchResultLimit = 50;
+
+  // Collapse filters panel by default
+  const panel = document.getElementById('search-filters-panel');
+  if (panel) panel.classList.remove('active');
+  const btn = document.querySelector('.search-settings-btn-modern');
+  if (btn) btn.classList.remove('active');
 
   // Populate dynamic dropdown filters
   populateSearchFilterDropdowns();
@@ -6242,7 +6259,7 @@ function populateSearchAccountSheet() {
 
   let html = `
     <div class="bottom-sheet-option ${currentVal === '' ? 'active' : ''}" onclick="selectAccountSearchFilter('')">
-      <span class="option-label">${state.lang === 'el' ? 'Όλοι οι λογαριασμοί' : 'All accounts'}</span>
+      <span class="option-label">${state.lang === 'el' ? 'Όλοι οι τρόποι πληρωμής' : 'All accounts'}</span>
       <i class="fa-solid fa-check option-check-icon"></i>
     </div>
   `;
@@ -6716,6 +6733,7 @@ window.selectMemberSearchFilter = selectMemberSearchFilter;
 window.selectPhotoSearchFilter = selectPhotoSearchFilter;
 window.handleSearchChange = handleSearchChange;
 window.loadMoreSearchResults = loadMoreSearchResults;
+window.toggleSearchFiltersPanel = toggleSearchFiltersPanel;
 window.applyAdvancedSearchFiltersVisual = applyAdvancedSearchFiltersVisual;
 window.resetAdvancedSearchFiltersVisual = resetAdvancedSearchFiltersVisual;
 window.resetAllSearchChips = resetAllSearchChips;
@@ -6728,7 +6746,7 @@ function populateSearchFilterDropdowns() {
   // Populate accounts filter
   const accSelect = document.getElementById('search-filter-account');
   if (accSelect) {
-    accSelect.innerHTML = `<option value="">${state.lang === 'el' ? 'Όλοι οι λογαριασμοί' : 'All accounts'}</option>`;
+    accSelect.innerHTML = `<option value="">${state.lang === 'el' ? 'Όλοι οι τρόποι πληρωμής' : 'All accounts'}</option>`;
     state.accounts.forEach(acc => {
       const opt = document.createElement('option');
       opt.value = acc.name;
