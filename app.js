@@ -314,7 +314,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v220)',
+    app_version: 'Έκδοση 1.0.0 (build v221)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ετήσια Αποταμίευση',
     period_label: 'Περίοδος',
@@ -538,7 +538,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v220)',
+    app_version: 'Version 1.0.0 (build v221)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Yearly Savings',
     period_label: 'Period',
@@ -5587,11 +5587,8 @@ function openSearchOverlay() {
   // Reset inputs and run initial query to show all
   resetSearchFilters();
 
-  // Render inline dashboard filters
-  renderPeriodChips();
-  renderAccountChips();
-  setCategoryTypeFilter('expense');
-  initAmountRangeSlider();
+  // Trigger initial search to show all transactions
+  handleSearchChange();
 }
 
 function closeSearchOverlay() {

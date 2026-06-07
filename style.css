@@ -5274,15 +5274,15 @@ body.keyboard-active .note-autocomplete-item {
 }
 
 .search-summary-item.income .summary-val {
-  color: #3b82f6; /* Premium Cyan Blue */
+  color: var(--blue-positive); /* Match transactions list */
 }
 
 .search-summary-item.expense .summary-val {
-  color: #ef4444; /* Premium Red/Pink */
+  color: var(--red-negative); /* Match transactions list */
 }
 
 .search-summary-item.transfer .summary-val {
-  color: #ffffff; /* White */
+  color: var(--text-secondary); /* Match transactions list */
 }
 
 /* ============================================
@@ -5362,15 +5362,15 @@ body.keyboard-active .note-autocomplete-item {
 }
 
 .search-item-amount.expense {
-  color: #ef4444;
+  color: var(--red-negative);
 }
 
 .search-item-amount.income {
-  color: #3b82f6;
+  color: var(--blue-positive);
 }
 
 .search-item-amount.transfer {
-  color: #ffffff;
+  color: var(--text-secondary);
 }
 
 /* ============================================
