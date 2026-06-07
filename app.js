@@ -314,7 +314,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v218)',
+    app_version: 'Έκδοση 1.0.0 (build v219)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ετήσια Αποταμίευση',
     period_label: 'Περίοδος',
@@ -538,7 +538,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v218)',
+    app_version: 'Version 1.0.0 (build v219)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Yearly Savings',
     period_label: 'Period',
@@ -2914,7 +2914,7 @@ function renderStatsTab() {
 
   const filteredTrans = memberFilteredTrans.filter(t => {
     if (!t.date) return false;
-    const datePart = t.date.split('T')[0];
+    const datePart = String(t.date || '').split('T')[0].split(' ')[0];
     const tDate = new Date(datePart + 'T00:00:00');
     return tDate >= start && tDate <= end;
   });
@@ -6179,6 +6179,17 @@ function selectTypeSearchFilter(val) {
     }
   }
   
+  const valDisplay = document.getElementById('search-val-type');
+  if (valDisplay) {
+    if (val) {
+      valDisplay.textContent = val === 'expense' ? (state.lang === 'el' ? 'Έξοδο' : 'Expense')
+                             : val === 'income' ? (state.lang === 'el' ? 'Έσοδο' : 'Income')
+                             : (state.lang === 'el' ? 'Μεταφορά' : 'Transfer');
+    } else {
+      valDisplay.textContent = state.lang === 'el' ? 'Όλοι οι τύποι' : 'All types';
+    }
+  }
+
   // Update Type Chip UI
   const chip = document.getElementById('search-chip-type');
   if (chip) {
@@ -6588,6 +6599,9 @@ window.openSearchOverlay = openSearchOverlay;
 window.closeSearchOverlay = closeSearchOverlay;
 window.openSearchBottomSheet = openSearchBottomSheet;
 window.closeSearchBottomSheet = closeSearchBottomSheet;
+window.syncAmountFiltersFromInline = syncAmountFiltersFromInline;
+window.resetSearchFilters = resetSearchFilters;
+window.clearSearchInput = clearSearchInput;
 window.selectTypeSearchFilter = selectTypeSearchFilter;
 window.selectAccountSearchFilter = selectAccountSearchFilter;
 window.selectCategorySearchFilter = selectCategorySearchFilter;
@@ -6705,7 +6719,9 @@ function resetSearchFilters() {
     document.getElementById('category-segmented-control')?.style.setProperty('--segmented-active-bg', 'var(--red-negative, #ef5350)');
   }
   currentCategoryType = 'expense';
-  document.getElementById('search-filter-type').value = 'expense';
+  document.getElementById('search-filter-type').value = '';
+  const typeVal = document.getElementById('search-val-type');
+  if (typeVal) typeVal.textContent = state.lang === 'el' ? 'Όλοι οι τύποι' : 'All types';
   
   if (typeof renderCategoryChips === 'function') {
     renderCategoryChips();
