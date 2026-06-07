@@ -1,0 +1,21 @@
+{
+  "appId": "com.budgetassistant.app",
+  "appName": "Budget Assistant",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https",
+    "url": "https://budget-assistant-pwa.pages.dev",
+    "cleartext": true
+  },
+  "android": {
+    "allowMixedContent": true,
+    "backgroundColor": "#222731"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchAutoHide": true,
+      "backgroundColor": "#222731",
+      "launchShowDuration": 1500
+    }
+  }
+}
