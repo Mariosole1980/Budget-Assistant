@@ -314,7 +314,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v228)',
+    app_version: 'Έκδοση 1.0.0 (build v229)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ετήσια Αποταμίευση',
     period_label: 'Περίοδος',
@@ -543,7 +543,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v228)',
+    app_version: 'Version 1.0.0 (build v229)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Yearly Savings',
     period_label: 'Period',
@@ -7584,11 +7584,9 @@ function initSwipeToBack() {
   window.addEventListener('popstate', (e) => {
     const handled = triggerBackAction();
     if (handled) {
-      // Re-push asynchronously to prevent browser history desync and bypass pushState blocking
-      setTimeout(() => {
-        history.pushState({ appState: 'active' }, '', window.location.pathname + window.location.search);
-        state.historyPushed = true;
-      }, 0);
+      // Re-push to keep intercepting subsequent back actions
+      history.pushState({ appState: 'active' }, '', window.location.pathname + window.location.search);
+      state.historyPushed = true;
     } else {
       state.historyPushed = false;
     }
