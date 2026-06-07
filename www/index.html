@@ -22,7 +22,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   
   <!-- Core Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=102">
+  <link rel="stylesheet" href="style.css?v=103">
   
 
   <!-- Supabase client JS CDN -->
@@ -885,7 +885,7 @@
       <div class="search-overlay-header-modern">
         <button class="icon-btn search-back-btn-modern" onclick="closeSearchOverlay()"><i class="fa-solid fa-arrow-left"></i></button>
         <span class="search-overlay-title" data-i18n="label_search">Αναζήτηση</span>
-        <button class="icon-btn search-settings-btn-modern" onclick="toggleSearchFiltersPanel()"><i class="fa-solid fa-sliders"></i></button>
+        <button class="icon-btn search-settings-btn-modern" id="search-toggle-btn" onclick="toggleSearchFiltersPanel()"><i class="fa-solid fa-sliders"></i></button>
       </div>
 
       <!-- Scrollable Container containing both Filters Dashboard and Results -->
@@ -1614,7 +1614,7 @@
   </div>
 
   <!-- Core Application Scripts -->
-  <script src="app.js?v=224"></script>
+  <script src="app.js?v=225"></script>
   
   <!-- Register PWA Service Worker -->
   <script>

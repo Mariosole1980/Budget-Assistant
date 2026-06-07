@@ -5595,13 +5595,14 @@ function loadMoreSearchResults() {
 
 function toggleSearchFiltersPanel() {
   const panel = document.getElementById('search-filters-panel');
-  const btn = document.querySelector('.search-settings-btn-modern');
-  if (panel) {
-    const isActive = panel.classList.toggle('active');
-    if (btn) {
-      btn.classList.toggle('active', isActive);
-    }
+  const btn = document.getElementById('search-toggle-btn');
+  if (!panel) {
+    console.warn('[filters] panel element not found!');
+    return;
   }
+  const isActive = panel.classList.toggle('active');
+  console.log('[filters] toggled, active=', isActive);
+  if (btn) btn.classList.toggle('active', isActive);
 }
 
 function openSearchOverlay() {
