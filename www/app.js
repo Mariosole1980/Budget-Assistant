@@ -626,11 +626,11 @@ const ReceiptStorage = {
     });
   },
 
-  async save(transactionId, blob) {
+  async save(transactionId, blobs) {
     const db = await this._getDB();
     return new Promise((resolve, reject) => {
       const tx = db.transaction(this.STORE_NAME, 'readwrite');
-      tx.objectStore(this.STORE_NAME).put({ id: transactionId, blob, savedAt: Date.now() });
+      tx.objectStore(this.STORE_NAME).put({ id: transactionId, blobs, savedAt: Date.now() });
       tx.oncomplete = () => resolve();
       tx.onerror = (e) => reject(e);
     });
@@ -641,7 +641,17 @@ const ReceiptStorage = {
     return new Promise((resolve, reject) => {
       const tx = db.transaction(this.STORE_NAME, 'readonly');
       const req = tx.objectStore(this.STORE_NAME).get(transactionId);
-      req.onsuccess = () => resolve(req.result ? req.result.blob : null);
+      req.onsuccess = () => {
+        if (!req.result) {
+          resolve([]);
+        } else if (req.result.blobs) {
+          resolve(req.result.blobs);
+        } else if (req.result.blob) {
+          resolve([req.result.blob]); // Backward compatibility for single blob
+        } else {
+          resolve([]);
+        }
+      };
       req.onerror = (e) => reject(e);
     });
   },
@@ -657,8 +667,8 @@ const ReceiptStorage = {
   }
 };
 
-// Pending receipt file for the current transaction form session
-let _pendingReceiptFile = null;
+// Pending receipt files for the current transaction form session
+let _pendingReceiptFiles = [];
 let _pendingReceiptDeleted = false;
 
 const DEFAULT_SUBCATEGORIES_MAP = {
@@ -1288,7 +1298,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   setupEventListeners();
   initPullToRefresh();
   initSwipeToBack();
-  initSwipeMonthNavigation();
+  initTabSwipeNavigation();
   initRippleEffects();
   initLightboxPinchZoom();
   
@@ -2950,13 +2960,36 @@ function renderStatsTab() {
   activeTrans.forEach(t => {
     const catInfo = getCategoryInfo(t.category, t.type);
     const key = catInfo.name || t.category || (state.lang === 'el' ? 'Άλλα' : 'Other');
-    if (!catGroups[key]) catGroups[key] = { amount: 0, icon: catInfo.icon, color: catInfo.color };
+    if (!catGroups[key]) {
+      catGroups[key] = { 
+        amount: 0, 
+        icon: catInfo.icon, 
+        color: catInfo.color,
+        subcategories: {}
+      };
+    }
     catGroups[key].amount += parseFloat(t.amount || 0);
+
+    const subcatName = t.subcategory || '';
+    if (!catGroups[key].subcategories[subcatName]) {
+      catGroups[key].subcategories[subcatName] = 0;
+    }
+    catGroups[key].subcategories[subcatName] += parseFloat(t.amount || 0);
   });
 
   const breakdownList = Object.entries(catGroups).map(([name, d]) => ({
-    name, amount: d.amount, percentage: totalSum > 0 ? (d.amount / totalSum) * 100 : 0,
-    icon: d.icon, color: d.color
+    name, 
+    amount: d.amount, 
+    percentage: totalSum > 0 ? (d.amount / totalSum) * 100 : 0,
+    icon: d.icon, 
+    color: d.color,
+    subcategories: Object.entries(d.subcategories)
+      .map(([subName, subAmt]) => ({
+        name: subName,
+        amount: subAmt,
+        percentage: d.amount > 0 ? (subAmt / d.amount) * 100 : 0
+      }))
+      .sort((a, b) => b.amount - a.amount)
   })).sort((a, b) => b.amount - a.amount);
 
   const displayList = breakdownList;
@@ -3005,18 +3038,49 @@ function renderStatsTab() {
     ratioWrapper.style.display = 'none';
   }
 
-  displayList.forEach(item => {
+  displayList.forEach((item, idx) => {
+    const catId = `stats-cat-${idx}-${Date.now()}`;
     const row = document.createElement('div');
     row.className = 'stats-row';
     const isIncome = state.statsType === 'income';
+    const hasSubcats = item.subcategories.length > 0 && item.subcategories.some(s => s.name);
+
     row.innerHTML = `
       <div class="stats-row-left">
         <span class="stats-pct-badge ${isIncome ? 'income' : ''}">${Math.round(item.percentage)}%</span>
         <span class="stats-cat-icon">${item.icon}</span>
         <span class="stats-category-name">${getCategoryDisplayName(stripLeadingEmoji(item.name))}</span>
+        ${hasSubcats ? `<i class="fa-solid fa-chevron-right stats-row-chevron"></i>` : ''}
       </div>
       <div class="stats-row-right">${getCurrencySymbol()} ${formatCurrency(item.amount)}</div>`;
     listContainer.appendChild(row);
+
+    if (hasSubcats) {
+      const subContainer = document.createElement('div');
+      subContainer.id = catId;
+      subContainer.className = 'stats-subcategories-container';
+
+      item.subcategories.forEach(sub => {
+        const subDisplayName = sub.name ? getSubcategoryDisplayName(sub.name, item.name) : (state.lang === 'el' ? 'Χωρίς υποκατηγορία' : 'Uncategorized');
+        const subRow = document.createElement('div');
+        subRow.className = 'stats-sub-row';
+        subRow.innerHTML = `
+          <div class="stats-sub-left">
+            <span class="stats-sub-pct">${Math.round(sub.percentage)}%</span>
+            <span>${subDisplayName}</span>
+          </div>
+          <div class="stats-sub-right">${getCurrencySymbol()} ${formatCurrency(sub.amount)}</div>
+        `;
+        subContainer.appendChild(subRow);
+      });
+
+      listContainer.appendChild(subContainer);
+
+      row.addEventListener('click', () => {
+        const expanded = row.classList.toggle('expanded');
+        subContainer.classList.toggle('active', expanded);
+      });
+    }
   });
 
   if (state.activeTab === 'stats') {
@@ -3630,27 +3694,32 @@ function setupEventListeners() {
     }
     await saveTransaction(t);
     
-    // Save or delete receipt photo in IndexedDB
-    if (_pendingReceiptFile && t.id) {
+    // Save or delete receipt photos in IndexedDB
+    if (_pendingReceiptFiles.length > 0 && t.id) {
       try {
-        await ReceiptStorage.save(t.id, _pendingReceiptFile);
+        const blobsToSave = _pendingReceiptFiles.map(p => p.file).filter(f => f instanceof Blob);
+        await ReceiptStorage.save(t.id, blobsToSave);
         t.photo_local_uri = 'local-file://' + t.id;
         saveTransactionOffline(t);
-        console.log('Receipt photo saved locally for:', t.id);
+        console.log('Receipt photos saved locally for:', t.id);
       } catch (err) {
-        console.warn('Failed to save receipt photo:', err);
+        console.warn('Failed to save receipt photos:', err);
       }
     } else if (_pendingReceiptDeleted && t.id) {
       try {
         await ReceiptStorage.remove(t.id);
         t.photo_local_uri = null;
         saveTransactionOffline(t);
-        console.log('Receipt photo deleted for:', t.id);
+        console.log('Receipt photos deleted for:', t.id);
       } catch (err) {
-        console.warn('Failed to delete receipt photo:', err);
+        console.warn('Failed to delete receipt photos:', err);
       }
     }
-    _pendingReceiptFile = null;
+    
+    _pendingReceiptFiles.forEach(p => {
+      if (p.url && !p.isExisting) URL.revokeObjectURL(p.url);
+    });
+    _pendingReceiptFiles = [];
     _pendingReceiptDeleted = false;
     
     closeModal('transaction-modal');
@@ -3671,57 +3740,101 @@ function setupEventListeners() {
   // ============================================================
   const cameraBtnEl = document.getElementById('trans-camera-btn');
   const photoInputEl = document.getElementById('trans-photo-input');
-  
+
+  function renderPhotoPreviews() {
+    const container = document.getElementById('trans-photo-preview-container');
+    const list = document.getElementById('trans-photo-previews-list');
+    if (!container || !list) return;
+
+    list.innerHTML = '';
+
+    if (_pendingReceiptFiles.length === 0) {
+      container.style.display = 'none';
+      return;
+    }
+
+    const form = document.getElementById('transaction-form');
+    const isReadOnly = form && form.getAttribute('data-readonly') === 'true';
+
+    _pendingReceiptFiles.forEach(photo => {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'photo-thumbnail-wrapper';
+      wrapper.style.cssText = 'position: relative; width: 80px; height: 80px; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); background: rgba(0,0,0,0.2);';
+
+      const img = document.createElement('img');
+      img.src = photo.url;
+      img.style.cssText = 'width: 100%; height: 100%; object-fit: cover; cursor: pointer;';
+      img.addEventListener('click', () => openPhotoLightbox(photo.url));
+
+      wrapper.appendChild(img);
+
+      if (!isReadOnly) {
+        const deleteBtn = document.createElement('button');
+        deleteBtn.type = 'button';
+        deleteBtn.style.cssText = 'position: absolute; top: 2px; right: 2px; background: rgba(0,0,0,0.6); border: none; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #ff5555; padding: 0;';
+        deleteBtn.innerHTML = '<i class="fa-solid fa-xmark" style="font-size: 11px;"></i>';
+        deleteBtn.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          removePendingPhoto(photo.id);
+        });
+        wrapper.appendChild(deleteBtn);
+      }
+
+      list.appendChild(wrapper);
+    });
+
+    container.style.display = 'flex';
+  }
+
+  function removePendingPhoto(id) {
+    const index = _pendingReceiptFiles.findIndex(p => p.id === id);
+    if (index !== -1) {
+      const photo = _pendingReceiptFiles[index];
+      const confirmMsg = TRANSLATIONS[state.lang]['photo_delete_confirm'] || 'Διαγραφή φωτογραφίας απόδειξης;';
+      if (confirm(confirmMsg)) {
+        if (photo.url && !photo.isExisting) {
+          URL.revokeObjectURL(photo.url);
+        }
+        _pendingReceiptFiles.splice(index, 1);
+        if (_pendingReceiptFiles.length === 0) {
+          _pendingReceiptDeleted = true;
+        }
+        renderPhotoPreviews();
+      }
+    }
+  }
+
+  window.removePendingPhoto = removePendingPhoto;
+  window.renderPhotoPreviews = renderPhotoPreviews;
+
   if (cameraBtnEl && photoInputEl) {
     cameraBtnEl.addEventListener('click', () => {
       const form = document.getElementById('transaction-form');
       if (form && form.getAttribute('data-readonly') === 'true') return;
       photoInputEl.click();
     });
-    
+
     photoInputEl.addEventListener('change', (e) => {
-      const file = e.target.files && e.target.files[0];
-      if (!file) return;
-      _pendingReceiptFile = file;
+      const files = e.target.files;
+      if (!files || files.length === 0) return;
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const url = URL.createObjectURL(file);
+        _pendingReceiptFiles.push({
+          id: Date.now() + '-' + Math.random().toString(36).substr(2, 9),
+          file: file,
+          url: url,
+          isExisting: false
+        });
+      }
       _pendingReceiptDeleted = false;
-      
-      const previewContainer = document.getElementById('trans-photo-preview-container');
-      const previewImg = document.getElementById('trans-photo-preview-img');
+
       const placeholderContainer = document.getElementById('trans-photo-placeholder-container');
       if (placeholderContainer) placeholderContainer.style.display = 'none';
-      
-      if (previewImg && previewContainer) {
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-          previewImg.src = ev.target.result;
-          previewContainer.style.display = 'flex';
-        };
-        reader.readAsDataURL(file);
-      }
-    });
-  }
-  
-  // Photo preview click -> open lightbox
-  const previewImgEl = document.getElementById('trans-photo-preview-img');
-  if (previewImgEl) {
-    previewImgEl.addEventListener('click', () => {
-      openPhotoLightbox(previewImgEl.src);
-    });
-  }
-  
-  // Photo delete button
-  const photoDeleteBtn = document.getElementById('btn-delete-photo');
-  if (photoDeleteBtn) {
-    photoDeleteBtn.addEventListener('click', () => {
-      const confirmMsg = TRANSLATIONS[state.lang]['photo_delete_confirm'] || 'Διαγραφή φωτογραφίας απόδειξης;';
-      if (confirm(confirmMsg)) {
-        _pendingReceiptFile = null;
-        _pendingReceiptDeleted = true;
-        const photoInput = document.getElementById('trans-photo-input');
-        if (photoInput) photoInput.value = '';
-        const previewContainer = document.getElementById('trans-photo-preview-container');
-        if (previewContainer) previewContainer.style.display = 'none';
-      }
+
+      renderPhotoPreviews();
+      photoInputEl.value = ''; // Reset file input
     });
   }
 
@@ -4291,7 +4404,10 @@ function openAddTransactionModal() {
   document.getElementById('trans-delete-btn').style.display = 'none';
   
   // Reset photo state
-  _pendingReceiptFile = null;
+  _pendingReceiptFiles.forEach(p => {
+    if (p.url && !p.isExisting) URL.revokeObjectURL(p.url);
+  });
+  _pendingReceiptFiles = [];
   _pendingReceiptDeleted = false;
   const photoInput = document.getElementById('trans-photo-input');
   if (photoInput) photoInput.value = '';
@@ -4348,24 +4464,33 @@ function openEditTransactionModal(t) {
     document.getElementById('trans-delete-btn').style.display = 'block';
   }
   
-  // Reset photo state and load existing photo if available
-  _pendingReceiptFile = null;
+  // Reset photo state and load existing photos if available
+  _pendingReceiptFiles.forEach(p => {
+    if (p.url && !p.isExisting) URL.revokeObjectURL(p.url);
+  });
+  _pendingReceiptFiles = [];
   _pendingReceiptDeleted = false;
   const photoInput = document.getElementById('trans-photo-input');
   if (photoInput) photoInput.value = '';
   const previewContainer = document.getElementById('trans-photo-preview-container');
   const placeholderContainer = document.getElementById('trans-photo-placeholder-container');
-  const previewImg = document.getElementById('trans-photo-preview-img');
   if (previewContainer) previewContainer.style.display = 'none';
   if (placeholderContainer) placeholderContainer.style.display = 'none';
   
-  // Load receipt photo from IndexedDB
+  // Load receipt photos from IndexedDB
   if (t.photo_local_uri && t.id) {
-    ReceiptStorage.load(t.id).then(blob => {
-      if (blob && previewImg && previewContainer) {
-        const url = URL.createObjectURL(blob);
-        previewImg.src = url;
-        previewContainer.style.display = 'flex';
+    ReceiptStorage.load(t.id).then(blobs => {
+      if (blobs && blobs.length > 0) {
+        blobs.forEach(blob => {
+          const url = URL.createObjectURL(blob);
+          _pendingReceiptFiles.push({
+            id: Date.now() + '-' + Math.random().toString(36).substr(2, 9),
+            file: blob,
+            url: url,
+            isExisting: true
+          });
+        });
+        renderPhotoPreviews();
       } else if (placeholderContainer) {
         // Photo exists in cloud record but not locally (different device)
         placeholderContainer.style.display = 'flex';
@@ -4374,7 +4499,7 @@ function openEditTransactionModal(t) {
           placeholderText.textContent = TRANSLATIONS[state.lang]['photo_mismatch_warning'] || 'Η εικόνα είναι διαθέσιμη μόνο στη συσκευή που καταχωρήθηκε.';
         }
       }
-    }).catch(err => console.warn('Failed to load receipt:', err));
+    }).catch(err => console.warn('Failed to load receipts:', err));
   }
   
   setTransactionFormType(t.type);
@@ -7516,8 +7641,8 @@ function initSwipeToBack() {
       return true;
     }
     
-    // 6. On trans tab with nothing to close — exit the app
-    return false;
+    // 6. On trans tab with nothing to close — stay on trans tab (do not exit)
+    return true;
   }
 
   // --- Interactive drag-to-go-back gesture ---
@@ -7699,16 +7824,18 @@ function initSwipeToBack() {
         prevScreen = null;
       }, 230);
     } else if (committed && currentTabIdx === 0) {
-      // On trans tab - exit the app
-      cleanupDragStyles(currentScreen);
-      currentScreen = null;
-      prevScreen = null;
-      // Let the browser handle the back navigation to exit
-      if (state.historyPushed) {
-        history.back();
-      } else {
-        history.back();
+      // On trans tab - snap back instead of exiting
+      const dur = '0.2s';
+      if (currentScreen) {
+        currentScreen.style.transition = `transform ${dur} cubic-bezier(0.2, 0.8, 0.3, 1), opacity ${dur} ease`;
+        currentScreen.style.transform = 'translateX(0)';
+        currentScreen.style.opacity = '1';
       }
+      setTimeout(() => {
+        cleanupDragStyles(currentScreen);
+        currentScreen = null;
+        prevScreen = null;
+      }, 210);
     } else {
       // Snap back - not committed
       const dur = '0.2s';
@@ -7860,29 +7987,30 @@ function hideSubcategorySelect() {
 window.showSubcategorySelect = showSubcategorySelect;
 window.hideSubcategorySelect = hideSubcategorySelect;
 
-function initSwipeMonthNavigation() {
+function initTabSwipeNavigation() {
   const appContent = document.querySelector('.app-content');
   if (!appContent) return;
 
+  const TAB_ORDER = ['trans', 'stats', 'accounts', 'more'];
   let startX = 0;
   let startY = 0;
   let touchActive = false;
   let isSwipingHorizontal = null;
-  const edgeThreshold = 60; // Ignore swipe starting within 60px of left edge
-  const dragThreshold = 70; // Horizontal swipe minimum distance (px) to trigger
+  const dragThreshold = 80; // Minimum drag in px to trigger tab switch
+  const edgeThreshold = 35; // Ignore starts within 35px of left edge (reserved for back swipe)
 
   appContent.addEventListener('touchstart', (e) => {
-    // Only capture if no modals are active
+    // Only capture if no modals are active and not in selection mode
     const activeModals = document.querySelectorAll('.modal-overlay.active');
     const searchOverlay = document.getElementById('search-overlay');
     const isSearchActive = searchOverlay && searchOverlay.classList.contains('active');
-    if (activeModals.length > 0 || isSearchActive) {
+    if (activeModals.length > 0 || isSearchActive || state.selectionMode) {
       touchActive = false;
       return;
     }
-    
-    // Only capture if active tab is 'trans' or 'stats'
-    if (state.activeTab !== 'trans' && state.activeTab !== 'stats') {
+
+    // Ignore horizontal scroll containers
+    if (e.target.closest('.category-quick-filters, .quick-filter-chips, .filters-panel-header, #statsChart, canvas, .stats-subcategories-container')) {
       touchActive = false;
       return;
     }
@@ -7891,11 +8019,12 @@ function initSwipeMonthNavigation() {
     startX = touch.clientX;
     startY = touch.clientY;
     
-    // Ignore if starting from the LEFT EDGE (reserved for back-swipe navigation)
-    if (startX < edgeThreshold) {
+    // Ignore edge starts so they don't double-trigger with edge-swipe-to-back
+    if (startX <= edgeThreshold) {
       touchActive = false;
       return;
     }
+    
     touchActive = true;
     isSwipingHorizontal = null;
   }, { passive: true });
@@ -7905,70 +8034,44 @@ function initSwipeMonthNavigation() {
     const touch = e.touches[0];
     const deltaX = touch.clientX - startX;
     const deltaY = touch.clientY - startY;
-    
+
     if (isSwipingHorizontal === null) {
       if (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10) {
         if (Math.abs(deltaX) > Math.abs(deltaY)) {
           isSwipingHorizontal = true;
-          // Set transition to none on the active tab element for direct tracking
-          const activeTab = document.querySelector('.tab-screen.active');
-          if (activeTab) {
-            activeTab.style.transition = 'none';
-          }
         } else {
           isSwipingHorizontal = false;
           touchActive = false;
         }
       }
     }
-    
+
     if (isSwipingHorizontal === true) {
-      if (e.cancelable) {
-        e.preventDefault();
-      }
-      // Only track finger on the list content, keep header/summary stable
-      const listEl = state.activeTab === 'trans'
-        ? document.getElementById('transactions-list')
-        : state.activeTab === 'stats'
-          ? document.getElementById('stats-breakdown-list')
-          : null;
-      if (listEl) {
-        const cappedDeltaX = Math.sign(deltaX) * Math.min(Math.abs(deltaX), window.innerWidth * 0.5);
-        listEl.style.transform = `translateX(${cappedDeltaX}px)`;
-        listEl.style.opacity = `${Math.max(0.4, 1 - Math.abs(deltaX) / (window.innerWidth * 1.2))}`;
-      }
+      // Prevent vertical scrolling while swiping tabs
+      if (e.cancelable) e.preventDefault();
     }
   }, { passive: false });
 
   appContent.addEventListener('touchend', (e) => {
     if (!touchActive) return;
     touchActive = false;
-    
+
     if (isSwipingHorizontal === true) {
       const touch = e.changedTouches[0] || e.touches[0];
       const deltaX = touch.clientX - startX;
-      
+
       if (Math.abs(deltaX) >= dragThreshold) {
-        const direction = deltaX > 0 ? -1 : 1; // swiping right deltaX > 0 means prev month (-1), swiping left means next month (1)
-        if (state.activeTab === 'trans') {
-          navigateMonth(direction, deltaX);
-        } else if (state.activeTab === 'stats') {
-          adjustStatsPeriod(direction, deltaX);
-        }
-      } else {
-        // Cancel swipe - snap the list back to center
-        const listEl = state.activeTab === 'trans'
-          ? document.getElementById('transactions-list')
-          : document.getElementById('stats-breakdown-list');
-        if (listEl) {
-          listEl.style.transition = 'transform 0.3s cubic-bezier(0.15, 0.85, 0.45, 1), opacity 0.3s cubic-bezier(0.15, 0.85, 0.45, 1)';
-          listEl.style.transform = 'translateX(0)';
-          listEl.style.opacity = '1';
-          setTimeout(() => {
-            listEl.style.transition = '';
-            listEl.style.transform = '';
-            listEl.style.opacity = '';
-          }, 300);
+        const currentIdx = TAB_ORDER.indexOf(state.activeTab);
+        if (deltaX > 0) {
+          // Swipe Right (left-to-right) -> Previous Tab
+          if (currentIdx > 0) {
+            switchTab(TAB_ORDER[currentIdx - 1]);
+          }
+        } else {
+          // Swipe Left (right-to-left) -> Next Tab
+          if (currentIdx < TAB_ORDER.length - 1) {
+            switchTab(TAB_ORDER[currentIdx + 1]);
+          }
         }
       }
     }

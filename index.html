@@ -492,11 +492,11 @@
           <span class="settings-item-value"><i class="fa-solid fa-arrow-up-right-from-square" style="font-size:12px;"></i></span>
         </div>
         <div class="settings-list-item">
-          <span class="settings-item-label" style="color: var(--text-muted); font-size: 12px;" data-i18n="app_version">Έκδοση 1.0.0 (build v224)</span>
+          <span class="settings-item-label" style="color: var(--text-muted); font-size: 12px;" data-i18n="app_version">Έκδοση 1.0.0 (build v225)</span>
           <span class="settings-item-value" style="font-size: 12px;">Budget Assistant</span>
         </div>
         <div class="settings-list-item" style="justify-content: center; padding: 6px 16px; min-height: auto;">
-          <span id="deploy-timestamp" style="color: var(--text-muted); font-size: 10px; opacity: 0.6;">Deploy v224 · 07/06/2026 13:16</span>
+          <span id="deploy-timestamp" style="color: var(--text-muted); font-size: 10px; opacity: 0.6;">Deploy v225 · 07/06/2026 17:47</span>
         </div>
       </div>
     </section>
@@ -640,7 +640,7 @@
             <div class="form-row" style="margin-top: 12px;">
               <div class="form-row-value-container" style="display: flex; align-items: center; width: 100%;">
                 <textarea id="trans-description" class="form-row-input" placeholder="Λεπτομέρειες" style="flex: 1; resize: none; min-height: 24px; height: 24px; overflow-y: hidden; font-family: inherit; font-size: inherit; border: none; outline: none; background: transparent;"></textarea>
-                <input type="file" id="trans-photo-input" accept="image/*" style="display: none;">
+                <input type="file" id="trans-photo-input" accept="image/*" style="display: none;" multiple>
                 <i class="fa-solid fa-camera" id="trans-camera-btn" style="color: var(--text-muted); font-size: 16px; margin-left: 8px; cursor: pointer;"></i>
               </div>
             </div>
@@ -648,14 +648,9 @@
             <!-- Local Photo Preview Row -->
             <div id="trans-photo-preview-container" style="display: none; flex-direction: column; gap: 8px; margin-top: 8px; position: relative;">
               <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                <span class="form-row-label" data-i18n="row_receipt_photo">Φωτογραφία Απόδειξης</span>
-                <button type="button" id="btn-delete-photo" class="icon-btn" style="color: var(--accent); font-size: 14px; margin: 0; padding: 4px;" title="Διαγραφή">
-                  <i class="fa-solid fa-trash-can"></i>
-                </button>
+                <span class="form-row-label" data-i18n="row_receipt_photo">Φωτογραφίες Απόδειξης</span>
               </div>
-              <div style="width: 100%; max-height: 200px; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); display: flex; justify-content: center; background: rgba(0,0,0,0.2);">
-                <img id="trans-photo-preview-img" src="" alt="Receipt Preview" style="max-width: 100%; max-height: 200px; object-fit: contain; cursor: pointer;" onclick="openPhotoLightbox(this.src)">
-              </div>
+              <div id="trans-photo-previews-list" style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; width: 100%;"></div>
             </div>
 
             <!-- Device Mismatch Placeholder -->

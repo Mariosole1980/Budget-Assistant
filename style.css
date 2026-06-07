@@ -933,6 +933,71 @@ button:active,
   white-space: nowrap;
 }
 
+/* Stats subcategories styles */
+.stats-row {
+  cursor: pointer;
+  user-select: none;
+}
+
+.stats-row:active {
+  background-color: var(--bg-item-active, rgba(255, 255, 255, 0.05));
+}
+
+.stats-row-chevron {
+  font-size: 12px;
+  color: var(--text-secondary);
+  transition: transform 0.2s ease;
+  margin-left: 10px;
+}
+
+.stats-row.expanded .stats-row-chevron {
+  transform: rotate(90deg);
+}
+
+.stats-subcategories-container {
+  display: none;
+  background-color: rgba(0, 0, 0, 0.15);
+  border-bottom: 1px solid var(--border);
+}
+
+.stats-subcategories-container.active {
+  display: block;
+}
+
+.stats-sub-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px 8px 65px; /* aligned under the category name */
+  font-size: 13.5px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+}
+
+.stats-sub-row:last-child {
+  border-bottom: none;
+}
+
+.stats-sub-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+}
+
+.stats-sub-pct {
+  font-size: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary);
+  padding: 1px 4px;
+  border-radius: 4px;
+  font-weight: bold;
+}
+
+.stats-sub-right {
+  font-weight: 600;
+  color: var(--text-main);
+}
+
 /* ACCOUNTS SCREEN STYLES */
 .accounts-overview-card {
   background-color: var(--bg-card);
@@ -1481,7 +1546,7 @@ input:focus + .slider {
 
 /* Custom Calculator Keypad */
 .calc-keypad-container {
-  background-color: #15181f;
+  background-color: #0f121a;
   border-top: 1px solid var(--border);
   display: flex;
   flex-direction: column;
@@ -1492,15 +1557,15 @@ input:focus + .slider {
 }
 
 .calc-keypad-container.active {
-  max-height: 330px;
+  max-height: 365px;
 }
 
 .calc-keypad-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 16px;
-  background-color: #121419;
+  padding: 8px 16px;
+  background-color: #090b10;
   border-bottom: 1px solid var(--border-light);
 }
 
@@ -1516,48 +1581,48 @@ input:focus + .slider {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   background-color: transparent;
-  gap: 8px;
-  padding: 10px 16px 16px 16px;
+  gap: 4px;
+  padding: 8px 12px 12px 12px;
   flex: 1;
 }
 
 .calc-key-btn {
-  background-color: #1a1d24;
-  color: var(--text-main);
+  background-color: #1d2330;
+  color: #ffffff;
   padding: 0;
-  height: 52px;
-  font-size: 22px;
+  height: 60px;
+  font-size: 24px;
   font-weight: 600;
   text-align: center;
   display: flex;
   align-items: center;
   justify-content: center;
   user-select: none;
-  border-radius: 12px;
-  transition: background-color 0.1s ease;
+  border-radius: 8px;
+  transition: background-color 0.1s ease, transform 0.05s ease;
   -webkit-tap-highlight-color: transparent;
 }
 
 .calc-key-btn:active {
-  transform: none !important;
+  transform: scale(0.96) !important;
   opacity: 1 !important;
-  background-color: #2b303c !important;
+  background-color: #2b3345 !important;
   transition: none !important;
 }
 
 .calc-key-btn.backspace-key,
 .calc-key-btn.minus-key,
 .calc-key-btn.calc-op-key {
-  background-color: #121419;
-  color: var(--text-secondary);
-  font-size: 20px;
+  background-color: #141720;
+  color: #cbd5e1;
+  font-size: 21px;
 }
 
 .calc-key-btn.backspace-key:active,
 .calc-key-btn.minus-key:active,
 .calc-key-btn.calc-op-key:active {
-  background-color: #20242e !important;
-  transform: none !important;
+  background-color: #202534 !important;
+  transform: scale(0.96) !important;
   opacity: 1 !important;
   transition: none !important;
 }
@@ -1565,27 +1630,27 @@ input:focus + .slider {
 .calc-key-btn.done-key {
   color: white;
   font-weight: 800;
-  font-size: 17px;
+  font-size: 18px;
   letter-spacing: 0.3px;
-  border-radius: 12px;
+  border-radius: 8px;
 }
 
 .calc-key-btn.done-key:active {
-  transform: none !important;
+  transform: scale(0.96) !important;
   opacity: 1 !important;
   filter: brightness(1.15) !important;
   transition: none !important;
 }
 
 #transaction-modal.expense .calc-key-btn.done-key {
-  background-color: var(--red-negative);
+  background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%) !important;
 }
 #transaction-modal.income .calc-key-btn.done-key {
-  background-color: var(--blue-positive);
+  background: linear-gradient(135deg, #10b981 0%, #047857 100%) !important;
 }
 #transaction-modal.transfer .calc-key-btn.done-key {
-  background-color: var(--text-secondary);
-  color: var(--bg-main);
+  background: linear-gradient(135deg, #64748b 0%, #475569 100%) !important;
+  color: white !important;
 }
 
 /* Supabase Modal Buttons Compatibility */
