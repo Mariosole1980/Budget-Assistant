@@ -4111,6 +4111,7 @@ function scrollToToday(behavior = 'smooth') {
 }
 
 function switchTab(tab) {
+  ensureHistoryPushed();
   // Allow re-tapping 'trans' or 'stats' tab to reset month even if already active
   if (state.activeTab === tab) {
     if (tab === 'trans') {
@@ -7573,7 +7574,7 @@ function initSwipeToBack() {
   const TAB_ORDER = ['trans', 'stats', 'accounts', 'more'];
   let bsStartX = 0, bsStartY = 0, bsActive = false, bsSwiping = null;
   let bsDragging = false;
-  const EDGE_ZONE = 35;    // px from left edge to detect back swipe start
+  const EDGE_ZONE = 50;    // px from left edge to detect back swipe start
   const COMMIT_RATIO = 0.30; // 30% of screen width to commit
 
   // Setup system history state to prevent exiting the app on system back gesture/button
@@ -7792,11 +7793,7 @@ function initSwipeToBack() {
         document.querySelectorAll('.nav-item').forEach(i => i.classList.toggle('active', i.getAttribute('data-tab') === prevTabName));
 
         // Ensure history is correct
-        if (prevTabName === 'trans') {
-          state.historyPushed = false;
-        } else {
-          ensureHistoryPushed();
-        }
+        ensureHistoryPushed();
 
         // Render the new tab with deferred heavy rendering to prevent flicker
         if (prevTabName === 'trans') {
@@ -7997,7 +7994,7 @@ function initTabSwipeNavigation() {
   let touchActive = false;
   let isSwipingHorizontal = null;
   const dragThreshold = 80; // Minimum drag in px to trigger tab switch
-  const edgeThreshold = 35; // Ignore starts within 35px of left edge (reserved for back swipe)
+  const edgeThreshold = 50; // Ignore starts within 50px of left edge (reserved for back swipe)
 
   appContent.addEventListener('touchstart', (e) => {
     // Only capture if no modals are active and not in selection mode
@@ -8075,6 +8072,11 @@ function initTabSwipeNavigation() {
         }
       }
     }
+    isSwipingHorizontal = null;
+  }, { passive: true });
+
+  appContent.addEventListener('touchcancel', () => {
+    touchActive = false;
     isSwipingHorizontal = null;
   }, { passive: true });
 }
