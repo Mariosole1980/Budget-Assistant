@@ -2442,8 +2442,8 @@ function renderTransactionsTab() {
     const tDate = new Date(String(t.date).replace(' ', 'T'));
     return tDate >= start && tDate <= end;
   }).sort((a, b) => {
-    const dateA = String(a.date || '').split('T')[0];
-    const dateB = String(b.date || '').split('T')[0];
+    const dateA = String(a.date || '').split('T')[0].split(' ')[0];
+    const dateB = String(b.date || '').split('T')[0].split(' ')[0];
     if (dateA !== dateB) return dateB.localeCompare(dateA);
     const timeA = a.created_at ? new Date(a.created_at).getTime() : (a.date ? new Date(a.date).getTime() : 0);
     const timeB = b.created_at ? new Date(b.created_at).getTime() : (b.date ? new Date(b.date).getTime() : 0);
@@ -2459,7 +2459,7 @@ function renderTransactionsTab() {
     if (t.type === 'income') monthlyIncome += amt;
     else if (t.type === 'expense') monthlyExpense += amt;
     
-    const dateKey = t.date.split('T')[0];
+    const dateKey = String(t.date || '').split('T')[0].split(' ')[0];
     if (!groups[dateKey]) groups[dateKey] = { transactions: [], income: 0, expense: 0 };
     groups[dateKey].transactions.push(t);
     if (t.type === 'income') groups[dateKey].income += amt;
@@ -2480,7 +2480,8 @@ function renderTransactionsTab() {
     return;
   }
 
-  const todayStr = new Date().toLocaleDateString('sv');
+  const todayObj = new Date();
+  const todayStr = `${todayObj.getFullYear()}-${String(todayObj.getMonth() + 1).padStart(2, '0')}-${String(todayObj.getDate()).padStart(2, '0')}`;
 
   Object.keys(groups).sort((a, b) => b.localeCompare(a)).forEach(dateStr => {
     const group = groups[dateStr];
