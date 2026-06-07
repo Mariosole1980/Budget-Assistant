@@ -314,7 +314,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v217)',
+    app_version: 'Έκδοση 1.0.0 (build v218)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ετήσια Αποταμίευση',
     period_label: 'Περίοδος',
@@ -538,7 +538,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v217)',
+    app_version: 'Version 1.0.0 (build v218)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Yearly Savings',
     period_label: 'Period',
@@ -6584,6 +6584,8 @@ function resetAllSearchChips() {
 }
 
 // Bind to window to ensure HTML inline onclick works perfectly
+window.openSearchOverlay = openSearchOverlay;
+window.closeSearchOverlay = closeSearchOverlay;
 window.openSearchBottomSheet = openSearchBottomSheet;
 window.closeSearchBottomSheet = closeSearchBottomSheet;
 window.selectTypeSearchFilter = selectTypeSearchFilter;
