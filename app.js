@@ -5586,10 +5586,19 @@ function exportToExcel(startDate = null, endDate = null) {
 // ============================================================
 // FEATURE: TRANSACTION SEARCH AND FILTERS
 // ============================================================
+let searchResultLimit = 50;
+
+function loadMoreSearchResults() {
+  searchResultLimit += 100;
+  handleSearchChange(false);
+}
+
 function openSearchOverlay() {
   ensureHistoryPushed();
   const overlay = document.getElementById('search-overlay');
   if (overlay) overlay.classList.add('active');
+
+  searchResultLimit = 50;
 
   // Populate dynamic dropdown filters
   populateSearchFilterDropdowns();
@@ -6705,6 +6714,8 @@ window.selectAccountSearchFilter = selectAccountSearchFilter;
 window.selectCategorySearchFilter = selectCategorySearchFilter;
 window.selectMemberSearchFilter = selectMemberSearchFilter;
 window.selectPhotoSearchFilter = selectPhotoSearchFilter;
+window.handleSearchChange = handleSearchChange;
+window.loadMoreSearchResults = loadMoreSearchResults;
 window.applyAdvancedSearchFiltersVisual = applyAdvancedSearchFiltersVisual;
 window.resetAdvancedSearchFiltersVisual = resetAdvancedSearchFiltersVisual;
 window.resetAllSearchChips = resetAllSearchChips;
@@ -6866,7 +6877,10 @@ function normalizeText(text) {
     .trim();
 }
 
-function handleSearchChange() {
+function handleSearchChange(resetLimit = true) {
+  if (resetLimit === true) {
+    searchResultLimit = 50;
+  }
   const searchInput = document.getElementById('search-input');
   const clearBtn = document.getElementById('search-clear-btn');
   
@@ -7004,8 +7018,10 @@ function renderGroupedTransactions(transactions, container) {
     return;
   }
 
+  const itemsToRender = transactions.slice(0, searchResultLimit);
+
   // Flat list matching the screenshot layout
-  transactions.forEach(t => {
+  itemsToRender.forEach(t => {
     const catInfo = getCategoryInfo(t.category, t.type);
     const item = document.createElement('div');
     item.className = 'search-result-item';
@@ -7057,6 +7073,24 @@ function renderGroupedTransactions(transactions, container) {
       <div class="${amountClass}">${getCurrencySymbol()} ${formatCurrency(t.amount)}</div>`;
     container.appendChild(item);
   });
+
+  if (transactions.length > searchResultLimit) {
+    const remaining = transactions.length - searchResultLimit;
+    const loadMoreDiv = document.createElement('div');
+    loadMoreDiv.className = 'search-load-more-container';
+    loadMoreDiv.style.cssText = 'padding: 16px 20px; text-align: center;';
+    
+    const btnText = state.lang === 'el'
+      ? `Φόρτωση Περισσότερων (${remaining} ακόμα)`
+      : `Load More (${remaining} remaining)`;
+
+    loadMoreDiv.innerHTML = `
+      <button class="btn btn-secondary search-load-more-btn" onclick="loadMoreSearchResults()" style="width: 100%; border-radius: 12px; font-size: 13px; font-weight: 600; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); color: var(--text-main);">
+        ${btnText}
+      </button>
+    `;
+    container.appendChild(loadMoreDiv);
+  }
 }
 
 // ============================================================
