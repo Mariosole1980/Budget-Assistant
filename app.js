@@ -314,7 +314,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v219)',
+    app_version: 'Έκδοση 1.0.0 (build v220)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ετήσια Αποταμίευση',
     period_label: 'Περίοδος',
@@ -538,7 +538,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v219)',
+    app_version: 'Version 1.0.0 (build v220)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Yearly Savings',
     period_label: 'Period',
@@ -6753,6 +6753,16 @@ function clearSearchInput() {
 }
 
 
+function normalizeText(text) {
+  if (!text) return '';
+  return text
+    .toString()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim();
+}
+
 function handleSearchChange() {
   const searchInput = document.getElementById('search-input');
   const clearBtn = document.getElementById('search-clear-btn');
@@ -6766,7 +6776,7 @@ function handleSearchChange() {
     }
   }
 
-  const query = searchInput.value.toLowerCase().trim();
+  const query = normalizeText(searchInput.value);
   const filterType = document.getElementById('search-filter-type').value;
   const filterAcc = document.getElementById('search-filter-account').value;
   const filterCat = document.getElementById('search-filter-category').value;
@@ -6783,12 +6793,12 @@ function handleSearchChange() {
   const filtered = state.transactions.filter(t => {
     // 1. Text Query (Search in Note, Category, Subcategory, Description, Account)
     if (query) {
-      const note = (t.note || '').toLowerCase();
-      const cat = (t.category || '').toLowerCase();
-      const sub = (t.subcategory || '').toLowerCase();
-      const desc = (t.description || '').toLowerCase();
-      const acc = (t.account_from || '').toLowerCase();
-      const accTo = (t.account_to || '').toLowerCase();
+      const note = normalizeText(t.note);
+      const cat = normalizeText(t.category);
+      const sub = normalizeText(t.subcategory);
+      const desc = normalizeText(t.description);
+      const acc = normalizeText(t.account_from);
+      const accTo = normalizeText(t.account_to);
       
       if (!note.includes(query) && !cat.includes(query) && !sub.includes(query) && !desc.includes(query) && !acc.includes(query) && !accTo.includes(query)) {
         return false;
@@ -6816,7 +6826,7 @@ function handleSearchChange() {
     if (maxAmt !== null && amt > maxAmt) return false;
 
     // 6. Date Range Filter
-    const datePart = t.date.split('T')[0];
+    const datePart = String(t.date || '').split('T')[0].split(' ')[0];
     if (dateStart && datePart < dateStart) return false;
     if (dateEnd && datePart > dateEnd) return false;
 
@@ -11132,11 +11142,12 @@ function getAdvancedNotes(query) {
     }
   }
   
-  const q = (query || '').trim().toLowerCase();
+  const q = normalizeText(query);
   const suggestions = [];
   
   for (const [key, details] of noteDetails.entries()) {
-    if (!q || key.includes(q)) {
+    const normKey = normalizeText(details.title);
+    if (!q || normKey.includes(q)) {
       suggestions.push(details);
     }
   }
@@ -11144,8 +11155,8 @@ function getAdvancedNotes(query) {
   // Sort suggestions: if there is a query, prioritize matches that start with the query
   if (q) {
     suggestions.sort((a, b) => {
-      const aTitle = a.title.toLowerCase();
-      const bTitle = b.title.toLowerCase();
+      const aTitle = normalizeText(a.title);
+      const bTitle = normalizeText(b.title);
       const aStarts = aTitle.startsWith(q);
       const bStarts = bTitle.startsWith(q);
       if (aStarts && !bStarts) return -1;
