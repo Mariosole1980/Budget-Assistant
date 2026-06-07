@@ -364,7 +364,12 @@ const TRANSLATIONS = {
     feedback_comment_placeholder: 'Γράψτε τα σχόλιά σας εδώ...',
     feedback_submit_btn: 'Αποστολή Σχολίων',
     feedback_success_msg: 'Σας ευχαριστούμε για τα σχόλιά σας!',
-    feedback_reset_btn: 'Νέα Αξιολόγηση'
+    feedback_reset_btn: 'Νέα Αξιολόγηση',
+    search_chip_photo: 'Απόδειξη',
+    search_title_photo: 'Φίλτρο Απόδειξης',
+    photo_all: 'Όλες οι συναλλαγές',
+    photo_with: 'Με απόδειξη',
+    photo_without: 'Χωρίς απόδειξη'
   },
   en: {
     nav_trans: 'Transactions',
@@ -588,7 +593,12 @@ const TRANSLATIONS = {
     feedback_comment_placeholder: 'Write your feedback here...',
     feedback_submit_btn: 'Submit Feedback',
     feedback_success_msg: 'Thank you for your feedback!',
-    feedback_reset_btn: 'New Feedback'
+    feedback_reset_btn: 'New Feedback',
+    search_chip_photo: 'Receipt',
+    search_title_photo: 'Receipt Filter',
+    photo_all: 'All transactions',
+    photo_with: 'With receipt',
+    photo_without: 'Without receipt'
   }
 };
 
@@ -6454,6 +6464,23 @@ function selectMemberSearchFilter(val) {
     hiddenInput.value = val;
   }
 
+  // Update Member Row display UI
+  const valDisplay = document.getElementById('search-val-member');
+  if (valDisplay) {
+    if (val) {
+      let name = '';
+      const myId = state.currentUser?.id || '';
+      if (val === myId) {
+        name = state.userProfile?.display_name || state.currentUser?.email?.split('@')[0] || (state.lang === 'el' ? 'Εσείς' : 'You');
+      } else if (state.partnerProfile && val === state.partnerProfile.id) {
+        name = state.partnerProfile.display_name || state.partnerProfile.email.split('@')[0] || (state.lang === 'el' ? 'Σύντροφος' : 'Partner');
+      }
+      valDisplay.textContent = name;
+    } else {
+      valDisplay.textContent = state.lang === 'el' ? 'Όλα τα μέλη' : 'All members';
+    }
+  }
+
   // Update Member Chip UI if exists
   const chip = document.getElementById('search-chip-member');
   if (chip) {
@@ -6474,6 +6501,53 @@ function selectMemberSearchFilter(val) {
         chip.classList.remove('active');
       }
     }
+  }
+
+  closeSearchBottomSheet();
+  handleSearchChange();
+}
+
+function selectPhotoSearchFilter(val) {
+  const hiddenInput = document.getElementById('search-filter-photo');
+  if (hiddenInput) {
+    hiddenInput.value = val;
+  }
+
+  // Update Photo row display UI
+  const valDisplay = document.getElementById('search-val-photo');
+  if (valDisplay) {
+    if (val === 'has_photo') {
+      valDisplay.textContent = state.lang === 'el' ? 'Με απόδειξη' : 'With receipt';
+    } else if (val === 'no_photo') {
+      valDisplay.textContent = state.lang === 'el' ? 'Χωρίς απόδειξη' : 'Without receipt';
+    } else {
+      valDisplay.textContent = state.lang === 'el' ? 'Όλες' : 'All';
+    }
+  }
+
+  // Update Photo Chip UI if exists
+  const chip = document.getElementById('search-chip-photo');
+  if (chip) {
+    const label = chip.querySelector('.chip-label');
+    if (label) {
+      if (val) {
+        let text = val === 'has_photo' ? (state.lang === 'el' ? 'Με απόδειξη' : 'With receipt') : (state.lang === 'el' ? 'Χωρίς απόδειξη' : 'Without receipt');
+        label.textContent = `✓ ${text}`;
+        chip.classList.add('active');
+      } else {
+        label.textContent = TRANSLATIONS[state.lang]['search_chip_photo'] || 'Απόδειξη';
+        chip.classList.remove('active');
+      }
+    }
+  }
+
+  // Update active option styling in sheet
+  const sheet = document.getElementById('search-bottom-sheet-photo');
+  if (sheet) {
+    sheet.querySelectorAll('.bottom-sheet-option').forEach(opt => {
+      const optVal = opt.getAttribute('data-value') || '';
+      opt.classList.toggle('active', optVal === val);
+    });
   }
 
   closeSearchBottomSheet();
@@ -6570,6 +6644,12 @@ function resetAllSearchChips() {
     if (label) label.textContent = TRANSLATIONS[state.lang]['search_chip_member'] || 'Μέλος';
     memChip.classList.remove('active');
   }
+  const photoChip = document.getElementById('search-chip-photo');
+  if (photoChip) {
+    const label = photoChip.querySelector('.chip-label');
+    if (label) label.textContent = TRANSLATIONS[state.lang]['search_chip_photo'] || 'Απόδειξη';
+    photoChip.classList.remove('active');
+  }
   const advChip = document.getElementById('search-chip-advanced');
   if (advChip) {
     advChip.classList.remove('active');
@@ -6585,8 +6665,29 @@ function resetAllSearchChips() {
   const categoryVal = document.getElementById('search-val-category');
   if (categoryVal) categoryVal.textContent = state.lang === 'el' ? 'Όλες' : 'All';
 
+  const memberVal = document.getElementById('search-val-member');
+  if (memberVal) memberVal.textContent = state.lang === 'el' ? 'Όλα τα μέλη' : 'All members';
+
+  const photoVal = document.getElementById('search-val-photo');
+  if (photoVal) photoVal.textContent = state.lang === 'el' ? 'Όλες' : 'All';
+
   const amountVal = document.getElementById('search-val-amount');
   if (amountVal) amountVal.textContent = 'Min. ~ Max.';
+
+  // Reset active checkmark in sheets
+  const memSheet = document.getElementById('search-bottom-sheet-member');
+  if (memSheet) {
+    memSheet.querySelectorAll('.bottom-sheet-option').forEach(opt => {
+      opt.classList.toggle('active', opt.getAttribute('data-value') === '' || !opt.hasAttribute('data-value'));
+    });
+  }
+  const photoSheet = document.getElementById('search-bottom-sheet-photo');
+  if (photoSheet) {
+    photoSheet.querySelectorAll('.bottom-sheet-option').forEach(opt => {
+      const optVal = opt.getAttribute('data-value') || '';
+      opt.classList.toggle('active', optVal === '');
+    });
+  }
 
   state.searchPeriod = 'all';
 }
@@ -6603,6 +6704,7 @@ window.selectTypeSearchFilter = selectTypeSearchFilter;
 window.selectAccountSearchFilter = selectAccountSearchFilter;
 window.selectCategorySearchFilter = selectCategorySearchFilter;
 window.selectMemberSearchFilter = selectMemberSearchFilter;
+window.selectPhotoSearchFilter = selectPhotoSearchFilter;
 window.applyAdvancedSearchFiltersVisual = applyAdvancedSearchFiltersVisual;
 window.resetAdvancedSearchFiltersVisual = resetAdvancedSearchFiltersVisual;
 window.resetAllSearchChips = resetAllSearchChips;
@@ -6699,6 +6801,10 @@ function resetSearchFilters() {
   const memSel = document.getElementById('search-filter-member');
   if (memSel) memSel.value = '';
 
+  // Reset photo filter
+  const photoSel = document.getElementById('search-filter-photo');
+  if (photoSel) photoSel.value = '';
+
   // Reset visual dashboard filters if initialized
   if (typeof resetPeriodFilter === 'function') {
     resetPeriodFilter();
@@ -6786,6 +6892,7 @@ function handleSearchChange() {
   
   // Member Filter value
   const filterMember = document.getElementById('search-filter-member')?.value || '';
+  const filterPhoto = document.getElementById('search-filter-photo')?.value || '';
 
   const filtered = state.transactions.filter(t => {
     // 1. Text Query (Search in Note, Category, Subcategory, Description, Account)
@@ -6816,6 +6923,13 @@ function handleSearchChange() {
 
     // 4c. Member Filter (user_id matching)
     if (filterMember && t.user_id !== filterMember) return false;
+
+    // 4d. Photo/Receipt Filter
+    if (filterPhoto) {
+      const hasPhoto = !!(t.photo_local_uri || t.photo_url);
+      if (filterPhoto === 'has_photo' && !hasPhoto) return false;
+      if (filterPhoto === 'no_photo' && hasPhoto) return false;
+    }
 
     // 5. Amount Range Filter
     const amt = parseFloat(t.amount) || 0;

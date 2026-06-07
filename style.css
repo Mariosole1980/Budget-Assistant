@@ -1868,9 +1868,9 @@ input:focus + .slider {
   width: 100%;
   overflow-x: auto !important;
   white-space: nowrap !important;
-  padding: 10px 16px;
-  background: var(--bg-main);
-  border-bottom: 1px solid var(--border-light);
+  padding: 12px 16px;
+  background: transparent;
+  border-bottom: none;
   -webkit-overflow-scrolling: touch;
   touch-action: pan-x !important; /* Force native horizontal panning on mobile */
   scrollbar-width: none; /* Hide scrollbar for Firefox */
@@ -1891,27 +1891,36 @@ input:focus + .slider {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: var(--bg-card);
-  border: 1px solid var(--border-light);
-  border-radius: 16px;
-  padding: 6px 14px;
-  font-size: 12.5px;
+  background: rgba(43, 49, 61, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  padding: 8px 16px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text-secondary);
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   white-space: nowrap;
   flex-shrink: 0;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 .search-chip:active {
   transform: scale(0.95);
 }
 
+.search-chip:hover {
+  background: rgba(56, 65, 82, 0.8);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: var(--text-main);
+}
+
 .search-chip.active {
-  background: var(--accent-light);
-  border-color: var(--accent);
-  color: var(--accent);
+  background: var(--accent-light, rgba(124, 106, 247, 0.18));
+  border-color: var(--accent, #7c6af7);
+  color: var(--accent, #7c6af7);
+  box-shadow: 0 4px 12px rgba(124, 106, 247, 0.15);
 }
 
 .chip-arrow {
@@ -5184,22 +5193,24 @@ body.keyboard-active .note-autocomplete-item {
 .search-filter-rows-container {
   display: flex;
   flex-direction: column;
-  background: var(--bg-card, #1e2230);
-  margin: 12px 16px;
+  background: rgba(30, 34, 48, 0.65);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  margin: 16px;
   border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   overflow: hidden;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 }
 
 .search-filter-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 14px 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 15px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .search-filter-row:last-child {
@@ -5207,30 +5218,42 @@ body.keyboard-active .note-autocomplete-item {
 }
 
 .search-filter-row:active {
-  background-color: rgba(255, 255, 255, 0.04);
+  background-color: rgba(255, 255, 255, 0.06);
 }
 
 .filter-row-label {
-  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  font-size: 13.5px;
   font-weight: 600;
   color: var(--text-secondary, #94a3b8);
+}
+
+.filter-row-label .row-icon {
+  margin-right: 10px;
+  color: var(--accent, #7c6af7);
+  font-size: 14px;
+  width: 18px;
+  text-align: center;
+  opacity: 0.85;
 }
 
 .filter-row-value-wrapper {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .filter-row-value {
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 700;
   color: var(--text-main, #ffffff);
 }
 
 .filter-row-chevron {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-muted, #4b5563);
+  opacity: 0.7;
 }
 
 /* Search Summary Bar styling */

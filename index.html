@@ -492,11 +492,11 @@
           <span class="settings-item-value"><i class="fa-solid fa-arrow-up-right-from-square" style="font-size:12px;"></i></span>
         </div>
         <div class="settings-list-item">
-          <span class="settings-item-label" style="color: var(--text-muted); font-size: 12px;" data-i18n="app_version">Έκδοση 1.0.0 (build v221)</span>
+          <span class="settings-item-label" style="color: var(--text-muted); font-size: 12px;" data-i18n="app_version">Έκδοση 1.0.0 (build v222)</span>
           <span class="settings-item-value" style="font-size: 12px;">Budget Assistant</span>
         </div>
         <div class="settings-list-item" style="justify-content: center; padding: 6px 16px; min-height: auto;">
-          <span id="deploy-timestamp" style="color: var(--text-muted); font-size: 10px; opacity: 0.6;">Deploy v221 · 07/06/2026 12:47</span>
+          <span id="deploy-timestamp" style="color: var(--text-muted); font-size: 10px; opacity: 0.6;">Deploy v222 · 07/06/2026 12:55</span>
         </div>
       </div>
     </section>
@@ -912,6 +912,11 @@
           <input type="date" id="search-filter-date-start" onchange="handleSearchChange()">
           <input type="date" id="search-filter-date-end" onchange="handleSearchChange()">
           <input type="hidden" id="search-filter-member" onchange="handleSearchChange()" value="">
+          <select id="search-filter-photo" onchange="handleSearchChange()">
+            <option value="">Όλες οι συναλλαγές</option>
+            <option value="has_photo">Με απόδειξη</option>
+            <option value="no_photo">Χωρίς απόδειξη</option>
+          </select>
         </div>
 
         <!-- Search Input Bar -->
@@ -923,11 +928,47 @@
           </button>
         </div>
 
+        <!-- Horizontal Scrollable Quick-Filter Chips -->
+        <div class="search-chips-row">
+          <div class="search-chips-scroll">
+            <div id="search-chip-period" class="search-chip" onclick="openSearchPeriodSheet()">
+              <i class="fa-regular fa-calendar-days"></i>
+              <span class="chip-label" data-i18n="period_label">Period</span>
+              <i class="fa-solid fa-chevron-down chip-arrow"></i>
+            </div>
+            <div id="search-chip-type" class="search-chip" onclick="openSearchBottomSheet('type')">
+              <i class="fa-solid fa-filter"></i>
+              <span class="chip-label" data-i18n="search_chip_type">Type</span>
+              <i class="fa-solid fa-chevron-down chip-arrow"></i>
+            </div>
+            <div id="search-chip-account" class="search-chip" onclick="openSearchBottomSheet('account')">
+              <i class="fa-solid fa-wallet"></i>
+              <span class="chip-label" data-i18n="search_chip_account">Account</span>
+              <i class="fa-solid fa-chevron-down chip-arrow"></i>
+            </div>
+            <div id="search-chip-category" class="search-chip" onclick="openSearchBottomSheet('category')">
+              <i class="fa-solid fa-tags"></i>
+              <span class="chip-label" data-i18n="search_chip_category">Category</span>
+              <i class="fa-solid fa-chevron-down chip-arrow"></i>
+            </div>
+            <div id="search-chip-member" class="search-chip" onclick="openSearchBottomSheet('member')">
+              <i class="fa-solid fa-user-group"></i>
+              <span class="chip-label" data-i18n="search_chip_member">Member</span>
+              <i class="fa-solid fa-chevron-down chip-arrow"></i>
+            </div>
+            <div id="search-chip-photo" class="search-chip" onclick="openSearchBottomSheet('photo')">
+              <i class="fa-solid fa-receipt"></i>
+              <span class="chip-label" data-i18n="search_chip_photo">Receipt</span>
+              <i class="fa-solid fa-chevron-down chip-arrow"></i>
+            </div>
+          </div>
+        </div>
+
         <!-- Filter Rows (Realbyte Style) -->
         <div class="search-filter-rows-container">
           <!-- Period Row -->
           <div class="search-filter-row" onclick="openSearchPeriodSheet()">
-            <span class="filter-row-label" data-i18n="period_label">Period</span>
+            <span class="filter-row-label"><i class="fa-regular fa-calendar-days row-icon"></i> <span data-i18n="period_label">Period</span></span>
             <div class="filter-row-value-wrapper">
               <span id="search-val-period" class="filter-row-value">Όλη η περίοδος</span>
               <i class="fa-solid fa-chevron-right filter-row-chevron"></i>
@@ -935,34 +976,47 @@
           </div>
           <!-- Type Row -->
           <div class="search-filter-row" onclick="openSearchBottomSheet('type')">
-            <span class="filter-row-label" data-i18n="search_title_type">Type</span>
+            <span class="filter-row-label"><i class="fa-solid fa-filter row-icon"></i> <span data-i18n="search_title_type">Type</span></span>
             <div class="filter-row-value-wrapper">
               <span id="search-val-type" class="filter-row-value">Όλοι οι τύποι</span>
               <i class="fa-solid fa-chevron-right filter-row-chevron"></i>
             </div>
           </div>
-          
           <!-- Account Row -->
           <div class="search-filter-row" onclick="openSearchBottomSheet('account')">
-            <span class="filter-row-label" data-i18n="row_account_from">Account</span>
+            <span class="filter-row-label"><i class="fa-solid fa-wallet row-icon"></i> <span data-i18n="row_account_from">Account</span></span>
             <div class="filter-row-value-wrapper">
               <span id="search-val-account" class="filter-row-value">Όλοι</span>
               <i class="fa-solid fa-chevron-right filter-row-chevron"></i>
             </div>
           </div>
-          
           <!-- Category Row -->
           <div class="search-filter-row" onclick="openSearchBottomSheet('category')">
-            <span class="filter-row-label" data-i18n="row_category">Category</span>
+            <span class="filter-row-label"><i class="fa-solid fa-tags row-icon"></i> <span data-i18n="row_category">Category</span></span>
             <div class="filter-row-value-wrapper">
               <span id="search-val-category" class="filter-row-value">Όλες</span>
               <i class="fa-solid fa-chevron-right filter-row-chevron"></i>
             </div>
           </div>
-          
+          <!-- Member Row -->
+          <div class="search-filter-row" onclick="openSearchBottomSheet('member')">
+            <span class="filter-row-label"><i class="fa-solid fa-user-group row-icon"></i> <span data-i18n="search_chip_member">Member</span></span>
+            <div class="filter-row-value-wrapper">
+              <span id="search-val-member" class="filter-row-value">Όλα τα μέλη</span>
+              <i class="fa-solid fa-chevron-right filter-row-chevron"></i>
+            </div>
+          </div>
+          <!-- Photo Row -->
+          <div class="search-filter-row" onclick="openSearchBottomSheet('photo')">
+            <span class="filter-row-label"><i class="fa-solid fa-receipt row-icon"></i> <span data-i18n="search_chip_photo">Receipt</span></span>
+            <div class="filter-row-value-wrapper">
+              <span id="search-val-photo" class="filter-row-value">Όλες</span>
+              <i class="fa-solid fa-chevron-right filter-row-chevron"></i>
+            </div>
+          </div>
           <!-- Amount Row - Inline Min/Max inputs -->
           <div class="search-filter-row search-amount-row">
-            <span class="filter-row-label" data-i18n="row_amount">Amount</span>
+            <span class="filter-row-label"><i class="fa-solid fa-calculator row-icon"></i> <span data-i18n="row_amount">Amount</span></span>
             <div class="search-amount-inputs">
               <input type="number" id="search-amount-min-inline" class="search-amount-input" placeholder="Min." step="0.01" oninput="syncAmountFiltersFromInline()">
               <span class="search-amount-tilde">~</span>
@@ -1087,6 +1141,29 @@
       </div>
       <div class="bottom-sheet-body" id="search-bottom-sheet-member-list">
         <!-- Members populated dynamically -->
+      </div>
+    </div>
+
+    <!-- BOTTOM SHEET: PHOTO -->
+    <div id="search-bottom-sheet-photo" class="search-bottom-sheet">
+      <div class="bottom-sheet-header">
+        <div class="bottom-sheet-drag-handle"></div>
+        <span class="bottom-sheet-title" data-i18n="search_title_photo">Απόδειξη</span>
+        <button class="bottom-sheet-close-btn" onclick="closeSearchBottomSheet()">&times;</button>
+      </div>
+      <div class="bottom-sheet-body">
+        <div class="bottom-sheet-option active" data-value="" onclick="selectPhotoSearchFilter('')">
+          <span class="option-label" data-i18n="photo_all">Όλες οι συναλλαγές</span>
+          <i class="fa-solid fa-check option-check-icon"></i>
+        </div>
+        <div class="bottom-sheet-option" data-value="has_photo" onclick="selectPhotoSearchFilter('has_photo')">
+          <span class="option-label"><i class="fa-solid fa-receipt" style="margin-right: 8px; color: var(--accent);"></i> <span data-i18n="photo_with">Με απόδειξη</span></span>
+          <i class="fa-solid fa-check option-check-icon"></i>
+        </div>
+        <div class="bottom-sheet-option" data-value="no_photo" onclick="selectPhotoSearchFilter('no_photo')">
+          <span class="option-label"><i class="fa-regular fa-file" style="margin-right: 8px; color: var(--text-secondary);"></i> <span data-i18n="photo_without">Χωρίς απόδειξη</span></span>
+          <i class="fa-solid fa-check option-check-icon"></i>
+        </div>
       </div>
     </div>
 
@@ -1529,7 +1606,7 @@
   </div>
 
   <!-- Core Application Scripts -->
-  <script src="app.js?v=221"></script>
+  <script src="app.js?v=222"></script>
   
   <!-- Register PWA Service Worker -->
   <script>
