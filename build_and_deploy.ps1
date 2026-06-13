@@ -108,9 +108,19 @@ if (Test-Path $apkSource) {
 # 6. Wrangler Deploy to Cloudflare Pages
 Write-Host "[INFO] Deploying to Cloudflare Pages..." -ForegroundColor Yellow
 $env:PATH += ';C:\Program Files\nodejs;C:\Users\mario\AppData\Roaming\npm'
+
+Write-Host "  [DEPLOY] Deploying to budget-assistant-pwa..." -ForegroundColor Yellow
 wrangler pages deploy www --project-name=budget-assistant-pwa --branch=main
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "[ERROR] Wrangler deployment failed!" -ForegroundColor Red
+$deploy1 = $LASTEXITCODE
+
+Write-Host "  [DEPLOY] Deploying to money-manager-pwa..." -ForegroundColor Yellow
+wrangler pages deploy www --project-name=money-manager-pwa --branch=main
+$deploy2 = $LASTEXITCODE
+
+if ($deploy1 -ne 0 -or $deploy2 -ne 0) {
+    Write-Host "[ERROR] Wrangler deployment failed on one or both projects!" -ForegroundColor Red
     Exit 1
 }
-Write-Host "[SUCCESS] All steps completed successfully! Build is live at https://budget-assistant-pwa.pages.dev" -ForegroundColor Green
+Write-Host "[SUCCESS] All steps completed successfully! Build is live at both URLs:" -ForegroundColor Green
+Write-Host "  - https://budget-assistant-pwa.pages.dev" -ForegroundColor Green
+Write-Host "  - https://money-manager-pwa.pages.dev" -ForegroundColor Green
