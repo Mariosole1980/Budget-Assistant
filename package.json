@@ -4,7 +4,8 @@
   "description": "A premium, collaborative mobile-first web app clone of Realbyte's Money Manager. This guide will help you run the app, set up your shared cloud database for free, install the app on your phones, and package it for the Google Play Store.",
   "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build-deploy": "powershell -ExecutionPolicy Bypass -File ./build_and_deploy.ps1"
   },
   "repository": {
     "type": "git",
@@ -20,6 +21,7 @@
   "homepage": "https://github.com/Mariosole1980/Budget-Assistant#readme",
   "dependencies": {
     "@capacitor/android": "^6.2.1",
+    "@capacitor/app": "^6.0.3",
     "@capacitor/cli": "^6.2.1",
     "@capacitor/core": "^6.2.1"
   }

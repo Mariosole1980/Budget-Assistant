@@ -1,4 +1,4 @@
-// SW Version 182
+// SW Version 318
 const CACHE_VERSION = 'v' + Date.now();
 const CACHE_NAME = 'money-manager-' + CACHE_VERSION;
 const ASSETS = [
@@ -8,7 +8,8 @@ const ASSETS = [
   'app.js',
   'manifest.json',
   'icon.png',
-  'xlsx.full.min.js'
+  'xlsx.full.min.js',
+  'version.json'
 ];
 
 // Install Service Worker - cache assets then force activation
@@ -71,10 +72,16 @@ self.addEventListener('fetch', (e) => {
     path.endsWith('/index.html') ||
     path.endsWith('/app.js') ||
     path.endsWith('/style.css') ||
-    path.endsWith('/manifest.json')
+    path.endsWith('/manifest.json') ||
+    path.endsWith('/version.json') ||
+    path.endsWith('/clear.html') ||
+    path === '/' ||
+    path === ''
   ) {
     e.respondWith(
       fetch(e.request, { cache: 'no-store' }).catch(() => {
+        // Only use cache fallback for navigation (not for clear.html)
+        if (path.endsWith('/clear.html')) return new Response('', { status: 503 });
         if (e.request.mode === 'navigate') return caches.match('index.html');
         return caches.match(e.request);
       })

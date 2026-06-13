@@ -92,6 +92,7 @@ const state = {
   syncStatus: 'offline',
   selectedYear: new Date().getFullYear(),
   selectedMonth: new Date().getMonth(),
+  overviewYear: new Date().getFullYear(),
   statsType: 'expense',
   statsPeriodType: 'monthly',
   statsDate: new Date(),
@@ -112,7 +113,17 @@ const state = {
   familyProfiles: [],
   selectedFamilyMemberId: 'all',
   historyPushed: false,
+  expandedStatsCategories: new Set(),
+  activeSubcategoryTransactions: null,
+  isSwipingMonth: false,
+  lastSwipeTime: 0,
 };
+
+const NEON_PALETTE = [
+  '#6366f1', '#f43f5e', '#10b981', '#f59e0b', '#3b82f6',
+  '#ec4899', '#14b8a6', '#f97316', '#8b5cf6', '#06b6d4',
+  '#22c55e', '#eab308', '#a855f7', '#ef4444', '#0ea5e9'
+];
 
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
@@ -145,10 +156,14 @@ const TRANSLATIONS = {
   el: {
     nav_trans: 'Κινήσεις',
     nav_stats: 'Στατιστικά',
-    nav_accounts: 'Ιστορικό',
+    nav_accounts: 'Επισκόπηση',
     nav_more: 'Περισσότερα',
     section_data_mgmt: 'Διαχείριση Δεδομένων',
     section_settings: 'Ρυθμίσεις',
+    settings_pref_title: '⚙️ Προτιμήσεις Εφαρμογής',
+    settings_data_title: '☁️ Δεδομένα & Συγχρονισμός',
+    settings_family_title: '👥 Διαχείριση Οικογένειας',
+    settings_feedback_title: '💬 Σχόλια & Αξιολόγηση',
     card_sync: 'Συγχρονισμός',
     card_import_excel: 'Εισαγωγή Excel',
     card_export_excel: 'Εξαγωγή Excel',
@@ -174,8 +189,8 @@ const TRANSLATIONS = {
     assets_title: 'Έσοδα',
     liabilities_title: 'Έξοδα',
     total_title: 'Υπόλοιπο',
-    accounts_header_title: 'Εισόδημα',
-    overall_history_title: 'Ιστορικό',
+    accounts_header_title: 'Λογαριασμοί',
+    overall_history_title: 'Επισκόπηση',
     overall_history_period_label: 'Περίοδος:',
     cards_header_title: 'Έξοδα',
     row_date: 'Ημερομηνία',
@@ -314,9 +329,9 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v229)',
+    app_version: 'Έκδοση 1.0.0 (build v318 - 12/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
-    yearly_savings_title: 'Ετήσια Αποταμίευση',
+    yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
     sync_now_btn: 'Συγχρονισμός Τώρα',
     search_btn_clear: 'Καθαρισμός',
@@ -369,15 +384,70 @@ const TRANSLATIONS = {
     search_title_photo: 'Φίλτρο Απόδειξης',
     photo_all: 'Όλες οι συναλλαγές',
     photo_with: 'Με απόδειξη',
-    photo_without: 'Χωρίς απόδειξη'
+    photo_without: 'Χωρίς απόδειξη',
+    settings_account_legal_title: 'ℹ️ Λογαριασμός & Νομικά',
+    btn_manage: 'Διαχείριση',
+    btn_set: 'Ορισμός',
+    date_picker_title: 'Ορισμός ημερομηνίας και ώρας',
+    date_picker_time_label: 'ΩΡΑ',
+    forecast_title: 'Εκτίμηση Έτους',
+    forecast_projected_savings: 'Προβλεπόμενη Αποταμίευση:',
+    forecast_modal_title: '🔮 Ανάλυση & Σενάρια',
+    forecast_current_status_title: 'Τρέχουσα Πορεία',
+    forecast_scenarios_title: '🔮 ΣΕΝΑΡΙΑ ΕΞΕΛΙΞΗΣ (ΕΩΣ ΔΕΚΕΜΒΡΙΟ)',
+    forecast_best_case: 'Βέλτιστο Σενάριο (-15% έξοδα):',
+    forecast_expected_case: 'Αναμενόμενο (Τρέχουσα πορεία):',
+    forecast_worst_case: 'Απαισιόδοξο Σενάριο (+15% έξοδα):',
+    forecast_target_title: 'ΠΡΟΣΩΠΙΚΟΣ ΣΤΟΧΟΣ ΑΠΟΤΑΜΙΕΥΣΗΣ',
+    forecast_target_save_btn: 'Αποθήκευση',
+    forecast_required_monthly_label: 'Απαιτούμενη Μηνιαία Αποταμίευση:',
+    forecast_goal_timeline_label: 'Εκτιμώμενος Χρόνος Επίτευξης:',
+    fhs_modal_title: '📊 Οικονομική Υγεία',
+    fhs_tab_breakdown: 'Ανάλυση',
+    fhs_tab_methodology: 'Μεθοδολογία',
+    fhs_savings_rate_title: 'Δείκτης Αποταμίευσης (40%)',
+    fhs_emergency_fund_title: 'Ταμείο Έκτακτης Ανάγκης (40%)',
+    fhs_expense_trend_title: 'Έλεγχος Ρίσκου & Τάση (20%)',
+    fhs_explain_title: '💡 Πώς υπολογίστηκε;',
+    fhs_explain_liquid_balance_label: 'Διαθέσιμο Υπόλοιπο:',
+    fhs_explain_survival_title: '🛡️ Βασική Επιβίωση:',
+    fhs_explain_survival_desc: '(Πόσο αντέχεις αν κόψεις τα περιττά και κρατήσεις μόνο ενοίκιο, λογαριασμούς, super market)',
+    fhs_explain_lifestyle_title: '🛒 Τρέχουσα Ζωή:',
+    fhs_explain_lifestyle_desc: '(Πόσο αντέχεις αν συνεχίσεις να ζεις και να ξοδεύεις ακριβώς όπως τώρα)',
+    fhs_explain_target_title: '🎯 Στόχος Ασφαλείας:',
+    fhs_explain_target_months: '6.0 μήνες Τρέχουσας Ζωής',
+    fhs_methodology_title: '📈 Μεθοδολογία Financial Health Score',
+    fhs_methodology_intro: 'Το σκορ οικονομικής υγείας υπολογίζεται με βάση τα διεθνή πρότυπα του <strong>Financial Health Network (FHN)</strong> και του <strong>Consumer Financial Protection Bureau (CFPB)</strong>, χρησιμοποιώντας 3 βασικούς πυλώνες:',
+    fhs_methodology_savings_title: '• Δείκτης Αποταμίευσης (Savings Rate) — 40%:',
+    fhs_methodology_savings_desc: 'Βασίζεται στον κανόνα <strong>50/30/20</strong> (Harvard Law School). Η διατήρηση αποταμίευσης άνω του 20% των καθαρών εσόδων είναι ο θεμέλιος λίθος για τη μακροχρόνια οικονομική ελευθερία.',
+    fhs_methodology_emergency_title: '• Ταμείο Έκτακτης Ανάγκης (Emergency Fund) — 40%:',
+    fhs_methodology_emergency_desc: 'Μελέτες του <strong>CFPB</strong> δείχνουν ότι η ύπαρξη ρευστότητας για την κάλυψη <strong>3 έως 6 μηνών σταθερών εξόδων</strong> μειώνει κατά 85% την πιθανότητα δημιουργίας προβληματικού χρέους.',
+    fhs_methodology_trend_title: '• Τάση & Έλεγχος Ρίσκου (Expense Trend) — 20%:',
+    fhs_methodology_trend_desc: 'Επιβραβεύει τη σταθερότητα και τη διατήρηση των μηνιαίων εξόδων κάτω από το όριο των εσόδων.',
+    fhs_methodology_note: '(Σημείωση: Για νέους χρήστες εφαρμόζεται προσαρμοσμένο μοντέλο εκκίνησης βάσει των πρώτων δεδομένων, το οποίο ωριμάζει μετά το πέρας του πρώτου τριμήνου).',
+    excel_select_file_label: 'Επιλέξτε Αρχείο Excel (.xlsx, .xls) ή CSV',
+    excel_clear_data_warning: '⚠️ Διαγραφή παλιών δεδομένων πριν την εισαγωγή (καθαρή επανεισαγωγή)',
+    excel_field_app: 'Πεδίο Εφαρμογής',
+    excel_column_file: 'Στήλη Excel',
+    excel_field_date: 'Ημερομηνία *',
+    excel_field_note: 'Σημείωση / Note',
+    excel_field_amount: 'Ποσό (Amount)',
+    excel_field_inflow: 'Εισροή / Credit (Inflow)',
+    excel_field_outflow: 'Εκροή / Debit (Outflow)',
+    excel_field_type: 'Τύπος (Expense/Income)',
+    excel_field_description: 'Περιγραφή (Description)'
   },
   en: {
     nav_trans: 'Transactions',
     nav_stats: 'Stats',
-    nav_accounts: 'History',
+    nav_accounts: 'Overview',
     nav_more: 'More',
     section_data_mgmt: 'Data Management',
     section_settings: 'Settings',
+    settings_pref_title: '⚙️ App Preferences',
+    settings_data_title: '☁️ Data & Sync',
+    settings_family_title: '👥 Family Management',
+    settings_feedback_title: '💬 Feedback & Rating',
     card_sync: 'Sync',
     card_import_excel: 'Import Excel',
     card_export_excel: 'Export Excel',
@@ -403,8 +473,8 @@ const TRANSLATIONS = {
     assets_title: 'Income',
     liabilities_title: 'Expenses',
     total_title: 'Balance',
-    accounts_header_title: 'Income',
-    overall_history_title: 'Overall History',
+    accounts_header_title: 'Accounts',
+    overall_history_title: 'Overview',
     overall_history_period_label: 'Period:',
     cards_header_title: 'Expenses',
     row_date: 'Date',
@@ -543,9 +613,9 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v229)',
+    app_version: 'Version 1.0.0 (build v318 - 07/06/2026 23:20)',
     fab_add_transaction: 'Add Transaction',
-    yearly_savings_title: 'Yearly Savings',
+    yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
     sync_now_btn: 'Sync Now',
     search_btn_clear: 'Clear',
@@ -598,7 +668,58 @@ const TRANSLATIONS = {
     search_title_photo: 'Receipt Filter',
     photo_all: 'All transactions',
     photo_with: 'With receipt',
-    photo_without: 'Without receipt'
+    photo_without: 'Without receipt',
+    settings_account_legal_title: 'ℹ️ Account & Legal',
+    btn_manage: 'Manage',
+    btn_set: 'Set',
+    date_picker_title: 'Set Date and Time',
+    date_picker_time_label: 'TIME',
+    forecast_title: 'Year-End Forecast',
+    forecast_projected_savings: 'Projected Savings:',
+    forecast_modal_title: '🔮 Analysis & Scenarios',
+    forecast_current_status_title: 'Current Status',
+    forecast_scenarios_title: '🔮 PROJECTION SCENARIOS (UNTIL DECEMBER)',
+    forecast_best_case: 'Best Case Scenario (-15% expenses):',
+    forecast_expected_case: 'Expected Case (Current path):',
+    forecast_worst_case: 'Worst Case Scenario (+15% expenses):',
+    forecast_target_title: 'PERSONAL SAVINGS TARGET',
+    forecast_target_save_btn: 'Save',
+    forecast_required_monthly_label: 'Required Monthly Savings:',
+    forecast_goal_timeline_label: 'Estimated Time to Achieve:',
+    fhs_modal_title: '📊 Financial Health',
+    fhs_tab_breakdown: 'Breakdown',
+    fhs_tab_methodology: 'Methodology',
+    fhs_savings_rate_title: 'Savings Rate (40%)',
+    fhs_emergency_fund_title: 'Emergency Fund (40%)',
+    fhs_expense_trend_title: 'Expense Trend & Risk (20%)',
+    fhs_explain_title: '💡 How was it calculated?',
+    fhs_explain_liquid_balance_label: 'Available Balance:',
+    fhs_explain_survival_title: '🛡️ Basic Survival:',
+    fhs_explain_survival_desc: '(How long you can last if you cut all discretionary spending and keep only rent, bills, groceries)',
+    fhs_explain_lifestyle_title: '🛒 Current Lifestyle:',
+    fhs_explain_lifestyle_desc: '(How long you can last if you continue to live and spend exactly as you do now)',
+    fhs_explain_target_title: '🎯 Safety Target:',
+    fhs_explain_target_months: '6.0 months of Current Lifestyle',
+    fhs_methodology_title: '📈 Financial Health Score Methodology',
+    fhs_methodology_intro: 'The financial health score is calculated based on international standards of the <strong>Financial Health Network (FHN)</strong> and the <strong>Consumer Financial Protection Bureau (CFPB)</strong>, using 3 key pillars:',
+    fhs_methodology_savings_title: '• Savings Rate — 40%:',
+    fhs_methodology_savings_desc: 'Based on the <strong>50/30/20 rule</strong> (Harvard Law School). Maintaining savings above 20% of net income is the cornerstone of long-term financial freedom.',
+    fhs_methodology_emergency_title: '• Emergency Fund — 40%:',
+    fhs_methodology_emergency_desc: 'Studies by the <strong>CFPB</strong> show that having liquidity to cover <strong>3 to 6 months of fixed expenses</strong> reduces the probability of problematic debt by 85%.',
+    fhs_methodology_trend_title: '• Expense Trend & Risk Control — 20%:',
+    fhs_methodology_trend_desc: 'Rewards stability and keeping monthly expenses below net income limits.',
+    fhs_methodology_note: '(Note: For new users, a customized start model is applied based on initial data, which matures after the end of the first quarter).',
+    excel_select_file_label: 'Select Excel File (.xlsx, .xls) or CSV',
+    excel_clear_data_warning: '⚠️ Clear old data before import (clean re-import)',
+    excel_field_app: 'Application Field',
+    excel_column_file: 'Excel Column',
+    excel_field_date: 'Date *',
+    excel_field_note: 'Note',
+    excel_field_amount: 'Amount',
+    excel_field_inflow: 'Credit (Inflow)',
+    excel_field_outflow: 'Debit (Outflow)',
+    excel_field_type: 'Type (Expense/Income)',
+    excel_field_description: 'Description'
   }
 };
 
@@ -796,6 +917,21 @@ function applyLanguage(lang) {
   const feedbackCommentInput = document.getElementById('feedback-comment');
   if (feedbackCommentInput) {
     feedbackCommentInput.placeholder = TRANSLATIONS[lang]['feedback_comment_placeholder'] || 'Γράψτε τα σχόλιά σας εδώ...';
+  }
+
+  // Update category name input placeholders
+  const newCategoryNameInput = document.getElementById('new-category-name');
+  if (newCategoryNameInput) {
+    newCategoryNameInput.placeholder = TRANSLATIONS[lang]['new_category_name_placeholder'] || 'Όνομα κατηγορίας';
+  }
+
+  // Update custom date picker weekdays initials
+  const weekdaysEl = document.getElementById('custom-date-picker-weekdays');
+  if (weekdaysEl) {
+    const elInitials = ['Δε','Τρ','Τε','Πε','Πα','Σα','Κυ'];
+    const enInitials = ['Mo','Tu','We','Th','Fr','Sa','Su'];
+    const initials = lang === 'en' ? enInitials : elInitials;
+    weekdaysEl.innerHTML = initials.map(day => `<span>${day}</span>`).join('');
   }
 
   // Update search overlay input placeholder
@@ -1168,6 +1304,12 @@ function getStatsDateRange() {
   return { start, end };
 }
 
+function syncStatsDate() {
+  state.statsDate.setDate(15);
+  state.statsDate.setFullYear(state.selectedYear);
+  state.statsDate.setMonth(state.selectedMonth);
+}
+
 function formatStatsPeriodTitle(start, end) {
   if (state.statsPeriodType === 'monthly') {
     return `${getMonthName(start.getMonth(), true)} ${start.getFullYear()}`;
@@ -1289,7 +1431,64 @@ function resolveCategoryInfo(rawCategory, transType) {
 window.addEventListener('DOMContentLoaded', async () => {
   if (isIOS) {
     document.body.classList.add('is-ios');
+    
+    // Global focusout listener to reset layout viewport panning when any input blurs on iOS
+    document.addEventListener('focusout', (e) => {
+      const tag = e.target.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
+        // Only reset if focus didn't immediately move to another input/textarea/select
+        setTimeout(() => {
+          const activeEl = document.activeElement;
+          const isAnotherInputFocused = activeEl && 
+            (activeEl.tagName === 'INPUT' || 
+             activeEl.tagName === 'TEXTAREA' || 
+             activeEl.tagName === 'SELECT');
+          if (!isAnotherInputFocused) {
+            forceViewportReset();
+          }
+        }, 100);
+      }
+    });
   }
+
+  // ============================================================
+  // FORCE CLOSE ALL MODALS - runs on every load type
+  // iOS Safari bfcache: DOMContentLoaded does NOT re-fire on
+  // back/forward navigation or OAuth redirects. 'pageshow' does.
+  // ============================================================
+  function forceCloseAllModals() {
+    document.body.classList.remove('modal-open');
+    document.documentElement.classList.remove('modal-open');
+    document.body.style.removeProperty('position');
+    document.body.style.removeProperty('overflow');
+    document.body.style.removeProperty('top');
+    document.body.style.removeProperty('left');
+    document.body.style.removeProperty('width');
+    document.body.style.removeProperty('height');
+    document.querySelectorAll('.modal-overlay, .tx-modal-overlay').forEach(function(m) {
+      m.classList.remove('active');
+    });
+    // Also reset any inline display:flex on modals
+    const txModal = document.getElementById('transaction-modal');
+    if (txModal && txModal.style.display === 'flex') txModal.style.display = '';
+    console.log('[Init] All modals force-closed');
+  }
+  // Expose globally so auth handler can call it too
+  window.forceCloseAllModals = forceCloseAllModals;
+
+  // Run immediately on DOM ready
+  forceCloseAllModals();
+
+  // CRITICAL: Also run on pageshow — this fires for bfcache restores
+  // (e.g. after Google OAuth redirect on iOS), unlike DOMContentLoaded
+  window.addEventListener('pageshow', function(event) {
+    if (event.persisted) {
+      // Page restored from bfcache (iOS back navigation or OAuth redirect)
+      console.log('[pageshow] bfcache restore detected — force-closing modals');
+      forceCloseAllModals();
+    }
+  });
+
   // Set initial scroll isolation class for default trans tab
   document.body.classList.add('trans-tab-active');
   loadConfig();
@@ -1316,6 +1515,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('trans-date').value = today;
   applyLanguage(state.lang);
 });
+
 
 // ============================================================
 // CUSTOM ALERT & CONFIRM MODALS
@@ -1610,14 +1810,18 @@ function initSupabaseAuth() {
       state.currentUser = session.user;
       localStorage.setItem('cached_current_user', JSON.stringify(session.user));
 
-      // Load cached partner profile if available
+      // Load cached partner and user profile if available
       try {
         const cachedPartner = localStorage.getItem('cached_partner_profile');
         if (cachedPartner) {
           state.partnerProfile = JSON.parse(cachedPartner);
         }
+        const cachedUser = localStorage.getItem('cached_user_profile');
+        if (cachedUser) {
+          state.userProfile = JSON.parse(cachedUser);
+        }
       } catch (e) {
-        console.error('Failed to parse cached partner profile:', e);
+        console.error('Failed to parse cached profiles:', e);
       }
       
       // Clear guest mode state
@@ -1630,9 +1834,21 @@ function initSupabaseAuth() {
       }
       
       // Hide auth overlay & reset elements
-      if (authOverlay) authOverlay.style.display = 'none';
+      if (authOverlay) {
+        // Prevent click penetration (ghost clicks) to elements underneath (like the FAB button)
+        authOverlay.style.pointerEvents = 'none';
+        document.body.style.pointerEvents = 'none';
+        setTimeout(() => {
+          authOverlay.style.display = 'none';
+          authOverlay.style.pointerEvents = '';
+          document.body.style.pointerEvents = '';
+          forceViewportReset();
+        }, 350);
+      }
       toggleLoader(false);
       if (formsContainer) formsContainer.style.display = 'block';
+      // Force-close any modals that bfcache may have restored
+      if (typeof window.forceCloseAllModals === 'function') window.forceCloseAllModals();
       
       // Show switcher in header
       const switcher = document.getElementById('wallet-switcher-container');
@@ -1642,14 +1858,14 @@ function initSupabaseAuth() {
       // Show user badge
       updateHeaderProfileBadge();
       
-      // Show email in settings page
+      // Show email in the new profile header card (legacy element stays hidden)
       const emailDisplay = document.getElementById('settings-user-email-value');
       if (emailDisplay) {
         emailDisplay.textContent = email;
         emailDisplay.title = email;
       }
-      const emailItem = document.getElementById('settings-user-email-item');
-      if (emailItem) emailItem.style.display = 'flex';
+      // Note: settings-user-email-item is intentionally kept hidden.
+      // The email is displayed in the profile-user-email element instead.
       
       // Apply correct visual transformation theme and update UI immediately with cached data
       applyWalletTheme();
@@ -1695,6 +1911,7 @@ function initSupabaseAuth() {
       state.partnerProfile = null;
       localStorage.removeItem('cached_current_user');
       localStorage.removeItem('cached_partner_profile');
+      localStorage.removeItem('cached_user_profile');
       localStorage.removeItem('offline_transactions');
       localStorage.removeItem('offline_accounts');
       localStorage.removeItem('offline_categories');
@@ -1704,7 +1921,17 @@ function initSupabaseAuth() {
         state.guestMode = true;
         
         // Hide auth overlay & reset elements
-        if (authOverlay) authOverlay.style.display = 'none';
+        if (authOverlay) {
+          // Prevent click penetration (ghost clicks) to elements underneath (like the FAB button)
+          authOverlay.style.pointerEvents = 'none';
+          document.body.style.pointerEvents = 'none';
+          setTimeout(() => {
+            authOverlay.style.display = 'none';
+            authOverlay.style.pointerEvents = '';
+            document.body.style.pointerEvents = '';
+            forceViewportReset();
+          }, 350);
+        }
         toggleLoader(false);
         if (formsContainer) formsContainer.style.display = 'block';
         
@@ -1780,21 +2007,26 @@ async function loadUserProfiles(user) {
         console.error('Failed to create profile:', insertError);
       } else {
         state.userProfile = newProfile;
+        localStorage.setItem('cached_user_profile', JSON.stringify(newProfile));
         updateHeaderProfileBadge();
       }
     } else {
       state.userProfile = profile;
+      localStorage.setItem('cached_user_profile', JSON.stringify(profile));
       updateHeaderProfileBadge();
     }
     
     // 2. Load family profiles & family group details
     if (state.userProfile && state.userProfile.family_id) {
-      const [famRes, groupRes] = await Promise.all([
-        state.supabaseClient.from('profiles').select('*').eq('family_id', state.userProfile.family_id),
-        state.supabaseClient.from('family_groups').select('*').eq('id', state.userProfile.family_id).single()
-      ]);
+      const [famRes, groupRes] = await promiseTimeout(
+        Promise.all([
+          state.supabaseClient.from('profiles').select('*').eq('family_id', state.userProfile.family_id),
+          state.supabaseClient.from('family_groups').select('*').eq('id', state.userProfile.family_id).single()
+        ]),
+        8000
+      ).catch(e => [{ data: null, error: e }, { data: null, error: e }]);
 
-      if (famRes.data) {
+      if (famRes && famRes.data) {
         state.familyProfiles = famRes.data;
         const otherMember = state.familyProfiles.find(p => p.id !== user.id);
         if (state.familyProfiles.length === 2 && otherMember) {
@@ -1808,7 +2040,7 @@ async function loadUserProfiles(user) {
         state.familyProfiles = [];
       }
       
-      if (groupRes.data) {
+      if (groupRes && groupRes.data) {
         state.familyGroup = groupRes.data;
       } else {
         state.familyGroup = null;
@@ -1825,10 +2057,13 @@ async function loadUserProfiles(user) {
         localStorage.removeItem('pending_invite_code'); // Clear immediately
         setTimeout(() => showPendingInviteCodePrompt(pendingInviteCode), 1000);
       } else if (user.email) {
-        const { data: pending } = await state.supabaseClient
-          .from('pending_invitations')
-          .select('*, family_groups(name, invite_code)')
-          .eq('invited_email', user.email.trim().toLowerCase());
+        const { data: pending } = await promiseTimeout(
+          state.supabaseClient
+            .from('pending_invitations')
+            .select('*, family_groups(name, invite_code)')
+            .eq('invited_email', user.email.trim().toLowerCase()),
+          8000
+        ).catch(e => ({ data: null, error: e }));
 
         if (pending && pending.length > 0) {
           setTimeout(() => showPendingInvitationPrompt(pending[0]), 1000);
@@ -1944,7 +2179,7 @@ function getActiveTransactions() {
   const partnerId = state.partnerProfile ? state.partnerProfile.id : null;
   const familyId = state.userProfile ? state.userProfile.family_id : null;
 
-  return state.transactions.filter(t => {
+  const filtered = state.transactions.filter(t => {
     if (t.user_id === undefined) {
       return true;
     }
@@ -1963,6 +2198,35 @@ function getActiveTransactions() {
       return t.user_id === null || t.user_id === undefined;
     }
   });
+
+  // Deduplicate: (1) ID-based to remove exact duplicates, then
+  // (2) content-based to remove local_ copies that were synced to cloud
+  const seenIds = new Set();
+  const idDeduped = filtered.filter(t => {
+    const id = t.id;
+    if (!id) return true;
+    if (seenIds.has(id)) return false;
+    seenIds.add(id);
+    return true;
+  });
+
+  const cloudKeys = new Set();
+  const locals = [];
+  const others = [];
+  idDeduped.forEach(t => {
+    if (t.id && String(t.id).startsWith('local_')) {
+      locals.push(t);
+    } else {
+      const key = `${t.amount || 0}|${String(t.date || '').split('T')[0]}|${t.type || ''}|${t.category || ''}|${t.account_from || ''}`;
+      cloudKeys.add(key);
+      others.push(t);
+    }
+  });
+  const dedupedLocals = locals.filter(t => {
+    const key = `${t.amount || 0}|${String(t.date || '').split('T')[0]}|${t.type || ''}|${t.category || ''}|${t.account_from || ''}`;
+    return !cloudKeys.has(key);
+  });
+  return [...others, ...dedupedLocals];
 }
 
 function calculateInitialBalances() {
@@ -1987,9 +2251,412 @@ function calculateInitialBalances() {
   });
 }
 
+function normalizeString(str) {
+  if (!str) return '';
+  let s = String(str).toLowerCase().trim();
+  const map = {
+    'ά': 'α', 'έ': 'ε', 'ή': 'η', 'ί': 'ι', 'ό': 'ο', 'ύ': 'υ', 'ώ': 'ω',
+    'ΐ': 'ι', 'ΰ': 'υ', 'ϊ': 'ι', 'ϋ': 'υ'
+  };
+  let res = '';
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    res += map[c] || c;
+  }
+  return res.toUpperCase();
+}
+
+function classifyCategory(categoryName) {
+  const norm = normalizeString(categoryName);
+  const essentialKeywords = [
+    'ΣΠΙΤΙ', 'HOME', 'RENT', 'ΕΝΟΙΚΙΟ',
+    'ΔΙΑΤΡΟΦΗ', 'FOOD', 'SUPERMARKET', 'ΣΟΥΠΕΡ ΜΑΡΚΕΤ', 'ΣΟΥΠΕΡΜΑΡΚΕΤ',
+    'ΥΓΕΙΑ', 'HEALTH', 'PHARMACY', 'ΦΑΡΜΑΚΕΙΟ', 'ΓΙΑΤΡΟΣ',
+    'ΦΟΡΟΙ', 'TAXES', 'ΛΟΓΙΣΤΗΣ', 'ACCOUNTANT',
+    'ΜΕΤΑΚΙΝΗΣΗ', 'TRANSIT', 'METRO', 'ΛΕΩΦΟΡΕΙΟ', 'BUS', 'ΣΥΓΚΟΙΝΩΝΙΕΣ'
+  ];
+  const isEssential = essentialKeywords.some(kw => norm.includes(kw));
+  return {
+    isEssential: isEssential,
+    isLifestyle: !isEssential
+  };
+}
+
+/**
+ * Calculates the Financial Health Score (1-100)
+ */
+function calculateFinancialHealthScore(transactions, accounts, hasHistoricalData) {
+  const today = new Date();
+  const currentYear = today.getFullYear();
+  const currentMonth = today.getMonth(); // 0-11
+  
+  // Filter current month transactions (excluding transfers)
+  const currentMonthTrans = transactions.filter(t => {
+    if (!t.date || t.type === 'transfer') return false;
+    const datePart = String(t.date || '').split('T')[0].split(' ')[0];
+    const parts = datePart.split('-');
+    if (parts.length !== 3) return false;
+    const y = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10) - 1; // 0-11
+    return y === currentYear && m === currentMonth;
+  });
+
+  // Calculate current month's income and expense
+  let currentMonthIncome = 0;
+  let currentMonthExpense = 0;
+  currentMonthTrans.forEach(t => {
+    const amt = parseFloat(t.amount) || 0;
+    if (t.type === 'income') currentMonthIncome += amt;
+    if (t.type === 'expense') currentMonthExpense += amt;
+  });
+
+  // --- CRITERION 1: Savings Rate (40%) ---
+  let savingsRateScore = 0;
+  let savingsRate = 0;
+  if (currentMonthIncome > 0) {
+    savingsRate = (currentMonthIncome - currentMonthExpense) / currentMonthIncome;
+    if (savingsRate >= 0.40) {
+      savingsRateScore = 100;
+    } else if (savingsRate > 0) {
+      if (savingsRate <= 0.10) {
+        savingsRateScore = (savingsRate / 0.10) * 50;
+      } else if (savingsRate <= 0.20) {
+        savingsRateScore = 50 + ((savingsRate - 0.10) / 0.10) * 30;
+      } else {
+        savingsRateScore = 80 + ((savingsRate - 0.20) / 0.20) * 20;
+      }
+    } else {
+      savingsRateScore = 0;
+    }
+  } else {
+    savingsRateScore = currentMonthExpense > 0 ? 0 : 50; // Neutral if no activity
+  }
+
+  // --- CRITERION 2: Emergency Fund (40%) ---
+  // Calculate liquid balance as the net balance (income - expense) of the target year (currentYear)
+  const targetYearTrans = transactions.filter(t => {
+    if (!t.date || t.type === 'transfer') return false;
+    const parts = String(t.date).split('T')[0].split(' ')[0].split('-');
+    if (parts.length !== 3) return false;
+    return parseInt(parts[0], 10) === currentYear;
+  });
+
+  let targetYearIncome = 0;
+  let targetYearExpense = 0;
+  targetYearTrans.forEach(t => {
+    const amt = parseFloat(t.amount) || 0;
+    if (t.type === 'income') targetYearIncome += amt;
+    if (t.type === 'expense') targetYearExpense += amt;
+  });
+
+  const currentBankBalance = targetYearIncome - targetYearExpense;
+
+  // Compute average monthly expenses (all and essential)
+  let avgMonthlyExpense = 0;
+  let avgEssentialMonthlyExpense = 0;
+
+  // Let's compute current month's essential expenses
+  let currentMonthEssentialExpense = 0;
+  currentMonthTrans.forEach(t => {
+    const amt = parseFloat(t.amount) || 0;
+    if (t.type === 'expense') {
+      const cls = classifyCategory(t.category);
+      if (cls.isEssential) {
+        currentMonthEssentialExpense += amt;
+      }
+    }
+  });
+
+  if (hasHistoricalData) {
+    const monthlyExpensesMap = {};
+    const monthlyEssentialMap = {};
+    
+    transactions.forEach(t => {
+      if (t.type !== 'expense' || !t.date) return;
+      const datePart = String(t.date || '').split('T')[0].split(' ')[0];
+      const parts = datePart.split('-');
+      if (parts.length !== 3) return;
+      const y = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10) - 1;
+      
+      // Restrict historical data strictly to current calendar year
+      if (y !== currentYear) return;
+      // Exclude current month
+      if (y === currentYear && m === currentMonth) return;
+      
+      const key = `${y}-${m}`;
+      const amt = parseFloat(t.amount) || 0;
+      
+      monthlyExpensesMap[key] = (monthlyExpensesMap[key] || 0) + amt;
+      
+      const cls = classifyCategory(t.category);
+      if (cls.isEssential) {
+        monthlyEssentialMap[key] = (monthlyEssentialMap[key] || 0) + amt;
+      }
+    });
+
+    // Stable divisor: count actual elapsed months since the first expense of the current year up to the previous month
+    let firstActiveMonth = currentMonth;
+    transactions.forEach(t => {
+      if (!t.date || t.type !== 'expense') return;
+      const datePart = String(t.date || '').split('T')[0].split(' ')[0];
+      const parts = datePart.split('-');
+      if (parts.length !== 3) return;
+      const y = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10) - 1;
+      if (y === currentYear && m < firstActiveMonth) {
+        firstActiveMonth = m;
+      }
+    });
+
+    const elapsedMonthsInYear = currentMonth - firstActiveMonth;
+    const monthsCount = Math.max(1, elapsedMonthsInYear);
+
+    const totalHistoricalExpense = Object.values(monthlyExpensesMap).reduce((a, b) => a + b, 0);
+    avgMonthlyExpense = totalHistoricalExpense / monthsCount;
+    
+    const totalHistoricalEssential = Object.values(monthlyEssentialMap).reduce((a, b) => a + b, 0);
+    avgEssentialMonthlyExpense = totalHistoricalEssential / monthsCount;
+  } else {
+    avgMonthlyExpense = currentMonthExpense;
+    avgEssentialMonthlyExpense = currentMonthEssentialExpense;
+  }
+
+  if (avgMonthlyExpense <= 0) avgMonthlyExpense = 1000; // reasonable fallback
+  if (avgEssentialMonthlyExpense <= 0) avgEssentialMonthlyExpense = avgMonthlyExpense * 0.75; // fallback to 75%
+  if (avgEssentialMonthlyExpense > avgMonthlyExpense) avgEssentialMonthlyExpense = avgMonthlyExpense;
+
+  const monthsCovered = currentBankBalance / avgMonthlyExpense;
+  const survivalRunway = currentBankBalance / avgEssentialMonthlyExpense;
+  const lifestyleRunway = monthsCovered;
+
+  let emergencyFundScore = 0;
+  if (monthsCovered >= 12) {
+    emergencyFundScore = 100;
+  } else if (monthsCovered > 0) {
+    if (monthsCovered <= 3) {
+      emergencyFundScore = (monthsCovered / 3) * 50;
+    } else if (monthsCovered <= 6) {
+      emergencyFundScore = 50 + ((monthsCovered - 3) / 3) * 30;
+    } else {
+      emergencyFundScore = 80 + ((monthsCovered - 6) / 6) * 20;
+    }
+  } else {
+    emergencyFundScore = 0;
+  }
+
+  // --- CRITERION 3: Expense Trend (20%) ---
+  let expenseTrendScore = 0;
+  let isTemporary = false;
+
+  if (hasHistoricalData) {
+    const prevMonthDate = new Date(currentYear, currentMonth - 1, 1);
+    const prevYearNum = prevMonthDate.getFullYear();
+    const prevMonthNum = prevMonthDate.getMonth();
+
+    let prevMonthExpense = 0;
+    transactions.forEach(t => {
+      if (t.type === 'expense' && t.date) {
+        const datePart = String(t.date || '').split('T')[0].split(' ')[0];
+        const parts = datePart.split('-');
+        if (parts.length !== 3) return;
+        const y = parseInt(parts[0], 10);
+        const m = parseInt(parts[1], 10) - 1;
+        if (y === prevYearNum && m === prevMonthNum) {
+          prevMonthExpense += parseFloat(t.amount) || 0;
+        }
+      }
+    });
+
+    if (prevMonthExpense > 0) {
+      if (currentMonthExpense <= prevMonthExpense) {
+        expenseTrendScore = 100;
+      } else {
+        const pctIncrease = (currentMonthExpense - prevMonthExpense) / prevMonthExpense;
+        expenseTrendScore = Math.max(0, 100 - (pctIncrease * 200));
+      }
+    } else {
+      expenseTrendScore = currentMonthExpense <= currentMonthIncome ? 100 : 50;
+    }
+  } else {
+    isTemporary = true;
+    if (currentMonthExpense < currentMonthIncome) {
+      expenseTrendScore = 100;
+    } else {
+      expenseTrendScore = 30;
+    }
+  }
+
+  let finalScore = (savingsRateScore * 0.40) + (emergencyFundScore * 0.40) + (expenseTrendScore * 0.20);
+  finalScore = Math.min(100, Math.max(0, finalScore));
+
+  let label = '';
+  const lang = state.lang || 'el';
+  if (lang === 'el') {
+    if (finalScore >= 85) label = 'Εξαιρετική Οικονομική Υγεία';
+    else if (finalScore >= 70) label = 'Καλή Οικονομική Υγεία';
+    else if (finalScore >= 50) label = 'Μέτρια Οικονομική Υγεία';
+    else label = 'Χρειάζεται Προσοχή';
+  } else {
+    if (finalScore >= 85) label = 'Excellent Financial Health';
+    else if (finalScore >= 70) label = 'Good Financial Health';
+    else if (finalScore >= 50) label = 'Average Financial Health';
+    else label = 'Needs Attention';
+  }
+
+  return {
+    score: finalScore,
+    label: label,
+    isTemporary: isTemporary,
+    savingsRateScore: savingsRateScore,
+    emergencyFundScore: emergencyFundScore,
+    expenseTrendScore: expenseTrendScore,
+    weightedSavings: savingsRateScore * 0.4,
+    weightedEmergency: emergencyFundScore * 0.4,
+    weightedTrend: expenseTrendScore * 0.2,
+    monthsCovered: monthsCovered,
+    savingsRate: savingsRate,
+    survivalRunway: survivalRunway,
+    lifestyleRunway: lifestyleRunway,
+    liquidBalance: currentBankBalance
+  };
+}
+
+/**
+ * Calculates Year-End Forecasting (Run-Rate)
+ */
+function calculateForecasting(transactions, hasHistoricalData) {
+  const today = new Date();
+  const currentYear = today.getFullYear();
+  const currentMonth = today.getMonth(); // 0-11
+  
+  // Filter current year transactions (excluding transfers)
+  const currentYearTrans = transactions.filter(t => {
+    if (!t.date || t.type === 'transfer') return false;
+    const datePart = String(t.date || '').split('T')[0].split(' ')[0];
+    const parts = datePart.split('-');
+    if (parts.length !== 3) return false;
+    const y = parseInt(parts[0], 10);
+    return y === currentYear;
+  });
+
+  let currentYearIncome = 0;
+  let currentYearExpense = 0;
+  currentYearTrans.forEach(t => {
+    const amt = parseFloat(t.amount) || 0;
+    if (t.type === 'income') currentYearIncome += amt;
+    if (t.type === 'expense') currentYearExpense += amt;
+  });
+
+  const currentYearSavings = currentYearIncome - currentYearExpense;
+  const lang = state.lang || 'el';
+  
+  // Handle December case (Year-End Review)
+  if (currentMonth === 11) {
+    if (!hasHistoricalData) {
+      const juneTrans = currentYearTrans.filter(t => {
+        const datePart = String(t.date || '').split('T')[0].split(' ')[0];
+        const parts = datePart.split('-');
+        if (parts.length !== 3) return false;
+        const m = parseInt(parts[1], 10) - 1;
+        return m <= 5; // Jan to Jun
+      });
+
+      let juneIncome = 0;
+      let juneExpense = 0;
+      juneTrans.forEach(t => {
+        const amt = parseFloat(t.amount) || 0;
+        if (t.type === 'income') juneIncome += amt;
+        if (t.type === 'expense') juneExpense += amt;
+      });
+
+      const juneSavings = juneIncome - juneExpense;
+      const juneAvgMonthly = juneSavings / 6;
+      const juneForecastProjection = juneSavings + (juneAvgMonthly * 6);
+
+      const msg = lang === 'el' 
+        ? `Ολοκληρώθηκε ο πρώτος σας χρόνος! Η αρχική εκτίμηση του Ιουνίου προέβλεπε αποταμίευση € ${formatCurrency(juneForecastProjection)} και καταφέρατε να φτάσετε τα € ${formatCurrency(currentYearSavings)}. Είστε εντός στόχων!`
+        : `Your first year is complete! The initial projection in June was € ${formatCurrency(juneForecastProjection)} and you achieved € ${formatCurrency(currentYearSavings)}. You are on track!`;
+
+      return {
+        isYearEnd: true,
+        isNewUser: true,
+        actualSavings: currentYearSavings,
+        projectedSavings: juneForecastProjection,
+        diff: currentYearSavings - juneForecastProjection,
+        message: msg
+      };
+    } else {
+      const prevYear = currentYear - 1;
+      const prevYearTrans = transactions.filter(t => {
+        if (!t.date || t.type === 'transfer') return false;
+        const datePart = String(t.date || '').split('T')[0].split(' ')[0];
+        const parts = datePart.split('-');
+        if (parts.length !== 3) return false;
+        const y = parseInt(parts[0], 10);
+        return y === prevYear;
+      });
+
+      let prevYearIncome = 0;
+      let prevYearExpense = 0;
+      prevYearTrans.forEach(t => {
+        const amt = parseFloat(t.amount) || 0;
+        if (t.type === 'income') prevYearIncome += amt;
+        if (t.type === 'expense') prevYearExpense += amt;
+      });
+
+      const prevYearSavings = prevYearIncome - prevYearExpense;
+      const pctDiff = prevYearSavings > 0 
+        ? ((currentYearSavings - prevYearSavings) / prevYearSavings) * 100 
+        : 0;
+
+      const sign = pctDiff >= 0 ? '+' : '';
+      const msg = lang === 'el'
+        ? `Το ${prevYear} είχατε αποταμιεύσει € ${formatCurrency(prevYearSavings)}. Φέτος κλείσατε στα € ${formatCurrency(currentYearSavings)} (${sign}${pctDiff.toFixed(1)}%). Εξαιρετική εξέλιξη!`
+        : `In ${prevYear} you saved € ${formatCurrency(prevYearSavings)}. This year you closed at € ${formatCurrency(currentYearSavings)} (${sign}${pctDiff.toFixed(1)}%). Great progress!`;
+
+      return {
+        isYearEnd: true,
+        isNewUser: false,
+        actualSavings: currentYearSavings,
+        prevYearSavings: prevYearSavings,
+        pctDiff: pctDiff,
+        message: msg
+      };
+    }
+  }
+
+  const elapsedMonths = currentMonth + 1; // 1-indexed (June = 6)
+  const avgMonthlyIncome = currentYearIncome / elapsedMonths;
+  const avgMonthlyExpense = currentYearExpense / elapsedMonths;
+  const avgMonthlySavings = currentYearSavings / elapsedMonths;
+  const remainingMonths = 12 - elapsedMonths;
+  const projectedYearEndSavings = currentYearSavings + (avgMonthlySavings * remainingMonths);
+
+  // Best Case: expenses reduced by 15% for the remaining months
+  const bestMonthlySavings = avgMonthlyIncome - (avgMonthlyExpense * 0.85);
+  const bestCaseSavings = currentYearSavings + (bestMonthlySavings * remainingMonths);
+
+  // Worst Case: expenses increased by 15% for the remaining months
+  const worstMonthlySavings = avgMonthlyIncome - (avgMonthlyExpense * 1.15);
+  const worstCaseSavings = currentYearSavings + (worstMonthlySavings * remainingMonths);
+
+  return {
+    isYearEnd: false,
+    currentYearSavings: currentYearSavings,
+    avgMonthlySavings: avgMonthlySavings,
+    projectedSavings: projectedYearEndSavings,
+    bestCaseSavings: bestCaseSavings,
+    worstCaseSavings: worstCaseSavings,
+    remainingMonths: remainingMonths
+  };
+}
+
 // Bind to window
 window.getActiveTransactions = getActiveTransactions;
 window.calculateInitialBalances = calculateInitialBalances;
+window.calculateFinancialHealthScore = calculateFinancialHealthScore;
+window.calculateForecasting = calculateForecasting;
 
 // Scan categories and transactions to clean up duplicates (e.g. Chinese characters)
 async function cleanDuplicateCategories() {
@@ -2249,6 +2916,7 @@ async function loadData() {
       // Load from cache and show offline state (not error) so user knows data is still visible
       loadOfflineData();
       updateHeaderSyncIcon('offline');
+      updateUI();
     }
   } else {
     updateHeaderSyncIcon('offline');
@@ -2272,6 +2940,14 @@ function loadOfflineData() {
     }
   } catch (e) {
     console.error('Failed to parse cached partner profile:', e);
+  }
+  try {
+    const cachedProfile = localStorage.getItem('cached_user_profile');
+    if (cachedProfile) {
+      state.userProfile = JSON.parse(cachedProfile);
+    }
+  } catch (e) {
+    console.error('Failed to parse cached user profile:', e);
   }
 
   try {
@@ -2407,11 +3083,16 @@ function deleteTransactionOffline(id) {
 // ============================================================
 function updateUI() {
   updateHeaderAndSync();
-  // Render all tabs sequentially to keep them fully synchronized in the background
-  renderTransactionsTab();
-  renderStatsTab();
-  renderAccountsTab();
-  renderPartnerSection();
+  // Render only the active tab to optimize performance and prevent background rendering lag
+  if (state.activeTab === 'trans') {
+    renderTransactionsTab();
+  } else if (state.activeTab === 'stats') {
+    renderStatsTab();
+  } else if (state.activeTab === 'accounts') {
+    renderAccountsTab();
+  } else if (state.activeTab === 'more') {
+    renderPartnerSection();
+  }
   
   // Clear category render cache on UI refresh to pick up updates
   lastRenderedCategoryType = null;
@@ -2444,6 +3125,7 @@ function updateHeaderAndSync() {
 // ============================================================
 function renderTransactionsTab() {
   const listContainer = document.getElementById('transactions-list');
+  if (!listContainer) return;
   listContainer.innerHTML = '';
 
   const monthStartDay = parseInt(localStorage.getItem('app_month_start') || '1', 10);
@@ -2456,25 +3138,40 @@ function renderTransactionsTab() {
     end = new Date(state.selectedYear, state.selectedMonth + 1, monthStartDay - 1, 23, 59, 59, 999);
   }
 
+  const startISO = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-${String(start.getDate()).padStart(2, '0')}`;
+  const endISO = `${end.getFullYear()}-${String(end.getMonth() + 1).padStart(2, '0')}-${String(end.getDate()).padStart(2, '0')}`;
+
   const walletTrans = getActiveTransactions();
   const filteredTrans = walletTrans.filter(t => {
     if (!t.date) return false;
-    const tDate = new Date(String(t.date).replace(' ', 'T'));
-    return tDate >= start && tDate <= end;
-  }).sort((a, b) => {
-    const dateA = String(a.date || '').split('T')[0].split(' ')[0];
-    const dateB = String(b.date || '').split('T')[0].split(' ')[0];
-    if (dateA !== dateB) return dateB.localeCompare(dateA);
-    const timeA = a.created_at ? new Date(a.created_at).getTime() : (a.date ? new Date(a.date).getTime() : 0);
-    const timeB = b.created_at ? new Date(b.created_at).getTime() : (b.date ? new Date(b.date).getTime() : 0);
-    if (timeA !== timeB) return timeB - timeA;
-    return String(a.id || '').localeCompare(String(b.id || ''));
+    const tDatePart = String(t.date).split('T')[0].split(' ')[0];
+    return tDatePart >= startISO && tDatePart <= endISO;
   });
+
+  // Schwartzian transform for O(N) date parsing during sorting
+  const transWithTime = filteredTrans.map(t => {
+    let time = 0;
+    const refDate = t.created_at || t.date;
+    if (refDate) {
+      time = typeof refDate === 'number' ? refDate : new Date(String(refDate).replace(' ', 'T')).getTime();
+    }
+    return { t, time };
+  });
+
+  transWithTime.sort((a, b) => {
+    const dateA = String(a.t.date || '').split('T')[0].split(' ')[0];
+    const dateB = String(b.t.date || '').split('T')[0].split(' ')[0];
+    if (dateA !== dateB) return dateB.localeCompare(dateA);
+    if (a.time !== b.time) return b.time - a.time;
+    return String(a.t.id || '').localeCompare(String(b.t.id || ''));
+  });
+
+  const sortedTrans = transWithTime.map(item => item.t);
 
   let monthlyIncome = 0, monthlyExpense = 0;
   const groups = {};
 
-  filteredTrans.forEach(t => {
+  sortedTrans.forEach(t => {
     const amt = parseFloat(t.amount) || 0;
     if (t.type === 'income') monthlyIncome += amt;
     else if (t.type === 'expense') monthlyExpense += amt;
@@ -2490,7 +3187,7 @@ function renderTransactionsTab() {
   document.getElementById('summary-expense-val').textContent = `${getCurrencySymbol()} ${formatCurrency(monthlyExpense)}`;
   document.getElementById('summary-total-val').textContent   = `${getCurrencySymbol()} ${formatCurrency(monthlyIncome - monthlyExpense)}`;
 
-  if (filteredTrans.length === 0) {
+  if (sortedTrans.length === 0) {
     listContainer.innerHTML = `
       <div style="text-align:center;padding:60px 20px;color:var(--text-secondary)">
         <div style="font-size:48px;margin-bottom:16px">📅</div>
@@ -2502,6 +3199,8 @@ function renderTransactionsTab() {
 
   const todayObj = new Date();
   const todayStr = `${todayObj.getFullYear()}-${String(todayObj.getMonth() + 1).padStart(2, '0')}-${String(todayObj.getDate()).padStart(2, '0')}`;
+
+  const fragment = document.createDocumentFragment();
 
   Object.keys(groups).sort((a, b) => b.localeCompare(a)).forEach(dateStr => {
     const group = groups[dateStr];
@@ -2529,7 +3228,7 @@ function renderTransactionsTab() {
         </div>
       </div>
       <div class="day-header-right">${rightTotals}</div>`;
-    listContainer.appendChild(header);
+    fragment.appendChild(header);
 
     group.transactions.forEach(t => {
       const catInfo = getCategoryInfo(t.category, t.type);
@@ -2548,10 +3247,21 @@ function renderTransactionsTab() {
       ` : '';
 
       let pressTimer;
+      let feedbackTimer;
       let isLongPress = false;
       
       item.addEventListener('touchstart', (e) => {
         isLongPress = false;
+        state.touchDidMove = false;
+        
+        // Active visual feedback with 80ms delay to prevent flashing on swipe/scroll
+        clearTimeout(feedbackTimer);
+        feedbackTimer = setTimeout(() => {
+          if (!state.touchDidMove && !state.isSwipingMonth) {
+            item.classList.add('pressed');
+          }
+        }, 80);
+        
         if (state.selectionMode) return;
         pressTimer = setTimeout(() => {
           isLongPress = true;
@@ -2563,11 +3273,31 @@ function renderTransactionsTab() {
         }, 600);
       }, { passive: true });
 
-      item.addEventListener('touchend', () => clearTimeout(pressTimer));
-      item.addEventListener('touchmove', () => clearTimeout(pressTimer));
+      item.addEventListener('touchmove', (e) => {
+        clearTimeout(pressTimer);
+        clearTimeout(feedbackTimer);
+        item.classList.remove('pressed');
+        state.touchDidMove = true;
+      }, { passive: true });
+
+      item.addEventListener('touchend', (e) => {
+        clearTimeout(pressTimer);
+        clearTimeout(feedbackTimer);
+        item.classList.remove('pressed');
+        if (state.isSwipingMonth || state.touchDidMove) {
+          if (e.cancelable) e.preventDefault();
+        }
+      }, { passive: false });
+
+      item.addEventListener('touchcancel', () => {
+        clearTimeout(pressTimer);
+        clearTimeout(feedbackTimer);
+        item.classList.remove('pressed');
+      });
       
       item.addEventListener('mousedown', (e) => {
         isLongPress = false;
+        item.classList.add('pressed');
         if (state.selectionMode) return;
         pressTimer = setTimeout(() => {
           isLongPress = true;
@@ -2575,10 +3305,21 @@ function renderTransactionsTab() {
           toggleSelection(t.id);
         }, 600);
       });
-      item.addEventListener('mouseup', () => clearTimeout(pressTimer));
-      item.addEventListener('mouseleave', () => clearTimeout(pressTimer));
+      item.addEventListener('mouseup', () => {
+        clearTimeout(pressTimer);
+        item.classList.remove('pressed');
+      });
+      item.addEventListener('mouseleave', () => {
+        clearTimeout(pressTimer);
+        item.classList.remove('pressed');
+      });
 
       item.onclick = (e) => {
+        if (state.isSwipingMonth || state.touchDidMove || (Date.now() - state.lastSwipeTime < 1500)) {
+          isLongPress = false;
+          state.touchDidMove = false;
+          return;
+        }
         if (isLongPress) {
           isLongPress = false;
           return;
@@ -2591,10 +3332,15 @@ function renderTransactionsTab() {
       };
 
       let amountClass = 'trans-amount';
-      let accountText = t.account_from || '';
+      let accountText = t.account_from ? getAccountDisplayName(t.account_from) : '';
       if (t.type === 'expense')       { amountClass += ' expense'; }
       else if (t.type === 'income')   { amountClass += ' income'; }
-      else if (t.type === 'transfer') { amountClass += ' transfer'; accountText = `${t.account_from} → ${t.account_to}`; }
+      else if (t.type === 'transfer') {
+        const fromDisp = getAccountDisplayName(t.account_from);
+        const toDisp = getAccountDisplayName(t.account_to);
+        amountClass += ' transfer';
+        accountText = `${fromDisp} → ${toDisp}`;
+      }
 
       const translatedSub = getSubcategoryDisplayName(t.subcategory, t.category);
       const translatedCat = getCategoryDisplayName(t.category);
@@ -2603,8 +3349,7 @@ function renderTransactionsTab() {
                          : (translatedSub && translatedSub.trim()) ? translatedSub.trim()
                          : (translatedCat || '');
       
-      const isPartner = state.partnerProfile && t.user_id === state.partnerProfile.id;
-      const partnerBadge = isPartner ? ` <i class="fa-solid fa-user-group partner-badge-icon" title="Προστέθηκε από τον σύντροφο"></i>` : '';
+      const memberBadge = getMemberBadgeHTML(t);
 
       item.innerHTML = `
         ${checkboxHtml}
@@ -2615,14 +3360,16 @@ function renderTransactionsTab() {
             ${t.subcategory ? `<div class="trans-sub-name">${translatedSub}</div>` : ''}
           </div>
           <div class="trans-details">
-            <span class="trans-title">${displayTitle}${partnerBadge}</span>
+            <span class="trans-title">${displayTitle}${memberBadge}</span>
             <span class="trans-acc-label">${accountText}</span>
           </div>
         </div>
         <div class="${amountClass}">${getCurrencySymbol()} ${formatCurrency(t.amount)}</div>`;
-      listContainer.appendChild(item);
+      fragment.appendChild(item);
     });
   });
+
+  listContainer.appendChild(fragment);
 }
 
 // Get category display info (icon, name, color) from stored category or emoji map
@@ -2843,7 +3590,7 @@ function saveCategoriesToStorage() {
 // ============================================================
 // TAB 2: STATS
 // ============================================================
-function renderStatsTab() {
+function renderStatsTab(skipChart = false) {
   const { start, end } = getStatsDateRange();
   
   // Set month/period text on the top left
@@ -3003,13 +3750,15 @@ function renderStatsTab() {
 
   if (!displayList.length) {
     listContainer.innerHTML = `<div style="text-align:center;padding:40px;color:var(--text-secondary)"><h3>Δεν υπάρχουν δεδομένα</h3></div>`;
-    if (statsChartInstance) { statsChartInstance.destroy(); statsChartInstance = null; }
-    if (chartCenterVal) chartCenterVal.style.display = 'none';
+    if (!skipChart) {
+      if (statsChartInstance) { statsChartInstance.destroy(); statsChartInstance = null; }
+      if (chartCenterVal) chartCenterVal.style.display = 'none';
+    }
     return;
   }
 
   // Update high tech doughnut center text
-  if (chartCenterVal) {
+  if (!skipChart && chartCenterVal) {
     chartCenterVal.style.display = 'flex';
     if (centerTitleEl) {
       centerTitleEl.textContent = state.statsType === 'income' ? TRANSLATIONS[state.lang]['summary_income'] : TRANSLATIONS[state.lang]['summary_expense'];
@@ -3020,37 +3769,38 @@ function renderStatsTab() {
   }
 
   // Update income vs expense ratio bar
-  const ratioWrapper = document.getElementById('chart-ratio-wrapper');
-  const ratioIncomeFill = document.getElementById('ratio-fill-income');
-  const ratioExpenseFill = document.getElementById('ratio-fill-expense');
-  const ratioIncomePct = document.getElementById('ratio-income-pct');
-  const ratioExpensePct = document.getElementById('ratio-expense-pct');
-  const totalIE = monthlyIncome + monthlyExpense;
-  if (ratioWrapper && totalIE > 0) {
-    ratioWrapper.style.display = 'block';
-    const iPct = Math.round((monthlyIncome / totalIE) * 100);
-    const ePct = 100 - iPct;
-    ratioIncomeFill.style.width = iPct + '%';
-    ratioExpenseFill.style.width = ePct + '%';
-    ratioIncomePct.textContent = iPct + '%';
-    ratioExpensePct.textContent = ePct + '%';
-  } else if (ratioWrapper) {
-    ratioWrapper.style.display = 'none';
+  if (!skipChart) {
+    const ratioWrapper = document.getElementById('chart-ratio-wrapper');
+    const ratioIncomeFill = document.getElementById('ratio-fill-income');
+    const ratioExpenseFill = document.getElementById('ratio-fill-expense');
+    const ratioIncomePct = document.getElementById('ratio-income-pct');
+    const ratioExpensePct = document.getElementById('ratio-expense-pct');
+    const totalIE = monthlyIncome + monthlyExpense;
+    if (ratioWrapper && totalIE > 0) {
+      ratioWrapper.style.display = 'block';
+      const iPct = Math.round((monthlyIncome / totalIE) * 100);
+      const ePct = 100 - iPct;
+      ratioIncomeFill.style.width = iPct + '%';
+      ratioExpenseFill.style.width = ePct + '%';
+      ratioIncomePct.textContent = iPct + '%';
+      ratioExpensePct.textContent = ePct + '%';
+    } else if (ratioWrapper) {
+      ratioWrapper.style.display = 'none';
+    }
   }
 
   displayList.forEach((item, idx) => {
     const catId = `stats-cat-${idx}-${Date.now()}`;
     const row = document.createElement('div');
     row.className = 'stats-row';
-    const isIncome = state.statsType === 'income';
     const hasSubcats = item.subcategories.length > 0 && item.subcategories.some(s => s.name);
+    const catColor = NEON_PALETTE[idx % NEON_PALETTE.length];
 
     row.innerHTML = `
       <div class="stats-row-left">
-        <span class="stats-pct-badge ${isIncome ? 'income' : ''}">${Math.round(item.percentage)}%</span>
+        <span class="stats-pct-badge" style="background-color: ${catColor};">${Math.round(item.percentage)}%</span>
         <span class="stats-cat-icon">${item.icon}</span>
         <span class="stats-category-name">${getCategoryDisplayName(stripLeadingEmoji(item.name))}</span>
-        ${hasSubcats ? `<i class="fa-solid fa-chevron-right stats-row-chevron"></i>` : ''}
       </div>
       <div class="stats-row-right">${getCurrencySymbol()} ${formatCurrency(item.amount)}</div>`;
     listContainer.appendChild(row);
@@ -3060,47 +3810,317 @@ function renderStatsTab() {
       subContainer.id = catId;
       subContainer.className = 'stats-subcategories-container';
 
+      // Restore expanded state if previously expanded
+      const isExpanded = state.expandedStatsCategories.has(item.name);
+      if (isExpanded) {
+        row.classList.add('expanded');
+        subContainer.classList.add('active');
+      }
+
       item.subcategories.forEach(sub => {
         const subDisplayName = sub.name ? getSubcategoryDisplayName(sub.name, item.name) : (state.lang === 'el' ? 'Χωρίς υποκατηγορία' : 'Uncategorized');
         const subRow = document.createElement('div');
         subRow.className = 'stats-sub-row';
+        
+        // Dynamically style subcategory percentage with parent category theme color (low opacity fill + solid text/border)
         subRow.innerHTML = `
           <div class="stats-sub-left">
-            <span class="stats-sub-pct">${Math.round(sub.percentage)}%</span>
-            <span>${subDisplayName}</span>
+            <span class="stats-sub-pct" style="background-color: ${catColor}26; color: ${catColor}; border: 1px solid ${catColor}33;">${Math.round(sub.percentage)}%</span>
+            <span class="stats-sub-name">${subDisplayName}</span>
           </div>
           <div class="stats-sub-right">${getCurrencySymbol()} ${formatCurrency(sub.amount)}</div>
         `;
+        
+        let subFeedbackTimer;
+        let subTouchStartX = 0;
+        let subTouchStartY = 0;
+        let subTouchMoved = false;
+
+        subRow.addEventListener('touchstart', (e) => {
+          subTouchMoved = false;
+          const touch = e.touches[0];
+          subTouchStartX = touch.clientX;
+          subTouchStartY = touch.clientY;
+
+          clearTimeout(subFeedbackTimer);
+          subFeedbackTimer = setTimeout(() => {
+            if (!subTouchMoved && !state.isSwipingMonth) {
+              subRow.classList.add('pressed');
+            }
+          }, 100);
+        }, { passive: true });
+
+        subRow.addEventListener('touchmove', (e) => {
+          const touch = e.touches[0];
+          const dx = touch.clientX - subTouchStartX;
+          const dy = touch.clientY - subTouchStartY;
+          if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
+            subTouchMoved = true;
+            clearTimeout(subFeedbackTimer);
+            subRow.classList.remove('pressed');
+          }
+        }, { passive: true });
+
+        subRow.addEventListener('touchend', (e) => {
+          clearTimeout(subFeedbackTimer);
+          subRow.classList.remove('pressed');
+          if (state.isSwipingMonth || subTouchMoved) {
+            if (e.cancelable) e.preventDefault();
+          }
+        }, { passive: false });
+
+        subRow.addEventListener('touchcancel', () => {
+          clearTimeout(subFeedbackTimer);
+          subRow.classList.remove('pressed');
+        });
+
+        subRow.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (state.isSwipingMonth || subTouchMoved || (Date.now() - state.lastSwipeTime < 1500)) {
+            return;
+          }
+          openStatsTransactionsModal(item.name, sub.name);
+        });
+
         subContainer.appendChild(subRow);
       });
 
       listContainer.appendChild(subContainer);
 
+      let rowFeedbackTimer;
+      let rowTouchStartX = 0;
+      let rowTouchStartY = 0;
+      let rowTouchMoved = false;
+
+      row.addEventListener('touchstart', (e) => {
+        rowTouchMoved = false;
+        const touch = e.touches[0];
+        rowTouchStartX = touch.clientX;
+        rowTouchStartY = touch.clientY;
+
+        clearTimeout(rowFeedbackTimer);
+        rowFeedbackTimer = setTimeout(() => {
+          if (!rowTouchMoved && !state.isSwipingMonth) {
+            row.classList.add('pressed');
+          }
+        }, 100);
+      }, { passive: true });
+
+      row.addEventListener('touchmove', (e) => {
+        const touch = e.touches[0];
+        const dx = touch.clientX - rowTouchStartX;
+        const dy = touch.clientY - rowTouchStartY;
+        if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
+          rowTouchMoved = true;
+          clearTimeout(rowFeedbackTimer);
+          row.classList.remove('pressed');
+        }
+      }, { passive: true });
+
+      row.addEventListener('touchend', (e) => {
+        clearTimeout(rowFeedbackTimer);
+        row.classList.remove('pressed');
+        if (state.isSwipingMonth || rowTouchMoved) {
+          if (e.cancelable) e.preventDefault();
+        }
+      }, { passive: false });
+
+      row.addEventListener('touchcancel', () => {
+        clearTimeout(rowFeedbackTimer);
+        row.classList.remove('pressed');
+      });
+
       row.addEventListener('click', () => {
+        if (state.isSwipingMonth || rowTouchMoved || (Date.now() - state.lastSwipeTime < 1500)) {
+          return;
+        }
         const expanded = row.classList.toggle('expanded');
         subContainer.classList.toggle('active', expanded);
+        if (expanded) {
+          state.expandedStatsCategories.add(item.name);
+        } else {
+          state.expandedStatsCategories.delete(item.name);
+        }
       });
     }
   });
 
-  if (state.activeTab === 'stats') {
+  if (state.activeTab === 'stats' && !skipChart) {
     renderChart(displayList);
   }
+
+  if (state.activeSubcategoryTransactions) {
+    renderSubcategoryTransactions(state.activeSubcategoryTransactions.category, state.activeSubcategoryTransactions.subcategory);
+  }
 }
+
+function openStatsTransactionsModal(category, subcategory) {
+  state.activeSubcategoryTransactions = { category, subcategory };
+  renderSubcategoryTransactions(category, subcategory);
+  openModal('stats-transactions-modal');
+}
+
+function closeStatsTransactionsModal() {
+  state.activeSubcategoryTransactions = null;
+  closeModal('stats-transactions-modal');
+}
+
+function renderSubcategoryTransactions(category, subcategory) {
+  const titleEl = document.getElementById('stats-transactions-title');
+  const listContainer = document.getElementById('stats-transactions-list');
+  if (!listContainer) return;
+
+  const subDisplayName = subcategory ? getSubcategoryDisplayName(subcategory, category) : (state.lang === 'el' ? 'Χωρίς υποκατηγορία' : 'Uncategorized');
+  const catDisplayName = getCategoryDisplayName(category);
+  if (titleEl) {
+    titleEl.textContent = `${catDisplayName} · ${subDisplayName}`;
+  }
+
+  listContainer.innerHTML = '';
+
+  const { start, end } = getStatsDateRange();
+  const walletTrans = getActiveTransactions();
+  
+  let memberFilteredTrans = walletTrans;
+  if (state.userProfile && state.userProfile.family_id && state.selectedFamilyMemberId !== 'all') {
+    memberFilteredTrans = walletTrans.filter(t => t.user_id === state.selectedFamilyMemberId);
+  }
+
+  const periodTrans = memberFilteredTrans.filter(t => {
+    if (!t.date) return false;
+    const datePart = String(t.date || '').split('T')[0].split(' ')[0];
+    const tDate = new Date(datePart + 'T00:00:00');
+    return tDate >= start && tDate <= end;
+  });
+
+  const subcatTrans = periodTrans.filter(t => {
+    if (t.type !== state.statsType) return false;
+    
+    const catInfo = getCategoryInfo(t.category, t.type);
+    const catName = catInfo.name || t.category || (state.lang === 'el' ? 'Άλλα' : 'Other');
+    if (catName.toUpperCase() !== category.toUpperCase()) return false;
+    
+    const tSub = t.subcategory || '';
+    return tSub.toUpperCase() === subcategory.toUpperCase();
+  }).sort((a, b) => {
+    const dateA = String(a.date || '').split('T')[0].split(' ')[0];
+    const dateB = String(b.date || '').split('T')[0].split(' ')[0];
+    if (dateA !== dateB) return dateB.localeCompare(dateA);
+    const timeA = a.created_at ? new Date(a.created_at).getTime() : (a.date ? new Date(a.date).getTime() : 0);
+    const timeB = b.created_at ? new Date(b.created_at).getTime() : (b.date ? new Date(b.date).getTime() : 0);
+    return timeB - timeA;
+  });
+
+  if (subcatTrans.length === 0) {
+    closeStatsTransactionsModal();
+    return;
+  }
+
+  subcatTrans.forEach(t => {
+    const catInfo = getCategoryInfo(t.category, t.type);
+    const item = document.createElement('div');
+    item.className = 'transaction-item';
+    
+    let modalTouchStartX = 0;
+    let modalTouchStartY = 0;
+    let modalTouchMoved = false;
+    let modalFeedbackTimer;
+
+    item.addEventListener('touchstart', (e) => {
+      modalTouchMoved = false;
+      const touch = e.touches[0];
+      modalTouchStartX = touch.clientX;
+      modalTouchStartY = touch.clientY;
+
+      clearTimeout(modalFeedbackTimer);
+      modalFeedbackTimer = setTimeout(() => {
+        if (!modalTouchMoved && !state.isSwipingMonth) {
+          item.classList.add('pressed');
+        }
+      }, 100);
+    }, { passive: true });
+
+    item.addEventListener('touchmove', (e) => {
+      const touch = e.touches[0];
+      const dx = touch.clientX - modalTouchStartX;
+      const dy = touch.clientY - modalTouchStartY;
+      if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
+        modalTouchMoved = true;
+        clearTimeout(modalFeedbackTimer);
+        item.classList.remove('pressed');
+      }
+    }, { passive: true });
+
+    item.addEventListener('touchend', (e) => {
+      clearTimeout(modalFeedbackTimer);
+      item.classList.remove('pressed');
+      if (state.isSwipingMonth || modalTouchMoved) {
+        if (e.cancelable) e.preventDefault();
+      }
+    }, { passive: false });
+
+    item.addEventListener('touchcancel', () => {
+      clearTimeout(modalFeedbackTimer);
+      item.classList.remove('pressed');
+    });
+
+    item.onclick = () => {
+      if (state.isSwipingMonth || modalTouchMoved || (Date.now() - state.lastSwipeTime < 1500)) return;
+      openEditTransactionModal(t);
+    };
+
+    let amountClass = 'trans-amount';
+    let accountText = t.account_from ? getAccountDisplayName(t.account_from) : '';
+    if (t.type === 'expense')       { amountClass += ' expense'; }
+    else if (t.type === 'income')   { amountClass += ' income'; }
+    else if (t.type === 'transfer') {
+      const fromDisp = getAccountDisplayName(t.account_from);
+      const toDisp = getAccountDisplayName(t.account_to);
+      amountClass += ' transfer';
+      accountText = `${fromDisp} → ${toDisp}`;
+    }
+
+    const translatedSub = getSubcategoryDisplayName(t.subcategory, t.category);
+    const translatedCat = getCategoryDisplayName(t.category);
+    const displayTitle = (t.note && t.note.trim()) ? t.note.trim()
+                       : (t.description && t.description.trim()) ? t.description.trim()
+                       : (translatedSub && translatedSub.trim()) ? translatedSub.trim()
+                       : (translatedCat || '');
+    
+    const memberBadge = getMemberBadgeHTML(t);
+    
+    // Format short date
+    let dateLabel = '';
+    if (t.date) {
+      const datePart = String(t.date).split('T')[0].split(' ')[0];
+      const [y, m, d] = datePart.split('-');
+      dateLabel = `${d}/${m}/${y.substring(2)}`;
+    }
+
+    item.innerHTML = `
+      <div class="trans-left">
+        <div class="trans-category-container">
+          <div class="trans-cat-icon">${catInfo.icon || '💰'}</div>
+        </div>
+        <div class="trans-details">
+          <span class="trans-title">${displayTitle}${memberBadge}</span>
+          <span class="trans-acc-label">${dateLabel} · ${accountText}</span>
+        </div>
+      </div>
+      <div class="${amountClass}">${getCurrencySymbol()} ${formatCurrency(t.amount)}</div>`;
+    listContainer.appendChild(item);
+  });
+}
+
+window.openStatsTransactionsModal = openStatsTransactionsModal;
+window.closeStatsTransactionsModal = closeStatsTransactionsModal;
 
 function renderChart(dataList) {
   const ctx = document.getElementById('statsChart').getContext('2d');
   if (statsChartInstance) statsChartInstance.destroy();
 
-  // High-tech neon color palette
-  const neonPalette = [
-    '#6366f1', '#f43f5e', '#10b981', '#f59e0b', '#3b82f6',
-    '#ec4899', '#14b8a6', '#f97316', '#8b5cf6', '#06b6d4',
-    '#22c55e', '#eab308', '#a855f7', '#ef4444', '#0ea5e9'
-  ];
-
   // Assign neon colors preserving original category color hints
-  const colors = dataList.map((d, i) => neonPalette[i % neonPalette.length]);
+  const colors = dataList.map((d, i) => NEON_PALETTE[i % NEON_PALETTE.length]);
 
   // Build gradient-aware colors for glow effect
   const bgColors = colors.map(c => c);
@@ -3177,9 +4197,27 @@ function renderAccountsTab() {
   if (assetsEl) assetsEl.innerHTML = '';
   if (liabEl) liabEl.innerHTML = '';
 
-  // 1. Calculate overall history values from transactions (excluding transfers)
+  // Restore collapsible list preferences
+  ['income', 'expense'].forEach(type => {
+    const isExpanded = localStorage.getItem(`overview_collapse_${type}`) === 'expanded'; // default to false (collapsed)
+    const content = document.getElementById(type === 'income' ? 'accounts-assets-list' : 'accounts-liabilities-list');
+    const icon = document.getElementById(type === 'income' ? 'collapse-icon-income' : 'collapse-icon-expense');
+    if (content && icon) {
+      content.classList.toggle('active', isExpanded);
+      icon.classList.toggle('active', isExpanded);
+    }
+  });
+
+  // 1. Calculate current year history values from transactions (excluding transfers)
   const activeTrans = getActiveTransactions();
-  const nonTransferTrans = activeTrans.filter(t => t.type !== 'transfer' && !t.category?.toLowerCase().includes('μεταφ') && !t.category?.toLowerCase().includes('transfer'));
+  const currentYearOverview = state.overviewYear || new Date().getFullYear();
+  
+  const nonTransferTrans = activeTrans.filter(t => {
+    if (t.type === 'transfer' || t.category?.toLowerCase().includes('μεταφ') || t.category?.toLowerCase().includes('transfer')) return false;
+    if (!t.date) return false;
+    const y = parseInt(String(t.date).split('T')[0].split('-')[0], 10);
+    return y === currentYearOverview;
+  });
   
   let overallMinDate = null;
   let overallMaxDate = null;
@@ -3201,22 +4239,27 @@ function renderAccountsTab() {
 
   const overallNet = overallIncome - overallExpense;
 
-  // 2. Set the overall history period (From [minDate] to today)
+  const titleEl = document.getElementById('dynamic-overview-title');
+  if (titleEl) {
+    titleEl.textContent = state.lang === 'el' ? 'ΕΠΙΣΚΟΠΗΣΗ' : 'OVERVIEW';
+  }
+  const subtitleEl = document.getElementById('dynamic-overview-subtitle');
+  if (subtitleEl) {
+    subtitleEl.textContent = state.lang === 'el' ? `Έτος ${currentYearOverview}` : `Year ${currentYearOverview}`;
+  }
+
+  // Set selected year title
+  const yearTitleEl = document.getElementById('overview-year-title');
+  if (yearTitleEl) {
+    yearTitleEl.textContent = currentYearOverview;
+  }
+
+  // 2. Set the overall history period (From 01/01/YYYY to today)
   const overallDatesEl = document.getElementById('overall-history-dates');
   const overallMathEl = document.getElementById('overall-history-math');
 
   if (overallDatesEl) {
-    if (overallMinDate) {
-      const formatDateStr = (dStr) => {
-        const parts = dStr.split('-');
-        if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
-        return dStr;
-      };
-      const startFormatted = formatDateStr(overallMinDate);
-      overallDatesEl.textContent = state.lang === 'el' ? `Από ${startFormatted} έως σήμερα` : `From ${startFormatted} to today`;
-    } else {
-      overallDatesEl.textContent = '-';
-    }
+    overallDatesEl.textContent = state.lang === 'el' ? `Περίοδος: 01/01/${currentYearOverview} - Σήμερα` : `Period: 01/01/${currentYearOverview} - Today`;
   }
 
   if (overallMathEl) {
@@ -3228,10 +4271,535 @@ function renderAccountsTab() {
   document.getElementById('total-liabilities-val').textContent = formatCurrency(overallExpense);
   const netElContainer = document.getElementById('total-net-val-container');
   const netEl = document.getElementById('total-net-val');
-  netEl.textContent = formatCurrency(overallNet);
+  if (netEl) netEl.textContent = formatCurrency(overallNet);
   if (netElContainer) {
     netElContainer.className = overallNet >= 0 ? 'overview-val' : 'overview-val negative';
   }
+
+  // --- FINANCIAL HEALTH SCORE CALCULATIONS & RENDERING ---
+  const today = new Date();
+  const currentYear = today.getFullYear();
+  const currentMonth = today.getMonth();
+  const hasHistoricalData = activeTrans.some(t => {
+    if (!t.date || t.type === 'transfer') return false;
+    const datePart = String(t.date || '').split('T')[0].split(' ')[0];
+    const parts = datePart.split('-');
+    if (parts.length !== 3) return false;
+    const y = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10) - 1;
+    // Only check historical months within the current calendar year to prevent score dilution
+    return y === currentYear && m < currentMonth;
+  });
+
+  const fhs = calculateFinancialHealthScore(activeTrans, state.accounts, hasHistoricalData);
+  state.currentFhs = fhs; // Save globally so click listeners can read it
+
+  const scoreEl = document.getElementById('fhs-score-value');
+  const labelEl = document.getElementById('fhs-label');
+  const hintEl = document.getElementById('fhs-hint');
+  
+  const scoreStr = typeof fhs.score === 'number' ? fhs.score.toFixed(1) + '%' : fhs.score;
+  if (scoreEl) scoreEl.textContent = scoreStr;
+  if (labelEl) labelEl.textContent = fhs.label;
+  if (hintEl) {
+    if (fhs.isTemporary) {
+      hintEl.textContent = state.lang === 'el' 
+        ? 'Προσωρινό σκορ βάσει των πρώτων δεδομένων' 
+        : 'Temporary score based on initial data';
+    } else {
+      hintEl.textContent = state.lang === 'el'
+        ? 'Βασίζεται στο ρυθμό αποταμίευσης και το ταμείο έκτακτης ανάγκης'
+        : 'Based on savings rate and emergency fund';
+    }
+  }
+
+  // Update modal contents dynamically
+  const modalScoreCircle = document.getElementById('fhs-modal-score-circle');
+  const modalScoreLabel = document.getElementById('fhs-modal-score-label');
+  const modalScoreValText = document.getElementById('fhs-modal-score-val-text');
+  
+  if (modalScoreValText) {
+    modalScoreValText.textContent = scoreStr;
+  } else if (modalScoreCircle) {
+    modalScoreCircle.textContent = scoreStr;
+  }
+  if (modalScoreLabel) modalScoreLabel.textContent = fhs.label;
+  
+  const savingsValEl = document.getElementById('fhs-breakdown-savings-val');
+  const savingsBarEl = document.getElementById('fhs-breakdown-savings-bar');
+  const savingsDescEl = document.getElementById('fhs-breakdown-savings-desc');
+  if (savingsValEl) savingsValEl.textContent = `${fhs.weightedSavings.toFixed(1)} / 40`;
+  if (savingsBarEl) savingsBarEl.style.width = `${fhs.savingsRateScore}%`;
+  if (savingsDescEl) {
+    const srPct = Math.round(fhs.savingsRate * 1000) / 10;
+    savingsDescEl.textContent = state.lang === 'el'
+      ? `Τρέχων ρυθμός αποταμίευσης: ${srPct}% (Στόχος: >20% για καλό σκορ, 40% για άριστο)`
+      : `Current savings rate: ${srPct}% (Target: >20% for good, 40% for perfect)`;
+  }
+  
+  const emergencyValEl = document.getElementById('fhs-breakdown-emergency-val');
+  const emergencyBarEl = document.getElementById('fhs-breakdown-emergency-bar');
+  const emergencyDescEl = document.getElementById('fhs-breakdown-emergency-desc');
+  if (emergencyValEl) emergencyValEl.textContent = `${fhs.weightedEmergency.toFixed(1)} / 40`;
+  if (emergencyBarEl) emergencyBarEl.style.width = `${fhs.emergencyFundScore}%`;
+  if (emergencyDescEl) {
+    const survVal = Math.round((fhs.survivalRunway || 0) * 10) / 10;
+    const lifeVal = Math.round((fhs.lifestyleRunway || 0) * 10) / 10;
+    const survColor = survVal >= 6 ? '#66bb6a' : (survVal >= 3 ? '#ffa726' : '#ff5b5b');
+    const lifeColor = lifeVal >= 6 ? '#66bb6a' : (lifeVal >= 3 ? '#ffa726' : '#ff5b5b');
+    
+    if (state.lang === 'el') {
+      emergencyDescEl.innerHTML = `
+        <div style="display: flex; flex-direction: column; gap: 4px; margin-top: 6px; font-size: 11px; line-height: 1.4;">
+          <div>🚨 <strong>Βασική Επιβίωση:</strong> <span style="color: ${survColor}; font-weight: 700;">${survVal.toFixed(1)} μήνες</span> <span style="color: var(--text-secondary); font-size: 9.5px;">(Αν κόψεις τα πάντα)</span></div>
+          <div>🛒 <strong>Τρέχουσα Ζωή:</strong> <span style="color: ${lifeColor}; font-weight: 700;">${lifeVal.toFixed(1)} μήνες</span> <span style="color: var(--text-secondary); font-size: 9.5px;">(Αν συνεχίσεις όπως τώρα)</span></div>
+        </div>
+      `;
+    } else {
+      emergencyDescEl.innerHTML = `
+        <div style="display: flex; flex-direction: column; gap: 4px; margin-top: 6px; font-size: 11px; line-height: 1.4;">
+          <div>🚨 <strong>Basic Survival:</strong> <span style="color: ${survColor}; font-weight: 700;">${survVal.toFixed(1)} months</span> <span style="color: var(--text-secondary); font-size: 9.5px;">(If you cut everything)</span></div>
+          <div>🛒 <strong>Current Lifestyle:</strong> <span style="color: ${lifeColor}; font-weight: 700;">${lifeVal.toFixed(1)} months</span> <span style="color: var(--text-secondary); font-size: 9.5px;">(If you continue as now)</span></div>
+        </div>
+      `;
+    }
+  }
+  
+  const trendValEl = document.getElementById('fhs-breakdown-trend-val');
+  const trendBarEl = document.getElementById('fhs-breakdown-trend-bar');
+  const trendDescEl = document.getElementById('fhs-breakdown-trend-desc');
+  if (trendValEl) trendValEl.textContent = `${fhs.weightedTrend.toFixed(1)} / 20`;
+  if (trendBarEl) trendBarEl.style.width = `${fhs.expenseTrendScore}%`;
+  if (trendDescEl) {
+    if (fhs.isTemporary) {
+      trendDescEl.textContent = state.lang === 'el'
+        ? `Προσωρινό σκορ λόγω έλλειψης ιστορικού προηγούμενου μήνα.`
+        : `Temporary score due to lack of previous month history.`;
+    } else {
+      trendDescEl.textContent = state.lang === 'el'
+        ? `Βασίζεται στη σύγκριση των εξόδων αυτού του μήνα με τον προηγούμενο.`
+        : `Based on comparison of this month's expenses with the previous.`;
+    }
+  }
+
+  // Update collapsible explainability section details
+  const explainLiquidEl = document.getElementById('fhs-explain-liquid-balance');
+  const explainSurvivalEl = document.getElementById('fhs-explain-survival-months');
+  const explainLifestyleEl = document.getElementById('fhs-explain-lifestyle-months');
+  
+  if (explainLiquidEl) {
+    explainLiquidEl.textContent = formatCurrency(fhs.liquidBalance || 0);
+  }
+  if (explainSurvivalEl) {
+    const survVal = Math.round((fhs.survivalRunway || 0) * 10) / 10;
+    explainSurvivalEl.textContent = state.lang === 'el' ? `${survVal.toFixed(1)} μήνες` : `${survVal.toFixed(1)} months`;
+  }
+  if (explainLifestyleEl) {
+    const lifeVal = Math.round((fhs.lifestyleRunway || 0) * 10) / 10;
+    explainLifestyleEl.textContent = state.lang === 'el' ? `${lifeVal.toFixed(1)} μήνες` : `${lifeVal.toFixed(1)} months`;
+  }
+
+  // Populate dynamic bullet points explaining the score
+  const bulletsEl = document.getElementById('fhs-explain-bullets');
+  if (bulletsEl) {
+    bulletsEl.innerHTML = '';
+    
+    const srPct = Math.round((fhs.savingsRate || 0) * 1000) / 10;
+    const wSavings = (fhs.weightedSavings || 0).toFixed(1);
+    const wEmergency = (fhs.weightedEmergency || 0).toFixed(1);
+    const wTrend = (fhs.weightedTrend || 0).toFixed(1);
+    const mc = (fhs.monthsCovered || 0).toFixed(1);
+    
+    let bullet1 = '';
+    let bullet2 = '';
+    let bullet3 = '';
+    
+    if (state.lang === 'el') {
+      bullet1 = `<li>📈 <strong>Δείκτης Αποταμίευσης:</strong> Αποταμιεύσατε το <strong>${srPct}%</strong> των εσόδων σας, λαμβάνοντας <strong>${wSavings} / 40</strong> πόντους.</li>`;
+      bullet2 = `<li>🛡️ <strong>Ταμείο Έκτακτης Ανάγκης:</strong> Το διαθέσιμο υπόλοιπό σας καλύπτει <strong>${mc}</strong> μήνες τρέχουσας ζωής (Στόχος: 6+ μήνες), λαμβάνοντας <strong>${wEmergency} / 40</strong> πόντους.</li>`;
+      
+      if (fhs.isTemporary) {
+        bullet3 = `<li>📊 <strong>Τάση Εξόδων:</strong> Προσωρινό σκορ <strong>${wTrend} / 20</strong> λόγω έλλειψης ιστορικού προηγούμενου μήνα.</li>`;
+      } else {
+        const trendText = fhs.expenseTrendScore >= 100 
+          ? 'είναι χαμηλότερα από ή ίσα με τον προηγούμενο μήνα' 
+          : 'αυξήθηκαν σε σχέση με τον προηγούμενο μήνα';
+        bullet3 = `<li>📊 <strong>Τάση Εξόδων:</strong> Τα έξοδά σας ${trendText}, λαμβάνοντας <strong>${wTrend} / 20</strong> πόντους.</li>`;
+      }
+    } else {
+      bullet1 = `<li>📈 <strong>Savings Rate:</strong> You saved <strong>${srPct}%</strong> of your income, receiving <strong>${wSavings} / 40</strong> points.</li>`;
+      bullet2 = `<li>🛡️ <strong>Emergency Fund:</strong> Your balance covers <strong>${mc}</strong> months of lifestyle expenses (Target: 6+ months), receiving <strong>${wEmergency} / 40</strong> points.</li>`;
+      
+      if (fhs.isTemporary) {
+        bullet3 = `<li>📊 <strong>Expense Trend:</strong> Temporary score <strong>${wTrend} / 20</strong> due to lack of previous month history.</li>`;
+      } else {
+        const trendText = fhs.expenseTrendScore >= 100 
+          ? 'are lower than or equal to the previous month' 
+          : 'increased compared to the previous month';
+        bullet3 = `<li>📊 <strong>Expense Trend:</strong> Your expenses ${trendText}, receiving <strong>${wTrend} / 20</strong> points.</li>`;
+      }
+    }
+    
+    bulletsEl.innerHTML = bullet1 + bullet2 + bullet3;
+  }
+
+  // --- SPENDING ADVISOR LOGIC ---
+  const todayDate = new Date();
+  const currYear = todayDate.getFullYear();
+  const currMonth = todayDate.getMonth(); // 0-11
+  
+  const prevMonthDate = new Date(currYear, currMonth - 1, 1);
+  const prevYearNum = prevMonthDate.getFullYear();
+  const prevMonthNum = prevMonthDate.getMonth();
+
+  const currMonthExpenses = {};
+  const prevMonthExpenses = {};
+
+  activeTrans.forEach(t => {
+    if (t.type !== 'expense' || !t.date) return;
+    const datePart = String(t.date || '').split('T')[0].split(' ')[0];
+    const parts = datePart.split('-');
+    if (parts.length !== 3) return;
+    const y = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10) - 1;
+    const amt = parseFloat(t.amount) || 0;
+    const cat = t.category || '';
+
+    if (y === currYear && m === currMonth) {
+      currMonthExpenses[cat] = (currMonthExpenses[cat] || 0) + amt;
+    } else if (y === prevYearNum && m === prevMonthNum) {
+      prevMonthExpenses[cat] = (prevMonthExpenses[cat] || 0) + amt;
+    }
+  });
+
+  // Calculate MoM increases
+  let maxIncreaseCat = null;
+  let maxIncreaseAmt = 0;
+
+  Object.keys(currMonthExpenses).forEach(cat => {
+    const currAmt = currMonthExpenses[cat] || 0;
+    const prevAmt = prevMonthExpenses[cat] || 0;
+    const diff = currAmt - prevAmt;
+    if (diff > maxIncreaseAmt) {
+      maxIncreaseAmt = diff;
+      maxIncreaseCat = cat;
+    }
+  });
+
+  let advisorText = '';
+  const advisorEl = document.getElementById('advisor-text');
+  const cardEl = document.getElementById('advisor-card');
+  const chevronEl = document.getElementById('advisor-chevron');
+  const expandedContentEl = document.getElementById('advisor-expanded-content');
+  
+  if (maxIncreaseCat && maxIncreaseAmt > 0) {
+    const prevAmt = prevMonthExpenses[maxIncreaseCat] || 0;
+    const pctVal = prevAmt > 0 ? Math.round((maxIncreaseAmt / prevAmt) * 100) : null;
+    const pctStr = pctVal !== null ? `${pctVal}%` : '';
+
+    // Clean emojis from category name for advice matching
+    const cleanCat = maxIncreaseCat.replace(/[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF]/g, '').trim().toUpperCase();
+
+    // Map keywords to advice
+    let grConsequence = "θα μειώσει το ποσοστό αποταμίευσής σου";
+    let grAdvice = "έλεγξε τις επιμέρους συναλλαγές για να εντοπίσεις πού οφείλεται η αύξηση";
+    let enConsequence = "will lower your savings rate";
+    let enAdvice = "review individual transactions to identify what drove the increase";
+
+    if (cleanCat.includes('ΣΠΙΤΙ') || cleanCat.includes('HOME') || cleanCat.includes('HOUSE')) {
+      grConsequence = "θα επιβαρύνει σημαντικά τις σταθερές σου υποχρεώσεις";
+      grAdvice = "προσπάθησε να ελέγξεις την κατανάλωση ρεύματος/θέρμανσης ή να συγκρίνεις παρόχους";
+      enConsequence = "will heavily weigh on your fixed obligations";
+      enAdvice = "try checking electricity/heating usage or compare utility providers";
+    } else if (cleanCat.includes('ΔΙΑΤΡΟΦΗ') || cleanCat.includes('SUPERMARKET') || cleanCat.includes('MARKET') || cleanCat.includes('FOOD')) {
+      grConsequence = "θα επηρεάσει άμεσα το μηνιαίο σου δείκτη αποταμίευσης";
+      grAdvice = "σκέψου να προγραμματίσεις τα γεύματα της εβδομάδας (meal prep) ή να περιορίσεις 1-2 παραγγελίες delivery";
+      enConsequence = "will directly affect your monthly savings rate";
+      enAdvice = "consider planning your weekly meals (meal prep) or cutting 1-2 delivery orders";
+    } else if (cleanCat.includes('ΑΥΤΟΚΙΝΗΤΟ') || cleanCat.includes('CAR') || cleanCat.includes('ΜΕΤΑΚΙΝΗΣΗ') || cleanCat.includes('TRANSPORT')) {
+      grConsequence = "θα αυξήσει τα πάγια έξοδα μετακίνησής σου";
+      grAdvice = "προσπάθησε να ομαδοποιήσεις τις διαδρομές σου ή να επιλέξεις εναλλακτικούς τρόπους μετακίνησης όπου είναι εφικτό";
+      enConsequence = "will increase your fixed transportation costs";
+      enAdvice = "try bundling your trips or using alternative transportation methods where possible";
+    } else if (cleanCat.includes('ΔΙΑΣΚΕΔΑΣΗ') || cleanCat.includes('ΕΞΟΔΟΙ') || cleanCat.includes('ENTERTAINMENT') || cleanCat.includes('LEISURE')) {
+      grConsequence = "μειώνει γρήγορα το διαθέσιμο υπόλοιπό σου για αποταμίευση";
+      grAdvice = "θέσε ένα σαφές εβδομαδιαίο όριο εξόδων για τις εξόδους σου αυτόν τον μήνα";
+      enConsequence = "quickly depletes your available balance for savings";
+      enAdvice = "set a clear weekly spending limit for your outings this month";
+    } else if (cleanCat.includes('ΠΡΟΣΩΠΙΚΗ') || cleanCat.includes('ΦΡΟΝΤΙΔΑ') || cleanCat.includes('SHOPPING') || cleanCat.includes('CLOTHES') || cleanCat.includes('PERSONAL')) {
+      grConsequence = "θα στερήσει πόρους από τους μελλοντικούς σου στόχους";
+      grAdvice = "κάνε μια λίστα με τα απολύτως απαραίτητα πριν τις επόμενες αγορές σου και απόφυγε τις παρορμητικές αγορές";
+      enConsequence = "will drain resources from your future goals";
+      enAdvice = "make a list of absolute essentials before your next purchase and avoid impulsive buying";
+    } else if (cleanCat.includes('ΤΕΧΝΟΛΟΓΙΑ') || cleanCat.includes('TECH') || cleanCat.includes('GADGET')) {
+      grConsequence = "δημιουργεί μια προσωρινή αλλά μεγάλη πίεση στο ταμείο σου";
+      grAdvice = "απόφυγε νέες αγορές τεχνολογίας αυτόν τον μήνα και προτίμησε να αποσβέσεις την τρέχουσα αγορά";
+      enConsequence = "creates temporary but high pressure on your funds";
+      enAdvice = "avoid new tech purchases this month and allow your current spending to amortize";
+    } else if (cleanCat.includes('ΣΥΝΔΡΟΜΕΣ') || cleanCat.includes('SUBSCRIPTION')) {
+      grConsequence = "δημιουργεί αθόρυβη, μόνιμη διαρροή χρημάτων";
+      grAdvice = "έλεγξε ποιες συνδρομές δεν χρησιμοποιείς συχνά και κάνε προσωρινή ακύρωση/διακοπή";
+      enConsequence = "creates a quiet, permanent money leak";
+      enAdvice = "review which subscriptions you don't use regularly and cancel/pause them";
+    } else if (cleanCat.includes('ΓΥΜΝΑΣΤΗΡΙΟ') || cleanCat.includes('GYM') || cleanCat.includes('ΥΓΕΙΑ') || cleanCat.includes('HEALTH')) {
+      grConsequence = "είναι επένδυση, αλλά επηρεάζει τη βραχυπρόθεσμη ρευστότητά σου";
+      grAdvice = "αξιολόγησε αν υπάρχουν πιο οικονομικά πακέτα συνδρομών ή οικογενειακά προγράμματα";
+      enConsequence = "is an investment, but impacts your short-term liquidity";
+      enAdvice = "evaluate if there are cheaper subscription packages or family plans";
+    }
+
+    if (state.lang === 'el') {
+      const pctPart = pctStr ? ` κατά **${pctStr}**` : '';
+      advisorText = `Τα έξοδα στην κατηγορία **${maxIncreaseCat}** ανέβηκαν${pctPart} (+${formatCurrency(maxIncreaseAmt)}) αυτόν τον μήνα. Αν συνεχιστεί, ${grConsequence} — ${grAdvice}.`;
+    } else {
+      const pctPart = pctStr ? ` by **${pctStr}**` : '';
+      advisorText = `Expenses in **${maxIncreaseCat}** rose${pctPart} (+${formatCurrency(maxIncreaseAmt)}) this month. If this continues, it ${enConsequence} — ${enAdvice}.`;
+    }
+
+    // Enable interaction
+    if (cardEl) {
+      cardEl.classList.add('interactive');
+      cardEl.onclick = () => {
+        const isExpanded = cardEl.classList.toggle('expanded');
+        if (chevronEl) {
+          chevronEl.classList.toggle('rotated', isExpanded);
+        }
+      };
+    }
+    if (chevronEl) {
+      chevronEl.style.display = 'inline-block';
+    }
+
+    // Populate Top 3 Transactions list
+    const currentMonthTrans = activeTrans.filter(t => {
+      if (t.type !== 'expense' || !t.date || t.category !== maxIncreaseCat) return false;
+      const datePart = String(t.date || '').split('T')[0].split(' ')[0];
+      const parts = datePart.split('-');
+      if (parts.length !== 3) return false;
+      const y = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10) - 1;
+      return y === currYear && m === currMonth;
+    });
+
+    const topTrans = currentMonthTrans
+      .sort((a, b) => (parseFloat(b.amount) || 0) - (parseFloat(a.amount) || 0))
+      .slice(0, 3);
+
+    const topTransListEl = document.getElementById('advisor-top-transactions-list');
+    const transSectionEl = document.getElementById('advisor-transactions-section');
+    if (topTransListEl && transSectionEl) {
+      if (topTrans.length > 0) {
+        transSectionEl.style.display = 'block';
+        topTransListEl.innerHTML = topTrans.map(t => {
+          const dateObj = new Date(t.date);
+          const formattedDate = dateObj.toLocaleDateString(state.lang === 'el' ? 'el-GR' : 'en-US', { day: '2-digit', month: '2-digit' });
+          
+          const translatedSub = getSubcategoryDisplayName(t.subcategory, t.category);
+          const translatedCat = getCategoryDisplayName(t.category);
+          const displayTitle = (t.note && t.note.trim()) ? t.note.trim()
+                             : (t.description && t.description.trim()) ? t.description.trim()
+                             : (translatedSub && translatedSub.trim()) ? translatedSub.trim()
+                             : (translatedCat || '');
+          
+          return `
+            <div class="advisor-trans-row">
+              <span class="advisor-trans-desc">${formattedDate} - ${displayTitle}</span>
+              <span class="advisor-trans-amount">${formatCurrency(t.amount)}</span>
+            </div>
+          `;
+        }).join('');
+      } else {
+        transSectionEl.style.display = 'none';
+        topTransListEl.innerHTML = '';
+      }
+    }
+
+    // Populate Month comparison bars
+    const currAmt = currMonthExpenses[maxIncreaseCat] || 0;
+    const maxVal = Math.max(prevAmt, currAmt, 1);
+    const prevPct = Math.round((prevAmt / maxVal) * 100);
+    const currPct = Math.round((currAmt / maxVal) * 100);
+
+    const barsEl = document.getElementById('advisor-comparison-bars');
+    if (barsEl) {
+      const prevLabel = state.lang === 'el' ? 'Προηγούμενος' : 'Previous';
+      const currLabel = state.lang === 'el' ? 'Τρέχων' : 'Current';
+      
+      barsEl.innerHTML = `
+        <div class="advisor-bar-row previous">
+          <span class="advisor-bar-label">${prevLabel}</span>
+          <div class="advisor-bar-container">
+            <div class="advisor-bar" style="width: ${prevPct}%;"></div>
+          </div>
+          <span class="advisor-bar-val">${formatCurrency(prevAmt)}</span>
+        </div>
+        <div class="advisor-bar-row current">
+          <span class="advisor-bar-label">${currLabel}</span>
+          <div class="advisor-bar-container">
+            <div class="advisor-bar" style="width: ${currPct}%;"></div>
+          </div>
+          <span class="advisor-bar-val">${formatCurrency(currAmt)}</span>
+        </div>
+      `;
+    }
+
+    // Setup action button
+    const actionBtn = document.getElementById('advisor-action-btn');
+    if (actionBtn) {
+      actionBtn.onclick = (e) => {
+        e.stopPropagation();
+        const catFilter = document.getElementById('search-filter-category');
+        if (catFilter) {
+          catFilter.value = maxIncreaseCat;
+          handleSearchChange();
+        }
+        switchTab('trans');
+      };
+    }
+  } else {
+    advisorText = state.lang === 'el'
+      ? "Η οικονομική σου συμπεριφορά είναι απόλυτα σταθερή αυτόν τον μήνα. Συνέχισε έτσι!"
+      : "Your financial behavior is perfectly stable this month. Keep it up!";
+
+    // Disable interaction
+    if (cardEl) {
+      cardEl.classList.remove('interactive');
+      cardEl.classList.remove('expanded');
+      cardEl.onclick = null;
+    }
+    if (chevronEl) {
+      chevronEl.style.display = 'none';
+      chevronEl.classList.remove('rotated');
+    }
+  }
+
+  if (advisorEl) {
+    advisorEl.innerHTML = advisorText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  }
+
+  // --- FORECASTING CALCULATIONS & RENDERING ---
+  const forecast = calculateForecasting(activeTrans, hasHistoricalData);
+  const targetYearEl = document.getElementById('forecast-target-year');
+  if (targetYearEl) targetYearEl.textContent = currentYear;
+
+  // Calculate 2025 savings
+  let targetSavings = 15000; // default fallback
+  const prevYear = currentYear - 1;
+  let prevYearIncome = 0;
+  let prevYearExpense = 0;
+  activeTrans.forEach(t => {
+    if (!t.date || t.type === 'transfer') return;
+    const parts = String(t.date || '').split('T')[0].split(' ')[0].split('-');
+    if (parts.length === 3 && parseInt(parts[0], 10) === prevYear) {
+      const amt = parseFloat(t.amount) || 0;
+      if (t.type === 'income') prevYearIncome += amt;
+      else if (t.type === 'expense') prevYearExpense += amt;
+    }
+  });
+  const prevYearSavings = prevYearIncome - prevYearExpense;
+  
+  // Check localstorage custom target first
+  const customTarget = localStorage.getItem('overview_savings_target');
+  if (customTarget && parseFloat(customTarget) > 0) {
+    targetSavings = parseFloat(customTarget);
+  } else if (prevYearSavings > 0) {
+    targetSavings = Math.round(prevYearSavings);
+  }
+
+  const normalStateEl = document.getElementById('forecast-normal-state');
+  const yearendStateEl = document.getElementById('forecast-yearend-state');
+  
+  if (forecast.isYearEnd) {
+    if (normalStateEl) normalStateEl.style.display = 'none';
+    if (yearendStateEl) {
+      yearendStateEl.style.display = 'block';
+      const msgEl = document.getElementById('forecast-yearend-msg');
+      if (msgEl) msgEl.textContent = forecast.message;
+    }
+  } else {
+    if (yearendStateEl) yearendStateEl.style.display = 'none';
+    if (normalStateEl) {
+      normalStateEl.style.display = 'block';
+      
+      let progressPct = 0;
+      if (targetSavings > 0 && overallNet > 0) {
+        progressPct = Math.max(0, Math.min(100, Math.round((overallNet / targetSavings) * 100)));
+      }
+      
+      const progressBarEl = document.getElementById('forecast-progress-bar');
+      if (progressBarEl) progressBarEl.style.width = `${progressPct}%`;
+      
+      const progressBadgeEl = document.getElementById('forecast-progress-badge');
+      if (progressBadgeEl) {
+        progressBadgeEl.textContent = `${progressPct}%`;
+        const clampedBadgePct = Math.max(7, Math.min(93, progressPct));
+        progressBadgeEl.style.left = `${clampedBadgePct}%`;
+      }
+      
+      const projectedValEl = document.getElementById('forecast-projected-val');
+      if (projectedValEl) {
+        projectedValEl.textContent = formatCurrency(forecast.projectedSavings);
+      }
+
+      // Update forecasting modal elements dynamically
+      const explanationEl = document.getElementById('forecast-modal-explanation');
+      if (explanationEl) {
+        const roundedSavings = Math.round(forecast.currentYearSavings);
+        const roundedRate = Math.round(forecast.avgMonthlySavings);
+        const roundedProj = Math.round(forecast.projectedSavings);
+        const elapsed = currentMonth + 1;
+        if (state.lang === 'el') {
+          explanationEl.innerHTML = `Έχετε αποταμιεύσει <strong>${formatCurrency(roundedSavings)}</strong> κατά τους πρώτους <strong>${elapsed}</strong> μήνες του έτους.<br><br>Με βάση τον τρέχοντα μέσο ρυθμό σας (<strong>${formatCurrency(roundedRate)} / μήνα</strong>), η προβλεπόμενη αποταμίευση για το τέλος του έτους είναι <strong>${formatCurrency(roundedProj)}</strong>.`;
+        } else {
+          explanationEl.innerHTML = `You have saved <strong>${formatCurrency(roundedSavings)}</strong> during the first <strong>${elapsed}</strong> months of the year.<br><br>Based on your current average rate (<strong>${formatCurrency(roundedRate)} / month</strong>), the projected savings for the end of the year is <strong>${formatCurrency(roundedProj)}</strong>.`;
+        }
+      }
+
+      // Update Scenarios
+      const bestValEl = document.getElementById('forecast-best-val');
+      const expectedValEl = document.getElementById('forecast-expected-val');
+      const worstValEl = document.getElementById('forecast-worst-val');
+      
+      if (bestValEl) bestValEl.textContent = formatCurrency(forecast.bestCaseSavings);
+      if (expectedValEl) expectedValEl.textContent = formatCurrency(forecast.projectedSavings);
+      if (worstValEl) worstValEl.textContent = formatCurrency(forecast.worstCaseSavings);
+
+      const targetInputEl = document.getElementById('forecast-target-input');
+      if (targetInputEl && !targetInputEl.matches(':focus')) {
+        targetInputEl.value = Math.round(targetSavings);
+      }
+
+      const remainingTarget = targetSavings - overallNet;
+
+      const requiredMonthlyValEl = document.getElementById('forecast-required-monthly-val');
+      if (requiredMonthlyValEl) {
+        const remainingMonths = 12 - (currentMonth + 1);
+        const requiredMonthly = remainingTarget > 0 && remainingMonths > 0 ? (remainingTarget / remainingMonths) : 0;
+        requiredMonthlyValEl.textContent = formatCurrency(requiredMonthly);
+      }
+
+      // Update Goal Timeline
+      const timelineValEl = document.getElementById('forecast-goal-timeline-val');
+      if (timelineValEl) {
+        if (remainingTarget <= 0) {
+          timelineValEl.textContent = state.lang === 'el' ? 'Επιτεύχθηκε! 🎉' : 'Achieved! 🎉';
+          timelineValEl.style.color = '#66bb6a';
+        } else if (forecast.avgMonthlySavings <= 0) {
+          timelineValEl.textContent = state.lang === 'el' ? 'Μη εφικτό (Έλλειμμα)' : 'Not feasible (Deficit)';
+          timelineValEl.style.color = '#ff5b5b';
+        } else {
+          const monthsNeeded = remainingTarget / forecast.avgMonthlySavings;
+          timelineValEl.style.color = 'var(--text-primary)';
+          if (monthsNeeded <= 1) {
+            timelineValEl.textContent = state.lang === 'el' ? 'Λιγότερο από 1 μήνα' : 'Less than 1 month';
+          } else {
+            timelineValEl.textContent = state.lang === 'el' ? `${monthsNeeded.toFixed(1)} μήνες` : `${monthsNeeded.toFixed(1)} months`;
+          }
+        }
+      }
+    }
+  }
+
 
   // Helper function to translate account display names
   const getAccountDisplayName = (acc) => {
@@ -3262,24 +4830,13 @@ function renderAccountsTab() {
 
     activeTrans.forEach(t => {
       if (t.type === 'income' && t.account_from === acc.name) {
-        accIncome += parseFloat(t.amount) || 0;
-        if (!minAccDate || t.date < minAccDate) minAccDate = t.date;
-        if (!maxAccDate || t.date > maxAccDate) maxAccDate = t.date;
+        if (!t.date) return;
+        const y = parseInt(String(t.date).split('T')[0].split('-')[0], 10);
+        if (y === currentYearOverview) {
+          accIncome += parseFloat(t.amount) || 0;
+        }
       }
     });
-
-    let dateRangeLabel = '';
-    if (minAccDate) {
-      const formatDateStr = (dStr) => {
-        const parts = dStr.split('-');
-        if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
-        return dStr;
-      };
-      const start = formatDateStr(minAccDate);
-      dateRangeLabel = state.lang === 'el' ? `Από ${start} έως σήμερα` : `From ${start} to today`;
-    } else {
-      dateRangeLabel = state.lang === 'el' ? 'Δεν υπάρχουν έσοδα' : 'No income transactions';
-    }
 
     const row = document.createElement('div');
     row.className = 'account-row';
@@ -3288,7 +4845,6 @@ function renderAccountsTab() {
     const displayHtml = `
       <div style="display: flex; flex-direction: column;">
         <span class="account-title" style="font-weight: 600;">${getAccountDisplayName(acc)}</span>
-        <span style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">${dateRangeLabel}</span>
       </div>
     `;
 
@@ -3302,9 +4858,9 @@ function renderAccountsTab() {
     if (assetsEl) assetsEl.appendChild(row);
   });
 
-  // 5. Render Expenses section (Cash & Cards only)
+  // 5. Render Expenses section (Cash, Cards & Bank Accounts)
   state.accounts.forEach(acc => {
-    if (acc.type !== 'cash' && acc.type !== 'card') return;
+    if (acc.type !== 'cash' && acc.type !== 'card' && acc.type !== 'bank') return;
 
     // Calculate expenses and date range for this account
     let accExpense = 0;
@@ -3313,24 +4869,13 @@ function renderAccountsTab() {
 
     activeTrans.forEach(t => {
       if (t.type === 'expense' && t.account_from === acc.name) {
-        accExpense += parseFloat(t.amount) || 0;
-        if (!minAccDate || t.date < minAccDate) minAccDate = t.date;
-        if (!maxAccDate || t.date > maxAccDate) maxAccDate = t.date;
+        if (!t.date) return;
+        const y = parseInt(String(t.date).split('T')[0].split('-')[0], 10);
+        if (y === currentYearOverview) {
+          accExpense += parseFloat(t.amount) || 0;
+        }
       }
     });
-
-    let dateRangeLabel = '';
-    if (minAccDate) {
-      const formatDateStr = (dStr) => {
-        const parts = dStr.split('-');
-        if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
-        return dStr;
-      };
-      const start = formatDateStr(minAccDate);
-      dateRangeLabel = state.lang === 'el' ? `Από ${start} έως σήμερα` : `From ${start} to today`;
-    } else {
-      dateRangeLabel = state.lang === 'el' ? 'Δεν υπάρχουν έξοδα' : 'No expense transactions';
-    }
 
     const row = document.createElement('div');
     row.className = 'account-row';
@@ -3339,7 +4884,6 @@ function renderAccountsTab() {
     const displayHtml = `
       <div style="display: flex; flex-direction: column;">
         <span class="account-title" style="font-weight: 600;">${getAccountDisplayName(acc)}</span>
-        <span style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">${dateRangeLabel}</span>
       </div>
     `;
 
@@ -3361,13 +4905,22 @@ function renderAccountsTab() {
     if (!t.date) return;
     if (t.type === 'transfer' || t.category === 'ΜΕΤΑΦΟΡΑ' || t.category?.toLowerCase().includes('μεταφ') || t.category?.toLowerCase().includes('transfer')) return;
 
-    const dateParts = t.date.split('-');
-    if (dateParts.length !== 3) return;
-    const year = parseInt(dateParts[0], 10);
-    if (isNaN(year)) return;
+    let year;
+    if (t.date) {
+      const d = new Date(t.date);
+      if (!isNaN(d.getTime())) {
+        year = d.getFullYear();
+      } else {
+        const match = String(t.date).match(/^(\d{4})/);
+        if (match) year = parseInt(match[1], 10);
+      }
+    }
+    if (!year || isNaN(year)) return;
 
     if (!yearlyData[year]) {
       yearlyData[year] = {
+        income: 0,
+        expense: 0,
         net: 0,
         minDate: t.date,
         maxDate: t.date
@@ -3375,8 +4928,10 @@ function renderAccountsTab() {
     }
 
     if (t.type === 'income') {
+      yearlyData[year].income += amt;
       yearlyData[year].net += amt;
     } else if (t.type === 'expense') {
+      yearlyData[year].expense += amt;
       yearlyData[year].net -= amt;
     }
 
@@ -3386,49 +4941,102 @@ function renderAccountsTab() {
 
   const breakdownEl = document.getElementById('accounts-periods-breakdown');
   const periodsList = document.getElementById('accounts-periods-list');
-  const sortedYears = Object.keys(yearlyData).sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
+  const sortedYears = Object.keys(yearlyData).sort((a, b) => parseInt(b, 10) - parseInt(a, 10));
 
   if (breakdownEl && periodsList) {
-    if (sortedYears.length > 0) {
-      breakdownEl.style.display = 'block';
-      periodsList.innerHTML = '';
+    periodsList.innerHTML = '';
+    let visibleYearIdx = 0;
 
+    if (sortedYears.length > 0) {
       sortedYears.forEach(year => {
+        const yearNum = parseInt(year, 10);
+        if (yearNum >= currentYearOverview) return; // SKIP current & future years
         const data = yearlyData[year];
-        if (data.net <= 0) return; // Only show surpluses!
+        if (data.income === 0 && data.expense === 0) return; // Skip if no transaction data
+
+        const container = document.createElement('div');
+        container.style.display = 'flex';
+        container.style.flexDirection = 'column';
+        container.style.width = '100%';
+        if (visibleYearIdx > 0) {
+          container.style.borderTop = '1px solid var(--border)';
+          container.style.paddingTop = '12px';
+          container.style.marginTop = '12px';
+        }
+        visibleYearIdx++;
 
         const row = document.createElement('div');
         row.style.display = 'flex';
         row.style.justifyContent = 'space-between';
         row.style.alignItems = 'center';
-        row.style.fontSize = '12px';
-        row.style.padding = '2px 0';
+        row.style.fontSize = '16px';
+        row.style.cursor = 'pointer';
+        row.style.padding = '4px 0';
+        row.style.userSelect = 'none';
+        row.style.fontFamily = "'Outfit', sans-serif";
 
-        const formatDateStr = (dStr) => {
-          const parts = dStr.split('-');
-          if (parts.length === 3) {
-            return `${parts[2]}/${parts[1]}/${parts[0]}`;
-          }
-          return dStr;
-        };
-
-        // For current year, use today's date as end date instead of max transaction date
-        const currentYear = new Date().getFullYear();
-        const yearNum = parseInt(year, 10);
-        const endDate = (yearNum === currentYear)
-          ? new Date().toISOString().split('T')[0]
-          : data.maxDate;
-
-        const label = TRANSLATIONS[state.lang]['period_label'] + ' ' + formatDateStr(data.minDate) + ' - ' + formatDateStr(endDate);
-        const colorStyle = 'color: var(--blue-positive);'; // Surpluses are positive/green
-        const sign = '+';
+        const label = TRANSLATIONS[state.lang]['period_label'] + ' ' + yearNum;
+        const colorStyle = data.net >= 0 
+          ? 'color: var(--blue-positive); font-weight: 700; font-family: \'Outfit\', sans-serif;'
+          : 'color: var(--red-negative); font-weight: 700; font-family: \'Outfit\', sans-serif;';
+        const sign = data.net >= 0 ? '+' : '-';
 
         row.innerHTML = `
-          <span style="color: var(--text-secondary); font-weight: 500;">${label}</span>
-          <span style="font-weight: 600; ${colorStyle}">${sign}${getCurrencySymbol()}${formatCurrency(Math.abs(data.net))}</span>
+          <span style="color: var(--text-secondary); font-weight: 700; font-size: 16px;">${label}</span>
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <span style="${colorStyle} font-size: 16px;">${sign}${getCurrencySymbol()}${formatCurrency(Math.abs(data.net))}</span>
+            <i class="fa-solid fa-chevron-right archive-collapse-icon" style="font-size: 14px; color: var(--text-muted); transition: transform 0.25s;"></i>
+          </div>
         `;
-        periodsList.appendChild(row);
+
+        const incomeLabel = state.lang === 'el' ? 'Έσοδα Έτους' : 'Year Income';
+        const expenseLabel = state.lang === 'el' ? 'Έξοδα Έτους' : 'Year Expenses';
+        const savingsRateLabel = state.lang === 'el' ? 'Ποσοστό Αποταμίευσης' : 'Savings Rate';
+        const savingsRate = data.income > 0 ? Math.round((data.net / data.income) * 100) : 0;
+
+        const dropdown = document.createElement('div');
+        dropdown.style.maxHeight = '0';
+        dropdown.style.overflow = 'hidden';
+        dropdown.style.transition = 'max-height 0.25s ease';
+        
+        dropdown.innerHTML = `
+          <div style="padding: 10px 0 4px 0; display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; color: var(--text-secondary); opacity: 0.9; font-family: 'Outfit', sans-serif;">
+            <div style="display: flex; justify-content: space-between;">
+              <span>${incomeLabel}:</span>
+              <span style="font-weight: 700; color: var(--blue-positive);">${getCurrencySymbol()}${formatCurrency(data.income)}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span>${expenseLabel}:</span>
+              <span style="font-weight: 700; color: var(--red-negative);">${getCurrencySymbol()}${formatCurrency(data.expense)}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span>${savingsRateLabel}:</span>
+              <span style="font-weight: 700; color: var(--text-primary);">${savingsRate}%</span>
+            </div>
+          </div>
+        `;
+        
+        row.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const chevron = row.querySelector('.archive-collapse-icon');
+          const isCollapsed = !dropdown.style.maxHeight || dropdown.style.maxHeight === '0' || dropdown.style.maxHeight === '0px';
+          if (isCollapsed) {
+            dropdown.style.maxHeight = dropdown.scrollHeight + 'px';
+            if (chevron) chevron.style.transform = 'rotate(90deg)';
+          } else {
+            dropdown.style.maxHeight = '0px';
+            if (chevron) chevron.style.transform = 'rotate(0deg)';
+          }
+        });
+
+        container.appendChild(row);
+        container.appendChild(dropdown);
+        periodsList.appendChild(container);
       });
+    }
+
+    if (visibleYearIdx > 0) {
+      breakdownEl.style.display = 'block';
     } else {
       breakdownEl.style.display = 'none';
     }
@@ -3459,16 +5067,14 @@ function setupEventListeners() {
   document.getElementById('period-prev').addEventListener('click', () => {
     state.selectedMonth--;
     if (state.selectedMonth < 0) { state.selectedMonth = 11; state.selectedYear--; }
-    state.statsDate.setFullYear(state.selectedYear);
-    state.statsDate.setMonth(state.selectedMonth);
+    syncStatsDate();
     updateUI();
     setTimeout(() => scrollToToday('auto'), 50);
   });
   document.getElementById('period-next').addEventListener('click', () => {
     state.selectedMonth++;
     if (state.selectedMonth > 11) { state.selectedMonth = 0; state.selectedYear++; }
-    state.statsDate.setFullYear(state.selectedYear);
-    state.statsDate.setMonth(state.selectedMonth);
+    syncStatsDate();
     updateUI();
     setTimeout(() => scrollToToday('auto'), 50);
   });
@@ -3568,16 +5174,16 @@ function setupEventListeners() {
               document.body.classList.remove('keyboard-active');
               
               // Reset scroll when input loses focus and keyboard actually closes
-              window.scrollTo(0, 0);
-              document.body.scrollTop = 0;
+              setTimeout(() => {
+                forceViewportReset();
+              }, 50);
             }
           }, 80);
         } else {
           // Reset scroll when input loses focus
           setTimeout(() => {
-            window.scrollTo(0, 0);
-            document.body.scrollTop = 0;
-          }, 80);
+            forceViewportReset();
+          }, 50);
         }
       });
     }
@@ -3847,6 +5453,10 @@ function setupEventListeners() {
     if (keypad) {
       keypad.classList.add('active');
     }
+    const modal = document.getElementById('transaction-modal');
+    if (modal) {
+      modal.classList.add('keypad-active');
+    }
     const amountRow = document.getElementById('form-row-amount');
     if (amountRow) {
       amountRow.querySelector('.form-row-value-container').classList.add('focused');
@@ -3876,6 +5486,10 @@ function setupEventListeners() {
     const keypad = document.getElementById('custom-calculator-keypad');
     if (keypad) {
       keypad.classList.remove('active');
+    }
+    const modal = document.getElementById('transaction-modal');
+    if (modal) {
+      modal.classList.remove('keypad-active');
     }
     const amountRow = document.getElementById('form-row-amount');
     if (amountRow) {
@@ -3970,6 +5584,7 @@ function setupEventListeners() {
         document.getElementById('custom-period-end').value = end.toISOString().split('T')[0];
         openModal('custom-period-modal');
       } else {
+        state.expandedStatsCategories.clear();
         state.statsPeriodType = val;
         state.statsDate = new Date();
         renderStatsTab();
@@ -4037,15 +5652,18 @@ function setupEventListeners() {
 }
 
 function adjustStatsPeriod(direction, startingDeltaX = 0) {
+  state.expandedStatsCategories.clear();
   animateSwipeTransition(direction, () => {
     if (state.statsPeriodType === 'weekly') {
       state.statsDate.setDate(state.statsDate.getDate() + direction * 7);
     } else if (state.statsPeriodType === 'monthly') {
+      state.statsDate.setDate(15);
       state.statsDate.setMonth(state.statsDate.getMonth() + direction);
       state.selectedMonth = state.statsDate.getMonth();
       state.selectedYear = state.statsDate.getFullYear();
       updateHeaderAndSync();
     } else if (state.statsPeriodType === 'annually') {
+      state.statsDate.setDate(15);
       state.statsDate.setFullYear(state.statsDate.getFullYear() + direction);
     } else if (state.statsPeriodType === 'period') {
       const start = new Date(state.statsCustomStart + 'T00:00:00');
@@ -4056,7 +5674,7 @@ function adjustStatsPeriod(direction, startingDeltaX = 0) {
       state.statsCustomStart = newStart.toISOString().split('T')[0];
       state.statsCustomEnd = newEnd.toISOString().split('T')[0];
     }
-    renderStatsTab();
+    renderStatsTab(true);
   }, startingDeltaX);
 }
 
@@ -4070,6 +5688,7 @@ function handleCustomPeriodSave() {
       alert(msg);
       return;
     }
+    state.expandedStatsCategories.clear();
     state.statsCustomStart = startVal;
     state.statsCustomEnd = endVal;
     state.statsPeriodType = 'period';
@@ -4118,20 +5737,31 @@ function switchTab(tab) {
       const today = new Date();
       state.selectedMonth = today.getMonth();
       state.selectedYear = today.getFullYear();
-      state.statsDate.setFullYear(state.selectedYear);
-      state.statsDate.setMonth(state.selectedMonth);
+      syncStatsDate();
       updateUI();
       setTimeout(() => scrollToToday('smooth'), 50);
     } else if (tab === 'stats') {
       const today = new Date();
-      state.selectedMonth = today.getMonth();
-      state.selectedYear = today.getFullYear();
-      state.statsDate = new Date();
-      state.statsPeriodType = 'monthly';
-      updateUI();
+      const isAlreadyCurrent = (state.selectedMonth === today.getMonth() && state.selectedYear === today.getFullYear());
+      if (!isAlreadyCurrent) {
+        state.selectedMonth = today.getMonth();
+        state.selectedYear = today.getFullYear();
+        state.statsDate = new Date();
+        state.statsDate.setDate(15);
+        state.expandedStatsCategories.clear();
+        renderStatsTab();
+      } else {
+        const scrollContainer = document.querySelector('.stats-scroll-content');
+        if (scrollContainer) {
+          scrollContainer.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      }
     }
     return;
   }
+
+  // Clear expanded categories on active tab change
+  state.expandedStatsCategories.clear();
 
   // Cancel any pending deferred UI rendering for a previous tab switch
   if (state.tabRenderTimeoutId) {
@@ -4250,8 +5880,7 @@ function switchTab(tab) {
     const today = new Date();
     state.selectedMonth = today.getMonth();
     state.selectedYear = today.getFullYear();
-    state.statsDate.setFullYear(state.selectedYear);
-    state.statsDate.setMonth(state.selectedMonth);
+    syncStatsDate();
     updateUI();
     setTimeout(() => scrollToToday('smooth'), 50);
   }
@@ -4265,29 +5894,127 @@ function switchTab(tab) {
         emailDisplay.textContent = state.currentUser.email;
         emailDisplay.title = state.currentUser.email;
       }
-      const emailItem = document.getElementById('settings-user-email-item');
-      if (emailItem) emailItem.style.display = 'flex';
+      // Keep legacy emailItem hidden - email is shown in profile header card instead
+    }
+
+    // Dynamically populate Profile Header Card
+    const headerName = document.getElementById('profile-user-name');
+    const headerEmail = document.getElementById('profile-user-email');
+    const headerAvatar = document.getElementById('profile-avatar-letters');
+    if (headerName) {
+      headerName.textContent = state.userProfile?.display_name || state.currentUser?.email?.split('@')[0] || 'User';
+    }
+    if (headerEmail) {
+      headerEmail.textContent = state.currentUser ? state.currentUser.email : 'email@example.com';
+    }
+    if (headerAvatar) {
+      const nameVal = state.userProfile?.display_name || state.currentUser?.email?.split('@')[0] || 'U';
+      const parts = nameVal.trim().split(/\s+/).filter(p => p.length > 0);
+      let initials = 'U';
+      if (parts.length > 0) {
+        initials = parts.map(p => p[0]).join('').substring(0, 2).toUpperCase();
+      }
+      headerAvatar.textContent = initials;
     }
   }
 }
 
 function toggleStatsType(type) {
+  state.expandedStatsCategories.clear();
   state.statsType = type;
   document.getElementById('stats-tab-expense').classList.toggle('active', type === 'expense');
   document.getElementById('stats-tab-income').classList.toggle('active',  type === 'income');
   renderStatsTab();
 }
 
+function forceViewportReset() {
+  if (!isIOS) return;
+  
+  // Snap scroll position back to 0
+  window.scrollTo(0, 0);
+  document.body.scrollTop = 0;
+  
+  const hasOffset = window.scrollY > 0 || (window.visualViewport && window.visualViewport.offsetTop > 0);
+  if (hasOffset) {
+    // Temporarily make body scrollable to force iOS Safari to reset visual viewport panning
+    const originalHeight = document.body.style.height;
+    document.body.style.setProperty('height', (window.innerHeight + 150) + 'px', 'important');
+    window.scrollTo(0, 10);
+    setTimeout(() => {
+      window.scrollTo(0, 0);
+      document.body.style.height = originalHeight || '';
+      if (!originalHeight) {
+        document.body.style.removeProperty('height');
+      }
+      document.body.scrollTop = 0;
+    }, 100);
+  }
+}
+
 function openModal(id)  { 
   ensureHistoryPushed();
-  document.getElementById(id).classList.add('active'); 
+  const el = document.getElementById(id);
+  // For the transaction modal, counteract body { zoom: 0.93 } to perfectly fill physical screen
+  if (id === 'transaction-modal') {
+    const scale = isIOS ? 1.0 : 0.93;
+    el.style.setProperty('width', (window.innerWidth / scale) + 'px', 'important');
+    el.style.setProperty('height', (window.innerHeight / scale) + 'px', 'important');
+    el.style.setProperty('top', '0px', 'important');
+    
+    if (!isIOS) {
+      const modalContent = el.querySelector('.modal-content');
+      if (modalContent) {
+        const vvHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+        const offsetTop = window.visualViewport ? window.visualViewport.offsetTop : 0;
+        const rawKeyboardHeight = window.visualViewport ? (window.innerHeight - vvHeight - offsetTop) : 0;
+        if (rawKeyboardHeight > 30) {
+          modalContent.style.setProperty('height', (vvHeight / scale) + 'px', 'important');
+          modalContent.style.setProperty('top', (offsetTop / scale) + 'px', 'important');
+        } else {
+          modalContent.style.setProperty('height', (window.innerHeight / scale) + 'px', 'important');
+          modalContent.style.setProperty('top', '0px', 'important');
+        }
+      }
+    }
+  }
+  if (id === 'fhs-details-modal') {
+    const fhsExplainContent = document.getElementById('fhs-explain-content');
+    const fhsExplainChevron = document.getElementById('fhs-explain-chevron');
+    if (fhsExplainContent) fhsExplainContent.style.display = 'none';
+    if (fhsExplainChevron) fhsExplainChevron.style.transform = 'rotate(0deg)';
+  }
+  el.classList.add('active'); 
   document.body.classList.add('modal-open');
 }
 function closeModal(id) {
-  document.getElementById(id).classList.remove('active');
-  const activeModals = document.querySelectorAll('.modal-overlay.active');
+  // Prevent iOS ghost clicks / click penetration on the elements underneath (e.g. FAB button)
+  document.body.style.pointerEvents = 'none';
+  setTimeout(() => {
+    document.body.style.pointerEvents = '';
+  }, 350);
+
+  // Force blur any active input/textarea to close keyboard immediately on modal close
+  if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) {
+    document.activeElement.blur();
+  }
+
+  const el = document.getElementById(id);
+  if (!el) {
+    console.warn('[closeModal] Element not found:', id);
+    return;
+  }
+  el.classList.remove('active');
+  const activeModals = document.querySelectorAll('.modal-overlay.active, #transaction-modal.active');
   if (activeModals.length === 0) {
     document.body.classList.remove('modal-open');
+    
+    // Snap window scroll back to top to clear iOS visualViewport panning
+    setTimeout(() => {
+      forceViewportReset();
+    }, 50);
+    setTimeout(() => {
+      forceViewportReset();
+    }, 450);
   }
   if (id === 'transaction-modal' && typeof window.closeCalculatorKeypad === 'function') {
     window.closeCalculatorKeypad();
@@ -4425,6 +6152,16 @@ function openAddTransactionModal() {
   
   setTransactionFormType('expense');
 
+  // Set default account values to avoid empty payment methods
+  if (state.accounts && state.accounts.length > 0) {
+    document.getElementById('trans-account-from').value = state.accounts[0].name;
+    document.getElementById('trans-account-to').value = state.accounts.length > 1 ? state.accounts[1].name : state.accounts[0].name;
+  } else {
+    document.getElementById('trans-account-from').value = 'Cash';
+    document.getElementById('trans-account-to').value = 'Bank Account';
+  }
+  updateAccountDropdowns();
+
   openModal('transaction-modal');
   setTimeout(() => initNoteAutocomplete(), 50);
 }
@@ -4523,7 +6260,34 @@ function openEditTransactionModal(t) {
     if (t.type === 'transfer') {
       document.getElementById('trans-account-to').value = t.account_to || '';
     }
+    updateAccountDropdowns();
   }, 10);
+
+  // Show creator info
+  const creatorRow = document.getElementById('trans-creator-row');
+  const creatorText = document.getElementById('trans-creator-text');
+  if (creatorRow && creatorText) {
+    let creatorName = null;
+    if (state.userProfile && state.userProfile.family_id && t.user_id) {
+      const creator = state.familyProfiles.find(p => p.id === t.user_id);
+      if (creator) {
+        creatorName = creator.display_name || creator.email.split('@')[0];
+      }
+    }
+    if (!creatorName && state.partnerProfile && t.user_id === state.partnerProfile.id) {
+      creatorName = state.partnerProfile.display_name || state.partnerProfile.email.split('@')[0];
+    }
+    if (!creatorName && state.currentUser && t.user_id === state.currentUser.id) {
+      creatorName = state.currentUser.email ? state.currentUser.email.split('@')[0] : (state.userProfile?.display_name || '');
+    }
+    if (creatorName) {
+      creatorRow.style.display = 'block';
+      creatorText.textContent = (state.lang === 'el' ? 'Καταχωρήθηκε από: ' : 'Added by: ') + creatorName;
+    } else {
+      creatorRow.style.display = 'none';
+    }
+  }
+
   openModal('transaction-modal');
   setTimeout(() => initNoteAutocomplete(), 50);
 }
@@ -4667,8 +6431,8 @@ function toggleCategoryPickerEditMode() {
   const btn = document.getElementById('btn-toggle-cat-edit');
   if (btn) {
     btn.textContent = categoryPickerEditMode 
-      ? (state.lang === 'el' ? 'Τέλος' : 'Done')
-      : (state.lang === 'el' ? 'Διαχείριση' : 'Manage');
+      ? (TRANSLATIONS[state.lang]['keypad_btn_done'] || 'Τέλος')
+      : (TRANSLATIONS[state.lang]['btn_manage'] || 'Διαχείριση');
     if (categoryPickerEditMode) {
       btn.style.borderColor = 'var(--accent)';
       btn.style.color = 'var(--accent)';
@@ -7188,19 +8952,7 @@ function renderGroupedTransactions(transactions, container) {
                        : (translatedSub && translatedSub.trim()) ? translatedSub.trim()
                        : (translatedCat || '');
 
-    let memberBadge = '';
-    if (state.userProfile && state.userProfile.family_id && t.user_id) {
-      const creator = state.familyProfiles.find(p => p.id === t.user_id);
-      if (creator) {
-        const initials = getMemberInitials(creator);
-        const gradient = getMemberColorGradient(creator.id);
-        const creatorName = creator.display_name || creator.email.split('@')[0];
-        memberBadge = `<span class="trans-member-badge" style="background:${gradient};color:white;display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;font-size:7.5px;font-weight:800;text-transform:uppercase;margin-left:6px;vertical-align:middle;box-shadow:0 1px 3px rgba(0,0,0,0.15);border:none;" title="${state.lang === 'el' ? 'Προστέθηκε από: ' : 'Added by: '}${creatorName}">${initials}</span>`;
-      }
-    } else {
-      const isPartner = state.partnerProfile && t.user_id === state.partnerProfile.id;
-      memberBadge = isPartner ? ` <i class="fa-solid fa-user-group partner-badge-icon" title="${state.lang === 'el' ? 'Προστέθηκε από τον σύντροφο' : 'Added by partner'}"></i>` : '';
-    }
+    const memberBadge = getMemberBadgeHTML(t);
 
     const datePart = (t.date || '').split('T')[0];
     const catSubLine = t.subcategory
@@ -7281,8 +9033,7 @@ function selectMonthPickerMonth(monthIndex) {
   state.selectedYear = state.monthPickerYear;
   
   // Sync to Stats date
-  state.statsDate.setFullYear(state.selectedYear);
-  state.statsDate.setMonth(state.selectedMonth);
+  syncStatsDate();
 
   // Update UI components
   updateUI();
@@ -7574,14 +9325,20 @@ function initSwipeToBack() {
   const TAB_ORDER = ['trans', 'stats', 'accounts', 'more'];
   let bsStartX = 0, bsStartY = 0, bsActive = false, bsSwiping = null;
   let bsDragging = false;
-  const EDGE_ZONE = 50;    // px from left edge to detect back swipe start
   const COMMIT_RATIO = 0.30; // 30% of screen width to commit
 
-  // Setup system history state to prevent exiting the app on system back gesture/button
+  let activeOverlayEl = null;
+  let activeOverlayParent = null;
+
+  // Setup system history state to prevent exiting the app on system back gesture/button (PWA fallback)
   history.pushState({ appState: 'active' }, '', window.location.pathname + window.location.search);
   state.historyPushed = true;
 
   window.addEventListener('popstate', (e) => {
+    // Only run popstate logic if NOT inside Capacitor (because Capacitor handles back button natively via App plugin)
+    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
+      return;
+    }
     const handled = triggerBackAction();
     if (handled) {
       // Re-push to keep intercepting subsequent back actions
@@ -7592,8 +9349,37 @@ function initSwipeToBack() {
     }
   });
 
+  // Native Capacitor Back Button Interception
+  function registerCapacitorBackButton() {
+    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
+      const App = window.Capacitor.Plugins.App;
+      if (App && typeof App.addListener === 'function') {
+        App.addListener('backButton', () => {
+          const handled = triggerBackAction();
+          if (!handled) {
+            App.exitApp();
+          }
+        });
+        return true;
+      }
+    }
+    return false;
+  }
+
+  if (!registerCapacitorBackButton()) {
+    let attempts = 0;
+    const interval = setInterval(() => {
+      attempts++;
+      if (registerCapacitorBackButton() || attempts > 50) {
+        clearInterval(interval);
+      }
+    }, 100);
+  }
+
   function hasActiveOverlay() {
     // Check if any modal, keypad, search, or selection mode is active
+    const lightbox = document.getElementById('photo-lightbox-modal');
+    if (lightbox && lightbox.style.display === 'flex') return true;
     const keypad = document.getElementById('custom-calculator-keypad');
     if (keypad && keypad.classList.contains('active')) return true;
     const activeModals = document.querySelectorAll('.modal-overlay.active');
@@ -7604,7 +9390,45 @@ function initSwipeToBack() {
     return false;
   }
 
+  function getActiveOverlayElement() {
+    const lightbox = document.getElementById('photo-lightbox-modal');
+    if (lightbox && lightbox.style.display === 'flex') return lightbox;
+
+    const keypad = document.getElementById('custom-calculator-keypad');
+    if (keypad && keypad.classList.contains('active')) return null; // do not drag keypad horizontally
+    
+    const activeModals = document.querySelectorAll('.modal-overlay.active');
+    if (activeModals.length > 0) {
+      return activeModals[activeModals.length - 1].querySelector('.modal-content');
+    }
+    
+    const searchOverlay = document.getElementById('search-overlay');
+    if (searchOverlay && searchOverlay.classList.contains('active')) return searchOverlay;
+    
+    return null;
+  }
+
+  function cleanupOverlayStyles(el, parent) {
+    if (el) {
+      el.style.transform = '';
+      el.style.transition = '';
+      el.style.willChange = '';
+    }
+    if (parent) {
+      parent.style.opacity = '';
+      parent.style.transition = '';
+      parent.style.willChange = '';
+    }
+  }
+
   function triggerBackAction() {
+    // 0. Close photo lightbox if active
+    const lightbox = document.getElementById('photo-lightbox-modal');
+    if (lightbox && lightbox.style.display === 'flex') {
+      closePhotoLightbox();
+      return true;
+    }
+
     // 1. Close calculator keypad if active
     const keypad = document.getElementById('custom-calculator-keypad');
     if (keypad && keypad.classList.contains('active')) {
@@ -7612,7 +9436,12 @@ function initSwipeToBack() {
       return true;
     }
 
-    // 2. Close active modals
+    // 2. Close active modals (including transaction modal)
+    const txModal = document.getElementById('transaction-modal');
+    if (txModal && txModal.classList.contains('active')) {
+      closeModal('transaction-modal');
+      return true;
+    }
     const activeModals = document.querySelectorAll('.modal-overlay.active');
     if (activeModals.length > 0) {
       const topModal = activeModals[activeModals.length - 1];
@@ -7642,8 +9471,8 @@ function initSwipeToBack() {
       return true;
     }
     
-    // 6. On trans tab with nothing to close — stay on trans tab (do not exit)
-    return true;
+    // 6. On trans tab with nothing to close — return false to let app exit
+    return false;
   }
 
   // --- Interactive drag-to-go-back gesture ---
@@ -7652,15 +9481,36 @@ function initSwipeToBack() {
   let screenWidth = 0;
 
   document.addEventListener('touchstart', (e) => {
+    // Check if touch starts in scrollable elements to ignore
+    if (e.target.closest('#trans-photo-previews-list, .lightbox-zoom-container, #statsChart, canvas')) {
+      bsActive = false;
+      return;
+    }
+    
+    // Also ignore if lightbox is zoomed in
+    const img = document.getElementById('photo-lightbox-img');
+    const isZoomed = img && parseFloat(img.dataset.scale || '1') > 1;
+    if (isZoomed) {
+      bsActive = false;
+      return;
+    }
+
     const touch = e.touches[0];
     bsStartX = touch.clientX;
     bsStartY = touch.clientY;
     bsSwiping = null;
     bsDragging = false;
-    bsActive = bsStartX <= EDGE_ZONE;
+    
+    // If an overlay/modal is active, allow swiping back starting from the left 150px
+    // If no overlay is active, only allow starting from the left 60px
+    const activeZone = hasActiveOverlay() ? 150 : 60;
+    bsActive = bsStartX <= activeZone;
+    
     currentScreen = null;
     prevScreen = null;
     screenWidth = window.innerWidth;
+    activeOverlayEl = null;
+    activeOverlayParent = null;
   }, { passive: true });
 
   document.addEventListener('touchmove', (e) => {
@@ -7679,13 +9529,35 @@ function initSwipeToBack() {
 
     if (e.cancelable) e.preventDefault();
 
-    // If there are overlays active, just show the indicator bubble for closing them
+    const clampedDx = Math.max(0, Math.min(dx, screenWidth));
+    const progress = clampedDx / screenWidth;
+
+    // If there are overlays active, slide the active overlay horizontally
     if (hasActiveOverlay()) {
-      // Don't do full-screen drag for overlays, just use visual hint
+      if (!bsDragging) {
+        bsDragging = true;
+        activeOverlayEl = getActiveOverlayElement();
+        if (activeOverlayEl) {
+          activeOverlayParent = activeOverlayEl.closest('.modal-overlay') || activeOverlayEl;
+          activeOverlayEl.style.transition = 'none';
+          activeOverlayEl.style.willChange = 'transform';
+          if (activeOverlayParent) {
+            activeOverlayParent.style.transition = 'none';
+            activeOverlayParent.style.willChange = 'opacity';
+          }
+        }
+      }
+
+      if (activeOverlayEl) {
+        activeOverlayEl.style.transform = `translateX(${clampedDx}px)`;
+        if (activeOverlayParent) {
+          activeOverlayParent.style.opacity = String(1 - progress * 0.5);
+        }
+      }
       return;
     }
 
-    // Start drag: set up screens for interactive slide
+    // Start drag: set up screens for interactive slide (when no overlays)
     if (!bsDragging) {
       bsDragging = true;
       const currentTabIdx = TAB_ORDER.indexOf(state.activeTab);
@@ -7699,7 +9571,6 @@ function initSwipeToBack() {
         if (prevScreen) {
           prevScreen.style.display = 'block';
           prevScreen.style.visibility = 'visible';
-          prevScreen.style.opacity = '1';
           prevScreen.classList.remove('active', 'slide-out-left', 'slide-out-right', 'slide-in-left', 'slide-in-right');
           prevScreen.style.position = 'absolute';
           prevScreen.style.top = '0';
@@ -7723,9 +9594,6 @@ function initSwipeToBack() {
     }
 
     // Move current screen with finger
-    const clampedDx = Math.max(0, Math.min(dx, screenWidth));
-    const progress = clampedDx / screenWidth;
-
     if (currentScreen) {
       currentScreen.style.transform = `translateX(${clampedDx}px)`;
       currentScreen.style.opacity = String(1 - progress * 0.3);
@@ -7754,33 +9622,74 @@ function initSwipeToBack() {
   function finishDrag(committed) {
     if (!bsDragging) return;
 
+    // Capture screen references immediately in local variables to avoid race conditions 
+    // with touchstart resetting outer scope variables before our timeout runs.
+    const currScreen = currentScreen;
+    const pScreen = prevScreen;
+    const activeEl = activeOverlayEl;
+    const parentEl = activeOverlayParent;
+
+    // Reset outer references immediately
+    activeOverlayEl = null;
+    activeOverlayParent = null;
+    currentScreen = null;
+    prevScreen = null;
+    bsDragging = false;
+
+    if (activeEl) {
+      const dur = '0.22s';
+      if (committed) {
+        activeEl.style.transition = `transform ${dur} cubic-bezier(0.2, 0.8, 0.3, 1)`;
+        activeEl.style.transform = `translateX(${screenWidth}px)`;
+        if (parentEl) {
+          parentEl.style.transition = `opacity ${dur} ease`;
+          parentEl.style.opacity = '0';
+        }
+        setTimeout(() => {
+          triggerBackAction();
+          cleanupOverlayStyles(activeEl, parentEl);
+        }, 230);
+      } else {
+        activeEl.style.transition = `transform ${dur} cubic-bezier(0.2, 0.8, 0.3, 1)`;
+        activeEl.style.transform = '';
+        if (parentEl) {
+          parentEl.style.transition = `opacity ${dur} ease`;
+          parentEl.style.opacity = '';
+        }
+        setTimeout(() => {
+          cleanupOverlayStyles(activeEl, parentEl);
+        }, 210);
+      }
+      return;
+    }
+
     const currentTabIdx = TAB_ORDER.indexOf(state.activeTab);
 
     if (committed && currentTabIdx > 0) {
       // Animate current screen off to the right
       const dur = '0.22s';
-      if (currentScreen) {
-        currentScreen.style.transition = `transform ${dur} cubic-bezier(0.2, 0.8, 0.3, 1), opacity ${dur} ease`;
-        currentScreen.style.transform = `translateX(${screenWidth}px)`;
-        currentScreen.style.opacity = '0';
+      if (currScreen) {
+        currScreen.style.transition = `transform ${dur} cubic-bezier(0.2, 0.8, 0.3, 1), opacity ${dur} ease`;
+        currScreen.style.transform = `translateX(${screenWidth}px)`;
+        currScreen.style.opacity = '0';
       }
-      if (prevScreen) {
-        prevScreen.style.transition = `transform ${dur} cubic-bezier(0.2, 0.8, 0.3, 1), opacity ${dur} ease`;
-        prevScreen.style.transform = 'translateX(0)';
-        prevScreen.style.opacity = '1';
+      if (pScreen) {
+        pScreen.style.transition = `transform ${dur} cubic-bezier(0.2, 0.8, 0.3, 1), opacity ${dur} ease`;
+        pScreen.style.transform = 'translateX(0)';
+        pScreen.style.opacity = '1';
       }
 
       setTimeout(() => {
         // Clean up styles
-        if (currentScreen) {
-          currentScreen.style.display = 'none';
-          currentScreen.style.visibility = 'hidden';
-          currentScreen.classList.remove('active');
-          cleanupDragStyles(currentScreen);
+        if (currScreen) {
+          currScreen.style.display = 'none';
+          currScreen.style.visibility = 'hidden';
+          currScreen.classList.remove('active');
+          cleanupDragStyles(currScreen);
         }
-        if (prevScreen) {
-          cleanupDragStyles(prevScreen);
-          prevScreen.classList.add('active');
+        if (pScreen) {
+          cleanupDragStyles(pScreen);
+          pScreen.classList.add('active');
         }
 
         // Update state
@@ -7800,8 +9709,7 @@ function initSwipeToBack() {
           const today = new Date();
           state.selectedMonth = today.getMonth();
           state.selectedYear = today.getFullYear();
-          state.statsDate.setFullYear(state.selectedYear);
-          state.statsDate.setMonth(state.selectedMonth);
+          syncStatsDate();
           requestAnimationFrame(() => {
             setTimeout(() => {
               updateUI();
@@ -7816,50 +9724,41 @@ function initSwipeToBack() {
           });
         } else if (prevTabName === 'accounts') renderAccountsTab();
         else if (prevTabName === 'more') renderPartnerSection();
-
-        currentScreen = null;
-        prevScreen = null;
       }, 230);
     } else if (committed && currentTabIdx === 0) {
       // On trans tab - snap back instead of exiting
       const dur = '0.2s';
-      if (currentScreen) {
-        currentScreen.style.transition = `transform ${dur} cubic-bezier(0.2, 0.8, 0.3, 1), opacity ${dur} ease`;
-        currentScreen.style.transform = 'translateX(0)';
-        currentScreen.style.opacity = '1';
+      if (currScreen) {
+        currScreen.style.transition = `transform ${dur} cubic-bezier(0.2, 0.8, 0.3, 1), opacity ${dur} ease`;
+        currScreen.style.transform = 'translateX(0)';
+        currScreen.style.opacity = '1';
       }
       setTimeout(() => {
-        cleanupDragStyles(currentScreen);
-        currentScreen = null;
-        prevScreen = null;
+        cleanupDragStyles(currScreen);
       }, 210);
     } else {
       // Snap back - not committed
       const dur = '0.2s';
-      if (currentScreen) {
-        currentScreen.style.transition = `transform ${dur} cubic-bezier(0.2, 0.8, 0.3, 1), opacity ${dur} ease`;
-        currentScreen.style.transform = 'translateX(0)';
-        currentScreen.style.opacity = '1';
+      if (currScreen) {
+        currScreen.style.transition = `transform ${dur} cubic-bezier(0.2, 0.8, 0.3, 1), opacity ${dur} ease`;
+        currScreen.style.transform = 'translateX(0)';
+        currScreen.style.opacity = '1';
       }
-      if (prevScreen) {
-        prevScreen.style.transition = `transform ${dur} cubic-bezier(0.2, 0.8, 0.3, 1), opacity ${dur} ease`;
-        prevScreen.style.transform = 'translateX(-30%)';
-        prevScreen.style.opacity = '0.6';
+      if (pScreen) {
+        pScreen.style.transition = `transform ${dur} cubic-bezier(0.2, 0.8, 0.3, 1), opacity ${dur} ease`;
+        pScreen.style.transform = 'translateX(-30%)';
+        pScreen.style.opacity = '0.6';
       }
 
       setTimeout(() => {
-        cleanupDragStyles(currentScreen);
-        if (prevScreen) {
-          prevScreen.style.display = 'none';
-          prevScreen.style.visibility = 'hidden';
-          cleanupDragStyles(prevScreen);
+        cleanupDragStyles(currScreen);
+        if (pScreen) {
+          pScreen.style.display = 'none';
+          pScreen.style.visibility = 'hidden';
+          cleanupDragStyles(pScreen);
         }
-        currentScreen = null;
-        prevScreen = null;
       }, 210);
     }
-
-    bsDragging = false;
   }
 
   document.addEventListener('touchend', (e) => {
@@ -7874,7 +9773,7 @@ function initSwipeToBack() {
     bsActive = false; bsSwiping = null;
 
     if (bsDragging) {
-      // For full-screen drag: commit if past threshold
+      // For drag: commit if past threshold
       const committed = dx >= screenWidth * COMMIT_RATIO;
       finishDrag(committed);
     } else if (dx >= 72) {
@@ -7997,11 +9896,11 @@ function initTabSwipeNavigation() {
   const edgeThreshold = 50; // Ignore starts within 50px of left edge (reserved for back swipe)
 
   appContent.addEventListener('touchstart', (e) => {
-    // Only capture if no modals are active and not in selection mode
+    // Only capture if no modals are active, not in selection mode, and not already swiping
     const activeModals = document.querySelectorAll('.modal-overlay.active');
     const searchOverlay = document.getElementById('search-overlay');
     const isSearchActive = searchOverlay && searchOverlay.classList.contains('active');
-    if (activeModals.length > 0 || isSearchActive || state.selectionMode) {
+    if (activeModals.length > 0 || isSearchActive || state.selectionMode || state.isSwipingMonth) {
       touchActive = false;
       return;
     }
@@ -8035,7 +9934,15 @@ function initTabSwipeNavigation() {
     if (isSwipingHorizontal === null) {
       if (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10) {
         if (Math.abs(deltaX) > Math.abs(deltaY)) {
-          isSwipingHorizontal = true;
+          // Only enable horizontal swipes on Transactions and Stats tabs
+          if (state.activeTab === 'trans' || state.activeTab === 'stats') {
+            isSwipingHorizontal = true;
+            state.isSwipingMonth = true;
+            document.body.classList.add('is-swiping-month');
+          } else {
+            isSwipingHorizontal = false;
+            touchActive = false;
+          }
         } else {
           isSwipingHorizontal = false;
           touchActive = false;
@@ -8044,7 +9951,7 @@ function initTabSwipeNavigation() {
     }
 
     if (isSwipingHorizontal === true) {
-      // Prevent vertical scrolling while swiping tabs
+      // Prevent vertical scrolling while swiping months
       if (e.cancelable) e.preventDefault();
     }
   }, { passive: false });
@@ -8054,30 +9961,53 @@ function initTabSwipeNavigation() {
     touchActive = false;
 
     if (isSwipingHorizontal === true) {
+      if (e.cancelable) e.preventDefault();
+      state.lastSwipeTime = Date.now();
       const touch = e.changedTouches[0] || e.touches[0];
       const deltaX = touch.clientX - startX;
 
       if (Math.abs(deltaX) >= dragThreshold) {
-        const currentIdx = TAB_ORDER.indexOf(state.activeTab);
-        if (deltaX > 0) {
-          // Swipe Right (left-to-right) -> Previous Tab
-          if (currentIdx > 0) {
-            switchTab(TAB_ORDER[currentIdx - 1]);
+        if (state.activeTab === 'trans') {
+          if (deltaX > 0) {
+            navigateMonth(-1, deltaX);
+          } else {
+            navigateMonth(1, deltaX);
           }
-        } else {
-          // Swipe Left (right-to-left) -> Next Tab
-          if (currentIdx < TAB_ORDER.length - 1) {
-            switchTab(TAB_ORDER[currentIdx + 1]);
+        } else if (state.activeTab === 'stats') {
+          if (deltaX > 0) {
+            adjustStatsPeriod(-1, deltaX);
+          } else {
+            adjustStatsPeriod(1, deltaX);
           }
         }
+      } else {
+        // Cancelled swipe: clear state after 100ms to ignore delayed click events
+        setTimeout(() => {
+          state.isSwipingMonth = false;
+          state.touchDidMove = false;
+          state.lastSwipeTime = Date.now();
+          document.body.classList.remove('is-swiping-month');
+        }, 100);
       }
+    } else {
+      state.isSwipingMonth = false;
+      // If no horizontal swipe detected, reset touchDidMove after brief delay
+      // so any phantom click can still be blocked if movement was detected
+      setTimeout(() => { state.touchDidMove = false; }, 350);
+      document.body.classList.remove('is-swiping-month');
     }
     isSwipingHorizontal = null;
-  }, { passive: true });
+  }, { passive: false });
 
   appContent.addEventListener('touchcancel', () => {
     touchActive = false;
     isSwipingHorizontal = null;
+    setTimeout(() => {
+      state.isSwipingMonth = false;
+      state.touchDidMove = false;
+      state.lastSwipeTime = Date.now();
+      document.body.classList.remove('is-swiping-month');
+    }, 100);
   }, { passive: true });
 }
 
@@ -8092,35 +10022,64 @@ function animateSwipeTransition(direction, callback, startingDeltaX = 0) {
       : null;
 
   const width = window.innerWidth;
-  const outX = direction > 0 ? -width * 0.55 : width * 0.55;
+  const outX = direction > 0 ? -width * 0.5 : width * 0.5;
 
+  // Use rAF instead of forced reflow to avoid blocking the main thread
   function animateEl(el, fromX, toX, opacity, duration, easing, cb) {
     if (!el) { if (cb) cb(); return; }
     el.style.transition = 'none';
     el.style.transform = `translateX(${fromX}px)`;
     el.style.opacity = String(opacity[0]);
-    void el.offsetWidth;
-    el.style.transition = `transform ${duration}ms ${easing}, opacity ${duration}ms ${easing}`;
-    el.style.transform = `translateX(${toX}px)`;
-    el.style.opacity = String(opacity[1]);
-    setTimeout(() => { el.style.transition = ''; el.style.transform = ''; el.style.opacity = ''; if (cb) cb(); }, duration);
+    // rAF to allow browser to paint before starting transition
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        el.style.transition = `transform ${duration}ms ${easing}, opacity ${duration}ms ${easing}`;
+        el.style.transform = `translateX(${toX}px)`;
+        el.style.opacity = String(opacity[1]);
+        setTimeout(() => { el.style.transition = ''; el.style.transform = ''; el.style.opacity = ''; if (cb) cb(); }, duration);
+      });
+    });
   }
 
+  // Ensure isSwipingMonth is active during the animation
+  state.isSwipingMonth = true;
+  document.body.classList.add('is-swiping-month');
+
   if (listEl) {
-    // Slide current content out
+    // Slide current content out — faster exit (100ms)
     const startFrom = startingDeltaX !== 0 ? startingDeltaX : 0;
-    animateEl(listEl, startFrom, outX, [1, 0], 160, 'cubic-bezier(0.4, 0, 0.6, 1)', () => {
+    animateEl(listEl, startFrom, outX, [1, 0], 100, 'cubic-bezier(0.4, 0, 0.6, 1)', () => {
       callback();
-      // Slide new content in from opposite direction
+      // Slide new content in from opposite direction — snappy entrance (160ms)
       const inX = -outX;
       const newListEl = state.activeTab === 'trans'
         ? document.getElementById('transactions-list')
         : document.getElementById('stats-breakdown-list');
-      animateEl(newListEl, inX, 0, [0, 1], 240, 'cubic-bezier(0.2, 0.8, 0.4, 1)', null);
+      animateEl(newListEl, inX, 0, [0, 1], 160, 'cubic-bezier(0.2, 0.8, 0.4, 1)', () => {
+        // Clear swiping state immediately after animations complete to allow consecutive fast swipes
+        state.isSwipingMonth = false;
+        state.touchDidMove = false;
+        state.lastSwipeTime = Date.now();
+        document.body.classList.remove('is-swiping-month');
+        if (state.activeTab === 'stats') {
+          renderStatsTab(false);
+        }
+      });
     });
   } else {
     callback();
+    state.isSwipingMonth = false;
+    state.touchDidMove = false;
+    state.lastSwipeTime = Date.now();
+    document.body.classList.remove('is-swiping-month');
   }
+}
+
+// Lightweight render for swipe navigation — only updates list + header, skips dropdowns/currency/etc.
+function renderTransactionsForSwipe() {
+  updateHeaderAndSync();
+  renderTransactionsTab();
+  lastRenderedCategoryType = null;
 }
 
 function navigateMonth(direction, startingDeltaX = 0) {
@@ -8133,9 +10092,9 @@ function navigateMonth(direction, startingDeltaX = 0) {
       state.selectedMonth = 0;
       state.selectedYear++;
     }
-    state.statsDate.setFullYear(state.selectedYear);
-    state.statsDate.setMonth(state.selectedMonth);
-    updateUI();
+    syncStatsDate();
+    // Use lightweight render during swipe — skips dropdowns, currency symbols etc.
+    renderTransactionsForSwipe();
     setTimeout(() => scrollToToday('auto'), 50);
   }, startingDeltaX);
 }
@@ -8145,54 +10104,83 @@ function initRippleEffects() {
     const target = e.target.closest('button, .nav-item, .transaction-item, .calc-key-btn, .fab, .settings-card, .settings-list-item, .stats-tab-btn, .stats-dropdown-item');
     if (!target) return;
 
-    // Check if element has relative positioning to contain the ripple
-    const rect = target.getBoundingClientRect();
-    const computedStyle = window.getComputedStyle(target);
-    if (computedStyle.position === 'static') {
-      target.style.position = 'relative';
-    }
-    
-    // Ensure overflow is hidden to clip the ripple
-    const originalOverflow = target.style.overflow;
-    if (computedStyle.overflow !== 'hidden') {
-      target.style.overflow = 'hidden';
-    }
+    const isScrollable = target.classList.contains('transaction-item') || 
+                         target.classList.contains('settings-list-item') || 
+                         target.classList.contains('stats-sub-row');
 
-    // Create ripple element
-    const ripple = document.createElement('span');
-    ripple.className = 'ripple-effect';
-    
-    // Calculate ripple size (diameter should cover the diagonal of the element)
-    const size = Math.max(rect.width, rect.height) * 1.5;
-    ripple.style.width = `${size}px`;
-    ripple.style.height = `${size}px`;
-
-    // Position ripple relative to touch/click coordinates
-    const clientX = e.clientX || (e.touches && e.touches[0].clientX);
-    const clientY = e.clientY || (e.touches && e.touches[0].clientY);
-    
-    const x = clientX - rect.left - size / 2;
-    const y = clientY - rect.top - size / 2;
-    
-    ripple.style.left = `${x}px`;
-    ripple.style.top = `${y}px`;
-    
-    // Add to target
-    target.appendChild(ripple);
-    
-    // Trigger animation frame
-    requestAnimationFrame(() => {
-      ripple.classList.add('active');
-    });
-    
-    // Remove ripple after animation finishes
-    setTimeout(() => {
-      ripple.remove();
-      // Restore overflow if it was originally set differently
-      if (originalOverflow) {
-        target.style.overflow = originalOverflow;
+    const createRipple = () => {
+      // Check if element has relative positioning to contain the ripple
+      const rect = target.getBoundingClientRect();
+      const computedStyle = window.getComputedStyle(target);
+      if (computedStyle.position === 'static') {
+        target.style.position = 'relative';
       }
-    }, 450);
+      
+      // Ensure overflow is hidden to clip the ripple
+      const originalOverflow = target.style.overflow;
+      if (computedStyle.overflow !== 'hidden') {
+        target.style.overflow = 'hidden';
+      }
+
+      // Create ripple element
+      const ripple = document.createElement('span');
+      ripple.className = 'ripple-effect';
+      
+      // Calculate ripple size (diameter should cover the diagonal of the element)
+      const size = Math.max(rect.width, rect.height) * 1.5;
+      ripple.style.width = `${size}px`;
+      ripple.style.height = `${size}px`;
+
+      // Position ripple relative to touch/click coordinates
+      const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+      const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+      
+      const x = clientX - rect.left - size / 2;
+      const y = clientY - rect.top - size / 2;
+      
+      ripple.style.left = `${x}px`;
+      ripple.style.top = `${y}px`;
+      
+      // Add to target
+      target.appendChild(ripple);
+      
+      // Trigger animation frame
+      requestAnimationFrame(() => {
+        ripple.classList.add('active');
+      });
+      
+      // Remove ripple after animation finishes
+      setTimeout(() => {
+        ripple.remove();
+        // Restore overflow if it was originally set differently
+        if (originalOverflow) {
+          target.style.overflow = originalOverflow;
+        }
+      }, 450);
+    };
+
+    if (e.pointerType === 'touch' && isScrollable) {
+      // Delay ripple on touch of scrollable items to prevent ripple during swipe/scroll
+      let didMove = false;
+      const onMove = () => { didMove = true; };
+      const onCleanup = () => {
+        document.removeEventListener('pointermove', onMove);
+        document.removeEventListener('pointerup', onCleanup);
+        document.removeEventListener('pointercancel', onCleanup);
+      };
+      document.addEventListener('pointermove', onMove, { passive: true });
+      document.addEventListener('pointerup', onCleanup, { passive: true });
+      document.addEventListener('pointercancel', onCleanup, { passive: true });
+
+      setTimeout(() => {
+        onCleanup();
+        if (!didMove && !state.isSwipingMonth) {
+          createRipple();
+        }
+      }, 80);
+    } else {
+      createRipple();
+    }
   }, { passive: true });
 }
 
@@ -8367,6 +10355,7 @@ function initLightboxPinchZoom() {
   function applyTransform() {
     img.style.transition = 'none';
     img.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+    img.dataset.scale = scale;
   }
 
   function resetTransform() {
@@ -8375,6 +10364,7 @@ function initLightboxPinchZoom() {
     translateY = 0;
     img.style.transition = 'transform 0.25s cubic-bezier(0.25, 0.8, 0.25, 1)';
     img.style.transform = `translate(0px, 0px) scale(1)`;
+    img.dataset.scale = 1;
   }
   
   window.resetLightboxPinchZoom = resetTransform;
@@ -9515,11 +11505,29 @@ function renderPartnerSection() {
 }
 
 function getMemberInitials(m) {
-  const name = m.display_name || m.email.split('@')[0] || '';
-  if (name.length >= 2) {
-    return name.substring(0, 2);
+  const name = (m.display_name || m.email.split('@')[0] || '').trim();
+  const parts = name.split(/\s+/);
+  if (parts.length >= 2) {
+    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
   }
-  return name.substring(0, 1) || '?';
+  if (name.length >= 2) {
+    return name.substring(0, 2).toUpperCase();
+  }
+  return (name.substring(0, 1) || '?').toUpperCase();
+}
+
+function getMemberBadgeHTML(t) {
+  if (state.userProfile && state.userProfile.family_id && t.user_id) {
+    const creator = state.familyProfiles.find(p => p.id === t.user_id);
+    if (creator) {
+      const initials = getMemberInitials(creator);
+      const gradient = getMemberColorGradient(creator.id);
+      const creatorName = creator.display_name || creator.email.split('@')[0];
+      return `<span class="trans-member-badge" style="background:${gradient};color:white;display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;font-size:8px;font-weight:800;text-transform:uppercase;margin-left:6px;vertical-align:middle;box-shadow:0 1px 3px rgba(0,0,0,0.15);border:none;flex-shrink:0;" title="${state.lang === 'el' ? 'Προστέθηκε από: ' : 'Added by: '}${creatorName}">${initials}</span>`;
+    }
+  }
+  const isPartner = state.partnerProfile && t.user_id === state.partnerProfile.id;
+  return isPartner ? ` <i class="fa-solid fa-user-group partner-badge-icon" title="${state.lang === 'el' ? 'Προστέθηκε από τον σύντροφο' : 'Added by partner'}"></i>` : '';
 }
 
 function getMemberColorGradient(userId) {
@@ -9866,7 +11874,17 @@ async function enterGuestMode() {
   
   // Hide auth overlay after UI updates
   const authOverlay = document.getElementById('auth-overlay');
-  if (authOverlay) authOverlay.style.display = 'none';
+  if (authOverlay) {
+    // Prevent click penetration (ghost clicks) to elements underneath (like the FAB button)
+    authOverlay.style.pointerEvents = 'none';
+    document.body.style.pointerEvents = 'none';
+    setTimeout(() => {
+      authOverlay.style.display = 'none';
+      authOverlay.style.pointerEvents = '';
+      document.body.style.pointerEvents = '';
+      forceViewportReset();
+    }, 350);
+  }
   toggleLoader(false);
 }
 
@@ -10311,10 +12329,13 @@ async function forceSyncNow(silent = false) {
       : (partnerId ? `user_id.eq.${userId},user_id.eq.${partnerId}` : `user_id.eq.${userId}`);
 
     // 1. Fetch categories and accounts
-    const [catsRes, accsRes] = await Promise.all([
-      state.supabaseClient.from('categories').select('*').or(userFilter),
-      state.supabaseClient.from('accounts').select('*').or(userFilter),
-    ]);
+    const [catsRes, accsRes] = await promiseTimeout(
+      Promise.all([
+        state.supabaseClient.from('categories').select('*').or(userFilter),
+        state.supabaseClient.from('accounts').select('*').or(userFilter),
+      ]),
+      15000
+    );
     
     if (!catsRes.error && catsRes.data) {
       state.categories = catsRes.data;
@@ -10339,14 +12360,21 @@ async function forceSyncNow(silent = false) {
         .range(page * pageSize, (page + 1) * pageSize - 1);
         
       if (familyId) {
-        transQuery = transQuery.eq('family_id', familyId);
+        if (partnerId) {
+          transQuery = transQuery.or(`family_id.eq.${familyId},user_id.eq.${userId},user_id.eq.${partnerId}`);
+        } else {
+          transQuery = transQuery.or(`family_id.eq.${familyId},user_id.eq.${userId}`);
+        }
       } else if (partnerId) {
         transQuery = transQuery.or(`user_id.eq.${userId},user_id.eq.${partnerId}`);
       } else {
         transQuery = transQuery.eq('user_id', userId);
       }
 
-      const { data: pageData, error: pageErr } = await transQuery;
+      const { data: pageData, error: pageErr } = await promiseTimeout(
+        transQuery,
+        15000
+      );
       if (pageErr) throw pageErr;
 
       if (pageData && pageData.length > 0) {
@@ -11093,17 +13121,55 @@ document.addEventListener('DOMContentLoaded', () => {
       // Subtract offsetTop ONLY on Android (where it is 0). On iOS, do NOT subtract offsetTop
       // to keep keyboardHeight stable when iOS Safari pans the layout viewport.
       const rawKeyboardHeight = isIOS ? (window.innerHeight - vvHeight) : (window.innerHeight - vvHeight - offsetTop);
-      const keyboardHeight = Math.max(0, rawKeyboardHeight);
+      
+      // Scale keyboardHeight inversely to counteract body { zoom: 0.93 }
+      // This ensures CSS translations perfectly track the physical keyboard.
+      const scale = isIOS ? 1.0 : 0.93;
+      const keyboardHeight = Math.max(0, rawKeyboardHeight) / scale;
       
       // --viewport-height: the visible area height (visual viewport)
       // Use window.innerHeight for layout (unchanged with resizes-visual)
       document.documentElement.style.setProperty('--viewport-height', `${window.innerHeight}px`);
       document.documentElement.style.setProperty('--viewport-offset-top', `${offsetTop}px`);
       document.documentElement.style.setProperty('--keyboard-height', `${keyboardHeight}px`);
+
+      // Adjust transaction modal content height and top to match visual viewport
+      const txModal = document.getElementById('transaction-modal');
+      if (txModal && txModal.classList.contains('active')) {
+        if (!isIOS) {
+          txModal.style.setProperty('height', (window.innerHeight / scale) + 'px', 'important');
+          txModal.style.setProperty('top', '0px', 'important');
+          
+          const modalContent = txModal.querySelector('.modal-content');
+          if (modalContent) {
+            if (rawKeyboardHeight > 30) {
+              modalContent.style.setProperty('height', (vvHeight / scale) + 'px', 'important');
+              modalContent.style.setProperty('top', (offsetTop / scale) + 'px', 'important');
+            } else {
+              modalContent.style.setProperty('height', (window.innerHeight / scale) + 'px', 'important');
+              modalContent.style.setProperty('top', '0px', 'important');
+            }
+          }
+        }
+      }
     };
+
+    // On iOS, visualViewport fires 'resize' on every frame during keyboard animation,
+    // which causes continuous expensive JS + style recalculations and visible lag.
+    // Use a RAF-based debounce to coalesce rapid-fire events into one update per frame.
+    let _vpRafId = null;
+    const debouncedUpdateViewport = isIOS
+      ? () => {
+          if (_vpRafId) return; // already scheduled this frame
+          _vpRafId = requestAnimationFrame(() => {
+            _vpRafId = null;
+            updateViewportHeight();
+          });
+        }
+      : updateViewportHeight; // Android: fire immediately (no excess events)
     
-    window.visualViewport.addEventListener('resize', updateViewportHeight);
-    window.visualViewport.addEventListener('scroll', updateViewportHeight);
+    window.visualViewport.addEventListener('resize', debouncedUpdateViewport);
+    window.visualViewport.addEventListener('scroll', debouncedUpdateViewport);
     
     // Track orientation changes or resets when not focused
     window.addEventListener('resize', () => {
@@ -11255,8 +13321,8 @@ function renderCustomDatePickerCalendar() {
   const year = customDatePickerViewingMonth.getFullYear();
   const month = customDatePickerViewingMonth.getMonth();
   
-  // Update Greek Month and Year title
-  monthYearLabel.textContent = `${GREEK_MONTHS[month]} ${year}`;
+  // Update Month and Year title
+  monthYearLabel.textContent = `${getMonthName(month)} ${year}`;
   
   grid.innerHTML = '';
   
@@ -11587,6 +13653,25 @@ function toggleAutocompleteSetting(enabled) {
   localStorage.setItem('settings_autocomplete_enabled', enabled ? 'true' : 'false');
 }
 
+function changeOverviewYear(dir) {
+  state.overviewYear = (state.overviewYear || new Date().getFullYear()) + dir;
+  renderAccountsTab();
+}
+
+function saveCustomSavingsTarget() {
+  const inputEl = document.getElementById('forecast-target-input');
+  if (inputEl) {
+    const val = parseFloat(inputEl.value);
+    if (!isNaN(val) && val >= 0) {
+      localStorage.setItem('overview_savings_target', val.toString());
+      closeModal('forecast-details-modal');
+      renderAccountsTab();
+    }
+  }
+}
+
+window.saveCustomSavingsTarget = saveCustomSavingsTarget;
+window.changeOverviewYear = changeOverviewYear;
 window.toggleAutocompleteSetting = toggleAutocompleteSetting;
 window.initNoteAutocomplete = initNoteAutocomplete;
 window.closeNoteAutocomplete = closeNoteAutocomplete;
@@ -11594,7 +13679,7 @@ window.closeNoteAutocomplete = closeNoteAutocomplete;
 // FEATURE: TEXTAREA AUTO-GROW FOR DESCRIPTION/DETAILS
 function initDescriptionAutoGrow() {
   const descInput = document.getElementById('trans-description');
-  if (!descInput) return;
+  if (!descInput || descInput.tagName !== 'TEXTAREA') return;
   
   if (descInput.dataset.autogrowBound === 'true') {
     return;
@@ -11738,4 +13823,164 @@ function resetFeedbackForm() {
 }
 
 window.submitUserFeedback = submitUserFeedback;
-window.resetFeedbackForm = resetFeedbackForm;
+window.resetFeedbackForm = resetFeedbackForm;
+
+document.addEventListener('DOMContentLoaded', () => {
+  // ── Robust collapsible helper ──────────────────────────────────────────
+  // Uses explicit scrollHeight so the content is NEVER clipped regardless
+  // of how tall the inner HTML grows (dynamic family / feedback content).
+  function toggleCollapsible(content, icon) {
+    if (!content || !icon) return;
+    const isOpen = content.classList.contains('active');
+    if (isOpen) {
+      // Animate close: pin current height first, then transition to 0
+      content.style.maxHeight = content.scrollHeight + 'px';
+      // Force reflow so the browser registers the start value
+      void content.offsetHeight;
+      content.style.maxHeight = '0px';
+      content.classList.remove('active');
+      icon.classList.remove('active');
+    } else {
+      // Animate open: CSS class sets display; measure then expand
+      content.classList.add('active');
+      icon.classList.add('active');
+      // Measure real height (CSS max-height:3000px is the ceiling)
+      const targetH = content.scrollHeight;
+      content.style.maxHeight = '0px';
+      void content.offsetHeight; // force reflow
+      content.style.maxHeight = targetH + 'px';
+      // Once the transition ends, let height be 'auto' so dynamic
+      // content (re-renders) never clips
+      content.addEventListener('transitionend', function onEnd() {
+        content.removeEventListener('transitionend', onEnd);
+        if (content.classList.contains('active')) {
+          content.style.maxHeight = 'none'; // fully open, no limit
+        }
+      }, { once: true });
+    }
+  }
+
+  // Setup collapsible sections for Overview (income / expense)
+  ['income', 'expense'].forEach(type => {
+    const trigger = document.getElementById(`collapse-trigger-${type}`);
+    if (trigger) {
+      trigger.addEventListener('click', () => {
+        const content = document.getElementById(type === 'income' ? 'accounts-assets-list' : 'accounts-liabilities-list');
+        const icon = document.getElementById(`collapse-icon-${type}`);
+        toggleCollapsible(content, icon);
+        // Save preference
+        const willBeOpen = content && content.classList.contains('active');
+        localStorage.setItem(`overview_collapse_${type}`, willBeOpen ? 'expanded' : 'collapsed');
+      });
+    }
+  });
+
+  // Setup collapsible sections for Settings (sync, family, feedback)
+  ['sync', 'family', 'feedback'].forEach(type => {
+    const trigger = document.getElementById(`collapse-trigger-${type}`);
+    if (trigger) {
+      trigger.addEventListener('click', () => {
+        const contentId = type === 'sync' ? 'settings-sync-content'
+                        : type === 'family' ? 'partner-linking-container'
+                        : 'feedback-card-container';
+        const content = document.getElementById(contentId);
+        const icon = document.getElementById(`collapse-icon-${type}`);
+        toggleCollapsible(content, icon);
+      });
+    }
+  });
+
+  // Click handler for FHS card & "?" help icon
+  const fhsCard = document.querySelector('.fhs-card');
+  const fhsHelpTrigger = document.getElementById('fhs-help-trigger');
+  
+  if (fhsHelpTrigger) {
+    fhsHelpTrigger.addEventListener('click', (e) => {
+      e.stopPropagation(); // Prevents the card click from firing
+      showFhsTab('methodology');
+      openModal('fhs-details-modal');
+    });
+  }
+  
+  if (fhsCard) {
+    fhsCard.addEventListener('click', (e) => {
+      if (!e.target.closest('#fhs-help-trigger')) {
+        showFhsTab('breakdown');
+        openModal('fhs-details-modal');
+      }
+    });
+  }
+
+  // FHS Modal tab switching
+  const breakdownTabBtn = document.getElementById('fhs-tab-breakdown');
+  const methodologyTabBtn = document.getElementById('fhs-tab-methodology');
+  if (breakdownTabBtn) {
+    breakdownTabBtn.addEventListener('click', () => showFhsTab('breakdown'));
+  }
+  if (methodologyTabBtn) {
+    methodologyTabBtn.addEventListener('click', () => showFhsTab('methodology'));
+  }
+  // FHS explain trigger collapsible toggle
+  const fhsExplainTrigger = document.getElementById('fhs-explain-trigger');
+  const fhsExplainContent = document.getElementById('fhs-explain-content');
+  const fhsExplainChevron = document.getElementById('fhs-explain-chevron');
+  if (fhsExplainTrigger && fhsExplainContent) {
+    fhsExplainTrigger.addEventListener('click', () => {
+      const isHidden = fhsExplainContent.style.display === 'none';
+      if (isHidden) {
+        fhsExplainContent.style.display = 'block';
+        if (fhsExplainChevron) fhsExplainChevron.style.transform = 'rotate(180deg)';
+      } else {
+        fhsExplainContent.style.display = 'none';
+        if (fhsExplainChevron) fhsExplainChevron.style.transform = 'rotate(0deg)';
+      }
+    });
+  }
+
+});
+
+// Helper for FHS Tab switching
+function showFhsTab(tabName) {
+  const breakdownBtn = document.getElementById('fhs-tab-breakdown');
+  const methodologyBtn = document.getElementById('fhs-tab-methodology');
+  const breakdownContent = document.getElementById('fhs-content-breakdown');
+  const methodologyContent = document.getElementById('fhs-content-methodology');
+  
+  if (tabName === 'breakdown') {
+    if (breakdownBtn) {
+      breakdownBtn.style.color = 'var(--text-primary)';
+      breakdownBtn.style.borderBottom = '2px solid var(--accent)';
+      breakdownBtn.classList.add('active');
+    }
+    if (methodologyBtn) {
+      methodologyBtn.style.color = 'var(--text-secondary)';
+      methodologyBtn.style.borderBottom = 'none';
+      methodologyBtn.classList.remove('active');
+    }
+    if (breakdownContent) breakdownContent.style.display = 'block';
+    if (methodologyContent) methodologyContent.style.display = 'none';
+  } else {
+    if (breakdownBtn) {
+      breakdownBtn.style.color = 'var(--text-secondary)';
+      breakdownBtn.style.borderBottom = 'none';
+      breakdownBtn.classList.remove('active');
+    }
+    if (methodologyBtn) {
+      methodologyBtn.style.color = 'var(--text-primary)';
+      methodologyBtn.style.borderBottom = '2px solid var(--accent)';
+      methodologyBtn.classList.add('active');
+    }
+    if (breakdownContent) breakdownContent.style.display = 'none';
+    if (methodologyContent) methodologyContent.style.display = 'block';
+  }
+}
+
+// Force snap scroll position to top on page load to fix iOS Safari viewport panning offset
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    forceViewportReset();
+  }, 300);
+  setTimeout(() => {
+    forceViewportReset();
+  }, 800);
+});
