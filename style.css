@@ -6435,12 +6435,15 @@ textarea {
   .tx-modal-overlay .modal-content {
     transform: none !important;
     margin: 0 !important;
+    height: 100% !important;
+    max-height: 100% !important;
     border-radius: 0 !important;
   }
 
-  /* When keyboard is active, keep a minimal padding-bottom */
+  /* When keyboard is active, add dynamic padding to the bottom of the scrollable form body
+     matching the native keyboard height, allowing the user to scroll elements above it */
   body.keyboard-active #transaction-modal .modal-body {
-    padding-bottom: 32px !important;
+    padding-bottom: calc(32px + var(--keyboard-height, 0px)) !important;
   }
 
   body.modal-open {

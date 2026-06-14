@@ -13153,17 +13153,19 @@ document.addEventListener('DOMContentLoaded', () => {
       // Adjust transaction modal content height and top to match visual viewport
       const txModal = document.getElementById('transaction-modal');
       if (txModal && txModal.classList.contains('active')) {
-        txModal.style.setProperty('height', (window.innerHeight / scale) + 'px', 'important');
-        txModal.style.setProperty('top', '0px', 'important');
-        
-        const modalContent = txModal.querySelector('.modal-content');
-        if (modalContent) {
-          if (rawKeyboardHeight > 30) {
-            modalContent.style.setProperty('height', (vvHeight / scale) + 'px', 'important');
-            modalContent.style.setProperty('top', (offsetTop / scale) + 'px', 'important');
-          } else {
-            modalContent.style.setProperty('height', (window.innerHeight / scale) + 'px', 'important');
-            modalContent.style.setProperty('top', '0px', 'important');
+        if (!isIOS) {
+          txModal.style.setProperty('height', (window.innerHeight / scale) + 'px', 'important');
+          txModal.style.setProperty('top', '0px', 'important');
+          
+          const modalContent = txModal.querySelector('.modal-content');
+          if (modalContent) {
+            if (rawKeyboardHeight > 30) {
+              modalContent.style.setProperty('height', (vvHeight / scale) + 'px', 'important');
+              modalContent.style.setProperty('top', (offsetTop / scale) + 'px', 'important');
+            } else {
+              modalContent.style.setProperty('height', (window.innerHeight / scale) + 'px', 'important');
+              modalContent.style.setProperty('top', '0px', 'important');
+            }
           }
         }
       }
@@ -13213,6 +13215,40 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
   });
+
+  // CRITICAL iOS FIX: Prevent Safari from natively panning the Visual Viewport.
+  // Safari decides to pan at the moment of 'focus' if the element is below the keyboard area.
+  // We intercept 'touchstart' (which fires BEFORE 'focus'), force a massive padding-bottom
+  // to make the container scrollable, and instantly scroll the element into the safe area.
+  // Safari then sees it's safe and ABORTS the pan!
+  if (isIOS) {
+    document.addEventListener('touchstart', (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+        const modalBody = e.target.closest('.modal-body');
+        if (modalBody) {
+          const rect = e.target.getBoundingClientRect();
+          const safeZoneHeight = window.innerHeight * 0.45; // Top 45% is safe from keyboard
+          
+          if (rect.bottom > safeZoneHeight) {
+            // Force massive padding so we have room to scroll
+            modalBody.style.setProperty('padding-bottom', '600px', 'important');
+            const distanceToMove = rect.bottom - safeZoneHeight + 20;
+            modalBody.scrollTop += distanceToMove;
+            
+            // Cleanup when keyboard closes
+            const cleanup = () => {
+              if (!document.activeElement || 
+                  (document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA')) {
+                modalBody.style.removeProperty('padding-bottom');
+                document.removeEventListener('focusout', cleanup);
+              }
+            };
+            document.addEventListener('focusout', cleanup);
+          }
+        }
+      }
+    }, { passive: true });
+  }
 });
 
 // Custom Date Picker State Variables
