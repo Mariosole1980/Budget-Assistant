@@ -6039,7 +6039,7 @@ body.keyboard-active #transaction-modal .modal-body {
 }
 .calc-keypad-grid {
   gap: 2px !important;
-  padding: 8px 4px env(safe-area-inset-bottom, 8px) 4px !important;
+  padding: 8px 4px 8px 4px !important;
 }
 .calc-key-btn {
   height: 48px !important;
@@ -6062,7 +6062,7 @@ body.keyboard-active #transaction-modal .modal-body {
 #transaction-modal .modal-body {
   flex: 1 !important;
   overflow-y: auto !important;
-  padding: 16px !important;
+  padding: 4px 16px 16px 16px !important;
   display: flex !important;
   flex-direction: column !important;
   gap: 2px !important;
@@ -6359,6 +6359,17 @@ textarea {
 
   .bottom-nav {
     padding-bottom: 5px !important;
+  }
+
+  #transaction-modal.tx-modal-overlay {
+    background-color: var(--bg-card) !important;
+  }
+  #transaction-modal .modal-header {
+    padding-bottom: 8px !important;
+  }
+  #transaction-modal .type-selector-tabs {
+    margin-top: 4px !important;
+    margin-bottom: 4px !important;
   }
 
   .app-header {
