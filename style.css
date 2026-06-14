@@ -6058,7 +6058,7 @@ body.keyboard-active #transaction-modal .modal-body {
   padding: 16px !important;
   display: flex !important;
   flex-direction: column !important;
-  gap: 16px !important;
+  gap: 2px !important;
   -webkit-overflow-scrolling: touch !important;
   min-height: 0 !important;
   padding-bottom: calc(16px + var(--keyboard-offset, 0px)) !important;
@@ -6074,8 +6074,8 @@ body.keyboard-active #transaction-modal .modal-body {
 #transaction-modal .custom-select-trigger,
 #transaction-modal .focusable {
   flex-shrink: 0 !important;
-  height: 52px !important;
-  min-height: 52px !important;
+  height: auto !important;
+  min-height: 44px !important;
 }
 
 /* Lock textarea dimensions */
