@@ -329,7 +329,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v352 - 12/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v355 - 12/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -613,7 +613,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v352 - 07/06/2026 23:20)',
+    app_version: 'Version 1.0.0 (build v355 - 07/06/2026 23:20)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -5149,17 +5149,13 @@ function setupEventListeners() {
             if (!isIOS) {
               window.scrollTo(0, 0);
               document.body.scrollTop = 0;
-            } else {
-              // On iOS, snap background scroll back to 0 after keyboard finishes opening
-              window.scrollTo(0, 0);
-              document.body.scrollTop = 0;
+              scrollIntoViewIfNeeded();
             }
-            scrollIntoViewIfNeeded();
           }, 350);
         } else {
           // Keyboard is already open: scroll the new input into view immediately
           setTimeout(() => {
-            scrollIntoViewIfNeeded();
+            if (!isIOS) scrollIntoViewIfNeeded();
           }, 50);
         }
       });
