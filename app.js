@@ -329,7 +329,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v356 - 12/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v357 - 12/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -613,7 +613,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v356 - 07/06/2026 23:20)',
+    app_version: 'Version 1.0.0 (build v357 - 07/06/2026 23:20)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -5153,8 +5153,10 @@ function setupEventListeners() {
           
           // After keyboard animates in, scroll the field into view within the modal body
           setTimeout(() => {
-            window.scrollTo(0, 0);
-            document.body.scrollTop = 0;
+            if (!isIOS) {
+              window.scrollTo(0, 0);
+              document.body.scrollTop = 0;
+            }
             scrollIntoViewIfNeeded();
           }, 350);
         } else {
@@ -13195,6 +13197,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Prevent browser window from panning/scrolling up when inputs are focused in modals
   window.addEventListener('scroll', () => {
+    if (isIOS) return; // Let iOS Safari handle its viewport panning during focus; we will reset on blur
     if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) {
       if (window.scrollY !== 0) {
         window.scrollTo(0, 0);
