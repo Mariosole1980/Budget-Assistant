@@ -329,7 +329,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v355 - 12/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v356 - 12/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -613,7 +613,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v355 - 07/06/2026 23:20)',
+    app_version: 'Version 1.0.0 (build v356 - 07/06/2026 23:20)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -5121,14 +5121,21 @@ function setupEventListeners() {
         }
         
         const scrollIntoViewIfNeeded = () => {
-          const row = el.closest('.form-row');
+          const row = el.closest('.form-row') || el.closest('.form-group');
           const body = el.closest('.modal-body');
           if (row && body) {
             const bodyRect = body.getBoundingClientRect();
             const rowRect = row.getBoundingClientRect();
+            
+            let keyboardHeight = 0;
+            if (window.visualViewport && document.body.classList.contains('keyboard-active')) {
+              keyboardHeight = window.innerHeight - window.visualViewport.height;
+            }
+            const effectiveBottom = bodyRect.bottom - keyboardHeight - 16;
+
             // If the row is below or above the visible modal body area, scroll it minimally into view
-            if (rowRect.bottom > bodyRect.bottom) {
-              const targetScroll = body.scrollTop + (rowRect.bottom - bodyRect.bottom) + 8;
+            if (rowRect.bottom > effectiveBottom) {
+              const targetScroll = body.scrollTop + (rowRect.bottom - effectiveBottom);
               body.scrollTo({ top: targetScroll, behavior: 'smooth' });
             } else if (rowRect.top < bodyRect.top) {
               const targetScroll = Math.max(0, body.scrollTop - (bodyRect.top - rowRect.top) - 8);
@@ -5146,16 +5153,14 @@ function setupEventListeners() {
           
           // After keyboard animates in, scroll the field into view within the modal body
           setTimeout(() => {
-            if (!isIOS) {
-              window.scrollTo(0, 0);
-              document.body.scrollTop = 0;
-              scrollIntoViewIfNeeded();
-            }
+            window.scrollTo(0, 0);
+            document.body.scrollTop = 0;
+            scrollIntoViewIfNeeded();
           }, 350);
         } else {
           // Keyboard is already open: scroll the new input into view immediately
           setTimeout(() => {
-            if (!isIOS) scrollIntoViewIfNeeded();
+            scrollIntoViewIfNeeded();
           }, 50);
         }
       });
@@ -13190,7 +13195,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Prevent browser window from panning/scrolling up when inputs are focused in modals
   window.addEventListener('scroll', () => {
-    if (isIOS) return; // Let iOS Safari handle its viewport panning during focus; we will reset on blur
     if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) {
       if (window.scrollY !== 0) {
         window.scrollTo(0, 0);
