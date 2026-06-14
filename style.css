@@ -25,7 +25,7 @@
   --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.4);
   
   /* Safe Area Safe Insets */
-  --safe-area-bottom: 0px;
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
   --bg-day-header: #1b1f28;
 }
 
@@ -202,20 +202,27 @@ button:active,
   transform: translateX(-50%);
   width: 100%;
   max-width: 480px;
-  height: 65px;
   background-color: var(--bg-card);
   border-top: 1px solid var(--border) !important;
   outline: none !important;
   display: flex;
-  align-items: center;
   justify-content: space-around;
-  padding: 0;
+  padding: 8px 0 var(--safe-area-bottom) 0;
   z-index: 100;
   box-shadow: none !important;
 }
 
 .bottom-nav::after {
-  display: none;
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 40px;
+  background-color: var(--bg-card);
+  transform: translateY(100%);
+  pointer-events: none;
+  z-index: -1;
 }
 
 .nav-item {
@@ -4247,9 +4254,8 @@ body.shared-wallet-active .day-header {
     width: 260px !important;
     padding: 32px 18px !important;
     gap: 12px !important;
-    border: none !important;
+    border-top: none !important;
     border-right: 1px solid var(--border) !important;
-    border-radius: 0 !important;
     box-shadow: none !important;
     background-color: var(--bg-card) !important;
     transform: none !important;
@@ -6336,6 +6342,16 @@ textarea {
   }
 
   /* iOS Keyboard Position Fix: isolates WebKit layout rules */
+  /* iOS Bottom Nav Gap Fix: Set fixed height to eliminate gray gap while keeping items centered above home indicator */
+  .bottom-nav {
+    height: 65px !important;
+    padding: 0 !important;
+    align-items: center !important;
+  }
+  .bottom-nav::after {
+    display: none !important;
+  }
+
   .tx-modal-overlay {
     position: fixed !important;
     top: 0 !important;
