@@ -6018,8 +6018,8 @@ body.keyboard-active #transaction-modal .modal-body {
   bottom: 0 !important;
   left: 0 !important;
   right: 0 !important;
-  height: 365px !important;
-  max-height: 365px !important;
+  height: auto !important;
+  max-height: none !important;
   background-color: #0f121a !important;
   border-top: 1px solid var(--border) !important;
   display: flex !important;
@@ -6036,6 +6036,13 @@ body.keyboard-active #transaction-modal .modal-body {
 }
 .calc-keypad-container.active {
   transform: translateY(0) !important;
+}
+.calc-keypad-grid {
+  gap: 2px !important;
+  padding: 8px 4px env(safe-area-inset-bottom, 8px) 4px !important;
+}
+.calc-key-btn {
+  height: 48px !important;
 }
 
 /* Action footer — lifts above keyboard/keypad */
