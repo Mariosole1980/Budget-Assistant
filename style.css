@@ -6285,6 +6285,16 @@ textarea {
    Android is unaffected — it does not match this media query path.
    ================================================================ */
 @supports (-webkit-touch-callout: none) {
+  html, body {
+    height: 100% !important;
+    height: -webkit-fill-available !important;
+  }
+
+  .app-container {
+    height: 100% !important;
+    height: -webkit-fill-available !important;
+  }
+
   /* Search overlay header: drop blur on iOS */
   .search-overlay-header-modern {
     backdrop-filter: none !important;
