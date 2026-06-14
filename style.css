@@ -442,8 +442,10 @@ button:active,
   min-height: 48px;
 }
 
-.transaction-item:hover {
-  background-color: var(--border);
+@media (hover: hover) {
+  .transaction-item:hover {
+    background-color: var(--border);
+  }
 }
 
 .trans-left {
@@ -1119,8 +1121,10 @@ button:active,
   font-family: 'Outfit', sans-serif;
 }
 
-.account-row:hover {
-  background-color: var(--border);
+@media (hover: hover) {
+  .account-row:hover {
+    background-color: var(--border);
+  }
 }
 
 .account-name-group {
@@ -1456,8 +1460,10 @@ button:active,
   transition: var(--transition);
 }
 
-.settings-list-item:hover {
-  background-color: var(--border);
+@media (hover: hover) {
+  .settings-list-item:hover {
+    background-color: var(--border);
+  }
 }
 
 .collapsible-section .settings-list-item {
