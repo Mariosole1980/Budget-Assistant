@@ -329,7 +329,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v358 - 12/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v359 - 12/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -613,7 +613,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v358 - 07/06/2026 23:20)',
+    app_version: 'Version 1.0.0 (build v359 - 07/06/2026 23:20)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -5118,6 +5118,17 @@ function setupEventListeners() {
         
         if (textInputs.includes(id)) {
           document.body.classList.add('keyboard-active');
+          
+          if (isIOS) {
+            const body = el.closest('.modal-body');
+            if (body) {
+              const oldOverflow = body.style.overflowY;
+              body.style.overflowY = 'hidden';
+              setTimeout(() => {
+                body.style.overflowY = oldOverflow;
+              }, 400); // Wait for keyboard animation to finish before restoring scroll
+            }
+          }
         }
         
         const scrollIntoViewIfNeeded = () => {
