@@ -6349,8 +6349,8 @@ textarea {
     left: 0 !important;
     right: 0 !important;
     width: 100% !important;
-    height: 65px !important;
-    padding: 0 !important;
+    height: auto !important;
+    padding: 8px 0 5px 0 !important;
     background-color: var(--bg-card) !important;
     box-sizing: border-box !important;
     align-items: center !important;
