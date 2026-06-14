@@ -6009,7 +6009,7 @@ body.keyboard-active #transaction-modal .modal-body {
   transition: none !important;
 }
 #transaction-modal.keypad-active {
-  --keyboard-offset: 365px;
+  --keyboard-offset: 248px;
 }
 
 /* Custom Calculator Keypad — overlays from bottom */
@@ -6361,15 +6361,21 @@ textarea {
     padding-bottom: 5px !important;
   }
 
-  #transaction-modal.tx-modal-overlay {
-    background-color: var(--bg-card) !important;
+  body:has(#transaction-modal.active) {
+    background-color: #121824 !important;
   }
   #transaction-modal .modal-header {
-    padding-bottom: 8px !important;
+    padding-top: 4px !important;
+    padding-bottom: 4px !important;
+    border-bottom: none !important;
+    min-height: 40px !important;
   }
   #transaction-modal .type-selector-tabs {
-    margin-top: 4px !important;
-    margin-bottom: 4px !important;
+    margin-top: 0px !important;
+    margin-bottom: 0px !important;
+  }
+  #transaction-modal .type-tab-btn {
+    padding: 6px !important;
   }
 
   .app-header {
