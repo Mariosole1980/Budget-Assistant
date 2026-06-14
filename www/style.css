@@ -6284,25 +6284,6 @@ textarea {
    overload that causes lag when the transaction form opens.
    ================================================================ */
 @supports (-webkit-touch-callout: none) {
-  /* Εφαρμογή ομοιόμορφου full screen στο main container του iOS */
-  html, body, .app-container {
-    height: 100dvh !important; /* Dynamic Viewport Height: πιάνει όλη την οθόνη του εκάστοτε iPhone */
-    margin: 0;
-    padding: 0;
-    overflow: hidden;
-  }
-
-  /* Το Bottom Navigation κλειδώνει στο απόλυτο κάτω μέρος της dynamic οθόνης */
-  .bottom-nav { 
-    position: fixed !important;
-    bottom: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    padding-bottom: env(safe-area-inset-bottom) !important; /* Δίνει αυτόματα το σωστό κενό για το home indicator του συγκεκριμένου iPhone */
-    height: calc(60px + env(safe-area-inset-bottom)) !important; /* Προσαρμόζει το ύψος της μπάρας ομοιόμορφα */
-    background-color: #222731 !important; /* Exact color of bottom nav */
-    z-index: 9999 !important;
-  }
 
   /* Search overlay header: drop blur on iOS */
   .search-overlay-header-modern {
