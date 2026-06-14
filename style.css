@@ -6358,7 +6358,7 @@ textarea {
   }
 
   .bottom-nav {
-    padding-bottom: 6px !important;
+    padding-bottom: 5px !important;
   }
 
   body:has(#transaction-modal.active) {
