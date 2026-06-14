@@ -25,7 +25,7 @@
   --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.4);
   
   /* Safe Area Safe Insets */
-  --safe-area-bottom: calc(env(safe-area-inset-bottom, 0px) * 0.15);
+  --safe-area-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
   --bg-day-header: #1b1f28;
 }
 
@@ -197,32 +197,24 @@ button:active,
 /* Bottom Navigation Bar Styles */
 .bottom-nav {
   position: fixed;
-  bottom: 0;
+  bottom: var(--safe-area-bottom);
   left: 50%;
   transform: translateX(-50%);
-  width: 100%;
+  width: calc(100% - 32px);
   max-width: 480px;
   background-color: var(--bg-card);
-  border-top: 1px solid var(--border) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 24px;
   outline: none !important;
   display: flex;
   justify-content: space-around;
-  padding: 8px 0 var(--safe-area-bottom) 0;
+  padding: 12px 0;
   z-index: 100;
-  box-shadow: none !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5) !important;
 }
 
 .bottom-nav::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 40px;
-  background-color: var(--bg-card);
-  transform: translateY(100%);
-  pointer-events: none;
-  z-index: -1;
+  display: none;
 }
 
 .nav-item {
@@ -4254,8 +4246,9 @@ body.shared-wallet-active .day-header {
     width: 260px !important;
     padding: 32px 18px !important;
     gap: 12px !important;
-    border-top: none !important;
+    border: none !important;
     border-right: 1px solid var(--border) !important;
+    border-radius: 0 !important;
     box-shadow: none !important;
     background-color: var(--bg-card) !important;
     transform: none !important;
