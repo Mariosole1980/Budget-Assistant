@@ -2700,7 +2700,7 @@ input:focus + .slider {
   align-items: center;
   background-color: transparent;
   transition: height 0.25s cubic-bezier(0.19, 1, 0.22, 1);
-  z-index: 50;
+  z-index: 95;
   pointer-events: none; /* Avoid blocking clicks when collapsed */
 }
 
@@ -6282,113 +6282,114 @@ textarea {
    Applied only on iOS WebKit to replace heavy backdrop-filter
    effects with lightweight solid backgrounds, preventing GPU
    overload that causes lag when the transaction form opens.
-   Android is unaffected — it does not match this media query path.
    ================================================================ */
-@supports (-webkit-touch-callout: none) {
-  html, body {
-    height: 100% !important;
-    height: -webkit-fill-available !important;
-  }
+html.is-ios, body.is-ios {
+  height: 100% !important;
+  height: -webkit-fill-available !important;
+}
 
-  .app-container {
-    height: 100% !important;
-    height: -webkit-fill-available !important;
-  }
+body.is-ios .app-container {
+  height: 100% !important;
+  height: -webkit-fill-available !important;
+}
 
-  /* Search overlay header: drop blur on iOS */
-  .search-overlay-header-modern {
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    background: rgba(22, 26, 36, 0.98) !important;
-  }
+body.is-ios {
+  zoom: 1 !important;
+}
 
-  /* Search chips: drop blur on iOS */
-  .search-chip {
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-  }
+/* Search overlay header: drop blur on iOS */
+body.is-ios .search-overlay-header-modern {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background: rgba(22, 26, 36, 0.98) !important;
+}
 
-  /* Custom select dropdown: drop blur on iOS */
-  .custom-select-options {
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    background: rgba(22, 26, 36, 0.99) !important;
-  }
+/* Search chips: drop blur on iOS */
+body.is-ios .search-chip {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
 
-  /* Back-swipe indicator: drop blur on iOS */
-  #back-swipe-indicator {
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-  }
+/* Custom select dropdown: drop blur on iOS */
+body.is-ios .custom-select-options {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background: rgba(22, 26, 36, 0.99) !important;
+}
 
-  /* Auth screen overlay: drop blur on iOS (uses radial-gradient already) */
-  .auth-overlay {
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-  }
+/* Back-swipe indicator: drop blur on iOS */
+body.is-ios #back-swipe-indicator {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
 
-  /* Filter panel container: drop blur on iOS */
-  .search-filter-container {
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    background: rgba(22, 26, 36, 0.98) !important;
-  }
+/* Auth screen overlay: drop blur on iOS (uses radial-gradient already) */
+body.is-ios .auth-overlay {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
 
-  /* Transactions filter card: drop blur on iOS */
-  .filter-card {
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    background: rgba(30, 36, 48, 0.98) !important;
-  }
+/* Filter panel container: drop blur on iOS */
+body.is-ios .search-filter-container {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background: rgba(22, 26, 36, 0.98) !important;
+}
 
-  body {
-    zoom: 1 !important;
-  }
+/* Transactions filter card: drop blur on iOS */
+body.is-ios .filter-card {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background: rgba(30, 36, 48, 0.98) !important;
+}
 
-  /* Prevent iOS Safari auto-zoom on input focus */
-  input, select, textarea, .form-input, .form-row-input {
-    font-size: 16px !important;
-  }
+/* Prevent iOS Safari auto-zoom on input focus */
+body.is-ios input, 
+body.is-ios select, 
+body.is-ios textarea, 
+body.is-ios .form-input, 
+body.is-ios .form-row-input {
+  font-size: 16px !important;
+}
 
-  /* iOS Keyboard Position Fix: isolates WebKit layout rules */
-  .tx-modal-overlay {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
-    overflow: hidden !important;
-    display: none !important;
-    flex-direction: column !important;
-  }
-  .tx-modal-overlay.active {
-    display: flex !important;
-  }
-  
-  .tx-modal-overlay .modal-content {
-    transform: none !important;
-    margin: 0 !important;
-    height: 100% !important;
-    max-height: 100% !important;
-    border-radius: 0 !important;
-  }
+/* iOS Keyboard Position Fix: isolates WebKit layout rules */
+body.is-ios .tx-modal-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  overflow: hidden !important;
+  display: none !important;
+  flex-direction: column !important;
+}
+body.is-ios .tx-modal-overlay.active {
+  display: flex !important;
+}
 
-  /* When keyboard is active, add dynamic padding to the bottom of the scrollable form body
-     matching the native keyboard height, allowing the user to scroll elements above it */
-  body.keyboard-active #transaction-modal .modal-body {
-    padding-bottom: calc(32px + var(--keyboard-height, 0px)) !important;
-  }
+body.is-ios .tx-modal-overlay .modal-content {
+  transform: none !important;
+  margin: 0 !important;
+  height: 100% !important;
+  max-height: 100% !important;
+  border-radius: 0 !important;
+}
 
-  body.modal-open {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
-    overflow: hidden !important;
-  }
-  html.modal-open {
-    overflow: hidden !important;
-  }
+/* When keyboard is active, add dynamic padding to the bottom of the scrollable form body
+   matching the native keyboard height, allowing the user to scroll elements above it */
+body.is-ios.keyboard-active #transaction-modal .modal-body {
+  padding-bottom: calc(32px + var(--keyboard-height, 0px)) !important;
+}
+
+body.is-ios.modal-open {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  overflow: hidden !important;
+}
+html.is-ios.modal-open {
+  overflow: hidden !important;
 }
 
