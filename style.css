@@ -6359,6 +6359,10 @@ textarea {
     padding-top: calc(8px + env(safe-area-inset-top, 0px)) !important;
   }
 
+  .fab {
+    bottom: 70px !important;
+  }
+
   .tx-modal-overlay {
     position: fixed !important;
     top: 0 !important;
