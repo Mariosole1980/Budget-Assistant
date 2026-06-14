@@ -25,7 +25,7 @@
   --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.4);
   
   /* Safe Area Safe Insets */
-  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-bottom: calc(env(safe-area-inset-bottom, 0px) * 0.45);
   --bg-day-header: #1b1f28;
 }
 
@@ -5941,6 +5941,7 @@ body.is-swiping-month .stats-sub-row.pressed {
   left: 0;
   width: 100%;
   height: 100%;
+  padding-top: env(safe-area-inset-top, 0px);
   background-color: #121824;
   z-index: 9999;
   display: none;
@@ -6347,6 +6348,7 @@ textarea {
     left: 0 !important;
     width: 100% !important;
     height: 100% !important;
+    padding-top: env(safe-area-inset-top, 0px) !important;
     overflow: hidden !important;
     display: none !important;
     flex-direction: column !important;
