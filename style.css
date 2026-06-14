@@ -6342,26 +6342,12 @@ textarea {
   }
 
   /* iOS Keyboard Position Fix: isolates WebKit layout rules */
-  /* iOS Bottom Nav Safe Area Fix */
-  .bottom-nav {
-    position: fixed !important;
-    bottom: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    width: 100% !important;
-    height: auto !important;
-    padding: 8px 0 5px 0 !important;
-    background-color: var(--bg-card) !important;
-    box-sizing: border-box !important;
-    align-items: center !important;
-    transform: none !important;
-  }
-  .bottom-nav::after {
-    display: none !important;
-  }
-
+  /* 1. Αναγκάζουμε το φόντο του ίδιου του iPhone να πάρει το χρώμα του μενού */
   html, body {
-    background-color: var(--bg-main) !important;
+    background-color: var(--bg-card) !important;
+    height: 100dvh !important;
+    margin: 0;
+    padding: 0;
   }
 
   .tx-modal-overlay {
