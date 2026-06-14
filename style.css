@@ -6350,6 +6350,10 @@ textarea {
     padding: 0;
   }
 
+  .bottom-nav {
+    padding-bottom: 5px !important;
+  }
+
   .tx-modal-overlay {
     position: fixed !important;
     top: 0 !important;
