@@ -25,7 +25,7 @@
   --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.4);
   
   /* Safe Area Safe Insets */
-  --safe-area-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  --safe-area-bottom: 0px;
   --bg-day-header: #1b1f28;
 }
 
@@ -197,20 +197,21 @@ button:active,
 /* Bottom Navigation Bar Styles */
 .bottom-nav {
   position: fixed;
-  bottom: var(--safe-area-bottom);
+  bottom: 0;
   left: 50%;
   transform: translateX(-50%);
-  width: calc(100% - 32px);
+  width: 100%;
   max-width: 480px;
+  height: 65px;
   background-color: var(--bg-card);
-  border: 1px solid var(--border) !important;
-  border-radius: 24px;
+  border-top: 1px solid var(--border) !important;
   outline: none !important;
   display: flex;
+  align-items: center;
   justify-content: space-around;
-  padding: 12px 0;
+  padding: 0;
   z-index: 100;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5) !important;
+  box-shadow: none !important;
 }
 
 .bottom-nav::after {
