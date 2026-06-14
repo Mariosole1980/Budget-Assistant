@@ -6071,7 +6071,7 @@ body.keyboard-active #transaction-modal .modal-body {
   padding: 4px 16px 16px 16px !important;
   display: flex !important;
   flex-direction: column !important;
-  gap: 8px !important;
+  gap: 4px !important;
   -webkit-overflow-scrolling: touch !important;
   min-height: 0 !important;
   padding-bottom: calc(16px + var(--keyboard-offset, 0px)) !important;
@@ -6088,16 +6088,24 @@ body.keyboard-active #transaction-modal .modal-body {
 #transaction-modal .focusable {
   flex-shrink: 0 !important;
   height: auto !important;
-  min-height: 44px !important;
+  min-height: 40px !important;
   margin-bottom: 0 !important;
 }
 
 /* Lock textarea dimensions */
 textarea {
   flex-shrink: 0 !important;
-  min-height: 80px !important;
-  height: 80px !important;
+  min-height: 60px !important;
+  height: 60px !important;
+  padding: 8px 12px !important;
   box-sizing: border-box !important;
+}
+
+#transaction-modal .title-input-container,
+#transaction-modal .custom-select-trigger,
+#transaction-modal .form-input,
+#transaction-modal input {
+  padding: 6px 12px !important;
 }
 
 /* Ensure details input behaves as a standard single straight line */
@@ -6378,7 +6386,6 @@ textarea {
     border-bottom: none !important;
     min-height: 32px !important;
     position: relative !important;
-    justify-content: center !important;
   }
   #transaction-modal .modal-title {
     margin: 0 !important;
@@ -6398,7 +6405,7 @@ textarea {
     margin-bottom: 0px !important;
   }
   #transaction-modal .type-tab-btn {
-    padding: 6px !important;
+    padding: 4px !important;
   }
 
   .app-header {
