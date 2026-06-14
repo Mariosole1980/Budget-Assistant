@@ -6284,24 +6284,6 @@ textarea {
    overload that causes lag when the transaction form opens.
    ================================================================ */
 @supports (-webkit-touch-callout: none) {
-  /* 1. Αναγκάζουμε το bottom nav να καρφωθεί στο απόλυτο κάτω μέρος της οθόνης */
-  .bottom-nav {
-    position: fixed !important;
-    bottom: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    height: 65px !important;
-    padding-bottom: env(safe-area-inset-bottom) !important;
-    background-color: #222731 !important; /* Exact color of bottom nav */
-    z-index: 9999 !important;
-  }
-
-  /* 2. Διορθώνουμε τον main wrapper των κινήσεων για να μην κρύβονται οι συναλλαγές πίσω από το μενού */
-  .app-content {
-    height: calc(100vh - 65px) !important;
-    padding-bottom: env(safe-area-inset-bottom) !important;
-    box-sizing: border-box !important;
-  }
 
   /* Search overlay header: drop blur on iOS */
   .search-overlay-header-modern {
