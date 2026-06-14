@@ -329,7 +329,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v359 - 12/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v361 - 12/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -613,7 +613,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v359 - 07/06/2026 23:20)',
+    app_version: 'Version 1.0.0 (build v361 - 07/06/2026 23:20)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -13153,19 +13153,17 @@ document.addEventListener('DOMContentLoaded', () => {
       // Adjust transaction modal content height and top to match visual viewport
       const txModal = document.getElementById('transaction-modal');
       if (txModal && txModal.classList.contains('active')) {
-        if (!isIOS) {
-          txModal.style.setProperty('height', (window.innerHeight / scale) + 'px', 'important');
-          txModal.style.setProperty('top', '0px', 'important');
-          
-          const modalContent = txModal.querySelector('.modal-content');
-          if (modalContent) {
-            if (rawKeyboardHeight > 30) {
-              modalContent.style.setProperty('height', (vvHeight / scale) + 'px', 'important');
-              modalContent.style.setProperty('top', (offsetTop / scale) + 'px', 'important');
-            } else {
-              modalContent.style.setProperty('height', (window.innerHeight / scale) + 'px', 'important');
-              modalContent.style.setProperty('top', '0px', 'important');
-            }
+        txModal.style.setProperty('height', (window.innerHeight / scale) + 'px', 'important');
+        txModal.style.setProperty('top', '0px', 'important');
+        
+        const modalContent = txModal.querySelector('.modal-content');
+        if (modalContent) {
+          if (rawKeyboardHeight > 30) {
+            modalContent.style.setProperty('height', (vvHeight / scale) + 'px', 'important');
+            modalContent.style.setProperty('top', (offsetTop / scale) + 'px', 'important');
+          } else {
+            modalContent.style.setProperty('height', (window.innerHeight / scale) + 'px', 'important');
+            modalContent.style.setProperty('top', '0px', 'important');
           }
         }
       }
