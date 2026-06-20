@@ -367,6 +367,9 @@
                 <div class="advisor-body">
                   <p id="advisor-text" style="margin: 0; line-height: 1.5; font-size: 12.5px;">—</p>
 
+                  <div class="advisor-chat-trigger" id="advisor-chat-trigger" onclick="event.stopPropagation(); openAdvisorChat();">
+                    <i class="fa-regular fa-comment-dots"></i> <span data-i18n="advisor_chat_trigger">💬 Ρώτα τον Σύμβουλο...</span>
+                  </div>
                   
                   <!-- Accordion Expanded Drill-down details -->
                   <div id="advisor-expanded-content" class="advisor-expanded-content">
@@ -639,7 +642,7 @@
                 <i class="fa-solid fa-chevron-right" style="color: var(--red-negative); font-size: 12px;"></i>
               </div>
               <div class="settings-list-item">
-                <span class="settings-item-label" style="color: var(--text-muted); font-size: 12px;" data-i18n="app_version">Έκδοση 1.0.0 (build v404 - 07/06/2026 23:20)</span>
+                <span class="settings-item-label" style="color: var(--text-muted); font-size: 12px;" data-i18n="app_version">Έκδοση 1.0.0 (build v405 - 07/06/2026 23:20)</span>
                 <span class="settings-item-value" style="font-size: 12px; color: var(--text-muted);">Budget Assistant</span>
               </div>
             </div>
@@ -1879,7 +1882,7 @@
   
   <!-- Register PWA Service Worker -->
   <script>
-    const CURRENT_BUILD = 404;
+    const CURRENT_BUILD = 405;
     
     // ============================================================
     // AGGRESSIVE iOS PWA AUTO-UPDATE
@@ -1959,8 +1962,8 @@
     if ('serviceWorker' in navigator) {
       // ============================================================
       // NUCLEAR iOS PWA FIX: Register SW with versioned URL
-      // iOS Safari treats 'sw.js?v=404' as a COMPLETELY DIFFERENT
-      // script from 'sw.js?v=404', bypassing the update deadlock.
+      // iOS Safari treats 'sw.js?v=405' as a COMPLETELY DIFFERENT
+      // script from 'sw.js?v=405', bypassing the update deadlock.
       // Old SW is unregistered first to break the control cycle.
       // ============================================================
       const SW_URL = 'sw.js?v=' + CURRENT_BUILD;
@@ -2364,6 +2367,44 @@
 
 
         
+      </div>
+    </div>
+  </div>
+
+  <!-- AI Spending Advisor Chat Bottom Sheet Modal -->
+  <div id="advisor-chat-modal" class="modal-overlay" style="z-index: 11000;">
+    <div class="modal-content" style="max-height: calc(var(--viewport-height, 100vh) * 0.90 - var(--keyboard-height, 0px)); display: flex; flex-direction: column; border-top-left-radius: 24px; border-top-right-radius: 24px;">
+      <!-- Drag handle for native look -->
+      <div class="bottom-sheet-drag-handle" style="width: 36px; height: 4px; background: rgba(255,255,255,0.2); border-radius: 2px; margin: 8px auto 0 auto; flex-shrink: 0;"></div>
+      
+      <div class="modal-header" style="border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding: 12px 20px 16px 20px; display: flex; align-items: center; justify-content: space-between; background: rgba(255, 255, 255, 0.01); flex-shrink: 0;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 18px;">🤖</span>
+          <h3 class="modal-title" style="margin: 0; font-weight: 700; color: var(--text-primary); font-size: 15px; text-transform: uppercase; letter-spacing: 0.5px;" data-i18n="advisor_chat_title">Οικονομικός Σύμβουλος AI</h3>
+        </div>
+        <span class="modal-close" onclick="closeAdvisorChat()" style="cursor: pointer; font-size: 24px; color: var(--text-secondary); font-weight: 300; line-height: 1; height: 32px; width: 32px; display: flex; align-items: center; justify-content: center;">&times;</span>
+      </div>
+      
+      <!-- Chat Log Area -->
+      <div id="advisor-chat-log" class="modal-body" style="padding: 16px 20px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; background: rgba(0, 0, 0, 0.15);">
+        <!-- Messages dynamically populated -->
+      </div>
+      
+      <!-- Interactive Suggestions Area -->
+      <div id="advisor-chat-suggestions-container" style="padding: 8px 16px; border-top: 1px solid rgba(255, 255, 255, 0.04); background: rgba(0, 0, 0, 0.2); flex-shrink: 0; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch;">
+        <div id="advisor-chat-suggestions" style="display: inline-flex; gap: 8px;">
+          <!-- Quick action chips -->
+          <button type="button" class="advisor-suggestion-chip" onclick="submitCoachQuery('overspending')">🔍 Πού ξοδεύω υπερβολικά;</button>
+          <button type="button" class="advisor-suggestion-chip" onclick="submitCoachQuery('savings')">💡 Πώς να αποταμιεύσω περισσότερο;</button>
+          <button type="button" class="advisor-suggestion-chip" onclick="submitCoachQuery('forecast_5y')">📈 Πού θα είμαι σε 5 χρόνια;</button>
+          <button type="button" class="advisor-suggestion-chip" onclick="submitCoachQuery('milestone_50k')">🎯 Πότε θα φτάσω τα 50.000€;</button>
+        </div>
+      </div>
+      
+      <!-- Input Area -->
+      <div style="padding: 12px 16px 20px 16px; border-top: 1px solid rgba(255, 255, 255, 0.08); background: var(--bg-card); display: flex; gap: 8px; align-items: center; flex-shrink: 0;">
+        <input type="text" id="advisor-chat-input" style="flex: 1; min-width: 0; padding: 12px 16px; border-radius: 16px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); color: var(--text-primary); outline: none; font-family: 'Outfit', sans-serif; font-size: 14px; box-sizing: border-box;" placeholder="Ρωτήστε κάτι τον σύμβουλο..." onkeydown="handleAdvisorChatKeydown(event)">
+        <button type="button" id="advisor-chat-send-btn" onclick="submitCoachInput()" style="flex-shrink: 0; height: 44px; width: 44px; border-radius: 16px; background: var(--accent); color: white; border: none; font-size: 16px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.2s;"><i class="fa-solid fa-paper-plane"></i></button>
       </div>
     </div>
   </div>

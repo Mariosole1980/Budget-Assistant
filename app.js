@@ -331,7 +331,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v404 - 12/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v405 - 12/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -615,7 +615,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v404 - 07/06/2026 23:20)',
+    app_version: 'Version 1.0.0 (build v405 - 07/06/2026 23:20)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -4871,7 +4871,15 @@ function renderAccountsTab() {
   }
 
   if (advisorEl) {
-    advisorEl.innerHTML = advisorText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    let html = advisorText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    if (maxIncreaseCat && maxIncreaseAmt > 0) {
+      const discussText = state.lang === 'el' ? '💬 Συζήτησέ το' : '💬 Discuss it';
+      const discussQuery = state.lang === 'el'
+        ? `Γιατί αυξήθηκαν οι ${maxIncreaseCat} μου αυτόν τον μήνα;`
+        : `Why did my ${maxIncreaseCat} increase this month?`;
+      html += ` <button type="button" class="advisor-discuss-btn" onclick="event.stopPropagation(); openAdvisorChat('${discussQuery}');">${discussText}</button>`;
+    }
+    advisorEl.innerHTML = html;
   }
 
   // --- FORECASTING CALCULATIONS & RENDERING ---
@@ -15137,6 +15145,611 @@ window.saveRecurringSettings = saveRecurringSettings;
 window.clearRecurringSettings = clearRecurringSettings;
 window.resetRepInstButton = resetRepInstButton;
 window.onSimplePresetChange = onSimplePresetChange;
+
+// ============================================================
+// FEATURE: AI FINANCIAL COACH CHAT LOGIC
+// ============================================================
+
+function openAdvisorChat(initialQuery = null) {
+  const modalId = 'advisor-chat-modal';
+  openModal(modalId);
+  
+  const chatLog = document.getElementById('advisor-chat-log');
+  if (chatLog && chatLog.children.length === 0) {
+    const welcome = state.lang === 'el'
+      ? "Γεια σου! Είμαι ο προσωπικός σου **Οικονομικός Σύμβουλος AI**. 🤖<br><br>Μπορώ να αναλύσω τις συναλλαγές σου και να σε βοηθήσω να αποταμιεύσεις περισσότερο. Επιλέξτε μία από τις παρακάτω προτάσεις ή ρωτήστε με ό,τι θέλετε!"
+      : "Hello! I am your personal **AI Financial Coach**. 🤖<br><br>I can analyze your transactions and help you save more. Select one of the suggestions below or ask me anything!";
+    appendChatMessage('advisor', welcome);
+  }
+  
+  setTimeout(() => {
+    const inp = document.getElementById('advisor-chat-input');
+    if (inp) inp.focus();
+  }, 300);
+  
+  if (initialQuery) {
+    setTimeout(() => {
+      submitCoachQuery(initialQuery);
+    }, 500);
+  }
+}
+
+function closeAdvisorChat() {
+  closeModal('advisor-chat-modal');
+}
+
+function appendChatMessage(sender, htmlContent) {
+  const chatLog = document.getElementById('advisor-chat-log');
+  if (!chatLog) return;
+  
+  const row = document.createElement('div');
+  row.className = `chat-msg-row ${sender}`;
+  
+  const bubble = document.createElement('div');
+  bubble.className = 'chat-msg-bubble';
+  bubble.innerHTML = htmlContent.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  
+  row.appendChild(bubble);
+  chatLog.appendChild(row);
+  
+  chatLog.scrollTop = chatLog.scrollHeight;
+}
+
+function submitCoachInput() {
+  const inp = document.getElementById('advisor-chat-input');
+  if (!inp) return;
+  const val = inp.value.trim();
+  if (!val) return;
+  inp.value = '';
+  submitCoachQuery(val);
+}
+
+function handleAdvisorChatKeydown(e) {
+  if (e.key === 'Enter') {
+    submitCoachInput();
+  }
+}
+
+function submitCoachQuery(queryText) {
+  let userDisplay = queryText;
+  if (queryText === 'overspending') {
+    userDisplay = state.lang === 'el' ? "Πού ξοδεύω υπερβολικά;" : "Where am I overspending?";
+  } else if (queryText === 'savings') {
+    userDisplay = state.lang === 'el' ? "Πώς μπορώ να αποταμιεύσω περισσότερο;" : "How can I save more?";
+  } else if (queryText === 'forecast_5y') {
+    userDisplay = state.lang === 'el' ? "Αν συνεχίσω έτσι, πού θα είμαι σε 5 χρόνια;" : "If I continue like this, where will I be in 5 years?";
+  } else if (queryText === 'milestone_50k') {
+    userDisplay = state.lang === 'el' ? "Πότε θα φτάσω τα 50.000€;" : "When will I reach €50,000?";
+  }
+  
+  appendChatMessage('user', userDisplay);
+  
+  const suggestions = document.getElementById('advisor-chat-suggestions-container');
+  if (suggestions) suggestions.style.display = 'none';
+  
+  const chatLog = document.getElementById('advisor-chat-log');
+  const typingIndicatorRow = document.createElement('div');
+  typingIndicatorRow.className = 'chat-msg-row advisor typing-temp';
+  typingIndicatorRow.innerHTML = `
+    <div class="chat-msg-bubble">
+      <div class="chat-typing-indicator">
+        <div class="chat-typing-dot"></div>
+        <div class="chat-typing-dot"></div>
+        <div class="chat-typing-dot"></div>
+      </div>
+    </div>
+  `;
+  if (chatLog) {
+    chatLog.appendChild(typingIndicatorRow);
+    chatLog.scrollTop = chatLog.scrollHeight;
+  }
+  
+  setTimeout(() => {
+    const temp = document.querySelector('.typing-temp');
+    if (temp) temp.remove();
+    
+    const responseHtml = processCoachQuery(queryText);
+    appendChatMessage('advisor', responseHtml);
+    
+    if (suggestions) suggestions.style.display = 'block';
+  }, 650);
+}
+
+function getCoachAveragePacing() {
+  const trans = state.transactions || [];
+  const monthlyData = {};
+  
+  trans.forEach(t => {
+    if (!t.date || t.type === 'transfer') return;
+    const datePart = String(t.date).split('T')[0].split(' ')[0];
+    const parts = datePart.split('-');
+    if (parts.length !== 3) return;
+    const y = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10);
+    const key = `${y}-${String(m).padStart(2, '0')}`;
+    const amt = parseFloat(t.amount) || 0;
+    
+    if (!monthlyData[key]) {
+      monthlyData[key] = { income: 0, expense: 0 };
+    }
+    if (t.type === 'income') monthlyData[key].income += amt;
+    if (t.type === 'expense') monthlyData[key].expense += amt;
+  });
+  
+  const keys = Object.keys(monthlyData).sort();
+  if (keys.length === 0) {
+    return { avgIncome: 0, avgExpense: 0, avgSavings: 0, totalBalance: 0 };
+  }
+  
+  const lastKeys = keys.slice(-3);
+  let sumIncome = 0;
+  let sumExpense = 0;
+  lastKeys.forEach(k => {
+    sumIncome += monthlyData[k].income;
+    sumExpense += monthlyData[k].expense;
+  });
+  
+  const monthsCount = lastKeys.length;
+  const avgIncome = sumIncome / monthsCount;
+  const avgExpense = sumExpense / monthsCount;
+  const avgSavings = avgIncome - avgExpense;
+  
+  const totalBalance = (state.accounts || []).reduce((sum, acc) => sum + (parseFloat(acc.balance) || 0), 0);
+  
+  return { avgIncome, avgExpense, avgSavings, totalBalance };
+}
+
+function runCoachOverspendingAnalysis() {
+  const today = new Date();
+  const currYear = today.getFullYear();
+  const currMonth = today.getMonth();
+  
+  const currMonthExpenses = {};
+  const prevExpenses = {};
+  const monthsSeen = new Set();
+  
+  const trans = state.transactions || [];
+  trans.forEach(t => {
+    if (t.type !== 'expense' || !t.date) return;
+    const datePart = String(t.date).split('T')[0].split(' ')[0];
+    const parts = datePart.split('-');
+    if (parts.length !== 3) return;
+    const y = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10) - 1;
+    const amt = parseFloat(t.amount) || 0;
+    const cat = t.category || 'Other';
+    
+    if (y === currYear && m === currMonth) {
+      currMonthExpenses[cat] = (currMonthExpenses[cat] || 0) + amt;
+    } else {
+      const diffMonths = (currYear - y) * 12 + (currMonth - m);
+      if (diffMonths > 0 && diffMonths <= 3) {
+        monthsSeen.add(`${y}-${m}`);
+        if (!prevExpenses[cat]) prevExpenses[cat] = {};
+        const monthKey = `${y}-${m}`;
+        prevExpenses[cat][monthKey] = (prevExpenses[cat][monthKey] || 0) + amt;
+      }
+    }
+  });
+  
+  const numPrevMonths = Math.max(1, monthsSeen.size);
+  const overspentCats = [];
+  
+  Object.keys(currMonthExpenses).forEach(cat => {
+    const currAmt = currMonthExpenses[cat] || 0;
+    let sumPrev = 0;
+    if (prevExpenses[cat]) {
+      Object.keys(prevExpenses[cat]).forEach(mk => {
+        sumPrev += prevExpenses[cat][mk];
+      });
+    }
+    const avgPrev = sumPrev / numPrevMonths;
+    const diff = currAmt - avgPrev;
+    
+    if (diff > 0) {
+      const pct = avgPrev > 0 ? Math.round((diff / avgPrev) * 100) : 100;
+      overspentCats.push({ cat, currAmt, avgPrev, diff, pct });
+    }
+  });
+  
+  overspentCats.sort((a, b) => b.diff - a.diff);
+  
+  if (overspentCats.length === 0) {
+    return state.lang === 'el'
+      ? "✅ **Όλα υπό έλεγχο!** Δεν εντοπίστηκε υπέρβαση εξόδων σε καμία κατηγορία αυτόν τον μήνα σε σχέση με τους προηγούμενους. Συνέχισε την εξαιρετική δουλειά! 👏"
+      : "✅ **All under control!** No overspending was detected in any category this month compared to previous months. Keep up the great work! 👏";
+  }
+  
+  let html = state.lang === 'el'
+    ? "⚠️ **Εντοπίστηκε υπέρβαση εξόδων στις εξής κατηγορίες:**<br><br>"
+    : "⚠️ **Overspending detected in the following categories:**<br><br>";
+     
+  overspentCats.slice(0, 3).forEach(item => {
+    const dispCat = getCategoryDisplayName(item.cat);
+    const pctStr = item.avgPrev > 0 ? ` (+${item.pct}%)` : ' (νέο έξοδο)';
+    html += `• **${dispCat}**: Ξόδεψες **${formatCurrency(item.currAmt)}** αυτόν τον μήνα, ενώ ο προηγούμενος μέσος όρος σου ήταν **${formatCurrency(item.avgPrev)}**.<br>&nbsp;&nbsp;&nbsp;&nbsp;📈 Αύξηση: **+${formatCurrency(item.diff)}**${pctStr}.<br>`;
+  });
+  
+  html += state.lang === 'el'
+    ? "<br>💡 *Συμβουλή: Πατήστε στο κουμπί 'Συζήτησέ το' δίπλα από την κατηγορία στην κάρτα του συμβούλου για να δεις ποιες συναλλαγές προκάλεσαν την αύξηση.*"
+    : "<br>💡 *Tip: Tap the 'Discuss it' button next to the category in the advisor card to see which transactions caused the increase.*";
+     
+  return html;
+}
+
+function runCoachSavingsAdvice() {
+  const today = new Date();
+  const currYear = today.getFullYear();
+  const currMonth = today.getMonth();
+  
+  const nonEssentials = ['SUPERMARKET', 'MARKET', 'FOOD', 'ΔΙΑΤΡΟΦΗ', 'ΔΙΑΣΚΕΔΑΣΗ', 'ΕΞΟΔΟΙ', 'ENTERTAINMENT', 'LEISURE', 'SHOPPING', 'CLOTHES', 'ΠΡΟΣΩΠΙΚΗ', 'ΦΡΟΝΤΙΔΑ', 'PERSONAL', 'ΤΕΧΝΟΛΟΓΙΑ', 'TECH', 'GADGET', 'ΣΥΝΔΡΟΜΕΣ', 'SUBSCRIPTION'];
+  
+  const trans = state.transactions || [];
+  const catTotals = {};
+  
+  trans.forEach(t => {
+    if (t.type !== 'expense' || !t.date) return;
+    const datePart = String(t.date).split('T')[0].split(' ')[0];
+    const parts = datePart.split('-');
+    if (parts.length !== 3) return;
+    const y = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10) - 1;
+    const amt = parseFloat(t.amount) || 0;
+    
+    if (y === currYear && m === currMonth) {
+      const cat = t.category || 'Other';
+      catTotals[cat] = (catTotals[cat] || 0) + amt;
+    }
+  });
+  
+  const matches = [];
+  Object.keys(catTotals).forEach(cat => {
+    const clean = cat.replace(/[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF]/g, '').trim().toUpperCase();
+    const isNonEssential = nonEssentials.some(keyword => clean.includes(keyword));
+    if (isNonEssential && catTotals[cat] > 20) {
+      matches.push({ cat, amt: catTotals[cat] });
+    }
+  });
+  
+  matches.sort((a, b) => b.amt - a.amt);
+  
+  if (matches.length === 0) {
+    return state.lang === 'el'
+      ? "🎯 **Εξαιρετική οικονομία!** Δεν ξοδεύεις υπερβολικά σε προαιρετικά έξοδα αυτόν τον μήνα. Για να αποταμιεύσεις ακόμα περισσότερο, σκέψου να θέσεις έναν αυτόματο στόχο αποταμίευσης στην αρχή του μήνα."
+      : "🎯 **Great economy!** You aren't spending excessively on discretionary categories this month. To save even more, consider setting an automatic savings goal at the start of the month.";
+  }
+  
+  let html = state.lang === 'el'
+    ? "💡 **Ιδέες για να αυξήσεις την αποταμίευσή σου άμεσα:**<br><br>"
+    : "💡 **Ideas to boost your savings immediately:**<br><br>";
+     
+  matches.slice(0, 2).forEach(item => {
+    const dispCat = getCategoryDisplayName(item.cat);
+    const save10 = item.amt * 0.1;
+    const save20 = item.amt * 0.2;
+    
+    html += state.lang === 'el'
+      ? `• **${dispCat}**: Έχεις ξοδέψει **${formatCurrency(item.amt)}** αυτόν τον μήνα.<br>&nbsp;&nbsp;&nbsp;&nbsp;📉 Μείωση 10%: Κέρδος **+${formatCurrency(save10)}** / μήνα (€${Math.round(save10 * 12)}/έτος).<br>&nbsp;&nbsp;&nbsp;&nbsp;📉 Μείωση 20%: Κέρδος **+${formatCurrency(save20)}** / μήνα (€${Math.round(save20 * 12)}/έτος).<br>`
+      : `• **${dispCat}**: You spent **${formatCurrency(item.amt)}** this month.<br>&nbsp;&nbsp;&nbsp;&nbsp;📉 Cut 10%: Saves **+${formatCurrency(save10)}** / month (€${Math.round(save10 * 12)}/year).<br>&nbsp;&nbsp;&nbsp;&nbsp;📉 Cut 20%: Saves **+${formatCurrency(save20)}** / month (€${Math.round(save20 * 12)}/year).<br>`;
+  });
+  
+  html += state.lang === 'el'
+    ? "<br>⚡ *Tip: Μπορείς να ορίσεις Budgets για αυτές τις κατηγορίες ώστε να λαμβάνεις ειδοποίηση μόλις πλησιάσεις το όριο!*"
+    : "<br>⚡ *Tip: You can set Budgets for these categories to receive alerts when you approach your limit!*";
+     
+  return html;
+}
+
+function runCoachFiveYearForecast() {
+  const pacing = getCoachAveragePacing();
+  const startBalance = pacing.totalBalance;
+  const monthlySavings = pacing.avgSavings;
+  
+  let html = "";
+  if (state.lang === 'el') {
+    html += `📈 **Πρόβλεψη Εξέλιξης 5ετίας:**<br><br>`;
+    html += `• Τρέχον Υπόλοιπο: **${formatCurrency(startBalance)}**<br>`;
+    html += `• Μέση Μηνιαία Αποταμίευση: **${formatCurrency(monthlySavings)}**/μήνα<br><br>`;
+    
+    if (monthlySavings <= 0) {
+      html += `⚠️ **Προσοχή!** Ο μέσος ρυθμός αποταμίευσής σου είναι αρνητικός ή μηδενικός. Αν συνεχίσεις έτσι, η περιουσία σου δεν θα αυξηθεί και ενδέχεται να έχεις απώλειες. Προσπάθησε να μειώσεις τα έξοδά σου.`;
+      return html;
+    }
+    
+    for (let year = 1; year <= 5; year++) {
+      const projected = startBalance + (year * 12 * monthlySavings);
+      html += `• **Έτος ${year}**: ${formatCurrency(projected)} (+${formatCurrency(year * 12 * monthlySavings)})<br>`;
+    }
+    html += `<br>🔮 *Οι υπολογισμοί βασίζονται στον μέσο ρυθμό αποταμίευσης των τελευταίων 3 μηνών.*`;
+  } else {
+    html += `📈 **5-Year Financial Projection:**<br><br>`;
+    html += `• Current Balance: **${formatCurrency(startBalance)}**<br>`;
+    html += `• Average Monthly Savings: **${formatCurrency(monthlySavings)}**/month<br><br>`;
+    
+    if (monthlySavings <= 0) {
+      html += `⚠️ **Warning!** Your average monthly savings rate is negative or zero. If this continues, your net worth will not grow and you might experience losses. Try to reduce your spending.`;
+      return html;
+    }
+    
+    for (let year = 1; year <= 5; year++) {
+      const projected = startBalance + (year * 12 * monthlySavings);
+      html += `• **Year ${year}**: ${formatCurrency(projected)} (+${formatCurrency(year * 12 * monthlySavings)})<br>`;
+    }
+    html += `<br>🔮 *Projections are based on your average savings rate from the last 3 months.*`;
+  }
+  
+  return html;
+}
+
+function runCoachTargetMilestone(targetAmount = 50000) {
+  const pacing = getCoachAveragePacing();
+  const startBalance = pacing.totalBalance;
+  const monthlySavings = pacing.avgSavings;
+  
+  let html = "";
+  if (state.lang === 'el') {
+    html += `🎯 **Ανάλυση Στόχου: ${formatCurrency(targetAmount)}**<br><br>`;
+    html += `• Τρέχον Υπόλοιπο: **${formatCurrency(startBalance)}**<br>`;
+    html += `• Υπολειπόμενο Ποσό: **${formatCurrency(Math.max(0, targetAmount - startBalance))}**<br>`;
+    
+    if (startBalance >= targetAmount) {
+      return `🎉 **Συγχαρητήρια!** Έχεις ήδη επιτύχει αυτόν τον στόχο! Το τρέχον υπόλοιπό σου είναι **${formatCurrency(startBalance)}**.`;
+    }
+    
+    if (monthlySavings <= 0) {
+      return `⚠️ **Αδύνατη Πρόβλεψη**: Με τον τρέχοντα μέσο ρυθμό αποταμίευσής σου (**${formatCurrency(monthlySavings)}**/μήνα), δεν είναι δυνατή η επίτευξη του στόχου. Χρειάζεται να αυξήσεις τη μηνιαία αποταμίευσή σου για να ξεκινήσει η πρόοδος.`;
+    }
+    
+    const months = Math.ceil((targetAmount - startBalance) / monthlySavings);
+    const targetDate = new Date();
+    targetDate.setMonth(targetDate.getMonth() + months);
+    const dateStr = targetDate.toLocaleDateString('el-GR', { month: 'long', year: 'numeric' });
+    
+    html += `• Εκτιμώμενος Χρόνος: **${months} μήνες**<br>`;
+    html += `• Ημερομηνία Επίτευξης: **${dateStr}**<br><br>`;
+    html += `💡 *Συμβουλή: Αν αυξήσεις την αποταμίευσή σου κατά **€100/μήνα**, θα φτάσεις τον στόχο **${Math.max(1, Math.round(months - ((targetAmount - startBalance) / (monthlySavings + 100))))} μήνες νωρίτερα**!*`;
+  } else {
+    html += `🎯 **Target Analysis: ${formatCurrency(targetAmount)}**<br><br>`;
+    html += `• Current Balance: **${formatCurrency(startBalance)}**<br>`;
+    html += `• Remaining Amount: **${formatCurrency(Math.max(0, targetAmount - startBalance))}**<br>`;
+    
+    if (startBalance >= targetAmount) {
+      return `🎉 **Congratulations!** You have already reached this target! Your current balance is **${formatCurrency(startBalance)}**.`;
+    }
+    
+    if (monthlySavings <= 0) {
+      return `⚠️ **Projection Impossible**: With your current average monthly savings rate (**${formatCurrency(monthlySavings)}**/month), you cannot reach this target. You need to increase your savings rate to make progress.`;
+    }
+    
+    const months = Math.ceil((targetAmount - startBalance) / monthlySavings);
+    const targetDate = new Date();
+    targetDate.setMonth(targetDate.getMonth() + months);
+    const dateStr = targetDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    
+    html += `• Estimated Time: **${months} months**<br>`;
+    html += `• Milestone Date: **${dateStr}**<br><br>`;
+    html += `💡 *Tip: If you increase your savings by **€100/month**, you will reach your goal **${Math.max(1, Math.round(months - ((targetAmount - startBalance) / (monthlySavings + 100))))} months faster**!*`;
+  }
+  
+  return html;
+}
+
+function runCoachCategoryAnalysis(categoryName) {
+  const today = new Date();
+  const currYear = today.getFullYear();
+  const currMonth = today.getMonth();
+  
+  const trans = state.transactions || [];
+  const currMonthTrans = trans.filter(t => {
+    if (t.type !== 'expense' || !t.date) return false;
+    const datePart = String(t.date).split('T')[0].split(' ')[0];
+    const parts = datePart.split('-');
+    if (parts.length !== 3) return false;
+    const y = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10) - 1;
+    
+    const cleanT = t.category.replace(/[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF]/g, '').trim().toLowerCase();
+    const cleanQuery = categoryName.replace(/[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF]/g, '').trim().toLowerCase();
+    
+    return y === currYear && m === currMonth && (cleanT.includes(cleanQuery) || cleanQuery.includes(cleanT));
+  });
+  
+  if (currMonthTrans.length === 0) {
+    return state.lang === 'el'
+      ? `Δεν βρήκα έξοδα στην κατηγορία **${categoryName}** για αυτόν τον μήνα.`
+      : `No expenses found in the **${categoryName}** category for this month.`;
+  }
+  
+  const totalAmt = currMonthTrans.reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
+  const top3 = currMonthTrans.sort((a,b) => (parseFloat(b.amount)||0) - (parseFloat(a.amount)||0)).slice(0, 3);
+  
+  let html = "";
+  if (state.lang === 'el') {
+    html += `📋 **Ανάλυση Εξόδων κατηγορίας: ${categoryName}**<br><br>`;
+    html += `• Συνολικά έξοδα μήνα: **${formatCurrency(totalAmt)}**<br>`;
+    html += `• Πλήθος συναλλαγών: **${currMonthTrans.length}**<br><br>`;
+    html += `🔍 **Οι 3 μεγαλύτερες συναλλαγές:**<br>`;
+    
+    top3.forEach((t, idx) => {
+      const dateObj = new Date(t.date);
+      const formattedDate = dateObj.toLocaleDateString('el-GR', { day: '2-digit', month: '2-digit' });
+      const translatedSub = getSubcategoryDisplayName(t.subcategory, t.category);
+      const translatedCat = getCategoryDisplayName(t.category);
+      const displayTitle = (t.note && t.note.trim()) ? t.note.trim()
+                         : (t.description && t.description.trim()) ? t.description.trim()
+                         : (translatedSub && translatedSub.trim()) ? translatedSub.trim()
+                         : (translatedCat || '');
+                         
+      html += `${idx+1}. **${formattedDate}**: ${displayTitle} — **${formatCurrency(t.amount)}**<br>`;
+    });
+  } else {
+    html += `📋 **Expense Analysis for: ${categoryName}**<br><br>`;
+    html += `• Total monthly expenses: **${formatCurrency(totalAmt)}**<br>`;
+    html += `• Total transactions count: **${currMonthTrans.length}**<br><br>`;
+    html += `🔍 **Top 3 largest transactions:**<br>`;
+    
+    top3.forEach((t, idx) => {
+      const dateObj = new Date(t.date);
+      const formattedDate = dateObj.toLocaleDateString('en-US', { day: '2-digit', month: '2-digit' });
+      const translatedSub = getSubcategoryDisplayName(t.subcategory, t.category);
+      const translatedCat = getCategoryDisplayName(t.category);
+      const displayTitle = (t.note && t.note.trim()) ? t.note.trim()
+                         : (t.description && t.description.trim()) ? t.description.trim()
+                         : (translatedSub && translatedSub.trim()) ? translatedSub.trim()
+                         : (translatedCat || '');
+                         
+      html += `${idx+1}. **${formattedDate}**: ${displayTitle} — **${formatCurrency(t.amount)}**<br>`;
+    });
+  }
+  
+  return html;
+}
+
+function processCoachQuery(queryText) {
+  const cleanQuery = queryText.toLowerCase().trim();
+  
+  if (cleanQuery === 'overspending') {
+    return runCoachOverspendingAnalysis();
+  }
+  if (cleanQuery === 'savings') {
+    return runCoachSavingsAdvice();
+  }
+  if (cleanQuery === 'forecast_5y') {
+    return runCoachFiveYearForecast();
+  }
+  if (cleanQuery.startsWith('milestone_')) {
+    const amt = parseInt(cleanQuery.replace('milestone_', ''), 10) || 50000;
+    return runCoachTargetMilestone(amt);
+  }
+  
+  if (cleanQuery.includes('γιατί αυξήθηκαν') || cleanQuery.includes('why did my') || cleanQuery.includes('αυξήθηκαν') || cleanQuery.includes('did my') || cleanQuery.includes('γιατι αυξηθηκαν')) {
+    let catName = "";
+    const grMatch = queryText.match(/οι\s+([α-ωΑ-Ωa-zA-Z\s]+?)\s+μου/i);
+    const enMatch = queryText.match(/my\s+([a-zA-Z\s]+?)\s+rose/i) || queryText.match(/did\s+([a-zA-Z\s]+?)\s+increase/i);
+    
+    if (grMatch && grMatch[1]) catName = grMatch[1].trim();
+    else if (enMatch && enMatch[1]) catName = enMatch[1].trim();
+    else {
+      const cleanText = cleanQuery.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
+      const words = cleanText.split(/\s+/);
+      const stopWords = ['γιατι', 'αυξηθηκαν', 'οι', 'μου', 'αυτον', 'τον', 'μηνα', 'γιατί', 'αυξήθηκαν', 'why', 'did', 'my', 'increase', 'this', 'month', 'expense', 'expenses'];
+      const possibleCats = words.filter(w => w.length > 2 && !stopWords.includes(w));
+      if (possibleCats.length > 0) catName = possibleCats[0];
+    }
+    
+    if (catName) {
+      return runCoachCategoryAnalysis(catName);
+    }
+  }
+  
+  if (cleanQuery.includes('φτάσω') || cleanQuery.includes('reach') || cleanQuery.includes('αποκτήσω') || cleanQuery.includes('στόχο') || cleanQuery.includes('target')) {
+    const numMatch = cleanQuery.replace(/\./g, '').match(/\d+/);
+    if (numMatch) {
+      const amt = parseInt(numMatch[0], 10);
+      return runCoachTargetMilestone(amt);
+    }
+  }
+  
+  if (cleanQuery.includes('προϋπολογισμ') || cleanQuery.includes('budget') || cleanQuery.includes('όριο') || cleanQuery.includes('οριο')) {
+    const budgets = state.budgets || {};
+    const activeExpenses = state.transactions.filter(t => {
+      const datePart = String(t.date || '').split('T')[0];
+      const parts = datePart.split('-');
+      if (parts.length !== 3) return false;
+      const y = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10) - 1;
+      const today = new Date();
+      return t.type === 'expense' && y === today.getFullYear() && m === today.getMonth();
+    });
+    
+    const expenseTotals = {};
+    activeExpenses.forEach(t => {
+      expenseTotals[t.category] = (expenseTotals[t.category] || 0) + (parseFloat(t.amount) || 0);
+    });
+    
+    let html = state.lang === 'el' ? "📊 **Κατάσταση Προϋπολογισμών (Budgets):**<br><br>" : "📊 **Budget Status:**<br><br>";
+    let hasBudgets = false;
+    
+    Object.keys(budgets).forEach(cat => {
+      const limit = parseFloat(budgets[cat]) || 0;
+      if (limit > 0) {
+        hasBudgets = true;
+        const spent = expenseTotals[cat] || 0;
+        const pct = Math.round((spent / limit) * 100);
+        const dispCat = getCategoryDisplayName(cat);
+        const indicator = pct >= 100 ? '🔴' : pct >= 80 ? '🟡' : '🟢';
+        html += `${indicator} **${dispCat}**: ${formatCurrency(spent)} / ${formatCurrency(limit)} (**${pct}%**)<br>`;
+      }
+    });
+    
+    if (!hasBudgets) {
+      return state.lang === 'el'
+        ? "📊 Δεν έχεις ορίσει προϋπολογισμούς ακόμα. Μπορείς να ορίσεις Budgets πηγαίνοντας στα **Περισσότερα -> Όρια Κατηγοριών**."
+        : "📊 You haven't set any budgets yet. You can set them in **More -> Category Limits**.";
+    }
+    return html;
+  }
+  
+  const cleanKeyword = cleanQuery.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"").trim();
+  if (cleanKeyword.length >= 2) {
+    const trans = state.transactions || [];
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    
+    const matchedTrans = trans.filter(t => {
+      if (!t.date || t.type === 'transfer') return false;
+      
+      const datePart = String(t.date).split('T')[0];
+      const parts = datePart.split('-');
+      if (parts.length !== 3) return false;
+      const y = parseInt(parts[0], 10);
+      if (y !== currentYear) return false;
+      
+      const cleanCat = t.category.replace(/[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF]/g, '').trim().toLowerCase();
+      const cleanSub = (t.subcategory || '').replace(/[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF]/g, '').trim().toLowerCase();
+      const cleanNote = (t.note || '').toLowerCase();
+      const cleanDesc = (t.description || '').toLowerCase();
+      
+      return cleanCat.includes(cleanKeyword) || 
+             cleanSub.includes(cleanKeyword) || 
+             cleanNote.includes(cleanKeyword) || 
+             cleanDesc.includes(cleanKeyword);
+    });
+    
+    if (matchedTrans.length > 0) {
+      const totalAmt = matchedTrans.reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
+      const count = matchedTrans.length;
+      const avg = totalAmt / count;
+      
+      let html = "";
+      if (state.lang === 'el') {
+        html += `🔍 **Αποτελέσματα Αναζήτησης για: "${queryText}"**<br><br>`;
+        html += `• Βρέθηκαν **${count} συναλλαγές** φέτος.<br>`;
+        html += `• Συνολικό ποσό: **${formatCurrency(totalAmt)}**<br>`;
+        html += `• Μέσος όρος ανά συναλλαγή: **${formatCurrency(avg)}**<br><br>`;
+        html += `💡 *Συμβουλή: Προσπαθήστε να κρατάτε σημειώσεις (notes) σε κάθε συναλλαγή για να μπορείτε να τις αναζητάτε ακόμα πιο εύκολα!*`;
+      } else {
+        html += `🔍 **Search Results for: "${queryText}"**<br><br>`;
+        html += `• Found **${count} transactions** this year.<br>`;
+        html += `• Total amount: **${formatCurrency(totalAmt)}**<br>`;
+        html += `• Average per transaction: **${formatCurrency(avg)}**<br><br>`;
+        html += `💡 *Tip: Try adding notes to your transactions to search for specific items even easier!*`;
+      }
+      return html;
+    }
+  }
+  
+  return state.lang === 'el'
+    ? `🤖 **Δεν μπόρεσα να κατανοήσω πλήρως την ερώτηση.**<br><br>Μπορείς να δοκιμάσεις κάποια από τις έτοιμες προτάσεις από κάτω, ή να ρωτήσεις για μια συγκεκριμένη κατηγορία/λέξη (π.χ. «καφέ», «φαγητό», «βενζίνη», «υπερβολικά», «αποταμίευση»).`
+    : `🤖 **I couldn't quite understand the question.**<br><br>You can try using one of the suggestion chips below, or ask about a specific category or search term (e.g., 'coffee', 'food', 'petrol', 'overspending', 'savings').`;
+}
+
+// Bind to window for HTML access
+window.openAdvisorChat = openAdvisorChat;
+window.closeAdvisorChat = closeAdvisorChat;
+window.submitCoachInput = submitCoachInput;
+window.submitCoachQuery = submitCoachQuery;
+window.handleAdvisorChatKeydown = handleAdvisorChatKeydown;
 
 // Force snap scroll position to top on page load to fix iOS Safari viewport panning offset
 window.addEventListener('load', () => {
