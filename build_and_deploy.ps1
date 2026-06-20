@@ -1,5 +1,6 @@
 # Set console output encoding to UTF8
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+Set-Location "C:\Users\mario\Desktop\money-manager"
 
 Write-Host "[INFO] Starting Build & Deploy Automation Script..." -ForegroundColor Cyan
 
@@ -81,6 +82,7 @@ Write-Host "  [SUCCESS] Capacitor Sync complete." -ForegroundColor Green
 
 # 4. Gradle Android APK Build
 Write-Host "[INFO] Building Android APK..." -ForegroundColor Yellow
+Start-Sleep -Seconds 1
 Push-Location android
 .\gradlew.bat assembleDebug
 $gradleExit = $LASTEXITCODE

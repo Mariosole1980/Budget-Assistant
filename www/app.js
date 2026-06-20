@@ -117,6 +117,8 @@ const state = {
   activeSubcategoryTransactions: null,
   isSwipingMonth: false,
   lastSwipeTime: 0,
+  recurringTemplates: [],
+  deletedRecurringDates: [],
 };
 
 const NEON_PALETTE = [
@@ -329,7 +331,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v325 - 12/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v403 - 12/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -613,7 +615,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v325 - 07/06/2026 23:20)',
+    app_version: 'Version 1.0.0 (build v403 - 07/06/2026 23:20)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -791,6 +793,7 @@ const ReceiptStorage = {
 // Pending receipt files for the current transaction form session
 let _pendingReceiptFiles = [];
 let _pendingReceiptDeleted = false;
+let _pendingRecurringSettings = { days: [], months: [], years: [], preset: 'monthly' };
 
 const DEFAULT_SUBCATEGORIES_MAP = {
   'ΥΓΕΙΑ': ['Γιατρός', 'Εξετάσεις', 'Συμπληρώματα διατροφής', 'Φάρμακα'],
@@ -1334,6 +1337,19 @@ function formatStatsPeriodTitle(start, end) {
   } else {
     return `${startDay} - ${endDay} ${startMonthShort} ${startYear}`;
   }
+}
+
+function wrapPeriodTitleWithSpans(titleText) {
+  const match = titleText.match(/^(.*)\b(\d{4})$/);
+  if (match) {
+    const mainPart = match[1].trim();
+    const yearPart = match[2];
+    return `<span class="month-part">${mainPart}</span> <span class="year-part" style="color: var(--text-secondary);">${yearPart}</span>`;
+  }
+  if (/^\d{4}$/.test(titleText.trim())) {
+    return `<span class="year-part">${titleText.trim()}</span>`;
+  }
+  return `<span class="month-part">${titleText}</span>`;
 }
 
 // ============================================================
@@ -2971,9 +2987,180 @@ function loadOfflineData() {
     console.error('Failed to parse offline categories:', e);
     state.categories   = DEFAULT_CATEGORIES;
   }
+
+  try {
+    const temps = localStorage.getItem('recurring_templates');
+    state.recurringTemplates = temps ? JSON.parse(temps) : [];
+  } catch (e) {
+    console.error('Failed to parse recurring templates:', e);
+    state.recurringTemplates = [];
+  }
+  try {
+    const deleted = localStorage.getItem('deleted_recurring_dates');
+    state.deletedRecurringDates = deleted ? JSON.parse(deleted) : [];
+  } catch (e) {
+    console.error('Failed to parse deleted recurring dates:', e);
+    state.deletedRecurringDates = [];
+  }
   
+  processRecurringTemplates();
   calculateInitialBalances();
   cleanDuplicateCategories().catch(e => console.warn('Offline automatic categories cleanup error:', e));
+}
+
+function processRecurringTemplates() {
+  if (!state.recurringTemplates || state.recurringTemplates.length === 0) return;
+
+  let transactionsUpdated = false;
+  const currentYear = state.selectedYear;
+  const currentMonthLimit = state.selectedMonth; // 0-indexed (0 = Jan, 11 = Dec)
+
+  // Helper to get matching dates for a specific month
+  function getRecurringDatesForMonth(template, year, monthIdx) {
+    const dates = [];
+    const monthNum = monthIdx + 1;
+
+    const startDateStr = template.startDate || `${template.startYear || year}-${String(template.startMonth || 1).padStart(2, '0')}-01`;
+    const startDate = new Date(startDateStr);
+    const startYear = startDate.getFullYear();
+    const startMonth = startDate.getMonth() + 1;
+    const startDay = startDate.getDate();
+
+    if (year < startYear) return dates;
+    if (year === startYear && monthNum < startMonth) return dates;
+    
+    if (template.years && template.years.length > 0) {
+      if (!template.years.includes(year)) return dates;
+    } else if (template.endYear !== null && year > template.endYear) {
+      return dates;
+    }
+
+    const preset = template.preset || 'custom';
+    const lastDay = new Date(year, monthIdx + 1, 0).getDate();
+
+    if (preset === 'daily') {
+      for (let d = 1; d <= lastDay; d++) {
+        if (year === startYear && monthNum === startMonth && d < startDay) continue;
+        dates.push(`${year}-${String(monthNum).padStart(2, '0')}-${String(d).padStart(2, '0')}`);
+      }
+    } else if (preset === 'weekly') {
+      const targetDayOfWeek = startDate.getDay();
+      for (let d = 1; d <= lastDay; d++) {
+        const dObj = new Date(year, monthIdx, d);
+        if (dObj.getDay() === targetDayOfWeek) {
+          if (year === startYear && monthNum === startMonth && d < startDay) continue;
+          dates.push(`${year}-${String(monthNum).padStart(2, '0')}-${String(d).padStart(2, '0')}`);
+        }
+      }
+    } else if (preset === 'monthly') {
+      const day = Math.min(startDay, lastDay);
+      if (!(year === startYear && monthNum === startMonth && day < startDay)) {
+        dates.push(`${year}-${String(monthNum).padStart(2, '0')}-${String(day).padStart(2, '0')}`);
+      }
+    } else if (preset === 'yearly') {
+      if (monthNum === startMonth) {
+        const day = Math.min(startDay, lastDay);
+        dates.push(`${year}-${String(monthNum).padStart(2, '0')}-${String(day).padStart(2, '0')}`);
+      }
+    } else if (preset === 'specific_months') {
+      if (template.months && template.months.includes(monthNum)) {
+        const day = Math.min(startDay, lastDay);
+        if (!(year === startYear && monthNum === startMonth && day < startDay)) {
+          dates.push(`${year}-${String(monthNum).padStart(2, '0')}-${String(day).padStart(2, '0')}`);
+        }
+      }
+    } else if (preset === 'custom') {
+      if (template.months && template.months.includes(monthNum)) {
+        if (template.days) {
+          template.days.forEach(day => {
+            if (day <= lastDay) {
+              if (year === startYear && monthNum === startMonth && day < startDay) return;
+              dates.push(`${year}-${String(monthNum).padStart(2, '0')}-${String(day).padStart(2, '0')}`);
+            }
+          });
+        }
+      }
+    }
+
+    if (template.endDate) {
+      return dates.filter(dStr => dStr <= template.endDate);
+    }
+
+    return dates;
+  }
+
+  state.recurringTemplates.forEach(template => {
+    const preset = template.preset || 'custom';
+    if (preset === 'custom' && (!template.days || !template.months || template.days.length === 0 || template.months.length === 0)) {
+      return;
+    }
+    if (preset === 'specific_months' && (!template.months || template.months.length === 0)) {
+      return;
+    }
+
+    for (let m = 0; m <= currentMonthLimit; m++) {
+      const datesToProcess = getRecurringDatesForMonth(template, currentYear, m);
+      
+      datesToProcess.forEach(dateString => {
+        const deleteKey = `${template.id}_${dateString}`;
+        
+        if (state.deletedRecurringDates && state.deletedRecurringDates.includes(deleteKey)) {
+          return;
+        }
+
+        const duplicateExists = state.transactions.some(t => 
+          t.recurring_template_id === template.id && t.date === dateString
+        );
+
+        if (!duplicateExists) {
+          const newTx = {
+            id: generateUUID(),
+            recurring_template_id: template.id,
+            date: dateString,
+            type: template.type,
+            amount: parseFloat(template.amount),
+            category: template.category,
+            subcategory: template.subcategory || '',
+            account_from: template.account_from,
+            account_to: template.type === 'transfer' ? template.account_to : null,
+            note: template.note,
+            description: template.description || '',
+            user_id: template.user_id || (state.currentUser ? state.currentUser.id : null),
+            is_shared: template.is_shared !== undefined ? template.is_shared : (state.partnerProfile !== null),
+            family_id: template.family_id || (state.userProfile ? state.userProfile.family_id : null),
+            created_at: new Date().toISOString()
+          };
+
+          saveTransactionOffline(newTx);
+
+          if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
+            const { description, ...dbPayload } = newTx;
+            (async () => {
+              try {
+                const { error } = await promiseTimeout(
+                  state.supabaseClient
+                    .from('transactions')
+                    .upsert([dbPayload]),
+                  12000
+                );
+                if (error) throw error;
+                console.log(`Cloud sync success for recurring transaction: ${newTx.id}`);
+              } catch (err) {
+                console.warn(`Cloud save failed for recurring, queueing transaction: ${newTx.id}`, err);
+                enqueueSyncMutation('save', newTx);
+              }
+            })();
+          }
+
+          transactionsUpdated = true;
+        }
+      });
+    }
+  });
+
+  if (transactionsUpdated) {
+    calculateInitialBalances();
+  }
 }
 
 // ============================================================
@@ -3074,6 +3261,14 @@ async function deleteTransaction(id) {
 }
 
 function deleteTransactionOffline(id) {
+  const tx = state.transactions.find(t => t.id === id);
+  if (tx && tx.recurring_template_id) {
+    const key = `${tx.recurring_template_id}_${tx.date}`;
+    if (!state.deletedRecurringDates.includes(key)) {
+      state.deletedRecurringDates.push(key);
+      localStorage.setItem('deleted_recurring_dates', JSON.stringify(state.deletedRecurringDates));
+    }
+  }
   state.transactions = state.transactions.filter(t => t.id !== id);
   localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
 }
@@ -3082,6 +3277,7 @@ function deleteTransactionOffline(id) {
 // UI UPDATE ENGINE
 // ============================================================
 function updateUI() {
+  processRecurringTemplates();
   updateHeaderAndSync();
   // Render only the active tab to optimize performance and prevent background rendering lag
   if (state.activeTab === 'trans') {
@@ -3115,8 +3311,8 @@ function updateUI() {
 }
 
 function updateHeaderAndSync() {
-  document.getElementById('current-period-title').textContent =
-    `${getMonthName(state.selectedMonth, true)} ${state.selectedYear}`;
+  const rawText = `${getMonthName(state.selectedMonth, true)} ${state.selectedYear}`;
+  document.getElementById('current-period-title').innerHTML = wrapPeriodTitleWithSpans(rawText);
   updateHeaderProfileBadge();
 }
 
@@ -3594,7 +3790,8 @@ function renderStatsTab(skipChart = false) {
   const { start, end } = getStatsDateRange();
   
   // Set month/period text on the top left
-  document.getElementById('stats-period-title').textContent = formatStatsPeriodTitle(start, end);
+  const rawStatsTitle = formatStatsPeriodTitle(start, end);
+  document.getElementById('stats-period-title').innerHTML = wrapPeriodTitleWithSpans(rawStatsTitle);
   
   // Update dropdown button text
   let periodLabel = TRANSLATIONS[state.lang]['stats_period_monthly'];
@@ -5065,18 +5262,10 @@ function setupEventListeners() {
   });
 
   document.getElementById('period-prev').addEventListener('click', () => {
-    state.selectedMonth--;
-    if (state.selectedMonth < 0) { state.selectedMonth = 11; state.selectedYear--; }
-    syncStatsDate();
-    updateUI();
-    setTimeout(() => scrollToToday('auto'), 50);
+    navigateMonth(-1);
   });
   document.getElementById('period-next').addEventListener('click', () => {
-    state.selectedMonth++;
-    if (state.selectedMonth > 11) { state.selectedMonth = 0; state.selectedYear++; }
-    syncStatsDate();
-    updateUI();
-    setTimeout(() => scrollToToday('auto'), 50);
+    navigateMonth(1);
   });
 
   document.getElementById('stats-tab-expense').addEventListener('click', () => toggleStatsType('expense'));
@@ -5117,50 +5306,66 @@ function setupEventListeners() {
         const isKeyboardAlreadyActive = document.body.classList.contains('keyboard-active');
         
         if (textInputs.includes(id)) {
+          if (isIOS && !isKeyboardAlreadyActive) {
+            // Apply estimated keyboard height instantly BEFORE class is added & layout is checked
+            document.documentElement.style.setProperty('--keyboard-height', '320px');
+          }
           document.body.classList.add('keyboard-active');
+          
+          if (isIOS) {
+            const body = el.closest('.modal-body');
+            if (body) {
+              // Force layout reflow so the padding-bottom takes effect instantly in bounding rects
+              body.offsetHeight;
+            }
+          }
         }
         
-        const scrollIntoViewIfNeeded = () => {
-          const row = el.closest('.form-row');
+        const scrollIntoViewIfNeeded = (isInstant = false) => {
+          const row = el.closest('.form-row') || el.closest('.form-group');
           const body = el.closest('.modal-body');
           if (row && body) {
             const bodyRect = body.getBoundingClientRect();
             const rowRect = row.getBoundingClientRect();
-            // If the row is below or above the visible modal body area, scroll it minimally into view
-            if (rowRect.bottom > bodyRect.bottom) {
-              const targetScroll = body.scrollTop + (rowRect.bottom - bodyRect.bottom) + 8;
-              body.scrollTo({ top: targetScroll, behavior: 'smooth' });
-            } else if (rowRect.top < bodyRect.top) {
+            
+            let keyboardHeight = 0;
+            if (window.visualViewport && document.body.classList.contains('keyboard-active')) {
+              const cssKeyboardHeight = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--keyboard-height')) || 0;
+              const vvKeyboardHeight = window.innerHeight - window.visualViewport.height;
+              keyboardHeight = Math.max(vvKeyboardHeight, cssKeyboardHeight);
+            }
+            
+            const visibleHeight = bodyRect.height - keyboardHeight;
+            const safetyMargin = 24; // Keep row at least 24px above the keyboard
+            const effectiveBottom = bodyRect.top + visibleHeight - safetyMargin;
+            
+            if (rowRect.bottom > effectiveBottom) {
+              const targetScroll = body.scrollTop + (rowRect.bottom - effectiveBottom);
+              body.scrollTo({ top: targetScroll, behavior: isInstant ? 'auto' : 'smooth' });
+            } else if (rowRect.top < bodyRect.top + 8) {
               const targetScroll = Math.max(0, body.scrollTop - (bodyRect.top - rowRect.top) - 8);
-              body.scrollTo({ top: targetScroll, behavior: 'smooth' });
+              body.scrollTo({ top: targetScroll, behavior: isInstant ? 'auto' : 'smooth' });
             }
           }
         };
 
-        if (!isKeyboardAlreadyActive) {
-          // Keep the page at top — prevent Android from panning the page body
-          if (!isIOS) {
+        if (isIOS) {
+          // On iOS, scroll instantly so input is in the safe zone before Safari decides to pan
+          scrollIntoViewIfNeeded(true);
+        } else {
+          if (!isKeyboardAlreadyActive) {
             window.scrollTo(0, 0);
             document.body.scrollTop = 0;
+            setTimeout(() => {
+              window.scrollTo(0, 0);
+              document.body.scrollTop = 0;
+              scrollIntoViewIfNeeded(false);
+            }, 350);
+          } else {
+            setTimeout(() => {
+              scrollIntoViewIfNeeded(false);
+            }, 50);
           }
-          
-          // After keyboard animates in, scroll the field into view within the modal body
-          setTimeout(() => {
-            if (!isIOS) {
-              window.scrollTo(0, 0);
-              document.body.scrollTop = 0;
-            } else {
-              // On iOS, snap background scroll back to 0 after keyboard finishes opening
-              window.scrollTo(0, 0);
-              document.body.scrollTop = 0;
-            }
-            scrollIntoViewIfNeeded();
-          }, 350);
-        } else {
-          // Keyboard is already open: scroll the new input into view immediately
-          setTimeout(() => {
-            scrollIntoViewIfNeeded();
-          }, 50);
         }
       });
 
@@ -5262,6 +5467,64 @@ function setupEventListeners() {
     if (!noteVal || noteVal === '') {
       const msg = lang === 'el' ? 'Παρακαλώ εισάγετε τίτλο!' : 'Please enter a title!';
       await showCustomDialog({ message: msg, icon: '⚠️' });
+      return;
+    }
+
+    const isRecurringActive = _pendingRecurringSettings.preset !== 'custom' || 
+      (_pendingRecurringSettings.days.length > 0 && _pendingRecurringSettings.months.length > 0);
+
+    if (!id && isRecurringActive) {
+      const template = {
+        id: generateUUID(),
+        type,
+        amount: amountVal,
+        category: categoryVal,
+        subcategory: (() => {
+          if (type === 'transfer') return '';
+          const customInput = document.getElementById('trans-subcategory-custom');
+          if (customInput && customInput.style.display !== 'none') {
+            return customInput.value.trim();
+          }
+          const select = document.getElementById('trans-subcategory-select');
+          return (select && select.value !== '__NEW__') ? select.value.trim() : '';
+        })(),
+        account_from: document.getElementById('trans-account-from').value,
+        account_to: type === 'transfer' ? document.getElementById('trans-account-to').value : null,
+        note: noteVal,
+        description: document.getElementById('trans-description').value.trim(),
+        days: [..._pendingRecurringSettings.days],
+        months: [..._pendingRecurringSettings.months],
+        preset: _pendingRecurringSettings.preset || 'monthly',
+        years: [...(_pendingRecurringSettings.years || [])],
+        endType: _pendingRecurringSettings.endType || 'perpetual',
+        endDate: _pendingRecurringSettings.endDate || null,
+        startDate: document.getElementById('trans-date').value || new Date().toISOString().split('T')[0],
+        startYear: (() => {
+          const dateElVal = document.getElementById('trans-date').value;
+          return dateElVal ? new Date(dateElVal).getFullYear() : new Date().getFullYear();
+        })(),
+        startMonth: (() => {
+          const dateElVal = document.getElementById('trans-date').value;
+          return dateElVal ? (new Date(dateElVal).getMonth() + 1) : (new Date().getMonth() + 1);
+        })(),
+        user_id: state.currentUser ? state.currentUser.id : null,
+        is_shared: state.partnerProfile !== null,
+        family_id: state.userProfile ? state.userProfile.family_id : null
+      };
+
+      state.recurringTemplates.push(template);
+      localStorage.setItem('recurring_templates', JSON.stringify(state.recurringTemplates));
+      
+      processRecurringTemplates();
+      updateUI();
+
+      _pendingReceiptFiles.forEach(p => {
+        if (p.url && !p.isExisting) URL.revokeObjectURL(p.url);
+      });
+      _pendingReceiptFiles = [];
+      _pendingReceiptDeleted = false;
+
+      closeModal('transaction-modal');
       return;
     }
     
@@ -5597,10 +5860,20 @@ function setupEventListeners() {
   if (searchBtn) searchBtn.addEventListener('click', openSearchOverlay);
 
   const currPeriodTitle = document.getElementById('current-period-title');
-  if (currPeriodTitle) currPeriodTitle.addEventListener('click', openMonthPicker);
+  if (currPeriodTitle) {
+    currPeriodTitle.addEventListener('click', (e) => {
+      const isYearClick = e.target.classList.contains('year-part');
+      openMonthPicker(isYearClick);
+    });
+  }
 
   const statsPeriodTitle = document.getElementById('stats-period-title');
-  if (statsPeriodTitle) statsPeriodTitle.addEventListener('click', openMonthPicker);
+  if (statsPeriodTitle) {
+    statsPeriodTitle.addEventListener('click', (e) => {
+      const isYearClick = e.target.classList.contains('year-part');
+      openMonthPicker(isYearClick);
+    });
+  }
 
   // Auto-close search overlay when user scrolls down in the main content
   const appContent = document.querySelector('.app-content');
@@ -5649,7 +5922,8 @@ function setupEventListeners() {
       btn.classList.add('active');
     });
   });
-}
+
+// Removed initMainScreenSwipeGestures call and adjustMainPeriod
 
 function adjustStatsPeriod(direction, startingDeltaX = 0) {
   state.expandedStatsCategories.clear();
@@ -6115,6 +6389,11 @@ function openAddTransactionModal() {
   if (typeof window.closeCalculatorKeypad === 'function') {
     window.closeCalculatorKeypad();
   }
+  
+  clearRecurringSettings(false);
+  const repInstBtn = document.getElementById('btn-rep-inst');
+  if (repInstBtn) repInstBtn.style.display = 'flex';
+
   toggleTransactionFormLock(false);
   document.getElementById('transaction-form').reset();
   if (window.updateDescriptionHeight) window.updateDescriptionHeight();
@@ -6130,6 +6409,9 @@ function openAddTransactionModal() {
   hideSubcategorySelect();
   
   document.getElementById('trans-delete-btn').style.display = 'none';
+  
+  const creatorRow = document.getElementById('trans-creator-row');
+  if (creatorRow) creatorRow.style.display = 'none';
   
   // Reset photo state
   _pendingReceiptFiles.forEach(p => {
@@ -6170,6 +6452,11 @@ function openEditTransactionModal(t) {
   if (typeof window.closeCalculatorKeypad === 'function') {
     window.closeCalculatorKeypad();
   }
+  
+  clearRecurringSettings(false);
+  const repInstBtn = document.getElementById('btn-rep-inst');
+  if (repInstBtn) repInstBtn.style.display = 'none';
+
   const isFamilyMember = state.userProfile && state.userProfile.family_id;
   const isNotAdmin = state.userProfile && state.userProfile.role !== 'admin';
   const isNotOwner = t.user_id && state.currentUser && t.user_id !== state.currentUser.id;
@@ -8993,38 +9280,131 @@ function renderGroupedTransactions(transactions, container) {
 // ============================================================
 // FEATURE: MONTH GRID PICKER MODAL
 // ============================================================
-function openMonthPicker() {
+function openMonthPicker(forceYearView = false) {
+  if (!window._monthPickerSwipeGesturesInitialized) {
+    initYearSwipeGestures();
+    window._monthPickerSwipeGesturesInitialized = true;
+  }
   state.monthPickerYear = state.selectedYear;
-  document.getElementById('month-picker-year').textContent = state.monthPickerYear;
+  const yearLabel = document.getElementById('month-picker-bs-year-label');
+  if (yearLabel) yearLabel.textContent = state.monthPickerYear;
   
-  renderMonthPicker();
+  // Toggle view based on parameter
+  toggleMonthPickerYearView(forceYearView);
+  renderMonthPickerBS();
+  
   openModal('month-picker-modal');
 }
 
-function adjustMonthPickerYear(direction) {
-  state.monthPickerYear += direction;
-  document.getElementById('month-picker-year').textContent = state.monthPickerYear;
-  renderMonthPicker();
+function toggleMonthPickerYearView(forceYearView) {
+  const monthsView = document.getElementById('month-picker-bs-months-view');
+  const yearsView = document.getElementById('month-picker-bs-years-view');
+  const chevron = document.getElementById('month-picker-bs-year-chevron');
+  if (!monthsView || !yearsView) return;
+
+  let showYears = false;
+  if (typeof forceYearView === 'boolean') {
+    showYears = forceYearView;
+  } else {
+    showYears = yearsView.style.display === 'none';
+  }
+
+  if (showYears) {
+    monthsView.style.display = 'none';
+    yearsView.style.display = 'grid';
+    if (chevron) chevron.style.display = 'none';
+    window.monthPickerBSYearStart = Math.floor((state.monthPickerYear - 2020) / 6) * 6 + 2020;
+    renderMonthPickerBS();
+  } else {
+    monthsView.style.display = 'grid';
+    yearsView.style.display = 'none';
+    if (chevron) {
+      chevron.style.display = 'inline-block';
+      chevron.style.transform = 'rotate(0deg)';
+    }
+    const labelSpan = document.getElementById('month-picker-bs-year-label');
+    if (labelSpan) {
+      labelSpan.style.display = '';
+      labelSpan.textContent = state.monthPickerYear;
+    }
+  }
 }
 
-function renderMonthPicker() {
-  const container = document.getElementById('month-picker-grid-container');
-  if (!container) return;
-  container.innerHTML = '';
+function shiftMonthPickerBSYears(delta) {
+  window.monthPickerBSYearStart += delta;
+  renderMonthPickerBS();
+}
+window.shiftMonthPickerBSYears = shiftMonthPickerBSYears;
 
-  for (let index = 0; index < 12; index++) {
-    const monLabel = getMonthName(index, true);
-    const cell = document.createElement('div');
-    cell.className = 'month-picker-item';
+function renderMonthPickerBS() {
+  const monthsGrid = document.getElementById('month-picker-bs-months-view');
+  if (monthsGrid) {
+    monthsGrid.innerHTML = '';
+    const currentMonth = state.selectedMonth; // 0-11
+    const isCurrentYear = state.selectedYear === state.monthPickerYear;
+    const monthNames = state.lang === 'en' ? ENGLISH_MONTHS_SHORT : GREEK_MONTHS_SHORT;
+
+    for (let m = 0; m < 12; m++) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'google-picker-btn';
+      btn.textContent = monthNames[m];
+      if (m === currentMonth && isCurrentYear) {
+        btn.classList.add('active');
+      }
+      btn.onclick = () => {
+        selectMonthPickerMonth(m);
+      };
+      monthsGrid.appendChild(btn);
+    }
+  }
+
+  const yearsGrid = document.getElementById('month-picker-bs-years-view');
+  if (yearsGrid) {
+    yearsGrid.innerHTML = '';
     
-    // Highlight if active month
-    if (state.selectedMonth === index && state.selectedYear === state.monthPickerYear) {
-      cell.classList.add('active');
+    if (!window.monthPickerBSYearStart) {
+      window.monthPickerBSYearStart = Math.floor((state.monthPickerYear - 2020) / 6) * 6 + 2020;
     }
     
-    cell.textContent = monLabel;
-    cell.onclick = () => selectMonthPickerMonth(index);
-    container.appendChild(cell);
+    const startY = window.monthPickerBSYearStart;
+    const endY = startY + 5;
+    
+    const labelSpan = document.getElementById('month-picker-bs-year-label');
+    if (labelSpan && yearsGrid.style.display !== 'none') {
+      labelSpan.style.display = 'flex';
+      labelSpan.style.alignItems = 'center';
+      labelSpan.style.justifyContent = 'center';
+      labelSpan.innerHTML = `
+        <span style="cursor: pointer; padding: 6px 16px; display: inline-flex; align-items: center; justify-content: center; opacity: 0.7; transition: opacity 0.2s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.7" onclick="event.stopPropagation(); shiftMonthPickerBSYears(-6)">
+          <i class="fa-solid fa-chevron-left" style="font-size: 14px; color: var(--accent, #e05e55);"></i>
+        </span>
+        <span style="margin: 0 8px; font-weight: 700; color: #ffffff; min-width: 110px; text-align: center;">${startY} - ${endY}</span>
+        <span style="cursor: pointer; padding: 6px 16px; display: inline-flex; align-items: center; justify-content: center; opacity: 0.7; transition: opacity 0.2s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.7" onclick="event.stopPropagation(); shiftMonthPickerBSYears(6)">
+          <i class="fa-solid fa-chevron-right" style="font-size: 14px; color: var(--accent, #e05e55);"></i>
+        </span>
+      `;
+    }
+
+    const systemYear = new Date().getFullYear();
+
+    for (let y = startY; y <= endY; y++) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'google-picker-btn';
+      btn.textContent = y;
+      if (y === state.monthPickerYear) {
+        btn.classList.add('active');
+      } else if (y === systemYear) {
+        btn.classList.add('today-year');
+      }
+      btn.onclick = () => {
+        state.monthPickerYear = y;
+        toggleMonthPickerYearView(false);
+        renderMonthPickerBS();
+      };
+      yearsGrid.appendChild(btn);
+    }
   }
 }
 
@@ -9044,6 +9424,8 @@ function selectMonthPickerMonth(monthIndex) {
   closeModal('month-picker-modal');
   setTimeout(() => scrollToToday('auto'), 50);
 }
+
+window.toggleMonthPickerYearView = toggleMonthPickerYearView;
 
 function initPullToRefresh() {
   const container = document.querySelector('.app-content');
@@ -10077,6 +10459,7 @@ function animateSwipeTransition(direction, callback, startingDeltaX = 0) {
 
 // Lightweight render for swipe navigation — only updates list + header, skips dropdowns/currency/etc.
 function renderTransactionsForSwipe() {
+  processRecurringTemplates();
   updateHeaderAndSync();
   renderTransactionsTab();
   lastRenderedCategoryType = null;
@@ -12862,6 +13245,246 @@ function initProfileSheetSwipeDismiss() {
   sheetContent.addEventListener('touchend', handleTouchEnd);
 }
 
+function initYearSwipeGestures() {
+  const customGrid = document.getElementById('custom-date-picker-bs-years-view');
+  if (customGrid) {
+    let startX = 0;
+    let startY = 0;
+    let startTime = 0;
+    customGrid.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 1) {
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        startTime = Date.now();
+      }
+    }, { passive: true });
+    
+    customGrid.addEventListener('touchend', (e) => {
+      if (e.changedTouches.length === 1) {
+        const deltaX = e.changedTouches[0].clientX - startX;
+        const deltaY = e.changedTouches[0].clientY - startY;
+        const duration = Date.now() - startTime;
+        if (duration < 400 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5 && Math.abs(deltaX) > 40) {
+          if (deltaX < 0) {
+            shiftCustomDatePickerBSYears(6);
+          } else {
+            shiftCustomDatePickerBSYears(-6);
+          }
+        }
+      }
+    }, { passive: true });
+  }
+
+  const monthGrid = document.getElementById('month-picker-bs-years-view');
+  if (monthGrid) {
+    let startX = 0;
+    let startY = 0;
+    let startTime = 0;
+    monthGrid.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 1) {
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        startTime = Date.now();
+      }
+    }, { passive: true });
+    
+    monthGrid.addEventListener('touchend', (e) => {
+      if (e.changedTouches.length === 1) {
+        const deltaX = e.changedTouches[0].clientX - startX;
+        const deltaY = e.changedTouches[0].clientY - startY;
+        const duration = Date.now() - startTime;
+        if (duration < 400 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5 && Math.abs(deltaX) > 40) {
+          if (deltaX < 0) {
+            shiftMonthPickerBSYears(6);
+          } else {
+            shiftMonthPickerBSYears(-6);
+          }
+        }
+      }
+    }, { passive: true });
+  }
+}
+
+function initCalendarSwipeGestures() {
+  const container = document.getElementById('custom-date-picker-calendar-view');
+  if (!container) return;
+
+  let startX = 0;
+  let startY = 0;
+  let startTime = 0;
+
+  container.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 1) {
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      startTime = Date.now();
+    }
+  }, { passive: true });
+
+  container.addEventListener('touchend', (e) => {
+    if (e.changedTouches.length === 1) {
+      const deltaX = e.changedTouches[0].clientX - startX;
+      const deltaY = e.changedTouches[0].clientY - startY;
+      const duration = Date.now() - startTime;
+
+      if (duration < 400 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5 && Math.abs(deltaX) > 40) {
+        if (deltaX < 0) {
+          adjustCustomDatePickerMonth(1);
+        } else {
+          adjustCustomDatePickerMonth(-1);
+        }
+      }
+    }
+  }, { passive: true });
+}
+
+
+let _customDatePickerTargetInput = 'trans-date';
+
+function openCustomDatePicker(targetInputId = 'trans-date') {
+  if (!window._calendarSwipeGesturesInitialized) {
+    initCalendarSwipeGestures();
+    initYearSwipeGestures();
+    window._calendarSwipeGesturesInitialized = true;
+  }
+  if (window.autocompleteJustSelected) return;
+  
+  if (targetInputId === 'trans-date') {
+    const form = document.getElementById('transaction-form');
+    if (form && form.getAttribute('data-readonly') === 'true') return;
+  }
+  
+  _customDatePickerTargetInput = targetInputId;
+  ensureHistoryPushed();
+
+  const txModal = document.getElementById('transaction-form');
+  const datePickerModal = document.getElementById('custom-date-picker-modal');
+  if (datePickerModal) {
+    if (txModal && document.getElementById('transaction-modal').classList.contains('active')) {
+      const modalParent = document.getElementById('transaction-modal');
+      if (modalParent.classList.contains('expense')) {
+        datePickerModal.style.setProperty('--picker-accent', 'var(--red-negative)');
+      } else if (modalParent.classList.contains('income')) {
+        datePickerModal.style.setProperty('--picker-accent', 'var(--blue-positive)');
+      } else {
+        datePickerModal.style.setProperty('--picker-accent', 'var(--text-secondary)');
+      }
+    } else {
+      datePickerModal.style.removeProperty('--picker-accent');
+    }
+  }
+
+  // Close any active inline popups on open
+  closeCustomDatePickerBS();
+  
+  const timeContainer = document.getElementById('custom-date-picker-time-container');
+  if (timeContainer) {
+    if (targetInputId === 'trans-date') {
+      timeContainer.style.display = 'flex';
+    } else {
+      timeContainer.style.display = 'none';
+    }
+  }
+
+  const dateInput = document.getElementById(targetInputId);
+  let currentDate = new Date();
+  if (dateInput && dateInput.value) {
+    if (dateInput.value.includes('T')) {
+      const parts = dateInput.value.split('T');
+      if (parts.length === 2) {
+        const dateParts = parts[0].split('-');
+        const timeParts = parts[1].split(':');
+        if (dateParts.length === 3 && timeParts.length >= 2) {
+          currentDate = new Date(
+            parseInt(dateParts[0], 10),
+            parseInt(dateParts[1], 10) - 1,
+            parseInt(dateParts[2], 10),
+            parseInt(timeParts[0], 10),
+            parseInt(timeParts[1], 10)
+          );
+        }
+      }
+    } else {
+      const dateParts = dateInput.value.split('-');
+      if (dateParts.length === 3) {
+        currentDate = new Date(
+          parseInt(dateParts[0], 10),
+          parseInt(dateParts[1], 10) - 1,
+          parseInt(dateParts[2], 10)
+        );
+      } else {
+        const parsed = new Date(dateInput.value);
+        if (!isNaN(parsed.getTime())) {
+          currentDate = parsed;
+        }
+      }
+    }
+  }
+  
+  customDatePickerSelectedDate = new Date(currentDate);
+  customDatePickerViewingMonth = new Date(currentDate);
+  
+  // Populate scroll wheels if empty
+  const hoursScroll = document.getElementById('scroll-hours');
+  if (hoursScroll && hoursScroll.children.length === 0) {
+    for (let i = 0; i < 24; i++) {
+      const div = document.createElement('div');
+      div.className = 'time-wheel-item';
+      div.textContent = String(i).padStart(2, '0');
+      hoursScroll.appendChild(div);
+    }
+  }
+  
+  const minutesScroll = document.getElementById('scroll-minutes');
+  if (minutesScroll && minutesScroll.children.length === 0) {
+    for (let i = 0; i < 60; i++) {
+      const div = document.createElement('div');
+      div.className = 'time-wheel-item';
+      div.textContent = String(i).padStart(2, '0');
+      minutesScroll.appendChild(div);
+    }
+  }
+  
+  // Setup listeners
+  setupTimeWheelScrollListeners();
+  initTimeInputListeners();
+  
+  // Reset time picker mode to Wheels by default on open
+  const wheelsRow = document.getElementById('custom-date-picker-time-wheels-row');
+  const inputsRow = document.getElementById('custom-date-picker-time-inputs');
+  const toggleBtn = document.getElementById('toggle-time-input-mode');
+  if (wheelsRow) wheelsRow.style.display = 'flex';
+  if (inputsRow) inputsRow.style.display = 'none';
+  if (toggleBtn) toggleBtn.innerHTML = '<i class="fa-regular fa-keyboard"></i>';
+  
+  renderCustomDatePickerCalendar();
+  
+  // Open the modal
+  openModal('custom-date-picker-modal');
+  
+  // Scroll wheels and set input values to correct initial values after rendering transition
+  setTimeout(() => {
+    const hs = document.getElementById('scroll-hours');
+    if (hs) {
+      hs.scrollTop = currentDate.getHours() * 60;
+    }
+    const ms = document.getElementById('scroll-minutes');
+    if (ms) {
+      ms.scrollTop = currentDate.getMinutes() * 60;
+    }
+    
+    // Set manual input values
+    const inputHours = document.getElementById('custom-time-input-hours');
+    if (inputHours) {
+      inputHours.value = String(currentDate.getHours()).padStart(2, '0');
+    }
+    const inputMinutes = document.getElementById('custom-time-input-minutes');
+    if (inputMinutes) {
+      inputMinutes.value = String(currentDate.getMinutes()).padStart(2, '0');
+    }
+  }, 100);
+}
+
 window.startPartnerSyncPolling = startPartnerSyncPolling;
 window.stopPartnerSyncPolling = stopPartnerSyncPolling;
 window.updateHeaderProfileBadge = updateHeaderProfileBadge;
@@ -12879,6 +13502,7 @@ window.triggerProfileExport = triggerProfileExport;
 window.cycleThemeFromProfile = cycleThemeFromProfile;
 window.handleProfileLogout = handleProfileLogout;
 window.initProfileSheetSwipeDismiss = initProfileSheetSwipeDismiss;
+window.openCustomDatePicker = openCustomDatePicker;
 
 function updateSupabaseUserModal() {
   const container = document.getElementById('supabase-user-settings');
@@ -13095,10 +13719,24 @@ document.addEventListener('DOMContentLoaded', () => {
   const safeBottom = testEl.offsetHeight;
   document.body.removeChild(testEl);
   
-  if (safeBottom === 0) {
-    // env() returns 0, update --safe-area-bottom to a default fallback of 16px to clear the gesture pill
-    document.documentElement.style.setProperty('--safe-area-bottom', '12px');
-  }
+    if (safeBottom === 0) {
+      // env() returns 0, update --safe-area-bottom to a default fallback of 16px to clear the gesture pill
+      document.documentElement.style.setProperty('--safe-area-bottom', '12px');
+    }
+});
+
+// Android Overlay Click: Close picker modals by clicking on the background backdrop
+document.addEventListener('DOMContentLoaded', () => {
+  const isAndroid = /android/i.test(navigator.userAgent);
+  if (!isAndroid) return;
+  
+  document.querySelectorAll('.modal-overlay').forEach(modal => {
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        closeModal(modal.id);
+      }
+    });
+  });
 });
 
 // Dynamic Visual Viewport Height Adjustment (for virtual keyboard support)
@@ -13198,6 +13836,8 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
   });
+
+  // iOS Safari layout viewport panning is handled in the focus event listeners and visualViewport resize handlers.
 });
 
 // Custom Date Picker State Variables
@@ -13235,94 +13875,147 @@ function setupTimeWheelScrollListeners() {
   timeWheelsInitialized = true;
 }
 
-function openCustomDatePicker() {
-  if (window.autocompleteJustSelected) return;
-  const form = document.getElementById('transaction-form');
-  if (form && form.getAttribute('data-readonly') === 'true') return;
-  ensureHistoryPushed();
+function toggleTimeInputMode() {
+  const wheelsRow = document.getElementById('custom-date-picker-time-wheels-row');
+  const inputsRow = document.getElementById('custom-date-picker-time-inputs');
+  const toggleBtn = document.getElementById('toggle-time-input-mode');
   
-  const dateInput = document.getElementById('trans-date');
-  let currentDate = new Date();
-  if (dateInput && dateInput.value) {
-    // Timezone-safe manual parsing of local date-time YYYY-MM-DDTHH:MM
-    const parts = dateInput.value.split('T');
-    if (parts.length === 2) {
-      const dateParts = parts[0].split('-');
-      const timeParts = parts[1].split(':');
-      if (dateParts.length === 3 && timeParts.length >= 2) {
-        currentDate = new Date(
-          parseInt(dateParts[0], 10),
-          parseInt(dateParts[1], 10) - 1,
-          parseInt(dateParts[2], 10),
-          parseInt(timeParts[0], 10),
-          parseInt(timeParts[1], 10)
-        );
-      }
-    } else {
-      const parsed = new Date(dateInput.value);
-      if (!isNaN(parsed.getTime())) {
-        currentDate = parsed;
-      }
-    }
-  }
+  if (!wheelsRow || !inputsRow || !toggleBtn) return;
   
-  customDatePickerSelectedDate = new Date(currentDate);
-  customDatePickerViewingMonth = new Date(currentDate);
+  const isWheelsMode = wheelsRow.style.display !== 'none';
   
-  // Populate scroll wheels if empty
-  const hoursScroll = document.getElementById('scroll-hours');
-  if (hoursScroll && hoursScroll.children.length === 0) {
-    for (let i = 0; i < 24; i++) {
-      const div = document.createElement('div');
-      div.className = 'time-wheel-item';
-      div.textContent = String(i).padStart(2, '0');
-      hoursScroll.appendChild(div);
-    }
-  }
-  
-  const minutesScroll = document.getElementById('scroll-minutes');
-  if (minutesScroll && minutesScroll.children.length === 0) {
-    for (let i = 0; i < 60; i++) {
-      const div = document.createElement('div');
-      div.className = 'time-wheel-item';
-      div.textContent = String(i).padStart(2, '0');
-      minutesScroll.appendChild(div);
-    }
-  }
-  
-  // Setup listeners
-  setupTimeWheelScrollListeners();
-  
-  renderCustomDatePickerCalendar();
-  
-  // Open the modal
-  openModal('custom-date-picker-modal');
-  
-  // Scroll wheels to correct initial values after rendering transition
-  setTimeout(() => {
+  if (isWheelsMode) {
+    // Switch to Manual INPUT Mode
+    wheelsRow.style.display = 'none';
+    inputsRow.style.display = 'flex';
+    toggleBtn.innerHTML = '<i class="fa-solid fa-clock"></i>';
+    
+    // Sync inputs with wheel values
     const hs = document.getElementById('scroll-hours');
-    if (hs) {
-      hs.scrollTop = currentDate.getHours() * 60;
-    }
     const ms = document.getElementById('scroll-minutes');
-    if (ms) {
-      ms.scrollTop = currentDate.getMinutes() * 60;
+    let h = 0;
+    let m = 0;
+    if (hs) h = Math.round(hs.scrollTop / 60);
+    if (ms) m = Math.round(ms.scrollTop / 60);
+    
+    const inputHours = document.getElementById('custom-time-input-hours');
+    const inputMinutes = document.getElementById('custom-time-input-minutes');
+    if (inputHours) {
+      inputHours.value = String(h).padStart(2, '0');
+      inputHours.focus();
+      setTimeout(() => inputHours.select(), 50);
     }
-  }, 100);
+    if (inputMinutes) {
+      inputMinutes.value = String(m).padStart(2, '0');
+    }
+  } else {
+    // Switch to WHEELS Mode
+    wheelsRow.style.display = 'flex';
+    inputsRow.style.display = 'none';
+    toggleBtn.innerHTML = '<i class="fa-regular fa-keyboard"></i>';
+    
+    // Sync wheels with typed values
+    const inputHours = document.getElementById('custom-time-input-hours');
+    const inputMinutes = document.getElementById('custom-time-input-minutes');
+    
+    let h = parseInt(inputHours.value, 10);
+    let m = parseInt(inputMinutes.value, 10);
+    
+    if (isNaN(h) || h < 0) h = 0;
+    if (h > 23) h = 23;
+    if (isNaN(m) || m < 0) m = 0;
+    if (m > 59) m = 59;
+    
+    const hs = document.getElementById('scroll-hours');
+    if (hs) hs.scrollTop = h * 60;
+    const ms = document.getElementById('scroll-minutes');
+    if (ms) ms.scrollTop = m * 60;
+  }
+}
+window.toggleTimeInputMode = toggleTimeInputMode;
+
+let timeInputsInitialized = false;
+function initTimeInputListeners() {
+  if (timeInputsInitialized) return;
+  
+  const inputHours = document.getElementById('custom-time-input-hours');
+  const inputMinutes = document.getElementById('custom-time-input-minutes');
+  
+  if (!inputHours || !inputMinutes) return;
+  
+  inputHours.addEventListener('input', (e) => {
+    let val = e.target.value;
+    if (val.length > 2) {
+      val = val.slice(0, 2);
+    }
+    let num = parseInt(val, 10);
+    if (!isNaN(num)) {
+      if (num > 23) {
+        val = '23';
+      } else if (num < 0) {
+        val = '00';
+      }
+    }
+    e.target.value = val;
+    
+    // Auto-focus minutes input when 2 digits are entered
+    if (val.length === 2) {
+      inputMinutes.focus();
+      setTimeout(() => inputMinutes.select(), 50);
+    }
+  });
+
+  inputMinutes.addEventListener('input', (e) => {
+    let val = e.target.value;
+    if (val.length > 2) {
+      val = val.slice(0, 2);
+    }
+    let num = parseInt(val, 10);
+    if (!isNaN(num)) {
+      if (num > 59) {
+        val = '59';
+      } else if (num < 0) {
+        val = '00';
+      }
+    }
+    e.target.value = val;
+  });
+
+  inputHours.addEventListener('blur', (e) => {
+    let val = e.target.value;
+    if (val !== '') {
+      e.target.value = String(parseInt(val, 10)).padStart(2, '0');
+    } else {
+      e.target.value = '00';
+    }
+  });
+
+  inputMinutes.addEventListener('blur', (e) => {
+    let val = e.target.value;
+    if (val !== '') {
+      e.target.value = String(parseInt(val, 10)).padStart(2, '0');
+    } else {
+      e.target.value = '00';
+    }
+  });
+  
+  timeInputsInitialized = true;
 }
 
-window.openCustomDatePicker = openCustomDatePicker;
+
 
 function renderCustomDatePickerCalendar() {
   const grid = document.getElementById('custom-date-picker-days-grid');
-  const monthYearLabel = document.getElementById('custom-date-picker-month-year');
-  if (!grid || !monthYearLabel) return;
+  const largeLabel = document.getElementById('custom-date-picker-month-large-label');
+  if (!grid) return;
   
   const year = customDatePickerViewingMonth.getFullYear();
   const month = customDatePickerViewingMonth.getMonth();
   
-  // Update Month and Year title
-  monthYearLabel.textContent = `${getMonthName(month)} ${year}`;
+  // Update Large Month Title
+  if (largeLabel) {
+    largeLabel.textContent = getMonthName(month, true).toUpperCase();
+  }
   
   grid.innerHTML = '';
   
@@ -13399,38 +14092,217 @@ function adjustCustomDatePickerMonth(direction) {
 
 window.adjustCustomDatePickerMonth = adjustCustomDatePickerMonth;
 
+function openCustomDatePickerBS(forceYearView = false) {
+  const bs = document.getElementById('custom-date-picker-bs');
+  if (bs) {
+    bs.style.display = 'flex';
+    setTimeout(() => bs.classList.add('active'), 10);
+    // Set active year label
+    const yearLabel = document.getElementById('custom-date-picker-bs-year-label');
+    if (yearLabel) yearLabel.textContent = customDatePickerViewingMonth.getFullYear();
+    
+    // Toggle view based on parameter
+    toggleCustomDatePickerBSYearView(forceYearView);
+    renderCustomDatePickerBSGrids('month');
+    renderCustomDatePickerBSGrids('year');
+  }
+}
+
+function closeCustomDatePickerBS() {
+  const bs = document.getElementById('custom-date-picker-bs');
+  if (bs) {
+    bs.classList.remove('active');
+    setTimeout(() => bs.style.display = 'none', 300);
+  }
+}
+
+function toggleCustomDatePickerBSYearView(forceYearView) {
+  const monthsView = document.getElementById('custom-date-picker-bs-months-view');
+  const yearsView = document.getElementById('custom-date-picker-bs-years-view');
+  const chevron = document.getElementById('custom-date-picker-bs-year-chevron');
+  if (!monthsView || !yearsView) return;
+
+  let showYears = false;
+  if (typeof forceYearView === 'boolean') {
+    showYears = forceYearView;
+  } else {
+    showYears = yearsView.style.display === 'none';
+  }
+
+  if (showYears) {
+    monthsView.style.display = 'none';
+    yearsView.style.display = 'grid';
+    if (chevron) chevron.style.display = 'none';
+    const selectedYear = customDatePickerViewingMonth.getFullYear();
+    window.customDatePickerBSYearStart = Math.floor((selectedYear - 2020) / 6) * 6 + 2020;
+    renderCustomDatePickerBSGrids('year');
+  } else {
+    monthsView.style.display = 'grid';
+    yearsView.style.display = 'none';
+    if (chevron) {
+      chevron.style.display = 'inline-block';
+      chevron.style.transform = 'rotate(0deg)';
+    }
+    const labelSpan = document.getElementById('custom-date-picker-bs-year-label');
+    if (labelSpan) {
+      labelSpan.style.display = '';
+      labelSpan.textContent = customDatePickerViewingMonth.getFullYear();
+    }
+  }
+}
+
+function shiftCustomDatePickerBSYears(delta) {
+  window.customDatePickerBSYearStart += delta;
+  renderCustomDatePickerBSGrids('year');
+}
+window.shiftCustomDatePickerBSYears = shiftCustomDatePickerBSYears;
+
+function renderCustomDatePickerBSGrids(type) {
+  if (type === 'month') {
+    const grid = document.getElementById('custom-date-picker-bs-months-view');
+    if (!grid) return;
+    grid.innerHTML = '';
+    const currentMonth = customDatePickerViewingMonth.getMonth() + 1; // 1-12
+    const monthNames = state.lang === 'en' ? ENGLISH_MONTHS_SHORT : GREEK_MONTHS_SHORT;
+
+    for (let m = 1; m <= 12; m++) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'google-picker-btn';
+      btn.textContent = monthNames[m - 1];
+      if (m === currentMonth) {
+        btn.classList.add('active');
+      }
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        customDatePickerViewingMonth.setMonth(m - 1);
+        renderCustomDatePickerCalendar();
+        closeCustomDatePickerBS();
+      };
+      grid.appendChild(btn);
+    }
+  } else if (type === 'year') {
+    const grid = document.getElementById('custom-date-picker-bs-years-view');
+    if (!grid) return;
+    grid.innerHTML = '';
+    
+    if (!window.customDatePickerBSYearStart) {
+      const selectedYear = customDatePickerViewingMonth.getFullYear();
+      window.customDatePickerBSYearStart = Math.floor((selectedYear - 2020) / 6) * 6 + 2020;
+    }
+    
+    const startY = window.customDatePickerBSYearStart;
+    const endY = startY + 5;
+    
+    const labelSpan = document.getElementById('custom-date-picker-bs-year-label');
+    if (labelSpan) {
+      labelSpan.style.display = 'flex';
+      labelSpan.style.alignItems = 'center';
+      labelSpan.style.justifyContent = 'center';
+      labelSpan.innerHTML = `
+        <span style="cursor: pointer; padding: 6px 16px; display: inline-flex; align-items: center; justify-content: center; opacity: 0.7; transition: opacity 0.2s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.7" onclick="event.stopPropagation(); shiftCustomDatePickerBSYears(-6)">
+          <i class="fa-solid fa-chevron-left" style="font-size: 14px; color: var(--accent, #e05e55);"></i>
+        </span>
+        <span style="margin: 0 8px; font-weight: 700; color: #ffffff; min-width: 110px; text-align: center;">${startY} - ${endY}</span>
+        <span style="cursor: pointer; padding: 6px 16px; display: inline-flex; align-items: center; justify-content: center; opacity: 0.7; transition: opacity 0.2s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.7" onclick="event.stopPropagation(); shiftCustomDatePickerBSYears(6)">
+          <i class="fa-solid fa-chevron-right" style="font-size: 14px; color: var(--accent, #e05e55);"></i>
+        </span>
+      `;
+    }
+
+    const currentYear = customDatePickerViewingMonth.getFullYear();
+    const systemYear = new Date().getFullYear();
+
+    for (let y = startY; y <= endY; y++) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'google-picker-btn';
+      btn.textContent = y;
+      if (y === currentYear) {
+        btn.classList.add('active');
+      } else if (y === systemYear) {
+        btn.classList.add('today-year');
+      }
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        customDatePickerViewingMonth.setFullYear(y);
+        toggleCustomDatePickerBSYearView(false);
+        renderCustomDatePickerBSGrids('month');
+      };
+      grid.appendChild(btn);
+    }
+  }
+}
+
+// Click-away listener to close inline calendar popups
+document.addEventListener('click', function(e) {
+  const bs = document.getElementById('custom-date-picker-bs');
+  const titleBtn = document.getElementById('custom-date-picker-month-title-btn');
+  if (bs && bs.classList.contains('active')) {
+    if (!bs.contains(e.target) && (!titleBtn || !titleBtn.contains(e.target))) {
+      closeCustomDatePickerBS();
+    }
+  }
+});
+
+window.openCustomDatePickerBS = openCustomDatePickerBS;
+window.closeCustomDatePickerBS = closeCustomDatePickerBS;
+window.toggleCustomDatePickerBSYearView = toggleCustomDatePickerBSYearView;
+
 function setCustomDatePickerValue() {
   const hoursScroll = document.getElementById('scroll-hours');
   const minutesScroll = document.getElementById('scroll-minutes');
+  const inputsRow = document.getElementById('custom-date-picker-time-inputs');
+  
   let hours = 0;
   let minutes = 0;
-  if (hoursScroll) {
-    hours = Math.round(hoursScroll.scrollTop / 60);
-    if (hours < 0) hours = 0;
+  
+  const isManualMode = inputsRow && inputsRow.style.display === 'flex';
+  
+  if (isManualMode) {
+    const inputHours = document.getElementById('custom-time-input-hours');
+    const inputMinutes = document.getElementById('custom-time-input-minutes');
+    hours = parseInt(inputHours.value, 10);
+    minutes = parseInt(inputMinutes.value, 10);
+    
+    if (isNaN(hours) || hours < 0) hours = 0;
     if (hours > 23) hours = 23;
-  }
-  if (minutesScroll) {
-    minutes = Math.round(minutesScroll.scrollTop / 60);
-    if (minutes < 0) minutes = 0;
+    if (isNaN(minutes) || minutes < 0) minutes = 0;
     if (minutes > 59) minutes = 59;
+  } else {
+    if (hoursScroll) {
+      hours = Math.round(hoursScroll.scrollTop / 60);
+      if (hours < 0) hours = 0;
+      if (hours > 23) hours = 23;
+    }
+    if (minutesScroll) {
+      minutes = Math.round(minutesScroll.scrollTop / 60);
+      if (minutes < 0) minutes = 0;
+      if (minutes > 59) minutes = 59;
+    }
   }
   
   customDatePickerSelectedDate.setHours(hours);
   customDatePickerSelectedDate.setMinutes(minutes);
   
-  // Format as ISO Local String YYYY-MM-DDTHH:MM
   const yyyy = customDatePickerSelectedDate.getFullYear();
   const mm = String(customDatePickerSelectedDate.getMonth() + 1).padStart(2, '0');
   const dd = String(customDatePickerSelectedDate.getDate()).padStart(2, '0');
-  const hh = String(customDatePickerSelectedDate.getHours()).padStart(2, '0');
-  const min = String(customDatePickerSelectedDate.getMinutes()).padStart(2, '0');
   
-  const isoLocal = `${yyyy}-${mm}-${dd}T${hh}:${min}`;
-  
-  const dateInput = document.getElementById('trans-date');
+  const targetId = _customDatePickerTargetInput || 'trans-date';
+  const dateInput = document.getElementById(targetId);
   if (dateInput) {
-    dateInput.value = isoLocal;
-    // Dispatch input event to trigger UI formatting update
+    if (targetId === 'trans-date') {
+      const hh = String(customDatePickerSelectedDate.getHours()).padStart(2, '0');
+      const min = String(customDatePickerSelectedDate.getMinutes()).padStart(2, '0');
+      dateInput.value = `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+    } else {
+      dateInput.value = `${yyyy}-${mm}-${dd}`;
+      const label = document.getElementById(`${targetId}-label`);
+      if (label) {
+        label.textContent = `${dd}/${mm}/${yyyy}`;
+      }
+    }
     dateInput.dispatchEvent(new Event('input', { bubbles: true }));
   }
   
@@ -13974,6 +14846,296 @@ function showFhsTab(tabName) {
     if (methodologyContent) methodologyContent.style.display = 'block';
   }
 }
+
+// ============================================================
+// RECURRING TRANSACTIONS UI CONTROLLERS
+// ============================================================
+let _customSelectedEndYear = null;
+
+function openRecurringModal() {
+  const monthsGrid = document.getElementById('recurring-specific-months-grid');
+  if (!monthsGrid) return;
+
+  monthsGrid.innerHTML = '';
+
+  // Generate 1-12 months grid inside the Specific Months container
+  const monthNames = state.lang === 'en' ? ENGLISH_MONTHS_SHORT : GREEK_MONTHS_SHORT;
+  for (let m = 1; m <= 12; m++) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'google-picker-btn';
+    btn.textContent = monthNames[m - 1];
+    if (_pendingRecurringSettings.months && _pendingRecurringSettings.months.includes(m)) {
+      btn.classList.add('active');
+    }
+    btn.onclick = () => {
+      toggleRecurringSpecificMonth(m, btn);
+    };
+    monthsGrid.appendChild(btn);
+  }
+
+  // Populate preset dropdown
+  const select = document.getElementById('recurring-simple-preset');
+  if (select) {
+    select.value = _pendingRecurringSettings.preset || 'monthly';
+  }
+
+  // Show or hide Specific Months container
+  const monthsContainer = document.getElementById('recurring-specific-months-container');
+  if (monthsContainer) {
+    if (_pendingRecurringSettings.preset === 'specific_months') {
+      monthsContainer.style.display = 'flex';
+    } else {
+      monthsContainer.style.display = 'none';
+    }
+  }
+
+  // Set Expiration UI state
+  const btnPerpetual = document.getElementById('recurring-end-type-perpetual');
+  const btnDate = document.getElementById('recurring-end-type-date');
+  const dateContainer = document.getElementById('recurring-custom-end-date-container');
+  const hiddenInput = document.getElementById('recurring-end-date');
+  const label = document.getElementById('recurring-end-date-label');
+
+  if (!_pendingRecurringSettings.endType || _pendingRecurringSettings.endType === 'perpetual') {
+    if (btnPerpetual) btnPerpetual.classList.add('active');
+    if (btnDate) btnDate.classList.remove('active');
+    if (dateContainer) dateContainer.style.display = 'none';
+    if (hiddenInput) hiddenInput.value = '';
+    if (label) label.textContent = 'Επιλογή ημερομηνίας...';
+  } else {
+    if (btnPerpetual) btnPerpetual.classList.remove('active');
+    if (btnDate) btnDate.classList.add('active');
+    if (dateContainer) dateContainer.style.display = 'flex';
+    
+    if (_pendingRecurringSettings.endDate) {
+      if (hiddenInput) hiddenInput.value = _pendingRecurringSettings.endDate;
+      if (label) {
+        const parts = _pendingRecurringSettings.endDate.split('-');
+        if (parts.length === 3) {
+          label.textContent = `${parts[2]}/${parts[1]}/${parts[0]}`;
+        }
+      }
+    }
+  }
+
+  updateRecurringSummary();
+  openModal('recurring-picker-modal');
+}
+
+function onSimplePresetChange() {
+  const select = document.getElementById('recurring-simple-preset');
+  if (!select) return;
+  const val = select.value;
+  _pendingRecurringSettings.preset = val;
+
+  const monthsContainer = document.getElementById('recurring-specific-months-container');
+  if (monthsContainer) {
+    if (val === 'specific_months') {
+      monthsContainer.style.display = 'flex';
+      // If specific_months is selected and no months are selected yet, default to current transaction month
+      if (!_pendingRecurringSettings.months || _pendingRecurringSettings.months.length === 0) {
+        const transDateVal = document.getElementById('trans-date').value;
+        const currentMonth = transDateVal ? new Date(transDateVal).getMonth() + 1 : new Date().getMonth() + 1;
+        _pendingRecurringSettings.months = [currentMonth];
+        openRecurringModal(); // re-render grid
+      }
+    } else {
+      monthsContainer.style.display = 'none';
+    }
+  }
+  updateRecurringSummary();
+}
+
+function toggleRecurringSpecificMonth(month, element) {
+  if (!_pendingRecurringSettings.months) {
+    _pendingRecurringSettings.months = [];
+  }
+  const idx = _pendingRecurringSettings.months.indexOf(month);
+  if (idx > -1) {
+    if (_pendingRecurringSettings.months.length > 1) {
+      _pendingRecurringSettings.months.splice(idx, 1);
+      element.classList.remove('active');
+    }
+  } else {
+    _pendingRecurringSettings.months.push(month);
+    element.classList.add('active');
+  }
+  updateRecurringSummary();
+}
+
+function selectRecurringEndType(type) {
+  const btnPerpetual = document.getElementById('recurring-end-type-perpetual');
+  const btnDate = document.getElementById('recurring-end-type-date');
+  const dateContainer = document.getElementById('recurring-custom-end-date-container');
+  
+  if (type === 'perpetual') {
+    if (btnPerpetual) btnPerpetual.classList.add('active');
+    if (btnDate) btnDate.classList.remove('active');
+    if (dateContainer) dateContainer.style.display = 'none';
+    _pendingRecurringSettings.endType = 'perpetual';
+    _pendingRecurringSettings.endDate = null;
+    _pendingRecurringSettings.endYear = null;
+  } else {
+    if (btnPerpetual) btnPerpetual.classList.remove('active');
+    if (btnDate) btnDate.classList.add('active');
+    if (dateContainer) dateContainer.style.display = 'flex';
+    _pendingRecurringSettings.endType = 'date';
+    
+    // Default to end of current year if no end date selected
+    if (!_pendingRecurringSettings.endDate) {
+      const today = new Date();
+      const endOfYear = new Date(today.getFullYear(), 11, 31);
+      const yyyy = endOfYear.getFullYear();
+      const mm = String(endOfYear.getMonth() + 1).padStart(2, '0');
+      const dd = String(endOfYear.getDate()).padStart(2, '0');
+      const formatted = `${yyyy}-${mm}-${dd}`;
+      
+      const hiddenInput = document.getElementById('recurring-end-date');
+      if (hiddenInput) hiddenInput.value = formatted;
+      
+      const label = document.getElementById('recurring-end-date-label');
+      if (label) {
+        label.textContent = `${dd}/${mm}/${yyyy}`;
+      }
+      _pendingRecurringSettings.endDate = formatted;
+    }
+  }
+  updateRecurringSummary();
+}
+window.selectRecurringEndType = selectRecurringEndType;
+
+function updateRecurringSummary() {
+  const summaryText = document.getElementById('recurring-summary-text');
+  if (!summaryText) return;
+
+  const lang = state.lang || 'el';
+  const preset = _pendingRecurringSettings.preset || 'monthly';
+  const endType = _pendingRecurringSettings.endType || 'perpetual';
+  const endDate = _pendingRecurringSettings.endDate;
+
+  let freqPart = '';
+  if (lang === 'el') {
+    if (preset === 'daily') freqPart = 'Καθημερινά';
+    else if (preset === 'weekly') freqPart = 'Κάθε εβδομάδα';
+    else if (preset === 'monthly') freqPart = 'Κάθε μήνα';
+    else if (preset === 'yearly') freqPart = 'Κάθε χρόνο';
+    else if (preset === 'specific_months') {
+      const shortMonths = _pendingRecurringSettings.months || [];
+      const monthNames = GREEK_MONTHS_SHORT;
+      const selectedNames = shortMonths.sort((a,b) => a-b).map(m => monthNames[m - 1]).join(', ');
+      freqPart = selectedNames ? `Στους μήνες (${selectedNames})` : 'Επιλεγμένους μήνες';
+    } else {
+      freqPart = 'Προσαρμοσμένα';
+    }
+  } else {
+    if (preset === 'daily') freqPart = 'Daily';
+    else if (preset === 'weekly') freqPart = 'Weekly';
+    else if (preset === 'monthly') freqPart = 'Monthly';
+    else if (preset === 'yearly') freqPart = 'Yearly';
+    else if (preset === 'specific_months') {
+      const shortMonths = _pendingRecurringSettings.months || [];
+      const monthNames = ENGLISH_MONTHS_SHORT;
+      const selectedNames = shortMonths.sort((a,b) => a-b).map(m => monthNames[m - 1]).join(', ');
+      freqPart = selectedNames ? `In months (${selectedNames})` : 'Selected months';
+    } else {
+      freqPart = 'Custom';
+    }
+  }
+
+  let endPart = '';
+  if (lang === 'el') {
+    if (endType === 'perpetual') {
+      endPart = 'για πάντα';
+    } else if (endDate) {
+      const parts = endDate.split('-');
+      if (parts.length === 3) {
+        endPart = `μέχρι τις ${parts[2]}/${parts[1]}/${parts[0]}`;
+      } else {
+        endPart = `μέχρι ${endDate}`;
+      }
+    } else {
+      endPart = 'για πάντα';
+    }
+  } else {
+    if (endType === 'perpetual') {
+      endPart = 'forever';
+    } else if (endDate) {
+      const parts = endDate.split('-');
+      if (parts.length === 3) {
+        endPart = `until ${parts[2]}/${parts[1]}/${parts[0]}`;
+      } else {
+        endPart = `until ${endDate}`;
+      }
+    } else {
+      endPart = 'forever';
+    }
+  }
+
+  summaryText.textContent = lang === 'el' 
+    ? `Θα δημιουργούνται: ${freqPart} ${endPart}` 
+    : `Will be created: ${freqPart} ${endPart}`;
+}
+window.updateRecurringSummary = updateRecurringSummary;
+
+function clearRecurringSettings(shouldCloseModal = true) {
+  _pendingRecurringSettings = { days: [], months: [], years: [], preset: 'monthly', endType: 'perpetual', endDate: null, endYear: null };
+  
+  const select = document.getElementById('recurring-simple-preset');
+  if (select) {
+    select.value = 'monthly';
+  }
+
+  const monthsContainer = document.getElementById('recurring-specific-months-container');
+  if (monthsContainer) monthsContainer.style.display = 'none';
+
+  selectRecurringEndType('perpetual');
+  resetRepInstButton();
+
+  if (shouldCloseModal) {
+    closeModal('recurring-picker-modal');
+  }
+}
+
+function saveRecurringSettings() {
+  const btn = document.getElementById('btn-rep-inst');
+  if (btn) {
+    const lang = state.lang || 'el';
+    const preset = _pendingRecurringSettings.preset || 'monthly';
+
+    let presetLabel = '';
+    if (preset === 'daily') presetLabel = lang === 'el' ? 'Ημερήσια' : 'Daily';
+    else if (preset === 'weekly') presetLabel = lang === 'el' ? 'Εβδομαδιαία' : 'Weekly';
+    else if (preset === 'monthly') presetLabel = lang === 'el' ? 'Μηνιαία' : 'Monthly';
+    else if (preset === 'yearly') presetLabel = lang === 'el' ? 'Ετήσια' : 'Yearly';
+    else if (preset === 'specific_months') presetLabel = lang === 'el' ? 'Μήνες' : 'Months';
+    else presetLabel = lang === 'el' ? 'Custom' : 'Custom';
+
+    btn.style.background = '#f43f5e';
+    btn.style.color = '#ffffff';
+    btn.style.borderColor = '#f43f5e';
+    btn.innerHTML = `<i class="fa-solid fa-arrows-spin"></i> ${lang === 'el' ? 'Ενεργό' : 'Active'} (${presetLabel})`;
+  }
+  closeModal('recurring-picker-modal');
+}
+
+function resetRepInstButton() {
+  const btn = document.getElementById('btn-rep-inst');
+  if (btn) {
+    btn.style.background = 'rgba(244, 63, 94, 0.1)';
+    btn.style.color = '#f43f5e';
+    btn.style.borderColor = 'rgba(244, 63, 94, 0.3)';
+    btn.innerHTML = `<i class="fa-solid fa-arrows-spin"></i> Rep/Inst.`;
+  }
+}
+
+// Bind to window for HTML access
+window.openRecurringModal = openRecurringModal;
+window.toggleRecurringSpecificMonth = toggleRecurringSpecificMonth;
+window.saveRecurringSettings = saveRecurringSettings;
+window.clearRecurringSettings = clearRecurringSettings;
+window.resetRepInstButton = resetRepInstButton;
+window.onSimplePresetChange = onSimplePresetChange;
 
 // Force snap scroll position to top on page load to fix iOS Safari viewport panning offset
 window.addEventListener('load', () => {

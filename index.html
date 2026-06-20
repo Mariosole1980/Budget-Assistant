@@ -639,7 +639,7 @@
                 <i class="fa-solid fa-chevron-right" style="color: var(--red-negative); font-size: 12px;"></i>
               </div>
               <div class="settings-list-item">
-                <span class="settings-item-label" style="color: var(--text-muted); font-size: 12px;" data-i18n="app_version">Έκδοση 1.0.0 (build v357 - 07/06/2026 23:20)</span>
+                <span class="settings-item-label" style="color: var(--text-muted); font-size: 12px;" data-i18n="app_version">Έκδοση 1.0.0 (build v403 - 07/06/2026 23:20)</span>
                 <span class="settings-item-value" style="font-size: 12px; color: var(--text-muted);">Budget Assistant</span>
               </div>
             </div>
@@ -706,9 +706,10 @@
             <!-- Date Row -->
             <div class="form-row focusable" id="form-row-date" onclick="openCustomDatePicker()">
               <label class="form-row-label" data-i18n="row_date">Ημερομηνία</label>
-              <div class="form-row-value-container">
-                <span id="trans-date-display" class="form-row-display-text">24/5/26 (Kυρ) 19:38</span>
+              <div class="form-row-value-container" style="position: relative; display: flex; width: 100%; align-items: center;">
+                <span id="trans-date-display" class="form-row-display-text" style="flex: 1;">24/5/26 (Kυρ) 19:38</span>
                 <input type="hidden" id="trans-date" required>
+                <button type="button" id="btn-rep-inst" onclick="event.stopPropagation(); openRecurringModal();" style="margin-left: auto; padding: 4px 10px; border-radius: 12px; border: 1px solid rgba(244, 63, 94, 0.3); background: rgba(244, 63, 94, 0.1); color: #f43f5e; font-size: 11px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 4px; z-index: 2;"><i class="fa-solid fa-arrows-spin"></i> Rep/Inst.</button>
               </div>
             </div>
 
@@ -1446,21 +1447,27 @@
     </div>
 
     <!-- ============================================== -->
-    <!-- MODAL 5: MONTH GRID PICKER -->
+    <!-- MODAL 5: MONTH GRID PICKER (Google-style Bottom Sheet) -->
     <!-- ============================================== -->
-    <div id="month-picker-modal" class="modal-overlay" onclick="closeModal('month-picker-modal')">
-      <div class="modal-content" style="max-width: 300px; border-radius: 16px; margin: auto; border: 1px solid var(--border);" onclick="event.stopPropagation()">
-        <div class="modal-header" style="border-bottom: 1px solid var(--border); padding: 12px 16px;">
-          <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
-            <button type="button" class="icon-btn" onclick="adjustMonthPickerYear(-1)"><i class="fa-solid fa-chevron-left"></i></button>
-            <span id="month-picker-year" style="font-size: 16px; font-weight: 800; color: var(--text-main);">2026</span>
-            <button type="button" class="icon-btn" onclick="adjustMonthPickerYear(1)"><i class="fa-solid fa-chevron-right"></i></button>
-          </div>
+    <div id="month-picker-modal" class="modal-overlay" onclick="closeModal('month-picker-modal')" style="z-index: 12000;">
+      <div class="google-bottom-sheet" id="month-picker-bottom-sheet" onclick="event.stopPropagation()" style="max-height: 85vh;">
+        <!-- Pull handle -->
+        <div style="width: 36px; height: 4px; background: rgba(255,255,255,0.2); border-radius: 2px; align-self: center; margin-bottom: 16px;"></div>
+        
+        <!-- Clickable Year Button Area -->
+        <div id="month-picker-bs-year-btn" style="cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px; font-size: 18px; font-weight: 700; color: #ffffff; margin-bottom: 12px;" onclick="toggleMonthPickerYearView()">
+          <span id="month-picker-bs-year-label">2026</span>
+          <i class="fa-solid fa-chevron-down" id="month-picker-bs-year-chevron" style="font-size: 12px; color: var(--text-secondary); transition: transform 0.2s;"></i>
         </div>
-        <div class="modal-body" style="padding: 16px;">
-          <div class="month-picker-grid" id="month-picker-grid-container">
-            <!-- 12 months generated dynamically in Greek -->
-          </div>
+
+        <!-- Months Grid View -->
+        <div id="month-picker-bs-months-view" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px;">
+          <!-- 12 months circular buttons generated dynamically -->
+        </div>
+
+        <!-- Years Grid View -->
+        <div id="month-picker-bs-years-view" style="display: none; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; max-height: 250px; overflow-y: auto; padding-right: 4px;">
+          <!-- Years circular buttons generated dynamically -->
         </div>
       </div>
     </div>
@@ -1564,9 +1571,10 @@
   <!-- MODAL: CUSTOM SUBCATEGORY PICKER -->
   <div id="subcategory-picker-modal" class="modal-overlay" style="z-index: 10000;">
     <div class="modal-content" style="max-height: 90vh; display: flex; flex-direction: column;">
-      <div class="modal-header">
-        <h3 class="modal-title" data-i18n="modal_subcategory_title">Επιλογή Υποκατηγορίας</h3>
-        <span class="modal-close" onclick="closeModal('subcategory-picker-modal')">&times;</span>
+      <div class="modal-header" style="position: relative; min-height: 52px; box-sizing: border-box;">
+        <button type="button" class="icon-btn" onclick="closeModal('subcategory-picker-modal'); openCategoryModal();" style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); font-size: 18px; background: transparent; border: none; color: var(--text-secondary); cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center;"><i class="fa-solid fa-arrow-left"></i></button>
+        <h3 class="modal-title" data-i18n="modal_subcategory_title" style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); margin: 0; white-space: nowrap; font-size: 16px; font-weight: 700; color: #ffffff;">Επιλογή Υποκατηγορίας</h3>
+        <span class="modal-close" onclick="closeModal('subcategory-picker-modal')" style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); z-index: 2; font-size: 24px; line-height: 1; display: flex; align-items: center; justify-content: center; height: 32px; width: 32px; padding: 0; margin: 0; color: var(--text-secondary); cursor: pointer;">&times;</span>
       </div>
       <div class="modal-body" style="padding: 16px; flex: 1; overflow-y: auto;">
         <div id="subcategory-picker-list" class="subcategory-list">
@@ -1592,25 +1600,27 @@
   </div>
 
   <!-- MODAL: CUSTOM DATE PICKER -->
-  <div id="custom-date-picker-modal" class="modal-overlay" style="z-index: 11000;">
-    <div class="modal-content" style="max-height: calc(var(--viewport-height, 100vh) * 0.95); display: flex; flex-direction: column;">
-      <div class="modal-header" style="justify-content: center;">
-        <h3 class="modal-title" data-i18n="date_picker_title">Ορισμός ημερομηνίας και ώρας</h3>
-      </div>
-      <div class="modal-body" style="padding: 16px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 16px;">
-        
-        <!-- Calendar Header (Month Year & Nav) -->
-        <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.02); padding: 8px 12px; border-radius: 12px; border: 1px solid var(--border-light);">
-          <button type="button" class="icon-btn" onclick="adjustCustomDatePickerMonth(-1)" style="padding: 6px;"><i class="fa-solid fa-chevron-left" style="color: var(--text-secondary);"></i></button>
-          <span id="custom-date-picker-month-year" style="font-size: 15px; font-weight: 700; color: var(--text-main);">Ιούνιος 2026</span>
-          <button type="button" class="icon-btn" onclick="adjustCustomDatePickerMonth(1)" style="padding: 6px;"><i class="fa-solid fa-chevron-right" style="color: var(--text-secondary);"></i></button>
+  <div id="custom-date-picker-modal" class="modal-overlay" style="z-index: 13000;">
+    <div class="modal-content" style="max-height: calc(var(--viewport-height, 100vh) * 0.95); display: flex; flex-direction: column; background: #000000; position: relative; overflow: hidden;">
+      
+      <!-- Google-Style Header -->
+      <div style="position: relative; display: flex; justify-content: space-between; align-items: center; padding: 16px 20px 8px 20px; background: #000000;">
+        <!-- Clickable Month/Year Title (Left side) -->
+        <div id="custom-date-picker-month-title-btn" style="display: flex; align-items: center; gap: 8px;">
+          <span id="custom-date-picker-month-large-label" style="font-size: 26px; font-weight: 700; color: #ffffff; text-transform: uppercase; cursor: pointer; transition: opacity 0.2s;" onmouseover="this.style.opacity=0.8" onmouseout="this.style.opacity=1" onclick="event.stopPropagation(); openCustomDatePickerBS(false)">ΙΟΥΝ</span>
+          <span id="custom-date-picker-year-large-label" style="font-size: 26px; font-weight: 700; color: var(--text-secondary); cursor: pointer; transition: opacity 0.2s;" onmouseover="this.style.opacity=0.8" onmouseout="this.style.opacity=1" onclick="event.stopPropagation(); openCustomDatePickerBS(true)">2026</span>
+          <i class="fa-solid fa-chevron-down" style="font-size: 14px; color: var(--text-secondary); cursor: pointer; transition: opacity 0.2s;" onmouseover="this.style.opacity=0.8" onmouseout="this.style.opacity=1" onclick="event.stopPropagation(); openCustomDatePickerBS(false)"></i>
         </div>
 
-        <!-- Calendar Grid -->
-        <div style="display: flex; flex-direction: column; gap: 6px;">
+      </div>
+
+      <div class="modal-body" style="padding: 16px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; background: #000000;">
+        
+        <!-- Calendar Grid View -->
+        <div id="custom-date-picker-calendar-view" style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">
           <!-- Weekday initials -->
-          <div id="custom-date-picker-weekdays" style="display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">
-            <span>Δε</span><span>Τρ</span><span>Τε</span><span>Πε</span><span>Πα</span><span>Σα</span><span>Κυ</span>
+          <div id="custom-date-picker-weekdays" style="display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.08);">
+            <span>Δε</span><span>Τρ</span><span>Τε</span><span>Πε</span><span>Πα</span><span style="color: #3b82f6;">Σα</span><span style="color: #ef4444;">Κυ</span>
           </div>
           <!-- Days grid -->
           <div id="custom-date-picker-days-grid" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; text-align: center;">
@@ -1619,10 +1629,16 @@
         </div>
 
         <!-- Time Picker Scroll Wheels Container -->
-        <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; border-top: 1px solid var(--border-light); padding-top: 16px;">
-          <label style="font-size: 12.5px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.8px; text-align: center;" data-i18n="date_picker_time_label">ΩΡΑ</label>
-          <div style="display: flex; align-items: center; justify-content: center; gap: 16px;">
-            
+        <div id="custom-date-picker-time-container" style="display: flex; flex-direction: column; align-items: center; gap: 10px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 16px; width: 100%;">
+          <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; max-width: 256px; padding: 0 4px;">
+            <label style="font-size: 12px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.8px; margin: 0;" data-i18n="date_picker_time_label">ΩΡΑ</label>
+            <button type="button" id="toggle-time-input-mode" onclick="toggleTimeInputMode()" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 15px; display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; transition: background-color 0.2s, color 0.2s;" onmouseover="this.style.backgroundColor='rgba(255,255,255,0.08)'; this.style.color='#ffffff';" onmouseout="this.style.backgroundColor='transparent'; this.style.color='var(--text-secondary)';">
+              <i class="fa-regular fa-keyboard"></i>
+            </button>
+          </div>
+          
+          <!-- Wheels Mode Row -->
+          <div id="custom-date-picker-time-wheels-row" style="display: flex; align-items: center; justify-content: center; gap: 16px; width: 100%;">
             <!-- OLED Scroll Wheel for Hours -->
             <div class="time-wheel-container">
               <div class="time-wheel-scroll" id="scroll-hours">
@@ -1640,15 +1656,116 @@
               </div>
               <div class="time-wheel-highlighter"></div>
             </div>
-            
+          </div>
+
+          <!-- Manual Input Mode Row -->
+          <div id="custom-date-picker-time-inputs" style="display: none; align-items: center; justify-content: center; gap: 16px; width: 100%;">
+            <input type="number" id="custom-time-input-hours" class="time-input-box" min="0" max="23" placeholder="00" pattern="[0-9]*" inputmode="numeric">
+            <span style="font-size: 24px; font-weight: 700; color: var(--text-muted); line-height: 60px;">:</span>
+            <input type="number" id="custom-time-input-minutes" class="time-input-box" min="0" max="59" placeholder="00" pattern="[0-9]*" inputmode="numeric">
           </div>
         </div>
 
       </div>
+      
       <!-- Bottom Actions -->
-      <div style="display: flex; gap: 10px; padding: 16px; border-top: 1px solid var(--border-light); background: var(--bg-main);">
+      <div style="display: flex; gap: 10px; padding: 16px; border-top: 1px solid rgba(255,255,255,0.08); background: #000000;">
+
         <button type="button" class="btn-secondary" onclick="closeModal('custom-date-picker-modal')" style="flex: 1; padding: 12px; border-radius: 20px; font-size: 14px; font-weight: 600; border: 1px solid var(--border); background: transparent; color: var(--text-secondary);" data-i18n="btn_cancel">Ακύρωση</button>
-        <button type="button" class="btn-primary" onclick="setCustomDatePickerValue()" style="flex: 1; padding: 12px; border-radius: 20px; font-size: 14px; font-weight: 700; background: var(--accent, #e05e55); color: white; border: none; cursor: pointer; text-align: center;" data-i18n="btn_set">Ορισμός</button>
+        <button type="button" class="btn-primary" onclick="setCustomDatePickerValue()" style="flex: 1; padding: 12px; border-radius: 20px; font-size: 14px; font-weight: 700; background: var(--picker-accent, var(--accent, #f43f5e)); color: white; border: none; cursor: pointer; text-align: center;" data-i18n="btn_set">Ορισμός</button>
+      </div>
+
+      <!-- Google-Style Bottom Sheet Month/Year Picker -->
+      <div id="custom-date-picker-bs" class="google-bottom-sheet">
+        <!-- Pull handle -->
+        <div style="width: 36px; height: 4px; background: rgba(255,255,255,0.2); border-radius: 2px; align-self: center; margin-bottom: 16px;"></div>
+        
+        <!-- Clickable Year Button Area -->
+        <div id="custom-date-picker-bs-year-btn" style="cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px; font-size: 18px; font-weight: 700; color: #ffffff; margin-bottom: 12px;" onclick="toggleCustomDatePickerBSYearView()">
+          <span id="custom-date-picker-bs-year-label">2026</span>
+          <i class="fa-solid fa-chevron-down" id="custom-date-picker-bs-year-chevron" style="font-size: 12px; color: var(--text-secondary); transition: transform 0.2s;"></i>
+        </div>
+
+        <!-- Months Grid View -->
+        <div id="custom-date-picker-bs-months-view" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px;">
+          <!-- 12 Months circular buttons generated dynamically -->
+        </div>
+
+        <!-- Years Grid View -->
+        <div id="custom-date-picker-bs-years-view" style="display: none; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; max-height: 250px; overflow-y: auto; padding-right: 4px;">
+          <!-- Years circular buttons generated dynamically -->
+        </div>
+      </div>
+
+    </div>
+  </div>
+    </div>
+  </div>
+
+  <!-- MODAL: RECURRING EXPENSES PROGRAMMING -->
+  <div id="recurring-picker-modal" class="modal-overlay" style="z-index: 12000;">
+    <div class="modal-content" style="max-height: calc(var(--viewport-height, 100vh) * 0.95); display: flex; flex-direction: column; max-width: 440px;">
+      <div class="modal-header" style="position: relative; min-height: 52px; box-sizing: border-box; border-bottom: 1px solid var(--border); padding: 0 16px; display: flex; align-items: center; justify-content: space-between;">
+        <span onclick="clearRecurringSettings(false)" style="font-size: 13px; font-weight: 600; color: var(--text-secondary); cursor: pointer; transition: color 0.2s; display: flex; align-items: center; gap: 6px;"><i class="fa-solid fa-trash-can"></i> Καθαρισμός</span>
+        <h3 class="modal-title" style="margin: 0; font-size: 15px; font-weight: 700; color: #ffffff;">Επανάληψη</h3>
+        <span class="modal-close" onclick="closeModal('recurring-picker-modal')" style="font-size: 24px; color: var(--text-secondary); cursor: pointer; line-height: 1;">&times;</span>
+      </div>
+      <div class="modal-body" style="padding: 16px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 16px;">
+        
+        <!-- Frequency Select -->
+        <div>
+          <span style="font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Επανάληψη Κάθε</span>
+          <select id="recurring-simple-preset" onchange="onSimplePresetChange()" style="width: 100%; margin-top: 8px; padding: 12px; border-radius: 14px; background: var(--bg-main); color: var(--text-primary); border: 1px solid var(--border); font-size: 14.5px; font-weight: 600; outline: none; cursor: pointer;">
+            <option value="daily">Daily (Καθημερινά)</option>
+            <option value="weekly">Weekly (Εβδομαδιαία)</option>
+            <option value="monthly" selected>Monthly (Μηνιαία)</option>
+            <option value="yearly">Yearly (Ετήσια)</option>
+            <option value="specific_months">Specific Months (Συγκεκριμένοι Μήνες)</option>
+          </select>
+        </div>
+
+        <!-- Specific Months Grid (Visible only when 'specific_months' is selected) -->
+        <div id="recurring-specific-months-container" style="display: none; flex-direction: column; gap: 8px; border-top: 1px dashed var(--border); padding-top: 12px;">
+          <span style="font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Επιλογή Μηνών</span>
+          <div id="recurring-specific-months-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 4px;">
+            <!-- 12 months buttons will be dynamically injected in JS -->
+          </div>
+        </div>
+
+        <!-- Expiration Section (Λήξη) -->
+        <div style="border-top: 1px solid var(--border-light); padding-top: 16px; display: flex; flex-direction: column; gap: 10px;">
+          <span style="font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Λήξη Επανάληψης</span>
+          
+          <!-- End Type Selector Buttons -->
+          <div style="display: flex; gap: 8px;">
+            <button type="button" id="recurring-end-type-perpetual" class="recurring-grid-btn active" style="flex: 1; padding: 12px; border-radius: 12px; font-size: 13.5px; font-weight: 600;" onclick="selectRecurringEndType('perpetual')">Για πάντα</button>
+            <button type="button" id="recurring-end-type-date" class="recurring-grid-btn" style="flex: 1; padding: 12px; border-radius: 12px; font-size: 13.5px; font-weight: 600;" onclick="selectRecurringEndType('date')">Μέχρι ημερομηνία...</button>
+          </div>
+          
+          <!-- Clickable Custom End Date Container (Visible only when 'date' is selected) -->
+          <div id="recurring-custom-end-date-container" style="display: none; flex-direction: column; gap: 6px;">
+            <span style="font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Ημερομηνία Λήξης</span>
+            <div id="recurring-end-date-picker-trigger" onclick="openCustomDatePicker('recurring-end-date')" style="display: flex; align-items: center; justify-content: space-between; padding: 14px; border-radius: 12px; background: var(--bg-input, rgba(255,255,255,0.03)); border: 1px solid var(--border); cursor: pointer; transition: all 0.2s; box-shadow: inset 0 1px 2px rgba(0,0,0,0.2);">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <i class="fa-regular fa-calendar-days" style="color: var(--accent, #e05e55); font-size: 16px;"></i>
+                <span id="recurring-end-date-label" style="font-size: 14.5px; font-weight: 600; color: var(--text-primary);">Επιλογή ημερομηνίας...</span>
+              </div>
+              <i class="fa-solid fa-chevron-right" style="color: var(--text-secondary); font-size: 12px;"></i>
+            </div>
+            <!-- Hidden input to store value -->
+            <input type="hidden" id="recurring-end-date" value="">
+          </div>
+        </div>
+
+        <!-- Recurrence Summary Preview Banner -->
+        <div id="recurring-summary-preview" style="background: rgba(var(--accent-rgb, 224, 94, 85), 0.05); border: 1px dashed rgba(var(--accent-rgb, 224, 94, 85), 0.2); border-radius: 12px; padding: 12px; margin-top: 8px; font-size: 13px; color: var(--text-primary); text-align: center; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px;">
+          <i class="fa-solid fa-circle-info" style="color: var(--accent, #e05e55);"></i>
+          <span id="recurring-summary-text">Θα δημιουργούνται: Κάθε μήνα για πάντα</span>
+        </div>
+
+      </div>
+      <div class="modal-footer" style="padding: 12px 16px; border-top: 1px solid var(--border); background: var(--bg-main);">
+        <button type="button" class="btn-primary" onclick="saveRecurringSettings()" style="width: 100%; padding: 12px; border-radius: 20px; font-size: 14px; font-weight: 700; background: var(--accent, #e05e55); color: white; border: none; cursor: pointer; text-align: center;">Επιβεβαίωση</button>
       </div>
     </div>
   </div>
@@ -1762,7 +1879,7 @@
   
   <!-- Register PWA Service Worker -->
   <script>
-    const CURRENT_BUILD = 357;
+    const CURRENT_BUILD = 403;
     
     // ============================================================
     // AGGRESSIVE iOS PWA AUTO-UPDATE
@@ -1842,8 +1959,8 @@
     if ('serviceWorker' in navigator) {
       // ============================================================
       // NUCLEAR iOS PWA FIX: Register SW with versioned URL
-      // iOS Safari treats 'sw.js?v=357' as a COMPLETELY DIFFERENT
-      // script from 'sw.js?v=357', bypassing the update deadlock.
+      // iOS Safari treats 'sw.js?v=403' as a COMPLETELY DIFFERENT
+      // script from 'sw.js?v=403', bypassing the update deadlock.
       // Old SW is unregistered first to break the control cycle.
       // ============================================================
       const SW_URL = 'sw.js?v=' + CURRENT_BUILD;

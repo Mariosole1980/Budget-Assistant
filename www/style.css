@@ -64,6 +64,10 @@ body {
   flex-direction: column;
   -webkit-overflow-scrolling: touch;
   zoom: 0.93;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
 }
 
 button, input, select, textarea {
@@ -72,6 +76,13 @@ button, input, select, textarea {
   color: inherit;
   background: none;
   border: none;
+}
+
+input, textarea, [contenteditable="true"] {
+  user-select: text !important;
+  -webkit-user-select: text !important;
+  -moz-user-select: text !important;
+  -ms-user-select: text !important;
 }
 
 button {
@@ -207,7 +218,7 @@ button:active,
   outline: none !important;
   display: flex;
   justify-content: space-around;
-  padding: 8px 0 var(--safe-area-bottom) 0;
+  padding: 8px 0 calc(12px + var(--safe-area-bottom, 0px)) 0;
   z-index: 100;
   box-shadow: none !important;
 }
@@ -442,8 +453,10 @@ button:active,
   min-height: 48px;
 }
 
-.transaction-item:hover {
-  background-color: var(--border);
+@media (hover: hover) {
+  .transaction-item:hover {
+    background-color: var(--border);
+  }
 }
 
 .trans-left {
@@ -1119,8 +1132,10 @@ button:active,
   font-family: 'Outfit', sans-serif;
 }
 
-.account-row:hover {
-  background-color: var(--border);
+@media (hover: hover) {
+  .account-row:hover {
+    background-color: var(--border);
+  }
 }
 
 .account-name-group {
@@ -1456,8 +1471,10 @@ button:active,
   transition: var(--transition);
 }
 
-.settings-list-item:hover {
-  background-color: var(--border);
+@media (hover: hover) {
+  .settings-list-item:hover {
+    background-color: var(--border);
+  }
 }
 
 .collapsible-section .settings-list-item {
@@ -4796,6 +4813,7 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   padding: 0;
   min-height: 44px;
   min-width: 44px;
+  position: relative;
 }
 .calendar-day-btn:hover:not(.other-month) {
   background: rgba(255, 255, 255, 0.08);
@@ -4864,6 +4882,36 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   border-bottom: 1px solid rgba(255, 255, 255, 0.15);
   pointer-events: none;
   background: rgba(255, 255, 255, 0.03);
+}
+
+/* Custom numeric inputs for time picker */
+.time-input-box {
+  width: 120px;
+  height: 60px;
+  background: #000000 !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 12px !important;
+  color: #ffffff !important;
+  font-size: 32px !important;
+  font-weight: 700 !important;
+  text-align: center !important;
+  outline: none !important;
+  font-family: inherit !important;
+  transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out !important;
+}
+.time-input-box:focus {
+  border-color: var(--picker-accent, var(--accent, #e05e55)) !important;
+  box-shadow: 0 0 0 2px rgba(var(--accent-rgb, 224, 94, 85), 0.2) !important;
+}
+/* Hide spin buttons Chrome, Safari, Edge, Opera */
+.time-input-box::-webkit-outer-spin-button,
+.time-input-box::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+/* Hide spin buttons Firefox */
+.time-input-box[type=number] {
+  -moz-appearance: textfield;
 }
 
 /* Scroll Lock Body Class when Modals are Active */
@@ -5941,6 +5989,7 @@ body.is-swiping-month .stats-sub-row.pressed {
   left: 0;
   width: 100%;
   height: 100%;
+  padding-top: env(safe-area-inset-top, 0px);
   background-color: #121824;
   z-index: 9999;
   display: none;
@@ -6007,8 +6056,11 @@ body.keyboard-active #transaction-modal .modal-action-buttons,
 body.keyboard-active #transaction-modal .modal-body {
   transition: none !important;
 }
+body.keyboard-active #transaction-modal .modal-action-buttons {
+  padding-bottom: 14px !important;
+}
 #transaction-modal.keypad-active {
-  --keyboard-offset: 365px;
+  --keyboard-offset: 282px;
 }
 
 /* Custom Calculator Keypad — overlays from bottom */
@@ -6017,8 +6069,8 @@ body.keyboard-active #transaction-modal .modal-body {
   bottom: 0 !important;
   left: 0 !important;
   right: 0 !important;
-  height: 365px !important;
-  max-height: 365px !important;
+  height: auto !important;
+  max-height: none !important;
   background-color: #0f121a !important;
   border-top: 1px solid var(--border) !important;
   display: flex !important;
@@ -6035,6 +6087,30 @@ body.keyboard-active #transaction-modal .modal-body {
 }
 .calc-keypad-container.active {
   transform: translateY(0) !important;
+}
+.calc-keypad-grid {
+  gap: 2px !important;
+  padding: 8px 4px 8px 4px !important;
+}
+.calc-key-btn {
+  height: 54px !important;
+}
+
+#transaction-modal .modal-header {
+  display: flex !important;
+  justify-content: flex-start !important;
+  align-items: center !important;
+  gap: 12px !important;
+}
+#transaction-modal .modal-title {
+  position: static !important;
+  transform: none !important;
+  margin: 0 !important;
+  margin-right: auto !important;
+  white-space: nowrap !important;
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  color: #ffffff !important;
 }
 
 /* Action footer — lifts above keyboard/keypad */
@@ -6054,35 +6130,20 @@ body.keyboard-active #transaction-modal .modal-body {
 #transaction-modal .modal-body {
   flex: 1 !important;
   overflow-y: auto !important;
-  padding: 16px !important;
+  padding: 4px 16px 16px 16px !important;
   display: flex !important;
   flex-direction: column !important;
-  gap: 16px !important;
+  gap: 4px !important;
   -webkit-overflow-scrolling: touch !important;
   min-height: 0 !important;
   padding-bottom: calc(16px + var(--keyboard-offset, 0px)) !important;
   transition: padding-bottom 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
-/* Lock form row dimensions */
-.form-group, 
-.input-row, 
-.custom-dropdown-trigger,
-.date-picker-row,
-#transaction-modal .form-row,
-#transaction-modal .custom-select-trigger,
-#transaction-modal .focusable {
-  flex-shrink: 0 !important;
-  height: 52px !important;
-  min-height: 52px !important;
-}
+/* Restored original premium form row sizes for Android and Web */
 
-/* Lock textarea dimensions */
-textarea {
-  flex-shrink: 0 !important;
-  min-height: 80px !important;
-  height: 80px !important;
-  box-sizing: border-box !important;
+#transaction-modal .title-input-container #trans-note {
+  font-size: 16px !important;
 }
 
 /* Ensure details input behaves as a standard single straight line */
@@ -6094,6 +6155,70 @@ textarea {
   border: none !important;
   outline: none !important;
   background: transparent !important;
+}
+
+/* Custom Recurring Programming Grid Styles */
+.recurring-grid-btn {
+  background-color: rgba(255, 255, 255, 0.03) !important;
+  color: var(--text-secondary) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 12px !important;
+  padding: 6px 0 !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  text-align: center !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+
+.recurring-grid-btn.active {
+  background-color: #f43f5e !important;
+  color: #ffffff !important;
+  border-color: #f43f5e !important;
+  box-shadow: 0 0 10px rgba(244, 63, 94, 0.4) !important;
+}
+
+.recurring-preset-chip {
+  padding: 8px 14px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  background: var(--card-bg2, rgba(255,255,255,0.03));
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.recurring-preset-chip.active {
+  background-color: #f43f5e !important;
+  color: #ffffff !important;
+  border-color: #f43f5e !important;
+}
+
+.recurring-year-chip {
+  padding: 8px 16px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  background: var(--card-bg2, rgba(255,255,255,0.03));
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.recurring-year-chip.active {
+  background-color: #f43f5e !important;
+  color: #ffffff !important;
+  border-color: #f43f5e !important;
 }
 
 /* Spending Advisor Card */
@@ -6341,12 +6466,62 @@ textarea {
   }
 
   /* iOS Keyboard Position Fix: isolates WebKit layout rules */
+  /* 1. Αναγκάζουμε το φόντο του ίδιου του iPhone να πάρει το χρώμα του μενού */
+  html, body {
+    background-color: var(--bg-card) !important;
+    height: 100dvh !important;
+    margin: 0;
+    padding: 0;
+  }
+
+  .bottom-nav {
+    padding-bottom: calc(5px + env(safe-area-inset-bottom, 0px)) !important;
+    bottom: calc(-1 * env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  body:has(#transaction-modal.active) {
+    background-color: #121824 !important;
+  }
+  #transaction-modal .modal-header {
+    padding-top: 4px !important;
+    padding-bottom: 4px !important;
+    border-bottom: none !important;
+    min-height: 32px !important;
+    position: relative !important;
+    display: flex !important;
+    justify-content: flex-start !important;
+    align-items: center !important;
+    gap: 12px !important;
+  }
+  #transaction-modal.keypad-active .modal-action-buttons,
+  body.keyboard-active #transaction-modal .modal-action-buttons {
+    padding-top: 8px !important;
+    padding-bottom: 8px !important;
+  }
+  #transaction-modal .type-selector-tabs {
+    margin-top: 0px !important;
+    margin-bottom: 0px !important;
+  }
+  #transaction-modal .type-tab-btn {
+    padding: 4px !important;
+  }
+
+  .app-header {
+    padding-bottom: 8px !important;
+    padding-top: calc(8px + env(safe-area-inset-top, 0px)) !important;
+  }
+
+  .fab {
+    bottom: 70px !important;
+  }
+
   .tx-modal-overlay {
     position: fixed !important;
     top: 0 !important;
     left: 0 !important;
     width: 100% !important;
     height: 100% !important;
+    padding-top: env(safe-area-inset-top, 0px) !important;
     overflow: hidden !important;
     display: none !important;
     flex-direction: column !important;
@@ -6380,5 +6555,129 @@ textarea {
   html.modal-open {
     overflow: hidden !important;
   }
+}
+
+/* Google-Style Picker & Bottom Sheet Overrides */
+.google-picker-btn {
+  background: transparent;
+  border: none !important;
+  color: var(--text-main, #ffffff) !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  aspect-ratio: 1 !important;
+  border-radius: 50% !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.2s ease !important;
+  padding: 0 !important;
+  min-height: 48px !important;
+  min-width: 48px !important;
+  box-sizing: border-box !important;
+}
+.google-picker-btn:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+.google-picker-btn.active {
+  background: var(--accent, #e05e55) !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  box-shadow: 0 4px 12px rgba(var(--accent-rgb, 224, 94, 85), 0.3) !important;
+}
+.google-picker-btn.today-year {
+  border: 1.5px solid var(--accent, #e05e55) !important;
+  color: var(--accent, #e05e55) !important;
+}
+
+.google-bottom-sheet {
+  position: absolute !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  background: #1e1e1e !important;
+  border-top-left-radius: 28px !important;
+  border-top-right-radius: 28px !important;
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.5) !important;
+  z-index: 13200 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  padding: 16px !important;
+  transform: translateY(100%) !important;
+  transition: transform 0.3s cubic-bezier(0.1, 0.76, 0.55, 0.94) !important;
+}
+.google-bottom-sheet.active {
+  transform: translateY(0) !important;
+}
+
+/* Day btn overrides */
+.calendar-day-btn.active {
+  background: var(--picker-accent, var(--accent, #e05e55)) !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}
+.calendar-day-btn.today {
+  border: none !important;
+}
+.calendar-day-btn.today:not(.active) {
+  color: var(--picker-accent, var(--accent, #e05e55)) !important;
+  font-weight: 900 !important;
+}
+.calendar-day-btn.today::after {
+  content: '';
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  background-color: var(--picker-accent, var(--accent, #e05e55));
+  border-radius: 50%;
+}
+.calendar-day-btn.today.active::after {
+  background-color: #ffffff;
+}
+/* Overriding repeat modal active buttons for uniformity */
+.recurring-grid-btn.active {
+  background-color: var(--accent, #e05e55) !important;
+  border-color: var(--accent, #e05e55) !important;
+  box-shadow: 0 0 10px rgba(var(--accent-rgb, 224, 94, 85), 0.4) !important;
+}
+
+/* Bottom Sheet Overlays transitions */
+#month-picker-modal.modal-overlay {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: flex-end !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transition: opacity 0.3s ease !important;
+}
+#month-picker-modal.modal-overlay.active {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+#month-picker-modal.modal-overlay.active #month-picker-bottom-sheet {
+  transform: translateY(0) !important;
+}
+
+#custom-date-picker-bs {
+  position: absolute !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  background: #1e1e1e !important;
+  border-top-left-radius: 28px !important;
+  border-top-right-radius: 28px !important;
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.5) !important;
+  z-index: 13200 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  padding: 16px !important;
+  transform: translateY(100%) !important;
+  transition: transform 0.3s cubic-bezier(0.1, 0.76, 0.55, 0.94) !important;
+}
+#custom-date-picker-bs.active {
+  transform: translateY(0) !important;
 }
 
