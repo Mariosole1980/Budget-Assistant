@@ -331,7 +331,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v405 - 12/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v406 - 12/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -615,7 +615,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v405 - 07/06/2026 23:20)',
+    app_version: 'Version 1.0.0 (build v406 - 07/06/2026 23:20)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -15605,7 +15605,160 @@ function runCoachCategoryAnalysis(categoryName) {
   return html;
 }
 
+function normalizeGreekString(str) {
+  if (!str) return '';
+  return str
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // Removes accents
+    .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?¿€]/g, "") // Removes punctuation
+    .trim();
+}
+
+function runCoachTopCategories() {
+  const today = new Date();
+  const currYear = today.getFullYear();
+  const currMonth = today.getMonth();
+  const trans = state.transactions || [];
+  const totals = {};
+  
+  trans.forEach(t => {
+    if (t.type !== 'expense' || !t.date) return;
+    const parts = String(t.date).split('T')[0].split(' ')[0].split('-');
+    if (parts.length !== 3) return;
+    if (parseInt(parts[0], 10) === currYear && (parseInt(parts[1], 10) - 1) === currMonth) {
+      totals[t.category] = (totals[t.category] || 0) + (parseFloat(t.amount) || 0);
+    }
+  });
+  
+  const sorted = Object.keys(totals).map(cat => ({ cat, amt: totals[cat] })).sort((a,b) => b.amt - a.amt);
+  if (sorted.length === 0) {
+    return state.lang === 'el' ? "📊 Δεν βρέθηκαν έξοδα για αυτόν τον μήνα." : "📊 No expenses found for this month.";
+  }
+  
+  let html = state.lang === 'el' ? "📊 **Οι κατηγορίες με τα περισσότερα έξοδα αυτόν τον μήνα:**<br><br>" : "📊 **Your top spending categories this month:**<br><br>";
+  sorted.slice(0, 3).forEach((item, idx) => {
+    html += `${idx+1}. **${getCategoryDisplayName(item.cat)}**: **${formatCurrency(item.amt)}**<br>`;
+  });
+  return html;
+}
+
+function runCoachWhatIfSimulation(amount, itemName = null) {
+  const pacing = getCoachAveragePacing();
+  const startBalance = pacing.totalBalance;
+  const monthlySavings = pacing.avgSavings;
+  
+  if (isNaN(amount) || amount <= 0) {
+    return state.lang === 'el' ? "Παρακαλώ δώσε ένα έγκυρο ποσό για την προσομοίωση." : "Please provide a valid amount for the simulation.";
+  }
+  
+  const nameStr = itemName ? `**${itemName}**` : (state.lang === 'el' ? "αυτή την αγορά" : "this purchase");
+  const remainingBalance = startBalance - amount;
+  
+  let html = "";
+  if (state.lang === 'el') {
+    html += `🔮 **Προσομοίωση Αγοράς (What-If): ${formatCurrency(amount)}**<br><br>`;
+    html += `Αν προχωρήσεις στην αγορά για ${nameStr} αξίας **${formatCurrency(amount)}**:<br><br>`;
+    html += `• Το τρέχον υπόλοιπό σου θα μειωθεί από **${formatCurrency(startBalance)}** σε **${formatCurrency(remainingBalance)}**.<br>`;
+    
+    if (remainingBalance < 0) {
+      html += `🔴 **Προσοχή!** Το υπόλοιπό σου θα γίνει αρνητικό (**${formatCurrency(remainingBalance)}**). Αυτή η αγορά ξεπερνά τις οικονομικές σου δυνατότητες αυτή τη στιγμή.<br>`;
+    } else {
+      html += `🟢 Διατηρείς θετικό υπόλοιπο ασφαλείας (**${formatCurrency(remainingBalance)}**).<br>`;
+    }
+    
+    if (monthlySavings > 0) {
+      const monthsDelay = Math.ceil(amount / monthlySavings);
+      html += `• Θα χρειαστείς **${monthsDelay} μήνες** αποταμίευσης για να αναπληρώσεις αυτό το ποσό.<br>`;
+      
+      const targetAmount = 50000;
+      if (startBalance < targetAmount) {
+        const originalMonths = Math.ceil((targetAmount - startBalance) / monthlySavings);
+        const newMonths = Math.ceil((targetAmount - remainingBalance) / monthlySavings);
+        html += `• Η επίτευξη του στόχου των ${formatCurrency(targetAmount)} θα καθυστερήσει κατά **${newMonths - originalMonths} μήνες**.<br>`;
+      }
+    }
+  } else {
+    html += `🔮 **What-If Purchase Simulation: ${formatCurrency(amount)}**<br><br>`;
+    html += `If you purchase ${nameStr} for **${formatCurrency(amount)}**:<br><br>`;
+    html += `• Your balance will decrease from **${formatCurrency(startBalance)}** to **${formatCurrency(remainingBalance)}**.<br>`;
+    
+    if (remainingBalance < 0) {
+      html += `🔴 **Warning!** Your balance will drop to negative (**${formatCurrency(remainingBalance)}**). This purchase is beyond your current financial limit.<br>`;
+    } else {
+      html += `🟢 You maintain a positive buffer of **${formatCurrency(remainingBalance)}**.<br>`;
+    }
+    
+    if (monthlySavings > 0) {
+      const monthsDelay = Math.ceil(amount / monthlySavings);
+      html += `• It will take you **${monthsDelay} months** of savings to recover this amount.<br>`;
+      
+      const targetAmount = 50000;
+      if (startBalance < targetAmount) {
+        const originalMonths = Math.ceil((targetAmount - startBalance) / monthlySavings);
+        const newMonths = Math.ceil((targetAmount - remainingBalance) / monthlySavings);
+        html += `• Reaching your ${formatCurrency(targetAmount)} goal will be delayed by **${newMonths - originalMonths} months**.<br>`;
+      }
+    }
+  }
+  return html;
+}
+
+function runCoachSearchQuery(keyword) {
+  const cleanKeyword = normalizeGreekString(keyword);
+  const trans = state.transactions || [];
+  const today = new Date();
+  const currentYear = today.getFullYear();
+  
+  const matchedTrans = trans.filter(t => {
+    if (!t.date || t.type === 'transfer') return false;
+    
+    const datePart = String(t.date).split('T')[0];
+    const parts = datePart.split('-');
+    if (parts.length !== 3) return false;
+    const y = parseInt(parts[0], 10);
+    if (y !== currentYear) return false;
+    
+    const cleanCat = normalizeGreekString(t.category);
+    const cleanSub = normalizeGreekString(t.subcategory || '');
+    const cleanNote = normalizeGreekString(t.note || '');
+    const cleanDesc = normalizeGreekString(t.description || '');
+    
+    return cleanCat.includes(cleanKeyword) || 
+           cleanSub.includes(cleanKeyword) || 
+           cleanNote.includes(cleanKeyword) || 
+           cleanDesc.includes(cleanKeyword);
+  });
+  
+  if (matchedTrans.length === 0) {
+    return state.lang === 'el'
+      ? `Δεν βρήκα καμία συναλλαγή φέτος με τον όρο **"${keyword}"**.`
+      : `No transactions found this year with the term **"${keyword}"**.`;
+  }
+  
+  const totalAmt = matchedTrans.reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
+  const count = matchedTrans.length;
+  const avg = totalAmt / count;
+  
+  let html = "";
+  if (state.lang === 'el') {
+    html += `🔍 **Αποτελέσματα Αναζήτησης για: "${keyword}"**<br><br>`;
+    html += `• Βρέθηκαν **${count} συναλλαγές** φέτος.<br>`;
+    html += `• Συνολικό ποσό: **${formatCurrency(totalAmt)}**<br>`;
+    html += `• Μέσος όρος ανά συναλλαγή: **${formatCurrency(avg)}**<br><br>`;
+    html += `💡 *Συμβουλή: Προσπαθήστε να κρατάτε σημειώσεις (notes) σε κάθε συναλλαγή για να μπορείτε να τις αναζητάτε ακόμα πιο εύκολα!*`;
+  } else {
+    html += `🔍 **Search Results for: "${keyword}"**<br><br>`;
+    html += `• Found **${count} transactions** this year.<br>`;
+    html += `• Total amount: **${formatCurrency(totalAmt)}**<br>`;
+    html += `• Average per transaction: **${formatCurrency(avg)}**<br><br>`;
+    html += `💡 *Tip: Try adding notes to your transactions to search for specific items even easier!*`;
+  }
+  return html;
+}
+
 function processCoachQuery(queryText) {
+  const normQuery = normalizeGreekString(queryText);
   const cleanQuery = queryText.toLowerCase().trim();
   
   if (cleanQuery === 'overspending') {
@@ -15622,7 +15775,8 @@ function processCoachQuery(queryText) {
     return runCoachTargetMilestone(amt);
   }
   
-  if (cleanQuery.includes('γιατί αυξήθηκαν') || cleanQuery.includes('why did my') || cleanQuery.includes('αυξήθηκαν') || cleanQuery.includes('did my') || cleanQuery.includes('γιατι αυξηθηκαν')) {
+  // 1. Discuss Category Increase
+  if (normQuery.includes('γιατι αυξηθηκαν') || normQuery.includes('why did my') || normQuery.includes('αυξηθηκαν') || normQuery.includes('did my') || normQuery.includes('αυξηση')) {
     let catName = "";
     const grMatch = queryText.match(/οι\s+([α-ωΑ-Ωa-zA-Z\s]+?)\s+μου/i);
     const enMatch = queryText.match(/my\s+([a-zA-Z\s]+?)\s+rose/i) || queryText.match(/did\s+([a-zA-Z\s]+?)\s+increase/i);
@@ -15630,9 +15784,8 @@ function processCoachQuery(queryText) {
     if (grMatch && grMatch[1]) catName = grMatch[1].trim();
     else if (enMatch && enMatch[1]) catName = enMatch[1].trim();
     else {
-      const cleanText = cleanQuery.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
-      const words = cleanText.split(/\s+/);
-      const stopWords = ['γιατι', 'αυξηθηκαν', 'οι', 'μου', 'αυτον', 'τον', 'μηνα', 'γιατί', 'αυξήθηκαν', 'why', 'did', 'my', 'increase', 'this', 'month', 'expense', 'expenses'];
+      const words = normQuery.split(/\s+/);
+      const stopWords = ['γιατι', 'αυξηθηκαν', 'οι', 'μου', 'αυτον', 'τον', 'μηνα', 'why', 'did', 'my', 'increase', 'this', 'month', 'expense', 'expenses', 'αυξηση', 'εξοδα', 'εξοδων'];
       const possibleCats = words.filter(w => w.length > 2 && !stopWords.includes(w));
       if (possibleCats.length > 0) catName = possibleCats[0];
     }
@@ -15642,15 +15795,28 @@ function processCoachQuery(queryText) {
     }
   }
   
-  if (cleanQuery.includes('φτάσω') || cleanQuery.includes('reach') || cleanQuery.includes('αποκτήσω') || cleanQuery.includes('στόχο') || cleanQuery.includes('target')) {
-    const numMatch = cleanQuery.replace(/\./g, '').match(/\d+/);
+  // 2. What-If Simulator
+  const numMatch = cleanQuery.replace(/\./g, '').match(/\d+/);
+  const isSimulation = normQuery.includes('αγορασ') || normQuery.includes('αγορα') || normQuery.includes('παρω') || normQuery.includes('buy') || normQuery.includes('purchase');
+  if (isSimulation && numMatch) {
+    const amount = parseInt(numMatch[0], 10);
+    let itemName = queryText.replace(/\d+/g, '').replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?¿€]/g, '').trim();
+    const stopWords = ['αν', 'να', 'αγορασω', 'αγοράσω', 'παρω', 'πάρω', 'αγορα', 'αγορά', 'για', 'ευρω', 'ευρώ', 'euro', 'buy', 'purchase', 'a', 'an', 'the', 'what', 'if', 'i'];
+    const words = itemName.split(/\s+/).filter(w => w.length > 2 && !stopWords.includes(normalizeGreekString(w)));
+    const cleanItemName = words.join(' ') || null;
+    return runCoachWhatIfSimulation(amount, cleanItemName);
+  }
+  
+  // 3. Milestone Target
+  if (normQuery.includes('φτασω') || normQuery.includes('reach') || normQuery.includes('αποκτησω') || normQuery.includes('στοχο') || normQuery.includes('target') || normQuery.includes('μαζεψω') || normQuery.includes('εχω')) {
     if (numMatch) {
       const amt = parseInt(numMatch[0], 10);
       return runCoachTargetMilestone(amt);
     }
   }
   
-  if (cleanQuery.includes('προϋπολογισμ') || cleanQuery.includes('budget') || cleanQuery.includes('όριο') || cleanQuery.includes('οριο')) {
+  // 4. Budgets Status
+  if (normQuery.includes('προϋπολογισμ') || normQuery.includes('προϋπολογισμο') || normQuery.includes('προϋπολογισμοι') || normQuery.includes('προϋπολογισμους') || normQuery.includes('proypologism') || normQuery.includes('budget') || normQuery.includes('οριο') || normQuery.includes('ορια')) {
     const budgets = state.budgets || {};
     const activeExpenses = state.transactions.filter(t => {
       const datePart = String(t.date || '').split('T')[0];
@@ -15690,53 +15856,30 @@ function processCoachQuery(queryText) {
     return html;
   }
   
+  // 5. Top categories breakdown
+  if (normQuery.includes('που ξοδευω τα περισσοτερα') || normQuery.includes('που ξοδευω τα') || normQuery.includes('που πανε τα λεφτα') || normQuery.includes('μεγαλυτερα εξοδα') || normQuery.includes('where do i spend') || normQuery.includes('top spending')) {
+    return runCoachTopCategories();
+  }
+  
+  // 6. Conversational Sum Search (e.g. "πόσα ξόδεψα σε καφέ")
+  const isSpendingQuery = normQuery.includes('ποσα ξοδεψα') || normQuery.includes('ποσα χαλασα') || normQuery.includes('ποσα εδωσα') || normQuery.includes('how much spent') || normQuery.includes('how much did i spend') || normQuery.includes('ποσα ξοδεψαμε') || normQuery.includes('ποσα εχασα');
+  if (isSpendingQuery) {
+    let keyword = "";
+    const grMatch = queryText.match(/(?:σε|για)\s+([α-ωΑ-Ωa-zA-Z\s]+)/i);
+    const enMatch = queryText.match(/(?:on|for)\s+([a-zA-Z\s]+)/i);
+    if (grMatch && grMatch[1]) keyword = grMatch[1].trim();
+    else if (enMatch && enMatch[1]) keyword = enMatch[1].trim();
+    
+    keyword = keyword.replace(/(?:φετος|φέτος|αυτον|τον|μηνα|this year|this month)/gi, '').trim();
+    if (keyword) {
+      return runCoachSearchQuery(keyword);
+    }
+  }
+  
+  // 7. General search fallback
   const cleanKeyword = cleanQuery.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"").trim();
   if (cleanKeyword.length >= 2) {
-    const trans = state.transactions || [];
-    const today = new Date();
-    const currentYear = today.getFullYear();
-    
-    const matchedTrans = trans.filter(t => {
-      if (!t.date || t.type === 'transfer') return false;
-      
-      const datePart = String(t.date).split('T')[0];
-      const parts = datePart.split('-');
-      if (parts.length !== 3) return false;
-      const y = parseInt(parts[0], 10);
-      if (y !== currentYear) return false;
-      
-      const cleanCat = t.category.replace(/[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF]/g, '').trim().toLowerCase();
-      const cleanSub = (t.subcategory || '').replace(/[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF]/g, '').trim().toLowerCase();
-      const cleanNote = (t.note || '').toLowerCase();
-      const cleanDesc = (t.description || '').toLowerCase();
-      
-      return cleanCat.includes(cleanKeyword) || 
-             cleanSub.includes(cleanKeyword) || 
-             cleanNote.includes(cleanKeyword) || 
-             cleanDesc.includes(cleanKeyword);
-    });
-    
-    if (matchedTrans.length > 0) {
-      const totalAmt = matchedTrans.reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
-      const count = matchedTrans.length;
-      const avg = totalAmt / count;
-      
-      let html = "";
-      if (state.lang === 'el') {
-        html += `🔍 **Αποτελέσματα Αναζήτησης για: "${queryText}"**<br><br>`;
-        html += `• Βρέθηκαν **${count} συναλλαγές** φέτος.<br>`;
-        html += `• Συνολικό ποσό: **${formatCurrency(totalAmt)}**<br>`;
-        html += `• Μέσος όρος ανά συναλλαγή: **${formatCurrency(avg)}**<br><br>`;
-        html += `💡 *Συμβουλή: Προσπαθήστε να κρατάτε σημειώσεις (notes) σε κάθε συναλλαγή για να μπορείτε να τις αναζητάτε ακόμα πιο εύκολα!*`;
-      } else {
-        html += `🔍 **Search Results for: "${queryText}"**<br><br>`;
-        html += `• Found **${count} transactions** this year.<br>`;
-        html += `• Total amount: **${formatCurrency(totalAmt)}**<br>`;
-        html += `• Average per transaction: **${formatCurrency(avg)}**<br><br>`;
-        html += `💡 *Tip: Try adding notes to your transactions to search for specific items even easier!*`;
-      }
-      return html;
-    }
+    return runCoachSearchQuery(cleanKeyword);
   }
   
   return state.lang === 'el'
