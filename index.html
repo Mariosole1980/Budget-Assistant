@@ -642,7 +642,7 @@
                 <i class="fa-solid fa-chevron-right" style="color: var(--red-negative); font-size: 12px;"></i>
               </div>
               <div class="settings-list-item">
-                <span class="settings-item-label" style="color: var(--text-muted); font-size: 12px;" data-i18n="app_version">Έκδοση 1.0.0 (build v406 - 07/06/2026 23:20)</span>
+                <span class="settings-item-label" style="color: var(--text-muted); font-size: 12px;" data-i18n="app_version">Έκδοση 1.0.0 (build v407 - 07/06/2026 23:20)</span>
                 <span class="settings-item-value" style="font-size: 12px; color: var(--text-muted);">Budget Assistant</span>
               </div>
             </div>
@@ -1882,7 +1882,7 @@
   
   <!-- Register PWA Service Worker -->
   <script>
-    const CURRENT_BUILD = 406;
+    const CURRENT_BUILD = 407;
     
     // ============================================================
     // AGGRESSIVE iOS PWA AUTO-UPDATE
@@ -1962,8 +1962,8 @@
     if ('serviceWorker' in navigator) {
       // ============================================================
       // NUCLEAR iOS PWA FIX: Register SW with versioned URL
-      // iOS Safari treats 'sw.js?v=406' as a COMPLETELY DIFFERENT
-      // script from 'sw.js?v=406', bypassing the update deadlock.
+      // iOS Safari treats 'sw.js?v=407' as a COMPLETELY DIFFERENT
+      // script from 'sw.js?v=407', bypassing the update deadlock.
       // Old SW is unregistered first to break the control cycle.
       // ============================================================
       const SW_URL = 'sw.js?v=' + CURRENT_BUILD;

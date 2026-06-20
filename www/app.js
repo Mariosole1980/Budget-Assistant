@@ -331,7 +331,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v406 - 12/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v407 - 12/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -615,7 +615,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v406 - 07/06/2026 23:20)',
+    app_version: 'Version 1.0.0 (build v407 - 07/06/2026 23:20)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -15861,18 +15861,35 @@ function processCoachQuery(queryText) {
     return runCoachTopCategories();
   }
   
-  // 6. Conversational Sum Search (e.g. "πόσα ξόδεψα σε καφέ")
-  const isSpendingQuery = normQuery.includes('ποσα ξοδεψα') || normQuery.includes('ποσα χαλασα') || normQuery.includes('ποσα εδωσα') || normQuery.includes('how much spent') || normQuery.includes('how much did i spend') || normQuery.includes('ποσα ξοδεψαμε') || normQuery.includes('ποσα εχασα');
+  // 6. Conversational Sum Search (e.g. "πόσα ξόδεψα σε καφέ", "πόσα λεφτά έχω χαλάσει στο κομμωτήριο φέτος")
+  const isSpendingQuery = normQuery.includes('ποσα') || normQuery.includes('ποσο') || normQuery.includes('how much') || normQuery.includes('how many') || normQuery.includes('spent') || normQuery.includes('xodepsa') || normQuery.includes('xodepsame') || normQuery.includes('xalasa') || normQuery.includes('xalasame');
   if (isSpendingQuery) {
     let keyword = "";
-    const grMatch = queryText.match(/(?:σε|για)\s+([α-ωΑ-Ωa-zA-Z\s]+)/i);
-    const enMatch = queryText.match(/(?:on|for)\s+([a-zA-Z\s]+)/i);
-    if (grMatch && grMatch[1]) keyword = grMatch[1].trim();
-    else if (enMatch && enMatch[1]) keyword = enMatch[1].trim();
+    const grMatch = queryText.match(/(?:σε|για|στο|στη|στην|στα|στον|στους|στις)\s+([α-ωΑ-Ωa-zA-Z\s]+)/i);
+    const enMatch = queryText.match(/(?:on|for|at|in)\s+([a-zA-Z\s]+)/i);
     
-    keyword = keyword.replace(/(?:φετος|φέτος|αυτον|τον|μηνα|this year|this month)/gi, '').trim();
+    if (grMatch && grMatch[1]) {
+      keyword = grMatch[1].trim();
+    } else if (enMatch && enMatch[1]) {
+      keyword = enMatch[1].trim();
+    } else {
+      const stopWords = [
+        'ποσα', 'ποσο', 'ποσα λεφτα', 'ποσο λεφτα', 'λεφτα', 'χρηματα', 'εχω', 'εχουμε', 'χαλασει', 'χαλασα', 
+        'χαλασαμε', 'ξοδεψει', 'ξοδεψα', 'ξοδεψαμε', 'εδωσα', 'εδωσαμε', 'δωσει', 'πληρωσα', 'πληρωσαμε', 
+        'πληρωσει', 'φετος', 'μηνα', 'ετος', 'σημερα', 'χθες', 'how', 'much', 'did', 'i', 'spend', 'spent', 
+        'on', 'for', 'this', 'year', 'month', 'today', 'yesterday'
+      ];
+      const words = normQuery.split(/\s+/).filter(w => w.length > 2 && !stopWords.includes(w));
+      if (words.length > 0) {
+        keyword = words[0];
+      }
+    }
+    
     if (keyword) {
-      return runCoachSearchQuery(keyword);
+      keyword = keyword.replace(/(?:φετος|φέτος|αυτον|τον|μηνα|μήνα|αυτο|το|ετος|έτος|this year|this month|year|month)/gi, '').trim();
+      if (keyword) {
+        return runCoachSearchQuery(keyword);
+      }
     }
   }
   
