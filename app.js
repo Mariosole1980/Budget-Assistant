@@ -331,7 +331,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v407 - 12/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v408 - 12/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -615,7 +615,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v407 - 07/06/2026 23:20)',
+    app_version: 'Version 1.0.0 (build v408 - 07/06/2026 23:20)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -15615,6 +15615,90 @@ function normalizeGreekString(str) {
     .trim();
 }
 
+function predictCategoryFromHistory(noteText) {
+  const cleanNote = normalizeGreekString(noteText);
+  if (!cleanNote) return null;
+  
+  const trans = state.transactions || [];
+  const categoryCounts = {};
+  
+  trans.forEach(t => {
+    if (t.type !== 'expense') return;
+    const cNote = normalizeGreekString(t.note || '');
+    const cDesc = normalizeGreekString(t.description || '');
+    if ((cNote && cleanNote.includes(cNote)) || (cDesc && cleanNote.includes(cDesc)) || (cNote && cNote.includes(cleanNote)) || (cDesc && cDesc.includes(cleanNote))) {
+      if ((cNote && cNote.length > 2) || (cDesc && cDesc.length > 2) || cleanNote.length > 2) {
+         categoryCounts[t.category] = (categoryCounts[t.category] || 0) + 1;
+      }
+    }
+  });
+  
+  const sorted = Object.keys(categoryCounts).sort((a,b) => categoryCounts[b] - categoryCounts[a]);
+  return sorted.length > 0 ? sorted[0] : null;
+}
+
+function runCoachTransactionEntry(amount, noteText) {
+  if (isNaN(amount) || amount <= 0) {
+    return state.lang === 'el' ? "🤖 Παρακαλώ δώσε ένα έγκυρο ποσό (π.χ. 'βάλε 40 για ρεύμα')." : "🤖 Please provide a valid amount (e.g., 'add 40 for electric bill').";
+  }
+  
+  let predictedCat = predictCategoryFromHistory(noteText);
+  
+  if (!predictedCat) {
+    const cleanNote = normalizeGreekString(noteText);
+    if (cleanNote.includes('βενζινη') || cleanNote.includes('αμαξι') || cleanNote.includes('διοδια') || cleanNote.includes('παρκινγκ')) predictedCat = '🚗 ΑΥΤΟΚΙΝΗΤΟ';
+    else if (cleanNote.includes('σουπερ') || cleanNote.includes('super') || cleanNote.includes('καφε') || cleanNote.includes('φαγητο') || cleanNote.includes('delivery') || cleanNote.includes('ντελιβερι') || cleanNote.includes('εστιατοριο') || cleanNote.includes('ταβερνα')) predictedCat = '🛒 ΔΙΑΤΡΟΦΗ';
+    else if (cleanNote.includes('ρευμα') || cleanNote.includes('δεη') || cleanNote.includes('νερο') || cleanNote.includes('τηλεφωνο') || cleanNote.includes('κοινοχρηστα') || cleanNote.includes('ενοικιο')) predictedCat = '🏡 ΣΠΙΤΙ';
+    else if (cleanNote.includes('γιατρο') || cleanNote.includes('φαρμακειο') || cleanNote.includes('υγεία') || cleanNote.includes('εξετασεις')) predictedCat = '❤️ ΥΓΕΙΑ';
+    else if (cleanNote.includes('ποτο') || cleanNote.includes('μπυρες') || cleanNote.includes('σινεμα') || cleanNote.includes('εξοδος')) predictedCat = '🎉ΔΙΑΣΚΕΔΑΣΗ/ΕΞΟΔΟΙ';
+    else if (cleanNote.includes('κομμωτηριο') || cleanNote.includes('κουρειο') || cleanNote.includes('νυχια')) predictedCat = '👕 ΠΡΟΣΩΠΙΚΗ ΦΡΟΝΤΙΔΑ';
+    else if (cleanNote.includes('γυμναστηριο')) predictedCat = '🏋️ΓΥΜΝΑΣΤΗΡΙΟ';
+  }
+  
+  const expenseCats = (state.categories || []).filter(c => c.type === 'expense');
+  if (expenseCats.length === 0) expenseCats.push({ name: '🧩ΔΙΑΦΟΡΑ ΕΞΟΔΑ' });
+  
+  if (predictedCat && !expenseCats.some(c => c.name === predictedCat)) {
+    predictedCat = null;
+  }
+  
+  if (!predictedCat) {
+    predictedCat = expenseCats[0].name;
+  }
+  
+  const selectId = 'coach-tx-select-' + Date.now();
+  const btnId = 'coach-tx-btn-' + Date.now();
+  
+  let optionsHtml = '';
+  expenseCats.forEach(c => {
+    const selected = c.name === predictedCat ? 'selected' : '';
+    optionsHtml += `<option value="${c.name}" ${selected}>${getCategoryDisplayName(c.name)}</option>`;
+  });
+  
+  let html = "";
+  const displayNote = noteText ? ` "${noteText}"` : '';
+  if (state.lang === 'el') {
+    html += `🤖 **Νέα Συναλλαγή:**<br><br>`;
+    html += `Θέλεις να προσθέσω **-${formatCurrency(amount)}**${displayNote};<br><br>`;
+    html += `<select id="${selectId}" style="width:100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); margin-bottom: 12px; font-family: inherit; font-size: 1rem;">
+               ${optionsHtml}
+             </select>`;
+    html += `<button id="${btnId}" class="btn btn-primary" style="width:100%;" onclick="window.submitCoachTransaction(${amount}, 'expense', document.getElementById('${selectId}').value, '${noteText}', this.id)">
+               ✅ Καταχώρηση
+             </button>`;
+  } else {
+    html += `🤖 **New Transaction:**<br><br>`;
+    html += `Do you want to add **-${formatCurrency(amount)}**${displayNote}?<br><br>`;
+    html += `<select id="${selectId}" style="width:100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); margin-bottom: 12px; font-family: inherit; font-size: 1rem;">
+               ${optionsHtml}
+             </select>`;
+    html += `<button id="${btnId}" class="btn btn-primary" style="width:100%;" onclick="window.submitCoachTransaction(${amount}, 'expense', document.getElementById('${selectId}').value, '${noteText}', this.id)">
+               ✅ Save Transaction
+             </button>`;
+  }
+  return html;
+}
+
 function runCoachTopCategories() {
   const today = new Date();
   const currYear = today.getFullYear();
@@ -15775,6 +15859,22 @@ function processCoachQuery(queryText) {
     return runCoachTargetMilestone(amt);
   }
   
+  // 0. Action commands (add transaction)
+  const isAddCommand = normQuery.includes('βαλε') || normQuery.includes('προσθεσε') || normQuery.includes('καταχωρησε') || normQuery.includes('χρεωσε') || normQuery.includes('ξοδεψα') || normQuery.includes('εδωσα') || normQuery.includes('πληρωσα') || normQuery.includes('add') || normQuery.includes('spent');
+  const numMatchAction = cleanQuery.replace(/\./g, '').match(/\d+/);
+  if (isAddCommand && numMatchAction) {
+    const amount = parseInt(numMatchAction[0], 10);
+    let noteText = queryText.replace(/\d+/g, '').replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?¿€]/g, '').trim();
+    const stopWords = ['βαλε', 'προσθεσε', 'καταχωρησε', 'χρεωσε', 'ξοδεψα', 'εδωσα', 'πληρωσα', 'ευρω', 'ευρω', 'euro', 'σε', 'στο', 'στην', 'στα', 'στον', 'για', 'απο', 'ενα', 'μια', 'add', 'spent', 'paid', 'for', 'on', 'euros'];
+    const words = noteText.split(/\s+/).filter(w => w.length > 1 && !stopWords.includes(normalizeGreekString(w)));
+    const cleanNote = words.join(' ') || '';
+    
+    // Distinguish between sum search "ποσα ξοδεψα" and action "ξοδεψα 40"
+    if (!normQuery.includes('ποσα') && !normQuery.includes('ποσο') && !normQuery.includes('how much') && !normQuery.includes('τι ')) {
+      return runCoachTransactionEntry(amount, cleanNote);
+    }
+  }
+  
   // 1. Discuss Category Increase
   if (normQuery.includes('γιατι αυξηθηκαν') || normQuery.includes('why did my') || normQuery.includes('αυξηθηκαν') || normQuery.includes('did my') || normQuery.includes('αυξηση')) {
     let catName = "";
@@ -15903,6 +16003,28 @@ function processCoachQuery(queryText) {
     ? `🤖 **Δεν μπόρεσα να κατανοήσω πλήρως την ερώτηση.**<br><br>Μπορείς να δοκιμάσεις κάποια από τις έτοιμες προτάσεις από κάτω, ή να ρωτήσεις για μια συγκεκριμένη κατηγορία/λέξη (π.χ. «καφέ», «φαγητό», «βενζίνη», «υπερβολικά», «αποταμίευση»).`
     : `🤖 **I couldn't quite understand the question.**<br><br>You can try using one of the suggestion chips below, or ask about a specific category or search term (e.g., 'coffee', 'food', 'petrol', 'overspending', 'savings').`;
 }
+
+window.submitCoachTransaction = async function(amount, type, category, note, btnId) {
+  const transaction = {
+    id: generateUUID(),
+    type: type,
+    amount: parseFloat(amount),
+    category: category,
+    subcategory: '',
+    note: note,
+    date: new Date().toISOString(),
+    user_id: state.userId
+  };
+  
+  await saveTransaction(transaction);
+  
+  const btn = document.getElementById(btnId);
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = state.lang === 'el' ? '✅ Καταχωρήθηκε!' : '✅ Saved!';
+    btn.style.backgroundColor = 'var(--success)';
+  }
+};
 
 // Bind to window for HTML access
 window.openAdvisorChat = openAdvisorChat;
