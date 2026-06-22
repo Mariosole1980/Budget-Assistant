@@ -489,7 +489,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v422 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v423 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -773,7 +773,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v422 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v423 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -3614,44 +3614,72 @@ function saveTransactionOffline(transaction) {
 
 function deleteTransaction(id) {
   if (!id) return;
-  _deletingTxIds.add(String(id));
+  
+  // Find duplicates of this transaction to delete them too (prevents them from reappearing due to Supabase sync)
+  const tx = state.transactions.find(t => t.id === id);
+  const idsToDelete = [String(id)];
+  
+  if (tx) {
+    const txDate = String(tx.date || '').split('T')[0].split(' ')[0];
+    const txAmount = (parseFloat(tx.amount) || 0).toFixed(2);
+    state.transactions.forEach(t => {
+      if (t.id && t.id !== id) {
+        const tDate = String(t.date || '').split('T')[0].split(' ')[0];
+        const tAmount = (parseFloat(t.amount) || 0).toFixed(2);
+        const isDupe = tDate === txDate &&
+                       tAmount === txAmount &&
+                       t.type === tx.type &&
+                       t.category === tx.category &&
+                       (t.account_from || '') === (tx.account_from || '') &&
+                       (t.account_to || '') === (tx.account_to || '') &&
+                       (t.note || '') === (tx.note || '') &&
+                       (t.user_id || '') === (tx.user_id || '');
+        if (isDupe) {
+          idsToDelete.push(String(t.id));
+        }
+      }
+    });
+  }
 
-  // 1. Clean up local receipt photo from IndexedDB (run in background)
-  ReceiptStorage.remove(id).catch(err => {
-    console.warn('Failed to remove receipt during transaction delete:', err);
+  // 1. Mark all these IDs as deleting
+  idsToDelete.forEach(dId => _deletingTxIds.add(dId));
+
+  // 2. Clean up local receipt photo from IndexedDB (run in background)
+  idsToDelete.forEach(dId => {
+    ReceiptStorage.remove(dId).catch(err => {
+      console.warn('Failed to remove receipt during transaction delete:', err);
+    });
   });
   
-  // 2. Optimistically delete from local state and update UI
-  deleteTransactionOffline(id);
+  // 3. Optimistically delete from local state and update UI
+  idsToDelete.forEach(dId => deleteTransactionOffline(dId));
   calculateInitialBalances();
   updateUI();
 
-  // 3. Perform background delete
+  // 4. Perform background delete
   if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
     (async () => {
       try {
-        // Suppress realtime echo of our own delete to prevent a second UI render ~5s later.
         _suppressRealtimeEvents = true;
         const { error } = await promiseTimeout(
           state.supabaseClient
             .from('transactions')
             .delete()
-            .eq('id', id),
+            .in('id', idsToDelete),
           12000
         );
         if (error) throw error;
-        console.log(`Cloud delete success for transaction: ${id}`);
+        console.log(`Cloud delete success for transaction (and duplicates):`, idsToDelete);
       } catch (err) {
-        console.warn(`Cloud delete failed, queueing delete: ${id}`, err);
-        enqueueSyncMutation('delete', id);
+        console.warn(`Cloud delete failed, queueing delete:`, idsToDelete, err);
+        idsToDelete.forEach(dId => enqueueSyncMutation('delete', dId));
       } finally {
-        _deletingTxIds.delete(String(id));
-        // Re-enable realtime after enough time for the echo to arrive and be discarded.
+        idsToDelete.forEach(dId => _deletingTxIds.delete(dId));
         setTimeout(() => { _suppressRealtimeEvents = false; }, 8000);
       }
     })();
   } else {
-    _deletingTxIds.delete(String(id));
+    idsToDelete.forEach(dId => _deletingTxIds.delete(dId));
   }
 }
 
@@ -3681,6 +3709,23 @@ function deleteTransactionOffline(id) {
         localStorage.setItem('deleted_recurring_dates', JSON.stringify(state.deletedRecurringDates));
       }
     }
+    
+    // Also remove any content-based duplicates from local state
+    const txAmount = (parseFloat(tx.amount) || 0).toFixed(2);
+    state.transactions = state.transactions.filter(t => {
+      if (t.id === tx.id) return false;
+      const tDate = String(t.date || '').split('T')[0].split(' ')[0];
+      const tAmount = (parseFloat(t.amount) || 0).toFixed(2);
+      const isDupe = tDate === txDate &&
+                     tAmount === txAmount &&
+                     t.type === tx.type &&
+                     t.category === tx.category &&
+                     (t.account_from || '') === (tx.account_from || '') &&
+                     (t.account_to || '') === (tx.account_to || '') &&
+                     (t.note || '') === (tx.note || '') &&
+                     (t.user_id || '') === (tx.user_id || '');
+      return !isDupe;
+    });
   }
   state.transactions = state.transactions.filter(t => t.id !== id);
   localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
@@ -10080,18 +10125,48 @@ function toggleSelectAll() {
 }
 
 async function deleteSelectedTransactions() {
-  const ids = Array.from(state.selectedIds);
-  if (ids.length === 0) return;
+  const selectedIds = Array.from(state.selectedIds);
+  if (selectedIds.length === 0) return;
   
-  const msg = ids.length === 1 ? 'Να διαγραφεί η επιλεγμένη συναλλαγή;' : `Να διαγραφούν οι ${ids.length} επιλεγμένες συναλλαγές;`;
+  const msg = selectedIds.length === 1 ? 'Να διαγραφεί η επιλεγμένη συναλλαγή;' : `Να διαγραφούν οι ${selectedIds.length} επιλεγμένες συναλλαγές;`;
   const confirmed = await showConfirm(msg, state.lang === 'el' ? 'Διαγραφή' : 'Delete', '🗑️');
   if (!confirmed) return;
   
+  // Find duplicates of all selected transactions to delete them too
+  const idsToDeleteSet = new Set(selectedIds.map(String));
+  
+  selectedIds.forEach(id => {
+    const tx = state.transactions.find(t => t.id === id);
+    if (tx) {
+      const txDate = String(tx.date || '').split('T')[0].split(' ')[0];
+      const txAmount = (parseFloat(tx.amount) || 0).toFixed(2);
+      state.transactions.forEach(t => {
+        if (t.id && t.id !== id) {
+          const tDate = String(t.date || '').split('T')[0].split(' ')[0];
+          const tAmount = (parseFloat(t.amount) || 0).toFixed(2);
+          const isDupe = tDate === txDate &&
+                         tAmount === txAmount &&
+                         t.type === tx.type &&
+                         t.category === tx.category &&
+                         (t.account_from || '') === (tx.account_from || '') &&
+                         (t.account_to || '') === (tx.account_to || '') &&
+                         (t.note || '') === (tx.note || '') &&
+                         (t.user_id || '') === (tx.user_id || '');
+          if (isDupe) {
+            idsToDeleteSet.add(String(t.id));
+          }
+        }
+      });
+    }
+  });
+
+  const idsToDelete = Array.from(idsToDeleteSet);
+
   // 1. Suppress realtime events
   _suppressRealtimeEvents = true;
 
   // 2. Process each transaction deletion locally & trigger background sync/delete
-  for (const id of ids) {
+  for (const id of idsToDelete) {
     _deletingTxIds.add(String(id));
     
     // Clean up local receipt photo from IndexedDB
@@ -10101,30 +10176,30 @@ async function deleteSelectedTransactions() {
 
     // Optimistically delete from local state (updates state.transactions and deletedRecurringDates)
     deleteTransactionOffline(id);
+  }
 
-    // Perform background delete
-    if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
-      (async () => {
-        try {
-          const { error } = await promiseTimeout(
-            state.supabaseClient
-              .from('transactions')
-              .delete()
-              .eq('id', id),
-            12000
-          );
-          if (error) throw error;
-          console.log(`Cloud delete success for selected transaction: ${id}`);
-        } catch (err) {
-          console.warn(`Cloud delete failed for selected, queueing delete: ${id}`, err);
-          enqueueSyncMutation('delete', id);
-        } finally {
-          _deletingTxIds.delete(String(id));
-        }
-      })();
-    } else {
-      _deletingTxIds.delete(String(id));
-    }
+  // Perform background delete in bulk
+  if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
+    (async () => {
+      try {
+        const { error } = await promiseTimeout(
+          state.supabaseClient
+            .from('transactions')
+            .delete()
+            .in('id', idsToDelete),
+          12000
+        );
+        if (error) throw error;
+        console.log(`Cloud delete success for selected transactions (and dupes):`, idsToDelete);
+      } catch (err) {
+        console.warn(`Cloud delete failed for selected, queueing deletes:`, idsToDelete, err);
+        idsToDelete.forEach(id => enqueueSyncMutation('delete', id));
+      } finally {
+        idsToDelete.forEach(id => _deletingTxIds.delete(String(id)));
+      }
+    })();
+  } else {
+    idsToDelete.forEach(id => _deletingTxIds.delete(String(id)));
   }
 
   // 3. Clear selection and exit selection mode
