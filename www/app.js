@@ -227,6 +227,8 @@ function compareTransactions(a, b) {
   return 0;
 }
 
+const _deletingTxIds = new Set();
+
 function deduplicateCategories() {
   if (!state.categories) return;
   const seen = new Set();
@@ -240,14 +242,36 @@ function deduplicateCategories() {
 }
 
 function mergeAndDeduplicateTransactions(cloudTransactions, localPendingTransactions) {
+  const deletedIds = new Set();
+  
+  _deletingTxIds.forEach(id => deletedIds.add(String(id)));
+  
+  try {
+    const queueStr = localStorage.getItem('money_manager_sync_queue');
+    if (queueStr) {
+      const queue = JSON.parse(queueStr) || [];
+      queue.forEach(item => {
+        if (item.action === 'delete' && item.payload) {
+          deletedIds.add(String(item.payload));
+        }
+      });
+    }
+  } catch (e) {
+    console.error('Failed to parse sync queue in mergeAndDeduplicateTransactions:', e);
+  }
+
   const idMap = {};
   
   (cloudTransactions || []).forEach(t => {
-    if (t && t.id) idMap[t.id] = t;
+    if (t && t.id && !deletedIds.has(String(t.id))) {
+      idMap[t.id] = t;
+    }
   });
   
   (localPendingTransactions || []).forEach(t => {
-    if (t && t.id) idMap[t.id] = t;
+    if (t && t.id && !deletedIds.has(String(t.id))) {
+      idMap[t.id] = t;
+    }
   });
   
   const uniqueById = Object.values(idMap);
@@ -465,7 +489,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v419 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v420 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -749,7 +773,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v419 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v420 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -3589,6 +3613,9 @@ function saveTransactionOffline(transaction) {
 }
 
 async function deleteTransaction(id) {
+  if (!id) return;
+  _deletingTxIds.add(String(id));
+
   // 1. Clean up local receipt photo from IndexedDB
   try {
     await ReceiptStorage.remove(id);
@@ -3620,10 +3647,13 @@ async function deleteTransaction(id) {
         console.warn(`Cloud delete failed, queueing delete: ${id}`, err);
         enqueueSyncMutation('delete', id);
       } finally {
+        _deletingTxIds.delete(String(id));
         // Re-enable realtime after enough time for the echo to arrive and be discarded.
         setTimeout(() => { _suppressRealtimeEvents = false; }, 8000);
       }
     })();
+  } else {
+    _deletingTxIds.delete(String(id));
   }
 }
 

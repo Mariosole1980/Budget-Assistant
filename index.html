@@ -38,7 +38,7 @@
   <link rel="stylesheet" href="style.css">
   
   <!-- Capacitor Bridge -->
-  <script src="capacitor.js?v=419"></script>
+  <script src="capacitor.js?v=420"></script>
   
 
   <!-- Supabase client JS CDN -->
@@ -48,7 +48,7 @@
   <!-- Chart.js Datalabels Plugin CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
   <!-- SheetJS xlsx CDN for Excel Import/Export -->
-  <script src="xlsx.full.min.js?v=419"></script>
+  <script src="xlsx.full.min.js?v=420"></script>
 </head>
 <body>
   <script>
@@ -644,7 +644,7 @@
                 <i class="fa-solid fa-chevron-right" style="color: var(--red-negative); font-size: 12px;"></i>
               </div>
               <div class="settings-list-item">
-                <span class="settings-item-label" style="color: var(--text-muted); font-size: 12px;" data-i18n="app_version">Έκδοση 1.0.0 (build v419 - 07/06/2026 23:20)</span>
+                <span class="settings-item-label" style="color: var(--text-muted); font-size: 12px;" data-i18n="app_version">Έκδοση 1.0.0 (build v420 - 07/06/2026 23:20)</span>
                 <span class="settings-item-value" style="font-size: 12px; color: var(--text-muted);">Budget Assistant</span>
               </div>
             </div>
@@ -1880,16 +1880,16 @@
   </div>
 
   <!-- Core Application Scripts -->
-  <script src="js/NLPProcessor.js?v=419"></script>
-  <script src="js/MemoryEngine.js?v=419"></script>
-  <script src="js/DecisionEngine.js?v=419"></script>
-  <script src="js/OnlineAIProvider.js?v=419"></script>
-  <script src="js/AIEngine.js?v=419"></script>
-  <script src="app.js?v=419"></script>
+  <script src="js/NLPProcessor.js?v=420"></script>
+  <script src="js/MemoryEngine.js?v=420"></script>
+  <script src="js/DecisionEngine.js?v=420"></script>
+  <script src="js/OnlineAIProvider.js?v=420"></script>
+  <script src="js/AIEngine.js?v=420"></script>
+  <script src="app.js?v=420"></script>
   
   <!-- Register PWA Service Worker -->
   <script>
-    const CURRENT_BUILD = 419;
+    const CURRENT_BUILD = 420;
     
     // ============================================================
     // AGGRESSIVE iOS PWA AUTO-UPDATE
@@ -1969,8 +1969,8 @@
     if ('serviceWorker' in navigator) {
       // ============================================================
       // NUCLEAR iOS PWA FIX: Register SW with versioned URL
-      // iOS Safari treats 'sw.js?v=419' as a COMPLETELY DIFFERENT
-      // script from 'sw.js?v=419', bypassing the update deadlock.
+      // iOS Safari treats 'sw.js?v=420' as a COMPLETELY DIFFERENT
+      // script from 'sw.js?v=420', bypassing the update deadlock.
       // Old SW is unregistered first to break the control cycle.
       // ============================================================
       const SW_URL = 'sw.js?v=' + CURRENT_BUILD;
