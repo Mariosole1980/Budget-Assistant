@@ -489,7 +489,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v421 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v422 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -773,7 +773,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v421 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v422 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -3475,11 +3475,11 @@ function processRecurringTemplates() {
         // exist in the database, so fetched transactions arrive with recurring_template_id=null,
         // causing false negatives in the ID-only check and infinite re-creation loops.
         const duplicateExists = state.transactions.some(t => {
-          if (t.recurring_template_id && t.recurring_template_id === template.id && t.date === dateString) {
+          const tDate = String(t.date || '').split('T')[0].split(' ')[0];
+          if (t.recurring_template_id && t.recurring_template_id === template.id && tDate === dateString) {
             return true;
           }
           // Content-based fallback: same date + amount + type + category + account_from
-          const tDate = String(t.date || '').split('T')[0].split(' ')[0];
           if (tDate === dateString &&
               (parseFloat(t.amount) || 0).toFixed(2) === (parseFloat(template.amount) || 0).toFixed(2) &&
               t.type === template.type &&
@@ -3657,11 +3657,29 @@ function deleteTransaction(id) {
 
 function deleteTransactionOffline(id) {
   const tx = state.transactions.find(t => t.id === id);
-  if (tx && tx.recurring_template_id) {
-    const key = `${tx.recurring_template_id}_${tx.date}`;
-    if (!state.deletedRecurringDates.includes(key)) {
-      state.deletedRecurringDates.push(key);
-      localStorage.setItem('deleted_recurring_dates', JSON.stringify(state.deletedRecurringDates));
+  if (tx) {
+    let templateId = tx.recurring_template_id;
+    const txDate = String(tx.date || '').split('T')[0].split(' ')[0];
+    
+    if (!templateId && state.recurringTemplates) {
+      // Find template matching by content if recurring_template_id is missing
+      const match = state.recurringTemplates.find(template => {
+        return (parseFloat(tx.amount) || 0).toFixed(2) === (parseFloat(template.amount) || 0).toFixed(2) &&
+               tx.type === template.type &&
+               tx.category === template.category &&
+               (tx.account_from || '') === (template.account_from || '');
+      });
+      if (match) {
+        templateId = match.id;
+      }
+    }
+    
+    if (templateId) {
+      const key = `${templateId}_${txDate}`;
+      if (!state.deletedRecurringDates.includes(key)) {
+        state.deletedRecurringDates.push(key);
+        localStorage.setItem('deleted_recurring_dates', JSON.stringify(state.deletedRecurringDates));
+      }
     }
   }
   state.transactions = state.transactions.filter(t => t.id !== id);
@@ -10069,23 +10087,57 @@ async function deleteSelectedTransactions() {
   const confirmed = await showConfirm(msg, state.lang === 'el' ? 'Διαγραφή' : 'Delete', '🗑️');
   if (!confirmed) return;
   
-  if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
-    try {
-      const { error } = await state.supabaseClient.from('transactions').delete().in('id', ids);
-      if (error) throw error;
-    } catch (err) {
-      console.error('Bulk delete failed:', err);
-      state.transactions = state.transactions.filter(t => !ids.includes(t.id));
-      localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
+  // 1. Suppress realtime events
+  _suppressRealtimeEvents = true;
+
+  // 2. Process each transaction deletion locally & trigger background sync/delete
+  for (const id of ids) {
+    _deletingTxIds.add(String(id));
+    
+    // Clean up local receipt photo from IndexedDB
+    ReceiptStorage.remove(id).catch(err => {
+      console.warn('Failed to remove receipt during transaction delete:', err);
+    });
+
+    // Optimistically delete from local state (updates state.transactions and deletedRecurringDates)
+    deleteTransactionOffline(id);
+
+    // Perform background delete
+    if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
+      (async () => {
+        try {
+          const { error } = await promiseTimeout(
+            state.supabaseClient
+              .from('transactions')
+              .delete()
+              .eq('id', id),
+            12000
+          );
+          if (error) throw error;
+          console.log(`Cloud delete success for selected transaction: ${id}`);
+        } catch (err) {
+          console.warn(`Cloud delete failed for selected, queueing delete: ${id}`, err);
+          enqueueSyncMutation('delete', id);
+        } finally {
+          _deletingTxIds.delete(String(id));
+        }
+      })();
+    } else {
+      _deletingTxIds.delete(String(id));
     }
-  } else {
-    state.transactions = state.transactions.filter(t => !ids.includes(t.id));
-    localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
   }
-  
-  await loadData();
+
+  // 3. Clear selection and exit selection mode
   exitSelectionMode();
+
+  // 4. Update calculations and render UI once
+  calculateInitialBalances();
   updateUI();
+
+  // 5. Re-enable realtime after enough time
+  if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
+    setTimeout(() => { _suppressRealtimeEvents = false; }, 8000);
+  }
 }
 
 window.enterSelectionMode = enterSelectionMode;
