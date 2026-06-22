@@ -6841,3 +6841,12 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
     font-size: 14px;
     cursor: pointer;
 }
+
+
+/* Android Specific Calculator Keypad adjustments */
+body.is-android #transaction-modal.keypad-active {
+  --keyboard-offset: 322px !important;
+}
+body.is-android .calc-keypad-container .calc-key-btn {
+  height: 64px !important;
+}
