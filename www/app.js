@@ -227,6 +227,48 @@ function compareTransactions(a, b) {
   return 0;
 }
 
+function deduplicateCategories() {
+  if (!state.categories) return;
+  const seen = new Set();
+  state.categories = state.categories.filter(c => {
+    if (!c || !c.name) return false;
+    const key = `${c.type || 'expense'}|${c.name.trim().toLowerCase()}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function mergeAndDeduplicateTransactions(cloudTransactions, localPendingTransactions) {
+  const idMap = {};
+  
+  (cloudTransactions || []).forEach(t => {
+    if (t && t.id) idMap[t.id] = t;
+  });
+  
+  (localPendingTransactions || []).forEach(t => {
+    if (t && t.id) idMap[t.id] = t;
+  });
+  
+  const uniqueById = Object.values(idMap);
+  const dedupMap = {};
+  const result = [];
+  
+  uniqueById.forEach(t => {
+    if (!t) return;
+    const datePart = String(t.date || '').split('T')[0].split(' ')[0];
+    const uid = t.user_id || 'unknown';
+    const amountVal = (parseFloat(t.amount) || 0).toFixed(2);
+    const key = `${uid}|${datePart}|${amountVal}|${t.type || ''}|${t.category || ''}|${t.account_from || ''}|${t.account_to || ''}|${t.note || ''}`;
+    if (!dedupMap[key]) {
+      dedupMap[key] = true;
+      result.push(t);
+    }
+  });
+  
+  return result;
+}
+
 
 const GREEK_MONTHS = [
   'Ιανουάριος','Φεβρουάριος','Μάρτιος','Απρίλιος','Μάιος','Ιούνιος',
@@ -423,7 +465,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v418 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v419 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -707,7 +749,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v418 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v419 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -3195,23 +3237,12 @@ async function loadData() {
       }
       */
 
-      // Deduplicate merged transactions immediately (prevents flicker from two-pass cleanup)
-      // Key includes user_id to preserve separate transactions from different family members.
-      const mergeDedup = {};
-      const mergedTransactions = [];
-      [...allTransactions, ...pendingLocal].forEach(t => {
-        if (!t) return;
-        const datePart = String(t.date || '').split('T')[0].split(' ')[0];
-        const uid = t.user_id || 'unknown';
-        const key = `${uid}|${datePart}|${(parseFloat(t.amount)||0).toFixed(2)}|${t.type||''}|${t.category||''}|${t.account_from||''}|${t.account_to||''}|${t.note||''}`;
-        if (!mergeDedup[key]) {
-          mergeDedup[key] = true;
-          mergedTransactions.push(t);
-        }
-      });
+      // Deduplicate merged transactions (ID-based first, then content-based)
+      const mergedTransactions = mergeAndDeduplicateTransactions(allTransactions, pendingLocal);
       mergedTransactions.sort(compareTransactions);
       state.transactions = mergedTransactions;
       state.categories = categories;
+      deduplicateCategories();
       state.accounts = accounts;
       
       calculateInitialBalances();
@@ -3288,9 +3319,11 @@ function loadOfflineData() {
   try {
     const cats  = localStorage.getItem('offline_categories');
     state.categories   = cats  ? JSON.parse(cats)  : DEFAULT_CATEGORIES;
+    deduplicateCategories();
   } catch (e) {
     console.error('Failed to parse offline categories:', e);
     state.categories   = DEFAULT_CATEGORIES;
+    deduplicateCategories();
   }
 
   try {
@@ -4112,6 +4145,7 @@ function getSubcategoryDisplayName(subName, categoryName) {
 
 
 function saveCategoriesToStorage() {
+  deduplicateCategories();
   localStorage.setItem('offline_categories', JSON.stringify(state.categories));
   lastRenderedCategoryType = null;
 }
@@ -7244,6 +7278,7 @@ let lastRenderedCategoryType = null;
 let lastRenderedCategoryEditMode = null;
 
 function updateCategoryDropdowns(type = 'expense', force = false) {
+  deduplicateCategories();
   const grid = document.getElementById('category-picker-grid');
   if (!grid) return;
   
@@ -13179,24 +13214,9 @@ async function forceSyncNow(silent = false) {
     
     // 4.5. RECOVERY: Disabled - was causing infinite upsert loops when RLS filtered out partner transactions
 
-    // 5. Update state — deduplicate combined result before storing
+    // 5. Update state — deduplicate combined result before storing (ID-based first, then content-based)
     const prevCount = (state.transactions || []).filter(t => t.id && !String(t.id).startsWith('local_')).length;
-    const combined = [...allTransactions, ...localPending];
-    
-    // Inline dedup: only remove true duplicates (same user_id + same content)
-    const dedupMap = {};
-    const dedupedCombined = [];
-    combined.forEach(t => {
-      if (!t) return;
-      const datePart = String(t.date || '').split('T')[0].split(' ')[0];
-      const uid = t.user_id || 'unknown';
-      const key = `${uid}|${datePart}|${(parseFloat(t.amount)||0).toFixed(2)}|${t.type||''}|${t.category||''}|${t.account_from||''}|${t.account_to||''}|${t.note||''}`;
-      if (!dedupMap[key]) {
-        dedupMap[key] = true;
-        dedupedCombined.push(t);
-      }
-    });
-    
+    const dedupedCombined = mergeAndDeduplicateTransactions(allTransactions, localPending);
     dedupedCombined.sort(compareTransactions);
     
     // === ANTI-FLICKER GUARD ===
