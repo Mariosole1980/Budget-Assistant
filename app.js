@@ -489,7 +489,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v420 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v421 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -773,7 +773,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v420 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v421 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -3612,16 +3612,14 @@ function saveTransactionOffline(transaction) {
   localStorage.setItem('offline_transactions', JSON.stringify(trans));
 }
 
-async function deleteTransaction(id) {
+function deleteTransaction(id) {
   if (!id) return;
   _deletingTxIds.add(String(id));
 
-  // 1. Clean up local receipt photo from IndexedDB
-  try {
-    await ReceiptStorage.remove(id);
-  } catch (err) {
+  // 1. Clean up local receipt photo from IndexedDB (run in background)
+  ReceiptStorage.remove(id).catch(err => {
     console.warn('Failed to remove receipt during transaction delete:', err);
-  }
+  });
   
   // 2. Optimistically delete from local state and update UI
   deleteTransactionOffline(id);
@@ -5997,7 +5995,7 @@ function setupEventListeners() {
     const confirmMsg = TRANSLATIONS[state.lang]['confirm_delete_transaction'];
     const confirmed = await showConfirm(confirmMsg, state.lang === 'el' ? 'Διαγραφή' : 'Delete', '🗑️');
     if (id && confirmed) {
-      await deleteTransaction(id);
+      deleteTransaction(id);
       closeModal('transaction-modal');
     }
   });
