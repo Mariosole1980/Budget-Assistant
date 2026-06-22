@@ -1,4 +1,4 @@
-// SW Version 409
+// SW Version 463
 const CACHE_VERSION = 'v' + Date.now();
 const CACHE_NAME = 'money-manager-' + CACHE_VERSION;
 const ASSETS = [
@@ -59,6 +59,10 @@ self.addEventListener('message', (e) => {
 
 // Fetch - Network-first for all app files, cache fallback for offline
 self.addEventListener('fetch', (e) => {
+  if (e.request.method !== 'GET') {
+    return;
+  }
+
   if (e.request.url.includes('supabase.co') || e.request.url.includes('supabase.net')) {
     return;
   }

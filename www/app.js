@@ -136,6 +136,98 @@ function ensureHistoryPushed() {
   }
 }
 
+function getTransactionTime(t) {
+  if (!t) return 0;
+  const ref = t.created_at || t.date;
+  if (!ref) return 0;
+  if (typeof ref === 'number') return ref;
+  if (ref instanceof Date) return ref.getTime();
+  
+  let str = String(ref).trim()
+    .replace(/^(\d{4}-\d{2}-\d{2})\s+/, '$1T') // Normalize space separator
+    .replace(/\s+([+-])/, '$1') // Remove spaces before timezone offset
+    .replace(/\s+([Zz])/, '$1'); // Remove spaces before Z/z offset
+  
+  if (!str) return 0;
+  
+  // Check if it has any valid timezone offset (Z, z, +HH:MM, -HH:MM, +HHMM, -HHMM, +HH, -HH)
+  const hasTZ = /[Zz]|[+-]\d{2}(?::?\d{2})?$/.test(str);
+  
+  // Force UTC parsing by appending Z if no timezone is present
+  if (!hasTZ) {
+    str += 'Z';
+  } else if (str.endsWith('z')) {
+    str = str.slice(0, -1) + 'Z';
+  }
+  
+  // Normalize timezone offsets to +HH:MM / -HH:MM format
+  str = str.replace(/([+-]\d{2})$/, '$1:00');
+  str = str.replace(/([+-]\d{2})(\d{2})$/, '$1:$2');
+  
+  // Robust regex-based manual parsing fallback for Safari compatibility and microsecond handling
+  const match = str.match(/^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2})(?::(\d{2}))?(?:\.(\d+))?)?(Z|[+-]\d{2}:\d{2})$/);
+  if (match) {
+    const year = parseInt(match[1], 10);
+    const month = parseInt(match[2], 10) - 1;
+    const day = parseInt(match[3], 10);
+    const hour = match[4] ? parseInt(match[4], 10) : 0;
+    const minute = match[5] ? parseInt(match[5], 10) : 0;
+    const second = match[6] ? parseInt(match[6], 10) : 0;
+    
+    let ms = 0;
+    if (match[7]) {
+      const msStr = match[7].substring(0, 3).padEnd(3, '0');
+      ms = parseInt(msStr, 10);
+    }
+    
+    const tzStr = match[8];
+    let utcMs = Date.UTC(year, month, day, hour, minute, second, ms);
+    
+    if (tzStr !== 'Z') {
+      const tzSign = tzStr.charAt(0) === '+' ? 1 : -1;
+      const tzHours = parseInt(tzStr.substring(1, 3), 10);
+      const tzMinutes = parseInt(tzStr.substring(4, 6), 10);
+      const offsetMs = (tzHours * 60 + tzMinutes) * 60 * 1000;
+      utcMs -= tzSign * offsetMs;
+    }
+    return utcMs;
+  }
+  
+  // Fallback to standard Date.parse if regex doesn't match
+  const fallback = Date.parse(str);
+  return isNaN(fallback) ? 0 : fallback;
+}
+
+function compareTransactions(a, b) {
+  if (!a && !b) return 0;
+  if (!a) return 1;
+  if (!b) return -1;
+  
+  // Level 1: date descending (locale-independent string comparison)
+  const dateA = String(a.date || '').split('T')[0].split(' ')[0];
+  const dateB = String(b.date || '').split('T')[0].split(' ')[0];
+  if (dateA !== dateB) {
+    return dateA < dateB ? 1 : -1;
+  }
+  
+  // Level 2: created_at timestamp descending (UTC epoch ms)
+  const timeA = getTransactionTime(a);
+  const timeB = getTransactionTime(b);
+  if (timeA !== timeB) {
+    return timeB - timeA;
+  }
+  
+  // Level 3: id ascending (unique fallback)
+  const idA = String(a.id || '');
+  const idB = String(b.id || '');
+  if (idA !== idB) {
+    return idA < idB ? -1 : 1;
+  }
+  
+  return 0;
+}
+
+
 const GREEK_MONTHS = [
   'Ιανουάριος','Φεβρουάριος','Μάρτιος','Απρίλιος','Μάιος','Ιούνιος',
   'Ιούλιος','Αύγουστος','Σεπτέμβριος','Οκτώβριος','Νοέμβριος','Δεκέμβριος'
@@ -331,7 +423,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v408 - 12/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v418 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -615,7 +707,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v408 - 07/06/2026 23:20)',
+    app_version: 'Version 1.0.0 (build v418 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -1883,9 +1975,12 @@ function initSupabaseAuth() {
       // Note: settings-user-email-item is intentionally kept hidden.
       // The email is displayed in the profile-user-email element instead.
       
-      // Apply correct visual transformation theme and update UI immediately with cached data
+      // Apply correct visual transformation theme.
+      // NOTE: We intentionally do NOT call updateUI() here with cached data
+      // because it would show stale numbers that then jump when cloud data
+      // arrives (the "fairground" effect). The single authoritative updateUI()
+      // call happens after loadData() completes below.
       applyWalletTheme();
-      updateUI();
       renderPartnerSection();
 
       // Trigger background updates and data loading asynchronously
@@ -1896,7 +1991,10 @@ function initSupabaseAuth() {
           applyWalletTheme();
           renderPartnerSection();
           
-          // 2. Load fresh data from cloud
+          // 2. Load fresh data from cloud.
+          // Suppress realtime during the fetch so that echo/bounce events from the
+          // subscription setup don't trigger a second render on top of our clean one.
+          _suppressRealtimeEvents = true;
           await loadData();
           updateUI();
           
@@ -1906,11 +2004,19 @@ function initSupabaseAuth() {
           // Start realtime subscription
           setupSupabaseRealtimeSubscription();
           
-          // Replay offline sync queue if any items are pending
-          processSyncQueue();
+          // Re-enable realtime after a delay to let any inflight echo events drain.
+          // This prevents the subscription's own INSERT echo from triggering handleRealtimeTransactionChange
+          // and causing a 3rd render 3s after login.
+          // 10s: Supabase Realtime echo events can take up to 5-8s to arrive, so we need
+          // enough margin to absorb them before re-enabling the handler.
+          setTimeout(() => { _suppressRealtimeEvents = false; }, 10000);
           
-          // 3. Sync guest transactions in the background
-          await syncLocalTransactionsToCloud(session.user.id);
+          // Replay offline sync queue — skipReload:true because loadData() was already called above.
+          // This prevents a redundant second full fetch + UI re-render.
+          processSyncQueue({ skipReload: true });
+          
+          // 3. Sync guest transactions in the background (silent, no extra render)
+          await syncLocalTransactionsToCloud(session.user.id, { silent: true });
         } catch (err) {
           console.error('Error during background auth setup:', err);
         }
@@ -2233,13 +2339,14 @@ function getActiveTransactions() {
     if (t.id && String(t.id).startsWith('local_')) {
       locals.push(t);
     } else {
-      const key = `${t.amount || 0}|${String(t.date || '').split('T')[0]}|${t.type || ''}|${t.category || ''}|${t.account_from || ''}`;
+      // Include user_id so that Marios & Vasoula identical transactions are NOT merged
+      const key = `${t.user_id || 'unknown'}|${t.amount || 0}|${String(t.date || '').split('T')[0]}|${t.type || ''}|${t.category || ''}|${t.account_from || ''}`;
       cloudKeys.add(key);
       others.push(t);
     }
   });
   const dedupedLocals = locals.filter(t => {
-    const key = `${t.amount || 0}|${String(t.date || '').split('T')[0]}|${t.type || ''}|${t.category || ''}|${t.account_from || ''}`;
+    const key = `${t.user_id || 'unknown'}|${t.amount || 0}|${String(t.date || '').split('T')[0]}|${t.type || ''}|${t.category || ''}|${t.account_from || ''}`;
     return !cloudKeys.has(key);
   });
   return [...others, ...dedupedLocals];
@@ -2764,9 +2871,157 @@ async function cleanDuplicateCategories() {
     localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
     localStorage.setItem('offline_categories', JSON.stringify(state.categories));
     calculateInitialBalances();
-    if (typeof updateUI === 'function') {
+    // Only call updateUI if we're not in the middle of a bulk sync operation
+    // (which already schedules its own clean render at the end)
+    if (typeof updateUI === 'function' && !_suppressRealtimeEvents) {
       updateUI();
     }
+  }
+}
+
+// Scan transactions list and delete duplicate entries (both locally and in Cloud)
+async function cleanDuplicateTransactions() {
+  if (!state.transactions || state.transactions.length === 0) return;
+  
+  const groups = {};
+  const localCleaned = [];
+  const cloudDeleteIds = [];
+  let didChangeLocal = false;
+  
+  // Group all transactions by their visual contents.
+  // IMPORTANT: user_id is included in the key so that transactions from different
+  // family members with the same amount/date/category are NOT treated as duplicates.
+  state.transactions.forEach(t => {
+    if (!t) return;
+    const datePart = String(t.date || '').split('T')[0].split(' ')[0];
+    const amount = parseFloat(t.amount) || 0;
+    const type = t.type || '';
+    const category = t.category || '';
+    const accountFrom = t.account_from || '';
+    const accountTo = t.account_to || '';
+    const note = t.note || '';
+    // Include user_id so family members' identical transactions are NOT merged
+    const userId = t.user_id || 'unknown';
+    const key = `${userId}|${datePart}|${amount.toFixed(2)}|${type}|${category}|${accountFrom}|${accountTo}|${note}`;
+    
+    if (!groups[key]) {
+      groups[key] = [];
+    }
+    groups[key].push(t);
+  });
+  
+  // Process groups to identify duplicates
+  Object.keys(groups).forEach(key => {
+    const list = groups[key];
+    if (list.length === 1) {
+      localCleaned.push(list[0]);
+    } else {
+      // Sort to determine which one to keep
+      // Local pending items (starting with local_) come first because they are not yet synced.
+      // Otherwise, keep the earliest created_at, or fallback to alphabetical ID comparison.
+      list.sort((a, b) => {
+        const aIsLocal = a.id && String(a.id).startsWith('local_');
+        const bIsLocal = b.id && String(b.id).startsWith('local_');
+        if (aIsLocal && !bIsLocal) return -1;
+        if (!aIsLocal && bIsLocal) return 1;
+        
+        const timeA = a.created_at ? getTransactionTime({ created_at: a.created_at }) : 0;
+        const timeB = b.created_at ? getTransactionTime({ created_at: b.created_at }) : 0;
+        if (timeA !== timeB) return timeA - timeB;
+        
+        return String(a.id || '').localeCompare(String(b.id || ''));
+      });
+      
+      const canonical = list[0];
+      localCleaned.push(canonical);
+      
+      // All others are duplicates to be deleted
+      for (let i = 1; i < list.length; i++) {
+        const dupe = list[i];
+        if (dupe.id) {
+          if (!String(dupe.id).startsWith('local_')) {
+            cloudDeleteIds.push(dupe.id);
+          }
+          didChangeLocal = true;
+        }
+      }
+    }
+  });
+  
+  if (didChangeLocal) {
+    console.log(`[DEDUPLICATION] Cleaned up local transactions state. Removed ${cloudDeleteIds.length} duplicates from local cache.`);
+    
+    // Preserve sorting
+    localCleaned.sort(compareTransactions);
+    
+    state.transactions = localCleaned;
+    localStorage.setItem('offline_transactions', JSON.stringify(localCleaned));
+    calculateInitialBalances();
+    updateUI();
+  }
+  
+  if (cloudDeleteIds.length > 0 && state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
+    // Suppress realtime events during cleanup to prevent the DELETE operations
+    // from triggering UI re-renders (flickering numbers).
+    _suppressRealtimeEvents = true;
+    try {
+      console.log(`[DEDUPLICATION] Deleting ${cloudDeleteIds.length} duplicate transaction records from Cloud Database...`);
+      for (let i = 0; i < cloudDeleteIds.length; i += 50) {
+        const batch = cloudDeleteIds.slice(i, i + 50);
+        const { error } = await state.supabaseClient
+          .from('transactions')
+          .delete()
+          .in('id', batch)
+          .eq('user_id', state.currentUser.id); // safety: only delete own transactions
+        if (error) {
+          console.error('[DEDUPLICATION] Cloud delete error:', error);
+        } else {
+          console.log(`[DEDUPLICATION] Successfully deleted batch of ${batch.length} duplicates from Cloud.`);
+        }
+      }
+    } catch (e) {
+      console.error('[DEDUPLICATION] Exception during cloud delete:', e);
+    } finally {
+      // Re-enable realtime events after a short delay (to let any in-flight events pass)
+      setTimeout(() => { _suppressRealtimeEvents = false; }, 5000);
+    }
+  }
+}
+
+window.cleanDuplicateTransactions = cleanDuplicateTransactions;
+
+function getPendingLocalTransactions(cachedTransactions) {
+  if (!cachedTransactions || !Array.isArray(cachedTransactions)) return [];
+  try {
+    const queueStr = localStorage.getItem('money_manager_sync_queue');
+    const queuedIds = new Set();
+    if (queueStr) {
+      const queue = JSON.parse(queueStr) || [];
+      queue.forEach(item => {
+        if (item.action === 'save' && item.payload && item.payload.id) {
+          queuedIds.add(item.payload.id);
+        }
+      });
+    }
+
+    return cachedTransactions.filter(t => {
+      if (!t || typeof t !== 'object') return false;
+      if (!t.id) return true;
+      if (String(t.id).startsWith('local_')) return true;
+      if (t.user_id === null || t.user_id === undefined) return true;
+      
+      // Keep if in the offline sync queue (not yet successfully uploaded)
+      if (queuedIds.has(t.id)) return true;
+      
+      // If it is not a valid UUID, it is local
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(String(t.id))) return true;
+      
+      return false;
+    });
+  } catch (e) {
+    console.error('Error getting pending local transactions:', e);
+    return [];
   }
 }
 
@@ -2774,6 +3029,15 @@ async function cleanDuplicateCategories() {
 // DATA LOADING
 // ============================================================
 async function loadData() {
+  // Cancel any pending realtime debounce timer to prevent stale DB events
+  // from overwriting the fresh data we are about to fetch.
+  if (_realtimeDebounceTimer) {
+    clearTimeout(_realtimeDebounceTimer);
+    _realtimeDebounceTimer = null;
+    _pendingRealtimeEvents = [];
+    console.log('[loadData] Cancelled stale realtime debounce before fetch.');
+  }
+
   if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
     try {
       updateHeaderSyncIcon('syncing');
@@ -2891,23 +3155,61 @@ async function loadData() {
 
       // Preserve pending local transactions that failed to sync (offline fallback),
       // so they are not lost when fresh cloud data overwrites local cache.
-      const pendingLocal = (() => {
+      const pendingLocal = getPendingLocalTransactions(JSON.parse(localStorage.getItem('offline_transactions') || '[]'));
+
+      // 4.5. RECOVERY: Rescue local transactions that were dropped from the sync queue due to schema errors (e.g., recurring_template_id)
+      const cloudIds = new Set(allTransactions.map(t => t.id));
+      /*
+      const toRecover = (() => {
         try {
           const cached = JSON.parse(localStorage.getItem('offline_transactions') || '[]');
-          const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
           return cached.filter(t => {
-            if (!t || typeof t !== 'object') return false;
-            if (!t.id) return true;
-            if (String(t.id).startsWith('local_')) return true;
-            if (t.user_id === null || t.user_id === undefined) return true;
-            return !uuidRegex.test(String(t.id));
+            if (!t.id || String(t.id).startsWith('local_')) return false;
+            if (t.user_id !== user.id) return false;
+            if (cloudIds.has(t.id)) return false;
+            // Only recover transactions from the last 30 days
+            if (!t.created_at || new Date(t.created_at).getTime() < Date.now() - 30 * 24 * 60 * 60 * 1000) return false;
+            return true;
           });
         } catch (_) {
           return [];
         }
       })();
+      */
 
-      const mergedTransactions = [...allTransactions, ...pendingLocal];
+      // 4.5. RECOVERY: Disabled - was causing infinite loops and duplicate clutter
+      /*
+      if (toRecover.length > 0) {
+        console.log(`Recovering ${toRecover.length} silently dropped transactions during loadData...`);
+        const payloads = toRecover.map(t => {
+          const { description, is_shared, recurring_template_id, ...dbPayload } = t;
+          return dbPayload;
+        });
+        try {
+          for (let i = 0; i < payloads.length; i += 50) {
+            await state.supabaseClient.from('transactions').upsert(payloads.slice(i, i + 50));
+          }
+        } catch (recoverErr) {
+          console.error("Failed to recover dropped transactions:", recoverErr);
+        }
+      }
+      */
+
+      // Deduplicate merged transactions immediately (prevents flicker from two-pass cleanup)
+      // Key includes user_id to preserve separate transactions from different family members.
+      const mergeDedup = {};
+      const mergedTransactions = [];
+      [...allTransactions, ...pendingLocal].forEach(t => {
+        if (!t) return;
+        const datePart = String(t.date || '').split('T')[0].split(' ')[0];
+        const uid = t.user_id || 'unknown';
+        const key = `${uid}|${datePart}|${(parseFloat(t.amount)||0).toFixed(2)}|${t.type||''}|${t.category||''}|${t.account_from||''}|${t.account_to||''}|${t.note||''}`;
+        if (!mergeDedup[key]) {
+          mergeDedup[key] = true;
+          mergedTransactions.push(t);
+        }
+      });
+      mergedTransactions.sort(compareTransactions);
       state.transactions = mergedTransactions;
       state.categories = categories;
       state.accounts = accounts;
@@ -2922,6 +3224,9 @@ async function loadData() {
 
       // Run automatic duplicate / corrupt category cleanup in background
       cleanDuplicateCategories().catch(e => console.warn('Automatic categories cleanup error:', e));
+
+      // NOTE: cleanDuplicateTransactions no longer needed here since we dedup inline above.
+      // It is kept available for manual/sync-triggered calls only.
 
       // Try to flush pending local items in background without blocking UI.
       if (pendingLocal.length > 0) {
@@ -3108,9 +3413,25 @@ function processRecurringTemplates() {
           return;
         }
 
-        const duplicateExists = state.transactions.some(t => 
-          t.recurring_template_id === template.id && t.date === dateString
-        );
+        // Check for duplicates by BOTH recurring_template_id (if stored) AND by content-key.
+        // The content-key fallback is critical because the recurring_template_id column may not
+        // exist in the database, so fetched transactions arrive with recurring_template_id=null,
+        // causing false negatives in the ID-only check and infinite re-creation loops.
+        const duplicateExists = state.transactions.some(t => {
+          if (t.recurring_template_id && t.recurring_template_id === template.id && t.date === dateString) {
+            return true;
+          }
+          // Content-based fallback: same date + amount + type + category + account_from
+          const tDate = String(t.date || '').split('T')[0].split(' ')[0];
+          if (tDate === dateString &&
+              (parseFloat(t.amount) || 0).toFixed(2) === (parseFloat(template.amount) || 0).toFixed(2) &&
+              t.type === template.type &&
+              t.category === template.category &&
+              (t.account_from || '') === (template.account_from || '')) {
+            return true;
+          }
+          return false;
+        });
 
         if (!duplicateExists) {
           const newTx = {
@@ -3188,10 +3509,15 @@ async function saveTransaction(transaction) {
       transaction.family_id = state.userProfile.family_id;
     }
 
-    const { description, ...dbPayload } = transaction;
+    // Note: description and is_shared are client-only fields. recurring_template_id
+    // is kept if the column exists in the DB (it won't cause errors if missing — upsert will ignore it).
+    // However if it throws a 400, remove it too. For now we keep it to prevent duplicate re-creation.
+    const { description, is_shared, ...dbPayload } = transaction;
 
     (async () => {
       try {
+        // Suppress realtime echo of our own upsert to prevent a second UI render ~5s after save.
+        _suppressRealtimeEvents = true;
         const { error } = await promiseTimeout(
           state.supabaseClient
             .from('transactions')
@@ -3203,6 +3529,9 @@ async function saveTransaction(transaction) {
       } catch (err) {
         console.warn(`Cloud save failed, queueing transaction: ${transaction.id}`, err);
         enqueueSyncMutation('save', transaction);
+      } finally {
+        // Re-enable realtime after enough time for the echo to arrive and be discarded.
+        setTimeout(() => { _suppressRealtimeEvents = false; }, 8000);
       }
     })();
   }
@@ -3243,6 +3572,8 @@ async function deleteTransaction(id) {
   if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
     (async () => {
       try {
+        // Suppress realtime echo of our own delete to prevent a second UI render ~5s later.
+        _suppressRealtimeEvents = true;
         const { error } = await promiseTimeout(
           state.supabaseClient
             .from('transactions')
@@ -3255,6 +3586,9 @@ async function deleteTransaction(id) {
       } catch (err) {
         console.warn(`Cloud delete failed, queueing delete: ${id}`, err);
         enqueueSyncMutation('delete', id);
+      } finally {
+        // Re-enable realtime after enough time for the echo to arrive and be discarded.
+        setTimeout(() => { _suppressRealtimeEvents = false; }, 8000);
       }
     })();
   }
@@ -3276,7 +3610,24 @@ function deleteTransactionOffline(id) {
 // ============================================================
 // UI UPDATE ENGINE
 // ============================================================
+
+// Debounce for updateUI — prevents 32+ concurrent calls from all hammering the DOM at once.
+// Any burst of updateUI() calls within 150 ms will collapse into a single render.
+let _updateUITimer = null;
+let _updateUIRAF = null;
 function updateUI() {
+  if (_updateUITimer) clearTimeout(_updateUITimer);
+  _updateUITimer = setTimeout(() => {
+    _updateUITimer = null;
+    if (_updateUIRAF) cancelAnimationFrame(_updateUIRAF);
+    _updateUIRAF = requestAnimationFrame(() => {
+      _updateUIRAF = null;
+      _updateUIImpl();
+    });
+  }, 150);
+}
+
+function _updateUIImpl() {
   processRecurringTemplates();
   updateHeaderAndSync();
   // Render only the active tab to optimize performance and prevent background rendering lag
@@ -3344,25 +3695,7 @@ function renderTransactionsTab() {
     return tDatePart >= startISO && tDatePart <= endISO;
   });
 
-  // Schwartzian transform for O(N) date parsing during sorting
-  const transWithTime = filteredTrans.map(t => {
-    let time = 0;
-    const refDate = t.created_at || t.date;
-    if (refDate) {
-      time = typeof refDate === 'number' ? refDate : new Date(String(refDate).replace(' ', 'T')).getTime();
-    }
-    return { t, time };
-  });
-
-  transWithTime.sort((a, b) => {
-    const dateA = String(a.t.date || '').split('T')[0].split(' ')[0];
-    const dateB = String(b.t.date || '').split('T')[0].split(' ')[0];
-    if (dateA !== dateB) return dateB.localeCompare(dateA);
-    if (a.time !== b.time) return b.time - a.time;
-    return String(a.t.id || '').localeCompare(String(b.t.id || ''));
-  });
-
-  const sortedTrans = transWithTime.map(item => item.t);
+  const sortedTrans = [...filteredTrans].sort(compareTransactions);
 
   let monthlyIncome = 0, monthlyExpense = 0;
   const groups = {};
@@ -4199,14 +4532,7 @@ function renderSubcategoryTransactions(category, subcategory) {
     
     const tSub = t.subcategory || '';
     return tSub.toUpperCase() === subcategory.toUpperCase();
-  }).sort((a, b) => {
-    const dateA = String(a.date || '').split('T')[0].split(' ')[0];
-    const dateB = String(b.date || '').split('T')[0].split(' ')[0];
-    if (dateA !== dateB) return dateB.localeCompare(dateA);
-    const timeA = a.created_at ? new Date(a.created_at).getTime() : (a.date ? new Date(a.date).getTime() : 0);
-    const timeB = b.created_at ? new Date(b.created_at).getTime() : (b.date ? new Date(b.date).getTime() : 0);
-    return timeB - timeA;
-  });
+  }).sort(compareTransactions);
 
   if (subcatTrans.length === 0) {
     closeStatsTransactionsModal();
@@ -9164,15 +9490,7 @@ function handleSearchChange(resetLimit = true) {
   });
 
   // Sort transactions by date descending
-  filtered.sort((a, b) => {
-    const dateA = String(a.date || '').split('T')[0];
-    const dateB = String(b.date || '').split('T')[0];
-    if (dateA !== dateB) return dateB.localeCompare(dateA);
-    const timeA = a.created_at ? new Date(a.created_at).getTime() : (a.date ? new Date(a.date).getTime() : 0);
-    const timeB = b.created_at ? new Date(b.created_at).getTime() : (b.date ? new Date(b.date).getTime() : 0);
-    if (timeA !== timeB) return timeB - timeA;
-    return String(a.id || '').localeCompare(String(b.id || ''));
-  });
+  filtered.sort(compareTransactions);
 
   // Update Badge Count if exists
   const countBadge = document.getElementById('search-results-count');
@@ -12313,11 +12631,17 @@ async function syncLocalTransactionsToCloud(userId, options = {}) {
         delete copy.id; // Let Supabase auto-generate UUIDs
         delete copy.description; // Strip description from DB payload as database doesn't have it
         copy.user_id = userId;
-        if (copy.is_shared === undefined || copy.is_shared === null) {
-          copy.is_shared = false;
+        if (state.userProfile && state.userProfile.family_id) {
+          copy.family_id = state.userProfile.family_id;
         }
+        delete copy.is_shared; // Ensure is_shared is not sent to DB
+        delete copy.recurring_template_id; // Ensure recurring_template_id is not sent to DB
         return copy;
       });
+      
+      // Suppress realtime events during batch insert so the resulting INSERT
+      // events don't trigger handleRealtimeTransactionChange and cause flicker.
+      _suppressRealtimeEvents = true;
       
       // Batch sync in groups of 50 to avoid timeouts
       let hasError = false;
@@ -12346,9 +12670,13 @@ async function syncLocalTransactionsToCloud(userId, options = {}) {
           alert(`🎉 ${localTrans.length} τοπικές κινήσεις που είχατε καταγράψει μεταφέρθηκαν αυτόματα στον λογαριασμό σας!`);
         }
       }
+      
+      // Re-enable realtime events after a short delay to let in-flight events drain
+      setTimeout(() => { _suppressRealtimeEvents = false; }, 5000);
     }
   } catch (err) {
     console.error('Error in syncLocalTransactionsToCloud:', err);
+    setTimeout(() => { _suppressRealtimeEvents = false; }, 5000);
   }
 }
 
@@ -12397,7 +12725,10 @@ function enqueueSyncMutation(action, payload) {
 
 let _isProcessingSyncQueue = false;
 
-async function processSyncQueue() {
+// skipReload: when true, do NOT call loadData/updateUI after processing (used by forceSyncNow
+// which handles its own full re-fetch and UI update, preventing double renders).
+async function processSyncQueue(options = {}) {
+  const skipReload = !!options.skipReload;
   if (_isProcessingSyncQueue) return;
   if (!state.isSupabaseEnabled || !state.supabaseClient || !state.currentUser) return;
   
@@ -12425,7 +12756,7 @@ async function processSyncQueue() {
     try {
       if (item.action === 'save') {
         const transaction = item.payload;
-        const { description, ...dbPayload } = transaction;
+        const { description, is_shared, recurring_template_id, ...dbPayload } = transaction;
         
         const { error } = await promiseTimeout(
           state.supabaseClient
@@ -12470,8 +12801,13 @@ async function processSyncQueue() {
     localStorage.setItem('money_manager_sync_queue', JSON.stringify(remaining));
     console.log(`Synced ${successCount} mutations. ${remaining.length} remaining.`);
     
-    await loadData();
-    updateUI();
+    // Only reload and render here if the caller didn't request to skip it.
+    // When called from forceSyncNow, skipReload=true because forceSyncNow does its own
+    // full fetch + UI update immediately after, so we avoid a double render.
+    if (!skipReload) {
+      await loadData();
+      updateUI();
+    }
   }
   
   _isProcessingSyncQueue = false;
@@ -12542,47 +12878,94 @@ function stopSupabaseRealtimeSubscription() {
   }
 }
 
+// Debounce timer for realtime changes — prevents rapid-fire UI re-renders when
+// multiple INSERT/UPDATE/DELETE events arrive in quick succession (e.g. after bulk upsert).
+let _realtimeDebounceTimer = null;
+let _pendingRealtimeEvents = [];
+
+// Flag: set to true during internal cleanup (e.g. duplicate deletion) so that
+// the resulting DB DELETE events do NOT trigger a UI re-render / flicker.
+let _suppressRealtimeEvents = false;
+
 function handleRealtimeTransactionChange(payload) {
-  console.log('Realtime transaction event received:', payload.eventType, payload.new, payload.old);
-  
-  let trans = [...state.transactions];
-  const eventType = payload.eventType;
-  
-  if (eventType === 'INSERT') {
-    const newTrans = payload.new;
-    if (!trans.some(t => t.id === newTrans.id)) {
-      trans.unshift(newTrans);
+  // Ignore events generated by our own internal cleanup operations.
+  // Also cancel any already-queued debounce timer to prevent stale renders.
+  if (_suppressRealtimeEvents) {
+    console.log('[REALTIME] Event suppressed (internal cleanup in progress):', payload.eventType);
+    if (_realtimeDebounceTimer) {
+      clearTimeout(_realtimeDebounceTimer);
+      _realtimeDebounceTimer = null;
+      _pendingRealtimeEvents = [];
     }
-  } else if (eventType === 'UPDATE') {
-    const updatedTrans = payload.new;
-    trans = trans.map(t => t.id === updatedTrans.id ? updatedTrans : t);
-  } else if (eventType === 'DELETE') {
-    const deletedId = payload.old.id;
-    trans = trans.filter(t => t.id !== deletedId);
+    return;
   }
   
-  trans.sort((a, b) => {
-    const dateA = String(a.date || '').split('T')[0];
-    const dateB = String(b.date || '').split('T')[0];
-    if (dateA !== dateB) return dateB.localeCompare(dateA);
-    const timeA = a.created_at ? new Date(a.created_at).getTime() : (a.date ? new Date(a.date).getTime() : 0);
-    const timeB = b.created_at ? new Date(b.created_at).getTime() : (b.date ? new Date(b.date).getTime() : 0);
-    if (timeA !== timeB) return timeB - timeA;
-    return String(a.id || '').localeCompare(String(b.id || ''));
-  });
+  console.log('Realtime transaction event received:', payload.eventType);
   
-  state.transactions = trans;
-  localStorage.setItem('offline_transactions', JSON.stringify(trans));
+  // Accumulate events, then apply them all at once after a short delay
+  _pendingRealtimeEvents.push(payload);
   
-  calculateInitialBalances();
-  updateUI();
-  
-  if (eventType === 'INSERT' && payload.new.user_id !== state.currentUser.id) {
-    showSyncToast('📥 Νέα κίνηση προστέθηκε από άλλο μέλος', 3000);
-  }
+  if (_realtimeDebounceTimer) clearTimeout(_realtimeDebounceTimer);
+  _realtimeDebounceTimer = setTimeout(() => {
+    const events = _pendingRealtimeEvents.slice();
+    _pendingRealtimeEvents = [];
+    _realtimeDebounceTimer = null;
+    
+    let trans = [...state.transactions];
+    let changed = false;
+    let insertedByPartner = false;
+    
+    events.forEach(ev => {
+      const eventType = ev.eventType;
+      if (eventType === 'INSERT') {
+        const newTrans = ev.new;
+        if (!trans.some(t => t.id === newTrans.id)) {
+          trans.unshift(newTrans);
+          changed = true;
+          if (newTrans.user_id !== state.currentUser.id) insertedByPartner = true;
+        }
+      } else if (eventType === 'UPDATE') {
+        const updatedTrans = ev.new;
+        const idx = trans.findIndex(t => t.id === updatedTrans.id);
+        if (idx !== -1) {
+          trans[idx] = updatedTrans;
+          changed = true;
+        }
+      } else if (eventType === 'DELETE') {
+        const deletedId = ev.old && ev.old.id;
+        if (deletedId && trans.some(t => t.id === deletedId)) {
+          trans = trans.filter(t => t.id !== deletedId);
+          changed = true;
+        }
+      }
+    });
+    
+    // Only update UI if something actually changed
+    if (!changed) {
+      console.log('[REALTIME] No effective changes — skipping UI refresh.');
+      return;
+    }
+    
+    trans.sort(compareTransactions);
+    
+    state.transactions = trans;
+    localStorage.setItem('offline_transactions', JSON.stringify(trans));
+    
+    calculateInitialBalances();
+    updateUI();
+    
+    if (insertedByPartner) {
+      showSyncToast('📥 Νέα κίνηση προστέθηκε από άλλο μέλος', 3000);
+    }
+  }, 5000); // wait 5s before applying, to batch rapid events and prevent flickering
 }
 
 function handleRealtimeCategoryChange(payload) {
+  // Ignore events generated by our own internal cleanup operations.
+  if (_suppressRealtimeEvents) {
+    console.log('[REALTIME] Category event suppressed (internal operation in progress):', payload.eventType);
+    return;
+  }
   console.log('Realtime category event received:', payload.eventType, payload.new, payload.old);
   
   let cats = [...state.categories];
@@ -12711,8 +13094,17 @@ async function forceSyncNow(silent = false) {
   state.syncStatus = 'syncing';
   updateSyncStatusIndicator();
   
+  // Suppress realtime events for the duration of this sync to prevent
+  // DB mutations (upserts/inserts from queue flush) from firing handleRealtimeTransactionChange
+  // and causing flickering numbers. We will do a single clean render at the end.
+  _suppressRealtimeEvents = true;
+  
   try {
     const userId = state.currentUser.id;
+    
+    // Auto-sync any stuck local transactions (e.g. from guest mode or legacy local_ items)
+    await syncLocalTransactionsToCloud(userId, { silent: true });
+    
     const partnerId = state.partnerProfile ? state.partnerProfile.id : null;
     const familyId = state.userProfile ? state.userProfile.family_id : null;
     
@@ -12751,12 +13143,11 @@ async function forceSyncNow(silent = false) {
         .order('date', { ascending: false })
         .range(page * pageSize, (page + 1) * pageSize - 1);
         
-      if (familyId) {
-        if (partnerId) {
-          transQuery = transQuery.or(`family_id.eq.${familyId},user_id.eq.${userId},user_id.eq.${partnerId}`);
-        } else {
-          transQuery = transQuery.or(`family_id.eq.${familyId},user_id.eq.${userId}`);
-        }
+      // FIX: Use proper Supabase .or() syntax with individual conditions
+      if (familyId && partnerId) {
+        transQuery = transQuery.or(`family_id.eq.${familyId},user_id.eq.${userId},user_id.eq.${partnerId}`);
+      } else if (familyId) {
+        transQuery = transQuery.or(`family_id.eq.${familyId},user_id.eq.${userId}`);
       } else if (partnerId) {
         transQuery = transQuery.or(`user_id.eq.${userId},user_id.eq.${partnerId}`);
       } else {
@@ -12779,23 +13170,42 @@ async function forceSyncNow(silent = false) {
     }
 
     // 3. Process offline queue first (push local changes to cloud)
-    await processSyncQueue();
+    // skipReload=true: forceSyncNow does its own full re-fetch below, so we don't
+    // want processSyncQueue to also call loadData+updateUI (would cause double render).
+    await processSyncQueue({ skipReload: true });
     
     // 4. Keep local pending transactions
-    const localPending = (state.transactions || []).filter(t => t.id && String(t.id).startsWith('local_'));
+    const localPending = getPendingLocalTransactions(state.transactions);
     
-    // 5. Update state
+    // 4.5. RECOVERY: Disabled - was causing infinite upsert loops when RLS filtered out partner transactions
+
+    // 5. Update state — deduplicate combined result before storing
     const prevCount = (state.transactions || []).filter(t => t.id && !String(t.id).startsWith('local_')).length;
-    state.transactions = [...allTransactions, ...localPending];
-    state.transactions.sort((a, b) => {
-      const dateA = String(a.date || '').split('T')[0];
-      const dateB = String(b.date || '').split('T')[0];
-      if (dateA !== dateB) return dateB.localeCompare(dateA);
-      const timeA = a.created_at ? new Date(a.created_at).getTime() : (a.date ? new Date(a.date).getTime() : 0);
-      const timeB = b.created_at ? new Date(b.created_at).getTime() : (b.date ? new Date(b.date).getTime() : 0);
-      if (timeA !== timeB) return timeB - timeA;
-      return String(a.id || '').localeCompare(String(b.id || ''));
+    const combined = [...allTransactions, ...localPending];
+    
+    // Inline dedup: only remove true duplicates (same user_id + same content)
+    const dedupMap = {};
+    const dedupedCombined = [];
+    combined.forEach(t => {
+      if (!t) return;
+      const datePart = String(t.date || '').split('T')[0].split(' ')[0];
+      const uid = t.user_id || 'unknown';
+      const key = `${uid}|${datePart}|${(parseFloat(t.amount)||0).toFixed(2)}|${t.type||''}|${t.category||''}|${t.account_from||''}|${t.account_to||''}|${t.note||''}`;
+      if (!dedupMap[key]) {
+        dedupMap[key] = true;
+        dedupedCombined.push(t);
+      }
     });
+    
+    dedupedCombined.sort(compareTransactions);
+    
+    // === ANTI-FLICKER GUARD ===
+    // Only update UI if the data has actually changed (compare transaction IDs)
+    const newIds = dedupedCombined.map(t => t.id || '').join(',');
+    const oldIds = (state.transactions || []).map(t => t.id || '').join(',');
+    const dataChanged = newIds !== oldIds;
+    
+    state.transactions = dedupedCombined;
     localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
     
     // 6. Check sync queue status
@@ -12820,8 +13230,13 @@ async function forceSyncNow(silent = false) {
       lastSyncEl.textContent = d.toLocaleTimeString(state.lang === 'el' ? 'el-GR' : 'en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     }
     
-    calculateInitialBalances();
-    updateUI();
+    if (dataChanged) {
+      console.log('[SYNC] Data changed — refreshing balances and UI.');
+      calculateInitialBalances();
+      updateUI();
+    } else {
+      console.log('[SYNC] No data change detected — skipping UI refresh to prevent flickering.');
+    }
     
     const newCount = allTransactions.length - prevCount;
     if (!silent && newCount > 0) {
@@ -12839,6 +13254,10 @@ async function forceSyncNow(silent = false) {
       showSyncToast('❌ ' + (state.lang === 'en' ? 'Sync failed: ' : 'Αποτυχία συγχρονισμού: ') + (e.message || e), 4000);
     }
     return false;
+  } finally {
+    // Always re-enable realtime events after sync completes (or fails),
+    // with a short delay to let any already-inflight Realtime events drain first.
+    setTimeout(() => { _suppressRealtimeEvents = false; }, 4000);
   }
 }
 
@@ -12850,18 +13269,32 @@ function stopPartnerSyncPolling() {
 }
 
 function startPartnerSyncPolling() {
-  if (_partnerSyncInterval) clearInterval(_partnerSyncInterval);
-  _partnerSyncInterval = setInterval(() => {
-    if (!state.supabaseClient || !state.currentUser) return;
-    forceSyncNow(true);
-  }, 15000); // every 15 seconds
+  // DISABLED: Background polling was causing flickering numbers.
+  // Sync only happens on: (1) login, (2) manual tap of sync button, (3) tab visibility change.
+  // if (_partnerSyncInterval) clearInterval(_partnerSyncInterval);
+  // _partnerSyncInterval = setInterval(() => {
+  //   if (!state.supabaseClient || !state.currentUser) return;
+  //   forceSyncNow(true);
+  // }, 300000); // every 5 minutes
+  console.log('[SYNC] Background polling disabled to prevent flickering.');
 }
 
 // Sync on visibility change (user switches back to tab/app)
+// Uses a longer delay and a guard to prevent rapid repeated syncs
+let _visibilitySyncTimer = null;
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible' && state.currentUser && state.supabaseClient) {
-    // Small delay to let the browser settle
-    setTimeout(() => forceSyncNow(true), 500);
+    if (_visibilitySyncTimer) clearTimeout(_visibilitySyncTimer);
+    // Only sync if we haven't synced in the last 2 minutes (120s).
+    // Shorter cooldowns caused the "fairground" effect where numbers jumped
+    // every time the user switched tabs or minimized the app.
+    const timeSinceLastSync = Date.now() - (state.lastSyncTime || 0);
+    if (timeSinceLastSync > 120000) {
+      _visibilitySyncTimer = setTimeout(() => {
+        _visibilitySyncTimer = null;
+        forceSyncNow(true);
+      }, 3000);
+    }
   }
 });
 
@@ -12871,7 +13304,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (state.currentUser) {
       startPartnerSyncPolling();
       setupSupabaseRealtimeSubscription();
-      processSyncQueue();
+      // skipReload:true because onAuthStateChange already called loadData().
+      // We only want to flush pending mutations from the sync queue here,
+      // NOT trigger another full loadData() + updateUI() which would cause flicker.
+      processSyncQueue({ skipReload: true });
     }
   }, 5000);
 });
@@ -14337,12 +14773,7 @@ function getAdvancedNotes(query) {
   const noteDetails = new Map();
   
   // Sort transactions by date (desc) and time/id (desc) to get the most recent first
-  const sortedTrans = [...allTransactions].sort((a, b) => {
-    const da = a.date ? new Date(a.date) : new Date(0);
-    const db = b.date ? new Date(b.date) : new Date(0);
-    if (db - da !== 0) return db - da;
-    return (b.id || 0) - (a.id || 0);
-  });
+  const sortedTrans = [...allTransactions].sort(compareTransactions);
   
   for (const t of sortedTrans) {
     const title = (t.note || '').trim();

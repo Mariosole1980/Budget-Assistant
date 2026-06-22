@@ -42,6 +42,8 @@ if ($indexContent -match 'build v(\d+)') {
     $indexContent = $indexContent -replace 'const CURRENT_BUILD = \d+;', "const CURRENT_BUILD = $newBuild;"
     # Also update the versioned SW URL (sw.js?v=OLD → sw.js?v=NEW)
     $indexContent = $indexContent -replace "sw\.js\?v=\d+", "sw.js?v=$newBuild"
+    # Also update any other versioned JS URLs in the HTML file (e.g. app.js?v=OLD → app.js?v=NEW)
+    $indexContent = $indexContent -replace '\.js\?v=\d+', ".js?v=$newBuild"
     Set-Content $indexPath $indexContent -NoNewline
     Write-Host "  [SUCCESS] Index.html build version bumped to v$newBuild (SW URL: sw.js?v=$newBuild)" -ForegroundColor Green
 } else {
@@ -56,10 +58,13 @@ Write-Host "  [SUCCESS] Created version.json with version $newBuild" -Foreground
 
 # 2. Copy files to www folder
 Write-Host "[INFO] Copying assets to www/ folder..." -ForegroundColor Yellow
-if (!(Test-Path www)) {
-    New-Item -ItemType Directory -Path www -Force | Out-Null
+if (Test-Path www) {
+    Remove-Item -Recurse -Force www
 }
+New-Item -ItemType Directory -Path www -Force | Out-Null
+
 Copy-Item app.js www/app.js -Force
+Copy-Item -Recurse -Force js www/
 Copy-Item index.html www/index.html -Force
 Copy-Item style.css www/style.css -Force
 Copy-Item sw.js www/sw.js -Force
@@ -69,6 +74,7 @@ Copy-Item xlsx.full.min.js www/xlsx.full.min.js -Force
 Copy-Item version.json www/version.json -Force
 Copy-Item _headers www/_headers -Force
 Copy-Item clear.html www/clear.html -Force
+Copy-Item debug.html www/debug.html -Force
 Write-Host "  [SUCCESS] Files copied successfully." -ForegroundColor Green
 
 # 3. Capacitor Sync
@@ -120,9 +126,10 @@ wrangler pages deploy www --project-name=money-manager-pwa --branch=main
 $deploy2 = $LASTEXITCODE
 
 if ($deploy1 -ne 0 -or $deploy2 -ne 0) {
-    Write-Host "[ERROR] Wrangler deployment failed on one or both projects!" -ForegroundColor Red
+    Write-Host "[ERROR] Wrangler deployment failed!" -ForegroundColor Red
     Exit 1
 }
-Write-Host "[SUCCESS] All steps completed successfully! Build is live at both URLs:" -ForegroundColor Green
+Write-Host "[SUCCESS] All steps completed successfully! Builds are live at:" -ForegroundColor Green
 Write-Host "  - https://budget-assistant-pwa.pages.dev" -ForegroundColor Green
 Write-Host "  - https://money-manager-pwa.pages.dev" -ForegroundColor Green
+

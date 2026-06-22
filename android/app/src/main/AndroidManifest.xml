@@ -28,7 +28,7 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https"
-                      android:host="money-manager-pwa.pages.dev" />
+                      android:host="budget-assistant-pwa.pages.dev" />
             </intent-filter>
 
         </activity>

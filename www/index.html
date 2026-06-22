@@ -38,7 +38,7 @@
   <link rel="stylesheet" href="style.css">
   
   <!-- Capacitor Bridge -->
-  <script src="capacitor.js"></script>
+  <script src="capacitor.js?v=418"></script>
   
 
   <!-- Supabase client JS CDN -->
@@ -48,7 +48,7 @@
   <!-- Chart.js Datalabels Plugin CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
   <!-- SheetJS xlsx CDN for Excel Import/Export -->
-  <script src="xlsx.full.min.js"></script>
+  <script src="xlsx.full.min.js?v=418"></script>
 </head>
 <body>
   <script>
@@ -541,7 +541,9 @@
             </div>
           </div>
 
-          <!-- Card 2: Data & Sync [Collapsible] -->
+          
+            <!-- Card: AI Settings -->
+            <!-- Card 2: Data & Sync [Collapsible] -->
           <div class="collapsible-section">
             <div class="account-section-title" id="collapse-trigger-sync" style="color: var(--text-primary);">
               <span data-i18n="settings_data_title">☁️ Δεδομένα & Συγχρονισμός</span>
@@ -642,7 +644,7 @@
                 <i class="fa-solid fa-chevron-right" style="color: var(--red-negative); font-size: 12px;"></i>
               </div>
               <div class="settings-list-item">
-                <span class="settings-item-label" style="color: var(--text-muted); font-size: 12px;" data-i18n="app_version">Έκδοση 1.0.0 (build v408 - 07/06/2026 23:20)</span>
+                <span class="settings-item-label" style="color: var(--text-muted); font-size: 12px;" data-i18n="app_version">Έκδοση 1.0.0 (build v418 - 07/06/2026 23:20)</span>
                 <span class="settings-item-value" style="font-size: 12px; color: var(--text-muted);">Budget Assistant</span>
               </div>
             </div>
@@ -1878,11 +1880,16 @@
   </div>
 
   <!-- Core Application Scripts -->
-  <script src="app.js"></script>
+  <script src="js/NLPProcessor.js?v=418"></script>
+  <script src="js/MemoryEngine.js?v=418"></script>
+  <script src="js/DecisionEngine.js?v=418"></script>
+  <script src="js/OnlineAIProvider.js?v=418"></script>
+  <script src="js/AIEngine.js?v=418"></script>
+  <script src="app.js?v=418"></script>
   
   <!-- Register PWA Service Worker -->
   <script>
-    const CURRENT_BUILD = 408;
+    const CURRENT_BUILD = 418;
     
     // ============================================================
     // AGGRESSIVE iOS PWA AUTO-UPDATE
@@ -1962,8 +1969,8 @@
     if ('serviceWorker' in navigator) {
       // ============================================================
       // NUCLEAR iOS PWA FIX: Register SW with versioned URL
-      // iOS Safari treats 'sw.js?v=408' as a COMPLETELY DIFFERENT
-      // script from 'sw.js?v=408', bypassing the update deadlock.
+      // iOS Safari treats 'sw.js?v=418' as a COMPLETELY DIFFERENT
+      // script from 'sw.js?v=418', bypassing the update deadlock.
       // Old SW is unregistered first to break the control cycle.
       // ============================================================
       const SW_URL = 'sw.js?v=' + CURRENT_BUILD;
@@ -2410,5 +2417,61 @@
   </div>
   </div>
 
+
+  <script>
+    // Aggressive Cache Buster for v423
+    (async function() {
+      if (!localStorage.getItem('cacheBusted_v423')) {
+        console.log("Busting PWA cache for v423...");
+        if ('serviceWorker' in navigator) {
+          try {
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            for (let registration of registrations) {
+              await registration.unregister();
+            }
+          } catch(e) { console.error(e); }
+        }
+        if ('caches' in window) {
+          try {
+            const keys = await caches.keys();
+            for (let key of keys) {
+              await caches.delete(key);
+            }
+          } catch(e) { console.error(e); }
+        }
+        localStorage.setItem('cacheBusted_v423', 'true');
+        window.location.reload(true);
+      }
+    })();
+  </script>
+
+  <script>
+    // Aggressive Cache Buster for v425
+    (async function() {
+      if (!localStorage.getItem('cacheBusted_v425')) {
+        console.log("Busting PWA cache for v425...");
+        if ('serviceWorker' in navigator) {
+          try {
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            for (let registration of registrations) {
+              await registration.unregister();
+            }
+          } catch(e) { console.error(e); }
+        }
+        if ('caches' in window) {
+          try {
+            const keys = await caches.keys();
+            for (let key of keys) {
+              await caches.delete(key);
+            }
+          } catch(e) { console.error(e); }
+        }
+        localStorage.setItem('cacheBusted_v425', 'true');
+        window.location.reload(true);
+      }
+    })();
+  </script>
 </body>
+
+
 </html>
