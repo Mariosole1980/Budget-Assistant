@@ -490,7 +490,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v426 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v427 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -774,7 +774,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v426 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v427 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -1682,6 +1682,13 @@ window.addEventListener('DOMContentLoaded', async () => {
   // ALWAYS load cached local data immediately so the UI is never blank on refresh.
   // If Supabase is enabled, onAuthStateChange will call loadData() again with fresh cloud data.
   loadOfflineData();
+  
+  // Restore active tab from localStorage if it exists
+  const savedTab = localStorage.getItem('active_tab');
+  if (savedTab && ['trans', 'stats', 'accounts', 'more'].includes(savedTab) && savedTab !== 'trans') {
+    switchTab(savedTab, true);
+  }
+  
   updateUI();
   updateHeaderProfileBadge();
   
@@ -6472,7 +6479,7 @@ function scrollToToday(behavior = 'smooth') {
   }
 }
 
-function switchTab(tab) {
+function switchTab(tab, instant = false) {
   ensureHistoryPushed();
   // Allow re-tapping 'trans' or 'stats' tab to reset month even if already active
   if (state.activeTab === tab) {
@@ -6546,6 +6553,7 @@ function switchTab(tab) {
 
   const oldTab = state.activeTab;
   state.activeTab = tab;
+  localStorage.setItem('active_tab', tab);
 
   // Toggle body class for scroll isolation on mobile
   document.body.classList.toggle('trans-tab-active', tab === 'trans');
@@ -6578,36 +6586,43 @@ function switchTab(tab) {
       }
     });
 
-    // Display and trigger animation on new screen
-    newScreen.style.display = '';
-    newScreen.style.visibility = '';
-    newScreen.style.opacity = '';
-    newScreen.classList.add('active', 'fade-in-premium');
+    if (instant) {
+      newScreen.style.display = '';
+      newScreen.style.visibility = '';
+      newScreen.style.opacity = '';
+      newScreen.classList.add('active');
+    } else {
+      // Display and trigger animation on new screen
+      newScreen.style.display = '';
+      newScreen.style.visibility = '';
+      newScreen.style.opacity = '';
+      newScreen.classList.add('active', 'fade-in-premium');
 
-    const cleanupHandler = () => {
-      newScreen.classList.remove('fade-in-premium');
-      state.activeTransitionCleanup = null;
-      state.activeTransitionAnimEndTarget = null;
-      state.activeTransitionAnimEndListener = null;
-      state.activeTransitionTimeoutId = null;
-    };
+      const cleanupHandler = () => {
+        newScreen.classList.remove('fade-in-premium');
+        state.activeTransitionCleanup = null;
+        state.activeTransitionAnimEndTarget = null;
+        state.activeTransitionAnimEndListener = null;
+        state.activeTransitionTimeoutId = null;
+      };
 
-    state.activeTransitionCleanup = cleanupHandler;
-    state.activeTransitionAnimEndTarget = newScreen;
+      state.activeTransitionCleanup = cleanupHandler;
+      state.activeTransitionAnimEndTarget = newScreen;
 
-    const onAnimEnd = (e) => {
-      if (e.target === newScreen) {
+      const onAnimEnd = (e) => {
+        if (e.target === newScreen) {
+          newScreen.removeEventListener('animationend', onAnimEnd);
+          cleanupHandler();
+        }
+      };
+      state.activeTransitionAnimEndListener = onAnimEnd;
+      newScreen.addEventListener('animationend', onAnimEnd);
+
+      state.activeTransitionTimeoutId = setTimeout(() => {
         newScreen.removeEventListener('animationend', onAnimEnd);
         cleanupHandler();
-      }
-    };
-    state.activeTransitionAnimEndListener = onAnimEnd;
-    newScreen.addEventListener('animationend', onAnimEnd);
-
-    state.activeTransitionTimeoutId = setTimeout(() => {
-      newScreen.removeEventListener('animationend', onAnimEnd);
-      cleanupHandler();
-    }, 200);
+      }, 200);
+    }
   } else {
     document.querySelectorAll('.tab-screen').forEach(s => s.classList.toggle('active', s.id === `${tab}-screen`));
   }
