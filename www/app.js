@@ -490,7 +490,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v425 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v426 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -774,7 +774,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v425 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v426 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -6905,10 +6905,12 @@ function openAddTransactionModal() {
 
   // Set default account values to avoid empty payment methods
   if (state.accounts && state.accounts.length > 0) {
-    document.getElementById('trans-account-from').value = state.accounts[0].name;
-    document.getElementById('trans-account-to').value = state.accounts.length > 1 ? state.accounts[1].name : state.accounts[0].name;
+    const cardAcc = state.accounts.find(acc => acc.type === 'card' || acc.name.toLowerCase().trim() === 'card' || acc.name.trim() === 'Κάρτα');
+    const defaultFromAcc = cardAcc || state.accounts[0];
+    document.getElementById('trans-account-from').value = defaultFromAcc.name;
+    document.getElementById('trans-account-to').value = state.accounts.length > 1 ? (state.accounts.find(acc => acc.name !== defaultFromAcc.name) || state.accounts[0]).name : state.accounts[0].name;
   } else {
-    document.getElementById('trans-account-from').value = 'Cash';
+    document.getElementById('trans-account-from').value = 'Card';
     document.getElementById('trans-account-to').value = 'Bank Account';
   }
   updateAccountDropdowns();
