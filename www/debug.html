@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Money Manager Diagnostics</title>
+  <style>
+    body {
+      background: #0d1117;
+      color: #e6edf3;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      padding: 16px;
+      margin: 0;
+    }
+    h1 { color: #58a6ff; font-size: 20px; }
+    h2 { color: #ff7b72; font-size: 16px; margin-top: 24px; }
+    pre {
+      background: #161b22;
+      border: 1px solid #30363d;
+      padding: 12px;
+      border-radius: 6px;
+      overflow-x: auto;
+      font-size: 12px;
+      font-family: monospace;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+      font-size: 12px;
+    }
+    th, td {
+      border: 1px solid #30363d;
+      padding: 6px;
+      text-align: left;
+    }
+    th { background: #161b22; }
+    .btn {
+      background: #2188ff;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+      margin-bottom: 6px;
+    }
+    .btn-danger {
+      background: #da3637;
+    }
+  </style>
+</head>
+<body>
+  <h1>Money Manager Diagnostics Tool</h1>
+  <p>Αυτή η σελίδα εμφανίζει τα τοπικά δεδομένα της εφαρμογής στο κινητό σας.</p>
+  
+  <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+    <button class="btn" onclick="window.location.reload()">🔄 Ανανέωση</button>
+    <button class="btn btn-danger" onclick="clearDiagnosticCache()">🗑️ Διαγραφή Cache & Reload</button>
+    <button class="btn" onclick="window.location.href='/'">🚀 Εφαρμογή</button>
+    <button class="btn" style="background:#28a745" onclick="copyDiagnosticsToClipboard()">📋 Αντιγραφή Δεδομένων</button>
+    <button class="btn" style="background:#17a2b8" onclick="downloadDiagnosticsFile()">💾 Λήψη Αρχείου</button>
+  </div>
+
+  <h2>Προφίλ & Σύνδεση</h2>
+  <pre id="profile-info">Φορτώνει...</pre>
+
+  <h2>Συγχρονισμός</h2>
+  <pre id="sync-info">Φορτώνει...</pre>
+
+  <h2>Αποθηκευμένες Κινήσεις (Offline Cache - Πρώτες 50)</h2>
+  <div style="overflow-x: auto;">
+    <table>
+      <thead>
+        <tr>
+          <th>Ημ/νία</th>
+          <th>Ποσό</th>
+          <th>Κατηγορία</th>
+          <th>Σημείωση</th>
+          <th>ID</th>
+          <th>User ID</th>
+          <th>Family ID</th>
+        </tr>
+      </thead>
+      <tbody id="trans-table">
+        <tr><td colspan="7">Φορτώνει...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    function getSafeJSON(key) {
+      try {
+        return JSON.parse(localStorage.getItem(key) || 'null');
+      } catch (e) {
+        return 'Error: ' + e.message;
+      }
+    }
+
+    function showDiagnostics() {
+      // 1. Profile Info
+      const cachedUser = getSafeJSON('cached_current_user');
+      const cachedProfile = getSafeJSON('cached_user_profile');
+      const cachedPartner = getSafeJSON('cached_partner_profile');
+      
+      const profileStr = {
+        currentUserEmail: cachedUser ? cachedUser.email : 'Not Logged In',
+        currentUserId: cachedUser ? cachedUser.id : 'N/A',
+        userProfile: cachedProfile,
+        partnerProfile: cachedPartner
+      };
+      document.getElementById('profile-info').textContent = JSON.stringify(profileStr, null, 2);
+
+      // 2. Sync Info
+      const syncQueue = getSafeJSON('money_manager_sync_queue') || [];
+      const offlineTrans = getSafeJSON('offline_transactions') || [];
+      
+      const syncStr = {
+        syncQueueItemsCount: syncQueue.length,
+        cachedTransactionsCount: offlineTrans.length,
+        syncQueue: syncQueue.slice(0, 10) // Show first 10
+      };
+      document.getElementById('sync-info').textContent = JSON.stringify(syncStr, null, 2);
+
+      // 3. Transactions Table
+      const tbody = document.getElementById('trans-table');
+      tbody.innerHTML = '';
+      
+      if (offlineTrans.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7">Δεν βρέθηκαν αποθηκευμένες κινήσεις.</td></tr>';
+      } else {
+        // Show first 50 transactions
+        offlineTrans.slice(0, 50).forEach(t => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${t.date || ''}</td>
+            <td style="font-weight:bold;color:${t.type === 'income' ? '#3fb950' : '#ff7b72'}">${t.amount || ''}</td>
+            <td>${t.category || ''}</td>
+            <td>${t.note || ''}</td>
+            <td style="font-family:monospace;font-size:10px;">${t.id || ''}</td>
+            <td style="font-family:monospace;font-size:10px;">${t.user_id || 'NULL'}</td>
+            <td style="font-family:monospace;font-size:10px;">${t.family_id || 'NULL'}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+    }
+
+    async function clearDiagnosticCache() {
+      if (confirm('Θέλετε σίγουρα να διαγράψετε την cache και να κάνετε επαναφορά;')) {
+        if ('serviceWorker' in navigator) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          for (let r of regs) await r.unregister();
+        }
+        if ('caches' in window) {
+          const keys = await caches.keys();
+          for (let k of keys) await caches.delete(k);
+        }
+        localStorage.removeItem('_ba_last_update_check');
+        localStorage.removeItem('_ba_last_reload_build');
+        localStorage.removeItem('last_update_attempt');
+        window.location.replace('/clear.html');
+      }
+    }
+
+    function copyDiagnosticsToClipboard() {
+      const cachedUser = getSafeJSON('cached_current_user');
+      const cachedProfile = getSafeJSON('cached_user_profile');
+      const cachedPartner = getSafeJSON('cached_partner_profile');
+      const syncQueue = getSafeJSON('money_manager_sync_queue') || [];
+      const offlineTrans = getSafeJSON('offline_transactions') || [];
+      
+      const fullData = {
+        profile: {
+          currentUserEmail: cachedUser ? cachedUser.email : 'Not Logged In',
+          currentUserId: cachedUser ? cachedUser.id : 'N/A',
+          userProfile: cachedProfile,
+          partnerProfile: cachedPartner
+        },
+        sync: {
+          syncQueueItemsCount: syncQueue.length,
+          offlineTransactionsCount: offlineTrans.length,
+          syncQueue: syncQueue
+        },
+        transactions: offlineTrans
+      };
+      
+      navigator.clipboard.writeText(JSON.stringify(fullData, null, 2))
+        .then(() => alert('📋 Τα διαγνωστικά δεδομένα αντιγράφηκαν στο πρόχειρο!'))
+        .catch(err => {
+          // Fallback for browsers not supporting clipboard API
+          const el = document.createElement('textarea');
+          el.value = JSON.stringify(fullData, null, 2);
+          document.body.appendChild(el);
+          el.select();
+          document.execCommand('copy');
+          document.body.removeChild(el);
+          alert('📋 Τα διαγνωστικά δεδομένα αντιγράφηκαν (fallback method)!');
+        });
+    }
+
+    function downloadDiagnosticsFile() {
+      const cachedUser = getSafeJSON('cached_current_user');
+      const cachedProfile = getSafeJSON('cached_user_profile');
+      const cachedPartner = getSafeJSON('cached_partner_profile');
+      const syncQueue = getSafeJSON('money_manager_sync_queue') || [];
+      const offlineTrans = getSafeJSON('offline_transactions') || [];
+      
+      const fullData = {
+        profile: {
+          currentUserEmail: cachedUser ? cachedUser.email : 'Not Logged In',
+          currentUserId: cachedUser ? cachedUser.id : 'N/A',
+          userProfile: cachedProfile,
+          partnerProfile: cachedPartner
+        },
+        sync: {
+          syncQueueItemsCount: syncQueue.length,
+          offlineTransactionsCount: offlineTrans.length,
+          syncQueue: syncQueue
+        },
+        transactions: offlineTrans
+      };
+      
+      const blob = new Blob([JSON.stringify(fullData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `money_manager_diagnostics_${cachedUser ? cachedUser.email.split('@')[0] : 'guest'}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    showDiagnostics();
+  </script>
+</body>
+</html>

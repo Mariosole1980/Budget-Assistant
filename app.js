@@ -490,7 +490,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v424 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v425 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -774,7 +774,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v424 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v425 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -2065,21 +2065,23 @@ function initSupabaseAuth() {
           // Suppress realtime during the fetch so that echo/bounce events from the
           // subscription setup don't trigger a second render on top of our clean one.
           _suppressRealtimeEvents = true;
-          await loadData();
-          updateUI();
-          
-          // Start automatic polling sync
-          startPartnerSyncPolling();
-          
-          // Start realtime subscription
-          setupSupabaseRealtimeSubscription();
-          
-          // Re-enable realtime after a delay to let any inflight echo events drain.
-          // This prevents the subscription's own INSERT echo from triggering handleRealtimeTransactionChange
-          // and causing a 3rd render 3s after login.
-          // 10s: Supabase Realtime echo events can take up to 5-8s to arrive, so we need
-          // enough margin to absorb them before re-enabling the handler.
-          setTimeout(() => { _suppressRealtimeEvents = false; }, 10000);
+          try {
+            await loadData();
+            updateUI();
+            
+            // Start automatic polling sync
+            startPartnerSyncPolling();
+            
+            // Start realtime subscription
+            setupSupabaseRealtimeSubscription();
+          } finally {
+            // Re-enable realtime after a delay to let any inflight echo events drain.
+            // This prevents the subscription's own INSERT echo from triggering handleRealtimeTransactionChange
+            // and causing a 3rd render 3s after login.
+            // 10s: Supabase Realtime echo events can take up to 5-8s to arrive, so we need
+            // enough margin to absorb them before re-enabling the handler.
+            setTimeout(() => { _suppressRealtimeEvents = false; }, 10000);
+          }
           
           // Replay offline sync queue — skipReload:true because loadData() was already called above.
           // This prevents a redundant second full fetch + UI re-render.
@@ -3656,7 +3658,8 @@ function deleteTransaction(id) {
   });
   
   // 3. Optimistically delete from local state and update UI
-  idsToDelete.forEach(dId => deleteTransactionOffline(dId));
+  idsToDelete.forEach(dId => deleteTransactionOffline(dId, true));
+  localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
   calculateInitialBalances();
   updateUI();
 
@@ -3687,7 +3690,7 @@ function deleteTransaction(id) {
   }
 }
 
-function deleteTransactionOffline(id) {
+function deleteTransactionOffline(id, skipSave = false) {
   const tx = state.transactions.find(t => t.id === id);
   if (tx) {
     let templateId = tx.recurring_template_id;
@@ -3732,7 +3735,9 @@ function deleteTransactionOffline(id) {
     });
   }
   state.transactions = state.transactions.filter(t => t.id !== id);
-  localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
+  if (!skipSave) {
+    localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
+  }
 }
 
 // ============================================================
@@ -10179,8 +10184,9 @@ async function deleteSelectedTransactions() {
     });
 
     // Optimistically delete from local state (updates state.transactions and deletedRecurringDates)
-    deleteTransactionOffline(id);
+    deleteTransactionOffline(id, true);
   }
+  localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
 
   // Perform background delete in bulk
   if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
@@ -10214,9 +10220,7 @@ async function deleteSelectedTransactions() {
   updateUI();
 
   // 5. Re-enable realtime after enough time
-  if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
-    setTimeout(() => { _suppressRealtimeEvents = false; }, 8000);
-  }
+  setTimeout(() => { _suppressRealtimeEvents = false; }, 8000);
 }
 
 window.enterSelectionMode = enterSelectionMode;
@@ -12836,41 +12840,41 @@ async function syncLocalTransactionsToCloud(userId, options = {}) {
       // Suppress realtime events during batch insert so the resulting INSERT
       // events don't trigger handleRealtimeTransactionChange and cause flicker.
       _suppressRealtimeEvents = true;
-      
-      // Batch sync in groups of 50 to avoid timeouts
-      let hasError = false;
-      let lastErr = null;
-      for (let i = 0; i < toInsert.length; i += 50) {
-        const batch = toInsert.slice(i, i + 50);
-        const { error } = await promiseTimeout(state.supabaseClient
-          .from('transactions')
-          .insert(batch).then(r => r), 60000);
-        if (error) {
-          hasError = true;
-          lastErr = error;
-          break;
+      try {
+        // Batch sync in groups of 50 to avoid timeouts
+        let hasError = false;
+        let lastErr = null;
+        for (let i = 0; i < toInsert.length; i += 50) {
+          const batch = toInsert.slice(i, i + 50);
+          const { error } = await promiseTimeout(state.supabaseClient
+            .from('transactions')
+            .insert(batch).then(r => r), 60000);
+          if (error) {
+            hasError = true;
+            lastErr = error;
+            break;
+          }
         }
-      }
-        
-      if (hasError) {
-        console.error('Failed to sync guest transactions:', lastErr);
-      } else {
-        console.log('Successfully synced guest transactions!');
-        // Remove synced transactions from offline cache
-        const cleanOffline = allTrans.filter(t => !localTrans.includes(t));
-        localStorage.setItem('offline_transactions', JSON.stringify(cleanOffline));
-        
-        if (!silent) {
-          alert(`🎉 ${localTrans.length} τοπικές κινήσεις που είχατε καταγράψει μεταφέρθηκαν αυτόματα στον λογαριασμό σας!`);
+          
+        if (hasError) {
+          console.error('Failed to sync guest transactions:', lastErr);
+        } else {
+          console.log('Successfully synced guest transactions!');
+          // Remove synced transactions from offline cache
+          const cleanOffline = allTrans.filter(t => !localTrans.includes(t));
+          localStorage.setItem('offline_transactions', JSON.stringify(cleanOffline));
+          
+          if (!silent) {
+            alert(`🎉 ${localTrans.length} τοπικές κινήσεις που είχατε καταγράψει μεταφέρθηκαν αυτόματα στον λογαριασμό σας!`);
+          }
         }
+      } finally {
+        // Re-enable realtime events after a short delay to let in-flight events drain
+        setTimeout(() => { _suppressRealtimeEvents = false; }, 5000);
       }
-      
-      // Re-enable realtime events after a short delay to let in-flight events drain
-      setTimeout(() => { _suppressRealtimeEvents = false; }, 5000);
     }
   } catch (err) {
     console.error('Error in syncLocalTransactionsToCloud:', err);
-    setTimeout(() => { _suppressRealtimeEvents = false; }, 5000);
   }
 }
 
@@ -13079,19 +13083,43 @@ let _pendingRealtimeEvents = [];
 
 // Flag: set to true during internal cleanup (e.g. duplicate deletion) so that
 // the resulting DB DELETE events do NOT trigger a UI re-render / flicker.
-let _suppressRealtimeEvents = false;
+let _suppressRealtimeEventsCount = 0;
+Object.defineProperty(window, '_suppressRealtimeEvents', {
+  get: () => _suppressRealtimeEventsCount > 0,
+  set: (val) => {
+    if (val) {
+      _suppressRealtimeEventsCount++;
+      console.log(`[REALTIME] Suppression enabled (count: ${_suppressRealtimeEventsCount})`);
+    } else {
+      _suppressRealtimeEventsCount = Math.max(0, _suppressRealtimeEventsCount - 1);
+      console.log(`[REALTIME] Suppression disabled (count: ${_suppressRealtimeEventsCount})`);
+    }
+  },
+  configurable: true
+});
 
 function handleRealtimeTransactionChange(payload) {
-  // Ignore events generated by our own internal cleanup operations.
-  // Also cancel any already-queued debounce timer to prevent stale renders.
-  if (_suppressRealtimeEvents) {
-    console.log('[REALTIME] Event suppressed (internal cleanup in progress):', payload.eventType);
-    if (_realtimeDebounceTimer) {
-      clearTimeout(_realtimeDebounceTimer);
-      _realtimeDebounceTimer = null;
-      _pendingRealtimeEvents = [];
-    }
+  const isDelete = payload.eventType === 'DELETE';
+  const eventId = isDelete ? (payload.old && payload.old.id) : (payload.new && payload.new.id);
+
+  // 1. If it's a delete event of a transaction we are actively deleting locally, always suppress it
+  if (isDelete && eventId && _deletingTxIds.has(String(eventId))) {
+    console.log('[REALTIME] Delete event suppressed (active local delete):', eventId);
     return;
+  }
+
+  // 2. If global suppression is active, only suppress our own events, let partner events pass
+  if (_suppressRealtimeEvents) {
+    const isPartnerEvent = isDelete
+      ? true // Since it's a delete and not in our deleting set, it's a partner delete
+      : (payload.new && state.currentUser && payload.new.user_id !== state.currentUser.id);
+
+    if (!isPartnerEvent) {
+      console.log('[REALTIME] Own event suppressed during active suppression:', payload.eventType, eventId);
+      return;
+    } else {
+      console.log('[REALTIME] Partner event allowed during active suppression:', payload.eventType, eventId);
+    }
   }
   
   console.log('Realtime transaction event received:', payload.eventType);
