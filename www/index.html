@@ -38,7 +38,7 @@
   <link rel="stylesheet" href="style.css">
   
   <!-- Capacitor Bridge -->
-  <script src="capacitor.js?v=427"></script>
+  <script src="capacitor.js?v=428"></script>
   
 
   <!-- Supabase client JS CDN -->
@@ -48,7 +48,7 @@
   <!-- Chart.js Datalabels Plugin CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
   <!-- SheetJS xlsx CDN for Excel Import/Export -->
-  <script src="xlsx.full.min.js?v=427"></script>
+  <script src="xlsx.full.min.js?v=428"></script>
 </head>
 <body>
   <script>
@@ -62,14 +62,43 @@
                          window.location.search.includes('code=') || 
                          window.location.search.includes('error=');
       
+      const activeTab = localStorage.getItem('active_tab');
+      
       if ((!hasCachedUser && !isGuestMode) || isRedirect) {
         const style = document.createElement('style');
         style.id = 'early-auth-style';
         style.innerHTML = `
           #auth-overlay { display: flex !important; }
-          \${isRedirect ? '#auth-loading-state { display: flex !important; } .auth-card { display: none !important; }' : ''}
+          ${isRedirect ? '#auth-loading-state { display: flex !important; } .auth-card { display: none !important; }' : ''}
         `;
         document.head.appendChild(style);
+      } else if (activeTab && ['trans', 'stats', 'accounts', 'more'].includes(activeTab) && activeTab !== 'trans') {
+        const style = document.createElement('style');
+        style.id = 'early-tab-style';
+        style.innerHTML = `
+          .tab-screen { display: none !important; }
+          #${activeTab}-screen { display: block !important; }
+          
+          /* Nav active state overrides to prevent bottom bar flash */
+          .nav-item.active {
+            color: var(--text-secondary) !important;
+            background-color: transparent !important;
+          }
+          .nav-item.active svg {
+            fill: var(--text-secondary) !important;
+          }
+          .nav-item[data-tab="${activeTab}"] {
+            color: var(--accent) !important;
+          }
+          .nav-item[data-tab="${activeTab}"] svg {
+            fill: var(--accent) !important;
+          }
+        `;
+        document.head.appendChild(style);
+        
+        document.addEventListener('DOMContentLoaded', () => {
+          style.remove();
+        });
       }
     })();
   </script>
@@ -644,7 +673,7 @@
                 <i class="fa-solid fa-chevron-right" style="color: var(--red-negative); font-size: 12px;"></i>
               </div>
               <div class="settings-list-item">
-                <span class="settings-item-label" style="color: var(--text-muted); font-size: 12px;" data-i18n="app_version">Έκδοση 1.0.0 (build v427 - 07/06/2026 23:20)</span>
+                <span class="settings-item-label" style="color: var(--text-muted); font-size: 12px;" data-i18n="app_version">Έκδοση 1.0.0 (build v428 - 07/06/2026 23:20)</span>
                 <span class="settings-item-value" style="font-size: 12px; color: var(--text-muted);">Budget Assistant</span>
               </div>
             </div>
@@ -1880,18 +1909,18 @@
   </div>
 
   <!-- Core Application Scripts -->
-  <script src="js/NLPProcessor.js?v=427"></script>
-  <script src="js/MemoryEngine.js?v=427"></script>
-  <script src="js/DecisionEngine.js?v=427"></script>
-  <script src="js/OnlineAIProvider.js?v=427"></script>
-  <script src="js/AIEngine.js?v=427"></script>
-  <script src="js/IntentCorpus.js?v=427"></script>
-  <script src="js/KnowledgeGraph.js?v=427"></script>
-  <script src="app.js?v=427"></script>
+  <script src="js/NLPProcessor.js?v=428"></script>
+  <script src="js/MemoryEngine.js?v=428"></script>
+  <script src="js/DecisionEngine.js?v=428"></script>
+  <script src="js/OnlineAIProvider.js?v=428"></script>
+  <script src="js/AIEngine.js?v=428"></script>
+  <script src="js/IntentCorpus.js?v=428"></script>
+  <script src="js/KnowledgeGraph.js?v=428"></script>
+  <script src="app.js?v=428"></script>
   
   <!-- Register PWA Service Worker -->
   <script>
-    const CURRENT_BUILD = 427;
+    const CURRENT_BUILD = 428;
     
     // ============================================================
     // AGGRESSIVE iOS PWA AUTO-UPDATE
@@ -1971,8 +2000,8 @@
     if ('serviceWorker' in navigator) {
       // ============================================================
       // NUCLEAR iOS PWA FIX: Register SW with versioned URL
-      // iOS Safari treats 'sw.js?v=427' as a COMPLETELY DIFFERENT
-      // script from 'sw.js?v=427', bypassing the update deadlock.
+      // iOS Safari treats 'sw.js?v=428' as a COMPLETELY DIFFERENT
+      // script from 'sw.js?v=428', bypassing the update deadlock.
       // Old SW is unregistered first to break the control cycle.
       // ============================================================
       const SW_URL = 'sw.js?v=' + CURRENT_BUILD;
