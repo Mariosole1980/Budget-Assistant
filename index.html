@@ -38,7 +38,7 @@
   <link rel="stylesheet" href="style.css">
   
   <!-- Capacitor Bridge -->
-  <script src="capacitor.js?v=428"></script>
+  <script src="capacitor.js?v=429"></script>
   
 
   <!-- Supabase client JS CDN -->
@@ -48,7 +48,7 @@
   <!-- Chart.js Datalabels Plugin CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
   <!-- SheetJS xlsx CDN for Excel Import/Export -->
-  <script src="xlsx.full.min.js?v=428"></script>
+  <script src="xlsx.full.min.js?v=429"></script>
 </head>
 <body>
   <script>
@@ -72,7 +72,17 @@
           ${isRedirect ? '#auth-loading-state { display: flex !important; } .auth-card { display: none !important; }' : ''}
         `;
         document.head.appendChild(style);
-      } else if (activeTab && ['trans', 'stats', 'accounts', 'more'].includes(activeTab) && activeTab !== 'trans') {
+      } else {
+        // Hide auth overlay immediately for logged in / guest users to prevent flash
+        const style = document.createElement('style');
+        style.id = 'early-auth-hide-style';
+        style.innerHTML = `
+          #auth-overlay { display: none !important; }
+        `;
+        document.head.appendChild(style);
+      }
+      
+      if (activeTab && ['trans', 'stats', 'accounts', 'more'].includes(activeTab) && activeTab !== 'trans') {
         const style = document.createElement('style');
         style.id = 'early-tab-style';
         style.innerHTML = `
@@ -95,10 +105,6 @@
           }
         `;
         document.head.appendChild(style);
-        
-        document.addEventListener('DOMContentLoaded', () => {
-          style.remove();
-        });
       }
     })();
   </script>
@@ -673,7 +679,7 @@
                 <i class="fa-solid fa-chevron-right" style="color: var(--red-negative); font-size: 12px;"></i>
               </div>
               <div class="settings-list-item">
-                <span class="settings-item-label" style="color: var(--text-muted); font-size: 12px;" data-i18n="app_version">Έκδοση 1.0.0 (build v428 - 07/06/2026 23:20)</span>
+                <span class="settings-item-label" style="color: var(--text-muted); font-size: 12px;" data-i18n="app_version">Έκδοση 1.0.0 (build v429 - 07/06/2026 23:20)</span>
                 <span class="settings-item-value" style="font-size: 12px; color: var(--text-muted);">Budget Assistant</span>
               </div>
             </div>
@@ -1909,18 +1915,18 @@
   </div>
 
   <!-- Core Application Scripts -->
-  <script src="js/NLPProcessor.js?v=428"></script>
-  <script src="js/MemoryEngine.js?v=428"></script>
-  <script src="js/DecisionEngine.js?v=428"></script>
-  <script src="js/OnlineAIProvider.js?v=428"></script>
-  <script src="js/AIEngine.js?v=428"></script>
-  <script src="js/IntentCorpus.js?v=428"></script>
-  <script src="js/KnowledgeGraph.js?v=428"></script>
-  <script src="app.js?v=428"></script>
+  <script src="js/NLPProcessor.js?v=429"></script>
+  <script src="js/MemoryEngine.js?v=429"></script>
+  <script src="js/DecisionEngine.js?v=429"></script>
+  <script src="js/OnlineAIProvider.js?v=429"></script>
+  <script src="js/AIEngine.js?v=429"></script>
+  <script src="js/IntentCorpus.js?v=429"></script>
+  <script src="js/KnowledgeGraph.js?v=429"></script>
+  <script src="app.js?v=429"></script>
   
   <!-- Register PWA Service Worker -->
   <script>
-    const CURRENT_BUILD = 428;
+    const CURRENT_BUILD = 429;
     
     // ============================================================
     // AGGRESSIVE iOS PWA AUTO-UPDATE
@@ -2000,8 +2006,8 @@
     if ('serviceWorker' in navigator) {
       // ============================================================
       // NUCLEAR iOS PWA FIX: Register SW with versioned URL
-      // iOS Safari treats 'sw.js?v=428' as a COMPLETELY DIFFERENT
-      // script from 'sw.js?v=428', bypassing the update deadlock.
+      // iOS Safari treats 'sw.js?v=429' as a COMPLETELY DIFFERENT
+      // script from 'sw.js?v=429', bypassing the update deadlock.
       // Old SW is unregistered first to break the control cycle.
       // ============================================================
       const SW_URL = 'sw.js?v=' + CURRENT_BUILD;

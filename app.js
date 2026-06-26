@@ -490,7 +490,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v428 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v429 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -774,7 +774,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v428 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v429 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -1687,6 +1687,17 @@ window.addEventListener('DOMContentLoaded', async () => {
   const savedTab = localStorage.getItem('active_tab');
   if (savedTab && ['trans', 'stats', 'accounts', 'more'].includes(savedTab) && savedTab !== 'trans') {
     switchTab(savedTab, true);
+  }
+  
+  // Safe removal of early tab style block to avoid layout flashes
+  const earlyTabStyle = document.getElementById('early-tab-style');
+  if (earlyTabStyle) {
+    earlyTabStyle.remove();
+  }
+  // Safe removal of early auth hide style block
+  const earlyAuthHideStyle = document.getElementById('early-auth-hide-style');
+  if (earlyAuthHideStyle) {
+    earlyAuthHideStyle.remove();
   }
   
   updateUI();
