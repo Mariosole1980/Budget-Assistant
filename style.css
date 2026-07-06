@@ -50,7 +50,7 @@ html, body {
 
 html {
   background-color: var(--bg-main);
-  transition: background-color 0.3s ease;
+  
 }
 
 body {
@@ -1617,6 +1617,10 @@ input:focus + .slider {
   border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
   border-bottom: none;
   box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.4);
+}
+
+body.is-ios .modal-content {
+  max-height: calc(var(--viewport-height, 100vh) * 0.90) !important;
 }
 
 /* #transaction-modal .modal-content height/max-height is handled by the full-screen block at the bottom of this file */
@@ -6511,6 +6515,11 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
     padding-top: calc(8px + env(safe-area-inset-top, 0px)) !important;
   }
 
+  .selection-bar-container {
+    padding-top: env(safe-area-inset-top, 0px) !important;
+    height: calc(52px + env(safe-area-inset-top, 0px)) !important;
+  }
+
   .fab {
     bottom: 70px !important;
   }
@@ -6819,7 +6828,7 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
 }
 
 
-/* Ο container που περιέχει όλα τα κουμπιά κατηγοριών */
+/* οΏ½ container οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½ οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½ */
 .categories-container {
     display: flex;
     flex-wrap: wrap;
@@ -6828,7 +6837,7 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
     padding: 10px 0;
 }
 
-/* Το κάθε κουμπί/tag ξεχωριστά */
+/* οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½ οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½/tag οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½οΏ½ */
 .category-btn {
     white-space: nowrap;
     display: inline-flex;
@@ -6850,3 +6859,13 @@ body.is-android #transaction-modal.keypad-active {
 body.is-android .calc-keypad-container .calc-key-btn {
   height: 64px !important;
 }
+
+/* Restoring UI state without transitions helper */
+.no-transition,
+.no-transition *,
+.no-transition *::before,
+.no-transition *::after {
+  transition: none !important;
+  animation: none !important;
+}
+

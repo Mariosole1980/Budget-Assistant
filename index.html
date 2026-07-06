@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="el">
+<html lang="el" class="no-transition" style="background-color: #181b22;">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
@@ -38,7 +38,7 @@
   <link rel="stylesheet" href="style.css">
   
   <!-- Capacitor Bridge -->
-  <script src="capacitor.js?v=429"></script>
+  <script src="capacitor.js?v=561"></script>
   
 
   <!-- Supabase client JS CDN -->
@@ -48,12 +48,85 @@
   <!-- Chart.js Datalabels Plugin CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
   <!-- SheetJS xlsx CDN for Excel Import/Export -->
-  <script src="xlsx.full.min.js?v=429"></script>
+  <script src="xlsx.full.min.js?v=561"></script>
 </head>
-<body>
+<body style="background-color: #181b22; margin: 0; padding: 0; zoom: 0.93;">
   <script>
-    // Fast, synchronous check to prevent layout flash
     (function() {
+      // Apply theme background color immediately to prevent white/beige flash on resume
+      const savedTheme = localStorage.getItem('app_theme') || 'dark';
+      const themeBgColors = { 'dark': '#181b22', 'oled': '#000000', 'light': '#f4f6f9', 'emerald': '#0f1916', 'ocean': '#0b132b', 'pink': '#1f1218' };
+      const bgColor = themeBgColors[savedTheme] || '#181b22';
+      document.documentElement.style.backgroundColor = bgColor;
+      if (document.body) document.body.style.backgroundColor = bgColor; // Sync inline body background
+      if (savedTheme !== 'dark') document.documentElement.classList.add(`theme-${savedTheme}`);
+      
+      // Pre-activate backgrounded modals to eliminate flicker on restore
+      const activeModalId = localStorage.getItem('bg_active_modal_id');
+      if (activeModalId) {
+        document.documentElement.classList.add('modal-prerender');
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.userAgent.includes("Mac") && "ontouchend" in document);
+        
+        // Counteract body zoom on Android for the transaction modal to prevent layout jump
+        // Also apply the correct modal background color so it doesn't flash the underlying body color before style.css loads
+        let extraCss = 'background-color: rgba(0, 0, 0, 0.45) !important; backdrop-filter: blur(4px);'; // Default overlay
+        if (activeModalId === 'transaction-modal') {
+          extraCss = `background-color: #121824 !important;`;
+          if (!isIOS) {
+            extraCss += ` width: calc(100vw / 0.93) !important; height: calc(100vh / 0.93) !important; top: 0px !important;`;
+          }
+        }
+
+        document.write(`
+          <style id="prerender-modal-style">
+            html.modal-prerender #${activeModalId} {
+              display: flex !important;
+              opacity: 1 !important;
+              pointer-events: auto !important;
+              transition: none !important;
+              animation: none !important;
+              ${extraCss}
+            }
+            html.modal-prerender #${activeModalId} .modal-content,
+            html.modal-prerender #${activeModalId} .bottom-sheet,
+            html.modal-prerender #${activeModalId} .search-overlay-content {
+              transform: translateY(0) !important;
+              transition: none !important;
+              animation: none !important;
+            }
+          </style>
+        `);
+      }
+      
+      // Check if redirecting back to mobile app
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('source') === 'app') {
+        const style = document.createElement('style');
+        style.innerHTML = `
+          #app-redirect-overlay { display: flex !important; }
+          #auth-overlay { display: none !important; }
+        `;
+        document.head.appendChild(style);
+        
+        document.addEventListener('DOMContentLoaded', () => {
+          const redirectBtn = document.getElementById('app-redirect-btn');
+          const deepLinkUrl = 'com.budgetassistant.app://oauth-callback' + window.location.search + window.location.hash;
+          const deepLinkFallbackUrl = 'budgetassistant://oauth-callback' + window.location.search + window.location.hash;
+          
+          const doRedirect = () => {
+            window.location.href = deepLinkUrl;
+            setTimeout(() => {
+              window.location.href = deepLinkFallbackUrl;
+            }, 250);
+          };
+          
+          if (redirectBtn) {
+            redirectBtn.addEventListener('click', doRedirect);
+          }
+          setTimeout(doRedirect, 400);
+        });
+      }
+
       const hasCachedUser = localStorage.getItem('cached_current_user');
       const isGuestMode = localStorage.getItem('auth_guest_mode') === 'true';
       const isRedirect = window.location.hash.includes('access_token=') || 
@@ -487,6 +560,30 @@
             </div>
           </div>
 
+          <!-- Card: Notes & Reminders -->
+          <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; margin-bottom: 12px; padding: 16px; box-sizing: border-box;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 16px; font-weight: 800; color: var(--text-primary); font-family: 'Outfit', sans-serif;">📝 Σημειώσεις & Λίστες</span>
+                <span id="notes-count-badge" class="badge" style="background: var(--accent); color: white; font-size: 11px; padding: 2px 6px; border-radius: 10px; font-weight: 700; display: none;">0</span>
+              </div>
+              <button class="btn btn-primary" onclick="openNoteEditor()" style="padding: 6px 12px; font-size: 12px; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 4px; border-radius: 8px; cursor: pointer;">
+                <i class="fa-solid fa-plus"></i> <span data-i18n="new_note_btn">Νέα Σημείωση</span>
+              </button>
+            </div>
+
+            <!-- Notes Search bar -->
+            <div class="search-input-wrapper-modern" style="margin-bottom: 12px; background: rgba(0,0,0,0.15); border: 1px solid var(--border); border-radius: 10px; padding: 6px 10px; display: flex; align-items: center; gap: 8px; box-sizing: border-box; width: 100%;">
+              <i class="fa-solid fa-magnifying-glass" style="color: var(--text-muted); font-size: 12.5px;"></i>
+              <input type="text" id="notes-search-input" placeholder="Αναζήτηση σημειώσεων..." oninput="renderNotesList()" style="background: transparent; border: none; outline: none; color: var(--text-primary); font-size: 13px; flex: 1; padding: 0;">
+            </div>
+
+            <!-- Notes list container -->
+            <div id="notes-list" style="display: flex; flex-direction: column; gap: 10px; max-height: 320px; overflow-y: auto; padding-right: 2px;">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
           <!-- Card 1: Application Settings (always visible, not collapsible) -->
           <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; margin-bottom: 12px; overflow: visible;">
             <div class="account-section-title" style="color: var(--text-primary); cursor: default; pointer-events: none; padding-bottom: 12px;">
@@ -558,6 +655,18 @@
                   <option value="6" data-i18n="val_week_start_sat">Σάββατο</option>
                 </select>
               </div>
+              <div class="settings-list-item" onclick="openRecurringTemplatesModal()" style="cursor: pointer;">
+                <span class="settings-item-label" data-i18n="item_recurring_templates">🔁 Επαναλαμβανόμενες Συναλλαγές</span>
+                <span class="settings-item-value" id="recurring-templates-count-val">0</span>
+              </div>
+              <div class="settings-list-item" onclick="openSettingsCategoryManager()" style="cursor: pointer;">
+                <span class="settings-item-label" data-i18n="item_manage_categories">🏷️ Διαχείριση Κατηγοριών</span>
+                <span class="settings-item-value" style="display:flex; align-items:center; color:var(--text-muted);"><i class="fa-solid fa-chevron-right" style="font-size:11px;"></i></span>
+              </div>
+              <div class="settings-list-item" onclick="openTrashBinModal()" style="cursor: pointer;">
+                <span class="settings-item-label" data-i18n="item_trash_bin">🗑️ Κάδος Ανακύκλωσης</span>
+                <span class="settings-item-value" id="trash-bin-count-val">0</span>
+              </div>
               <div class="settings-list-item">
                 <span class="settings-item-label" data-i18n="item_app_lock">Κλείδωμα Εφαρμογής (PIN)</span>
                 <label class="switch">
@@ -570,6 +679,14 @@
                 <span class="settings-item-label" data-i18n="item_autocomplete">Έξυπνος Τίτλος (Autocomplete)</span>
                 <label class="switch">
                   <input type="checkbox" id="settings-autocomplete" onchange="toggleAutocompleteSetting(this.checked)">
+                  <span class="slider round"></span>
+                </label>
+              </div>
+
+              <div class="settings-list-item">
+                <span class="settings-item-label" data-i18n="item_note_shortcut">Κουμπί Σημειώσεων δίπλα στο "+"</span>
+                <label class="switch">
+                  <input type="checkbox" id="settings-note-shortcut">
                   <span class="slider round"></span>
                 </label>
               </div>
@@ -679,7 +796,7 @@
                 <i class="fa-solid fa-chevron-right" style="color: var(--red-negative); font-size: 12px;"></i>
               </div>
               <div class="settings-list-item">
-                <span class="settings-item-label" style="color: var(--text-muted); font-size: 12px;" data-i18n="app_version">Έκδοση 1.0.0 (build v429 - 07/06/2026 23:20)</span>
+                <span class="settings-item-label" style="color: var(--text-muted); font-size: 12px;" data-i18n="app_version">Έκδοση 1.0.0 (build v561 - 02/07/2026 09:18)</span>
                 <span class="settings-item-value" style="font-size: 12px; color: var(--text-muted);">Budget Assistant</span>
               </div>
             </div>
@@ -834,6 +951,7 @@
               <div class="form-row-value-container" style="display: flex; align-items: center; position: relative;">
                 <input type="text" id="trans-description" class="form-row-input" placeholder="Λεπτομέρειες" autocomplete="off" style="flex: 1; border: none; outline: none; background: transparent;">
                 <input type="file" id="trans-photo-input" accept="image/*" style="display: none;" multiple>
+                <input type="file" id="trans-camera-input" accept="image/*" capture="environment" style="display: none;">
                 <i class="fa-solid fa-camera" id="trans-camera-btn" style="color: var(--text-muted); font-size: 16px; margin-left: 8px; cursor: pointer; padding: 4px;"></i>
               </div>
             </div>
@@ -916,6 +1034,45 @@
           <!-- User Sync Status (Main screen for simple users) -->
           <div id="supabase-user-settings">
             <!-- Populated dynamically via updateSupabaseUserModal() -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- MODAL: RECURRING TEMPLATES MANAGEMENT -->
+    <!-- ============================================== -->
+    <div id="recurring-templates-modal" class="modal-overlay">
+      <div class="modal-content" style="max-width: 480px; max-height: 85vh;">
+        <div class="modal-header">
+          <h3 class="modal-title" data-i18n="item_recurring_templates">🔁 Επαναλαμβανόμενες Συναλλαγές</h3>
+          <span class="modal-close" onclick="closeModal('recurring-templates-modal')">&times;</span>
+        </div>
+        <div class="modal-body" style="padding-bottom: 24px;">
+          <div id="recurring-templates-list-container" style="display: flex; flex-direction: column; gap: 12px; max-height: 60vh; overflow-y: auto; padding-right: 4px;">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- MODAL: TRASH BIN -->
+    <!-- ============================================== -->
+    <div id="trash-bin-modal" class="modal-overlay">
+      <div class="modal-content" style="max-width: 520px; max-height: 85vh;">
+        <div class="modal-header">
+          <h3 class="modal-title"><span data-i18n="item_trash_bin">🗑️ Κάδος Ανακύκλωσης</span></h3>
+          <span class="modal-close" onclick="closeModal('trash-bin-modal')">&times;</span>
+        </div>
+        <div class="modal-body" style="padding-bottom: 24px; display: flex; flex-direction: column; gap: 16px;">
+          <div style="display: flex; justify-content: flex-end;">
+            <button id="btn-empty-trash" onclick="emptyTrashBin()" style="font-size: 13px; padding: 6px 12px; border-radius: 6px; background: rgba(244, 63, 94, 0.15); color: #f43f5e; border: 1px solid rgba(244, 63, 94, 0.3); font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+              <i class="fa-solid fa-trash-can"></i> <span data-i18n="empty_trash">Εκκαθάριση Κάδου</span>
+            </button>
+          </div>
+          <div id="trash-bin-list-container" style="display: flex; flex-direction: column; gap: 12px; max-height: 55vh; overflow-y: auto; padding-right: 4px;">
+            <!-- Populated dynamically -->
           </div>
         </div>
       </div>
@@ -1810,33 +1967,126 @@
     </div>
   </div>
 
-  <!-- MODAL: CATEGORY MANAGER (iOS-STYLE) -->
-  <div id="category-manager-modal" class="modal-overlay">
-    <div class="modal-content" style="max-height: 90vh; display: flex; flex-direction: column;">
-      <div class="modal-header">
-        <h3 class="modal-title" data-i18n="modal_category_manager_title">⚙️ Διαχείριση Κατηγοριών</h3>
+  <!-- MODAL: CATEGORY MANAGER -->
+  <div id="category-manager-modal" class="modal-overlay" style="z-index: 10000;">
+    <div class="modal-content" style="max-width: 580px; max-height: 85vh; display: flex; flex-direction: column;">
+      <div class="modal-header" style="display: flex; align-items: center; justify-content: space-between;">
+        <h3 class="modal-title" style="font-weight: 700;">🏷️ Διαχείριση Κατηγοριών</h3>
         <span class="modal-close" onclick="closeModal('category-manager-modal')">&times;</span>
       </div>
-      <div class="modal-body" style="padding: 16px; flex: 1; overflow-y: auto;">
-        <!-- Add New Category Section -->
-        <div style="margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border);">
-          <h4 style="font-size: 13px; margin-bottom: 12px; font-weight: 700; color: var(--text-secondary);" data-i18n="new_category_add_title">Προσθήκη Νέας Κατηγορίας</h4>
-          <div style="display: flex; gap: 8px;">
-            <input type="text" id="new-category-name" class="form-input" placeholder="Όνομα κατηγορίας" style="flex: 1;">
-            <select id="new-category-type" class="form-select" style="width: 100px;">
-              <option value="expense" data-i18n="type_tab_expense">Έξοδο</option>
-              <option value="income" data-i18n="type_tab_income">Έσοδο</option>
-            </select>
-          </div>
-          <button onclick="addNewCustomCategory()" class="btn btn-primary" style="width: 100%; margin-top: 12px; padding: 10px; font-weight: 700;" data-i18n="btn_add">
-            <i class="fa-solid fa-plus" style="margin-right: 6px;"></i> Προσθήκη
+      <div class="modal-body" style="padding: 16px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 16px;">
+        
+        <!-- Toggle Tabs -->
+        <div style="display: flex; background: rgba(0, 0, 0, 0.15); border: 1px solid rgba(255,255,255,0.04); border-radius: 12px; padding: 2px;">
+          <button type="button" id="cat-mgr-tab-expense" style="flex: 1; border: none; padding: 10px; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s; background: var(--accent); color: white;" onclick="setCategoryManagerType('expense')">Έξοδα</button>
+          <button type="button" id="cat-mgr-tab-income" style="flex: 1; border: none; padding: 10px; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s; background: transparent; color: var(--text-secondary);" onclick="setCategoryManagerType('income')">Έσοδα</button>
+        </div>
+
+        <!-- Add Category Row -->
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 13px; color: var(--text-muted); font-weight: 500;" id="cat-mgr-count-label">Φορτώνει...</span>
+          <button type="button" class="btn btn-primary" style="padding: 8px 14px; font-size: 13px; font-weight: 600; border-radius: 8px; display: flex; align-items: center; gap: 6px;" onclick="openCategoryManagerAddDialog()">
+            <i class="fa-solid fa-plus"></i> Νέα Κατηγορία
           </button>
         </div>
 
-        <!-- Category List -->
-        <h4 style="font-size: 13px; margin-bottom: 12px; font-weight: 700; color: var(--text-secondary);" data-i18n="new_category_list_title">Λίστα Κατηγοριών</h4>
-        <div id="category-manager-list" style="display: flex; flex-direction: column; gap: 8px;">
-          <!-- Categories injected here -->
+        <!-- Categories List -->
+        <div id="category-manager-list" style="display: flex; flex-direction: column; gap: 10px;">
+          <!-- Categories injected here by JS -->
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CATEGORY EDITOR SUB-MODAL -->
+  <div id="category-editor-modal" class="modal-overlay" style="z-index: 11000;">
+    <div class="modal-content" style="max-width: 420px; max-height: 80vh; display: flex; flex-direction: column;">
+      <div class="modal-header" style="display: flex; align-items: center; justify-content: space-between;">
+        <h3 class="modal-title" id="cat-editor-title" style="font-weight: 700;">Επεξεργασία Κατηγορίας</h3>
+        <span class="modal-close" onclick="closeModal('category-editor-modal')">&times;</span>
+      </div>
+      <div class="modal-body" style="padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px;">
+        <div class="form-row">
+          <label class="form-row-label">Όνομα</label>
+          <input type="text" id="cat-editor-name-input" class="form-row-input" placeholder="Όνομα κατηγορίας">
+        </div>
+        <div>
+          <label style="font-size: 12px; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 8px;">Εικονίδιο</label>
+          <div id="cat-editor-emoji-grid" style="display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px; max-height: 180px; overflow-y: auto; padding: 4px; background: rgba(0,0,0,0.15); border: 1px solid var(--border); border-radius: 8px;">
+            <!-- Emoji choices -->
+          </div>
+        </div>
+        <div style="display: flex; gap: 10px; margin-top: 8px;">
+          <button class="btn btn-primary" style="flex: 1; padding: 12px; font-weight: 700; border-radius: 8px;" onclick="saveCategoryManagerEdit()">Αποθήκευση</button>
+          <button class="btn btn-secondary" style="padding: 12px 18px; border-radius: 8px;" onclick="closeModal('category-editor-modal')">Άκυρο</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: NOTE EDITOR MODAL -->
+  <div id="note-editor-modal" class="modal-overlay" style="z-index: 11000;">
+    <div class="modal-content" style="max-width: 450px; max-height: 85vh; display: flex; flex-direction: column; box-sizing: border-box;">
+      <div class="modal-header" style="display: flex; align-items: center; justify-content: space-between; padding-bottom: 8px; box-sizing: border-box;">
+        <h3 class="modal-title" id="note-editor-title" style="font-weight: 700; font-family: 'Outfit', sans-serif;">Νέα Σημείωση</h3>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <!-- Pin Toggle Icon -->
+          <button id="note-editor-pin-btn" class="icon-btn" onclick="toggleNoteEditorPin()" style="font-size: 16px; color: var(--text-muted); background: transparent; border: none; padding: 4px; cursor: pointer; transition: color 0.15s; display: flex; align-items: center;" title="Καρφίτσωμα">
+            <i class="fa-solid fa-thumbtack"></i>
+          </button>
+          <span class="modal-close" onclick="closeModal('note-editor-modal')" style="cursor: pointer; font-size: 24px;">&times;</span>
+        </div>
+      </div>
+      
+      <!-- Segmented Type Selector -->
+      <div style="display: flex; background: rgba(0,0,0,0.15); border: 1px solid var(--border); border-radius: 10px; padding: 3px; margin: 0 16px 12px 16px; box-sizing: border-box;">
+        <button id="note-type-text-btn" onclick="setNoteEditorType('text')" style="flex: 1; padding: 6px; font-size: 12.5px; border-radius: 8px; border: none; cursor: pointer; font-weight: 700; font-family: 'Outfit', sans-serif; transition: all 0.2s; background: var(--accent); color: white;">
+          📝 Κείμενο
+        </button>
+        <button id="note-type-checklist-btn" onclick="setNoteEditorType('checklist')" style="flex: 1; padding: 6px; font-size: 12.5px; border-radius: 8px; border: none; cursor: pointer; font-weight: 700; font-family: 'Outfit', sans-serif; transition: all 0.2s; background: transparent; color: var(--text-secondary);">
+          ☑️ Λίστα
+        </button>
+      </div>
+
+      <div class="modal-body" style="padding: 0 16px 16px 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; flex: 1; box-sizing: border-box;">
+        <!-- Title Input -->
+        <div class="form-row" style="margin-bottom: 4px;">
+          <label class="form-row-label" style="font-family: 'Outfit', sans-serif; font-size: 12px;">Τίτλος</label>
+          <input type="text" id="note-editor-title-input" class="form-row-input" placeholder="Τίτλος σημείωσης..." style="font-family: 'Outfit', sans-serif;">
+        </div>
+
+        <!-- Date/Time Reminder Input -->
+        <div class="form-row" style="margin-bottom: 4px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; box-sizing: border-box; width: 100%;">
+            <label id="note-editor-reminder-label" class="form-row-label" style="font-family: 'Outfit', sans-serif; font-size: 12px; margin: 0;">Ημερομηνία & Ώρα (Υπενθύμιση)</label>
+            <button id="note-editor-clear-reminder-btn" class="icon-btn" onclick="clearNoteEditorReminder()" style="font-size: 11px; color: var(--red-negative); background: transparent; border: none; padding: 0 4px; cursor: pointer; display: none; font-family: 'Outfit', sans-serif;">Καθαρισμός</button>
+          </div>
+          <input type="datetime-local" id="note-editor-reminder-input" class="form-row-input" style="font-family: 'Outfit', sans-serif; padding: 10px; font-size: 13.5px; box-sizing: border-box;" onchange="onNoteReminderChanged()">
+        </div>
+
+        <!-- Plain Text Editor -->
+        <div id="note-editor-text-container" style="display: flex; flex-direction: column; gap: 6px; flex: 1; box-sizing: border-box;">
+          <label class="form-row-label" style="font-family: 'Outfit', sans-serif; font-size: 12px;">Περιεχόμενο</label>
+          <textarea id="note-editor-body-input" class="form-row-input" placeholder="Γράψτε εδώ τη σημείωση..." style="min-height: 180px; font-family: sans-serif; resize: vertical; padding: 12px; line-height: 1.5; box-sizing: border-box;"></textarea>
+        </div>
+
+        <!-- Checklist Editor -->
+        <div id="note-editor-checklist-container" style="display: none; flex-direction: column; gap: 8px; box-sizing: border-box;">
+          <label class="form-row-label" style="font-family: 'Outfit', sans-serif; font-size: 12px;">Αντικείμενα Λίστας</label>
+          <div id="note-editor-checklist-items" style="display: flex; flex-direction: column; gap: 8px; max-height: 250px; overflow-y: auto; padding-right: 4px; box-sizing: border-box;">
+            <!-- Dynamically generated list items with inputs and delete buttons -->
+          </div>
+          <button class="btn btn-secondary" onclick="addNoteEditorChecklistItem()" style="padding: 8px; font-size: 13px; font-weight: 700; margin-top: 4px; display: flex; align-items: center; justify-content: center; gap: 6px; border-radius: 8px; background: rgba(255,255,255,0.02); border: 1px dashed var(--border); color: var(--text-primary); cursor: pointer; box-sizing: border-box;">
+            <i class="fa-solid fa-plus" style="color: var(--accent);"></i> Προσθήκη αντικειμένου
+          </button>
+        </div>
+
+        <!-- Footer Actions -->
+        <div style="display: flex; gap: 10px; margin-top: 12px; box-sizing: border-box;">
+          <button class="btn btn-primary" style="flex: 1; padding: 12px; font-weight: 700; border-radius: 8px; font-family: 'Outfit', sans-serif; cursor: pointer;" onclick="saveNoteFromEditor()">Αποθήκευση</button>
+          <button id="note-editor-delete-btn" class="btn btn-secondary" style="padding: 12px; border-radius: 8px; background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.3); color: #f87171; font-weight: 700; display: none; cursor: pointer;" onclick="deleteNoteFromEditor()">Διαγραφή</button>
+          <button class="btn btn-secondary" style="padding: 12px 18px; border-radius: 8px; font-family: 'Outfit', sans-serif; cursor: pointer;" onclick="closeModal('note-editor-modal')">Άκυρο</button>
         </div>
       </div>
     </div>
@@ -1857,7 +2107,7 @@
         <!-- Avatar Preview & Camera overlay for upload -->
         <div class="profile-avatar-container">
           <div id="profile-sheet-avatar-preview" class="profile-sheet-avatar"></div>
-          <div class="profile-avatar-edit-badge" onclick="triggerAvatarUpload()" title="Αλλαγή φωτογραφίας">
+          <div class="profile-avatar-edit-badge" onclick="triggerAvatarUpload()" data-i18n-title="profile_change_photo" title="Αλλαγή φωτογραφίας">
             <i class="fa-solid fa-camera"></i>
           </div>
         </div>
@@ -1872,9 +2122,9 @@
         </div>
         
         <!-- Preset Avatar Selection -->
-        <div class="profile-presets-title">Επιλέξτε Avatar</div>
+        <div class="profile-presets-title" data-i18n="profile_select_avatar">Επιλέξτε Avatar</div>
         <div class="profile-presets-grid">
-          <div class="preset-avatar-option preset-custom-trigger" onclick="triggerAvatarUpload()" title="Μεταφόρτωση εικόνας">
+          <div class="preset-avatar-option preset-custom-trigger" onclick="triggerAvatarUpload()" data-i18n-title="profile_upload_image" title="Μεταφόρτωση εικόνας">
             <div class="preset-avatar-inner preset-custom-icon"><i class="fa-solid fa-upload"></i></div>
           </div>
           <div class="preset-avatar-option" data-preset="1" onclick="selectPresetAvatar(1)">
@@ -1908,25 +2158,25 @@
 
         <!-- Logout button -->
         <button class="btn btn-secondary profile-logout-btn" onclick="handleProfileLogout()">
-          <i class="fa-solid fa-right-from-bracket" style="margin-right: 8px;"></i>Αποσύνδεση Λογαριασμού
+          <i class="fa-solid fa-right-from-bracket" style="margin-right: 8px;"></i><span data-i18n="profile_logout_btn">Αποσύνδεση Λογαριασμού</span>
         </button>
       </div>
     </div>
   </div>
 
   <!-- Core Application Scripts -->
-  <script src="js/NLPProcessor.js?v=429"></script>
-  <script src="js/MemoryEngine.js?v=429"></script>
-  <script src="js/DecisionEngine.js?v=429"></script>
-  <script src="js/OnlineAIProvider.js?v=429"></script>
-  <script src="js/AIEngine.js?v=429"></script>
-  <script src="js/IntentCorpus.js?v=429"></script>
-  <script src="js/KnowledgeGraph.js?v=429"></script>
-  <script src="app.js?v=429"></script>
+  <script src="js/NLPProcessor.js?v=561"></script>
+  <script src="js/MemoryEngine.js?v=561"></script>
+  <script src="js/DecisionEngine.js?v=561"></script>
+  <script src="js/OnlineAIProvider.js?v=561"></script>
+  <script src="js/AIEngine.js?v=561"></script>
+  <script src="js/IntentCorpus.js?v=561"></script>
+  <script src="js/KnowledgeGraph.js?v=561"></script>
+  <script src="app.js?v=561"></script>
   
   <!-- Register PWA Service Worker -->
   <script>
-    const CURRENT_BUILD = 429;
+    const CURRENT_BUILD = 561;
     
     // ============================================================
     // AGGRESSIVE iOS PWA AUTO-UPDATE
@@ -2006,8 +2256,8 @@
     if ('serviceWorker' in navigator) {
       // ============================================================
       // NUCLEAR iOS PWA FIX: Register SW with versioned URL
-      // iOS Safari treats 'sw.js?v=429' as a COMPLETELY DIFFERENT
-      // script from 'sw.js?v=429', bypassing the update deadlock.
+      // iOS Safari treats 'sw.js?v=561' as a COMPLETELY DIFFERENT
+      // script from 'sw.js?v=561', bypassing the update deadlock.
       // Old SW is unregistered first to break the control cycle.
       // ============================================================
       const SW_URL = 'sw.js?v=' + CURRENT_BUILD;
@@ -2083,13 +2333,31 @@
     }
   </script>
 
+  <!-- Premium Redirect Screen to App -->
+  <div id="app-redirect-overlay" class="auth-overlay" style="display: none; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px;">
+    <div class="auth-card" style="max-width: 400px; width: 100%;">
+      <div class="auth-header">
+        <div class="auth-logo" style="background: linear-gradient(135deg, var(--accent), #2073fa); color: white; width: 70px; height: 70px; border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 32px; margin: 0 auto 20px;"><i class="fa-solid fa-right-to-bracket"></i></div>
+        <h2 class="auth-title" style="margin-bottom: 10px;">Σύνδεση Επιτυχής!</h2>
+        <p class="auth-subtitle" style="color: var(--text-secondary); font-size: 14px; line-height: 1.5; margin-bottom: 25px;">
+          Η ταυτοποίηση ολοκληρώθηκε. Πατήστε το παρακάτω κουμπί για να επιστρέψετε στην εφαρμογή σας.
+        </p>
+      </div>
+      <button id="app-redirect-btn" class="btn btn-primary" style="width: 100%; padding: 14px; font-weight: 700; font-size: 15px; border-radius: 12px; border: none; background: var(--accent); color: var(--bg-primary); cursor: pointer;">
+        🚀 Επιστροφή στην Εφαρμογή
+      </button>
+      <p style="font-size: 12px; color: var(--text-secondary); margin-top: 15px;">
+        Αν η εφαρμογή δεν ανοίξει αυτόματα, πατήστε το κουμπί.
+      </p>
+    </div>
+  </div>
+
   <!-- Premium Glassmorphic Auth Screen Overlay -->
   <div id="auth-overlay" class="auth-overlay" style="display: none;">
     <!-- Loading State Overlay for OAuth redirects -->
     <div id="auth-loading-state" class="auth-redirect-loader" style="display: none;">
       <div class="auth-redirect-logo"><i class="fa-solid fa-wallet"></i></div>
       <div class="auth-redirect-spinner"></div>
-      <div id="auth-debug-logs" style="text-align: left; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 10px; font-family: monospace; font-size: 11px; color: #00ffcc; max-height: 120px; overflow-y: auto; margin-top: 15px; display: none;"></div>
     </div>
 
     <div class="auth-card" id="auth-card">
@@ -2316,25 +2584,25 @@
         
         <!-- Tab 2 Contents: Methodology -->
         <div id="fhs-content-methodology" class="fhs-tab-content" style="display: none; line-height: 1.6; font-size: 12.5px; color: var(--text-secondary); width: 100%;">
-          <h4 style="margin-top: 0; margin-bottom: 10px; font-size: 13.5px; color: var(--text-primary); font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">📈 Μεθοδολογία Financial Health Score</h4>
-          <p style="margin-bottom: 16px; line-height: 1.5;">
+          <h4 style="margin-top: 0; margin-bottom: 10px; font-size: 13.5px; color: var(--text-primary); font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;" data-i18n="fhs_methodology_title">📈 Μεθοδολογία Financial Health Score</h4>
+          <p style="margin-bottom: 16px; line-height: 1.5;" data-i18n-html="fhs_methodology_intro">
             Το σκορ οικονομικής υγείας υπολογίζεται με βάση τα διεθνή πρότυπα του <strong>Financial Health Network (FHN)</strong> και του <strong>Consumer Financial Protection Bureau (CFPB)</strong>, χρησιμοποιώντας 3 βασικούς πυλώνες:
           </p>
           <div style="display: flex; flex-direction: column; gap: 12px;">
             <div>
-              <strong style="color: var(--text-primary); font-size: 12px; display: block; margin-bottom: 2px;">• Δείκτης Αποταμίευσης (Savings Rate) — 40%:</strong>
-              <span>Βασίζεται στον κανόνα <strong>50/30/20</strong> (Harvard Law School). Η διατήρηση αποταμίευσης άνω του 20% των καθαρών εσόδων είναι ο θεμέλιος λίθος για τη μακροχρόνια οικονομική ελευθερία.</span>
+              <strong style="color: var(--text-primary); font-size: 12px; display: block; margin-bottom: 2px;" data-i18n-html="fhs_methodology_savings_title">• Δείκτης Αποταμίευσης (Savings Rate) — 40%:</strong>
+              <span data-i18n-html="fhs_methodology_savings_desc">Βασίζεται στον κανόνα <strong>50/30/20</strong> (Harvard Law School). Η διατήρηση αποταμίευσης άνω του 20% των καθαρών εσόδων είναι ο θεμέλιος λίθος για τη μακροχρόνια οικονομική ελευθερία.</span>
             </div>
             <div>
-              <strong style="color: var(--text-primary); font-size: 12px; display: block; margin-bottom: 2px;">• Ταμείο Έκτακτης Ανάγκης (Emergency Fund) — 40%:</strong>
-              <span>Μελέτες του <strong>CFPB</strong> δείχνουν ότι η ύπαρξη ρευστότητας για την κάλυψη <strong>3 έως 6 μηνών σταθερών εξόδων</strong> μειώνει κατά 85% την πιθανότητα δημιουργίας προβληματικού χρέους.</span>
+              <strong style="color: var(--text-primary); font-size: 12px; display: block; margin-bottom: 2px;" data-i18n-html="fhs_methodology_emergency_title">• Ταμείο Έκτακτης Ανάγκης (Emergency Fund) — 40%:</strong>
+              <span data-i18n-html="fhs_methodology_emergency_desc">Μελέτες του <strong>CFPB</strong> δείχνουν ότι η ύπαρξη ρευστότητας για την κάλυψη <strong>3 έως 6 μηνών σταθερών εξόδων</strong> μειώνει κατά 85% την πιθανότητα δημιουργίας προβληματικού χρέους.</span>
             </div>
             <div>
-              <strong style="color: var(--text-primary); font-size: 12px; display: block; margin-bottom: 2px;">• Τάση & Έλεγχος Ρίσκου (Expense Trend) — 20%:</strong>
-              <span>Επιβραβεύει τη σταθερότητα και τη διατήρηση των μηνιαίων εξόδων κάτω από το όριο των εσόδων.</span>
+              <strong style="color: var(--text-primary); font-size: 12px; display: block; margin-bottom: 2px;" data-i18n-html="fhs_methodology_trend_title">• Τάση & Έλεγχος Ρίσκου (Expense Trend) — 20%:</strong>
+              <span data-i18n-html="fhs_methodology_trend_desc">Επιβραβεύει τη σταθερότητα και τη διατήρηση των μηνιαίων εξόδων κάτω από το όριο των εσόδων.</span>
             </div>
           </div>
-          <p style="font-style: italic; font-size: 11px; color: var(--text-muted); border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 12px; margin-top: 16px; line-height: 1.4;">
+          <p style="font-style: italic; font-size: 11px; color: var(--text-muted); border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 12px; margin-top: 16px; line-height: 1.4;" data-i18n="fhs_methodology_note">
             (Σημείωση: Για νέους χρήστες εφαρμόζεται προσαρμοσμένο μοντέλο εκκίνησης βάσει των πρώτων δεδομένων, το οποίο ωριμάζει μετά το πέρας του πρώτου τριμήνου).
           </p>
         </div>
@@ -2438,10 +2706,10 @@
       <div id="advisor-chat-suggestions-container" style="padding: 8px 16px; border-top: 1px solid rgba(255, 255, 255, 0.04); background: rgba(0, 0, 0, 0.2); flex-shrink: 0; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch;">
         <div id="advisor-chat-suggestions" style="display: inline-flex; gap: 8px;">
           <!-- Quick action chips -->
-          <button type="button" class="advisor-suggestion-chip" onclick="submitCoachQuery('overspending')">🔍 Πού ξοδεύω υπερβολικά;</button>
-          <button type="button" class="advisor-suggestion-chip" onclick="submitCoachQuery('savings')">💡 Πώς να αποταμιεύσω περισσότερο;</button>
-          <button type="button" class="advisor-suggestion-chip" onclick="submitCoachQuery('forecast_5y')">📈 Πού θα είμαι σε 5 χρόνια;</button>
-          <button type="button" class="advisor-suggestion-chip" onclick="submitCoachQuery('milestone_50k')">🎯 Πότε θα φτάσω τα 50.000€;</button>
+          <button type="button" class="advisor-suggestion-chip" onclick="submitCoachQuery('overspending')" data-i18n="advisor_suggest_overspending">🔍 Πού ξοδεύω υπερβολικά;</button>
+          <button type="button" class="advisor-suggestion-chip" onclick="submitCoachQuery('savings')" data-i18n="advisor_suggest_savings">💡 Πώς να αποταμιεύσω περισσότερο;</button>
+          <button type="button" class="advisor-suggestion-chip" onclick="submitCoachQuery('forecast_5y')" data-i18n="advisor_suggest_forecast_5y">📈 Πού θα είμαι σε 5 χρόνια;</button>
+          <button type="button" class="advisor-suggestion-chip" onclick="submitCoachQuery('milestone_50k')" data-i18n="advisor_suggest_milestone_50k">🎯 Πότε θα φτάσω τα 50.000€;</button>
         </div>
       </div>
       

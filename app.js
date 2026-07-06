@@ -11,6 +11,14 @@ window.addEventListener('unhandledrejection', function (event) {
 
 window.autocompleteJustSelected = false;
 
+// One-time cache clear to purge duplicated local transactions.
+// This forces a clean sync from Supabase when the user launches the updated app.
+if (!localStorage.getItem('clear_duplicates_v3')) {
+  localStorage.removeItem('offline_transactions');
+  localStorage.setItem('clear_duplicates_v3', 'true');
+  console.log('Successfully cleared offline_transactions cache to purge duplicates.');
+}
+
 // Money Manager App - Rebuilt based on actual Excel data structure
 // Excel columns: Date | Account | Category | Subcategory | Note | EUR | Income/Expense | Description | Amount | Currency | Account
 
@@ -21,58 +29,60 @@ window.autocompleteJustSelected = false;
 // ============================================================
 const CATEGORY_EMOJI_MAP = {
   // Expense categories
-  '1F3E1': { name: '🏡 ΣΠΙΤΙ',                  icon: '🏡', color: '#e05e55', type: 'expense' },
-  '1F3E0': { name: '🏠ΓΡΑΦΕΙΟ Β2',             icon: '🏠', color: '#ffd54f', type: 'expense' },
-  '1F697': { name: '🚗 ΑΥΤΟΚΙΝΗΤΟ',             icon: '🚗', color: '#ffa726', type: 'expense' },
-  '1F6D2': { name: '🛒 ΔΙΑΤΡΟΦΗ',               icon: '🛒', color: '#ffb300', type: 'expense' },
-  '1F3CB': { name: '🏋️ΓΥΜΝΑΣΤΗΡΙΟ',            icon: '🏋️', color: '#42a5f5', type: 'expense' },
-  '1F389': { name: '🎉ΔΙΑΣΚΕΔΑΣΗ/ΕΞΟΔΟΙ',      icon: '🎉', color: '#26a69a', type: 'expense' },
-  '1F9FE': { name: '🧾ΦΟΡΟΙ/ΛΟΓΙΣΤΗΣ',         icon: '🧾', color: '#26c6da', type: 'expense' },
-  '1F455': { name: '👕 ΠΡΟΣΩΠΙΚΗ ΦΡΟΝΤΙΔΑ',     icon: '👕', color: '#7e57c2', type: 'expense' },
-  '1F687': { name: '🚇 ΜΕΤΑΚΙΝΗΣΗ',             icon: '🚇', color: '#ab47bc', type: 'expense' },
-  '1F4BB': { name: '💻 ΤΕΧΝΟΛΟΓΙΑ',             icon: '💻', color: '#5c6bc0', type: 'expense' },
-  '1F4BC': { name: '💼 ΜΙΣΘΟΣ',                 icon: '💼', color: '#4caf50', type: 'income' },
-  '1F9E9': { name: '🧩ΔΙΑΦΟΡΑ ΕΞΟΔΑ',          icon: '🧩', color: '#78909c', type: 'expense' },
-  '1F3AC': { name: '🎬 ΣΥΝΔΡΟΜΕΣ',              icon: '🎬', color: '#ec407a', type: 'expense' },
-  '2764':  { name: '❤️ ΥΓΕΙΑ',                  icon: '❤️', color: '#ef5350', type: 'expense' },
-  '1F489': { name: '❤️ ΥΓΕΙΑ',                  icon: '❤️', color: '#ef5350', type: 'expense' },
-  '1F48A': { name: '❤️ ΥΓΕΙΑ',                  icon: '❤️', color: '#ef5350', type: 'expense' },
-  '1F527': { name: '🧩ΔΙΑΦΟΡΑ ΕΞΟΔΑ',          icon: '🧩', color: '#78909c', type: 'expense' },
+  '1F3E1': { name: '🏠 Σπίτι',                  icon: '🏠', color: '#e05e55', type: 'expense' },
+  '1F3E0': { name: '🏠 Σπίτι',                  icon: '🏠', color: '#ffd54f', type: 'expense' },
+  '1F697': { name: '🚗 Μεταφορές',              icon: '🚗', color: '#ffa726', type: 'expense' },
+  '1F6D2': { name: '🍔 Τρόφιμα',                icon: '🍔', color: '#ffb300', type: 'expense' },
+  '1F3CB': { name: '🎉 Διασκέδαση',             icon: '🎉', color: '#42a5f5', type: 'expense' },
+  '1F389': { name: '🎉 Διασκέδαση',             icon: '🎉', color: '#26a69a', type: 'expense' },
+  '1F9FE': { name: '🧾 Φόροι',                  icon: '🧾', color: '#26c6da', type: 'expense' },
+  '1F455': { name: '👕 Αγορές',                 icon: '👕', color: '#7e57c2', type: 'expense' },
+  '1F687': { name: '🚗 Μεταφορές',              icon: '🚗', color: '#ab47bc', type: 'expense' },
+  '1F4BB': { name: '📦 Διάφορα',                 icon: '📦', color: '#5c6bc0', type: 'expense' },
+  '1F4BC': { name: '💼 Μισθός',                 icon: '💼', color: '#4caf50', type: 'income' },
+  '1F9E9': { name: '📦 Διάφορα',                 icon: '📦', color: '#78909c', type: 'expense' },
+  '1F3AC': { name: '📱 Συνδρομές',              icon: '📱', color: '#ec407a', type: 'expense' },
+  '2764':  { name: '❤️ Υγεία',                  icon: '❤️', color: '#ef5350', type: 'expense' },
+  '1F489': { name: '❤️ Υγεία',                  icon: '❤️', color: '#ef5350', type: 'expense' },
+  '1F48A': { name: '❤️ Υγεία',                  icon: '❤️', color: '#ef5350', type: 'expense' },
+  '1F527': { name: '📦 Διάφορα',                 icon: '📦', color: '#78909c', type: 'expense' },
 
   // Income categories
-  '1F911': { name: '🤑 ΕΞΤΡΑ ΕΙΣΟΔΗΜΑΤΑ',       icon: '🤑', color: '#607d8b', type: 'income' },
-  '1F4B0': { name: '💼 ΜΙΣΘΟΣ',                 icon: '💼', color: '#4caf50', type: 'income' },
-  '1F381': { name: '🎁ΔΩΡΑ/ΕΣΟΔΑ',             icon: '🎁', color: '#66bb6a', type: 'income' },
-  '1F9D1': { name: 'ΕΠΙΣΤΡΟΦΕΣ',             icon: '💵', color: '#009688', type: 'income' },
-  '1F4E6': { name: 'ΠΩΛΗΣΕΙΣ',               icon: '📦', color: '#26a69a', type: 'income' },
-  '1F3C5': { name: 'BONUS',                  icon: '🏅', color: '#ffb300', type: 'income' },
-  '1F468': { name: 'ΑΛΛΑ ΕΣΟΔΑ',             icon: '👨', color: '#9e9e9e', type: 'income' },
-  '1F393': { name: '🎓 ΕΚΠΑΙΔΕΥΣΗ',             icon: '🎓', color: '#2196f3', type: 'expense' },
-  '1F47D': { name: '🤑 ΕΞΤΡΑ ΕΙΣΟΔΗΜΑΤΑ',       icon: '🤑', color: '#607d8b', type: 'income' },
-  '1F4B6': { name: '💶  ΕΝΟΙΚΙΟ Β2 (Έσοδο)',    icon: '💶', color: '#00bcd4', type: 'income' },
-  '1F3DB': { name: '🏛️ΜΕΡΙΔΙΟ ΔΟΣΗΣ ΔΑΝΕΙΟΥ (ΓΟΝΕΙΣ)', icon: '🏛️', color: '#8bc34a', type: 'income' },
+  '1F911': { name: '➕ Άλλα έσοδα',             icon: '➕', color: '#607d8b', type: 'income' },
+  '1F4B0': { name: '💼 Μισθός',                 icon: '💼', color: '#4caf50', type: 'income' },
+  '1F381': { name: '🎁 Δώρα',                   icon: '🎁', color: '#66bb6a', type: 'income' },
+  '1F9D1': { name: '➕ Άλλα έσοδα',             icon: '➕', color: '#009688', type: 'income' },
+  '1F4E6': { name: '📦 Πωλήσεις',               icon: '📦', color: '#26a69a', type: 'income' },
+  '1F3C5': { name: '💸 Bonus',                  icon: '💸', color: '#ffb300', type: 'income' },
+  '1F468': { name: '➕ Άλλα έσοδα',             icon: '➕', color: '#9e9e9e', type: 'income' },
+  '1F393': { name: '🎓 Εκπαίδευση',             icon: '🎓', color: '#2196f3', type: 'expense' },
+  '1F47D': { name: '➕ Άλλα έσοδα',             icon: '➕', color: '#607d8b', type: 'income' },
+  '1F4B6': { name: '🏠 Ενοίκια',                icon: '🏠', color: '#00bcd4', type: 'income' },
+  '1F3DB': { name: '➕ Άλλα έσοδα',             icon: '➕', color: '#8bc34a', type: 'income' },
 };
 
 // Fallback categories for any that don't match
 const DEFAULT_CATEGORIES = [
-  { name: '🏡 ΣΠΙΤΙ',                  type: 'expense', icon: '🏡', color: '#e05e55' },
-  { name: '🛒 ΔΙΑΤΡΟΦΗ',               type: 'expense', icon: '🛒', color: '#ffb300' },
-  { name: '🏠ΓΡΑΦΕΙΟ Β2',             type: 'expense', icon: '🏠', color: '#ffd54f' },
-  { name: '🚗 ΑΥΤΟΚΙΝΗΤΟ',             type: 'expense', icon: '🚗', color: '#ffa726' },
-  { name: '❤️ ΥΓΕΙΑ',                  type: 'expense', icon: '❤️', color: '#ef5350' },
-  { name: '🎉ΔΙΑΣΚΕΔΑΣΗ/ΕΞΟΔΟΙ',      type: 'expense', icon: '🎉', color: '#26a69a' },
-  { name: '🧾ΦΟΡΟΙ/ΛΟΓΙΣΤΗΣ',         type: 'expense', icon: '🧾', color: '#26c6da' },
-  { name: '🏋️ΓΥΜΝΑΣΤΗΡΙΟ',            type: 'expense', icon: '🏋️', color: '#42a5f5' },
-  { name: '👕 ΠΡΟΣΩΠΙΚΗ ΦΡΟΝΤΙΔΑ',     type: 'expense', icon: '👕', color: '#7e57c2' },
-  { name: '🚇 ΜΕΤΑΚΙΝΗΣΗ',             type: 'expense', icon: '🚇', color: '#ab47bc' },
-  { name: '🧩ΔΙΑΦΟΡΑ ΕΞΟΔΑ',          type: 'expense', icon: '🧩', color: '#78909c' },
-  { name: '🎬 ΣΥΝΔΡΟΜΕΣ',              type: 'expense', icon: '🎬', color: '#ec407a' },
-  { name: '🎓 ΕΚΠΑΙΔΕΥΣΗ',             type: 'expense', icon: '🎓', color: '#2196f3' },
+  { name: '🏠 Σπίτι',                  type: 'expense', icon: '🏠', color: '#e05e55' },
+  { name: '🍔 Τρόφιμα',                type: 'expense', icon: '🍔', color: '#ffb300' },
+  { name: '🚗 Μεταφορές',              type: 'expense', icon: '🚗', color: '#ffa726' },
+  { name: '❤️ Υγεία',                  type: 'expense', icon: '❤️', color: '#ef5350' },
+  { name: '🎓 Εκπαίδευση',             type: 'expense', icon: '🎓', color: '#2196f3' },
+  { name: '🎉 Διασκέδαση',             type: 'expense', icon: '🎉', color: '#26a69a' },
+  { name: '👕 Αγορές',                 type: 'expense', icon: '👕', color: '#7e57c2' },
+  { name: '📱 Συνδρομές',              type: 'expense', icon: '📱', color: '#ec407a' },
+  { name: '🧾 Φόροι',                  type: 'expense', icon: '🧾', color: '#26c6da' },
+  { name: '📦 Διάφορα',                 type: 'expense', icon: '📦', color: '#78909c' },
 
-  { name: '💼 ΜΙΣΘΟΣ',                 type: 'income',  icon: '💼', color: '#4caf50' },
-  { name: '🤑 ΕΞΤΡΑ ΕΙΣΟΔΗΜΑΤΑ',       type: 'income',  icon: '🤑', color: '#607d8b' },
-  { name: '💶  ΕΝΟΙΚΙΟ Β2 (Έσοδο)',    type: 'income',  icon: '💶', color: '#00bcd4' },
-  { name: '🏛️ΜΕΡΙΔΙΟ ΔΟΣΗΣ ΔΑΝΕΙΟΥ (ΓΟΝΕΙΣ)', type: 'income', icon: '🏛️', color: '#8bc34a' }
+  { name: '💼 Μισθός',                 type: 'income',  icon: '💼', color: '#4caf50' },
+  { name: '💸 Bonus',                  type: 'income',  icon: '💸', color: '#ffb300' },
+  { name: '🏠 Ενοίκια',                type: 'income',  icon: '🏠', color: '#00bcd4' },
+  { name: '📈 Επενδύσεις',             type: 'income',  icon: '📈', color: '#8bc34a' },
+  { name: '🎁 Δώρα',                   type: 'income',  icon: '🎁', color: '#66bb6a' },
+  { name: '💰 Cashback / Τόκοι',       type: 'income',  icon: '💰', color: '#607d8b' },
+  { name: '💼 Freelance',              type: 'income',  icon: '💼', color: '#9e9e9e' },
+  { name: '📦 Πωλήσεις',               type: 'income',  icon: '📦', color: '#26a69a' },
+  { name: '➕ Άλλα έσοδα',             type: 'income',  icon: '➕', color: '#90a4ae' }
 ];
 
 // Default Accounts - 3 real accounts from Excel: Cash, Card, Accounts (= Bank Account)
@@ -85,8 +95,10 @@ const DEFAULT_ACCOUNTS = [
 // App State
 const state = {
   transactions: [],
+  trashTransactions: [],
   accounts: [],
   categories: [],
+  notes: [],
   activeTab: 'trans',
   hasInitialScrollDone: false,
   syncStatus: 'offline',
@@ -119,6 +131,7 @@ const state = {
   lastSwipeTime: 0,
   recurringTemplates: [],
   deletedRecurringDates: [],
+  lastOpenedTransactionId: null,
 };
 
 const NEON_PALETTE = [
@@ -230,6 +243,15 @@ function compareTransactions(a, b) {
 
 const _deletingTxIds = new Set();
 
+// IDs that were successfully deleted from the cloud within the last 30 seconds.
+// This prevents a race condition where loadData() fetches from Supabase before
+// the DB deletion has propagated, bringing deleted transactions back.
+const _recentlyDeletedTxIds = new Set();
+function _markRecentlyDeleted(id) {
+  _recentlyDeletedTxIds.add(String(id));
+  setTimeout(() => { _recentlyDeletedTxIds.delete(String(id)); }, 30000);
+}
+
 function deduplicateCategories() {
   if (!state.categories) return;
   const seen = new Set();
@@ -245,7 +267,10 @@ function deduplicateCategories() {
 function mergeAndDeduplicateTransactions(cloudTransactions, localPendingTransactions) {
   const deletedIds = new Set();
   
+  // Guard 1: IDs actively being deleted right now
   _deletingTxIds.forEach(id => deletedIds.add(String(id)));
+  // Guard 2: IDs deleted in the last 30s (prevents race condition with Supabase propagation)
+  _recentlyDeletedTxIds.forEach(id => deletedIds.add(String(id)));
   
   try {
     const queueStr = localStorage.getItem('money_manager_sync_queue');
@@ -331,6 +356,14 @@ const TRANSLATIONS = {
     item_language: 'Γλώσσα',
     item_month_start: 'Έναρξη Μήνα',
     item_week_start: 'Έναρξη Εβδομάδας',
+    item_recurring_templates: 'Επαναλαμβανόμενες Συναλλαγές',
+    no_recurring_templates: 'Δεν υπάρχουν ενεργές επαναλαμβανόμενες συναλλαγές.',
+    monthly_on_day: 'Κάθε μήνα στις',
+    item_trash_bin: 'Κάδος Ανακύκλωσης',
+    no_trash_items: 'Ο κάδος ανακύκλωσης είναι άδειος.',
+    confirm_empty_trash: 'Είστε σίγουροι ότι θέλετε να αδειάσετε τον κάδο; Αυτή η ενέργεια είναι οριστική.',
+    restore: 'Επαναφορά',
+    empty_trash: 'Εκκαθάριση Κάδου',
     item_currency: 'Κύριο Νόμισμα',
     item_sync_status: 'Κατάσταση Συγχρονισμού',
     val_month_start: 'Κάθε 1',
@@ -363,6 +396,7 @@ const TRANSLATIONS = {
     row_note: 'Τίτλος',
     row_description: 'Λεπτομέρειες',
     item_autocomplete: 'Έξυπνος Τίτλος (Autocomplete)',
+    item_note_shortcut: 'Κουμπί Σημειώσεων δίπλα στο "+"',
     btn_save: 'Αποθήκευση',
     btn_continue: 'Ακύρωση',
     keypad_title: 'Ποσό',
@@ -490,7 +524,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v429 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v561 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -596,7 +630,31 @@ const TRANSLATIONS = {
     excel_field_inflow: 'Εισροή / Credit (Inflow)',
     excel_field_outflow: 'Εκροή / Debit (Outflow)',
     excel_field_type: 'Τύπος (Expense/Income)',
-    excel_field_description: 'Περιγραφή (Description)'
+    excel_field_description: 'Περιγραφή (Description)',
+    // Advisor related
+    advisor_title: 'Έξυπνος Σύμβουλος',
+    advisor_chat_trigger: '💬 Ρωτήστε τον AI Σύμβουλο...',
+    advisor_comparison_title: 'Σύγκριση με Προηγούμενο Μήνα',
+    advisor_top_trans_title: 'Μεγαλύτερες Δαπάνες',
+    advisor_action_text: 'Προβολή όλων στο Ιστορικό',
+    advisor_chat_title: 'Οικονομικός Σύμβουλος AI',
+    advisor_suggest_overspending: '🔍 Πού ξοδεύω υπερβολικά;',
+    advisor_suggest_savings: '💡 Πώς να αποταμιεύσω περισσότερο;',
+    advisor_suggest_forecast_5y: '📈 Πού θα είμαι σε 5 χρόνια;',
+    advisor_suggest_milestone_50k: '🎯 Πότε θα φτάσω τα 50.000€;',
+    advisor_placeholder: 'Ρωτήστε κάτι τον σύμβουλο...',
+    // Profile related
+    profile_title: 'Το Προφίλ μου',
+    profile_name_placeholder: 'Το όνομά σας',
+    profile_select_avatar: 'Επιλέξτε Avatar',
+    profile_logout_btn: 'Αποσύνδεση Λογαριασμού',
+    profile_change_photo: 'Αλλαγή φωτογραφίας',
+    profile_upload_image: 'Μεταφόρτωση εικόνας',
+    cloud_sync_active: 'Συγχρονισμός Cloud: Ενεργός',
+    cloud_sync_local: 'Συγχρονισμός Cloud: Τοπικός',
+    subcategories_title: 'Υποκατηγορίες',
+    btn_undo: 'Αναίρεση',
+    item_manage_categories: '🏷️ Διαχείριση Κατηγοριών'
   },
   en: {
     nav_trans: 'Transactions',
@@ -615,6 +673,14 @@ const TRANSLATIONS = {
     item_language: 'Language',
     item_month_start: 'Month Start',
     item_week_start: 'Week Start',
+    item_recurring_templates: 'Recurring Transactions',
+    no_recurring_templates: 'No active recurring transactions found.',
+    monthly_on_day: 'Monthly on day',
+    item_trash_bin: 'Trash Bin',
+    no_trash_items: 'The trash bin is empty.',
+    confirm_empty_trash: 'Are you sure you want to empty the trash bin? This action is permanent.',
+    restore: 'Restore',
+    empty_trash: 'Empty Trash',
     item_currency: 'Main Currency',
     item_sync_status: 'Sync Status',
     val_month_start: 'Every 1st',
@@ -647,6 +713,7 @@ const TRANSLATIONS = {
     row_note: 'Title',
     row_description: 'Details',
     item_autocomplete: 'Smart Title (Autocomplete)',
+    item_note_shortcut: 'Notes Shortcut Button next to "+"',
     btn_save: 'Save',
     btn_continue: 'Cancel',
     keypad_title: 'Amount',
@@ -774,7 +841,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v429 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v561 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -880,7 +947,31 @@ const TRANSLATIONS = {
     excel_field_inflow: 'Credit (Inflow)',
     excel_field_outflow: 'Debit (Outflow)',
     excel_field_type: 'Type (Expense/Income)',
-    excel_field_description: 'Description'
+    excel_field_description: 'Description',
+    // Advisor related
+    advisor_title: 'Smart Advisor',
+    advisor_chat_trigger: '💬 Ask AI Advisor...',
+    advisor_comparison_title: 'Compare with Previous Month',
+    advisor_top_trans_title: 'Top Expenses',
+    advisor_action_text: 'View all in History',
+    advisor_chat_title: 'AI Financial Advisor',
+    advisor_suggest_overspending: '🔍 Where am I overspending?',
+    advisor_suggest_savings: '💡 How to save more?',
+    advisor_suggest_forecast_5y: '📈 Where will I be in 5 years?',
+    advisor_suggest_milestone_50k: '🎯 When will I reach €50k?',
+    advisor_placeholder: 'Ask the advisor something...',
+    // Profile related
+    profile_title: 'My Profile',
+    profile_name_placeholder: 'Your name',
+    profile_select_avatar: 'Select Avatar',
+    profile_logout_btn: 'Sign Out Account',
+    profile_change_photo: 'Change photo',
+    profile_upload_image: 'Upload image',
+    cloud_sync_active: 'Cloud Sync: Active',
+    cloud_sync_local: 'Cloud Sync: Local Mode',
+    subcategories_title: 'Subcategories',
+    btn_undo: 'Undo',
+    item_manage_categories: '🏷️ Manage Categories'
   }
 };
 
@@ -915,6 +1006,7 @@ const ReceiptStorage = {
       tx.objectStore(this.STORE_NAME).put({ id: transactionId, blobs, savedAt: Date.now() });
       tx.oncomplete = () => resolve();
       tx.onerror = (e) => reject(e);
+      tx.onabort = (e) => reject(e);
     });
   },
 
@@ -935,6 +1027,9 @@ const ReceiptStorage = {
         }
       };
       req.onerror = (e) => reject(e);
+      tx.oncomplete = () => { /* resolve already called in onsuccess, but good for lifecycle */ };
+      tx.onerror = (e) => reject(e);
+      tx.onabort = (e) => reject(e);
     });
   },
 
@@ -945,6 +1040,7 @@ const ReceiptStorage = {
       tx.objectStore(this.STORE_NAME).delete(transactionId);
       tx.oncomplete = () => resolve();
       tx.onerror = (e) => reject(e);
+      tx.onabort = (e) => reject(e);
     });
   }
 };
@@ -952,25 +1048,28 @@ const ReceiptStorage = {
 // Pending receipt files for the current transaction form session
 let _pendingReceiptFiles = [];
 let _pendingReceiptDeleted = false;
-let _pendingRecurringSettings = { days: [], months: [], years: [], preset: 'monthly' };
+let _pendingRecurringSettings = { isActive: false, days: [], months: [], years: [], preset: 'monthly' };
 
 const DEFAULT_SUBCATEGORIES_MAP = {
-  'ΥΓΕΙΑ': ['Γιατρός', 'Εξετάσεις', 'Συμπληρώματα διατροφής', 'Φάρμακα'],
-  'ΑΥΤΟΚΙΝΗΤΟ': ['Parking', 'Service/Ανταλλακτικά', 'Αγορά αυτοκινήτου/Δόσεις', 'Ασφάλεια αυτοκινήτου', 'Βενζίνες', 'Διόδια e-pass', 'Τέλη κυκλοφορίας'],
-  'ΓΡΑΦΕΙΟ Β2': ['ΔΙΑΦΟΡΑ Β2', 'ΕΝΟΙΚΙΟ Β2', 'ΦΟΡΟΛΟΓΊΑ Β2'],
-  'ΔΙΑΣΚΕΔΑΣΗ/ΕΞΟΔΟΙ': ['Έξοδος/Βόλτα', 'Ταξίδια'],
-  'ΔΙΑΤΡΟΦΗ': ['Delivery/φαγητό απέξω/γλυκά', 'Κρεοπωλείο', 'Λαϊκή', 'Νερό rainbow', 'Σουπερμάρκετ'],
-  'ΔΙΑΦΟΡΑ ΕΞΟΔΑ': ['Tips/Προμήθειες', 'Διαφήμιση', 'Μικροέξοδα', 'Μισθώματα Αποθήκης Ι. Σούτσου 18', 'Στοίχημα/Καζίνο'],
-  'ΑΛΛΑ ΕΞΟΔΑ': ['Tips/Προμήθειες', 'Διαφήμιση', 'Μικροέξοδα', 'Μισθώματα Αποθήκης Ι. Σούτσου 18', 'Στοίχημα/Καζίνο'],
-  'ΕΚΠΑΙΔΕΥΣΗ': ['Βιβλία'],
-  'ΕΞΤΡΑ ΕΙΣΟΔΗΜΑΤΑ': ['🎁ΑΛΛΑ ΕΞΤΡΑ', '🏅 BONUS', '👨‍👩‍👦ΟΙΚΟΓΕΝΕΙΑ/ΒΟΗΘΕΙΑ', '💰ΤΟΚΟΙ/CASHBACK/ΤΡΑΠΕΖΕΣ', '💻ΙΝΣΤΑ', '📦VINTED', '🧑‍🎓ΕΠΙΔΟΜΑΤΑ/ΣΕΜΙΝΑΡΙΑ'],
-  'ΜΕΤΑΚΙΝΗΣΗ': ['Taxi', 'Μετρό - Λεωφορείο'],
-  'ΜΙΣΘΟΣ': ['ΜΙΣΘΟΣ ΒΑΣΟΥΛΑ', 'ΜΙΣΘΟΣ ΓΡΑΦΕΙΩΝ ΒΑΣΟΥΛΑ', 'ΜΙΣΘΟΣ ΜΑΡΙΟΣ'],
-  'ΜΙΣΘΟΣ/ΕΣΟΔΑ': ['ΜΙΣΘΟΣ ΒΑΣΟΥΛΑ', 'ΜΙΣΘΟΣ ΓΡΑΦΕΙΩΝ ΒΑΣΟΥΛΑ', 'ΜΙΣΘΟΣ ΜΑΡΙΟΣ'],
-  'ΠΡΟΣΩΠΙΚΗ ΦΡΟΝΤΙΔΑ': ['Accessories', 'Makeup', 'Εσώρουχα', 'Καλλυντικά', 'Κομμωτήριο', 'Παπούτσια', 'Ρούχα', 'Τσάντες/Τσαντάκια', 'Υπηρεσίες'],
-  'ΣΠΙΤΙ': ['Vodafone', 'ΔΕΗ', 'Έπιπλα/Διακόσμηση', 'ΕΥΔΑΠ', 'Οικιακά Είδη', 'Στεγαστικό Δάνειο', 'Συντήρηση Σπιτιού', 'Συσκευές Σπιτιού'],
-  'ΣΥΝΔΡΟΜΕΣ': ['Apple Music', 'Icloud', 'Streaming', 'Διάφορες', 'Εφαρμογές/Appstore', 'Συνδρομές Τραπεζικών Καρτών'],
-  'ΦΟΡΟΙ/ΛΟΓΙΣΤΗΣ': ['ΕΝΦΙΑ', 'ΛΟΓΙΣΤΗΣ', 'ΠΑΡΑΒΟΛΑ/ΚΡΑΤΗΣΕΙΣ']
+  'ΣΠΙΤΙ': ['Ενοίκιο', 'Ρεύμα', 'Νερό', 'Internet', 'Συντήρηση', 'Έπιπλα'],
+  'ΤΡΟΦΙΜΑ': ['Super Market', 'Delivery', 'Καφές', 'Φούρνος'],
+  'ΜΕΤΑΦΟΡΕΣ': ['Καύσιμα', 'Parking', 'Service', 'Ασφάλεια', 'Μέσα Μαζικής Μεταφοράς'],
+  'ΥΓΕΙΑ': [],
+  'ΕΚΠΑΙΔΕΥΣΗ': [],
+  'ΔΙΑΣΚΕΔΑΣΗ': [],
+  'ΑΓΟΡΕΣ': [],
+  'ΣΥΝΔΡΟΜΕΣ': [],
+  'ΦΟΡΟΙ': [],
+  'ΔΙΑΦΟΡΑ': [],
+  'ΜΙΣΘΟΣ': [],
+  'BONUS': [],
+  'ΕΝΟΙΚΙΑ': [],
+  'ΕΠΕΝΔΥΣΕΙΣ': [],
+  'ΔΩΡΑ': [],
+  'CASHBACK / ΤΟΚΟΙ': [],
+  'FREELANCE': [],
+  'ΠΩΛΗΣΕΙΣ': [],
+  '➕ ΑΛΛΑ ΕΣΟΔΑ': []
 };
 
 function getMonthName(index, short = false) {
@@ -1010,6 +1109,13 @@ function applyLanguage(lang) {
         }
       }
     }
+  });
+
+  // Update DOM elements with data-i18n-html
+  document.querySelectorAll('[data-i18n-html]').forEach(el => {
+    const key = el.getAttribute('data-i18n-html');
+    const translation = TRANSLATIONS[lang][key];
+    if (translation) el.innerHTML = translation;
   });
 
   // Update elements with data-i18n-title
@@ -1085,6 +1191,17 @@ function applyLanguage(lang) {
   const newCategoryNameInput = document.getElementById('new-category-name');
   if (newCategoryNameInput) {
     newCategoryNameInput.placeholder = TRANSLATIONS[lang]['new_category_name_placeholder'] || 'Όνομα κατηγορίας';
+  }
+
+  // Update profile sheet and advisor chat placeholders
+  const profileNameInput = document.getElementById('profile-name-input');
+  if (profileNameInput) {
+    profileNameInput.placeholder = TRANSLATIONS[lang]['profile_name_placeholder'] || 'Το όνομά σας';
+  }
+
+  const advisorChatInput = document.getElementById('advisor-chat-input');
+  if (advisorChatInput) {
+    advisorChatInput.placeholder = TRANSLATIONS[lang]['advisor_placeholder'] || 'Ρωτήστε κάτι τον σύμβουλο...';
   }
 
   // Update custom date picker weekdays initials
@@ -1662,8 +1779,10 @@ window.addEventListener('DOMContentLoaded', async () => {
   window.addEventListener('pageshow', function(event) {
     if (event.persisted) {
       // Page restored from bfcache (iOS back navigation or OAuth redirect)
-      console.log('[pageshow] bfcache restore detected — force-closing modals');
-      forceCloseAllModals();
+      console.log('[pageshow] bfcache restore detected — restoring modals if missing');
+      if (typeof window.restoreActiveModalsWithoutTransition === 'function') {
+        window.restoreActiveModalsWithoutTransition();
+      }
     }
   });
 
@@ -1688,6 +1807,149 @@ window.addEventListener('DOMContentLoaded', async () => {
   if (savedTab && ['trans', 'stats', 'accounts', 'more'].includes(savedTab) && savedTab !== 'trans') {
     switchTab(savedTab, true);
   }
+
+  // Restore selected month and year from localStorage if they exist
+  const savedMonth = localStorage.getItem('selected_month');
+  const savedYear = localStorage.getItem('selected_year');
+  if (savedMonth !== null) {
+    state.selectedMonth = parseInt(savedMonth, 10);
+  }
+  if (savedYear !== null) {
+    state.selectedYear = parseInt(savedYear, 10);
+  }
+
+  // Define modal restoration helper globally so it can be re-run on iOS pageshow (bfcache restore)
+  function restoreActiveModalsFromStorage() {
+    try {
+      const activeModalId = localStorage.getItem('bg_active_modal_id');
+      if (activeModalId) {
+        const currentlyActive = document.querySelector('.modal-overlay.active, .tx-modal-overlay.active, .profile-sheet-overlay.active');
+        if (currentlyActive && currentlyActive.id === activeModalId) {
+          // Modal is already correctly open — keep bg_active_modal_id so future backgrounds still restore
+          return;
+        }
+        if (activeModalId === 'transaction-modal') {
+          const txId = localStorage.getItem('bg_active_modal_tx_id');
+          if (txId) {
+            const t = state.transactions.find(item => String(item.id) === String(txId));
+            if (t) {
+              openEditTransactionModal(t, { instant: true });
+              // Restore scroll position after a short delay
+              setTimeout(() => {
+                const bgScrollTop = localStorage.getItem('bg_modal_scroll_top');
+                if (bgScrollTop !== null) {
+                  const modalBody = document.querySelector('#transaction-modal .modal-body');
+                  if (modalBody) {
+                    modalBody.scrollTop = parseInt(bgScrollTop, 10);
+                  }
+                }
+                localStorage.removeItem('bg_modal_scroll_top');
+              }, 100);
+            }
+          } else {
+            openAddTransactionModal({ instant: true });
+          }
+        } else if (activeModalId === 'stats-transactions-modal') {
+          const subcatDataStr = localStorage.getItem('bg_active_subcat_txs');
+          if (subcatDataStr) {
+            const subcatData = JSON.parse(subcatDataStr);
+            if (subcatData && subcatData.category) {
+              state.activeSubcategoryTransactions = subcatData;
+              renderSubcategoryTransactions(subcatData.category, subcatData.subcategory);
+              // Restore scroll position after a short delay
+              setTimeout(() => {
+                const bgScrollTop = localStorage.getItem('bg_modal_scroll_top');
+                if (bgScrollTop !== null) {
+                  const modalBody = document.querySelector('#stats-transactions-modal .modal-body');
+                  if (modalBody) {
+                    modalBody.scrollTop = parseInt(bgScrollTop, 10);
+                  }
+                }
+                localStorage.removeItem('bg_modal_scroll_top');
+              }, 100);
+            }
+          }
+        } else if (activeModalId === 'advisor-chat-modal') {
+          openAdvisorChat();
+          setTimeout(() => {
+            const bgScrollTop = localStorage.getItem('bg_modal_scroll_top');
+            if (bgScrollTop !== null) {
+              const modalBody = document.getElementById('advisor-chat-log');
+              if (modalBody) {
+                modalBody.scrollTop = parseInt(bgScrollTop, 10);
+              }
+            }
+            localStorage.removeItem('bg_modal_scroll_top');
+          }, 100);
+        } else if (activeModalId === 'profile-settings-modal') {
+          openProfileSheet();
+          setTimeout(() => {
+            const bgScrollTop = localStorage.getItem('bg_modal_scroll_top');
+            if (bgScrollTop !== null) {
+              const modalBody = document.querySelector('#profile-settings-modal .modal-body');
+              if (modalBody) {
+                modalBody.scrollTop = parseInt(bgScrollTop, 10);
+              }
+            }
+            localStorage.removeItem('bg_modal_scroll_top');
+          }, 100);
+        } else {
+          openModal(activeModalId, { instant: true });
+          setTimeout(() => {
+            const bgScrollTop = localStorage.getItem('bg_modal_scroll_top');
+            if (bgScrollTop !== null) {
+              const modalBody = document.querySelector(`#${activeModalId} .modal-body`);
+              if (modalBody) {
+                modalBody.scrollTop = parseInt(bgScrollTop, 10);
+              }
+            }
+            localStorage.removeItem('bg_modal_scroll_top');
+          }, 100);
+        }
+        // NOTE: Do NOT remove bg_active_modal_id here — it stays until closeModal() removes it.
+        // This way, if the user backgrounds the app again immediately, we can still restore.
+        localStorage.removeItem('bg_active_modal_tx_id');
+        localStorage.removeItem('bg_active_subcat_txs');
+      }
+    } catch (e) {
+      console.warn('Failed to restore UI modal state:', e);
+    }
+  }
+  window.restoreActiveModalsFromStorage = restoreActiveModalsFromStorage;
+
+  function restoreActiveModalsWithoutTransition() {
+    try {
+      const activeModalId = localStorage.getItem('bg_active_modal_id');
+      if (!activeModalId) return;
+
+      const currentlyActive = document.querySelector('.modal-overlay.active, .tx-modal-overlay.active, .profile-sheet-overlay.active');
+      if (currentlyActive && currentlyActive.id === activeModalId) {
+        // Modal is already correctly open. Do NOT toggle 'no-transition' globally,
+        // which would invalidate rendering layers and cause visual flashes on resume.
+        return;
+      }
+
+      document.documentElement.classList.add('no-transition');
+      restoreActiveModalsFromStorage();
+      // ANTI-FLICKER: Keep no-transition for 800ms to cover the full deferred
+      // updateUI window (700ms baseDelay when _appJustResumed is true).
+      // This ensures the tab re-render from the deferred updateUI is also
+      // invisible to the user, eliminating the second flash on resume.
+      setTimeout(() => {
+        document.documentElement.classList.remove('no-transition');
+        document.documentElement.classList.remove('modal-prerender');
+        // Optional cleanup of the injected style tag
+        const prerenderStyle = document.getElementById('prerender-modal-style');
+        if (prerenderStyle) prerenderStyle.remove();
+      }, 800);
+    } catch (e) {
+      console.warn('Failed to restore UI state without transitions:', e);
+    }
+  }
+  window.restoreActiveModalsWithoutTransition = restoreActiveModalsWithoutTransition;
+
+  // Restore active modals on boot instantly without transitions
+  restoreActiveModalsWithoutTransition();
   
   // Safe removal of early tab style block to avoid layout flashes
   const earlyTabStyle = document.getElementById('early-tab-style');
@@ -1700,7 +1962,6 @@ window.addEventListener('DOMContentLoaded', async () => {
     earlyAuthHideStyle.remove();
   }
   
-  updateUI();
   updateHeaderProfileBadge();
   
   // If Supabase client is NOT initialized, we are in pure local mode — done.
@@ -1710,6 +1971,15 @@ window.addEventListener('DOMContentLoaded', async () => {
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('trans-date').value = today;
   applyLanguage(state.lang);
+
+  // Remove no-transition class after the first paint is committed.
+  // This prevents CSS transitions from flashing during startup.
+  // Double-rAF ensures the browser has painted the initial frame before re-enabling.
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      document.documentElement.classList.remove('no-transition');
+    });
+  });
 });
 
 
@@ -1835,14 +2105,6 @@ function initSupabaseAuth() {
 
   function logAuthDebug(msg) {
     console.log('[AuthDebug]', msg);
-    const logDiv = document.getElementById('auth-debug-logs');
-    if (logDiv) {
-      // Keep logs in developer console; do not show to end users
-      // logDiv.style.display = 'block';
-      const time = new Date().toLocaleTimeString();
-      logDiv.innerHTML += `<div>[${time}] ${msg}</div>`;
-      logDiv.scrollTop = logDiv.scrollHeight;
-    }
   }
 
   // Global error handler to capture runtime JS errors and display them in the debug overlay
@@ -2016,6 +2278,14 @@ function initSupabaseAuth() {
         if (cachedUser) {
           state.userProfile = JSON.parse(cachedUser);
         }
+        const cachedFamily = localStorage.getItem('cached_family_profiles');
+        if (cachedFamily) {
+          state.familyProfiles = JSON.parse(cachedFamily);
+        }
+        const cachedGroup = localStorage.getItem('cached_family_group');
+        if (cachedGroup) {
+          state.familyGroup = JSON.parse(cachedGroup);
+        }
       } catch (e) {
         console.error('Failed to parse cached profiles:', e);
       }
@@ -2043,8 +2313,8 @@ function initSupabaseAuth() {
       }
       toggleLoader(false);
       if (formsContainer) formsContainer.style.display = 'block';
-      // Force-close any modals that bfcache may have restored
-      if (typeof window.forceCloseAllModals === 'function') window.forceCloseAllModals();
+      // Modals should NOT be force-closed here since we want to restore them on resume/boot
+      // if (typeof window.forceCloseAllModals === 'function') window.forceCloseAllModals();
       
       // Show switcher in header
       const switcher = document.getElementById('wallet-switcher-container');
@@ -2084,6 +2354,10 @@ function initSupabaseAuth() {
           // subscription setup don't trigger a second render on top of our clean one.
           _suppressRealtimeEvents = true;
           try {
+            // Replay offline sync queue first, so that deletions/saves are pushed
+            // to Supabase before we load the fresh dataset.
+            await processSyncQueue({ skipReload: true });
+
             await loadData();
             updateUI();
             
@@ -2101,10 +2375,6 @@ function initSupabaseAuth() {
             setTimeout(() => { _suppressRealtimeEvents = false; }, 10000);
           }
           
-          // Replay offline sync queue — skipReload:true because loadData() was already called above.
-          // This prevents a redundant second full fetch + UI re-render.
-          processSyncQueue({ skipReload: true });
-          
           // 3. Sync guest transactions in the background (silent, no extra render)
           await syncLocalTransactionsToCloud(session.user.id, { silent: true });
         } catch (err) {
@@ -2121,9 +2391,13 @@ function initSupabaseAuth() {
       state.currentUser = null;
       state.userProfile = null;
       state.partnerProfile = null;
+      state.familyProfiles = [];
+      state.familyGroup = null;
       localStorage.removeItem('cached_current_user');
       localStorage.removeItem('cached_partner_profile');
       localStorage.removeItem('cached_user_profile');
+      localStorage.removeItem('cached_family_profiles');
+      localStorage.removeItem('cached_family_group');
       localStorage.removeItem('offline_transactions');
       localStorage.removeItem('offline_accounts');
       localStorage.removeItem('offline_categories');
@@ -2240,6 +2514,7 @@ async function loadUserProfiles(user) {
 
       if (famRes && famRes.data) {
         state.familyProfiles = famRes.data;
+        localStorage.setItem('cached_family_profiles', JSON.stringify(famRes.data));
         const otherMember = state.familyProfiles.find(p => p.id !== user.id);
         if (state.familyProfiles.length === 2 && otherMember) {
           state.partnerProfile = otherMember;
@@ -2250,18 +2525,23 @@ async function loadUserProfiles(user) {
         }
       } else {
         state.familyProfiles = [];
+        localStorage.removeItem('cached_family_profiles');
       }
       
       if (groupRes && groupRes.data) {
         state.familyGroup = groupRes.data;
+        localStorage.setItem('cached_family_group', JSON.stringify(groupRes.data));
       } else {
         state.familyGroup = null;
+        localStorage.removeItem('cached_family_group');
       }
     } else {
       state.familyProfiles = [];
       state.familyGroup = null;
       state.partnerProfile = null;
       localStorage.removeItem('cached_partner_profile');
+      localStorage.removeItem('cached_family_profiles');
+      localStorage.removeItem('cached_family_group');
 
       // 3. Scan pending invitations for this user's email
       const pendingInviteCode = localStorage.getItem('pending_invite_code');
@@ -2306,20 +2586,22 @@ function showPendingInviteCodePrompt(inviteCode) {
         ? `📬 Εκκρεμής πρόσκληση!\nΈχετε έναν σύνδεσμο πρόσκλησης για την οικογένεια «${familyName}» (Κωδικός: ${inviteCode}).\n\nΘέλετε να γίνετε μέλος αυτής της οικογένειας;`
         : `📬 Pending invitation!\nYou have an invitation link for the family group "${familyName}" (Code: ${inviteCode}).\n\nDo you want to join this family group?`;
         
-      if (confirm(confirmMsg)) {
-        const inviteRole = localStorage.getItem('pending_invite_role') || 'member';
-        localStorage.removeItem('pending_invite_role');
-        
-        state.supabaseClient.rpc('join_family_group', { invite_code_input: inviteCode, invite_role_input: inviteRole })
-          .then(({ data: joinData, error: joinErr }) => {
-            if (joinErr) {
-              alert(state.lang === 'el' ? 'Σφάλμα κατά τη σύνδεση: ' + joinErr.message : 'Error joining family: ' + joinErr.message);
-            } else {
-              alert(state.lang === 'el' ? '🎉 Συνδεθήκατε επιτυχώς στην οικογένεια!' : '🎉 Joined the family successfully!');
-              window.location.reload();
-            }
-          });
-      }
+      showConfirm(confirmMsg, state.lang === 'el' ? '📬 Πρόσκληση' : '📬 Invitation', '👥').then((confirmed) => {
+        if (confirmed) {
+          const inviteRole = localStorage.getItem('pending_invite_role') || 'member';
+          localStorage.removeItem('pending_invite_role');
+          
+          state.supabaseClient.rpc('join_family_group', { invite_code_input: inviteCode, invite_role_input: inviteRole })
+            .then(({ data: joinData, error: joinErr }) => {
+              if (joinErr) {
+                alert(state.lang === 'el' ? 'Σφάλμα κατά τη σύνδεση: ' + joinErr.message : 'Error joining family: ' + joinErr.message);
+              } else {
+                alert(state.lang === 'el' ? '🎉 Συνδεθήκατε επιτυχώς στην οικογένεια!' : '🎉 Joined the family successfully!');
+                window.location.reload();
+              }
+            });
+        }
+      });
     });
 }
 
@@ -2330,26 +2612,28 @@ function showPendingInvitationPrompt(invite) {
     ? `📬 Εκκρεμής πρόσκληση!\nΈχετε προσκληθεί να συνδεθείτε στην οικογένεια «${familyName}».\n\nΘέλετε να γίνετε μέλος αυτής της οικογένειας;`
     : `📬 Pending invitation!\nYou have been invited to join the family group "${familyName}".\n\nDo you want to join this family group?`;
     
-  if (confirm(confirmMsg)) {
-    const inviteCode = invite.family_groups ? invite.family_groups.invite_code : '';
-    if (!inviteCode) return;
-    const inviteRole = invite.role || 'member';
-    
-    state.supabaseClient.rpc('join_family_group', { invite_code_input: inviteCode, invite_role_input: inviteRole })
-      .then(async ({ data, error }) => {
-        if (error) {
-          alert(state.lang === 'el' ? 'Σφάλμα κατά τη σύνδεση: ' + error.message : 'Error joining family: ' + error.message);
-        } else {
-          alert(state.lang === 'el' ? '🎉 Συνδεθήκατε επιτυχώς στην οικογένεια!' : '🎉 Joined the family successfully!');
-          window.location.reload();
-        }
+  showConfirm(confirmMsg, state.lang === 'el' ? '📬 Πρόσκληση' : '📬 Invitation', '👥').then((confirmed) => {
+    if (confirmed) {
+      const inviteCode = invite.family_groups ? invite.family_groups.invite_code : '';
+      if (!inviteCode) return;
+      const inviteRole = invite.role || 'member';
+      
+      state.supabaseClient.rpc('join_family_group', { invite_code_input: inviteCode, invite_role_input: inviteRole })
+        .then(async ({ data, error }) => {
+          if (error) {
+            alert(state.lang === 'el' ? 'Σφάλμα κατά τη σύνδεση: ' + error.message : 'Error joining family: ' + error.message);
+          } else {
+            alert(state.lang === 'el' ? '🎉 Συνδεθήκατε επιτυχώς στην οικογένεια!' : '🎉 Joined the family successfully!');
+            window.location.reload();
+          }
+        });
+    } else {
+      // Delete the pending invitation from database so they are not prompted again
+      state.supabaseClient.from('pending_invitations').delete().eq('id', invite.id).then(() => {
+        console.log('Rejected and deleted pending invitation:', invite.id);
       });
-  } else {
-    // Delete the pending invitation from database so they are not prompted again
-    state.supabaseClient.from('pending_invitations').delete().eq('id', invite.id).then(() => {
-      console.log('Rejected and deleted pending invitation:', invite.id);
-    });
-  }
+    }
+  });
 }
 
 // migrateLegacyTransactions removed for security & tenant isolation
@@ -2460,7 +2744,7 @@ function calculateInitialBalances() {
         }
       }
     });
-    acc.initial_balance = (parseFloat(acc.balance) || 0) - netSum;
+    acc.initial_balance = sanitizeFloat((parseFloat(acc.balance) || 0) - netSum);
   });
 }
 
@@ -3349,6 +3633,20 @@ function loadOfflineData() {
   } catch (e) {
     console.error('Failed to parse cached user profile:', e);
   }
+  try {
+    const cachedFamily = localStorage.getItem('cached_family_profiles');
+    state.familyProfiles = cachedFamily ? JSON.parse(cachedFamily) : [];
+  } catch (e) {
+    console.error('Failed to parse cached family profiles:', e);
+    state.familyProfiles = [];
+  }
+  try {
+    const cachedGroup = localStorage.getItem('cached_family_group');
+    state.familyGroup = cachedGroup ? JSON.parse(cachedGroup) : null;
+  } catch (e) {
+    console.error('Failed to parse cached family group:', e);
+    state.familyGroup = null;
+  }
 
   try {
     const trans = localStorage.getItem('offline_transactions');
@@ -3377,6 +3675,7 @@ function loadOfflineData() {
   try {
     const temps = localStorage.getItem('recurring_templates');
     state.recurringTemplates = temps ? JSON.parse(temps) : [];
+    cleanupAccidentalTemplates();
   } catch (e) {
     console.error('Failed to parse recurring templates:', e);
     state.recurringTemplates = [];
@@ -3388,10 +3687,91 @@ function loadOfflineData() {
     console.error('Failed to parse deleted recurring dates:', e);
     state.deletedRecurringDates = [];
   }
+  try {
+    const trash = localStorage.getItem('deleted_transactions_trash');
+    state.trashTransactions = trash ? JSON.parse(trash) : [];
+  } catch (e) {
+    console.error('Failed to parse deleted transactions trash:', e);
+    state.trashTransactions = [];
+  }
+  
+  loadNotes();
   
   processRecurringTemplates();
   calculateInitialBalances();
   cleanDuplicateCategories().catch(e => console.warn('Offline automatic categories cleanup error:', e));
+}
+
+function cleanupAccidentalTemplates() {
+  const migrationDone = localStorage.getItem('recurring_cleanup_done_v524');
+  if (migrationDone) return;
+
+  const allowedKeywords = ['ΔΑΝΕΙ', 'ΑΣΦΑΛΕΙΑ', 'ΕΝΦΙΑ', 'ΕΛΑΣΤΙΚ', 'ΛΑΣΤΙΧ', 'ΣΥΜΠΛΗΡΩΜΑ'];
+  const templatesToKeep = [];
+  const templatesToDelete = [];
+
+  (state.recurringTemplates || []).forEach(t => {
+    const noteUpper = String(t.note || '').toUpperCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, ''); // Remove Greek accents
+    
+    const isAllowed = allowedKeywords.some(kw => noteUpper.includes(kw));
+    if (isAllowed) {
+      templatesToKeep.push(t);
+    } else {
+      templatesToDelete.push(t);
+    }
+  });
+
+  if (templatesToDelete.length === 0) {
+    localStorage.setItem('recurring_cleanup_done_v524', 'true');
+    return;
+  }
+
+  console.log('[MIGRATION] Deleting accidental templates:', templatesToDelete.map(t => t.note));
+
+  // Update templates
+  state.recurringTemplates = templatesToKeep;
+  localStorage.setItem('recurring_templates', JSON.stringify(state.recurringTemplates));
+
+  // Identify generated transactions for the deleted templates
+  const idsToDelete = [];
+  templatesToDelete.forEach(template => {
+    state.transactions = state.transactions.filter(t => {
+      const matchById = String(t.recurring_template_id) === String(template.id);
+      const matchByContent = !t.recurring_template_id &&
+                             (parseFloat(t.amount) || 0).toFixed(2) === (parseFloat(template.amount) || 0).toFixed(2) &&
+                             t.type === template.type &&
+                             t.category === template.category &&
+                             (t.account_from || '') === (template.account_from || '') &&
+                             (t.note || '') === (template.note || '');
+      
+      if (matchById || matchByContent) {
+        idsToDelete.push(t.id);
+        return false;
+      }
+      return true;
+    });
+  });
+
+  localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
+
+  // Delete from Supabase
+  if (idsToDelete.length > 0 && state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
+    console.log('[MIGRATION] Deleting generated occurrences from Cloud:', idsToDelete.length);
+    state.supabaseClient
+      .from('transactions')
+      .delete()
+      .in('id', idsToDelete)
+      .then(({ error }) => {
+        if (error) {
+          console.warn('[MIGRATION] Failed to delete matching transactions from cloud:', error);
+        } else {
+          console.log('[MIGRATION] Successfully deleted matching transactions from cloud.');
+        }
+      });
+  }
+
+  localStorage.setItem('recurring_cleanup_done_v524', 'true');
 }
 
 function processRecurringTemplates() {
@@ -3399,7 +3779,25 @@ function processRecurringTemplates() {
 
   let transactionsUpdated = false;
   const currentYear = state.selectedYear;
-  const currentMonthLimit = state.selectedMonth; // 0-indexed (0 = Jan, 11 = Dec)
+
+  const today = new Date();
+  const realYear  = today.getFullYear();
+  const realMonth = today.getMonth(); // 0-indexed
+
+  // Limit processing to 12 months in the future from today's real month
+  const maxFutureDate = new Date(realYear, realMonth + 12, 1);
+  const maxFutureYear = maxFutureDate.getFullYear();
+  const maxFutureMonth = maxFutureDate.getMonth();
+
+  // If the user is browsing beyond 12 months in the future, do not process
+  if (currentYear > maxFutureYear) return;
+  if (currentYear === maxFutureYear && state.selectedMonth > maxFutureMonth) return;
+
+  // For past years: process all months normally (0–11).
+  // For current and safe future years: process up to the selected/viewed month.
+  const currentMonthLimit = (currentYear < realYear)
+    ? 11
+    : state.selectedMonth;
 
   // Helper to get matching dates for a specific month
   function getRecurringDatesForMonth(template, year, monthIdx) {
@@ -3576,12 +3974,7 @@ async function saveTransaction(transaction) {
     transaction.id = generateUUID();
   }
 
-  // 2. Optimistically save to local state and local storage immediately
-  saveTransactionOffline(transaction);
-  calculateInitialBalances();
-  updateUI();
-
-  // 3. Attempt to save to cloud in background
+  // Populate user_id and family_id before saving offline to prevent guest sync duplication
   if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
     if (!transaction.user_id) {
       transaction.user_id = state.currentUser.id;
@@ -3589,11 +3982,23 @@ async function saveTransaction(transaction) {
     if (!transaction.family_id && state.userProfile && state.userProfile.family_id) {
       transaction.family_id = state.userProfile.family_id;
     }
+  }
+
+  // 2. Optimistically save to local state and local storage immediately
+  saveTransactionOffline(transaction);
+  calculateInitialBalances();
+  updateUI();
+
+  // 3. Attempt to save to cloud in background
+  if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
 
     // Note: description and is_shared are client-only fields. recurring_template_id
     // is kept if the column exists in the DB (it won't cause errors if missing — upsert will ignore it).
     // However if it throws a 400, remove it too. For now we keep it to prevent duplicate re-creation.
     const { description, is_shared, ...dbPayload } = transaction;
+
+    // Enqueue immediately before starting the cloud request to prevent data loss if the app is closed/killed
+    enqueueSyncMutation('save', transaction);
 
     (async () => {
       try {
@@ -3607,9 +4012,9 @@ async function saveTransaction(transaction) {
         );
         if (error) throw error;
         console.log(`Cloud sync success for transaction: ${transaction.id}`);
+        dequeueSyncMutation('save', transaction.id);
       } catch (err) {
-        console.warn(`Cloud save failed, queueing transaction: ${transaction.id}`, err);
-        enqueueSyncMutation('save', transaction);
+        console.warn(`Cloud save failed, keeping in queue: ${transaction.id}`, err);
       } finally {
         // Re-enable realtime after enough time for the echo to arrive and be discarded.
         setTimeout(() => { _suppressRealtimeEvents = false; }, 8000);
@@ -3628,12 +4033,60 @@ function saveTransactionOffline(transaction) {
   let trans = [...state.transactions];
   const existingIdx = trans.findIndex(t => t.id === transaction.id);
   if (existingIdx !== -1) {
+    const oldTx = trans[existingIdx];
+    const oldDate = String(oldTx.date || '').split('T')[0].split(' ')[0];
+    const newDate = String(transaction.date || '').split('T')[0].split(' ')[0];
+    
+    // If it's a recurring transaction and the date changed, mark the old date as deleted
+    // so the generator doesn't recreate it on the old date.
+    if (oldDate !== newDate && oldTx.recurring_template_id) {
+      const key = `${oldTx.recurring_template_id}_${oldDate}`;
+      if (!state.deletedRecurringDates.includes(key)) {
+        state.deletedRecurringDates.push(key);
+        localStorage.setItem('deleted_recurring_dates', JSON.stringify(state.deletedRecurringDates));
+      }
+    }
+    
     trans[existingIdx] = transaction;
   } else {
     trans.unshift(transaction);
   }
   state.transactions = trans;
   localStorage.setItem('offline_transactions', JSON.stringify(trans));
+}
+
+async function saveDeletedTransactionsToSupabase(deletedTxs) {
+  if (!state.isSupabaseEnabled || !state.supabaseClient || !state.currentUser) return;
+  if (!deletedTxs || deletedTxs.length === 0) return;
+  
+  try {
+    const backupData = deletedTxs.map(t => ({
+      id: t.id,
+      date: t.date,
+      type: t.type,
+      amount: parseFloat(t.amount || 0),
+      category: t.category,
+      subcategory: t.subcategory || null,
+      account_from: t.account_from,
+      account_to: t.account_to || null,
+      note: t.note || null,
+      created_at: t.created_at || new Date().toISOString(),
+      user_id: t.user_id || state.currentUser.id,
+      is_shared: t.is_shared !== undefined ? t.is_shared : false,
+      family_id: t.family_id || null,
+      deleted_at: t.deleted_at || new Date().toISOString()
+    }));
+
+    await state.supabaseClient
+      .from('deleted_transactions')
+      .upsert(backupData, { onConflict: 'id' });
+  } catch (err) {
+    console.warn('Failed to insert into deleted_transactions:', err);
+  }
+}
+
+async function syncLocalTrashToCloud() {
+  await saveDeletedTransactionsToSupabase(state.trashTransactions || []);
 }
 
 function deleteTransaction(id) {
@@ -3675,6 +4128,27 @@ function deleteTransaction(id) {
     });
   });
   
+  // Save deleted transactions to Trash
+  const deletedTxsForBackup = [];
+  try {
+    const deletedTxs = state.transactions.filter(t => idsToDelete.includes(String(t.id)));
+    deletedTxs.forEach(t => {
+      state.trashTransactions = state.trashTransactions || [];
+      const alreadyInTrash = state.trashTransactions.some(tt => String(tt.id) === String(t.id));
+      if (!alreadyInTrash) {
+        const trashItem = { ...t, deleted_at: new Date().toISOString() };
+        state.trashTransactions.push(trashItem);
+        deletedTxsForBackup.push(trashItem);
+      }
+    });
+    if (state.trashTransactions.length > 100) {
+      state.trashTransactions = state.trashTransactions.slice(-100);
+    }
+    localStorage.setItem('deleted_transactions_trash', JSON.stringify(state.trashTransactions));
+  } catch (err) {
+    console.warn('Failed to save deleted transactions to trash:', err);
+  }
+  
   // 3. Optimistically delete from local state and update UI
   idsToDelete.forEach(dId => deleteTransactionOffline(dId, true));
   localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
@@ -3683,9 +4157,16 @@ function deleteTransaction(id) {
 
   // 4. Perform background delete
   if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
+    // Enqueue immediately before starting the cloud request to prevent data loss if the app is closed/killed
+    idsToDelete.forEach(dId => enqueueSyncMutation('delete', dId));
+
     (async () => {
       try {
         _suppressRealtimeEvents = true;
+        // Backup to deleted_transactions table first
+        if (deletedTxsForBackup.length > 0) {
+          await saveDeletedTransactionsToSupabase(deletedTxsForBackup);
+        }
         const { error } = await promiseTimeout(
           state.supabaseClient
             .from('transactions')
@@ -3695,9 +4176,12 @@ function deleteTransaction(id) {
         );
         if (error) throw error;
         console.log(`Cloud delete success for transaction (and duplicates):`, idsToDelete);
+        // Keep IDs in _recentlyDeletedTxIds for 30s to guard against Supabase propagation race:
+        // loadData() may run shortly after and re-fetch the transaction before the DB confirms the delete.
+        idsToDelete.forEach(dId => _markRecentlyDeleted(dId));
+        idsToDelete.forEach(dId => dequeueSyncMutation('delete', dId));
       } catch (err) {
-        console.warn(`Cloud delete failed, queueing delete:`, idsToDelete, err);
-        idsToDelete.forEach(dId => enqueueSyncMutation('delete', dId));
+        console.warn(`Cloud delete failed, keeping in queue:`, idsToDelete, err);
       } finally {
         idsToDelete.forEach(dId => _deletingTxIds.delete(dId));
         setTimeout(() => { _suppressRealtimeEvents = false; }, 8000);
@@ -3768,6 +4252,10 @@ let _updateUITimer = null;
 let _updateUIRAF = null;
 function updateUI() {
   if (_updateUITimer) clearTimeout(_updateUITimer);
+  // ANTI-FLICKER: If the app just resumed from background, defer rendering
+  // until after the 600ms resume guard window expires. This prevents the
+  // DOM wipe from being visible during the resume animation frame.
+  const baseDelay = window._appJustResumed ? 700 : 150;
   _updateUITimer = setTimeout(() => {
     _updateUITimer = null;
     if (_updateUIRAF) cancelAnimationFrame(_updateUIRAF);
@@ -3775,21 +4263,71 @@ function updateUI() {
       _updateUIRAF = null;
       _updateUIImpl();
     });
-  }, 150);
+  }, baseDelay);
+}
+
+function getActiveScrollContainer() {
+  if (state.activeTab === 'trans') return document.querySelector('.trans-scroll-content');
+  if (state.activeTab === 'stats') return document.querySelector('.stats-scroll-content');
+  if (state.activeTab === 'accounts') return document.querySelector('.accounts-scroll-content');
+  if (state.activeTab === 'more') return document.querySelector('.more-scroll-content');
+  return null;
 }
 
 function _updateUIImpl() {
   processRecurringTemplates();
   updateHeaderAndSync();
-  // Render only the active tab to optimize performance and prevent background rendering lag
-  if (state.activeTab === 'trans') {
-    renderTransactionsTab();
-  } else if (state.activeTab === 'stats') {
-    renderStatsTab();
-  } else if (state.activeTab === 'accounts') {
-    renderAccountsTab();
-  } else if (state.activeTab === 'more') {
-    renderPartnerSection();
+
+  const countEl = document.getElementById('recurring-templates-count-val');
+  if (countEl) {
+    countEl.textContent = state.recurringTemplates ? state.recurringTemplates.length : 0;
+  }
+  const trashCountEl = document.getElementById('trash-bin-count-val');
+  if (trashCountEl) {
+    trashCountEl.textContent = state.trashTransactions ? state.trashTransactions.length : 0;
+  }
+
+  // Save current month/year to localStorage so they are preserved on app resume/reload
+  localStorage.setItem('selected_month', state.selectedMonth);
+  localStorage.setItem('selected_year', state.selectedYear);
+
+  // If ANY modal is currently open, skip the full tab re-render.
+  // A background sync (forceSyncNow) firing while a modal is visible would otherwise
+  // cause the tab content behind the modal to flash/reload — visible and jarring on Android.
+  // The re-render will happen naturally the next time the user closes the modal (closeModal
+  // calls updateUI) or switches tabs.
+  const anyModalOpen = !!document.querySelector(
+    '.modal-overlay.active, .tx-modal-overlay.active, .profile-sheet-overlay.active'
+  );
+
+  if (!anyModalOpen) {
+    // Save current scroll position before rendering to prevent scroll-jump
+    const scrollContainer = getActiveScrollContainer();
+    const currentScrollTop = scrollContainer ? scrollContainer.scrollTop : 0;
+
+    // Render only the active tab to optimize performance and prevent background rendering lag
+    if (state.activeTab === 'trans') {
+      renderTransactionsTab();
+    } else if (state.activeTab === 'stats') {
+      renderStatsTab();
+    } else if (state.activeTab === 'accounts') {
+      renderAccountsTab();
+    } else if (state.activeTab === 'more') {
+      renderPartnerSection();
+      renderNotesList();
+    }
+    
+    // Restore scroll position
+    const restoredScrollContainer = getActiveScrollContainer();
+    if (restoredScrollContainer) {
+      const bgScrollTop = localStorage.getItem('bg_scroll_top');
+      if (bgScrollTop !== null) {
+        restoredScrollContainer.scrollTop = parseInt(bgScrollTop, 10);
+        localStorage.removeItem('bg_scroll_top');
+      } else {
+        restoredScrollContainer.scrollTop = currentScrollTop;
+      }
+    }
   }
   
   // Clear category render cache on UI refresh to pick up updates
@@ -3798,8 +4336,18 @@ function _updateUIImpl() {
   const activeTypeBtn = document.querySelector('.type-tab-btn.active');
   const currentType = activeTypeBtn ? activeTypeBtn.getAttribute('data-type') : 'expense';
   
-  updateCategoryDropdowns(currentType);
-  updateAccountDropdowns();
+  // FIX #2: Skip rebuilding dropdowns when the transaction modal is open.
+  // Rebuilding category/account dropdowns while the modal is visible causes
+  // the form fields to flicker (innerHTML reset) even though the modal itself
+  // is correctly open. We only need to rebuild them when the modal is closed,
+  // or when it is first opened (handled inside openAddTransactionModal /
+  // openEditTransactionModal via updateCategoryDropdowns/updateAccountDropdowns).
+  const txModalOpen = document.getElementById('transaction-modal') &&
+                      document.getElementById('transaction-modal').classList.contains('active');
+  if (!txModalOpen) {
+    updateCategoryDropdowns(currentType);
+    updateAccountDropdowns();
+  }
   updateCurrencySymbols();
   
   // Scroll to today on startup once transactions are loaded
@@ -3824,7 +4372,7 @@ function updateHeaderAndSync() {
 function renderTransactionsTab() {
   const listContainer = document.getElementById('transactions-list');
   if (!listContainer) return;
-  listContainer.innerHTML = '';
+
 
   const monthStartDay = parseInt(localStorage.getItem('app_month_start') || '1', 10);
   let start, end;
@@ -3868,6 +4416,8 @@ function renderTransactionsTab() {
   document.getElementById('summary-total-val').textContent   = `${getCurrencySymbol()} ${formatCurrency(monthlyIncome - monthlyExpense)}`;
 
   if (sortedTrans.length === 0) {
+    if (listContainer._lastRenderSignature === 'empty') return;
+    listContainer._lastRenderSignature = 'empty';
     listContainer.innerHTML = `
       <div style="text-align:center;padding:60px 20px;color:var(--text-secondary)">
         <div style="font-size:48px;margin-bottom:16px">📅</div>
@@ -3876,6 +4426,20 @@ function renderTransactionsTab() {
       </div>`;
     return;
   }
+
+  // Anti-flicker signature check
+  const accountsHash = state.accounts.map(a => `${a.id}_${a.name}_${a.balance}`).join('|');
+  const categoriesHash = state.categories.map(c => `${c.id}_${c.name}_${c.icon}`).join('|');
+  const renderSignature = sortedTrans.map(t => {
+    return `${t.id}_${t.date}_${t.amount}_${t.category}_${t.subcategory || ''}_${t.type}_${t.note || ''}_${t.user_id || ''}_${state.selectedIds.has(t.id) ? '1' : '0'}`;
+  }).join('|') + `_selMode_${state.selectionMode ? '1' : '0'}_lang_${state.lang || 'el'}_accs_${accountsHash}_cats_${categoriesHash}`;
+
+  if (listContainer._lastRenderSignature === renderSignature) {
+    return;
+  }
+  listContainer._lastRenderSignature = renderSignature;
+
+  listContainer.innerHTML = '';
 
   const todayObj = new Date();
   const todayStr = `${todayObj.getFullYear()}-${String(todayObj.getMonth() + 1).padStart(2, '0')}-${String(todayObj.getDate()).padStart(2, '0')}`;
@@ -3914,6 +4478,7 @@ function renderTransactionsTab() {
       const catInfo = getCategoryInfo(t.category, t.type);
       const item = document.createElement('div');
       item.className = 'transaction-item';
+      item.setAttribute('data-id', t.id);
       
       const isSelected = state.selectedIds.has(t.id);
       if (state.selectionMode && isSelected) {
@@ -4695,6 +5260,7 @@ function renderSubcategoryTransactions(category, subcategory) {
     const catInfo = getCategoryInfo(t.category, t.type);
     const item = document.createElement('div');
     item.className = 'transaction-item';
+    item.setAttribute('data-id', t.id);
     
     let modalTouchStartX = 0;
     let modalTouchStartY = 0;
@@ -4868,7 +5434,17 @@ function renderChart(dataList) {
 function renderAccountsTab() {
   const assetsEl = document.getElementById('accounts-assets-list');
   const liabEl   = document.getElementById('accounts-liabilities-list');
-  
+
+  // Anti-flicker signature check — skip full rebuild if data hasn't changed
+  const _acctSig = (state.accounts || []).map(a => `${a.id}_${a.name}_${a.balance}_${a.type}`).join('|')
+    + '||' + (state.transactions || []).length
+    + '||' + (state.overviewYear || new Date().getFullYear())
+    + '||' + (state.lang || 'el')
+    + '||' + (state.currentUser ? state.currentUser.id : 'none')
+    + '||' + (state.customSavingsTarget || '');
+  if (assetsEl && assetsEl._lastRenderSignature === _acctSig) return;
+  if (assetsEl) assetsEl._lastRenderSignature = _acctSig;
+
   if (assetsEl) assetsEl.innerHTML = '';
   if (liabEl) liabEl.innerHTML = '';
 
@@ -5757,6 +6333,13 @@ function setupEventListeners() {
   document.getElementById('stats-tab-expense').addEventListener('click', () => toggleStatsType('expense'));
   document.getElementById('stats-tab-income').addEventListener('click',  () => toggleStatsType('income'));
   document.getElementById('fab-btn').addEventListener('click', openAddTransactionModal);
+  
+  const fabNoteBtn = document.getElementById('fab-note-btn');
+  if (fabNoteBtn) {
+    fabNoteBtn.addEventListener('click', () => {
+      openNoteEditor();
+    });
+  }
 
   document.querySelectorAll('.type-tab-btn').forEach(btn => {
     btn.addEventListener('click', () => setTransactionFormType(btn.getAttribute('data-type')));
@@ -5856,6 +6439,15 @@ function setupEventListeners() {
       });
 
       el.addEventListener('blur', () => {
+        // Guard: if app is backgrounding or hidden, handle blur synchronously to prevent post-resume layout jumps/flicker
+        if (document.visibilityState === 'hidden' || window._appIsBackgrounding) {
+          if (textInputs.includes(id)) {
+            document.body.classList.remove('keyboard-active');
+          }
+          forceViewportReset(true);
+          return;
+        }
+
         if (textInputs.includes(id)) {
           // Delay removal to see if focus transferred to another text input in the same modal
           setTimeout(() => {
@@ -5923,9 +6515,13 @@ function setupEventListeners() {
     }
   });
 
+  let _isSubmittingTransaction = false;
   document.getElementById('transaction-form').addEventListener('submit', async e => {
     e.preventDefault();
-    closeCalculatorKeypad();
+    if (_isSubmittingTransaction) return;
+    _isSubmittingTransaction = true;
+    try {
+      closeCalculatorKeypad();
     const id   = document.getElementById('trans-id').value;
     const type = document.querySelector('.type-tab-btn.active').getAttribute('data-type');
     
@@ -5956,8 +6552,7 @@ function setupEventListeners() {
       return;
     }
 
-    const isRecurringActive = _pendingRecurringSettings.preset !== 'custom' || 
-      (_pendingRecurringSettings.days.length > 0 && _pendingRecurringSettings.months.length > 0);
+    const isRecurringActive = _pendingRecurringSettings.isActive === true;
 
     if (!id && isRecurringActive) {
       const template = {
@@ -6014,7 +6609,7 @@ function setupEventListeners() {
       return;
     }
     
-    const t = {
+    let t = {
       date: document.getElementById('trans-date').value,
       type,
       amount: amountVal,
@@ -6034,13 +6629,17 @@ function setupEventListeners() {
       description: document.getElementById('trans-description').value.trim(),
     };
     if (id) {
-      t.id = id;
       const existing = state.transactions.find(item => item.id === id);
       if (existing) {
-        t.user_id = existing.user_id;
-        t.is_shared = existing.is_shared;
-        t.family_id = existing.family_id;
-        t.created_at = existing.created_at;
+        t = { ...existing, ...t };
+        t.user_id = existing.user_id || (state.currentUser ? state.currentUser.id : null);
+        t.is_shared = existing.is_shared !== undefined ? existing.is_shared : (state.partnerProfile !== null);
+        t.family_id = existing.family_id || (state.userProfile ? state.userProfile.family_id : null);
+      } else {
+        t.id = id;
+        t.user_id = state.currentUser ? state.currentUser.id : null;
+        t.is_shared = state.partnerProfile !== null;
+        t.family_id = state.userProfile ? state.userProfile.family_id : null;
       }
     } else {
       t.user_id = state.currentUser ? state.currentUser.id : null;
@@ -6078,6 +6677,9 @@ function setupEventListeners() {
     _pendingReceiptDeleted = false;
     
     closeModal('transaction-modal');
+    } finally {
+      _isSubmittingTransaction = false;
+    }
   });
 
   document.getElementById('trans-delete-btn').addEventListener('click', async () => {
@@ -6111,6 +6713,31 @@ function setupEventListeners() {
     const form = document.getElementById('transaction-form');
     const isReadOnly = form && form.getAttribute('data-readonly') === 'true';
 
+    // 1. If not read-only, prepend the Camera capture button as the first item
+    if (!isReadOnly) {
+      const cameraBox = document.createElement('div');
+      cameraBox.className = 'photo-thumbnail-wrapper camera-capture-btn';
+      cameraBox.style.cssText = 'position: relative; width: 80px; height: 80px; border-radius: 8px; overflow: hidden; border: 1.5px dashed var(--text-muted); display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; background: rgba(255,255,255,0.02); gap: 4px;';
+      
+      const camIcon = document.createElement('i');
+      camIcon.className = 'fa-solid fa-camera';
+      camIcon.style.cssText = 'font-size: 20px; color: var(--text-secondary);';
+      
+      const camLabel = document.createElement('span');
+      camLabel.textContent = 'Κάμερα';
+      camLabel.style.cssText = 'font-size: 10px; color: var(--text-secondary); font-weight: 600;';
+      
+      cameraBox.appendChild(camIcon);
+      cameraBox.appendChild(camLabel);
+      
+      cameraBox.addEventListener('click', () => {
+        const cameraInput = document.getElementById('trans-camera-input');
+        if (cameraInput) cameraInput.click();
+      });
+      
+      list.appendChild(cameraBox);
+    }
+
     _pendingReceiptFiles.forEach(photo => {
       const wrapper = document.createElement('div');
       wrapper.className = 'photo-thumbnail-wrapper';
@@ -6141,12 +6768,13 @@ function setupEventListeners() {
     container.style.display = 'flex';
   }
 
-  function removePendingPhoto(id) {
+  async function removePendingPhoto(id) {
     const index = _pendingReceiptFiles.findIndex(p => p.id === id);
     if (index !== -1) {
       const photo = _pendingReceiptFiles[index];
       const confirmMsg = TRANSLATIONS[state.lang]['photo_delete_confirm'] || 'Διαγραφή φωτογραφίας απόδειξης;';
-      if (confirm(confirmMsg)) {
+      const confirmed = await showConfirm(confirmMsg, state.lang === 'el' ? 'Διαγραφή Φωτογραφίας' : 'Delete Photo', '📸');
+      if (confirmed) {
         if (photo.url && !photo.isExisting) {
           URL.revokeObjectURL(photo.url);
         }
@@ -6191,6 +6819,32 @@ function setupEventListeners() {
       renderPhotoPreviews();
       photoInputEl.value = ''; // Reset file input
     });
+
+    const cameraInputEl = document.getElementById('trans-camera-input');
+    if (cameraInputEl) {
+      cameraInputEl.addEventListener('change', (e) => {
+        const files = e.target.files;
+        if (!files || files.length === 0) return;
+
+        for (let i = 0; i < files.length; i++) {
+          const file = files[i];
+          const url = URL.createObjectURL(file);
+          _pendingReceiptFiles.push({
+            id: Date.now() + '-' + Math.random().toString(36).substr(2, 9),
+            file: file,
+            url: url,
+            isExisting: false
+          });
+        }
+        _pendingReceiptDeleted = false;
+
+        const placeholderContainer = document.getElementById('trans-photo-placeholder-container');
+        if (placeholderContainer) placeholderContainer.style.display = 'none';
+
+        renderPhotoPreviews();
+        cameraInputEl.value = ''; // Reset file input
+      });
+    }
   }
 
   function openCalculatorKeypad() {
@@ -6410,10 +7064,63 @@ function setupEventListeners() {
   });
 }
 
+function openModal(id, { instant = false } = {}) {
+  ensureHistoryPushed();
+  const el = document.getElementById(id);
+  if (!el) return;
+
+  // For the transaction modal, counteract body { zoom: 0.93 } to perfectly fill physical screen.
+  // IMPORTANT: Set inline styles BEFORE adding 'active' class so that the layout is
+  // already correct when the browser begins the opacity/transform CSS transition.
+  // Doing it after causes a layout recalculation mid-transition → visible flicker on Android.
+  if (id === 'transaction-modal') {
+    if (!isIOS) {
+      const scale = 0.93;
+      el.style.setProperty('width', (window.innerWidth / scale) + 'px', 'important');
+      el.style.setProperty('height', (window.innerHeight / scale) + 'px', 'important');
+      el.style.setProperty('top', '0px', 'important');
+      
+      const modalContent = el.querySelector('.modal-content');
+      if (modalContent) {
+        const vvHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+        const offsetTop = window.visualViewport ? window.visualViewport.offsetTop : 0;
+        const rawKeyboardHeight = window.visualViewport ? (window.innerHeight - vvHeight - offsetTop) : 0;
+        if (rawKeyboardHeight > 30) {
+          modalContent.style.setProperty('height', (vvHeight / scale) + 'px', 'important');
+          modalContent.style.setProperty('top', (offsetTop / scale) + 'px', 'important');
+        } else {
+          modalContent.style.setProperty('height', (window.innerHeight / scale) + 'px', 'important');
+          modalContent.style.setProperty('top', '0px', 'important');
+        }
+      }
+    }
+  }
+  if (id === 'fhs-details-modal') {
+    const fhsExplainContent = document.getElementById('fhs-explain-content');
+    const fhsExplainChevron = document.getElementById('fhs-explain-chevron');
+    if (fhsExplainContent) fhsExplainContent.style.display = 'none';
+    if (fhsExplainChevron) fhsExplainChevron.style.transform = 'rotate(0deg)';
+  }
+
+  const activate = () => {
+    el.classList.add('active');
+    document.body.classList.add('modal-open');
+  };
+
+  if (instant) {
+    // Restore path (no-transition): activate synchronously so no-transition class covers it
+    activate();
+  } else {
+    // Normal open path: add 'active' in next animation frame so the browser first commits
+    // the inline style layout changes above, then starts the CSS transition from a stable state.
+    requestAnimationFrame(activate);
+  }
+  localStorage.setItem('bg_active_modal_id', id);
+}
+
 // Removed initMainScreenSwipeGestures call and adjustMainPeriod
 
 function adjustStatsPeriod(direction, startingDeltaX = 0) {
-  state.expandedStatsCategories.clear();
   animateSwipeTransition(direction, () => {
     if (state.statsPeriodType === 'weekly') {
       state.statsDate.setDate(state.statsDate.getDate() + direction * 7);
@@ -6556,6 +7263,7 @@ function switchTab(tab, instant = false) {
     if (bar) bar.classList.remove('active');
     const fab = document.getElementById('fab-btn');
     if (fab) fab.classList.remove('hidden');
+    updateNoteShortcutVisibility();
   }
 
   // Fail-safe: Hide back-swipe indicator on tab switch
@@ -6584,6 +7292,7 @@ function switchTab(tab, instant = false) {
       fab.style.display = 'none';
     }
   }
+  updateNoteShortcutVisibility();
 
   if (oldScreen && newScreen) {
     // Hide old screen instantly, remove fade-in class from all screens
@@ -6650,20 +7359,19 @@ function switchTab(tab, instant = false) {
     state.selectedMonth = today.getMonth();
     state.selectedYear = today.getFullYear();
     syncStatsDate();
-    updateUI();
+    _updateUIImpl();
     setTimeout(() => scrollToToday('smooth'), 50);
+  } else {
+    _updateUIImpl();
   }
-  else if (tab === 'stats')    renderStatsTab();
-  else if (tab === 'accounts') renderAccountsTab();
-  else if (tab === 'more') {
-    renderPartnerSection();
+
+  if (tab === 'more') {
     if (state.currentUser) {
       const emailDisplay = document.getElementById('settings-user-email-value');
       if (emailDisplay) {
         emailDisplay.textContent = state.currentUser.email;
         emailDisplay.title = state.currentUser.email;
       }
-      // Keep legacy emailItem hidden - email is shown in profile header card instead
     }
 
     // Dynamically populate Profile Header Card
@@ -6685,6 +7393,7 @@ function switchTab(tab, instant = false) {
       }
       headerAvatar.textContent = initials;
     }
+    renderNotesList();
   }
 }
 
@@ -6696,12 +7405,17 @@ function toggleStatsType(type) {
   renderStatsTab();
 }
 
-function forceViewportReset() {
+function forceViewportReset(syncOnly = false) {
   if (!isIOS) return;
   
   // Snap scroll position back to 0
   window.scrollTo(0, 0);
   document.body.scrollTop = 0;
+  
+  if (syncOnly) {
+    // If backgrounding, DO NOT use async timeouts that will freeze and execute on resume.
+    return;
+  }
   
   const hasOffset = window.scrollY > 0 || (window.visualViewport && window.visualViewport.offsetTop > 0);
   if (hasOffset) {
@@ -6720,47 +7434,27 @@ function forceViewportReset() {
   }
 }
 
-function openModal(id)  { 
-  ensureHistoryPushed();
-  const el = document.getElementById(id);
-  // For the transaction modal, counteract body { zoom: 0.93 } to perfectly fill physical screen
-  if (id === 'transaction-modal') {
-    const scale = isIOS ? 1.0 : 0.93;
-    el.style.setProperty('width', (window.innerWidth / scale) + 'px', 'important');
-    el.style.setProperty('height', (window.innerHeight / scale) + 'px', 'important');
-    el.style.setProperty('top', '0px', 'important');
-    
-    if (!isIOS) {
-      const modalContent = el.querySelector('.modal-content');
-      if (modalContent) {
-        const vvHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-        const offsetTop = window.visualViewport ? window.visualViewport.offsetTop : 0;
-        const rawKeyboardHeight = window.visualViewport ? (window.innerHeight - vvHeight - offsetTop) : 0;
-        if (rawKeyboardHeight > 30) {
-          modalContent.style.setProperty('height', (vvHeight / scale) + 'px', 'important');
-          modalContent.style.setProperty('top', (offsetTop / scale) + 'px', 'important');
-        } else {
-          modalContent.style.setProperty('height', (window.innerHeight / scale) + 'px', 'important');
-          modalContent.style.setProperty('top', '0px', 'important');
-        }
-      }
-    }
-  }
-  if (id === 'fhs-details-modal') {
-    const fhsExplainContent = document.getElementById('fhs-explain-content');
-    const fhsExplainChevron = document.getElementById('fhs-explain-chevron');
-    if (fhsExplainContent) fhsExplainContent.style.display = 'none';
-    if (fhsExplainChevron) fhsExplainChevron.style.transform = 'rotate(0deg)';
-  }
-  el.classList.add('active'); 
-  document.body.classList.add('modal-open');
-}
+
 function closeModal(id) {
+  // Guard: if app just returned from background, ignore close requests for 300ms
+  // to prevent ghost clicks/events from the OS home gesture closing modals
+  if (window._appJustResumed) {
+    console.log('[closeModal] Blocked — app just resumed, ignoring close for:', id);
+    return;
+  }
+
+  // Guard: if app is backgrounding, hidden, or blurred, ignore close requests
+  // to prevent OS swipe gestures or ghost clicks from closing modals during transition.
+  if (document.visibilityState === 'hidden' || !document.hasFocus()) {
+    console.log('[closeModal] Blocked — app is backgrounding/hidden/blurred, ignoring close for:', id);
+    return;
+  }
+
   // Prevent iOS ghost clicks / click penetration on the elements underneath (e.g. FAB button)
   document.body.style.pointerEvents = 'none';
   setTimeout(() => {
     document.body.style.pointerEvents = '';
-  }, 350);
+  }, 100); // Reduced from 350ms to prevent blocking subsequent user actions
 
   // Force blur any active input/textarea to close keyboard immediately on modal close
   if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) {
@@ -6773,7 +7467,7 @@ function closeModal(id) {
     return;
   }
   el.classList.remove('active');
-  const activeModals = document.querySelectorAll('.modal-overlay.active, #transaction-modal.active');
+  const activeModals = document.querySelectorAll('.modal-overlay.active, .tx-modal-overlay.active, .profile-sheet-overlay.active');
   if (activeModals.length === 0) {
     document.body.classList.remove('modal-open');
     
@@ -6784,9 +7478,28 @@ function closeModal(id) {
     setTimeout(() => {
       forceViewportReset();
     }, 450);
+
+    localStorage.removeItem('bg_active_modal_id');
+    localStorage.removeItem('bg_modal_scroll_top');
+    localStorage.removeItem('bg_active_modal_tx_id');
+    localStorage.removeItem('bg_active_subcat_txs');
+  } else {
+    const topModal = activeModals[activeModals.length - 1];
+    if (topModal && topModal.id) {
+      localStorage.setItem('bg_active_modal_id', topModal.id);
+    }
   }
-  if (id === 'transaction-modal' && typeof window.closeCalculatorKeypad === 'function') {
-    window.closeCalculatorKeypad();
+  if (id === 'transaction-modal') {
+    if (typeof window.closeCalculatorKeypad === 'function') {
+      window.closeCalculatorKeypad();
+    }
+    state.lastOpenedTransactionId = null;
+  }
+  if (id === 'category-picker-modal') {
+    const settingsTabs = document.getElementById('category-picker-settings-tabs');
+    if (settingsTabs) settingsTabs.style.display = 'none';
+    window._openedCategoryPickerFromSettings = false;
+    categoryPickerEditMode = false;
   }
 }
 
@@ -6880,7 +7593,7 @@ function toggleTransactionFormLock(locked) {
   }
 }
 
-function openAddTransactionModal() {
+function openAddTransactionModal({ instant = false } = {}) {
   if (typeof window.closeCalculatorKeypad === 'function') {
     window.closeCalculatorKeypad();
   }
@@ -6916,6 +7629,8 @@ function openAddTransactionModal() {
   _pendingReceiptDeleted = false;
   const photoInput = document.getElementById('trans-photo-input');
   if (photoInput) photoInput.value = '';
+  const cameraInput = document.getElementById('trans-camera-input');
+  if (cameraInput) cameraInput.value = '';
   const previewContainer = document.getElementById('trans-photo-preview-container');
   if (previewContainer) previewContainer.style.display = 'none';
   const placeholderContainer = document.getElementById('trans-photo-placeholder-container');
@@ -6941,11 +7656,12 @@ function openAddTransactionModal() {
   }
   updateAccountDropdowns();
 
-  openModal('transaction-modal');
+  openModal('transaction-modal', { instant });
   setTimeout(() => initNoteAutocomplete(), 50);
 }
 
-function openEditTransactionModal(t) {
+function openEditTransactionModal(t, { instant = false } = {}) {
+  state.lastOpenedTransactionId = t.id;
   if (typeof window.closeCalculatorKeypad === 'function') {
     window.closeCalculatorKeypad();
   }
@@ -6994,6 +7710,8 @@ function openEditTransactionModal(t) {
   _pendingReceiptDeleted = false;
   const photoInput = document.getElementById('trans-photo-input');
   if (photoInput) photoInput.value = '';
+  const cameraInput = document.getElementById('trans-camera-input');
+  if (cameraInput) cameraInput.value = '';
   const previewContainer = document.getElementById('trans-photo-preview-container');
   const placeholderContainer = document.getElementById('trans-photo-placeholder-container');
   if (previewContainer) previewContainer.style.display = 'none';
@@ -7072,7 +7790,7 @@ function openEditTransactionModal(t) {
     }
   }
 
-  openModal('transaction-modal');
+  openModal('transaction-modal', { instant });
   setTimeout(() => initNoteAutocomplete(), 50);
 }
 
@@ -7225,8 +7943,10 @@ function toggleCategoryPickerEditMode() {
       btn.style.color = 'var(--text-secondary)';
     }
   }
-  const currentType = document.querySelector('.type-tab-btn.active').getAttribute('data-type');
-  updateCategoryDropdowns(currentType);
+  const currentType = window._openedCategoryPickerFromSettings 
+    ? (window._categoryPickerSettingsType || 'expense')
+    : document.querySelector('.type-tab-btn.active').getAttribute('data-type');
+  updateCategoryDropdowns(currentType, true);
 }
 
 function inlineToggleCategoryHidden(categoryName, type) {
@@ -7261,11 +7981,13 @@ function inlineToggleCategoryHidden(categoryName, type) {
   }
 }
 
-function inlineDeleteCustomCategory(categoryName, type) {
+async function inlineDeleteCustomCategory(categoryName, type) {
   const confirmMsg = state.lang === 'el' 
     ? 'Είστε σίγουροι ότι θέλετε να διαγράψετε αυτή την κατηγορία;' 
     : 'Are you sure you want to delete this category?';
-  if (!confirm(confirmMsg)) {
+  
+  const confirmed = await showConfirm(confirmMsg, state.lang === 'el' ? 'Διαγραφή Κατηγορίας' : 'Delete Category', '📂');
+  if (!confirmed) {
     return;
   }
   
@@ -7275,7 +7997,9 @@ function inlineDeleteCustomCategory(categoryName, type) {
     const warningMsg = state.lang === 'el'
       ? `Αυτή η κατηγορία χρησιμοποιείται σε ${count} συναλλαγές. Αν τη διαγράψετε, οι συναλλαγές θα παραμείνουν αλλά η κατηγορία δεν θα υπάρχει. Θέλετε να συνεχίσετε;`
       : `This category is used in ${count} transactions. If you delete it, the transactions will remain but the category will not exist. Do you want to continue?`;
-    if (!confirm(warningMsg)) {
+    
+    const warningConfirmed = await showConfirm(warningMsg, state.lang === 'el' ? 'Προειδοποίηση' : 'Warning', '⚠️');
+    if (!warningConfirmed) {
       return;
     }
   }
@@ -7546,6 +8270,506 @@ function openCategoryModal() {
   openModal('category-picker-modal');
 }
 
+// ============================================================
+// SUBCATEGORY MANAGER LOGIC (INLINE EDIT, MERGE, SORT, UNDO)
+// ============================================================
+let _lastSubcatDeleteBackup = null;
+let _subcatUndoTimer = null;
+let _subcatUndoActiveCallback = null;
+
+function getSubcategoriesStatsForCategory(categoryName) {
+  const cleanedCat = stripLeadingEmoji(categoryName).toUpperCase();
+  const stats = {};
+  
+  state.transactions.forEach(t => {
+    if (t.category && stripLeadingEmoji(t.category).toUpperCase() === cleanedCat) {
+      if (t.subcategory && t.subcategory.trim() !== '') {
+        const sub = t.subcategory.trim();
+        if (!stats[sub]) {
+          stats[sub] = { count: 0, lastUsedDate: '' };
+        }
+        stats[sub].count++;
+        
+        const tDate = t.date || '';
+        if (tDate && (!stats[sub].lastUsedDate || tDate > stats[sub].lastUsedDate)) {
+          stats[sub].lastUsedDate = tDate;
+        }
+      }
+    }
+  });
+  
+  return stats;
+}
+
+function getSortedSubcategoriesForCategory(categoryName) {
+  const stats = getSubcategoriesStatsForCategory(categoryName);
+  const subcatKeys = new Set(Object.keys(stats));
+  
+  // Merge static subcategories from the category object
+  const cat = state.categories.find(c => c.name === categoryName);
+  if (cat && Array.isArray(cat.subcategories)) {
+    cat.subcategories.forEach(sub => {
+      const s = sub.trim();
+      if (s) {
+        subcatKeys.add(s);
+      }
+    });
+  }
+  
+  const arr = Array.from(subcatKeys);
+  
+  // Sort them:
+  // 1. By transaction count descending
+  // 2. If counts are equal, alphabetically
+  arr.sort((a, b) => {
+    const countA = stats[a] ? stats[a].count : 0;
+    const countB = stats[b] ? stats[b].count : 0;
+    
+    if (countB !== countA) {
+      return countB - countA;
+    }
+    return a.localeCompare(b, state.lang === 'el' ? 'el' : 'en', { sensitivity: 'base' });
+  });
+  
+  return arr;
+}
+
+async function renameSubcategoryGlobally(categoryName, oldSub, newSub) {
+  const cleanedCat = stripLeadingEmoji(categoryName).toUpperCase();
+  
+  // 1. Update static subcategories list in the category object
+  const cat = state.categories.find(c => c.name === categoryName);
+  if (cat && Array.isArray(cat.subcategories)) {
+    if (cat.subcategories.includes(newSub)) {
+      cat.subcategories = cat.subcategories.filter(s => s.trim() !== oldSub.trim());
+    } else {
+      cat.subcategories = cat.subcategories.map(s => s.trim() === oldSub.trim() ? newSub : s);
+    }
+    saveCategoriesToStorage();
+    
+    if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
+      try {
+        await state.supabaseClient.from('categories').upsert({
+          user_id: state.currentUser.id,
+          name: cat.name,
+          type: cat.type,
+          icon: cat.icon,
+          color: cat.color,
+          hidden: cat.hidden,
+          subcategories: cat.subcategories
+        }, { onConflict: 'user_id,name' });
+      } catch (err) {
+        console.warn('Supabase categories update error:', err);
+      }
+    }
+  }
+
+  // 2. Update transactions
+  let updatedCount = 0;
+  state.transactions.forEach(t => {
+    if (t.category && stripLeadingEmoji(t.category).toUpperCase() === cleanedCat) {
+      if (t.subcategory && t.subcategory.trim() === oldSub.trim()) {
+        t.subcategory = newSub;
+        updatedCount++;
+      }
+    }
+  });
+  
+  if (updatedCount > 0) {
+    localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
+    calculateInitialBalances();
+    updateUI();
+  }
+  
+  if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
+    try {
+      const { error } = await state.supabaseClient
+        .from('transactions')
+        .update({ subcategory: newSub })
+        .match({ user_id: state.currentUser.id, category: categoryName, subcategory: oldSub });
+      
+      if (error) console.warn('Supabase subcategory rename sync error:', error);
+    } catch (err) {
+      console.warn('Supabase subcategory rename sync failed:', err);
+    }
+  }
+  
+  showSyncToast(state.lang === 'el' ? '✓ Υποκατηγορία μετονομάστηκε' : '✓ Subcategory renamed', 2000);
+}
+
+async function deleteSubcategoryGlobally(categoryName, subToDelete) {
+  const cleanedCat = stripLeadingEmoji(categoryName).toUpperCase();
+  
+  // 1. Remove from static list in category object
+  const cat = state.categories.find(c => c.name === categoryName);
+  if (cat && Array.isArray(cat.subcategories)) {
+    cat.subcategories = cat.subcategories.filter(s => s.trim() !== subToDelete.trim());
+    saveCategoriesToStorage();
+    
+    if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
+      try {
+        await state.supabaseClient.from('categories').upsert({
+          user_id: state.currentUser.id,
+          name: cat.name,
+          type: cat.type,
+          icon: cat.icon,
+          color: cat.color,
+          hidden: cat.hidden,
+          subcategories: cat.subcategories
+        }, { onConflict: 'user_id,name' });
+      } catch (err) {
+        console.warn('Supabase categories update error:', err);
+      }
+    }
+  }
+
+  // 2. Remove from transactions
+  const backupItems = [];
+  state.transactions.forEach(t => {
+    if (t.category && stripLeadingEmoji(t.category).toUpperCase() === cleanedCat) {
+      if (t.subcategory && t.subcategory.trim() === subToDelete.trim()) {
+        backupItems.push({ txId: t.id, oldSub: t.subcategory });
+        t.subcategory = '';
+      }
+    }
+  });
+  
+  if (backupItems.length > 0) {
+    _lastSubcatDeleteBackup = {
+      categoryName: categoryName,
+      subcategoryName: subToDelete,
+      items: backupItems,
+      timestamp: Date.now()
+    };
+    
+    localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
+    calculateInitialBalances();
+    updateUI();
+    
+    if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
+      try {
+        const { error } = await state.supabaseClient
+          .from('transactions')
+          .update({ subcategory: '' })
+          .match({ user_id: state.currentUser.id, category: categoryName, subcategory: subToDelete });
+        
+        if (error) console.warn('Supabase subcategory delete sync error:', error);
+      } catch (err) {
+        console.warn('Supabase subcategory delete sync failed:', err);
+      }
+    }
+    
+    const msg = state.lang === 'el' 
+      ? `Διαγράφηκε η υποκατηγορία "${subToDelete}"` 
+      : `Deleted subcategory "${subToDelete}"`;
+      
+    showSubcatUndoSnackbar(msg, () => {
+      undoLastSubcategoryDelete();
+    });
+  } else {
+    updateUI();
+  }
+}
+
+async function undoLastSubcategoryDelete() {
+  if (!_lastSubcatDeleteBackup) return;
+  
+  const { categoryName, subcategoryName, items } = _lastSubcatDeleteBackup;
+  let restoredCount = 0;
+  
+  items.forEach(backup => {
+    const t = state.transactions.find(tx => tx.id === backup.txId);
+    if (t) {
+      t.subcategory = backup.oldSub;
+      restoredCount++;
+    }
+  });
+  
+  if (restoredCount > 0) {
+    localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
+    calculateInitialBalances();
+    updateUI();
+  }
+  
+  if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser && restoredCount > 0) {
+    try {
+      const idsToRestore = items.map(item => item.txId);
+      const { error } = await state.supabaseClient
+        .from('transactions')
+        .update({ subcategory: subcategoryName })
+        .in('id', idsToRestore)
+        .eq('user_id', state.currentUser.id);
+      
+      if (error) console.warn('Supabase subcategory undo sync error:', error);
+    } catch (err) {
+      console.warn('Supabase subcategory undo sync failed:', err);
+    }
+  }
+  
+  _lastSubcatDeleteBackup = null;
+  
+  if (editingCategoryName) {
+    renderEditCategorySubcategories(editingCategoryName);
+  }
+  
+  showSyncToast(state.lang === 'el' ? '✓ Η διαγραφή αναιρέθηκε' : '✓ Deletion undone', 2000);
+}
+
+function showSubcatUndoSnackbar(message, undoCallback) {
+  let snackbar = document.getElementById('subcat-undo-snackbar');
+  if (!snackbar) {
+    snackbar = document.createElement('div');
+    snackbar.id = 'subcat-undo-snackbar';
+    snackbar.style.cssText = `
+      position: fixed; bottom: 24px; left: 50%; transform: translate(-50%, 80px); z-index: 99999;
+      background: #2a2c3a; color: var(--text-primary, #fff);
+      border: 1px solid var(--border, rgba(255,255,255,0.08)); border-radius: 16px;
+      padding: 12px 20px; font-size: 13.5px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
+      opacity: 0;
+      transition: transform 0.3s cubic-bezier(.34,1.56,.64,1), opacity 0.3s ease;
+      width: 90%; max-width: 380px; box-sizing: border-box;
+      font-family: 'Outfit', sans-serif;
+    `;
+    
+    const textSpan = document.createElement('span');
+    textSpan.id = 'subcat-undo-text';
+    textSpan.style.flex = '1';
+    
+    const undoBtn = document.createElement('button');
+    undoBtn.id = 'subcat-undo-btn';
+    undoBtn.className = 'btn btn-primary';
+    undoBtn.style.cssText = 'padding: 6px 12px; font-size: 12px; margin: 0; font-weight: 700; width: auto; flex-shrink: 0;';
+    undoBtn.textContent = state.lang === 'el' ? 'Αναίρεση' : 'Undo';
+    
+    snackbar.appendChild(textSpan);
+    snackbar.appendChild(undoBtn);
+    document.body.appendChild(snackbar);
+  }
+  
+  const textSpan = snackbar.querySelector('#subcat-undo-text');
+  if (textSpan) textSpan.textContent = message;
+  
+  _subcatUndoActiveCallback = undoCallback;
+  
+  const undoBtn = snackbar.querySelector('#subcat-undo-btn');
+  if (undoBtn) {
+    const newBtn = undoBtn.cloneNode(true);
+    undoBtn.parentNode.replaceChild(newBtn, undoBtn);
+    
+    newBtn.addEventListener('click', () => {
+      if (typeof _subcatUndoActiveCallback === 'function') {
+        _subcatUndoActiveCallback();
+        _subcatUndoActiveCallback = null;
+      }
+      hideSubcatUndoSnackbar();
+    });
+  }
+  
+  requestAnimationFrame(() => {
+    snackbar.style.transform = 'translate(-50%, 0)';
+    snackbar.style.opacity = '1';
+  });
+  
+  if (_subcatUndoTimer) clearTimeout(_subcatUndoTimer);
+  _subcatUndoTimer = setTimeout(() => {
+    hideSubcatUndoSnackbar();
+  }, 5000);
+}
+
+function hideSubcatUndoSnackbar() {
+  const snackbar = document.getElementById('subcat-undo-snackbar');
+  if (snackbar) {
+    snackbar.style.transform = 'translate(-50%, 80px)';
+    snackbar.style.opacity = '0';
+  }
+  _subcatUndoActiveCallback = null;
+  if (_subcatUndoTimer) {
+    clearTimeout(_subcatUndoTimer);
+    _subcatUndoTimer = null;
+  }
+}
+
+function renderEditCategorySubcategories(categoryName) {
+  const dialog = document.getElementById('new-category-inline-dialog');
+  if (!dialog) return;
+  
+  let subcatSection = document.getElementById('new-cat-subcategories-section');
+  if (!subcatSection) {
+    subcatSection = document.createElement('div');
+    subcatSection.id = 'new-cat-subcategories-section';
+    subcatSection.style.cssText = 'display:none; margin-top:16px; padding-top:12px; border-top:1px solid rgba(255,255,255,0.08); margin-bottom:16px;';
+    subcatSection.innerHTML = `
+      <label style="font-size:11px; color:var(--text-muted); font-weight:600; display:block; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px;">
+        <span data-i18n="subcategories_title">${TRANSLATIONS[state.lang]['subcategories_title'] || 'Υποκατηγορίες'}</span> <span id="new-cat-subcategories-count" style="color:var(--accent); font-weight:800; margin-left:4px;"></span>
+      </label>
+      <div id="new-cat-subcategories-list" style="display:flex; flex-direction:column; gap:6px; max-height:150px; overflow-y:auto; padding:4px; background:rgba(0,0,0,0.1); border:1px solid rgba(255,255,255,0.04); border-radius:8px;"></div>
+    `;
+    
+    const actionBtns = dialog.querySelector('div[style*="display:flex"][style*="gap:8px"]');
+    if (actionBtns) {
+      dialog.insertBefore(subcatSection, actionBtns);
+    } else {
+      dialog.appendChild(subcatSection);
+    }
+  }
+
+  const listEl = document.getElementById('new-cat-subcategories-list');
+  const countEl = document.getElementById('new-cat-subcategories-count');
+  if (!listEl) return;
+  
+  if (!categoryName) {
+    subcatSection.style.display = 'none';
+    return;
+  }
+  
+  subcatSection.style.display = 'block';
+  listEl.innerHTML = '';
+  
+  const stats = getSubcategoriesStatsForCategory(categoryName);
+  const subcatKeys = Object.keys(stats);
+  
+  if (subcatKeys.length === 0) {
+    if (countEl) countEl.textContent = '';
+    listEl.innerHTML = `
+      <div style="font-size:12.5px; color:var(--text-muted); padding:16px 12px; text-align:center; line-height:1.5;">
+        ${state.lang === 'el' 
+          ? 'Δεν υπάρχουν ακόμη υποκατηγορίες.<br><span style="font-size:11px; opacity:0.8;">Οι υποκατηγορίες δημιουργούνται αυτόματα όταν καταχωρείς συναλλαγές.</span>' 
+          : 'No subcategories yet.<br><span style="font-size:11px; opacity:0.8;">Subcategories are created automatically when you record transactions.</span>'}
+      </div>
+    `;
+    return;
+  }
+  
+  if (countEl) {
+    countEl.textContent = `(${subcatKeys.length})`;
+  }
+  
+  const sortedSubs = subcatKeys.sort((a, b) => {
+    const diff = stats[b].count - stats[a].count;
+    if (diff !== 0) return diff;
+    return a.localeCompare(b);
+  });
+  
+  sortedSubs.forEach(sub => {
+    const item = document.createElement('div');
+    item.style.cssText = 'display:flex; align-items:center; justify-content:space-between; padding:8px 12px; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.04); border-radius:10px; font-size:13px; color:var(--text-secondary); transition: background 0.2s;';
+    
+    const count = stats[sub].count;
+    const lastUsed = stats[sub].lastUsedDate;
+    
+    let lastUsedStr = '';
+    if (lastUsed) {
+      const parts = lastUsed.split('-');
+      if (parts.length === 3) {
+        lastUsedStr = state.lang === 'el' 
+          ? ` • Τελ. χρήση: ${parts[2]}/${parts[1]}/${parts[0]}`
+          : ` • Last used: ${parts[2]}/${parts[1]}/${parts[0]}`;
+      }
+    }
+    
+    const txLabel = state.lang === 'el'
+      ? (count === 1 ? 'συναλλαγή' : 'συναλλαγές')
+      : (count === 1 ? 'transaction' : 'transactions');
+      
+    const normalHtml = `
+      <div style="display:flex; flex-direction:column; flex:1; overflow:hidden; margin-right:8px;">
+        <span style="font-weight:600; color:var(--text-primary); text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">${sub}</span>
+        <span style="font-size:11px; color:var(--text-muted); margin-top:2px;">${count} ${txLabel}${lastUsedStr}</span>
+      </div>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <button type="button" class="icon-btn edit-sub-btn" style="color:var(--text-muted); cursor:pointer; font-size:12.5px; background:none; border:none; padding:6px; transition:color 0.2s;"><i class="fa-solid fa-pen"></i></button>
+        <button type="button" class="icon-btn delete-sub-btn" style="color:var(--red-negative, #ff4a4a); cursor:pointer; font-size:12.5px; background:none; border:none; padding:6px; transition:color 0.2s;"><i class="fa-solid fa-trash-can"></i></button>
+      </div>
+    `;
+    
+    item.innerHTML = normalHtml;
+    
+    item.querySelector('.edit-sub-btn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      
+      item.innerHTML = `
+        <div style="display:flex; align-items:center; gap:8px; flex:1; margin-right:8px;">
+          <input type="text" class="rename-sub-input" value="${sub}" style="flex:1; padding:6px 10px; font-size:13px; border-radius:8px; background:rgba(0,0,0,0.35); border:1px solid var(--accent, #7c6af7); color:var(--text-primary); outline:none; font-family:'Outfit',sans-serif;">
+        </div>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <button type="button" class="icon-btn save-rename-btn" style="color:var(--accent, #7c6af7); cursor:pointer; font-size:13px; background:none; border:none; padding:6px;"><i class="fa-solid fa-check"></i></button>
+          <button type="button" class="icon-btn cancel-rename-btn" style="color:var(--text-muted); cursor:pointer; font-size:13px; background:none; border:none; padding:6px;"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+      `;
+      
+      const input = item.querySelector('.rename-sub-input');
+      if (input) {
+        input.focus();
+        input.addEventListener('keydown', (evt) => {
+          if (evt.key === 'Enter') {
+            evt.preventDefault();
+            item.querySelector('.save-rename-btn').click();
+          }
+        });
+      }
+      
+      item.querySelector('.save-rename-btn').addEventListener('click', async (evt) => {
+        evt.stopPropagation();
+        const newName = input.value.trim();
+        
+        if (newName === '') {
+          showSyncToast(state.lang === 'el' ? '⚠️ Το όνομα δεν μπορεί να είναι κενό!' : '⚠️ Name cannot be empty!', 2500);
+          return;
+        }
+        
+        if (/^[ \-_\.\*]+$/.test(newName)) {
+          showSyncToast(state.lang === 'el' ? '⚠️ Μη έγκυρο όνομα υποκατηγορίας!' : '⚠️ Invalid subcategory name!', 2500);
+          return;
+        }
+        
+        if (newName === sub) {
+          renderEditCategorySubcategories(categoryName);
+          return;
+        }
+        
+        if (stats[newName]) {
+          const confirmTitle = state.lang === 'el' ? 'Συγχώνευση Υποκατηγοριών' : 'Merge Subcategories';
+          const confirmMsg = state.lang === 'el'
+            ? `Η υποκατηγορία "${newName}" υπάρχει ήδη. Θέλετε να συγχωνεύσετε όλες τις συναλλαγές της "${sub}" στην "${newName}";`
+            : `Subcategory "${newName}" already exists. Do you want to merge all transactions from "${sub}" into "${newName}"?`;
+            
+          const confirmed = await showConfirm(confirmMsg, confirmTitle, '🔀');
+          if (!confirmed) {
+            return;
+          }
+        }
+        
+        await renameSubcategoryGlobally(categoryName, sub, newName);
+        renderEditCategorySubcategories(categoryName);
+      });
+      
+      item.querySelector('.cancel-rename-btn').addEventListener('click', (evt) => {
+        evt.stopPropagation();
+        renderEditCategorySubcategories(categoryName);
+      });
+    });
+    
+    item.querySelector('.delete-sub-btn').addEventListener('click', async (e) => {
+      e.stopPropagation();
+      
+      const confirmTitle = state.lang === 'el' ? 'Διαγραφή Υποκατηγορίας' : 'Delete Subcategory';
+      const confirmMsg = state.lang === 'el'
+        ? `Είστε σίγουροι ότι θέλετε να διαγράψετε την υποκατηγορία "${sub}";\nΘα αφαιρεθεί από όλες τις συναλλαγές.`
+        : `Are you sure you want to delete subcategory "${sub}"?\nIt will be removed from all transactions.`;
+        
+      const confirmed = await showConfirm(confirmMsg, confirmTitle, '🗑️');
+      if (confirmed) {
+        await deleteSubcategoryGlobally(categoryName, sub);
+        renderEditCategorySubcategories(categoryName);
+      }
+    });
+    
+    listEl.appendChild(item);
+  });
+}
+
 // New Category inline dialog state
 let newCategoryDialogType = 'expense';
 let newCategorySelectedEmoji = '💸';
@@ -7602,8 +8826,9 @@ function openEditCategoryDialog(categoryName, type) {
   const cancelBtn = dialog.querySelector('.btn-secondary');
   if (cancelBtn) cancelBtn.textContent = state.lang === 'el' ? 'Άκυρο' : 'Cancel';
   
+  renderEditCategorySubcategories(categoryName);
   dialog.style.display = 'block';
-  setTimeout(() => nameInput.focus(), 100);
+  nameInput.focus();
 }
 
 
@@ -7659,8 +8884,9 @@ function openNewCategoryDialog(type) {
     cancelBtn.textContent = state.lang === 'el' ? 'Άκυρο' : 'Cancel';
   }
   
+  renderEditCategorySubcategories(null);
   dialog.style.display = 'block';
-  setTimeout(() => nameInput.focus(), 100);
+  nameInput.focus();
 }
 
 function closeNewCategoryDialog() {
@@ -7669,6 +8895,7 @@ function closeNewCategoryDialog() {
   newCategoryDialogType = 'expense';
   newCategorySelectedEmoji = '💸';
   editingCategoryName = null;
+  renderEditCategorySubcategories(null);
 }
 
 function saveNewCategoryFromPicker() {
@@ -8086,6 +9313,12 @@ function promiseTimeout(promise, ms) {
 // ============================================================
 // UTILITIES
 // ============================================================
+function sanitizeFloat(val) {
+  const num = parseFloat(val);
+  if (isNaN(num)) return 0;
+  return Math.round((num + Number.EPSILON) * 100) / 100;
+}
+
 function formatCurrency(val) {
   if (isNaN(val)) return '0,00';
   return parseFloat(val).toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -9603,7 +10836,7 @@ function handleSearchChange(resetLimit = true) {
   const filterPhoto = document.getElementById('search-filter-photo')?.value || '';
 
   const filtered = state.transactions.filter(t => {
-    // 1. Text Query (Search in Note, Category, Subcategory, Description, Account)
+    // 1. Text Query (Search in Note, Category, Subcategory, Description, Account, and Amount)
     if (query) {
       const note = normalizeText(t.note);
       const cat = normalizeText(t.category);
@@ -9612,7 +10845,15 @@ function handleSearchChange(resetLimit = true) {
       const acc = normalizeText(t.account_from);
       const accTo = normalizeText(t.account_to);
       
-      if (!note.includes(query) && !cat.includes(query) && !sub.includes(query) && !desc.includes(query) && !acc.includes(query) && !accTo.includes(query)) {
+      const amtStr = String(t.amount || '');
+      const amtGreekStr = amtStr.replace('.', ',');
+      const formattedAmt = formatCurrency(t.amount);
+      const formattedAmtClean = formattedAmt.replace(/\./g, '');
+
+      const textMatch = note.includes(query) || cat.includes(query) || sub.includes(query) || desc.includes(query) || acc.includes(query) || accTo.includes(query);
+      const amtMatch = amtStr.includes(query) || amtGreekStr.includes(query) || formattedAmt.includes(query) || formattedAmtClean.includes(query);
+      
+      if (!textMatch && !amtMatch) {
         return false;
       }
     }
@@ -10096,6 +11337,7 @@ function enterSelectionMode() {
   const fab = document.getElementById('fab-btn');
   if (fab) fab.classList.add('hidden');
   
+  updateNoteShortcutVisibility();
   updateSelectionHeader();
   renderTransactionsTab();
 }
@@ -10110,6 +11352,7 @@ function exitSelectionMode() {
   const fab = document.getElementById('fab-btn');
   if (fab) fab.classList.remove('hidden');
   
+  updateNoteShortcutVisibility();
   renderTransactionsTab();
 }
 
@@ -10199,6 +11442,27 @@ async function deleteSelectedTransactions() {
 
   const idsToDelete = Array.from(idsToDeleteSet);
 
+  // Save deleted transactions to Trash
+  const deletedTxsForBackup = [];
+  try {
+    const deletedTxs = state.transactions.filter(t => idsToDelete.includes(String(t.id)));
+    deletedTxs.forEach(t => {
+      state.trashTransactions = state.trashTransactions || [];
+      const alreadyInTrash = state.trashTransactions.some(tt => String(tt.id) === String(t.id));
+      if (!alreadyInTrash) {
+        const trashItem = { ...t, deleted_at: new Date().toISOString() };
+        state.trashTransactions.push(trashItem);
+        deletedTxsForBackup.push(trashItem);
+      }
+    });
+    if (state.trashTransactions.length > 100) {
+      state.trashTransactions = state.trashTransactions.slice(-100);
+    }
+    localStorage.setItem('deleted_transactions_trash', JSON.stringify(state.trashTransactions));
+  } catch (err) {
+    console.warn('Failed to save deleted transactions to trash:', err);
+  }
+
   // 1. Suppress realtime events
   _suppressRealtimeEvents = true;
 
@@ -10218,8 +11482,15 @@ async function deleteSelectedTransactions() {
 
   // Perform background delete in bulk
   if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
+    // Enqueue immediately before starting the cloud request to prevent data loss if the app is closed/killed
+    idsToDelete.forEach(id => enqueueSyncMutation('delete', id));
+
     (async () => {
       try {
+        // Backup to deleted_transactions table first
+        if (deletedTxsForBackup.length > 0) {
+          await saveDeletedTransactionsToSupabase(deletedTxsForBackup);
+        }
         const { error } = await promiseTimeout(
           state.supabaseClient
             .from('transactions')
@@ -10229,9 +11500,9 @@ async function deleteSelectedTransactions() {
         );
         if (error) throw error;
         console.log(`Cloud delete success for selected transactions (and dupes):`, idsToDelete);
+        idsToDelete.forEach(id => dequeueSyncMutation('delete', id));
       } catch (err) {
-        console.warn(`Cloud delete failed for selected, queueing deletes:`, idsToDelete, err);
-        idsToDelete.forEach(id => enqueueSyncMutation('delete', id));
+        console.warn(`Cloud delete failed for selected, keeping in queue:`, idsToDelete, err);
       } finally {
         idsToDelete.forEach(id => _deletingTxIds.delete(String(id)));
       }
@@ -10274,6 +11545,10 @@ function initSwipeToBack() {
     if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
       return;
     }
+    // Guard: Ignore popstate if the document is hidden, backgrounding, or blurred (e.g. during home swipe gesture)
+    if (document.visibilityState === 'hidden' || !document.hasFocus()) {
+      return;
+    }
     const handled = triggerBackAction();
     if (handled) {
       // Re-push to keep intercepting subsequent back actions
@@ -10301,11 +11576,67 @@ function initSwipeToBack() {
     return false;
   }
 
-  if (!registerCapacitorBackButton()) {
+  // Native Capacitor Deep Link Interception
+  function registerCapacitorDeepLinks() {
+    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
+      const App = window.Capacitor.Plugins.App;
+      if (App && typeof App.addListener === 'function') {
+        App.addListener('appUrlOpen', (data) => {
+          console.log('[DeepLink] App opened with URL:', data.url);
+          
+          if (data.url && (data.url.includes('access_token=') || data.url.includes('error='))) {
+            const hashIndex = data.url.indexOf('#');
+            const searchIndex = data.url.indexOf('?');
+            let hash = '';
+            let search = '';
+            if (hashIndex !== -1) {
+              hash = data.url.substring(hashIndex);
+            }
+            if (searchIndex !== -1) {
+              const endIdx = hashIndex !== -1 && hashIndex > searchIndex ? hashIndex : data.url.length;
+              search = data.url.substring(searchIndex, endIdx);
+            }
+            
+            const hashParams = new URLSearchParams(hash.substring(1));
+            const accessToken = hashParams.get('access_token');
+            const refreshToken = hashParams.get('refresh_token');
+            
+            if (accessToken && state.supabaseClient) {
+              toggleLoader(true);
+              state.supabaseClient.auth.setSession({
+                access_token: accessToken,
+                refresh_token: refreshToken || ''
+              }).then(({ error }) => {
+                if (error) {
+                  console.error('[DeepLink] Failed to set session:', error);
+                  toggleLoader(false);
+                } else {
+                  console.log('[DeepLink] Successfully signed in via deep link!');
+                  localStorage.setItem('active_tab', 'trans');
+                  window.location.replace('/');
+                }
+              }).catch(err => {
+                console.error('[DeepLink] Error setting session:', err);
+                toggleLoader(false);
+              });
+            }
+          }
+        });
+        return true;
+      }
+    }
+    return false;
+  }
+
+  const resBack = registerCapacitorBackButton();
+  const resLink = registerCapacitorDeepLinks();
+  if (!resBack || !resLink) {
     let attempts = 0;
     const interval = setInterval(() => {
       attempts++;
-      if (registerCapacitorBackButton() || attempts > 50) {
+      const successBack = registerCapacitorBackButton();
+      const successLink = registerCapacitorDeepLinks();
+      if ((successBack && successLink) || attempts > 50) {
         clearInterval(interval);
       }
     }, 100);
@@ -10357,6 +11688,13 @@ function initSwipeToBack() {
   }
 
   function triggerBackAction() {
+    // Guard: If app is hidden, backgrounding, or loses focus (e.g., OS home swipe gesture),
+    // ignore the back action to prevent modals from closing during suspension.
+    if (document.visibilityState === 'hidden' || !document.hasFocus()) {
+      console.log('[triggerBackAction] Ignored back action — document is hidden or blurred.');
+      return false;
+    }
+
     // 0. Close photo lightbox if active
     const lightbox = document.getElementById('photo-lightbox-modal');
     if (lightbox && lightbox.style.display === 'flex') {
@@ -10793,7 +12131,8 @@ function showSubcategorySelect() {
     custom.style.display = 'block';
     cancelBtn.style.display = 'block';
     document.getElementById('trans-subcategory-select').value = '__NEW__';
-    setTimeout(() => custom.focus(), 50);
+    updateSubcategoryRowVisibility();
+    custom.focus();
   }
 }
 
@@ -10811,12 +12150,1391 @@ function hideSubcategorySelect() {
     custom.value = '';
     document.getElementById('trans-subcategory-select').value = '';
     document.getElementById('trans-subcategory-display').innerHTML = `<span class="custom-select-placeholder" data-i18n="placeholder_subcategory">Πατήστε για επιλογή</span>`;
+    updateSubcategoryRowVisibility();
   }
 }
 
 // Bind to window
 window.showSubcategorySelect = showSubcategorySelect;
 window.hideSubcategorySelect = hideSubcategorySelect;
+
+window._categoryManagerType = 'expense';
+window._categoryManagerSelectedEmoji = '💸';
+window._editingCategoryManagerName = null;
+
+function openSettingsCategoryManager() {
+  window._categoryManagerType = 'expense';
+  closeNewCategoryDialog();
+  renderCategoryManagerList();
+  openModal('category-manager-modal');
+}
+
+function setCategoryManagerType(type) {
+  window._categoryManagerType = type;
+  renderCategoryManagerList();
+}
+
+function renderCategoryManagerList() {
+  const container = document.getElementById('category-manager-list');
+  if (!container) return;
+  
+  container.innerHTML = '';
+  const type = window._categoryManagerType || 'expense';
+  
+  const expenseTab = document.getElementById('cat-mgr-tab-expense');
+  const incomeTab = document.getElementById('cat-mgr-tab-income');
+  if (expenseTab && incomeTab) {
+    if (type === 'expense') {
+      expenseTab.style.background = 'var(--accent)';
+      expenseTab.style.color = 'white';
+      incomeTab.style.background = 'transparent';
+      incomeTab.style.color = 'var(--text-secondary)';
+    } else {
+      incomeTab.style.background = 'var(--accent)';
+      incomeTab.style.color = 'white';
+      expenseTab.style.background = 'transparent';
+      expenseTab.style.color = 'var(--text-secondary)';
+    }
+  }
+  
+  const list = state.categories.filter(c => c.type === type);
+  
+  // Single-pass subcategory name set pre-calculation to optimize performance O(N)
+  const subcatSets = {};
+  state.transactions.forEach(t => {
+    if (t.category && t.subcategory) {
+      const catName = t.category.trim();
+      const sub = t.subcategory.trim();
+      if (catName && sub) {
+        if (!subcatSets[catName]) {
+          subcatSets[catName] = new Set();
+        }
+        subcatSets[catName].add(sub);
+      }
+    }
+  });
+
+  const lang = state.lang || 'el';
+  list.sort((a, b) => {
+    const nameA = getCategoryDisplayName(a.name);
+    const nameB = getCategoryDisplayName(b.name);
+    return nameA.localeCompare(nameB, lang === 'el' ? 'el' : 'en', { sensitivity: 'base' });
+  });
+  
+  const countLabel = document.getElementById('cat-mgr-count-label');
+  if (countLabel) {
+    countLabel.textContent = lang === 'el' 
+      ? `Σύνολο: ${list.length} κατηγορίες`
+      : `Total: ${list.length} categories`;
+  }
+  
+  if (list.length === 0) {
+    container.innerHTML = `
+      <div style="text-align: center; padding: 24px; color: var(--text-muted); font-size: 14px; font-style: italic;">
+        ${lang === 'el' ? 'Δεν βρέθηκαν κατηγορίες.' : 'No categories found.'}
+      </div>
+    `;
+    return;
+  }
+  
+  list.forEach(c => {
+    const safeId = c.name.replace(/\s+/g, '-');
+    const displayName = getCategoryDisplayName(c.name);
+    
+    // Union with static subcategories from categories configuration
+    const uniqueSubs = new Set(subcatSets[c.name] || []);
+    if (Array.isArray(c.subcategories)) {
+      c.subcategories.forEach(sub => {
+        const s = sub.trim();
+        if (s) uniqueSubs.add(s);
+      });
+    }
+    const subCount = uniqueSubs.size;
+    
+    const card = document.createElement('div');
+    card.style.cssText = 'background: var(--card-bg2, rgba(255,255,255,0.02)); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column;';
+    
+    const header = document.createElement('div');
+    header.className = 'category-mgr-header';
+    header.style.cssText = 'display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; cursor: pointer; transition: background 0.2s;';
+    header.innerHTML = `
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <span style="font-size: 18px; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.04); border-radius: 50%;">${c.icon || '📁'}</span>
+        <span style="font-weight: 600; font-size: 14px; color: var(--text-primary);">${displayName}</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px;" class="category-mgr-actions">
+        <span style="font-size: 11px; color: var(--text-muted); background: rgba(255,255,255,0.06); padding: 3px 8px; border-radius: 20px; font-weight:600;">
+          ${subCount} ${lang === 'el' ? 'υποκ.' : 'subcats'}
+        </span>
+        <button class="btn-edit-cat icon-btn" style="font-size: 13px; color: var(--text-secondary); width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: none; background: transparent; cursor: pointer;">
+          <i class="fa-solid fa-pen"></i>
+        </button>
+        <button class="btn-delete-cat icon-btn" style="font-size: 13px; color: var(--red-negative); width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: none; background: transparent; cursor: pointer;">
+          <i class="fa-solid fa-trash-can"></i>
+        </button>
+        <i class="fa-solid fa-chevron-down category-mgr-chevron" id="chevron-${safeId}" style="font-size: 12px; color: var(--text-muted); margin-left: 4px; transition: transform 0.2s; padding: 4px;"></i>
+      </div>
+    `;
+    
+    const details = document.createElement('div');
+    details.className = 'category-mgr-details';
+    details.id = `details-${safeId}`;
+    details.style.cssText = 'display: none; border-top: 1px solid var(--border); padding: 12px; background: rgba(0, 0, 0, 0.08); flex-direction: column; gap: 8px;';
+    
+    // Programmatic click handler for accordion expand
+    header.addEventListener('click', () => {
+      toggleCategoryManagerAccordion(c.name);
+    });
+    
+    // Stop propagation so clicking actions does not toggle accordion
+    const actionsContainer = header.querySelector('.category-mgr-actions');
+    actionsContainer.addEventListener('click', (e) => {
+      e.stopPropagation();
+    });
+    
+    header.querySelector('.btn-edit-cat').addEventListener('click', () => {
+      openCategoryEditorModal(c.name);
+    });
+    
+    header.querySelector('.btn-delete-cat').addEventListener('click', () => {
+      deleteCategoryFromManager(c.name);
+    });
+    
+    card.appendChild(header);
+    card.appendChild(details);
+    container.appendChild(card);
+  });
+}
+
+function toggleCategoryManagerAccordion(categoryName) {
+  const safeId = categoryName.replace(/\s+/g, '-');
+  const details = document.getElementById(`details-${safeId}`);
+  const chevron = document.getElementById(`chevron-${safeId}`);
+  if (!details) return;
+  
+  const isExpanded = details.style.display === 'flex';
+  if (isExpanded) {
+    details.style.display = 'none';
+    if (chevron) chevron.style.transform = 'rotate(0deg)';
+  } else {
+    document.querySelectorAll('.category-mgr-details').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.category-mgr-chevron').forEach(el => el.style.transform = 'rotate(0deg)');
+    
+    details.style.display = 'flex';
+    if (chevron) chevron.style.transform = 'rotate(180deg)';
+    renderCategoryManagerSubcategories(categoryName);
+  }
+}
+
+function renderCategoryManagerSubcategories(categoryName) {
+  const safeId = categoryName.replace(/\s+/g, '-');
+  const container = document.getElementById(`details-${safeId}`);
+  if (!container) return;
+  
+  const subcats = getSortedSubcategoriesForCategory(categoryName);
+  container.innerHTML = '';
+  
+  const subcatTitle = document.createElement('div');
+  subcatTitle.style = 'font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 4px;';
+  subcatTitle.textContent = state.lang === 'el' ? 'Λίστα Υποκατηγοριών' : 'Subcategories List';
+  container.appendChild(subcatTitle);
+  
+  if (subcats.length === 0) {
+    const emptyState = document.createElement('div');
+    emptyState.style = 'font-size: 13px; color: var(--text-muted); padding: 8px 0; font-style: italic;';
+    emptyState.textContent = state.lang === 'el' ? 'Δεν υπάρχουν υποκατηγορίες.' : 'No subcategories yet.';
+    container.appendChild(emptyState);
+  } else {
+    const listEl = document.createElement('div');
+    listEl.style = 'display: flex; flex-direction: column; gap: 8px;';
+    
+    // Call getSubcategoriesStatsForCategory ONCE before the loop to optimize performance
+    const stats = getSubcategoriesStatsForCategory(categoryName);
+    
+    subcats.forEach(sub => {
+      const item = document.createElement('div');
+      item.style = 'display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px;';
+      
+      const subStat = stats[sub] || { count: 0, lastUsedDate: '' };
+      
+      let usageText = '';
+      if (subStat.count > 0) {
+        let dateStr = '';
+        if (subStat.lastUsedDate) {
+          const parts = subStat.lastUsedDate.split('-');
+          if (parts.length === 3) {
+            dateStr = `${parts[2]}.${parts[1]}.${parts[0].slice(-2)}`;
+          } else {
+            dateStr = subStat.lastUsedDate;
+          }
+        }
+        
+        usageText = state.lang === 'el' 
+          ? `${subStat.count} συν. • Τελ: ${dateStr}`
+          : `${subStat.count} txs • Last: ${dateStr}`;
+      } else {
+        usageText = state.lang === 'el' ? 'Μη χρησιμοποιούμενη' : 'Unused';
+      }
+      
+      const normalView = document.createElement('div');
+      normalView.style = 'display: flex; align-items: center; justify-content: space-between; width: 100%;';
+      normalView.innerHTML = `
+        <div style="display: flex; flex-direction: column; gap: 2px;">
+          <span style="font-weight: 500; font-size: 14px; color: var(--text-primary);">${sub}</span>
+          <span style="font-size: 11px; color: var(--text-muted);">${usageText}</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <button class="icon-btn" style="font-size: 12px; color: var(--text-secondary); padding: 6px; border-radius: 4px;" title="Rename">
+            <i class="fa-solid fa-pen"></i>
+          </button>
+          <button class="icon-btn" style="font-size: 12px; color: var(--red-negative); padding: 6px; border-radius: 4px;" title="Delete">
+            <i class="fa-solid fa-trash-can"></i>
+          </button>
+        </div>
+      `;
+      
+      const editView = document.createElement('div');
+      editView.style = 'display: none; align-items: center; gap: 8px; width: 100%;';
+      editView.innerHTML = `
+        <input type="text" class="form-input" value="${sub}" style="flex: 1; padding: 6px 10px; font-size: 13px; border-radius: 6px; border: 1px solid var(--accent); background: var(--bg-main); color: var(--text-primary);">
+        <button class="btn btn-primary" style="padding: 6px 10px; font-size: 12px; border-radius: 6px;"><i class="fa-solid fa-check"></i></button>
+        <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 12px; border-radius: 6px;"><i class="fa-solid fa-xmark"></i></button>
+      `;
+      
+      const editBtn = normalView.querySelector('button[title="Rename"]');
+      const deleteBtn = normalView.querySelector('button[title="Delete"]');
+      const saveEditBtn = editView.querySelector('.btn-primary');
+      const cancelEditBtn = editView.querySelector('.btn-secondary');
+      const editInput = editView.querySelector('input');
+      
+      editBtn.onclick = () => {
+        normalView.style.display = 'none';
+        editView.style.display = 'flex';
+        editInput.focus();
+      };
+      
+      cancelEditBtn.onclick = () => {
+        editView.style.display = 'none';
+        normalView.style.display = 'flex';
+        editInput.value = sub;
+      };
+      
+      saveEditBtn.onclick = async () => {
+        const newVal = editInput.value.trim();
+        if (!newVal || newVal === sub) {
+          cancelEditBtn.click();
+          return;
+        }
+        await handleCategoryManagerSubcategoryRename(categoryName, sub, newVal);
+        renderCategoryManagerSubcategories(categoryName);
+      };
+      
+      deleteBtn.onclick = async () => {
+        const confirmMsg = state.lang === 'el'
+          ? `Θέλετε σίγουρα να διαγράψετε την υποκατηγορία "${sub}";`
+          : `Are you sure you want to delete subcategory "${sub}"?`;
+          
+        const confirmed = await showConfirm(confirmMsg, state.lang === 'el' ? 'Διαγραφή Υποκατηγορίας' : 'Delete Subcategory', '🗑️');
+        if (confirmed) {
+          await deleteSubcategoryGlobally(categoryName, sub);
+          renderCategoryManagerSubcategories(categoryName);
+        }
+      };
+      
+      item.appendChild(normalView);
+      item.appendChild(editView);
+      listEl.appendChild(item);
+    });
+    
+    container.appendChild(listEl);
+  }
+  
+  const addForm = document.createElement('div');
+  addForm.style = 'margin-top: 10px; border-top: 1px dashed var(--border); padding-top: 10px; display: flex; flex-direction: column; gap: 8px;';
+  
+  const addTrigger = document.createElement('button');
+  addTrigger.type = 'button';
+  addTrigger.className = 'btn btn-secondary';
+  addTrigger.style = 'font-size: 13px; padding: 8px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 6px; border-radius: 8px; background: rgba(255,255,255,0.02); border: 1px dashed var(--border); width: 100%; text-align: center; color: var(--text-primary); cursor: pointer;';
+  addTrigger.innerHTML = `<i class="fa-solid fa-plus" style="font-size:12px; color:var(--accent);"></i> ${state.lang === 'el' ? 'Προσθήκη υποκατηγορίας' : 'Add subcategory'}`;
+  
+  const addInputContainer = document.createElement('div');
+  addInputContainer.style = 'display: none; align-items: center; gap: 8px; width: 100%;';
+  addInputContainer.innerHTML = `
+    <input type="text" class="form-input" placeholder="${state.lang === 'el' ? 'Όνομα υποκατηγορίας...' : 'Subcategory name...'}" style="flex: 1; padding: 8px 12px; font-size: 13px; border-radius: 8px; background: var(--bg-main); color: var(--text-primary); border: 1px solid var(--border);">
+    <button class="btn btn-primary" style="padding: 8px 14px; font-size: 13px; border-radius: 8px; font-weight: 600;">${state.lang === 'el' ? 'Προσθήκη' : 'Add'}</button>
+    <button class="btn btn-secondary" style="padding: 8px 12px; font-size: 13px; border-radius: 8px;"><i class="fa-solid fa-xmark"></i></button>
+  `;
+  
+  const addInput = addInputContainer.querySelector('input');
+  const addSubmit = addInputContainer.querySelector('.btn-primary');
+  const addCancel = addInputContainer.querySelector('.btn-secondary');
+  
+  addTrigger.onclick = () => {
+    addTrigger.style.display = 'none';
+    addInputContainer.style.display = 'flex';
+    addInput.focus();
+  };
+  
+  addCancel.onclick = () => {
+    addInputContainer.style.display = 'none';
+    addTrigger.style.display = 'flex';
+    addInput.value = '';
+  };
+  
+  addSubmit.onclick = async () => {
+    const newVal = addInput.value.trim();
+    if (!newVal) {
+      addCancel.click();
+      return;
+    }
+    await addSubcategoryToCategory(categoryName, newVal);
+    renderCategoryManagerSubcategories(categoryName);
+  };
+  
+  addInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      addSubmit.click();
+    }
+  });
+  
+  addForm.appendChild(addTrigger);
+  addForm.appendChild(addInputContainer);
+  container.appendChild(addForm);
+}
+
+async function handleCategoryManagerSubcategoryRename(categoryName, oldSub, newSub) {
+  const existingSubcats = getSortedSubcategoriesForCategory(categoryName);
+  if (existingSubcats.includes(newSub)) {
+    const confirmMsg = state.lang === 'el'
+      ? `Η υποκατηγορία "${newSub}" υπάρχει ήδη. Θέλετε να συγχωνεύσετε την υποκατηγορία "${oldSub}" με την "${newSub}"; Όλες οι συναλλαγές θα ενημερωθούν.`
+      : `Subcategory "${newSub}" already exists. Do you want to merge "${oldSub}" into "${newSub}"? All transactions will be updated.`;
+      
+    const confirmed = await showConfirm(confirmMsg, state.lang === 'el' ? 'Συγχώνευση Υποκατηγοριών' : 'Merge Subcategories', '🔄');
+    if (!confirmed) return;
+  }
+  await renameSubcategoryGlobally(categoryName, oldSub, newSub);
+}
+
+function addSubcategoryToCategory(categoryName, subcatName) {
+  const cat = state.categories.find(c => c.name === categoryName);
+  if (cat) {
+    if (!Array.isArray(cat.subcategories)) {
+      cat.subcategories = [];
+    }
+    const cleanSub = subcatName.trim();
+    if (cleanSub && !cat.subcategories.includes(cleanSub)) {
+      cat.subcategories.push(cleanSub);
+      saveCategoriesToStorage();
+      
+      if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
+        state.supabaseClient.from('categories').upsert({
+          user_id: state.currentUser.id,
+          name: cat.name,
+          type: cat.type,
+          icon: cat.icon,
+          color: cat.color,
+          hidden: cat.hidden,
+          subcategories: cat.subcategories
+        }, { onConflict: 'user_id,name' }).catch(err => console.warn('Sync categories subcategories warning:', err));
+      }
+    }
+  }
+}
+
+function renderCategoryEditorEmojiGrid(selectedEmoji) {
+  const grid = document.getElementById('cat-editor-emoji-grid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  
+  const list = EMOJI_OPTIONS.includes(selectedEmoji) ? EMOJI_OPTIONS : [selectedEmoji, ...EMOJI_OPTIONS];
+  list.forEach(emoji => {
+    const span = document.createElement('span');
+    span.textContent = emoji;
+    span.style.cssText = `font-size: 22px; padding: 6px; text-align: center; cursor: pointer; border-radius: 8px; transition: all 0.15s; border: 2px solid ${emoji === selectedEmoji ? 'var(--accent)' : 'transparent'}; background: ${emoji === selectedEmoji ? 'rgba(224, 94, 85, 0.1)' : 'transparent'};`;
+    
+    span.onclick = () => {
+      window._categoryManagerSelectedEmoji = emoji;
+      grid.querySelectorAll('span').forEach(s => {
+        s.style.border = '2px solid transparent';
+        s.style.background = 'transparent';
+      });
+      span.style.border = '2px solid var(--accent)';
+      span.style.background = 'rgba(224, 94, 85, 0.1)';
+    };
+    grid.appendChild(span);
+  });
+}
+
+function openCategoryManagerAddDialog() {
+  window._editingCategoryManagerName = null;
+  window._categoryManagerSelectedEmoji = window._categoryManagerType === 'income' ? '💰' : '💸';
+  
+  const title = document.getElementById('cat-editor-title');
+  if (title) title.textContent = state.lang === 'el' ? 'Νέα Κατηγορία' : 'New Category';
+  
+  const input = document.getElementById('cat-editor-name-input');
+  if (input) {
+    input.value = '';
+    input.placeholder = state.lang === 'el' ? 'Όνομα κατηγορίας...' : 'Category name...';
+  }
+  
+  renderCategoryEditorEmojiGrid(window._categoryManagerSelectedEmoji);
+  openModal('category-editor-modal');
+}
+
+function openCategoryEditorModal(categoryName) {
+  const cat = state.categories.find(c => c.name === categoryName);
+  if (!cat) return;
+  
+  window._editingCategoryManagerName = categoryName;
+  window._categoryManagerSelectedEmoji = cat.icon || '📁';
+  
+  const title = document.getElementById('cat-editor-title');
+  if (title) title.textContent = state.lang === 'el' ? 'Επεξεργασία Κατηγορίας' : 'Edit Category';
+  
+  const input = document.getElementById('cat-editor-name-input');
+  if (input) {
+    input.value = getCategoryDisplayName(categoryName);
+  }
+  
+  renderCategoryEditorEmojiGrid(window._categoryManagerSelectedEmoji);
+  openModal('category-editor-modal');
+}
+
+async function saveCategoryManagerEdit() {
+  const input = document.getElementById('cat-editor-name-input');
+  const name = input ? input.value.trim() : '';
+  if (!name) {
+    alert(state.lang === 'el' ? 'Παρακαλώ εισάγετε όνομα κατηγορίας!' : 'Please enter a category name!');
+    return;
+  }
+  
+  const type = window._categoryManagerType || 'expense';
+  
+  if (window._editingCategoryManagerName) {
+    const oldName = window._editingCategoryManagerName;
+    const cat = state.categories.find(c => c.name === oldName);
+    if (!cat) return;
+    
+    const nameChanged = name !== getCategoryDisplayName(oldName);
+    const iconChanged = window._categoryManagerSelectedEmoji !== cat.icon;
+    
+    if (!nameChanged && !iconChanged) {
+      closeModal('category-editor-modal');
+      return;
+    }
+    
+    if (nameChanged) {
+      const collision = state.categories.find(c => c.name !== oldName && getCategoryDisplayName(c.name).toLowerCase() === name.toLowerCase() && c.type === type);
+      if (collision) {
+        alert(state.lang === 'el' ? 'Υπάρχει ήδη κατηγορία με αυτό το όνομα!' : 'A category with this name already exists!');
+        return;
+      }
+    }
+    
+    cat.name = name;
+    cat.icon = window._categoryManagerSelectedEmoji;
+    
+    let transactionsUpdated = 0;
+    if (nameChanged) {
+      state.transactions.forEach(t => {
+        if (t.category === oldName) {
+          t.category = name;
+          transactionsUpdated++;
+        }
+      });
+      if (transactionsUpdated > 0) {
+        localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
+      }
+    }
+    
+    saveCategoriesToStorage();
+    
+    if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
+      try {
+        if (nameChanged) {
+          await state.supabaseClient.from('categories').delete().match({ user_id: state.currentUser.id, name: oldName });
+          await state.supabaseClient.from('categories').upsert({ user_id: state.currentUser.id, name: cat.name, type: cat.type, icon: cat.icon, color: cat.color, hidden: cat.hidden }, { onConflict: 'user_id,name' });
+          if (transactionsUpdated > 0) {
+            await state.supabaseClient.from('transactions').update({ category: name }).match({ user_id: state.currentUser.id, category: oldName });
+          }
+        } else {
+          await state.supabaseClient.from('categories').upsert({ user_id: state.currentUser.id, name: cat.name, type: cat.type, icon: cat.icon, color: cat.color, hidden: cat.hidden }, { onConflict: 'user_id,name' });
+        }
+      } catch (err) {
+        console.warn('Supabase category edit sync error:', err);
+      }
+    }
+  } else {
+    const collision = state.categories.find(c => getCategoryDisplayName(c.name).toLowerCase() === name.toLowerCase() && c.type === type);
+    if (collision) {
+      alert(state.lang === 'el' ? 'Υπάρχει ήδη κατηγορία με αυτό το όνομα!' : 'A category with this name already exists!');
+      return;
+    }
+    
+    const newCat = {
+      name: name,
+      type: type,
+      icon: window._categoryManagerSelectedEmoji,
+      color: window._categoryManagerSelectedEmoji === '💸' ? '#ef4444' : '#10b981',
+      hidden: false,
+      subcategories: []
+    };
+    
+    state.categories.push(newCat);
+    saveCategoriesToStorage();
+    
+    if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
+      try {
+        await state.supabaseClient.from('categories').insert({
+          user_id: state.currentUser.id,
+          name: newCat.name,
+          type: newCat.type,
+          icon: newCat.icon,
+          color: newCat.color,
+          hidden: newCat.hidden
+        });
+      } catch (err) {
+        console.warn('Supabase category insert sync error:', err);
+      }
+    }
+  }
+  
+  closeModal('category-editor-modal');
+  renderCategoryManagerList();
+  updateCategoryDropdowns(type, true);
+  updateUI();
+  showSyncToast(state.lang === 'el' ? '✓ Κατηγορία αποθηκεύτηκε' : '✓ Category saved', 2000);
+}
+
+async function deleteCategoryFromManager(categoryName) {
+  const type = window._categoryManagerType || 'expense';
+  await inlineDeleteCustomCategory(categoryName, type);
+  renderCategoryManagerList();
+}
+
+window.openSettingsCategoryManager = openSettingsCategoryManager;
+window.setCategoryManagerType = setCategoryManagerType;
+window.toggleCategoryManagerAccordion = toggleCategoryManagerAccordion;
+window.openCategoryManagerAddDialog = openCategoryManagerAddDialog;
+window.openCategoryEditorModal = openCategoryEditorModal;
+window.saveCategoryManagerEdit = saveCategoryManagerEdit;
+window.deleteCategoryFromManager = deleteCategoryFromManager;
+
+
+// ============================================================
+// NOTES & REMINDERS/CHECKLISTS LOGIC
+// ============================================================
+let _currentEditingNoteId = null;
+let _currentEditingNotePinned = false;
+let _currentEditingNoteType = 'text';
+
+function loadNotes() {
+  try {
+    const cached = localStorage.getItem('offline_notes');
+    state.notes = cached ? JSON.parse(cached) : [];
+  } catch (e) {
+    console.error('Failed to parse offline notes:', e);
+    state.notes = [];
+  }
+}
+
+function saveNotes() {
+  localStorage.setItem('offline_notes', JSON.stringify(state.notes));
+}
+
+function renderNotesList() {
+  const listEl = document.getElementById('notes-list');
+  const badgeEl = document.getElementById('notes-count-badge');
+  if (!listEl) return;
+
+  const query = (document.getElementById('notes-search-input')?.value || '').trim().toLowerCase();
+  
+  // Filter notes
+  let filtered = state.notes || [];
+  if (query) {
+    filtered = filtered.filter(note => {
+      const titleMatch = (note.title || '').toLowerCase().includes(query);
+      let bodyMatch = false;
+      if (note.type === 'checklist') {
+        try {
+          const items = JSON.parse(note.body || '[]');
+          bodyMatch = items.some(item => (item.text || '').toLowerCase().includes(query));
+        } catch (e) {
+          bodyMatch = (note.body || '').toLowerCase().includes(query);
+        }
+      } else {
+        bodyMatch = (note.body || '').toLowerCase().includes(query);
+      }
+      return titleMatch || bodyMatch;
+    });
+  }
+
+  // Sort notes:
+  // 1. Pinned first (pinned === true)
+  // 2. Then by updated_at descending
+  const sorted = [...filtered].sort((a, b) => {
+    const pinA = a.pinned ? 1 : 0;
+    const pinB = b.pinned ? 1 : 0;
+    if (pinB !== pinA) return pinB - pinA;
+    
+    const dateA = new Date(a.updated_at || a.created_at || 0);
+    const dateB = new Date(b.updated_at || b.created_at || 0);
+    return dateB - dateA;
+  });
+
+  // Update badge count
+  if (badgeEl) {
+    const totalCount = (state.notes || []).length;
+    if (totalCount > 0) {
+      badgeEl.textContent = totalCount;
+      badgeEl.style.display = 'inline-block';
+    } else {
+      badgeEl.style.display = 'none';
+    }
+  }
+
+  listEl.innerHTML = '';
+
+  if (sorted.length === 0) {
+    listEl.innerHTML = `
+      <div style="text-align: center; padding: 24px; color: var(--text-muted); font-size: 13px; font-style: italic; font-family: 'Outfit', sans-serif; box-sizing: border-box; width: 100%;">
+        ${state.lang === 'el' ? 'Δεν βρέθηκαν σημειώσεις.' : 'No notes found.'}
+      </div>
+    `;
+    return;
+  }
+
+  sorted.forEach(note => {
+    const card = document.createElement('div');
+    card.style.cssText = 'background: var(--card-bg2, rgba(255,255,255,0.02)); border: 1px solid var(--border); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 8px; position: relative; cursor: pointer; transition: background 0.2s, border-color 0.2s; box-sizing: border-box; width: 100%;';
+    
+    // Highlight pinned note
+    if (note.pinned) {
+      card.style.borderColor = 'rgba(255, 179, 0, 0.4)';
+      card.style.background = 'rgba(255, 179, 0, 0.02)';
+    }
+
+    // Title & Pin indicator & User Avatar row
+    const titleRow = document.createElement('div');
+    titleRow.style.cssText = 'display: flex; align-items: center; justify-content: space-between; gap: 8px; box-sizing: border-box; width: 100%;';
+    
+    const titleText = document.createElement('span');
+    titleText.style.cssText = 'font-weight: 700; font-size: 14.5px; color: var(--text-primary); font-family: \'Outfit\', sans-serif; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;';
+    titleText.textContent = note.title || (state.lang === 'el' ? 'Χωρίς τίτλο' : 'Untitled');
+    titleRow.appendChild(titleText);
+    
+    // Avatar of author (initials)
+    const authorInitials = getAuthorInitials(note.user_id);
+    if (authorInitials) {
+      const avatar = document.createElement('div');
+      avatar.style.cssText = 'width: 20px; height: 20px; border-radius: 50%; background: var(--border); display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 800; color: var(--text-secondary); font-family: \'Outfit\', sans-serif; flex-shrink: 0;';
+      avatar.textContent = authorInitials;
+      avatar.title = state.lang === 'el' ? 'Δημιουργήθηκε από: ' + authorInitials : 'Created by: ' + authorInitials;
+      titleRow.appendChild(avatar);
+    }
+
+    // Pin Action Button
+    const pinBtn = document.createElement('button');
+    pinBtn.className = 'icon-btn';
+    pinBtn.style.cssText = 'font-size: 13px; padding: 4px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: color 0.15s; margin: 0; flex-shrink: 0; border: none; background: transparent;';
+    pinBtn.style.color = note.pinned ? 'var(--accent)' : 'var(--text-muted)';
+    pinBtn.innerHTML = '<i class="fa-solid fa-thumbtack"></i>';
+    pinBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleNotePinInline(note.id);
+    });
+    titleRow.appendChild(pinBtn);
+    
+    card.appendChild(titleRow);
+
+    // Body / Content Preview
+    const contentArea = document.createElement('div');
+    contentArea.style.cssText = 'font-size: 13px; color: var(--text-secondary); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; box-sizing: border-box; width: 100%;';
+
+    if (note.type === 'checklist') {
+      let items = [];
+      try {
+        items = JSON.parse(note.body || '[]');
+      } catch (e) {
+        console.error('Failed to parse checklist items:', e);
+      }
+
+      if (items.length === 0) {
+        contentArea.style.fontStyle = 'italic';
+        contentArea.style.color = 'var(--text-muted)';
+        contentArea.textContent = state.lang === 'el' ? 'Κενή λίστα' : 'Empty list';
+        card.appendChild(contentArea);
+      } else {
+        const previewContainer = document.createElement('div');
+        previewContainer.style.cssText = 'display: flex; flex-direction: column; gap: 4px; margin-top: 2px; box-sizing: border-box; width: 100%;';
+        
+        items.slice(0, 3).forEach((item, idx) => {
+          const row = document.createElement('div');
+          row.style.cssText = 'display: flex; align-items: center; gap: 8px; box-sizing: border-box; width: 100%;';
+          
+          const chk = document.createElement('span');
+          chk.style.cssText = 'font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;';
+          chk.style.color = item.checked ? 'var(--accent)' : 'var(--text-muted)';
+          chk.innerHTML = item.checked ? '<i class="fa-solid fa-square-check"></i>' : '<i class="fa-regular fa-square"></i>';
+          chk.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleChecklistItemInline(note.id, idx);
+          });
+          
+          const text = document.createElement('span');
+          text.style.cssText = 'font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;';
+          if (item.checked) {
+            text.style.textDecoration = 'line-through';
+            text.style.color = 'var(--text-muted)';
+          } else {
+            text.style.color = 'var(--text-secondary)';
+          }
+          text.textContent = item.text || '';
+          
+          row.appendChild(chk);
+          row.appendChild(text);
+          previewContainer.appendChild(row);
+        });
+
+        if (items.length > 3) {
+          const moreText = document.createElement('div');
+          moreText.style.cssText = 'font-size: 11.5px; color: var(--text-muted); font-style: italic; margin-left: 22px; margin-top: 2px;';
+          moreText.textContent = `+ ${items.length - 3} ${(state.lang === 'el' ? 'ακόμη' : 'more')}`;
+          previewContainer.appendChild(moreText);
+        }
+        
+        card.appendChild(previewContainer);
+
+        const total = items.length;
+        const checked = items.filter(i => i.checked).length;
+        const pct = total > 0 ? Math.round((checked / total) * 100) : 0;
+        
+        const progressContainer = document.createElement('div');
+        progressContainer.style.cssText = 'display: flex; align-items: center; gap: 10px; margin-top: 6px; box-sizing: border-box; width: 100%;';
+        
+        const barBg = document.createElement('div');
+        barBg.style.cssText = 'flex: 1; height: 5px; background: rgba(255,255,255,0.06); border-radius: 4px; overflow: hidden;';
+        
+        const barFill = document.createElement('div');
+        barFill.style.cssText = `height: 100%; width: ${pct}%; background: var(--accent); border-radius: 4px; transition: width 0.25s;`;
+        barBg.appendChild(barFill);
+        
+        const label = document.createElement('span');
+        label.style.cssText = 'font-size: 11px; color: var(--text-muted); font-weight: 700; font-family: \'Outfit\', sans-serif; flex-shrink: 0;';
+        label.textContent = `${checked}/${total}`;
+        
+        progressContainer.appendChild(barBg);
+        progressContainer.appendChild(label);
+        card.appendChild(progressContainer);
+      }
+    } else {
+      contentArea.textContent = note.body || (state.lang === 'el' ? 'Κενή σημείωση' : 'Empty note');
+      card.appendChild(contentArea);
+    }
+
+    const dateRow = document.createElement('div');
+    dateRow.style.cssText = 'display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-top: 4px; box-sizing: border-box; width: 100%; gap: 8px;';
+    
+    const timeLabel = document.createElement('span');
+    timeLabel.textContent = formatNoteTimestamp(note.updated_at || note.created_at);
+    dateRow.appendChild(timeLabel);
+    
+    if (note.reminder_at) {
+      const reminderBadge = document.createElement('span');
+      const remDate = new Date(note.reminder_at);
+      const isPast = remDate < new Date();
+      reminderBadge.style.cssText = `display: inline-flex; align-items: center; gap: 4px; padding: 2px 6px; border-radius: 4px; font-weight: 700; font-family: 'Outfit', sans-serif; font-size: 10.5px; flex-shrink: 0; ${
+        isPast 
+          ? 'background: rgba(239, 68, 68, 0.12); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.25);' 
+          : 'background: rgba(16, 185, 129, 0.12); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.25);'
+      }`;
+      const formattedRemTime = formatNoteTimestamp(note.reminder_at);
+      reminderBadge.innerHTML = `<i class="fa-regular fa-bell"></i> <span>${formattedRemTime}</span>`;
+      dateRow.appendChild(reminderBadge);
+    }
+
+    card.appendChild(dateRow);
+
+    card.addEventListener('click', () => {
+      openNoteEditor(note.id);
+    });
+
+    listEl.appendChild(card);
+  });
+}
+
+function openNoteEditor(noteId = null) {
+  _currentEditingNoteId = noteId;
+  
+  const modal = document.getElementById('note-editor-modal');
+  const titleEl = document.getElementById('note-editor-title');
+  const titleInput = document.getElementById('note-editor-title-input');
+  const bodyInput = document.getElementById('note-editor-body-input');
+  const checklistItemsEl = document.getElementById('note-editor-checklist-items');
+  const deleteBtn = document.getElementById('note-editor-delete-btn');
+  const pinBtn = document.getElementById('note-editor-pin-btn');
+
+  if (!modal) return;
+
+  titleInput.value = '';
+  bodyInput.value = '';
+  checklistItemsEl.innerHTML = '';
+  _currentEditingNotePinned = false;
+  _currentEditingNoteType = 'text';
+
+  const reminderInput = document.getElementById('note-editor-reminder-input');
+  const clearReminderBtn = document.getElementById('note-editor-clear-reminder-btn');
+  if (reminderInput) reminderInput.value = '';
+  if (clearReminderBtn) clearReminderBtn.style.display = 'none';
+
+  const labelEl = document.getElementById('note-editor-reminder-label');
+  if (labelEl) {
+    labelEl.textContent = state.lang === 'el' ? 'Ημερομηνία & Ώρα (Υπενθύμιση)' : 'Date & Time (Reminder)';
+  }
+  if (clearReminderBtn) {
+    clearReminderBtn.textContent = state.lang === 'el' ? 'Καθαρισμός' : 'Clear';
+  }
+
+  setNoteEditorType('text');
+
+  if (noteId) {
+    titleEl.textContent = state.lang === 'el' ? 'Επεξεργασία Σημείωσης' : 'Edit Note';
+    deleteBtn.style.display = 'block';
+    
+    const note = state.notes.find(n => n.id === noteId);
+    if (note) {
+      titleInput.value = note.title || '';
+      _currentEditingNotePinned = !!note.pinned;
+      _currentEditingNoteType = note.type || 'text';
+      
+      setNoteEditorType(_currentEditingNoteType);
+      
+      if (_currentEditingNoteType === 'checklist') {
+        let items = [];
+        try {
+          items = JSON.parse(note.body || '[]');
+        } catch (e) {
+          console.error('Failed to parse checklist body:', e);
+        }
+        items.forEach(item => {
+          addNoteEditorChecklistItemRow(item.text, item.checked);
+        });
+      } else {
+        bodyInput.value = note.body || '';
+      }
+
+      if (note.reminder_at && reminderInput) {
+        const remDate = new Date(note.reminder_at);
+        if (!isNaN(remDate.getTime())) {
+          const yyyy = remDate.getFullYear();
+          const mm = String(remDate.getMonth() + 1).padStart(2, '0');
+          const dd = String(remDate.getDate()).padStart(2, '0');
+          const hh = String(remDate.getHours()).padStart(2, '0');
+          const min = String(remDate.getMinutes()).padStart(2, '0');
+          reminderInput.value = `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+          if (clearReminderBtn) clearReminderBtn.style.display = 'inline-block';
+        }
+      }
+    }
+  } else {
+    titleEl.textContent = state.lang === 'el' ? 'Νέα Σημείωση' : 'New Note';
+    deleteBtn.style.display = 'none';
+  }
+
+  updateNoteEditorPinUI();
+  openModal('note-editor-modal');
+}
+
+function setNoteEditorType(type) {
+  _currentEditingNoteType = type;
+  
+  const textBtn = document.getElementById('note-type-text-btn');
+  const checklistBtn = document.getElementById('note-type-checklist-btn');
+  const textContainer = document.getElementById('note-editor-text-container');
+  const checklistContainer = document.getElementById('note-editor-checklist-container');
+  const checklistItemsEl = document.getElementById('note-editor-checklist-items');
+
+  if (type === 'checklist') {
+    textBtn.style.background = 'transparent';
+    textBtn.style.color = 'var(--text-secondary)';
+    
+    checklistBtn.style.background = 'var(--accent)';
+    checklistBtn.style.color = 'white';
+    
+    textContainer.style.display = 'none';
+    checklistContainer.style.display = 'flex';
+    
+    if (checklistItemsEl.children.length === 0) {
+      addNoteEditorChecklistItemRow('', false);
+    }
+  } else {
+    textBtn.style.background = 'var(--accent)';
+    textBtn.style.color = 'white';
+    
+    checklistBtn.style.background = 'transparent';
+    checklistBtn.style.color = 'var(--text-secondary)';
+    
+    textContainer.style.display = 'flex';
+    checklistContainer.style.display = 'none';
+  }
+}
+
+function addNoteEditorChecklistItemRow(text = '', checked = false) {
+  const container = document.getElementById('note-editor-checklist-items');
+  if (!container) return;
+
+  const row = document.createElement('div');
+  row.style.cssText = 'display: flex; align-items: center; gap: 8px; box-sizing: border-box;';
+
+  const chk = document.createElement('input');
+  chk.type = 'checkbox';
+  chk.checked = checked;
+  chk.style.cssText = 'width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; margin: 0;';
+
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.value = text;
+  input.placeholder = state.lang === 'el' ? 'Αντικείμενο...' : 'Item...';
+  input.className = 'form-row-input';
+  input.style.cssText = 'flex: 1; padding: 8px; font-size: 13.5px; margin: 0;';
+  
+  if (checked) {
+    input.style.textDecoration = 'line-through';
+    input.style.color = 'var(--text-muted)';
+  }
+  
+  chk.addEventListener('change', () => {
+    if (chk.checked) {
+      input.style.textDecoration = 'line-through';
+      input.style.color = 'var(--text-muted)';
+    } else {
+      input.style.textDecoration = '';
+      input.style.color = 'var(--text-primary)';
+    }
+  });
+
+  const delBtn = document.createElement('button');
+  delBtn.className = 'icon-btn';
+  delBtn.style.cssText = 'font-size: 13px; color: var(--red-negative); padding: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; border: none; background: transparent; margin: 0;';
+  delBtn.innerHTML = '<i class="fa-solid fa-trash-can"></i>';
+  delBtn.addEventListener('click', () => {
+    row.remove();
+    if (container.children.length === 0) {
+      addNoteEditorChecklistItemRow('', false);
+    }
+  });
+
+  row.appendChild(chk);
+  row.appendChild(input);
+  row.appendChild(delBtn);
+  
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addNoteEditorChecklistItemRow('', false);
+      setTimeout(() => {
+        const lastRow = container.lastElementChild;
+        if (lastRow) {
+          const lastInput = lastRow.querySelector('input[type="text"]');
+          if (lastInput) lastInput.focus();
+        }
+      }, 50);
+    }
+  });
+
+  container.appendChild(row);
+}
+
+function addNoteEditorChecklistItem() {
+  addNoteEditorChecklistItemRow('', false);
+  const container = document.getElementById('note-editor-checklist-items');
+  if (container && container.lastElementChild) {
+    const input = container.lastElementChild.querySelector('input[type="text"]');
+    if (input) input.focus();
+  }
+}
+
+async function saveNoteFromEditor() {
+  const titleInput = document.getElementById('note-editor-title-input');
+  const bodyInput = document.getElementById('note-editor-body-input');
+  const checklistItemsEl = document.getElementById('note-editor-checklist-items');
+
+  let title = titleInput.value.trim();
+  let body = '';
+  
+  if (!title) {
+    alert(state.lang === 'el' ? 'Παρακαλώ εισάγετε έναν τίτλο!' : 'Please enter a title!');
+    return;
+  }
+
+  if (_currentEditingNoteType === 'checklist') {
+    const rows = checklistItemsEl.querySelectorAll('div');
+    const items = [];
+    rows.forEach(row => {
+      const chk = row.querySelector('input[type="checkbox"]');
+      const input = row.querySelector('input[type="text"]');
+      if (input && input.value.trim()) {
+        items.push({
+          text: input.value.trim(),
+          checked: !!chk.checked
+        });
+      }
+    });
+    body = JSON.stringify(items);
+  } else {
+    body = bodyInput.value.trim();
+  }
+
+  const user_id = state.currentUser ? state.currentUser.id : 'offline-user';
+  const family_id = state.userProfile ? state.userProfile.family_id : null;
+
+  const reminderInput = document.getElementById('note-editor-reminder-input');
+  let reminderAt = null;
+  if (reminderInput && reminderInput.value) {
+    reminderAt = new Date(reminderInput.value).toISOString();
+  }
+
+  const noteObj = {
+    title: title,
+    body: body,
+    type: _currentEditingNoteType,
+    pinned: _currentEditingNotePinned,
+    user_id: user_id,
+    family_id: family_id,
+    reminder_at: reminderAt,
+    updated_at: new Date().toISOString()
+  };
+
+  if (_currentEditingNoteId) {
+    noteObj.id = _currentEditingNoteId;
+    const idx = state.notes.findIndex(n => n.id === _currentEditingNoteId);
+    if (idx !== -1) {
+      noteObj.created_at = state.notes[idx].created_at || noteObj.updated_at;
+      state.notes[idx] = noteObj;
+    }
+  } else {
+    noteObj.id = generateUUID();
+    noteObj.created_at = noteObj.updated_at;
+    state.notes.push(noteObj);
+  }
+
+  saveNotes();
+  renderNotesList();
+  closeModal('note-editor-modal');
+
+  if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
+    try {
+      const { error } = await state.supabaseClient
+        .from('notes')
+        .upsert({
+          id: noteObj.id,
+          title: noteObj.title,
+          body: noteObj.body,
+          type: noteObj.type,
+          pinned: noteObj.pinned,
+          user_id: state.currentUser.id,
+          family_id: family_id,
+          reminder_at: noteObj.reminder_at,
+          updated_at: noteObj.updated_at,
+          created_at: noteObj.created_at
+        });
+      if (error) console.warn('Supabase note save error:', error);
+    } catch (err) {
+      console.warn('Supabase note save exception:', err);
+    }
+  }
+}
+
+async function deleteNoteFromEditor() {
+  if (!_currentEditingNoteId) return;
+
+  const confirmMsg = state.lang === 'el'
+    ? 'Είστε σίγουροι ότι θέλετε να διαγράψετε αυτή τη σημείωση;'
+    : 'Are you sure you want to delete this note?';
+
+  const confirmed = await showConfirm(confirmMsg, state.lang === 'el' ? 'Διαγραφή Σημείωσης' : 'Delete Note', '🗑️');
+  if (!confirmed) return;
+
+  await deleteNote(_currentEditingNoteId);
+  closeModal('note-editor-modal');
+}
+
+function onNoteReminderChanged() {
+  const reminderInput = document.getElementById('note-editor-reminder-input');
+  const clearReminderBtn = document.getElementById('note-editor-clear-reminder-btn');
+  if (reminderInput && clearReminderBtn) {
+    if (reminderInput.value) {
+      clearReminderBtn.style.display = 'inline-block';
+    } else {
+      clearReminderBtn.style.display = 'none';
+    }
+  }
+}
+
+function clearNoteEditorReminder() {
+  const reminderInput = document.getElementById('note-editor-reminder-input');
+  const clearReminderBtn = document.getElementById('note-editor-clear-reminder-btn');
+  if (reminderInput) reminderInput.value = '';
+  if (clearReminderBtn) clearReminderBtn.style.display = 'none';
+}
+
+async function deleteNote(noteId) {
+  state.notes = state.notes.filter(n => n.id !== noteId);
+  saveNotes();
+  renderNotesList();
+
+  if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
+    try {
+      const { error } = await state.supabaseClient
+        .from('notes')
+        .delete()
+        .match({ id: noteId });
+      if (error) console.warn('Supabase note delete error:', error);
+    } catch (err) {
+      console.warn('Supabase note delete exception:', err);
+    }
+  }
+}
+
+async function syncNotes() {
+  if (!state.supabaseClient || !state.currentUser) return;
+
+  const familyId = state.userProfile ? state.userProfile.family_id : null;
+  const userId = state.currentUser.id;
+
+  try {
+    let query = state.supabaseClient.from('notes').select('*');
+    if (familyId) {
+      query = query.or(`family_id.eq.${familyId},user_id.eq.${userId}`);
+    } else {
+      query = query.eq('user_id', userId);
+    }
+
+    const { data: remoteNotes, error } = await query;
+    
+    if (error) {
+      if (error.code === 'PGRST116' || error.code === '42P01' || error.status === 404) {
+        console.log('[NotesSync] notes table not found in database. Skipping notes cloud sync.');
+        return;
+      }
+      console.warn('[NotesSync] error fetching remote notes:', error);
+      return;
+    }
+
+    if (!remoteNotes) return;
+
+    const remoteMap = new Map();
+    remoteNotes.forEach(rn => remoteMap.set(rn.id, rn));
+
+    const mergedNotes = [];
+    const notesToUpsert = [];
+
+    state.notes.forEach(localNote => {
+      const remoteNote = remoteMap.get(localNote.id);
+      if (remoteNote) {
+        const localDate = new Date(localNote.updated_at || localNote.created_at || 0);
+        const remoteDate = new Date(remoteNote.updated_at || remoteNote.created_at || 0);
+
+        if (localDate > remoteDate) {
+          mergedNotes.push(localNote);
+          notesToUpsert.push(localNote);
+        } else {
+          mergedNotes.push(remoteNote);
+        }
+        remoteMap.delete(localNote.id);
+      } else {
+        mergedNotes.push(localNote);
+        notesToUpsert.push(localNote);
+      }
+    });
+
+    remoteMap.forEach(rn => {
+      mergedNotes.push(rn);
+    });
+
+    state.notes = mergedNotes;
+    saveNotes();
+    renderNotesList();
+
+    if (notesToUpsert.length > 0) {
+      const records = notesToUpsert.map(n => ({
+        id: n.id,
+        title: n.title,
+        body: n.body,
+        type: n.type,
+        pinned: !!n.pinned,
+        user_id: n.user_id === 'offline-user' ? userId : n.user_id,
+        family_id: familyId,
+        reminder_at: n.reminder_at || null,
+        created_at: n.created_at || new Date().toISOString(),
+        updated_at: n.updated_at || new Date().toISOString()
+      }));
+
+      const { error: upsertError } = await state.supabaseClient
+        .from('notes')
+        .upsert(records);
+
+      if (upsertError) {
+        console.warn('[NotesSync] error pushing local notes to remote:', upsertError);
+      } else {
+        console.log(`[NotesSync] successfully pushed ${records.length} notes to database.`);
+      }
+    }
+  } catch (err) {
+    console.warn('[NotesSync] unhandled exception during notes sync:', err);
+  }
+}
+
+function toggleNoteEditorPin() {
+  _currentEditingNotePinned = !_currentEditingNotePinned;
+  updateNoteEditorPinUI();
+}
+
+function updateNoteEditorPinUI() {
+  const pinBtn = document.getElementById('note-editor-pin-btn');
+  if (!pinBtn) return;
+  
+  if (_currentEditingNotePinned) {
+    pinBtn.style.color = 'var(--accent)';
+    pinBtn.title = state.lang === 'el' ? 'Ξεκαρφίτσωμα' : 'Unpin';
+  } else {
+    pinBtn.style.color = 'var(--text-muted)';
+    pinBtn.title = state.lang === 'el' ? 'Καρφίτσωμα' : 'Pin';
+  }
+}
+
+async function toggleNotePinInline(noteId) {
+  const note = state.notes.find(n => n.id === noteId);
+  if (!note) return;
+
+  note.pinned = !note.pinned;
+  note.updated_at = new Date().toISOString();
+  
+  saveNotes();
+  renderNotesList();
+
+  if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
+    try {
+      const { error } = await state.supabaseClient
+        .from('notes')
+        .update({ pinned: note.pinned, updated_at: note.updated_at })
+        .match({ id: note.id });
+      if (error) console.warn('Supabase note pin toggle error:', error);
+    } catch (err) {
+      console.warn('Supabase note pin toggle exception:', err);
+    }
+  }
+}
+
+async function toggleChecklistItemInline(noteId, itemIndex) {
+  const note = state.notes.find(n => n.id === noteId);
+  if (!note || note.type !== 'checklist') return;
+
+  let items = [];
+  try {
+    items = JSON.parse(note.body || '[]');
+  } catch (e) {
+    console.error('Failed to parse checklist items in inline toggle:', e);
+    return;
+  }
+
+  if (items[itemIndex]) {
+    items[itemIndex].checked = !items[itemIndex].checked;
+    note.body = JSON.stringify(items);
+    note.updated_at = new Date().toISOString();
+    
+    saveNotes();
+    renderNotesList();
+
+    if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
+      try {
+        const { error } = await state.supabaseClient
+          .from('notes')
+          .update({ body: note.body, updated_at: note.updated_at })
+          .match({ id: note.id });
+        if (error) console.warn('Supabase note checklist inline toggle error:', error);
+      } catch (err) {
+        console.warn('Supabase note checklist inline toggle exception:', err);
+      }
+    }
+  }
+}
+
+function getAuthorInitials(userId) {
+  if (!userId || userId === 'offline-user') return '';
+  if (state.currentUser && state.currentUser.id === userId) {
+    const name = state.userProfile?.full_name || state.currentUser.email || '';
+    if (name.includes('@')) return name.substring(0, 2).toUpperCase();
+    return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+  }
+  const profile = state.familyProfiles?.find(p => p.id === userId);
+  if (profile) {
+    const name = profile.full_name || '';
+    return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+  }
+  if (state.partnerProfile && state.partnerProfile.id === userId) {
+    const name = state.partnerProfile.full_name || '';
+    return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+  }
+  return '';
+}
+
+function formatNoteTimestamp(tsString) {
+  if (!tsString) return '';
+  try {
+    const date = new Date(tsString);
+    if (isNaN(date.getTime())) return '';
+    const now = new Date();
+    
+    const isToday = date.getDate() === now.getDate() && 
+                    date.getMonth() === now.getMonth() && 
+                    date.getFullYear() === now.getFullYear();
+                    
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    const isYesterday = date.getDate() === yesterday.getDate() && 
+                        date.getMonth() === yesterday.getMonth() && 
+                        date.getFullYear() === yesterday.getFullYear();
+                        
+    const pad = (n) => String(n).padStart(2, '0');
+    const hoursStr = `${pad(date.getHours())}:${pad(date.getMinutes())}`;
+    
+    if (isToday) {
+      return state.lang === 'el' ? `Σήμερα, ${hoursStr}` : `Today, ${hoursStr}`;
+    }
+    if (isYesterday) {
+      return state.lang === 'el' ? `Χθες, ${hoursStr}` : `Yesterday, ${hoursStr}`;
+    }
+    
+    const day = date.getDate();
+    const monthsEl = ['Ιαν', 'Φεβ', 'Μαρ', 'Απρ', 'Μάι', 'Ιούν', 'Ιούλ', 'Αύγ', 'Σεπ', 'Οκτ', 'Νοε', 'Δεκ'];
+    const monthsEn = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthStr = state.lang === 'el' ? monthsEl[date.getMonth()] : monthsEn[date.getMonth()];
+    
+    return `${day} ${monthStr}, ${hoursStr}`;
+  } catch (e) {
+    return '';
+  }
+}
+
+
+window.openNoteEditor = openNoteEditor;
+window.setNoteEditorType = setNoteEditorType;
+window.addNoteEditorChecklistItemRow = addNoteEditorChecklistItemRow;
+window.addNoteEditorChecklistItem = addNoteEditorChecklistItem;
+window.saveNoteFromEditor = saveNoteFromEditor;
+window.deleteNoteFromEditor = deleteNoteFromEditor;
+window.toggleNoteEditorPin = toggleNoteEditorPin;
+window.renderNotesList = renderNotesList;
+window.loadNotes = loadNotes;
+window.saveNotes = saveNotes;
+window.deleteNote = deleteNote;
+window.onNoteReminderChanged = onNoteReminderChanged;
+window.clearNoteEditorReminder = clearNoteEditorReminder;
+window.syncNotes = syncNotes;
+
 
 function initTabSwipeNavigation() {
   const appContent = document.querySelector('.app-content');
@@ -10827,7 +13545,7 @@ function initTabSwipeNavigation() {
   let startY = 0;
   let touchActive = false;
   let isSwipingHorizontal = null;
-  const dragThreshold = 80; // Minimum drag in px to trigger tab switch
+  const dragThreshold = 55; // Minimum drag in px to trigger tab switch (reduced from 80 for snappier response)
   const edgeThreshold = 50; // Ignore starts within 50px of left edge (reserved for back swipe)
 
   appContent.addEventListener('touchstart', (e) => {
@@ -10867,8 +13585,10 @@ function initTabSwipeNavigation() {
     const deltaY = touch.clientY - startY;
 
     if (isSwipingHorizontal === null) {
-      if (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10) {
-        if (Math.abs(deltaX) > Math.abs(deltaY)) {
+      if (Math.abs(deltaX) > 8 || Math.abs(deltaY) > 8) {
+        // Allow a slightly diagonal swipe (horizontal is at least 0.65 of vertical)
+        // for more forgiving touch tracking when the finger moves slightly curved
+        if (Math.abs(deltaX) > Math.abs(deltaY) * 0.65) {
           // Only enable horizontal swipes on Transactions and Stats tabs
           if (state.activeTab === 'trans' || state.activeTab === 'stats') {
             isSwipingHorizontal = true;
@@ -10981,16 +13701,16 @@ function animateSwipeTransition(direction, callback, startingDeltaX = 0) {
   document.body.classList.add('is-swiping-month');
 
   if (listEl) {
-    // Slide current content out — faster exit (100ms)
+    // Slide current content out — faster exit (75ms, reduced from 100ms)
     const startFrom = startingDeltaX !== 0 ? startingDeltaX : 0;
-    animateEl(listEl, startFrom, outX, [1, 0], 100, 'cubic-bezier(0.4, 0, 0.6, 1)', () => {
+    animateEl(listEl, startFrom, outX, [1, 0], 75, 'cubic-bezier(0.4, 0, 0.6, 1)', () => {
       callback();
-      // Slide new content in from opposite direction — snappy entrance (160ms)
+      // Slide new content in from opposite direction — snappy entrance (110ms, reduced from 160ms)
       const inX = -outX;
       const newListEl = state.activeTab === 'trans'
         ? document.getElementById('transactions-list')
         : document.getElementById('stats-breakdown-list');
-      animateEl(newListEl, inX, 0, [0, 1], 160, 'cubic-bezier(0.2, 0.8, 0.4, 1)', () => {
+      animateEl(newListEl, inX, 0, [0, 1], 110, 'cubic-bezier(0.2, 0.8, 0.4, 1)', () => {
         // Clear swiping state immediately after animations complete to allow consecutive fast swipes
         state.isSwipingMonth = false;
         state.touchDidMove = false;
@@ -11518,6 +14238,19 @@ function initSettingsFromStorage() {
   const autocompleteCheckbox = document.getElementById('settings-autocomplete');
   if (autocompleteCheckbox) autocompleteCheckbox.checked = autocompleteEnabled;
 
+  const noteShortcutEnabled = localStorage.getItem('settings_note_shortcut_enabled') === 'true';
+  const noteShortcutCheckbox = document.getElementById('settings-note-shortcut');
+  if (noteShortcutCheckbox) {
+    noteShortcutCheckbox.checked = noteShortcutEnabled;
+    if (!noteShortcutCheckbox.dataset.listenerBound) {
+      noteShortcutCheckbox.dataset.listenerBound = 'true';
+      noteShortcutCheckbox.addEventListener('change', (e) => {
+        toggleNoteShortcutSetting(e.target.checked);
+      });
+    }
+  }
+
+  updateNoteShortcutVisibility();
   updateSettingsDisplay();
   applyTheme(theme);
   checkBiometricsSupport();
@@ -11560,6 +14293,37 @@ function applyTheme(theme) {
   const metaThemeColor = document.querySelector('meta[name="theme-color"]');
   if (metaThemeColor) {
     metaThemeColor.setAttribute('content', themeColors[theme] || '#222731');
+  }
+
+  // Sync background color to native Android window/webview to prevent flashing on resume
+  const bodyBgColors = {
+    'dark': '#181b22',
+    'oled': '#000000',
+    'light': '#f4f6f9',
+    'emerald': '#0f1916',
+    'ocean': '#0b132b',
+    'pink': '#1f1218'
+  };
+  const isLight = theme === 'light';
+  const bgColor = bodyBgColors[theme] || '#181b22';
+  const statusBarColor = themeColors[theme] || '#222731';
+  const navBarColor = bgColor; // Match navigation bar to body background
+
+  if (window.Capacitor) {
+    try {
+      const NativeTheme = (window.Capacitor.Plugins && window.Capacitor.Plugins.NativeTheme) || 
+                          (window.Capacitor.registerPlugin && window.Capacitor.registerPlugin('NativeTheme'));
+      if (NativeTheme) {
+        NativeTheme.setThemeState({
+          bgColor: bgColor,
+          statusBarColor: statusBarColor,
+          navBarColor: navBarColor,
+          isLight: isLight
+        });
+      }
+    } catch (e) {
+      console.warn('Failed to sync native background theme:', e);
+    }
   }
   
   if (window.Chart) {
@@ -12134,10 +14898,15 @@ async function handleGoogleAuth() {
   try {
     // Standard redirect flow — stays in the SAME window (no popup, no new tab)
     // This keeps the standalone PWA context on Android, avoiding the browser bar
+    const isCapacitor = !!window.Capacitor;
+    const redirectToUrl = window.location.origin + (window.location.pathname || '/') + (isCapacitor ? '?source=app' : '');
     const { error } = await state.supabaseClient.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: window.location.origin + (window.location.pathname || '/'),
+        redirectTo: redirectToUrl,
+        queryParams: {
+          prompt: 'select_account'
+        }
       }
     });
     if (error) throw error;
@@ -12180,6 +14949,15 @@ async function handleLogout() {
 function renderPartnerSection() {
   const container = document.getElementById('partner-linking-container');
   if (!container) return;
+
+  // Anti-flicker signature check — skip rebuild if state hasn't changed
+  const _partnerSig = (state.currentUser ? state.currentUser.id : 'none')
+    + '||' + (state.userProfile ? (state.userProfile.family_id || '') + '_' + (state.userProfile.role || '') : 'noprof')
+    + '||' + (state.familyProfiles || []).map(p => `${p.id}_${p.display_name || ''}_${p.role || ''}`).join(',')
+    + '||' + (state.familyGroup ? (state.familyGroup.name || '') + '_' + (state.familyGroup.invite_code || '') : 'nogrp')
+    + '||' + (state.lang || 'el');
+  if (container._lastRenderSignature === _partnerSig) return;
+  container._lastRenderSignature = _partnerSig;
 
   if (!state.currentUser) {
     container.innerHTML = `
@@ -12535,11 +15313,8 @@ async function joinFamilyGroup() {
 async function leaveFamilyGroup() {
   if (!state.supabaseClient || !state.currentUser) return;
   
-  const confirmMsg = state.lang === 'el' 
-    ? 'Είστε σίγουροι ότι θέλετε να αποχωρήσετε από τον οικογενειακό προϋπολογισμό; Οι κινήσεις σας θα παραμείνουν στην οικογένεια.' 
-    : 'Are you sure you want to leave the family budget? Your transactions will remain in the family group.';
-    
-  if (!confirm(confirmMsg)) return;
+  const confirmed = await showConfirm(confirmMsg, state.lang === 'el' ? 'Αποχώρηση από Ομάδα' : 'Leave Group', '🚪');
+  if (!confirmed) return;
 
   try {
     const { data, error } = await state.supabaseClient.rpc('leave_family_group');
@@ -12556,11 +15331,8 @@ async function leaveFamilyGroup() {
 async function kickFamilyMember(memberId) {
   if (!state.supabaseClient || !state.currentUser) return;
   
-  const confirmMsg = state.lang === 'el'
-    ? 'Είστε σίγουροι ότι θέλετε να αποβάλλετε αυτό το μέλος από την οικογένεια;'
-    : 'Are you sure you want to kick this member from the family?';
-    
-  if (!confirm(confirmMsg)) return;
+  const confirmed = await showConfirm(confirmMsg, state.lang === 'el' ? 'Αποβολή Μέλους' : 'Kick Member', '🚪');
+  if (!confirmed) return;
 
   try {
     const { data, error } = await state.supabaseClient.rpc('kick_family_member', { member_id_input: memberId });
@@ -12577,11 +15349,8 @@ async function kickFamilyMember(memberId) {
 async function changeMemberRole(memberId, role) {
   if (!state.supabaseClient || !state.currentUser) return;
   
-  const confirmMsg = state.lang === 'el'
-    ? `Είστε σίγουροι ότι θέλετε να αλλάξετε το ρόλο αυτού του μέλους σε ${role === 'admin' ? 'Διαχειριστή' : 'Μέλος'};`
-    : `Are you sure you want to change this member's role to ${role === 'admin' ? 'Admin' : 'Member'}?`;
-    
-  if (!confirm(confirmMsg)) return;
+  const confirmed = await showConfirm(confirmMsg, state.lang === 'el' ? 'Αλλαγή Ρόλου' : 'Change Role', '👤');
+  if (!confirmed) return;
 
   try {
     const { data, error } = await state.supabaseClient.rpc('change_member_role', { member_id_input: memberId, new_role: role });
@@ -12731,7 +15500,9 @@ function selectInviteRole(role) {
   }
 }
 async function forceAppUpdate() {
-  if (confirm(state.lang === 'en' ? 'Force update and reload the app?' : 'Θέλετε να επιβάλλετε ενημέρωση και επαναφόρτωση της εφαρμογής;')) {
+  const confirmMsg = state.lang === 'en' ? 'Force update and reload the app?' : 'Θέλετε να επιβάλλετε ενημέρωση και επαναφόρτωση της εφαρμογής;';
+  const confirmed = await showConfirm(confirmMsg, state.lang === 'el' ? 'Αναγκαστική Ενημέρωση' : 'Force Update', '🔄');
+  if (confirmed) {
     if ('serviceWorker' in navigator) {
       try {
         const registrations = await navigator.serviceWorker.getRegistrations();
@@ -12949,6 +15720,20 @@ function enqueueSyncMutation(action, payload) {
   }
 }
 
+function dequeueSyncMutation(action, itemId) {
+  try {
+    const queue = JSON.parse(localStorage.getItem('money_manager_sync_queue') || '[]');
+    const cleanQueue = queue.filter(item => {
+      const itemKey = item.action === 'delete' ? item.payload : item.payload.id;
+      return !(item.action === action && itemKey === itemId);
+    });
+    localStorage.setItem('money_manager_sync_queue', JSON.stringify(cleanQueue));
+    console.log(`Dequeued offline mutation: ${action} for ${itemId}`);
+  } catch (err) {
+    console.error('Failed to dequeue sync mutation:', err);
+  }
+}
+
 let _isProcessingSyncQueue = false;
 
 // skipReload: when true, do NOT call loadData/updateUI after processing (used by forceSyncNow
@@ -12982,6 +15767,10 @@ async function processSyncQueue(options = {}) {
     try {
       if (item.action === 'save') {
         const transaction = item.payload;
+        if (!transaction || !transaction.id) {
+          console.warn('Skipping invalid sync queue item (missing payload or id):', item);
+          continue;
+        }
         const { description, is_shared, recurring_template_id, ...dbPayload } = transaction;
         
         const { error } = await promiseTimeout(
@@ -12999,6 +15788,10 @@ async function processSyncQueue(options = {}) {
         }
       } else if (item.action === 'delete') {
         const transId = item.payload;
+        if (!transId) {
+          console.warn('Skipping invalid sync queue delete item (missing id):', item);
+          continue;
+        }
         const { error } = await promiseTimeout(
           state.supabaseClient
             .from('transactions')
@@ -13355,6 +16148,9 @@ async function forceSyncNow(silent = false) {
     // Auto-sync any stuck local transactions (e.g. from guest mode or legacy local_ items)
     await syncLocalTransactionsToCloud(userId, { silent: true });
     
+    // Auto-sync deleted transactions from local trash to Supabase
+    await syncLocalTrashToCloud();
+    
     const partnerId = state.partnerProfile ? state.partnerProfile.id : null;
     const familyId = state.userProfile ? state.userProfile.family_id : null;
     
@@ -13443,6 +16239,9 @@ async function forceSyncNow(silent = false) {
     state.transactions = dedupedCombined;
     localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
     
+    // Sync notes
+    await syncNotes();
+    
     // 6. Check sync queue status
     const queueStr = localStorage.getItem('money_manager_sync_queue');
     if (queueStr) {
@@ -13468,7 +16267,19 @@ async function forceSyncNow(silent = false) {
     if (dataChanged) {
       console.log('[SYNC] Data changed — refreshing balances and UI.');
       calculateInitialBalances();
+      // ANTI-FLICKER: Wrap the sync-triggered re-render in no-transition so
+      // that DOM mutations from forceSyncNow are invisible to the user.
+      // Without this, the tab re-render caused by the 8s post-resume sync
+      // appears as a visible flash on Android.
+      document.documentElement.classList.add('no-transition');
       updateUI();
+      // Remove no-transition after two rAFs (one render cycle) so transitions
+      // work normally again for all subsequent user interactions.
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          document.documentElement.classList.remove('no-transition');
+        });
+      });
     } else {
       console.log('[SYNC] No data change detected — skipping UI refresh to prevent flickering.');
     }
@@ -13514,24 +16325,138 @@ function startPartnerSyncPolling() {
   console.log('[SYNC] Background polling disabled to prevent flickering.');
 }
 
-// Sync on visibility change (user switches back to tab/app)
-// Uses a longer delay and a guard to prevent rapid repeated syncs
+function saveCurrentUIStateToStorage() {
+  try {
+    window._appIsBackgrounding = true;
+    // Blur any focused input so the keyboard doesn't re-appear on resume
+    if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) {
+      document.activeElement.blur();
+      // Instantly reset the CSS keyboard variable so the UI layout is correct for the background screenshot
+      // and doesn't get stuck suspended in mid-air during the 600ms _appJustResumed resume guard on Android.
+      document.documentElement.style.setProperty('--keyboard-height', '0px');
+    }
+
+    // 1. Scroll Position
+    const scrollContainer = getActiveScrollContainer();
+    if (scrollContainer) {
+      localStorage.setItem('bg_scroll_top', scrollContainer.scrollTop);
+    }
+
+    // 2. Open Modals (Match any active overlay)
+    const activeModal = document.querySelector('.modal-overlay.active, .tx-modal-overlay.active, .profile-sheet-overlay.active');
+    if (activeModal) {
+      const modalId = activeModal.id;
+      localStorage.setItem('bg_active_modal_id', modalId);
+      
+      const modalBody = activeModal.querySelector('.modal-body');
+      if (modalBody) {
+        localStorage.setItem('bg_modal_scroll_top', modalBody.scrollTop);
+      }
+      
+      if (modalId === 'transaction-modal') {
+        const txId = document.getElementById('trans-id').value;
+        localStorage.setItem('bg_active_modal_tx_id', txId || '');
+      } else {
+        localStorage.removeItem('bg_active_modal_tx_id');
+      }
+      
+      if (modalId === 'stats-transactions-modal') {
+        localStorage.setItem('bg_active_subcat_txs', JSON.stringify(state.activeSubcategoryTransactions));
+      } else {
+        localStorage.removeItem('bg_active_subcat_txs');
+      }
+    }
+    // NOTE: We intentionally do NOT remove bg_active_modal_id here even if no modal is currently active.
+    // The key is managed exclusively by openModal() (sets it) and closeModal() (removes it).
+    // Removing it here would erase the record if the OS closed the modal during the background transition.
+    console.log('[STATE] UI state saved successfully.');
+  } catch (e) {
+    console.warn('[STATE] Failed to save UI state:', e);
+  } finally {
+    window._appIsBackgrounding = false;
+  }
+}
+
 let _visibilitySyncTimer = null;
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible' && state.currentUser && state.supabaseClient) {
+function handleAppForegroundSync() {
+  if (state.currentUser && state.supabaseClient) {
     if (_visibilitySyncTimer) clearTimeout(_visibilitySyncTimer);
-    // Only sync if we haven't synced in the last 2 minutes (120s).
-    // Shorter cooldowns caused the "fairground" effect where numbers jumped
-    // every time the user switched tabs or minimized the app.
     const timeSinceLastSync = Date.now() - (state.lastSyncTime || 0);
     if (timeSinceLastSync > 120000) {
+      // ANTI-FLICKER: Wait at minimum 10s before syncing on resume.
+      // The first 600ms is the _appJustResumed guard window.
+      // The next 8s is a safety buffer to ensure the resume animation
+      // is fully complete before updateUI() wipes and re-renders tabs.
+      // This prevents the second flicker wave from the background sync.
       _visibilitySyncTimer = setTimeout(() => {
         _visibilitySyncTimer = null;
         forceSyncNow(true);
-      }, 3000);
+      }, 10000);
     }
   }
+}
+
+// Sync on visibility change (user switches back to tab/app in Web/PWA)
+// FIX #1: Debounce flag so that on Android (where BOTH visibilitychange AND
+// Capacitor appStateChange fire simultaneously), the restore + guard logic
+// runs only ONCE per resume event instead of 4 times in 150ms.
+let _resumeDebounceTimer = null;
+function _handleAppResumed() {
+  if (_resumeDebounceTimer) return; // already scheduled this resume cycle
+  _resumeDebounceTimer = setTimeout(() => { _resumeDebounceTimer = null; }, 500);
+
+  // Set guard to block spurious closeModal calls during the resume transition
+  window._appJustResumed = true;
+  setTimeout(() => { window._appJustResumed = false; }, 600);
+
+  // ANTI-FLICKER: Immediately suppress all CSS transitions on resume.
+  // This covers BOTH the modal restore AND the deferred updateUI tab re-render
+  // (which fires at 700ms when _appJustResumed is true). Without this, the
+  // tab content flashes visibly as elements animate in from their default states.
+  document.documentElement.classList.add('no-transition');
+  setTimeout(() => {
+    document.documentElement.classList.remove('no-transition');
+  }, 800);
+
+  // Restore modals that were open before backgrounding.
+  // Single call only — the old 150ms safety-net second call caused an extra
+  // style recalculation (2 repaints) which itself was a flicker source.
+  const savedModalId = localStorage.getItem('bg_active_modal_id');
+  const savedEl = savedModalId ? document.getElementById(savedModalId) : null;
+  const needsRestore = savedEl && !savedEl.classList.contains('active');
+  if (needsRestore && typeof window.restoreActiveModalsWithoutTransition === 'function') {
+    window.restoreActiveModalsWithoutTransition();
+  }
+  handleAppForegroundSync();
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    _handleAppResumed();
+  } else if (document.visibilityState === 'hidden') {
+    saveCurrentUIStateToStorage();
+  }
 });
+
+// Register native Capacitor App State listener for mobile client app backgrounding
+if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
+  try {
+    const App = window.Capacitor.Plugins.App;
+    if (App && typeof App.addListener === 'function') {
+      App.addListener('appStateChange', (appState) => {
+        console.log('[Capacitor] App state changed. isActive:', appState.isActive);
+        if (appState.isActive) {
+          _handleAppResumed();
+        } else {
+          saveCurrentUIStateToStorage();
+        }
+      });
+      console.log('[Capacitor] Registered appStateChange listener successfully');
+    }
+  } catch (e) {
+    console.warn('[Capacitor] Failed to register appStateChange listener:', e);
+  }
+}
 
 // Start polling when app loads if user is logged in
 document.addEventListener('DOMContentLoaded', () => {
@@ -14413,6 +17338,9 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.modal-overlay').forEach(modal => {
     modal.addEventListener('click', (e) => {
       if (e.target === modal) {
+        // Do not close primary modals on backdrop tap — they are restored on foreground resume
+        const protectedModals = ['advisor-chat-modal', 'transaction-modal', 'profile-settings-modal'];
+        if (protectedModals.includes(modal.id)) return;
         closeModal(modal.id);
       }
     });
@@ -14427,6 +17355,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (window.visualViewport) {
     const updateViewportHeight = () => {
+      // Guard against layout thrashing during resume unfreeze animation
+      if (window._appJustResumed) return;
+      
       const vvHeight = window.visualViewport.height;
       const offsetTop = window.visualViewport.offsetTop;
       
@@ -14435,10 +17366,12 @@ document.addEventListener('DOMContentLoaded', () => {
         maxViewportHeight = vvHeight;
       }
       
-      // Keyboard height = difference between full screen and visual viewport
-      // Subtract offsetTop ONLY on Android (where it is 0). On iOS, do NOT subtract offsetTop
-      // to keep keyboardHeight stable when iOS Safari pans the layout viewport.
-      const rawKeyboardHeight = isIOS ? (window.innerHeight - vvHeight) : (window.innerHeight - vvHeight - offsetTop);
+      let rawKeyboardHeight = isIOS ? (window.innerHeight - vvHeight) : (window.innerHeight - vvHeight - offsetTop);
+      
+      // Keep keyboard height stable during iOS keyboard animation to prevent modal shaking/collapsing
+      if (isIOS && document.body.classList.contains('keyboard-active')) {
+        rawKeyboardHeight = Math.max(rawKeyboardHeight, 320);
+      }
       
       // Scale keyboardHeight inversely to counteract body { zoom: 0.93 }
       // This ensures CSS translations perfectly track the physical keyboard.
@@ -15200,6 +18133,23 @@ function toggleAutocompleteSetting(enabled) {
   localStorage.setItem('settings_autocomplete_enabled', enabled ? 'true' : 'false');
 }
 
+function toggleNoteShortcutSetting(enabled) {
+  localStorage.setItem('settings_note_shortcut_enabled', enabled ? 'true' : 'false');
+  updateNoteShortcutVisibility();
+}
+
+function updateNoteShortcutVisibility() {
+  const noteShortcutEnabled = localStorage.getItem('settings_note_shortcut_enabled') === 'true';
+  const fabNote = document.getElementById('fab-note-btn');
+  if (fabNote) {
+    if (noteShortcutEnabled && state.activeTab === 'trans' && !state.selectionMode) {
+      fabNote.style.display = 'flex';
+    } else {
+      fabNote.style.display = 'none';
+    }
+  }
+}
+
 function changeOverviewYear(dir) {
   state.overviewYear = (state.overviewYear || new Date().getFullYear()) + dir;
   renderAccountsTab();
@@ -15220,6 +18170,8 @@ function saveCustomSavingsTarget() {
 window.saveCustomSavingsTarget = saveCustomSavingsTarget;
 window.changeOverviewYear = changeOverviewYear;
 window.toggleAutocompleteSetting = toggleAutocompleteSetting;
+window.toggleNoteShortcutSetting = toggleNoteShortcutSetting;
+window.updateNoteShortcutVisibility = updateNoteShortcutVisibility;
 window.initNoteAutocomplete = initNoteAutocomplete;
 window.closeNoteAutocomplete = closeNoteAutocomplete;
 
@@ -15754,7 +18706,7 @@ function updateRecurringSummary() {
 window.updateRecurringSummary = updateRecurringSummary;
 
 function clearRecurringSettings(shouldCloseModal = true) {
-  _pendingRecurringSettings = { days: [], months: [], years: [], preset: 'monthly', endType: 'perpetual', endDate: null, endYear: null };
+  _pendingRecurringSettings = { isActive: false, days: [], months: [], years: [], preset: 'monthly', endType: 'perpetual', endDate: null, endYear: null };
   
   const select = document.getElementById('recurring-simple-preset');
   if (select) {
@@ -15773,6 +18725,7 @@ function clearRecurringSettings(shouldCloseModal = true) {
 }
 
 function saveRecurringSettings() {
+  _pendingRecurringSettings.isActive = true;
   const btn = document.getElementById('btn-rep-inst');
   if (btn) {
     const lang = state.lang || 'el';
@@ -15829,6 +18782,8 @@ function openAdvisorChat(initialQuery = null) {
   }
   
   setTimeout(() => {
+    // Skip auto-focus when restoring from background — keyboard would cause flicker
+    if (window._appJustResumed) return;
     const inp = document.getElementById('advisor-chat-input');
     if (inp) inp.focus();
   }, 300);
@@ -15910,15 +18865,192 @@ function submitCoachQuery(queryText) {
     chatLog.scrollTop = chatLog.scrollHeight;
   }
   
-  setTimeout(() => {
+  // Execute immediately without artificial delays
+  (async () => {
+    // 1. Check if we should use Online AI (Gemini)
+    const isHardcodedCmd = ['overspending', 'savings', 'forecast_5y'].includes(queryText) || queryText.startsWith('milestone_');
+    const norm = normalizeGreekString(queryText);
+    const isLocalReport = norm.includes('προϋπολογισμ') || norm.includes('οριο') || norm.includes('ορια') || norm.includes('που ξοδευω τα περισσοτερα') || norm.includes('που ξοδευω τα') || norm.includes('που πανε τα λεφτα') || norm.includes('μεγαλυτερα εξοδα') || norm.includes('top spending');
+
+    if (!isHardcodedCmd && !isLocalReport && window.OnlineAIProvider) {
+      try {
+        const pacing = getCoachAveragePacing();
+        const currentMonth = new Date().getMonth();
+        const currentYear = new Date().getFullYear();
+        
+        // Calculate this month's stats
+        const thisMonthTrans = (state.transactions || []).filter(t => {
+          if (!t.date || t.type === 'transfer') return false;
+          const datePart = String(t.date).split('T')[0];
+          const parts = datePart.split('-');
+          if (parts.length !== 3) return false;
+          return parseInt(parts[0], 10) === currentYear && (parseInt(parts[1], 10) - 1) === currentMonth;
+        });
+        
+        let thisMonthIncome = 0;
+        let thisMonthExpense = 0;
+        thisMonthTrans.forEach(t => {
+          const amt = parseFloat(t.amount) || 0;
+          if (t.type === 'income') thisMonthIncome += amt;
+          if (t.type === 'expense') thisMonthExpense += amt;
+        });
+        
+        // Map simplified allTransactions to save tokens
+        const allTransactions = (state.transactions || []).map(t => ({
+          id: t.id,
+          date: String(t.date || '').split('T')[0].split(' ')[0],
+          type: t.type,
+          amount: parseFloat(t.amount) || 0,
+          category: t.category || '',
+          subcategory: t.subcategory || '',
+          note: t.note || t.description || ''
+        }));
+
+        // Map simplified accounts
+        const accounts = (state.accounts || []).map(a => ({
+          name: a.name || '',
+          type: a.type || '',
+          balance: parseFloat(a.balance) || 0
+        }));
+
+        const today = new Date();
+        const currentDate = today.toISOString().split('T')[0];
+
+        const stats = {
+          lang: state.lang,
+          currentDate,
+          thisMonthIncome,
+          thisMonthExpense,
+          currentBalance: pacing.totalBalance || 0,
+          averageMonthlyIncome: pacing.avgIncome || 0,
+          averageMonthlyExpense: pacing.avgExpense || 0,
+          budgets: state.budgets || {},
+          accounts,
+          allTransactions
+        };
+        
+        console.log('[AIEngine] Requesting Advisor advice from Gemini...', queryText, stats);
+        if (!state.advisorChatHistory) {
+          state.advisorChatHistory = [];
+        }
+        console.log('[AIEngine] Requesting Advisor advice from Gemini...', queryText, stats, 'History length:', state.advisorChatHistory.length);
+        const data = await window.OnlineAIProvider.processAdvisorQuery(queryText, stats, state.advisorChatHistory);
+        
+        // Remove typing indicator AFTER fetch completes
+        const temp = document.querySelector('.typing-temp');
+        if (temp) temp.remove();
+
+        if (data && data.error) {
+          console.warn('[AIEngine] Online Advisor returned error:', data.error);
+          if (data.error.includes('GEMINI_API_KEY')) {
+            const msg = state.lang === 'el'
+              ? `⚠️ **Ο Οικονομικός Σύμβουλος AI δεν έχει ρυθμιστεί ακόμα.**<br><br>Παρακαλώ προσθέστε τη μεταβλητή περιβάλλοντος **GEMINI_API_KEY** στις ρυθμίσεις του project σας στο Cloudflare Pages και κάντε ξανά deploy.`
+              : `⚠️ **AI Financial Advisor is not configured yet.**<br><br>Please add the **GEMINI_API_KEY** environment variable in your Cloudflare Pages project settings and redeploy.`;
+            appendChatMessage('advisor', msg);
+            if (suggestions) suggestions.style.display = 'block';
+            return;
+          } else {
+            // Tell the user the AI failed instead of silently falling back
+            const lang = state.lang || 'el';
+            const msg = lang === 'el' 
+              ? `⚠️ **Ο Online AI Σύμβουλος αντιμετώπισε πρόβλημα:**<br><br> ${data.error}<br><br><em>(Προσωρινή χρήση τοπικού συστήματος...)</em>`
+              : `⚠️ **Online AI Advisor encountered an issue:**<br><br> ${data.error}<br><br><em>(Falling back to local system...)</em>`;
+            appendChatMessage('advisor', msg);
+            // DO NOT return here, so it falls through to offline fallback but with the warning visible!
+          }
+        }
+
+        if (data && data.responseHtml) {
+          appendChatMessage('advisor', data.responseHtml);
+          
+          // Append to history
+          state.advisorChatHistory.push({ role: 'user', content: queryText });
+          state.advisorChatHistory.push({ role: 'model', content: data.responseHtml });
+          if (state.advisorChatHistory.length > 12) {
+            state.advisorChatHistory = state.advisorChatHistory.slice(-12);
+          }
+          
+          if (data.transactionsToAdd && Array.isArray(data.transactionsToAdd)) {
+            data.transactionsToAdd.forEach(tx => {
+              if (tx.amount && tx.amount > 0) {
+                const txHtml = runCoachTransactionEntry(tx.amount, tx.note || '', tx.type || 'expense', tx.category, tx.subcategory, tx.account_from, tx.date);
+                appendChatMessage('advisor', txHtml);
+              }
+            });
+          }
+
+          if (data.transactionsToUpdate && Array.isArray(data.transactionsToUpdate)) {
+            data.transactionsToUpdate.forEach(tx => {
+              if (tx.id) {
+                const existing = state.transactions.find(t => t.id === tx.id) || {};
+                const amountVal = tx.amount !== undefined ? tx.amount : (existing.amount || 0);
+                const noteVal = tx.note !== undefined ? tx.note : (existing.note || '');
+                const typeVal = tx.type || existing.type || 'expense';
+                const catVal = tx.category || existing.category || null;
+                const subcatVal = tx.subcategory || existing.subcategory || null;
+                const accVal = tx.account_from || existing.account_from || null;
+                const dateVal = tx.date || existing.date || null;
+                
+                const txHtml = runCoachTransactionEntry(
+                  amountVal,
+                  noteVal,
+                  typeVal,
+                  catVal,
+                  subcatVal,
+                  accVal,
+                  dateVal,
+                  tx.id
+                );
+                appendChatMessage('advisor', txHtml);
+              }
+            });
+          }
+
+          if (data.transactionsToDelete && Array.isArray(data.transactionsToDelete)) {
+            data.transactionsToDelete.forEach(id => {
+              const existing = state.transactions.find(t => t.id === id);
+              if (existing) {
+                deleteTransaction(id);
+                const msg = state.lang === 'el'
+                  ? `🗑️ Η συναλλαγή **"${existing.note}" (${existing.amount}€)** διαγράφηκε επιτυχώς!`
+                  : `🗑️ Transaction **"${existing.note}" (${existing.amount}€)** deleted successfully!`;
+                appendChatMessage('advisor', msg);
+              }
+            });
+          }
+          
+          // ONLINE-TO-OFFLINE LEARNING LOOP
+          if (data.classifiedIntent && data.classifiedIntent !== 'unknown' && data.alternativePhrasings && Array.isArray(data.alternativePhrasings)) {
+            if (window.IntentCorpus && window.IntentCorpus.learnFromGemini) {
+              const count = window.IntentCorpus.learnFromGemini(data.classifiedIntent, data.alternativePhrasings);
+              console.log(`[AIEngine] Learned ${count} phrasings for intent: ${data.classifiedIntent}`);
+            }
+          }
+          if (data.extractedEntities && Array.isArray(data.extractedEntities)) {
+            if (window.KnowledgeGraph && window.KnowledgeGraph.learnFromGeminiEntities) {
+              const res = window.KnowledgeGraph.learnFromGeminiEntities(data.extractedEntities);
+              console.log('[AIEngine] Learned entities for KnowledgeGraph:', res);
+            }
+          }
+          
+          if (suggestions) suggestions.style.display = 'block';
+          return;
+        }
+      } catch (err) {
+        console.warn('[AIEngine] Online Advisor failed. Falling back to offline engine:', err);
+      }
+    }
+    
+    // Remove typing indicator for offline fallback
     const temp = document.querySelector('.typing-temp');
     if (temp) temp.remove();
-    
+
+    // 2. Offline Fallback
     const responseHtml = processCoachQuery(queryText);
     appendChatMessage('advisor', responseHtml);
     
     if (suggestions) suggestions.style.display = 'block';
-  }, 650);
+  })();
 }
 
 function getCoachAveragePacing() {
@@ -16303,17 +19435,109 @@ function predictCategoryFromHistory(noteText) {
   return sorted.length > 0 ? sorted[0] : null;
 }
 
-function runCoachTransactionEntry(amount, noteText) {
+function getSubcategoriesForCategory(category) {
+  if (!category) return [];
+  const cleanedCat = stripLeadingEmoji(category).toUpperCase();
+  const uniqueSubcats = new Set();
+  
+  const defaults = DEFAULT_SUBCATEGORIES_MAP[cleanedCat];
+  if (defaults) {
+    defaults.forEach(sub => uniqueSubcats.add(sub));
+  }
+  
+  (state.transactions || []).forEach(t => {
+    if (t.category && stripLeadingEmoji(t.category).toUpperCase() === cleanedCat) {
+      if (t.subcategory && t.subcategory.trim() !== '') {
+        uniqueSubcats.add(t.subcategory.trim());
+      }
+    }
+  });
+  return Array.from(uniqueSubcats).sort();
+}
+
+function predictSubcategoryFromHistory(category, noteText) {
+  const cleanNote = normalizeGreekString(noteText);
+  if (!cleanNote || !category) return '';
+  
+  const trans = state.transactions || [];
+  const subcatCounts = {};
+  
+  trans.forEach(t => {
+    if (t.type !== 'expense' || t.category !== category) return;
+    const cNote = normalizeGreekString(t.note || '');
+    const cDesc = normalizeGreekString(t.description || '');
+    if ((cNote && cleanNote.includes(cNote)) || (cDesc && cleanNote.includes(cDesc)) || (cNote && cNote.includes(cleanNote)) || (cDesc && cDesc.includes(cleanNote))) {
+      if (t.subcategory && t.subcategory.trim() !== '') {
+        subcatCounts[t.subcategory] = (subcatCounts[t.subcategory] || 0) + 1;
+      }
+    }
+  });
+  
+  const sorted = Object.keys(subcatCounts).sort((a,b) => subcatCounts[b] - subcatCounts[a]);
+  if (sorted.length > 0) return sorted[0];
+  
+  // Try matching subcategory names by keyword
+  const subcats = getSubcategoriesForCategory(category);
+  for (const sub of subcats) {
+    const cleanSub = normalizeGreekString(sub);
+    if (cleanNote.includes(cleanSub) || cleanSub.includes(cleanNote)) {
+      return sub;
+    }
+  }
+  
+  // Custom heuristics
+  const cleanedCat = stripLeadingEmoji(category).toUpperCase();
+  if (cleanedCat === 'ΔΙΑΤΡΟΦΗ') {
+    if (cleanNote.includes('φουρν') || cleanNote.includes('ψωμ') || cleanNote.includes('bakery')) {
+      const match = subcats.find(s => normalizeGreekString(s).includes('φουρν') || normalizeGreekString(s).includes('ψωμ'));
+      if (match) return match;
+    }
+    if (cleanNote.includes('σουπερ') || cleanNote.includes('super') || cleanNote.includes('σκλαβενιτ') || cleanNote.includes('lidl') || cleanNote.includes('βασιλοπ')) {
+      const match = subcats.find(s => normalizeGreekString(s).includes('σουπερ') || normalizeGreekString(s).includes('super'));
+      if (match) return match;
+    }
+  }
+  
+  return '';
+}
+
+window.updateCoachSubcategories = function(catSelectId, subcatSelectId, defaultSubcat = '') {
+  const catSelect = document.getElementById(catSelectId);
+  const subcatSelect = document.getElementById(subcatSelectId);
+  if (!catSelect || !subcatSelect) return;
+  
+  const selectedCategory = catSelect.value;
+  subcatSelect.innerHTML = '';
+  
+  const noneText = state.lang === 'el' ? 'Χωρίς υποκατηγορία' : 'No subcategory';
+  const noneOpt = document.createElement('option');
+  noneOpt.value = '';
+  noneOpt.textContent = noneText;
+  subcatSelect.appendChild(noneOpt);
+  
+  const subcategories = getSubcategoriesForCategory(selectedCategory);
+  subcategories.forEach(sub => {
+    const opt = document.createElement('option');
+    opt.value = sub;
+    opt.textContent = getSubcategoryDisplayName(sub, selectedCategory);
+    if (sub === defaultSubcat) {
+      opt.selected = true;
+    }
+    subcatSelect.appendChild(opt);
+  });
+};
+
+function runCoachTransactionEntry(amount, noteText, type = 'expense', category = null, subcategory = null, accountFrom = null, dateStr = null, id = null) {
   if (isNaN(amount) || amount <= 0) {
     return state.lang === 'el' ? "🤖 Παρακαλώ δώσε ένα έγκυρο ποσό (π.χ. 'βάλε 40 για ρεύμα')." : "🤖 Please provide a valid amount (e.g., 'add 40 for electric bill').";
   }
   
-  let predictedCat = predictCategoryFromHistory(noteText);
+  let predictedCat = category || predictCategoryFromHistory(noteText);
   
   if (!predictedCat) {
     const cleanNote = normalizeGreekString(noteText);
     if (cleanNote.includes('βενζινη') || cleanNote.includes('αμαξι') || cleanNote.includes('διοδια') || cleanNote.includes('παρκινγκ')) predictedCat = '🚗 ΑΥΤΟΚΙΝΗΤΟ';
-    else if (cleanNote.includes('σουπερ') || cleanNote.includes('super') || cleanNote.includes('καφε') || cleanNote.includes('φαγητο') || cleanNote.includes('delivery') || cleanNote.includes('ντελιβερι') || cleanNote.includes('εστιατοριο') || cleanNote.includes('ταβερνα')) predictedCat = '🛒 ΔΙΑΤΡΟΦΗ';
+    else if (cleanNote.includes('σουπερ') || cleanNote.includes('super') || cleanNote.includes('καφε') || cleanNote.includes('φαγητο') || cleanNote.includes('delivery') || cleanNote.includes('ντελιβερι') || cleanNote.includes('εστιατοριο') || cleanNote.includes('ταβερνα') || cleanNote.includes('φουρν') || cleanNote.includes('αρτοποι')) predictedCat = '🛒 ΔΙΑΤΡΟΦΗ';
     else if (cleanNote.includes('ρευμα') || cleanNote.includes('δεη') || cleanNote.includes('νερο') || cleanNote.includes('τηλεφωνο') || cleanNote.includes('κοινοχρηστα') || cleanNote.includes('ενοικιο')) predictedCat = '🏡 ΣΠΙΤΙ';
     else if (cleanNote.includes('γιατρο') || cleanNote.includes('φαρμακειο') || cleanNote.includes('υγεία') || cleanNote.includes('εξετασεις')) predictedCat = '❤️ ΥΓΕΙΑ';
     else if (cleanNote.includes('ποτο') || cleanNote.includes('μπυρες') || cleanNote.includes('σινεμα') || cleanNote.includes('εξοδος')) predictedCat = '🎉ΔΙΑΣΚΕΔΑΣΗ/ΕΞΟΔΟΙ';
@@ -16332,34 +19556,162 @@ function runCoachTransactionEntry(amount, noteText) {
     predictedCat = expenseCats[0].name;
   }
   
-  const selectId = 'coach-tx-select-' + Date.now();
-  const btnId = 'coach-tx-btn-' + Date.now();
+  const predictedSub = subcategory !== null ? subcategory : predictSubcategoryFromHistory(predictedCat, noteText);
   
-  let optionsHtml = '';
+  // Find accounts options
+  let accOptionsHtml = '';
+  let defaultAccount = 'Card';
+  if (state.accounts && state.accounts.length > 0) {
+    const cardAcc = state.accounts.find(acc => acc.type === 'card' || acc.name.toLowerCase().trim() === 'card' || acc.name.trim() === 'Κάρτα');
+    const cashAcc = state.accounts.find(acc => acc.type === 'cash' || acc.name.toLowerCase().trim() === 'cash' || acc.name.trim() === 'Μετρητά');
+    const defaultAcc = cardAcc || cashAcc || state.accounts[0];
+    defaultAccount = accountFrom || defaultAcc.name;
+    
+    state.accounts.forEach(acc => {
+      const selected = acc.name === defaultAccount ? 'selected' : '';
+      accOptionsHtml += `<option value="${acc.name}" ${selected}>${acc.name}</option>`;
+    });
+  } else {
+    accOptionsHtml = `<option value="Card" selected>${state.lang === 'el' ? 'Κάρτα' : 'Card'}</option>
+                      <option value="Cash">${state.lang === 'el' ? 'Μετρητά' : 'Cash'}</option>`;
+  }
+  
+  // Calculate local datetime string for input defaultValue
+  let defaultDateTime;
+  if (dateStr) {
+    const d = new Date(dateStr);
+    const tzOffset = d.getTimezoneOffset() * 60000;
+    defaultDateTime = new Date(d.getTime() - tzOffset).toISOString().slice(0, 16);
+  } else {
+    const now = new Date();
+    const tzOffset = now.getTimezoneOffset() * 60000;
+    defaultDateTime = new Date(now.getTime() - tzOffset).toISOString().slice(0, 16);
+  }
+  
+  const seed = Math.floor(Math.random() * 1000000);
+  const amtInputId = 'coach-tx-amt-input-' + seed;
+  const noteInputId = 'coach-tx-note-input-' + seed;
+  const dateInputId = 'coach-tx-date-input-' + seed;
+  const catSelectId = 'coach-tx-cat-select-' + seed;
+  const subcatSelectId = 'coach-tx-subcat-select-' + seed;
+  const accSelectId = 'coach-tx-acc-select-' + seed;
+  const btnId = 'coach-tx-btn-' + seed;
+  
+  let catOptionsHtml = '';
   expenseCats.forEach(c => {
     const selected = c.name === predictedCat ? 'selected' : '';
-    optionsHtml += `<option value="${c.name}" ${selected}>${getCategoryDisplayName(c.name)}</option>`;
+    catOptionsHtml += `<option value="${c.name}" ${selected}>${getCategoryDisplayName(c.name)}</option>`;
+  });
+  
+  const subcategories = getSubcategoriesForCategory(predictedCat);
+  let subOptionsHtml = `<option value="">${state.lang === 'el' ? 'Χωρίς υποκατηγορία' : 'No subcategory'}</option>`;
+  subcategories.forEach(sub => {
+    const selected = sub === predictedSub ? 'selected' : '';
+    subOptionsHtml += `<option value="${sub}" ${selected}>${getSubcategoryDisplayName(sub, predictedCat)}</option>`;
   });
   
   let html = "";
-  const displayNote = noteText ? ` "${noteText}"` : '';
   if (state.lang === 'el') {
-    html += `🤖 **Νέα Συναλλαγή:**<br><br>`;
-    html += `Θέλεις να προσθέσω **-${formatCurrency(amount)}**${displayNote};<br><br>`;
-    html += `<select id="${selectId}" style="width:100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); margin-bottom: 12px; font-family: inherit; font-size: 1rem;">
-               ${optionsHtml}
-             </select>`;
-    html += `<button id="${btnId}" class="btn btn-primary" style="width:100%;" onclick="window.submitCoachTransaction(${amount}, 'expense', document.getElementById('${selectId}').value, '${noteText}', this.id)">
-               ✅ Καταχώρηση
+    html += id ? `🤖 **Επεξεργασία Συναλλαγής:**<br><br>` : `🤖 **Νέα Συναλλαγή:**<br><br>`;
+    
+    html += `<div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; text-align: left;">`;
+    
+    // Amount & Note inputs (side-by-side)
+    html += `  <div style="display: flex; gap: 8px;">
+                 <div style="flex: 1; display: flex; flex-direction: column; gap: 3px;">
+                   <label style="font-size: 11px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">Ποσό (€)</label>
+                   <input type="number" step="0.01" id="${amtInputId}" value="${amount.toFixed(2)}" style="width:100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-family: inherit; font-size: 0.95rem;">
+                 </div>
+                 <div style="flex: 2; display: flex; flex-direction: column; gap: 3px;">
+                   <label style="font-size: 11px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">Τίτλος</label>
+                   <input type="text" id="${noteInputId}" value="${noteText.replace(/"/g, '&quot;')}" style="width:100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-family: inherit; font-size: 0.95rem;">
+                 </div>
+               </div>`;
+               
+    // Date & Time input
+    html += `  <div style="display: flex; flex-direction: column; gap: 3px;">
+                 <label style="font-size: 11px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">Ημερομηνία & Ώρα</label>
+                 <input type="datetime-local" id="${dateInputId}" value="${defaultDateTime}" style="width:100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-family: inherit; font-size: 0.95rem;">
+               </div>`;
+               
+    // Category & Subcategory selects
+    html += `  <div style="display: flex; gap: 8px;">
+                 <div style="flex: 1; display: flex; flex-direction: column; gap: 3px;">
+                   <label style="font-size: 11px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">Κατηγορία</label>
+                   <select id="${catSelectId}" onchange="window.updateCoachSubcategories('${catSelectId}', '${subcatSelectId}')" style="width:100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-family: inherit; font-size: 0.95rem;">
+                     ${catOptionsHtml}
+                   </select>
+                 </div>
+                 <div style="flex: 1; display: flex; flex-direction: column; gap: 3px;">
+                   <label style="font-size: 11px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">Υποκατηγορία</label>
+                   <select id="${subcatSelectId}" style="width:100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-family: inherit; font-size: 0.95rem;">
+                     ${subOptionsHtml}
+                   </select>
+                 </div>
+               </div>`;
+               
+    // Account select
+    html += `  <div style="display: flex; flex-direction: column; gap: 3px;">
+                 <label style="font-size: 11px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">Τρόπος πληρωμής</label>
+                 <select id="${accSelectId}" style="width:100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-family: inherit; font-size: 0.95rem;">
+                   ${accOptionsHtml}
+                 </select>
+               </div>`;
+    html += `</div>`;
+    
+    html += `<button id="${btnId}" class="btn btn-primary" style="width:100%; padding: 12px; font-weight: 700; border-radius: 8px;" onclick="window.submitCoachTransaction(document.getElementById('${amtInputId}').value, '${type}', document.getElementById('${catSelectId}').value, document.getElementById('${subcatSelectId}').value, document.getElementById('${accSelectId}').value, document.getElementById('${noteInputId}').value, document.getElementById('${dateInputId}').value, this.id, '${id || ''}')">
+               ✅ ${id ? 'Αποθήκευση Αλλαγών' : 'Καταχώρηση'}
              </button>`;
   } else {
-    html += `🤖 **New Transaction:**<br><br>`;
-    html += `Do you want to add **-${formatCurrency(amount)}**${displayNote}?<br><br>`;
-    html += `<select id="${selectId}" style="width:100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); margin-bottom: 12px; font-family: inherit; font-size: 1rem;">
-               ${optionsHtml}
-             </select>`;
-    html += `<button id="${btnId}" class="btn btn-primary" style="width:100%;" onclick="window.submitCoachTransaction(${amount}, 'expense', document.getElementById('${selectId}').value, '${noteText}', this.id)">
-               ✅ Save Transaction
+    html += id ? `🤖 **Edit Transaction:**<br><br>` : `🤖 **New Transaction:**<br><br>`;
+    
+    html += `<div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; text-align: left;">`;
+    
+    // Amount & Note inputs (side-by-side)
+    html += `  <div style="display: flex; gap: 8px;">
+                 <div style="flex: 1; display: flex; flex-direction: column; gap: 3px;">
+                   <label style="font-size: 11px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">Amount (€)</label>
+                   <input type="number" step="0.01" id="${amtInputId}" value="${amount.toFixed(2)}" style="width:100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-family: inherit; font-size: 0.95rem;">
+                 </div>
+                 <div style="flex: 2; display: flex; flex-direction: column; gap: 3px;">
+                   <label style="font-size: 11px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">Title</label>
+                   <input type="text" id="${noteInputId}" value="${noteText.replace(/"/g, '&quot;')}" style="width:100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-family: inherit; font-size: 0.95rem;">
+                 </div>
+               </div>`;
+               
+    // Date & Time input
+    html += `  <div style="display: flex; flex-direction: column; gap: 3px;">
+                 <label style="font-size: 11px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">Date & Time</label>
+                 <input type="datetime-local" id="${dateInputId}" value="${defaultDateTime}" style="width:100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-family: inherit; font-size: 0.95rem;">
+               </div>`;
+               
+    // Category & Subcategory selects
+    html += `  <div style="display: flex; gap: 8px;">
+                 <div style="flex: 1; display: flex; flex-direction: column; gap: 3px;">
+                   <label style="font-size: 11px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">Category</label>
+                   <select id="${catSelectId}" onchange="window.updateCoachSubcategories('${catSelectId}', '${subcatSelectId}')" style="width:100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-family: inherit; font-size: 0.95rem;">
+                     ${catOptionsHtml}
+                   </select>
+                 </div>
+                 <div style="flex: 1; display: flex; flex-direction: column; gap: 3px;">
+                   <label style="font-size: 11px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">Subcategory</label>
+                   <select id="${subcatSelectId}" style="width:100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-family: inherit; font-size: 0.95rem;">
+                     ${subOptionsHtml}
+                   </select>
+                 </div>
+               </div>`;
+               
+    // Account select
+    html += `  <div style="display: flex; flex-direction: column; gap: 3px;">
+                 <label style="font-size: 11px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">Payment Method</label>
+                 <select id="${accSelectId}" style="width:100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-family: inherit; font-size: 0.95rem;">
+                   ${accOptionsHtml}
+                 </select>
+               </div>`;
+    html += `</div>`;
+    
+    html += `<button id="${btnId}" class="btn btn-primary" style="width:100%; padding: 12px; font-weight: 700; border-radius: 8px;" onclick="window.submitCoachTransaction(document.getElementById('${amtInputId}').value, '${type}', document.getElementById('${catSelectId}').value, document.getElementById('${subcatSelectId}').value, document.getElementById('${accSelectId}').value, document.getElementById('${noteInputId}').value, document.getElementById('${dateInputId}').value, this.id, '${id || ''}')">
+               ✅ ${id ? 'Save Changes' : 'Save Transaction'}
              </button>`;
   }
   return html;
@@ -16544,7 +19896,7 @@ function processCoachQuery(queryText) {
   // 1. Discuss Category Increase
   if (normQuery.includes('γιατι αυξηθηκαν') || normQuery.includes('why did my') || normQuery.includes('αυξηθηκαν') || normQuery.includes('did my') || normQuery.includes('αυξηση')) {
     let catName = "";
-    const grMatch = queryText.match(/οι\s+([α-ωΑ-Ωa-zA-Z\s]+?)\s+μου/i);
+    const grMatch = queryText.match(/οι\s+([α-ωΑ-ΩάέήίόύώΆΈΉΊΌΎΏϊϋΐΰa-zA-Z\s]+?)\s+μου/i);
     const enMatch = queryText.match(/my\s+([a-zA-Z\s]+?)\s+rose/i) || queryText.match(/did\s+([a-zA-Z\s]+?)\s+increase/i);
     
     if (grMatch && grMatch[1]) catName = grMatch[1].trim();
@@ -16631,7 +19983,7 @@ function processCoachQuery(queryText) {
   const isSpendingQuery = normQuery.includes('ποσα') || normQuery.includes('ποσο') || normQuery.includes('how much') || normQuery.includes('how many') || normQuery.includes('spent') || normQuery.includes('xodepsa') || normQuery.includes('xodepsame') || normQuery.includes('xalasa') || normQuery.includes('xalasame');
   if (isSpendingQuery) {
     let keyword = "";
-    const grMatch = queryText.match(/(?:σε|για|στο|στη|στην|στα|στον|στους|στις)\s+([α-ωΑ-Ωa-zA-Z\s]+)/i);
+    const grMatch = queryText.match(/(?:σε|για|στο|στη|στην|στα|στον|στους|στις)\s+([α-ωΑ-ΩάέήίόύώΆΈΉΊΌΎΏϊϋΐΰa-zA-Z\s]+)/i);
     const enMatch = queryText.match(/(?:on|for|at|in)\s+([a-zA-Z\s]+)/i);
     
     if (grMatch && grMatch[1]) {
@@ -16670,27 +20022,326 @@ function processCoachQuery(queryText) {
     : `🤖 **I couldn't quite understand the question.**<br><br>You can try using one of the suggestion chips below, or ask about a specific category or search term (e.g., 'coffee', 'food', 'petrol', 'overspending', 'savings').`;
 }
 
-window.submitCoachTransaction = async function(amount, type, category, note, btnId) {
-  const transaction = {
-    id: generateUUID(),
-    type: type,
-    amount: parseFloat(amount),
-    category: category,
-    subcategory: '',
-    note: note,
-    date: new Date().toISOString(),
-    user_id: state.userId
-  };
-  
-  await saveTransaction(transaction);
-  
+window.submitCoachTransaction = async function(amount, type, category, subcategory, accountFrom, note, dateString, btnId, id = null) {
   const btn = document.getElementById(btnId);
   if (btn) {
     btn.disabled = true;
-    btn.innerHTML = state.lang === 'el' ? '✅ Καταχωρήθηκε!' : '✅ Saved!';
-    btn.style.backgroundColor = 'var(--success)';
+    btn.innerHTML = state.lang === 'el' ? '⏳ Καταχώρηση...' : '⏳ Saving...';
   }
+
+  const parsedAmount = parseFloat(amount);
+  if (isNaN(parsedAmount) || parsedAmount <= 0) {
+    alert(state.lang === 'el' ? 'Παρακαλώ δώστε ένα έγκυρο ποσό.' : 'Please enter a valid amount.');
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = state.lang === 'el' ? '✅ Καταχώρηση' : '✅ Register';
+    }
+    return;
+  }
+
+  const transaction = {
+    id: id || generateUUID(),
+    type: type,
+    amount: parsedAmount,
+    category: category,
+    subcategory: subcategory || '',
+    account_from: accountFrom || 'Card',
+    account_to: null,
+    note: note || '',
+    date: dateString ? new Date(dateString).toISOString() : new Date().toISOString(),
+    user_id: state.userId
+  };
+  
+  saveTransaction(transaction).then(() => {
+    if (btn) {
+      btn.innerHTML = state.lang === 'el' ? '✅ Καταχωρήθηκε!' : '✅ Saved!';
+      btn.style.backgroundColor = 'var(--success)';
+    }
+  }).catch(err => {
+    console.error('Error saving transaction from coach:', err);
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = state.lang === 'el' ? '❌ Αποτυχία' : '❌ Failed';
+      btn.style.backgroundColor = 'var(--danger)';
+    }
+  });
 };
+
+function openRecurringTemplatesModal() {
+  const container = document.getElementById('recurring-templates-list-container');
+  if (!container) return;
+
+  container.innerHTML = '';
+  const templates = state.recurringTemplates || [];
+  const lang = state.lang || 'el';
+
+  if (templates.length === 0) {
+    const emptyMsg = TRANSLATIONS[lang]['no_recurring_templates'] || 'No active recurring transactions found.';
+    container.innerHTML = `
+      <div style="text-align: center; padding: 32px 16px; color: var(--text-secondary); font-size: 14px; line-height: 1.5;">
+        ${emptyMsg}
+      </div>
+    `;
+  } else {
+    templates.forEach(t => {
+      // Find category styling
+      const catName = t.category;
+      let icon = '🧩';
+      let color = '#78909c'; // Default grey
+      const found = Object.values(CATEGORY_EMOJI_MAP).find(c => c.name === catName);
+      if (found) {
+        icon = found.icon;
+        color = found.color;
+      }
+
+      // Format preset type label
+      let presetLabel = t.preset || 'custom';
+      if (presetLabel === 'monthly') {
+        const dayLabel = TRANSLATIONS[lang]['monthly_on_day'] || 'Monthly on day';
+        const startDate = t.startDate ? new Date(t.startDate) : null;
+        const dayNum = startDate ? startDate.getDate() : 1;
+        presetLabel = `${dayLabel} ${dayNum}`;
+      } else {
+        presetLabel = TRANSLATIONS[lang]['stats_period_' + presetLabel] || presetLabel;
+      }
+
+      const itemHtml = `
+        <div class="recurring-template-row" style="display: flex; flex-direction: row; align-items: center; justify-content: space-between; padding: 12px 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg-card); gap: 12px; margin-bottom: 0; min-height: 64px; box-sizing: border-box; width: 100%;">
+          <div style="display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1; flex-direction: row;">
+            <div style="width: 40px; height: 40px; border-radius: 50%; background: ${color}20; color: ${color}; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;">
+              ${icon}
+            </div>
+            <div style="display: flex; flex-direction: column; min-width: 0; text-align: left; flex: 1;">
+              <span style="font-weight: 700; color: var(--text-primary); font-size: 14.5px; word-break: break-word; line-height: 1.3;">${t.note}</span>
+              <span style="font-size: 12px; color: var(--text-secondary); margin-top: 3px; word-break: break-word; line-height: 1.2;">${presetLabel} • ${parseFloat(t.amount || 0).toFixed(2)}€</span>
+            </div>
+          </div>
+          <button class="delete-btn" onclick="deleteRecurringTemplate('${t.id}')" style="background: none; border: none; color: var(--danger); font-size: 18px; cursor: pointer; padding: 8px; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: background-color 0.2s; flex-shrink: 0;" onmouseover="this.style.backgroundColor='rgba(239, 83, 80, 0.1)'" onmouseout="this.style.backgroundColor='transparent'">
+            🗑️
+          </button>
+        </div>
+      `;
+      container.insertAdjacentHTML('beforeend', itemHtml);
+    });
+  }
+
+  openModal('recurring-templates-modal');
+}
+
+async function deleteRecurringTemplate(id) {
+  if (!id) return;
+  
+  const lang = state.lang || 'el';
+  const confirmMsg = lang === 'el' 
+    ? 'Είστε σίγουροι ότι θέλετε να διαγράψετε αυτή την επαναλαμβανόμενη συναλλαγή; Αυτό θα σταματήσει την παραγωγή νέων δόσεων στο μέλλον.'
+    : 'Are you sure you want to delete this recurring transaction? This will stop future occurrences from being generated.';
+
+  const confirmed = await showConfirm(confirmMsg, lang === 'el' ? 'Διαγραφή Επαναλαμβανόμενης' : 'Delete Recurring', '🔄');
+  if (!confirmed) return;
+
+  const templateToDelete = (state.recurringTemplates || []).find(t => t.id === id);
+
+  // 1. Remove template from state
+  state.recurringTemplates = (state.recurringTemplates || []).filter(t => t.id !== id);
+  localStorage.setItem('recurring_templates', JSON.stringify(state.recurringTemplates));
+
+  // 2. Clear already generated future occurrences
+  const todayStr = new Date().toISOString().split('T')[0];
+  const idsToDelete = [];
+  
+  if (templateToDelete) {
+    state.transactions = state.transactions.filter(t => {
+      const tDate = String(t.date || '').split('T')[0];
+      const isFuture = tDate > todayStr;
+      const isStartDate = tDate === String(templateToDelete.startDate || '').split('T')[0];
+      
+      const matchById = String(t.recurring_template_id) === String(id);
+      const matchByContent = !t.recurring_template_id &&
+                             (parseFloat(t.amount) || 0).toFixed(2) === (parseFloat(templateToDelete.amount) || 0).toFixed(2) &&
+                             t.type === templateToDelete.type &&
+                             t.category === templateToDelete.category &&
+                             (t.account_from || '') === (templateToDelete.account_from || '') &&
+                             (t.note || '') === (templateToDelete.note || '');
+                             
+      if (isFuture && !isStartDate && (matchById || matchByContent)) {
+        idsToDelete.push(t.id);
+        return false;
+      }
+      return true;
+    });
+    
+    localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
+  }
+
+  // 3. Sync deletions to Cloud
+  if (idsToDelete.length > 0 && state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
+    idsToDelete.forEach(dId => enqueueSyncMutation('delete', dId));
+    state.supabaseClient
+      .from('transactions')
+      .delete()
+      .in('id', idsToDelete)
+      .then(({ error }) => {
+        if (!error) {
+          idsToDelete.forEach(dId => dequeueSyncMutation('delete', dId));
+        }
+      });
+  }
+
+  // Refresh UI & templates list
+  updateUI();
+  openRecurringTemplatesModal();
+}
+
+// Trash Bin Management
+function openTrashBinModal() {
+  renderTrashBinList();
+  openModal('trash-bin-modal');
+}
+
+function renderTrashBinList() {
+  const container = document.getElementById('trash-bin-list-container');
+  if (!container) return;
+
+  container.innerHTML = '';
+  const trashItems = state.trashTransactions || [];
+  const lang = state.lang || 'el';
+
+  const btnEmpty = document.getElementById('btn-empty-trash');
+  if (btnEmpty) {
+    btnEmpty.style.display = trashItems.length === 0 ? 'none' : 'flex';
+  }
+
+  if (trashItems.length === 0) {
+    const emptyMsg = TRANSLATIONS[lang]['no_trash_items'] || 'The trash bin is empty.';
+    container.innerHTML = `
+      <div style="text-align: center; padding: 32px 16px; color: var(--text-secondary); font-size: 14px; line-height: 1.5;">
+        ${emptyMsg}
+      </div>
+    `;
+    return;
+  }
+
+  // Sort trash items by deleted_at descending (newest deletion first)
+  const sortedTrash = [...trashItems].sort((a, b) => {
+    return new Date(b.deleted_at || 0) - new Date(a.deleted_at || 0);
+  });
+
+  sortedTrash.forEach(t => {
+    // Find category styling
+    const catName = t.category;
+    let icon = '🧩';
+    let color = '#78909c';
+    const found = Object.values(CATEGORY_EMOJI_MAP).find(c => c.name === catName);
+    if (found) {
+      icon = found.icon;
+      color = found.color;
+    }
+
+    const restoreText = TRANSLATIONS[lang]['restore'] || 'Restore';
+    
+    // Format date nicely
+    let formattedDate = t.date || '';
+    try {
+      const d = new Date(t.date);
+      if (!isNaN(d.getTime())) {
+        formattedDate = d.toLocaleDateString(lang === 'el' ? 'el-GR' : 'en-US', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric'
+        });
+      }
+    } catch(e) {}
+
+    const itemHtml = `
+      <div class="trash-item-row" style="display: flex; flex-direction: row; align-items: center; justify-content: space-between; padding: 12px 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg-card); gap: 12px; box-sizing: border-box; width: 100%;">
+        <div style="display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1; flex-direction: row;">
+          <div style="width: 40px; height: 40px; border-radius: 50%; background: ${color}20; color: ${color}; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;">
+            ${icon}
+          </div>
+          <div style="display: flex; flex-direction: column; min-width: 0; text-align: left; flex: 1;">
+            <span style="font-weight: 700; color: var(--text-primary); font-size: 14px; word-break: break-word; line-height: 1.3;">${t.note || ''}</span>
+            <span style="font-size: 11.5px; color: var(--text-secondary); margin-top: 3px; word-break: break-word; line-height: 1.2;">
+              ${formattedDate} • ${parseFloat(t.amount || 0).toFixed(2)}€ ${t.type === 'expense' ? '🔴' : t.type === 'income' ? '🟢' : '🔵'}
+            </span>
+          </div>
+        </div>
+        <button class="restore-btn" onclick="restoreTransaction('${t.id}')" style="background: var(--primary); border: none; color: #ffffff; font-size: 12px; font-weight: 600; cursor: pointer; padding: 6px 12px; border-radius: 8px; transition: opacity 0.2s; flex-shrink: 0; outline: none; border: 0;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
+          ${restoreText}
+        </button>
+      </div>
+    `;
+    container.insertAdjacentHTML('beforeend', itemHtml);
+  });
+}
+
+async function restoreTransaction(id) {
+  if (!id) return;
+
+  const itemToRestore = (state.trashTransactions || []).find(t => String(t.id) === String(id));
+  if (!itemToRestore) return;
+
+  // 1. Remove from trash
+  state.trashTransactions = (state.trashTransactions || []).filter(t => String(t.id) !== String(id));
+  localStorage.setItem('deleted_transactions_trash', JSON.stringify(state.trashTransactions));
+
+  // Remove deleted_at before saving back to transactions
+  const cleanedItem = { ...itemToRestore };
+  delete cleanedItem.deleted_at;
+
+  // 2. Add back to transactions
+  state.transactions.push(cleanedItem);
+  localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
+
+  // 3. Save to Supabase (Cloud Sync)
+  if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
+    enqueueSyncMutation('upsert', cleanedItem.id);
+    try {
+      // Delete from deleted_transactions
+      await state.supabaseClient
+        .from('deleted_transactions')
+        .delete()
+        .eq('id', id);
+
+      // Upsert back to active transactions
+      await state.supabaseClient
+        .from('transactions')
+        .upsert(cleanedItem);
+      dequeueSyncMutation('upsert', cleanedItem.id);
+    } catch (err) {
+      console.warn('Cloud restore failed, keeping in queue:', err);
+    }
+  }
+
+  // 4. Update UI & re-render
+  calculateInitialBalances();
+  updateUI();
+  renderTrashBinList();
+}
+
+async function emptyTrashBin() {
+  const lang = state.lang || 'el';
+  const confirmMsg = TRANSLATIONS[lang]['confirm_empty_trash'] || 'Are you sure you want to empty the trash bin? This action is permanent.';
+  
+  const confirmed = await showConfirm(confirmMsg, lang === 'el' ? 'Εκκαθάριση Κάδου' : 'Empty Trash', '🗑️');
+  if (!confirmed) return;
+
+  // Clear on Supabase if logged in
+  if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
+    state.supabaseClient
+      .from('deleted_transactions')
+      .delete()
+      .eq('user_id', state.currentUser.id)
+      .then(({ error }) => {
+        if (error) console.warn('Failed to clear deleted_transactions on Supabase:', error);
+      });
+  }
+
+  state.trashTransactions = [];
+  localStorage.setItem('deleted_transactions_trash', JSON.stringify(state.trashTransactions));
+
+  updateUI();
+  renderTrashBinList();
+}
 
 // Bind to window for HTML access
 window.openAdvisorChat = openAdvisorChat;
@@ -16698,6 +20349,12 @@ window.closeAdvisorChat = closeAdvisorChat;
 window.submitCoachInput = submitCoachInput;
 window.submitCoachQuery = submitCoachQuery;
 window.handleAdvisorChatKeydown = handleAdvisorChatKeydown;
+window.openRecurringTemplatesModal = openRecurringTemplatesModal;
+window.deleteRecurringTemplate = deleteRecurringTemplate;
+window.openTrashBinModal = openTrashBinModal;
+window.renderTrashBinList = renderTrashBinList;
+window.restoreTransaction = restoreTransaction;
+window.emptyTrashBin = emptyTrashBin;
 
 // Force snap scroll position to top on page load to fix iOS Safari viewport panning offset
 window.addEventListener('load', () => {
