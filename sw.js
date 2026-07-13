@@ -1,4 +1,4 @@
-// SW Version 481
+// SW Version 654
 const CACHE_VERSION = 'v' + Date.now();
 const CACHE_NAME = 'money-manager-' + CACHE_VERSION;
 const ASSETS = [
@@ -9,7 +9,24 @@ const ASSETS = [
   'manifest.json',
   'icon.png',
   'xlsx.full.min.js',
-  'version.json'
+  'version.json',
+  'js/supabase.js',
+  'js/chart.js',
+  'js/chartjs-plugin-datalabels.js',
+  'js/NLPProcessor.js',
+  'js/MemoryEngine.js',
+  'js/DecisionEngine.js',
+  'js/OnlineAIProvider.js',
+  'js/AIEngine.js',
+  'js/IntentCorpus.js',
+  'js/KnowledgeGraph.js',
+  'js/fontawesome.min.css',
+  'js/webfonts/fa-solid-900.woff2',
+  'js/webfonts/fa-solid-900.ttf',
+  'js/webfonts/fa-regular-400.woff2',
+  'js/webfonts/fa-regular-400.ttf',
+  'js/webfonts/fa-brands-400.woff2',
+  'js/webfonts/fa-brands-400.ttf'
 ];
 
 // Install Service Worker - cache assets then force activation
@@ -86,8 +103,10 @@ self.addEventListener('fetch', (e) => {
       fetch(e.request, { cache: 'no-store' }).catch(() => {
         // Only use cache fallback for navigation (not for clear.html)
         if (path.endsWith('/clear.html')) return new Response('', { status: 503 });
-        if (e.request.mode === 'navigate') return caches.match('index.html');
-        return caches.match(e.request);
+        if (e.request.mode === 'navigate' || path === '/' || path === '' || path.endsWith('/index.html')) {
+          return caches.match('index.html');
+        }
+        return caches.match(e.request, { ignoreSearch: true });
       })
     );
     return;
@@ -102,9 +121,11 @@ self.addEventListener('fetch', (e) => {
       }
       return networkResponse;
     }).catch(() => {
-      return caches.match(e.request).then((cachedResponse) => {
+      return caches.match(e.request, { ignoreSearch: true }).then((cachedResponse) => {
         if (cachedResponse) return cachedResponse;
-        if (e.request.mode === 'navigate') return caches.match('index.html');
+        if (e.request.mode === 'navigate' || path === '/' || path === '' || path.endsWith('/index.html')) {
+          return caches.match('index.html');
+        }
       });
     })
   );

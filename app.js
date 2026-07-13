@@ -11,6 +11,18 @@ window.addEventListener('unhandledrejection', function (event) {
 
 window.autocompleteJustSelected = false;
 
+// HTML Escaping Utility to prevent XSS
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+window.escapeHtml = escapeHtml;
+
 // One-time cache clear to purge duplicated local transactions.
 // This forces a clean sync from Supabase when the user launches the updated app.
 if (!localStorage.getItem('clear_duplicates_v3')) {
@@ -94,6 +106,7 @@ const DEFAULT_ACCOUNTS = [
 
 // App State
 const state = {
+  isLoggingOut: false,
   transactions: [],
   trashTransactions: [],
   accounts: [],
@@ -132,6 +145,7 @@ const state = {
   recurringTemplates: [],
   deletedRecurringDates: [],
   lastOpenedTransactionId: null,
+  notifications: [],
 };
 
 const NEON_PALETTE = [
@@ -346,10 +360,54 @@ const TRANSLATIONS = {
     nav_more: 'Περισσότερα',
     section_data_mgmt: 'Διαχείριση Δεδομένων',
     section_settings: 'Ρυθμίσεις',
-    settings_pref_title: '⚙️ Προτιμήσεις Εφαρμογής',
-    settings_data_title: '☁️ Δεδομένα & Συγχρονισμός',
-    settings_family_title: '👥 Διαχείριση Οικογένειας',
-    settings_feedback_title: '💬 Σχόλια & Αξιολόγηση',
+    settings_pref_title: 'Προτιμήσεις Εφαρμογής',
+    settings_data_title: 'Δεδομένα & Συγχρονισμός',
+    settings_family_title: 'Διαχείριση Οικογένειας',
+    settings_feedback_title: 'Σχόλια & Αξιολόγηση',
+    settings_account_legal_title: 'Λογαριασμός & Νομικά',
+    settings_preferences_option: 'Προτιμήσεις',
+    settings_preferences_desc: 'Θέμα, νόμισμα, έναρξη μήνα, κλείδωμα PIN',
+    settings_pref_desc: 'Θέμα, Νόμισμα, PIN Κλειδώματος, Σημειώσεις',
+    settings_recurring_option: 'Επαναλαμβανόμενα',
+    settings_recurring_desc: 'Διαχείριση επαναλαμβανόμενων συναλλαγών',
+    settings_categories_option: 'Κατηγορίες',
+    settings_categories_desc: 'Διαχείριση κατηγοριών και υποκατηγοριών',
+    settings_trash_option: 'Κάδος Ανακύκλωσης',
+    settings_trash_desc: 'Προβολή και επαναφορά διεγραμμένων κινήσεων',
+    settings_sync_option: 'Συγχρονισμός & Cloud',
+    settings_sync_desc: 'Σύνδεση με Cloud, εισαγωγή και εξαγωγή Excel',
+    settings_data_desc: 'Συγχρονισμός Cloud, Εισαγωγή & Εξαγωγή Excel',
+    settings_family_option: 'Οικογένεια',
+    settings_family_desc: 'Σύνδεση με σύντροφο / μέλη της οικογένειας',
+    settings_feedback_option: 'Σχόλια & Αξιολόγηση',
+    settings_feedback_desc: 'Βαθμολογήστε μας και στείλτε τις προτάσεις σας',
+    settings_legal_option: 'Λογαριασμός & Νομικά',
+    settings_legal_desc: 'Πληροφορίες έκδοσης, όροι χρήσης, αποσύνδεση',
+    notes_manager_title: 'Σημειώσεις & Λίστες',
+    notes_manager_search: 'Αναζήτηση σημειώσεων...',
+    notes_manager_add: 'Νέα Σημείωση',
+    legal_app_update: 'Έλεγχος Ενημέρωσης',
+    legal_privacy: 'Πολιτική Απορρήτου',
+    legal_logout: 'Αποσύνδεση',
+    legal_app_version: 'Έκδοση',
+    pref_app_lock: 'Κλείδωμα με PIN',
+    pref_autocomplete: 'Έξυπνος Τίτλος (Autocomplete)',
+    pref_note_shortcut: 'Κουμπί Σημειώσεων δίπλα στο "+"',
+    notification_center_title: 'Ειδοποιήσεις',
+    btn_clear_all: 'Καθαρισμός',
+    item_daily_reminder: 'Καθημερινή Υπενθύμιση',
+    item_daily_reminder_time: 'Ώρα Υπενθύμισης',
+    item_recurring_alerts: 'Ειδοποιήσεις Επαναλαμβανόμενων',
+    no_notifications: 'Δεν υπάρχουν ειδοποιήσεις.',
+    pref_theme: 'Θέμα',
+    pref_theme_dark: 'Σκούρο',
+    pref_theme_light: 'Ανοιχτό',
+    pref_theme_auto: 'Σύστημα',
+    pref_currency: 'Νόμισμα',
+    pref_month_start: 'Έναρξη Μήνα',
+    pref_week_start: 'Έναρξη Εβδομάδας',
+    pref_week_start_mon: 'Δευτέρα',
+    pref_week_start_sun: 'Κυριακή',
     card_sync: 'Συγχρονισμός',
     card_import_excel: 'Εισαγωγή Excel',
     card_export_excel: 'Εξαγωγή Excel',
@@ -439,6 +497,16 @@ const TRANSLATIONS = {
     auth_signup_success: '🎉 Η εγγραφή ολοκληρώθηκε! Ελέγξτε το email σας για το σύνδεσμο επιβεβαίωσης.',
     auth_loading_title: 'Σύνδεση σε εξέλιξη',
     auth_loading_desc: 'Παρακαλώ περιμένετε όσο ολοκληρώνεται η ταυτοποίηση με το λογαριασμό σας...',
+    onboarding_title: 'Καλώς ήρθατε στην παρέα μας! 🚀',
+    onboarding_desc: 'Το Budget Assistant σας βοηθάει να διαχειρίζεστε τα χρήματα της οικογενείας εύκολα και απλά. Διαλέξτε πώς θέλετε να ξεκινήσουμε:',
+    onboarding_demo_title: 'Δείτε πώς λειτουργεί (Δοκιμαστικά δεδομένα)',
+    onboarding_demo_desc: 'Θα γεμίσουμε την εφαρμογή με μερικά τυπικά έξοδα (σουπερμάρκετ, λογαριασμούς) για να δείτε αμέσως τα γραφήματα και τις αναλύσεις.',
+    onboarding_add_title: 'Καταχωρήστε το πρώτο σας έξοδο ή έσοδο',
+    onboarding_add_desc: 'Ξεκινήστε να γράφετε τα δικά σας καθημερινά έξοδα από το μηδέν.',
+    onboarding_guide_title: 'Μάθετε τα βασικά (Οδηγός)',
+    onboarding_guide_desc: 'Δείτε σε 1 λεπτό πώς να καταγράφετε έξοδα, πώς να συνδέσετε τον/την σύντροφό σας και πώς να ρωτάτε τον ψηφιακό βοηθό.',
+    onboarding_skip: 'Θέλω να εξερευνήσω μόνος μου',
+    demo_clear_btn: 'Καθαρισμός δοκιμαστικών δεδομένων',
     modal_sync_title: 'Συγχρονισμός',
     family_management_title: 'Διαχείριση Οικογένειας',
     create_family_btn: 'Δημιουργία Οικογένειας',
@@ -524,7 +592,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v561 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v601 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -580,7 +648,6 @@ const TRANSLATIONS = {
     photo_all: 'Όλες οι συναλλαγές',
     photo_with: 'Με απόδειξη',
     photo_without: 'Χωρίς απόδειξη',
-    settings_account_legal_title: 'ℹ️ Λογαριασμός & Νομικά',
     btn_manage: 'Διαχείριση',
     btn_set: 'Ορισμός',
     date_picker_title: 'Ορισμός ημερομηνίας και ώρας',
@@ -654,7 +721,7 @@ const TRANSLATIONS = {
     cloud_sync_local: 'Συγχρονισμός Cloud: Τοπικός',
     subcategories_title: 'Υποκατηγορίες',
     btn_undo: 'Αναίρεση',
-    item_manage_categories: '🏷️ Διαχείριση Κατηγοριών'
+    item_manage_categories: 'Διαχείριση Κατηγοριών'
   },
   en: {
     nav_trans: 'Transactions',
@@ -663,10 +730,54 @@ const TRANSLATIONS = {
     nav_more: 'More',
     section_data_mgmt: 'Data Management',
     section_settings: 'Settings',
-    settings_pref_title: '⚙️ App Preferences',
-    settings_data_title: '☁️ Data & Sync',
-    settings_family_title: '👥 Family Management',
-    settings_feedback_title: '💬 Feedback & Rating',
+    settings_pref_title: 'App Preferences',
+    settings_data_title: 'Data & Sync',
+    settings_family_title: 'Family Management',
+    settings_feedback_title: 'Feedback & Rating',
+    settings_account_legal_title: 'Account & Legal',
+    settings_preferences_option: 'Preferences',
+    settings_preferences_desc: 'Theme, currency, month start, PIN lock',
+    settings_pref_desc: 'Theme, Currency, PIN Lock, Notes',
+    settings_recurring_option: 'Recurring',
+    settings_recurring_desc: 'Manage recurring transactions',
+    settings_categories_option: 'Categories',
+    settings_categories_desc: 'Manage categories and subcategories',
+    settings_trash_option: 'Trash Bin',
+    settings_trash_desc: 'View and restore deleted items',
+    settings_sync_option: 'Sync & Cloud',
+    settings_sync_desc: 'Cloud settings, Excel import & export',
+    settings_data_desc: 'Cloud Sync, Excel Import & Export',
+    settings_family_option: 'Family',
+    settings_family_desc: 'Connect with partner / family members',
+    settings_feedback_option: 'Feedback & Rating',
+    settings_feedback_desc: 'Rate the app and send suggestions',
+    settings_legal_option: 'Account & Legal',
+    settings_legal_desc: 'Version info, privacy policy, logout',
+    notes_manager_title: 'Notes & Checklists',
+    notes_manager_search: 'Search notes...',
+    notes_manager_add: 'New Note',
+    legal_app_update: 'Check Update',
+    legal_privacy: 'Privacy Policy',
+    legal_logout: 'Log Out',
+    legal_app_version: 'Version',
+    pref_app_lock: 'PIN Lock',
+    pref_autocomplete: 'Smart Autocomplete',
+    pref_note_shortcut: 'FAB Note Shortcut',
+    notification_center_title: 'Notifications',
+    btn_clear_all: 'Clear All',
+    item_daily_reminder: 'Daily Reminder',
+    item_daily_reminder_time: 'Reminder Time',
+    item_recurring_alerts: 'Recurring Alerts',
+    no_notifications: 'No notifications.',
+    pref_theme: 'Theme',
+    pref_theme_dark: 'Dark',
+    pref_theme_light: 'Light',
+    pref_theme_auto: 'System',
+    pref_currency: 'Currency',
+    pref_month_start: 'Month Start',
+    pref_week_start: 'Week Start',
+    pref_week_start_mon: 'Monday',
+    pref_week_start_sun: 'Sunday',
     card_sync: 'Sync',
     card_import_excel: 'Import Excel',
     card_export_excel: 'Export Excel',
@@ -756,6 +867,16 @@ const TRANSLATIONS = {
     auth_signup_success: '🎉 Registration completed! Check your email for the confirmation link.',
     auth_loading_title: 'Signing in',
     auth_loading_desc: 'Please wait while we complete the authentication with your account...',
+    onboarding_title: 'Welcome! 🚀',
+    onboarding_desc: 'Get started with **Budget Assistant**! Choose an action to bring your dashboard to life:',
+    onboarding_demo_title: 'Add Sample Data',
+    onboarding_demo_desc: 'Fill the app with 10 realistic transactions to see charts and reports instantly.',
+    onboarding_add_title: 'Add First Transaction',
+    onboarding_add_desc: 'Manually register an expense or income to start from scratch.',
+    onboarding_guide_title: 'Quick Tour',
+    onboarding_guide_desc: 'Learn about the 3 core features of the app in a fast interactive guide.',
+    onboarding_skip: 'Skip Walkthrough',
+    demo_clear_btn: 'Delete Demo Data',
     modal_sync_title: 'Cloud Sync',
     family_management_title: 'Family Management',
     create_family_btn: 'Create Family Group',
@@ -841,7 +962,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v561 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v601 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -897,7 +1018,6 @@ const TRANSLATIONS = {
     photo_all: 'All transactions',
     photo_with: 'With receipt',
     photo_without: 'Without receipt',
-    settings_account_legal_title: 'ℹ️ Account & Legal',
     btn_manage: 'Manage',
     btn_set: 'Set',
     date_picker_title: 'Set Date and Time',
@@ -971,7 +1091,7 @@ const TRANSLATIONS = {
     cloud_sync_local: 'Cloud Sync: Local Mode',
     subcategories_title: 'Subcategories',
     btn_undo: 'Undo',
-    item_manage_categories: '🏷️ Manage Categories'
+    item_manage_categories: 'Manage Categories'
   }
 };
 
@@ -1124,6 +1244,13 @@ function applyLanguage(lang) {
     const translation = TRANSLATIONS[lang][key];
     if (translation) el.title = translation;
   });
+
+  // Update settings subscreen title if active
+  const titleEl = document.getElementById('settings-subscreen-title');
+  if (titleEl && window._currentSettingsSubscreenTitleKey) {
+    const titleKey = window._currentSettingsSubscreenTitleKey;
+    titleEl.textContent = (TRANSLATIONS[lang] && TRANSLATIONS[lang][titleKey]) || titleKey;
+  }
 
   // Update Language Settings UI value
   const langValEl = document.getElementById('lang-setting-val');
@@ -1718,6 +1845,304 @@ function resolveCategoryInfo(rawCategory, transType) {
 }
 
 // ============================================================
+// NOTIFICATION CENTER & LOCAL NOTIFICATIONS
+// ============================================================
+function uuidToNotificationId(uuid) {
+  if (!uuid) return 1;
+  let hash = 0;
+  for (let i = 0; i < uuid.length; i++) {
+    hash = uuid.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return Math.abs(hash & 0x7FFFFFFF);
+}
+
+function loadNotifications() {
+  try {
+    const stored = localStorage.getItem('state_notifications');
+    state.notifications = stored ? JSON.parse(stored) : [];
+  } catch (err) {
+    console.warn('Failed to load notifications from localStorage', err);
+    state.notifications = [];
+  }
+  updateNotificationBadge();
+}
+
+function saveNotifications() {
+  try {
+    localStorage.setItem('state_notifications', JSON.stringify(state.notifications));
+  } catch (err) {
+    console.warn('Failed to save notifications to localStorage', err);
+  }
+}
+
+function updateNotificationBadge() {
+  const badge = document.getElementById('header-notification-badge');
+  if (badge) {
+    const hasUnread = state.notifications && state.notifications.some(n => !n.read);
+    badge.style.display = hasUnread ? 'block' : 'none';
+  }
+}
+
+function addInAppNotification(title, body, action = null) {
+  state.notifications = state.notifications || [];
+  const notif = {
+    id: generateUUID(),
+    title: title,
+    body: body,
+    action: action,
+    read: false,
+    timestamp: new Date().toISOString()
+  };
+  state.notifications.unshift(notif);
+  if (state.notifications.length > 50) {
+    state.notifications = state.notifications.slice(0, 50);
+  }
+  saveNotifications();
+  updateNotificationBadge();
+  if (document.getElementById('notification-modal') && document.getElementById('notification-modal').classList.contains('active')) {
+    renderNotificationList();
+  }
+}
+
+function openNotificationCenterModal() {
+  if (state.notifications) {
+    state.notifications.forEach(n => n.read = true);
+  }
+  saveNotifications();
+  updateNotificationBadge();
+  renderNotificationList();
+  openModal('notification-modal');
+}
+
+function renderNotificationList() {
+  const listEl = document.getElementById('notification-list');
+  if (!listEl) return;
+  listEl.innerHTML = '';
+  if (!state.notifications || state.notifications.length === 0) {
+    listEl.innerHTML = `
+      <div class="empty-notifications">
+        <div style="font-size: 40px; margin-bottom: 12px; filter: grayscale(1);">🔔</div>
+        <div>${state.lang === 'el' ? 'Δεν υπάρχουν ειδοποιήσεις.' : 'No notifications.'}</div>
+      </div>
+    `;
+    return;
+  }
+  state.notifications.forEach(notif => {
+    const card = document.createElement('div');
+    card.className = `notification-card${notif.read ? ' read' : ''}`;
+    if (notif.action) {
+      card.classList.add('clickable');
+    }
+    const formattedTime = new Date(notif.timestamp).toLocaleString(state.lang === 'el' ? 'el-GR' : 'en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+    card.innerHTML = `
+      <div class="notification-header">
+        <span class="notification-title">${escapeHtml(notif.title)}</span>
+        <span class="notification-time">${formattedTime}</span>
+      </div>
+      <div class="notification-body">${escapeHtml(notif.body)}</div>
+    `;
+    if (notif.action) {
+      card.addEventListener('click', () => {
+        handleNotificationAction(notif.action);
+        closeModal('notification-modal');
+      });
+    }
+    listEl.appendChild(card);
+  });
+}
+
+function clearNotifications() {
+  state.notifications = [];
+  saveNotifications();
+  updateNotificationBadge();
+  renderNotificationList();
+}
+
+function handleNotificationAction(action) {
+  if (!action) return;
+  if (action.type === 'open_note' && action.noteId) {
+    openNoteEditor(action.noteId);
+  } else if (action.type === 'open_transactions') {
+    const transTabBtn = document.querySelector('[data-tab="transactions"]');
+    if (transTabBtn) transTabBtn.click();
+  } else if (action.type === 'open_analytics') {
+    const analyticsTabBtn = document.querySelector('[data-tab="analytics"]');
+    if (analyticsTabBtn) analyticsTabBtn.click();
+  }
+}
+
+function handleIncomingLocalNotification(notification) {
+  if (!notification) return;
+  const title = notification.title || (state.lang === 'el' ? 'Ειδοποίηση' : 'Notification');
+  const body = notification.body || '';
+  const extra = notification.extra || null;
+  let action = null;
+  if (extra) {
+    if (extra.type === 'note_reminder' && extra.noteId) {
+      action = { type: 'open_note', noteId: extra.noteId };
+    } else if (extra.type === 'daily_reminder') {
+      action = { type: 'open_transactions' };
+    } else if (extra.type === 'recurring_alert') {
+      action = { type: 'open_transactions' };
+    }
+  }
+  addInAppNotification(title, body, action);
+}
+
+async function scheduleDailyReminder(enabled, timeString) {
+  if (!window.Capacitor || !window.Capacitor.Plugins || !window.Capacitor.Plugins.LocalNotifications) {
+    return;
+  }
+  const LocalNotifications = window.Capacitor.Plugins.LocalNotifications;
+  try {
+    await LocalNotifications.cancel({ notifications: [{ id: 9999 }] });
+    if (!enabled) return;
+    const perm = await LocalNotifications.requestPermissions();
+    if (perm.display !== 'granted') {
+      console.warn('Notification permission denied');
+      return;
+    }
+    const [hours, minutes] = timeString.split(':').map(Number);
+    await LocalNotifications.schedule({
+      notifications: [
+        {
+          id: 9999,
+          title: state.lang === 'el' ? 'Καταγραφή Εξόδων' : 'Log Expenses',
+          body: state.lang === 'el' ? 'Έχεις καταγράψει τα σημερινά έξοδά σου;' : 'Have you logged today\'s expenses?',
+          schedule: {
+            on: {
+              hour: hours,
+              minute: minutes
+            },
+            repeats: true,
+            allowWhileIdle: true
+          },
+          sound: null,
+          attachments: null,
+          actionTypeId: '',
+          extra: {
+            type: 'daily_reminder'
+          }
+        }
+      ]
+    });
+    console.log(`Daily reminder scheduled successfully for ${timeString}`);
+  } catch (err) {
+    console.error('Error scheduling daily reminder:', err);
+  }
+}
+
+async function scheduleNoteReminder(note) {
+  const notificationId = uuidToNotificationId(note.id);
+  if (!window.Capacitor || !window.Capacitor.Plugins || !window.Capacitor.Plugins.LocalNotifications) {
+    cancelNoteReminder(note.id);
+    if (note.reminder_at) {
+      const ms = new Date(note.reminder_at).getTime() - Date.now();
+      if (ms > 0) {
+        window._activeNoteReminders = window._activeNoteReminders || {};
+        window._activeNoteReminders[note.id] = setTimeout(() => {
+          const title = state.lang === 'el' ? 'Υπενθύμιση Σημείωσης' : 'Note Reminder';
+          addInAppNotification(title, note.title, { type: 'open_note', noteId: note.id });
+          showToast(`${title}: ${note.title}`, 'info');
+        }, ms);
+      }
+    }
+    return;
+  }
+  const LocalNotifications = window.Capacitor.Plugins.LocalNotifications;
+  try {
+    await LocalNotifications.cancel({ notifications: [{ id: notificationId }] });
+    if (!note.reminder_at) return;
+    const reminderTime = new Date(note.reminder_at);
+    if (reminderTime.getTime() <= Date.now()) return;
+    const perm = await LocalNotifications.requestPermissions();
+    if (perm.display !== 'granted') return;
+    await LocalNotifications.schedule({
+      notifications: [
+        {
+          id: notificationId,
+          title: state.lang === 'el' ? 'Υπενθύμιση Σημείωσης' : 'Note Reminder',
+          body: note.title,
+          schedule: { at: reminderTime },
+          sound: null,
+          attachments: null,
+          actionTypeId: '',
+          extra: {
+            type: 'note_reminder',
+            noteId: note.id
+          }
+        }
+      ]
+    });
+    console.log(`Scheduled note reminder for note ${note.id} at ${note.reminder_at}`);
+  } catch (err) {
+    console.error('Error scheduling local notification:', err);
+  }
+}
+
+async function cancelNoteReminder(noteId) {
+  const notificationId = uuidToNotificationId(noteId);
+  if (window._activeNoteReminders && window._activeNoteReminders[noteId]) {
+    clearTimeout(window._activeNoteReminders[noteId]);
+    delete window._activeNoteReminders[noteId];
+  }
+  if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.LocalNotifications) {
+    try {
+      await window.Capacitor.Plugins.LocalNotifications.cancel({ notifications: [{ id: notificationId }] });
+    } catch (err) {
+      console.warn('Failed to cancel local notification:', err);
+    }
+  }
+}
+
+async function initLocalNotifications() {
+  if (!window.Capacitor || !window.Capacitor.Plugins || !window.Capacitor.Plugins.LocalNotifications) {
+    return;
+  }
+  const LocalNotifications = window.Capacitor.Plugins.LocalNotifications;
+  try {
+    const enabled = localStorage.getItem('settings_daily_reminder_enabled') === 'true';
+    if (enabled) {
+      const perm = await LocalNotifications.requestPermissions();
+      if (perm.display === 'granted') {
+        const timeVal = localStorage.getItem('settings_daily_reminder_time') || '21:00';
+        scheduleDailyReminder(true, timeVal);
+      }
+    }
+    await LocalNotifications.addListener('localNotificationReceived', (notification) => {
+      console.log('Local notification received:', notification);
+      handleIncomingLocalNotification(notification);
+    });
+    await LocalNotifications.addListener('localNotificationActionPerformed', (action) => {
+      console.log('Local notification action performed:', action);
+      if (action.notification) {
+        handleIncomingLocalNotification(action.notification);
+        if (action.notification.extra && action.notification.extra.type === 'note_reminder') {
+          const noteId = action.notification.extra.noteId;
+          if (noteId) {
+            setTimeout(() => {
+              openNoteEditor(noteId);
+            }, 500);
+          }
+        }
+      }
+    });
+    console.log('Capacitor Local Notifications listeners registered');
+  } catch (err) {
+    console.error('Failed to initialize Capacitor Local Notifications:', err);
+  }
+}
+
+// Bind to window for HTML accessibility
+window.openNotificationCenterModal = openNotificationCenterModal;
+window.clearNotifications = clearNotifications;
+
+// ============================================================
 // INIT
 // ============================================================
 window.addEventListener('DOMContentLoaded', async () => {
@@ -1774,6 +2199,24 @@ window.addEventListener('DOMContentLoaded', async () => {
   // Run immediately on DOM ready
   forceCloseAllModals();
 
+  // Set initial scroll isolation class for default trans tab
+  document.body.classList.add('trans-tab-active');
+  loadConfig();
+  initSettingsFromStorage();
+  loadNotifications();
+  initLocalNotifications();
+  initSupabase();
+  setupEventListeners();
+  initPullToRefresh();
+  initSwipeToBack();
+  initTabSwipeNavigation();
+  initRippleEffects();
+  initLightboxPinchZoom();
+  
+  // ALWAYS load cached local data immediately so the UI is never blank on refresh.
+  // If Supabase is enabled, onAuthStateChange will call loadData() again with fresh cloud data.
+  loadOfflineData();
+
   // CRITICAL: Also run on pageshow — this fires for bfcache restores
   // (e.g. after Google OAuth redirect on iOS), unlike DOMContentLoaded
   window.addEventListener('pageshow', function(event) {
@@ -1786,128 +2229,66 @@ window.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  // Set initial scroll isolation class for default trans tab
-  document.body.classList.add('trans-tab-active');
-  loadConfig();
-  initSettingsFromStorage();
-  initSupabase();
-  setupEventListeners();
-  initPullToRefresh();
-  initSwipeToBack();
-  initTabSwipeNavigation();
-  initRippleEffects();
-  initLightboxPinchZoom();
-  
-  // ALWAYS load cached local data immediately so the UI is never blank on refresh.
-  // If Supabase is enabled, onAuthStateChange will call loadData() again with fresh cloud data.
-  loadOfflineData();
-  
-  // Restore active tab from localStorage if it exists
-  const savedTab = localStorage.getItem('active_tab');
-  if (savedTab && ['trans', 'stats', 'accounts', 'more'].includes(savedTab) && savedTab !== 'trans') {
-    switchTab(savedTab, true);
+  // If the device is offline, bypass Supabase auth and render local cached data immediately.
+  // supabase.js now loads locally so !state.supabaseClient alone is not reliable.
+  // navigator.onLine gives us the actual network state.
+  const isOffline = !navigator.onLine;
+  if (isOffline || !state.supabaseClient) {
+    const hasCachedUser = localStorage.getItem('cached_current_user');
+    const isGuestMode = localStorage.getItem('auth_guest_mode') === 'true';
+    const authOverlay = document.getElementById('auth-overlay');
+    
+    if (hasCachedUser || isGuestMode) {
+      if (authOverlay) authOverlay.style.display = 'none';
+      if (hasCachedUser) {
+        try { state.currentUser = JSON.parse(hasCachedUser); } catch (e) {}
+      }
+      if (isGuestMode) state.guestMode = true;
+    } else {
+      // No cached session — show login so user can pick "Continue as Guest"
+      const formsContainer = document.getElementById('auth-forms-container');
+      const authCard = document.getElementById('auth-card');
+      const loadingState = document.getElementById('auth-loading-state');
+      if (authOverlay) authOverlay.style.display = 'flex';
+      if (formsContainer) formsContainer.style.display = 'block';
+      if (authCard) authCard.style.display = 'flex';
+      if (loadingState) loadingState.style.display = 'none';
+      const earlyStyle = document.getElementById('early-auth-style');
+      if (earlyStyle) earlyStyle.remove();
+    }
+    updateUI();
   }
 
-  // Restore selected month and year from localStorage if they exist
-  const savedMonth = localStorage.getItem('selected_month');
-  const savedYear = localStorage.getItem('selected_year');
-  if (savedMonth !== null) {
-    state.selectedMonth = parseInt(savedMonth, 10);
-  }
-  if (savedYear !== null) {
-    state.selectedYear = parseInt(savedYear, 10);
-  }
-
-  // Define modal restoration helper globally so it can be re-run on iOS pageshow (bfcache restore)
   function restoreActiveModalsFromStorage() {
     try {
+      // If not logged in and not in guest mode, do not restore modals!
+      if (!state.currentUser && !state.guestMode) {
+        localStorage.removeItem('bg_active_modal_id');
+        localStorage.removeItem('bg_active_modal_tx_id');
+        localStorage.removeItem('bg_active_subcat_txs');
+        localStorage.removeItem('bg_modal_scroll_top');
+        return;
+      }
+      
       const activeModalId = localStorage.getItem('bg_active_modal_id');
       if (activeModalId) {
         const currentlyActive = document.querySelector('.modal-overlay.active, .tx-modal-overlay.active, .profile-sheet-overlay.active');
-        if (currentlyActive && currentlyActive.id === activeModalId) {
-          // Modal is already correctly open — keep bg_active_modal_id so future backgrounds still restore
-          return;
-        }
+        if (currentlyActive && currentlyActive.id === activeModalId) return;
         if (activeModalId === 'transaction-modal') {
           const txId = localStorage.getItem('bg_active_modal_tx_id');
           if (txId) {
             const t = state.transactions.find(item => String(item.id) === String(txId));
-            if (t) {
-              openEditTransactionModal(t, { instant: true });
-              // Restore scroll position after a short delay
-              setTimeout(() => {
-                const bgScrollTop = localStorage.getItem('bg_modal_scroll_top');
-                if (bgScrollTop !== null) {
-                  const modalBody = document.querySelector('#transaction-modal .modal-body');
-                  if (modalBody) {
-                    modalBody.scrollTop = parseInt(bgScrollTop, 10);
-                  }
-                }
-                localStorage.removeItem('bg_modal_scroll_top');
-              }, 100);
-            }
+            if (t) openEditTransactionModal(t, { instant: true });
           } else {
             openAddTransactionModal({ instant: true });
           }
-        } else if (activeModalId === 'stats-transactions-modal') {
-          const subcatDataStr = localStorage.getItem('bg_active_subcat_txs');
-          if (subcatDataStr) {
-            const subcatData = JSON.parse(subcatDataStr);
-            if (subcatData && subcatData.category) {
-              state.activeSubcategoryTransactions = subcatData;
-              renderSubcategoryTransactions(subcatData.category, subcatData.subcategory);
-              // Restore scroll position after a short delay
-              setTimeout(() => {
-                const bgScrollTop = localStorage.getItem('bg_modal_scroll_top');
-                if (bgScrollTop !== null) {
-                  const modalBody = document.querySelector('#stats-transactions-modal .modal-body');
-                  if (modalBody) {
-                    modalBody.scrollTop = parseInt(bgScrollTop, 10);
-                  }
-                }
-                localStorage.removeItem('bg_modal_scroll_top');
-              }, 100);
-            }
-          }
         } else if (activeModalId === 'advisor-chat-modal') {
           openAdvisorChat();
-          setTimeout(() => {
-            const bgScrollTop = localStorage.getItem('bg_modal_scroll_top');
-            if (bgScrollTop !== null) {
-              const modalBody = document.getElementById('advisor-chat-log');
-              if (modalBody) {
-                modalBody.scrollTop = parseInt(bgScrollTop, 10);
-              }
-            }
-            localStorage.removeItem('bg_modal_scroll_top');
-          }, 100);
         } else if (activeModalId === 'profile-settings-modal') {
           openProfileSheet();
-          setTimeout(() => {
-            const bgScrollTop = localStorage.getItem('bg_modal_scroll_top');
-            if (bgScrollTop !== null) {
-              const modalBody = document.querySelector('#profile-settings-modal .modal-body');
-              if (modalBody) {
-                modalBody.scrollTop = parseInt(bgScrollTop, 10);
-              }
-            }
-            localStorage.removeItem('bg_modal_scroll_top');
-          }, 100);
         } else {
           openModal(activeModalId, { instant: true });
-          setTimeout(() => {
-            const bgScrollTop = localStorage.getItem('bg_modal_scroll_top');
-            if (bgScrollTop !== null) {
-              const modalBody = document.querySelector(`#${activeModalId} .modal-body`);
-              if (modalBody) {
-                modalBody.scrollTop = parseInt(bgScrollTop, 10);
-              }
-            }
-            localStorage.removeItem('bg_modal_scroll_top');
-          }, 100);
         }
-        // NOTE: Do NOT remove bg_active_modal_id here — it stays until closeModal() removes it.
-        // This way, if the user backgrounds the app again immediately, we can still restore.
         localStorage.removeItem('bg_active_modal_tx_id');
         localStorage.removeItem('bg_active_subcat_txs');
       }
@@ -1964,9 +2345,32 @@ window.addEventListener('DOMContentLoaded', async () => {
   
   updateHeaderProfileBadge();
   
-  // If Supabase client is NOT initialized, we are in pure local mode — done.
-  // If it IS initialized, onAuthStateChange (in initSupabaseAuth) will fire and
-  // call loadData() which fetches fresh data from cloud and overwrites the cache.
+  // If device is offline, bypass Supabase auth and render cached data immediately.
+  // supabase.js is now bundled locally so !state.supabaseClient is no longer reliable.
+  // navigator.onLine gives the real network state.
+  if (!navigator.onLine || !state.supabaseClient) {
+    const hasCachedUser = localStorage.getItem('cached_current_user');
+    const isGuestMode = localStorage.getItem('auth_guest_mode') === 'true';
+    const authOverlay = document.getElementById('auth-overlay');
+    if (hasCachedUser || isGuestMode) {
+      if (authOverlay) authOverlay.style.display = 'none';
+      if (hasCachedUser) {
+        try { state.currentUser = JSON.parse(hasCachedUser); } catch (e) {}
+      }
+      if (isGuestMode) state.guestMode = true;
+    } else {
+      const formsContainer = document.getElementById('auth-forms-container');
+      const authCard = document.getElementById('auth-card');
+      const loadingState = document.getElementById('auth-loading-state');
+      if (authOverlay) authOverlay.style.display = 'flex';
+      if (formsContainer) formsContainer.style.display = 'block';
+      if (authCard) authCard.style.display = 'flex';
+      if (loadingState) loadingState.style.display = 'none';
+      const earlyStyle = document.getElementById('early-auth-style');
+      if (earlyStyle) earlyStyle.remove();
+    }
+    updateUI();
+  }
   
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('trans-date').value = today;
@@ -2148,10 +2552,6 @@ function initSupabaseAuth() {
   const formsContainer = document.getElementById('auth-forms-container');
   const authCard = document.getElementById('auth-card');
 
-  // Remove early style to allow JS style control
-  const earlyStyle = document.getElementById('early-auth-style');
-  if (earlyStyle) earlyStyle.remove();
-
   function toggleLoader(show) {
     if (show) {
       if (loadingState) loadingState.style.display = 'flex';
@@ -2181,6 +2581,8 @@ function initSupabaseAuth() {
       }
     }, 6000);
   }
+
+  // We delay early style removal until session verification is fully resolved to prevent background page flashing.
 
   if (hashStr.includes('error=') || searchStr.includes('error=')) {
     const rawParams = hashStr.includes('error=') ? hashStr.substring(1) : searchStr.substring(1);
@@ -2232,16 +2634,28 @@ function initSupabaseAuth() {
       toggleLoader(false);
       if (formsContainer) formsContainer.style.display = 'block';
       showAuthStatus('❌ Σφάλμα ταυτοποίησης: ' + (error.message || error));
+      const earlyStyle = document.getElementById('early-auth-style');
+      if (earlyStyle) earlyStyle.remove();
     } else {
       logAuthDebug(`getSession resolved. Session exists: ${!!(data && data.session)}`);
       if (data && data.session && (window.location.hash || window.location.search)) {
         window.history.replaceState(null, null, window.location.pathname);
       }
       if (!data || !data.session) {
-        // No session exists, stop showing loader and show the login form
-        processingRedirect = false;
-        toggleLoader(false);
-        if (formsContainer) formsContainer.style.display = 'block';
+        // Only show login forms if onAuthStateChange hasn't already logged us in
+        if (!state.currentUser) {
+          const alreadyShowing = authOverlay && authOverlay.style.display === 'flex' && formsContainer && formsContainer.style.display === 'block';
+          if (!alreadyShowing) {
+            processingRedirect = false;
+            toggleLoader(false);
+            if (formsContainer) formsContainer.style.display = 'block';
+            const earlyStyle = document.getElementById('early-auth-style');
+            if (earlyStyle) earlyStyle.remove();
+            
+            const emailInput = document.getElementById('auth-email');
+            if (emailInput && !emailInput.value) setTimeout(() => { emailInput.focus(); }, 150);
+          }
+        }
       } else if (data.session && data.session.user) {
         // Fallback for browsers where INITIAL_SESSION event may be delayed/missed
         state.currentUser = data.session.user;
@@ -2256,12 +2670,19 @@ function initSupabaseAuth() {
     toggleLoader(false);
     if (formsContainer) formsContainer.style.display = 'block';
     showAuthStatus('❌ Σφάλμα ταυτοποίησης: ' + (err.message || err));
+    const earlyStyle = document.getElementById('early-auth-style');
+    if (earlyStyle) earlyStyle.remove();
   });
 
   logAuthDebug('Subscribing to onAuthStateChange...');
   state.supabaseClient.auth.onAuthStateChange(async (event, session) => {
     logAuthDebug(`Auth Event Fired: ${event}, Session: ${!!session}`);
     console.log('Supabase Auth Event:', event, session);
+    
+    if (state.isLoggingOut) {
+      logAuthDebug('Sign-out in progress, ignoring auth state change.');
+      return;
+    }
     
     if (session && session.user) {
       processingRedirect = false;
@@ -2300,6 +2721,9 @@ function initSupabaseAuth() {
       }
       
       // Hide auth overlay & reset elements
+      const earlyStyle = document.getElementById('early-auth-style');
+      if (earlyStyle) earlyStyle.remove();
+      
       if (authOverlay) {
         // Prevent click penetration (ghost clicks) to elements underneath (like the FAB button)
         authOverlay.style.pointerEvents = 'none';
@@ -2308,11 +2732,15 @@ function initSupabaseAuth() {
           authOverlay.style.display = 'none';
           authOverlay.style.pointerEvents = '';
           document.body.style.pointerEvents = '';
+          // Reset loader & forms state only after the overlay is completely hidden
+          toggleLoader(false);
+          if (formsContainer) formsContainer.style.display = 'block';
           forceViewportReset();
         }, 350);
+      } else {
+        toggleLoader(false);
+        if (formsContainer) formsContainer.style.display = 'block';
       }
-      toggleLoader(false);
-      if (formsContainer) formsContainer.style.display = 'block';
       // Modals should NOT be force-closed here since we want to restore them on resume/boot
       // if (typeof window.forceCloseAllModals === 'function') window.forceCloseAllModals();
       
@@ -2334,12 +2762,11 @@ function initSupabaseAuth() {
       // The email is displayed in the profile-user-email element instead.
       
       // Apply correct visual transformation theme.
-      // NOTE: We intentionally do NOT call updateUI() here with cached data
-      // because it would show stale numbers that then jump when cloud data
-      // arrives (the "fairground" effect). The single authoritative updateUI()
-      // call happens after loadData() completes below.
+      // Call updateUI() immediately to display cached transactions on startup
+      // instead of leaving the app blank while fetching fresh data from the cloud.
       applyWalletTheme();
       renderPartnerSection();
+      updateUI();
 
       // Trigger background updates and data loading asynchronously
       (async () => {
@@ -2406,6 +2833,9 @@ function initSupabaseAuth() {
       if (localStorage.getItem('auth_guest_mode') === 'true') {
         state.guestMode = true;
         
+        const earlyStyle = document.getElementById('early-auth-style');
+        if (earlyStyle) earlyStyle.remove();
+        
         // Hide auth overlay & reset elements
         if (authOverlay) {
           // Prevent click penetration (ghost clicks) to elements underneath (like the FAB button)
@@ -2433,16 +2863,26 @@ function initSupabaseAuth() {
         updateUI();
         renderPartnerSection();
       } else {
-        // If we are currently processing a redirect, do not show the forms container yet
-        if (processingRedirect) {
-          if (authOverlay) authOverlay.style.display = 'flex';
-          toggleLoader(true);
-          if (formsContainer) formsContainer.style.display = 'none';
-        } else {
-          // Show auth overlay normally
-          if (authOverlay) authOverlay.style.display = 'flex';
-          toggleLoader(false);
-          if (formsContainer) formsContainer.style.display = 'block';
+        const alreadyShowing = authOverlay && authOverlay.style.display === 'flex' && formsContainer && formsContainer.style.display === 'block';
+        
+        if (!alreadyShowing) {
+          // If we are currently processing a redirect, do not show the forms container yet
+          if (processingRedirect) {
+            if (authOverlay) authOverlay.style.display = 'flex';
+            toggleLoader(true);
+            if (formsContainer) formsContainer.style.display = 'none';
+          } else {
+            // Show auth overlay normally
+            if (authOverlay) authOverlay.style.display = 'flex';
+            toggleLoader(false);
+            if (formsContainer) formsContainer.style.display = 'block';
+          }
+          
+          const earlyStyle = document.getElementById('early-auth-style');
+          if (earlyStyle) earlyStyle.remove();
+          
+          const emailInput = document.getElementById('auth-email');
+          if (emailInput && !emailInput.value) setTimeout(() => { emailInput.focus(); }, 150);
         }
         
         // Hide switcher
@@ -3675,7 +4115,6 @@ function loadOfflineData() {
   try {
     const temps = localStorage.getItem('recurring_templates');
     state.recurringTemplates = temps ? JSON.parse(temps) : [];
-    cleanupAccidentalTemplates();
   } catch (e) {
     console.error('Failed to parse recurring templates:', e);
     state.recurringTemplates = [];
@@ -3694,6 +4133,13 @@ function loadOfflineData() {
     console.error('Failed to parse deleted transactions trash:', e);
     state.trashTransactions = [];
   }
+  try {
+    const notifs = localStorage.getItem('money_manager_notifications');
+    state.notifications = notifs ? JSON.parse(notifs) : [];
+  } catch (e) {
+    console.error('Failed to parse notifications:', e);
+    state.notifications = [];
+  }
   
   loadNotes();
   
@@ -3702,77 +4148,7 @@ function loadOfflineData() {
   cleanDuplicateCategories().catch(e => console.warn('Offline automatic categories cleanup error:', e));
 }
 
-function cleanupAccidentalTemplates() {
-  const migrationDone = localStorage.getItem('recurring_cleanup_done_v524');
-  if (migrationDone) return;
 
-  const allowedKeywords = ['ΔΑΝΕΙ', 'ΑΣΦΑΛΕΙΑ', 'ΕΝΦΙΑ', 'ΕΛΑΣΤΙΚ', 'ΛΑΣΤΙΧ', 'ΣΥΜΠΛΗΡΩΜΑ'];
-  const templatesToKeep = [];
-  const templatesToDelete = [];
-
-  (state.recurringTemplates || []).forEach(t => {
-    const noteUpper = String(t.note || '').toUpperCase()
-      .normalize('NFD').replace(/[\u0300-\u036f]/g, ''); // Remove Greek accents
-    
-    const isAllowed = allowedKeywords.some(kw => noteUpper.includes(kw));
-    if (isAllowed) {
-      templatesToKeep.push(t);
-    } else {
-      templatesToDelete.push(t);
-    }
-  });
-
-  if (templatesToDelete.length === 0) {
-    localStorage.setItem('recurring_cleanup_done_v524', 'true');
-    return;
-  }
-
-  console.log('[MIGRATION] Deleting accidental templates:', templatesToDelete.map(t => t.note));
-
-  // Update templates
-  state.recurringTemplates = templatesToKeep;
-  localStorage.setItem('recurring_templates', JSON.stringify(state.recurringTemplates));
-
-  // Identify generated transactions for the deleted templates
-  const idsToDelete = [];
-  templatesToDelete.forEach(template => {
-    state.transactions = state.transactions.filter(t => {
-      const matchById = String(t.recurring_template_id) === String(template.id);
-      const matchByContent = !t.recurring_template_id &&
-                             (parseFloat(t.amount) || 0).toFixed(2) === (parseFloat(template.amount) || 0).toFixed(2) &&
-                             t.type === template.type &&
-                             t.category === template.category &&
-                             (t.account_from || '') === (template.account_from || '') &&
-                             (t.note || '') === (template.note || '');
-      
-      if (matchById || matchByContent) {
-        idsToDelete.push(t.id);
-        return false;
-      }
-      return true;
-    });
-  });
-
-  localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
-
-  // Delete from Supabase
-  if (idsToDelete.length > 0 && state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
-    console.log('[MIGRATION] Deleting generated occurrences from Cloud:', idsToDelete.length);
-    state.supabaseClient
-      .from('transactions')
-      .delete()
-      .in('id', idsToDelete)
-      .then(({ error }) => {
-        if (error) {
-          console.warn('[MIGRATION] Failed to delete matching transactions from cloud:', error);
-        } else {
-          console.log('[MIGRATION] Successfully deleted matching transactions from cloud.');
-        }
-      });
-  }
-
-  localStorage.setItem('recurring_cleanup_done_v524', 'true');
-}
 
 function processRecurringTemplates() {
   if (!state.recurringTemplates || state.recurringTemplates.length === 0) return;
@@ -4358,6 +4734,16 @@ function _updateUIImpl() {
       scrollToToday('auto');
     }, 300);
   }
+  
+  // Onboarding auto-trigger
+  const authOverlay = document.getElementById('auth-overlay');
+  const isAuthVisible = authOverlay && authOverlay.style.display !== 'none';
+  if (!isAuthVisible && (!state.transactions || state.transactions.length === 0) && !localStorage.getItem('onboarding_welcomed')) {
+    localStorage.setItem('onboarding_welcomed', 'true');
+    setTimeout(() => {
+      openModal('onboarding-modal');
+    }, 800);
+  }
 }
 
 function updateHeaderAndSync() {
@@ -4418,11 +4804,30 @@ function renderTransactionsTab() {
   if (sortedTrans.length === 0) {
     if (listContainer._lastRenderSignature === 'empty') return;
     listContainer._lastRenderSignature = 'empty';
+    
+    const lang = state.lang || 'el';
+    const title = lang === 'el' ? 'Δεν έχετε προσθέσει κάτι ακόμα' : 'No transactions found';
+    const desc = lang === 'el' 
+      ? 'Γράψτε το πρώτο σας έξοδο ή δοκιμάστε την εφαρμογή βάζοντας μερικά έτοιμα παραδείγματα!' 
+      : 'Start tracking your expenses or try the app with sample data!';
+    const addBtnText = lang === 'el' ? '✍️ Γράψτε ένα έξοδο / έσοδο' : '✍️ Add Transaction';
+    const demoBtnText = lang === 'el' ? '📊 Δείτε έτοιμα παραδείγματα' : '📊 Insert Demo Data';
+    
     listContainer.innerHTML = `
-      <div style="text-align:center;padding:60px 20px;color:var(--text-secondary)">
-        <div style="font-size:48px;margin-bottom:16px">📅</div>
-        <h3 style="margin-bottom:8px">Δεν υπάρχουν συναλλαγές</h3>
-        <p style="font-size:12px">Πατήστε + για να προσθέσετε ή εισάγετε Excel από το More menu</p>
+      <div style="text-align:center;padding:60px 20px;color:var(--text-secondary); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;">
+        <div style="font-size:56px;">📅</div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <h3 style="margin: 0; font-family: 'Outfit', sans-serif; font-size: 18px; font-weight: 800; color: var(--text-primary);">${title}</h3>
+          <p style="margin: 0; font-size: 12.5px; max-width: 280px; line-height: 1.4; color: var(--text-secondary);">${desc}</p>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 240px; margin-top: 10px;">
+          <button class="btn btn-primary" onclick="openModal('transaction-modal')" style="padding: 12px; font-size: 13.5px; font-weight: 700; border-radius: 12px; width: 100%;">
+            ${addBtnText}
+          </button>
+          <button class="btn btn-secondary" onclick="onboardingAddDemoData()" style="padding: 12px; font-size: 13.5px; font-weight: 700; border-radius: 12px; width: 100%; border: 1px dashed var(--accent); color: var(--accent); background: rgba(124,106,247,0.04);">
+            ${demoBtnText}
+          </button>
+        </div>
       </div>`;
     return;
   }
@@ -4601,12 +5006,12 @@ function renderTransactionsTab() {
         <div class="trans-left">
           <div class="trans-category-container">
             <div class="trans-cat-icon">${catInfo.icon || '💰'}</div>
-            <div class="trans-cat-name">${translatedCat || ''}</div>
-            ${t.subcategory ? `<div class="trans-sub-name">${translatedSub}</div>` : ''}
+            <div class="trans-cat-name">${escapeHtml(translatedCat) || ''}</div>
+            ${t.subcategory ? `<div class="trans-sub-name">${escapeHtml(translatedSub)}</div>` : ''}
           </div>
           <div class="trans-details">
-            <span class="trans-title">${displayTitle}${memberBadge}</span>
-            <span class="trans-acc-label">${accountText}</span>
+            <span class="trans-title">${escapeHtml(displayTitle)}${memberBadge}</span>
+            <span class="trans-acc-label">${escapeHtml(accountText)}</span>
           </div>
         </div>
         <div class="${amountClass}">${getCurrencySymbol()} ${formatCurrency(t.amount)}</div>`;
@@ -4996,7 +5401,15 @@ function renderStatsTab(skipChart = false) {
   const chartCenterVal = document.getElementById('chart-center-val');
 
   if (!displayList.length) {
-    listContainer.innerHTML = `<div style="text-align:center;padding:40px;color:var(--text-secondary)"><h3>Δεν υπάρχουν δεδομένα</h3></div>`;
+    const lang = state.lang || 'el';
+    const noDataText = lang === 'el' ? 'Δεν υπάρχουν στοιχεία ακόμη' : 'No data available';
+    const addTransText = lang === 'el' ? 'Όταν προσθέσετε τα πρώτα σας έξοδα, εδώ θα βλέπετε όμορφες πίτες και αναλύσεις για το πού πηγαίνουν τα χρήματά σας.' : 'Add transactions to view your statistics.';
+    listContainer.innerHTML = `
+      <div style="text-align:center;padding:40px 20px;color:var(--text-secondary); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;">
+        <div style="font-size: 40px;">📊</div>
+        <h3 style="margin: 0; font-family: 'Outfit', sans-serif; font-size: 15px; font-weight: 700; color: var(--text-primary);">${noDataText}</h3>
+        <p style="margin: 0; font-size: 12px; color: var(--text-secondary); max-width: 220px; line-height: 1.4;">${addTransText}</p>
+      </div>`;
     if (!skipChart) {
       if (statsChartInstance) { statsChartInstance.destroy(); statsChartInstance = null; }
       if (chartCenterVal) chartCenterVal.style.display = 'none';
@@ -5344,8 +5757,8 @@ function renderSubcategoryTransactions(category, subcategory) {
           <div class="trans-cat-icon">${catInfo.icon || '💰'}</div>
         </div>
         <div class="trans-details">
-          <span class="trans-title">${displayTitle}${memberBadge}</span>
-          <span class="trans-acc-label">${dateLabel} · ${accountText}</span>
+          <span class="trans-title">${escapeHtml(displayTitle)}${memberBadge}</span>
+          <span class="trans-acc-label">${escapeHtml(dateLabel)} · ${escapeHtml(accountText)}</span>
         </div>
       </div>
       <div class="${amountClass}">${getCurrencySymbol()} ${formatCurrency(t.amount)}</div>`;
@@ -5854,7 +6267,7 @@ function renderAccountsTab() {
           
           return `
             <div class="advisor-trans-row">
-              <span class="advisor-trans-desc">${formattedDate} - ${displayTitle}</span>
+              <span class="advisor-trans-desc">${escapeHtml(formattedDate)} - ${escapeHtml(displayTitle)}</span>
               <span class="advisor-trans-amount">${formatCurrency(t.amount)}</span>
             </div>
           `;
@@ -6337,9 +6750,56 @@ function setupEventListeners() {
   const fabNoteBtn = document.getElementById('fab-note-btn');
   if (fabNoteBtn) {
     fabNoteBtn.addEventListener('click', () => {
+      openNotesManager();
+    });
+  }
+
+  const notesSearchInput = document.getElementById('notes-manager-search-input');
+  if (notesSearchInput) {
+    notesSearchInput.addEventListener('input', () => {
+      renderNotesList();
+    });
+  }
+
+  const notesManagerAddBtn = document.getElementById('notes-manager-add-btn');
+  if (notesManagerAddBtn) {
+    notesManagerAddBtn.addEventListener('click', () => {
       openNoteEditor();
     });
   }
+
+  // More screen hub rows
+  const rowPref = document.getElementById('hub-row-preferences');
+  if (rowPref) rowPref.addEventListener('click', () => openSettingsSubscreen('preferences', 'settings_pref_title'));
+
+  const rowRecurring = document.getElementById('hub-row-recurring');
+  if (rowRecurring) rowRecurring.addEventListener('click', openRecurringTemplatesModal);
+
+  const rowCategories = document.getElementById('hub-row-categories');
+  if (rowCategories) rowCategories.addEventListener('click', openSettingsCategoryManager);
+
+  const rowTrash = document.getElementById('hub-row-trash');
+  if (rowTrash) rowTrash.addEventListener('click', openTrashBinModal);
+
+  const rowSync = document.getElementById('hub-row-sync');
+  if (rowSync) rowSync.addEventListener('click', () => openSettingsSubscreen('sync', 'settings_data_title'));
+
+  const rowFamily = document.getElementById('hub-row-family');
+  if (rowFamily) rowFamily.addEventListener('click', () => openSettingsSubscreen('family', 'settings_family_title'));
+
+  const rowFeedback = document.getElementById('hub-row-feedback');
+  if (rowFeedback) rowFeedback.addEventListener('click', () => openSettingsSubscreen('feedback', 'settings_feedback_title'));
+
+  const rowLegal = document.getElementById('hub-row-legal');
+  if (rowLegal) rowLegal.addEventListener('click', () => openSettingsSubscreen('legal', 'settings_account_legal_title'));
+
+  // Close modals dynamically using data-close-modal attribute
+  document.querySelectorAll('[data-close-modal]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const targetModal = btn.getAttribute('data-close-modal');
+      closeModal(targetModal);
+    });
+  });
 
   document.querySelectorAll('.type-tab-btn').forEach(btn => {
     btn.addEventListener('click', () => setTransactionFormType(btn.getAttribute('data-type')));
@@ -6803,6 +7263,17 @@ function setupEventListeners() {
 
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
+        if (!file.type || !file.type.startsWith('image/')) {
+          const msg = state.lang === 'el' ? 'Παρακαλώ επιλέξτε μόνο εικόνες!' : 'Please select image files only!';
+          window.showAlert(msg, state.lang === 'el' ? 'Σφάλμα' : 'Error', '⚠️');
+          continue;
+        }
+        if (file.size > 5 * 1024 * 1024) {
+          const msg = state.lang === 'el' ? 'Το μέγεθος της εικόνας δεν πρέπει να ξεπερνά τα 5MB!' : 'Image size must not exceed 5MB!';
+          window.showAlert(msg, state.lang === 'el' ? 'Σφάλμα' : 'Error', '⚠️');
+          continue;
+        }
+
         const url = URL.createObjectURL(file);
         _pendingReceiptFiles.push({
           id: Date.now() + '-' + Math.random().toString(36).substr(2, 9),
@@ -6828,6 +7299,17 @@ function setupEventListeners() {
 
         for (let i = 0; i < files.length; i++) {
           const file = files[i];
+          if (!file.type || !file.type.startsWith('image/')) {
+            const msg = state.lang === 'el' ? 'Παρακαλώ επιλέξτε μόνο εικόνες!' : 'Please select image files only!';
+            window.showAlert(msg, state.lang === 'el' ? 'Σφάλμα' : 'Error', '⚠️');
+            continue;
+          }
+          if (file.size > 5 * 1024 * 1024) {
+            const msg = state.lang === 'el' ? 'Το μέγεθος της εικόνας δεν πρέπει να ξεπερνά τα 5MB!' : 'Image size must not exceed 5MB!';
+            window.showAlert(msg, state.lang === 'el' ? 'Σφάλμα' : 'Error', '⚠️');
+            continue;
+          }
+
           const url = URL.createObjectURL(file);
           _pendingReceiptFiles.push({
             id: Date.now() + '-' + Math.random().toString(36).substr(2, 9),
@@ -7465,6 +7947,11 @@ function closeModal(id) {
   if (!el) {
     console.warn('[closeModal] Element not found:', id);
     return;
+  }
+  if (id === 'settings-subscreen-modal') {
+    window._currentSettingsSubscreenTitleKey = null;
+    window._currentSettingsSubscreenId = null;
+    window._settingsSubscreenHistory = [];
   }
   el.classList.remove('active');
   const activeModals = document.querySelectorAll('.modal-overlay.active, .tx-modal-overlay.active, .profile-sheet-overlay.active');
@@ -10971,18 +11458,18 @@ function renderGroupedTransactions(transactions, container) {
                        : (translatedCat || '');
 
     const memberBadge = getMemberBadgeHTML(t);
-
     const datePart = (t.date || '').split('T')[0];
+
     const catSubLine = t.subcategory
-      ? `${catInfo.icon || ''} ${translatedCat}/${translatedSub}`
-      : `${catInfo.icon || ''} ${translatedCat}`;
+      ? `${catInfo.icon || ''} ${escapeHtml(translatedCat)}/${escapeHtml(translatedSub)}`
+      : `${catInfo.icon || ''} ${escapeHtml(translatedCat)}`;
 
     item.innerHTML = `
       <div class="search-item-left">
-        <span class="search-item-date">${datePart}</span>
+        <span class="search-item-date">${escapeHtml(datePart)}</span>
         <div class="search-item-info">
-          <span class="search-item-title">${displayTitle}${memberBadge}</span>
-          <span class="search-item-sub">${catSubLine}&nbsp;&nbsp;${accountText}</span>
+          <span class="search-item-title">${escapeHtml(displayTitle)}${memberBadge}</span>
+          <span class="search-item-sub">${catSubLine}&nbsp;&nbsp;${escapeHtml(accountText)}</span>
         </div>
       </div>
       <div class="${amountClass}">${getCurrencySymbol()} ${formatCurrency(t.amount)}</div>`;
@@ -12745,11 +13232,11 @@ function saveNotes() {
 }
 
 function renderNotesList() {
-  const listEl = document.getElementById('notes-list');
-  const badgeEl = document.getElementById('notes-count-badge');
+  const listEl = document.getElementById('notes-manager-list');
+  const badgeEl = document.getElementById('notes-manager-count-badge');
   if (!listEl) return;
 
-  const query = (document.getElementById('notes-search-input')?.value || '').trim().toLowerCase();
+  const query = (document.getElementById('notes-manager-search-input')?.value || '').trim().toLowerCase();
   
   // Filter notes
   let filtered = state.notes || [];
@@ -13221,6 +13708,7 @@ async function saveNoteFromEditor() {
   }
 
   saveNotes();
+  scheduleNoteReminder(noteObj);
   renderNotesList();
   closeModal('note-editor-modal');
 
@@ -13283,6 +13771,7 @@ function clearNoteEditorReminder() {
 async function deleteNote(noteId) {
   state.notes = state.notes.filter(n => n.id !== noteId);
   saveNotes();
+  cancelNoteReminder(noteId);
   renderNotesList();
 
   if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
@@ -14891,26 +15380,82 @@ async function handleMagicAuth(e) {
 async function handleGoogleAuth() {
   if (!state.supabaseClient) return;
   clearAuthStatus();
-  
-  // Show splash loader on the main screen
   toggleLoader(true);
-  
+
   try {
-    // Standard redirect flow — stays in the SAME window (no popup, no new tab)
-    // This keeps the standalone PWA context on Android, avoiding the browser bar
-    const isCapacitor = !!window.Capacitor;
-    const redirectToUrl = window.location.origin + (window.location.pathname || '/') + (isCapacitor ? '?source=app' : '');
-    const { error } = await state.supabaseClient.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: redirectToUrl,
-        queryParams: {
-          prompt: 'select_account'
+    const isCapacitor = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+    
+    if (isCapacitor) {
+      // On Android (Capacitor), use PKCE + in-app browser (Chrome Custom Tab)
+      // so the user never leaves the app during OAuth.
+      
+      // Step 1: Get the OAuth URL from Supabase WITHOUT triggering a redirect
+      // redirectTo uses https://localhost — Capacitor's local origin when assets are bundled
+      const nativeRedirectUrl = 'https://localhost';
+      const { data, error } = await state.supabaseClient.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: nativeRedirectUrl,
+          queryParams: { prompt: 'select_account' },
+          skipBrowserRedirect: true
         }
+      });
+      if (error) throw error;
+      
+      // Step 2: Access Capacitor plugins through the native bridge
+      const Browser = window.Capacitor?.Plugins?.Browser;
+      const App = window.Capacitor?.Plugins?.App;
+      
+      if (Browser && data?.url) {
+        // Step 3: Open Google login in an in-app Chrome Custom Tab
+        await Browser.open({ url: data.url, windowName: '_self' });
+        
+        // Step 4: Listen for the deep-link when Google redirects back to the app
+        if (App) {
+          const handle = await App.addListener('appUrlOpen', async (event) => {
+            await handle.remove();
+            if (Browser.close) await Browser.close();
+            
+            // Extract tokens from the callback URL
+            const url = new URL(event.url);
+            const hashParams = new URLSearchParams(url.hash.replace('#', ''));
+            const queryParams = new URLSearchParams(url.search);
+            
+            const accessToken = hashParams.get('access_token') || queryParams.get('access_token');
+            const refreshToken = hashParams.get('refresh_token') || queryParams.get('refresh_token');
+            
+            if (accessToken && refreshToken) {
+              const { error: sessionError } = await state.supabaseClient.auth.setSession({
+                access_token: accessToken,
+                refresh_token: refreshToken
+              });
+              if (sessionError) {
+                console.error('Google session error:', sessionError);
+                showAuthStatus('❌ ' + sessionError.message);
+              }
+            }
+            toggleLoader(false);
+          });
+        } else {
+          toggleLoader(false);
+        }
+      } else {
+        // Browser plugin not available — fall back to standard redirect
+        window.location.href = data?.url || '';
       }
-    });
-    if (error) throw error;
-    // The page will redirect to Google — on return, initSupabaseAuth handles the session
+    } else {
+      // Standard web/PWA redirect flow (desktop & mobile web)
+      const redirectToUrl = window.location.origin + (window.location.pathname || '/');
+      const { error } = await state.supabaseClient.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: redirectToUrl,
+          queryParams: { prompt: 'select_account' }
+        }
+      });
+      if (error) throw error;
+      // Supabase redirects to Google; on return, initSupabaseAuth handles the session
+    }
   } catch (err) {
     console.error('Google auth flow failed:', err);
     toggleLoader(false);
@@ -14928,7 +15473,12 @@ async function handleLogout() {
   if (!state.supabaseClient) return;
   
   try {
-    await state.supabaseClient.auth.signOut();
+    state.isLoggingOut = true;
+    try {
+      await state.supabaseClient.auth.signOut();
+    } catch (signOutErr) {
+      console.warn('Supabase signOut network error (probably offline):', signOutErr);
+    }
     
     // Clear user-specific cached data
     localStorage.removeItem('cached_current_user');
@@ -14938,16 +15488,57 @@ async function handleLogout() {
     localStorage.removeItem('offline_categories');
     localStorage.removeItem('auth_guest_mode');
     localStorage.removeItem('app_theme'); // Reset theme to default (Premium Dark) on logout
+    localStorage.removeItem('bg_active_modal_id');
+    localStorage.removeItem('bg_active_modal_tx_id');
+    localStorage.removeItem('bg_active_subcat_txs');
+    localStorage.removeItem('bg_modal_scroll_top');
     
-    // Reload page immediately to clear memory state and land on login screen instantly
-    window.location.reload();
+    // Instead of forcing a navigation (which fails offline in Android WebView with net::err_failed),
+    // manually reset the application state and DOM.
+    state.transactions = [];
+    state.trashTransactions = [];
+    state.accounts = [];
+    state.categories = [];
+    state.notes = [];
+    state.currentUser = null;
+    state.userProfile = null;
+    state.partnerProfile = null;
+    state.familyProfiles = [];
+    state.familyGroup = null;
+    state.recurringTemplates = [];
+    state.deletedRecurringDates = [];
+    state.notifications = [];
+    state.guestMode = false;
+    
+    // Close any open modals to avoid lingering UI elements
+    document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
+    document.querySelectorAll('.tx-modal-overlay').forEach(m => m.classList.remove('active'));
+    document.querySelectorAll('.profile-sheet-overlay').forEach(m => m.classList.remove('active'));
+    document.body.classList.remove('modal-open');
+    
+    // Show Auth UI
+    const authOverlay = document.getElementById('auth-overlay');
+    const formsContainer = document.getElementById('auth-forms-container');
+    const authCard = document.getElementById('auth-card');
+    const loadingState = document.getElementById('auth-loading-state');
+    
+    if (authOverlay) authOverlay.style.display = 'flex';
+    if (formsContainer) formsContainer.style.display = 'block';
+    if (authCard) authCard.style.display = 'flex';
+    if (loadingState) loadingState.style.display = 'none';
+    
+    // Update main UI to clear any underlying DOM nodes
+    updateUI();
+    
+    state.isLoggingOut = false;
   } catch(err) {
+    state.isLoggingOut = false;
     console.error('Sign out error:', err);
   }
 }
 
 function renderPartnerSection() {
-  const container = document.getElementById('partner-linking-container');
+  const container = document.getElementById('partner-linking-container-modal');
   if (!container) return;
 
   // Anti-flicker signature check — skip rebuild if state hasn't changed
@@ -16230,6 +16821,9 @@ async function forceSyncNow(silent = false) {
     const dedupedCombined = mergeAndDeduplicateTransactions(allTransactions, localPending);
     dedupedCombined.sort(compareTransactions);
     
+    // Snapshot IDs that existed BEFORE the sync to detect truly new entries
+    const prevIdSet = new Set((state.transactions || []).map(t => String(t.id || '')));
+    
     // === ANTI-FLICKER GUARD ===
     // Only update UI if the data has actually changed (compare transaction IDs)
     const newIds = dedupedCombined.map(t => t.id || '').join(',');
@@ -16284,7 +16878,8 @@ async function forceSyncNow(silent = false) {
       console.log('[SYNC] No data change detected — skipping UI refresh to prevent flickering.');
     }
     
-    const newCount = allTransactions.length - prevCount;
+    // Compute how many transactions are genuinely new (IDs that did not exist before sync)
+    const newCount = dedupedCombined.filter(t => !prevIdSet.has(String(t.id || ''))).length;
     if (!silent && newCount > 0) {
       showSyncToast('✅ +' + newCount + ' ' + (state.lang === 'en' ? 'new transactions synced' : 'νέες κινήσεις συγχρονίστηκαν'), 3000);
     } else if (!silent && newCount === 0) {
@@ -18150,6 +18745,105 @@ function updateNoteShortcutVisibility() {
   }
 }
 
+function openSettingsSubscreen(screenId, titleKey, skipHistory = false) {
+  if (!window._settingsSubscreenHistory) {
+    window._settingsSubscreenHistory = [];
+  }
+  if (!skipHistory && window._currentSettingsSubscreenId && window._currentSettingsSubscreenId !== screenId) {
+    window._settingsSubscreenHistory.push({
+      id: window._currentSettingsSubscreenId,
+      titleKey: window._currentSettingsSubscreenTitleKey
+    });
+  }
+  window._currentSettingsSubscreenId = screenId;
+  window._currentSettingsSubscreenTitleKey = titleKey;
+
+  const titleEl = document.getElementById('settings-subscreen-title');
+  if (titleEl) {
+    titleEl.textContent = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang][titleKey]) || titleKey;
+  }
+
+  document.querySelectorAll('.subscreen-section').forEach(section => {
+    section.style.display = 'none';
+  });
+
+  const targetSection = document.getElementById('subscreen-' + screenId);
+  if (targetSection) {
+    targetSection.style.display = 'block';
+  } else {
+    console.error(`Subscreen section "subscreen-${screenId}" not found.`);
+    return;
+  }
+
+  // Trigger optional custom lifecycle init hooks
+  const initHook = window['onSubscreenShow_' + screenId];
+  if (typeof initHook === 'function') {
+    initHook();
+  }
+
+  openModal('settings-subscreen-modal');
+}
+
+window.openSettingsSubscreen = openSettingsSubscreen;
+
+function openNotesManager() {
+  openModal('notes-manager-modal');
+  renderNotesList();
+}
+window.openNotesManager = openNotesManager;
+
+window.onSubscreenShow_family = function() {
+  renderPartnerSection();
+};
+
+window.onSubscreenShow_preferences = function() {
+  const appLockEnabled = localStorage.getItem('app_lock_enabled') === 'true';
+  const appLockCheckbox = document.getElementById('settings-app-lock');
+  if (appLockCheckbox) appLockCheckbox.checked = appLockEnabled;
+
+  const autocompleteEnabled = localStorage.getItem('settings_autocomplete_enabled') !== 'false';
+  const autocompleteCheckbox = document.getElementById('settings-autocomplete');
+  if (autocompleteCheckbox) autocompleteCheckbox.checked = autocompleteEnabled;
+
+  const noteShortcutEnabled = localStorage.getItem('settings_note_shortcut_enabled') === 'true';
+  const noteShortcutCheckbox = document.getElementById('settings-note-shortcut');
+  if (noteShortcutCheckbox) noteShortcutCheckbox.checked = noteShortcutEnabled;
+
+  const savedTheme = localStorage.getItem('app_theme') || 'dark';
+  const themeSelect = document.getElementById('settings-theme');
+  if (themeSelect) themeSelect.value = savedTheme;
+
+  const savedCurrency = localStorage.getItem('settings_currency') || 'EUR';
+  const currencySelect = document.getElementById('settings-currency');
+  if (currencySelect) currencySelect.value = savedCurrency;
+
+  const monthStart = localStorage.getItem('settings_month_start') || '1';
+  const monthStartSelect = document.getElementById('settings-month-start');
+  if (monthStartSelect) monthStartSelect.value = monthStart;
+
+  const weekStart = localStorage.getItem('settings_week_start') || '1';
+  const weekStartSelect = document.getElementById('settings-week-start');
+  if (weekStartSelect) weekStartSelect.value = weekStart;
+
+  const dailyReminderEnabled = localStorage.getItem('settings_daily_reminder_enabled') === 'true';
+  const dailyReminderCheckbox = document.getElementById('settings-daily-reminder');
+  if (dailyReminderCheckbox) dailyReminderCheckbox.checked = dailyReminderEnabled;
+
+  const dailyReminderTime = localStorage.getItem('settings_daily_reminder_time') || '21:00';
+  const dailyReminderTimeInput = document.getElementById('settings-daily-reminder-time');
+  if (dailyReminderTimeInput) dailyReminderTimeInput.value = dailyReminderTime;
+
+  const dailyReminderTimeRow = document.getElementById('settings-daily-reminder-time-row');
+  if (dailyReminderTimeRow) dailyReminderTimeRow.style.display = dailyReminderEnabled ? 'flex' : 'none';
+
+  const recurringAlertsEnabled = localStorage.getItem('settings_recurring_alerts_enabled') !== 'false';
+  const recurringAlertsCheckbox = document.getElementById('settings-recurring-alerts');
+  if (recurringAlertsCheckbox) recurringAlertsCheckbox.checked = recurringAlertsEnabled;
+
+  const langVal = document.getElementById('lang-setting-val');
+  if (langVal) langVal.textContent = state.lang === 'el' ? 'Ελληνικά' : 'English';
+};
+
 function changeOverviewYear(dir) {
   state.overviewYear = (state.overviewYear || new Date().getFullYear()) + dir;
   renderAccountsTab();
@@ -18374,20 +19068,175 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Setup collapsible sections for Settings (sync, family, feedback)
-  ['sync', 'family', 'feedback'].forEach(type => {
-    const trigger = document.getElementById(`collapse-trigger-${type}`);
-    if (trigger) {
-      trigger.addEventListener('click', () => {
-        const contentId = type === 'sync' ? 'settings-sync-content'
-                        : type === 'family' ? 'partner-linking-container'
-                        : 'feedback-card-container';
-        const content = document.getElementById(contentId);
-        const icon = document.getElementById(`collapse-icon-${type}`);
-        toggleCollapsible(content, icon);
-      });
-    }
-  });
+  // Bind programmatic listeners for the new settings subscreens
+  bindSettingsSubscreenListeners();
+
+function bindSettingsSubscreenListeners() {
+  const preferencesLangRow = document.getElementById('preferences-lang-row');
+  if (preferencesLangRow) {
+    preferencesLangRow.addEventListener('click', () => {
+      toggleLanguageSetting();
+      if (typeof window.onSubscreenShow_preferences === 'function') {
+        window.onSubscreenShow_preferences();
+      }
+    });
+  }
+
+  const themeSelect = document.getElementById('settings-theme');
+  if (themeSelect) {
+    themeSelect.addEventListener('change', (e) => {
+      changeThemeSetting(e.target.value);
+    });
+  }
+
+  const currencySelect = document.getElementById('settings-currency');
+  if (currencySelect) {
+    currencySelect.addEventListener('change', (e) => {
+      changeCurrencySetting(e.target.value);
+    });
+  }
+
+  const monthStartSelect = document.getElementById('settings-month-start');
+  if (monthStartSelect) {
+    monthStartSelect.addEventListener('change', (e) => {
+      changeMonthStartSetting(e.target.value);
+    });
+  }
+
+  const weekStartSelect = document.getElementById('settings-week-start');
+  if (weekStartSelect) {
+    weekStartSelect.addEventListener('change', (e) => {
+      changeWeekStartSetting(e.target.value);
+    });
+  }
+
+  const appLockCheckbox = document.getElementById('settings-app-lock');
+  if (appLockCheckbox) {
+    appLockCheckbox.addEventListener('change', (e) => {
+      toggleAppLock(e.target.checked);
+    });
+  }
+
+  const autocompleteCheckbox = document.getElementById('settings-autocomplete');
+  if (autocompleteCheckbox) {
+    autocompleteCheckbox.addEventListener('change', (e) => {
+      toggleAutocompleteSetting(e.target.checked);
+    });
+  }
+
+  const dailyReminderCheckbox = document.getElementById('settings-daily-reminder');
+  if (dailyReminderCheckbox) {
+    dailyReminderCheckbox.addEventListener('change', (e) => {
+      const enabled = e.target.checked;
+      localStorage.setItem('settings_daily_reminder_enabled', enabled ? 'true' : 'false');
+      const timeInput = document.getElementById('settings-daily-reminder-time');
+      const timeVal = timeInput ? timeInput.value : '21:00';
+      const timeRow = document.getElementById('settings-daily-reminder-time-row');
+      if (timeRow) timeRow.style.display = enabled ? 'flex' : 'none';
+      scheduleDailyReminder(enabled, timeVal);
+    });
+  }
+
+  const dailyReminderTimeInput = document.getElementById('settings-daily-reminder-time');
+  if (dailyReminderTimeInput) {
+    dailyReminderTimeInput.addEventListener('change', (e) => {
+      const timeVal = e.target.value;
+      localStorage.setItem('settings_daily_reminder_time', timeVal);
+      const chk = document.getElementById('settings-daily-reminder');
+      const enabled = chk ? chk.checked : false;
+      scheduleDailyReminder(enabled, timeVal);
+    });
+  }
+
+  const recurringAlertsCheckbox = document.getElementById('settings-recurring-alerts');
+  if (recurringAlertsCheckbox) {
+    recurringAlertsCheckbox.addEventListener('change', (e) => {
+      localStorage.setItem('settings_recurring_alerts_enabled', e.target.checked ? 'true' : 'false');
+    });
+  }
+
+  const syncSupabaseRow = document.getElementById('sync-supabase-row');
+  if (syncSupabaseRow) {
+    syncSupabaseRow.addEventListener('click', () => {
+      openSupabaseSettings();
+    });
+  }
+
+  const syncNowRow = document.getElementById('sync-now-row');
+  if (syncNowRow) {
+    syncNowRow.addEventListener('click', () => {
+      forceSyncNow();
+    });
+  }
+
+  const excelImportRow = document.getElementById('sync-excel-import-row');
+  if (excelImportRow) {
+    excelImportRow.addEventListener('click', () => {
+      openModal('excel-modal');
+    });
+  }
+
+  const excelExportRow = document.getElementById('sync-excel-export-row');
+  if (excelExportRow) {
+    excelExportRow.addEventListener('click', () => {
+      openExportPeriodSheet();
+    });
+  }
+
+  const feedbackSubmitBtn = document.getElementById('feedback-submit-btn');
+  if (feedbackSubmitBtn) {
+    feedbackSubmitBtn.addEventListener('click', () => {
+      submitUserFeedback();
+    });
+  }
+
+  const forceUpdateRow = document.getElementById('legal-force-update-row');
+  if (forceUpdateRow) {
+    forceUpdateRow.addEventListener('click', () => {
+      forceAppUpdate();
+    });
+  }
+
+  const privacyRow = document.getElementById('legal-privacy-row');
+  if (privacyRow) {
+    privacyRow.addEventListener('click', () => {
+      window.open('privacy.html', '_blank');
+    });
+  }
+
+  const logoutRow = document.getElementById('legal-logout-row');
+  if (logoutRow) {
+    logoutRow.addEventListener('click', () => {
+      handleLogout();
+    });
+  }
+
+  const syncTrashRow = document.getElementById('sync-trash-row');
+  if (syncTrashRow) {
+    syncTrashRow.addEventListener('click', () => {
+      openTrashBinModal();
+    });
+  }
+
+  const legalFeedbackRow = document.getElementById('legal-feedback-row');
+  if (legalFeedbackRow) {
+    legalFeedbackRow.addEventListener('click', () => {
+      openSettingsSubscreen('feedback', 'settings_feedback_title');
+    });
+  }
+
+  const backBtn = document.getElementById('settings-subscreen-back-btn');
+  if (backBtn) {
+    backBtn.addEventListener('click', () => {
+      if (window._settingsSubscreenHistory && window._settingsSubscreenHistory.length > 0) {
+        const prev = window._settingsSubscreenHistory.pop();
+        openSettingsSubscreen(prev.id, prev.titleKey, true);
+      } else {
+        closeModal('settings-subscreen-modal');
+      }
+    });
+  }
+}
 
   // Click handler for FHS card & "?" help icon
   const fhsCard = document.querySelector('.fhs-card');
@@ -18808,7 +19657,11 @@ function appendChatMessage(sender, htmlContent) {
   
   const bubble = document.createElement('div');
   bubble.className = 'chat-msg-bubble';
-  bubble.innerHTML = htmlContent.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  if (sender === 'user') {
+    bubble.textContent = htmlContent;
+  } else {
+    bubble.innerHTML = htmlContent.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  }
   
   row.appendChild(bubble);
   chatLog.appendChild(row);
@@ -19378,7 +20231,7 @@ function runCoachCategoryAnalysis(categoryName) {
                          : (translatedSub && translatedSub.trim()) ? translatedSub.trim()
                          : (translatedCat || '');
                          
-      html += `${idx+1}. **${formattedDate}**: ${displayTitle} — **${formatCurrency(t.amount)}**<br>`;
+      html += `${idx+1}. **${formattedDate}**: ${escapeHtml(displayTitle)} — **${formatCurrency(t.amount)}**<br>`;
     });
   } else {
     html += `📋 **Expense Analysis for: ${categoryName}**<br><br>`;
@@ -19396,7 +20249,7 @@ function runCoachCategoryAnalysis(categoryName) {
                          : (translatedSub && translatedSub.trim()) ? translatedSub.trim()
                          : (translatedCat || '');
                          
-      html += `${idx+1}. **${formattedDate}**: ${displayTitle} — **${formatCurrency(t.amount)}**<br>`;
+      html += `${idx+1}. **${formattedDate}**: ${escapeHtml(displayTitle)} — **${formatCurrency(t.amount)}**<br>`;
     });
   }
   
@@ -20355,6 +21208,178 @@ window.openTrashBinModal = openTrashBinModal;
 window.renderTrashBinList = renderTrashBinList;
 window.restoreTransaction = restoreTransaction;
 window.emptyTrashBin = emptyTrashBin;
+
+// ============================================================
+// ONBOARDING & SAMPLE DATA GENERATOR
+// ============================================================
+async function onboardingAddDemoData() {
+  closeModal('onboarding-modal');
+  
+  // Show progress feedback
+  const authOverlay = document.getElementById('auth-overlay');
+  const loadingState = document.getElementById('auth-loading-state');
+  const formsContainer = document.getElementById('auth-forms-container');
+  const authCard = document.getElementById('auth-card');
+  
+  if (authOverlay) authOverlay.style.display = 'flex';
+  if (loadingState) loadingState.style.display = 'flex';
+  if (authCard) authCard.style.display = 'none';
+  if (formsContainer) formsContainer.style.display = 'none';
+  
+  const getDemoDateISO = (day) => {
+    const y = new Date().getFullYear();
+    const m = String(new Date().getMonth() + 1).padStart(2, '0');
+    const d = String(day).padStart(2, '0');
+    return `${y}-${m}-${d}T12:00:00Z`;
+  };
+  
+  const uid = state.currentUser ? state.currentUser.id : 'guest';
+  
+  const demoTxs = [
+    { amount: 1800, type: 'income', category: '💼 Μισθός', subcategory: '', date: getDemoDateISO(1), note: 'Μισθός', description: 'Μηνιαία πληρωμή', account_from: 'Bank Account', account_to: '' },
+    { amount: 450, type: 'expense', category: '🏠 Σπίτι', subcategory: '', date: getDemoDateISO(2), note: 'Ενοίκιο σπιτιού', description: 'Μηνιαίο ενοίκιο', account_from: 'Bank Account', account_to: '' },
+    { amount: 68.4, type: 'expense', category: '🍔 Τρόφιμα', subcategory: '', date: getDemoDateISO(3), note: 'Ψώνια για το σπίτι', description: 'Εβδομαδιαία ψώνια στο σουπερμάρκετ', account_from: 'Card', account_to: '' },
+    { amount: 45, type: 'expense', category: '🚗 Μεταφορές', subcategory: '', date: getDemoDateISO(5), note: 'Βενζίνη', description: 'Καύσιμα για το αυτοκίνητο', account_from: 'Card', account_to: '' },
+    { amount: 25, type: 'expense', category: '🎉 Διασκέδαση', subcategory: '', date: getDemoDateISO(8), note: 'Εισιτήρια σινεμά', description: 'Εισιτήρια και σνακ', account_from: 'Card', account_to: '' },
+    { amount: 10.99, type: 'expense', category: '📱 Συνδρομές', subcategory: '', date: getDemoDateISO(10), note: 'Συνδρομή Netflix', description: 'Μηνιαία συνδρομή ταινιών', account_from: 'Card', account_to: '' },
+    { amount: 250, type: 'income', category: '💼 Freelance', subcategory: '', date: getDemoDateISO(12), note: 'Έξτρα μεροκάματο', description: 'Πρόσθετη εργασία', account_from: 'Bank Account', account_to: '' },
+    { amount: 15, type: 'expense', category: '📦 Διάφορα', subcategory: '', date: getDemoDateISO(15), note: 'Καφέδες', description: 'Καφέδες της εβδομάδας', account_from: 'Cash', account_to: '' },
+    { amount: 150, type: 'transfer', category: 'Μεταφορά', subcategory: '', date: getDemoDateISO(18), note: 'Μεταφορά στην κάρτα', description: 'Μεταφορά χρημάτων για καθημερινά έξοδα', account_from: 'Bank Account', account_to: 'Card' },
+    { amount: 14.5, type: 'expense', category: '🍔 Τρόφιμα', subcategory: '', date: getDemoDateISO(20), note: 'Πίτσες', description: 'Παραγγελία έτοιμου φαγητού', account_from: 'Card', account_to: '' }
+  ];
+  
+  // Save all transactions
+  try {
+    for (const item of demoTxs) {
+      const tx = {
+        id: 'demo_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+        amount: item.amount,
+        type: item.type,
+        category: item.category,
+        subcategory: item.subcategory,
+        date: item.date,
+        note: item.note,
+        description: item.description,
+        account_from: item.account_from,
+        account_to: item.account_to,
+        user_id: uid,
+        is_demo: true
+      };
+      
+      if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
+        await saveTransaction(tx);
+      } else {
+        saveTransactionOffline(tx);
+      }
+    }
+    
+    // Reload & Update UI
+    await loadData();
+    updateUI();
+  } catch (err) {
+    console.error('Failed to pre-populate demo data:', err);
+  } finally {
+    // Hide loader
+    if (authOverlay) authOverlay.style.display = 'none';
+    if (loadingState) loadingState.style.display = 'none';
+  }
+  
+  const msg = state.lang === 'el' 
+    ? '🎉 Τα παραδείγματα προστέθηκαν! Μπορείτε να τα σβήσετε όποτε θέλετε πηγαίνοντας στις ρυθμίσεις: "Περισσότερα -> Δεδομένα & Συγχρονισμός -> Καθαρισμός δοκιμαστικών δεδομένων".' 
+    : '🎉 Demo data added successfully! You can delete them at any time from Settings -> Data & Sync.';
+  window.showAlert(msg, state.lang === 'el' ? 'Έτοιμο!' : 'Success', 'ℹ️');
+}
+
+function onboardingCreateTransaction() {
+  closeModal('onboarding-modal');
+  openModal('transaction-modal');
+}
+
+function onboardingShowGuide() {
+  closeModal('onboarding-modal');
+  const lang = state.lang || 'el';
+  const welcomeText = lang === 'el'
+    ? '👋 Γεια σας! Είμαι ο ψηφιακός σας βοηθός για τα οικογενειακά οικονομικά. Ας δούμε γρήγορα πώς λειτουργεί η εφαρμογή:\n\n' +
+      '1️⃣ **Γράψτε ένα έξοδο:** Πατήστε το κουμπί **"+"** κάτω-κάτω. Μπορείτε να πληκτρολογήσετε, να μιλήσετε ή ακόμα και να βγάλετε φωτογραφία μια απόδειξη.\n' +
+      '2️⃣ **Κοινό πορτοφόλι:** Από το μενού **"Περισσότερα -> Διαχείριση Οικογένειας"** μπορείτε να συνδεθείτε με τον/την σύντροφό σας για να βλέπετε μαζί τα έξοδα της οικογένειας.\n' +
+      '3️⃣ **Έξυπνες ερωτήσεις:** Εδώ στο chat μπορείτε να με ρωτήσετε ό,τι θέλετε με απλά λόγια, π.χ. "πόσα δώσαμε για σουπερμάρκετ;" ή "κάνε μου μια πρόβλεψη για τον επόμενο μήνα".\n\n' +
+      'Πώς μπορώ να σας βοηθήσω σήμερα;'
+    : '👋 Hello! I am your AI Coach. Let\'s do a quick tour:\n\n' +
+      '1️⃣ **Tracking:** Tap the **"+"** button at the bottom to quickly log transactions via keypad, voice or receipts.\n' +
+      '2️⃣ **Shared Budget:** From **"More -> Family Management"** you can link with your partner for real-time synchronization.\n' +
+      '3️⃣ **AI Analysis:** You can ask me anything right here, e.g. "How much did I spend this month?" or "Give me an expense forecast".\n\n' +
+      'How can I help you today?';
+      
+  openAdvisorChat();
+  const chatList = document.getElementById('advisor-chat-messages');
+  if (chatList) chatList.innerHTML = '';
+  appendChatMessage('advisor', welcomeText);
+}
+
+async function onboardingClearDemoData() {
+  const confirmed = await showConfirm(
+    state.lang === 'el' ? 'Θέλετε σίγουρα να σβήσετε όλα τα δοκιμαστικά δεδομένα;' : 'Are you sure you want to delete all demo data?',
+    state.lang === 'el' ? 'Σβήσιμο' : 'Delete Demo',
+    '🗑️'
+  );
+  if (!confirmed) return;
+  
+  // Show progress feedback
+  const authOverlay = document.getElementById('auth-overlay');
+  const loadingState = document.getElementById('auth-loading-state');
+  const formsContainer = document.getElementById('auth-forms-container');
+  const authCard = document.getElementById('auth-card');
+  
+  if (authOverlay) authOverlay.style.display = 'flex';
+  if (loadingState) loadingState.style.display = 'flex';
+  if (authCard) authCard.style.display = 'none';
+  if (formsContainer) formsContainer.style.display = 'none';
+  
+  const demoTxs = state.transactions.filter(t => t.id && (String(t.id).startsWith('demo_') || t.is_demo));
+  
+  try {
+    if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
+      // Delete from Supabase
+      const ids = demoTxs.map(t => t.id);
+      if (ids.length > 0) {
+        await state.supabaseClient.from('transactions').delete().in('id', ids);
+      }
+    }
+    
+    // Delete from local memory/cache
+    state.transactions = state.transactions.filter(t => !(t.id && (String(t.id).startsWith('demo_') || t.is_demo)));
+    localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
+    
+    // Reload & Update UI
+    await loadData();
+    updateUI();
+  } catch (err) {
+    console.error('Failed to delete demo data:', err);
+  } finally {
+    // Hide loader
+    if (authOverlay) authOverlay.style.display = 'none';
+    if (loadingState) loadingState.style.display = 'none';
+  }
+  
+  const msg = state.lang === 'el' 
+    ? '🗑️ Όλα τα δοκιμαστικά δεδομένα σβήστηκαν!' 
+    : '🗑️ All demo data deleted successfully!';
+  window.showAlert(msg, state.lang === 'el' ? 'Έτοιμο!' : 'Success', 'ℹ️');
+}
+
+window.onSubscreenShow_sync = function() {
+  const hasDemo = state.transactions.some(t => t.id && (String(t.id).startsWith('demo_') || t.is_demo));
+  const row = document.getElementById('sync-demo-clear-row');
+  if (row) {
+    row.style.display = hasDemo ? 'flex' : 'none';
+  }
+};
+
+// Bind to window for HTML access
+window.onboardingAddDemoData = onboardingAddDemoData;
+window.onboardingCreateTransaction = onboardingCreateTransaction;
+window.onboardingShowGuide = onboardingShowGuide;
+window.onboardingClearDemoData = onboardingClearDemoData;
 
 // Force snap scroll position to top on page load to fix iOS Safari viewport panning offset
 window.addEventListener('load', () => {
