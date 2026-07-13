@@ -56,6 +56,9 @@ $versionJsonContent = '{"version": ' + $newBuild + '}'
 Set-Content $versionJsonPath $versionJsonContent -NoNewline
 Write-Host "  [SUCCESS] Created version.json with version $newBuild" -ForegroundColor Green
 
+# Update build.gradle with new version and signing configurations
+node scratch/configure_signing.js
+
 # 2. Copy files to www folder
 Write-Host "[INFO] Copying assets to www/ folder..." -ForegroundColor Yellow
 if (Test-Path www) {
@@ -75,6 +78,7 @@ Copy-Item version.json www/version.json -Force
 Copy-Item _headers www/_headers -Force
 Copy-Item clear.html www/clear.html -Force
 Copy-Item debug.html www/debug.html -Force
+if (Test-Path privacy.html) { Copy-Item privacy.html www/privacy.html -Force }
 Write-Host "  [SUCCESS] Files copied successfully." -ForegroundColor Green
 
 # 3. Capacitor Sync
@@ -86,11 +90,11 @@ if ($LASTEXITCODE -ne 0) {
 }
 Write-Host "  [SUCCESS] Capacitor Sync complete." -ForegroundColor Green
 
-# 4. Gradle Android APK Build
-Write-Host "[INFO] Building Android APK..." -ForegroundColor Yellow
+# 4. Gradle Android Release & Debug Build
+Write-Host "[INFO] Building Android Debug APK, Release APK, and Play Store Bundle (AAB)..." -ForegroundColor Yellow
 Start-Sleep -Seconds 1
 Push-Location android
-.\gradlew.bat assembleDebug
+.\gradlew.bat assembleDebug assembleRelease bundleRelease
 $gradleExit = $LASTEXITCODE
 Pop-Location
 
@@ -98,18 +102,29 @@ if ($gradleExit -ne 0) {
     Write-Host "[ERROR] Gradle build failed!" -ForegroundColor Red
     Exit 1
 }
-Write-Host "  [SUCCESS] Android APK built successfully." -ForegroundColor Green
+Write-Host "  [SUCCESS] Android builds completed successfully." -ForegroundColor Green
 
-# 5. Copy APK to Desktop
-Write-Host "[INFO] Copying APK to Desktop..." -ForegroundColor Yellow
-$apkSource = "android\app\build\outputs\apk\debug\app-debug.apk"
+# 5. Copy APKs & AAB to Desktop
+Write-Host "[INFO] Copying builds to Desktop..." -ForegroundColor Yellow
+$apkDebugSource = "android\app\build\outputs\apk\debug\app-debug.apk"
+$apkReleaseSource = "android\app\build\outputs\apk\release\app-release.apk"
+$aabSource = "android\app\build\outputs\bundle\release\app-release.aab"
 $desktopDir = [System.IO.Path]::Combine([System.Environment]::GetFolderPath("Desktop"))
-if (Test-Path $apkSource) {
-    Copy-Item $apkSource "$desktopDir\BudgetAssistant.apk" -Force
-    Copy-Item $apkSource "$desktopDir\BudgetAssistant-debug.apk" -Force
-    Write-Host "  [SUCCESS] APK copied to Desktop as BudgetAssistant.apk and BudgetAssistant-debug.apk" -ForegroundColor Green
+
+if (Test-Path $apkDebugSource) {
+    Copy-Item $apkDebugSource "$desktopDir\BudgetAssistant-debug.apk" -Force
+    Copy-Item $apkDebugSource "$desktopDir\BudgetAssistant.apk" -Force
+    Write-Host "  [SUCCESS] Debug APK copied to Desktop as BudgetAssistant.apk and BudgetAssistant-debug.apk" -ForegroundColor Green
+}
+if (Test-Path $apkReleaseSource) {
+    Copy-Item $apkReleaseSource "$desktopDir\BudgetAssistant-release.apk" -Force
+    Write-Host "  [SUCCESS] Signed Release APK copied to Desktop as BudgetAssistant-release.apk" -ForegroundColor Green
+}
+if (Test-Path $aabSource) {
+    Copy-Item $aabSource "$desktopDir\BudgetAssistant.aab" -Force
+    Write-Host "  [SUCCESS] Signed Play Store Bundle copied to Desktop as BudgetAssistant.aab" -ForegroundColor Green
 } else {
-    Write-Host "[ERROR] Source APK not found at $apkSource" -ForegroundColor Red
+    Write-Host "[ERROR] Play Store Bundle (AAB) not found at $aabSource" -ForegroundColor Red
     Exit 1
 }
 
