@@ -594,7 +594,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v676 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v677 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -11763,16 +11763,95 @@ function renderGroupedTransactions(transactions, container) {
       if (isSelected) {
         item.style.background = 'rgba(33, 150, 243, 0.15)';
       }
-      item.onclick = (e) => {
+    }
+
+    let pressTimer;
+    let feedbackTimer;
+    let isLongPress = false;
+    let touchDidMove = false;
+
+    // touchstart listener for long-press selection initiation
+    item.addEventListener('touchstart', (e) => {
+      isLongPress = false;
+      touchDidMove = false;
+      
+      clearTimeout(feedbackTimer);
+      feedbackTimer = setTimeout(() => {
+        if (!touchDidMove) {
+          item.classList.add('pressed');
+        }
+      }, 80);
+      
+      if (state.searchSelectMode) return;
+      pressTimer = setTimeout(() => {
+        isLongPress = true;
+        toggleSearchSelectMode(); // enter select mode
+        toggleSearchSelection(t.id, item); // select this item
+        if (navigator.vibrate) {
+          try { navigator.vibrate(15); } catch(err) {}
+        }
+      }, 600);
+    }, { passive: true });
+
+    // touchmove listener - scrolling cancels selection
+    item.addEventListener('touchmove', (e) => {
+      clearTimeout(pressTimer);
+      clearTimeout(feedbackTimer);
+      item.classList.remove('pressed');
+      touchDidMove = true;
+    }, { passive: true });
+
+    // touchend listener
+    item.addEventListener('touchend', (e) => {
+      clearTimeout(pressTimer);
+      clearTimeout(feedbackTimer);
+      item.classList.remove('pressed');
+    }, { passive: true });
+
+    // touchcancel listener
+    item.addEventListener('touchcancel', () => {
+      clearTimeout(pressTimer);
+      clearTimeout(feedbackTimer);
+      item.classList.remove('pressed');
+    });
+
+    // mousedown listener for mouse users
+    item.addEventListener('mousedown', (e) => {
+      isLongPress = false;
+      item.classList.add('pressed');
+      if (state.searchSelectMode) return;
+      pressTimer = setTimeout(() => {
+        isLongPress = true;
+        toggleSearchSelectMode(); // enter select mode
+        toggleSearchSelection(t.id, item); // select this item
+      }, 600);
+    });
+
+    // mouseup/mouseleave listeners
+    item.addEventListener('mouseup', () => {
+      clearTimeout(pressTimer);
+      item.classList.remove('pressed');
+    });
+    item.addEventListener('mouseleave', () => {
+      clearTimeout(pressTimer);
+      item.classList.remove('pressed');
+    });
+
+    item.onclick = (e) => {
+      if (touchDidMove) return;
+      if (isLongPress) {
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
+      if (state.searchSelectMode) {
         e.stopPropagation();
         toggleSearchSelection(t.id, item);
-      };
-    } else {
-      item.onclick = () => {
+      } else {
         closeSearchOverlay();
         openEditTransactionModal(t);
-      };
-    }
+      }
+    };
 
     let amountClass = 'search-item-amount';
     let accountText = t.account_from || '';
