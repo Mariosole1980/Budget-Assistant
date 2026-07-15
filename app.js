@@ -592,7 +592,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v666 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v667 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -4186,6 +4186,14 @@ function autoRecoverTemplatesFromHistory() {
   
   if ((state.recurringTemplates || []).length !== originalLength) {
     updated = true;
+  }
+
+  // Remove stale auto-recovered templates so they are always rebuilt fresh
+  // (ensures end dates and keywords are always up-to-date after a code update)
+  const staleRecovered = (state.recurringTemplates || []).filter(t => String(t.id || '').startsWith('recovered_'));
+  if (staleRecovered.length > 0) {
+    state.recurringTemplates = (state.recurringTemplates || []).filter(t => !String(t.id || '').startsWith('recovered_'));
+    console.log('[AutoRecover] Cleared', staleRecovered.length, 'stale recovered templates → will rebuild now');
   }
 
   const templates = state.recurringTemplates || [];
