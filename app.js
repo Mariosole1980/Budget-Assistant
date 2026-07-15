@@ -649,7 +649,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v678 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v679 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -4308,6 +4308,15 @@ function autoRecoverTemplatesFromHistory() {
   };
 
   const recoverForKeywords = (keywords, defaultNote, preset = 'monthly') => {
+    // Check if any dismissed note matches this template's defaultNote or contains its keywords
+    const isDismissed = dismissed.some(dn => {
+      const dnLower = String(dn || '').toLowerCase();
+      return dnLower === defaultNote.toLowerCase() || keywords.some(kw => dnLower.includes(kw.toLowerCase()));
+    });
+    if (isDismissed) {
+      console.log('[AutoRecover] Skipping recovery for:', defaultNote, 'as it is in the dismissed list');
+      return;
+    }
     if (hasTemplate(keywords)) return;
     
     const matches = state.transactions.filter(t => {
@@ -21564,18 +21573,15 @@ async function deleteRecurringTemplate(id) {
   if (!confirmed) return;
 
   const templateToDelete = (state.recurringTemplates || []).find(t => t.id === id);
-  if (templateToDelete) {
-    const defaultNotes = ['Ετήσια Ασφάλεια Αυτοκινήτου', 'Δάνειο Σπιτιού', 'Αλλαγή Ελαστικών', 'ΕΝΦΙΑ'];
-    if (defaultNotes.includes(templateToDelete.note) || String(id).startsWith('recovered_')) {
-      let dismissed = [];
-      try {
-        dismissed = JSON.parse(localStorage.getItem('dismissed_recovered_templates') || '[]');
-      } catch (e) {}
-      if (!dismissed.includes(templateToDelete.note)) {
-        dismissed.push(templateToDelete.note);
-        localStorage.setItem('dismissed_recovered_templates', JSON.stringify(dismissed));
-        console.log('[AutoRecover] Dismissed auto-recovery for note:', templateToDelete.note);
-      }
+  if (templateToDelete && templateToDelete.note) {
+    let dismissed = [];
+    try {
+      dismissed = JSON.parse(localStorage.getItem('dismissed_recovered_templates') || '[]');
+    } catch (e) {}
+    if (!dismissed.includes(templateToDelete.note)) {
+      dismissed.push(templateToDelete.note);
+      localStorage.setItem('dismissed_recovered_templates', JSON.stringify(dismissed));
+      console.log('[AutoRecover] Saved dismissed template note:', templateToDelete.note);
     }
   }
 
