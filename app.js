@@ -592,7 +592,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v672 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v673 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -4332,38 +4332,93 @@ function autoRecoverTemplatesFromHistory() {
     updateUI();
   }
 
-  // One-time automatic cleanup of duplicate/stranded loan+insurance transactions (644.92€)
+  // Broad automatic cleanup of duplicate/stranded templates and transactions
   if (state.transactions && state.transactions.length > 0) {
-    const matches = state.transactions.filter(t => {
+    let anyChanges = false;
+    const idsToDelete = [];
+
+    // A. Clean up templates from recurringTemplates & Supabase
+    const templatesToDelete = (state.recurringTemplates || []).filter(t => {
       const note = (t.note || '').toUpperCase();
       const amt = parseFloat(t.amount) || 0;
-      const isMatch = (note.includes('ΔΑΝΕΙΟ') && note.includes('ΑΣΦΑΛΕΙΑ')) || Math.abs(amt - 644.92) < 0.01;
-      return isMatch;
+      return note.includes('ΔΑΝΕΙΟ ΣΠΙΤΙΩΝ') || note.includes('ΕΝΦΙΑ 2025') || Math.abs(amt - 273.01) < 0.01;
     });
     
-    if (matches.length > 1) {
-      matches.sort((a, b) => new Date(a.date) - new Date(b.date));
-      const original = matches[0];
-      const duplicates = matches.slice(1);
-      const duplicateIds = duplicates.map(d => d.id);
+    if (templatesToDelete.length > 0) {
+      const templateIds = templatesToDelete.map(t => t.id);
+      console.log('[Cleanup] Found bad templates in state, removing:', templateIds);
+      state.recurringTemplates = (state.recurringTemplates || []).filter(t => !templateIds.includes(t.id));
+      localStorage.setItem('recurring_templates', JSON.stringify(state.recurringTemplates));
+      anyChanges = true;
       
-      console.log('[Cleanup] Found', matches.length, 'loan+insurance transactions. Keeping original from:', original.date, 'and deleting', duplicates.length, 'duplicates.');
-      
-      state.transactions = state.transactions.filter(t => !duplicateIds.includes(t.id));
+      if (state.supabaseClient && state.currentUser) {
+        state.supabaseClient
+          .from('recurring_templates')
+          .delete()
+          .in('id', templateIds)
+          .then(({ error }) => {
+            if (error) console.error('[Cleanup] Failed to delete templates from cloud:', error);
+            else console.log('[Cleanup] Successfully deleted bad templates from cloud');
+          });
+      }
+    }
+
+    // B. Clean up transactions for ΔΑΝΕΙΟ ΣΠΙΤΙΟΥ +120 ΑΣΦΑΛΕΙΑ (644.92€)
+    const match644 = state.transactions.filter(t => {
+      const note = (t.note || '').toUpperCase();
+      const amt = parseFloat(t.amount) || 0;
+      return (note.includes('ΔΑΝΕΙΟ') && note.includes('ΑΣΦΑΛΕΙΑ')) || Math.abs(amt - 644.92) < 0.01;
+    });
+    if (match644.length > 1) {
+      match644.sort((a, b) => new Date(a.date) - new Date(b.date));
+      const duplicates = match644.slice(1);
+      duplicates.forEach(d => idsToDelete.push(d.id));
+      console.log('[Cleanup] Found', match644.length, '644.92€ transactions. Keeping original from:', match644[0].date);
+    }
+
+    // C. Clean up transactions for ΔΑΝΕΙΟ ΣΠΙΤΙΩΝ (524.38€)
+    const match524 = state.transactions.filter(t => {
+      const note = (t.note || '').toUpperCase();
+      return note.includes('ΔΑΝΕΙΟ ΣΠΙΤΙΩΝ');
+    });
+    if (match524.length > 1) {
+      match524.sort((a, b) => new Date(a.date) - new Date(b.date));
+      const duplicates = match524.slice(1);
+      duplicates.forEach(d => idsToDelete.push(d.id));
+      console.log('[Cleanup] Found', match524.length, 'ΔΑΝΕΙΟ ΣΠΙΤΙΩΝ transactions. Keeping original from:', match524[0].date);
+    }
+
+    // D. Clean up transactions for ΕΝΦΙΑ 2025 (273.01€)
+    const match273 = state.transactions.filter(t => {
+      const note = (t.note || '').toUpperCase();
+      const amt = parseFloat(t.amount) || 0;
+      return note.includes('ΕΝΦΙΑ 2025') || Math.abs(amt - 273.01) < 0.01;
+    });
+    if (match273.length > 1) {
+      match273.sort((a, b) => new Date(a.date) - new Date(b.date));
+      const duplicates = match273.slice(1);
+      duplicates.forEach(d => idsToDelete.push(d.id));
+      console.log('[Cleanup] Found', match273.length, 'ENFIA 273.01€ transactions. Keeping original from:', match273[0].date);
+    }
+
+    if (idsToDelete.length > 0) {
+      state.transactions = state.transactions.filter(t => !idsToDelete.includes(t.id));
       localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
-      
+      anyChanges = true;
+
       if (state.supabaseClient && state.currentUser) {
         state.supabaseClient
           .from('transactions')
           .delete()
-          .in('id', duplicateIds)
+          .in('id', idsToDelete)
           .then(({ error }) => {
-            if (error) console.error('[Cleanup] Failed to delete cloud duplicates:', error);
-            else console.log('[Cleanup] Successfully cleaned duplicate transactions from cloud');
+            if (error) console.error('[Cleanup] Failed to delete cloud transactions:', error);
+            else console.log('[Cleanup] Successfully deleted duplicate transactions from cloud');
           });
       }
-      
-      // Request UI updates
+    }
+
+    if (anyChanges) {
       setTimeout(() => {
         calculateInitialBalances();
         updateUI();
