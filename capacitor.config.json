@@ -3,7 +3,8 @@
   "appName": "Budget Assistant",
   "webDir": "www",
   "server": {
-    "androidScheme": "https",
+    "androidScheme": "http",
+    "url": "https://budget-assistant-pwa.pages.dev",
     "cleartext": true
   },
   "android": {
@@ -19,7 +20,7 @@
       "launchShowDuration": 0
     },
     "Browser": {
-      "androidScheme": "https"
+      "androidScheme": "http"
     }
   }
 }
