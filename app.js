@@ -592,7 +592,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v670 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v671 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -21203,6 +21203,20 @@ async function deleteRecurringTemplate(id) {
   if (!confirmed) return;
 
   const templateToDelete = (state.recurringTemplates || []).find(t => t.id === id);
+  if (templateToDelete) {
+    const defaultNotes = ['Ετήσια Ασφάλεια Αυτοκινήτου', 'Δάνειο Σπιτιού', 'Αλλαγή Ελαστικών', 'ΕΝΦΙΑ'];
+    if (defaultNotes.includes(templateToDelete.note) || String(id).startsWith('recovered_')) {
+      let dismissed = [];
+      try {
+        dismissed = JSON.parse(localStorage.getItem('dismissed_recovered_templates') || '[]');
+      } catch (e) {}
+      if (!dismissed.includes(templateToDelete.note)) {
+        dismissed.push(templateToDelete.note);
+        localStorage.setItem('dismissed_recovered_templates', JSON.stringify(dismissed));
+        console.log('[AutoRecover] Dismissed auto-recovery for note:', templateToDelete.note);
+      }
+    }
+  }
 
   // 1. Remove template from state
   if (state.supabaseClient && state.currentUser) {
