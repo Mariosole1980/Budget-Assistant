@@ -592,7 +592,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v674 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v675 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -4274,7 +4274,7 @@ function autoRecoverTemplatesFromHistory() {
     const sortedAsc = [...targetMatches].sort((a, b) => new Date(a.date) - new Date(b.date));
     const tx = sortedAsc[0]; // Earliest transaction = true startDate
     
-    const cleanedNote = cleanNoteOfInstallments(tx.note || defaultNote);
+    const cleanedNote = defaultNote === 'ΔΟΣΗ ΔΑΝΕΙΟΥ' ? 'ΔΟΣΗ ΔΑΝΕΙΟΥ' : cleanNoteOfInstallments(tx.note || defaultNote);
     const detectedEndDate = findInstallmentEndDate(targetMatches);
     
     const template = {
@@ -4319,9 +4319,9 @@ function autoRecoverTemplatesFromHistory() {
   const insuranceKeywords = ['ασφάλεια', 'ασφαλεια', 'ετησια ασφ', 'ετήσια ασφ', 'asfaleia', 'ασφάλιστρα', 'ασφαλιστρα', 'insurance'];
   recoverForKeywords(insuranceKeywords, 'Ετήσια Ασφάλεια Αυτοκινήτου', 'monthly');
   
-  // 2. Home loan (Monthly)
-  const loanKeywords = ['δάνειο', 'δανειο', 'daneio', 'στεγαστικό', 'στεγαστικο', 'loan'];
-  recoverForKeywords(loanKeywords, 'Δάνειο Σπιτιού', 'monthly');
+  // 2. Home loan (Monthly) - Only match 'δόση δανείου' exactly to prevent matching general loan transactions
+  const loanKeywords = ['δόση δανείου', 'δοση δανειου', 'δωση δανειου'];
+  recoverForKeywords(loanKeywords, 'ΔΟΣΗ ΔΑΝΕΙΟΥ', 'monthly');
   
   // 3. Tires change (Yearly)
   const tiresKeywords = ['ελαστικά', 'ελαστικα', 'ελαστικων', 'ελαστικω', 'ελαστικ', 'λάστιχα', 'λαστιχα', 'λαστιχο', 'tires', 'tyres'];
