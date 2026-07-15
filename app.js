@@ -131,6 +131,8 @@ const state = {
   monthPickerYear: new Date().getFullYear(),
   selectionMode: false,
   selectedIds: new Set(),
+  searchSelectMode: false,
+  selectedSearchIds: new Set(),
   lang: localStorage.getItem('app_lang') || 'el',
   currentUser: null,
   userProfile: null,
@@ -592,7 +594,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v675 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v676 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -10306,6 +10308,21 @@ function openSearchOverlay() {
   if (overlay) overlay.classList.add('active');
 
   searchResultLimit = 50;
+  
+  // Reset multi-select mode in search
+  state.searchSelectMode = false;
+  if (state.selectedSearchIds) state.selectedSearchIds.clear();
+  
+  const selectBtn = document.getElementById('search-select-mode-btn');
+  if (selectBtn) {
+    selectBtn.classList.remove('active-blue');
+    selectBtn.style.borderColor = 'var(--border)';
+    selectBtn.style.background = 'none';
+    selectBtn.style.color = 'var(--text-secondary)';
+    selectBtn.textContent = state.lang === 'el' ? 'Επιλογή' : 'Select';
+  }
+  const bulkPanel = document.getElementById('search-bulk-actions-panel');
+  if (bulkPanel) bulkPanel.style.display = 'none';
 
   // Collapse filters panel by default
   const panel = document.getElementById('search-filters-panel');
@@ -11738,11 +11755,24 @@ function renderGroupedTransactions(transactions, container) {
   itemsToRender.forEach(t => {
     const catInfo = getCategoryInfo(t.category, t.type);
     const item = document.createElement('div');
+    
+    const isSelected = state.selectedSearchIds && state.selectedSearchIds.has(t.id);
     item.className = 'search-result-item';
-    item.onclick = () => {
-      closeSearchOverlay();
-      openEditTransactionModal(t);
-    };
+    if (state.searchSelectMode) {
+      item.className += ' selectable';
+      if (isSelected) {
+        item.style.background = 'rgba(33, 150, 243, 0.15)';
+      }
+      item.onclick = (e) => {
+        e.stopPropagation();
+        toggleSearchSelection(t.id, item);
+      };
+    } else {
+      item.onclick = () => {
+        closeSearchOverlay();
+        openEditTransactionModal(t);
+      };
+    }
 
     let amountClass = 'search-item-amount';
     let accountText = t.account_from || '';
@@ -11764,12 +11794,19 @@ function renderGroupedTransactions(transactions, container) {
       ? `${catInfo.icon || ''} ${escapeHtml(translatedCat)}/${escapeHtml(translatedSub)}`
       : `${catInfo.icon || ''} ${escapeHtml(translatedCat)}`;
 
+    const selectIndicator = state.searchSelectMode
+      ? `<div class="search-item-select-circle" style="width: 20px; height: 20px; border-radius: 50%; border: 2px solid ${isSelected ? 'var(--primary)' : 'var(--text-secondary)'}; display: flex; align-items: center; justify-content: center; margin-right: 12px; flex-shrink: 0; background: ${isSelected ? 'var(--primary)' : 'transparent'}; color: white; font-size: 11px; font-weight: bold; box-sizing: border-box;">${isSelected ? '✓' : ''}</div>`
+      : '';
+
     item.innerHTML = `
-      <div class="search-item-left">
-        <span class="search-item-date">${escapeHtml(datePart)}</span>
-        <div class="search-item-info">
-          <span class="search-item-title">${escapeHtml(displayTitle)}${memberBadge}</span>
-          <span class="search-item-sub">${catSubLine}&nbsp;&nbsp;${escapeHtml(accountText)}</span>
+      <div class="search-item-left" style="display: flex; align-items: center; min-width: 0; flex: 1;">
+        ${selectIndicator}
+        <div style="display: flex; flex-direction: column; min-width: 0; flex: 1;">
+          <span class="search-item-date">${escapeHtml(datePart)}</span>
+          <div class="search-item-info">
+            <span class="search-item-title">${escapeHtml(displayTitle)}${memberBadge}</span>
+            <span class="search-item-sub">${catSubLine}&nbsp;&nbsp;${escapeHtml(accountText)}</span>
+          </div>
         </div>
       </div>
       <div class="${amountClass}">${getCurrencySymbol()} ${formatCurrency(t.amount)}</div>`;
@@ -11794,6 +11831,98 @@ function renderGroupedTransactions(transactions, container) {
     container.appendChild(loadMoreDiv);
   }
 }
+
+function toggleSearchSelectMode() {
+  state.searchSelectMode = !state.searchSelectMode;
+  state.selectedSearchIds.clear();
+  
+  const btn = document.getElementById('search-select-mode-btn');
+  if (btn) {
+    if (state.searchSelectMode) {
+      btn.classList.add('active-blue');
+      btn.style.borderColor = 'var(--primary)';
+      btn.style.background = 'rgba(33, 150, 243, 0.1)';
+      btn.style.color = 'var(--primary)';
+      btn.textContent = state.lang === 'el' ? 'Ακύρωση' : 'Cancel';
+    } else {
+      btn.classList.remove('active-blue');
+      btn.style.borderColor = 'var(--border)';
+      btn.style.background = 'none';
+      btn.style.color = 'var(--text-secondary)';
+      btn.textContent = state.lang === 'el' ? 'Επιλογή' : 'Select';
+    }
+  }
+  
+  const bulkPanel = document.getElementById('search-bulk-actions-panel');
+  if (bulkPanel) bulkPanel.style.display = 'none';
+  
+  handleSearchChange(false);
+}
+
+function toggleSearchSelection(id, itemElement) {
+  if (state.selectedSearchIds.has(id)) {
+    state.selectedSearchIds.delete(id);
+  } else {
+    state.selectedSearchIds.add(id);
+  }
+  
+  const isSelected = state.selectedSearchIds.has(id);
+  if (itemElement) {
+    itemElement.style.background = isSelected ? 'rgba(33, 150, 243, 0.15)' : 'none';
+    const circle = itemElement.querySelector('.search-item-select-circle');
+    if (circle) {
+      circle.style.background = isSelected ? 'var(--primary)' : 'transparent';
+      circle.style.borderColor = isSelected ? 'var(--primary)' : 'var(--text-secondary)';
+      circle.innerHTML = isSelected ? '✓' : '';
+    }
+  }
+  
+  const count = state.selectedSearchIds.size;
+  const countSpan = document.getElementById('search-selected-count');
+  if (countSpan) {
+    countSpan.textContent = state.lang === 'el' ? `${count} επιλεγμένες` : `${count} selected`;
+  }
+  
+  const bulkPanel = document.getElementById('search-bulk-actions-panel');
+  if (bulkPanel) {
+    bulkPanel.style.display = count > 0 ? 'flex' : 'none';
+  }
+}
+
+function clearSearchSelection() {
+  state.selectedSearchIds.clear();
+  const countSpan = document.getElementById('search-selected-count');
+  if (countSpan) {
+    countSpan.textContent = state.lang === 'el' ? '0 επιλεγμένες' : '0 selected';
+  }
+  const bulkPanel = document.getElementById('search-bulk-actions-panel');
+  if (bulkPanel) bulkPanel.style.display = 'none';
+  
+  handleSearchChange(false);
+}
+
+async function deleteSelectedSearchTransactions() {
+  const selectedIds = Array.from(state.selectedSearchIds);
+  if (selectedIds.length === 0) return;
+  
+  const msg = state.lang === 'el' 
+    ? `Να διαγραφούν οι ${selectedIds.length} επιλεγμένες συναλλαγές;`
+    : `Delete the ${selectedIds.length} selected transactions?`;
+     
+  const confirmed = await showConfirm(msg, state.lang === 'el' ? 'Διαγραφή' : 'Delete', '🗑️');
+  if (!confirmed) return;
+  
+  selectedIds.forEach(id => {
+    deleteTransaction(id);
+  });
+  
+  toggleSearchSelectMode();
+}
+
+window.toggleSearchSelectMode = toggleSearchSelectMode;
+window.toggleSearchSelection = toggleSearchSelection;
+window.clearSearchSelection = clearSearchSelection;
+window.deleteSelectedSearchTransactions = deleteSelectedSearchTransactions;
 
 // ============================================================
 // FEATURE: MONTH GRID PICKER MODAL
