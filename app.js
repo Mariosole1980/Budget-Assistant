@@ -592,7 +592,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v661 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v663 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -3864,10 +3864,11 @@ async function loadData() {
         ? (partnerId ? `family_id.eq.${familyId},user_id.eq.${userId},user_id.eq.${partnerId}` : `family_id.eq.${familyId},user_id.eq.${userId}`)
         : (partnerId ? `user_id.eq.${userId},user_id.eq.${partnerId}` : `user_id.eq.${userId}`);
 
-      const [catsRes, accsRes] = await promiseTimeout(
+      const [catsRes, accsRes, tempsRes] = await promiseTimeout(
         Promise.all([
           state.supabaseClient.from('categories').select('*').or(userFilter),
           state.supabaseClient.from('accounts').select('*').or(userFilter),
+          state.supabaseClient.from('recurring_templates').select('*').or(userFilter).catch(() => ({ data: [], error: null }))
         ]),
         15000
       );
@@ -3919,6 +3920,10 @@ async function loadData() {
 
       let categories = catsRes.data || [];
       let accounts = accsRes.data || [];
+      if (tempsRes && tempsRes.data) {
+        state.recurringTemplates = tempsRes.data;
+        localStorage.setItem('recurring_templates', JSON.stringify(state.recurringTemplates));
+      }
 
       // Pre-populate standard categories in the cloud for this user if they don't have any
       if (categories.length === 0) {
@@ -4018,6 +4023,8 @@ async function loadData() {
       state.accounts = accounts;
       
       calculateInitialBalances();
+
+      autoRecoverTemplatesFromHistory();
 
       localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
       localStorage.setItem('offline_accounts', JSON.stringify(state.accounts));
@@ -4143,12 +4150,99 @@ function loadOfflineData() {
   
   loadNotes();
   
+  autoRecoverTemplatesFromHistory();
   processRecurringTemplates();
   calculateInitialBalances();
   cleanDuplicateCategories().catch(e => console.warn('Offline automatic categories cleanup error:', e));
 }
 
 
+
+
+function autoRecoverTemplatesFromHistory() {
+  if (!state.transactions || state.transactions.length === 0) return;
+  
+  const templates = state.recurringTemplates || [];
+  
+  const hasTemplate = (keyword) => {
+    const kw = keyword.toLowerCase();
+    return templates.some(t => (t.note || '').toLowerCase().includes(kw));
+  };
+  
+  const recoverForKeyword = (keyword, preset = 'monthly') => {
+    if (hasTemplate(keyword)) return;
+    
+    const kw = keyword.toLowerCase();
+    const matches = state.transactions.filter(t => (t.note || '').toLowerCase().includes(kw));
+    if (matches.length === 0) return;
+    
+    matches.sort((a, b) => new Date(b.date) - new Date(a.date));
+    const tx = matches[0];
+    
+    const template = {
+      id: 'recovered_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+      amount: parseFloat(tx.amount),
+      type: tx.type,
+      category: tx.category,
+      subcategory: tx.subcategory || '',
+      account_from: tx.account_from,
+      account_to: tx.account_to || null,
+      note: tx.note || '',
+      description: tx.description || '',
+      preset: preset,
+      days: [new Date(tx.date).getDate()],
+      months: preset === 'yearly' ? [new Date(tx.date).getMonth() + 1] : [],
+      years: [],
+      endType: 'perpetual',
+      endDate: null,
+      startDate: tx.date,
+      startYear: new Date(tx.date).getFullYear(),
+      startMonth: new Date(tx.date).getMonth() + 1,
+      user_id: tx.user_id || (state.currentUser ? state.currentUser.id : null),
+      family_id: tx.family_id || (state.userProfile ? state.userProfile.family_id : null),
+      is_shared: tx.family_id ? true : false
+    };
+    
+    state.recurringTemplates.push(template);
+    console.log('Auto-recovered template for ' + keyword + ':', template);
+    
+    if (state.supabaseClient && state.currentUser) {
+      state.supabaseClient
+        .from('recurring_templates')
+        .insert([template])
+        .then(({ error }) => {
+          if (error) console.error('Failed to save auto-recovered template to Supabase:', error);
+        });
+    }
+  };
+  
+  let updated = false;
+  
+  if (!hasTemplate('ασφάλεια') && !hasTemplate('ασφαλεια')) {
+    recoverForKeyword('ασφάλεια', 'yearly');
+    updated = true;
+  }
+  
+  if (!hasTemplate('δάνειο') && !hasTemplate('δανειο')) {
+    recoverForKeyword('δάνειο', 'monthly');
+    updated = true;
+  }
+  
+  if (!hasTemplate('ελαστικά') && !hasTemplate('ελαστικα')) {
+    recoverForKeyword('ελαστικά', 'yearly');
+    updated = true;
+  }
+  
+  if (!hasTemplate('ενφια')) {
+    recoverForKeyword('ενφια', 'monthly');
+    updated = true;
+  }
+  
+  if (updated) {
+    localStorage.setItem('recurring_templates', JSON.stringify(state.recurringTemplates));
+    updateUI();
+  }
+}
 
 function processRecurringTemplates() {
   if (!state.recurringTemplates || state.recurringTemplates.length === 0) return;
@@ -7053,6 +7147,25 @@ function setupEventListeners() {
         family_id: state.userProfile ? state.userProfile.family_id : null
       };
 
+      if (state.supabaseClient && state.currentUser) {
+        state.supabaseClient
+          .from('recurring_templates')
+          .insert([template])
+          .select()
+          .then(({ data, error }) => {
+            if (error) {
+              console.error('Failed to sync new recurring template to cloud:', error);
+            } else if (data && data[0]) {
+              const idx = state.recurringTemplates.findIndex(t => t.id === template.id);
+              if (idx !== -1) {
+                state.recurringTemplates[idx] = data[0];
+                localStorage.setItem('recurring_templates', JSON.stringify(state.recurringTemplates));
+                processRecurringTemplates();
+                updateUI();
+              }
+            }
+          });
+      }
       state.recurringTemplates.push(template);
       localStorage.setItem('recurring_templates', JSON.stringify(state.recurringTemplates));
       
@@ -20995,6 +21108,15 @@ async function deleteRecurringTemplate(id) {
   const templateToDelete = (state.recurringTemplates || []).find(t => t.id === id);
 
   // 1. Remove template from state
+  if (state.supabaseClient && state.currentUser) {
+    state.supabaseClient
+      .from('recurring_templates')
+      .delete()
+      .eq('id', id)
+      .then(({ error }) => {
+        if (error) console.error('Failed to delete recurring template from cloud:', error);
+      });
+  }
   state.recurringTemplates = (state.recurringTemplates || []).filter(t => t.id !== id);
   localStorage.setItem('recurring_templates', JSON.stringify(state.recurringTemplates));
 
