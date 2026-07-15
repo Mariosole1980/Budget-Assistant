@@ -592,7 +592,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v663 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v664 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -4162,22 +4162,65 @@ function loadOfflineData() {
 function autoRecoverTemplatesFromHistory() {
   if (!state.transactions || state.transactions.length === 0) return;
   
+  let updated = false;
+  
+  // 1. Auto-cleanup of bad "διάφορα συμπληρώματα" templates
+  const originalLength = (state.recurringTemplates || []).length;
+  state.recurringTemplates = (state.recurringTemplates || []).filter(t => {
+    const note = (t.note || '').toLowerCase();
+    const isBad = note.includes('συμπληρώματα') || note.includes('συμπληρωματα') || note.includes('συμπλήρωμα') || note.includes('συμπληρωμα');
+    if (isBad) {
+      console.log('Auto-removed bad template:', t);
+      if (state.supabaseClient && state.currentUser && t.id && !String(t.id).startsWith('recovered_')) {
+        state.supabaseClient
+          .from('recurring_templates')
+          .delete()
+          .eq('id', t.id)
+          .then(({ error }) => {
+            if (error) console.error('Failed to delete bad template from cloud:', error);
+          });
+      }
+    }
+    return !isBad;
+  });
+  
+  if ((state.recurringTemplates || []).length !== originalLength) {
+    updated = true;
+  }
+
   const templates = state.recurringTemplates || [];
   
-  const hasTemplate = (keyword) => {
-    const kw = keyword.toLowerCase();
-    return templates.some(t => (t.note || '').toLowerCase().includes(kw));
+  const hasTemplate = (keywords) => {
+    return templates.some(t => {
+      const noteLower = (t.note || '').toLowerCase();
+      return keywords.some(kw => noteLower.includes(kw));
+    });
   };
   
-  const recoverForKeyword = (keyword, preset = 'monthly') => {
-    if (hasTemplate(keyword)) return;
+  const cleanNoteOfInstallments = (note) => {
+    // Remove "δόση X/Y", "δόση X", "X/Y", "δόση", etc.
+    let cleaned = note.replace(/δ[όο]ση\s+\d+\/\d+/gi, '');
+    cleaned = cleaned.replace(/δ[όο]ση\s+\d+/gi, '');
+    cleaned = cleaned.replace(/\d+\/\d+/g, '');
+    cleaned = cleaned.replace(/δ[όο]ση/gi, '');
+    // Remove extra spaces
+    cleaned = cleaned.replace(/\s+/g, ' ').trim();
+    return cleaned || note;
+  };
+  
+  const recoverForKeywords = (keywords, defaultNote, preset = 'monthly') => {
+    if (hasTemplate(keywords)) return;
     
-    const kw = keyword.toLowerCase();
-    const matches = state.transactions.filter(t => (t.note || '').toLowerCase().includes(kw));
+    const matches = state.transactions.filter(t => {
+      const noteLower = (t.note || '').toLowerCase();
+      return keywords.some(kw => noteLower.includes(kw));
+    });
     if (matches.length === 0) return;
     
     matches.sort((a, b) => new Date(b.date) - new Date(a.date));
     const tx = matches[0];
+    
+    const cleanedNote = cleanNoteOfInstallments(tx.note || defaultNote);
     
     const template = {
       id: 'recovered_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
@@ -4187,7 +4230,7 @@ function autoRecoverTemplatesFromHistory() {
       subcategory: tx.subcategory || '',
       account_from: tx.account_from,
       account_to: tx.account_to || null,
-      note: tx.note || '',
+      note: cleanedNote,
       description: tx.description || '',
       preset: preset,
       days: [new Date(tx.date).getDate()],
@@ -4204,7 +4247,7 @@ function autoRecoverTemplatesFromHistory() {
     };
     
     state.recurringTemplates.push(template);
-    console.log('Auto-recovered template for ' + keyword + ':', template);
+    console.log('Auto-recovered template for keywords ' + keywords.join('/') + ':', template);
     
     if (state.supabaseClient && state.currentUser) {
       state.supabaseClient
@@ -4214,29 +4257,24 @@ function autoRecoverTemplatesFromHistory() {
           if (error) console.error('Failed to save auto-recovered template to Supabase:', error);
         });
     }
+    updated = true;
   };
   
-  let updated = false;
+  // 1. Car insurance (Yearly)
+  const insuranceKeywords = ['ασφάλεια', 'ασφαλεια', 'asfaleia', 'ασφάλιστρα', 'ασφαλιστρα', 'insurance'];
+  recoverForKeywords(insuranceKeywords, 'Ασφάλεια Αυτοκινήτου', 'yearly');
   
-  if (!hasTemplate('ασφάλεια') && !hasTemplate('ασφαλεια')) {
-    recoverForKeyword('ασφάλεια', 'yearly');
-    updated = true;
-  }
+  // 2. Home loan (Monthly)
+  const loanKeywords = ['δάνειο', 'δανειο', 'daneio', 'στεγαστικό', 'στεγαστικο', 'loan'];
+  recoverForKeywords(loanKeywords, 'Δάνειο Σπιτιού', 'monthly');
   
-  if (!hasTemplate('δάνειο') && !hasTemplate('δανειο')) {
-    recoverForKeyword('δάνειο', 'monthly');
-    updated = true;
-  }
+  // 3. Tires change (Yearly)
+  const tiresKeywords = ['ελαστικά', 'ελαστικα', 'λάστιχα', 'λαστιχα', 'λαστιχο', 'tires', 'tyres'];
+  recoverForKeywords(tiresKeywords, 'Αλλαγή Ελαστικών', 'yearly');
   
-  if (!hasTemplate('ελαστικά') && !hasTemplate('ελαστικα')) {
-    recoverForKeyword('ελαστικά', 'yearly');
-    updated = true;
-  }
-  
-  if (!hasTemplate('ενφια')) {
-    recoverForKeyword('ενφια', 'monthly');
-    updated = true;
-  }
+  // 4. ENFIA (Monthly)
+  const enfiaKeywords = ['ενφια', 'enfia'];
+  recoverForKeywords(enfiaKeywords, 'ΕΝΦΙΑ', 'monthly');
   
   if (updated) {
     localStorage.setItem('recurring_templates', JSON.stringify(state.recurringTemplates));
