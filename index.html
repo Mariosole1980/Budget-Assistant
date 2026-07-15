@@ -4,17 +4,82 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
   <script>
-    window.onerror = function(msg, url, line, col, error) {
-      var div = document.getElementById('debug-error-banner');
-      if (!div) {
-        div = document.createElement('div');
-        div.id = 'debug-error-banner';
-        div.style.cssText = 'position:fixed;top:0;left:0;width:100%;background:rgba(220,53,69,0.95);color:white;padding:12px;font-size:12px;z-index:9999999;font-family:monospace;word-break:break-all;box-sizing:border-box;';
-        document.body.appendChild(div);
+    // 1. Environment Manager Redirect
+    (function() {
+      const override = localStorage.getItem('override_server_url');
+      if (override && override !== 'local' && override !== window.location.origin && navigator.onLine) {
+        window.location.replace(override);
       }
-      div.innerHTML += '<div>❌ ' + msg + ' (' + (url ? url.split('/').pop() : 'inline') + ':' + line + ':' + col + ')</div>';
-      return false;
-    };
+    })();
+
+    // 2. Recovery Mode Bootloader
+    (function() {
+      window._appLoaded = false;
+      
+      // Catch fatal startup errors
+      window.addEventListener('error', function(event) {
+        if (!window._appLoaded) {
+          console.error('[Recovery] Fatal startup error caught:', event.error);
+          showRecoveryMode(event.message || 'Script compilation error');
+        }
+      });
+
+      // Detect startup timeout (simulate black screen failure)
+      window._startupTimeout = setTimeout(function() {
+        if (!window._appLoaded) {
+          // Check if custom timeout simulation is active
+          if (localStorage.getItem('simulate_boot_timeout') === 'true') {
+            localStorage.removeItem('simulate_boot_timeout');
+            showRecoveryMode('Simulated Startup Timeout (Testing)');
+          } else {
+            showRecoveryMode('Startup Timeout: App took too long to load.');
+          }
+        }
+      }, 4000);
+
+      window.showRecoveryMode = function(reason) {
+        if (document.getElementById('recovery-overlay')) return;
+        
+        const div = document.createElement('div');
+        div.id = 'recovery-overlay';
+        div.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#0d1117;color:#e6edf3;z-index:9999999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;text-align:center;';
+        
+        div.innerHTML = `
+          <div style="max-width:440px;background:#161b22;padding:32px;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,0.6);border:1px solid #30363d;">
+            <div style="font-size:48px;margin-bottom:16px;">⚠️</div>
+            <h2 style="margin:0 0 12px 0;color:#ff7b72;font-size:20px;font-weight:600;">Λειτουργία Ανάκτησης (Recovery Mode)</h2>
+            <p style="font-size:14px;color:#8b949e;margin-bottom:24px;line-height:1.5;text-align:left;background:#0d1117;padding:12px;border-radius:6px;border:1px solid #30363d;font-family:monospace;word-break:break-all;">
+              <strong style="color:#ff7b72;">Σφάλμα:</strong> ${reason}
+            </p>
+            <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:24px;">
+              <button onclick="window.location.reload()" style="background:#2188ff;color:white;border:none;padding:12px 20px;border-radius:6px;font-weight:600;cursor:pointer;font-size:14px;">🔄 Επαναφόρτωση (Reload)</button>
+              <button onclick="clearCacheAndReset()" style="background:#da3637;color:white;border:none;padding:12px 20px;border-radius:6px;font-weight:600;cursor:pointer;font-size:14px;">🗑️ Καθαρισμός Cache & Επαναφορά</button>
+              <button onclick="window.location.href='debug.html'" style="background:#30363d;color:#c9d1d9;border:1px solid #8b949e;padding:12px 20px;border-radius:6px;font-weight:600;cursor:pointer;font-size:14px;">⚙️ Διαγνωστικά & Αλλαγή Server</button>
+            </div>
+            <div style="font-size:11px;color:#8b949e;">
+              Budget Assistant • build v686
+            </div>
+          </div>
+        `;
+        
+        window.clearCacheAndReset = async function() {
+          if (confirm('Θέλετε σίγουρα να διαγράψετε την cache και τις ρυθμίσεις της εφαρμογής για επαναφορά;')) {
+            localStorage.clear();
+            if ('serviceWorker' in navigator) {
+              const regs = await navigator.serviceWorker.getRegistrations();
+              for (let r of regs) await r.unregister();
+            }
+            if ('caches' in window) {
+              const keys = await caches.keys();
+              for (let k of keys) await caches.delete(k);
+            }
+            window.location.reload();
+          }
+        };
+
+        document.body.appendChild(div);
+      };
+    })();
   </script>
   <title>Budget Assistant</title>
   
@@ -1080,9 +1145,9 @@
               <span class="settings-item-label" style="color:var(--red-negative);font-weight:600;" data-i18n="item_logout"><i class="fa-solid fa-right-from-bracket" style="margin-right:8px;"></i> Αποσύνδεση Λογαριασμού</span>
               <i class="fa-solid fa-chevron-right" style="color:var(--red-negative);font-size:12px;"></i>
             </div>
-            <div class="settings-list-item">
-              <span class="settings-item-label" style="color:var(--text-muted);font-size:12px;" data-i18n="app_version">Έκδοση 1.0.0 (build v685)</span>
-              <span class="settings-item-value" style="font-size:12px;color:var(--text-muted);">Budget Assistant</span>
+            <div class="settings-list-item" onclick="window.location.href='debug.html'" style="cursor:pointer;">
+              <span class="settings-item-label" style="color:var(--text-muted);font-size:12px;" data-i18n="app_version">Έκδοση 1.0.0 (build v686)</span>
+              <span class="settings-item-value" style="font-size:12px;color:var(--primary);font-weight:600;">Πίνακας Ελέγχου ⚙️</span>
             </div>
           </div>
 
@@ -2258,7 +2323,7 @@
   
   <!-- Register PWA Service Worker -->
   <script>
-    const CURRENT_BUILD = 685;
+    const CURRENT_BUILD = 686;
     
     // ============================================================
     // AGGRESSIVE iOS PWA AUTO-UPDATE

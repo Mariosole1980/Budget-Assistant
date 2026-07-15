@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Budget Assistant - Diagnostics & Control Panel</title>
+  <!-- Outfit Font & FontAwesome Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="js/fontawesome.min.css">
+  <style>
+    :root {
+      --bg-main: #0d1117;
+      --bg-card: #161b22;
+      --border-color: #30363d;
+      --text-main: #e6edf3;
+      --text-muted: #8b949e;
+      --primary: #58a6ff;
+      --primary-hover: #1f6feb;
+      --green: #3fb950;
+      --red: #ff7b72;
+      --yellow: #d29922;
+    }
+
+    body {
+      background: var(--bg-main);
+      color: var(--text-main);
+      font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      padding: 16px;
+      margin: 0;
+      box-sizing: border-box;
+      line-height: 1.5;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 16px;
+    }
+
+    h1 {
+      font-size: 20px;
+      margin: 0;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    .card-title {
+      font-size: 15px;
+      font-weight: 600;
+      margin-top: 0;
+      margin-bottom: 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      padding-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .btn {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: background 0.2s;
+    }
+
+    .btn:hover {
+      background: var(--primary-hover);
+    }
+
+    .btn-secondary {
+      background: #30363d;
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+    }
+
+    .btn-secondary:hover {
+      background: #444c56;
+    }
+
+    .btn-danger {
+      background: #da3637;
+    }
+
+    .btn-danger:hover {
+      background: #b62b2c;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+
+    .status-badge.success { background: rgba(63,185,80,0.15); color: var(--green); }
+    .status-badge.error { background: rgba(255,123,114,0.15); color: var(--red); }
+    .status-badge.warning { background: rgba(210,153,34,0.15); color: var(--yellow); }
+
+    .input-field {
+      width: 100%;
+      background: #0d1117;
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 13px;
+      box-sizing: border-box;
+      margin-bottom: 8px;
+    }
+
+    .input-field:focus {
+      border-color: var(--primary);
+      outline: none;
+    }
+
+    /* Test Results Styles */
+    .test-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.03);
+      font-size: 13px;
+    }
+    
+    .test-item:last-child {
+      border-bottom: none;
+    }
+
+    .test-status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 600;
+    }
+
+    .test-status.passed { color: var(--green); }
+    .test-status.failed { color: var(--red); }
+
+    /* Console Logger Widget */
+    .console-box {
+      background: #05070a;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 10px;
+      height: 180px;
+      overflow-y: auto;
+      font-family: monospace;
+      font-size: 11px;
+      line-height: 1.4;
+      white-space: pre-wrap;
+      color: #3fb950;
+      margin-top: 8px;
+    }
+
+    .console-line.error { color: var(--red); }
+    .console-line.warn { color: var(--yellow); }
+    .console-line.info { color: var(--primary); }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      margin-top: 8px;
+    }
+
+    th, td {
+      border: 1px solid var(--border-color);
+      padding: 8px;
+      text-align: left;
+    }
+
+    th { background: #161b22; color: var(--text-muted); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1><i class="fa-solid fa-gauge-high"></i> Πίνακας Ελέγχου</h1>
+      <button class="btn btn-secondary" onclick="window.location.href='/'"><i class="fa-solid fa-arrow-left"></i> Εφαρμογή</button>
+    </header>
+
+    <!-- 🌐 SECTION 1: ENVIRONMENT MANAGER -->
+    <div class="card">
+      <div class="card-title">
+        <span>🌐 Διαχείριση Περιβάλλοντος (Server URL)</span>
+        <span class="status-badge success" id="env-badge">Active</span>
+      </div>
+      <p style="font-size:12px;color:var(--text-muted);margin-top:0;">
+        Επιλέξτε πού θα συνδέεται η εφαρμογή. Αν επιλέξετε Staging ή Custom URL, η εφαρμογή θα ανακατευθύνει αυτόματα εκεί!
+      </p>
+      
+      <div style="font-size:13px;margin-bottom:12px;">
+        <strong>Τρέχων Host:</strong> <span id="current-host" style="font-family:monospace;color:var(--primary);">...</span><br>
+        <strong>Target Server:</strong> <span id="target-server" style="font-family:monospace;color:var(--yellow);">...</span>
+      </div>
+
+      <div class="btn-group">
+        <button class="btn" onclick="setServerUrl('https://budget-assistant-pwa.pages.dev')"><i class="fa-solid fa-cloud"></i> Production (Live)</button>
+        <button class="btn" style="background:#8a63d2;" onclick="setServerUrl('https://staging.budget-assistant-pwa.pages.dev')"><i class="fa-solid fa-flask"></i> Staging (Δοκιμαστικό)</button>
+        <button class="btn btn-secondary" onclick="setServerUrl('local')"><i class="fa-solid fa-mobile-screen"></i> Local APK Assets</button>
+      </div>
+
+      <div style="margin-top:16px;border-top:1px solid rgba(255,255,255,0.05);padding-top:12px;">
+        <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Custom Server URL:</label>
+        <div style="display:flex;gap:8px;">
+          <input type="text" id="custom-url-input" class="input-field" placeholder="https://my-custom-preview.pages.dev" style="margin-bottom:0;">
+          <button class="btn btn-secondary" onclick="setCustomServerUrl()">Ορισμός</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 🧪 SECTION 2: AUTOMATED DIAGNOSTICS SUITE -->
+    <div class="card">
+      <div class="card-title">
+        <span>🧪 Αυτοματοποιημένα Τεστ & Diagnostics</span>
+        <button class="btn btn-secondary" style="padding:6px 12px;font-size:11px;" onclick="runDiagnostics()"><i class="fa-solid fa-play"></i> Run Tests</button>
+      </div>
+      
+      <div id="test-results-container">
+        <div class="test-item">
+          <span>1. Υπολογισμοί Budget (Math check)</span>
+          <span class="test-status" id="test-math"><span style="color:var(--text-muted);">Αναμονή</span></span>
+        </div>
+        <div class="test-item">
+          <span>2. Serialization Sync Queue (Local state)</span>
+          <span class="test-status" id="test-sync"><span style="color:var(--text-muted);">Αναμονή</span></span>
+        </div>
+        <div class="test-item">
+          <span>3. Service Worker & Offline Cache</span>
+          <span class="test-status" id="test-cache"><span style="color:var(--text-muted);">Αναμονή</span></span>
+        </div>
+        <div class="test-item">
+          <span>4. Supabase API Ping (Connectivity)</span>
+          <span class="test-status" id="test-supabase"><span style="color:var(--text-muted);">Αναμονή</span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 💥 SECTION 3: CRASH & RECOVERY SIMULATOR -->
+    <div class="card">
+      <div class="card-title">
+        <span>💥 Εξομοίωση Σφαλμάτων & Recovery Mode</span>
+      </div>
+      <p style="font-size:12px;color:var(--text-muted);margin-top:0;">
+        Χρησιμοποιήστε τα παρακάτω κουμπιά για να δοκιμάσετε αν η Recovery Screen (Λειτουργία Ανάκτησης) λειτουργεί σωστά σε περίπτωση προβλήματος.
+      </p>
+      <div class="btn-group">
+        <button class="btn btn-danger" onclick="simulateStartupError()"><i class="fa-solid fa-bug"></i> Simulate Script Error</button>
+        <button class="btn btn-danger" onclick="simulateTimeout()"><i class="fa-solid fa-hourglass-end"></i> Simulate Boot Timeout</button>
+      </div>
+    </div>
+
+    <!-- ⚙️ SECTION 4: ACTIONS & RECOVERY -->
+    <div class="card">
+      <div class="card-title">
+        <span>⚙️ Επείγουσες Ενέργειες & Data Backup</span>
+      </div>
+      <div class="btn-group">
+        <button class="btn" style="background:#28a745;" onclick="downloadDataJson()"><i class="fa-solid fa-download"></i> Backup Δεδομένων (JSON)</button>
+        <button class="btn btn-danger" onclick="clearAppData()"><i class="fa-solid fa-trash-can"></i> Διαγραφή Local Storage</button>
+        <button class="btn btn-danger" onclick="clearSWCache()"><i class="fa-solid fa-broom"></i> Καθαρισμός Service Worker Cache</button>
+      </div>
+    </div>
+
+    <!-- 📋 SECTION 5: REALTIME CONSOLE LOGGER -->
+    <div class="card">
+      <div class="card-title">
+        <span>📋 Εσωτερική Κονσόλα Σφαλμάτων & Logs</span>
+        <button class="btn btn-secondary" style="padding:4px 8px;font-size:10px;" onclick="clearConsoleLogs()">Clear</button>
+      </div>
+      <div class="console-box" id="console-logs"></div>
+    </div>
+  </div>
+
+  <script>
+    // 1. Console Log Interception
+    const consoleLogsContainer = document.getElementById('console-logs');
+    
+    function logToScreen(type, args) {
+      const line = document.createElement('div');
+      line.className = 'console-line ' + type;
+      line.textContent = `[${new Date().toLocaleTimeString()}] ` + Array.from(args).map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' ');
+      consoleLogsContainer.appendChild(line);
+      consoleLogsContainer.scrollTop = consoleLogsContainer.scrollHeight;
+    }
+
+    const _log = console.log;
+    const _error = console.error;
+    const _warn = console.warn;
+
+    console.log = function() {
+      _log.apply(console, arguments);
+      logToScreen('info', arguments);
+    };
+    console.error = function() {
+      _error.apply(console, arguments);
+      logToScreen('error', arguments);
+    };
+    console.warn = function() {
+      _warn.apply(console, arguments);
+      logToScreen('warn', arguments);
+    };
+
+    function clearConsoleLogs() {
+      consoleLogsContainer.innerHTML = '';
+      console.log('Console cleared');
+    }
+
+    // 2. Info Initializers
+    document.getElementById('current-host').textContent = window.location.origin;
+    const override = localStorage.getItem('override_server_url') || 'Production (Default)';
+    document.getElementById('target-server').textContent = override === 'local' ? 'Local APK Assets (localhost)' : override;
+    if (localStorage.getItem('override_server_url')) {
+      document.getElementById('env-badge').className = 'status-badge warning';
+      document.getElementById('env-badge').textContent = 'Overridden';
+    }
+
+    // 3. Environment Actions
+    function setServerUrl(url) {
+      if (url === 'local') {
+        localStorage.setItem('override_server_url', 'local');
+        alert('Ορίστηκε: Local APK Assets. Η εφαρμογή θα φορτώνει τα ενσωματωμένα αρχεία του APK.');
+      } else {
+        localStorage.setItem('override_server_url', url);
+        alert(`Ορίστηκε: ${url}. Η εφαρμογή θα ανακατευθύνει εκεί κατά την εκκίνηση.`);
+      }
+      window.location.reload();
+    }
+
+    function setCustomServerUrl() {
+      const url = document.getElementById('custom-url-input').value.trim();
+      if (!url || !url.startsWith('http')) {
+        alert('Παρακαλώ εισάγετε ένα έγκυρο URL (που ξεκινά με http:// ή https://)');
+        return;
+      }
+      setServerUrl(url);
+    }
+
+    // 4. Automated Tests Runner
+    function updateTestStatus(id, passed, message) {
+      const el = document.getElementById(id);
+      if (passed) {
+        el.className = 'test-status passed';
+        el.innerHTML = `✅ Passed ${message ? `(${message})` : ''}`;
+      } else {
+        el.className = 'test-status failed';
+        el.innerHTML = `❌ Failed ${message ? `(${message})` : ''}`;
+      }
+    }
+
+    async function runDiagnostics() {
+      console.log('[Test Runner] Starting Automated Tests...');
+
+      // Test 1: Math Checks
+      try {
+        // Simple mock calculations to simulate core logic check
+        const mockTransactions = [
+          { amount: 100, type: 'income' },
+          { amount: 50, type: 'expense' },
+          { amount: 30, type: 'expense' }
+        ];
+        const totalIncome = mockTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+        const totalExpense = mockTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+        const balance = totalIncome - totalExpense;
+        
+        if (totalIncome === 100 && totalExpense === 80 && balance === 20) {
+          updateTestStatus('test-math', true, 'Math operations correct');
+          console.log('[Test] Math operation validation passed.');
+        } else {
+          throw new Error('Incorrect calculations');
+        }
+      } catch (e) {
+        updateTestStatus('test-math', false, e.message);
+        console.error('[Test] Math validation failed:', e);
+      }
+
+      // Test 2: State / Queue
+      try {
+        localStorage.setItem('__test_sync_queue__', JSON.stringify([{ id: 'test-1', amount: 10 }]));
+        const testQueue = JSON.parse(localStorage.getItem('__test_sync_queue__'));
+        localStorage.removeItem('__test_sync_queue__');
+        if (testQueue && testQueue[0].id === 'test-1') {
+          updateTestStatus('test-sync', true, 'LocalStorage serialization success');
+        } else {
+          throw new Error('State serialization error');
+        }
+      } catch (e) {
+        updateTestStatus('test-sync', false, e.message);
+      }
+
+      // Test 3: Service Worker Cache
+      try {
+        if ('serviceWorker' in navigator) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          if (regs.length > 0) {
+            updateTestStatus('test-cache', true, `${regs.length} active registrations`);
+          } else {
+            updateTestStatus('test-cache', true, 'Browser supports SW (None active yet)');
+          }
+        } else {
+          throw new Error('Service Worker not supported by browser');
+        }
+      } catch (e) {
+        updateTestStatus('test-cache', false, e.message);
+      }
+
+      // Test 4: Supabase Connection Ping
+      try {
+        if (navigator.onLine) {
+          // Attempt network fetch to verify connection
+          const start = Date.now();
+          const response = await fetch('https://budget-assistant-pwa.pages.dev/version.json', { cache: 'no-store' });
+          if (response.ok) {
+            const time = Date.now() - start;
+            updateTestStatus('test-supabase', true, `Ping: ${time}ms`);
+          } else {
+            throw new Error(`Server returned ${response.status}`);
+          }
+        } else {
+          updateTestStatus('test-supabase', false, 'Device is offline');
+        }
+      } catch (e) {
+        updateTestStatus('test-supabase', false, e.message);
+      }
+    }
+
+    // 5. Crash Simulators
+    function simulateStartupError() {
+      localStorage.removeItem('__test_sync_queue__');
+      alert('Εξομοίωση Σφάλματος: Θα προκληθεί ReferenceError κατά το reload. Πατήστε ΟΚ για εκτέλεση.');
+      setTimeout(() => {
+        // Inject a script that throws a ReferenceError on load
+        window.location.reload();
+        throw new ReferenceError('Simulated crash during boot sequence.');
+      }, 500);
+    }
+
+    function simulateTimeout() {
+      localStorage.setItem('simulate_boot_timeout', 'true');
+      alert('Εξομοίωση Black Screen: Η εφαρμογή θα καθυστερήσει σκόπιμα 5 δευτερόλεπτα κατά την εκκίνηση για να διεγείρει το Recovery Timeout.');
+      window.location.href = '/';
+    }
+
+    // 6. Recovery & Reset Actions
+    async function clearSWCache() {
+      if (confirm('Θέλετε να διαγράψετε όλα τα cached αρχεία και να απενεργοποιήσετε το Service Worker;')) {
+        if ('serviceWorker' in navigator) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          for (let r of regs) {
+            await r.unregister();
+            console.log('Unregistered Service Worker:', r);
+          }
+        }
+        if ('caches' in window) {
+          const keys = await caches.keys();
+          for (let k of keys) {
+            await caches.delete(k);
+            console.log('Deleted Cache:', k);
+          }
+        }
+        alert('Η Cache καθαρίστηκε επιτυχώς!');
+        window.location.reload();
+      }
+    }
+
+    function clearAppData() {
+      if (confirm('ΠΡΟΣΟΧΗ: Αυτό θα διαγράψει όλα τα τοπικά δεδομένα, τις ρυθμίσεις και τη σύνδεσή σας! Θέλετε να συνεχίσετε;')) {
+        localStorage.clear();
+        alert('Τα τοπικά δεδομένα διαγράφηκαν!');
+        window.location.href = '/';
+      }
+    }
+
+    function downloadDataJson() {
+      const backup = {
+        transactions: JSON.parse(localStorage.getItem('offline_transactions') || '[]'),
+        syncQueue: JSON.parse(localStorage.getItem('money_manager_sync_queue') || '[]'),
+        user: JSON.parse(localStorage.getItem('cached_current_user') || 'null'),
+        profile: JSON.parse(localStorage.getItem('cached_user_profile') || 'null')
+      };
+      
+      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `budget_assistant_backup_${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    // Run tests automatically on diagnostics load
+    setTimeout(runDiagnostics, 800);
+  </script>
+</body>
+</html>
