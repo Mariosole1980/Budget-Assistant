@@ -60,7 +60,7 @@
               ${devButton}
             </div>
             <div style="font-size:11px;color:#8b949e;">
-              Budget Assistant • build v687
+              Budget Assistant • build v689
             </div>
           </div>
         `;
@@ -92,9 +92,13 @@
       clearTimeout(devTapTimer);
       if (devTaps >= 5) {
         devTaps = 0;
-        localStorage.setItem('developer_mode_active', 'true');
-        alert('Λειτουργία Προγραμματιστή Ενεργή! ⚙️');
-        window.location.href = 'debug.html';
+        const pin = prompt('Εισάγετε τον κωδικό προγραμματιστή (PIN):');
+        if (pin === '2121') {
+          localStorage.setItem('developer_mode_active', 'true');
+          window.location.href = 'debug.html';
+        } else {
+          alert('Μη έγκυρος κωδικός.');
+        }
       } else {
         devTapTimer = setTimeout(function() { devTaps = 0; }, 2000);
       }
@@ -107,9 +111,13 @@
       clearTimeout(recTapTimer);
       if (recTaps >= 5) {
         recTaps = 0;
-        localStorage.setItem('developer_mode_active', 'true');
-        alert('Λειτουργία Προγραμματιστή Ενεργή! ⚙️');
-        window.location.href = 'debug.html';
+        const pin = prompt('Εισάγετε τον κωδικό προγραμματιστή (PIN):');
+        if (pin === '2121') {
+          localStorage.setItem('developer_mode_active', 'true');
+          window.location.href = 'debug.html';
+        } else {
+          alert('Μη έγκυρος κωδικός.');
+        }
       } else {
         recTapTimer = setTimeout(function() { recTaps = 0; }, 2000);
       }
@@ -1179,8 +1187,12 @@
               <span class="settings-item-label" style="color:var(--red-negative);font-weight:600;" data-i18n="item_logout"><i class="fa-solid fa-right-from-bracket" style="margin-right:8px;"></i> Αποσύνδεση Λογαριασμού</span>
               <i class="fa-solid fa-chevron-right" style="color:var(--red-negative);font-size:12px;"></i>
             </div>
-            <div class="settings-list-item" onclick="handleVersionTap()" style="cursor:pointer;">
-              <span class="settings-item-label" style="color:var(--text-muted);font-size:12px;" data-i18n="app_version">Έκδοση 1.0.0 (build v687)</span>
+            <div class="settings-list-item" id="developer-settings-row" onclick="window.location.href='debug.html'" style="display:none;cursor:pointer;">
+              <span class="settings-item-label" style="color:var(--primary);font-weight:600;"><i class="fa-solid fa-gauge-high" style="margin-right:8px;"></i> Πίνακας Ελέγχου</span>
+              <i class="fa-solid fa-chevron-right" style="color:var(--primary);font-size:12px;"></i>
+            </div>
+            <div class="settings-list-item">
+              <span class="settings-item-label" style="color:var(--text-muted);font-size:12px;" data-i18n="app_version">Έκδοση 1.0.0 (build v689)</span>
               <span class="settings-item-value" style="font-size:12px;color:var(--text-muted);">Budget Assistant</span>
             </div>
           </div>
@@ -2357,7 +2369,7 @@
   
   <!-- Register PWA Service Worker -->
   <script>
-    const CURRENT_BUILD = 687;
+    const CURRENT_BUILD = 689;
     
     // ============================================================
     // AGGRESSIVE iOS PWA AUTO-UPDATE
