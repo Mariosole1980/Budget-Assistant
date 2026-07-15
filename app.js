@@ -592,7 +592,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v673 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v674 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -3855,6 +3855,10 @@ async function loadData() {
   if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
     try {
       updateHeaderSyncIcon('syncing');
+      
+      // Process offline queue first (flushes offline deletes/saves) before fetching latest transactions
+      await processSyncQueue({ skipReload: true });
+      
       const userId = state.currentUser.id;
       const partnerId = state.partnerProfile ? state.partnerProfile.id : null;
 
@@ -17038,6 +17042,9 @@ async function forceSyncNow(silent = false) {
     // Auto-sync deleted transactions from local trash to Supabase
     await syncLocalTrashToCloud();
     
+    // Process offline sync queue (applies offline deletes/saves to cloud) before fetching
+    await processSyncQueue({ skipReload: true });
+    
     const partnerId = state.partnerProfile ? state.partnerProfile.id : null;
     const familyId = state.userProfile ? state.userProfile.family_id : null;
     
@@ -17102,10 +17109,7 @@ async function forceSyncNow(silent = false) {
       }
     }
 
-    // 3. Process offline queue first (push local changes to cloud)
-    // skipReload=true: forceSyncNow does its own full re-fetch below, so we don't
-    // want processSyncQueue to also call loadData+updateUI (would cause double render).
-    await processSyncQueue({ skipReload: true });
+    // 3. Process offline queue was moved to the start of forceSyncNow
     
     // 4. Keep local pending transactions
     const localPending = getPendingLocalTransactions(state.transactions);
