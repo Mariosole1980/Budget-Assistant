@@ -592,7 +592,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v667 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v668 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -4217,30 +4217,30 @@ function autoRecoverTemplatesFromHistory() {
   };
   
   const findInstallmentEndDate = (matches) => {
-    // First pass: look for a transaction where X = Y (the last installment)
-    for (const t of matches) {
-      const m = (t.note || '').match(/(\d+)\/(\d+)/);
-      if (m) {
-        const current = parseInt(m[1]);
-        const total = parseInt(m[2]);
-        if (current === total) {
-          return String(t.date || '').split('T')[0];
-        }
-      }
-    }
-    // Second pass: find highest installment and project the last date
     let maxCurrent = 0, maxTotal = 0, maxDate = null;
     for (const t of matches) {
       const m = (t.note || '').match(/(\d+)\/(\d+)/);
       if (m) {
         const c = parseInt(m[1]), tot = parseInt(m[2]);
-        if (c > maxCurrent) { maxCurrent = c; maxTotal = tot; maxDate = String(t.date || '').split('T')[0]; }
+        if (c > maxCurrent) { 
+          maxCurrent = c; 
+          maxTotal = tot; 
+          maxDate = String(t.date || '').split('T')[0]; 
+        }
       }
     }
-    if (maxDate && maxTotal > 0 && maxCurrent < maxTotal) {
+    if (maxDate && maxTotal > 0) {
       const remaining = maxTotal - maxCurrent;
       const d = new Date(maxDate);
+      
+      // Move to the 1st of the month first to avoid month rollover bugs (e.g. Feb 30th)
+      d.setDate(1);
       d.setMonth(d.getMonth() + remaining);
+      
+      // Set to the last day of that target month to cover all days of that last installment month
+      const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+      d.setDate(lastDay);
+      
       return d.toISOString().split('T')[0];
     }
     return null; // No installment pattern found → perpetual
@@ -21149,6 +21149,14 @@ function openRecurringTemplatesModal() {
         presetLabel = TRANSLATIONS[lang]['stats_period_' + presetLabel] || presetLabel;
       }
 
+      let endDateLabel = '';
+      if (t.endDate) {
+        const endD = new Date(t.endDate);
+        const formatOptions = { year: 'numeric', month: 'long' };
+        const formattedEnd = endD.toLocaleDateString(lang === 'el' ? 'el-GR' : 'en-US', formatOptions);
+        endDateLabel = lang === 'el' ? ` • Έως ${formattedEnd}` : ` • Until ${formattedEnd}`;
+      }
+
       const itemHtml = `
         <div class="recurring-template-row" style="display: flex; flex-direction: row; align-items: center; justify-content: space-between; padding: 12px 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg-card); gap: 12px; margin-bottom: 0; min-height: 64px; box-sizing: border-box; width: 100%;">
           <div style="display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1; flex-direction: row;">
@@ -21157,7 +21165,7 @@ function openRecurringTemplatesModal() {
             </div>
             <div style="display: flex; flex-direction: column; min-width: 0; text-align: left; flex: 1;">
               <span style="font-weight: 700; color: var(--text-primary); font-size: 14.5px; word-break: break-word; line-height: 1.3;">${t.note}</span>
-              <span style="font-size: 12px; color: var(--text-secondary); margin-top: 3px; word-break: break-word; line-height: 1.2;">${presetLabel} • ${parseFloat(t.amount || 0).toFixed(2)}€</span>
+              <span style="font-size: 12px; color: var(--text-secondary); margin-top: 3px; word-break: break-word; line-height: 1.2;">${presetLabel} • ${parseFloat(t.amount || 0).toFixed(2)}€${endDateLabel}</span>
             </div>
           </div>
           <button class="delete-btn" onclick="deleteRecurringTemplate('${t.id}')" style="background: none; border: none; color: var(--danger); font-size: 18px; cursor: pointer; padding: 8px; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: background-color 0.2s; flex-shrink: 0;" onmouseover="this.style.backgroundColor='rgba(239, 83, 80, 0.1)'" onmouseout="this.style.backgroundColor='transparent'">
