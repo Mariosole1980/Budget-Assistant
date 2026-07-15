@@ -592,7 +592,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v665 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v666 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -4208,6 +4208,36 @@ function autoRecoverTemplatesFromHistory() {
     return cleaned || note;
   };
   
+  const findInstallmentEndDate = (matches) => {
+    // First pass: look for a transaction where X = Y (the last installment)
+    for (const t of matches) {
+      const m = (t.note || '').match(/(\d+)\/(\d+)/);
+      if (m) {
+        const current = parseInt(m[1]);
+        const total = parseInt(m[2]);
+        if (current === total) {
+          return String(t.date || '').split('T')[0];
+        }
+      }
+    }
+    // Second pass: find highest installment and project the last date
+    let maxCurrent = 0, maxTotal = 0, maxDate = null;
+    for (const t of matches) {
+      const m = (t.note || '').match(/(\d+)\/(\d+)/);
+      if (m) {
+        const c = parseInt(m[1]), tot = parseInt(m[2]);
+        if (c > maxCurrent) { maxCurrent = c; maxTotal = tot; maxDate = String(t.date || '').split('T')[0]; }
+      }
+    }
+    if (maxDate && maxTotal > 0 && maxCurrent < maxTotal) {
+      const remaining = maxTotal - maxCurrent;
+      const d = new Date(maxDate);
+      d.setMonth(d.getMonth() + remaining);
+      return d.toISOString().split('T')[0];
+    }
+    return null; // No installment pattern found → perpetual
+  };
+
   const recoverForKeywords = (keywords, defaultNote, preset = 'monthly') => {
     if (hasTemplate(keywords)) return;
     
@@ -4217,10 +4247,12 @@ function autoRecoverTemplatesFromHistory() {
     });
     if (matches.length === 0) return;
     
-    matches.sort((a, b) => new Date(b.date) - new Date(a.date));
-    const tx = matches[0];
+    // For end date, use all matches; for the template base use the earliest transaction (startDate)
+    const sortedAsc = [...matches].sort((a, b) => new Date(a.date) - new Date(b.date));
+    const tx = sortedAsc[0]; // Earliest transaction = true startDate
     
     const cleanedNote = cleanNoteOfInstallments(tx.note || defaultNote);
+    const detectedEndDate = findInstallmentEndDate(matches);
     
     const template = {
       id: 'recovered_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
@@ -4236,8 +4268,8 @@ function autoRecoverTemplatesFromHistory() {
       days: [new Date(tx.date).getDate()],
       months: preset === 'yearly' ? [new Date(tx.date).getMonth() + 1] : [],
       years: [],
-      endType: 'perpetual',
-      endDate: null,
+      endType: detectedEndDate ? 'date' : 'perpetual',
+      endDate: detectedEndDate || null,
       startDate: tx.date,
       startYear: new Date(tx.date).getFullYear(),
       startMonth: new Date(tx.date).getMonth() + 1,
