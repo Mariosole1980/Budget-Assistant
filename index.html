@@ -40,6 +40,9 @@
       window.showRecoveryMode = function(reason) {
         if (document.getElementById('recovery-overlay')) return;
         
+        const isDev = localStorage.getItem('developer_mode_active') === 'true';
+        const devButton = isDev ? `<button onclick="window.location.href='debug.html'" style="background:#30363d;color:#c9d1d9;border:1px solid #8b949e;padding:12px 20px;border-radius:6px;font-weight:600;cursor:pointer;font-size:14px;">⚙️ Διαγνωστικά & Αλλαγή Server</button>` : '';
+
         const div = document.createElement('div');
         div.id = 'recovery-overlay';
         div.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#0d1117;color:#e6edf3;z-index:9999999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;text-align:center;';
@@ -47,17 +50,17 @@
         div.innerHTML = `
           <div style="max-width:440px;background:#161b22;padding:32px;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,0.6);border:1px solid #30363d;">
             <div style="font-size:48px;margin-bottom:16px;">⚠️</div>
-            <h2 style="margin:0 0 12px 0;color:#ff7b72;font-size:20px;font-weight:600;">Λειτουργία Ανάκτησης (Recovery Mode)</h2>
+            <h2 id="recovery-title" onclick="handleRecoveryTitleTap()" style="margin:0 0 12px 0;color:#ff7b72;font-size:20px;font-weight:600;cursor:pointer;user-select:none;">Λειτουργία Ανάκτησης (Recovery Mode)</h2>
             <p style="font-size:14px;color:#8b949e;margin-bottom:24px;line-height:1.5;text-align:left;background:#0d1117;padding:12px;border-radius:6px;border:1px solid #30363d;font-family:monospace;word-break:break-all;">
               <strong style="color:#ff7b72;">Σφάλμα:</strong> ${reason}
             </p>
             <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:24px;">
               <button onclick="window.location.reload()" style="background:#2188ff;color:white;border:none;padding:12px 20px;border-radius:6px;font-weight:600;cursor:pointer;font-size:14px;">🔄 Επαναφόρτωση (Reload)</button>
               <button onclick="clearCacheAndReset()" style="background:#da3637;color:white;border:none;padding:12px 20px;border-radius:6px;font-weight:600;cursor:pointer;font-size:14px;">🗑️ Καθαρισμός Cache & Επαναφορά</button>
-              <button onclick="window.location.href='debug.html'" style="background:#30363d;color:#c9d1d9;border:1px solid #8b949e;padding:12px 20px;border-radius:6px;font-weight:600;cursor:pointer;font-size:14px;">⚙️ Διαγνωστικά & Αλλαγή Server</button>
+              ${devButton}
             </div>
             <div style="font-size:11px;color:#8b949e;">
-              Budget Assistant • build v686
+              Budget Assistant • build v687
             </div>
           </div>
         `;
@@ -80,6 +83,37 @@
         document.body.appendChild(div);
       };
     })();
+
+    // 3. Secret Developer Tap Handlers
+    let devTaps = 0;
+    let devTapTimer = null;
+    window.handleVersionTap = function() {
+      devTaps++;
+      clearTimeout(devTapTimer);
+      if (devTaps >= 5) {
+        devTaps = 0;
+        localStorage.setItem('developer_mode_active', 'true');
+        alert('Λειτουργία Προγραμματιστή Ενεργή! ⚙️');
+        window.location.href = 'debug.html';
+      } else {
+        devTapTimer = setTimeout(function() { devTaps = 0; }, 2000);
+      }
+    };
+    
+    let recTaps = 0;
+    let recTapTimer = null;
+    window.handleRecoveryTitleTap = function() {
+      recTaps++;
+      clearTimeout(recTapTimer);
+      if (recTaps >= 5) {
+        recTaps = 0;
+        localStorage.setItem('developer_mode_active', 'true');
+        alert('Λειτουργία Προγραμματιστή Ενεργή! ⚙️');
+        window.location.href = 'debug.html';
+      } else {
+        recTapTimer = setTimeout(function() { recTaps = 0; }, 2000);
+      }
+    };
   </script>
   <title>Budget Assistant</title>
   
@@ -1145,9 +1179,9 @@
               <span class="settings-item-label" style="color:var(--red-negative);font-weight:600;" data-i18n="item_logout"><i class="fa-solid fa-right-from-bracket" style="margin-right:8px;"></i> Αποσύνδεση Λογαριασμού</span>
               <i class="fa-solid fa-chevron-right" style="color:var(--red-negative);font-size:12px;"></i>
             </div>
-            <div class="settings-list-item" onclick="window.location.href='debug.html'" style="cursor:pointer;">
-              <span class="settings-item-label" style="color:var(--text-muted);font-size:12px;" data-i18n="app_version">Έκδοση 1.0.0 (build v686)</span>
-              <span class="settings-item-value" style="font-size:12px;color:var(--primary);font-weight:600;">Πίνακας Ελέγχου ⚙️</span>
+            <div class="settings-list-item" onclick="handleVersionTap()" style="cursor:pointer;">
+              <span class="settings-item-label" style="color:var(--text-muted);font-size:12px;" data-i18n="app_version">Έκδοση 1.0.0 (build v687)</span>
+              <span class="settings-item-value" style="font-size:12px;color:var(--text-muted);">Budget Assistant</span>
             </div>
           </div>
 
@@ -2323,7 +2357,7 @@
   
   <!-- Register PWA Service Worker -->
   <script>
-    const CURRENT_BUILD = 686;
+    const CURRENT_BUILD = 687;
     
     // ============================================================
     // AGGRESSIVE iOS PWA AUTO-UPDATE
