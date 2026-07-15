@@ -592,7 +592,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v671 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v672 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -4330,6 +4330,45 @@ function autoRecoverTemplatesFromHistory() {
   if (updated) {
     localStorage.setItem('recurring_templates', JSON.stringify(state.recurringTemplates));
     updateUI();
+  }
+
+  // One-time automatic cleanup of duplicate/stranded loan+insurance transactions (644.92€)
+  if (state.transactions && state.transactions.length > 0) {
+    const matches = state.transactions.filter(t => {
+      const note = (t.note || '').toUpperCase();
+      const amt = parseFloat(t.amount) || 0;
+      const isMatch = (note.includes('ΔΑΝΕΙΟ') && note.includes('ΑΣΦΑΛΕΙΑ')) || Math.abs(amt - 644.92) < 0.01;
+      return isMatch;
+    });
+    
+    if (matches.length > 1) {
+      matches.sort((a, b) => new Date(a.date) - new Date(b.date));
+      const original = matches[0];
+      const duplicates = matches.slice(1);
+      const duplicateIds = duplicates.map(d => d.id);
+      
+      console.log('[Cleanup] Found', matches.length, 'loan+insurance transactions. Keeping original from:', original.date, 'and deleting', duplicates.length, 'duplicates.');
+      
+      state.transactions = state.transactions.filter(t => !duplicateIds.includes(t.id));
+      localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
+      
+      if (state.supabaseClient && state.currentUser) {
+        state.supabaseClient
+          .from('transactions')
+          .delete()
+          .in('id', duplicateIds)
+          .then(({ error }) => {
+            if (error) console.error('[Cleanup] Failed to delete cloud duplicates:', error);
+            else console.log('[Cleanup] Successfully cleaned duplicate transactions from cloud');
+          });
+      }
+      
+      // Request UI updates
+      setTimeout(() => {
+        calculateInitialBalances();
+        updateUI();
+      }, 100);
+    }
   }
 }
 
