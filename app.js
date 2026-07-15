@@ -592,7 +592,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v668 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v669 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -21206,14 +21206,13 @@ async function deleteRecurringTemplate(id) {
   state.recurringTemplates = (state.recurringTemplates || []).filter(t => t.id !== id);
   localStorage.setItem('recurring_templates', JSON.stringify(state.recurringTemplates));
 
-  // 2. Clear already generated future occurrences
-  const todayStr = new Date().toISOString().split('T')[0];
+  // 2. Clear already generated occurrences across all months (past & future)
+  // but preserve the original seed transaction at template's startDate
   const idsToDelete = [];
   
   if (templateToDelete) {
     state.transactions = state.transactions.filter(t => {
       const tDate = String(t.date || '').split('T')[0];
-      const isFuture = tDate > todayStr;
       const isStartDate = tDate === String(templateToDelete.startDate || '').split('T')[0];
       
       const matchById = String(t.recurring_template_id) === String(id);
@@ -21224,7 +21223,7 @@ async function deleteRecurringTemplate(id) {
                              (t.account_from || '') === (templateToDelete.account_from || '') &&
                              (t.note || '') === (templateToDelete.note || '');
                              
-      if (isFuture && !isStartDate && (matchById || matchByContent)) {
+      if (!isStartDate && (matchById || matchByContent)) {
         idsToDelete.push(t.id);
         return false;
       }
