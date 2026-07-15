@@ -649,7 +649,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v682 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v684 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -17554,16 +17554,13 @@ function handleAppForegroundSync() {
   if (state.currentUser && state.supabaseClient) {
     if (_visibilitySyncTimer) clearTimeout(_visibilitySyncTimer);
     const timeSinceLastSync = Date.now() - (state.lastSyncTime || 0);
-    if (timeSinceLastSync > 120000) {
-      // ANTI-FLICKER: Wait at minimum 10s before syncing on resume.
-      // The first 600ms is the _appJustResumed guard window.
-      // The next 8s is a safety buffer to ensure the resume animation
-      // is fully complete before updateUI() wipes and re-renders tabs.
-      // This prevents the second flicker wave from the background sync.
+    if (timeSinceLastSync > 30000) {
+      // ANTI-FLICKER: Wait 1.5s after resume to ensure animations are complete
+      // before updating UI.
       _visibilitySyncTimer = setTimeout(() => {
         _visibilitySyncTimer = null;
         forceSyncNow(true);
-      }, 10000);
+      }, 1500);
     }
   }
 }
@@ -17599,6 +17596,10 @@ function _handleAppResumed() {
   if (needsRestore && typeof window.restoreActiveModalsWithoutTransition === 'function') {
     window.restoreActiveModalsWithoutTransition();
   }
+  
+  // Re-establish realtime channel in case connection was dropped by OS
+  setupSupabaseRealtimeSubscription();
+  
   handleAppForegroundSync();
 }
 
