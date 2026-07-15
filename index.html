@@ -1081,7 +1081,7 @@
               <i class="fa-solid fa-chevron-right" style="color:var(--red-negative);font-size:12px;"></i>
             </div>
             <div class="settings-list-item">
-              <span class="settings-item-label" style="color:var(--text-muted);font-size:12px;" data-i18n="app_version">Έκδοση 1.0.0 (build v681)</span>
+              <span class="settings-item-label" style="color:var(--text-muted);font-size:12px;" data-i18n="app_version">Έκδοση 1.0.0 (build v682)</span>
               <span class="settings-item-value" style="font-size:12px;color:var(--text-muted);">Budget Assistant</span>
             </div>
           </div>
@@ -2258,7 +2258,7 @@
   
   <!-- Register PWA Service Worker -->
   <script>
-    const CURRENT_BUILD = 681;
+    const CURRENT_BUILD = 682;
     
     // ============================================================
     // AGGRESSIVE iOS PWA AUTO-UPDATE
@@ -2337,30 +2337,15 @@
 
     if ('serviceWorker' in navigator) {
       // ============================================================
-      // NUCLEAR iOS PWA FIX: Register SW with versioned URL
-      // iOS Safari treats 'sw.js?v=656' as a COMPLETELY DIFFERENT
-      // script from 'sw.js?v=656', bypassing the update deadlock.
-      // Old SW is unregistered first to break the control cycle.
+      // STANDARD SECURE PWA REGISTRATION (Offline-Safe)
+      // We register the Service Worker directly using a clean URL.
+      // We DO NOT unregister the active service worker beforehand,
+      // as that destroys offline capability during version updates.
       // ============================================================
-      const SW_URL = 'sw.js?v=' + CURRENT_BUILD;
+      const SW_URL = 'sw.js';
 
       window.addEventListener('load', () => {
-        // Step 1: Unregister all old SWs that don't match our current URL
-        navigator.serviceWorker.getRegistrations().then(function(registrations) {
-          var unregisterPromises = [];
-          for (var i = 0; i < registrations.length; i++) {
-            var reg = registrations[i];
-            // Unregister any SW not matching current build URL
-            if (reg.active && reg.active.scriptURL && !reg.active.scriptURL.includes('v=' + CURRENT_BUILD)) {
-              console.log('[SW] Unregistering stale SW:', reg.active.scriptURL);
-              unregisterPromises.push(reg.unregister());
-            }
-          }
-          return Promise.all(unregisterPromises);
-        }).then(function() {
-          // Step 2: Register the new versioned SW
-          return navigator.serviceWorker.register(SW_URL, { updateViaCache: 'none' });
-        }).then(function(reg) {
+        navigator.serviceWorker.register(SW_URL, { updateViaCache: 'none' }).then(function(reg) {
           console.log('[SW] Registered v' + CURRENT_BUILD, reg.scope);
 
           // Force immediate update check
