@@ -150,6 +150,61 @@ const state = {
   notifications: [],
 };
 
+// Database mappers for recurring templates to handle camelCase JS <-> snake_case Postgres mapping
+function mapTemplateToDb(t) {
+  if (!t) return null;
+  return {
+    id: t.id,
+    user_id: t.user_id || null,
+    family_id: t.family_id || null,
+    is_shared: !!t.is_shared,
+    amount: parseFloat(t.amount || 0),
+    type: t.type,
+    category: t.category,
+    subcategory: t.subcategory || null,
+    account_from: t.account_from,
+    account_to: t.account_to || null,
+    note: t.note || null,
+    description: t.description || null,
+    preset: t.preset || 'monthly',
+    days: Array.isArray(t.days) ? t.days : [],
+    months: Array.isArray(t.months) ? t.months : [],
+    years: Array.isArray(t.years) ? t.years : [],
+    end_type: t.endType || 'perpetual',
+    end_date: t.endDate || null,
+    start_date: t.startDate || null,
+    start_year: t.startYear || null,
+    start_month: t.startMonth || null
+  };
+}
+
+function mapTemplateFromDb(t) {
+  if (!t) return null;
+  return {
+    id: t.id,
+    user_id: t.user_id,
+    family_id: t.family_id,
+    is_shared: !!t.is_shared,
+    amount: parseFloat(t.amount || 0),
+    type: t.type,
+    category: t.category,
+    subcategory: t.subcategory || '',
+    account_from: t.account_from,
+    account_to: t.account_to || null,
+    note: t.note || '',
+    description: t.description || '',
+    preset: t.preset || 'monthly',
+    days: Array.isArray(t.days) ? t.days : [],
+    months: Array.isArray(t.months) ? t.months : [],
+    years: Array.isArray(t.years) ? t.years : [],
+    endType: t.end_type || 'perpetual',
+    endDate: t.end_date || null,
+    startDate: t.start_date || null,
+    startYear: t.start_year || null,
+    startMonth: t.start_month || null
+  };
+}
+
 const NEON_PALETTE = [
   '#6366f1', '#f43f5e', '#10b981', '#f59e0b', '#3b82f6',
   '#ec4899', '#14b8a6', '#f97316', '#8b5cf6', '#06b6d4',
@@ -594,7 +649,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v677 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v678 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -3927,7 +3982,7 @@ async function loadData() {
       let categories = catsRes.data || [];
       let accounts = accsRes.data || [];
       if (tempsRes && tempsRes.data) {
-        state.recurringTemplates = tempsRes.data;
+        state.recurringTemplates = tempsRes.data.map(mapTemplateFromDb);
         localStorage.setItem('recurring_templates', JSON.stringify(state.recurringTemplates));
       }
 
@@ -4280,7 +4335,7 @@ function autoRecoverTemplatesFromHistory() {
     const detectedEndDate = findInstallmentEndDate(targetMatches);
     
     const template = {
-      id: 'recovered_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+      id: generateUUID(),
       amount: parseFloat(tx.amount),
       type: tx.type,
       category: tx.category,
@@ -4309,7 +4364,7 @@ function autoRecoverTemplatesFromHistory() {
     if (state.supabaseClient && state.currentUser) {
       state.supabaseClient
         .from('recurring_templates')
-        .insert([template])
+        .insert([mapTemplateToDb(template)])
         .then(({ error }) => {
           if (error) console.error('Failed to save auto-recovered template to Supabase:', error);
         });
@@ -7339,7 +7394,7 @@ function setupEventListeners() {
       if (state.supabaseClient && state.currentUser) {
         state.supabaseClient
           .from('recurring_templates')
-          .insert([template])
+          .insert([mapTemplateToDb(template)])
           .select()
           .then(({ data, error }) => {
             if (error) {
@@ -7347,7 +7402,7 @@ function setupEventListeners() {
             } else if (data && data[0]) {
               const idx = state.recurringTemplates.findIndex(t => t.id === template.id);
               if (idx !== -1) {
-                state.recurringTemplates[idx] = data[0];
+                state.recurringTemplates[idx] = mapTemplateFromDb(data[0]);
                 localStorage.setItem('recurring_templates', JSON.stringify(state.recurringTemplates));
                 processRecurringTemplates();
                 updateUI();
