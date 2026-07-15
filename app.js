@@ -592,7 +592,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v669 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v670 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -4255,12 +4255,23 @@ function autoRecoverTemplatesFromHistory() {
     });
     if (matches.length === 0) return;
     
-    // For end date, use all matches; for the template base use the earliest transaction (startDate)
-    const sortedAsc = [...matches].sort((a, b) => new Date(a.date) - new Date(b.date));
+    // Prioritize transactions that have installment indicators (e.g. X/Y, "δόση")
+    // to avoid recovering large one-off bulk payments (like a total annual ENFIA of 273.01€)
+    let targetMatches = matches;
+    const installmentMatches = matches.filter(t => {
+      const noteLower = (t.note || '').toLowerCase();
+      return noteLower.match(/\d+\/\d+/) || noteLower.includes('δόση') || noteLower.includes('δοση');
+    });
+    if (installmentMatches.length > 0) {
+      targetMatches = installmentMatches;
+    }
+    
+    // For end date, use all relevant matches; for the template base use the earliest transaction (startDate)
+    const sortedAsc = [...targetMatches].sort((a, b) => new Date(a.date) - new Date(b.date));
     const tx = sortedAsc[0]; // Earliest transaction = true startDate
     
     const cleanedNote = cleanNoteOfInstallments(tx.note || defaultNote);
-    const detectedEndDate = findInstallmentEndDate(matches);
+    const detectedEndDate = findInstallmentEndDate(targetMatches);
     
     const template = {
       id: 'recovered_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
