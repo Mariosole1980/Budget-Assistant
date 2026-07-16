@@ -649,7 +649,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v689 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v690 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -4223,6 +4223,7 @@ function loadOfflineData() {
 
 
 function autoRecoverTemplatesFromHistory() {
+  if (localStorage.getItem('templates_autorecovered') === 'true') return;
   if (!state.transactions || state.transactions.length === 0) return;
   
   let dismissed = [];
@@ -4502,6 +4503,27 @@ function autoRecoverTemplatesFromHistory() {
       }, 100);
     }
   }
+  localStorage.setItem('templates_autorecovered', 'true');
+}
+
+function getDeletedDatesFromTemplate(template) {
+  if (!template) return [];
+  const desc = template.description || '';
+  const match = desc.match(/\|\|deleted_dates:([^\s]+)/);
+  if (match) {
+    return match[1].split(',').filter(d => d);
+  }
+  return [];
+}
+
+function addDeletedDateToTemplate(template, dateString) {
+  if (!template) return;
+  const currentDates = getDeletedDatesFromTemplate(template);
+  if (!currentDates.includes(dateString)) {
+    currentDates.push(dateString);
+  }
+  let cleanDesc = (template.description || '').split('||deleted_dates:')[0].trim();
+  template.description = `${cleanDesc} ||deleted_dates:${currentDates.join(',')}`.trim();
 }
 
 function processRecurringTemplates() {
@@ -4618,7 +4640,8 @@ function processRecurringTemplates() {
       datesToProcess.forEach(dateString => {
         const deleteKey = `${template.id}_${dateString}`;
         
-        if (state.deletedRecurringDates && state.deletedRecurringDates.includes(deleteKey)) {
+        if ((state.deletedRecurringDates && state.deletedRecurringDates.includes(deleteKey)) ||
+            getDeletedDatesFromTemplate(template).includes(dateString)) {
           return;
         }
 
@@ -4946,6 +4969,22 @@ function deleteTransactionOffline(id, skipSave = false) {
       if (!state.deletedRecurringDates.includes(key)) {
         state.deletedRecurringDates.push(key);
         localStorage.setItem('deleted_recurring_dates', JSON.stringify(state.deletedRecurringDates));
+      }
+      const template = state.recurringTemplates.find(t => t.id === templateId);
+      if (template) {
+        addDeletedDateToTemplate(template, txDate);
+        localStorage.setItem('recurring_templates', JSON.stringify(state.recurringTemplates));
+        if (state.supabaseClient && state.currentUser) {
+          enqueueSyncMutation('save_template', template);
+          state.supabaseClient
+            .from('recurring_templates')
+            .upsert([mapTemplateToDb(template)])
+            .then(({ error }) => {
+              if (!error) {
+                dequeueSyncMutation('save_template', template.id);
+              }
+            });
+        }
       }
     }
     
@@ -16868,12 +16907,15 @@ function generateUUID() {
 function enqueueSyncMutation(action, payload) {
   try {
     const queue = JSON.parse(localStorage.getItem('money_manager_sync_queue') || '[]');
-    const itemId = action === 'delete' ? payload : payload.id;
+    const isDelete = action === 'delete' || action === 'delete_template';
+    const itemId = isDelete ? payload : payload.id;
     
     // Clean up duplicate saves/updates in queue if we are now deleting
     let cleanQueue = queue.filter(item => {
-      const itemKey = item.action === 'delete' ? item.payload : item.payload.id;
-      return !(itemKey === itemId && item.action === 'save' && action === 'delete');
+      const itemIsDelete = item.action === 'delete' || item.action === 'delete_template';
+      const itemKey = itemIsDelete ? item.payload : item.payload.id;
+      const isSaveAction = item.action === 'save' || item.action === 'save_template';
+      return !(itemKey === itemId && isSaveAction && isDelete);
     });
     
     cleanQueue.push({
@@ -16894,7 +16936,8 @@ function dequeueSyncMutation(action, itemId) {
   try {
     const queue = JSON.parse(localStorage.getItem('money_manager_sync_queue') || '[]');
     const cleanQueue = queue.filter(item => {
-      const itemKey = item.action === 'delete' ? item.payload : item.payload.id;
+      const itemIsDelete = item.action === 'delete' || item.action === 'delete_template';
+      const itemKey = itemIsDelete ? item.payload : item.payload.id;
       return !(item.action === action && itemKey === itemId);
     });
     localStorage.setItem('money_manager_sync_queue', JSON.stringify(cleanQueue));
@@ -16975,6 +17018,35 @@ async function processSyncQueue(options = {}) {
             throw error;
           }
           console.warn(`Skipping invalid sync queue delete item:`, error);
+        }
+      } else if (item.action === 'save_template') {
+        const template = item.payload;
+        const { error } = await promiseTimeout(
+          state.supabaseClient
+            .from('recurring_templates')
+            .upsert([mapTemplateToDb(template)]),
+          15000
+        );
+        if (error) {
+          if (error.message && (error.message.includes('Fetch') || error.message.includes('network') || error.message.includes('timeout'))) {
+            throw error;
+          }
+          console.warn(`Skipping invalid save_template queue item:`, error);
+        }
+      } else if (item.action === 'delete_template') {
+        const templateId = item.payload;
+        const { error } = await promiseTimeout(
+          state.supabaseClient
+            .from('recurring_templates')
+            .delete()
+            .eq('id', templateId),
+          15000
+        );
+        if (error) {
+          if (error.message && (error.message.includes('Fetch') || error.message.includes('network') || error.message.includes('timeout'))) {
+            throw error;
+          }
+          console.warn(`Skipping invalid delete_template queue item:`, error);
         }
       }
       
@@ -21601,12 +21673,17 @@ async function deleteRecurringTemplate(id) {
 
   // 1. Remove template from state
   if (state.supabaseClient && state.currentUser) {
+    enqueueSyncMutation('delete_template', id);
     state.supabaseClient
       .from('recurring_templates')
       .delete()
       .eq('id', id)
       .then(({ error }) => {
-        if (error) console.error('Failed to delete recurring template from cloud:', error);
+        if (error) {
+          console.error('Failed to delete recurring template from cloud:', error);
+        } else {
+          dequeueSyncMutation('delete_template', id);
+        }
       });
   }
   state.recurringTemplates = (state.recurringTemplates || []).filter(t => t.id !== id);
