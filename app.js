@@ -649,7 +649,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v911 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v913 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1019,7 +1019,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v911 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v913 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -22083,3 +22083,36 @@ window.addEventListener('load', () => {
     forceViewportReset();
   }, 800);
 });
+
+
+// Handlers for HTML inline onclick attributes
+let _devTapCount = 0;
+let _devTapTimer = null;
+function handleRecoveryTitleTap() {
+  _devTapCount++;
+  clearTimeout(_devTapTimer);
+  _devTapTimer = setTimeout(() => { _devTapCount = 0; }, 3000);
+  if (_devTapCount >= 5) {
+    _devTapCount = 0;
+    const devRow = document.getElementById('hub-row-security');
+    if (devRow) devRow.scrollIntoView({ behavior: 'smooth' });
+    if (typeof showToast === 'function') showToast(state.lang === 'el' ? '🛠️ Λειτουργίες Προγραμματιστή' : '🛠️ Developer Options');
+  }
+}
+window.handleRecoveryTitleTap = handleRecoveryTitleTap;
+
+function processExcelImport() {
+  if (typeof importExcelData === 'function') {
+    importExcelData();
+  } else if (typeof handleExcelUpload === 'function') {
+    handleExcelUpload();
+  }
+}
+window.processExcelImport = processExcelImport;
+
+function clearCacheAndReset() {
+  if (typeof forceAppUpdate === 'function') {
+    forceAppUpdate();
+  }
+}
+window.clearCacheAndReset = clearCacheAndReset;
