@@ -649,7 +649,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v690 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v911 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1019,7 +1019,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v658 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v911 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -7170,6 +7170,9 @@ function setupEventListeners() {
 
   const rowCategories = document.getElementById('hub-row-categories');
   if (rowCategories) rowCategories.addEventListener('click', openSettingsCategoryManager);
+
+  const rowSecurity = document.getElementById('hub-row-security');
+  if (rowSecurity) rowSecurity.addEventListener('click', () => openSettingsSubscreen('security', 'Ασφάλεια & Ιδιωτικότητα'));
 
   const rowTrash = document.getElementById('hub-row-trash');
   if (rowTrash) rowTrash.addEventListener('click', openTrashBinModal);

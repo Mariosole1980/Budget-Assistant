@@ -50,7 +50,10 @@ html, body {
 
 html {
   background-color: var(--bg-main);
-  transition: background-color 0.3s ease;
+  /* Lock text size to 100% â€” prevents Android system font scale from enlarging/zooming the WebView */
+  -webkit-text-size-adjust: 100%;
+  -moz-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
@@ -63,7 +66,6 @@ body {
   display: flex;
   flex-direction: column;
   -webkit-overflow-scrolling: touch;
-  zoom: 0.93;
   user-select: none;
   -webkit-user-select: none;
   -moz-user-select: none;
@@ -273,7 +275,6 @@ button:active,
   display: none;
   width: 100%;
   background-color: var(--bg-main);
-  will-change: transform, opacity;
 }
 
 .tab-screen.active {
@@ -1502,21 +1503,40 @@ button:active,
 }
 
 .settings-select {
-  background: transparent;
-  border: none;
+  appearance: none;
+  -webkit-appearance: none;
+  background-color: rgba(var(--accent-rgb, 124, 106, 247), 0.10);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237c6af7' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  border: 1.5px solid rgba(var(--accent-rgb, 124, 106, 247), 0.30);
+  border-radius: 20px;
   color: var(--accent);
-  font-weight: 600;
-  font-family: inherit;
-  font-size: 14px;
-  text-align: right;
+  font-weight: 700;
+  font-family: 'Outfit', inherit;
+  font-size: 13px;
   cursor: pointer;
   outline: none;
-  padding: 0;
+  padding: 7px 32px 7px 13px;
   margin: 0;
+  min-width: 100px;
+  max-width: 160px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.settings-select:focus,
+.settings-select:active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb, 124, 106, 247), 0.18);
+  background-color: rgba(var(--accent-rgb, 124, 106, 247), 0.15);
+  outline: none;
 }
 .settings-select option {
   background-color: #1a1e26;
   color: var(--text-main);
+  font-weight: 600;
 }
 
 /* Premium Toggle Switch Styling */
@@ -1617,6 +1637,10 @@ input:focus + .slider {
   border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
   border-bottom: none;
   box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.4);
+}
+
+body.is-ios .modal-content {
+  max-height: calc(var(--viewport-height, 100vh) * 0.90) !important;
 }
 
 /* #transaction-modal .modal-content height/max-height is handled by the full-screen block at the bottom of this file */
@@ -1890,6 +1914,7 @@ input:focus + .slider {
 .calc-keypad-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(4, 1fr);
   background-color: transparent;
   gap: 4px;
   padding: 8px 12px 12px 12px;
@@ -3508,7 +3533,7 @@ body.shared-wallet-active .day-header {
 }
 
 /* =============================================
-   GLASSMORPHIC AUTH OVERLAY SCREEN
+   FULL-SCREEN AUTH OVERLAY SCREEN (0ms Flicker)
    ============================================= */
 .auth-overlay {
   position: fixed;
@@ -3516,142 +3541,173 @@ body.shared-wallet-active .day-header {
   left: 0;
   right: 0;
   bottom: 0;
-  width: 100%;
-  height: 100%;
-  background: radial-gradient(circle at top, rgba(30, 24, 52, 0.98), #09080e 100%);
+  width: 100vw;
+  height: 100dvh;
+  background: radial-gradient(circle at 50% 25%, #1b2334 0%, #090c13 100%) !important;
   z-index: 20000;
-  display: flex;
+  display: none;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 16px;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  padding: 20px 16px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  box-sizing: border-box;
+}
+
+html.auth-active .auth-overlay,
+#auth-overlay.active {
+  display: flex !important;
+}
+
+html.auth-active .app-container {
+  display: none !important;
 }
 
 .auth-card {
   position: relative;
-  background: rgba(30, 36, 48, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 20px;
-  width: 100%;
-  max-width: 360px;
-  padding: 24px;
-  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5), 0 0 30px rgba(var(--accent-rgb), 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  width: 95%;
+  max-width: 440px;
+  margin: auto;
+  padding: 32px 24px 24px 24px;
+  background: rgba(22, 28, 42, 0.88) !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  border-radius: 24px !important;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7), 0 0 35px rgba(var(--accent-rgb), 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
   display: flex;
   flex-direction: column;
   gap: 16px;
-  animation: authCardEntrance 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-sizing: border-box;
+  animation: none !important;
 }
 
 .auth-lang-selector {
   position: absolute;
-  top: 16px;
-  right: 16px;
+  top: 18px;
+  right: 18px;
   display: flex;
   gap: 6px;
   z-index: 10;
 }
 
 .lang-pill {
-  padding: 4px 8px;
-  font-size: 11px;
-  font-weight: 600;
+  padding: 5px 10px;
+  font-size: 11.5px;
+  font-weight: 700;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .lang-pill:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.12);
   color: var(--text-primary);
 }
 
 .lang-pill.active {
   border-color: var(--accent) !important;
-  color: var(--text-primary) !important;
-  background: rgba(0, 229, 255, 0.1) !important;
-  box-shadow: 0 0 8px rgba(0, 229, 255, 0.2);
-}
-
-@keyframes authCardEntrance {
-  from { opacity: 0; transform: translateY(20px) scale(0.95); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  color: #ffffff !important;
+  background: rgba(224, 94, 85, 0.18) !important;
+  box-shadow: 0 0 10px rgba(224, 94, 85, 0.3);
 }
 
 .auth-header {
   text-align: center;
-  margin-bottom: 8px;
+  margin-top: 8px;
+  margin-bottom: 12px;
 }
 
 .auth-logo {
-  width: 52px;
-  height: 52px;
-  background: var(--accent);
+  width: 62px;
+  height: 62px;
+  background: linear-gradient(135deg, var(--accent) 0%, #ff6b62 100%);
   color: white;
-  border-radius: 12px;
+  border-radius: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
-  margin: 0 auto 12px;
-  box-shadow: 0 4px 15px rgba(var(--accent-rgb), 0.4);
-  animation: logoSpin 1.5s ease-out;
-}
-
-@keyframes logoSpin {
-  0% { transform: scale(0.3) rotate(-180deg); opacity: 0; }
-  100% { transform: scale(1) rotate(0); opacity: 1; }
+  font-size: 28px;
+  margin: 0 auto 14px;
+  box-shadow: 0 8px 25px rgba(var(--accent-rgb), 0.45);
 }
 
 .auth-title {
-  font-size: 20px;
-  font-weight: 800;
+  font-size: 24px;
+  font-weight: 900;
   letter-spacing: -0.5px;
-  color: var(--text-main);
-  margin-bottom: 4px;
+  color: #ffffff;
+  margin-bottom: 6px;
+  font-family: 'Outfit', 'Inter', system-ui, sans-serif;
 }
 
 .auth-subtitle {
-  font-size: 12px;
-  color: var(--text-secondary);
+  font-size: 13.5px;
+  color: #94a3b8;
+  line-height: 1.45;
 }
 
 .auth-tabs {
   display: flex;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 10px;
-  padding: 3px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  margin-bottom: 14px; /* More spacing between tabs block and forms */
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 14px;
+  padding: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 14px;
 }
 
 .auth-tab-btn {
   flex: 1;
-  padding: 8px 4px;
-  font-size: 12px;
+  padding: 10px 6px;
+  font-size: 13.5px;
   font-weight: 700;
-  border-radius: 8px;
-  color: var(--text-secondary);
-  transition: var(--transition);
+  border-radius: 10px;
+  color: #94a3b8;
+  transition: all 0.2s ease;
   text-align: center;
 }
 
 .auth-tab-btn.active {
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--text-main);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .auth-form-section {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
 }
 
-/* Custom visibility and forgot password styles */
+.form-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  color: #94a3b8;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+}
+
+.form-input {
+  height: 48px !important;
+  font-size: 15px !important;
+  border-radius: 14px !important;
+  background: rgba(10, 14, 22, 0.65) !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  color: #ffffff !important;
+  padding: 0 16px !important;
+}
+
+.form-input:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 16px rgba(224, 94, 85, 0.3) !important;
+}
+
 .password-input-wrapper {
   position: relative;
   display: flex;
@@ -3660,7 +3716,7 @@ body.shared-wallet-active .day-header {
 }
 
 .password-input-wrapper .form-input {
-  padding-right: 42px;
+  padding-right: 46px !important;
   width: 100%;
 }
 
@@ -3669,7 +3725,7 @@ body.shared-wallet-active .day-header {
   right: 12px;
   background: none !important;
   border: none !important;
-  color: var(--text-secondary);
+  color: #94a3b8;
   cursor: pointer;
   padding: 0;
   display: flex;
@@ -3677,25 +3733,25 @@ body.shared-wallet-active .day-header {
   justify-content: center;
   z-index: 10;
   height: 100%;
-  width: 30px;
+  width: 36px;
   transition: var(--transition);
 }
 
 .toggle-password-btn:hover {
-  color: var(--text-main);
+  color: #ffffff;
 }
 
 .forgot-password-container {
   display: flex;
   justify-content: flex-end;
-  margin-top: 8px;
+  margin-top: 6px;
 }
 
 .forgot-password-link {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--accent);
   text-decoration: none;
-  font-weight: 500;
+  font-weight: 600;
   transition: var(--transition);
 }
 
@@ -3706,19 +3762,19 @@ body.shared-wallet-active .day-header {
 
 .auth-mode-switch {
   display: flex;
-  gap: 12px;
-  margin-bottom: 4px;
-  border-bottom: 1px solid var(--border-light);
-  padding-bottom: 6px;
+  gap: 18px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 8px;
 }
 
 .auth-mode-btn {
-  font-size: 13.5px;
-  font-weight: 700;
-  color: var(--text-secondary);
-  padding-bottom: 6px;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -7px;
+  font-size: 15px;
+  font-weight: 800;
+  color: #94a3b8;
+  padding-bottom: 8px;
+  border-bottom: 2.5px solid transparent;
+  margin-bottom: -9px;
   transition: var(--transition);
 }
 
@@ -3727,20 +3783,31 @@ body.shared-wallet-active .day-header {
   border-bottom-color: var(--accent);
 }
 
-.auth-desc {
-  font-size: 11.5px;
-  color: var(--text-secondary);
-  line-height: 1.4;
-  text-align: center;
-  margin-bottom: 4px;
+.auth-submit-btn {
+  height: 50px !important;
+  font-size: 16px !important;
+  font-weight: 800 !important;
+  border-radius: 14px !important;
+  background: linear-gradient(135deg, var(--accent) 0%, #e0483e 100%) !important;
+  box-shadow: 0 8px 24px rgba(224, 94, 85, 0.38) !important;
+  margin-top: 8px !important;
 }
 
-.auth-submit-btn {
-  margin-top: 8px;
+.btn-secondary {
+  height: 48px;
+  font-size: 14.5px;
   font-weight: 700;
-  letter-spacing: 0.3px;
-  padding: 12px !important;
-  font-size: 14px !important;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+}
+
+.auth-desc {
+  font-size: 13px;
+  color: #94a3b8;
+  line-height: 1.45;
+  text-align: center;
 }
 
 .btn-block {
@@ -4341,6 +4408,29 @@ body.shared-wallet-active .day-header {
   }
 
   .modal-overlay.active .modal-content {
+    transform: scale(1) !important;
+  }
+
+  /* Center and enlarge Transaction Modal on Desktop/Tablet */
+  .tx-modal-overlay {
+    align-items: center !important;
+    justify-content: center !important;
+    background-color: rgba(0, 0, 0, 0.7) !important;
+  }
+
+  .tx-modal-overlay .modal-content {
+    width: 100% !important;
+    max-width: 520px !important;
+    height: 90vh !important;
+    max-height: 90vh !important;
+    border-radius: 20px !important;
+    box-shadow: var(--shadow-lg) !important;
+    margin: 0 auto !important;
+    transform: scale(0.9) !important;
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+  }
+
+  .tx-modal-overlay.active .modal-content {
     transform: scale(1) !important;
   }
 
@@ -5983,21 +6073,33 @@ body.is-swiping-month .stats-sub-row.pressed {
 /* TX-MODAL-OVERLAY: Completely isolated full-screen modal class */
 /* Zero inheritance from .modal-overlay. No !important wars.    */
 /* ============================================================= */
+.tx-modal-overlay,
+.tx-modal-overlay *,
+.tx-modal-overlay *::before,
+.tx-modal-overlay *::after {
+  box-sizing: border-box !important;
+}
+
 .tx-modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
-  width: 100%;
+  width: 100vw;
+  max-width: 100vw;
   height: 100%;
+  height: 100dvh;
   padding-top: env(safe-area-inset-top, 0px);
+  /* Android keyboard fix: shrink content area by pushing up via padding-bottom */
+  padding-bottom: var(--keyboard-height, 0px);
+  box-sizing: border-box;
   background-color: #121824;
   z-index: 9999;
   display: none;
   flex-direction: column;
   align-items: stretch;
   justify-content: flex-start;
-  overflow: hidden;
-  padding: 0;
+  overflow-x: hidden !important;
+  overflow-y: hidden;
   margin: 0;
   /* iOS GPU acceleration: force composite layer to eliminate open/close lag */
   transform: translateZ(0);
@@ -6006,6 +6108,7 @@ body.is-swiping-month .stats-sub-row.pressed {
   /* Prevent sub-pixel rendering jitter on WebKit */
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
+  transition: padding-bottom 0.05s ease;
 }
 
 .tx-modal-overlay.active {
@@ -6020,9 +6123,10 @@ body.is-swiping-month .stats-sub-row.pressed {
   right: auto !important;
   bottom: auto !important;
   width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: hidden !important;
   flex: 1 1 auto !important;   /* fill the flex parent fully */
   min-height: 0 !important;    /* allow shrinking in flex column */
-  max-width: 100% !important;
   max-height: none !important;
   border-radius: 0 !important;
   border: none !important;
@@ -6045,6 +6149,11 @@ body.is-swiping-month .stats-sub-row.pressed {
   transform: translateY(0) !important;
 }
 
+/* Allow keypad (absolute) to visually overflow modal-content when open */
+#transaction-modal.keypad-active .modal-content {
+  overflow: visible !important;
+}
+
 /* Keyboard Offset CSS Variable */
 #transaction-modal {
   --keyboard-offset: 0px;
@@ -6060,40 +6169,43 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
   padding-bottom: 14px !important;
 }
 #transaction-modal.keypad-active {
-  --keyboard-offset: 282px;
+  /* No offset variable needed anymore */
 }
 
 /* Custom Calculator Keypad â€” overlays from bottom */
 .calc-keypad-container {
-  position: absolute !important;
-  bottom: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  height: auto !important;
-  max-height: none !important;
+  position: static !important;
+  height: 0px !important;
+  max-height: 0px !important;
   background-color: #0f121a !important;
   border-top: 1px solid var(--border) !important;
   display: flex !important;
   flex-direction: column !important;
-  transform: translateY(100%) !important;
-  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  padding-bottom: 0px !important;
+  transform: none !important;
+  transition: height 0.3s cubic-bezier(0.16, 1, 0.3, 1), max-height 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
   z-index: 10 !important;
   flex-shrink: 0 !important;
   box-sizing: border-box !important;
   /* iOS GPU layer: prevents keypad slide from causing compositing lag */
-  will-change: transform !important;
+  will-change: height, max-height !important;
   -webkit-backface-visibility: hidden !important;
   backface-visibility: hidden !important;
 }
 .calc-keypad-container.active {
-  transform: translateY(0) !important;
+  height: 325px !important;
+  max-height: 325px !important;
+  padding-bottom: 58px !important; /* Massive padding to ensure it clears large Android nav bars */
 }
 .calc-keypad-grid {
   gap: 2px !important;
-  padding: 8px 4px 8px 4px !important;
+  padding: 4px 4px 6px 4px !important;
+  flex: 1 !important;
 }
 .calc-key-btn {
-  height: 54px !important;
+  height: 100% !important;
+  min-height: 42px !important;
+  font-size: 20px !important;
 }
 
 #transaction-modal .modal-header {
@@ -6113,22 +6225,27 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
   color: #ffffff !important;
 }
 
-/* Action footer â€” lifts above keyboard/keypad */
+/* Action footer â€” sits at bottom of flex form */
 #transaction-modal .modal-action-buttons {
-  transform: translateY(calc(-1 * var(--keyboard-offset, 0px))) !important;
-  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  position: relative !important;
+  transform: none !important;
   background-color: #121824 !important;
-  z-index: 5 !important;
-  margin-top: auto !important;
-  padding-top: 16px !important;
-  padding-bottom: env(safe-area-inset-bottom, 16px) !important;
+  z-index: 25 !important;
+  padding-top: 14px !important;
+  padding-bottom: 14px !important;
   flex-shrink: 0 !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+#transaction-modal.keypad-active .modal-action-buttons {
+  /* No offset needed */
 }
 
 /* Scrollable form body */
 .form-fields-container,
 #transaction-modal .modal-body {
   flex: 1 !important;
+  min-height: 0 !important;
   overflow-y: auto !important;
   padding: 4px 16px 16px 16px !important;
   display: flex !important;
@@ -6136,8 +6253,7 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
   gap: 4px !important;
   -webkit-overflow-scrolling: touch !important;
   min-height: 0 !important;
-  padding-bottom: calc(16px + var(--keyboard-offset, 0px)) !important;
-  transition: padding-bottom 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  padding-bottom: 0px !important; /* No extra padding needed, keypad takes physical space now */
 }
 
 /* Restored original premium form row sizes for Android and Web */
@@ -6511,6 +6627,11 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
     padding-top: calc(8px + env(safe-area-inset-top, 0px)) !important;
   }
 
+  .selection-bar-container {
+    padding-top: env(safe-area-inset-top, 0px) !important;
+    height: calc(52px + env(safe-area-inset-top, 0px)) !important;
+  }
+
   .fab {
     bottom: 70px !important;
   }
@@ -6521,6 +6642,7 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
     left: 0 !important;
     width: 100% !important;
     height: 100% !important;
+    height: 100dvh !important;
     padding-top: env(safe-area-inset-top, 0px) !important;
     overflow: hidden !important;
     display: none !important;
@@ -6538,11 +6660,7 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
     border-radius: 0 !important;
   }
 
-  /* When keyboard is active, add dynamic padding to the bottom of the scrollable form body
-     matching the native keyboard height, allowing the user to scroll elements above it */
-  body.keyboard-active #transaction-modal .modal-body {
-    padding-bottom: calc(32px + var(--keyboard-height, 0px)) !important;
-  }
+
 
   body.modal-open {
     position: fixed !important;
@@ -6556,6 +6674,8 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
     overflow: hidden !important;
   }
 }
+
+/* Removed custom Android keyboard offset hacks, JS handles layout scaling naturally */
 
 /* Google-Style Picker & Bottom Sheet Overrides */
 .google-picker-btn {
@@ -6819,7 +6939,7 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
 }
 
 
-/* Ï container ðïõ ðåñéÝ÷åé üëá ôá êïõìðéÜ êáôçãïñéþí */
+/* ï¿½ container ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ */
 .categories-container {
     display: flex;
     flex-wrap: wrap;
@@ -6828,7 +6948,7 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
     padding: 10px 0;
 }
 
-/* Ôï êÜèå êïõìðß/tag îå÷ùñéóôÜ */
+/* ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½/tag ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ */
 .category-btn {
     white-space: nowrap;
     display: inline-flex;
@@ -6845,8 +6965,225 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
 
 /* Android Specific Calculator Keypad adjustments */
 body.is-android #transaction-modal.keypad-active {
-  --keyboard-offset: 322px !important;
+  /* Removed offset */
+}
+body.is-android .calc-keypad-container {
+  /* Height is managed by the main .active class now */
+}
+body.is-android .calc-keypad-container.active {
+  height: 325px !important;
+  max-height: 325px !important;
+  padding-bottom: 58px !important;
 }
 body.is-android .calc-keypad-container .calc-key-btn {
-  height: 64px !important;
+  height: 100% !important;
+  min-height: 42px !important;
+  font-size: 20px !important;
 }
+
+/* Restoring UI state without transitions helper */
+.no-transition,
+.no-transition *,
+.no-transition *::before,
+.no-transition *::after {
+  transition: none !important;
+  animation: none !important;
+}
+
+/* Î£Î®Î¼Î±Î½ÏƒÎ· Î•Ï€Î±Î½Î±Î»Î±Î¼Î²Î±Î½ÏŒÎ¼ÎµÎ½Ï‰Î½ Î£Ï…Î½Î±Î»Î»Î±Î³ÏŽÎ½ */
+.transaction-item.recurring-item {
+  border-left: 3px solid #a855f7 !important;
+  background: linear-gradient(90deg, rgba(168, 85, 247, 0.03) 0%, transparent 100%) !important;
+}
+
+.recurring-badge-ui {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  color: #a855f7;
+  background: rgba(168, 85, 247, 0.12);
+  border: 1px solid rgba(168, 85, 247, 0.25);
+  border-radius: 4px;
+  padding: 1px 4px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+/* Badges ÏƒÏ„Î¿Î½ ÎšÎ¬Î´Î¿ */
+.trash-type-badge {
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  display: inline-block;
+  margin-top: 4px;
+}
+
+.trash-type-badge.single {
+  color: #78909c;
+  background: rgba(120, 144, 156, 0.12);
+  border: 1px solid rgba(120, 144, 156, 0.25);
+}
+
+.trash-type-badge.recurring {
+  color: #a855f7;
+  background: rgba(168, 85, 247, 0.12);
+  border: 1px solid rgba(168, 85, 247, 0.25);
+}
+
+/* ============================================================
+   USER GUIDE (ÎŸÎ”Î—Î“ÎŸÎ£ Î§Î¡Î—Î£Î—Î£) STYLES
+   ============================================================ */
+mark.guide-highlight {
+  background-color: rgba(250, 204, 21, 0.4);
+  color: #fff;
+  border-radius: 3px;
+  padding: 0 3px;
+  font-weight: 600;
+}
+
+.guide-toc-box {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 20px;
+}
+
+.guide-toc-title {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text-main);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.guide-toc-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 8px;
+}
+
+.guide-toc-item {
+  font-size: 12px;
+  color: var(--primary);
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(99, 102, 241, 0.18);
+  padding: 6px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+}
+
+.guide-toc-item:hover {
+  background: rgba(99, 102, 241, 0.18);
+  transform: translateY(-1px);
+}
+
+.guide-accordion-item {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  margin-bottom: 12px;
+  overflow: hidden;
+  transition: border-color 0.2s ease;
+}
+
+.guide-accordion-item.active {
+  border-color: rgba(99, 102, 241, 0.4);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.guide-accordion-header {
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text-main);
+}
+
+.guide-accordion-header:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.guide-accordion-icon {
+  transition: transform 0.25s ease;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.guide-accordion-item.active .guide-accordion-icon {
+  transform: rotate(90deg);
+  color: var(--primary);
+}
+
+.guide-accordion-content {
+  display: none;
+  padding: 0 16px 16px 16px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.65;
+  border-top: 1px dashed rgba(255, 255, 255, 0.06);
+}
+
+.guide-accordion-item.active .guide-accordion-content {
+  display: block;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.guide-feature-box {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin: 10px 0;
+}
+
+.guide-callout-tip {
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin: 10px 0;
+  color: #34d399;
+  font-size: 12.5px;
+}
+
+.guide-callout-warning {
+  background: rgba(244, 63, 94, 0.08);
+  border: 1px solid rgba(244, 63, 94, 0.25);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin: 10px 0;
+  color: #fb7185;
+  font-size: 12.5px;
+}
+
+.guide-step-list {
+  padding-left: 20px;
+  margin: 8px 0;
+}
+
+.guide-step-list li {
+  margin-bottom: 6px;
+}
+
+.guide-cross-link {
+  color: var(--primary);
+  text-decoration: underline;
+  cursor: pointer;
+  font-weight: 600;
+}
+

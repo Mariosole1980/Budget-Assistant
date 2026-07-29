@@ -1,19 +1,126 @@
 <!DOCTYPE html>
-<html lang="el">
+<html lang="el" class="no-transition" style="background-color: #181b22;">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
   <script>
-    window.onerror = function(msg, url, line, col, error) {
-      var div = document.getElementById('debug-error-banner');
-      if (!div) {
-        div = document.createElement('div');
-        div.id = 'debug-error-banner';
-        div.style.cssText = 'position:fixed;top:0;left:0;width:100%;background:rgba(220,53,69,0.95);color:white;padding:12px;font-size:12px;z-index:9999999;font-family:monospace;word-break:break-all;box-sizing:border-box;';
-        document.body.appendChild(div);
+    // 1. Environment Manager Redirect
+    (function() {
+      const override = localStorage.getItem('override_server_url');
+      if (override && override !== 'local' && override !== window.location.origin && navigator.onLine) {
+        window.location.replace(override);
       }
-      div.innerHTML += '<div>❌ ' + msg + ' (' + (url ? url.split('/').pop() : 'inline') + ':' + line + ':' + col + ')</div>';
-      return false;
+    })();
+
+    // 2. Recovery Mode Bootloader
+    (function() {
+      window._appLoaded = false;
+      
+      // Catch fatal startup errors
+      window.addEventListener('error', function(event) {
+        if (!window._appLoaded) {
+          console.error('[Recovery] Fatal startup error caught:', event.error);
+          showRecoveryMode(event.message || 'Script compilation error');
+        }
+      });
+
+      // Detect startup timeout (simulate black screen failure)
+      window._startupTimeout = setTimeout(function() {
+        if (!window._appLoaded) {
+          // Check if custom timeout simulation is active
+          if (localStorage.getItem('simulate_boot_timeout') === 'true') {
+            localStorage.removeItem('simulate_boot_timeout');
+            showRecoveryMode('Simulated Startup Timeout (Testing)');
+          } else {
+            showRecoveryMode('Startup Timeout: App took too long to load.');
+          }
+        }
+      }, 4000);
+
+      window.showRecoveryMode = function(reason) {
+        if (document.getElementById('recovery-overlay')) return;
+        
+        const isDev = localStorage.getItem('developer_mode_active') === 'true';
+        const devButton = isDev ? `<button onclick="window.location.href='debug.html'" style="background:#30363d;color:#c9d1d9;border:1px solid #8b949e;padding:12px 20px;border-radius:6px;font-weight:600;cursor:pointer;font-size:14px;">⚙️ Διαγνωστικά & Αλλαγή Server</button>` : '';
+
+        const div = document.createElement('div');
+        div.id = 'recovery-overlay';
+        div.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#0d1117;color:#e6edf3;z-index:9999999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;text-align:center;';
+        
+        div.innerHTML = `
+          <div style="max-width:440px;background:#161b22;padding:32px;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,0.6);border:1px solid #30363d;">
+            <div style="font-size:48px;margin-bottom:16px;">⚠️</div>
+            <h2 id="recovery-title" onclick="handleRecoveryTitleTap()" style="margin:0 0 12px 0;color:#ff7b72;font-size:20px;font-weight:600;cursor:pointer;user-select:none;">Λειτουργία Ανάκτησης (Recovery Mode)</h2>
+            <p style="font-size:14px;color:#8b949e;margin-bottom:24px;line-height:1.5;text-align:left;background:#0d1117;padding:12px;border-radius:6px;border:1px solid #30363d;font-family:monospace;word-break:break-all;">
+              <strong style="color:#ff7b72;">Σφάλμα:</strong> ${reason}
+            </p>
+            <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:24px;">
+              <button onclick="window.location.reload()" style="background:#2188ff;color:white;border:none;padding:12px 20px;border-radius:6px;font-weight:600;cursor:pointer;font-size:14px;">🔄 Επαναφόρτωση (Reload)</button>
+              <button onclick="clearCacheAndReset()" style="background:#da3637;color:white;border:none;padding:12px 20px;border-radius:6px;font-weight:600;cursor:pointer;font-size:14px;">🗑️ Καθαρισμός Cache & Επαναφορά</button>
+              ${devButton}
+            </div>
+            <div style="font-size:11px;color:#8b949e;">
+              Budget Assistant • build v911
+            </div>
+          </div>
+        `;
+        
+        window.clearCacheAndReset = async function() {
+          if (confirm('Θέλετε σίγουρα να διαγράψετε την cache και τις ρυθμίσεις της εφαρμογής για επαναφορά;')) {
+            localStorage.clear();
+            if ('serviceWorker' in navigator) {
+              const regs = await navigator.serviceWorker.getRegistrations();
+              for (let r of regs) await r.unregister();
+            }
+            if ('caches' in window) {
+              const keys = await caches.keys();
+              for (let k of keys) await caches.delete(k);
+            }
+            window.location.reload();
+          }
+        };
+
+        document.body.appendChild(div);
+      };
+    })();
+
+    // 3. Secret Developer Tap Handlers
+    let devTaps = 0;
+    let devTapTimer = null;
+    window.handleVersionTap = function() {
+      devTaps++;
+      clearTimeout(devTapTimer);
+      if (devTaps >= 5) {
+        devTaps = 0;
+        const pin = prompt('Εισάγετε τον κωδικό προγραμματιστή (PIN):');
+        if (pin === '2121') {
+          localStorage.setItem('developer_mode_active', 'true');
+          window.location.href = 'debug.html';
+        } else {
+          alert('Μη έγκυρος κωδικός.');
+        }
+      } else {
+        devTapTimer = setTimeout(function() { devTaps = 0; }, 2000);
+      }
+    };
+    
+    let recTaps = 0;
+    let recTapTimer = null;
+    window.handleRecoveryTitleTap = function() {
+      recTaps++;
+      clearTimeout(recTapTimer);
+      if (recTaps >= 5) {
+        recTaps = 0;
+        const pin = prompt('Εισάγετε τον κωδικό προγραμματιστή (PIN):');
+        if (pin === '2121') {
+          localStorage.setItem('developer_mode_active', 'true');
+          window.location.href = 'debug.html';
+        } else {
+          alert('Μη έγκυρος κωδικός.');
+        }
+      } else {
+        recTapTimer = setTimeout(function() { recTaps = 0; }, 2000);
+      }
     };
   </script>
   <title>Budget Assistant</title>
@@ -32,28 +139,101 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="js/fontawesome.min.css">
   
   <!-- Core Stylesheet -->
   <link rel="stylesheet" href="style.css">
   
   <!-- Capacitor Bridge -->
-  <script src="capacitor.js?v=429"></script>
+  <script src="capacitor.js?v=911"></script>
   
 
   <!-- Supabase client JS CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase.js"></script>
   <!-- Chart.js CDN for Statistics -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="js/chart.js"></script>
   <!-- Chart.js Datalabels Plugin CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+  <script src="js/chartjs-plugin-datalabels.js"></script>
   <!-- SheetJS xlsx CDN for Excel Import/Export -->
-  <script src="xlsx.full.min.js?v=429"></script>
+  <script src="xlsx.full.min.js?v=911"></script>
 </head>
-<body>
+<body style="background-color: #181b22; margin: 0; padding: 0; zoom: 0.93;">
   <script>
-    // Fast, synchronous check to prevent layout flash
     (function() {
+      // Apply theme background color immediately to prevent white/beige flash on resume
+      const savedTheme = localStorage.getItem('app_theme') || 'dark';
+      const themeBgColors = { 'dark': '#181b22', 'oled': '#000000', 'light': '#f4f6f9', 'emerald': '#0f1916', 'ocean': '#0b132b', 'pink': '#1f1218' };
+      const bgColor = themeBgColors[savedTheme] || '#181b22';
+      document.documentElement.style.backgroundColor = bgColor;
+      if (document.body) document.body.style.backgroundColor = bgColor; // Sync inline body background
+      if (savedTheme !== 'dark') document.documentElement.classList.add(`theme-${savedTheme}`);
+      
+      // Pre-activate backgrounded modals to eliminate flicker on restore
+      const activeModalId = localStorage.getItem('bg_active_modal_id');
+      if (activeModalId) {
+        document.documentElement.classList.add('modal-prerender');
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.userAgent.includes("Mac") && "ontouchend" in document);
+        
+        // Counteract body zoom on Android for the transaction modal to prevent layout jump
+        // Also apply the correct modal background color so it doesn't flash the underlying body color before style.css loads
+        let extraCss = 'background-color: rgba(0, 0, 0, 0.45) !important; backdrop-filter: blur(4px);'; // Default overlay
+        if (activeModalId === 'transaction-modal') {
+          extraCss = `background-color: #121824 !important;`;
+          if (!isIOS) {
+            extraCss += ` width: calc(100vw / 0.93) !important; height: calc(100vh / 0.93) !important; top: 0px !important;`;
+          }
+        }
+
+        document.write(`
+          <style id="prerender-modal-style">
+            html.modal-prerender #${activeModalId} {
+              display: flex !important;
+              opacity: 1 !important;
+              pointer-events: auto !important;
+              transition: none !important;
+              animation: none !important;
+              ${extraCss}
+            }
+            html.modal-prerender #${activeModalId} .modal-content,
+            html.modal-prerender #${activeModalId} .bottom-sheet,
+            html.modal-prerender #${activeModalId} .search-overlay-content {
+              transform: translateY(0) !important;
+              transition: none !important;
+              animation: none !important;
+            }
+          </style>
+        `);
+      }
+      
+      // Check if redirecting back to mobile app
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('source') === 'app') {
+        const style = document.createElement('style');
+        style.innerHTML = `
+          #app-redirect-overlay { display: flex !important; }
+          #auth-overlay { display: none !important; }
+        `;
+        document.head.appendChild(style);
+        
+        document.addEventListener('DOMContentLoaded', () => {
+          const redirectBtn = document.getElementById('app-redirect-btn');
+          const deepLinkUrl = 'com.budgetassistant.app://oauth-callback' + window.location.search + window.location.hash;
+          const deepLinkFallbackUrl = 'budgetassistant://oauth-callback' + window.location.search + window.location.hash;
+          
+          const doRedirect = () => {
+            window.location.href = deepLinkUrl;
+            setTimeout(() => {
+              window.location.href = deepLinkFallbackUrl;
+            }, 250);
+          };
+          
+          if (redirectBtn) {
+            redirectBtn.addEventListener('click', doRedirect);
+          }
+          setTimeout(doRedirect, 400);
+        });
+      }
+
       const hasCachedUser = localStorage.getItem('cached_current_user');
       const isGuestMode = localStorage.getItem('auth_guest_mode') === 'true';
       const isRedirect = window.location.hash.includes('access_token=') || 
@@ -487,207 +667,144 @@
             </div>
           </div>
 
-          <!-- Card 1: Application Settings (always visible, not collapsible) -->
-          <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; margin-bottom: 12px; overflow: visible;">
-            <div class="account-section-title" style="color: var(--text-primary); cursor: default; pointer-events: none; padding-bottom: 12px;">
-              <span data-i18n="settings_pref_title">⚙️ Προτιμήσεις Εφαρμογής</span>
-            </div>
-            <div style="display: flex; flex-direction: column; border-top: 1px solid var(--border);">
-              <div class="settings-list-item" onclick="toggleLanguageSetting()" style="cursor: pointer;">
-                <span class="settings-item-label" data-i18n="item_language">Γλώσσα</span>
-                <span class="settings-item-value" id="lang-setting-val">Ελληνικά</span>
-              </div>
-              <div class="settings-list-item">
-                <span class="settings-item-label" data-i18n="item_theme">Θέμα Εμφάνισης</span>
-                <select id="settings-theme" class="settings-select" onchange="changeThemeSetting(this.value)">
-                  <option value="dark">Premium Dark</option>
-                  <option value="oled">OLED Black</option>
-                  <option value="light">Classic Light</option>
-                  <option value="emerald">Emerald Forest</option>
-                  <option value="ocean">Ocean Breeze</option>
-                  <option value="pink">Blossom Pink</option>
-                </select>
-              </div>
-              <div class="settings-list-item">
-                <span class="settings-item-label" data-i18n="item_currency">Κύριο Νόμισμα</span>
-                <select id="settings-currency" class="settings-select" onchange="changeCurrencySetting(this.value)">
-                  <option value="EUR">EUR (€)</option>
-                  <option value="USD">USD ($)</option>
-                  <option value="GBP">GBP (£)</option>
-                  <option value="JPY">JPY (¥)</option>
-                </select>
-              </div>
-              <div class="settings-list-item">
-                <span class="settings-item-label" data-i18n="item_month_start">Έναρξη Μήνα</span>
-                <select id="settings-month-start" class="settings-select" onchange="changeMonthStartSetting(this.value)">
-                  <option value="1">1</option>
-                  <option value="2">2</option>
-                  <option value="3">3</option>
-                  <option value="4">4</option>
-                  <option value="5">5</option>
-                  <option value="6">6</option>
-                  <option value="7">7</option>
-                  <option value="8">8</option>
-                  <option value="9">9</option>
-                  <option value="10">10</option>
-                  <option value="11">11</option>
-                  <option value="12">12</option>
-                  <option value="13">13</option>
-                  <option value="14">14</option>
-                  <option value="15">15</option>
-                  <option value="16">16</option>
-                  <option value="17">17</option>
-                  <option value="18">18</option>
-                  <option value="19">19</option>
-                  <option value="20">20</option>
-                  <option value="21">21</option>
-                  <option value="22">22</option>
-                  <option value="23">23</option>
-                  <option value="24">24</option>
-                  <option value="25">25</option>
-                  <option value="26">26</option>
-                  <option value="27">27</option>
-                  <option value="28">28</option>
-                </select>
-              </div>
-              <div class="settings-list-item">
-                <span class="settings-item-label" data-i18n="item_week_start">Έναρξη Εβδομάδας</span>
-                <select id="settings-week-start" class="settings-select" onchange="changeWeekStartSetting(this.value)">
-                  <option value="1" data-i18n="val_week_start">Δευτέρα</option>
-                  <option value="0" data-i18n="val_week_start_sun">Κυριακή</option>
-                  <option value="6" data-i18n="val_week_start_sat">Σάββατο</option>
-                </select>
-              </div>
-              <div class="settings-list-item">
-                <span class="settings-item-label" data-i18n="item_app_lock">Κλείδωμα Εφαρμογής (PIN)</span>
-                <label class="switch">
-                  <input type="checkbox" id="settings-app-lock" onchange="toggleAppLock(this.checked)">
-                  <span class="slider round"></span>
-                </label>
-              </div>
-
-              <div class="settings-list-item">
-                <span class="settings-item-label" data-i18n="item_autocomplete">Έξυπνος Τίτλος (Autocomplete)</span>
-                <label class="switch">
-                  <input type="checkbox" id="settings-autocomplete" onchange="toggleAutocompleteSetting(this.checked)">
-                  <span class="slider round"></span>
-                </label>
-              </div>
-            </div>
-          </div>
-
-          
-            <!-- Card: AI Settings -->
-            <!-- Card 2: Data & Sync [Collapsible] -->
-          <div class="collapsible-section">
-            <div class="account-section-title" id="collapse-trigger-sync" style="color: var(--text-primary);">
-              <span data-i18n="settings_data_title">☁️ Δεδομένα & Συγχρονισμός</span>
-              <i class="fa-solid fa-chevron-down collapse-icon" id="collapse-icon-sync" style="font-size: 10px; transition: transform 0.25s;"></i>
-            </div>
-            <div id="settings-sync-content" class="collapsible-content">
-              <div class="settings-list-item" onclick="openSupabaseSettings()">
-                <div style="display: flex; flex-direction: column; flex: 1;">
-                  <span class="settings-item-label" data-i18n="item_sync_status">Κατάσταση Συγχρονισμού</span>
-                  <span class="settings-item-value" id="val_sync_status" style="font-size: 11px; margin-top: 2px;">Τοπική Αποθήκευση</span>
+          <!-- Settings Hub: clickable nav rows -->
+          <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; margin-bottom: 12px; overflow: hidden; display: flex; flex-direction: column;">
+            
+            <!-- Preferences row -->
+            <div class="settings-list-item" id="hub-row-preferences" style="cursor: pointer; padding: 14px 16px;">
+              <div style="display:flex; align-items:center; gap:12px; flex:1;">
+                <div style="width:36px;height:36px;border-radius:10px;background:rgba(124,106,247,0.15);display:flex;align-items:center;justify-content:center;">
+                  <i class="fa-solid fa-gear" style="color:var(--accent);font-size:16px;"></i>
                 </div>
-                <i class="fa-solid fa-chevron-right" style="color: var(--text-muted); font-size: 12px;"></i>
-              </div>
-              <div class="settings-list-item" onclick="forceSyncNow()" style="cursor: pointer;">
-                <span class="settings-item-label" style="color: var(--accent); font-weight: 600;" data-i18n="sync_now_btn"><i class="fa-solid fa-arrows-rotate" style="margin-right: 8px;"></i> Συγχρονισμός Τώρα</span>
-                <span class="settings-item-value" id="val_last_sync_time" style="font-size: 11px; color: var(--text-muted);"></span>
-              </div>
-              <div class="settings-list-item" onclick="openModal('excel-modal')" style="cursor: pointer;">
-                <span class="settings-item-label" data-i18n="card_import_excel"><i class="fa-solid fa-file-import" style="margin-right: 8px; color: var(--text-muted);"></i> Εισαγωγή Excel</span>
-                <i class="fa-solid fa-chevron-right" style="color: var(--text-muted); font-size: 12px;"></i>
-              </div>
-              <div class="settings-list-item" onclick="openExportPeriodSheet()" style="cursor: pointer;">
-                <span class="settings-item-label" data-i18n="card_export_excel"><i class="fa-solid fa-file-export" style="margin-right: 8px; color: var(--text-muted);"></i> Εξαγωγή Excel</span>
-                <i class="fa-solid fa-chevron-right" style="color: var(--text-muted); font-size: 12px;"></i>
-              </div>
-            </div>
-          </div>
-
-          <!-- Card 3: Family Management [Collapsible] -->
-          <div class="collapsible-section">
-            <div class="account-section-title" id="collapse-trigger-family" style="color: var(--text-primary);">
-              <span data-i18n="settings_family_title">👥 Διαχείριση Οικογένειας</span>
-              <i class="fa-solid fa-chevron-down collapse-icon" id="collapse-icon-family" style="font-size: 10px; transition: transform 0.25s;"></i>
-            </div>
-            <div id="partner-linking-container" class="collapsible-content">
-              <div style="padding: 0 16px 12px 16px; box-sizing: border-box;">
-                <div class="partner-status" data-i18n="label_loading">Φόρτωση στοιχείων...</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Card 4: Feedback & Rating [Collapsible] -->
-          <div class="collapsible-section">
-            <div class="account-section-title" id="collapse-trigger-feedback" style="color: var(--text-primary);">
-              <span data-i18n="settings_feedback_title">💬 Σχόλια & Αξιολόγηση</span>
-              <i class="fa-solid fa-chevron-down collapse-icon" id="collapse-icon-feedback" style="font-size: 10px; transition: transform 0.25s;"></i>
-            </div>
-            <div id="feedback-card-container" class="collapsible-content">
-              <div style="padding: 0 16px 12px 16px; box-sizing: border-box;">
-                <div class="feedback-rating-container">
-                  <div class="feedback-subtitle" data-i18n="feedback_rating_title">Πώς θα βαθμολογούσατε την εφαρμογή;</div>
-                  <div class="emoji-rating-group">
-                    <button type="button" class="emoji-rate-btn" data-rate="1" title="Angry">😡</button>
-                    <button type="button" class="emoji-rate-btn" data-rate="2" title="Disappointed">😕</button>
-                    <button type="button" class="emoji-rate-btn" data-rate="3" title="Neutral">😐</button>
-                    <button type="button" class="emoji-rate-btn" data-rate="4" title="Happy">🙂</button>
-                    <button type="button" class="emoji-rate-btn" data-rate="5" title="Love it">😍</button>
-                  </div>
+                <div style="display:flex;flex-direction:column;gap:2px;">
+                  <span class="settings-item-label" data-i18n="settings_pref_title" style="font-weight:700; font-family:'Outfit',sans-serif; font-size:14px; color:var(--text-primary);">Προτιμήσεις Εφαρμογής</span>
+                  <span style="font-size:11px;color:var(--text-secondary);" data-i18n="settings_pref_desc">Θέμα, Νόμισμα, PIN Κλειδώματος, Σημειώσεις</span>
                 </div>
-                
-                <div class="feedback-form-group">
-                  <div class="feedback-subtitle" data-i18n="feedback_type_label">Τύπος Σχολίου</div>
-                  <div class="feedback-chips">
-                    <button type="button" class="feedback-chip active" data-type="suggestion" data-i18n="feedback_type_feature">Νέα Λειτουργία</button>
-                    <button type="button" class="feedback-chip" data-type="bug" data-i18n="feedback_type_bug">Σφάλμα (Bug)</button>
-                    <button type="button" class="feedback-chip" data-type="other" data-i18n="feedback_type_other">Άλλο</button>
-                  </div>
-                </div>
-                
-                <div class="feedback-form-group">
-                  <textarea id="feedback-comment" class="feedback-textarea" placeholder="Γράψτε τα σχόλιά σας εδώ..." data-i18n-placeholder="feedback_comment_placeholder"></textarea>
-                </div>
-                
-                <button type="button" id="feedback-submit-btn" class="feedback-btn" onclick="submitUserFeedback()">
-                  <span id="feedback-btn-text" data-i18n="feedback_submit_btn">Αποστολή Σχολίων</span>
-                  <div id="feedback-btn-spinner" class="spinner" style="display: none;"><i class="fa-solid fa-circle-notch fa-spin"></i></div>
-                </button>
               </div>
+              <i class="fa-solid fa-chevron-right" style="color:var(--text-muted);font-size:12px;"></i>
             </div>
-          </div>
+            <div style="height:1px;background:var(--border);margin:0 16px;"></div>
 
-          <!-- Card 5: Account Actions & Legal -->
-          <div class="collapsible-section">
-            <div class="account-section-title" style="color: var(--text-primary); cursor: default; pointer-events: none; padding-bottom: 12px;">
-              <span data-i18n="settings_account_legal_title">ℹ️ Λογαριασμός & Νομικά</span>
-            </div>
-            <div style="display: flex; flex-direction: column;">
-              <div class="settings-list-item" onclick="forceAppUpdate()" style="cursor: pointer;">
-                <span class="settings-item-label" style="color: var(--blue-positive); font-weight: 600;" data-i18n="force_update"><i class="fa-solid fa-arrows-rotate" style="margin-right: 8px;"></i> Αναγκαστική Ενημέρωση (Καθαρισμός Cache)</span>
-                <i class="fa-solid fa-chevron-right" style="color: var(--text-muted); font-size: 12px;"></i>
+            <!-- Recurring row -->
+            <div class="settings-list-item" id="hub-row-recurring" style="cursor: pointer; padding: 14px 16px;">
+              <div style="display:flex; align-items:center; gap:12px; flex:1;">
+                <div style="width:36px;height:36px;border-radius:10px;background:rgba(59,130,246,0.15);display:flex;align-items:center;justify-content:center;">
+                  <i class="fa-solid fa-arrows-spin" style="color:#3b82f6;font-size:16px;"></i>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:2px;">
+                  <span class="settings-item-label" data-i18n="settings_recurring_option" style="font-weight:700; font-family:'Outfit',sans-serif; font-size:14px; color:var(--text-primary);">Επαναλαμβανόμενες Συναλλαγές</span>
+                  <span style="font-size:11px;color:var(--text-secondary);" data-i18n="settings_recurring_desc">Διαχείριση πάγιων εντολών και επαναλήψεων</span>
+                </div>
               </div>
-              <div class="settings-list-item" onclick="window.open('privacy.html', '_blank')" style="cursor: pointer;">
-                <span class="settings-item-label" data-i18n="item_privacy">Πολιτική Απορρήτου</span>
-                <span class="settings-item-value"><i class="fa-solid fa-arrow-up-right-from-square" style="font-size:12px;"></i></span>
-              </div>
-              <div class="settings-list-item" onclick="handleLogout()" style="cursor: pointer;">
-                <span class="settings-item-label" style="color: var(--red-negative); font-weight: 600;" data-i18n="item_logout"><i class="fa-solid fa-right-from-bracket" style="margin-right: 8px;"></i> Αποσύνδεση Λογαριασμού</span>
-                <i class="fa-solid fa-chevron-right" style="color: var(--red-negative); font-size: 12px;"></i>
-              </div>
-              <div class="settings-list-item">
-                <span class="settings-item-label" style="color: var(--text-muted); font-size: 12px;" data-i18n="app_version">Έκδοση 1.0.0 (build v429 - 07/06/2026 23:20)</span>
-                <span class="settings-item-value" style="font-size: 12px; color: var(--text-muted);">Budget Assistant</span>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span class="badge" id="recurring-templates-count-val" style="background:var(--border); color:var(--text-muted); font-size:11px; padding:2px 8px; border-radius:10px; font-weight:700;">0</span>
+                <i class="fa-solid fa-chevron-right" style="color:var(--text-muted);font-size:12px;"></i>
               </div>
             </div>
+            <div style="height:1px;background:var(--border);margin:0 16px;"></div>
+
+            <!-- Categories row -->
+            <div class="settings-list-item" id="hub-row-categories" style="cursor: pointer; padding: 14px 16px;">
+              <div style="display:flex; align-items:center; gap:12px; flex:1;">
+                <div style="width:36px;height:36px;border-radius:10px;background:rgba(245,158,11,0.15);display:flex;align-items:center;justify-content:center;">
+                  <i class="fa-solid fa-tags" style="color:#f59e0b;font-size:16px;"></i>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:2px;">
+                  <span class="settings-item-label" data-i18n="settings_categories_option" style="font-weight:700; font-family:'Outfit',sans-serif; font-size:14px; color:var(--text-primary);">Διαχείριση Κατηγοριών</span>
+                  <span style="font-size:11px;color:var(--text-secondary);" data-i18n="settings_categories_desc">Προσθήκη, επεξεργασία και ταξινόμηση κατηγοριών</span>
+                </div>
+              </div>
+              <i class="fa-solid fa-chevron-right" style="color:var(--text-muted);font-size:12px;"></i>
+            </div>
+            <div style="height:1px;background:var(--border);margin:0 16px;"></div>
+
+            <!-- Sync row -->
+            <div class="settings-list-item" id="hub-row-sync" style="cursor: pointer; padding: 14px 16px;">
+              <div style="display:flex; align-items:center; gap:12px; flex:1;">
+                <div style="width:36px;height:36px;border-radius:10px;background:rgba(16,185,129,0.15);display:flex;align-items:center;justify-content:center;">
+                  <i class="fa-solid fa-cloud-arrow-up" style="color:#10b981;font-size:16px;"></i>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:2px;">
+                  <span class="settings-item-label" data-i18n="settings_data_title" style="font-weight:700; font-family:'Outfit',sans-serif; font-size:14px; color:var(--text-primary);">Δεδομένα &amp; Συγχρονισμός</span>
+                  <span style="font-size:11px;color:var(--text-secondary);" data-i18n="settings_data_desc">Συγχρονισμός Cloud, Εισαγωγή &amp; Εξαγωγή Excel</span>
+                </div>
+              </div>
+              <i class="fa-solid fa-chevron-right" style="color:var(--text-muted);font-size:12px;"></i>
+            </div>
+            <div style="height:1px;background:var(--border);margin:0 16px;"></div>
+
+            <!-- Security row -->
+            <div class="settings-list-item" id="hub-row-security" style="cursor: pointer; padding: 14px 16px;">
+              <div style="display:flex; align-items:center; gap:12px; flex:1;">
+                <div style="width:36px;height:36px;border-radius:10px;background:rgba(239,68,68,0.15);display:flex;align-items:center;justify-content:center;">
+                  <i class="fa-solid fa-shield-halved" style="color:#ef4444;font-size:16px;"></i>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:2px;">
+                  <span class="settings-item-label" style="font-weight:700; font-family:'Outfit',sans-serif; font-size:14px; color:var(--text-primary);">Ασφάλεια &amp; Ιδιωτικότητα</span>
+                  <span style="font-size:11px;color:var(--text-secondary);">PIN Κλειδώματος, Βιομετρικά, Απόκρυψη</span>
+                </div>
+              </div>
+              <i class="fa-solid fa-chevron-right" style="color:var(--text-muted);font-size:12px;"></i>
+            </div>
+            <div style="height:1px;background:var(--border);margin:0 16px;"></div>
+
+            <!-- Trash Bin row -->
+            <div class="settings-list-item" id="hub-row-trash" style="cursor: pointer; padding: 14px 16px;">
+              <div style="display:flex; align-items:center; gap:12px; flex:1;">
+                <div style="width:36px;height:36px;border-radius:10px;background:rgba(148,163,184,0.15);display:flex;align-items:center;justify-content:center;">
+                  <i class="fa-solid fa-trash-can" style="color:#94a3b8;font-size:16px;"></i>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:2px;">
+                  <span class="settings-item-label" style="font-weight:700; font-family:'Outfit',sans-serif; font-size:14px; color:var(--text-primary);" data-i18n="item_trash_bin">Κάδος Ανακύκλωσης</span>
+                  <span style="font-size:11px;color:var(--text-secondary);">Πρόσφατα διαγραμμένες συναλλαγές</span>
+                </div>
+              </div>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span class="badge" id="hub-trash-count" style="background:var(--border); color:var(--text-muted); font-size:11px; padding:2px 8px; border-radius:10px; font-weight:700;">0</span>
+                <i class="fa-solid fa-chevron-right" style="color:var(--text-muted);font-size:12px;"></i>
+              </div>
+            </div>
+            <div style="height:1px;background:var(--border);margin:0 16px;"></div>
+
+            <!-- Family row -->
+            <div class="settings-list-item" id="hub-row-family" style="cursor: pointer; padding: 14px 16px;">
+              <div style="display:flex; align-items:center; gap:12px; flex:1;">
+                <div style="width:36px;height:36px;border-radius:10px;background:rgba(99,102,241,0.15);display:flex;align-items:center;justify-content:center;">
+                  <i class="fa-solid fa-users" style="color:#6366f1;font-size:16px;"></i>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:2px;">
+                  <span class="settings-item-label" data-i18n="settings_family_title" style="font-weight:700; font-family:'Outfit',sans-serif; font-size:14px; color:var(--text-primary);">Διαχείριση Οικογένειας</span>
+                  <span style="font-size:11px;color:var(--text-secondary);" data-i18n="settings_family_desc">Σύνδεση με σύντροφο για κοινό προϋπολογισμό</span>
+                </div>
+              </div>
+              <i class="fa-solid fa-chevron-right" style="color:var(--text-muted);font-size:12px;"></i>
+            </div>
+            <div style="height:1px;background:var(--border);margin:0 16px;"></div>
+
+            <!-- Legal / Account row -->
+            <div class="settings-list-item" id="hub-row-legal" style="cursor: pointer; padding: 14px 16px;">
+              <div style="display:flex; align-items:center; gap:12px; flex:1;">
+                <div style="width:36px;height:36px;border-radius:10px;background:rgba(148,163,184,0.15);display:flex;align-items:center;justify-content:center;">
+                  <i class="fa-solid fa-circle-info" style="color:#94a3b8;font-size:16px;"></i>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:2px;">
+                  <span class="settings-item-label" data-i18n="settings_account_legal_title" style="font-weight:700; font-family:'Outfit',sans-serif; font-size:14px; color:var(--text-primary);">Λογαριασμός &amp; Νομικά</span>
+                  <span style="font-size:11px;color:var(--text-secondary);" data-i18n="settings_legal_desc">Αποσύνδεση, Ενημέρωση, Απόρρητο</span>
+                </div>
+              </div>
+              <i class="fa-solid fa-chevron-right" style="color:var(--text-muted);font-size:12px;"></i>
+            </div>
+
           </div>
 
           <!-- Hidden legacy elements for JS bindings compatibility -->
           <div id="settings-user-email-item" style="display: none !important;">
             <span id="settings-user-email-value"></span>
+          </div>
+          <div id="partner-linking-container" style="display:none;"></div>
+          <div id="feedback-card-container" style="display:none;">
+            <textarea id="feedback-comment" style="display:none;"></textarea>
+            <button type="button" id="feedback-submit-btn" style="display:none;"><span id="feedback-btn-text"></span><div id="feedback-btn-spinner" style="display:none;"></div></button>
           </div>
         </div>
     </section>
@@ -834,6 +951,7 @@
               <div class="form-row-value-container" style="display: flex; align-items: center; position: relative;">
                 <input type="text" id="trans-description" class="form-row-input" placeholder="Λεπτομέρειες" autocomplete="off" style="flex: 1; border: none; outline: none; background: transparent;">
                 <input type="file" id="trans-photo-input" accept="image/*" style="display: none;" multiple>
+                <input type="file" id="trans-camera-input" accept="image/*" capture="environment" style="display: none;">
                 <i class="fa-solid fa-camera" id="trans-camera-btn" style="color: var(--text-muted); font-size: 16px; margin-left: 8px; cursor: pointer; padding: 4px;"></i>
               </div>
             </div>
@@ -906,6 +1024,385 @@
     <!-- ============================================== -->
     <!-- MODAL 2: SUPABASE CLOUD SYNC CONFIGURATION -->
     <!-- ============================================== -->
+    <!-- ============================================== -->
+    <!-- MODAL: NOTES MANAGER (Bottom Sheet)            -->
+    <!-- ============================================== -->
+    <div id="notes-manager-modal" class="modal-overlay">
+      <div class="modal-content" style="display: flex; flex-direction: column; height: 85vh; max-height: 85vh;">
+        <div class="modal-header">
+          <button type="button" class="icon-btn" onclick="closeModal('notes-manager-modal')"><i class="fa-solid fa-arrow-left"></i></button>
+          <h3 class="modal-title" style="display: flex; align-items: center; gap: 8px;">
+            📝 <span data-i18n="notes_title">Σημειώσεις &amp; Λίστες</span>
+            <span id="notes-manager-count-badge" class="badge" style="background: var(--accent); color: white; font-size: 11px; padding: 2px 6px; border-radius: 10px; font-weight: 700; display: none;">0</span>
+          </h3>
+          <button class="btn btn-primary" id="notes-manager-add-btn" style="padding: 6px 12px; font-size: 12px; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 4px; border-radius: 8px; cursor: pointer;">
+            <i class="fa-solid fa-plus"></i> <span data-i18n="new_note_btn">Νέα</span>
+          </button>
+        </div>
+
+        <div class="modal-body" style="padding: 16px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 12px; min-height: 0;">
+          <!-- Notes Search bar -->
+          <div class="search-input-wrapper-modern" style="background: rgba(0,0,0,0.15); border: 1px solid var(--border); border-radius: 10px; padding: 8px 12px; display: flex; align-items: center; gap: 8px; box-sizing: border-box; width: 100%;">
+            <i class="fa-solid fa-magnifying-glass" style="color: var(--text-muted); font-size: 13px;"></i>
+            <input type="text" id="notes-manager-search-input" placeholder="Αναζήτηση σημειώσεων..." style="background: transparent; border: none; outline: none; color: var(--text-primary); font-size: 13.5px; flex: 1; padding: 0;">
+          </div>
+
+          <!-- Notes list container -->
+          <div id="notes-manager-list" style="display: flex; flex-direction: column; gap: 10px; flex: 1; overflow-y: auto; padding-right: 2px;">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- MODAL: SETTINGS SUBSCREEN (hub navigation)   -->
+    <!-- ============================================== -->
+    <div id="settings-subscreen-modal" class="modal-overlay">
+      <div class="modal-content" style="display:flex;flex-direction:column;height:90vh;max-height:90vh;">
+        <div class="modal-header">
+          <button type="button" class="icon-btn" id="settings-subscreen-back-btn"><i class="fa-solid fa-arrow-left"></i></button>
+          <h3 class="modal-title" id="settings-subscreen-title">Ρυθμίσεις</h3>
+          <div style="width:36px;"></div>
+        </div>
+        <div class="modal-body" style="flex:1;overflow-y:auto;padding:16px;">
+
+          <!-- SUBSCREEN: Preferences -->
+          <div id="subscreen-preferences" class="subscreen-section" style="display:none; flex-direction:column; gap:18px; padding-bottom:20px;">
+            
+            <!-- CARD 1: Γλώσσα & Εμφάνιση -->
+            <div style="background:var(--bg-card, #161622); border:1px solid var(--border, rgba(255,255,255,0.08)); border-radius:16px; overflow:hidden; box-shadow:0 4px 16px rgba(0,0,0,0.2);">
+              <!-- Card Header Band -->
+              <div style="padding:14px 16px; background:rgba(var(--accent-rgb,124,106,247),0.08); border-bottom:1px solid var(--border, rgba(255,255,255,0.08)); display:flex; align-items:center; gap:12px;">
+                <div style="width:32px; height:32px; border-radius:10px; background:var(--accent); color:#fff; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:700;">
+                  <i class="fa-solid fa-palette"></i>
+                </div>
+                <div>
+                  <div style="font-size:15px; font-weight:800; color:var(--text-primary); font-family:'Outfit',sans-serif;">Γλώσσα & Εμφάνιση</div>
+                  <div style="font-size:12px; color:var(--text-muted);">Προσαρμογή γλώσσας, θεμάτων & νομίσματος</div>
+                </div>
+              </div>
+
+              <!-- Card Items -->
+              <div style="display:flex; flex-direction:column;">
+                <!-- Row 1: Language Toggle -->
+                <div class="settings-list-item" id="preferences-lang-row" onclick="toggleLanguageSetting()" style="cursor:pointer; padding:14px 16px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border, rgba(255,255,255,0.05)); margin:0;">
+                  <div style="display:flex; flex-direction:column; gap:3px;">
+                    <span class="settings-item-label" style="font-weight:700; font-size:14px; color:var(--text-primary);" data-i18n="item_language">Γλώσσα</span>
+                    <span style="font-size:12px; color:var(--text-muted);">Γλώσσα περιβάλλοντος (Ελληνικά / English)</span>
+                  </div>
+                  <div style="display:flex; align-items:center; gap:8px; background:rgba(var(--accent-rgb,124,106,247),0.12); border:1px solid rgba(var(--accent-rgb,124,106,247),0.3); padding:7px 14px; border-radius:20px;">
+                    <span class="settings-item-value" id="lang-setting-val" style="font-size:13px; font-weight:800; color:var(--accent);">🇬🇷 Ελληνικά</span>
+                    <i class="fa-solid fa-arrows-rotate" style="color:var(--accent); font-size:12px;"></i>
+                  </div>
+                </div>
+
+                <!-- Row 2: Theme Select -->
+                <div class="settings-list-item" style="padding:14px 16px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border, rgba(255,255,255,0.05)); margin:0;">
+                  <div style="display:flex; flex-direction:column; gap:3px; flex:1; padding-right:12px;">
+                    <span class="settings-item-label" style="font-weight:700; font-size:14px; color:var(--text-primary);" data-i18n="item_theme">Θέμα Εμφάνισης</span>
+                    <span style="font-size:12px; color:var(--text-muted);">Παλέτα χρωμάτων & σκοτεινή λειτουργία</span>
+                  </div>
+                  <select id="settings-theme" class="settings-select" onchange="changeThemeSetting(this.value)">
+                    <option value="dark">Premium Dark</option>
+                    <option value="oled">OLED Black</option>
+                    <option value="light">Classic Light</option>
+                    <option value="emerald">Emerald Forest</option>
+                    <option value="ocean">Ocean Breeze</option>
+                    <option value="pink">Blossom Pink</option>
+                  </select>
+                </div>
+
+                <!-- Row 3: Currency Select -->
+                <div class="settings-list-item" style="padding:14px 16px; display:flex; align-items:center; justify-content:space-between; margin:0;">
+                  <div style="display:flex; flex-direction:column; gap:3px; flex:1; padding-right:12px;">
+                    <span class="settings-item-label" style="font-weight:700; font-size:14px; color:var(--text-primary);" data-i18n="item_currency">Κύριο Νόμισμα</span>
+                    <span style="font-size:12px; color:var(--text-muted);">Σύμβολο νομίσματος στους υπολογισμούς</span>
+                  </div>
+                  <select id="settings-currency" class="settings-select" onchange="changeCurrencySetting(this.value)">
+                    <option value="EUR">EUR (€)</option>
+                    <option value="USD">USD ($)</option>
+                    <option value="GBP">GBP (£)</option>
+                    <option value="JPY">JPY (¥)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+                  </label>
+                </div>
+
+                <!-- Row 5: Auto Lock Delay -->
+                <div class="settings-list-item" style="padding:14px 16px; display:flex; align-items:center; justify-content:space-between; margin:0;">
+                  <div style="display:flex; flex-direction:column; gap:3px; flex:1; padding-right:12px;">
+                    <span class="settings-item-label" style="font-weight:700; font-size:14px; color:var(--text-primary);" data-i18n="item_auto_lock">Αυτόματο Κλείδωμα</span>
+                    <span style="font-size:12px; color:var(--text-muted);">Χρόνος αδράνειας πριν το κλείδωμα</span>
+                  </div>
+                  <select id="settings-auto-lock-delay" class="settings-select" onchange="changeAutoLockSetting(this.value)">
+                    <option value="disabled" data-i18n="opt_disabled">Απενεργοποιημένο</option>
+                    <option value="1" data-i18n="opt_1min">1 λεπτό</option>
+                    <option value="5" data-i18n="opt_5min">5 λεπτά</option>
+                    <option value="10" data-i18n="opt_10min">10 λεπτά</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- CARD 3: Ημερολογιακοί Κύκλοι -->
+            <div style="background:var(--bg-card, #161622); border:1px solid var(--border, rgba(255,255,255,0.08)); border-radius:16px; overflow:hidden; box-shadow:0 4px 16px rgba(0,0,0,0.2);">
+              <!-- Card Header Band -->
+              <div style="padding:14px 16px; background:rgba(16,185,129,0.08); border-bottom:1px solid var(--border, rgba(255,255,255,0.08)); display:flex; align-items:center; gap:12px;">
+                <div style="width:32px; height:32px; border-radius:10px; background:#10b981; color:#fff; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:700;">
+                  <i class="fa-solid fa-calendar-days"></i>
+                </div>
+                <div>
+                  <div style="font-size:15px; font-weight:800; color:var(--text-primary); font-family:'Outfit',sans-serif;">Ημερολογιακοί Κύκλοι</div>
+                  <div style="font-size:12px; color:var(--text-muted);">Έναρξη μηνιαίου & εβδομαδιαίου προϋπολογισμού</div>
+                </div>
+              </div>
+
+              <!-- Card Items -->
+              <div style="display:flex; flex-direction:column;">
+                <!-- Row 1: Month Start Day -->
+                <div class="settings-list-item" style="padding:14px 16px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border, rgba(255,255,255,0.05)); margin:0;">
+                  <div style="display:flex; flex-direction:column; gap:3px; flex:1; padding-right:12px;">
+                    <span class="settings-item-label" style="font-weight:700; font-size:14px; color:var(--text-primary);" data-i18n="item_month_start">Έναρξη Μήνα</span>
+                    <span style="font-size:12px; color:var(--text-muted);">Ημέρα έναρξης μηνιαίου κύκλου (1 - 28)</span>
+                  </div>
+                  <select id="settings-month-start" class="settings-select" onchange="changeMonthStartSetting(this.value)">
+                    <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+                    <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+                    <option value="7">7</option><option value="8">8</option><option value="9">9</option>
+                    <option value="10">10</option><option value="11">11</option><option value="12">12</option>
+                    <option value="13">13</option><option value="14">14</option><option value="15">15</option>
+                    <option value="16">16</option><option value="17">17</option><option value="18">18</option>
+                    <option value="19">19</option><option value="20">20</option><option value="21">21</option>
+                    <option value="22">22</option><option value="23">23</option><option value="24">24</option>
+                    <option value="25">25</option><option value="26">26</option><option value="27">27</option>
+                    <option value="28">28</option>
+                  </select>
+                </div>
+
+                <!-- Row 2: Week Start Day -->
+                <div class="settings-list-item" style="padding:14px 16px; display:flex; align-items:center; justify-content:space-between; margin:0;">
+                  <div style="display:flex; flex-direction:column; gap:3px; flex:1; padding-right:12px;">
+                    <span class="settings-item-label" style="font-weight:700; font-size:14px; color:var(--text-primary);" data-i18n="item_week_start">Έναρξη Εβδομάδας</span>
+                    <span style="font-size:12px; color:var(--text-muted);">Πρώτη ημέρα στα εβδομαδιαία γραφήματα</span>
+                  </div>
+                  <select id="settings-week-start" class="settings-select" onchange="changeWeekStartSetting(this.value)">
+                    <option value="1" data-i18n="val_week_start">Δευτέρα</option>
+                    <option value="0" data-i18n="val_week_start_sun">Κυριακή</option>
+                    <option value="6" data-i18n="val_week_start_sat">Σάββατο</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- CARD 4: Έξυπνα Εργαλεία & Συντομεύσεις -->
+            <div style="background:var(--bg-card, #161622); border:1px solid var(--border, rgba(255,255,255,0.08)); border-radius:16px; overflow:hidden; box-shadow:0 4px 16px rgba(0,0,0,0.2);">
+              <!-- Card Header Band -->
+              <div style="padding:14px 16px; background:rgba(245,158,11,0.08); border-bottom:1px solid var(--border, rgba(255,255,255,0.08)); display:flex; align-items:center; gap:12px;">
+                <div style="width:32px; height:32px; border-radius:10px; background:#f59e0b; color:#fff; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:700;">
+                  <i class="fa-solid fa-wand-magic-sparkles"></i>
+                </div>
+                <div>
+                  <div style="font-size:15px; font-weight:800; color:var(--text-primary); font-family:'Outfit',sans-serif;">Έξυπνα Εργαλεία & Συντομεύσεις</div>
+                  <div style="font-size:12px; color:var(--text-muted);">Αυτοματισμοί πληκτρολόγησης & ταχεία πρόσβαση</div>
+                </div>
+              </div>
+
+              <!-- Card Items -->
+              <div style="display:flex; flex-direction:column;">
+                <!-- Row 1: Autocomplete -->
+                <div class="settings-list-item" style="padding:14px 16px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border, rgba(255,255,255,0.05)); margin:0;">
+                  <div style="display:flex; flex-direction:column; gap:3px; flex:1; padding-right:12px;">
+                    <span class="settings-item-label" style="font-weight:700; font-size:14px; color:var(--text-primary);" data-i18n="item_autocomplete">Έξυπνος Τίτλος (Autocomplete)</span>
+                    <span style="font-size:12px; color:var(--text-muted);">Αυτόματες προτάσεις κατά την πληκτρολόγηση</span>
+                  </div>
+                  <label class="switch">
+                    <input type="checkbox" id="settings-autocomplete" onchange="toggleAutocompleteSetting(this.checked)">
+                    <span class="slider round"></span>
+                  </label>
+                </div>
+
+                <!-- Row 2: Quick Notes Shortcut -->
+                <div class="settings-list-item" style="padding:14px 16px; display:flex; align-items:center; justify-content:space-between; margin:0;">
+                  <div style="display:flex; flex-direction:column; gap:3px; flex:1; padding-right:12px;">
+                    <span class="settings-item-label" style="font-weight:700; font-size:14px; color:var(--text-primary);" data-i18n="item_note_shortcut">Γρήγορες Σημειώσεις (κουμπί 📝)</span>
+                    <span style="font-size:12px; color:var(--text-muted);">Εμφάνιση συντόμευσης σημειωματάριου στην αρχική</span>
+                  </div>
+                  <label class="switch">
+                    <input type="checkbox" id="settings-note-shortcut">
+                    <span class="slider round"></span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SUBSCREEN: Sync & Data -->
+          <div id="subscreen-sync" class="subscreen-section">
+            <div class="settings-list-item" id="sync-supabase-row" style="cursor:pointer;">
+              <div style="display:flex;flex-direction:column;flex:1;">
+                <span class="settings-item-label" data-i18n="item_sync_status">Κατάσταση Συγχρονισμού</span>
+                <span class="settings-item-value" id="sync-status-label" style="font-size:11px;margin-top:2px;">Τοπική Αποθήκευση</span>
+              </div>
+              <i class="fa-solid fa-chevron-right" style="color:var(--text-muted);font-size:12px;"></i>
+            </div>
+            <div class="settings-list-item" id="sync-now-row" style="cursor:pointer;">
+              <span class="settings-item-label" style="color:var(--accent);font-weight:600;" data-i18n="sync_now_btn"><i class="fa-solid fa-arrows-rotate" style="margin-right:8px;"></i> Συγχρονισμός Τώρα</span>
+              <span class="settings-item-value" id="val_last_sync_time" style="font-size:11px;color:var(--text-muted);"></span>
+            </div>
+            <div class="settings-list-item" id="sync-excel-import-row" style="cursor:pointer;">
+              <span class="settings-item-label" data-i18n="card_import_excel"><i class="fa-solid fa-file-import" style="margin-right:8px;color:var(--text-muted);"></i> Εισαγωγή Excel</span>
+              <i class="fa-solid fa-chevron-right" style="color:var(--text-muted);font-size:12px;"></i>
+            </div>
+            <div class="settings-list-item" id="sync-excel-export-row" style="cursor:pointer;">
+              <span class="settings-item-label" data-i18n="card_export_excel"><i class="fa-solid fa-file-export" style="margin-right:8px;color:var(--text-muted);"></i> Εξαγωγή Excel</span>
+              <i class="fa-solid fa-chevron-right" style="color:var(--text-muted);font-size:12px;"></i>
+            </div>
+          </div>
+
+          <!-- SUBSCREEN: Security -->
+          <div id="subscreen-security" class="subscreen-section" style="display:none; flex-direction:column; gap:18px; padding-bottom:20px;">
+            <!-- Security Card -->
+            <div style="background:var(--bg-card, #161622); border:1px solid var(--border, rgba(255,255,255,0.08)); border-radius:16px; overflow:hidden; box-shadow:0 4px 16px rgba(0,0,0,0.2);">
+              <!-- Card Header Band -->
+              <div style="padding:14px 16px; background:rgba(239,68,68,0.08); border-bottom:1px solid var(--border, rgba(255,255,255,0.08)); display:flex; align-items:center; gap:12px;">
+                <div style="width:32px; height:32px; border-radius:10px; background:#ef4444; color:#fff; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:700;">
+                  <i class="fa-solid fa-shield-halved"></i>
+                </div>
+                <div>
+                  <div style="font-size:15px; font-weight:800; color:var(--text-primary); font-family:'Outfit',sans-serif;">Ασφάλεια &amp; Ιδιωτικότητα</div>
+                  <div style="font-size:12px; color:var(--text-muted);">Κλείδωμα PIN, βιομετρικά &amp; απόκρυψη ποσών</div>
+                </div>
+              </div>
+              <!-- Card Items -->
+              <div style="display:flex; flex-direction:column;">
+                <div class="settings-list-item" style="padding:14px 16px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border, rgba(255,255,255,0.05)); margin:0;">
+                  <div style="display:flex; flex-direction:column; gap:3px; flex:1; padding-right:12px;">
+                    <span class="settings-item-label" style="font-weight:700; font-size:14px; color:var(--text-primary);" data-i18n="item_app_lock">Κλείδωμα Εφαρμογής (PIN)</span>
+                    <span style="font-size:12px; color:var(--text-muted);">Προστασία με 4ψήφιο κωδικό</span>
+                  </div>
+                  <label class="switch">
+                    <input type="checkbox" id="settings-app-lock" onchange="toggleAppLock(this.checked)">
+                    <span class="slider round"></span>
+                  </label>
+                </div>
+                <div class="settings-list-item" id="settings-biometrics-container" style="padding:14px 16px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border, rgba(255,255,255,0.05)); margin:0;">
+                  <div style="display:flex; flex-direction:column; gap:3px; flex:1; padding-right:12px;">
+                    <span class="settings-item-label" style="font-weight:700; font-size:14px; color:var(--text-primary);" data-i18n="item_biometric">Βιομετρικό Ξεκλείδωμα</span>
+                    <span id="biometrics-platform-info" style="font-size:12px; color:var(--text-muted);">Δακτυλικό αποτύπωμα / Face ID</span>
+                  </div>
+                  <label class="switch">
+                    <input type="checkbox" id="settings-biometrics" onchange="toggleBiometrics(this.checked)">
+                    <span class="slider round"></span>
+                  </label>
+                </div>
+                <div class="settings-list-item" style="padding:14px 16px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border, rgba(255,255,255,0.05)); margin:0;">
+                  <div style="display:flex; flex-direction:column; gap:3px; flex:1; padding-right:12px;">
+                    <span class="settings-item-label" style="font-weight:700; font-size:14px; color:var(--text-primary);" data-i18n="item_hide_amounts">Απόκρυψη Ποσών</span>
+                    <span style="font-size:12px; color:var(--text-muted);">Εμφάνιση 👁️ (***) στα υπόλοιπα</span>
+                  </div>
+                  <label class="switch">
+                    <input type="checkbox" id="settings-hide-amounts" onchange="toggleHideAmountsSetting(this.checked)">
+                    <span class="slider round"></span>
+                  </label>
+                </div>
+                <div class="settings-list-item" style="padding:14px 16px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border, rgba(255,255,255,0.05)); margin:0;">
+                  <div style="display:flex; flex-direction:column; gap:3px; flex:1; padding-right:12px;">
+                    <span class="settings-item-label" style="font-weight:700; font-size:14px; color:var(--text-primary);" data-i18n="item_screenshot_block">Αποκλεισμός Screenshots</span>
+                    <span id="screenshot-platform-info" style="font-size:12px; color:var(--text-muted);">Απαγόρευση στιγμιότυπων οθόνης</span>
+                  </div>
+                  <label class="switch">
+                    <input type="checkbox" id="settings-screenshot-block" onchange="toggleScreenshotBlockSetting(this.checked)">
+                    <span class="slider round"></span>
+                  </label>
+                </div>
+                <div class="settings-list-item" style="padding:14px 16px; display:flex; align-items:center; justify-content:space-between; margin:0;">
+                  <div style="display:flex; flex-direction:column; gap:3px; flex:1; padding-right:12px;">
+                    <span class="settings-item-label" style="font-weight:700; font-size:14px; color:var(--text-primary);" data-i18n="item_auto_lock">Αυτόματο Κλείδωμα</span>
+                    <span style="font-size:12px; color:var(--text-muted);">Χρόνος αδράνειας πριν το κλείδωμα</span>
+                  </div>
+                  <select id="settings-auto-lock-delay" class="settings-select" onchange="changeAutoLockSetting(this.value)">
+                    <option value="disabled" data-i18n="opt_disabled">Απενεργοποιημένο</option>
+                    <option value="1" data-i18n="opt_1min">1 λεπτό</option>
+                    <option value="5" data-i18n="opt_5min">5 λεπτά</option>
+                    <option value="10" data-i18n="opt_10min">10 λεπτά</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SUBSCREEN: Family -->
+          <div id="subscreen-family" class="subscreen-section" style="display:none;">
+            <div id="partner-linking-container-modal">
+              <div class="partner-status" data-i18n="label_loading">Φόρτωση στοιχείων...</div>
+            </div>
+          </div>
+
+          <!-- SUBSCREEN: Feedback -->
+          <div id="subscreen-feedback" class="subscreen-section" style="display:none;">
+            <div class="feedback-rating-container" style="margin-bottom:16px;">
+              <div class="feedback-subtitle" data-i18n="feedback_rating_title" style="margin-bottom:8px;">Πώς θα βαθμολογούσατε την εφαρμογή;</div>
+              <div class="emoji-rating-group">
+                <button type="button" class="emoji-rate-btn" data-rate="1" title="Angry">&#x1F621;</button>
+                <button type="button" class="emoji-rate-btn" data-rate="2" title="Disappointed">&#x1F615;</button>
+                <button type="button" class="emoji-rate-btn" data-rate="3" title="Neutral">&#x1F610;</button>
+                <button type="button" class="emoji-rate-btn" data-rate="4" title="Happy">&#x1F642;</button>
+                <button type="button" class="emoji-rate-btn" data-rate="5" title="Love it">&#x1F60D;</button>
+              </div>
+            </div>
+            <div class="feedback-form-group" style="margin-bottom:12px;">
+              <div class="feedback-subtitle" data-i18n="feedback_type_label" style="margin-bottom:8px;">Τύπος Σχολίου</div>
+              <div class="feedback-chips">
+                <button type="button" class="feedback-chip active" data-type="suggestion" data-i18n="feedback_type_feature">Νέα Λειτουργία</button>
+                <button type="button" class="feedback-chip" data-type="bug" data-i18n="feedback_type_bug">Σφάλμα (Bug)</button>
+                <button type="button" class="feedback-chip" data-type="other" data-i18n="feedback_type_other">Άλλο</button>
+              </div>
+            </div>
+            <div class="feedback-form-group" style="margin-bottom:12px;">
+              <textarea id="feedback-comment" class="feedback-textarea" placeholder="Γράψτε τα σχόλιά σας εδώ..." data-i18n-placeholder="feedback_comment_placeholder"></textarea>
+            </div>
+            <button type="button" id="feedback-submit-btn" class="feedback-btn">
+              <span id="feedback-btn-text" data-i18n="feedback_submit_btn">Αποστολή Σχολίων</span>
+              <div id="feedback-btn-spinner" class="spinner" style="display:none;"><i class="fa-solid fa-circle-notch fa-spin"></i></div>
+            </button>
+          </div>
+
+          <!-- SUBSCREEN: Legal & Account -->
+          <div id="subscreen-legal" class="subscreen-section" style="display:none;">
+            <div class="settings-list-item" id="legal-force-update-row" style="cursor:pointer;">
+              <span class="settings-item-label" style="color:var(--blue-positive);font-weight:600;" data-i18n="force_update"><i class="fa-solid fa-arrows-rotate" style="margin-right:8px;"></i> Αναγκαστική Ενημέρωση</span>
+              <i class="fa-solid fa-chevron-right" style="color:var(--text-muted);font-size:12px;"></i>
+            </div>
+            <div class="settings-list-item" id="legal-privacy-row" style="cursor:pointer;">
+              <span class="settings-item-label" data-i18n="item_privacy">Πολιτική Απορρήτου</span>
+              <i class="fa-solid fa-arrow-up-right-from-square" style="color:var(--text-muted);font-size:12px;"></i>
+            </div>
+            <div class="settings-list-item" id="legal-feedback-row" style="cursor:pointer;">
+              <span class="settings-item-label" data-i18n="settings_feedback_title">Σχόλια &amp; Αξιολόγηση</span>
+              <i class="fa-solid fa-chevron-right" style="color:var(--text-muted);font-size:12px;"></i>
+            </div>
+            <div class="settings-list-item" id="legal-logout-row" style="cursor:pointer;">
+              <span class="settings-item-label" style="color:var(--red-negative);font-weight:600;" data-i18n="item_logout"><i class="fa-solid fa-right-from-bracket" style="margin-right:8px;"></i> Αποσύνδεση Λογαριασμού</span>
+              <i class="fa-solid fa-chevron-right" style="color:var(--red-negative);font-size:12px;"></i>
+            </div>
+            <div class="settings-list-item" id="developer-settings-row" onclick="window.location.href='debug.html'" style="display:none;cursor:pointer;">
+              <span class="settings-item-label" style="color:var(--primary);font-weight:600;"><i class="fa-solid fa-gauge-high" style="margin-right:8px;"></i> Πίνακας Ελέγχου</span>
+              <i class="fa-solid fa-chevron-right" style="color:var(--primary);font-size:12px;"></i>
+            </div>
+            <div class="settings-list-item">
+              <span class="settings-item-label" style="color:var(--text-muted);font-size:12px;" data-i18n="app_version">Έκδοση 1.0.0 (build v911)</span>
+              <span class="settings-item-value" style="font-size:12px;color:var(--text-muted);">Budget Assistant</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
     <div id="supabase-modal" class="modal-overlay">
       <div class="modal-content">
         <div class="modal-header">
@@ -916,6 +1413,45 @@
           <!-- User Sync Status (Main screen for simple users) -->
           <div id="supabase-user-settings">
             <!-- Populated dynamically via updateSupabaseUserModal() -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- MODAL: RECURRING TEMPLATES MANAGEMENT -->
+    <!-- ============================================== -->
+    <div id="recurring-templates-modal" class="modal-overlay">
+      <div class="modal-content" style="max-width: 480px; max-height: 85vh;">
+        <div class="modal-header">
+          <h3 class="modal-title" data-i18n="item_recurring_templates">🔁 Επαναλαμβανόμενες Συναλλαγές</h3>
+          <span class="modal-close" onclick="closeModal('recurring-templates-modal')">&times;</span>
+        </div>
+        <div class="modal-body" style="padding-bottom: 24px;">
+          <div id="recurring-templates-list-container" style="display: flex; flex-direction: column; gap: 12px; max-height: 60vh; overflow-y: auto; padding-right: 4px;">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- MODAL: TRASH BIN -->
+    <!-- ============================================== -->
+    <div id="trash-bin-modal" class="modal-overlay">
+      <div class="modal-content" style="max-width: 520px; max-height: 85vh;">
+        <div class="modal-header">
+          <h3 class="modal-title"><span data-i18n="item_trash_bin">🗑️ Κάδος Ανακύκλωσης</span></h3>
+          <span class="modal-close" onclick="closeModal('trash-bin-modal')">&times;</span>
+        </div>
+        <div class="modal-body" style="padding-bottom: 24px; display: flex; flex-direction: column; gap: 16px;">
+          <div style="display: flex; justify-content: flex-end;">
+            <button id="btn-empty-trash" onclick="emptyTrashBin()" style="font-size: 13px; padding: 6px 12px; border-radius: 6px; background: rgba(244, 63, 94, 0.15); color: #f43f5e; border: 1px solid rgba(244, 63, 94, 0.3); font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+              <i class="fa-solid fa-trash-can"></i> <span data-i18n="empty_trash">Εκκαθάριση Κάδου</span>
+            </button>
+          </div>
+          <div id="trash-bin-list-container" style="display: flex; flex-direction: column; gap: 12px; max-height: 55vh; overflow-y: auto; padding-right: 4px;">
+            <!-- Populated dynamically -->
           </div>
         </div>
       </div>
@@ -1079,10 +1615,15 @@
     <!-- OVERLAY: TRANSACTION SEARCH & ADVANCED FILTERS -->
     <!-- ============================================== -->
     <div id="search-overlay" class="search-overlay-container">
-      <div class="search-overlay-header-modern">
-        <button class="icon-btn search-back-btn-modern" onclick="closeSearchOverlay()"><i class="fa-solid fa-arrow-left"></i></button>
-        <span class="search-overlay-title" data-i18n="label_search">Αναζήτηση</span>
-        <button class="icon-btn search-settings-btn-modern" id="search-toggle-btn" onclick="toggleSearchFiltersPanel()"><i class="fa-solid fa-sliders"></i></button>
+      <div class="search-overlay-header-modern" style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1;">
+          <button class="icon-btn search-back-btn-modern" onclick="closeSearchOverlay()"><i class="fa-solid fa-arrow-left"></i></button>
+          <span class="search-overlay-title" data-i18n="label_search" style="margin-left: 0;">Αναζήτηση</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <button class="icon-btn search-select-mode-btn" id="search-select-mode-btn" onclick="toggleSearchSelectMode()" style="font-size: 13px; font-weight: 600; color: var(--text-secondary); background: none; border: 1px solid var(--border); border-radius: 12px; padding: 6px 12px; cursor: pointer; min-height: 32px; max-height: 32px; display: flex; align-items: center; justify-content: center; box-sizing: border-box;">Επιλογή</button>
+          <button class="icon-btn search-settings-btn-modern" id="search-toggle-btn" onclick="toggleSearchFiltersPanel()"><i class="fa-solid fa-sliders"></i></button>
+        </div>
       </div>
 
       <!-- Scrollable Container containing both Filters Dashboard and Results -->
@@ -1247,13 +1788,24 @@
         </div>
 
         <!-- Results Section -->
-        <div class="search-results-section">
+        <div class="search-results-section" style="margin-bottom: 70px;">
           <!-- Search Results List -->
           <div id="search-results-list" class="transactions-list-scroll">
             <!-- Populated dynamically with grouped transactions -->
           </div>
         </div>
 
+      </div>
+
+      <!-- Search Bulk Action Panel -->
+      <div id="search-bulk-actions-panel" style="position: absolute; bottom: 0; left: 0; right: 0; background: var(--bg-card); border-top: 1px solid var(--border); padding: 12px 16px; display: none; align-items: center; justify-content: space-between; z-index: 1001; box-shadow: 0 -4px 12px rgba(0,0,0,0.15); box-sizing: border-box; width: 100%;">
+        <span id="search-selected-count" style="font-size: 14.5px; font-weight: 700; color: var(--text-primary);">0 επιλεγμένες</span>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-secondary" onclick="clearSearchSelection()" style="padding: 8px 16px; border-radius: 12px; font-size: 13px; font-weight: 600; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--text-main); cursor: pointer;">Ακύρωση</button>
+          <button class="btn btn-danger" onclick="deleteSelectedSearchTransactions()" style="padding: 8px 16px; border-radius: 12px; font-size: 13px; font-weight: 600; background: var(--danger); color: white; border: none; display: flex; align-items: center; gap: 6px; cursor: pointer;">
+            <i class="fa-solid fa-trash"></i> Διαγραφή
+          </button>
+        </div>
       </div>
     </div>
 
@@ -1810,33 +2362,126 @@
     </div>
   </div>
 
-  <!-- MODAL: CATEGORY MANAGER (iOS-STYLE) -->
-  <div id="category-manager-modal" class="modal-overlay">
-    <div class="modal-content" style="max-height: 90vh; display: flex; flex-direction: column;">
-      <div class="modal-header">
-        <h3 class="modal-title" data-i18n="modal_category_manager_title">⚙️ Διαχείριση Κατηγοριών</h3>
+  <!-- MODAL: CATEGORY MANAGER -->
+  <div id="category-manager-modal" class="modal-overlay" style="z-index: 10000;">
+    <div class="modal-content" style="max-width: 580px; max-height: 85vh; display: flex; flex-direction: column;">
+      <div class="modal-header" style="display: flex; align-items: center; justify-content: space-between;">
+        <h3 class="modal-title" style="font-weight: 700;">🏷️ Διαχείριση Κατηγοριών</h3>
         <span class="modal-close" onclick="closeModal('category-manager-modal')">&times;</span>
       </div>
-      <div class="modal-body" style="padding: 16px; flex: 1; overflow-y: auto;">
-        <!-- Add New Category Section -->
-        <div style="margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border);">
-          <h4 style="font-size: 13px; margin-bottom: 12px; font-weight: 700; color: var(--text-secondary);" data-i18n="new_category_add_title">Προσθήκη Νέας Κατηγορίας</h4>
-          <div style="display: flex; gap: 8px;">
-            <input type="text" id="new-category-name" class="form-input" placeholder="Όνομα κατηγορίας" style="flex: 1;">
-            <select id="new-category-type" class="form-select" style="width: 100px;">
-              <option value="expense" data-i18n="type_tab_expense">Έξοδο</option>
-              <option value="income" data-i18n="type_tab_income">Έσοδο</option>
-            </select>
-          </div>
-          <button onclick="addNewCustomCategory()" class="btn btn-primary" style="width: 100%; margin-top: 12px; padding: 10px; font-weight: 700;" data-i18n="btn_add">
-            <i class="fa-solid fa-plus" style="margin-right: 6px;"></i> Προσθήκη
+      <div class="modal-body" style="padding: 16px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 16px;">
+        
+        <!-- Toggle Tabs -->
+        <div style="display: flex; background: rgba(0, 0, 0, 0.15); border: 1px solid rgba(255,255,255,0.04); border-radius: 12px; padding: 2px;">
+          <button type="button" id="cat-mgr-tab-expense" style="flex: 1; border: none; padding: 10px; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s; background: var(--accent); color: white;" onclick="setCategoryManagerType('expense')">Έξοδα</button>
+          <button type="button" id="cat-mgr-tab-income" style="flex: 1; border: none; padding: 10px; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s; background: transparent; color: var(--text-secondary);" onclick="setCategoryManagerType('income')">Έσοδα</button>
+        </div>
+
+        <!-- Add Category Row -->
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 13px; color: var(--text-muted); font-weight: 500;" id="cat-mgr-count-label">Φορτώνει...</span>
+          <button type="button" class="btn btn-primary" style="padding: 8px 14px; font-size: 13px; font-weight: 600; border-radius: 8px; display: flex; align-items: center; gap: 6px;" onclick="openCategoryManagerAddDialog()">
+            <i class="fa-solid fa-plus"></i> Νέα Κατηγορία
           </button>
         </div>
 
-        <!-- Category List -->
-        <h4 style="font-size: 13px; margin-bottom: 12px; font-weight: 700; color: var(--text-secondary);" data-i18n="new_category_list_title">Λίστα Κατηγοριών</h4>
-        <div id="category-manager-list" style="display: flex; flex-direction: column; gap: 8px;">
-          <!-- Categories injected here -->
+        <!-- Categories List -->
+        <div id="category-manager-list" style="display: flex; flex-direction: column; gap: 10px;">
+          <!-- Categories injected here by JS -->
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CATEGORY EDITOR SUB-MODAL -->
+  <div id="category-editor-modal" class="modal-overlay" style="z-index: 11000;">
+    <div class="modal-content" style="max-width: 420px; max-height: 80vh; display: flex; flex-direction: column;">
+      <div class="modal-header" style="display: flex; align-items: center; justify-content: space-between;">
+        <h3 class="modal-title" id="cat-editor-title" style="font-weight: 700;">Επεξεργασία Κατηγορίας</h3>
+        <span class="modal-close" onclick="closeModal('category-editor-modal')">&times;</span>
+      </div>
+      <div class="modal-body" style="padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px;">
+        <div class="form-row">
+          <label class="form-row-label">Όνομα</label>
+          <input type="text" id="cat-editor-name-input" class="form-row-input" placeholder="Όνομα κατηγορίας">
+        </div>
+        <div>
+          <label style="font-size: 12px; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 8px;">Εικονίδιο</label>
+          <div id="cat-editor-emoji-grid" style="display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px; max-height: 180px; overflow-y: auto; padding: 4px; background: rgba(0,0,0,0.15); border: 1px solid var(--border); border-radius: 8px;">
+            <!-- Emoji choices -->
+          </div>
+        </div>
+        <div style="display: flex; gap: 10px; margin-top: 8px;">
+          <button class="btn btn-primary" style="flex: 1; padding: 12px; font-weight: 700; border-radius: 8px;" onclick="saveCategoryManagerEdit()">Αποθήκευση</button>
+          <button class="btn btn-secondary" style="padding: 12px 18px; border-radius: 8px;" onclick="closeModal('category-editor-modal')">Άκυρο</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: NOTE EDITOR MODAL -->
+  <div id="note-editor-modal" class="modal-overlay" style="z-index: 11000;">
+    <div class="modal-content" style="max-width: 450px; max-height: 85vh; display: flex; flex-direction: column; box-sizing: border-box;">
+      <div class="modal-header" style="display: flex; align-items: center; justify-content: space-between; padding-bottom: 8px; box-sizing: border-box;">
+        <h3 class="modal-title" id="note-editor-title" style="font-weight: 700; font-family: 'Outfit', sans-serif;">Νέα Σημείωση</h3>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <!-- Pin Toggle Icon -->
+          <button id="note-editor-pin-btn" class="icon-btn" onclick="toggleNoteEditorPin()" style="font-size: 16px; color: var(--text-muted); background: transparent; border: none; padding: 4px; cursor: pointer; transition: color 0.15s; display: flex; align-items: center;" title="Καρφίτσωμα">
+            <i class="fa-solid fa-thumbtack"></i>
+          </button>
+          <span class="modal-close" onclick="closeModal('note-editor-modal')" style="cursor: pointer; font-size: 24px;">&times;</span>
+        </div>
+      </div>
+      
+      <!-- Segmented Type Selector -->
+      <div style="display: flex; background: rgba(0,0,0,0.15); border: 1px solid var(--border); border-radius: 10px; padding: 3px; margin: 0 16px 12px 16px; box-sizing: border-box;">
+        <button id="note-type-text-btn" onclick="setNoteEditorType('text')" style="flex: 1; padding: 6px; font-size: 12.5px; border-radius: 8px; border: none; cursor: pointer; font-weight: 700; font-family: 'Outfit', sans-serif; transition: all 0.2s; background: var(--accent); color: white;">
+          📝 Κείμενο
+        </button>
+        <button id="note-type-checklist-btn" onclick="setNoteEditorType('checklist')" style="flex: 1; padding: 6px; font-size: 12.5px; border-radius: 8px; border: none; cursor: pointer; font-weight: 700; font-family: 'Outfit', sans-serif; transition: all 0.2s; background: transparent; color: var(--text-secondary);">
+          ☑️ Λίστα
+        </button>
+      </div>
+
+      <div class="modal-body" style="padding: 0 16px 16px 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; flex: 1; box-sizing: border-box;">
+        <!-- Title Input -->
+        <div class="form-row" style="margin-bottom: 4px;">
+          <label class="form-row-label" style="font-family: 'Outfit', sans-serif; font-size: 12px;">Τίτλος</label>
+          <input type="text" id="note-editor-title-input" class="form-row-input" placeholder="Τίτλος σημείωσης..." style="font-family: 'Outfit', sans-serif;">
+        </div>
+
+        <!-- Date/Time Reminder Input -->
+        <div class="form-row" style="margin-bottom: 4px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; box-sizing: border-box; width: 100%;">
+            <label id="note-editor-reminder-label" class="form-row-label" style="font-family: 'Outfit', sans-serif; font-size: 12px; margin: 0;">Ημερομηνία & Ώρα (Υπενθύμιση)</label>
+            <button id="note-editor-clear-reminder-btn" class="icon-btn" onclick="clearNoteEditorReminder()" style="font-size: 11px; color: var(--red-negative); background: transparent; border: none; padding: 0 4px; cursor: pointer; display: none; font-family: 'Outfit', sans-serif;">Καθαρισμός</button>
+          </div>
+          <input type="datetime-local" id="note-editor-reminder-input" class="form-row-input" style="font-family: 'Outfit', sans-serif; padding: 10px; font-size: 13.5px; box-sizing: border-box;" onchange="onNoteReminderChanged()">
+        </div>
+
+        <!-- Plain Text Editor -->
+        <div id="note-editor-text-container" style="display: flex; flex-direction: column; gap: 6px; flex: 1; box-sizing: border-box;">
+          <label class="form-row-label" style="font-family: 'Outfit', sans-serif; font-size: 12px;">Περιεχόμενο</label>
+          <textarea id="note-editor-body-input" class="form-row-input" placeholder="Γράψτε εδώ τη σημείωση..." style="min-height: 180px; font-family: sans-serif; resize: vertical; padding: 12px; line-height: 1.5; box-sizing: border-box;"></textarea>
+        </div>
+
+        <!-- Checklist Editor -->
+        <div id="note-editor-checklist-container" style="display: none; flex-direction: column; gap: 8px; box-sizing: border-box;">
+          <label class="form-row-label" style="font-family: 'Outfit', sans-serif; font-size: 12px;">Αντικείμενα Λίστας</label>
+          <div id="note-editor-checklist-items" style="display: flex; flex-direction: column; gap: 8px; max-height: 250px; overflow-y: auto; padding-right: 4px; box-sizing: border-box;">
+            <!-- Dynamically generated list items with inputs and delete buttons -->
+          </div>
+          <button class="btn btn-secondary" onclick="addNoteEditorChecklistItem()" style="padding: 8px; font-size: 13px; font-weight: 700; margin-top: 4px; display: flex; align-items: center; justify-content: center; gap: 6px; border-radius: 8px; background: rgba(255,255,255,0.02); border: 1px dashed var(--border); color: var(--text-primary); cursor: pointer; box-sizing: border-box;">
+            <i class="fa-solid fa-plus" style="color: var(--accent);"></i> Προσθήκη αντικειμένου
+          </button>
+        </div>
+
+        <!-- Footer Actions -->
+        <div style="display: flex; gap: 10px; margin-top: 12px; box-sizing: border-box;">
+          <button class="btn btn-primary" style="flex: 1; padding: 12px; font-weight: 700; border-radius: 8px; font-family: 'Outfit', sans-serif; cursor: pointer;" onclick="saveNoteFromEditor()">Αποθήκευση</button>
+          <button id="note-editor-delete-btn" class="btn btn-secondary" style="padding: 12px; border-radius: 8px; background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.3); color: #f87171; font-weight: 700; display: none; cursor: pointer;" onclick="deleteNoteFromEditor()">Διαγραφή</button>
+          <button class="btn btn-secondary" style="padding: 12px 18px; border-radius: 8px; font-family: 'Outfit', sans-serif; cursor: pointer;" onclick="closeModal('note-editor-modal')">Άκυρο</button>
         </div>
       </div>
     </div>
@@ -1857,7 +2502,7 @@
         <!-- Avatar Preview & Camera overlay for upload -->
         <div class="profile-avatar-container">
           <div id="profile-sheet-avatar-preview" class="profile-sheet-avatar"></div>
-          <div class="profile-avatar-edit-badge" onclick="triggerAvatarUpload()" title="Αλλαγή φωτογραφίας">
+          <div class="profile-avatar-edit-badge" onclick="triggerAvatarUpload()" data-i18n-title="profile_change_photo" title="Αλλαγή φωτογραφίας">
             <i class="fa-solid fa-camera"></i>
           </div>
         </div>
@@ -1872,9 +2517,9 @@
         </div>
         
         <!-- Preset Avatar Selection -->
-        <div class="profile-presets-title">Επιλέξτε Avatar</div>
+        <div class="profile-presets-title" data-i18n="profile_select_avatar">Επιλέξτε Avatar</div>
         <div class="profile-presets-grid">
-          <div class="preset-avatar-option preset-custom-trigger" onclick="triggerAvatarUpload()" title="Μεταφόρτωση εικόνας">
+          <div class="preset-avatar-option preset-custom-trigger" onclick="triggerAvatarUpload()" data-i18n-title="profile_upload_image" title="Μεταφόρτωση εικόνας">
             <div class="preset-avatar-inner preset-custom-icon"><i class="fa-solid fa-upload"></i></div>
           </div>
           <div class="preset-avatar-option" data-preset="1" onclick="selectPresetAvatar(1)">
@@ -1908,25 +2553,25 @@
 
         <!-- Logout button -->
         <button class="btn btn-secondary profile-logout-btn" onclick="handleProfileLogout()">
-          <i class="fa-solid fa-right-from-bracket" style="margin-right: 8px;"></i>Αποσύνδεση Λογαριασμού
+          <i class="fa-solid fa-right-from-bracket" style="margin-right: 8px;"></i><span data-i18n="profile_logout_btn">Αποσύνδεση Λογαριασμού</span>
         </button>
       </div>
     </div>
   </div>
 
   <!-- Core Application Scripts -->
-  <script src="js/NLPProcessor.js?v=429"></script>
-  <script src="js/MemoryEngine.js?v=429"></script>
-  <script src="js/DecisionEngine.js?v=429"></script>
-  <script src="js/OnlineAIProvider.js?v=429"></script>
-  <script src="js/AIEngine.js?v=429"></script>
-  <script src="js/IntentCorpus.js?v=429"></script>
-  <script src="js/KnowledgeGraph.js?v=429"></script>
-  <script src="app.js?v=429"></script>
+  <script src="js/NLPProcessor.js?v=911"></script>
+  <script src="js/MemoryEngine.js?v=911"></script>
+  <script src="js/DecisionEngine.js?v=911"></script>
+  <script src="js/OnlineAIProvider.js?v=911"></script>
+  <script src="js/AIEngine.js?v=911"></script>
+  <script src="js/IntentCorpus.js?v=911"></script>
+  <script src="js/KnowledgeGraph.js?v=911"></script>
+  <script src="app.js?v=911"></script>
   
   <!-- Register PWA Service Worker -->
   <script>
-    const CURRENT_BUILD = 429;
+    const CURRENT_BUILD = 911;
     
     // ============================================================
     // AGGRESSIVE iOS PWA AUTO-UPDATE
@@ -2005,30 +2650,15 @@
 
     if ('serviceWorker' in navigator) {
       // ============================================================
-      // NUCLEAR iOS PWA FIX: Register SW with versioned URL
-      // iOS Safari treats 'sw.js?v=429' as a COMPLETELY DIFFERENT
-      // script from 'sw.js?v=429', bypassing the update deadlock.
-      // Old SW is unregistered first to break the control cycle.
+      // STANDARD SECURE PWA REGISTRATION (Offline-Safe)
+      // We register the Service Worker directly using a clean URL.
+      // We DO NOT unregister the active service worker beforehand,
+      // as that destroys offline capability during version updates.
       // ============================================================
-      const SW_URL = 'sw.js?v=' + CURRENT_BUILD;
+      const SW_URL = 'sw.js';
 
       window.addEventListener('load', () => {
-        // Step 1: Unregister all old SWs that don't match our current URL
-        navigator.serviceWorker.getRegistrations().then(function(registrations) {
-          var unregisterPromises = [];
-          for (var i = 0; i < registrations.length; i++) {
-            var reg = registrations[i];
-            // Unregister any SW not matching current build URL
-            if (reg.active && reg.active.scriptURL && !reg.active.scriptURL.includes('v=' + CURRENT_BUILD)) {
-              console.log('[SW] Unregistering stale SW:', reg.active.scriptURL);
-              unregisterPromises.push(reg.unregister());
-            }
-          }
-          return Promise.all(unregisterPromises);
-        }).then(function() {
-          // Step 2: Register the new versioned SW
-          return navigator.serviceWorker.register(SW_URL, { updateViaCache: 'none' });
-        }).then(function(reg) {
+        navigator.serviceWorker.register(SW_URL, { updateViaCache: 'none' }).then(function(reg) {
           console.log('[SW] Registered v' + CURRENT_BUILD, reg.scope);
 
           // Force immediate update check
@@ -2083,13 +2713,31 @@
     }
   </script>
 
+  <!-- Premium Redirect Screen to App -->
+  <div id="app-redirect-overlay" class="auth-overlay" style="display: none; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px;">
+    <div class="auth-card" style="max-width: 400px; width: 100%;">
+      <div class="auth-header">
+        <div class="auth-logo" style="background: linear-gradient(135deg, var(--accent), #2073fa); color: white; width: 70px; height: 70px; border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 32px; margin: 0 auto 20px;"><i class="fa-solid fa-right-to-bracket"></i></div>
+        <h2 class="auth-title" style="margin-bottom: 10px;">Σύνδεση Επιτυχής!</h2>
+        <p class="auth-subtitle" style="color: var(--text-secondary); font-size: 14px; line-height: 1.5; margin-bottom: 25px;">
+          Η ταυτοποίηση ολοκληρώθηκε. Πατήστε το παρακάτω κουμπί για να επιστρέψετε στην εφαρμογή σας.
+        </p>
+      </div>
+      <button id="app-redirect-btn" class="btn btn-primary" style="width: 100%; padding: 14px; font-weight: 700; font-size: 15px; border-radius: 12px; border: none; background: var(--accent); color: var(--bg-primary); cursor: pointer;">
+        🚀 Επιστροφή στην Εφαρμογή
+      </button>
+      <p style="font-size: 12px; color: var(--text-secondary); margin-top: 15px;">
+        Αν η εφαρμογή δεν ανοίξει αυτόματα, πατήστε το κουμπί.
+      </p>
+    </div>
+  </div>
+
   <!-- Premium Glassmorphic Auth Screen Overlay -->
   <div id="auth-overlay" class="auth-overlay" style="display: none;">
     <!-- Loading State Overlay for OAuth redirects -->
     <div id="auth-loading-state" class="auth-redirect-loader" style="display: none;">
       <div class="auth-redirect-logo"><i class="fa-solid fa-wallet"></i></div>
       <div class="auth-redirect-spinner"></div>
-      <div id="auth-debug-logs" style="text-align: left; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 10px; font-family: monospace; font-size: 11px; color: #00ffcc; max-height: 120px; overflow-y: auto; margin-top: 15px; display: none;"></div>
     </div>
 
     <div class="auth-card" id="auth-card">
@@ -2316,25 +2964,25 @@
         
         <!-- Tab 2 Contents: Methodology -->
         <div id="fhs-content-methodology" class="fhs-tab-content" style="display: none; line-height: 1.6; font-size: 12.5px; color: var(--text-secondary); width: 100%;">
-          <h4 style="margin-top: 0; margin-bottom: 10px; font-size: 13.5px; color: var(--text-primary); font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">📈 Μεθοδολογία Financial Health Score</h4>
-          <p style="margin-bottom: 16px; line-height: 1.5;">
+          <h4 style="margin-top: 0; margin-bottom: 10px; font-size: 13.5px; color: var(--text-primary); font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;" data-i18n="fhs_methodology_title">📈 Μεθοδολογία Financial Health Score</h4>
+          <p style="margin-bottom: 16px; line-height: 1.5;" data-i18n-html="fhs_methodology_intro">
             Το σκορ οικονομικής υγείας υπολογίζεται με βάση τα διεθνή πρότυπα του <strong>Financial Health Network (FHN)</strong> και του <strong>Consumer Financial Protection Bureau (CFPB)</strong>, χρησιμοποιώντας 3 βασικούς πυλώνες:
           </p>
           <div style="display: flex; flex-direction: column; gap: 12px;">
             <div>
-              <strong style="color: var(--text-primary); font-size: 12px; display: block; margin-bottom: 2px;">• Δείκτης Αποταμίευσης (Savings Rate) — 40%:</strong>
-              <span>Βασίζεται στον κανόνα <strong>50/30/20</strong> (Harvard Law School). Η διατήρηση αποταμίευσης άνω του 20% των καθαρών εσόδων είναι ο θεμέλιος λίθος για τη μακροχρόνια οικονομική ελευθερία.</span>
+              <strong style="color: var(--text-primary); font-size: 12px; display: block; margin-bottom: 2px;" data-i18n-html="fhs_methodology_savings_title">• Δείκτης Αποταμίευσης (Savings Rate) — 40%:</strong>
+              <span data-i18n-html="fhs_methodology_savings_desc">Βασίζεται στον κανόνα <strong>50/30/20</strong> (Harvard Law School). Η διατήρηση αποταμίευσης άνω του 20% των καθαρών εσόδων είναι ο θεμέλιος λίθος για τη μακροχρόνια οικονομική ελευθερία.</span>
             </div>
             <div>
-              <strong style="color: var(--text-primary); font-size: 12px; display: block; margin-bottom: 2px;">• Ταμείο Έκτακτης Ανάγκης (Emergency Fund) — 40%:</strong>
-              <span>Μελέτες του <strong>CFPB</strong> δείχνουν ότι η ύπαρξη ρευστότητας για την κάλυψη <strong>3 έως 6 μηνών σταθερών εξόδων</strong> μειώνει κατά 85% την πιθανότητα δημιουργίας προβληματικού χρέους.</span>
+              <strong style="color: var(--text-primary); font-size: 12px; display: block; margin-bottom: 2px;" data-i18n-html="fhs_methodology_emergency_title">• Ταμείο Έκτακτης Ανάγκης (Emergency Fund) — 40%:</strong>
+              <span data-i18n-html="fhs_methodology_emergency_desc">Μελέτες του <strong>CFPB</strong> δείχνουν ότι η ύπαρξη ρευστότητας για την κάλυψη <strong>3 έως 6 μηνών σταθερών εξόδων</strong> μειώνει κατά 85% την πιθανότητα δημιουργίας προβληματικού χρέους.</span>
             </div>
             <div>
-              <strong style="color: var(--text-primary); font-size: 12px; display: block; margin-bottom: 2px;">• Τάση & Έλεγχος Ρίσκου (Expense Trend) — 20%:</strong>
-              <span>Επιβραβεύει τη σταθερότητα και τη διατήρηση των μηνιαίων εξόδων κάτω από το όριο των εσόδων.</span>
+              <strong style="color: var(--text-primary); font-size: 12px; display: block; margin-bottom: 2px;" data-i18n-html="fhs_methodology_trend_title">• Τάση & Έλεγχος Ρίσκου (Expense Trend) — 20%:</strong>
+              <span data-i18n-html="fhs_methodology_trend_desc">Επιβραβεύει τη σταθερότητα και τη διατήρηση των μηνιαίων εξόδων κάτω από το όριο των εσόδων.</span>
             </div>
           </div>
-          <p style="font-style: italic; font-size: 11px; color: var(--text-muted); border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 12px; margin-top: 16px; line-height: 1.4;">
+          <p style="font-style: italic; font-size: 11px; color: var(--text-muted); border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 12px; margin-top: 16px; line-height: 1.4;" data-i18n="fhs_methodology_note">
             (Σημείωση: Για νέους χρήστες εφαρμόζεται προσαρμοσμένο μοντέλο εκκίνησης βάσει των πρώτων δεδομένων, το οποίο ωριμάζει μετά το πέρας του πρώτου τριμήνου).
           </p>
         </div>
@@ -2438,10 +3086,10 @@
       <div id="advisor-chat-suggestions-container" style="padding: 8px 16px; border-top: 1px solid rgba(255, 255, 255, 0.04); background: rgba(0, 0, 0, 0.2); flex-shrink: 0; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch;">
         <div id="advisor-chat-suggestions" style="display: inline-flex; gap: 8px;">
           <!-- Quick action chips -->
-          <button type="button" class="advisor-suggestion-chip" onclick="submitCoachQuery('overspending')">🔍 Πού ξοδεύω υπερβολικά;</button>
-          <button type="button" class="advisor-suggestion-chip" onclick="submitCoachQuery('savings')">💡 Πώς να αποταμιεύσω περισσότερο;</button>
-          <button type="button" class="advisor-suggestion-chip" onclick="submitCoachQuery('forecast_5y')">📈 Πού θα είμαι σε 5 χρόνια;</button>
-          <button type="button" class="advisor-suggestion-chip" onclick="submitCoachQuery('milestone_50k')">🎯 Πότε θα φτάσω τα 50.000€;</button>
+          <button type="button" class="advisor-suggestion-chip" onclick="submitCoachQuery('overspending')" data-i18n="advisor_suggest_overspending">🔍 Πού ξοδεύω υπερβολικά;</button>
+          <button type="button" class="advisor-suggestion-chip" onclick="submitCoachQuery('savings')" data-i18n="advisor_suggest_savings">💡 Πώς να αποταμιεύσω περισσότερο;</button>
+          <button type="button" class="advisor-suggestion-chip" onclick="submitCoachQuery('forecast_5y')" data-i18n="advisor_suggest_forecast_5y">📈 Πού θα είμαι σε 5 χρόνια;</button>
+          <button type="button" class="advisor-suggestion-chip" onclick="submitCoachQuery('milestone_50k')" data-i18n="advisor_suggest_milestone_50k">🎯 Πότε θα φτάσω τα 50.000€;</button>
         </div>
       </div>
       
