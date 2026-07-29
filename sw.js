@@ -1,6 +1,6 @@
-// SW Version 689
+// SW Version 912
 const CACHE_VERSION = 'v' + Date.now();
-const CACHE_NAME = 'money-manager-' + CACHE_VERSION;
+const CACHE_NAME = 'money-manager-v910-' + Date.now();
 const ASSETS = [
   'index.html',
   'style.css',
@@ -99,7 +99,7 @@ self.addEventListener('fetch', (e) => {
     path === ''
   ) {
     e.respondWith(
-      fetch(e.request, { cache: 'no-store' }).catch(() => {
+      fetch(e.request).catch(() => {
         // Only use cache fallback for navigation (not for clear.html)
         if (path.endsWith('/clear.html')) return new Response('', { status: 503 });
         if (e.request.mode === 'navigate' || path === '/' || path === '' || path.endsWith('/index.html')) {
