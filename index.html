@@ -88,7 +88,7 @@
               ${devButton}
             </div>
             <div style="font-size:11px;color:#8b949e;">
-              Budget Assistant • build v914
+              Budget Assistant • build v915
             </div>
           </div>
         `;
@@ -173,7 +173,7 @@
   <link rel="stylesheet" href="style.css">
   
   <!-- Capacitor Bridge -->
-  <script src="capacitor.js?v=914"></script>
+  <script src="capacitor.js?v=915"></script>
   
 
   <!-- Supabase client JS CDN -->
@@ -183,7 +183,7 @@
   <!-- Chart.js Datalabels Plugin CDN -->
   <script src="js/chartjs-plugin-datalabels.js"></script>
   <!-- SheetJS xlsx CDN for Excel Import/Export -->
-  <script src="xlsx.full.min.js?v=914"></script>
+  <script src="xlsx.full.min.js?v=915"></script>
 </head>
 <body style="background-color: #181b22; margin: 0; padding: 0; zoom: 0.93;">
   <script>
@@ -1095,7 +1095,7 @@
         </div>
         <div class="modal-body" style="flex:1;overflow-y:auto;padding:16px;">
 
-          <!-- SUBSCREEN: Preferences -->
+                    <!-- SUBSCREEN: Preferences -->
           <div id="subscreen-preferences" class="subscreen-section" style="display:none; flex-direction:column; gap:18px; padding-bottom:20px;">
             
             <!-- CARD 1: Γλώσσα & Εμφάνιση -->
@@ -1157,25 +1157,7 @@
               </div>
             </div>
 
-                </div>
-
-                <!-- Row 5: Auto Lock Delay -->
-                <div class="settings-list-item" style="padding:14px 16px; display:flex; align-items:center; justify-content:space-between; margin:0;">
-                  <div style="display:flex; flex-direction:column; gap:3px; flex:1; padding-right:12px;">
-                    <span class="settings-item-label" style="font-weight:700; font-size:14px; color:var(--text-primary);" data-i18n="item_auto_lock">Αυτόματο Κλείδωμα</span>
-                    <span style="font-size:12px; color:var(--text-muted);">Χρόνος αδράνειας πριν το κλείδωμα</span>
-                  </div>
-                  <select id="settings-auto-lock-delay" class="settings-select" onchange="changeAutoLockSetting(this.value)">
-                    <option value="disabled" data-i18n="opt_disabled">Απενεργοποιημένο</option>
-                    <option value="1" data-i18n="opt_1min">1 λεπτό</option>
-                    <option value="5" data-i18n="opt_5min">5 λεπτά</option>
-                    <option value="10" data-i18n="opt_10min">10 λεπτά</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            <!-- CARD 3: Ημερολογιακοί Κύκλοι -->
+            <!-- CARD 2: Ημερολογιακοί Κύκλοι -->
             <div style="background:var(--bg-card, #161622); border:1px solid var(--border, rgba(255,255,255,0.08)); border-radius:16px; overflow:hidden; box-shadow:0 4px 16px rgba(0,0,0,0.2);">
               <!-- Card Header Band -->
               <div style="padding:14px 16px; background:rgba(16,185,129,0.08); border-bottom:1px solid var(--border, rgba(255,255,255,0.08)); display:flex; align-items:center; gap:12px;">
@@ -1225,7 +1207,7 @@
               </div>
             </div>
 
-            <!-- CARD 4: Έξυπνα Εργαλεία & Συντομεύσεις -->
+            <!-- CARD 3: Έξυπνα Εργαλεία & Συντομεύσεις -->
             <div style="background:var(--bg-card, #161622); border:1px solid var(--border, rgba(255,255,255,0.08)); border-radius:16px; overflow:hidden; box-shadow:0 4px 16px rgba(0,0,0,0.2);">
               <!-- Card Header Band -->
               <div style="padding:14px 16px; background:rgba(245,158,11,0.08); border-bottom:1px solid var(--border, rgba(255,255,255,0.08)); display:flex; align-items:center; gap:12px;">
@@ -1421,12 +1403,14 @@
               <i class="fa-solid fa-chevron-right" style="color:var(--primary);font-size:12px;"></i>
             </div>
             <div class="settings-list-item">
-              <span class="settings-item-label" style="color:var(--text-muted);font-size:12px;" data-i18n="app_version">Έκδοση 1.0.0 (build v914)</span>
+              <span class="settings-item-label" style="color:var(--text-muted);font-size:12px;" data-i18n="app_version">Έκδοση 1.0.0 (build v915)</span>
               <span class="settings-item-value" style="font-size:12px;color:var(--text-muted);">Budget Assistant</span>
             </div>
           </div>
 
         </div>
+        </div>
+      </div>
 
     <div id="supabase-modal" class="modal-overlay">
       <div class="modal-content">
@@ -2582,18 +2566,18 @@
   </div>
 
   <!-- Core Application Scripts -->
-  <script src="js/NLPProcessor.js?v=914"></script>
-  <script src="js/MemoryEngine.js?v=914"></script>
-  <script src="js/DecisionEngine.js?v=914"></script>
-  <script src="js/OnlineAIProvider.js?v=914"></script>
-  <script src="js/AIEngine.js?v=914"></script>
-  <script src="js/IntentCorpus.js?v=914"></script>
-  <script src="js/KnowledgeGraph.js?v=914"></script>
-  <script src="app.js?v=914"></script>
+  <script src="js/NLPProcessor.js?v=915"></script>
+  <script src="js/MemoryEngine.js?v=915"></script>
+  <script src="js/DecisionEngine.js?v=915"></script>
+  <script src="js/OnlineAIProvider.js?v=915"></script>
+  <script src="js/AIEngine.js?v=915"></script>
+  <script src="js/IntentCorpus.js?v=915"></script>
+  <script src="js/KnowledgeGraph.js?v=915"></script>
+  <script src="app.js?v=915"></script>
   
   <!-- Register PWA Service Worker -->
   <script>
-    const CURRENT_BUILD = 914;
+    const CURRENT_BUILD = 915;
     
     // ============================================================
     // AGGRESSIVE iOS PWA AUTO-UPDATE
@@ -3150,6 +3134,8 @@
       }
     })();
   </script>
+
+  </div> <!-- End .app-container -->
 
   <script>
     // Aggressive Cache Buster for v425
