@@ -649,7 +649,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v916 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v917 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1019,7 +1019,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v916 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v917 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -2327,7 +2327,7 @@ window.addEventListener('DOMContentLoaded', async () => {
         return;
       }
       
-      const activeModalId = localStorage.getItem('bg_active_modal_id');
+      const activeModalId = null /* startup restore disabled */;
       if (activeModalId) {
         const currentlyActive = document.querySelector('.modal-overlay.active, .tx-modal-overlay.active, .profile-sheet-overlay.active');
         if (currentlyActive && currentlyActive.id === activeModalId) return;
@@ -7971,26 +7971,9 @@ function openModal(id, { instant = false } = {}) {
   // already correct when the browser begins the opacity/transform CSS transition.
   // Doing it after causes a layout recalculation mid-transition → visible flicker on Android.
   if (id === 'transaction-modal') {
-    if (!isIOS) {
-      const scale = 0.93;
-      el.style.setProperty('width', (window.innerWidth / scale) + 'px', 'important');
-      el.style.setProperty('height', (window.innerHeight / scale) + 'px', 'important');
-      el.style.setProperty('top', '0px', 'important');
-      
-      const modalContent = el.querySelector('.modal-content');
-      if (modalContent) {
-        const vvHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-        const offsetTop = window.visualViewport ? window.visualViewport.offsetTop : 0;
-        const rawKeyboardHeight = window.visualViewport ? (window.innerHeight - vvHeight - offsetTop) : 0;
-        if (rawKeyboardHeight > 30) {
-          modalContent.style.setProperty('height', (vvHeight / scale) + 'px', 'important');
-          modalContent.style.setProperty('top', (offsetTop / scale) + 'px', 'important');
-        } else {
-          modalContent.style.setProperty('height', (window.innerHeight / scale) + 'px', 'important');
-          modalContent.style.setProperty('top', '0px', 'important');
-        }
-      }
-    }
+    el.style.width = '100%';
+    el.style.height = '100%';
+    el.style.top = '0px';
   }
   if (id === 'fhs-details-modal') {
     const fhsExplainContent = document.getElementById('fhs-explain-content');
