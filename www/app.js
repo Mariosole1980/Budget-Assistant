@@ -649,7 +649,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v932 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v933 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1019,7 +1019,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v932 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v933 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -13258,14 +13258,24 @@ window._editingCategoryManagerName = null;
 
 function openSettingsCategoryManager() {
   window._categoryManagerType = 'expense';
-  closeNewCategoryDialog();
-  renderCategoryManagerList();
+  try {
+    closeNewCategoryDialog();
+  } catch (e) {}
+  try {
+    renderCategoryManagerList();
+  } catch (err) {
+    console.error('Error rendering category manager:', err);
+  }
   openModal('category-manager-modal');
 }
 
 function setCategoryManagerType(type) {
   window._categoryManagerType = type;
-  renderCategoryManagerList();
+  try {
+    renderCategoryManagerList();
+  } catch (err) {
+    console.error('Error rendering category manager:', err);
+  }
 }
 
 function renderCategoryManagerList() {
@@ -13291,14 +13301,14 @@ function renderCategoryManagerList() {
     }
   }
   
-  const list = state.categories.filter(c => c.type === type);
+  const list = (state.categories || []).filter(c => c && c.type === type);
   
   // Single-pass subcategory name set pre-calculation to optimize performance O(N)
   const subcatSets = {};
-  state.transactions.forEach(t => {
-    if (t.category && t.subcategory) {
-      const catName = t.category.trim();
-      const sub = t.subcategory.trim();
+  (state.transactions || []).forEach(t => {
+    if (t && t.category && t.subcategory) {
+      const catName = String(t.category).trim();
+      const sub = String(t.subcategory).trim();
       if (catName && sub) {
         if (!subcatSets[catName]) {
           subcatSets[catName] = new Set();
@@ -13310,8 +13320,8 @@ function renderCategoryManagerList() {
 
   const lang = state.lang || 'el';
   list.sort((a, b) => {
-    const nameA = getCategoryDisplayName(a.name);
-    const nameB = getCategoryDisplayName(b.name);
+    const nameA = getCategoryDisplayName((a && a.name) || '') || '';
+    const nameB = getCategoryDisplayName((b && b.name) || '') || '';
     return nameA.localeCompare(nameB, lang === 'el' ? 'el' : 'en', { sensitivity: 'base' });
   });
   
