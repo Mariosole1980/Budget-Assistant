@@ -649,7 +649,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v927 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v928 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1019,7 +1019,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v927 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v928 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -19567,6 +19567,62 @@ window.onSubscreenShow_security = function() {
   const autoLockDelay = localStorage.getItem('settings_auto_lock_delay') || 'disabled';
   const autoLockSelect = document.getElementById('settings-auto-lock-delay');
   if (autoLockSelect) autoLockSelect.value = autoLockDelay;
+};
+
+window.onSubscreenShow_notifications = function() {
+  const dailyReminderEnabled = localStorage.getItem('settings_daily_reminder_enabled') === 'true';
+  const dailyReminderCheckbox = document.getElementById('settings-daily-reminder');
+  if (dailyReminderCheckbox) dailyReminderCheckbox.checked = dailyReminderEnabled;
+
+  const timeRow = document.getElementById('settings-daily-reminder-time-row');
+  if (timeRow) timeRow.style.display = dailyReminderEnabled ? 'flex' : 'none';
+
+  const dailyTime = localStorage.getItem('settings_daily_reminder_time') || '21:00';
+  const dailyTimeInput = document.getElementById('settings-daily-reminder-time');
+  if (dailyTimeInput) dailyTimeInput.value = dailyTime;
+
+  const recurringAlertsEnabled = localStorage.getItem('settings_recurring_alerts_enabled') !== 'false';
+  const recurringAlertsCheckbox = document.getElementById('settings-recurring-alerts');
+  if (recurringAlertsCheckbox) recurringAlertsCheckbox.checked = recurringAlertsEnabled;
+
+  const expenseAlertEnabled = localStorage.getItem('settings_expense_alert_enabled') === 'true';
+  const expenseAlertCheckbox = document.getElementById('settings-expense-alert');
+  if (expenseAlertCheckbox) expenseAlertCheckbox.checked = expenseAlertEnabled;
+
+  const limitRow = document.getElementById('settings-expense-alert-limit-row');
+  if (limitRow) limitRow.style.display = expenseAlertEnabled ? 'flex' : 'none';
+
+  const expenseLimit = localStorage.getItem('settings_expense_alert_limit') || '500';
+  const expenseLimitInput = document.getElementById('settings-expense-alert-limit');
+  if (expenseLimitInput) expenseLimitInput.value = expenseLimit;
+
+  if (typeof window.renderNotificationHistory === 'function') {
+    window.renderNotificationHistory();
+  }
+};
+
+window.toggleDailyReminder = function(checked) {
+  localStorage.setItem('settings_daily_reminder_enabled', checked ? 'true' : 'false');
+  const timeRow = document.getElementById('settings-daily-reminder-time-row');
+  if (timeRow) timeRow.style.display = checked ? 'flex' : 'none';
+};
+
+window.saveDailyReminderTime = function(val) {
+  if (val) localStorage.setItem('settings_daily_reminder_time', val);
+};
+
+window.toggleRecurringAlerts = function(checked) {
+  localStorage.setItem('settings_recurring_alerts_enabled', checked ? 'true' : 'false');
+};
+
+window.toggleExpenseAlert = function(checked) {
+  localStorage.setItem('settings_expense_alert_enabled', checked ? 'true' : 'false');
+  const limitRow = document.getElementById('settings-expense-alert-limit-row');
+  if (limitRow) limitRow.style.display = checked ? 'flex' : 'none';
+};
+
+window.saveExpenseLimit = function(val) {
+  if (val) localStorage.setItem('settings_expense_alert_limit', val);
 };
 
 window.onSubscreenShow_preferences = function() {
