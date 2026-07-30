@@ -649,7 +649,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v928 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v929 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1019,7 +1019,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v928 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v929 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -7164,6 +7164,9 @@ function setupEventListeners() {
   // More screen hub rows
   const rowPref = document.getElementById('hub-row-preferences');
   if (rowPref) rowPref.addEventListener('click', () => openSettingsSubscreen('preferences', 'settings_pref_title'));
+
+  const rowNotifications = document.getElementById('hub-row-notifications');
+  if (rowNotifications) rowNotifications.addEventListener('click', () => openSettingsSubscreen('notifications', 'Ειδοποιήσεις & Υπενθυμίσεις'));
 
   const rowRecurring = document.getElementById('hub-row-recurring');
   if (rowRecurring) rowRecurring.addEventListener('click', openRecurringTemplatesModal);
@@ -19623,6 +19626,40 @@ window.toggleExpenseAlert = function(checked) {
 
 window.saveExpenseLimit = function(val) {
   if (val) localStorage.setItem('settings_expense_alert_limit', val);
+};
+
+window.renderNotificationHistory = function() {
+  const container = document.getElementById('notifications-history-list');
+  if (!container) return;
+  
+  if (!state.notifications || state.notifications.length === 0) {
+    container.innerHTML = `<div style="font-size:12px; color:var(--text-muted); text-align:center; padding:16px 0;">${state.lang === 'el' ? 'Δεν υπάρχουν πρόσφατες ειδοποιήσεις.' : 'No recent notifications.'}</div>`;
+    return;
+  }
+  
+  container.innerHTML = state.notifications.map(n => `
+    <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:12px; padding:12px; display:flex; gap:12px; align-items:flex-start;">
+      <div style="width:28px; height:28px; border-radius:8px; background:rgba(239,68,68,0.15); color:#ef4444; display:flex; align-items:center; justify-content:center; font-size:13px; margin-top:2px;">
+        <i class="fa-solid fa-bell"></i>
+      </div>
+      <div style="flex:1; display:flex; flex-direction:column; gap:2px;">
+        <div style="font-size:13px; font-weight:700; color:var(--text-primary);">${n.title || ''}</div>
+        <div style="font-size:12px; color:var(--text-secondary); line-height:1.4;">${n.body || n.message || ''}</div>
+        <div style="font-size:10px; color:var(--text-muted); margin-top:4px;">${n.date ? new Date(n.date).toLocaleString(state.lang === 'el' ? 'el-GR' : 'en-US') : ''}</div>
+      </div>
+    </div>
+  `).join('');
+};
+
+window.clearNotificationHistory = function() {
+  state.notifications = [];
+  localStorage.setItem('state_notifications', JSON.stringify([]));
+  if (typeof window.renderNotificationHistory === 'function') {
+    window.renderNotificationHistory();
+  }
+  if (typeof showSyncToast === 'function') {
+    showSyncToast(state.lang === 'el' ? 'Το ιστορικό εκκαθαρίστηκε.' : 'Notification history cleared.', 2000);
+  }
 };
 
 window.onSubscreenShow_preferences = function() {
