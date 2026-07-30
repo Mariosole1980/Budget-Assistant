@@ -1,0 +1,492 @@
+Line 85: .calc-key-btn,
+  Context:
+       L82: button, 
+       L83: .nav-item, 
+       L84: .transaction-item, 
+    => L85: .calc-key-btn, 
+       L86: .fab,
+       L87: .settings-card,
+       L88: .settings-list-item,
+       L89: .stats-tab-btn,
+       L90: .stats-dropdown-item {
+----------------------------------------------------
+Line 96: .calc-key-btn:active,
+  Context:
+       L93: 
+       L94: button:active, 
+       L95: .nav-item:active, 
+    => L96: .calc-key-btn:active, 
+       L97: .fab:active,
+       L98: .settings-card:active,
+       L99: .settings-list-item:active,
+       L100: .stats-tab-btn:active,
+       L101: .stats-dropdown-item:active,
+----------------------------------------------------
+Line 1846: /* Custom Calculator Keypad */
+  Context:
+       L1843:   border-color: var(--text-secondary);
+       L1844: }
+       L1845: 
+    => L1846: /* Custom Calculator Keypad */
+       L1847: .calc-keypad-container {
+       L1848:   background-color: #0f121a;
+       L1849:   border-top: 1px solid var(--border);
+       L1850:   display: flex;
+       L1851:   flex-direction: column;
+----------------------------------------------------
+Line 1847: .calc-keypad-container {
+  Context:
+       L1844: }
+       L1845: 
+       L1846: /* Custom Calculator Keypad */
+    => L1847: .calc-keypad-container {
+       L1848:   background-color: #0f121a;
+       L1849:   border-top: 1px solid var(--border);
+       L1850:   display: flex;
+       L1851:   flex-direction: column;
+       L1852:   max-height: 0;
+----------------------------------------------------
+Line 1858: .calc-keypad-container.active {
+  Context:
+       L1855:   flex-shrink: 0;
+       L1856: }
+       L1857: 
+    => L1858: .calc-keypad-container.active {
+       L1859:   max-height: 365px;
+       L1860: }
+       L1861: 
+       L1862: .calc-keypad-header {
+       L1863:   display: flex;
+----------------------------------------------------
+Line 1862: .calc-keypad-header {
+  Context:
+       L1859:   max-height: 365px;
+       L1860: }
+       L1861: 
+    => L1862: .calc-keypad-header {
+       L1863:   display: flex;
+       L1864:   justify-content: space-between;
+       L1865:   align-items: center;
+       L1866:   padding: 8px 16px;
+       L1867:   background-color: #090b10;
+----------------------------------------------------
+Line 1871: .calc-keypad-title {
+  Context:
+       L1868:   border-bottom: 1px solid var(--border-light);
+       L1869: }
+       L1870: 
+    => L1871: .calc-keypad-title {
+       L1872:   font-size: 11px;
+       L1873:   font-weight: 700;
+       L1874:   color: var(--text-secondary);
+       L1875:   text-transform: uppercase;
+       L1876:   letter-spacing: 0.5px;
+----------------------------------------------------
+Line 1879: .calc-keypad-grid {
+  Context:
+       L1876:   letter-spacing: 0.5px;
+       L1877: }
+       L1878: 
+    => L1879: .calc-keypad-grid {
+       L1880:   display: grid;
+       L1881:   grid-template-columns: repeat(4, 1fr);
+       L1882:   background-color: transparent;
+       L1883:   gap: 4px;
+       L1884:   padding: 8px 12px 12px 12px;
+----------------------------------------------------
+Line 1888: .calc-key-btn {
+  Context:
+       L1885:   flex: 1;
+       L1886: }
+       L1887: 
+    => L1888: .calc-key-btn {
+       L1889:   background-color: #1d2330;
+       L1890:   color: #ffffff;
+       L1891:   padding: 0;
+       L1892:   height: 60px;
+       L1893:   font-size: 24px;
+----------------------------------------------------
+Line 1905: .calc-key-btn:active {
+  Context:
+       L1902:   -webkit-tap-highlight-color: transparent;
+       L1903: }
+       L1904: 
+    => L1905: .calc-key-btn:active {
+       L1906:   transform: scale(0.96) !important;
+       L1907:   opacity: 1 !important;
+       L1908:   background-color: #2b3345 !important;
+       L1909:   transition: none !important;
+       L1910: }
+----------------------------------------------------
+Line 1912: .calc-key-btn.backspace-key,
+  Context:
+       L1909:   transition: none !important;
+       L1910: }
+       L1911: 
+    => L1912: .calc-key-btn.backspace-key,
+       L1913: .calc-key-btn.minus-key,
+       L1914: .calc-key-btn.calc-op-key {
+       L1915:   background-color: #141720;
+       L1916:   color: #cbd5e1;
+       L1917:   font-size: 21px;
+----------------------------------------------------
+Line 1913: .calc-key-btn.minus-key,
+  Context:
+       L1910: }
+       L1911: 
+       L1912: .calc-key-btn.backspace-key,
+    => L1913: .calc-key-btn.minus-key,
+       L1914: .calc-key-btn.calc-op-key {
+       L1915:   background-color: #141720;
+       L1916:   color: #cbd5e1;
+       L1917:   font-size: 21px;
+       L1918: }
+----------------------------------------------------
+Line 1914: .calc-key-btn.calc-op-key {
+  Context:
+       L1911: 
+       L1912: .calc-key-btn.backspace-key,
+       L1913: .calc-key-btn.minus-key,
+    => L1914: .calc-key-btn.calc-op-key {
+       L1915:   background-color: #141720;
+       L1916:   color: #cbd5e1;
+       L1917:   font-size: 21px;
+       L1918: }
+       L1919: 
+----------------------------------------------------
+Line 1920: .calc-key-btn.backspace-key:active,
+  Context:
+       L1917:   font-size: 21px;
+       L1918: }
+       L1919: 
+    => L1920: .calc-key-btn.backspace-key:active,
+       L1921: .calc-key-btn.minus-key:active,
+       L1922: .calc-key-btn.calc-op-key:active {
+       L1923:   background-color: #202534 !important;
+       L1924:   transform: scale(0.96) !important;
+       L1925:   opacity: 1 !important;
+----------------------------------------------------
+Line 1921: .calc-key-btn.minus-key:active,
+  Context:
+       L1918: }
+       L1919: 
+       L1920: .calc-key-btn.backspace-key:active,
+    => L1921: .calc-key-btn.minus-key:active,
+       L1922: .calc-key-btn.calc-op-key:active {
+       L1923:   background-color: #202534 !important;
+       L1924:   transform: scale(0.96) !important;
+       L1925:   opacity: 1 !important;
+       L1926:   transition: none !important;
+----------------------------------------------------
+Line 1922: .calc-key-btn.calc-op-key:active {
+  Context:
+       L1919: 
+       L1920: .calc-key-btn.backspace-key:active,
+       L1921: .calc-key-btn.minus-key:active,
+    => L1922: .calc-key-btn.calc-op-key:active {
+       L1923:   background-color: #202534 !important;
+       L1924:   transform: scale(0.96) !important;
+       L1925:   opacity: 1 !important;
+       L1926:   transition: none !important;
+       L1927: }
+----------------------------------------------------
+Line 1929: .calc-key-btn.done-key {
+  Context:
+       L1926:   transition: none !important;
+       L1927: }
+       L1928: 
+    => L1929: .calc-key-btn.done-key {
+       L1930:   color: white;
+       L1931:   font-weight: 800;
+       L1932:   font-size: 18px;
+       L1933:   letter-spacing: 0.3px;
+       L1934:   border-radius: 8px;
+----------------------------------------------------
+Line 1937: .calc-key-btn.done-key:active {
+  Context:
+       L1934:   border-radius: 8px;
+       L1935: }
+       L1936: 
+    => L1937: .calc-key-btn.done-key:active {
+       L1938:   transform: scale(0.96) !important;
+       L1939:   opacity: 1 !important;
+       L1940:   filter: brightness(1.15) !important;
+       L1941:   transition: none !important;
+       L1942: }
+----------------------------------------------------
+Line 1944: #transaction-modal.expense .calc-key-btn.done-key {
+  Context:
+       L1941:   transition: none !important;
+       L1942: }
+       L1943: 
+    => L1944: #transaction-modal.expense .calc-key-btn.done-key {
+       L1945:   background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%) !important;
+       L1946: }
+       L1947: #transaction-modal.income .calc-key-btn.done-key {
+       L1948:   background: linear-gradient(135deg, #10b981 0%, #047857 100%) !important;
+       L1949: }
+----------------------------------------------------
+Line 1947: #transaction-modal.income .calc-key-btn.done-key {
+  Context:
+       L1944: #transaction-modal.expense .calc-key-btn.done-key {
+       L1945:   background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%) !important;
+       L1946: }
+    => L1947: #transaction-modal.income .calc-key-btn.done-key {
+       L1948:   background: linear-gradient(135deg, #10b981 0%, #047857 100%) !important;
+       L1949: }
+       L1950: #transaction-modal.transfer .calc-key-btn.done-key {
+       L1951:   background: linear-gradient(135deg, #64748b 0%, #475569 100%) !important;
+       L1952:   color: white !important;
+----------------------------------------------------
+Line 1950: #transaction-modal.transfer .calc-key-btn.done-key {
+  Context:
+       L1947: #transaction-modal.income .calc-key-btn.done-key {
+       L1948:   background: linear-gradient(135deg, #10b981 0%, #047857 100%) !important;
+       L1949: }
+    => L1950: #transaction-modal.transfer .calc-key-btn.done-key {
+       L1951:   background: linear-gradient(135deg, #64748b 0%, #475569 100%) !important;
+       L1952:   color: white !important;
+       L1953: }
+       L1954: 
+       L1955: /* Supabase Modal Buttons Compatibility */
+----------------------------------------------------
+Line 3010: .lock-keypad {
+  Context:
+       L3007:   border-color: var(--accent);
+       L3008: }
+       L3009: 
+    => L3010: .lock-keypad {
+       L3011:   display: grid;
+       L3012:   grid-template-columns: repeat(3, 1fr);
+       L3013:   gap: 20px;
+       L3014:   max-width: 280px;
+       L3015:   width: 100%;
+----------------------------------------------------
+Line 3018: .keypad-btn {
+  Context:
+       L3015:   width: 100%;
+       L3016: }
+       L3017: 
+    => L3018: .keypad-btn {
+       L3019:   background: var(--bg-card);
+       L3020:   border: 1px solid var(--border);
+       L3021:   color: var(--text-main);
+       L3022:   font-size: 24px;
+       L3023:   font-weight: 600;
+----------------------------------------------------
+Line 3036: .keypad-btn:active {
+  Context:
+       L3033:   margin: 0 auto;
+       L3034: }
+       L3035: 
+    => L3036: .keypad-btn:active {
+       L3037:   background: var(--bg-input);
+       L3038:   transform: scale(0.9);
+       L3039: }
+       L3040: 
+       L3041: .keypad-btn.empty {
+----------------------------------------------------
+Line 3041: .keypad-btn.empty {
+  Context:
+       L3038:   transform: scale(0.9);
+       L3039: }
+       L3040: 
+    => L3041: .keypad-btn.empty {
+       L3042:   background: transparent;
+       L3043:   border-color: transparent;
+       L3044:   cursor: default;
+       L3045:   pointer-events: none;
+       L3046: }
+----------------------------------------------------
+Line 3048: .keypad-btn.action {
+  Context:
+       L3045:   pointer-events: none;
+       L3046: }
+       L3047: 
+    => L3048: .keypad-btn.action {
+       L3049:   font-size: 18px;
+       L3050:   border-color: transparent;
+       L3051:   background: transparent;
+       L3052: }
+       L3053: .keypad-btn.action:active {
+----------------------------------------------------
+Line 3053: .keypad-btn.action:active {
+  Context:
+       L3050:   border-color: transparent;
+       L3051:   background: transparent;
+       L3052: }
+    => L3053: .keypad-btn.action:active {
+       L3054:   background: var(--bg-card);
+       L3055: }
+       L3056: 
+       L3057: /* Custom Select Triggers (replacing native selects) */
+       L3058: .custom-select-trigger {
+----------------------------------------------------
+Line 6008: --keyboard-offset: 0px;
+  Context:
+       L6005: 
+       L6006: /* Keyboard Offset CSS Variable */
+       L6007: #transaction-modal {
+    => L6008:   --keyboard-offset: 0px;
+       L6009: }
+       L6010: body.keyboard-active #transaction-modal {
+       L6011:   --keyboard-offset: 0px;
+       L6012: }
+       L6013: body.keyboard-active #transaction-modal .modal-action-buttons,
+----------------------------------------------------
+Line 6011: --keyboard-offset: 0px;
+  Context:
+       L6008:   --keyboard-offset: 0px;
+       L6009: }
+       L6010: body.keyboard-active #transaction-modal {
+    => L6011:   --keyboard-offset: 0px;
+       L6012: }
+       L6013: body.keyboard-active #transaction-modal .modal-action-buttons,
+       L6014: body.keyboard-active #transaction-modal .modal-body {
+       L6015:   transition: none !important;
+       L6016: }
+----------------------------------------------------
+Line 6017: #transaction-modal.keypad-active {
+  Context:
+       L6014: body.keyboard-active #transaction-modal .modal-body {
+       L6015:   transition: none !important;
+       L6016: }
+    => L6017: #transaction-modal.keypad-active {
+       L6018:   --keyboard-offset: 244px;
+       L6019: }
+       L6020: 
+       L6021: /* Custom Calculator Keypad — overlays from bottom */
+       L6022: .calc-keypad-container {
+----------------------------------------------------
+Line 6018: --keyboard-offset: 244px;
+  Context:
+       L6015:   transition: none !important;
+       L6016: }
+       L6017: #transaction-modal.keypad-active {
+    => L6018:   --keyboard-offset: 244px;
+       L6019: }
+       L6020: 
+       L6021: /* Custom Calculator Keypad — overlays from bottom */
+       L6022: .calc-keypad-container {
+       L6023:   position: absolute !important;
+----------------------------------------------------
+Line 6021: /* Custom Calculator Keypad — overlays from bottom */
+  Context:
+       L6018:   --keyboard-offset: 244px;
+       L6019: }
+       L6020: 
+    => L6021: /* Custom Calculator Keypad — overlays from bottom */
+       L6022: .calc-keypad-container {
+       L6023:   position: absolute !important;
+       L6024:   bottom: 0 !important;
+       L6025:   left: 0 !important;
+       L6026:   right: 0 !important;
+----------------------------------------------------
+Line 6022: .calc-keypad-container {
+  Context:
+       L6019: }
+       L6020: 
+       L6021: /* Custom Calculator Keypad — overlays from bottom */
+    => L6022: .calc-keypad-container {
+       L6023:   position: absolute !important;
+       L6024:   bottom: 0 !important;
+       L6025:   left: 0 !important;
+       L6026:   right: 0 !important;
+       L6027:   height: auto !important;
+----------------------------------------------------
+Line 6038: /* iOS GPU layer: prevents keypad slide from causing compositing lag */
+  Context:
+       L6035:   z-index: 10 !important;
+       L6036:   flex-shrink: 0 !important;
+       L6037:   box-sizing: border-box !important;
+    => L6038:   /* iOS GPU layer: prevents keypad slide from causing compositing lag */
+       L6039:   will-change: transform !important;
+       L6040:   -webkit-backface-visibility: hidden !important;
+       L6041:   backface-visibility: hidden !important;
+       L6042: }
+       L6043: .calc-keypad-container.active {
+----------------------------------------------------
+Line 6043: .calc-keypad-container.active {
+  Context:
+       L6040:   -webkit-backface-visibility: hidden !important;
+       L6041:   backface-visibility: hidden !important;
+       L6042: }
+    => L6043: .calc-keypad-container.active {
+       L6044:   transform: translateY(0) !important;
+       L6045: }
+       L6046: .calc-keypad-grid {
+       L6047:   gap: 2px !important;
+       L6048:   padding: 8px 4px 8px 4px !important;
+----------------------------------------------------
+Line 6046: .calc-keypad-grid {
+  Context:
+       L6043: .calc-keypad-container.active {
+       L6044:   transform: translateY(0) !important;
+       L6045: }
+    => L6046: .calc-keypad-grid {
+       L6047:   gap: 2px !important;
+       L6048:   padding: 8px 4px 8px 4px !important;
+       L6049: }
+       L6050: .calc-key-btn {
+       L6051:   height: 48px !important;
+----------------------------------------------------
+Line 6050: .calc-key-btn {
+  Context:
+       L6047:   gap: 2px !important;
+       L6048:   padding: 8px 4px 8px 4px !important;
+       L6049: }
+    => L6050: .calc-key-btn {
+       L6051:   height: 48px !important;
+       L6052: }
+       L6053: 
+       L6054: /* Action footer — lifts above keyboard/keypad */
+       L6055: #transaction-modal .modal-action-buttons {
+----------------------------------------------------
+Line 6054: /* Action footer — lifts above keyboard/keypad */
+  Context:
+       L6051:   height: 48px !important;
+       L6052: }
+       L6053: 
+    => L6054: /* Action footer — lifts above keyboard/keypad */
+       L6055: #transaction-modal .modal-action-buttons {
+       L6056:   transform: translateY(calc(-1 * var(--keyboard-offset, 0px))) !important;
+       L6057:   transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+       L6058:   background-color: #121824 !important;
+       L6059:   z-index: 5 !important;
+----------------------------------------------------
+Line 6056: transform: translateY(calc(-1 * var(--keyboard-offset, 0px))) !important;
+  Context:
+       L6053: 
+       L6054: /* Action footer — lifts above keyboard/keypad */
+       L6055: #transaction-modal .modal-action-buttons {
+    => L6056:   transform: translateY(calc(-1 * var(--keyboard-offset, 0px))) !important;
+       L6057:   transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+       L6058:   background-color: #121824 !important;
+       L6059:   z-index: 5 !important;
+       L6060:   margin-top: auto !important;
+       L6061:   padding-top: 16px !important;
+----------------------------------------------------
+Line 6077: padding-bottom: calc(16px + var(--keyboard-offset, 0px)) !important;
+  Context:
+       L6074:   gap: 8px !important;
+       L6075:   -webkit-overflow-scrolling: touch !important;
+       L6076:   min-height: 0 !important;
+    => L6077:   padding-bottom: calc(16px + var(--keyboard-offset, 0px)) !important;
+       L6078:   transition: padding-bottom 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+       L6079: }
+       L6080: 
+       L6081: /* Lock form row dimensions */
+       L6082: .form-group, 
+----------------------------------------------------
+Line 6391: #transaction-modal.keypad-active .modal-action-buttons,
+  Context:
+       L6388:     text-align: center !important;
+       L6389:     line-height: 1 !important;
+       L6390:   }
+    => L6391:   #transaction-modal.keypad-active .modal-action-buttons,
+       L6392:   body.keyboard-active #transaction-modal .modal-action-buttons {
+       L6393:     padding-top: 8px !important;
+       L6394:     padding-bottom: 8px !important;
+       L6395:   }
+       L6396:   #transaction-modal .type-selector-tabs {
+----------------------------------------------------

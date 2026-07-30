@@ -1,0 +1,675 @@
+Searching all brains for style.css changes related to the calculator keypad...
+
+--- Match in Brain 0b4b40ec-6bec-448d-b870-7826bcd30916 at line 168 (Step Index: 1763, Created: 2026-06-11T21:39:31Z) ---
+Tool call: {
+  "name": "replace_file_content",
+  "args": {
+    "AllowMultiple": false,
+    "Description": "Update walkthrough.md to document the build v293 unified modal layout.",
+    "EndLine": 84,
+    "Instruction": "Add a section for Build v293 documenting how the transaction modal was anchored to absolute full-screen and the dynamic layout changes on active keyboard overlays were removed.",
+    "ReplacementContent": "4. **Compilation & Deployment**: Bumped build to `v292` and successfully deployed to Cloudflare Pages.\n\n### Build v293 - Unified Form Layout & Input State Invariance\n1. **Absolute Viewport Anchoring (Full-Screen Modal)**: Configured `#transaction-modal .modal-content` to open as a native full-screen overlay (`position: fixed`, `width: 100vw`, `height: 100vh`, `border-radius: 0`). This ensures that on mobile screens, the form maintains a rigid viewport canvas.\n2. **Removed Dynamic Shrinkage Overrides**: Cleaned up and commented out all previous `.keyboard-active` overrides in `style.css` that dynamically shrank form rows, paddings, margins, headers, and type selectors when the keyboard was active. The layout is now fully rigid, preventing deformation when switching inputs.\n3. **Structured Content Spacing**: Standardized `.modal-body` inside `#transaction-modal` to utilize a robust layout flow (`flex: 1`, `padding: 16px`, `gap: 16px`), while locking all form rows (`.form-row`, `.custom-select-trigger`, `.focusable`) to `height: 52px` and `flex-shrink: 0`.\n4. **Custom Keypad Positioning**: Ensured the custom calculator number pad (`.calc-keypad-container`) strictly expands below the static action footer.\n5. **Compilation & Deployment**: Bumped version to `v293` and successfully deployed to Cloudflare Pages.\n",
+    "StartLine": 77,
+    "TargetContent": "4. **Compilation & Deployment**: Bumped build to `v292` and successfully deployed to Cloudflare Pages.",
+    "TargetFile": "C:\\Users\\mario\\.gemini\\antigravity\\brain\\0b4b40ec-6bec-448d-b870-7826bcd30916\\walkthrough.md",
+    "toolAction": "Updating walkthrough.md in artifact directory",
+    "toolSummary": "Updating walkthrough"
+  }
+}
+
+--- Match in Brain 0b4b40ec-6bec-448d-b870-7826bcd30916 at line 241 (Step Index: 1837, Created: 2026-06-11T21:41:40Z) ---
+Tool call: {
+  "name": "write_to_file",
+  "args": {
+    "ArtifactMetadata": {
+      "RequestFeedback": true,
+      "Summary": "Implementation plan for fixing the critical transaction form dynamic squeezing bug by enforcing a rigid full-screen modal layout, absolute viewport anchoring, and translate-based keyboard/calculator alignment.",
+      "UserFacing": true
+    },
+    "CodeContent": "# Unified Form Layout & Input State Invariance\n\nStandardize the transaction modal form layout to maintain a single, rigid, full-screen canvas that never shrinks, deforms, or repositions structural assets when toggling between the system QWERTY keyboard (for Title/Details) and the custom built-in calculator number pad (for Amount).\n\n## User Review Required\n\n> [!IMPORTANT]\n> The transaction modal will now open as a native, fixed full-screen overlay (`100vw` by `100vh`) with a rigid layout. All form rows are locked to strict heights (`52px` height, `flex-shrink: 0`). When the custom calculator or system keyboard is active, they will overlay the bottom portion of the screen, and the form's action buttons will translate upwards dynamically while the fields container adapts its scrollable area using padding. This ensures the available form layout height remains completely unwarped.\n\n## Proposed Changes\n\n### Styles & Layout\n\n#### [MODIFY] [style.css](file:///c:/Users/mario/Desktop/money-manager/style.css)\n- Implement absolute viewport anchoring for `#transaction-modal` and `#transaction-modal .modal-content` to force a native full-screen overlay (`100vw` by `100vh`) with background `#121824` and no rounding/borders.\n- Override overlay padding: set `padding-bottom: 0 !important;` on `#transaction-modal` to prevent overlay padding from squeezing the modal container.\n- Establish `--keyboard-offset` CSS variable on `#transaction-modal` and dynamically set it:\n  - `0px` by default\n  - `var(--keyboard-height, 0px)` when `body.keyboard-active` is true\n  - `365px` when `#transaction-modal.keypad-active` is true\n- Configure `.calc-keypad-container` to render as an absolute overlay (`position: absolute; bottom: 0; height: 365px;`) that slides up (`transform: translateY(...)`) rather than a flex-flow element that squeezes the form.\n- Translate `.modal-action-buttons` upwards smoothly by `var(--keyboard-offset)` using `transform` to ensure they sit directly above the active input panel (keyboard or keypad).\n- Add dynamic padding-bottom to `.modal-body` and `.form-fields-container` equal to `var(--keyboard-offset)` to keep all fields fully scrollable above the action buttons.\n- Lock all form rows and trigger fields (`.form-group`, `.input-row`, `.custom-dropdown-trigger`, `.date-picker-row`, `.form-row`, `.focusable`) to `height: 52px !important; flex-shrink: 0 !important;`.\n- Lock description/textarea containers (`textarea`, `.details-input-wrapper`, `#trans-description`) to `min-height: 80px !important; flex-shrink: 0 !important;`.\n\n### JavaScript Interaction\n\n#### [MODIFY] [app.js](file:///c:/Users/mario/Desktop/money-manager/app.js)\n- Update `openCalculatorKeypad()` to add the class `keypad-active` to `#transaction-modal`.\n- Update `closeCalculatorKeypad()` to remove the class `keypad-active` from `#transaction-modal`.\n- Ensure no dynamic layout/vh/percentage recalculations occur inside focus callbacks.\n\n## Verification Plan\n\n### Automated Tests\n- None.\n\n### Manual Verification\n- Deploy to Cloudflare Pages.\n- Open the transaction modal.\n- Verify full-screen rendering on both mobile and desktop views.\n- Focus on Title/Details to trigger the system keyboard; verify the form header, row heights, and dividers remain completely unwarped, and action buttons slide up above the keyboard.\n- Open the Amount custom keypad; verify it overlays the bottom and action buttons sit perfectly above it.\n- Check switching tabs (\"Έσοδο\", \"Έξοδο\", \"Μεταφορά\") does not distort dimensions.\n",
+    "Description": "Write the implementation plan for Unified Form Layout & Input State Invariance",
+    "Overwrite": true,
+    "TargetFile": "C:\\Users\\mario\\.gemini\\antigravity\\brain\\0b4b40ec-6bec-448d-b870-7826bcd30916\\implementation_plan.md",
+    "toolAction": "Write the implementation plan artifact",
+    "toolSummary": "Implementation plan write"
+  }
+}
+
+--- Match in Brain 0b4b40ec-6bec-448d-b870-7826bcd30916 at line 243 (Step Index: 1839, Created: 2026-06-11T21:41:48Z) ---
+Tool call: {
+  "name": "write_to_file",
+  "args": {
+    "ArtifactMetadata": {
+      "RequestFeedback": false,
+      "Summary": "Task checklist for implementing the unified form layout.",
+      "UserFacing": true
+    },
+    "CodeContent": "- `[ ]` 1. Add `keypad-active` class toggle in `openCalculatorKeypad()` and `closeCalculatorKeypad()` inside `app.js`\n- `[ ]` 2. Add `.transaction-modal-wrapper` layout and `#transaction-modal` style definitions in `style.css`\n- `[ ]` 3. Implement `--keyboard-offset` rules and style overrides for `#transaction-modal` and its `.modal-content` in `style.css`\n- `[ ]` 4. Configure absolute positioning and translateY transition for `.calc-keypad-container` in `style.css`\n- `[ ]` 5. Translate `.modal-action-buttons` dynamically using `--keyboard-offset` in `style.css`\n- `[ ]` 6. Apply dynamic padding-bottom on `.modal-body` and `.form-fields-container` in `style.css`\n- `[ ]` 7. Define rigid dimensions for `.form-group`, `.input-row`, `.custom-dropdown-trigger`, `.date-picker-row`, and `textarea` / `.details-input-wrapper` in `style.css`\n- `[ ]` 8. Deploy to Cloudflare Pages and verify rendering across keypad and QWERTY keyboard states\n",
+    "Description": "Write task.md checklist for the implementation",
+    "Overwrite": true,
+    "TargetFile": "C:\\Users\\mario\\.gemini\\antigravity\\brain\\0b4b40ec-6bec-448d-b870-7826bcd30916\\task.md",
+    "toolAction": "Write the task list artifact",
+    "toolSummary": "Task checklist write"
+  }
+}
+
+--- Match in Brain 0b4b40ec-6bec-448d-b870-7826bcd30916 at line 275 (Step Index: 1871, Created: 2026-06-11T21:43:29Z) ---
+Tool call: {
+  "name": "replace_file_content",
+  "args": {
+    "AllowMultiple": false,
+    "Description": "Replace style.css end block with rigid full-screen modal layout, absolute keypad overlay, and transform-based keyboard offsets",
+    "EndLine": 6267,
+    "Instruction": "Apply unified full-screen anchoring and locked heights to transaction-modal elements",
+    "ReplacementContent": "/* 1. Prevent the main form container from crushing */\n.form-container {\n    display: flex;\n    flex-direction: column;\n    max-height: calc(100vh - 20px); /* Keep structural safety bounds */\n    overflow-y: auto;               /* Force native vertical scrolling */\n    -webkit-overflow-scrolling: touch;\n}\n\n/* 2. Absolute Viewport Anchoring (Full-Screen Layout) */\n#transaction-modal,\n.transaction-modal-wrapper {\n  position: fixed !important;\n  top: 0 !important;\n  left: 0 !important;\n  width: 100vw !important;\n  height: 100vh !important;\n  max-width: 100vw !important;\n  max-height: 100vh !important;\n  background-color: #121824 !important; /* Enforce native application background color */\n  z-index: 9999 !important;\n  display: none !important;\n  flex-direction: column !important;\n  overflow: hidden !important;\n  padding: 0 !important;\n  padding-bottom: 0 !important; /* Force no overlay padding */\n  margin: 0 !important;\n  opacity: 0 !important;\n  pointer-events: none !important;\n  transition: opacity 0.3s ease !important;\n}\n\n#transaction-modal.active,\n.transaction-modal-wrapper.active {\n  display: flex !important;\n  opacity: 1 !important;\n  pointer-events: auto !important;\n}\n\n#transaction-modal .modal-content {\n  position: absolute !important;\n  bottom: 0 !important;\n  left: 0 !important;\n  width: 100% !important;\n  height: 100% !important;\n  max-width: 100% !important;\n  max-height: 100% !important;\n  border-radius: 0 !important;\n  border: none !important;\n  background-color: #121824 !important;\n  display: flex !important;\n  flex-direction: column !important;\n  overflow: hidden !important;\n  transform: translateY(100%) !important;\n  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;\n  box-shadow: none !important;\n  padding: 0 !important;\n  margin: 0 !important;\n}\n\n#transaction-modal.active .modal-content {\n  transform: translateY(0) !important;\n}\n\n/* 3. Keyboard Offset Rules (State Invariance) */\n#transaction-modal {\n  --keyboard-offset: 0px;\n}\nbody.keyboard-active #transaction-modal {\n  --keyboard-offset: var(--keyboard-height, 0px);\n}\n#transaction-modal.keypad-active {\n  --keyboard-offset: 365px;\n}\n\n/* 4. Custom Calculator Keypad Overlay Mode */\n.calc-keypad-container {\n  position: absolute !important;\n  bottom: 0 !important;\n  left: 0 !important;\n  right: 0 !important;\n  height: 365px !important;\n  max-height: 365px !important;\n  background-color: #0f121a !important;\n  border-top: 1px solid var(--border) !important;\n  display: flex !important;\n  flex-direction: column !important;\n  transform: translateY(100%) !important;\n  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;\n  z-index: 10 !important;\n  flex-shrink: 0 !important;\n  box-sizing: border-box !important;\n}\n.calc-keypad-container.active {\n  transform: translateY(0) !important;\n}\n\n/* 5. Static Action Footer translation above active panel */\n#transaction-modal .modal-action-buttons {\n  transform: translateY(calc(-1 * var(--keyboard-offset, 0px))) !important;\n  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;\n  background-color: #121824 !important; /* Mask fields scrolling behind */\n  z-index: 5 !important;\n  margin-top: auto !important;               /* Push down naturally */\n  padding-top: 16px !important;\n  padding-bottom: env(safe-area-inset-bottom, 16px) !important; /* Guard mobile viewport baselines */\n  flex-shrink: 0 !important;\n}\n\n/* 6. Form Fields Container styling with dynamic padding bottom */\n.form-fields-container,\n#transaction-modal .modal-body {\n  flex: 1 !important;\n  overflow-y: auto !important;\n  padding: 16px !important;\n  display: flex !important;\n  flex-direction: column !important;\n  gap: 16px !important;\n  -webkit-overflow-scrolling: touch !important;\n  min-height: 0 !important;\n  padding-bottom: calc(16px + var(--keyboard-offset, 0px)) !important;\n  transition: padding-bottom 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;\n}\n\n/* 7. Lock structural row dimensions against compression in ALL selection modes */\n.form-group, \n.input-row, \n.custom-dropdown-trigger,\n.date-picker-row,\n#transaction-modal .form-row,\n#transaction-modal .custom-select-trigger,\n#transaction-modal .focusable {\n  flex-shrink: 0 !important; /* Force layout engine to respect native dimensions */\n  height: 52px !important;   /* Guarantee strict dimension persistence */\n  min-height: 52px !important;\n}\n\n/* Lock text area baseline dimensions */\ntextarea, \n.details-input-wrapper,\n#transaction-modal textarea, \n#transaction-modal #trans-description {\n  flex-shrink: 0 !important;\n  min-height: 80px !important;\n  height: 80px !important;\n  box-sizing: border-box !important;\n}",
+    "StartLine": 6199,
+    "TargetContent": "/* 1. Prevent the main form container from crushing */\n.form-container {\n    display: flex;\n    flex-direction: column;\n    max-height: calc(100vh - 20px); /* Keep structural safety bounds */\n    overflow-y: auto;               /* Force native vertical scrolling */\n    -webkit-overflow-scrolling: touch;\n}\n\n#transaction-modal .modal-body {\n    flex: 1 !important;\n    overflow-y: auto !important;\n    padding: 16px !important;\n    display: flex !important;\n    flex-direction: column !important;\n    gap: 16px !important;\n    -webkit-overflow-scrolling: touch !important;\n}\n\n/* 2. Lock structural row dimensions against compression in ALL selection modes */\n#transaction-modal .form-row,\n#transaction-modal .custom-select-trigger,\n#transaction-modal .focusable {\n    flex-shrink: 0 !important; /* Force layout engine to respect native dimensions */\n    height: 52px !important;   /* Guarantee strict dimension persistence */\n    min-height: 52px !important;\n}\n\n/* Lock text area baseline dimensions */\n#transaction-modal textarea, \n#transaction-modal #trans-description {\n    flex-shrink: 0 !important;\n    min-height: 80px !important;\n    height: 80px !important;\n    box-sizing: border-box !important;\n}\n\n/* 3. Absolute Viewport Anchoring (Full-Screen Layout) */\n#transaction-modal .modal-content {\n  position: fixed !important;\n  top: 0 !important;\n  left: 0 !important;\n  width: 100vw !important;\n  height: 100vh !important;\n  max-width: 100vw !important;\n  max-height: 100vh !important;\n  border-radius: 0 !important;\n  border: none !important;\n  background-color: #121824 !important; /* Enforce native application background color */\n  display: flex !important;\n  flex-direction: column !important;\n  overflow: hidden !important;\n  transform: translateY(100%) !important;\n  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;\n  box-shadow: none !important;\n}\n\n#transaction-modal.active .modal-content {\n  transform: translateY(0) !important;\n}\n\n/* 4. Action buttons layout stabilization */\n#transaction-modal .modal-action-buttons {\n    margin-top: auto !important;               /* Push down naturally */\n    padding-top: 16px !important;\n    padding-bottom: env(safe-area-inset-bottom, 16px) !important; /* Guard mobile viewport baselines */\n    flex-shrink: 0 !important;\n}",
+    "TargetFile": "c:\\Users\\mario\\Desktop\\money-manager\\style.css",
+    "toolAction": "Replace end styles in style.css",
+    "toolSummary": "Edit style.css end block"
+  }
+}
+
+--- Match in Brain 0b4b40ec-6bec-448d-b870-7826bcd30916 at line 279 (Step Index: 1875, Created: 2026-06-11T21:43:38Z) ---
+Tool call: {
+  "name": "replace_file_content",
+  "args": {
+    "AllowMultiple": false,
+    "Description": "Mark styles tasks completed, verification task in progress in task.md",
+    "EndLine": 8,
+    "ReplacementContent": "- `[x]` 2. Add `.transaction-modal-wrapper` layout and `#transaction-modal` style definitions in `style.css`\n- `[x]` 3. Implement `--keyboard-offset` rules and style overrides for `#transaction-modal` and its `.modal-content` in `style.css`\n- `[x]` 4. Configure absolute positioning and translateY transition for `.calc-keypad-container` in `style.css`\n- `[x]` 5. Translate `.modal-action-buttons` dynamically using `--keyboard-offset` in `style.css`\n- `[x]` 6. Apply dynamic padding-bottom on `.modal-body` and `.form-fields-container` in `style.css`\n- `[x]` 7. Define rigid dimensions for `.form-group`, `.input-row`, `.custom-dropdown-trigger`, `.date-picker-row`, and `textarea` / `.details-input-wrapper` in `style.css`\n- `[/]` 8. Deploy to Cloudflare Pages and verify rendering across keypad and QWERTY keyboard states",
+    "StartLine": 2,
+    "TargetContent": "- `[/]` 2. Add `.transaction-modal-wrapper` layout and `#transaction-modal` style definitions in `style.css`\n- `[ ]` 3. Implement `--keyboard-offset` rules and style overrides for `#transaction-modal` and its `.modal-content` in `style.css`\n- `[ ]` 4. Configure absolute positioning and translateY transition for `.calc-keypad-container` in `style.css`\n- `[ ]` 5. Translate `.modal-action-buttons` dynamically using `--keyboard-offset` in `style.css`\n- `[ ]` 6. Apply dynamic padding-bottom on `.modal-body` and `.form-fields-container` in `style.css`\n- `[ ]` 7. Define rigid dimensions for `.form-group`, `.input-row`, `.custom-dropdown-trigger`, `.date-picker-row`, and `textarea` / `.details-input-wrapper` in `style.css`\n- `[ ]` 8. Deploy to Cloudflare Pages and verify rendering across keypad and QWERTY keyboard states",
+    "TargetFile": "C:\\Users\\mario\\.gemini\\antigravity\\brain\\0b4b40ec-6bec-448d-b870-7826bcd30916\\task.md",
+    "toolAction": "Mark tasks completed in task.md",
+    "toolSummary": "Update task list"
+  }
+}
+
+--- Match in Brain 0b4b40ec-6bec-448d-b870-7826bcd30916 at line 295 (Step Index: 1891, Created: 2026-06-11T21:44:21Z) ---
+Tool call: {
+  "name": "replace_file_content",
+  "args": {
+    "AllowMultiple": false,
+    "Description": "Add Build v230 entry to walkthrough.md",
+    "EndLine": 85,
+    "ReplacementContent": "### Build v293 - Unified Form Layout & Input State Invariance\n1. **Absolute Viewport Anchoring (Full-Screen Modal)**: Configured `#transaction-modal .modal-content` to open as a native full-screen overlay (`position: fixed`, `width: 100vw`, `height: 100vh`, `border-radius: 0`). This ensures that on mobile screens, the form maintains a rigid viewport canvas.\n2. **Removed Dynamic Shrinkage Overrides**: Cleaned up and commented out all previous `.keyboard-active` overrides in `style.css` that dynamically shrank form rows, paddings, margins, headers, and type selectors when the keyboard was active. The layout is now fully rigid, preventing deformation when switching inputs.\n3. **Structured Content Spacing**: Standardized `.modal-body` inside `#transaction-modal` to utilize a robust layout flow (`flex: 1`, `padding: 16px`, `gap: 16px`), while locking all form rows (`.form-row`, `.custom-select-trigger`, `.focusable`) to `height: 52px` and `flex-shrink: 0`.\n4. **Custom Keypad Positioning**: Ensured the custom calculator number pad (`.calc-keypad-container`) strictly expands below the static action footer.\n5. **Compilation & Deployment**: Bumped version to `v293` and successfully deployed to Cloudflare Pages.\n\n### Build v230 - Unified Form Layout & Input State Invariance Refinement\n1. **Absolute Viewport Anchoring (Full-Screen Modal)**: Configured `#transaction-modal` itself and `#transaction-modal .modal-content` to be completely locked full-screen (`100vw` by `100vh`) with z-index `9999` and background color `#121824`. Force no overlay padding (`padding-bottom: 0 !important;`) on `#transaction-modal` to prevent system keyboard overlays from deforming or squeezing the modal content container itself.\n2. **Keypad Active Class Toggle**: Updated `openCalculatorKeypad()` and `closeCalculatorKeypad()` in `app.js` to dynamically add/remove a `keypad-active` class on `#transaction-modal`.\n3. **Unwarped Form Height & Offset Alignment**: Implemented `--keyboard-offset` custom property inside CSS rules. Set `--keyboard-offset` to `365px` when `keypad-active` is present, and to `var(--keyboard-height)` when `keyboard-active` is present.\n4. **Translate-Based Action Footer Alignment**: Programmed `.modal-action-buttons` to translate upwards smoothly (`transform: translateY(calc(-1 * var(--keyboard-offset)))`) relative to the active panel (system QWERTY keyboard or custom calculator keypad) rather than deforming the form or shrinking row dimensions.\n5. **Locked Row & Field Dimensions**: Locked all row fields (`.form-group`, `.input-row`, `.custom-dropdown-trigger`, `.date-picker-row`, `.form-row`, `.focusable`) to a rigid `52px` height (`flex-shrink: 0 !important`). Locked description textareas (`textarea`, `.details-input-wrapper`) to a `80px` height.\n6. **Smooth Field Scroll Padding**: Applied a dynamic bottom padding (`padding-bottom: calc(16px + var(--keyboard-offset))`) to `#transaction-modal .modal-body` and `.form-fields-container`, ensuring fields remain fully scrollable and visible above the translated action footer.\n7. **Compilation & Deployment**: Bumped app build to version `v230` (Service Worker `v247`). Synced Capacitor, compiled native Android `BudgetAssistant.apk` to Desktop, and deployed the PWA to Cloudflare Pages.",
+    "StartLine": 79,
+    "TargetContent": "### Build v293 - Unified Form Layout & Input State Invariance\n1. **Absolute Viewport Anchoring (Full-Screen Modal)**: Configured `#transaction-modal .modal-content` to open as a native full-screen overlay (`position: fixed`, `width: 100vw`, `height: 100vh`, `border-radius: 0`). This ensures that on mobile screens, the form maintains a rigid viewport canvas.\n2. **Removed Dynamic Shrinkage Overrides**: Cleaned up and commented out all previous `.keyboard-active` overrides in `style.css` that dynamically shrank form rows, paddings, margins, headers, and type selectors when the keyboard was active. The layout is now fully rigid, preventing deformation when switching inputs.\n3. **Structured Content Spacing**: Standardized `.modal-body` inside `#transaction-modal` to utilize a robust layout flow (`flex: 1`, `padding: 16px`, `gap: 16px`), while locking all form rows (`.form-row`, `.custom-select-trigger`, `.focusable`) to `height: 52px` and `flex-shrink: 0`.\n4. **Custom Keypad Positioning**: Ensured the custom calculator number pad (`.calc-keypad-container`) strictly expands below the static action footer.\n5. **Compilation & Deployment**: Bumped version to `v293` and successfully deployed to Cloudflare Pages.",
+    "TargetFile": "C:\\Users\\mario\\.gemini\\antigravity\\brain\\0b4b40ec-6bec-448d-b870-7826bcd30916\\walkthrough.md",
+    "toolAction": "Add build v230 walkthrough entry",
+    "toolSummary": "Update walkthrough.md"
+  }
+}
+
+--- Match in Brain 0b4b40ec-6bec-448d-b870-7826bcd30916 at line 537 (Step Index: 2134, Created: 2026-06-11T22:05:00Z) ---
+Tool call: {
+  "name": "replace_file_content",
+  "args": {
+    "AllowMultiple": false,
+    "Description": "Replaced the entire !important war CSS with a clean .tx-modal-overlay class that has zero inheritance from .modal-overlay. Uses 100dvh (dynamic viewport height) so it naturally shrinks when the keyboard opens on mobile, eliminating the right-gap, bottom-gap, and keyboard layout issues.",
+    "EndLine": 6345,
+    "Instruction": "Replace the entire bottom CSS block with a clean tx-modal-overlay system that has zero inheritance from .modal-overlay",
+    "ReplacementContent": "/* ============================================================= */\n/* TX-MODAL-OVERLAY: Completely isolated full-screen modal class */\n/* Zero inheritance from .modal-overlay. No !important wars.    */\n/* ============================================================= */\n.tx-modal-overlay {\n  position: fixed;\n  top: 0;\n  left: 0;\n  width: 100vw;\n  height: 100dvh; /* dvh = dynamic viewport height, shrinks when keyboard opens */\n  background-color: #121824;\n  z-index: 9999;\n  display: none;\n  flex-direction: column;\n  align-items: stretch;\n  justify-content: flex-start;\n  overflow: hidden;\n  padding: 0;\n  margin: 0;\n  opacity: 0;\n  pointer-events: none;\n  transition: opacity 0.3s ease;\n}\n\n.tx-modal-overlay.active {\n  display: flex;\n  opacity: 1;\n  pointer-events: auto;\n}\n\n/* The modal-content inside tx-modal-overlay fills 100% width and height */\n.tx-modal-overlay .modal-content {\n  position: relative !important;\n  width: 100% !important;\n  height: 100% !important;\n  max-width: 100% !important;\n  max-height: 100% !important;\n  border-radius: 0 !important;\n  border: none !important;\n  background-color: #121824 !important;\n  display: flex !important;\n  flex-direction: column !important;\n  overflow: hidden !important;\n  transform: translateY(100%) !important;\n  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;\n  box-shadow: none !important;\n  padding: 0 !important;\n  margin: 0 !important;\n  flex: 1 !important;\n}\n\n.tx-modal-overlay.active .modal-content {\n  transform: translateY(0) !important;\n}\n\n/* Keyboard Offset CSS Variable */\n#transaction-modal {\n  --keyboard-offset: 0px;\n}\nbody.keyboard-active #transaction-modal {\n  --keyboard-offset: var(--keyboard-height, 0px);\n}\n#transaction-modal.keypad-active {\n  --keyboard-offset: 365px;\n}\n\n/* Custom Calculator Keypad — overlays from bottom */\n.calc-keypad-container {\n  position: absolute !important;\n  bottom: 0 !important;\n  left: 0 !important;\n  right: 0 !important;\n  height: 365px !important;\n  max-height: 365px !important;\n  background-color: #0f121a !important;\n  border-top: 1px solid var(--border) !important;\n  display: flex !important;\n  flex-direction: column !important;\n  transform: translateY(100%) !important;\n  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;\n  z-index: 10 !important;\n  flex-shrink: 0 !important;\n  box-sizing: border-box !important;\n}\n.calc-keypad-container.active {\n  transform: translateY(0) !important;\n}\n\n/* Action footer — lifts above keyboard/keypad */\n#transaction-modal .modal-action-buttons {\n  transform: translateY(calc(-1 * var(--keyboard-offset, 0px))) !important;\n  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;\n  background-color: #121824 !important;\n  z-index: 5 !important;\n  margin-top: auto !important;\n  padding-top: 16px !important;\n  padding-bottom: env(safe-area-inset-bottom, 16px) !important;\n  flex-shrink: 0 !important;\n}\n\n/* Scrollable form body */\n.form-fields-container,\n#transaction-modal .modal-body {\n  flex: 1 !important;\n  overflow-y: auto !important;\n  padding: 16px !important;\n  display: flex !important;\n  flex-direction: column !important;\n  gap: 16px !important;\n  -webkit-overflow-scrolling: touch !important;\n  min-height: 0 !important;\n  padding-bottom: calc(16px + var(--keyboard-offset, 0px)) !important;\n  transition: padding-bottom 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;\n}\n\n/* Lock form row dimensions */\n.form-group, \n.input-row, \n.custom-dropdown-trigger,\n.date-picker-row,\n#transaction-modal .form-row,\n#transaction-modal .custom-select-trigger,\n#transaction-modal .focusable {\n  flex-shrink: 0 !important;\n  height: 52px !important;\n  min-height: 52px !important;\n}\n\n/* Lock textarea dimensions */\ntextarea, \n.details-input-wrapper,\n#transaction-modal textarea, \n#transaction-modal #trans-description {\n  flex-shrink: 0 !important;\n  min-height: 80px !important;\n  height: 80px !important;\n  box-sizing: border-box !important;\n}\n",
+    "StartLine": 6194,
+    "TargetContent": "/* 1. Prevent the main form container from crushing */\n.form-container {\n    display: flex;\n    flex-direction: column;\n    max-height: calc(100vh - 20px); /* Keep structural safety bounds */\n    overflow-y: auto;               /* Force native vertical scrolling */\n    -webkit-overflow-scrolling: touch;\n}\n\n/* 2. Absolute Viewport Anchoring (Full-Screen Layout) */\n#transaction-modal,\n.transaction-modal-wrapper {\n  position: fixed !important;\n  top: 0 !important;\n  left: 0 !important;\n  width: 100vw !important;\n  height: 100vh !important;\n  max-width: 100vw !important;\n  max-height: 100vh !important;\n  background-color: #121824 !important; /* Enforce native application background color */\n  z-index: 9999 !important;\n  display: none !important;\n  flex-direction: column !important;\n  align-items: stretch !important;       /* Override modal-overlay flex-end alignment */\n  justify-content: flex-start !important; /* Override modal-overlay center justification */\n  overflow: hidden !important;\n  padding: 0 !important;\n  padding-bottom: 0 !important; /* Force no overlay padding */\n  margin: 0 !important;\n  opacity: 0 !important;\n  pointer-events: none !important;\n  transition: opacity 0.3s ease !important;\n}\n\n#transaction-modal.active,\n.transaction-modal-wrapper.active {\n  display: flex !important;\n  opacity: 1 !important;\n  pointer-events: auto !important;\n}\n\n#transaction-modal .modal-content {\n  position: fixed !important;\n  top: 0 !important;\n  bottom: 0 !important;\n  left: 0 !important;\n  right: 0 !important;\n  width: 100vw !important;\n  height: 100vh !important;\n  max-width: 100vw !important;\n  max-height: 100vh !important;\n  border-radius: 0 !important;\n  border: none !important;\n  background-color: #121824 !important;\n  display: flex !important;\n  flex-direction: column !important;\n  overflow: hidden !important;\n  transform: translateY(100%) !important;\n  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;\n  box-shadow: none !important;\n  padding: 0 !important;\n  margin: 0 !important;\n}\n\n#transaction-modal.active .modal-content {\n  transform: translateY(0) !important;\n}\n\n/* ============================================================= */\n/* TX-MODAL-OVERLAY: Completely isolated full-screen modal class */\n/* No inheritance from .modal-overlay whatsoever                 */\n/* ============================================================= */\n.tx-modal-overlay {\n  position: fixed;\n  top: 0;\n  left: 0;\n  width: 100vw;\n  height: 100dvh; /* dvh = dynamic viewport height — shrinks with keyboard on mobile */\n  background-color: #121824;\n  z-index: 9999;\n  display: none;\n  flex-direction: column;\n  align-items: stretch;\n  justify-content: flex-start;\n  overflow: hidden;\n  padding: 0;\n  margin: 0;\n  opacity: 0;\n  pointer-events: none;\n  transition: opacity 0.3s ease;\n}\n\n.tx-modal-overlay.active {\n  display: flex;\n  opacity: 1;\n  pointer-events: auto;\n}\n\n/* The modal-content inside tx-modal-overlay fills 100% */\n.tx-modal-overlay .modal-content {\n  position: relative !important;\n  top: auto !important;\n  left: auto !important;\n  right: auto !important;\n  bottom: auto !important;\n  width: 100% !important;\n  height: 100% !important;\n  max-width: 100% !important;\n  max-height: 100% !important;\n  border-radius: 0 !important;\n  border: none !important;\n  background-color: #121824 !important;\n  display: flex !important;\n  flex-direction: column !important;\n  overflow: hidden !important;\n  transform: translateY(100%) !important;\n  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;\n  box-shadow: none !important;\n  padding: 0 !important;\n  margin: 0 !important;\n  flex: 1 !important;\n}\n\n.tx-modal-overlay.active .modal-content {\n  transform: translateY(0) !important;\n}\n\n/* 3. Keyboard Offset Rules (State Invariance) */\n#transaction-modal {\n  --keyboard-offset: 0px;\n}\nbody.keyboard-active #transaction-modal {\n  --keyboard-offset: var(--keyboard-height, 0px);\n}\n#transaction-modal.keypad-active {\n  --keyboard-offset: 365px;\n}\n\n/* 4. Custom Calculator Keypad Overlay Mode */\n.calc-keypad-container {\n  position: absolute !important;\n  bottom: 0 !important;\n  left: 0 !important;\n  right: 0 !important;\n  height: 365px !important;\n  max-height: 365px !important;\n  background-color: #0f121a !important;\n  border-top: 1px solid var(--border) !important;\n  display: flex !important;\n  flex-direction: column !important;\n  transform: translateY(100%) !important;\n  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;\n  z-index: 10 !important;\n  flex-shrink: 0 !important;\n  box-sizing: border-box !important;\n}\n.calc-keypad-container.active {\n  transform: translateY(0) !important;\n}\n\n/* 5. Static Action Footer translation above active panel */\n#transaction-modal .modal-action-buttons {\n  transform: translateY(calc(-1 * var(--keyboard-offset, 0px))) !important;\n  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;\n  background-color: #121824 !important; /* Mask fields scrolling behind */\n  z-index: 5 !important;\n  margin-top: auto !important;               /* Push down naturally */\n  padding-top: 16px !important;\n  padding-bottom: env(safe-area-inset-bottom, 16px) !important; /* Guard mobile viewport baselines */\n  flex-shrink: 0 !important;\n}\n\n/* 6. Form Fields Container styling with dynamic padding bottom */\n.form-fields-container,\n#transaction-modal .modal-body {\n  flex: 1 !important;\n  overflow-y: auto !important;\n  padding: 16px !important;\n  display: flex !important;\n  flex-direction: column !important;\n  gap: 16px !important;\n  -webkit-overflow-scrolling: touch !important;\n  min-height: 0 !important;\n  padding-bottom: calc(16px + var(--keyboard-offset, 0px)) !important;\n  transition: padding-bottom 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;\n}\n\n/* 7. Lock structural row dimensions against compression in ALL selection modes */\n.form-group, \n.input-row, \n.custom-dropdown-trigger,\n.date-picker-row,\n#transaction-modal .form-row,\n#transaction-modal .custom-select-trigger,\n#transaction-modal .focusable {\n  flex-shrink: 0 !important; /* Force layout engine to respect native dimensions */\n  height: 52px !important;   /* Guarantee strict dimension persistence */\n  min-height: 52px !important;\n}\n\n/* Lock text area baseline dimensions */\ntextarea, \n.details-input-wrapper,\n#transaction-modal textarea, \n#transaction-modal #trans-description {\n  flex-shrink: 0 !important;\n  min-height: 80px !important;\n  height: 80px !important;\n  box-sizing: border-box !important;\n}\n",
+    "TargetFile": "c:\\Users\\mario\\Desktop\\money-manager\\style.css",
+    "toolAction": "Replacing bottom CSS block with clean tx-modal-overlay system",
+    "toolSummary": "Rewrite transaction modal CSS"
+  }
+}
+
+--- Match in Brain 0b4b40ec-6bec-448d-b870-7826bcd30916 at line 846 (Step Index: 2444, Created: 2026-06-11T22:36:11Z) ---
+Tool call: {
+  "name": "multi_replace_file_content",
+  "args": {
+    "Description": "Update keyboard offset logic to cooperate with visualViewport modal height adjustment, and unlock Details row height by removing its ID from the textarea 80px constraint.",
+    "Instruction": "Remove trans-description from the lock textarea dimensions rule, and change keyboard-active offset to 0px.",
+    "ReplacementChunks": [
+      {
+        "AllowMultiple": false,
+        "EndLine": 6241,
+        "ReplacementContent": "body.keyboard-active #transaction-modal {\n  --keyboard-offset: 0px;\n}",
+        "StartLine": 6239,
+        "TargetContent": "body.keyboard-active #transaction-modal {\n  --keyboard-offset: var(--keyboard-height, 0px);\n}"
+      },
+      {
+        "AllowMultiple": false,
+        "EndLine": 6317,
+        "ReplacementContent": "/* Lock textarea dimensions */\ntextarea, \n.details-input-wrapper,\n#transaction-modal textarea {\n  flex-shrink: 0 !important;\n  min-height: 80px !important;\n  height: 80px !important;\n  box-sizing: border-box !important;\n}",
+        "StartLine": 6308,
+        "TargetContent": "/* Lock textarea dimensions */\ntextarea, \n.details-input-wrapper,\n#transaction-modal textarea, \n#transaction-modal #trans-description {\n  flex-shrink: 0 !important;\n  min-height: 80px !important;\n  height: 80px !important;\n  box-sizing: border-box !important;\n}"
+      }
+    ],
+    "TargetFile": "c:\\Users\\mario\\Desktop\\money-manager\\style.css",
+    "toolAction": "Updating CSS rules in style.css",
+    "toolSummary": "Edit style.css"
+  }
+}
+
+--- Match in Brain 0b4b40ec-6bec-448d-b870-7826bcd30916 at line 1229 (Step Index: 2828, Created: 2026-06-11T23:01:51Z) ---
+Tool call: {
+  "name": "replace_file_content",
+  "args": {
+    "AllowMultiple": false,
+    "Description": "Disable action button and modal body transitions when the soft keyboard is active to prevent flickering.",
+    "EndLine": 6242,
+    "Instruction": "Add transition: none rule for modal action buttons and body under body.keyboard-active.",
+    "ReplacementContent": "body.keyboard-active #transaction-modal {\n  --keyboard-offset: 0px;\n}\nbody.keyboard-active #transaction-modal .modal-action-buttons,\nbody.keyboard-active #transaction-modal .modal-body {\n  transition: none !important;\n}",
+    "StartLine": 6239,
+    "TargetContent": "body.keyboard-active #transaction-modal {\n  --keyboard-offset: 0px;\n}",
+    "TargetFile": "c:\\Users\\mario\\Desktop\\money-manager\\style.css",
+    "toolAction": "Disabling transitions in style.css",
+    "toolSummary": "Edit style.css to disable transitions"
+  }
+}
+
+--- Match in Brain 0b4b40ec-6bec-448d-b870-7826bcd30916 at line 2955 (Step Index: 4564, Created: 2026-06-13T07:33:56Z) ---
+Tool call: {
+  "name": "multi_replace_file_content",
+  "args": {
+    "Description": "Added GPU acceleration layers and iOS-specific overrides to eliminate rendering lag on Safari/WebKit without changing the Android layout",
+    "Instruction": "iOS performance optimization: GPU acceleration on transaction modal, debounce-friendly CSS, and iOS-specific backdrop-filter fallbacks",
+    "ReplacementChunks": [
+      {
+        "AllowMultiple": false,
+        "EndLine": 6200,
+        "ReplacementContent": ".tx-modal-overlay {\n  position: fixed;\n  top: 0;\n  left: 0;\n  width: 100%;\n  height: 100%;\n  background-color: #121824;\n  z-index: 9999;\n  display: none;\n  flex-direction: column;\n  align-items: stretch;\n  justify-content: flex-start;\n  overflow: hidden;\n  padding: 0;\n  margin: 0;\n  /* iOS GPU acceleration: force composite layer to eliminate open/close lag */\n  transform: translateZ(0);\n  -webkit-transform: translateZ(0);\n  will-change: transform, opacity;\n  /* Prevent sub-pixel rendering jitter on WebKit */\n  -webkit-backface-visibility: hidden;\n  backface-visibility: hidden;\n}",
+        "StartLine": 6185,
+        "TargetContent": ".tx-modal-overlay {\n  position: fixed;\n  top: 0;\n  left: 0;\n  width: 100%;\n  height: 100%;\n  background-color: #121824;\n  z-index: 9999;\n  display: none;\n  flex-direction: column;\n  align-items: stretch;\n  justify-content: flex-start;\n  overflow: hidden;\n  padding: 0;\n  margin: 0;\n}"
+      },
+      {
+        "AllowMultiple": false,
+        "EndLine": 6229,
+        "ReplacementContent": "/* The modal-content inside tx-modal-overlay fills 100% */\n.tx-modal-overlay .modal-content {\n  position: relative !important;\n  top: auto !important;\n  left: auto !important;\n  right: auto !important;\n  bottom: auto !important;\n  width: 100% !important;\n  flex: 1 1 auto !important;   /* fill the flex parent fully */\n  min-height: 0 !important;    /* allow shrinking in flex column */\n  max-width: 100% !important;\n  max-height: none !important;\n  border-radius: 0 !important;\n  border: none !important;\n  background-color: #121824 !important;\n  display: flex !important;\n  flex-direction: column !important;\n  overflow: hidden !important;\n  transform: translateY(100%) !important;\n  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;\n  box-shadow: none !important;\n  padding: 0 !important;\n  margin: 0 !important;\n  /* GPU composite layer for smooth slide animation on iOS */\n  will-change: transform !important;\n  -webkit-backface-visibility: hidden !important;\n  backface-visibility: hidden !important;\n}",
+        "StartLine": 6207,
+        "TargetContent": "/* The modal-content inside tx-modal-overlay fills 100% */\n.tx-modal-overlay .modal-content {\n  position: relative !important;\n  top: auto !important;\n  left: auto !important;\n  right: auto !important;\n  bottom: auto !important;\n  width: 100% !important;\n  flex: 1 1 auto !important;   /* fill the flex parent fully */\n  min-height: 0 !important;    /* allow shrinking in flex column */\n  max-width: 100% !important;\n  max-height: none !important;\n  border-radius: 0 !important;\n  border: none !important;\n  background-color: #121824 !important;\n  display: flex !important;\n  flex-direction: column !important;\n  overflow: hidden !important;\n  transform: translateY(100%) !important;\n  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;\n  box-shadow: none !important;\n  padding: 0 !important;\n  margin: 0 !important;\n}"
+      },
+      {
+        "AllowMultiple": false,
+        "EndLine": 6270,
+        "ReplacementContent": "/* Custom Calculator Keypad — overlays from bottom */\n.calc-keypad-container {\n  position: absolute !important;\n  bottom: 0 !important;\n  left: 0 !important;\n  right: 0 !important;\n  height: 365px !important;\n  max-height: 365px !important;\n  background-color: #0f121a !important;\n  border-top: 1px solid var(--border) !important;\n  display: flex !important;\n  flex-direction: column !important;\n  transform: translateY(100%) !important;\n  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;\n  z-index: 10 !important;\n  flex-shrink: 0 !important;\n  box-sizing: border-box !important;\n  /* iOS GPU layer: prevents keypad slide from causing compositing lag */\n  will-change: transform !important;\n  -webkit-backface-visibility: hidden !important;\n  backface-visibility: hidden !important;\n}",
+        "StartLine": 6250,
+        "TargetContent": "/* Custom Calculator Keypad — overlays from bottom */\n.calc-keypad-container {\n  position: absolute !important;\n  bottom: 0 !important;\n  left: 0 !important;\n  right: 0 !important;\n  height: 365px !important;\n  max-height: 365px !important;\n  background-color: #0f121a !important;\n  border-top: 1px solid var(--border) !important;\n  display: flex !important;\n  flex-direction: column !important;\n  transform: translateY(100%) !important;\n  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;\n  z-index: 10 !important;\n  flex-shrink: 0 !important;\n  box-sizing: border-box !important;\n}"
+      },
+      {
+        "AllowMultiple": false,
+        "EndLine": 6511,
+        "ReplacementContent": "\n/* ================================================================\n   iOS SAFARI PERFORMANCE OVERRIDES\n   Applied only on iOS WebKit to replace heavy backdrop-filter\n   effects with lightweight solid backgrounds, preventing GPU\n   overload that causes lag when the transaction form opens.\n   Android is unaffected — it does not match this media query path.\n   ================================================================ */\n@supports (-webkit-touch-callout: none) {\n  /* Search overlay header: drop blur on iOS */\n  .search-overlay-header-modern {\n    backdrop-filter: none !important;\n    -webkit-backdrop-filter: none !important;\n    background: rgba(22, 26, 36, 0.98) !important;\n  }\n\n  /* Search chips: drop blur on iOS */\n  .search-chip {\n    backdrop-filter: none !important;\n    -webkit-backdrop-filter: none !important;\n  }\n\n  /* Custom select dropdown: drop blur on iOS */\n  .custom-select-options {\n    backdrop-filter: none !important;\n    -webkit-backdrop-filter: none !important;\n    background: rgba(22, 26, 36, 0.99) !important;\n  }\n\n  /* Back-swipe indicator: drop blur on iOS */\n  #back-swipe-indicator {\n    backdrop-filter: none !important;\n    -webkit-backdrop-filter: none !important;\n  }\n\n  /* Auth screen overlay: drop blur on iOS (uses radial-gradient already) */\n  .auth-overlay {\n    backdrop-filter: none !important;\n    -webkit-backdrop-filter: none !important;\n  }\n\n  /* Filter panel container: drop blur on iOS */\n  .search-filter-container {\n    backdrop-filter: none !important;\n    -webkit-backdrop-filter: none !important;\n    background: rgba(22, 26, 36, 0.98) !important;\n  }\n\n  /* Transactions filter card: drop blur on iOS */\n  .filter-card {\n    backdrop-filter: none !important;\n    -webkit-backdrop-filter: none !important;\n    background: rgba(30, 36, 48, 0.98) !important;\n  }\n}",
+        "StartLine": 6511,
+        "TargetContent": ""
+      }
+    ],
+    "TargetFile": "C:\\Users\\mario\\Desktop\\money-manager\\style.css",
+    "toolAction": "Editing style.css for iOS GPU acceleration",
+    "toolSummary": "CSS iOS performance optimization"
+  }
+}
+
+--- Match in Brain 0b4b40ec-6bec-448d-b870-7826bcd30916 at line 5009 (Step Index: 6632, Created: 2026-06-14T11:39:48Z) ---
+Tool call: {
+  "name": "replace_file_content",
+  "args": {
+    "AllowMultiple": false,
+    "Description": "Reduce modal form gaps on iOS to make it compact like Android",
+    "EndLine": 6079,
+    "Instruction": "Change modal gap from 16px to 2px and remove hardcoded 52px height for iOS form rows",
+    "ReplacementContent": "  flex: 1 !important;\n  overflow-y: auto !important;\n  padding: 16px !important;\n  display: flex !important;\n  flex-direction: column !important;\n  gap: 2px !important;\n  -webkit-overflow-scrolling: touch !important;\n  min-height: 0 !important;\n  padding-bottom: calc(16px + var(--keyboard-offset, 0px)) !important;\n  transition: padding-bottom 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;\n}\n\n/* Lock form row dimensions */\n.form-group, \n.input-row, \n.custom-dropdown-trigger,\n.date-picker-row,\n#transaction-modal .form-row,\n#transaction-modal .custom-select-trigger,\n#transaction-modal .focusable {\n  flex-shrink: 0 !important;\n  height: auto !important;\n  min-height: 44px !important;\n}",
+    "StartLine": 6056,
+    "TargetContent": "  flex: 1 !important;\n  overflow-y: auto !important;\n  padding: 16px !important;\n  display: flex !important;\n  flex-direction: column !important;\n  gap: 16px !important;\n  -webkit-overflow-scrolling: touch !important;\n  min-height: 0 !important;\n  padding-bottom: calc(16px + var(--keyboard-offset, 0px)) !important;\n  transition: padding-bottom 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;\n}\n\n/* Lock form row dimensions */\n.form-group, \n.input-row, \n.custom-dropdown-trigger,\n.date-picker-row,\n#transaction-modal .form-row,\n#transaction-modal .custom-select-trigger,\n#transaction-modal .focusable {\n  flex-shrink: 0 !important;\n  height: 52px !important;\n  min-height: 52px !important;\n}",
+    "TargetFile": "c:\\Users\\mario\\Desktop\\money-manager\\style.css",
+    "toolAction": "Edit style.css",
+    "toolSummary": "Compact iOS modal fields"
+  }
+}
+
+--- Match in Brain 0b4b40ec-6bec-448d-b870-7826bcd30916 at line 5046 (Step Index: 6669, Created: 2026-06-14T11:44:54Z) ---
+Tool call: {
+  "name": "replace_file_content",
+  "args": {
+    "AllowMultiple": false,
+    "Description": "Make calculator buttons wider-looking by reducing gap and height on iOS",
+    "EndLine": 6022,
+    "Instruction": "Adjust calculator keypad container height and add grid/button dimension overrides for iOS",
+    "ReplacementContent": ".calc-keypad-container {\n  position: absolute !important;\n  bottom: 0 !important;\n  left: 0 !important;\n  right: 0 !important;\n  height: auto !important;\n  max-height: none !important;",
+    "StartLine": 6016,
+    "TargetContent": ".calc-keypad-container {\n  position: absolute !important;\n  bottom: 0 !important;\n  left: 0 !important;\n  right: 0 !important;\n  height: 365px !important;\n  max-height: 365px !important;",
+    "TargetFile": "c:\\Users\\mario\\Desktop\\money-manager\\style.css",
+    "toolAction": "Edit style.css",
+    "toolSummary": "Fix iOS calculator proportions"
+  }
+}
+
+--- Match in Brain 0b4b40ec-6bec-448d-b870-7826bcd30916 at line 5052 (Step Index: 6675, Created: 2026-06-14T11:45:10Z) ---
+Tool call: {
+  "name": "replace_file_content",
+  "args": {
+    "AllowMultiple": false,
+    "Description": "Add grid and button overrides for iOS calculator to make buttons wider and gaps smaller",
+    "EndLine": 6039,
+    "Instruction": "Insert keypad grid and button overrides to the iOS block",
+    "ReplacementContent": ".calc-keypad-container.active {\n  transform: translateY(0) !important;\n}\n.calc-keypad-grid {\n  gap: 2px !important;\n  padding: 8px 4px env(safe-area-inset-bottom, 8px) 4px !important;\n}\n.calc-key-btn {\n  height: 48px !important;\n}",
+    "StartLine": 6037,
+    "TargetContent": ".calc-keypad-container.active {\n  transform: translateY(0) !important;\n}",
+    "TargetFile": "c:\\Users\\mario\\Desktop\\money-manager\\style.css",
+    "toolAction": "Add iOS grid rules",
+    "toolSummary": "Add iOS grid rules"
+  }
+}
+
+--- Match in Brain 0b4b40ec-6bec-448d-b870-7826bcd30916 at line 5110 (Step Index: 6733, Created: 2026-06-14T11:54:52Z) ---
+Tool call: {
+  "name": "multi_replace_file_content",
+  "args": {
+    "Description": "Apply multiple UI gap reductions and color matching on iOS only",
+    "Instruction": "Reduce iOS gaps above/below type selector tabs, remove safe area padding from calculator keypad, and sync modal background color with body background on iOS",
+    "ReplacementChunks": [
+      {
+        "AllowMultiple": false,
+        "EndLine": 6061,
+        "ReplacementContent": ".form-fields-container,\n#transaction-modal .modal-body {\n  flex: 1 !important;\n  overflow-y: auto !important;\n  padding: 4px 16px 16px 16px !important;\n  display: flex !important;",
+        "StartLine": 6056,
+        "TargetContent": ".form-fields-container,\n#transaction-modal .modal-body {\n  flex: 1 !important;\n  overflow-y: auto !important;\n  padding: 16px !important;\n  display: flex !important;"
+      },
+      {
+        "AllowMultiple": false,
+        "EndLine": 6041,
+        "ReplacementContent": ".calc-keypad-grid {\n  gap: 2px !important;\n  padding: 8px 4px 8px 4px !important;\n}",
+        "StartLine": 6038,
+        "TargetContent": ".calc-keypad-grid {\n  gap: 2px !important;\n  padding: 8px 4px env(safe-area-inset-bottom, 8px) 4px !important;\n}"
+      },
+      {
+        "AllowMultiple": false,
+        "EndLine": 6362,
+        "ReplacementContent": "  .bottom-nav {\n    padding-bottom: 5px !important;\n  }\n\n  #transaction-modal.tx-modal-overlay {\n    background-color: var(--bg-card) !important;\n  }\n  #transaction-modal .modal-header {\n    padding-bottom: 8px !important;\n  }\n  #transaction-modal .type-selector-tabs {\n    margin-top: 4px !important;\n    margin-bottom: 4px !important;\n  }",
+        "StartLine": 6360,
+        "TargetContent": "  .bottom-nav {\n    padding-bottom: 5px !important;\n  }"
+      }
+    ],
+    "TargetFile": "c:\\Users\\mario\\Desktop\\money-manager\\style.css",
+    "toolAction": "Edit style.css",
+    "toolSummary": "Fix iOS gaps and colors"
+  }
+}
+
+--- Match in Brain 0b4b40ec-6bec-448d-b870-7826bcd30916 at line 5184 (Step Index: 6808, Created: 2026-06-14T12:06:17Z) ---
+Tool call: {
+  "name": "multi_replace_file_content",
+  "args": {
+    "Description": "Fix iOS custom calculator offset, dynamic body color for modal, and tighten header spacing",
+    "Instruction": "Update iOS CSS block to change the body background to match the modal when active, adjust the keyboard offset to the new compact height, and reduce header/tabs spacing to make room for the Details field.",
+    "ReplacementChunks": [
+      {
+        "AllowMultiple": false,
+        "EndLine": 6013,
+        "ReplacementContent": "#transaction-modal.keypad-active {\n  --keyboard-offset: 248px;\n}",
+        "StartLine": 6011,
+        "TargetContent": "#transaction-modal.keypad-active {\n  --keyboard-offset: 365px;\n}"
+      },
+      {
+        "AllowMultiple": false,
+        "EndLine": 6373,
+        "ReplacementContent": "  body:has(#transaction-modal.active) {\n    background-color: #121824 !important;\n  }\n  #transaction-modal .modal-header {\n    padding-top: 4px !important;\n    padding-bottom: 4px !important;\n    border-bottom: none !important;\n    min-height: 40px !important;\n  }\n  #transaction-modal .type-selector-tabs {\n    margin-top: 0px !important;\n    margin-bottom: 0px !important;\n  }\n  #transaction-modal .type-tab-btn {\n    padding: 6px !important;\n  }",
+        "StartLine": 6364,
+        "TargetContent": "  #transaction-modal.tx-modal-overlay {\n    background-color: var(--bg-card) !important;\n  }\n  #transaction-modal .modal-header {\n    padding-bottom: 8px !important;\n  }\n  #transaction-modal .type-selector-tabs {\n    margin-top: 4px !important;\n    margin-bottom: 4px !important;\n  }"
+      }
+    ],
+    "TargetFile": "c:\\Users\\mario\\Desktop\\money-manager\\style.css",
+    "toolAction": "Edit style.css",
+    "toolSummary": "Fix iOS calculator offset and color"
+  }
+}
+
+--- Match in Brain 0b4b40ec-6bec-448d-b870-7826bcd30916 at line 5221 (Step Index: 6845, Created: 2026-06-14T12:14:33Z) ---
+Tool call: {
+  "name": "multi_replace_file_content",
+  "args": {
+    "Description": "Center modal title, refine keyboard offset and action buttons spacing on iOS",
+    "Instruction": "Center the modal title, decrease keyboard offset to 244px, remove safe area padding from action buttons when keyboard/keypad is active, and tighten header spacing further to make room for details field",
+    "ReplacementChunks": [
+      {
+        "AllowMultiple": false,
+        "EndLine": 6013,
+        "ReplacementContent": "#transaction-modal.keypad-active {\n  --keyboard-offset: 244px;\n}",
+        "StartLine": 6011,
+        "TargetContent": "#transaction-modal.keypad-active {\n  --keyboard-offset: 248px;\n}"
+      },
+      {
+        "AllowMultiple": false,
+        "EndLine": 6370,
+        "ReplacementContent": "  #transaction-modal .modal-header {\n    padding-top: 4px !important;\n    padding-bottom: 4px !important;\n    border-bottom: none !important;\n    min-height: 32px !important;\n    position: relative !important;\n    justify-content: center !important;\n  }\n  #transaction-modal .modal-title {\n    margin: 0 !important;\n    position: absolute !important;\n    left: 50% !important;\n    transform: translateX(-50%) !important;\n    text-align: center !important;\n    line-height: 1 !important;\n  }\n  #transaction-modal.keypad-active .modal-action-buttons,\n  body.keyboard-active #transaction-modal .modal-action-buttons {\n    padding-top: 8px !important;\n    padding-bottom: 8px !important;\n  }\n  #transaction-modal .type-selector-tabs {",
+        "StartLine": 6364,
+        "TargetContent": "  #transaction-modal .modal-header {\n    padding-top: 4px !important;\n    padding-bottom: 4px !important;\n    border-bottom: none !important;\n    min-height: 40px !important;\n  }\n  #transaction-modal .type-selector-tabs {"
+      }
+    ],
+    "TargetFile": "c:\\Users\\mario\\Desktop\\money-manager\\style.css",
+    "toolAction": "Edit style.css",
+    "toolSummary": "Refine iOS title and padding"
+  }
+}
+
+--- Match in Brain 0b4b40ec-6bec-448d-b870-7826bcd30916 at line 6349 (Step Index: 7994, Created: 2026-06-14T15:14:06Z) ---
+Tool call: {
+  "name": "multi_replace_file_content",
+  "args": {
+    "ArtifactMetadata": {
+      "RequestFeedback": false,
+      "Summary": "Enlarged calculator keys to 54px and updated offset to 282px with a 14px gap from Save/Cancel buttons. Reverted title centering and positioned it on the left next to the back arrow with a 12px gap for all devices.",
+      "UserFacing": true
+    },
+    "Description": "Make the calculator buttons larger and add a margin/gap below the Save/Cancel buttons when the keypad is open. Also, move the transaction modal title to the left, next to the back arrow for all platforms.",
+    "Instruction": "Enlarge calculator buttons, adjust keypad offset gap, and left-align transaction title next to the back arrow.",
+    "ReplacementChunks": [
+      {
+        "AllowMultiple": false,
+        "EndLine": 6020,
+        "ReplacementContent": "#transaction-modal.keypad-active {\n  --keyboard-offset: 282px;\n}",
+        "StartLine": 6017,
+        "TargetContent": "#transaction-modal.keypad-active {\n  --keyboard-offset: 244px;\n}"
+      },
+      {
+        "AllowMultiple": false,
+        "EndLine": 6055,
+        "ReplacementContent": ".calc-key-btn {\n  height: 54px !important;\n}\n\n#transaction-modal .modal-header {\n  display: flex !important;\n  justify-content: flex-start !important;\n  align-items: center !important;\n  gap: 12px !important;\n}\n#transaction-modal .modal-title {\n  position: static !important;\n  transform: none !important;\n  margin: 0 !important;\n  margin-right: auto !important;\n  white-space: nowrap !important;\n  font-size: 16px !important;\n  font-weight: 700 !important;\n  color: #ffffff !important;\n}",
+        "StartLine": 6053,
+        "TargetContent": ".calc-key-btn {\n  height: 48px !important;\n}"
+      },
+      {
+        "AllowMultiple": false,
+        "EndLine": 6379,
+        "ReplacementContent": "  #transaction-modal .modal-header {\n    padding-top: 4px !important;\n    padding-bottom: 4px !important;\n    border-bottom: none !important;\n    min-height: 32px !important;\n    position: relative !important;\n    display: flex !important;\n    justify-content: flex-start !important;\n    align-items: center !important;\n    gap: 12px !important;\n  }",
+        "StartLine": 6362,
+        "TargetContent": "  #transaction-modal .modal-header {\n    padding-top: 4px !important;\n    padding-bottom: 4px !important;\n    border-bottom: none !important;\n    min-height: 32px !important;\n    position: relative !important;\n  }\n  #transaction-modal .modal-title {\n    position: absolute !important;\n    left: 50% !important;\n    top: 50% !important;\n    transform: translate(-50%, -50%) !important;\n    margin: 0 !important;\n    white-space: nowrap !important;\n    font-size: 16px !important;\n    font-weight: 700 !important;\n    color: #ffffff !important;\n  }"
+      }
+    ],
+    "TargetFile": "c:\\Users\\mario\\Desktop\\money-manager\\style.css",
+    "toolAction": "Updating style.css for calculator sizes and header title alignment",
+    "toolSummary": "Modify style.css for title and keypad"
+  }
+}
+
+--- Match in Brain 0b4b40ec-6bec-448d-b870-7826bcd30916 at line 6357 (Step Index: 8002, Created: 2026-06-14T15:14:53Z) ---
+Tool call: {
+  "name": "write_to_file",
+  "args": {
+    "ArtifactMetadata": {
+      "RequestFeedback": false,
+      "Summary": "Walkthrough documenting the calculator size enlargement, footer gap when keypad is open, and title left-alignment next to the back arrow in Build v371.",
+      "UserFacing": true
+    },
+    "CodeContent": "# Walkthrough: Calculator Enlargement & Title Left-Alignment (Build v371)\n\nThis walkthrough documents the keypad styling enhancements and header title alignment corrections implemented in Build v371.\n\n---\n\n## 1. Calculator Keypad Enlargement & Spacing Gap\n### The Issue\n- The custom calculator keypad (`.calc-key-btn`) had key heights restricted to `48px`. This made the calculator buttons feel too small and short.\n- The Save/Cancel action footer (`.modal-action-buttons`) rested directly on top of the keypad with `0px` gap (offset of `244px`), making it feel cramped and glued to the keys.\n\n### The Fix\n- **File**: [style.css](file:///c:/Users/mario/Desktop/money-manager/style.css)\n- Increased `.calc-key-btn` height to **`54px !important`**. This enlarges the calculator keys by ~12.5%, giving them a much better premium look and feel.\n- Increased the keypad offset Translation to **`282px`** when `#transaction-modal.keypad-active` is open:\n  ```css\n  #transaction-modal.keypad-active {\n    --keyboard-offset: 282px;\n  }\n  ```\n- **How it works**: Since the new keypad height is `268px` (due to larger keys), translating the action footer by `282px` creates a clean, symmetrical **`14px` gap** above the calculator keypad, matching the gap we created for the software keyboard!\n\n---\n\n## 2. Left-Aligning the Modal Title (\"Έξοδο\" / \"Έσοδο\" / \"Μεταφορά\")\n### The Issue\nPreviously, we centered the header title absolutely. While it positioned the text in the middle of the screen, the user preferred to keep it aligned to the left, positioned right next to the back arrow, which is a cleaner and more native-like design.\n\n### The Fix\n- **File**: [style.css](file:///c:/Users/mario/Desktop/money-manager/style.css)\n- Removed the absolute centering styles from `#transaction-modal .modal-title` in both the global scope and the iOS supports block.\n- Configured a new flex-start layout on `.modal-header` and pushed the title next to the back arrow:\n  ```css\n  #transaction-modal .modal-header {\n    display: flex !important;\n    justify-content: flex-start !important;\n    align-items: center !important;\n    gap: 12px !important;\n  }\n  #transaction-modal .modal-title {\n    position: static !important;\n    transform: none !important;\n    margin: 0 !important;\n    margin-right: auto !important; /* Pushes the delete button container to the far right */\n    white-space: nowrap !important;\n    font-size: 16px !important;\n    font-weight: 700 !important;\n    color: #ffffff !important;\n  }\n  ```\n- **How it works**: The back button is aligned on the left, the title sits exactly `12px` next to it, and `margin-right: auto` pushes the delete icon to the far-right corner, ensuring a perfectly balanced header layout. This applies to **iOS, Android, and Web**.\n\n---\n\n## 3. Build & Deployment\n- Compiled the app version to **Build v371**.\n- Synced Capacitor native assets and compiled the Android APK (`BudgetAssistant.apk` copied to the Desktop).\n- Deployed files to:\n  - [https://budget-assistant-pwa.pages.dev](https://budget-assistant-pwa.pages.dev)\n  - [https://money-manager-pwa.pages.dev](https://money-manager-pwa.pages.dev)\n",
+    "Description": "Update walkthrough.md for Build v371.",
+    "Overwrite": true,
+    "TargetFile": "C:\\Users\\mario\\.gemini\\antigravity\\brain\\0b4b40ec-6bec-448d-b870-7826bcd30916/walkthrough.md",
+    "toolAction": "Updating walkthrough.md for Build v371 in artifacts directory",
+    "toolSummary": "Update walkthrough.md"
+  }
+}
+
+--- Match in Brain 92accbcb-9725-415b-bfa2-907fb2ea521c at line 1822 (Step Index: 1846, Created: 2026-07-26T17:30:01Z) ---
+Tool call: {
+  "name": "replace_file_content",
+  "args": {
+    "AllowMultiple": false,
+    "Description": "Fix calculator keypad height and bottom padding in style.css",
+    "EndLine": 6179,
+    "Instruction": "Add safe-area padding-bottom to calc-keypad-container and optimize calc-key-btn height",
+    "ReplacementContent": ".calc-keypad-container {\n  position: absolute !important;\n  bottom: 0 !important;\n  left: 0 !important;\n  right: 0 !important;\n  height: auto !important;\n  max-height: none !important;\n  background-color: #0f121a !important;\n  border-top: 1px solid var(--border) !important;\n  display: flex !important;\n  flex-direction: column !important;\n  transform: translateY(100%) !important;\n  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;\n  z-index: 10 !important;\n  flex-shrink: 0 !important;\n  box-sizing: border-box !important;\n  padding-bottom: max(12px, env(safe-area-inset-bottom)) !important;\n  /* iOS GPU layer: prevents keypad slide from causing compositing lag */\n  will-change: transform !important;\n  -webkit-backface-visibility: hidden !important;\n  backface-visibility: hidden !important;\n}\n.calc-keypad-container.active {\n  transform: translateY(0) !important;\n}\n.calc-keypad-grid {\n  gap: 2px !important;\n  padding: 6px 4px 6px 4px !important;\n}\n.calc-key-btn {\n  height: 46px !important;\n}",
+    "StartLine": 6147,
+    "TargetContent": ".calc-keypad-container {\n  position: absolute !important;\n  bottom: 0 !important;\n  left: 0 !important;\n  right: 0 !important;\n  height: auto !important;\n  max-height: none !important;\n  background-color: #0f121a !important;\n  border-top: 1px solid var(--border) !important;\n  display: flex !important;\n  flex-direction: column !important;\n  transform: translateY(100%) !important;\n  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;\n  z-index: 10 !important;\n  flex-shrink: 0 !important;\n  box-sizing: border-box !important;\n  /* iOS GPU layer: prevents keypad slide from causing compositing lag */\n  will-change: transform !important;\n  -webkit-backface-visibility: hidden !important;\n  backface-visibility: hidden !important;\n}\n.calc-keypad-container.active {\n  transform: translateY(0) !important;\n}\n.calc-keypad-grid {\n  gap: 2px !important;\n  padding: 8px 4px 8px 4px !important;\n}\n.calc-key-btn {\n  height: 54px !important;\n}",
+    "TargetFile": "c:\\Users\\mario\\Desktop\\money-manager\\style.css",
+    "toolAction": "Fixing calculator keypad height in style.css",
+    "toolSummary": "Fix calculator keypad height in style.css"
+  }
+}
+
+--- Match in Brain 92accbcb-9725-415b-bfa2-907fb2ea521c at line 1826 (Step Index: 1850, Created: 2026-07-26T17:30:07Z) ---
+Tool call: {
+  "name": "replace_file_content",
+  "args": {
+    "AllowMultiple": false,
+    "Description": "Set compact 46px calc-key-btn height on Android to prevent viewport overflow",
+    "EndLine": 6940,
+    "Instruction": "Set calc-key-btn height to 46px on Android",
+    "ReplacementContent": "/* Android Specific Calculator Keypad adjustments */\nbody.is-android #transaction-modal.keypad-active {\n  --keyboard-offset: 280px !important;\n}\nbody.is-android .calc-keypad-container .calc-key-btn {\n  height: 46px !important;\n}",
+    "StartLine": 6932,
+    "TargetContent": "/* Android Specific Calculator Keypad adjustments */\nbody.is-android #transaction-modal.keypad-active {\n  --keyboard-offset: 322px !important;\n}\nbody.is-android .calc-keypad-container .calc-key-btn {\n  height: 64px !important;\n}",
+    "TargetFile": "c:\\Users\\mario\\Desktop\\money-manager\\style.css",
+    "toolAction": "Fixing Android keypad height in style.css",
+    "toolSummary": "Fix Android keypad height in style.css"
+  }
+}
+
+--- Match in Brain 92accbcb-9725-415b-bfa2-907fb2ea521c at line 1854 (Step Index: 1878, Created: 2026-07-26T17:34:11Z) ---
+Tool call: {
+  "name": "multi_replace_file_content",
+  "args": {
+    "ArtifactMetadata": {
+      "RequestFeedback": false,
+      "Summary": "Increase calculator keypad button height to 54px for comfortable touch size",
+      "UserFacing": false
+    },
+    "Description": "Increase calculator keypad button height to 54px in style.css",
+    "Instruction": "Increase calc-key-btn height to 54px and adjust keyboard-offset",
+    "ReplacementChunks": [
+      {
+        "AllowMultiple": false,
+        "EndLine": 6179,
+        "ReplacementContent": ".calc-keypad-grid {\n  gap: 4px !important;\n  padding: 8px 6px 8px 6px !important;\n}\n.calc-key-btn {\n  height: 54px !important;\n  font-size: 19px !important;\n}",
+        "StartLine": 6172,
+        "TargetContent": ".calc-keypad-grid {\n  gap: 2px !important;\n  padding: 6px 4px 6px 4px !important;\n}\n.calc-key-btn {\n  height: 46px !important;\n}"
+      },
+      {
+        "AllowMultiple": false,
+        "EndLine": 6940,
+        "ReplacementContent": "/* Android Specific Calculator Keypad adjustments */\nbody.is-android #transaction-modal.keypad-active {\n  --keyboard-offset: 310px !important;\n}\nbody.is-android .calc-keypad-container .calc-key-btn {\n  height: 54px !important;\n  font-size: 19px !important;\n}",
+        "StartLine": 6932,
+        "TargetContent": "/* Android Specific Calculator Keypad adjustments */\nbody.is-android #transaction-modal.keypad-active {\n  --keyboard-offset: 280px !important;\n}\nbody.is-android .calc-keypad-container .calc-key-btn {\n  height: 46px !important;\n}"
+      }
+    ],
+    "TargetFile": "c:\\Users\\mario\\Desktop\\money-manager\\style.css",
+    "toolAction": "Increasing calculator keypad size in style.css",
+    "toolSummary": "Increase calculator keypad size in style.css"
+  }
+}
+
+--- Match in Brain 92accbcb-9725-415b-bfa2-907fb2ea521c at line 1868 (Step Index: 1892, Created: 2026-07-26T17:37:29Z) ---
+Tool call: {
+  "name": "multi_replace_file_content",
+  "args": {
+    "ArtifactMetadata": {
+      "RequestFeedback": false,
+      "Summary": "Restore original 54px calculator keypad layout and 260px offset in style.css",
+      "UserFacing": false
+    },
+    "Description": "Restore original 54px calculator keypad height and 18px font size in style.css",
+    "Instruction": "Restore original 54px calc-key-btn height and gap in style.css",
+    "ReplacementChunks": [
+      {
+        "AllowMultiple": false,
+        "EndLine": 6179,
+        "ReplacementContent": ".calc-keypad-grid {\n  gap: 2px !important;\n  padding: 8px 4px 8px 4px !important;\n}\n.calc-key-btn {\n  height: 54px !important;\n  font-size: 18px !important;\n}",
+        "StartLine": 6172,
+        "TargetContent": ".calc-keypad-grid {\n  gap: 4px !important;\n  padding: 8px 6px 8px 6px !important;\n}\n.calc-key-btn {\n  height: 54px !important;\n  font-size: 19px !important;\n}"
+      },
+      {
+        "AllowMultiple": false,
+        "EndLine": 6940,
+        "ReplacementContent": "/* Android Specific Calculator Keypad adjustments */\nbody.is-android #transaction-modal.keypad-active {\n  --keyboard-offset: 260px !important;\n}\nbody.is-android .calc-keypad-container .calc-key-btn {\n  height: 54px !important;\n  font-size: 18px !important;\n}",
+        "StartLine": 6932,
+        "TargetContent": "/* Android Specific Calculator Keypad adjustments */\nbody.is-android #transaction-modal.keypad-active {\n  --keyboard-offset: 310px !important;\n}\nbody.is-android .calc-keypad-container .calc-key-btn {\n  height: 54px !important;\n  font-size: 19px !important;\n}"
+      }
+    ],
+    "TargetFile": "c:\\Users\\mario\\Desktop\\money-manager\\style.css",
+    "toolAction": "Restoring original calculator keypad layout in style.css",
+    "toolSummary": "Restore original calculator keypad layout in style.css"
+  }
+}
+
+--- Match in Brain 92accbcb-9725-415b-bfa2-907fb2ea521c at line 1882 (Step Index: 1906, Created: 2026-07-26T18:25:09Z) ---
+Tool call: {
+  "name": "multi_replace_file_content",
+  "args": {
+    "ArtifactMetadata": {
+      "RequestFeedback": false,
+      "Summary": "Set z-index 25 and 295px keyboard-offset for transaction action buttons so they float perfectly above calculator keypad",
+      "UserFacing": false
+    },
+    "Description": "Fix action buttons overlapping with keypad in style.css",
+    "Instruction": "Set z-index: 25 and --keyboard-offset: 295px for keypad-active action buttons",
+    "ReplacementChunks": [
+      {
+        "AllowMultiple": false,
+        "EndLine": 6210,
+        "ReplacementContent": "/* Action footer — lifts above keyboard/keypad */\n#transaction-modal .modal-action-buttons {\n  transform: translateY(calc(-1 * var(--keyboard-offset, 0px))) !important;\n  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;\n  background-color: #121824 !important;\n  z-index: 5 !important;\n  margin-top: auto !important;\n  padding-top: 14px !important;\n  padding-bottom: env(safe-area-inset-bottom, 14px) !important;\n  flex-shrink: 0 !important;\n}\n\n#transaction-modal.keypad-active .modal-action-buttons {\n  z-index: 25 !important;\n  --keyboard-offset: 295px !important;\n}",
+        "StartLine": 6199,
+        "TargetContent": "/* Action footer — lifts above keyboard/keypad */\n#transaction-modal .modal-action-buttons {\n  transform: translateY(calc(-1 * var(--keyboard-offset, 0px))) !important;\n  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;\n  background-color: #121824 !important;\n  z-index: 5 !important;\n  margin-top: auto !important;\n  padding-top: 16px !important;\n  padding-bottom: env(safe-area-inset-bottom, 16px) !important;\n  flex-shrink: 0 !important;\n}"
+      },
+      {
+        "AllowMultiple": false,
+        "EndLine": 6942,
+        "ReplacementContent": "/* Android Specific Calculator Keypad adjustments */\nbody.is-android #transaction-modal.keypad-active {\n  --keyboard-offset: 295px !important;\n}",
+        "StartLine": 6934,
+        "TargetContent": "/* Android Specific Calculator Keypad adjustments */\nbody.is-android #transaction-modal.keypad-active {\n  --keyboard-offset: 260px !important;\n}"
+      }
+    ],
+    "TargetFile": "c:\\Users\\mario\\Desktop\\money-manager\\style.css",
+    "toolAction": "Fixing action buttons z-index and keypad offset in style.css",
+    "toolSummary": "Fix action buttons z-index and keypad offset in style.css"
+  }
+}
+
+--- Match in Brain 92accbcb-9725-415b-bfa2-907fb2ea521c at line 1922 (Step Index: 1946, Created: 2026-07-26T19:17:46Z) ---
+Tool call: {
+  "name": "multi_replace_file_content",
+  "args": {
+    "ArtifactMetadata": {
+      "RequestFeedback": false,
+      "Summary": "Increase keypad bottom padding to 28px and optimize button sizes to prevent bottom row clipping on Android",
+      "UserFacing": false
+    },
+    "Description": "Adjust calculator keypad bottom padding and height to prevent bottom row cutoff on Android devices",
+    "Instruction": "Increase padding-bottom and adjust calc-key-btn heights and keyboard offsets",
+    "ReplacementChunks": [
+      {
+        "AllowMultiple": false,
+        "EndLine": 6180,
+        "ReplacementContent": "  padding-bottom: max(28px, env(safe-area-inset-bottom)) !important;\n  /* iOS GPU layer: prevents keypad slide from causing compositing lag */\n  will-change: transform !important;\n  -webkit-backface-visibility: hidden !important;\n  backface-visibility: hidden !important;\n}\n.calc-keypad-container.active {\n  transform: translateY(0) !important;\n}\n.calc-keypad-grid {\n  gap: 3px !important;\n  padding: 8px 6px 8px 6px !important;\n}\n.calc-key-btn {\n  height: 52px !important;\n  font-size: 19px !important;\n}",
+        "StartLine": 6164,
+        "TargetContent": "  padding-bottom: max(12px, env(safe-area-inset-bottom)) !important;\n  /* iOS GPU layer: prevents keypad slide from causing compositing lag */\n  will-change: transform !important;\n  -webkit-backface-visibility: hidden !important;\n  backface-visibility: hidden !important;\n}\n.calc-keypad-container.active {\n  transform: translateY(0) !important;\n}\n.calc-keypad-grid {\n  gap: 2px !important;\n  padding: 8px 4px 8px 4px !important;\n}\n.calc-key-btn {\n  height: 54px !important;\n  font-size: 18px !important;\n}"
+      },
+      {
+        "AllowMultiple": false,
+        "EndLine": 6210,
+        "ReplacementContent": "#transaction-modal.keypad-active .modal-action-buttons {\n  z-index: 25 !important;\n  --keyboard-offset: 315px !important;\n}",
+        "StartLine": 6205,
+        "TargetContent": "#transaction-modal.keypad-active .modal-action-buttons {\n  z-index: 25 !important;\n  --keyboard-offset: 295px !important;\n}"
+      },
+      {
+        "AllowMultiple": false,
+        "EndLine": 6945,
+        "ReplacementContent": "/* Android Specific Calculator Keypad adjustments */\nbody.is-android #transaction-modal.keypad-active {\n  --keyboard-offset: 315px !important;\n}\nbody.is-android .calc-keypad-container .calc-key-btn {\n  height: 52px !important;\n  font-size: 19px !important;\n}",
+        "StartLine": 6932,
+        "TargetContent": "/* Android Specific Calculator Keypad adjustments */\nbody.is-android #transaction-modal.keypad-active {\n  --keyboard-offset: 295px !important;\n}\nbody.is-android .calc-keypad-container .calc-key-btn {\n  height: 54px !important;\n  font-size: 18px !important;\n}"
+      }
+    ],
+    "TargetFile": "c:\\Users\\mario\\Desktop\\money-manager\\style.css",
+    "toolAction": "Updating calculator padding and keyboard offset in style.css",
+    "toolSummary": "Update calculator padding and keyboard offset in style.css"
+  }
+}
+
+--- Match in Brain 92accbcb-9725-415b-bfa2-907fb2ea521c at line 2072 (Step Index: 2097, Created: 2026-07-28T07:54:02Z) ---
+Tool call: {
+  "name": "multi_replace_file_content",
+  "args": {
+    "ArtifactMetadata": {
+      "RequestFeedback": false,
+      "Summary": "Restore original keypad dimensions, height, offsets, and button sizes from version 325/270",
+      "UserFacing": false
+    },
+    "Description": "Revert calculator keypad layout and dimensions to the original build v325 settings",
+    "Instruction": "Restore fixed keypad container height of 365px, key height of 60px, grid spacing, and 365px keyboard offset.",
+    "ReplacementChunks": [
+      {
+        "AllowMultiple": false,
+        "EndLine": 6146,
+        "ReplacementContent": "#transaction-modal.keypad-active {\n  --keyboard-offset: 365px;\n}",
+        "StartLine": 6143,
+        "TargetContent": "#transaction-modal.keypad-active {\n  --keyboard-offset: 282px;\n}"
+      },
+      {
+        "AllowMultiple": false,
+        "EndLine": 6180,
+        "ReplacementContent": "/* Custom Calculator Keypad — overlays from bottom */\n.calc-keypad-container {\n  position: absolute !important;\n  bottom: 0 !important;\n  left: 0 !important;\n  right: 0 !important;\n  height: 365px !important;\n  max-height: 365px !important;\n  background-color: #0f121a !important;\n  border-top: 1px solid var(--border) !important;\n  display: flex !important;\n  flex-direction: column !important;\n  transform: translateY(100%) !important;\n  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;\n  z-index: 10 !important;\n  flex-shrink: 0 !important;\n  box-sizing: border-box !important;\n  padding-bottom: env(safe-area-inset-bottom, 0px) !important;\n  /* iOS GPU layer: prevents keypad slide from causing compositing lag */\n  will-change: transform !important;\n  -webkit-backface-visibility: hidden !important;\n  backface-visibility: hidden !important;\n}\n.calc-keypad-container.active {\n  transform: translateY(0) !important;\n}\n.calc-keypad-grid {\n  gap: 4px !important;\n  padding: 8px 12px 12px 12px !important;\n}\n.calc-key-btn {\n  height: 60px !important;\n  font-size: 24px !important;\n}",
+        "StartLine": 6147,
+        "TargetContent": "/* Custom Calculator Keypad — overlays from bottom */\n.calc-keypad-container {\n  position: absolute !important;\n  bottom: 0 !important;\n  left: 0 !important;\n  right: 0 !important;\n  height: auto !important;\n  max-height: none !important;\n  background-color: #0f121a !important;\n  border-top: 1px solid var(--border) !important;\n  display: flex !important;\n  flex-direction: column !important;\n  transform: translateY(100%) !important;\n  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;\n  z-index: 10 !important;\n  flex-shrink: 0 !important;\n  box-sizing: border-box !important;\n  padding-bottom: max(28px, env(safe-area-inset-bottom)) !important;\n  /* iOS GPU layer: prevents keypad slide from causing compositing lag */\n  will-change: transform !important;\n  -webkit-backface-visibility: hidden !important;\n  backface-visibility: hidden !important;\n}\n.calc-keypad-container.active {\n  transform: translateY(0) !important;\n}\n.calc-keypad-grid {\n  gap: 3px !important;\n  padding: 8px 6px 8px 6px !important;\n}\n.calc-key-btn {\n  height: 52px !important;\n  font-size: 19px !important;\n}"
+      },
+      {
+        "AllowMultiple": false,
+        "EndLine": 6215,
+        "ReplacementContent": "#transaction-modal.keypad-active .modal-action-buttons {\n  z-index: 25 !important;\n  --keyboard-offset: 365px !important;\n}",
+        "StartLine": 6211,
+        "TargetContent": "#transaction-modal.keypad-active .modal-action-buttons {\n  z-index: 25 !important;\n  --keyboard-offset: 315px !important;\n}"
+      },
+      {
+        "AllowMultiple": false,
+        "EndLine": 6946,
+        "ReplacementContent": "/* Android Specific Calculator Keypad adjustments */\nbody.is-android #transaction-modal.keypad-active {\n  --keyboard-offset: 365px !important;\n}\nbody.is-android .calc-keypad-container .calc-key-btn {\n  height: 60px !important;\n  font-size: 24px !important;\n}",
+        "StartLine": 6939,
+        "TargetContent": "/* Android Specific Calculator Keypad adjustments */\nbody.is-android #transaction-modal.keypad-active {\n  --keyboard-offset: 315px !important;\n}\nbody.is-android .calc-keypad-container .calc-key-btn {\n  height: 52px !important;\n  font-size: 19px !important;\n}"
+      }
+    ],
+    "TargetFile": "c:\\Users\\mario\\Desktop\\money-manager\\style.css",
+    "toolAction": "Restoring stable keypad style overrides in style.css",
+    "toolSummary": "Restore stable keypad style overrides in style.css"
+  }
+}
+
+--- Match in Brain 92accbcb-9725-415b-bfa2-907fb2ea521c at line 2224 (Step Index: 2252, Created: 2026-07-28T08:05:13Z) ---
+Tool call: {
+  "name": "write_to_file",
+  "args": {
+    "CodeContent": "const fs = require('fs');\nconst path = require('path');\n\nconst brainsDir = \"C:\\\\Users\\\\mario\\\\.gemini\\\\antigravity\\\\brain\";\nconst brains = fs.readdirSync(brainsDir);\n\nlet output = \"Searching all brains for style.css changes related to the calculator keypad...\\n\";\n\nbrains.forEach(brainId => {\n  const brainPath = path.join(brainsDir, brainId);\n  if (!fs.statSync(brainPath).isDirectory()) return;\n  \n  const logsDir = path.join(brainPath, \".system_generated\", \"logs\");\n  if (!fs.existsSync(logsDir)) return;\n  \n  const transcriptPath = path.join(logsDir, \"transcript_full.jsonl\");\n  if (!fs.existsSync(transcriptPath)) return;\n  \n  console.log(\"Searching in brain:\", brainId);\n  \n  const fileContent = fs.readFileSync(transcriptPath, 'utf-8');\n  const lines = fileContent.split('\\n');\n  \n  lines.forEach((line, index) => {\n    if (!line.trim()) return;\n    try {\n      const obj = JSON.parse(line);\n      if (obj.tool_calls) {\n        obj.tool_calls.forEach(tc => {\n          if (tc.name === 'write_to_file' || tc.name === 'replace_file_content' || tc.name === 'multi_replace_file_content') {\n            const argsStr = JSON.stringify(tc.arguments || tc.args || '');\n            if (argsStr.includes('style.css') && (argsStr.includes('calc-keypad') || argsStr.includes('keyboard-offset') || argsStr.includes('calc-key-btn') || argsStr.includes('calc-btn'))) {\n              output += `\\n--- Match in Brain ${brainId} at line ${index} (Step Index: ${obj.step_index}, Created: ${obj.created_at}) ---\\n`;\n              output += `Tool call: ${JSON.stringify(tc, null, 2)}\\n`;\n            }\n          }\n        });\n      }\n    } catch (e) {\n      // ignore\n    }\n  });\n});\n\nfs.writeFileSync(\"C:\\\\Users\\\\mario\\\\Desktop\\\\money-manager\\\\scratch\\\\style_css_writes_results.txt\", output, 'utf-8');\nconsole.log(\"style.css writes search complete.\");\n",
+    "Description": "Create script to search for style.css writes containing keypad classes across all brains",
+    "Overwrite": true,
+    "TargetFile": "c:\\Users\\mario\\Desktop\\money-manager\\scratch\\search_style_writes.js",
+    "toolAction": "Creating search_style_writes.js in scratch folder",
+    "toolSummary": "Create search_style_writes.js"
+  }
+}
+
+--- Match in Brain b360fd4b-a43a-4605-b65b-9c5ebbd42ece at line 637 (Step Index: 639, Created: 2026-06-22T19:21:59Z) ---
+Tool call: {
+  "name": "replace_file_content",
+  "args": {
+    "AllowMultiple": false,
+    "Description": "Append Android-specific calculator keypad adjustments to the end of style.css.",
+    "EndLine": 6843,
+    "Instruction": "Append Android adjustments to style.css.",
+    "ReplacementContent": ".category-btn {\n    white-space: nowrap;\n    display: inline-flex;\n    align-items: center;\n    padding: 8px 12px;\n    background: var(--card-bg, #2a2f3d);\n    border: 1px solid var(--border-color, #333);\n    color: var(--text-color, #fff);\n    border-radius: 20px;\n    font-size: 14px;\n    cursor: pointer;\n}\n\n/* Android Specific Calculator Keypad adjustments */\nbody.is-android #transaction-modal.keypad-active {\n  --keyboard-offset: 322px !important;\n}\nbody.is-android .calc-keypad-container .calc-key-btn {\n  height: 64px !important;\n}",
+    "StartLine": 6832,
+    "TargetContent": ".category-btn {\n    white-space: nowrap;\n    display: inline-flex;\n    align-items: center;\n    padding: 8px 12px;\n    background: var(--card-bg, #2a2f3d);\n    border: 1px solid var(--border-color, #333);\n    color: var(--text-color, #fff);\n    border-radius: 20px;\n    font-size: 14px;\n    cursor: pointer;\n}",
+    "TargetFile": "c:/Users/mario/Desktop/money-manager/style.css",
+    "toolAction": "Appending Android styling in style.css",
+    "toolSummary": "Appending Android styling in style.css"
+  }
+}
+
+--- Match in Brain b360fd4b-a43a-4605-b65b-9c5ebbd42ece at line 661 (Step Index: 663, Created: 2026-06-22T19:23:44Z) ---
+Tool call: {
+  "name": "write_to_file",
+  "args": {
+    "ArtifactMetadata": {
+      "RequestFeedback": false,
+      "Summary": "Updated walkthrough document for version v424 summarizing the Android-specific calculator keypad adjustments and layout offsets.",
+      "UserFacing": true
+    },
+    "CodeContent": "# Walkthrough - Deletion Bug & Android Calculator Adjustments (v424)\n\nImplemented platform-specific layout improvements and resolved deletion sync bugs:\n1. **Android Calculator Height Increase (v424)**: Increased the key height of the custom calculator keypad from `54px` to `64px` specifically for Android devices to improve typing ergonomics. Added layout offset logic using `--keyboard-offset` to push modal contents up appropriately.\n2. **Deduplicating Cloud Records on Deletion (v423)**: When a transaction is deleted (singly or in bulk/selection mode), the app now automatically identifies any exact duplicates (matching by user_id, date, amount, type, category, accounts, and note) in both local state and Supabase, and deletes all of them in bulk from the database. This prevents old database duplicates from being fetched again and reappearing.\n3. **Local State Duplicate Filtering (v423)**: `deleteTransactionOffline` now filters out duplicate transactions from the local cache immediately.\n4. **Recurring Transaction Date Mismatch (v422)**: Normalizes transaction dates to `YYYY-MM-DD` when generating deletion keys in `state.deletedRecurringDates` to ensure they match template dates.\n5. **Missing `recurring_template_id` Content-Based Fallback (v422)**: Matches templates by content (same type, category, amount, account_from) if `recurring_template_id` is missing in `deleteTransactionOffline(id)`.\n6. **Optimistic Selection Deletion (v422)**: Rewrote `deleteSelectedTransactions()` to perform optimistic local deletions, suppression of realtime events, receipt photo cleanup, and template registration for all selected IDs immediately without lag.\n\n## Changes Made\n\n### Money Manager Web App\n\n#### [app.js](file:///C:/Users/mario/Desktop/money-manager/app.js)\n- **Platform Detection**: Added a global helper `isAndroid` which checks `/Android/i.test(navigator.userAgent)`.\n- **DOMContentLoaded Handler**: Detects if the device is Android and appends the `is-android` CSS class to `document.body` for scoped CSS selectors.\n\n#### [style.css](file:///C:/Users/mario/Desktop/money-manager/style.css)\n- Added Android-specific styles scoped under `body.is-android`:\n  - Sets key height to `64px !important` for `.calc-keypad-container .calc-key-btn` (increased from `54px`).\n  - Adjusts `--keyboard-offset` to `322px !important` (increased from `282px`) when the keypad is active (`#transaction-modal.keypad-active`) to lift the modal footer and scroll body inputs above the taller keypad.\n\n---\n\n## Verification Results\n\n### Automated Build & Deployment\nRan `./build_and_deploy.ps1` with the following outcomes:\n- **Version Bump**: Bumped to version `424`.\n- **PWA Assets**: Compiled and copied to the output folder.\n- **Android APK**: Debug APK built successfully (`BudgetAssistant.apk` and `BudgetAssistant-debug.apk` copied to Desktop) containing the updated styling and JS adjustments.\n- **Cloudflare Pages Deploy**: Successfully deployed to both:\n  - https://budget-assistant-pwa.pages.dev (Verified Live `version.json` at `{\"version\": 424}`)\n  - https://money-manager-pwa.pages.dev (Verified Live `version.json` at `{\"version\": 424}`)\n\n### Code Push\nStaged and pushed changes to the repository:\n- **Commit**: `v424: Increase custom calculator height on Android devices only`\n- **GitHub Remote**: Successfully pushed to the `main` branch.\n",
+    "Description": "Update walkthrough.md with v424 details.",
+    "Overwrite": true,
+    "TargetFile": "c:/Users/mario/.gemini/antigravity/brain/b360fd4b-a43a-4605-b65b-9c5ebbd42ece/walkthrough.md",
+    "toolAction": "Updating walkthrough",
+    "toolSummary": "Updating walkthrough.md in artifacts"
+  }
+}

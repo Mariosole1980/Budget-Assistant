@@ -88,7 +88,7 @@
               ${devButton}
             </div>
             <div style="font-size:11px;color:#8b949e;">
-              Budget Assistant • build v933
+              Budget Assistant • build v950
             </div>
           </div>
         `;
@@ -173,7 +173,7 @@
   <link rel="stylesheet" href="style.css?v=931">
   
   <!-- Capacitor Bridge -->
-  <script src="capacitor.js?v=933"></script>
+  <script src="capacitor.js?v=950"></script>
   
 
   <!-- Supabase client JS CDN -->
@@ -183,7 +183,7 @@
   <!-- Chart.js Datalabels Plugin CDN -->
   <script src="js/chartjs-plugin-datalabels.js"></script>
   <!-- SheetJS xlsx CDN for Excel Import/Export -->
-  <script src="xlsx.full.min.js?v=933"></script>
+  <script src="xlsx.full.min.js?v=950"></script>
 </head>
 <body style="background-color: #181b22; margin: 0; padding: 0; zoom: 0.93;">
   <script>
@@ -729,7 +729,7 @@
             <div style="height:1px;background:var(--border);margin:0 16px;"></div>
 
             <!-- Recurring row -->
-            <div class="settings-list-item" id="hub-row-recurring" style="cursor: pointer; padding: 14px 16px;">
+            <div class="settings-list-item" id="hub-row-recurring" onclick="openRecurringTemplatesModal()" style="cursor: pointer; padding: 14px 16px;">
               <div style="display:flex; align-items:center; gap:12px; flex:1;">
                 <div style="width:36px;height:36px;border-radius:10px;background:rgba(59,130,246,0.15);display:flex;align-items:center;justify-content:center;">
                   <i class="fa-solid fa-arrows-spin" style="color:#3b82f6;font-size:16px;"></i>
@@ -747,7 +747,7 @@
             <div style="height:1px;background:var(--border);margin:0 16px;"></div>
 
             <!-- Categories row -->
-            <div class="settings-list-item" id="hub-row-categories" style="cursor: pointer; padding: 14px 16px;">
+            <div class="settings-list-item" id="hub-row-categories" onclick="openSettingsCategoryManager()" style="cursor: pointer; padding: 14px 16px;">
               <div style="display:flex; align-items:center; gap:12px; flex:1;">
                 <div style="width:36px;height:36px;border-radius:10px;background:rgba(245,158,11,0.15);display:flex;align-items:center;justify-content:center;">
                   <i class="fa-solid fa-tags" style="color:#f59e0b;font-size:16px;"></i>
@@ -792,7 +792,7 @@
             <div style="height:1px;background:var(--border);margin:0 16px;"></div>
 
             <!-- Trash Bin row -->
-            <div class="settings-list-item" id="hub-row-trash" style="cursor: pointer; padding: 14px 16px;">
+            <div class="settings-list-item" id="hub-row-trash" onclick="openTrashBinModal()" style="cursor: pointer; padding: 14px 16px;">
               <div style="display:flex; align-items:center; gap:12px; flex:1;">
                 <div style="width:36px;height:36px;border-radius:10px;background:rgba(148,163,184,0.15);display:flex;align-items:center;justify-content:center;">
                   <i class="fa-solid fa-trash-can" style="color:#94a3b8;font-size:16px;"></i>
@@ -1101,7 +1101,7 @@
     <!-- ============================================== -->
     <!-- MODAL: SETTINGS SUBSCREEN (hub navigation)   -->
     <!-- ============================================== -->
-    <div   </div>
+    
 
   <!-- MODAL: USER GUIDE -->
   <div id="user-guide-modal" class="modal-overlay" style="align-items: center; justify-content: center;">
@@ -1593,7 +1593,7 @@
               <i class="fa-solid fa-chevron-right" style="color:var(--primary);font-size:12px;"></i>
             </div>
             <div class="settings-list-item">
-              <span class="settings-item-label" style="color:var(--text-muted);font-size:12px;" data-i18n="app_version">Έκδοση 1.0.0 (build v933)</span>
+              <span class="settings-item-label" style="color:var(--text-muted);font-size:12px;" data-i18n="app_version">Έκδοση 1.0.0 (build v950)</span>
               <span class="settings-item-value" style="font-size:12px;color:var(--text-muted);">Budget Assistant</span>
             </div>
           
@@ -1601,6 +1601,7 @@
         </div>
         </div>
       </div>
+    </div>
 
     <div id="supabase-modal" class="modal-overlay">
       <div class="modal-content">
@@ -2756,18 +2757,18 @@
   </div>
 
   <!-- Core Application Scripts -->
-  <script src="js/NLPProcessor.js?v=933"></script>
-  <script src="js/MemoryEngine.js?v=933"></script>
-  <script src="js/DecisionEngine.js?v=933"></script>
-  <script src="js/OnlineAIProvider.js?v=933"></script>
-  <script src="js/AIEngine.js?v=933"></script>
-  <script src="js/IntentCorpus.js?v=933"></script>
-  <script src="js/KnowledgeGraph.js?v=933"></script>
-  <script src="app.js?v=933"></script>
+  <script src="js/NLPProcessor.js?v=950"></script>
+  <script src="js/MemoryEngine.js?v=950"></script>
+  <script src="js/DecisionEngine.js?v=950"></script>
+  <script src="js/OnlineAIProvider.js?v=950"></script>
+  <script src="js/AIEngine.js?v=950"></script>
+  <script src="js/IntentCorpus.js?v=950"></script>
+  <script src="js/KnowledgeGraph.js?v=950"></script>
+  <script src="app.js?v=950"></script>
   
   <!-- Register PWA Service Worker -->
   <script>
-    const CURRENT_BUILD = 933;
+    const CURRENT_BUILD = 950;
     
     // ============================================================
     // AGGRESSIVE iOS PWA AUTO-UPDATE
@@ -3353,6 +3354,89 @@
       }
     })();
   </script>
+
+  <script>
+    // Aggressive Cache Buster for v935
+    (async function() {
+      if (!localStorage.getItem('cacheBusted_v935')) {
+        console.log("Busting PWA cache for v935...");
+        if ('serviceWorker' in navigator) {
+          try {
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            for (let registration of registrations) {
+              await registration.unregister();
+            }
+          } catch(e) { console.error(e); }
+        }
+        if ('caches' in window) {
+          try {
+            const keys = await caches.keys();
+            for (let key of keys) {
+              await caches.delete(key);
+            }
+          } catch(e) { console.error(e); }
+        }
+        localStorage.setItem('cacheBusted_v935', 'true');
+        window.location.reload(true);
+      }
+    })();
+  </script>
+
+  <script>
+    // Aggressive Cache Buster for v936
+    (async function() {
+      if (!localStorage.getItem('cacheBusted_v936')) {
+        console.log("Busting PWA cache for v936...");
+        if ('serviceWorker' in navigator) {
+          try {
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            for (let registration of registrations) {
+              await registration.unregister();
+            }
+          } catch(e) { console.error(e); }
+        }
+        if ('caches' in window) {
+          try {
+            const keys = await caches.keys();
+            for (let key of keys) {
+              await caches.delete(key);
+            }
+          } catch(e) { console.error(e); }
+        }
+        localStorage.setItem('cacheBusted_v936', 'true');
+        window.location.reload(true);
+      }
+    })();
+  </script>
+
+
+  <script>
+    // Aggressive Cache Buster for v937
+    (async function() {
+      if (!localStorage.getItem('cacheBusted_v937')) {
+        console.log("Busting PWA cache for v937...");
+        if ('serviceWorker' in navigator) {
+          try {
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            for (let registration of registrations) {
+              await registration.unregister();
+            }
+          } catch(e) { console.error(e); }
+        }
+        if ('caches' in window) {
+          try {
+            const keys = await caches.keys();
+            for (let key of keys) {
+              await caches.delete(key);
+            }
+          } catch(e) { console.error(e); }
+        }
+        localStorage.setItem('cacheBusted_v937', 'true');
+        window.location.reload(true);
+      }
+    })();
+  </script>
+
 </body>
 
 

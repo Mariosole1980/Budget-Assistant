@@ -1,0 +1,199 @@
+  <div id="settings-subscreen-modal" class="modal-overlay" style="z-index: 10010;">
+    <div class="modal-content" style="max-height: 85vh; display: flex; flex-direction: column; max-width: 480px;">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span class="icon-btn" data-close-modal="settings-subscreen-modal" style="cursor: pointer; font-size: 16px; color: var(--text-primary); display: flex; align-items: center; justify-content: center; margin-right: 4px;"><i class="fa-solid fa-arrow-left"></i></span>
+          <h3 class="modal-title" id="settings-subscreen-title">Ρυθμίσεις</h3>
+        </div>
+        <span class="modal-close" data-close-modal="settings-subscreen-modal" style="cursor: pointer; font-size: 24px; color: var(--text-secondary); font-weight: 300; line-height: 1;">&times;</span>
+      </div>
+      <div class="modal-body" id="settings-subscreen-body" style="padding: 16px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 16px;">
+        
+        <!-- SECTION: Preferences -->
+        <div id="subscreen-preferences" class="subscreen-section" style="display: none;">
+          <div style="display: flex; flex-direction: column; gap: 2px;">
+            <div class="settings-list-item" id="preferences-lang-row" style="cursor: pointer;">
+              <span class="settings-item-label" data-i18n="item_language">Γλώσσα</span>
+              <span class="settings-item-value" id="lang-setting-val">Ελληνικά</span>
+            </div>
+            
+            <div class="settings-list-item">
+              <span class="settings-item-label" data-i18n="item_theme">Θέμα Εμφάνισης</span>
+              <select id="settings-theme" class="settings-select">
+                <option value="dark" data-i18n="theme_dark">Premium Dark</option>
+                <option value="oled" data-i18n="theme_oled">OLED Black</option>
+                <option value="light" data-i18n="theme_light">Classic Light</option>
+                <option value="emerald" data-i18n="theme_emerald">Emerald Forest</option>
+                <option value="ocean" data-i18n="theme_ocean">Ocean Breeze</option>
+                <option value="pink" data-i18n="theme_pink">Blossom Pink</option>
+              </select>
+            </div>
+
+            <div class="settings-list-item">
+              <span class="settings-item-label" data-i18n="item_currency">Κύριο Νόμισμα</span>
+              <select id="settings-currency" class="settings-select">
+                <option value="EUR">EUR (€)</option>
+                <option value="USD">USD ($)</option>
+                <option value="GBP">GBP (£)</option>
+                <option value="JPY">JPY (¥)</option>
+              </select>
+            </div>
+
+            <div class="settings-list-item">
+              <span class="settings-item-label" data-i18n="item_month_start">Έναρξη Μήνα</span>
+              <select id="settings-month-start" class="settings-select">
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+                <option value="6">6</option>
+                <option value="7">7</option>
+                <option value="8">8</option>
+                <option value="9">9</option>
+                <option value="10">10</option>
+                <option value="11">11</option>
+                <option value="12">12</option>
+                <option value="13">13</option>
+                <option value="14">14</option>
+                <option value="15">15</option>
+                <option value="16">16</option>
+                <option value="17">17</option>
+                <option value="18">18</option>
+                <option value="19">19</option>
+                <option value="20">20</option>
+                <option value="21">21</option>
+                <option value="22">22</option>
+                <option value="23">23</option>
+                <option value="24">24</option>
+                <option value="25">25</option>
+                <option value="26">26</option>
+                <option value="27">27</option>
+                <option value="28">28</option>
+              </select>
+            </div>
+
+            <div class="settings-list-item">
+              <span class="settings-item-label" data-i18n="item_week_start">Έναρξη Εβδομάδας</span>
+              <select id="settings-week-start" class="settings-select">
+                <option value="1" data-i18n="val_week_start">Δευτέρα</option>
+                <option value="0" data-i18n="val_week_start_sun">Κυριακή</option>
+                <option value="6" data-i18n="val_week_start_sat">Σάββατο</option>
+              </select>
+            </div>
+
+            <div class="settings-list-item">
+              <span class="settings-item-label" data-i18n="item_app_lock">Κλείδωμα Εφαρμογής (PIN)</span>
+              <label class="switch">
+                <input type="checkbox" id="settings-app-lock">
+                <span class="slider round"></span>
+              </label>
+            </div>
+
+            <div class="settings-list-item">
+              <span class="settings-item-label" data-i18n="item_autocomplete">Έξυπνος Τίτλος (Autocomplete)</span>
+              <label class="switch">
+                <input type="checkbox" id="settings-autocomplete">
+                <span class="slider round"></span>
+              </label>
+            </div>
+
+            <div class="settings-list-item">
+              <span class="settings-item-label" data-i18n="item_note_shortcut">Κουμπί Σημειώσεων δίπλα στο "+"</span>
+              <label class="switch">
+                <input type="checkbox" id="settings-note-shortcut">
+                <span class="slider round"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION: Sync & Data -->
+        <div id="subscreen-sync" class="subscreen-section" style="display: none;">
+          <div style="display: flex; flex-direction: column; gap: 2px;">
+            <div class="settings-list-item" id="sync-supabase-row" style="cursor: pointer;">
+              <div style="display: flex; flex-direction: column; flex: 1;">
+                <span class="settings-item-label" data-i18n="item_sync_status">Κατάσταση Συγχρονισμού</span>
+                <span class="settings-item-value" id="val_sync_status" style="font-size: 11px; margin-top: 2px;">Τοπική Αποθήκευση</span>
+              </div>
+              <i class="fa-solid fa-chevron-right" style="color: var(--text-muted); font-size: 12px;"></i>
+            </div>
+            <div class="settings-list-item" id="sync-now-row" style="cursor: pointer;">
+              <span class="settings-item-label" style="color: var(--accent); font-weight: 600;"><i class="fa-solid fa-arrows-rotate" style="margin-right: 8px;"></i><span data-i18n="sync_now_btn">Συγχρονισμός Τώρα</span></span>
+              <span class="settings-item-value" id="val_last_sync_time" style="font-size: 11px; color: var(--text-muted);"></span>
+            </div>
+            <div class="settings-list-item" id="sync-excel-import-row" style="cursor: pointer;">
+              <span class="settings-item-label"><i class="fa-solid fa-file-import" style="margin-right: 8px; color: var(--text-muted);"></i><span data-i18n="card_import_excel">Εισαγωγή Excel</span></span>
+              <i class="fa-solid fa-chevron-right" style="color: var(--text-muted); font-size: 12px;"></i>
+            </div>
+            <div class="settings-list-item" id="sync-excel-export-row" style="cursor: pointer;">
+              <span class="settings-item-label"><i class="fa-solid fa-file-export" style="margin-right: 8px; color: var(--text-muted);"></i><span data-i18n="card_export_excel">Εξαγωγή Excel</span></span>
+              <i class="fa-solid fa-chevron-right" style="color: var(--text-muted); font-size: 12px;"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION: Family Management -->
+        <div id="subscreen-family" class="subscreen-section" style="display: none;">
+          <div id="partner-linking-container-modal">
+            <div style="padding: 12px; box-sizing: border-box; background: rgba(0,0,0,0.1); border-radius: 12px; border: 1px solid var(--border);">
+              <div class="partner-status" data-i18n="label_loading">Φόρτωση στοιχείων...</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION: Feedback -->
+        <div id="subscreen-feedback" class="subscreen-section" style="display: none;">
+          <div style="display: flex; flex-direction: column; gap: 14px;">
+            <div class="feedback-rating-container">
+              <div class="feedback-subtitle" data-i18n="feedback_rating_title">Πώς θα βαθμολογούσατε την εφαρμογή;</div>
+              <div class="emoji-rating-group">
+                <button type="button" class="emoji-rate-btn" data-rate="1" title="Angry">😡</button>
+                <button type="button" class="emoji-rate-btn" data-rate="2" title="Disappointed">😕</button>
+                <button type="button" class="emoji-rate-btn" data-rate="3" title="Neutral">😐</button>
+                <button type="button" class="emoji-rate-btn" data-rate="4" title="Happy">🙂</button>
+                <button type="button" class="emoji-rate-btn" data-rate="5" title="Love it">😍</button>
+              </div>
+            </div>
+            
+            <div class="feedback-form-group">
+              <div class="feedback-subtitle" data-i18n="feedback_type_label">Τύπος Σχολίου</div>
+              <div class="feedback-chips">
+                <button type="button" class="feedback-chip active" data-type="suggestion" data-i18n="feedback_type_feature">Νέα Λειτουργία</button>
+                <button type="button" class="feedback-chip" data-type="bug" data-i18n="feedback_type_bug">Σφάλμα (Bug)</button>
+                <button type="button" class="feedback-chip" data-type="other" data-i18n="feedback_type_other">Άλλο</button>
+              </div>
+            </div>
+            
+            <div class="feedback-form-group">
+              <textarea id="feedback-comment" class="feedback-textarea" placeholder="Γράψτε τα σχόλιά..." data-i18n-placeholder="feedback_comment_placeholder"></textarea>
+            </div>
+            
+            <button type="button" id="feedback-submit-btn" class="feedback-btn">
+              <span id="feedback-btn-text" data-i18n="feedback_submit_btn">Αποστολή Σχολίων</span>
+              <div id="feedback-btn-spinner" class="spinner" style="display: none;"><i class="fa-solid fa-circle-notch fa-spin"></i></div>
+            </button>
+          </div>
+        </div>
+
+        <!-- SECTION: Legal & Account -->
+        <div id="subscreen-legal" class="subscreen-section" style="display: none;">
+          <div style="display: flex; flex-direction: column; gap: 2px;">
+            <div class="settings-list-item" id="legal-force-update-row" style="cursor: pointer;">
+              <span class="settings-item-label" style="color: var(--blue-positive); font-weight: 600;"><i class="fa-solid fa-arrows-rotate" style="margin-right: 8px;"></i><span data-i18n="force_update">Αναγκαστική Ενημέρωση (Καθαρισμός Cache)</span></span>
+              <i class="fa-solid fa-chevron-right" style="color: var(--text-muted); font-size: 12px;"></i>
+            </div>
+            <div class="settings-list-item" id="legal-privacy-row" style="cursor: pointer;">
+              <span class="settings-item-label" data-i18n="item_privacy">Πολιτική Απορρήτου</span>
+              <span class="settings-item-value"><i class="fa-solid fa-arrow-up-right-from-square" style="font-size:12px;"></i></span>
+            </div>
+            <div class="settings-list-item" id="legal-logout-row" style="cursor: pointer;">
+              <span class="settings-item-label" style="color: var(--red-negative); font-weight: 600;"><i class="fa-solid fa-right-from-bracket" style="margin-right: 8px;"></i><span data-i18n="item_logout">Αποσύνδεση Λογαριασμού</span></span>
+              <i class="fa-solid fa-chevron-right" style="color: var(--red-negative); font-size: 12px;"></i>
+            </div>
+            <div class="settings-list-item">
+              <span class="settings-item-label" id="legal-version-label" style="color: var(--text-muted); font-size: 12px;" data-i18n="app_version">Έκδοση 1.0.0</span>
+              <span class="settings-item-value" style="font-size: 12px; color: var(--text-muted);">Budget Assistant</span>
+            </div>
+          </div>
+        </div>

@@ -18,6 +18,26 @@ export async function onRequestPost(context) {
     'Content-Type': 'application/json'
   };
 
+  // JWT Token Verification Check (Optional - supports Guest Mode & Logged-in users)
+  const authHeader = request.headers.get('Authorization') || '';
+  if (authHeader.startsWith('Bearer ')) {
+    const token = authHeader.substring(7);
+    const supabaseUrl = env.SUPABASE_URL || 'https://nnatvvahoeiemkfmzpwp.supabase.co';
+    const supabaseKey = env.SUPABASE_ANON_KEY || 'sb_publishable_voBLw0kwLF07IWssRb4Q2w_sPlTUQNp';
+    
+    try {
+      await fetch(`${supabaseUrl}/auth/v1/user`, {
+        method: 'GET',
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${token}`
+        }
+      });
+    } catch (err) {
+      console.warn('Session verification warning:', err.message);
+    }
+  }
+
   let question, lang, financialContext;
   try {
     const body = await request.json();

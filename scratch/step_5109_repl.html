@@ -1,0 +1,153 @@
+          <!-- SUBSCREEN: Preferences -->
+          <div id="subscreen-preferences" class="subscreen-section" style="display:none; flex-direction:column; gap:16px;">
+            
+            <!-- CARD 1: Γλώσσα & Εμφάνιση -->
+            <div style="background:var(--bg-card, #161622); border:1px solid var(--border, rgba(255,255,255,0.08)); border-radius:16px; overflow:hidden; box-shadow:0 4px 16px rgba(0,0,0,0.2);">
+              <!-- Unified Card Header Band -->
+              <div style="padding:12px 16px; background:rgba(var(--accent-rgb,124,106,247),0.08); border-bottom:1px solid var(--border, rgba(255,255,255,0.08)); display:flex; align-items:center; gap:10px;">
+                <div style="width:28px; height:28px; border-radius:8px; background:var(--accent); color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700;">
+                  <i class="fa-solid fa-palette"></i>
+                </div>
+                <div>
+                  <div style="font-size:13.5px; font-weight:800; color:var(--text-primary);">Γλώσσα & Εμφάνιση</div>
+                  <div style="font-size:10.5px; color:var(--text-muted);">Προσαρμογή γλώσσας, θεμάτων & νομίσματος</div>
+                </div>
+              </div>
+
+              <!-- Integrated Card Items -->
+              <div style="display:flex; flex-direction:column;">
+                <!-- Row 1: Language Toggle -->
+                <div class="settings-list-item" id="preferences-lang-row" onclick="toggleLanguageSetting()" style="cursor:pointer; padding:12px 16px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border, rgba(255,255,255,0.05)); margin:0;">
+                  <div style="display:flex; flex-direction:column; gap:2px;">
+                    <span class="settings-item-label" style="font-weight:700; font-size:13px;" data-i18n="item_language">Γλώσσα</span>
+                    <span style="font-size:11px; color:var(--text-muted);">Γλώσσα περιβάλλοντος (Ελληνικά / English)</span>
+                  </div>
+                  <div style="display:flex; align-items:center; gap:8px; background:rgba(var(--accent-rgb,124,106,247),0.1); border:1px solid rgba(var(--accent-rgb,124,106,247),0.25); padding:6px 12px; border-radius:20px;">
+                    <span class="settings-item-value" id="lang-setting-val" style="font-size:12px; font-weight:800; color:var(--accent);">🇬🇷 Ελληνικά</span>
+                    <i class="fa-solid fa-arrows-rotate" style="color:var(--accent); font-size:11px;"></i>
+                  </div>
+                </div>
+
+                <!-- Row 2: Theme Select -->
+                <div class="settings-list-item" style="padding:12px 16px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border, rgba(255,255,255,0.05)); margin:0;">
+                  <div style="display:flex; flex-direction:column; gap:2px; flex:1; padding-right:12px;">
+                    <span class="settings-item-label" style="font-weight:700; font-size:13px;" data-i18n="item_theme">Θέμα Εμφάνισης</span>
+                    <span style="font-size:11px; color:var(--text-muted);">Παλέτα χρωμάτων & σκοτεινή λειτουργία</span>
+                  </div>
+                  <select id="settings-theme" class="settings-select" onchange="changeThemeSetting(this.value)" style="font-size:12px; font-weight:700; padding:7px 12px; border-radius:10px; border:1px solid var(--border); background:var(--card-bg2, rgba(255,255,255,0.05)); color:var(--text-primary); cursor:pointer;">
+                    <option value="dark">Premium Dark</option>
+                    <option value="oled">OLED Black</option>
+                    <option value="light">Classic Light</option>
+                    <option value="emerald">Emerald Forest</option>
+                    <option value="ocean">Ocean Breeze</option>
+                    <option value="pink">Blossom Pink</option>
+                  </select>
+                </div>
+
+                <!-- Row 3: Currency Select -->
+                <div class="settings-list-item" style="padding:12px 16px; display:flex; align-items:center; justify-content:space-between; margin:0;">
+                  <div style="display:flex; flex-direction:column; gap:2px; flex:1; padding-right:12px;">
+                    <span class="settings-item-label" style="font-weight:700; font-size:13px;" data-i18n="item_currency">Κύριο Νόμισμα</span>
+                    <span style="font-size:11px; color:var(--text-muted);">Σύμβολο νομίσματος στους υπολογισμούς</span>
+                  </div>
+                  <select id="settings-currency" class="settings-select" onchange="changeCurrencySetting(this.value)" style="font-size:12px; font-weight:700; padding:7px 12px; border-radius:10px; border:1px solid var(--border); background:var(--card-bg2, rgba(255,255,255,0.05)); color:var(--text-primary); cursor:pointer;">
+                    <option value="EUR">EUR (€)</option>
+                    <option value="USD">USD ($)</option>
+                    <option value="GBP">GBP (£)</option>
+                    <option value="JPY">JPY (¥)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- CARD 2: Ημερολογιακοί Κύκλοι -->
+            <div style="background:var(--bg-card, #161622); border:1px solid var(--border, rgba(255,255,255,0.08)); border-radius:16px; overflow:hidden; box-shadow:0 4px 16px rgba(0,0,0,0.2);">
+              <!-- Unified Card Header Band -->
+              <div style="padding:12px 16px; background:rgba(16,185,129,0.08); border-bottom:1px solid var(--border, rgba(255,255,255,0.08)); display:flex; align-items:center; gap:10px;">
+                <div style="width:28px; height:28px; border-radius:8px; background:#10b981; color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700;">
+                  <i class="fa-solid fa-calendar-days"></i>
+                </div>
+                <div>
+                  <div style="font-size:13.5px; font-weight:800; color:var(--text-primary);">Ημερολογιακοί Κύκλοι</div>
+                  <div style="font-size:10.5px; color:var(--text-muted);">Έναρξη μηνιαίου & εβδομαδιαίου προϋπολογισμού</div>
+                </div>
+              </div>
+
+              <!-- Integrated Card Items -->
+              <div style="display:flex; flex-direction:column;">
+                <!-- Row 1: Month Start Day -->
+                <div class="settings-list-item" style="padding:12px 16px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border, rgba(255,255,255,0.05)); margin:0;">
+                  <div style="display:flex; flex-direction:column; gap:2px; flex:1; padding-right:12px;">
+                    <span class="settings-item-label" style="font-weight:700; font-size:13px;" data-i18n="item_month_start">Έναρξη Μήνα</span>
+                    <span style="font-size:11px; color:var(--text-muted);">Ημέρα έναρξης μηνιαίου κύκλου (1 - 28)</span>
+                  </div>
+                  <select id="settings-month-start" class="settings-select" onchange="changeMonthStartSetting(this.value)" style="font-size:12px; font-weight:700; padding:7px 12px; border-radius:10px; border:1px solid var(--border); background:var(--card-bg2, rgba(255,255,255,0.05)); color:var(--text-primary); cursor:pointer;">
+                    <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+                    <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+                    <option value="7">7</option><option value="8">8</option><option value="9">9</option>
+                    <option value="10">10</option><option value="11">11</option><option value="12">12</option>
+                    <option value="13">13</option><option value="14">14</option><option value="15">15</option>
+                    <option value="16">16</option><option value="17">17</option><option value="18">18</option>
+                    <option value="19">19</option><option value="20">20</option><option value="21">21</option>
+                    <option value="22">22</option><option value="23">23</option><option value="24">24</option>
+                    <option value="25">25</option><option value="26">26</option><option value="27">27</option>
+                    <option value="28">28</option>
+                  </select>
+                </div>
+
+                <!-- Row 2: Week Start Day -->
+                <div class="settings-list-item" style="padding:12px 16px; display:flex; align-items:center; justify-content:space-between; margin:0;">
+                  <div style="display:flex; flex-direction:column; gap:2px; flex:1; padding-right:12px;">
+                    <span class="settings-item-label" style="font-weight:700; font-size:13px;" data-i18n="item_week_start">Έναρξη Εβδομάδας</span>
+                    <span style="font-size:11px; color:var(--text-muted);">Πρώτη ημέρα στα εβδομαδιαία γραφήματα</span>
+                  </div>
+                  <select id="settings-week-start" class="settings-select" onchange="changeWeekStartSetting(this.value)" style="font-size:12px; font-weight:700; padding:7px 12px; border-radius:10px; border:1px solid var(--border); background:var(--card-bg2, rgba(255,255,255,0.05)); color:var(--text-primary); cursor:pointer;">
+                    <option value="1" data-i18n="val_week_start">Δευτέρα</option>
+                    <option value="0" data-i18n="val_week_start_sun">Κυριακή</option>
+                    <option value="6" data-i18n="val_week_start_sat">Σάββατο</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- CARD 3: Έξυπνα Εργαλεία & Συντομεύσεις -->
+            <div style="background:var(--bg-card, #161622); border:1px solid var(--border, rgba(255,255,255,0.08)); border-radius:16px; overflow:hidden; box-shadow:0 4px 16px rgba(0,0,0,0.2);">
+              <!-- Unified Card Header Band -->
+              <div style="padding:12px 16px; background:rgba(245,158,11,0.08); border-bottom:1px solid var(--border, rgba(255,255,255,0.08)); display:flex; align-items:center; gap:10px;">
+                <div style="width:28px; height:28px; border-radius:8px; background:#f59e0b; color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700;">
+                  <i class="fa-solid fa-wand-magic-sparkles"></i>
+                </div>
+                <div>
+                  <div style="font-size:13.5px; font-weight:800; color:var(--text-primary);">Έξυπνα Εργαλεία & Συντομεύσεις</div>
+                  <div style="font-size:10.5px; color:var(--text-muted);">Αυτοματισμοί πληκτρολόγησης & ταχεία πρόσβαση</div>
+                </div>
+              </div>
+
+              <!-- Integrated Card Items -->
+              <div style="display:flex; flex-direction:column;">
+                <!-- Row 1: Autocomplete -->
+                <div class="settings-list-item" style="padding:12px 16px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border, rgba(255,255,255,0.05)); margin:0;">
+                  <div style="display:flex; flex-direction:column; gap:2px; flex:1; padding-right:12px;">
+                    <span class="settings-item-label" style="font-weight:700; font-size:13px;" data-i18n="item_autocomplete">Έξυπνος Τίτλος (Autocomplete)</span>
+                    <span style="font-size:11px; color:var(--text-muted);">Αυτόματες προτάσεις κατά την πληκτρολόγηση</span>
+                  </div>
+                  <label class="switch">
+                    <input type="checkbox" id="settings-autocomplete" onchange="toggleAutocompleteSetting(this.checked)">
+                    <span class="slider round"></span>
+                  </label>
+                </div>
+
+                <!-- Row 2: Quick Notes Shortcut -->
+                <div class="settings-list-item" style="padding:12px 16px; display:flex; align-items:center; justify-content:space-between; margin:0;">
+                  <div style="display:flex; flex-direction:column; gap:2px; flex:1; padding-right:12px;">
+                    <span class="settings-item-label" style="font-weight:700; font-size:13px;" data-i18n="item_note_shortcut">Γρήγορες Σημειώσεις (κουμπί 📝)</span>
+                    <span style="font-size:11px; color:var(--text-muted);">Εμφάνιση συντόμευσης σημειωματάριου στην αρχική</span>
+                  </div>
+                  <label class="switch">
+                    <input type="checkbox" id="settings-note-shortcut">
+                    <span class="slider round"></span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>

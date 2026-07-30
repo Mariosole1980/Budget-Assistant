@@ -649,7 +649,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v934 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v950 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1019,7 +1019,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v934 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v950 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -2786,7 +2786,7 @@ function initSupabaseAuth() {
       if (authOverlay) {
         // Prevent click penetration (ghost clicks) to elements underneath (like the FAB button)
         authOverlay.style.pointerEvents = 'none';
-        document.body.style.pointerEvents = 'none';
+        // document.body.style.pointerEvents = 'none'; (disabled to prevent app freeze)
         setTimeout(() => {
           authOverlay.style.display = 'none';
           authOverlay.style.pointerEvents = '';
@@ -2899,7 +2899,7 @@ function initSupabaseAuth() {
         if (authOverlay) {
           // Prevent click penetration (ghost clicks) to elements underneath (like the FAB button)
           authOverlay.style.pointerEvents = 'none';
-          document.body.style.pointerEvents = 'none';
+          // document.body.style.pointerEvents = 'none'; (disabled to prevent app freeze)
           setTimeout(() => {
             authOverlay.style.display = 'none';
             authOverlay.style.pointerEvents = '';
@@ -3923,15 +3923,36 @@ async function loadData() {
 
       // Fetch categories & accounts first
       const familyId = state.userProfile ? state.userProfile.family_id : null;
-      const userFilter = familyId 
-        ? (partnerId ? `family_id.eq.${familyId},user_id.eq.${userId},user_id.eq.${partnerId}` : `family_id.eq.${familyId},user_id.eq.${userId}`)
-        : (partnerId ? `user_id.eq.${userId},user_id.eq.${partnerId}` : `user_id.eq.${userId}`);
+      let catsQuery = state.supabaseClient.from('categories').select('*');
+      let accsQuery = state.supabaseClient.from('accounts').select('*');
+      let tempsQuery = state.supabaseClient.from('recurring_templates').select('*');
+
+      if (familyId && partnerId) {
+        const filter = `family_id.eq.${familyId},user_id.eq.${userId},user_id.eq.${partnerId}`;
+        catsQuery = catsQuery.or(filter);
+        accsQuery = accsQuery.or(filter);
+        tempsQuery = tempsQuery.or(filter);
+      } else if (familyId) {
+        const filter = `family_id.eq.${familyId},user_id.eq.${userId}`;
+        catsQuery = catsQuery.or(filter);
+        accsQuery = accsQuery.or(filter);
+        tempsQuery = tempsQuery.or(filter);
+      } else if (partnerId) {
+        const filter = `user_id.eq.${userId},user_id.eq.${partnerId}`;
+        catsQuery = catsQuery.or(filter);
+        accsQuery = accsQuery.or(filter);
+        tempsQuery = tempsQuery.or(filter);
+      } else {
+        catsQuery = catsQuery.eq('user_id', userId);
+        accsQuery = accsQuery.eq('user_id', userId);
+        tempsQuery = tempsQuery.eq('user_id', userId);
+      }
 
       const [catsRes, accsRes, tempsRes] = await promiseTimeout(
         Promise.all([
-          state.supabaseClient.from('categories').select('*').or(userFilter),
-          state.supabaseClient.from('accounts').select('*').or(userFilter),
-          state.supabaseClient.from('recurring_templates').select('*').or(userFilter).catch(() => ({ data: [], error: null }))
+          catsQuery,
+          accsQuery,
+          tempsQuery.then(r => r, () => ({ data: [], error: null }))
         ]),
         15000
       );
@@ -4111,6 +4132,10 @@ async function loadData() {
       loadOfflineData();
       updateHeaderSyncIcon('offline');
       updateUI();
+      if (err && typeof showSyncToast === 'function') {
+        const errorMsg = err.message || (typeof err === 'string' ? err : JSON.stringify(err));
+        showSyncToast('⚠️ Σφάλμα συγχρονισμού: ' + errorMsg, 8000);
+      }
     }
   } else {
     updateHeaderSyncIcon('offline');
@@ -4257,13 +4282,7 @@ function autoRecoverTemplatesFromHistory() {
     updated = true;
   }
 
-  // Remove stale auto-recovered templates so they are always rebuilt fresh
-  // (ensures end dates and keywords are always up-to-date after a code update)
-  const staleRecovered = (state.recurringTemplates || []).filter(t => String(t.id || '').startsWith('recovered_'));
-  if (staleRecovered.length > 0) {
-    state.recurringTemplates = (state.recurringTemplates || []).filter(t => !String(t.id || '').startsWith('recovered_'));
-    console.log('[AutoRecover] Cleared', staleRecovered.length, 'stale recovered templates → will rebuild now');
-  }
+  // Disabled auto-clear of recovered templates to prevent deleted templates/transactions from returning
 
   const templates = state.recurringTemplates || [];
   
@@ -5141,8 +5160,12 @@ function _updateUIImpl() {
 
 function updateHeaderAndSync() {
   const rawText = `${getMonthName(state.selectedMonth, true)} ${state.selectedYear}`;
-  document.getElementById('current-period-title').innerHTML = wrapPeriodTitleWithSpans(rawText);
+  const periodEl = document.getElementById('current-period-title');
+  if (periodEl) periodEl.innerHTML = wrapPeriodTitleWithSpans(rawText);
   updateHeaderProfileBadge();
+  if (typeof updateSyncStatusIndicator === 'function') {
+    updateSyncStatusIndicator();
+  }
 }
 
 // ============================================================
@@ -8111,6 +8134,13 @@ function switchTab(tab, instant = false) {
     return;
   }
 
+  const prevTabName = state.activeTab;
+  state.activeTab = tab;
+  try {
+    history.pushState({ appState: 'active', tab: tab }, '', window.location.pathname + window.location.search);
+    state.historyPushed = true;
+  } catch (e) {}
+
   // Clear expanded categories on active tab change
   state.expandedStatsCategories.clear();
 
@@ -8328,13 +8358,13 @@ function closeModal(id) {
 
   // Guard: if app is backgrounding, hidden, or blurred, ignore close requests
   // to prevent OS swipe gestures or ghost clicks from closing modals during transition.
-  if (document.visibilityState === 'hidden' || !document.hasFocus()) {
+  if (document.visibilityState === 'hidden') {
     console.log('[closeModal] Blocked — app is backgrounding/hidden/blurred, ignoring close for:', id);
     return;
   }
 
   // Prevent iOS ghost clicks / click penetration on the elements underneath (e.g. FAB button)
-  document.body.style.pointerEvents = 'none';
+  // document.body.style.pointerEvents = 'none'; (disabled to prevent app freeze)
   setTimeout(() => {
     document.body.style.pointerEvents = '';
   }, 100); // Reduced from 350ms to prevent blocking subsequent user actions
@@ -12640,16 +12670,20 @@ function initSwipeToBack() {
       return;
     }
     // Guard: Ignore popstate if the document is hidden, backgrounding, or blurred (e.g. during home swipe gesture)
-    if (document.visibilityState === 'hidden' || !document.hasFocus()) {
+    if (document.visibilityState === 'hidden') {
       return;
     }
     const handled = triggerBackAction();
     if (handled) {
-      // Re-push to keep intercepting subsequent back actions
-      history.pushState({ appState: 'active' }, '', window.location.pathname + window.location.search);
+      history.pushState({ appState: 'active', tab: state.activeTab }, '', window.location.pathname + window.location.search);
       state.historyPushed = true;
     } else {
       state.historyPushed = false;
+      if (e.state && e.state.tab && e.state.tab !== state.activeTab) {
+        switchTab(e.state.tab, true);
+      } else {
+        updateUI();
+      }
     }
   });
 
@@ -12784,7 +12818,7 @@ function initSwipeToBack() {
   function triggerBackAction() {
     // Guard: If app is hidden, backgrounding, or loses focus (e.g., OS home swipe gesture),
     // ignore the back action to prevent modals from closing during suspension.
-    if (document.visibilityState === 'hidden' || !document.hasFocus()) {
+    if (document.visibilityState === 'hidden') {
       console.log('[triggerBackAction] Ignored back action — document is hidden or blurred.');
       return false;
     }
@@ -13047,50 +13081,17 @@ function initSwipeToBack() {
       }
 
       setTimeout(() => {
-        // Clean up styles
+        cleanupDragStyles(currScreen);
+        cleanupDragStyles(pScreen);
         if (currScreen) {
           currScreen.style.display = 'none';
           currScreen.style.visibility = 'hidden';
           currScreen.classList.remove('active');
-          cleanupDragStyles(currScreen);
         }
-        if (pScreen) {
-          cleanupDragStyles(pScreen);
-          pScreen.classList.add('active');
-        }
-
-        // Update state
         const prevTabName = TAB_ORDER[currentTabIdx - 1];
-        state.activeTab = prevTabName;
-        document.body.classList.toggle('trans-tab-active', prevTabName === 'trans');
-        document.body.classList.toggle('stats-tab-active', prevTabName === 'stats');
-        document.body.classList.toggle('accounts-tab-active', prevTabName === 'accounts');
-        document.body.classList.toggle('more-tab-active', prevTabName === 'more');
-        document.querySelectorAll('.nav-item').forEach(i => i.classList.toggle('active', i.getAttribute('data-tab') === prevTabName));
-
-        // Ensure history is correct
-        ensureHistoryPushed();
-
-        // Render the new tab with deferred heavy rendering to prevent flicker
-        if (prevTabName === 'trans') {
-          const today = new Date();
-          state.selectedMonth = today.getMonth();
-          state.selectedYear = today.getFullYear();
-          syncStatsDate();
-          requestAnimationFrame(() => {
-            setTimeout(() => {
-              updateUI();
-            }, 50);
-          });
-        } else if (prevTabName === 'stats') {
-          // Defer heavy chart rendering until transition settles
-          requestAnimationFrame(() => {
-            setTimeout(() => {
-              renderStatsTab();
-            }, 50);
-          });
-        } else if (prevTabName === 'accounts') renderAccountsTab();
-        else if (prevTabName === 'more') renderPartnerSection();
+        // Reset activeTab to force switchTab to execute full activation & UI render
+        state.activeTab = null;
+        switchTab(prevTabName, true);
       }, 230);
     } else if (committed && currentTabIdx === 0) {
       // On trans tab - snap back instead of exiting
@@ -13119,9 +13120,15 @@ function initSwipeToBack() {
 
       setTimeout(() => {
         cleanupDragStyles(currScreen);
+        if (currScreen) {
+          currScreen.style.display = '';
+          currScreen.style.visibility = '';
+          currScreen.classList.add('active');
+        }
         if (pScreen) {
           pScreen.style.display = 'none';
           pScreen.style.visibility = 'hidden';
+          pScreen.classList.remove('active');
           cleanupDragStyles(pScreen);
         }
       }, 210);
@@ -16916,7 +16923,7 @@ async function enterGuestMode() {
   if (authOverlay) {
     // Prevent click penetration (ghost clicks) to elements underneath (like the FAB button)
     authOverlay.style.pointerEvents = 'none';
-    document.body.style.pointerEvents = 'none';
+    // document.body.style.pointerEvents = 'none'; (disabled to prevent app freeze)
     setTimeout(() => {
       authOverlay.style.display = 'none';
       authOverlay.style.pointerEvents = '';
@@ -16928,6 +16935,9 @@ async function enterGuestMode() {
 }
 
 function showAuthOverlay() {
+  document.querySelectorAll('.modal-overlay, .tx-modal-overlay').forEach(m => m.classList.remove('active'));
+  const txModal = document.getElementById('transaction-modal');
+  if (txModal) txModal.style.display = 'none';
   const authOverlay = document.getElementById('auth-overlay');
   if (authOverlay) {
     authOverlay.style.display = 'flex';
@@ -17426,8 +17436,14 @@ function updateSyncStatusIndicator() {
   const icon = document.getElementById('header-sync-cloud-icon');
   const btn = document.getElementById('header-sync-icon');
   
-  if (state.currentUser && (!state.syncStatus || state.syncStatus === 'idle' || state.syncStatus === 'offline')) {
-    state.syncStatus = 'synced';
+  if (state.currentUser) {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      state.syncStatus = 'offline';
+    } else if (!state.syncStatus || state.syncStatus === 'idle' || state.syncStatus === 'offline') {
+      state.syncStatus = 'synced';
+    }
+  } else {
+    state.syncStatus = 'offline';
   }
 
   const colors = {
@@ -17439,7 +17455,23 @@ function updateSyncStatusIndicator() {
     error: '#e05e55'
   };
   
-  if (dot) dot.style.background = colors[state.syncStatus] || colors.idle;
+  if (dot) {
+    dot.style.background = colors[state.syncStatus] || colors.idle;
+    // Animate dot on sync
+    if (state.syncStatus === 'syncing') {
+      dot.style.animation = 'syncDotPulse 0.8s infinite alternate';
+    } else {
+      dot.style.animation = 'none';
+    }
+    
+    // Inject dot keyframes once
+    if (!document.getElementById('sync-dot-styles')) {
+      const s = document.createElement('style');
+      s.id = 'sync-dot-styles';
+      s.innerHTML = `@keyframes syncDotPulse { from { transform: scale(1); opacity: 0.6; } to { transform: scale(1.4); opacity: 1; } }`;
+      document.head.appendChild(s);
+    }
+  }
   
   if (icon) {
     if (state.syncStatus === 'syncing') {
@@ -17518,15 +17550,31 @@ async function forceSyncNow(silent = false) {
     const partnerId = state.partnerProfile ? state.partnerProfile.id : null;
     const familyId = state.userProfile ? state.userProfile.family_id : null;
     
-    const userFilter = familyId 
-      ? (partnerId ? `family_id.eq.${familyId},user_id.eq.${userId},user_id.eq.${partnerId}` : `family_id.eq.${familyId},user_id.eq.${userId}`)
-      : (partnerId ? `user_id.eq.${userId},user_id.eq.${partnerId}` : `user_id.eq.${userId}`);
+    let catsQuery = state.supabaseClient.from('categories').select('*');
+    let accsQuery = state.supabaseClient.from('accounts').select('*');
+
+    if (familyId && partnerId) {
+      const filter = `family_id.eq.${familyId},user_id.eq.${userId},user_id.eq.${partnerId}`;
+      catsQuery = catsQuery.or(filter);
+      accsQuery = accsQuery.or(filter);
+    } else if (familyId) {
+      const filter = `family_id.eq.${familyId},user_id.eq.${userId}`;
+      catsQuery = catsQuery.or(filter);
+      accsQuery = accsQuery.or(filter);
+    } else if (partnerId) {
+      const filter = `user_id.eq.${userId},user_id.eq.${partnerId}`;
+      catsQuery = catsQuery.or(filter);
+      accsQuery = accsQuery.or(filter);
+    } else {
+      catsQuery = catsQuery.eq('user_id', userId);
+      accsQuery = accsQuery.eq('user_id', userId);
+    }
 
     // 1. Fetch categories and accounts
     const [catsRes, accsRes] = await promiseTimeout(
       Promise.all([
-        state.supabaseClient.from('categories').select('*').or(userFilter),
-        state.supabaseClient.from('accounts').select('*').or(userFilter),
+        catsQuery,
+        accsQuery,
       ]),
       15000
     );
@@ -17764,6 +17812,8 @@ function handleAppForegroundSync() {
 // runs only ONCE per resume event instead of 4 times in 150ms.
 let _resumeDebounceTimer = null;
 function _handleAppResumed() {
+  document.body.classList.add('no-transitions');
+  setTimeout(() => { document.body.classList.remove('no-transitions'); }, 600);
   if (_resumeDebounceTimer) return; // already scheduled this resume cycle
   _resumeDebounceTimer = setTimeout(() => { _resumeDebounceTimer = null; }, 500);
 
@@ -22116,6 +22166,17 @@ async function emptyTrashBin() {
       });
   }
 
+  // Save notes of items in trash to dismissed_recovered_templates before emptying
+  try {
+    let dismissed = JSON.parse(localStorage.getItem('dismissed_recovered_templates') || '[]');
+    (state.trashTransactions || []).forEach(t => {
+      if (t.note && !dismissed.includes(t.note)) {
+        dismissed.push(t.note);
+      }
+    });
+    localStorage.setItem('dismissed_recovered_templates', JSON.stringify(dismissed));
+  } catch (e) {}
+
   state.trashTransactions = [];
   localStorage.setItem('deleted_transactions_trash', JSON.stringify(state.trashTransactions));
 
@@ -22364,7 +22425,8 @@ window._userGuideLang = 'el';
 
 function updateUserGuideHeaderBadges() {
   const vBadge = document.getElementById('user-guide-version-badge');
-  if (vBadge) vBadge.textContent = `v${BUILD_VERSION || 889}`;
+  const currentVer = typeof BUILD_VERSION !== "undefined" ? BUILD_VERSION : (state.version || 939);
+  if (vBadge) vBadge.textContent = `v${currentVer}`;
   const dBadge = document.getElementById('user-guide-date-badge');
   if (dBadge) dBadge.textContent = state.lang === 'el' ? 'Ιούλιος 2026' : 'July 2026';
   const langLabel = document.getElementById('user-guide-lang-label');

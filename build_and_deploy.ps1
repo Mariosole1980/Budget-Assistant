@@ -7,51 +7,45 @@ Write-Host "[INFO] Starting Build & Deploy Automation Script..." -ForegroundColo
 # 1. Version Bump
 Write-Host "[INFO] Bumping version numbers..." -ForegroundColor Yellow
 
-# Read sw.js and bump SW version
-$swPath = "sw.js"
-$swContent = Get-Content $swPath -Raw
-if ($swContent -match '// SW Version (\d+)') {
-    $currentSW = [int]$Matches[1]
-    $newSW = $currentSW + 1
-    $swContent = $swContent -replace '// SW Version \d+', "// SW Version $newSW"
-    Set-Content $swPath $swContent -NoNewline
-    Write-Host "  [SUCCESS] Service Worker version bumped: $currentSW -> $newSW" -ForegroundColor Green
-} else {
-    Write-Host "  [WARN] Could not find SW Version in sw.js" -ForegroundColor Yellow
+# Read version.json and determine new master build version
+$versionJsonPath = "version.json"
+$currentBuild = 838
+if (Test-Path $versionJsonPath) {
+    try {
+        $vJson = Get-Content $versionJsonPath -Raw | ConvertFrom-Json
+        if ($vJson.version) {
+            $currentBuild = [int]$vJson.version
+        }
+    } catch {}
 }
+$newBuild = $currentBuild + 1
+Write-Host "  [INFO] Version: $currentBuild → $newBuild" -ForegroundColor Cyan
 
-# Read app.js and bump build version
+# Update app.js
 $appPath = "app.js"
 $appContent = Get-Content $appPath -Raw
-# We will replace all occurrences of build vXXX in app.js
-if ($appContent -match 'build v(\d+)') {
-    $currentBuild = [int]$Matches[1]
-    $newBuild = $currentBuild + 1
-    $appContent = $appContent -replace 'build v\d+', "build v$newBuild"
-    Set-Content $appPath $appContent -NoNewline
-    Write-Host "  [SUCCESS] App build version bumped: $currentBuild -> $newBuild" -ForegroundColor Green
-} else {
-    Write-Host "  [WARN] Could not find build version in app.js" -ForegroundColor Yellow
-}
+$appContent = $appContent -replace 'build v\d+', "build v$newBuild"
+Set-Content $appPath $appContent -NoNewline
+Write-Host "  [SUCCESS] App build version bumped: $currentBuild -> $newBuild" -ForegroundColor Green
 
-# Read index.html and bump build version
+# Update sw.js
+$swPath = "sw.js"
+$swContent = Get-Content $swPath -Raw
+$swContent = $swContent -replace '// SW Version \d+', "// SW Version $newBuild"
+Set-Content $swPath $swContent -NoNewline
+Write-Host "  [SUCCESS] Service Worker version bumped: $currentBuild -> $newBuild" -ForegroundColor Green
+
+# Update index.html
 $indexPath = "index.html"
 $indexContent = Get-Content $indexPath -Raw
-if ($indexContent -match 'build v(\d+)') {
-    $indexContent = $indexContent -replace 'build v\d+', "build v$newBuild"
-    $indexContent = $indexContent -replace 'const CURRENT_BUILD = \d+;', "const CURRENT_BUILD = $newBuild;"
-    # Also update the versioned SW URL (sw.js?v=OLD → sw.js?v=NEW)
-    $indexContent = $indexContent -replace "sw\.js\?v=\d+", "sw.js?v=$newBuild"
-    # Also update any other versioned JS URLs in the HTML file (e.g. app.js?v=OLD → app.js?v=NEW)
-    $indexContent = $indexContent -replace '\.js\?v=\d+', ".js?v=$newBuild"
-    Set-Content $indexPath $indexContent -NoNewline
-    Write-Host "  [SUCCESS] Index.html build version bumped to v$newBuild (SW URL: sw.js?v=$newBuild)" -ForegroundColor Green
-} else {
-    Write-Host "  [WARN] Could not find build version in index.html" -ForegroundColor Yellow
-}
+$indexContent = $indexContent -replace 'build v\d+', "build v$newBuild"
+$indexContent = $indexContent -replace 'const CURRENT_BUILD = \d+;', "const CURRENT_BUILD = $newBuild;"
+$indexContent = $indexContent -replace "sw\.js\?v=\d+", "sw.js?v=$newBuild"
+$indexContent = $indexContent -replace '\.js\?v=\d+', ".js?v=$newBuild"
+Set-Content $indexPath $indexContent -NoNewline
+Write-Host "  [SUCCESS] Index.html build version bumped: $currentBuild -> $newBuild" -ForegroundColor Green
 
 # Write version.json file
-$versionJsonPath = "version.json"
 $versionJsonContent = '{"version": ' + $newBuild + '}'
 Set-Content $versionJsonPath $versionJsonContent -NoNewline
 Write-Host "  [SUCCESS] Created version.json with version $newBuild" -ForegroundColor Green
@@ -77,6 +71,7 @@ Copy-Item xlsx.full.min.js www/xlsx.full.min.js -Force
 Copy-Item version.json www/version.json -Force
 Copy-Item _headers www/_headers -Force
 Copy-Item clear.html www/clear.html -Force
+Copy-Item nuke.html www/nuke.html -Force
 Copy-Item debug.html www/debug.html -Force
 if (Test-Path privacy.html) { Copy-Item privacy.html www/privacy.html -Force }
 Write-Host "  [SUCCESS] Files copied successfully." -ForegroundColor Green

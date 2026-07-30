@@ -238,7 +238,6 @@
 
       <div class="btn-group">
         <button class="btn" onclick="setServerUrl('https://budget-assistant-pwa.pages.dev')"><i class="fa-solid fa-cloud"></i> Production (Live)</button>
-        <button class="btn" style="background:#8a63d2;" onclick="setServerUrl('https://staging.budget-assistant-pwa.pages.dev')"><i class="fa-solid fa-flask"></i> Staging (Δοκιμαστικό)</button>
         <button class="btn btn-secondary" onclick="setServerUrl('local')"><i class="fa-solid fa-mobile-screen"></i> Local APK Assets</button>
       </div>
 
@@ -357,16 +356,17 @@
       document.getElementById('env-badge').textContent = 'Overridden';
     }
 
-    // 3. Environment Actions
     function setServerUrl(url) {
       if (url === 'local') {
         localStorage.setItem('override_server_url', 'local');
         alert('Ορίστηκε: Local APK Assets. Η εφαρμογή θα φορτώνει τα ενσωματωμένα αρχεία του APK.');
+        const isIOS = navigator.userAgent.includes('iPhone') || navigator.userAgent.includes('iPad') || navigator.userAgent.includes('Macintosh');
+        window.location.href = isIOS ? 'capacitor://localhost/?clear_override=true' : 'http://localhost/?clear_override=true';
       } else {
         localStorage.setItem('override_server_url', url);
         alert(`Ορίστηκε: ${url}. Η εφαρμογή θα ανακατευθύνει εκεί κατά την εκκίνηση.`);
+        window.location.reload();
       }
-      window.location.reload();
     }
 
     function setCustomServerUrl() {
