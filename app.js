@@ -649,7 +649,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v926 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v927 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1019,7 +1019,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v926 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v927 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -15525,18 +15525,25 @@ function verifyEnteredPin() {
   }
 }
 
-// Biometrics (WebAuthn Platform Authenticator API)
+// Biometrics (WebAuthn Platform Authenticator & Native Biometrics API)
 async function checkBiometricsSupport() {
   const container = document.getElementById('settings-biometrics-container');
   const toggle = document.getElementById('settings-biometrics');
   if (!container || !toggle) return;
   
-  if (window.PublicKeyCredential) {
-    container.style.display = 'flex';
-    const enabled = localStorage.getItem('app_biometrics_enabled') === 'true';
-    toggle.checked = enabled;
-  } else {
-    container.style.display = 'none';
+  // Always display biometrics row in Security & Privacy subscreen
+  container.style.display = 'flex';
+  
+  const enabled = localStorage.getItem('app_biometrics_enabled') === 'true';
+  toggle.checked = enabled;
+
+  const platformInfo = document.getElementById('biometrics-platform-info');
+  if (platformInfo) {
+    if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+      platformInfo.textContent = state.lang === 'el' ? 'Δακτυλικό αποτύπωμα / Face ID (Android)' : 'Fingerprint / Face ID (Android)';
+    } else {
+      platformInfo.textContent = state.lang === 'el' ? 'Δακτυλικό αποτύπωμα / Face ID / WebAuthn' : 'Fingerprint / Face ID / WebAuthn';
+    }
   }
 }
 
@@ -19538,6 +19545,28 @@ window.openNotesManager = openNotesManager;
 
 window.onSubscreenShow_family = function() {
   renderPartnerSection();
+};
+
+window.onSubscreenShow_security = function() {
+  const appLockEnabled = localStorage.getItem('app_lock_enabled') === 'true';
+  const appLockCheckbox = document.getElementById('settings-app-lock');
+  if (appLockCheckbox) appLockCheckbox.checked = appLockEnabled;
+
+  if (typeof checkBiometricsSupport === 'function') {
+    checkBiometricsSupport();
+  }
+
+  const hideAmountsEnabled = localStorage.getItem('settings_hide_amounts') === 'true';
+  const hideAmountsCheckbox = document.getElementById('settings-hide-amounts');
+  if (hideAmountsCheckbox) hideAmountsCheckbox.checked = hideAmountsEnabled;
+
+  const screenshotBlockEnabled = localStorage.getItem('settings_screenshot_block') === 'true';
+  const screenshotBlockCheckbox = document.getElementById('settings-screenshot-block');
+  if (screenshotBlockCheckbox) screenshotBlockCheckbox.checked = screenshotBlockEnabled;
+
+  const autoLockDelay = localStorage.getItem('settings_auto_lock_delay') || 'disabled';
+  const autoLockSelect = document.getElementById('settings-auto-lock-delay');
+  if (autoLockSelect) autoLockSelect.value = autoLockDelay;
 };
 
 window.onSubscreenShow_preferences = function() {
