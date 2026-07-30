@@ -7190,12 +7190,19 @@ mark.guide-highlight {
 
 
 /* Ensure More screen hub rows and subscreens receive touch events 100% reliably */
-.more-scroll-content,
-#more-screen,
-.settings-list-item,
 .subscreen-section {
+  display: none;
   pointer-events: auto !important;
   user-select: none;
   -webkit-user-select: none;
   -webkit-tap-highlight-color: rgba(124, 106, 247, 0.15);
+}
+
+.subscreen-section.active {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 18px !important;
+  padding-bottom: 20px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
 }

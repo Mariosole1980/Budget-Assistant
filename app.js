@@ -649,7 +649,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v930 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v931 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1019,7 +1019,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v930 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v931 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -19518,11 +19518,13 @@ function openSettingsSubscreen(screenId, titleKey, skipHistory = false) {
   }
 
   document.querySelectorAll('.subscreen-section').forEach(section => {
+    section.classList.remove('active');
     section.style.display = 'none';
   });
 
   const targetSection = document.getElementById('subscreen-' + screenId);
   if (targetSection) {
+    targetSection.classList.add('active');
     targetSection.style.display = 'flex';
   } else {
     console.error(`Subscreen section "subscreen-${screenId}" not found.`);
@@ -19532,7 +19534,11 @@ function openSettingsSubscreen(screenId, titleKey, skipHistory = false) {
   // Trigger optional custom lifecycle init hooks
   const initHook = window['onSubscreenShow_' + screenId];
   if (typeof initHook === 'function') {
-    initHook();
+    try {
+      initHook();
+    } catch (err) {
+      console.error(`Error in onSubscreenShow_${screenId}:`, err);
+    }
   }
 
   openModal('settings-subscreen-modal');
