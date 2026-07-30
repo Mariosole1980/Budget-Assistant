@@ -7187,3 +7187,15 @@ mark.guide-highlight {
   font-weight: 600;
 }
 
+
+
+/* Ensure More screen hub rows and subscreens receive touch events 100% reliably */
+.more-scroll-content,
+#more-screen,
+.settings-list-item,
+.subscreen-section {
+  pointer-events: auto !important;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: rgba(124, 106, 247, 0.15);
+}
