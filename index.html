@@ -88,7 +88,7 @@
               ${devButton}
             </div>
             <div style="font-size:11px;color:#8b949e;">
-              Budget Assistant • build v915
+              Budget Assistant • build v916
             </div>
           </div>
         `;
@@ -173,7 +173,7 @@
   <link rel="stylesheet" href="style.css">
   
   <!-- Capacitor Bridge -->
-  <script src="capacitor.js?v=915"></script>
+  <script src="capacitor.js?v=916"></script>
   
 
   <!-- Supabase client JS CDN -->
@@ -183,7 +183,7 @@
   <!-- Chart.js Datalabels Plugin CDN -->
   <script src="js/chartjs-plugin-datalabels.js"></script>
   <!-- SheetJS xlsx CDN for Excel Import/Export -->
-  <script src="xlsx.full.min.js?v=915"></script>
+  <script src="xlsx.full.min.js?v=916"></script>
 </head>
 <body style="background-color: #181b22; margin: 0; padding: 0; zoom: 0.93;">
   <script>
@@ -1086,7 +1086,59 @@
     <!-- ============================================== -->
     <!-- MODAL: SETTINGS SUBSCREEN (hub navigation)   -->
     <!-- ============================================== -->
-    <div id="settings-subscreen-modal" class="modal-overlay">
+    <div   </div>
+
+  <!-- MODAL: USER GUIDE -->
+  <div id="user-guide-modal" class="modal-overlay" style="align-items: center; justify-content: center;">
+    <div class="modal-content user-guide-modal-content" style="max-width: 640px; width: 94%; height: 88vh; max-height: 820px; display: flex; flex-direction: column; border-radius: 20px; border: 1px solid var(--border); padding: 0; background: var(--bg-card, #161622); overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.5);">
+      <!-- Header -->
+      <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; background: rgba(255,255,255,0.03); border-bottom: 1px solid var(--border);">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(168,85,247,0.2)); display: flex; align-items: center; justify-content: center; border: 1px solid rgba(99,102,241,0.3);">
+            <i class="fa-solid fa-book-open" style="color: var(--primary); font-size: 16px;"></i>
+          </div>
+          <div>
+            <h3 class="modal-title" style="margin: 0; font-size: 16px; font-weight: 700; color: var(--text-main);" data-i18n="item_user_guide">Οδηγός Χρήσης</h3>
+            <div style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
+              <span id="user-guide-version-badge" style="background: rgba(99,102,241,0.15); color: var(--primary); padding: 1px 6px; border-radius: 6px; font-weight: 600;">v889</span>
+              <span>•</span>
+              <span id="user-guide-date-badge">Ιούλιος 2026</span>
+            </div>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <button id="user-guide-lang-btn" onclick="toggleUserGuideLanguage()" class="btn btn-secondary" style="padding: 5px 12px; font-size: 12px; border-radius: 8px; font-weight: 600; display: flex; align-items: center; gap: 5px; background: rgba(255,255,255,0.06); border: 1px solid var(--border);">
+            <i class="fa-solid fa-globe"></i> <span id="user-guide-lang-label">EN</span>
+          </button>
+          <button onclick="closeModal('user-guide-modal')" style="background: rgba(255,255,255,0.06); border: 1px solid var(--border); color: var(--text-muted); width: 32px; height: 32px; border-radius: 8px; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center;">✕</button>
+        </div>
+      </div>
+
+      <!-- Search Bar -->
+      <div style="padding: 10px 18px; background: var(--bg-card); border-bottom: 1px solid var(--border);">
+        <div style="position: relative; display: flex; align-items: center;">
+          <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 14px; color: var(--text-muted); font-size: 13px;"></i>
+          <input type="text" id="user-guide-search-input" oninput="filterUserGuide(this.value)" placeholder="Αναζήτηση στον οδηγό (π.χ. Δόσεις, PIN, Cloud)..." style="width: 100%; padding: 9px 36px 9px 36px; border-radius: 12px; border: 1px solid var(--border); background: rgba(0,0,0,0.2); color: var(--text-main); font-size: 13px; outline: none; font-family: 'Outfit', sans-serif;">
+          <button id="user-guide-search-clear" onclick="clearUserGuideSearch()" style="position: absolute; right: 10px; background: none; border: none; color: var(--text-muted); font-size: 14px; display: none; cursor: pointer;">✕</button>
+        </div>
+      </div>
+
+      <!-- Body: Scrollable Guide Content -->
+      <div id="user-guide-scroll-container" style="overflow-y: auto; flex: 1; padding: 16px 18px; font-size: 13px; color: var(--text-secondary); line-height: 1.6;">
+        <div id="user-guide-body"></div>
+      </div>
+
+      <!-- Footer -->
+      <div style="padding: 10px 18px; background: rgba(255,255,255,0.02); border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between;">
+        <span style="font-size: 11px; color: var(--text-muted);" data-i18n="guide_footer_note">Money Manager Documentation Engine</span>
+        <button class="btn btn-primary" onclick="closeModal('user-guide-modal')" style="padding: 6px 16px; border-radius: 8px; font-size: 12.5px;">Κλείσιμο</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: SOFTWARE LICENSES -->
+
+    <div ettings-subscreen-modal" class="modal-overlay">
       <div class="modal-content" style="display:flex;flex-direction:column;height:90vh;max-height:90vh;">
         <div class="modal-header">
           <button type="button" class="icon-btn" id="settings-subscreen-back-btn"><i class="fa-solid fa-arrow-left"></i></button>
@@ -1381,7 +1433,12 @@
           </div>
 
           <!-- SUBSCREEN: Legal & Account -->
-          <div id="subscreen-legal" class="subscreen-section" style="display:none; flex-direction:column; gap:18px; padding-bottom:20px;">
+          <div id="subscreen-legal" class="subscreen-section">
+            <div class="settings-list-item" id="legal-user-guide-row" style="cursor:pointer; background: rgba(99,102,241,0.06); border: 1px solid rgba(99,102,241,0.2); border-radius: 12px; margin-bottom: 8px;" onclick="openUserGuideModal()">
+              <span class="settings-item-label" style="color:var(--primary);font-weight:700;" data-i18n="item_user_guide"><i class="fa-solid fa-book-open" style="margin-right:8px; color:var(--primary);"></i> Οδηγός Χρήσης</span>
+              <i class="fa-solid fa-chevron-right" style="color:var(--primary);font-size:12px;"></i>
+            </div>
+ style="display:none; flex-direction:column; gap:18px; padding-bottom:20px;">
             <div class="settings-list-item" id="legal-force-update-row" style="cursor:pointer;">
               <span class="settings-item-label" style="color:var(--blue-positive);font-weight:600;" data-i18n="force_update"><i class="fa-solid fa-arrows-rotate" style="margin-right:8px;"></i> Αναγκαστική Ενημέρωση</span>
               <i class="fa-solid fa-chevron-right" style="color:var(--text-muted);font-size:12px;"></i>
@@ -1403,7 +1460,7 @@
               <i class="fa-solid fa-chevron-right" style="color:var(--primary);font-size:12px;"></i>
             </div>
             <div class="settings-list-item">
-              <span class="settings-item-label" style="color:var(--text-muted);font-size:12px;" data-i18n="app_version">Έκδοση 1.0.0 (build v915)</span>
+              <span class="settings-item-label" style="color:var(--text-muted);font-size:12px;" data-i18n="app_version">Έκδοση 1.0.0 (build v916)</span>
               <span class="settings-item-value" style="font-size:12px;color:var(--text-muted);">Budget Assistant</span>
             </div>
           </div>
@@ -2566,18 +2623,18 @@
   </div>
 
   <!-- Core Application Scripts -->
-  <script src="js/NLPProcessor.js?v=915"></script>
-  <script src="js/MemoryEngine.js?v=915"></script>
-  <script src="js/DecisionEngine.js?v=915"></script>
-  <script src="js/OnlineAIProvider.js?v=915"></script>
-  <script src="js/AIEngine.js?v=915"></script>
-  <script src="js/IntentCorpus.js?v=915"></script>
-  <script src="js/KnowledgeGraph.js?v=915"></script>
-  <script src="app.js?v=915"></script>
+  <script src="js/NLPProcessor.js?v=916"></script>
+  <script src="js/MemoryEngine.js?v=916"></script>
+  <script src="js/DecisionEngine.js?v=916"></script>
+  <script src="js/OnlineAIProvider.js?v=916"></script>
+  <script src="js/AIEngine.js?v=916"></script>
+  <script src="js/IntentCorpus.js?v=916"></script>
+  <script src="js/KnowledgeGraph.js?v=916"></script>
+  <script src="app.js?v=916"></script>
   
   <!-- Register PWA Service Worker -->
   <script>
-    const CURRENT_BUILD = 915;
+    const CURRENT_BUILD = 916;
     
     // ============================================================
     // AGGRESSIVE iOS PWA AUTO-UPDATE

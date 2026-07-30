@@ -649,7 +649,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v915 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v916 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1019,7 +1019,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v915 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v916 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -22116,3 +22116,511 @@ function clearCacheAndReset() {
   }
 }
 window.clearCacheAndReset = clearCacheAndReset;
+
+
+  setTimeout(() => {
+    forceViewportReset();
+  }, 800);
+
+// ============================================================
+// BILINGUAL USER GUIDE (ΟΔΗΓΟΣ ΧΡΗΣΗΣ) ENGINE
+// ============================================================
+
+window._userGuideLang = 'el';
+
+function updateUserGuideHeaderBadges() {
+  const vBadge = document.getElementById('user-guide-version-badge');
+  if (vBadge) vBadge.textContent = `v${BUILD_VERSION || 889}`;
+  const dBadge = document.getElementById('user-guide-date-badge');
+  if (dBadge) dBadge.textContent = state.lang === 'el' ? 'Ιούλιος 2026' : 'July 2026';
+  const langLabel = document.getElementById('user-guide-lang-label');
+  if (langLabel) langLabel.textContent = window._userGuideLang === 'el' ? 'EN' : 'ΕΛ';
+}
+
+window.openUserGuideModal = function() {
+  window._userGuideLang = state.lang || 'el';
+  updateUserGuideHeaderBadges();
+  renderUserGuideContent();
+  openModal('user-guide-modal');
+};
+
+window.toggleUserGuideLanguage = function() {
+  window._userGuideLang = (window._userGuideLang === 'el') ? 'en' : 'el';
+  updateUserGuideHeaderBadges();
+  renderUserGuideContent();
+};
+
+window.filterUserGuide = function(query) {
+  const clearBtn = document.getElementById('user-guide-search-clear');
+  if (clearBtn) clearBtn.style.display = query ? 'block' : 'none';
+  renderUserGuideContent(query);
+};
+
+window.clearUserGuideSearch = function() {
+  const input = document.getElementById('user-guide-search-input');
+  if (input) input.value = '';
+  window.filterUserGuide('');
+};
+
+window.toggleGuideChapter = function(chapterId) {
+  const item = document.getElementById(`guide-chap-${chapterId}`);
+  if (item) {
+    item.classList.toggle('active');
+  }
+};
+
+window.jumpToGuideChapter = function(chapterId) {
+  const item = document.getElementById(`guide-chap-${chapterId}`);
+  if (item) {
+    item.classList.add('active');
+    item.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+};
+
+function highlightGuideQuery(text, query) {
+  if (!query || !query.trim() || typeof text !== 'string') return text;
+  const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const regex = new RegExp(`(${escaped})`, 'gi');
+  return text.replace(regex, '<mark class="guide-highlight">$1</mark>');
+}
+
+const USER_GUIDE_DATA = {
+  el: {
+    tocTitle: '📑 Ευρετήριο Κεφαλαίων',
+    chapters: [
+      {
+        id: 'changelog',
+        icon: 'fa-box-archive',
+        title: '1. Έκδοση & Τι Νέο Υπάρχει (v889)',
+        content: `
+          <p><strong>Έκδοση Οδηγού:</strong> v889 | <strong>Συγχρονισμένη Έκδοση Εφαρμογής:</strong> v889</p>
+          <div class="guide-feature-box">
+            <h5 style="margin:0 0 6px; color:var(--primary);">✨ Τι νέο υπάρχει στην τελευταία έκδοση:</h5>
+            <ul style="margin:0; padding-left:18px;">
+              <li><strong>Πλήρης Οδηγός Χρήσης:</strong> Ενσωμάτωση ζωντανού δίγλωσσου οδηγού (Ελληνικά & Αγγλικά) στη σειρά Νομικά & Πληροφορίες.</li>
+              <li><strong>Ειδοποιήσεις & Όριο Δαπανών:</strong> Πλήρης διόρθωση toggles, ειδοποιήσεων και προσθήκη Ορίου Μεμονωμένης Δαπάνης σε €.</li>
+              <li><strong>Swipe Back Χειρονομία:</strong> Χειρουργική διόρθωση layout flex κατά το σύρσιμο πίσω ώστε να μην εμφανίζεται ποτέ κενή οθόνη.</li>
+              <li><strong>Αυτόματη Αρίθμηση Δόσεων:</strong> Αυτόματος υπολογισμός και διατήρηση σημειώσεων δόσεων (π.χ. 1/12, 2/12) σε επαναλαμβανόμενες συναλλαγές.</li>
+            </ul>
+          </div>
+        `
+      },
+      {
+        id: 'intro',
+        icon: 'fa-compass',
+        title: '2. Εισαγωγή & Σκοπός της Εφαρμογής',
+        content: `
+          <p>Το <strong>Money Manager (Budget Assistant)</strong> είναι μια σύγχρονη, ασφαλής και πλήρης εφαρμογή προσωπικής και οικογενειακής οικονομικής διαχείρισης.</p>
+          <div class="guide-feature-box">
+            <strong>🎯 Κύριοι Στόχοι:</strong>
+            <ul class="guide-step-list">
+              <li><strong>Πλήρης Έλεγχος Ροής Χρημάτων:</strong> Παρακολούθηση εσόδων, εξόδων και μεταφορών μεταξύ λογαριασμών.</li>
+              <li><strong>Προϋπολογισμός & Δόσεις:</strong> Αυτόματος προγραμματισμός μηνιαίων υποχρεώσεων, δόσεων και παγίων.</li>
+              <li><strong>Κοινή Χρήση (Partner Sync):** Αυτόματος συγχρονισμός σε πραγματικό χρόνο μεταξύ συντρόφων ή οικογένειας.</li>
+              <li><strong>Ιδιωτικότητα & Offline Πρώτα:</strong> Πλήρης λειτουργία ακόμα και χωρίς σύνδεση στο Διαδίκτυο.</li>
+            </ul>
+          </div>
+        `
+      },
+      {
+        id: 'navigation',
+        icon: 'fa-layer-group',
+        title: '3. Πλοήγηση & Βασικές Ενότητες',
+        content: `
+          <p>Η εφαρμογή αποτελείται από 4 κύριες καρτέλες στο κάτω μέρος της οθόνης:</p>
+          <ol class="guide-step-list">
+            <li><strong>💸 Κινήσεις (Transactions):</strong> Η κεντρική οθόνη καταγραφής. Εμφανίζει τη λίστα συναλλαγών του επιλεγμένου μήνα, το συνολικό υπόλοιπο, έσοδα και έξοδα.</li>
+            <li><strong>📊 Στατιστικά (Stats):</strong> Αναλυτική οπτικοποίηση δαπανών ανά κατηγορία με διαγράμματα (Pie chart), ποσοστά και συγκρίσεις.</li>
+            <li><strong>🏦 Λογαριασμοί (Accounts):</strong> Συνολική επισκόπηση τραπεζικών λογαριασμών, καρτών, μετρητών και υπολογισμός καθαρής θέσης (Net Worth).</li>
+            <li><strong>⚙️ Περισσότερα (Settings/More):</strong> Διαχείριση προφίλ, ειδοποιήσεων, ασφάλειας PIN, κάδου ανακύκλωσης και ρυθμίσεων.</li>
+          </ol>
+        `
+      },
+      {
+        id: 'transactions',
+        icon: 'fa-receipt',
+        title: '4. Διαχείριση Συναλλαγών, Δόσεων & Φωτογραφιών',
+        content: `
+          <div class="guide-feature-box">
+            <h5 style="margin:0 0 4px; color:var(--text-main);">➕ Πώς προσθέτετε μια νέα συναλλαγή:</h5>
+            <ol class="guide-step-list">
+              <li>Πατήστε το στρογγυλό κουμπί συν <strong>(+)</strong> κάτω δεξιά.</li>
+              <li>Επιλέξτε τύπο: <strong>Έξοδο</strong>, <strong>Έσοδο</strong> ή <strong>Μεταφορά</strong>.</li>
+              <li>Πληκτρολογήστε το ποσό (π.χ. 45.00€) και επιλέξτε Κατηγορία & Λογαριασμό.</li>
+              <li>(Προαιρετικά) Προσθέστε σημείωση (π.χ. <em>🛒 Σούπερ Μάρκετ</em>) ή βγάλτε φωτογραφία την απόδειξη.</li>
+              <li>Πατήστε <strong>Αποθήκευση</strong>.</li>
+            </ol>
+          </div>
+          <div class="guide-callout-tip">
+            💡 <strong>Αυτόματες Δόσεις & Επαναλαμβανόμενες:</strong> Αν ορίσετε μια συναλλαγή ως επαναλαμβανόμενη με σημείωση δόσεων (π.χ. <em>Δόση ΕΝΦΙΑ 1/12</em>), η εφαρμογή θα αυξάνει αυτόματα τον αριθμό του μήνα (2/12, 3/12... 12/12) κάθε επόμενο μήνα!
+          </div>
+          <div class="guide-feature-box">
+            <strong>📸 Φωτογραφίες Αποδείξεων:</strong> Μπορείτε να επισυνάψετε φωτογραφίες σε κάθε συναλλαγή. Κάνοντας κλικ στη φωτογραφία ανοίγει πλήρης Lightbox προβολή με δυνατότητα Pinch-to-Zoom!
+          </div>
+        `
+      },
+      {
+        id: 'budgeting',
+        icon: 'fa-piggy-bank',
+        title: '5. Προϋπολογισμός & Όρια Δαπανών',
+        content: `
+          <div class="guide-feature-box">
+            <h5 style="margin:0 0 6px; color:var(--text-main);">⚠️ Όριο Μεμονωμένης Δαπάνης (€):</h5>
+            <p style="margin:0 0 6px;">Στις <em>Ρυθμίσεις -> Ειδοποιήσεις</em> μπορείτε να ενεργοποιήσετε το Όριο Μεμονωμένης Δαπάνης και να ορίσετε ένα ποσό (π.χ. <strong>500.00€</strong>).</p>
+            <p style="margin:0;"><strong>Πώς λειτουργεί:</strong> Όποτε καταχωρείτε ένα έξοδο μεγαλύτερο ή ίσο με το όριο, η εφαρμογή σας προειδοποιεί αμέσως με ειδική σήμανση 🔴!</p>
+          </div>
+          <div class="guide-callout-tip">
+            🎯 <strong>Στόχος Αποταμίευσης:</strong> Στην καρτέλα Λογαριασμοί μπορείτε να θέσετε μηνιαίο στόχο αποταμίευσης και να παρακολουθείτε την πρόοδο της αποταμίευσής σας σε ποσοστό %.
+          </div>
+        `
+      },
+      {
+        id: 'notifications',
+        icon: 'fa-bell',
+        title: '6. Ειδοποιήσεις & Υπενθυμίσεις',
+        content: `
+          <p>Το σύστημα ειδοποιήσεων περιλαμβάνει 3 διακριτούς μηχανισμούς:</p>
+          <ul class="guide-step-list">
+            <li><strong>📝 Καθημερινή Υπενθύμιση:</strong> Σας υπενθυμίζει την ώρα που επιλέγετε (π.χ. 21:00) να καταγράψετε τα σημερινά έξοδα.</li>
+            <li><strong>⏳ Ειδοποίηση Πάγιων (1 μέρα πριν):</strong> Σας ειδοποιεί αυτόματα 1 ημέρα πριν την πληρωμή μιας προγραμματισμένης πάγιας δαπάνης.</li>
+            <li><strong>⚠️ Προειδοποίηση Υψηλής Δαπάνης:</strong> Ειδοποίηση τη στιγμή καταχώρησης δαπάνης πάνω από το όριο.</li>
+          </ul>
+          <p>Όλες οι ειδοποιήσεις καταγράφονται στο <strong>Ιστορικό Ειδοποιήσεων</strong> στις Ρυθμίσεις.</p>
+        `
+      },
+      {
+        id: 'cloud_offline',
+        icon: 'fa-cloud-arrow-up',
+        title: '7. Cloud Συγχρονισμός, Σύντροφος & Offline Λειτουργία',
+        content: `
+          <div class="guide-feature-box">
+            <h5 style="margin:0 0 4px; color:var(--text-main);">☁️ Real-time Cloud Sync:</h5>
+            <p style="margin:0;">Όλες οι συναλλαγές σας αποθηκεύονται ακαριαία στη συσκευή (Offline) και μόλις υπάρχει σύνδεση στο Διαδίκτυο συγχρονίζονται αυτόματα στο ασφαλές Cloud (Supabase).</p>
+          </div>
+          <div class="guide-feature-box">
+            <h5 style="margin:0 0 4px; color:var(--text-main);">👩‍❤️‍👨 Σύνδεση Συντρόφου / Οικογένειας:</h5>
+            <p style="margin:0;">Στο Προφίλ μπορείτε να συνδέσετε το λογαριασμό σας με τον/την σύντροφό σας. Όλες οι κοινές συναλλαγές εμφανίζονται αμέσως και στις δύο συσκευές σε πραγματικό χρόνο!</p>
+          </div>
+          <div class="guide-callout-tip">
+            📡 <strong>Τι δουλεύει Offline:</strong> Τα πάντα! Μπορείτε να προσθέσετε, να επεξεργαστείτε ή να διαγράψετε συναλλαγές χωρίς ίντερνετ. Μόλις συνδεθείτε, οι αλλαγές θα ανέβουν αυτόματα στο Cloud.
+          </div>
+        `
+      },
+      {
+        id: 'security_trash',
+        icon: 'fa-shield-halved',
+        title: '8. Ασφάλεια, Κάδος Ανακύκλωσης & Αντίγραφα (Backups)',
+        content: `
+          <div class="guide-feature-box">
+            <h5 style="margin:0 0 4px; color:var(--text-main);">🔒 Κλείδωμα Εφαρμογής (PIN & Βιομετρικά):</h5>
+            <p style="margin:0;">Στις <em>Ρυθμίσεις -> Ασφάλεια & Απόρρητο</em> μπορείτε να ενεργοποιήσετε 4ψήφιο PIN ή ξεκλείδωμα με Δακτυλικό Αποτύπωμα / FaceID.</p>
+          </div>
+          <div class="guide-feature-box">
+            <h5 style="margin:0 0 4px; color:var(--text-main);">🗑️ Κάδος Ανακύκλωσης (Trash Bin):</h5>
+            <p style="margin:0;">Καμία διαγραφή δεν είναι οριστική! Οι διαγραμμένες συναλλαγές μεταφέρονται στον Κάδο Ανακύκλωσης από όπου μπορείτε να τις επαναφέρετε ανά πάσα στιγμή.</p>
+          </div>
+          <div class="guide-feature-box">
+            <h5 style="margin:0 0 4px; color:var(--text-main);">💾 Εξαγωγή & Εισαγωγή Δεδομένων:</h5>
+            <p style="margin:0;">Μπορείτε να κάνετε πλήρη εξαγωγή των δεδομένων σας σε αρχείο <strong>JSON</strong> ή <strong>CSV (Excel)</strong> για δημιουργία δημιουργία αντιγράφων ασφαλείας.</p>
+          </div>
+        `
+      },
+      {
+        id: 'troubleshooting',
+        icon: 'fa-wrench',
+        title: '9. Αντιμετώπιση Προβλημάτων (Troubleshooting)',
+        content: `
+          <div class="guide-callout-warning">
+            ❓ <strong>"Δεν συγχρονίζουν οι συναλλαγές μου":</strong>
+            <ul style="margin:4px 0 0; padding-left:16px;">
+              <li>Ελέγξτε αν είστε συνδεδεμένος στο λογαριασμό σας (Ρυθμίσεις -> Λογαριασμός).</li>
+              <li>Πατήστε το κουμπί <strong>"Αναγκαστική Ενημέρωση"</strong> στα Νομικά & Πληροφορίες.</li>
+            </ul>
+          </div>
+          <div class="guide-callout-warning">
+            ❓ <strong>"Δεν εμφανίζονται οι ειδοποιήσεις":</strong>
+            <ul style="margin:4px 0 0; padding-left:16px;">
+              <li>Βεβαιωθείτε ότι έχετε δώσει άδεια ειδοποιήσεων στη συσκευή σας Android/iOS.</li>
+              <li>Ελέγξτε αν είναι ενεργοποιημένος ο διακόπτης "Καθημερινή Υπενθύμιση" στις Ρυθμίσεις.</li>
+            </ul>
+          </div>
+          <div class="guide-callout-warning">
+            ❓ <strong>"Ξέχασα το PIN κλειδώματος":</strong>
+            <ul style="margin:4px 0 0; padding-left:16px;">
+              <li>Μπορείτε να χρησιμοποιήσετε τα Βιομετρικά (Δακτυλικό Αποτύπωμα) ή να κάνετε αποσύνδεση/επανασύνδεση λογαριασμού.</li>
+            </ul>
+          </div>
+        `
+      },
+      {
+        id: 'faq',
+        icon: 'fa-circle-question',
+        title: '10. Συχνές Ερωτήσεις (FAQ)',
+        content: `
+          <div class="guide-feature-box">
+            <strong>Q: Είναι τα δεδομένα μου ασφαλή;</strong>
+            <p style="margin:2px 0 8px;">A: Ναι! Όλα τα δεδομένα κρυπτογραφούνται κατά τη μεταφορά και την αποθήκευση στο Supabase Cloud.</p>
+            <strong>Q: Πόσο κοστίζει η εφαρμογή;</strong>
+            <p style="margin:2px 0 8px;">A: Όλες οι βασικές και προηγμένες λειτουργίες παρέχονται δωρεάν.</p>
+            <strong>Q: Μπορώ να χρησιμοποιήσω την εφαρμογή σε περισσότερες από μία συσκευές;</strong>
+            <p style="margin:2px 0 0;">A: Ναι, συνδεθείτε με το ίδιο email και τα δεδομένα σας θα συγχρονιστούν αυτόματα παντού.</p>
+          </div>
+        `
+      },
+      {
+        id: 'tips_gestures',
+        icon: 'fa-hand-pointer',
+        title: '11. Συμβουλές, Χειρονομίες & Προσβασιμότητα',
+        content: `
+          <div class="guide-feature-box">
+            <strong>🖐️ Χειρονομίες (Gestures):</strong>
+            <ul class="guide-step-list">
+              <li><strong>Edge Swipe Back:</strong> Σύρετε από την αριστερή άκρη της οθόνης προς τα δεξιά για να επιστρέψετε στην προηγούμενη καρτέλα ή να κλείσετε οποιοδήποτε παράθυρο.</li>
+              <li><strong>Horizontal Month Swipe:</strong> Σύρετε οριζόντια στη λίστα συναλλαγών για να αλλάξετε μήνα (Προηγούμενος / Επόμενος).</li>
+              <li><strong>Pull to Refresh:</strong> Σύρετε προς τα κάτω στην κορυφή της οθόνης για να ανανεώσετε τα δεδομένα.</li>
+            </ul>
+          </div>
+        `
+      }
+    ]
+  },
+  en: {
+    tocTitle: '📑 Table of Contents',
+    chapters: [
+      {
+        id: 'changelog',
+        icon: 'fa-box-archive',
+        title: '1. Version & What\'s New (v889)',
+        content: `
+          <p><strong>Guide Version:</strong> v889 | <strong>Synchronized App Version:</strong> v889</p>
+          <div class="guide-feature-box">
+            <h5 style="margin:0 0 6px; color:var(--primary);">✨ What's new in the latest version:</h5>
+            <ul style="margin:0; padding-left:18px;">
+              <li><strong>Full User Guide:</strong> Embedded live bilingual user guide (Greek & English) under Legal & Info.</li>
+              <li><strong>Notifications & Expense Limits:</strong> Fixed switches, notifications, and added Single Expense Alert Limit in €.</li>
+              <li><strong>Swipe Back Gesture:</strong> Surgical layout flex cleanup during back swipe guaranteeing zero blank screens.</li>
+              <li><strong>Automatic Installment Counter:</strong> Auto-calculation and note preservation for installment entries (e.g. 1/12, 2/12).</li>
+            </ul>
+          </div>
+        `
+      },
+      {
+        id: 'intro',
+        icon: 'fa-compass',
+        title: '2. Introduction & Purpose',
+        content: `
+          <p><strong>Money Manager (Budget Assistant)</strong> is a modern, secure, and comprehensive personal and family financial management application.</p>
+          <div class="guide-feature-box">
+            <strong>🎯 Key Objectives:</strong>
+            <ul class="guide-step-list">
+              <li><strong>Full Cashflow Control:</strong> Track income, expenses, and account transfers.</li>
+              <li><strong>Budgeting & Installments:</strong> Auto-schedule monthly obligations, recurring bills, and installments.</li>
+              <li><strong>Partner & Family Sync:</strong> Real-time automatic synchronization between partners or family members.</li>
+              <li><strong>Privacy & Offline First:</strong> Full functionality even without an active internet connection.</li>
+            </ul>
+          </div>
+        `
+      },
+      {
+        id: 'navigation',
+        icon: 'fa-layer-group',
+        title: '3. Navigation & Core Screens',
+        content: `
+          <p>The app features 4 main bottom navigation tabs:</p>
+          <ol class="guide-step-list">
+            <li><strong>💸 Transactions:</strong> The primary logging screen displaying transactions for the selected month, total balance, income, and expenses.</li>
+            <li><strong>📊 Analytics:</strong> Visual category breakdown with pie charts, percentages, and period comparisons.</li>
+            <li><strong>🏦 Accounts:</strong> Overview of bank accounts, credit cards, cash, and Net Worth calculation.</li>
+            <li><strong>⚙️ More (Settings):</strong> Manage profile, notifications, PIN security, trash bin, and preferences.</li>
+          </ol>
+        `
+      },
+      {
+        id: 'transactions',
+        icon: 'fa-receipt',
+        title: '4. Managing Transactions, Installments & Photos',
+        content: `
+          <div class="guide-feature-box">
+            <h5 style="margin:0 0 4px; color:var(--text-main);">➕ How to log a new transaction:</h5>
+            <ol class="guide-step-list">
+              <li>Tap the round plus button <strong>(+)</strong> at the bottom right.</li>
+              <li>Select type: <strong>Expense</strong>, <strong>Income</strong>, or <strong>Transfer</strong>.</li>
+              <li>Enter amount (e.g. €45.00) and pick Category & Account.</li>
+              <li>(Optional) Add a note (e.g. <em>🛒 Supermarket</em>) or take a receipt photo.</li>
+              <li>Tap <strong>Save</strong>.</li>
+            </ol>
+          </div>
+          <div class="guide-callout-tip">
+            💡 <strong>Recurring Installments:</strong> Setting a recurring template with installment notes (e.g., <em>Tax Installment 1/12</em>) automatically increments month counters (2/12, 3/12... 12/12) every month!
+          </div>
+        `
+      },
+      {
+        id: 'budgeting',
+        icon: 'fa-piggy-bank',
+        title: '5. Budgeting & Expense Limits',
+        content: `
+          <div class="guide-feature-box">
+            <h5 style="margin:0 0 6px; color:var(--text-main);">⚠️ Single Expense Alert (€):</h5>
+            <p style="margin:0 0 6px;">In <em>Settings -> Notifications</em> enable Single Expense Alert and set a threshold (e.g. <strong>€500.00</strong>).</p>
+            <p style="margin:0;"><strong>How it works:</strong> Whenever you record an expense equal to or exceeding your threshold, the app immediately alerts you 🔴!</p>
+          </div>
+        `
+      },
+      {
+        id: 'notifications',
+        icon: 'fa-bell',
+        title: '6. Notification Center & Reminders',
+        content: `
+          <p>The notification system operates on 3 distinct triggers:</p>
+          <ul class="guide-step-list">
+            <li><strong>📝 Daily Reminder:</strong> Reminds you at your designated time (e.g. 21:00) to log daily expenses.</li>
+            <li><strong>⏳ Recurring Payment Alert (1-day prior):</strong> Automatically notifies you 1 day before a recurring payment is due.</li>
+            <li><strong>⚠️ High Expense Alert:</strong> Immediate alert upon logging an expense above your limit.</li>
+          </ul>
+        `
+      },
+      {
+        id: 'cloud_offline',
+        icon: 'fa-cloud-arrow-up',
+        title: '7. Cloud Sync, Partner Sharing & Offline Mode',
+        content: `
+          <div class="guide-feature-box">
+            <h5 style="margin:0 0 4px; color:var(--text-main);">☁️ Real-time Cloud Sync:</h5>
+            <p style="margin:0;">Transactions are stored instantly on-device (Offline) and automatically synced to Supabase Cloud whenever internet is available.</p>
+          </div>
+          <div class="guide-callout-tip">
+            📡 <strong>Offline Capability:</strong> Everything works offline! You can add, edit, or delete transactions without internet connection.
+          </div>
+        `
+      },
+      {
+        id: 'security_trash',
+        icon: 'fa-shield-halved',
+        title: '8. Security, Trash Bin & Backups',
+        content: `
+          <div class="guide-feature-box">
+            <h5 style="margin:0 0 4px; color:var(--text-main);">🔒 App Lock (PIN & Biometrics):</h5>
+            <p style="margin:0;">Enable 4-digit PIN or Fingerprint/FaceID lock under <em>Settings -> Security & Privacy</em>.</p>
+          </div>
+          <div class="guide-feature-box">
+            <h5 style="margin:0 0 4px; color:var(--text-main);">🗑️ Trash Bin & Data Export:</h5>
+            <p style="margin:0;">Deleted items move to the Trash Bin for easy recovery. You can also export data to <strong>JSON</strong> or <strong>CSV</strong> anytime.</p>
+          </div>
+        `
+      },
+      {
+        id: 'troubleshooting',
+        icon: 'fa-wrench',
+        title: '9. Troubleshooting Guide',
+        content: `
+          <div class="guide-callout-warning">
+            ❓ <strong>"Transactions not syncing":</strong>
+            <ul style="margin:4px 0 0; padding-left:16px;">
+              <li>Verify you are signed in under Settings -> Account.</li>
+              <li>Tap <strong>"Force Update"</strong> in Legal & Info.</li>
+            </ul>
+          </div>
+          <div class="guide-callout-warning">
+            ❓ <strong>"Notifications not appearing":</strong>
+            <ul style="margin:4px 0 0; padding-left:16px;">
+              <li>Ensure notification permissions are granted in Android/iOS settings.</li>
+            </ul>
+          </div>
+        `
+      },
+      {
+        id: 'faq',
+        icon: 'fa-circle-question',
+        title: '10. Frequently Asked Questions (FAQ)',
+        content: `
+          <div class="guide-feature-box">
+            <strong>Q: Is my financial data safe?</strong>
+            <p style="margin:2px 0 8px;">A: Yes! All data is encrypted during transit and at rest in Supabase Cloud.</p>
+            <strong>Q: Can I use the app across multiple devices?</strong>
+            <p style="margin:2px 0 0;">A: Yes, sign in with the same account email to auto-sync everywhere.</p>
+          </div>
+        `
+      },
+      {
+        id: 'tips_gestures',
+        icon: 'fa-hand-pointer',
+        title: '11. Tips, Gestures & Accessibility',
+        content: `
+          <div class="guide-feature-box">
+            <strong>🖐️ Gestures:</strong>
+            <ul class="guide-step-list">
+              <li><strong>Edge Swipe Back:</strong> Drag from left screen edge to go back or close modals.</li>
+              <li><strong>Horizontal Month Swipe:</strong> Swipe horizontally on transactions list to change month.</li>
+            </ul>
+          </div>
+        `
+      }
+    ]
+  }
+};
+
+function renderUserGuideContent(query = '') {
+  const container = document.getElementById('user-guide-body');
+  if (!container) return;
+
+  const lang = window._userGuideLang || 'el';
+  const data = USER_GUIDE_DATA[lang] || USER_GUIDE_DATA.el;
+  const q = (query || '').trim().toLowerCase();
+
+  let html = '';
+
+  // Table of Contents
+  if (!q) {
+    html += `
+      <div class="guide-toc-box">
+        <div class="guide-toc-title"><i class="fa-solid fa-list-ol" style="color:var(--primary);"></i> ${data.tocTitle}</div>
+        <div class="guide-toc-list">
+    `;
+    data.chapters.forEach(chap => {
+      html += `
+        <div class="guide-toc-item" onclick="jumpToGuideChapter('${chap.id}')">
+          <i class="fa-solid ${chap.icon}"></i> ${chap.title}
+        </div>
+      `;
+    });
+    html += `
+        </div>
+      </div>
+    `;
+  }
+
+  // Chapters (Accordions)
+  data.chapters.forEach((chap, idx) => {
+    const rawTitle = chap.title;
+    const rawContent = chap.content;
+    const isMatch = !q || rawTitle.toLowerCase().includes(q) || rawContent.toLowerCase().includes(q);
+
+    if (!isMatch) return;
+
+    const displayTitle = q ? highlightGuideQuery(rawTitle, q) : rawTitle;
+    const displayContent = q ? highlightGuideQuery(rawContent, q) : rawContent;
+    const activeClass = (q || idx === 0) ? ' active' : '';
+
+    html += `
+      <div class="guide-accordion-item${activeClass}" id="guide-chap-${chap.id}">
+        <div class="guide-accordion-header" onclick="toggleGuideChapter('${chap.id}')">
+          <span><i class="fa-solid ${chap.icon}" style="margin-right:8px; color:var(--primary);"></i> ${displayTitle}</span>
+          <i class="fa-solid fa-chevron-right guide-accordion-icon"></i>
+        </div>
+        <div class="guide-accordion-content">
+          ${displayContent}
+        </div>
+      </div>
+    `;
+  });
+
+  if (q && !html) {
+    const noResultsText = (lang === 'el')
+      ? '❌ Δεν βρέθηκαν αποτελέσματα για την αναζήτησή σας.'
+      : '❌ No matching guide topics found.';
+    html = `<div style="text-align:center; padding:30px 10px; color:var(--text-muted);">${noResultsText}</div>`;
+  }
+
+  container.innerHTML = html;
+}
