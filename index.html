@@ -88,7 +88,7 @@
               ${devButton}
             </div>
             <div style="font-size:11px;color:#8b949e;">
-              Budget Assistant • build v928
+              Budget Assistant • build v930
             </div>
           </div>
         `;
@@ -173,7 +173,7 @@
   <link rel="stylesheet" href="style.css">
   
   <!-- Capacitor Bridge -->
-  <script src="capacitor.js?v=928"></script>
+  <script src="capacitor.js?v=930"></script>
   
 
   <!-- Supabase client JS CDN -->
@@ -183,7 +183,7 @@
   <!-- Chart.js Datalabels Plugin CDN -->
   <script src="js/chartjs-plugin-datalabels.js"></script>
   <!-- SheetJS xlsx CDN for Excel Import/Export -->
-  <script src="xlsx.full.min.js?v=928"></script>
+  <script src="xlsx.full.min.js?v=930"></script>
 </head>
 <body style="background-color: #181b22; margin: 0; padding: 0; zoom: 0.93;">
   <script>
@@ -1565,12 +1565,11 @@
           </div>
 
           <!-- SUBSCREEN: Legal & Account -->
-          <div id="subscreen-legal" class="subscreen-section">
+          <div id="subscreen-legal" class="subscreen-section" style="display:none; flex-direction:column; gap:18px; padding-bottom:20px;">
             <div class="settings-list-item" id="legal-user-guide-row" style="cursor:pointer; background: rgba(99,102,241,0.06); border: 1px solid rgba(99,102,241,0.2); border-radius: 12px; margin-bottom: 8px;" onclick="openUserGuideModal()">
               <span class="settings-item-label" style="color:var(--primary);font-weight:700;" data-i18n="item_user_guide"><i class="fa-solid fa-book-open" style="margin-right:8px; color:var(--primary);"></i> Οδηγός Χρήσης</span>
               <i class="fa-solid fa-chevron-right" style="color:var(--primary);font-size:12px;"></i>
             </div>
- style="display:none; flex-direction:column; gap:18px; padding-bottom:20px;">
             <div class="settings-list-item" id="legal-force-update-row" style="cursor:pointer;">
               <span class="settings-item-label" style="color:var(--blue-positive);font-weight:600;" data-i18n="force_update"><i class="fa-solid fa-arrows-rotate" style="margin-right:8px;"></i> Αναγκαστική Ενημέρωση</span>
               <i class="fa-solid fa-chevron-right" style="color:var(--text-muted);font-size:12px;"></i>
@@ -1592,7 +1591,7 @@
               <i class="fa-solid fa-chevron-right" style="color:var(--primary);font-size:12px;"></i>
             </div>
             <div class="settings-list-item">
-              <span class="settings-item-label" style="color:var(--text-muted);font-size:12px;" data-i18n="app_version">Έκδοση 1.0.0 (build v928)</span>
+              <span class="settings-item-label" style="color:var(--text-muted);font-size:12px;" data-i18n="app_version">Έκδοση 1.0.0 (build v930)</span>
               <span class="settings-item-value" style="font-size:12px;color:var(--text-muted);">Budget Assistant</span>
             </div>
           </div>
@@ -2755,18 +2754,18 @@
   </div>
 
   <!-- Core Application Scripts -->
-  <script src="js/NLPProcessor.js?v=928"></script>
-  <script src="js/MemoryEngine.js?v=928"></script>
-  <script src="js/DecisionEngine.js?v=928"></script>
-  <script src="js/OnlineAIProvider.js?v=928"></script>
-  <script src="js/AIEngine.js?v=928"></script>
-  <script src="js/IntentCorpus.js?v=928"></script>
-  <script src="js/KnowledgeGraph.js?v=928"></script>
-  <script src="app.js?v=928"></script>
+  <script src="js/NLPProcessor.js?v=930"></script>
+  <script src="js/MemoryEngine.js?v=930"></script>
+  <script src="js/DecisionEngine.js?v=930"></script>
+  <script src="js/OnlineAIProvider.js?v=930"></script>
+  <script src="js/AIEngine.js?v=930"></script>
+  <script src="js/IntentCorpus.js?v=930"></script>
+  <script src="js/KnowledgeGraph.js?v=930"></script>
+  <script src="app.js?v=930"></script>
   
   <!-- Register PWA Service Worker -->
   <script>
-    const CURRENT_BUILD = 928;
+    const CURRENT_BUILD = 930;
     
     // ============================================================
     // AGGRESSIVE iOS PWA AUTO-UPDATE
