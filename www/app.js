@@ -16141,6 +16141,63 @@ async function handleLogout() {
   }
 }
 
+window.sendFamilyInviteVia = function(channel, inviteCode) {
+  const isEl = state.lang === 'el';
+  const roleSelect = document.getElementById('invite-role-select');
+  const role = roleSelect ? roleSelect.value : 'member';
+  const roleTitle = (role === 'admin') 
+    ? (isEl ? 'Διαχειριστής' : 'Admin')
+    : (isEl ? 'Απλό Μέλος' : 'Member');
+
+  const inviteUrl = `${window.location.origin}${window.location.pathname}?invite=${inviteCode}&role=${role}`;
+  const familyName = state.familyGroup ? state.familyGroup.name : '';
+
+  const text = isEl
+    ? `👋 Γεια σου! Σε προσκαλώ να συνδεθείς ${familyName ? `στην «${familyName}»` : 'στην οικογένειά μας'} στο Budget Assistant (ως ${roleTitle}) για να διαχειριζόμαστε μαζί τα οικονομικά μας!\n\n🔗 Πατήστε το σύνδεσμο για αποδοχή:\n${inviteUrl}`
+    : `👋 Hello! I invite you to join ${familyName ? `"${familyName}"` : 'our family'} on Budget Assistant (as ${roleTitle}) to manage our finances together!\n\n🔗 Tap the link to accept:\n${inviteUrl}`;
+
+  const encodedText = encodeURIComponent(text);
+
+  if (channel === 'whatsapp') {
+    const waUrl = `https://api.whatsapp.com/send?text=${encodedText}`;
+    window.open(waUrl, '_blank');
+  } else if (channel === 'viber') {
+    const viberUrl = `viber://forward?text=${encodedText}`;
+    window.open(viberUrl, '_blank');
+  } else if (channel === 'sms') {
+    const smsUrl = `sms:?body=${encodedText}`;
+    window.location.href = smsUrl;
+  } else {
+    if (navigator.share) {
+      navigator.share({
+        title: isEl ? 'Πρόσκληση στο Budget Assistant' : 'Budget Assistant Invite',
+        text: text
+      }).catch(err => console.log('Share canceled:', err));
+    } else {
+      navigator.clipboard.writeText(text).then(() => {
+        if (typeof showSyncToast === 'function') {
+          showSyncToast(isEl ? '✓ Το μήνυμα πρόσκλησης αντεγράφη στο πρόχειρο!' : '✓ Invite message copied to clipboard!', 2500);
+        }
+      });
+    }
+  }
+};
+
+window.shareFamilyInviteCode = (inviteCode) => window.sendFamilyInviteVia('native', inviteCode);
+
+window.copyDirectInviteLink = function(inviteCode) {
+  const isEl = state.lang === 'el';
+  const roleSelect = document.getElementById('invite-role-select');
+  const role = roleSelect ? roleSelect.value : 'member';
+  const inviteUrl = `${window.location.origin}${window.location.pathname}?invite=${inviteCode}&role=${role}`;
+  
+  navigator.clipboard.writeText(inviteUrl).then(() => {
+    if (typeof showSyncToast === 'function') {
+      showSyncToast(isEl ? '✓ Αντεγράφη ο απευθείας σύνδεσμος πρόσκλησης!' : '✓ Direct invite link copied!', 2500);
+    }
+  });
+};
+
 function renderPartnerSection() {
   const container = document.getElementById('partner-linking-container-modal');
   if (!container) return;
@@ -16270,8 +16327,11 @@ function renderPartnerSection() {
               <button onclick="navigator.clipboard.writeText('${inviteCode}').then(()=>showSyncToast('${state.lang === 'el' ? '✓ Αντεγράφη ο κωδικός' : '✓ Code copied'}', 2000))" class="btn btn-secondary" style="padding:4px 8px;font-size:10px;border-radius:6px;line-height:1;">
                 📋 ${state.lang === 'el' ? 'Κωδικός' : 'Code'}
               </button>
-              <button onclick="navigator.clipboard.writeText('${window.location.origin + window.location.pathname}?invite=${inviteCode}').then(()=>showSyncToast('${state.lang === 'el' ? '✓ Αντεγράφη ο σύνδεσμος' : '✓ Link copied'}', 2000))" class="btn btn-secondary" style="padding:4px 8px;font-size:10px;border-radius:6px;line-height:1;">
+              <button onclick="copyDirectInviteLink('${inviteCode}')" class="btn btn-secondary" style="padding:4px 8px;font-size:10px;border-radius:6px;line-height:1;">
                 🔗 ${state.lang === 'el' ? 'Σύνδεσμος' : 'Link'}
+              </button>
+              <button onclick="shareFamilyInviteCode('${inviteCode}')" class="btn btn-primary" style="padding:4px 8px;font-size:10px;border-radius:6px;line-height:1;">
+                <i class="fa-solid fa-share-nodes"></i>
               </button>
             </div>
           </div>
