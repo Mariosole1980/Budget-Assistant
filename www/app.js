@@ -649,7 +649,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v921 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v926 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1019,7 +1019,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v921 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v926 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -17392,8 +17392,11 @@ function updateSyncStatusIndicator() {
   const dot = document.getElementById('header-sync-dot');
   const icon = document.getElementById('header-sync-cloud-icon');
   const btn = document.getElementById('header-sync-icon');
-  if (!dot || !icon) return;
   
+  if (state.currentUser && (!state.syncStatus || state.syncStatus === 'idle' || state.syncStatus === 'offline')) {
+    state.syncStatus = 'synced';
+  }
+
   const colors = {
     idle: '#9e9e9e',
     offline: '#9e9e9e',
@@ -17403,14 +17406,16 @@ function updateSyncStatusIndicator() {
     error: '#e05e55'
   };
   
-  dot.style.background = colors[state.syncStatus] || colors.idle;
+  if (dot) dot.style.background = colors[state.syncStatus] || colors.idle;
   
-  if (state.syncStatus === 'syncing') {
-    icon.className = 'fa-solid fa-cloud-arrow-up';
-  } else if (state.syncStatus === 'error') {
-    icon.className = 'fa-solid fa-cloud-bolt';
-  } else {
-    icon.className = 'fa-solid fa-cloud';
+  if (icon) {
+    if (state.syncStatus === 'syncing') {
+      icon.className = 'fa-solid fa-cloud-arrow-up';
+    } else if (state.syncStatus === 'error') {
+      icon.className = 'fa-solid fa-cloud-bolt';
+    } else {
+      icon.className = 'fa-solid fa-cloud';
+    }
   }
   
   // Update tooltip with last sync time
@@ -17427,35 +17432,26 @@ function updateSyncStatusIndicator() {
     btn.title = tooltip;
   }
 
-  // Update sync status text in settings
-  const syncStatusEl = document.getElementById('val_sync_status');
+  // Update sync status text in settings (check both element IDs)
+  const syncStatusEl = document.getElementById('sync-status-label') || document.getElementById('val_sync_status');
   if (syncStatusEl) {
     const lang = state.lang || 'el';
-    const statusLabels = lang === 'en' ? {
-      offline: 'Local Storage',
-      idle: 'Local Storage',
-      syncing: 'Syncing...',
-      synced: 'Active',
-      success: 'Active',
-      error: 'Error'
-    } : {
-      offline: 'Τοπική Αποθήκευση',
-      idle: 'Τοπική Αποθήκευση',
-      syncing: 'Συγχρονισμός...',
-      synced: 'Ενεργός',
-      success: 'Ενεργός',
-      error: 'Σφάλμα'
-    };
-    const statusKey = state.syncStatus || 'offline';
-    syncStatusEl.textContent = statusLabels[statusKey] || (lang === 'en' ? 'Local Storage' : 'Τοπική Αποθήκευση');
-    
-    // Update color based on status
-    if (statusKey === 'synced' || statusKey === 'success') {
-      syncStatusEl.style.color = '#4caf50'; // Green for active
-    } else if (statusKey === 'error') {
-      syncStatusEl.style.color = '#ef5350'; // Red for error
+    if (!state.currentUser) {
+      syncStatusEl.textContent = lang === 'en' ? 'Local Storage' : 'Τοπική Αποθήκευση';
+      syncStatusEl.style.color = 'var(--text-muted)';
     } else {
-      syncStatusEl.style.color = 'var(--text-secondary)';
+      const email = state.currentUser.email ? state.currentUser.email.split('@')[0] : '';
+      if (state.syncStatus === 'syncing') {
+        syncStatusEl.textContent = lang === 'en' ? 'Syncing...' : 'Συγχρονισμός...';
+        syncStatusEl.style.color = '#ffb300';
+      } else if (state.syncStatus === 'error') {
+        syncStatusEl.textContent = lang === 'en' ? 'Sync Error' : 'Σφάλμα Συγχρονισμού';
+        syncStatusEl.style.color = '#ef5350';
+      } else {
+        const userLabel = email ? ` (${email})` : '';
+        syncStatusEl.textContent = lang === 'en' ? `Cloud Active${userLabel}` : `Cloud Ενεργός${userLabel}`;
+        syncStatusEl.style.color = '#4caf50';
+      }
     }
   }
 }
