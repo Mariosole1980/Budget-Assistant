@@ -649,7 +649,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v933 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v934 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1019,7 +1019,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v933 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v934 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -13301,7 +13301,7 @@ function renderCategoryManagerList() {
     }
   }
   
-  const list = (state.categories || []).filter(c => c && c.type === type);
+  const list = (state.categories || []).filter(c => c && (c.type === type || (type === 'expense' && !c.type)));
   
   // Single-pass subcategory name set pre-calculation to optimize performance O(N)
   const subcatSets = {};
@@ -13320,8 +13320,10 @@ function renderCategoryManagerList() {
 
   const lang = state.lang || 'el';
   list.sort((a, b) => {
-    const nameA = getCategoryDisplayName((a && a.name) || '') || '';
-    const nameB = getCategoryDisplayName((b && b.name) || '') || '';
+    const rawA = typeof a === 'string' ? a : (a ? a.name : '');
+    const rawB = typeof b === 'string' ? b : (b ? b.name : '');
+    const nameA = getCategoryDisplayName(rawA) || '';
+    const nameB = getCategoryDisplayName(rawB) || '';
     return nameA.localeCompare(nameB, lang === 'el' ? 'el' : 'en', { sensitivity: 'base' });
   });
   
@@ -13341,15 +13343,18 @@ function renderCategoryManagerList() {
     return;
   }
   
-  list.forEach(c => {
-    const safeId = c.name.replace(/\s+/g, '-');
-    const displayName = getCategoryDisplayName(c.name);
+  list.forEach((c, idx) => {
+    const rawName = typeof c === 'string' ? c : (c && c.name ? String(c.name) : `Category ${idx+1}`);
+    const safeId = rawName.replace(/[^a-zA-Z0-9\u0370-\u03ff]/g, '-');
+    const displayName = getCategoryDisplayName(rawName);
+    const icon = (typeof c === 'object' && c.icon) || '📁';
     
     // Union with static subcategories from categories configuration
-    const uniqueSubs = new Set(subcatSets[c.name] || []);
-    if (Array.isArray(c.subcategories)) {
+    const uniqueSubs = new Set(subcatSets[rawName] || []);
+    if (c && Array.isArray(c.subcategories)) {
       c.subcategories.forEach(sub => {
-        const s = sub.trim();
+        if (!sub) return;
+        const s = typeof sub === 'string' ? sub.trim() : (sub.name ? String(sub.name).trim() : String(sub).trim());
         if (s) uniqueSubs.add(s);
       });
     }
@@ -13363,17 +13368,17 @@ function renderCategoryManagerList() {
     header.style.cssText = 'display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; cursor: pointer; transition: background 0.2s;';
     header.innerHTML = `
       <div style="display: flex; align-items: center; gap: 12px;">
-        <span style="font-size: 18px; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.04); border-radius: 50%;">${c.icon || '📁'}</span>
+        <span style="font-size: 18px; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.04); border-radius: 50%;">${icon}</span>
         <span style="font-weight: 600; font-size: 14px; color: var(--text-primary);">${displayName}</span>
       </div>
       <div style="display: flex; align-items: center; gap: 8px;" class="category-mgr-actions">
         <span style="font-size: 11px; color: var(--text-muted); background: rgba(255,255,255,0.06); padding: 3px 8px; border-radius: 20px; font-weight:600;">
           ${subCount} ${lang === 'el' ? 'υποκ.' : 'subcats'}
         </span>
-        <button class="btn-edit-cat icon-btn" style="font-size: 13px; color: var(--text-secondary); width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: none; background: transparent; cursor: pointer;">
+        <button type="button" class="btn-edit-cat icon-btn" style="font-size: 13px; color: var(--text-secondary); width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: none; background: transparent; cursor: pointer;">
           <i class="fa-solid fa-pen"></i>
         </button>
-        <button class="btn-delete-cat icon-btn" style="font-size: 13px; color: var(--red-negative); width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: none; background: transparent; cursor: pointer;">
+        <button type="button" class="btn-delete-cat icon-btn" style="font-size: 13px; color: var(--red-negative); width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: none; background: transparent; cursor: pointer;">
           <i class="fa-solid fa-trash-can"></i>
         </button>
         <i class="fa-solid fa-chevron-down category-mgr-chevron" id="chevron-${safeId}" style="font-size: 12px; color: var(--text-muted); margin-left: 4px; transition: transform 0.2s; padding: 4px;"></i>
@@ -13387,22 +13392,30 @@ function renderCategoryManagerList() {
     
     // Programmatic click handler for accordion expand
     header.addEventListener('click', () => {
-      toggleCategoryManagerAccordion(c.name);
+      toggleCategoryManagerAccordion(rawName);
     });
     
     // Stop propagation so clicking actions does not toggle accordion
     const actionsContainer = header.querySelector('.category-mgr-actions');
-    actionsContainer.addEventListener('click', (e) => {
-      e.stopPropagation();
-    });
+    if (actionsContainer) {
+      actionsContainer.addEventListener('click', (e) => {
+        e.stopPropagation();
+      });
+    }
     
-    header.querySelector('.btn-edit-cat').addEventListener('click', () => {
-      openCategoryEditorModal(c.name);
-    });
+    const btnEdit = header.querySelector('.btn-edit-cat');
+    if (btnEdit) {
+      btnEdit.addEventListener('click', () => {
+        openCategoryEditorModal(rawName);
+      });
+    }
     
-    header.querySelector('.btn-delete-cat').addEventListener('click', () => {
-      deleteCategoryFromManager(c.name);
-    });
+    const btnDelete = header.querySelector('.btn-delete-cat');
+    if (btnDelete) {
+      btnDelete.addEventListener('click', () => {
+        deleteCategoryFromManager(rawName);
+      });
+    }
     
     card.appendChild(header);
     card.appendChild(details);
