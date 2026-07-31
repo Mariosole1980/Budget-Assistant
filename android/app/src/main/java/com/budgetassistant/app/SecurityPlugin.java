@@ -179,18 +179,23 @@ public class SecurityPlugin extends Plugin {
     }
 
     public void applySecureMode(final boolean enabled) {
-        getActivity().runOnUiThread(new Runnable() {
+        final android.app.Activity activity = getActivity() != null ? getActivity() : (getBridge() != null ? getBridge().getActivity() : null);
+        if (activity == null) return;
+
+        activity.runOnUiThread(new Runnable() {
             @Override
             public void run() {
                 try {
-                    Window window = getActivity().getWindow();
-                    if (enabled) {
-                        window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE);
-                    } else {
-                        window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE);
+                    Window window = activity.getWindow();
+                    if (window != null) {
+                        if (enabled) {
+                            window.addFlags(WindowManager.LayoutParams.FLAG_SECURE);
+                        } else {
+                            window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE);
+                        }
                     }
                 } catch (Exception e) {
-                    // Fail silently
+                    android.util.Log.e("SecurityPlugin", "Failed to apply FLAG_SECURE", e);
                 }
             }
         });

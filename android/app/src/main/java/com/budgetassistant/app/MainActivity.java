@@ -52,10 +52,12 @@ public class MainActivity extends BridgeActivity {
             SharedPreferences prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
             boolean secureMode = prefs.getBoolean(KEY_SECURE_MODE, false);
             Window window = getWindow();
-            if (secureMode) {
-                window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE);
-            } else {
-                window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE);
+            if (window != null) {
+                if (secureMode) {
+                    window.addFlags(WindowManager.LayoutParams.FLAG_SECURE);
+                } else {
+                    window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE);
+                }
             }
         } catch (Exception e) {
             // Fail silently

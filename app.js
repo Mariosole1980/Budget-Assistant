@@ -15849,6 +15849,45 @@ function getSecurityPlugin() {
 }
 window.getSecurityPlugin = getSecurityPlugin;
 
+function getPrivacyScreenPlugin() {
+  if (!window.Capacitor) return null;
+  if (window.Capacitor.Plugins && window.Capacitor.Plugins.PrivacyScreen) {
+    return window.Capacitor.Plugins.PrivacyScreen;
+  }
+  if (typeof window.Capacitor.registerPlugin === 'function') {
+    try {
+      return window.Capacitor.registerPlugin('PrivacyScreen');
+    } catch (e) {
+      console.warn('[PrivacyScreen] Failed to register plugin:', e);
+    }
+  }
+  return null;
+}
+window.getPrivacyScreenPlugin = getPrivacyScreenPlugin;
+
+function applyNativeSecureMode(enabled) {
+  try {
+    // 1. Apply via custom SecurityPlugin
+    const secPlugin = getSecurityPlugin();
+    if (secPlugin && typeof secPlugin.setSecureMode === 'function') {
+      secPlugin.setSecureMode({ enabled: enabled }).catch(e => console.warn('[SecurityPlugin] setSecureMode error:', e));
+    }
+
+    // 2. Apply via official PrivacyScreen plugin
+    const privPlugin = getPrivacyScreenPlugin();
+    if (privPlugin) {
+      if (enabled && typeof privPlugin.enable === 'function') {
+        privPlugin.enable().catch(e => console.warn('[PrivacyScreen] enable error:', e));
+      } else if (!enabled && typeof privPlugin.disable === 'function') {
+        privPlugin.disable().catch(e => console.warn('[PrivacyScreen] disable error:', e));
+      }
+    }
+  } catch (err) {
+    console.error('[NativeSecureMode] Failed to apply secure mode:', err);
+  }
+}
+window.applyNativeSecureMode = applyNativeSecureMode;
+
 function toggleScreenshotBlockSetting(checked) {
   try {
     const isAndroid = typeof Capacitor !== 'undefined' && Capacitor.getPlatform && Capacitor.getPlatform() === 'android';
@@ -15859,22 +15898,12 @@ function toggleScreenshotBlockSetting(checked) {
     }
 
     localStorage.setItem('settings_screenshot_block', checked ? 'true' : 'false');
+    applyNativeSecureMode(checked);
 
-    const secPlugin = getSecurityPlugin();
-    if (secPlugin && typeof secPlugin.setSecureMode === 'function') {
-      secPlugin.setSecureMode({ enabled: checked })
-        .then(() => {
-          const msg = checked
-            ? (state.lang === 'el' ? 'Ο αποκλεισμός στιγμιότυπων ενεργοποιήθηκε.' : 'Screenshot blocking enabled.')
-            : (state.lang === 'el' ? 'Ο αποκλεισμός στιγμιότυπων απενεργοποιήθηκε.' : 'Screenshot blocking disabled.');
-          showSyncToast((checked ? "🔒 " : "🔓 ") + msg, 3000);
-        })
-        .catch(err => {
-          console.warn("[ScreenshotBlock] Native setSecureMode call failed:", err);
-        });
-    } else {
-      console.warn("[ScreenshotBlock] SecurityPlugin or setSecureMode method not available.");
-    }
+    const msg = checked
+      ? (state.lang === 'el' ? 'Ο αποκλεισμός στιγμιότυπων ενεργοποιήθηκε.' : 'Screenshot blocking enabled.')
+      : (state.lang === 'el' ? 'Ο αποκλεισμός στιγμιότυπων απενεργοποιήθηκε.' : 'Screenshot blocking disabled.');
+    showSyncToast((checked ? "🔒 " : "🔓 ") + msg, 3000);
   } catch (err) {
     console.error("[ScreenshotBlock] Error in toggleScreenshotBlockSetting:", err);
   }
@@ -19717,9 +19746,8 @@ window.onSubscreenShow_security = function() {
     const screenshotBlockCheckbox = document.getElementById('settings-screenshot-block');
     if (screenshotBlockCheckbox) screenshotBlockCheckbox.checked = screenshotBlockEnabled;
 
-    const secPlugin = getSecurityPlugin();
-    if (secPlugin && typeof secPlugin.setSecureMode === 'function') {
-      secPlugin.setSecureMode({ enabled: screenshotBlockEnabled });
+    if (typeof applyNativeSecureMode === 'function') {
+      applyNativeSecureMode(screenshotBlockEnabled);
     }
   }
 
