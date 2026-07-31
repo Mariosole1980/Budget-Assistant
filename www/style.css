@@ -1472,40 +1472,14 @@ button:active,
   letter-spacing: 0.5px;
 }
 
-.settings-list-item {
-  background-color: var(--bg-card);
-  padding: 14px 16px;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  border-bottom: 1px solid var(--border);
-  cursor: pointer;
-  transition: var(--transition);
-}
-
 @media (hover: hover) {
   .settings-list-item:hover {
     background-color: var(--border);
   }
 }
 
-.collapsible-section .settings-list-item {
-  background-color: transparent;
-  border-bottom: none;
-  font-family: 'Outfit', sans-serif;
-  padding: 12px 16px;}
-
-.collapsible-section .settings-list-item + .settings-list-item {
+.collapsible-section .collapsible-section .settings-list-item + .settings-list-item {
   border-top: 1px solid var(--border);}
-
-.settings-item-label {
-  font-weight: 600;
-  min-width: 0;
-  white-space: normal;
-  word-break: keep-all;
-  overflow-wrap: normal;
-  text-overflow: clip;
-}
 
 .settings-item-value {
   color: var(--accent);
@@ -4776,7 +4750,7 @@ html.auth-active .app-container {
     display: flex !important;
     flex-direction: column !important;
     gap: 12px !important;
-    padding: 16px 16px calc(110px + var(--safe-area-bottom)) 16px !important;
+    padding: 16px 16px calc(130px + var(--safe-area-bottom)) 16px !important;
     overscroll-behavior-y: contain !important;
     box-sizing: border-box !important;
   }
@@ -4812,7 +4786,7 @@ html.auth-active .app-container {
     display: flex !important;
     flex-direction: column !important;
     gap: 12px !important;
-    padding: 16px 16px calc(110px + var(--safe-area-bottom)) 16px !important;
+    padding: 16px 16px calc(130px + var(--safe-area-bottom)) 16px !important;
     overscroll-behavior-y: contain !important;
     box-sizing: border-box !important;
   }
@@ -7222,5 +7196,35 @@ mark.guide-highlight {
   border-radius: 0 !important;
   transform: none !important;
   animation: none !important;
+  box-sizing: border-box !important;
+}
+
+
+/* KEEP: More screen legal row visibility fix - do not replace with nowrap/ellipsis */
+.settings-item-label {
+  font-weight: 600;
+  min-width: 0;
+  white-space: normal;
+  word-break: keep-all;
+  overflow-wrap: normal;
+  text-overflow: clip;
+  line-height: 1.35;
+}
+
+.settings-list-item {
+  background-color: var(--bg-card);
+  padding: 14px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: var(--transition);
+  box-sizing: border-box;
+  min-height: 56px;
+}
+
+#hub-row-legal {
+  padding: 14px 16px !important;
   box-sizing: border-box !important;
 }
