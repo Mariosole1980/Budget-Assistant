@@ -1101,9 +1101,19 @@ button:active,
   flex: 1;
   min-width: 0;
   line-height: 1.35;
-  white-space: normal;
-  word-break: keep-all;
+  white-space: nowrap;
+  word-break: normal;
   overflow-wrap: normal;
+  text-overflow: ellipsis;
+}
+
+.settings-item-label {
+  font-weight: 600;
+  min-width: 0;
+  white-space: nowrap;
+  word-break: normal;
+  overflow-wrap: normal;
+  text-overflow: ellipsis;
 }
 
 .overall-history-title {
@@ -1502,9 +1512,10 @@ button:active,
 .settings-item-label {
   font-weight: 600;
   min-width: 0;
-  white-space: normal;
-  word-break: keep-all;
+  white-space: nowrap;
+  word-break: normal;
   overflow-wrap: normal;
+  text-overflow: ellipsis;
 }
 
 .settings-item-value {
