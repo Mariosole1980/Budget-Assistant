@@ -2440,10 +2440,10 @@
       <!-- Google-Style Header -->
       <div style="position: relative; display: flex; justify-content: space-between; align-items: center; padding: 16px 20px 8px 20px; background: #000000;">
         <!-- Clickable Month/Year Title (Left side) -->
-        <div id="custom-date-picker-month-title-btn" style="display: flex; align-items: center; gap: 8px;">
-          <span id="custom-date-picker-month-large-label" style="font-size: 26px; font-weight: 700; color: #ffffff; text-transform: uppercase; cursor: pointer; transition: opacity 0.2s;" onmouseover="this.style.opacity=0.8" onmouseout="this.style.opacity=1" onclick="event.stopPropagation(); openCustomDatePickerBS(false)">ΙΟΥΝ</span>
-          <span id="custom-date-picker-year-large-label" style="font-size: 26px; font-weight: 700; color: var(--text-secondary); cursor: pointer; transition: opacity 0.2s;" onmouseover="this.style.opacity=0.8" onmouseout="this.style.opacity=1" onclick="event.stopPropagation(); openCustomDatePickerBS(true)">2026</span>
-          
+        <div id="custom-date-picker-month-title-btn" style="display: flex; align-items: center; gap: 8px; cursor: pointer;" onclick="event.stopPropagation(); openCustomDatePickerBS(false)">
+          <span id="custom-date-picker-month-large-label" style="font-size: 26px; font-weight: 700; color: #ffffff; text-transform: uppercase;">ΙΟΥΝ</span>
+          <span id="custom-date-picker-year-large-label" style="font-size: 26px; font-weight: 700; color: var(--text-secondary);">2026</span>
+          <i class="fa-solid fa-chevron-down" id="custom-date-picker-header-chevron" style="font-size: 14px; color: var(--text-secondary); margin-left: 2px;"></i>
         </div>
 
       </div>

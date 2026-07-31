@@ -18785,8 +18785,12 @@ function renderCustomDatePickerCalendar() {
   const month = customDatePickerViewingMonth.getMonth();
   
   // Update Large Month Title
+  const yearLabel = document.getElementById('custom-date-picker-year-large-label');
   if (largeLabel) {
     largeLabel.textContent = getMonthName(month, true).toUpperCase();
+  }
+  if (yearLabel) {
+    yearLabel.textContent = year;
   }
   
   grid.innerHTML = '';
