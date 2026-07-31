@@ -1,11 +1,16 @@
 {
   "name": "money-manager",
   "version": "1.0.0",
-  "description": "A premium, collaborative mobile-first web app clone of Realbyte's Money Manager. This guide will help you run the app, set up your shared cloud database for free, install the app on your phones, and package it for the Google Play Store.",
+  "description": "A premium, collaborative mobile-first web app clone of Realbyte's Money Manager.",
   "main": "app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build-deploy": "powershell -ExecutionPolicy Bypass -File ./build_and_deploy.ps1"
+    "version:sync": "node scripts/version-sync.js",
+    "version:bump": "node scripts/version-bump.js",
+    "version:check": "node scripts/version-check.js",
+    "release:deploy": "node scripts/release-deploy.js",
+    "release:verify-live": "node scripts/release-verify-live.js",
+    "build-deploy": "npm run release:deploy"
   },
   "repository": {
     "type": "git",
@@ -23,11 +28,13 @@
     "@capacitor-community/privacy-screen": "^5.2.1",
     "@capacitor/android": "^6.2.1",
     "@capacitor/app": "^6.0.3",
-    "@capacitor/browser": "^6.0.6",
-    "@capacitor/cli": "^6.2.1",
+    "@capacitor/browser": "^6.0.4",
     "@capacitor/core": "^6.2.1",
     "@capacitor/keyboard": "^6.0.3",
-    "@capacitor/local-notifications": "^6.0.0",
-    "capacitor-native-biometric": "^4.2.2"
+    "@capacitor/local-notifications": "^6.1.1",
+    "@capgo/capacitor-native-biometric": "^6.3.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.2.1"
   }
 }
