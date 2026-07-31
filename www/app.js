@@ -7777,7 +7777,26 @@ function scrollToToday(behavior = 'smooth') {
   }
 }
 
+function resetAllTabScreenStyles() {
+  document.querySelectorAll('.tab-screen').forEach(screen => {
+    screen.style.position = '';
+    screen.style.top = '';
+    screen.style.left = '';
+    screen.style.width = '';
+    screen.style.zIndex = '';
+    screen.style.transform = '';
+    screen.style.opacity = '';
+    screen.style.transition = '';
+    screen.style.willChange = '';
+    screen.style.display = '';
+    screen.style.visibility = '';
+  });
+}
+window.resetAllTabScreenStyles = resetAllTabScreenStyles;
+let _isTabSwipeAnimating = false;
+
 function switchTab(tab, instant = false) {
+  resetAllTabScreenStyles();
   ensureHistoryPushed();
   // Allow re-tapping 'trans' or 'stats' tab to reset month even if already active
   if (state.activeTab === tab) {
@@ -12557,6 +12576,7 @@ function initSwipeToBack() {
   let screenWidth = 0;
 
   document.addEventListener('touchstart', (e) => {
+    if (_isTabSwipeAnimating) { bsActive = false; return; }
     // Check if touch starts in scrollable elements to ignore
     if (e.target.closest('#trans-photo-previews-list, .lightbox-zoom-container, #statsChart, canvas')) {
       bsActive = false;
@@ -12755,56 +12775,12 @@ function initSwipeToBack() {
         pScreen.style.opacity = '1';
       }
 
+      _isTabSwipeAnimating = true;
       setTimeout(() => {
         const prevTabName = TAB_ORDER[currentTabIdx - 1];
-
-        // 1. Promote pScreen to active ATOMICALLY first so it never disappears for a single frame
-        if (pScreen) {
-          pScreen.classList.add('active');
-          pScreen.style.display = '';
-          pScreen.style.visibility = '';
-          pScreen.style.opacity = '';
-          pScreen.style.position = '';
-          pScreen.style.top = '';
-          pScreen.style.left = '';
-          pScreen.style.width = '';
-          pScreen.style.zIndex = '';
-          pScreen.style.transform = '';
-          pScreen.style.transition = '';
-          pScreen.style.willChange = '';
-        }
-
-        // 2. Hide currScreen cleanly
-        if (currScreen) {
-          currScreen.classList.remove('active');
-          currScreen.style.display = 'none';
-          currScreen.style.visibility = 'hidden';
-          cleanupDragStyles(currScreen);
-        }
-
-        // 3. Update global tab state and UI highlights
-        state.activeTab = prevTabName;
-        localStorage.setItem('active_tab', prevTabName);
-
-        document.body.classList.toggle('trans-tab-active', prevTabName === 'trans');
-        document.body.classList.toggle('stats-tab-active', prevTabName === 'stats');
-        document.body.classList.toggle('accounts-tab-active', prevTabName === 'accounts');
-        document.body.classList.toggle('more-tab-active', prevTabName === 'more');
-
-        document.querySelectorAll('.nav-item').forEach(i => {
-          i.classList.toggle('active', i.getAttribute('data-tab') === prevTabName);
-        });
-
-        const fab = document.getElementById('fab-btn');
-        if (fab) {
-          fab.style.display = (prevTabName === 'trans') ? 'flex' : 'none';
-        }
-        updateNoteShortcutVisibility();
-
-        // 4. Deferred non-blocking UI update via requestAnimationFrame for zero-stutter rendering
-        requestAnimationFrame(() => {
-          _updateUIImpl();
-        });
+        resetAllTabScreenStyles();
+        switchTab(prevTabName, true);
+        _isTabSwipeAnimating = false;
       }, 230);
     } else if (committed && currentTabIdx === 0) {
       // On trans tab - snap back instead of exiting
@@ -12815,7 +12791,8 @@ function initSwipeToBack() {
         currScreen.style.opacity = '1';
       }
       setTimeout(() => {
-        cleanupDragStyles(currScreen);
+        resetAllTabScreenStyles();
+        _isTabSwipeAnimating = false;
       }, 210);
     } else {
       // Snap back - not committed
