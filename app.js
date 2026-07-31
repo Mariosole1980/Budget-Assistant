@@ -15832,6 +15832,47 @@ function proceedToPinSetup() {
   openPinModal();
 }
 
+
+function toggleScreenshotBlockSetting(checked) {
+  try {
+    localStorage.setItem('settings_screenshot_block', checked ? 'true' : 'false');
+
+    const hasNativeSecurity = window.Capacitor &&
+                              window.Capacitor.Plugins &&
+                              window.Capacitor.Plugins.Security &&
+                              typeof window.Capacitor.Plugins.Security.setSecureMode === 'function';
+
+    if (hasNativeSecurity) {
+      window.Capacitor.Plugins.Security.setSecureMode({ enabled: checked })
+        .then(() => {
+          const msg = checked
+            ? (state.lang === 'el' ? 'Ο αποκλεισμός στιγμιότυπων ενεργοποιήθηκε.' : 'Screenshot blocking enabled.')
+            : (state.lang === 'el' ? 'Ο αποκλεισμός στιγμιότυπων απενεργοποιήθηκε.' : 'Screenshot blocking disabled.');
+          showSyncToast((checked ? "🔒 " : "🔓 ") + msg, 3000);
+        })
+        .catch(err => {
+          console.warn("[ScreenshotBlock] Native call failed:", err);
+        });
+    } else {
+      console.warn("[ScreenshotBlock] Native screenshot blocking is not supported on this platform/web build.");
+      if (checked) {
+        setTimeout(() => {
+          const checkbox = document.getElementById('settings-screenshot-block');
+          if (checkbox) checkbox.checked = false;
+          localStorage.setItem('settings_screenshot_block', 'false');
+        }, 50);
+        const msg = state.lang === 'el'
+          ? 'Ο αποκλεισμός στιγμιότυπων υποστηρίζεται μόνο στην εφαρμογή Android.'
+          : 'Screenshot blocking is only supported on the Android app.';
+        showSyncToast("⚠️ " + msg, 3000);
+      }
+    }
+  } catch (err) {
+    console.error("[ScreenshotBlock] Error in toggleScreenshotBlockSetting:", err);
+  }
+}
+window.toggleScreenshotBlockSetting = toggleScreenshotBlockSetting;
+
 async function toggleBiometrics(checked) {
   if (checked) {
     const appLockEnabled = localStorage.getItem('app_lock_enabled') === 'true';
@@ -16906,6 +16947,7 @@ window.forceAppUpdate = forceAppUpdate;
 window.changeThemeSetting = changeThemeSetting;
 window.toggleAppLock = toggleAppLock;
 window.toggleBiometrics = toggleBiometrics;
+window.toggleScreenshotBlockSetting = toggleScreenshotBlockSetting;
 window.closePinModal = closePinModal;
 window.openPinVerifyModal = openPinVerifyModal;
 window.closePinVerifyModal = closePinVerifyModal;
