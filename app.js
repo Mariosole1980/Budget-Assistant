@@ -7257,10 +7257,7 @@ function setupEventListeners() {
         const isKeyboardAlreadyActive = document.body.classList.contains('keyboard-active');
         
         if (textInputs.includes(id)) {
-          if (isIOS && !isKeyboardAlreadyActive) {
-            // Apply estimated keyboard height instantly BEFORE class is added & layout is checked
-            document.documentElement.style.setProperty('--keyboard-height', '320px');
-          }
+          
           document.body.classList.add('keyboard-active');
           
           if (isIOS) {
@@ -18829,9 +18826,7 @@ document.addEventListener('DOMContentLoaded', () => {
       let rawKeyboardHeight = isIOS ? (window.innerHeight - vvHeight) : (window.innerHeight - vvHeight - offsetTop);
       
       // Keep keyboard height stable during iOS keyboard animation to prevent modal shaking/collapsing
-      if (isIOS && document.body.classList.contains('keyboard-active')) {
-        rawKeyboardHeight = Math.max(rawKeyboardHeight, 320);
-      }
+      
       
       // Scale keyboardHeight inversely to counteract body { zoom: 0.93 }
       // This ensures CSS translations perfectly track the physical keyboard.
@@ -18844,25 +18839,7 @@ document.addEventListener('DOMContentLoaded', () => {
       document.documentElement.style.setProperty('--viewport-offset-top', `${offsetTop}px`);
       document.documentElement.style.setProperty('--keyboard-height', `${keyboardHeight}px`);
 
-      // Adjust transaction modal content height and top to match visual viewport
-      const txModal = document.getElementById('transaction-modal');
-      if (txModal && txModal.classList.contains('active')) {
-        if (!isIOS) {
-          txModal.style.setProperty('height', (window.innerHeight / scale) + 'px', 'important');
-          txModal.style.setProperty('top', '0px', 'important');
-          
-          const modalContent = txModal.querySelector('.modal-content');
-          if (modalContent) {
-            if (rawKeyboardHeight > 30) {
-              modalContent.style.setProperty('height', (vvHeight / scale) + 'px', 'important');
-              modalContent.style.setProperty('top', (offsetTop / scale) + 'px', 'important');
-            } else {
-              modalContent.style.setProperty('height', (window.innerHeight / scale) + 'px', 'important');
-              modalContent.style.setProperty('top', '0px', 'important');
-            }
-          }
-        }
-      }
+      // VisualViewport height updated cleanly via --keyboard-height CSS variable
     };
 
     // On iOS, visualViewport fires 'resize' on every frame during keyboard animation,

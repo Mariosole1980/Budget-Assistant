@@ -7228,3 +7228,22 @@ mark.guide-highlight {
   padding: 14px 16px !important;
   box-sizing: border-box !important;
 }
+
+
+/* Transaction Modal Keyboard Handling Strategy:
+   1. Native Text Keyboard (body.keyboard-active):
+      - Footer (.modal-action-buttons) remains fixed/anchored at bottom.
+      - .modal-body absorbs keyboard height via bottom padding.
+   2. Custom Calculator Keypad (.keypad-active):
+      - Footer shifts above the calculator keypad container.
+*/
+#transaction-modal .modal-body {
+  padding-bottom: calc(24px + var(--keyboard-height, 0px));
+}
+
+body.keyboard-active #transaction-modal .modal-action-buttons {
+  position: relative !important;
+  transform: none !important;
+  bottom: auto !important;
+}
+
