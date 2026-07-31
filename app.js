@@ -19796,12 +19796,9 @@ document.addEventListener('DOMContentLoaded', () => {
 function bindSettingsSubscreenListeners() {
   const preferencesLangRow = document.getElementById('preferences-lang-row');
   if (preferencesLangRow) {
-    preferencesLangRow.addEventListener('click', () => {
+    preferencesLangRow.onclick = function() {
       toggleLanguageSetting();
-      if (typeof window.onSubscreenShow_preferences === 'function') {
-        window.onSubscreenShow_preferences();
-      }
-    });
+    };
   }
 
   const themeSelect = document.getElementById('settings-theme');
