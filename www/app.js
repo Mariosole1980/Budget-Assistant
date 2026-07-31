@@ -12569,60 +12569,7 @@ function initSwipeToBack() {
     return false;
   }
 
-    // 0. Close photo lightbox if active
-    const lightbox = document.getElementById('photo-lightbox-modal');
-    if (lightbox && lightbox.style.display === 'flex') {
-      closePhotoLightbox();
-      return true;
-    }
-
-    // 1. Close calculator keypad if active
-    const keypad = document.getElementById('custom-calculator-keypad');
-    if (keypad && keypad.classList.contains('active')) {
-      closeCalculatorKeypad();
-      return true;
-    }
-
-    // 2. Close active modals (including transaction modal)
-    const txModal = document.getElementById('transaction-modal');
-    if (txModal && txModal.classList.contains('active')) {
-      closeModal('transaction-modal');
-      return true;
-    }
-    const activeModals = document.querySelectorAll('.modal-overlay.active');
-    if (activeModals.length > 0) {
-      const topModal = activeModals[activeModals.length - 1];
-      if (topModal.id) {
-        closeModal(topModal.id);
-      }
-      return true;
-    }
-
-    // 3. Close search overlay if active
-    const searchOverlay = document.getElementById('search-overlay');
-    if (searchOverlay && searchOverlay.classList.contains('active')) {
-      closeSearchOverlay();
-      return true;
-    }
-
-    // 4. Cancel selection mode
-    if (state.selectionMode) {
-      exitSelectionMode();
-      return true;
-    }
-
-    // 5. Navigate to previous tab in order
-    const currentIdx = TAB_ORDER.indexOf(state.activeTab);
-    if (currentIdx > 0) {
-      switchTab(TAB_ORDER[currentIdx - 1]);
-      return true;
-    }
-    
-    // 6. On trans tab with nothing to close — return false to let app exit
-    return false;
-  }
-
-  // --- Interactive drag-to-go-back gesture ---
+    // --- Interactive drag-to-go-back gesture ---
   let currentScreen = null;
   let prevScreen = null;
   let screenWidth = 0;
