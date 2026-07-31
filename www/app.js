@@ -10235,6 +10235,7 @@ function sanitizeFloat(val) {
 }
 
 function formatCurrency(val) {
+  if (localStorage.getItem('settings_hide_amounts') === 'true') return '*** €';
   if (isNaN(val)) return '0,00';
   return parseFloat(val).toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
@@ -15887,6 +15888,25 @@ function applyNativeSecureMode(enabled) {
   }
 }
 window.applyNativeSecureMode = applyNativeSecureMode;
+
+function toggleHideAmountsSetting(checked) {
+  try {
+    localStorage.setItem('settings_hide_amounts', checked ? 'true' : 'false');
+    const msg = checked
+      ? (state.lang === 'el' ? 'Η απόκρυψη ποσών ενεργοποιήθηκε.' : 'Amounts privacy enabled.')
+      : (state.lang === 'el' ? 'Η απόκρυψη ποσών απενεργοποιήθηκε.' : 'Amounts privacy disabled.');
+    showSyncToast((checked ? "👁️ " : "👁️‍🗨️ ") + msg, 3000);
+
+    if (typeof updateUI === 'function') {
+      updateUI();
+    } else if (typeof renderCurrentScreen === 'function') {
+      renderCurrentScreen();
+    }
+  } catch (err) {
+    console.error('[HideAmounts] Error in toggleHideAmountsSetting:', err);
+  }
+}
+window.toggleHideAmountsSetting = toggleHideAmountsSetting;
 
 function toggleScreenshotBlockSetting(checked) {
   try {
