@@ -12510,12 +12510,64 @@ function initSwipeToBack() {
   }
 
   function triggerBackAction() {
-    // Guard: If app is hidden, backgrounding, or loses focus (e.g., OS home swipe gesture),
-    // ignore the back action to prevent modals from closing during suspension.
     if (document.visibilityState === 'hidden') {
       console.log('[triggerBackAction] Ignored back action — document is hidden or blurred.');
       return false;
     }
+
+    // 0. Close photo lightbox if active
+    const lightbox = document.getElementById('photo-lightbox-modal');
+    if (lightbox && lightbox.style.display === 'flex') {
+      closePhotoLightbox();
+      return true;
+    }
+
+    // 1. Close calculator keypad if active
+    const keypad = document.getElementById('custom-calculator-keypad');
+    if (keypad && keypad.classList.contains('active')) {
+      closeCalculatorKeypad();
+      return true;
+    }
+
+    // 2. Close Month/Year bottom sheet inside date picker if active
+    const datePickerBS = document.getElementById('custom-date-picker-bs');
+    if (datePickerBS && datePickerBS.classList.contains('active')) {
+      closeCustomDatePickerBS();
+      return true;
+    }
+
+    // 3. STRICT LIFO MODAL CLOSE: Close TOPMOST active modal first
+    const activeModals = document.querySelectorAll('.modal-overlay.active');
+    if (activeModals.length > 0) {
+      const topModal = activeModals[activeModals.length - 1];
+      if (topModal && topModal.id) {
+        closeModal(topModal.id);
+        return true;
+      }
+    }
+
+    // 4. Close search overlay if active
+    const searchOverlay = document.getElementById('search-overlay');
+    if (searchOverlay && searchOverlay.classList.contains('active')) {
+      closeSearchOverlay();
+      return true;
+    }
+
+    // 5. Cancel selection mode
+    if (state.selectionMode) {
+      exitSelectionMode();
+      return true;
+    }
+
+    // 6. Navigate to previous tab in order
+    const currentIdx = TAB_ORDER.indexOf(state.activeTab);
+    if (currentIdx > 0) {
+      switchTab(TAB_ORDER[currentIdx - 1]);
+      return true;
+    }
+    
+    return false;
+  }
 
     // 0. Close photo lightbox if active
     const lightbox = document.getElementById('photo-lightbox-modal');
