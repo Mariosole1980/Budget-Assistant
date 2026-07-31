@@ -1267,7 +1267,7 @@ function applyLanguage(lang) {
   // Update DOM elements with data-i18n
   document.querySelectorAll('[data-i18n]').forEach(el => {
     const key = el.getAttribute('data-i18n');
-    const translation = TRANSLATIONS[lang][key];
+    const translation = TRANSLATIONS[lang] ? TRANSLATIONS[lang][key] : null;
     if (translation) {
       if (el.children.length === 0) {
         el.textContent = translation;
@@ -1291,14 +1291,14 @@ function applyLanguage(lang) {
   // Update DOM elements with data-i18n-html
   document.querySelectorAll('[data-i18n-html]').forEach(el => {
     const key = el.getAttribute('data-i18n-html');
-    const translation = TRANSLATIONS[lang][key];
+    const translation = TRANSLATIONS[lang] ? TRANSLATIONS[lang][key] : null;
     if (translation) el.innerHTML = translation;
   });
 
   // Update elements with data-i18n-title
   document.querySelectorAll('[data-i18n-title]').forEach(el => {
     const key = el.getAttribute('data-i18n-title');
-    const translation = TRANSLATIONS[lang][key];
+    const translation = TRANSLATIONS[lang] ? TRANSLATIONS[lang][key] : null;
     if (translation) el.title = translation;
   });
 
@@ -1312,7 +1312,7 @@ function applyLanguage(lang) {
   // Update Language Settings UI value
   const langValEl = document.getElementById('lang-setting-val');
   if (langValEl) {
-    langValEl.textContent = lang === 'en' ? 'English' : 'Ελληνικά';
+    langValEl.textContent = lang === 'en' ? '🇬🇧 English' : '🇬🇷 Ελληνικά';
   }
 
   // Update auth overlay lang pills active class
@@ -1323,366 +1323,18 @@ function applyLanguage(lang) {
     authLangEn.classList.toggle('active', lang === 'en');
   }
 
-  // Update auth subtitle based on mode
-  const subtitleEl = document.getElementById('auth-subtitle');
-  if (subtitleEl) {
-    const authMode = (typeof currentAuthMode !== 'undefined') ? currentAuthMode : 'login';
-    subtitleEl.textContent = authMode === 'login' 
-      ? TRANSLATIONS[lang]['auth_welcome'] 
-      : TRANSLATIONS[lang]['auth_create_account'];
+  // Re-render UI dynamic elements and screens
+  if (typeof updateUI === 'function') {
+    updateUI();
   }
-
-  const submitBtn = document.getElementById('auth-password-submit-btn');
-  if (submitBtn) {
-    if (!submitBtn.disabled) {
-      const authMode = (typeof currentAuthMode !== 'undefined') ? currentAuthMode : 'login';
-      submitBtn.textContent = authMode === 'login' 
-        ? TRANSLATIONS[lang]['auth_submit_login'] 
-        : TRANSLATIONS[lang]['auth_submit_signup'];
-    }
-  }
-
-  // Update sync-badge offline/online text
-  const syncBadge = document.getElementById('sync-badge');
-  if (syncBadge) {
-    const isOffline = syncBadge.classList.contains('offline');
-    if (isOffline) {
-      syncBadge.innerHTML = `<i class="fa-solid fa-wallet" style="color: var(--accent);"></i> Budget Assistant <span class="sync-badge-val">${TRANSLATIONS[lang]['status_local_mode']}</span>`;
-    } else {
-      syncBadge.innerHTML = `<i class="fa-solid fa-wallet" style="color: var(--accent);"></i> Budget Assistant <span class="sync-badge-val">${TRANSLATIONS[lang]['status_cloud_mode']}</span>`;
-    }
-  }
-
-  // Update placeholders in transaction form
-  const customSubInput = document.getElementById('trans-subcategory-custom');
-  if (customSubInput) {
-    customSubInput.placeholder = TRANSLATIONS[lang]['placeholder_type_new_sub'];
-  }
-  const noteInput = document.getElementById('trans-note');
-  if (noteInput) {
-    noteInput.placeholder = TRANSLATIONS[lang]['placeholder_note'];
-  }
-  const descInput = document.getElementById('trans-description');
-  if (descInput) {
-    descInput.placeholder = TRANSLATIONS[lang]['placeholder_description'];
-  }
-  const feedbackCommentInput = document.getElementById('feedback-comment');
-  if (feedbackCommentInput) {
-    feedbackCommentInput.placeholder = TRANSLATIONS[lang]['feedback_comment_placeholder'] || 'Γράψτε τα σχόλιά σας εδώ...';
-  }
-
-  // Update category name input placeholders
-  const newCategoryNameInput = document.getElementById('new-category-name');
-  if (newCategoryNameInput) {
-    newCategoryNameInput.placeholder = TRANSLATIONS[lang]['new_category_name_placeholder'] || 'Όνομα κατηγορίας';
-  }
-
-  // Update profile sheet and advisor chat placeholders
-  const profileNameInput = document.getElementById('profile-name-input');
-  if (profileNameInput) {
-    profileNameInput.placeholder = TRANSLATIONS[lang]['profile_name_placeholder'] || 'Το όνομά σας';
-  }
-
-  const advisorChatInput = document.getElementById('advisor-chat-input');
-  if (advisorChatInput) {
-    advisorChatInput.placeholder = TRANSLATIONS[lang]['advisor_placeholder'] || 'Ρωτήστε κάτι τον σύμβουλο...';
-  }
-
-  // Update custom date picker weekdays initials
-  const weekdaysEl = document.getElementById('custom-date-picker-weekdays');
-  if (weekdaysEl) {
-    const elInitials = ['Δε','Τρ','Τε','Πε','Πα','Σα','Κυ'];
-    const enInitials = ['Mo','Tu','We','Th','Fr','Sa','Su'];
-    const initials = lang === 'en' ? enInitials : elInitials;
-    weekdaysEl.innerHTML = initials.map(day => `<span>${day}</span>`).join('');
-  }
-
-  // Update search overlay input placeholder
-  const searchInput = document.getElementById('search-input');
-  if (searchInput) {
-    searchInput.placeholder = TRANSLATIONS[lang]['search_placeholder'] || 'Αναζήτηση σε κινήσεις, σημειώσεις...';
-  }
-
-  // Update search reset/clear visual button and titles
-  const searchResetBtn = document.querySelector('.search-reset-btn-modern');
-  if (searchResetBtn) {
-    searchResetBtn.textContent = TRANSLATIONS[lang]['search_btn_clear'] || 'Καθαρισμός';
-  }
-  const searchClearBtn = document.getElementById('search-clear-btn');
-  if (searchClearBtn) {
-    searchClearBtn.title = TRANSLATIONS[lang]['search_btn_clear'] || 'Καθαρισμός';
-  }
-
-  // Update Advanced search chip title
-  const advChip = document.getElementById('search-chip-advanced');
-  if (advChip) {
-    advChip.title = TRANSLATIONS[lang]['search_title_advanced'] || 'Σύνθετα Φίλτρα';
-  }
-
-  // Update Type search chip
-  const typeChip = document.getElementById('search-chip-type');
-  if (typeChip) {
-    const val = document.getElementById('search-filter-type')?.value;
-    const label = typeChip.querySelector('.chip-label');
-    if (label) {
-      if (val) {
-        let text = val === 'expense' ? TRANSLATIONS[lang]['type_tab_expense'] : val === 'income' ? TRANSLATIONS[lang]['type_tab_income'] : TRANSLATIONS[lang]['type_tab_transfer'];
-        label.textContent = `✓ ${text}`;
-      } else {
-        label.textContent = TRANSLATIONS[lang]['search_chip_type'] || 'Τύπος';
-      }
-    }
-  }
-
-  // Update Category search chip
-  const catChip = document.getElementById('search-chip-category');
-  if (catChip) {
-    const cat = document.getElementById('search-filter-category')?.value;
-    const sub = document.getElementById('search-filter-subcategory')?.value;
-    const label = catChip.querySelector('.chip-label');
-    if (label) {
-      if (cat) {
-        if (sub) {
-          label.textContent = `✓ ${getSubcategoryDisplayName(sub, cat)}`;
-        } else {
-          label.textContent = `✓ ${getCategoryDisplayName(cat)}`;
-        }
-      } else {
-        label.textContent = TRANSLATIONS[lang]['search_chip_category'] || 'Κατηγορία';
-      }
-    }
-  }
-
-  // Update Account search chip
-  const accChip = document.getElementById('search-chip-account');
-  if (accChip) {
-    const val = document.getElementById('search-filter-account')?.value;
-    const label = accChip.querySelector('.chip-label');
-    if (label) {
-      if (val) {
-        label.textContent = `✓ ${val}`;
-      } else {
-        label.textContent = TRANSLATIONS[lang]['search_chip_account'] || 'Λογαριασμός';
-      }
-    }
-  }
-
-  // Update Member search chip
-  const memChip = document.getElementById('search-chip-member');
-  if (memChip) {
-    const val = document.getElementById('search-filter-member')?.value;
-    const label = memChip.querySelector('.chip-label');
-    if (label) {
-      if (val) {
-        let name = '';
-        const myId = state.currentUser?.id || '';
-        if (val === myId) {
-          name = state.userProfile?.display_name || state.currentUser?.email?.split('@')[0] || (lang === 'el' ? 'Εσείς' : 'You');
-        } else if (state.partnerProfile && val === state.partnerProfile.id) {
-          name = state.partnerProfile.display_name || state.partnerProfile.email.split('@')[0] || (lang === 'el' ? 'Σύντροφος' : 'Partner');
-        }
-        label.textContent = `✓ ${name}`;
-      } else {
-        label.textContent = TRANSLATIONS[lang]['search_chip_member'] || 'Μέλος';
-      }
-    }
-  }
-
-  // Update new search filter row text values
-  const searchValPeriod = document.getElementById('search-val-period');
-  if (searchValPeriod) {
-    const sp = state.searchPeriod || 'all';
-    if (sp === 'all') {
-      searchValPeriod.textContent = lang === 'el' ? 'Όλη η περίοδος' : 'All period';
-    } else if (sp === 'weekly') {
-      searchValPeriod.textContent = lang === 'el' ? 'Εβδομαδιαία' : 'Weekly';
-    } else if (sp === 'monthly') {
-      searchValPeriod.textContent = lang === 'el' ? 'Μηνιαία' : 'Monthly';
-    } else if (sp === 'annually') {
-      searchValPeriod.textContent = lang === 'el' ? 'Ετήσια' : 'Annually';
-    } else if (sp === 'custom') {
-      const startVal = document.getElementById('search-filter-date-start')?.value;
-      const endVal = document.getElementById('search-filter-date-end')?.value;
-      if (startVal && endVal) {
-        searchValPeriod.textContent = `${startVal} ~ ${endVal}`;
-      } else {
-        searchValPeriod.textContent = lang === 'el' ? 'Όλη η περίοδος' : 'All period';
-      }
-    }
-  }
-
-  const searchValAccount = document.getElementById('search-val-account');
-  if (searchValAccount) {
-    const val = document.getElementById('search-filter-account')?.value;
-    if (val) {
-      searchValAccount.textContent = getAccountDisplayName(val);
-    } else {
-      searchValAccount.textContent = lang === 'el' ? 'Όλοι' : 'All';
-    }
-  }
-
-  const searchValCategory = document.getElementById('search-val-category');
-  if (searchValCategory) {
-    const cat = document.getElementById('search-filter-category')?.value;
-    const sub = document.getElementById('search-filter-subcategory')?.value;
-    if (cat) {
-      if (sub) {
-        searchValCategory.textContent = `${getCategoryDisplayName(cat)} > ${getSubcategoryDisplayName(sub, cat)}`;
-      } else {
-        searchValCategory.textContent = getCategoryDisplayName(cat);
-      }
-    } else {
-      searchValCategory.textContent = lang === 'el' ? 'Όλες' : 'All';
-    }
-  }
-
-  const searchValAmount = document.getElementById('search-val-amount');
-  if (searchValAmount) {
-    const minVal = document.getElementById('search-filter-amount-min')?.value;
-    const maxVal = document.getElementById('search-filter-amount-max')?.value;
-    if (minVal || maxVal) {
-      const minText = minVal ? `${minVal} €` : 'Min.';
-      const maxText = maxVal ? `${maxVal} €` : 'Max.';
-      searchValAmount.textContent = `${minText} ~ ${maxText}`;
-    } else {
-      searchValAmount.textContent = 'Min. ~ Max.';
-    }
-  }
-
-
-  // Update period dropdown choice labels in stats screen dropdown menu
-  document.querySelectorAll('.stats-dropdown-item').forEach(item => {
-    const val = item.getAttribute('data-value');
-    if (val === 'weekly') item.textContent = TRANSLATIONS[lang]['stats_period_weekly'];
-    else if (val === 'monthly') item.textContent = TRANSLATIONS[lang]['stats_period_monthly'];
-    else if (val === 'annually') item.textContent = TRANSLATIONS[lang]['stats_period_annually'];
-    else if (val === 'period') item.textContent = TRANSLATIONS[lang]['stats_period_custom'];
-  });
-
-  // Update stats period dropdown button text
-  const periodBtn = document.getElementById('stats-period-dropdown-btn');
-  if (periodBtn) {
-    const currentPeriod = state.statsPeriodType || 'monthly';
-    const periodLabels = {
-      weekly: TRANSLATIONS[lang]['stats_period_weekly'],
-      monthly: TRANSLATIONS[lang]['stats_period_monthly'],
-      annually: TRANSLATIONS[lang]['stats_period_annually'],
-      period: TRANSLATIONS[lang]['stats_period_custom']
-    };
-    periodBtn.childNodes[0].nodeValue = periodLabels[currentPeriod] + ' ';
-  }
-
-  // Update stats tab labels
-  const statsTabIncome = document.querySelector('#stats-tab-income .stats-tab-label');
-  const statsTabExpense = document.querySelector('#stats-tab-expense .stats-tab-label');
-  if (statsTabIncome) statsTabIncome.textContent = TRANSLATIONS[lang]['stats_tab_income'];
-  if (statsTabExpense) statsTabExpense.textContent = TRANSLATIONS[lang]['stats_tab_expense'];
-
-  // Update chart center title
-  const chartCenterTitle = document.getElementById('chart-center-title');
-  if (chartCenterTitle) {
-    chartCenterTitle.textContent = state.statsType === 'income' 
-      ? TRANSLATIONS[lang]['stats_tab_income'] 
-      : TRANSLATIONS[lang]['stats_tab_expense'];
-  }
-
-  // Update selection bar text
-  const selectionCount = document.getElementById('selection-count');
-  if (selectionCount && state.selectionMode) {
-    const count = state.selectedIds.size;
-    selectionCount.textContent = count + ' ' + TRANSLATIONS[lang]['selection_count_text'];
-  }
-  const selectAllBtn = document.getElementById('selection-select-all-btn');
-  if (selectAllBtn) selectAllBtn.title = TRANSLATIONS[lang]['selection_select_all'];
-  const deleteBtn = document.getElementById('selection-delete-btn');
-  if (deleteBtn) deleteBtn.title = TRANSLATIONS[lang]['selection_delete'];
-
-  // Update header sync icon tooltip
-  const headerSyncIcon = document.getElementById('header-sync-icon');
-  if (headerSyncIcon) headerSyncIcon.title = TRANSLATIONS[lang]['label_cloud_account'];
-
-  // Update transaction form type labels
-  const typeTabBtns = document.querySelectorAll('.type-tab-btn');
-  typeTabBtns.forEach(btn => {
-    const type = btn.getAttribute('data-type');
-    if (type === 'income') btn.textContent = TRANSLATIONS[lang]['type_tab_income'];
-    else if (type === 'expense') btn.textContent = TRANSLATIONS[lang]['type_tab_expense'];
-    else if (type === 'transfer') btn.textContent = TRANSLATIONS[lang]['type_tab_transfer'];
-  });
-
-  // Update transaction form labels
-  const fromAccLabel = document.getElementById('label-account-from');
-  if (fromAccLabel) {
-    const activeType = document.querySelector('.type-tab-btn.active')?.getAttribute('data-type');
-    if (activeType === 'transfer') fromAccLabel.textContent = TRANSLATIONS[lang]['label_from'];
-    else fromAccLabel.textContent = TRANSLATIONS[lang]['label_account'];
-  }
-
-  // Update modal titles
-  const catPickerTitle = document.querySelector('#category-picker-modal .modal-title');
-  if (catPickerTitle) catPickerTitle.textContent = TRANSLATIONS[lang]['modal_category_title'];
-  const subcatPickerTitle = document.querySelector('#subcategory-picker-modal .modal-title');
-  if (subcatPickerTitle) subcatPickerTitle.textContent = TRANSLATIONS[lang]['modal_subcategory_title'];
-  const catManagerTitle = document.querySelector('#category-manager-modal .modal-title');
-  if (catManagerTitle) catManagerTitle.textContent = TRANSLATIONS[lang]['modal_category_manager_title'];
-  const excelTitle = document.querySelector('#excel-modal .modal-title');
-  if (excelTitle) excelTitle.textContent = TRANSLATIONS[lang]['modal_excel_title'];
-  const pinTitle = document.querySelector('#pin-modal .modal-title');
-  if (pinTitle) pinTitle.textContent = TRANSLATIONS[lang]['modal_pin_title'];
-  const periodTitle = document.querySelector('#period-modal .modal-title');
-  if (periodTitle) periodTitle.textContent = TRANSLATIONS[lang]['modal_period_title'];
-  const profileTitle = document.querySelector('#profile-modal .modal-title');
-  if (profileTitle) profileTitle.textContent = TRANSLATIONS[lang]['modal_profile_title'];
-
-  // Update category manager add section
-  const catAddTitle = document.querySelector('#category-manager-modal .settings-section-title');
-  if (catAddTitle) catAddTitle.textContent = TRANSLATIONS[lang]['new_category_add_title'];
-  const catListTitle = document.querySelectorAll('#category-manager-modal .settings-section-title')[1];
-  if (catListTitle) catListTitle.textContent = TRANSLATIONS[lang]['new_category_list_title'];
-
-  // Update new category dialog in picker
-  const newCatDialogTitle = document.getElementById('new-cat-dialog-title');
-  if (newCatDialogTitle) {
-    const dialogType = newCategoryDialogType || 'expense';
-    newCatDialogTitle.textContent = dialogType === 'income' 
-      ? TRANSLATIONS[lang]['new_category_title_income']
-      : TRANSLATIONS[lang]['new_category_title_expense'];
-  }
-  const newCatNameInput = document.getElementById('new-cat-name-input');
-  if (newCatNameInput) newCatNameInput.placeholder = TRANSLATIONS[lang]['new_category_name_placeholder'];
-  const newCatIconLabel = document.querySelector('#new-category-inline-dialog label');
-  if (newCatIconLabel) newCatIconLabel.textContent = TRANSLATIONS[lang]['new_category_icon_label'];
-
-  // Update "+" New Category box text in grid
-  const addBoxName = document.querySelector('.category-picker-add .category-picker-name');
-  if (addBoxName) addBoxName.textContent = TRANSLATIONS[lang]['new_category_label'];
-
-  // Update category type labels in category manager
-  document.querySelectorAll('#category-manager-list .settings-list-item').forEach(item => {
-    const typeSpan = item.querySelector('span[style*="color: var(--text-muted)"]');
-    if (typeSpan) {
-      const catType = typeSpan.textContent;
-      if (catType === 'Έσοδο' || catType === 'Income') typeSpan.textContent = TRANSLATIONS[lang]['type_tab_income'];
-      else if (catType === 'Έξοδο' || catType === 'Expense') typeSpan.textContent = TRANSLATIONS[lang]['type_tab_expense'];
-    }
-  });
-
-  if (state.activeTab === 'more') {
-    renderPartnerSection();
-  }
-  if (state.syncStatus) {
-    updateHeaderSyncIcon(state.syncStatus);
-    updateSyncStatusIndicator();
-  }
-  updateUI();
 }
 
 function toggleLanguageSetting() {
   const nextLang = state.lang === 'el' ? 'en' : 'el';
   applyLanguage(nextLang);
+  const msg = nextLang === 'en' ? '🇬🇧 Switched to English' : '🇬🇷 Αλλαγή σε Ελληνικά';
+  showSyncToast(msg, 2500);
 }
-
-// Bind toggleLanguageSetting to window
 window.toggleLanguageSetting = toggleLanguageSetting;
 window.applyLanguage = applyLanguage;
 
