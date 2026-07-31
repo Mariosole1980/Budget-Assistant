@@ -1491,6 +1491,10 @@ button:active,
 
 .settings-item-label {
   font-weight: 600;
+  min-width: 0;
+  white-space: normal;
+  word-break: keep-all;
+  overflow-wrap: normal;
 }
 
 .settings-item-value {
