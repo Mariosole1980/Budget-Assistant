@@ -339,10 +339,35 @@ function mergeAndDeduplicateTransactions(cloudTransactions, localPendingTransact
   const deletedIds = new Set();
   
   // Guard 1: IDs actively being deleted right now
-  _deletingTxIds.forEach(id => deletedIds.add(String(id)));
+  if (typeof _deletingTxIds !== 'undefined' && _deletingTxIds) {
+    _deletingTxIds.forEach(id => deletedIds.add(String(id)));
+  }
   // Guard 2: IDs deleted in the last 30s (prevents race condition with Supabase propagation)
-  _recentlyDeletedTxIds.forEach(id => deletedIds.add(String(id)));
+  if (typeof _recentlyDeletedTxIds !== 'undefined' && _recentlyDeletedTxIds) {
+    _recentlyDeletedTxIds.forEach(id => deletedIds.add(String(id)));
+  }
+
+  // Guard 3: CRITICAL TOMBSTONE FIX - All IDs currently in Trash Bin (individual and grouped)
+  try {
+    const trashItems = state.trashTransactions || [];
+    trashItems.forEach(t => {
+      if (t) {
+        if (t.id) deletedIds.add(String(t.id));
+        if (t.affectedTransactionIds && Array.isArray(t.affectedTransactionIds)) {
+          t.affectedTransactionIds.forEach(subId => deletedIds.add(String(subId)));
+        }
+        if (t.affectedTransactionsSnapshot && Array.isArray(t.affectedTransactionsSnapshot)) {
+          t.affectedTransactionsSnapshot.forEach(subTx => {
+            if (subTx && subTx.id) deletedIds.add(String(subTx.id));
+          });
+        }
+      }
+    });
+  } catch (e) {
+    console.error('Failed to collect trash IDs in mergeAndDeduplicateTransactions:', e);
+  }
   
+  // Guard 4: Sync queue pending deletes
   try {
     const queueStr = localStorage.getItem('money_manager_sync_queue');
     if (queueStr) {
