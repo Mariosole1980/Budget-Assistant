@@ -16,6 +16,3 @@ project(':capacitor-keyboard').projectDir = new File('../node_modules/@capacitor
 
 include ':capacitor-local-notifications'
 project(':capacitor-local-notifications').projectDir = new File('../node_modules/@capacitor/local-notifications/android')
-
-include ':capacitor-native-biometric'
-project(':capacitor-native-biometric').projectDir = new File('../node_modules/capacitor-native-biometric/android')
