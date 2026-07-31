@@ -18120,38 +18120,7 @@ function initYearSwipeGestures() {
   }
 }
 
-function initCalendarSwipeGestures() {
-  const container = document.getElementById('custom-date-picker-calendar-view');
-  if (!container) return;
-
-  let startX = 0;
-  let startY = 0;
-  let startTime = 0;
-
-  container.addEventListener('touchstart', (e) => {
-    if (e.touches.length === 1) {
-      startX = e.touches[0].clientX;
-      startY = e.touches[0].clientY;
-      startTime = Date.now();
-    }
-  }, { passive: true });
-
-  container.addEventListener('touchend', (e) => {
-    if (e.changedTouches.length === 1) {
-      const deltaX = e.changedTouches[0].clientX - startX;
-      const deltaY = e.changedTouches[0].clientY - startY;
-      const duration = Date.now() - startTime;
-
-      if (duration < 400 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5 && Math.abs(deltaX) > 40) {
-        if (deltaX < 0) {
-          adjustCustomDatePickerMonth(1);
-        } else {
-          adjustCustomDatePickerMonth(-1);
-        }
-      }
-    }
-  }, { passive: true });
-}
+// Replaced by unified calendar refactor
 
 
 let _customDatePickerTargetInput = 'trans-date';
@@ -18888,10 +18857,7 @@ function renderCustomDatePickerCalendar() {
   }
 }
 
-function adjustCustomDatePickerMonth(direction) {
-  customDatePickerViewingMonth.setMonth(customDatePickerViewingMonth.getMonth() + direction);
-  renderCustomDatePickerCalendar();
-}
+// Replaced by unified calendar refactor
 
 window.adjustCustomDatePickerMonth = adjustCustomDatePickerMonth;
 
@@ -18978,7 +18944,12 @@ function renderCustomDatePickerBSGrids(type) {
       }
       btn.onclick = (e) => {
         e.stopPropagation();
-        customDatePickerViewingMonth.setMonth(m - 1);
+        const curDay = customDatePickerSelectedDate ? customDatePickerSelectedDate.getDate() : 1;
+        const curYear = customDatePickerViewingMonth.getFullYear();
+        const daysInMonth = new Date(curYear, m, 0).getDate();
+        const safeDay = Math.min(curDay, daysInMonth);
+        customDatePickerViewingMonth = new Date(curYear, m - 1, safeDay);
+        customDatePickerSelectedDate = new Date(curYear, m - 1, safeDay);
         renderCustomDatePickerCalendar();
         closeCustomDatePickerBS();
       };
@@ -19028,7 +18999,12 @@ function renderCustomDatePickerBSGrids(type) {
       }
       btn.onclick = (e) => {
         e.stopPropagation();
-        customDatePickerViewingMonth.setFullYear(y);
+        const curDay = customDatePickerSelectedDate ? customDatePickerSelectedDate.getDate() : 1;
+        const curMonth = customDatePickerViewingMonth.getMonth();
+        const daysInMonth = new Date(y, curMonth + 1, 0).getDate();
+        const safeDay = Math.min(curDay, daysInMonth);
+        customDatePickerViewingMonth = new Date(y, curMonth, safeDay);
+        customDatePickerSelectedDate = new Date(y, curMonth, safeDay);
         toggleCustomDatePickerBSYearView(false);
         renderCustomDatePickerBSGrids('month');
       };
@@ -22955,3 +22931,134 @@ async function restoreTrashGroup(groupId) {
   showSyncToast(msg, 3000);
 }
 window.restoreTrashGroup = restoreTrashGroup;
+
+
+// ============================================================
+// CUSTOM CALENDAR & DATE-TIME PICKER UNIFIED REFACTOR
+// ============================================================
+
+function adjustCustomDatePickerMonth(direction) {
+  const currentDay = customDatePickerSelectedDate ? customDatePickerSelectedDate.getDate() : 1;
+  const targetYear = customDatePickerViewingMonth.getFullYear();
+  const targetMonth = customDatePickerViewingMonth.getMonth() + direction;
+
+  const tempDate = new Date(targetYear, targetMonth, 1);
+  const daysInTargetMonth = new Date(tempDate.getFullYear(), tempDate.getMonth() + 1, 0).getDate();
+  const safeDay = Math.min(currentDay, daysInTargetMonth);
+
+  customDatePickerViewingMonth = new Date(tempDate.getFullYear(), tempDate.getMonth(), safeDay);
+  customDatePickerSelectedDate = new Date(tempDate.getFullYear(), tempDate.getMonth(), safeDay);
+
+  renderCustomDatePickerCalendar();
+}
+window.adjustCustomDatePickerMonth = adjustCustomDatePickerMonth;
+
+function initCalendarSwipeGestures() {
+  const container = document.getElementById('custom-date-picker-calendar-view');
+  if (!container) return;
+
+  let startX = 0;
+  let startY = 0;
+  let startTime = 0;
+
+  container.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 1) {
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      startTime = Date.now();
+    }
+  }, { passive: true });
+
+  container.addEventListener('touchmove', (e) => {
+    // Prevent outer app swipe-back gestures while dragging inside calendar grid
+    e.stopPropagation();
+  }, { passive: true });
+
+  container.addEventListener('touchend', (e) => {
+    if (e.changedTouches.length === 1) {
+      const deltaX = e.changedTouches[0].clientX - startX;
+      const deltaY = e.changedTouches[0].clientY - startY;
+      const duration = Date.now() - startTime;
+
+      if (duration < 400 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5 && Math.abs(deltaX) > 40) {
+        if (deltaX < 0) {
+          adjustCustomDatePickerMonth(1);
+        } else {
+          adjustCustomDatePickerMonth(-1);
+        }
+      }
+    }
+  }, { passive: true });
+}
+
+function enableDirectTimeTapToEdit() {
+  const hoursWheel = document.getElementById('scroll-hours');
+  const minutesWheel = document.getElementById('scroll-minutes');
+  const wheelsRow = document.getElementById('custom-date-picker-time-wheels-row');
+  const inputsRow = document.getElementById('custom-date-picker-time-inputs');
+  const inputHours = document.getElementById('custom-time-input-hours');
+  const inputMinutes = document.getElementById('custom-time-input-minutes');
+
+  if (!wheelsRow || !inputsRow) return;
+
+  const switchToManualAndFocus = (targetInput) => {
+    // Sync values from wheels before switching
+    if (hoursWheel && inputHours) {
+      const h = Math.round(hoursWheel.scrollTop / 60);
+      inputHours.value = String(Math.max(0, Math.min(23, h))).padStart(2, '0');
+    }
+    if (minutesWheel && inputMinutes) {
+      const m = Math.round(minutesWheel.scrollTop / 60);
+      inputMinutes.value = String(Math.max(0, Math.min(59, m))).padStart(2, '0');
+    }
+
+    wheelsRow.style.display = 'none';
+    inputsRow.style.display = 'flex';
+
+    if (targetInput) {
+      setTimeout(() => {
+        targetInput.focus();
+        if (typeof targetInput.select === 'function') targetInput.select();
+      }, 50);
+    }
+  };
+
+  if (hoursWheel && !hoursWheel._tapBound) {
+    hoursWheel._tapBound = true;
+    hoursWheel.style.cursor = 'pointer';
+    hoursWheel.addEventListener('click', () => switchToManualAndFocus(inputHours));
+  }
+
+  if (minutesWheel && !minutesWheel._tapBound) {
+    minutesWheel._tapBound = true;
+    minutesWheel.style.cursor = 'pointer';
+    minutesWheel.addEventListener('click', () => switchToManualAndFocus(inputMinutes));
+  }
+}
+window.enableDirectTimeTapToEdit = enableDirectTimeTapToEdit;
+
+function syncTimeInputsBackToWheels() {
+  const wheelsRow = document.getElementById('custom-date-picker-time-wheels-row');
+  const inputsRow = document.getElementById('custom-date-picker-time-inputs');
+  const inputHours = document.getElementById('custom-time-input-hours');
+  const inputMinutes = document.getElementById('custom-time-input-minutes');
+  const hoursWheel = document.getElementById('scroll-hours');
+  const minutesWheel = document.getElementById('scroll-minutes');
+
+  if (!inputHours || !inputMinutes) return;
+
+  let h = parseInt(inputHours.value, 10);
+  let m = parseInt(inputMinutes.value, 10);
+
+  if (isNaN(h) || h < 0) h = 0;
+  if (h > 23) h = 23;
+  if (isNaN(m) || m < 0) m = 0;
+  if (m > 59) m = 59;
+
+  inputHours.value = String(h).padStart(2, '0');
+  inputMinutes.value = String(m).padStart(2, '0');
+
+  if (hoursWheel) hoursWheel.scrollTop = h * 60;
+  if (minutesWheel) minutesWheel.scrollTop = m * 60;
+}
+window.syncTimeInputsBackToWheels = syncTimeInputsBackToWheels;
