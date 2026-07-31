@@ -21710,90 +21710,7 @@ function openRecurringTemplatesModal() {
 
 async function deleteRecurringTemplate(id) {
   if (!id) return;
-  
-  const lang = state.lang || 'el';
-  const confirmMsg = lang === 'el' 
-    ? 'Είστε σίγουροι ότι θέλετε να διαγράψετε αυτή την επαναλαμβανόμενη συναλλαγή; Αυτό θα σταματήσει την παραγωγή νέων δόσεων στο μέλλον.'
-    : 'Are you sure you want to delete this recurring transaction? This will stop future occurrences from being generated.';
-
-  const confirmed = await showConfirm(confirmMsg, lang === 'el' ? 'Διαγραφή Επαναλαμβανόμενης' : 'Delete Recurring', '🔄');
-  if (!confirmed) return;
-
-  const templateToDelete = (state.recurringTemplates || []).find(t => t.id === id);
-  if (templateToDelete && templateToDelete.note) {
-    let dismissed = [];
-    try {
-      dismissed = JSON.parse(localStorage.getItem('dismissed_recovered_templates') || '[]');
-    } catch (e) {}
-    if (!dismissed.includes(templateToDelete.note)) {
-      dismissed.push(templateToDelete.note);
-      localStorage.setItem('dismissed_recovered_templates', JSON.stringify(dismissed));
-      console.log('[AutoRecover] Saved dismissed template note:', templateToDelete.note);
-    }
-  }
-
-  // 1. Remove template from state
-  if (state.supabaseClient && state.currentUser) {
-    enqueueSyncMutation('delete_template', id);
-    state.supabaseClient
-      .from('recurring_templates')
-      .delete()
-      .eq('id', id)
-      .then(({ error }) => {
-        if (error) {
-          console.error('Failed to delete recurring template from cloud:', error);
-        } else {
-          dequeueSyncMutation('delete_template', id);
-        }
-      });
-  }
-  state.recurringTemplates = (state.recurringTemplates || []).filter(t => t.id !== id);
-  localStorage.setItem('recurring_templates', JSON.stringify(state.recurringTemplates));
-
-  // 2. Clear already generated occurrences across all months (past & future)
-  // but preserve the original seed transaction at template's startDate
-  const idsToDelete = [];
-  
-  if (templateToDelete) {
-    state.transactions = state.transactions.filter(t => {
-      const tDate = String(t.date || '').split('T')[0];
-      const isStartDate = tDate === String(templateToDelete.startDate || '').split('T')[0];
-      
-      const matchById = String(t.recurring_template_id) === String(id);
-      const matchByContent = !t.recurring_template_id &&
-                             (parseFloat(t.amount) || 0).toFixed(2) === (parseFloat(templateToDelete.amount) || 0).toFixed(2) &&
-                             t.type === templateToDelete.type &&
-                             t.category === templateToDelete.category &&
-                             (t.account_from || '') === (templateToDelete.account_from || '') &&
-                             (t.note || '') === (templateToDelete.note || '');
-                             
-      if (!isStartDate && (matchById || matchByContent)) {
-        idsToDelete.push(t.id);
-        return false;
-      }
-      return true;
-    });
-    
-    localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
-  }
-
-  // 3. Sync deletions to Cloud
-  if (idsToDelete.length > 0 && state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
-    idsToDelete.forEach(dId => enqueueSyncMutation('delete', dId));
-    state.supabaseClient
-      .from('transactions')
-      .delete()
-      .in('id', idsToDelete)
-      .then(({ error }) => {
-        if (!error) {
-          idsToDelete.forEach(dId => dequeueSyncMutation('delete', dId));
-        }
-      });
-  }
-
-  // Refresh UI & templates list
-  updateUI();
-  openRecurringTemplatesModal();
+  openRecurringDeleteModal(id);
 }
 
 // Trash Bin Management
@@ -21831,6 +21748,37 @@ function renderTrashBinList() {
   });
 
   sortedTrash.forEach(t => {
+    if (t.is_recurring_group) {
+      const catName = t.category;
+      let icon = '🔄';
+      let color = '#7c6af7';
+      const restoreText = TRANSLATIONS[lang]['restore'] || 'Restore';
+      const itemHtml = `
+        <div class="trash-item-row" style="display: flex; flex-direction: row; align-items: center; justify-content: space-between; padding: 12px 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg-card); gap: 12px; box-sizing: border-box; width: 100%;">
+          <div style="display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1; flex-direction: row;">
+            <div style="width: 40px; height: 40px; border-radius: 50%; background: ${color}20; color: ${color}; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;">
+              ${icon}
+            </div>
+            <div style="display: flex; flex-direction: column; min-width: 0; text-align: left; flex: 1;">
+              <span style="font-weight: 700; color: var(--text-primary); font-size: 14px; word-break: break-word; line-height: 1.3;">${t.note || 'Επαναλαμβανόμενη'}</span>
+              <span style="font-size: 11.5px; color: var(--text-secondary); margin-top: 3px; word-break: break-word; line-height: 1.2;">
+                ${t.subtitle || '🔄 Επαναλαμβανόμενη'} • ${parseFloat(t.amount || 0).toFixed(2)}€
+              </span>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
+            <button class="restore-btn" onclick="restoreTrashGroup('${t.id}')" style="background: var(--primary); border: none; color: #ffffff; font-size: 12px; font-weight: 600; cursor: pointer; padding: 6px 12px; border-radius: 8px; transition: opacity 0.2s; outline: none;">
+              ${restoreText}
+            </button>
+            <button onclick="deleteSingleTrashItem('${t.id}')" style="background: transparent; border: none; color: var(--danger); font-size: 14px; cursor: pointer; padding: 6px; border-radius: 6px;" title="Οριστική Διαγραφή">
+              🗑️
+            </button>
+          </div>
+        </div>
+      `;
+      container.insertAdjacentHTML('beforeend', itemHtml);
+      return;
+    }
     // Find category styling
     const catName = t.category;
     let icon = '🧩';
@@ -21869,9 +21817,14 @@ function renderTrashBinList() {
             </span>
           </div>
         </div>
-        <button class="restore-btn" onclick="restoreTransaction('${t.id}')" style="background: var(--primary); border: none; color: #ffffff; font-size: 12px; font-weight: 600; cursor: pointer; padding: 6px 12px; border-radius: 8px; transition: opacity 0.2s; flex-shrink: 0; outline: none; border: 0;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
-          ${restoreText}
-        </button>
+        <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
+          <button class="restore-btn" onclick="restoreTransaction('${t.id}')" style="background: var(--primary); border: none; color: #ffffff; font-size: 12px; font-weight: 600; cursor: pointer; padding: 6px 12px; border-radius: 8px; transition: opacity 0.2s; outline: none;">
+            ${restoreText}
+          </button>
+          <button onclick="deleteSingleTrashItem('${t.id}')" style="background: transparent; border: none; color: var(--danger); font-size: 14px; cursor: pointer; padding: 6px; border-radius: 6px;" title="Οριστική Διαγραφή">
+            🗑️
+          </button>
+        </div>
       </div>
     `;
     container.insertAdjacentHTML('beforeend', itemHtml);
@@ -21924,7 +21877,7 @@ async function restoreTransaction(id) {
 
 async function emptyTrashBin() {
   const lang = state.lang || 'el';
-  const confirmMsg = TRANSLATIONS[lang]['confirm_empty_trash'] || 'Are you sure you want to empty the trash bin? This action is permanent.';
+  const confirmMsg = lang === 'el' ? 'Να διαγραφούν οριστικά αυτές οι κινήσεις;' : 'Permanently delete these transactions?';
   
   const confirmed = await showConfirm(confirmMsg, lang === 'el' ? 'Εκκαθάριση Κάδου' : 'Empty Trash', '🗑️');
   if (!confirmed) return;
@@ -22694,3 +22647,309 @@ function renderUserGuideContent(query = '') {
 
   container.innerHTML = html;
 }
+
+
+// ============================================================
+// SCOPED RECURRING DELETION & GROUPED TRASH SYSTEM
+// ============================================================
+window._activeRecurringDeleteContext = null;
+
+function openRecurringDeleteModal(target, occurrenceDateStr) {
+  let templateId = null;
+  let txId = null;
+  let anchorDate = occurrenceDateStr || '';
+  let note = '';
+  let category = '';
+  let amount = 0;
+  let type = 'expense';
+
+  if (typeof target === 'object' && target !== null) {
+    txId = target.id;
+    templateId = target.recurring_template_id;
+    anchorDate = occurrenceDateStr || String(target.date || '').split('T')[0].split(' ')[0];
+    note = target.note || target.description || '';
+    category = target.category || '';
+    amount = parseFloat(target.amount || 0);
+    type = target.type || 'expense';
+  } else if (typeof target === 'string') {
+    templateId = target;
+    const template = (state.recurringTemplates || []).find(t => String(t.id) === String(target));
+    if (template) {
+      anchorDate = occurrenceDateStr || String(template.startDate || '').split('T')[0].split(' ')[0];
+      note = template.note || '';
+      category = template.category || '';
+      amount = parseFloat(template.amount || 0);
+      type = template.type || 'expense';
+    }
+  }
+
+  if (!templateId && txId) {
+    const tx = (state.transactions || []).find(t => String(t.id) === String(txId));
+    if (tx) {
+      const match = (state.recurringTemplates || []).find(t => {
+        return (parseFloat(tx.amount) || 0).toFixed(2) === (parseFloat(t.amount) || 0).toFixed(2) &&
+               tx.type === t.type &&
+               tx.category === t.category;
+      });
+      if (match) templateId = match.id;
+    }
+  }
+
+  window._activeRecurringDeleteContext = {
+    txId,
+    templateId,
+    anchorDate,
+    note,
+    category,
+    amount,
+    type
+  };
+
+  const singleRadio = document.querySelector('input[name="recurring_delete_scope"][value="single"]');
+  if (singleRadio) singleRadio.checked = true;
+
+  openModal('recurring-delete-step1-modal');
+}
+window.openRecurringDeleteModal = openRecurringDeleteModal;
+
+function handleRecurringDeleteStep1() {
+  const selectedScope = document.querySelector('input[name="recurring_delete_scope"]:checked')?.value || 'single';
+  
+  if (selectedScope === 'all') {
+    closeModal('recurring-delete-step1-modal');
+    openModal('recurring-delete-step2-modal');
+  } else {
+    closeModal('recurring-delete-step1-modal');
+    executeRecurringDelete(selectedScope);
+  }
+}
+window.handleRecurringDeleteStep1 = handleRecurringDeleteStep1;
+
+function handleRecurringDeleteStep2() {
+  closeModal('recurring-delete-step2-modal');
+  executeRecurringDelete('all');
+}
+window.handleRecurringDeleteStep2 = handleRecurringDeleteStep2;
+
+async function executeRecurringDelete(scope) {
+  const ctx = window._activeRecurringDeleteContext;
+  if (!ctx) return;
+
+  const { templateId, txId, anchorDate } = ctx;
+  const lang = state.lang || 'el';
+  const template = (state.recurringTemplates || []).find(t => String(t.id) === String(templateId));
+  const templateBackup = template ? JSON.parse(JSON.stringify(template)) : null;
+  const deletedRecurringDatesBackup = [...(state.deletedRecurringDates || [])];
+
+  const affectedTransactions = [];
+  const affectedTransactionIds = [];
+
+  let subtitleText = '';
+  const anchorDateObj = new Date(anchorDate);
+  const monthNamesEl = ['Ιανουάριο', 'Φεβρουάριο', 'Μάρτιο', 'Απρίλιο', 'Μάιο', 'Ιούνιο', 'Ιούλιο', 'Αύγουστο', 'Σεπτέμβριο', 'Οκτώβριο', 'Νοέμβριο', 'Δεκέμβριο'];
+  const monthNamesEn = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const monthStr = !isNaN(anchorDateObj.getTime())
+    ? (lang === 'el' ? monthNamesEl[anchorDateObj.getMonth()] + ' ' + anchorDateObj.getFullYear() : monthNamesEn[anchorDateObj.getMonth()] + ' ' + anchorDateObj.getFullYear())
+    : anchorDate;
+
+  if (scope === 'single') {
+    subtitleText = lang === 'el' 
+      ? `🔄 Επαναλαμβανόμενη • Μόνο αυτή η κίνηση (${anchorDate})` 
+      : `🔄 Recurring • Single occurrence (${anchorDate})`;
+
+    if (templateId && anchorDate) {
+      const key = `${templateId}_${anchorDate}`;
+      if (!state.deletedRecurringDates.includes(key)) {
+        state.deletedRecurringDates.push(key);
+        localStorage.setItem('deleted_recurring_dates', JSON.stringify(state.deletedRecurringDates));
+      }
+      if (template) {
+        addDeletedDateToTemplate(template, anchorDate);
+        localStorage.setItem('recurring_templates', JSON.stringify(state.recurringTemplates));
+      }
+    }
+
+    state.transactions = state.transactions.filter(t => {
+      const tDate = String(t.date || '').split('T')[0];
+      const match = (txId && String(t.id) === String(txId)) ||
+                    (tDate === anchorDate && (
+                      (templateId && String(t.recurring_template_id) === String(templateId)) ||
+                      (parseFloat(t.amount || 0).toFixed(2) === (ctx.amount).toFixed(2) && t.category === ctx.category)
+                    ));
+      if (match) {
+        affectedTransactions.push({ ...t });
+        affectedTransactionIds.push(t.id);
+        return false;
+      }
+      return true;
+    });
+
+  } else if (scope === 'future') {
+    subtitleText = lang === 'el' 
+      ? `🔄 Επαναλαμβανόμενη • Από ${monthStr} και μετά` 
+      : `🔄 Recurring • From ${monthStr} onwards`;
+
+    state.transactions = state.transactions.filter(t => {
+      const tDate = String(t.date || '').split('T')[0];
+      const isFromAnchorOnwards = tDate >= anchorDate;
+      const match = isFromAnchorOnwards && (
+        (templateId && String(t.recurring_template_id) === String(templateId)) ||
+        (parseFloat(t.amount || 0).toFixed(2) === (ctx.amount).toFixed(2) && t.category === ctx.category)
+      );
+      if (match) {
+        affectedTransactions.push({ ...t });
+        affectedTransactionIds.push(t.id);
+        return false;
+      }
+      return true;
+    });
+
+    if (template) {
+      template.untilDate = anchorDate;
+      localStorage.setItem('recurring_templates', JSON.stringify(state.recurringTemplates));
+    }
+
+  } else if (scope === 'all') {
+    subtitleText = lang === 'el' 
+      ? `🔄 Επαναλαμβανόμενη • Όλη η σειρά` 
+      : `🔄 Recurring • Full series`;
+
+    state.transactions = state.transactions.filter(t => {
+      const match = (templateId && String(t.recurring_template_id) === String(templateId)) ||
+                    (parseFloat(t.amount || 0).toFixed(2) === (ctx.amount).toFixed(2) && t.category === ctx.category);
+      if (match) {
+        affectedTransactions.push({ ...t });
+        affectedTransactionIds.push(t.id);
+        return false;
+      }
+      return true;
+    });
+
+    if (templateId) {
+      state.recurringTemplates = (state.recurringTemplates || []).filter(t => String(t.id) !== String(templateId));
+      localStorage.setItem('recurring_templates', JSON.stringify(state.recurringTemplates));
+    }
+  }
+
+  localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
+
+  const trashGroup = {
+    id: 'trash_group_' + Date.now(),
+    is_recurring_group: true,
+    scope: scope,
+    templateId: templateId,
+    anchorDate: anchorDate,
+    note: ctx.note || ctx.category || 'Επαναλαμβανόμενη',
+    amount: ctx.amount,
+    category: ctx.category,
+    type: ctx.type,
+    subtitle: subtitleText,
+    affectedTransactionsSnapshot: affectedTransactions,
+    affectedTransactionIds: affectedTransactionIds,
+    templateBackup: templateBackup,
+    deletedRecurringDatesBackup: deletedRecurringDatesBackup,
+    deleted_at: new Date().toISOString()
+  };
+
+  if (!state.trashTransactions) state.trashTransactions = [];
+  state.trashTransactions.unshift(trashGroup);
+  localStorage.setItem('deleted_transactions_trash', JSON.stringify(state.trashTransactions));
+
+  if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
+    if (scope === 'all' && templateId) {
+      enqueueSyncMutation('delete_template', templateId);
+      state.supabaseClient.from('recurring_templates').delete().eq('id', templateId);
+    }
+    if (affectedTransactionIds.length > 0) {
+      affectedTransactionIds.forEach(dId => enqueueSyncMutation('delete', dId));
+      state.supabaseClient.from('transactions').delete().in('id', affectedTransactionIds);
+    }
+  }
+
+  window._activeRecurringDeleteContext = null;
+  calculateInitialBalances();
+  updateUI();
+
+  const successMsg = lang === 'el' ? '🗑️ Η διαγραφή πραγματοποιήθηκε.' : '🗑️ Deletion completed.';
+  showSyncToast(successMsg, 3000);
+}
+window.executeRecurringDelete = executeRecurringDelete;
+
+async function deleteSingleTrashItem(id) {
+  if (!id) return;
+  const lang = state.lang || 'el';
+  const confirmMsg = lang === 'el' ? 'Να διαγραφούν οριστικά αυτές οι κινήσεις;' : 'Permanently delete these transactions?';
+  const confirmed = await showConfirm(confirmMsg, lang === 'el' ? 'Οριστική Διαγραφή' : 'Permanent Delete', '🗑️');
+  if (!confirmed) return;
+
+  const itemIndex = (state.trashTransactions || []).findIndex(t => String(t.id) === String(id));
+  if (itemIndex === -1) return;
+
+  state.trashTransactions.splice(itemIndex, 1);
+  localStorage.setItem('deleted_transactions_trash', JSON.stringify(state.trashTransactions));
+
+  if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
+    state.supabaseClient.from('deleted_transactions').delete().eq('id', id);
+  }
+
+  renderTrashBinList();
+  showSyncToast(lang === 'el' ? '🗑️ Οριστική διαγραφή.' : '🗑️ Permanently deleted.', 2500);
+}
+window.deleteSingleTrashItem = deleteSingleTrashItem;
+
+async function restoreTrashGroup(groupId) {
+  if (!groupId) return;
+
+  const groupIndex = (state.trashTransactions || []).findIndex(t => String(t.id) === String(groupId));
+  if (groupIndex === -1) return;
+
+  const group = state.trashTransactions[groupIndex];
+  const lang = state.lang || 'el';
+
+  if (group.templateBackup) {
+    const existingIdx = (state.recurringTemplates || []).findIndex(t => String(t.id) === String(group.templateId));
+    if (existingIdx !== -1) {
+      state.recurringTemplates[existingIdx] = group.templateBackup;
+    } else {
+      state.recurringTemplates.push(group.templateBackup);
+    }
+    localStorage.setItem('recurring_templates', JSON.stringify(state.recurringTemplates));
+  }
+
+  if (group.deletedRecurringDatesBackup) {
+    state.deletedRecurringDates = group.deletedRecurringDatesBackup;
+    localStorage.setItem('deleted_recurring_dates', JSON.stringify(state.deletedRecurringDates));
+  }
+
+  if (group.affectedTransactionsSnapshot && group.affectedTransactionsSnapshot.length > 0) {
+    const existingIds = new Set(state.transactions.map(t => String(t.id)));
+    group.affectedTransactionsSnapshot.forEach(tx => {
+      if (!existingIds.has(String(tx.id))) {
+        const cleaned = { ...tx };
+        delete cleaned.deleted_at;
+        state.transactions.push(cleaned);
+      }
+    });
+    localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
+  }
+
+  state.trashTransactions.splice(groupIndex, 1);
+  localStorage.setItem('deleted_transactions_trash', JSON.stringify(state.trashTransactions));
+
+  if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
+    if (group.templateBackup) {
+      state.supabaseClient.from('recurring_templates').upsert([mapTemplateToDb(group.templateBackup)]);
+    }
+    if (group.affectedTransactionsSnapshot && group.affectedTransactionsSnapshot.length > 0) {
+      state.supabaseClient.from('transactions').upsert(group.affectedTransactionsSnapshot);
+    }
+  }
+
+  calculateInitialBalances();
+  updateUI();
+  renderTrashBinList();
+
+  const msg = lang === 'el' ? '🔄 Η επαναφορά ολοκληρώθηκε.' : '🔄 Restoration completed.';
+  showSyncToast(msg, 3000);
+}
+window.restoreTrashGroup = restoreTrashGroup;
