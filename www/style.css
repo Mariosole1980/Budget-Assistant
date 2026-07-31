@@ -7247,3 +7247,11 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
   bottom: auto !important;
 }
 
+
+
+#pin-modal,
+#pin-verify-modal,
+#biometrics-pin-modal {
+  z-index: 12500 !important;
+}
+
