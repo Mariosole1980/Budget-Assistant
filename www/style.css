@@ -1107,6 +1107,15 @@ button:active,
   text-overflow: ellipsis;
 }
 
+.settings-item-label {
+  font-weight: 600;
+  min-width: 0;
+  white-space: nowrap;
+  word-break: normal;
+  overflow-wrap: normal;
+  text-overflow: ellipsis;
+}
+
 .overall-history-title {
   font-size: 12px;
   color: var(--text-primary);
