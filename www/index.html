@@ -88,7 +88,7 @@
               ${devButton}
             </div>
             <div style="font-size:11px;color:#8b949e;">
-              Budget Assistant • build v950
+              Budget Assistant • build v958
             </div>
           </div>
         `;
@@ -173,7 +173,7 @@
   <link rel="stylesheet" href="style.css?v=931">
   
   <!-- Capacitor Bridge -->
-  <script src="capacitor.js?v=950"></script>
+  <script src="capacitor.js?v=958"></script>
   
 
   <!-- Supabase client JS CDN -->
@@ -183,9 +183,9 @@
   <!-- Chart.js Datalabels Plugin CDN -->
   <script src="js/chartjs-plugin-datalabels.js"></script>
   <!-- SheetJS xlsx CDN for Excel Import/Export -->
-  <script src="xlsx.full.min.js?v=950"></script>
+  <script src="xlsx.full.min.js?v=958"></script>
 </head>
-<body style="background-color: #181b22; margin: 0; padding: 0; zoom: 0.93;">
+<body style="background-color: #181b22; margin: 0; padding: 0; ">
   <script>
     (function() {
       // Apply theme background color immediately to prevent white/beige flash on resume
@@ -1567,38 +1567,81 @@
           </div>
 
           <!-- SUBSCREEN: Legal & Account -->
-          <div id="subscreen-legal" class="subscreen-section" style="display:none; flex-direction:column; gap:18px; padding-bottom:20px;">
-            <div class="settings-list-item" id="legal-user-guide-row" style="cursor:pointer; background: rgba(99,102,241,0.06); border: 1px solid rgba(99,102,241,0.2); border-radius: 12px; margin-bottom: 8px;" onclick="openUserGuideModal()">
-              <span class="settings-item-label" style="color:var(--primary);font-weight:700;" data-i18n="item_user_guide"><i class="fa-solid fa-book-open" style="margin-right:8px; color:var(--primary);"></i> Οδηγός Χρήσης</span>
-              <i class="fa-solid fa-chevron-right" style="color:var(--primary);font-size:12px;"></i>
+          <div id="subscreen-legal" class="subscreen-section" style="display:none; flex-direction:column; gap:12px; padding-bottom:20px;">
+            
+            <!-- 1. User Guide -->
+            <div class="settings-list-item" id="legal-user-guide-row" style="cursor:pointer; background: rgba(99,102,241,0.08); border: 1px solid rgba(99,102,241,0.25); border-radius: 14px; padding: 14px 16px;" onclick="openUserGuideModal()">
+              <div style="display:flex; align-items:center; gap:12px;">
+                <div style="width:34px; height:34px; border-radius:10px; background:rgba(99,102,241,0.2); display:flex; align-items:center; justify-content:center;">
+                  <i class="fa-solid fa-book-open" style="color:var(--primary); font-size:15px;"></i>
+                </div>
+                <span class="settings-item-label" style="color:var(--primary); font-weight:700; font-size:14px;" data-i18n="item_user_guide">Οδηγός Χρήσης</span>
+              </div>
+              <i class="fa-solid fa-chevron-right" style="color:var(--primary); font-size:12px;"></i>
             </div>
-            <div class="settings-list-item" id="legal-force-update-row" style="cursor:pointer;">
-              <span class="settings-item-label" style="color:var(--blue-positive);font-weight:600;" data-i18n="force_update"><i class="fa-solid fa-arrows-rotate" style="margin-right:8px;"></i> Αναγκαστική Ενημέρωση</span>
-              <i class="fa-solid fa-chevron-right" style="color:var(--text-muted);font-size:12px;"></i>
-            </div>
-            <div class="settings-list-item" id="legal-privacy-row" style="cursor:pointer;">
-              <span class="settings-item-label" data-i18n="item_privacy">Πολιτική Απορρήτου</span>
-              <i class="fa-solid fa-arrow-up-right-from-square" style="color:var(--text-muted);font-size:12px;"></i>
-            </div>
-            <div class="settings-list-item" id="legal-feedback-row" style="cursor:pointer;">
-              <span class="settings-item-label" data-i18n="settings_feedback_title">Σχόλια &amp; Αξιολόγηση</span>
-              <i class="fa-solid fa-chevron-right" style="color:var(--text-muted);font-size:12px;"></i>
-            </div>
-            <div class="settings-list-item" id="legal-logout-row" style="cursor:pointer;">
-              <span class="settings-item-label" style="color:var(--red-negative);font-weight:600;" data-i18n="item_logout"><i class="fa-solid fa-right-from-bracket" style="margin-right:8px;"></i> Αποσύνδεση Λογαριασμού</span>
-              <i class="fa-solid fa-chevron-right" style="color:var(--red-negative);font-size:12px;"></i>
-            </div>
-            <div class="settings-list-item" id="developer-settings-row" onclick="window.location.href='debug.html'" style="display:none;cursor:pointer;">
-              <span class="settings-item-label" style="color:var(--primary);font-weight:600;"><i class="fa-solid fa-gauge-high" style="margin-right:8px;"></i> Πίνακας Ελέγχου</span>
-              <i class="fa-solid fa-chevron-right" style="color:var(--primary);font-size:12px;"></i>
-            </div>
-            <div class="settings-list-item">
-              <span class="settings-item-label" style="color:var(--text-muted);font-size:12px;" data-i18n="app_version">Έκδοση 1.0.0 (build v950)</span>
-              <span class="settings-item-value" style="font-size:12px;color:var(--text-muted);">Budget Assistant</span>
-            </div>
-          
 
-        </div>
+            <!-- 2. Force Update -->
+            <div class="settings-list-item" id="legal-force-update-row" style="cursor:pointer; padding: 14px 16px;" onclick="forceAppUpdate()">
+              <div style="display:flex; align-items:center; gap:12px;">
+                <div style="width:34px; height:34px; border-radius:10px; background:rgba(59,130,246,0.15); display:flex; align-items:center; justify-content:center;">
+                  <i class="fa-solid fa-arrows-rotate" style="color:var(--blue-positive); font-size:15px;"></i>
+                </div>
+                <span class="settings-item-label" style="color:var(--text-primary); font-weight:600; font-size:14px;" data-i18n="force_update">Αναγκαστική Ενημέρωση</span>
+              </div>
+              <i class="fa-solid fa-chevron-right" style="color:var(--text-muted); font-size:12px;"></i>
+            </div>
+
+            <!-- 3. Privacy Policy -->
+            <div class="settings-list-item" id="legal-privacy-row" style="cursor:pointer; padding: 14px 16px;" onclick="window.open('privacy.html', '_blank')">
+              <div style="display:flex; align-items:center; gap:12px;">
+                <div style="width:34px; height:34px; border-radius:10px; background:rgba(148,163,184,0.15); display:flex; align-items:center; justify-content:center;">
+                  <i class="fa-solid fa-user-shield" style="color:#94a3b8; font-size:15px;"></i>
+                </div>
+                <span class="settings-item-label" style="color:var(--text-primary); font-weight:600; font-size:14px;" data-i18n="item_privacy">Πολιτική Απορρήτου</span>
+              </div>
+              <i class="fa-solid fa-arrow-up-right-from-square" style="color:var(--text-muted); font-size:12px;"></i>
+            </div>
+
+            <!-- 4. Feedback & Rating -->
+            <div class="settings-list-item" id="legal-feedback-row" style="cursor:pointer; padding: 14px 16px;" onclick="openSettingsSubscreen('feedback', 'settings_feedback_title')">
+              <div style="display:flex; align-items:center; gap:12px;">
+                <div style="width:34px; height:34px; border-radius:10px; background:rgba(236,72,153,0.15); display:flex; align-items:center; justify-content:center;">
+                  <i class="fa-solid fa-comment-dots" style="color:#ec4899; font-size:15px;"></i>
+                </div>
+                <span class="settings-item-label" style="color:var(--text-primary); font-weight:600; font-size:14px;" data-i18n="settings_feedback_title">Σχόλια &amp; Αξιολόγηση</span>
+              </div>
+              <i class="fa-solid fa-chevron-right" style="color:var(--text-muted); font-size:12px;"></i>
+            </div>
+
+            <!-- 5. Logout -->
+            <div class="settings-list-item" id="legal-logout-row" style="cursor:pointer; padding: 14px 16px;" onclick="handleLogout()">
+              <div style="display:flex; align-items:center; gap:12px;">
+                <div style="width:34px; height:34px; border-radius:10px; background:rgba(239,68,68,0.15); display:flex; align-items:center; justify-content:center;">
+                  <i class="fa-solid fa-right-from-bracket" style="color:var(--red-negative); font-size:15px;"></i>
+                </div>
+                <span class="settings-item-label" style="color:var(--red-negative); font-weight:700; font-size:14px;" data-i18n="item_logout">Αποσύνδεση Λογαριασμού</span>
+              </div>
+              <i class="fa-solid fa-chevron-right" style="color:var(--red-negative); font-size:12px;"></i>
+            </div>
+
+            <!-- 6. Developer Control Panel -->
+            <div class="settings-list-item" id="developer-settings-row" onclick="window.location.href='debug.html'" style="display:none; cursor:pointer; padding: 14px 16px;">
+              <div style="display:flex; align-items:center; gap:12px;">
+                <div style="width:34px; height:34px; border-radius:10px; background:rgba(99,102,241,0.15); display:flex; align-items:center; justify-content:center;">
+                  <i class="fa-solid fa-gauge-high" style="color:var(--primary); font-size:15px;"></i>
+                </div>
+                <span class="settings-item-label" style="color:var(--primary); font-weight:600; font-size:14px;">Πίνακας Ελέγχου</span>
+              </div>
+              <i class="fa-solid fa-chevron-right" style="color:var(--primary); font-size:12px;"></i>
+            </div>
+
+            <!-- 7. App Version info -->
+            <div class="settings-list-item" style="padding: 14px 16px; background: transparent; border-top: 1px solid var(--border); margin-top: 8px;">
+              <span class="settings-item-label" style="color:var(--text-muted); font-size:12px;" data-i18n="app_version">Έκδοση 1.0.0 (build v958)</span>
+              <span class="settings-item-value" style="font-size:12px; color:var(--text-muted); font-weight:600;">Budget Assistant</span>
+            </div>
+
+          </div>
         </div>
       </div>
     </div>
@@ -2757,18 +2800,18 @@
   </div>
 
   <!-- Core Application Scripts -->
-  <script src="js/NLPProcessor.js?v=950"></script>
-  <script src="js/MemoryEngine.js?v=950"></script>
-  <script src="js/DecisionEngine.js?v=950"></script>
-  <script src="js/OnlineAIProvider.js?v=950"></script>
-  <script src="js/AIEngine.js?v=950"></script>
-  <script src="js/IntentCorpus.js?v=950"></script>
-  <script src="js/KnowledgeGraph.js?v=950"></script>
-  <script src="app.js?v=950"></script>
+  <script src="js/NLPProcessor.js?v=958"></script>
+  <script src="js/MemoryEngine.js?v=958"></script>
+  <script src="js/DecisionEngine.js?v=958"></script>
+  <script src="js/OnlineAIProvider.js?v=958"></script>
+  <script src="js/AIEngine.js?v=958"></script>
+  <script src="js/IntentCorpus.js?v=958"></script>
+  <script src="js/KnowledgeGraph.js?v=958"></script>
+  <script src="app.js?v=958"></script>
   
   <!-- Register PWA Service Worker -->
   <script>
-    const CURRENT_BUILD = 950;
+    const CURRENT_BUILD = 958;
     
     // ============================================================
     // AGGRESSIVE iOS PWA AUTO-UPDATE

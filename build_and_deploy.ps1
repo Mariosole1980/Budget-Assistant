@@ -139,6 +139,13 @@ if ($deploy1 -ne 0 -or $deploy2 -ne 0) {
     Write-Host "[ERROR] Wrangler deployment failed!" -ForegroundColor Red
     Exit 1
 }
+
+# 7. Git Commit & Tag
+Write-Host "[INFO] Staging and committing to Git..." -ForegroundColor Yellow
+git add -A
+git commit -m "build v${newBuild}: Fixed swipe-back stutter and atomic tab activation"
+Write-Host "  [SUCCESS] Git commit created for build v${newBuild}" -ForegroundColor Green
+
 Write-Host "[SUCCESS] All steps completed successfully! Builds are live at:" -ForegroundColor Green
 Write-Host "  - https://budget-assistant-pwa.pages.dev" -ForegroundColor Green
 Write-Host "  - https://money-manager-pwa.pages.dev" -ForegroundColor Green
