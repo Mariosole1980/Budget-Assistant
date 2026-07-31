@@ -674,7 +674,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v979 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v980 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1044,7 +1044,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v979 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v980 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -22196,9 +22196,9 @@ const USER_GUIDE_DATA = {
       {
         id: 'changelog',
         icon: 'fa-box-archive',
-        title: '1. Έκδοση & Τι Νέο Υπάρχει (v979)',
+        title: '1. Έκδοση & Τι Νέο Υπάρχει (v980)',
         content: `
-          <p><strong>Έκδοση Οδηγού:</strong> v979 | <strong>Συγχρονισμένη Έκδοση Εφαρμογής:</strong> v979</p>
+          <p><strong>Έκδοση Οδηγού:</strong> v980 | <strong>Συγχρονισμένη Έκδοση Εφαρμογής:</strong> v980</p>
           <div class="guide-feature-box">
             <h5 style="margin:0 0 6px; color:var(--primary);">✨ Τι νέο υπάρχει στην τελευταία έκδοση:</h5>
             <ul style="margin:0; padding-left:18px;">
@@ -22395,9 +22395,9 @@ const USER_GUIDE_DATA = {
       {
         id: 'changelog',
         icon: 'fa-box-archive',
-        title: '1. Version & What\'s New (v979)',
+        title: '1. Version & What\'s New (v980)',
         content: `
-          <p><strong>Guide Version:</strong> v979 | <strong>Synchronized App Version:</strong> v979</p>
+          <p><strong>Guide Version:</strong> v980 | <strong>Synchronized App Version:</strong> v980</p>
           <div class="guide-feature-box">
             <h5 style="margin:0 0 6px; color:var(--primary);">✨ What's new in the latest version:</h5>
             <ul style="margin:0; padding-left:18px;">
