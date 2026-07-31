@@ -15835,14 +15835,16 @@ function proceedToPinSetup() {
 
 function toggleScreenshotBlockSetting(checked) {
   try {
+    const isAndroid = typeof Capacitor !== 'undefined' && Capacitor.getPlatform && Capacitor.getPlatform() === 'android';
+    if (!isAndroid) {
+      const row = document.getElementById('settings-screenshot-block-row');
+      if (row) row.style.display = 'none';
+      return;
+    }
+
     localStorage.setItem('settings_screenshot_block', checked ? 'true' : 'false');
 
-    const hasNativeSecurity = window.Capacitor &&
-                              window.Capacitor.Plugins &&
-                              window.Capacitor.Plugins.Security &&
-                              typeof window.Capacitor.Plugins.Security.setSecureMode === 'function';
-
-    if (hasNativeSecurity) {
+    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Security && typeof window.Capacitor.Plugins.Security.setSecureMode === 'function') {
       window.Capacitor.Plugins.Security.setSecureMode({ enabled: checked })
         .then(() => {
           const msg = checked
@@ -15853,19 +15855,6 @@ function toggleScreenshotBlockSetting(checked) {
         .catch(err => {
           console.warn("[ScreenshotBlock] Native call failed:", err);
         });
-    } else {
-      console.warn("[ScreenshotBlock] Native screenshot blocking is not supported on this platform/web build.");
-      if (checked) {
-        setTimeout(() => {
-          const checkbox = document.getElementById('settings-screenshot-block');
-          if (checkbox) checkbox.checked = false;
-          localStorage.setItem('settings_screenshot_block', 'false');
-        }, 50);
-        const msg = state.lang === 'el'
-          ? 'Ο αποκλεισμός στιγμιότυπων υποστηρίζεται μόνο στην εφαρμογή Android.'
-          : 'Screenshot blocking is only supported on the Android app.';
-        showSyncToast("⚠️ " + msg, 3000);
-      }
     }
   } catch (err) {
     console.error("[ScreenshotBlock] Error in toggleScreenshotBlockSetting:", err);
@@ -19699,9 +19688,16 @@ window.onSubscreenShow_security = function() {
   const hideAmountsCheckbox = document.getElementById('settings-hide-amounts');
   if (hideAmountsCheckbox) hideAmountsCheckbox.checked = hideAmountsEnabled;
 
-  const screenshotBlockEnabled = localStorage.getItem('settings_screenshot_block') === 'true';
-  const screenshotBlockCheckbox = document.getElementById('settings-screenshot-block');
-  if (screenshotBlockCheckbox) screenshotBlockCheckbox.checked = screenshotBlockEnabled;
+  const isAndroid = typeof Capacitor !== 'undefined' && Capacitor.getPlatform && Capacitor.getPlatform() === 'android';
+  const screenshotRow = document.getElementById('settings-screenshot-block-row');
+  if (!isAndroid) {
+    if (screenshotRow) screenshotRow.style.display = 'none';
+  } else {
+    if (screenshotRow) screenshotRow.style.display = 'flex';
+    const screenshotBlockEnabled = localStorage.getItem('settings_screenshot_block') === 'true';
+    const screenshotBlockCheckbox = document.getElementById('settings-screenshot-block');
+    if (screenshotBlockCheckbox) screenshotBlockCheckbox.checked = screenshotBlockEnabled;
+  }
 
   const autoLockDelay = localStorage.getItem('settings_auto_lock_delay') || 'disabled';
   const autoLockSelect = document.getElementById('settings-auto-lock-delay');
