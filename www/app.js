@@ -15833,6 +15833,22 @@ function proceedToPinSetup() {
 }
 
 
+function getSecurityPlugin() {
+  if (!window.Capacitor) return null;
+  if (window.Capacitor.Plugins && window.Capacitor.Plugins.Security) {
+    return window.Capacitor.Plugins.Security;
+  }
+  if (typeof window.Capacitor.registerPlugin === 'function') {
+    try {
+      return window.Capacitor.registerPlugin('Security');
+    } catch (e) {
+      console.warn('[SecurityPlugin] Failed to register plugin:', e);
+    }
+  }
+  return null;
+}
+window.getSecurityPlugin = getSecurityPlugin;
+
 function toggleScreenshotBlockSetting(checked) {
   try {
     const isAndroid = typeof Capacitor !== 'undefined' && Capacitor.getPlatform && Capacitor.getPlatform() === 'android';
@@ -15844,8 +15860,9 @@ function toggleScreenshotBlockSetting(checked) {
 
     localStorage.setItem('settings_screenshot_block', checked ? 'true' : 'false');
 
-    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Security && typeof window.Capacitor.Plugins.Security.setSecureMode === 'function') {
-      window.Capacitor.Plugins.Security.setSecureMode({ enabled: checked })
+    const secPlugin = getSecurityPlugin();
+    if (secPlugin && typeof secPlugin.setSecureMode === 'function') {
+      secPlugin.setSecureMode({ enabled: checked })
         .then(() => {
           const msg = checked
             ? (state.lang === 'el' ? 'Ο αποκλεισμός στιγμιότυπων ενεργοποιήθηκε.' : 'Screenshot blocking enabled.')
@@ -15853,8 +15870,10 @@ function toggleScreenshotBlockSetting(checked) {
           showSyncToast((checked ? "🔒 " : "🔓 ") + msg, 3000);
         })
         .catch(err => {
-          console.warn("[ScreenshotBlock] Native call failed:", err);
+          console.warn("[ScreenshotBlock] Native setSecureMode call failed:", err);
         });
+    } else {
+      console.warn("[ScreenshotBlock] SecurityPlugin or setSecureMode method not available.");
     }
   } catch (err) {
     console.error("[ScreenshotBlock] Error in toggleScreenshotBlockSetting:", err);
@@ -19697,6 +19716,11 @@ window.onSubscreenShow_security = function() {
     const screenshotBlockEnabled = localStorage.getItem('settings_screenshot_block') === 'true';
     const screenshotBlockCheckbox = document.getElementById('settings-screenshot-block');
     if (screenshotBlockCheckbox) screenshotBlockCheckbox.checked = screenshotBlockEnabled;
+
+    const secPlugin = getSecurityPlugin();
+    if (secPlugin && typeof secPlugin.setSecureMode === 'function') {
+      secPlugin.setSecureMode({ enabled: screenshotBlockEnabled });
+    }
   }
 
   const autoLockDelay = localStorage.getItem('settings_auto_lock_delay') || 'disabled';
