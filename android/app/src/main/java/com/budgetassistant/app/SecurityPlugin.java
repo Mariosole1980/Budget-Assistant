@@ -185,7 +185,7 @@ public class SecurityPlugin extends Plugin {
                 try {
                     Window window = getActivity().getWindow();
                     if (enabled) {
-                        window.addFlags(WindowManager.LayoutParams.FLAG_SECURE);
+                        window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE);
                     } else {
                         window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE);
                     }

@@ -53,7 +53,7 @@ public class MainActivity extends BridgeActivity {
             boolean secureMode = prefs.getBoolean(KEY_SECURE_MODE, false);
             Window window = getWindow();
             if (secureMode) {
-                window.addFlags(WindowManager.LayoutParams.FLAG_SECURE);
+                window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE);
             } else {
                 window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE);
             }
