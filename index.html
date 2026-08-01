@@ -90,7 +90,7 @@
               ${devButton}
             </div>
             <div style="font-size:11px;color:#8b949e;">
-              Budget Assistant • build v994
+              Budget Assistant • build v995
             </div>
           </div>
         `;
@@ -178,7 +178,7 @@
   <link rel="stylesheet" href="style.css?v=982">
 
   <!-- Capacitor Bridge -->
-  <script src="capacitor.js?v=994"></script>
+  <script src="capacitor.js?v=995"></script>
 
 
   <!-- Supabase client JS CDN -->
@@ -188,7 +188,7 @@
   <!-- Chart.js Datalabels Plugin CDN -->
   <script src="js/chartjs-plugin-datalabels.js"></script>
   <!-- SheetJS xlsx CDN for Excel Import/Export -->
-  <script src="xlsx.full.min.js?v=994"></script>
+  <script src="xlsx.full.min.js?v=995"></script>
 </head>
 
 <body style="background-color: #181b22; margin: 0; padding: 0; ">
@@ -1679,7 +1679,7 @@
             style="display:none; flex-direction:column; gap:14px; padding-bottom:20px;">
 
             <!-- CARD 1: Cloud Sync Status -->
-            <div class="settings-list-item" id="sync-supabase-row"
+            <div class="settings-list-item" id="sync-supabase-row" onclick="openSupabaseSettings()"
               style="cursor:pointer; border-radius:14px; padding:14px 16px; background:rgba(255,255,255,0.03); border:1px solid var(--border); display:flex; align-items:center; justify-content:space-between;">
               <div style="display:flex; flex-direction:column; flex:1;">
                 <span class="settings-item-label" style="font-weight:700; font-size:14px;"
@@ -1695,7 +1695,7 @@
             </div>
 
             <!-- CARD 2: UNIFIED FILE IMPORT (Restore) -->
-            <div class="settings-list-item" id="sync-excel-import-row"
+            <div class="settings-list-item" id="sync-excel-import-row" onclick="openModal('excel-modal')"
               style="cursor:pointer; border-radius:14px; padding:14px 16px; background:rgba(255,255,255,0.03); border:1px solid var(--border); display:flex; align-items:center; justify-content:space-between;">
               <div style="display:flex; flex-direction:column; gap:4px; flex:1;">
                 <div style="display:flex; align-items:center; gap:8px;">
@@ -1720,7 +1720,7 @@
             </div>
 
             <!-- CARD 3: UNIFIED FILE EXPORT (Backup) -->
-            <div class="settings-list-item" id="sync-excel-export-row"
+            <div class="settings-list-item" id="sync-excel-export-row" onclick="openExportPeriodSheet()"
               style="cursor:pointer; border-radius:14px; padding:14px 16px; background:rgba(255,255,255,0.03); border:1px solid var(--border); display:flex; align-items:center; justify-content:space-between;">
               <div style="display:flex; flex-direction:column; gap:4px; flex:1;">
                 <div style="display:flex; align-items:center; gap:8px;">
@@ -1997,7 +1997,7 @@
             <div class="settings-list-item"
               style="padding: 14px 16px; background: transparent; border-top: 1px solid var(--border); margin-top: 8px;">
               <span class="settings-item-label" style="color:var(--text-muted); font-size:12px;"
-                data-i18n="app_version">Έκδοση 1.0.0 (build v994)</span>
+                data-i18n="app_version">Έκδοση 1.0.0 (build v995)</span>
               <span class="settings-item-value" style="font-size:12px; color:var(--text-muted); font-weight:600;">Budget
                 Assistant</span>
             </div>
@@ -3366,18 +3366,18 @@
     </div>
 
     <!-- Core Application Scripts -->
-    <script src="js/NLPProcessor.js?v=994"></script>
-    <script src="js/MemoryEngine.js?v=994"></script>
-    <script src="js/DecisionEngine.js?v=994"></script>
-    <script src="js/OnlineAIProvider.js?v=994"></script>
-    <script src="js/AIEngine.js?v=994"></script>
-    <script src="js/IntentCorpus.js?v=994"></script>
-    <script src="js/KnowledgeGraph.js?v=994"></script>
-    <script src="app.js?v=994"></script>
+    <script src="js/NLPProcessor.js?v=995"></script>
+    <script src="js/MemoryEngine.js?v=995"></script>
+    <script src="js/DecisionEngine.js?v=995"></script>
+    <script src="js/OnlineAIProvider.js?v=995"></script>
+    <script src="js/AIEngine.js?v=995"></script>
+    <script src="js/IntentCorpus.js?v=995"></script>
+    <script src="js/KnowledgeGraph.js?v=995"></script>
+    <script src="app.js?v=995"></script>
 
     <!-- Register PWA Service Worker -->
     <script>
-      const CURRENT_BUILD = 994;
+      const CURRENT_BUILD = 995;
 
       // ============================================================
       // AGGRESSIVE iOS PWA AUTO-UPDATE
@@ -3526,7 +3526,8 @@
         <div class="auth-header">
           <div class="auth-logo"
             style="background: linear-gradient(135deg, var(--accent), #2073fa); color: white; width: 70px; height: 70px; border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 32px; margin: 0 auto 20px;">
-            <i class="fa-solid fa-right-to-bracket"></i></div>
+            <i class="fa-solid fa-right-to-bracket"></i>
+          </div>
           <h2 class="auth-title" style="margin-bottom: 10px;">Σύνδεση Επιτυχής!</h2>
           <p class="auth-subtitle"
             style="color: var(--text-secondary); font-size: 14px; line-height: 1.5; margin-bottom: 25px;">
