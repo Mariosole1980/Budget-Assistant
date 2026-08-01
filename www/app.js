@@ -674,7 +674,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v983 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v984 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1044,7 +1044,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v983 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v984 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -4747,9 +4747,15 @@ function _updateUIImpl() {
   if (countEl) {
     countEl.textContent = state.recurringTemplates ? state.recurringTemplates.length : 0;
   }
+  const trashCount = state.trashTransactions ? state.trashTransactions.length : 0;
+  // Update both the legacy ID and the actual badge ID used in index.html (hub-trash-count)
   const trashCountEl = document.getElementById('trash-bin-count-val');
   if (trashCountEl) {
-    trashCountEl.textContent = state.trashTransactions ? state.trashTransactions.length : 0;
+    trashCountEl.textContent = trashCount;
+  }
+  const hubTrashCountEl = document.getElementById('hub-trash-count');
+  if (hubTrashCountEl) {
+    hubTrashCountEl.textContent = trashCount;
   }
 
   // Save current month/year to localStorage so they are preserved on app resume/reload
@@ -13759,8 +13765,8 @@ function renderNotesList() {
       const remDate = new Date(note.reminder_at);
       const isPast = remDate < new Date();
       reminderBadge.style.cssText = `display: inline-flex; align-items: center; gap: 4px; padding: 2px 6px; border-radius: 4px; font-weight: 700; font-family: 'Outfit', sans-serif; font-size: 10.5px; flex-shrink: 0; ${isPast
-          ? 'background: rgba(239, 68, 68, 0.12); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.25);'
-          : 'background: rgba(16, 185, 129, 0.12); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.25);'
+        ? 'background: rgba(239, 68, 68, 0.12); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.25);'
+        : 'background: rgba(16, 185, 129, 0.12); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.25);'
         }`;
       const formattedRemTime = formatNoteTimestamp(note.reminder_at);
       reminderBadge.innerHTML = `<i class="fa-regular fa-bell"></i> <span>${formattedRemTime}</span>`;
