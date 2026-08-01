@@ -41,67 +41,67 @@ if (!localStorage.getItem('clear_duplicates_v3')) {
 // ============================================================
 const CATEGORY_EMOJI_MAP = {
   // Expense categories
-  '1F3E1': { name: '🏠 Σπίτι',                  icon: '🏠', color: '#e05e55', type: 'expense' },
-  '1F3E0': { name: '🏠 Σπίτι',                  icon: '🏠', color: '#ffd54f', type: 'expense' },
-  '1F697': { name: '🚗 Μεταφορές',              icon: '🚗', color: '#ffa726', type: 'expense' },
-  '1F6D2': { name: '🍔 Τρόφιμα',                icon: '🍔', color: '#ffb300', type: 'expense' },
-  '1F3CB': { name: '🎉 Διασκέδαση',             icon: '🎉', color: '#42a5f5', type: 'expense' },
-  '1F389': { name: '🎉 Διασκέδαση',             icon: '🎉', color: '#26a69a', type: 'expense' },
-  '1F9FE': { name: '🧾 Φόροι',                  icon: '🧾', color: '#26c6da', type: 'expense' },
-  '1F455': { name: '👕 Αγορές',                 icon: '👕', color: '#7e57c2', type: 'expense' },
-  '1F687': { name: '🚗 Μεταφορές',              icon: '🚗', color: '#ab47bc', type: 'expense' },
-  '1F4BB': { name: '📦 Διάφορα',                 icon: '📦', color: '#5c6bc0', type: 'expense' },
-  '1F4BC': { name: '💼 Μισθός',                 icon: '💼', color: '#4caf50', type: 'income' },
-  '1F9E9': { name: '📦 Διάφορα',                 icon: '📦', color: '#78909c', type: 'expense' },
-  '1F3AC': { name: '📱 Συνδρομές',              icon: '📱', color: '#ec407a', type: 'expense' },
-  '2764':  { name: '❤️ Υγεία',                  icon: '❤️', color: '#ef5350', type: 'expense' },
-  '1F489': { name: '❤️ Υγεία',                  icon: '❤️', color: '#ef5350', type: 'expense' },
-  '1F48A': { name: '❤️ Υγεία',                  icon: '❤️', color: '#ef5350', type: 'expense' },
-  '1F527': { name: '📦 Διάφορα',                 icon: '📦', color: '#78909c', type: 'expense' },
+  '1F3E1': { name: '🏠 Σπίτι', icon: '🏠', color: '#e05e55', type: 'expense' },
+  '1F3E0': { name: '🏠 Σπίτι', icon: '🏠', color: '#ffd54f', type: 'expense' },
+  '1F697': { name: '🚗 Μεταφορές', icon: '🚗', color: '#ffa726', type: 'expense' },
+  '1F6D2': { name: '🍔 Τρόφιμα', icon: '🍔', color: '#ffb300', type: 'expense' },
+  '1F3CB': { name: '🎉 Διασκέδαση', icon: '🎉', color: '#42a5f5', type: 'expense' },
+  '1F389': { name: '🎉 Διασκέδαση', icon: '🎉', color: '#26a69a', type: 'expense' },
+  '1F9FE': { name: '🧾 Φόροι', icon: '🧾', color: '#26c6da', type: 'expense' },
+  '1F455': { name: '👕 Αγορές', icon: '👕', color: '#7e57c2', type: 'expense' },
+  '1F687': { name: '🚗 Μεταφορές', icon: '🚗', color: '#ab47bc', type: 'expense' },
+  '1F4BB': { name: '📦 Διάφορα', icon: '📦', color: '#5c6bc0', type: 'expense' },
+  '1F4BC': { name: '💼 Μισθός', icon: '💼', color: '#4caf50', type: 'income' },
+  '1F9E9': { name: '📦 Διάφορα', icon: '📦', color: '#78909c', type: 'expense' },
+  '1F3AC': { name: '📱 Συνδρομές', icon: '📱', color: '#ec407a', type: 'expense' },
+  '2764': { name: '❤️ Υγεία', icon: '❤️', color: '#ef5350', type: 'expense' },
+  '1F489': { name: '❤️ Υγεία', icon: '❤️', color: '#ef5350', type: 'expense' },
+  '1F48A': { name: '❤️ Υγεία', icon: '❤️', color: '#ef5350', type: 'expense' },
+  '1F527': { name: '📦 Διάφορα', icon: '📦', color: '#78909c', type: 'expense' },
 
   // Income categories
-  '1F911': { name: '➕ Άλλα έσοδα',             icon: '➕', color: '#607d8b', type: 'income' },
-  '1F4B0': { name: '💼 Μισθός',                 icon: '💼', color: '#4caf50', type: 'income' },
-  '1F381': { name: '🎁 Δώρα',                   icon: '🎁', color: '#66bb6a', type: 'income' },
-  '1F9D1': { name: '➕ Άλλα έσοδα',             icon: '➕', color: '#009688', type: 'income' },
-  '1F4E6': { name: '📦 Πωλήσεις',               icon: '📦', color: '#26a69a', type: 'income' },
-  '1F3C5': { name: '💸 Bonus',                  icon: '💸', color: '#ffb300', type: 'income' },
-  '1F468': { name: '➕ Άλλα έσοδα',             icon: '➕', color: '#9e9e9e', type: 'income' },
-  '1F393': { name: '🎓 Εκπαίδευση',             icon: '🎓', color: '#2196f3', type: 'expense' },
-  '1F47D': { name: '➕ Άλλα έσοδα',             icon: '➕', color: '#607d8b', type: 'income' },
-  '1F4B6': { name: '🏠 Ενοίκια',                icon: '🏠', color: '#00bcd4', type: 'income' },
-  '1F3DB': { name: '➕ Άλλα έσοδα',             icon: '➕', color: '#8bc34a', type: 'income' },
+  '1F911': { name: '➕ Άλλα έσοδα', icon: '➕', color: '#607d8b', type: 'income' },
+  '1F4B0': { name: '💼 Μισθός', icon: '💼', color: '#4caf50', type: 'income' },
+  '1F381': { name: '🎁 Δώρα', icon: '🎁', color: '#66bb6a', type: 'income' },
+  '1F9D1': { name: '➕ Άλλα έσοδα', icon: '➕', color: '#009688', type: 'income' },
+  '1F4E6': { name: '📦 Πωλήσεις', icon: '📦', color: '#26a69a', type: 'income' },
+  '1F3C5': { name: '💸 Bonus', icon: '💸', color: '#ffb300', type: 'income' },
+  '1F468': { name: '➕ Άλλα έσοδα', icon: '➕', color: '#9e9e9e', type: 'income' },
+  '1F393': { name: '🎓 Εκπαίδευση', icon: '🎓', color: '#2196f3', type: 'expense' },
+  '1F47D': { name: '➕ Άλλα έσοδα', icon: '➕', color: '#607d8b', type: 'income' },
+  '1F4B6': { name: '🏠 Ενοίκια', icon: '🏠', color: '#00bcd4', type: 'income' },
+  '1F3DB': { name: '➕ Άλλα έσοδα', icon: '➕', color: '#8bc34a', type: 'income' },
 };
 
 // Fallback categories for any that don't match
 const DEFAULT_CATEGORIES = [
-  { name: '🏠 Σπίτι',                  type: 'expense', icon: '🏠', color: '#e05e55' },
-  { name: '🍔 Τρόφιμα',                type: 'expense', icon: '🍔', color: '#ffb300' },
-  { name: '🚗 Μεταφορές',              type: 'expense', icon: '🚗', color: '#ffa726' },
-  { name: '❤️ Υγεία',                  type: 'expense', icon: '❤️', color: '#ef5350' },
-  { name: '🎓 Εκπαίδευση',             type: 'expense', icon: '🎓', color: '#2196f3' },
-  { name: '🎉 Διασκέδαση',             type: 'expense', icon: '🎉', color: '#26a69a' },
-  { name: '👕 Αγορές',                 type: 'expense', icon: '👕', color: '#7e57c2' },
-  { name: '📱 Συνδρομές',              type: 'expense', icon: '📱', color: '#ec407a' },
-  { name: '🧾 Φόροι',                  type: 'expense', icon: '🧾', color: '#26c6da' },
-  { name: '📦 Διάφορα',                 type: 'expense', icon: '📦', color: '#78909c' },
+  { name: '🏠 Σπίτι', type: 'expense', icon: '🏠', color: '#e05e55' },
+  { name: '🍔 Τρόφιμα', type: 'expense', icon: '🍔', color: '#ffb300' },
+  { name: '🚗 Μεταφορές', type: 'expense', icon: '🚗', color: '#ffa726' },
+  { name: '❤️ Υγεία', type: 'expense', icon: '❤️', color: '#ef5350' },
+  { name: '🎓 Εκπαίδευση', type: 'expense', icon: '🎓', color: '#2196f3' },
+  { name: '🎉 Διασκέδαση', type: 'expense', icon: '🎉', color: '#26a69a' },
+  { name: '👕 Αγορές', type: 'expense', icon: '👕', color: '#7e57c2' },
+  { name: '📱 Συνδρομές', type: 'expense', icon: '📱', color: '#ec407a' },
+  { name: '🧾 Φόροι', type: 'expense', icon: '🧾', color: '#26c6da' },
+  { name: '📦 Διάφορα', type: 'expense', icon: '📦', color: '#78909c' },
 
-  { name: '💼 Μισθός',                 type: 'income',  icon: '💼', color: '#4caf50' },
-  { name: '💸 Bonus',                  type: 'income',  icon: '💸', color: '#ffb300' },
-  { name: '🏠 Ενοίκια',                type: 'income',  icon: '🏠', color: '#00bcd4' },
-  { name: '📈 Επενδύσεις',             type: 'income',  icon: '📈', color: '#8bc34a' },
-  { name: '🎁 Δώρα',                   type: 'income',  icon: '🎁', color: '#66bb6a' },
-  { name: '💰 Cashback / Τόκοι',       type: 'income',  icon: '💰', color: '#607d8b' },
-  { name: '💼 Freelance',              type: 'income',  icon: '💼', color: '#9e9e9e' },
-  { name: '📦 Πωλήσεις',               type: 'income',  icon: '📦', color: '#26a69a' },
-  { name: '➕ Άλλα έσοδα',             type: 'income',  icon: '➕', color: '#90a4ae' }
+  { name: '💼 Μισθός', type: 'income', icon: '💼', color: '#4caf50' },
+  { name: '💸 Bonus', type: 'income', icon: '💸', color: '#ffb300' },
+  { name: '🏠 Ενοίκια', type: 'income', icon: '🏠', color: '#00bcd4' },
+  { name: '📈 Επενδύσεις', type: 'income', icon: '📈', color: '#8bc34a' },
+  { name: '🎁 Δώρα', type: 'income', icon: '🎁', color: '#66bb6a' },
+  { name: '💰 Cashback / Τόκοι', type: 'income', icon: '💰', color: '#607d8b' },
+  { name: '💼 Freelance', type: 'income', icon: '💼', color: '#9e9e9e' },
+  { name: '📦 Πωλήσεις', type: 'income', icon: '📦', color: '#26a69a' },
+  { name: '➕ Άλλα έσοδα', type: 'income', icon: '➕', color: '#90a4ae' }
 ];
 
 // Default Accounts - 3 real accounts from Excel: Cash, Card, Accounts (= Bank Account)
 const DEFAULT_ACCOUNTS = [
-  { name: 'Cash',         type: 'cash',       balance: 0 },
-  { name: 'Bank Account', type: 'bank',        balance: 0 },
-  { name: 'Card',         type: 'card',        balance: 0 },
+  { name: 'Cash', type: 'cash', balance: 0 },
+  { name: 'Bank Account', type: 'bank', balance: 0 },
+  { name: 'Card', type: 'card', balance: 0 },
 ];
 
 // App State
@@ -227,28 +227,28 @@ function getTransactionTime(t) {
   if (!ref) return 0;
   if (typeof ref === 'number') return ref;
   if (ref instanceof Date) return ref.getTime();
-  
+
   let str = String(ref).trim()
     .replace(/^(\d{4}-\d{2}-\d{2})\s+/, '$1T') // Normalize space separator
     .replace(/\s+([+-])/, '$1') // Remove spaces before timezone offset
     .replace(/\s+([Zz])/, '$1'); // Remove spaces before Z/z offset
-  
+
   if (!str) return 0;
-  
+
   // Check if it has any valid timezone offset (Z, z, +HH:MM, -HH:MM, +HHMM, -HHMM, +HH, -HH)
   const hasTZ = /[Zz]|[+-]\d{2}(?::?\d{2})?$/.test(str);
-  
+
   // Force UTC parsing by appending Z if no timezone is present
   if (!hasTZ) {
     str += 'Z';
   } else if (str.endsWith('z')) {
     str = str.slice(0, -1) + 'Z';
   }
-  
+
   // Normalize timezone offsets to +HH:MM / -HH:MM format
   str = str.replace(/([+-]\d{2})$/, '$1:00');
   str = str.replace(/([+-]\d{2})(\d{2})$/, '$1:$2');
-  
+
   // Robust regex-based manual parsing fallback for Safari compatibility and microsecond handling
   const match = str.match(/^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2})(?::(\d{2}))?(?:\.(\d+))?)?(Z|[+-]\d{2}:\d{2})$/);
   if (match) {
@@ -258,16 +258,16 @@ function getTransactionTime(t) {
     const hour = match[4] ? parseInt(match[4], 10) : 0;
     const minute = match[5] ? parseInt(match[5], 10) : 0;
     const second = match[6] ? parseInt(match[6], 10) : 0;
-    
+
     let ms = 0;
     if (match[7]) {
       const msStr = match[7].substring(0, 3).padEnd(3, '0');
       ms = parseInt(msStr, 10);
     }
-    
+
     const tzStr = match[8];
     let utcMs = Date.UTC(year, month, day, hour, minute, second, ms);
-    
+
     if (tzStr !== 'Z') {
       const tzSign = tzStr.charAt(0) === '+' ? 1 : -1;
       const tzHours = parseInt(tzStr.substring(1, 3), 10);
@@ -277,7 +277,7 @@ function getTransactionTime(t) {
     }
     return utcMs;
   }
-  
+
   // Fallback to standard Date.parse if regex doesn't match
   const fallback = Date.parse(str);
   return isNaN(fallback) ? 0 : fallback;
@@ -287,28 +287,28 @@ function compareTransactions(a, b) {
   if (!a && !b) return 0;
   if (!a) return 1;
   if (!b) return -1;
-  
+
   // Level 1: date descending (locale-independent string comparison)
   const dateA = String(a.date || '').split('T')[0].split(' ')[0];
   const dateB = String(b.date || '').split('T')[0].split(' ')[0];
   if (dateA !== dateB) {
     return dateA < dateB ? 1 : -1;
   }
-  
+
   // Level 2: created_at timestamp descending (UTC epoch ms)
   const timeA = getTransactionTime(a);
   const timeB = getTransactionTime(b);
   if (timeA !== timeB) {
     return timeB - timeA;
   }
-  
+
   // Level 3: id ascending (unique fallback)
   const idA = String(a.id || '');
   const idB = String(b.id || '');
   if (idA !== idB) {
     return idA < idB ? -1 : 1;
   }
-  
+
   return 0;
 }
 
@@ -337,7 +337,7 @@ function deduplicateCategories() {
 
 function mergeAndDeduplicateTransactions(cloudTransactions, localPendingTransactions) {
   const deletedIds = new Set();
-  
+
   // Guard 1: IDs actively being deleted right now
   if (typeof _deletingTxIds !== 'undefined' && _deletingTxIds) {
     _deletingTxIds.forEach(id => deletedIds.add(String(id)));
@@ -366,7 +366,7 @@ function mergeAndDeduplicateTransactions(cloudTransactions, localPendingTransact
   } catch (e) {
     console.error('Failed to collect trash IDs in mergeAndDeduplicateTransactions:', e);
   }
-  
+
   // Guard 4: Sync queue pending deletes
   try {
     const queueStr = localStorage.getItem('money_manager_sync_queue');
@@ -383,23 +383,23 @@ function mergeAndDeduplicateTransactions(cloudTransactions, localPendingTransact
   }
 
   const idMap = {};
-  
+
   (cloudTransactions || []).forEach(t => {
     if (t && t.id && !deletedIds.has(String(t.id))) {
       idMap[t.id] = t;
     }
   });
-  
+
   (localPendingTransactions || []).forEach(t => {
     if (t && t.id && !deletedIds.has(String(t.id))) {
       idMap[t.id] = t;
     }
   });
-  
+
   const uniqueById = Object.values(idMap);
   const dedupMap = {};
   const result = [];
-  
+
   uniqueById.forEach(t => {
     if (!t) return;
     const datePart = String(t.date || '').split('T')[0].split(' ')[0];
@@ -411,28 +411,28 @@ function mergeAndDeduplicateTransactions(cloudTransactions, localPendingTransact
       result.push(t);
     }
   });
-  
+
   return result;
 }
 
 
 const GREEK_MONTHS = [
-  'Ιανουάριος','Φεβρουάριος','Μάρτιος','Απρίλιος','Μάιος','Ιούνιος',
-  'Ιούλιος','Αύγουστος','Σεπτέμβριος','Οκτώβριος','Νοέμβριος','Δεκέμβριος'
+  'Ιανουάριος', 'Φεβρουάριος', 'Μάρτιος', 'Απρίλιος', 'Μάιος', 'Ιούνιος',
+  'Ιούλιος', 'Αύγουστος', 'Σεπτέμβριος', 'Οκτώβριος', 'Νοέμβριος', 'Δεκέμβριος'
 ];
 const GREEK_MONTHS_SHORT = [
-  'Ιαν','Φεβ','Μαρ','Απρ','Μαΐ','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'
+  'Ιαν', 'Φεβ', 'Μαρ', 'Απρ', 'Μαΐ', 'Ιουν', 'Ιουλ', 'Αυγ', 'Σεπ', 'Οκτ', 'Νοε', 'Δεκ'
 ];
-const GREEK_WEEKDAYS_SHORT = ['Κυρ','Δευ','Τρί','Τετ','Πέμ','Παρ','Σάβ'];
+const GREEK_WEEKDAYS_SHORT = ['Κυρ', 'Δευ', 'Τρί', 'Τετ', 'Πέμ', 'Παρ', 'Σάβ'];
 
 const ENGLISH_MONTHS = [
-  'January','February','March','April','May','June',
-  'July','August','September','October','November','December'
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
 ];
 const ENGLISH_MONTHS_SHORT = [
-  'Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
 ];
-const ENGLISH_WEEKDAYS_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const ENGLISH_WEEKDAYS_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 const TRANSLATIONS = {
   el: {
@@ -674,7 +674,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v982 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v983 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1044,7 +1044,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v982 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v983 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -1367,17 +1367,17 @@ function formatGreekDateTime(dateStr) {
   if (!dateStr) return '';
   const dateObj = new Date(dateStr.replace(' ', 'T'));
   if (isNaN(dateObj.getTime())) return dateStr;
-  
+
   const y = dateObj.getFullYear();
   const m = dateObj.getMonth() + 1;
   const d = dateObj.getDate();
   const dayOfWeek = dateObj.getDay();
   const hrs = String(dateObj.getHours()).padStart(2, '0');
   const mins = String(dateObj.getMinutes()).padStart(2, '0');
-  
+
   const shortYear = String(y).slice(-2);
   const shortDay = getWeekdayName(dayOfWeek);
-  
+
   return `${d}/${m}/${shortYear} (${shortDay}) ${hrs}:${mins}`;
 }
 
@@ -1421,7 +1421,7 @@ function getStatsDateRange() {
     }
     start.setDate(start.getDate() - diff);
     start.setHours(0, 0, 0, 0);
-    
+
     end = new Date(start);
     end.setDate(start.getDate() + 6);
     end.setHours(23, 59, 59, 999);
@@ -1457,7 +1457,7 @@ function formatStatsPeriodTitle(start, end) {
   if (state.statsPeriodType === 'annually') {
     return `${start.getFullYear()}`;
   }
-  
+
   // Weekly or Custom Period
   const startDay = start.getDate();
   const startMonthShort = getMonthName(start.getMonth(), true);
@@ -1885,7 +1885,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   }
   if (isIOS) {
     document.body.classList.add('is-ios');
-    
+
     // Global focusout listener to reset layout viewport panning when any input blurs on iOS
     document.addEventListener('focusout', (e) => {
       const tag = e.target.tagName;
@@ -1893,10 +1893,10 @@ window.addEventListener('DOMContentLoaded', async () => {
         // Only reset if focus didn't immediately move to another input/textarea/select
         setTimeout(() => {
           const activeEl = document.activeElement;
-          const isAnotherInputFocused = activeEl && 
-            (activeEl.tagName === 'INPUT' || 
-             activeEl.tagName === 'TEXTAREA' || 
-             activeEl.tagName === 'SELECT');
+          const isAnotherInputFocused = activeEl &&
+            (activeEl.tagName === 'INPUT' ||
+              activeEl.tagName === 'TEXTAREA' ||
+              activeEl.tagName === 'SELECT');
           if (!isAnotherInputFocused) {
             forceViewportReset();
           }
@@ -1919,7 +1919,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     document.body.style.removeProperty('left');
     document.body.style.removeProperty('width');
     document.body.style.removeProperty('height');
-    document.querySelectorAll('.modal-overlay, .tx-modal-overlay').forEach(function(m) {
+    document.querySelectorAll('.modal-overlay, .tx-modal-overlay').forEach(function (m) {
       m.classList.remove('active');
     });
     // Also reset any inline display:flex on modals
@@ -1946,14 +1946,14 @@ window.addEventListener('DOMContentLoaded', async () => {
   initTabSwipeNavigation();
   initRippleEffects();
   initLightboxPinchZoom();
-  
+
   // ALWAYS load cached local data immediately so the UI is never blank on refresh.
   // If Supabase is enabled, onAuthStateChange will call loadData() again with fresh cloud data.
   loadOfflineData();
 
   // CRITICAL: Also run on pageshow — this fires for bfcache restores
   // (e.g. after Google OAuth redirect on iOS), unlike DOMContentLoaded
-  window.addEventListener('pageshow', function(event) {
+  window.addEventListener('pageshow', function (event) {
     if (event.persisted) {
       // Page restored from bfcache (iOS back navigation or OAuth redirect)
       console.log('[pageshow] bfcache restore detected — restoring modals if missing');
@@ -1971,11 +1971,11 @@ window.addEventListener('DOMContentLoaded', async () => {
     const hasCachedUser = localStorage.getItem('cached_current_user');
     const isGuestMode = localStorage.getItem('auth_guest_mode') === 'true';
     const authOverlay = document.getElementById('auth-overlay');
-    
+
     if (hasCachedUser || isGuestMode) {
       if (authOverlay) authOverlay.style.display = 'none';
       if (hasCachedUser) {
-        try { state.currentUser = JSON.parse(hasCachedUser); } catch (e) {}
+        try { state.currentUser = JSON.parse(hasCachedUser); } catch (e) { }
       }
       if (isGuestMode) state.guestMode = true;
     } else {
@@ -2003,7 +2003,7 @@ window.addEventListener('DOMContentLoaded', async () => {
         localStorage.removeItem('bg_modal_scroll_top');
         return;
       }
-      
+
       const activeModalId = null /* startup restore disabled */;
       if (activeModalId) {
         const currentlyActive = document.querySelector('.modal-overlay.active, .tx-modal-overlay.active, .profile-sheet-overlay.active');
@@ -2065,7 +2065,7 @@ window.addEventListener('DOMContentLoaded', async () => {
 
   // Restore active modals on boot instantly without transitions
   restoreActiveModalsWithoutTransition();
-  
+
   // Safe removal of early tab style block to avoid layout flashes
   const earlyTabStyle = document.getElementById('early-tab-style');
   if (earlyTabStyle) {
@@ -2076,9 +2076,9 @@ window.addEventListener('DOMContentLoaded', async () => {
   if (earlyAuthHideStyle) {
     earlyAuthHideStyle.remove();
   }
-  
+
   updateHeaderProfileBadge();
-  
+
   // If device is offline, bypass Supabase auth and render cached data immediately.
   // supabase.js is now bundled locally so !state.supabaseClient is no longer reliable.
   // navigator.onLine gives the real network state.
@@ -2089,7 +2089,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     if (hasCachedUser || isGuestMode) {
       if (authOverlay) authOverlay.style.display = 'none';
       if (hasCachedUser) {
-        try { state.currentUser = JSON.parse(hasCachedUser); } catch (e) {}
+        try { state.currentUser = JSON.parse(hasCachedUser); } catch (e) { }
       }
       if (isGuestMode) state.guestMode = true;
     } else {
@@ -2105,7 +2105,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     }
     updateUI();
   }
-  
+
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('trans-date').value = today;
   applyLanguage(state.lang);
@@ -2134,28 +2134,28 @@ function showCustomDialog({ message, title = '', icon = '💬', showCancel = fal
       resolve(res);
       return;
     }
-    
+
     document.getElementById('custom-dialog-title').textContent = title || (showCancel ? (state.lang === 'el' ? 'Επιβεβαίωση' : 'Confirm') : (state.lang === 'el' ? 'Ειδοποίηση' : 'Alert'));
     document.getElementById('custom-dialog-message').innerHTML = message;
     document.getElementById('custom-dialog-icon').textContent = icon;
-    
+
     const btnCancel = document.getElementById('custom-dialog-btn-cancel');
     const btnOk = document.getElementById('custom-dialog-btn-ok');
-    
+
     btnCancel.style.display = showCancel ? 'block' : 'none';
-    
+
     const newBtnCancel = btnCancel.cloneNode(true);
     const newBtnOk = btnOk.cloneNode(true);
     btnCancel.parentNode.replaceChild(newBtnCancel, btnCancel);
     btnOk.parentNode.replaceChild(newBtnOk, btnOk);
-    
+
     modal.classList.add('active');
-    
+
     newBtnCancel.addEventListener('click', () => {
       modal.classList.remove('active');
       resolve(false);
     });
-    
+
     newBtnOk.addEventListener('click', () => {
       modal.classList.remove('active');
       resolve(true);
@@ -2257,7 +2257,7 @@ function initSupabaseAuth() {
 
   const hashStr = window.location.hash || '';
   const searchStr = window.location.search || '';
-  
+
   const urlKeys = [];
   if (hashStr) {
     const hashParams = new URLSearchParams(hashStr.substring(1));
@@ -2273,16 +2273,16 @@ function initSupabaseAuth() {
   }
   logAuthDebug(`URL components: ${urlKeys.join(', ') || 'none'}`);
 
-  const isAuthRedirect = hashStr.includes('access_token=') || 
-                         hashStr.includes('id_token=') ||
-                         hashStr.includes('error=') ||
-                         searchStr.includes('code=') ||
-                         searchStr.includes('error=');
+  const isAuthRedirect = hashStr.includes('access_token=') ||
+    hashStr.includes('id_token=') ||
+    hashStr.includes('error=') ||
+    searchStr.includes('code=') ||
+    searchStr.includes('error=');
 
-                         
+
   let processingRedirect = isAuthRedirect;
   logAuthDebug(`Is redirect callback: ${isAuthRedirect}`);
-  
+
   const authOverlay = document.getElementById('auth-overlay');
   const loadingState = document.getElementById('auth-loading-state');
   const formsContainer = document.getElementById('auth-forms-container');
@@ -2297,12 +2297,12 @@ function initSupabaseAuth() {
       if (authCard) authCard.style.display = 'flex';
     }
   }
-  
+
   if (isAuthRedirect) {
     if (authOverlay) authOverlay.style.display = 'flex';
     toggleLoader(true);
     if (formsContainer) formsContainer.style.display = 'none';
-    
+
     // Safety timeout to prevent getting stuck
     setTimeout(() => {
       if (processingRedirect && !state.currentUser && !state.guestMode) {
@@ -2311,8 +2311,8 @@ function initSupabaseAuth() {
         processingRedirect = false;
         toggleLoader(false);
         if (formsContainer) formsContainer.style.display = 'block';
-        showAuthStatus(state.lang === 'el' 
-          ? '⚠️ Η σύνδεση καθυστερεί ή απέτυχε. Δοκιμάστε ξανά.' 
+        showAuthStatus(state.lang === 'el'
+          ? '⚠️ Η σύνδεση καθυστερεί ή απέτυχε. Δοκιμάστε ξανά.'
           : '⚠️ Login is taking too long or failed. Please try again.');
       }
     }, 6000);
@@ -2336,7 +2336,7 @@ function initSupabaseAuth() {
       } else {
         errorMsg = `❌ Σφάλμα: ${errorDescription}`;
       }
-      
+
       processingRedirect = false;
       toggleLoader(false);
       if (formsContainer) formsContainer.style.display = 'block';
@@ -2387,7 +2387,7 @@ function initSupabaseAuth() {
             if (formsContainer) formsContainer.style.display = 'block';
             const earlyStyle = document.getElementById('early-auth-style');
             if (earlyStyle) earlyStyle.remove();
-            
+
             const emailInput = document.getElementById('auth-email');
             if (emailInput && !emailInput.value) setTimeout(() => { emailInput.focus(); }, 150);
           }
@@ -2414,12 +2414,12 @@ function initSupabaseAuth() {
   state.supabaseClient.auth.onAuthStateChange(async (event, session) => {
     logAuthDebug(`Auth Event Fired: ${event}, Session: ${!!session}`);
     console.log('Supabase Auth Event:', event, session);
-    
+
     if (state.isLoggingOut) {
       logAuthDebug('Sign-out in progress, ignoring auth state change.');
       return;
     }
-    
+
     if (session && session.user) {
       processingRedirect = false;
       state.currentUser = session.user;
@@ -2446,20 +2446,20 @@ function initSupabaseAuth() {
       } catch (e) {
         console.error('Failed to parse cached profiles:', e);
       }
-      
+
       // Clear guest mode state
       state.guestMode = false;
       localStorage.removeItem('auth_guest_mode');
-      
+
       // Clear URL parameters so they don't persist or trigger reload loops
       if (window.location.hash || window.location.search) {
         window.history.replaceState(null, null, window.location.pathname);
       }
-      
+
       // Hide auth overlay & reset elements
       const earlyStyle = document.getElementById('early-auth-style');
       if (earlyStyle) earlyStyle.remove();
-      
+
       if (authOverlay) {
         // Prevent click penetration (ghost clicks) to elements underneath (like the FAB button)
         authOverlay.style.pointerEvents = 'none';
@@ -2479,15 +2479,15 @@ function initSupabaseAuth() {
       }
       // Modals should NOT be force-closed here since we want to restore them on resume/boot
       // if (typeof window.forceCloseAllModals === 'function') window.forceCloseAllModals();
-      
+
       // Show switcher in header
       const switcher = document.getElementById('wallet-switcher-container');
       if (switcher) switcher.style.display = 'inline-block';
-      
+
       const email = session.user.email || '';
       // Show user badge
       updateHeaderProfileBadge();
-      
+
       // Show email in the new profile header card (legacy element stays hidden)
       const emailDisplay = document.getElementById('settings-user-email-value');
       if (emailDisplay) {
@@ -2496,7 +2496,7 @@ function initSupabaseAuth() {
       }
       // Note: settings-user-email-item is intentionally kept hidden.
       // The email is displayed in the profile-user-email element instead.
-      
+
       // Apply correct visual transformation theme.
       // Call updateUI() immediately to display cached transactions on startup
       // instead of leaving the app blank while fetching fresh data from the cloud.
@@ -2511,7 +2511,7 @@ function initSupabaseAuth() {
           await loadUserProfiles(session.user);
           applyWalletTheme();
           renderPartnerSection();
-          
+
           // 2. Load fresh data from cloud.
           // Suppress realtime during the fetch so that echo/bounce events from the
           // subscription setup don't trigger a second render on top of our clean one.
@@ -2523,10 +2523,10 @@ function initSupabaseAuth() {
 
             await loadData();
             updateUI();
-            
+
             // Start automatic polling sync
             startPartnerSyncPolling();
-            
+
             // Start realtime subscription
             setupSupabaseRealtimeSubscription();
           } finally {
@@ -2537,7 +2537,7 @@ function initSupabaseAuth() {
             // enough margin to absorb them before re-enabling the handler.
             setTimeout(() => { _suppressRealtimeEvents = false; }, 10000);
           }
-          
+
           // 3. Sync guest transactions in the background (silent, no extra render)
           await syncLocalTransactionsToCloud(session.user.id, { silent: true });
         } catch (err) {
@@ -2547,10 +2547,10 @@ function initSupabaseAuth() {
     } else {
       // Stop automatic polling sync
       stopPartnerSyncPolling();
-      
+
       // Stop realtime subscription
       stopSupabaseRealtimeSubscription();
-      
+
       state.currentUser = null;
       state.userProfile = null;
       state.partnerProfile = null;
@@ -2565,13 +2565,13 @@ function initSupabaseAuth() {
       localStorage.removeItem('offline_accounts');
       localStorage.removeItem('offline_categories');
       updateHeaderSyncIcon('offline');
-      
+
       if (localStorage.getItem('auth_guest_mode') === 'true') {
         state.guestMode = true;
-        
+
         const earlyStyle = document.getElementById('early-auth-style');
         if (earlyStyle) earlyStyle.remove();
-        
+
         // Hide auth overlay & reset elements
         if (authOverlay) {
           // Prevent click penetration (ghost clicks) to elements underneath (like the FAB button)
@@ -2586,21 +2586,21 @@ function initSupabaseAuth() {
         }
         toggleLoader(false);
         if (formsContainer) formsContainer.style.display = 'block';
-        
+
         // Hide switcher (guest has no shared wallet)
         const switcher = document.getElementById('wallet-switcher-container');
         if (switcher) switcher.style.display = 'none';
-        
+
         // Show lock icon user badge
         updateHeaderProfileBadge();
-        
+
         // Load offline data and render
         await loadData();
         updateUI();
         renderPartnerSection();
       } else {
         const alreadyShowing = authOverlay && authOverlay.style.display === 'flex' && formsContainer && formsContainer.style.display === 'block';
-        
+
         if (!alreadyShowing) {
           // If we are currently processing a redirect, do not show the forms container yet
           if (processingRedirect) {
@@ -2613,23 +2613,23 @@ function initSupabaseAuth() {
             toggleLoader(false);
             if (formsContainer) formsContainer.style.display = 'block';
           }
-          
+
           const earlyStyle = document.getElementById('early-auth-style');
           if (earlyStyle) earlyStyle.remove();
-          
+
           const emailInput = document.getElementById('auth-email');
           if (emailInput && !emailInput.value) setTimeout(() => { emailInput.focus(); }, 150);
         }
-        
+
         // Hide switcher
         const switcher = document.getElementById('wallet-switcher-container');
         if (switcher) switcher.style.display = 'none';
-        
+
         // Hide user badge
         const userBadge = document.getElementById('user-profile-badge');
         if (userBadge) userBadge.style.display = 'none';
       }
-      
+
       // Remove wallet theme active class
       document.body.classList.remove('shared-wallet-active');
       renderPartnerSection();
@@ -2639,7 +2639,7 @@ function initSupabaseAuth() {
 
 async function loadUserProfiles(user) {
   if (!state.supabaseClient) return;
-  
+
   try {
     // 1. Fetch current user profile
     const { data: profile, error } = await promiseTimeout(
@@ -2651,7 +2651,7 @@ async function loadUserProfiles(user) {
         .then(r => r),
       8000
     ).catch(e => ({ data: null, error: e }));
-       
+
     if (error || !profile) {
       console.log('Profile not found, inserting profile for user...');
       // Insert profile manually if trigger didn't do it
@@ -2664,7 +2664,7 @@ async function loadUserProfiles(user) {
           .then(r => r),
         8000
       ).catch(e => ({ data: null, error: e }));
-         
+
       if (insertError) {
         console.error('Failed to create profile:', insertError);
       } else {
@@ -2677,7 +2677,7 @@ async function loadUserProfiles(user) {
       localStorage.setItem('cached_user_profile', JSON.stringify(profile));
       updateHeaderProfileBadge();
     }
-    
+
     // 2. Load family profiles & family group details
     if (state.userProfile && state.userProfile.family_id) {
       const [famRes, groupRes] = await promiseTimeout(
@@ -2703,7 +2703,7 @@ async function loadUserProfiles(user) {
         state.familyProfiles = [];
         localStorage.removeItem('cached_family_profiles');
       }
-      
+
       if (groupRes && groupRes.data) {
         state.familyGroup = groupRes.data;
         localStorage.setItem('cached_family_group', JSON.stringify(groupRes.data));
@@ -2738,14 +2738,14 @@ async function loadUserProfiles(user) {
         }
       }
     }
-  } catch(e) {
+  } catch (e) {
     console.error('Error loading user profiles:', e);
   }
 }
 
 function showPendingInviteCodePrompt(inviteCode) {
   if (!state.supabaseClient || !state.currentUser) return;
-  
+
   state.supabaseClient
     .from('family_groups')
     .select('name')
@@ -2756,17 +2756,17 @@ function showPendingInviteCodePrompt(inviteCode) {
         console.warn('Could not find family group for invite code:', inviteCode);
         return;
       }
-      
+
       const familyName = data.name;
       const confirmMsg = state.lang === 'el'
         ? `📬 Εκκρεμής πρόσκληση!\nΈχετε έναν σύνδεσμο πρόσκλησης για την οικογένεια «${familyName}» (Κωδικός: ${inviteCode}).\n\nΘέλετε να γίνετε μέλος αυτής της οικογένειας;`
         : `📬 Pending invitation!\nYou have an invitation link for the family group "${familyName}" (Code: ${inviteCode}).\n\nDo you want to join this family group?`;
-        
+
       showConfirm(confirmMsg, state.lang === 'el' ? '📬 Πρόσκληση' : '📬 Invitation', '👥').then((confirmed) => {
         if (confirmed) {
           const inviteRole = localStorage.getItem('pending_invite_role') || 'member';
           localStorage.removeItem('pending_invite_role');
-          
+
           state.supabaseClient.rpc('join_family_group', { invite_code_input: inviteCode, invite_role_input: inviteRole })
             .then(({ data: joinData, error: joinErr }) => {
               if (joinErr) {
@@ -2784,16 +2784,16 @@ function showPendingInviteCodePrompt(inviteCode) {
 function showPendingInvitationPrompt(invite) {
   if (!state.supabaseClient || !state.currentUser) return;
   const familyName = invite.family_groups ? invite.family_groups.name : 'Οικογένεια';
-  const confirmMsg = state.lang === 'el' 
+  const confirmMsg = state.lang === 'el'
     ? `📬 Εκκρεμής πρόσκληση!\nΈχετε προσκληθεί να συνδεθείτε στην οικογένεια «${familyName}».\n\nΘέλετε να γίνετε μέλος αυτής της οικογένειας;`
     : `📬 Pending invitation!\nYou have been invited to join the family group "${familyName}".\n\nDo you want to join this family group?`;
-    
+
   showConfirm(confirmMsg, state.lang === 'el' ? '📬 Πρόσκληση' : '📬 Invitation', '👥').then((confirmed) => {
     if (confirmed) {
       const inviteCode = invite.family_groups ? invite.family_groups.invite_code : '';
       if (!inviteCode) return;
       const inviteRole = invite.role || 'member';
-      
+
       state.supabaseClient.rpc('join_family_group', { invite_code_input: inviteCode, invite_role_input: inviteRole })
         .then(async ({ data, error }) => {
           if (error) {
@@ -2855,17 +2855,17 @@ function getActiveTransactions() {
     if (t.user_id === undefined) {
       return true;
     }
-    
+
     if (currentUserId) {
       if (familyId) {
-        return t.family_id === familyId || 
-               t.user_id === currentUserId || 
-               t.user_id === partnerId || 
-               (t.id && String(t.id).startsWith('local_'));
+        return t.family_id === familyId ||
+          t.user_id === currentUserId ||
+          t.user_id === partnerId ||
+          (t.id && String(t.id).startsWith('local_'));
       }
-      return t.user_id === currentUserId || 
-             t.user_id === partnerId || 
-             (t.id && String(t.id).startsWith('local_'));
+      return t.user_id === currentUserId ||
+        t.user_id === partnerId ||
+        (t.id && String(t.id).startsWith('local_'));
     } else {
       return t.user_id === null || t.user_id === undefined;
     }
@@ -2962,7 +2962,7 @@ function calculateFinancialHealthScore(transactions, accounts, hasHistoricalData
   const today = new Date();
   const currentYear = today.getFullYear();
   const currentMonth = today.getMonth(); // 0-11
-  
+
   // Filter current month transactions (excluding transfers)
   const currentMonthTrans = transactions.filter(t => {
     if (!t.date || t.type === 'transfer') return false;
@@ -3043,7 +3043,7 @@ function calculateFinancialHealthScore(transactions, accounts, hasHistoricalData
   if (hasHistoricalData) {
     const monthlyExpensesMap = {};
     const monthlyEssentialMap = {};
-    
+
     transactions.forEach(t => {
       if (t.type !== 'expense' || !t.date) return;
       const datePart = String(t.date || '').split('T')[0].split(' ')[0];
@@ -3051,17 +3051,17 @@ function calculateFinancialHealthScore(transactions, accounts, hasHistoricalData
       if (parts.length !== 3) return;
       const y = parseInt(parts[0], 10);
       const m = parseInt(parts[1], 10) - 1;
-      
+
       // Restrict historical data strictly to current calendar year
       if (y !== currentYear) return;
       // Exclude current month
       if (y === currentYear && m === currentMonth) return;
-      
+
       const key = `${y}-${m}`;
       const amt = parseFloat(t.amount) || 0;
-      
+
       monthlyExpensesMap[key] = (monthlyExpensesMap[key] || 0) + amt;
-      
+
       const cls = classifyCategory(t.category);
       if (cls.isEssential) {
         monthlyEssentialMap[key] = (monthlyEssentialMap[key] || 0) + amt;
@@ -3087,7 +3087,7 @@ function calculateFinancialHealthScore(transactions, accounts, hasHistoricalData
 
     const totalHistoricalExpense = Object.values(monthlyExpensesMap).reduce((a, b) => a + b, 0);
     avgMonthlyExpense = totalHistoricalExpense / monthsCount;
-    
+
     const totalHistoricalEssential = Object.values(monthlyEssentialMap).reduce((a, b) => a + b, 0);
     avgEssentialMonthlyExpense = totalHistoricalEssential / monthsCount;
   } else {
@@ -3202,7 +3202,7 @@ function calculateForecasting(transactions, hasHistoricalData) {
   const today = new Date();
   const currentYear = today.getFullYear();
   const currentMonth = today.getMonth(); // 0-11
-  
+
   // Filter current year transactions (excluding transfers)
   const currentYearTrans = transactions.filter(t => {
     if (!t.date || t.type === 'transfer') return false;
@@ -3223,7 +3223,7 @@ function calculateForecasting(transactions, hasHistoricalData) {
 
   const currentYearSavings = currentYearIncome - currentYearExpense;
   const lang = state.lang || 'el';
-  
+
   // Handle December case (Year-End Review)
   if (currentMonth === 11) {
     if (!hasHistoricalData) {
@@ -3247,7 +3247,7 @@ function calculateForecasting(transactions, hasHistoricalData) {
       const juneAvgMonthly = juneSavings / 6;
       const juneForecastProjection = juneSavings + (juneAvgMonthly * 6);
 
-      const msg = lang === 'el' 
+      const msg = lang === 'el'
         ? `Ολοκληρώθηκε ο πρώτος σας χρόνος! Η αρχική εκτίμηση του Ιουνίου προέβλεπε αποταμίευση € ${formatCurrency(juneForecastProjection)} και καταφέρατε να φτάσετε τα € ${formatCurrency(currentYearSavings)}. Είστε εντός στόχων!`
         : `Your first year is complete! The initial projection in June was € ${formatCurrency(juneForecastProjection)} and you achieved € ${formatCurrency(currentYearSavings)}. You are on track!`;
 
@@ -3279,8 +3279,8 @@ function calculateForecasting(transactions, hasHistoricalData) {
       });
 
       const prevYearSavings = prevYearIncome - prevYearExpense;
-      const pctDiff = prevYearSavings > 0 
-        ? ((currentYearSavings - prevYearSavings) / prevYearSavings) * 100 
+      const pctDiff = prevYearSavings > 0
+        ? ((currentYearSavings - prevYearSavings) / prevYearSavings) * 100
         : 0;
 
       const sign = pctDiff >= 0 ? '+' : '';
@@ -3334,19 +3334,19 @@ window.calculateForecasting = calculateForecasting;
 // Scan categories and transactions to clean up duplicates (e.g. Chinese characters)
 async function cleanDuplicateCategories() {
   const targetCategoryName = '🧾ΦΟΡΟΙ/ΛΟΓΙΣΤΗΣ';
-  
+
   // Find bad categories in the categories list
   const badCategories = state.categories.filter(c => c.name && (
-    c.name.includes('茶') || 
+    c.name.includes('茶') ||
     /[\u4e00-\u9fff]/.test(c.name) ||
     (c.name.includes('ΦΟΡΟΙ/ΛΟΓΙΣΤΗΣ') && c.name !== '🧾ΦΟΡΟΙ/ΛΟΓΙΣΤΗΣ')
   ));
-  
+
   // Find bad category names in transactions
   const badCategoryNamesInTrans = new Set();
   state.transactions.forEach(t => {
     if (t.category && (
-      t.category.includes('茶') || 
+      t.category.includes('茶') ||
       /[\u4e00-\u9fff]/.test(t.category) ||
       (t.category.includes('ΦΟΡΟΙ/ΛΟΓΙΣΤΗΣ') && t.category !== '🧾ΦΟΡΟΙ/ΛΟΓΙΣΤΗΣ')
     )) {
@@ -3371,7 +3371,7 @@ async function cleanDuplicateCategories() {
           .update({ category: targetCategoryName })
           .eq('category', badCatName);
       }
-      
+
       // Update local state transactions
       state.transactions.forEach(t => {
         if (t.category === badCatName) {
@@ -3432,12 +3432,12 @@ async function cleanDuplicateCategories() {
 // Scan transactions list and delete duplicate entries (both locally and in Cloud)
 async function cleanDuplicateTransactions() {
   if (!state.transactions || state.transactions.length === 0) return;
-  
+
   const groups = {};
   const localCleaned = [];
   const cloudDeleteIds = [];
   let didChangeLocal = false;
-  
+
   // Group all transactions by their visual contents.
   // IMPORTANT: user_id is included in the key so that transactions from different
   // family members with the same amount/date/category are NOT treated as duplicates.
@@ -3453,13 +3453,13 @@ async function cleanDuplicateTransactions() {
     // Include user_id so family members' identical transactions are NOT merged
     const userId = t.user_id || 'unknown';
     const key = `${userId}|${datePart}|${amount.toFixed(2)}|${type}|${category}|${accountFrom}|${accountTo}|${note}`;
-    
+
     if (!groups[key]) {
       groups[key] = [];
     }
     groups[key].push(t);
   });
-  
+
   // Process groups to identify duplicates
   Object.keys(groups).forEach(key => {
     const list = groups[key];
@@ -3474,17 +3474,17 @@ async function cleanDuplicateTransactions() {
         const bIsLocal = b.id && String(b.id).startsWith('local_');
         if (aIsLocal && !bIsLocal) return -1;
         if (!aIsLocal && bIsLocal) return 1;
-        
+
         const timeA = a.created_at ? getTransactionTime({ created_at: a.created_at }) : 0;
         const timeB = b.created_at ? getTransactionTime({ created_at: b.created_at }) : 0;
         if (timeA !== timeB) return timeA - timeB;
-        
+
         return String(a.id || '').localeCompare(String(b.id || ''));
       });
-      
+
       const canonical = list[0];
       localCleaned.push(canonical);
-      
+
       // All others are duplicates to be deleted
       for (let i = 1; i < list.length; i++) {
         const dupe = list[i];
@@ -3497,19 +3497,19 @@ async function cleanDuplicateTransactions() {
       }
     }
   });
-  
+
   if (didChangeLocal) {
     console.log(`[DEDUPLICATION] Cleaned up local transactions state. Removed ${cloudDeleteIds.length} duplicates from local cache.`);
-    
+
     // Preserve sorting
     localCleaned.sort(compareTransactions);
-    
+
     state.transactions = localCleaned;
     localStorage.setItem('offline_transactions', JSON.stringify(localCleaned));
     calculateInitialBalances();
     updateUI();
   }
-  
+
   if (cloudDeleteIds.length > 0 && state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
     // Suppress realtime events during cleanup to prevent the DELETE operations
     // from triggering UI re-renders (flickering numbers).
@@ -3559,14 +3559,14 @@ function getPendingLocalTransactions(cachedTransactions) {
       if (!t.id) return true;
       if (String(t.id).startsWith('local_')) return true;
       if (t.user_id === null || t.user_id === undefined) return true;
-      
+
       // Keep if in the offline sync queue (not yet successfully uploaded)
       if (queuedIds.has(t.id)) return true;
-      
+
       // If it is not a valid UUID, it is local
       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       if (!uuidRegex.test(String(t.id))) return true;
-      
+
       return false;
     });
   } catch (e) {
@@ -3591,10 +3591,10 @@ async function loadData() {
   if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
     try {
       updateHeaderSyncIcon('syncing');
-      
+
       // Process offline queue first (flushes offline deletes/saves) before fetching latest transactions
       await processSyncQueue({ skipReload: true });
-      
+
       const userId = state.currentUser.id;
       const partnerId = state.partnerProfile ? state.partnerProfile.id : null;
 
@@ -3782,7 +3782,7 @@ async function loadData() {
       state.categories = categories;
       deduplicateCategories();
       state.accounts = accounts;
-      
+
       calculateInitialBalances();
 
       autoRecoverTemplatesFromHistory();
@@ -3790,7 +3790,7 @@ async function loadData() {
       localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
       localStorage.setItem('offline_accounts', JSON.stringify(state.accounts));
       localStorage.setItem('offline_categories', JSON.stringify(state.categories));
-      
+
       updateHeaderSyncIcon('synced');
 
       // Run automatic duplicate / corrupt category cleanup in background
@@ -3801,7 +3801,7 @@ async function loadData() {
 
       // Try to flush pending local items in background without blocking UI.
       if (pendingLocal.length > 0) {
-        syncLocalTransactionsToCloud(userId, { silent: true }).catch(() => {});
+        syncLocalTransactionsToCloud(userId, { silent: true }).catch(() => { });
       }
     } catch (err) {
       console.error('Supabase fetch failed, falling back to offline cache:', err);
@@ -3868,19 +3868,19 @@ function loadOfflineData() {
     state.transactions = [];
   }
   try {
-    const accs  = localStorage.getItem('offline_accounts');
-    state.accounts     = accs  ? JSON.parse(accs)  : DEFAULT_ACCOUNTS;
+    const accs = localStorage.getItem('offline_accounts');
+    state.accounts = accs ? JSON.parse(accs) : DEFAULT_ACCOUNTS;
   } catch (e) {
     console.error('Failed to parse offline accounts:', e);
-    state.accounts     = DEFAULT_ACCOUNTS;
+    state.accounts = DEFAULT_ACCOUNTS;
   }
   try {
-    const cats  = localStorage.getItem('offline_categories');
-    state.categories   = cats  ? JSON.parse(cats)  : DEFAULT_CATEGORIES;
+    const cats = localStorage.getItem('offline_categories');
+    state.categories = cats ? JSON.parse(cats) : DEFAULT_CATEGORIES;
     deduplicateCategories();
   } catch (e) {
     console.error('Failed to parse offline categories:', e);
-    state.categories   = DEFAULT_CATEGORIES;
+    state.categories = DEFAULT_CATEGORIES;
     deduplicateCategories();
   }
 
@@ -3912,9 +3912,9 @@ function loadOfflineData() {
     console.error('Failed to parse notifications:', e);
     state.notifications = [];
   }
-  
+
   loadNotes();
-  
+
   autoRecoverTemplatesFromHistory();
   processRecurringTemplates();
   calculateInitialBalances();
@@ -3927,14 +3927,14 @@ function loadOfflineData() {
 function autoRecoverTemplatesFromHistory() {
   if (localStorage.getItem('templates_autorecovered') === 'true') return;
   if (!state.transactions || state.transactions.length === 0) return;
-  
+
   let dismissed = [];
   try {
     dismissed = JSON.parse(localStorage.getItem('dismissed_recovered_templates') || '[]');
-  } catch (e) {}
-  
+  } catch (e) { }
+
   let updated = false;
-  
+
   // 1. Auto-cleanup of bad "διάφορα συμπληρώματα" templates
   const originalLength = (state.recurringTemplates || []).length;
   state.recurringTemplates = (state.recurringTemplates || []).filter(t => {
@@ -3954,7 +3954,7 @@ function autoRecoverTemplatesFromHistory() {
     }
     return !isBad;
   });
-  
+
   if ((state.recurringTemplates || []).length !== originalLength) {
     updated = true;
   }
@@ -3962,14 +3962,14 @@ function autoRecoverTemplatesFromHistory() {
   // Disabled auto-clear of recovered templates to prevent deleted templates/transactions from returning
 
   const templates = state.recurringTemplates || [];
-  
+
   const hasTemplate = (keywords) => {
     return templates.some(t => {
       const noteLower = (t.note || '').toLowerCase();
       return keywords.some(kw => noteLower.includes(kw));
     });
   };
-  
+
   const cleanNoteOfInstallments = (note) => {
     // Remove "δόση X/Y", "δόση X", "X/Y", "δόση", etc.
     let cleaned = note.replace(/δ[όο]ση\s+\d+\/\d+/gi, '');
@@ -3980,32 +3980,32 @@ function autoRecoverTemplatesFromHistory() {
     cleaned = cleaned.replace(/\s+/g, ' ').trim();
     return cleaned || note;
   };
-  
+
   const findInstallmentEndDate = (matches) => {
     let maxCurrent = 0, maxTotal = 0, maxDate = null;
     for (const t of matches) {
       const m = (t.note || '').match(/(\d+)\/(\d+)/);
       if (m) {
         const c = parseInt(m[1]), tot = parseInt(m[2]);
-        if (c > maxCurrent) { 
-          maxCurrent = c; 
-          maxTotal = tot; 
-          maxDate = String(t.date || '').split('T')[0]; 
+        if (c > maxCurrent) {
+          maxCurrent = c;
+          maxTotal = tot;
+          maxDate = String(t.date || '').split('T')[0];
         }
       }
     }
     if (maxDate && maxTotal > 0) {
       const remaining = maxTotal - maxCurrent;
       const d = new Date(maxDate);
-      
+
       // Move to the 1st of the month first to avoid month rollover bugs (e.g. Feb 30th)
       d.setDate(1);
       d.setMonth(d.getMonth() + remaining);
-      
+
       // Set to the last day of that target month to cover all days of that last installment month
       const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
       d.setDate(lastDay);
-      
+
       return d.toISOString().split('T')[0];
     }
     return null; // No installment pattern found → perpetual
@@ -4022,13 +4022,13 @@ function autoRecoverTemplatesFromHistory() {
       return;
     }
     if (hasTemplate(keywords)) return;
-    
+
     const matches = state.transactions.filter(t => {
       const noteLower = (t.note || '').toLowerCase();
       return keywords.some(kw => noteLower.includes(kw));
     });
     if (matches.length === 0) return;
-    
+
     // Prioritize transactions that have installment indicators (e.g. X/Y, "δόση")
     // to avoid recovering large one-off bulk payments (like a total annual ENFIA of 273.01€)
     let targetMatches = matches;
@@ -4039,14 +4039,14 @@ function autoRecoverTemplatesFromHistory() {
     if (installmentMatches.length > 0) {
       targetMatches = installmentMatches;
     }
-    
+
     // For end date, use all relevant matches; for the template base use the earliest transaction (startDate)
     const sortedAsc = [...targetMatches].sort((a, b) => new Date(a.date) - new Date(b.date));
     const tx = sortedAsc[0]; // Earliest transaction = true startDate
-    
+
     const cleanedNote = defaultNote === 'ΔΟΣΗ ΔΑΝΕΙΟΥ' ? 'ΔΟΣΗ ΔΑΝΕΙΟΥ' : cleanNoteOfInstallments(tx.note || defaultNote);
     const detectedEndDate = findInstallmentEndDate(targetMatches);
-    
+
     const template = {
       id: generateUUID(),
       amount: parseFloat(tx.amount),
@@ -4070,10 +4070,10 @@ function autoRecoverTemplatesFromHistory() {
       family_id: tx.family_id || (state.userProfile ? state.userProfile.family_id : null),
       is_shared: tx.family_id ? true : false
     };
-    
+
     state.recurringTemplates.push(template);
     console.log('Auto-recovered template for keywords ' + keywords.join('/') + ':', template);
-    
+
     if (state.supabaseClient && state.currentUser) {
       state.supabaseClient
         .from('recurring_templates')
@@ -4084,23 +4084,23 @@ function autoRecoverTemplatesFromHistory() {
     }
     updated = true;
   };
-  
+
   // 1. Car insurance (Yearly)
   const insuranceKeywords = ['ασφάλεια', 'ασφαλεια', 'ετησια ασφ', 'ετήσια ασφ', 'asfaleia', 'ασφάλιστρα', 'ασφαλιστρα', 'insurance'];
   recoverForKeywords(insuranceKeywords, 'Ετήσια Ασφάλεια Αυτοκινήτου', 'monthly');
-  
+
   // 2. Home loan (Monthly) - Only match 'δόση δανείου' exactly to prevent matching general loan transactions
   const loanKeywords = ['δόση δανείου', 'δοση δανειου', 'δωση δανειου'];
   recoverForKeywords(loanKeywords, 'ΔΟΣΗ ΔΑΝΕΙΟΥ', 'monthly');
-  
+
   // 3. Tires change (Yearly)
   const tiresKeywords = ['ελαστικά', 'ελαστικα', 'ελαστικων', 'ελαστικω', 'ελαστικ', 'λάστιχα', 'λαστιχα', 'λαστιχο', 'tires', 'tyres'];
   recoverForKeywords(tiresKeywords, 'Αλλαγή Ελαστικών', 'monthly');
-  
+
   // 4. ENFIA (Monthly)
   const enfiaKeywords = ['ενφια', 'enfia'];
   recoverForKeywords(enfiaKeywords, 'ΕΝΦΙΑ', 'monthly');
-  
+
   if (updated) {
     localStorage.setItem('recurring_templates', JSON.stringify(state.recurringTemplates));
     updateUI();
@@ -4117,14 +4117,14 @@ function autoRecoverTemplatesFromHistory() {
       const amt = parseFloat(t.amount) || 0;
       return note.includes('ΔΑΝΕΙΟ ΣΠΙΤΙΩΝ') || note.includes('ΕΝΦΙΑ 2025') || Math.abs(amt - 273.01) < 0.01;
     });
-    
+
     if (templatesToDelete.length > 0) {
       const templateIds = templatesToDelete.map(t => t.id);
       console.log('[Cleanup] Found bad templates in state, removing:', templateIds);
       state.recurringTemplates = (state.recurringTemplates || []).filter(t => !templateIds.includes(t.id));
       localStorage.setItem('recurring_templates', JSON.stringify(state.recurringTemplates));
       anyChanges = true;
-      
+
       if (state.supabaseClient && state.currentUser) {
         state.supabaseClient
           .from('recurring_templates')
@@ -4229,7 +4229,7 @@ function processRecurringTemplates() {
   const currentYear = state.selectedYear;
 
   const today = new Date();
-  const realYear  = today.getFullYear();
+  const realYear = today.getFullYear();
   const realMonth = today.getMonth(); // 0-indexed
 
   // Limit processing to 12 months in the future from today's real month
@@ -4260,7 +4260,7 @@ function processRecurringTemplates() {
 
     if (year < startYear) return dates;
     if (year === startYear && monthNum < startMonth) return dates;
-    
+
     if (template.years && template.years.length > 0) {
       if (!template.years.includes(year)) return dates;
     } else if (template.endYear !== null && year > template.endYear) {
@@ -4332,12 +4332,12 @@ function processRecurringTemplates() {
 
     for (let m = 0; m <= currentMonthLimit; m++) {
       const datesToProcess = getRecurringDatesForMonth(template, currentYear, m);
-      
+
       datesToProcess.forEach(dateString => {
         const deleteKey = `${template.id}_${dateString}`;
-        
+
         if ((state.deletedRecurringDates && state.deletedRecurringDates.includes(deleteKey)) ||
-            getDeletedDatesFromTemplate(template).includes(dateString)) {
+          getDeletedDatesFromTemplate(template).includes(dateString)) {
           return;
         }
 
@@ -4352,10 +4352,10 @@ function processRecurringTemplates() {
           }
           // Content-based fallback: same date + amount + type + category + account_from
           if (tDate === dateString &&
-              (parseFloat(t.amount) || 0).toFixed(2) === (parseFloat(template.amount) || 0).toFixed(2) &&
-              t.type === template.type &&
-              t.category === template.category &&
-              (t.account_from || '') === (template.account_from || '')) {
+            (parseFloat(t.amount) || 0).toFixed(2) === (parseFloat(template.amount) || 0).toFixed(2) &&
+            t.type === template.type &&
+            t.category === template.category &&
+            (t.account_from || '') === (template.account_from || '')) {
             return true;
           }
           return false;
@@ -4441,10 +4441,10 @@ async function saveTransaction(transaction) {
   // 3. Attempt to save to cloud in background
   if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
 
-    // Note: description and is_shared are client-only fields. recurring_template_id
-    // is kept if the column exists in the DB (it won't cause errors if missing — upsert will ignore it).
-    // However if it throws a 400, remove it too. For now we keep it to prevent duplicate re-creation.
-    const { description, is_shared, ...dbPayload } = transaction;
+    // Note: description, is_shared, and recurring_template_id are client-only fields.
+    // recurring_template_id does NOT exist in the transactions table (verified live: error 42703),
+    // so it MUST be stripped here or the upsert fails with a 400. This matches processSyncQueue.
+    const { description, is_shared, recurring_template_id, ...dbPayload } = transaction;
 
     // Enqueue immediately before starting the cloud request to prevent data loss if the app is closed/killed
     enqueueSyncMutation('save', transaction);
@@ -4485,7 +4485,7 @@ function saveTransactionOffline(transaction) {
     const oldTx = trans[existingIdx];
     const oldDate = String(oldTx.date || '').split('T')[0].split(' ')[0];
     const newDate = String(transaction.date || '').split('T')[0].split(' ')[0];
-    
+
     // If it's a recurring transaction and the date changed, mark the old date as deleted
     // so the generator doesn't recreate it on the old date.
     if (oldDate !== newDate && oldTx.recurring_template_id) {
@@ -4495,7 +4495,7 @@ function saveTransactionOffline(transaction) {
         localStorage.setItem('deleted_recurring_dates', JSON.stringify(state.deletedRecurringDates));
       }
     }
-    
+
     trans[existingIdx] = transaction;
   } else {
     trans.unshift(transaction);
@@ -4507,7 +4507,7 @@ function saveTransactionOffline(transaction) {
 async function saveDeletedTransactionsToSupabase(deletedTxs) {
   if (!state.isSupabaseEnabled || !state.supabaseClient || !state.currentUser) return;
   if (!deletedTxs || deletedTxs.length === 0) return;
-  
+
   try {
     const backupData = deletedTxs.map(t => ({
       id: t.id,
@@ -4540,11 +4540,11 @@ async function syncLocalTrashToCloud() {
 
 function deleteTransaction(id) {
   if (!id) return;
-  
+
   // Find duplicates of this transaction to delete them too (prevents them from reappearing due to Supabase sync)
   const tx = state.transactions.find(t => t.id === id);
   const idsToDelete = [String(id)];
-  
+
   if (tx) {
     const txDate = String(tx.date || '').split('T')[0].split(' ')[0];
     const txAmount = (parseFloat(tx.amount) || 0).toFixed(2);
@@ -4553,13 +4553,13 @@ function deleteTransaction(id) {
         const tDate = String(t.date || '').split('T')[0].split(' ')[0];
         const tAmount = (parseFloat(t.amount) || 0).toFixed(2);
         const isDupe = tDate === txDate &&
-                       tAmount === txAmount &&
-                       t.type === tx.type &&
-                       t.category === tx.category &&
-                       (t.account_from || '') === (tx.account_from || '') &&
-                       (t.account_to || '') === (tx.account_to || '') &&
-                       (t.note || '') === (tx.note || '') &&
-                       (t.user_id || '') === (tx.user_id || '');
+          tAmount === txAmount &&
+          t.type === tx.type &&
+          t.category === tx.category &&
+          (t.account_from || '') === (tx.account_from || '') &&
+          (t.account_to || '') === (tx.account_to || '') &&
+          (t.note || '') === (tx.note || '') &&
+          (t.user_id || '') === (tx.user_id || '');
         if (isDupe) {
           idsToDelete.push(String(t.id));
         }
@@ -4576,7 +4576,7 @@ function deleteTransaction(id) {
       console.warn('Failed to remove receipt during transaction delete:', err);
     });
   });
-  
+
   // Save deleted transactions to Trash
   const deletedTxsForBackup = [];
   try {
@@ -4597,7 +4597,7 @@ function deleteTransaction(id) {
   } catch (err) {
     console.warn('Failed to save deleted transactions to trash:', err);
   }
-  
+
   // 3. Optimistically delete from local state and update UI
   idsToDelete.forEach(dId => deleteTransactionOffline(dId, true));
   localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
@@ -4646,20 +4646,20 @@ function deleteTransactionOffline(id, skipSave = false) {
   if (tx) {
     let templateId = tx.recurring_template_id;
     const txDate = String(tx.date || '').split('T')[0].split(' ')[0];
-    
+
     if (!templateId && state.recurringTemplates) {
       // Find template matching by content if recurring_template_id is missing
       const match = state.recurringTemplates.find(template => {
         return (parseFloat(tx.amount) || 0).toFixed(2) === (parseFloat(template.amount) || 0).toFixed(2) &&
-               tx.type === template.type &&
-               tx.category === template.category &&
-               (tx.account_from || '') === (template.account_from || '');
+          tx.type === template.type &&
+          tx.category === template.category &&
+          (tx.account_from || '') === (template.account_from || '');
       });
       if (match) {
         templateId = match.id;
       }
     }
-    
+
     if (templateId) {
       const key = `${templateId}_${txDate}`;
       if (!state.deletedRecurringDates.includes(key)) {
@@ -4683,7 +4683,7 @@ function deleteTransactionOffline(id, skipSave = false) {
         }
       }
     }
-    
+
     // Also remove any content-based duplicates from local state
     const txAmount = (parseFloat(tx.amount) || 0).toFixed(2);
     state.transactions = state.transactions.filter(t => {
@@ -4691,13 +4691,13 @@ function deleteTransactionOffline(id, skipSave = false) {
       const tDate = String(t.date || '').split('T')[0].split(' ')[0];
       const tAmount = (parseFloat(t.amount) || 0).toFixed(2);
       const isDupe = tDate === txDate &&
-                     tAmount === txAmount &&
-                     t.type === tx.type &&
-                     t.category === tx.category &&
-                     (t.account_from || '') === (tx.account_from || '') &&
-                     (t.account_to || '') === (tx.account_to || '') &&
-                     (t.note || '') === (tx.note || '') &&
-                     (t.user_id || '') === (tx.user_id || '');
+        tAmount === txAmount &&
+        t.type === tx.type &&
+        t.category === tx.category &&
+        (t.account_from || '') === (tx.account_from || '') &&
+        (t.account_to || '') === (tx.account_to || '') &&
+        (t.note || '') === (tx.note || '') &&
+        (t.user_id || '') === (tx.user_id || '');
       return !isDupe;
     });
   }
@@ -4781,7 +4781,7 @@ function _updateUIImpl() {
       renderPartnerSection();
       renderNotesList();
     }
-    
+
     // Restore scroll position
     const restoredScrollContainer = getActiveScrollContainer();
     if (restoredScrollContainer) {
@@ -4794,13 +4794,13 @@ function _updateUIImpl() {
       }
     }
   }
-  
+
   // Clear category render cache on UI refresh to pick up updates
   lastRenderedCategoryType = null;
-  
+
   const activeTypeBtn = document.querySelector('.type-tab-btn.active');
   const currentType = activeTypeBtn ? activeTypeBtn.getAttribute('data-type') : 'expense';
-  
+
   // FIX #2: Skip rebuilding dropdowns when the transaction modal is open.
   // Rebuilding category/account dropdowns while the modal is visible causes
   // the form fields to flicker (innerHTML reset) even though the modal itself
@@ -4808,13 +4808,13 @@ function _updateUIImpl() {
   // or when it is first opened (handled inside openAddTransactionModal /
   // openEditTransactionModal via updateCategoryDropdowns/updateAccountDropdowns).
   const txModalOpen = document.getElementById('transaction-modal') &&
-                      document.getElementById('transaction-modal').classList.contains('active');
+    document.getElementById('transaction-modal').classList.contains('active');
   if (!txModalOpen) {
     updateCategoryDropdowns(currentType);
     updateAccountDropdowns();
   }
   updateCurrencySymbols();
-  
+
   // Scroll to today on startup once transactions are loaded
   const list = document.getElementById('transactions-list');
   if (!state.hasInitialScrollDone && list && list.children.length > 0) {
@@ -4823,7 +4823,7 @@ function _updateUIImpl() {
       scrollToToday('auto');
     }, 300);
   }
-  
+
   // Onboarding auto-trigger
   const authOverlay = document.getElementById('auth-overlay');
   const isAuthVisible = authOverlay && authOverlay.style.display !== 'none';
@@ -4882,7 +4882,7 @@ function renderTransactionsTab() {
     const amt = parseFloat(t.amount) || 0;
     if (t.type === 'income') monthlyIncome += amt;
     else if (t.type === 'expense') monthlyExpense += amt;
-    
+
     const dateKey = String(t.date || '').split('T')[0].split(' ')[0];
     if (!groups[dateKey]) groups[dateKey] = { transactions: [], income: 0, expense: 0 };
     groups[dateKey].transactions.push(t);
@@ -4890,22 +4890,22 @@ function renderTransactionsTab() {
     else if (t.type === 'expense') groups[dateKey].expense += amt;
   });
 
-  document.getElementById('summary-income-val').textContent  = `${getCurrencySymbol()} ${formatCurrency(monthlyIncome)}`;
+  document.getElementById('summary-income-val').textContent = `${getCurrencySymbol()} ${formatCurrency(monthlyIncome)}`;
   document.getElementById('summary-expense-val').textContent = `${getCurrencySymbol()} ${formatCurrency(monthlyExpense)}`;
-  document.getElementById('summary-total-val').textContent   = `${getCurrencySymbol()} ${formatCurrency(monthlyIncome - monthlyExpense)}`;
+  document.getElementById('summary-total-val').textContent = `${getCurrencySymbol()} ${formatCurrency(monthlyIncome - monthlyExpense)}`;
 
   if (sortedTrans.length === 0) {
     if (listContainer._lastRenderSignature === 'empty') return;
     listContainer._lastRenderSignature = 'empty';
-    
+
     const lang = state.lang || 'el';
     const title = lang === 'el' ? 'Δεν έχετε προσθέσει κάτι ακόμα' : 'No transactions found';
-    const desc = lang === 'el' 
-      ? 'Γράψτε το πρώτο σας έξοδο ή δοκιμάστε την εφαρμογή βάζοντας μερικά έτοιμα παραδείγματα!' 
+    const desc = lang === 'el'
+      ? 'Γράψτε το πρώτο σας έξοδο ή δοκιμάστε την εφαρμογή βάζοντας μερικά έτοιμα παραδείγματα!'
       : 'Start tracking your expenses or try the app with sample data!';
     const addBtnText = lang === 'el' ? '✍️ Γράψτε ένα έξοδο / έσοδο' : '✍️ Add Transaction';
     const demoBtnText = lang === 'el' ? '📊 Δείτε έτοιμα παραδείγματα' : '📊 Insert Demo Data';
-    
+
     listContainer.innerHTML = `
       <div style="text-align:center;padding:60px 20px;color:var(--text-secondary); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;">
         <div style="font-size:56px;">📅</div>
@@ -4955,7 +4955,7 @@ function renderTransactionsTab() {
     const isToday = (dateStr === todayStr);
 
     let rightTotals = '';
-    if (group.income > 0)  rightTotals += `<span class="day-group-income">${getCurrencySymbol()} ${formatCurrency(group.income)}</span>`;
+    if (group.income > 0) rightTotals += `<span class="day-group-income">${getCurrencySymbol()} ${formatCurrency(group.income)}</span>`;
     if (group.expense > 0) rightTotals += `<span class="day-group-expense">${getCurrencySymbol()} ${formatCurrency(group.expense)}</span>`;
 
     const header = document.createElement('div');
@@ -4977,12 +4977,12 @@ function renderTransactionsTab() {
       const item = document.createElement('div');
       item.className = 'transaction-item';
       item.setAttribute('data-id', t.id);
-      
+
       const isSelected = state.selectedIds.has(t.id);
       if (state.selectionMode && isSelected) {
         item.classList.add('selected');
       }
-      
+
       const checkboxHtml = state.selectionMode ? `
         <div class="trans-checkbox ${isSelected ? 'checked' : ''}">
           <i class="fa-solid ${isSelected ? 'fa-circle-check' : 'fa-circle'}"></i>
@@ -4992,11 +4992,11 @@ function renderTransactionsTab() {
       let pressTimer;
       let feedbackTimer;
       let isLongPress = false;
-      
+
       item.addEventListener('touchstart', (e) => {
         isLongPress = false;
         state.touchDidMove = false;
-        
+
         // Active visual feedback with 80ms delay to prevent flashing on swipe/scroll
         clearTimeout(feedbackTimer);
         feedbackTimer = setTimeout(() => {
@@ -5004,14 +5004,14 @@ function renderTransactionsTab() {
             item.classList.add('pressed');
           }
         }, 80);
-        
+
         if (state.selectionMode) return;
         pressTimer = setTimeout(() => {
           isLongPress = true;
           enterSelectionMode();
           toggleSelection(t.id);
           if (navigator.vibrate) {
-            try { navigator.vibrate(15); } catch(err) {}
+            try { navigator.vibrate(15); } catch (err) { }
           }
         }, 600);
       }, { passive: true });
@@ -5037,7 +5037,7 @@ function renderTransactionsTab() {
         clearTimeout(feedbackTimer);
         item.classList.remove('pressed');
       });
-      
+
       item.addEventListener('mousedown', (e) => {
         isLongPress = false;
         item.classList.add('pressed');
@@ -5076,8 +5076,8 @@ function renderTransactionsTab() {
 
       let amountClass = 'trans-amount';
       let accountText = t.account_from ? getAccountDisplayName(t.account_from) : '';
-      if (t.type === 'expense')       { amountClass += ' expense'; }
-      else if (t.type === 'income')   { amountClass += ' income'; }
+      if (t.type === 'expense') { amountClass += ' expense'; }
+      else if (t.type === 'income') { amountClass += ' income'; }
       else if (t.type === 'transfer') {
         const fromDisp = getAccountDisplayName(t.account_from);
         const toDisp = getAccountDisplayName(t.account_to);
@@ -5088,10 +5088,10 @@ function renderTransactionsTab() {
       const translatedSub = getSubcategoryDisplayName(t.subcategory, t.category);
       const translatedCat = getCategoryDisplayName(t.category);
       const displayTitle = (t.note && t.note.trim()) ? t.note.trim()
-                         : (t.description && t.description.trim()) ? t.description.trim()
-                         : (translatedSub && translatedSub.trim()) ? translatedSub.trim()
-                         : (translatedCat || '');
-      
+        : (t.description && t.description.trim()) ? t.description.trim()
+          : (translatedSub && translatedSub.trim()) ? translatedSub.trim()
+            : (translatedCat || '');
+
       const memberBadge = getMemberBadgeHTML(t);
 
       item.innerHTML = `
@@ -5175,11 +5175,11 @@ function getCategoryDisplayName(categoryName) {
   if (!categoryName) return '';
   const stripped = stripLeadingEmoji(categoryName).trim();
   const lang = state.lang || 'el';
-  
+
   for (const [elKey, enVal] of Object.entries(CATEGORY_NAME_TRANSLATIONS)) {
     const strippedEl = stripLeadingEmoji(elKey).trim().toUpperCase();
     const strippedEn = stripLeadingEmoji(enVal).trim().toUpperCase();
-    
+
     if (stripped.toUpperCase() === strippedEl || stripped.toUpperCase() === strippedEn) {
       const target = lang === 'en' ? enVal : elKey;
       return stripLeadingEmoji(target).trim();
@@ -5264,7 +5264,7 @@ const SUBCATEGORY_NAME_TRANSLATIONS = {
 
 function isDefaultSubcategory(categoryName, subcategoryName) {
   if (!subcategoryName) return false;
-  
+
   // Normalize categoryName to Greek default category name key
   let greekCategoryName = categoryName || '';
   if (categoryName) {
@@ -5278,27 +5278,27 @@ function isDefaultSubcategory(categoryName, subcategoryName) {
       }
     }
   }
-  
+
   const cleanedCat = stripLeadingEmoji(greekCategoryName).trim().toUpperCase();
   const subcats = DEFAULT_SUBCATEGORIES_MAP[cleanedCat];
   const normSub = stripLeadingEmoji(subcategoryName).trim().toUpperCase();
-  
+
   if (subcats) {
     const found = subcats.some(s => {
       return s.trim().toUpperCase() === subcategoryName.trim().toUpperCase() ||
-             stripLeadingEmoji(s).trim().toUpperCase() === normSub;
+        stripLeadingEmoji(s).trim().toUpperCase() === normSub;
     });
     if (found) return true;
   }
-  
+
   for (const subcats of Object.values(DEFAULT_SUBCATEGORIES_MAP)) {
     const found = subcats.some(s => {
       return s.trim().toUpperCase() === subcategoryName.trim().toUpperCase() ||
-             stripLeadingEmoji(s).trim().toUpperCase() === normSub;
+        stripLeadingEmoji(s).trim().toUpperCase() === normSub;
     });
     if (found) return true;
   }
-  
+
   return false;
 }
 
@@ -5306,15 +5306,15 @@ function getSubcategoryDisplayName(subName, categoryName) {
   if (!subName) return '';
   const stripped = stripLeadingEmoji(subName).trim();
   const lang = state.lang || 'el';
-  
+
   if (!isDefaultSubcategory(categoryName, subName)) {
     return subName; // Custom entries are never translated
   }
-  
+
   for (const [elKey, enVal] of Object.entries(SUBCATEGORY_NAME_TRANSLATIONS)) {
     const strippedEl = stripLeadingEmoji(elKey).trim().toUpperCase();
     const strippedEn = stripLeadingEmoji(enVal).trim().toUpperCase();
-    
+
     if (stripped.toUpperCase() === strippedEl || stripped.toUpperCase() === strippedEn) {
       const target = lang === 'en' ? enVal : elKey;
       return stripLeadingEmoji(target).trim();
@@ -5336,20 +5336,20 @@ function saveCategoriesToStorage() {
 // ============================================================
 function renderStatsTab(skipChart = false) {
   const { start, end } = getStatsDateRange();
-  
+
   // Set month/period text on the top left
   const rawStatsTitle = formatStatsPeriodTitle(start, end);
   document.getElementById('stats-period-title').innerHTML = wrapPeriodTitleWithSpans(rawStatsTitle);
-  
+
   // Update dropdown button text
   let periodLabel = TRANSLATIONS[state.lang]['stats_period_monthly'];
   if (state.statsPeriodType === 'weekly') periodLabel = TRANSLATIONS[state.lang]['stats_period_weekly'];
   else if (state.statsPeriodType === 'annually') periodLabel = TRANSLATIONS[state.lang]['stats_period_annually'];
   else if (state.statsPeriodType === 'period') periodLabel = TRANSLATIONS[state.lang]['stats_period_custom'];
-  
-  document.getElementById('stats-period-dropdown-btn').innerHTML = 
+
+  document.getElementById('stats-period-dropdown-btn').innerHTML =
     `${periodLabel} <i class="fa-solid fa-chevron-down" style="font-size: 9px; margin-left: 4px;"></i>`;
-    
+
   // Highlight active dropdown choice
   document.querySelectorAll('.stats-dropdown-item').forEach(item => {
     item.classList.toggle('active', item.getAttribute('data-value') === state.statsPeriodType);
@@ -5362,10 +5362,10 @@ function renderStatsTab(skipChart = false) {
 
   if (state.userProfile && state.userProfile.family_id) {
     if (familyFilterContainer) familyFilterContainer.style.display = 'block';
-    
+
     if (familyFilterMenu) {
       familyFilterMenu.innerHTML = '';
-      
+
       const allText = state.lang === 'el' ? 'Όλη η Οικογένεια' : 'All Family';
       const allItem = document.createElement('div');
       allItem.className = 'stats-dropdown-item' + (state.selectedFamilyMemberId === 'all' ? ' active' : '');
@@ -5378,13 +5378,13 @@ function renderStatsTab(skipChart = false) {
         renderStatsTab();
       });
       familyFilterMenu.appendChild(allItem);
-      
+
       const members = state.familyProfiles || [];
       members.forEach(member => {
         const isMe = member.id === state.currentUser.id;
         const meSuffix = isMe ? ` (${state.lang === 'el' ? 'Εσείς' : 'You'})` : '';
         const name = (member.display_name || member.email.split('@')[0]) + meSuffix;
-        
+
         const item = document.createElement('div');
         item.className = 'stats-dropdown-item' + (state.selectedFamilyMemberId === member.id ? ' active' : '');
         item.setAttribute('data-value', member.id);
@@ -5398,7 +5398,7 @@ function renderStatsTab(skipChart = false) {
         familyFilterMenu.appendChild(item);
       });
     }
-    
+
     if (familyFilterBtn) {
       let activeText = state.lang === 'el' ? 'Όλη η Οικογένεια' : 'All Family';
       if (state.selectedFamilyMemberId !== 'all') {
@@ -5417,7 +5417,7 @@ function renderStatsTab(skipChart = false) {
   }
 
   const walletTrans = getActiveTransactions();
-  
+
   // Filter by selected family member
   let memberFilteredTrans = walletTrans;
   if (state.userProfile && state.userProfile.family_id && state.selectedFamilyMemberId !== 'all') {
@@ -5431,10 +5431,10 @@ function renderStatsTab(skipChart = false) {
     return tDate >= start && tDate <= end;
   });
 
-  const monthlyIncome  = filteredTrans.filter(t => t.type === 'income').reduce((s, t) => s + parseFloat(t.amount || 0), 0);
+  const monthlyIncome = filteredTrans.filter(t => t.type === 'income').reduce((s, t) => s + parseFloat(t.amount || 0), 0);
   const monthlyExpense = filteredTrans.filter(t => t.type === 'expense').reduce((s, t) => s + parseFloat(t.amount || 0), 0);
 
-  document.getElementById('stats-tab-income-amt').textContent  = `${getCurrencySymbol()} ${formatCurrency(monthlyIncome)}`;
+  document.getElementById('stats-tab-income-amt').textContent = `${getCurrencySymbol()} ${formatCurrency(monthlyIncome)}`;
   document.getElementById('stats-tab-expense-amt').textContent = `${getCurrencySymbol()} ${formatCurrency(monthlyExpense)}`;
 
   // Calculate and display Net Savings
@@ -5453,9 +5453,9 @@ function renderStatsTab(skipChart = false) {
     const catInfo = getCategoryInfo(t.category, t.type);
     const key = catInfo.name || t.category || (state.lang === 'el' ? 'Άλλα' : 'Other');
     if (!catGroups[key]) {
-      catGroups[key] = { 
-        amount: 0, 
-        icon: catInfo.icon, 
+      catGroups[key] = {
+        amount: 0,
+        icon: catInfo.icon,
         color: catInfo.color,
         subcategories: {}
       };
@@ -5470,10 +5470,10 @@ function renderStatsTab(skipChart = false) {
   });
 
   const breakdownList = Object.entries(catGroups).map(([name, d]) => ({
-    name, 
-    amount: d.amount, 
+    name,
+    amount: d.amount,
     percentage: totalSum > 0 ? (d.amount / totalSum) * 100 : 0,
-    icon: d.icon, 
+    icon: d.icon,
     color: d.color,
     subcategories: Object.entries(d.subcategories)
       .map(([subName, subAmt]) => ({
@@ -5574,7 +5574,7 @@ function renderStatsTab(skipChart = false) {
         const subDisplayName = sub.name ? getSubcategoryDisplayName(sub.name, item.name) : (state.lang === 'el' ? 'Χωρίς υποκατηγορία' : 'Uncategorized');
         const subRow = document.createElement('div');
         subRow.className = 'stats-sub-row';
-        
+
         // Dynamically style subcategory percentage with parent category theme color (low opacity fill + solid text/border)
         subRow.innerHTML = `
           <div class="stats-sub-left">
@@ -5583,7 +5583,7 @@ function renderStatsTab(skipChart = false) {
           </div>
           <div class="stats-sub-right">${getCurrencySymbol()} ${formatCurrency(sub.amount)}</div>
         `;
-        
+
         let subFeedbackTimer;
         let subTouchStartX = 0;
         let subTouchStartY = 0;
@@ -5733,7 +5733,7 @@ function renderSubcategoryTransactions(category, subcategory) {
 
   const { start, end } = getStatsDateRange();
   const walletTrans = getActiveTransactions();
-  
+
   let memberFilteredTrans = walletTrans;
   if (state.userProfile && state.userProfile.family_id && state.selectedFamilyMemberId !== 'all') {
     memberFilteredTrans = walletTrans.filter(t => t.user_id === state.selectedFamilyMemberId);
@@ -5748,11 +5748,11 @@ function renderSubcategoryTransactions(category, subcategory) {
 
   const subcatTrans = periodTrans.filter(t => {
     if (t.type !== state.statsType) return false;
-    
+
     const catInfo = getCategoryInfo(t.category, t.type);
     const catName = catInfo.name || t.category || (state.lang === 'el' ? 'Άλλα' : 'Other');
     if (catName.toUpperCase() !== category.toUpperCase()) return false;
-    
+
     const tSub = t.subcategory || '';
     return tSub.toUpperCase() === subcategory.toUpperCase();
   }).sort(compareTransactions);
@@ -5767,7 +5767,7 @@ function renderSubcategoryTransactions(category, subcategory) {
     const item = document.createElement('div');
     item.className = 'transaction-item';
     item.setAttribute('data-id', t.id);
-    
+
     let modalTouchStartX = 0;
     let modalTouchStartY = 0;
     let modalTouchMoved = false;
@@ -5818,8 +5818,8 @@ function renderSubcategoryTransactions(category, subcategory) {
 
     let amountClass = 'trans-amount';
     let accountText = t.account_from ? getAccountDisplayName(t.account_from) : '';
-    if (t.type === 'expense')       { amountClass += ' expense'; }
-    else if (t.type === 'income')   { amountClass += ' income'; }
+    if (t.type === 'expense') { amountClass += ' expense'; }
+    else if (t.type === 'income') { amountClass += ' income'; }
     else if (t.type === 'transfer') {
       const fromDisp = getAccountDisplayName(t.account_from);
       const toDisp = getAccountDisplayName(t.account_to);
@@ -5830,12 +5830,12 @@ function renderSubcategoryTransactions(category, subcategory) {
     const translatedSub = getSubcategoryDisplayName(t.subcategory, t.category);
     const translatedCat = getCategoryDisplayName(t.category);
     const displayTitle = (t.note && t.note.trim()) ? t.note.trim()
-                       : (t.description && t.description.trim()) ? t.description.trim()
-                       : (translatedSub && translatedSub.trim()) ? translatedSub.trim()
-                       : (translatedCat || '');
-    
+      : (t.description && t.description.trim()) ? t.description.trim()
+        : (translatedSub && translatedSub.trim()) ? translatedSub.trim()
+          : (translatedCat || '');
+
     const memberBadge = getMemberBadgeHTML(t);
-    
+
     // Format short date
     let dateLabel = '';
     if (t.date) {
@@ -5939,7 +5939,7 @@ function renderChart(dataList) {
 // ============================================================
 function renderAccountsTab() {
   const assetsEl = document.getElementById('accounts-assets-list');
-  const liabEl   = document.getElementById('accounts-liabilities-list');
+  const liabEl = document.getElementById('accounts-liabilities-list');
 
   // Anti-flicker signature check — skip full rebuild if data hasn't changed
   const _acctSig = (state.accounts || []).map(a => `${a.id}_${a.name}_${a.balance}_${a.type}`).join('|')
@@ -5968,14 +5968,14 @@ function renderAccountsTab() {
   // 1. Calculate current year history values from transactions (excluding transfers)
   const activeTrans = getActiveTransactions();
   const currentYearOverview = state.overviewYear || new Date().getFullYear();
-  
+
   const nonTransferTrans = activeTrans.filter(t => {
     if (t.type === 'transfer' || t.category?.toLowerCase().includes('μεταφ') || t.category?.toLowerCase().includes('transfer')) return false;
     if (!t.date) return false;
     const y = parseInt(String(t.date).split('T')[0].split('-')[0], 10);
     return y === currentYearOverview;
   });
-  
+
   let overallMinDate = null;
   let overallMaxDate = null;
   let overallIncome = 0;
@@ -6024,7 +6024,7 @@ function renderAccountsTab() {
   }
 
   // 3. Populate the top card overall columns (Income, Expenses, Net Balance)
-  document.getElementById('total-assets-val').textContent      = formatCurrency(overallIncome);
+  document.getElementById('total-assets-val').textContent = formatCurrency(overallIncome);
   document.getElementById('total-liabilities-val').textContent = formatCurrency(overallExpense);
   const netElContainer = document.getElementById('total-net-val-container');
   const netEl = document.getElementById('total-net-val');
@@ -6054,14 +6054,14 @@ function renderAccountsTab() {
   const scoreEl = document.getElementById('fhs-score-value');
   const labelEl = document.getElementById('fhs-label');
   const hintEl = document.getElementById('fhs-hint');
-  
+
   const scoreStr = typeof fhs.score === 'number' ? fhs.score.toFixed(1) + '%' : fhs.score;
   if (scoreEl) scoreEl.textContent = scoreStr;
   if (labelEl) labelEl.textContent = fhs.label;
   if (hintEl) {
     if (fhs.isTemporary) {
-      hintEl.textContent = state.lang === 'el' 
-        ? 'Προσωρινό σκορ βάσει των πρώτων δεδομένων' 
+      hintEl.textContent = state.lang === 'el'
+        ? 'Προσωρινό σκορ βάσει των πρώτων δεδομένων'
         : 'Temporary score based on initial data';
     } else {
       hintEl.textContent = state.lang === 'el'
@@ -6074,14 +6074,14 @@ function renderAccountsTab() {
   const modalScoreCircle = document.getElementById('fhs-modal-score-circle');
   const modalScoreLabel = document.getElementById('fhs-modal-score-label');
   const modalScoreValText = document.getElementById('fhs-modal-score-val-text');
-  
+
   if (modalScoreValText) {
     modalScoreValText.textContent = scoreStr;
   } else if (modalScoreCircle) {
     modalScoreCircle.textContent = scoreStr;
   }
   if (modalScoreLabel) modalScoreLabel.textContent = fhs.label;
-  
+
   const savingsValEl = document.getElementById('fhs-breakdown-savings-val');
   const savingsBarEl = document.getElementById('fhs-breakdown-savings-bar');
   const savingsDescEl = document.getElementById('fhs-breakdown-savings-desc');
@@ -6093,7 +6093,7 @@ function renderAccountsTab() {
       ? `Τρέχων ρυθμός αποταμίευσης: ${srPct}% (Στόχος: >20% για καλό σκορ, 40% για άριστο)`
       : `Current savings rate: ${srPct}% (Target: >20% for good, 40% for perfect)`;
   }
-  
+
   const emergencyValEl = document.getElementById('fhs-breakdown-emergency-val');
   const emergencyBarEl = document.getElementById('fhs-breakdown-emergency-bar');
   const emergencyDescEl = document.getElementById('fhs-breakdown-emergency-desc');
@@ -6104,7 +6104,7 @@ function renderAccountsTab() {
     const lifeVal = Math.round((fhs.lifestyleRunway || 0) * 10) / 10;
     const survColor = survVal >= 6 ? '#66bb6a' : (survVal >= 3 ? '#ffa726' : '#ff5b5b');
     const lifeColor = lifeVal >= 6 ? '#66bb6a' : (lifeVal >= 3 ? '#ffa726' : '#ff5b5b');
-    
+
     if (state.lang === 'el') {
       emergencyDescEl.innerHTML = `
         <div style="display: flex; flex-direction: column; gap: 4px; margin-top: 6px; font-size: 11px; line-height: 1.4;">
@@ -6121,7 +6121,7 @@ function renderAccountsTab() {
       `;
     }
   }
-  
+
   const trendValEl = document.getElementById('fhs-breakdown-trend-val');
   const trendBarEl = document.getElementById('fhs-breakdown-trend-bar');
   const trendDescEl = document.getElementById('fhs-breakdown-trend-desc');
@@ -6143,7 +6143,7 @@ function renderAccountsTab() {
   const explainLiquidEl = document.getElementById('fhs-explain-liquid-balance');
   const explainSurvivalEl = document.getElementById('fhs-explain-survival-months');
   const explainLifestyleEl = document.getElementById('fhs-explain-lifestyle-months');
-  
+
   if (explainLiquidEl) {
     explainLiquidEl.textContent = formatCurrency(fhs.liquidBalance || 0);
   }
@@ -6160,43 +6160,43 @@ function renderAccountsTab() {
   const bulletsEl = document.getElementById('fhs-explain-bullets');
   if (bulletsEl) {
     bulletsEl.innerHTML = '';
-    
+
     const srPct = Math.round((fhs.savingsRate || 0) * 1000) / 10;
     const wSavings = (fhs.weightedSavings || 0).toFixed(1);
     const wEmergency = (fhs.weightedEmergency || 0).toFixed(1);
     const wTrend = (fhs.weightedTrend || 0).toFixed(1);
     const mc = (fhs.monthsCovered || 0).toFixed(1);
-    
+
     let bullet1 = '';
     let bullet2 = '';
     let bullet3 = '';
-    
+
     if (state.lang === 'el') {
       bullet1 = `<li>📈 <strong>Δείκτης Αποταμίευσης:</strong> Αποταμιεύσατε το <strong>${srPct}%</strong> των εσόδων σας, λαμβάνοντας <strong>${wSavings} / 40</strong> πόντους.</li>`;
       bullet2 = `<li>🛡️ <strong>Ταμείο Έκτακτης Ανάγκης:</strong> Το διαθέσιμο υπόλοιπό σας καλύπτει <strong>${mc}</strong> μήνες τρέχουσας ζωής (Στόχος: 6+ μήνες), λαμβάνοντας <strong>${wEmergency} / 40</strong> πόντους.</li>`;
-      
+
       if (fhs.isTemporary) {
         bullet3 = `<li>📊 <strong>Τάση Εξόδων:</strong> Προσωρινό σκορ <strong>${wTrend} / 20</strong> λόγω έλλειψης ιστορικού προηγούμενου μήνα.</li>`;
       } else {
-        const trendText = fhs.expenseTrendScore >= 100 
-          ? 'είναι χαμηλότερα από ή ίσα με τον προηγούμενο μήνα' 
+        const trendText = fhs.expenseTrendScore >= 100
+          ? 'είναι χαμηλότερα από ή ίσα με τον προηγούμενο μήνα'
           : 'αυξήθηκαν σε σχέση με τον προηγούμενο μήνα';
         bullet3 = `<li>📊 <strong>Τάση Εξόδων:</strong> Τα έξοδά σας ${trendText}, λαμβάνοντας <strong>${wTrend} / 20</strong> πόντους.</li>`;
       }
     } else {
       bullet1 = `<li>📈 <strong>Savings Rate:</strong> You saved <strong>${srPct}%</strong> of your income, receiving <strong>${wSavings} / 40</strong> points.</li>`;
       bullet2 = `<li>🛡️ <strong>Emergency Fund:</strong> Your balance covers <strong>${mc}</strong> months of lifestyle expenses (Target: 6+ months), receiving <strong>${wEmergency} / 40</strong> points.</li>`;
-      
+
       if (fhs.isTemporary) {
         bullet3 = `<li>📊 <strong>Expense Trend:</strong> Temporary score <strong>${wTrend} / 20</strong> due to lack of previous month history.</li>`;
       } else {
-        const trendText = fhs.expenseTrendScore >= 100 
-          ? 'are lower than or equal to the previous month' 
+        const trendText = fhs.expenseTrendScore >= 100
+          ? 'are lower than or equal to the previous month'
           : 'increased compared to the previous month';
         bullet3 = `<li>📊 <strong>Expense Trend:</strong> Your expenses ${trendText}, receiving <strong>${wTrend} / 20</strong> points.</li>`;
       }
     }
-    
+
     bulletsEl.innerHTML = bullet1 + bullet2 + bullet3;
   }
 
@@ -6204,7 +6204,7 @@ function renderAccountsTab() {
   const todayDate = new Date();
   const currYear = todayDate.getFullYear();
   const currMonth = todayDate.getMonth(); // 0-11
-  
+
   const prevMonthDate = new Date(currYear, currMonth - 1, 1);
   const prevYearNum = prevMonthDate.getFullYear();
   const prevMonthNum = prevMonthDate.getMonth();
@@ -6248,7 +6248,7 @@ function renderAccountsTab() {
   const cardEl = document.getElementById('advisor-card');
   const chevronEl = document.getElementById('advisor-chevron');
   const expandedContentEl = document.getElementById('advisor-expanded-content');
-  
+
   if (maxIncreaseCat && maxIncreaseAmt > 0) {
     const prevAmt = prevMonthExpenses[maxIncreaseCat] || 0;
     const pctVal = prevAmt > 0 ? Math.round((maxIncreaseAmt / prevAmt) * 100) : null;
@@ -6350,14 +6350,14 @@ function renderAccountsTab() {
         topTransListEl.innerHTML = topTrans.map(t => {
           const dateObj = new Date(t.date);
           const formattedDate = dateObj.toLocaleDateString(state.lang === 'el' ? 'el-GR' : 'en-US', { day: '2-digit', month: '2-digit' });
-          
+
           const translatedSub = getSubcategoryDisplayName(t.subcategory, t.category);
           const translatedCat = getCategoryDisplayName(t.category);
           const displayTitle = (t.note && t.note.trim()) ? t.note.trim()
-                             : (t.description && t.description.trim()) ? t.description.trim()
-                             : (translatedSub && translatedSub.trim()) ? translatedSub.trim()
-                             : (translatedCat || '');
-          
+            : (t.description && t.description.trim()) ? t.description.trim()
+              : (translatedSub && translatedSub.trim()) ? translatedSub.trim()
+                : (translatedCat || '');
+
           return `
             <div class="advisor-trans-row">
               <span class="advisor-trans-desc">${escapeHtml(formattedDate)} - ${escapeHtml(displayTitle)}</span>
@@ -6381,7 +6381,7 @@ function renderAccountsTab() {
     if (barsEl) {
       const prevLabel = state.lang === 'el' ? 'Προηγούμενος' : 'Previous';
       const currLabel = state.lang === 'el' ? 'Τρέχων' : 'Current';
-      
+
       barsEl.innerHTML = `
         <div class="advisor-bar-row previous">
           <span class="advisor-bar-label">${prevLabel}</span>
@@ -6462,7 +6462,7 @@ function renderAccountsTab() {
     }
   });
   const prevYearSavings = prevYearIncome - prevYearExpense;
-  
+
   // Check localstorage custom target first
   const customTarget = localStorage.getItem('overview_savings_target');
   if (customTarget && parseFloat(customTarget) > 0) {
@@ -6473,7 +6473,7 @@ function renderAccountsTab() {
 
   const normalStateEl = document.getElementById('forecast-normal-state');
   const yearendStateEl = document.getElementById('forecast-yearend-state');
-  
+
   if (forecast.isYearEnd) {
     if (normalStateEl) normalStateEl.style.display = 'none';
     if (yearendStateEl) {
@@ -6485,22 +6485,22 @@ function renderAccountsTab() {
     if (yearendStateEl) yearendStateEl.style.display = 'none';
     if (normalStateEl) {
       normalStateEl.style.display = 'block';
-      
+
       let progressPct = 0;
       if (targetSavings > 0 && overallNet > 0) {
         progressPct = Math.max(0, Math.min(100, Math.round((overallNet / targetSavings) * 100)));
       }
-      
+
       const progressBarEl = document.getElementById('forecast-progress-bar');
       if (progressBarEl) progressBarEl.style.width = `${progressPct}%`;
-      
+
       const progressBadgeEl = document.getElementById('forecast-progress-badge');
       if (progressBadgeEl) {
         progressBadgeEl.textContent = `${progressPct}%`;
         const clampedBadgePct = Math.max(7, Math.min(93, progressPct));
         progressBadgeEl.style.left = `${clampedBadgePct}%`;
       }
-      
+
       const projectedValEl = document.getElementById('forecast-projected-val');
       if (projectedValEl) {
         projectedValEl.textContent = formatCurrency(forecast.projectedSavings);
@@ -6524,7 +6524,7 @@ function renderAccountsTab() {
       const bestValEl = document.getElementById('forecast-best-val');
       const expectedValEl = document.getElementById('forecast-expected-val');
       const worstValEl = document.getElementById('forecast-worst-val');
-      
+
       if (bestValEl) bestValEl.textContent = formatCurrency(forecast.bestCaseSavings);
       if (expectedValEl) expectedValEl.textContent = formatCurrency(forecast.projectedSavings);
       if (worstValEl) worstValEl.textContent = formatCurrency(forecast.worstCaseSavings);
@@ -6741,7 +6741,7 @@ function renderAccountsTab() {
         row.style.fontFamily = "'Outfit', sans-serif";
 
         const label = TRANSLATIONS[state.lang]['period_label'] + ' ' + yearNum;
-        const colorStyle = data.net >= 0 
+        const colorStyle = data.net >= 0
           ? 'color: var(--blue-positive); font-weight: 700; font-family: \'Outfit\', sans-serif;'
           : 'color: var(--red-negative); font-weight: 700; font-family: \'Outfit\', sans-serif;';
         const sign = data.net >= 0 ? '+' : '-';
@@ -6763,7 +6763,7 @@ function renderAccountsTab() {
         dropdown.style.maxHeight = '0';
         dropdown.style.overflow = 'hidden';
         dropdown.style.transition = 'max-height 0.25s ease';
-        
+
         dropdown.innerHTML = `
           <div style="padding: 10px 0 4px 0; display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; color: var(--text-secondary); opacity: 0.9; font-family: 'Outfit', sans-serif;">
             <div style="display: flex; justify-content: space-between;">
@@ -6780,7 +6780,7 @@ function renderAccountsTab() {
             </div>
           </div>
         `;
-        
+
         row.addEventListener('click', (e) => {
           e.stopPropagation();
           const chevron = row.querySelector('.archive-collapse-icon');
@@ -6837,9 +6837,9 @@ function setupEventListeners() {
   });
 
   document.getElementById('stats-tab-expense').addEventListener('click', () => toggleStatsType('expense'));
-  document.getElementById('stats-tab-income').addEventListener('click',  () => toggleStatsType('income'));
+  document.getElementById('stats-tab-income').addEventListener('click', () => toggleStatsType('income'));
   document.getElementById('fab-btn').addEventListener('click', openAddTransactionModal);
-  
+
   const fabNoteBtn = document.getElementById('fab-note-btn');
   if (fabNoteBtn) {
     fabNoteBtn.addEventListener('click', () => {
@@ -6930,13 +6930,13 @@ function setupEventListeners() {
 
       el.addEventListener('focus', () => {
         closeCalculatorKeypad();
-        
+
         const isKeyboardAlreadyActive = document.body.classList.contains('keyboard-active');
-        
+
         if (textInputs.includes(id)) {
-          
+
           document.body.classList.add('keyboard-active');
-          
+
           if (isIOS) {
             const body = el.closest('.modal-body');
             if (body) {
@@ -6945,25 +6945,25 @@ function setupEventListeners() {
             }
           }
         }
-        
+
         const scrollIntoViewIfNeeded = (isInstant = false) => {
           const row = el.closest('.form-row') || el.closest('.form-group');
           const body = el.closest('.modal-body');
           if (row && body) {
             const bodyRect = body.getBoundingClientRect();
             const rowRect = row.getBoundingClientRect();
-            
+
             let keyboardHeight = 0;
             if (window.visualViewport && document.body.classList.contains('keyboard-active')) {
               const cssKeyboardHeight = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--keyboard-height')) || 0;
               const vvKeyboardHeight = window.innerHeight - window.visualViewport.height;
               keyboardHeight = Math.max(vvKeyboardHeight, cssKeyboardHeight);
             }
-            
+
             const visibleHeight = bodyRect.height - keyboardHeight;
             const safetyMargin = 24; // Keep row at least 24px above the keyboard
             const effectiveBottom = bodyRect.top + visibleHeight - safetyMargin;
-            
+
             if (rowRect.bottom > effectiveBottom) {
               const targetScroll = body.scrollTop + (rowRect.bottom - effectiveBottom);
               body.scrollTo({ top: targetScroll, behavior: isInstant ? 'auto' : 'smooth' });
@@ -7011,7 +7011,7 @@ function setupEventListeners() {
             const isAnotherInputFocused = activeEl && textInputs.includes(activeEl.id);
             if (!isAnotherInputFocused) {
               document.body.classList.remove('keyboard-active');
-              
+
               // Reset scroll when input loses focus and keyboard actually closes
               setTimeout(() => {
                 forceViewportReset();
@@ -7078,41 +7078,114 @@ function setupEventListeners() {
     _isSubmittingTransaction = true;
     try {
       closeCalculatorKeypad();
-    const id   = document.getElementById('trans-id').value;
-    const type = document.querySelector('.type-tab-btn.active').getAttribute('data-type');
-    
-    let rawAmount = document.getElementById('trans-amount').value || '0';
-    rawAmount = rawAmount.replace(/\,/g, '.');
-    const evaluatedVal = evaluateCalcBuffer(rawAmount);
-    const amountVal = parseFloat(evaluatedVal) || 0;
-    const categoryVal = type === 'transfer' ? 'ΜΕΤΑΦΟΡΑ' : document.getElementById('trans-category').value;
-    const noteVal = document.getElementById('trans-note').value.trim();
-    
-    // Validation: Amount, Category, Title (note) must be filled
-    const lang = state.lang || 'el';
-    if (amountVal <= 0) {
-      const msg = lang === 'el' ? 'Παρακαλώ εισάγετε ποσό μεγαλύτερο από 0!' : 'Please enter an amount greater than 0!';
-      await showCustomDialog({ message: msg, icon: '⚠️' });
-      return;
-    }
-    
-    if (!categoryVal || categoryVal.trim() === '') {
-      const msg = lang === 'el' ? 'Παρακαλώ επιλέξτε κατηγορία!' : 'Please select a category!';
-      await showCustomDialog({ message: msg, icon: '⚠️' });
-      return;
-    }
-    
-    if (!noteVal || noteVal === '') {
-      const msg = lang === 'el' ? 'Παρακαλώ εισάγετε τίτλο!' : 'Please enter a title!';
-      await showCustomDialog({ message: msg, icon: '⚠️' });
-      return;
-    }
+      const id = document.getElementById('trans-id').value;
+      const type = document.querySelector('.type-tab-btn.active').getAttribute('data-type');
 
-    const isRecurringActive = _pendingRecurringSettings.isActive === true;
+      let rawAmount = document.getElementById('trans-amount').value || '0';
+      rawAmount = rawAmount.replace(/\,/g, '.');
+      const evaluatedVal = evaluateCalcBuffer(rawAmount);
+      const amountVal = parseFloat(evaluatedVal) || 0;
+      const categoryVal = type === 'transfer' ? 'ΜΕΤΑΦΟΡΑ' : document.getElementById('trans-category').value;
+      const noteVal = document.getElementById('trans-note').value.trim();
 
-    if (!id && isRecurringActive) {
-      const template = {
-        id: generateUUID(),
+      // Validation: Amount, Category, Title (note) must be filled
+      const lang = state.lang || 'el';
+      if (amountVal <= 0) {
+        const msg = lang === 'el' ? 'Παρακαλώ εισάγετε ποσό μεγαλύτερο από 0!' : 'Please enter an amount greater than 0!';
+        await showCustomDialog({ message: msg, icon: '⚠️' });
+        return;
+      }
+
+      if (!categoryVal || categoryVal.trim() === '') {
+        const msg = lang === 'el' ? 'Παρακαλώ επιλέξτε κατηγορία!' : 'Please select a category!';
+        await showCustomDialog({ message: msg, icon: '⚠️' });
+        return;
+      }
+
+      if (!noteVal || noteVal === '') {
+        const msg = lang === 'el' ? 'Παρακαλώ εισάγετε τίτλο!' : 'Please enter a title!';
+        await showCustomDialog({ message: msg, icon: '⚠️' });
+        return;
+      }
+
+      const isRecurringActive = _pendingRecurringSettings.isActive === true;
+
+      if (!id && isRecurringActive) {
+        const template = {
+          id: generateUUID(),
+          type,
+          amount: amountVal,
+          category: categoryVal,
+          subcategory: (() => {
+            if (type === 'transfer') return '';
+            const customInput = document.getElementById('trans-subcategory-custom');
+            if (customInput && customInput.style.display !== 'none') {
+              return customInput.value.trim();
+            }
+            const select = document.getElementById('trans-subcategory-select');
+            return (select && select.value !== '__NEW__') ? select.value.trim() : '';
+          })(),
+          account_from: document.getElementById('trans-account-from').value,
+          account_to: type === 'transfer' ? document.getElementById('trans-account-to').value : null,
+          note: noteVal,
+          description: document.getElementById('trans-description').value.trim(),
+          days: [..._pendingRecurringSettings.days],
+          months: [..._pendingRecurringSettings.months],
+          preset: _pendingRecurringSettings.preset || 'monthly',
+          years: [...(_pendingRecurringSettings.years || [])],
+          endType: _pendingRecurringSettings.endType || 'perpetual',
+          endDate: _pendingRecurringSettings.endDate || null,
+          startDate: document.getElementById('trans-date').value || new Date().toISOString().split('T')[0],
+          startYear: (() => {
+            const dateElVal = document.getElementById('trans-date').value;
+            return dateElVal ? new Date(dateElVal).getFullYear() : new Date().getFullYear();
+          })(),
+          startMonth: (() => {
+            const dateElVal = document.getElementById('trans-date').value;
+            return dateElVal ? (new Date(dateElVal).getMonth() + 1) : (new Date().getMonth() + 1);
+          })(),
+          user_id: state.currentUser ? state.currentUser.id : null,
+          is_shared: state.partnerProfile !== null,
+          family_id: state.userProfile ? state.userProfile.family_id : null
+        };
+
+        if (state.supabaseClient && state.currentUser) {
+          state.supabaseClient
+            .from('recurring_templates')
+            .insert([mapTemplateToDb(template)])
+            .select()
+            .then(({ data, error }) => {
+              if (error) {
+                console.error('Failed to sync new recurring template to cloud:', error);
+              } else if (data && data[0]) {
+                const idx = state.recurringTemplates.findIndex(t => t.id === template.id);
+                if (idx !== -1) {
+                  state.recurringTemplates[idx] = mapTemplateFromDb(data[0]);
+                  localStorage.setItem('recurring_templates', JSON.stringify(state.recurringTemplates));
+                  processRecurringTemplates();
+                  updateUI();
+                }
+              }
+            });
+        }
+        state.recurringTemplates.push(template);
+        localStorage.setItem('recurring_templates', JSON.stringify(state.recurringTemplates));
+
+        processRecurringTemplates();
+        updateUI();
+
+        _pendingReceiptFiles.forEach(p => {
+          if (p.url && !p.isExisting) URL.revokeObjectURL(p.url);
+        });
+        _pendingReceiptFiles = [];
+        _pendingReceiptDeleted = false;
+
+        closeModal('transaction-modal');
+        return;
+      }
+
+      let t = {
+        date: document.getElementById('trans-date').value,
         type,
         amount: amountVal,
         category: categoryVal,
@@ -7129,50 +7202,48 @@ function setupEventListeners() {
         account_to: type === 'transfer' ? document.getElementById('trans-account-to').value : null,
         note: noteVal,
         description: document.getElementById('trans-description').value.trim(),
-        days: [..._pendingRecurringSettings.days],
-        months: [..._pendingRecurringSettings.months],
-        preset: _pendingRecurringSettings.preset || 'monthly',
-        years: [...(_pendingRecurringSettings.years || [])],
-        endType: _pendingRecurringSettings.endType || 'perpetual',
-        endDate: _pendingRecurringSettings.endDate || null,
-        startDate: document.getElementById('trans-date').value || new Date().toISOString().split('T')[0],
-        startYear: (() => {
-          const dateElVal = document.getElementById('trans-date').value;
-          return dateElVal ? new Date(dateElVal).getFullYear() : new Date().getFullYear();
-        })(),
-        startMonth: (() => {
-          const dateElVal = document.getElementById('trans-date').value;
-          return dateElVal ? (new Date(dateElVal).getMonth() + 1) : (new Date().getMonth() + 1);
-        })(),
-        user_id: state.currentUser ? state.currentUser.id : null,
-        is_shared: state.partnerProfile !== null,
-        family_id: state.userProfile ? state.userProfile.family_id : null
       };
-
-      if (state.supabaseClient && state.currentUser) {
-        state.supabaseClient
-          .from('recurring_templates')
-          .insert([mapTemplateToDb(template)])
-          .select()
-          .then(({ data, error }) => {
-            if (error) {
-              console.error('Failed to sync new recurring template to cloud:', error);
-            } else if (data && data[0]) {
-              const idx = state.recurringTemplates.findIndex(t => t.id === template.id);
-              if (idx !== -1) {
-                state.recurringTemplates[idx] = mapTemplateFromDb(data[0]);
-                localStorage.setItem('recurring_templates', JSON.stringify(state.recurringTemplates));
-                processRecurringTemplates();
-                updateUI();
-              }
-            }
-          });
+      if (id) {
+        const existing = state.transactions.find(item => item.id === id);
+        if (existing) {
+          t = { ...existing, ...t };
+          t.user_id = existing.user_id || (state.currentUser ? state.currentUser.id : null);
+          t.is_shared = existing.is_shared !== undefined ? existing.is_shared : (state.partnerProfile !== null);
+          t.family_id = existing.family_id || (state.userProfile ? state.userProfile.family_id : null);
+        } else {
+          t.id = id;
+          t.user_id = state.currentUser ? state.currentUser.id : null;
+          t.is_shared = state.partnerProfile !== null;
+          t.family_id = state.userProfile ? state.userProfile.family_id : null;
+        }
+      } else {
+        t.user_id = state.currentUser ? state.currentUser.id : null;
+        t.is_shared = state.partnerProfile !== null;
+        t.family_id = state.userProfile ? state.userProfile.family_id : null;
       }
-      state.recurringTemplates.push(template);
-      localStorage.setItem('recurring_templates', JSON.stringify(state.recurringTemplates));
-      
-      processRecurringTemplates();
-      updateUI();
+      await saveTransaction(t);
+
+      // Save or delete receipt photos in IndexedDB
+      if (_pendingReceiptFiles.length > 0 && t.id) {
+        try {
+          const blobsToSave = _pendingReceiptFiles.map(p => p.file).filter(f => f instanceof Blob);
+          await ReceiptStorage.save(t.id, blobsToSave);
+          t.photo_local_uri = 'local-file://' + t.id;
+          saveTransactionOffline(t);
+          console.log('Receipt photos saved locally for:', t.id);
+        } catch (err) {
+          console.warn('Failed to save receipt photos:', err);
+        }
+      } else if (_pendingReceiptDeleted && t.id) {
+        try {
+          await ReceiptStorage.remove(t.id);
+          t.photo_local_uri = null;
+          saveTransactionOffline(t);
+          console.log('Receipt photos deleted for:', t.id);
+        } catch (err) {
+          console.warn('Failed to delete receipt photos:', err);
+        }
+      }
 
       _pendingReceiptFiles.forEach(p => {
         if (p.url && !p.isExisting) URL.revokeObjectURL(p.url);
@@ -7181,77 +7252,6 @@ function setupEventListeners() {
       _pendingReceiptDeleted = false;
 
       closeModal('transaction-modal');
-      return;
-    }
-    
-    let t = {
-      date: document.getElementById('trans-date').value,
-      type,
-      amount: amountVal,
-      category: categoryVal,
-      subcategory: (() => {
-        if (type === 'transfer') return '';
-        const customInput = document.getElementById('trans-subcategory-custom');
-        if (customInput && customInput.style.display !== 'none') {
-          return customInput.value.trim();
-        }
-        const select = document.getElementById('trans-subcategory-select');
-        return (select && select.value !== '__NEW__') ? select.value.trim() : '';
-      })(),
-      account_from: document.getElementById('trans-account-from').value,
-      account_to: type === 'transfer' ? document.getElementById('trans-account-to').value : null,
-      note: noteVal,
-      description: document.getElementById('trans-description').value.trim(),
-    };
-    if (id) {
-      const existing = state.transactions.find(item => item.id === id);
-      if (existing) {
-        t = { ...existing, ...t };
-        t.user_id = existing.user_id || (state.currentUser ? state.currentUser.id : null);
-        t.is_shared = existing.is_shared !== undefined ? existing.is_shared : (state.partnerProfile !== null);
-        t.family_id = existing.family_id || (state.userProfile ? state.userProfile.family_id : null);
-      } else {
-        t.id = id;
-        t.user_id = state.currentUser ? state.currentUser.id : null;
-        t.is_shared = state.partnerProfile !== null;
-        t.family_id = state.userProfile ? state.userProfile.family_id : null;
-      }
-    } else {
-      t.user_id = state.currentUser ? state.currentUser.id : null;
-      t.is_shared = state.partnerProfile !== null;
-      t.family_id = state.userProfile ? state.userProfile.family_id : null;
-    }
-    await saveTransaction(t);
-    
-    // Save or delete receipt photos in IndexedDB
-    if (_pendingReceiptFiles.length > 0 && t.id) {
-      try {
-        const blobsToSave = _pendingReceiptFiles.map(p => p.file).filter(f => f instanceof Blob);
-        await ReceiptStorage.save(t.id, blobsToSave);
-        t.photo_local_uri = 'local-file://' + t.id;
-        saveTransactionOffline(t);
-        console.log('Receipt photos saved locally for:', t.id);
-      } catch (err) {
-        console.warn('Failed to save receipt photos:', err);
-      }
-    } else if (_pendingReceiptDeleted && t.id) {
-      try {
-        await ReceiptStorage.remove(t.id);
-        t.photo_local_uri = null;
-        saveTransactionOffline(t);
-        console.log('Receipt photos deleted for:', t.id);
-      } catch (err) {
-        console.warn('Failed to delete receipt photos:', err);
-      }
-    }
-    
-    _pendingReceiptFiles.forEach(p => {
-      if (p.url && !p.isExisting) URL.revokeObjectURL(p.url);
-    });
-    _pendingReceiptFiles = [];
-    _pendingReceiptDeleted = false;
-    
-    closeModal('transaction-modal');
     } finally {
       _isSubmittingTransaction = false;
     }
@@ -7293,23 +7293,23 @@ function setupEventListeners() {
       const cameraBox = document.createElement('div');
       cameraBox.className = 'photo-thumbnail-wrapper camera-capture-btn';
       cameraBox.style.cssText = 'position: relative; width: 80px; height: 80px; border-radius: 8px; overflow: hidden; border: 1.5px dashed var(--text-muted); display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; background: rgba(255,255,255,0.02); gap: 4px;';
-      
+
       const camIcon = document.createElement('i');
       camIcon.className = 'fa-solid fa-camera';
       camIcon.style.cssText = 'font-size: 20px; color: var(--text-secondary);';
-      
+
       const camLabel = document.createElement('span');
       camLabel.textContent = 'Κάμερα';
       camLabel.style.cssText = 'font-size: 10px; color: var(--text-secondary); font-weight: 600;';
-      
+
       cameraBox.appendChild(camIcon);
       cameraBox.appendChild(camLabel);
-      
+
       cameraBox.addEventListener('click', () => {
         const cameraInput = document.getElementById('trans-camera-input');
         if (cameraInput) cameraInput.click();
       });
-      
+
       list.appendChild(cameraBox);
     }
 
@@ -7501,7 +7501,7 @@ function setupEventListeners() {
 
   function handleCalculatorKeyPress(val) {
     let buf = state.calcBuffer;
-    
+
     if (val === 'done') {
       buf = evaluateCalcBuffer(buf);
       document.getElementById('trans-amount').value = buf;
@@ -7509,7 +7509,7 @@ function setupEventListeners() {
       closeCalculatorKeypad();
       return;
     }
-    
+
     if (val === 'backspace') {
       if (buf.length > 0) {
         buf = buf.slice(0, -1);
@@ -7532,7 +7532,7 @@ function setupEventListeners() {
         buf += val;
       }
     }
-    
+
     state.calcBuffer = buf;
     document.getElementById('trans-amount').value = buf;
   }
@@ -7752,7 +7752,7 @@ function scrollToToday(behavior = 'smooth') {
     : document.querySelector('.app-content');
   const list = document.getElementById('transactions-list');
   if (!scrollContainer || !list) return;
-  
+
   const todayHeader = list.querySelector('.day-header.is-today');
   if (todayHeader) {
     // Calculate layout-independent offset within scroll container using offsetParent chain
@@ -7762,9 +7762,9 @@ function scrollToToday(behavior = 'smooth') {
       relativeTop += el.offsetTop;
       el = el.offsetParent;
     }
-    
+
     const offset = isMobile ? 0 : 105;
-    
+
     scrollContainer.scrollTo({
       top: Math.max(0, relativeTop - offset),
       behavior: behavior
@@ -7832,7 +7832,7 @@ function switchTab(tab, instant = false) {
   try {
     history.pushState({ appState: 'active', tab: tab }, '', window.location.pathname + window.location.search);
     state.historyPushed = true;
-  } catch (e) {}
+  } catch (e) { }
 
   // Clear expanded categories on active tab change
   state.expandedStatsCategories.clear();
@@ -7954,7 +7954,7 @@ function switchTab(tab, instant = false) {
   }
 
   document.querySelectorAll('.nav-item').forEach(i => i.classList.toggle('active', i.getAttribute('data-tab') === tab));
-  
+
   if (tab !== 'trans') {
     ensureHistoryPushed();
   }
@@ -8007,22 +8007,22 @@ function toggleStatsType(type) {
   state.expandedStatsCategories.clear();
   state.statsType = type;
   document.getElementById('stats-tab-expense').classList.toggle('active', type === 'expense');
-  document.getElementById('stats-tab-income').classList.toggle('active',  type === 'income');
+  document.getElementById('stats-tab-income').classList.toggle('active', type === 'income');
   renderStatsTab();
 }
 
 function forceViewportReset(syncOnly = false) {
   if (!isIOS) return;
-  
+
   // Snap scroll position back to 0
   window.scrollTo(0, 0);
   document.body.scrollTop = 0;
-  
+
   if (syncOnly) {
     // If backgrounding, DO NOT use async timeouts that will freeze and execute on resume.
     return;
   }
-  
+
   const hasOffset = window.scrollY > 0 || (window.visualViewport && window.visualViewport.offsetTop > 0);
   if (hasOffset) {
     // Temporarily make body scrollable to force iOS Safari to reset visual viewport panning
@@ -8081,7 +8081,7 @@ function closeModal(id) {
   const activeModals = document.querySelectorAll('.modal-overlay.active, .tx-modal-overlay.active, .profile-sheet-overlay.active');
   if (activeModals.length === 0) {
     document.body.classList.remove('modal-open');
-    
+
     // Snap window scroll back to top to clear iOS visualViewport panning
     setTimeout(() => {
       forceViewportReset();
@@ -8117,13 +8117,13 @@ function closeModal(id) {
 function toggleTransactionFormLock(locked) {
   const form = document.getElementById('transaction-form');
   if (!form) return;
-  
+
   if (locked) {
     form.setAttribute('data-readonly', 'true');
   } else {
     form.removeAttribute('data-readonly');
   }
-  
+
   const inputsToToggle = [
     'trans-date',
     'trans-note',
@@ -8188,7 +8188,7 @@ function toggleTransactionFormLock(locked) {
       warningEl.style.justifyContent = 'center';
       warningEl.style.gap = '8px';
       warningEl.innerHTML = `<i class="fa-solid fa-circle-info"></i> <span>${TRANSLATIONS[state.lang]['only_creator_edit_warning']}</span>`;
-      
+
       const form = document.getElementById('transaction-form');
       if (form) {
         form.parentNode.insertBefore(warningEl, form);
@@ -8208,7 +8208,7 @@ function openAddTransactionModal({ instant = false } = {}) {
   if (typeof window.closeCalculatorKeypad === 'function') {
     window.closeCalculatorKeypad();
   }
-  
+
   clearRecurringSettings(false);
   const repInstBtn = document.getElementById('btn-rep-inst');
   if (repInstBtn) repInstBtn.style.display = 'flex';
@@ -8217,21 +8217,21 @@ function openAddTransactionModal({ instant = false } = {}) {
   document.getElementById('transaction-form').reset();
   if (window.updateDescriptionHeight) window.updateDescriptionHeight();
   document.getElementById('trans-id').value = '';
-  
+
   // Reset Category
   document.getElementById('trans-category').value = '';
   document.getElementById('trans-category-display').innerHTML = `<span class="custom-select-placeholder">Επιλέξτε...</span>`;
-  
+
   // Reset Subcategory
   const customInput = document.getElementById('trans-subcategory-custom');
   if (customInput) customInput.value = '';
   hideSubcategorySelect();
-  
+
   document.getElementById('trans-delete-btn').style.display = 'none';
-  
+
   const creatorRow = document.getElementById('trans-creator-row');
   if (creatorRow) creatorRow.style.display = 'none';
-  
+
   // Reset photo state
   _pendingReceiptFiles.forEach(p => {
     if (p.url && !p.isExisting) URL.revokeObjectURL(p.url);
@@ -8246,13 +8246,13 @@ function openAddTransactionModal({ instant = false } = {}) {
   if (previewContainer) previewContainer.style.display = 'none';
   const placeholderContainer = document.getElementById('trans-photo-placeholder-container');
   if (placeholderContainer) placeholderContainer.style.display = 'none';
-  
+
   const now = new Date();
   const tzOffset = now.getTimezoneOffset() * 60000;
   const localISOTime = (new Date(now.getTime() - tzOffset)).toISOString().slice(0, 16);
   document.getElementById('trans-date').value = localISOTime;
   document.getElementById('trans-date-display').textContent = formatGreekDateTime(localISOTime);
-  
+
   setTransactionFormType('expense');
 
   // Set default account values to avoid empty payment methods
@@ -8276,7 +8276,7 @@ function openEditTransactionModal(t, { instant = false } = {}) {
   if (typeof window.closeCalculatorKeypad === 'function') {
     window.closeCalculatorKeypad();
   }
-  
+
   clearRecurringSettings(false);
   const repInstBtn = document.getElementById('btn-rep-inst');
   if (repInstBtn) repInstBtn.style.display = 'none';
@@ -8288,8 +8288,8 @@ function openEditTransactionModal(t, { instant = false } = {}) {
 
   toggleTransactionFormLock(shouldLock);
 
-  document.getElementById('trans-id').value     = t.id;
-  
+  document.getElementById('trans-id').value = t.id;
+
   let dateVal = t.date;
   if (dateVal && dateVal.length === 10) {
     const now = new Date();
@@ -8297,22 +8297,22 @@ function openEditTransactionModal(t, { instant = false } = {}) {
     const mins = String(now.getMinutes()).padStart(2, '0');
     dateVal = `${dateVal}T${hrs}:${mins}`;
   }
-  document.getElementById('trans-date').value   = dateVal;
+  document.getElementById('trans-date').value = dateVal;
   document.getElementById('trans-date-display').textContent = formatGreekDateTime(dateVal);
-  
+
   document.getElementById('trans-amount').value = String(t.amount);
-  
+
   // Load note (primary title) and description (secondary) separately
-  document.getElementById('trans-note').value        = t.note || '';
+  document.getElementById('trans-note').value = t.note || '';
   document.getElementById('trans-description').value = t.description || '';
   if (window.updateDescriptionHeight) window.updateDescriptionHeight();
-  
+
   if (shouldLock) {
     document.getElementById('trans-delete-btn').style.display = 'none';
   } else {
     document.getElementById('trans-delete-btn').style.display = 'block';
   }
-  
+
   // Reset photo state and load existing photos if available
   _pendingReceiptFiles.forEach(p => {
     if (p.url && !p.isExisting) URL.revokeObjectURL(p.url);
@@ -8327,7 +8327,7 @@ function openEditTransactionModal(t, { instant = false } = {}) {
   const placeholderContainer = document.getElementById('trans-photo-placeholder-container');
   if (previewContainer) previewContainer.style.display = 'none';
   if (placeholderContainer) placeholderContainer.style.display = 'none';
-  
+
   // Load receipt photos from IndexedDB
   if (t.photo_local_uri && t.id) {
     ReceiptStorage.load(t.id).then(blobs => {
@@ -8352,18 +8352,18 @@ function openEditTransactionModal(t, { instant = false } = {}) {
       }
     }).catch(err => console.warn('Failed to load receipts:', err));
   }
-  
+
   setTransactionFormType(t.type);
   setTimeout(() => {
     if (t.type !== 'transfer') {
       document.getElementById('trans-category').value = t.category;
-      
+
       const subcatVal = t.subcategory || '';
       document.getElementById('trans-subcategory-select').value = subcatVal;
-      
+
       const customInput = document.getElementById('trans-subcategory-custom');
       if (customInput) customInput.value = '';
-      
+
       updateCategoryDisplay();
       updateSubcategorySuggestions();
       updateSubcategoryRowVisibility();
@@ -8431,28 +8431,28 @@ function updateCategoryDisplay() {
   const categoryHidden = document.getElementById('trans-category');
   const categoryDisplay = document.getElementById('trans-category-display');
   if (!categoryHidden || !categoryDisplay) return;
-  
+
   const categoryVal = categoryHidden.value;
   if (!categoryVal) {
     categoryDisplay.innerHTML = `<span class="custom-select-placeholder">Επιλέξτε...</span>`;
     return;
   }
-  
+
   const type = document.querySelector('.type-tab-btn.active')?.getAttribute('data-type') || 'expense';
   const catInfo = getCategoryInfo(categoryVal, type);
   const icon = catInfo.icon || '';
   const cleanName = getCategoryDisplayName(categoryVal);
-  
+
   const subcatSelect = document.getElementById('trans-subcategory-select')?.value || '';
   const subcatCustom = document.getElementById('trans-subcategory-custom')?.value || '';
-  
+
   let subcatText = '';
   if (subcatSelect === '__NEW__') {
     subcatText = subcatCustom.trim();
   } else if (subcatSelect) {
     subcatText = getSubcategoryDisplayName(subcatSelect.trim(), categoryVal);
   }
-  
+
   if (subcatText) {
     categoryDisplay.innerHTML = `
       <span class="category-picker-icon" style="font-size:16px;">${icon}</span>
@@ -8473,7 +8473,7 @@ function updateSubcategoryRowVisibility() {
   if (!subcatGroup) return;
   const type = document.querySelector('.type-tab-btn.active')?.getAttribute('data-type') || 'expense';
   const subcatSelect = document.getElementById('trans-subcategory-select')?.value || '';
-  
+
   if (type === 'transfer') {
     subcatGroup.style.display = 'none';
   } else {
@@ -8490,35 +8490,35 @@ function setTransactionFormType(type) {
     if (!type) type = 'expense';
     const form = document.getElementById('transaction-form');
     if (form && form.getAttribute('data-readonly') === 'true') return;
-    
+
     document.querySelectorAll('.type-tab-btn').forEach(btn => {
       const btnType = btn.getAttribute('data-type');
       if (btnType) {
         btn.classList.toggle('active', btnType === type);
       }
     });
-    
+
     const modalEl = document.getElementById('transaction-modal');
     if (modalEl) {
       modalEl.classList.remove('expense', 'income', 'transfer');
       modalEl.classList.add(type);
     }
-    
+
     const currentLang = state.lang || 'el';
     const langDict = TRANSLATIONS[currentLang] || TRANSLATIONS['el'];
     let typeLabel = langDict['type_tab_expense'] || 'Έξοδο';
     if (type === 'income') typeLabel = langDict['type_tab_income'] || 'Έσοδο';
     else if (type === 'transfer') typeLabel = langDict['type_tab_transfer'] || 'Μεταφορά';
-    
+
     const titleEl = document.getElementById('modal-trans-title');
     if (titleEl) {
       titleEl.textContent = typeLabel;
     }
-    
-    const catGroup      = document.getElementById('form-row-category');
-    const toAccGroup    = document.getElementById('form-row-account-to');
-    const fromAccLabel  = document.getElementById('label-account-from');
-    
+
+    const catGroup = document.getElementById('form-row-category');
+    const toAccGroup = document.getElementById('form-row-account-to');
+    const fromAccLabel = document.getElementById('label-account-from');
+
     if (type === 'transfer') {
       if (catGroup) catGroup.style.display = 'none';
       updateSubcategoryRowVisibility();
@@ -8543,7 +8543,7 @@ function toggleCategoryPickerEditMode() {
   categoryPickerEditMode = !categoryPickerEditMode;
   const btn = document.getElementById('btn-toggle-cat-edit');
   if (btn) {
-    btn.textContent = categoryPickerEditMode 
+    btn.textContent = categoryPickerEditMode
       ? (TRANSLATIONS[state.lang]['keypad_btn_done'] || 'Τέλος')
       : (TRANSLATIONS[state.lang]['btn_manage'] || 'Διαχείριση');
     if (categoryPickerEditMode) {
@@ -8554,7 +8554,7 @@ function toggleCategoryPickerEditMode() {
       btn.style.color = 'var(--text-secondary)';
     }
   }
-  const currentType = window._openedCategoryPickerFromSettings 
+  const currentType = window._openedCategoryPickerFromSettings
     ? (window._categoryPickerSettingsType || 'expense')
     : document.querySelector('.type-tab-btn.active').getAttribute('data-type');
   updateCategoryDropdowns(currentType, true);
@@ -8565,7 +8565,7 @@ function inlineToggleCategoryHidden(categoryName, type) {
   if (cat) {
     cat.hidden = !cat.hidden;
     saveCategoriesToStorage();
-    
+
     // Sync to cloud if enabled
     if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
       try {
@@ -8586,38 +8586,38 @@ function inlineToggleCategoryHidden(categoryName, type) {
         console.warn('Cloud category sync failed:', e);
       }
     }
-    
+
     updateCategoryDropdowns(type);
     updateUI();
   }
 }
 
 async function inlineDeleteCustomCategory(categoryName, type) {
-  const confirmMsg = state.lang === 'el' 
-    ? 'Είστε σίγουροι ότι θέλετε να διαγράψετε αυτή την κατηγορία;' 
+  const confirmMsg = state.lang === 'el'
+    ? 'Είστε σίγουροι ότι θέλετε να διαγράψετε αυτή την κατηγορία;'
     : 'Are you sure you want to delete this category?';
-  
+
   const confirmed = await showConfirm(confirmMsg, state.lang === 'el' ? 'Διαγραφή Κατηγορίας' : 'Delete Category', '📂');
   if (!confirmed) {
     return;
   }
-  
+
   // Also check if any transactions use this category. If yes, warn the user
   const count = state.transactions.filter(t => t.category === categoryName).length;
   if (count > 0) {
     const warningMsg = state.lang === 'el'
       ? `Αυτή η κατηγορία χρησιμοποιείται σε ${count} συναλλαγές. Αν τη διαγράψετε, οι συναλλαγές θα παραμείνουν αλλά η κατηγορία δεν θα υπάρχει. Θέλετε να συνεχίσετε;`
       : `This category is used in ${count} transactions. If you delete it, the transactions will remain but the category will not exist. Do you want to continue?`;
-    
+
     const warningConfirmed = await showConfirm(warningMsg, state.lang === 'el' ? 'Προειδοποίηση' : 'Warning', '⚠️');
     if (!warningConfirmed) {
       return;
     }
   }
-  
+
   state.categories = state.categories.filter(c => c.name !== categoryName);
   saveCategoriesToStorage();
-  
+
   // Sync delete to cloud if enabled
   if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
     try {
@@ -8632,7 +8632,7 @@ async function inlineDeleteCustomCategory(categoryName, type) {
       console.warn('Cloud category delete failed:', e);
     }
   }
-  
+
   updateCategoryDropdowns(type);
   updateUI();
 }
@@ -8640,39 +8640,39 @@ async function inlineDeleteCustomCategory(categoryName, type) {
 function inlineRenameCategory(categoryName, type) {
   const cat = state.categories.find(c => c.name === categoryName);
   if (!cat) return;
-  
+
   const currentDisplayName = getCategoryDisplayName(categoryName);
   const newName = prompt(
     state.lang === 'el' ? 'Εισάγετε το νέο όνομα της κατηγορίας:' : 'Enter the new category name:',
     currentDisplayName
   );
-  
+
   if (newName === null) return; // User cancelled
   const trimmed = newName.trim();
   if (trimmed === '') {
     alert(state.lang === 'el' ? 'Το όνομα δεν μπορεί να είναι κενό!' : 'Category name cannot be empty!');
     return;
   }
-  
+
   // If the display name did not change, do nothing
   if (trimmed === currentDisplayName) return;
-  
+
   // Check if another category with the same name and type already exists
   const exists = state.categories.find(c => c.type === type && getCategoryDisplayName(c.name).toLowerCase() === trimmed.toLowerCase());
   if (exists) {
     alert(
-      state.lang === 'el' 
-        ? 'Υπάρχει ήδη κατηγορία με αυτό το όνομα!' 
+      state.lang === 'el'
+        ? 'Υπάρχει ήδη κατηγορία με αυτό το όνομα!'
         : 'A category with this name already exists!'
     );
     return;
   }
-  
+
   const oldName = cat.name;
-  
+
   // Update category name
   cat.name = trimmed;
-  
+
   // Update all transactions that were using the old category name
   let transactionsUpdated = 0;
   state.transactions.forEach(t => {
@@ -8681,13 +8681,13 @@ function inlineRenameCategory(categoryName, type) {
       transactionsUpdated++;
     }
   });
-  
+
   saveCategoriesToStorage();
-  
+
   if (transactionsUpdated > 0) {
     localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
   }
-  
+
   // Sync to Cloud if enabled
   if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
     try {
@@ -8698,7 +8698,7 @@ function inlineRenameCategory(categoryName, type) {
         .match({ user_id: state.currentUser.id, name: oldName })
         .then(({ error }) => {
           if (error) console.warn('Cloud category old name delete warning:', error);
-          
+
           // 2. Upsert the renamed category
           state.supabaseClient
             .from('categories')
@@ -8714,7 +8714,7 @@ function inlineRenameCategory(categoryName, type) {
               if (upsertErr) console.warn('Cloud category renamed sync warning:', upsertErr);
             });
         });
-        
+
       // 3. Update transactions in Supabase if any were updated locally
       if (transactionsUpdated > 0) {
         state.supabaseClient
@@ -8729,7 +8729,7 @@ function inlineRenameCategory(categoryName, type) {
       console.warn('Cloud category rename sync failed:', e);
     }
   }
-  
+
   updateCategoryDropdowns(type, true);
   updateUI();
 }
@@ -8744,22 +8744,22 @@ function updateCategoryDropdowns(type = 'expense', force = false) {
   deduplicateCategories();
   const grid = document.getElementById('category-picker-grid');
   if (!grid) return;
-  
+
   // Performance optimization to prevent modal opening lag
   if (!force && lastRenderedCategoryType === type && lastRenderedCategoryEditMode === categoryPickerEditMode) {
     return;
   }
-  
+
   grid.innerHTML = '';
   lastRenderedCategoryType = type;
   lastRenderedCategoryEditMode = categoryPickerEditMode;
-  
+
   const currentCategory = document.getElementById('trans-category').value;
   let categoryExists = false;
-  
+
   // Filter by type. In edit mode, show all. Otherwise, hide hidden categories.
   const visibleCategories = state.categories.filter(c => c.type === type && (categoryPickerEditMode || !c.hidden));
-  
+
   // Sort categories alphabetically based on display name in the active language
   const lang = state.lang || 'el';
   visibleCategories.sort((a, b) => {
@@ -8767,14 +8767,14 @@ function updateCategoryDropdowns(type = 'expense', force = false) {
     const nameB = getCategoryDisplayName(b.name);
     return nameA.localeCompare(nameB, lang === 'el' ? 'el' : 'en', { sensitivity: 'base' });
   });
-  
+
   visibleCategories.forEach(c => {
     const div = document.createElement('div');
     div.className = 'category-picker-item';
     div.setAttribute('data-category-name', c.name);
-    
+
     const displayName = getCategoryDisplayName(c.name);
-    
+
     if (categoryPickerEditMode) {
       div.classList.add('in-edit-mode');
       if (c.hidden) div.style.opacity = '0.55';
@@ -8801,10 +8801,10 @@ function updateCategoryDropdowns(type = 'expense', force = false) {
       div.innerHTML = `<span class="category-picker-icon">${c.icon}</span><span class="category-picker-name">${displayName}</span>`;
       div.onclick = () => selectCategory(c.name, c.icon, c.color, true);
     }
-    
+
     grid.appendChild(div);
   });
-  
+
   // "+" New Category box (always visible, both in normal and edit mode)
   const addBox = document.createElement('div');
   addBox.className = 'category-picker-item category-picker-add';
@@ -8816,7 +8816,7 @@ function updateCategoryDropdowns(type = 'expense', force = false) {
     addBox.onclick = () => openNewCategoryDialog(type);
   }
   grid.appendChild(addBox);
-  
+
   if (!categoryPickerEditMode && !categoryExists && currentCategory !== '') {
     document.getElementById('trans-category').value = '';
     updateCategoryDisplay();
@@ -8832,16 +8832,16 @@ function selectCategory(name, icon, color, isManual = false) {
       item.classList.add('selected');
     }
   });
-  
+
   // Reset subcategory selection when category changes
   document.getElementById('trans-subcategory-select').value = '';
   const customInput = document.getElementById('trans-subcategory-custom');
   if (customInput) customInput.value = '';
-  
+
   updateCategoryDisplay();
   updateSubcategorySuggestions();
   updateSubcategoryRowVisibility();
-  
+
   if (isManual) {
     closeModal('category-picker-modal');
     openSubcategoryModal();
@@ -8854,7 +8854,7 @@ function selectSubcategory(name) {
   document.getElementById('trans-subcategory-select').value = name;
   const customInput = document.getElementById('trans-subcategory-custom');
   if (customInput) customInput.value = '';
-  
+
   updateCategoryDisplay();
   updateSubcategoryRowVisibility();
   closeModal('subcategory-picker-modal');
@@ -8865,7 +8865,7 @@ function openCategoryModal() {
   const form = document.getElementById('transaction-form');
   if (form && form.getAttribute('data-readonly') === 'true') return;
   const currentType = document.querySelector('.type-tab-btn.active').getAttribute('data-type');
-  
+
   // Reset edit mode on modal open
   categoryPickerEditMode = false;
   const btn = document.getElementById('btn-toggle-cat-edit');
@@ -8874,7 +8874,7 @@ function openCategoryModal() {
     btn.style.borderColor = 'var(--border)';
     btn.style.color = 'var(--text-secondary)';
   }
-  
+
   // Force update to prevent any stale flash or lag when switching tabs
   updateCategoryDropdowns(currentType, true);
   closeNewCategoryDialog(); // Reset dialog state
@@ -8891,7 +8891,7 @@ let _subcatUndoActiveCallback = null;
 function getSubcategoriesStatsForCategory(categoryName) {
   const cleanedCat = stripLeadingEmoji(categoryName).toUpperCase();
   const stats = {};
-  
+
   state.transactions.forEach(t => {
     if (t.category && stripLeadingEmoji(t.category).toUpperCase() === cleanedCat) {
       if (t.subcategory && t.subcategory.trim() !== '') {
@@ -8900,7 +8900,7 @@ function getSubcategoriesStatsForCategory(categoryName) {
           stats[sub] = { count: 0, lastUsedDate: '' };
         }
         stats[sub].count++;
-        
+
         const tDate = t.date || '';
         if (tDate && (!stats[sub].lastUsedDate || tDate > stats[sub].lastUsedDate)) {
           stats[sub].lastUsedDate = tDate;
@@ -8908,14 +8908,14 @@ function getSubcategoriesStatsForCategory(categoryName) {
       }
     }
   });
-  
+
   return stats;
 }
 
 function getSortedSubcategoriesForCategory(categoryName) {
   const stats = getSubcategoriesStatsForCategory(categoryName);
   const subcatKeys = new Set(Object.keys(stats));
-  
+
   // Merge static subcategories from the category object
   const cat = state.categories.find(c => c.name === categoryName);
   if (cat && Array.isArray(cat.subcategories)) {
@@ -8926,28 +8926,28 @@ function getSortedSubcategoriesForCategory(categoryName) {
       }
     });
   }
-  
+
   const arr = Array.from(subcatKeys);
-  
+
   // Sort them:
   // 1. By transaction count descending
   // 2. If counts are equal, alphabetically
   arr.sort((a, b) => {
     const countA = stats[a] ? stats[a].count : 0;
     const countB = stats[b] ? stats[b].count : 0;
-    
+
     if (countB !== countA) {
       return countB - countA;
     }
     return a.localeCompare(b, state.lang === 'el' ? 'el' : 'en', { sensitivity: 'base' });
   });
-  
+
   return arr;
 }
 
 async function renameSubcategoryGlobally(categoryName, oldSub, newSub) {
   const cleanedCat = stripLeadingEmoji(categoryName).toUpperCase();
-  
+
   // 1. Update static subcategories list in the category object
   const cat = state.categories.find(c => c.name === categoryName);
   if (cat && Array.isArray(cat.subcategories)) {
@@ -8957,7 +8957,7 @@ async function renameSubcategoryGlobally(categoryName, oldSub, newSub) {
       cat.subcategories = cat.subcategories.map(s => s.trim() === oldSub.trim() ? newSub : s);
     }
     saveCategoriesToStorage();
-    
+
     if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
       try {
         await state.supabaseClient.from('categories').upsert({
@@ -8985,38 +8985,38 @@ async function renameSubcategoryGlobally(categoryName, oldSub, newSub) {
       }
     }
   });
-  
+
   if (updatedCount > 0) {
     localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
     calculateInitialBalances();
     updateUI();
   }
-  
+
   if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
     try {
       const { error } = await state.supabaseClient
         .from('transactions')
         .update({ subcategory: newSub })
         .match({ user_id: state.currentUser.id, category: categoryName, subcategory: oldSub });
-      
+
       if (error) console.warn('Supabase subcategory rename sync error:', error);
     } catch (err) {
       console.warn('Supabase subcategory rename sync failed:', err);
     }
   }
-  
+
   showSyncToast(state.lang === 'el' ? '✓ Υποκατηγορία μετονομάστηκε' : '✓ Subcategory renamed', 2000);
 }
 
 async function deleteSubcategoryGlobally(categoryName, subToDelete) {
   const cleanedCat = stripLeadingEmoji(categoryName).toUpperCase();
-  
+
   // 1. Remove from static list in category object
   const cat = state.categories.find(c => c.name === categoryName);
   if (cat && Array.isArray(cat.subcategories)) {
     cat.subcategories = cat.subcategories.filter(s => s.trim() !== subToDelete.trim());
     saveCategoriesToStorage();
-    
+
     if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
       try {
         await state.supabaseClient.from('categories').upsert({
@@ -9044,7 +9044,7 @@ async function deleteSubcategoryGlobally(categoryName, subToDelete) {
       }
     }
   });
-  
+
   if (backupItems.length > 0) {
     _lastSubcatDeleteBackup = {
       categoryName: categoryName,
@@ -9052,28 +9052,28 @@ async function deleteSubcategoryGlobally(categoryName, subToDelete) {
       items: backupItems,
       timestamp: Date.now()
     };
-    
+
     localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
     calculateInitialBalances();
     updateUI();
-    
+
     if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
       try {
         const { error } = await state.supabaseClient
           .from('transactions')
           .update({ subcategory: '' })
           .match({ user_id: state.currentUser.id, category: categoryName, subcategory: subToDelete });
-        
+
         if (error) console.warn('Supabase subcategory delete sync error:', error);
       } catch (err) {
         console.warn('Supabase subcategory delete sync failed:', err);
       }
     }
-    
-    const msg = state.lang === 'el' 
-      ? `Διαγράφηκε η υποκατηγορία "${subToDelete}"` 
+
+    const msg = state.lang === 'el'
+      ? `Διαγράφηκε η υποκατηγορία "${subToDelete}"`
       : `Deleted subcategory "${subToDelete}"`;
-      
+
     showSubcatUndoSnackbar(msg, () => {
       undoLastSubcategoryDelete();
     });
@@ -9084,10 +9084,10 @@ async function deleteSubcategoryGlobally(categoryName, subToDelete) {
 
 async function undoLastSubcategoryDelete() {
   if (!_lastSubcatDeleteBackup) return;
-  
+
   const { categoryName, subcategoryName, items } = _lastSubcatDeleteBackup;
   let restoredCount = 0;
-  
+
   items.forEach(backup => {
     const t = state.transactions.find(tx => tx.id === backup.txId);
     if (t) {
@@ -9095,13 +9095,13 @@ async function undoLastSubcategoryDelete() {
       restoredCount++;
     }
   });
-  
+
   if (restoredCount > 0) {
     localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
     calculateInitialBalances();
     updateUI();
   }
-  
+
   if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser && restoredCount > 0) {
     try {
       const idsToRestore = items.map(item => item.txId);
@@ -9110,19 +9110,19 @@ async function undoLastSubcategoryDelete() {
         .update({ subcategory: subcategoryName })
         .in('id', idsToRestore)
         .eq('user_id', state.currentUser.id);
-      
+
       if (error) console.warn('Supabase subcategory undo sync error:', error);
     } catch (err) {
       console.warn('Supabase subcategory undo sync failed:', err);
     }
   }
-  
+
   _lastSubcatDeleteBackup = null;
-  
+
   if (editingCategoryName) {
     renderEditCategorySubcategories(editingCategoryName);
   }
-  
+
   showSyncToast(state.lang === 'el' ? '✓ Η διαγραφή αναιρέθηκε' : '✓ Deletion undone', 2000);
 }
 
@@ -9143,32 +9143,32 @@ function showSubcatUndoSnackbar(message, undoCallback) {
       width: 90%; max-width: 380px; box-sizing: border-box;
       font-family: 'Outfit', sans-serif;
     `;
-    
+
     const textSpan = document.createElement('span');
     textSpan.id = 'subcat-undo-text';
     textSpan.style.flex = '1';
-    
+
     const undoBtn = document.createElement('button');
     undoBtn.id = 'subcat-undo-btn';
     undoBtn.className = 'btn btn-primary';
     undoBtn.style.cssText = 'padding: 6px 12px; font-size: 12px; margin: 0; font-weight: 700; width: auto; flex-shrink: 0;';
     undoBtn.textContent = state.lang === 'el' ? 'Αναίρεση' : 'Undo';
-    
+
     snackbar.appendChild(textSpan);
     snackbar.appendChild(undoBtn);
     document.body.appendChild(snackbar);
   }
-  
+
   const textSpan = snackbar.querySelector('#subcat-undo-text');
   if (textSpan) textSpan.textContent = message;
-  
+
   _subcatUndoActiveCallback = undoCallback;
-  
+
   const undoBtn = snackbar.querySelector('#subcat-undo-btn');
   if (undoBtn) {
     const newBtn = undoBtn.cloneNode(true);
     undoBtn.parentNode.replaceChild(newBtn, undoBtn);
-    
+
     newBtn.addEventListener('click', () => {
       if (typeof _subcatUndoActiveCallback === 'function') {
         _subcatUndoActiveCallback();
@@ -9177,12 +9177,12 @@ function showSubcatUndoSnackbar(message, undoCallback) {
       hideSubcatUndoSnackbar();
     });
   }
-  
+
   requestAnimationFrame(() => {
     snackbar.style.transform = 'translate(-50%, 0)';
     snackbar.style.opacity = '1';
   });
-  
+
   if (_subcatUndoTimer) clearTimeout(_subcatUndoTimer);
   _subcatUndoTimer = setTimeout(() => {
     hideSubcatUndoSnackbar();
@@ -9205,7 +9205,7 @@ function hideSubcatUndoSnackbar() {
 function renderEditCategorySubcategories(categoryName) {
   const dialog = document.getElementById('new-category-inline-dialog');
   if (!dialog) return;
-  
+
   let subcatSection = document.getElementById('new-cat-subcategories-section');
   if (!subcatSection) {
     subcatSection = document.createElement('div');
@@ -9217,7 +9217,7 @@ function renderEditCategorySubcategories(categoryName) {
       </label>
       <div id="new-cat-subcategories-list" style="display:flex; flex-direction:column; gap:6px; max-height:150px; overflow-y:auto; padding:4px; background:rgba(0,0,0,0.1); border:1px solid rgba(255,255,255,0.04); border-radius:8px;"></div>
     `;
-    
+
     const actionBtns = dialog.querySelector('div[style*="display:flex"][style*="gap:8px"]');
     if (actionBtns) {
       dialog.insertBefore(subcatSection, actionBtns);
@@ -9229,61 +9229,61 @@ function renderEditCategorySubcategories(categoryName) {
   const listEl = document.getElementById('new-cat-subcategories-list');
   const countEl = document.getElementById('new-cat-subcategories-count');
   if (!listEl) return;
-  
+
   if (!categoryName) {
     subcatSection.style.display = 'none';
     return;
   }
-  
+
   subcatSection.style.display = 'block';
   listEl.innerHTML = '';
-  
+
   const stats = getSubcategoriesStatsForCategory(categoryName);
   const subcatKeys = Object.keys(stats);
-  
+
   if (subcatKeys.length === 0) {
     if (countEl) countEl.textContent = '';
     listEl.innerHTML = `
       <div style="font-size:12.5px; color:var(--text-muted); padding:16px 12px; text-align:center; line-height:1.5;">
-        ${state.lang === 'el' 
-          ? 'Δεν υπάρχουν ακόμη υποκατηγορίες.<br><span style="font-size:11px; opacity:0.8;">Οι υποκατηγορίες δημιουργούνται αυτόματα όταν καταχωρείς συναλλαγές.</span>' 
-          : 'No subcategories yet.<br><span style="font-size:11px; opacity:0.8;">Subcategories are created automatically when you record transactions.</span>'}
+        ${state.lang === 'el'
+        ? 'Δεν υπάρχουν ακόμη υποκατηγορίες.<br><span style="font-size:11px; opacity:0.8;">Οι υποκατηγορίες δημιουργούνται αυτόματα όταν καταχωρείς συναλλαγές.</span>'
+        : 'No subcategories yet.<br><span style="font-size:11px; opacity:0.8;">Subcategories are created automatically when you record transactions.</span>'}
       </div>
     `;
     return;
   }
-  
+
   if (countEl) {
     countEl.textContent = `(${subcatKeys.length})`;
   }
-  
+
   const sortedSubs = subcatKeys.sort((a, b) => {
     const diff = stats[b].count - stats[a].count;
     if (diff !== 0) return diff;
     return a.localeCompare(b);
   });
-  
+
   sortedSubs.forEach(sub => {
     const item = document.createElement('div');
     item.style.cssText = 'display:flex; align-items:center; justify-content:space-between; padding:8px 12px; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.04); border-radius:10px; font-size:13px; color:var(--text-secondary); transition: background 0.2s;';
-    
+
     const count = stats[sub].count;
     const lastUsed = stats[sub].lastUsedDate;
-    
+
     let lastUsedStr = '';
     if (lastUsed) {
       const parts = lastUsed.split('-');
       if (parts.length === 3) {
-        lastUsedStr = state.lang === 'el' 
+        lastUsedStr = state.lang === 'el'
           ? ` • Τελ. χρήση: ${parts[2]}/${parts[1]}/${parts[0]}`
           : ` • Last used: ${parts[2]}/${parts[1]}/${parts[0]}`;
       }
     }
-    
+
     const txLabel = state.lang === 'el'
       ? (count === 1 ? 'συναλλαγή' : 'συναλλαγές')
       : (count === 1 ? 'transaction' : 'transactions');
-      
+
     const normalHtml = `
       <div style="display:flex; flex-direction:column; flex:1; overflow:hidden; margin-right:8px;">
         <span style="font-weight:600; color:var(--text-primary); text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">${sub}</span>
@@ -9294,12 +9294,12 @@ function renderEditCategorySubcategories(categoryName) {
         <button type="button" class="icon-btn delete-sub-btn" style="color:var(--red-negative, #ff4a4a); cursor:pointer; font-size:12.5px; background:none; border:none; padding:6px; transition:color 0.2s;"><i class="fa-solid fa-trash-can"></i></button>
       </div>
     `;
-    
+
     item.innerHTML = normalHtml;
-    
+
     item.querySelector('.edit-sub-btn').addEventListener('click', (e) => {
       e.stopPropagation();
-      
+
       item.innerHTML = `
         <div style="display:flex; align-items:center; gap:8px; flex:1; margin-right:8px;">
           <input type="text" class="rename-sub-input" value="${sub}" style="flex:1; padding:6px 10px; font-size:13px; border-radius:8px; background:rgba(0,0,0,0.35); border:1px solid var(--accent, #7c6af7); color:var(--text-primary); outline:none; font-family:'Outfit',sans-serif;">
@@ -9309,7 +9309,7 @@ function renderEditCategorySubcategories(categoryName) {
           <button type="button" class="icon-btn cancel-rename-btn" style="color:var(--text-muted); cursor:pointer; font-size:13px; background:none; border:none; padding:6px;"><i class="fa-solid fa-xmark"></i></button>
         </div>
       `;
-      
+
       const input = item.querySelector('.rename-sub-input');
       if (input) {
         input.focus();
@@ -9320,63 +9320,63 @@ function renderEditCategorySubcategories(categoryName) {
           }
         });
       }
-      
+
       item.querySelector('.save-rename-btn').addEventListener('click', async (evt) => {
         evt.stopPropagation();
         const newName = input.value.trim();
-        
+
         if (newName === '') {
           showSyncToast(state.lang === 'el' ? '⚠️ Το όνομα δεν μπορεί να είναι κενό!' : '⚠️ Name cannot be empty!', 2500);
           return;
         }
-        
+
         if (/^[ \-_\.\*]+$/.test(newName)) {
           showSyncToast(state.lang === 'el' ? '⚠️ Μη έγκυρο όνομα υποκατηγορίας!' : '⚠️ Invalid subcategory name!', 2500);
           return;
         }
-        
+
         if (newName === sub) {
           renderEditCategorySubcategories(categoryName);
           return;
         }
-        
+
         if (stats[newName]) {
           const confirmTitle = state.lang === 'el' ? 'Συγχώνευση Υποκατηγοριών' : 'Merge Subcategories';
           const confirmMsg = state.lang === 'el'
             ? `Η υποκατηγορία "${newName}" υπάρχει ήδη. Θέλετε να συγχωνεύσετε όλες τις συναλλαγές της "${sub}" στην "${newName}";`
             : `Subcategory "${newName}" already exists. Do you want to merge all transactions from "${sub}" into "${newName}"?`;
-            
+
           const confirmed = await showConfirm(confirmMsg, confirmTitle, '🔀');
           if (!confirmed) {
             return;
           }
         }
-        
+
         await renameSubcategoryGlobally(categoryName, sub, newName);
         renderEditCategorySubcategories(categoryName);
       });
-      
+
       item.querySelector('.cancel-rename-btn').addEventListener('click', (evt) => {
         evt.stopPropagation();
         renderEditCategorySubcategories(categoryName);
       });
     });
-    
+
     item.querySelector('.delete-sub-btn').addEventListener('click', async (e) => {
       e.stopPropagation();
-      
+
       const confirmTitle = state.lang === 'el' ? 'Διαγραφή Υποκατηγορίας' : 'Delete Subcategory';
       const confirmMsg = state.lang === 'el'
         ? `Είστε σίγουροι ότι θέλετε να διαγράψετε την υποκατηγορία "${sub}";\nΘα αφαιρεθεί από όλες τις συναλλαγές.`
         : `Are you sure you want to delete subcategory "${sub}"?\nIt will be removed from all transactions.`;
-        
+
       const confirmed = await showConfirm(confirmMsg, confirmTitle, '🗑️');
       if (confirmed) {
         await deleteSubcategoryGlobally(categoryName, sub);
         renderEditCategorySubcategories(categoryName);
       }
     });
-    
+
     listEl.appendChild(item);
   });
 }
@@ -9386,29 +9386,29 @@ let newCategoryDialogType = 'expense';
 let newCategorySelectedEmoji = '💸';
 let editingCategoryName = null; // null = new, string = editing existing
 
-const EMOJI_OPTIONS = ['💰','💸','🏡','🛒','🚗','❤️','🎉','🧾','🏋️','👕','🚇','💻','🎬','🎓','🧩','🤑','🎁','💼','💶','🏛️','📦','🏅','👨','💵','🔧','⭐','🔥','🎯','📱','☕','🎵','✈️','🏖️','📚','🐶','🌱','💡','🗂️','🛠️','🎮'];
+const EMOJI_OPTIONS = ['💰', '💸', '🏡', '🛒', '🚗', '❤️', '🎉', '🧾', '🏋️', '👕', '🚇', '💻', '🎬', '🎓', '🧩', '🤑', '🎁', '💼', '💶', '🏛️', '📦', '🏅', '👨', '💵', '🔧', '⭐', '🔥', '🎯', '📱', '☕', '🎵', '✈️', '🏖️', '📚', '🐶', '🌱', '💡', '🗂️', '🛠️', '🎮'];
 
 function openEditCategoryDialog(categoryName, type) {
   const cat = state.categories.find(c => c.name === categoryName);
   if (!cat) return;
-  
+
   editingCategoryName = categoryName;
   newCategoryDialogType = type;
   newCategorySelectedEmoji = cat.icon || (type === 'income' ? '💰' : '💸');
-  
+
   const dialog = document.getElementById('new-category-inline-dialog');
   const nameInput = document.getElementById('new-cat-name-input');
   const titleEl = document.getElementById('new-cat-dialog-title');
-  
+
   if (!dialog || !nameInput) return;
-  
+
   if (titleEl) {
     titleEl.textContent = state.lang === 'el' ? 'Επεξεργασία Κατηγορίας' : 'Edit Category';
   }
-  
+
   nameInput.value = getCategoryDisplayName(categoryName);
   nameInput.placeholder = state.lang === 'el' ? 'Όνομα κατηγορίας' : 'Category name';
-  
+
   // Render emoji grid with the current icon pre-selected
   const emojiGrid = document.getElementById('new-cat-emoji-grid');
   if (emojiGrid) {
@@ -9431,12 +9431,12 @@ function openEditCategoryDialog(categoryName, type) {
       emojiGrid.appendChild(btn);
     });
   }
-  
+
   const saveBtn = dialog.querySelector('.btn-primary');
   if (saveBtn) saveBtn.textContent = state.lang === 'el' ? 'Αποθήκευση' : 'Save';
   const cancelBtn = dialog.querySelector('.btn-secondary');
   if (cancelBtn) cancelBtn.textContent = state.lang === 'el' ? 'Άκυρο' : 'Cancel';
-  
+
   renderEditCategorySubcategories(categoryName);
   dialog.style.display = 'block';
   nameInput.focus();
@@ -9447,23 +9447,23 @@ function openNewCategoryDialog(type) {
   editingCategoryName = null; // ensure we are in create mode
   newCategoryDialogType = type;
   newCategorySelectedEmoji = type === 'income' ? '💰' : '💸';
-  
+
   const dialog = document.getElementById('new-category-inline-dialog');
   const nameInput = document.getElementById('new-cat-name-input');
   const titleEl = document.getElementById('new-cat-dialog-title');
-  
+
   if (!dialog || !nameInput) return;
-  
+
   // Update title based on type
   if (titleEl) {
-    titleEl.textContent = type === 'income' 
+    titleEl.textContent = type === 'income'
       ? (state.lang === 'el' ? 'Νέα Κατηγορία Εσόδου' : 'New Income Category')
       : (state.lang === 'el' ? 'Νέα Κατηγορία Εξόδου' : 'New Expense Category');
   }
-  
+
   nameInput.value = '';
   nameInput.placeholder = state.lang === 'el' ? 'Όνομα κατηγορίας' : 'Category name';
-  
+
   // Render emoji grid
   const emojiGrid = document.getElementById('new-cat-emoji-grid');
   if (emojiGrid) {
@@ -9484,7 +9484,7 @@ function openNewCategoryDialog(type) {
       emojiGrid.appendChild(btn);
     });
   }
-  
+
   // Update save button text
   const saveBtn = dialog.querySelector('.btn-primary');
   if (saveBtn) {
@@ -9494,7 +9494,7 @@ function openNewCategoryDialog(type) {
   if (cancelBtn) {
     cancelBtn.textContent = state.lang === 'el' ? 'Άκυρο' : 'Cancel';
   }
-  
+
   renderEditCategorySubcategories(null);
   dialog.style.display = 'block';
   nameInput.focus();
@@ -9512,12 +9512,12 @@ function closeNewCategoryDialog() {
 function saveNewCategoryFromPicker() {
   const nameInput = document.getElementById('new-cat-name-input');
   const name = nameInput ? nameInput.value.trim() : '';
-  
+
   if (!name) {
     alert(TRANSLATIONS[state.lang]['alert_enter_category_name']);
     return;
   }
-  
+
   // === EDIT MODE: Update existing category ===
   if (editingCategoryName) {
     const cat = state.categories.find(c => c.name === editingCategoryName);
@@ -9525,17 +9525,17 @@ function saveNewCategoryFromPicker() {
       closeNewCategoryDialog();
       return;
     }
-    
+
     const oldName = cat.name;
     const currentDisplayName = getCategoryDisplayName(oldName);
     const nameChanged = name !== currentDisplayName;
     const iconChanged = newCategorySelectedEmoji !== cat.icon;
-    
+
     if (!nameChanged && !iconChanged) {
       closeNewCategoryDialog();
       return;
     }
-    
+
     // Check for name collision with another category (only if name changed)
     if (nameChanged) {
       const collision = state.categories.find(c => c.name !== oldName && getCategoryDisplayName(c.name).toLowerCase() === name.toLowerCase() && c.type === cat.type);
@@ -9544,11 +9544,11 @@ function saveNewCategoryFromPicker() {
         return;
       }
     }
-    
+
     // Update name and icon
     cat.name = name;
     cat.icon = newCategorySelectedEmoji;
-    
+
     // Update transactions using old name
     let transactionsUpdated = 0;
     if (nameChanged) {
@@ -9562,9 +9562,9 @@ function saveNewCategoryFromPicker() {
         localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
       }
     }
-    
+
     saveCategoriesToStorage();
-    
+
     // Cloud sync
     if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
       try {
@@ -9588,24 +9588,24 @@ function saveNewCategoryFromPicker() {
         console.warn('Cloud category edit sync failed:', e);
       }
     }
-    
+
     closeNewCategoryDialog();
     updateCategoryDropdowns(newCategoryDialogType, true);
     updateUI();
     showSyncToast(state.lang === 'el' ? '✓ Κατηγορία ενημερώθηκε' : '✓ Category updated', 2000);
     return;
   }
-  
+
   // === CREATE MODE: New category ===
   // Check for duplicate
-  const exists = state.categories.find(c => 
+  const exists = state.categories.find(c =>
     c.name && c.name.toUpperCase() === name.toUpperCase()
   );
   if (exists) {
     alert(TRANSLATIONS[state.lang]['alert_category_exists']);
     return;
   }
-  
+
   // Create new category
   const newCategory = {
     name: name,
@@ -9614,10 +9614,10 @@ function saveNewCategoryFromPicker() {
     color: getRandomColor(),
     user_id: state.currentUser ? state.currentUser.id : null
   };
-  
+
   state.categories.push(newCategory);
   saveCategoriesToStorage();
-  
+
   // Sync to cloud if enabled
   if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
     try {
@@ -9637,13 +9637,13 @@ function saveNewCategoryFromPicker() {
       console.warn('Cloud category sync failed:', e);
     }
   }
-  
+
   // Close dialog
   closeNewCategoryDialog();
-  
+
   // Refresh grid
   updateCategoryDropdowns(newCategoryDialogType);
-  
+
   // Auto-select the new category
   document.getElementById('trans-category').value = newCategory.name;
   document.querySelectorAll('.category-picker-item').forEach(item => {
@@ -9652,11 +9652,11 @@ function saveNewCategoryFromPicker() {
       item.classList.add('selected');
     }
   });
-  
+
   updateCategoryDisplay();
   updateSubcategorySuggestions();
   updateSubcategoryRowVisibility();
-  
+
   // Close the category picker modal
   closeModal('category-picker-modal');
 }
@@ -9665,7 +9665,7 @@ function openSubcategoryModal() {
   if (window.autocompleteJustSelected) return;
   const form = document.getElementById('transaction-form');
   if (form && form.getAttribute('data-readonly') === 'true') return;
-  if(!document.getElementById('trans-category').value) {
+  if (!document.getElementById('trans-category').value) {
     alert(TRANSLATIONS[state.lang]['alert_select_category_first']);
     return;
   }
@@ -9679,7 +9679,7 @@ function getAccountDisplayName(accOrName) {
   const type = typeof accOrName === 'object' ? accOrName.type : null;
   const lowerName = name.toLowerCase().trim();
   const lang = state.lang || 'el';
-  
+
   if (lang === 'el') {
     if (lowerName === 'cash' || lowerName === 'μετρητά' || type === 'cash') return 'Μετρητά';
     if (lowerName === 'bank account' || lowerName === 'bank' || lowerName === 'τράπεζα' || type === 'bank') return 'Τράπεζα';
@@ -9699,12 +9699,12 @@ function openAccountPickerModal(target) {
   const form = document.getElementById('transaction-form');
   if (form && form.getAttribute('data-readonly') === 'true') return;
   _currentAccountPickerTarget = target;
-  
+
   const titleEl = document.getElementById('account-picker-title');
   if (titleEl) {
     titleEl.textContent = state.lang === 'el' ? 'Επιλογή τρόπου πληρωμής' : 'Select Payment Method';
   }
-  
+
   renderAccountPickerOptions();
   openModal('account-picker-modal');
 }
@@ -9712,27 +9712,27 @@ function openAccountPickerModal(target) {
 function renderAccountPickerOptions() {
   const container = document.getElementById('account-picker-list');
   if (!container) return;
-  
+
   container.innerHTML = '';
-  
+
   const currentVal = document.getElementById(`trans-account-${_currentAccountPickerTarget}`).value;
   const icons = { cash: '💵', bank: '🏦', card: '💳' };
-  
+
   state.accounts.forEach(acc => {
     const item = document.createElement('div');
     item.className = 'account-picker-item';
     if (acc.name === currentVal) {
       item.classList.add('selected');
     }
-    
+
     const icon = icons[acc.type] || '💳';
     const displayName = getAccountDisplayName(acc);
-    
+
     item.innerHTML = `
       <span class="account-picker-item-icon">${icon}</span>
       <span class="account-picker-item-name">${displayName}</span>
     `;
-    
+
     item.onclick = () => selectAccountOption(acc.name);
     container.appendChild(item);
   });
@@ -9741,7 +9741,7 @@ function renderAccountPickerOptions() {
 function selectAccountOption(name) {
   const targetId = `trans-account-${_currentAccountPickerTarget}`;
   document.getElementById(targetId).value = name;
-  
+
   updateAccountTriggerDisplay(_currentAccountPickerTarget);
   closeModal('account-picker-modal');
 }
@@ -9752,7 +9752,7 @@ function updateAccountTriggerDisplay(target) {
   const value = input.value;
   const triggerDisplay = document.getElementById(`trans-account-${target}-display`);
   if (!triggerDisplay) return;
-  
+
   if (!value) {
     triggerDisplay.innerHTML = `<span class="custom-select-placeholder">${state.lang === 'el' ? 'Επιλέξτε...' : 'Select...'}</span>`;
   } else {
@@ -9836,7 +9836,7 @@ function showSyncToast(message, autoDismissMs = 0) {
 function updateHeaderSyncIcon(state_) {
   state.syncStatus = state_;
   // state_: 'offline' | 'idle' | 'syncing' | 'synced' | 'success' | 'error'
-  const dot  = document.getElementById('header-sync-dot');
+  const dot = document.getElementById('header-sync-dot');
   const icon = document.getElementById('header-sync-cloud-icon');
   if (!dot || !icon) return;
 
@@ -9845,21 +9845,21 @@ function updateHeaderSyncIcon(state_) {
   if (state_ === 'success') normalized = 'synced';
   if (state_ === 'idle') normalized = 'offline';
 
-  const colors = { 
-    offline: '#9e9e9e', 
-    syncing: '#ffd600', 
-    synced: '#4caf50', 
-    error: '#ef5350' 
+  const colors = {
+    offline: '#9e9e9e',
+    syncing: '#ffd600',
+    synced: '#4caf50',
+    error: '#ef5350'
   };
   dot.style.background = colors[normalized] || '#9e9e9e';
-  
+
   // Animate dot on sync
   if (normalized === 'syncing') {
     dot.style.animation = 'syncDotPulse 0.8s infinite alternate';
   } else {
     dot.style.animation = 'none';
   }
-  
+
   // Inject dot keyframes once
   if (!document.getElementById('sync-dot-styles')) {
     const s = document.createElement('style');
@@ -9867,7 +9867,7 @@ function updateHeaderSyncIcon(state_) {
     s.textContent = `@keyframes syncDotPulse{from{opacity:1;transform:scale(1)}to{opacity:.3;transform:scale(1.6)}}`;
     document.head.appendChild(s);
   }
-  
+
   // Tooltip
   const btn = document.getElementById('header-sync-icon');
   const lang = state.lang || 'el';
@@ -9883,7 +9883,7 @@ function updateHeaderSyncIcon(state_) {
     error: 'Σφάλμα συγχρονισμού ⚠️'
   };
   if (btn) btn.title = labels[normalized] || (lang === 'en' ? 'Sync' : 'Συγχρονισμός');
-  
+
   // Update sync status text in settings
   const syncStatusEl = document.getElementById('val_sync_status');
   if (syncStatusEl) {
@@ -9899,7 +9899,7 @@ function updateHeaderSyncIcon(state_) {
       error: 'Σφάλμα'
     };
     syncStatusEl.textContent = statusLabels[normalized] || (lang === 'en' ? 'Local Storage' : 'Τοπική Αποθήκευση');
-    
+
     // Update color based on status
     if (normalized === 'synced') {
       syncStatusEl.style.color = '#4caf50'; // Green for active
@@ -9937,7 +9937,7 @@ function formatCurrency(val) {
 }
 
 function getRandomColor() {
-  const colors = ['#f44336','#e91e63','#9c27b0','#673ab7','#3f51b5','#2196f3','#03a9f4','#00bcd4','#009688','#4caf50','#8bc34a','#ffc107','#ff9800','#ff5722','#607d8b'];
+  const colors = ['#f44336', '#e91e63', '#9c27b0', '#673ab7', '#3f51b5', '#2196f3', '#03a9f4', '#00bcd4', '#009688', '#4caf50', '#8bc34a', '#ffc107', '#ff9800', '#ff5722', '#607d8b'];
   return colors[Math.floor(Math.random() * colors.length)];
 }
 
@@ -9957,22 +9957,22 @@ function formatShortDate(date) {
 
 function updateExportSheetDateLabels() {
   const now = new Date();
-  
+
   const curMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const curMonthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
   const curMonthEl = document.getElementById('export-range-current-month');
   if (curMonthEl) curMonthEl.textContent = `(${formatShortDate(curMonthStart)} ~ ${formatShortDate(curMonthEnd)})`;
-    
+
   const prevMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   const prevMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
   const prevMonthEl = document.getElementById('export-range-prev-month');
   if (prevMonthEl) prevMonthEl.textContent = `(${formatShortDate(prevMonthStart)} ~ ${formatShortDate(prevMonthEnd)})`;
-    
+
   const curYearStart = new Date(now.getFullYear(), 0, 1);
   const curYearEnd = now;
   const curYearEl = document.getElementById('export-range-current-year');
   if (curYearEl) curYearEl.textContent = `(${formatShortDate(curYearStart)} ~ ${formatShortDate(curYearEnd)})`;
-    
+
   const prevYearStart = new Date(now.getFullYear() - 1, 0, 1);
   const prevYearEnd = new Date(now.getFullYear() - 1, 11, 31);
   const prevYearEl = document.getElementById('export-range-prev-year');
@@ -9985,17 +9985,17 @@ function openExportPeriodSheet() {
   if (typeof closeSearchBottomSheet === 'function') {
     closeSearchBottomSheet(true);
   }
-  
+
   updateExportSheetDateLabels();
-  
+
   const backdrop = document.getElementById('export-period-backdrop');
   if (backdrop) backdrop.classList.add('active');
-  
+
   const sheet = document.getElementById('export-period-bottom-sheet');
   if (sheet) sheet.classList.add('active');
-  
+
   selectExportOption('current-month');
-  
+
   const todayStr = new Date().toISOString().split('T')[0];
   const fromEl = document.getElementById('export-custom-from');
   const toEl = document.getElementById('export-custom-to');
@@ -10006,14 +10006,14 @@ function openExportPeriodSheet() {
 function closeExportPeriodSheet() {
   const sheet = document.getElementById('export-period-bottom-sheet');
   if (sheet) sheet.classList.remove('active');
-  
+
   const backdrop = document.getElementById('export-period-backdrop');
   if (backdrop) backdrop.classList.remove('active');
 }
 
 function selectExportOption(option) {
   selectedExportPeriod = option;
-  
+
   const options = ['current-month', 'prev-month', 'current-year', 'prev-year', 'all', 'custom'];
   options.forEach(opt => {
     const el = document.getElementById(`export-opt-${opt}`);
@@ -10021,7 +10021,7 @@ function selectExportOption(option) {
       el.classList.toggle('active', opt === option);
     }
   });
-  
+
   const customContainer = document.getElementById('export-custom-range-container');
   if (customContainer) {
     customContainer.style.display = option === 'custom' ? 'flex' : 'none';
@@ -10032,7 +10032,7 @@ function confirmExcelExport() {
   const now = new Date();
   let startDate = null;
   let endDate = null;
-  
+
   if (selectedExportPeriod === 'current-month') {
     startDate = new Date(now.getFullYear(), now.getMonth(), 1);
     endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
@@ -10059,10 +10059,10 @@ function confirmExcelExport() {
     exportToExcel(fromStr, toStr);
     return;
   }
-  
+
   const startStr = startDate ? formatISODateLocal(startDate) : null;
   const endStr = endDate ? formatISODateLocal(endDate) : null;
-  
+
   exportToExcel(startStr, endStr);
 }
 
@@ -10072,7 +10072,7 @@ function exportToExcel(startDate = null, endDate = null) {
     alert(msg);
     return;
   }
-  
+
   let transactionsToExport = state.transactions;
   if (startDate || endDate) {
     transactionsToExport = state.transactions.filter(t => {
@@ -10083,19 +10083,19 @@ function exportToExcel(startDate = null, endDate = null) {
       return true;
     });
   }
-  
+
   if (!transactionsToExport.length) {
     const msg = TRANSLATIONS[state.lang]['export_no_data_range'] || 'Δεν υπάρχουν συναλλαγές σε αυτή την περίοδο!';
     alert(msg);
     return;
   }
-  
+
   const rows = transactionsToExport.map(t => ({
     'Ημερομηνία': t.date, 'Τύπος': t.type === 'expense' ? 'Expense' : (t.type === 'income' ? 'Income' : 'Transfer'),
     'Ποσό': t.amount, 'Κατηγορία': t.category, 'Υποκατηγορία': t.subcategory || '',
     'Λογαριασμός': t.account_from, 'Σημείωση': t.note || '',
   }));
-  
+
   const ws = XLSX.utils.json_to_sheet(rows);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Συναλλαγές');
@@ -10131,11 +10131,11 @@ function openSearchOverlay() {
   if (overlay) overlay.classList.add('active');
 
   searchResultLimit = 50;
-  
+
   // Reset multi-select mode in search
   state.searchSelectMode = false;
   if (state.selectedSearchIds) state.selectedSearchIds.clear();
-  
+
   const selectBtn = document.getElementById('search-select-mode-btn');
   if (selectBtn) {
     selectBtn.classList.remove('active-blue');
@@ -10181,9 +10181,9 @@ let isDraggingMax = false;
 function selectPeriodFilter(periodType, element) {
   const chips = document.querySelectorAll('#period-chips-container .filter-chip');
   chips.forEach(c => c.classList.remove('active', 'active-blue'));
-  
+
   const customInputs = document.getElementById('custom-date-inputs');
-  
+
   if (element && element.getAttribute('data-active') === 'true') {
     element.removeAttribute('data-active');
     const startEl = document.getElementById('search-filter-date-start');
@@ -10197,11 +10197,11 @@ function selectPeriodFilter(periodType, element) {
       element.classList.add(periodType === 'Custom Period' || periodType === 'Προσαρμοσμένο' ? 'active-blue' : 'active');
       element.setAttribute('data-active', 'true');
     }
-    
+
     const today = new Date();
     let dateStart = '';
     let dateEnd = '';
-    
+
     if (periodType === 'Weekly' || periodType === 'Εβδομάδα') {
       const start = new Date();
       start.setDate(today.getDate() - 7);
@@ -10225,13 +10225,13 @@ function selectPeriodFilter(periodType, element) {
       const customEnd = document.getElementById('custom-date-end');
       if (customEnd) dateEnd = customEnd.value;
     }
-    
+
     const startEl = document.getElementById('search-filter-date-start');
     if (startEl) startEl.value = dateStart;
     const endEl = document.getElementById('search-filter-date-end');
     if (endEl) endEl.value = dateEnd;
   }
-  
+
   handleSearchChange();
 }
 
@@ -10240,12 +10240,12 @@ function applyCustomDates() {
   const customEnd = document.getElementById('custom-date-end');
   const startVal = customStart ? customStart.value : '';
   const endVal = customEnd ? customEnd.value : '';
-  
+
   const startEl = document.getElementById('search-filter-date-start');
   if (startEl) startEl.value = startVal;
   const endEl = document.getElementById('search-filter-date-end');
   if (endEl) endEl.value = endVal;
-  
+
   handleSearchChange();
 }
 
@@ -10255,20 +10255,20 @@ function resetPeriodFilter() {
     c.classList.remove('active', 'active-blue');
     c.removeAttribute('data-active');
   });
-  
+
   const startEl = document.getElementById('search-filter-date-start');
   if (startEl) startEl.value = '';
   const endEl = document.getElementById('search-filter-date-end');
   if (endEl) endEl.value = '';
-  
+
   const customStart = document.getElementById('custom-date-start');
   if (customStart) customStart.value = '';
   const customEnd = document.getElementById('custom-date-end');
   if (customEnd) customEnd.value = '';
-  
+
   const customInputs = document.getElementById('custom-date-inputs');
   if (customInputs) customInputs.style.display = 'none';
-  
+
   handleSearchChange();
 }
 
@@ -10276,7 +10276,7 @@ function resetPeriodFilter() {
 function selectAccountChipFilter(accName, element) {
   const chips = document.querySelectorAll('#account-chips-container .filter-chip');
   const filterInput = document.getElementById('search-filter-account');
-  
+
   if (element && element.classList.contains('active')) {
     element.classList.remove('active');
     filterInput.value = '';
@@ -10293,7 +10293,7 @@ let currentCategoryType = 'expense';
 
 function setCategoryTypeFilter(type) {
   currentCategoryType = type;
-  
+
   const segExpense = document.getElementById('seg-tab-expense');
   const segIncome = document.getElementById('seg-tab-income');
   if (type === 'expense') {
@@ -10305,7 +10305,7 @@ function setCategoryTypeFilter(type) {
     if (segIncome) segIncome.className = 'segmented-tab active income-active';
     document.getElementById('category-segmented-control')?.style.setProperty('--segmented-active-bg', 'var(--blue-positive, #3b82f6)');
   }
-  
+
   document.getElementById('search-filter-type').value = type;
   resetCategoryFilter(false);
   renderCategoryChips();
@@ -10315,11 +10315,11 @@ function setCategoryTypeFilter(type) {
 function selectCategoryChipFilter(catName, element) {
   const chips = document.querySelectorAll('#category-chips-container .filter-chip');
   const filterInput = document.getElementById('search-filter-category');
-  
+
   if (element && element.classList.contains('active')) {
     element.classList.remove('active');
     filterInput.value = '';
-    
+
     const subWrapper1 = document.getElementById('subcategory-chips-wrapper');
     if (subWrapper1) subWrapper1.style.display = 'none';
     const subFilter1 = document.getElementById('search-filter-subcategory');
@@ -10328,7 +10328,7 @@ function selectCategoryChipFilter(catName, element) {
     chips.forEach(c => c.classList.remove('active'));
     if (element) element.classList.add('active');
     filterInput.value = catName;
-    
+
     const categoryObj = state.categories.find(c => c.name === catName && c.type === currentCategoryType);
     if (categoryObj && categoryObj.subcategories && categoryObj.subcategories.length > 0) {
       renderSubcategoryChips(categoryObj.subcategories);
@@ -10351,10 +10351,10 @@ function getCategorySelectionIconHTML(catName) {
 function selectSubcategoryChipFilter(subName, element) {
   const chips = document.querySelectorAll('#subcategory-chips-container .filter-chip');
   const filterInput = document.getElementById('search-filter-subcategory');
-  
+
   chips.forEach(c => c.classList.remove('active'));
   if (element) element.classList.add('active');
-  
+
   filterInput.value = (subName === 'all' || subName === 'Όλες') ? '' : subName;
   handleSearchChange();
 }
@@ -10364,12 +10364,12 @@ function resetCategoryFilter(triggerSearch = true) {
   chips.forEach(c => c.classList.remove('active'));
   const catFilter = document.getElementById('search-filter-category');
   if (catFilter) catFilter.value = '';
-  
+
   const subWrapper = document.getElementById('subcategory-chips-wrapper');
   if (subWrapper) subWrapper.style.display = 'none';
   const subFilter = document.getElementById('search-filter-subcategory');
   if (subFilter) subFilter.value = '';
-  
+
   if (triggerSearch) handleSearchChange();
 }
 
@@ -10377,12 +10377,12 @@ function resetCategoryFilter(triggerSearch = true) {
 function renderPeriodChips() {
   const container = document.getElementById('period-chips-container');
   if (!container) return;
-  
+
   const lang = state.lang || 'el';
-  const periodOptions = lang === 'en' 
+  const periodOptions = lang === 'en'
     ? ['Weekly', 'Monthly', 'Annually', 'Custom Period']
     : ['Εβδομάδα', 'Μήνας', 'Έτος', 'Προσαρμοσμένο'];
-    
+
   container.innerHTML = periodOptions.map(p => {
     return `<button type="button" class="filter-chip" onclick="selectPeriodFilter('${p}', this)">${p}</button>`;
   }).join('');
@@ -10391,16 +10391,16 @@ function renderPeriodChips() {
 function renderAccountChips() {
   const container = document.getElementById('account-chips-container');
   if (!container) return;
-  
+
   container.innerHTML = '';
-  
+
   const getAccIcon = (type) => {
     if (type === 'cash') return '💵';
     if (type === 'card') return '💳';
     if (type === 'bank') return '🏦';
     return '💳';
   };
-  
+
   state.accounts.forEach(acc => {
     const icon = getAccIcon(acc.type);
     const displayName = getAccountDisplayName(acc);
@@ -10408,7 +10408,7 @@ function renderAccountChips() {
     chip.type = 'button';
     chip.className = 'filter-chip';
     chip.innerHTML = `${icon} ${displayName}`;
-    chip.onclick = function() {
+    chip.onclick = function () {
       selectAccountChipFilter(acc.name, this);
     };
     container.appendChild(chip);
@@ -10418,26 +10418,26 @@ function renderAccountChips() {
 function renderCategoryChips() {
   const container = document.getElementById('category-chips-container');
   if (!container) return;
-  
+
   container.innerHTML = '';
-  
+
   const filteredCats = state.categories.filter(c => c.type === currentCategoryType);
-  
+
   filteredCats.forEach(cat => {
     const icon = cat.icon || '📁';
     const hasSubcats = cat.subcategories && cat.subcategories.length > 0;
     const arrow = hasSubcats ? ' <i class="fa-solid fa-chevron-down" style="font-size:8px; opacity:0.7;"></i>' : '';
-    
+
     // Check if selected
     const selectedCat = document.getElementById('search-filter-category').value;
     const isSelected = selectedCat === cat.name;
     const checkmark = isSelected ? ' <i class="fa-solid fa-check" style="font-size:9px; margin-left:2px; color:var(--accent);"></i>' : '';
-    
+
     const chip = document.createElement('button');
     chip.type = 'button';
     chip.className = `filter-chip ${isSelected ? 'active' : ''}`;
     chip.innerHTML = `${icon} ${cat.name}${arrow}${checkmark}`;
-    chip.onclick = function() {
+    chip.onclick = function () {
       selectCategoryChipFilter(cat.name, this);
     };
     container.appendChild(chip);
@@ -10448,30 +10448,30 @@ function renderSubcategoryChips(subcategories) {
   const container = document.getElementById('subcategory-chips-container');
   const wrapper = document.getElementById('subcategory-chips-wrapper');
   if (!container || !wrapper) return;
-  
+
   container.innerHTML = '';
-  
+
   const allText = state.lang === 'en' ? 'All' : 'Όλες';
   const allChip = document.createElement('button');
   allChip.type = 'button';
   allChip.className = 'filter-chip active';
   allChip.textContent = allText;
-  allChip.onclick = function() {
+  allChip.onclick = function () {
     selectSubcategoryChipFilter('all', this);
   };
   container.appendChild(allChip);
-  
+
   subcategories.forEach(sub => {
     const chip = document.createElement('button');
     chip.type = 'button';
     chip.className = 'filter-chip';
     chip.textContent = sub;
-    chip.onclick = function() {
+    chip.onclick = function () {
       selectSubcategoryChipFilter(sub, this);
     };
     container.appendChild(chip);
   });
-  
+
   wrapper.style.display = 'block';
 }
 
@@ -10481,42 +10481,42 @@ function initAmountRangeSlider() {
   const thumbMax = document.getElementById('slider-thumb-max');
   const slider = document.getElementById('amount-dual-slider');
   const valDisplay = document.getElementById('amount-range-val');
-  
+
   if (!track || !thumbMin || !thumbMax || !slider) return;
-  
+
   const amounts = state.transactions.map(t => parseFloat(t.amount) || 0);
   const maxVal = amounts.length > 0 ? Math.ceil(Math.max(...amounts)) : 1000;
-  
+
   sliderMinVal = 0;
   sliderMaxVal = maxVal;
   currentMinVal = 0;
   currentMaxVal = maxVal;
-  
+
   let pctMin = 0;
   let pctMax = 100;
-  
+
   updateSliderUI();
-  
+
   function onStart(e, isMin) {
     e.preventDefault();
     if (isMin) isDraggingMin = true;
     else isDraggingMax = true;
-    
+
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onEnd);
     document.addEventListener('touchmove', onMove, { passive: false });
     document.addEventListener('touchend', onEnd);
   }
-  
+
   function onMove(e) {
     if (!isDraggingMin && !isDraggingMax) return;
     if (e.cancelable) e.preventDefault();
-    
+
     const rect = slider.getBoundingClientRect();
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     let pct = ((clientX - rect.left) / rect.width) * 100;
     pct = Math.max(0, Math.min(100, pct));
-    
+
     if (isDraggingMin) {
       if (pct > pctMax - 5) pct = pctMax - 5;
       pctMin = pct;
@@ -10526,15 +10526,15 @@ function initAmountRangeSlider() {
       pctMax = pct;
       currentMaxVal = Math.round(sliderMinVal + (pctMax / 100) * (sliderMaxVal - sliderMinVal));
     }
-    
+
     updateSliderUI();
-    
+
     document.getElementById('search-filter-amount-min').value = currentMinVal;
     document.getElementById('search-filter-amount-max').value = (pctMax >= 99) ? '' : currentMaxVal;
-    
+
     handleSearchChange();
   }
-  
+
   function onEnd() {
     isDraggingMin = false;
     isDraggingMax = false;
@@ -10543,20 +10543,20 @@ function initAmountRangeSlider() {
     document.removeEventListener('touchmove', onMove);
     document.removeEventListener('touchend', onEnd);
   }
-  
+
   function updateSliderUI() {
     thumbMin.style.left = pctMin + '%';
     thumbMax.style.left = pctMax + '%';
     track.style.left = pctMin + '%';
     track.style.right = (100 - pctMax) + '%';
-    
+
     const maxText = (pctMax >= 99) ? 'Max.' : currentMaxVal + ' €';
     if (valDisplay) valDisplay.textContent = `${currentMinVal} € ~ ${maxText}`;
   }
-  
+
   thumbMin.addEventListener('mousedown', (e) => onStart(e, true));
   thumbMin.addEventListener('touchstart', (e) => onStart(e, true), { passive: false });
-  
+
   thumbMax.addEventListener('mousedown', (e) => onStart(e, false));
   thumbMax.addEventListener('touchstart', (e) => onStart(e, false), { passive: false });
 }
@@ -10677,7 +10677,7 @@ function openSearchBottomSheet(type) {
   const sheet = document.getElementById(`search-bottom-sheet-${type}`);
   if (sheet) {
     sheet.classList.add('active');
-    
+
     // Dynamic populating based on type
     if (type === 'category') {
       populateSearchCategorySheet();
@@ -10714,10 +10714,10 @@ function getCategoryType(catName) {
   if (!catName) return '';
   const catObj = state.categories.find(c => c.name === catName);
   if (catObj) return catObj.type;
-  
+
   const trans = state.transactions.find(t => t.category === catName);
   if (trans) return trans.type;
-  
+
   return '';
 }
 
@@ -10726,7 +10726,7 @@ function selectTypeSearchFilter(val) {
   if (hiddenSelect) {
     hiddenSelect.value = val;
   }
-  
+
   // If the currently selected category doesn't match the new selected type, clear the category selection
   const currentCat = document.getElementById('search-filter-category')?.value;
   if (currentCat && val) {
@@ -10736,7 +10736,7 @@ function selectTypeSearchFilter(val) {
       const hiddenSub = document.getElementById('search-filter-subcategory');
       if (hiddenCat) hiddenCat.value = '';
       if (hiddenSub) hiddenSub.value = '';
-      
+
       const catChip = document.getElementById('search-chip-category');
       if (catChip) {
         const label = catChip.querySelector('.chip-label');
@@ -10747,13 +10747,13 @@ function selectTypeSearchFilter(val) {
       }
     }
   }
-  
+
   const valDisplay = document.getElementById('search-val-type');
   if (valDisplay) {
     if (val) {
       valDisplay.textContent = val === 'expense' ? (state.lang === 'el' ? 'Έξοδο' : 'Expense')
-                             : val === 'income' ? (state.lang === 'el' ? 'Έσοδο' : 'Income')
-                             : (state.lang === 'el' ? 'Μεταφορά' : 'Transfer');
+        : val === 'income' ? (state.lang === 'el' ? 'Έσοδο' : 'Income')
+          : (state.lang === 'el' ? 'Μεταφορά' : 'Transfer');
     } else {
       valDisplay.textContent = state.lang === 'el' ? 'Όλοι οι τύποι' : 'All types';
     }
@@ -10774,7 +10774,7 @@ function selectTypeSearchFilter(val) {
       }
     }
   }
-  
+
   // Update active option styling in sheet
   const sheet = document.getElementById('search-bottom-sheet-type');
   if (sheet) {
@@ -11305,7 +11305,7 @@ function populateSearchFilterDropdowns() {
       catSelect.appendChild(opt);
     });
     // Wire up category change to update subcategory dropdown
-    catSelect.onchange = function() {
+    catSelect.onchange = function () {
       handleSearchChange();
       populateSearchSubcategoryDropdown(this.value);
     };
@@ -11361,7 +11361,7 @@ function resetSearchFilters() {
   if (inlineMax) inlineMax.value = '';
   document.getElementById('search-filter-date-start').value = '';
   document.getElementById('search-filter-date-end').value = '';
-  
+
   // Reset member filter
   const memSel = document.getElementById('search-filter-member');
   if (memSel) memSel.value = '';
@@ -11377,7 +11377,7 @@ function resetSearchFilters() {
   if (typeof resetCategoryFilter === 'function') {
     resetCategoryFilter(false);
   }
-  
+
   // Reset segmented switcher
   const segExpense = document.getElementById('seg-tab-expense');
   const segIncome = document.getElementById('seg-tab-income');
@@ -11390,7 +11390,7 @@ function resetSearchFilters() {
   document.getElementById('search-filter-type').value = '';
   const typeVal = document.getElementById('search-val-type');
   if (typeVal) typeVal.textContent = state.lang === 'el' ? 'Όλοι οι τύποι' : 'All types';
-  
+
   if (typeof renderCategoryChips === 'function') {
     renderCategoryChips();
   }
@@ -11399,13 +11399,13 @@ function resetSearchFilters() {
   }
 
   populateSearchSubcategoryDropdown('');
-  
+
   // Sync the custom UI trigger labels and selections
   updateCustomSelectTriggers();
 
   // Reset visual chip elements to default labels
   resetAllSearchChips();
-  
+
   handleSearchChange();
 }
 
@@ -11437,7 +11437,7 @@ function handleSearchChange(resetLimit = true) {
   }
   const searchInput = document.getElementById('search-input');
   const clearBtn = document.getElementById('search-clear-btn');
-  
+
   // Show/hide the clear button based on input
   if (clearBtn) {
     if (searchInput && searchInput.value.length > 0) {
@@ -11457,7 +11457,7 @@ function handleSearchChange(resetLimit = true) {
   const maxAmt = parseFloat(document.getElementById('search-filter-amount-max').value) || null;
   const dateStart = document.getElementById('search-filter-date-start').value;
   const dateEnd = document.getElementById('search-filter-date-end').value;
-  
+
   // Member Filter value
   const filterMember = document.getElementById('search-filter-member')?.value || '';
   const filterPhoto = document.getElementById('search-filter-photo')?.value || '';
@@ -11471,7 +11471,7 @@ function handleSearchChange(resetLimit = true) {
       const desc = normalizeText(t.description);
       const acc = normalizeText(t.account_from);
       const accTo = normalizeText(t.account_to);
-      
+
       const amtStr = String(t.amount || '');
       const amtGreekStr = amtStr.replace('.', ',');
       const formattedAmt = formatCurrency(t.amount);
@@ -11479,7 +11479,7 @@ function handleSearchChange(resetLimit = true) {
 
       const textMatch = note.includes(query) || cat.includes(query) || sub.includes(query) || desc.includes(query) || acc.includes(query) || accTo.includes(query);
       const amtMatch = amtStr.includes(query) || amtGreekStr.includes(query) || formattedAmt.includes(query) || formattedAmtClean.includes(query);
-      
+
       if (!textMatch && !amtMatch) {
         return false;
       }
@@ -11578,7 +11578,7 @@ function renderGroupedTransactions(transactions, container) {
   itemsToRender.forEach(t => {
     const catInfo = getCategoryInfo(t.category, t.type);
     const item = document.createElement('div');
-    
+
     const isSelected = state.selectedSearchIds && state.selectedSearchIds.has(t.id);
     item.className = 'search-result-item';
     if (state.searchSelectMode) {
@@ -11597,21 +11597,21 @@ function renderGroupedTransactions(transactions, container) {
     item.addEventListener('touchstart', (e) => {
       isLongPress = false;
       touchDidMove = false;
-      
+
       clearTimeout(feedbackTimer);
       feedbackTimer = setTimeout(() => {
         if (!touchDidMove) {
           item.classList.add('pressed');
         }
       }, 80);
-      
+
       if (state.searchSelectMode) return;
       pressTimer = setTimeout(() => {
         isLongPress = true;
         toggleSearchSelectMode(); // enter select mode
         toggleSearchSelection(t.id, item); // select this item
         if (navigator.vibrate) {
-          try { navigator.vibrate(15); } catch(err) {}
+          try { navigator.vibrate(15); } catch (err) { }
         }
       }, 600);
     }, { passive: true });
@@ -11678,16 +11678,16 @@ function renderGroupedTransactions(transactions, container) {
 
     let amountClass = 'search-item-amount';
     let accountText = t.account_from || '';
-    if (t.type === 'expense')       { amountClass += ' expense'; }
-    else if (t.type === 'income')   { amountClass += ' income'; }
+    if (t.type === 'expense') { amountClass += ' expense'; }
+    else if (t.type === 'income') { amountClass += ' income'; }
     else if (t.type === 'transfer') { amountClass += ' transfer'; accountText = `${t.account_from} → ${t.account_to}`; }
 
     const translatedSub = getSubcategoryDisplayName(t.subcategory, t.category);
     const translatedCat = getCategoryDisplayName(t.category);
     const displayTitle = (t.note && t.note.trim()) ? t.note.trim()
-                       : (t.description && t.description.trim()) ? t.description.trim()
-                       : (translatedSub && translatedSub.trim()) ? translatedSub.trim()
-                       : (translatedCat || '');
+      : (t.description && t.description.trim()) ? t.description.trim()
+        : (translatedSub && translatedSub.trim()) ? translatedSub.trim()
+          : (translatedCat || '');
 
     const memberBadge = getMemberBadgeHTML(t);
     const datePart = (t.date || '').split('T')[0];
@@ -11720,7 +11720,7 @@ function renderGroupedTransactions(transactions, container) {
     const loadMoreDiv = document.createElement('div');
     loadMoreDiv.className = 'search-load-more-container';
     loadMoreDiv.style.cssText = 'padding: 16px 20px; text-align: center;';
-    
+
     const btnText = state.lang === 'el'
       ? `Φόρτωση Περισσότερων (${remaining} ακόμα)`
       : `Load More (${remaining} remaining)`;
@@ -11737,7 +11737,7 @@ function renderGroupedTransactions(transactions, container) {
 function toggleSearchSelectMode() {
   state.searchSelectMode = !state.searchSelectMode;
   state.selectedSearchIds.clear();
-  
+
   const btn = document.getElementById('search-select-mode-btn');
   if (btn) {
     if (state.searchSelectMode) {
@@ -11754,10 +11754,10 @@ function toggleSearchSelectMode() {
       btn.textContent = state.lang === 'el' ? 'Επιλογή' : 'Select';
     }
   }
-  
+
   const bulkPanel = document.getElementById('search-bulk-actions-panel');
   if (bulkPanel) bulkPanel.style.display = 'none';
-  
+
   handleSearchChange(false);
 }
 
@@ -11767,7 +11767,7 @@ function toggleSearchSelection(id, itemElement) {
   } else {
     state.selectedSearchIds.add(id);
   }
-  
+
   const isSelected = state.selectedSearchIds.has(id);
   if (itemElement) {
     itemElement.style.background = isSelected ? 'rgba(33, 150, 243, 0.15)' : 'none';
@@ -11778,13 +11778,13 @@ function toggleSearchSelection(id, itemElement) {
       circle.innerHTML = isSelected ? '✓' : '';
     }
   }
-  
+
   const count = state.selectedSearchIds.size;
   const countSpan = document.getElementById('search-selected-count');
   if (countSpan) {
     countSpan.textContent = state.lang === 'el' ? `${count} επιλεγμένες` : `${count} selected`;
   }
-  
+
   const bulkPanel = document.getElementById('search-bulk-actions-panel');
   if (bulkPanel) {
     bulkPanel.style.display = count > 0 ? 'flex' : 'none';
@@ -11799,25 +11799,25 @@ function clearSearchSelection() {
   }
   const bulkPanel = document.getElementById('search-bulk-actions-panel');
   if (bulkPanel) bulkPanel.style.display = 'none';
-  
+
   handleSearchChange(false);
 }
 
 async function deleteSelectedSearchTransactions() {
   const selectedIds = Array.from(state.selectedSearchIds);
   if (selectedIds.length === 0) return;
-  
-  const msg = state.lang === 'el' 
+
+  const msg = state.lang === 'el'
     ? `Να διαγραφούν οι ${selectedIds.length} επιλεγμένες συναλλαγές;`
     : `Delete the ${selectedIds.length} selected transactions?`;
-     
+
   const confirmed = await showConfirm(msg, state.lang === 'el' ? 'Διαγραφή' : 'Delete', '🗑️');
   if (!confirmed) return;
-  
+
   selectedIds.forEach(id => {
     deleteTransaction(id);
   });
-  
+
   toggleSearchSelectMode();
 }
 
@@ -11837,11 +11837,11 @@ function openMonthPicker(forceYearView = false) {
   state.monthPickerYear = state.selectedYear;
   const yearLabel = document.getElementById('month-picker-bs-year-label');
   if (yearLabel) yearLabel.textContent = state.monthPickerYear;
-  
+
   // Toggle view based on parameter
   toggleMonthPickerYearView(forceYearView);
   renderMonthPickerBS();
-  
+
   openModal('month-picker-modal');
 }
 
@@ -11911,14 +11911,14 @@ function renderMonthPickerBS() {
   const yearsGrid = document.getElementById('month-picker-bs-years-view');
   if (yearsGrid) {
     yearsGrid.innerHTML = '';
-    
+
     if (!window.monthPickerBSYearStart) {
       window.monthPickerBSYearStart = Math.floor((state.monthPickerYear - 2020) / 6) * 6 + 2020;
     }
-    
+
     const startY = window.monthPickerBSYearStart;
     const endY = startY + 5;
-    
+
     const labelSpan = document.getElementById('month-picker-bs-year-label');
     if (labelSpan && yearsGrid.style.display !== 'none') {
       labelSpan.style.display = 'flex';
@@ -11960,13 +11960,13 @@ function renderMonthPickerBS() {
 function selectMonthPickerMonth(monthIndex) {
   state.selectedMonth = monthIndex;
   state.selectedYear = state.monthPickerYear;
-  
+
   // Sync to Stats date
   syncStatsDate();
 
   // Update UI components
   updateUI();
-  
+
   // Update stats tab (if active or loaded)
   renderStatsTab();
 
@@ -11980,17 +11980,17 @@ function initPullToRefresh() {
   const container = document.querySelector('.app-content');
   const ptr = document.getElementById('pull-to-refresh');
   if (!container || !ptr) return;
-  
+
   const ptrIcon = ptr.querySelector('.pull-to-refresh-icon');
   const ptrContent = ptr.querySelector('.pull-to-refresh-content');
-  
+
   let startX = 0;
   let startY = 0;
   let currentY = 0;
   let pulling = false; // false, true, or null (undetermined)
   const threshold = 60; // px to trigger refresh
   const maxPull = 100; // max px to pull container
-  
+
   // Helper to update pull state visually
   function updatePull(diff) {
     if (diff <= 0) {
@@ -12002,11 +12002,11 @@ function initPullToRefresh() {
     // simple rubber band effect
     const pullHeight = Math.min(maxPull, diff * 0.4);
     ptr.style.height = `${pullHeight}px`;
-    
+
     const progress = Math.min(1, pullHeight / threshold);
     ptrContent.style.opacity = progress.toString();
     ptrContent.style.transform = `scale(${0.8 + progress * 0.2})`;
-    
+
     if (pullHeight >= threshold) {
       ptrIcon.style.transform = 'rotate(180deg)';
       ptrIcon.style.color = 'var(--blue-positive)';
@@ -12023,13 +12023,13 @@ function initPullToRefresh() {
     ptr.style.height = '55px';
     ptrContent.style.opacity = '1';
     ptrContent.style.transform = 'scale(1)';
-    
+
     if (navigator.vibrate) {
       try {
         navigator.vibrate(15);
-      } catch (err) {}
+      } catch (err) { }
     }
-    
+
     try {
       await loadData();
       updateUI();
@@ -12085,7 +12085,7 @@ function initPullToRefresh() {
 
   container.addEventListener('touchmove', (e) => {
     if (pulling === false) return;
-    
+
     const touch = e.touches[0];
     const dx = touch.pageX - startX;
     const dy = touch.pageY - startY;
@@ -12148,13 +12148,13 @@ function enterSelectionMode() {
   ensureHistoryPushed();
   state.selectionMode = true;
   state.selectedIds.clear();
-  
+
   const bar = document.getElementById('selection-bar');
   if (bar) bar.classList.add('active');
-  
+
   const fab = document.getElementById('fab-btn');
   if (fab) fab.classList.add('hidden');
-  
+
   updateNoteShortcutVisibility();
   updateSelectionHeader();
   renderTransactionsTab();
@@ -12163,13 +12163,13 @@ function enterSelectionMode() {
 function exitSelectionMode() {
   state.selectionMode = false;
   state.selectedIds.clear();
-  
+
   const bar = document.getElementById('selection-bar');
   if (bar) bar.classList.remove('active');
-  
+
   const fab = document.getElementById('fab-btn');
   if (fab) fab.classList.remove('hidden');
-  
+
   updateNoteShortcutVisibility();
   renderTransactionsTab();
 }
@@ -12212,7 +12212,7 @@ function getVisibleTransactionIds() {
 function toggleSelectAll() {
   const visibleIds = getVisibleTransactionIds();
   const allSelected = visibleIds.every(id => state.selectedIds.has(id));
-  
+
   if (allSelected) {
     visibleIds.forEach(id => state.selectedIds.delete(id));
   } else {
@@ -12225,14 +12225,14 @@ function toggleSelectAll() {
 async function deleteSelectedTransactions() {
   const selectedIds = Array.from(state.selectedIds);
   if (selectedIds.length === 0) return;
-  
+
   const msg = selectedIds.length === 1 ? 'Να διαγραφεί η επιλεγμένη συναλλαγή;' : `Να διαγραφούν οι ${selectedIds.length} επιλεγμένες συναλλαγές;`;
   const confirmed = await showConfirm(msg, state.lang === 'el' ? 'Διαγραφή' : 'Delete', '🗑️');
   if (!confirmed) return;
-  
+
   // Find duplicates of all selected transactions to delete them too
   const idsToDeleteSet = new Set(selectedIds.map(String));
-  
+
   selectedIds.forEach(id => {
     const tx = state.transactions.find(t => t.id === id);
     if (tx) {
@@ -12243,13 +12243,13 @@ async function deleteSelectedTransactions() {
           const tDate = String(t.date || '').split('T')[0].split(' ')[0];
           const tAmount = (parseFloat(t.amount) || 0).toFixed(2);
           const isDupe = tDate === txDate &&
-                         tAmount === txAmount &&
-                         t.type === tx.type &&
-                         t.category === tx.category &&
-                         (t.account_from || '') === (tx.account_from || '') &&
-                         (t.account_to || '') === (tx.account_to || '') &&
-                         (t.note || '') === (tx.note || '') &&
-                         (t.user_id || '') === (tx.user_id || '');
+            tAmount === txAmount &&
+            t.type === tx.type &&
+            t.category === tx.category &&
+            (t.account_from || '') === (tx.account_from || '') &&
+            (t.account_to || '') === (tx.account_to || '') &&
+            (t.note || '') === (tx.note || '') &&
+            (t.user_id || '') === (tx.user_id || '');
           if (isDupe) {
             idsToDeleteSet.add(String(t.id));
           }
@@ -12287,7 +12287,7 @@ async function deleteSelectedTransactions() {
   // 2. Process each transaction deletion locally & trigger background sync/delete
   for (const id of idsToDelete) {
     _deletingTxIds.add(String(id));
-    
+
     // Clean up local receipt photo from IndexedDB
     ReceiptStorage.remove(id).catch(err => {
       console.warn('Failed to remove receipt during transaction delete:', err);
@@ -12405,7 +12405,7 @@ function initSwipeToBack() {
       if (App && typeof App.addListener === 'function') {
         App.addListener('appUrlOpen', (data) => {
           console.log('[DeepLink] App opened with URL:', data.url);
-          
+
           if (data.url && (data.url.includes('access_token=') || data.url.includes('error='))) {
             const hashIndex = data.url.indexOf('#');
             const searchIndex = data.url.indexOf('?');
@@ -12418,11 +12418,11 @@ function initSwipeToBack() {
               const endIdx = hashIndex !== -1 && hashIndex > searchIndex ? hashIndex : data.url.length;
               search = data.url.substring(searchIndex, endIdx);
             }
-            
+
             const hashParams = new URLSearchParams(hash.substring(1));
             const accessToken = hashParams.get('access_token');
             const refreshToken = hashParams.get('refresh_token');
-            
+
             if (accessToken && state.supabaseClient) {
               toggleLoader(true);
               state.supabaseClient.auth.setSession({
@@ -12484,15 +12484,15 @@ function initSwipeToBack() {
 
     const keypad = document.getElementById('custom-calculator-keypad');
     if (keypad && keypad.classList.contains('active')) return null; // do not drag keypad horizontally
-    
+
     const activeModals = document.querySelectorAll('.modal-overlay.active');
     if (activeModals.length > 0) {
       return activeModals[activeModals.length - 1].querySelector('.modal-content');
     }
-    
+
     const searchOverlay = document.getElementById('search-overlay');
     if (searchOverlay && searchOverlay.classList.contains('active')) return searchOverlay;
-    
+
     return null;
   }
 
@@ -12565,11 +12565,11 @@ function initSwipeToBack() {
       switchTab(TAB_ORDER[currentIdx - 1]);
       return true;
     }
-    
+
     return false;
   }
 
-    // --- Interactive drag-to-go-back gesture ---
+  // --- Interactive drag-to-go-back gesture ---
   let currentScreen = null;
   let prevScreen = null;
   let screenWidth = 0;
@@ -12581,7 +12581,7 @@ function initSwipeToBack() {
       bsActive = false;
       return;
     }
-    
+
     // Also ignore if lightbox is zoomed in
     const img = document.getElementById('photo-lightbox-img');
     const isZoomed = img && parseFloat(img.dataset.scale || '1') > 1;
@@ -12595,12 +12595,12 @@ function initSwipeToBack() {
     bsStartY = touch.clientY;
     bsSwiping = null;
     bsDragging = false;
-    
+
     // If an overlay/modal is active, allow swiping back starting from the left 150px
     // If no overlay is active, only allow starting from the left 60px
     const activeZone = hasActiveOverlay() ? 150 : 60;
     bsActive = bsStartX <= activeZone;
-    
+
     currentScreen = null;
     prevScreen = null;
     screenWidth = window.innerWidth;
@@ -12661,7 +12661,7 @@ function initSwipeToBack() {
       if (currentTabIdx > 0) {
         const prevTabName = TAB_ORDER[currentTabIdx - 1];
         prevScreen = document.getElementById(`${prevTabName}-screen`);
-        
+
         // Prepare prev screen: show it behind current, shifted left
         if (prevScreen) {
           prevScreen.style.display = 'block';
@@ -12857,25 +12857,25 @@ function updateSubcategorySuggestions() {
   const categoryHidden = document.getElementById('trans-category');
   const subcatList = document.getElementById('subcategory-picker-list');
   if (!categoryHidden || !subcatList) return;
-  
+
   const category = categoryHidden.value;
   subcatList.innerHTML = '';
-  
+
   const currentSubcategory = document.getElementById('trans-subcategory-select').value;
-  
+
   if (!category) {
     subcatList.innerHTML = `<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:12px;">Επιλέξτε πρώτα κατηγορία</div>`;
     return;
   }
-  
+
   const cleanedCat = stripLeadingEmoji(category).toUpperCase();
   const uniqueSubcats = new Set();
-  
+
   const defaults = DEFAULT_SUBCATEGORIES_MAP[cleanedCat];
   if (defaults) {
     defaults.forEach(sub => uniqueSubcats.add(sub));
   }
-  
+
   state.transactions.forEach(t => {
     if (t.category && stripLeadingEmoji(t.category).toUpperCase() === cleanedCat) {
       if (t.subcategory && t.subcategory.trim() !== '') {
@@ -12883,7 +12883,7 @@ function updateSubcategorySuggestions() {
       }
     }
   });
-  
+
   // Add "No subcategory" option at the top
   const noneOpt = document.createElement('div');
   noneOpt.className = 'subcategory-item none-subcat';
@@ -12900,7 +12900,7 @@ function updateSubcategorySuggestions() {
     div.onclick = () => selectSubcategory(sub);
     subcatList.appendChild(div);
   });
-  
+
   const newOpt = document.createElement('div');
   newOpt.className = 'subcategory-item new-subcat';
   newOpt.innerHTML = `<div style="display:flex;align-items:center;gap:8px;"><i class="fa-solid fa-plus"></i> <span>${TRANSLATIONS[state.lang]['option_new_subcategory'] || 'Νέα υποκατηγορία...'}</span></div>`;
@@ -12915,7 +12915,7 @@ function showSubcategorySelect() {
   const trigger = document.getElementById('trans-subcategory-trigger');
   const custom = document.getElementById('trans-subcategory-custom');
   const cancelBtn = document.getElementById('btn-cancel-custom-sub');
-  
+
   if (trigger && custom && cancelBtn) {
     trigger.style.display = 'none';
     custom.style.display = 'block';
@@ -12930,12 +12930,12 @@ function hideSubcategorySelect() {
   const trigger = document.getElementById('trans-subcategory-trigger');
   const custom = document.getElementById('trans-subcategory-custom');
   const cancelBtn = document.getElementById('btn-cancel-custom-sub');
-  
+
   if (trigger && custom && cancelBtn) {
     trigger.style.display = 'flex';
     custom.style.display = 'none';
     cancelBtn.style.display = 'none';
-    
+
     // Clear input
     custom.value = '';
     document.getElementById('trans-subcategory-select').value = '';
@@ -12956,7 +12956,7 @@ function openSettingsCategoryManager() {
   window._categoryManagerType = 'expense';
   try {
     closeNewCategoryDialog();
-  } catch (e) {}
+  } catch (e) { }
   try {
     renderCategoryManagerList();
   } catch (err) {
@@ -12977,10 +12977,10 @@ function setCategoryManagerType(type) {
 function renderCategoryManagerList() {
   const container = document.getElementById('category-manager-list');
   if (!container) return;
-  
+
   container.innerHTML = '';
   const type = window._categoryManagerType || 'expense';
-  
+
   const expenseTab = document.getElementById('cat-mgr-tab-expense');
   const incomeTab = document.getElementById('cat-mgr-tab-income');
   if (expenseTab && incomeTab) {
@@ -12996,9 +12996,9 @@ function renderCategoryManagerList() {
       expenseTab.style.color = 'var(--text-secondary)';
     }
   }
-  
+
   const list = (state.categories || []).filter(c => c && (c.type === type || (type === 'expense' && !c.type)));
-  
+
   // Single-pass subcategory name set pre-calculation to optimize performance O(N)
   const subcatSets = {};
   (state.transactions || []).forEach(t => {
@@ -13022,14 +13022,14 @@ function renderCategoryManagerList() {
     const nameB = getCategoryDisplayName(rawB) || '';
     return nameA.localeCompare(nameB, lang === 'el' ? 'el' : 'en', { sensitivity: 'base' });
   });
-  
+
   const countLabel = document.getElementById('cat-mgr-count-label');
   if (countLabel) {
-    countLabel.textContent = lang === 'el' 
+    countLabel.textContent = lang === 'el'
       ? `Σύνολο: ${list.length} κατηγορίες`
       : `Total: ${list.length} categories`;
   }
-  
+
   if (list.length === 0) {
     container.innerHTML = `
       <div style="text-align: center; padding: 24px; color: var(--text-muted); font-size: 14px; font-style: italic;">
@@ -13038,13 +13038,13 @@ function renderCategoryManagerList() {
     `;
     return;
   }
-  
+
   list.forEach((c, idx) => {
-    const rawName = typeof c === 'string' ? c : (c && c.name ? String(c.name) : `Category ${idx+1}`);
+    const rawName = typeof c === 'string' ? c : (c && c.name ? String(c.name) : `Category ${idx + 1}`);
     const safeId = rawName.replace(/[^a-zA-Z0-9\u0370-\u03ff]/g, '-');
     const displayName = getCategoryDisplayName(rawName);
     const icon = (typeof c === 'object' && c.icon) || '📁';
-    
+
     // Union with static subcategories from categories configuration
     const uniqueSubs = new Set(subcatSets[rawName] || []);
     if (c && Array.isArray(c.subcategories)) {
@@ -13055,10 +13055,10 @@ function renderCategoryManagerList() {
       });
     }
     const subCount = uniqueSubs.size;
-    
+
     const card = document.createElement('div');
     card.style.cssText = 'background: var(--card-bg2, rgba(255,255,255,0.02)); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column;';
-    
+
     const header = document.createElement('div');
     header.className = 'category-mgr-header';
     header.style.cssText = 'display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; cursor: pointer; transition: background 0.2s;';
@@ -13080,17 +13080,17 @@ function renderCategoryManagerList() {
         <i class="fa-solid fa-chevron-down category-mgr-chevron" id="chevron-${safeId}" style="font-size: 12px; color: var(--text-muted); margin-left: 4px; transition: transform 0.2s; padding: 4px;"></i>
       </div>
     `;
-    
+
     const details = document.createElement('div');
     details.className = 'category-mgr-details';
     details.id = `details-${safeId}`;
     details.style.cssText = 'display: none; border-top: 1px solid var(--border); padding: 12px; background: rgba(0, 0, 0, 0.08); flex-direction: column; gap: 8px;';
-    
+
     // Programmatic click handler for accordion expand
     header.addEventListener('click', () => {
       toggleCategoryManagerAccordion(rawName);
     });
-    
+
     // Stop propagation so clicking actions does not toggle accordion
     const actionsContainer = header.querySelector('.category-mgr-actions');
     if (actionsContainer) {
@@ -13098,21 +13098,21 @@ function renderCategoryManagerList() {
         e.stopPropagation();
       });
     }
-    
+
     const btnEdit = header.querySelector('.btn-edit-cat');
     if (btnEdit) {
       btnEdit.addEventListener('click', () => {
         openCategoryEditorModal(rawName);
       });
     }
-    
+
     const btnDelete = header.querySelector('.btn-delete-cat');
     if (btnDelete) {
       btnDelete.addEventListener('click', () => {
         deleteCategoryFromManager(rawName);
       });
     }
-    
+
     card.appendChild(header);
     card.appendChild(details);
     container.appendChild(card);
@@ -13124,7 +13124,7 @@ function toggleCategoryManagerAccordion(categoryName) {
   const details = document.getElementById(`details-${safeId}`);
   const chevron = document.getElementById(`chevron-${safeId}`);
   if (!details) return;
-  
+
   const isExpanded = details.style.display === 'flex';
   if (isExpanded) {
     details.style.display = 'none';
@@ -13132,7 +13132,7 @@ function toggleCategoryManagerAccordion(categoryName) {
   } else {
     document.querySelectorAll('.category-mgr-details').forEach(el => el.style.display = 'none');
     document.querySelectorAll('.category-mgr-chevron').forEach(el => el.style.transform = 'rotate(0deg)');
-    
+
     details.style.display = 'flex';
     if (chevron) chevron.style.transform = 'rotate(180deg)';
     renderCategoryManagerSubcategories(categoryName);
@@ -13143,15 +13143,15 @@ function renderCategoryManagerSubcategories(categoryName) {
   const safeId = categoryName.replace(/\s+/g, '-');
   const container = document.getElementById(`details-${safeId}`);
   if (!container) return;
-  
+
   const subcats = getSortedSubcategoriesForCategory(categoryName);
   container.innerHTML = '';
-  
+
   const subcatTitle = document.createElement('div');
   subcatTitle.style = 'font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 4px;';
   subcatTitle.textContent = state.lang === 'el' ? 'Λίστα Υποκατηγοριών' : 'Subcategories List';
   container.appendChild(subcatTitle);
-  
+
   if (subcats.length === 0) {
     const emptyState = document.createElement('div');
     emptyState.style = 'font-size: 13px; color: var(--text-muted); padding: 8px 0; font-style: italic;';
@@ -13160,16 +13160,16 @@ function renderCategoryManagerSubcategories(categoryName) {
   } else {
     const listEl = document.createElement('div');
     listEl.style = 'display: flex; flex-direction: column; gap: 8px;';
-    
+
     // Call getSubcategoriesStatsForCategory ONCE before the loop to optimize performance
     const stats = getSubcategoriesStatsForCategory(categoryName);
-    
+
     subcats.forEach(sub => {
       const item = document.createElement('div');
       item.style = 'display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px;';
-      
+
       const subStat = stats[sub] || { count: 0, lastUsedDate: '' };
-      
+
       let usageText = '';
       if (subStat.count > 0) {
         let dateStr = '';
@@ -13181,14 +13181,14 @@ function renderCategoryManagerSubcategories(categoryName) {
             dateStr = subStat.lastUsedDate;
           }
         }
-        
-        usageText = state.lang === 'el' 
+
+        usageText = state.lang === 'el'
           ? `${subStat.count} συν. • Τελ: ${dateStr}`
           : `${subStat.count} txs • Last: ${dateStr}`;
       } else {
         usageText = state.lang === 'el' ? 'Μη χρησιμοποιούμενη' : 'Unused';
       }
-      
+
       const normalView = document.createElement('div');
       normalView.style = 'display: flex; align-items: center; justify-content: space-between; width: 100%;';
       normalView.innerHTML = `
@@ -13205,7 +13205,7 @@ function renderCategoryManagerSubcategories(categoryName) {
           </button>
         </div>
       `;
-      
+
       const editView = document.createElement('div');
       editView.style = 'display: none; align-items: center; gap: 8px; width: 100%;';
       editView.innerHTML = `
@@ -13213,25 +13213,25 @@ function renderCategoryManagerSubcategories(categoryName) {
         <button class="btn btn-primary" style="padding: 6px 10px; font-size: 12px; border-radius: 6px;"><i class="fa-solid fa-check"></i></button>
         <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 12px; border-radius: 6px;"><i class="fa-solid fa-xmark"></i></button>
       `;
-      
+
       const editBtn = normalView.querySelector('button[title="Rename"]');
       const deleteBtn = normalView.querySelector('button[title="Delete"]');
       const saveEditBtn = editView.querySelector('.btn-primary');
       const cancelEditBtn = editView.querySelector('.btn-secondary');
       const editInput = editView.querySelector('input');
-      
+
       editBtn.onclick = () => {
         normalView.style.display = 'none';
         editView.style.display = 'flex';
         editInput.focus();
       };
-      
+
       cancelEditBtn.onclick = () => {
         editView.style.display = 'none';
         normalView.style.display = 'flex';
         editInput.value = sub;
       };
-      
+
       saveEditBtn.onclick = async () => {
         const newVal = editInput.value.trim();
         if (!newVal || newVal === sub) {
@@ -13241,36 +13241,36 @@ function renderCategoryManagerSubcategories(categoryName) {
         await handleCategoryManagerSubcategoryRename(categoryName, sub, newVal);
         renderCategoryManagerSubcategories(categoryName);
       };
-      
+
       deleteBtn.onclick = async () => {
         const confirmMsg = state.lang === 'el'
           ? `Θέλετε σίγουρα να διαγράψετε την υποκατηγορία "${sub}";`
           : `Are you sure you want to delete subcategory "${sub}"?`;
-          
+
         const confirmed = await showConfirm(confirmMsg, state.lang === 'el' ? 'Διαγραφή Υποκατηγορίας' : 'Delete Subcategory', '🗑️');
         if (confirmed) {
           await deleteSubcategoryGlobally(categoryName, sub);
           renderCategoryManagerSubcategories(categoryName);
         }
       };
-      
+
       item.appendChild(normalView);
       item.appendChild(editView);
       listEl.appendChild(item);
     });
-    
+
     container.appendChild(listEl);
   }
-  
+
   const addForm = document.createElement('div');
   addForm.style = 'margin-top: 10px; border-top: 1px dashed var(--border); padding-top: 10px; display: flex; flex-direction: column; gap: 8px;';
-  
+
   const addTrigger = document.createElement('button');
   addTrigger.type = 'button';
   addTrigger.className = 'btn btn-secondary';
   addTrigger.style = 'font-size: 13px; padding: 8px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 6px; border-radius: 8px; background: rgba(255,255,255,0.02); border: 1px dashed var(--border); width: 100%; text-align: center; color: var(--text-primary); cursor: pointer;';
   addTrigger.innerHTML = `<i class="fa-solid fa-plus" style="font-size:12px; color:var(--accent);"></i> ${state.lang === 'el' ? 'Προσθήκη υποκατηγορίας' : 'Add subcategory'}`;
-  
+
   const addInputContainer = document.createElement('div');
   addInputContainer.style = 'display: none; align-items: center; gap: 8px; width: 100%;';
   addInputContainer.innerHTML = `
@@ -13278,23 +13278,23 @@ function renderCategoryManagerSubcategories(categoryName) {
     <button class="btn btn-primary" style="padding: 8px 14px; font-size: 13px; border-radius: 8px; font-weight: 600;">${state.lang === 'el' ? 'Προσθήκη' : 'Add'}</button>
     <button class="btn btn-secondary" style="padding: 8px 12px; font-size: 13px; border-radius: 8px;"><i class="fa-solid fa-xmark"></i></button>
   `;
-  
+
   const addInput = addInputContainer.querySelector('input');
   const addSubmit = addInputContainer.querySelector('.btn-primary');
   const addCancel = addInputContainer.querySelector('.btn-secondary');
-  
+
   addTrigger.onclick = () => {
     addTrigger.style.display = 'none';
     addInputContainer.style.display = 'flex';
     addInput.focus();
   };
-  
+
   addCancel.onclick = () => {
     addInputContainer.style.display = 'none';
     addTrigger.style.display = 'flex';
     addInput.value = '';
   };
-  
+
   addSubmit.onclick = async () => {
     const newVal = addInput.value.trim();
     if (!newVal) {
@@ -13304,13 +13304,13 @@ function renderCategoryManagerSubcategories(categoryName) {
     await addSubcategoryToCategory(categoryName, newVal);
     renderCategoryManagerSubcategories(categoryName);
   };
-  
+
   addInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
       addSubmit.click();
     }
   });
-  
+
   addForm.appendChild(addTrigger);
   addForm.appendChild(addInputContainer);
   container.appendChild(addForm);
@@ -13322,7 +13322,7 @@ async function handleCategoryManagerSubcategoryRename(categoryName, oldSub, newS
     const confirmMsg = state.lang === 'el'
       ? `Η υποκατηγορία "${newSub}" υπάρχει ήδη. Θέλετε να συγχωνεύσετε την υποκατηγορία "${oldSub}" με την "${newSub}"; Όλες οι συναλλαγές θα ενημερωθούν.`
       : `Subcategory "${newSub}" already exists. Do you want to merge "${oldSub}" into "${newSub}"? All transactions will be updated.`;
-      
+
     const confirmed = await showConfirm(confirmMsg, state.lang === 'el' ? 'Συγχώνευση Υποκατηγοριών' : 'Merge Subcategories', '🔄');
     if (!confirmed) return;
   }
@@ -13339,7 +13339,7 @@ function addSubcategoryToCategory(categoryName, subcatName) {
     if (cleanSub && !cat.subcategories.includes(cleanSub)) {
       cat.subcategories.push(cleanSub);
       saveCategoriesToStorage();
-      
+
       if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
         state.supabaseClient.from('categories').upsert({
           user_id: state.currentUser.id,
@@ -13359,13 +13359,13 @@ function renderCategoryEditorEmojiGrid(selectedEmoji) {
   const grid = document.getElementById('cat-editor-emoji-grid');
   if (!grid) return;
   grid.innerHTML = '';
-  
+
   const list = EMOJI_OPTIONS.includes(selectedEmoji) ? EMOJI_OPTIONS : [selectedEmoji, ...EMOJI_OPTIONS];
   list.forEach(emoji => {
     const span = document.createElement('span');
     span.textContent = emoji;
     span.style.cssText = `font-size: 22px; padding: 6px; text-align: center; cursor: pointer; border-radius: 8px; transition: all 0.15s; border: 2px solid ${emoji === selectedEmoji ? 'var(--accent)' : 'transparent'}; background: ${emoji === selectedEmoji ? 'rgba(224, 94, 85, 0.1)' : 'transparent'};`;
-    
+
     span.onclick = () => {
       window._categoryManagerSelectedEmoji = emoji;
       grid.querySelectorAll('span').forEach(s => {
@@ -13382,16 +13382,16 @@ function renderCategoryEditorEmojiGrid(selectedEmoji) {
 function openCategoryManagerAddDialog() {
   window._editingCategoryManagerName = null;
   window._categoryManagerSelectedEmoji = window._categoryManagerType === 'income' ? '💰' : '💸';
-  
+
   const title = document.getElementById('cat-editor-title');
   if (title) title.textContent = state.lang === 'el' ? 'Νέα Κατηγορία' : 'New Category';
-  
+
   const input = document.getElementById('cat-editor-name-input');
   if (input) {
     input.value = '';
     input.placeholder = state.lang === 'el' ? 'Όνομα κατηγορίας...' : 'Category name...';
   }
-  
+
   renderCategoryEditorEmojiGrid(window._categoryManagerSelectedEmoji);
   openModal('category-editor-modal');
 }
@@ -13399,18 +13399,18 @@ function openCategoryManagerAddDialog() {
 function openCategoryEditorModal(categoryName) {
   const cat = state.categories.find(c => c.name === categoryName);
   if (!cat) return;
-  
+
   window._editingCategoryManagerName = categoryName;
   window._categoryManagerSelectedEmoji = cat.icon || '📁';
-  
+
   const title = document.getElementById('cat-editor-title');
   if (title) title.textContent = state.lang === 'el' ? 'Επεξεργασία Κατηγορίας' : 'Edit Category';
-  
+
   const input = document.getElementById('cat-editor-name-input');
   if (input) {
     input.value = getCategoryDisplayName(categoryName);
   }
-  
+
   renderCategoryEditorEmojiGrid(window._categoryManagerSelectedEmoji);
   openModal('category-editor-modal');
 }
@@ -13422,22 +13422,22 @@ async function saveCategoryManagerEdit() {
     alert(state.lang === 'el' ? 'Παρακαλώ εισάγετε όνομα κατηγορίας!' : 'Please enter a category name!');
     return;
   }
-  
+
   const type = window._categoryManagerType || 'expense';
-  
+
   if (window._editingCategoryManagerName) {
     const oldName = window._editingCategoryManagerName;
     const cat = state.categories.find(c => c.name === oldName);
     if (!cat) return;
-    
+
     const nameChanged = name !== getCategoryDisplayName(oldName);
     const iconChanged = window._categoryManagerSelectedEmoji !== cat.icon;
-    
+
     if (!nameChanged && !iconChanged) {
       closeModal('category-editor-modal');
       return;
     }
-    
+
     if (nameChanged) {
       const collision = state.categories.find(c => c.name !== oldName && getCategoryDisplayName(c.name).toLowerCase() === name.toLowerCase() && c.type === type);
       if (collision) {
@@ -13445,10 +13445,10 @@ async function saveCategoryManagerEdit() {
         return;
       }
     }
-    
+
     cat.name = name;
     cat.icon = window._categoryManagerSelectedEmoji;
-    
+
     let transactionsUpdated = 0;
     if (nameChanged) {
       state.transactions.forEach(t => {
@@ -13461,9 +13461,9 @@ async function saveCategoryManagerEdit() {
         localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
       }
     }
-    
+
     saveCategoriesToStorage();
-    
+
     if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
       try {
         if (nameChanged) {
@@ -13485,7 +13485,7 @@ async function saveCategoryManagerEdit() {
       alert(state.lang === 'el' ? 'Υπάρχει ήδη κατηγορία με αυτό το όνομα!' : 'A category with this name already exists!');
       return;
     }
-    
+
     const newCat = {
       name: name,
       type: type,
@@ -13494,10 +13494,10 @@ async function saveCategoryManagerEdit() {
       hidden: false,
       subcategories: []
     };
-    
+
     state.categories.push(newCat);
     saveCategoriesToStorage();
-    
+
     if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
       try {
         await state.supabaseClient.from('categories').insert({
@@ -13513,7 +13513,7 @@ async function saveCategoryManagerEdit() {
       }
     }
   }
-  
+
   closeModal('category-editor-modal');
   renderCategoryManagerList();
   updateCategoryDropdowns(type, true);
@@ -13563,7 +13563,7 @@ function renderNotesList() {
   if (!listEl) return;
 
   const query = (document.getElementById('notes-manager-search-input')?.value || '').trim().toLowerCase();
-  
+
   // Filter notes
   let filtered = state.notes || [];
   if (query) {
@@ -13591,7 +13591,7 @@ function renderNotesList() {
     const pinA = a.pinned ? 1 : 0;
     const pinB = b.pinned ? 1 : 0;
     if (pinB !== pinA) return pinB - pinA;
-    
+
     const dateA = new Date(a.updated_at || a.created_at || 0);
     const dateB = new Date(b.updated_at || b.created_at || 0);
     return dateB - dateA;
@@ -13622,7 +13622,7 @@ function renderNotesList() {
   sorted.forEach(note => {
     const card = document.createElement('div');
     card.style.cssText = 'background: var(--card-bg2, rgba(255,255,255,0.02)); border: 1px solid var(--border); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 8px; position: relative; cursor: pointer; transition: background 0.2s, border-color 0.2s; box-sizing: border-box; width: 100%;';
-    
+
     // Highlight pinned note
     if (note.pinned) {
       card.style.borderColor = 'rgba(255, 179, 0, 0.4)';
@@ -13632,12 +13632,12 @@ function renderNotesList() {
     // Title & Pin indicator & User Avatar row
     const titleRow = document.createElement('div');
     titleRow.style.cssText = 'display: flex; align-items: center; justify-content: space-between; gap: 8px; box-sizing: border-box; width: 100%;';
-    
+
     const titleText = document.createElement('span');
     titleText.style.cssText = 'font-weight: 700; font-size: 14.5px; color: var(--text-primary); font-family: \'Outfit\', sans-serif; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;';
     titleText.textContent = note.title || (state.lang === 'el' ? 'Χωρίς τίτλο' : 'Untitled');
     titleRow.appendChild(titleText);
-    
+
     // Avatar of author (initials)
     const authorInitials = getAuthorInitials(note.user_id);
     if (authorInitials) {
@@ -13659,7 +13659,7 @@ function renderNotesList() {
       toggleNotePinInline(note.id);
     });
     titleRow.appendChild(pinBtn);
-    
+
     card.appendChild(titleRow);
 
     // Body / Content Preview
@@ -13682,11 +13682,11 @@ function renderNotesList() {
       } else {
         const previewContainer = document.createElement('div');
         previewContainer.style.cssText = 'display: flex; flex-direction: column; gap: 4px; margin-top: 2px; box-sizing: border-box; width: 100%;';
-        
+
         items.slice(0, 3).forEach((item, idx) => {
           const row = document.createElement('div');
           row.style.cssText = 'display: flex; align-items: center; gap: 8px; box-sizing: border-box; width: 100%;';
-          
+
           const chk = document.createElement('span');
           chk.style.cssText = 'font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;';
           chk.style.color = item.checked ? 'var(--accent)' : 'var(--text-muted)';
@@ -13695,7 +13695,7 @@ function renderNotesList() {
             e.stopPropagation();
             toggleChecklistItemInline(note.id, idx);
           });
-          
+
           const text = document.createElement('span');
           text.style.cssText = 'font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;';
           if (item.checked) {
@@ -13705,7 +13705,7 @@ function renderNotesList() {
             text.style.color = 'var(--text-secondary)';
           }
           text.textContent = item.text || '';
-          
+
           row.appendChild(chk);
           row.appendChild(text);
           previewContainer.appendChild(row);
@@ -13717,27 +13717,27 @@ function renderNotesList() {
           moreText.textContent = `+ ${items.length - 3} ${(state.lang === 'el' ? 'ακόμη' : 'more')}`;
           previewContainer.appendChild(moreText);
         }
-        
+
         card.appendChild(previewContainer);
 
         const total = items.length;
         const checked = items.filter(i => i.checked).length;
         const pct = total > 0 ? Math.round((checked / total) * 100) : 0;
-        
+
         const progressContainer = document.createElement('div');
         progressContainer.style.cssText = 'display: flex; align-items: center; gap: 10px; margin-top: 6px; box-sizing: border-box; width: 100%;';
-        
+
         const barBg = document.createElement('div');
         barBg.style.cssText = 'flex: 1; height: 5px; background: rgba(255,255,255,0.06); border-radius: 4px; overflow: hidden;';
-        
+
         const barFill = document.createElement('div');
         barFill.style.cssText = `height: 100%; width: ${pct}%; background: var(--accent); border-radius: 4px; transition: width 0.25s;`;
         barBg.appendChild(barFill);
-        
+
         const label = document.createElement('span');
         label.style.cssText = 'font-size: 11px; color: var(--text-muted); font-weight: 700; font-family: \'Outfit\', sans-serif; flex-shrink: 0;';
         label.textContent = `${checked}/${total}`;
-        
+
         progressContainer.appendChild(barBg);
         progressContainer.appendChild(label);
         card.appendChild(progressContainer);
@@ -13749,20 +13749,19 @@ function renderNotesList() {
 
     const dateRow = document.createElement('div');
     dateRow.style.cssText = 'display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-top: 4px; box-sizing: border-box; width: 100%; gap: 8px;';
-    
+
     const timeLabel = document.createElement('span');
     timeLabel.textContent = formatNoteTimestamp(note.updated_at || note.created_at);
     dateRow.appendChild(timeLabel);
-    
+
     if (note.reminder_at) {
       const reminderBadge = document.createElement('span');
       const remDate = new Date(note.reminder_at);
       const isPast = remDate < new Date();
-      reminderBadge.style.cssText = `display: inline-flex; align-items: center; gap: 4px; padding: 2px 6px; border-radius: 4px; font-weight: 700; font-family: 'Outfit', sans-serif; font-size: 10.5px; flex-shrink: 0; ${
-        isPast 
-          ? 'background: rgba(239, 68, 68, 0.12); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.25);' 
+      reminderBadge.style.cssText = `display: inline-flex; align-items: center; gap: 4px; padding: 2px 6px; border-radius: 4px; font-weight: 700; font-family: 'Outfit', sans-serif; font-size: 10.5px; flex-shrink: 0; ${isPast
+          ? 'background: rgba(239, 68, 68, 0.12); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.25);'
           : 'background: rgba(16, 185, 129, 0.12); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.25);'
-      }`;
+        }`;
       const formattedRemTime = formatNoteTimestamp(note.reminder_at);
       reminderBadge.innerHTML = `<i class="fa-regular fa-bell"></i> <span>${formattedRemTime}</span>`;
       dateRow.appendChild(reminderBadge);
@@ -13780,7 +13779,7 @@ function renderNotesList() {
 
 function openNoteEditor(noteId = null) {
   _currentEditingNoteId = noteId;
-  
+
   const modal = document.getElementById('note-editor-modal');
   const titleEl = document.getElementById('note-editor-title');
   const titleInput = document.getElementById('note-editor-title-input');
@@ -13815,15 +13814,15 @@ function openNoteEditor(noteId = null) {
   if (noteId) {
     titleEl.textContent = state.lang === 'el' ? 'Επεξεργασία Σημείωσης' : 'Edit Note';
     deleteBtn.style.display = 'block';
-    
+
     const note = state.notes.find(n => n.id === noteId);
     if (note) {
       titleInput.value = note.title || '';
       _currentEditingNotePinned = !!note.pinned;
       _currentEditingNoteType = note.type || 'text';
-      
+
       setNoteEditorType(_currentEditingNoteType);
-      
+
       if (_currentEditingNoteType === 'checklist') {
         let items = [];
         try {
@@ -13862,7 +13861,7 @@ function openNoteEditor(noteId = null) {
 
 function setNoteEditorType(type) {
   _currentEditingNoteType = type;
-  
+
   const textBtn = document.getElementById('note-type-text-btn');
   const checklistBtn = document.getElementById('note-type-checklist-btn');
   const textContainer = document.getElementById('note-editor-text-container');
@@ -13872,23 +13871,23 @@ function setNoteEditorType(type) {
   if (type === 'checklist') {
     textBtn.style.background = 'transparent';
     textBtn.style.color = 'var(--text-secondary)';
-    
+
     checklistBtn.style.background = 'var(--accent)';
     checklistBtn.style.color = 'white';
-    
+
     textContainer.style.display = 'none';
     checklistContainer.style.display = 'flex';
-    
+
     if (checklistItemsEl.children.length === 0) {
       addNoteEditorChecklistItemRow('', false);
     }
   } else {
     textBtn.style.background = 'var(--accent)';
     textBtn.style.color = 'white';
-    
+
     checklistBtn.style.background = 'transparent';
     checklistBtn.style.color = 'var(--text-secondary)';
-    
+
     textContainer.style.display = 'flex';
     checklistContainer.style.display = 'none';
   }
@@ -13912,12 +13911,12 @@ function addNoteEditorChecklistItemRow(text = '', checked = false) {
   input.placeholder = state.lang === 'el' ? 'Αντικείμενο...' : 'Item...';
   input.className = 'form-row-input';
   input.style.cssText = 'flex: 1; padding: 8px; font-size: 13.5px; margin: 0;';
-  
+
   if (checked) {
     input.style.textDecoration = 'line-through';
     input.style.color = 'var(--text-muted)';
   }
-  
+
   chk.addEventListener('change', () => {
     if (chk.checked) {
       input.style.textDecoration = 'line-through';
@@ -13942,7 +13941,7 @@ function addNoteEditorChecklistItemRow(text = '', checked = false) {
   row.appendChild(chk);
   row.appendChild(input);
   row.appendChild(delBtn);
-  
+
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
@@ -13976,7 +13975,7 @@ async function saveNoteFromEditor() {
 
   let title = titleInput.value.trim();
   let body = '';
-  
+
   if (!title) {
     alert(state.lang === 'el' ? 'Παρακαλώ εισάγετε έναν τίτλο!' : 'Please enter a title!');
     return;
@@ -14128,7 +14127,7 @@ async function syncNotes() {
     }
 
     const { data: remoteNotes, error } = await query;
-    
+
     if (error) {
       if (error.code === 'PGRST116' || error.code === '42P01' || error.status === 404) {
         console.log('[NotesSync] notes table not found in database. Skipping notes cloud sync.');
@@ -14210,7 +14209,7 @@ function toggleNoteEditorPin() {
 function updateNoteEditorPinUI() {
   const pinBtn = document.getElementById('note-editor-pin-btn');
   if (!pinBtn) return;
-  
+
   if (_currentEditingNotePinned) {
     pinBtn.style.color = 'var(--accent)';
     pinBtn.title = state.lang === 'el' ? 'Ξεκαρφίτσωμα' : 'Unpin';
@@ -14226,7 +14225,7 @@ async function toggleNotePinInline(noteId) {
 
   note.pinned = !note.pinned;
   note.updated_at = new Date().toISOString();
-  
+
   saveNotes();
   renderNotesList();
 
@@ -14259,7 +14258,7 @@ async function toggleChecklistItemInline(noteId, itemIndex) {
     items[itemIndex].checked = !items[itemIndex].checked;
     note.body = JSON.stringify(items);
     note.updated_at = new Date().toISOString();
-    
+
     saveNotes();
     renderNotesList();
 
@@ -14302,32 +14301,32 @@ function formatNoteTimestamp(tsString) {
     const date = new Date(tsString);
     if (isNaN(date.getTime())) return '';
     const now = new Date();
-    
-    const isToday = date.getDate() === now.getDate() && 
-                    date.getMonth() === now.getMonth() && 
-                    date.getFullYear() === now.getFullYear();
-                    
+
+    const isToday = date.getDate() === now.getDate() &&
+      date.getMonth() === now.getMonth() &&
+      date.getFullYear() === now.getFullYear();
+
     const yesterday = new Date(now);
     yesterday.setDate(now.getDate() - 1);
-    const isYesterday = date.getDate() === yesterday.getDate() && 
-                        date.getMonth() === yesterday.getMonth() && 
-                        date.getFullYear() === yesterday.getFullYear();
-                        
+    const isYesterday = date.getDate() === yesterday.getDate() &&
+      date.getMonth() === yesterday.getMonth() &&
+      date.getFullYear() === yesterday.getFullYear();
+
     const pad = (n) => String(n).padStart(2, '0');
     const hoursStr = `${pad(date.getHours())}:${pad(date.getMinutes())}`;
-    
+
     if (isToday) {
       return state.lang === 'el' ? `Σήμερα, ${hoursStr}` : `Today, ${hoursStr}`;
     }
     if (isYesterday) {
       return state.lang === 'el' ? `Χθες, ${hoursStr}` : `Yesterday, ${hoursStr}`;
     }
-    
+
     const day = date.getDate();
     const monthsEl = ['Ιαν', 'Φεβ', 'Μαρ', 'Απρ', 'Μάι', 'Ιούν', 'Ιούλ', 'Αύγ', 'Σεπ', 'Οκτ', 'Νοε', 'Δεκ'];
     const monthsEn = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const monthStr = state.lang === 'el' ? monthsEl[date.getMonth()] : monthsEn[date.getMonth()];
-    
+
     return `${day} ${monthStr}, ${hoursStr}`;
   } catch (e) {
     return '';
@@ -14382,13 +14381,13 @@ function initTabSwipeNavigation() {
     const touch = e.touches[0];
     startX = touch.clientX;
     startY = touch.clientY;
-    
+
     // Ignore edge starts so they don't double-trigger with edge-swipe-to-back
     if (startX <= edgeThreshold) {
       touchActive = false;
       return;
     }
-    
+
     touchActive = true;
     isSwipingHorizontal = null;
   }, { passive: true });
@@ -14575,9 +14574,9 @@ function initRippleEffects() {
     const target = e.target.closest('button, .nav-item, .transaction-item, .calc-key-btn, .fab, .stats-tab-btn, .stats-dropdown-item');
     if (!target) return;
 
-    const isScrollable = target.classList.contains('transaction-item') || 
-                         target.classList.contains('settings-list-item') || 
-                         target.classList.contains('stats-sub-row');
+    const isScrollable = target.classList.contains('transaction-item') ||
+      target.classList.contains('settings-list-item') ||
+      target.classList.contains('stats-sub-row');
 
     const createRipple = () => {
       // Check if element has relative positioning to contain the ripple
@@ -14586,7 +14585,7 @@ function initRippleEffects() {
       if (computedStyle.position === 'static') {
         target.style.position = 'relative';
       }
-      
+
       // Ensure overflow is hidden to clip the ripple
       const originalOverflow = target.style.overflow;
       if (computedStyle.overflow !== 'hidden') {
@@ -14596,7 +14595,7 @@ function initRippleEffects() {
       // Create ripple element
       const ripple = document.createElement('span');
       ripple.className = 'ripple-effect';
-      
+
       // Calculate ripple size (diameter should cover the diagonal of the element)
       const size = Math.max(rect.width, rect.height) * 1.5;
       ripple.style.width = `${size}px`;
@@ -14605,21 +14604,21 @@ function initRippleEffects() {
       // Position ripple relative to touch/click coordinates
       const clientX = e.clientX || (e.touches && e.touches[0].clientX);
       const clientY = e.clientY || (e.touches && e.touches[0].clientY);
-      
+
       const x = clientX - rect.left - size / 2;
       const y = clientY - rect.top - size / 2;
-      
+
       ripple.style.left = `${x}px`;
       ripple.style.top = `${y}px`;
-      
+
       // Add to target
       target.appendChild(ripple);
-      
+
       // Trigger animation frame
       requestAnimationFrame(() => {
         ripple.classList.add('active');
       });
-      
+
       // Remove ripple after animation finishes
       setTimeout(() => {
         ripple.remove();
@@ -14669,11 +14668,11 @@ function initLightboxPinchZoom() {
   let startCenter = { x: 0, y: 0 };
   let startTx = 0;
   let startTy = 0;
-  
+
   let isDragging = false;
   let startX = 0;
   let startY = 0;
-  
+
   let lastTapTime = 0;
 
   function getDistance(touches) {
@@ -14691,7 +14690,7 @@ function initLightboxPinchZoom() {
 
   img.addEventListener('touchstart', (e) => {
     const now = Date.now();
-    
+
     // Double tap to zoom/reset
     if (e.touches.length === 1 && now - lastTapTime < 300) {
       e.preventDefault();
@@ -14704,26 +14703,26 @@ function initLightboxPinchZoom() {
         const baseHeight = rect.height;
         const viewWidth = window.innerWidth;
         const viewHeight = window.innerHeight;
-        
+
         scale = 2.5;
         const originX = viewWidth / 2;
         const originY = viewHeight / 2;
         translateX = (touch.clientX - originX) * (1 - scale);
         translateY = (touch.clientY - originY) * (1 - scale);
-        
+
         // Clamp translations
         const maxTx = Math.max(0, (baseWidth * scale - viewWidth) / 2);
         const maxTy = Math.max(0, (baseHeight * scale - viewHeight) / 2);
         translateX = Math.max(-maxTx, Math.min(translateX, maxTx));
         translateY = Math.max(-maxTy, Math.min(translateY, maxTy));
-        
+
         img.style.transition = 'transform 0.25s cubic-bezier(0.25, 0.8, 0.25, 1)';
         img.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
       }
       lastTapTime = 0;
       return;
     }
-    
+
     if (e.touches.length === 1) {
       lastTapTime = now;
       if (scale > 1) {
@@ -14749,25 +14748,25 @@ function initLightboxPinchZoom() {
       e.preventDefault();
       const dx = e.touches[0].clientX - startX;
       const dy = e.touches[0].clientY - startY;
-      
+
       translateX = startTx + dx;
       translateY = startTy + dy;
-      
+
       // Boundaries with visual resistance
       const rect = img.getBoundingClientRect();
       const baseWidth = rect.width / scale;
       const baseHeight = rect.height / scale;
       const viewWidth = window.innerWidth;
       const viewHeight = window.innerHeight;
-      
+
       const maxTx = Math.max(0, (baseWidth * scale - viewWidth) / 2);
       const maxTy = Math.max(0, (baseHeight * scale - viewHeight) / 2);
-      
+
       if (translateX > maxTx) translateX = maxTx + (translateX - maxTx) * 0.3;
       if (translateX < -maxTx) translateX = -maxTx + (translateX + maxTx) * 0.3;
       if (translateY > maxTy) translateY = maxTy + (translateY - maxTy) * 0.3;
       if (translateY < -maxTy) translateY = -maxTy + (translateY + maxTy) * 0.3;
-      
+
       applyTransform();
     } else if (e.touches.length === 2) {
       e.preventDefault();
@@ -14775,14 +14774,14 @@ function initLightboxPinchZoom() {
       if (dist > 10 && startDist > 10) {
         const factor = dist / startDist;
         const targetScale = startScale * factor;
-        
+
         scale = Math.max(0.8, Math.min(targetScale, 5));
-        
+
         const currentCenter = getCenter(e.touches);
         const scaleRatio = scale / startScale;
         translateX = currentCenter.x - (startCenter.x - startTx) * scaleRatio;
         translateY = currentCenter.y - (startCenter.y - startTy) * scaleRatio;
-        
+
         applyTransform();
       }
     }
@@ -14790,7 +14789,7 @@ function initLightboxPinchZoom() {
 
   img.addEventListener('touchend', (e) => {
     isDragging = false;
-    
+
     // Snapping back transitions
     if (scale < 1) {
       resetTransform();
@@ -14800,20 +14799,20 @@ function initLightboxPinchZoom() {
       const baseHeight = rect.height / scale;
       const viewWidth = window.innerWidth;
       const viewHeight = window.innerHeight;
-      
+
       const maxTx = Math.max(0, (baseWidth * scale - viewWidth) / 2);
       const maxTy = Math.max(0, (baseHeight * scale - viewHeight) / 2);
-      
+
       let targetTx = translateX;
       let targetTy = translateY;
       let needsSnap = false;
-      
+
       if (translateX > maxTx) { targetTx = maxTx; needsSnap = true; }
       else if (translateX < -maxTx) { targetTx = -maxTx; needsSnap = true; }
-      
+
       if (translateY > maxTy) { targetTy = maxTy; needsSnap = true; }
       else if (translateY < -maxTy) { targetTy = -maxTy; needsSnap = true; }
-      
+
       if (needsSnap) {
         translateX = targetTx;
         translateY = targetTy;
@@ -14837,7 +14836,7 @@ function initLightboxPinchZoom() {
     img.style.transform = `translate(0px, 0px) scale(1)`;
     img.dataset.scale = 1;
   }
-  
+
   window.resetLightboxPinchZoom = resetTransform;
 
   const observer = new MutationObserver((mutations) => {
@@ -15025,7 +15024,7 @@ function initSettingsFromStorage() {
   const weekStart = localStorage.getItem('app_week_start') || '1';
   const currency = localStorage.getItem('app_currency') || 'EUR';
   const theme = localStorage.getItem('app_theme') || 'dark';
-  
+
   let appLockEnabled = localStorage.getItem('app_lock_enabled') === 'true';
   let appBiometricsEnabled = localStorage.getItem('app_biometrics_enabled') === 'true';
 
@@ -15069,7 +15068,7 @@ function initSettingsFromStorage() {
   updateSettingsDisplay();
   applyTheme(theme);
   checkBiometricsSupport();
-  
+
   if (appLockEnabled || appBiometricsEnabled) {
     showLockScreen();
   }
@@ -15095,7 +15094,7 @@ function applyTheme(theme) {
     document.body.classList.add(`theme-${theme}`);
     document.documentElement.classList.add(`theme-${theme}`);
   }
-  
+
   // Dynamically update meta theme-color to match theme's card/header background
   const themeColors = {
     'dark': '#222731',
@@ -15126,8 +15125,8 @@ function applyTheme(theme) {
 
   if (window.Capacitor) {
     try {
-      const NativeTheme = (window.Capacitor.Plugins && window.Capacitor.Plugins.NativeTheme) || 
-                          (window.Capacitor.registerPlugin && window.Capacitor.registerPlugin('NativeTheme'));
+      const NativeTheme = (window.Capacitor.Plugins && window.Capacitor.Plugins.NativeTheme) ||
+        (window.Capacitor.registerPlugin && window.Capacitor.registerPlugin('NativeTheme'));
       if (NativeTheme) {
         NativeTheme.setThemeState({
           bgColor: bgColor,
@@ -15140,12 +15139,12 @@ function applyTheme(theme) {
       console.warn('Failed to sync native background theme:', e);
     }
   }
-  
+
   if (window.Chart) {
     const textSecondary = getComputedStyle(document.body).getPropertyValue('--text-secondary').trim() || '#8a99ad';
     Chart.defaults.color = textSecondary;
   }
-  
+
   if (state.activeTab === 'stats') {
     renderStatsTab();
   }
@@ -15167,14 +15166,14 @@ function showLockScreen() {
     lockScreen.classList.add('active');
     enteredPin = [];
     resetLockDots();
-    
+
     // Show/hide biometric button based on settings
     const biometricBtn = document.getElementById('btn-biometric');
     const biometricsEnabled = localStorage.getItem('app_biometrics_enabled') === 'true';
     if (biometricBtn) {
       biometricBtn.style.display = biometricsEnabled ? 'flex' : 'none';
     }
-    
+
     // Auto-trigger biometric auth if enabled
     if (biometricsEnabled) {
       setTimeout(() => {
@@ -15203,7 +15202,7 @@ function pressKey(num) {
     enteredPin.push(num);
     const dot = document.getElementById(`dot-${enteredPin.length - 1}`);
     if (dot) dot.classList.add('active');
-    
+
     if (enteredPin.length === 4) {
       setTimeout(() => {
         verifyEnteredPin();
@@ -15223,7 +15222,7 @@ function pressBackspace() {
 function verifyEnteredPin() {
   const pin = enteredPin.join('');
   const savedPin = localStorage.getItem('app_pin');
-  
+
   if (pin === savedPin) {
     hideLockScreen();
   } else {
@@ -15231,13 +15230,13 @@ function verifyEnteredPin() {
     const oldText = subtitle.textContent;
     subtitle.textContent = "Λάθος PIN! Προσπαθήστε ξανά.";
     subtitle.style.color = "var(--accent)";
-    
+
     const dotsContainer = document.querySelector('.lock-dots');
     dotsContainer.style.transform = 'translateX(10px)';
     setTimeout(() => { dotsContainer.style.transform = 'translateX(-10px)'; }, 70);
     setTimeout(() => { dotsContainer.style.transform = 'translateX(10px)'; }, 140);
     setTimeout(() => { dotsContainer.style.transform = 'translateX(0)'; }, 210);
-    
+
     setTimeout(() => {
       enteredPin = [];
       resetLockDots();
@@ -15252,10 +15251,10 @@ async function checkBiometricsSupport() {
   const container = document.getElementById('settings-biometrics-container');
   const toggle = document.getElementById('settings-biometrics');
   if (!container || !toggle) return;
-  
+
   // Always display biometrics row in Security & Privacy subscreen
   container.style.display = 'flex';
-  
+
   const enabled = localStorage.getItem('app_biometrics_enabled') === 'true';
   toggle.checked = enabled;
 
@@ -15280,7 +15279,7 @@ async function registerBiometrics() {
     const credentialOptions = {
       publicKey: {
         challenge: randomChallenge,
-        rp: { 
+        rp: {
           name: "Budget Assistant",
           id: rpId
         },
@@ -15317,7 +15316,7 @@ async function registerBiometrics() {
 async function verifyBiometrics() {
   const credIdBase64 = localStorage.getItem('biometric_cred_id');
   if (!credIdBase64) return false;
-  
+
   try {
     const rawId = new Uint8Array(atob(credIdBase64).split("").map(c => c.charCodeAt(0)));
     const randomChallenge = new Uint8Array(16);
@@ -15367,7 +15366,7 @@ function openPinModal() {
 function closePinModal() {
   const modal = document.getElementById('pin-modal');
   if (modal) modal.classList.remove('active');
-  
+
   if (!localStorage.getItem('app_lock_enabled')) {
     document.getElementById('settings-app-lock').checked = false;
   }
@@ -15376,12 +15375,12 @@ function closePinModal() {
 function submitPinSetup() {
   const pinField = document.getElementById('pin-input-field');
   const pin = pinField.value;
-  
+
   if (pin.length !== 4 || isNaN(pin)) {
     showSyncToast("❌ " + (state.lang === 'el' ? "Το PIN πρέπει να είναι ακριβώς 4 ψηφία!" : "PIN must be exactly 4 digits!"), 3000);
     return;
   }
-  
+
   if (pinSetupStep === 1) {
     tempSetupPin = pin;
     pinField.value = "";
@@ -15427,24 +15426,24 @@ function submitPinVerification() {
   const input = document.getElementById('pin-verify-input');
   const entered = input ? input.value : '';
   const currentPin = localStorage.getItem('app_pin');
-  
+
   if (entered === currentPin) {
     localStorage.removeItem('app_lock_enabled');
     localStorage.removeItem('app_pin');
     localStorage.removeItem('app_biometrics_enabled');
     localStorage.removeItem('biometric_cred_id');
-    
+
     // Hide biometric settings container
     const bioContainer = document.getElementById('settings-biometrics-container');
     if (bioContainer) bioContainer.style.display = 'none';
-    
+
     const bioCheckbox = document.getElementById('settings-biometrics');
     if (bioCheckbox) bioCheckbox.checked = false;
-    
+
     // Uncheck app lock checkbox
     const lockCheckbox = document.getElementById('settings-app-lock');
     if (lockCheckbox) lockCheckbox.checked = false;
-    
+
     closePinVerifyModal();
     showSyncToast("🔓 " + (state.lang === 'el' ? "Το κλείδωμα απενεργοποιήθηκε." : "App lock disabled."), 3000);
   } else {
@@ -15619,12 +15618,12 @@ let currentAuthMode = 'login'; // 'login' or 'signup'
 
 function switchAuthTab(tab) {
   currentAuthTab = tab;
-  
+
   // Update tabs active state
   document.getElementById('tab-btn-password').classList.toggle('active', tab === 'password');
   document.getElementById('tab-btn-magic').classList.toggle('active', tab === 'magic');
   document.getElementById('tab-btn-google').classList.toggle('active', tab === 'google');
-  
+
   // Show active form
   document.getElementById('auth-password-form').style.display = tab === 'password' ? 'flex' : 'none';
   document.getElementById('auth-magic-form').style.display = tab === 'magic' ? 'flex' : 'none';
@@ -15638,7 +15637,7 @@ function togglePasswordVisibility() {
   const passwordInput = document.getElementById('auth-password');
   const icon = document.getElementById('toggle-password-icon');
   if (!passwordInput || !icon) return;
-  
+
   if (passwordInput.type === 'password') {
     passwordInput.type = 'text';
     icon.className = 'fa-solid fa-eye-slash';
@@ -15653,31 +15652,31 @@ async function handleForgotPassword() {
     alert('Supabase is not initialized.');
     return;
   }
-  
+
   const emailInput = document.getElementById('auth-email');
   const email = emailInput ? emailInput.value.trim() : '';
   const lang = state.lang || 'el';
-  
-  const promptMsg = lang === 'el' 
-    ? 'Εισάγετε το email σας για να λάβετε σύνδεσμο επαναφοράς κωδικού:' 
+
+  const promptMsg = lang === 'el'
+    ? 'Εισάγετε το email σας για να λάβετε σύνδεσμο επαναφοράς κωδικού:'
     : 'Enter your email to receive a password reset link:';
-    
+
   const successMsg = lang === 'el'
     ? '✅ Στάλθηκε σύνδεσμος επαναφοράς κωδικού στα εισερχόμενά σας!'
     : '✅ Password reset link has been sent to your inbox!';
-    
+
   const enterEmailMsg = lang === 'el'
     ? 'Παρακαλώ πληκτρολογήστε το email σας πρώτα.'
     : 'Please enter your email first.';
-    
+
   const userEmail = prompt(promptMsg, email);
   if (userEmail === null) return; // User cancelled
-  
+
   if (!userEmail.trim()) {
     alert(enterEmailMsg);
     return;
   }
-  
+
   try {
     const { error } = await state.supabaseClient.auth.resetPasswordForEmail(userEmail.trim(), {
       redirectTo: window.location.origin + window.location.pathname
@@ -15697,15 +15696,15 @@ function setAuthMode(mode) {
   currentAuthMode = mode;
   document.getElementById('btn-auth-mode-login').classList.toggle('active', mode === 'login');
   document.getElementById('btn-auth-mode-signup').classList.toggle('active', mode === 'signup');
-  
+
   const submitBtn = document.getElementById('auth-password-submit-btn');
   const lang = state.lang || 'el';
-  
+
   const forgotContainer = document.getElementById('forgot-password-container');
   if (forgotContainer) {
     forgotContainer.style.display = mode === 'login' ? 'flex' : 'none';
   }
-  
+
   if (mode === 'login') {
     submitBtn.textContent = TRANSLATIONS[lang]['auth_submit_login'];
     document.getElementById('auth-subtitle').textContent = TRANSLATIONS[lang]['auth_welcome'];
@@ -15735,16 +15734,16 @@ async function handlePasswordAuth(e) {
     alert('Supabase is not initialized.');
     return;
   }
-  
+
   const email = document.getElementById('auth-email').value.trim();
   const password = document.getElementById('auth-password').value;
-  
+
   const submitBtn = document.getElementById('auth-password-submit-btn');
   const originalText = submitBtn.textContent;
   submitBtn.disabled = true;
   submitBtn.textContent = 'Παρακαλώ περιμένετε...';
   clearAuthStatus();
-  
+
   try {
     if (currentAuthMode === 'login') {
       const { data, error } = await state.supabaseClient.auth.signInWithPassword({
@@ -15763,7 +15762,7 @@ async function handlePasswordAuth(e) {
         }
       });
       if (error) throw error;
-      
+
       // If user is not logged in immediately (needs confirmation), show status
       if (data && data.user && !data.session) {
         showAuthStatus(TRANSLATIONS[state.lang]['auth_signup_success'], 'success');
@@ -15781,14 +15780,14 @@ async function handlePasswordAuth(e) {
 async function handleMagicAuth(e) {
   e.preventDefault();
   if (!state.supabaseClient) return;
-  
+
   const email = document.getElementById('auth-magic-email').value.trim();
   const submitBtn = document.getElementById('auth-magic-submit-btn');
   const originalText = submitBtn.textContent;
   submitBtn.disabled = true;
   submitBtn.textContent = 'Αποστολή...';
   clearAuthStatus();
-  
+
   try {
     const { error } = await state.supabaseClient.auth.signInWithOtp({
       email,
@@ -15814,11 +15813,11 @@ async function handleGoogleAuth() {
 
   try {
     const isCapacitor = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
-    
+
     if (isCapacitor) {
       // On Android (Capacitor), use PKCE + in-app browser (Chrome Custom Tab)
       // so the user never leaves the app during OAuth.
-      
+
       // Step 1: Get the OAuth URL from Supabase WITHOUT triggering a redirect
       // redirectTo uses https://localhost — Capacitor's local origin when assets are bundled
       const nativeRedirectUrl = 'https://localhost';
@@ -15831,29 +15830,29 @@ async function handleGoogleAuth() {
         }
       });
       if (error) throw error;
-      
+
       // Step 2: Access Capacitor plugins through the native bridge
       const Browser = window.Capacitor?.Plugins?.Browser;
       const App = window.Capacitor?.Plugins?.App;
-      
+
       if (Browser && data?.url) {
         // Step 3: Open Google login in an in-app Chrome Custom Tab
         await Browser.open({ url: data.url, windowName: '_self' });
-        
+
         // Step 4: Listen for the deep-link when Google redirects back to the app
         if (App) {
           const handle = await App.addListener('appUrlOpen', async (event) => {
             await handle.remove();
             if (Browser.close) await Browser.close();
-            
+
             // Extract tokens from the callback URL
             const url = new URL(event.url);
             const hashParams = new URLSearchParams(url.hash.replace('#', ''));
             const queryParams = new URLSearchParams(url.search);
-            
+
             const accessToken = hashParams.get('access_token') || queryParams.get('access_token');
             const refreshToken = hashParams.get('refresh_token') || queryParams.get('refresh_token');
-            
+
             if (accessToken && refreshToken) {
               const { error: sessionError } = await state.supabaseClient.auth.setSession({
                 access_token: accessToken,
@@ -15901,7 +15900,7 @@ async function handleLogout() {
   );
   if (!confirmed) return;
   if (!state.supabaseClient) return;
-  
+
   try {
     state.isLoggingOut = true;
     try {
@@ -15909,7 +15908,7 @@ async function handleLogout() {
     } catch (signOutErr) {
       console.warn('Supabase signOut network error (probably offline):', signOutErr);
     }
-    
+
     // Clear user-specific cached data
     localStorage.removeItem('cached_current_user');
     localStorage.removeItem('cached_partner_profile');
@@ -15922,7 +15921,7 @@ async function handleLogout() {
     localStorage.removeItem('bg_active_modal_tx_id');
     localStorage.removeItem('bg_active_subcat_txs');
     localStorage.removeItem('bg_modal_scroll_top');
-    
+
     // Instead of forcing a navigation (which fails offline in Android WebView with net::err_failed),
     // manually reset the application state and DOM.
     state.transactions = [];
@@ -15939,39 +15938,39 @@ async function handleLogout() {
     state.deletedRecurringDates = [];
     state.notifications = [];
     state.guestMode = false;
-    
+
     // Close any open modals to avoid lingering UI elements
     document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
     document.querySelectorAll('.tx-modal-overlay').forEach(m => m.classList.remove('active'));
     document.querySelectorAll('.profile-sheet-overlay').forEach(m => m.classList.remove('active'));
     document.body.classList.remove('modal-open');
-    
+
     // Show Auth UI
     const authOverlay = document.getElementById('auth-overlay');
     const formsContainer = document.getElementById('auth-forms-container');
     const authCard = document.getElementById('auth-card');
     const loadingState = document.getElementById('auth-loading-state');
-    
+
     if (authOverlay) authOverlay.style.display = 'flex';
     if (formsContainer) formsContainer.style.display = 'block';
     if (authCard) authCard.style.display = 'flex';
     if (loadingState) loadingState.style.display = 'none';
-    
+
     // Update main UI to clear any underlying DOM nodes
     updateUI();
-    
+
     state.isLoggingOut = false;
-  } catch(err) {
+  } catch (err) {
     state.isLoggingOut = false;
     console.error('Sign out error:', err);
   }
 }
 
-window.sendFamilyInviteVia = function(channel, inviteCode) {
+window.sendFamilyInviteVia = function (channel, inviteCode) {
   const isEl = state.lang === 'el';
   const roleSelect = document.getElementById('invite-role-select');
   const role = roleSelect ? roleSelect.value : 'member';
-  const roleTitle = (role === 'admin') 
+  const roleTitle = (role === 'admin')
     ? (isEl ? 'Διαχειριστής' : 'Admin')
     : (isEl ? 'Απλό Μέλος' : 'Member');
 
@@ -16011,12 +16010,12 @@ window.sendFamilyInviteVia = function(channel, inviteCode) {
 
 window.shareFamilyInviteCode = (inviteCode) => window.sendFamilyInviteVia('native', inviteCode);
 
-window.copyDirectInviteLink = function(inviteCode) {
+window.copyDirectInviteLink = function (inviteCode) {
   const isEl = state.lang === 'el';
   const roleSelect = document.getElementById('invite-role-select');
   const role = roleSelect ? roleSelect.value : 'member';
   const inviteUrl = `${window.location.origin}${window.location.pathname}?invite=${inviteCode}&role=${role}`;
-  
+
   navigator.clipboard.writeText(inviteUrl).then(() => {
     if (typeof showSyncToast === 'function') {
       showSyncToast(isEl ? '✓ Αντεγράφη ο απευθείας σύνδεσμος πρόσκλησης!' : '✓ Direct invite link copied!', 2500);
@@ -16063,27 +16062,27 @@ function renderPartnerSection() {
       // Fallback to "Οικογένεια [Admin Name]" format
       const adminProfile = state.familyProfiles.find(p => p.role === 'admin');
       const adminName = adminProfile ? (adminProfile.display_name || adminProfile.email.split('@')[0]) : '';
-      familyName = adminName 
+      familyName = adminName
         ? (state.lang === 'el' ? `Οικογένεια [${adminName}]` : `Family [${adminName}]`)
         : (state.lang === 'el' ? 'Οικογενειακός Προϋπολογισμός' : 'Family Budget');
     }
     const inviteCode = state.familyGroup ? state.familyGroup.invite_code : '';
-    
+
     // Build members list HTML
     let membersHtml = '';
     state.familyProfiles.forEach(m => {
       const isMe = m.id === state.currentUser.id;
       const meSuffix = isMe ? ` (${state.lang === 'el' ? 'Εσείς' : 'You'})` : '';
-      const roleBadge = m.role === 'admin' 
+      const roleBadge = m.role === 'admin'
         ? `<span style="background:var(--accent-light);color:var(--accent);font-size:9.5px;padding:2px 6px;border-radius:4px;font-weight:700;margin-left:8px;">${state.lang === 'el' ? 'Διαχειριστής' : 'Admin'}</span>`
         : `<span style="background:rgba(255,255,255,0.06);color:var(--text-secondary);font-size:9.5px;padding:2px 6px;border-radius:4px;font-weight:600;margin-left:8px;">${state.lang === 'el' ? 'Μέλος' : 'Member'}</span>`;
-      
+
       let actionButtons = '';
       if (myRole === 'admin' && !isMe) {
         const demoteText = state.lang === 'el' ? 'Ορισμός ως Μέλος' : 'Set as Member';
         const promoteText = state.lang === 'el' ? 'Ορισμός ως Διαχειριστής' : 'Set as Admin';
         const removeText = state.lang === 'el' ? 'Αφαίρεση από την Οικογένεια' : 'Remove from Family';
-        
+
         actionButtons = `
           <div style="position:relative;display:inline-block;">
             <button type="button" onclick="toggleMemberMenu(event, '${m.id}')" class="icon-btn" style="color:var(--text-secondary);padding:6px;font-size:14px;cursor:pointer;background:none;border:none;" title="${state.lang === 'el' ? 'Επιλογές' : 'Options'}">
@@ -16280,7 +16279,7 @@ function renderPartnerSection() {
         pressTimer = setTimeout(() => {
           isLongPress = true;
           if (navigator.vibrate) {
-            try { navigator.vibrate(15); } catch(err) {}
+            try { navigator.vibrate(15); } catch (err) { }
           }
           promptRenameFamilyGroup();
         }, 600);
@@ -16312,9 +16311,9 @@ function renderPartnerSection() {
     container.innerHTML = `
       <div style="display:flex;flex-direction:column;gap:16px;padding:4px 0;">
         <div style="font-size:13px;color:var(--text-secondary);line-height:1.5;">
-          ${state.lang === 'el' 
-            ? 'Διαχειριστείτε τα κοινά οικονομικά του σπιτιού δημιουργώντας ένα Οικογενειακό Group, ή συνδεθείτε σε ένα υπάρχον με κωδικό πρόσκλησης.' 
-            : 'Manage shared household finances by creating a Family Group, or join an existing one using an invite code.'}
+          ${state.lang === 'el'
+        ? 'Διαχειριστείτε τα κοινά οικονομικά του σπιτιού δημιουργώντας ένα Οικογενειακό Group, ή συνδεθείτε σε ένα υπάρχον με κωδικό πρόσκλησης.'
+        : 'Manage shared household finances by creating a Family Group, or join an existing one using an invite code.'}
         </div>
 
         <!-- Section A: Create Family -->
@@ -16394,7 +16393,7 @@ async function createFamilyGroup() {
   if (!state.supabaseClient || !state.currentUser) return;
   const nameInput = document.getElementById('create-family-name-input');
   if (!nameInput) return;
-  
+
   let groupName = nameInput.value.trim();
   if (!groupName) {
     groupName = state.lang === 'el' ? 'Οικογενειακός Προϋπολογισμός' : 'Family Budget';
@@ -16403,7 +16402,7 @@ async function createFamilyGroup() {
   try {
     const { data: newFamilyId, error } = await state.supabaseClient.rpc('create_family_group', { group_name: groupName });
     if (error) throw error;
-    
+
     alert(state.lang === 'el' ? '🎉 Η οικογένεια δημιουργήθηκε με επιτυχία!' : '🎉 Family group created successfully!');
     window.location.reload();
   } catch (err) {
@@ -16416,7 +16415,7 @@ async function joinFamilyGroup() {
   if (!state.supabaseClient || !state.currentUser) return;
   const codeInput = document.getElementById('join-family-code-input');
   if (!codeInput) return;
-  
+
   const code = codeInput.value.trim().toUpperCase();
   if (!code) {
     alert(state.lang === 'el' ? 'Παρακαλώ εισάγετε τον κωδικό πρόσκλησης.' : 'Please enter the invite code.');
@@ -16437,7 +16436,7 @@ async function joinFamilyGroup() {
 
 async function leaveFamilyGroup() {
   if (!state.supabaseClient || !state.currentUser) return;
-  
+
   const confirmed = await showConfirm(confirmMsg, state.lang === 'el' ? 'Αποχώρηση από Ομάδα' : 'Leave Group', '🚪');
   if (!confirmed) return;
 
@@ -16455,7 +16454,7 @@ async function leaveFamilyGroup() {
 
 async function kickFamilyMember(memberId) {
   if (!state.supabaseClient || !state.currentUser) return;
-  
+
   const confirmed = await showConfirm(confirmMsg, state.lang === 'el' ? 'Αποβολή Μέλους' : 'Kick Member', '🚪');
   if (!confirmed) return;
 
@@ -16473,7 +16472,7 @@ async function kickFamilyMember(memberId) {
 
 async function changeMemberRole(memberId, role) {
   if (!state.supabaseClient || !state.currentUser) return;
-  
+
   const confirmed = await showConfirm(confirmMsg, state.lang === 'el' ? 'Αλλαγή Ρόλου' : 'Change Role', '👤');
   if (!confirmed) return;
 
@@ -16544,10 +16543,10 @@ async function inviteMemberByEmail() {
     const mailtoUrl = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     window.location.href = mailtoUrl;
 
-    alert(state.lang === 'el' 
-      ? '🎉 Η πρόσκληση καταχωρήθηκε στη βάση! Ανοίγει το πρόγραμμα email σας για την αποστολή του συνδέσμου.' 
+    alert(state.lang === 'el'
+      ? '🎉 Η πρόσκληση καταχωρήθηκε στη βάση! Ανοίγει το πρόγραμμα email σας για την αποστολή του συνδέσμου.'
       : '🎉 Invitation saved! Your email client will now open to send the link.');
-      
+
     emailInput.value = '';
   } catch (err) {
     console.error('Error inviting member:', err);
@@ -16565,11 +16564,11 @@ async function promptRenameFamilyGroup() {
     alert(state.lang === 'el' ? 'Το όνομα δεν μπορεί να είναι κενό.' : 'Name cannot be empty.');
     return;
   }
-  
+
   try {
     const { data, error } = await state.supabaseClient.rpc('rename_family_group', { new_name: trimmed });
     if (error) throw error;
-    
+
     state.familyGroup.name = trimmed;
     showSyncToast(state.lang === 'el' ? '✓ Το όνομα ενημερώθηκε' : '✓ Name updated successfully', 2000);
     renderPartnerSection();
@@ -16586,7 +16585,7 @@ function toggleMemberMenu(event, memberId) {
       menu.style.display = 'none';
     }
   });
-  
+
   const menu = document.getElementById(`member-menu-${memberId}`);
   if (menu) {
     if (menu.style.display === 'none' || !menu.style.display) {
@@ -16613,7 +16612,7 @@ function selectInviteRole(role) {
   const memberCard = document.getElementById('role-card-member');
   const adminCard = document.getElementById('role-card-admin');
   const hiddenInput = document.getElementById('invite-role-select');
-  
+
   if (role === 'member') {
     memberCard.style.borderColor = 'var(--accent)';
     adminCard.style.borderColor = 'var(--border)';
@@ -16683,14 +16682,14 @@ window.handleLogout = handleLogout;
 async function enterGuestMode() {
   state.guestMode = true;
   localStorage.setItem('auth_guest_mode', 'true');
-  
+
   // Show premium splash loader immediately
   toggleLoader(true);
-  
+
   // Hide switcher in header (guest has no shared wallet)
   const switcher = document.getElementById('wallet-switcher-container');
   if (switcher) switcher.style.display = 'none';
-  
+
   // Show lock icon user badge in header to connect/sign up
   const userBadge = document.getElementById('user-profile-badge');
   if (userBadge) {
@@ -16699,12 +16698,12 @@ async function enterGuestMode() {
     userBadge.title = 'Σύνδεση / Sign Up';
     userBadge.onclick = () => showAuthOverlay();
   }
-  
+
   // Load data & update UI
   await loadData();
   updateUI();
   renderPartnerSection();
-  
+
   // Hide auth overlay after UI updates
   const authOverlay = document.getElementById('auth-overlay');
   if (authOverlay) {
@@ -16735,10 +16734,10 @@ async function syncLocalTransactionsToCloud(userId, options = {}) {
   const silent = !!options.silent;
   const transStr = localStorage.getItem('offline_transactions');
   if (!transStr) return;
-  
+
   try {
     const allTrans = JSON.parse(transStr) || [];
-    
+
     // Identify unsynced transactions (local_ prefix, no id, null user_id, or non-UUID id)
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     const localTrans = allTrans.filter(t => {
@@ -16748,10 +16747,10 @@ async function syncLocalTransactionsToCloud(userId, options = {}) {
       if (!uuidRegex.test(String(t.id))) return true;
       return false;
     });
-    
+
     if (localTrans.length > 0) {
       console.log(`Syncing ${localTrans.length} guest/local transactions to cloud...`);
-      
+
       const toInsert = localTrans.map(t => {
         const copy = { ...t };
         delete copy.id; // Let Supabase auto-generate UUIDs
@@ -16764,7 +16763,7 @@ async function syncLocalTransactionsToCloud(userId, options = {}) {
         delete copy.recurring_template_id; // Ensure recurring_template_id is not sent to DB
         return copy;
       });
-      
+
       // Suppress realtime events during batch insert so the resulting INSERT
       // events don't trigger handleRealtimeTransactionChange and cause flicker.
       _suppressRealtimeEvents = true;
@@ -16783,7 +16782,7 @@ async function syncLocalTransactionsToCloud(userId, options = {}) {
             break;
           }
         }
-          
+
         if (hasError) {
           console.error('Failed to sync guest transactions:', lastErr);
         } else {
@@ -16791,7 +16790,7 @@ async function syncLocalTransactionsToCloud(userId, options = {}) {
           // Remove synced transactions from offline cache
           const cleanOffline = allTrans.filter(t => !localTrans.includes(t));
           localStorage.setItem('offline_transactions', JSON.stringify(cleanOffline));
-          
+
           if (!silent) {
             alert(`🎉 ${localTrans.length} τοπικές κινήσεις που είχατε καταγράψει μεταφέρθηκαν αυτόματα στον λογαριασμό σας!`);
           }
@@ -16817,7 +16816,7 @@ function generateUUID() {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     return crypto.randomUUID();
   }
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
     const r = Math.random() * 16 | 0;
     const v = c === 'x' ? r : (r & 0x3 | 0x8);
     return v.toString(16);
@@ -16829,7 +16828,7 @@ function enqueueSyncMutation(action, payload) {
     const queue = JSON.parse(localStorage.getItem('money_manager_sync_queue') || '[]');
     const isDelete = action === 'delete' || action === 'delete_template';
     const itemId = isDelete ? payload : payload.id;
-    
+
     // Clean up duplicate saves/updates in queue if we are now deleting
     let cleanQueue = queue.filter(item => {
       const itemIsDelete = item.action === 'delete' || item.action === 'delete_template';
@@ -16837,14 +16836,14 @@ function enqueueSyncMutation(action, payload) {
       const isSaveAction = item.action === 'save' || item.action === 'save_template';
       return !(itemKey === itemId && isSaveAction && isDelete);
     });
-    
+
     cleanQueue.push({
       id: generateUUID(),
       action,
       payload,
       timestamp: Date.now()
     });
-    
+
     localStorage.setItem('money_manager_sync_queue', JSON.stringify(cleanQueue));
     console.log(`Enqueued offline mutation: ${action} for ${itemId}`);
   } catch (err) {
@@ -16875,10 +16874,10 @@ async function processSyncQueue(options = {}) {
   const skipReload = !!options.skipReload;
   if (_isProcessingSyncQueue) return;
   if (!state.isSupabaseEnabled || !state.supabaseClient || !state.currentUser) return;
-  
+
   const queueStr = localStorage.getItem('money_manager_sync_queue');
   if (!queueStr) return;
-  
+
   let queue = [];
   try {
     queue = JSON.parse(queueStr) || [];
@@ -16886,15 +16885,15 @@ async function processSyncQueue(options = {}) {
     console.error('Failed to parse sync queue:', e);
     return;
   }
-  
+
   if (queue.length === 0) return;
   if (typeof navigator !== 'undefined' && !navigator.onLine) return;
-  
+
   _isProcessingSyncQueue = true;
   console.log(`Processing offline sync queue of ${queue.length} items...`);
-  
+
   let successCount = 0;
-  
+
   for (let i = 0; i < queue.length; i++) {
     const item = queue[i];
     try {
@@ -16905,14 +16904,14 @@ async function processSyncQueue(options = {}) {
           continue;
         }
         const { description, is_shared, recurring_template_id, ...dbPayload } = transaction;
-        
+
         const { error } = await promiseTimeout(
           state.supabaseClient
             .from('transactions')
             .upsert([dbPayload]),
           15000
         );
-        
+
         if (error) {
           if (error.message && (error.message.includes('Fetch') || error.message.includes('network') || error.message.includes('timeout'))) {
             throw error;
@@ -16932,7 +16931,7 @@ async function processSyncQueue(options = {}) {
             .eq('id', transId),
           15000
         );
-        
+
         if (error) {
           if (error.message && (error.message.includes('Fetch') || error.message.includes('network') || error.message.includes('timeout'))) {
             throw error;
@@ -16969,19 +16968,19 @@ async function processSyncQueue(options = {}) {
           console.warn(`Skipping invalid delete_template queue item:`, error);
         }
       }
-      
+
       successCount++;
     } catch (err) {
       console.warn(`Network failure during sync queue replay at index ${i}:`, err);
       break; // Abort and retry later to preserve sequence order
     }
   }
-  
+
   if (successCount > 0) {
     const remaining = queue.slice(successCount);
     localStorage.setItem('money_manager_sync_queue', JSON.stringify(remaining));
     console.log(`Synced ${successCount} mutations. ${remaining.length} remaining.`);
-    
+
     // Only reload and render here if the caller didn't request to skip it.
     // When called from forceSyncNow, skipReload=true because forceSyncNow does its own
     // full fetch + UI update immediately after, so we avoid a double render.
@@ -16990,7 +16989,7 @@ async function processSyncQueue(options = {}) {
       updateUI();
     }
   }
-  
+
   _isProcessingSyncQueue = false;
 }
 
@@ -16998,20 +16997,20 @@ let _supabaseRealtimeChannel = null;
 
 function setupSupabaseRealtimeSubscription() {
   if (!state.supabaseClient || !state.currentUser) return;
-  
+
   if (_supabaseRealtimeChannel) {
     state.supabaseClient.removeChannel(_supabaseRealtimeChannel);
     _supabaseRealtimeChannel = null;
   }
-  
+
   const userId = state.currentUser.id;
   const partnerId = state.partnerProfile ? state.partnerProfile.id : null;
   const familyId = state.userProfile ? state.userProfile.family_id : null;
-  
+
   console.log('Setting up Supabase Realtime channel subscription...');
-  
+
   _supabaseRealtimeChannel = state.supabaseClient.channel('family-changes-channel');
-  
+
   if (familyId) {
     _supabaseRealtimeChannel.on(
       'postgres_changes',
@@ -17032,7 +17031,7 @@ function setupSupabaseRealtimeSubscription() {
       { event: '*', schema: 'public', table: 'categories', filter: `user_id=eq.${userId}` },
       handleRealtimeCategoryChange
     );
-    
+
     if (partnerId) {
       _supabaseRealtimeChannel.on(
         'postgres_changes',
@@ -17045,7 +17044,7 @@ function setupSupabaseRealtimeSubscription() {
       );
     }
   }
-  
+
   _supabaseRealtimeChannel.subscribe((status) => {
     console.log(`Supabase Realtime subscription status: ${status}`);
   });
@@ -17104,22 +17103,22 @@ function handleRealtimeTransactionChange(payload) {
       console.log('[REALTIME] Partner event allowed during active suppression:', payload.eventType, eventId);
     }
   }
-  
+
   console.log('Realtime transaction event received:', payload.eventType);
-  
+
   // Accumulate events, then apply them all at once after a short delay
   _pendingRealtimeEvents.push(payload);
-  
+
   if (_realtimeDebounceTimer) clearTimeout(_realtimeDebounceTimer);
   _realtimeDebounceTimer = setTimeout(() => {
     const events = _pendingRealtimeEvents.slice();
     _pendingRealtimeEvents = [];
     _realtimeDebounceTimer = null;
-    
+
     let trans = [...state.transactions];
     let changed = false;
     let insertedByPartner = false;
-    
+
     events.forEach(ev => {
       const eventType = ev.eventType;
       if (eventType === 'INSERT') {
@@ -17144,21 +17143,21 @@ function handleRealtimeTransactionChange(payload) {
         }
       }
     });
-    
+
     // Only update UI if something actually changed
     if (!changed) {
       console.log('[REALTIME] No effective changes — skipping UI refresh.');
       return;
     }
-    
+
     trans.sort(compareTransactions);
-    
+
     state.transactions = trans;
     localStorage.setItem('offline_transactions', JSON.stringify(trans));
-    
+
     calculateInitialBalances();
     updateUI();
-    
+
     if (insertedByPartner) {
       showSyncToast('📥 Νέα κίνηση προστέθηκε από άλλο μέλος', 3000);
     }
@@ -17172,10 +17171,10 @@ function handleRealtimeCategoryChange(payload) {
     return;
   }
   console.log('Realtime category event received:', payload.eventType, payload.new, payload.old);
-  
+
   let cats = [...state.categories];
   const eventType = payload.eventType;
-  
+
   if (eventType === 'INSERT') {
     const newCat = payload.new;
     if (!cats.some(c => c.id === newCat.id)) {
@@ -17188,10 +17187,10 @@ function handleRealtimeCategoryChange(payload) {
     const deletedId = payload.old.id;
     cats = cats.filter(c => c.id !== deletedId);
   }
-  
+
   state.categories = cats;
   localStorage.setItem('offline_categories', JSON.stringify(cats));
-  
+
   updateUI();
 }
 
@@ -17222,7 +17221,7 @@ function updateSyncStatusIndicator() {
   const dot = document.getElementById('header-sync-dot');
   const icon = document.getElementById('header-sync-cloud-icon');
   const btn = document.getElementById('header-sync-icon');
-  
+
   if (state.currentUser) {
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
       state.syncStatus = 'offline';
@@ -17241,7 +17240,7 @@ function updateSyncStatusIndicator() {
     synced: '#4caf50',
     error: '#e05e55'
   };
-  
+
   if (dot) {
     dot.style.background = colors[state.syncStatus] || colors.idle;
     // Animate dot on sync
@@ -17250,7 +17249,7 @@ function updateSyncStatusIndicator() {
     } else {
       dot.style.animation = 'none';
     }
-    
+
     // Inject dot keyframes once
     if (!document.getElementById('sync-dot-styles')) {
       const s = document.createElement('style');
@@ -17259,7 +17258,7 @@ function updateSyncStatusIndicator() {
       document.head.appendChild(s);
     }
   }
-  
+
   if (icon) {
     if (state.syncStatus === 'syncing') {
       icon.className = 'fa-solid fa-cloud-arrow-up';
@@ -17269,7 +17268,7 @@ function updateSyncStatusIndicator() {
       icon.className = 'fa-solid fa-cloud';
     }
   }
-  
+
   // Update tooltip with last sync time
   if (btn) {
     let tooltip = state.lang === 'en' ? 'Cloud Account' : 'Λογαριασμός Cloud';
@@ -17313,30 +17312,30 @@ async function forceSyncNow(silent = false) {
     if (!silent) alert(state.lang === 'en' ? 'Please log in first to sync.' : 'Παρακαλώ συνδεθείτε πρώτα για συγχρονισμό.');
     return false;
   }
-  
+
   state.syncStatus = 'syncing';
   updateSyncStatusIndicator();
-  
+
   // Suppress realtime events for the duration of this sync to prevent
   // DB mutations (upserts/inserts from queue flush) from firing handleRealtimeTransactionChange
   // and causing flickering numbers. We will do a single clean render at the end.
   _suppressRealtimeEvents = true;
-  
+
   try {
     const userId = state.currentUser.id;
-    
+
     // Auto-sync any stuck local transactions (e.g. from guest mode or legacy local_ items)
     await syncLocalTransactionsToCloud(userId, { silent: true });
-    
+
     // Auto-sync deleted transactions from local trash to Supabase
     await syncLocalTrashToCloud();
-    
+
     // Process offline sync queue (applies offline deletes/saves to cloud) before fetching
     await processSyncQueue({ skipReload: true });
-    
+
     const partnerId = state.partnerProfile ? state.partnerProfile.id : null;
     const familyId = state.userProfile ? state.userProfile.family_id : null;
-    
+
     let catsQuery = state.supabaseClient.from('categories').select('*');
     let accsQuery = state.supabaseClient.from('accounts').select('*');
 
@@ -17365,7 +17364,7 @@ async function forceSyncNow(silent = false) {
       ]),
       15000
     );
-    
+
     if (!catsRes.error && catsRes.data) {
       state.categories = catsRes.data;
       localStorage.setItem('offline_categories', JSON.stringify(state.categories));
@@ -17387,7 +17386,7 @@ async function forceSyncNow(silent = false) {
         .select('*')
         .order('date', { ascending: false })
         .range(page * pageSize, (page + 1) * pageSize - 1);
-        
+
       // FIX: Use proper Supabase .or() syntax with individual conditions
       if (familyId && partnerId) {
         transQuery = transQuery.or(`family_id.eq.${familyId},user_id.eq.${userId},user_id.eq.${partnerId}`);
@@ -17415,54 +17414,54 @@ async function forceSyncNow(silent = false) {
     }
 
     // 3. Process offline queue was moved to the start of forceSyncNow
-    
+
     // 4. Keep local pending transactions
     const localPending = getPendingLocalTransactions(state.transactions);
-    
+
     // 4.5. RECOVERY: Disabled - was causing infinite upsert loops when RLS filtered out partner transactions
 
     // 5. Update state — deduplicate combined result before storing (ID-based first, then content-based)
     const prevCount = (state.transactions || []).filter(t => t.id && !String(t.id).startsWith('local_')).length;
     const dedupedCombined = mergeAndDeduplicateTransactions(allTransactions, localPending);
     dedupedCombined.sort(compareTransactions);
-    
+
     // Snapshot IDs that existed BEFORE the sync to detect truly new entries
     const prevIdSet = new Set((state.transactions || []).map(t => String(t.id || '')));
-    
+
     // === ANTI-FLICKER GUARD ===
     // Only update UI if the data has actually changed (compare transaction IDs)
     const newIds = dedupedCombined.map(t => t.id || '').join(',');
     const oldIds = (state.transactions || []).map(t => t.id || '').join(',');
     const dataChanged = newIds !== oldIds;
-    
+
     state.transactions = dedupedCombined;
     localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
-    
+
     // Sync notes
     await syncNotes();
-    
+
     // 6. Check sync queue status
     const queueStr = localStorage.getItem('money_manager_sync_queue');
     if (queueStr) {
       try {
         const queue = JSON.parse(queueStr) || [];
         state.syncPendingCount = queue.length;
-      } catch(e) { state.syncPendingCount = 0; }
+      } catch (e) { state.syncPendingCount = 0; }
     } else {
       state.syncPendingCount = 0;
     }
-    
+
     state.lastSyncTime = Date.now();
     state.syncStatus = state.syncPendingCount > 0 ? 'error' : 'success';
     updateSyncStatusIndicator();
-    
+
     // Update last sync time display in settings
     const lastSyncEl = document.getElementById('val_last_sync_time');
     if (lastSyncEl) {
       const d = new Date(state.lastSyncTime);
       lastSyncEl.textContent = d.toLocaleTimeString(state.lang === 'el' ? 'el-GR' : 'en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     }
-    
+
     if (dataChanged) {
       console.log('[SYNC] Data changed — refreshing balances and UI.');
       calculateInitialBalances();
@@ -17482,7 +17481,7 @@ async function forceSyncNow(silent = false) {
     } else {
       console.log('[SYNC] No data change detected — skipping UI refresh to prevent flickering.');
     }
-    
+
     // Compute how many transactions are genuinely new (IDs that did not exist before sync)
     const newCount = dedupedCombined.filter(t => !prevIdSet.has(String(t.id || ''))).length;
     if (!silent && newCount > 0) {
@@ -17490,9 +17489,9 @@ async function forceSyncNow(silent = false) {
     } else if (!silent && newCount === 0) {
       showSyncToast('✅ ' + (state.lang === 'en' ? 'Everything is up to date' : 'Όλα είναι ενημερωμένα'), 2000);
     }
-    
+
     return true;
-  } catch(e) {
+  } catch (e) {
     console.error('Force sync failed:', e);
     state.syncStatus = 'error';
     updateSyncStatusIndicator();
@@ -17547,19 +17546,19 @@ function saveCurrentUIStateToStorage() {
     if (activeModal) {
       const modalId = activeModal.id;
       localStorage.setItem('bg_active_modal_id', modalId);
-      
+
       const modalBody = activeModal.querySelector('.modal-body');
       if (modalBody) {
         localStorage.setItem('bg_modal_scroll_top', modalBody.scrollTop);
       }
-      
+
       if (modalId === 'transaction-modal') {
         const txId = document.getElementById('trans-id').value;
         localStorage.setItem('bg_active_modal_tx_id', txId || '');
       } else {
         localStorage.removeItem('bg_active_modal_tx_id');
       }
-      
+
       if (modalId === 'stats-transactions-modal') {
         localStorage.setItem('bg_active_subcat_txs', JSON.stringify(state.activeSubcategoryTransactions));
       } else {
@@ -17626,10 +17625,10 @@ function _handleAppResumed() {
   if (needsRestore && typeof window.restoreActiveModalsWithoutTransition === 'function') {
     window.restoreActiveModalsWithoutTransition();
   }
-  
+
   // Re-establish realtime channel in case connection was dropped by OS
   setupSupabaseRealtimeSubscription();
-  
+
   handleAppForegroundSync();
 }
 
@@ -17752,10 +17751,10 @@ function openProfileSheet() {
 
   const email = state.currentUser.email || '';
   const name = state.userProfile?.display_name || email.split('@')[0];
-  
+
   const nameInput = document.getElementById('profile-name-input');
   if (nameInput) nameInput.value = name;
-  
+
   const emailDisplay = document.getElementById('profile-email-display');
   if (emailDisplay) emailDisplay.textContent = email;
 
@@ -17776,7 +17775,7 @@ function openProfileSheet() {
   }
 
   updateProfileSheetAvatarPreview();
-  
+
   const modal = document.getElementById('profile-settings-modal');
   if (modal) {
     modal.classList.add('active');
@@ -17856,7 +17855,7 @@ function selectPresetAvatar(id) {
   const email = state.currentUser.email || '';
   localStorage.setItem('avatar_type_' + email, 'preset');
   localStorage.setItem('avatar_preset_id_' + email, String(id));
-  
+
   updateProfileSheetAvatarPreview();
   updateHeaderProfileBadge();
 }
@@ -17872,11 +17871,11 @@ function handleCustomAvatarUpload(e) {
   if (!file) return;
 
   const reader = new FileReader();
-  reader.onload = function(evt) {
+  reader.onload = function (evt) {
     const email = state.currentUser.email || '';
     localStorage.setItem('avatar_type_' + email, 'custom');
     localStorage.setItem('avatar_custom_data_' + email, evt.target.result);
-    
+
     updateProfileSheetAvatarPreview();
     updateHeaderProfileBadge();
   };
@@ -17885,13 +17884,13 @@ function handleCustomAvatarUpload(e) {
 
 async function saveProfileName() {
   if (!state.currentUser || !state.supabaseClient) return;
-  
+
   const nameInput = document.getElementById('profile-name-input');
   if (!nameInput) return;
-  
+
   const newName = nameInput.value.trim();
   const oldName = state.userProfile?.display_name || '';
-  
+
   if (!newName || newName === oldName) return;
 
   try {
@@ -17914,9 +17913,9 @@ async function saveProfileName() {
       state.userProfile = data;
       updateHeaderProfileBadge();
       updateProfileSheetAvatarPreview();
-      
+
       localStorage.setItem('cached_current_user', JSON.stringify(data));
-      
+
       const emailDisplay = document.getElementById('settings-user-email-value');
       if (emailDisplay && state.currentUser) {
         emailDisplay.textContent = `${state.currentUser.email} (${newName})`;
@@ -18072,7 +18071,7 @@ function initYearSwipeGestures() {
         startTime = Date.now();
       }
     }, { passive: true });
-    
+
     customGrid.addEventListener('touchend', (e) => {
       if (e.changedTouches.length === 1) {
         const deltaX = e.changedTouches[0].clientX - startX;
@@ -18101,7 +18100,7 @@ function initYearSwipeGestures() {
         startTime = Date.now();
       }
     }, { passive: true });
-    
+
     monthGrid.addEventListener('touchend', (e) => {
       if (e.changedTouches.length === 1) {
         const deltaX = e.changedTouches[0].clientX - startX;
@@ -18131,12 +18130,12 @@ function openCustomDatePicker(targetInputId = 'trans-date') {
     window._calendarSwipeGesturesInitialized = true;
   }
   if (window.autocompleteJustSelected) return;
-  
+
   if (targetInputId === 'trans-date') {
     const form = document.getElementById('transaction-form');
     if (form && form.getAttribute('data-readonly') === 'true') return;
   }
-  
+
   _customDatePickerTargetInput = targetInputId;
   ensureHistoryPushed();
 
@@ -18159,7 +18158,7 @@ function openCustomDatePicker(targetInputId = 'trans-date') {
 
   // Close any active inline popups on open
   closeCustomDatePickerBS();
-  
+
   const timeContainer = document.getElementById('custom-date-picker-time-container');
   if (timeContainer) {
     if (targetInputId === 'trans-date') {
@@ -18203,10 +18202,10 @@ function openCustomDatePicker(targetInputId = 'trans-date') {
       }
     }
   }
-  
+
   customDatePickerSelectedDate = new Date(currentDate);
   customDatePickerViewingMonth = new Date(currentDate);
-  
+
   // Populate scroll wheels if empty
   const hoursScroll = document.getElementById('scroll-hours');
   if (hoursScroll && hoursScroll.children.length === 0) {
@@ -18217,7 +18216,7 @@ function openCustomDatePicker(targetInputId = 'trans-date') {
       hoursScroll.appendChild(div);
     }
   }
-  
+
   const minutesScroll = document.getElementById('scroll-minutes');
   if (minutesScroll && minutesScroll.children.length === 0) {
     for (let i = 0; i < 60; i++) {
@@ -18227,11 +18226,11 @@ function openCustomDatePicker(targetInputId = 'trans-date') {
       minutesScroll.appendChild(div);
     }
   }
-  
+
   // Setup listeners
   setupTimeWheelScrollListeners();
   initTimeInputListeners();
-  
+
   // Reset time picker mode to Wheels by default on open
   const wheelsRow = document.getElementById('custom-date-picker-time-wheels-row');
   const inputsRow = document.getElementById('custom-date-picker-time-inputs');
@@ -18239,12 +18238,12 @@ function openCustomDatePicker(targetInputId = 'trans-date') {
   if (wheelsRow) wheelsRow.style.display = 'flex';
   if (inputsRow) inputsRow.style.display = 'none';
   if (toggleBtn) toggleBtn.innerHTML = '<i class="fa-regular fa-keyboard"></i>';
-  
+
   renderCustomDatePickerCalendar();
-  
+
   // Open the modal
   openModal('custom-date-picker-modal');
-  
+
   // Scroll wheels and set input values to correct initial values after rendering transition
   setTimeout(() => {
     const hs = document.getElementById('scroll-hours');
@@ -18255,7 +18254,7 @@ function openCustomDatePicker(targetInputId = 'trans-date') {
     if (ms) {
       ms.scrollTop = currentDate.getMinutes() * 60;
     }
-    
+
     // Set manual input values
     const inputHours = document.getElementById('custom-time-input-hours');
     if (inputHours) {
@@ -18301,9 +18300,9 @@ function updateSupabaseUserModal() {
           ${lang === 'en' ? 'Guest Mode (Offline)' : 'Λειτουργία Επισκέπτη (Offline)'}
         </h4>
         <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.4; margin-bottom: 20px;">
-          ${lang === 'en' 
-            ? 'Currently, your data is saved only locally on your device. Connect to the Cloud to enable automatic backup and a real-time shared wallet with your partner.' 
-            : 'Αυτή τη στιγμή τα δεδομένα σας αποθηκεύονται μόνο τοπικά στη συσκευή σας. Συνδεθείτε στο Cloud για να ενεργοποιήσετε αυτόματο backup και κοινό πορτοφόλι σε πραγματικό χρόνο με τον/την συνεργάτη σας.'}
+          ${lang === 'en'
+        ? 'Currently, your data is saved only locally on your device. Connect to the Cloud to enable automatic backup and a real-time shared wallet with your partner.'
+        : 'Αυτή τη στιγμή τα δεδομένα σας αποθηκεύονται μόνο τοπικά στη συσκευή σας. Συνδεθείτε στο Cloud για να ενεργοποιήσετε αυτόματο backup και κοινό πορτοφόλι σε πραγματικό χρόνο με τον/την συνεργάτη σας.'}
         </p>
         <button type="button" class="btn btn-primary btn-block" onclick="closeModal('supabase-modal'); showAuthOverlay();" style="padding: 12px;">
           <i class="fa-solid fa-right-to-bracket" style="margin-right: 8px;"></i>
@@ -18356,7 +18355,7 @@ window.triggerProfileSyncFromModal = triggerProfileSyncFromModal;
 
 function toggleCustomDropdown(event, type) {
   event.stopPropagation();
-  
+
   // Close all other dropdowns
   const allContainers = document.querySelectorAll('.custom-select-container');
   allContainers.forEach(container => {
@@ -18374,16 +18373,16 @@ function toggleCustomDropdown(event, type) {
 function selectCustomDropdownOption(type, value, label) {
   const nativeSelect = document.getElementById(`search-filter-${type}`);
   if (!nativeSelect) return;
-  
+
   nativeSelect.value = value;
-  
+
   const container = document.getElementById(`custom-select-container-${type}`);
   if (container) {
     const triggerText = container.querySelector('.custom-select-trigger-text');
     if (triggerText) {
       triggerText.textContent = label;
     }
-    
+
     // Update active state in UI list
     const options = container.querySelectorAll('.custom-select-option');
     options.forEach(opt => {
@@ -18396,7 +18395,7 @@ function selectCustomDropdownOption(type, value, label) {
 
     container.classList.remove('dropdown-open');
   }
-  
+
   // Dispatch native change event
   if (nativeSelect.onchange) {
     nativeSelect.onchange();
@@ -18409,7 +18408,7 @@ function syncCustomSelect(type) {
   const nativeSelect = document.getElementById(`search-filter-${type}`);
   const optionsContainer = document.getElementById(`custom-options-${type}`);
   if (!nativeSelect || !optionsContainer) return;
-  
+
   optionsContainer.innerHTML = '';
   const selectedValue = nativeSelect.value;
   let activeLabel = '';
@@ -18427,12 +18426,12 @@ function syncCustomSelect(type) {
       <span>${opt.textContent}</span>
       <i class="fa-solid fa-check check-icon"></i>
     `;
-    
-    div.onclick = function(e) {
+
+    div.onclick = function (e) {
       e.stopPropagation();
       selectCustomDropdownOption(type, opt.value, opt.textContent);
     };
-    
+
     optionsContainer.appendChild(div);
   });
 
@@ -18457,7 +18456,7 @@ function updateCustomSelectTriggers() {
         if (triggerText) {
           triggerText.textContent = label;
         }
-        
+
         const optionDivs = container.querySelectorAll('.custom-select-option');
         optionDivs.forEach(opt => {
           if (opt.getAttribute('data-value') === nativeSelect.value) {
@@ -18472,7 +18471,7 @@ function updateCustomSelectTriggers() {
 }
 
 // Global outside click handler to close open custom selects
-window.addEventListener('click', function(e) {
+window.addEventListener('click', function (e) {
   if (!e.target.closest('.custom-select-container')) {
     const allContainers = document.querySelectorAll('.custom-select-container');
     allContainers.forEach(container => {
@@ -18492,7 +18491,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const isAndroid = /android/i.test(navigator.userAgent);
   const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
   if (!isAndroid || !isStandalone) return;
-  
+
   // Check if env() actually returns a value > 0
   const testEl = document.createElement('div');
   testEl.style.position = 'fixed';
@@ -18501,18 +18500,18 @@ document.addEventListener('DOMContentLoaded', () => {
   document.body.appendChild(testEl);
   const safeBottom = testEl.offsetHeight;
   document.body.removeChild(testEl);
-  
-    if (safeBottom === 0) {
-      // env() returns 0, update --safe-area-bottom to a default fallback of 16px to clear the gesture pill
-      document.documentElement.style.setProperty('--safe-area-bottom', '12px');
-    }
+
+  if (safeBottom === 0) {
+    // env() returns 0, update --safe-area-bottom to a default fallback of 16px to clear the gesture pill
+    document.documentElement.style.setProperty('--safe-area-bottom', '12px');
+  }
 });
 
 // Android Overlay Click: Close picker modals by clicking on the background backdrop
 document.addEventListener('DOMContentLoaded', () => {
   const isAndroid = /android/i.test(navigator.userAgent);
   if (!isAndroid) return;
-  
+
   document.querySelectorAll('.modal-overlay').forEach(modal => {
     modal.addEventListener('click', (e) => {
       if (e.target === modal) {
@@ -18535,25 +18534,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const updateViewportHeight = () => {
       // Guard against layout thrashing during resume unfreeze animation
       if (window._appJustResumed) return;
-      
+
       const vvHeight = window.visualViewport.height;
       const offsetTop = window.visualViewport.offsetTop;
-      
+
       // Track the maximum height (when keyboard is hidden) for calculations
       if (vvHeight > maxViewportHeight) {
         maxViewportHeight = vvHeight;
       }
-      
+
       let rawKeyboardHeight = isIOS ? (window.innerHeight - vvHeight) : (window.innerHeight - vvHeight - offsetTop);
-      
+
       // Keep keyboard height stable during iOS keyboard animation to prevent modal shaking/collapsing
-      
-      
+
+
       // Scale keyboardHeight inversely to counteract body { zoom: 0.93 }
       // This ensures CSS translations perfectly track the physical keyboard.
       const scale = isIOS ? 1.0 : 0.93;
       const keyboardHeight = Math.max(0, rawKeyboardHeight) / scale;
-      
+
       // --viewport-height: the visible area height (visual viewport)
       // Use window.innerHeight for layout (unchanged with resizes-visual)
       document.documentElement.style.setProperty('--viewport-height', `${window.innerHeight}px`);
@@ -18569,28 +18568,28 @@ document.addEventListener('DOMContentLoaded', () => {
     let _vpRafId = null;
     const debouncedUpdateViewport = isIOS
       ? () => {
-          if (_vpRafId) return; // already scheduled this frame
-          _vpRafId = requestAnimationFrame(() => {
-            _vpRafId = null;
-            updateViewportHeight();
-          });
-        }
+        if (_vpRafId) return; // already scheduled this frame
+        _vpRafId = requestAnimationFrame(() => {
+          _vpRafId = null;
+          updateViewportHeight();
+        });
+      }
       : updateViewportHeight; // Android: fire immediately (no excess events)
-    
+
     window.visualViewport.addEventListener('resize', debouncedUpdateViewport);
     window.visualViewport.addEventListener('scroll', debouncedUpdateViewport);
-    
+
     // Track orientation changes or resets when not focused
     window.addEventListener('resize', () => {
-      const isInputFocused = document.activeElement && 
-                             (document.activeElement.tagName === 'INPUT' || 
-                              document.activeElement.tagName === 'TEXTAREA');
+      const isInputFocused = document.activeElement &&
+        (document.activeElement.tagName === 'INPUT' ||
+          document.activeElement.tagName === 'TEXTAREA');
       if (!isInputFocused && window.visualViewport) {
         maxViewportHeight = window.visualViewport.height;
       }
       updateViewportHeight();
     });
-    
+
     updateViewportHeight();
   } else {
     document.documentElement.style.setProperty('--viewport-height', '100vh');
@@ -18618,11 +18617,11 @@ let timeWheelsInitialized = false;
 
 function setupTimeWheelScrollListeners() {
   if (timeWheelsInitialized) return;
-  
+
   const setupWheel = (scrollId) => {
     const scrollEl = document.getElementById(scrollId);
     if (!scrollEl) return;
-    
+
     const updateSelection = () => {
       const scrollTop = scrollEl.scrollTop;
       const selectedIndex = Math.round(scrollTop / 60);
@@ -18635,12 +18634,12 @@ function setupTimeWheelScrollListeners() {
         }
       });
     };
-    
+
     scrollEl.addEventListener('scroll', updateSelection);
     // Initial call
     updateSelection();
   };
-  
+
   setupWheel('scroll-hours');
   setupWheel('scroll-minutes');
   timeWheelsInitialized = true;
@@ -18650,17 +18649,17 @@ function toggleTimeInputMode() {
   const wheelsRow = document.getElementById('custom-date-picker-time-wheels-row');
   const inputsRow = document.getElementById('custom-date-picker-time-inputs');
   const toggleBtn = document.getElementById('toggle-time-input-mode');
-  
+
   if (!wheelsRow || !inputsRow || !toggleBtn) return;
-  
+
   const isWheelsMode = wheelsRow.style.display !== 'none';
-  
+
   if (isWheelsMode) {
     // Switch to Manual INPUT Mode
     wheelsRow.style.display = 'none';
     inputsRow.style.display = 'flex';
     toggleBtn.innerHTML = '<i class="fa-solid fa-clock"></i>';
-    
+
     // Sync inputs with wheel values
     const hs = document.getElementById('scroll-hours');
     const ms = document.getElementById('scroll-minutes');
@@ -18668,7 +18667,7 @@ function toggleTimeInputMode() {
     let m = 0;
     if (hs) h = Math.round(hs.scrollTop / 60);
     if (ms) m = Math.round(ms.scrollTop / 60);
-    
+
     const inputHours = document.getElementById('custom-time-input-hours');
     const inputMinutes = document.getElementById('custom-time-input-minutes');
     if (inputHours) {
@@ -18684,19 +18683,19 @@ function toggleTimeInputMode() {
     wheelsRow.style.display = 'flex';
     inputsRow.style.display = 'none';
     toggleBtn.innerHTML = '<i class="fa-regular fa-keyboard"></i>';
-    
+
     // Sync wheels with typed values
     const inputHours = document.getElementById('custom-time-input-hours');
     const inputMinutes = document.getElementById('custom-time-input-minutes');
-    
+
     let h = parseInt(inputHours.value, 10);
     let m = parseInt(inputMinutes.value, 10);
-    
+
     if (isNaN(h) || h < 0) h = 0;
     if (h > 23) h = 23;
     if (isNaN(m) || m < 0) m = 0;
     if (m > 59) m = 59;
-    
+
     const hs = document.getElementById('scroll-hours');
     if (hs) hs.scrollTop = h * 60;
     const ms = document.getElementById('scroll-minutes');
@@ -18708,12 +18707,12 @@ window.toggleTimeInputMode = toggleTimeInputMode;
 let timeInputsInitialized = false;
 function initTimeInputListeners() {
   if (timeInputsInitialized) return;
-  
+
   const inputHours = document.getElementById('custom-time-input-hours');
   const inputMinutes = document.getElementById('custom-time-input-minutes');
-  
+
   if (!inputHours || !inputMinutes) return;
-  
+
   inputHours.addEventListener('input', (e) => {
     let val = e.target.value;
     if (val.length > 2) {
@@ -18728,7 +18727,7 @@ function initTimeInputListeners() {
       }
     }
     e.target.value = val;
-    
+
     // Auto-focus minutes input when 2 digits are entered
     if (val.length === 2) {
       inputMinutes.focus();
@@ -18769,7 +18768,7 @@ function initTimeInputListeners() {
       e.target.value = '00';
     }
   });
-  
+
   timeInputsInitialized = true;
 }
 
@@ -18779,10 +18778,10 @@ function renderCustomDatePickerCalendar() {
   const grid = document.getElementById('custom-date-picker-days-grid');
   const largeLabel = document.getElementById('custom-date-picker-month-large-label');
   if (!grid) return;
-  
+
   const year = customDatePickerViewingMonth.getFullYear();
   const month = customDatePickerViewingMonth.getMonth();
-  
+
   // Update Large Month Title
   const yearLabel = document.getElementById('custom-date-picker-year-large-label');
   if (largeLabel) {
@@ -18791,20 +18790,20 @@ function renderCustomDatePickerCalendar() {
   if (yearLabel) {
     yearLabel.textContent = year;
   }
-  
+
   grid.innerHTML = '';
-  
+
   // Get first day of the month and its weekday (0 = Mon, 6 = Sun)
   const firstDay = new Date(year, month, 1);
   let firstDayIndex = firstDay.getDay(); // 0 = Sun, 1 = Mon ...
   firstDayIndex = (firstDayIndex + 6) % 7; // Convert to Mon=0, Sun=6
-  
+
   // Get total days in month
   const totalDays = new Date(year, month + 1, 0).getDate();
-  
+
   // Get total days in previous month for padding
   const prevMonthTotalDays = new Date(year, month, 0).getDate();
-  
+
   // Render previous month's padding days
   for (let i = firstDayIndex - 1; i >= 0; i--) {
     const dayNum = prevMonthTotalDays - i;
@@ -18814,7 +18813,7 @@ function renderCustomDatePickerCalendar() {
     btn.textContent = dayNum;
     grid.appendChild(btn);
   }
-  
+
   // Render current month's days
   const today = new Date();
   for (let d = 1; d <= totalDays; d++) {
@@ -18822,21 +18821,21 @@ function renderCustomDatePickerCalendar() {
     btn.type = 'button';
     btn.className = 'calendar-day-btn';
     btn.textContent = d;
-    
+
     // Check if selected
-    if (d === customDatePickerSelectedDate.getDate() && 
-        month === customDatePickerSelectedDate.getMonth() && 
-        year === customDatePickerSelectedDate.getFullYear()) {
+    if (d === customDatePickerSelectedDate.getDate() &&
+      month === customDatePickerSelectedDate.getMonth() &&
+      year === customDatePickerSelectedDate.getFullYear()) {
       btn.classList.add('active');
     }
-    
+
     // Check if today
-    if (d === today.getDate() && 
-        month === today.getMonth() && 
-        year === today.getFullYear()) {
+    if (d === today.getDate() &&
+      month === today.getMonth() &&
+      year === today.getFullYear()) {
       btn.classList.add('today');
     }
-    
+
     // Add click handler to select this day
     btn.addEventListener('click', () => {
       customDatePickerSelectedDate.setFullYear(year);
@@ -18844,10 +18843,10 @@ function renderCustomDatePickerCalendar() {
       customDatePickerSelectedDate.setDate(d);
       renderCustomDatePickerCalendar();
     });
-    
+
     grid.appendChild(btn);
   }
-  
+
   // Render next month's padding days to complete grid (multiples of 7)
   const totalRendered = firstDayIndex + totalDays;
   const remaining = (7 - (totalRendered % 7)) % 7;
@@ -18872,7 +18871,7 @@ function openCustomDatePickerBS(forceYearView = false) {
     // Set active year label
     const yearLabel = document.getElementById('custom-date-picker-bs-year-label');
     if (yearLabel) yearLabel.textContent = customDatePickerViewingMonth.getFullYear();
-    
+
     // Toggle view based on parameter
     toggleCustomDatePickerBSYearView(forceYearView);
     renderCustomDatePickerBSGrids('month');
@@ -18962,15 +18961,15 @@ function renderCustomDatePickerBSGrids(type) {
     const grid = document.getElementById('custom-date-picker-bs-years-view');
     if (!grid) return;
     grid.innerHTML = '';
-    
+
     if (!window.customDatePickerBSYearStart) {
       const selectedYear = customDatePickerViewingMonth.getFullYear();
       window.customDatePickerBSYearStart = Math.floor((selectedYear - 2020) / 6) * 6 + 2020;
     }
-    
+
     const startY = window.customDatePickerBSYearStart;
     const endY = startY + 5;
-    
+
     const labelSpan = document.getElementById('custom-date-picker-bs-year-label');
     if (labelSpan) {
       labelSpan.style.display = 'flex';
@@ -19017,7 +19016,7 @@ function renderCustomDatePickerBSGrids(type) {
 }
 
 // Click-away listener to close inline calendar popups
-document.addEventListener('click', function(e) {
+document.addEventListener('click', function (e) {
   const bs = document.getElementById('custom-date-picker-bs');
   const titleBtn = document.getElementById('custom-date-picker-month-title-btn');
   if (bs && bs.classList.contains('active')) {
@@ -19035,18 +19034,18 @@ function setCustomDatePickerValue() {
   const hoursScroll = document.getElementById('scroll-hours');
   const minutesScroll = document.getElementById('scroll-minutes');
   const inputsRow = document.getElementById('custom-date-picker-time-inputs');
-  
+
   let hours = 0;
   let minutes = 0;
-  
+
   const isManualMode = inputsRow && inputsRow.style.display === 'flex';
-  
+
   if (isManualMode) {
     const inputHours = document.getElementById('custom-time-input-hours');
     const inputMinutes = document.getElementById('custom-time-input-minutes');
     hours = parseInt(inputHours.value, 10);
     minutes = parseInt(inputMinutes.value, 10);
-    
+
     if (isNaN(hours) || hours < 0) hours = 0;
     if (hours > 23) hours = 23;
     if (isNaN(minutes) || minutes < 0) minutes = 0;
@@ -19063,14 +19062,14 @@ function setCustomDatePickerValue() {
       if (minutes > 59) minutes = 59;
     }
   }
-  
+
   customDatePickerSelectedDate.setHours(hours);
   customDatePickerSelectedDate.setMinutes(minutes);
-  
+
   const yyyy = customDatePickerSelectedDate.getFullYear();
   const mm = String(customDatePickerSelectedDate.getMonth() + 1).padStart(2, '0');
   const dd = String(customDatePickerSelectedDate.getDate()).padStart(2, '0');
-  
+
   const targetId = _customDatePickerTargetInput || 'trans-date';
   const dateInput = document.getElementById(targetId);
   if (dateInput) {
@@ -19087,7 +19086,7 @@ function setCustomDatePickerValue() {
     }
     dateInput.dispatchEvent(new Event('input', { bubbles: true }));
   }
-  
+
   closeModal('custom-date-picker-modal');
 }
 
@@ -19108,10 +19107,10 @@ function highlightMatch(text, query) {
 function getAdvancedNotes(query) {
   const allTransactions = state.transactions || [];
   const noteDetails = new Map();
-  
+
   // Sort transactions by date (desc) and time/id (desc) to get the most recent first
   const sortedTrans = [...allTransactions].sort(compareTransactions);
-  
+
   for (const t of sortedTrans) {
     const title = (t.note || '').trim();
     if (!title) continue;
@@ -19125,17 +19124,17 @@ function getAdvancedNotes(query) {
       });
     }
   }
-  
+
   const q = normalizeText(query);
   const suggestions = [];
-  
+
   for (const [key, details] of noteDetails.entries()) {
     const normKey = normalizeText(details.title);
     if (!q || normKey.includes(q)) {
       suggestions.push(details);
     }
   }
-  
+
   // Sort suggestions: if there is a query, prioritize matches that start with the query
   if (q) {
     suggestions.sort((a, b) => {
@@ -19148,7 +19147,7 @@ function getAdvancedNotes(query) {
       return aTitle.localeCompare(bTitle);
     });
   }
-  
+
   return suggestions.slice(0, 7);
 }
 
@@ -19164,7 +19163,7 @@ function renderNoteAutocomplete(query) {
   }
 
   const q = (query || '').trim();
-  
+
   // Always hide if empty query
   if (q.length === 0) {
     dropdown.style.display = 'none';
@@ -19182,7 +19181,7 @@ function renderNoteAutocomplete(query) {
   filtered.forEach(suggestion => {
     const item = document.createElement('div');
     item.className = 'note-autocomplete-item';
-    
+
     // Find category details to show badge
     let categoryBadgeHTML = '';
     if (suggestion.category) {
@@ -19191,11 +19190,11 @@ function renderNoteAutocomplete(query) {
       const catCleanName = stripLeadingEmoji(suggestion.category);
       categoryBadgeHTML = `<span class="note-category-pill" style="font-size: 10px; opacity: 0.7; padding: 2px 6px; background: rgba(255,255,255,0.06); border-radius: 8px; margin-left: auto; flex-shrink: 0; display: flex; align-items: center; gap: 4px;">${icon} ${catCleanName}</span>`;
     }
-    
+
     item.innerHTML = `<i class="fa-solid fa-clock-rotate-left" style="color:var(--text-muted);font-size:11px;flex-shrink:0;"></i>
                       <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-right:8px;">${highlightMatch(suggestion.title, q)}</span>
                       ${categoryBadgeHTML}`;
-                      
+
     // Use pointerdown only to prevent focus loss (prevent blur from closing dropdown)
     item.addEventListener('pointerdown', (e) => {
       e.preventDefault();
@@ -19216,7 +19215,7 @@ function renderNoteAutocomplete(query) {
         noteInput.value = suggestion.title;
         noteInput.dispatchEvent(new Event('input', { bubbles: true }));
       }
-      
+
       // Auto-select Category, Subcategory, and Account
       if (suggestion.category) {
         let catObj = state.categories.find(c => c.name === suggestion.category);
@@ -19235,7 +19234,7 @@ function renderNoteAutocomplete(query) {
         const cleanedCat = stripLeadingEmoji(suggestion.category).toUpperCase();
         const defaults = DEFAULT_SUBCATEGORIES_MAP[cleanedCat] || [];
         const isDefault = defaults.includes(suggestion.subcategory);
-        
+
         if (isDefault) {
           hideSubcategorySelect();
           selectSubcategory(suggestion.subcategory);
@@ -19255,7 +19254,7 @@ function renderNoteAutocomplete(query) {
           updateAccountTriggerDisplay('from');
         }
       }
-      
+
       closeNoteAutocomplete();
     });
     dropdown.appendChild(item);
@@ -19372,11 +19371,11 @@ function openNotesManager() {
 }
 window.openNotesManager = openNotesManager;
 
-window.onSubscreenShow_family = function() {
+window.onSubscreenShow_family = function () {
   renderPartnerSection();
 };
 
-window.onSubscreenShow_security = function() {
+window.onSubscreenShow_security = function () {
   const appLockEnabled = localStorage.getItem('app_lock_enabled') === 'true';
   const appLockCheckbox = document.getElementById('settings-app-lock');
   if (appLockCheckbox) appLockCheckbox.checked = appLockEnabled;
@@ -19409,7 +19408,7 @@ window.onSubscreenShow_security = function() {
   if (autoLockSelect) autoLockSelect.value = autoLockDelay;
 };
 
-window.onSubscreenShow_notifications = function() {
+window.onSubscreenShow_notifications = function () {
   const dailyReminderEnabled = localStorage.getItem('settings_daily_reminder_enabled') === 'true';
   const dailyReminderCheckbox = document.getElementById('settings-daily-reminder');
   if (dailyReminderCheckbox) dailyReminderCheckbox.checked = dailyReminderEnabled;
@@ -19441,39 +19440,39 @@ window.onSubscreenShow_notifications = function() {
   }
 };
 
-window.toggleDailyReminder = function(checked) {
+window.toggleDailyReminder = function (checked) {
   localStorage.setItem('settings_daily_reminder_enabled', checked ? 'true' : 'false');
   const timeRow = document.getElementById('settings-daily-reminder-time-row');
   if (timeRow) timeRow.style.display = checked ? 'flex' : 'none';
 };
 
-window.saveDailyReminderTime = function(val) {
+window.saveDailyReminderTime = function (val) {
   if (val) localStorage.setItem('settings_daily_reminder_time', val);
 };
 
-window.toggleRecurringAlerts = function(checked) {
+window.toggleRecurringAlerts = function (checked) {
   localStorage.setItem('settings_recurring_alerts_enabled', checked ? 'true' : 'false');
 };
 
-window.toggleExpenseAlert = function(checked) {
+window.toggleExpenseAlert = function (checked) {
   localStorage.setItem('settings_expense_alert_enabled', checked ? 'true' : 'false');
   const limitRow = document.getElementById('settings-expense-alert-limit-row');
   if (limitRow) limitRow.style.display = checked ? 'flex' : 'none';
 };
 
-window.saveExpenseLimit = function(val) {
+window.saveExpenseLimit = function (val) {
   if (val) localStorage.setItem('settings_expense_alert_limit', val);
 };
 
-window.renderNotificationHistory = function() {
+window.renderNotificationHistory = function () {
   const container = document.getElementById('notifications-history-list');
   if (!container) return;
-  
+
   if (!state.notifications || state.notifications.length === 0) {
     container.innerHTML = `<div style="font-size:12px; color:var(--text-muted); text-align:center; padding:16px 0;">${state.lang === 'el' ? 'Δεν υπάρχουν πρόσφατες ειδοποιήσεις.' : 'No recent notifications.'}</div>`;
     return;
   }
-  
+
   container.innerHTML = state.notifications.map(n => `
     <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:12px; padding:12px; display:flex; gap:12px; align-items:flex-start;">
       <div style="width:28px; height:28px; border-radius:8px; background:rgba(239,68,68,0.15); color:#ef4444; display:flex; align-items:center; justify-content:center; font-size:13px; margin-top:2px;">
@@ -19488,7 +19487,7 @@ window.renderNotificationHistory = function() {
   `).join('');
 };
 
-window.clearNotificationHistory = function() {
+window.clearNotificationHistory = function () {
   state.notifications = [];
   localStorage.setItem('state_notifications', JSON.stringify([]));
   if (typeof window.renderNotificationHistory === 'function') {
@@ -19499,7 +19498,7 @@ window.clearNotificationHistory = function() {
   }
 };
 
-window.onSubscreenShow_preferences = function() {
+window.onSubscreenShow_preferences = function () {
   const appLockEnabled = localStorage.getItem('app_lock_enabled') === 'true';
   const appLockCheckbox = document.getElementById('settings-app-lock');
   if (appLockCheckbox) appLockCheckbox.checked = appLockEnabled;
@@ -19576,7 +19575,7 @@ window.closeNoteAutocomplete = closeNoteAutocomplete;
 function initDescriptionAutoGrow() {
   const descInput = document.getElementById('trans-description');
   if (!descInput || descInput.tagName !== 'TEXTAREA') return;
-  
+
   if (descInput.dataset.autogrowBound === 'true') {
     return;
   }
@@ -19590,7 +19589,7 @@ function initDescriptionAutoGrow() {
 
   descInput.addEventListener('input', updateHeight);
   descInput.addEventListener('focus', updateHeight);
-  
+
   window.updateDescriptionHeight = updateHeight;
 }
 
@@ -19609,20 +19608,20 @@ async function submitUserFeedback() {
   const chipBtn = document.querySelector('.feedback-chip.active');
   const type = chipBtn ? chipBtn.getAttribute('data-type') : 'suggestion';
   const commentVal = document.getElementById('feedback-comment').value.trim();
-  
+
   if (!rating) {
     alert(state.lang === 'el' ? 'Παρακαλώ επιλέξτε μια βαθμολογία!' : 'Please select a rating!');
     return;
   }
-  
+
   const submitBtn = document.getElementById('feedback-submit-btn');
   const textSpan = document.getElementById('feedback-btn-text');
   const spinnerDiv = document.getElementById('feedback-btn-spinner');
-  
+
   if (submitBtn) submitBtn.disabled = true;
   if (textSpan) textSpan.style.opacity = '0.3';
   if (spinnerDiv) spinnerDiv.style.display = 'block';
-  
+
   const feedbackData = {
     id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2),
     rating,
@@ -19631,12 +19630,12 @@ async function submitUserFeedback() {
     user_email: state.currentUser ? state.currentUser.email : 'guest',
     created_at: new Date().toISOString()
   };
-  
+
   // Save locally first
   const existingFeedback = JSON.parse(localStorage.getItem('user_feedback') || '[]');
   existingFeedback.push(feedbackData);
   localStorage.setItem('user_feedback', JSON.stringify(existingFeedback));
-  
+
   // Try sending to Supabase if logged in
   if (state.supabaseClient && state.currentUser) {
     try {
@@ -19648,7 +19647,7 @@ async function submitUserFeedback() {
           comment: feedbackData.comment,
           user_email: feedbackData.user_email
         }]);
-        
+
       if (error) {
         console.warn('Supabase feedback insert failed (table might not exist):', error);
       } else {
@@ -19658,25 +19657,25 @@ async function submitUserFeedback() {
       console.warn('Error syncing feedback to Supabase:', err);
     }
   }
-  
+
   // Wait a small amount for a smooth premium loading state
   setTimeout(() => {
     if (spinnerDiv) spinnerDiv.style.display = 'none';
     if (textSpan) textSpan.style.opacity = '1';
     if (submitBtn) submitBtn.disabled = false;
-    
+
     // Transition UI to success state
     const cardContainer = document.getElementById('feedback-card-container');
-    
+
     if (cardContainer) {
       // Clear inputs
       document.getElementById('feedback-comment').value = '';
       document.querySelectorAll('.emoji-rate-btn').forEach(btn => btn.classList.remove('active'));
-      
+
       // Toggle views inside card container
       const formContents = cardContainer.querySelectorAll('.feedback-rating-container, .feedback-form-group, #feedback-submit-btn');
       formContents.forEach(el => el.style.display = 'none');
-      
+
       // Insert success elements inside card container if not already there
       let successEl = document.getElementById('feedback-success-el');
       if (!successEl) {
@@ -19703,12 +19702,12 @@ function resetFeedbackForm() {
   if (cardContainer) {
     const successEl = document.getElementById('feedback-success-el');
     if (successEl) successEl.style.display = 'none';
-    
+
     const formContents = cardContainer.querySelectorAll('.feedback-rating-container, .feedback-form-group, #feedback-submit-btn');
     formContents.forEach(el => {
       el.style.display = '';
     });
-    
+
     // Reset inputs
     document.getElementById('feedback-comment').value = '';
     document.querySelectorAll('.emoji-rate-btn').forEach(btn => btn.classList.remove('active'));
@@ -19774,174 +19773,174 @@ document.addEventListener('DOMContentLoaded', () => {
   // Bind programmatic listeners for the new settings subscreens
   bindSettingsSubscreenListeners();
 
-function bindSettingsSubscreenListeners() {
-  const preferencesLangRow = document.getElementById('preferences-lang-row');
-  if (preferencesLangRow) {
-    preferencesLangRow.onclick = function() {
-      toggleLanguageSetting();
-    };
-  }
+  function bindSettingsSubscreenListeners() {
+    const preferencesLangRow = document.getElementById('preferences-lang-row');
+    if (preferencesLangRow) {
+      preferencesLangRow.onclick = function () {
+        toggleLanguageSetting();
+      };
+    }
 
-  const themeSelect = document.getElementById('settings-theme');
-  if (themeSelect) {
-    themeSelect.addEventListener('change', (e) => {
-      changeThemeSetting(e.target.value);
-    });
-  }
+    const themeSelect = document.getElementById('settings-theme');
+    if (themeSelect) {
+      themeSelect.addEventListener('change', (e) => {
+        changeThemeSetting(e.target.value);
+      });
+    }
 
-  const currencySelect = document.getElementById('settings-currency');
-  if (currencySelect) {
-    currencySelect.addEventListener('change', (e) => {
-      changeCurrencySetting(e.target.value);
-    });
-  }
+    const currencySelect = document.getElementById('settings-currency');
+    if (currencySelect) {
+      currencySelect.addEventListener('change', (e) => {
+        changeCurrencySetting(e.target.value);
+      });
+    }
 
-  const monthStartSelect = document.getElementById('settings-month-start');
-  if (monthStartSelect) {
-    monthStartSelect.addEventListener('change', (e) => {
-      changeMonthStartSetting(e.target.value);
-    });
-  }
+    const monthStartSelect = document.getElementById('settings-month-start');
+    if (monthStartSelect) {
+      monthStartSelect.addEventListener('change', (e) => {
+        changeMonthStartSetting(e.target.value);
+      });
+    }
 
-  const weekStartSelect = document.getElementById('settings-week-start');
-  if (weekStartSelect) {
-    weekStartSelect.addEventListener('change', (e) => {
-      changeWeekStartSetting(e.target.value);
-    });
-  }
+    const weekStartSelect = document.getElementById('settings-week-start');
+    if (weekStartSelect) {
+      weekStartSelect.addEventListener('change', (e) => {
+        changeWeekStartSetting(e.target.value);
+      });
+    }
 
-  const appLockCheckbox = document.getElementById('settings-app-lock');
-  if (appLockCheckbox) {
-    appLockCheckbox.addEventListener('change', (e) => {
-      toggleAppLock(e.target.checked);
-    });
-  }
+    const appLockCheckbox = document.getElementById('settings-app-lock');
+    if (appLockCheckbox) {
+      appLockCheckbox.addEventListener('change', (e) => {
+        toggleAppLock(e.target.checked);
+      });
+    }
 
-  const autocompleteCheckbox = document.getElementById('settings-autocomplete');
-  if (autocompleteCheckbox) {
-    autocompleteCheckbox.addEventListener('change', (e) => {
-      toggleAutocompleteSetting(e.target.checked);
-    });
-  }
+    const autocompleteCheckbox = document.getElementById('settings-autocomplete');
+    if (autocompleteCheckbox) {
+      autocompleteCheckbox.addEventListener('change', (e) => {
+        toggleAutocompleteSetting(e.target.checked);
+      });
+    }
 
-  const dailyReminderCheckbox = document.getElementById('settings-daily-reminder');
-  if (dailyReminderCheckbox) {
-    dailyReminderCheckbox.addEventListener('change', (e) => {
-      const enabled = e.target.checked;
-      localStorage.setItem('settings_daily_reminder_enabled', enabled ? 'true' : 'false');
-      const timeInput = document.getElementById('settings-daily-reminder-time');
-      const timeVal = timeInput ? timeInput.value : '21:00';
-      const timeRow = document.getElementById('settings-daily-reminder-time-row');
-      if (timeRow) timeRow.style.display = enabled ? 'flex' : 'none';
-      scheduleDailyReminder(enabled, timeVal);
-    });
-  }
+    const dailyReminderCheckbox = document.getElementById('settings-daily-reminder');
+    if (dailyReminderCheckbox) {
+      dailyReminderCheckbox.addEventListener('change', (e) => {
+        const enabled = e.target.checked;
+        localStorage.setItem('settings_daily_reminder_enabled', enabled ? 'true' : 'false');
+        const timeInput = document.getElementById('settings-daily-reminder-time');
+        const timeVal = timeInput ? timeInput.value : '21:00';
+        const timeRow = document.getElementById('settings-daily-reminder-time-row');
+        if (timeRow) timeRow.style.display = enabled ? 'flex' : 'none';
+        scheduleDailyReminder(enabled, timeVal);
+      });
+    }
 
-  const dailyReminderTimeInput = document.getElementById('settings-daily-reminder-time');
-  if (dailyReminderTimeInput) {
-    dailyReminderTimeInput.addEventListener('change', (e) => {
-      const timeVal = e.target.value;
-      localStorage.setItem('settings_daily_reminder_time', timeVal);
-      const chk = document.getElementById('settings-daily-reminder');
-      const enabled = chk ? chk.checked : false;
-      scheduleDailyReminder(enabled, timeVal);
-    });
-  }
+    const dailyReminderTimeInput = document.getElementById('settings-daily-reminder-time');
+    if (dailyReminderTimeInput) {
+      dailyReminderTimeInput.addEventListener('change', (e) => {
+        const timeVal = e.target.value;
+        localStorage.setItem('settings_daily_reminder_time', timeVal);
+        const chk = document.getElementById('settings-daily-reminder');
+        const enabled = chk ? chk.checked : false;
+        scheduleDailyReminder(enabled, timeVal);
+      });
+    }
 
-  const recurringAlertsCheckbox = document.getElementById('settings-recurring-alerts');
-  if (recurringAlertsCheckbox) {
-    recurringAlertsCheckbox.addEventListener('change', (e) => {
-      localStorage.setItem('settings_recurring_alerts_enabled', e.target.checked ? 'true' : 'false');
-    });
-  }
+    const recurringAlertsCheckbox = document.getElementById('settings-recurring-alerts');
+    if (recurringAlertsCheckbox) {
+      recurringAlertsCheckbox.addEventListener('change', (e) => {
+        localStorage.setItem('settings_recurring_alerts_enabled', e.target.checked ? 'true' : 'false');
+      });
+    }
 
-  const syncSupabaseRow = document.getElementById('sync-supabase-row');
-  if (syncSupabaseRow) {
-    syncSupabaseRow.addEventListener('click', () => {
-      openSupabaseSettings();
-    });
-  }
+    const syncSupabaseRow = document.getElementById('sync-supabase-row');
+    if (syncSupabaseRow) {
+      syncSupabaseRow.addEventListener('click', () => {
+        openSupabaseSettings();
+      });
+    }
 
-  const syncNowRow = document.getElementById('sync-now-row');
-  if (syncNowRow) {
-    syncNowRow.addEventListener('click', () => {
-      forceSyncNow();
-    });
-  }
+    const syncNowRow = document.getElementById('sync-now-row');
+    if (syncNowRow) {
+      syncNowRow.addEventListener('click', () => {
+        forceSyncNow();
+      });
+    }
 
-  const excelImportRow = document.getElementById('sync-excel-import-row');
-  if (excelImportRow) {
-    excelImportRow.addEventListener('click', () => {
-      openModal('excel-modal');
-    });
-  }
+    const excelImportRow = document.getElementById('sync-excel-import-row');
+    if (excelImportRow) {
+      excelImportRow.addEventListener('click', () => {
+        openModal('excel-modal');
+      });
+    }
 
-  const excelExportRow = document.getElementById('sync-excel-export-row');
-  if (excelExportRow) {
-    excelExportRow.addEventListener('click', () => {
-      openExportPeriodSheet();
-    });
-  }
+    const excelExportRow = document.getElementById('sync-excel-export-row');
+    if (excelExportRow) {
+      excelExportRow.addEventListener('click', () => {
+        openExportPeriodSheet();
+      });
+    }
 
-  const feedbackSubmitBtn = document.getElementById('feedback-submit-btn');
-  if (feedbackSubmitBtn) {
-    feedbackSubmitBtn.addEventListener('click', () => {
-      submitUserFeedback();
-    });
-  }
+    const feedbackSubmitBtn = document.getElementById('feedback-submit-btn');
+    if (feedbackSubmitBtn) {
+      feedbackSubmitBtn.addEventListener('click', () => {
+        submitUserFeedback();
+      });
+    }
 
-  const forceUpdateRow = document.getElementById('legal-force-update-row');
-  if (forceUpdateRow) {
-    forceUpdateRow.addEventListener('click', () => {
-      forceAppUpdate();
-    });
-  }
+    const forceUpdateRow = document.getElementById('legal-force-update-row');
+    if (forceUpdateRow) {
+      forceUpdateRow.addEventListener('click', () => {
+        forceAppUpdate();
+      });
+    }
 
-  const privacyRow = document.getElementById('legal-privacy-row');
-  if (privacyRow) {
-    privacyRow.addEventListener('click', () => {
-      window.open('privacy.html', '_blank');
-    });
-  }
+    const privacyRow = document.getElementById('legal-privacy-row');
+    if (privacyRow) {
+      privacyRow.addEventListener('click', () => {
+        window.open('privacy.html', '_blank');
+      });
+    }
 
-  const logoutRow = document.getElementById('legal-logout-row');
-  if (logoutRow) {
-    logoutRow.addEventListener('click', () => {
-      handleLogout();
-    });
-  }
+    const logoutRow = document.getElementById('legal-logout-row');
+    if (logoutRow) {
+      logoutRow.addEventListener('click', () => {
+        handleLogout();
+      });
+    }
 
-  const syncTrashRow = document.getElementById('sync-trash-row');
-  if (syncTrashRow) {
-    syncTrashRow.addEventListener('click', () => {
-      openTrashBinModal();
-    });
-  }
+    const syncTrashRow = document.getElementById('sync-trash-row');
+    if (syncTrashRow) {
+      syncTrashRow.addEventListener('click', () => {
+        openTrashBinModal();
+      });
+    }
 
-  const legalFeedbackRow = document.getElementById('legal-feedback-row');
-  if (legalFeedbackRow) {
-    legalFeedbackRow.addEventListener('click', () => {
-      openSettingsSubscreen('feedback', 'settings_feedback_title');
-    });
-  }
+    const legalFeedbackRow = document.getElementById('legal-feedback-row');
+    if (legalFeedbackRow) {
+      legalFeedbackRow.addEventListener('click', () => {
+        openSettingsSubscreen('feedback', 'settings_feedback_title');
+      });
+    }
 
-  const backBtn = document.getElementById('settings-subscreen-back-btn');
-  if (backBtn) {
-    backBtn.addEventListener('click', () => {
-      if (window._settingsSubscreenHistory && window._settingsSubscreenHistory.length > 0) {
-        const prev = window._settingsSubscreenHistory.pop();
-        openSettingsSubscreen(prev.id, prev.titleKey, true);
-      } else {
-        closeModal('settings-subscreen-modal');
-      }
-    });
+    const backBtn = document.getElementById('settings-subscreen-back-btn');
+    if (backBtn) {
+      backBtn.addEventListener('click', () => {
+        if (window._settingsSubscreenHistory && window._settingsSubscreenHistory.length > 0) {
+          const prev = window._settingsSubscreenHistory.pop();
+          openSettingsSubscreen(prev.id, prev.titleKey, true);
+        } else {
+          closeModal('settings-subscreen-modal');
+        }
+      });
+    }
   }
-}
 
   // Click handler for FHS card & "?" help icon
   const fhsCard = document.querySelector('.fhs-card');
   const fhsHelpTrigger = document.getElementById('fhs-help-trigger');
-  
+
   if (fhsHelpTrigger) {
     fhsHelpTrigger.addEventListener('click', (e) => {
       e.stopPropagation(); // Prevents the card click from firing
@@ -19949,7 +19948,7 @@ function bindSettingsSubscreenListeners() {
       openModal('fhs-details-modal');
     });
   }
-  
+
   if (fhsCard) {
     fhsCard.addEventListener('click', (e) => {
       if (!e.target.closest('#fhs-help-trigger')) {
@@ -19993,7 +19992,7 @@ function showFhsTab(tabName) {
   const methodologyBtn = document.getElementById('fhs-tab-methodology');
   const breakdownContent = document.getElementById('fhs-content-breakdown');
   const methodologyContent = document.getElementById('fhs-content-methodology');
-  
+
   if (tabName === 'breakdown') {
     if (breakdownBtn) {
       breakdownBtn.style.color = 'var(--text-primary)';
@@ -20083,7 +20082,7 @@ function openRecurringModal() {
     if (btnPerpetual) btnPerpetual.classList.remove('active');
     if (btnDate) btnDate.classList.add('active');
     if (dateContainer) dateContainer.style.display = 'flex';
-    
+
     if (_pendingRecurringSettings.endDate) {
       if (hiddenInput) hiddenInput.value = _pendingRecurringSettings.endDate;
       if (label) {
@@ -20144,7 +20143,7 @@ function selectRecurringEndType(type) {
   const btnPerpetual = document.getElementById('recurring-end-type-perpetual');
   const btnDate = document.getElementById('recurring-end-type-date');
   const dateContainer = document.getElementById('recurring-custom-end-date-container');
-  
+
   if (type === 'perpetual') {
     if (btnPerpetual) btnPerpetual.classList.add('active');
     if (btnDate) btnDate.classList.remove('active');
@@ -20157,7 +20156,7 @@ function selectRecurringEndType(type) {
     if (btnDate) btnDate.classList.add('active');
     if (dateContainer) dateContainer.style.display = 'flex';
     _pendingRecurringSettings.endType = 'date';
-    
+
     // Default to end of current year if no end date selected
     if (!_pendingRecurringSettings.endDate) {
       const today = new Date();
@@ -20166,10 +20165,10 @@ function selectRecurringEndType(type) {
       const mm = String(endOfYear.getMonth() + 1).padStart(2, '0');
       const dd = String(endOfYear.getDate()).padStart(2, '0');
       const formatted = `${yyyy}-${mm}-${dd}`;
-      
+
       const hiddenInput = document.getElementById('recurring-end-date');
       if (hiddenInput) hiddenInput.value = formatted;
-      
+
       const label = document.getElementById('recurring-end-date-label');
       if (label) {
         label.textContent = `${dd}/${mm}/${yyyy}`;
@@ -20199,7 +20198,7 @@ function updateRecurringSummary() {
     else if (preset === 'specific_months') {
       const shortMonths = _pendingRecurringSettings.months || [];
       const monthNames = GREEK_MONTHS_SHORT;
-      const selectedNames = shortMonths.sort((a,b) => a-b).map(m => monthNames[m - 1]).join(', ');
+      const selectedNames = shortMonths.sort((a, b) => a - b).map(m => monthNames[m - 1]).join(', ');
       freqPart = selectedNames ? `Στους μήνες (${selectedNames})` : 'Επιλεγμένους μήνες';
     } else {
       freqPart = 'Προσαρμοσμένα';
@@ -20212,7 +20211,7 @@ function updateRecurringSummary() {
     else if (preset === 'specific_months') {
       const shortMonths = _pendingRecurringSettings.months || [];
       const monthNames = ENGLISH_MONTHS_SHORT;
-      const selectedNames = shortMonths.sort((a,b) => a-b).map(m => monthNames[m - 1]).join(', ');
+      const selectedNames = shortMonths.sort((a, b) => a - b).map(m => monthNames[m - 1]).join(', ');
       freqPart = selectedNames ? `In months (${selectedNames})` : 'Selected months';
     } else {
       freqPart = 'Custom';
@@ -20248,15 +20247,15 @@ function updateRecurringSummary() {
     }
   }
 
-  summaryText.textContent = lang === 'el' 
-    ? `Θα δημιουργούνται: ${freqPart} ${endPart}` 
+  summaryText.textContent = lang === 'el'
+    ? `Θα δημιουργούνται: ${freqPart} ${endPart}`
     : `Will be created: ${freqPart} ${endPart}`;
 }
 window.updateRecurringSummary = updateRecurringSummary;
 
 function clearRecurringSettings(shouldCloseModal = true) {
   _pendingRecurringSettings = { isActive: false, days: [], months: [], years: [], preset: 'monthly', endType: 'perpetual', endDate: null, endYear: null };
-  
+
   const select = document.getElementById('recurring-simple-preset');
   if (select) {
     select.value = 'monthly';
@@ -20321,7 +20320,7 @@ window.onSimplePresetChange = onSimplePresetChange;
 function openAdvisorChat(initialQuery = null) {
   const modalId = 'advisor-chat-modal';
   openModal(modalId);
-  
+
   const chatLog = document.getElementById('advisor-chat-log');
   if (chatLog && chatLog.children.length === 0) {
     const welcome = state.lang === 'el'
@@ -20329,14 +20328,14 @@ function openAdvisorChat(initialQuery = null) {
       : "Hello! I am your personal **AI Financial Coach**. 🤖<br><br>I can analyze your transactions and help you save more. Select one of the suggestions below or ask me anything!";
     appendChatMessage('advisor', welcome);
   }
-  
+
   setTimeout(() => {
     // Skip auto-focus when restoring from background — keyboard would cause flicker
     if (window._appJustResumed) return;
     const inp = document.getElementById('advisor-chat-input');
     if (inp) inp.focus();
   }, 300);
-  
+
   if (initialQuery) {
     setTimeout(() => {
       submitCoachQuery(initialQuery);
@@ -20351,10 +20350,10 @@ function closeAdvisorChat() {
 function appendChatMessage(sender, htmlContent) {
   const chatLog = document.getElementById('advisor-chat-log');
   if (!chatLog) return;
-  
+
   const row = document.createElement('div');
   row.className = `chat-msg-row ${sender}`;
-  
+
   const bubble = document.createElement('div');
   bubble.className = 'chat-msg-bubble';
   if (sender === 'user') {
@@ -20362,10 +20361,10 @@ function appendChatMessage(sender, htmlContent) {
   } else {
     bubble.innerHTML = htmlContent.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
   }
-  
+
   row.appendChild(bubble);
   chatLog.appendChild(row);
-  
+
   chatLog.scrollTop = chatLog.scrollHeight;
 }
 
@@ -20395,12 +20394,12 @@ function submitCoachQuery(queryText) {
   } else if (queryText === 'milestone_50k') {
     userDisplay = state.lang === 'el' ? "Πότε θα φτάσω τα 50.000€;" : "When will I reach €50,000?";
   }
-  
+
   appendChatMessage('user', userDisplay);
-  
+
   const suggestions = document.getElementById('advisor-chat-suggestions-container');
   if (suggestions) suggestions.style.display = 'none';
-  
+
   const chatLog = document.getElementById('advisor-chat-log');
   const typingIndicatorRow = document.createElement('div');
   typingIndicatorRow.className = 'chat-msg-row advisor typing-temp';
@@ -20417,7 +20416,7 @@ function submitCoachQuery(queryText) {
     chatLog.appendChild(typingIndicatorRow);
     chatLog.scrollTop = chatLog.scrollHeight;
   }
-  
+
   // Execute immediately without artificial delays
   (async () => {
     // 1. Check if we should use Online AI (Gemini)
@@ -20430,7 +20429,7 @@ function submitCoachQuery(queryText) {
         const pacing = getCoachAveragePacing();
         const currentMonth = new Date().getMonth();
         const currentYear = new Date().getFullYear();
-        
+
         // Calculate this month's stats
         const thisMonthTrans = (state.transactions || []).filter(t => {
           if (!t.date || t.type === 'transfer') return false;
@@ -20439,7 +20438,7 @@ function submitCoachQuery(queryText) {
           if (parts.length !== 3) return false;
           return parseInt(parts[0], 10) === currentYear && (parseInt(parts[1], 10) - 1) === currentMonth;
         });
-        
+
         let thisMonthIncome = 0;
         let thisMonthExpense = 0;
         thisMonthTrans.forEach(t => {
@@ -20447,7 +20446,7 @@ function submitCoachQuery(queryText) {
           if (t.type === 'income') thisMonthIncome += amt;
           if (t.type === 'expense') thisMonthExpense += amt;
         });
-        
+
         // Map simplified allTransactions to save tokens
         const allTransactions = (state.transactions || []).map(t => ({
           id: t.id,
@@ -20481,14 +20480,14 @@ function submitCoachQuery(queryText) {
           accounts,
           allTransactions
         };
-        
+
         console.log('[AIEngine] Requesting Advisor advice from Gemini...', queryText, stats);
         if (!state.advisorChatHistory) {
           state.advisorChatHistory = [];
         }
         console.log('[AIEngine] Requesting Advisor advice from Gemini...', queryText, stats, 'History length:', state.advisorChatHistory.length);
         const data = await window.OnlineAIProvider.processAdvisorQuery(queryText, stats, state.advisorChatHistory);
-        
+
         // Remove typing indicator AFTER fetch completes
         const temp = document.querySelector('.typing-temp');
         if (temp) temp.remove();
@@ -20505,7 +20504,7 @@ function submitCoachQuery(queryText) {
           } else {
             // Tell the user the AI failed instead of silently falling back
             const lang = state.lang || 'el';
-            const msg = lang === 'el' 
+            const msg = lang === 'el'
               ? `⚠️ **Ο Online AI Σύμβουλος αντιμετώπισε πρόβλημα:**<br><br> ${data.error}<br><br><em>(Προσωρινή χρήση τοπικού συστήματος...)</em>`
               : `⚠️ **Online AI Advisor encountered an issue:**<br><br> ${data.error}<br><br><em>(Falling back to local system...)</em>`;
             appendChatMessage('advisor', msg);
@@ -20515,14 +20514,14 @@ function submitCoachQuery(queryText) {
 
         if (data && data.responseHtml) {
           appendChatMessage('advisor', data.responseHtml);
-          
+
           // Append to history
           state.advisorChatHistory.push({ role: 'user', content: queryText });
           state.advisorChatHistory.push({ role: 'model', content: data.responseHtml });
           if (state.advisorChatHistory.length > 12) {
             state.advisorChatHistory = state.advisorChatHistory.slice(-12);
           }
-          
+
           if (data.transactionsToAdd && Array.isArray(data.transactionsToAdd)) {
             data.transactionsToAdd.forEach(tx => {
               if (tx.amount && tx.amount > 0) {
@@ -20543,7 +20542,7 @@ function submitCoachQuery(queryText) {
                 const subcatVal = tx.subcategory || existing.subcategory || null;
                 const accVal = tx.account_from || existing.account_from || null;
                 const dateVal = tx.date || existing.date || null;
-                
+
                 const txHtml = runCoachTransactionEntry(
                   amountVal,
                   noteVal,
@@ -20571,7 +20570,7 @@ function submitCoachQuery(queryText) {
               }
             });
           }
-          
+
           // ONLINE-TO-OFFLINE LEARNING LOOP
           if (data.classifiedIntent && data.classifiedIntent !== 'unknown' && data.alternativePhrasings && Array.isArray(data.alternativePhrasings)) {
             if (window.IntentCorpus && window.IntentCorpus.learnFromGemini) {
@@ -20585,7 +20584,7 @@ function submitCoachQuery(queryText) {
               console.log('[AIEngine] Learned entities for KnowledgeGraph:', res);
             }
           }
-          
+
           if (suggestions) suggestions.style.display = 'block';
           return;
         }
@@ -20593,7 +20592,7 @@ function submitCoachQuery(queryText) {
         console.warn('[AIEngine] Online Advisor failed. Falling back to offline engine:', err);
       }
     }
-    
+
     // Remove typing indicator for offline fallback
     const temp = document.querySelector('.typing-temp');
     if (temp) temp.remove();
@@ -20601,7 +20600,7 @@ function submitCoachQuery(queryText) {
     // 2. Offline Fallback
     const responseHtml = processCoachQuery(queryText);
     appendChatMessage('advisor', responseHtml);
-    
+
     if (suggestions) suggestions.style.display = 'block';
   })();
 }
@@ -20609,7 +20608,7 @@ function submitCoachQuery(queryText) {
 function getCoachAveragePacing() {
   const trans = state.transactions || [];
   const monthlyData = {};
-  
+
   trans.forEach(t => {
     if (!t.date || t.type === 'transfer') return;
     const datePart = String(t.date).split('T')[0].split(' ')[0];
@@ -20619,19 +20618,19 @@ function getCoachAveragePacing() {
     const m = parseInt(parts[1], 10);
     const key = `${y}-${String(m).padStart(2, '0')}`;
     const amt = parseFloat(t.amount) || 0;
-    
+
     if (!monthlyData[key]) {
       monthlyData[key] = { income: 0, expense: 0 };
     }
     if (t.type === 'income') monthlyData[key].income += amt;
     if (t.type === 'expense') monthlyData[key].expense += amt;
   });
-  
+
   const keys = Object.keys(monthlyData).sort();
   if (keys.length === 0) {
     return { avgIncome: 0, avgExpense: 0, avgSavings: 0, totalBalance: 0 };
   }
-  
+
   const lastKeys = keys.slice(-3);
   let sumIncome = 0;
   let sumExpense = 0;
@@ -20639,14 +20638,14 @@ function getCoachAveragePacing() {
     sumIncome += monthlyData[k].income;
     sumExpense += monthlyData[k].expense;
   });
-  
+
   const monthsCount = lastKeys.length;
   const avgIncome = sumIncome / monthsCount;
   const avgExpense = sumExpense / monthsCount;
   const avgSavings = avgIncome - avgExpense;
-  
+
   const totalBalance = (state.accounts || []).reduce((sum, acc) => sum + (parseFloat(acc.balance) || 0), 0);
-  
+
   return { avgIncome, avgExpense, avgSavings, totalBalance };
 }
 
@@ -20654,11 +20653,11 @@ function runCoachOverspendingAnalysis() {
   const today = new Date();
   const currYear = today.getFullYear();
   const currMonth = today.getMonth();
-  
+
   const currMonthExpenses = {};
   const prevExpenses = {};
   const monthsSeen = new Set();
-  
+
   const trans = state.transactions || [];
   trans.forEach(t => {
     if (t.type !== 'expense' || !t.date) return;
@@ -20669,7 +20668,7 @@ function runCoachOverspendingAnalysis() {
     const m = parseInt(parts[1], 10) - 1;
     const amt = parseFloat(t.amount) || 0;
     const cat = t.category || 'Other';
-    
+
     if (y === currYear && m === currMonth) {
       currMonthExpenses[cat] = (currMonthExpenses[cat] || 0) + amt;
     } else {
@@ -20682,10 +20681,10 @@ function runCoachOverspendingAnalysis() {
       }
     }
   });
-  
+
   const numPrevMonths = Math.max(1, monthsSeen.size);
   const overspentCats = [];
-  
+
   Object.keys(currMonthExpenses).forEach(cat => {
     const currAmt = currMonthExpenses[cat] || 0;
     let sumPrev = 0;
@@ -20696,35 +20695,35 @@ function runCoachOverspendingAnalysis() {
     }
     const avgPrev = sumPrev / numPrevMonths;
     const diff = currAmt - avgPrev;
-    
+
     if (diff > 0) {
       const pct = avgPrev > 0 ? Math.round((diff / avgPrev) * 100) : 100;
       overspentCats.push({ cat, currAmt, avgPrev, diff, pct });
     }
   });
-  
+
   overspentCats.sort((a, b) => b.diff - a.diff);
-  
+
   if (overspentCats.length === 0) {
     return state.lang === 'el'
       ? "✅ **Όλα υπό έλεγχο!** Δεν εντοπίστηκε υπέρβαση εξόδων σε καμία κατηγορία αυτόν τον μήνα σε σχέση με τους προηγούμενους. Συνέχισε την εξαιρετική δουλειά! 👏"
       : "✅ **All under control!** No overspending was detected in any category this month compared to previous months. Keep up the great work! 👏";
   }
-  
+
   let html = state.lang === 'el'
     ? "⚠️ **Εντοπίστηκε υπέρβαση εξόδων στις εξής κατηγορίες:**<br><br>"
     : "⚠️ **Overspending detected in the following categories:**<br><br>";
-     
+
   overspentCats.slice(0, 3).forEach(item => {
     const dispCat = getCategoryDisplayName(item.cat);
     const pctStr = item.avgPrev > 0 ? ` (+${item.pct}%)` : ' (νέο έξοδο)';
     html += `• **${dispCat}**: Ξόδεψες **${formatCurrency(item.currAmt)}** αυτόν τον μήνα, ενώ ο προηγούμενος μέσος όρος σου ήταν **${formatCurrency(item.avgPrev)}**.<br>&nbsp;&nbsp;&nbsp;&nbsp;📈 Αύξηση: **+${formatCurrency(item.diff)}**${pctStr}.<br>`;
   });
-  
+
   html += state.lang === 'el'
     ? "<br>💡 *Συμβουλή: Πατήστε στο κουμπί 'Συζήτησέ το' δίπλα από την κατηγορία στην κάρτα του συμβούλου για να δεις ποιες συναλλαγές προκάλεσαν την αύξηση.*"
     : "<br>💡 *Tip: Tap the 'Discuss it' button next to the category in the advisor card to see which transactions caused the increase.*";
-     
+
   return html;
 }
 
@@ -20732,12 +20731,12 @@ function runCoachSavingsAdvice() {
   const today = new Date();
   const currYear = today.getFullYear();
   const currMonth = today.getMonth();
-  
+
   const nonEssentials = ['SUPERMARKET', 'MARKET', 'FOOD', 'ΔΙΑΤΡΟΦΗ', 'ΔΙΑΣΚΕΔΑΣΗ', 'ΕΞΟΔΟΙ', 'ENTERTAINMENT', 'LEISURE', 'SHOPPING', 'CLOTHES', 'ΠΡΟΣΩΠΙΚΗ', 'ΦΡΟΝΤΙΔΑ', 'PERSONAL', 'ΤΕΧΝΟΛΟΓΙΑ', 'TECH', 'GADGET', 'ΣΥΝΔΡΟΜΕΣ', 'SUBSCRIPTION'];
-  
+
   const trans = state.transactions || [];
   const catTotals = {};
-  
+
   trans.forEach(t => {
     if (t.type !== 'expense' || !t.date) return;
     const datePart = String(t.date).split('T')[0].split(' ')[0];
@@ -20746,13 +20745,13 @@ function runCoachSavingsAdvice() {
     const y = parseInt(parts[0], 10);
     const m = parseInt(parts[1], 10) - 1;
     const amt = parseFloat(t.amount) || 0;
-    
+
     if (y === currYear && m === currMonth) {
       const cat = t.category || 'Other';
       catTotals[cat] = (catTotals[cat] || 0) + amt;
     }
   });
-  
+
   const matches = [];
   Object.keys(catTotals).forEach(cat => {
     const clean = cat.replace(/[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF]/g, '').trim().toUpperCase();
@@ -20761,33 +20760,33 @@ function runCoachSavingsAdvice() {
       matches.push({ cat, amt: catTotals[cat] });
     }
   });
-  
+
   matches.sort((a, b) => b.amt - a.amt);
-  
+
   if (matches.length === 0) {
     return state.lang === 'el'
       ? "🎯 **Εξαιρετική οικονομία!** Δεν ξοδεύεις υπερβολικά σε προαιρετικά έξοδα αυτόν τον μήνα. Για να αποταμιεύσεις ακόμα περισσότερο, σκέψου να θέσεις έναν αυτόματο στόχο αποταμίευσης στην αρχή του μήνα."
       : "🎯 **Great economy!** You aren't spending excessively on discretionary categories this month. To save even more, consider setting an automatic savings goal at the start of the month.";
   }
-  
+
   let html = state.lang === 'el'
     ? "💡 **Ιδέες για να αυξήσεις την αποταμίευσή σου άμεσα:**<br><br>"
     : "💡 **Ideas to boost your savings immediately:**<br><br>";
-     
+
   matches.slice(0, 2).forEach(item => {
     const dispCat = getCategoryDisplayName(item.cat);
     const save10 = item.amt * 0.1;
     const save20 = item.amt * 0.2;
-    
+
     html += state.lang === 'el'
       ? `• **${dispCat}**: Έχεις ξοδέψει **${formatCurrency(item.amt)}** αυτόν τον μήνα.<br>&nbsp;&nbsp;&nbsp;&nbsp;📉 Μείωση 10%: Κέρδος **+${formatCurrency(save10)}** / μήνα (€${Math.round(save10 * 12)}/έτος).<br>&nbsp;&nbsp;&nbsp;&nbsp;📉 Μείωση 20%: Κέρδος **+${formatCurrency(save20)}** / μήνα (€${Math.round(save20 * 12)}/έτος).<br>`
       : `• **${dispCat}**: You spent **${formatCurrency(item.amt)}** this month.<br>&nbsp;&nbsp;&nbsp;&nbsp;📉 Cut 10%: Saves **+${formatCurrency(save10)}** / month (€${Math.round(save10 * 12)}/year).<br>&nbsp;&nbsp;&nbsp;&nbsp;📉 Cut 20%: Saves **+${formatCurrency(save20)}** / month (€${Math.round(save20 * 12)}/year).<br>`;
   });
-  
+
   html += state.lang === 'el'
     ? "<br>⚡ *Tip: Μπορείς να ορίσεις Budgets για αυτές τις κατηγορίες ώστε να λαμβάνεις ειδοποίηση μόλις πλησιάσεις το όριο!*"
     : "<br>⚡ *Tip: You can set Budgets for these categories to receive alerts when you approach your limit!*";
-     
+
   return html;
 }
 
@@ -20795,18 +20794,18 @@ function runCoachFiveYearForecast() {
   const pacing = getCoachAveragePacing();
   const startBalance = pacing.totalBalance;
   const monthlySavings = pacing.avgSavings;
-  
+
   let html = "";
   if (state.lang === 'el') {
     html += `📈 **Πρόβλεψη Εξέλιξης 5ετίας:**<br><br>`;
     html += `• Τρέχον Υπόλοιπο: **${formatCurrency(startBalance)}**<br>`;
     html += `• Μέση Μηνιαία Αποταμίευση: **${formatCurrency(monthlySavings)}**/μήνα<br><br>`;
-    
+
     if (monthlySavings <= 0) {
       html += `⚠️ **Προσοχή!** Ο μέσος ρυθμός αποταμίευσής σου είναι αρνητικός ή μηδενικός. Αν συνεχίσεις έτσι, η περιουσία σου δεν θα αυξηθεί και ενδέχεται να έχεις απώλειες. Προσπάθησε να μειώσεις τα έξοδά σου.`;
       return html;
     }
-    
+
     for (let year = 1; year <= 5; year++) {
       const projected = startBalance + (year * 12 * monthlySavings);
       html += `• **Έτος ${year}**: ${formatCurrency(projected)} (+${formatCurrency(year * 12 * monthlySavings)})<br>`;
@@ -20816,19 +20815,19 @@ function runCoachFiveYearForecast() {
     html += `📈 **5-Year Financial Projection:**<br><br>`;
     html += `• Current Balance: **${formatCurrency(startBalance)}**<br>`;
     html += `• Average Monthly Savings: **${formatCurrency(monthlySavings)}**/month<br><br>`;
-    
+
     if (monthlySavings <= 0) {
       html += `⚠️ **Warning!** Your average monthly savings rate is negative or zero. If this continues, your net worth will not grow and you might experience losses. Try to reduce your spending.`;
       return html;
     }
-    
+
     for (let year = 1; year <= 5; year++) {
       const projected = startBalance + (year * 12 * monthlySavings);
       html += `• **Year ${year}**: ${formatCurrency(projected)} (+${formatCurrency(year * 12 * monthlySavings)})<br>`;
     }
     html += `<br>🔮 *Projections are based on your average savings rate from the last 3 months.*`;
   }
-  
+
   return html;
 }
 
@@ -20836,26 +20835,26 @@ function runCoachTargetMilestone(targetAmount = 50000) {
   const pacing = getCoachAveragePacing();
   const startBalance = pacing.totalBalance;
   const monthlySavings = pacing.avgSavings;
-  
+
   let html = "";
   if (state.lang === 'el') {
     html += `🎯 **Ανάλυση Στόχου: ${formatCurrency(targetAmount)}**<br><br>`;
     html += `• Τρέχον Υπόλοιπο: **${formatCurrency(startBalance)}**<br>`;
     html += `• Υπολειπόμενο Ποσό: **${formatCurrency(Math.max(0, targetAmount - startBalance))}**<br>`;
-    
+
     if (startBalance >= targetAmount) {
       return `🎉 **Συγχαρητήρια!** Έχεις ήδη επιτύχει αυτόν τον στόχο! Το τρέχον υπόλοιπό σου είναι **${formatCurrency(startBalance)}**.`;
     }
-    
+
     if (monthlySavings <= 0) {
       return `⚠️ **Αδύνατη Πρόβλεψη**: Με τον τρέχοντα μέσο ρυθμό αποταμίευσής σου (**${formatCurrency(monthlySavings)}**/μήνα), δεν είναι δυνατή η επίτευξη του στόχου. Χρειάζεται να αυξήσεις τη μηνιαία αποταμίευσή σου για να ξεκινήσει η πρόοδος.`;
     }
-    
+
     const months = Math.ceil((targetAmount - startBalance) / monthlySavings);
     const targetDate = new Date();
     targetDate.setMonth(targetDate.getMonth() + months);
     const dateStr = targetDate.toLocaleDateString('el-GR', { month: 'long', year: 'numeric' });
-    
+
     html += `• Εκτιμώμενος Χρόνος: **${months} μήνες**<br>`;
     html += `• Ημερομηνία Επίτευξης: **${dateStr}**<br><br>`;
     html += `💡 *Συμβουλή: Αν αυξήσεις την αποταμίευσή σου κατά **€100/μήνα**, θα φτάσεις τον στόχο **${Math.max(1, Math.round(months - ((targetAmount - startBalance) / (monthlySavings + 100))))} μήνες νωρίτερα**!*`;
@@ -20863,25 +20862,25 @@ function runCoachTargetMilestone(targetAmount = 50000) {
     html += `🎯 **Target Analysis: ${formatCurrency(targetAmount)}**<br><br>`;
     html += `• Current Balance: **${formatCurrency(startBalance)}**<br>`;
     html += `• Remaining Amount: **${formatCurrency(Math.max(0, targetAmount - startBalance))}**<br>`;
-    
+
     if (startBalance >= targetAmount) {
       return `🎉 **Congratulations!** You have already reached this target! Your current balance is **${formatCurrency(startBalance)}**.`;
     }
-    
+
     if (monthlySavings <= 0) {
       return `⚠️ **Projection Impossible**: With your current average monthly savings rate (**${formatCurrency(monthlySavings)}**/month), you cannot reach this target. You need to increase your savings rate to make progress.`;
     }
-    
+
     const months = Math.ceil((targetAmount - startBalance) / monthlySavings);
     const targetDate = new Date();
     targetDate.setMonth(targetDate.getMonth() + months);
     const dateStr = targetDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-    
+
     html += `• Estimated Time: **${months} months**<br>`;
     html += `• Milestone Date: **${dateStr}**<br><br>`;
     html += `💡 *Tip: If you increase your savings by **€100/month**, you will reach your goal **${Math.max(1, Math.round(months - ((targetAmount - startBalance) / (monthlySavings + 100))))} months faster**!*`;
   }
-  
+
   return html;
 }
 
@@ -20889,7 +20888,7 @@ function runCoachCategoryAnalysis(categoryName) {
   const today = new Date();
   const currYear = today.getFullYear();
   const currMonth = today.getMonth();
-  
+
   const trans = state.transactions || [];
   const currMonthTrans = trans.filter(t => {
     if (t.type !== 'expense' || !t.date) return false;
@@ -20898,61 +20897,61 @@ function runCoachCategoryAnalysis(categoryName) {
     if (parts.length !== 3) return false;
     const y = parseInt(parts[0], 10);
     const m = parseInt(parts[1], 10) - 1;
-    
+
     const cleanT = t.category.replace(/[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF]/g, '').trim().toLowerCase();
     const cleanQuery = categoryName.replace(/[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF]/g, '').trim().toLowerCase();
-    
+
     return y === currYear && m === currMonth && (cleanT.includes(cleanQuery) || cleanQuery.includes(cleanT));
   });
-  
+
   if (currMonthTrans.length === 0) {
     return state.lang === 'el'
       ? `Δεν βρήκα έξοδα στην κατηγορία **${categoryName}** για αυτόν τον μήνα.`
       : `No expenses found in the **${categoryName}** category for this month.`;
   }
-  
+
   const totalAmt = currMonthTrans.reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
-  const top3 = currMonthTrans.sort((a,b) => (parseFloat(b.amount)||0) - (parseFloat(a.amount)||0)).slice(0, 3);
-  
+  const top3 = currMonthTrans.sort((a, b) => (parseFloat(b.amount) || 0) - (parseFloat(a.amount) || 0)).slice(0, 3);
+
   let html = "";
   if (state.lang === 'el') {
     html += `📋 **Ανάλυση Εξόδων κατηγορίας: ${categoryName}**<br><br>`;
     html += `• Συνολικά έξοδα μήνα: **${formatCurrency(totalAmt)}**<br>`;
     html += `• Πλήθος συναλλαγών: **${currMonthTrans.length}**<br><br>`;
     html += `🔍 **Οι 3 μεγαλύτερες συναλλαγές:**<br>`;
-    
+
     top3.forEach((t, idx) => {
       const dateObj = new Date(t.date);
       const formattedDate = dateObj.toLocaleDateString('el-GR', { day: '2-digit', month: '2-digit' });
       const translatedSub = getSubcategoryDisplayName(t.subcategory, t.category);
       const translatedCat = getCategoryDisplayName(t.category);
       const displayTitle = (t.note && t.note.trim()) ? t.note.trim()
-                         : (t.description && t.description.trim()) ? t.description.trim()
-                         : (translatedSub && translatedSub.trim()) ? translatedSub.trim()
-                         : (translatedCat || '');
-                         
-      html += `${idx+1}. **${formattedDate}**: ${escapeHtml(displayTitle)} — **${formatCurrency(t.amount)}**<br>`;
+        : (t.description && t.description.trim()) ? t.description.trim()
+          : (translatedSub && translatedSub.trim()) ? translatedSub.trim()
+            : (translatedCat || '');
+
+      html += `${idx + 1}. **${formattedDate}**: ${escapeHtml(displayTitle)} — **${formatCurrency(t.amount)}**<br>`;
     });
   } else {
     html += `📋 **Expense Analysis for: ${categoryName}**<br><br>`;
     html += `• Total monthly expenses: **${formatCurrency(totalAmt)}**<br>`;
     html += `• Total transactions count: **${currMonthTrans.length}**<br><br>`;
     html += `🔍 **Top 3 largest transactions:**<br>`;
-    
+
     top3.forEach((t, idx) => {
       const dateObj = new Date(t.date);
       const formattedDate = dateObj.toLocaleDateString('en-US', { day: '2-digit', month: '2-digit' });
       const translatedSub = getSubcategoryDisplayName(t.subcategory, t.category);
       const translatedCat = getCategoryDisplayName(t.category);
       const displayTitle = (t.note && t.note.trim()) ? t.note.trim()
-                         : (t.description && t.description.trim()) ? t.description.trim()
-                         : (translatedSub && translatedSub.trim()) ? translatedSub.trim()
-                         : (translatedCat || '');
-                         
-      html += `${idx+1}. **${formattedDate}**: ${escapeHtml(displayTitle)} — **${formatCurrency(t.amount)}**<br>`;
+        : (t.description && t.description.trim()) ? t.description.trim()
+          : (translatedSub && translatedSub.trim()) ? translatedSub.trim()
+            : (translatedCat || '');
+
+      html += `${idx + 1}. **${formattedDate}**: ${escapeHtml(displayTitle)} — **${formatCurrency(t.amount)}**<br>`;
     });
   }
-  
+
   return html;
 }
 
@@ -20969,22 +20968,22 @@ function normalizeGreekString(str) {
 function predictCategoryFromHistory(noteText) {
   const cleanNote = normalizeGreekString(noteText);
   if (!cleanNote) return null;
-  
+
   const trans = state.transactions || [];
   const categoryCounts = {};
-  
+
   trans.forEach(t => {
     if (t.type !== 'expense') return;
     const cNote = normalizeGreekString(t.note || '');
     const cDesc = normalizeGreekString(t.description || '');
     if ((cNote && cleanNote.includes(cNote)) || (cDesc && cleanNote.includes(cDesc)) || (cNote && cNote.includes(cleanNote)) || (cDesc && cDesc.includes(cleanNote))) {
       if ((cNote && cNote.length > 2) || (cDesc && cDesc.length > 2) || cleanNote.length > 2) {
-         categoryCounts[t.category] = (categoryCounts[t.category] || 0) + 1;
+        categoryCounts[t.category] = (categoryCounts[t.category] || 0) + 1;
       }
     }
   });
-  
-  const sorted = Object.keys(categoryCounts).sort((a,b) => categoryCounts[b] - categoryCounts[a]);
+
+  const sorted = Object.keys(categoryCounts).sort((a, b) => categoryCounts[b] - categoryCounts[a]);
   return sorted.length > 0 ? sorted[0] : null;
 }
 
@@ -20992,12 +20991,12 @@ function getSubcategoriesForCategory(category) {
   if (!category) return [];
   const cleanedCat = stripLeadingEmoji(category).toUpperCase();
   const uniqueSubcats = new Set();
-  
+
   const defaults = DEFAULT_SUBCATEGORIES_MAP[cleanedCat];
   if (defaults) {
     defaults.forEach(sub => uniqueSubcats.add(sub));
   }
-  
+
   (state.transactions || []).forEach(t => {
     if (t.category && stripLeadingEmoji(t.category).toUpperCase() === cleanedCat) {
       if (t.subcategory && t.subcategory.trim() !== '') {
@@ -21011,10 +21010,10 @@ function getSubcategoriesForCategory(category) {
 function predictSubcategoryFromHistory(category, noteText) {
   const cleanNote = normalizeGreekString(noteText);
   if (!cleanNote || !category) return '';
-  
+
   const trans = state.transactions || [];
   const subcatCounts = {};
-  
+
   trans.forEach(t => {
     if (t.type !== 'expense' || t.category !== category) return;
     const cNote = normalizeGreekString(t.note || '');
@@ -21025,10 +21024,10 @@ function predictSubcategoryFromHistory(category, noteText) {
       }
     }
   });
-  
-  const sorted = Object.keys(subcatCounts).sort((a,b) => subcatCounts[b] - subcatCounts[a]);
+
+  const sorted = Object.keys(subcatCounts).sort((a, b) => subcatCounts[b] - subcatCounts[a]);
   if (sorted.length > 0) return sorted[0];
-  
+
   // Try matching subcategory names by keyword
   const subcats = getSubcategoriesForCategory(category);
   for (const sub of subcats) {
@@ -21037,7 +21036,7 @@ function predictSubcategoryFromHistory(category, noteText) {
       return sub;
     }
   }
-  
+
   // Custom heuristics
   const cleanedCat = stripLeadingEmoji(category).toUpperCase();
   if (cleanedCat === 'ΔΙΑΤΡΟΦΗ') {
@@ -21050,24 +21049,24 @@ function predictSubcategoryFromHistory(category, noteText) {
       if (match) return match;
     }
   }
-  
+
   return '';
 }
 
-window.updateCoachSubcategories = function(catSelectId, subcatSelectId, defaultSubcat = '') {
+window.updateCoachSubcategories = function (catSelectId, subcatSelectId, defaultSubcat = '') {
   const catSelect = document.getElementById(catSelectId);
   const subcatSelect = document.getElementById(subcatSelectId);
   if (!catSelect || !subcatSelect) return;
-  
+
   const selectedCategory = catSelect.value;
   subcatSelect.innerHTML = '';
-  
+
   const noneText = state.lang === 'el' ? 'Χωρίς υποκατηγορία' : 'No subcategory';
   const noneOpt = document.createElement('option');
   noneOpt.value = '';
   noneOpt.textContent = noneText;
   subcatSelect.appendChild(noneOpt);
-  
+
   const subcategories = getSubcategoriesForCategory(selectedCategory);
   subcategories.forEach(sub => {
     const opt = document.createElement('option');
@@ -21084,9 +21083,9 @@ function runCoachTransactionEntry(amount, noteText, type = 'expense', category =
   if (isNaN(amount) || amount <= 0) {
     return state.lang === 'el' ? "🤖 Παρακαλώ δώσε ένα έγκυρο ποσό (π.χ. 'βάλε 40 για ρεύμα')." : "🤖 Please provide a valid amount (e.g., 'add 40 for electric bill').";
   }
-  
+
   let predictedCat = category || predictCategoryFromHistory(noteText);
-  
+
   if (!predictedCat) {
     const cleanNote = normalizeGreekString(noteText);
     if (cleanNote.includes('βενζινη') || cleanNote.includes('αμαξι') || cleanNote.includes('διοδια') || cleanNote.includes('παρκινγκ')) predictedCat = '🚗 ΑΥΤΟΚΙΝΗΤΟ';
@@ -21097,20 +21096,20 @@ function runCoachTransactionEntry(amount, noteText, type = 'expense', category =
     else if (cleanNote.includes('κομμωτηριο') || cleanNote.includes('κουρειο') || cleanNote.includes('νυχια')) predictedCat = '👕 ΠΡΟΣΩΠΙΚΗ ΦΡΟΝΤΙΔΑ';
     else if (cleanNote.includes('γυμναστηριο')) predictedCat = '🏋️ΓΥΜΝΑΣΤΗΡΙΟ';
   }
-  
+
   const expenseCats = (state.categories || []).filter(c => c.type === 'expense');
   if (expenseCats.length === 0) expenseCats.push({ name: '🧩ΔΙΑΦΟΡΑ ΕΞΟΔΑ' });
-  
+
   if (predictedCat && !expenseCats.some(c => c.name === predictedCat)) {
     predictedCat = null;
   }
-  
+
   if (!predictedCat) {
     predictedCat = expenseCats[0].name;
   }
-  
+
   const predictedSub = subcategory !== null ? subcategory : predictSubcategoryFromHistory(predictedCat, noteText);
-  
+
   // Find accounts options
   let accOptionsHtml = '';
   let defaultAccount = 'Card';
@@ -21119,7 +21118,7 @@ function runCoachTransactionEntry(amount, noteText, type = 'expense', category =
     const cashAcc = state.accounts.find(acc => acc.type === 'cash' || acc.name.toLowerCase().trim() === 'cash' || acc.name.trim() === 'Μετρητά');
     const defaultAcc = cardAcc || cashAcc || state.accounts[0];
     defaultAccount = accountFrom || defaultAcc.name;
-    
+
     state.accounts.forEach(acc => {
       const selected = acc.name === defaultAccount ? 'selected' : '';
       accOptionsHtml += `<option value="${acc.name}" ${selected}>${acc.name}</option>`;
@@ -21128,7 +21127,7 @@ function runCoachTransactionEntry(amount, noteText, type = 'expense', category =
     accOptionsHtml = `<option value="Card" selected>${state.lang === 'el' ? 'Κάρτα' : 'Card'}</option>
                       <option value="Cash">${state.lang === 'el' ? 'Μετρητά' : 'Cash'}</option>`;
   }
-  
+
   // Calculate local datetime string for input defaultValue
   let defaultDateTime;
   if (dateStr) {
@@ -21140,7 +21139,7 @@ function runCoachTransactionEntry(amount, noteText, type = 'expense', category =
     const tzOffset = now.getTimezoneOffset() * 60000;
     defaultDateTime = new Date(now.getTime() - tzOffset).toISOString().slice(0, 16);
   }
-  
+
   const seed = Math.floor(Math.random() * 1000000);
   const amtInputId = 'coach-tx-amt-input-' + seed;
   const noteInputId = 'coach-tx-note-input-' + seed;
@@ -21149,26 +21148,26 @@ function runCoachTransactionEntry(amount, noteText, type = 'expense', category =
   const subcatSelectId = 'coach-tx-subcat-select-' + seed;
   const accSelectId = 'coach-tx-acc-select-' + seed;
   const btnId = 'coach-tx-btn-' + seed;
-  
+
   let catOptionsHtml = '';
   expenseCats.forEach(c => {
     const selected = c.name === predictedCat ? 'selected' : '';
     catOptionsHtml += `<option value="${c.name}" ${selected}>${getCategoryDisplayName(c.name)}</option>`;
   });
-  
+
   const subcategories = getSubcategoriesForCategory(predictedCat);
   let subOptionsHtml = `<option value="">${state.lang === 'el' ? 'Χωρίς υποκατηγορία' : 'No subcategory'}</option>`;
   subcategories.forEach(sub => {
     const selected = sub === predictedSub ? 'selected' : '';
     subOptionsHtml += `<option value="${sub}" ${selected}>${getSubcategoryDisplayName(sub, predictedCat)}</option>`;
   });
-  
+
   let html = "";
   if (state.lang === 'el') {
     html += id ? `🤖 **Επεξεργασία Συναλλαγής:**<br><br>` : `🤖 **Νέα Συναλλαγή:**<br><br>`;
-    
+
     html += `<div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; text-align: left;">`;
-    
+
     // Amount & Note inputs (side-by-side)
     html += `  <div style="display: flex; gap: 8px;">
                  <div style="flex: 1; display: flex; flex-direction: column; gap: 3px;">
@@ -21180,13 +21179,13 @@ function runCoachTransactionEntry(amount, noteText, type = 'expense', category =
                    <input type="text" id="${noteInputId}" value="${noteText.replace(/"/g, '&quot;')}" style="width:100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-family: inherit; font-size: 0.95rem;">
                  </div>
                </div>`;
-               
+
     // Date & Time input
     html += `  <div style="display: flex; flex-direction: column; gap: 3px;">
                  <label style="font-size: 11px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">Ημερομηνία & Ώρα</label>
                  <input type="datetime-local" id="${dateInputId}" value="${defaultDateTime}" style="width:100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-family: inherit; font-size: 0.95rem;">
                </div>`;
-               
+
     // Category & Subcategory selects
     html += `  <div style="display: flex; gap: 8px;">
                  <div style="flex: 1; display: flex; flex-direction: column; gap: 3px;">
@@ -21202,7 +21201,7 @@ function runCoachTransactionEntry(amount, noteText, type = 'expense', category =
                    </select>
                  </div>
                </div>`;
-               
+
     // Account select
     html += `  <div style="display: flex; flex-direction: column; gap: 3px;">
                  <label style="font-size: 11px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">Τρόπος πληρωμής</label>
@@ -21211,15 +21210,15 @@ function runCoachTransactionEntry(amount, noteText, type = 'expense', category =
                  </select>
                </div>`;
     html += `</div>`;
-    
+
     html += `<button id="${btnId}" class="btn btn-primary" style="width:100%; padding: 12px; font-weight: 700; border-radius: 8px;" onclick="window.submitCoachTransaction(document.getElementById('${amtInputId}').value, '${type}', document.getElementById('${catSelectId}').value, document.getElementById('${subcatSelectId}').value, document.getElementById('${accSelectId}').value, document.getElementById('${noteInputId}').value, document.getElementById('${dateInputId}').value, this.id, '${id || ''}')">
                ✅ ${id ? 'Αποθήκευση Αλλαγών' : 'Καταχώρηση'}
              </button>`;
   } else {
     html += id ? `🤖 **Edit Transaction:**<br><br>` : `🤖 **New Transaction:**<br><br>`;
-    
+
     html += `<div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; text-align: left;">`;
-    
+
     // Amount & Note inputs (side-by-side)
     html += `  <div style="display: flex; gap: 8px;">
                  <div style="flex: 1; display: flex; flex-direction: column; gap: 3px;">
@@ -21231,13 +21230,13 @@ function runCoachTransactionEntry(amount, noteText, type = 'expense', category =
                    <input type="text" id="${noteInputId}" value="${noteText.replace(/"/g, '&quot;')}" style="width:100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-family: inherit; font-size: 0.95rem;">
                  </div>
                </div>`;
-               
+
     // Date & Time input
     html += `  <div style="display: flex; flex-direction: column; gap: 3px;">
                  <label style="font-size: 11px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">Date & Time</label>
                  <input type="datetime-local" id="${dateInputId}" value="${defaultDateTime}" style="width:100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-family: inherit; font-size: 0.95rem;">
                </div>`;
-               
+
     // Category & Subcategory selects
     html += `  <div style="display: flex; gap: 8px;">
                  <div style="flex: 1; display: flex; flex-direction: column; gap: 3px;">
@@ -21253,7 +21252,7 @@ function runCoachTransactionEntry(amount, noteText, type = 'expense', category =
                    </select>
                  </div>
                </div>`;
-               
+
     // Account select
     html += `  <div style="display: flex; flex-direction: column; gap: 3px;">
                  <label style="font-size: 11px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">Payment Method</label>
@@ -21262,7 +21261,7 @@ function runCoachTransactionEntry(amount, noteText, type = 'expense', category =
                  </select>
                </div>`;
     html += `</div>`;
-    
+
     html += `<button id="${btnId}" class="btn btn-primary" style="width:100%; padding: 12px; font-weight: 700; border-radius: 8px;" onclick="window.submitCoachTransaction(document.getElementById('${amtInputId}').value, '${type}', document.getElementById('${catSelectId}').value, document.getElementById('${subcatSelectId}').value, document.getElementById('${accSelectId}').value, document.getElementById('${noteInputId}').value, document.getElementById('${dateInputId}').value, this.id, '${id || ''}')">
                ✅ ${id ? 'Save Changes' : 'Save Transaction'}
              </button>`;
@@ -21276,7 +21275,7 @@ function runCoachTopCategories() {
   const currMonth = today.getMonth();
   const trans = state.transactions || [];
   const totals = {};
-  
+
   trans.forEach(t => {
     if (t.type !== 'expense' || !t.date) return;
     const parts = String(t.date).split('T')[0].split(' ')[0].split('-');
@@ -21285,15 +21284,15 @@ function runCoachTopCategories() {
       totals[t.category] = (totals[t.category] || 0) + (parseFloat(t.amount) || 0);
     }
   });
-  
-  const sorted = Object.keys(totals).map(cat => ({ cat, amt: totals[cat] })).sort((a,b) => b.amt - a.amt);
+
+  const sorted = Object.keys(totals).map(cat => ({ cat, amt: totals[cat] })).sort((a, b) => b.amt - a.amt);
   if (sorted.length === 0) {
     return state.lang === 'el' ? "📊 Δεν βρέθηκαν έξοδα για αυτόν τον μήνα." : "📊 No expenses found for this month.";
   }
-  
+
   let html = state.lang === 'el' ? "📊 **Οι κατηγορίες με τα περισσότερα έξοδα αυτόν τον μήνα:**<br><br>" : "📊 **Your top spending categories this month:**<br><br>";
   sorted.slice(0, 3).forEach((item, idx) => {
-    html += `${idx+1}. **${getCategoryDisplayName(item.cat)}**: **${formatCurrency(item.amt)}**<br>`;
+    html += `${idx + 1}. **${getCategoryDisplayName(item.cat)}**: **${formatCurrency(item.amt)}**<br>`;
   });
   return html;
 }
@@ -21302,30 +21301,30 @@ function runCoachWhatIfSimulation(amount, itemName = null) {
   const pacing = getCoachAveragePacing();
   const startBalance = pacing.totalBalance;
   const monthlySavings = pacing.avgSavings;
-  
+
   if (isNaN(amount) || amount <= 0) {
     return state.lang === 'el' ? "Παρακαλώ δώσε ένα έγκυρο ποσό για την προσομοίωση." : "Please provide a valid amount for the simulation.";
   }
-  
+
   const nameStr = itemName ? `**${itemName}**` : (state.lang === 'el' ? "αυτή την αγορά" : "this purchase");
   const remainingBalance = startBalance - amount;
-  
+
   let html = "";
   if (state.lang === 'el') {
     html += `🔮 **Προσομοίωση Αγοράς (What-If): ${formatCurrency(amount)}**<br><br>`;
     html += `Αν προχωρήσεις στην αγορά για ${nameStr} αξίας **${formatCurrency(amount)}**:<br><br>`;
     html += `• Το τρέχον υπόλοιπό σου θα μειωθεί από **${formatCurrency(startBalance)}** σε **${formatCurrency(remainingBalance)}**.<br>`;
-    
+
     if (remainingBalance < 0) {
       html += `🔴 **Προσοχή!** Το υπόλοιπό σου θα γίνει αρνητικό (**${formatCurrency(remainingBalance)}**). Αυτή η αγορά ξεπερνά τις οικονομικές σου δυνατότητες αυτή τη στιγμή.<br>`;
     } else {
       html += `🟢 Διατηρείς θετικό υπόλοιπο ασφαλείας (**${formatCurrency(remainingBalance)}**).<br>`;
     }
-    
+
     if (monthlySavings > 0) {
       const monthsDelay = Math.ceil(amount / monthlySavings);
       html += `• Θα χρειαστείς **${monthsDelay} μήνες** αποταμίευσης για να αναπληρώσεις αυτό το ποσό.<br>`;
-      
+
       const targetAmount = 50000;
       if (startBalance < targetAmount) {
         const originalMonths = Math.ceil((targetAmount - startBalance) / monthlySavings);
@@ -21337,17 +21336,17 @@ function runCoachWhatIfSimulation(amount, itemName = null) {
     html += `🔮 **What-If Purchase Simulation: ${formatCurrency(amount)}**<br><br>`;
     html += `If you purchase ${nameStr} for **${formatCurrency(amount)}**:<br><br>`;
     html += `• Your balance will decrease from **${formatCurrency(startBalance)}** to **${formatCurrency(remainingBalance)}**.<br>`;
-    
+
     if (remainingBalance < 0) {
       html += `🔴 **Warning!** Your balance will drop to negative (**${formatCurrency(remainingBalance)}**). This purchase is beyond your current financial limit.<br>`;
     } else {
       html += `🟢 You maintain a positive buffer of **${formatCurrency(remainingBalance)}**.<br>`;
     }
-    
+
     if (monthlySavings > 0) {
       const monthsDelay = Math.ceil(amount / monthlySavings);
       html += `• It will take you **${monthsDelay} months** of savings to recover this amount.<br>`;
-      
+
       const targetAmount = 50000;
       if (startBalance < targetAmount) {
         const originalMonths = Math.ceil((targetAmount - startBalance) / monthlySavings);
@@ -21364,37 +21363,37 @@ function runCoachSearchQuery(keyword) {
   const trans = state.transactions || [];
   const today = new Date();
   const currentYear = today.getFullYear();
-  
+
   const matchedTrans = trans.filter(t => {
     if (!t.date || t.type === 'transfer') return false;
-    
+
     const datePart = String(t.date).split('T')[0];
     const parts = datePart.split('-');
     if (parts.length !== 3) return false;
     const y = parseInt(parts[0], 10);
     if (y !== currentYear) return false;
-    
+
     const cleanCat = normalizeGreekString(t.category);
     const cleanSub = normalizeGreekString(t.subcategory || '');
     const cleanNote = normalizeGreekString(t.note || '');
     const cleanDesc = normalizeGreekString(t.description || '');
-    
-    return cleanCat.includes(cleanKeyword) || 
-           cleanSub.includes(cleanKeyword) || 
-           cleanNote.includes(cleanKeyword) || 
-           cleanDesc.includes(cleanKeyword);
+
+    return cleanCat.includes(cleanKeyword) ||
+      cleanSub.includes(cleanKeyword) ||
+      cleanNote.includes(cleanKeyword) ||
+      cleanDesc.includes(cleanKeyword);
   });
-  
+
   if (matchedTrans.length === 0) {
     return state.lang === 'el'
       ? `Δεν βρήκα καμία συναλλαγή φέτος με τον όρο **"${keyword}"**.`
       : `No transactions found this year with the term **"${keyword}"**.`;
   }
-  
+
   const totalAmt = matchedTrans.reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
   const count = matchedTrans.length;
   const avg = totalAmt / count;
-  
+
   let html = "";
   if (state.lang === 'el') {
     html += `🔍 **Αποτελέσματα Αναζήτησης για: "${keyword}"**<br><br>`;
@@ -21415,7 +21414,7 @@ function runCoachSearchQuery(keyword) {
 function processCoachQuery(queryText) {
   const normQuery = normalizeGreekString(queryText);
   const cleanQuery = queryText.toLowerCase().trim();
-  
+
   if (cleanQuery === 'overspending') {
     return runCoachOverspendingAnalysis();
   }
@@ -21429,7 +21428,7 @@ function processCoachQuery(queryText) {
     const amt = parseInt(cleanQuery.replace('milestone_', ''), 10) || 50000;
     return runCoachTargetMilestone(amt);
   }
-  
+
   // 0. Action commands (add transaction)
   const isAddCommand = normQuery.includes('βαλε') || normQuery.includes('προσθεσε') || normQuery.includes('καταχωρησε') || normQuery.includes('χρεωσε') || normQuery.includes('ξοδεψα') || normQuery.includes('εδωσα') || normQuery.includes('πληρωσα') || normQuery.includes('add') || normQuery.includes('spent');
   const numMatchAction = cleanQuery.replace(/\./g, '').match(/\d+/);
@@ -21439,19 +21438,19 @@ function processCoachQuery(queryText) {
     const stopWords = ['βαλε', 'προσθεσε', 'καταχωρησε', 'χρεωσε', 'ξοδεψα', 'εδωσα', 'πληρωσα', 'ευρω', 'ευρω', 'euro', 'σε', 'στο', 'στην', 'στα', 'στον', 'για', 'απο', 'ενα', 'μια', 'add', 'spent', 'paid', 'for', 'on', 'euros'];
     const words = noteText.split(/\s+/).filter(w => w.length > 1 && !stopWords.includes(normalizeGreekString(w)));
     const cleanNote = words.join(' ') || '';
-    
+
     // Distinguish between sum search "ποσα ξοδεψα" and action "ξοδεψα 40"
     if (!normQuery.includes('ποσα') && !normQuery.includes('ποσο') && !normQuery.includes('how much') && !normQuery.includes('τι ')) {
       return runCoachTransactionEntry(amount, cleanNote);
     }
   }
-  
+
   // 1. Discuss Category Increase
   if (normQuery.includes('γιατι αυξηθηκαν') || normQuery.includes('why did my') || normQuery.includes('αυξηθηκαν') || normQuery.includes('did my') || normQuery.includes('αυξηση')) {
     let catName = "";
     const grMatch = queryText.match(/οι\s+([α-ωΑ-ΩάέήίόύώΆΈΉΊΌΎΏϊϋΐΰa-zA-Z\s]+?)\s+μου/i);
     const enMatch = queryText.match(/my\s+([a-zA-Z\s]+?)\s+rose/i) || queryText.match(/did\s+([a-zA-Z\s]+?)\s+increase/i);
-    
+
     if (grMatch && grMatch[1]) catName = grMatch[1].trim();
     else if (enMatch && enMatch[1]) catName = enMatch[1].trim();
     else {
@@ -21460,12 +21459,12 @@ function processCoachQuery(queryText) {
       const possibleCats = words.filter(w => w.length > 2 && !stopWords.includes(w));
       if (possibleCats.length > 0) catName = possibleCats[0];
     }
-    
+
     if (catName) {
       return runCoachCategoryAnalysis(catName);
     }
   }
-  
+
   // 2. What-If Simulator
   const numMatch = cleanQuery.replace(/\./g, '').match(/\d+/);
   const isSimulation = normQuery.includes('αγορασ') || normQuery.includes('αγορα') || normQuery.includes('παρω') || normQuery.includes('buy') || normQuery.includes('purchase');
@@ -21477,7 +21476,7 @@ function processCoachQuery(queryText) {
     const cleanItemName = words.join(' ') || null;
     return runCoachWhatIfSimulation(amount, cleanItemName);
   }
-  
+
   // 3. Milestone Target
   if (normQuery.includes('φτασω') || normQuery.includes('reach') || normQuery.includes('αποκτησω') || normQuery.includes('στοχο') || normQuery.includes('target') || normQuery.includes('μαζεψω') || normQuery.includes('εχω')) {
     if (numMatch) {
@@ -21485,7 +21484,7 @@ function processCoachQuery(queryText) {
       return runCoachTargetMilestone(amt);
     }
   }
-  
+
   // 4. Budgets Status
   if (normQuery.includes('προϋπολογισμ') || normQuery.includes('προϋπολογισμο') || normQuery.includes('προϋπολογισμοι') || normQuery.includes('προϋπολογισμους') || normQuery.includes('proypologism') || normQuery.includes('budget') || normQuery.includes('οριο') || normQuery.includes('ορια')) {
     const budgets = state.budgets || {};
@@ -21498,15 +21497,15 @@ function processCoachQuery(queryText) {
       const today = new Date();
       return t.type === 'expense' && y === today.getFullYear() && m === today.getMonth();
     });
-    
+
     const expenseTotals = {};
     activeExpenses.forEach(t => {
       expenseTotals[t.category] = (expenseTotals[t.category] || 0) + (parseFloat(t.amount) || 0);
     });
-    
+
     let html = state.lang === 'el' ? "📊 **Κατάσταση Προϋπολογισμών (Budgets):**<br><br>" : "📊 **Budget Status:**<br><br>";
     let hasBudgets = false;
-    
+
     Object.keys(budgets).forEach(cat => {
       const limit = parseFloat(budgets[cat]) || 0;
       if (limit > 0) {
@@ -21518,7 +21517,7 @@ function processCoachQuery(queryText) {
         html += `${indicator} **${dispCat}**: ${formatCurrency(spent)} / ${formatCurrency(limit)} (**${pct}%**)<br>`;
       }
     });
-    
+
     if (!hasBudgets) {
       return state.lang === 'el'
         ? "📊 Δεν έχεις ορίσει προϋπολογισμούς ακόμα. Μπορείς να ορίσεις Budgets πηγαίνοντας στα **Περισσότερα -> Όρια Κατηγοριών**."
@@ -21526,28 +21525,28 @@ function processCoachQuery(queryText) {
     }
     return html;
   }
-  
+
   // 5. Top categories breakdown
   if (normQuery.includes('που ξοδευω τα περισσοτερα') || normQuery.includes('που ξοδευω τα') || normQuery.includes('που πανε τα λεφτα') || normQuery.includes('μεγαλυτερα εξοδα') || normQuery.includes('where do i spend') || normQuery.includes('top spending')) {
     return runCoachTopCategories();
   }
-  
+
   // 6. Conversational Sum Search (e.g. "πόσα ξόδεψα σε καφέ", "πόσα λεφτά έχω χαλάσει στο κομμωτήριο φέτος")
   const isSpendingQuery = normQuery.includes('ποσα') || normQuery.includes('ποσο') || normQuery.includes('how much') || normQuery.includes('how many') || normQuery.includes('spent') || normQuery.includes('xodepsa') || normQuery.includes('xodepsame') || normQuery.includes('xalasa') || normQuery.includes('xalasame');
   if (isSpendingQuery) {
     let keyword = "";
     const grMatch = queryText.match(/(?:σε|για|στο|στη|στην|στα|στον|στους|στις)\s+([α-ωΑ-ΩάέήίόύώΆΈΉΊΌΎΏϊϋΐΰa-zA-Z\s]+)/i);
     const enMatch = queryText.match(/(?:on|for|at|in)\s+([a-zA-Z\s]+)/i);
-    
+
     if (grMatch && grMatch[1]) {
       keyword = grMatch[1].trim();
     } else if (enMatch && enMatch[1]) {
       keyword = enMatch[1].trim();
     } else {
       const stopWords = [
-        'ποσα', 'ποσο', 'ποσα λεφτα', 'ποσο λεφτα', 'λεφτα', 'χρηματα', 'εχω', 'εχουμε', 'χαλασει', 'χαλασα', 
-        'χαλασαμε', 'ξοδεψει', 'ξοδεψα', 'ξοδεψαμε', 'εδωσα', 'εδωσαμε', 'δωσει', 'πληρωσα', 'πληρωσαμε', 
-        'πληρωσει', 'φετος', 'μηνα', 'ετος', 'σημερα', 'χθες', 'how', 'much', 'did', 'i', 'spend', 'spent', 
+        'ποσα', 'ποσο', 'ποσα λεφτα', 'ποσο λεφτα', 'λεφτα', 'χρηματα', 'εχω', 'εχουμε', 'χαλασει', 'χαλασα',
+        'χαλασαμε', 'ξοδεψει', 'ξοδεψα', 'ξοδεψαμε', 'εδωσα', 'εδωσαμε', 'δωσει', 'πληρωσα', 'πληρωσαμε',
+        'πληρωσει', 'φετος', 'μηνα', 'ετος', 'σημερα', 'χθες', 'how', 'much', 'did', 'i', 'spend', 'spent',
         'on', 'for', 'this', 'year', 'month', 'today', 'yesterday'
       ];
       const words = normQuery.split(/\s+/).filter(w => w.length > 2 && !stopWords.includes(w));
@@ -21555,7 +21554,7 @@ function processCoachQuery(queryText) {
         keyword = words[0];
       }
     }
-    
+
     if (keyword) {
       keyword = keyword.replace(/(?:φετος|φέτος|αυτον|τον|μηνα|μήνα|αυτο|το|ετος|έτος|this year|this month|year|month)/gi, '').trim();
       if (keyword) {
@@ -21563,19 +21562,19 @@ function processCoachQuery(queryText) {
       }
     }
   }
-  
+
   // 7. General search fallback
-  const cleanKeyword = cleanQuery.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"").trim();
+  const cleanKeyword = cleanQuery.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "").trim();
   if (cleanKeyword.length >= 2) {
     return runCoachSearchQuery(cleanKeyword);
   }
-  
+
   return state.lang === 'el'
     ? `🤖 **Δεν μπόρεσα να κατανοήσω πλήρως την ερώτηση.**<br><br>Μπορείς να δοκιμάσεις κάποια από τις έτοιμες προτάσεις από κάτω, ή να ρωτήσεις για μια συγκεκριμένη κατηγορία/λέξη (π.χ. «καφέ», «φαγητό», «βενζίνη», «υπερβολικά», «αποταμίευση»).`
     : `🤖 **I couldn't quite understand the question.**<br><br>You can try using one of the suggestion chips below, or ask about a specific category or search term (e.g., 'coffee', 'food', 'petrol', 'overspending', 'savings').`;
 }
 
-window.submitCoachTransaction = async function(amount, type, category, subcategory, accountFrom, note, dateString, btnId, id = null) {
+window.submitCoachTransaction = async function (amount, type, category, subcategory, accountFrom, note, dateString, btnId, id = null) {
   const btn = document.getElementById(btnId);
   if (btn) {
     btn.disabled = true;
@@ -21604,7 +21603,7 @@ window.submitCoachTransaction = async function(amount, type, category, subcatego
     date: dateString ? new Date(dateString).toISOString() : new Date().toISOString(),
     user_id: state.userId
   };
-  
+
   saveTransaction(transaction).then(() => {
     if (btn) {
       btn.innerHTML = state.lang === 'el' ? '✅ Καταχωρήθηκε!' : '✅ Saved!';
@@ -21771,7 +21770,7 @@ function renderTrashBinList() {
     }
 
     const restoreText = TRANSLATIONS[lang]['restore'] || 'Restore';
-    
+
     // Format date nicely
     let formattedDate = t.date || '';
     try {
@@ -21783,7 +21782,7 @@ function renderTrashBinList() {
           year: 'numeric'
         });
       }
-    } catch(e) {}
+    } catch (e) { }
 
     const itemHtml = `
       <div class="trash-item-row" style="display: flex; flex-direction: row; align-items: center; justify-content: space-between; padding: 12px 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg-card); gap: 12px; box-sizing: border-box; width: 100%;">
@@ -21859,7 +21858,7 @@ async function restoreTransaction(id) {
 async function emptyTrashBin() {
   const lang = state.lang || 'el';
   const confirmMsg = lang === 'el' ? 'Να διαγραφούν οριστικά αυτές οι κινήσεις;' : 'Permanently delete these transactions?';
-  
+
   const confirmed = await showConfirm(confirmMsg, lang === 'el' ? 'Εκκαθάριση Κάδου' : 'Empty Trash', '🗑️');
   if (!confirmed) return;
 
@@ -21883,7 +21882,7 @@ async function emptyTrashBin() {
       }
     });
     localStorage.setItem('dismissed_recovered_templates', JSON.stringify(dismissed));
-  } catch (e) {}
+  } catch (e) { }
 
   state.trashTransactions = [];
   localStorage.setItem('deleted_transactions_trash', JSON.stringify(state.trashTransactions));
@@ -21910,27 +21909,27 @@ window.emptyTrashBin = emptyTrashBin;
 // ============================================================
 async function onboardingAddDemoData() {
   closeModal('onboarding-modal');
-  
+
   // Show progress feedback
   const authOverlay = document.getElementById('auth-overlay');
   const loadingState = document.getElementById('auth-loading-state');
   const formsContainer = document.getElementById('auth-forms-container');
   const authCard = document.getElementById('auth-card');
-  
+
   if (authOverlay) authOverlay.style.display = 'flex';
   if (loadingState) loadingState.style.display = 'flex';
   if (authCard) authCard.style.display = 'none';
   if (formsContainer) formsContainer.style.display = 'none';
-  
+
   const getDemoDateISO = (day) => {
     const y = new Date().getFullYear();
     const m = String(new Date().getMonth() + 1).padStart(2, '0');
     const d = String(day).padStart(2, '0');
     return `${y}-${m}-${d}T12:00:00Z`;
   };
-  
+
   const uid = state.currentUser ? state.currentUser.id : 'guest';
-  
+
   const demoTxs = [
     { amount: 1800, type: 'income', category: '💼 Μισθός', subcategory: '', date: getDemoDateISO(1), note: 'Μισθός', description: 'Μηνιαία πληρωμή', account_from: 'Bank Account', account_to: '' },
     { amount: 450, type: 'expense', category: '🏠 Σπίτι', subcategory: '', date: getDemoDateISO(2), note: 'Ενοίκιο σπιτιού', description: 'Μηνιαίο ενοίκιο', account_from: 'Bank Account', account_to: '' },
@@ -21943,7 +21942,7 @@ async function onboardingAddDemoData() {
     { amount: 150, type: 'transfer', category: 'Μεταφορά', subcategory: '', date: getDemoDateISO(18), note: 'Μεταφορά στην κάρτα', description: 'Μεταφορά χρημάτων για καθημερινά έξοδα', account_from: 'Bank Account', account_to: 'Card' },
     { amount: 14.5, type: 'expense', category: '🍔 Τρόφιμα', subcategory: '', date: getDemoDateISO(20), note: 'Πίτσες', description: 'Παραγγελία έτοιμου φαγητού', account_from: 'Card', account_to: '' }
   ];
-  
+
   // Save all transactions
   try {
     for (const item of demoTxs) {
@@ -21961,14 +21960,14 @@ async function onboardingAddDemoData() {
         user_id: uid,
         is_demo: true
       };
-      
+
       if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
         await saveTransaction(tx);
       } else {
         saveTransactionOffline(tx);
       }
     }
-    
+
     // Reload & Update UI
     await loadData();
     updateUI();
@@ -21979,9 +21978,9 @@ async function onboardingAddDemoData() {
     if (authOverlay) authOverlay.style.display = 'none';
     if (loadingState) loadingState.style.display = 'none';
   }
-  
-  const msg = state.lang === 'el' 
-    ? '🎉 Τα παραδείγματα προστέθηκαν! Μπορείτε να τα σβήσετε όποτε θέλετε πηγαίνοντας στις ρυθμίσεις: "Περισσότερα -> Δεδομένα & Συγχρονισμός -> Καθαρισμός δοκιμαστικών δεδομένων".' 
+
+  const msg = state.lang === 'el'
+    ? '🎉 Τα παραδείγματα προστέθηκαν! Μπορείτε να τα σβήσετε όποτε θέλετε πηγαίνοντας στις ρυθμίσεις: "Περισσότερα -> Δεδομένα & Συγχρονισμός -> Καθαρισμός δοκιμαστικών δεδομένων".'
     : '🎉 Demo data added successfully! You can delete them at any time from Settings -> Data & Sync.';
   window.showAlert(msg, state.lang === 'el' ? 'Έτοιμο!' : 'Success', 'ℹ️');
 }
@@ -21996,16 +21995,16 @@ function onboardingShowGuide() {
   const lang = state.lang || 'el';
   const welcomeText = lang === 'el'
     ? '👋 Γεια σας! Είμαι ο ψηφιακός σας βοηθός για τα οικογενειακά οικονομικά. Ας δούμε γρήγορα πώς λειτουργεί η εφαρμογή:\n\n' +
-      '1️⃣ **Γράψτε ένα έξοδο:** Πατήστε το κουμπί **"+"** κάτω-κάτω. Μπορείτε να πληκτρολογήσετε, να μιλήσετε ή ακόμα και να βγάλετε φωτογραφία μια απόδειξη.\n' +
-      '2️⃣ **Κοινό πορτοφόλι:** Από το μενού **"Περισσότερα -> Διαχείριση Οικογένειας"** μπορείτε να συνδεθείτε με τον/την σύντροφό σας για να βλέπετε μαζί τα έξοδα της οικογένειας.\n' +
-      '3️⃣ **Έξυπνες ερωτήσεις:** Εδώ στο chat μπορείτε να με ρωτήσετε ό,τι θέλετε με απλά λόγια, π.χ. "πόσα δώσαμε για σουπερμάρκετ;" ή "κάνε μου μια πρόβλεψη για τον επόμενο μήνα".\n\n' +
-      'Πώς μπορώ να σας βοηθήσω σήμερα;'
+    '1️⃣ **Γράψτε ένα έξοδο:** Πατήστε το κουμπί **"+"** κάτω-κάτω. Μπορείτε να πληκτρολογήσετε, να μιλήσετε ή ακόμα και να βγάλετε φωτογραφία μια απόδειξη.\n' +
+    '2️⃣ **Κοινό πορτοφόλι:** Από το μενού **"Περισσότερα -> Διαχείριση Οικογένειας"** μπορείτε να συνδεθείτε με τον/την σύντροφό σας για να βλέπετε μαζί τα έξοδα της οικογένειας.\n' +
+    '3️⃣ **Έξυπνες ερωτήσεις:** Εδώ στο chat μπορείτε να με ρωτήσετε ό,τι θέλετε με απλά λόγια, π.χ. "πόσα δώσαμε για σουπερμάρκετ;" ή "κάνε μου μια πρόβλεψη για τον επόμενο μήνα".\n\n' +
+    'Πώς μπορώ να σας βοηθήσω σήμερα;'
     : '👋 Hello! I am your AI Coach. Let\'s do a quick tour:\n\n' +
-      '1️⃣ **Tracking:** Tap the **"+"** button at the bottom to quickly log transactions via keypad, voice or receipts.\n' +
-      '2️⃣ **Shared Budget:** From **"More -> Family Management"** you can link with your partner for real-time synchronization.\n' +
-      '3️⃣ **AI Analysis:** You can ask me anything right here, e.g. "How much did I spend this month?" or "Give me an expense forecast".\n\n' +
-      'How can I help you today?';
-      
+    '1️⃣ **Tracking:** Tap the **"+"** button at the bottom to quickly log transactions via keypad, voice or receipts.\n' +
+    '2️⃣ **Shared Budget:** From **"More -> Family Management"** you can link with your partner for real-time synchronization.\n' +
+    '3️⃣ **AI Analysis:** You can ask me anything right here, e.g. "How much did I spend this month?" or "Give me an expense forecast".\n\n' +
+    'How can I help you today?';
+
   openAdvisorChat();
   const chatList = document.getElementById('advisor-chat-messages');
   if (chatList) chatList.innerHTML = '';
@@ -22019,20 +22018,20 @@ async function onboardingClearDemoData() {
     '🗑️'
   );
   if (!confirmed) return;
-  
+
   // Show progress feedback
   const authOverlay = document.getElementById('auth-overlay');
   const loadingState = document.getElementById('auth-loading-state');
   const formsContainer = document.getElementById('auth-forms-container');
   const authCard = document.getElementById('auth-card');
-  
+
   if (authOverlay) authOverlay.style.display = 'flex';
   if (loadingState) loadingState.style.display = 'flex';
   if (authCard) authCard.style.display = 'none';
   if (formsContainer) formsContainer.style.display = 'none';
-  
+
   const demoTxs = state.transactions.filter(t => t.id && (String(t.id).startsWith('demo_') || t.is_demo));
-  
+
   try {
     if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
       // Delete from Supabase
@@ -22041,11 +22040,11 @@ async function onboardingClearDemoData() {
         await state.supabaseClient.from('transactions').delete().in('id', ids);
       }
     }
-    
+
     // Delete from local memory/cache
     state.transactions = state.transactions.filter(t => !(t.id && (String(t.id).startsWith('demo_') || t.is_demo)));
     localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
-    
+
     // Reload & Update UI
     await loadData();
     updateUI();
@@ -22056,14 +22055,14 @@ async function onboardingClearDemoData() {
     if (authOverlay) authOverlay.style.display = 'none';
     if (loadingState) loadingState.style.display = 'none';
   }
-  
-  const msg = state.lang === 'el' 
-    ? '🗑️ Όλα τα δοκιμαστικά δεδομένα σβήστηκαν!' 
+
+  const msg = state.lang === 'el'
+    ? '🗑️ Όλα τα δοκιμαστικά δεδομένα σβήστηκαν!'
     : '🗑️ All demo data deleted successfully!';
   window.showAlert(msg, state.lang === 'el' ? 'Έτοιμο!' : 'Success', 'ℹ️');
 }
 
-window.onSubscreenShow_sync = function() {
+window.onSubscreenShow_sync = function () {
   const hasDemo = state.transactions.some(t => t.id && (String(t.id).startsWith('demo_') || t.is_demo));
   const row = document.getElementById('sync-demo-clear-row');
   if (row) {
@@ -22121,9 +22120,9 @@ function clearCacheAndReset() {
 window.clearCacheAndReset = clearCacheAndReset;
 
 
-  setTimeout(() => {
-    forceViewportReset();
-  }, 800);
+setTimeout(() => {
+  forceViewportReset();
+}, 800);
 
 // ============================================================
 // BILINGUAL USER GUIDE (ΟΔΗΓΟΣ ΧΡΗΣΗΣ) ENGINE
@@ -22141,39 +22140,39 @@ function updateUserGuideHeaderBadges() {
   if (langLabel) langLabel.textContent = window._userGuideLang === 'el' ? 'EN' : 'ΕΛ';
 }
 
-window.openUserGuideModal = function() {
+window.openUserGuideModal = function () {
   window._userGuideLang = state.lang || 'el';
   updateUserGuideHeaderBadges();
   renderUserGuideContent();
   openModal('user-guide-modal');
 };
 
-window.toggleUserGuideLanguage = function() {
+window.toggleUserGuideLanguage = function () {
   window._userGuideLang = (window._userGuideLang === 'el') ? 'en' : 'el';
   updateUserGuideHeaderBadges();
   renderUserGuideContent();
 };
 
-window.filterUserGuide = function(query) {
+window.filterUserGuide = function (query) {
   const clearBtn = document.getElementById('user-guide-search-clear');
   if (clearBtn) clearBtn.style.display = query ? 'block' : 'none';
   renderUserGuideContent(query);
 };
 
-window.clearUserGuideSearch = function() {
+window.clearUserGuideSearch = function () {
   const input = document.getElementById('user-guide-search-input');
   if (input) input.value = '';
   window.filterUserGuide('');
 };
 
-window.toggleGuideChapter = function(chapterId) {
+window.toggleGuideChapter = function (chapterId) {
   const item = document.getElementById(`guide-chap-${chapterId}`);
   if (item) {
     item.classList.toggle('active');
   }
 };
 
-window.jumpToGuideChapter = function(chapterId) {
+window.jumpToGuideChapter = function (chapterId) {
   const item = document.getElementById(`guide-chap-${chapterId}`);
   if (item) {
     item.classList.add('active');
@@ -22669,8 +22668,8 @@ function openRecurringDeleteModal(target, occurrenceDateStr) {
     if (tx) {
       const match = (state.recurringTemplates || []).find(t => {
         return (parseFloat(tx.amount) || 0).toFixed(2) === (parseFloat(t.amount) || 0).toFixed(2) &&
-               tx.type === t.type &&
-               tx.category === t.category;
+          tx.type === t.type &&
+          tx.category === t.category;
       });
       if (match) templateId = match.id;
     }
@@ -22695,7 +22694,7 @@ window.openRecurringDeleteModal = openRecurringDeleteModal;
 
 function handleRecurringDeleteStep1() {
   const selectedScope = document.querySelector('input[name="recurring_delete_scope"]:checked')?.value || 'single';
-  
+
   if (selectedScope === 'all') {
     closeModal('recurring-delete-step1-modal');
     openModal('recurring-delete-step2-modal');
@@ -22734,8 +22733,8 @@ async function executeRecurringDelete(scope) {
     : anchorDate;
 
   if (scope === 'single') {
-    subtitleText = lang === 'el' 
-      ? `🔄 Επαναλαμβανόμενη • Μόνο αυτή η κίνηση (${anchorDate})` 
+    subtitleText = lang === 'el'
+      ? `🔄 Επαναλαμβανόμενη • Μόνο αυτή η κίνηση (${anchorDate})`
       : `🔄 Recurring • Single occurrence (${anchorDate})`;
 
     if (templateId && anchorDate) {
@@ -22753,10 +22752,10 @@ async function executeRecurringDelete(scope) {
     state.transactions = state.transactions.filter(t => {
       const tDate = String(t.date || '').split('T')[0];
       const match = (txId && String(t.id) === String(txId)) ||
-                    (tDate === anchorDate && (
-                      (templateId && String(t.recurring_template_id) === String(templateId)) ||
-                      (parseFloat(t.amount || 0).toFixed(2) === (ctx.amount).toFixed(2) && t.category === ctx.category)
-                    ));
+        (tDate === anchorDate && (
+          (templateId && String(t.recurring_template_id) === String(templateId)) ||
+          (parseFloat(t.amount || 0).toFixed(2) === (ctx.amount).toFixed(2) && t.category === ctx.category)
+        ));
       if (match) {
         affectedTransactions.push({ ...t });
         affectedTransactionIds.push(t.id);
@@ -22766,8 +22765,8 @@ async function executeRecurringDelete(scope) {
     });
 
   } else if (scope === 'future') {
-    subtitleText = lang === 'el' 
-      ? `🔄 Επαναλαμβανόμενη • Από ${monthStr} και μετά` 
+    subtitleText = lang === 'el'
+      ? `🔄 Επαναλαμβανόμενη • Από ${monthStr} και μετά`
       : `🔄 Recurring • From ${monthStr} onwards`;
 
     state.transactions = state.transactions.filter(t => {
@@ -22791,13 +22790,13 @@ async function executeRecurringDelete(scope) {
     }
 
   } else if (scope === 'all') {
-    subtitleText = lang === 'el' 
-      ? `🔄 Επαναλαμβανόμενη • Όλη η σειρά` 
+    subtitleText = lang === 'el'
+      ? `🔄 Επαναλαμβανόμενη • Όλη η σειρά`
       : `🔄 Recurring • Full series`;
 
     state.transactions = state.transactions.filter(t => {
       const match = (templateId && String(t.recurring_template_id) === String(templateId)) ||
-                    (parseFloat(t.amount || 0).toFixed(2) === (ctx.amount).toFixed(2) && t.category === ctx.category);
+        (parseFloat(t.amount || 0).toFixed(2) === (ctx.amount).toFixed(2) && t.category === ctx.category);
       if (match) {
         affectedTransactions.push({ ...t });
         affectedTransactionIds.push(t.id);
