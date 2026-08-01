@@ -674,7 +674,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v992 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v993 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1044,7 +1044,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v992 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v993 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -21541,12 +21541,12 @@ function processCoachQuery(queryText) {
   }
 
   // 0. Action commands (add transaction)
-  const isAddCommand = normQuery.includes('βαλε') || normQuery.includes('προσθεσε') || normQuery.includes('καταχωρησε') || normQuery.includes('χρεωσε') || normQuery.includes('ξοδεψα') || normQuery.includes('εδωσα') || normQuery.includes('πληρωσα') || normQuery.includes('add') || normQuery.includes('spent');
+  const isAddCommand = normQuery.includes('βαλε') || normQuery.includes('προσθεσε') || normQuery.includes('καταχωρησε') || normQuery.includes('χρεωσε') || normQuery.includes('ξοδεψα') || normQuery.includes('εδωσα') || normQuery.includes('πληρωσα') || normQuery.includes('χάλασα') || normQuery.includes('xalasa') || normQuery.includes('χάλασαμε') || normQuery.includes('xalasame') || normQuery.includes('add') || normQuery.includes('spent');
   const numMatchAction = cleanQuery.replace(/\./g, '').match(/\d+/);
   if (isAddCommand && numMatchAction) {
     const amount = parseInt(numMatchAction[0], 10);
     let noteText = queryText.replace(/\d+/g, '').replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?¿€]/g, '').trim();
-    const stopWords = ['βαλε', 'προσθεσε', 'καταχωρησε', 'χρεωσε', 'ξοδεψα', 'εδωσα', 'πληρωσα', 'ευρω', 'ευρω', 'euro', 'σε', 'στο', 'στην', 'στα', 'στον', 'για', 'απο', 'ενα', 'μια', 'add', 'spent', 'paid', 'for', 'on', 'euros'];
+    const stopWords = ['βαλε', 'προσθεσε', 'καταχωρησε', 'χρεωσε', 'ξοδεψα', 'εδωσα', 'πληρωσα', 'χάλασα', 'xalasa', 'χάλασαμε', 'xalasame', 'ευρω', 'ευρω', 'euro', 'σε', 'στο', 'στην', 'στα', 'στον', 'για', 'απο', 'ενα', 'μια', 'add', 'spent', 'paid', 'for', 'on', 'euros'];
     const words = noteText.split(/\s+/).filter(w => w.length > 1 && !stopWords.includes(normalizeGreekString(w)));
     const cleanNote = words.join(' ') || '';
 
