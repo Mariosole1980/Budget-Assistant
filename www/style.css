@@ -7519,6 +7519,22 @@ mark.guide-highlight {
   z-index: 10000 !important;
 }
 
+/* Modals opened from within the settings subscreen (Data & Sync) must render
+   ABOVE the subscreen modal (z-index 10000). Their default .modal-overlay /
+   bottom-sheet z-index (1000/1001) would otherwise place them behind it. */
+#excel-modal,
+#supabase-modal {
+  z-index: 10500 !important;
+}
+
+#export-period-backdrop {
+  z-index: 10500 !important;
+}
+
+#export-period-bottom-sheet {
+  z-index: 10501 !important;
+}
+
 #settings-subscreen-modal .modal-card {
   position: fixed !important;
   top: 0 !important;
