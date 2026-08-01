@@ -674,7 +674,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v985 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v986 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1044,7 +1044,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v985 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v986 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -2521,8 +2521,17 @@ function initSupabaseAuth() {
             // to Supabase before we load the fresh dataset.
             await processSyncQueue({ skipReload: true });
 
-            await loadData();
-            updateUI();
+            // ANTI-FLICKER: On a full reload (e.g. after a long background where
+            // the OS reloaded the WebView), loadData() re-renders the tab with
+            // fresh cloud data on top of the cached render. Suppress transitions
+            // during this re-render so the DOM wipe is invisible to the user.
+            window._suppressTransitions = true;
+            try {
+              await loadData();
+              updateUI();
+            } finally {
+              setTimeout(() => { window._suppressTransitions = false; }, 1500);
+            }
 
             // Start automatic polling sync
             startPartnerSyncPolling();
@@ -2595,8 +2604,13 @@ function initSupabaseAuth() {
         updateHeaderProfileBadge();
 
         // Load offline data and render
-        await loadData();
-        updateUI();
+        window._suppressTransitions = true;
+        try {
+          await loadData();
+          updateUI();
+        } finally {
+          setTimeout(() => { window._suppressTransitions = false; }, 1500);
+        }
         renderPartnerSection();
       } else {
         const alreadyShowing = authOverlay && authOverlay.style.display === 'flex' && formsContainer && formsContainer.style.display === 'block';
@@ -4726,7 +4740,22 @@ function updateUI() {
     if (_updateUIRAF) cancelAnimationFrame(_updateUIRAF);
     _updateUIRAF = requestAnimationFrame(() => {
       _updateUIRAF = null;
-      _updateUIImpl();
+      // ANTI-FLICKER: When _suppressTransitions is set (e.g. during the
+      // startup loadData() re-render after a long background where the OS
+      // reloaded the WebView), wrap the DOM wipe/re-render in no-transition
+      // so the tab content does not visibly flash. This covers the full-reload
+      // path that forceSyncNow's own guard cannot reach.
+      const suppress = !!window._suppressTransitions;
+      if (suppress) document.documentElement.classList.add('no-transition');
+      try {
+        _updateUIImpl();
+      } finally {
+        if (suppress) {
+          setTimeout(() => {
+            document.documentElement.classList.remove('no-transition');
+          }, 1000);
+        }
+      }
     });
   }, baseDelay);
 }
@@ -16706,8 +16735,15 @@ async function enterGuestMode() {
   }
 
   // Load data & update UI
-  await loadData();
-  updateUI();
+  // ANTI-FLICKER: Suppress transitions during the guest-mode data load +
+  // re-render so the DOM wipe is invisible (covers the full-reload path).
+  window._suppressTransitions = true;
+  try {
+    await loadData();
+    updateUI();
+  } finally {
+    setTimeout(() => { window._suppressTransitions = false; }, 1500);
+  }
   renderPartnerSection();
 
   // Hide auth overlay after UI updates
