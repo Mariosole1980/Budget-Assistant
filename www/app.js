@@ -609,8 +609,6 @@ const TRANSLATIONS = {
     item_delete_account: 'Διαγραφή Λογαριασμού',
     item_export_data: 'Εξαγωγή Δεδομένων',
     item_clear_data: 'Καθαρισμός Δεδομένων',
-    item_clear_cache: 'Εκκαθάριση Cache',
-    clear_cache_desc: 'Διαγραφή προσωρινών αρχείων για επίλυση προβλημάτων φόρτωσης',
     delete_account_desc: 'Οριστική διαγραφή λογαριασμού και όλων των δεδομένων από το cloud',
     item_about: 'Σχετικά',
     item_privacy: 'Πολιτική Απορρήτου',
@@ -677,7 +675,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v997 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v998 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -982,8 +980,6 @@ const TRANSLATIONS = {
     item_delete_account: 'Delete Account',
     item_export_data: 'Export Data',
     item_clear_data: 'Clear Data',
-    item_clear_cache: 'Clear Cache',
-    clear_cache_desc: 'Delete temporary files to fix loading issues',
     delete_account_desc: 'Permanently delete your account and all data from the cloud',
     item_about: 'About',
     item_privacy: 'Privacy Policy',
@@ -1050,7 +1046,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v997 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v998 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -22597,20 +22593,6 @@ function promptForTypedConfirmation(message, requiredWord, title, okLabel) {
     });
   });
 }
-
-// 🧹 Clear Cache - no PIN, simple confirmation
-async function clearCacheConfirm() {
-  const confirmed = await showConfirm(
-    state.lang === 'el' ? 'Θέλετε να εκκαθαρίσετε την προσωρινή μνήμη;' : 'Do you want to clear the cache?',
-    state.lang === 'el' ? 'Εκκαθάριση Cache' : 'Clear Cache',
-    '🧹'
-  );
-  if (!confirmed) return;
-  if (typeof forceAppUpdate === 'function') {
-    forceAppUpdate();
-  }
-}
-window.clearCacheConfirm = clearCacheConfirm;
 
 // 🗑️ Clear Local Data - PIN if exists, otherwise type "ΔΙΑΓΡΑΦΗ"
 async function clearLocalDataConfirm() {
