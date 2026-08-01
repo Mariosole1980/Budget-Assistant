@@ -674,7 +674,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v988 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v989 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1044,7 +1044,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v988 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v989 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -18882,9 +18882,17 @@ function renderCustomDatePickerCalendar() {
 
     // Add click handler to select this day
     btn.addEventListener('click', () => {
-      customDatePickerSelectedDate.setFullYear(year);
-      customDatePickerSelectedDate.setMonth(month);
-      customDatePickerSelectedDate.setDate(d);
+      // Create a fresh Date object to avoid the classic JS setMonth() rollover bug.
+      // Mutating with setFullYear()/setMonth()/setDate() in sequence can roll over
+      // when the current day (e.g. 31) exceeds the target month's day count,
+      // producing the wrong date (e.g. selecting Feb 15 yields Mar 15).
+      customDatePickerSelectedDate = new Date(
+        year,
+        month,
+        d,
+        customDatePickerSelectedDate.getHours(),
+        customDatePickerSelectedDate.getMinutes()
+      );
       renderCustomDatePickerCalendar();
     });
 
@@ -19053,6 +19061,9 @@ function renderCustomDatePickerBSGrids(type) {
         customDatePickerSelectedDate = new Date(y, curMonth, safeDay);
         toggleCustomDatePickerBSYearView(false);
         renderCustomDatePickerBSGrids('month');
+        // Keep the main calendar in sync with the newly selected year so the
+        // displayed grid never shows a stale year/month after choosing a year.
+        renderCustomDatePickerCalendar();
       };
       grid.appendChild(btn);
     }
