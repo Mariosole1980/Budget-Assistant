@@ -674,7 +674,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v989 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v990 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1044,7 +1044,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v989 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v990 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -1990,7 +1990,15 @@ window.addEventListener('DOMContentLoaded', async () => {
       const earlyStyle = document.getElementById('early-auth-style');
       if (earlyStyle) earlyStyle.remove();
     }
-    updateUI();
+    // ANTI-FLICKER: This offline render is deferred by updateUI() (150ms), which
+    // runs AFTER the startup double-rAF removes the 'no-transition' class from
+    // <html> (~32ms). Suppress transitions so the first paint is invisible.
+    window._suppressTransitions = true;
+    try {
+      updateUI();
+    } finally {
+      setTimeout(() => { window._suppressTransitions = false; }, 1500);
+    }
   }
 
   function restoreActiveModalsFromStorage() {
@@ -2103,7 +2111,15 @@ window.addEventListener('DOMContentLoaded', async () => {
       const earlyStyle = document.getElementById('early-auth-style');
       if (earlyStyle) earlyStyle.remove();
     }
-    updateUI();
+    // ANTI-FLICKER: Same as above — this offline render is deferred by updateUI()
+    // (150ms) which runs after 'no-transition' is removed from <html> (~32ms).
+    // Suppress transitions so the first paint is invisible.
+    window._suppressTransitions = true;
+    try {
+      updateUI();
+    } finally {
+      setTimeout(() => { window._suppressTransitions = false; }, 1500);
+    }
   }
 
   const today = new Date().toISOString().split('T')[0];
@@ -2502,7 +2518,18 @@ function initSupabaseAuth() {
       // instead of leaving the app blank while fetching fresh data from the cloud.
       applyWalletTheme();
       renderPartnerSection();
-      updateUI();
+      // ANTI-FLICKER: The cached render below is deferred by updateUI() (150ms),
+      // which runs AFTER the startup double-rAF removes the 'no-transition' class
+      // from <html> (~32ms). Without suppression, this cached DOM wipe animates in
+      // with transitions enabled, producing a visible flash on a full WebView reload
+      // (e.g. after a long background where the OS killed the WebView). Suppress
+      // transitions around this deferred render so it is invisible to the user.
+      window._suppressTransitions = true;
+      try {
+        updateUI();
+      } finally {
+        setTimeout(() => { window._suppressTransitions = false; }, 1500);
+      }
 
       // Trigger background updates and data loading asynchronously
       (async () => {
