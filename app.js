@@ -674,7 +674,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v991 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v992 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1044,7 +1044,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v991 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v992 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -5403,6 +5403,24 @@ function saveCategoriesToStorage() {
 function renderStatsTab(skipChart = false) {
   const { start, end } = getStatsDateRange();
 
+  // ANTI-FLICKER: Skip the full re-render if nothing that affects the stats
+  // view has changed. Without this, every updateUI() (e.g. the deferred render
+  // after resuming from background) would wipe the breakdown list and rebuild
+  // the chart with a 700ms rotate animation — a visible flash on the Stats tab.
+  const statsSig = [
+    (state.transactions || []).map(t => `${t.id}_${t.date}_${t.amount}_${t.category}_${t.type}_${t.user_id || ''}`).join('|'),
+    state.statsType || 'expense',
+    state.statsPeriodType || 'monthly',
+    state.lang || 'el',
+    state.selectedFamilyMemberId || 'all',
+    skipChart ? '1' : '0'
+  ].join('||');
+  const statsListEl = document.getElementById('stats-breakdown-list');
+  if (statsListEl && statsListEl._lastRenderSignature === statsSig) {
+    return;
+  }
+  if (statsListEl) statsListEl._lastRenderSignature = statsSig;
+
   // Set month/period text on the top left
   const rawStatsTitle = formatStatsPeriodTitle(start, end);
   document.getElementById('stats-period-title').innerHTML = wrapPeriodTitleWithSpans(rawStatsTitle);
@@ -5553,7 +5571,11 @@ function renderStatsTab(skipChart = false) {
   const displayList = breakdownList;
 
   const listContainer = document.getElementById('stats-breakdown-list');
-  listContainer.innerHTML = '';
+  // ANTI-FLICKER: Build the breakdown rows into an off-DOM fragment and swap it
+  // in atomically with replaceChildren(). The old innerHTML='' + per-row
+  // appendChild() approach left a visible empty/black gap for a frame between
+  // the two DOM mutations, which appeared as a black flicker on resume/sync.
+  const statsFragment = document.createDocumentFragment();
 
   const centerTitleEl = document.getElementById('chart-center-title');
   const centerAmountEl = document.getElementById('chart-center-amount');
@@ -5622,7 +5644,7 @@ function renderStatsTab(skipChart = false) {
         <span class="stats-category-name">${getCategoryDisplayName(stripLeadingEmoji(item.name))}</span>
       </div>
       <div class="stats-row-right">${getCurrencySymbol()} ${formatCurrency(item.amount)}</div>`;
-    listContainer.appendChild(row);
+    statsFragment.appendChild(row);
 
     if (hasSubcats) {
       const subContainer = document.createElement('div');
@@ -5704,7 +5726,7 @@ function renderStatsTab(skipChart = false) {
         subContainer.appendChild(subRow);
       });
 
-      listContainer.appendChild(subContainer);
+      statsFragment.appendChild(subContainer);
 
       let rowFeedbackTimer;
       let rowTouchStartX = 0;
@@ -5763,6 +5785,9 @@ function renderStatsTab(skipChart = false) {
       });
     }
   });
+
+  // Swap the entire breakdown list in ONE atomic DOM mutation (no empty gap).
+  listContainer.replaceChildren(statsFragment);
 
   if (state.activeTab === 'stats' && !skipChart) {
     renderChart(displayList);
