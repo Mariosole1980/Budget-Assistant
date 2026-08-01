@@ -674,7 +674,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v984 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v985 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1044,7 +1044,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v984 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v985 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -17477,13 +17477,14 @@ async function forceSyncNow(silent = false) {
       // appears as a visible flash on Android.
       document.documentElement.classList.add('no-transition');
       updateUI();
-      // Remove no-transition after two rAFs (one render cycle) so transitions
-      // work normally again for all subsequent user interactions.
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          document.documentElement.classList.remove('no-transition');
-        });
-      });
+      // ANTI-FLICKER FIX: updateUI() defers the actual _updateUIImpl() re-render
+      // via setTimeout (150ms normally, 700ms if _appJustResumed). Removing
+      // no-transition after only 2 rAFs (~32ms) meant the deferred re-render ran
+      // with transitions ENABLED, causing a visible flash on resume. Keep
+      // no-transition active long enough to cover the deferred render window.
+      setTimeout(() => {
+        document.documentElement.classList.remove('no-transition');
+      }, 1000);
     } else {
       console.log('[SYNC] No data change detected — skipping UI refresh to prevent flickering.');
     }
