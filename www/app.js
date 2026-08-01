@@ -674,7 +674,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v993 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v994 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1044,7 +1044,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v993 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v994 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -20432,12 +20432,12 @@ function openAdvisorChat(initialQuery = null) {
   const modalId = 'advisor-chat-modal';
   openModal(modalId);
 
-  const chatLog = document.getElementById('advisor-chat-log');
-  if (chatLog && chatLog.children.length === 0) {
-    const welcome = state.lang === 'el'
-      ? "Γεια σου! Είμαι ο προσωπικός σου **Οικονομικός Σύμβουλος AI**. 🤖<br><br>Μπορώ να αναλύσω τις συναλλαγές σου και να σε βοηθήσω να αποταμιεύσεις περισσότερο. Επιλέξτε μία από τις παρακάτω προτάσεις ή ρωτήστε με ό,τι θέλετε!"
-      : "Hello! I am your personal **AI Financial Coach**. 🤖<br><br>I can analyze your transactions and help you save more. Select one of the suggestions below or ask me anything!";
-    appendChatMessage('advisor', welcome);
+  // If we have an active conversation, load it; otherwise show the conversation list
+  const activeId = getActiveAdvisorConversationId();
+  if (activeId) {
+    openAdvisorConversation(activeId, false);
+  } else {
+    showAdvisorConversationList();
   }
 
   setTimeout(() => {
@@ -20458,7 +20458,276 @@ function closeAdvisorChat() {
   closeModal('advisor-chat-modal');
 }
 
-function appendChatMessage(sender, htmlContent) {
+// ===== Advisor Chat Conversation History (persistent, ChatGPT-style) =====
+const ADVISOR_CONVERSATIONS_KEY = 'advisor_chat_conversations_v1';
+const ADVISOR_ACTIVE_KEY = 'advisor_chat_active_id_v1';
+
+function loadAdvisorConversations() {
+  try {
+    const raw = localStorage.getItem(ADVISOR_CONVERSATIONS_KEY);
+    const list = raw ? JSON.parse(raw) : [];
+    return Array.isArray(list) ? list : [];
+  } catch (e) {
+    console.warn('[AdvisorChat] Failed to load conversations:', e);
+    return [];
+  }
+}
+
+function saveAdvisorConversations(list) {
+  try {
+    localStorage.setItem(ADVISOR_CONVERSATIONS_KEY, JSON.stringify(list));
+  } catch (e) {
+    console.warn('[AdvisorChat] Failed to save conversations:', e);
+  }
+}
+
+function getActiveAdvisorConversationId() {
+  try {
+    return localStorage.getItem(ADVISOR_ACTIVE_KEY) || null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function setActiveAdvisorConversationId(id) {
+  try {
+    if (id) localStorage.setItem(ADVISOR_ACTIVE_KEY, id);
+    else localStorage.removeItem(ADVISOR_ACTIVE_KEY);
+  } catch (e) { }
+}
+
+function getActiveAdvisorConversation() {
+  const id = getActiveAdvisorConversationId();
+  if (!id) return null;
+  const list = loadAdvisorConversations();
+  return list.find(c => c.id === id) || null;
+}
+
+function getConversationTitle(messages) {
+  const firstUser = (messages || []).find(m => m.sender === 'user');
+  if (firstUser && firstUser.html) {
+    const plain = firstUser.html.replace(/<[^>]*>/g, '').trim();
+    if (plain) return plain.length > 40 ? plain.slice(0, 40) + '…' : plain;
+  }
+  return state.lang === 'el' ? 'Νέα συνομιλία' : 'New conversation';
+}
+
+function showAdvisorConversationList() {
+  const listEl = document.getElementById('advisor-conversation-list');
+  const chatLog = document.getElementById('advisor-chat-log');
+  const backBtn = document.getElementById('advisor-chat-back-btn');
+  const newBtn = document.getElementById('advisor-chat-new-btn');
+  const suggestions = document.getElementById('advisor-chat-suggestions-container');
+  const inputArea = document.getElementById('advisor-chat-input');
+
+  if (listEl) listEl.style.display = 'flex';
+  if (chatLog) chatLog.style.display = 'none';
+  if (backBtn) backBtn.style.display = 'none';
+  if (newBtn) newBtn.style.display = 'none';
+  if (suggestions) suggestions.style.display = 'none';
+  if (inputArea) inputArea.disabled = true;
+
+  renderAdvisorConversationList();
+}
+
+function renderAdvisorConversationList() {
+  const listEl = document.getElementById('advisor-conversation-list');
+  if (!listEl) return;
+  listEl.innerHTML = '';
+
+  const list = loadAdvisorConversations();
+
+  // New conversation button at top
+  const newCard = document.createElement('div');
+  newCard.style.cssText = 'display:flex; align-items:center; gap:10px; padding:14px 16px; border-radius:14px; background:var(--accent); color:#fff; font-weight:700; cursor:pointer; font-size:14px;';
+  newCard.innerHTML = `<span style="font-size:16px;">&#10133;</span> ${state.lang === 'el' ? 'Νέα συνομιλία' : 'New conversation'}`;
+  newCard.onclick = () => startNewAdvisorConversation();
+  listEl.appendChild(newCard);
+
+  if (list.length === 0) {
+    const empty = document.createElement('div');
+    empty.style.cssText = 'text-align:center; color:var(--text-secondary); font-size:13px; padding:24px 12px;';
+    empty.textContent = state.lang === 'el'
+      ? 'Δεν υπάρχουν ακόμα συνομιλίες. Ξεκίνησε μία νέα!'
+      : 'No conversations yet. Start a new one!';
+    listEl.appendChild(empty);
+    return;
+  }
+
+  // Sort by updatedAt descending (most recent first)
+  const sorted = [...list].sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+
+  sorted.forEach(conv => {
+    const card = document.createElement('div');
+    card.style.cssText = 'display:flex; align-items:center; gap:10px; padding:14px 16px; border-radius:14px; background:var(--bg-card); border:1px solid var(--border); cursor:pointer;';
+    card.innerHTML = `
+      <span style="font-size:16px; flex-shrink:0;">💬</span>
+      <div style="flex:1; min-width:0;">
+        <div style="font-weight:600; font-size:13.5px; color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(conv.title || '')}</div>
+        <div style="font-size:11px; color:var(--text-secondary); margin-top:2px;">${formatConversationTime(conv.updatedAt)}</div>
+      </div>
+      <span class="advisor-conv-delete" onclick="event.stopPropagation(); deleteAdvisorConversation('${conv.id}')" title="${state.lang === 'el' ? 'Διαγραφή' : 'Delete'}" style="cursor:pointer; font-size:15px; color:var(--text-secondary); flex-shrink:0; padding:4px;">&#128465;</span>
+    `;
+    card.onclick = () => openAdvisorConversation(conv.id);
+    listEl.appendChild(card);
+  });
+}
+
+function formatConversationTime(ts) {
+  if (!ts) return '';
+  try {
+    const d = new Date(ts);
+    return d.toLocaleString(state.lang === 'el' ? 'el-GR' : 'en-US', {
+      day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+    });
+  } catch (e) {
+    return '';
+  }
+}
+
+function openAdvisorConversation(id, focusInput = true) {
+  const list = loadAdvisorConversations();
+  const conv = list.find(c => c.id === id);
+  if (!conv) return;
+
+  setActiveAdvisorConversationId(id);
+
+  const listEl = document.getElementById('advisor-conversation-list');
+  const chatLog = document.getElementById('advisor-chat-log');
+  const backBtn = document.getElementById('advisor-chat-back-btn');
+  const newBtn = document.getElementById('advisor-chat-new-btn');
+  const suggestions = document.getElementById('advisor-chat-suggestions-container');
+  const inputArea = document.getElementById('advisor-chat-input');
+
+  if (listEl) listEl.style.display = 'none';
+  if (chatLog) {
+    chatLog.style.display = 'flex';
+    chatLog.innerHTML = '';
+  }
+  if (backBtn) backBtn.style.display = 'flex';
+  if (newBtn) newBtn.style.display = 'flex';
+  if (suggestions) suggestions.style.display = 'block';
+  if (inputArea) inputArea.disabled = false;
+
+  // Restore messages
+  (conv.messages || []).forEach(m => {
+    appendChatMessage(m.sender, m.html, false);
+  });
+
+  // Restore Gemini context history
+  if (Array.isArray(conv.geminiHistory)) {
+    state.advisorChatHistory = conv.geminiHistory.slice();
+  } else {
+    state.advisorChatHistory = [];
+  }
+
+  if (focusInput) {
+    setTimeout(() => {
+      if (window._appJustResumed) return;
+      const inp = document.getElementById('advisor-chat-input');
+      if (inp) inp.focus();
+    }, 300);
+  }
+}
+
+function startNewAdvisorConversation() {
+  const id = 'conv_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8);
+  const conv = {
+    id,
+    title: state.lang === 'el' ? 'Νέα συνομιλία' : 'New conversation',
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    messages: [],
+    geminiHistory: []
+  };
+  const list = loadAdvisorConversations();
+  list.push(conv);
+  saveAdvisorConversations(list);
+  setActiveAdvisorConversationId(id);
+
+  // Clear the chat log and show welcome
+  const chatLog = document.getElementById('advisor-chat-log');
+  if (chatLog) chatLog.innerHTML = '';
+  state.advisorChatHistory = [];
+
+  const welcome = state.lang === 'el'
+    ? "Γεια σου! Είμαι ο προσωπικός σου **Οικονομικός Σύμβουλος AI**. 🤖<br><br>Μπορώ να αναλύσω τις συναλλαγές σου και να σε βοηθήσω να αποταμιεύσεις περισσότερο. Επιλέξτε μία από τις παρακάτω προτάσεις ή ρωτήστε με ό,τι θέλετε!"
+    : "Hello! I am your personal **AI Financial Coach**. 🤖<br><br>I can analyze your transactions and help you save more. Select one of the suggestions below or ask me anything!";
+  appendChatMessage('advisor', welcome);
+
+  // Switch view to chat
+  const listEl = document.getElementById('advisor-conversation-list');
+  const backBtn = document.getElementById('advisor-chat-back-btn');
+  const newBtn = document.getElementById('advisor-chat-new-btn');
+  const suggestions = document.getElementById('advisor-chat-suggestions-container');
+  const inputArea = document.getElementById('advisor-chat-input');
+  if (listEl) listEl.style.display = 'none';
+  if (chatLog) chatLog.style.display = 'flex';
+  if (backBtn) backBtn.style.display = 'flex';
+  if (newBtn) newBtn.style.display = 'flex';
+  if (suggestions) suggestions.style.display = 'block';
+  if (inputArea) inputArea.disabled = false;
+
+  setTimeout(() => {
+    if (window._appJustResumed) return;
+    const inp = document.getElementById('advisor-chat-input');
+    if (inp) inp.focus();
+  }, 300);
+}
+
+function deleteAdvisorConversation(id) {
+  const list = loadAdvisorConversations();
+  const idx = list.findIndex(c => c.id === id);
+  if (idx === -1) return;
+
+  const conv = list[idx];
+  const confirmMsg = state.lang === 'el'
+    ? `Να διαγραφεί η συνομιλία «${conv.title || ''}»;`
+    : `Delete conversation "${conv.title || ''}"?`;
+
+  if (!window.confirm(confirmMsg)) return;
+
+  list.splice(idx, 1);
+  saveAdvisorConversations(list);
+
+  // If the deleted conversation was active, clear active state
+  if (getActiveAdvisorConversationId() === id) {
+    setActiveAdvisorConversationId(null);
+    state.advisorChatHistory = [];
+  }
+
+  renderAdvisorConversationList();
+}
+
+function persistAdvisorMessage(sender, htmlContent) {
+  const id = getActiveAdvisorConversationId();
+  if (!id) return;
+  const list = loadAdvisorConversations();
+  const conv = list.find(c => c.id === id);
+  if (!conv) return;
+
+  if (!Array.isArray(conv.messages)) conv.messages = [];
+  conv.messages.push({ sender, html: htmlContent });
+  conv.updatedAt = Date.now();
+  // Set the title from the first user message (welcome message may come first)
+  if (sender === 'user' && (!conv.title || conv.title === (state.lang === 'el' ? 'Νέα συνομιλία' : 'New conversation'))) {
+    conv.title = getConversationTitle(conv.messages);
+  }
+  saveAdvisorConversations(list);
+}
+
+function persistAdvisorGeminiHistory(history) {
+  const id = getActiveAdvisorConversationId();
+  if (!id) return;
+  const list = loadAdvisorConversations();
+  const conv = list.find(c => c.id === id);
+  if (!conv) return;
+  conv.geminiHistory = Array.isArray(history) ? history.slice() : [];
+  conv.updatedAt = Date.now();
+  saveAdvisorConversations(list);
+}
+
+function appendChatMessage(sender, htmlContent, persist = true) {
   const chatLog = document.getElementById('advisor-chat-log');
   if (!chatLog) return;
 
@@ -20477,6 +20746,10 @@ function appendChatMessage(sender, htmlContent) {
   chatLog.appendChild(row);
 
   chatLog.scrollTop = chatLog.scrollHeight;
+
+  if (persist) {
+    persistAdvisorMessage(sender, htmlContent);
+  }
 }
 
 function submitCoachInput() {
@@ -20504,6 +20777,11 @@ function submitCoachQuery(queryText) {
     userDisplay = state.lang === 'el' ? "Αν συνεχίσω έτσι, πού θα είμαι σε 5 χρόνια;" : "If I continue like this, where will I be in 5 years?";
   } else if (queryText === 'milestone_50k') {
     userDisplay = state.lang === 'el' ? "Πότε θα φτάσω τα 50.000€;" : "When will I reach €50,000?";
+  }
+
+  // Ensure an active conversation exists (e.g. when a suggestion chip is tapped from the list view)
+  if (!getActiveAdvisorConversationId()) {
+    startNewAdvisorConversation();
   }
 
   appendChatMessage('user', userDisplay);
@@ -20632,6 +20910,8 @@ function submitCoachQuery(queryText) {
           if (state.advisorChatHistory.length > 12) {
             state.advisorChatHistory = state.advisorChatHistory.slice(-12);
           }
+          // Persist Gemini context to the active conversation
+          persistAdvisorGeminiHistory(state.advisorChatHistory);
 
           if (data.transactionsToAdd && Array.isArray(data.transactionsToAdd)) {
             data.transactionsToAdd.forEach(tx => {
