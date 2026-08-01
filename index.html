@@ -90,7 +90,7 @@
               ${devButton}
             </div>
             <div style="font-size:11px;color:#8b949e;">
-              Budget Assistant • build v996
+              Budget Assistant • build v997
             </div>
           </div>
         `;
@@ -178,7 +178,7 @@
   <link rel="stylesheet" href="style.css?v=982">
 
   <!-- Capacitor Bridge -->
-  <script src="capacitor.js?v=996"></script>
+  <script src="capacitor.js?v=997"></script>
 
 
   <!-- Supabase client JS CDN -->
@@ -188,7 +188,7 @@
   <!-- Chart.js Datalabels Plugin CDN -->
   <script src="js/chartjs-plugin-datalabels.js"></script>
   <!-- SheetJS xlsx CDN for Excel Import/Export -->
-  <script src="xlsx.full.min.js?v=996"></script>
+  <script src="xlsx.full.min.js?v=997"></script>
 </head>
 
 <body style="background-color: #181b22; margin: 0; padding: 0; ">
@@ -1747,16 +1747,15 @@
 
             <!-- CARD 4: DANGER ZONE - CLEAR LOCAL DATA -->
             <div style="margin-top:8px; border-top:1px solid var(--border); padding-top:14px;">
-              <div class="settings-list-item" id="danger-zone-wipe-row"
-                onclick="(window.openClearDataModal || openClearDataModal)()"
+              <div class="settings-list-item" id="danger-zone-wipe-row" onclick="clearLocalDataConfirm()"
                 style="cursor:pointer; border:1px solid rgba(244,63,94,0.25); border-radius:14px; background:rgba(244,63,94,0.06); padding:14px 16px; display:flex; align-items:center; justify-content:space-between;">
                 <div style="display:flex; flex-direction:column; flex:1; gap:2px;">
                   <span class="settings-item-label" style="color:#f43f5e; font-weight:700; font-size:14px;"
-                    data-i18n="item_clear_data">Εκκαθάριση Δεδομένων</span>
-                  <span style="font-size:11.5px; color:var(--text-secondary);" data-i18n="clear_data_desc">Οριστική
-                    διαγραφή όλων των τοπικών συναλλαγών</span>
+                    data-i18n="item_clear_data">Εκκαθάριση Τοπικών Δεδομένων</span>
+                  <span style="font-size:11.5px; color:var(--text-secondary);" data-i18n="clear_data_desc">Διαγραφή όλων
+                    των δεδομένων που είναι αποθηκευμένα στη συσκευή</span>
                 </div>
-                <i class="fa-solid fa-circle-exclamation" style="color:#f43f5e; font-size:18px;"></i>
+                <i class="fa-solid fa-trash-can" style="color:#f43f5e; font-size:18px;"></i>
               </div>
             </div>
           </div>
@@ -1979,7 +1978,43 @@
               <i class="fa-solid fa-chevron-right" style="color:var(--red-negative); font-size:12px;"></i>
             </div>
 
-            <!-- 6. Developer Control Panel -->
+            <!-- 6. Clear Cache -->
+            <div class="settings-list-item" id="legal-clear-cache-row" style="cursor:pointer; padding: 14px 16px;"
+              onclick="clearCacheConfirm()">
+              <div style="display:flex; align-items:center; gap:12px;">
+                <div
+                  style="width:34px; height:34px; border-radius:10px; background:rgba(245,158,11,0.15); display:flex; align-items:center; justify-content:center;">
+                  <i class="fa-solid fa-broom" style="color:#f59e0b; font-size:15px;"></i>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:2px;">
+                  <span class="settings-item-label" style="color:var(--text-primary); font-weight:600; font-size:14px;"
+                    data-i18n="item_clear_cache">Εκκαθάριση Cache</span>
+                  <span style="font-size:11.5px; color:var(--text-secondary);" data-i18n="clear_cache_desc">Διαγραφή
+                    προσωρινών αρχείων για επίλυση προβλημάτων φόρτωσης</span>
+                </div>
+              </div>
+              <i class="fa-solid fa-chevron-right" style="color:var(--text-muted); font-size:12px;"></i>
+            </div>
+
+            <!-- 7. Delete Account -->
+            <div class="settings-list-item" id="legal-delete-account-row" style="cursor:pointer; padding: 14px 16px;"
+              onclick="deleteAccountConfirm()">
+              <div style="display:flex; align-items:center; gap:12px;">
+                <div
+                  style="width:34px; height:34px; border-radius:10px; background:rgba(244,63,94,0.15); display:flex; align-items:center; justify-content:center;">
+                  <i class="fa-solid fa-user-slash" style="color:#f43f5e; font-size:15px;"></i>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:2px;">
+                  <span class="settings-item-label" style="color:#f43f5e; font-weight:700; font-size:14px;"
+                    data-i18n="item_delete_account">Διαγραφή Λογαριασμού</span>
+                  <span style="font-size:11.5px; color:var(--text-secondary);" data-i18n="delete_account_desc">Οριστική
+                    διαγραφή λογαριασμού και όλων των δεδομένων από το cloud</span>
+                </div>
+              </div>
+              <i class="fa-solid fa-chevron-right" style="color:#f43f5e; font-size:12px;"></i>
+            </div>
+
+            <!-- 8. Developer Control Panel -->
             <div class="settings-list-item" id="developer-settings-row" onclick="window.location.href='debug.html'"
               style="display:none; cursor:pointer; padding: 14px 16px;">
               <div style="display:flex; align-items:center; gap:12px;">
@@ -1997,7 +2032,7 @@
             <div class="settings-list-item"
               style="padding: 14px 16px; background: transparent; border-top: 1px solid var(--border); margin-top: 8px;">
               <span class="settings-item-label" style="color:var(--text-muted); font-size:12px;"
-                data-i18n="app_version">Έκδοση 1.0.0 (build v996)</span>
+                data-i18n="app_version">Έκδοση 1.0.0 (build v997)</span>
               <span class="settings-item-value" style="font-size:12px; color:var(--text-muted); font-weight:600;">Budget
                 Assistant</span>
             </div>
@@ -3366,18 +3401,18 @@
     </div>
 
     <!-- Core Application Scripts -->
-    <script src="js/NLPProcessor.js?v=996"></script>
-    <script src="js/MemoryEngine.js?v=996"></script>
-    <script src="js/DecisionEngine.js?v=996"></script>
-    <script src="js/OnlineAIProvider.js?v=996"></script>
-    <script src="js/AIEngine.js?v=996"></script>
-    <script src="js/IntentCorpus.js?v=996"></script>
-    <script src="js/KnowledgeGraph.js?v=996"></script>
-    <script src="app.js?v=996"></script>
+    <script src="js/NLPProcessor.js?v=997"></script>
+    <script src="js/MemoryEngine.js?v=997"></script>
+    <script src="js/DecisionEngine.js?v=997"></script>
+    <script src="js/OnlineAIProvider.js?v=997"></script>
+    <script src="js/AIEngine.js?v=997"></script>
+    <script src="js/IntentCorpus.js?v=997"></script>
+    <script src="js/KnowledgeGraph.js?v=997"></script>
+    <script src="app.js?v=997"></script>
 
     <!-- Register PWA Service Worker -->
     <script>
-      const CURRENT_BUILD = 996;
+      const CURRENT_BUILD = 997;
 
       // ============================================================
       // AGGRESSIVE iOS PWA AUTO-UPDATE
@@ -3695,6 +3730,50 @@
             style="flex: 1; padding: 12px; font-weight: 700; border-radius: 12px; border: 1px solid var(--border); background: var(--bg-main); font-size: 13px;">Ακύρωση</button>
           <button id="custom-dialog-btn-ok" class="btn btn-primary"
             style="flex: 1; padding: 12px; font-weight: 700; border-radius: 12px; font-size: 13px;">OK</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: TYPE-TO-CONFIRM (for destructive actions) -->
+    <div id="type-confirm-modal" class="modal-overlay" style="z-index: 999998;">
+      <div class="modal-content"
+        style="max-width: 340px; text-align: center; border-radius: 20px; background: var(--bg-card); border: 1px solid var(--border); box-shadow: 0 10px 30px rgba(0,0,0,0.5); padding: 24px;">
+        <div id="type-confirm-icon" style="font-size: 40px; margin-bottom: 16px;">⚠️</div>
+        <h4 id="type-confirm-title"
+          style="font-weight: 700; margin-bottom: 8px; color: var(--text-main); font-size: 16px;">Επιβεβαίωση</h4>
+        <p id="type-confirm-message"
+          style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 16px; word-break: break-word;">
+        </p>
+        <input type="text" id="type-confirm-input" autocomplete="off" autocapitalize="characters"
+          style="font-size: 15px; text-align: center; letter-spacing: 2px; width: 100%; padding: 12px; margin-bottom: 8px; box-sizing: border-box; background: var(--bg-input, #000000); border: 1px solid var(--border); color: var(--text-main); border-radius: 10px; outline: none;">
+        <div id="type-confirm-hint"
+          style="font-size: 11.5px; color: var(--text-muted); margin-bottom: 16px; line-height: 1.4;"></div>
+        <div class="custom-dialog-buttons" style="display: flex; gap: 12px; justify-content: center; width: 100%;">
+          <button id="type-confirm-btn-cancel" class="btn btn-secondary"
+            style="flex: 1; padding: 12px; font-weight: 700; border-radius: 12px; border: 1px solid var(--border); background: var(--bg-main); font-size: 13px;">Ακύρωση</button>
+          <button id="type-confirm-btn-ok" class="btn btn-primary"
+            style="flex: 1; padding: 12px; font-weight: 700; border-radius: 12px; font-size: 13px; background-color: var(--red-negative, #ef4444); color: white; border: none;">Διαγραφή</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: PIN PROMPT (for destructive actions requiring PIN) -->
+    <div id="pin-prompt-modal" class="modal-overlay" style="z-index: 999998;">
+      <div class="modal-content"
+        style="max-width: 320px; text-align: center; border-radius: 20px; background: var(--bg-card); border: 1px solid var(--border); box-shadow: 0 10px 30px rgba(0,0,0,0.5); padding: 24px;">
+        <div id="pin-prompt-icon" style="font-size: 40px; margin-bottom: 16px;">🔒</div>
+        <h4 id="pin-prompt-title"
+          style="font-weight: 700; margin-bottom: 8px; color: var(--text-main); font-size: 16px;">Εισαγωγή PIN</h4>
+        <p id="pin-prompt-message"
+          style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 16px; word-break: break-word;">
+        </p>
+        <input type="password" id="pin-prompt-input" pattern="[0-9]*" inputmode="numeric" maxlength="4"
+          style="font-size: 24px; text-align: center; letter-spacing: 12px; width: 150px; padding: 8px; margin: 0 auto 16px auto; display: block; background: var(--bg-input, #000000); border: 1px solid var(--border); color: var(--text-main); border-radius: 8px; outline: none;">
+        <div class="custom-dialog-buttons" style="display: flex; gap: 12px; justify-content: center; width: 100%;">
+          <button id="pin-prompt-btn-cancel" class="btn btn-secondary"
+            style="flex: 1; padding: 12px; font-weight: 700; border-radius: 12px; border: 1px solid var(--border); background: var(--bg-main); font-size: 13px;">Ακύρωση</button>
+          <button id="pin-prompt-btn-ok" class="btn btn-primary"
+            style="flex: 1; padding: 12px; font-weight: 700; border-radius: 12px; font-size: 13px;">Επιβεβαίωση</button>
         </div>
       </div>
     </div>

@@ -609,6 +609,9 @@ const TRANSLATIONS = {
     item_delete_account: 'Διαγραφή Λογαριασμού',
     item_export_data: 'Εξαγωγή Δεδομένων',
     item_clear_data: 'Καθαρισμός Δεδομένων',
+    item_clear_cache: 'Εκκαθάριση Cache',
+    clear_cache_desc: 'Διαγραφή προσωρινών αρχείων για επίλυση προβλημάτων φόρτωσης',
+    delete_account_desc: 'Οριστική διαγραφή λογαριασμού και όλων των δεδομένων από το cloud',
     item_about: 'Σχετικά',
     item_privacy: 'Πολιτική Απορρήτου',
     modal_category_title: 'Επιλογή Κατηγορίας',
@@ -674,7 +677,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v996 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v997 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -979,6 +982,9 @@ const TRANSLATIONS = {
     item_delete_account: 'Delete Account',
     item_export_data: 'Export Data',
     item_clear_data: 'Clear Data',
+    item_clear_cache: 'Clear Cache',
+    clear_cache_desc: 'Delete temporary files to fix loading issues',
+    delete_account_desc: 'Permanently delete your account and all data from the cloud',
     item_about: 'About',
     item_privacy: 'Privacy Policy',
     modal_category_title: 'Select Category',
@@ -1044,7 +1050,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v996 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v997 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -22509,6 +22515,274 @@ function clearCacheAndReset() {
   }
 }
 window.clearCacheAndReset = clearCacheAndReset;
+
+// ============================================================
+// CLEAR DATA & DELETE ACCOUNT (with safety locks)
+// ============================================================
+
+// Generic PIN prompt modal -> resolves with the entered PIN string, or null if cancelled.
+function promptForPin(message, title) {
+  return new Promise((resolve) => {
+    const modal = document.getElementById('pin-prompt-modal');
+    if (!modal) { resolve(null); return; }
+    const input = document.getElementById('pin-prompt-input');
+    const titleEl = document.getElementById('pin-prompt-title');
+    const msgEl = document.getElementById('pin-prompt-message');
+    const btnCancel = document.getElementById('pin-prompt-btn-cancel');
+    const btnOk = document.getElementById('pin-prompt-btn-ok');
+
+    titleEl.textContent = title || (state.lang === 'el' ? 'Εισαγωγή PIN' : 'Enter PIN');
+    msgEl.textContent = message || (state.lang === 'el' ? 'Εισάγετε το PIN σας για να συνεχίσετε.' : 'Enter your PIN to continue.');
+    input.value = '';
+
+    const newCancel = btnCancel.cloneNode(true);
+    const newOk = btnOk.cloneNode(true);
+    btnCancel.parentNode.replaceChild(newCancel, btnCancel);
+    btnOk.parentNode.replaceChild(newOk, btnOk);
+
+    modal.classList.add('active');
+    setTimeout(() => input.focus(), 50);
+
+    const cleanup = () => { modal.classList.remove('active'); };
+    newCancel.addEventListener('click', () => { cleanup(); resolve(null); });
+    newOk.addEventListener('click', () => { cleanup(); resolve(input.value || null); });
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { cleanup(); resolve(input.value || null); }
+    });
+  });
+}
+
+// Generic type-to-confirm modal -> resolves true if the user typed the required word, false otherwise.
+function promptForTypedConfirmation(message, requiredWord, title, okLabel) {
+  return new Promise((resolve) => {
+    const modal = document.getElementById('type-confirm-modal');
+    if (!modal) { resolve(false); return; }
+    const input = document.getElementById('type-confirm-input');
+    const titleEl = document.getElementById('type-confirm-title');
+    const msgEl = document.getElementById('type-confirm-message');
+    const hintEl = document.getElementById('type-confirm-hint');
+    const iconEl = document.getElementById('type-confirm-icon');
+    const btnCancel = document.getElementById('type-confirm-btn-cancel');
+    const btnOk = document.getElementById('type-confirm-btn-ok');
+
+    titleEl.textContent = title || (state.lang === 'el' ? 'Επιβεβαίωση' : 'Confirmation');
+    msgEl.textContent = message;
+    iconEl.textContent = '⚠️';
+    hintEl.textContent = (state.lang === 'el' ? 'Πληκτρολογήστε ' : 'Type ') + '"' + requiredWord + '"' + (state.lang === 'el' ? ' για να συνεχίσετε.' : ' to continue.');
+    btnOk.textContent = okLabel || (state.lang === 'el' ? 'Διαγραφή' : 'Delete');
+    input.value = '';
+    input.setAttribute('autocapitalize', 'characters');
+
+    const newCancel = btnCancel.cloneNode(true);
+    const newOk = btnOk.cloneNode(true);
+    btnCancel.parentNode.replaceChild(newCancel, btnCancel);
+    btnOk.parentNode.replaceChild(newOk, btnOk);
+
+    modal.classList.add('active');
+    setTimeout(() => input.focus(), 50);
+
+    const check = () => (input.value || '').trim().toUpperCase() === requiredWord.toUpperCase();
+    const updateOkState = () => {
+      newOk.disabled = !check();
+      newOk.style.opacity = check() ? '1' : '0.5';
+    };
+    input.addEventListener('input', updateOkState);
+    updateOkState();
+
+    const cleanup = () => { modal.classList.remove('active'); };
+    newCancel.addEventListener('click', () => { cleanup(); resolve(false); });
+    newOk.addEventListener('click', () => { if (check()) { cleanup(); resolve(true); } });
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && check()) { cleanup(); resolve(true); }
+    });
+  });
+}
+
+// 🧹 Clear Cache - no PIN, simple confirmation
+async function clearCacheConfirm() {
+  const confirmed = await showConfirm(
+    state.lang === 'el' ? 'Θέλετε να εκκαθαρίσετε την προσωρινή μνήμη;' : 'Do you want to clear the cache?',
+    state.lang === 'el' ? 'Εκκαθάριση Cache' : 'Clear Cache',
+    '🧹'
+  );
+  if (!confirmed) return;
+  if (typeof forceAppUpdate === 'function') {
+    forceAppUpdate();
+  }
+}
+window.clearCacheConfirm = clearCacheConfirm;
+
+// 🗑️ Clear Local Data - PIN if exists, otherwise type "ΔΙΑΓΡΑΦΗ"
+async function clearLocalDataConfirm() {
+  const hasPin = localStorage.getItem('app_pin') && localStorage.getItem('app_lock_enabled') === 'true';
+
+  if (hasPin) {
+    const pin = await promptForPin(
+      state.lang === 'el' ? 'Εισάγετε το PIN σας για να εκκαθαρίσετε τα τοπικά δεδομένα.' : 'Enter your PIN to clear local data.',
+      state.lang === 'el' ? 'Εκκαθάριση Τοπικών Δεδομένων' : 'Clear Local Data'
+    );
+    if (!pin) return;
+    const savedPin = localStorage.getItem('app_pin');
+    if (pin !== savedPin) {
+      showSyncToast("❌ " + (state.lang === 'el' ? 'Λάθος PIN!' : 'Incorrect PIN!'), 3000);
+      return;
+    }
+  } else {
+    const requiredWord = state.lang === 'el' ? 'ΔΙΑΓΡΑΦΗ' : 'DELETE';
+    const confirmed = await promptForTypedConfirmation(
+      state.lang === 'el'
+        ? 'Θα διαγραφούν όλα τα δεδομένα που είναι αποθηκευμένα στη συσκευή. Η ενέργεια δεν μπορεί να αναιρεθεί.'
+        : 'All data stored on this device will be deleted. This action cannot be undone.',
+      requiredWord,
+      state.lang === 'el' ? 'Εκκαθάριση Τοπικών Δεδομένων' : 'Clear Local Data'
+    );
+    if (!confirmed) return;
+  }
+
+  // Perform the local data wipe (keep user logged in)
+  try {
+    const keysToRemove = [
+      'cached_current_user', 'cached_partner_profile',
+      'offline_transactions', 'offline_accounts', 'offline_categories',
+      'bg_active_modal_id', 'bg_active_modal_tx_id', 'bg_active_subcat_txs', 'bg_modal_scroll_top',
+      'advisor_conversations', 'active_advisor_conversation_id',
+      'notes_cache', 'recurring_templates_cache', 'trash_cache'
+    ];
+    keysToRemove.forEach(k => localStorage.removeItem(k));
+
+    state.transactions = [];
+    state.trashTransactions = [];
+    state.accounts = [];
+    state.categories = [];
+    state.notes = [];
+    state.recurringTemplates = [];
+    state.deletedRecurringDates = [];
+    state.notifications = [];
+
+    // Close any open modals
+    document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
+    document.querySelectorAll('.tx-modal-overlay').forEach(m => m.classList.remove('active'));
+    document.body.classList.remove('modal-open');
+
+    updateUI();
+    showSyncToast("🗑️ " + (state.lang === 'el' ? 'Τα τοπικά δεδομένα εκκαθαρίστηκαν.' : 'Local data cleared.'), 3000);
+
+    // Re-sync from cloud if logged in
+    if (state.supabaseClient && state.currentUser) {
+      setTimeout(() => { forceSyncNow(true); }, 600);
+    }
+  } catch (err) {
+    console.error('Clear local data error:', err);
+    showSyncToast("❌ " + (state.lang === 'el' ? 'Σφάλμα κατά την εκκαθάριση.' : 'Error while clearing.'), 3000);
+  }
+}
+window.clearLocalDataConfirm = clearLocalDataConfirm;
+
+// ⚠️ Delete Account - PIN if exists, otherwise type "ΔΙΑΓΡΑΦΗ ΛΟΓΑΡΙΑΣΜΟΥ"
+async function deleteAccountConfirm() {
+  const hasPin = localStorage.getItem('app_pin') && localStorage.getItem('app_lock_enabled') === 'true';
+
+  if (hasPin) {
+    const pin = await promptForPin(
+      state.lang === 'el' ? 'Εισάγετε το PIN σας για να διαγράψετε τον λογαριασμό.' : 'Enter your PIN to delete your account.',
+      state.lang === 'el' ? 'Διαγραφή Λογαριασμού' : 'Delete Account'
+    );
+    if (!pin) return;
+    const savedPin = localStorage.getItem('app_pin');
+    if (pin !== savedPin) {
+      showSyncToast("❌ " + (state.lang === 'el' ? 'Λάθος PIN!' : 'Incorrect PIN!'), 3000);
+      return;
+    }
+  } else {
+    const requiredWord = state.lang === 'el' ? 'ΔΙΑΓΡΑΦΗ ΛΟΓΑΡΙΑΣΜΟΥ' : 'DELETE ACCOUNT';
+    const confirmed = await promptForTypedConfirmation(
+      state.lang === 'el'
+        ? 'Θα διαγραφεί ο λογαριασμός σας και όλα τα δεδομένα σας από το cloud. Η ενέργεια δεν μπορεί να αναιρεθεί.'
+        : 'Your account and all your data will be permanently deleted from the cloud. This action cannot be undone.',
+      requiredWord,
+      state.lang === 'el' ? 'Διαγραφή Λογαριασμού' : 'Delete Account',
+      state.lang === 'el' ? 'Οριστική Διαγραφή' : 'Permanently Delete'
+    );
+    if (!confirmed) return;
+  }
+
+  // Final confirmation
+  const finalConfirm = await showConfirm(
+    state.lang === 'el'
+      ? 'Είστε απόλυτα σίγουροι; Ο λογαριασμός και όλα τα δεδομένα θα διαγραφούν οριστικά.'
+      : 'Are you absolutely sure? Your account and all data will be permanently deleted.',
+    state.lang === 'el' ? 'Οριστική Διαγραφή' : 'Permanent Deletion',
+    '⚠️'
+  );
+  if (!finalConfirm) return;
+
+  try {
+    let session = null;
+    if (state.supabaseClient) {
+      const { data } = await state.supabaseClient.auth.getSession();
+      session = data && data.session;
+    }
+    if (!session || !session.access_token) {
+      showSyncToast("❌ " + (state.lang === 'el' ? 'Δεν υπάρχει ενεργή σύνδεση.' : 'No active session.'), 3000);
+      return;
+    }
+
+    showSyncToast("⏳ " + (state.lang === 'el' ? 'Διαγραφή λογαριασμού...' : 'Deleting account...'), 0);
+
+    const res = await fetch('/api/delete-account', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + session.access_token
+      }
+    });
+    const result = await res.json().catch(() => ({}));
+
+    if (!res.ok || !result.success) {
+      showSyncToast("❌ " + (state.lang === 'el' ? 'Αποτυχία διαγραφής: ' : 'Deletion failed: ') + (result.error || res.status), 4000);
+      return;
+    }
+
+    // Clear all local data and log out
+    localStorage.clear();
+    state.transactions = [];
+    state.trashTransactions = [];
+    state.accounts = [];
+    state.categories = [];
+    state.notes = [];
+    state.currentUser = null;
+    state.userProfile = null;
+    state.partnerProfile = null;
+    state.familyProfiles = [];
+    state.familyGroup = null;
+    state.recurringTemplates = [];
+    state.deletedRecurringDates = [];
+    state.notifications = [];
+    state.guestMode = false;
+
+    document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
+    document.querySelectorAll('.tx-modal-overlay').forEach(m => m.classList.remove('active'));
+    document.querySelectorAll('.profile-sheet-overlay').forEach(m => m.classList.remove('active'));
+    document.body.classList.remove('modal-open');
+
+    updateUI();
+    showSyncToast("✅ " + (state.lang === 'el' ? 'Ο λογαριασμός διαγράφηκε.' : 'Account deleted.'), 3000);
+
+    // Show auth UI
+    const authOverlay = document.getElementById('auth-overlay');
+    const formsContainer = document.getElementById('auth-forms-container');
+    const authCard = document.getElementById('auth-card');
+    const loadingState = document.getElementById('auth-loading-state');
+    if (authOverlay) authOverlay.style.display = 'flex';
+    if (formsContainer) formsContainer.style.display = 'block';
+    if (authCard) authCard.style.display = 'flex';
+    if (loadingState) loadingState.style.display = 'none';
+  } catch (err) {
+    console.error('Delete account error:', err);
+    showSyncToast("❌ " + (state.lang === 'el' ? 'Σφάλμα κατά τη διαγραφή.' : 'Error during deletion.'), 4000);
+  }
+}
+window.deleteAccountConfirm = deleteAccountConfirm;
 
 
 setTimeout(() => {
