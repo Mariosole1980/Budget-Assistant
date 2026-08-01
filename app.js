@@ -675,7 +675,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v999 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v1001 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1046,7 +1046,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v999 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1001 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -22071,9 +22071,14 @@ function openRecurringTemplatesModal() {
               <span style="font-size: 12px; color: var(--text-secondary); margin-top: 3px; word-break: break-word; line-height: 1.2;">${presetLabel} • ${parseFloat(t.amount || 0).toFixed(2)}€${endDateLabel}</span>
             </div>
           </div>
-          <button class="delete-btn" onclick="deleteRecurringTemplate('${t.id}')" style="background: none; border: none; color: var(--danger); font-size: 18px; cursor: pointer; padding: 8px; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: background-color 0.2s; flex-shrink: 0;" onmouseover="this.style.backgroundColor='rgba(239, 83, 80, 0.1)'" onmouseout="this.style.backgroundColor='transparent'">
-            🗑️
-          </button>
+          <div style="display: flex; align-items: center; gap: 4px; flex-shrink: 0;">
+            <button class="details-btn" onclick="openRecurringDetailsModal('${t.id}')" title="${lang === 'el' ? 'Προβολή επαναλήψεων' : 'View repetitions'}" style="background: none; border: none; color: var(--text-secondary); font-size: 17px; cursor: pointer; padding: 8px; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: background-color 0.2s; flex-shrink: 0;" onmouseover="this.style.backgroundColor='rgba(124, 106, 247, 0.12)'; this.style.color='var(--accent)'" onmouseout="this.style.backgroundColor='transparent'; this.style.color='var(--text-secondary)'">
+              👁️
+            </button>
+            <button class="delete-btn" onclick="deleteRecurringTemplate('${t.id}')" style="background: none; border: none; color: var(--danger); font-size: 18px; cursor: pointer; padding: 8px; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: background-color 0.2s; flex-shrink: 0;" onmouseover="this.style.backgroundColor='rgba(239, 83, 80, 0.1)'" onmouseout="this.style.backgroundColor='transparent'">
+              🗑️
+            </button>
+          </div>
         </div>
       `;
       container.insertAdjacentHTML('beforeend', itemHtml);
@@ -22081,6 +22086,146 @@ function openRecurringTemplatesModal() {
   }
 
   openModal('recurring-templates-modal');
+}
+
+// ============================================================
+// RECURRING DETAILS: show all repetitions + edit template name
+// ============================================================
+let activeRecurringDetailsTemplateId = null;
+
+function openRecurringDetailsModal(templateId) {
+  const template = (state.recurringTemplates || []).find(t => String(t.id) === String(templateId));
+  if (!template) return;
+  activeRecurringDetailsTemplateId = template.id;
+
+  const lang = state.lang || 'el';
+
+  // Title
+  const titleEl = document.getElementById('recurring-details-title');
+  if (titleEl) titleEl.textContent = lang === 'el' ? '🔁 Επαναλήψεις' : '🔁 Repetitions';
+
+  // Name label
+  const nameLabel = document.getElementById('recurring-details-name-label');
+  if (nameLabel) nameLabel.textContent = lang === 'el' ? 'Όνομα Επανάληψης' : 'Recurring Name';
+
+  // List label
+  const listLabel = document.getElementById('recurring-details-list-label');
+  if (listLabel) listLabel.textContent = lang === 'el' ? 'Όλες οι Επαναλήψεις' : 'All Repetitions';
+
+  // Name input
+  const nameInput = document.getElementById('recurring-details-name-input');
+  if (nameInput) nameInput.value = template.note || '';
+
+  // Save button text
+  const saveBtn = document.querySelector('#recurring-details-modal .modal-body button[onclick="saveRecurringTemplateName()"]');
+  if (saveBtn) saveBtn.textContent = lang === 'el' ? '💾 Αποθήκευση' : '💾 Save';
+
+  // Gather all repetitions (transactions linked to this template)
+  const templateIdStr = String(template.id);
+  const repetitions = (state.transactions || []).filter(tx => {
+    return String(tx.recurring_template_id || '') === templateIdStr;
+  });
+
+  // Sort by date ascending
+  repetitions.sort((a, b) => {
+    const da = String(a.date || '').split('T')[0];
+    const db = String(b.date || '').split('T')[0];
+    return da.localeCompare(db);
+  });
+
+  const listContainer = document.getElementById('recurring-details-list-container');
+  if (!listContainer) return;
+
+  listContainer.innerHTML = '';
+
+  if (repetitions.length === 0) {
+    const emptyMsg = lang === 'el'
+      ? 'Δεν βρέθηκαν κινήσεις για αυτή την επανάληψη.'
+      : 'No transactions found for this repetition.';
+    listContainer.innerHTML = `
+      <div style="text-align: center; padding: 24px 16px; color: var(--text-secondary); font-size: 13.5px; line-height: 1.5;">
+        ${emptyMsg}
+      </div>
+    `;
+  } else {
+    repetitions.forEach(tx => {
+      // Format date
+      let formattedDate = tx.date || '';
+      try {
+        const d = new Date(tx.date);
+        if (!isNaN(d.getTime())) {
+          formattedDate = d.toLocaleDateString(lang === 'el' ? 'el-GR' : 'en-US', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+          });
+        }
+      } catch (e) { }
+
+      const amount = parseFloat(tx.amount || 0).toFixed(2);
+      const typeIcon = tx.type === 'expense' ? '🔴' : tx.type === 'income' ? '🟢' : '🔵';
+
+      const rowHtml = `
+        <div style="display: flex; flex-direction: row; align-items: center; justify-content: space-between; padding: 10px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg-card); gap: 10px; box-sizing: border-box; width: 100%;">
+          <div style="display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1;">
+            <div style="font-size: 15px; flex-shrink: 0;">${typeIcon}</div>
+            <div style="display: flex; flex-direction: column; min-width: 0; text-align: left; flex: 1;">
+              <span style="font-weight: 600; color: var(--text-primary); font-size: 13.5px; word-break: break-word; line-height: 1.3;">${formattedDate}</span>
+              <span style="font-size: 11.5px; color: var(--text-secondary); margin-top: 2px; word-break: break-word; line-height: 1.2;">${tx.category || ''}</span>
+            </div>
+          </div>
+          <span style="font-weight: 700; color: var(--text-primary); font-size: 13.5px; white-space: nowrap; flex-shrink: 0;">${amount}€</span>
+        </div>
+      `;
+      listContainer.insertAdjacentHTML('beforeend', rowHtml);
+    });
+  }
+
+  openModal('recurring-details-modal');
+}
+
+function closeRecurringDetailsModal() {
+  closeModal('recurring-details-modal');
+  activeRecurringDetailsTemplateId = null;
+}
+
+async function saveRecurringTemplateName() {
+  if (!activeRecurringDetailsTemplateId) return;
+  const lang = state.lang || 'el';
+
+  const nameInput = document.getElementById('recurring-details-name-input');
+  const newName = nameInput ? nameInput.value.trim() : '';
+
+  const template = (state.recurringTemplates || []).find(t => String(t.id) === String(activeRecurringDetailsTemplateId));
+  if (!template) return;
+
+  if (!newName) {
+    showSyncToast(lang === 'el' ? '⚠️ Το όνομα δεν μπορεί να είναι κενό.' : '⚠️ The name cannot be empty.', 2500);
+    return;
+  }
+
+  template.note = newName;
+
+  // Save to localStorage
+  localStorage.setItem('recurring_templates', JSON.stringify(state.recurringTemplates));
+
+  // Save to Supabase (Cloud Sync)
+  if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
+    try {
+      await state.supabaseClient
+        .from('recurring_templates')
+        .upsert([mapTemplateToDb(template)]);
+    } catch (err) {
+      console.warn('Failed to sync recurring template name to cloud:', err);
+    }
+  }
+
+  showSyncToast(lang === 'el' ? '✅ Το όνομα αποθηκεύτηκε.' : '✅ Name saved.', 2500);
+
+  // Refresh the templates list modal behind
+  openRecurringTemplatesModal();
+  // Re-open details modal to reflect the new name
+  openRecurringDetailsModal(template.id);
 }
 
 async function deleteRecurringTemplate(id) {
@@ -22294,6 +22439,9 @@ window.submitCoachQuery = submitCoachQuery;
 window.handleAdvisorChatKeydown = handleAdvisorChatKeydown;
 window.openRecurringTemplatesModal = openRecurringTemplatesModal;
 window.deleteRecurringTemplate = deleteRecurringTemplate;
+window.openRecurringDetailsModal = openRecurringDetailsModal;
+window.closeRecurringDetailsModal = closeRecurringDetailsModal;
+window.saveRecurringTemplateName = saveRecurringTemplateName;
 window.openTrashBinModal = openTrashBinModal;
 window.renderTrashBinList = renderTrashBinList;
 window.restoreTransaction = restoreTransaction;
