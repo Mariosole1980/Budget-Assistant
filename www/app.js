@@ -675,7 +675,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v998 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v999 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1046,7 +1046,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v998 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v999 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -15516,6 +15516,8 @@ function closePinVerifyModal() {
   if (modal) modal.classList.remove('active');
 }
 
+let suppressLockToggle = false;
+
 function submitPinVerification() {
   const input = document.getElementById('pin-verify-input');
   const entered = input ? input.value : '';
@@ -15534,11 +15536,17 @@ function submitPinVerification() {
     const bioCheckbox = document.getElementById('settings-biometrics');
     if (bioCheckbox) bioCheckbox.checked = false;
 
-    // Uncheck app lock checkbox
+    // Uncheck app lock checkbox (suppress the change handler so it doesn't
+    // re-open the verify modal or the "Ορισμός PIN" modal)
+    suppressLockToggle = true;
     const lockCheckbox = document.getElementById('settings-app-lock');
     if (lockCheckbox) lockCheckbox.checked = false;
+    suppressLockToggle = false;
 
     closePinVerifyModal();
+    // Defensive: make sure the "Ορισμός PIN" modal is not open
+    const pinModal = document.getElementById('pin-modal');
+    if (pinModal) pinModal.classList.remove('active');
     showSyncToast("🔓 " + (state.lang === 'el' ? "Το κλείδωμα απενεργοποιήθηκε." : "App lock disabled."), 3000);
   } else {
     showSyncToast("❌ " + (state.lang === 'el' ? "Λάθος PIN!" : "Incorrect PIN!"), 3000);
@@ -15550,6 +15558,7 @@ function submitPinVerification() {
 }
 
 function toggleAppLock(checked) {
+  if (suppressLockToggle) return;
   if (checked) {
     openPinModal();
   } else {
@@ -19919,13 +19928,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (weekStartSelect) {
       weekStartSelect.addEventListener('change', (e) => {
         changeWeekStartSetting(e.target.value);
-      });
-    }
-
-    const appLockCheckbox = document.getElementById('settings-app-lock');
-    if (appLockCheckbox) {
-      appLockCheckbox.addEventListener('change', (e) => {
-        toggleAppLock(e.target.checked);
       });
     }
 
