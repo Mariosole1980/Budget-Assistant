@@ -674,7 +674,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v987 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v988 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1044,7 +1044,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v987 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v988 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -12505,7 +12505,7 @@ function initSwipeToBack() {
     if (lightbox && lightbox.style.display === 'flex') return true;
     const keypad = document.getElementById('custom-calculator-keypad');
     if (keypad && keypad.classList.contains('active')) return true;
-    const activeModals = document.querySelectorAll('.modal-overlay.active');
+    const activeModals = document.querySelectorAll('.modal-overlay.active, .tx-modal-overlay.active');
     if (activeModals.length > 0) return true;
     const searchOverlay = document.getElementById('search-overlay');
     if (searchOverlay && searchOverlay.classList.contains('active')) return true;
@@ -12520,7 +12520,7 @@ function initSwipeToBack() {
     const keypad = document.getElementById('custom-calculator-keypad');
     if (keypad && keypad.classList.contains('active')) return null; // do not drag keypad horizontally
 
-    const activeModals = document.querySelectorAll('.modal-overlay.active');
+    const activeModals = document.querySelectorAll('.modal-overlay.active, .tx-modal-overlay.active');
     if (activeModals.length > 0) {
       return activeModals[activeModals.length - 1].querySelector('.modal-content');
     }
@@ -12572,7 +12572,8 @@ function initSwipeToBack() {
     }
 
     // 3. STRICT LIFO MODAL CLOSE: Close TOPMOST active modal first
-    const activeModals = document.querySelectorAll('.modal-overlay.active');
+    //    (includes the transaction modal which uses .tx-modal-overlay)
+    const activeModals = document.querySelectorAll('.modal-overlay.active, .tx-modal-overlay.active');
     if (activeModals.length > 0) {
       const topModal = activeModals[activeModals.length - 1];
       if (topModal && topModal.id) {
@@ -12668,7 +12669,7 @@ function initSwipeToBack() {
         bsDragging = true;
         activeOverlayEl = getActiveOverlayElement();
         if (activeOverlayEl) {
-          activeOverlayParent = activeOverlayEl.closest('.modal-overlay') || activeOverlayEl;
+          activeOverlayParent = activeOverlayEl.closest('.modal-overlay, .tx-modal-overlay') || activeOverlayEl;
           activeOverlayEl.style.transition = 'none';
           activeOverlayEl.style.willChange = 'transform';
           if (activeOverlayParent) {
