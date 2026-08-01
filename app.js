@@ -674,7 +674,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v990 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v991 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1044,7 +1044,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v990 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v991 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -4999,8 +4999,12 @@ function renderTransactionsTab() {
   }
   listContainer._lastRenderSignature = renderSignature;
 
-  listContainer.innerHTML = '';
-
+  // ANTI-FLICKER: Use replaceChildren() instead of innerHTML='' + appendChild().
+  // The old two-step approach (empty the container, then append the fragment)
+  // left a visible empty/black gap for a frame between the two DOM mutations,
+  // which appeared as a black flicker on resume/sync. replaceChildren() swaps
+  // the entire content in ONE atomic DOM mutation, so the browser never paints
+  // the empty intermediate state.
   const todayObj = new Date();
   const todayStr = `${todayObj.getFullYear()}-${String(todayObj.getMonth() + 1).padStart(2, '0')}-${String(todayObj.getDate()).padStart(2, '0')}`;
 
@@ -5174,7 +5178,7 @@ function renderTransactionsTab() {
     });
   });
 
-  listContainer.appendChild(fragment);
+  listContainer.replaceChildren(fragment);
 }
 
 // Get category display info (icon, name, color) from stored category or emoji map
