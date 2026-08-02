@@ -36,8 +36,8 @@ window.OTABootLoader = (function () {
     var IDB_TIMEOUT_MS = 1500;                // hard timeout for IndexedDB lookup
 
     // Bundled fallback (must match the static tag we replace)
-    var BUNDLED_APP_JS = 'app.js?v=1013';
-    var BUNDLED_STYLE_CSS = 'style.css?v=1013';
+    var BUNDLED_APP_JS = 'app.js?v=1014';
+    var BUNDLED_STYLE_CSS = 'style.css?v=1014';
 
     // ------------------------------------------------------------
     // IndexedDB helpers (promise + timeout)

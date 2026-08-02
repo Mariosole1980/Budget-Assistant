@@ -6,6 +6,16 @@ window.onerror = function (message, source, lineno, colno, error) {
 
 window.addEventListener('unhandledrejection', function (event) {
   console.error("Unhandled Rejection:", event.reason);
+  // DIAGNOSTIC: Log the full stack trace so the exact recursion source can be
+  // pinpointed. event.reason.stack reveals which function overflows the call stack.
+  try {
+    if (event.reason && event.reason.stack) {
+      console.error("Unhandled Rejection STACK:\n" + event.reason.stack);
+    }
+    if (event.reason && event.reason.message && String(event.reason.message).indexOf('call stack') !== -1) {
+      console.error("STACK OVERFLOW DETECTED. Full stack:\n" + (event.reason.stack || '(no stack)'));
+    }
+  } catch (e) { /* best-effort logging */ }
   alert("⚠️ Unhandled Promise Rejection:\n" + (event.reason?.message || event.reason));
 });
 
@@ -675,7 +685,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v1013 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v1014 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1046,7 +1056,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1013 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1014 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -1398,10 +1408,11 @@ function updateOTADiagnostic() {
   if (bundledEl) bundledEl.textContent = 'v' + bundled;
   if (sourceEl) sourceEl.textContent = source;
   diag.style.display = 'block';
-  // Refresh the version display label so it reflects the active OTA build.
-  if (typeof applyLanguage === 'function' && typeof state !== 'undefined' && state.lang) {
-    applyLanguage(state.lang);
-  }
+  // NOTE: Do NOT call applyLanguage() here. applyLanguage() already calls
+  // updateOTADiagnostic() at its end, so calling it back here would create
+  // infinite mutual recursion -> "Maximum call stack size exceeded".
+  // The version display label is already refreshed by applyLanguage() itself
+  // via getActiveBuildLabel().
 }
 window.updateOTADiagnostic = updateOTADiagnostic;
 
@@ -23585,9 +23596,9 @@ const USER_GUIDE_DATA = {
       {
         id: 'changelog',
         icon: 'fa-box-archive',
-        title: '1. Έκδοση & Τι Νέο Υπάρχει (v1013)',
+        title: '1. Έκδοση & Τι Νέο Υπάρχει (v1014)',
         content: `
-          <p><strong>Έκδοση Οδηγού:</strong> v1013 | <strong>Συγχρονισμένη Έκδοση Εφαρμογής:</strong> v1013</p>
+          <p><strong>Έκδοση Οδηγού:</strong> v1014 | <strong>Συγχρονισμένη Έκδοση Εφαρμογής:</strong> v1014</p>
           <div class="guide-feature-box">
             <h5 style="margin:0 0 6px; color:var(--primary);">✨ Τι νέο υπάρχει στην τελευταία έκδοση:</h5>
             <ul style="margin:0; padding-left:18px;">
@@ -23784,9 +23795,9 @@ const USER_GUIDE_DATA = {
       {
         id: 'changelog',
         icon: 'fa-box-archive',
-        title: '1. Version & What\'s New (v1013)',
+        title: '1. Version & What\'s New (v1014)',
         content: `
-          <p><strong>Guide Version:</strong> v1013 | <strong>Synchronized App Version:</strong> v1013</p>
+          <p><strong>Guide Version:</strong> v1014 | <strong>Synchronized App Version:</strong> v1014</p>
           <div class="guide-feature-box">
             <h5 style="margin:0 0 6px; color:var(--primary);">✨ What's new in the latest version:</h5>
             <ul style="margin:0; padding-left:18px;">
