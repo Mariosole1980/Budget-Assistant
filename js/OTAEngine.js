@@ -179,7 +179,7 @@ window.OTAEngine = (function () {
 
   // The bundled native versionCode. This is injected at build time.
   // For v1012 the APK versionCode is 1012. Kept as a constant fallback.
-  var BUNDLED_NATIVE_VERSION = 1018;
+  var BUNDLED_NATIVE_VERSION = 1019;
 
   // ------------------------------------------------------------
   // Validation

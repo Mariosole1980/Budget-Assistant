@@ -685,7 +685,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v1018 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v1019 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1056,7 +1056,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1018 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1019 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -18812,19 +18812,42 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-// Overlay Click: Close modals by tapping the background backdrop (all platforms).
-// The user can tap the empty space above a card (e.g. the settings subscreen) to close it.
+// Overlay Backdrop Tap: Close modals by tapping the dark background above a card.
+// Uses touchend (not click) for instant response on Android WebView — click has
+// a ~50-100ms delay even with touch-action:manipulation on passive touch listeners.
 document.addEventListener('DOMContentLoaded', () => {
-  document.querySelectorAll('.modal-overlay').forEach(modal => {
+  const protectedModals = ['advisor-chat-modal', 'transaction-modal', 'profile-settings-modal'];
+
+  function attachBackdropTap(modal) {
+    let touchStartTarget = null;
+
+    modal.addEventListener('touchstart', (e) => {
+      touchStartTarget = e.target;
+    }, { passive: true });
+
+    modal.addEventListener('touchend', (e) => {
+      // Only close if the touch both STARTED and ENDED on the overlay itself
+      // (not on the .modal-content card). This avoids accidental closes from
+      // touch events that started inside the card and drifted out.
+      if (touchStartTarget === modal && e.target === modal) {
+        if (protectedModals.includes(modal.id)) return;
+        if (window._appJustResumed) return;
+        e.preventDefault(); // prevent the synthetic click from also firing
+        closeModal(modal.id);
+      }
+      touchStartTarget = null;
+    }, { passive: false });
+
+    // click fallback for non-touch environments (desktop PWA / browser)
     modal.addEventListener('click', (e) => {
       if (e.target === modal) {
-        // Do not close primary modals on backdrop tap — they are restored on foreground resume
-        const protectedModals = ['advisor-chat-modal', 'transaction-modal', 'profile-settings-modal'];
         if (protectedModals.includes(modal.id)) return;
         closeModal(modal.id);
       }
     });
-  });
+  }
+
+  document.querySelectorAll('.modal-overlay').forEach(attachBackdropTap);
 });
 
 // Dynamic Visual Viewport Height Adjustment (for virtual keyboard support)
@@ -23606,9 +23629,9 @@ const USER_GUIDE_DATA = {
       {
         id: 'changelog',
         icon: 'fa-box-archive',
-        title: '1. Έκδοση & Τι Νέο Υπάρχει (v1018)',
+        title: '1. Έκδοση & Τι Νέο Υπάρχει (v1019)',
         content: `
-          <p><strong>Έκδοση Οδηγού:</strong> v1018 | <strong>Συγχρονισμένη Έκδοση Εφαρμογής:</strong> v1018</p>
+          <p><strong>Έκδοση Οδηγού:</strong> v1019 | <strong>Συγχρονισμένη Έκδοση Εφαρμογής:</strong> v1019</p>
           <div class="guide-feature-box">
             <h5 style="margin:0 0 6px; color:var(--primary);">✨ Τι νέο υπάρχει στην τελευταία έκδοση:</h5>
             <ul style="margin:0; padding-left:18px;">
@@ -23805,9 +23828,9 @@ const USER_GUIDE_DATA = {
       {
         id: 'changelog',
         icon: 'fa-box-archive',
-        title: '1. Version & What\'s New (v1018)',
+        title: '1. Version & What\'s New (v1019)',
         content: `
-          <p><strong>Guide Version:</strong> v1018 | <strong>Synchronized App Version:</strong> v1018</p>
+          <p><strong>Guide Version:</strong> v1019 | <strong>Synchronized App Version:</strong> v1019</p>
           <div class="guide-feature-box">
             <h5 style="margin:0 0 6px; color:var(--primary);">✨ What's new in the latest version:</h5>
             <ul style="margin:0; padding-left:18px;">
