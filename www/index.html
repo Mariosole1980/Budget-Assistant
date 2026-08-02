@@ -90,7 +90,7 @@
               ${devButton}
             </div>
             <div style="font-size:11px;color:#8b949e;">
-              Budget Assistant • build v1011
+              Budget Assistant • build v1012
             </div>
           </div>
         `;
@@ -175,10 +175,10 @@
   <link rel="stylesheet" href="js/fontawesome.min.css">
 
   <!-- Core Stylesheet (id used by the OTA boot loader to swap bundled/OTA) -->
-  <link rel="stylesheet" href="style.css?v=1011" id="app-stylesheet">
+  <link rel="stylesheet" href="style.css?v=1012" id="app-stylesheet">
 
   <!-- Capacitor Bridge -->
-  <script src="capacitor.js?v=1011"></script>
+  <script src="capacitor.js?v=1012"></script>
 
 
   <!-- Supabase client JS CDN -->
@@ -188,7 +188,7 @@
   <!-- Chart.js Datalabels Plugin CDN -->
   <script src="js/chartjs-plugin-datalabels.js"></script>
   <!-- SheetJS xlsx CDN for Excel Import/Export -->
-  <script src="xlsx.full.min.js?v=1011"></script>
+  <script src="xlsx.full.min.js?v=1012"></script>
 </head>
 
 <body style="background-color: #181b22; margin: 0; padding: 0; ">
@@ -1281,7 +1281,7 @@
               <h3 class="modal-title" style="margin: 0; font-size: 16px; font-weight: 700; color: var(--text-main);"
                 data-i18n="item_user_guide">Οδηγός Χρήσης</h3>
               <div style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
-                <span id="user-guide-version-badge" style="font-size:10px; background:rgba(99,102,241,0.15); color:var(--primary); padding:2px 8px; border-radius:10px; font-weight:700; border:1px solid rgba(99,102,241,0.3);">v1011</span>
+                <span id="user-guide-version-badge" style="font-size:10px; background:rgba(99,102,241,0.15); color:var(--primary); padding:2px 8px; border-radius:10px; font-weight:700; border:1px solid rgba(99,102,241,0.3);">v1012</span>
                 <span>•</span>
                 <span id="user-guide-date-badge">Ιούλιος 2026</span>
               </div>
@@ -2012,7 +2012,7 @@
             <div class="settings-list-item"
               style="padding: 14px 16px; background: transparent; border-top: 1px solid var(--border); margin-top: 8px;">
               <span class="settings-item-label" style="color:var(--text-muted); font-size:12px;"
-                data-i18n="app_version">Έκδοση 1.0.0 (build v1011)</span>
+                data-i18n="app_version">Έκδοση 1.0.0 (build v1012)</span>
               <span class="settings-item-value" style="font-size:12px; color:var(--text-muted); font-weight:600;">Budget
                 Assistant</span>
             </div>
@@ -3549,13 +3549,13 @@
     </div>
 
     <!-- Core Application Scripts -->
-    <script src="js/NLPProcessor.js?v=1011"></script>
-    <script src="js/MemoryEngine.js?v=1011"></script>
-    <script src="js/DecisionEngine.js?v=1011"></script>
-    <script src="js/OnlineAIProvider.js?v=1011"></script>
-    <script src="js/AIEngine.js?v=1011"></script>
-    <script src="js/IntentCorpus.js?v=1011"></script>
-    <script src="js/KnowledgeGraph.js?v=1011"></script>
+    <script src="js/NLPProcessor.js?v=1012"></script>
+    <script src="js/MemoryEngine.js?v=1012"></script>
+    <script src="js/DecisionEngine.js?v=1012"></script>
+    <script src="js/OnlineAIProvider.js?v=1012"></script>
+    <script src="js/AIEngine.js?v=1012"></script>
+    <script src="js/IntentCorpus.js?v=1012"></script>
+    <script src="js/KnowledgeGraph.js?v=1012"></script>
     <!-- ============================================================
          OTA BOOT LOADER
          Loads EXACTLY ONE app.js (bundled OR OTA from IndexedDB, never both).
@@ -3564,15 +3564,15 @@
            2) js/OTAEngine.js     -> auto-runs initOTACheck() (sees OTABootLoader)
            3) window.OTABootLoader.boot() -> injects the chosen app.js
          ============================================================ -->
-    <script src="ota-boot-loader.js?v=1011"></script>
-    <script src="js/OTAEngine.js?v=1011"></script>
+    <script src="ota-boot-loader.js?v=1012"></script>
+    <script src="js/OTAEngine.js?v=1012"></script>
     <script>
       window.OTABootLoader.boot();
     </script>
 
     <!-- Register PWA Service Worker -->
     <script>
-      const CURRENT_BUILD = 1011;
+      const CURRENT_BUILD = 1012;
 
       // ============================================================
       // AGGRESSIVE iOS PWA AUTO-UPDATE
