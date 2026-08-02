@@ -685,7 +685,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v1014 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v1015 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1056,7 +1056,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1014 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1015 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -8313,6 +8313,7 @@ function forceViewportReset(syncOnly = false) {
 
 
 function closeModal(id) {
+  console.log('[DEBUG closeModal] called for id =', id, '| _appJustResumed =', window._appJustResumed, '| visibilityState =', document.visibilityState);
   // Guard: if app just returned from background, ignore close requests for 300ms
   // to prevent ghost clicks/events from the OS home gesture closing modals
   if (window._appJustResumed) {
@@ -8349,6 +8350,13 @@ function closeModal(id) {
     window._settingsSubscreenHistory = [];
   }
   el.classList.remove('active');
+  console.log('[DEBUG closeModal] after remove active — id =', id, '| still has active class?', el.classList.contains('active'), '| display =', el.style.display, '| opacity =', getComputedStyle(el).opacity);
+  if (id === 'settings-subscreen-modal') {
+    const contentEl = el.querySelector('.modal-content');
+    const syncSection = document.getElementById('subscreen-sync');
+    console.log('[DEBUG closeModal] content child of overlay?', contentEl && contentEl.parentElement === el, '| content opacity =', contentEl ? getComputedStyle(contentEl).opacity : 'N/A', '| content transform =', contentEl ? getComputedStyle(contentEl).transform : 'N/A', '| content display =', contentEl ? contentEl.style.display : 'N/A');
+    console.log('[DEBUG closeModal] subscreen-sync opacity =', syncSection ? getComputedStyle(syncSection).opacity : 'N/A', '| sync display =', syncSection ? syncSection.style.display : 'N/A', '| sync has active class?', syncSection ? syncSection.classList.contains('active') : 'N/A');
+  }
   const activeModals = document.querySelectorAll('.modal-overlay.active, .tx-modal-overlay.active, .profile-sheet-overlay.active');
   if (activeModals.length === 0) {
     document.body.classList.remove('modal-open');
@@ -18804,11 +18812,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-// Android Overlay Click: Close picker modals by clicking on the background backdrop
+// Overlay Click: Close modals by tapping the background backdrop (all platforms).
+// The user can tap the empty space above a card (e.g. the settings subscreen) to close it.
 document.addEventListener('DOMContentLoaded', () => {
-  const isAndroid = /android/i.test(navigator.userAgent);
-  if (!isAndroid) return;
-
   document.querySelectorAll('.modal-overlay').forEach(modal => {
     modal.addEventListener('click', (e) => {
       if (e.target === modal) {
@@ -20227,7 +20233,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const backBtn = document.getElementById('settings-subscreen-back-btn');
     if (backBtn) {
-      backBtn.addEventListener('click', () => {
+      console.log('[DEBUG] settings-subscreen-back-btn found, binding click handler');
+      backBtn.addEventListener('click', (e) => {
+        console.log('[DEBUG] settings-subscreen-back-btn CLICKED. history len =', window._settingsSubscreenHistory ? window._settingsSubscreenHistory.length : 'N/A');
         if (window._settingsSubscreenHistory && window._settingsSubscreenHistory.length > 0) {
           const prev = window._settingsSubscreenHistory.pop();
           openSettingsSubscreen(prev.id, prev.titleKey, true);
@@ -20235,6 +20243,8 @@ document.addEventListener('DOMContentLoaded', () => {
           closeModal('settings-subscreen-modal');
         }
       });
+    } else {
+      console.warn('[DEBUG] settings-subscreen-back-btn NOT FOUND at bind time');
     }
   }
 

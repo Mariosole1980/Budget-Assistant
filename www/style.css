@@ -1668,7 +1668,12 @@ input:focus+.slider {
   justify-content: center;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.3s ease;
+  /* visibility:hidden (delayed) forces the browser to fully exclude the overlay
+     from rendering after the fade-out. This clears GPU-compositing ghost artifacts
+     where the .modal-content layer fails to repaint when the parent opacity hits 0
+     (e.g. closing the settings subscreen via the back arrow on Android WebView). */
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0s linear 0.3s;
   padding-bottom: var(--keyboard-height, 0px);
   box-sizing: border-box;
 }
@@ -1676,6 +1681,8 @@ input:focus+.slider {
 .modal-overlay.active {
   opacity: 1;
   pointer-events: auto;
+  visibility: visible;
+  transition: opacity 0.3s ease, visibility 0s linear 0s;
 }
 
 .modal-content {
