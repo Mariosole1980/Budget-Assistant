@@ -90,7 +90,7 @@
               ${devButton}
             </div>
             <div style="font-size:11px;color:#8b949e;">
-              Budget Assistant • build v1003
+              Budget Assistant • build v1004
             </div>
           </div>
         `;
@@ -178,7 +178,7 @@
   <link rel="stylesheet" href="style.css?v=982">
 
   <!-- Capacitor Bridge -->
-  <script src="capacitor.js?v=1003"></script>
+  <script src="capacitor.js?v=1004"></script>
 
 
   <!-- Supabase client JS CDN -->
@@ -188,7 +188,7 @@
   <!-- Chart.js Datalabels Plugin CDN -->
   <script src="js/chartjs-plugin-datalabels.js"></script>
   <!-- SheetJS xlsx CDN for Excel Import/Export -->
-  <script src="xlsx.full.min.js?v=1003"></script>
+  <script src="xlsx.full.min.js?v=1004"></script>
 </head>
 
 <body style="background-color: #181b22; margin: 0; padding: 0; ">
@@ -2013,7 +2013,7 @@
             <div class="settings-list-item"
               style="padding: 14px 16px; background: transparent; border-top: 1px solid var(--border); margin-top: 8px;">
               <span class="settings-item-label" style="color:var(--text-muted); font-size:12px;"
-                data-i18n="app_version">Έκδοση 1.0.0 (build v1003)</span>
+                data-i18n="app_version">Έκδοση 1.0.0 (build v1004)</span>
               <span class="settings-item-value" style="font-size:12px; color:var(--text-muted); font-weight:600;">Budget
                 Assistant</span>
             </div>
@@ -2094,6 +2094,124 @@
               <!-- Populated dynamically -->
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- MODAL: RECURRING EDITOR (full management with calendar) -->
+    <!-- ============================================== -->
+    <div id="recurring-edit-modal" class="modal-overlay" style="z-index: 13000;">
+      <div class="modal-content"
+        style="max-height: calc(var(--viewport-height, 100vh) * 0.95); display: flex; flex-direction: column; max-width: 460px;">
+        <div class="modal-header"
+          style="position: relative; min-height: 52px; box-sizing: border-box; border-bottom: 1px solid var(--border); padding: 0 16px; display: flex; align-items: center; justify-content: space-between;">
+          <span style="font-size: 13px; font-weight: 600; color: var(--text-secondary);"></span>
+          <h3 class="modal-title" id="recurring-edit-title"
+            style="margin: 0; font-size: 15px; font-weight: 700; color: #ffffff;">✏️ Επεξεργασία Επανάληψης</h3>
+          <span class="modal-close" onclick="closeRecurringEditModal()"
+            style="font-size: 24px; color: var(--text-secondary); cursor: pointer; line-height: 1;">&times;</span>
+        </div>
+        <div class="modal-body"
+          style="padding: 16px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 16px;">
+
+          <!-- Name -->
+          <div>
+            <span
+              style="font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Όνομα
+              Επανάληψης</span>
+            <input type="text" id="recurring-edit-name-input"
+              style="width: 100%; margin-top: 8px; padding: 12px; border-radius: 14px; background: var(--bg-main); color: var(--text-primary); border: 1px solid var(--border); font-size: 14.5px; font-weight: 600; outline: none; box-sizing: border-box;">
+          </div>
+
+          <!-- Start Date (calendar) -->
+          <div>
+            <span
+              style="font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Έναρξη
+              (Από)</span>
+            <div id="recurring-edit-start-trigger" onclick="openCustomDatePicker('recurring-edit-start')"
+              style="display: flex; align-items: center; justify-content: space-between; padding: 14px; border-radius: 12px; background: var(--bg-input, rgba(255,255,255,0.03)); border: 1px solid var(--border); cursor: pointer; transition: all 0.2s; box-shadow: inset 0 1px 2px rgba(0,0,0,0.2); margin-top: 8px;">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <i class="fa-regular fa-calendar-days" style="color: var(--accent, #e05e55); font-size: 16px;"></i>
+                <span id="recurring-edit-start-label"
+                  style="font-size: 14.5px; font-weight: 600; color: var(--text-primary);">Επιλογή ημερομηνίας...</span>
+              </div>
+              <i class="fa-solid fa-chevron-right" style="color: var(--text-secondary); font-size: 12px;"></i>
+            </div>
+            <input type="hidden" id="recurring-edit-start" value="">
+          </div>
+
+          <!-- Frequency Select -->
+          <div>
+            <span
+              style="font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Επανάληψη
+              Κάθε</span>
+            <select id="recurring-edit-preset" onchange="onRecurringEditPresetChange()"
+              style="width: 100%; margin-top: 8px; padding: 12px; border-radius: 14px; background: var(--bg-main); color: var(--text-primary); border: 1px solid var(--border); font-size: 14.5px; font-weight: 600; outline: none; cursor: pointer;">
+              <option value="daily">Daily (Καθημερινά)</option>
+              <option value="weekly">Weekly (Εβδομαδιαία)</option>
+              <option value="monthly">Monthly (Μηνιαία)</option>
+              <option value="yearly">Yearly (Ετήσια)</option>
+              <option value="specific_months">Specific Months (Συγκεκριμένοι Μήνες)</option>
+            </select>
+          </div>
+
+          <!-- Specific Months Grid -->
+          <div id="recurring-edit-months-container"
+            style="display: none; flex-direction: column; gap: 8px; border-top: 1px dashed var(--border); padding-top: 12px;">
+            <span
+              style="font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Επιλογή
+              Μηνών</span>
+            <div id="recurring-edit-months-grid"
+              style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 4px;">
+            </div>
+          </div>
+
+          <!-- Expiration Section -->
+          <div
+            style="border-top: 1px solid var(--border-light); padding-top: 16px; display: flex; flex-direction: column; gap: 10px;">
+            <span
+              style="font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Λήξη
+              Επανάληψης</span>
+            <div style="display: flex; gap: 8px;">
+              <button type="button" id="recurring-edit-end-perpetual" class="recurring-grid-btn active"
+                style="flex: 1; padding: 12px; border-radius: 12px; font-size: 13.5px; font-weight: 600;"
+                onclick="selectRecurringEditEndType('perpetual')">Για πάντα</button>
+              <button type="button" id="recurring-edit-end-date" class="recurring-grid-btn"
+                style="flex: 1; padding: 12px; border-radius: 12px; font-size: 13.5px; font-weight: 600;"
+                onclick="selectRecurringEditEndType('date')">Μέχρι ημερομηνία...</button>
+            </div>
+            <div id="recurring-edit-end-date-container" style="display: none; flex-direction: column; gap: 6px;">
+              <span
+                style="font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Ημερομηνία
+                Λήξης</span>
+              <div id="recurring-edit-end-trigger" onclick="openCustomDatePicker('recurring-edit-end')"
+                style="display: flex; align-items: center; justify-content: space-between; padding: 14px; border-radius: 12px; background: var(--bg-input, rgba(255,255,255,0.03)); border: 1px solid var(--border); cursor: pointer; transition: all 0.2s; box-shadow: inset 0 1px 2px rgba(0,0,0,0.2);">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <i class="fa-regular fa-calendar-days" style="color: var(--accent, #e05e55); font-size: 16px;"></i>
+                  <span id="recurring-edit-end-label"
+                    style="font-size: 14.5px; font-weight: 600; color: var(--text-primary);">Επιλογή
+                    ημερομηνίας...</span>
+                </div>
+                <i class="fa-solid fa-chevron-right" style="color: var(--text-secondary); font-size: 12px;"></i>
+              </div>
+              <input type="hidden" id="recurring-edit-end" value="">
+            </div>
+          </div>
+
+          <!-- Summary Preview -->
+          <div id="recurring-edit-summary"
+            style="background: rgba(var(--accent-rgb, 224, 94, 85), 0.05); border: 1px dashed rgba(var(--accent-rgb, 224, 94, 85), 0.2); border-radius: 12px; padding: 12px; margin-top: 8px; font-size: 13px; color: var(--text-primary); text-align: center; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px;">
+            <i class="fa-solid fa-circle-info" style="color: var(--accent, #e05e55);"></i>
+            <span id="recurring-edit-summary-text">Θα δημιουργούνται: Κάθε μήνα για πάντα</span>
+          </div>
+
+        </div>
+        <div class="modal-footer"
+          style="padding: 12px 16px; border-top: 1px solid var(--border); background: var(--bg-main);">
+          <button type="button" class="btn-primary" onclick="saveRecurringTemplateEdit()"
+            style="width: 100%; padding: 12px; border-radius: 20px; font-size: 14px; font-weight: 700; background: var(--accent, #e05e55); color: white; border: none; cursor: pointer; text-align: center;">💾
+            Αποθήκευση & Αναδημιουργία</button>
         </div>
       </div>
     </div>
@@ -3424,18 +3542,18 @@
     </div>
 
     <!-- Core Application Scripts -->
-    <script src="js/NLPProcessor.js?v=1003"></script>
-    <script src="js/MemoryEngine.js?v=1003"></script>
-    <script src="js/DecisionEngine.js?v=1003"></script>
-    <script src="js/OnlineAIProvider.js?v=1003"></script>
-    <script src="js/AIEngine.js?v=1003"></script>
-    <script src="js/IntentCorpus.js?v=1003"></script>
-    <script src="js/KnowledgeGraph.js?v=1003"></script>
-    <script src="app.js?v=1003"></script>
+    <script src="js/NLPProcessor.js?v=1004"></script>
+    <script src="js/MemoryEngine.js?v=1004"></script>
+    <script src="js/DecisionEngine.js?v=1004"></script>
+    <script src="js/OnlineAIProvider.js?v=1004"></script>
+    <script src="js/AIEngine.js?v=1004"></script>
+    <script src="js/IntentCorpus.js?v=1004"></script>
+    <script src="js/KnowledgeGraph.js?v=1004"></script>
+    <script src="app.js?v=1004"></script>
 
     <!-- Register PWA Service Worker -->
     <script>
-      const CURRENT_BUILD = 1003;
+      const CURRENT_BUILD = 1004;
 
       // ============================================================
       // AGGRESSIVE iOS PWA AUTO-UPDATE

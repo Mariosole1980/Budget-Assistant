@@ -675,7 +675,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v1003 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v1004 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1046,7 +1046,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1003 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1004 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -22108,6 +22108,9 @@ function openRecurringTemplatesModal() {
             <button class="details-btn" onclick="openRecurringDetailsModal('${t.id}')" title="${lang === 'el' ? 'Προβολή επαναλήψεων' : 'View repetitions'}" style="background: none; border: none; color: var(--text-secondary); font-size: 17px; cursor: pointer; padding: 8px; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: background-color 0.2s; flex-shrink: 0;" onmouseover="this.style.backgroundColor='rgba(124, 106, 247, 0.12)'; this.style.color='var(--accent)'" onmouseout="this.style.backgroundColor='transparent'; this.style.color='var(--text-secondary)'">
               👁️
             </button>
+            <button class="edit-btn" onclick="openRecurringEditModal('${t.id}')" title="${lang === 'el' ? 'Επεξεργασία επανάληψης' : 'Edit recurring'}" style="background: none; border: none; color: var(--text-secondary); font-size: 17px; cursor: pointer; padding: 8px; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: background-color 0.2s; flex-shrink: 0;" onmouseover="this.style.backgroundColor='rgba(124, 106, 247, 0.12)'; this.style.color='var(--accent)'" onmouseout="this.style.backgroundColor='transparent'; this.style.color='var(--text-secondary)'">
+              ✏️
+            </button>
             <button class="delete-btn" onclick="deleteRecurringTemplate('${t.id}')" style="background: none; border: none; color: var(--danger); font-size: 18px; cursor: pointer; padding: 8px; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: background-color 0.2s; flex-shrink: 0;" onmouseover="this.style.backgroundColor='rgba(239, 83, 80, 0.1)'" onmouseout="this.style.backgroundColor='transparent'">
               🗑️
             </button>
@@ -22259,6 +22262,417 @@ async function saveRecurringTemplateName() {
   openRecurringTemplatesModal();
   // Re-open details modal to reflect the new name
   openRecurringDetailsModal(template.id);
+}
+
+// ============================================================
+// RECURRING EDITOR: full management of a recurring template
+// (start date, end date, day of month, preset) via calendar
+// ============================================================
+let activeRecurringEditTemplateId = null;
+let _recurringEditMonths = [];
+
+function openRecurringEditModal(templateId) {
+  const template = (state.recurringTemplates || []).find(t => String(t.id) === String(templateId));
+  if (!template) return;
+  activeRecurringEditTemplateId = template.id;
+
+  const lang = state.lang || 'el';
+
+  // Title
+  const titleEl = document.getElementById('recurring-edit-title');
+  if (titleEl) titleEl.textContent = lang === 'el' ? '✏️ Επεξεργασία Επανάληψης' : '✏️ Edit Recurring';
+
+  // Name
+  const nameInput = document.getElementById('recurring-edit-name-input');
+  if (nameInput) nameInput.value = template.note || '';
+
+  // Start date
+  const startDateStr = template.startDate || `${template.startYear || new Date().getFullYear()}-${String(template.startMonth || 1).padStart(2, '0')}-01`;
+  const startInput = document.getElementById('recurring-edit-start');
+  const startLabel = document.getElementById('recurring-edit-start-label');
+  if (startInput) startInput.value = startDateStr;
+  if (startLabel) {
+    const parts = startDateStr.split('-');
+    if (parts.length === 3) startLabel.textContent = `${parts[2]}/${parts[1]}/${parts[0]}`;
+    else startLabel.textContent = startDateStr;
+  }
+
+  // Preset
+  const presetSelect = document.getElementById('recurring-edit-preset');
+  if (presetSelect) presetSelect.value = template.preset || 'monthly';
+
+  // Months grid
+  _recurringEditMonths = Array.isArray(template.months) ? template.months.slice() : [];
+  renderRecurringEditMonthsGrid();
+
+  // End type / end date
+  const endType = template.endType || 'perpetual';
+  const endDate = template.endDate || null;
+  const btnPerpetual = document.getElementById('recurring-edit-end-perpetual');
+  const btnDate = document.getElementById('recurring-edit-end-date');
+  const endContainer = document.getElementById('recurring-edit-end-date-container');
+  const endInput = document.getElementById('recurring-edit-end');
+  const endLabel = document.getElementById('recurring-edit-end-label');
+
+  if (endType === 'perpetual' || !endDate) {
+    if (btnPerpetual) btnPerpetual.classList.add('active');
+    if (btnDate) btnDate.classList.remove('active');
+    if (endContainer) endContainer.style.display = 'none';
+    if (endInput) endInput.value = '';
+    if (endLabel) endLabel.textContent = lang === 'el' ? 'Επιλογή ημερομηνίας...' : 'Select date...';
+  } else {
+    if (btnPerpetual) btnPerpetual.classList.remove('active');
+    if (btnDate) btnDate.classList.add('active');
+    if (endContainer) endContainer.style.display = 'flex';
+    if (endInput) endInput.value = endDate;
+    if (endLabel) {
+      const parts = endDate.split('-');
+      if (parts.length === 3) endLabel.textContent = `${parts[2]}/${parts[1]}/${parts[0]}`;
+      else endLabel.textContent = endDate;
+    }
+  }
+
+  // Update summary when start/end dates change via the calendar
+  const startInputEl = document.getElementById('recurring-edit-start');
+  const endInputEl = document.getElementById('recurring-edit-end');
+  if (startInputEl) startInputEl.oninput = () => updateRecurringEditSummary();
+  if (endInputEl) endInputEl.oninput = () => updateRecurringEditSummary();
+
+  updateRecurringEditSummary();
+  openModal('recurring-edit-modal');
+}
+
+function closeRecurringEditModal() {
+  closeModal('recurring-edit-modal');
+  activeRecurringEditTemplateId = null;
+}
+
+function renderRecurringEditMonthsGrid() {
+  const grid = document.getElementById('recurring-edit-months-grid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  const lang = state.lang || 'el';
+  const monthNames = lang === 'en' ? ENGLISH_MONTHS_SHORT : GREEK_MONTHS_SHORT;
+  for (let m = 1; m <= 12; m++) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'google-picker-btn';
+    btn.textContent = monthNames[m - 1];
+    if (_recurringEditMonths.includes(m)) btn.classList.add('active');
+    btn.onclick = () => {
+      const idx = _recurringEditMonths.indexOf(m);
+      if (idx > -1) {
+        if (_recurringEditMonths.length > 1) {
+          _recurringEditMonths.splice(idx, 1);
+          btn.classList.remove('active');
+        }
+      } else {
+        _recurringEditMonths.push(m);
+        btn.classList.add('active');
+      }
+      updateRecurringEditSummary();
+    };
+    grid.appendChild(btn);
+  }
+}
+
+function onRecurringEditPresetChange() {
+  const select = document.getElementById('recurring-edit-preset');
+  if (!select) return;
+  const val = select.value;
+  const monthsContainer = document.getElementById('recurring-edit-months-container');
+  if (monthsContainer) {
+    if (val === 'specific_months') {
+      monthsContainer.style.display = 'flex';
+      if (_recurringEditMonths.length === 0) {
+        const startVal = document.getElementById('recurring-edit-start').value;
+        const currentMonth = startVal ? new Date(startVal).getMonth() + 1 : new Date().getMonth() + 1;
+        _recurringEditMonths = [currentMonth];
+        renderRecurringEditMonthsGrid();
+      }
+    } else {
+      monthsContainer.style.display = 'none';
+    }
+  }
+  updateRecurringEditSummary();
+}
+
+function selectRecurringEditEndType(type) {
+  const btnPerpetual = document.getElementById('recurring-edit-end-perpetual');
+  const btnDate = document.getElementById('recurring-edit-end-date');
+  const endContainer = document.getElementById('recurring-edit-end-date-container');
+  const lang = state.lang || 'el';
+
+  if (type === 'perpetual') {
+    if (btnPerpetual) btnPerpetual.classList.add('active');
+    if (btnDate) btnDate.classList.remove('active');
+    if (endContainer) endContainer.style.display = 'none';
+    const endInput = document.getElementById('recurring-edit-end');
+    if (endInput) endInput.value = '';
+  } else {
+    if (btnPerpetual) btnPerpetual.classList.remove('active');
+    if (btnDate) btnDate.classList.add('active');
+    if (endContainer) endContainer.style.display = 'flex';
+    const endInput = document.getElementById('recurring-edit-end');
+    if (endInput && !endInput.value) {
+      const today = new Date();
+      const endOfYear = new Date(today.getFullYear(), 11, 31);
+      const yyyy = endOfYear.getFullYear();
+      const mm = String(endOfYear.getMonth() + 1).padStart(2, '0');
+      const dd = String(endOfYear.getDate()).padStart(2, '0');
+      endInput.value = `${yyyy}-${mm}-${dd}`;
+      const endLabel = document.getElementById('recurring-edit-end-label');
+      if (endLabel) endLabel.textContent = `${dd}/${mm}/${yyyy}`;
+    }
+  }
+  updateRecurringEditSummary();
+}
+
+function updateRecurringEditSummary() {
+  const summaryText = document.getElementById('recurring-edit-summary-text');
+  if (!summaryText) return;
+  const lang = state.lang || 'el';
+  const preset = document.getElementById('recurring-edit-preset') ? document.getElementById('recurring-edit-preset').value : 'monthly';
+  const endInput = document.getElementById('recurring-edit-end');
+  const endDate = endInput ? endInput.value : '';
+
+  let freqPart = '';
+  if (preset === 'daily') freqPart = lang === 'el' ? 'Κάθε μέρα' : 'Daily';
+  else if (preset === 'weekly') freqPart = lang === 'el' ? 'Κάθε εβδομάδα' : 'Weekly';
+  else if (preset === 'monthly') freqPart = lang === 'el' ? 'Κάθε μήνα' : 'Monthly';
+  else if (preset === 'yearly') freqPart = lang === 'el' ? 'Κάθε χρόνο' : 'Yearly';
+  else if (preset === 'specific_months') {
+    const monthNames = lang === 'en' ? ENGLISH_MONTHS_SHORT : GREEK_MONTHS_SHORT;
+    const selectedNames = _recurringEditMonths.map(m => monthNames[m - 1]).join(', ');
+    freqPart = selectedNames ? (lang === 'el' ? `Σε μήνες (${selectedNames})` : `In months (${selectedNames})`) : (lang === 'el' ? 'Επιλεγμένοι μήνες' : 'Selected months');
+  } else {
+    freqPart = 'Custom';
+  }
+
+  let endPart = '';
+  if (endDate) {
+    const parts = endDate.split('-');
+    if (parts.length === 3) endPart = lang === 'el' ? `μέχρι τις ${parts[2]}/${parts[1]}/${parts[0]}` : `until ${parts[2]}/${parts[1]}/${parts[0]}`;
+    else endPart = lang === 'el' ? `μέχρι ${endDate}` : `until ${endDate}`;
+  } else {
+    endPart = lang === 'el' ? 'για πάντα' : 'forever';
+  }
+
+  summaryText.textContent = lang === 'el'
+    ? `Θα δημιουργούνται: ${freqPart} ${endPart}`
+    : `Will be created: ${freqPart} ${endPart}`;
+}
+
+async function saveRecurringTemplateEdit() {
+  if (!activeRecurringEditTemplateId) return;
+  const lang = state.lang || 'el';
+  const template = (state.recurringTemplates || []).find(t => String(t.id) === String(activeRecurringEditTemplateId));
+  if (!template) return;
+
+  const nameInput = document.getElementById('recurring-edit-name-input');
+  const newName = nameInput ? nameInput.value.trim() : '';
+  if (!newName) {
+    showSyncToast(lang === 'el' ? '⚠️ Το όνομα δεν μπορεί να είναι κενό.' : '⚠️ The name cannot be empty.', 2500);
+    return;
+  }
+
+  const startInput = document.getElementById('recurring-edit-start');
+  const startDateStr = startInput ? startInput.value : '';
+  if (!startDateStr) {
+    showSyncToast(lang === 'el' ? '⚠️ Επιλέξτε ημερομηνία έναρξης.' : '⚠️ Please select a start date.', 2500);
+    return;
+  }
+
+  const preset = document.getElementById('recurring-edit-preset') ? document.getElementById('recurring-edit-preset').value : 'monthly';
+  const endInput = document.getElementById('recurring-edit-end');
+  const endDate = endInput ? endInput.value : '';
+
+  // Validate specific_months
+  if (preset === 'specific_months' && _recurringEditMonths.length === 0) {
+    showSyncToast(lang === 'el' ? '⚠️ Επιλέξτε τουλάχιστον έναν μήνα.' : '⚠️ Please select at least one month.', 2500);
+    return;
+  }
+
+  // Validate end date >= start date
+  if (endDate && endDate < startDateStr) {
+    showSyncToast(lang === 'el' ? '⚠️ Η ημερομηνία λήξης πρέπει να είναι μετά την έναρξη.' : '⚠️ End date must be after start date.', 2500);
+    return;
+  }
+
+  // 1. Remove all existing transactions linked to this template (local + cloud)
+  const templateIdStr = String(template.id);
+  const linkedTxs = (state.transactions || []).filter(tx => String(tx.recurring_template_id || '') === templateIdStr);
+  const linkedIds = linkedTxs.map(tx => tx.id);
+  if (linkedIds.length > 0) {
+    state.transactions = state.transactions.filter(tx => !linkedIds.includes(tx.id));
+    localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
+    if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
+      try {
+        await state.supabaseClient.from('transactions').delete().in('id', linkedIds);
+      } catch (err) {
+        console.warn('Failed to delete old recurring transactions from cloud:', err);
+      }
+    }
+  }
+
+  // 2. Update the template fields
+  template.note = newName;
+  template.preset = preset;
+  template.months = preset === 'specific_months' ? _recurringEditMonths.slice() : [];
+  template.days = [];
+  template.startDate = startDateStr;
+  template.startYear = new Date(startDateStr).getFullYear();
+  template.startMonth = new Date(startDateStr).getMonth() + 1;
+  if (endDate) {
+    template.endType = 'date';
+    template.endDate = endDate;
+  } else {
+    template.endType = 'perpetual';
+    template.endDate = null;
+    template.endYear = null;
+  }
+
+  // Clear any deleted-dates markers so regeneration is clean
+  if (template.description) {
+    template.description = (template.description || '').split('||deleted_dates:')[0].trim();
+  }
+
+  // 3. Save template locally + cloud
+  localStorage.setItem('recurring_templates', JSON.stringify(state.recurringTemplates));
+  if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
+    try {
+      await state.supabaseClient.from('recurring_templates').upsert([mapTemplateToDb(template)]);
+    } catch (err) {
+      console.warn('Failed to sync recurring template edit to cloud:', err);
+    }
+  }
+
+  // 4. Regenerate transactions for this template across all relevant months
+  regenerateRecurringTemplateTransactions(template);
+
+  showSyncToast(lang === 'el' ? '✅ Η επανάληψη ενημερώθηκε και αναδημιουργήθηκε.' : '✅ Recurring updated and regenerated.', 3000);
+
+  closeRecurringEditModal();
+  openRecurringTemplatesModal();
+  openRecurringDetailsModal(template.id);
+}
+
+// Regenerate all recurring transactions for a single template across all months
+// from its start date up to end date (or forever), skipping deleted dates.
+function regenerateRecurringTemplateTransactions(template) {
+  if (!template) return;
+  const preset = template.preset || 'monthly';
+  const startDate = new Date(template.startDate || new Date().toISOString().split('T')[0]);
+  const startYear = startDate.getFullYear();
+  const startMonth = startDate.getMonth(); // 0-indexed
+  const startDay = startDate.getDate();
+
+  const endDateStr = template.endDate || null;
+  const endLimit = endDateStr ? new Date(endDateStr) : null;
+
+  // Cap future generation to 12 months from today to avoid runaway creation
+  const today = new Date();
+  const maxFuture = new Date(today.getFullYear(), today.getMonth() + 12, 1);
+
+  const deletedDates = getDeletedDatesFromTemplate(template);
+
+  let created = 0;
+  let year = startYear;
+  let month = startMonth;
+
+  while (true) {
+    const yearMonth = new Date(year, month, 1);
+    if (yearMonth > maxFuture) break;
+    if (endLimit && yearMonth > endLimit) break;
+
+    const monthNum = month + 1;
+    const lastDay = new Date(year, month + 1, 0).getDate();
+    const datesToCreate = [];
+
+    if (preset === 'daily') {
+      for (let d = 1; d <= lastDay; d++) {
+        if (year === startYear && month === startMonth && d < startDay) continue;
+        datesToCreate.push(`${year}-${String(monthNum).padStart(2, '0')}-${String(d).padStart(2, '0')}`);
+      }
+    } else if (preset === 'weekly') {
+      const targetDayOfWeek = startDate.getDay();
+      for (let d = 1; d <= lastDay; d++) {
+        const dObj = new Date(year, month, d);
+        if (dObj.getDay() === targetDayOfWeek) {
+          if (year === startYear && month === startMonth && d < startDay) continue;
+          datesToCreate.push(`${year}-${String(monthNum).padStart(2, '0')}-${String(d).padStart(2, '0')}`);
+        }
+      }
+    } else if (preset === 'monthly') {
+      const day = Math.min(startDay, lastDay);
+      if (!(year === startYear && month === startMonth && day < startDay)) {
+        datesToCreate.push(`${year}-${String(monthNum).padStart(2, '0')}-${String(day).padStart(2, '0')}`);
+      }
+    } else if (preset === 'yearly') {
+      if (month === startMonth) {
+        const day = Math.min(startDay, lastDay);
+        datesToCreate.push(`${year}-${String(monthNum).padStart(2, '0')}-${String(day).padStart(2, '0')}`);
+      }
+    } else if (preset === 'specific_months') {
+      if (template.months && template.months.includes(monthNum)) {
+        const day = Math.min(startDay, lastDay);
+        if (!(year === startYear && month === startMonth && day < startDay)) {
+          datesToCreate.push(`${year}-${String(monthNum).padStart(2, '0')}-${String(day).padStart(2, '0')}`);
+        }
+      }
+    }
+
+    datesToCreate.forEach(dateString => {
+      if (endLimit && dateString > endDateStr) return;
+      if (deletedDates.includes(dateString)) return;
+      const newTx = {
+        id: generateUUID(),
+        recurring_template_id: template.id,
+        date: dateString,
+        type: template.type,
+        amount: parseFloat(template.amount),
+        category: template.category,
+        subcategory: template.subcategory || '',
+        account_from: template.account_from,
+        account_to: template.type === 'transfer' ? template.account_to : null,
+        note: template.note,
+        description: template.description || '',
+        user_id: template.user_id || (state.currentUser ? state.currentUser.id : null),
+        is_shared: template.is_shared !== undefined ? template.is_shared : (state.partnerProfile !== null),
+        family_id: template.family_id || (state.userProfile ? state.userProfile.family_id : null),
+        created_at: new Date().toISOString()
+      };
+      saveTransactionOffline(newTx);
+      if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
+        const { description, ...dbPayload } = newTx;
+        (async () => {
+          try {
+            const { error } = await promiseTimeout(
+              state.supabaseClient.from('transactions').upsert([dbPayload]),
+              12000
+            );
+            if (error) throw error;
+          } catch (err) {
+            console.warn('Cloud save failed for regenerated recurring, queueing:', newTx.id, err);
+            enqueueSyncMutation('save', newTx);
+          }
+        })();
+      }
+      created++;
+    });
+
+    // Advance to next month
+    month++;
+    if (month > 11) {
+      month = 0;
+      year++;
+    }
+    if (year > maxFuture.getFullYear() + 1) break;
+  }
+
+  calculateInitialBalances();
+  updateUI();
+  return created;
 }
 
 async function deleteRecurringTemplate(id) {
@@ -22475,6 +22889,11 @@ window.deleteRecurringTemplate = deleteRecurringTemplate;
 window.openRecurringDetailsModal = openRecurringDetailsModal;
 window.closeRecurringDetailsModal = closeRecurringDetailsModal;
 window.saveRecurringTemplateName = saveRecurringTemplateName;
+window.openRecurringEditModal = openRecurringEditModal;
+window.closeRecurringEditModal = closeRecurringEditModal;
+window.saveRecurringTemplateEdit = saveRecurringTemplateEdit;
+window.onRecurringEditPresetChange = onRecurringEditPresetChange;
+window.selectRecurringEditEndType = selectRecurringEditEndType;
 window.openTrashBinModal = openTrashBinModal;
 window.renderTrashBinList = renderTrashBinList;
 window.restoreTransaction = restoreTransaction;
