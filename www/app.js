@@ -675,7 +675,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v1006 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v1007 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1046,7 +1046,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1006 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1007 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -16359,19 +16359,21 @@ function renderPartnerSection() {
               ${state.lang === 'el' ? '1. Επιλέξτε Ρόλο Νέου Μέλους:' : '1. Select New Member Role:'}
             </label>
             <div style="display:flex;gap:8px;margin-bottom:2px;">
-              <div id="role-card-member" onclick="selectInviteRole('member')" style="flex:1;padding:10px 12px;border:2px solid var(--accent);border-radius:10px;background:rgba(var(--accent-rgb,124,106,247),0.08);cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:8px;">
+              <div id="role-card-member" onclick="selectInviteRole('member')" role="button" tabindex="0" style="flex:1;padding:10px 12px;border:2px solid var(--accent);border-radius:10px;background:rgba(var(--accent-rgb,124,106,247),0.08);cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:8px;position:relative;user-select:none;-webkit-user-select:none;">
                 <span style="font-size:16px;">👤</span>
-                <div>
+                <div style="flex:1;min-width:0;">
                   <div style="font-size:12px;font-weight:700;color:var(--text-primary);">${state.lang === 'el' ? 'Μέλος' : 'Member'}</div>
                   <div style="font-size:10px;color:var(--text-muted);">${state.lang === 'el' ? 'Δικαιώματα μέλους' : 'Member privileges'}</div>
                 </div>
+                <span id="role-check-member" style="font-size:13px;color:var(--accent);flex-shrink:0;">✓</span>
               </div>
-              <div id="role-card-admin" onclick="selectInviteRole('admin')" style="flex:1;padding:10px 12px;border:2px solid var(--card-border);border-radius:10px;background:var(--card-bg2,rgba(255,255,255,0.03));cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:8px;">
+              <div id="role-card-admin" onclick="selectInviteRole('admin')" role="button" tabindex="0" style="flex:1;padding:10px 12px;border:2px solid var(--card-border);border-radius:10px;background:var(--card-bg2,rgba(255,255,255,0.03));cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:8px;position:relative;user-select:none;-webkit-user-select:none;">
                 <span style="font-size:16px;">👑</span>
-                <div>
+                <div style="flex:1;min-width:0;">
                   <div style="font-size:12px;font-weight:700;color:var(--text-primary);">${state.lang === 'el' ? 'Διαχειριστής' : 'Admin'}</div>
                   <div style="font-size:10px;color:var(--text-muted);">${state.lang === 'el' ? 'Πλήρη δικαιώματα' : 'Full admin control'}</div>
                 </div>
+                <span id="role-check-admin" style="font-size:13px;color:var(--accent);flex-shrink:0;opacity:0;">✓</span>
               </div>
             </div>
             <input type="hidden" id="invite-role-select" value="member">
@@ -16816,15 +16818,21 @@ function selectInviteRole(role) {
   const memberCard = document.getElementById('role-card-member');
   const adminCard = document.getElementById('role-card-admin');
   const hiddenInput = document.getElementById('invite-role-select');
+  const memberCheck = document.getElementById('role-check-member');
+  const adminCheck = document.getElementById('role-check-admin');
 
   if (role === 'member') {
-    memberCard.style.borderColor = 'var(--accent)';
-    adminCard.style.borderColor = 'var(--border)';
-    hiddenInput.value = 'member';
+    if (memberCard) memberCard.style.borderColor = 'var(--accent)';
+    if (adminCard) adminCard.style.borderColor = 'var(--border)';
+    if (memberCheck) memberCheck.style.opacity = '1';
+    if (adminCheck) adminCheck.style.opacity = '0';
+    if (hiddenInput) hiddenInput.value = 'member';
   } else {
-    memberCard.style.borderColor = 'var(--border)';
-    adminCard.style.borderColor = 'var(--accent)';
-    hiddenInput.value = 'admin';
+    if (memberCard) memberCard.style.borderColor = 'var(--border)';
+    if (adminCard) adminCard.style.borderColor = 'var(--accent)';
+    if (memberCheck) memberCheck.style.opacity = '0';
+    if (adminCheck) adminCheck.style.opacity = '1';
+    if (hiddenInput) hiddenInput.value = 'admin';
   }
 }
 async function forceAppUpdate() {
