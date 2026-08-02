@@ -36,8 +36,8 @@ window.OTABootLoader = (function () {
     var IDB_TIMEOUT_MS = 1500;                // hard timeout for IndexedDB lookup
 
     // Bundled fallback (must match the static tag we replace)
-    var BUNDLED_APP_JS = 'app.js?v=1014';
-    var BUNDLED_STYLE_CSS = 'style.css?v=1014';
+    var BUNDLED_APP_JS = 'app.js?v=1016';
+    var BUNDLED_STYLE_CSS = 'style.css?v=1016';
 
     // ------------------------------------------------------------
     // IndexedDB helpers (promise + timeout)
@@ -274,6 +274,22 @@ window.OTABootLoader = (function () {
             .then(function (active) {
                 // No OTA build staged -> bundled.
                 if (!active || !active.version || !active.appJs) {
+                    return loadBundledApp();
+                }
+
+                // STALE OTA GUARD: If the bundled APK is NEWER than (or equal to)
+                // the staged OTA build, prefer the bundled app.js. This prevents a
+                // stale OTA build (e.g. v1014) cached in IndexedDB from being loaded
+                // over a freshly-installed APK (e.g. v1015) that already contains the
+                // latest fixes. The bundled version is read from CURRENT_BUILD, which
+                // index.html defines BEFORE calling boot().
+                var bundledVersion = (typeof window !== 'undefined' && typeof window.CURRENT_BUILD !== 'undefined')
+                    ? parseInt(window.CURRENT_BUILD, 10) : 0;
+                var otaVersion = parseInt(active.version, 10);
+                if (bundledVersion > 0 && otaVersion > 0 && otaVersion <= bundledVersion) {
+                    console.log('[OTABoot] Stale OTA v' + otaVersion + ' <= bundled v' + bundledVersion + '. Using bundled app.js.');
+                    // Clear the stale OTA build so it is not re-selected next boot.
+                    idbDelete(KEY_ACTIVE).catch(function () { /* best-effort */ });
                     return loadBundledApp();
                 }
 
