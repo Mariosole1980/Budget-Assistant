@@ -675,7 +675,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v1005 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v1006 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1046,7 +1046,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1005 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1006 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -4444,7 +4444,19 @@ function processRecurringTemplates() {
             date: dateString,
             type: template.type,
             amount: parseFloat(template.amount),
-            category: template.category,
+            category: (() => {
+              // Normalize a ghost template category (e.g. "Αυτοκίνητο") to its
+              // canonical stored name (e.g. "🚗 ΑΥΤΟΚΙΝΗΤΟ") so generated
+              // transactions don't carry a phantom category with a wrong icon.
+              const rawCat = template.category;
+              if (!rawCat) return rawCat;
+              const normCat = normalizeCategoryName(rawCat);
+              if (normCat) {
+                const canonical = state.categories.find(c => c.name && normalizeCategoryName(c.name) === normCat);
+                if (canonical) return canonical.name;
+              }
+              return rawCat;
+            })(),
             subcategory: template.subcategory || '',
             account_from: template.account_from,
             account_to: template.type === 'transfer' ? template.account_to : null,
@@ -5109,7 +5121,6 @@ function renderTransactionsTab() {
       const catInfo = getCategoryInfo(t.category, t.type);
       const item = document.createElement('div');
       item.className = 'transaction-item';
-      if (isTransactionRecurring(t)) item.classList.add('recurring-item');
       item.setAttribute('data-id', t.id);
 
       const isSelected = state.selectedIds.has(t.id);
@@ -5250,6 +5261,13 @@ function renderTransactionsTab() {
 }
 
 // Get category display info (icon, name, color) from stored category or emoji map
+// Normalize a category name for fuzzy matching: strip leading emoji, lowercase,
+// remove Greek accents, and trim. Used to match e.g. "Αυτοκίνητο" against "🚗 ΑΥΤΟΚΙΝΗΤΟ".
+function normalizeCategoryName(name) {
+  if (!name) return '';
+  return normalizeString(stripLeadingEmoji(String(name)).trim());
+}
+
 function getCategoryInfo(categoryName, transType) {
   if (!categoryName) return { icon: transType === 'income' ? '💰' : '💸', name: '', color: '#78909c' };
 
@@ -5269,6 +5287,14 @@ function getCategoryInfo(categoryName, transType) {
     c.name && c.name.toUpperCase() === cleaned.toUpperCase()
   );
   if (cleaned2) return cleaned2;
+
+  // Fuzzy match: normalize both sides (strip emoji + case/accents) so that
+  // "Αυτοκίνητο" matches the stored "🚗 ΑΥΤΟΚΙΝΗΤΟ" category.
+  const normInput = normalizeCategoryName(categoryName);
+  if (normInput) {
+    const fuzzy = state.categories.find(c => c.name && normalizeCategoryName(c.name) === normInput);
+    if (fuzzy) return fuzzy;
+  }
 
   return { icon: transType === 'income' ? '💰' : '💸', name: cleaned || categoryName, color: '#78909c' };
 }
@@ -5925,7 +5951,6 @@ function renderSubcategoryTransactions(category, subcategory) {
     const catInfo = getCategoryInfo(t.category, t.type);
     const item = document.createElement('div');
     item.className = 'transaction-item';
-    if (isTransactionRecurring(t)) item.classList.add('recurring-item');
     item.setAttribute('data-id', t.id);
 
     let modalTouchStartX = 0;
@@ -7245,7 +7270,16 @@ function setupEventListeners() {
       rawAmount = rawAmount.replace(/\,/g, '.');
       const evaluatedVal = evaluateCalcBuffer(rawAmount);
       const amountVal = parseFloat(evaluatedVal) || 0;
-      const categoryVal = type === 'transfer' ? 'ΜΕΤΑΦΟΡΑ' : document.getElementById('trans-category').value;
+      let categoryVal = type === 'transfer' ? 'ΜΕΤΑΦΟΡΑ' : document.getElementById('trans-category').value;
+      // Normalize a ghost category (e.g. "Αυτοκίνητο") to its canonical stored name
+      // (e.g. "🚗 ΑΥΤΟΚΙΝΗΤΟ") so it doesn't create a phantom category with a wrong icon.
+      if (type !== 'transfer' && categoryVal) {
+        const normCat = normalizeCategoryName(categoryVal);
+        if (normCat) {
+          const canonical = state.categories.find(c => c.name && normalizeCategoryName(c.name) === normCat);
+          if (canonical) categoryVal = canonical.name;
+        }
+      }
       const noteVal = document.getElementById('trans-note').value.trim();
 
       // Validation: Amount, Category, Title (note) must be filled
@@ -8954,7 +8988,7 @@ function updateCategoryDropdowns(type = 'expense', force = false) {
       // Tap the card body = edit
       div.onclick = () => openEditCategoryDialog(c.name, type);
     } else {
-      if (c.name === currentCategory) {
+      if (c.name === currentCategory || (currentCategory && normalizeCategoryName(c.name) === normalizeCategoryName(currentCategory))) {
         div.classList.add('selected');
         categoryExists = true;
       }
