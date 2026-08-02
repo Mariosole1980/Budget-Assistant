@@ -269,6 +269,11 @@ window.OTAEngine = (function () {
   // The boot loader reads KEY_ACTIVE on next launch. Because activation
   // is a single idbPut, there is no window where a half-activated build
   // exists. The previous active build is overwritten atomically.
+  //
+  // IMPORTANT (auto-apply): After a successful activation we reload the
+  // page so the boot loader immediately loads the freshly-activated OTA
+  // build. This removes the need to manually close/reopen the app. A
+  // guard flag prevents infinite reload loops.
   function activateStaged(staging) {
     if (!staging || !staging.complete || !staging.version || !staging.appJs) {
       throw new Error('Cannot activate incomplete staging');
@@ -284,9 +289,44 @@ window.OTAEngine = (function () {
       return idbDelete(KEY_STAGING).then(function () {
         lsRemove(KEY_FAIL_COUNT);
         console.log('[OTAEngine] Activated v' + staging.version + '. Will load on next app start.');
+        // Auto-apply: reload so the boot loader picks up the new build now.
+        scheduleAutoReload(staging.version);
         return active;
       });
     });
+  }
+
+  // ------------------------------------------------------------
+  // Auto-apply reload
+  // ------------------------------------------------------------
+  // After activation, reload the page so the boot loader loads the new
+  // OTA build immediately (no manual close/reopen). Guarded against
+  // infinite loops:
+  //   - window.__OTA_RELOADING prevents a second reload from the same
+  //     page lifetime.
+  //   - We only reload if the newly-activated version differs from the
+  //     version currently running (window.OTA_ACTIVE_VERSION). If the app
+  //     is already running the activated build, no reload is needed.
+  function scheduleAutoReload(activatedVersion) {
+    try {
+      if (window.__OTA_RELOADING) return;
+      var running = (typeof window.OTA_ACTIVE_VERSION !== 'undefined' && window.OTA_ACTIVE_VERSION != null)
+        ? parseInt(window.OTA_ACTIVE_VERSION, 10) : 0;
+      var activated = parseInt(activatedVersion, 10);
+      // If we are already running the activated build, nothing to do.
+      if (running > 0 && activated > 0 && running === activated) {
+        console.log('[OTAEngine] Already running v' + activated + '. No reload needed.');
+        return;
+      }
+      window.__OTA_RELOADING = true;
+      console.log('[OTAEngine] Auto-applying v' + activatedVersion + ' — reloading to load new build.');
+      // Small delay so the IndexedDB write fully settles before reload.
+      setTimeout(function () {
+        window.location.reload();
+      }, 300);
+    } catch (e) {
+      console.warn('[OTAEngine] Auto-reload failed (non-fatal):', e);
+    }
   }
 
   // ------------------------------------------------------------

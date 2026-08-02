@@ -685,7 +685,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v1019 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v1021 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1056,7 +1056,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1019 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1021 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -8312,11 +8312,18 @@ function forceViewportReset(syncOnly = false) {
 }
 
 
-function closeModal(id) {
-  console.log('[DEBUG closeModal] called for id =', id, '| _appJustResumed =', window._appJustResumed, '| visibilityState =', document.visibilityState);
-  // Guard: if app just returned from background, ignore close requests for 300ms
-  // to prevent ghost clicks/events from the OS home gesture closing modals
-  if (window._appJustResumed) {
+function closeModal(id, opts) {
+  // opts.userInitiated = true when the close comes from a deliberate user action
+  // (back arrow tap, backdrop tap, explicit close button). These must ALWAYS work
+  // immediately — they should never be blocked by the resume anti-ghost-click guard.
+  const userInitiated = !!(opts && opts.userInitiated) || !!window.__userInitiatedClose;
+  if (window.__userInitiatedClose) window.__userInitiatedClose = false;
+
+  // Guard: if app just returned from background, ignore spurious close requests
+  // (ghost clicks/events from the OS home gesture) for a short window.
+  // User-initiated closes (back arrow / backdrop tap) bypass this guard so they
+  // respond instantly with no lag.
+  if (window._appJustResumed && !userInitiated) {
     console.log('[closeModal] Blocked — app just resumed, ignoring close for:', id);
     return;
   }
@@ -12821,6 +12828,9 @@ function initSwipeToBack() {
     if (activeModals.length > 0) {
       const topModal = activeModals[activeModals.length - 1];
       if (topModal && topModal.id) {
+        // System back button / swipe-back is a deliberate user action — mark it
+        // user-initiated so the resume guard never blocks the close (no lag).
+        window.__userInitiatedClose = true;
         closeModal(topModal.id);
         return true;
       }
@@ -16923,29 +16933,53 @@ function selectInviteRole(role) {
 async function forceAppUpdate() {
   const confirmMsg = state.lang === 'en' ? 'Force update and reload the app?' : 'Θέλετε να επιβάλλετε ενημέρωση και επαναφόρτωση της εφαρμογής;';
   const confirmed = await showConfirm(confirmMsg, state.lang === 'el' ? 'Αναγκαστική Ενημέρωση' : 'Force Update', '🔄');
-  if (confirmed) {
-    if ('serviceWorker' in navigator) {
-      try {
-        const registrations = await navigator.serviceWorker.getRegistrations();
-        for (let registration of registrations) {
-          await registration.unregister();
-        }
-      } catch (e) {
-        console.error('Failed to unregister SW:', e);
+  if (!confirmed) return;
+
+  // OTA path: if the OTA engine is present (OTA-enabled APK), drive it so it
+  // downloads + activates the latest build and auto-reloads through the boot
+  // loader. This is what actually applies the OTA update — the old behavior
+  // only cleared the SW cache and reloaded the BUNDLED app.js, so the OTA
+  // build was never applied.
+  if (window.OTAEngine && typeof window.OTAEngine.checkForUpdate === 'function') {
+    try {
+      console.log('[ForceUpdate] Triggering OTA engine check...');
+      const result = await window.OTAEngine.checkForUpdate();
+      if (result && result.version) {
+        // The engine activated a new build and will auto-reload shortly.
+        console.log('[ForceUpdate] OTA v' + result.version + ' activated; reloading to apply.');
+        return;
       }
+      // No newer OTA build available — fall through to the classic reload so
+      // the user still gets a fresh bundled load (clears any stale SW/cache).
+      console.log('[ForceUpdate] No newer OTA build. Falling back to classic reload.');
+    } catch (e) {
+      console.error('[ForceUpdate] OTA check failed; falling back to classic reload:', e);
     }
-    if ('caches' in window) {
-      try {
-        const keys = await caches.keys();
-        for (let key of keys) {
-          await caches.delete(key);
-        }
-      } catch (e) {
-        console.error('Failed to clear cache:', e);
-      }
-    }
-    window.location.reload(true);
   }
+
+  // Classic path (plain web/PWA or no OTA update available): clear SW + cache
+  // and reload the bundled app.
+  if ('serviceWorker' in navigator) {
+    try {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      for (let registration of registrations) {
+        await registration.unregister();
+      }
+    } catch (e) {
+      console.error('Failed to unregister SW:', e);
+    }
+  }
+  if ('caches' in window) {
+    try {
+      const keys = await caches.keys();
+      for (let key of keys) {
+        await caches.delete(key);
+      }
+    } catch (e) {
+      console.error('Failed to clear cache:', e);
+    }
+  }
+  window.location.reload(true);
 }
 
 // Bind new functions to window for HTML element access
@@ -18816,7 +18850,16 @@ document.addEventListener('DOMContentLoaded', () => {
 // Uses touchend (not click) for instant response on Android WebView — click has
 // a ~50-100ms delay even with touch-action:manipulation on passive touch listeners.
 document.addEventListener('DOMContentLoaded', () => {
-  const protectedModals = ['advisor-chat-modal', 'transaction-modal', 'profile-settings-modal'];
+  // Modals that are FULL-SCREEN (no visible background to tap) should NOT close
+  // on backdrop tap. These are the full-screen overlays where the card fills the
+  // entire screen, so there is no "empty space on top" showing the background.
+  const fullScreenModals = ['transaction-modal', 'advisor-chat-modal', 'profile-settings-modal'];
+
+  // Mark a close as user-initiated so it bypasses the resume anti-ghost-click guard.
+  // This makes back arrows and backdrop taps respond INSTANTLY with no lag.
+  function markUserInitiated() {
+    window.__userInitiatedClose = true;
+  }
 
   function attachBackdropTap(modal) {
     let touchStartTarget = null;
@@ -18830,9 +18873,10 @@ document.addEventListener('DOMContentLoaded', () => {
       // (not on the .modal-content card). This avoids accidental closes from
       // touch events that started inside the card and drifted out.
       if (touchStartTarget === modal && e.target === modal) {
-        if (protectedModals.includes(modal.id)) return;
-        if (window._appJustResumed) return;
+        // Skip full-screen modals (no visible background to tap)
+        if (fullScreenModals.includes(modal.id)) return;
         e.preventDefault(); // prevent the synthetic click from also firing
+        markUserInitiated();
         closeModal(modal.id);
       }
       touchStartTarget = null;
@@ -18841,13 +18885,39 @@ document.addEventListener('DOMContentLoaded', () => {
     // click fallback for non-touch environments (desktop PWA / browser)
     modal.addEventListener('click', (e) => {
       if (e.target === modal) {
-        if (protectedModals.includes(modal.id)) return;
+        if (fullScreenModals.includes(modal.id)) return;
+        markUserInitiated();
         closeModal(modal.id);
       }
     });
   }
 
-  document.querySelectorAll('.modal-overlay').forEach(attachBackdropTap);
+  // Attach backdrop-tap-to-close to ALL modal overlay types that can show a
+  // visible background above the card (bottom-sheet style modals).
+  // NOTE: profile-settings-modal is EXCLUDED because it already has its own
+  // inline onclick="handleProfileSheetOverlayClick(event)" backdrop handler.
+  document.querySelectorAll('.modal-overlay, .tx-modal-overlay, .profile-sheet-overlay').forEach((modal) => {
+    if (modal.id === 'profile-settings-modal') return;
+    attachBackdropTap(modal);
+  });
+
+  // Delegated listener: any tap on a back-arrow / close button (elements whose
+  // onclick calls closeModal) is a deliberate user action. Mark it user-initiated
+  // so the resume guard never blocks it → instant, lag-free back arrow response.
+  document.addEventListener('click', (e) => {
+    const t = e.target;
+    // Back arrows use .icon-btn with fa-arrow-left; close buttons use .modal-close
+    // or have an onclick that calls closeModal. Detect these to mark user-initiated.
+    const isCloseControl =
+      (t.closest && t.closest('.icon-btn')) ||
+      (t.closest && t.closest('.modal-close')) ||
+      (t.closest && t.closest('[onclick*="closeModal"]')) ||
+      (t.closest && t.closest('[onclick*="closeProfileSheet"]')) ||
+      (t.closest && t.closest('[onclick*="closeSearchOverlay"]'));
+    if (isCloseControl) {
+      markUserInitiated();
+    }
+  }, true);
 });
 
 // Dynamic Visual Viewport Height Adjustment (for virtual keyboard support)

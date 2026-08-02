@@ -277,12 +277,21 @@ window.OTABootLoader = (function () {
                     return loadBundledApp();
                 }
 
-                // STALE OTA GUARD: If the bundled APK is NEWER than (or equal to)
-                // the staged OTA build, prefer the bundled app.js. This prevents a
-                // stale OTA build (e.g. v1014) cached in IndexedDB from being loaded
-                // over a freshly-installed APK (e.g. v1015) that already contains the
-                // latest fixes. The bundled version is read from CURRENT_BUILD, which
-                // index.html defines BEFORE calling boot().
+                // STALE OTA GUARD: Only load the OTA build if it is STRICTLY NEWER
+                // than the bundled APK (otaVersion > bundledVersion). If the OTA
+                // build is EQUAL to or OLDER than the bundled APK, prefer the
+                // bundled app.js. This prevents a stale OTA build (e.g. v1015)
+                // cached in IndexedDB from being loaded over a freshly-installed
+                // APK that already contains that version's code. The bundled
+                // version is read from CURRENT_BUILD, which index.html defines
+                // BEFORE calling boot().
+                //
+                // IMPORTANT: We reject when otaVersion <= bundledVersion (equal OR
+                // older). Allowing an equal-version OTA build would let a stale
+                // build (e.g. v1015) load over a freshly-installed v1015 APK and
+                // display the wrong version. A legitimately-downloaded OTA build is
+                // always NEWER than the bundled APK (the engine only downloads when
+                // remoteVersion > currentVersion), so rejecting equal/older is safe.
                 var bundledVersion = (typeof window !== 'undefined' && typeof window.CURRENT_BUILD !== 'undefined')
                     ? parseInt(window.CURRENT_BUILD, 10) : 0;
                 var otaVersion = parseInt(active.version, 10);
