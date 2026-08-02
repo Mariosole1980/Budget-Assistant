@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Πολιτική Απορρήτου – Budget Assistant</title>
+  <link rel="icon" href="icon.png" type="image/png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #1e222b;
+      --bg2: #252a35;
+      --accent: #4ecdc4;
+      --text: #e8eaf0;
+      --text2: #9ba3b5;
+      --border: rgba(255,255,255,0.08);
+    }
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      padding: 0 16px 60px;
+    }
+    header {
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    header img { width: 36px; height: 36px; border-radius: 8px; }
+    header h1 { font-size: 18px; font-weight: 700; color: var(--text); }
+    .container { max-width: 760px; margin: 0 auto; padding-top: 32px; }
+    .hero {
+      text-align: center;
+      padding: 40px 24px;
+      background: linear-gradient(135deg, rgba(78,205,196,0.1), rgba(78,205,196,0.03));
+      border: 1px solid rgba(78,205,196,0.2);
+      border-radius: 16px;
+      margin-bottom: 32px;
+    }
+    .hero h2 { font-size: 28px; font-weight: 800; margin-bottom: 8px; }
+    .hero p { color: var(--text2); font-size: 15px; }
+    .badge {
+      display: inline-block;
+      background: rgba(78,205,196,0.15);
+      color: var(--accent);
+      border: 1px solid rgba(78,205,196,0.3);
+      border-radius: 20px;
+      padding: 4px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+    section {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 16px;
+    }
+    h3 {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    h3::before { content: ''; display: block; width: 3px; height: 18px; background: var(--accent); border-radius: 2px; }
+    p { color: var(--text2); font-size: 14px; margin-bottom: 10px; }
+    p:last-child { margin-bottom: 0; }
+    ul { color: var(--text2); font-size: 14px; padding-left: 20px; margin-bottom: 10px; }
+    li { margin-bottom: 6px; }
+    strong { color: var(--text); }
+    .highlight {
+      background: rgba(78,205,196,0.08);
+      border-left: 3px solid var(--accent);
+      padding: 12px 16px;
+      border-radius: 0 8px 8px 0;
+      font-size: 14px;
+      color: var(--text2);
+      margin-top: 10px;
+    }
+    .contact-card {
+      text-align: center;
+      padding: 32px;
+    }
+    .updated { 
+      text-align: center;
+      color: var(--text2);
+      font-size: 12px;
+      margin-top: 32px;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+<header>
+  <img src="icon.png" alt="Budget Assistant">
+  <h1>Budget Assistant</h1>
+</header>
+
+<div class="container">
+
+  <div class="hero">
+    <div class="badge">📋 Νομικό Έγγραφο</div>
+    <h2>Πολιτική Απορρήτου</h2>
+    <p>Τελευταία ενημέρωση: Μαΐου 2026</p>
+  </div>
+
+  <section>
+    <h3>Εισαγωγή</h3>
+    <p>
+      Η εφαρμογή <strong>Budget Assistant</strong> («εφαρμογή», «εμείς») δεσμεύεται στην προστασία των προσωπικών σας δεδομένων.
+      Αυτή η Πολιτική Απορρήτου εξηγεί ποια δεδομένα συλλέγουμε, πώς τα χρησιμοποιούμε και ποια δικαιώματα έχετε.
+    </p>
+    <div class="highlight">
+      🔒 Το Budget Assistant <strong>δεν πουλά, δεν μοιράζεται και δεν αδειοδοτεί</strong> τα προσωπικά σας δεδομένα σε τρίτους για εμπορικούς σκοπούς.
+    </div>
+  </section>
+
+  <section>
+    <h3>Δεδομένα που Συλλέγουμε</h3>
+    <p>Η εφαρμογή αποθηκεύει μόνο τα δεδομένα που <strong>εσείς εισάγετε</strong> οικειοθελώς:</p>
+    <ul>
+      <li><strong>Οικονομικές κινήσεις:</strong> Ημερομηνία, ποσό, κατηγορία, σημείωση, τύπος (έσοδο/έξοδο)</li>
+      <li><strong>Λογαριασμοί:</strong> Ονόματα λογαριασμών (π.χ. "Μετρητά", "Τράπεζα"), υπόλοιπα</li>
+      <li><strong>Ρυθμίσεις:</strong> Γλώσσα, θέμα εμφάνισης, επιλογές εμφάνισης</li>
+      <li><strong>Διαπιστευτήρια Cloud (προαιρετικά):</strong> Supabase URL και API Key, αποθηκευμένα μόνο τοπικά στη συσκευή σας (localStorage)</li>
+    </ul>
+    <p>
+      <strong>Δεν συλλέγουμε:</strong> Ονόματα χρηστών, email, αριθμούς τηλεφώνου, αριθμούς τραπεζικών λογαριασμών, κωδικούς πρόσβασης τραπεζών, ή οποιαδήποτε πληροφορία ταυτοποίησης.
+    </p>
+  </section>
+
+  <section>
+    <h3>Πού Αποθηκεύονται τα Δεδομένα</h3>
+    <ul>
+      <li><strong>Τοπικά (offline):</strong> Τα δεδομένα αποθηκεύονται στη μνήμη του browser/συσκευής σας μέσω localStorage. Δεν αποστέλλονται πουθενά χωρίς τη ρητή σας συναίνεση.</li>
+      <li><strong>Cloud (προαιρετικά):</strong> Αν επιλέξετε να χρησιμοποιήσετε το Supabase για συγχρονισμό, τα δεδομένα αποστέλλονται στον δικό σας Supabase server, τον οποίο εσείς ελέγχετε. Εμείς δεν έχουμε πρόσβαση σε αυτόν τον server.</li>
+    </ul>
+    <div class="highlight">
+      🏠 <strong>Ο δικός σας Supabase = η δικιά σας βάση δεδομένων.</strong> Εμείς δεν φιλοξενούμε, δεν βλέπουμε και δεν έχουμε πρόσβαση στα δεδομένα σας στο cloud.
+    </div>
+  </section>
+
+  <section>
+    <h3>Κλείδωμα με PIN & Βιομετρικά</h3>
+    <p>
+      Αν ενεργοποιήσετε το κλείδωμα με PIN, το PIN <strong>αποθηκεύεται αποκλειστικά τοπικά</strong> στη συσκευή σας (localStorage), κρυπτογραφημένο. Δεν αποστέλλεται ποτέ σε κανέναν server.
+    </p>
+    <p>
+      Αν χρησιμοποιήσετε βιομετρική ταυτοποίηση (Face ID / Αποτύπωμα), η εφαρμογή χρησιμοποιεί αποκλειστικά το επίσημο <strong>Web Authentication API (WebAuthn)</strong> του browser σας. Τα βιομετρικά δεδομένα παραμένουν στο ασφαλές chip της συσκευής σας και δεν γίνονται ποτέ προσβάσιμα από εμάς.
+    </p>
+  </section>
+
+  <section>
+    <h3>Τρίτες Υπηρεσίες (Third-Party Services)</h3>
+    <p>Η εφαρμογή χρησιμοποιεί τις παρακάτω εξωτερικές υπηρεσίες για τη λειτουργία της:</p>
+    <ul>
+      <li><strong>Google Fonts</strong> – Για τη φόρτωση γραμματοσειρών. Οι γραμματοσειρές μπορεί να αποθηκευτούν τοπικά (cache).</li>
+      <li><strong>jsDelivr CDN</strong> – Για τη φόρτωση βιβλιοθηκών (Supabase.js, Chart.js, SheetJS). Δεν μεταφέρονται δεδομένα χρήστη.</li>
+      <li><strong>Font Awesome CDN</strong> – Για εικονίδια (icons). Δεν μεταφέρονται δεδομένα χρήστη.</li>
+      <li><strong>Supabase (προαιρετικά)</strong> – Μόνο αν εσείς επιλέξετε να χρησιμοποιήσετε cloud sync. Δείτε την <a href="https://supabase.com/privacy" target="_blank">Πολιτική Απορρήτου του Supabase</a>.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h3>Cookies & Τεχνολογίες Παρακολούθησης</h3>
+    <p>
+      Η εφαρμογή <strong>δεν χρησιμοποιεί cookies</strong> ούτε οποιαδήποτε τεχνολογία παρακολούθησης (tracking pixels, analytics, κ.λπ.). Δεν χρησιμοποιούμε Google Analytics, Facebook Pixel, ή παρόμοιες υπηρεσίες.
+    </p>
+  </section>
+
+  <section>
+    <h3>Δικαιώματά σας (GDPR)</h3>
+    <p>Σύμφωνα με τον Γενικό Κανονισμό Προστασίας Δεδομένων (GDPR), έχετε τα εξής δικαιώματα:</p>
+    <ul>
+      <li><strong>Δικαίωμα πρόσβασης:</strong> Όλα τα δεδομένα σας είναι ορατά μέσα στην εφαρμογή.</li>
+      <li><strong>Δικαίωμα διαγραφής:</strong> Μπορείτε να διαγράψετε οποιαδήποτε κίνηση ή να διαγράψετε όλα τα δεδομένα καθαρίζοντας τα δεδομένα του browser σας (Clear Site Data).</li>
+      <li><strong>Δικαίωμα φορητότητας:</strong> Μπορείτε να εξάγετε όλα τα δεδομένα σας σε Excel (.xlsx) μέσω της λειτουργίας "Εξαγωγή Excel".</li>
+      <li><strong>Δικαίωμα αντίρρησης:</strong> Δεν επεξεργαζόμαστε δεδομένα σας χωρίς συναίνεση.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h3>Ασφάλεια Δεδομένων</h3>
+    <p>
+      Λαμβάνουμε εύλογα μέτρα για την προστασία των δεδομένων σας:
+    </p>
+    <ul>
+      <li>Όλα τα δεδομένα αποθηκεύονται τοπικά στη συσκευή σας.</li>
+      <li>Η επικοινωνία με το Supabase γίνεται μέσω HTTPS (κρυπτογραφημένη σύνδεση).</li>
+      <li>Τα API keys αποθηκεύονται μόνο στο localStorage της συσκευής σας.</li>
+      <li>Υποστηρίζεται κλείδωμα εφαρμογής με PIN 4 ψηφίων και βιομετρική ταυτοποίηση.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h3>Ηλικιακό Όριο</h3>
+    <p>
+      Η εφαρμογή απευθύνεται σε χρήστες <strong>ηλικίας 16 ετών και άνω</strong>. Δεν συλλέγουμε εν γνώσει μας δεδομένα από παιδιά κάτω των 16 ετών.
+    </p>
+  </section>
+
+  <section>
+    <h3>Αλλαγές στην Πολιτική</h3>
+    <p>
+      Μπορούμε να ενημερώσουμε αυτή την Πολιτική Απορρήτου κατά καιρούς. Η ημερομηνία "Τελευταίας ενημέρωσης" στην κορυφή της σελίδας θα αντικατοπτρίζει τις αλλαγές. Συνιστούμε να επισκέπτεστε αυτή τη σελίδα περιοδικά.
+    </p>
+  </section>
+
+  <section class="contact-card">
+    <h3 style="justify-content: center;">Επικοινωνία</h3>
+    <p>Αν έχετε ερωτήσεις σχετικά με αυτήν την Πολιτική Απορρήτου, μπορείτε να επικοινωνήσετε μαζί μας:</p>
+    <p style="margin-top: 16px;">
+      <strong style="color: var(--accent);">Budget Assistant Support</strong><br>
+      📧 <a href="mailto:support@budgetassistant.app">support@budgetassistant.app</a>
+    </p>
+  </section>
+
+  <p class="updated">© 2026 Budget Assistant · Πολιτική Απορρήτου · Τελευταία ενημέρωση: Μαΐου 2026</p>
+
+</div>
+</body>
+</html>

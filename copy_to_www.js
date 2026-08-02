@@ -5,7 +5,8 @@ const filesToCopy = [
   'index.html',
   'style.css',
   'sw.js',
-  'version.json'
+  'version.json',
+  'ota-boot-loader.js'
 ];
 
 filesToCopy.forEach(file => {

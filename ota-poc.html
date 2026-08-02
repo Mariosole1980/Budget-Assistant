@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="el">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>OTA PoC - Cross-Origin Fetch Test</title>
+    <style>
+        :root {
+            --bg-main: #0d1117;
+            --bg-card: #161b22;
+            --border-color: #30363d;
+            --text-main: #e6edf3;
+            --text-muted: #8b949e;
+            --primary: #58a6ff;
+            --green: #3fb950;
+            --red: #ff7b72;
+            --yellow: #d29922;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg-main);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 16px;
+            margin: 0;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 640px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 20px;
+            color: var(--primary);
+            margin: 0 0 4px 0;
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 13px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .card-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin: 0 0 10px 0;
+        }
+
+        .row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 13px;
+        }
+
+        .row:last-child {
+            border-bottom: none;
+        }
+
+        .label {
+            color: var(--text-muted);
+        }
+
+        .value {
+            font-weight: 600;
+            word-break: break-all;
+            text-align: right;
+        }
+
+        .ok {
+            color: var(--green);
+        }
+
+        .fail {
+            color: var(--red);
+        }
+
+        .warn {
+            color: var(--yellow);
+        }
+
+        .btn {
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 8px;
+        }
+
+        .btn:active {
+            opacity: 0.8;
+        }
+
+        .btn.secondary {
+            background: #21262d;
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+        }
+
+        pre {
+            background: #0d1117;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 12px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .log {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .badge.online {
+            background: rgba(63, 185, 80, 0.15);
+            color: var(--green);
+        }
+
+        .badge.offline {
+            background: rgba(255, 123, 114, 0.15);
+            color: var(--red);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>OTA PoC — Cross-Origin Fetch Test</h1>
+        <p class="subtitle">Απομονωμένο τεστ: fetch από <code>https://localhost</code> (Capacitor WebView) προς
+            <code>https://budget-assistant-pwa.pages.dev/version.json</code></p>
+
+        <div class="card">
+            <div class="card-title">Περιβάλλον</div>
+            <div class="row"><span class="label">Origin (αυτή η σελίδα)</span><span class="value"
+                    id="env-origin">—</span></div>
+            <div class="row"><span class="label">navigator.onLine</span><span class="value" id="env-online">—</span>
+            </div>
+            <div class="row"><span class="label">Platform</span><span class="value" id="env-platform">—</span></div>
+            <div class="row"><span class="label">Service Worker</span><span class="value" id="env-sw">—</span></div>
+            <div class="row"><span class="label">CURRENT_BUILD</span><span class="value" id="env-build">—</span></div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Έλεγχοι</div>
+            <button class="btn" id="btn-test-online">1. Test με INTERNET ΑΝΟΙΚΤΟ (fetch version.json)</button>
+            <button class="btn secondary" id="btn-test-offline">2. Test με INTERNET ΚΛΕΙΣΤΟ (local fallback)</button>
+            <button class="btn secondary" id="btn-test-sw">3. Έλεγχος Service Worker (cache)</button>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Αποτέλεσμα</div>
+            <div id="result-status" class="row"><span class="label">Κατάσταση</span><span class="value"
+                    id="result-status-val">—</span></div>
+            <div id="result-detail" style="margin-top: 10px;"></div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Log</div>
+            <pre id="log">—</pre>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            var SERVER_VERSION_URL = 'https://budget-assistant-pwa.pages.dev/version.json';
+            var LOCAL_FALLBACK = '{"version": 1007, "source": "local-fallback"}';
+            var logEl = document.getElementById('log');
+            var logs = [];
+
+            function log(msg) {
+                var ts = new Date().toISOString().split('T')[1].split('.')[0];
+                logs.push('[' + ts + '] ' + msg);
+                logEl.textContent = logs.join('\n');
+                console.log('[OTAPoC]', msg);
+            }
+
+            function setStatus(text, cls) {
+                var el = document.getElementById('result-status-val');
+                el.textContent = text;
+                el.className = 'value ' + (cls || '');
+            }
+
+            function showDetail(html) {
+                document.getElementById('result-detail').innerHTML = html;
+            }
+
+            function getPlatform() {
+                try {
+                    if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
+                        return 'native (Capacitor)';
+                    }
+                } catch (e) { }
+                return 'browser (PWA)';
+            }
+
+            function getBuild() {
+                try {
+                    if (typeof CURRENT_BUILD !== 'undefined') return 'v' + CURRENT_BUILD;
+                } catch (e) { }
+                return 'unknown';
+            }
+
+            // Environment info
+            document.getElementById('env-origin').textContent = window.location.origin;
+            document.getElementById('env-online').innerHTML = navigator.onLine
+                ? '<span class="badge online">ONLINE</span>' : '<span class="badge offline">OFFLINE</span>';
+            document.getElementById('env-platform').textContent = getPlatform();
+            document.getElementById('env-build').textContent = getBuild();
+            document.getElementById('env-sw').textContent = ('serviceWorker' in navigator) ? 'supported' : 'NOT supported';
+
+            // Test 1: Online fetch
+            document.getElementById('btn-test-online').addEventListener('click', function () {
+                log('=== TEST 1: Online fetch ===');
+                setStatus('Running...', 'warn');
+                showDetail('<div class="log">Fetching ' + SERVER_VERSION_URL + ' ...</div>');
+                var start = Date.now();
+                fetch(SERVER_VERSION_URL + '?_t=' + Date.now(), { cache: 'no-store' })
+                    .then(function (res) {
+                        var ms = Date.now() - start;
+                        log('Response status: ' + res.status + ' (' + res.statusText + ') in ' + ms + 'ms');
+                        log('Content-Type: ' + (res.headers.get('content-type') || 'n/a'));
+                        log('Access-Control-Allow-Origin: ' + (res.headers.get('access-control-allow-origin') || 'MISSING'));
+                        return res.text().then(function (text) {
+                            return { res: res, text: text, ms: ms };
+                        });
+                    })
+                    .then(function (data) {
+                        var res = data.res;
+                        var text = data.text;
+                        var isJson = false;
+                        var parsed = null;
+                        try { parsed = JSON.parse(text); isJson = true; } catch (e) { isJson = false; }
+
+                        var isRedirect = res.redirected;
+                        var isErrorPage = /<!DOCTYPE|<html/i.test(text);
+
+                        log('Body length: ' + text.length);
+                        log('Is valid JSON: ' + isJson);
+                        log('Is redirect: ' + isRedirect);
+                        log('Is HTML error page: ' + isErrorPage);
+
+                        if (res.ok && isJson && !isErrorPage) {
+                            setStatus('SUCCESS ✓', 'ok');
+                            showDetail(
+                                '<div class="row"><span class="label">Status</span><span class="value ok">' + res.status + ' OK</span></div>' +
+                                '<div class="row"><span class="label">Valid JSON</span><span class="value ok">Ναι</span></div>' +
+                                '<div class="row"><span class="label">Redirect</span><span class="value">' + (isRedirect ? 'Ναι' : 'Όχι') + '</span></div>' +
+                                '<div class="row"><span class="label">CORS header</span><span class="value">' + (res.headers.get('access-control-allow-origin') || 'MISSING') + '</span></div>' +
+                                '<div class="row"><span class="label">Χρόνος</span><span class="value">' + data.ms + 'ms</span></div>' +
+                                '<div style="margin-top:8px;"><b>Περιεχόμενο:</b></div><pre>' + text + '</pre>'
+                            );
+                        } else {
+                            setStatus('FAIL', 'fail');
+                            showDetail(
+                                '<div class="row"><span class="label">Status</span><span class="value fail">' + res.status + '</span></div>' +
+                                '<div class="row"><span class="label">Valid JSON</span><span class="value fail">' + (isJson ? 'Ναι' : 'Όχι') + '</span></div>' +
+                                '<div class="row"><span class="label">HTML error page</span><span class="value fail">' + (isErrorPage ? 'Ναι' : 'Όχι') + '</span></div>' +
+                                '<div style="margin-top:8px;"><b>Body (πρώτα 500 chars):</b></div><pre>' + text.substring(0, 500) + '</pre>'
+                            );
+                        }
+                    })
+                    .catch(function (err) {
+                        var ms = Date.now() - start;
+                        log('FETCH ERROR after ' + ms + 'ms: ' + err.message);
+                        log('Error name: ' + err.name);
+                        setStatus('FAIL (CORS/Network)', 'fail');
+                        showDetail(
+                            '<div class="row"><span class="label">Error</span><span class="value fail">' + err.name + '</span></div>' +
+                            '<div class="row"><span class="label">Message</span><span class="value fail">' + err.message + '</span></div>' +
+                            '<div style="margin-top:8px;" class="log">Αν το error είναι "Failed to fetch" ή "NetworkError", πιθανότατα είναι πρόβλημα CORS ή δικτύου. Αν είναι "Access to fetch ... blocked by CORS", είναι σίγουρα CORS.</div>'
+                        );
+                    });
+            });
+
+            // Test 2: Offline local fallback
+            document.getElementById('btn-test-offline').addEventListener('click', function () {
+                log('=== TEST 2: Offline local fallback ===');
+                setStatus('Running...', 'warn');
+                showDetail('<div class="log">Δοκιμή local fallback (δεν χρειάζεται internet)...</div>');
+                try {
+                    var parsed = JSON.parse(LOCAL_FALLBACK);
+                    log('Local fallback JSON parsed OK: ' + LOCAL_FALLBACK);
+                    setStatus('SUCCESS ✓', 'ok');
+                    showDetail(
+                        '<div class="row"><span class="label">Local fallback</span><span class="value ok">Λειτουργεί</span></div>' +
+                        '<div class="row"><span class="label">Περιεχόμενο</span><span class="value">' + LOCAL_FALLBACK + '</span></div>' +
+                        '<div style="margin-top:8px;" class="log">Αυτό προσομοιώνει το τι θα γίνει όταν δεν υπάρχει internet: η εφαρμογή χρησιμοποιεί το τοπικό (bundled) version.json αντί για το remote.</div>'
+                    );
+                } catch (e) {
+                    log('Local fallback parse ERROR: ' + e.message);
+                    setStatus('FAIL', 'fail');
+                }
+            });
+
+            // Test 3: Service Worker check
+            document.getElementById('btn-test-sw').addEventListener('click', function () {
+                log('=== TEST 3: Service Worker check ===');
+                setStatus('Running...', 'warn');
+                if (!('serviceWorker' in navigator)) {
+                    log('Service Worker NOT supported in this WebView');
+                    setStatus('SW NOT SUPPORTED', 'fail');
+                    showDetail('<div class="log">Το Service Worker δεν υποστηρίζεται σε αυτό το WebView. Αυτό είναι σημαντικό για το OTA.</div>');
+                    return;
+                }
+                navigator.serviceWorker.getRegistrations().then(function (regs) {
+                    log('SW registrations found: ' + regs.length);
+                    if (regs.length === 0) {
+                        setStatus('NO SW REGISTERED', 'warn');
+                        showDetail('<div class="log">Δεν υπάρχει εγγεγραμμένο Service Worker. Το OTA μέσω SW δεν θα λειτουργήσει μέχρι να εγγραφεί.</div>');
+                        return;
+                    }
+                    regs.forEach(function (reg, i) {
+                        log('SW #' + i + ' scope: ' + reg.scope + ' | active: ' + (reg.active ? 'yes' : 'no') + ' | installing: ' + (reg.installing ? 'yes' : 'no') + ' | waiting: ' + (reg.waiting ? 'yes' : 'no'));
+                    });
+                    var active = regs[0].active;
+                    if (active) {
+                        setStatus('SW ACTIVE ✓', 'ok');
+                        showDetail(
+                            '<div class="row"><span class="label">Scope</span><span class="value">' + regs[0].scope + '</span></div>' +
+                            '<div class="row"><span class="label">Active</span><span class="value ok">Ναι</span></div>' +
+                            '<div style="margin-top:8px;" class="log">Το Service Worker είναι ενεργό. Μπορεί να κάνει cache και να εξυπηρετεί αρχεία.</div>'
+                        );
+                    } else {
+                        setStatus('SW NOT ACTIVE', 'warn');
+                        showDetail('<div class="log">Το SW είναι εγγεγραμμένο αλλά δεν είναι active. Μπορεί να χρειαστεί ανανέωση.</div>');
+                    }
+                }).catch(function (err) {
+                    log('SW getRegistrations error: ' + err.message);
+                    setStatus('SW ERROR', 'fail');
+                });
+            });
+
+            log('PoC page loaded. Origin: ' + window.location.origin + ' | Platform: ' + getPlatform());
+        })();
+    </script>
+</body>
+
+</html>

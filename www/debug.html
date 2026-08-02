@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="el">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -7,7 +8,9 @@
   <!-- Outfit Font & FontAwesome Icons -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
   <link rel="stylesheet" href="js/fontawesome.min.css">
   <style>
     :root {
@@ -62,7 +65,7 @@
       border-radius: 12px;
       padding: 16px;
       margin-bottom: 20px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     }
 
     .card-title {
@@ -70,7 +73,7 @@
       font-weight: 600;
       margin-top: 0;
       margin-bottom: 12px;
-      border-bottom: 1px solid rgba(255,255,255,0.05);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
       padding-bottom: 8px;
       display: flex;
       align-items: center;
@@ -132,9 +135,20 @@
       text-transform: uppercase;
     }
 
-    .status-badge.success { background: rgba(63,185,80,0.15); color: var(--green); }
-    .status-badge.error { background: rgba(255,123,114,0.15); color: var(--red); }
-    .status-badge.warning { background: rgba(210,153,34,0.15); color: var(--yellow); }
+    .status-badge.success {
+      background: rgba(63, 185, 80, 0.15);
+      color: var(--green);
+    }
+
+    .status-badge.error {
+      background: rgba(255, 123, 114, 0.15);
+      color: var(--red);
+    }
+
+    .status-badge.warning {
+      background: rgba(210, 153, 34, 0.15);
+      color: var(--yellow);
+    }
 
     .input-field {
       width: 100%;
@@ -160,10 +174,10 @@
       align-items: center;
       justify-content: space-between;
       padding: 8px 0;
-      border-bottom: 1px solid rgba(255,255,255,0.03);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.03);
       font-size: 13px;
     }
-    
+
     .test-item:last-child {
       border-bottom: none;
     }
@@ -175,8 +189,13 @@
       font-weight: 600;
     }
 
-    .test-status.passed { color: var(--green); }
-    .test-status.failed { color: var(--red); }
+    .test-status.passed {
+      color: var(--green);
+    }
+
+    .test-status.failed {
+      color: var(--red);
+    }
 
     /* Console Logger Widget */
     .console-box {
@@ -194,9 +213,17 @@
       margin-top: 8px;
     }
 
-    .console-line.error { color: var(--red); }
-    .console-line.warn { color: var(--yellow); }
-    .console-line.info { color: var(--primary); }
+    .console-line.error {
+      color: var(--red);
+    }
+
+    .console-line.warn {
+      color: var(--yellow);
+    }
+
+    .console-line.info {
+      color: var(--primary);
+    }
 
     table {
       width: 100%;
@@ -205,20 +232,32 @@
       margin-top: 8px;
     }
 
-    th, td {
+    th,
+    td {
       border: 1px solid var(--border-color);
       padding: 8px;
       text-align: left;
     }
 
-    th { background: #161b22; color: var(--text-muted); }
+    th {
+      background: #161b22;
+      color: var(--text-muted);
+    }
   </style>
 </head>
+
 <body>
   <div class="container">
     <header>
       <h1><i class="fa-solid fa-gauge-high"></i> Πίνακας Ελέγχου</h1>
-      <button class="btn btn-secondary" onclick="window.location.href='/'"><i class="fa-solid fa-arrow-left"></i> Εφαρμογή</button>
+      <div class="btn-group" style="margin-top:0;">
+        <button class="btn btn-secondary" onclick="window.location.href='ota-poc.html'"><i
+            class="fa-solid fa-flask"></i> OTA PoC</button>
+        <button class="btn btn-secondary" onclick="window.location.href='ota-proof.html'"><i
+            class="fa-solid fa-vial"></i> OTA Proof</button>
+        <button class="btn btn-secondary" onclick="window.location.href='/'"><i class="fa-solid fa-arrow-left"></i>
+          Εφαρμογή</button>
+      </div>
     </header>
 
     <!-- 🌐 SECTION 1: ENVIRONMENT MANAGER -->
@@ -228,23 +267,29 @@
         <span class="status-badge success" id="env-badge">Active</span>
       </div>
       <p style="font-size:12px;color:var(--text-muted);margin-top:0;">
-        Επιλέξτε πού θα συνδέεται η εφαρμογή. Αν επιλέξετε Staging ή Custom URL, η εφαρμογή θα ανακατευθύνει αυτόματα εκεί!
+        Επιλέξτε πού θα συνδέεται η εφαρμογή. Αν επιλέξετε Staging ή Custom URL, η εφαρμογή θα ανακατευθύνει αυτόματα
+        εκεί!
       </p>
-      
+
       <div style="font-size:13px;margin-bottom:12px;">
-        <strong>Τρέχων Host:</strong> <span id="current-host" style="font-family:monospace;color:var(--primary);">...</span><br>
-        <strong>Target Server:</strong> <span id="target-server" style="font-family:monospace;color:var(--yellow);">...</span>
+        <strong>Τρέχων Host:</strong> <span id="current-host"
+          style="font-family:monospace;color:var(--primary);">...</span><br>
+        <strong>Target Server:</strong> <span id="target-server"
+          style="font-family:monospace;color:var(--yellow);">...</span>
       </div>
 
       <div class="btn-group">
-        <button class="btn" onclick="setServerUrl('https://budget-assistant-pwa.pages.dev')"><i class="fa-solid fa-cloud"></i> Production (Live)</button>
-        <button class="btn btn-secondary" onclick="setServerUrl('local')"><i class="fa-solid fa-mobile-screen"></i> Local APK Assets</button>
+        <button class="btn" onclick="setServerUrl('https://budget-assistant-pwa.pages.dev')"><i
+            class="fa-solid fa-cloud"></i> Production (Live)</button>
+        <button class="btn btn-secondary" onclick="setServerUrl('local')"><i class="fa-solid fa-mobile-screen"></i>
+          Local APK Assets</button>
       </div>
 
       <div style="margin-top:16px;border-top:1px solid rgba(255,255,255,0.05);padding-top:12px;">
         <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Custom Server URL:</label>
         <div style="display:flex;gap:8px;">
-          <input type="text" id="custom-url-input" class="input-field" placeholder="https://my-custom-preview.pages.dev" style="margin-bottom:0;">
+          <input type="text" id="custom-url-input" class="input-field" placeholder="https://my-custom-preview.pages.dev"
+            style="margin-bottom:0;">
           <button class="btn btn-secondary" onclick="setCustomServerUrl()">Ορισμός</button>
         </div>
       </div>
@@ -254,9 +299,10 @@
     <div class="card">
       <div class="card-title">
         <span>🧪 Αυτοματοποιημένα Τεστ & Diagnostics</span>
-        <button class="btn btn-secondary" style="padding:6px 12px;font-size:11px;" onclick="runDiagnostics()"><i class="fa-solid fa-play"></i> Run Tests</button>
+        <button class="btn btn-secondary" style="padding:6px 12px;font-size:11px;" onclick="runDiagnostics()"><i
+            class="fa-solid fa-play"></i> Run Tests</button>
       </div>
-      
+
       <div id="test-results-container">
         <div class="test-item">
           <span>1. Υπολογισμοί Budget (Math check)</span>
@@ -283,11 +329,14 @@
         <span>💥 Εξομοίωση Σφαλμάτων & Recovery Mode</span>
       </div>
       <p style="font-size:12px;color:var(--text-muted);margin-top:0;">
-        Χρησιμοποιήστε τα παρακάτω κουμπιά για να δοκιμάσετε αν η Recovery Screen (Λειτουργία Ανάκτησης) λειτουργεί σωστά σε περίπτωση προβλήματος.
+        Χρησιμοποιήστε τα παρακάτω κουμπιά για να δοκιμάσετε αν η Recovery Screen (Λειτουργία Ανάκτησης) λειτουργεί
+        σωστά σε περίπτωση προβλήματος.
       </p>
       <div class="btn-group">
-        <button class="btn btn-danger" onclick="simulateStartupError()"><i class="fa-solid fa-bug"></i> Simulate Script Error</button>
-        <button class="btn btn-danger" onclick="simulateTimeout()"><i class="fa-solid fa-hourglass-end"></i> Simulate Boot Timeout</button>
+        <button class="btn btn-danger" onclick="simulateStartupError()"><i class="fa-solid fa-bug"></i> Simulate Script
+          Error</button>
+        <button class="btn btn-danger" onclick="simulateTimeout()"><i class="fa-solid fa-hourglass-end"></i> Simulate
+          Boot Timeout</button>
       </div>
     </div>
 
@@ -297,9 +346,12 @@
         <span>⚙️ Επείγουσες Ενέργειες & Data Backup</span>
       </div>
       <div class="btn-group">
-        <button class="btn" style="background:#28a745;" onclick="downloadDataJson()"><i class="fa-solid fa-download"></i> Backup Δεδομένων (JSON)</button>
-        <button class="btn btn-danger" onclick="clearAppData()"><i class="fa-solid fa-trash-can"></i> Διαγραφή Local Storage</button>
-        <button class="btn btn-danger" onclick="clearSWCache()"><i class="fa-solid fa-broom"></i> Καθαρισμός Service Worker Cache</button>
+        <button class="btn" style="background:#28a745;" onclick="downloadDataJson()"><i
+            class="fa-solid fa-download"></i> Backup Δεδομένων (JSON)</button>
+        <button class="btn btn-danger" onclick="clearAppData()"><i class="fa-solid fa-trash-can"></i> Διαγραφή Local
+          Storage</button>
+        <button class="btn btn-danger" onclick="clearSWCache()"><i class="fa-solid fa-broom"></i> Καθαρισμός Service
+          Worker Cache</button>
       </div>
     </div>
 
@@ -307,7 +359,8 @@
     <div class="card">
       <div class="card-title">
         <span>📋 Εσωτερική Κονσόλα Σφαλμάτων & Logs</span>
-        <button class="btn btn-secondary" style="padding:4px 8px;font-size:10px;" onclick="clearConsoleLogs()">Clear</button>
+        <button class="btn btn-secondary" style="padding:4px 8px;font-size:10px;"
+          onclick="clearConsoleLogs()">Clear</button>
       </div>
       <div class="console-box" id="console-logs"></div>
     </div>
@@ -316,7 +369,7 @@
   <script>
     // 1. Console Log Interception
     const consoleLogsContainer = document.getElementById('console-logs');
-    
+
     function logToScreen(type, args) {
       const line = document.createElement('div');
       line.className = 'console-line ' + type;
@@ -329,15 +382,15 @@
     const _error = console.error;
     const _warn = console.warn;
 
-    console.log = function() {
+    console.log = function () {
       _log.apply(console, arguments);
       logToScreen('info', arguments);
     };
-    console.error = function() {
+    console.error = function () {
       _error.apply(console, arguments);
       logToScreen('error', arguments);
     };
-    console.warn = function() {
+    console.warn = function () {
       _warn.apply(console, arguments);
       logToScreen('warn', arguments);
     };
@@ -404,7 +457,7 @@
         const totalIncome = mockTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
         const totalExpense = mockTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
         const balance = totalIncome - totalExpense;
-        
+
         if (totalIncome === 100 && totalExpense === 80 && balance === 20) {
           updateTestStatus('test-math', true, 'Math operations correct');
           console.log('[Test] Math operation validation passed.');
@@ -520,7 +573,7 @@
         user: JSON.parse(localStorage.getItem('cached_current_user') || 'null'),
         profile: JSON.parse(localStorage.getItem('cached_user_profile') || 'null')
       };
-      
+
       const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -536,4 +589,5 @@
     setTimeout(runDiagnostics, 800);
   </script>
 </body>
+
 </html>

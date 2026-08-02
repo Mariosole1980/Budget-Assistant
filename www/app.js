@@ -675,7 +675,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v1007 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v1011 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1046,7 +1046,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1007 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1011 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -1287,6 +1287,23 @@ function getWeekdayName(index) {
   return state.lang === 'en' ? ENGLISH_WEEKDAYS_SHORT[index] : GREEK_WEEKDAYS_SHORT[index];
 }
 
+// Returns the active build label for the version display.
+// Reads window.OTA_ACTIVE_VERSION (set by the boot loader after OTA load),
+// falling back to the bundled CURRENT_BUILD constant from index.html.
+function getActiveBuildLabel() {
+  var active = (typeof window.OTA_ACTIVE_VERSION !== 'undefined' && window.OTA_ACTIVE_VERSION != null)
+    ? window.OTA_ACTIVE_VERSION : null;
+  var bundled = (typeof CURRENT_BUILD !== 'undefined') ? CURRENT_BUILD : null;
+  var build = (active != null && parseInt(active, 10) > 0) ? active : bundled;
+  var label = (typeof TRANSLATIONS !== 'undefined' && TRANSLATIONS[state.lang])
+    ? TRANSLATIONS[state.lang]['app_version'] : null;
+  if (label && build != null) {
+    label = label.replace(/v\d+/, 'v' + build);
+  }
+  return label || ('Έκδοση 1.0.0 (build v' + (build != null ? build : '?') + ')');
+}
+window.getActiveBuildLabel = getActiveBuildLabel;
+
 function applyLanguage(lang) {
   state.lang = lang;
   localStorage.setItem('app_lang', lang);
@@ -1294,7 +1311,8 @@ function applyLanguage(lang) {
   // Update DOM elements with data-i18n
   document.querySelectorAll('[data-i18n]').forEach(el => {
     const key = el.getAttribute('data-i18n');
-    const translation = TRANSLATIONS[lang] ? TRANSLATIONS[lang][key] : null;
+    // The app_version label is dynamic (reflects the active OTA/bundled build).
+    const translation = key === 'app_version' ? getActiveBuildLabel() : (TRANSLATIONS[lang] ? TRANSLATIONS[lang][key] : null);
     if (translation) {
       if (el.children.length === 0) {
         el.textContent = translation;
@@ -1354,7 +1372,38 @@ function applyLanguage(lang) {
   if (typeof updateUI === 'function') {
     updateUI();
   }
+
+  // Update OTA diagnostic (shows active build source)
+  if (typeof updateOTADiagnostic === 'function') {
+    updateOTADiagnostic();
+  }
 }
+
+// OTA diagnostic: shows which build is actually active (bundled vs OTA).
+// Reads window.OTA_ACTIVE_VERSION (set by the boot loader after OTA load)
+// and CURRENT_BUILD (the bundled build constant from index.html).
+function updateOTADiagnostic() {
+  var diag = document.getElementById('ota-diagnostic');
+  if (!diag) return;
+  var activeEl = document.getElementById('ota-diag-active');
+  var bundledEl = document.getElementById('ota-diag-bundled');
+  var sourceEl = document.getElementById('ota-diag-source');
+  var active = (typeof window.OTA_ACTIVE_VERSION !== 'undefined' && window.OTA_ACTIVE_VERSION != null)
+    ? window.OTA_ACTIVE_VERSION : 'none';
+  var bundled = (typeof CURRENT_BUILD !== 'undefined') ? CURRENT_BUILD : '?';
+  var source = (active !== 'none' && parseInt(active, 10) > parseInt(bundled, 10))
+    ? 'OTA (IndexedDB)'
+    : 'Bundled (APK)';
+  if (activeEl) activeEl.textContent = 'v' + active;
+  if (bundledEl) bundledEl.textContent = 'v' + bundled;
+  if (sourceEl) sourceEl.textContent = source;
+  diag.style.display = 'block';
+  // Refresh the version display label so it reflects the active OTA build.
+  if (typeof applyLanguage === 'function' && typeof state !== 'undefined' && state.lang) {
+    applyLanguage(state.lang);
+  }
+}
+window.updateOTADiagnostic = updateOTADiagnostic;
 
 function toggleLanguageSetting() {
   const nextLang = state.lang === 'el' ? 'en' : 'el';
@@ -1881,7 +1930,12 @@ window.clearNotifications = clearNotifications;
 // ============================================================
 // INIT
 // ============================================================
-window.addEventListener('DOMContentLoaded', async () => {
+// ============================================================
+// App initialization. Runs on DOMContentLoaded, OR immediately if
+// DOMContentLoaded has already fired (e.g. when the OTA boot loader
+// injects app.js asynchronously via Blob URL AFTER the event fired).
+// ============================================================
+async function initApp() {
   if (isAndroid) {
     document.body.classList.add('is-android');
   }
@@ -2138,7 +2192,19 @@ window.addEventListener('DOMContentLoaded', async () => {
   });
   window._appLoaded = true;
   if (window._startupTimeout) clearTimeout(window._startupTimeout);
-});
+}
+
+// Run initApp on DOMContentLoaded, OR (if the event has already fired,
+// e.g. the async boot loader injects app.js after DOMContentLoaded) run it
+// as soon as the rest of this script has executed. We defer with setTimeout(0)
+// so all top-level `let`/`const` declarations (e.g. _updateUITimer) are
+// initialized before initApp() runs — otherwise they are in the temporal
+// dead zone and throw "cannot access before initialization".
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initApp);
+} else {
+  setTimeout(initApp, 0);
+}
 
 
 // ============================================================
@@ -23519,9 +23585,9 @@ const USER_GUIDE_DATA = {
       {
         id: 'changelog',
         icon: 'fa-box-archive',
-        title: '1. Έκδοση & Τι Νέο Υπάρχει (v982)',
+        title: '1. Έκδοση & Τι Νέο Υπάρχει (v1011)',
         content: `
-          <p><strong>Έκδοση Οδηγού:</strong> v982 | <strong>Συγχρονισμένη Έκδοση Εφαρμογής:</strong> v982</p>
+          <p><strong>Έκδοση Οδηγού:</strong> v1011 | <strong>Συγχρονισμένη Έκδοση Εφαρμογής:</strong> v1011</p>
           <div class="guide-feature-box">
             <h5 style="margin:0 0 6px; color:var(--primary);">✨ Τι νέο υπάρχει στην τελευταία έκδοση:</h5>
             <ul style="margin:0; padding-left:18px;">
@@ -23718,9 +23784,9 @@ const USER_GUIDE_DATA = {
       {
         id: 'changelog',
         icon: 'fa-box-archive',
-        title: '1. Version & What\'s New (v982)',
+        title: '1. Version & What\'s New (v1011)',
         content: `
-          <p><strong>Guide Version:</strong> v982 | <strong>Synchronized App Version:</strong> v982</p>
+          <p><strong>Guide Version:</strong> v1011 | <strong>Synchronized App Version:</strong> v1011</p>
           <div class="guide-feature-box">
             <h5 style="margin:0 0 6px; color:var(--primary);">✨ What's new in the latest version:</h5>
             <ul style="margin:0; padding-left:18px;">
@@ -24389,3 +24455,7 @@ function syncTimeInputsBackToWheels() {
   if (minutesWheel) minutesWheel.scrollTop = m * 60;
 }
 window.syncTimeInputsBackToWheels = syncTimeInputsBackToWheels;
+
+// OTA boot-OK marker: resets the failure counter so a healthy build never
+// rolls back. No-op when the OTA boot loader is absent (plain web/PWA).
+window.OTABootLoader && window.OTABootLoader.markBootOk();

@@ -73,6 +73,7 @@ Copy-Item _headers www/_headers -Force
 Copy-Item clear.html www/clear.html -Force
 Copy-Item nuke.html www/nuke.html -Force
 Copy-Item debug.html www/debug.html -Force
+Copy-Item ota-boot-loader.js www/ota-boot-loader.js -Force
 if (Test-Path privacy.html) { Copy-Item privacy.html www/privacy.html -Force }
 Write-Host "  [SUCCESS] Files copied successfully." -ForegroundColor Green
 

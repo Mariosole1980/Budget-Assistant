@@ -1,6 +1,6 @@
-// SW Version 1007
+// SW Version 1011
 const CACHE_VERSION = 'v' + Date.now();
-const CACHE_NAME = 'money-manager-v982-' + Date.now();
+const CACHE_NAME = 'money-manager-v1011-' + Date.now();
 const ASSETS = [
   'index.html',
   'style.css',
@@ -35,14 +35,31 @@ self.addEventListener('install', (e) => {
       const cachePromises = ASSETS.map(asset => {
         const request = new Request(asset, { cache: 'reload' });
         return fetch(request).then(response => {
+          // DIAGNOSTIC: log every asset's fetch result (does not change behavior)
+          console.log('[SW-DIAG] fetch', asset, '-> status', response.status, 'ok', response.ok, 'type', response.type, 'url', response.url);
           if (!response.ok) {
-            throw new Error(`Request for ${asset} failed with status ${response.status}`);
+            const err = new Error(`Request for ${asset} failed with status ${response.status}`);
+            console.error('[SW-DIAG] FAILED (non-ok status):', asset, 'status', response.status, err);
+            throw err;
           }
-          return cache.put(asset, response);
+          return cache.put(asset, response).then(() => {
+            console.log('[SW-DIAG] cached OK:', asset);
+          });
+        }).catch(err => {
+          console.error('[SW-DIAG] FAILED (fetch/cache error):', asset, 'name', err && err.name, 'message', err && err.message, err);
+          throw err;
         });
       });
-      return Promise.all(cachePromises);
-    }).then(() => self.skipWaiting())
+      return Promise.all(cachePromises).then(() => {
+        console.log('[SW-DIAG] ALL assets cached successfully:', ASSETS.length);
+      });
+    }).then(() => {
+      console.log('[SW-DIAG] install complete, calling skipWaiting');
+      return self.skipWaiting();
+    }).catch(err => {
+      console.error('[SW-DIAG] INSTALL FAILED overall:', err && err.message, err);
+      throw err;
+    })
   );
 });
 
