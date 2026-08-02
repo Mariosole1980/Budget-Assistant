@@ -675,7 +675,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v1002 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v1003 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1046,7 +1046,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1002 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1003 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -3631,6 +3631,14 @@ async function loadData() {
     console.log('[loadData] Cancelled stale realtime debounce before fetch.');
   }
 
+  // PRIVACY/ISOLATION: In guest mode, never fetch or load a previous account's
+  // personal data from the cloud. Guest mode always starts with a clean slate.
+  if (state.guestMode) {
+    loadOfflineData();
+    updateHeaderSyncIcon('offline');
+    return;
+  }
+
   if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
     try {
       updateHeaderSyncIcon('syncing');
@@ -3864,6 +3872,31 @@ async function loadData() {
 }
 
 function loadOfflineData() {
+  // PRIVACY/ISOLATION: In guest mode, never load a previous account's cached
+  // personal data (transactions, accounts, categories, recurring templates,
+  // notes, trash, notifications). Guest mode must always start with a clean
+  // slate. The cached data stays in localStorage so it is preserved for when
+  // the user logs back into their own account.
+  const isGuest = !!state.guestMode;
+
+  if (isGuest) {
+    state.currentUser = null;
+    state.partnerProfile = null;
+    state.userProfile = null;
+    state.familyProfiles = [];
+    state.familyGroup = null;
+    state.transactions = [];
+    state.accounts = DEFAULT_ACCOUNTS.slice();
+    state.categories = DEFAULT_CATEGORIES.slice();
+    state.recurringTemplates = [];
+    state.deletedRecurringDates = [];
+    state.trashTransactions = [];
+    state.notifications = [];
+    state.notes = [];
+    calculateInitialBalances();
+    return;
+  }
+
   try {
     const cachedUser = localStorage.getItem('cached_current_user');
     if (cachedUser) {
