@@ -15,7 +15,7 @@
  *
  * This file is the REVIEW DRAFT. It is NOT yet wired into index.html.
  * The production integration replaces ONLY the line:
- *     <script src="app.js?v=1007"></script>
+ *     <script src="app.js?v=1022"></script>
  * with an inline <script> that calls window.OTABootLoader.boot().
  * ============================================================
  */
@@ -36,8 +36,8 @@ window.OTABootLoader = (function () {
     var IDB_TIMEOUT_MS = 1500;                // hard timeout for IndexedDB lookup
 
     // Bundled fallback (must match the static tag we replace)
-    var BUNDLED_APP_JS = 'app.js?v=1019';
-    var BUNDLED_STYLE_CSS = 'style.css?v=1019';
+    var BUNDLED_APP_JS = 'app.js?v=1022';
+    var BUNDLED_STYLE_CSS = 'style.css?v=1022';
 
     // ------------------------------------------------------------
     // IndexedDB helpers (promise + timeout)
@@ -292,8 +292,14 @@ window.OTABootLoader = (function () {
                 // display the wrong version. A legitimately-downloaded OTA build is
                 // always NEWER than the bundled APK (the engine only downloads when
                 // remoteVersion > currentVersion), so rejecting equal/older is safe.
-                var bundledVersion = (typeof window !== 'undefined' && typeof window.CURRENT_BUILD !== 'undefined')
-                    ? parseInt(window.CURRENT_BUILD, 10) : 0;
+                // CURRENT_BUILD is declared with `const` in index.html, which creates
+                // a global lexical binding (NOT a window property). So we read it via
+                // `typeof CURRENT_BUILD` (same as getCurrentBuildNumber() in OTAEngine),
+                // falling back to window.CURRENT_BUILD if it was explicitly exposed.
+                var bundledVersion = (typeof CURRENT_BUILD !== 'undefined')
+                    ? parseInt(CURRENT_BUILD, 10)
+                    : ((typeof window !== 'undefined' && typeof window.CURRENT_BUILD !== 'undefined')
+                        ? parseInt(window.CURRENT_BUILD, 10) : 0);
                 var otaVersion = parseInt(active.version, 10);
                 if (bundledVersion > 0 && otaVersion > 0 && otaVersion <= bundledVersion) {
                     console.log('[OTABoot] Stale OTA v' + otaVersion + ' <= bundled v' + bundledVersion + '. Using bundled app.js.');

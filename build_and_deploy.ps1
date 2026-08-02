@@ -50,6 +50,23 @@ $versionJsonContent = '{"version": ' + $newBuild + '}'
 Set-Content $versionJsonPath $versionJsonContent -NoNewline
 Write-Host "  [SUCCESS] Created version.json with version $newBuild" -ForegroundColor Green
 
+# Update OTA hardcoded versions (ota-boot-loader.js + OTAEngine.js) so they
+# always match the new build. These are used ONLY for the bundled fallback and
+# the minNativeVersion constant fallback — they do NOT affect the OTA download,
+# staging, activation, or rollback flow.
+$bootLoaderPath = "ota-boot-loader.js"
+$bootLoaderContent = Get-Content $bootLoaderPath -Raw
+$bootLoaderContent = $bootLoaderContent -replace "app\.js\?v=\d+", "app.js?v=$newBuild"
+$bootLoaderContent = $bootLoaderContent -replace "style\.css\?v=\d+", "style.css?v=$newBuild"
+Set-Content $bootLoaderPath $bootLoaderContent -NoNewline
+Write-Host "  [SUCCESS] ota-boot-loader.js bundled versions bumped to v$newBuild" -ForegroundColor Green
+
+$otaEnginePath = "js\OTAEngine.js"
+$otaEngineContent = Get-Content $otaEnginePath -Raw
+$otaEngineContent = $otaEngineContent -replace "var BUNDLED_NATIVE_VERSION = \d+;", "var BUNDLED_NATIVE_VERSION = $newBuild;"
+Set-Content $otaEnginePath $otaEngineContent -NoNewline
+Write-Host "  [SUCCESS] OTAEngine.js BUNDLED_NATIVE_VERSION bumped to $newBuild" -ForegroundColor Green
+
 # Update build.gradle with new version and signing configurations
 node scratch/configure_signing.js
 
