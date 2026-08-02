@@ -179,7 +179,7 @@ window.OTAEngine = (function () {
 
   // The bundled native versionCode. This is injected at build time.
   // For v1012 the APK versionCode is 1012. Kept as a constant fallback.
-  var BUNDLED_NATIVE_VERSION = 1014;
+  var BUNDLED_NATIVE_VERSION = 1017;
 
   // ------------------------------------------------------------
   // Validation
@@ -220,32 +220,43 @@ window.OTAEngine = (function () {
         return code;
       });
 
+    // style.css is OPTIONAL — the app uses inline CSS in index.html.
+    // If style.css is empty, missing, or fails validation, we skip it
+    // gracefully and proceed with only app.js. A failing style.css must
+    // NOT block the entire OTA update.
     var stylePromise = fetchWithTimeout(STYLE_CSS_URL + '?v=' + version + '&_t=' + Date.now())
       .then(function (r) { return r.text(); })
       .then(function (code) {
+        // Accept empty or invalid style.css gracefully (returns null = skip)
         if (!validateAsset('style.css', code, MIN_STYLE_CSS_SIZE, MAX_ASSET_SIZE)) {
-          throw new Error('style.css validation failed for v' + version);
+          console.log('[OTAEngine] style.css empty or invalid for v' + version + ' — skipping (app uses inline CSS)');
+          return null;
         }
         return code;
+      })
+      .catch(function (e) {
+        // style.css fetch failure is non-fatal
+        console.log('[OTAEngine] style.css fetch failed (non-fatal):', e.message);
+        return null;
       });
 
     return Promise.all([appPromise, stylePromise]).then(function (results) {
       var appJs = results[0];
-      var styleCss = results[1];
+      var styleCss = results[1]; // may be null if empty/missing
 
-      // Build the staging record. Marked complete ONLY after both assets
-      // are downloaded and validated. This is the atomic staging boundary.
+      // Build the staging record. Marked complete ONLY after app.js is
+      // downloaded and validated. This is the atomic staging boundary.
       var staging = {
         version: version,
         appJs: appJs,
-        styleCss: styleCss,
+        styleCss: styleCss || '',
         downloadedAt: Date.now(),
         complete: true
       };
 
       // Write staging. If this write fails, nothing is activated.
       return idbPut(KEY_STAGING, staging).then(function () {
-        console.log('[OTAEngine] Staged v' + version + ' (' + appJs.length + 'B app.js, ' + styleCss.length + 'B style.css)');
+        console.log('[OTAEngine] Staged v' + version + ' (' + appJs.length + 'B app.js' + (styleCss ? ', ' + styleCss.length + 'B style.css' : ', no style.css') + ')');
         return staging;
       });
     });
