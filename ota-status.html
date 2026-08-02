@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>OTA Status</title>
+  <style>
+    body { background: #0d1117; color: #e6edf3; font-family: system-ui, sans-serif; padding: 16px; margin: 0; }
+    h1 { font-size: 20px; margin-bottom: 20px; color: #58a6ff; }
+    .card { background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 16px; margin-bottom: 14px; }
+    .card h2 { font-size: 13px; color: #8b949e; margin: 0 0 10px 0; text-transform: uppercase; letter-spacing: 0.05em; }
+    .row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid #21262d; font-size: 14px; }
+    .row:last-child { border-bottom: none; }
+    .label { color: #8b949e; }
+    .value { color: #e6edf3; font-weight: 600; font-family: monospace; }
+    .ok { color: #3fb950; }
+    .warn { color: #d29922; }
+    .err { color: #ff7b72; }
+    button { width: 100%; padding: 14px; margin-top: 8px; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; }
+    .btn-primary { background: #238636; color: #fff; }
+    .btn-danger { background: #b62324; color: #fff; }
+    .btn-secondary { background: #21262d; color: #e6edf3; border: 1px solid #30363d; }
+    pre { font-size: 11px; background: #0d1117; border: 1px solid #21262d; border-radius: 6px; padding: 10px; overflow-x: auto; white-space: pre-wrap; word-break: break-all; color: #8b949e; max-height: 200px; overflow-y: auto; }
+    #log { margin-top: 10px; }
+    .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid #8b949e; border-top-color: #58a6ff; border-radius: 50%; animation: spin 0.8s linear infinite; margin-right: 6px; vertical-align: middle; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+<h1>🔧 OTA Status Diagnostics</h1>
+
+<div class="card">
+  <h2>Build Versions</h2>
+  <div class="row"><span class="label">Bundled (APK)</span><span id="v-bundled" class="value">…</span></div>
+  <div class="row"><span class="label">OTA Active</span><span id="v-ota" class="value">…</span></div>
+  <div class="row"><span class="label">Server (Live)</span><span id="v-server" class="value">…</span></div>
+  <div class="row"><span class="label">Πηγή φόρτωσης</span><span id="v-source" class="value">…</span></div>
+</div>
+
+<div class="card">
+  <h2>IndexedDB — ota_assets_db</h2>
+  <div class="row"><span class="label">ota_active_build</span><span id="idb-active" class="value">…</span></div>
+  <div class="row"><span class="label">ota_staging_build</span><span id="idb-staging" class="value">…</span></div>
+</div>
+
+<div class="card">
+  <h2>localStorage — OTA Keys</h2>
+  <div class="row"><span class="label">ota_poisoned_builds</span><span id="ls-poisoned" class="value">…</span></div>
+  <div class="row"><span class="label">ota_fail_count</span><span id="ls-failcount" class="value">…</span></div>
+  <div class="row"><span class="label">ota_boot_ok</span><span id="ls-bootok" class="value">…</span></div>
+</div>
+
+<div class="card">
+  <h2>Ενέργειες</h2>
+  <button class="btn-primary" onclick="runOTACheck()">▶ Τρέξε OTA Check τώρα</button>
+  <button class="btn-danger" onclick="clearPoisoned()">🗑 Καθάρισε Poisoned Builds</button>
+  <button class="btn-danger" onclick="clearAllOTA()">☢ Καθάρισε Όλα τα OTA Data</button>
+  <button class="btn-secondary" onclick="location.reload()">↺ Refresh</button>
+</div>
+
+<div class="card">
+  <h2>Log</h2>
+  <pre id="log">Φορτώνω...</pre>
+</div>
+
+<script>
+  var DB_NAME = 'ota_assets_db';
+  var DB_VERSION = 1;
+  var STORE = 'assets';
+  var logEl = document.getElementById('log');
+  var logs = [];
+
+  function log(msg) {
+    var ts = new Date().toLocaleTimeString();
+    logs.push('[' + ts + '] ' + msg);
+    logEl.textContent = logs.join('\n');
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function openDB() {
+    return new Promise(function(resolve, reject) {
+      var req = indexedDB.open(DB_NAME, DB_VERSION);
+      req.onupgradeneeded = function(e) {
+        var d = e.target.result;
+        if (!d.objectStoreNames.contains(STORE)) d.createObjectStore(STORE);
+      };
+      req.onsuccess = function(e) { resolve(e.target.result); };
+      req.onerror = function(e) { reject(e.target.error); };
+    });
+  }
+
+  function idbGet(key) {
+    return openDB().then(function(d) {
+      return new Promise(function(resolve, reject) {
+        var tx = d.transaction(STORE, 'readonly');
+        var req = tx.objectStore(STORE).get(key);
+        req.onsuccess = function() { resolve(req.result); };
+        req.onerror = function(e) { reject(e.target.error); };
+      });
+    });
+  }
+
+  function idbDelete(key) {
+    return openDB().then(function(d) {
+      return new Promise(function(resolve, reject) {
+        var tx = d.transaction(STORE, 'readwrite');
+        tx.objectStore(STORE).delete(key);
+        tx.oncomplete = function() { resolve(); };
+        tx.onerror = function(e) { reject(e.target.error); };
+      });
+    });
+  }
+
+  function el(id) { return document.getElementById(id); }
+  function setVal(id, txt, cls) {
+    var e = el(id);
+    e.textContent = txt;
+    e.className = 'value ' + (cls || '');
+  }
+
+  function loadStatus() {
+    // Bundled version
+    var bundled = (typeof CURRENT_BUILD !== 'undefined') ? CURRENT_BUILD : '?';
+    setVal('v-bundled', 'v' + bundled);
+
+    // OTA Active Version
+    var ota = (typeof window.OTA_ACTIVE_VERSION !== 'undefined' && window.OTA_ACTIVE_VERSION)
+      ? window.OTA_ACTIVE_VERSION : 'none';
+    setVal('v-ota', ota !== 'none' ? 'v' + ota : 'none', ota !== 'none' ? 'ok' : 'warn');
+
+    // Source
+    var src = (ota !== 'none' && parseInt(ota) > parseInt(bundled)) ? 'OTA (IndexedDB)' : 'Bundled (APK)';
+    setVal('v-source', src, src.includes('OTA') ? 'ok' : 'warn');
+
+    // localStorage
+    setVal('ls-poisoned', localStorage.getItem('ota_poisoned_builds') || 'none',
+           localStorage.getItem('ota_poisoned_builds') ? 'warn' : 'ok');
+    setVal('ls-failcount', localStorage.getItem('ota_fail_count') || '0',
+           parseInt(localStorage.getItem('ota_fail_count') || '0') > 0 ? 'warn' : 'ok');
+    setVal('ls-bootok', localStorage.getItem('ota_boot_ok') || 'none',
+           localStorage.getItem('ota_boot_ok') ? 'ok' : 'warn');
+
+    // Server version
+    fetch('https://budget-assistant-pwa.pages.dev/version.json?_t=' + Date.now(), {cache: 'no-store'})
+      .then(function(r) { return r.json(); })
+      .then(function(j) {
+        var sv = j.version || j.build || '?';
+        setVal('v-server', 'v' + sv, parseInt(sv) > parseInt(bundled) ? 'ok' : 'warn');
+        log('Server version: v' + sv);
+      })
+      .catch(function(e) {
+        setVal('v-server', 'ERROR', 'err');
+        log('Server fetch error: ' + e.message);
+      });
+
+    // IndexedDB
+    idbGet('ota_active_build').then(function(d) {
+      if (d && d.version) {
+        setVal('idb-active', 'v' + d.version + ' (' + (d.appJs ? Math.round(d.appJs.length/1024) + 'KB' : 'empty') + ')', 'ok');
+        log('IDB active build: v' + d.version + ' | appJs: ' + (d.appJs ? d.appJs.length + ' bytes' : 'MISSING'));
+      } else {
+        setVal('idb-active', 'none', 'warn');
+        log('IDB active build: none');
+      }
+    }).catch(function(e) {
+      setVal('idb-active', 'ERROR', 'err');
+      log('IDB error: ' + e.message);
+    });
+
+    idbGet('ota_staging_build').then(function(d) {
+      if (d && d.version) {
+        setVal('idb-staging', 'v' + d.version + ' (complete=' + d.complete + ')', d.complete ? 'ok' : 'warn');
+        log('IDB staging build: v' + d.version + ' | complete: ' + d.complete);
+      } else {
+        setVal('idb-staging', 'none', 'ok');
+        log('IDB staging build: none');
+      }
+    }).catch(function(e) {
+      setVal('idb-staging', 'ERROR', 'err');
+    });
+
+    log('Bundled: v' + bundled + ' | OTA_ACTIVE_VERSION: ' + ota);
+  }
+
+  function runOTACheck() {
+    log('--- Manual OTA check ---');
+    if (window.OTAEngine && typeof window.OTAEngine.checkForUpdate === 'function') {
+      log('Calling OTAEngine.checkForUpdate()...');
+      window.OTAEngine.checkForUpdate().then(function(result) {
+        log('OTA check done: ' + (result ? 'STAGED/ACTIVATED v' + (result.version || result) : 'no update or already current'));
+        setTimeout(loadStatus, 1000);
+      }).catch(function(e) {
+        log('OTA check error: ' + e.message);
+      });
+    } else {
+      // Manually fetch and check
+      log('OTAEngine not found — doing manual fetch...');
+      fetch('https://budget-assistant-pwa.pages.dev/version.json?_t=' + Date.now(), {cache: 'no-store'})
+        .then(function(r) { return r.json(); })
+        .then(function(j) {
+          var sv = j.version || j.build;
+          var current = (typeof CURRENT_BUILD !== 'undefined') ? CURRENT_BUILD : 0;
+          log('Server: v' + sv + ' | Current: v' + current);
+          if (parseInt(sv) > parseInt(current)) {
+            log('UPDATE AVAILABLE: v' + sv + ' > v' + current + '. OTAEngine should download it.');
+          } else {
+            log('No update needed.');
+          }
+        });
+    }
+  }
+
+  function clearPoisoned() {
+    localStorage.removeItem('ota_poisoned_builds');
+    localStorage.removeItem('ota_fail_count');
+    log('Cleared: ota_poisoned_builds + ota_fail_count');
+    setTimeout(loadStatus, 300);
+  }
+
+  function clearAllOTA() {
+    localStorage.removeItem('ota_poisoned_builds');
+    localStorage.removeItem('ota_fail_count');
+    localStorage.removeItem('ota_boot_ok');
+    idbDelete('ota_active_build').then(function() {
+      log('Cleared IDB ota_active_build');
+    });
+    idbDelete('ota_staging_build').then(function() {
+      log('Cleared IDB ota_staging_build');
+      log('--- ALL OTA DATA CLEARED. Restart the app to reload from bundled. ---');
+      setTimeout(loadStatus, 500);
+    });
+  }
+
+  window.addEventListener('load', function() {
+    log('Page loaded. Scanning...');
+    loadStatus();
+  });
+</script>
+</body>
+</html>
