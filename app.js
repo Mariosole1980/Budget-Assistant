@@ -18812,19 +18812,42 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-// Overlay Click: Close modals by tapping the background backdrop (all platforms).
-// The user can tap the empty space above a card (e.g. the settings subscreen) to close it.
+// Overlay Backdrop Tap: Close modals by tapping the dark background above a card.
+// Uses touchend (not click) for instant response on Android WebView — click has
+// a ~50-100ms delay even with touch-action:manipulation on passive touch listeners.
 document.addEventListener('DOMContentLoaded', () => {
-  document.querySelectorAll('.modal-overlay').forEach(modal => {
+  const protectedModals = ['advisor-chat-modal', 'transaction-modal', 'profile-settings-modal'];
+
+  function attachBackdropTap(modal) {
+    let touchStartTarget = null;
+
+    modal.addEventListener('touchstart', (e) => {
+      touchStartTarget = e.target;
+    }, { passive: true });
+
+    modal.addEventListener('touchend', (e) => {
+      // Only close if the touch both STARTED and ENDED on the overlay itself
+      // (not on the .modal-content card). This avoids accidental closes from
+      // touch events that started inside the card and drifted out.
+      if (touchStartTarget === modal && e.target === modal) {
+        if (protectedModals.includes(modal.id)) return;
+        if (window._appJustResumed) return;
+        e.preventDefault(); // prevent the synthetic click from also firing
+        closeModal(modal.id);
+      }
+      touchStartTarget = null;
+    }, { passive: false });
+
+    // click fallback for non-touch environments (desktop PWA / browser)
     modal.addEventListener('click', (e) => {
       if (e.target === modal) {
-        // Do not close primary modals on backdrop tap — they are restored on foreground resume
-        const protectedModals = ['advisor-chat-modal', 'transaction-modal', 'profile-settings-modal'];
         if (protectedModals.includes(modal.id)) return;
         closeModal(modal.id);
       }
     });
-  });
+  }
+
+  document.querySelectorAll('.modal-overlay').forEach(attachBackdropTap);
 });
 
 // Dynamic Visual Viewport Height Adjustment (for virtual keyboard support)
