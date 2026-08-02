@@ -25,7 +25,7 @@ let indexContent = fs.readFileSync(indexPath, 'utf8');
 
 indexContent = indexContent.replace(/const CURRENT_BUILD = \d+;/g, `const CURRENT_BUILD = ${version};`);
 indexContent = indexContent.replace(/build v\d+/gi, `build v${version}`);
-indexContent = indexContent.replace(/<span id="user-guide-version-badge"[^>]*>v\d+<\/span>/gi, 
+indexContent = indexContent.replace(/<span id="user-guide-version-badge"[^>]*>v\d+<\/span>/gi,
   `<span id="user-guide-version-badge" style="font-size:10px; background:rgba(99,102,241,0.15); color:var(--primary); padding:2px 8px; border-radius:10px; font-weight:700; border:1px solid rgba(99,102,241,0.3);">v${version}</span>`);
 indexContent = indexContent.replace(/(\.js|\.css|\.json)\?v=\d+/g, `$1?v=${version}`);
 
@@ -68,6 +68,24 @@ if (fs.existsSync(gradlePath)) {
   console.log('  [OK] android/app/build.gradle updated');
 }
 
+// 5b. Sync OTA constants (packaging/versioning only — does NOT touch boot path or IndexedDB fallback)
+const otaBootPath = path.join(rootDir, 'ota-boot-loader.js');
+if (fs.existsSync(otaBootPath)) {
+  let otaBootContent = fs.readFileSync(otaBootPath, 'utf8');
+  otaBootContent = otaBootContent.replace(/var BUNDLED_APP_JS = 'app\.js\?v=\d+';/g, `var BUNDLED_APP_JS = 'app.js?v=${version}';`);
+  otaBootContent = otaBootContent.replace(/var BUNDLED_STYLE_CSS = 'style\.css\?v=\d+';/g, `var BUNDLED_STYLE_CSS = 'style.css?v=${version}';`);
+  fs.writeFileSync(otaBootPath, otaBootContent);
+  console.log('  [OK] ota-boot-loader.js OTA constants updated');
+}
+
+const otaEnginePath = path.join(rootDir, 'js', 'OTAEngine.js');
+if (fs.existsSync(otaEnginePath)) {
+  let otaEngineContent = fs.readFileSync(otaEnginePath, 'utf8');
+  otaEngineContent = otaEngineContent.replace(/var BUNDLED_NATIVE_VERSION = \d+;/g, `var BUNDLED_NATIVE_VERSION = ${version};`);
+  fs.writeFileSync(otaEnginePath, otaEngineContent);
+  console.log('  [OK] js/OTAEngine.js BUNDLED_NATIVE_VERSION updated');
+}
+
 // 6. Mirror to www/ folder
 const wwwDir = path.join(rootDir, 'www');
 if (fs.existsSync(wwwDir)) {
@@ -87,7 +105,10 @@ const filesToMirror = [
   'clear.html',
   'nuke.html',
   'debug.html',
-  'xlsx.full.min.js'
+  'xlsx.full.min.js',
+  'ota-boot-loader.js',
+  'icon.png',
+  'icon-192.png'
 ];
 
 filesToMirror.forEach(file => {
