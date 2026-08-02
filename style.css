@@ -7286,6 +7286,26 @@ body.is-android .calc-keypad-container .calc-key-btn {
   vertical-align: middle;
 }
 
+/* Μπλε περιστρεφόμενα βελάκια για επαναλαμβανόμενες κινήσεις */
+.recurring-arrows-icon {
+  color: #3b82f6;
+  font-size: 0.72rem;
+  margin-left: 5px;
+  flex-shrink: 0;
+  animation: recurringArrowsSpin 2.4s linear infinite;
+  display: inline-block;
+}
+
+@keyframes recurringArrowsSpin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 /* Badges στον Κάδο */
 .trash-type-badge {
   font-size: 0.65rem;

@@ -675,7 +675,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v1004 - 22/06/2026)',
+    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v1005 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1046,7 +1046,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1004 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1005 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -4945,6 +4945,38 @@ function updateHeaderAndSync() {
 // ============================================================
 // TAB 1: TRANSACTIONS
 // ============================================================
+// Determine whether a transaction belongs to a recurring template.
+// Uses recurring_template_id when present, otherwise falls back to a
+// content-key match (date + amount + type + category + account_from)
+// because recurring_template_id is a client-only field stripped before
+// cloud upsert, so fetched transactions arrive with it null.
+function isTransactionRecurring(tx) {
+  if (!tx) return false;
+  const templates = state.recurringTemplates || [];
+  if (templates.length === 0) return false;
+
+  const txDate = String(tx.date || '').split('T')[0].split(' ')[0];
+  const txAmount = (parseFloat(tx.amount) || 0).toFixed(2);
+  const txType = tx.type;
+  const txCat = tx.category;
+  const txAcc = tx.account_from || '';
+
+  return templates.some(template => {
+    if (tx.recurring_template_id && String(tx.recurring_template_id) === String(template.id)) {
+      return true;
+    }
+    // Content-based fallback
+    if (txDate &&
+      txAmount === (parseFloat(template.amount) || 0).toFixed(2) &&
+      txType === template.type &&
+      txCat === template.category &&
+      txAcc === (template.account_from || '')) {
+      return true;
+    }
+    return false;
+  });
+}
+
 function renderTransactionsTab() {
   const listContainer = document.getElementById('transactions-list');
   if (!listContainer) return;
@@ -5077,6 +5109,7 @@ function renderTransactionsTab() {
       const catInfo = getCategoryInfo(t.category, t.type);
       const item = document.createElement('div');
       item.className = 'transaction-item';
+      if (isTransactionRecurring(t)) item.classList.add('recurring-item');
       item.setAttribute('data-id', t.id);
 
       const isSelected = state.selectedIds.has(t.id);
@@ -5204,7 +5237,7 @@ function renderTransactionsTab() {
             ${t.subcategory ? `<div class="trans-sub-name">${escapeHtml(translatedSub)}</div>` : ''}
           </div>
           <div class="trans-details">
-            <span class="trans-title">${escapeHtml(displayTitle)}${memberBadge}</span>
+            <span class="trans-title">${escapeHtml(displayTitle)}${isTransactionRecurring(t) ? '<i class="fa-solid fa-arrows-rotate recurring-arrows-icon" title="' + (state.lang === 'el' ? 'Επαναλαμβανόμενη κίνηση' : 'Recurring transaction') + '"></i>' : ''}${memberBadge}</span>
             <span class="trans-acc-label">${escapeHtml(accountText)}</span>
           </div>
         </div>
@@ -5892,6 +5925,7 @@ function renderSubcategoryTransactions(category, subcategory) {
     const catInfo = getCategoryInfo(t.category, t.type);
     const item = document.createElement('div');
     item.className = 'transaction-item';
+    if (isTransactionRecurring(t)) item.classList.add('recurring-item');
     item.setAttribute('data-id', t.id);
 
     let modalTouchStartX = 0;
@@ -5976,7 +6010,7 @@ function renderSubcategoryTransactions(category, subcategory) {
           <div class="trans-cat-icon">${catInfo.icon || '💰'}</div>
         </div>
         <div class="trans-details">
-          <span class="trans-title">${escapeHtml(displayTitle)}${memberBadge}</span>
+          <span class="trans-title">${escapeHtml(displayTitle)}${isTransactionRecurring(t) ? '<i class="fa-solid fa-arrows-rotate recurring-arrows-icon" title="' + (state.lang === 'el' ? 'Επαναλαμβανόμενη κίνηση' : 'Recurring transaction') + '"></i>' : ''}${memberBadge}</span>
           <span class="trans-acc-label">${escapeHtml(dateLabel)} · ${escapeHtml(accountText)}</span>
         </div>
       </div>
@@ -22100,7 +22134,7 @@ function openRecurringTemplatesModal() {
               ${icon}
             </div>
             <div style="display: flex; flex-direction: column; min-width: 0; text-align: left; flex: 1;">
-              <span style="font-weight: 700; color: var(--text-primary); font-size: 14.5px; word-break: break-word; line-height: 1.3;">${t.note}</span>
+              <span style="font-weight: 700; color: var(--text-primary); font-size: 14.5px; word-break: break-word; line-height: 1.3; display: flex; align-items: center; gap: 6px;">${t.note}<i class="fa-solid fa-arrows-rotate recurring-arrows-icon" title="${lang === 'el' ? 'Επαναλαμβανόμενη' : 'Recurring'}"></i></span>
               <span style="font-size: 12px; color: var(--text-secondary); margin-top: 3px; word-break: break-word; line-height: 1.2;">${presetLabel} • ${parseFloat(t.amount || 0).toFixed(2)}€${endDateLabel}</span>
             </div>
           </div>
