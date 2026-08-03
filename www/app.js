@@ -685,7 +685,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1031 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1032 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1056,7 +1056,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1031 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1032 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -8147,7 +8147,11 @@ function switchTab(tab, instant = false) {
   const bsInd = document.getElementById('back-swipe-indicator');
   if (bsInd) bsInd.style.display = 'none';
 
-  const oldTab = state.activeTab;
+  // FIX #1 (flicker): state.activeTab was already set to the NEW tab at line 8102,
+  // so reading it here would make oldTab === tab (oldScreen === newScreen), causing
+  // the fade-in-premium animation to re-run on the already-active screen and flicker.
+  // Use prevTabName (captured at line 8101) which holds the actual previous tab.
+  const oldTab = prevTabName;
   state.activeTab = tab;
   localStorage.setItem('active_tab', tab);
 
