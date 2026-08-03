@@ -179,7 +179,7 @@ window.OTAEngine = (function () {
 
   // The bundled native versionCode. This is injected at build time.
   // For v1012 the APK versionCode is 1012. Kept as a constant fallback.
-  var BUNDLED_NATIVE_VERSION = 1022;
+  var BUNDLED_NATIVE_VERSION = 1025;
 
   // ------------------------------------------------------------
   // Validation
@@ -190,8 +190,11 @@ window.OTAEngine = (function () {
     if (typeof code !== 'string') return false;
     if (code.length < minSize) return false;
     if (code.length > maxSize) return false;
-    // Reject obvious error pages (HTML instead of JS/CSS)
-    if (/^\s*<!DOCTYPE|<html/i.test(code)) return false;
+    // Reject obvious error pages (HTML instead of JS/CSS).
+    // NOTE: both alternatives MUST be anchored to the start. The unanchored
+    // `<html` would match `<html>` appearing anywhere (e.g. inside a comment or
+    // template string) and falsely reject valid JS/CSS.
+    if (/^\s*<!DOCTYPE|^\s*<html/i.test(code)) return false;
     if (name === 'app.js') {
       // app.js must define the global `state` object (a reliable signature).
       if (code.indexOf('const state') === -1 && code.indexOf('var state') === -1) return false;
@@ -212,8 +215,21 @@ window.OTAEngine = (function () {
     console.log('[OTAEngine] Downloading v' + version + ' assets...');
 
     var appPromise = fetchWithTimeout(APP_JS_URL + '?v=' + version + '&_t=' + Date.now())
-      .then(function (r) { return r.text(); })
-      .then(function (code) {
+      .then(function (r) {
+        // DIAGNOSTIC: capture the response URL (detects redirects) and pass it through
+        return r.text().then(function (code) { return { code: code, url: r.url }; });
+      })
+      .then(function (res) {
+        var code = res.code;
+        // DIAGNOSTIC: log exactly what the app received, so we can see if it differs
+        // from what curl returns (cache/redirect/SW interference) in a single run.
+        console.log('[OTAEngine-DIAG] app.js v' + version + ' response:',
+          'url=' + res.url,
+          'len=' + code.length,
+          'first120=' + JSON.stringify(code.slice(0, 120)),
+          'hasConstState=' + (code.indexOf('const state') !== -1),
+          'hasVarState=' + (code.indexOf('var state') !== -1),
+          'looksLikeHtml=' + (/^\s*<!DOCTYPE|<html/i.test(code)));
         if (!validateAsset('app.js', code, MIN_APP_JS_SIZE, MAX_ASSET_SIZE)) {
           throw new Error('app.js validation failed for v' + version);
         }

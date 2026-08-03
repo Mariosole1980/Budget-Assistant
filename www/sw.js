@@ -1,14 +1,11 @@
-// SW Version 1022
+// SW Version 1025
 const CACHE_VERSION = 'v' + Date.now();
-const CACHE_NAME = 'money-manager-v1019-' + Date.now();
+const CACHE_NAME = 'money-manager-v1024-' + Date.now();
 const ASSETS = [
   'index.html',
-  'style.css',
-  'app.js',
   'manifest.json',
   'icon.png',
   'xlsx.full.min.js',
-  'version.json',
   'js/supabase.js',
   'js/chart.js',
   'js/chartjs-plugin-datalabels.js',
@@ -35,30 +32,15 @@ self.addEventListener('install', (e) => {
       const cachePromises = ASSETS.map(asset => {
         const request = new Request(asset, { cache: 'reload' });
         return fetch(request).then(response => {
-          // DIAGNOSTIC: log every asset's fetch result (does not change behavior)
-          console.log('[SW-DIAG] fetch', asset, '-> status', response.status, 'ok', response.ok, 'type', response.type, 'url', response.url);
           if (!response.ok) {
-            const err = new Error(`Request for ${asset} failed with status ${response.status}`);
-            console.error('[SW-DIAG] FAILED (non-ok status):', asset, 'status', response.status, err);
-            throw err;
+            throw new Error(`Request for ${asset} failed with status ${response.status}`);
           }
-          return cache.put(asset, response).then(() => {
-            console.log('[SW-DIAG] cached OK:', asset);
-          });
-        }).catch(err => {
-          console.error('[SW-DIAG] FAILED (fetch/cache error):', asset, 'name', err && err.name, 'message', err && err.message, err);
-          throw err;
+          return cache.put(asset, response);
         });
       });
-      return Promise.all(cachePromises).then(() => {
-        console.log('[SW-DIAG] ALL assets cached successfully:', ASSETS.length);
-      });
+      return Promise.all(cachePromises);
     }).then(() => {
-      console.log('[SW-DIAG] install complete, calling skipWaiting');
       return self.skipWaiting();
-    }).catch(err => {
-      console.error('[SW-DIAG] INSTALL FAILED overall:', err && err.message, err);
-      throw err;
     })
   );
 });
@@ -103,14 +85,23 @@ self.addEventListener('fetch', (e) => {
   const reqUrl = new URL(e.request.url);
   const path = reqUrl.pathname;
 
-  // Critical app shell files: always network-first, no cache on fetch
+  // OTA-managed assets (app.js, style.css, version.json): ALWAYS network, NEVER cache.
+  // The OTA engine fetches these with cache-busting query strings and validates them.
+  // Serving them from the SW cache can return stale/invalid content and break OTA updates.
+  if (
+    path.endsWith('/app.js') ||
+    path.endsWith('/style.css') ||
+    path.endsWith('/version.json')
+  ) {
+    e.respondWith(fetch(e.request));
+    return;
+  }
+
+  // Critical app shell files: always network-first, cache fallback only for navigation
   if (
     path.endsWith('/sw.js') ||
     path.endsWith('/index.html') ||
-    path.endsWith('/app.js') ||
-    path.endsWith('/style.css') ||
     path.endsWith('/manifest.json') ||
-    path.endsWith('/version.json') ||
     path.endsWith('/clear.html') ||
     path === '/' ||
     path === ''
