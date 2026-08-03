@@ -13302,7 +13302,7 @@ function renderCategoryManagerList() {
 
   list.forEach((c, idx) => {
     const rawName = typeof c === 'string' ? c : (c && c.name ? String(c.name) : `Category ${idx + 1}`);
-    const safeId = rawName.replace(/[^a-zA-Z0-9\u0370-\u03ff]/g, '-');
+    const safeId = rawName.replace(/\s+/g, '-');
     const displayName = getCategoryDisplayName(rawName);
     const icon = (typeof c === 'object' && c.icon) || '📁';
 

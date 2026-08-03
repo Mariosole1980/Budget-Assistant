@@ -685,7 +685,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1039 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1040 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1056,7 +1056,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1039 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1040 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -13547,7 +13547,7 @@ function renderCategoryManagerList() {
 
   list.forEach((c, idx) => {
     const rawName = typeof c === 'string' ? c : (c && c.name ? String(c.name) : `Category ${idx + 1}`);
-    const safeId = rawName.replace(/[^a-zA-Z0-9\u0370-\u03ff]/g, '-');
+    const safeId = rawName.replace(/\s+/g, '-');
     const displayName = getCategoryDisplayName(rawName);
     const icon = (typeof c === 'object' && c.icon) || '📁';
 
