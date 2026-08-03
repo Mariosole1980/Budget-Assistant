@@ -685,7 +685,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1033 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1034 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1056,7 +1056,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1033 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1034 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -1784,6 +1784,8 @@ function handleIncomingLocalNotification(notification) {
     } else if (extra.type === 'daily_reminder') {
       action = { type: 'open_transactions' };
     } else if (extra.type === 'recurring_alert') {
+      action = { type: 'open_transactions' };
+    } else if (extra.type === 'high_expense') {
       action = { type: 'open_transactions' };
     }
   }
@@ -4580,8 +4582,69 @@ function processRecurringTemplates() {
 // ============================================================
 // SAVE / DELETE
 // ============================================================
+// HIGH-EXPENSE ALERT (Υψηλή Δαπάνη)
+// The "Single Expense Alert" setting was previously a UI-only stub:
+// the settings (settings_expense_alert_enabled / _limit) were saved to
+// localStorage but NO code ever checked them or fired a notification.
+// This helper wires the setting to the actual alert. It is called from
+// saveTransaction() so it fires for ANY expense added (form, coach, demo).
+// ============================================================
+function checkHighExpenseAlert(transaction) {
+  try {
+    // Only expenses (not income/transfers) can trigger the high-expense alert.
+    if (!transaction || transaction.type !== 'expense') return;
+
+    const enabled = localStorage.getItem('settings_expense_alert_enabled') === 'true';
+    if (!enabled) return;
+
+    const limit = parseFloat(localStorage.getItem('settings_expense_alert_limit')) || 500;
+    const amount = parseFloat(transaction.amount) || 0;
+    if (amount < limit) return;
+
+    const catName = getCategoryDisplayName ? getCategoryDisplayName(transaction.category) : (transaction.category || '');
+    const title = state.lang === 'el' ? '⚠️ Υψηλή Δαπάνη' : '⚠️ High Expense Alert';
+    const body = state.lang === 'el'
+      ? `Καταχωρήθηκε δαπάνη ${formatCurrency(amount)} (${catName}) που υπερβαίνει το όριο των ${formatCurrency(limit)}.`
+      : `An expense of ${formatCurrency(amount)} (${catName}) was recorded, exceeding your limit of ${formatCurrency(limit)}.`;
+
+    // 1. In-app notification (notification center / badge)
+    addInAppNotification(title, body, { type: 'open_transactions' });
+
+    // 2. Toast so the user sees it immediately
+    if (typeof showToast === 'function') {
+      showToast(title + ' — ' + body, 'warning');
+    }
+
+    // 3. Native push-style notification (works when app is in background)
+    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.LocalNotifications) {
+      const LocalNotifications = window.Capacitor.Plugins.LocalNotifications;
+      LocalNotifications.schedule({
+        notifications: [{
+          id: 9000 + (Math.floor(Math.random() * 900) + 100),
+          title: title,
+          body: body,
+          schedule: { at: new Date(Date.now() + 500) },
+          sound: null,
+          attachments: null,
+          actionTypeId: '',
+          extra: { type: 'high_expense' }
+        }]
+      }).catch(err => console.warn('Failed to schedule high-expense native notification:', err));
+    }
+
+    console.log(`[ALERT] High expense detected: ${amount} >= ${limit}`);
+  } catch (err) {
+    // Never let a notification failure break the transaction save.
+    console.warn('checkHighExpenseAlert error:', err);
+  }
+}
+
 async function saveTransaction(transaction) {
   transaction.amount = parseFloat(transaction.amount);
+
+  // HIGH-EXPENSE ALERT: Fire the "Single Expense Alert" notification if this
+  // newly saved expense meets/exceeds the configured limit (settings_expense_alert_limit).
+  checkHighExpenseAlert(transaction);
 
   // 1. Generate local UUID if it's a new transaction
   if (!transaction.id) {
@@ -13099,7 +13162,7 @@ function initSwipeToBack() {
   function finishDrag(committed) {
     if (!bsDragging) return;
 
-    // Capture screen references immediately in local variables to avoid race conditions 
+    // Capture screen references immediately in local variables to avoid race conditions
     // with touchstart resetting outer scope variables before our timeout runs.
     const currScreen = currentScreen;
     const pScreen = prevScreen;
@@ -16481,23 +16544,23 @@ function renderPartnerSection() {
             </button>
             <div id="member-menu-${m.id}" class="member-dropdown-menu" style="display:none;position:absolute;right:0;top:100%;z-index:1000;background:var(--card-bg2, #1f2230);border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.4);min-width:180px;padding:4px 0;text-align:left;">
               ${m.role === 'admin' ? `
-                <div onclick="changeMemberRole('${m.id}', 'member')" 
-                     onmouseenter="this.style.background='rgba(255,255,255,0.05)'" 
-                     onmouseleave="this.style.background=''" 
+                <div onclick="changeMemberRole('${m.id}', 'member')"
+                     onmouseenter="this.style.background='rgba(255,255,255,0.05)'"
+                     onmouseleave="this.style.background=''"
                      style="padding:10px 12px;font-size:12.5px;cursor:pointer;color:var(--text-primary);transition:background 0.2s;white-space:nowrap;">
                   <i class="fa-solid fa-user-tag" style="margin-right:8px;width:14px;"></i>${demoteText}
                 </div>
               ` : `
-                <div onclick="changeMemberRole('${m.id}', 'admin')" 
-                     onmouseenter="this.style.background='rgba(255,255,255,0.05)'" 
-                     onmouseleave="this.style.background=''" 
+                <div onclick="changeMemberRole('${m.id}', 'admin')"
+                     onmouseenter="this.style.background='rgba(255,255,255,0.05)'"
+                     onmouseleave="this.style.background=''"
                      style="padding:10px 12px;font-size:12.5px;cursor:pointer;color:var(--text-primary);transition:background 0.2s;white-space:nowrap;">
                   <i class="fa-solid fa-user-shield" style="margin-right:8px;width:14px;"></i>${promoteText}
                 </div>
               `}
-              <div onclick="kickFamilyMember('${m.id}')" 
-                   onmouseenter="this.style.background='rgba(239,83,80,0.08)'" 
-                   onmouseleave="this.style.background=''" 
+              <div onclick="kickFamilyMember('${m.id}')"
+                   onmouseenter="this.style.background='rgba(239,83,80,0.08)'"
+                   onmouseleave="this.style.background=''"
                    style="padding:10px 12px;font-size:12.5px;cursor:pointer;color:#ef5350;border-top:1px solid var(--border-light);transition:background 0.2s;white-space:nowrap;">
                 <i class="fa-solid fa-user-minus" style="margin-right:8px;width:14px;"></i>${removeText}
               </div>
@@ -16539,7 +16602,7 @@ function renderPartnerSection() {
             <i class="fa-solid fa-user-plus" style="color:var(--accent);"></i>
             <span>${state.lang === 'el' ? 'Πρόσκληση Νέου Μέλους' : 'Invite New Member'}</span>
           </div>
-          
+
           <!-- 1. STEP 1: Select Role FIRST -->
           <div style="display:flex;flex-direction:column;gap:6px;">
             <label style="font-size:11px;color:var(--text-muted);font-weight:600;margin-bottom:0;">
@@ -16649,7 +16712,7 @@ function renderPartnerSection() {
             <i class="fa-solid fa-right-from-bracket" style="margin-right:5px;"></i>${state.lang === 'el' ? 'Αποχώρηση' : 'Leave'}
           </button>
         </div>
-        
+
         <div style="font-size:12px;font-weight:700;margin-bottom:8px;color:var(--text-secondary);">
           👥 ${state.lang === 'el' ? 'Μέλη Οικογένειας' : 'Family Members'} (${state.familyProfiles.length})
         </div>
@@ -18793,7 +18856,7 @@ function updateSupabaseUserModal() {
         <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 20px; word-break: break-all;">
           ${state.currentUser.email}
         </div>
-        
+
         <div class="ios-settings-group" style="margin-bottom: 20px; text-align: left;">
           <div class="ios-settings-row" onclick="triggerProfileSyncFromModal()">
             <div class="ios-row-left">
