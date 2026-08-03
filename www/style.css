@@ -4427,17 +4427,19 @@ html.auth-active .app-container {
 /* ============================================== */
 /* DESKTOP RESPONSIVE LAYOUT (Full Screen Web App) */
 /* ============================================== */
+/* Desktop layout for the WEB version only (gated behind html.web-mode so
+   Android/iOS native app layout is never affected). */
 @media (min-width: 768px) {
 
   /* Reset body centering for desktop full screen */
-  body {
+  html.web-mode body {
     background-color: var(--bg-main) !important;
     align-items: stretch !important;
     justify-content: stretch !important;
   }
 
   /* Make app container expand full screen */
-  .app-container {
+  html.web-mode .app-container {
     max-width: 100% !important;
     width: 100% !important;
     height: 100% !important;
@@ -4454,7 +4456,7 @@ html.auth-active .app-container {
   }
 
   /* Position header on the right content grid area */
-  .app-header {
+  html.web-mode .app-header {
     grid-area: header !important;
     position: sticky !important;
     top: 0 !important;
@@ -4465,7 +4467,7 @@ html.auth-active .app-container {
   }
 
   /* Position main scroll area next to sidebar */
-  .app-content {
+  html.web-mode .app-content {
     grid-area: content !important;
     padding: 0 !important;
     padding-bottom: 24px !important;
@@ -4474,7 +4476,7 @@ html.auth-active .app-container {
   }
 
   /* Turn bottom navigation bar into a left sidebar menu */
-  .bottom-nav {
+  html.web-mode .bottom-nav {
     grid-area: sidebar !important;
     position: fixed !important;
     left: 0 !important;
@@ -4496,11 +4498,11 @@ html.auth-active .app-container {
     z-index: 100 !important;
   }
 
-  .bottom-nav::after {
+  html.web-mode .bottom-nav::after {
     display: none !important;
   }
 
-  .bottom-nav .nav-item {
+  html.web-mode .bottom-nav .nav-item {
     flex: none !important;
     flex-direction: row !important;
     align-items: center !important;
@@ -4514,24 +4516,24 @@ html.auth-active .app-container {
     height: auto !important;
   }
 
-  .bottom-nav .nav-item svg {
+  html.web-mode .bottom-nav .nav-item svg {
     width: 22px !important;
     height: 22px !important;
     margin-bottom: 0 !important;
   }
 
-  .bottom-nav .nav-item.active {
+  html.web-mode .bottom-nav .nav-item.active {
     background-color: var(--accent-light) !important;
     color: var(--accent) !important;
   }
 
-  .bottom-nav .nav-item:hover {
+  html.web-mode .bottom-nav .nav-item:hover {
     background-color: var(--border-light) !important;
     color: var(--text-main) !important;
   }
 
   /* Relocate Floating Action Button to bottom right of content area */
-  .fab {
+  html.web-mode .fab {
     position: fixed !important;
     bottom: 32px !important;
     right: 32px !important;
@@ -4541,12 +4543,12 @@ html.auth-active .app-container {
   }
 
   /* Center Modals on Desktop */
-  .modal-overlay {
+  html.web-mode .modal-overlay {
     align-items: center !important;
     justify-content: center !important;
   }
 
-  .modal-content {
+  html.web-mode .modal-content {
     border-radius: 20px !important;
     height: auto !important;
     max-height: 85vh !important;
@@ -4555,18 +4557,18 @@ html.auth-active .app-container {
     transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
   }
 
-  .modal-overlay.active .modal-content {
+  html.web-mode .modal-overlay.active .modal-content {
     transform: scale(1) !important;
   }
 
   /* Center and enlarge Transaction Modal on Desktop/Tablet */
-  .tx-modal-overlay {
+  html.web-mode .tx-modal-overlay {
     align-items: center !important;
     justify-content: center !important;
     background-color: rgba(0, 0, 0, 0.7) !important;
   }
 
-  .tx-modal-overlay .modal-content {
+  html.web-mode .tx-modal-overlay .modal-content {
     width: 100% !important;
     max-width: 520px !important;
     height: 90vh !important;
@@ -4578,17 +4580,17 @@ html.auth-active .app-container {
     transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
   }
 
-  .tx-modal-overlay.active .modal-content {
+  html.web-mode .tx-modal-overlay.active .modal-content {
     transform: scale(1) !important;
   }
 
   /* Center Profile Sheet on Desktop */
-  .profile-sheet-overlay {
+  html.web-mode .profile-sheet-overlay {
     align-items: center !important;
     justify-content: center !important;
   }
 
-  .profile-sheet-content {
+  html.web-mode .profile-sheet-content {
     margin-top: unset !important;
     border-radius: 24px !important;
     border-bottom: 1px solid var(--border) !important;
@@ -4600,15 +4602,15 @@ html.auth-active .app-container {
     box-sizing: border-box !important;
   }
 
-  .profile-sheet-overlay.active .profile-sheet-content {
+  html.web-mode .profile-sheet-overlay.active .profile-sheet-content {
     transform: scale(1) !important;
   }
 
-  .profile-sheet-handle {
+  html.web-mode .profile-sheet-handle {
     display: none !important;
   }
 
-  .profile-sheet-body {
+  html.web-mode .profile-sheet-body {
     overflow-x: hidden !important;
     overflow-y: auto !important;
     max-width: 100% !important;
@@ -4616,7 +4618,7 @@ html.auth-active .app-container {
     box-sizing: border-box !important;
   }
 
-  .profile-presets-grid {
+  html.web-mode .profile-presets-grid {
     display: flex !important;
     flex-direction: row !important;
     flex-wrap: wrap !important;
@@ -4632,13 +4634,13 @@ html.auth-active .app-container {
   }
 
   /* Align selection bar to right area */
-  .selection-bar-container {
+  html.web-mode .selection-bar-container {
     left: 260px !important;
     width: calc(100% - 260px) !important;
   }
 
   /* --- Transactions Screen Desktop Optimization (Two Columns) --- */
-  #trans-screen.active {
+  html.web-mode #trans-screen.active {
     display: grid !important;
     grid-template-columns: 2.2fr 1fr !important;
     gap: 24px !important;
@@ -4646,11 +4648,11 @@ html.auth-active .app-container {
     align-items: start !important;
   }
 
-  #trans-screen .stats-header-bar {
+  html.web-mode #trans-screen .stats-header-bar {
     grid-column: 1 / span 2 !important;
   }
 
-  #trans-screen .summary-bar {
+  html.web-mode #trans-screen .summary-bar {
     grid-column: 2 !important;
     grid-row: 2 !important;
     flex-direction: column !important;
@@ -4664,7 +4666,7 @@ html.auth-active .app-container {
     top: 80px !important;
   }
 
-  #trans-screen .summary-item {
+  html.web-mode #trans-screen .summary-item {
     width: 100% !important;
     padding: 16px 16px !important;
     text-align: left !important;
@@ -4675,24 +4677,24 @@ html.auth-active .app-container {
     flex: none !important;
   }
 
-  #trans-screen .summary-item div:first-child {
+  html.web-mode #trans-screen .summary-item div:first-child {
     font-size: 11px !important;
     margin-bottom: 0 !important;
   }
 
-  #trans-screen .summary-item span {
+  html.web-mode #trans-screen .summary-item span {
     font-size: 19px !important;
     font-weight: 800 !important;
   }
 
-  #trans-screen #transactions-list {
+  html.web-mode #trans-screen #transactions-list {
     grid-column: 1 !important;
     grid-row: 2 !important;
     margin-top: 0 !important;
   }
 
   /* --- Statistics Screen Desktop Optimization (Two Columns) --- */
-  #stats-screen.active {
+  html.web-mode #stats-screen.active {
     display: grid !important;
     grid-template-columns: 1fr 1.2fr !important;
     gap: 24px !important;
@@ -4700,69 +4702,87 @@ html.auth-active .app-container {
     align-items: start !important;
   }
 
-  #stats-screen .stats-header-bar {
+  html.web-mode #stats-screen .stats-header-bar {
     grid-column: 1 / span 2 !important;
   }
 
-  #stats-screen .stats-subheader-bar {
+  html.web-mode #stats-screen .stats-subheader-bar {
     grid-column: 1 / span 2 !important;
   }
 
-  #stats-screen .stats-net-bar {
+  html.web-mode #stats-screen .stats-net-bar {
     grid-column: 1 / span 2 !important;
     position: static !important;
   }
 
-  #stats-screen .chart-container {
+  html.web-mode #stats-screen .chart-container {
     grid-column: 1 !important;
     margin-top: 0 !important;
     border-radius: 16px !important;
     border: 1px solid var(--border) !important;
   }
 
-  #stats-screen #stats-breakdown-list {
+  html.web-mode #stats-screen #stats-breakdown-list {
     grid-column: 2 !important;
     margin-top: 0 !important;
     max-height: 65vh !important;
     overflow-y: auto !important;
   }
 
-  /* --- Accounts Screen Desktop Optimization (Two Columns) --- */
-  #accounts-screen.active {
+  /* --- Accounts Screen Desktop Optimization (Responsive Two Columns) --- */
+  html.web-mode #accounts-screen.active {
     display: grid !important;
-    grid-template-columns: 1fr 1.6fr !important;
+    grid-template-columns: minmax(320px, 0.9fr) minmax(0, 1.6fr) !important;
     gap: 24px !important;
     padding: 24px !important;
     align-items: start !important;
+    max-width: 1440px !important;
+    margin: 0 auto !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
   }
 
-  #accounts-screen .accounts-overview-card {
+  /* Left column: overview summary (year selector, balances, FHS, forecast, advisor).
+     No sticky positioning so cards stack vertically in normal document flow and
+     never overlap the period breakdown below. */
+  html.web-mode #accounts-screen .accounts-overview-card {
     grid-column: 1 !important;
+    grid-row: 1 !important;
     margin-bottom: 0 !important;
     height: auto !important;
     background: transparent !important;
     border: none !important;
     padding: 0 !important;
-    position: sticky !important;
-    top: 80px !important;
     display: flex !important;
     flex-direction: column !important;
     gap: 12px !important;
+    min-width: 0 !important;
   }
 
-  #accounts-screen .accounts-overview-card .overview-grid {
+  html.web-mode #accounts-screen .accounts-overview-card .overview-grid {
     grid-template-columns: 1fr !important;
     gap: 20px !important;
     text-align: left !important;
   }
 
-  #accounts-screen>div:last-child {
+  /* Right column: collapsible account lists (Λογαριασμοί, Έξοδα) */
+  html.web-mode #accounts-screen .collapsible-sections-container {
     grid-column: 2 !important;
+    grid-row: 1 !important;
+    min-width: 0 !important;
+  }
+
+  /* Period breakdown (Ιστορικό Προηγούμενων Ετών) placed in the right column,
+     below the collapsible sections, so it never overlaps the advisor card. */
+  html.web-mode #accounts-screen #accounts-periods-breakdown {
+    grid-column: 2 !important;
+    grid-row: 2 !important;
     margin-top: 0 !important;
+    min-width: 0 !important;
   }
 
   /* --- More/Settings Screen Desktop Optimization (Two Columns) --- */
-  #more-screen.active {
+  html.web-mode #more-screen.active {
     display: block !important;
     column-count: 2 !important;
     column-gap: 32px !important;
@@ -4771,19 +4791,19 @@ html.auth-active .app-container {
     margin: 0 auto !important;
   }
 
-  #more-screen.active>* {
+  html.web-mode #more-screen.active>* {
     break-inside: avoid !important;
     -webkit-column-break-inside: avoid !important;
   }
 
-  #more-screen.active>.settings-section-title:first-child {
+  html.web-mode #more-screen.active>.settings-section-title:first-child {
     margin-top: 0 !important;
   }
 
-  .stats-scroll-content,
-  .trans-scroll-content,
-  .accounts-scroll-content,
-  .more-scroll-content {
+  html.web-mode .stats-scroll-content,
+  html.web-mode .trans-scroll-content,
+  html.web-mode .accounts-scroll-content,
+  html.web-mode .more-scroll-content {
     display: contents !important;
   }
 }
@@ -7627,4 +7647,19 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
 #pin-verify-modal,
 #biometrics-pin-modal {
   z-index: 12500 !important;
+}
+/* Version info row (Account & Legal): prevent label/value overlap.
+   Scoped to .version-info-row so other settings screens are unaffected. */
+.version-info-row {
+  align-items: flex-start;
+  gap: 12px;
+}
+.version-info-row .settings-item-label {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.version-info-row .settings-item-value {
+  flex-shrink: 0;
+  white-space: nowrap;
+  text-align: right;
 }

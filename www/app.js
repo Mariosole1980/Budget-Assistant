@@ -685,7 +685,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v1025 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1030 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1056,7 +1056,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1025 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1030 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -12644,27 +12644,66 @@ function initSwipeToBack() {
   history.pushState({ appState: 'active' }, '', window.location.pathname + window.location.search);
   state.historyPushed = true;
 
-  window.addEventListener('popstate', (e) => {
-    // Only run popstate logic if NOT inside Capacitor (because Capacitor handles back button natively via App plugin)
-    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
+  // Shared back-navigation handler used by BOTH the popstate listener (PWA / WebView
+  // history pop) and the Capacitor backButton listener. A debounce guard prevents
+  // double-fire when both events fire for the same physical back press (which can
+  // happen depending on Capacitor version / WebView config). Without this guard, a
+  // single back press could close TWO things (e.g. a modal AND then navigate a tab
+  // back or exit the app).
+  let lastBackHandledAt = 0;
+  const BACK_DEBOUNCE_MS = 400;
+  function handleBackNavigation(source, e) {
+    const now = Date.now();
+    if (now - lastBackHandledAt < BACK_DEBOUNCE_MS) {
+      console.log('[BackNav] Debounced duplicate back event from:', source);
       return;
     }
-    // Guard: Ignore popstate if the document is hidden, backgrounding, or blurred (e.g. during home swipe gesture)
+    lastBackHandledAt = now;
+
+    // Guard: Ignore back if the document is hidden, backgrounding, or blurred
+    // (e.g. during home swipe gesture).
     if (document.visibilityState === 'hidden') {
+      console.log('[BackNav] Ignored back event — document hidden/blurred. source:', source);
       return;
     }
+
     const handled = triggerBackAction();
     if (handled) {
+      // A modal/overlay was closed (or tab was navigated back). Re-push a fresh
+      // history entry so the next back press can be handled again (PWA path).
       history.pushState({ appState: 'active', tab: state.activeTab }, '', window.location.pathname + window.location.search);
       state.historyPushed = true;
-    } else {
-      state.historyPushed = false;
-      if (e.state && e.state.tab && e.state.tab !== state.activeTab) {
-        switchTab(e.state.tab, true);
-      } else {
-        updateUI();
-      }
+      return;
     }
+
+    // Nothing was handled (no modal, no overlay, no selection mode, already on
+    // the first tab). Decide what to do based on the source.
+    if (source === 'backButton') {
+      // Capacitor: no more in-app back actions → exit the app.
+      const App = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
+      if (App && typeof App.exitApp === 'function') {
+        App.exitApp();
+      }
+      return;
+    }
+
+    // popstate (PWA / WebView): no more in-app back actions. If the popped state
+    // carried a tab, restore it; otherwise just refresh the UI.
+    state.historyPushed = false;
+    if (e && e.state && e.state.tab && e.state.tab !== state.activeTab) {
+      switchTab(e.state.tab, true);
+    } else {
+      updateUI();
+    }
+  }
+
+  window.addEventListener('popstate', (e) => {
+    // NOTE: No Capacitor early-return here. In some Capacitor/WebView configs the
+    // history pop fires popstate on back press even when a backButton listener is
+    // registered. Routing through the shared handler (with its debounce guard)
+    // makes this safe: if backButton also fires for the same press, the second
+    // call is debounced away.
+    handleBackNavigation('popstate', e);
   });
 
   // Native Capacitor Back Button Interception
@@ -12673,10 +12712,7 @@ function initSwipeToBack() {
       const App = window.Capacitor.Plugins.App;
       if (App && typeof App.addListener === 'function') {
         App.addListener('backButton', () => {
-          const handled = triggerBackAction();
-          if (!handled) {
-            App.exitApp();
-          }
+          handleBackNavigation('backButton');
         });
         return true;
       }
@@ -18862,6 +18898,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function attachBackdropTap(modal) {
+    console.log('[BackdropTap] Attaching backdrop-tap-to-close to modal:', modal.id);
     let touchStartTarget = null;
 
     modal.addEventListener('touchstart', (e) => {
@@ -18877,6 +18914,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (fullScreenModals.includes(modal.id)) return;
         e.preventDefault(); // prevent the synthetic click from also firing
         markUserInitiated();
+        console.log('[BackdropTap] Closing modal via backdrop tap:', modal.id);
         closeModal(modal.id);
       }
       touchStartTarget = null;
@@ -18887,6 +18925,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (e.target === modal) {
         if (fullScreenModals.includes(modal.id)) return;
         markUserInitiated();
+        console.log('[BackdropTap] Closing modal via backdrop click:', modal.id);
         closeModal(modal.id);
       }
     });
@@ -20180,6 +20219,11 @@ document.addEventListener('DOMContentLoaded', () => {
   // Bind programmatic listeners for the new settings subscreens
   bindSettingsSubscreenListeners();
 
+  // NOTE: No dedicated backdrop-tap handler for settings-subscreen-modal here.
+  // It has class="modal-overlay" so the generic attachBackdropTap (above) already
+  // attaches backdrop-tap-to-close to it. A separate handler would be a duplicate
+  // and could cause a double closeModal call.
+
   function bindSettingsSubscreenListeners() {
     const preferencesLangRow = document.getElementById('preferences-lang-row');
     if (preferencesLangRow) {
@@ -20328,12 +20372,28 @@ document.addEventListener('DOMContentLoaded', () => {
     if (backBtn) {
       console.log('[DEBUG] settings-subscreen-back-btn found, binding click handler');
       backBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
         console.log('[DEBUG] settings-subscreen-back-btn CLICKED. history len =', window._settingsSubscreenHistory ? window._settingsSubscreenHistory.length : 'N/A');
         if (window._settingsSubscreenHistory && window._settingsSubscreenHistory.length > 0) {
           const prev = window._settingsSubscreenHistory.pop();
           openSettingsSubscreen(prev.id, prev.titleKey, true);
         } else {
+          // Mark as a deliberate user action so the resume anti-ghost-click guard
+          // NEVER blocks this close — the back arrow must respond instantly.
+          window.__userInitiatedClose = true;
           closeModal('settings-subscreen-modal');
+          // Hard fallback: if closeModal was blocked by any guard (e.g. resume
+          // transition), force-remove the active class so the card always closes.
+          const modalEl = document.getElementById('settings-subscreen-modal');
+          if (modalEl && modalEl.classList.contains('active')) {
+            setTimeout(() => {
+              if (modalEl.classList.contains('active')) {
+                modalEl.classList.remove('active');
+                document.body.classList.remove('modal-open');
+              }
+            }, 60);
+          }
         }
       });
     } else {
@@ -23699,9 +23759,9 @@ const USER_GUIDE_DATA = {
       {
         id: 'changelog',
         icon: 'fa-box-archive',
-        title: '1. Έκδοση & Τι Νέο Υπάρχει (v1024)',
+        title: '1. Έκδοση & Τι Νέο Υπάρχει (v1029)',
         content: `
-          <p><strong>Έκδοση Οδηγού:</strong> v1024 | <strong>Συγχρονισμένη Έκδοση Εφαρμογής:</strong> v1024</p>
+          <p><strong>Έκδοση Οδηγού:</strong> v1029 | <strong>Συγχρονισμένη Έκδοση Εφαρμογής:</strong> v1029</p>
           <div class="guide-feature-box">
             <h5 style="margin:0 0 6px; color:var(--primary);">✨ Τι νέο υπάρχει στην τελευταία έκδοση:</h5>
             <ul style="margin:0; padding-left:18px;">
@@ -23898,9 +23958,9 @@ const USER_GUIDE_DATA = {
       {
         id: 'changelog',
         icon: 'fa-box-archive',
-        title: '1. Version & What\'s New (v1024)',
+        title: '1. Version & What\'s New (v1029)',
         content: `
-          <p><strong>Guide Version:</strong> v1024 | <strong>Synchronized App Version:</strong> v1024</p>
+          <p><strong>Guide Version:</strong> v1029 | <strong>Synchronized App Version:</strong> v1029</p>
           <div class="guide-feature-box">
             <h5 style="margin:0 0 6px; color:var(--primary);">✨ What's new in the latest version:</h5>
             <ul style="margin:0; padding-left:18px;">
