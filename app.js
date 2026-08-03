@@ -685,7 +685,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1036 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1037 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1056,7 +1056,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1036 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1037 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -12771,6 +12771,10 @@ function initSwipeToBack() {
   // back or exit the app).
   let lastBackHandledAt = 0;
   const BACK_DEBOUNCE_MS = 400;
+  // Double-back-to-exit: track when the user first pressed back with nothing left
+  // to close, so the app only exits on the SECOND back press (standard Android UX).
+  let lastExitRequestAt = 0;
+  const EXIT_CONFIRM_WINDOW_MS = 2000;
   function handleBackNavigation(source, e) {
     const now = Date.now();
     if (now - lastBackHandledAt < BACK_DEBOUNCE_MS) {
@@ -12806,10 +12810,27 @@ function initSwipeToBack() {
     // Nothing was handled (no modal, no overlay, no selection mode, already on
     // the first tab). Decide what to do based on the source.
     if (source === 'backButton') {
-      // Capacitor: no more in-app back actions → exit the app.
-      const App = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
-      if (App && typeof App.exitApp === 'function') {
-        App.exitApp();
+      // Capacitor: no more in-app back actions. Use the standard Android
+      // "double back to exit" pattern — the FIRST back press only shows a toast
+      // ("press back again to exit"); the app exits on the SECOND press within
+      // the confirm window. This prevents accidentally minimizing the app with a
+      // single swipe-back while on the Transactions tab.
+      const nowMs = Date.now();
+      if (nowMs - lastExitRequestAt < EXIT_CONFIRM_WINDOW_MS) {
+        // Second back press within the window → actually exit the app.
+        const App = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
+        if (App && typeof App.exitApp === 'function') {
+          App.exitApp();
+        }
+        return;
+      }
+      // First back press → show confirmation toast and arm the exit window.
+      lastExitRequestAt = nowMs;
+      const exitMsg = state.lang === 'el'
+        ? 'Πατήστε ξανά πίσω για έξοδο'
+        : 'Press back again to exit';
+      if (typeof showSyncToast === 'function') {
+        showSyncToast(exitMsg, EXIT_CONFIRM_WINDOW_MS);
       }
       return;
     }
