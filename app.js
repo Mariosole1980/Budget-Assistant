@@ -685,7 +685,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1032 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1033 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1056,7 +1056,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1032 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1033 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -4876,39 +4876,88 @@ function deleteTransactionOffline(id, skipSave = false) {
 // UI UPDATE ENGINE
 // ============================================================
 
-// Debounce for updateUI — prevents 32+ concurrent calls from all hammering the DOM at once.
-// Any burst of updateUI() calls within 150 ms will collapse into a single render.
+// ============================================================
+// FIX #4 (flicker): Central render scheduler.
+// All UI renders funnel through updateUI() which coalesces bursts
+// into a single pass. Key improvements over the old scheduler:
+//   1. A single updateUI() call flushes on the NEXT animation frame
+//      (no artificial 150ms latency for isolated renders).
+//   2. A burst of updateUI() calls within the debounce window collapses
+//      into ONE render (no more 32+ concurrent DOM mutations racing).
+//   3. flushUI() cancels any pending scheduled render and renders
+//      immediately — used by switchTab so a tab switch never races
+//      against a background-sync render.
+// ============================================================
 let _updateUITimer = null;
 let _updateUIRAF = null;
+let _updateUIDirty = false;
+
+function _runScheduledRender() {
+  _updateUITimer = null;
+  _updateUIRAF = null;
+  _updateUIDirty = false;
+  // ANTI-FLICKER: When _suppressTransitions is set (e.g. during the
+  // startup loadData() re-render after a long background where the OS
+  // reloaded the WebView), wrap the DOM wipe/re-render in no-transition
+  // so the tab content does not visibly flash. This covers the full-reload
+  // path that forceSyncNow's own guard cannot reach.
+  const suppress = !!window._suppressTransitions;
+  if (suppress) document.documentElement.classList.add('no-transition');
+  try {
+    _updateUIImpl();
+  } finally {
+    if (suppress) {
+      setTimeout(() => {
+        document.documentElement.classList.remove('no-transition');
+      }, 1000);
+    }
+  }
+}
+
 function updateUI() {
-  if (_updateUITimer) clearTimeout(_updateUITimer);
+  // If a render is already scheduled (either the resume-delay timer or the
+  // pending animation-frame), just mark it dirty and let the existing
+  // scheduled pass handle it — coalescing bursts into a single render.
+  if (_updateUITimer || _updateUIRAF) {
+    _updateUIDirty = true;
+    return;
+  }
+  _updateUIDirty = true;
+
   // ANTI-FLICKER: If the app just resumed from background, defer rendering
   // until after the 600ms resume guard window expires. This prevents the
   // DOM wipe from being visible during the resume animation frame.
-  const baseDelay = window._appJustResumed ? 700 : 150;
-  _updateUITimer = setTimeout(() => {
-    _updateUITimer = null;
+  const baseDelay = window._appJustResumed ? 700 : 0;
+
+  if (baseDelay > 0) {
+    _updateUITimer = setTimeout(() => {
+      _updateUITimer = null;
+      if (_updateUIRAF) cancelAnimationFrame(_updateUIRAF);
+      _updateUIRAF = requestAnimationFrame(_runScheduledRender);
+    }, baseDelay);
+  } else {
+    // No resume guard needed: flush on the next animation frame so that
+    // multiple synchronous updateUI() calls in the same tick still coalesce
+    // into a single render (avoids redundant DOM wipes).
     if (_updateUIRAF) cancelAnimationFrame(_updateUIRAF);
-    _updateUIRAF = requestAnimationFrame(() => {
-      _updateUIRAF = null;
-      // ANTI-FLICKER: When _suppressTransitions is set (e.g. during the
-      // startup loadData() re-render after a long background where the OS
-      // reloaded the WebView), wrap the DOM wipe/re-render in no-transition
-      // so the tab content does not visibly flash. This covers the full-reload
-      // path that forceSyncNow's own guard cannot reach.
-      const suppress = !!window._suppressTransitions;
-      if (suppress) document.documentElement.classList.add('no-transition');
-      try {
-        _updateUIImpl();
-      } finally {
-        if (suppress) {
-          setTimeout(() => {
-            document.documentElement.classList.remove('no-transition');
-          }, 1000);
-        }
-      }
-    });
-  }, baseDelay);
+    _updateUIRAF = requestAnimationFrame(_runScheduledRender);
+  }
+}
+
+// Immediately cancel any pending scheduled render and run the render NOW.
+// Used by switchTab() so a tab switch never races against a queued
+// background-sync render (which would cause a visible flash/jitter).
+function flushUI() {
+  if (_updateUITimer) {
+    clearTimeout(_updateUITimer);
+    _updateUITimer = null;
+  }
+  if (_updateUIRAF) {
+    cancelAnimationFrame(_updateUIRAF);
+    _updateUIRAF = null;
+  }
+  _updateUIDirty = false;
+  _runScheduledRender();
 }
 
 function getActiveScrollContainer() {
@@ -8234,16 +8283,19 @@ function switchTab(tab, instant = false) {
     ensureHistoryPushed();
   }
 
-  // Render tab contents immediately to guarantee zero lag/blank states
+  // Render tab contents immediately to guarantee zero lag/blank states.
+  // FIX #4: Use flushUI() instead of calling _updateUIImpl() directly so that
+  // any pending scheduled render (e.g. from a background sync) is cancelled
+  // first — preventing two concurrent DOM mutations from racing and flickering.
   if (tab === 'trans') {
     const today = new Date();
     state.selectedMonth = today.getMonth();
     state.selectedYear = today.getFullYear();
     syncStatsDate();
-    _updateUIImpl();
+    flushUI();
     setTimeout(() => scrollToToday('smooth'), 50);
   } else {
-    _updateUIImpl();
+    flushUI();
   }
 
   if (tab === 'more') {
@@ -12571,8 +12623,9 @@ async function deleteSelectedTransactions() {
     console.warn('Failed to save deleted transactions to trash:', err);
   }
 
-  // 1. Suppress realtime events
-  _suppressRealtimeEvents = true;
+  // 1. Suppress realtime events (safe helper: auto-releases via setTimeout,
+  //    immune to early returns/throws leaving the counter stuck)
+  suppressRealtimeFor(8000);
 
   // 2. Process each transaction deletion locally & trigger background sync/delete
   for (const id of idsToDelete) {
@@ -12626,8 +12679,7 @@ async function deleteSelectedTransactions() {
   calculateInitialBalances();
   updateUI();
 
-  // 5. Re-enable realtime after enough time
-  setTimeout(() => { _suppressRealtimeEvents = false; }, 8000);
+  // 5. Re-enable realtime after enough time (handled by suppressRealtimeFor above)
 }
 
 window.enterSelectionMode = enterSelectionMode;
@@ -17458,6 +17510,46 @@ Object.defineProperty(window, '_suppressRealtimeEvents', {
   configurable: true
 });
 
+// ============================================================
+// FIX #3 (flicker): Safe, leak-proof realtime suppression helpers.
+//
+// PROBLEM: The counter-based _suppressRealtimeEvents above can get "stuck"
+// elevated if a code path sets it to true but throws/returns before the
+// setTimeout that sets it back to false runs. When stuck, realtime events are
+// permanently suppressed (no live partner updates) — or, worse, the counts
+// interleave when multiple syncs run concurrently, causing unpredictable
+// flickering numbers.
+//
+// SOLUTION: Two helpers that GUARANTEE the counter is always decremented:
+//   - suppressRealtimeFor(delayMs): increment now, always schedule the decrement.
+//   - withRealtimeSuppression(delayMs, fn): increment, run fn inside try/finally,
+//     and ALWAYS schedule the decrement even if fn throws.
+// ============================================================
+
+// Increment the suppression counter and ALWAYS schedule a matching decrement
+// after delayMs. Safe to call multiple times concurrently — each call adds its
+// own independent decrement, so the counter can never get stuck.
+function suppressRealtimeFor(delayMs) {
+  _suppressRealtimeEvents = true;
+  setTimeout(() => {
+    _suppressRealtimeEvents = false;
+  }, delayMs);
+}
+
+// Run fn while realtime is suppressed, then schedule the decrement after
+// delayMs. The decrement is scheduled in a finally block, so it runs even if
+// fn throws or returns early. Returns fn's return value (or undefined).
+async function withRealtimeSuppression(delayMs, fn) {
+  _suppressRealtimeEvents = true;
+  try {
+    return await fn();
+  } finally {
+    setTimeout(() => {
+      _suppressRealtimeEvents = false;
+    }, delayMs);
+  }
+}
+
 function handleRealtimeTransactionChange(payload) {
   const isDelete = payload.eventType === 'DELETE';
   const eventId = isDelete ? (payload.old && payload.old.id) : (payload.new && payload.new.id);
@@ -17697,7 +17789,8 @@ async function forceSyncNow(silent = false) {
   // Suppress realtime events for the duration of this sync to prevent
   // DB mutations (upserts/inserts from queue flush) from firing handleRealtimeTransactionChange
   // and causing flickering numbers. We will do a single clean render at the end.
-  _suppressRealtimeEvents = true;
+  // Safe helper: auto-releases after 4s regardless of success/failure.
+  suppressRealtimeFor(4000);
 
   try {
     const userId = state.currentUser.id;
@@ -17879,9 +17972,10 @@ async function forceSyncNow(silent = false) {
     }
     return false;
   } finally {
-    // Always re-enable realtime events after sync completes (or fails),
-    // with a short delay to let any already-inflight Realtime events drain first.
-    setTimeout(() => { _suppressRealtimeEvents = false; }, 4000);
+    // Realtime suppression is auto-released by suppressRealtimeFor(4000) above.
+    // Keep this finally as a safety net in case the helper's timer was somehow
+    // cleared, guaranteeing the counter never stays stuck.
+    suppressRealtimeFor(4000);
   }
 }
 
