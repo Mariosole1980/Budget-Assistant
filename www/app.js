@@ -685,7 +685,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1034 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1035 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1056,7 +1056,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1034 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1035 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -13044,7 +13044,14 @@ function initSwipeToBack() {
     // If an overlay/modal is active, allow swiping back starting from the left 150px
     // If no overlay is active, only allow starting from the left 60px
     const activeZone = hasActiveOverlay() ? 150 : 60;
-    bsActive = bsStartX <= activeZone;
+    // On the 'more' tab, disable the in-app custom edge-swipe-back entirely so it
+    // does not conflict with Android's native back gesture (which caused jitter).
+    // Android's native back (via Capacitor backButton) handles back on this tab.
+    if (state.activeTab === 'more') {
+      bsActive = false;
+    } else {
+      bsActive = bsStartX <= activeZone;
+    }
 
     currentScreen = null;
     prevScreen = null;
