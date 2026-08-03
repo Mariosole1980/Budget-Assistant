@@ -685,7 +685,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1037 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1038 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1056,7 +1056,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1037 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1038 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -5696,6 +5696,12 @@ function renderStatsTab(skipChart = false) {
     state.statsPeriodType || 'monthly',
     state.lang || 'el',
     state.selectedFamilyMemberId || 'all',
+    // Include the active period/date so changing the month/year via the picker
+    // (or the custom period range) triggers a re-render instead of being skipped
+    // by the anti-flicker signature guard.
+    state.statsDate ? state.statsDate.getTime() : '',
+    state.statsCustomStart || '',
+    state.statsCustomEnd || '',
     skipChart ? '1' : '0'
   ].join('||');
   const statsListEl = document.getElementById('stats-breakdown-list');
