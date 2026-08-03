@@ -13374,6 +13374,15 @@ function renderCategoryManagerList() {
       });
     }
 
+    // Make the chevron clickable to toggle the accordion (in addition to clicking the category name)
+    const chevron = header.querySelector('.category-mgr-chevron');
+    if (chevron) {
+      chevron.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleCategoryManagerAccordion(rawName);
+      });
+    }
+
     card.appendChild(header);
     card.appendChild(details);
     container.appendChild(card);
