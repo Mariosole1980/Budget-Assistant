@@ -685,7 +685,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1030 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1031 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1056,7 +1056,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1030 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1031 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -18885,7 +18885,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // Overlay Backdrop Tap: Close modals by tapping the dark background above a card.
 // Uses touchend (not click) for instant response on Android WebView — click has
 // a ~50-100ms delay even with touch-action:manipulation on passive touch listeners.
-document.addEventListener('DOMContentLoaded', () => {
+function initBackdropTapHandlers() {
   // Modals that are FULL-SCREEN (no visible background to tap) should NOT close
   // on backdrop tap. These are the full-screen overlays where the card fills the
   // entire screen, so there is no "empty space on top" showing the background.
@@ -18957,7 +18957,15 @@ document.addEventListener('DOMContentLoaded', () => {
       markUserInitiated();
     }
   }, true);
-});
+}
+// The OTA boot loader injects app.js asynchronously via Blob URL AFTER
+// DOMContentLoaded has fired. Use the same readyState fallback as initApp so
+// backdrop-tap-to-close is ALWAYS installed regardless of load timing.
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initBackdropTapHandlers);
+} else {
+  setTimeout(initBackdropTapHandlers, 0);
+}
 
 // Dynamic Visual Viewport Height Adjustment (for virtual keyboard support)
 // With interactive-widget=resizes-visual, the layout viewport doesn't shrink on Android.
@@ -20166,7 +20174,7 @@ function resetFeedbackForm() {
 window.submitUserFeedback = submitUserFeedback;
 window.resetFeedbackForm = resetFeedbackForm;
 
-document.addEventListener('DOMContentLoaded', () => {
+function initSettingsSubscreenAndFhs() {
   // ── Robust collapsible helper ──────────────────────────────────────────
   // Uses explicit scrollHeight so the content is NEVER clipped regardless
   // of how tall the inner HTML grows (dynamic family / feedback content).
@@ -20447,8 +20455,16 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
-
-});
+}
+// The OTA boot loader injects app.js asynchronously via Blob URL AFTER
+// DOMContentLoaded has fired. Use the same readyState fallback as initApp so
+// the settings-subscreen back-arrow handler and FHS listeners are ALWAYS
+// installed regardless of load timing.
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initSettingsSubscreenAndFhs);
+} else {
+  setTimeout(initSettingsSubscreenAndFhs, 0);
+}
 
 // Helper for FHS Tab switching
 function showFhsTab(tabName) {
