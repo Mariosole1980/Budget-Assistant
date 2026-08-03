@@ -685,7 +685,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1038 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1039 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1056,7 +1056,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1038 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1039 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -7998,6 +7998,18 @@ function setupEventListeners() {
     statsPeriodTitle.addEventListener('click', (e) => {
       const isYearClick = e.target.classList.contains('year-part');
       openMonthPicker(isYearClick);
+    });
+  }
+
+  // Tapping the Overview year title returns to the current year.
+  const overviewYearTitle = document.getElementById('overview-year-title');
+  if (overviewYearTitle) {
+    overviewYearTitle.addEventListener('click', () => {
+      const currentYear = new Date().getFullYear();
+      if ((state.overviewYear || currentYear) !== currentYear) {
+        state.overviewYear = currentYear;
+        renderAccountsTab();
+      }
     });
   }
 
