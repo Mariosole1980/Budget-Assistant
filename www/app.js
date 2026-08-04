@@ -1,3 +1,276 @@
+// ============================================================
+// CurrencyService BOOTSTRAP (self-sufficiency guard)
+// ------------------------------------------------------------
+// The OTA engine only downloads app.js + style.css, NOT index.html
+// or the other js/ files. Users running an older APK whose bundled
+// index.html does NOT load js/CurrencyService.js would crash with
+// "CurrencyService is not defined" the moment the OTA app.js (which
+// references CurrencyService) runs. This guard guarantees
+// window.CurrencyService is ALWAYS available synchronously:
+//   1) If the host index.html already loaded it -> use it.
+//   2) Otherwise, synchronously load js/CurrencyService.js.
+//   3) As a last resort, install a minimal inline fallback so the
+//      app never hard-crashes on a missing global.
+// ============================================================
+(function ensureCurrencyService() {
+  // Required public methods that app.js depends on. If window.CurrencyService
+  // exists but is missing ANY of these (e.g. a stale js/CurrencyService.js
+  // served from the service-worker cache that predates a method), we must NOT
+  // trust it — otherwise app.js crashes with "CurrencyService.X is not a
+  // function". We replace it with a complete implementation below.
+  var REQUIRED_METHODS = [
+    'round', 'toDateKey', 'setCurrencies', 'getCurrencies', 'getCurrency',
+    'getSymbol', 'getDecimals', 'getCountries', 'getCurrenciesByCountry',
+    'convert', 'computeAmountBase', 'toBase',
+    'displayAmount', 'sumInCurrency', 'getRate', 'setManualRate',
+    'correctActualAmount', 'conversionStatus', 'fetchTodayRates',
+    'setRateProvider', 'setRatePersist', 'setManualRateSink',
+    'isEnabled', 'setEnabled'
+  ];
+  function isComplete(cs) {
+    if (!cs || typeof cs !== 'object') return false;
+    for (var i = 0; i < REQUIRED_METHODS.length; i++) {
+      if (typeof cs[REQUIRED_METHODS[i]] !== 'function') return false;
+    }
+    return true;
+  }
+
+  // Minimal inline fallback (only used if the real file cannot load).
+  // Provides the same public surface used across app.js so nothing crashes.
+  function FallbackCurrencyService() {
+    this.rateCache = new Map();
+    this.currencies = [
+      { code: 'EUR', name: 'Euro', symbol: '€', decimals: 2, flag: '🇪🇺', countries: ['Ευρωζώνη', 'Eurozone', 'Γερμανία', 'Germany', 'Γαλλία', 'France', 'Ιταλία', 'Italy', 'Ισπανία', 'Spain', 'Ελλάδα', 'Greece', 'Πορτογαλία', 'Portugal', 'Ολλανδία', 'Netherlands', 'Βέλγιο', 'Belgium', 'Αυστρία', 'Austria', 'Ιρλανδία', 'Ireland', 'Φινλανδία', 'Finland', 'Κύπρος', 'Cyprus', 'Μάλτα', 'Malta', 'Κροατία', 'Croatia'] },
+      { code: 'USD', name: 'US Dollar', symbol: '$', decimals: 2, flag: '🇺🇸', countries: ['ΗΠΑ', 'USA', 'Αμερική', 'America', 'Ηνωμένες Πολιτείες', 'United States'] },
+      { code: 'GBP', name: 'British Pound', symbol: '£', decimals: 2, flag: '🇬🇧', countries: ['Ηνωμένο Βασίλειο', 'United Kingdom', 'Βρετανία', 'Britain', 'Αγγλία', 'England'] },
+      { code: 'JPY', name: 'Japanese Yen', symbol: '¥', decimals: 0, flag: '🇯🇵', countries: ['Ιαπωνία', 'Japan'] },
+      { code: 'CHF', name: 'Swiss Franc', symbol: 'CHF', decimals: 2, flag: '🇨🇭', countries: ['Ελβετία', 'Switzerland'] },
+      { code: 'CAD', name: 'Canadian Dollar', symbol: 'C$', decimals: 2, flag: '🇨🇦', countries: ['Καναδάς', 'Canada'] },
+      { code: 'AUD', name: 'Australian Dollar', symbol: 'A$', decimals: 2, flag: '🇦🇺', countries: ['Αυστραλία', 'Australia'] },
+      { code: 'CNY', name: 'Chinese Yuan', symbol: '¥', decimals: 2, flag: '🇨🇳', countries: ['Κίνα', 'China'] },
+      { code: 'INR', name: 'Indian Rupee', symbol: '₹', decimals: 2, flag: '🇮🇳', countries: ['Ινδία', 'India'] },
+      { code: 'RUB', name: 'Russian Ruble', symbol: '₽', decimals: 2, flag: '🇷🇺', countries: ['Ρωσία', 'Russia'] },
+      { code: 'BRL', name: 'Brazilian Real', symbol: 'R$', decimals: 2, flag: '🇧🇷', countries: ['Βραζιλία', 'Brazil'] },
+      { code: 'TRY', name: 'Turkish Lira', symbol: '₺', decimals: 2, flag: '🇹🇷', countries: ['Τουρκία', 'Turkey'] },
+      { code: 'SEK', name: 'Swedish Krona', symbol: 'kr', decimals: 2, flag: '🇸🇪', countries: ['Σουηδία', 'Sweden'] },
+      { code: 'NOK', name: 'Norwegian Krone', symbol: 'kr', decimals: 2, flag: '🇳🇴', countries: ['Νορβηγία', 'Norway'] },
+      { code: 'DKK', name: 'Danish Krone', symbol: 'kr', decimals: 2, flag: '🇩🇰', countries: ['Δανία', 'Denmark'] },
+      { code: 'PLN', name: 'Polish Zloty', symbol: 'zł', decimals: 2, flag: '🇵🇱', countries: ['Πολωνία', 'Poland'] },
+      { code: 'CZK', name: 'Czech Koruna', symbol: 'Kč', decimals: 2, flag: '🇨🇿', countries: ['Τσεχία', 'Czech Republic'] },
+      { code: 'HUF', name: 'Hungarian Forint', symbol: 'Ft', decimals: 2, flag: '🇭🇺', countries: ['Ουγγαρία', 'Hungary'] },
+      { code: 'RON', name: 'Romanian Leu', symbol: 'lei', decimals: 2, flag: '🇷🇴', countries: ['Ρουμανία', 'Romania'] },
+      { code: 'BGN', name: 'Bulgarian Lev', symbol: 'лв', decimals: 2, flag: '🇧🇬', countries: ['Βουλγαρία', 'Bulgaria'] },
+      { code: 'UAH', name: 'Ukrainian Hryvnia', symbol: '₴', decimals: 2, flag: '🇺🇦', countries: ['Ουκρανία', 'Ukraine'] },
+      { code: 'ILS', name: 'Israeli New Shekel', symbol: '₪', decimals: 2, flag: '🇮🇱', countries: ['Ισραήλ', 'Israel'] },
+      { code: 'AED', name: 'UAE Dirham', symbol: 'د.إ', decimals: 2, flag: '🇦🇪', countries: ['Ηνωμένα Αραβικά Εμιράτα', 'United Arab Emirates', 'UAE'] },
+      { code: 'SAR', name: 'Saudi Riyal', symbol: '﷼', decimals: 2, flag: '🇸🇦', countries: ['Σαουδική Αραβία', 'Saudi Arabia'] },
+      { code: 'KRW', name: 'South Korean Won', symbol: '₩', decimals: 0, flag: '🇰🇷', countries: ['Νότια Κορέα', 'South Korea', 'Κορέα', 'Korea'] },
+      { code: 'SGD', name: 'Singapore Dollar', symbol: 'S$', decimals: 2, flag: '🇸🇬', countries: ['Σιγκαπούρη', 'Singapore'] },
+      { code: 'HKD', name: 'Hong Kong Dollar', symbol: 'HK$', decimals: 2, flag: '🇭🇰', countries: ['Χονγκ Κονγκ', 'Hong Kong'] },
+      { code: 'MYR', name: 'Malaysian Ringgit', symbol: 'RM', decimals: 2, flag: '🇲🇾', countries: ['Μαλαισία', 'Malaysia'] },
+      { code: 'THB', name: 'Thai Baht', symbol: '฿', decimals: 2, flag: '🇹🇭', countries: ['Ταϊλάνδη', 'Thailand'] },
+      { code: 'IDR', name: 'Indonesian Rupiah', symbol: 'Rp', decimals: 0, flag: '🇮🇩', countries: ['Ινδονησία', 'Indonesia'] },
+      { code: 'PHP', name: 'Philippine Peso', symbol: '₱', decimals: 2, flag: '🇵🇭', countries: ['Φιλιππίνες', 'Philippines'] },
+      { code: 'VND', name: 'Vietnamese Dong', symbol: '₫', decimals: 0, flag: '🇻🇳', countries: ['Βιετνάμ', 'Vietnam'] },
+      { code: 'PKR', name: 'Pakistani Rupee', symbol: '₨', decimals: 2, flag: '🇵🇰', countries: ['Πακιστάν', 'Pakistan'] },
+      { code: 'BDT', name: 'Bangladeshi Taka', symbol: '৳', decimals: 2, flag: '🇧🇩', countries: ['Μπανγκλαντές', 'Bangladesh'] },
+      { code: 'LKR', name: 'Sri Lankan Rupee', symbol: 'Rs', decimals: 2, flag: '🇱🇰', countries: ['Σρι Λάνκα', 'Sri Lanka'] },
+      { code: 'NPR', name: 'Nepalese Rupee', symbol: '₨', decimals: 2, flag: '🇳🇵', countries: ['Νεπάλ', 'Nepal'] },
+      { code: 'KZT', name: 'Kazakhstani Tenge', symbol: '₸', decimals: 2, flag: '🇰🇿', countries: ['Καζακστάν', 'Kazakhstan'] },
+      { code: 'UZS', name: 'Uzbekistani Som', symbol: 'soʻm', decimals: 2, flag: '🇺🇿', countries: ['Ουζμπεκιστάν', 'Uzbekistan'] },
+      { code: 'GEL', name: 'Georgian Lari', symbol: '₾', decimals: 2, flag: '🇬🇪', countries: ['Γεωργία', 'Georgia'] },
+      { code: 'BYN', name: 'Belarusian Ruble', symbol: 'Br', decimals: 2, flag: '🇧🇾', countries: ['Λευκορωσία', 'Belarus'] },
+      { code: 'RSD', name: 'Serbian Dinar', symbol: 'дин', decimals: 2, flag: '🇷🇸', countries: ['Σερβία', 'Serbia'] },
+      { code: 'MKD', name: 'Macedonian Denar', symbol: 'ден', decimals: 2, flag: '🇲🇰', countries: ['Βόρεια Μακεδονία', 'North Macedonia'] },
+      { code: 'ALL', name: 'Albanian Lek', symbol: 'L', decimals: 2, flag: '🇦🇱', countries: ['Αλβανία', 'Albania'] },
+      { code: 'BAM', name: 'Bosnian Convertible Mark', symbol: 'KM', decimals: 2, flag: '🇧🇦', countries: ['Βοσνία και Ερζεγοβίνη', 'Bosnia and Herzegovina'] },
+      { code: 'ISK', name: 'Icelandic Króna', symbol: 'kr', decimals: 0, flag: '🇮🇸', countries: ['Ισλανδία', 'Iceland'] },
+      { code: 'ARS', name: 'Argentine Peso', symbol: '$', decimals: 2, flag: '🇦🇷', countries: ['Αργεντινή', 'Argentina'] },
+      { code: 'CLP', name: 'Chilean Peso', symbol: '$', decimals: 0, flag: '🇨🇱', countries: ['Χιλή', 'Chile'] },
+      { code: 'COP', name: 'Colombian Peso', symbol: '$', decimals: 2, flag: '🇨🇴', countries: ['Κολομβία', 'Colombia'] },
+      { code: 'PEN', name: 'Peruvian Sol', symbol: 'S/', decimals: 2, flag: '🇵🇪', countries: ['Περού', 'Peru'] },
+      { code: 'UYU', name: 'Uruguayan Peso', symbol: '$U', decimals: 2, flag: '🇺🇾', countries: ['Ουρουγουάη', 'Uruguay'] },
+      { code: 'MXN', name: 'Mexican Peso', symbol: 'MX$', decimals: 2, flag: '🇲🇽', countries: ['Μεξικό', 'Mexico'] },
+      { code: 'ZAR', name: 'South African Rand', symbol: 'R', decimals: 2, flag: '🇿🇦', countries: ['Νότια Αφρική', 'South Africa'] },
+      { code: 'NGN', name: 'Nigerian Naira', symbol: '₦', decimals: 2, flag: '🇳🇬', countries: ['Νιγηρία', 'Nigeria'] },
+      { code: 'KES', name: 'Kenyan Shilling', symbol: 'KSh', decimals: 2, flag: '🇰🇪', countries: ['Κένυα', 'Kenya'] },
+      { code: 'EGP', name: 'Egyptian Pound', symbol: 'ج.م', decimals: 2, flag: '🇪🇬', countries: ['Αίγυπτος', 'Egypt'] },
+      { code: 'MAD', name: 'Moroccan Dirham', symbol: 'د.م.', decimals: 2, flag: '🇲🇦', countries: ['Μαρόκο', 'Morocco'] },
+      { code: 'TND', name: 'Tunisian Dinar', symbol: 'د.ت', decimals: 3, flag: '🇹🇳', countries: ['Τυνησία', 'Tunisia'] }
+    ];
+    this._rateProvider = null;
+    this._ratePersist = null;
+    this._manualRateSink = null;
+  }
+  FallbackCurrencyService.prototype.round = function (v, d) {
+    d = d == null ? 4 : d;
+    var f = Math.pow(10, d);
+    return Math.round((v + Number.EPSILON) * f) / f;
+  };
+  FallbackCurrencyService.prototype.toDateKey = function (date) {
+    if (!date) return null;
+    if (date instanceof Date) return date.toISOString().slice(0, 10);
+    return String(date).slice(0, 10);
+  };
+  FallbackCurrencyService.prototype.setCurrencies = function (list) {
+    if (Array.isArray(list) && list.length) this.currencies = list;
+  };
+  FallbackCurrencyService.prototype.getCurrencies = function () { return this.currencies; };
+  FallbackCurrencyService.prototype.getCurrency = function (code) {
+    return this.currencies.find(function (c) { return c.code === code; }) || null;
+  };
+  FallbackCurrencyService.prototype.getSymbol = function (code) {
+    var c = this.getCurrency(code);
+    return c ? c.symbol : (code || '');
+  };
+  FallbackCurrencyService.prototype.getDecimals = function (code) {
+    var c = this.getCurrency(code);
+    return c && typeof c.decimals === 'number' ? c.decimals : 2;
+  };
+  FallbackCurrencyService.prototype.getCountries = function (code) {
+    var c = this.getCurrency(code);
+    return c && Array.isArray(c.countries) ? c.countries : [];
+  };
+  FallbackCurrencyService.prototype.getCurrenciesByCountry = function (query) {
+    if (!query) return [];
+    var q = String(query).toLowerCase().trim();
+    if (!q) return [];
+    var self = this;
+    return this.currencies.filter(function (c) {
+      return (c.countries || []).some(function (name) { return String(name).toLowerCase().indexOf(q) !== -1; });
+    });
+  };
+  FallbackCurrencyService.prototype.getRate = function (base, quote, date) {
+    if (base === quote) return 1;
+    var dateKey = this.toDateKey(date) || new Date().toISOString().slice(0, 10);
+    var exactKey = base + '_' + quote + '_' + dateKey;
+    if (this.rateCache.has(exactKey)) return this.rateCache.get(exactKey).rate;
+    if (this._rateProvider) {
+      var rate = this._rateProvider(base, quote, dateKey);
+      if (rate != null) {
+        this.rateCache.set(exactKey, { rate: Number(rate), source: 'cached', fetched_at: Date.now() });
+        return rate;
+      }
+    }
+    return null;
+  };
+  FallbackCurrencyService.prototype.computeAmountBase = function (amount, currency, baseCurrency, date, rateToBaseActual) {
+    if (currency === baseCurrency) return this.round(amount, 4);
+    var rate = rateToBaseActual != null ? rateToBaseActual : this.getRate(currency, baseCurrency, date);
+    if (rate == null || rate === 0) return null;
+    return this.round(amount / rate, 4);
+  };
+  FallbackCurrencyService.prototype.toBase = function (tx) {
+    if (!tx) return 0;
+    if (tx.amount_base != null) return Number(tx.amount_base);
+    return this.computeAmountBase(
+      Number(tx.amount),
+      tx.currency || 'EUR',
+      tx.base_currency || 'EUR',
+      tx.date,
+      tx.rate_to_base_actual != null ? Number(tx.rate_to_base_actual) : null
+    ) || 0;
+  };
+  FallbackCurrencyService.prototype.displayAmount = function (tx, targetCurrency) {
+    if (!tx) return 0;
+    var txCurrency = tx.currency || 'EUR';
+    var baseCurrency = tx.base_currency || 'EUR';
+    if (targetCurrency === txCurrency) return Number(tx.amount);
+    if (targetCurrency === baseCurrency) return this.toBase(tx);
+    return this.convert(this.toBase(tx), baseCurrency, targetCurrency, tx.date) || 0;
+  };
+  FallbackCurrencyService.prototype.convert = function (amount, fromCurrency, toCurrency, date) {
+    if (fromCurrency === toCurrency) return amount;
+    var rate = this.getRate(fromCurrency, toCurrency, date);
+    if (rate == null || rate === 0) return null;
+    return this.round(amount * rate, 4);
+  };
+  FallbackCurrencyService.prototype.sumInCurrency = function (transactions, targetCurrency) {
+    if (!Array.isArray(transactions)) return 0;
+    var self = this;
+    return transactions.reduce(function (sum, tx) { return sum + self.displayAmount(tx, targetCurrency); }, 0);
+  };
+  FallbackCurrencyService.prototype.setManualRate = function (base, quote, date, rate) {
+    var dateKey = this.toDateKey(date) || new Date().toISOString().slice(0, 10);
+    this.rateCache.set(base + '_' + quote + '_' + dateKey, { rate: Number(rate), source: 'manual', fetched_at: Date.now() });
+    if (this._manualRateSink) this._manualRateSink(base, quote, dateKey, rate);
+  };
+  FallbackCurrencyService.prototype.correctActualAmount = function (tx, actualAmountInBase) {
+    if (!tx || actualAmountInBase == null || actualAmountInBase <= 0) return tx;
+    var amount = Number(tx.amount);
+    tx.rate_to_base_actual = this.round(amount / actualAmountInBase, 8);
+    tx.amount_base = this.computeAmountBase(amount, tx.currency || 'EUR', tx.base_currency || 'EUR', tx.date, tx.rate_to_base_actual);
+    tx.rate_source = 'manual';
+    return tx;
+  };
+  FallbackCurrencyService.prototype.conversionStatus = function (tx) {
+    if (!tx) return 'confirmed';
+    var source = tx.rate_source || 'api';
+    if (source === 'manual') return 'manual';
+    if (source === 'cached') return 'estimate';
+    return 'confirmed';
+  };
+  FallbackCurrencyService.prototype.fetchTodayRates = function () { return Promise.resolve(false); };
+  FallbackCurrencyService.prototype.setRateProvider = function (fn) { this._rateProvider = fn; };
+  FallbackCurrencyService.prototype.setRatePersist = function (fn) { this._ratePersist = fn; };
+  FallbackCurrencyService.prototype.setManualRateSink = function (fn) { this._manualRateSink = fn; };
+  FallbackCurrencyService.prototype.isEnabled = function () {
+    try { return localStorage.getItem('multi_currency_enabled') === 'true'; } catch (e) { return false; }
+  };
+  FallbackCurrencyService.prototype.setEnabled = function (val) {
+    try { localStorage.setItem('multi_currency_enabled', val ? 'true' : 'false'); } catch (e) { /* ignore */ }
+  };
+
+  // Install the complete inline fallback as window.CurrencyService.
+  function installFallback() {
+    window.CurrencyService = new FallbackCurrencyService();
+  }
+
+  // 1) If a COMPLETE CurrencyService is already present (loaded by index.html),
+  //    use it as-is.
+  if (typeof window !== 'undefined' && isComplete(window.CurrencyService)) {
+    return;
+  }
+
+  try {
+    // 2) Otherwise, synchronously load the real service (classic script tags
+    //    block). NOTE: appendChild does NOT block, so we cannot rely on the
+    //    global being set synchronously here — we re-check after the load and
+    //    fall through to the inline fallback if it still isn't complete.
+    var s = document.createElement('script');
+    s.src = 'js/CurrencyService.js';
+    document.head.appendChild(s);
+    if (isComplete(window.CurrencyService)) return;
+  } catch (e) { /* fall through to inline fallback */ }
+
+  // Install the fallback synchronously so window.CurrencyService is ALWAYS
+  // complete before any app code runs.
+  installFallback();
+
+  // 3) Self-healing watchdog: the async js/CurrencyService.js load above may
+  //    complete AFTER this guard and its export may clobber window.CurrencyService
+  //    with a stale/incomplete instance (e.g. an old cached file that lacks
+  //    isEnabled and predates the self-healing export). Re-verify shortly after
+  //    the load and re-install the complete fallback if it was clobbered. This
+  //    guarantees "CurrencyService.isEnabled is not a function" can NEVER occur.
+  if (typeof window !== 'undefined' && window.document) {
+    var watchdogTimer = setTimeout(function () {
+      if (!isComplete(window.CurrencyService)) {
+        installFallback();
+      }
+    }, 0);
+    // Also re-check after the async script has had a chance to execute.
+    var watchdogTimer2 = setTimeout(function () {
+      if (!isComplete(window.CurrencyService)) {
+        installFallback();
+      }
+    }, 250);
+    // Keep the timers from keeping the page alive in tests.
+    if (watchdogTimer && watchdogTimer.unref) watchdogTimer.unref();
+    if (watchdogTimer2 && watchdogTimer2.unref) watchdogTimer2.unref();
+  }
+})();
+
 // Global error boundary to capture and display initialization or runtime errors
 window.onerror = function (message, source, lineno, colno, error) {
   console.error("Global Error Boundary Caught:", message, "at", source, ":", lineno, ":", colno, error);
@@ -685,7 +958,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1046 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1054 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1057,7 +1330,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1046 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1054 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -2036,6 +2309,7 @@ async function initApp() {
   document.body.classList.add('trans-tab-active');
   loadConfig();
   initSettingsFromStorage();
+  initMultiCurrency();
   loadNotifications();
   initLocalNotifications();
   initSupabase();
@@ -3061,7 +3335,7 @@ function calculateInitialBalances() {
     // Base balance is calculated from all active transactions going backwards
     const activeTrans = getActiveTransactions();
     activeTrans.forEach(t => {
-      const amt = parseFloat(t.amount) || 0;
+      const amt = CurrencyService.toBase(t);
       if (t.type === 'transfer') {
         if (t.account_from === acc.name) netSum -= amt;
         if (t.account_to === acc.name) netSum += amt;
@@ -3130,7 +3404,7 @@ function calculateFinancialHealthScore(transactions, accounts, hasHistoricalData
   let currentMonthIncome = 0;
   let currentMonthExpense = 0;
   currentMonthTrans.forEach(t => {
-    const amt = parseFloat(t.amount) || 0;
+    const amt = CurrencyService.toBase(t);
     if (t.type === 'income') currentMonthIncome += amt;
     if (t.type === 'expense') currentMonthExpense += amt;
   });
@@ -3169,7 +3443,7 @@ function calculateFinancialHealthScore(transactions, accounts, hasHistoricalData
   let targetYearIncome = 0;
   let targetYearExpense = 0;
   targetYearTrans.forEach(t => {
-    const amt = parseFloat(t.amount) || 0;
+    const amt = CurrencyService.toBase(t);
     if (t.type === 'income') targetYearIncome += amt;
     if (t.type === 'expense') targetYearExpense += amt;
   });
@@ -3183,7 +3457,7 @@ function calculateFinancialHealthScore(transactions, accounts, hasHistoricalData
   // Let's compute current month's essential expenses
   let currentMonthEssentialExpense = 0;
   currentMonthTrans.forEach(t => {
-    const amt = parseFloat(t.amount) || 0;
+    const amt = CurrencyService.toBase(t);
     if (t.type === 'expense') {
       const cls = classifyCategory(t.category);
       if (cls.isEssential) {
@@ -3210,7 +3484,7 @@ function calculateFinancialHealthScore(transactions, accounts, hasHistoricalData
       if (y === currentYear && m === currentMonth) return;
 
       const key = `${y}-${m}`;
-      const amt = parseFloat(t.amount) || 0;
+      const amt = CurrencyService.toBase(t);
 
       monthlyExpensesMap[key] = (monthlyExpensesMap[key] || 0) + amt;
 
@@ -3288,7 +3562,7 @@ function calculateFinancialHealthScore(transactions, accounts, hasHistoricalData
         const y = parseInt(parts[0], 10);
         const m = parseInt(parts[1], 10) - 1;
         if (y === prevYearNum && m === prevMonthNum) {
-          prevMonthExpense += parseFloat(t.amount) || 0;
+          prevMonthExpense += CurrencyService.toBase(t);
         }
       }
     });
@@ -3368,7 +3642,7 @@ function calculateForecasting(transactions, hasHistoricalData) {
   let currentYearIncome = 0;
   let currentYearExpense = 0;
   currentYearTrans.forEach(t => {
-    const amt = parseFloat(t.amount) || 0;
+    const amt = CurrencyService.toBase(t);
     if (t.type === 'income') currentYearIncome += amt;
     if (t.type === 'expense') currentYearExpense += amt;
   });
@@ -3390,7 +3664,7 @@ function calculateForecasting(transactions, hasHistoricalData) {
       let juneIncome = 0;
       let juneExpense = 0;
       juneTrans.forEach(t => {
-        const amt = parseFloat(t.amount) || 0;
+        const amt = CurrencyService.toBase(t);
         if (t.type === 'income') juneIncome += amt;
         if (t.type === 'expense') juneExpense += amt;
       });
@@ -3425,7 +3699,7 @@ function calculateForecasting(transactions, hasHistoricalData) {
       let prevYearIncome = 0;
       let prevYearExpense = 0;
       prevYearTrans.forEach(t => {
-        const amt = parseFloat(t.amount) || 0;
+        const amt = CurrencyService.toBase(t);
         if (t.type === 'income') prevYearIncome += amt;
         if (t.type === 'expense') prevYearExpense += amt;
       });
@@ -5239,7 +5513,7 @@ function renderTransactionsTab() {
   const groups = {};
 
   sortedTrans.forEach(t => {
-    const amt = parseFloat(t.amount) || 0;
+    const amt = CurrencyService.toBase(t);
     if (t.type === 'income') monthlyIncome += amt;
     else if (t.type === 'expense') monthlyExpense += amt;
 
@@ -5250,9 +5524,9 @@ function renderTransactionsTab() {
     else if (t.type === 'expense') groups[dateKey].expense += amt;
   });
 
-  document.getElementById('summary-income-val').textContent = `${getCurrencySymbol()} ${formatCurrency(monthlyIncome)}`;
-  document.getElementById('summary-expense-val').textContent = `${getCurrencySymbol()} ${formatCurrency(monthlyExpense)}`;
-  document.getElementById('summary-total-val').textContent = `${getCurrencySymbol()} ${formatCurrency(monthlyIncome - monthlyExpense)}`;
+  document.getElementById('summary-income-val').textContent = `${getCurrencySymbol()} ${formatDisplayAmount(monthlyIncome)}`;
+  document.getElementById('summary-expense-val').textContent = `${getCurrencySymbol()} ${formatDisplayAmount(monthlyExpense)}`;
+  document.getElementById('summary-total-val').textContent = `${getCurrencySymbol()} ${formatDisplayAmount(monthlyIncome - monthlyExpense)}`;
 
   if (sortedTrans.length === 0) {
     if (listContainer._lastRenderSignature === 'empty') return;
@@ -5319,8 +5593,8 @@ function renderTransactionsTab() {
     const isToday = (dateStr === todayStr);
 
     let rightTotals = '';
-    if (group.income > 0) rightTotals += `<span class="day-group-income">${getCurrencySymbol()} ${formatCurrency(group.income)}</span>`;
-    if (group.expense > 0) rightTotals += `<span class="day-group-expense">${getCurrencySymbol()} ${formatCurrency(group.expense)}</span>`;
+    if (group.income > 0) rightTotals += `<span class="day-group-income">${getCurrencySymbol()} ${formatDisplayAmount(group.income)}</span>`;
+    if (group.expense > 0) rightTotals += `<span class="day-group-expense">${getCurrencySymbol()} ${formatDisplayAmount(group.expense)}</span>`;
 
     const header = document.createElement('div');
     header.className = 'day-header' + (isToday ? ' is-today' : '');
@@ -5471,7 +5745,7 @@ function renderTransactionsTab() {
             <span class="trans-acc-label">${escapeHtml(accountText)}</span>
           </div>
         </div>
-        <div class="${amountClass}">${getCurrencySymbol()} ${formatCurrency(t.amount)}</div>`;
+        <div class="${amountClass}">${getCurrencySymbol()} ${formatCurrency(t.amount)}${getTxCurrencyLabel(t)}${getReliabilityBadge(t)}</div>`;
       fragment.appendChild(item);
     });
   });
@@ -5834,22 +6108,22 @@ function renderStatsTab(skipChart = false) {
     return tDate >= start && tDate <= end;
   });
 
-  const monthlyIncome = filteredTrans.filter(t => t.type === 'income').reduce((s, t) => s + parseFloat(t.amount || 0), 0);
-  const monthlyExpense = filteredTrans.filter(t => t.type === 'expense').reduce((s, t) => s + parseFloat(t.amount || 0), 0);
+  const monthlyIncome = filteredTrans.filter(t => t.type === 'income').reduce((s, t) => s + CurrencyService.toBase(t), 0);
+  const monthlyExpense = filteredTrans.filter(t => t.type === 'expense').reduce((s, t) => s + CurrencyService.toBase(t), 0);
 
-  document.getElementById('stats-tab-income-amt').textContent = `${getCurrencySymbol()} ${formatCurrency(monthlyIncome)}`;
-  document.getElementById('stats-tab-expense-amt').textContent = `${getCurrencySymbol()} ${formatCurrency(monthlyExpense)}`;
+  document.getElementById('stats-tab-income-amt').textContent = `${getCurrencySymbol()} ${formatDisplayAmount(monthlyIncome)}`;
+  document.getElementById('stats-tab-expense-amt').textContent = `${getCurrencySymbol()} ${formatDisplayAmount(monthlyExpense)}`;
 
   // Calculate and display Net Savings
   const netSavings = monthlyIncome - monthlyExpense;
   const netValEl = document.getElementById('stats-net-savings-val');
   if (netValEl) {
-    netValEl.textContent = `${netSavings >= 0 ? '+' : ''}${getCurrencySymbol()} ${formatCurrency(netSavings)}`;
+    netValEl.textContent = `${netSavings >= 0 ? '+' : ''}${getCurrencySymbol()} ${formatDisplayAmount(netSavings)}`;
     netValEl.className = 'stats-net-val ' + (netSavings >= 0 ? 'positive' : 'negative');
   }
 
   const activeTrans = filteredTrans.filter(t => t.type === state.statsType);
-  const totalSum = activeTrans.reduce((s, t) => s + parseFloat(t.amount || 0), 0);
+  const totalSum = activeTrans.reduce((s, t) => s + CurrencyService.toBase(t), 0);
 
   const catGroups = {};
   activeTrans.forEach(t => {
@@ -5863,13 +6137,13 @@ function renderStatsTab(skipChart = false) {
         subcategories: {}
       };
     }
-    catGroups[key].amount += parseFloat(t.amount || 0);
+    catGroups[key].amount += CurrencyService.toBase(t);
 
     const subcatName = t.subcategory || '';
     if (!catGroups[key].subcategories[subcatName]) {
       catGroups[key].subcategories[subcatName] = 0;
     }
-    catGroups[key].subcategories[subcatName] += parseFloat(t.amount || 0);
+    catGroups[key].subcategories[subcatName] += CurrencyService.toBase(t);
   });
 
   const breakdownList = Object.entries(catGroups).map(([name, d]) => ({
@@ -5924,7 +6198,7 @@ function renderStatsTab(skipChart = false) {
       centerTitleEl.textContent = state.statsType === 'income' ? TRANSLATIONS[state.lang]['summary_income'] : TRANSLATIONS[state.lang]['summary_expense'];
     }
     if (centerAmountEl) {
-      centerAmountEl.textContent = `${getCurrencySymbol()} ${formatCurrency(totalSum)}`;
+      centerAmountEl.textContent = `${getCurrencySymbol()} ${formatDisplayAmount(totalSum)}`;
     }
   }
 
@@ -5962,7 +6236,7 @@ function renderStatsTab(skipChart = false) {
         <span class="stats-cat-icon">${item.icon}</span>
         <span class="stats-category-name">${getCategoryDisplayName(stripLeadingEmoji(item.name))}</span>
       </div>
-      <div class="stats-row-right">${getCurrencySymbol()} ${formatCurrency(item.amount)}</div>`;
+      <div class="stats-row-right">${getCurrencySymbol()} ${formatDisplayAmount(item.amount)}</div>`;
     statsFragment.appendChild(row);
 
     if (hasSubcats) {
@@ -5988,7 +6262,7 @@ function renderStatsTab(skipChart = false) {
             <span class="stats-sub-pct" style="background-color: ${catColor}26; color: ${catColor}; border: 1px solid ${catColor}33;">${Math.round(sub.percentage)}%</span>
             <span class="stats-sub-name">${subDisplayName}</span>
           </div>
-          <div class="stats-sub-right">${getCurrencySymbol()} ${formatCurrency(sub.amount)}</div>
+          <div class="stats-sub-right">${getCurrencySymbol()} ${formatDisplayAmount(sub.amount)}</div>
         `;
 
         let subFeedbackTimer;
@@ -6327,7 +6601,7 @@ function renderChart(dataList) {
               const val = ctx.raw;
               const sum = ctx.dataset.data.reduce((a, b) => a + b, 0);
               const pct = sum > 0 ? Math.round((val / sum) * 100) : 0;
-              return `  ${getCurrencySymbol()} ${formatCurrency(val)}  (${pct}%)`;
+              return `  ${getCurrencySymbol()} ${formatDisplayAmount(val)}  (${pct}%)`;
             }
           }
         },
@@ -6396,7 +6670,7 @@ function renderAccountsTab() {
     if (!overallMinDate || t.date < overallMinDate) overallMinDate = t.date;
     if (!overallMaxDate || t.date > overallMaxDate) overallMaxDate = t.date;
 
-    const amt = parseFloat(t.amount) || 0;
+    const amt = CurrencyService.toBase(t);
     if (t.type === 'income') {
       overallIncome += amt;
     } else if (t.type === 'expense') {
@@ -6434,13 +6708,37 @@ function renderAccountsTab() {
   }
 
   // 3. Populate the top card overall columns (Income, Expenses, Net Balance)
-  document.getElementById('total-assets-val').textContent = formatCurrency(overallIncome);
-  document.getElementById('total-liabilities-val').textContent = formatCurrency(overallExpense);
+  document.getElementById('total-assets-val').textContent = `${getCurrencySymbol()} ${formatDisplayAmount(overallIncome)}`;
+  document.getElementById('total-liabilities-val').textContent = `${getCurrencySymbol()} ${formatDisplayAmount(overallExpense)}`;
   const netElContainer = document.getElementById('total-net-val-container');
   const netEl = document.getElementById('total-net-val');
-  if (netEl) netEl.textContent = formatCurrency(overallNet);
+  if (netEl) netEl.textContent = `${getCurrencySymbol()} ${formatDisplayAmount(overallNet)}`;
   if (netElContainer) {
     netElContainer.className = overallNet >= 0 ? 'overview-val' : 'overview-val negative';
+  }
+
+  // 3b. Multi-currency: Net Worth across all accounts (converted to base currency).
+  // Only shown when multi-currency is enabled AND at least one account uses a
+  // different currency than the base currency.
+  const netWorthRow = document.getElementById('multi-currency-net-worth-row');
+  const netWorthVal = document.getElementById('multi-currency-net-worth-val');
+  if (netWorthRow && netWorthVal) {
+    const baseCurrency = localStorage.getItem('app_currency') || 'EUR';
+    const hasForeignAccounts = (state.accounts || []).some(a => (a.currency || baseCurrency) !== baseCurrency);
+    if (CurrencyService.isEnabled() && hasForeignAccounts) {
+      const netWorth = computeNetWorth();
+      if (netWorth != null) {
+        netWorthRow.style.display = '';
+        const displayCurrency = getDisplayCurrency();
+        const displayVal = displayAmountInDisplayCurrency(netWorth);
+        netWorthVal.textContent = `${CurrencyService.getSymbol(displayCurrency)} ${formatCurrency(displayVal != null ? displayVal : netWorth)}`;
+        netWorthVal.style.color = netWorth >= 0 ? 'var(--blue-positive, #10b981)' : 'var(--red-negative, #ff5b5b)';
+      } else {
+        netWorthRow.style.display = 'none';
+      }
+    } else {
+      netWorthRow.style.display = 'none';
+    }
   }
 
   // --- FINANCIAL HEALTH SCORE CALCULATIONS & RENDERING ---
@@ -6555,7 +6853,7 @@ function renderAccountsTab() {
   const explainLifestyleEl = document.getElementById('fhs-explain-lifestyle-months');
 
   if (explainLiquidEl) {
-    explainLiquidEl.textContent = formatCurrency(fhs.liquidBalance || 0);
+    explainLiquidEl.textContent = formatDisplayAmount(fhs.liquidBalance || 0);
   }
   if (explainSurvivalEl) {
     const survVal = Math.round((fhs.survivalRunway || 0) * 10) / 10;
@@ -6629,7 +6927,7 @@ function renderAccountsTab() {
     if (parts.length !== 3) return;
     const y = parseInt(parts[0], 10);
     const m = parseInt(parts[1], 10) - 1;
-    const amt = parseFloat(t.amount) || 0;
+    const amt = CurrencyService.toBase(t);
     const cat = t.category || '';
 
     if (y === currYear && m === currMonth) {
@@ -6717,10 +7015,10 @@ function renderAccountsTab() {
 
     if (state.lang === 'el') {
       const pctPart = pctStr ? ` κατά **${pctStr}**` : '';
-      advisorText = `Τα έξοδα στην κατηγορία **${maxIncreaseCat}** ανέβηκαν${pctPart} (+${formatCurrency(maxIncreaseAmt)}) αυτόν τον μήνα. Αν συνεχιστεί, ${grConsequence} — ${grAdvice}.`;
+      advisorText = `Τα έξοδα στην κατηγορία **${maxIncreaseCat}** ανέβηκαν${pctPart} (+${formatDisplayAmount(maxIncreaseAmt)}) αυτόν τον μήνα. Αν συνεχιστεί, ${grConsequence} — ${grAdvice}.`;
     } else {
       const pctPart = pctStr ? ` by **${pctStr}**` : '';
-      advisorText = `Expenses in **${maxIncreaseCat}** rose${pctPart} (+${formatCurrency(maxIncreaseAmt)}) this month. If this continues, it ${enConsequence} — ${enAdvice}.`;
+      advisorText = `Expenses in **${maxIncreaseCat}** rose${pctPart} (+${formatDisplayAmount(maxIncreaseAmt)}) this month. If this continues, it ${enConsequence} — ${enAdvice}.`;
     }
 
     // Enable interaction
@@ -6798,14 +7096,14 @@ function renderAccountsTab() {
           <div class="advisor-bar-container">
             <div class="advisor-bar" style="width: ${prevPct}%;"></div>
           </div>
-          <span class="advisor-bar-val">${formatCurrency(prevAmt)}</span>
+          <span class="advisor-bar-val">${formatDisplayAmount(prevAmt)}</span>
         </div>
         <div class="advisor-bar-row current">
           <span class="advisor-bar-label">${currLabel}</span>
           <div class="advisor-bar-container">
             <div class="advisor-bar" style="width: ${currPct}%;"></div>
           </div>
-          <span class="advisor-bar-val">${formatCurrency(currAmt)}</span>
+          <span class="advisor-bar-val">${formatDisplayAmount(currAmt)}</span>
         </div>
       `;
     }
@@ -6866,7 +7164,7 @@ function renderAccountsTab() {
     if (!t.date || t.type === 'transfer') return;
     const parts = String(t.date || '').split('T')[0].split(' ')[0].split('-');
     if (parts.length === 3 && parseInt(parts[0], 10) === prevYear) {
-      const amt = parseFloat(t.amount) || 0;
+      const amt = CurrencyService.toBase(t);
       if (t.type === 'income') prevYearIncome += amt;
       else if (t.type === 'expense') prevYearExpense += amt;
     }
@@ -6913,7 +7211,7 @@ function renderAccountsTab() {
 
       const projectedValEl = document.getElementById('forecast-projected-val');
       if (projectedValEl) {
-        projectedValEl.textContent = formatCurrency(forecast.projectedSavings);
+        projectedValEl.textContent = formatDisplayAmount(forecast.projectedSavings);
       }
 
       // Update forecasting modal elements dynamically
@@ -6924,9 +7222,9 @@ function renderAccountsTab() {
         const roundedProj = Math.round(forecast.projectedSavings);
         const elapsed = currentMonth + 1;
         if (state.lang === 'el') {
-          explanationEl.innerHTML = `Έχετε αποταμιεύσει <strong>${formatCurrency(roundedSavings)}</strong> κατά τους πρώτους <strong>${elapsed}</strong> μήνες του έτους.<br><br>Με βάση τον τρέχοντα μέσο ρυθμό σας (<strong>${formatCurrency(roundedRate)} / μήνα</strong>), η προβλεπόμενη αποταμίευση για το τέλος του έτους είναι <strong>${formatCurrency(roundedProj)}</strong>.`;
+          explanationEl.innerHTML = `Έχετε αποταμιεύσει <strong>${formatDisplayAmount(roundedSavings)}</strong> κατά τους πρώτους <strong>${elapsed}</strong> μήνες του έτους.<br><br>Με βάση τον τρέχοντα μέσο ρυθμό σας (<strong>${formatDisplayAmount(roundedRate)} / μήνα</strong>), η προβλεπόμενη αποταμίευση για το τέλος του έτους είναι <strong>${formatDisplayAmount(roundedProj)}</strong>.`;
         } else {
-          explanationEl.innerHTML = `You have saved <strong>${formatCurrency(roundedSavings)}</strong> during the first <strong>${elapsed}</strong> months of the year.<br><br>Based on your current average rate (<strong>${formatCurrency(roundedRate)} / month</strong>), the projected savings for the end of the year is <strong>${formatCurrency(roundedProj)}</strong>.`;
+          explanationEl.innerHTML = `You have saved <strong>${formatDisplayAmount(roundedSavings)}</strong> during the first <strong>${elapsed}</strong> months of the year.<br><br>Based on your current average rate (<strong>${formatDisplayAmount(roundedRate)} / month</strong>), the projected savings for the end of the year is <strong>${formatDisplayAmount(roundedProj)}</strong>.`;
         }
       }
 
@@ -6935,9 +7233,9 @@ function renderAccountsTab() {
       const expectedValEl = document.getElementById('forecast-expected-val');
       const worstValEl = document.getElementById('forecast-worst-val');
 
-      if (bestValEl) bestValEl.textContent = formatCurrency(forecast.bestCaseSavings);
-      if (expectedValEl) expectedValEl.textContent = formatCurrency(forecast.projectedSavings);
-      if (worstValEl) worstValEl.textContent = formatCurrency(forecast.worstCaseSavings);
+      if (bestValEl) bestValEl.textContent = formatDisplayAmount(forecast.bestCaseSavings);
+      if (expectedValEl) expectedValEl.textContent = formatDisplayAmount(forecast.projectedSavings);
+      if (worstValEl) worstValEl.textContent = formatDisplayAmount(forecast.worstCaseSavings);
 
       const targetInputEl = document.getElementById('forecast-target-input');
       if (targetInputEl && !targetInputEl.matches(':focus')) {
@@ -6950,7 +7248,7 @@ function renderAccountsTab() {
       if (requiredMonthlyValEl) {
         const remainingMonths = 12 - (currentMonth + 1);
         const requiredMonthly = remainingTarget > 0 && remainingMonths > 0 ? (remainingTarget / remainingMonths) : 0;
-        requiredMonthlyValEl.textContent = formatCurrency(requiredMonthly);
+        requiredMonthlyValEl.textContent = formatDisplayAmount(requiredMonthly);
       }
 
       // Update Goal Timeline
@@ -7008,7 +7306,7 @@ function renderAccountsTab() {
         if (!t.date) return;
         const y = parseInt(String(t.date).split('T')[0].split('-')[0], 10);
         if (y === currentYearOverview) {
-          accIncome += parseFloat(t.amount) || 0;
+          accIncome += CurrencyService.toBase(t);
         }
       }
     });
@@ -7028,7 +7326,7 @@ function renderAccountsTab() {
         <div class="account-icon">${icon}</div>
         ${displayHtml}
       </div>
-      <div class="account-value positive">${getCurrencySymbol()} ${formatCurrency(accIncome)}</div>`;
+      <div class="account-value positive">${getCurrencySymbol()} ${formatDisplayAmount(accIncome)}</div>`;
 
     if (assetsEl) assetsEl.appendChild(row);
   });
@@ -7047,7 +7345,7 @@ function renderAccountsTab() {
         if (!t.date) return;
         const y = parseInt(String(t.date).split('T')[0].split('-')[0], 10);
         if (y === currentYearOverview) {
-          accExpense += parseFloat(t.amount) || 0;
+          accExpense += CurrencyService.toBase(t);
         }
       }
     });
@@ -7067,7 +7365,7 @@ function renderAccountsTab() {
         <div class="account-icon">${icon}</div>
         ${displayHtml}
       </div>
-      <div class="account-value negative">${getCurrencySymbol()} ${formatCurrency(accExpense)}</div>`;
+      <div class="account-value negative">${getCurrencySymbol()} ${formatDisplayAmount(accExpense)}</div>`;
 
     if (liabEl) liabEl.appendChild(row);
   });
@@ -7076,7 +7374,7 @@ function renderAccountsTab() {
   const yearlyData = {};
 
   activeTrans.forEach(t => {
-    const amt = parseFloat(t.amount) || 0;
+    const amt = CurrencyService.toBase(t);
     if (!t.date) return;
     if (t.type === 'transfer' || t.category === 'ΜΕΤΑΦΟΡΑ' || t.category?.toLowerCase().includes('μεταφ') || t.category?.toLowerCase().includes('transfer')) return;
 
@@ -7159,7 +7457,7 @@ function renderAccountsTab() {
         row.innerHTML = `
           <span style="color: var(--text-secondary); font-weight: 700; font-size: 16px;">${label}</span>
           <div style="display: flex; align-items: center; gap: 12px;">
-            <span style="${colorStyle} font-size: 16px;">${sign}${getCurrencySymbol()}${formatCurrency(Math.abs(data.net))}</span>
+            <span style="${colorStyle} font-size: 16px;">${sign}${getCurrencySymbol()}${formatDisplayAmount(Math.abs(data.net))}</span>
             <i class="fa-solid fa-chevron-right archive-collapse-icon" style="font-size: 14px; color: var(--text-muted); transition: transform 0.25s;"></i>
           </div>
         `;
@@ -7178,11 +7476,11 @@ function renderAccountsTab() {
           <div style="padding: 10px 0 4px 0; display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; color: var(--text-secondary); opacity: 0.9; font-family: 'Outfit', sans-serif;">
             <div style="display: flex; justify-content: space-between;">
               <span>${incomeLabel}:</span>
-              <span style="font-weight: 700; color: var(--blue-positive);">${getCurrencySymbol()}${formatCurrency(data.income)}</span>
+              <span style="font-weight: 700; color: var(--blue-positive);">${getCurrencySymbol()}${formatDisplayAmount(data.income)}</span>
             </div>
             <div style="display: flex; justify-content: space-between;">
               <span>${expenseLabel}:</span>
-              <span style="font-weight: 700; color: var(--red-negative);">${getCurrencySymbol()}${formatCurrency(data.expense)}</span>
+              <span style="font-weight: 700; color: var(--red-negative);">${getCurrencySymbol()}${formatDisplayAmount(data.expense)}</span>
             </div>
             <div style="display: flex; justify-content: space-between;">
               <span>${savingsRateLabel}:</span>
@@ -7319,6 +7617,7 @@ function setupEventListeners() {
   if (dateField) {
     dateField.addEventListener('input', (e) => {
       document.getElementById('trans-date-display').textContent = formatGreekDateTime(e.target.value);
+      updateDualAmountDisplay();
     });
   }
 
@@ -7608,6 +7907,7 @@ function setupEventListeners() {
         date: document.getElementById('trans-date').value,
         type,
         amount: amountVal,
+        currency: getTransactionCurrency(),
         category: categoryVal,
         subcategory: (() => {
           if (type === 'transfer') return '';
@@ -7641,6 +7941,39 @@ function setupEventListeners() {
         t.is_shared = state.partnerProfile !== null;
         t.family_id = state.userProfile ? state.userProfile.family_id : null;
       }
+
+      // Multi-currency: compute base-currency fields (amount_base, rate_to_base, base_currency).
+      // Always computed so new transactions are consistent with the schema, even when the
+      // feature flag is off (EUR → 1:1).
+      {
+        const baseCurrency = localStorage.getItem('app_currency') || 'EUR';
+        const txCurrency = t.currency || 'EUR';
+        t.base_currency = baseCurrency;
+        if (txCurrency === baseCurrency) {
+          t.rate_to_base = 1;
+          t.amount_base = CurrencyService.round(Number(t.amount), 4);
+          t.rate_source = 'api';
+        } else {
+          const rate = CurrencyService.getRate(txCurrency, baseCurrency, t.date);
+          if (rate != null && rate > 0) {
+            t.rate_to_base = rate;
+            t.amount_base = CurrencyService.round(Number(t.amount) / rate, 4);
+            t.rate_source = 'api';
+          } else {
+            // No rate available (offline) — store raw amount, will be corrected later
+            t.rate_to_base = null;
+            t.amount_base = null;
+            t.rate_source = 'cached';
+          }
+        }
+      }
+
+      // Multi-currency: apply the user-entered actual charged amount (base currency)
+      // correction, which overrides the estimated rate with the real one (source='manual').
+      if (CurrencyService.isEnabled() && t.currency && t.currency !== t.base_currency) {
+        t = applyActualAmountCorrection(t);
+      }
+
       await saveTransaction(t);
 
       // Save or delete receipt photos in IndexedDB
@@ -8734,6 +9067,9 @@ function openAddTransactionModal({ instant = false } = {}) {
   }
   updateAccountDropdowns();
 
+  // Multi-currency: default currency from selected account (or base currency), show row if enabled
+  initTransactionCurrency();
+
   openModal('transaction-modal', { instant });
   updateAmountCurrencySymbol();
   setTimeout(() => initNoteAutocomplete(), 50);
@@ -8868,6 +9204,24 @@ function openEditTransactionModal(t, { instant = false } = {}) {
       creatorRow.style.display = 'none';
     }
   }
+
+  // Multi-currency: set currency from the transaction being edited, show row if enabled
+  initTransactionCurrency(t.currency || null);
+
+  // Multi-currency: prefill the "actual amount" correction field (base currency)
+  // with the transaction's current base-currency value, if it differs from base.
+  const actualInput = document.getElementById('trans-actual-amount');
+  if (actualInput) {
+    const baseCurrency = localStorage.getItem('app_currency') || 'EUR';
+    const txCurrency = getTransactionCurrency();
+    if (CurrencyService.isEnabled() && txCurrency !== baseCurrency) {
+      const baseVal = CurrencyService.toBase(t);
+      actualInput.value = (baseVal != null && !isNaN(baseVal)) ? String(baseVal) : '';
+    } else {
+      actualInput.value = '';
+    }
+  }
+  syncActualAmountRowVisibility();
 
   openModal('transaction-modal', { instant });
   updateAmountCurrencySymbol();
@@ -10238,10 +10592,276 @@ function updateAccountDropdowns() {
   updateAccountTriggerDisplay('to');
 }
 
+// ============================================================
+// CURRENCY PICKER (multi-currency)
+// ============================================================
+const POPULAR_CURRENCIES = ['EUR', 'USD', 'GBP', 'JPY', 'CAD', 'AUD', 'CHF', 'CNY', 'INR'];
+
+function getRecentCurrencies() {
+  try {
+    const raw = localStorage.getItem('recent_currencies');
+    if (!raw) return [];
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function rememberRecentCurrency(code) {
+  try {
+    let arr = getRecentCurrencies().filter(c => c !== code);
+    arr.unshift(code);
+    arr = arr.slice(0, 5);
+    localStorage.setItem('recent_currencies', JSON.stringify(arr));
+  } catch (e) { /* ignore */ }
+}
+
+function getTransactionCurrency() {
+  const input = document.getElementById('trans-currency');
+  return (input && input.value) || 'EUR';
+}
+
+function setTransactionCurrency(code) {
+  const input = document.getElementById('trans-currency');
+  if (input) input.value = code || 'EUR';
+  updateCurrencyTriggerDisplay();
+  updateAmountCurrencySymbol();
+}
+
+function updateCurrencyTriggerDisplay() {
+  const code = getTransactionCurrency();
+  const triggerDisplay = document.getElementById('trans-currency-display');
+  if (!triggerDisplay) return;
+  const c = CurrencyService.getCurrency(code);
+  const flag = c && c.flag ? c.flag : '';
+  const name = c ? c.name : code;
+  triggerDisplay.innerHTML = `<span class="custom-select-icon" style="margin-right: 8px;">${flag}</span><span class="custom-select-text">${escapeHtml(name)}</span>`;
+}
+
+function openCurrencyPickerModal() {
+  const form = document.getElementById('transaction-form');
+  if (form && form.getAttribute('data-readonly') === 'true') return;
+  const search = document.getElementById('currency-picker-search');
+  if (search) search.value = '';
+  renderCurrencyPickerOptions();
+  openModal('currency-picker-modal');
+  setTimeout(() => { if (search) search.focus(); }, 100);
+}
+
+function renderCurrencyPickerOptions() {
+  const container = document.getElementById('currency-picker-list');
+  if (!container) return;
+  const search = document.getElementById('currency-picker-search');
+  const query = search ? search.value.trim().toLowerCase() : '';
+
+  const allCurrencies = CurrencyService.getCurrencies();
+  const currentVal = getTransactionCurrency();
+  const recent = getRecentCurrencies();
+
+  let list = [];
+  if (query) {
+    // Search by code, name, or country
+    list = allCurrencies.filter(c =>
+      c.code.toLowerCase().includes(query) ||
+      (c.name || '').toLowerCase().includes(query) ||
+      (c.countries || []).some(ct => String(ct).toLowerCase().includes(query))
+    );
+  } else {
+    // Smart list: account currency first, then recent, then popular, then rest
+    const accountCurrency = getSelectedAccountCurrency();
+    const ordered = [];
+    const seen = new Set();
+    const push = (code) => {
+      if (!code || seen.has(code)) return;
+      const c = allCurrencies.find(x => x.code === code);
+      if (c) { ordered.push(c); seen.add(code); }
+    };
+    push(accountCurrency);
+    recent.forEach(push);
+    POPULAR_CURRENCIES.forEach(push);
+    allCurrencies.forEach(c => push(c.code));
+    list = ordered;
+  }
+
+  container.innerHTML = '';
+
+  if (list.length === 0) {
+    container.innerHTML = `<div style="color: var(--text-muted); text-align: center; padding: 20px;">${state.lang === 'el' ? 'Δεν βρέθηκαν νομίσματα' : 'No currencies found'}</div>`;
+    return;
+  }
+
+  // Όταν γίνεται αναζήτηση, δείξε και τις χώρες που ταιριάζουν (με σημαία + νόμισμα)
+  const showCountries = !!query;
+
+  list.forEach(c => {
+    const item = document.createElement('div');
+    item.className = 'account-picker-item';
+    if (c.code === currentVal) item.classList.add('selected');
+    const flag = c.flag || '';
+    const name = c.name || c.code;
+
+    let countryLine = '';
+    if (showCountries && Array.isArray(c.countries) && c.countries.length) {
+      const matched = c.countries.filter(ct => String(ct).toLowerCase().includes(query));
+      const shown = (matched.length ? matched : c.countries).slice(0, 3);
+      countryLine = `<div class="currency-picker-countries">${shown.map(ct => escapeHtml(ct)).join(' · ')}</div>`;
+    }
+
+    item.innerHTML = `
+      <span class="account-picker-item-icon">${flag}</span>
+      <span class="account-picker-item-name"><strong>${escapeHtml(c.code)}</strong> — ${escapeHtml(name)}${countryLine}</span>
+    `;
+    item.onclick = () => selectCurrencyOption(c.code);
+    container.appendChild(item);
+  });
+}
+
+function getSelectedAccountCurrency() {
+  const accName = document.getElementById('trans-account-from')?.value;
+  if (accName) {
+    const acc = state.accounts.find(a => a.name === accName);
+    if (acc && acc.currency) return acc.currency;
+  }
+  return null;
+}
+
+function selectCurrencyOption(code) {
+  setTransactionCurrency(code);
+  rememberRecentCurrency(code);
+  closeModal('currency-picker-modal');
+}
+
+// Shows/hides the currency row based on the multi-currency feature flag.
+function syncCurrencyRowVisibility() {
+  const row = document.getElementById('form-row-currency');
+  if (!row) return;
+  row.style.display = CurrencyService.isEnabled() ? '' : 'none';
+}
+
+// Initializes the transaction currency when opening the form.
+// Priority: explicit currency (editing) > selected account currency > base currency > EUR.
+function initTransactionCurrency(explicitCurrency) {
+  syncCurrencyRowVisibility();
+
+  let code = explicitCurrency;
+  if (!code) {
+    const accountCurrency = getSelectedAccountCurrency();
+    if (accountCurrency) code = accountCurrency;
+  }
+  if (!code) {
+    const baseCurrency = localStorage.getItem('app_currency') || 'EUR';
+    code = baseCurrency;
+  }
+  setTransactionCurrency(code);
+  syncActualAmountRowVisibility();
+}
+
+// Shows/hides the "actual amount" correction row. It is only relevant when
+// editing a transaction whose currency differs from the base currency.
+function syncActualAmountRowVisibility() {
+  const row = document.getElementById('form-row-actual-amount');
+  if (!row) return;
+  const baseCurrency = localStorage.getItem('app_currency') || 'EUR';
+  const txCurrency = getTransactionCurrency();
+  const isEdit = !!document.getElementById('trans-id')?.value;
+  const show = CurrencyService.isEnabled() && isEdit && txCurrency !== baseCurrency;
+  row.style.display = show ? '' : 'none';
+  if (!show) {
+    document.getElementById('trans-actual-amount').value = '';
+  }
+}
+
+// Applies the user-entered actual charged amount (in base currency) to the
+// transaction being edited, using CurrencyService.correctActualAmount().
+function applyActualAmountCorrection(t) {
+  const input = document.getElementById('trans-actual-amount');
+  if (!input) return t;
+  const raw = String(input.value || '').trim();
+  if (raw === '') return t;
+  const actualInBase = parseFloat(raw.replace(',', '.'));
+  if (isNaN(actualInBase) || actualInBase <= 0) return t;
+  return CurrencyService.correctActualAmount(t, actualInBase);
+}
+
+// ============================================================
+// MULTI-CURRENCY: RATE FETCHING (Phase 5)
+// ============================================================
+
+// Wires the CurrencyService to Supabase (exchange_rates table) and fetches
+// today's rates from Frankfurter/ECB when the multi-currency feature is enabled.
+// Safe to call on every init — it is idempotent and non-blocking.
+function initMultiCurrency() {
+  if (!window.CurrencyService) return;
+
+  // 1. Rate provider: read historical rates from Supabase (exchange_rates table).
+  //    Returns the rate for base→quote on a given date, or null if not found.
+  CurrencyService.setRateProvider((base, quote, dateKey) => {
+    if (!state.isSupabaseEnabled || !state.supabaseClient) return null;
+    // Synchronous lookup is not possible against Supabase; we rely on the
+    // local rateCache populated by fetchTodayRates()/persist. For historical
+    // dates we fetch on demand below (async) and cache the result.
+    return null;
+  });
+
+  // 2. Rate persist: after fetching today's rates, upsert them into Supabase.
+  CurrencyService.setRatePersist((base, date, rates) => {
+    if (!state.isSupabaseEnabled || !state.supabaseClient) return;
+    const rows = Object.entries(rates || {}).map(([quote, rate]) => ({
+      base_currency: base,
+      quote_currency: quote,
+      rate: Number(rate),
+      rate_date: date,
+      source: 'api',
+    }));
+    if (rows.length === 0) return;
+    state.supabaseClient.from('exchange_rates').upsert(rows, { onConflict: 'base_currency,quote_currency,rate_date' })
+      .then(() => { })
+      .catch((err) => console.warn('[MultiCurrency] Failed to persist rates:', err));
+  });
+
+  // 3. Fetch today's rates (non-blocking) when the feature is enabled.
+  if (CurrencyService.isEnabled()) {
+    const baseCurrency = localStorage.getItem('app_currency') || 'EUR';
+    CurrencyService.fetchTodayRates(baseCurrency).then((ok) => {
+      if (ok) {
+        // Recompute any pending base-currency fields that were missing a rate.
+        recomputePendingAmountBase();
+      }
+    });
+  }
+}
+
+// Recomputes amount_base for transactions that were saved without a rate
+// (rate_to_base null / rate_source 'cached') now that fresh rates are available.
+function recomputePendingAmountBase() {
+  if (!Array.isArray(state.transactions)) return;
+  const baseCurrency = localStorage.getItem('app_currency') || 'EUR';
+  let changed = false;
+  state.transactions.forEach((tx) => {
+    if (!tx || tx.currency === baseCurrency) return;
+    if (tx.rate_to_base != null && tx.amount_base != null) return; // already resolved
+    const rate = CurrencyService.getRate(tx.currency, baseCurrency, tx.date);
+    if (rate == null || rate <= 0) return;
+    tx.rate_to_base = rate;
+    tx.amount_base = CurrencyService.round(Number(tx.amount) / rate, 4);
+    tx.rate_source = 'api';
+    changed = true;
+  });
+  if (changed) {
+    calculateInitialBalances();
+    updateUI();
+  }
+}
+
 window.getAccountDisplayName = getAccountDisplayName;
 window.openAccountPickerModal = openAccountPickerModal;
 window.updateAccountTriggerDisplay = updateAccountTriggerDisplay;
 window.updateAccountDropdowns = updateAccountDropdowns;
+window.openCurrencyPickerModal = openCurrencyPickerModal;
+window.renderCurrencyPickerOptions = renderCurrencyPickerOptions;
+window.selectCurrencyOption = selectCurrencyOption;
+window.setTransactionCurrency = setTransactionCurrency;
 
 function openSupabaseSettings() {
   updateSupabaseUserModal();
@@ -12064,9 +12684,9 @@ function handleSearchChange(resetLimit = true) {
   const expenseValEl = document.getElementById('search-summary-expense-val');
   const transferValEl = document.getElementById('search-summary-transfer-val');
 
-  if (incomeValEl) incomeValEl.textContent = `${currencySymbol} ${formatCurrency(totalIncome)}`;
-  if (expenseValEl) expenseValEl.textContent = `${currencySymbol} ${formatCurrency(totalExpense)}`;
-  if (transferValEl) transferValEl.textContent = `${currencySymbol} ${formatCurrency(totalTransfer)}`;
+  if (incomeValEl) incomeValEl.textContent = `${currencySymbol} ${formatDisplayAmount(totalIncome)}`;
+  if (expenseValEl) expenseValEl.textContent = `${currencySymbol} ${formatDisplayAmount(totalExpense)}`;
+  if (transferValEl) transferValEl.textContent = `${currencySymbol} ${formatDisplayAmount(totalTransfer)}`;
 
   // Render Day-Grouped search results
   const resultsContainer = document.getElementById('search-results-list');
@@ -15462,7 +16082,9 @@ function initLightboxPinchZoom() {
 // SETTINGS AND LOCALIZATION HELPERS
 // ============================================================
 function getCurrencySymbol() {
-  const currency = localStorage.getItem('app_currency') || 'EUR';
+  // When multi-currency is enabled, the display currency (if different from the
+  // base currency) determines the symbol shown for aggregated/displayed amounts.
+  const currency = getDisplayCurrency();
   switch (currency) {
     case 'USD': return '$';
     case 'GBP': return '£';
@@ -15514,9 +16136,165 @@ function updateAmountCurrencySymbol() {
     span.style.color = 'var(--text-secondary, #9aa0b4)';
     container.insertBefore(span, input);
   }
-  span.textContent = getCurrencySymbol();
+  span.textContent = getTransactionCurrencySymbol();
   const hasValue = String(input.value || '').trim() !== '';
   span.style.display = hasValue ? 'inline' : 'none';
+  updateDualAmountDisplay();
+
+  // The "actual amount" correction field is always in the base currency.
+  const actualSymbol = document.getElementById('trans-actual-amount-symbol');
+  if (actualSymbol) {
+    const baseCurrency = localStorage.getItem('app_currency') || 'EUR';
+    actualSymbol.textContent = CurrencyService.getSymbol(baseCurrency);
+  }
+}
+
+// Returns the symbol for the currently selected transaction currency (multi-currency aware).
+function getTransactionCurrencySymbol() {
+  const code = getTransactionCurrency();
+  const c = CurrencyService.getCurrency(code);
+  return c ? c.symbol : getCurrencySymbol();
+}
+
+// Returns the currency code of a transaction, defaulting to the base currency.
+function getTxCurrencyCode(tx) {
+  return (tx && tx.currency) || localStorage.getItem('app_currency') || 'EUR';
+}
+
+// Returns a small reliability badge for a transaction's conversion status.
+// Only shown when the transaction currency differs from the base currency.
+function getReliabilityBadge(tx) {
+  if (!CurrencyService.isEnabled()) return '';
+  const baseCurrency = localStorage.getItem('app_currency') || 'EUR';
+  const txCurrency = getTxCurrencyCode(tx);
+  if (txCurrency === baseCurrency) return '';
+  const status = CurrencyService.conversionStatus(tx);
+  const lang = state.lang || 'el';
+  if (status === 'manual') {
+    return `<span class="fx-reliability-badge fx-manual" title="${lang === 'el' ? 'Χειροκίνητη ισοτιμία' : 'Manual rate'}">✍️</span>`;
+  }
+  if (status === 'estimate') {
+    return `<span class="fx-reliability-badge fx-estimate" title="${lang === 'el' ? 'Εκτίμηση (cached ισοτιμία)' : 'Estimate (cached rate)'}">≈</span>`;
+  }
+  return '';
+}
+
+// Returns the currency code label shown next to a transaction amount when it
+// differs from the base currency (e.g. "USD").
+function getTxCurrencyLabel(tx) {
+  if (!CurrencyService.isEnabled()) return '';
+  const baseCurrency = localStorage.getItem('app_currency') || 'EUR';
+  const txCurrency = getTxCurrencyCode(tx);
+  if (txCurrency === baseCurrency) return '';
+  return `<span class="fx-currency-label">${escapeHtml(txCurrency)}</span>`;
+}
+
+// Shows the base-currency equivalent of the entered amount below the amount row,
+// when the transaction currency differs from the base currency (multi-currency).
+function updateDualAmountDisplay() {
+  const amountRow = document.getElementById('form-row-amount');
+  if (!amountRow) return;
+  const input = document.getElementById('trans-amount');
+  if (!input) return;
+
+  // Ensure the dual-amount element exists.
+  let dual = amountRow.querySelector('.dual-amount');
+  if (!dual) {
+    dual = document.createElement('div');
+    dual.className = 'dual-amount';
+    dual.style.cssText = 'font-size: 12px; color: var(--text-muted, #9aa0b4); margin-top: 2px;';
+    const container = amountRow.querySelector('.form-row-value-container');
+    if (container) container.appendChild(dual);
+  }
+
+  const txCurrency = getTransactionCurrency();
+  const baseCurrency = localStorage.getItem('app_currency') || 'EUR';
+  const rawVal = String(input.value || '').trim();
+
+  if (!CurrencyService.isEnabled() || txCurrency === baseCurrency || rawVal === '') {
+    dual.textContent = '';
+    dual.style.display = 'none';
+    return;
+  }
+
+  const amount = parseFloat(rawVal.replace(',', '.'));
+  if (isNaN(amount)) {
+    dual.textContent = '';
+    dual.style.display = 'none';
+    return;
+  }
+
+  const rate = CurrencyService.getRate(txCurrency, baseCurrency, document.getElementById('trans-date')?.value);
+  if (rate == null || rate <= 0) {
+    dual.textContent = state.lang === 'el' ? 'Ισοτιμία μη διαθέσιμη' : 'Rate unavailable';
+    dual.style.display = 'block';
+    return;
+  }
+
+  const baseAmount = CurrencyService.round(amount / rate, 2);
+  const baseSymbol = CurrencyService.getSymbol(baseCurrency);
+  dual.textContent = `≈ ${baseAmount.toLocaleString(state.lang === 'el' ? 'el-GR' : 'en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${baseSymbol} (1 ${txCurrency} = ${rate} ${baseSymbol})`;
+  dual.style.display = 'block';
+}
+
+// ============================================================
+// MULTI-CURRENCY: DISPLAY CURRENCY & NET WORTH (Phase 7)
+// ============================================================
+
+// Returns the display currency code. The display currency is a display-only
+// concept: all amounts are shown converted to it on-the-fly, but the stored
+// data (base_currency, amount_base) is never changed. Defaults to the base
+// currency when not set.
+function getDisplayCurrency() {
+  if (!CurrencyService.isEnabled()) return localStorage.getItem('app_currency') || 'EUR';
+  return localStorage.getItem('app_display_currency') || localStorage.getItem('app_currency') || 'EUR';
+}
+
+// Converts a base-currency amount to the display currency for display purposes.
+// Returns null when the conversion cannot be performed (no rate available).
+function displayAmountInDisplayCurrency(baseAmount) {
+  const baseCurrency = localStorage.getItem('app_currency') || 'EUR';
+  const displayCurrency = getDisplayCurrency();
+  if (baseCurrency === displayCurrency) return baseAmount;
+  const rate = CurrencyService.getRate(baseCurrency, displayCurrency, new Date().toISOString().slice(0, 10));
+  if (rate == null || rate <= 0) return null;
+  return CurrencyService.round(baseAmount * rate, 2);
+}
+
+// Formats a base-currency amount for display, converting it to the display
+// currency when multi-currency is enabled and a rate is available. Falls back
+// to the base amount when conversion is not possible.
+function formatDisplayAmount(baseAmount) {
+  const displayVal = displayAmountInDisplayCurrency(baseAmount);
+  return formatCurrency(displayVal != null ? displayVal : baseAmount);
+}
+
+// Returns the account's balance converted to the base currency, using the
+// account's own currency (defaults to base currency when not set).
+function getAccountBalanceInBase(acc) {
+  if (!acc) return 0;
+  const balance = parseFloat(acc.balance) || 0;
+  const baseCurrency = localStorage.getItem('app_currency') || 'EUR';
+  const accCurrency = acc.currency || baseCurrency;
+  if (accCurrency === baseCurrency) return balance;
+  const rate = CurrencyService.getRate(accCurrency, baseCurrency, new Date().toISOString().slice(0, 10));
+  if (rate == null || rate <= 0) return null; // cannot convert
+  return CurrencyService.round(balance / rate, 2);
+}
+
+// Computes the total net worth across all accounts, converting each account's
+// balance (in its own currency) to the base currency. Returns null if any
+// account balance cannot be converted (missing rate).
+function computeNetWorth() {
+  const accounts = state.accounts || [];
+  if (accounts.length === 0) return 0;
+  let total = 0;
+  for (const acc of accounts) {
+    const inBase = getAccountBalanceInBase(acc);
+    if (inBase == null) return null; // missing rate — cannot compute reliably
+    total += inBase;
+  }
+  return CurrencyService.round(total, 2);
 }
 
 function changeMonthStartSetting(val) {
@@ -15534,7 +16312,41 @@ function changeCurrencySetting(val) {
   updateUI();
 }
 
+function changeDisplayCurrencySetting(val) {
+  localStorage.setItem('app_display_currency', val);
+  updateUI();
+}
+
+// Enables/disables the multi-currency feature. When enabled, the currency row
+// in the transaction form, the display-currency setting, the currency picker and
+// the multi-currency net worth row all become visible, and every transaction is
+// stored with its own currency + historical rate (via CurrencyService).
+function toggleMultiCurrencySetting(enabled) {
+  if (window.CurrencyService && typeof window.CurrencyService.setEnabled === 'function') {
+    window.CurrencyService.setEnabled(!!enabled);
+  } else {
+    try { localStorage.setItem('multi_currency_enabled', enabled ? 'true' : 'false'); } catch (e) { /* ignore */ }
+  }
+  // Refresh visibility of all multi-currency UI (currency row, display currency, net worth).
+  syncCurrencyRowVisibility();
+  updateSettingsDisplay();
+  updateUI();
+  // When enabling, fetch today's rates so conversions work immediately.
+  if (enabled && window.CurrencyService && typeof window.CurrencyService.fetchTodayRates === 'function') {
+    const baseCurrency = localStorage.getItem('app_currency') || 'EUR';
+    window.CurrencyService.fetchTodayRates(baseCurrency).then(() => { }).catch(() => { });
+  }
+}
+
 function updateSettingsDisplay() {
+  // Defensive: ensure CurrencyService is complete (has isEnabled) before use.
+  // The bootstrap guard normally guarantees this, but a stale cached
+  // js/CurrencyService.js could clobber it after boot. Never crash here.
+  if (typeof CurrencyService === 'undefined' || typeof CurrencyService.isEnabled !== 'function') {
+    if (typeof window !== 'undefined' && window.CurrencyService && typeof window.CurrencyService.isEnabled === 'function') {
+      CurrencyService = window.CurrencyService;
+    }
+  }
   const monthStart = localStorage.getItem('app_month_start') || '1';
   const weekStart = localStorage.getItem('app_week_start') || '1';
   const currency = localStorage.getItem('app_currency') || 'EUR';
@@ -15557,14 +16369,22 @@ function updateSettingsDisplay() {
     weekDisplay.textContent = weekLabels[weekStart] || weekStart;
   }
   if (currencyDisplay) {
-    const currencyLabels = {
-      'EUR': 'EUR (€)',
-      'USD': 'USD ($)',
-      'GBP': 'GBP (£)',
-      'JPY': 'JPY (¥)'
-    };
-    currencyDisplay.textContent = currencyLabels[currency] || currency;
+    const currencyObj = CurrencyService.getCurrency(currency);
+    currencyDisplay.textContent = currencyObj
+      ? currencyObj.code + ' (' + (currencyObj.symbol || '') + ')'
+      : currency;
   }
+
+  // Multi-currency: display currency select + row visibility
+  const displayCurrencyRow = document.getElementById('settings-row-display-currency');
+  const displayCurrencySelect = document.getElementById('settings-display-currency');
+  if (displayCurrencyRow) {
+    displayCurrencyRow.style.display = CurrencyService.isEnabled() ? '' : 'none';
+  }
+  if (displayCurrencySelect) {
+    displayCurrencySelect.value = getDisplayCurrency();
+  }
+
   if (themeDisplay) {
     const themeLabels = {
       'dark': 'Premium Dark',
@@ -15593,14 +16413,22 @@ function openSettingsPicker(type) {
   if (type === 'currency') {
     title = state.lang === 'el' ? 'Κύριο Νόμισμα' : 'Primary Currency';
     currentVal = localStorage.getItem('app_currency') || 'EUR';
-    options = [
-      { value: 'EUR', label: 'EUR (€)' },
-      { value: 'USD', label: 'USD ($)' },
-      { value: 'GBP', label: 'GBP (£)' },
-      { value: 'JPY', label: 'JPY (¥)' }
-    ];
+    options = (CurrencyService.getCurrencies() || []).map(c => ({
+      value: c.code,
+      label: c.code + ' (' + (c.symbol || '') + ')'
+    }));
     onSelect = (val) => {
       changeCurrencySetting(val);
+    };
+  } else if (type === 'display-currency') {
+    title = state.lang === 'el' ? 'Νόμισμα Εμφάνισης' : 'Display Currency';
+    currentVal = getDisplayCurrency();
+    options = (CurrencyService.getCurrencies() || []).map(c => ({
+      value: c.code,
+      label: c.code + ' (' + (c.symbol || '') + ')'
+    }));
+    onSelect = (val) => {
+      changeDisplayCurrencySetting(val);
     };
   } else if (type === 'week-start') {
     title = state.lang === 'el' ? 'Έναρξη Εβδομάδας' : 'Week Start';
@@ -15709,6 +16537,14 @@ function initSettingsFromStorage() {
     }
   }
 
+  // Multi-currency: reflect the saved feature flag on the settings toggle.
+  const multiCurrencyCheckbox = document.getElementById('settings-multi-currency');
+  if (multiCurrencyCheckbox) {
+    multiCurrencyCheckbox.checked = !!(window.CurrencyService && typeof window.CurrencyService.isEnabled === 'function'
+      ? window.CurrencyService.isEnabled()
+      : localStorage.getItem('multi_currency_enabled') === 'true');
+  }
+
   updateNoteShortcutVisibility();
   updateSettingsDisplay();
   applyTheme(theme);
@@ -15727,6 +16563,7 @@ window.getCurrencySymbol = getCurrencySymbol;
 window.initSettingsFromStorage = initSettingsFromStorage;
 window.openSettingsPicker = openSettingsPicker;
 window.updateSettingsDisplay = updateSettingsDisplay;
+window.toggleMultiCurrencySetting = toggleMultiCurrencySetting;
 
 // Theme & Appearance Helpers
 function applyTheme(theme) {
@@ -21561,7 +22398,7 @@ function submitCoachQuery(queryText) {
         let thisMonthIncome = 0;
         let thisMonthExpense = 0;
         thisMonthTrans.forEach(t => {
-          const amt = parseFloat(t.amount) || 0;
+          const amt = CurrencyService.toBase(t);
           if (t.type === 'income') thisMonthIncome += amt;
           if (t.type === 'expense') thisMonthExpense += amt;
         });
@@ -21571,7 +22408,7 @@ function submitCoachQuery(queryText) {
           id: t.id,
           date: String(t.date || '').split('T')[0].split(' ')[0],
           type: t.type,
-          amount: parseFloat(t.amount) || 0,
+          amount: CurrencyService.toBase(t),
           category: t.category || '',
           subcategory: t.subcategory || '',
           note: t.note || t.description || ''
@@ -21738,7 +22575,7 @@ function getCoachAveragePacing() {
     const y = parseInt(parts[0], 10);
     const m = parseInt(parts[1], 10);
     const key = `${y}-${String(m).padStart(2, '0')}`;
-    const amt = parseFloat(t.amount) || 0;
+    const amt = CurrencyService.toBase(t);
 
     if (!monthlyData[key]) {
       monthlyData[key] = { income: 0, expense: 0 };
@@ -21787,7 +22624,7 @@ function runCoachOverspendingAnalysis() {
     if (parts.length !== 3) return;
     const y = parseInt(parts[0], 10);
     const m = parseInt(parts[1], 10) - 1;
-    const amt = parseFloat(t.amount) || 0;
+    const amt = CurrencyService.toBase(t);
     const cat = t.category || 'Other';
 
     if (y === currYear && m === currMonth) {
@@ -21865,7 +22702,7 @@ function runCoachSavingsAdvice() {
     if (parts.length !== 3) return;
     const y = parseInt(parts[0], 10);
     const m = parseInt(parts[1], 10) - 1;
-    const amt = parseFloat(t.amount) || 0;
+    const amt = CurrencyService.toBase(t);
 
     if (y === currYear && m === currMonth) {
       const cat = t.category || 'Other';
@@ -22031,7 +22868,7 @@ function runCoachCategoryAnalysis(categoryName) {
       : `No expenses found in the **${categoryName}** category for this month.`;
   }
 
-  const totalAmt = currMonthTrans.reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
+  const totalAmt = currMonthTrans.reduce((sum, t) => sum + CurrencyService.toBase(t), 0);
   const top3 = currMonthTrans.sort((a, b) => (parseFloat(b.amount) || 0) - (parseFloat(a.amount) || 0)).slice(0, 3);
 
   let html = "";
@@ -22402,7 +23239,7 @@ function runCoachTopCategories() {
     const parts = String(t.date).split('T')[0].split(' ')[0].split('-');
     if (parts.length !== 3) return;
     if (parseInt(parts[0], 10) === currYear && (parseInt(parts[1], 10) - 1) === currMonth) {
-      totals[t.category] = (totals[t.category] || 0) + (parseFloat(t.amount) || 0);
+      totals[t.category] = (totals[t.category] || 0) + CurrencyService.toBase(t);
     }
   });
 
@@ -22511,7 +23348,7 @@ function runCoachSearchQuery(keyword) {
       : `No transactions found this year with the term **"${keyword}"**.`;
   }
 
-  const totalAmt = matchedTrans.reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
+  const totalAmt = matchedTrans.reduce((sum, t) => sum + CurrencyService.toBase(t), 0);
   const count = matchedTrans.length;
   const avg = totalAmt / count;
 
@@ -22621,7 +23458,7 @@ function processCoachQuery(queryText) {
 
     const expenseTotals = {};
     activeExpenses.forEach(t => {
-      expenseTotals[t.category] = (expenseTotals[t.category] || 0) + (parseFloat(t.amount) || 0);
+      expenseTotals[t.category] = (expenseTotals[t.category] || 0) + CurrencyService.toBase(t);
     });
 
     let html = state.lang === 'el' ? "📊 **Κατάσταση Προϋπολογισμών (Budgets):**<br><br>" : "📊 **Budget Status:**<br><br>";

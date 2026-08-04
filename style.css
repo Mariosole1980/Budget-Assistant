@@ -595,6 +595,37 @@ button:active,
   color: var(--text-secondary);
 }
 
+/* Multi-currency: currency code label next to transaction amount */
+.fx-currency-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted, #9aa0b4);
+  margin-left: 4px;
+  vertical-align: middle;
+}
+
+/* Multi-currency: reliability badge (estimate / manual) */
+.fx-reliability-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  margin-left: 3px;
+  vertical-align: middle;
+  border-radius: 4px;
+  padding: 0 3px;
+  line-height: 1.4;
+}
+
+.fx-reliability-badge.fx-estimate {
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.12);
+}
+
+.fx-reliability-badge.fx-manual {
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.12);
+}
+
 /* Float Action Button (FAB) */
 .fab {
   position: fixed;
@@ -3342,6 +3373,13 @@ body.is-ios .modal-content {
 .account-picker-item-name {
   font-size: 14px;
   color: var(--text-main, #ffffff);
+}
+
+.currency-picker-countries {
+  font-size: 12px;
+  color: var(--text-muted, rgba(255, 255, 255, 0.55));
+  margin-top: 2px;
+  line-height: 1.4;
 }
 
 /* Subcategory List */

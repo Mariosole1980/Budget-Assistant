@@ -90,7 +90,7 @@
               ${devButton}
             </div>
             <div style="font-size:11px;color:#8b949e;">
-              Budget Assistant • build v1046
+              Budget Assistant • build v1054
             </div>
           </div>
         `;
@@ -175,10 +175,10 @@
   <link rel="stylesheet" href="js/fontawesome.min.css">
 
   <!-- Core Stylesheet (id used by the OTA boot loader to swap bundled/OTA) -->
-  <link rel="stylesheet" href="style.css?v=1029" id="app-stylesheet">
+  <link rel="stylesheet" href="style.css?v=1053" id="app-stylesheet">
 
   <!-- Capacitor Bridge -->
-  <script src="capacitor.js?v=1046"></script>
+  <script src="capacitor.js?v=1054"></script>
 
 
   <!-- Supabase client JS CDN -->
@@ -188,7 +188,7 @@
   <!-- Chart.js Datalabels Plugin CDN -->
   <script src="js/chartjs-plugin-datalabels.js"></script>
   <!-- SheetJS xlsx CDN for Excel Import/Export -->
-  <script src="xlsx.full.min.js?v=1046"></script>
+  <script src="xlsx.full.min.js?v=1054"></script>
 </head>
 
 <body style="background-color: #181b22; margin: 0; padding: 0; ">
@@ -583,6 +583,18 @@
                   <span id="total-net-val" class="stats-tab-amt"
                     style="font-size: 15px; font-weight: 800; line-height: 1.2; white-space: nowrap;">€ 0,00</span>
                 </div>
+              </div>
+            </div>
+
+            <!-- Multi-currency: Net Worth across all accounts (converted to base currency) -->
+            <div id="multi-currency-net-worth-row"
+              style="display: none; border-radius: 14px; border: 1px solid var(--border); padding: 10px 14px; margin-bottom: 2px; background: rgba(16,185,129,0.05);">
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <span style="font-size: 12px; font-weight: 600; color: var(--text-secondary);">Καθαρή Αξία (όλοι οι
+                  λογαριασμοί)</span>
+                <span id="multi-currency-net-worth-val"
+                  style="font-size: 15px; font-weight: 800; color: var(--text-primary); white-space: nowrap;">€
+                  0,00</span>
               </div>
             </div>
 
@@ -1062,6 +1074,31 @@
               </div>
             </div>
 
+            <!-- Currency Row (only shown when multi-currency feature is enabled) -->
+            <div class="form-row" id="form-row-currency" style="display: none;">
+              <label class="form-row-label" data-i18n="row_currency">Νόμισμα</label>
+              <div class="form-row-value-container">
+                <input type="hidden" id="trans-currency">
+                <div id="trans-currency-trigger" class="custom-select-trigger" onclick="openCurrencyPickerModal()">
+                  <div class="custom-select-trigger-content" id="trans-currency-display">
+                    <span class="custom-select-placeholder">Ευρώ</span>
+                  </div>
+                  <i class="fa-solid fa-chevron-down" style="color: var(--text-muted); font-size: 12px;"></i>
+                </div>
+              </div>
+            </div>
+
+            <!-- Actual Amount Correction Row (multi-currency, edit mode only) -->
+            <div class="form-row" id="form-row-actual-amount" style="display: none;">
+              <label class="form-row-label" data-i18n="row_actual_amount">Πραγματική χρέωση</label>
+              <div class="form-row-value-container" style="display: flex; align-items: center; gap: 6px;">
+                <input type="text" id="trans-actual-amount" class="form-row-input" inputmode="decimal"
+                  placeholder="0,00" style="flex: 1;">
+                <span class="currency-symbol" id="trans-actual-amount-symbol"
+                  style="font-size: 18px; font-weight: 600; color: var(--text-secondary, #9aa0b4);"></span>
+              </div>
+            </div>
+
             <!-- Category Row (Hidden for transfers) -->
             <div class="form-row" id="form-row-category">
               <label class="form-row-label" data-i18n="row_category">Κατηγορία</label>
@@ -1425,6 +1462,42 @@
                     <option value="GBP">GBP (£)</option>
                     <option value="JPY">JPY (¥)</option>
                   </select>
+                </div>
+
+                <!-- Row 3b: Display Currency Select (multi-currency, display-only) -->
+                <div class="settings-list-item" id="settings-row-display-currency"
+                  style="padding:14px 16px; display:flex; align-items:center; justify-content:space-between; margin:0; border-top:1px solid var(--border, rgba(255,255,255,0.06));">
+                  <div style="display:flex; flex-direction:column; gap:3px; flex:1; padding-right:12px;">
+                    <span class="settings-item-label"
+                      style="font-weight:700; font-size:14px; color:var(--text-primary);"
+                      data-i18n="item_display_currency">Νόμισμα Εμφάνισης</span>
+                    <span style="font-size:12px; color:var(--text-muted);">Προβολή ποσών σε άλλο νόμισμα (χωρίς αλλαγή
+                      δεδομένων)</span>
+                  </div>
+                  <select id="settings-display-currency" class="settings-select"
+                    onchange="changeDisplayCurrencySetting(this.value)">
+                    <option value="EUR">EUR (€)</option>
+                    <option value="USD">USD ($)</option>
+                    <option value="GBP">GBP (£)</option>
+                    <option value="JPY">JPY (¥)</option>
+                  </select>
+                </div>
+
+                <!-- Row 3c: Multi-Currency Enable Toggle -->
+                <div class="settings-list-item" id="settings-row-multi-currency"
+                  style="padding:14px 16px; display:flex; align-items:center; justify-content:space-between; margin:0; border-top:1px solid var(--border, rgba(255,255,255,0.06));">
+                  <div style="display:flex; flex-direction:column; gap:3px; flex:1; padding-right:12px;">
+                    <span class="settings-item-label"
+                      style="font-weight:700; font-size:14px; color:var(--text-primary);"
+                      data-i18n="item_multi_currency">Πολλαπλά Νομίσματα</span>
+                    <span style="font-size:12px; color:var(--text-muted);">Καταγραφή & μετατροπή συναλλαγών σε
+                      διαφορετικά νομίσματα (€, $, £, ¥...)</span>
+                  </div>
+                  <label class="switch">
+                    <input type="checkbox" id="settings-multi-currency"
+                      onchange="toggleMultiCurrencySetting(this.checked)">
+                    <span class="slider round"></span>
+                  </label>
                 </div>
               </div>
             </div>
@@ -2022,7 +2095,7 @@
             <div class="settings-list-item version-info-row"
               style="padding: 14px 16px; background: transparent; border-top: 1px solid var(--border); margin-top: 8px;">
               <span class="settings-item-label" style="color:var(--text-muted); font-size:12px;"
-                data-i18n="app_version">Έκδοση 1.0.0 (build v1046)</span>
+                data-i18n="app_version">Έκδοση 1.0.0 (build v1054)</span>
               <span class="settings-item-value" style="font-size:12px; color:var(--text-muted); font-weight:600;">Budget
                 Assistant</span>
             </div>
@@ -3085,6 +3158,25 @@
       </div>
     </div>
 
+    <!-- MODAL: CURRENCY PICKER -->
+    <div id="currency-picker-modal" class="modal-overlay" style="z-index: 10000;">
+      <div class="modal-content" style="max-height: 90vh; display: flex; flex-direction: column;">
+        <div class="modal-header">
+          <h3 class="modal-title" data-i18n="modal_currency_title">Επιλογή νομίσματος</h3>
+          <span class="modal-close" onclick="closeModal('currency-picker-modal')">&times;</span>
+        </div>
+        <div class="modal-body" style="padding: 16px; flex: 1; overflow-y: auto;">
+          <input type="text" id="currency-picker-search" class="form-row-input"
+            placeholder="🔍 Αναζήτηση (κωδικός, όνομα, χώρα)..."
+            style="width: 100%; box-sizing: border-box; margin-bottom: 12px;" oninput="renderCurrencyPickerOptions()">
+          <div id="currency-picker-list" class="account-picker-list"
+            style="display: flex; flex-direction: column; gap: 12px;">
+            <!-- Currencies injected here -->
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- MODAL: CUSTOM DATE PICKER -->
     <div id="custom-date-picker-modal" class="modal-overlay" style="z-index: 13000;">
       <div class="modal-content"
@@ -3560,13 +3652,15 @@
     </div>
 
     <!-- Core Application Scripts -->
-    <script src="js/NLPProcessor.js?v=1046"></script>
-    <script src="js/MemoryEngine.js?v=1046"></script>
-    <script src="js/DecisionEngine.js?v=1046"></script>
-    <script src="js/OnlineAIProvider.js?v=1046"></script>
-    <script src="js/AIEngine.js?v=1046"></script>
-    <script src="js/IntentCorpus.js?v=1046"></script>
-    <script src="js/KnowledgeGraph.js?v=1046"></script>
+    <script src="js/NLPProcessor.js?v=1054"></script>
+    <script src="js/MemoryEngine.js?v=1054"></script>
+    <script src="js/DecisionEngine.js?v=1054"></script>
+    <script src="js/OnlineAIProvider.js?v=1054"></script>
+    <script src="js/AIEngine.js?v=1054"></script>
+    <script src="js/IntentCorpus.js?v=1054"></script>
+    <script src="js/KnowledgeGraph.js?v=1054"></script>
+    <!-- Multi-Currency Service (single conversion mechanism) -->
+    <script src="js/CurrencyService.js?v=1054"></script>
     <!-- ============================================================
          OTA BOOT LOADER
          Loads EXACTLY ONE app.js (bundled OR OTA from IndexedDB, never both).
@@ -3575,13 +3669,13 @@
            2) js/OTAEngine.js     -> auto-runs initOTACheck() (sees OTABootLoader)
            3) window.OTABootLoader.boot() -> injects the chosen app.js
          ============================================================ -->
-    <script src="ota-boot-loader.js?v=1046"></script>
-    <script src="js/OTAEngine.js?v=1046"></script>
+    <script src="ota-boot-loader.js?v=1054"></script>
+    <script src="js/OTAEngine.js?v=1054"></script>
     <script>
       // CURRENT_BUILD must be defined BEFORE boot() so the boot loader can
       // compare the staged OTA build version against the bundled APK version
       // and skip stale OTA builds (see "Stale OTA Guard" in ota-boot-loader.js).
-      const CURRENT_BUILD = 1046;
+      const CURRENT_BUILD = 1054;
       window.OTABootLoader.boot();
     </script>
 

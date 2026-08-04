@@ -1,4 +1,4 @@
-// SW Version 1046
+// SW Version 1054
 const CACHE_VERSION = 'v' + Date.now();
 const CACHE_NAME = 'money-manager-v1029-' + Date.now();
 const ASSETS = [
@@ -16,6 +16,7 @@ const ASSETS = [
   'js/AIEngine.js',
   'js/IntentCorpus.js',
   'js/KnowledgeGraph.js',
+  'js/CurrencyService.js',
   'js/fontawesome.min.css',
   'js/webfonts/fa-solid-900.woff2',
   'js/webfonts/fa-solid-900.ttf',
