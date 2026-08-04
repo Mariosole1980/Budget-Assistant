@@ -958,7 +958,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1059 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1060 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1330,7 +1330,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1059 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1060 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -8261,12 +8261,25 @@ function setupEventListeners() {
   // on pointerdown and set a flag so the subsequent click on the parent row
   // (which would otherwise open the calculator) is suppressed.
   let _symbolTapPending = false;
+  // Determine whether a tap should open the currency picker. We match BOTH by
+  // class (the injected span) AND by position (the symbol sits to the LEFT of
+  // the amount input). The position fallback is essential on installed devices
+  // whose stale index.html may not render the span with the tappable class, or
+  // where the span is covered — so we still reliably open the picker when the
+  // user taps the symbol area of the amount row.
   const isSymbolTap = (t) => {
-    if (!t || !t.closest) return false;
-    const sym = t.closest('.currency-symbol-tappable');
-    if (!sym) return false;
     const form = document.getElementById('transaction-form');
     if (!form) return false;
+    if (t && t.closest) {
+      if (t.closest('.currency-symbol-tappable')) return true;
+    }
+    // Position fallback: the tap is inside the amount row but NOT on the amount
+    // input (i.e. it's on the symbol / label / padding area to the left).
+    const row = document.getElementById('form-row-amount');
+    if (!row) return false;
+    if (!row.contains(t)) return false;
+    const input = document.getElementById('trans-amount');
+    if (input && (t === input || input.contains(t))) return false;
     return true;
   };
   document.addEventListener('pointerdown', (e) => {
@@ -16208,9 +16221,16 @@ function updateAmountCurrencySymbol() {
   if (!span.classList.contains('currency-symbol-tappable')) {
     span.classList.add('currency-symbol-tappable');
   }
+  // Ensure the symbol sits ABOVE the amount input so taps on it are never
+  // swallowed by the input (which has onfocus="this.blur()"). On installed
+  // devices the stale index.html may lay the input over the symbol area.
+  span.style.position = 'relative';
+  span.style.zIndex = '5';
   // Always (re)bind the tap handler so the symbol is reliably tappable even
-  // when the span already exists in the HTML markup.
-  span.onclick = (e) => { e.stopPropagation(); openCurrencyPickerModal(); };
+  // when the span already exists in the HTML markup. Bind BOTH click and
+  // pointerdown for maximum reliability on Android WebView.
+  span.onclick = (e) => { e.stopPropagation(); e.preventDefault(); openCurrencyPickerModal(); };
+  span.onpointerdown = (e) => { e.stopPropagation(); e.preventDefault(); openCurrencyPickerModal(); };
   // Use a FontAwesome chevron icon (not the text glyph ▾) so it renders
   // reliably BESIDE the currency symbol instead of wrapping below it.
   span.innerHTML = escapeHtml(getTransactionCurrencySymbol()) +
