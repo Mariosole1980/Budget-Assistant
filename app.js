@@ -958,7 +958,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1054 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1055 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1330,7 +1330,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1054 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1055 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -6725,7 +6725,7 @@ function renderAccountsTab() {
   if (netWorthRow && netWorthVal) {
     const baseCurrency = localStorage.getItem('app_currency') || 'EUR';
     const hasForeignAccounts = (state.accounts || []).some(a => (a.currency || baseCurrency) !== baseCurrency);
-    if (CurrencyService.isEnabled() && hasForeignAccounts) {
+    if (hasForeignAccounts) {
       const netWorth = computeNetWorth();
       if (netWorth != null) {
         netWorthRow.style.display = '';
@@ -10732,18 +10732,9 @@ function selectCurrencyOption(code) {
   closeModal('currency-picker-modal');
 }
 
-// Shows/hides the currency row based on the multi-currency feature flag.
-function syncCurrencyRowVisibility() {
-  const row = document.getElementById('form-row-currency');
-  if (!row) return;
-  row.style.display = CurrencyService.isEnabled() ? '' : 'none';
-}
-
 // Initializes the transaction currency when opening the form.
 // Priority: explicit currency (editing) > selected account currency > base currency > EUR.
 function initTransactionCurrency(explicitCurrency) {
-  syncCurrencyRowVisibility();
-
   let code = explicitCurrency;
   if (!code) {
     const accountCurrency = getSelectedAccountCurrency();
@@ -10765,7 +10756,7 @@ function syncActualAmountRowVisibility() {
   const baseCurrency = localStorage.getItem('app_currency') || 'EUR';
   const txCurrency = getTransactionCurrency();
   const isEdit = !!document.getElementById('trans-id')?.value;
-  const show = CurrencyService.isEnabled() && isEdit && txCurrency !== baseCurrency;
+  const show = isEdit && txCurrency !== baseCurrency;
   row.style.display = show ? '' : 'none';
   if (!show) {
     document.getElementById('trans-actual-amount').value = '';
@@ -10820,16 +10811,15 @@ function initMultiCurrency() {
       .catch((err) => console.warn('[MultiCurrency] Failed to persist rates:', err));
   });
 
-  // 3. Fetch today's rates (non-blocking) when the feature is enabled.
-  if (CurrencyService.isEnabled()) {
-    const baseCurrency = localStorage.getItem('app_currency') || 'EUR';
-    CurrencyService.fetchTodayRates(baseCurrency).then((ok) => {
-      if (ok) {
-        // Recompute any pending base-currency fields that were missing a rate.
-        recomputePendingAmountBase();
-      }
-    });
-  }
+  // 3. Fetch today's rates (non-blocking). Multi-currency is always active
+  //    (Invisible Multi-Currency), so rates are always fetched.
+  const baseCurrency = localStorage.getItem('app_currency') || 'EUR';
+  CurrencyService.fetchTodayRates(baseCurrency).then((ok) => {
+    if (ok) {
+      // Recompute any pending base-currency fields that were missing a rate.
+      recomputePendingAmountBase();
+    }
+  });
 }
 
 // Recomputes amount_base for transactions that were saved without a rate
@@ -16118,9 +16108,9 @@ function updateCurrencySymbols() {
   });
 }
 
-// Show/hide the currency symbol in the amount row based on whether the user has
-// typed a value. The symbol appears as soon as the first digit is pressed so the
-// user always knows in which currency they are entering the amount.
+// Updates the currency symbol in the amount row. The symbol is ALWAYS visible
+// and tappable (opens the currency picker), so the user always knows in which
+// currency they are entering the amount. A chevron (▾) hints that it is tappable.
 function updateAmountCurrencySymbol() {
   const input = document.getElementById('trans-amount');
   const amountRow = document.getElementById('form-row-amount');
@@ -16130,15 +16120,21 @@ function updateAmountCurrencySymbol() {
   let span = container.querySelector('.currency-symbol');
   if (!span) {
     span = document.createElement('span');
-    span.className = 'currency-symbol';
+    span.className = 'currency-symbol currency-symbol-tappable';
     span.style.fontSize = '18px';
     span.style.fontWeight = '600';
     span.style.color = 'var(--text-secondary, #9aa0b4)';
+    span.style.cursor = 'pointer';
+    span.style.padding = '4px 6px';
+    span.style.borderRadius = '8px';
+    span.style.display = 'inline-flex';
+    span.style.alignItems = 'center';
+    span.style.gap = '2px';
+    span.onclick = (e) => { e.stopPropagation(); openCurrencyPickerModal(); };
     container.insertBefore(span, input);
   }
-  span.textContent = getTransactionCurrencySymbol();
-  const hasValue = String(input.value || '').trim() !== '';
-  span.style.display = hasValue ? 'inline' : 'none';
+  span.textContent = getTransactionCurrencySymbol() + ' ▾';
+  span.style.display = 'inline-flex';
   updateDualAmountDisplay();
 
   // The "actual amount" correction field is always in the base currency.
@@ -16164,7 +16160,6 @@ function getTxCurrencyCode(tx) {
 // Returns a small reliability badge for a transaction's conversion status.
 // Only shown when the transaction currency differs from the base currency.
 function getReliabilityBadge(tx) {
-  if (!CurrencyService.isEnabled()) return '';
   const baseCurrency = localStorage.getItem('app_currency') || 'EUR';
   const txCurrency = getTxCurrencyCode(tx);
   if (txCurrency === baseCurrency) return '';
@@ -16182,7 +16177,6 @@ function getReliabilityBadge(tx) {
 // Returns the currency code label shown next to a transaction amount when it
 // differs from the base currency (e.g. "USD").
 function getTxCurrencyLabel(tx) {
-  if (!CurrencyService.isEnabled()) return '';
   const baseCurrency = localStorage.getItem('app_currency') || 'EUR';
   const txCurrency = getTxCurrencyCode(tx);
   if (txCurrency === baseCurrency) return '';
@@ -16211,7 +16205,7 @@ function updateDualAmountDisplay() {
   const baseCurrency = localStorage.getItem('app_currency') || 'EUR';
   const rawVal = String(input.value || '').trim();
 
-  if (!CurrencyService.isEnabled() || txCurrency === baseCurrency || rawVal === '') {
+  if (txCurrency === baseCurrency || rawVal === '') {
     dual.textContent = '';
     dual.style.display = 'none';
     return;
@@ -16241,13 +16235,11 @@ function updateDualAmountDisplay() {
 // MULTI-CURRENCY: DISPLAY CURRENCY & NET WORTH (Phase 7)
 // ============================================================
 
-// Returns the display currency code. The display currency is a display-only
-// concept: all amounts are shown converted to it on-the-fly, but the stored
-// data (base_currency, amount_base) is never changed. Defaults to the base
-// currency when not set.
+// Returns the display currency code. In the "Invisible Multi-Currency" model,
+// the display currency concept is removed: all amounts are shown in the
+// application currency (base currency). This always returns the base currency.
 function getDisplayCurrency() {
-  if (!CurrencyService.isEnabled()) return localStorage.getItem('app_currency') || 'EUR';
-  return localStorage.getItem('app_display_currency') || localStorage.getItem('app_currency') || 'EUR';
+  return localStorage.getItem('app_currency') || 'EUR';
 }
 
 // Converts a base-currency amount to the display currency for display purposes.
@@ -16312,30 +16304,24 @@ function changeCurrencySetting(val) {
   updateUI();
 }
 
-function changeDisplayCurrencySetting(val) {
-  localStorage.setItem('app_display_currency', val);
-  updateUI();
-}
-
-// Enables/disables the multi-currency feature. When enabled, the currency row
-// in the transaction form, the display-currency setting, the currency picker and
-// the multi-currency net worth row all become visible, and every transaction is
-// stored with its own currency + historical rate (via CurrencyService).
-function toggleMultiCurrencySetting(enabled) {
-  if (window.CurrencyService && typeof window.CurrencyService.setEnabled === 'function') {
-    window.CurrencyService.setEnabled(!!enabled);
-  } else {
-    try { localStorage.setItem('multi_currency_enabled', enabled ? 'true' : 'false'); } catch (e) { /* ignore */ }
-  }
-  // Refresh visibility of all multi-currency UI (currency row, display currency, net worth).
-  syncCurrencyRowVisibility();
-  updateSettingsDisplay();
-  updateUI();
-  // When enabling, fetch today's rates so conversions work immediately.
-  if (enabled && window.CurrencyService && typeof window.CurrencyService.fetchTodayRates === 'function') {
-    const baseCurrency = localStorage.getItem('app_currency') || 'EUR';
-    window.CurrencyService.fetchTodayRates(baseCurrency).then(() => { }).catch(() => { });
-  }
+// Populates the "Νόμισμα εφαρμογής" select in settings with ALL currencies
+// (150+), not just the 4 hardcoded ones. Called once on init.
+function populateCurrencySelect() {
+  const select = document.getElementById('settings-currency');
+  if (!select) return;
+  const current = localStorage.getItem('app_currency') || 'EUR';
+  const currencies = (window.CurrencyService && typeof window.CurrencyService.getCurrencies === 'function')
+    ? window.CurrencyService.getCurrencies()
+    : [];
+  if (!Array.isArray(currencies) || currencies.length === 0) return;
+  select.innerHTML = '';
+  currencies.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.code;
+    opt.textContent = c.code + ' (' + (c.symbol || '') + ')';
+    if (c.code === current) opt.selected = true;
+    select.appendChild(opt);
+  });
 }
 
 function updateSettingsDisplay() {
@@ -16375,16 +16361,6 @@ function updateSettingsDisplay() {
       : currency;
   }
 
-  // Multi-currency: display currency select + row visibility
-  const displayCurrencyRow = document.getElementById('settings-row-display-currency');
-  const displayCurrencySelect = document.getElementById('settings-display-currency');
-  if (displayCurrencyRow) {
-    displayCurrencyRow.style.display = CurrencyService.isEnabled() ? '' : 'none';
-  }
-  if (displayCurrencySelect) {
-    displayCurrencySelect.value = getDisplayCurrency();
-  }
-
   if (themeDisplay) {
     const themeLabels = {
       'dark': 'Premium Dark',
@@ -16411,7 +16387,7 @@ function openSettingsPicker(type) {
   let onSelect = null;
 
   if (type === 'currency') {
-    title = state.lang === 'el' ? 'Κύριο Νόμισμα' : 'Primary Currency';
+    title = state.lang === 'el' ? 'Νόμισμα εφαρμογής' : 'App Currency';
     currentVal = localStorage.getItem('app_currency') || 'EUR';
     options = (CurrencyService.getCurrencies() || []).map(c => ({
       value: c.code,
@@ -16419,16 +16395,6 @@ function openSettingsPicker(type) {
     }));
     onSelect = (val) => {
       changeCurrencySetting(val);
-    };
-  } else if (type === 'display-currency') {
-    title = state.lang === 'el' ? 'Νόμισμα Εμφάνισης' : 'Display Currency';
-    currentVal = getDisplayCurrency();
-    options = (CurrencyService.getCurrencies() || []).map(c => ({
-      value: c.code,
-      label: c.code + ' (' + (c.symbol || '') + ')'
-    }));
-    onSelect = (val) => {
-      changeDisplayCurrencySetting(val);
     };
   } else if (type === 'week-start') {
     title = state.lang === 'el' ? 'Έναρξη Εβδομάδας' : 'Week Start';
@@ -16537,13 +16503,7 @@ function initSettingsFromStorage() {
     }
   }
 
-  // Multi-currency: reflect the saved feature flag on the settings toggle.
-  const multiCurrencyCheckbox = document.getElementById('settings-multi-currency');
-  if (multiCurrencyCheckbox) {
-    multiCurrencyCheckbox.checked = !!(window.CurrencyService && typeof window.CurrencyService.isEnabled === 'function'
-      ? window.CurrencyService.isEnabled()
-      : localStorage.getItem('multi_currency_enabled') === 'true');
-  }
+  populateCurrencySelect();
 
   updateNoteShortcutVisibility();
   updateSettingsDisplay();
@@ -16563,7 +16523,6 @@ window.getCurrencySymbol = getCurrencySymbol;
 window.initSettingsFromStorage = initSettingsFromStorage;
 window.openSettingsPicker = openSettingsPicker;
 window.updateSettingsDisplay = updateSettingsDisplay;
-window.toggleMultiCurrencySetting = toggleMultiCurrencySetting;
 
 // Theme & Appearance Helpers
 function applyTheme(theme) {

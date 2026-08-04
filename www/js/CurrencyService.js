@@ -428,19 +428,19 @@ class CurrencyService {
     }
 
     // ===== Feature flag =====
+    //
+    // "Invisible Multi-Currency": το multi-currency είναι ΠΑΝΤΑ ενεργό.
+    // Ο χρήστης δεν το ενεργοποιεί ποτέ — το νόμισμα ζει μέσα στο πεδίο του
+    // ποσού. Οι μέθοδοι διατηρούνται (isEnabled → true, setEnabled → no-op)
+    // ώστε να μη σπάσει το self-healing export στο app.js (REQUIRED array).
 
     isEnabled() {
-        try {
-            return localStorage.getItem('multi_currency_enabled') === 'true';
-        } catch (e) {
-            return false;
-        }
+        return true; // Multi-currency είναι πάντα ενεργό (Invisible Multi-Currency)
     }
 
     setEnabled(val) {
-        try {
-            localStorage.setItem('multi_currency_enabled', val ? 'true' : 'false');
-        } catch (e) { /* ignore */ }
+        // No-op: το multi-currency δεν μπορεί να απενεργοποιηθεί πλέον.
+        // Διατηρείται μόνο για συμβατότητα με το self-healing export.
     }
 }
 

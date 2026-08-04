@@ -15,7 +15,7 @@
  *
  * This file is the REVIEW DRAFT. It is NOT yet wired into index.html.
  * The production integration replaces ONLY the line:
- *     <script src="app.js?v=1054"></script>
+ *     <script src="app.js?v=1055"></script>
  * with an inline <script> that calls window.OTABootLoader.boot().
  * ============================================================
  */
@@ -36,8 +36,8 @@ window.OTABootLoader = (function () {
     var IDB_TIMEOUT_MS = 1500;                // hard timeout for IndexedDB lookup
 
     // Bundled fallback (must match the static tag we replace)
-    var BUNDLED_APP_JS = 'app.js?v=1054';
-    var BUNDLED_STYLE_CSS = 'style.css?v=1054';
+    var BUNDLED_APP_JS = 'app.js?v=1055';
+    var BUNDLED_STYLE_CSS = 'style.css?v=1055';
 
     // ------------------------------------------------------------
     // IndexedDB helpers (promise + timeout)
