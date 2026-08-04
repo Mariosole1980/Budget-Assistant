@@ -1122,11 +1122,42 @@
           </div>
         </div>
 
+        <!-- Format Selector -->
+        <div style="padding: 4px 14px 0 14px;">
+          <div
+            style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 0.5px; margin-bottom: 8px;"
+            data-i18n="export_label_format">Μορφή Αρχείου:</div>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+            <button type="button" class="export-format-chip active" id="export-format-xlsx"
+              onclick="selectExportFormat('xlsx')">
+              <i class="fa-solid fa-file-excel"></i>
+              <span>XLSX</span>
+            </button>
+            <button type="button" class="export-format-chip" id="export-format-csv" onclick="selectExportFormat('csv')">
+              <i class="fa-solid fa-file-csv"></i>
+              <span>CSV</span>
+            </button>
+            <button type="button" class="export-format-chip" id="export-format-ods" onclick="selectExportFormat('ods')">
+              <i class="fa-solid fa-file-excel"></i>
+              <span>ODS</span>
+            </button>
+            <button type="button" class="export-format-chip" id="export-format-json"
+              onclick="selectExportFormat('json')">
+              <i class="fa-solid fa-file-code"></i>
+              <span>JSON</span>
+            </button>
+            <button type="button" class="export-format-chip" id="export-format-pdf" onclick="selectExportFormat('pdf')">
+              <i class="fa-solid fa-file-pdf"></i>
+              <span>PDF</span>
+            </button>
+          </div>
+        </div>
+
         <!-- Action Button -->
         <div style="margin-top: 12px; padding: 0 14px;">
           <button type="button" class="btn btn-primary" onclick="confirmExcelExport()"
             style="width: 100%; font-size: 14.5px; padding: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 10px;">
-            <i class="fa-solid fa-file-excel"></i>
+            <i class="fa-solid fa-file-export"></i>
             <span data-i18n="export_btn_confirm">Επιβεβαίωση Εξαγωγής</span>
           </button>
         </div>

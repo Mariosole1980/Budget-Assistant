@@ -958,7 +958,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1067 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1068 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -994,6 +994,12 @@ const TRANSLATIONS = {
     export_label_to: 'Έως:',
     export_btn_confirm: 'Επιβεβαίωση Εξαγωγής',
     export_no_data_range: 'Δεν υπάρχουν συναλλαγές σε αυτή την περίοδο!',
+    export_label_format: 'Μορφή Αρχείου:',
+    export_format_xlsx: 'Excel (XLSX)',
+    export_format_csv: 'CSV',
+    export_format_ods: 'OpenDocument (ODS)',
+    export_format_json: 'JSON',
+    export_format_pdf: 'PDF',
     row_receipt_photo: 'Φωτογραφία Απόδειξης',
     photo_mismatch_warning: 'Η εικόνα είναι διαθέσιμη μόνο στη συσκευή που καταχωρήθηκε.',
     photo_delete_confirm: 'Διαγραφή φωτογραφίας απόδειξης;',
@@ -1330,7 +1336,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1067 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1068 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -1366,6 +1372,12 @@ const TRANSLATIONS = {
     export_label_to: 'To:',
     export_btn_confirm: 'Confirm Export',
     export_no_data_range: 'No transactions found in this period!',
+    export_label_format: 'File Format:',
+    export_format_xlsx: 'Excel (XLSX)',
+    export_format_csv: 'CSV',
+    export_format_ods: 'OpenDocument (ODS)',
+    export_format_json: 'JSON',
+    export_format_pdf: 'PDF',
     row_receipt_photo: 'Receipt Photo',
     photo_mismatch_warning: 'Image is only available on the device where it was recorded.',
     photo_delete_confirm: 'Delete receipt photo?',
@@ -11196,6 +11208,7 @@ function updateExportSheetDateLabels() {
 }
 
 let selectedExportPeriod = 'current-month';
+let selectedExportFormat = 'xlsx';
 
 function openExportPeriodSheet() {
   if (typeof closeSearchBottomSheet === 'function') {
@@ -11242,6 +11255,18 @@ function selectExportOption(option) {
   if (customContainer) {
     customContainer.style.display = option === 'custom' ? 'flex' : 'none';
   }
+}
+
+function selectExportFormat(format) {
+  selectedExportFormat = format;
+
+  const formats = ['xlsx', 'csv', 'ods', 'json', 'pdf'];
+  formats.forEach(f => {
+    const el = document.getElementById(`export-format-${f}`);
+    if (el) {
+      el.classList.toggle('active', f === format);
+    }
+  });
 }
 
 function confirmExcelExport() {
@@ -11312,12 +11337,42 @@ function exportToExcel(startDate = null, endDate = null) {
     'Λογαριασμός': t.account_from, 'Σημείωση': t.note || '',
   }));
 
-  const fileName = `Budget_Assistant_Export_${new Date().toISOString().split('T')[0]}.xlsx`;
+  const format = selectedExportFormat || 'xlsx';
+  const baseName = `Budget_Assistant_Export_${new Date().toISOString().split('T')[0]}`;
+
+  // JSON export does not require the SheetJS library.
+  if (format === 'json') {
+    try {
+      const jsonStr = JSON.stringify(transactionsToExport, null, 2);
+      const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8;' });
+      downloadBlob(blob, `${baseName}.json`);
+      closeExportPeriodSheet();
+      return;
+    } catch (err) {
+      console.error('[export] JSON export failed.', err);
+      alert(state.lang === 'en' ? 'JSON export failed!' : 'Η εξαγωγή JSON απέτυχε!');
+      return;
+    }
+  }
+
+  // PDF export: generate a simple, readable table-based PDF without external libs.
+  if (format === 'pdf') {
+    try {
+      const blob = generatePdfBlob(rows, baseName);
+      downloadBlob(blob, `${baseName}.pdf`);
+      closeExportPeriodSheet();
+      return;
+    } catch (err) {
+      console.error('[export] PDF export failed.', err);
+      alert(state.lang === 'en' ? 'PDF export failed!' : 'Η εξαγωγή PDF απέτυχε!');
+      return;
+    }
+  }
 
   // Guard: if the SheetJS library is not loaded, fall back to CSV so the export still works.
   if (typeof XLSX === 'undefined' || !XLSX || !XLSX.utils) {
     console.warn('[export] XLSX library not available, falling back to CSV export.');
-    exportRowsAsCSV(rows, fileName.replace(/\.xlsx$/i, '.csv'));
+    exportRowsAsCSV(rows, `${baseName}.csv`);
     closeExportPeriodSheet();
     return;
   }
@@ -11330,14 +11385,103 @@ function exportToExcel(startDate = null, endDate = null) {
     // writeFile relies on an <a>.click() download which silently fails inside
     // the Capacitor/Android WebView. We route the Blob through downloadBlob()
     // which uses the native Share sheet on mobile.
-    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-    const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    downloadBlob(blob, fileName);
+    if (format === 'csv') {
+      const csvStr = XLSX.utils.sheet_to_csv(ws);
+      const blob = new Blob(['\uFEFF' + csvStr], { type: 'text/csv;charset=utf-8;' });
+      downloadBlob(blob, `${baseName}.csv`);
+    } else {
+      const bookType = format === 'ods' ? 'ods' : 'xlsx';
+      const wbout = XLSX.write(wb, { bookType: bookType, type: 'array' });
+      const mime = bookType === 'ods'
+        ? 'application/vnd.oasis.opendocument.spreadsheet'
+        : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      const blob = new Blob([wbout], { type: mime });
+      downloadBlob(blob, `${baseName}.${bookType}`);
+    }
   } catch (err) {
-    console.error('[export] XLSX export failed, falling back to CSV export.', err);
-    exportRowsAsCSV(rows, fileName.replace(/\.xlsx$/i, '.csv'));
+    console.error('[export] Spreadsheet export failed, falling back to CSV export.', err);
+    exportRowsAsCSV(rows, `${baseName}.csv`);
   }
   closeExportPeriodSheet();
+}
+
+// Generate a valid, dependency-free PDF document from the export rows.
+// Uses PDF content-stream text operators (BT/Tf/Td/Tj) to draw a simple table.
+function generatePdfBlob(rows, baseName) {
+  const headers = Object.keys(rows[0] || {});
+  const pageWidth = 612;
+  const pageHeight = 792;
+  const margin = 40;
+  const fontSize = 8;
+  const lineHeight = 12;
+  const colWidth = Math.floor((pageWidth - margin * 2) / Math.max(headers.length, 1));
+
+  // Escape a string for a PDF literal string (parentheses and backslashes).
+  const escPdf = (v) => String(v == null ? '' : v).replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+
+  // Truncate text to fit the column width (approx 5.5 chars per 8pt char per 44px col).
+  const fit = (v) => {
+    const s = String(v == null ? '' : v);
+    const maxChars = Math.max(1, Math.floor(colWidth / 4.8));
+    return s.length > maxChars ? s.substring(0, maxChars - 1) + '…' : s;
+  };
+
+  let content = '';
+  let y = pageHeight - margin;
+
+  const drawLine = (cells, bold) => {
+    if (y < margin) return; // skip overflow (single page)
+    content += 'BT /F' + (bold ? '2' : '1') + ' ' + fontSize + ' Tf ' + margin + ' ' + y + ' Td\n';
+    cells.forEach((c, i) => {
+      const x = i * colWidth;
+      content += '1 0 0 1 ' + x + ' 0 Tm (' + escPdf(fit(c)) + ') Tj\n';
+    });
+    content += 'ET\n';
+    y -= lineHeight;
+  };
+
+  // Title
+  content += 'BT /F2 14 Tf ' + margin + ' ' + y + ' Td (' + escPdf(baseName) + ') Tj ET\n';
+  y -= 20;
+
+  // Header row
+  drawLine(headers, true);
+  // Separator line
+  content += '0.7 w ' + margin + ' ' + (y + 3) + ' m ' + (pageWidth - margin) + ' ' + (y + 3) + ' l S\n';
+  y -= 4;
+
+  // Data rows
+  rows.forEach(r => {
+    drawLine(headers.map(h => r[h]), false);
+  });
+
+  const objects = [];
+  const addObj = (body) => {
+    objects.push(body);
+    return objects.length;
+  };
+  addObj('<< /Type /Catalog /Pages 2 0 R >>');
+  addObj('<< /Type /Pages /Kids [3 0 R] /Count 1 >>');
+  addObj('<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' + pageWidth + ' ' + pageHeight + '] /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> /Contents 7 0 R >>');
+  addObj('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');
+  addObj('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>');
+  addObj('<< /Length ' + content.length + ' >>\nstream\n' + content + 'endstream');
+
+  let pdf = '%PDF-1.4\n';
+  const offsets = [];
+  objects.forEach((body, i) => {
+    offsets.push(pdf.length);
+    pdf += (i + 1) + ' 0 obj\n' + body + '\nendobj\n';
+  });
+  const xrefPos = pdf.length;
+  pdf += 'xref\n0 ' + (objects.length + 1) + '\n';
+  pdf += '0000000000 65535 f \n';
+  offsets.forEach(off => {
+    pdf += String(off).padStart(10, '0') + ' 00000 n \n';
+  });
+  pdf += 'trailer\n<< /Size ' + (objects.length + 1) + ' /Root 1 0 R >>\nstartxref\n' + xrefPos + '\n%%EOF';
+
+  return new Blob([pdf], { type: 'application/pdf' });
 }
 
 // Convert a Blob to a base64 data URL string (needed by the Capacitor
