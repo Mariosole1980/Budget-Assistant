@@ -958,7 +958,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1061 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1062 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1330,7 +1330,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1061 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1062 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -8282,20 +8282,47 @@ function setupEventListeners() {
     if (input && (t === input || input.contains(t))) return false;
     return true;
   };
+  // Helper: open the currency picker, but if it throws for any reason, do NOT
+  // swallow the tap — let the event fall through so the calculator keypad opens
+  // as a fallback. This guarantees the user always gets SOME visual feedback
+  // even if the picker fails to render on a given device/version.
+  function safeOpenCurrencyPicker(e) {
+    try {
+      openCurrencyPickerModal();
+      return true;
+    } catch (err) {
+      console.error('[CurrencySymbol] openCurrencyPickerModal failed:', err);
+      try {
+        if (typeof showSyncToast === 'function') {
+          showSyncToast('Σφάλμα νομίσματος: ' + (err && err.message ? err.message : err), 3000);
+        }
+      } catch (_) { /* ignore */ }
+      // Do NOT stopPropagation/preventDefault — let the tap reach the amount row
+      // so the calculator opens as a fallback.
+      return false;
+    }
+  }
   document.addEventListener('pointerdown', (e) => {
     if (!isSymbolTap(e.target)) return;
     _symbolTapPending = true;
+    if (!safeOpenCurrencyPicker(e)) {
+      // Picker failed — do not swallow; allow the calculator to open.
+      _symbolTapPending = false;
+      return;
+    }
     e.stopPropagation();
     e.preventDefault();
-    openCurrencyPickerModal();
   }, true);
   document.addEventListener('click', (e) => {
     if (!isSymbolTap(e.target)) return;
+    if (!_symbolTapPending) {
+      if (!safeOpenCurrencyPicker(e)) {
+        // Picker failed — do not swallow; allow the calculator to open.
+        return;
+      }
+    }
     e.stopPropagation();
     e.preventDefault();
-    if (!_symbolTapPending) {
-      openCurrencyPickerModal();
-    }
     _symbolTapPending = false;
   }, true);
   // Reset the pending flag if a click never follows the pointerdown (e.g. the
@@ -10709,24 +10736,49 @@ function updateCurrencyTriggerDisplay() {
 }
 
 function openCurrencyPickerModal() {
-  const form = document.getElementById('transaction-form');
-  if (form && form.getAttribute('data-readonly') === 'true') return;
-  // Close the calculator keypad so the currency list is fully visible on top
-  // (the keypad has a higher z-index than the picker, so it would otherwise
-  // cover the list). The keypad is reopened after a currency is selected.
-  if (typeof window.closeCalculatorKeypad === 'function') {
-    window.closeCalculatorKeypad();
+  try {
+    const form = document.getElementById('transaction-form');
+    if (form && form.getAttribute('data-readonly') === 'true') return;
+    // Close the calculator keypad so the currency list is fully visible on top
+    // (the keypad has a higher z-index than the picker, so it would otherwise
+    // cover the list). The keypad is reopened after a currency is selected.
+    if (typeof window.closeCalculatorKeypad === 'function') {
+      window.closeCalculatorKeypad();
+    }
+    const search = document.getElementById('currency-picker-search');
+    if (search) search.value = '';
+    renderCurrencyPickerOptions();
+    // Open synchronously (instant) instead of via requestAnimationFrame. This
+    // picker is opened from a capture-phase pointerdown handler that calls
+    // e.preventDefault(); on Android WebView that can leave the rendering loop in
+    // a state where a requestAnimationFrame callback is dropped/delayed, so the
+    // modal would never receive the 'active' class and appear to do nothing.
+    openModal('currency-picker-modal', { instant: true });
+    // Bulletproof fallback: if for any reason the modal did not receive the
+    // 'active' class (e.g. openModal threw or was interrupted), force it open
+    // directly so the picker ALWAYS appears.
+    const el = document.getElementById('currency-picker-modal');
+    if (el && !el.classList.contains('active')) {
+      el.classList.add('active');
+      document.body.classList.add('modal-open');
+    }
+    setTimeout(() => { if (search) search.focus(); }, 100);
+  } catch (err) {
+    console.error('[CurrencySymbol] openCurrencyPickerModal error:', err);
+    try {
+      if (typeof showSyncToast === 'function') {
+        showSyncToast('Σφάλμα νομίσματος: ' + (err && err.message ? err.message : err), 3000);
+      }
+    } catch (_) { /* ignore */ }
+    // Even on error, force the modal open so the user always gets feedback.
+    try {
+      const el = document.getElementById('currency-picker-modal');
+      if (el) {
+        el.classList.add('active');
+        document.body.classList.add('modal-open');
+      }
+    } catch (_) { /* ignore */ }
   }
-  const search = document.getElementById('currency-picker-search');
-  if (search) search.value = '';
-  renderCurrencyPickerOptions();
-  // Open synchronously (instant) instead of via requestAnimationFrame. This
-  // picker is opened from a capture-phase pointerdown handler that calls
-  // e.preventDefault(); on Android WebView that can leave the rendering loop in
-  // a state where a requestAnimationFrame callback is dropped/delayed, so the
-  // modal would never receive the 'active' class and appear to do nothing.
-  openModal('currency-picker-modal', { instant: true });
-  setTimeout(() => { if (search) search.focus(); }, 100);
 }
 
 function renderCurrencyPickerOptions() {
