@@ -774,8 +774,8 @@ const TRANSLATIONS = {
     pref_week_start_mon: 'Δευτέρα',
     pref_week_start_sun: 'Κυριακή',
     card_sync: 'Συγχρονισμός',
-    card_import_excel: 'Εισαγωγή Excel',
-    card_export_excel: 'Εξαγωγή Excel',
+    card_import_excel: 'Εισαγωγή Δεδομένων',
+    card_export_excel: 'Εξαγωγή Δεδομένων',
     item_language: 'Γλώσσα',
     item_month_start: 'Έναρξη Μήνα',
     item_week_start: 'Έναρξη Εβδομάδας',
@@ -958,7 +958,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1064 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1065 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1146,8 +1146,8 @@ const TRANSLATIONS = {
     pref_week_start_mon: 'Monday',
     pref_week_start_sun: 'Sunday',
     card_sync: 'Sync',
-    card_import_excel: 'Import Excel',
-    card_export_excel: 'Export Excel',
+    card_import_excel: 'Import Data',
+    card_export_excel: 'Export Data',
     item_language: 'Language',
     item_month_start: 'Month Start',
     item_week_start: 'Week Start',
@@ -1330,7 +1330,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1064 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1065 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -11312,11 +11312,60 @@ function exportToExcel(startDate = null, endDate = null) {
     'Λογαριασμός': t.account_from, 'Σημείωση': t.note || '',
   }));
 
-  const ws = XLSX.utils.json_to_sheet(rows);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Συναλλαγές');
-  XLSX.writeFile(wb, `Budget_Assistant_Export_${new Date().toISOString().split('T')[0]}.xlsx`);
+  const fileName = `Budget_Assistant_Export_${new Date().toISOString().split('T')[0]}.xlsx`;
+
+  // Guard: if the SheetJS library is not loaded, fall back to CSV so the export still works.
+  if (typeof XLSX === 'undefined' || !XLSX || !XLSX.utils) {
+    console.warn('[export] XLSX library not available, falling back to CSV export.');
+    exportRowsAsCSV(rows, fileName.replace(/\.xlsx$/i, '.csv'));
+    closeExportPeriodSheet();
+    return;
+  }
+
+  try {
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Συναλλαγές');
+    XLSX.writeFile(wb, fileName);
+  } catch (err) {
+    console.error('[export] XLSX.writeFile failed, falling back to CSV export.', err);
+    exportRowsAsCSV(rows, fileName.replace(/\.xlsx$/i, '.csv'));
+  }
   closeExportPeriodSheet();
+}
+
+// Robust download helper that works in browsers AND Capacitor/Android WebViews.
+function downloadBlob(blob, fileName) {
+  try {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    return true;
+  } catch (err) {
+    console.error('[export] downloadBlob failed.', err);
+    return false;
+  }
+}
+
+// Fallback CSV export used when the XLSX library is unavailable or fails.
+function exportRowsAsCSV(rows, fileName) {
+  const headers = Object.keys(rows[0] || {});
+  const escapeCell = (v) => {
+    const s = String(v == null ? '' : v);
+    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  };
+  const lines = [headers.map(escapeCell).join(',')];
+  rows.forEach(r => {
+    lines.push(headers.map(h => escapeCell(r[h])).join(','));
+  });
+  const csv = '\uFEFF' + lines.join('\r\n'); // BOM for Excel compatibility
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  downloadBlob(blob, fileName);
 }
 
 // ============================================================
