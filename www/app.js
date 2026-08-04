@@ -685,12 +685,13 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1042 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1043 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
     sync_now_btn: 'Συγχρονισμός Τώρα',
     search_btn_clear: 'Καθαρισμός',
+    search_filters_title: 'Φίλτρα Αναζήτησης',
     search_results_header: 'Αποτελέσματα',
     search_title_type: 'Επιλογή Τύπου',
     search_title_category: 'Επιλογή Κατηγορίας',
@@ -1056,12 +1057,13 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1042 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1043 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
     sync_now_btn: 'Sync Now',
     search_btn_clear: 'Clear',
+    search_filters_title: 'Search Filters',
     search_results_header: 'Results',
     search_title_type: 'Select Type',
     search_title_category: 'Select Category',
@@ -1355,6 +1357,13 @@ function applyLanguage(lang) {
     const key = el.getAttribute('data-i18n-title');
     const translation = TRANSLATIONS[lang] ? TRANSLATIONS[lang][key] : null;
     if (translation) el.title = translation;
+  });
+
+  // Update elements with data-i18n-placeholder
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    const key = el.getAttribute('data-i18n-placeholder');
+    const translation = TRANSLATIONS[lang] ? TRANSLATIONS[lang][key] : null;
+    if (translation) el.placeholder = translation;
   });
 
   // Update settings subscreen title if active
@@ -10543,7 +10552,9 @@ function exportToExcel(startDate = null, endDate = null) {
 let searchResultLimit = 50;
 
 function loadMoreSearchResults() {
-  searchResultLimit += 100;
+  // Increment by the same step as the initial limit (50) so pagination
+  // grows consistently (50 -> 100 -> 150 ...) instead of jumping 50 -> 150.
+  searchResultLimit += 50;
   handleSearchChange(false);
 }
 
@@ -10966,6 +10977,13 @@ function initAmountRangeSlider() {
     document.getElementById('search-filter-amount-min').value = currentMinVal;
     document.getElementById('search-filter-amount-max').value = (pctMax >= 99) ? '' : currentMaxVal;
 
+    // Keep the inline min/max inputs in sync with the slider so the two
+    // amount-filter mechanisms never show conflicting values.
+    const inlineMin = document.getElementById('search-amount-min-inline');
+    const inlineMax = document.getElementById('search-amount-max-inline');
+    if (inlineMin) inlineMin.value = currentMinVal;
+    if (inlineMax) inlineMax.value = (pctMax >= 99) ? '' : currentMaxVal;
+
     handleSearchChange();
   }
 
@@ -10993,6 +11011,36 @@ function initAmountRangeSlider() {
 
   thumbMax.addEventListener('mousedown', (e) => onStart(e, false));
   thumbMax.addEventListener('touchstart', (e) => onStart(e, false), { passive: false });
+
+  // Expose a way to move the slider position from the inline min/max inputs,
+  // so the two amount-filter mechanisms stay in sync bidirectionally.
+  window.updateAmountSliderFromInline = function (minVal, maxVal) {
+    const minNum = parseFloat(minVal);
+    const maxNum = parseFloat(maxVal);
+    const range = (sliderMaxVal - sliderMinVal) || 1;
+
+    if (!isNaN(minNum)) {
+      currentMinVal = Math.max(sliderMinVal, Math.min(sliderMaxVal, minNum));
+      pctMin = ((currentMinVal - sliderMinVal) / range) * 100;
+    } else {
+      currentMinVal = sliderMinVal;
+      pctMin = 0;
+    }
+
+    if (!isNaN(maxNum)) {
+      currentMaxVal = Math.max(sliderMinVal, Math.min(sliderMaxVal, maxNum));
+      pctMax = ((currentMaxVal - sliderMinVal) / range) * 100;
+    } else {
+      currentMaxVal = sliderMaxVal;
+      pctMax = 100;
+    }
+
+    // Keep min thumb left of max thumb
+    if (pctMin > pctMax - 5) pctMin = Math.max(0, pctMax - 5);
+    if (pctMax < pctMin + 5) pctMax = Math.min(100, pctMin + 5);
+
+    updateSliderUI();
+  };
 }
 
 // Bind to window
@@ -11451,6 +11499,12 @@ function syncAmountFiltersFromInline() {
   const hiddenMax = document.getElementById('search-filter-amount-max');
   if (hiddenMin) hiddenMin.value = minVal;
   if (hiddenMax) hiddenMax.value = maxVal;
+
+  // Keep the dual range slider in sync with the inline inputs.
+  if (typeof window.updateAmountSliderFromInline === 'function') {
+    window.updateAmountSliderFromInline(minVal, maxVal);
+  }
+
   handleSearchChange();
 }
 

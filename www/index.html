@@ -90,7 +90,7 @@
               ${devButton}
             </div>
             <div style="font-size:11px;color:#8b949e;">
-              Budget Assistant • build v1042
+              Budget Assistant • build v1043
             </div>
           </div>
         `;
@@ -178,7 +178,7 @@
   <link rel="stylesheet" href="style.css?v=1029" id="app-stylesheet">
 
   <!-- Capacitor Bridge -->
-  <script src="capacitor.js?v=1042"></script>
+  <script src="capacitor.js?v=1043"></script>
 
 
   <!-- Supabase client JS CDN -->
@@ -188,7 +188,7 @@
   <!-- Chart.js Datalabels Plugin CDN -->
   <script src="js/chartjs-plugin-datalabels.js"></script>
   <!-- SheetJS xlsx CDN for Excel Import/Export -->
-  <script src="xlsx.full.min.js?v=1042"></script>
+  <script src="xlsx.full.min.js?v=1043"></script>
 </head>
 
 <body style="background-color: #181b22; margin: 0; padding: 0; ">
@@ -1288,7 +1288,8 @@
               <h3 class="modal-title" style="margin: 0; font-size: 16px; font-weight: 700; color: var(--text-main);"
                 data-i18n="item_user_guide">Οδηγός Χρήσης</h3>
               <div style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
-                <span id="user-guide-version-badge" style="font-size:10px; background:rgba(99,102,241,0.15); color:var(--primary); padding:2px 8px; border-radius:10px; font-weight:700; border:1px solid rgba(99,102,241,0.3);">v1029</span>
+                <span id="user-guide-version-badge"
+                  style="font-size:10px; background:rgba(99,102,241,0.15); color:var(--primary); padding:2px 8px; border-radius:10px; font-weight:700; border:1px solid rgba(99,102,241,0.3);">v1029</span>
                 <span>•</span>
                 <span id="user-guide-date-badge">Ιούλιος 2026</span>
               </div>
@@ -2019,7 +2020,7 @@
             <div class="settings-list-item version-info-row"
               style="padding: 14px 16px; background: transparent; border-top: 1px solid var(--border); margin-top: 8px;">
               <span class="settings-item-label" style="color:var(--text-muted); font-size:12px;"
-                data-i18n="app_version">Έκδοση 1.0.0 (build v1042)</span>
+                data-i18n="app_version">Έκδοση 1.0.0 (build v1043)</span>
               <span class="settings-item-value" style="font-size:12px; color:var(--text-muted); font-weight:600;">Budget
                 Assistant</span>
             </div>
@@ -2480,7 +2481,7 @@
         <div class="search-input-wrapper-modern">
           <i class="fa-solid fa-magnifying-glass search-input-icon-modern"></i>
           <input type="text" id="search-input" placeholder="Search Expenses, Accounts, or date..."
-            oninput="handleSearchChange()">
+            data-i18n-placeholder="search_placeholder" oninput="handleSearchChange()">
           <button class="search-clear-btn-modern" id="search-clear-btn" onclick="clearSearchInput()" title="Καθαρισμός">
             <i class="fa-solid fa-xmark"></i>
           </button>
@@ -2489,8 +2490,9 @@
         <!-- Collapsible Filters Panel -->
         <div id="search-filters-panel" class="search-filters-panel">
           <div class="filters-panel-header">
-            <span class="filters-panel-title">Φίλτρα Αναζήτησης</span>
-            <button type="button" class="filters-panel-reset-btn" onclick="resetSearchFilters()">Καθαρισμός</button>
+            <span class="filters-panel-title" data-i18n="search_filters_title">Φίλτρα Αναζήτησης</span>
+            <button type="button" class="filters-panel-reset-btn" data-i18n="search_btn_clear"
+              onclick="resetSearchFilters()">Καθαρισμός</button>
           </div>
 
           <!-- Horizontal Scrollable Quick-Filter Chips -->
@@ -3556,13 +3558,13 @@
     </div>
 
     <!-- Core Application Scripts -->
-    <script src="js/NLPProcessor.js?v=1042"></script>
-    <script src="js/MemoryEngine.js?v=1042"></script>
-    <script src="js/DecisionEngine.js?v=1042"></script>
-    <script src="js/OnlineAIProvider.js?v=1042"></script>
-    <script src="js/AIEngine.js?v=1042"></script>
-    <script src="js/IntentCorpus.js?v=1042"></script>
-    <script src="js/KnowledgeGraph.js?v=1042"></script>
+    <script src="js/NLPProcessor.js?v=1043"></script>
+    <script src="js/MemoryEngine.js?v=1043"></script>
+    <script src="js/DecisionEngine.js?v=1043"></script>
+    <script src="js/OnlineAIProvider.js?v=1043"></script>
+    <script src="js/AIEngine.js?v=1043"></script>
+    <script src="js/IntentCorpus.js?v=1043"></script>
+    <script src="js/KnowledgeGraph.js?v=1043"></script>
     <!-- ============================================================
          OTA BOOT LOADER
          Loads EXACTLY ONE app.js (bundled OR OTA from IndexedDB, never both).
@@ -3571,13 +3573,13 @@
            2) js/OTAEngine.js     -> auto-runs initOTACheck() (sees OTABootLoader)
            3) window.OTABootLoader.boot() -> injects the chosen app.js
          ============================================================ -->
-    <script src="ota-boot-loader.js?v=1042"></script>
-    <script src="js/OTAEngine.js?v=1042"></script>
+    <script src="ota-boot-loader.js?v=1043"></script>
+    <script src="js/OTAEngine.js?v=1043"></script>
     <script>
       // CURRENT_BUILD must be defined BEFORE boot() so the boot loader can
       // compare the staged OTA build version against the bundled APK version
       // and skip stale OTA builds (see "Stale OTA Guard" in ota-boot-loader.js).
-      const CURRENT_BUILD = 1042;
+      const CURRENT_BUILD = 1043;
       window.OTABootLoader.boot();
     </script>
 
