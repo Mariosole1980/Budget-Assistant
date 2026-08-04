@@ -1682,6 +1682,13 @@ input:focus+.slider {
 }
 
 /* MODALS & OVERLAYS */
+/* The currency picker must always appear ABOVE the calculator keypad
+   (which uses z-index 13200). index.html is NOT replaced by OTA updates,
+   so this override lives in style.css (which IS OTA-updated). */
+#currency-picker-modal {
+  z-index: 14000 !important;
+}
+
 .modal-overlay {
   position: fixed;
   top: 0;

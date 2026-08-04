@@ -958,7 +958,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1057 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1058 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1330,7 +1330,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1057 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1058 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -8248,6 +8248,25 @@ function setupEventListeners() {
   }
 
   window.handleAmountRowClick = handleAmountRowClick;
+
+  // Robust tap interception for the currency symbol. index.html is NOT replaced
+  // by OTA updates, so on installed devices the amount row still has
+  // onclick="openCalculatorKeypad()" on the parent div. A capture-phase listener
+  // fires BEFORE that bubble-phase handler, letting us reliably open the currency
+  // picker and stop the keypad from opening — no reliance on stopPropagation in
+  // the (stale) inline HTML.
+  document.addEventListener('click', (e) => {
+    const t = e.target;
+    if (!t || !t.closest) return;
+    const sym = t.closest('.currency-symbol-tappable');
+    if (!sym) return;
+    // Only intercept when the transaction form is open (the symbol only exists there).
+    const form = document.getElementById('transaction-form');
+    if (!form) return;
+    e.stopPropagation();
+    e.preventDefault();
+    openCurrencyPickerModal();
+  }, true);
 
   function closeCalculatorKeypad() {
     const keypad = document.getElementById('custom-calculator-keypad');
