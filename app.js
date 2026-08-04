@@ -958,7 +958,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1060 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1061 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1330,7 +1330,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1060 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1061 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -10720,7 +10720,12 @@ function openCurrencyPickerModal() {
   const search = document.getElementById('currency-picker-search');
   if (search) search.value = '';
   renderCurrencyPickerOptions();
-  openModal('currency-picker-modal');
+  // Open synchronously (instant) instead of via requestAnimationFrame. This
+  // picker is opened from a capture-phase pointerdown handler that calls
+  // e.preventDefault(); on Android WebView that can leave the rendering loop in
+  // a state where a requestAnimationFrame callback is dropped/delayed, so the
+  // modal would never receive the 'active' class and appear to do nothing.
+  openModal('currency-picker-modal', { instant: true });
   setTimeout(() => { if (search) search.focus(); }, 100);
 }
 
@@ -16183,9 +16188,20 @@ function updateCurrencySymbols() {
       container.insertBefore(span, input);
     }
   }
+  // Update the amount row's currency symbol via updateAmountCurrencySymbol(),
+  // which preserves the tappable class, the tap handlers AND the chevron icon.
+  // Setting el.textContent directly here would wipe the chevron <i> element that
+  // updateAmountCurrencySymbol() injects, leaving a bare symbol that no longer
+  // looks tappable. Only fall back to plain text for OTHER .currency-symbol
+  // elements (e.g. the "actual amount" correction symbol).
+  const amountSymbol = amountRow ? amountRow.querySelector('.currency-symbol') : null;
   document.querySelectorAll('.currency-symbol').forEach(el => {
+    if (el === amountSymbol) return; // handled by updateAmountCurrencySymbol()
     el.textContent = symbol;
   });
+  if (amountSymbol) {
+    updateAmountCurrencySymbol();
+  }
 }
 
 // Updates the currency symbol in the amount row. The symbol is ALWAYS visible
