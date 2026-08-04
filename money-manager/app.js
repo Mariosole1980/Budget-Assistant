@@ -4873,20 +4873,68 @@ function exportToExcel(startDate = null, endDate = null) {
   closeExportPeriodSheet();
 }
 
+// Convert a Blob to a base64 data URL string (needed by the Capacitor
+// Filesystem plugin, which cannot write raw Blob objects directly).
+function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const dataUrl = reader.result;
+      // Strip the "data:<mime>;base64," prefix to get the raw base64 payload.
+      const commaIdx = dataUrl.indexOf(',');
+      resolve(commaIdx >= 0 ? dataUrl.substring(commaIdx + 1) : dataUrl);
+    };
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
+}
+
 // Robust download helper that works in browsers AND Capacitor/Android WebViews.
 // On native (Capacitor) platforms, <a>.click() blob downloads are silently
-// blocked, so we use the Web Share API (navigator.share with a File) to open
-// the native share sheet, which lets the user save the file to their device.
+// blocked, so we write the file to the app cache via the Capacitor Filesystem
+// plugin and open the native share sheet via the Capacitor Share plugin. This
+// is the most reliable mechanism on Android WebView.
 function downloadBlob(blob, fileName) {
   const isNative = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
 
-  // 1) Native / WebView: use the Web Share API with a File object.
-  if (isNative && navigator.share && navigator.canShare) {
+  // 1) Native / WebView: Capacitor Filesystem + Share plugins.
+  if (isNative) {
+    const Filesystem = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Filesystem;
+    const Share = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Share;
+    if (Filesystem && Share && typeof Filesystem.writeFile === 'function' && typeof Share.share === 'function') {
+      try {
+        blobToBase64(blob).then(async (base64) => {
+          const safeName = fileName.replace(/[^\w.\-]+/g, '_');
+          const result = await Filesystem.writeFile({
+            path: safeName,
+            data: base64,
+            directory: 'CACHE',
+            recursive: true
+          });
+          const fileUri = result && result.uri ? result.uri : safeName;
+          await Share.share({
+            title: fileName,
+            files: [fileUri],
+            dialogTitle: fileName
+          });
+        }).catch(err => {
+          console.warn('[export] Capacitor Filesystem/Share failed, falling back to Web Share API.', err);
+          shareViaWebApi(blob, fileName);
+        });
+        return true;
+      } catch (err) {
+        console.warn('[export] Capacitor Filesystem/Share threw, falling back to Web Share API.', err);
+      }
+    }
+  }
+
+  // 2) Native / WebView fallback: Web Share API with a File object.
+  if (isNative && navigator.share) {
     try {
       const file = new File([blob], fileName, { type: blob.type || 'application/octet-stream' });
-      if (navigator.canShare({ files: [file] })) {
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
         navigator.share({ files: [file], title: fileName }).catch(err => {
-          console.warn('[export] Share canceled or failed:', err);
+          console.warn('[export] Web Share API canceled or failed:', err);
         });
         return true;
       }
@@ -4895,7 +4943,7 @@ function downloadBlob(blob, fileName) {
     }
   }
 
-  // 2) Standard browser / fallback: anchor element download.
+  // 3) Standard browser / fallback: anchor element download.
   try {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -4909,6 +4957,36 @@ function downloadBlob(blob, fileName) {
   } catch (err) {
     console.error('[export] downloadBlob failed.', err);
     return false;
+  }
+}
+
+// Web Share API fallback used when the Capacitor plugins are unavailable.
+function shareViaWebApi(blob, fileName) {
+  if (navigator.share) {
+    try {
+      const file = new File([blob], fileName, { type: blob.type || 'application/octet-stream' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        navigator.share({ files: [file], title: fileName }).catch(err => {
+          console.warn('[export] Web Share API canceled or failed:', err);
+        });
+        return;
+      }
+    } catch (err) {
+      console.warn('[export] Web Share API failed:', err);
+    }
+  }
+  // Last-resort anchor download.
+  try {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } catch (err) {
+    console.error('[export] shareViaWebApi anchor download failed.', err);
   }
 }
 
