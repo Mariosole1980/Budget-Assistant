@@ -958,7 +958,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1058 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1059 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1330,7 +1330,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1058 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1059 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -8255,17 +8255,40 @@ function setupEventListeners() {
   // fires BEFORE that bubble-phase handler, letting us reliably open the currency
   // picker and stop the keypad from opening — no reliance on stopPropagation in
   // the (stale) inline HTML.
-  document.addEventListener('click', (e) => {
-    const t = e.target;
-    if (!t || !t.closest) return;
+  //
+  // On Android WebView the 'click' event can be delayed or swallowed, so we also
+  // intercept 'pointerdown' (fires earlier and more reliably). We open the picker
+  // on pointerdown and set a flag so the subsequent click on the parent row
+  // (which would otherwise open the calculator) is suppressed.
+  let _symbolTapPending = false;
+  const isSymbolTap = (t) => {
+    if (!t || !t.closest) return false;
     const sym = t.closest('.currency-symbol-tappable');
-    if (!sym) return;
-    // Only intercept when the transaction form is open (the symbol only exists there).
+    if (!sym) return false;
     const form = document.getElementById('transaction-form');
-    if (!form) return;
+    if (!form) return false;
+    return true;
+  };
+  document.addEventListener('pointerdown', (e) => {
+    if (!isSymbolTap(e.target)) return;
+    _symbolTapPending = true;
     e.stopPropagation();
     e.preventDefault();
     openCurrencyPickerModal();
+  }, true);
+  document.addEventListener('click', (e) => {
+    if (!isSymbolTap(e.target)) return;
+    e.stopPropagation();
+    e.preventDefault();
+    if (!_symbolTapPending) {
+      openCurrencyPickerModal();
+    }
+    _symbolTapPending = false;
+  }, true);
+  // Reset the pending flag if a click never follows the pointerdown (e.g. the
+  // user dragged away), so a later unrelated tap isn't wrongly suppressed.
+  document.addEventListener('pointerup', () => {
+    setTimeout(() => { _symbolTapPending = false; }, 300);
   }, true);
 
   function closeCalculatorKeypad() {
@@ -16176,6 +16199,14 @@ function updateAmountCurrencySymbol() {
     span.style.gap = '3px';
     span.style.whiteSpace = 'nowrap';
     container.insertBefore(span, input);
+  }
+  // CRITICAL: updateCurrencySymbols() may have created the span with only the
+  // 'currency-symbol' class (no 'currency-symbol-tappable'). Ensure the tappable
+  // class is ALWAYS present so the capture-phase listener and routing handler
+  // reliably match it. Without this, taps on the symbol fall through to the
+  // parent and open the calculator instead of the currency picker.
+  if (!span.classList.contains('currency-symbol-tappable')) {
+    span.classList.add('currency-symbol-tappable');
   }
   // Always (re)bind the tap handler so the symbol is reliably tappable even
   // when the span already exists in the HTML markup.
