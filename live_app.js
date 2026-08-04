@@ -1,3 +1,276 @@
+// ============================================================
+// CurrencyService BOOTSTRAP (self-sufficiency guard)
+// ------------------------------------------------------------
+// The OTA engine only downloads app.js + style.css, NOT index.html
+// or the other js/ files. Users running an older APK whose bundled
+// index.html does NOT load js/CurrencyService.js would crash with
+// "CurrencyService is not defined" the moment the OTA app.js (which
+// references CurrencyService) runs. This guard guarantees
+// window.CurrencyService is ALWAYS available synchronously:
+//   1) If the host index.html already loaded it -> use it.
+//   2) Otherwise, synchronously load js/CurrencyService.js.
+//   3) As a last resort, install a minimal inline fallback so the
+//      app never hard-crashes on a missing global.
+// ============================================================
+(function ensureCurrencyService() {
+  // Required public methods that app.js depends on. If window.CurrencyService
+  // exists but is missing ANY of these (e.g. a stale js/CurrencyService.js
+  // served from the service-worker cache that predates a method), we must NOT
+  // trust it — otherwise app.js crashes with "CurrencyService.X is not a
+  // function". We replace it with a complete implementation below.
+  var REQUIRED_METHODS = [
+    'round', 'toDateKey', 'setCurrencies', 'getCurrencies', 'getCurrency',
+    'getSymbol', 'getDecimals', 'getCountries', 'getCurrenciesByCountry',
+    'convert', 'computeAmountBase', 'toBase',
+    'displayAmount', 'sumInCurrency', 'getRate', 'setManualRate',
+    'correctActualAmount', 'conversionStatus', 'fetchTodayRates',
+    'setRateProvider', 'setRatePersist', 'setManualRateSink',
+    'isEnabled', 'setEnabled'
+  ];
+  function isComplete(cs) {
+    if (!cs || typeof cs !== 'object') return false;
+    for (var i = 0; i < REQUIRED_METHODS.length; i++) {
+      if (typeof cs[REQUIRED_METHODS[i]] !== 'function') return false;
+    }
+    return true;
+  }
+
+  // Minimal inline fallback (only used if the real file cannot load).
+  // Provides the same public surface used across app.js so nothing crashes.
+  function FallbackCurrencyService() {
+    this.rateCache = new Map();
+    this.currencies = [
+      { code: 'EUR', name: 'Euro', symbol: '€', decimals: 2, flag: '🇪🇺', countries: ['Ευρωζώνη', 'Eurozone', 'Γερμανία', 'Germany', 'Γαλλία', 'France', 'Ιταλία', 'Italy', 'Ισπανία', 'Spain', 'Ελλάδα', 'Greece', 'Πορτογαλία', 'Portugal', 'Ολλανδία', 'Netherlands', 'Βέλγιο', 'Belgium', 'Αυστρία', 'Austria', 'Ιρλανδία', 'Ireland', 'Φινλανδία', 'Finland', 'Κύπρος', 'Cyprus', 'Μάλτα', 'Malta', 'Κροατία', 'Croatia'] },
+      { code: 'USD', name: 'US Dollar', symbol: '$', decimals: 2, flag: '🇺🇸', countries: ['ΗΠΑ', 'USA', 'Αμερική', 'America', 'Ηνωμένες Πολιτείες', 'United States'] },
+      { code: 'GBP', name: 'British Pound', symbol: '£', decimals: 2, flag: '🇬🇧', countries: ['Ηνωμένο Βασίλειο', 'United Kingdom', 'Βρετανία', 'Britain', 'Αγγλία', 'England'] },
+      { code: 'JPY', name: 'Japanese Yen', symbol: '¥', decimals: 0, flag: '🇯🇵', countries: ['Ιαπωνία', 'Japan'] },
+      { code: 'CHF', name: 'Swiss Franc', symbol: 'CHF', decimals: 2, flag: '🇨🇭', countries: ['Ελβετία', 'Switzerland'] },
+      { code: 'CAD', name: 'Canadian Dollar', symbol: 'C$', decimals: 2, flag: '🇨🇦', countries: ['Καναδάς', 'Canada'] },
+      { code: 'AUD', name: 'Australian Dollar', symbol: 'A$', decimals: 2, flag: '🇦🇺', countries: ['Αυστραλία', 'Australia'] },
+      { code: 'CNY', name: 'Chinese Yuan', symbol: '¥', decimals: 2, flag: '🇨🇳', countries: ['Κίνα', 'China'] },
+      { code: 'INR', name: 'Indian Rupee', symbol: '₹', decimals: 2, flag: '🇮🇳', countries: ['Ινδία', 'India'] },
+      { code: 'RUB', name: 'Russian Ruble', symbol: '₽', decimals: 2, flag: '🇷🇺', countries: ['Ρωσία', 'Russia'] },
+      { code: 'BRL', name: 'Brazilian Real', symbol: 'R$', decimals: 2, flag: '🇧🇷', countries: ['Βραζιλία', 'Brazil'] },
+      { code: 'TRY', name: 'Turkish Lira', symbol: '₺', decimals: 2, flag: '🇹🇷', countries: ['Τουρκία', 'Turkey'] },
+      { code: 'SEK', name: 'Swedish Krona', symbol: 'kr', decimals: 2, flag: '🇸🇪', countries: ['Σουηδία', 'Sweden'] },
+      { code: 'NOK', name: 'Norwegian Krone', symbol: 'kr', decimals: 2, flag: '🇳🇴', countries: ['Νορβηγία', 'Norway'] },
+      { code: 'DKK', name: 'Danish Krone', symbol: 'kr', decimals: 2, flag: '🇩🇰', countries: ['Δανία', 'Denmark'] },
+      { code: 'PLN', name: 'Polish Zloty', symbol: 'zł', decimals: 2, flag: '🇵🇱', countries: ['Πολωνία', 'Poland'] },
+      { code: 'CZK', name: 'Czech Koruna', symbol: 'Kč', decimals: 2, flag: '🇨🇿', countries: ['Τσεχία', 'Czech Republic'] },
+      { code: 'HUF', name: 'Hungarian Forint', symbol: 'Ft', decimals: 2, flag: '🇭🇺', countries: ['Ουγγαρία', 'Hungary'] },
+      { code: 'RON', name: 'Romanian Leu', symbol: 'lei', decimals: 2, flag: '🇷🇴', countries: ['Ρουμανία', 'Romania'] },
+      { code: 'BGN', name: 'Bulgarian Lev', symbol: 'лв', decimals: 2, flag: '🇧🇬', countries: ['Βουλγαρία', 'Bulgaria'] },
+      { code: 'UAH', name: 'Ukrainian Hryvnia', symbol: '₴', decimals: 2, flag: '🇺🇦', countries: ['Ουκρανία', 'Ukraine'] },
+      { code: 'ILS', name: 'Israeli New Shekel', symbol: '₪', decimals: 2, flag: '🇮🇱', countries: ['Ισραήλ', 'Israel'] },
+      { code: 'AED', name: 'UAE Dirham', symbol: 'د.إ', decimals: 2, flag: '🇦🇪', countries: ['Ηνωμένα Αραβικά Εμιράτα', 'United Arab Emirates', 'UAE'] },
+      { code: 'SAR', name: 'Saudi Riyal', symbol: '﷼', decimals: 2, flag: '🇸🇦', countries: ['Σαουδική Αραβία', 'Saudi Arabia'] },
+      { code: 'KRW', name: 'South Korean Won', symbol: '₩', decimals: 0, flag: '🇰🇷', countries: ['Νότια Κορέα', 'South Korea', 'Κορέα', 'Korea'] },
+      { code: 'SGD', name: 'Singapore Dollar', symbol: 'S$', decimals: 2, flag: '🇸🇬', countries: ['Σιγκαπούρη', 'Singapore'] },
+      { code: 'HKD', name: 'Hong Kong Dollar', symbol: 'HK$', decimals: 2, flag: '🇭🇰', countries: ['Χονγκ Κονγκ', 'Hong Kong'] },
+      { code: 'MYR', name: 'Malaysian Ringgit', symbol: 'RM', decimals: 2, flag: '🇲🇾', countries: ['Μαλαισία', 'Malaysia'] },
+      { code: 'THB', name: 'Thai Baht', symbol: '฿', decimals: 2, flag: '🇹🇭', countries: ['Ταϊλάνδη', 'Thailand'] },
+      { code: 'IDR', name: 'Indonesian Rupiah', symbol: 'Rp', decimals: 0, flag: '🇮🇩', countries: ['Ινδονησία', 'Indonesia'] },
+      { code: 'PHP', name: 'Philippine Peso', symbol: '₱', decimals: 2, flag: '🇵🇭', countries: ['Φιλιππίνες', 'Philippines'] },
+      { code: 'VND', name: 'Vietnamese Dong', symbol: '₫', decimals: 0, flag: '🇻🇳', countries: ['Βιετνάμ', 'Vietnam'] },
+      { code: 'PKR', name: 'Pakistani Rupee', symbol: '₨', decimals: 2, flag: '🇵🇰', countries: ['Πακιστάν', 'Pakistan'] },
+      { code: 'BDT', name: 'Bangladeshi Taka', symbol: '৳', decimals: 2, flag: '🇧🇩', countries: ['Μπανγκλαντές', 'Bangladesh'] },
+      { code: 'LKR', name: 'Sri Lankan Rupee', symbol: 'Rs', decimals: 2, flag: '🇱🇰', countries: ['Σρι Λάνκα', 'Sri Lanka'] },
+      { code: 'NPR', name: 'Nepalese Rupee', symbol: '₨', decimals: 2, flag: '🇳🇵', countries: ['Νεπάλ', 'Nepal'] },
+      { code: 'KZT', name: 'Kazakhstani Tenge', symbol: '₸', decimals: 2, flag: '🇰🇿', countries: ['Καζακστάν', 'Kazakhstan'] },
+      { code: 'UZS', name: 'Uzbekistani Som', symbol: 'soʻm', decimals: 2, flag: '🇺🇿', countries: ['Ουζμπεκιστάν', 'Uzbekistan'] },
+      { code: 'GEL', name: 'Georgian Lari', symbol: '₾', decimals: 2, flag: '🇬🇪', countries: ['Γεωργία', 'Georgia'] },
+      { code: 'BYN', name: 'Belarusian Ruble', symbol: 'Br', decimals: 2, flag: '🇧🇾', countries: ['Λευκορωσία', 'Belarus'] },
+      { code: 'RSD', name: 'Serbian Dinar', symbol: 'дин', decimals: 2, flag: '🇷🇸', countries: ['Σερβία', 'Serbia'] },
+      { code: 'MKD', name: 'Macedonian Denar', symbol: 'ден', decimals: 2, flag: '🇲🇰', countries: ['Βόρεια Μακεδονία', 'North Macedonia'] },
+      { code: 'ALL', name: 'Albanian Lek', symbol: 'L', decimals: 2, flag: '🇦🇱', countries: ['Αλβανία', 'Albania'] },
+      { code: 'BAM', name: 'Bosnian Convertible Mark', symbol: 'KM', decimals: 2, flag: '🇧🇦', countries: ['Βοσνία και Ερζεγοβίνη', 'Bosnia and Herzegovina'] },
+      { code: 'ISK', name: 'Icelandic Króna', symbol: 'kr', decimals: 0, flag: '🇮🇸', countries: ['Ισλανδία', 'Iceland'] },
+      { code: 'ARS', name: 'Argentine Peso', symbol: '$', decimals: 2, flag: '🇦🇷', countries: ['Αργεντινή', 'Argentina'] },
+      { code: 'CLP', name: 'Chilean Peso', symbol: '$', decimals: 0, flag: '🇨🇱', countries: ['Χιλή', 'Chile'] },
+      { code: 'COP', name: 'Colombian Peso', symbol: '$', decimals: 2, flag: '🇨🇴', countries: ['Κολομβία', 'Colombia'] },
+      { code: 'PEN', name: 'Peruvian Sol', symbol: 'S/', decimals: 2, flag: '🇵🇪', countries: ['Περού', 'Peru'] },
+      { code: 'UYU', name: 'Uruguayan Peso', symbol: '$U', decimals: 2, flag: '🇺🇾', countries: ['Ουρουγουάη', 'Uruguay'] },
+      { code: 'MXN', name: 'Mexican Peso', symbol: 'MX$', decimals: 2, flag: '🇲🇽', countries: ['Μεξικό', 'Mexico'] },
+      { code: 'ZAR', name: 'South African Rand', symbol: 'R', decimals: 2, flag: '🇿🇦', countries: ['Νότια Αφρική', 'South Africa'] },
+      { code: 'NGN', name: 'Nigerian Naira', symbol: '₦', decimals: 2, flag: '🇳🇬', countries: ['Νιγηρία', 'Nigeria'] },
+      { code: 'KES', name: 'Kenyan Shilling', symbol: 'KSh', decimals: 2, flag: '🇰🇪', countries: ['Κένυα', 'Kenya'] },
+      { code: 'EGP', name: 'Egyptian Pound', symbol: 'ج.م', decimals: 2, flag: '🇪🇬', countries: ['Αίγυπτος', 'Egypt'] },
+      { code: 'MAD', name: 'Moroccan Dirham', symbol: 'د.م.', decimals: 2, flag: '🇲🇦', countries: ['Μαρόκο', 'Morocco'] },
+      { code: 'TND', name: 'Tunisian Dinar', symbol: 'د.ت', decimals: 3, flag: '🇹🇳', countries: ['Τυνησία', 'Tunisia'] }
+    ];
+    this._rateProvider = null;
+    this._ratePersist = null;
+    this._manualRateSink = null;
+  }
+  FallbackCurrencyService.prototype.round = function (v, d) {
+    d = d == null ? 4 : d;
+    var f = Math.pow(10, d);
+    return Math.round((v + Number.EPSILON) * f) / f;
+  };
+  FallbackCurrencyService.prototype.toDateKey = function (date) {
+    if (!date) return null;
+    if (date instanceof Date) return date.toISOString().slice(0, 10);
+    return String(date).slice(0, 10);
+  };
+  FallbackCurrencyService.prototype.setCurrencies = function (list) {
+    if (Array.isArray(list) && list.length) this.currencies = list;
+  };
+  FallbackCurrencyService.prototype.getCurrencies = function () { return this.currencies; };
+  FallbackCurrencyService.prototype.getCurrency = function (code) {
+    return this.currencies.find(function (c) { return c.code === code; }) || null;
+  };
+  FallbackCurrencyService.prototype.getSymbol = function (code) {
+    var c = this.getCurrency(code);
+    return c ? c.symbol : (code || '');
+  };
+  FallbackCurrencyService.prototype.getDecimals = function (code) {
+    var c = this.getCurrency(code);
+    return c && typeof c.decimals === 'number' ? c.decimals : 2;
+  };
+  FallbackCurrencyService.prototype.getCountries = function (code) {
+    var c = this.getCurrency(code);
+    return c && Array.isArray(c.countries) ? c.countries : [];
+  };
+  FallbackCurrencyService.prototype.getCurrenciesByCountry = function (query) {
+    if (!query) return [];
+    var q = String(query).toLowerCase().trim();
+    if (!q) return [];
+    var self = this;
+    return this.currencies.filter(function (c) {
+      return (c.countries || []).some(function (name) { return String(name).toLowerCase().indexOf(q) !== -1; });
+    });
+  };
+  FallbackCurrencyService.prototype.getRate = function (base, quote, date) {
+    if (base === quote) return 1;
+    var dateKey = this.toDateKey(date) || new Date().toISOString().slice(0, 10);
+    var exactKey = base + '_' + quote + '_' + dateKey;
+    if (this.rateCache.has(exactKey)) return this.rateCache.get(exactKey).rate;
+    if (this._rateProvider) {
+      var rate = this._rateProvider(base, quote, dateKey);
+      if (rate != null) {
+        this.rateCache.set(exactKey, { rate: Number(rate), source: 'cached', fetched_at: Date.now() });
+        return rate;
+      }
+    }
+    return null;
+  };
+  FallbackCurrencyService.prototype.computeAmountBase = function (amount, currency, baseCurrency, date, rateToBaseActual) {
+    if (currency === baseCurrency) return this.round(amount, 4);
+    var rate = rateToBaseActual != null ? rateToBaseActual : this.getRate(currency, baseCurrency, date);
+    if (rate == null || rate === 0) return null;
+    return this.round(amount / rate, 4);
+  };
+  FallbackCurrencyService.prototype.toBase = function (tx) {
+    if (!tx) return 0;
+    if (tx.amount_base != null) return Number(tx.amount_base);
+    return this.computeAmountBase(
+      Number(tx.amount),
+      tx.currency || 'EUR',
+      tx.base_currency || 'EUR',
+      tx.date,
+      tx.rate_to_base_actual != null ? Number(tx.rate_to_base_actual) : null
+    ) || 0;
+  };
+  FallbackCurrencyService.prototype.displayAmount = function (tx, targetCurrency) {
+    if (!tx) return 0;
+    var txCurrency = tx.currency || 'EUR';
+    var baseCurrency = tx.base_currency || 'EUR';
+    if (targetCurrency === txCurrency) return Number(tx.amount);
+    if (targetCurrency === baseCurrency) return this.toBase(tx);
+    return this.convert(this.toBase(tx), baseCurrency, targetCurrency, tx.date) || 0;
+  };
+  FallbackCurrencyService.prototype.convert = function (amount, fromCurrency, toCurrency, date) {
+    if (fromCurrency === toCurrency) return amount;
+    var rate = this.getRate(fromCurrency, toCurrency, date);
+    if (rate == null || rate === 0) return null;
+    return this.round(amount * rate, 4);
+  };
+  FallbackCurrencyService.prototype.sumInCurrency = function (transactions, targetCurrency) {
+    if (!Array.isArray(transactions)) return 0;
+    var self = this;
+    return transactions.reduce(function (sum, tx) { return sum + self.displayAmount(tx, targetCurrency); }, 0);
+  };
+  FallbackCurrencyService.prototype.setManualRate = function (base, quote, date, rate) {
+    var dateKey = this.toDateKey(date) || new Date().toISOString().slice(0, 10);
+    this.rateCache.set(base + '_' + quote + '_' + dateKey, { rate: Number(rate), source: 'manual', fetched_at: Date.now() });
+    if (this._manualRateSink) this._manualRateSink(base, quote, dateKey, rate);
+  };
+  FallbackCurrencyService.prototype.correctActualAmount = function (tx, actualAmountInBase) {
+    if (!tx || actualAmountInBase == null || actualAmountInBase <= 0) return tx;
+    var amount = Number(tx.amount);
+    tx.rate_to_base_actual = this.round(amount / actualAmountInBase, 8);
+    tx.amount_base = this.computeAmountBase(amount, tx.currency || 'EUR', tx.base_currency || 'EUR', tx.date, tx.rate_to_base_actual);
+    tx.rate_source = 'manual';
+    return tx;
+  };
+  FallbackCurrencyService.prototype.conversionStatus = function (tx) {
+    if (!tx) return 'confirmed';
+    var source = tx.rate_source || 'api';
+    if (source === 'manual') return 'manual';
+    if (source === 'cached') return 'estimate';
+    return 'confirmed';
+  };
+  FallbackCurrencyService.prototype.fetchTodayRates = function () { return Promise.resolve(false); };
+  FallbackCurrencyService.prototype.setRateProvider = function (fn) { this._rateProvider = fn; };
+  FallbackCurrencyService.prototype.setRatePersist = function (fn) { this._ratePersist = fn; };
+  FallbackCurrencyService.prototype.setManualRateSink = function (fn) { this._manualRateSink = fn; };
+  FallbackCurrencyService.prototype.isEnabled = function () {
+    try { return localStorage.getItem('multi_currency_enabled') === 'true'; } catch (e) { return false; }
+  };
+  FallbackCurrencyService.prototype.setEnabled = function (val) {
+    try { localStorage.setItem('multi_currency_enabled', val ? 'true' : 'false'); } catch (e) { /* ignore */ }
+  };
+
+  // Install the complete inline fallback as window.CurrencyService.
+  function installFallback() {
+    window.CurrencyService = new FallbackCurrencyService();
+  }
+
+  // 1) If a COMPLETE CurrencyService is already present (loaded by index.html),
+  //    use it as-is.
+  if (typeof window !== 'undefined' && isComplete(window.CurrencyService)) {
+    return;
+  }
+
+  try {
+    // 2) Otherwise, synchronously load the real service (classic script tags
+    //    block). NOTE: appendChild does NOT block, so we cannot rely on the
+    //    global being set synchronously here — we re-check after the load and
+    //    fall through to the inline fallback if it still isn't complete.
+    var s = document.createElement('script');
+    s.src = 'js/CurrencyService.js';
+    document.head.appendChild(s);
+    if (isComplete(window.CurrencyService)) return;
+  } catch (e) { /* fall through to inline fallback */ }
+
+  // Install the fallback synchronously so window.CurrencyService is ALWAYS
+  // complete before any app code runs.
+  installFallback();
+
+  // 3) Self-healing watchdog: the async js/CurrencyService.js load above may
+  //    complete AFTER this guard and its export may clobber window.CurrencyService
+  //    with a stale/incomplete instance (e.g. an old cached file that lacks
+  //    isEnabled and predates the self-healing export). Re-verify shortly after
+  //    the load and re-install the complete fallback if it was clobbered. This
+  //    guarantees "CurrencyService.isEnabled is not a function" can NEVER occur.
+  if (typeof window !== 'undefined' && window.document) {
+    var watchdogTimer = setTimeout(function () {
+      if (!isComplete(window.CurrencyService)) {
+        installFallback();
+      }
+    }, 0);
+    // Also re-check after the async script has had a chance to execute.
+    var watchdogTimer2 = setTimeout(function () {
+      if (!isComplete(window.CurrencyService)) {
+        installFallback();
+      }
+    }, 250);
+    // Keep the timers from keeping the page alive in tests.
+    if (watchdogTimer && watchdogTimer.unref) watchdogTimer.unref();
+    if (watchdogTimer2 && watchdogTimer2.unref) watchdogTimer2.unref();
+  }
+})();
+
 // Global error boundary to capture and display initialization or runtime errors
 window.onerror = function (message, source, lineno, colno, error) {
   console.error("Global Error Boundary Caught:", message, "at", source, ":", lineno, ":", colno, error);
@@ -6,6 +279,16 @@ window.onerror = function (message, source, lineno, colno, error) {
 
 window.addEventListener('unhandledrejection', function (event) {
   console.error("Unhandled Rejection:", event.reason);
+  // DIAGNOSTIC: Log the full stack trace so the exact recursion source can be
+  // pinpointed. event.reason.stack reveals which function overflows the call stack.
+  try {
+    if (event.reason && event.reason.stack) {
+      console.error("Unhandled Rejection STACK:\n" + event.reason.stack);
+    }
+    if (event.reason && event.reason.message && String(event.reason.message).indexOf('call stack') !== -1) {
+      console.error("STACK OVERFLOW DETECTED. Full stack:\n" + (event.reason.stack || '(no stack)'));
+    }
+  } catch (e) { /* best-effort logging */ }
   alert("⚠️ Unhandled Promise Rejection:\n" + (event.reason?.message || event.reason));
 });
 
@@ -675,12 +958,13 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'u{0395}u{03BA}u{03B4}u{03BF}u{03C3}u{03B7} 1.0.0 (build v1011 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1063 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
     sync_now_btn: 'Συγχρονισμός Τώρα',
     search_btn_clear: 'Καθαρισμός',
+    search_filters_title: 'Φίλτρα Αναζήτησης',
     search_results_header: 'Αποτελέσματα',
     search_title_type: 'Επιλογή Τύπου',
     search_title_category: 'Επιλογή Κατηγορίας',
@@ -1046,12 +1330,13 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1011 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1063 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
     sync_now_btn: 'Sync Now',
     search_btn_clear: 'Clear',
+    search_filters_title: 'Search Filters',
     search_results_header: 'Results',
     search_title_type: 'Select Type',
     search_title_category: 'Select Category',
@@ -1347,6 +1632,13 @@ function applyLanguage(lang) {
     if (translation) el.title = translation;
   });
 
+  // Update elements with data-i18n-placeholder
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    const key = el.getAttribute('data-i18n-placeholder');
+    const translation = TRANSLATIONS[lang] ? TRANSLATIONS[lang][key] : null;
+    if (translation) el.placeholder = translation;
+  });
+
   // Update settings subscreen title if active
   const titleEl = document.getElementById('settings-subscreen-title');
   if (titleEl && window._currentSettingsSubscreenTitleKey) {
@@ -1398,10 +1690,11 @@ function updateOTADiagnostic() {
   if (bundledEl) bundledEl.textContent = 'v' + bundled;
   if (sourceEl) sourceEl.textContent = source;
   diag.style.display = 'block';
-  // Refresh the version display label so it reflects the active OTA build.
-  if (typeof applyLanguage === 'function' && typeof state !== 'undefined' && state.lang) {
-    applyLanguage(state.lang);
-  }
+  // NOTE: Do NOT call applyLanguage() here. applyLanguage() already calls
+  // updateOTADiagnostic() at its end, so calling it back here would create
+  // infinite mutual recursion -> "Maximum call stack size exceeded".
+  // The version display label is already refreshed by applyLanguage() itself
+  // via getActiveBuildLabel().
 }
 window.updateOTADiagnostic = updateOTADiagnostic;
 
@@ -1450,6 +1743,27 @@ function evaluateCalcBuffer(buf) {
     console.error('Calculation error:', e);
     return cleanBuf;
   }
+}
+
+// Format a raw calculator buffer for display with thousands separators (Greek style, '.').
+// Only plain numeric buffers (digits + optional single decimal dot) are formatted;
+// expressions containing operators are shown as-is to avoid confusion.
+function formatCalcDisplay(buf) {
+  if (!buf) return buf;
+  const s = String(buf);
+  if (!/^\d*\.?\d*$/.test(s)) return s;
+  const dotIdx = s.indexOf('.');
+  let intPart = dotIdx === -1 ? s : s.slice(0, dotIdx);
+  const decPart = dotIdx === -1 ? '' : s.slice(dotIdx);
+  intPart = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return intPart + decPart;
+}
+
+// Remove thousands separators ('.' followed by exactly 3 digits) so a formatted
+// display value like "5.000" or "1.234.56" can be parsed back to a raw number.
+function stripThousandsSeparators(str) {
+  if (!str) return str;
+  return String(str).replace(/(\d)\.(?=\d{3}(?!\d))/g, '$1');
 }
 
 let statsChartInstance = null;
@@ -1774,6 +2088,8 @@ function handleIncomingLocalNotification(notification) {
       action = { type: 'open_transactions' };
     } else if (extra.type === 'recurring_alert') {
       action = { type: 'open_transactions' };
+    } else if (extra.type === 'high_expense') {
+      action = { type: 'open_transactions' };
     }
   }
   addInAppNotification(title, body, action);
@@ -1993,6 +2309,7 @@ async function initApp() {
   document.body.classList.add('trans-tab-active');
   loadConfig();
   initSettingsFromStorage();
+  initMultiCurrency();
   loadNotifications();
   initLocalNotifications();
   initSupabase();
@@ -3018,7 +3335,7 @@ function calculateInitialBalances() {
     // Base balance is calculated from all active transactions going backwards
     const activeTrans = getActiveTransactions();
     activeTrans.forEach(t => {
-      const amt = parseFloat(t.amount) || 0;
+      const amt = CurrencyService.toBase(t);
       if (t.type === 'transfer') {
         if (t.account_from === acc.name) netSum -= amt;
         if (t.account_to === acc.name) netSum += amt;
@@ -3087,7 +3404,7 @@ function calculateFinancialHealthScore(transactions, accounts, hasHistoricalData
   let currentMonthIncome = 0;
   let currentMonthExpense = 0;
   currentMonthTrans.forEach(t => {
-    const amt = parseFloat(t.amount) || 0;
+    const amt = CurrencyService.toBase(t);
     if (t.type === 'income') currentMonthIncome += amt;
     if (t.type === 'expense') currentMonthExpense += amt;
   });
@@ -3126,7 +3443,7 @@ function calculateFinancialHealthScore(transactions, accounts, hasHistoricalData
   let targetYearIncome = 0;
   let targetYearExpense = 0;
   targetYearTrans.forEach(t => {
-    const amt = parseFloat(t.amount) || 0;
+    const amt = CurrencyService.toBase(t);
     if (t.type === 'income') targetYearIncome += amt;
     if (t.type === 'expense') targetYearExpense += amt;
   });
@@ -3140,7 +3457,7 @@ function calculateFinancialHealthScore(transactions, accounts, hasHistoricalData
   // Let's compute current month's essential expenses
   let currentMonthEssentialExpense = 0;
   currentMonthTrans.forEach(t => {
-    const amt = parseFloat(t.amount) || 0;
+    const amt = CurrencyService.toBase(t);
     if (t.type === 'expense') {
       const cls = classifyCategory(t.category);
       if (cls.isEssential) {
@@ -3167,7 +3484,7 @@ function calculateFinancialHealthScore(transactions, accounts, hasHistoricalData
       if (y === currentYear && m === currentMonth) return;
 
       const key = `${y}-${m}`;
-      const amt = parseFloat(t.amount) || 0;
+      const amt = CurrencyService.toBase(t);
 
       monthlyExpensesMap[key] = (monthlyExpensesMap[key] || 0) + amt;
 
@@ -3245,7 +3562,7 @@ function calculateFinancialHealthScore(transactions, accounts, hasHistoricalData
         const y = parseInt(parts[0], 10);
         const m = parseInt(parts[1], 10) - 1;
         if (y === prevYearNum && m === prevMonthNum) {
-          prevMonthExpense += parseFloat(t.amount) || 0;
+          prevMonthExpense += CurrencyService.toBase(t);
         }
       }
     });
@@ -3325,7 +3642,7 @@ function calculateForecasting(transactions, hasHistoricalData) {
   let currentYearIncome = 0;
   let currentYearExpense = 0;
   currentYearTrans.forEach(t => {
-    const amt = parseFloat(t.amount) || 0;
+    const amt = CurrencyService.toBase(t);
     if (t.type === 'income') currentYearIncome += amt;
     if (t.type === 'expense') currentYearExpense += amt;
   });
@@ -3347,7 +3664,7 @@ function calculateForecasting(transactions, hasHistoricalData) {
       let juneIncome = 0;
       let juneExpense = 0;
       juneTrans.forEach(t => {
-        const amt = parseFloat(t.amount) || 0;
+        const amt = CurrencyService.toBase(t);
         if (t.type === 'income') juneIncome += amt;
         if (t.type === 'expense') juneExpense += amt;
       });
@@ -3382,7 +3699,7 @@ function calculateForecasting(transactions, hasHistoricalData) {
       let prevYearIncome = 0;
       let prevYearExpense = 0;
       prevYearTrans.forEach(t => {
-        const amt = parseFloat(t.amount) || 0;
+        const amt = CurrencyService.toBase(t);
         if (t.type === 'income') prevYearIncome += amt;
         if (t.type === 'expense') prevYearExpense += amt;
       });
@@ -4569,8 +4886,69 @@ function processRecurringTemplates() {
 // ============================================================
 // SAVE / DELETE
 // ============================================================
+// HIGH-EXPENSE ALERT (Υψηλή Δαπάνη)
+// The "Single Expense Alert" setting was previously a UI-only stub:
+// the settings (settings_expense_alert_enabled / _limit) were saved to
+// localStorage but NO code ever checked them or fired a notification.
+// This helper wires the setting to the actual alert. It is called from
+// saveTransaction() so it fires for ANY expense added (form, coach, demo).
+// ============================================================
+function checkHighExpenseAlert(transaction) {
+  try {
+    // Only expenses (not income/transfers) can trigger the high-expense alert.
+    if (!transaction || transaction.type !== 'expense') return;
+
+    const enabled = localStorage.getItem('settings_expense_alert_enabled') === 'true';
+    if (!enabled) return;
+
+    const limit = parseFloat(localStorage.getItem('settings_expense_alert_limit')) || 500;
+    const amount = parseFloat(transaction.amount) || 0;
+    if (amount < limit) return;
+
+    const catName = getCategoryDisplayName ? getCategoryDisplayName(transaction.category) : (transaction.category || '');
+    const title = state.lang === 'el' ? '⚠️ Υψηλή Δαπάνη' : '⚠️ High Expense Alert';
+    const body = state.lang === 'el'
+      ? `Καταχωρήθηκε δαπάνη ${formatCurrency(amount)} (${catName}) που υπερβαίνει το όριο των ${formatCurrency(limit)}.`
+      : `An expense of ${formatCurrency(amount)} (${catName}) was recorded, exceeding your limit of ${formatCurrency(limit)}.`;
+
+    // 1. In-app notification (notification center / badge)
+    addInAppNotification(title, body, { type: 'open_transactions' });
+
+    // 2. Toast so the user sees it immediately
+    if (typeof showToast === 'function') {
+      showToast(title + ' — ' + body, 'warning');
+    }
+
+    // 3. Native push-style notification (works when app is in background)
+    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.LocalNotifications) {
+      const LocalNotifications = window.Capacitor.Plugins.LocalNotifications;
+      LocalNotifications.schedule({
+        notifications: [{
+          id: 9000 + (Math.floor(Math.random() * 900) + 100),
+          title: title,
+          body: body,
+          schedule: { at: new Date(Date.now() + 500) },
+          sound: null,
+          attachments: null,
+          actionTypeId: '',
+          extra: { type: 'high_expense' }
+        }]
+      }).catch(err => console.warn('Failed to schedule high-expense native notification:', err));
+    }
+
+    console.log(`[ALERT] High expense detected: ${amount} >= ${limit}`);
+  } catch (err) {
+    // Never let a notification failure break the transaction save.
+    console.warn('checkHighExpenseAlert error:', err);
+  }
+}
+
 async function saveTransaction(transaction) {
   transaction.amount = parseFloat(transaction.amount);
+
+  // HIGH-EXPENSE ALERT: Fire the "Single Expense Alert" notification if this
+  // newly saved expense meets/exceeds the configured limit (settings_expense_alert_limit).
+  checkHighExpenseAlert(transaction);
 
   // 1. Generate local UUID if it's a new transaction
   if (!transaction.id) {
@@ -4865,39 +5243,88 @@ function deleteTransactionOffline(id, skipSave = false) {
 // UI UPDATE ENGINE
 // ============================================================
 
-// Debounce for updateUI — prevents 32+ concurrent calls from all hammering the DOM at once.
-// Any burst of updateUI() calls within 150 ms will collapse into a single render.
+// ============================================================
+// FIX #4 (flicker): Central render scheduler.
+// All UI renders funnel through updateUI() which coalesces bursts
+// into a single pass. Key improvements over the old scheduler:
+//   1. A single updateUI() call flushes on the NEXT animation frame
+//      (no artificial 150ms latency for isolated renders).
+//   2. A burst of updateUI() calls within the debounce window collapses
+//      into ONE render (no more 32+ concurrent DOM mutations racing).
+//   3. flushUI() cancels any pending scheduled render and renders
+//      immediately — used by switchTab so a tab switch never races
+//      against a background-sync render.
+// ============================================================
 let _updateUITimer = null;
 let _updateUIRAF = null;
+let _updateUIDirty = false;
+
+function _runScheduledRender() {
+  _updateUITimer = null;
+  _updateUIRAF = null;
+  _updateUIDirty = false;
+  // ANTI-FLICKER: When _suppressTransitions is set (e.g. during the
+  // startup loadData() re-render after a long background where the OS
+  // reloaded the WebView), wrap the DOM wipe/re-render in no-transition
+  // so the tab content does not visibly flash. This covers the full-reload
+  // path that forceSyncNow's own guard cannot reach.
+  const suppress = !!window._suppressTransitions;
+  if (suppress) document.documentElement.classList.add('no-transition');
+  try {
+    _updateUIImpl();
+  } finally {
+    if (suppress) {
+      setTimeout(() => {
+        document.documentElement.classList.remove('no-transition');
+      }, 1000);
+    }
+  }
+}
+
 function updateUI() {
-  if (_updateUITimer) clearTimeout(_updateUITimer);
+  // If a render is already scheduled (either the resume-delay timer or the
+  // pending animation-frame), just mark it dirty and let the existing
+  // scheduled pass handle it — coalescing bursts into a single render.
+  if (_updateUITimer || _updateUIRAF) {
+    _updateUIDirty = true;
+    return;
+  }
+  _updateUIDirty = true;
+
   // ANTI-FLICKER: If the app just resumed from background, defer rendering
   // until after the 600ms resume guard window expires. This prevents the
   // DOM wipe from being visible during the resume animation frame.
-  const baseDelay = window._appJustResumed ? 700 : 150;
-  _updateUITimer = setTimeout(() => {
-    _updateUITimer = null;
+  const baseDelay = window._appJustResumed ? 700 : 0;
+
+  if (baseDelay > 0) {
+    _updateUITimer = setTimeout(() => {
+      _updateUITimer = null;
+      if (_updateUIRAF) cancelAnimationFrame(_updateUIRAF);
+      _updateUIRAF = requestAnimationFrame(_runScheduledRender);
+    }, baseDelay);
+  } else {
+    // No resume guard needed: flush on the next animation frame so that
+    // multiple synchronous updateUI() calls in the same tick still coalesce
+    // into a single render (avoids redundant DOM wipes).
     if (_updateUIRAF) cancelAnimationFrame(_updateUIRAF);
-    _updateUIRAF = requestAnimationFrame(() => {
-      _updateUIRAF = null;
-      // ANTI-FLICKER: When _suppressTransitions is set (e.g. during the
-      // startup loadData() re-render after a long background where the OS
-      // reloaded the WebView), wrap the DOM wipe/re-render in no-transition
-      // so the tab content does not visibly flash. This covers the full-reload
-      // path that forceSyncNow's own guard cannot reach.
-      const suppress = !!window._suppressTransitions;
-      if (suppress) document.documentElement.classList.add('no-transition');
-      try {
-        _updateUIImpl();
-      } finally {
-        if (suppress) {
-          setTimeout(() => {
-            document.documentElement.classList.remove('no-transition');
-          }, 1000);
-        }
-      }
-    });
-  }, baseDelay);
+    _updateUIRAF = requestAnimationFrame(_runScheduledRender);
+  }
+}
+
+// Immediately cancel any pending scheduled render and run the render NOW.
+// Used by switchTab() so a tab switch never races against a queued
+// background-sync render (which would cause a visible flash/jitter).
+function flushUI() {
+  if (_updateUITimer) {
+    clearTimeout(_updateUITimer);
+    _updateUITimer = null;
+  }
+  if (_updateUIRAF) {
+    cancelAnimationFrame(_updateUIRAF);
+    _updateUIRAF = null;
+  }
+  _updateUIDirty = false;
+  _runScheduledRender();
 }
 
 function getActiveScrollContainer() {
@@ -5086,7 +5513,7 @@ function renderTransactionsTab() {
   const groups = {};
 
   sortedTrans.forEach(t => {
-    const amt = parseFloat(t.amount) || 0;
+    const amt = CurrencyService.toBase(t);
     if (t.type === 'income') monthlyIncome += amt;
     else if (t.type === 'expense') monthlyExpense += amt;
 
@@ -5097,9 +5524,9 @@ function renderTransactionsTab() {
     else if (t.type === 'expense') groups[dateKey].expense += amt;
   });
 
-  document.getElementById('summary-income-val').textContent = `${getCurrencySymbol()} ${formatCurrency(monthlyIncome)}`;
-  document.getElementById('summary-expense-val').textContent = `${getCurrencySymbol()} ${formatCurrency(monthlyExpense)}`;
-  document.getElementById('summary-total-val').textContent = `${getCurrencySymbol()} ${formatCurrency(monthlyIncome - monthlyExpense)}`;
+  document.getElementById('summary-income-val').textContent = `${getCurrencySymbol()} ${formatDisplayAmount(monthlyIncome)}`;
+  document.getElementById('summary-expense-val').textContent = `${getCurrencySymbol()} ${formatDisplayAmount(monthlyExpense)}`;
+  document.getElementById('summary-total-val').textContent = `${getCurrencySymbol()} ${formatDisplayAmount(monthlyIncome - monthlyExpense)}`;
 
   if (sortedTrans.length === 0) {
     if (listContainer._lastRenderSignature === 'empty') return;
@@ -5166,8 +5593,8 @@ function renderTransactionsTab() {
     const isToday = (dateStr === todayStr);
 
     let rightTotals = '';
-    if (group.income > 0) rightTotals += `<span class="day-group-income">${getCurrencySymbol()} ${formatCurrency(group.income)}</span>`;
-    if (group.expense > 0) rightTotals += `<span class="day-group-expense">${getCurrencySymbol()} ${formatCurrency(group.expense)}</span>`;
+    if (group.income > 0) rightTotals += `<span class="day-group-income">${getCurrencySymbol()} ${formatDisplayAmount(group.income)}</span>`;
+    if (group.expense > 0) rightTotals += `<span class="day-group-expense">${getCurrencySymbol()} ${formatDisplayAmount(group.expense)}</span>`;
 
     const header = document.createElement('div');
     header.className = 'day-header' + (isToday ? ' is-today' : '');
@@ -5318,7 +5745,7 @@ function renderTransactionsTab() {
             <span class="trans-acc-label">${escapeHtml(accountText)}</span>
           </div>
         </div>
-        <div class="${amountClass}">${getCurrencySymbol()} ${formatCurrency(t.amount)}</div>`;
+        <div class="${amountClass}">${getCurrencySymbol()} ${formatCurrency(t.amount)}${getTxCurrencyLabel(t)}${getReliabilityBadge(t)}</div>`;
       fragment.appendChild(item);
     });
   });
@@ -5573,6 +6000,12 @@ function renderStatsTab(skipChart = false) {
     state.statsPeriodType || 'monthly',
     state.lang || 'el',
     state.selectedFamilyMemberId || 'all',
+    // Include the active period/date so changing the month/year via the picker
+    // (or the custom period range) triggers a re-render instead of being skipped
+    // by the anti-flicker signature guard.
+    state.statsDate ? state.statsDate.getTime() : '',
+    state.statsCustomStart || '',
+    state.statsCustomEnd || '',
     skipChart ? '1' : '0'
   ].join('||');
   const statsListEl = document.getElementById('stats-breakdown-list');
@@ -5675,22 +6108,22 @@ function renderStatsTab(skipChart = false) {
     return tDate >= start && tDate <= end;
   });
 
-  const monthlyIncome = filteredTrans.filter(t => t.type === 'income').reduce((s, t) => s + parseFloat(t.amount || 0), 0);
-  const monthlyExpense = filteredTrans.filter(t => t.type === 'expense').reduce((s, t) => s + parseFloat(t.amount || 0), 0);
+  const monthlyIncome = filteredTrans.filter(t => t.type === 'income').reduce((s, t) => s + CurrencyService.toBase(t), 0);
+  const monthlyExpense = filteredTrans.filter(t => t.type === 'expense').reduce((s, t) => s + CurrencyService.toBase(t), 0);
 
-  document.getElementById('stats-tab-income-amt').textContent = `${getCurrencySymbol()} ${formatCurrency(monthlyIncome)}`;
-  document.getElementById('stats-tab-expense-amt').textContent = `${getCurrencySymbol()} ${formatCurrency(monthlyExpense)}`;
+  document.getElementById('stats-tab-income-amt').textContent = `${getCurrencySymbol()} ${formatDisplayAmount(monthlyIncome)}`;
+  document.getElementById('stats-tab-expense-amt').textContent = `${getCurrencySymbol()} ${formatDisplayAmount(monthlyExpense)}`;
 
   // Calculate and display Net Savings
   const netSavings = monthlyIncome - monthlyExpense;
   const netValEl = document.getElementById('stats-net-savings-val');
   if (netValEl) {
-    netValEl.textContent = `${netSavings >= 0 ? '+' : ''}${getCurrencySymbol()} ${formatCurrency(netSavings)}`;
+    netValEl.textContent = `${netSavings >= 0 ? '+' : ''}${getCurrencySymbol()} ${formatDisplayAmount(netSavings)}`;
     netValEl.className = 'stats-net-val ' + (netSavings >= 0 ? 'positive' : 'negative');
   }
 
   const activeTrans = filteredTrans.filter(t => t.type === state.statsType);
-  const totalSum = activeTrans.reduce((s, t) => s + parseFloat(t.amount || 0), 0);
+  const totalSum = activeTrans.reduce((s, t) => s + CurrencyService.toBase(t), 0);
 
   const catGroups = {};
   activeTrans.forEach(t => {
@@ -5704,13 +6137,13 @@ function renderStatsTab(skipChart = false) {
         subcategories: {}
       };
     }
-    catGroups[key].amount += parseFloat(t.amount || 0);
+    catGroups[key].amount += CurrencyService.toBase(t);
 
     const subcatName = t.subcategory || '';
     if (!catGroups[key].subcategories[subcatName]) {
       catGroups[key].subcategories[subcatName] = 0;
     }
-    catGroups[key].subcategories[subcatName] += parseFloat(t.amount || 0);
+    catGroups[key].subcategories[subcatName] += CurrencyService.toBase(t);
   });
 
   const breakdownList = Object.entries(catGroups).map(([name, d]) => ({
@@ -5765,7 +6198,7 @@ function renderStatsTab(skipChart = false) {
       centerTitleEl.textContent = state.statsType === 'income' ? TRANSLATIONS[state.lang]['summary_income'] : TRANSLATIONS[state.lang]['summary_expense'];
     }
     if (centerAmountEl) {
-      centerAmountEl.textContent = `${getCurrencySymbol()} ${formatCurrency(totalSum)}`;
+      centerAmountEl.textContent = `${getCurrencySymbol()} ${formatDisplayAmount(totalSum)}`;
     }
   }
 
@@ -5803,7 +6236,7 @@ function renderStatsTab(skipChart = false) {
         <span class="stats-cat-icon">${item.icon}</span>
         <span class="stats-category-name">${getCategoryDisplayName(stripLeadingEmoji(item.name))}</span>
       </div>
-      <div class="stats-row-right">${getCurrencySymbol()} ${formatCurrency(item.amount)}</div>`;
+      <div class="stats-row-right">${getCurrencySymbol()} ${formatDisplayAmount(item.amount)}</div>`;
     statsFragment.appendChild(row);
 
     if (hasSubcats) {
@@ -5829,7 +6262,7 @@ function renderStatsTab(skipChart = false) {
             <span class="stats-sub-pct" style="background-color: ${catColor}26; color: ${catColor}; border: 1px solid ${catColor}33;">${Math.round(sub.percentage)}%</span>
             <span class="stats-sub-name">${subDisplayName}</span>
           </div>
-          <div class="stats-sub-right">${getCurrencySymbol()} ${formatCurrency(sub.amount)}</div>
+          <div class="stats-sub-right">${getCurrencySymbol()} ${formatDisplayAmount(sub.amount)}</div>
         `;
 
         let subFeedbackTimer;
@@ -6168,7 +6601,7 @@ function renderChart(dataList) {
               const val = ctx.raw;
               const sum = ctx.dataset.data.reduce((a, b) => a + b, 0);
               const pct = sum > 0 ? Math.round((val / sum) * 100) : 0;
-              return `  ${getCurrencySymbol()} ${formatCurrency(val)}  (${pct}%)`;
+              return `  ${getCurrencySymbol()} ${formatDisplayAmount(val)}  (${pct}%)`;
             }
           }
         },
@@ -6237,7 +6670,7 @@ function renderAccountsTab() {
     if (!overallMinDate || t.date < overallMinDate) overallMinDate = t.date;
     if (!overallMaxDate || t.date > overallMaxDate) overallMaxDate = t.date;
 
-    const amt = parseFloat(t.amount) || 0;
+    const amt = CurrencyService.toBase(t);
     if (t.type === 'income') {
       overallIncome += amt;
     } else if (t.type === 'expense') {
@@ -6275,13 +6708,37 @@ function renderAccountsTab() {
   }
 
   // 3. Populate the top card overall columns (Income, Expenses, Net Balance)
-  document.getElementById('total-assets-val').textContent = formatCurrency(overallIncome);
-  document.getElementById('total-liabilities-val').textContent = formatCurrency(overallExpense);
+  document.getElementById('total-assets-val').textContent = `${getCurrencySymbol()} ${formatDisplayAmount(overallIncome)}`;
+  document.getElementById('total-liabilities-val').textContent = `${getCurrencySymbol()} ${formatDisplayAmount(overallExpense)}`;
   const netElContainer = document.getElementById('total-net-val-container');
   const netEl = document.getElementById('total-net-val');
-  if (netEl) netEl.textContent = formatCurrency(overallNet);
+  if (netEl) netEl.textContent = `${getCurrencySymbol()} ${formatDisplayAmount(overallNet)}`;
   if (netElContainer) {
     netElContainer.className = overallNet >= 0 ? 'overview-val' : 'overview-val negative';
+  }
+
+  // 3b. Multi-currency: Net Worth across all accounts (converted to base currency).
+  // Only shown when multi-currency is enabled AND at least one account uses a
+  // different currency than the base currency.
+  const netWorthRow = document.getElementById('multi-currency-net-worth-row');
+  const netWorthVal = document.getElementById('multi-currency-net-worth-val');
+  if (netWorthRow && netWorthVal) {
+    const baseCurrency = localStorage.getItem('app_currency') || 'EUR';
+    const hasForeignAccounts = (state.accounts || []).some(a => (a.currency || baseCurrency) !== baseCurrency);
+    if (hasForeignAccounts) {
+      const netWorth = computeNetWorth();
+      if (netWorth != null) {
+        netWorthRow.style.display = '';
+        const displayCurrency = getDisplayCurrency();
+        const displayVal = displayAmountInDisplayCurrency(netWorth);
+        netWorthVal.textContent = `${CurrencyService.getSymbol(displayCurrency)} ${formatCurrency(displayVal != null ? displayVal : netWorth)}`;
+        netWorthVal.style.color = netWorth >= 0 ? 'var(--blue-positive, #10b981)' : 'var(--red-negative, #ff5b5b)';
+      } else {
+        netWorthRow.style.display = 'none';
+      }
+    } else {
+      netWorthRow.style.display = 'none';
+    }
   }
 
   // --- FINANCIAL HEALTH SCORE CALCULATIONS & RENDERING ---
@@ -6396,7 +6853,7 @@ function renderAccountsTab() {
   const explainLifestyleEl = document.getElementById('fhs-explain-lifestyle-months');
 
   if (explainLiquidEl) {
-    explainLiquidEl.textContent = formatCurrency(fhs.liquidBalance || 0);
+    explainLiquidEl.textContent = formatDisplayAmount(fhs.liquidBalance || 0);
   }
   if (explainSurvivalEl) {
     const survVal = Math.round((fhs.survivalRunway || 0) * 10) / 10;
@@ -6470,7 +6927,7 @@ function renderAccountsTab() {
     if (parts.length !== 3) return;
     const y = parseInt(parts[0], 10);
     const m = parseInt(parts[1], 10) - 1;
-    const amt = parseFloat(t.amount) || 0;
+    const amt = CurrencyService.toBase(t);
     const cat = t.category || '';
 
     if (y === currYear && m === currMonth) {
@@ -6558,10 +7015,10 @@ function renderAccountsTab() {
 
     if (state.lang === 'el') {
       const pctPart = pctStr ? ` κατά **${pctStr}**` : '';
-      advisorText = `Τα έξοδα στην κατηγορία **${maxIncreaseCat}** ανέβηκαν${pctPart} (+${formatCurrency(maxIncreaseAmt)}) αυτόν τον μήνα. Αν συνεχιστεί, ${grConsequence} — ${grAdvice}.`;
+      advisorText = `Τα έξοδα στην κατηγορία **${maxIncreaseCat}** ανέβηκαν${pctPart} (+${formatDisplayAmount(maxIncreaseAmt)}) αυτόν τον μήνα. Αν συνεχιστεί, ${grConsequence} — ${grAdvice}.`;
     } else {
       const pctPart = pctStr ? ` by **${pctStr}**` : '';
-      advisorText = `Expenses in **${maxIncreaseCat}** rose${pctPart} (+${formatCurrency(maxIncreaseAmt)}) this month. If this continues, it ${enConsequence} — ${enAdvice}.`;
+      advisorText = `Expenses in **${maxIncreaseCat}** rose${pctPart} (+${formatDisplayAmount(maxIncreaseAmt)}) this month. If this continues, it ${enConsequence} — ${enAdvice}.`;
     }
 
     // Enable interaction
@@ -6639,14 +7096,14 @@ function renderAccountsTab() {
           <div class="advisor-bar-container">
             <div class="advisor-bar" style="width: ${prevPct}%;"></div>
           </div>
-          <span class="advisor-bar-val">${formatCurrency(prevAmt)}</span>
+          <span class="advisor-bar-val">${formatDisplayAmount(prevAmt)}</span>
         </div>
         <div class="advisor-bar-row current">
           <span class="advisor-bar-label">${currLabel}</span>
           <div class="advisor-bar-container">
             <div class="advisor-bar" style="width: ${currPct}%;"></div>
           </div>
-          <span class="advisor-bar-val">${formatCurrency(currAmt)}</span>
+          <span class="advisor-bar-val">${formatDisplayAmount(currAmt)}</span>
         </div>
       `;
     }
@@ -6707,7 +7164,7 @@ function renderAccountsTab() {
     if (!t.date || t.type === 'transfer') return;
     const parts = String(t.date || '').split('T')[0].split(' ')[0].split('-');
     if (parts.length === 3 && parseInt(parts[0], 10) === prevYear) {
-      const amt = parseFloat(t.amount) || 0;
+      const amt = CurrencyService.toBase(t);
       if (t.type === 'income') prevYearIncome += amt;
       else if (t.type === 'expense') prevYearExpense += amt;
     }
@@ -6754,7 +7211,7 @@ function renderAccountsTab() {
 
       const projectedValEl = document.getElementById('forecast-projected-val');
       if (projectedValEl) {
-        projectedValEl.textContent = formatCurrency(forecast.projectedSavings);
+        projectedValEl.textContent = formatDisplayAmount(forecast.projectedSavings);
       }
 
       // Update forecasting modal elements dynamically
@@ -6765,9 +7222,9 @@ function renderAccountsTab() {
         const roundedProj = Math.round(forecast.projectedSavings);
         const elapsed = currentMonth + 1;
         if (state.lang === 'el') {
-          explanationEl.innerHTML = `Έχετε αποταμιεύσει <strong>${formatCurrency(roundedSavings)}</strong> κατά τους πρώτους <strong>${elapsed}</strong> μήνες του έτους.<br><br>Με βάση τον τρέχοντα μέσο ρυθμό σας (<strong>${formatCurrency(roundedRate)} / μήνα</strong>), η προβλεπόμενη αποταμίευση για το τέλος του έτους είναι <strong>${formatCurrency(roundedProj)}</strong>.`;
+          explanationEl.innerHTML = `Έχετε αποταμιεύσει <strong>${formatDisplayAmount(roundedSavings)}</strong> κατά τους πρώτους <strong>${elapsed}</strong> μήνες του έτους.<br><br>Με βάση τον τρέχοντα μέσο ρυθμό σας (<strong>${formatDisplayAmount(roundedRate)} / μήνα</strong>), η προβλεπόμενη αποταμίευση για το τέλος του έτους είναι <strong>${formatDisplayAmount(roundedProj)}</strong>.`;
         } else {
-          explanationEl.innerHTML = `You have saved <strong>${formatCurrency(roundedSavings)}</strong> during the first <strong>${elapsed}</strong> months of the year.<br><br>Based on your current average rate (<strong>${formatCurrency(roundedRate)} / month</strong>), the projected savings for the end of the year is <strong>${formatCurrency(roundedProj)}</strong>.`;
+          explanationEl.innerHTML = `You have saved <strong>${formatDisplayAmount(roundedSavings)}</strong> during the first <strong>${elapsed}</strong> months of the year.<br><br>Based on your current average rate (<strong>${formatDisplayAmount(roundedRate)} / month</strong>), the projected savings for the end of the year is <strong>${formatDisplayAmount(roundedProj)}</strong>.`;
         }
       }
 
@@ -6776,9 +7233,9 @@ function renderAccountsTab() {
       const expectedValEl = document.getElementById('forecast-expected-val');
       const worstValEl = document.getElementById('forecast-worst-val');
 
-      if (bestValEl) bestValEl.textContent = formatCurrency(forecast.bestCaseSavings);
-      if (expectedValEl) expectedValEl.textContent = formatCurrency(forecast.projectedSavings);
-      if (worstValEl) worstValEl.textContent = formatCurrency(forecast.worstCaseSavings);
+      if (bestValEl) bestValEl.textContent = formatDisplayAmount(forecast.bestCaseSavings);
+      if (expectedValEl) expectedValEl.textContent = formatDisplayAmount(forecast.projectedSavings);
+      if (worstValEl) worstValEl.textContent = formatDisplayAmount(forecast.worstCaseSavings);
 
       const targetInputEl = document.getElementById('forecast-target-input');
       if (targetInputEl && !targetInputEl.matches(':focus')) {
@@ -6791,7 +7248,7 @@ function renderAccountsTab() {
       if (requiredMonthlyValEl) {
         const remainingMonths = 12 - (currentMonth + 1);
         const requiredMonthly = remainingTarget > 0 && remainingMonths > 0 ? (remainingTarget / remainingMonths) : 0;
-        requiredMonthlyValEl.textContent = formatCurrency(requiredMonthly);
+        requiredMonthlyValEl.textContent = formatDisplayAmount(requiredMonthly);
       }
 
       // Update Goal Timeline
@@ -6849,7 +7306,7 @@ function renderAccountsTab() {
         if (!t.date) return;
         const y = parseInt(String(t.date).split('T')[0].split('-')[0], 10);
         if (y === currentYearOverview) {
-          accIncome += parseFloat(t.amount) || 0;
+          accIncome += CurrencyService.toBase(t);
         }
       }
     });
@@ -6869,7 +7326,7 @@ function renderAccountsTab() {
         <div class="account-icon">${icon}</div>
         ${displayHtml}
       </div>
-      <div class="account-value positive">${getCurrencySymbol()} ${formatCurrency(accIncome)}</div>`;
+      <div class="account-value positive">${getCurrencySymbol()} ${formatDisplayAmount(accIncome)}</div>`;
 
     if (assetsEl) assetsEl.appendChild(row);
   });
@@ -6888,7 +7345,7 @@ function renderAccountsTab() {
         if (!t.date) return;
         const y = parseInt(String(t.date).split('T')[0].split('-')[0], 10);
         if (y === currentYearOverview) {
-          accExpense += parseFloat(t.amount) || 0;
+          accExpense += CurrencyService.toBase(t);
         }
       }
     });
@@ -6908,7 +7365,7 @@ function renderAccountsTab() {
         <div class="account-icon">${icon}</div>
         ${displayHtml}
       </div>
-      <div class="account-value negative">${getCurrencySymbol()} ${formatCurrency(accExpense)}</div>`;
+      <div class="account-value negative">${getCurrencySymbol()} ${formatDisplayAmount(accExpense)}</div>`;
 
     if (liabEl) liabEl.appendChild(row);
   });
@@ -6917,7 +7374,7 @@ function renderAccountsTab() {
   const yearlyData = {};
 
   activeTrans.forEach(t => {
-    const amt = parseFloat(t.amount) || 0;
+    const amt = CurrencyService.toBase(t);
     if (!t.date) return;
     if (t.type === 'transfer' || t.category === 'ΜΕΤΑΦΟΡΑ' || t.category?.toLowerCase().includes('μεταφ') || t.category?.toLowerCase().includes('transfer')) return;
 
@@ -7000,7 +7457,7 @@ function renderAccountsTab() {
         row.innerHTML = `
           <span style="color: var(--text-secondary); font-weight: 700; font-size: 16px;">${label}</span>
           <div style="display: flex; align-items: center; gap: 12px;">
-            <span style="${colorStyle} font-size: 16px;">${sign}${getCurrencySymbol()}${formatCurrency(Math.abs(data.net))}</span>
+            <span style="${colorStyle} font-size: 16px;">${sign}${getCurrencySymbol()}${formatDisplayAmount(Math.abs(data.net))}</span>
             <i class="fa-solid fa-chevron-right archive-collapse-icon" style="font-size: 14px; color: var(--text-muted); transition: transform 0.25s;"></i>
           </div>
         `;
@@ -7019,11 +7476,11 @@ function renderAccountsTab() {
           <div style="padding: 10px 0 4px 0; display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; color: var(--text-secondary); opacity: 0.9; font-family: 'Outfit', sans-serif;">
             <div style="display: flex; justify-content: space-between;">
               <span>${incomeLabel}:</span>
-              <span style="font-weight: 700; color: var(--blue-positive);">${getCurrencySymbol()}${formatCurrency(data.income)}</span>
+              <span style="font-weight: 700; color: var(--blue-positive);">${getCurrencySymbol()}${formatDisplayAmount(data.income)}</span>
             </div>
             <div style="display: flex; justify-content: space-between;">
               <span>${expenseLabel}:</span>
-              <span style="font-weight: 700; color: var(--red-negative);">${getCurrencySymbol()}${formatCurrency(data.expense)}</span>
+              <span style="font-weight: 700; color: var(--red-negative);">${getCurrencySymbol()}${formatDisplayAmount(data.expense)}</span>
             </div>
             <div style="display: flex; justify-content: space-between;">
               <span>${savingsRateLabel}:</span>
@@ -7160,6 +7617,7 @@ function setupEventListeners() {
   if (dateField) {
     dateField.addEventListener('input', (e) => {
       document.getElementById('trans-date-display').textContent = formatGreekDateTime(e.target.value);
+      updateDualAmountDisplay();
     });
   }
 
@@ -7333,6 +7791,7 @@ function setupEventListeners() {
       const type = document.querySelector('.type-tab-btn.active').getAttribute('data-type');
 
       let rawAmount = document.getElementById('trans-amount').value || '0';
+      rawAmount = stripThousandsSeparators(rawAmount);
       rawAmount = rawAmount.replace(/\,/g, '.');
       const evaluatedVal = evaluateCalcBuffer(rawAmount);
       const amountVal = parseFloat(evaluatedVal) || 0;
@@ -7448,6 +7907,7 @@ function setupEventListeners() {
         date: document.getElementById('trans-date').value,
         type,
         amount: amountVal,
+        currency: getTransactionCurrency(),
         category: categoryVal,
         subcategory: (() => {
           if (type === 'transfer') return '';
@@ -7481,6 +7941,39 @@ function setupEventListeners() {
         t.is_shared = state.partnerProfile !== null;
         t.family_id = state.userProfile ? state.userProfile.family_id : null;
       }
+
+      // Multi-currency: compute base-currency fields (amount_base, rate_to_base, base_currency).
+      // Always computed so new transactions are consistent with the schema, even when the
+      // feature flag is off (EUR → 1:1).
+      {
+        const baseCurrency = localStorage.getItem('app_currency') || 'EUR';
+        const txCurrency = t.currency || 'EUR';
+        t.base_currency = baseCurrency;
+        if (txCurrency === baseCurrency) {
+          t.rate_to_base = 1;
+          t.amount_base = CurrencyService.round(Number(t.amount), 4);
+          t.rate_source = 'api';
+        } else {
+          const rate = CurrencyService.getRate(txCurrency, baseCurrency, t.date);
+          if (rate != null && rate > 0) {
+            t.rate_to_base = rate;
+            t.amount_base = CurrencyService.round(Number(t.amount) / rate, 4);
+            t.rate_source = 'api';
+          } else {
+            // No rate available (offline) — store raw amount, will be corrected later
+            t.rate_to_base = null;
+            t.amount_base = null;
+            t.rate_source = 'cached';
+          }
+        }
+      }
+
+      // Multi-currency: apply the user-entered actual charged amount (base currency)
+      // correction, which overrides the estimated rate with the real one (source='manual').
+      if (CurrencyService.isEnabled() && t.currency && t.currency !== t.base_currency) {
+        t = applyActualAmountCorrection(t);
+      }
+
       await saveTransaction(t);
 
       // Save or delete receipt photos in IndexedDB
@@ -7737,10 +8230,106 @@ function setupEventListeners() {
         }, 300);
       }
     }
-    state.calcBuffer = document.getElementById('trans-amount').value.replace(/\,/g, '.') || '';
+    state.calcBuffer = stripThousandsSeparators(document.getElementById('trans-amount').value).replace(/\,/g, '.') || '';
   }
 
   window.openCalculatorKeypad = openCalculatorKeypad;
+
+  // Routes taps on the amount row: tapping the currency symbol opens the
+  // currency picker, tapping anywhere else opens the calculator keypad.
+  // Using a single routing handler (instead of relying on stopPropagation)
+  // makes the currency symbol reliably tappable on Android WebView.
+  function handleAmountRowClick(e) {
+    if (e && e.target && e.target.closest && e.target.closest('.currency-symbol-tappable')) {
+      openCurrencyPickerModal();
+    } else {
+      openCalculatorKeypad();
+    }
+  }
+
+  window.handleAmountRowClick = handleAmountRowClick;
+
+  // Robust tap interception for the currency symbol. index.html is NOT replaced
+  // by OTA updates, so on installed devices the amount row still has
+  // onclick="openCalculatorKeypad()" on the parent div. A capture-phase listener
+  // fires BEFORE that bubble-phase handler, letting us reliably open the currency
+  // picker and stop the keypad from opening — no reliance on stopPropagation in
+  // the (stale) inline HTML.
+  //
+  // On Android WebView the 'click' event can be delayed or swallowed, so we also
+  // intercept 'pointerdown' (fires earlier and more reliably). We open the picker
+  // on pointerdown and set a flag so the subsequent click on the parent row
+  // (which would otherwise open the calculator) is suppressed.
+  let _symbolTapPending = false;
+  // Determine whether a tap should open the currency picker. We match BOTH by
+  // class (the injected span) AND by position (the symbol sits to the LEFT of
+  // the amount input). The position fallback is essential on installed devices
+  // whose stale index.html may not render the span with the tappable class, or
+  // where the span is covered — so we still reliably open the picker when the
+  // user taps the symbol area of the amount row.
+  const isSymbolTap = (t) => {
+    const form = document.getElementById('transaction-form');
+    if (!form) return false;
+    if (t && t.closest) {
+      if (t.closest('.currency-symbol-tappable')) return true;
+    }
+    // Position fallback: the tap is inside the amount row but NOT on the amount
+    // input (i.e. it's on the symbol / label / padding area to the left).
+    const row = document.getElementById('form-row-amount');
+    if (!row) return false;
+    if (!row.contains(t)) return false;
+    const input = document.getElementById('trans-amount');
+    if (input && (t === input || input.contains(t))) return false;
+    return true;
+  };
+  // Helper: open the currency picker, but if it throws for any reason, do NOT
+  // swallow the tap — let the event fall through so the calculator keypad opens
+  // as a fallback. This guarantees the user always gets SOME visual feedback
+  // even if the picker fails to render on a given device/version.
+  function safeOpenCurrencyPicker(e) {
+    try {
+      openCurrencyPickerModal();
+      return true;
+    } catch (err) {
+      console.error('[CurrencySymbol] openCurrencyPickerModal failed:', err);
+      try {
+        if (typeof showSyncToast === 'function') {
+          showSyncToast('Σφάλμα νομίσματος: ' + (err && err.message ? err.message : err), 3000);
+        }
+      } catch (_) { /* ignore */ }
+      // Do NOT stopPropagation/preventDefault — let the tap reach the amount row
+      // so the calculator opens as a fallback.
+      return false;
+    }
+  }
+  document.addEventListener('pointerdown', (e) => {
+    if (!isSymbolTap(e.target)) return;
+    _symbolTapPending = true;
+    if (!safeOpenCurrencyPicker(e)) {
+      // Picker failed — do not swallow; allow the calculator to open.
+      _symbolTapPending = false;
+      return;
+    }
+    e.stopPropagation();
+    e.preventDefault();
+  }, true);
+  document.addEventListener('click', (e) => {
+    if (!isSymbolTap(e.target)) return;
+    if (!_symbolTapPending) {
+      if (!safeOpenCurrencyPicker(e)) {
+        // Picker failed — do not swallow; allow the calculator to open.
+        return;
+      }
+    }
+    e.stopPropagation();
+    e.preventDefault();
+    _symbolTapPending = false;
+  }, true);
+  // Reset the pending flag if a click never follows the pointerdown (e.g. the
+  // user dragged away), so a later unrelated tap isn't wrongly suppressed.
+  document.addEventListener('pointerup', () => {
+    setTimeout(() => { _symbolTapPending = false; }, 300);
+  }, true);
 
   function closeCalculatorKeypad() {
     const keypad = document.getElementById('custom-calculator-keypad');
@@ -7764,8 +8353,9 @@ function setupEventListeners() {
 
     if (val === 'done') {
       buf = evaluateCalcBuffer(buf);
-      document.getElementById('trans-amount').value = buf;
+      document.getElementById('trans-amount').value = formatCalcDisplay(buf);
       state.calcBuffer = buf;
+      updateAmountCurrencySymbol();
       closeCalculatorKeypad();
       return;
     }
@@ -7794,7 +8384,8 @@ function setupEventListeners() {
     }
 
     state.calcBuffer = buf;
-    document.getElementById('trans-amount').value = buf;
+    document.getElementById('trans-amount').value = formatCalcDisplay(buf);
+    updateAmountCurrencySymbol();
   }
 
   // Stats period navigation
@@ -7869,6 +8460,18 @@ function setupEventListeners() {
     statsPeriodTitle.addEventListener('click', (e) => {
       const isYearClick = e.target.classList.contains('year-part');
       openMonthPicker(isYearClick);
+    });
+  }
+
+  // Tapping the Overview year title returns to the current year.
+  const overviewYearTitle = document.getElementById('overview-year-title');
+  if (overviewYearTitle) {
+    overviewYearTitle.addEventListener('click', () => {
+      const currentYear = new Date().getFullYear();
+      if ((state.overviewYear || currentYear) !== currentYear) {
+        state.overviewYear = currentYear;
+        renderAccountsTab();
+      }
     });
   }
 
@@ -8083,6 +8686,17 @@ function switchTab(tab, instant = false) {
           scrollContainer.scrollTo({ top: 0, behavior: 'smooth' });
         }
       }
+    } else if (tab === 'accounts') {
+      // Re-tapping the Overview tab returns to the current year.
+      const currentYear = new Date().getFullYear();
+      if ((state.overviewYear || currentYear) !== currentYear) {
+        state.overviewYear = currentYear;
+        renderAccountsTab();
+      }
+      const accountsScroll = document.querySelector('.accounts-scroll-content');
+      if (accountsScroll) {
+        accountsScroll.scrollTo({ top: 0, behavior: 'smooth' });
+      }
     }
     return;
   }
@@ -8136,7 +8750,11 @@ function switchTab(tab, instant = false) {
   const bsInd = document.getElementById('back-swipe-indicator');
   if (bsInd) bsInd.style.display = 'none';
 
-  const oldTab = state.activeTab;
+  // FIX #1 (flicker): state.activeTab was already set to the NEW tab at line 8102,
+  // so reading it here would make oldTab === tab (oldScreen === newScreen), causing
+  // the fade-in-premium animation to re-run on the already-active screen and flicker.
+  // Use prevTabName (captured at line 8101) which holds the actual previous tab.
+  const oldTab = prevTabName;
   state.activeTab = tab;
   localStorage.setItem('active_tab', tab);
 
@@ -8219,16 +8837,19 @@ function switchTab(tab, instant = false) {
     ensureHistoryPushed();
   }
 
-  // Render tab contents immediately to guarantee zero lag/blank states
+  // Render tab contents immediately to guarantee zero lag/blank states.
+  // FIX #4: Use flushUI() instead of calling _updateUIImpl() directly so that
+  // any pending scheduled render (e.g. from a background sync) is cancelled
+  // first — preventing two concurrent DOM mutations from racing and flickering.
   if (tab === 'trans') {
     const today = new Date();
     state.selectedMonth = today.getMonth();
     state.selectedYear = today.getFullYear();
     syncStatsDate();
-    _updateUIImpl();
+    flushUI();
     setTimeout(() => scrollToToday('smooth'), 50);
   } else {
-    _updateUIImpl();
+    flushUI();
   }
 
   if (tab === 'more') {
@@ -8301,10 +8922,18 @@ function forceViewportReset(syncOnly = false) {
 }
 
 
-function closeModal(id) {
-  // Guard: if app just returned from background, ignore close requests for 300ms
-  // to prevent ghost clicks/events from the OS home gesture closing modals
-  if (window._appJustResumed) {
+function closeModal(id, opts) {
+  // opts.userInitiated = true when the close comes from a deliberate user action
+  // (back arrow tap, backdrop tap, explicit close button). These must ALWAYS work
+  // immediately — they should never be blocked by the resume anti-ghost-click guard.
+  const userInitiated = !!(opts && opts.userInitiated) || !!window.__userInitiatedClose;
+  if (window.__userInitiatedClose) window.__userInitiatedClose = false;
+
+  // Guard: if app just returned from background, ignore spurious close requests
+  // (ghost clicks/events from the OS home gesture) for a short window.
+  // User-initiated closes (back arrow / backdrop tap) bypass this guard so they
+  // respond instantly with no lag.
+  if (window._appJustResumed && !userInitiated) {
     console.log('[closeModal] Blocked — app just resumed, ignoring close for:', id);
     return;
   }
@@ -8338,6 +8967,13 @@ function closeModal(id) {
     window._settingsSubscreenHistory = [];
   }
   el.classList.remove('active');
+  console.log('[DEBUG closeModal] after remove active — id =', id, '| still has active class?', el.classList.contains('active'), '| display =', el.style.display, '| opacity =', getComputedStyle(el).opacity);
+  if (id === 'settings-subscreen-modal') {
+    const contentEl = el.querySelector('.modal-content');
+    const syncSection = document.getElementById('subscreen-sync');
+    console.log('[DEBUG closeModal] content child of overlay?', contentEl && contentEl.parentElement === el, '| content opacity =', contentEl ? getComputedStyle(contentEl).opacity : 'N/A', '| content transform =', contentEl ? getComputedStyle(contentEl).transform : 'N/A', '| content display =', contentEl ? contentEl.style.display : 'N/A');
+    console.log('[DEBUG closeModal] subscreen-sync opacity =', syncSection ? getComputedStyle(syncSection).opacity : 'N/A', '| sync display =', syncSection ? syncSection.style.display : 'N/A', '| sync has active class?', syncSection ? syncSection.classList.contains('active') : 'N/A');
+  }
   const activeModals = document.querySelectorAll('.modal-overlay.active, .tx-modal-overlay.active, .profile-sheet-overlay.active');
   if (activeModals.length === 0) {
     document.body.classList.remove('modal-open');
@@ -8527,7 +9163,11 @@ function openAddTransactionModal({ instant = false } = {}) {
   }
   updateAccountDropdowns();
 
+  // Multi-currency: default currency from selected account (or base currency), show row if enabled
+  initTransactionCurrency();
+
   openModal('transaction-modal', { instant });
+  updateAmountCurrencySymbol();
   setTimeout(() => initNoteAutocomplete(), 50);
 }
 
@@ -8560,7 +9200,7 @@ function openEditTransactionModal(t, { instant = false } = {}) {
   document.getElementById('trans-date').value = dateVal;
   document.getElementById('trans-date-display').textContent = formatGreekDateTime(dateVal);
 
-  document.getElementById('trans-amount').value = String(t.amount);
+  document.getElementById('trans-amount').value = formatCalcDisplay(String(t.amount));
 
   // Load note (primary title) and description (secondary) separately
   document.getElementById('trans-note').value = t.note || '';
@@ -8661,7 +9301,26 @@ function openEditTransactionModal(t, { instant = false } = {}) {
     }
   }
 
+  // Multi-currency: set currency from the transaction being edited, show row if enabled
+  initTransactionCurrency(t.currency || null);
+
+  // Multi-currency: prefill the "actual amount" correction field (base currency)
+  // with the transaction's current base-currency value, if it differs from base.
+  const actualInput = document.getElementById('trans-actual-amount');
+  if (actualInput) {
+    const baseCurrency = localStorage.getItem('app_currency') || 'EUR';
+    const txCurrency = getTransactionCurrency();
+    if (CurrencyService.isEnabled() && txCurrency !== baseCurrency) {
+      const baseVal = CurrencyService.toBase(t);
+      actualInput.value = (baseVal != null && !isNaN(baseVal)) ? String(baseVal) : '';
+    } else {
+      actualInput.value = '';
+    }
+  }
+  syncActualAmountRowVisibility();
+
   openModal('transaction-modal', { instant });
+  updateAmountCurrencySymbol();
   setTimeout(() => initNoteAutocomplete(), 50);
 }
 
@@ -10029,10 +10688,307 @@ function updateAccountDropdowns() {
   updateAccountTriggerDisplay('to');
 }
 
+// ============================================================
+// CURRENCY PICKER (multi-currency)
+// ============================================================
+const POPULAR_CURRENCIES = ['EUR', 'USD', 'GBP', 'JPY', 'CAD', 'AUD', 'CHF', 'CNY', 'INR'];
+
+function getRecentCurrencies() {
+  try {
+    const raw = localStorage.getItem('recent_currencies');
+    if (!raw) return [];
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function rememberRecentCurrency(code) {
+  try {
+    let arr = getRecentCurrencies().filter(c => c !== code);
+    arr.unshift(code);
+    arr = arr.slice(0, 5);
+    localStorage.setItem('recent_currencies', JSON.stringify(arr));
+  } catch (e) { /* ignore */ }
+}
+
+function getTransactionCurrency() {
+  const input = document.getElementById('trans-currency');
+  return (input && input.value) || 'EUR';
+}
+
+function setTransactionCurrency(code) {
+  const input = document.getElementById('trans-currency');
+  if (input) input.value = code || 'EUR';
+  updateCurrencyTriggerDisplay();
+  updateAmountCurrencySymbol();
+}
+
+function updateCurrencyTriggerDisplay() {
+  const code = getTransactionCurrency();
+  const triggerDisplay = document.getElementById('trans-currency-display');
+  if (!triggerDisplay) return;
+  const c = CurrencyService.getCurrency(code);
+  const flag = c && c.flag ? c.flag : '';
+  const name = c ? c.name : code;
+  triggerDisplay.innerHTML = `<span class="custom-select-icon" style="margin-right: 8px;">${flag}</span><span class="custom-select-text">${escapeHtml(name)}</span>`;
+}
+
+function openCurrencyPickerModal() {
+  try {
+    const form = document.getElementById('transaction-form');
+    if (form && form.getAttribute('data-readonly') === 'true') return;
+    // Close the calculator keypad so the currency list is fully visible on top
+    // (the keypad has a higher z-index than the picker, so it would otherwise
+    // cover the list). The keypad is reopened after a currency is selected.
+    if (typeof window.closeCalculatorKeypad === 'function') {
+      window.closeCalculatorKeypad();
+    }
+    const search = document.getElementById('currency-picker-search');
+    if (search) search.value = '';
+    renderCurrencyPickerOptions();
+    // Open synchronously (instant) instead of via requestAnimationFrame. This
+    // picker is opened from a capture-phase pointerdown handler that calls
+    // e.preventDefault(); on Android WebView that can leave the rendering loop in
+    // a state where a requestAnimationFrame callback is dropped/delayed, so the
+    // modal would never receive the 'active' class and appear to do nothing.
+    openModal('currency-picker-modal', { instant: true });
+    // Bulletproof fallback: if for any reason the modal did not receive the
+    // 'active' class (e.g. openModal threw or was interrupted), force it open
+    // directly so the picker ALWAYS appears.
+    const el = document.getElementById('currency-picker-modal');
+    if (el && !el.classList.contains('active')) {
+      el.classList.add('active');
+      document.body.classList.add('modal-open');
+    }
+    setTimeout(() => { if (search) search.focus(); }, 100);
+  } catch (err) {
+    console.error('[CurrencySymbol] openCurrencyPickerModal error:', err);
+    try {
+      if (typeof showSyncToast === 'function') {
+        showSyncToast('Σφάλμα νομίσματος: ' + (err && err.message ? err.message : err), 3000);
+      }
+    } catch (_) { /* ignore */ }
+    // Even on error, force the modal open so the user always gets feedback.
+    try {
+      const el = document.getElementById('currency-picker-modal');
+      if (el) {
+        el.classList.add('active');
+        document.body.classList.add('modal-open');
+      }
+    } catch (_) { /* ignore */ }
+  }
+}
+
+function renderCurrencyPickerOptions() {
+  const container = document.getElementById('currency-picker-list');
+  if (!container) return;
+  const search = document.getElementById('currency-picker-search');
+  const query = search ? search.value.trim().toLowerCase() : '';
+
+  const allCurrencies = CurrencyService.getCurrencies();
+  const currentVal = getTransactionCurrency();
+  const recent = getRecentCurrencies();
+
+  let list = [];
+  if (query) {
+    // Search by code, name, or country
+    list = allCurrencies.filter(c =>
+      c.code.toLowerCase().includes(query) ||
+      (c.name || '').toLowerCase().includes(query) ||
+      (c.countries || []).some(ct => String(ct).toLowerCase().includes(query))
+    );
+  } else {
+    // Smart list: account currency first, then recent, then popular, then rest
+    const accountCurrency = getSelectedAccountCurrency();
+    const ordered = [];
+    const seen = new Set();
+    const push = (code) => {
+      if (!code || seen.has(code)) return;
+      const c = allCurrencies.find(x => x.code === code);
+      if (c) { ordered.push(c); seen.add(code); }
+    };
+    push(accountCurrency);
+    recent.forEach(push);
+    POPULAR_CURRENCIES.forEach(push);
+    allCurrencies.forEach(c => push(c.code));
+    list = ordered;
+  }
+
+  container.innerHTML = '';
+
+  if (list.length === 0) {
+    container.innerHTML = `<div style="color: var(--text-muted); text-align: center; padding: 20px;">${state.lang === 'el' ? 'Δεν βρέθηκαν νομίσματα' : 'No currencies found'}</div>`;
+    return;
+  }
+
+  // Όταν γίνεται αναζήτηση, δείξε και τις χώρες που ταιριάζουν (με σημαία + νόμισμα)
+  const showCountries = !!query;
+
+  list.forEach(c => {
+    const item = document.createElement('div');
+    item.className = 'account-picker-item';
+    if (c.code === currentVal) item.classList.add('selected');
+    const flag = c.flag || '';
+    const name = c.name || c.code;
+
+    let countryLine = '';
+    if (showCountries && Array.isArray(c.countries) && c.countries.length) {
+      const matched = c.countries.filter(ct => String(ct).toLowerCase().includes(query));
+      const shown = (matched.length ? matched : c.countries).slice(0, 3);
+      countryLine = `<div class="currency-picker-countries">${shown.map(ct => escapeHtml(ct)).join(' · ')}</div>`;
+    }
+
+    item.innerHTML = `
+      <span class="account-picker-item-icon">${flag}</span>
+      <span class="account-picker-item-name"><strong>${escapeHtml(c.code)}</strong> — ${escapeHtml(name)}${countryLine}</span>
+    `;
+    item.onclick = () => selectCurrencyOption(c.code);
+    container.appendChild(item);
+  });
+}
+
+function getSelectedAccountCurrency() {
+  const accName = document.getElementById('trans-account-from')?.value;
+  if (accName) {
+    const acc = state.accounts.find(a => a.name === accName);
+    if (acc && acc.currency) return acc.currency;
+  }
+  return null;
+}
+
+function selectCurrencyOption(code) {
+  setTransactionCurrency(code);
+  rememberRecentCurrency(code);
+  closeModal('currency-picker-modal');
+  // Reopen the calculator keypad so the user can continue entering the amount
+  // in the newly selected currency (it was closed when the picker opened).
+  if (typeof window.openCalculatorKeypad === 'function') {
+    window.openCalculatorKeypad();
+  }
+}
+
+// Initializes the transaction currency when opening the form.
+// Priority: explicit currency (editing) > selected account currency > base currency > EUR.
+function initTransactionCurrency(explicitCurrency) {
+  let code = explicitCurrency;
+  if (!code) {
+    const accountCurrency = getSelectedAccountCurrency();
+    if (accountCurrency) code = accountCurrency;
+  }
+  if (!code) {
+    const baseCurrency = localStorage.getItem('app_currency') || 'EUR';
+    code = baseCurrency;
+  }
+  setTransactionCurrency(code);
+  syncActualAmountRowVisibility();
+}
+
+// Shows/hides the "actual amount" correction row. It is only relevant when
+// editing a transaction whose currency differs from the base currency.
+function syncActualAmountRowVisibility() {
+  const row = document.getElementById('form-row-actual-amount');
+  if (!row) return;
+  const baseCurrency = localStorage.getItem('app_currency') || 'EUR';
+  const txCurrency = getTransactionCurrency();
+  const isEdit = !!document.getElementById('trans-id')?.value;
+  const show = isEdit && txCurrency !== baseCurrency;
+  row.style.display = show ? '' : 'none';
+  if (!show) {
+    document.getElementById('trans-actual-amount').value = '';
+  }
+}
+
+// Applies the user-entered actual charged amount (in base currency) to the
+// transaction being edited, using CurrencyService.correctActualAmount().
+function applyActualAmountCorrection(t) {
+  const input = document.getElementById('trans-actual-amount');
+  if (!input) return t;
+  const raw = String(input.value || '').trim();
+  if (raw === '') return t;
+  const actualInBase = parseFloat(raw.replace(',', '.'));
+  if (isNaN(actualInBase) || actualInBase <= 0) return t;
+  return CurrencyService.correctActualAmount(t, actualInBase);
+}
+
+// ============================================================
+// MULTI-CURRENCY: RATE FETCHING (Phase 5)
+// ============================================================
+
+// Wires the CurrencyService to Supabase (exchange_rates table) and fetches
+// today's rates from Frankfurter/ECB when the multi-currency feature is enabled.
+// Safe to call on every init — it is idempotent and non-blocking.
+function initMultiCurrency() {
+  if (!window.CurrencyService) return;
+
+  // 1. Rate provider: read historical rates from Supabase (exchange_rates table).
+  //    Returns the rate for base→quote on a given date, or null if not found.
+  CurrencyService.setRateProvider((base, quote, dateKey) => {
+    if (!state.isSupabaseEnabled || !state.supabaseClient) return null;
+    // Synchronous lookup is not possible against Supabase; we rely on the
+    // local rateCache populated by fetchTodayRates()/persist. For historical
+    // dates we fetch on demand below (async) and cache the result.
+    return null;
+  });
+
+  // 2. Rate persist: after fetching today's rates, upsert them into Supabase.
+  CurrencyService.setRatePersist((base, date, rates) => {
+    if (!state.isSupabaseEnabled || !state.supabaseClient) return;
+    const rows = Object.entries(rates || {}).map(([quote, rate]) => ({
+      base_currency: base,
+      quote_currency: quote,
+      rate: Number(rate),
+      rate_date: date,
+      source: 'api',
+    }));
+    if (rows.length === 0) return;
+    state.supabaseClient.from('exchange_rates').upsert(rows, { onConflict: 'base_currency,quote_currency,rate_date' })
+      .then(() => { })
+      .catch((err) => console.warn('[MultiCurrency] Failed to persist rates:', err));
+  });
+
+  // 3. Fetch today's rates (non-blocking). Multi-currency is always active
+  //    (Invisible Multi-Currency), so rates are always fetched.
+  const baseCurrency = localStorage.getItem('app_currency') || 'EUR';
+  CurrencyService.fetchTodayRates(baseCurrency).then((ok) => {
+    if (ok) {
+      // Recompute any pending base-currency fields that were missing a rate.
+      recomputePendingAmountBase();
+    }
+  });
+}
+
+// Recomputes amount_base for transactions that were saved without a rate
+// (rate_to_base null / rate_source 'cached') now that fresh rates are available.
+function recomputePendingAmountBase() {
+  if (!Array.isArray(state.transactions)) return;
+  const baseCurrency = localStorage.getItem('app_currency') || 'EUR';
+  let changed = false;
+  state.transactions.forEach((tx) => {
+    if (!tx || tx.currency === baseCurrency) return;
+    if (tx.rate_to_base != null && tx.amount_base != null) return; // already resolved
+    const rate = CurrencyService.getRate(tx.currency, baseCurrency, tx.date);
+    if (rate == null || rate <= 0) return;
+    tx.rate_to_base = rate;
+    tx.amount_base = CurrencyService.round(Number(tx.amount) / rate, 4);
+    tx.rate_source = 'api';
+    changed = true;
+  });
+  if (changed) {
+    calculateInitialBalances();
+    updateUI();
+  }
+}
+
 window.getAccountDisplayName = getAccountDisplayName;
 window.openAccountPickerModal = openAccountPickerModal;
 window.updateAccountTriggerDisplay = updateAccountTriggerDisplay;
 window.updateAccountDropdowns = updateAccountDropdowns;
+window.openCurrencyPickerModal = openCurrencyPickerModal;
+window.renderCurrencyPickerOptions = renderCurrencyPickerOptions;
+window.selectCurrencyOption = selectCurrencyOption;
+window.setTransactionCurrency = setTransactionCurrency;
 
 function openSupabaseSettings() {
   updateSupabaseUserModal();
@@ -10369,7 +11325,9 @@ function exportToExcel(startDate = null, endDate = null) {
 let searchResultLimit = 50;
 
 function loadMoreSearchResults() {
-  searchResultLimit += 100;
+  // Increment by the same step as the initial limit (50) so pagination
+  // grows consistently (50 -> 100 -> 150 ...) instead of jumping 50 -> 150.
+  searchResultLimit += 50;
   handleSearchChange(false);
 }
 
@@ -10792,6 +11750,13 @@ function initAmountRangeSlider() {
     document.getElementById('search-filter-amount-min').value = currentMinVal;
     document.getElementById('search-filter-amount-max').value = (pctMax >= 99) ? '' : currentMaxVal;
 
+    // Keep the inline min/max inputs in sync with the slider so the two
+    // amount-filter mechanisms never show conflicting values.
+    const inlineMin = document.getElementById('search-amount-min-inline');
+    const inlineMax = document.getElementById('search-amount-max-inline');
+    if (inlineMin) inlineMin.value = currentMinVal;
+    if (inlineMax) inlineMax.value = (pctMax >= 99) ? '' : currentMaxVal;
+
     handleSearchChange();
   }
 
@@ -10819,6 +11784,36 @@ function initAmountRangeSlider() {
 
   thumbMax.addEventListener('mousedown', (e) => onStart(e, false));
   thumbMax.addEventListener('touchstart', (e) => onStart(e, false), { passive: false });
+
+  // Expose a way to move the slider position from the inline min/max inputs,
+  // so the two amount-filter mechanisms stay in sync bidirectionally.
+  window.updateAmountSliderFromInline = function (minVal, maxVal) {
+    const minNum = parseFloat(minVal);
+    const maxNum = parseFloat(maxVal);
+    const range = (sliderMaxVal - sliderMinVal) || 1;
+
+    if (!isNaN(minNum)) {
+      currentMinVal = Math.max(sliderMinVal, Math.min(sliderMaxVal, minNum));
+      pctMin = ((currentMinVal - sliderMinVal) / range) * 100;
+    } else {
+      currentMinVal = sliderMinVal;
+      pctMin = 0;
+    }
+
+    if (!isNaN(maxNum)) {
+      currentMaxVal = Math.max(sliderMinVal, Math.min(sliderMaxVal, maxNum));
+      pctMax = ((currentMaxVal - sliderMinVal) / range) * 100;
+    } else {
+      currentMaxVal = sliderMaxVal;
+      pctMax = 100;
+    }
+
+    // Keep min thumb left of max thumb
+    if (pctMin > pctMax - 5) pctMin = Math.max(0, pctMax - 5);
+    if (pctMax < pctMin + 5) pctMax = Math.min(100, pctMin + 5);
+
+    updateSliderUI();
+  };
 }
 
 // Bind to window
@@ -11277,6 +12272,12 @@ function syncAmountFiltersFromInline() {
   const hiddenMax = document.getElementById('search-filter-amount-max');
   if (hiddenMin) hiddenMin.value = minVal;
   if (hiddenMax) hiddenMax.value = maxVal;
+
+  // Keep the dual range slider in sync with the inline inputs.
+  if (typeof window.updateAmountSliderFromInline === 'function') {
+    window.updateAmountSliderFromInline(minVal, maxVal);
+  }
+
   handleSearchChange();
 }
 
@@ -11810,9 +12811,9 @@ function handleSearchChange(resetLimit = true) {
   const expenseValEl = document.getElementById('search-summary-expense-val');
   const transferValEl = document.getElementById('search-summary-transfer-val');
 
-  if (incomeValEl) incomeValEl.textContent = `${currencySymbol} ${formatCurrency(totalIncome)}`;
-  if (expenseValEl) expenseValEl.textContent = `${currencySymbol} ${formatCurrency(totalExpense)}`;
-  if (transferValEl) transferValEl.textContent = `${currencySymbol} ${formatCurrency(totalTransfer)}`;
+  if (incomeValEl) incomeValEl.textContent = `${currencySymbol} ${formatDisplayAmount(totalIncome)}`;
+  if (expenseValEl) expenseValEl.textContent = `${currencySymbol} ${formatDisplayAmount(totalExpense)}`;
+  if (transferValEl) transferValEl.textContent = `${currencySymbol} ${formatDisplayAmount(totalTransfer)}`;
 
   // Render Day-Grouped search results
   const resultsContainer = document.getElementById('search-results-list');
@@ -12541,8 +13542,9 @@ async function deleteSelectedTransactions() {
     console.warn('Failed to save deleted transactions to trash:', err);
   }
 
-  // 1. Suppress realtime events
-  _suppressRealtimeEvents = true;
+  // 1. Suppress realtime events (safe helper: auto-releases via setTimeout,
+  //    immune to early returns/throws leaving the counter stuck)
+  suppressRealtimeFor(8000);
 
   // 2. Process each transaction deletion locally & trigger background sync/delete
   for (const id of idsToDelete) {
@@ -12596,8 +13598,7 @@ async function deleteSelectedTransactions() {
   calculateInitialBalances();
   updateUI();
 
-  // 5. Re-enable realtime after enough time
-  setTimeout(() => { _suppressRealtimeEvents = false; }, 8000);
+  // 5. Re-enable realtime after enough time (handled by suppressRealtimeFor above)
 }
 
 window.enterSelectionMode = enterSelectionMode;
@@ -12618,27 +13619,95 @@ function initSwipeToBack() {
   history.pushState({ appState: 'active' }, '', window.location.pathname + window.location.search);
   state.historyPushed = true;
 
-  window.addEventListener('popstate', (e) => {
-    // Only run popstate logic if NOT inside Capacitor (because Capacitor handles back button natively via App plugin)
-    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
+  // Shared back-navigation handler used by BOTH the popstate listener (PWA / WebView
+  // history pop) and the Capacitor backButton listener. A debounce guard prevents
+  // double-fire when both events fire for the same physical back press (which can
+  // happen depending on Capacitor version / WebView config). Without this guard, a
+  // single back press could close TWO things (e.g. a modal AND then navigate a tab
+  // back or exit the app).
+  let lastBackHandledAt = 0;
+  const BACK_DEBOUNCE_MS = 400;
+  // Double-back-to-exit: track when the user first pressed back with nothing left
+  // to close, so the app only exits on the SECOND back press (standard Android UX).
+  let lastExitRequestAt = 0;
+  const EXIT_CONFIRM_WINDOW_MS = 2000;
+  function handleBackNavigation(source, e) {
+    const now = Date.now();
+    if (now - lastBackHandledAt < BACK_DEBOUNCE_MS) {
+      console.log('[BackNav] Debounced duplicate back event from:', source);
       return;
     }
-    // Guard: Ignore popstate if the document is hidden, backgrounding, or blurred (e.g. during home swipe gesture)
+    lastBackHandledAt = now;
+
+    // Guard: Ignore back if the document is hidden, backgrounding, or blurred
+    // (e.g. during home swipe gesture).
     if (document.visibilityState === 'hidden') {
+      console.log('[BackNav] Ignored back event — document hidden/blurred. source:', source);
       return;
     }
+
+    // Guard: If the in-app edge-swipe-back is actively dragging an overlay/screen,
+    // ignore the native back event so it does not double-fire and cause jitter.
+    // The in-app swipe will commit the close itself (with a smooth slide).
+    if (window._swipeBackDragging) {
+      console.log('[BackNav] Ignored back event — in-app swipe-back is dragging. source:', source);
+      return;
+    }
+
     const handled = triggerBackAction();
     if (handled) {
+      // A modal/overlay was closed (or tab was navigated back). Re-push a fresh
+      // history entry so the next back press can be handled again (PWA path).
       history.pushState({ appState: 'active', tab: state.activeTab }, '', window.location.pathname + window.location.search);
       state.historyPushed = true;
-    } else {
-      state.historyPushed = false;
-      if (e.state && e.state.tab && e.state.tab !== state.activeTab) {
-        switchTab(e.state.tab, true);
-      } else {
-        updateUI();
-      }
+      return;
     }
+
+    // Nothing was handled (no modal, no overlay, no selection mode, already on
+    // the first tab). Decide what to do based on the source.
+    if (source === 'backButton') {
+      // Capacitor: no more in-app back actions. Use the standard Android
+      // "double back to exit" pattern — the FIRST back press only shows a toast
+      // ("press back again to exit"); the app exits on the SECOND press within
+      // the confirm window. This prevents accidentally minimizing the app with a
+      // single swipe-back while on the Transactions tab.
+      const nowMs = Date.now();
+      if (nowMs - lastExitRequestAt < EXIT_CONFIRM_WINDOW_MS) {
+        // Second back press within the window → actually exit the app.
+        const App = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
+        if (App && typeof App.exitApp === 'function') {
+          App.exitApp();
+        }
+        return;
+      }
+      // First back press → show confirmation toast and arm the exit window.
+      lastExitRequestAt = nowMs;
+      const exitMsg = state.lang === 'el'
+        ? 'Πατήστε ξανά πίσω για έξοδο'
+        : 'Press back again to exit';
+      if (typeof showSyncToast === 'function') {
+        showSyncToast(exitMsg, EXIT_CONFIRM_WINDOW_MS);
+      }
+      return;
+    }
+
+    // popstate (PWA / WebView): no more in-app back actions. If the popped state
+    // carried a tab, restore it; otherwise just refresh the UI.
+    state.historyPushed = false;
+    if (e && e.state && e.state.tab && e.state.tab !== state.activeTab) {
+      switchTab(e.state.tab, true);
+    } else {
+      updateUI();
+    }
+  }
+
+  window.addEventListener('popstate', (e) => {
+    // NOTE: No Capacitor early-return here. In some Capacitor/WebView configs the
+    // history pop fires popstate on back press even when a backButton listener is
+    // registered. Routing through the shared handler (with its debounce guard)
+    // makes this safe: if backButton also fires for the same press, the second
+    // call is debounced away.
+    handleBackNavigation('popstate', e);
   });
 
   // Native Capacitor Back Button Interception
@@ -12647,10 +13716,7 @@ function initSwipeToBack() {
       const App = window.Capacitor.Plugins.App;
       if (App && typeof App.addListener === 'function') {
         App.addListener('backButton', () => {
-          const handled = triggerBackAction();
-          if (!handled) {
-            App.exitApp();
-          }
+          handleBackNavigation('backButton');
         });
         return true;
       }
@@ -12802,6 +13868,9 @@ function initSwipeToBack() {
     if (activeModals.length > 0) {
       const topModal = activeModals[activeModals.length - 1];
       if (topModal && topModal.id) {
+        // System back button / swipe-back is a deliberate user action — mark it
+        // user-initiated so the resume guard never blocks the close (no lag).
+        window.__userInitiatedClose = true;
         closeModal(topModal.id);
         return true;
       }
@@ -12860,7 +13929,16 @@ function initSwipeToBack() {
     // If an overlay/modal is active, allow swiping back starting from the left 150px
     // If no overlay is active, only allow starting from the left 60px
     const activeZone = hasActiveOverlay() ? 150 : 60;
-    bsActive = bsStartX <= activeZone;
+    // On the 'more' tab, disable the in-app custom edge-swipe-back ONLY when no
+    // overlay/subscreen is open, so it does not conflict with Android's native back
+    // gesture on the plain hub screen (which caused jitter). When a subscreen card
+    // IS open (overlay active), keep the in-app swipe-back enabled so the card
+    // slides away smoothly with a native feel instead of closing abruptly.
+    if (state.activeTab === 'more' && !hasActiveOverlay()) {
+      bsActive = false;
+    } else {
+      bsActive = bsStartX <= activeZone;
+    }
 
     currentScreen = null;
     prevScreen = null;
@@ -12892,6 +13970,7 @@ function initSwipeToBack() {
     if (hasActiveOverlay()) {
       if (!bsDragging) {
         bsDragging = true;
+        window._swipeBackDragging = true;
         activeOverlayEl = getActiveOverlayElement();
         if (activeOverlayEl) {
           activeOverlayParent = activeOverlayEl.closest('.modal-overlay, .tx-modal-overlay') || activeOverlayEl;
@@ -12916,6 +13995,7 @@ function initSwipeToBack() {
     // Start drag: set up screens for interactive slide (when no overlays)
     if (!bsDragging) {
       bsDragging = true;
+      window._swipeBackDragging = true;
       const currentTabIdx = TAB_ORDER.indexOf(state.activeTab);
       currentScreen = document.getElementById(`${state.activeTab}-screen`);
 
@@ -12978,7 +14058,7 @@ function initSwipeToBack() {
   function finishDrag(committed) {
     if (!bsDragging) return;
 
-    // Capture screen references immediately in local variables to avoid race conditions 
+    // Capture screen references immediately in local variables to avoid race conditions
     // with touchstart resetting outer scope variables before our timeout runs.
     const currScreen = currentScreen;
     const pScreen = prevScreen;
@@ -12991,6 +14071,7 @@ function initSwipeToBack() {
     currentScreen = null;
     prevScreen = null;
     bsDragging = false;
+    window._swipeBackDragging = false;
 
     if (activeEl) {
       const dur = '0.22s';
@@ -13089,6 +14170,7 @@ function initSwipeToBack() {
     if (!bsActive || !bsSwiping) {
       bsActive = false; bsSwiping = null;
       if (bsDragging) finishDrag(false);
+      window._swipeBackDragging = false;
       return;
     }
 
@@ -13110,6 +14192,7 @@ function initSwipeToBack() {
     if (bsDragging) finishDrag(false);
     bsActive = false;
     bsSwiping = null;
+    window._swipeBackDragging = false;
   }, { passive: true });
 }
 
@@ -15126,7 +16209,9 @@ function initLightboxPinchZoom() {
 // SETTINGS AND LOCALIZATION HELPERS
 // ============================================================
 function getCurrencySymbol() {
-  const currency = localStorage.getItem('app_currency') || 'EUR';
+  // When multi-currency is enabled, the display currency (if different from the
+  // base currency) determines the symbol shown for aggregated/displayed amounts.
+  const currency = getDisplayCurrency();
   switch (currency) {
     case 'USD': return '$';
     case 'GBP': return '£';
@@ -15139,9 +16224,238 @@ function getCurrencySymbol() {
 
 function updateCurrencySymbols() {
   const symbol = getCurrencySymbol();
+  // Ensure the amount row has a currency symbol element. We inject it via JS
+  // (rather than relying only on the HTML) so it also works on devices that
+  // receive OTA updates, which only replace app.js/style.css and NOT index.html.
+  const amountRow = document.getElementById('form-row-amount');
+  if (amountRow) {
+    const container = amountRow.querySelector('.form-row-value-container');
+    const input = document.getElementById('trans-amount');
+    if (container && input && !container.querySelector('.currency-symbol')) {
+      const span = document.createElement('span');
+      span.className = 'currency-symbol';
+      span.style.fontSize = '18px';
+      span.style.fontWeight = '600';
+      span.style.color = 'var(--text-secondary, #9aa0b4)';
+      container.insertBefore(span, input);
+    }
+  }
+  // Update the amount row's currency symbol via updateAmountCurrencySymbol(),
+  // which preserves the tappable class, the tap handlers AND the chevron icon.
+  // Setting el.textContent directly here would wipe the chevron <i> element that
+  // updateAmountCurrencySymbol() injects, leaving a bare symbol that no longer
+  // looks tappable. Only fall back to plain text for OTHER .currency-symbol
+  // elements (e.g. the "actual amount" correction symbol).
+  const amountSymbol = amountRow ? amountRow.querySelector('.currency-symbol') : null;
   document.querySelectorAll('.currency-symbol').forEach(el => {
+    if (el === amountSymbol) return; // handled by updateAmountCurrencySymbol()
     el.textContent = symbol;
   });
+  if (amountSymbol) {
+    updateAmountCurrencySymbol();
+  }
+}
+
+// Updates the currency symbol in the amount row. The symbol is ALWAYS visible
+// and tappable (opens the currency picker), so the user always knows in which
+// currency they are entering the amount. A chevron hints that it is tappable.
+function updateAmountCurrencySymbol() {
+  const input = document.getElementById('trans-amount');
+  const amountRow = document.getElementById('form-row-amount');
+  if (!input || !amountRow) return;
+  const container = amountRow.querySelector('.form-row-value-container');
+  if (!container) return;
+  let span = container.querySelector('.currency-symbol');
+  if (!span) {
+    span = document.createElement('span');
+    span.className = 'currency-symbol currency-symbol-tappable';
+    span.style.fontSize = '18px';
+    span.style.fontWeight = '600';
+    span.style.color = 'var(--text-secondary, #9aa0b4)';
+    span.style.cursor = 'pointer';
+    span.style.padding = '4px 6px';
+    span.style.borderRadius = '8px';
+    span.style.display = 'inline-flex';
+    span.style.alignItems = 'center';
+    span.style.gap = '3px';
+    span.style.whiteSpace = 'nowrap';
+    container.insertBefore(span, input);
+  }
+  // CRITICAL: updateCurrencySymbols() may have created the span with only the
+  // 'currency-symbol' class (no 'currency-symbol-tappable'). Ensure the tappable
+  // class is ALWAYS present so the capture-phase listener and routing handler
+  // reliably match it. Without this, taps on the symbol fall through to the
+  // parent and open the calculator instead of the currency picker.
+  if (!span.classList.contains('currency-symbol-tappable')) {
+    span.classList.add('currency-symbol-tappable');
+  }
+  // Ensure the symbol sits ABOVE the amount input so taps on it are never
+  // swallowed by the input (which has onfocus="this.blur()"). On installed
+  // devices the stale index.html may lay the input over the symbol area.
+  span.style.position = 'relative';
+  span.style.zIndex = '5';
+  // Always (re)bind the tap handler so the symbol is reliably tappable even
+  // when the span already exists in the HTML markup. Bind BOTH click and
+  // pointerdown for maximum reliability on Android WebView.
+  span.onclick = (e) => { e.stopPropagation(); e.preventDefault(); openCurrencyPickerModal(); };
+  span.onpointerdown = (e) => { e.stopPropagation(); e.preventDefault(); openCurrencyPickerModal(); };
+  // Use a FontAwesome chevron icon (not the text glyph ▾) so it renders
+  // reliably BESIDE the currency symbol instead of wrapping below it.
+  span.innerHTML = escapeHtml(getTransactionCurrencySymbol()) +
+    ' <i class="fa-solid fa-chevron-down" style="font-size: 10px; color: var(--text-muted, #9aa0b4);"></i>';
+  span.style.display = 'inline-flex';
+  updateDualAmountDisplay();
+
+  // The "actual amount" correction field is always in the base currency.
+  const actualSymbol = document.getElementById('trans-actual-amount-symbol');
+  if (actualSymbol) {
+    const baseCurrency = localStorage.getItem('app_currency') || 'EUR';
+    actualSymbol.textContent = CurrencyService.getSymbol(baseCurrency);
+  }
+}
+
+// Returns the symbol for the currently selected transaction currency (multi-currency aware).
+function getTransactionCurrencySymbol() {
+  const code = getTransactionCurrency();
+  const c = CurrencyService.getCurrency(code);
+  return c ? c.symbol : getCurrencySymbol();
+}
+
+// Returns the currency code of a transaction, defaulting to the base currency.
+function getTxCurrencyCode(tx) {
+  return (tx && tx.currency) || localStorage.getItem('app_currency') || 'EUR';
+}
+
+// Returns a small reliability badge for a transaction's conversion status.
+// Only shown when the transaction currency differs from the base currency.
+function getReliabilityBadge(tx) {
+  const baseCurrency = localStorage.getItem('app_currency') || 'EUR';
+  const txCurrency = getTxCurrencyCode(tx);
+  if (txCurrency === baseCurrency) return '';
+  const status = CurrencyService.conversionStatus(tx);
+  const lang = state.lang || 'el';
+  if (status === 'manual') {
+    return `<span class="fx-reliability-badge fx-manual" title="${lang === 'el' ? 'Χειροκίνητη ισοτιμία' : 'Manual rate'}">✍️</span>`;
+  }
+  if (status === 'estimate') {
+    return `<span class="fx-reliability-badge fx-estimate" title="${lang === 'el' ? 'Εκτίμηση (cached ισοτιμία)' : 'Estimate (cached rate)'}">≈</span>`;
+  }
+  return '';
+}
+
+// Returns the currency code label shown next to a transaction amount when it
+// differs from the base currency (e.g. "USD").
+function getTxCurrencyLabel(tx) {
+  const baseCurrency = localStorage.getItem('app_currency') || 'EUR';
+  const txCurrency = getTxCurrencyCode(tx);
+  if (txCurrency === baseCurrency) return '';
+  return `<span class="fx-currency-label">${escapeHtml(txCurrency)}</span>`;
+}
+
+// Shows the base-currency equivalent of the entered amount below the amount row,
+// when the transaction currency differs from the base currency (multi-currency).
+function updateDualAmountDisplay() {
+  const amountRow = document.getElementById('form-row-amount');
+  if (!amountRow) return;
+  const input = document.getElementById('trans-amount');
+  if (!input) return;
+
+  // Ensure the dual-amount element exists.
+  let dual = amountRow.querySelector('.dual-amount');
+  if (!dual) {
+    dual = document.createElement('div');
+    dual.className = 'dual-amount';
+    dual.style.cssText = 'font-size: 12px; color: var(--text-muted, #9aa0b4); margin-top: 2px;';
+    const container = amountRow.querySelector('.form-row-value-container');
+    if (container) container.appendChild(dual);
+  }
+
+  const txCurrency = getTransactionCurrency();
+  const baseCurrency = localStorage.getItem('app_currency') || 'EUR';
+  const rawVal = String(input.value || '').trim();
+
+  if (txCurrency === baseCurrency || rawVal === '') {
+    dual.textContent = '';
+    dual.style.display = 'none';
+    return;
+  }
+
+  const amount = parseFloat(rawVal.replace(',', '.'));
+  if (isNaN(amount)) {
+    dual.textContent = '';
+    dual.style.display = 'none';
+    return;
+  }
+
+  const rate = CurrencyService.getRate(txCurrency, baseCurrency, document.getElementById('trans-date')?.value);
+  if (rate == null || rate <= 0) {
+    dual.textContent = state.lang === 'el' ? 'Ισοτιμία μη διαθέσιμη' : 'Rate unavailable';
+    dual.style.display = 'block';
+    return;
+  }
+
+  const baseAmount = CurrencyService.round(amount / rate, 2);
+  const baseSymbol = CurrencyService.getSymbol(baseCurrency);
+  dual.textContent = `≈ ${baseAmount.toLocaleString(state.lang === 'el' ? 'el-GR' : 'en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${baseSymbol} (1 ${txCurrency} = ${rate} ${baseSymbol})`;
+  dual.style.display = 'block';
+}
+
+// ============================================================
+// MULTI-CURRENCY: DISPLAY CURRENCY & NET WORTH (Phase 7)
+// ============================================================
+
+// Returns the display currency code. In the "Invisible Multi-Currency" model,
+// the display currency concept is removed: all amounts are shown in the
+// application currency (base currency). This always returns the base currency.
+function getDisplayCurrency() {
+  return localStorage.getItem('app_currency') || 'EUR';
+}
+
+// Converts a base-currency amount to the display currency for display purposes.
+// Returns null when the conversion cannot be performed (no rate available).
+function displayAmountInDisplayCurrency(baseAmount) {
+  const baseCurrency = localStorage.getItem('app_currency') || 'EUR';
+  const displayCurrency = getDisplayCurrency();
+  if (baseCurrency === displayCurrency) return baseAmount;
+  const rate = CurrencyService.getRate(baseCurrency, displayCurrency, new Date().toISOString().slice(0, 10));
+  if (rate == null || rate <= 0) return null;
+  return CurrencyService.round(baseAmount * rate, 2);
+}
+
+// Formats a base-currency amount for display, converting it to the display
+// currency when multi-currency is enabled and a rate is available. Falls back
+// to the base amount when conversion is not possible.
+function formatDisplayAmount(baseAmount) {
+  const displayVal = displayAmountInDisplayCurrency(baseAmount);
+  return formatCurrency(displayVal != null ? displayVal : baseAmount);
+}
+
+// Returns the account's balance converted to the base currency, using the
+// account's own currency (defaults to base currency when not set).
+function getAccountBalanceInBase(acc) {
+  if (!acc) return 0;
+  const balance = parseFloat(acc.balance) || 0;
+  const baseCurrency = localStorage.getItem('app_currency') || 'EUR';
+  const accCurrency = acc.currency || baseCurrency;
+  if (accCurrency === baseCurrency) return balance;
+  const rate = CurrencyService.getRate(accCurrency, baseCurrency, new Date().toISOString().slice(0, 10));
+  if (rate == null || rate <= 0) return null; // cannot convert
+  return CurrencyService.round(balance / rate, 2);
+}
+
+// Computes the total net worth across all accounts, converting each account's
+// balance (in its own currency) to the base currency. Returns null if any
+// account balance cannot be converted (missing rate).
+function computeNetWorth() {
+  const accounts = state.accounts || [];
+  if (accounts.length === 0) return 0;
+  let total = 0;
+  for (const acc of accounts) {
+    const inBase = getAccountBalanceInBase(acc);
+    if (inBase == null) return null; // missing rate — cannot compute reliably
+    total += inBase;
+  }
+  return CurrencyService.round(total, 2);
 }
 
 function changeMonthStartSetting(val) {
@@ -15159,12 +16473,35 @@ function changeCurrencySetting(val) {
   updateUI();
 }
 
-function changeAutoLockSetting(val) {
-  localStorage.setItem('settings_auto_lock_delay', val);
-  updateSettingsDisplay();
+// Populates the "Νόμισμα εφαρμογής" select in settings with ALL currencies
+// (150+), not just the 4 hardcoded ones. Called once on init.
+function populateCurrencySelect() {
+  const select = document.getElementById('settings-currency');
+  if (!select) return;
+  const current = localStorage.getItem('app_currency') || 'EUR';
+  const currencies = (window.CurrencyService && typeof window.CurrencyService.getCurrencies === 'function')
+    ? window.CurrencyService.getCurrencies()
+    : [];
+  if (!Array.isArray(currencies) || currencies.length === 0) return;
+  select.innerHTML = '';
+  currencies.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.code;
+    opt.textContent = c.code + ' (' + (c.symbol || '') + ')';
+    if (c.code === current) opt.selected = true;
+    select.appendChild(opt);
+  });
 }
 
 function updateSettingsDisplay() {
+  // Defensive: ensure CurrencyService is complete (has isEnabled) before use.
+  // The bootstrap guard normally guarantees this, but a stale cached
+  // js/CurrencyService.js could clobber it after boot. Never crash here.
+  if (typeof CurrencyService === 'undefined' || typeof CurrencyService.isEnabled !== 'function') {
+    if (typeof window !== 'undefined' && window.CurrencyService && typeof window.CurrencyService.isEnabled === 'function') {
+      CurrencyService = window.CurrencyService;
+    }
+  }
   const monthStart = localStorage.getItem('app_month_start') || '1';
   const weekStart = localStorage.getItem('app_week_start') || '1';
   const currency = localStorage.getItem('app_currency') || 'EUR';
@@ -15187,14 +16524,12 @@ function updateSettingsDisplay() {
     weekDisplay.textContent = weekLabels[weekStart] || weekStart;
   }
   if (currencyDisplay) {
-    const currencyLabels = {
-      'EUR': 'EUR (€)',
-      'USD': 'USD ($)',
-      'GBP': 'GBP (£)',
-      'JPY': 'JPY (¥)'
-    };
-    currencyDisplay.textContent = currencyLabels[currency] || currency;
+    const currencyObj = CurrencyService.getCurrency(currency);
+    currencyDisplay.textContent = currencyObj
+      ? currencyObj.code + ' (' + (currencyObj.symbol || '') + ')'
+      : currency;
   }
+
   if (themeDisplay) {
     const themeLabels = {
       'dark': 'Premium Dark',
@@ -15205,18 +16540,6 @@ function updateSettingsDisplay() {
       'pink': 'Blossom Pink'
     };
     themeDisplay.textContent = themeLabels[theme] || theme;
-  }
-
-  const autoLockDisplay = document.getElementById('settings-auto-lock-display');
-  if (autoLockDisplay) {
-    const autoLockDelay = localStorage.getItem('settings_auto_lock_delay') || 'disabled';
-    const autoLockLabels = {
-      'disabled': state.lang === 'el' ? 'Απενεργοποιημένο' : 'Disabled',
-      '1': state.lang === 'el' ? '1 λεπτό' : '1 minute',
-      '5': state.lang === 'el' ? '5 λεπτά' : '5 minutes',
-      '10': state.lang === 'el' ? '10 λεπτά' : '10 minutes'
-    };
-    autoLockDisplay.textContent = autoLockLabels[autoLockDelay] || autoLockDelay;
   }
 }
 
@@ -15233,14 +16556,12 @@ function openSettingsPicker(type) {
   let onSelect = null;
 
   if (type === 'currency') {
-    title = state.lang === 'el' ? 'Κύριο Νόμισμα' : 'Primary Currency';
+    title = state.lang === 'el' ? 'Νόμισμα εφαρμογής' : 'App Currency';
     currentVal = localStorage.getItem('app_currency') || 'EUR';
-    options = [
-      { value: 'EUR', label: 'EUR (€)' },
-      { value: 'USD', label: 'USD ($)' },
-      { value: 'GBP', label: 'GBP (£)' },
-      { value: 'JPY', label: 'JPY (¥)' }
-    ];
+    options = (CurrencyService.getCurrencies() || []).map(c => ({
+      value: c.code,
+      label: c.code + ' (' + (c.symbol || '') + ')'
+    }));
     onSelect = (val) => {
       changeCurrencySetting(val);
     };
@@ -15278,18 +16599,6 @@ function openSettingsPicker(type) {
     onSelect = (val) => {
       changeThemeSetting(val);
       updateUI();
-    };
-  } else if (type === 'auto-lock') {
-    title = state.lang === 'el' ? 'Αυτόματο Κλείδωμα' : 'Auto Lock';
-    currentVal = localStorage.getItem('settings_auto_lock_delay') || 'disabled';
-    options = [
-      { value: 'disabled', label: state.lang === 'el' ? 'Απενεργοποιημένο' : 'Disabled' },
-      { value: '1', label: state.lang === 'el' ? '1 λεπτό' : '1 minute' },
-      { value: '5', label: state.lang === 'el' ? '5 λεπτά' : '5 minutes' },
-      { value: '10', label: state.lang === 'el' ? '10 λεπτά' : '10 minutes' }
-    ];
-    onSelect = (val) => {
-      changeAutoLockSetting(val);
     };
   }
 
@@ -15377,6 +16686,8 @@ function initSettingsFromStorage() {
       });
     }
   }
+
+  populateCurrencySelect();
 
   updateNoteShortcutVisibility();
   updateSettingsDisplay();
@@ -16413,23 +17724,23 @@ function renderPartnerSection() {
             </button>
             <div id="member-menu-${m.id}" class="member-dropdown-menu" style="display:none;position:absolute;right:0;top:100%;z-index:1000;background:var(--card-bg2, #1f2230);border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.4);min-width:180px;padding:4px 0;text-align:left;">
               ${m.role === 'admin' ? `
-                <div onclick="changeMemberRole('${m.id}', 'member')" 
-                     onmouseenter="this.style.background='rgba(255,255,255,0.05)'" 
-                     onmouseleave="this.style.background=''" 
+                <div onclick="changeMemberRole('${m.id}', 'member')"
+                     onmouseenter="this.style.background='rgba(255,255,255,0.05)'"
+                     onmouseleave="this.style.background=''"
                      style="padding:10px 12px;font-size:12.5px;cursor:pointer;color:var(--text-primary);transition:background 0.2s;white-space:nowrap;">
                   <i class="fa-solid fa-user-tag" style="margin-right:8px;width:14px;"></i>${demoteText}
                 </div>
               ` : `
-                <div onclick="changeMemberRole('${m.id}', 'admin')" 
-                     onmouseenter="this.style.background='rgba(255,255,255,0.05)'" 
-                     onmouseleave="this.style.background=''" 
+                <div onclick="changeMemberRole('${m.id}', 'admin')"
+                     onmouseenter="this.style.background='rgba(255,255,255,0.05)'"
+                     onmouseleave="this.style.background=''"
                      style="padding:10px 12px;font-size:12.5px;cursor:pointer;color:var(--text-primary);transition:background 0.2s;white-space:nowrap;">
                   <i class="fa-solid fa-user-shield" style="margin-right:8px;width:14px;"></i>${promoteText}
                 </div>
               `}
-              <div onclick="kickFamilyMember('${m.id}')" 
-                   onmouseenter="this.style.background='rgba(239,83,80,0.08)'" 
-                   onmouseleave="this.style.background=''" 
+              <div onclick="kickFamilyMember('${m.id}')"
+                   onmouseenter="this.style.background='rgba(239,83,80,0.08)'"
+                   onmouseleave="this.style.background=''"
                    style="padding:10px 12px;font-size:12.5px;cursor:pointer;color:#ef5350;border-top:1px solid var(--border-light);transition:background 0.2s;white-space:nowrap;">
                 <i class="fa-solid fa-user-minus" style="margin-right:8px;width:14px;"></i>${removeText}
               </div>
@@ -16471,7 +17782,7 @@ function renderPartnerSection() {
             <i class="fa-solid fa-user-plus" style="color:var(--accent);"></i>
             <span>${state.lang === 'el' ? 'Πρόσκληση Νέου Μέλους' : 'Invite New Member'}</span>
           </div>
-          
+
           <!-- 1. STEP 1: Select Role FIRST -->
           <div style="display:flex;flex-direction:column;gap:6px;">
             <label style="font-size:11px;color:var(--text-muted);font-weight:600;margin-bottom:0;">
@@ -16581,7 +17892,7 @@ function renderPartnerSection() {
             <i class="fa-solid fa-right-from-bracket" style="margin-right:5px;"></i>${state.lang === 'el' ? 'Αποχώρηση' : 'Leave'}
           </button>
         </div>
-        
+
         <div style="font-size:12px;font-weight:700;margin-bottom:8px;color:var(--text-secondary);">
           👥 ${state.lang === 'el' ? 'Μέλη Οικογένειας' : 'Family Members'} (${state.familyProfiles.length})
         </div>
@@ -16957,29 +18268,53 @@ function selectInviteRole(role) {
 async function forceAppUpdate() {
   const confirmMsg = state.lang === 'en' ? 'Force update and reload the app?' : 'Θέλετε να επιβάλλετε ενημέρωση και επαναφόρτωση της εφαρμογής;';
   const confirmed = await showConfirm(confirmMsg, state.lang === 'el' ? 'Αναγκαστική Ενημέρωση' : 'Force Update', '🔄');
-  if (confirmed) {
-    if ('serviceWorker' in navigator) {
-      try {
-        const registrations = await navigator.serviceWorker.getRegistrations();
-        for (let registration of registrations) {
-          await registration.unregister();
-        }
-      } catch (e) {
-        console.error('Failed to unregister SW:', e);
+  if (!confirmed) return;
+
+  // OTA path: if the OTA engine is present (OTA-enabled APK), drive it so it
+  // downloads + activates the latest build and auto-reloads through the boot
+  // loader. This is what actually applies the OTA update — the old behavior
+  // only cleared the SW cache and reloaded the BUNDLED app.js, so the OTA
+  // build was never applied.
+  if (window.OTAEngine && typeof window.OTAEngine.checkForUpdate === 'function') {
+    try {
+      console.log('[ForceUpdate] Triggering OTA engine check...');
+      const result = await window.OTAEngine.checkForUpdate();
+      if (result && result.version) {
+        // The engine activated a new build and will auto-reload shortly.
+        console.log('[ForceUpdate] OTA v' + result.version + ' activated; reloading to apply.');
+        return;
       }
+      // No newer OTA build available — fall through to the classic reload so
+      // the user still gets a fresh bundled load (clears any stale SW/cache).
+      console.log('[ForceUpdate] No newer OTA build. Falling back to classic reload.');
+    } catch (e) {
+      console.error('[ForceUpdate] OTA check failed; falling back to classic reload:', e);
     }
-    if ('caches' in window) {
-      try {
-        const keys = await caches.keys();
-        for (let key of keys) {
-          await caches.delete(key);
-        }
-      } catch (e) {
-        console.error('Failed to clear cache:', e);
-      }
-    }
-    window.location.reload(true);
   }
+
+  // Classic path (plain web/PWA or no OTA update available): clear SW + cache
+  // and reload the bundled app.
+  if ('serviceWorker' in navigator) {
+    try {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      for (let registration of registrations) {
+        await registration.unregister();
+      }
+    } catch (e) {
+      console.error('Failed to unregister SW:', e);
+    }
+  }
+  if ('caches' in window) {
+    try {
+      const keys = await caches.keys();
+      for (let key of keys) {
+        await caches.delete(key);
+      }
+    } catch (e) {
+      console.error('Failed to clear cache:', e);
+    }
+  }
+  window.location.reload(true);
 }
 
 // Bind new functions to window for HTML element access
@@ -17418,6 +18753,46 @@ Object.defineProperty(window, '_suppressRealtimeEvents', {
   configurable: true
 });
 
+// ============================================================
+// FIX #3 (flicker): Safe, leak-proof realtime suppression helpers.
+//
+// PROBLEM: The counter-based _suppressRealtimeEvents above can get "stuck"
+// elevated if a code path sets it to true but throws/returns before the
+// setTimeout that sets it back to false runs. When stuck, realtime events are
+// permanently suppressed (no live partner updates) — or, worse, the counts
+// interleave when multiple syncs run concurrently, causing unpredictable
+// flickering numbers.
+//
+// SOLUTION: Two helpers that GUARANTEE the counter is always decremented:
+//   - suppressRealtimeFor(delayMs): increment now, always schedule the decrement.
+//   - withRealtimeSuppression(delayMs, fn): increment, run fn inside try/finally,
+//     and ALWAYS schedule the decrement even if fn throws.
+// ============================================================
+
+// Increment the suppression counter and ALWAYS schedule a matching decrement
+// after delayMs. Safe to call multiple times concurrently — each call adds its
+// own independent decrement, so the counter can never get stuck.
+function suppressRealtimeFor(delayMs) {
+  _suppressRealtimeEvents = true;
+  setTimeout(() => {
+    _suppressRealtimeEvents = false;
+  }, delayMs);
+}
+
+// Run fn while realtime is suppressed, then schedule the decrement after
+// delayMs. The decrement is scheduled in a finally block, so it runs even if
+// fn throws or returns early. Returns fn's return value (or undefined).
+async function withRealtimeSuppression(delayMs, fn) {
+  _suppressRealtimeEvents = true;
+  try {
+    return await fn();
+  } finally {
+    setTimeout(() => {
+      _suppressRealtimeEvents = false;
+    }, delayMs);
+  }
+}
+
 function handleRealtimeTransactionChange(payload) {
   const isDelete = payload.eventType === 'DELETE';
   const eventId = isDelete ? (payload.old && payload.old.id) : (payload.new && payload.new.id);
@@ -17657,7 +19032,8 @@ async function forceSyncNow(silent = false) {
   // Suppress realtime events for the duration of this sync to prevent
   // DB mutations (upserts/inserts from queue flush) from firing handleRealtimeTransactionChange
   // and causing flickering numbers. We will do a single clean render at the end.
-  _suppressRealtimeEvents = true;
+  // Safe helper: auto-releases after 4s regardless of success/failure.
+  suppressRealtimeFor(4000);
 
   try {
     const userId = state.currentUser.id;
@@ -17839,9 +19215,10 @@ async function forceSyncNow(silent = false) {
     }
     return false;
   } finally {
-    // Always re-enable realtime events after sync completes (or fails),
-    // with a short delay to let any already-inflight Realtime events drain first.
-    setTimeout(() => { _suppressRealtimeEvents = false; }, 4000);
+    // Realtime suppression is auto-released by suppressRealtimeFor(4000) above.
+    // Keep this finally as a safety net in case the helper's timer was somehow
+    // cleared, guaranteeing the counter never stays stuck.
+    suppressRealtimeFor(4000);
   }
 }
 
@@ -18659,7 +20036,7 @@ function updateSupabaseUserModal() {
         <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 20px; word-break: break-all;">
           ${state.currentUser.email}
         </div>
-        
+
         <div class="ios-settings-group" style="margin-bottom: 20px; text-align: left;">
           <div class="ios-settings-row" onclick="triggerProfileSyncFromModal()">
             <div class="ios-row-left">
@@ -18846,22 +20223,90 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-// Android Overlay Click: Close picker modals by clicking on the background backdrop
-document.addEventListener('DOMContentLoaded', () => {
-  const isAndroid = /android/i.test(navigator.userAgent);
-  if (!isAndroid) return;
+// Overlay Backdrop Tap: Close modals by tapping the dark background above a card.
+// Uses touchend (not click) for instant response on Android WebView — click has
+// a ~50-100ms delay even with touch-action:manipulation on passive touch listeners.
+function initBackdropTapHandlers() {
+  // Modals that are FULL-SCREEN (no visible background to tap) should NOT close
+  // on backdrop tap. These are the full-screen overlays where the card fills the
+  // entire screen, so there is no "empty space on top" showing the background.
+  const fullScreenModals = ['transaction-modal', 'advisor-chat-modal', 'profile-settings-modal'];
 
-  document.querySelectorAll('.modal-overlay').forEach(modal => {
+  // Mark a close as user-initiated so it bypasses the resume anti-ghost-click guard.
+  // This makes back arrows and backdrop taps respond INSTANTLY with no lag.
+  function markUserInitiated() {
+    window.__userInitiatedClose = true;
+  }
+
+  function attachBackdropTap(modal) {
+    console.log('[BackdropTap] Attaching backdrop-tap-to-close to modal:', modal.id);
+    let touchStartTarget = null;
+
+    modal.addEventListener('touchstart', (e) => {
+      touchStartTarget = e.target;
+    }, { passive: true });
+
+    modal.addEventListener('touchend', (e) => {
+      // Only close if the touch both STARTED and ENDED on the overlay itself
+      // (not on the .modal-content card). This avoids accidental closes from
+      // touch events that started inside the card and drifted out.
+      if (touchStartTarget === modal && e.target === modal) {
+        // Skip full-screen modals (no visible background to tap)
+        if (fullScreenModals.includes(modal.id)) return;
+        e.preventDefault(); // prevent the synthetic click from also firing
+        markUserInitiated();
+        console.log('[BackdropTap] Closing modal via backdrop tap:', modal.id);
+        closeModal(modal.id);
+      }
+      touchStartTarget = null;
+    }, { passive: false });
+
+    // click fallback for non-touch environments (desktop PWA / browser)
     modal.addEventListener('click', (e) => {
       if (e.target === modal) {
-        // Do not close primary modals on backdrop tap — they are restored on foreground resume
-        const protectedModals = ['advisor-chat-modal', 'transaction-modal', 'profile-settings-modal'];
-        if (protectedModals.includes(modal.id)) return;
+        if (fullScreenModals.includes(modal.id)) return;
+        markUserInitiated();
+        console.log('[BackdropTap] Closing modal via backdrop click:', modal.id);
         closeModal(modal.id);
       }
     });
+  }
+
+  // Attach backdrop-tap-to-close to ALL modal overlay types that can show a
+  // visible background above the card (bottom-sheet style modals).
+  // NOTE: profile-settings-modal is EXCLUDED because it already has its own
+  // inline onclick="handleProfileSheetOverlayClick(event)" backdrop handler.
+  document.querySelectorAll('.modal-overlay, .tx-modal-overlay, .profile-sheet-overlay').forEach((modal) => {
+    if (modal.id === 'profile-settings-modal') return;
+    attachBackdropTap(modal);
   });
-});
+
+  // Delegated listener: any tap on a back-arrow / close button (elements whose
+  // onclick calls closeModal) is a deliberate user action. Mark it user-initiated
+  // so the resume guard never blocks it → instant, lag-free back arrow response.
+  document.addEventListener('click', (e) => {
+    const t = e.target;
+    // Back arrows use .icon-btn with fa-arrow-left; close buttons use .modal-close
+    // or have an onclick that calls closeModal. Detect these to mark user-initiated.
+    const isCloseControl =
+      (t.closest && t.closest('.icon-btn')) ||
+      (t.closest && t.closest('.modal-close')) ||
+      (t.closest && t.closest('[onclick*="closeModal"]')) ||
+      (t.closest && t.closest('[onclick*="closeProfileSheet"]')) ||
+      (t.closest && t.closest('[onclick*="closeSearchOverlay"]'));
+    if (isCloseControl) {
+      markUserInitiated();
+    }
+  }, true);
+}
+// The OTA boot loader injects app.js asynchronously via Blob URL AFTER
+// DOMContentLoaded has fired. Use the same readyState fallback as initApp so
+// backdrop-tap-to-close is ALWAYS installed regardless of load timing.
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initBackdropTapHandlers);
+} else {
+  setTimeout(initBackdropTapHandlers, 0);
+}
 
 // Dynamic Visual Viewport Height Adjustment (for virtual keyboard support)
 // With interactive-widget=resizes-visual, the layout viewport doesn't shrink on Android.
@@ -19865,7 +21310,7 @@ window.onSubscreenShow_preferences = function () {
   const themeSelect = document.getElementById('settings-theme');
   if (themeSelect) themeSelect.value = savedTheme;
 
-  const savedCurrency = localStorage.getItem('settings_currency') || 'EUR';
+  const savedCurrency = localStorage.getItem('app_currency') || 'EUR';
   const currencySelect = document.getElementById('settings-currency');
   if (currencySelect) currencySelect.value = savedCurrency;
 
@@ -20066,7 +21511,7 @@ function resetFeedbackForm() {
 window.submitUserFeedback = submitUserFeedback;
 window.resetFeedbackForm = resetFeedbackForm;
 
-document.addEventListener('DOMContentLoaded', () => {
+function initSettingsSubscreenAndFhs() {
   // ── Robust collapsible helper ──────────────────────────────────────────
   // Uses explicit scrollHeight so the content is NEVER clipped regardless
   // of how tall the inner HTML grows (dynamic family / feedback content).
@@ -20118,6 +21563,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Bind programmatic listeners for the new settings subscreens
   bindSettingsSubscreenListeners();
+
+  // NOTE: No dedicated backdrop-tap handler for settings-subscreen-modal here.
+  // It has class="modal-overlay" so the generic attachBackdropTap (above) already
+  // attaches backdrop-tap-to-close to it. A separate handler would be a duplicate
+  // and could cause a double closeModal call.
 
   function bindSettingsSubscreenListeners() {
     const preferencesLangRow = document.getElementById('preferences-lang-row');
@@ -20258,14 +21708,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const backBtn = document.getElementById('settings-subscreen-back-btn');
     if (backBtn) {
-      backBtn.addEventListener('click', () => {
+      console.log('[DEBUG] settings-subscreen-back-btn found, binding click handler');
+      backBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('[DEBUG] settings-subscreen-back-btn CLICKED. history len =', window._settingsSubscreenHistory ? window._settingsSubscreenHistory.length : 'N/A');
         if (window._settingsSubscreenHistory && window._settingsSubscreenHistory.length > 0) {
           const prev = window._settingsSubscreenHistory.pop();
           openSettingsSubscreen(prev.id, prev.titleKey, true);
         } else {
+          // Mark as a deliberate user action so the resume anti-ghost-click guard
+          // NEVER blocks this close — the back arrow must respond instantly.
+          window.__userInitiatedClose = true;
           closeModal('settings-subscreen-modal');
+          // Hard fallback: if closeModal was blocked by any guard (e.g. resume
+          // transition), force-remove the active class so the card always closes.
+          const modalEl = document.getElementById('settings-subscreen-modal');
+          if (modalEl && modalEl.classList.contains('active')) {
+            setTimeout(() => {
+              if (modalEl.classList.contains('active')) {
+                modalEl.classList.remove('active');
+                document.body.classList.remove('modal-open');
+              }
+            }, 60);
+          }
         }
       });
+    } else {
+      console.warn('[DEBUG] settings-subscreen-back-btn NOT FOUND at bind time');
     }
   }
 
@@ -20315,8 +21785,16 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
-
-});
+}
+// The OTA boot loader injects app.js asynchronously via Blob URL AFTER
+// DOMContentLoaded has fired. Use the same readyState fallback as initApp so
+// the settings-subscreen back-arrow handler and FHS listeners are ALWAYS
+// installed regardless of load timing.
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initSettingsSubscreenAndFhs);
+} else {
+  setTimeout(initSettingsSubscreenAndFhs, 0);
+}
 
 // Helper for FHS Tab switching
 function showFhsTab(tabName) {
@@ -21052,7 +22530,7 @@ function submitCoachQuery(queryText) {
         let thisMonthIncome = 0;
         let thisMonthExpense = 0;
         thisMonthTrans.forEach(t => {
-          const amt = parseFloat(t.amount) || 0;
+          const amt = CurrencyService.toBase(t);
           if (t.type === 'income') thisMonthIncome += amt;
           if (t.type === 'expense') thisMonthExpense += amt;
         });
@@ -21062,7 +22540,7 @@ function submitCoachQuery(queryText) {
           id: t.id,
           date: String(t.date || '').split('T')[0].split(' ')[0],
           type: t.type,
-          amount: parseFloat(t.amount) || 0,
+          amount: CurrencyService.toBase(t),
           category: t.category || '',
           subcategory: t.subcategory || '',
           note: t.note || t.description || ''
@@ -21229,7 +22707,7 @@ function getCoachAveragePacing() {
     const y = parseInt(parts[0], 10);
     const m = parseInt(parts[1], 10);
     const key = `${y}-${String(m).padStart(2, '0')}`;
-    const amt = parseFloat(t.amount) || 0;
+    const amt = CurrencyService.toBase(t);
 
     if (!monthlyData[key]) {
       monthlyData[key] = { income: 0, expense: 0 };
@@ -21278,7 +22756,7 @@ function runCoachOverspendingAnalysis() {
     if (parts.length !== 3) return;
     const y = parseInt(parts[0], 10);
     const m = parseInt(parts[1], 10) - 1;
-    const amt = parseFloat(t.amount) || 0;
+    const amt = CurrencyService.toBase(t);
     const cat = t.category || 'Other';
 
     if (y === currYear && m === currMonth) {
@@ -21356,7 +22834,7 @@ function runCoachSavingsAdvice() {
     if (parts.length !== 3) return;
     const y = parseInt(parts[0], 10);
     const m = parseInt(parts[1], 10) - 1;
-    const amt = parseFloat(t.amount) || 0;
+    const amt = CurrencyService.toBase(t);
 
     if (y === currYear && m === currMonth) {
       const cat = t.category || 'Other';
@@ -21522,7 +23000,7 @@ function runCoachCategoryAnalysis(categoryName) {
       : `No expenses found in the **${categoryName}** category for this month.`;
   }
 
-  const totalAmt = currMonthTrans.reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
+  const totalAmt = currMonthTrans.reduce((sum, t) => sum + CurrencyService.toBase(t), 0);
   const top3 = currMonthTrans.sort((a, b) => (parseFloat(b.amount) || 0) - (parseFloat(a.amount) || 0)).slice(0, 3);
 
   let html = "";
@@ -21893,7 +23371,7 @@ function runCoachTopCategories() {
     const parts = String(t.date).split('T')[0].split(' ')[0].split('-');
     if (parts.length !== 3) return;
     if (parseInt(parts[0], 10) === currYear && (parseInt(parts[1], 10) - 1) === currMonth) {
-      totals[t.category] = (totals[t.category] || 0) + (parseFloat(t.amount) || 0);
+      totals[t.category] = (totals[t.category] || 0) + CurrencyService.toBase(t);
     }
   });
 
@@ -22002,7 +23480,7 @@ function runCoachSearchQuery(keyword) {
       : `No transactions found this year with the term **"${keyword}"**.`;
   }
 
-  const totalAmt = matchedTrans.reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
+  const totalAmt = matchedTrans.reduce((sum, t) => sum + CurrencyService.toBase(t), 0);
   const count = matchedTrans.length;
   const avg = totalAmt / count;
 
@@ -22112,7 +23590,7 @@ function processCoachQuery(queryText) {
 
     const expenseTotals = {};
     activeExpenses.forEach(t => {
-      expenseTotals[t.category] = (expenseTotals[t.category] || 0) + (parseFloat(t.amount) || 0);
+      expenseTotals[t.category] = (expenseTotals[t.category] || 0) + CurrencyService.toBase(t);
     });
 
     let html = state.lang === 'el' ? "📊 **Κατάσταση Προϋπολογισμών (Budgets):**<br><br>" : "📊 **Budget Status:**<br><br>";
@@ -23627,9 +25105,9 @@ const USER_GUIDE_DATA = {
       {
         id: 'changelog',
         icon: 'fa-box-archive',
-        title: '1. Έκδοση & Τι Νέο Υπάρχει (v1011)',
+        title: '1. Έκδοση & Τι Νέο Υπάρχει (v1029)',
         content: `
-          <p><strong>Έκδοση Οδηγού:</strong> v1011 | <strong>Συγχρονισμένη Έκδοση Εφαρμογής:</strong> v1011</p>
+          <p><strong>Έκδοση Οδηγού:</strong> v1029 | <strong>Συγχρονισμένη Έκδοση Εφαρμογής:</strong> v1029</p>
           <div class="guide-feature-box">
             <h5 style="margin:0 0 6px; color:var(--primary);">✨ Τι νέο υπάρχει στην τελευταία έκδοση:</h5>
             <ul style="margin:0; padding-left:18px;">
@@ -23826,9 +25304,9 @@ const USER_GUIDE_DATA = {
       {
         id: 'changelog',
         icon: 'fa-box-archive',
-        title: '1. Version & What\'s New (v1011)',
+        title: '1. Version & What\'s New (v1029)',
         content: `
-          <p><strong>Guide Version:</strong> v1011 | <strong>Synchronized App Version:</strong> v1011</p>
+          <p><strong>Guide Version:</strong> v1029 | <strong>Synchronized App Version:</strong> v1029</p>
           <div class="guide-feature-box">
             <h5 style="margin:0 0 6px; color:var(--primary);">✨ What's new in the latest version:</h5>
             <ul style="margin:0; padding-left:18px;">

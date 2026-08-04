@@ -6569,6 +6569,11 @@ function changeCurrencySetting(val) {
   updateUI();
 }
 
+function changeAutoLockSetting(val) {
+  localStorage.setItem('settings_auto_lock_delay', val);
+  updateSettingsDisplay();
+}
+
 function updateSettingsDisplay() {
   const monthStart = localStorage.getItem('app_month_start') || '1';
   const weekStart = localStorage.getItem('app_week_start') || '1';
@@ -6610,6 +6615,18 @@ function updateSettingsDisplay() {
       'pink': 'Blossom Pink'
     };
     themeDisplay.textContent = themeLabels[theme] || theme;
+  }
+
+  const autoLockDisplay = document.getElementById('settings-auto-lock-display');
+  if (autoLockDisplay) {
+    const autoLockDelay = localStorage.getItem('settings_auto_lock_delay') || 'disabled';
+    const autoLockLabels = {
+      'disabled': state.lang === 'el' ? 'Απενεργοποιημένο' : 'Disabled',
+      '1': state.lang === 'el' ? '1 λεπτό' : '1 minute',
+      '5': state.lang === 'el' ? '5 λεπτά' : '5 minutes',
+      '10': state.lang === 'el' ? '10 λεπτά' : '10 minutes'
+    };
+    autoLockDisplay.textContent = autoLockLabels[autoLockDelay] || autoLockDelay;
   }
 }
 
@@ -6671,6 +6688,18 @@ function openSettingsPicker(type) {
     onSelect = (val) => {
       changeThemeSetting(val);
       updateUI();
+    };
+  } else if (type === 'auto-lock') {
+    title = state.lang === 'el' ? 'Αυτόματο Κλείδωμα' : 'Auto Lock';
+    currentVal = localStorage.getItem('settings_auto_lock_delay') || 'disabled';
+    options = [
+      { value: 'disabled', label: state.lang === 'el' ? 'Απενεργοποιημένο' : 'Disabled' },
+      { value: '1', label: state.lang === 'el' ? '1 λεπτό' : '1 minute' },
+      { value: '5', label: state.lang === 'el' ? '5 λεπτά' : '5 minutes' },
+      { value: '10', label: state.lang === 'el' ? '10 λεπτά' : '10 minutes' }
+    ];
+    onSelect = (val) => {
+      changeAutoLockSetting(val);
     };
   }
 

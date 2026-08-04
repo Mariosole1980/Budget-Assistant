@@ -958,7 +958,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1063 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1064 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1330,7 +1330,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1063 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1064 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -16473,6 +16473,11 @@ function changeCurrencySetting(val) {
   updateUI();
 }
 
+function changeAutoLockSetting(val) {
+  localStorage.setItem('settings_auto_lock_delay', val);
+  updateSettingsDisplay();
+}
+
 // Populates the "Νόμισμα εφαρμογής" select in settings with ALL currencies
 // (150+), not just the 4 hardcoded ones. Called once on init.
 function populateCurrencySelect() {
@@ -16541,6 +16546,18 @@ function updateSettingsDisplay() {
     };
     themeDisplay.textContent = themeLabels[theme] || theme;
   }
+
+  const autoLockDisplay = document.getElementById('settings-auto-lock-display');
+  if (autoLockDisplay) {
+    const autoLockDelay = localStorage.getItem('settings_auto_lock_delay') || 'disabled';
+    const autoLockLabels = {
+      'disabled': state.lang === 'el' ? 'Απενεργοποιημένο' : 'Disabled',
+      '1': state.lang === 'el' ? '1 λεπτό' : '1 minute',
+      '5': state.lang === 'el' ? '5 λεπτά' : '5 minutes',
+      '10': state.lang === 'el' ? '10 λεπτά' : '10 minutes'
+    };
+    autoLockDisplay.textContent = autoLockLabels[autoLockDelay] || autoLockDelay;
+  }
 }
 
 function openSettingsPicker(type) {
@@ -16599,6 +16616,18 @@ function openSettingsPicker(type) {
     onSelect = (val) => {
       changeThemeSetting(val);
       updateUI();
+    };
+  } else if (type === 'auto-lock') {
+    title = state.lang === 'el' ? 'Αυτόματο Κλείδωμα' : 'Auto Lock';
+    currentVal = localStorage.getItem('settings_auto_lock_delay') || 'disabled';
+    options = [
+      { value: 'disabled', label: state.lang === 'el' ? 'Απενεργοποιημένο' : 'Disabled' },
+      { value: '1', label: state.lang === 'el' ? '1 λεπτό' : '1 minute' },
+      { value: '5', label: state.lang === 'el' ? '5 λεπτά' : '5 minutes' },
+      { value: '10', label: state.lang === 'el' ? '10 λεπτά' : '10 minutes' }
+    ];
+    onSelect = (val) => {
+      changeAutoLockSetting(val);
     };
   }
 

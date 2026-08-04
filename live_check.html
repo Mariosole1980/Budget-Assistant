@@ -90,7 +90,7 @@
               ${devButton}
             </div>
             <div style="font-size:11px;color:#8b949e;">
-              Budget Assistant • build v1011
+              Budget Assistant • build v1063
             </div>
           </div>
         `;
@@ -175,10 +175,10 @@
   <link rel="stylesheet" href="js/fontawesome.min.css">
 
   <!-- Core Stylesheet (id used by the OTA boot loader to swap bundled/OTA) -->
-  <link rel="stylesheet" href="style.css?v=1011" id="app-stylesheet">
+  <link rel="stylesheet" href="style.css?v=1053" id="app-stylesheet">
 
   <!-- Capacitor Bridge -->
-  <script src="capacitor.js?v=1011"></script>
+  <script src="capacitor.js?v=1063"></script>
 
 
   <!-- Supabase client JS CDN -->
@@ -188,7 +188,7 @@
   <!-- Chart.js Datalabels Plugin CDN -->
   <script src="js/chartjs-plugin-datalabels.js"></script>
   <!-- SheetJS xlsx CDN for Excel Import/Export -->
-  <script src="xlsx.full.min.js?v=1011"></script>
+  <script src="xlsx.full.min.js?v=1063"></script>
 </head>
 
 <body style="background-color: #181b22; margin: 0; padding: 0; ">
@@ -201,6 +201,13 @@
       document.documentElement.style.backgroundColor = bgColor;
       if (document.body) document.body.style.backgroundColor = bgColor; // Sync inline body background
       if (savedTheme !== 'dark') document.documentElement.classList.add(`theme-${savedTheme}`);
+
+      // Mark web (non-native) mode so desktop layout only applies to the browser link,
+      // leaving Android/iOS native app layout untouched.
+      const isNative = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+      if (!isNative) {
+        document.documentElement.classList.add('web-mode');
+      }
 
       // Pre-activate backgrounded modals to eliminate flicker on restore
       const activeModalId = localStorage.getItem('bg_active_modal_id');
@@ -576,6 +583,18 @@
                   <span id="total-net-val" class="stats-tab-amt"
                     style="font-size: 15px; font-weight: 800; line-height: 1.2; white-space: nowrap;">€ 0,00</span>
                 </div>
+              </div>
+            </div>
+
+            <!-- Multi-currency: Net Worth across all accounts (converted to base currency) -->
+            <div id="multi-currency-net-worth-row"
+              style="display: none; border-radius: 14px; border: 1px solid var(--border); padding: 10px 14px; margin-bottom: 2px; background: rgba(16,185,129,0.05);">
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <span style="font-size: 12px; font-weight: 600; color: var(--text-secondary);">Καθαρή Αξία (όλοι οι
+                  λογαριασμοί)</span>
+                <span id="multi-currency-net-worth-val"
+                  style="font-size: 15px; font-weight: 800; color: var(--text-primary); white-space: nowrap;">€
+                  0,00</span>
               </div>
             </div>
 
@@ -1045,11 +1064,25 @@
             </div>
 
             <!-- Amount Row -->
-            <div class="form-row focusable" id="form-row-amount" onclick="openCalculatorKeypad()">
+            <div class="form-row focusable" id="form-row-amount" onclick="handleAmountRowClick(event)">
               <label class="form-row-label" data-i18n="row_amount">Ποσό</label>
-              <div class="form-row-value-container">
+              <div class="form-row-value-container" style="display: flex; align-items: center; gap: 6px;">
+                <span class="currency-symbol currency-symbol-tappable"
+                  onclick="event.stopPropagation(); openCurrencyPickerModal();"
+                  style="font-size: 18px; font-weight: 600; color: var(--text-secondary, #9aa0b4); cursor: pointer; padding: 4px 6px; border-radius: 8px; display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; z-index: 2; position: relative;"></span>
                 <input type="text" id="trans-amount" class="form-row-input" placeholder="0" readonly required
-                  inputmode="none" onfocus="this.blur()">
+                  inputmode="none" onfocus="this.blur()" style="flex: 1; min-width: 0;">
+              </div>
+            </div>
+
+            <!-- Actual Amount Correction Row (multi-currency, edit mode only) -->
+            <div class="form-row" id="form-row-actual-amount" style="display: none;">
+              <label class="form-row-label" data-i18n="row_actual_amount">Πραγματική χρέωση</label>
+              <div class="form-row-value-container" style="display: flex; align-items: center; gap: 6px;">
+                <input type="text" id="trans-actual-amount" class="form-row-input" inputmode="decimal"
+                  placeholder="0,00" style="flex: 1;">
+                <span class="currency-symbol" id="trans-actual-amount-symbol"
+                  style="font-size: 18px; font-weight: 600; color: var(--text-secondary, #9aa0b4);"></span>
               </div>
             </div>
 
@@ -1282,7 +1315,7 @@
                 data-i18n="item_user_guide">Οδηγός Χρήσης</h3>
               <div style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
                 <span id="user-guide-version-badge"
-                  style="font-size:10px; background:rgba(99,102,241,0.15); color:var(--primary); padding:2px 8px; border-radius:10px; font-weight:700; border:1px solid rgba(99,102,241,0.3);">v1011</span>
+                  style="font-size:10px; background:rgba(99,102,241,0.15); color:var(--primary); padding:2px 8px; border-radius:10px; font-weight:700; border:1px solid rgba(99,102,241,0.3);">v1029</span>
                 <span>•</span>
                 <span id="user-guide-date-badge">Ιούλιος 2026</span>
               </div>
@@ -1383,37 +1416,36 @@
                 </div>
 
                 <!-- Row 2: Theme Select -->
-                <div class="settings-list-item" onclick="openSettingsPicker('theme')"
-                  style="cursor:pointer; padding:14px 16px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border, rgba(255,255,255,0.05)); margin:0;">
+                <div class="settings-list-item"
+                  style="padding:14px 16px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border, rgba(255,255,255,0.05)); margin:0;">
                   <div style="display:flex; flex-direction:column; gap:3px; flex:1; padding-right:12px;">
                     <span class="settings-item-label"
                       style="font-weight:700; font-size:14px; color:var(--text-primary);" data-i18n="item_theme">Θέμα
                       Εμφάνισης</span>
                     <span style="font-size:12px; color:var(--text-muted);">Παλέτα χρωμάτων & σκοτεινή λειτουργία</span>
                   </div>
-                  <div
-                    style="display:flex; align-items:center; gap:8px; background:rgba(16,185,129,0.10); border:1px solid rgba(16,185,129,0.25); padding:7px 14px; border-radius:20px;">
-                    <span id="settings-theme-display" style="font-size:13px; font-weight:800; color:#10b981;">Premium
-                      Dark</span>
-                    <i class="fa-solid fa-chevron-right" style="color:#10b981; font-size:11px;"></i>
-                  </div>
+                  <select id="settings-theme" class="settings-select" onchange="changeThemeSetting(this.value)">
+                    <option value="dark">Premium Dark</option>
+                    <option value="oled">OLED Black</option>
+                    <option value="light">Classic Light</option>
+                    <option value="emerald">Emerald Forest</option>
+                    <option value="ocean">Ocean Breeze</option>
+                    <option value="pink">Blossom Pink</option>
+                  </select>
                 </div>
 
                 <!-- Row 3: Currency Select -->
-                <div class="settings-list-item" onclick="openSettingsPicker('currency')"
-                  style="cursor:pointer; padding:14px 16px; display:flex; align-items:center; justify-content:space-between; margin:0;">
+                <div class="settings-list-item"
+                  style="padding:14px 16px; display:flex; align-items:center; justify-content:space-between; margin:0;">
                   <div style="display:flex; flex-direction:column; gap:3px; flex:1; padding-right:12px;">
                     <span class="settings-item-label"
                       style="font-weight:700; font-size:14px; color:var(--text-primary);"
-                      data-i18n="item_currency">Κύριο Νόμισμα</span>
-                    <span style="font-size:12px; color:var(--text-muted);">Σύμβολο νομίσματος στους υπολογισμούς</span>
+                      data-i18n="item_currency">Νόμισμα εφαρμογής</span>
+                    <span style="font-size:12px; color:var(--text-muted);">Το νόμισμα που χρησιμοποιείς συνήθως</span>
                   </div>
-                  <div
-                    style="display:flex; align-items:center; gap:8px; background:rgba(16,185,129,0.10); border:1px solid rgba(16,185,129,0.25); padding:7px 14px; border-radius:20px;">
-                    <span id="settings-currency-display" style="font-size:13px; font-weight:800; color:#10b981;">EUR
-                      (€)</span>
-                    <i class="fa-solid fa-chevron-right" style="color:#10b981; font-size:11px;"></i>
-                  </div>
+                  <select id="settings-currency" class="settings-select" onchange="changeCurrencySetting(this.value)">
+                    <option value="EUR">EUR (€)</option>
+                  </select>
                 </div>
               </div>
             </div>
@@ -1457,20 +1489,20 @@
                 </div>
 
                 <!-- Row 2: Week Start Day -->
-                <div class="settings-list-item" onclick="openSettingsPicker('week-start')"
-                  style="cursor:pointer; padding:14px 16px; display:flex; align-items:center; justify-content:space-between; margin:0;">
+                <div class="settings-list-item"
+                  style="padding:14px 16px; display:flex; align-items:center; justify-content:space-between; margin:0;">
                   <div style="display:flex; flex-direction:column; gap:3px; flex:1; padding-right:12px;">
                     <span class="settings-item-label"
                       style="font-weight:700; font-size:14px; color:var(--text-primary);"
                       data-i18n="item_week_start">Έναρξη Εβδομάδας</span>
                     <span style="font-size:12px; color:var(--text-muted);">Πρώτη ημέρα στα εβδομαδιαία γραφήματα</span>
                   </div>
-                  <div
-                    style="display:flex; align-items:center; gap:8px; background:rgba(16,185,129,0.10); border:1px solid rgba(16,185,129,0.25); padding:7px 14px; border-radius:20px;">
-                    <span id="settings-week-start-display"
-                      style="font-size:13px; font-weight:800; color:#10b981;">Δευτέρα</span>
-                    <i class="fa-solid fa-chevron-right" style="color:#10b981; font-size:11px;"></i>
-                  </div>
+                  <select id="settings-week-start" class="settings-select"
+                    onchange="changeWeekStartSetting(this.value)">
+                    <option value="1" data-i18n="val_week_start">Δευτέρα</option>
+                    <option value="0" data-i18n="val_week_start_sun">Κυριακή</option>
+                    <option value="6" data-i18n="val_week_start_sat">Σάββατο</option>
+                  </select>
                 </div>
               </div>
             </div>
@@ -1810,20 +1842,21 @@
                     <span class="slider round"></span>
                   </label>
                 </div>
-                <div class="settings-list-item" onclick="openSettingsPicker('auto-lock')"
-                  style="cursor:pointer; padding:14px 16px; display:flex; align-items:center; justify-content:space-between; margin:0;">
+                <div class="settings-list-item"
+                  style="padding:14px 16px; display:flex; align-items:center; justify-content:space-between; margin:0;">
                   <div style="display:flex; flex-direction:column; gap:3px; flex:1; padding-right:12px;">
                     <span class="settings-item-label"
                       style="font-weight:700; font-size:14px; color:var(--text-primary);"
                       data-i18n="item_auto_lock">Αυτόματο Κλείδωμα</span>
                     <span style="font-size:12px; color:var(--text-muted);">Χρόνος αδράνειας πριν το κλείδωμα</span>
                   </div>
-                  <div
-                    style="display:flex; align-items:center; gap:8px; background:rgba(16,185,129,0.10); border:1px solid rgba(16,185,129,0.25); padding:7px 14px; border-radius:20px;">
-                    <span id="settings-auto-lock-display"
-                      style="font-size:13px; font-weight:800; color:#10b981;">Απενεργοποιημένο</span>
-                    <i class="fa-solid fa-chevron-right" style="color:#10b981; font-size:11px;"></i>
-                  </div>
+                  <select id="settings-auto-lock-delay" class="settings-select"
+                    onchange="changeAutoLockSetting(this.value)">
+                    <option value="disabled" data-i18n="opt_disabled">Απενεργοποιημένο</option>
+                    <option value="1" data-i18n="opt_1min">1 λεπτό</option>
+                    <option value="5" data-i18n="opt_5min">5 λεπτά</option>
+                    <option value="10" data-i18n="opt_10min">10 λεπτά</option>
+                  </select>
                 </div>
               </div>
             </div>
@@ -1982,10 +2015,10 @@
             </div>
 
             <!-- 7. App Version info -->
-            <div class="settings-list-item"
+            <div class="settings-list-item version-info-row"
               style="padding: 14px 16px; background: transparent; border-top: 1px solid var(--border); margin-top: 8px;">
               <span class="settings-item-label" style="color:var(--text-muted); font-size:12px;"
-                data-i18n="app_version">Έκδοση 1.0.0 (build v1011)</span>
+                data-i18n="app_version">Έκδοση 1.0.0 (build v1063)</span>
               <span class="settings-item-value" style="font-size:12px; color:var(--text-muted); font-weight:600;">Budget
                 Assistant</span>
             </div>
@@ -2446,7 +2479,7 @@
         <div class="search-input-wrapper-modern">
           <i class="fa-solid fa-magnifying-glass search-input-icon-modern"></i>
           <input type="text" id="search-input" placeholder="Search Expenses, Accounts, or date..."
-            oninput="handleSearchChange()">
+            data-i18n-placeholder="search_placeholder" oninput="handleSearchChange()">
           <button class="search-clear-btn-modern" id="search-clear-btn" onclick="clearSearchInput()" title="Καθαρισμός">
             <i class="fa-solid fa-xmark"></i>
           </button>
@@ -2455,8 +2488,9 @@
         <!-- Collapsible Filters Panel -->
         <div id="search-filters-panel" class="search-filters-panel">
           <div class="filters-panel-header">
-            <span class="filters-panel-title">Φίλτρα Αναζήτησης</span>
-            <button type="button" class="filters-panel-reset-btn" onclick="resetSearchFilters()">Καθαρισμός</button>
+            <span class="filters-panel-title" data-i18n="search_filters_title">Φίλτρα Αναζήτησης</span>
+            <button type="button" class="filters-panel-reset-btn" data-i18n="search_btn_clear"
+              onclick="resetSearchFilters()">Καθαρισμός</button>
           </div>
 
           <!-- Horizontal Scrollable Quick-Filter Chips -->
@@ -3047,6 +3081,25 @@
       </div>
     </div>
 
+    <!-- MODAL: CURRENCY PICKER -->
+    <div id="currency-picker-modal" class="modal-overlay" style="z-index: 14000;">
+      <div class="modal-content" style="max-height: 90vh; display: flex; flex-direction: column;">
+        <div class="modal-header">
+          <h3 class="modal-title" data-i18n="modal_currency_title">Επιλογή νομίσματος</h3>
+          <span class="modal-close" onclick="closeModal('currency-picker-modal')">&times;</span>
+        </div>
+        <div class="modal-body" style="padding: 16px; flex: 1; overflow-y: auto;">
+          <input type="text" id="currency-picker-search" class="form-row-input"
+            placeholder="🔍 Αναζήτηση (κωδικός, όνομα, χώρα)..."
+            style="width: 100%; box-sizing: border-box; margin-bottom: 12px;" oninput="renderCurrencyPickerOptions()">
+          <div id="currency-picker-list" class="account-picker-list"
+            style="display: flex; flex-direction: column; gap: 12px;">
+            <!-- Currencies injected here -->
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- MODAL: SETTINGS PICKER (Month Start / Week Start / Theme / Currency) -->
     <div id="settings-picker-modal" class="modal-overlay" style="z-index: 15000;">
       <div class="modal-content"
@@ -3538,13 +3591,15 @@
     </div>
 
     <!-- Core Application Scripts -->
-    <script src="js/NLPProcessor.js?v=1011"></script>
-    <script src="js/MemoryEngine.js?v=1011"></script>
-    <script src="js/DecisionEngine.js?v=1011"></script>
-    <script src="js/OnlineAIProvider.js?v=1011"></script>
-    <script src="js/AIEngine.js?v=1011"></script>
-    <script src="js/IntentCorpus.js?v=1011"></script>
-    <script src="js/KnowledgeGraph.js?v=1011"></script>
+    <script src="js/NLPProcessor.js?v=1063"></script>
+    <script src="js/MemoryEngine.js?v=1063"></script>
+    <script src="js/DecisionEngine.js?v=1063"></script>
+    <script src="js/OnlineAIProvider.js?v=1063"></script>
+    <script src="js/AIEngine.js?v=1063"></script>
+    <script src="js/IntentCorpus.js?v=1063"></script>
+    <script src="js/KnowledgeGraph.js?v=1063"></script>
+    <!-- Multi-Currency Service (single conversion mechanism) -->
+    <script src="js/CurrencyService.js?v=1063"></script>
     <!-- ============================================================
          OTA BOOT LOADER
          Loads EXACTLY ONE app.js (bundled OR OTA from IndexedDB, never both).
@@ -3553,15 +3608,18 @@
            2) js/OTAEngine.js     -> auto-runs initOTACheck() (sees OTABootLoader)
            3) window.OTABootLoader.boot() -> injects the chosen app.js
          ============================================================ -->
-    <script src="ota-boot-loader.js?v=1011"></script>
-    <script src="js/OTAEngine.js?v=1011"></script>
+    <script src="ota-boot-loader.js?v=1063"></script>
+    <script src="js/OTAEngine.js?v=1063"></script>
     <script>
+      // CURRENT_BUILD must be defined BEFORE boot() so the boot loader can
+      // compare the staged OTA build version against the bundled APK version
+      // and skip stale OTA builds (see "Stale OTA Guard" in ota-boot-loader.js).
+      const CURRENT_BUILD = 1063;
       window.OTABootLoader.boot();
     </script>
 
     <!-- Register PWA Service Worker -->
     <script>
-      const CURRENT_BUILD = 1011;
 
       // ============================================================
       // AGGRESSIVE iOS PWA AUTO-UPDATE

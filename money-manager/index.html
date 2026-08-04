@@ -345,22 +345,22 @@
             <i class="fa-solid fa-chevron-right" style="color:#10b981; font-size:11px;"></i>
           </div>
         </div>
-        <div class="settings-list-item">
+        <div class="settings-list-item" onclick="openSettingsPicker('week-start')" style="cursor:pointer;">
           <span class="settings-item-label" data-i18n="item_week_start">Έναρξη Εβδομάδας</span>
-          <select id="settings-week-start" class="settings-select" onchange="changeWeekStartSetting(this.value)">
-            <option value="1" data-i18n="val_week_start">Δευτέρα</option>
-            <option value="0" data-i18n="val_week_start_sun">Κυριακή</option>
-            <option value="6" data-i18n="val_week_start_sat">Σάββατο</option>
-          </select>
+          <div
+            style="display:flex; align-items:center; gap:8px; background:rgba(16,185,129,0.10); border:1px solid rgba(16,185,129,0.25); padding:7px 14px; border-radius:20px;">
+            <span id="settings-week-start-display"
+              style="font-size:13px; font-weight:800; color:#10b981;">Δευτέρα</span>
+            <i class="fa-solid fa-chevron-right" style="color:#10b981; font-size:11px;"></i>
+          </div>
         </div>
-        <div class="settings-list-item">
+        <div class="settings-list-item" onclick="openSettingsPicker('currency')" style="cursor:pointer;">
           <span class="settings-item-label" data-i18n="item_currency">Κύριο Νόμισμα</span>
-          <select id="settings-currency" class="settings-select" onchange="changeCurrencySetting(this.value)">
-            <option value="EUR">EUR (€)</option>
-            <option value="USD">USD ($)</option>
-            <option value="GBP">GBP (£)</option>
-            <option value="JPY">JPY (¥)</option>
-          </select>
+          <div
+            style="display:flex; align-items:center; gap:8px; background:rgba(16,185,129,0.10); border:1px solid rgba(16,185,129,0.25); padding:7px 14px; border-radius:20px;">
+            <span id="settings-currency-display" style="font-size:13px; font-weight:800; color:#10b981;">EUR (€)</span>
+            <i class="fa-solid fa-chevron-right" style="color:#10b981; font-size:11px;"></i>
+          </div>
         </div>
         <div class="settings-list-item" onclick="openSupabaseSettings()">
           <div style="display: flex; flex-direction: column; flex: 1;">
@@ -377,16 +377,14 @@
             style="font-size: 11px; color: var(--text-muted);"></span>
         </div>
 
-        <div class="settings-list-item">
+        <div class="settings-list-item" onclick="openSettingsPicker('theme')" style="cursor:pointer;">
           <span class="settings-item-label" data-i18n="item_theme">Θέμα Εμφάνισης</span>
-          <select id="settings-theme" class="settings-select" onchange="changeThemeSetting(this.value)">
-            <option value="dark">Premium Dark</option>
-            <option value="oled">OLED Black</option>
-            <option value="light">Classic Light</option>
-            <option value="emerald">Emerald Forest</option>
-            <option value="ocean">Ocean Breeze</option>
-            <option value="pink">Blossom Pink</option>
-          </select>
+          <div
+            style="display:flex; align-items:center; gap:8px; background:rgba(16,185,129,0.10); border:1px solid rgba(16,185,129,0.25); padding:7px 14px; border-radius:20px;">
+            <span id="settings-theme-display" style="font-size:13px; font-weight:800; color:#10b981;">Premium
+              Dark</span>
+            <i class="fa-solid fa-chevron-right" style="color:#10b981; font-size:11px;"></i>
+          </div>
         </div>
         <div class="settings-list-item">
           <span class="settings-item-label" data-i18n="item_app_lock">Κλείδωμα Εφαρμογής (PIN)</span>
