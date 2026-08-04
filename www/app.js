@@ -958,7 +958,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1055 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1056 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1330,7 +1330,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1055 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1056 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -16110,7 +16110,7 @@ function updateCurrencySymbols() {
 
 // Updates the currency symbol in the amount row. The symbol is ALWAYS visible
 // and tappable (opens the currency picker), so the user always knows in which
-// currency they are entering the amount. A chevron (▾) hints that it is tappable.
+// currency they are entering the amount. A chevron hints that it is tappable.
 function updateAmountCurrencySymbol() {
   const input = document.getElementById('trans-amount');
   const amountRow = document.getElementById('form-row-amount');
@@ -16129,11 +16129,17 @@ function updateAmountCurrencySymbol() {
     span.style.borderRadius = '8px';
     span.style.display = 'inline-flex';
     span.style.alignItems = 'center';
-    span.style.gap = '2px';
-    span.onclick = (e) => { e.stopPropagation(); openCurrencyPickerModal(); };
+    span.style.gap = '3px';
+    span.style.whiteSpace = 'nowrap';
     container.insertBefore(span, input);
   }
-  span.textContent = getTransactionCurrencySymbol() + ' ▾';
+  // Always (re)bind the tap handler so the symbol is reliably tappable even
+  // when the span already exists in the HTML markup.
+  span.onclick = (e) => { e.stopPropagation(); openCurrencyPickerModal(); };
+  // Use a FontAwesome chevron icon (not the text glyph ▾) so it renders
+  // reliably BESIDE the currency symbol instead of wrapping below it.
+  span.innerHTML = escapeHtml(getTransactionCurrencySymbol()) +
+    ' <i class="fa-solid fa-chevron-down" style="font-size: 10px; color: var(--text-muted, #9aa0b4);"></i>';
   span.style.display = 'inline-flex';
   updateDualAmountDisplay();
 
