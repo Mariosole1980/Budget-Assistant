@@ -685,7 +685,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1043 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1044 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1057,7 +1057,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1043 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1044 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -1470,6 +1470,27 @@ function evaluateCalcBuffer(buf) {
     console.error('Calculation error:', e);
     return cleanBuf;
   }
+}
+
+// Format a raw calculator buffer for display with thousands separators (Greek style, '.').
+// Only plain numeric buffers (digits + optional single decimal dot) are formatted;
+// expressions containing operators are shown as-is to avoid confusion.
+function formatCalcDisplay(buf) {
+  if (!buf) return buf;
+  const s = String(buf);
+  if (!/^\d*\.?\d*$/.test(s)) return s;
+  const dotIdx = s.indexOf('.');
+  let intPart = dotIdx === -1 ? s : s.slice(0, dotIdx);
+  const decPart = dotIdx === -1 ? '' : s.slice(dotIdx);
+  intPart = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return intPart + decPart;
+}
+
+// Remove thousands separators ('.' followed by exactly 3 digits) so a formatted
+// display value like "5.000" or "1.234.56" can be parsed back to a raw number.
+function stripThousandsSeparators(str) {
+  if (!str) return str;
+  return String(str).replace(/(\d)\.(?=\d{3}(?!\d))/g, '$1');
 }
 
 let statsChartInstance = null;
@@ -7471,6 +7492,7 @@ function setupEventListeners() {
       const type = document.querySelector('.type-tab-btn.active').getAttribute('data-type');
 
       let rawAmount = document.getElementById('trans-amount').value || '0';
+      rawAmount = stripThousandsSeparators(rawAmount);
       rawAmount = rawAmount.replace(/\,/g, '.');
       const evaluatedVal = evaluateCalcBuffer(rawAmount);
       const amountVal = parseFloat(evaluatedVal) || 0;
@@ -7875,7 +7897,7 @@ function setupEventListeners() {
         }, 300);
       }
     }
-    state.calcBuffer = document.getElementById('trans-amount').value.replace(/\,/g, '.') || '';
+    state.calcBuffer = stripThousandsSeparators(document.getElementById('trans-amount').value).replace(/\,/g, '.') || '';
   }
 
   window.openCalculatorKeypad = openCalculatorKeypad;
@@ -7902,7 +7924,7 @@ function setupEventListeners() {
 
     if (val === 'done') {
       buf = evaluateCalcBuffer(buf);
-      document.getElementById('trans-amount').value = buf;
+      document.getElementById('trans-amount').value = formatCalcDisplay(buf);
       state.calcBuffer = buf;
       closeCalculatorKeypad();
       return;
@@ -7932,7 +7954,7 @@ function setupEventListeners() {
     }
 
     state.calcBuffer = buf;
-    document.getElementById('trans-amount').value = buf;
+    document.getElementById('trans-amount').value = formatCalcDisplay(buf);
   }
 
   // Stats period navigation
@@ -8711,6 +8733,7 @@ function openAddTransactionModal({ instant = false } = {}) {
   updateAccountDropdowns();
 
   openModal('transaction-modal', { instant });
+  updateCurrencySymbols();
   setTimeout(() => initNoteAutocomplete(), 50);
 }
 
@@ -8743,7 +8766,7 @@ function openEditTransactionModal(t, { instant = false } = {}) {
   document.getElementById('trans-date').value = dateVal;
   document.getElementById('trans-date-display').textContent = formatGreekDateTime(dateVal);
 
-  document.getElementById('trans-amount').value = String(t.amount);
+  document.getElementById('trans-amount').value = formatCalcDisplay(String(t.amount));
 
   // Load note (primary title) and description (secondary) separately
   document.getElementById('trans-note').value = t.note || '';
@@ -8845,6 +8868,7 @@ function openEditTransactionModal(t, { instant = false } = {}) {
   }
 
   openModal('transaction-modal', { instant });
+  updateCurrencySymbols();
   setTimeout(() => initNoteAutocomplete(), 50);
 }
 
@@ -20265,7 +20289,7 @@ window.onSubscreenShow_preferences = function () {
   const themeSelect = document.getElementById('settings-theme');
   if (themeSelect) themeSelect.value = savedTheme;
 
-  const savedCurrency = localStorage.getItem('settings_currency') || 'EUR';
+  const savedCurrency = localStorage.getItem('app_currency') || 'EUR';
   const currencySelect = document.getElementById('settings-currency');
   if (currencySelect) currencySelect.value = savedCurrency;
 
