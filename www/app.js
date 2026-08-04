@@ -958,7 +958,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1056 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1057 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1330,7 +1330,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1056 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1057 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -8235,6 +8235,20 @@ function setupEventListeners() {
 
   window.openCalculatorKeypad = openCalculatorKeypad;
 
+  // Routes taps on the amount row: tapping the currency symbol opens the
+  // currency picker, tapping anywhere else opens the calculator keypad.
+  // Using a single routing handler (instead of relying on stopPropagation)
+  // makes the currency symbol reliably tappable on Android WebView.
+  function handleAmountRowClick(e) {
+    if (e && e.target && e.target.closest && e.target.closest('.currency-symbol-tappable')) {
+      openCurrencyPickerModal();
+    } else {
+      openCalculatorKeypad();
+    }
+  }
+
+  window.handleAmountRowClick = handleAmountRowClick;
+
   function closeCalculatorKeypad() {
     const keypad = document.getElementById('custom-calculator-keypad');
     if (keypad) {
@@ -10642,6 +10656,12 @@ function updateCurrencyTriggerDisplay() {
 function openCurrencyPickerModal() {
   const form = document.getElementById('transaction-form');
   if (form && form.getAttribute('data-readonly') === 'true') return;
+  // Close the calculator keypad so the currency list is fully visible on top
+  // (the keypad has a higher z-index than the picker, so it would otherwise
+  // cover the list). The keypad is reopened after a currency is selected.
+  if (typeof window.closeCalculatorKeypad === 'function') {
+    window.closeCalculatorKeypad();
+  }
   const search = document.getElementById('currency-picker-search');
   if (search) search.value = '';
   renderCurrencyPickerOptions();
@@ -10730,6 +10750,11 @@ function selectCurrencyOption(code) {
   setTransactionCurrency(code);
   rememberRecentCurrency(code);
   closeModal('currency-picker-modal');
+  // Reopen the calculator keypad so the user can continue entering the amount
+  // in the newly selected currency (it was closed when the picker opened).
+  if (typeof window.openCalculatorKeypad === 'function') {
+    window.openCalculatorKeypad();
+  }
 }
 
 // Initializes the transaction currency when opening the form.

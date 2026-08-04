@@ -90,7 +90,7 @@
               ${devButton}
             </div>
             <div style="font-size:11px;color:#8b949e;">
-              Budget Assistant • build v1056
+              Budget Assistant • build v1057
             </div>
           </div>
         `;
@@ -178,7 +178,7 @@
   <link rel="stylesheet" href="style.css?v=1053" id="app-stylesheet">
 
   <!-- Capacitor Bridge -->
-  <script src="capacitor.js?v=1056"></script>
+  <script src="capacitor.js?v=1057"></script>
 
 
   <!-- Supabase client JS CDN -->
@@ -188,7 +188,7 @@
   <!-- Chart.js Datalabels Plugin CDN -->
   <script src="js/chartjs-plugin-datalabels.js"></script>
   <!-- SheetJS xlsx CDN for Excel Import/Export -->
-  <script src="xlsx.full.min.js?v=1056"></script>
+  <script src="xlsx.full.min.js?v=1057"></script>
 </head>
 
 <body style="background-color: #181b22; margin: 0; padding: 0; ">
@@ -1064,12 +1064,12 @@
             </div>
 
             <!-- Amount Row -->
-            <div class="form-row focusable" id="form-row-amount" onclick="openCalculatorKeypad()">
+            <div class="form-row focusable" id="form-row-amount" onclick="handleAmountRowClick(event)">
               <label class="form-row-label" data-i18n="row_amount">Ποσό</label>
               <div class="form-row-value-container" style="display: flex; align-items: center; gap: 6px;">
                 <span class="currency-symbol currency-symbol-tappable"
                   onclick="event.stopPropagation(); openCurrencyPickerModal();"
-                  style="font-size: 18px; font-weight: 600; color: var(--text-secondary, #9aa0b4); cursor: pointer; padding: 4px 6px; border-radius: 8px; display: inline-flex; align-items: center; gap: 3px; white-space: nowrap;"></span>
+                  style="font-size: 18px; font-weight: 600; color: var(--text-secondary, #9aa0b4); cursor: pointer; padding: 4px 6px; border-radius: 8px; display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; z-index: 2; position: relative;"></span>
                 <input type="text" id="trans-amount" class="form-row-input" placeholder="0" readonly required
                   inputmode="none" onfocus="this.blur()" style="flex: 1; min-width: 0;">
               </div>
@@ -2043,7 +2043,7 @@
             <div class="settings-list-item version-info-row"
               style="padding: 14px 16px; background: transparent; border-top: 1px solid var(--border); margin-top: 8px;">
               <span class="settings-item-label" style="color:var(--text-muted); font-size:12px;"
-                data-i18n="app_version">Έκδοση 1.0.0 (build v1056)</span>
+                data-i18n="app_version">Έκδοση 1.0.0 (build v1057)</span>
               <span class="settings-item-value" style="font-size:12px; color:var(--text-muted); font-weight:600;">Budget
                 Assistant</span>
             </div>
@@ -3107,7 +3107,7 @@
     </div>
 
     <!-- MODAL: CURRENCY PICKER -->
-    <div id="currency-picker-modal" class="modal-overlay" style="z-index: 10000;">
+    <div id="currency-picker-modal" class="modal-overlay" style="z-index: 14000;">
       <div class="modal-content" style="max-height: 90vh; display: flex; flex-direction: column;">
         <div class="modal-header">
           <h3 class="modal-title" data-i18n="modal_currency_title">Επιλογή νομίσματος</h3>
@@ -3600,15 +3600,15 @@
     </div>
 
     <!-- Core Application Scripts -->
-    <script src="js/NLPProcessor.js?v=1056"></script>
-    <script src="js/MemoryEngine.js?v=1056"></script>
-    <script src="js/DecisionEngine.js?v=1056"></script>
-    <script src="js/OnlineAIProvider.js?v=1056"></script>
-    <script src="js/AIEngine.js?v=1056"></script>
-    <script src="js/IntentCorpus.js?v=1056"></script>
-    <script src="js/KnowledgeGraph.js?v=1056"></script>
+    <script src="js/NLPProcessor.js?v=1057"></script>
+    <script src="js/MemoryEngine.js?v=1057"></script>
+    <script src="js/DecisionEngine.js?v=1057"></script>
+    <script src="js/OnlineAIProvider.js?v=1057"></script>
+    <script src="js/AIEngine.js?v=1057"></script>
+    <script src="js/IntentCorpus.js?v=1057"></script>
+    <script src="js/KnowledgeGraph.js?v=1057"></script>
     <!-- Multi-Currency Service (single conversion mechanism) -->
-    <script src="js/CurrencyService.js?v=1056"></script>
+    <script src="js/CurrencyService.js?v=1057"></script>
     <!-- ============================================================
          OTA BOOT LOADER
          Loads EXACTLY ONE app.js (bundled OR OTA from IndexedDB, never both).
@@ -3617,13 +3617,13 @@
            2) js/OTAEngine.js     -> auto-runs initOTACheck() (sees OTABootLoader)
            3) window.OTABootLoader.boot() -> injects the chosen app.js
          ============================================================ -->
-    <script src="ota-boot-loader.js?v=1056"></script>
-    <script src="js/OTAEngine.js?v=1056"></script>
+    <script src="ota-boot-loader.js?v=1057"></script>
+    <script src="js/OTAEngine.js?v=1057"></script>
     <script>
       // CURRENT_BUILD must be defined BEFORE boot() so the boot loader can
       // compare the staged OTA build version against the bundled APK version
       // and skip stale OTA builds (see "Stale OTA Guard" in ota-boot-loader.js).
-      const CURRENT_BUILD = 1056;
+      const CURRENT_BUILD = 1057;
       window.OTABootLoader.boot();
     </script>
 
