@@ -19,65 +19,65 @@ window.addEventListener('unhandledrejection', function (event) {
 // ============================================================
 const CATEGORY_EMOJI_MAP = {
   // Expense categories
-  '1F3E1': { name: '🏡 ΣΠΙΤΙ',                  icon: '🏡', color: '#e05e55', type: 'expense' },
-  '1F3E0': { name: '🏠ΓΡΑΦΕΙΟ Β2',             icon: '🏠', color: '#ffd54f', type: 'expense' },
-  '1F697': { name: '🚗 ΑΥΤΟΚΙΝΗΤΟ',             icon: '🚗', color: '#ffa726', type: 'expense' },
-  '1F6D2': { name: '🛒 ΔΙΑΤΡΟΦΗ',               icon: '🛒', color: '#ffb300', type: 'expense' },
-  '1F3CB': { name: '🏋️ΓΥΜΝΑΣΤΗΡΙΟ',            icon: '🏋️', color: '#42a5f5', type: 'expense' },
-  '1F389': { name: '🎉ΔΙΑΣΚΕΔΑΣΗ/ΕΞΟΔΟΙ',      icon: '🎉', color: '#26a69a', type: 'expense' },
-  '1F9FE': { name: '🧾ΦΟΡΟΙ/ΛΟΓΙΣΤΗΣ',         icon: '🧾', color: '#26c6da', type: 'expense' },
-  '1F455': { name: '👕 ΠΡΟΣΩΠΙΚΗ ΦΡΟΝΤΙΔΑ',     icon: '👕', color: '#7e57c2', type: 'expense' },
-  '1F687': { name: '🚇 ΜΕΤΑΚΙΝΗΣΗ',             icon: '🚇', color: '#ab47bc', type: 'expense' },
-  '1F4BB': { name: '💻 ΤΕΧΝΟΛΟΓΙΑ',             icon: '💻', color: '#5c6bc0', type: 'expense' },
-  '1F4BC': { name: '💼 ΜΙΣΘΟΣ',                 icon: '💼', color: '#4caf50', type: 'income' },
-  '1F9E9': { name: '🧩ΔΙΑΦΟΡΑ ΕΞΟΔΑ',          icon: '🧩', color: '#78909c', type: 'expense' },
-  '1F3AC': { name: '🎬 ΣΥΝΔΡΟΜΕΣ',              icon: '🎬', color: '#ec407a', type: 'expense' },
-  '2764':  { name: '❤️ ΥΓΕΙΑ',                  icon: '❤️', color: '#ef5350', type: 'expense' },
-  '1F489': { name: '❤️ ΥΓΕΙΑ',                  icon: '❤️', color: '#ef5350', type: 'expense' },
-  '1F48A': { name: '❤️ ΥΓΕΙΑ',                  icon: '❤️', color: '#ef5350', type: 'expense' },
-  '1F527': { name: '🧩ΔΙΑΦΟΡΑ ΕΞΟΔΑ',          icon: '🧩', color: '#78909c', type: 'expense' },
+  '1F3E1': { name: '🏡 ΣΠΙΤΙ', icon: '🏡', color: '#e05e55', type: 'expense' },
+  '1F3E0': { name: '🏠ΓΡΑΦΕΙΟ Β2', icon: '🏠', color: '#ffd54f', type: 'expense' },
+  '1F697': { name: '🚗 ΑΥΤΟΚΙΝΗΤΟ', icon: '🚗', color: '#ffa726', type: 'expense' },
+  '1F6D2': { name: '🛒 ΔΙΑΤΡΟΦΗ', icon: '🛒', color: '#ffb300', type: 'expense' },
+  '1F3CB': { name: '🏋️ΓΥΜΝΑΣΤΗΡΙΟ', icon: '🏋️', color: '#42a5f5', type: 'expense' },
+  '1F389': { name: '🎉ΔΙΑΣΚΕΔΑΣΗ/ΕΞΟΔΟΙ', icon: '🎉', color: '#26a69a', type: 'expense' },
+  '1F9FE': { name: '🧾ΦΟΡΟΙ/ΛΟΓΙΣΤΗΣ', icon: '🧾', color: '#26c6da', type: 'expense' },
+  '1F455': { name: '👕 ΠΡΟΣΩΠΙΚΗ ΦΡΟΝΤΙΔΑ', icon: '👕', color: '#7e57c2', type: 'expense' },
+  '1F687': { name: '🚇 ΜΕΤΑΚΙΝΗΣΗ', icon: '🚇', color: '#ab47bc', type: 'expense' },
+  '1F4BB': { name: '💻 ΤΕΧΝΟΛΟΓΙΑ', icon: '💻', color: '#5c6bc0', type: 'expense' },
+  '1F4BC': { name: '💼 ΜΙΣΘΟΣ', icon: '💼', color: '#4caf50', type: 'income' },
+  '1F9E9': { name: '🧩ΔΙΑΦΟΡΑ ΕΞΟΔΑ', icon: '🧩', color: '#78909c', type: 'expense' },
+  '1F3AC': { name: '🎬 ΣΥΝΔΡΟΜΕΣ', icon: '🎬', color: '#ec407a', type: 'expense' },
+  '2764': { name: '❤️ ΥΓΕΙΑ', icon: '❤️', color: '#ef5350', type: 'expense' },
+  '1F489': { name: '❤️ ΥΓΕΙΑ', icon: '❤️', color: '#ef5350', type: 'expense' },
+  '1F48A': { name: '❤️ ΥΓΕΙΑ', icon: '❤️', color: '#ef5350', type: 'expense' },
+  '1F527': { name: '🧩ΔΙΑΦΟΡΑ ΕΞΟΔΑ', icon: '🧩', color: '#78909c', type: 'expense' },
 
   // Income categories
-  '1F911': { name: '🤑 ΕΞΤΡΑ ΕΙΣΟΔΗΜΑΤΑ',       icon: '🤑', color: '#607d8b', type: 'income' },
-  '1F4B0': { name: '💼 ΜΙΣΘΟΣ',                 icon: '💼', color: '#4caf50', type: 'income' },
-  '1F381': { name: '🎁ΔΩΡΑ/ΕΣΟΔΑ',             icon: '🎁', color: '#66bb6a', type: 'income' },
-  '1F9D1': { name: 'ΕΠΙΣΤΡΟΦΕΣ',             icon: '💵', color: '#009688', type: 'income' },
-  '1F4E6': { name: 'ΠΩΛΗΣΕΙΣ',               icon: '📦', color: '#26a69a', type: 'income' },
-  '1F3C5': { name: 'BONUS',                  icon: '🏅', color: '#ffb300', type: 'income' },
-  '1F468': { name: 'ΑΛΛΑ ΕΣΟΔΑ',             icon: '👨', color: '#9e9e9e', type: 'income' },
-  '1F393': { name: '🎓 ΕΚΠΑΙΔΕΥΣΗ',             icon: '🎓', color: '#2196f3', type: 'expense' },
-  '1F47D': { name: '🤑 ΕΞΤΡΑ ΕΙΣΟΔΗΜΑΤΑ',       icon: '🤑', color: '#607d8b', type: 'income' },
-  '1F4B6': { name: '💶  ΕΝΟΙΚΙΟ Β2 (Έσοδο)',    icon: '💶', color: '#00bcd4', type: 'income' },
+  '1F911': { name: '🤑 ΕΞΤΡΑ ΕΙΣΟΔΗΜΑΤΑ', icon: '🤑', color: '#607d8b', type: 'income' },
+  '1F4B0': { name: '💼 ΜΙΣΘΟΣ', icon: '💼', color: '#4caf50', type: 'income' },
+  '1F381': { name: '🎁ΔΩΡΑ/ΕΣΟΔΑ', icon: '🎁', color: '#66bb6a', type: 'income' },
+  '1F9D1': { name: 'ΕΠΙΣΤΡΟΦΕΣ', icon: '💵', color: '#009688', type: 'income' },
+  '1F4E6': { name: 'ΠΩΛΗΣΕΙΣ', icon: '📦', color: '#26a69a', type: 'income' },
+  '1F3C5': { name: 'BONUS', icon: '🏅', color: '#ffb300', type: 'income' },
+  '1F468': { name: 'ΑΛΛΑ ΕΣΟΔΑ', icon: '👨', color: '#9e9e9e', type: 'income' },
+  '1F393': { name: '🎓 ΕΚΠΑΙΔΕΥΣΗ', icon: '🎓', color: '#2196f3', type: 'expense' },
+  '1F47D': { name: '🤑 ΕΞΤΡΑ ΕΙΣΟΔΗΜΑΤΑ', icon: '🤑', color: '#607d8b', type: 'income' },
+  '1F4B6': { name: '💶  ΕΝΟΙΚΙΟ Β2 (Έσοδο)', icon: '💶', color: '#00bcd4', type: 'income' },
   '1F3DB': { name: '🏛️ΜΕΡΙΔΙΟ ΔΟΣΗΣ ΔΑΝΕΙΟΥ (ΓΟΝΕΙΣ)', icon: '🏛️', color: '#8bc34a', type: 'income' },
 };
 
 // Fallback categories for any that don't match
 const DEFAULT_CATEGORIES = [
-  { name: '🏡 ΣΠΙΤΙ',                  type: 'expense', icon: '🏡', color: '#e05e55' },
-  { name: '🛒 ΔΙΑΤΡΟΦΗ',               type: 'expense', icon: '🛒', color: '#ffb300' },
-  { name: '🏠ΓΡΑΦΕΙΟ Β2',             type: 'expense', icon: '🏠', color: '#ffd54f' },
-  { name: '🚗 ΑΥΤΟΚΙΝΗΤΟ',             type: 'expense', icon: '🚗', color: '#ffa726' },
-  { name: '❤️ ΥΓΕΙΑ',                  type: 'expense', icon: '❤️', color: '#ef5350' },
-  { name: '🎉ΔΙΑΣΚΕΔΑΣΗ/ΕΞΟΔΟΙ',      type: 'expense', icon: '🎉', color: '#26a69a' },
-  { name: '🧾ΦΟΡΟΙ/ΛΟΓΙΣΤΗΣ',         type: 'expense', icon: '🧾', color: '#26c6da' },
-  { name: '🏋️ΓΥΜΝΑΣΤΗΡΙΟ',            type: 'expense', icon: '🏋️', color: '#42a5f5' },
-  { name: '👕 ΠΡΟΣΩΠΙΚΗ ΦΡΟΝΤΙΔΑ',     type: 'expense', icon: '👕', color: '#7e57c2' },
-  { name: '🚇 ΜΕΤΑΚΙΝΗΣΗ',             type: 'expense', icon: '🚇', color: '#ab47bc' },
-  { name: '🧩ΔΙΑΦΟΡΑ ΕΞΟΔΑ',          type: 'expense', icon: '🧩', color: '#78909c' },
-  { name: '🎬 ΣΥΝΔΡΟΜΕΣ',              type: 'expense', icon: '🎬', color: '#ec407a' },
-  { name: '🎓 ΕΚΠΑΙΔΕΥΣΗ',             type: 'expense', icon: '🎓', color: '#2196f3' },
+  { name: '🏡 ΣΠΙΤΙ', type: 'expense', icon: '🏡', color: '#e05e55' },
+  { name: '🛒 ΔΙΑΤΡΟΦΗ', type: 'expense', icon: '🛒', color: '#ffb300' },
+  { name: '🏠ΓΡΑΦΕΙΟ Β2', type: 'expense', icon: '🏠', color: '#ffd54f' },
+  { name: '🚗 ΑΥΤΟΚΙΝΗΤΟ', type: 'expense', icon: '🚗', color: '#ffa726' },
+  { name: '❤️ ΥΓΕΙΑ', type: 'expense', icon: '❤️', color: '#ef5350' },
+  { name: '🎉ΔΙΑΣΚΕΔΑΣΗ/ΕΞΟΔΟΙ', type: 'expense', icon: '🎉', color: '#26a69a' },
+  { name: '🧾ΦΟΡΟΙ/ΛΟΓΙΣΤΗΣ', type: 'expense', icon: '🧾', color: '#26c6da' },
+  { name: '🏋️ΓΥΜΝΑΣΤΗΡΙΟ', type: 'expense', icon: '🏋️', color: '#42a5f5' },
+  { name: '👕 ΠΡΟΣΩΠΙΚΗ ΦΡΟΝΤΙΔΑ', type: 'expense', icon: '👕', color: '#7e57c2' },
+  { name: '🚇 ΜΕΤΑΚΙΝΗΣΗ', type: 'expense', icon: '🚇', color: '#ab47bc' },
+  { name: '🧩ΔΙΑΦΟΡΑ ΕΞΟΔΑ', type: 'expense', icon: '🧩', color: '#78909c' },
+  { name: '🎬 ΣΥΝΔΡΟΜΕΣ', type: 'expense', icon: '🎬', color: '#ec407a' },
+  { name: '🎓 ΕΚΠΑΙΔΕΥΣΗ', type: 'expense', icon: '🎓', color: '#2196f3' },
 
-  { name: '💼 ΜΙΣΘΟΣ',                 type: 'income',  icon: '💼', color: '#4caf50' },
-  { name: '🤑 ΕΞΤΡΑ ΕΙΣΟΔΗΜΑΤΑ',       type: 'income',  icon: '🤑', color: '#607d8b' },
-  { name: '💶  ΕΝΟΙΚΙΟ Β2 (Έσοδο)',    type: 'income',  icon: '💶', color: '#00bcd4' },
+  { name: '💼 ΜΙΣΘΟΣ', type: 'income', icon: '💼', color: '#4caf50' },
+  { name: '🤑 ΕΞΤΡΑ ΕΙΣΟΔΗΜΑΤΑ', type: 'income', icon: '🤑', color: '#607d8b' },
+  { name: '💶  ΕΝΟΙΚΙΟ Β2 (Έσοδο)', type: 'income', icon: '💶', color: '#00bcd4' },
   { name: '🏛️ΜΕΡΙΔΙΟ ΔΟΣΗΣ ΔΑΝΕΙΟΥ (ΓΟΝΕΙΣ)', type: 'income', icon: '🏛️', color: '#8bc34a' }
 ];
 
 // Default Accounts - 3 real accounts from Excel: Cash, Card, Accounts (= Bank Account)
 const DEFAULT_ACCOUNTS = [
-  { name: 'Cash',         type: 'cash',       balance: 0 },
-  { name: 'Bank Account', type: 'bank',        balance: 0 },
-  { name: 'Card',         type: 'card',        balance: 0 },
+  { name: 'Cash', type: 'cash', balance: 0 },
+  { name: 'Bank Account', type: 'bank', balance: 0 },
+  { name: 'Card', type: 'card', balance: 0 },
 ];
 
 // App State
@@ -118,22 +118,22 @@ function ensureHistoryPushed() {
 }
 
 const GREEK_MONTHS = [
-  'Ιανουάριος','Φεβρουάριος','Μάρτιος','Απρίλιος','Μάιος','Ιούνιος',
-  'Ιούλιος','Αύγουστος','Σεπτέμβριος','Οκτώβριος','Νοέμβριος','Δεκέμβριος'
+  'Ιανουάριος', 'Φεβρουάριος', 'Μάρτιος', 'Απρίλιος', 'Μάιος', 'Ιούνιος',
+  'Ιούλιος', 'Αύγουστος', 'Σεπτέμβριος', 'Οκτώβριος', 'Νοέμβριος', 'Δεκέμβριος'
 ];
 const GREEK_MONTHS_SHORT = [
-  'Ιαν','Φεβ','Μαρ','Απρ','Μαΐ','Ιουν','Ιουλ','Αυγ','Σεπ','Οκτ','Νοε','Δεκ'
+  'Ιαν', 'Φεβ', 'Μαρ', 'Απρ', 'Μαΐ', 'Ιουν', 'Ιουλ', 'Αυγ', 'Σεπ', 'Οκτ', 'Νοε', 'Δεκ'
 ];
-const GREEK_WEEKDAYS_SHORT = ['Κυρ','Δευ','Τρί','Τετ','Πέμ','Παρ','Σάβ'];
+const GREEK_WEEKDAYS_SHORT = ['Κυρ', 'Δευ', 'Τρί', 'Τετ', 'Πέμ', 'Παρ', 'Σάβ'];
 
 const ENGLISH_MONTHS = [
-  'January','February','March','April','May','June',
-  'July','August','September','October','November','December'
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
 ];
 const ENGLISH_MONTHS_SHORT = [
-  'Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
 ];
-const ENGLISH_WEEKDAYS_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const ENGLISH_WEEKDAYS_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 const TRANSLATIONS = {
   el: {
@@ -704,8 +704,8 @@ function applyLanguage(lang) {
   const subtitleEl = document.getElementById('auth-subtitle');
   if (subtitleEl) {
     const authMode = (typeof currentAuthMode !== 'undefined') ? currentAuthMode : 'login';
-    subtitleEl.textContent = authMode === 'login' 
-      ? TRANSLATIONS[lang]['auth_welcome'] 
+    subtitleEl.textContent = authMode === 'login'
+      ? TRANSLATIONS[lang]['auth_welcome']
       : TRANSLATIONS[lang]['auth_create_account'];
   }
 
@@ -713,8 +713,8 @@ function applyLanguage(lang) {
   if (submitBtn) {
     if (!submitBtn.disabled) {
       const authMode = (typeof currentAuthMode !== 'undefined') ? currentAuthMode : 'login';
-      submitBtn.textContent = authMode === 'login' 
-        ? TRANSLATIONS[lang]['auth_submit_login'] 
+      submitBtn.textContent = authMode === 'login'
+        ? TRANSLATIONS[lang]['auth_submit_login']
         : TRANSLATIONS[lang]['auth_submit_signup'];
     }
   }
@@ -866,8 +866,8 @@ function applyLanguage(lang) {
   // Update chart center title
   const chartCenterTitle = document.getElementById('chart-center-title');
   if (chartCenterTitle) {
-    chartCenterTitle.textContent = state.statsType === 'income' 
-      ? TRANSLATIONS[lang]['stats_tab_income'] 
+    chartCenterTitle.textContent = state.statsType === 'income'
+      ? TRANSLATIONS[lang]['stats_tab_income']
       : TRANSLATIONS[lang]['stats_tab_expense'];
   }
 
@@ -929,7 +929,7 @@ function applyLanguage(lang) {
   const newCatDialogTitle = document.getElementById('new-cat-dialog-title');
   if (newCatDialogTitle) {
     const dialogType = newCategoryDialogType || 'expense';
-    newCatDialogTitle.textContent = dialogType === 'income' 
+    newCatDialogTitle.textContent = dialogType === 'income'
       ? TRANSLATIONS[lang]['new_category_title_income']
       : TRANSLATIONS[lang]['new_category_title_expense'];
   }
@@ -971,17 +971,17 @@ function formatGreekDateTime(dateStr) {
   if (!dateStr) return '';
   const dateObj = new Date(dateStr.replace(' ', 'T'));
   if (isNaN(dateObj.getTime())) return dateStr;
-  
+
   const y = dateObj.getFullYear();
   const m = dateObj.getMonth() + 1;
   const d = dateObj.getDate();
   const dayOfWeek = dateObj.getDay();
   const hrs = String(dateObj.getHours()).padStart(2, '0');
   const mins = String(dateObj.getMinutes()).padStart(2, '0');
-  
+
   const shortYear = String(y).slice(-2);
   const shortDay = getWeekdayName(dayOfWeek);
-  
+
   return `${d}/${m}/${shortYear} (${shortDay}) ${hrs}:${mins}`;
 }
 
@@ -1025,7 +1025,7 @@ function getStatsDateRange() {
     }
     start.setDate(start.getDate() - diff);
     start.setHours(0, 0, 0, 0);
-    
+
     end = new Date(start);
     end.setDate(start.getDate() + 6);
     end.setHours(23, 59, 59, 999);
@@ -1055,7 +1055,7 @@ function formatStatsPeriodTitle(start, end) {
   if (state.statsPeriodType === 'annually') {
     return `${start.getFullYear()}`;
   }
-  
+
   // Weekly or Custom Period
   const startDay = start.getDate();
   const startMonthShort = getMonthName(start.getMonth(), true);
@@ -1175,17 +1175,17 @@ window.addEventListener('DOMContentLoaded', async () => {
   initSwipeToBack();
   initSwipeMonthNavigation();
   initRippleEffects();
-  
+
   // ALWAYS load cached local data immediately so the UI is never blank on refresh.
   // If Supabase is enabled, onAuthStateChange will call loadData() again with fresh cloud data.
   loadOfflineData();
   updateUI();
   updateHeaderProfileBadge();
-  
+
   // If Supabase client is NOT initialized, we are in pure local mode — done.
   // If it IS initialized, onAuthStateChange (in initSupabaseAuth) will fire and
   // call loadData() which fetches fresh data from cloud and overwrites the cache.
-  
+
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('trans-date').value = today;
   applyLanguage(state.lang);
@@ -1270,7 +1270,7 @@ function initSupabaseAuth() {
 
   const hashStr = window.location.hash || '';
   const searchStr = window.location.search || '';
-  
+
   const urlKeys = [];
   if (hashStr) {
     const hashParams = new URLSearchParams(hashStr.substring(1));
@@ -1286,24 +1286,24 @@ function initSupabaseAuth() {
   }
   logAuthDebug(`URL components: ${urlKeys.join(', ') || 'none'}`);
 
-  const isAuthRedirect = hashStr.includes('access_token=') || 
-                         hashStr.includes('id_token=') ||
-                         hashStr.includes('error=') ||
-                         searchStr.includes('code=') ||
-                         searchStr.includes('error=');
-                         
+  const isAuthRedirect = hashStr.includes('access_token=') ||
+    hashStr.includes('id_token=') ||
+    hashStr.includes('error=') ||
+    searchStr.includes('code=') ||
+    searchStr.includes('error=');
+
   let processingRedirect = isAuthRedirect;
   logAuthDebug(`Is redirect callback: ${isAuthRedirect}`);
-  
+
   const authOverlay = document.getElementById('auth-overlay');
   const loadingState = document.getElementById('auth-loading-state');
   const formsContainer = document.getElementById('auth-forms-container');
-  
+
   if (isAuthRedirect) {
     if (authOverlay) authOverlay.style.display = 'flex';
     if (loadingState) loadingState.style.display = 'block';
     if (formsContainer) formsContainer.style.display = 'none';
-    
+
     // Safety timeout to prevent getting stuck
     setTimeout(() => {
       if (processingRedirect && !state.currentUser && !state.guestMode) {
@@ -1312,8 +1312,8 @@ function initSupabaseAuth() {
         processingRedirect = false;
         if (loadingState) loadingState.style.display = 'none';
         if (formsContainer) formsContainer.style.display = 'block';
-        showAuthStatus(state.lang === 'el' 
-          ? '⚠️ Η σύνδεση καθυστερεί ή απέτυχε. Δοκιμάστε ξανά.' 
+        showAuthStatus(state.lang === 'el'
+          ? '⚠️ Η σύνδεση καθυστερεί ή απέτυχε. Δοκιμάστε ξανά.'
           : '⚠️ Login is taking too long or failed. Please try again.');
       }
     }, 6000);
@@ -1335,7 +1335,7 @@ function initSupabaseAuth() {
       } else {
         errorMsg = `❌ Σφάλμα: ${errorDescription}`;
       }
-      
+
       processingRedirect = false;
       if (loadingState) loadingState.style.display = 'none';
       if (formsContainer) formsContainer.style.display = 'block';
@@ -1396,7 +1396,7 @@ function initSupabaseAuth() {
   state.supabaseClient.auth.onAuthStateChange(async (event, session) => {
     logAuthDebug(`Auth Event Fired: ${event}, Session: ${!!session}`);
     console.log('Supabase Auth Event:', event, session);
-    
+
     if (session && session.user) {
       processingRedirect = false;
       state.currentUser = session.user;
@@ -1411,24 +1411,24 @@ function initSupabaseAuth() {
       } catch (e) {
         console.error('Failed to parse cached partner profile:', e);
       }
-      
+
       // Clear guest mode state
       state.guestMode = false;
       localStorage.removeItem('auth_guest_mode');
-      
+
       // Hide auth overlay & reset elements
       if (authOverlay) authOverlay.style.display = 'none';
       if (loadingState) loadingState.style.display = 'none';
       if (formsContainer) formsContainer.style.display = 'block';
-      
+
       // Show switcher in header
       const switcher = document.getElementById('wallet-switcher-container');
       if (switcher) switcher.style.display = 'inline-block';
-      
+
       const email = session.user.email || '';
       // Show user badge
       updateHeaderProfileBadge();
-      
+
       // Show email in settings page
       const emailDisplay = document.getElementById('settings-user-email-value');
       if (emailDisplay) {
@@ -1437,7 +1437,7 @@ function initSupabaseAuth() {
       }
       const emailItem = document.getElementById('settings-user-email-item');
       if (emailItem) emailItem.style.display = 'flex';
-      
+
       // Apply correct visual transformation theme and update UI immediately with cached data
       applyWalletTheme();
       updateUI();
@@ -1450,20 +1450,20 @@ function initSupabaseAuth() {
           await loadUserProfiles(session.user);
           applyWalletTheme();
           renderPartnerSection();
-          
+
           // 2. Load fresh data from cloud
           await loadData();
           updateUI();
-          
+
           // Start automatic polling sync
           startPartnerSyncPolling();
-          
+
           // Start realtime subscription
           setupSupabaseRealtimeSubscription();
-          
+
           // Replay offline sync queue if any items are pending
           processSyncQueue();
-          
+
           // 3. Sync guest transactions in the background
           await syncLocalTransactionsToCloud(session.user.id);
         } catch (err) {
@@ -1473,10 +1473,10 @@ function initSupabaseAuth() {
     } else {
       // Stop automatic polling sync
       stopPartnerSyncPolling();
-      
+
       // Stop realtime subscription
       stopSupabaseRealtimeSubscription();
-      
+
       state.currentUser = null;
       state.userProfile = null;
       state.partnerProfile = null;
@@ -1486,22 +1486,22 @@ function initSupabaseAuth() {
       localStorage.removeItem('offline_accounts');
       localStorage.removeItem('offline_categories');
       updateHeaderSyncIcon('offline');
-      
+
       if (localStorage.getItem('auth_guest_mode') === 'true') {
         state.guestMode = true;
-        
+
         // Hide auth overlay & reset elements
         if (authOverlay) authOverlay.style.display = 'none';
         if (loadingState) loadingState.style.display = 'none';
         if (formsContainer) formsContainer.style.display = 'block';
-        
+
         // Hide switcher (guest has no shared wallet)
         const switcher = document.getElementById('wallet-switcher-container');
         if (switcher) switcher.style.display = 'none';
-        
+
         // Show lock icon user badge
         updateHeaderProfileBadge();
-        
+
         // Load offline data and render
         await loadData();
         updateUI();
@@ -1518,16 +1518,16 @@ function initSupabaseAuth() {
           if (loadingState) loadingState.style.display = 'none';
           if (formsContainer) formsContainer.style.display = 'block';
         }
-        
+
         // Hide switcher
         const switcher = document.getElementById('wallet-switcher-container');
         if (switcher) switcher.style.display = 'none';
-        
+
         // Hide user badge
         const userBadge = document.getElementById('user-profile-badge');
         if (userBadge) userBadge.style.display = 'none';
       }
-      
+
       // Remove wallet theme active class
       document.body.classList.remove('shared-wallet-active');
       renderPartnerSection();
@@ -1537,7 +1537,7 @@ function initSupabaseAuth() {
 
 async function loadUserProfiles(user) {
   if (!state.supabaseClient) return;
-  
+
   try {
     // 1. Fetch current user profile
     const { data: profile, error } = await promiseTimeout(
@@ -1549,7 +1549,7 @@ async function loadUserProfiles(user) {
         .then(r => r),
       8000
     ).catch(e => ({ data: null, error: e }));
-       
+
     if (error || !profile) {
       console.log('Profile not found, inserting profile for user...');
       // Insert profile manually if trigger didn't do it
@@ -1562,7 +1562,7 @@ async function loadUserProfiles(user) {
           .then(r => r),
         8000
       ).catch(e => ({ data: null, error: e }));
-         
+
       if (insertError) {
         console.error('Failed to create profile:', insertError);
       } else {
@@ -1573,7 +1573,7 @@ async function loadUserProfiles(user) {
       state.userProfile = profile;
       updateHeaderProfileBadge();
     }
-    
+
     // 2. Load family profiles & family group details
     if (state.userProfile && state.userProfile.family_id) {
       const [famRes, groupRes] = await Promise.all([
@@ -1594,7 +1594,7 @@ async function loadUserProfiles(user) {
       } else {
         state.familyProfiles = [];
       }
-      
+
       if (groupRes.data) {
         state.familyGroup = groupRes.data;
       } else {
@@ -1622,14 +1622,14 @@ async function loadUserProfiles(user) {
         }
       }
     }
-  } catch(e) {
+  } catch (e) {
     console.error('Error loading user profiles:', e);
   }
 }
 
 function showPendingInviteCodePrompt(inviteCode) {
   if (!state.supabaseClient || !state.currentUser) return;
-  
+
   state.supabaseClient
     .from('family_groups')
     .select('name')
@@ -1640,16 +1640,16 @@ function showPendingInviteCodePrompt(inviteCode) {
         console.warn('Could not find family group for invite code:', inviteCode);
         return;
       }
-      
+
       const familyName = data.name;
       const confirmMsg = state.lang === 'el'
         ? `📬 Εκκρεμής πρόσκληση!\nΈχετε έναν σύνδεσμο πρόσκλησης για την οικογένεια «${familyName}» (Κωδικός: ${inviteCode}).\n\nΘέλετε να γίνετε μέλος αυτής της οικογένειας;`
         : `📬 Pending invitation!\nYou have an invitation link for the family group "${familyName}" (Code: ${inviteCode}).\n\nDo you want to join this family group?`;
-        
+
       if (confirm(confirmMsg)) {
         const inviteRole = localStorage.getItem('pending_invite_role') || 'member';
         localStorage.removeItem('pending_invite_role');
-        
+
         state.supabaseClient.rpc('join_family_group', { invite_code_input: inviteCode, invite_role_input: inviteRole })
           .then(({ data: joinData, error: joinErr }) => {
             if (joinErr) {
@@ -1666,15 +1666,15 @@ function showPendingInviteCodePrompt(inviteCode) {
 function showPendingInvitationPrompt(invite) {
   if (!state.supabaseClient || !state.currentUser) return;
   const familyName = invite.family_groups ? invite.family_groups.name : 'Οικογένεια';
-  const confirmMsg = state.lang === 'el' 
+  const confirmMsg = state.lang === 'el'
     ? `📬 Εκκρεμής πρόσκληση!\nΈχετε προσκληθεί να συνδεθείτε στην οικογένεια «${familyName}».\n\nΘέλετε να γίνετε μέλος αυτής της οικογένειας;`
     : `📬 Pending invitation!\nYou have been invited to join the family group "${familyName}".\n\nDo you want to join this family group?`;
-    
+
   if (confirm(confirmMsg)) {
     const inviteCode = invite.family_groups ? invite.family_groups.invite_code : '';
     if (!inviteCode) return;
     const inviteRole = invite.role || 'member';
-    
+
     state.supabaseClient.rpc('join_family_group', { invite_code_input: inviteCode, invite_role_input: inviteRole })
       .then(async ({ data, error }) => {
         if (error) {
@@ -1735,17 +1735,17 @@ function getActiveTransactions() {
     if (t.user_id === undefined) {
       return true;
     }
-    
+
     if (currentUserId) {
       if (familyId) {
-        return t.family_id === familyId || 
-               t.user_id === currentUserId || 
-               t.user_id === partnerId || 
-               (t.id && String(t.id).startsWith('local_'));
+        return t.family_id === familyId ||
+          t.user_id === currentUserId ||
+          t.user_id === partnerId ||
+          (t.id && String(t.id).startsWith('local_'));
       }
-      return t.user_id === currentUserId || 
-             t.user_id === partnerId || 
-             (t.id && String(t.id).startsWith('local_'));
+      return t.user_id === currentUserId ||
+        t.user_id === partnerId ||
+        (t.id && String(t.id).startsWith('local_'));
     } else {
       return t.user_id === null || t.user_id === undefined;
     }
@@ -1781,19 +1781,19 @@ window.calculateInitialBalances = calculateInitialBalances;
 // Scan categories and transactions to clean up duplicates (e.g. Chinese characters)
 async function cleanDuplicateCategories() {
   const targetCategoryName = '🧾ΦΟΡΟΙ/ΛΟΓΙΣΤΗΣ';
-  
+
   // Find bad categories in the categories list
   const badCategories = state.categories.filter(c => c.name && (
-    c.name.includes('茶') || 
+    c.name.includes('茶') ||
     /[\u4e00-\u9fff]/.test(c.name) ||
     (c.name.includes('ΦΟΡΟΙ/ΛΟΓΙΣΤΗΣ') && c.name !== '🧾ΦΟΡΟΙ/ΛΟΓΙΣΤΗΣ')
   ));
-  
+
   // Find bad category names in transactions
   const badCategoryNamesInTrans = new Set();
   state.transactions.forEach(t => {
     if (t.category && (
-      t.category.includes('茶') || 
+      t.category.includes('茶') ||
       /[\u4e00-\u9fff]/.test(t.category) ||
       (t.category.includes('ΦΟΡΟΙ/ΛΟΓΙΣΤΗΣ') && t.category !== '🧾ΦΟΡΟΙ/ΛΟΓΙΣΤΗΣ')
     )) {
@@ -1818,7 +1818,7 @@ async function cleanDuplicateCategories() {
           .update({ category: targetCategoryName })
           .eq('category', badCatName);
       }
-      
+
       // Update local state transactions
       state.transactions.forEach(t => {
         if (t.category === badCatName) {
@@ -1886,7 +1886,7 @@ async function loadData() {
 
       // Fetch categories & accounts first
       const familyId = state.userProfile ? state.userProfile.family_id : null;
-      const userFilter = familyId 
+      const userFilter = familyId
         ? (partnerId ? `family_id.eq.${familyId},user_id.eq.${userId},user_id.eq.${partnerId}` : `family_id.eq.${familyId},user_id.eq.${userId}`)
         : (partnerId ? `user_id.eq.${userId},user_id.eq.${partnerId}` : `user_id.eq.${userId}`);
 
@@ -2015,13 +2015,13 @@ async function loadData() {
       state.transactions = mergedTransactions;
       state.categories = categories;
       state.accounts = accounts;
-      
+
       calculateInitialBalances();
 
       localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
       localStorage.setItem('offline_accounts', JSON.stringify(state.accounts));
       localStorage.setItem('offline_categories', JSON.stringify(state.categories));
-      
+
       updateHeaderSyncIcon('synced');
 
       // Run automatic duplicate / corrupt category cleanup in background
@@ -2029,7 +2029,7 @@ async function loadData() {
 
       // Try to flush pending local items in background without blocking UI.
       if (pendingLocal.length > 0) {
-        syncLocalTransactionsToCloud(userId, { silent: true }).catch(() => {});
+        syncLocalTransactionsToCloud(userId, { silent: true }).catch(() => { });
       }
     } catch (err) {
       console.error('Supabase fetch failed, falling back to offline cache:', err);
@@ -2069,20 +2069,20 @@ function loadOfflineData() {
     state.transactions = [];
   }
   try {
-    const accs  = localStorage.getItem('offline_accounts');
-    state.accounts     = accs  ? JSON.parse(accs)  : DEFAULT_ACCOUNTS;
+    const accs = localStorage.getItem('offline_accounts');
+    state.accounts = accs ? JSON.parse(accs) : DEFAULT_ACCOUNTS;
   } catch (e) {
     console.error('Failed to parse offline accounts:', e);
-    state.accounts     = DEFAULT_ACCOUNTS;
+    state.accounts = DEFAULT_ACCOUNTS;
   }
   try {
-    const cats  = localStorage.getItem('offline_categories');
-    state.categories   = cats  ? JSON.parse(cats)  : DEFAULT_CATEGORIES;
+    const cats = localStorage.getItem('offline_categories');
+    state.categories = cats ? JSON.parse(cats) : DEFAULT_CATEGORIES;
   } catch (e) {
     console.error('Failed to parse offline categories:', e);
-    state.categories   = DEFAULT_CATEGORIES;
+    state.categories = DEFAULT_CATEGORIES;
   }
-  
+
   calculateInitialBalances();
   cleanDuplicateCategories().catch(e => console.warn('Offline automatic categories cleanup error:', e));
 }
@@ -2153,7 +2153,7 @@ async function deleteTransaction(id) {
   } catch (err) {
     console.warn('Failed to remove receipt during transaction delete:', err);
   }
-  
+
   // 2. Optimistically delete from local state and update UI
   deleteTransactionOffline(id);
   updateUI();
@@ -2235,7 +2235,7 @@ function renderTransactionsTab() {
     const amt = parseFloat(t.amount) || 0;
     if (t.type === 'income') monthlyIncome += amt;
     else if (t.type === 'expense') monthlyExpense += amt;
-    
+
     const dateKey = t.date.split('T')[0];
     if (!groups[dateKey]) groups[dateKey] = { transactions: [], income: 0, expense: 0 };
     groups[dateKey].transactions.push(t);
@@ -2243,9 +2243,9 @@ function renderTransactionsTab() {
     else if (t.type === 'expense') groups[dateKey].expense += amt;
   });
 
-  document.getElementById('summary-income-val').textContent  = `${getCurrencySymbol()} ${formatCurrency(monthlyIncome)}`;
+  document.getElementById('summary-income-val').textContent = `${getCurrencySymbol()} ${formatCurrency(monthlyIncome)}`;
   document.getElementById('summary-expense-val').textContent = `${getCurrencySymbol()} ${formatCurrency(monthlyExpense)}`;
-  document.getElementById('summary-total-val').textContent   = `${getCurrencySymbol()} ${formatCurrency(monthlyIncome - monthlyExpense)}`;
+  document.getElementById('summary-total-val').textContent = `${getCurrencySymbol()} ${formatCurrency(monthlyIncome - monthlyExpense)}`;
 
   if (filteredTrans.length === 0) {
     listContainer.innerHTML = `
@@ -2267,7 +2267,7 @@ function renderTransactionsTab() {
     const weekendClass = dayOfWeek === 6 ? ' saturday' : dayOfWeek === 0 ? ' sunday' : '';
 
     let rightTotals = '';
-    if (group.income > 0)  rightTotals += `<span class="day-group-income">${getCurrencySymbol()} ${formatCurrency(group.income)}</span>`;
+    if (group.income > 0) rightTotals += `<span class="day-group-income">${getCurrencySymbol()} ${formatCurrency(group.income)}</span>`;
     if (group.expense > 0) rightTotals += `<span class="day-group-expense">${getCurrencySymbol()} ${formatCurrency(group.expense)}</span>`;
 
     const header = document.createElement('div');
@@ -2287,12 +2287,12 @@ function renderTransactionsTab() {
       const catInfo = getCategoryInfo(t.category, t.type);
       const item = document.createElement('div');
       item.className = 'transaction-item';
-      
+
       const isSelected = state.selectedIds.has(t.id);
       if (state.selectionMode && isSelected) {
         item.classList.add('selected');
       }
-      
+
       const checkboxHtml = state.selectionMode ? `
         <div class="trans-checkbox ${isSelected ? 'checked' : ''}">
           <i class="fa-solid ${isSelected ? 'fa-circle-check' : 'fa-circle'}"></i>
@@ -2301,7 +2301,7 @@ function renderTransactionsTab() {
 
       let pressTimer;
       let isLongPress = false;
-      
+
       item.addEventListener('touchstart', (e) => {
         isLongPress = false;
         if (state.selectionMode) return;
@@ -2310,14 +2310,14 @@ function renderTransactionsTab() {
           enterSelectionMode();
           toggleSelection(t.id);
           if (navigator.vibrate) {
-            try { navigator.vibrate(15); } catch(err) {}
+            try { navigator.vibrate(15); } catch (err) { }
           }
         }, 600);
       }, { passive: true });
 
       item.addEventListener('touchend', () => clearTimeout(pressTimer));
       item.addEventListener('touchmove', () => clearTimeout(pressTimer));
-      
+
       item.addEventListener('mousedown', (e) => {
         isLongPress = false;
         if (state.selectionMode) return;
@@ -2344,17 +2344,17 @@ function renderTransactionsTab() {
 
       let amountClass = 'trans-amount';
       let accountText = t.account_from || '';
-      if (t.type === 'expense')       { amountClass += ' expense'; }
-      else if (t.type === 'income')   { amountClass += ' income'; }
+      if (t.type === 'expense') { amountClass += ' expense'; }
+      else if (t.type === 'income') { amountClass += ' income'; }
       else if (t.type === 'transfer') { amountClass += ' transfer'; accountText = `${t.account_from} → ${t.account_to}`; }
 
       const translatedSub = getSubcategoryDisplayName(t.subcategory, t.category);
       const translatedCat = getCategoryDisplayName(t.category);
       const displayTitle = (t.note && t.note.trim()) ? t.note.trim()
-                         : (t.description && t.description.trim()) ? t.description.trim()
-                         : (translatedSub && translatedSub.trim()) ? translatedSub.trim()
-                         : (translatedCat || '');
-      
+        : (t.description && t.description.trim()) ? t.description.trim()
+          : (translatedSub && translatedSub.trim()) ? translatedSub.trim()
+            : (translatedCat || '');
+
       const isPartner = state.partnerProfile && t.user_id === state.partnerProfile.id;
       const partnerBadge = isPartner ? ` <i class="fa-solid fa-user-group partner-badge-icon" title="Προστέθηκε από τον σύντροφο"></i>` : '';
 
@@ -2437,11 +2437,11 @@ function getCategoryDisplayName(categoryName) {
   if (!categoryName) return '';
   const stripped = stripLeadingEmoji(categoryName).trim();
   const lang = state.lang || 'el';
-  
+
   for (const [elKey, enVal] of Object.entries(CATEGORY_NAME_TRANSLATIONS)) {
     const strippedEl = stripLeadingEmoji(elKey).trim().toUpperCase();
     const strippedEn = stripLeadingEmoji(enVal).trim().toUpperCase();
-    
+
     if (stripped.toUpperCase() === strippedEl || stripped.toUpperCase() === strippedEn) {
       const target = lang === 'en' ? enVal : elKey;
       return stripLeadingEmoji(target).trim();
@@ -2526,7 +2526,7 @@ const SUBCATEGORY_NAME_TRANSLATIONS = {
 
 function isDefaultSubcategory(categoryName, subcategoryName) {
   if (!subcategoryName) return false;
-  
+
   // Normalize categoryName to Greek default category name key
   let greekCategoryName = categoryName || '';
   if (categoryName) {
@@ -2540,27 +2540,27 @@ function isDefaultSubcategory(categoryName, subcategoryName) {
       }
     }
   }
-  
+
   const cleanedCat = stripLeadingEmoji(greekCategoryName).trim().toUpperCase();
   const subcats = DEFAULT_SUBCATEGORIES_MAP[cleanedCat];
   const normSub = stripLeadingEmoji(subcategoryName).trim().toUpperCase();
-  
+
   if (subcats) {
     const found = subcats.some(s => {
       return s.trim().toUpperCase() === subcategoryName.trim().toUpperCase() ||
-             stripLeadingEmoji(s).trim().toUpperCase() === normSub;
+        stripLeadingEmoji(s).trim().toUpperCase() === normSub;
     });
     if (found) return true;
   }
-  
+
   for (const subcats of Object.values(DEFAULT_SUBCATEGORIES_MAP)) {
     const found = subcats.some(s => {
       return s.trim().toUpperCase() === subcategoryName.trim().toUpperCase() ||
-             stripLeadingEmoji(s).trim().toUpperCase() === normSub;
+        stripLeadingEmoji(s).trim().toUpperCase() === normSub;
     });
     if (found) return true;
   }
-  
+
   return false;
 }
 
@@ -2568,15 +2568,15 @@ function getSubcategoryDisplayName(subName, categoryName) {
   if (!subName) return '';
   const stripped = stripLeadingEmoji(subName).trim();
   const lang = state.lang || 'el';
-  
+
   if (!isDefaultSubcategory(categoryName, subName)) {
     return subName; // Custom entries are never translated
   }
-  
+
   for (const [elKey, enVal] of Object.entries(SUBCATEGORY_NAME_TRANSLATIONS)) {
     const strippedEl = stripLeadingEmoji(elKey).trim().toUpperCase();
     const strippedEn = stripLeadingEmoji(enVal).trim().toUpperCase();
-    
+
     if (stripped.toUpperCase() === strippedEl || stripped.toUpperCase() === strippedEn) {
       const target = lang === 'en' ? enVal : elKey;
       return stripLeadingEmoji(target).trim();
@@ -2596,19 +2596,19 @@ function saveCategoriesToStorage() {
 // ============================================================
 function renderStatsTab() {
   const { start, end } = getStatsDateRange();
-  
+
   // Set month/period text on the top left
   document.getElementById('stats-period-title').textContent = formatStatsPeriodTitle(start, end);
-  
+
   // Update dropdown button text
   let periodLabel = TRANSLATIONS[state.lang]['stats_period_monthly'];
   if (state.statsPeriodType === 'weekly') periodLabel = TRANSLATIONS[state.lang]['stats_period_weekly'];
   else if (state.statsPeriodType === 'annually') periodLabel = TRANSLATIONS[state.lang]['stats_period_annually'];
   else if (state.statsPeriodType === 'period') periodLabel = TRANSLATIONS[state.lang]['stats_period_custom'];
-  
-  document.getElementById('stats-period-dropdown-btn').innerHTML = 
+
+  document.getElementById('stats-period-dropdown-btn').innerHTML =
     `${periodLabel} <i class="fa-solid fa-chevron-down" style="font-size: 9px; margin-left: 4px;"></i>`;
-    
+
   // Highlight active dropdown choice
   document.querySelectorAll('.stats-dropdown-item').forEach(item => {
     item.classList.toggle('active', item.getAttribute('data-value') === state.statsPeriodType);
@@ -2621,10 +2621,10 @@ function renderStatsTab() {
 
   if (state.userProfile && state.userProfile.family_id) {
     if (familyFilterContainer) familyFilterContainer.style.display = 'block';
-    
+
     if (familyFilterMenu) {
       familyFilterMenu.innerHTML = '';
-      
+
       const allText = state.lang === 'el' ? 'Όλη η Οικογένεια' : 'All Family';
       const allItem = document.createElement('div');
       allItem.className = 'stats-dropdown-item' + (state.selectedFamilyMemberId === 'all' ? ' active' : '');
@@ -2637,13 +2637,13 @@ function renderStatsTab() {
         renderStatsTab();
       });
       familyFilterMenu.appendChild(allItem);
-      
+
       const members = state.familyProfiles || [];
       members.forEach(member => {
         const isMe = member.id === state.currentUser.id;
         const meSuffix = isMe ? ` (${state.lang === 'el' ? 'Εσείς' : 'You'})` : '';
         const name = (member.display_name || member.email.split('@')[0]) + meSuffix;
-        
+
         const item = document.createElement('div');
         item.className = 'stats-dropdown-item' + (state.selectedFamilyMemberId === member.id ? ' active' : '');
         item.setAttribute('data-value', member.id);
@@ -2657,7 +2657,7 @@ function renderStatsTab() {
         familyFilterMenu.appendChild(item);
       });
     }
-    
+
     if (familyFilterBtn) {
       let activeText = state.lang === 'el' ? 'Όλη η Οικογένεια' : 'All Family';
       if (state.selectedFamilyMemberId !== 'all') {
@@ -2676,7 +2676,7 @@ function renderStatsTab() {
   }
 
   const walletTrans = getActiveTransactions();
-  
+
   // Filter by selected family member
   let memberFilteredTrans = walletTrans;
   if (state.userProfile && state.userProfile.family_id && state.selectedFamilyMemberId !== 'all') {
@@ -2690,10 +2690,10 @@ function renderStatsTab() {
     return tDate >= start && tDate <= end;
   });
 
-  const monthlyIncome  = filteredTrans.filter(t => t.type === 'income').reduce((s, t) => s + parseFloat(t.amount || 0), 0);
+  const monthlyIncome = filteredTrans.filter(t => t.type === 'income').reduce((s, t) => s + parseFloat(t.amount || 0), 0);
   const monthlyExpense = filteredTrans.filter(t => t.type === 'expense').reduce((s, t) => s + parseFloat(t.amount || 0), 0);
 
-  document.getElementById('stats-tab-income-amt').textContent  = `${getCurrencySymbol()} ${formatCurrency(monthlyIncome)}`;
+  document.getElementById('stats-tab-income-amt').textContent = `${getCurrencySymbol()} ${formatCurrency(monthlyIncome)}`;
   document.getElementById('stats-tab-expense-amt').textContent = `${getCurrencySymbol()} ${formatCurrency(monthlyExpense)}`;
 
   // Calculate and display Net Savings
@@ -2867,15 +2867,15 @@ function renderChart(dataList) {
 // ============================================================
 function renderAccountsTab() {
   const assetsEl = document.getElementById('accounts-assets-list');
-  const liabEl   = document.getElementById('accounts-liabilities-list');
-  
+  const liabEl = document.getElementById('accounts-liabilities-list');
+
   if (assetsEl) assetsEl.innerHTML = '';
   if (liabEl) liabEl.innerHTML = '';
 
   // 1. Calculate overall history values from transactions (excluding transfers)
   const activeTrans = getActiveTransactions();
   const nonTransferTrans = activeTrans.filter(t => t.type !== 'transfer' && !t.category?.toLowerCase().includes('μεταφ') && !t.category?.toLowerCase().includes('transfer'));
-  
+
   let overallMinDate = null;
   let overallMaxDate = null;
   let overallIncome = 0;
@@ -2919,7 +2919,7 @@ function renderAccountsTab() {
   }
 
   // 3. Populate the top card overall columns (Income, Expenses, Net Balance)
-  document.getElementById('total-assets-val').textContent      = formatCurrency(overallIncome);
+  document.getElementById('total-assets-val').textContent = formatCurrency(overallIncome);
   document.getElementById('total-liabilities-val').textContent = formatCurrency(overallExpense);
   const netElContainer = document.getElementById('total-net-val-container');
   const netEl = document.getElementById('total-net-val');
@@ -3157,7 +3157,7 @@ function setupEventListeners() {
   });
 
   document.getElementById('stats-tab-expense').addEventListener('click', () => toggleStatsType('expense'));
-  document.getElementById('stats-tab-income').addEventListener('click',  () => toggleStatsType('income'));
+  document.getElementById('stats-tab-income').addEventListener('click', () => toggleStatsType('income'));
   document.getElementById('fab-btn').addEventListener('click', openAddTransactionModal);
 
   document.querySelectorAll('.type-tab-btn').forEach(btn => {
@@ -3238,13 +3238,13 @@ function setupEventListeners() {
   document.getElementById('transaction-form').addEventListener('submit', async e => {
     e.preventDefault();
     closeCalculatorKeypad();
-    const id   = document.getElementById('trans-id').value;
+    const id = document.getElementById('trans-id').value;
     const type = document.querySelector('.type-tab-btn.active').getAttribute('data-type');
-    
+
     let rawAmount = document.getElementById('trans-amount').value || '0';
     rawAmount = rawAmount.replace(/\,/g, '.');
     const evaluatedVal = evaluateCalcBuffer(rawAmount);
-    
+
     const t = {
       date: document.getElementById('trans-date').value,
       type,
@@ -3285,7 +3285,7 @@ function setupEventListeners() {
       t.family_id = state.userProfile ? state.userProfile.family_id : null;
     }
     await saveTransaction(t);
-    
+
     // Save or delete receipt photo in IndexedDB
     if (_pendingReceiptFile && t.id) {
       try {
@@ -3308,7 +3308,7 @@ function setupEventListeners() {
     }
     _pendingReceiptFile = null;
     _pendingReceiptDeleted = false;
-    
+
     closeModal('transaction-modal');
   });
 
@@ -3326,25 +3326,25 @@ function setupEventListeners() {
   // ============================================================
   const cameraBtnEl = document.getElementById('trans-camera-btn');
   const photoInputEl = document.getElementById('trans-photo-input');
-  
+
   if (cameraBtnEl && photoInputEl) {
     cameraBtnEl.addEventListener('click', () => {
       const form = document.getElementById('transaction-form');
       if (form && form.getAttribute('data-readonly') === 'true') return;
       photoInputEl.click();
     });
-    
+
     photoInputEl.addEventListener('change', (e) => {
       const file = e.target.files && e.target.files[0];
       if (!file) return;
       _pendingReceiptFile = file;
       _pendingReceiptDeleted = false;
-      
+
       const previewContainer = document.getElementById('trans-photo-preview-container');
       const previewImg = document.getElementById('trans-photo-preview-img');
       const placeholderContainer = document.getElementById('trans-photo-placeholder-container');
       if (placeholderContainer) placeholderContainer.style.display = 'none';
-      
+
       if (previewImg && previewContainer) {
         const reader = new FileReader();
         reader.onload = (ev) => {
@@ -3355,7 +3355,7 @@ function setupEventListeners() {
       }
     });
   }
-  
+
   // Photo preview click -> open lightbox
   const previewImgEl = document.getElementById('trans-photo-preview-img');
   if (previewImgEl) {
@@ -3363,7 +3363,7 @@ function setupEventListeners() {
       openPhotoLightbox(previewImgEl.src);
     });
   }
-  
+
   // Photo delete button
   const photoDeleteBtn = document.getElementById('btn-delete-photo');
   if (photoDeleteBtn) {
@@ -3412,7 +3412,7 @@ function setupEventListeners() {
 
   function handleCalculatorKeyPress(val) {
     let buf = state.calcBuffer;
-    
+
     if (val === 'done') {
       buf = evaluateCalcBuffer(buf);
       document.getElementById('trans-amount').value = buf;
@@ -3420,7 +3420,7 @@ function setupEventListeners() {
       closeCalculatorKeypad();
       return;
     }
-    
+
     if (val === 'backspace') {
       if (buf.length > 0) {
         buf = buf.slice(0, -1);
@@ -3443,7 +3443,7 @@ function setupEventListeners() {
         buf += val;
       }
     }
-    
+
     state.calcBuffer = buf;
     document.getElementById('trans-amount').value = buf;
   }
@@ -3704,7 +3704,7 @@ function switchTab(tab) {
   }
 
   document.querySelectorAll('.nav-item').forEach(i => i.classList.toggle('active', i.getAttribute('data-tab') === tab));
-  
+
   // Ensure dummy history entry is pushed if moving away from home tab ('trans')
   if (tab !== 'trans') {
     ensureHistoryPushed();
@@ -3722,7 +3722,7 @@ function switchTab(tab) {
       state.statsDate.setMonth(state.selectedMonth);
       updateUI();
     }
-    else if (tab === 'stats')    renderStatsTab();
+    else if (tab === 'stats') renderStatsTab();
     else if (tab === 'accounts') renderAccountsTab();
     else if (tab === 'more') {
       // Refresh partner section every time user opens the More tab
@@ -3744,13 +3744,13 @@ function switchTab(tab) {
 function toggleStatsType(type) {
   state.statsType = type;
   document.getElementById('stats-tab-expense').classList.toggle('active', type === 'expense');
-  document.getElementById('stats-tab-income').classList.toggle('active',  type === 'income');
+  document.getElementById('stats-tab-income').classList.toggle('active', type === 'income');
   renderStatsTab();
 }
 
-function openModal(id)  { 
+function openModal(id) {
   ensureHistoryPushed();
-  document.getElementById(id).classList.add('active'); 
+  document.getElementById(id).classList.add('active');
 }
 function closeModal(id) {
   document.getElementById(id).classList.remove('active');
@@ -3759,13 +3759,13 @@ function closeModal(id) {
 function toggleTransactionFormLock(locked) {
   const form = document.getElementById('transaction-form');
   if (!form) return;
-  
+
   if (locked) {
     form.setAttribute('data-readonly', 'true');
   } else {
     form.removeAttribute('data-readonly');
   }
-  
+
   const inputsToToggle = [
     'trans-date',
     'trans-note',
@@ -3822,7 +3822,7 @@ function toggleTransactionFormLock(locked) {
       warningEl.style.justifyContent = 'center';
       warningEl.style.gap = '8px';
       warningEl.innerHTML = `<i class="fa-solid fa-circle-info"></i> <span>${TRANSLATIONS[state.lang]['only_creator_edit_warning']}</span>`;
-      
+
       const form = document.getElementById('transaction-form');
       if (form) {
         form.parentNode.insertBefore(warningEl, form);
@@ -3842,18 +3842,18 @@ function openAddTransactionModal() {
   toggleTransactionFormLock(false);
   document.getElementById('transaction-form').reset();
   document.getElementById('trans-id').value = '';
-  
+
   // Reset Category
   document.getElementById('trans-category').value = '';
   document.getElementById('trans-category-display').innerHTML = `<span class="custom-select-placeholder">Επιλέξτε...</span>`;
-  
+
   // Reset Subcategory
   const customInput = document.getElementById('trans-subcategory-custom');
   if (customInput) customInput.value = '';
   hideSubcategorySelect();
-  
+
   document.getElementById('trans-delete-btn').style.display = 'none';
-  
+
   // Reset photo state
   _pendingReceiptFile = null;
   _pendingReceiptDeleted = false;
@@ -3863,13 +3863,13 @@ function openAddTransactionModal() {
   if (previewContainer) previewContainer.style.display = 'none';
   const placeholderContainer = document.getElementById('trans-photo-placeholder-container');
   if (placeholderContainer) placeholderContainer.style.display = 'none';
-  
+
   const now = new Date();
   const tzOffset = now.getTimezoneOffset() * 60000;
   const localISOTime = (new Date(now.getTime() - tzOffset)).toISOString().slice(0, 16);
   document.getElementById('trans-date').value = localISOTime;
   document.getElementById('trans-date-display').textContent = formatGreekDateTime(localISOTime);
-  
+
   setTransactionFormType('expense');
 
   openModal('transaction-modal');
@@ -3883,8 +3883,8 @@ function openEditTransactionModal(t) {
 
   toggleTransactionFormLock(shouldLock);
 
-  document.getElementById('trans-id').value     = t.id;
-  
+  document.getElementById('trans-id').value = t.id;
+
   let dateVal = t.date;
   if (dateVal && dateVal.length === 10) {
     const now = new Date();
@@ -3892,11 +3892,11 @@ function openEditTransactionModal(t) {
     const mins = String(now.getMinutes()).padStart(2, '0');
     dateVal = `${dateVal}T${hrs}:${mins}`;
   }
-  document.getElementById('trans-date').value   = dateVal;
+  document.getElementById('trans-date').value = dateVal;
   document.getElementById('trans-date-display').textContent = formatGreekDateTime(dateVal);
-  
+
   document.getElementById('trans-amount').value = String(t.amount);
-  
+
   let descVal = t.note || '';
   let noteVal = '';
   const match = descVal.match(/^(.*) \((.*)\)$/);
@@ -3905,14 +3905,14 @@ function openEditTransactionModal(t) {
     noteVal = match[2];
   }
   document.getElementById('trans-description').value = descVal;
-  document.getElementById('trans-note').value        = noteVal;
-  
+  document.getElementById('trans-note').value = noteVal;
+
   if (shouldLock) {
     document.getElementById('trans-delete-btn').style.display = 'none';
   } else {
     document.getElementById('trans-delete-btn').style.display = 'block';
   }
-  
+
   // Reset photo state and load existing photo if available
   _pendingReceiptFile = null;
   _pendingReceiptDeleted = false;
@@ -3923,7 +3923,7 @@ function openEditTransactionModal(t) {
   const previewImg = document.getElementById('trans-photo-preview-img');
   if (previewContainer) previewContainer.style.display = 'none';
   if (placeholderContainer) placeholderContainer.style.display = 'none';
-  
+
   // Load receipt photo from IndexedDB
   if (t.photo_local_uri && t.id) {
     ReceiptStorage.load(t.id).then(blob => {
@@ -3941,18 +3941,18 @@ function openEditTransactionModal(t) {
       }
     }).catch(err => console.warn('Failed to load receipt:', err));
   }
-  
+
   setTransactionFormType(t.type);
   setTimeout(() => {
     if (t.type !== 'transfer') {
       document.getElementById('trans-category').value = t.category;
-      
+
       const subcatVal = t.subcategory || '';
       document.getElementById('trans-subcategory-select').value = subcatVal;
-      
+
       const customInput = document.getElementById('trans-subcategory-custom');
       if (customInput) customInput.value = '';
-      
+
       updateCategoryDisplay();
       updateSubcategorySuggestions();
       updateSubcategoryRowVisibility();
@@ -3989,28 +3989,28 @@ function updateCategoryDisplay() {
   const categoryHidden = document.getElementById('trans-category');
   const categoryDisplay = document.getElementById('trans-category-display');
   if (!categoryHidden || !categoryDisplay) return;
-  
+
   const categoryVal = categoryHidden.value;
   if (!categoryVal) {
     categoryDisplay.innerHTML = `<span class="custom-select-placeholder">Επιλέξτε...</span>`;
     return;
   }
-  
+
   const type = document.querySelector('.type-tab-btn.active')?.getAttribute('data-type') || 'expense';
   const catInfo = getCategoryInfo(categoryVal, type);
   const icon = catInfo.icon || '';
   const cleanName = getCategoryDisplayName(categoryVal);
-  
+
   const subcatSelect = document.getElementById('trans-subcategory-select')?.value || '';
   const subcatCustom = document.getElementById('trans-subcategory-custom')?.value || '';
-  
+
   let subcatText = '';
   if (subcatSelect === '__NEW__') {
     subcatText = subcatCustom.trim();
   } else if (subcatSelect) {
     subcatText = getSubcategoryDisplayName(subcatSelect.trim(), categoryVal);
   }
-  
+
   if (subcatText) {
     categoryDisplay.innerHTML = `
       <span class="category-picker-icon" style="font-size:16px;">${icon}</span>
@@ -4031,7 +4031,7 @@ function updateSubcategoryRowVisibility() {
   if (!subcatGroup) return;
   const type = document.querySelector('.type-tab-btn.active')?.getAttribute('data-type') || 'expense';
   const subcatSelect = document.getElementById('trans-subcategory-select')?.value || '';
-  
+
   if (type === 'transfer') {
     subcatGroup.style.display = 'none';
   } else {
@@ -4049,22 +4049,22 @@ function setTransactionFormType(type) {
   document.querySelectorAll('.type-tab-btn').forEach(btn =>
     btn.classList.toggle('active', btn.getAttribute('data-type') === type)
   );
-  
+
   const modalEl = document.getElementById('transaction-modal');
   if (modalEl) {
     modalEl.classList.remove('expense', 'income', 'transfer');
     modalEl.classList.add(type);
   }
-  
+
   let typeLabel = TRANSLATIONS[state.lang]['type_tab_expense'];
   if (type === 'income') typeLabel = TRANSLATIONS[state.lang]['type_tab_income'];
   else if (type === 'transfer') typeLabel = TRANSLATIONS[state.lang]['type_tab_transfer'];
   document.getElementById('modal-trans-title').textContent = typeLabel;
-  
-  const catGroup      = document.getElementById('form-row-category');
-  const toAccGroup    = document.getElementById('form-row-account-to');
-  const fromAccLabel  = document.getElementById('label-account-from');
-  
+
+  const catGroup = document.getElementById('form-row-category');
+  const toAccGroup = document.getElementById('form-row-account-to');
+  const fromAccLabel = document.getElementById('label-account-from');
+
   if (type === 'transfer') {
     if (catGroup) catGroup.style.display = 'none';
     updateSubcategoryRowVisibility();
@@ -4086,7 +4086,7 @@ function toggleCategoryPickerEditMode() {
   categoryPickerEditMode = !categoryPickerEditMode;
   const btn = document.getElementById('btn-toggle-cat-edit');
   if (btn) {
-    btn.textContent = categoryPickerEditMode 
+    btn.textContent = categoryPickerEditMode
       ? (state.lang === 'el' ? 'Τέλος' : 'Done')
       : (state.lang === 'el' ? 'Διαχείριση' : 'Manage');
     if (categoryPickerEditMode) {
@@ -4106,7 +4106,7 @@ function inlineToggleCategoryHidden(categoryName, type) {
   if (cat) {
     cat.hidden = !cat.hidden;
     saveCategoriesToStorage();
-    
+
     // Sync to cloud if enabled
     if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
       try {
@@ -4127,20 +4127,20 @@ function inlineToggleCategoryHidden(categoryName, type) {
         console.warn('Cloud category sync failed:', e);
       }
     }
-    
+
     updateCategoryDropdowns(type);
     updateUI();
   }
 }
 
 function inlineDeleteCustomCategory(categoryName, type) {
-  const confirmMsg = state.lang === 'el' 
-    ? 'Είστε σίγουροι ότι θέλετε να διαγράψετε αυτή την κατηγορία;' 
+  const confirmMsg = state.lang === 'el'
+    ? 'Είστε σίγουροι ότι θέλετε να διαγράψετε αυτή την κατηγορία;'
     : 'Are you sure you want to delete this category?';
   if (!confirm(confirmMsg)) {
     return;
   }
-  
+
   // Also check if any transactions use this category. If yes, warn the user
   const count = state.transactions.filter(t => t.category === categoryName).length;
   if (count > 0) {
@@ -4151,10 +4151,10 @@ function inlineDeleteCustomCategory(categoryName, type) {
       return;
     }
   }
-  
+
   state.categories = state.categories.filter(c => c.name !== categoryName);
   saveCategoriesToStorage();
-  
+
   // Sync delete to cloud if enabled
   if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
     try {
@@ -4169,7 +4169,7 @@ function inlineDeleteCustomCategory(categoryName, type) {
       console.warn('Cloud category delete failed:', e);
     }
   }
-  
+
   updateCategoryDropdowns(type);
   updateUI();
 }
@@ -4178,19 +4178,19 @@ function updateCategoryDropdowns(type = 'expense') {
   const grid = document.getElementById('category-picker-grid');
   if (!grid) return;
   grid.innerHTML = '';
-  
+
   const currentCategory = document.getElementById('trans-category').value;
   let categoryExists = false;
-  
+
   // Filter by type. In edit mode, show all. Otherwise, hide hidden categories.
   const visibleCategories = state.categories.filter(c => c.type === type && (categoryPickerEditMode || !c.hidden));
-  
+
   visibleCategories.forEach(c => {
     const div = document.createElement('div');
     div.className = 'category-picker-item';
-    
+
     const isCustom = !DEFAULT_CATEGORIES.find(dc => dc.name === c.name);
-    
+
     if (categoryPickerEditMode) {
       div.classList.add('in-edit-mode');
       div.innerHTML = `
@@ -4215,10 +4215,10 @@ function updateCategoryDropdowns(type = 'expense') {
       div.innerHTML = `<span class="category-picker-icon">${c.icon}</span><span class="category-picker-name">${stripLeadingEmoji(c.name)}</span>`;
       div.onclick = () => selectCategory(c.name, c.icon, c.color, true);
     }
-    
+
     grid.appendChild(div);
   });
-  
+
   // "+" New Category box at the end of the grid (only in normal mode, or always? Let's show it always or only in normal mode. Normal mode is cleaner)
   if (!categoryPickerEditMode) {
     const addBox = document.createElement('div');
@@ -4227,7 +4227,7 @@ function updateCategoryDropdowns(type = 'expense') {
     addBox.onclick = () => openNewCategoryDialog(type);
     grid.appendChild(addBox);
   }
-  
+
   if (!categoryPickerEditMode && !categoryExists && currentCategory !== '') {
     document.getElementById('trans-category').value = '';
     updateCategoryDisplay();
@@ -4243,21 +4243,21 @@ function selectCategory(name, icon, color, isManual = false) {
       item.classList.add('selected');
     }
   });
-  
+
   // Reset subcategory selection when category changes
   document.getElementById('trans-subcategory-select').value = '';
   const customInput = document.getElementById('trans-subcategory-custom');
   if (customInput) customInput.value = '';
-  
+
   updateCategoryDisplay();
   updateSubcategorySuggestions();
   updateSubcategoryRowVisibility();
-  
+
   if (isManual) {
     // Check if category has subcategories
     const cleanedCat = stripLeadingEmoji(name).toUpperCase();
     const defaults = DEFAULT_SUBCATEGORIES_MAP[cleanedCat];
-    
+
     let hasTransSubcats = false;
     for (let i = 0; i < state.transactions.length; i++) {
       const t = state.transactions[i];
@@ -4266,7 +4266,7 @@ function selectCategory(name, icon, color, isManual = false) {
         break;
       }
     }
-    
+
     if ((defaults && defaults.length > 0) || hasTransSubcats) {
       closeModal('category-picker-modal');
       openSubcategoryModal();
@@ -4282,7 +4282,7 @@ function selectSubcategory(name) {
   document.getElementById('trans-subcategory-select').value = name;
   const customInput = document.getElementById('trans-subcategory-custom');
   if (customInput) customInput.value = '';
-  
+
   updateCategoryDisplay();
   updateSubcategoryRowVisibility();
   closeModal('subcategory-picker-modal');
@@ -4292,7 +4292,7 @@ function openCategoryModal() {
   const form = document.getElementById('transaction-form');
   if (form && form.getAttribute('data-readonly') === 'true') return;
   const currentType = document.querySelector('.type-tab-btn.active').getAttribute('data-type');
-  
+
   // Reset edit mode on modal open
   categoryPickerEditMode = false;
   const btn = document.getElementById('btn-toggle-cat-edit');
@@ -4301,7 +4301,7 @@ function openCategoryModal() {
     btn.style.borderColor = 'var(--border)';
     btn.style.color = 'var(--text-secondary)';
   }
-  
+
   updateCategoryDropdowns(currentType);
   closeNewCategoryDialog(); // Reset dialog state
   openModal('category-picker-modal');
@@ -4311,28 +4311,28 @@ function openCategoryModal() {
 let newCategoryDialogType = 'expense';
 let newCategorySelectedEmoji = '💸';
 
-const EMOJI_OPTIONS = ['💰','💸','🏡','🛒','🚗','❤️','🎉','🧾','🏋️','👕','🚇','💻','🎬','🎓','🧩','🤑','🎁','💼','💶','🏛️','📦','🏅','👨','💵','🔧','⭐','🔥','🎯','📱','☕','🎵','✈️','🏖️','📚','🐶','🌱','💡','🗂️','🛠️','🎮'];
+const EMOJI_OPTIONS = ['💰', '💸', '🏡', '🛒', '🚗', '❤️', '🎉', '🧾', '🏋️', '👕', '🚇', '💻', '🎬', '🎓', '🧩', '🤑', '🎁', '💼', '💶', '🏛️', '📦', '🏅', '👨', '💵', '🔧', '⭐', '🔥', '🎯', '📱', '☕', '🎵', '✈️', '🏖️', '📚', '🐶', '🌱', '💡', '🗂️', '🛠️', '🎮'];
 
 function openNewCategoryDialog(type) {
   newCategoryDialogType = type;
   newCategorySelectedEmoji = type === 'income' ? '💰' : '💸';
-  
+
   const dialog = document.getElementById('new-category-inline-dialog');
   const nameInput = document.getElementById('new-cat-name-input');
   const titleEl = document.getElementById('new-cat-dialog-title');
-  
+
   if (!dialog || !nameInput) return;
-  
+
   // Update title based on type
   if (titleEl) {
-    titleEl.textContent = type === 'income' 
+    titleEl.textContent = type === 'income'
       ? (state.lang === 'el' ? 'Νέα Κατηγορία Εσόδου' : 'New Income Category')
       : (state.lang === 'el' ? 'Νέα Κατηγορία Εξόδου' : 'New Expense Category');
   }
-  
+
   nameInput.value = '';
   nameInput.placeholder = state.lang === 'el' ? 'Όνομα κατηγορίας' : 'Category name';
-  
+
   // Render emoji grid
   const emojiGrid = document.getElementById('new-cat-emoji-grid');
   if (emojiGrid) {
@@ -4353,7 +4353,7 @@ function openNewCategoryDialog(type) {
       emojiGrid.appendChild(btn);
     });
   }
-  
+
   // Update save button text
   const saveBtn = dialog.querySelector('.btn-primary');
   if (saveBtn) {
@@ -4363,7 +4363,7 @@ function openNewCategoryDialog(type) {
   if (cancelBtn) {
     cancelBtn.textContent = state.lang === 'el' ? 'Άκυρο' : 'Cancel';
   }
-  
+
   dialog.style.display = 'block';
   setTimeout(() => nameInput.focus(), 100);
 }
@@ -4378,21 +4378,21 @@ function closeNewCategoryDialog() {
 function saveNewCategoryFromPicker() {
   const nameInput = document.getElementById('new-cat-name-input');
   const name = nameInput ? nameInput.value.trim() : '';
-  
+
   if (!name) {
     alert(TRANSLATIONS[state.lang]['alert_enter_category_name']);
     return;
   }
-  
+
   // Check for duplicate
-  const exists = state.categories.find(c => 
+  const exists = state.categories.find(c =>
     c.name && c.name.toUpperCase() === name.toUpperCase()
   );
   if (exists) {
     alert(TRANSLATIONS[state.lang]['alert_category_exists']);
     return;
   }
-  
+
   // Create new category
   const newCategory = {
     name: name,
@@ -4401,10 +4401,10 @@ function saveNewCategoryFromPicker() {
     color: getRandomColor(),
     user_id: state.currentUser ? state.currentUser.id : null
   };
-  
+
   state.categories.push(newCategory);
   saveCategoriesToStorage();
-  
+
   // Sync to cloud if enabled
   if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
     try {
@@ -4424,13 +4424,13 @@ function saveNewCategoryFromPicker() {
       console.warn('Cloud category sync failed:', e);
     }
   }
-  
+
   // Close dialog
   closeNewCategoryDialog();
-  
+
   // Refresh grid
   updateCategoryDropdowns(newCategoryDialogType);
-  
+
   // Auto-select the new category
   document.getElementById('trans-category').value = newCategory.name;
   document.querySelectorAll('.category-picker-item').forEach(item => {
@@ -4440,11 +4440,11 @@ function saveNewCategoryFromPicker() {
       item.classList.add('selected');
     }
   });
-  
+
   updateCategoryDisplay();
   updateSubcategorySuggestions();
   updateSubcategoryRowVisibility();
-  
+
   // Close the category picker modal
   closeModal('category-picker-modal');
 }
@@ -4452,7 +4452,7 @@ function saveNewCategoryFromPicker() {
 function openSubcategoryModal() {
   const form = document.getElementById('transaction-form');
   if (form && form.getAttribute('data-readonly') === 'true') return;
-  if(!document.getElementById('trans-category').value) {
+  if (!document.getElementById('trans-category').value) {
     alert(TRANSLATIONS[state.lang]['alert_select_category_first']);
     return;
   }
@@ -4466,7 +4466,7 @@ function getAccountDisplayName(accOrName) {
   const type = typeof accOrName === 'object' ? accOrName.type : null;
   const lowerName = name.toLowerCase().trim();
   const lang = state.lang || 'el';
-  
+
   if (lang === 'el') {
     if (lowerName === 'cash' || lowerName === 'μετρητά' || type === 'cash') return 'Μετρητά';
     if (lowerName === 'bank account' || lowerName === 'bank' || lowerName === 'τράπεζα' || type === 'bank') return 'Τράπεζα';
@@ -4485,12 +4485,12 @@ function openAccountPickerModal(target) {
   const form = document.getElementById('transaction-form');
   if (form && form.getAttribute('data-readonly') === 'true') return;
   _currentAccountPickerTarget = target;
-  
+
   const titleEl = document.getElementById('account-picker-title');
   if (titleEl) {
     titleEl.textContent = state.lang === 'el' ? 'Επιλογή Λογαριασμού' : 'Select Account';
   }
-  
+
   renderAccountPickerOptions();
   openModal('account-picker-modal');
 }
@@ -4498,27 +4498,27 @@ function openAccountPickerModal(target) {
 function renderAccountPickerOptions() {
   const container = document.getElementById('account-picker-list');
   if (!container) return;
-  
+
   container.innerHTML = '';
-  
+
   const currentVal = document.getElementById(`trans-account-${_currentAccountPickerTarget}`).value;
   const icons = { cash: '💵', bank: '🏦', card: '💳' };
-  
+
   state.accounts.forEach(acc => {
     const item = document.createElement('div');
     item.className = 'account-picker-item';
     if (acc.name === currentVal) {
       item.classList.add('selected');
     }
-    
+
     const icon = icons[acc.type] || '💳';
     const displayName = getAccountDisplayName(acc);
-    
+
     item.innerHTML = `
       <span class="account-picker-item-icon">${icon}</span>
       <span class="account-picker-item-name">${displayName}</span>
     `;
-    
+
     item.onclick = () => selectAccountOption(acc.name);
     container.appendChild(item);
   });
@@ -4527,7 +4527,7 @@ function renderAccountPickerOptions() {
 function selectAccountOption(name) {
   const targetId = `trans-account-${_currentAccountPickerTarget}`;
   document.getElementById(targetId).value = name;
-  
+
   updateAccountTriggerDisplay(_currentAccountPickerTarget);
   closeModal('account-picker-modal');
 }
@@ -4538,7 +4538,7 @@ function updateAccountTriggerDisplay(target) {
   const value = input.value;
   const triggerDisplay = document.getElementById(`trans-account-${target}-display`);
   if (!triggerDisplay) return;
-  
+
   if (!value) {
     triggerDisplay.innerHTML = `<span class="custom-select-placeholder">${state.lang === 'el' ? 'Επιλέξτε...' : 'Select...'}</span>`;
   } else {
@@ -4622,10 +4622,10 @@ function showSyncToast(message, autoDismissMs = 0) {
 // Update the permanent cloud icon in the header
 function updateHeaderSyncIcon(state_) {
   // state_: 'offline' | 'syncing' | 'synced' | 'error'
-  const dot  = document.getElementById('header-sync-dot');
+  const dot = document.getElementById('header-sync-dot');
   const icon = document.getElementById('header-sync-cloud-icon');
   if (!dot || !icon) return;
-  const colors = { offline:'#9e9e9e', syncing:'#ffd600', synced:'#4caf50', error:'#ef5350' };
+  const colors = { offline: '#9e9e9e', syncing: '#ffd600', synced: '#4caf50', error: '#ef5350' };
   dot.style.background = colors[state_] || '#9e9e9e';
   // Animate dot on sync
   if (state_ === 'syncing') {
@@ -4642,20 +4642,20 @@ function updateHeaderSyncIcon(state_) {
   }
   // Tooltip
   const btn = document.getElementById('header-sync-icon');
-  const labels = { offline:'Τοπική αποθήκευση', syncing:'Συγχρονισμός...', synced:'Συγχρονισμένο ✅', error:'Σφάλμα συγχρονισμού ⚠️' };
+  const labels = { offline: 'Τοπική αποθήκευση', syncing: 'Συγχρονισμός...', synced: 'Συγχρονισμένο ✅', error: 'Σφάλμα συγχρονισμού ⚠️' };
   if (btn) btn.title = labels[state_] || 'Συγχρονισμός';
-  
+
   // Update sync status text in settings
   const syncStatusEl = document.getElementById('val_sync_status');
   if (syncStatusEl) {
-    const statusLabels = { 
-      offline:'Τοπική Αποθήκευση', 
-      syncing:'Συγχρονισμός...', 
-      synced:'Ενεργός', 
-      error:'Σφάλμα' 
+    const statusLabels = {
+      offline: 'Τοπική Αποθήκευση',
+      syncing: 'Συγχρονισμός...',
+      synced: 'Ενεργός',
+      error: 'Σφάλμα'
     };
     syncStatusEl.textContent = statusLabels[state_] || 'Τοπική Αποθήκευση';
-    
+
     // Update color based on status
     if (state_ === 'synced') {
       syncStatusEl.style.color = '#4caf50'; // Green for active
@@ -4686,7 +4686,7 @@ function formatCurrency(val) {
 }
 
 function getRandomColor() {
-  const colors = ['#f44336','#e91e63','#9c27b0','#673ab7','#3f51b5','#2196f3','#03a9f4','#00bcd4','#009688','#4caf50','#8bc34a','#ffc107','#ff9800','#ff5722','#607d8b'];
+  const colors = ['#f44336', '#e91e63', '#9c27b0', '#673ab7', '#3f51b5', '#2196f3', '#03a9f4', '#00bcd4', '#009688', '#4caf50', '#8bc34a', '#ffc107', '#ff9800', '#ff5722', '#607d8b'];
   return colors[Math.floor(Math.random() * colors.length)];
 }
 
@@ -4706,22 +4706,22 @@ function formatShortDate(date) {
 
 function updateExportSheetDateLabels() {
   const now = new Date();
-  
+
   const curMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const curMonthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
   const curMonthEl = document.getElementById('export-range-current-month');
   if (curMonthEl) curMonthEl.textContent = `(${formatShortDate(curMonthStart)} ~ ${formatShortDate(curMonthEnd)})`;
-    
+
   const prevMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   const prevMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
   const prevMonthEl = document.getElementById('export-range-prev-month');
   if (prevMonthEl) prevMonthEl.textContent = `(${formatShortDate(prevMonthStart)} ~ ${formatShortDate(prevMonthEnd)})`;
-    
+
   const curYearStart = new Date(now.getFullYear(), 0, 1);
   const curYearEnd = now;
   const curYearEl = document.getElementById('export-range-current-year');
   if (curYearEl) curYearEl.textContent = `(${formatShortDate(curYearStart)} ~ ${formatShortDate(curYearEnd)})`;
-    
+
   const prevYearStart = new Date(now.getFullYear() - 1, 0, 1);
   const prevYearEnd = new Date(now.getFullYear() - 1, 11, 31);
   const prevYearEl = document.getElementById('export-range-prev-year');
@@ -4734,17 +4734,17 @@ function openExportPeriodSheet() {
   if (typeof closeSearchBottomSheet === 'function') {
     closeSearchBottomSheet(true);
   }
-  
+
   updateExportSheetDateLabels();
-  
+
   const backdrop = document.getElementById('export-period-backdrop');
   if (backdrop) backdrop.classList.add('active');
-  
+
   const sheet = document.getElementById('export-period-bottom-sheet');
   if (sheet) sheet.classList.add('active');
-  
+
   selectExportOption('current-month');
-  
+
   const todayStr = new Date().toISOString().split('T')[0];
   const fromEl = document.getElementById('export-custom-from');
   const toEl = document.getElementById('export-custom-to');
@@ -4755,14 +4755,14 @@ function openExportPeriodSheet() {
 function closeExportPeriodSheet() {
   const sheet = document.getElementById('export-period-bottom-sheet');
   if (sheet) sheet.classList.remove('active');
-  
+
   const backdrop = document.getElementById('export-period-backdrop');
   if (backdrop) backdrop.classList.remove('active');
 }
 
 function selectExportOption(option) {
   selectedExportPeriod = option;
-  
+
   const options = ['current-month', 'prev-month', 'current-year', 'prev-year', 'all', 'custom'];
   options.forEach(opt => {
     const el = document.getElementById(`export-opt-${opt}`);
@@ -4770,7 +4770,7 @@ function selectExportOption(option) {
       el.classList.toggle('active', opt === option);
     }
   });
-  
+
   const customContainer = document.getElementById('export-custom-range-container');
   if (customContainer) {
     customContainer.style.display = option === 'custom' ? 'flex' : 'none';
@@ -4781,7 +4781,7 @@ function confirmExcelExport() {
   const now = new Date();
   let startDate = null;
   let endDate = null;
-  
+
   if (selectedExportPeriod === 'current-month') {
     startDate = new Date(now.getFullYear(), now.getMonth(), 1);
     endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
@@ -4808,10 +4808,10 @@ function confirmExcelExport() {
     exportToExcel(fromStr, toStr);
     return;
   }
-  
+
   const startStr = startDate ? formatISODateLocal(startDate) : null;
   const endStr = endDate ? formatISODateLocal(endDate) : null;
-  
+
   exportToExcel(startStr, endStr);
 }
 
@@ -4821,7 +4821,7 @@ function exportToExcel(startDate = null, endDate = null) {
     alert(msg);
     return;
   }
-  
+
   let transactionsToExport = state.transactions;
   if (startDate || endDate) {
     transactionsToExport = state.transactions.filter(t => {
@@ -4832,19 +4832,19 @@ function exportToExcel(startDate = null, endDate = null) {
       return true;
     });
   }
-  
+
   if (!transactionsToExport.length) {
     const msg = TRANSLATIONS[state.lang]['export_no_data_range'] || 'Δεν υπάρχουν συναλλαγές σε αυτή την περίοδο!';
     alert(msg);
     return;
   }
-  
+
   const rows = transactionsToExport.map(t => ({
     'Ημερομηνία': t.date, 'Τύπος': t.type === 'expense' ? 'Expense' : (t.type === 'income' ? 'Income' : 'Transfer'),
     'Ποσό': t.amount, 'Κατηγορία': t.category, 'Υποκατηγορία': t.subcategory || '',
     'Λογαριασμός': t.account_from, 'Σημείωση': t.note || '',
   }));
-  
+
   const ws = XLSX.utils.json_to_sheet(rows);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Συναλλαγές');
@@ -4885,7 +4885,7 @@ function openSearchBottomSheet(type) {
   const sheet = document.getElementById(`search-bottom-sheet-${type}`);
   if (sheet) {
     sheet.classList.add('active');
-    
+
     // Dynamic populating based on type
     if (type === 'category') {
       populateSearchCategorySheet();
@@ -4918,10 +4918,10 @@ function getCategoryType(catName) {
   if (!catName) return '';
   const catObj = state.categories.find(c => c.name === catName);
   if (catObj) return catObj.type;
-  
+
   const trans = state.transactions.find(t => t.category === catName);
   if (trans) return trans.type;
-  
+
   return '';
 }
 
@@ -4930,7 +4930,7 @@ function selectTypeSearchFilter(val) {
   if (hiddenSelect) {
     hiddenSelect.value = val;
   }
-  
+
   // If the currently selected category doesn't match the new selected type, clear the category selection
   const currentCat = document.getElementById('search-filter-category')?.value;
   if (currentCat && val) {
@@ -4940,7 +4940,7 @@ function selectTypeSearchFilter(val) {
       const hiddenSub = document.getElementById('search-filter-subcategory');
       if (hiddenCat) hiddenCat.value = '';
       if (hiddenSub) hiddenSub.value = '';
-      
+
       const catChip = document.getElementById('search-chip-category');
       if (catChip) {
         catChip.querySelector('.chip-label').textContent = TRANSLATIONS[state.lang]['search_chip_category'] || 'Κατηγορία';
@@ -4948,7 +4948,7 @@ function selectTypeSearchFilter(val) {
       }
     }
   }
-  
+
   // Update Type Chip UI
   const chip = document.getElementById('search-chip-type');
   const label = chip.querySelector('.chip-label');
@@ -4960,7 +4960,7 @@ function selectTypeSearchFilter(val) {
     label.textContent = TRANSLATIONS[state.lang]['search_chip_type'] || 'Τύπος';
     chip.classList.remove('active');
   }
-  
+
   // Update active option styling in sheet
   const sheet = document.getElementById('search-bottom-sheet-type');
   if (sheet) {
@@ -5299,7 +5299,7 @@ function populateSearchFilterDropdowns() {
       catSelect.appendChild(opt);
     });
     // Wire up category change to update subcategory dropdown
-    catSelect.onchange = function() {
+    catSelect.onchange = function () {
       handleSearchChange();
       populateSearchSubcategoryDropdown(this.value);
     };
@@ -5349,19 +5349,19 @@ function resetSearchFilters() {
   document.getElementById('search-filter-amount-max').value = '';
   document.getElementById('search-filter-date-start').value = '';
   document.getElementById('search-filter-date-end').value = '';
-  
+
   // Reset member filter
   const memSel = document.getElementById('search-filter-member');
   if (memSel) memSel.value = '';
 
   populateSearchSubcategoryDropdown('');
-  
+
   // Sync the custom UI trigger labels and selections
   updateCustomSelectTriggers();
 
   // Reset visual chip elements to default labels
   resetAllSearchChips();
-  
+
   handleSearchChange();
 }
 
@@ -5380,7 +5380,7 @@ function clearSearchInput() {
 function handleSearchChange() {
   const searchInput = document.getElementById('search-input');
   const clearBtn = document.getElementById('search-clear-btn');
-  
+
   // Show/hide the clear button based on input
   if (clearBtn) {
     if (searchInput && searchInput.value.length > 0) {
@@ -5400,7 +5400,7 @@ function handleSearchChange() {
   const maxAmt = parseFloat(document.getElementById('search-filter-amount-max').value) || null;
   const dateStart = document.getElementById('search-filter-date-start').value;
   const dateEnd = document.getElementById('search-filter-date-end').value;
-  
+
   // Member Filter value
   const filterMember = document.getElementById('search-filter-member')?.value || '';
 
@@ -5413,7 +5413,7 @@ function handleSearchChange() {
       const desc = (t.description || '').toLowerCase();
       const acc = (t.account_from || '').toLowerCase();
       const accTo = (t.account_to || '').toLowerCase();
-      
+
       if (!note.includes(query) && !cat.includes(query) && !sub.includes(query) && !desc.includes(query) && !acc.includes(query) && !accTo.includes(query)) {
         return false;
       }
@@ -5460,7 +5460,7 @@ function handleSearchChange() {
 
 function renderGroupedTransactions(transactions, container) {
   container.innerHTML = '';
-  
+
   if (transactions.length === 0) {
     container.innerHTML = `
       <div style="text-align:center;padding:40px 10px;color:var(--text-secondary)">
@@ -5489,7 +5489,7 @@ function renderGroupedTransactions(transactions, container) {
     const weekendClass = dayOfWeek === 6 ? ' saturday' : dayOfWeek === 0 ? ' sunday' : '';
 
     let rightTotals = '';
-    if (group.income > 0)  rightTotals += `<span class="day-group-income">${getCurrencySymbol()} ${formatCurrency(group.income)}</span>`;
+    if (group.income > 0) rightTotals += `<span class="day-group-income">${getCurrencySymbol()} ${formatCurrency(group.income)}</span>`;
     if (group.expense > 0) rightTotals += `<span class="day-group-expense">${getCurrencySymbol()} ${formatCurrency(group.expense)}</span>`;
 
     const header = document.createElement('div');
@@ -5516,16 +5516,16 @@ function renderGroupedTransactions(transactions, container) {
 
       let amountClass = 'trans-amount';
       let accountText = t.account_from || '';
-      if (t.type === 'expense')       { amountClass += ' expense'; }
-      else if (t.type === 'income')   { amountClass += ' income'; }
+      if (t.type === 'expense') { amountClass += ' expense'; }
+      else if (t.type === 'income') { amountClass += ' income'; }
       else if (t.type === 'transfer') { amountClass += ' transfer'; accountText = `${t.account_from} → ${t.account_to}`; }
 
       const translatedSub = getSubcategoryDisplayName(t.subcategory, t.category);
       const translatedCat = getCategoryDisplayName(t.category);
       const displayTitle = (t.note && t.note.trim()) ? t.note.trim()
-                         : (t.description && t.description.trim()) ? t.description.trim()
-                         : (translatedSub && translatedSub.trim()) ? translatedSub.trim()
-                         : (translatedCat || '');
+        : (t.description && t.description.trim()) ? t.description.trim()
+          : (translatedSub && translatedSub.trim()) ? translatedSub.trim()
+            : (translatedCat || '');
 
       let memberBadge = '';
       if (state.userProfile && state.userProfile.family_id && t.user_id) {
@@ -5569,7 +5569,7 @@ function renderGroupedTransactions(transactions, container) {
 function openMonthPicker() {
   state.monthPickerYear = state.selectedYear;
   document.getElementById('month-picker-year').textContent = state.monthPickerYear;
-  
+
   renderMonthPicker();
   openModal('month-picker-modal');
 }
@@ -5589,12 +5589,12 @@ function renderMonthPicker() {
     const monLabel = getMonthName(index, true);
     const cell = document.createElement('div');
     cell.className = 'month-picker-item';
-    
+
     // Highlight if active month
     if (state.selectedMonth === index && state.selectedYear === state.monthPickerYear) {
       cell.classList.add('active');
     }
-    
+
     cell.textContent = monLabel;
     cell.onclick = () => selectMonthPickerMonth(index);
     container.appendChild(cell);
@@ -5604,14 +5604,14 @@ function renderMonthPicker() {
 function selectMonthPickerMonth(monthIndex) {
   state.selectedMonth = monthIndex;
   state.selectedYear = state.monthPickerYear;
-  
+
   // Sync to Stats date
   state.statsDate.setFullYear(state.selectedYear);
   state.statsDate.setMonth(state.selectedMonth);
 
   // Update UI components
   updateUI();
-  
+
   // Update stats tab (if active or loaded)
   renderStatsTab();
 
@@ -5622,17 +5622,17 @@ function initPullToRefresh() {
   const container = document.querySelector('.app-content');
   const ptr = document.getElementById('pull-to-refresh');
   if (!container || !ptr) return;
-  
+
   const ptrIcon = ptr.querySelector('.pull-to-refresh-icon');
   const ptrContent = ptr.querySelector('.pull-to-refresh-content');
-  
+
   let startX = 0;
   let startY = 0;
   let currentY = 0;
   let pulling = false; // false, true, or null (undetermined)
   const threshold = 60; // px to trigger refresh
   const maxPull = 100; // max px to pull container
-  
+
   // Helper to update pull state visually
   function updatePull(diff) {
     if (diff <= 0) {
@@ -5644,11 +5644,11 @@ function initPullToRefresh() {
     // simple rubber band effect
     const pullHeight = Math.min(maxPull, diff * 0.4);
     ptr.style.height = `${pullHeight}px`;
-    
+
     const progress = Math.min(1, pullHeight / threshold);
     ptrContent.style.opacity = progress.toString();
     ptrContent.style.transform = `scale(${0.8 + progress * 0.2})`;
-    
+
     if (pullHeight >= threshold) {
       ptrIcon.style.transform = 'rotate(180deg)';
       ptrIcon.style.color = 'var(--blue-positive)';
@@ -5665,13 +5665,13 @@ function initPullToRefresh() {
     ptr.style.height = '55px';
     ptrContent.style.opacity = '1';
     ptrContent.style.transform = 'scale(1)';
-    
+
     if (navigator.vibrate) {
       try {
         navigator.vibrate(15);
-      } catch (err) {}
+      } catch (err) { }
     }
-    
+
     try {
       await loadData();
       updateUI();
@@ -5724,7 +5724,7 @@ function initPullToRefresh() {
 
   container.addEventListener('touchmove', (e) => {
     if (pulling === false) return;
-    
+
     const touch = e.touches[0];
     const dx = touch.pageX - startX;
     const dy = touch.pageY - startY;
@@ -5787,13 +5787,13 @@ function enterSelectionMode() {
   ensureHistoryPushed();
   state.selectionMode = true;
   state.selectedIds.clear();
-  
+
   const bar = document.getElementById('selection-bar');
   if (bar) bar.classList.add('active');
-  
+
   const fab = document.getElementById('fab-btn');
   if (fab) fab.classList.add('hidden');
-  
+
   updateSelectionHeader();
   renderTransactionsTab();
 }
@@ -5801,13 +5801,13 @@ function enterSelectionMode() {
 function exitSelectionMode() {
   state.selectionMode = false;
   state.selectedIds.clear();
-  
+
   const bar = document.getElementById('selection-bar');
   if (bar) bar.classList.remove('active');
-  
+
   const fab = document.getElementById('fab-btn');
   if (fab) fab.classList.remove('hidden');
-  
+
   renderTransactionsTab();
 }
 
@@ -5849,7 +5849,7 @@ function getVisibleTransactionIds() {
 function toggleSelectAll() {
   const visibleIds = getVisibleTransactionIds();
   const allSelected = visibleIds.every(id => state.selectedIds.has(id));
-  
+
   if (allSelected) {
     visibleIds.forEach(id => state.selectedIds.delete(id));
   } else {
@@ -5862,10 +5862,10 @@ function toggleSelectAll() {
 async function deleteSelectedTransactions() {
   const ids = Array.from(state.selectedIds);
   if (ids.length === 0) return;
-  
+
   const msg = ids.length === 1 ? 'Να διαγραφεί η επιλεγμένη συναλλαγή;' : `Να διαγραφούν οι ${ids.length} επιλεγμένες συναλλαγές;`;
   if (!confirm(msg)) return;
-  
+
   if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
     try {
       const { error } = await state.supabaseClient.from('transactions').delete().in('id', ids);
@@ -5879,7 +5879,7 @@ async function deleteSelectedTransactions() {
     state.transactions = state.transactions.filter(t => !ids.includes(t.id));
     localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
   }
-  
+
   await loadData();
   exitSelectionMode();
   updateUI();
@@ -5961,7 +5961,7 @@ function initSwipeToBack() {
       switchTab(TAB_ORDER[currentIdx - 1]);
       return true;
     }
-    
+
     // 6. On trans tab with nothing to close — exit the app
     return false;
   }
@@ -6014,7 +6014,7 @@ function initSwipeToBack() {
       if (currentTabIdx > 0) {
         const prevTabName = TAB_ORDER[currentTabIdx - 1];
         prevScreen = document.getElementById(`${prevTabName}-screen`);
-        
+
         // Prepare prev screen: show it behind current, shifted left
         if (prevScreen) {
           prevScreen.style.display = 'block';
@@ -6213,25 +6213,25 @@ function updateSubcategorySuggestions() {
   const categoryHidden = document.getElementById('trans-category');
   const subcatList = document.getElementById('subcategory-picker-list');
   if (!categoryHidden || !subcatList) return;
-  
+
   const category = categoryHidden.value;
   subcatList.innerHTML = '';
-  
+
   const currentSubcategory = document.getElementById('trans-subcategory-select').value;
-  
+
   if (!category) {
     subcatList.innerHTML = `<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:12px;">Επιλέξτε πρώτα κατηγορία</div>`;
     return;
   }
-  
+
   const cleanedCat = stripLeadingEmoji(category).toUpperCase();
   const uniqueSubcats = new Set();
-  
+
   const defaults = DEFAULT_SUBCATEGORIES_MAP[cleanedCat];
   if (defaults) {
     defaults.forEach(sub => uniqueSubcats.add(sub));
   }
-  
+
   state.transactions.forEach(t => {
     if (t.category && stripLeadingEmoji(t.category).toUpperCase() === cleanedCat) {
       if (t.subcategory && t.subcategory.trim() !== '') {
@@ -6239,7 +6239,7 @@ function updateSubcategorySuggestions() {
       }
     }
   });
-  
+
   // Add "No subcategory" option at the top
   const noneOpt = document.createElement('div');
   noneOpt.className = 'subcategory-item none-subcat';
@@ -6256,7 +6256,7 @@ function updateSubcategorySuggestions() {
     div.onclick = () => selectSubcategory(sub);
     subcatList.appendChild(div);
   });
-  
+
   const newOpt = document.createElement('div');
   newOpt.className = 'subcategory-item new-subcat';
   newOpt.innerHTML = `<div style="display:flex;align-items:center;gap:8px;"><i class="fa-solid fa-plus"></i> <span>${TRANSLATIONS[state.lang]['option_new_subcategory'] || 'Νέα υποκατηγορία...'}</span></div>`;
@@ -6271,7 +6271,7 @@ function showSubcategorySelect() {
   const trigger = document.getElementById('trans-subcategory-trigger');
   const custom = document.getElementById('trans-subcategory-custom');
   const cancelBtn = document.getElementById('btn-cancel-custom-sub');
-  
+
   if (trigger && custom && cancelBtn) {
     trigger.style.display = 'none';
     custom.style.display = 'block';
@@ -6285,12 +6285,12 @@ function hideSubcategorySelect() {
   const trigger = document.getElementById('trans-subcategory-trigger');
   const custom = document.getElementById('trans-subcategory-custom');
   const cancelBtn = document.getElementById('btn-cancel-custom-sub');
-  
+
   if (trigger && custom && cancelBtn) {
     trigger.style.display = 'flex';
     custom.style.display = 'none';
     cancelBtn.style.display = 'none';
-    
+
     // Clear input
     custom.value = '';
     document.getElementById('trans-subcategory-select').value = '';
@@ -6322,7 +6322,7 @@ function initSwipeMonthNavigation() {
       touchActive = false;
       return;
     }
-    
+
     // Only capture if active tab is 'trans' or 'stats'
     if (state.activeTab !== 'trans' && state.activeTab !== 'stats') {
       touchActive = false;
@@ -6332,7 +6332,7 @@ function initSwipeMonthNavigation() {
     const touch = e.touches[0];
     startX = touch.clientX;
     startY = touch.clientY;
-    
+
     // Ignore if starting from the LEFT EDGE (reserved for back-swipe navigation)
     if (startX < edgeThreshold) {
       touchActive = false;
@@ -6347,7 +6347,7 @@ function initSwipeMonthNavigation() {
     const touch = e.touches[0];
     const deltaX = touch.clientX - startX;
     const deltaY = touch.clientY - startY;
-    
+
     if (isSwipingHorizontal === null) {
       if (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10) {
         if (Math.abs(deltaX) > Math.abs(deltaY)) {
@@ -6363,7 +6363,7 @@ function initSwipeMonthNavigation() {
         }
       }
     }
-    
+
     if (isSwipingHorizontal === true) {
       if (e.cancelable) {
         e.preventDefault();
@@ -6385,11 +6385,11 @@ function initSwipeMonthNavigation() {
   appContent.addEventListener('touchend', (e) => {
     if (!touchActive) return;
     touchActive = false;
-    
+
     if (isSwipingHorizontal === true) {
       const touch = e.changedTouches[0] || e.touches[0];
       const deltaX = touch.clientX - startX;
-      
+
       if (Math.abs(deltaX) >= dragThreshold) {
         const direction = deltaX > 0 ? -1 : 1; // swiping right deltaX > 0 means prev month (-1), swiping left means next month (1)
         if (state.activeTab === 'trans') {
@@ -6487,7 +6487,7 @@ function initRippleEffects() {
     if (computedStyle.position === 'static') {
       target.style.position = 'relative';
     }
-    
+
     // Ensure overflow is hidden to clip the ripple
     const originalOverflow = target.style.overflow;
     if (computedStyle.overflow !== 'hidden') {
@@ -6497,7 +6497,7 @@ function initRippleEffects() {
     // Create ripple element
     const ripple = document.createElement('span');
     ripple.className = 'ripple-effect';
-    
+
     // Calculate ripple size (diameter should cover the diagonal of the element)
     const size = Math.max(rect.width, rect.height) * 1.5;
     ripple.style.width = `${size}px`;
@@ -6506,21 +6506,21 @@ function initRippleEffects() {
     // Position ripple relative to touch/click coordinates
     const clientX = e.clientX || (e.touches && e.touches[0].clientX);
     const clientY = e.clientY || (e.touches && e.touches[0].clientY);
-    
+
     const x = clientX - rect.left - size / 2;
     const y = clientY - rect.top - size / 2;
-    
+
     ripple.style.left = `${x}px`;
     ripple.style.top = `${y}px`;
-    
+
     // Add to target
     target.appendChild(ripple);
-    
+
     // Trigger animation frame
     requestAnimationFrame(() => {
       ripple.classList.add('active');
     });
-    
+
     // Remove ripple after animation finishes
     setTimeout(() => {
       ripple.remove();
@@ -6676,6 +6676,14 @@ function openSettingsPicker(type) {
 
   titleEl.textContent = title;
 
+  // For month-start, render the numbers in a modern calendar-style grid.
+  const isGrid = type === 'month-start';
+  if (isGrid) {
+    container.classList.add('settings-picker-grid');
+  } else {
+    container.classList.remove('settings-picker-grid');
+  }
+
   options.forEach(opt => {
     const item = document.createElement('div');
     item.className = 'settings-picker-item';
@@ -6683,10 +6691,17 @@ function openSettingsPicker(type) {
       item.classList.add('selected');
     }
 
-    item.innerHTML = `
-      <span class="settings-picker-item-label">${opt.label}</span>
-      ${opt.value === currentVal ? '<i class="fa-solid fa-check settings-picker-item-check"></i>' : ''}
-    `;
+    if (isGrid) {
+      item.innerHTML = `
+        <span class="settings-picker-item-label">${opt.label}</span>
+        ${opt.value === currentVal ? '<i class="fa-solid fa-check settings-picker-item-check"></i>' : ''}
+      `;
+    } else {
+      item.innerHTML = `
+        <span class="settings-picker-item-label">${opt.label}</span>
+        ${opt.value === currentVal ? '<i class="fa-solid fa-check settings-picker-item-check"></i>' : ''}
+      `;
+    }
 
     item.onclick = () => {
       onSelect(opt.value);
@@ -6713,7 +6728,7 @@ function initSettingsFromStorage() {
   updateSettingsDisplay();
   applyTheme(theme);
   checkBiometricsSupport();
-  
+
   if (appLockEnabled || appBiometricsEnabled) {
     showLockScreen();
   }
@@ -6739,7 +6754,7 @@ function applyTheme(theme) {
     document.body.classList.add(`theme-${theme}`);
     document.documentElement.classList.add(`theme-${theme}`);
   }
-  
+
   // Dynamically update meta theme-color to match theme's card/header background
   const themeColors = {
     'dark': '#222731',
@@ -6753,12 +6768,12 @@ function applyTheme(theme) {
   if (metaThemeColor) {
     metaThemeColor.setAttribute('content', themeColors[theme] || '#222731');
   }
-  
+
   if (window.Chart) {
     const textSecondary = getComputedStyle(document.body).getPropertyValue('--text-secondary').trim() || '#8a99ad';
     Chart.defaults.color = textSecondary;
   }
-  
+
   if (state.activeTab === 'stats') {
     renderStatsTab();
   }
@@ -6780,14 +6795,14 @@ function showLockScreen() {
     lockScreen.classList.add('active');
     enteredPin = [];
     resetLockDots();
-    
+
     // Show/hide biometric button based on settings
     const biometricBtn = document.getElementById('btn-biometric');
     const biometricsEnabled = localStorage.getItem('app_biometrics_enabled') === 'true';
     if (biometricBtn) {
       biometricBtn.style.display = biometricsEnabled ? 'flex' : 'none';
     }
-    
+
     // Auto-trigger biometric auth if enabled
     if (biometricsEnabled) {
       setTimeout(() => {
@@ -6816,7 +6831,7 @@ function pressKey(num) {
     enteredPin.push(num);
     const dot = document.getElementById(`dot-${enteredPin.length - 1}`);
     if (dot) dot.classList.add('active');
-    
+
     if (enteredPin.length === 4) {
       setTimeout(() => {
         verifyEnteredPin();
@@ -6836,7 +6851,7 @@ function pressBackspace() {
 function verifyEnteredPin() {
   const pin = enteredPin.join('');
   const savedPin = localStorage.getItem('app_pin');
-  
+
   if (pin === savedPin) {
     hideLockScreen();
   } else {
@@ -6844,13 +6859,13 @@ function verifyEnteredPin() {
     const oldText = subtitle.textContent;
     subtitle.textContent = "Λάθος PIN! Προσπαθήστε ξανά.";
     subtitle.style.color = "var(--accent)";
-    
+
     const dotsContainer = document.querySelector('.lock-dots');
     dotsContainer.style.transform = 'translateX(10px)';
     setTimeout(() => { dotsContainer.style.transform = 'translateX(-10px)'; }, 70);
     setTimeout(() => { dotsContainer.style.transform = 'translateX(10px)'; }, 140);
     setTimeout(() => { dotsContainer.style.transform = 'translateX(0)'; }, 210);
-    
+
     setTimeout(() => {
       enteredPin = [];
       resetLockDots();
@@ -6865,13 +6880,13 @@ async function checkBiometricsSupport() {
   const container = document.getElementById('settings-biometrics-container');
   const toggle = document.getElementById('settings-biometrics');
   if (!container || !toggle) return;
-  
+
   const appLockEnabled = localStorage.getItem('app_lock_enabled') === 'true';
   if (!appLockEnabled) {
     container.style.display = 'none';
     return;
   }
-  
+
   if (window.PublicKeyCredential) {
     try {
       const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
@@ -6928,7 +6943,7 @@ async function registerBiometrics() {
 async function verifyBiometrics() {
   const credIdBase64 = localStorage.getItem('biometric_cred_id');
   if (!credIdBase64) return false;
-  
+
   try {
     const rawId = new Uint8Array(atob(credIdBase64).split("").map(c => c.charCodeAt(0)));
     const randomChallenge = new Uint8Array(16);
@@ -6978,7 +6993,7 @@ function openPinModal() {
 function closePinModal() {
   const modal = document.getElementById('pin-modal');
   if (modal) modal.classList.remove('active');
-  
+
   if (!localStorage.getItem('app_lock_enabled')) {
     document.getElementById('settings-app-lock').checked = false;
   }
@@ -6987,12 +7002,12 @@ function closePinModal() {
 function submitPinSetup() {
   const pinField = document.getElementById('pin-input-field');
   const pin = pinField.value;
-  
+
   if (pin.length !== 4 || isNaN(pin)) {
     alert("Το PIN πρέπει να είναι ακριβώς 4 ψηφία!");
     return;
   }
-  
+
   if (pinSetupStep === 1) {
     tempSetupPin = pin;
     pinField.value = "";
@@ -7068,12 +7083,12 @@ let currentAuthMode = 'login'; // 'login' or 'signup'
 
 function switchAuthTab(tab) {
   currentAuthTab = tab;
-  
+
   // Update tabs active state
   document.getElementById('tab-btn-password').classList.toggle('active', tab === 'password');
   document.getElementById('tab-btn-magic').classList.toggle('active', tab === 'magic');
   document.getElementById('tab-btn-google').classList.toggle('active', tab === 'google');
-  
+
   // Show active form
   document.getElementById('auth-password-form').style.display = tab === 'password' ? 'flex' : 'none';
   document.getElementById('auth-magic-form').style.display = tab === 'magic' ? 'flex' : 'none';
@@ -7087,7 +7102,7 @@ function togglePasswordVisibility() {
   const passwordInput = document.getElementById('auth-password');
   const icon = document.getElementById('toggle-password-icon');
   if (!passwordInput || !icon) return;
-  
+
   if (passwordInput.type === 'password') {
     passwordInput.type = 'text';
     icon.className = 'fa-solid fa-eye-slash';
@@ -7102,31 +7117,31 @@ async function handleForgotPassword() {
     alert('Supabase is not initialized.');
     return;
   }
-  
+
   const emailInput = document.getElementById('auth-email');
   const email = emailInput ? emailInput.value.trim() : '';
   const lang = state.lang || 'el';
-  
-  const promptMsg = lang === 'el' 
-    ? 'Εισάγετε το email σας για να λάβετε σύνδεσμο επαναφοράς κωδικού:' 
+
+  const promptMsg = lang === 'el'
+    ? 'Εισάγετε το email σας για να λάβετε σύνδεσμο επαναφοράς κωδικού:'
     : 'Enter your email to receive a password reset link:';
-    
+
   const successMsg = lang === 'el'
     ? '✅ Στάλθηκε σύνδεσμος επαναφοράς κωδικού στα εισερχόμενά σας!'
     : '✅ Password reset link has been sent to your inbox!';
-    
+
   const enterEmailMsg = lang === 'el'
     ? 'Παρακαλώ πληκτρολογήστε το email σας πρώτα.'
     : 'Please enter your email first.';
-    
+
   const userEmail = prompt(promptMsg, email);
   if (userEmail === null) return; // User cancelled
-  
+
   if (!userEmail.trim()) {
     alert(enterEmailMsg);
     return;
   }
-  
+
   try {
     const { error } = await state.supabaseClient.auth.resetPasswordForEmail(userEmail.trim(), {
       redirectTo: window.location.origin + window.location.pathname
@@ -7146,15 +7161,15 @@ function setAuthMode(mode) {
   currentAuthMode = mode;
   document.getElementById('btn-auth-mode-login').classList.toggle('active', mode === 'login');
   document.getElementById('btn-auth-mode-signup').classList.toggle('active', mode === 'signup');
-  
+
   const submitBtn = document.getElementById('auth-password-submit-btn');
   const lang = state.lang || 'el';
-  
+
   const forgotContainer = document.getElementById('forgot-password-container');
   if (forgotContainer) {
     forgotContainer.style.display = mode === 'login' ? 'flex' : 'none';
   }
-  
+
   if (mode === 'login') {
     submitBtn.textContent = TRANSLATIONS[lang]['auth_submit_login'];
     document.getElementById('auth-subtitle').textContent = TRANSLATIONS[lang]['auth_welcome'];
@@ -7184,16 +7199,16 @@ async function handlePasswordAuth(e) {
     alert('Supabase is not initialized.');
     return;
   }
-  
+
   const email = document.getElementById('auth-email').value.trim();
   const password = document.getElementById('auth-password').value;
-  
+
   const submitBtn = document.getElementById('auth-password-submit-btn');
   const originalText = submitBtn.textContent;
   submitBtn.disabled = true;
   submitBtn.textContent = 'Παρακαλώ περιμένετε...';
   clearAuthStatus();
-  
+
   try {
     if (currentAuthMode === 'login') {
       const { data, error } = await state.supabaseClient.auth.signInWithPassword({
@@ -7212,7 +7227,7 @@ async function handlePasswordAuth(e) {
         }
       });
       if (error) throw error;
-      
+
       // If user is not logged in immediately (needs confirmation), show status
       if (data && data.user && !data.session) {
         showAuthStatus(TRANSLATIONS[state.lang]['auth_signup_success'], 'success');
@@ -7230,14 +7245,14 @@ async function handlePasswordAuth(e) {
 async function handleMagicAuth(e) {
   e.preventDefault();
   if (!state.supabaseClient) return;
-  
+
   const email = document.getElementById('auth-magic-email').value.trim();
   const submitBtn = document.getElementById('auth-magic-submit-btn');
   const originalText = submitBtn.textContent;
   submitBtn.disabled = true;
   submitBtn.textContent = 'Αποστολή...';
   clearAuthStatus();
-  
+
   try {
     const { error } = await state.supabaseClient.auth.signInWithOtp({
       email,
@@ -7276,10 +7291,10 @@ async function handleGoogleAuth() {
 async function handleLogout() {
   if (!confirm('Είστε σίγουροι ότι θέλετε να αποσυνδεθείτε από το λογαριασμό σας;')) return;
   if (!state.supabaseClient) return;
-  
+
   try {
     await state.supabaseClient.auth.signOut();
-    
+
     // Clear user-specific cached data
     localStorage.removeItem('cached_current_user');
     localStorage.removeItem('cached_partner_profile');
@@ -7287,11 +7302,11 @@ async function handleLogout() {
     localStorage.removeItem('offline_accounts');
     localStorage.removeItem('offline_categories');
     localStorage.removeItem('auth_guest_mode');
-    
+
     alert('👋 Αποσυνδεθήκατε με επιτυχία!');
     // Reload page to clear memory state
     window.location.reload();
-  } catch(err) {
+  } catch (err) {
     console.error('Sign out error:', err);
   }
 }
@@ -7326,27 +7341,27 @@ function renderPartnerSection() {
       // Fallback to "Οικογένεια [Admin Name]" format
       const adminProfile = state.familyProfiles.find(p => p.role === 'admin');
       const adminName = adminProfile ? (adminProfile.display_name || adminProfile.email.split('@')[0]) : '';
-      familyName = adminName 
+      familyName = adminName
         ? (state.lang === 'el' ? `Οικογένεια [${adminName}]` : `Family [${adminName}]`)
         : (state.lang === 'el' ? 'Οικογενειακός Προϋπολογισμός' : 'Family Budget');
     }
     const inviteCode = state.familyGroup ? state.familyGroup.invite_code : '';
-    
+
     // Build members list HTML
     let membersHtml = '';
     state.familyProfiles.forEach(m => {
       const isMe = m.id === state.currentUser.id;
       const meSuffix = isMe ? ` (${state.lang === 'el' ? 'Εσείς' : 'You'})` : '';
-      const roleBadge = m.role === 'admin' 
+      const roleBadge = m.role === 'admin'
         ? `<span style="background:var(--accent-light);color:var(--accent);font-size:9.5px;padding:2px 6px;border-radius:4px;font-weight:700;margin-left:8px;">${state.lang === 'el' ? 'Διαχειριστής' : 'Admin'}</span>`
         : `<span style="background:rgba(255,255,255,0.06);color:var(--text-secondary);font-size:9.5px;padding:2px 6px;border-radius:4px;font-weight:600;margin-left:8px;">${state.lang === 'el' ? 'Μέλος' : 'Member'}</span>`;
-      
+
       let actionButtons = '';
       if (myRole === 'admin' && !isMe) {
         const demoteText = state.lang === 'el' ? 'Ορισμός ως Μέλος' : 'Set as Member';
         const promoteText = state.lang === 'el' ? 'Ορισμός ως Διαχειριστής' : 'Set as Admin';
         const removeText = state.lang === 'el' ? 'Αφαίρεση από την Οικογένεια' : 'Remove from Family';
-        
+
         actionButtons = `
           <div style="position:relative;display:inline-block;">
             <button type="button" onclick="toggleMemberMenu(event, '${m.id}')" class="icon-btn" style="color:var(--text-secondary);padding:6px;font-size:14px;cursor:pointer;background:none;border:none;" title="${state.lang === 'el' ? 'Επιλογές' : 'Options'}">
@@ -7492,9 +7507,9 @@ function renderPartnerSection() {
     container.innerHTML = `
       <div style="display:flex;flex-direction:column;gap:16px;padding:4px 0;">
         <div style="font-size:13px;color:var(--text-secondary);line-height:1.5;">
-          ${state.lang === 'el' 
-            ? 'Διαχειριστείτε τα κοινά οικονομικά του σπιτιού δημιουργώντας ένα Οικογενειακό Group, ή συνδεθείτε σε ένα υπάρχον με κωδικό πρόσκλησης.' 
-            : 'Manage shared household finances by creating a Family Group, or join an existing one using an invite code.'}
+          ${state.lang === 'el'
+        ? 'Διαχειριστείτε τα κοινά οικονομικά του σπιτιού δημιουργώντας ένα Οικογενειακό Group, ή συνδεθείτε σε ένα υπάρχον με κωδικό πρόσκλησης.'
+        : 'Manage shared household finances by creating a Family Group, or join an existing one using an invite code.'}
         </div>
 
         <!-- Section A: Create Family -->
@@ -7556,7 +7571,7 @@ async function createFamilyGroup() {
   if (!state.supabaseClient || !state.currentUser) return;
   const nameInput = document.getElementById('create-family-name-input');
   if (!nameInput) return;
-  
+
   let groupName = nameInput.value.trim();
   if (!groupName) {
     groupName = state.lang === 'el' ? 'Οικογενειακός Προϋπολογισμός' : 'Family Budget';
@@ -7565,7 +7580,7 @@ async function createFamilyGroup() {
   try {
     const { data: newFamilyId, error } = await state.supabaseClient.rpc('create_family_group', { group_name: groupName });
     if (error) throw error;
-    
+
     alert(state.lang === 'el' ? '🎉 Η οικογένεια δημιουργήθηκε με επιτυχία!' : '🎉 Family group created successfully!');
     window.location.reload();
   } catch (err) {
@@ -7578,7 +7593,7 @@ async function joinFamilyGroup() {
   if (!state.supabaseClient || !state.currentUser) return;
   const codeInput = document.getElementById('join-family-code-input');
   if (!codeInput) return;
-  
+
   const code = codeInput.value.trim().toUpperCase();
   if (!code) {
     alert(state.lang === 'el' ? 'Παρακαλώ εισάγετε τον κωδικό πρόσκλησης.' : 'Please enter the invite code.');
@@ -7599,11 +7614,11 @@ async function joinFamilyGroup() {
 
 async function leaveFamilyGroup() {
   if (!state.supabaseClient || !state.currentUser) return;
-  
-  const confirmMsg = state.lang === 'el' 
-    ? 'Είστε σίγουροι ότι θέλετε να αποχωρήσετε από τον οικογενειακό προϋπολογισμό; Οι κινήσεις σας θα παραμείνουν στην οικογένεια.' 
+
+  const confirmMsg = state.lang === 'el'
+    ? 'Είστε σίγουροι ότι θέλετε να αποχωρήσετε από τον οικογενειακό προϋπολογισμό; Οι κινήσεις σας θα παραμείνουν στην οικογένεια.'
     : 'Are you sure you want to leave the family budget? Your transactions will remain in the family group.';
-    
+
   if (!confirm(confirmMsg)) return;
 
   try {
@@ -7620,11 +7635,11 @@ async function leaveFamilyGroup() {
 
 async function kickFamilyMember(memberId) {
   if (!state.supabaseClient || !state.currentUser) return;
-  
+
   const confirmMsg = state.lang === 'el'
     ? 'Είστε σίγουροι ότι θέλετε να αποβάλλετε αυτό το μέλος από την οικογένεια;'
     : 'Are you sure you want to kick this member from the family?';
-    
+
   if (!confirm(confirmMsg)) return;
 
   try {
@@ -7641,11 +7656,11 @@ async function kickFamilyMember(memberId) {
 
 async function changeMemberRole(memberId, role) {
   if (!state.supabaseClient || !state.currentUser) return;
-  
+
   const confirmMsg = state.lang === 'el'
     ? `Είστε σίγουροι ότι θέλετε να αλλάξετε το ρόλο αυτού του μέλους σε ${role === 'admin' ? 'Διαχειριστή' : 'Μέλος'};`
     : `Are you sure you want to change this member's role to ${role === 'admin' ? 'Admin' : 'Member'}?`;
-    
+
   if (!confirm(confirmMsg)) return;
 
   try {
@@ -7715,10 +7730,10 @@ async function inviteMemberByEmail() {
     const mailtoUrl = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     window.location.href = mailtoUrl;
 
-    alert(state.lang === 'el' 
-      ? '🎉 Η πρόσκληση καταχωρήθηκε στη βάση! Ανοίγει το πρόγραμμα email σας για την αποστολή του συνδέσμου.' 
+    alert(state.lang === 'el'
+      ? '🎉 Η πρόσκληση καταχωρήθηκε στη βάση! Ανοίγει το πρόγραμμα email σας για την αποστολή του συνδέσμου.'
       : '🎉 Invitation saved! Your email client will now open to send the link.');
-      
+
     emailInput.value = '';
   } catch (err) {
     console.error('Error inviting member:', err);
@@ -7736,11 +7751,11 @@ async function promptRenameFamilyGroup() {
     alert(state.lang === 'el' ? 'Το όνομα δεν μπορεί να είναι κενό.' : 'Name cannot be empty.');
     return;
   }
-  
+
   try {
     const { data, error } = await state.supabaseClient.rpc('rename_family_group', { new_name: trimmed });
     if (error) throw error;
-    
+
     state.familyGroup.name = trimmed;
     showSyncToast(state.lang === 'el' ? '✓ Το όνομα ενημερώθηκε' : '✓ Name updated successfully', 2000);
     renderPartnerSection();
@@ -7757,7 +7772,7 @@ function toggleMemberMenu(event, memberId) {
       menu.style.display = 'none';
     }
   });
-  
+
   const menu = document.getElementById(`member-menu-${memberId}`);
   if (menu) {
     if (menu.style.display === 'none' || !menu.style.display) {
@@ -7784,7 +7799,7 @@ function selectInviteRole(role) {
   const memberCard = document.getElementById('role-card-member');
   const adminCard = document.getElementById('role-card-admin');
   const hiddenInput = document.getElementById('invite-role-select');
-  
+
   if (role === 'member') {
     memberCard.style.borderColor = 'var(--accent)';
     adminCard.style.borderColor = 'var(--border)';
@@ -7845,15 +7860,15 @@ window.handleLogout = handleLogout;
 function enterGuestMode() {
   state.guestMode = true;
   localStorage.setItem('auth_guest_mode', 'true');
-  
+
   // Hide auth overlay
   const authOverlay = document.getElementById('auth-overlay');
   if (authOverlay) authOverlay.style.display = 'none';
-  
+
   // Hide switcher in header (guest has no shared wallet)
   const switcher = document.getElementById('wallet-switcher-container');
   if (switcher) switcher.style.display = 'none';
-  
+
   // Show lock icon user badge in header to connect/sign up
   const userBadge = document.getElementById('user-profile-badge');
   if (userBadge) {
@@ -7862,7 +7877,7 @@ function enterGuestMode() {
     userBadge.title = 'Σύνδεση / Sign Up';
     userBadge.onclick = () => showAuthOverlay();
   }
-  
+
   // Load data & update UI
   loadData();
   updateUI();
@@ -7880,10 +7895,10 @@ async function syncLocalTransactionsToCloud(userId, options = {}) {
   const silent = !!options.silent;
   const transStr = localStorage.getItem('offline_transactions');
   if (!transStr) return;
-  
+
   try {
     const allTrans = JSON.parse(transStr) || [];
-    
+
     // Identify unsynced transactions (local_ prefix, no id, null user_id, or non-UUID id)
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     const localTrans = allTrans.filter(t => {
@@ -7893,10 +7908,10 @@ async function syncLocalTransactionsToCloud(userId, options = {}) {
       if (!uuidRegex.test(String(t.id))) return true;
       return false;
     });
-    
+
     if (localTrans.length > 0) {
       console.log(`Syncing ${localTrans.length} guest/local transactions to cloud...`);
-      
+
       const toInsert = localTrans.map(t => {
         const copy = { ...t };
         delete copy.id; // Let Supabase auto-generate UUIDs
@@ -7907,7 +7922,7 @@ async function syncLocalTransactionsToCloud(userId, options = {}) {
         }
         return copy;
       });
-      
+
       // Batch sync in groups of 50 to avoid timeouts
       let hasError = false;
       let lastErr = null;
@@ -7922,7 +7937,7 @@ async function syncLocalTransactionsToCloud(userId, options = {}) {
           break;
         }
       }
-        
+
       if (hasError) {
         console.error('Failed to sync guest transactions:', lastErr);
       } else {
@@ -7930,7 +7945,7 @@ async function syncLocalTransactionsToCloud(userId, options = {}) {
         // Remove synced transactions from offline cache
         const cleanOffline = allTrans.filter(t => !localTrans.includes(t));
         localStorage.setItem('offline_transactions', JSON.stringify(cleanOffline));
-        
+
         if (!silent) {
           alert(`🎉 ${localTrans.length} τοπικές κινήσεις που είχατε καταγράψει μεταφέρθηκαν αυτόματα στον λογαριασμό σας!`);
         }
@@ -7952,7 +7967,7 @@ function generateUUID() {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     return crypto.randomUUID();
   }
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
     const r = Math.random() * 16 | 0;
     const v = c === 'x' ? r : (r & 0x3 | 0x8);
     return v.toString(16);
@@ -7963,20 +7978,20 @@ function enqueueSyncMutation(action, payload) {
   try {
     const queue = JSON.parse(localStorage.getItem('money_manager_sync_queue') || '[]');
     const itemId = action === 'delete' ? payload : payload.id;
-    
+
     // Clean up duplicate saves/updates in queue if we are now deleting
     let cleanQueue = queue.filter(item => {
       const itemKey = item.action === 'delete' ? item.payload : item.payload.id;
       return !(itemKey === itemId && item.action === 'save' && action === 'delete');
     });
-    
+
     cleanQueue.push({
       id: generateUUID(),
       action,
       payload,
       timestamp: Date.now()
     });
-    
+
     localStorage.setItem('money_manager_sync_queue', JSON.stringify(cleanQueue));
     console.log(`Enqueued offline mutation: ${action} for ${itemId}`);
   } catch (err) {
@@ -7989,10 +8004,10 @@ let _isProcessingSyncQueue = false;
 async function processSyncQueue() {
   if (_isProcessingSyncQueue) return;
   if (!state.isSupabaseEnabled || !state.supabaseClient || !state.currentUser) return;
-  
+
   const queueStr = localStorage.getItem('money_manager_sync_queue');
   if (!queueStr) return;
-  
+
   let queue = [];
   try {
     queue = JSON.parse(queueStr) || [];
@@ -8000,29 +8015,29 @@ async function processSyncQueue() {
     console.error('Failed to parse sync queue:', e);
     return;
   }
-  
+
   if (queue.length === 0) return;
   if (typeof navigator !== 'undefined' && !navigator.onLine) return;
-  
+
   _isProcessingSyncQueue = true;
   console.log(`Processing offline sync queue of ${queue.length} items...`);
-  
+
   let successCount = 0;
-  
+
   for (let i = 0; i < queue.length; i++) {
     const item = queue[i];
     try {
       if (item.action === 'save') {
         const transaction = item.payload;
         const { description, ...dbPayload } = transaction;
-        
+
         const { error } = await promiseTimeout(
           state.supabaseClient
             .from('transactions')
             .upsert([dbPayload]),
           15000
         );
-        
+
         if (error) {
           if (error.message && (error.message.includes('Fetch') || error.message.includes('network') || error.message.includes('timeout'))) {
             throw error;
@@ -8038,7 +8053,7 @@ async function processSyncQueue() {
             .eq('id', transId),
           15000
         );
-        
+
         if (error) {
           if (error.message && (error.message.includes('Fetch') || error.message.includes('network') || error.message.includes('timeout'))) {
             throw error;
@@ -8046,23 +8061,23 @@ async function processSyncQueue() {
           console.warn(`Skipping invalid sync queue delete item:`, error);
         }
       }
-      
+
       successCount++;
     } catch (err) {
       console.warn(`Network failure during sync queue replay at index ${i}:`, err);
       break; // Abort and retry later to preserve sequence order
     }
   }
-  
+
   if (successCount > 0) {
     const remaining = queue.slice(successCount);
     localStorage.setItem('money_manager_sync_queue', JSON.stringify(remaining));
     console.log(`Synced ${successCount} mutations. ${remaining.length} remaining.`);
-    
+
     await loadData();
     updateUI();
   }
-  
+
   _isProcessingSyncQueue = false;
 }
 
@@ -8070,20 +8085,20 @@ let _supabaseRealtimeChannel = null;
 
 function setupSupabaseRealtimeSubscription() {
   if (!state.supabaseClient || !state.currentUser) return;
-  
+
   if (_supabaseRealtimeChannel) {
     state.supabaseClient.removeChannel(_supabaseRealtimeChannel);
     _supabaseRealtimeChannel = null;
   }
-  
+
   const userId = state.currentUser.id;
   const partnerId = state.partnerProfile ? state.partnerProfile.id : null;
   const familyId = state.userProfile ? state.userProfile.family_id : null;
-  
+
   console.log('Setting up Supabase Realtime channel subscription...');
-  
+
   _supabaseRealtimeChannel = state.supabaseClient.channel('family-changes-channel');
-  
+
   if (familyId) {
     _supabaseRealtimeChannel.on(
       'postgres_changes',
@@ -8104,7 +8119,7 @@ function setupSupabaseRealtimeSubscription() {
       { event: '*', schema: 'public', table: 'categories', filter: `user_id=eq.${userId}` },
       handleRealtimeCategoryChange
     );
-    
+
     if (partnerId) {
       _supabaseRealtimeChannel.on(
         'postgres_changes',
@@ -8117,7 +8132,7 @@ function setupSupabaseRealtimeSubscription() {
       );
     }
   }
-  
+
   _supabaseRealtimeChannel.subscribe((status) => {
     console.log(`Supabase Realtime subscription status: ${status}`);
   });
@@ -8133,10 +8148,10 @@ function stopSupabaseRealtimeSubscription() {
 
 function handleRealtimeTransactionChange(payload) {
   console.log('Realtime transaction event received:', payload.eventType, payload.new, payload.old);
-  
+
   let trans = [...state.transactions];
   const eventType = payload.eventType;
-  
+
   if (eventType === 'INSERT') {
     const newTrans = payload.new;
     if (!trans.some(t => t.id === newTrans.id)) {
@@ -8149,15 +8164,15 @@ function handleRealtimeTransactionChange(payload) {
     const deletedId = payload.old.id;
     trans = trans.filter(t => t.id !== deletedId);
   }
-  
+
   trans.sort((a, b) => new Date(b.date) - new Date(a.date));
-  
+
   state.transactions = trans;
   localStorage.setItem('offline_transactions', JSON.stringify(trans));
-  
+
   calculateInitialBalances();
   updateUI();
-  
+
   if (eventType === 'INSERT' && payload.new.user_id !== state.currentUser.id) {
     showSyncToast('📥 Νέα κίνηση προστέθηκε από άλλο μέλος', 3000);
   }
@@ -8165,10 +8180,10 @@ function handleRealtimeTransactionChange(payload) {
 
 function handleRealtimeCategoryChange(payload) {
   console.log('Realtime category event received:', payload.eventType, payload.new, payload.old);
-  
+
   let cats = [...state.categories];
   const eventType = payload.eventType;
-  
+
   if (eventType === 'INSERT') {
     const newCat = payload.new;
     if (!cats.some(c => c.id === newCat.id)) {
@@ -8181,10 +8196,10 @@ function handleRealtimeCategoryChange(payload) {
     const deletedId = payload.old.id;
     cats = cats.filter(c => c.id !== deletedId);
   }
-  
+
   state.categories = cats;
   localStorage.setItem('offline_categories', JSON.stringify(cats));
-  
+
   updateUI();
 }
 
@@ -8216,16 +8231,16 @@ function updateSyncStatusIndicator() {
   const icon = document.getElementById('header-sync-cloud-icon');
   const btn = document.getElementById('header-sync-icon');
   if (!dot || !icon) return;
-  
+
   const colors = {
     idle: '#9e9e9e',
     syncing: '#ffb300',
     success: '#4caf50',
     error: '#e05e55'
   };
-  
+
   dot.style.background = colors[state.syncStatus] || colors.idle;
-  
+
   if (state.syncStatus === 'syncing') {
     icon.className = 'fa-solid fa-cloud-arrow-up';
   } else if (state.syncStatus === 'error') {
@@ -8233,7 +8248,7 @@ function updateSyncStatusIndicator() {
   } else {
     icon.className = 'fa-solid fa-cloud';
   }
-  
+
   // Update tooltip with last sync time
   if (btn) {
     let tooltip = state.lang === 'en' ? 'Cloud Account' : 'Λογαριασμός Cloud';
@@ -8254,16 +8269,16 @@ async function forceSyncNow(silent = false) {
     if (!silent) alert(state.lang === 'en' ? 'Please log in first to sync.' : 'Παρακαλώ συνδεθείτε πρώτα για συγχρονισμό.');
     return false;
   }
-  
+
   state.syncStatus = 'syncing';
   updateSyncStatusIndicator();
-  
+
   try {
     const userId = state.currentUser.id;
     const partnerId = state.partnerProfile ? state.partnerProfile.id : null;
     const familyId = state.userProfile ? state.userProfile.family_id : null;
-    
-    const userFilter = familyId 
+
+    const userFilter = familyId
       ? (partnerId ? `family_id.eq.${familyId},user_id.eq.${userId},user_id.eq.${partnerId}` : `family_id.eq.${familyId},user_id.eq.${userId}`)
       : (partnerId ? `user_id.eq.${userId},user_id.eq.${partnerId}` : `user_id.eq.${userId}`);
 
@@ -8272,7 +8287,7 @@ async function forceSyncNow(silent = false) {
       state.supabaseClient.from('categories').select('*').or(userFilter),
       state.supabaseClient.from('accounts').select('*').or(userFilter),
     ]);
-    
+
     if (!catsRes.error && catsRes.data) {
       state.categories = catsRes.data;
       localStorage.setItem('offline_categories', JSON.stringify(state.categories));
@@ -8294,7 +8309,7 @@ async function forceSyncNow(silent = false) {
         .select('*')
         .order('date', { ascending: false })
         .range(page * pageSize, (page + 1) * pageSize - 1);
-        
+
       if (familyId) {
         transQuery = transQuery.eq('family_id', familyId);
       } else if (partnerId) {
@@ -8317,50 +8332,50 @@ async function forceSyncNow(silent = false) {
 
     // 3. Process offline queue first (push local changes to cloud)
     await processSyncQueue();
-    
+
     // 4. Keep local pending transactions
     const localPending = (state.transactions || []).filter(t => t.id && String(t.id).startsWith('local_'));
-    
+
     // 5. Update state
     const prevCount = (state.transactions || []).filter(t => t.id && !String(t.id).startsWith('local_')).length;
     state.transactions = [...allTransactions, ...localPending];
     state.transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
     localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
-    
+
     // 6. Check sync queue status
     const queueStr = localStorage.getItem('money_manager_sync_queue');
     if (queueStr) {
       try {
         const queue = JSON.parse(queueStr) || [];
         state.syncPendingCount = queue.length;
-      } catch(e) { state.syncPendingCount = 0; }
+      } catch (e) { state.syncPendingCount = 0; }
     } else {
       state.syncPendingCount = 0;
     }
-    
+
     state.lastSyncTime = Date.now();
     state.syncStatus = state.syncPendingCount > 0 ? 'error' : 'success';
     updateSyncStatusIndicator();
-    
+
     // Update last sync time display in settings
     const lastSyncEl = document.getElementById('val_last_sync_time');
     if (lastSyncEl) {
       const d = new Date(state.lastSyncTime);
       lastSyncEl.textContent = d.toLocaleTimeString(state.lang === 'el' ? 'el-GR' : 'en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     }
-    
+
     calculateInitialBalances();
     updateUI();
-    
+
     const newCount = allTransactions.length - prevCount;
     if (!silent && newCount > 0) {
       showSyncToast('✅ +' + newCount + ' ' + (state.lang === 'en' ? 'new transactions synced' : 'νέες κινήσεις συγχρονίστηκαν'), 3000);
     } else if (!silent && newCount === 0) {
       showSyncToast('✅ ' + (state.lang === 'en' ? 'Everything is up to date' : 'Όλα είναι ενημερωμένα'), 2000);
     }
-    
+
     return true;
-  } catch(e) {
+  } catch (e) {
     console.error('Force sync failed:', e);
     state.syncStatus = 'error';
     updateSyncStatusIndicator();
@@ -8476,10 +8491,10 @@ function openProfileSheet() {
 
   const email = state.currentUser.email || '';
   const name = state.userProfile?.display_name || email.split('@')[0];
-  
+
   const nameInput = document.getElementById('profile-name-input');
   if (nameInput) nameInput.value = name;
-  
+
   const emailDisplay = document.getElementById('profile-email-display');
   if (emailDisplay) emailDisplay.textContent = email;
 
@@ -8500,7 +8515,7 @@ function openProfileSheet() {
   }
 
   updateProfileSheetAvatarPreview();
-  
+
   const modal = document.getElementById('profile-settings-modal');
   if (modal) {
     modal.classList.add('active');
@@ -8580,7 +8595,7 @@ function selectPresetAvatar(id) {
   const email = state.currentUser.email || '';
   localStorage.setItem('avatar_type_' + email, 'preset');
   localStorage.setItem('avatar_preset_id_' + email, String(id));
-  
+
   updateProfileSheetAvatarPreview();
   updateHeaderProfileBadge();
 }
@@ -8596,11 +8611,11 @@ function handleCustomAvatarUpload(e) {
   if (!file) return;
 
   const reader = new FileReader();
-  reader.onload = function(evt) {
+  reader.onload = function (evt) {
     const email = state.currentUser.email || '';
     localStorage.setItem('avatar_type_' + email, 'custom');
     localStorage.setItem('avatar_custom_data_' + email, evt.target.result);
-    
+
     updateProfileSheetAvatarPreview();
     updateHeaderProfileBadge();
   };
@@ -8609,13 +8624,13 @@ function handleCustomAvatarUpload(e) {
 
 async function saveProfileName() {
   if (!state.currentUser || !state.supabaseClient) return;
-  
+
   const nameInput = document.getElementById('profile-name-input');
   if (!nameInput) return;
-  
+
   const newName = nameInput.value.trim();
   const oldName = state.userProfile?.display_name || '';
-  
+
   if (!newName || newName === oldName) return;
 
   try {
@@ -8638,9 +8653,9 @@ async function saveProfileName() {
       state.userProfile = data;
       updateHeaderProfileBadge();
       updateProfileSheetAvatarPreview();
-      
+
       localStorage.setItem('cached_current_user', JSON.stringify(data));
-      
+
       const emailDisplay = document.getElementById('settings-user-email-value');
       if (emailDisplay && state.currentUser) {
         emailDisplay.textContent = `${state.currentUser.email} (${newName})`;
@@ -8860,7 +8875,7 @@ window.triggerProfileSyncFromModal = triggerProfileSyncFromModal;
 
 function toggleCustomDropdown(event, type) {
   event.stopPropagation();
-  
+
   // Close all other dropdowns
   const allContainers = document.querySelectorAll('.custom-select-container');
   allContainers.forEach(container => {
@@ -8878,16 +8893,16 @@ function toggleCustomDropdown(event, type) {
 function selectCustomDropdownOption(type, value, label) {
   const nativeSelect = document.getElementById(`search-filter-${type}`);
   if (!nativeSelect) return;
-  
+
   nativeSelect.value = value;
-  
+
   const container = document.getElementById(`custom-select-container-${type}`);
   if (container) {
     const triggerText = container.querySelector('.custom-select-trigger-text');
     if (triggerText) {
       triggerText.textContent = label;
     }
-    
+
     // Update active state in UI list
     const options = container.querySelectorAll('.custom-select-option');
     options.forEach(opt => {
@@ -8900,7 +8915,7 @@ function selectCustomDropdownOption(type, value, label) {
 
     container.classList.remove('dropdown-open');
   }
-  
+
   // Dispatch native change event
   if (nativeSelect.onchange) {
     nativeSelect.onchange();
@@ -8913,7 +8928,7 @@ function syncCustomSelect(type) {
   const nativeSelect = document.getElementById(`search-filter-${type}`);
   const optionsContainer = document.getElementById(`custom-options-${type}`);
   if (!nativeSelect || !optionsContainer) return;
-  
+
   optionsContainer.innerHTML = '';
   const selectedValue = nativeSelect.value;
   let activeLabel = '';
@@ -8931,12 +8946,12 @@ function syncCustomSelect(type) {
       <span>${opt.textContent}</span>
       <i class="fa-solid fa-check check-icon"></i>
     `;
-    
-    div.onclick = function(e) {
+
+    div.onclick = function (e) {
       e.stopPropagation();
       selectCustomDropdownOption(type, opt.value, opt.textContent);
     };
-    
+
     optionsContainer.appendChild(div);
   });
 
@@ -8961,7 +8976,7 @@ function updateCustomSelectTriggers() {
         if (triggerText) {
           triggerText.textContent = label;
         }
-        
+
         const optionDivs = container.querySelectorAll('.custom-select-option');
         optionDivs.forEach(opt => {
           if (opt.getAttribute('data-value') === nativeSelect.value) {
@@ -8976,7 +8991,7 @@ function updateCustomSelectTriggers() {
 }
 
 // Global outside click handler to close open custom selects
-window.addEventListener('click', function(e) {
+window.addEventListener('click', function (e) {
   if (!e.target.closest('.custom-select-container')) {
     const allContainers = document.querySelectorAll('.custom-select-container');
     allContainers.forEach(container => {
@@ -8996,7 +9011,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const isAndroid = /android/i.test(navigator.userAgent);
   const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
   if (!isAndroid || !isStandalone) return;
-  
+
   // Check if env() actually returns a value > 0
   const testEl = document.createElement('div');
   testEl.style.position = 'fixed';
@@ -9005,7 +9020,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.body.appendChild(testEl);
   const safeBottom = testEl.offsetHeight;
   document.body.removeChild(testEl);
-  
+
   if (safeBottom === 0) {
     // env() returns 0, update --safe-area-bottom to a default fallback of 16px to clear the gesture pill
     document.documentElement.style.setProperty('--safe-area-bottom', '12px');

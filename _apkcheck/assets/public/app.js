@@ -15266,6 +15266,14 @@ function openSettingsPicker(type) {
 
   titleEl.textContent = title;
 
+  // For month-start, render the numbers in a modern calendar-style grid.
+  const isGrid = type === 'month-start';
+  if (isGrid) {
+    container.classList.add('settings-picker-grid');
+  } else {
+    container.classList.remove('settings-picker-grid');
+  }
+
   options.forEach(opt => {
     const item = document.createElement('div');
     item.className = 'settings-picker-item';
@@ -15273,10 +15281,17 @@ function openSettingsPicker(type) {
       item.classList.add('selected');
     }
 
-    item.innerHTML = `
-      <span class="settings-picker-item-label">${opt.label}</span>
-      ${opt.value === currentVal ? '<i class="fa-solid fa-check settings-picker-item-check"></i>' : ''}
-    `;
+    if (isGrid) {
+      item.innerHTML = `
+        <span class="settings-picker-item-label">${opt.label}</span>
+        ${opt.value === currentVal ? '<i class="fa-solid fa-check settings-picker-item-check"></i>' : ''}
+      `;
+    } else {
+      item.innerHTML = `
+        <span class="settings-picker-item-label">${opt.label}</span>
+        ${opt.value === currentVal ? '<i class="fa-solid fa-check settings-picker-item-check"></i>' : ''}
+      `;
+    }
 
     item.onclick = () => {
       onSelect(opt.value);
@@ -19825,10 +19840,6 @@ window.onSubscreenShow_preferences = function () {
   const currencySelect = document.getElementById('settings-currency');
   if (currencySelect) currencySelect.value = savedCurrency;
 
-  const monthStart = localStorage.getItem('settings_month_start') || '1';
-  const monthStartSelect = document.getElementById('settings-month-start');
-  if (monthStartSelect) monthStartSelect.value = monthStart;
-
   const weekStart = localStorage.getItem('settings_week_start') || '1';
   const weekStartSelect = document.getElementById('settings-week-start');
   if (weekStartSelect) weekStartSelect.value = weekStart;
@@ -20098,13 +20109,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (currencySelect) {
       currencySelect.addEventListener('change', (e) => {
         changeCurrencySetting(e.target.value);
-      });
-    }
-
-    const monthStartSelect = document.getElementById('settings-month-start');
-    if (monthStartSelect) {
-      monthStartSelect.addEventListener('change', (e) => {
-        changeMonthStartSetting(e.target.value);
       });
     }
 

@@ -1281,7 +1281,8 @@
               <h3 class="modal-title" style="margin: 0; font-size: 16px; font-weight: 700; color: var(--text-main);"
                 data-i18n="item_user_guide">Οδηγός Χρήσης</h3>
               <div style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
-                <span id="user-guide-version-badge" style="font-size:10px; background:rgba(99,102,241,0.15); color:var(--primary); padding:2px 8px; border-radius:10px; font-weight:700; border:1px solid rgba(99,102,241,0.3);">v1011</span>
+                <span id="user-guide-version-badge"
+                  style="font-size:10px; background:rgba(99,102,241,0.15); color:var(--primary); padding:2px 8px; border-radius:10px; font-weight:700; border:1px solid rgba(99,102,241,0.3);">v1011</span>
                 <span>•</span>
                 <span id="user-guide-date-badge">Ιούλιος 2026</span>
               </div>
@@ -1441,45 +1442,20 @@
               <!-- Card Items -->
               <div style="display:flex; flex-direction:column;">
                 <!-- Row 1: Month Start Day -->
-                <div class="settings-list-item"
-                  style="padding:14px 16px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border, rgba(255,255,255,0.05)); margin:0;">
+                <div class="settings-list-item" onclick="openSettingsPicker('month-start')"
+                  style="cursor:pointer; padding:14px 16px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border, rgba(255,255,255,0.05)); margin:0;">
                   <div style="display:flex; flex-direction:column; gap:3px; flex:1; padding-right:12px;">
                     <span class="settings-item-label"
                       style="font-weight:700; font-size:14px; color:var(--text-primary);"
                       data-i18n="item_month_start">Έναρξη Μήνα</span>
                     <span style="font-size:12px; color:var(--text-muted);">Ημέρα έναρξης μηνιαίου κύκλου (1 - 28)</span>
                   </div>
-                  <select id="settings-month-start" class="settings-select"
-                    onchange="changeMonthStartSetting(this.value)">
-                    <option value="1">1</option>
-                    <option value="2">2</option>
-                    <option value="3">3</option>
-                    <option value="4">4</option>
-                    <option value="5">5</option>
-                    <option value="6">6</option>
-                    <option value="7">7</option>
-                    <option value="8">8</option>
-                    <option value="9">9</option>
-                    <option value="10">10</option>
-                    <option value="11">11</option>
-                    <option value="12">12</option>
-                    <option value="13">13</option>
-                    <option value="14">14</option>
-                    <option value="15">15</option>
-                    <option value="16">16</option>
-                    <option value="17">17</option>
-                    <option value="18">18</option>
-                    <option value="19">19</option>
-                    <option value="20">20</option>
-                    <option value="21">21</option>
-                    <option value="22">22</option>
-                    <option value="23">23</option>
-                    <option value="24">24</option>
-                    <option value="25">25</option>
-                    <option value="26">26</option>
-                    <option value="27">27</option>
-                    <option value="28">28</option>
-                  </select>
+                  <div
+                    style="display:flex; align-items:center; gap:8px; background:rgba(16,185,129,0.10); border:1px solid rgba(16,185,129,0.25); padding:7px 14px; border-radius:20px;">
+                    <span id="settings-month-start-display"
+                      style="font-size:13px; font-weight:800; color:#10b981;">1</span>
+                    <i class="fa-solid fa-chevron-right" style="color:#10b981; font-size:11px;"></i>
+                  </div>
                 </div>
 
                 <!-- Row 2: Week Start Day -->
@@ -3069,6 +3045,22 @@
           <div id="account-picker-list" class="account-picker-list"
             style="display: flex; flex-direction: column; gap: 12px;">
             <!-- Accounts injected here -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: SETTINGS PICKER (Month Start / Week Start / Theme / Currency) -->
+    <div id="settings-picker-modal" class="modal-overlay" style="z-index: 15000;">
+      <div class="modal-content"
+        style="max-height: 85vh; display: flex; flex-direction: column; max-width: 360px; border-radius: 20px; overflow: hidden;">
+        <div class="modal-header">
+          <h3 class="modal-title" id="settings-picker-title">Επιλογή</h3>
+          <span class="modal-close" onclick="closeModal('settings-picker-modal')">&times;</span>
+        </div>
+        <div class="modal-body" style="padding: 16px; flex: 1; overflow-y: auto;">
+          <div id="settings-picker-list" class="settings-picker-list">
+            <!-- Options injected here -->
           </div>
         </div>
       </div>

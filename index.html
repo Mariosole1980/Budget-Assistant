@@ -90,7 +90,7 @@
               ${devButton}
             </div>
             <div style="font-size:11px;color:#8b949e;">
-              Budget Assistant • build v1062
+              Budget Assistant • build v1063
             </div>
           </div>
         `;
@@ -178,7 +178,7 @@
   <link rel="stylesheet" href="style.css?v=1053" id="app-stylesheet">
 
   <!-- Capacitor Bridge -->
-  <script src="capacitor.js?v=1062"></script>
+  <script src="capacitor.js?v=1063"></script>
 
 
   <!-- Supabase client JS CDN -->
@@ -188,7 +188,7 @@
   <!-- Chart.js Datalabels Plugin CDN -->
   <script src="js/chartjs-plugin-datalabels.js"></script>
   <!-- SheetJS xlsx CDN for Excel Import/Export -->
-  <script src="xlsx.full.min.js?v=1062"></script>
+  <script src="xlsx.full.min.js?v=1063"></script>
 </head>
 
 <body style="background-color: #181b22; margin: 0; padding: 0; ">
@@ -1472,45 +1472,20 @@
               <!-- Card Items -->
               <div style="display:flex; flex-direction:column;">
                 <!-- Row 1: Month Start Day -->
-                <div class="settings-list-item"
-                  style="padding:14px 16px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border, rgba(255,255,255,0.05)); margin:0;">
+                <div class="settings-list-item" onclick="openSettingsPicker('month-start')"
+                  style="cursor:pointer; padding:14px 16px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border, rgba(255,255,255,0.05)); margin:0;">
                   <div style="display:flex; flex-direction:column; gap:3px; flex:1; padding-right:12px;">
                     <span class="settings-item-label"
                       style="font-weight:700; font-size:14px; color:var(--text-primary);"
                       data-i18n="item_month_start">Έναρξη Μήνα</span>
                     <span style="font-size:12px; color:var(--text-muted);">Ημέρα έναρξης μηνιαίου κύκλου (1 - 28)</span>
                   </div>
-                  <select id="settings-month-start" class="settings-select"
-                    onchange="changeMonthStartSetting(this.value)">
-                    <option value="1">1</option>
-                    <option value="2">2</option>
-                    <option value="3">3</option>
-                    <option value="4">4</option>
-                    <option value="5">5</option>
-                    <option value="6">6</option>
-                    <option value="7">7</option>
-                    <option value="8">8</option>
-                    <option value="9">9</option>
-                    <option value="10">10</option>
-                    <option value="11">11</option>
-                    <option value="12">12</option>
-                    <option value="13">13</option>
-                    <option value="14">14</option>
-                    <option value="15">15</option>
-                    <option value="16">16</option>
-                    <option value="17">17</option>
-                    <option value="18">18</option>
-                    <option value="19">19</option>
-                    <option value="20">20</option>
-                    <option value="21">21</option>
-                    <option value="22">22</option>
-                    <option value="23">23</option>
-                    <option value="24">24</option>
-                    <option value="25">25</option>
-                    <option value="26">26</option>
-                    <option value="27">27</option>
-                    <option value="28">28</option>
-                  </select>
+                  <div
+                    style="display:flex; align-items:center; gap:8px; background:rgba(16,185,129,0.10); border:1px solid rgba(16,185,129,0.25); padding:7px 14px; border-radius:20px;">
+                    <span id="settings-month-start-display"
+                      style="font-size:13px; font-weight:800; color:#10b981;">1</span>
+                    <i class="fa-solid fa-chevron-right" style="color:#10b981; font-size:11px;"></i>
+                  </div>
                 </div>
 
                 <!-- Row 2: Week Start Day -->
@@ -2043,7 +2018,7 @@
             <div class="settings-list-item version-info-row"
               style="padding: 14px 16px; background: transparent; border-top: 1px solid var(--border); margin-top: 8px;">
               <span class="settings-item-label" style="color:var(--text-muted); font-size:12px;"
-                data-i18n="app_version">Έκδοση 1.0.0 (build v1062)</span>
+                data-i18n="app_version">Έκδοση 1.0.0 (build v1063)</span>
               <span class="settings-item-value" style="font-size:12px; color:var(--text-muted); font-weight:600;">Budget
                 Assistant</span>
             </div>
@@ -3125,6 +3100,22 @@
       </div>
     </div>
 
+    <!-- MODAL: SETTINGS PICKER (Month Start / Week Start / Theme / Currency) -->
+    <div id="settings-picker-modal" class="modal-overlay" style="z-index: 15000;">
+      <div class="modal-content"
+        style="max-height: 85vh; display: flex; flex-direction: column; max-width: 360px; border-radius: 20px; overflow: hidden;">
+        <div class="modal-header">
+          <h3 class="modal-title" id="settings-picker-title">Επιλογή</h3>
+          <span class="modal-close" onclick="closeModal('settings-picker-modal')">&times;</span>
+        </div>
+        <div class="modal-body" style="padding: 16px; flex: 1; overflow-y: auto;">
+          <div id="settings-picker-list" class="settings-picker-list">
+            <!-- Options injected here -->
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- MODAL: CUSTOM DATE PICKER -->
     <div id="custom-date-picker-modal" class="modal-overlay" style="z-index: 13000;">
       <div class="modal-content"
@@ -3600,15 +3591,15 @@
     </div>
 
     <!-- Core Application Scripts -->
-    <script src="js/NLPProcessor.js?v=1062"></script>
-    <script src="js/MemoryEngine.js?v=1062"></script>
-    <script src="js/DecisionEngine.js?v=1062"></script>
-    <script src="js/OnlineAIProvider.js?v=1062"></script>
-    <script src="js/AIEngine.js?v=1062"></script>
-    <script src="js/IntentCorpus.js?v=1062"></script>
-    <script src="js/KnowledgeGraph.js?v=1062"></script>
+    <script src="js/NLPProcessor.js?v=1063"></script>
+    <script src="js/MemoryEngine.js?v=1063"></script>
+    <script src="js/DecisionEngine.js?v=1063"></script>
+    <script src="js/OnlineAIProvider.js?v=1063"></script>
+    <script src="js/AIEngine.js?v=1063"></script>
+    <script src="js/IntentCorpus.js?v=1063"></script>
+    <script src="js/KnowledgeGraph.js?v=1063"></script>
     <!-- Multi-Currency Service (single conversion mechanism) -->
-    <script src="js/CurrencyService.js?v=1062"></script>
+    <script src="js/CurrencyService.js?v=1063"></script>
     <!-- ============================================================
          OTA BOOT LOADER
          Loads EXACTLY ONE app.js (bundled OR OTA from IndexedDB, never both).
@@ -3617,13 +3608,13 @@
            2) js/OTAEngine.js     -> auto-runs initOTACheck() (sees OTABootLoader)
            3) window.OTABootLoader.boot() -> injects the chosen app.js
          ============================================================ -->
-    <script src="ota-boot-loader.js?v=1062"></script>
-    <script src="js/OTAEngine.js?v=1062"></script>
+    <script src="ota-boot-loader.js?v=1063"></script>
+    <script src="js/OTAEngine.js?v=1063"></script>
     <script>
       // CURRENT_BUILD must be defined BEFORE boot() so the boot loader can
       // compare the staged OTA build version against the bundled APK version
       // and skip stale OTA builds (see "Stale OTA Guard" in ota-boot-loader.js).
-      const CURRENT_BUILD = 1062;
+      const CURRENT_BUILD = 1063;
       window.OTABootLoader.boot();
     </script>
 

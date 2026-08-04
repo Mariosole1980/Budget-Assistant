@@ -7715,3 +7715,71 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
   white-space: nowrap;
   text-align: right;
 }
+
+/* ============================================================
+   SETTINGS PICKER MODAL (Month Start / Week Start / Theme / Currency)
+   Modern custom picker replacing native <select> dropdowns.
+   ============================================================ */
+.settings-picker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Grid layout for numeric pickers (e.g. Month Start 1-28) */
+.settings-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+}
+
+.settings-picker-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background-color: var(--bg-input, rgba(255, 255, 255, 0.02));
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  border-radius: 12px;
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  text-align: center;
+}
+
+.settings-picker-grid .settings-picker-item {
+  padding: 12px 0;
+  border-radius: 12px;
+  min-height: 44px;
+}
+
+.settings-picker-item:hover {
+  background-color: var(--border-light, rgba(255, 255, 255, 0.04));
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.settings-picker-item:active {
+  transform: scale(0.96);
+}
+
+.settings-picker-item.selected {
+  border-color: var(--accent, #10b981);
+  background-color: var(--accent-light, rgba(16, 185, 129, 0.10));
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.15);
+}
+
+.settings-picker-item-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-main, #ffffff);
+}
+
+.settings-picker-grid .settings-picker-item-label {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.settings-picker-item-check {
+  font-size: 12px;
+  color: var(--accent, #10b981);
+}
