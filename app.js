@@ -387,6 +387,20 @@ const DEFAULT_ACCOUNTS = [
   { name: 'Card', type: 'card', balance: 0 },
 ];
 
+// Recently-saved transaction IDs that must survive a re-fetch race.
+// When a logged-in user saves a transaction, it gets a valid UUID + user_id and is
+// dequeued from the sync queue right after a successful cloud upsert. If loadData()
+// re-fetches from the cloud before that write has propagated, getPendingLocalTransactions()
+// would NOT preserve it (valid UUID, user_id set, not in queue) and the transaction
+// would be silently dropped. We keep these IDs for a short grace window so the
+// optimistic local copy survives until the cloud fetch confirms it.
+const _recentlySavedTxIds = new Set();
+function _markRecentlySaved(id) {
+  if (!id) return;
+  _recentlySavedTxIds.add(String(id));
+  setTimeout(() => { _recentlySavedTxIds.delete(String(id)); }, 60000); // 60s grace window
+}
+
 // App State
 const state = {
   isLoggingOut: false,
@@ -958,7 +972,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1068 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1069 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1336,7 +1350,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1068 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1069 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -4001,6 +4015,11 @@ function getPendingLocalTransactions(cachedTransactions) {
       // Keep if in the offline sync queue (not yet successfully uploaded)
       if (queuedIds.has(t.id)) return true;
 
+      // Keep if recently saved (within the grace window). This protects a just-saved
+      // transaction from being dropped when a re-fetch races ahead of the cloud write
+      // propagation, even after it has been dequeued from the sync queue.
+      if (_recentlySavedTxIds && _recentlySavedTxIds.has(String(t.id))) return true;
+
       // If it is not a valid UUID, it is local
       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       if (!uuidRegex.test(String(t.id))) return true;
@@ -4979,6 +4998,9 @@ async function saveTransaction(transaction) {
 
   // 2. Optimistically save to local state and local storage immediately
   saveTransactionOffline(transaction);
+  // Guard against the re-fetch race: keep this transaction in the "recently saved"
+  // set so a loadData() re-fetch that hasn't yet seen the cloud write does NOT drop it.
+  _markRecentlySaved(transaction.id);
   calculateInitialBalances();
   updateUI();
 
