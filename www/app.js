@@ -685,7 +685,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1044 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1046 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1057,7 +1057,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1044 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1046 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -7926,6 +7926,7 @@ function setupEventListeners() {
       buf = evaluateCalcBuffer(buf);
       document.getElementById('trans-amount').value = formatCalcDisplay(buf);
       state.calcBuffer = buf;
+      updateAmountCurrencySymbol();
       closeCalculatorKeypad();
       return;
     }
@@ -7955,6 +7956,7 @@ function setupEventListeners() {
 
     state.calcBuffer = buf;
     document.getElementById('trans-amount').value = formatCalcDisplay(buf);
+    updateAmountCurrencySymbol();
   }
 
   // Stats period navigation
@@ -8733,7 +8735,7 @@ function openAddTransactionModal({ instant = false } = {}) {
   updateAccountDropdowns();
 
   openModal('transaction-modal', { instant });
-  updateCurrencySymbols();
+  updateAmountCurrencySymbol();
   setTimeout(() => initNoteAutocomplete(), 50);
 }
 
@@ -8868,7 +8870,7 @@ function openEditTransactionModal(t, { instant = false } = {}) {
   }
 
   openModal('transaction-modal', { instant });
-  updateCurrencySymbols();
+  updateAmountCurrencySymbol();
   setTimeout(() => initNoteAutocomplete(), 50);
 }
 
@@ -15473,9 +15475,48 @@ function getCurrencySymbol() {
 
 function updateCurrencySymbols() {
   const symbol = getCurrencySymbol();
+  // Ensure the amount row has a currency symbol element. We inject it via JS
+  // (rather than relying only on the HTML) so it also works on devices that
+  // receive OTA updates, which only replace app.js/style.css and NOT index.html.
+  const amountRow = document.getElementById('form-row-amount');
+  if (amountRow) {
+    const container = amountRow.querySelector('.form-row-value-container');
+    const input = document.getElementById('trans-amount');
+    if (container && input && !container.querySelector('.currency-symbol')) {
+      const span = document.createElement('span');
+      span.className = 'currency-symbol';
+      span.style.fontSize = '18px';
+      span.style.fontWeight = '600';
+      span.style.color = 'var(--text-secondary, #9aa0b4)';
+      container.insertBefore(span, input);
+    }
+  }
   document.querySelectorAll('.currency-symbol').forEach(el => {
     el.textContent = symbol;
   });
+}
+
+// Show/hide the currency symbol in the amount row based on whether the user has
+// typed a value. The symbol appears as soon as the first digit is pressed so the
+// user always knows in which currency they are entering the amount.
+function updateAmountCurrencySymbol() {
+  const input = document.getElementById('trans-amount');
+  const amountRow = document.getElementById('form-row-amount');
+  if (!input || !amountRow) return;
+  const container = amountRow.querySelector('.form-row-value-container');
+  if (!container) return;
+  let span = container.querySelector('.currency-symbol');
+  if (!span) {
+    span = document.createElement('span');
+    span.className = 'currency-symbol';
+    span.style.fontSize = '18px';
+    span.style.fontWeight = '600';
+    span.style.color = 'var(--text-secondary, #9aa0b4)';
+    container.insertBefore(span, input);
+  }
+  span.textContent = getCurrencySymbol();
+  const hasValue = String(input.value || '').trim() !== '';
+  span.style.display = hasValue ? 'inline' : 'none';
 }
 
 function changeMonthStartSetting(val) {
