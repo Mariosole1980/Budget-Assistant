@@ -4859,16 +4859,43 @@ function exportToExcel(startDate = null, endDate = null) {
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Συναλλαγές');
-    XLSX.writeFile(wb, fileName);
+    // Generate the file as a Blob instead of using XLSX.writeFile, because
+    // writeFile relies on an <a>.click() download which silently fails inside
+    // the Capacitor/Android WebView. We route the Blob through downloadBlob()
+    // which uses the native Share sheet on mobile.
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    downloadBlob(blob, fileName);
   } catch (err) {
-    console.error('[export] XLSX.writeFile failed, falling back to CSV export.', err);
+    console.error('[export] XLSX export failed, falling back to CSV export.', err);
     exportRowsAsCSV(rows, fileName.replace(/\.xlsx$/i, '.csv'));
   }
   closeExportPeriodSheet();
 }
 
 // Robust download helper that works in browsers AND Capacitor/Android WebViews.
+// On native (Capacitor) platforms, <a>.click() blob downloads are silently
+// blocked, so we use the Web Share API (navigator.share with a File) to open
+// the native share sheet, which lets the user save the file to their device.
 function downloadBlob(blob, fileName) {
+  const isNative = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+
+  // 1) Native / WebView: use the Web Share API with a File object.
+  if (isNative && navigator.share && navigator.canShare) {
+    try {
+      const file = new File([blob], fileName, { type: blob.type || 'application/octet-stream' });
+      if (navigator.canShare({ files: [file] })) {
+        navigator.share({ files: [file], title: fileName }).catch(err => {
+          console.warn('[export] Share canceled or failed:', err);
+        });
+        return true;
+      }
+    } catch (err) {
+      console.warn('[export] Web Share API failed, falling back to anchor download.', err);
+    }
+  }
+
+  // 2) Standard browser / fallback: anchor element download.
   try {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
