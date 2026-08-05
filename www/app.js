@@ -968,7 +968,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1105 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1106 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1347,7 +1347,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1105 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1106 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -17338,25 +17338,16 @@ function initSettingsFromStorage() {
   const currency = localStorage.getItem('app_currency') || 'EUR';
   const theme = localStorage.getItem('app_theme') || 'dark';
 
-  let appLockEnabled = localStorage.getItem('app_lock_enabled') === 'true';
-  let appBiometricsEnabled = localStorage.getItem('app_biometrics_enabled') === 'true';
-
-  // Force state consistency between PIN lock and Biometrics
-  if (appBiometricsEnabled) {
-    const savedPin = localStorage.getItem('app_pin');
-    if (!savedPin) {
-      // If biometrics are active but no PIN is saved as a backup, disable both to prevent lockout
-      localStorage.removeItem('app_biometrics_enabled');
-      localStorage.removeItem('biometric_cred_id');
-      localStorage.removeItem('app_lock_enabled');
-      appBiometricsEnabled = false;
-      appLockEnabled = false;
-    } else if (!appLockEnabled) {
-      // If biometrics are active and backup PIN exists, ensure PIN lock is marked enabled
-      localStorage.setItem('app_lock_enabled', 'true');
-      appLockEnabled = true;
-    }
+  const savedPin = localStorage.getItem('app_pin');
+  const validPin = savedPin && savedPin.length === 4;
+  if (!validPin) {
+    localStorage.removeItem('app_lock_enabled');
+    localStorage.removeItem('app_biometrics_enabled');
+    localStorage.removeItem('biometric_cred_id');
   }
+
+  let appLockEnabled = validPin && localStorage.getItem('app_lock_enabled') === 'true';
+  let appBiometricsEnabled = validPin && localStorage.getItem('app_biometrics_enabled') === 'true';
 
   const appLockCheckbox = document.getElementById('settings-app-lock');
   if (appLockCheckbox) appLockCheckbox.checked = appLockEnabled;
@@ -17476,6 +17467,15 @@ let pinSetupStep = 0; // 1 = enter pin, 2 = confirm pin
 let tempSetupPin = "";
 
 function showLockScreen() {
+  const savedPin = localStorage.getItem('app_pin');
+  if (!savedPin || savedPin.length !== 4) {
+    localStorage.removeItem('app_lock_enabled');
+    localStorage.removeItem('app_biometrics_enabled');
+    localStorage.removeItem('biometric_cred_id');
+    hideLockScreen();
+    return;
+  }
+
   const lockScreen = document.getElementById('lock-screen');
   if (lockScreen) {
     lockScreen.classList.add('active');
@@ -17682,8 +17682,12 @@ function closePinModal() {
   const modal = document.getElementById('pin-modal');
   if (modal) modal.classList.remove('active');
 
-  if (!localStorage.getItem('app_lock_enabled')) {
-    document.getElementById('settings-app-lock').checked = false;
+  const savedPin = localStorage.getItem('app_pin');
+  const validPin = savedPin && savedPin.length === 4;
+  if (!validPin) {
+    localStorage.removeItem('app_lock_enabled');
+    const lockCheckbox = document.getElementById('settings-app-lock');
+    if (lockCheckbox) lockCheckbox.checked = false;
   }
 }
 
@@ -17735,6 +17739,15 @@ function openPinVerifyModal() {
 function closePinVerifyModal() {
   const modal = document.getElementById('pin-verify-modal');
   if (modal) modal.classList.remove('active');
+
+  const savedPin = localStorage.getItem('app_pin');
+  const validPin = savedPin && savedPin.length === 4;
+  const lockEnabled = localStorage.getItem('app_lock_enabled') === 'true';
+
+  const lockCheckbox = document.getElementById('settings-app-lock');
+  if (lockCheckbox) {
+    lockCheckbox.checked = !!(validPin && lockEnabled);
+  }
 }
 
 let suppressLockToggle = false;
@@ -17743,6 +17756,24 @@ function submitPinVerification() {
   const input = document.getElementById('pin-verify-input');
   const entered = input ? input.value : '';
   const currentPin = localStorage.getItem('app_pin');
+
+  if (!currentPin || currentPin.length !== 4) {
+    localStorage.removeItem('app_lock_enabled');
+    localStorage.removeItem('app_pin');
+    localStorage.removeItem('app_biometrics_enabled');
+    localStorage.removeItem('biometric_cred_id');
+
+    suppressLockToggle = true;
+    const lockCheckbox = document.getElementById('settings-app-lock');
+    if (lockCheckbox) lockCheckbox.checked = false;
+    const bioCheckbox = document.getElementById('settings-biometrics');
+    if (bioCheckbox) bioCheckbox.checked = false;
+    suppressLockToggle = false;
+
+    closePinVerifyModal();
+    showSyncToast("🔓 " + (state.lang === 'el' ? "Το κλείδωμα απενεργοποιήθηκε." : "App lock disabled."), 3000);
+    return;
+  }
 
   if (entered === currentPin) {
     localStorage.removeItem('app_lock_enabled');
@@ -17757,15 +17788,13 @@ function submitPinVerification() {
     const bioCheckbox = document.getElementById('settings-biometrics');
     if (bioCheckbox) bioCheckbox.checked = false;
 
-    // Uncheck app lock checkbox (suppress the change handler so it doesn't
-    // re-open the verify modal or the "Ορισμός PIN" modal)
+    // Uncheck app lock checkbox
     suppressLockToggle = true;
     const lockCheckbox = document.getElementById('settings-app-lock');
     if (lockCheckbox) lockCheckbox.checked = false;
     suppressLockToggle = false;
 
     closePinVerifyModal();
-    // Defensive: make sure the "Ορισμός PIN" modal is not open
     const pinModal = document.getElementById('pin-modal');
     if (pinModal) pinModal.classList.remove('active');
     showSyncToast("🔓 " + (state.lang === 'el' ? "Το κλείδωμα απενεργοποιήθηκε." : "App lock disabled."), 3000);
@@ -17780,10 +17809,25 @@ function submitPinVerification() {
 
 function toggleAppLock(checked) {
   if (suppressLockToggle) return;
+  const savedPin = localStorage.getItem('app_pin');
+  const validPin = savedPin && savedPin.length === 4;
+  const lockEnabled = localStorage.getItem('app_lock_enabled') === 'true';
+
   if (checked) {
     openPinModal();
   } else {
-    // Keep it checked visually until verified
+    if (!validPin || !lockEnabled) {
+      localStorage.removeItem('app_lock_enabled');
+      localStorage.removeItem('app_pin');
+      localStorage.removeItem('app_biometrics_enabled');
+      localStorage.removeItem('biometric_cred_id');
+      const lockCheckbox = document.getElementById('settings-app-lock');
+      if (lockCheckbox) lockCheckbox.checked = false;
+      const bioCheckbox = document.getElementById('settings-biometrics');
+      if (bioCheckbox) bioCheckbox.checked = false;
+      showSyncToast("🔓 " + (state.lang === 'el' ? "Το κλείδωμα απενεργοποιήθηκε." : "App lock disabled."), 3000);
+      return;
+    }
     const lockCheckbox = document.getElementById('settings-app-lock');
     if (lockCheckbox) lockCheckbox.checked = true;
     openPinVerifyModal();
@@ -17908,10 +17952,15 @@ window.toggleScreenshotBlockSetting = toggleScreenshotBlockSetting;
 
 async function toggleBiometrics(checked) {
   if (checked) {
+    const savedPin = localStorage.getItem('app_pin');
+    const validPin = savedPin && savedPin.length === 4;
     const appLockEnabled = localStorage.getItem('app_lock_enabled') === 'true';
-    if (!appLockEnabled) {
-      document.getElementById('settings-biometrics').checked = false;
-      openBiometricsPinModal();
+
+    if (!validPin || !appLockEnabled) {
+      const bioCheckbox = document.getElementById('settings-biometrics');
+      if (bioCheckbox) bioCheckbox.checked = false;
+      showSyncToast("⚠️ " + (state.lang === 'el' ? "Πρέπει πρώτα να ενεργοποιήσετε το Κλείδωμα PIN!" : "Please enable PIN lock first!"), 3500);
+      openPinModal();
       return;
     }
     const result = await registerBiometrics();
@@ -17921,7 +17970,8 @@ async function toggleBiometrics(checked) {
       showSyncToast("✅ " + msg, 3000);
     } else {
       localStorage.removeItem('app_biometrics_enabled');
-      document.getElementById('settings-biometrics').checked = false;
+      const bioCheckbox = document.getElementById('settings-biometrics');
+      if (bioCheckbox) bioCheckbox.checked = false;
       const msg = state.lang === 'el' ? 'Αποτυχία σύνδεσης βιομετρικών. Αιτία: ' : 'Biometrics failed: ';
       showSyncToast("❌ " + msg + result, 4000);
     }
