@@ -90,7 +90,7 @@
               ${devButton}
             </div>
             <div style="font-size:11px;color:#8b949e;">
-              Budget Assistant • build v1070
+              Budget Assistant • build v1071
             </div>
           </div>
         `;
@@ -178,7 +178,7 @@
   <link rel="stylesheet" href="style.css?v=1053" id="app-stylesheet">
 
   <!-- Capacitor Bridge -->
-  <script src="capacitor.js?v=1070"></script>
+  <script src="capacitor.js?v=1071"></script>
 
 
   <!-- Supabase client JS CDN -->
@@ -188,7 +188,7 @@
   <!-- Chart.js Datalabels Plugin CDN -->
   <script src="js/chartjs-plugin-datalabels.js"></script>
   <!-- SheetJS xlsx CDN for Excel Import/Export -->
-  <script src="xlsx.full.min.js?v=1070"></script>
+  <script src="xlsx.full.min.js?v=1071"></script>
 </head>
 
 <body style="background-color: #181b22; margin: 0; padding: 0; ">
@@ -1927,8 +1927,7 @@
             </div>
 
             <!-- 2. Force Update -->
-            <div class="settings-list-item" id="legal-force-update-row" style="cursor:pointer; padding: 14px 16px;"
-              onclick="forceAppUpdate()">
+            <div class="settings-list-item" id="legal-force-update-row" style="cursor:pointer; padding: 14px 16px;">
               <div style="display:flex; align-items:center; gap:12px;">
                 <div
                   style="width:34px; height:34px; border-radius:10px; background:rgba(59,130,246,0.15); display:flex; align-items:center; justify-content:center;">
@@ -2018,7 +2017,7 @@
             <div class="settings-list-item version-info-row"
               style="padding: 14px 16px; background: transparent; border-top: 1px solid var(--border); margin-top: 8px;">
               <span class="settings-item-label" style="color:var(--text-muted); font-size:12px;"
-                data-i18n="app_version">Έκδοση 1.0.0 (build v1070)</span>
+                data-i18n="app_version">Έκδοση 1.0.0 (build v1071)</span>
               <span class="settings-item-value" style="font-size:12px; color:var(--text-muted); font-weight:600;">Budget
                 Assistant</span>
             </div>
@@ -3622,15 +3621,15 @@
     </div>
 
     <!-- Core Application Scripts -->
-    <script src="js/NLPProcessor.js?v=1070"></script>
-    <script src="js/MemoryEngine.js?v=1070"></script>
-    <script src="js/DecisionEngine.js?v=1070"></script>
-    <script src="js/OnlineAIProvider.js?v=1070"></script>
-    <script src="js/AIEngine.js?v=1070"></script>
-    <script src="js/IntentCorpus.js?v=1070"></script>
-    <script src="js/KnowledgeGraph.js?v=1070"></script>
+    <script src="js/NLPProcessor.js?v=1071"></script>
+    <script src="js/MemoryEngine.js?v=1071"></script>
+    <script src="js/DecisionEngine.js?v=1071"></script>
+    <script src="js/OnlineAIProvider.js?v=1071"></script>
+    <script src="js/AIEngine.js?v=1071"></script>
+    <script src="js/IntentCorpus.js?v=1071"></script>
+    <script src="js/KnowledgeGraph.js?v=1071"></script>
     <!-- Multi-Currency Service (single conversion mechanism) -->
-    <script src="js/CurrencyService.js?v=1070"></script>
+    <script src="js/CurrencyService.js?v=1071"></script>
     <!-- ============================================================
          OTA BOOT LOADER
          Loads EXACTLY ONE app.js (bundled OR OTA from IndexedDB, never both).
@@ -3639,13 +3638,13 @@
            2) js/OTAEngine.js     -> auto-runs initOTACheck() (sees OTABootLoader)
            3) window.OTABootLoader.boot() -> injects the chosen app.js
          ============================================================ -->
-    <script src="ota-boot-loader.js?v=1070"></script>
-    <script src="js/OTAEngine.js?v=1070"></script>
+    <script src="ota-boot-loader.js?v=1071"></script>
+    <script src="js/OTAEngine.js?v=1071"></script>
     <script>
       // CURRENT_BUILD must be defined BEFORE boot() so the boot loader can
       // compare the staged OTA build version against the bundled APK version
       // and skip stale OTA builds (see "Stale OTA Guard" in ota-boot-loader.js).
-      const CURRENT_BUILD = 1070;
+      const CURRENT_BUILD = 1071;
       window.OTABootLoader.boot();
     </script>
 

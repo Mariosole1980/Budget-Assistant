@@ -4196,7 +4196,7 @@ async function loadData() {
       if (toRecover.length > 0) {
         console.log(`Recovering ${toRecover.length} silently dropped transactions during loadData...`);
         const payloads = toRecover.map(t => {
-          const { description, is_shared, recurring_template_id, photo_local_uri, photo_url, receipt, currency, base_currency, rate_to_base, amount_base, rate_source, ...dbPayload } = ;
+          const { description, is_shared, recurring_template_id, photo_local_uri, photo_url, receipt, currency, base_currency, rate_to_base, amount_base, rate_source, ...dbPayload } = t;
           return dbPayload;
         });
         try {
@@ -4976,7 +4976,7 @@ async function saveTransaction(transaction) {
     // Note: description, is_shared, and recurring_template_id are client-only fields.
     // recurring_template_id does NOT exist in the transactions table (verified live: error 42703),
     // so it MUST be stripped here or the upsert fails with a 400. This matches processSyncQueue.
-    const { description, is_shared, recurring_template_id, photo_local_uri, photo_url, receipt, currency, base_currency, rate_to_base, amount_base, rate_source, ...dbPayload } = ;
+    const { description, is_shared, recurring_template_id, photo_local_uri, photo_url, receipt, currency, base_currency, rate_to_base, amount_base, rate_source, ...dbPayload } = transaction;
 
     // Enqueue immediately before starting the cloud request to prevent data loss if the app is closed/killed
     enqueueSyncMutation('save', transaction);
@@ -18576,7 +18576,7 @@ async function processSyncQueue(options = {}) {
           console.warn('Skipping invalid sync queue item (missing payload or id):', item);
           continue;
         }
-        const { description, is_shared, recurring_template_id, photo_local_uri, photo_url, receipt, currency, base_currency, rate_to_base, amount_base, rate_source, ...dbPayload } = ;
+        const { description, is_shared, recurring_template_id, photo_local_uri, photo_url, receipt, currency, base_currency, rate_to_base, amount_base, rate_source, ...dbPayload } = transaction;
 
         const { error } = await promiseTimeout(
           state.supabaseClient
