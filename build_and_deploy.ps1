@@ -1,3 +1,7 @@
+param(
+    [switch]$OTAOnly
+)
+
 # Set console output encoding to UTF8
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 Set-Location "C:\Users\mario\Desktop\money-manager"
@@ -50,22 +54,7 @@ $versionJsonContent = '{"version": ' + $newBuild + '}'
 Set-Content $versionJsonPath $versionJsonContent -NoNewline
 Write-Host "  [SUCCESS] Created version.json with version $newBuild" -ForegroundColor Green
 
-# Update OTA hardcoded versions (ota-boot-loader.js + OTAEngine.js) so they
-# always match the new build. These are used ONLY for the bundled fallback and
-# the minNativeVersion constant fallback — they do NOT affect the OTA download,
-# staging, activation, or rollback flow.
-$bootLoaderPath = "ota-boot-loader.js"
-$bootLoaderContent = Get-Content $bootLoaderPath -Raw
-$bootLoaderContent = $bootLoaderContent -replace "app\.js\?v=\d+", "app.js?v=$newBuild"
-$bootLoaderContent = $bootLoaderContent -replace "style\.css\?v=\d+", "style.css?v=$newBuild"
-Set-Content $bootLoaderPath $bootLoaderContent -NoNewline
-Write-Host "  [SUCCESS] ota-boot-loader.js bundled versions bumped to v$newBuild" -ForegroundColor Green
 
-$otaEnginePath = "js\OTAEngine.js"
-$otaEngineContent = Get-Content $otaEnginePath -Raw
-$otaEngineContent = $otaEngineContent -replace "var BUNDLED_NATIVE_VERSION = \d+;", "var BUNDLED_NATIVE_VERSION = $newBuild;"
-Set-Content $otaEnginePath $otaEngineContent -NoNewline
-Write-Host "  [SUCCESS] OTAEngine.js BUNDLED_NATIVE_VERSION bumped to $newBuild" -ForegroundColor Green
 
 # Update build.gradle with new version and signing configurations
 node scratch/configure_signing.js
@@ -90,55 +79,80 @@ Copy-Item _headers www/_headers -Force
 Copy-Item clear.html www/clear.html -Force
 Copy-Item nuke.html www/nuke.html -Force
 Copy-Item debug.html www/debug.html -Force
-Copy-Item ota-boot-loader.js www/ota-boot-loader.js -Force
 if (Test-Path privacy.html) { Copy-Item privacy.html www/privacy.html -Force }
 Write-Host "  [SUCCESS] Files copied successfully." -ForegroundColor Green
 
-# 3. Capacitor Sync
-Write-Host "[INFO] Running npx cap sync..." -ForegroundColor Yellow
-npx cap sync
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "[ERROR] Capacitor Sync failed!" -ForegroundColor Red
-    Exit 1
+# 2.5 Generate Capgo OTA bundle
+Write-Host "[INFO] Generating Capgo OTA bundle..." -ForegroundColor Yellow
+$jsonOutput = (npx @capgo/cli bundle zip com.budgetassistant.app -b "1.0.$newBuild" -j --no-code-check --key-v2 | Out-String)
+$startIndex = $jsonOutput.IndexOf("{")
+if ($startIndex -ge 0) {
+    $jsonString = $jsonOutput.Substring($startIndex)
+    $zipData = $jsonString | ConvertFrom-Json
+    $checksum = $zipData.checksum
+    $filename = $zipData.filename
 }
-Write-Host "  [SUCCESS] Capacitor Sync complete." -ForegroundColor Green
 
-# 4. Gradle Android Release & Debug Build
-Write-Host "[INFO] Building Android Debug APK, Release APK, and Play Store Bundle (AAB)..." -ForegroundColor Yellow
-Start-Sleep -Seconds 1
-Push-Location android
-.\gradlew.bat assembleDebug assembleRelease bundleRelease
-$gradleExit = $LASTEXITCODE
-Pop-Location
+Copy-Item $filename "www/$filename" -Force
+Remove-Item $filename -Force
 
-if ($gradleExit -ne 0) {
-    Write-Host "[ERROR] Gradle build failed!" -ForegroundColor Red
-    Exit 1
+$versionData = @{
+    version = "1.0.$newBuild"
+    url = "https://budget-assistant-pwa.pages.dev/$filename"
+    checksum = $checksum
 }
-Write-Host "  [SUCCESS] Android builds completed successfully." -ForegroundColor Green
+$versionData | ConvertTo-Json | Set-Content "www/version.json"
+Write-Host "  [SUCCESS] Capgo bundle generated and version.json updated." -ForegroundColor Green
 
-# 5. Copy APKs & AAB to Desktop
-Write-Host "[INFO] Copying builds to Desktop..." -ForegroundColor Yellow
-$apkDebugSource = "android\app\build\outputs\apk\debug\app-debug.apk"
-$apkReleaseSource = "android\app\build\outputs\apk\release\app-release.apk"
-$aabSource = "android\app\build\outputs\bundle\release\app-release.aab"
-$desktopDir = [System.IO.Path]::Combine([System.Environment]::GetFolderPath("Desktop"))
+if (-not $OTAOnly) {
+    # 3. Capacitor Sync
+    Write-Host "[INFO] Running npx cap sync..." -ForegroundColor Yellow
+    npx cap sync
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "[ERROR] Capacitor Sync failed!" -ForegroundColor Red
+        Exit 1
+    }
+    Write-Host "  [SUCCESS] Capacitor Sync complete." -ForegroundColor Green
 
-if (Test-Path $apkDebugSource) {
-    Copy-Item $apkDebugSource "$desktopDir\BudgetAssistant-debug.apk" -Force
-    Copy-Item $apkDebugSource "$desktopDir\BudgetAssistant.apk" -Force
-    Write-Host "  [SUCCESS] Debug APK copied to Desktop as BudgetAssistant.apk and BudgetAssistant-debug.apk" -ForegroundColor Green
-}
-if (Test-Path $apkReleaseSource) {
-    Copy-Item $apkReleaseSource "$desktopDir\BudgetAssistant-release.apk" -Force
-    Write-Host "  [SUCCESS] Signed Release APK copied to Desktop as BudgetAssistant-release.apk" -ForegroundColor Green
-}
-if (Test-Path $aabSource) {
-    Copy-Item $aabSource "$desktopDir\BudgetAssistant.aab" -Force
-    Write-Host "  [SUCCESS] Signed Play Store Bundle copied to Desktop as BudgetAssistant.aab" -ForegroundColor Green
+    # 4. Gradle Android Release & Debug Build
+    Write-Host "[INFO] Building Android Debug APK, Release APK, and Play Store Bundle (AAB)..." -ForegroundColor Yellow
+    Start-Sleep -Seconds 1
+    Push-Location android
+    .\gradlew.bat assembleDebug assembleRelease bundleRelease
+    $gradleExit = $LASTEXITCODE
+    Pop-Location
+
+    if ($gradleExit -ne 0) {
+        Write-Host "[ERROR] Gradle build failed!" -ForegroundColor Red
+        Exit 1
+    }
+    Write-Host "  [SUCCESS] Android builds completed successfully." -ForegroundColor Green
+
+    # 5. Copy APKs & AAB to Desktop
+    Write-Host "[INFO] Copying builds to Desktop..." -ForegroundColor Yellow
+    $apkDebugSource = "android\app\build\outputs\apk\debug\app-debug.apk"
+    $apkReleaseSource = "android\app\build\outputs\apk\release\app-release.apk"
+    $aabSource = "android\app\build\outputs\bundle\release\app-release.aab"
+    $desktopDir = [System.IO.Path]::Combine([System.Environment]::GetFolderPath("Desktop"))
+
+    if (Test-Path $apkDebugSource) {
+        Copy-Item $apkDebugSource "$desktopDir\BudgetAssistant-debug.apk" -Force
+        Copy-Item $apkDebugSource "$desktopDir\BudgetAssistant.apk" -Force
+        Write-Host "  [SUCCESS] Debug APK copied to Desktop as BudgetAssistant.apk and BudgetAssistant-debug.apk" -ForegroundColor Green
+    }
+    if (Test-Path $apkReleaseSource) {
+        Copy-Item $apkReleaseSource "$desktopDir\BudgetAssistant-release.apk" -Force
+        Write-Host "  [SUCCESS] Signed Release APK copied to Desktop as BudgetAssistant-release.apk" -ForegroundColor Green
+    }
+    if (Test-Path $aabSource) {
+        Copy-Item $aabSource "$desktopDir\BudgetAssistant.aab" -Force
+        Write-Host "  [SUCCESS] Signed Play Store Bundle copied to Desktop as BudgetAssistant.aab" -ForegroundColor Green
+    } else {
+        Write-Host "[ERROR] Play Store Bundle (AAB) not found at $aabSource" -ForegroundColor Red
+        Exit 1
+    }
 } else {
-    Write-Host "[ERROR] Play Store Bundle (AAB) not found at $aabSource" -ForegroundColor Red
-    Exit 1
+    Write-Host "[INFO] -OTAOnly flag specified. Skipping Capacitor Sync and Android builds." -ForegroundColor Cyan
 }
 
 # 6. Wrangler Deploy to Cloudflare Pages

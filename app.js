@@ -972,7 +972,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1073 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1077 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1350,7 +1350,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1073 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1077 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -18633,25 +18633,17 @@ async function forceAppUpdate() {
   const confirmed = await showConfirm(confirmMsg, state.lang === 'el' ? 'Αναγκαστική Ενημέρωση' : 'Force Update', '🔄');
   if (!confirmed) return;
 
-  // OTA path: if the OTA engine is present (OTA-enabled APK), drive it so it
-  // downloads + activates the latest build and auto-reloads through the boot
-  // loader. This is what actually applies the OTA update — the old behavior
-  // only cleared the SW cache and reloaded the BUNDLED app.js, so the OTA
-  // build was never applied.
-  if (window.OTAEngine && typeof window.OTAEngine.checkForUpdate === 'function') {
+  if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorUpdater) {
     try {
-      console.log('[ForceUpdate] Triggering OTA engine check...');
-      const result = await window.OTAEngine.checkForUpdate();
-      if (result && result.version) {
-        // The engine activated a new build and will auto-reload shortly.
-        console.log('[ForceUpdate] OTA v' + result.version + ' activated; reloading to apply.');
-        return;
-      }
-      // No newer OTA build available — fall through to the classic reload so
-      // the user still gets a fresh bundled load (clears any stale SW/cache).
-      console.log('[ForceUpdate] No newer OTA build. Falling back to classic reload.');
+      console.log('[ForceUpdate] Triggering Capgo update check...');
+      const update = await window.Capacitor.Plugins.CapacitorUpdater.download({
+        url: "https://budget-assistant-pwa.pages.dev/version.json"
+      });
+      console.log('[ForceUpdate] Downloaded update:', update);
+      await window.Capacitor.Plugins.CapacitorUpdater.set({ id: update.id });
+      return;
     } catch (e) {
-      console.error('[ForceUpdate] OTA check failed; falling back to classic reload:', e);
+      console.error('[ForceUpdate] Capgo update failed; falling back to classic reload:', e);
     }
   }
 
@@ -26345,4 +26337,6 @@ window.syncTimeInputsBackToWheels = syncTimeInputsBackToWheels;
 
 // OTA boot-OK marker: resets the failure counter so a healthy build never
 // rolls back. No-op when the OTA boot loader is absent (plain web/PWA).
-window.OTABootLoader && window.OTABootLoader.markBootOk();
+if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorUpdater) {
+  window.Capacitor.Plugins.CapacitorUpdater.notifyAppReady();
+}
