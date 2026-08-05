@@ -1037,7 +1037,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1091 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1092 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1415,7 +1415,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1091 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1092 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -18969,10 +18969,19 @@ async function forceAppUpdate() {
         showSyncToast((state.lang === 'el' ? 'Λήψη έκδοσης ' : 'Downloading version ') + (manifest.version || 'νέας') + '...', 10000);
       }
 
-      const update = await window.Capacitor.Plugins.CapacitorUpdater.download({
+      // Wrap the native download in a timeout so it can never hang forever
+      // (Capgo's download() has no built-in timeout and can stall silently,
+      // leaving the user stuck on "Downloading version...").
+      const DOWNLOAD_TIMEOUT_MS = 90000;
+      const downloadPromise = window.Capacitor.Plugins.CapacitorUpdater.download({
         url: manifest.url,
-        version: manifest.version || Date.now().toString()
+        version: manifest.version || Date.now().toString(),
+        checksum: manifest.checksum || undefined
       });
+      const update = await Promise.race([
+        downloadPromise,
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Download timed out')), DOWNLOAD_TIMEOUT_MS))
+      ]);
 
       console.log('[ForceUpdate] Downloaded update:', update);
       await window.Capacitor.Plugins.CapacitorUpdater.set({ id: update.id });
