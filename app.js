@@ -972,7 +972,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1086 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1087 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1350,7 +1350,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1086 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1087 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -5201,31 +5201,10 @@ async function fetchCloudTrashToLocal() {
 function deleteTransaction(id) {
   if (!id) return;
 
-  // Find duplicates of this transaction to delete them too (prevents them from reappearing due to Supabase sync)
-  const tx = state.transactions.find(t => t.id === id);
+  // Delete only the transaction with this unique id.
+  // Content-based "duplicate" matching was removed because it could delete
+  // legitimate identical transactions (same date/amount/category/note).
   const idsToDelete = [String(id)];
-
-  if (tx) {
-    const txDate = String(tx.date || '').split('T')[0].split(' ')[0];
-    const txAmount = (parseFloat(tx.amount) || 0).toFixed(2);
-    state.transactions.forEach(t => {
-      if (t.id && t.id !== id) {
-        const tDate = String(t.date || '').split('T')[0].split(' ')[0];
-        const tAmount = (parseFloat(t.amount) || 0).toFixed(2);
-        const isDupe = tDate === txDate &&
-          tAmount === txAmount &&
-          t.type === tx.type &&
-          t.category === tx.category &&
-          (t.account_from || '') === (tx.account_from || '') &&
-          (t.account_to || '') === (tx.account_to || '') &&
-          (t.note || '') === (tx.note || '') &&
-          (t.user_id || '') === (tx.user_id || '');
-        if (isDupe) {
-          idsToDelete.push(String(t.id));
-        }
-      }
-    });
-  }
 
   // 1. Mark all these IDs as deleting
   idsToDelete.forEach(dId => _deletingTxIds.add(dId));
@@ -5343,24 +5322,10 @@ function deleteTransactionOffline(id, skipSave = false) {
         }
       }
     }
-
-    // Also remove any content-based duplicates from local state
-    const txAmount = (parseFloat(tx.amount) || 0).toFixed(2);
-    state.transactions = state.transactions.filter(t => {
-      if (t.id === tx.id) return false;
-      const tDate = String(t.date || '').split('T')[0].split(' ')[0];
-      const tAmount = (parseFloat(t.amount) || 0).toFixed(2);
-      const isDupe = tDate === txDate &&
-        tAmount === txAmount &&
-        t.type === tx.type &&
-        t.category === tx.category &&
-        (t.account_from || '') === (tx.account_from || '') &&
-        (t.account_to || '') === (tx.account_to || '') &&
-        (t.note || '') === (tx.note || '') &&
-        (t.user_id || '') === (tx.user_id || '');
-      return !isDupe;
-    });
   }
+  // Remove only the transaction with this unique id.
+  // Content-based "duplicate" removal was removed because it could delete
+  // legitimate identical transactions (same date/amount/category/note).
   state.transactions = state.transactions.filter(t => t.id !== id);
   if (!skipSave) {
     localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
@@ -8004,6 +7969,9 @@ function setupEventListeners() {
             .then(({ data, error }) => {
               if (error) {
                 console.error('Failed to sync new recurring template to cloud:', error);
+                // Enqueue to the offline sync queue so the template is not lost
+                // when the user is offline or the cloud insert fails.
+                enqueueSyncMutation('save_template', template);
               } else if (data && data[0]) {
                 const idx = state.recurringTemplates.findIndex(t => t.id === template.id);
                 if (idx !== -1) {
@@ -8014,6 +7982,10 @@ function setupEventListeners() {
                 }
               }
             });
+        } else if (state.isSupabaseEnabled) {
+          // Supabase is enabled but the user is not logged in yet (e.g. offline/guest).
+          // Enqueue so the template syncs once a session is available.
+          enqueueSyncMutation('save_template', template);
         }
         state.recurringTemplates.push(template);
         localStorage.setItem('recurring_templates', JSON.stringify(state.recurringTemplates));

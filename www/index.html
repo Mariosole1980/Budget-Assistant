@@ -65,7 +65,7 @@
               ${devButton}
             </div>
             <div style="font-size:11px;color:#8b949e;">
-              Budget Assistant • build v1086
+              Budget Assistant • build v1087
             </div>
           </div>
         `;
@@ -950,12 +950,6 @@
             <span id="settings-user-email-value"></span>
           </div>
           <div id="partner-linking-container" style="display:none;"></div>
-          <div id="feedback-card-container" style="display:none;">
-            <textarea id="feedback-comment" style="display:none;"></textarea>
-            <button type="button" id="feedback-submit-btn" style="display:none;"><span id="feedback-btn-text"></span>
-              <div id="feedback-btn-spinner" style="display:none;"></div>
-            </button>
-          </div>
         </div>
       </section>
 
@@ -1850,38 +1844,40 @@
           <!-- SUBSCREEN: Feedback -->
           <div id="subscreen-feedback" class="subscreen-section"
             style="display:none; flex-direction:column; gap:18px; padding-bottom:20px;">
-            <div class="feedback-rating-container" style="margin-bottom:16px;">
-              <div class="feedback-subtitle" data-i18n="feedback_rating_title" style="margin-bottom:8px;">Πώς θα
-                βαθμολογούσατε την εφαρμογή;</div>
-              <div class="emoji-rating-group">
-                <button type="button" class="emoji-rate-btn" data-rate="1" title="Angry">&#x1F621;</button>
-                <button type="button" class="emoji-rate-btn" data-rate="2" title="Disappointed">&#x1F615;</button>
-                <button type="button" class="emoji-rate-btn" data-rate="3" title="Neutral">&#x1F610;</button>
-                <button type="button" class="emoji-rate-btn" data-rate="4" title="Happy">&#x1F642;</button>
-                <button type="button" class="emoji-rate-btn" data-rate="5" title="Love it">&#x1F60D;</button>
+            <div id="feedback-card-container">
+              <div class="feedback-rating-container" style="margin-bottom:16px;">
+                <div class="feedback-subtitle" data-i18n="feedback_rating_title" style="margin-bottom:8px;">Πώς θα
+                  βαθμολογούσατε την εφαρμογή;</div>
+                <div class="emoji-rating-group">
+                  <button type="button" class="emoji-rate-btn" data-rate="1" title="Angry">&#x1F621;</button>
+                  <button type="button" class="emoji-rate-btn" data-rate="2" title="Disappointed">&#x1F615;</button>
+                  <button type="button" class="emoji-rate-btn" data-rate="3" title="Neutral">&#x1F610;</button>
+                  <button type="button" class="emoji-rate-btn" data-rate="4" title="Happy">&#x1F642;</button>
+                  <button type="button" class="emoji-rate-btn" data-rate="5" title="Love it">&#x1F60D;</button>
+                </div>
               </div>
-            </div>
-            <div class="feedback-form-group" style="margin-bottom:12px;">
-              <div class="feedback-subtitle" data-i18n="feedback_type_label" style="margin-bottom:8px;">Τύπος Σχολίου
+              <div class="feedback-form-group" style="margin-bottom:12px;">
+                <div class="feedback-subtitle" data-i18n="feedback_type_label" style="margin-bottom:8px;">Τύπος Σχολίου
+                </div>
+                <div class="feedback-chips">
+                  <button type="button" class="feedback-chip active" data-type="suggestion"
+                    data-i18n="feedback_type_feature">Νέα Λειτουργία</button>
+                  <button type="button" class="feedback-chip" data-type="bug" data-i18n="feedback_type_bug">Σφάλμα
+                    (Bug)</button>
+                  <button type="button" class="feedback-chip" data-type="other"
+                    data-i18n="feedback_type_other">Άλλο</button>
+                </div>
               </div>
-              <div class="feedback-chips">
-                <button type="button" class="feedback-chip active" data-type="suggestion"
-                  data-i18n="feedback_type_feature">Νέα Λειτουργία</button>
-                <button type="button" class="feedback-chip" data-type="bug" data-i18n="feedback_type_bug">Σφάλμα
-                  (Bug)</button>
-                <button type="button" class="feedback-chip" data-type="other"
-                  data-i18n="feedback_type_other">Άλλο</button>
+              <div class="feedback-form-group" style="margin-bottom:12px;">
+                <textarea id="feedback-comment" class="feedback-textarea" placeholder="Γράψτε τα σχόλιά σας εδώ..."
+                  data-i18n-placeholder="feedback_comment_placeholder"></textarea>
               </div>
+              <button type="button" id="feedback-submit-btn" class="feedback-btn">
+                <span id="feedback-btn-text" data-i18n="feedback_submit_btn">Αποστολή Σχολίων</span>
+                <div id="feedback-btn-spinner" class="spinner" style="display:none;"><i
+                    class="fa-solid fa-circle-notch fa-spin"></i></div>
+              </button>
             </div>
-            <div class="feedback-form-group" style="margin-bottom:12px;">
-              <textarea id="feedback-comment" class="feedback-textarea" placeholder="Γράψτε τα σχόλιά σας εδώ..."
-                data-i18n-placeholder="feedback_comment_placeholder"></textarea>
-            </div>
-            <button type="button" id="feedback-submit-btn" class="feedback-btn">
-              <span id="feedback-btn-text" data-i18n="feedback_submit_btn">Αποστολή Σχολίων</span>
-              <div id="feedback-btn-spinner" class="spinner" style="display:none;"><i
-                  class="fa-solid fa-circle-notch fa-spin"></i></div>
-            </button>
           </div>
 
           <!-- SUBSCREEN: Legal & Account -->
@@ -1994,7 +1990,7 @@
             <div class="settings-list-item version-info-row"
               style="padding: 14px 16px; background: transparent; border-top: 1px solid var(--border); margin-top: 8px;">
               <span class="settings-item-label" style="color:var(--text-muted); font-size:12px;"
-                data-i18n="app_version">Έκδοση 1.0.0 (build v1086)</span>
+                data-i18n="app_version">Έκδοση 1.0.0 (build v1087)</span>
               <span class="settings-item-value" style="font-size:12px; color:var(--text-muted); font-weight:600;">Budget
                 Assistant</span>
             </div>
