@@ -65,7 +65,7 @@
               ${devButton}
             </div>
             <div style="font-size:11px;color:#8b949e;">
-              Budget Assistant • build v1077
+              Budget Assistant • build v1078
             </div>
           </div>
         `;
@@ -1992,7 +1992,7 @@
             <div class="settings-list-item version-info-row"
               style="padding: 14px 16px; background: transparent; border-top: 1px solid var(--border); margin-top: 8px;">
               <span class="settings-item-label" style="color:var(--text-muted); font-size:12px;"
-                data-i18n="app_version">Έκδοση 1.0.0 (build v1077)</span>
+                data-i18n="app_version">Έκδοση 1.0.0 (build v1078)</span>
               <span class="settings-item-value" style="font-size:12px; color:var(--text-muted); font-weight:600;">Budget
                 Assistant</span>
             </div>
@@ -3596,32 +3596,15 @@
     </div>
 
     <!-- Core Application Scripts -->
-    <script src="js/NLPProcessor.js?v=1077"></script>
-    <script src="js/MemoryEngine.js?v=1077"></script>
-    <script src="js/DecisionEngine.js?v=1077"></script>
-    <script src="js/OnlineAIProvider.js?v=1077"></script>
-    <script src="js/AIEngine.js?v=1077"></script>
-    <script src="js/IntentCorpus.js?v=1077"></script>
-    <script src="js/KnowledgeGraph.js?v=1077"></script>
+    <script src="js/NLPProcessor.js"></script>
+    <script src="js/MemoryEngine.js"></script>
+    <script src="js/DecisionEngine.js"></script>
+    <script src="js/OnlineAIProvider.js"></script>
+    <script src="js/AIEngine.js"></script>
+    <script src="js/IntentCorpus.js"></script>
+    <script src="js/KnowledgeGraph.js"></script>
     <!-- Multi-Currency Service (single conversion mechanism) -->
-    <script src="js/CurrencyService.js?v=1077"></script>
-    <!-- ============================================================
-         OTA BOOT LOADER
-         Loads EXACTLY ONE app.js (bundled OR OTA from IndexedDB, never both).
-         Order matters:
-           1) ota-boot-loader.js  -> defines window.OTABootLoader
-           2) js/OTAEngine.js     -> auto-runs initOTACheck() (sees OTABootLoader)
-           3) window.OTABootLoader.boot() -> injects the chosen app.js
-         ============================================================ -->
-    <script src="ota-boot-loader.js?v=1077"></script>
-    <script src="js/OTAEngine.js?v=1077"></script>
-    <script>
-      // CURRENT_BUILD must be defined BEFORE boot() so the boot loader can
-      // compare the staged OTA build version against the bundled APK version
-      // and skip stale OTA builds (see "Stale OTA Guard" in ota-boot-loader.js).
-      const CURRENT_BUILD = 1077;
-      window.OTABootLoader.boot();
-    </script>
+    <script src="js/CurrencyService.js"></script>
 
     <!-- Register PWA Service Worker -->
     <script>

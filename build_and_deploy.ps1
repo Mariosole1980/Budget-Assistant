@@ -45,7 +45,6 @@ $indexContent = Get-Content $indexPath -Raw
 $indexContent = $indexContent -replace 'build v\d+', "build v$newBuild"
 $indexContent = $indexContent -replace 'const CURRENT_BUILD = \d+;', "const CURRENT_BUILD = $newBuild;"
 $indexContent = $indexContent -replace "sw\.js\?v=\d+", "sw.js?v=$newBuild"
-$indexContent = $indexContent -replace '\.js\?v=\d+', ".js?v=$newBuild"
 Set-Content $indexPath $indexContent -NoNewline
 Write-Host "  [SUCCESS] Index.html build version bumped: $currentBuild -> $newBuild" -ForegroundColor Green
 
