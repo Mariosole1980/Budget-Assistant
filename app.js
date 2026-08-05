@@ -636,58 +636,6 @@ function _markRecentlyDeleted(id) {
   setTimeout(() => { _recentlyDeletedTxIds.delete(String(id)); }, 30000);
 }
 
-// ============================================================
-// PERMANENT-DELETE TOMBSTONES
-// ------------------------------------------------------------
-// When the user empties the trash bin or permanently deletes a single
-// trash item, we record the item's ID here (persisted to localStorage).
-// This acts as a safety net so that fetchCloudTrashToLocal() never re-pulls
-// those items from the Supabase `deleted_transactions` table on the next
-// sync, even if the cloud delete raced with the fetch or failed while the
-// user was offline. The PRIMARY fix is that emptyTrashBin/deleteSingleTrashItem
-// now await a scoped cloud delete (user + family + partner); the tombstone
-// only guarantees permanent-delete semantics when that delete cannot complete.
-// ============================================================
-const PERMANENT_DELETE_KEY = 'permanently_deleted_trash_ids';
-let _permanentlyDeletedTrashIds = null;
-
-// Guards against a concurrent fetchCloudTrashToLocal() racing with an
-// in-progress permanent delete (empty trash / single permanent delete).
-let _permanentDeleteInProgress = false;
-
-function _loadPermanentlyDeletedTrashIds() {
-  if (_permanentlyDeletedTrashIds) return _permanentlyDeletedTrashIds;
-  try {
-    const raw = localStorage.getItem(PERMANENT_DELETE_KEY);
-    _permanentlyDeletedTrashIds = new Set(raw ? JSON.parse(raw) : []);
-  } catch (e) {
-    _permanentlyDeletedTrashIds = new Set();
-  }
-  return _permanentlyDeletedTrashIds;
-}
-
-function _persistPermanentlyDeletedTrashIds() {
-  try {
-    if (!_permanentlyDeletedTrashIds) return;
-    localStorage.setItem(PERMANENT_DELETE_KEY, JSON.stringify(Array.from(_permanentlyDeletedTrashIds)));
-  } catch (e) {
-    console.warn('Failed to persist permanently deleted trash IDs:', e);
-  }
-}
-
-function _markPermanentlyDeleted(id) {
-  if (!id) return;
-  const set = _loadPermanentlyDeletedTrashIds();
-  set.add(String(id));
-  _persistPermanentlyDeletedTrashIds();
-}
-
-function _isPermanentlyDeleted(id) {
-  if (!id) return false;
-  const set = _loadPermanentlyDeletedTrashIds();
-  return set.has(String(id));
-}
-
 function deduplicateCategories() {
   if (!state.categories) return;
   const seen = new Set();
@@ -710,39 +658,6 @@ function mergeAndDeduplicateTransactions(cloudTransactions, localPendingTransact
   // Guard 2: IDs deleted in the last 30s (prevents race condition with Supabase propagation)
   if (typeof _recentlyDeletedTxIds !== 'undefined' && _recentlyDeletedTxIds) {
     _recentlyDeletedTxIds.forEach(id => deletedIds.add(String(id)));
-  }
-
-  // Guard 3: CRITICAL TOMBSTONE FIX - All IDs currently in Trash Bin (individual and grouped)
-  try {
-    const trashItems = state.trashTransactions || [];
-    trashItems.forEach(t => {
-      if (t) {
-        if (t.id) deletedIds.add(String(t.id));
-        if (t.affectedTransactionIds && Array.isArray(t.affectedTransactionIds)) {
-          t.affectedTransactionIds.forEach(subId => deletedIds.add(String(subId)));
-        }
-        if (t.affectedTransactionsSnapshot && Array.isArray(t.affectedTransactionsSnapshot)) {
-          t.affectedTransactionsSnapshot.forEach(subTx => {
-            if (subTx && subTx.id) deletedIds.add(String(subTx.id));
-          });
-        }
-      }
-    });
-  } catch (e) {
-    console.error('Failed to collect trash IDs in mergeAndDeduplicateTransactions:', e);
-  }
-
-  // Guard 3b: PERMANENT-DELETE TOMBSTONES - IDs the user permanently deleted
-  // (emptied trash / single permanent delete). These must never reappear in the
-  // main transactions list either, even if a stale copy still exists in the
-  // cloud transactions table.
-  try {
-    const permSet = _loadPermanentlyDeletedTrashIds();
-    if (permSet && permSet.size > 0) {
-      permSet.forEach(id => deletedIds.add(String(id)));
-    }
-  } catch (e) {
-    console.error('Failed to collect permanently deleted IDs in mergeAndDeduplicateTransactions:', e);
   }
 
   // Guard 4: Sync queue pending deletes
@@ -1053,7 +968,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1102 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1103 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1431,7 +1346,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1102 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1103 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -4141,9 +4056,6 @@ async function loadData() {
       // Process offline queue first (flushes offline deletes/saves) before fetching latest transactions
       await processSyncQueue({ skipReload: true });
 
-      // CRITICAL FIX: Pull cloud trash to local so Guard 3 (Tombstones) has the updated deleted IDs
-      await fetchCloudTrashToLocal();
-
       const userId = state.currentUser.id;
       const partnerId = state.partnerProfile ? state.partnerProfile.id : null;
 
@@ -4195,6 +4107,7 @@ async function loadData() {
         let transQuery = state.supabaseClient
           .from('transactions')
           .select('*')
+          .eq('status', 'active')
           .order('date', { ascending: false })
           .order('id', { ascending: false })
           .range(page * pageSize, (page + 1) * pageSize - 1);
@@ -4476,11 +4389,6 @@ function loadOfflineData() {
   try {
     const trash = localStorage.getItem('deleted_transactions_trash');
     state.trashTransactions = trash ? JSON.parse(trash) : [];
-    // Drop any items the user permanently deleted (emptied trash / single
-    // permanent delete) so they never reappear after a reload.
-    if (state.trashTransactions.length > 0) {
-      state.trashTransactions = state.trashTransactions.filter(t => t && t.id && !_isPermanentlyDeleted(t.id));
-    }
   } catch (e) {
     console.error('Failed to parse deleted transactions trash:', e);
     state.trashTransactions = [];
@@ -5158,146 +5066,6 @@ function saveTransactionOffline(transaction) {
   localStorage.setItem('offline_transactions', JSON.stringify(trans));
 }
 
-async function saveDeletedTransactionsToSupabase(deletedTxs) {
-  if (!state.isSupabaseEnabled || !state.supabaseClient || !state.currentUser) return;
-  if (!deletedTxs || deletedTxs.length === 0) return;
-
-  try {
-    const backupData = deletedTxs.map(t => ({
-      id: t.id,
-      date: t.date,
-      type: t.type,
-      amount: parseFloat(t.amount || 0),
-      category: t.category,
-      subcategory: t.subcategory || null,
-      account_from: t.account_from,
-      account_to: t.account_to || null,
-      note: t.note || null,
-      created_at: t.created_at || new Date().toISOString(),
-      user_id: t.user_id || state.currentUser.id,
-      is_shared: t.is_shared !== undefined ? t.is_shared : false,
-      family_id: t.family_id || null,
-      deleted_at: t.deleted_at || new Date().toISOString()
-    }));
-
-    await state.supabaseClient
-      .from('deleted_transactions')
-      .upsert(backupData, { onConflict: 'id' });
-  } catch (err) {
-    console.warn('Failed to insert into deleted_transactions:', err);
-  }
-}
-
-async function syncLocalTrashToCloud() {
-  await saveDeletedTransactionsToSupabase(state.trashTransactions || []);
-}
-
-// Pull deleted transactions from the cloud (deleted_transactions table) and merge
-// them into the local trash bin. This makes the recycle bin consistent across all
-// devices (web + APK), since trash is otherwise stored only in each device's
-// localStorage and the cloud is used just as a push-only backup.
-async function fetchCloudTrashToLocal() {
-  if (!state.isSupabaseEnabled || !state.supabaseClient || !state.currentUser) return;
-  // If a permanent delete (empty trash / single permanent delete) is in
-  // progress, skip this fetch so it cannot race and re-pull items that are
-  // being removed from the cloud right now.
-  if (_permanentDeleteInProgress) return;
-
-  try {
-    const userId = state.currentUser.id;
-    const partnerId = state.partnerProfile ? state.partnerProfile.id : null;
-    const familyId = state.userProfile ? state.userProfile.family_id : null;
-
-    // Fetch ALL cloud trash rows (paginated) for this user/family/partner
-    let cloudTrash = [];
-    let page = 0;
-    const pageSize = 1000;
-    let hasMore = true;
-
-    while (hasMore) {
-      let trashQuery = state.supabaseClient
-        .from('deleted_transactions')
-        .select('*')
-        .order('deleted_at', { ascending: false })
-        .range(page * pageSize, (page + 1) * pageSize - 1);
-
-      if (familyId && partnerId) {
-        trashQuery = trashQuery.or(`family_id.eq.${familyId},user_id.eq.${userId},user_id.eq.${partnerId}`);
-      } else if (familyId) {
-        trashQuery = trashQuery.or(`family_id.eq.${familyId},user_id.eq.${userId}`);
-      } else if (partnerId) {
-        trashQuery = trashQuery.or(`user_id.eq.${userId},user_id.eq.${partnerId}`);
-      } else {
-        trashQuery = trashQuery.eq('user_id', userId);
-      }
-
-      const { data: pageData, error: pageErr } = await promiseTimeout(trashQuery, 15000);
-      if (pageErr) {
-        console.warn('Cloud trash fetch error:', pageErr);
-        return;
-      }
-
-      if (pageData && pageData.length > 0) {
-        cloudTrash = cloudTrash.concat(pageData);
-        page++;
-        if (pageData.length < pageSize) hasMore = false;
-      } else {
-        hasMore = false;
-      }
-    }
-
-    if (cloudTrash.length === 0) return;
-
-    // Merge cloud trash into local trash, deduplicating by id (keep local version
-    // if it already exists so we don't clobber locally-deleted items).
-    state.trashTransactions = state.trashTransactions || [];
-
-    // Drop any items the user has permanently deleted (emptied trash / single
-    // permanent delete). These must NEVER come back from the cloud, even if the
-    // Supabase delete raced with this fetch or belonged to a family/partner scope.
-    if (cloudTrash.length > 0) {
-      cloudTrash = cloudTrash.filter(item => item && item.id && !_isPermanentlyDeleted(item.id));
-    }
-    if (state.trashTransactions.length > 0) {
-      state.trashTransactions = state.trashTransactions.filter(t => t && t.id && !_isPermanentlyDeleted(t.id));
-    }
-
-    const existingMap = new Map(state.trashTransactions.map(t => [String(t.id), t]));
-    let added = 0;
-    cloudTrash.forEach(item => {
-      if (item && item.id && !existingMap.has(String(item.id))) {
-        const trashItem = { ...item, deleted_at: item.deleted_at || new Date().toISOString() };
-        state.trashTransactions.push(trashItem);
-        existingMap.set(String(item.id), trashItem);
-        added++;
-      }
-    });
-
-    if (added === 0) return;
-
-    // Keep the same 100-item cap used everywhere else in the app
-    if (state.trashTransactions.length > 100) {
-      state.trashTransactions = state.trashTransactions.slice(-100);
-    }
-    localStorage.setItem('deleted_transactions_trash', JSON.stringify(state.trashTransactions));
-
-    // Refresh the trash count badge
-    const trashCount = state.trashTransactions.length;
-    const trashCountEl = document.getElementById('trash-bin-count-val');
-    if (trashCountEl) trashCountEl.textContent = trashCount;
-    const hubTrashCountEl = document.getElementById('hub-trash-count');
-    if (hubTrashCountEl) hubTrashCountEl.textContent = trashCount;
-
-    // If the trash modal is currently open, re-render its list
-    const trashModal = document.getElementById('trash-bin-modal');
-    if (trashModal && trashModal.classList.contains('show')) {
-      renderTrashBinList();
-    }
-  } catch (err) {
-    console.warn('Failed to fetch cloud trash:', err);
-  }
-}
-
 function deleteTransaction(id) {
   if (!id) return;
 
@@ -5317,7 +5085,6 @@ function deleteTransaction(id) {
   });
 
   // Save deleted transactions to Trash
-  const deletedTxsForBackup = [];
   try {
     const deletedTxs = state.transactions.filter(t => idsToDelete.includes(String(t.id)));
     deletedTxs.forEach(t => {
@@ -5326,7 +5093,6 @@ function deleteTransaction(id) {
       if (!alreadyInTrash) {
         const trashItem = { ...t, deleted_at: new Date().toISOString() };
         state.trashTransactions.push(trashItem);
-        deletedTxsForBackup.push(trashItem);
       }
     });
     if (state.trashTransactions.length > 100) {
@@ -5343,7 +5109,7 @@ function deleteTransaction(id) {
   calculateInitialBalances();
   updateUI();
 
-  // 4. Perform background delete
+  // 4. Perform background delete (status model: soft-delete via status='deleted')
   if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
     // Enqueue immediately before starting the cloud request to prevent data loss if the app is closed/killed
     idsToDelete.forEach(dId => enqueueSyncMutation('delete', dId));
@@ -5351,19 +5117,21 @@ function deleteTransaction(id) {
     (async () => {
       try {
         _suppressRealtimeEvents = true;
-        // Backup to deleted_transactions table first
-        if (deletedTxsForBackup.length > 0) {
-          await saveDeletedTransactionsToSupabase(deletedTxsForBackup);
-        }
+        // Instead of hard-deleting, mark the transaction as deleted so it can be
+        // restored from the trash and stays consistent across all devices.
         const { error } = await promiseTimeout(
           state.supabaseClient
             .from('transactions')
-            .delete()
+            .update({
+              status: 'deleted',
+              deleted_at: new Date().toISOString(),
+              deleted_by: state.currentUser.id
+            })
             .in('id', idsToDelete),
           12000
         );
         if (error) throw error;
-        console.log(`Cloud delete success for transaction (and duplicates):`, idsToDelete);
+        console.log(`Cloud soft-delete success for transaction:`, idsToDelete);
         // Keep IDs in _recentlyDeletedTxIds for 30s to guard against Supabase propagation race:
         // loadData() may run shortly after and re-fetch the transaction before the DB confirms the delete.
         idsToDelete.forEach(dId => _markRecentlyDeleted(dId));
@@ -14143,7 +13911,6 @@ async function deleteSelectedTransactions() {
   const idsToDelete = Array.from(idsToDeleteSet);
 
   // Save deleted transactions to Trash
-  const deletedTxsForBackup = [];
   try {
     const deletedTxs = state.transactions.filter(t => idsToDelete.includes(String(t.id)));
     deletedTxs.forEach(t => {
@@ -14152,7 +13919,6 @@ async function deleteSelectedTransactions() {
       if (!alreadyInTrash) {
         const trashItem = { ...t, deleted_at: new Date().toISOString() };
         state.trashTransactions.push(trashItem);
-        deletedTxsForBackup.push(trashItem);
       }
     });
     if (state.trashTransactions.length > 100) {
@@ -14188,19 +13954,20 @@ async function deleteSelectedTransactions() {
 
     (async () => {
       try {
-        // Backup to deleted_transactions table first
-        if (deletedTxsForBackup.length > 0) {
-          await saveDeletedTransactionsToSupabase(deletedTxsForBackup);
-        }
+        // Status model: soft-delete via status='deleted' instead of hard delete.
         const { error } = await promiseTimeout(
           state.supabaseClient
             .from('transactions')
-            .delete()
+            .update({
+              status: 'deleted',
+              deleted_at: new Date().toISOString(),
+              deleted_by: state.currentUser.id
+            })
             .in('id', idsToDelete),
           12000
         );
         if (error) throw error;
-        console.log(`Cloud delete success for selected transactions (and dupes):`, idsToDelete);
+        console.log(`Cloud soft-delete success for selected transactions:`, idsToDelete);
         idsToDelete.forEach(id => dequeueSyncMutation('delete', id));
       } catch (err) {
         console.warn(`Cloud delete failed for selected, keeping in queue:`, idsToDelete, err);
@@ -17124,7 +16891,7 @@ function changeCurrencySetting(val) {
     state.userProfile.display_currency = val;
     state.userProfile.preferred_currency = val;
     if (state.supabaseClient && userId) {
-      state.supabaseClient.from('profiles').update({ display_currency: val, base_currency: val }).eq('id', userId).then(() => {}).catch(() => {});
+      state.supabaseClient.from('profiles').update({ display_currency: val, base_currency: val }).eq('id', userId).then(() => { }).catch(() => { });
     }
   }
 
@@ -19471,10 +19238,16 @@ async function processSyncQueue(options = {}) {
           console.warn('Skipping invalid sync queue delete item (missing id):', item);
           continue;
         }
+        // Status model: offline deletes soft-delete via status='deleted' so the
+        // transaction stays restorable in the trash across all devices.
         const { error } = await promiseTimeout(
           state.supabaseClient
             .from('transactions')
-            .delete()
+            .update({
+              status: 'deleted',
+              deleted_at: new Date().toISOString(),
+              deleted_by: state.currentUser.id
+            })
             .eq('id', transId),
           15000
         );
@@ -19738,8 +19511,15 @@ function handleRealtimeTransactionChange(payload) {
         const updatedTrans = ev.new;
         const idx = trans.findIndex(t => t.id === updatedTrans.id);
         if (idx !== -1) {
-          trans[idx] = updatedTrans;
-          changed = true;
+          // Status model: if the transaction was soft-deleted, remove it from the
+          // active lists (it belongs in the trash now). Otherwise update in place.
+          if (updatedTrans.status === 'deleted') {
+            trans.splice(idx, 1);
+            changed = true;
+          } else {
+            trans[idx] = updatedTrans;
+            changed = true;
+          }
         }
       } else if (eventType === 'DELETE') {
         const deletedId = ev.old && ev.old.id;
@@ -19938,13 +19718,6 @@ async function forceSyncNow(silent = false) {
     // Auto-sync any stuck local transactions (e.g. from guest mode or legacy local_ items)
     await syncLocalTransactionsToCloud(userId, { silent: true });
 
-    // Auto-sync deleted transactions from local trash to Supabase
-    await syncLocalTrashToCloud();
-
-    // Pull deleted transactions from the cloud into the local trash bin so the
-    // recycle bin stays consistent across all devices (web + APK)
-    await fetchCloudTrashToLocal();
-
     // Process offline sync queue (applies offline deletes/saves to cloud) before fetching
     await processSyncQueue({ skipReload: true });
 
@@ -19999,6 +19772,7 @@ async function forceSyncNow(silent = false) {
       let transQuery = state.supabaseClient
         .from('transactions')
         .select('*')
+        .eq('status', 'active')
         .order('date', { ascending: false })
         .order('id', { ascending: false })
         .range(page * pageSize, (page + 1) * pageSize - 1);
@@ -25249,7 +25023,59 @@ function openTrashBinModal() {
   openModal('trash-bin-modal');
 }
 
-function renderTrashBinList() {
+// Fetch deleted transactions (status='deleted') from the cloud into the local
+// trash bin. This replaces the legacy deleted_transactions + tombstone mechanism:
+// the trash is now a simple query on the transactions table, so it stays
+// consistent across all devices (web + APK).
+async function fetchTrashFromCloud() {
+  if (!state.isSupabaseEnabled || !state.supabaseClient || !state.currentUser) return;
+  try {
+    const userId = state.currentUser.id;
+    const partnerId = state.partnerProfile ? state.partnerProfile.id : null;
+    const familyId = state.userProfile ? state.userProfile.family_id : null;
+
+    let trashQuery = state.supabaseClient
+      .from('transactions')
+      .select('*')
+      .eq('status', 'deleted')
+      .order('deleted_at', { ascending: false })
+      .limit(100);
+
+    if (familyId && partnerId) {
+      trashQuery = trashQuery.or(`family_id.eq.${familyId},user_id.eq.${userId},user_id.eq.${partnerId}`);
+    } else if (familyId) {
+      trashQuery = trashQuery.or(`family_id.eq.${familyId},user_id.eq.${userId}`);
+    } else if (partnerId) {
+      trashQuery = trashQuery.or(`user_id.eq.${userId},user_id.eq.${partnerId}`);
+    } else {
+      trashQuery = trashQuery.eq('user_id', userId);
+    }
+
+    const { data, error } = await promiseTimeout(trashQuery, 15000);
+    if (error) {
+      console.warn('Cloud trash fetch error:', error);
+      return;
+    }
+
+    state.trashTransactions = data || [];
+    localStorage.setItem('deleted_transactions_trash', JSON.stringify(state.trashTransactions));
+
+    // Refresh the trash count badge
+    const trashCount = state.trashTransactions.length;
+    const trashCountEl = document.getElementById('trash-bin-count-val');
+    if (trashCountEl) trashCountEl.textContent = trashCount;
+    const hubTrashCountEl = document.getElementById('hub-trash-count');
+    if (hubTrashCountEl) hubTrashCountEl.textContent = trashCount;
+  } catch (err) {
+    console.warn('Failed to fetch cloud trash:', err);
+  }
+}
+
+async function renderTrashBinList() {
+  // Pull the latest deleted transactions from the cloud before rendering so the
+  // trash stays consistent across devices.
+  await fetchTrashFromCloud();
+
   const container = document.getElementById('trash-bin-list-container');
   if (!container) return;
 
@@ -25379,20 +25205,21 @@ async function restoreTransaction(id) {
   state.transactions.push(cleanedItem);
   localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
 
-  // 3. Save to Supabase (Cloud Sync)
+  // 3. Save to Supabase (Cloud Sync) — status model: set status back to 'active'
   if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
     enqueueSyncMutation('upsert', cleanedItem.id);
     try {
-      // Delete from deleted_transactions
+      // DUAL-WRITE (Phase 2): remove the legacy deleted_transactions backup row.
       await state.supabaseClient
         .from('deleted_transactions')
         .delete()
         .eq('id', id);
 
-      // Upsert back to active transactions
+      // Restore by flipping status back to 'active' (no need to re-insert).
       await state.supabaseClient
         .from('transactions')
-        .upsert(cleanedItem);
+        .update({ status: 'active', deleted_at: null, deleted_by: null })
+        .eq('id', id);
       dequeueSyncMutation('upsert', cleanedItem.id);
     } catch (err) {
       console.warn('Cloud restore failed, keeping in queue:', err);
@@ -25412,36 +25239,19 @@ async function emptyTrashBin() {
   const confirmed = await showConfirm(confirmMsg, lang === 'el' ? 'Εκκαθάριση Κάδου' : 'Empty Trash', '🗑️');
   if (!confirmed) return;
 
-  // Record permanent-delete tombstones for every item being emptied so they can
-  // never be re-pulled from the cloud (fixes deleted transactions reappearing).
   const itemsBeingEmptied = (state.trashTransactions || []).slice();
-  itemsBeingEmptied.forEach(t => {
-    if (!t) return;
-    if (t.id) _markPermanentlyDeleted(t.id);
-    // Recurring group items carry their affected transaction IDs
-    if (t.affectedTransactionIds && Array.isArray(t.affectedTransactionIds)) {
-      t.affectedTransactionIds.forEach(subId => _markPermanentlyDeleted(subId));
-    }
-    if (t.affectedTransactionsSnapshot && Array.isArray(t.affectedTransactionsSnapshot)) {
-      t.affectedTransactionsSnapshot.forEach(subTx => {
-        if (subTx && subTx.id) _markPermanentlyDeleted(subTx.id);
-      });
-    }
-  });
 
-  // Clear on Supabase if logged in. We delete across the SAME scope that
-  // fetchCloudTrashToLocal() pulls from (user + family + partner), otherwise
-  // family/partner trash rows survive and get re-pulled on the next sync.
-  // We AWAIT this delete and set an in-progress guard so a concurrent
-  // fetchCloudTrashToLocal() cannot race and re-pull the rows mid-delete.
+  // Clear on Supabase if logged in — hard-delete all status='deleted' rows across
+  // the SAME scope the trash reads from (user + family + partner).
   if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
     const userId = state.currentUser.id;
     const partnerId = state.partnerProfile ? state.partnerProfile.id : null;
     const familyId = state.userProfile ? state.userProfile.family_id : null;
 
     let delQuery = state.supabaseClient
-      .from('deleted_transactions')
-      .delete();
+      .from('transactions')
+      .delete()
+      .eq('status', 'deleted');
 
     if (familyId && partnerId) {
       delQuery = delQuery.or(`family_id.eq.${familyId},user_id.eq.${userId},user_id.eq.${partnerId}`);
@@ -25453,14 +25263,11 @@ async function emptyTrashBin() {
       delQuery = delQuery.eq('user_id', userId);
     }
 
-    _permanentDeleteInProgress = true;
     try {
       const { error } = await delQuery;
-      if (error) console.warn('Failed to clear deleted_transactions on Supabase:', error);
+      if (error) console.warn('Failed to clear deleted transactions on Supabase:', error);
     } catch (err) {
-      console.warn('Failed to clear deleted_transactions on Supabase:', err);
-    } finally {
-      _permanentDeleteInProgress = false;
+      console.warn('Failed to clear deleted transactions on Supabase:', err);
     }
   }
 
@@ -26695,7 +26502,15 @@ async function executeRecurringDelete(scope) {
     }
     if (affectedTransactionIds.length > 0) {
       affectedTransactionIds.forEach(dId => enqueueSyncMutation('delete', dId));
-      state.supabaseClient.from('transactions').delete().in('id', affectedTransactionIds);
+      // Status model: soft-delete the affected transactions so they stay
+      // restorable in the trash across all devices.
+      state.supabaseClient.from('transactions')
+        .update({
+          status: 'deleted',
+          deleted_at: new Date().toISOString(),
+          deleted_by: state.currentUser.id
+        })
+        .in('id', affectedTransactionIds);
     }
   }
 
@@ -26720,34 +26535,16 @@ async function deleteSingleTrashItem(id) {
 
   const item = state.trashTransactions[itemIndex];
 
-  // Record permanent-delete tombstones so the item can never be re-pulled from
-  // the cloud (fixes deleted transactions reappearing after permanent delete).
-  if (item) {
-    if (item.id) _markPermanentlyDeleted(item.id);
-    if (item.affectedTransactionIds && Array.isArray(item.affectedTransactionIds)) {
-      item.affectedTransactionIds.forEach(subId => _markPermanentlyDeleted(subId));
-    }
-    if (item.affectedTransactionsSnapshot && Array.isArray(item.affectedTransactionsSnapshot)) {
-      item.affectedTransactionsSnapshot.forEach(subTx => {
-        if (subTx && subTx.id) _markPermanentlyDeleted(subTx.id);
-      });
-    }
-  }
-
   state.trashTransactions.splice(itemIndex, 1);
   localStorage.setItem('deleted_transactions_trash', JSON.stringify(state.trashTransactions));
 
-  // Await the cloud delete and guard against a concurrent fetchCloudTrashToLocal()
-  // so the row cannot be re-pulled mid-delete.
+  // Hard-delete the transaction row from the cloud (status model permanent delete).
   if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
-    _permanentDeleteInProgress = true;
     try {
-      const { error } = await state.supabaseClient.from('deleted_transactions').delete().eq('id', id);
+      const { error } = await state.supabaseClient.from('transactions').delete().eq('id', id);
       if (error) console.warn('Failed to delete trash item on Supabase:', error);
     } catch (err) {
       console.warn('Failed to delete trash item on Supabase:', err);
-    } finally {
-      _permanentDeleteInProgress = false;
     }
   }
 
