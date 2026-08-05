@@ -750,8 +750,8 @@ const TRANSLATIONS = {
     settings_trash_option: 'Κάδος Ανακύκλωσης',
     settings_trash_desc: 'Προβολή και επαναφορά διεγραμμένων κινήσεων',
     settings_sync_option: 'Συγχρονισμός & Cloud',
-    settings_sync_desc: 'Σύνδεση με Cloud, εισαγωγή και εξαγωγή Excel',
-    settings_data_desc: 'Συγχρονισμός Cloud, Εισαγωγή & Εξαγωγή Excel',
+    settings_sync_desc: 'Σύνδεση με Cloud, εισαγωγή και εξαγωγή αρχείων',
+    settings_data_desc: 'Συγχρονισμός Cloud, Εισαγωγή & Εξαγωγή Αρχείων',
     settings_family_option: 'Οικογένεια',
     settings_family_desc: 'Σύνδεση με σύντροφο / μέλη της οικογένειας',
     settings_feedback_option: 'Σχόλια & Αξιολόγηση',
@@ -968,7 +968,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1104 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1105 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -993,7 +993,8 @@ const TRANSLATIONS = {
     adv_date_from: 'Από ημερομηνία',
     adv_date_to: 'Έως ημερομηνία',
     btn_apply: 'Εφαρμογή',
-    export_sheet_title: 'Εξαγωγή Excel',
+    export_sheet_title: 'Εξαγωγή Αρχείου',
+    export_step2_period_header: 'Περίοδος Εξαγωγής',
     export_opt_current_month: 'Τρέχων Μήνας',
     export_opt_prev_month: 'Προηγούμενος Μήνας',
     export_opt_current_year: 'Τρέχων Έτος',
@@ -1004,7 +1005,7 @@ const TRANSLATIONS = {
     export_label_to: 'Έως:',
     export_btn_confirm: 'Επιβεβαίωση Εξαγωγής',
     export_no_data_range: 'Δεν υπάρχουν συναλλαγές σε αυτή την περίοδο!',
-    export_label_format: 'Μορφή Αρχείου:',
+    export_label_format: 'Επιλογή Μορφής Αρχείου:',
     export_format_xlsx: 'Excel (XLSX)',
     export_format_csv: 'CSV',
     export_format_ods: 'OpenDocument (ODS)',
@@ -1346,7 +1347,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1104 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1105 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -1371,7 +1372,8 @@ const TRANSLATIONS = {
     adv_date_from: 'From Date',
     adv_date_to: 'To Date',
     btn_apply: 'Apply',
-    export_sheet_title: 'Export Excel',
+    export_sheet_title: 'Export File',
+    export_step2_period_header: 'Export Period',
     export_opt_current_month: 'Current Month',
     export_opt_prev_month: 'Previous Month',
     export_opt_current_year: 'Current Year',
@@ -1382,7 +1384,7 @@ const TRANSLATIONS = {
     export_label_to: 'To:',
     export_btn_confirm: 'Confirm Export',
     export_no_data_range: 'No transactions found in this period!',
-    export_label_format: 'File Format:',
+    export_label_format: 'Select File Format:',
     export_format_xlsx: 'Excel (XLSX)',
     export_format_csv: 'CSV',
     export_format_ods: 'OpenDocument (ODS)',
@@ -11289,11 +11291,22 @@ function openExportPeriodSheet() {
 
   selectExportOption('current-month', false);
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const today = new Date();
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth() + 1).padStart(2, '0');
+  const dd = String(today.getDate()).padStart(2, '0');
+  const todayStr = `${yyyy}-${mm}-${dd}`;
+  const displayStr = `${dd}/${mm}/${yyyy}`;
+
   const fromEl = document.getElementById('export-custom-from');
   const toEl = document.getElementById('export-custom-to');
+  const fromLabel = document.getElementById('export-custom-from-label');
+  const toLabel = document.getElementById('export-custom-to-label');
+
   if (fromEl) fromEl.value = todayStr;
   if (toEl) toEl.value = todayStr;
+  if (fromLabel) fromLabel.textContent = displayStr;
+  if (toLabel) toLabel.textContent = displayStr;
 }
 
 function closeExportPeriodSheet() {
@@ -11312,7 +11325,82 @@ function goToExportStep1() {
 }
 window.goToExportStep1 = goToExportStep1;
 
+function updateStep2Summary() {
+  const now = new Date();
+  let startDate = null;
+  let endDate = null;
+  let periodText = '';
+
+  if (selectedExportPeriod === 'current-month') {
+    startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    periodText = (state.lang === 'en' ? 'Current Month' : 'Τρέχων Μήνας') + ` (${formatShortDate(startDate)} ~ ${formatShortDate(endDate)})`;
+  } else if (selectedExportPeriod === 'prev-month') {
+    startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    endDate = new Date(now.getFullYear(), now.getMonth(), 0);
+    periodText = (state.lang === 'en' ? 'Previous Month' : 'Προηγούμενος Μήνας') + ` (${formatShortDate(startDate)} ~ ${formatShortDate(endDate)})`;
+  } else if (selectedExportPeriod === 'current-year') {
+    startDate = new Date(now.getFullYear(), 0, 1);
+    endDate = now;
+    periodText = (state.lang === 'en' ? 'Current Year' : 'Τρέχων Έτος') + ` (${formatShortDate(startDate)} ~ ${formatShortDate(endDate)})`;
+  } else if (selectedExportPeriod === 'prev-year') {
+    startDate = new Date(now.getFullYear() - 1, 0, 1);
+    endDate = new Date(now.getFullYear() - 1, 11, 31);
+    periodText = (state.lang === 'en' ? 'Previous Year' : 'Προηγούμενο Έτος') + ` (${formatShortDate(startDate)} ~ ${formatShortDate(endDate)})`;
+  } else if (selectedExportPeriod === 'all') {
+    periodText = state.lang === 'en' ? 'All Data' : 'Όλα τα δεδομένα';
+  } else if (selectedExportPeriod === 'custom') {
+    const fromStr = document.getElementById('export-custom-from')?.value;
+    const toStr = document.getElementById('export-custom-to')?.value;
+    if (fromStr && toStr) {
+      const fParts = fromStr.split('-');
+      const tParts = toStr.split('-');
+      periodText = `${fParts[2]}/${fParts[1]}/${fParts[0]} ~ ${tParts[2]}/${tParts[1]}/${tParts[0]}`;
+      startDate = new Date(fromStr);
+      endDate = new Date(toStr);
+    } else {
+      periodText = state.lang === 'en' ? 'Custom Date Range' : 'Συγκεκριμένες Ημερομηνίες';
+    }
+  }
+
+  let count = 0;
+  if (state.transactions && state.transactions.length) {
+    const startStr = startDate ? formatISODateLocal(startDate) : null;
+    const endStr = endDate ? formatISODateLocal(endDate) : null;
+    count = state.transactions.filter(t => {
+      if (!t.date) return false;
+      const tDate = t.date.split('T')[0].split(' ')[0];
+      if (startStr && tDate < startStr) return false;
+      if (endStr && tDate > endStr) return false;
+      return true;
+    }).length;
+  }
+
+  const periodLabelEl = document.getElementById('export-step2-period-label');
+  const countBadgeEl = document.getElementById('export-step2-count-badge');
+  if (periodLabelEl) periodLabelEl.textContent = periodText;
+  if (countBadgeEl) {
+    const unit = state.lang === 'en' ? (count === 1 ? 'transaction' : 'transactions') : (count === 1 ? 'συναλλαγή' : 'συναλλαγές');
+    countBadgeEl.textContent = `${count} ${unit}`;
+  }
+}
+
 function goToExportStep2() {
+  if (selectedExportPeriod === 'custom') {
+    const fromStr = document.getElementById('export-custom-from')?.value;
+    const toStr = document.getElementById('export-custom-to')?.value;
+    if (!fromStr || !toStr) {
+      alert(state.lang === 'en' ? 'Please select both start and end dates!' : 'Παρακαλώ επιλέξτε ημερομηνία έναρξης και λήξης!');
+      return;
+    }
+    if (fromStr > toStr) {
+      alert(state.lang === 'en' ? 'Start date must be before end date!' : 'Η ημερομηνία έναρξης πρέπει να είναι προγενέστερη της ημερομηνίας λήξης!');
+      return;
+    }
+  }
+
+  updateStep2Summary();
+
   const step1 = document.getElementById('export-step-1');
   const step2 = document.getElementById('export-step-2');
   if (step1) step1.style.display = 'none';

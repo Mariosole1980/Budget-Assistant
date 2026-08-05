@@ -65,7 +65,7 @@
               ${devButton}
             </div>
             <div style="font-size:11px;color:#8b949e;">
-              Budget Assistant • build v1104
+              Budget Assistant • build v1105
             </div>
           </div>
         `;
@@ -856,7 +856,7 @@
                     style="font-weight:700; font-family:'Outfit',sans-serif; font-size:14px; color:var(--text-primary);">Δεδομένα
                     &amp; Συγχρονισμός</span>
                   <span style="font-size:11px;color:var(--text-secondary);" data-i18n="settings_data_desc">Συγχρονισμός
-                    Cloud, Εισαγωγή &amp; Εξαγωγή Excel</span>
+                    Cloud, Εισαγωγή &amp; Εξαγωγή Αρχείων</span>
                 </div>
               </div>
               <i class="fa-solid fa-chevron-right" style="color:var(--text-muted);font-size:12px;"></i>
@@ -1994,7 +1994,7 @@
             <div class="settings-list-item version-info-row"
               style="padding: 14px 16px; background: transparent; border-top: 1px solid var(--border); margin-top: 8px;">
               <span class="settings-item-label" style="color:var(--text-muted); font-size:12px;"
-                data-i18n="app_version">Έκδοση 1.0.0 (build v1104)</span>
+                data-i18n="app_version">Έκδοση 1.0.0 (build v1105)</span>
               <span class="settings-item-value" style="font-size:12px; color:var(--text-muted); font-weight:600;">Budget
                 Assistant</span>
             </div>
@@ -2783,7 +2783,7 @@
     <div id="export-period-bottom-sheet" class="search-bottom-sheet">
       <div class="bottom-sheet-header">
         <div class="bottom-sheet-drag-handle"></div>
-        <span class="bottom-sheet-title" data-i18n="export_sheet_title">Εξαγωγή Excel</span>
+        <span class="bottom-sheet-title" data-i18n="export_sheet_title">Εξαγωγή Αρχείου</span>
         <button class="bottom-sheet-close-btn" onclick="closeExportPeriodSheet()">&times;</button>
       </div>
       <div class="bottom-sheet-body" id="export-step-1">
@@ -2842,21 +2842,37 @@
 
         <!-- Custom Date Range Sub-Form (Collapsible) -->
         <div id="export-custom-range-container"
-          style="display: none; padding: 12px 14px 4px 14px; flex-direction: column; gap: 12px; margin-bottom: 8px; border-radius: 12px; background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.04);">
+          style="display: none; padding: 12px 14px; flex-direction: column; gap: 12px; margin-bottom: 8px; border-radius: 12px; background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05);">
           <div style="display: flex; gap: 12px;">
             <div style="flex: 1; display: flex; flex-direction: column; gap: 6px;">
-              <label
+              <span
                 style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 0.5px;"
-                data-i18n="export_label_from">Από:</label>
-              <input type="date" id="export-custom-from" class="advanced-filter-input"
-                style="padding: 8px 10px; font-size: 13px;">
+                data-i18n="export_label_from">Από:</span>
+              <div id="export-custom-from-trigger" onclick="openCustomDatePicker('export-custom-from')"
+                style="display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: 10px; background: var(--bg-input, rgba(255,255,255,0.03)); border: 1px solid var(--border); cursor: pointer; transition: all 0.2s;">
+                <div style="display: flex; align-items: center; gap: 8px; min-width: 0;">
+                  <i class="fa-regular fa-calendar-days" style="color: var(--accent, #10b981); font-size: 14px;"></i>
+                  <span id="export-custom-from-label"
+                    style="font-size: 13.5px; font-weight: 600; color: var(--text-primary);">--/--/----</span>
+                </div>
+                <i class="fa-solid fa-chevron-right" style="color: var(--text-secondary); font-size: 11px;"></i>
+              </div>
+              <input type="hidden" id="export-custom-from" value="">
             </div>
             <div style="flex: 1; display: flex; flex-direction: column; gap: 6px;">
-              <label
+              <span
                 style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 0.5px;"
-                data-i18n="export_label_to">Έως:</label>
-              <input type="date" id="export-custom-to" class="advanced-filter-input"
-                style="padding: 8px 10px; font-size: 13px;">
+                data-i18n="export_label_to">Έως:</span>
+              <div id="export-custom-to-trigger" onclick="openCustomDatePicker('export-custom-to')"
+                style="display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: 10px; background: var(--bg-input, rgba(255,255,255,0.03)); border: 1px solid var(--border); cursor: pointer; transition: all 0.2s;">
+                <div style="display: flex; align-items: center; gap: 8px; min-width: 0;">
+                  <i class="fa-regular fa-calendar-days" style="color: var(--accent, #10b981); font-size: 14px;"></i>
+                  <span id="export-custom-to-label"
+                    style="font-size: 13.5px; font-weight: 600; color: var(--text-primary);">--/--/----</span>
+                </div>
+                <i class="fa-solid fa-chevron-right" style="color: var(--text-secondary); font-size: 11px;"></i>
+              </div>
+              <input type="hidden" id="export-custom-to" value="">
             </div>
           </div>
         </div>
@@ -2872,47 +2888,98 @@
       </div>
 
       <!-- STEP 2: FORMAT SELECTION -->
-      <div class="bottom-sheet-body" id="export-step-2" style="display: none;">
-        <!-- Format Selector -->
-        <div style="padding: 4px 14px 0 14px;">
-          <div
-            style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 0.5px; margin-bottom: 8px;"
-            data-i18n="export_label_format">Μορφή Αρχείου:</div>
-          <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-            <button type="button" class="export-format-chip active" id="export-format-xlsx"
-              onclick="selectExportFormat('xlsx')">
-              <i class="fa-solid fa-file-excel"></i>
-              <span>XLSX</span>
-            </button>
-            <button type="button" class="export-format-chip" id="export-format-csv" onclick="selectExportFormat('csv')">
-              <i class="fa-solid fa-file-csv"></i>
-              <span>CSV</span>
-            </button>
-            <button type="button" class="export-format-chip" id="export-format-ods" onclick="selectExportFormat('ods')">
-              <i class="fa-solid fa-file-excel"></i>
-              <span>ODS</span>
-            </button>
-            <button type="button" class="export-format-chip" id="export-format-json"
-              onclick="selectExportFormat('json')">
-              <i class="fa-solid fa-file-code"></i>
-              <span>JSON</span>
-            </button>
-            <button type="button" class="export-format-chip" id="export-format-pdf" onclick="selectExportFormat('pdf')">
-              <i class="fa-solid fa-file-pdf"></i>
-              <span>PDF</span>
-            </button>
+      <div class="bottom-sheet-body" id="export-step-2" style="display: none; padding-top: 4px;">
+        
+        <!-- Summary Card -->
+        <div style="margin: 0 14px 14px 14px; padding: 12px 14px; border-radius: 12px; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
+            <div style="width: 34px; height: 34px; border-radius: 10px; background: rgba(16, 185, 129, 0.15); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <i class="fa-regular fa-calendar-check" style="color: var(--accent, #10b981); font-size: 16px;"></i>
+            </div>
+            <div style="min-width: 0;">
+              <div style="font-size: 10.5px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 0.5px;" data-i18n="export_step2_period_header">Περίοδος Εξαγωγής</div>
+              <div id="export-step2-period-label" style="font-size: 13.5px; font-weight: 600; color: var(--text-primary); text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">-</div>
+            </div>
           </div>
+          <span id="export-step2-count-badge" style="font-size: 11.5px; font-weight: 700; padding: 4px 10px; border-radius: 20px; background: var(--accent, #10b981); color: #ffffff; white-space: nowrap; flex-shrink: 0;">
+            0 συναλλαγές
+          </span>
+        </div>
+
+        <!-- Format Selector Header -->
+        <div style="padding: 0 14px; margin-bottom: 10px;">
+          <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 0.5px;" data-i18n="export_label_format">Επιλογή Μορφής Αρχείου</div>
+        </div>
+
+        <!-- Format Selector Cards Grid -->
+        <div class="export-format-grid" style="padding: 0 14px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px;">
+          
+          <div class="export-format-card active" id="export-format-xlsx" onclick="selectExportFormat('xlsx')">
+            <div class="export-format-icon-wrapper" style="background: rgba(16, 185, 129, 0.15); color: #10b981;">
+              <i class="fa-solid fa-file-excel"></i>
+            </div>
+            <div class="export-format-info">
+              <div class="export-format-title">XLSX</div>
+              <div class="export-format-sub">Excel Spreadsheet</div>
+            </div>
+            <i class="fa-solid fa-circle-check export-format-check"></i>
+          </div>
+
+          <div class="export-format-card" id="export-format-csv" onclick="selectExportFormat('csv')">
+            <div class="export-format-icon-wrapper" style="background: rgba(6, 182, 212, 0.15); color: #06b6d4;">
+              <i class="fa-solid fa-file-csv"></i>
+            </div>
+            <div class="export-format-info">
+              <div class="export-format-title">CSV</div>
+              <div class="export-format-sub">Text Data</div>
+            </div>
+            <i class="fa-solid fa-circle-check export-format-check"></i>
+          </div>
+
+          <div class="export-format-card" id="export-format-pdf" onclick="selectExportFormat('pdf')">
+            <div class="export-format-icon-wrapper" style="background: rgba(239, 68, 68, 0.15); color: #ef4444;">
+              <i class="fa-solid fa-file-pdf"></i>
+            </div>
+            <div class="export-format-info">
+              <div class="export-format-title">PDF</div>
+              <div class="export-format-sub">Document Report</div>
+            </div>
+            <i class="fa-solid fa-circle-check export-format-check"></i>
+          </div>
+
+          <div class="export-format-card" id="export-format-json" onclick="selectExportFormat('json')">
+            <div class="export-format-icon-wrapper" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b;">
+              <i class="fa-solid fa-file-code"></i>
+            </div>
+            <div class="export-format-info">
+              <div class="export-format-title">JSON</div>
+              <div class="export-format-sub">Raw Data</div>
+            </div>
+            <i class="fa-solid fa-circle-check export-format-check"></i>
+          </div>
+
+          <div class="export-format-card" id="export-format-ods" onclick="selectExportFormat('ods')" style="grid-column: span 2;">
+            <div class="export-format-icon-wrapper" style="background: rgba(139, 92, 246, 0.15); color: #8b5cf6;">
+              <i class="fa-solid fa-file-lines"></i>
+            </div>
+            <div class="export-format-info">
+              <div class="export-format-title">ODS</div>
+              <div class="export-format-sub">OpenDocument Spreadsheet</div>
+            </div>
+            <i class="fa-solid fa-circle-check export-format-check"></i>
+          </div>
+
         </div>
 
         <!-- Step 2 Actions -->
-        <div style="margin-top: 12px; padding: 0 14px; display: flex; gap: 8px;">
+        <div style="margin-top: 12px; padding: 0 14px; display: flex; gap: 10px;">
           <button type="button" class="btn" onclick="goToExportStep1()"
-            style="flex: 1; font-size: 14.5px; padding: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 10px; background: rgba(255,255,255,0.05); color: var(--text-primary); border: none;">
+            style="flex: 1; font-size: 14.5px; font-weight: 600; padding: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 12px; background: rgba(255,255,255,0.06); color: var(--text-primary); border: 1px solid var(--border-light);">
             <i class="fa-solid fa-arrow-left"></i>
             <span data-i18n="export_btn_back">Πίσω</span>
           </button>
           <button type="button" class="btn btn-primary" onclick="confirmExcelExport()"
-            style="flex: 2; font-size: 14.5px; padding: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 10px;">
+            style="flex: 2; font-size: 14.5px; font-weight: 600; padding: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 12px;">
             <i class="fa-solid fa-file-export"></i>
             <span data-i18n="export_btn_confirm">Επιβεβαίωση Εξαγωγής</span>
           </button>
