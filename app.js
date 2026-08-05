@@ -972,7 +972,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1085 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1086 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1350,7 +1350,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1085 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1086 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -11345,7 +11345,7 @@ function openExportPeriodSheet() {
   if (step1) step1.style.display = 'block';
   if (step2) step2.style.display = 'none';
 
-  selectExportOption('current-month');
+  selectExportOption('current-month', false);
 
   const todayStr = new Date().toISOString().split('T')[0];
   const fromEl = document.getElementById('export-custom-from');
@@ -11378,7 +11378,7 @@ function goToExportStep2() {
 }
 window.goToExportStep2 = goToExportStep2;
 
-function selectExportOption(option) {
+function selectExportOption(option, userInitiated = true) {
   selectedExportPeriod = option;
 
   const options = ['current-month', 'prev-month', 'current-year', 'prev-year', 'all', 'custom'];
@@ -11390,8 +11390,18 @@ function selectExportOption(option) {
   });
 
   const customContainer = document.getElementById('export-custom-range-container');
-  if (customContainer) {
-    customContainer.style.display = option === 'custom' ? 'flex' : 'none';
+  const nextBtnContainer = document.getElementById('export-next-btn-container');
+
+  if (option === 'custom') {
+    if (customContainer) customContainer.style.display = 'flex';
+    if (nextBtnContainer) nextBtnContainer.style.display = 'block';
+  } else {
+    if (customContainer) customContainer.style.display = 'none';
+    if (nextBtnContainer) nextBtnContainer.style.display = 'none';
+
+    if (userInitiated) {
+      setTimeout(() => goToExportStep2(), 150);
+    }
   }
 }
 
@@ -18755,19 +18765,19 @@ async function forceAppUpdate() {
       // 1. Κατεβάζουμε το version.json χειροκίνητα
       const manifestRes = await fetch("https://budget-assistant-pwa.pages.dev/version.json?_t=" + Date.now());
       const manifest = await manifestRes.json();
-      
+
       if (!manifest || !manifest.url) {
         throw new Error("Invalid version.json format");
       }
 
       console.log('[ForceUpdate] Found zip url:', manifest.url);
-      
+
       // 2. Δίνουμε το σωστό ZIP url στο Capgo
       const update = await window.Capacitor.Plugins.CapacitorUpdater.download({
         url: manifest.url,
         version: manifest.version || Date.now().toString()
       });
-      
+
       console.log('[ForceUpdate] Downloaded update:', update);
       await window.Capacitor.Plugins.CapacitorUpdater.set({ id: update.id });
       return;
@@ -19050,9 +19060,11 @@ async function processSyncQueue(options = {}) {
   console.log(`Processing offline sync queue of ${queue.length} items...`);
 
   let successCount = 0;
+  const remaining = [];
 
   for (let i = 0; i < queue.length; i++) {
     const item = queue[i];
+    let itemSucceeded = false;
     try {
       if (item.action === 'save') {
         const transaction = item.payload;
@@ -19074,7 +19086,11 @@ async function processSyncQueue(options = {}) {
             throw error;
           }
           console.warn(`Skipping invalid sync queue item:`, error);
+          // Keep the item so it is retried later instead of being silently dropped.
+          remaining.push(item);
+          continue;
         }
+        itemSucceeded = true;
       } else if (item.action === 'delete') {
         const transId = item.payload;
         if (!transId) {
@@ -19094,7 +19110,10 @@ async function processSyncQueue(options = {}) {
             throw error;
           }
           console.warn(`Skipping invalid sync queue delete item:`, error);
+          remaining.push(item);
+          continue;
         }
+        itemSucceeded = true;
       } else if (item.action === 'save_template') {
         const template = item.payload;
         const { error } = await promiseTimeout(
@@ -19108,7 +19127,10 @@ async function processSyncQueue(options = {}) {
             throw error;
           }
           console.warn(`Skipping invalid save_template queue item:`, error);
+          remaining.push(item);
+          continue;
         }
+        itemSucceeded = true;
       } else if (item.action === 'delete_template') {
         const templateId = item.payload;
         const { error } = await promiseTimeout(
@@ -19123,28 +19145,41 @@ async function processSyncQueue(options = {}) {
             throw error;
           }
           console.warn(`Skipping invalid delete_template queue item:`, error);
+          remaining.push(item);
+          continue;
         }
+        itemSucceeded = true;
+      } else {
+        console.warn(`Unknown sync queue action, dropping item:`, item.action);
+        continue;
       }
-
-      successCount++;
     } catch (err) {
       console.warn(`Network failure during sync queue replay at index ${i}:`, err);
-      break; // Abort and retry later to preserve sequence order
+      // Keep this item and all remaining ones for retry to preserve sequence order.
+      remaining.push(item);
+      for (let j = i + 1; j < queue.length; j++) {
+        remaining.push(queue[j]);
+      }
+      break;
+    }
+
+    if (itemSucceeded) {
+      successCount++;
     }
   }
 
-  if (successCount > 0) {
-    const remaining = queue.slice(successCount);
+  const queueChanged = remaining.length !== queue.length;
+  if (successCount > 0 || queueChanged) {
     localStorage.setItem('money_manager_sync_queue', JSON.stringify(remaining));
     console.log(`Synced ${successCount} mutations. ${remaining.length} remaining.`);
+  }
 
-    // Only reload and render here if the caller didn't request to skip it.
-    // When called from forceSyncNow, skipReload=true because forceSyncNow does its own
-    // full fetch + UI update immediately after, so we avoid a double render.
-    if (!skipReload) {
-      await loadData();
-      updateUI();
-    }
+  // Only reload and render here if the caller didn't request to skip it.
+  // When called from forceSyncNow, skipReload=true because forceSyncNow does its own
+  // full fetch + UI update immediately after, so we avoid a double render.
+  if (successCount > 0 && !skipReload) {
+    await loadData();
+    updateUI();
   }
 
   _isProcessingSyncQueue = false;

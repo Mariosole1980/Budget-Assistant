@@ -972,7 +972,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1085 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1086 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1350,7 +1350,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1085 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1086 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -11345,7 +11345,7 @@ function openExportPeriodSheet() {
   if (step1) step1.style.display = 'block';
   if (step2) step2.style.display = 'none';
 
-  selectExportOption('current-month');
+  selectExportOption('current-month', false);
 
   const todayStr = new Date().toISOString().split('T')[0];
   const fromEl = document.getElementById('export-custom-from');
@@ -11378,7 +11378,7 @@ function goToExportStep2() {
 }
 window.goToExportStep2 = goToExportStep2;
 
-function selectExportOption(option) {
+function selectExportOption(option, userInitiated = true) {
   selectedExportPeriod = option;
 
   const options = ['current-month', 'prev-month', 'current-year', 'prev-year', 'all', 'custom'];
@@ -11390,8 +11390,18 @@ function selectExportOption(option) {
   });
 
   const customContainer = document.getElementById('export-custom-range-container');
-  if (customContainer) {
-    customContainer.style.display = option === 'custom' ? 'flex' : 'none';
+  const nextBtnContainer = document.getElementById('export-next-btn-container');
+
+  if (option === 'custom') {
+    if (customContainer) customContainer.style.display = 'flex';
+    if (nextBtnContainer) nextBtnContainer.style.display = 'block';
+  } else {
+    if (customContainer) customContainer.style.display = 'none';
+    if (nextBtnContainer) nextBtnContainer.style.display = 'none';
+    
+    if (userInitiated) {
+      setTimeout(() => goToExportStep2(), 150);
+    }
   }
 }
 
