@@ -968,7 +968,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1106 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1107 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1347,7 +1347,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1106 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1107 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -21843,21 +21843,10 @@ function renderNoteAutocomplete(query) {
         }
       }
       if (suggestion.subcategory) {
-        const cleanedCat = stripLeadingEmoji(suggestion.category).toUpperCase();
-        const defaults = DEFAULT_SUBCATEGORIES_MAP[cleanedCat] || [];
-        const isDefault = defaults.includes(suggestion.subcategory);
-
-        if (isDefault) {
-          hideSubcategorySelect();
-          selectSubcategory(suggestion.subcategory);
-        } else {
-          showSubcategorySelect();
-          const customInput = document.getElementById('trans-subcategory-custom');
-          if (customInput) {
-            customInput.value = suggestion.subcategory;
-            customInput.dispatchEvent(new Event('input', { bubbles: true }));
-          }
-        }
+        // Select the subcategory directly without opening the custom input row,
+        // regardless of whether it is a default subcategory.
+        hideSubcategorySelect();
+        selectSubcategory(suggestion.subcategory);
       }
       if (suggestion.account) {
         const accInput = document.getElementById('trans-account-from');
