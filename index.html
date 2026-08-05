@@ -65,7 +65,7 @@
               ${devButton}
             </div>
             <div style="font-size:11px;color:#8b949e;">
-              Budget Assistant • build v1084
+              Budget Assistant • build v1085
             </div>
           </div>
         `;
@@ -1994,7 +1994,7 @@
             <div class="settings-list-item version-info-row"
               style="padding: 14px 16px; background: transparent; border-top: 1px solid var(--border); margin-top: 8px;">
               <span class="settings-item-label" style="color:var(--text-muted); font-size:12px;"
-                data-i18n="app_version">Έκδοση 1.0.0 (build v1084)</span>
+                data-i18n="app_version">Έκδοση 1.0.0 (build v1085)</span>
               <span class="settings-item-value" style="font-size:12px; color:var(--text-muted); font-weight:600;">Budget
                 Assistant</span>
             </div>
@@ -2786,7 +2786,7 @@
         <span class="bottom-sheet-title" data-i18n="export_sheet_title">Εξαγωγή Excel</span>
         <button class="bottom-sheet-close-btn" onclick="closeExportPeriodSheet()">&times;</button>
       </div>
-      <div class="bottom-sheet-body">
+      <div class="bottom-sheet-body" id="export-step-1">
         <!-- Options List -->
         <div class="bottom-sheet-option active" id="export-opt-current-month"
           onclick="selectExportOption('current-month')">
@@ -2861,6 +2861,18 @@
           </div>
         </div>
 
+        <!-- Step 1 Actions -->
+        <div style="margin-top: 12px; padding: 0 14px;">
+          <button type="button" class="btn btn-primary" onclick="goToExportStep2()"
+            style="width: 100%; font-size: 14.5px; padding: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 10px;">
+            <i class="fa-solid fa-arrow-right"></i>
+            <span data-i18n="export_btn_next">Επόμενο</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- STEP 2: FORMAT SELECTION -->
+      <div class="bottom-sheet-body" id="export-step-2" style="display: none;">
         <!-- Format Selector -->
         <div style="padding: 4px 14px 0 14px;">
           <div
@@ -2892,10 +2904,15 @@
           </div>
         </div>
 
-        <!-- Action Button -->
-        <div style="margin-top: 12px; padding: 0 14px;">
+        <!-- Step 2 Actions -->
+        <div style="margin-top: 12px; padding: 0 14px; display: flex; gap: 8px;">
+          <button type="button" class="btn" onclick="goToExportStep1()"
+            style="flex: 1; font-size: 14.5px; padding: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 10px; background: rgba(255,255,255,0.05); color: var(--text-primary); border: none;">
+            <i class="fa-solid fa-arrow-left"></i>
+            <span data-i18n="export_btn_back">Πίσω</span>
+          </button>
           <button type="button" class="btn btn-primary" onclick="confirmExcelExport()"
-            style="width: 100%; font-size: 14.5px; padding: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 10px;">
+            style="flex: 2; font-size: 14.5px; padding: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 10px;">
             <i class="fa-solid fa-file-export"></i>
             <span data-i18n="export_btn_confirm">Επιβεβαίωση Εξαγωγής</span>
           </button>

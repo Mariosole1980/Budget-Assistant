@@ -972,7 +972,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1084 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1085 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1350,7 +1350,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1084 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1085 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -11339,6 +11339,12 @@ function openExportPeriodSheet() {
   const sheet = document.getElementById('export-period-bottom-sheet');
   if (sheet) sheet.classList.add('active');
 
+  // Reset to step 1
+  const step1 = document.getElementById('export-step-1');
+  const step2 = document.getElementById('export-step-2');
+  if (step1) step1.style.display = 'block';
+  if (step2) step2.style.display = 'none';
+
   selectExportOption('current-month');
 
   const todayStr = new Date().toISOString().split('T')[0];
@@ -11355,6 +11361,22 @@ function closeExportPeriodSheet() {
   const backdrop = document.getElementById('export-period-backdrop');
   if (backdrop) backdrop.classList.remove('active');
 }
+
+function goToExportStep1() {
+  const step1 = document.getElementById('export-step-1');
+  const step2 = document.getElementById('export-step-2');
+  if (step1) step1.style.display = 'block';
+  if (step2) step2.style.display = 'none';
+}
+window.goToExportStep1 = goToExportStep1;
+
+function goToExportStep2() {
+  const step1 = document.getElementById('export-step-1');
+  const step2 = document.getElementById('export-step-2');
+  if (step1) step1.style.display = 'none';
+  if (step2) step2.style.display = 'block';
+}
+window.goToExportStep2 = goToExportStep2;
 
 function selectExportOption(option) {
   selectedExportPeriod = option;
