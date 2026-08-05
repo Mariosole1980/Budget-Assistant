@@ -177,7 +177,12 @@
     var baseCurrency = tx.base_currency || 'EUR';
     if (targetCurrency === txCurrency) return Number(tx.amount);
     if (targetCurrency === baseCurrency) return this.toBase(tx);
-    return this.convert(this.toBase(tx), baseCurrency, targetCurrency, tx.date) || 0;
+    var baseAmount = this.toBase(tx);
+    var converted = this.convert(baseAmount, baseCurrency, targetCurrency, tx.date);
+    // Fall back to the base amount when the exchange rate is unavailable, so
+    // the UI never shows 0 for a real transaction (e.g. offline, or before
+    // today's rates have been fetched).
+    return converted != null ? converted : baseAmount;
   };
   FallbackCurrencyService.prototype.convert = function (amount, fromCurrency, toCurrency, date) {
     if (fromCurrency === toCurrency) return amount;
@@ -1037,7 +1042,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1097 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1098 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1415,7 +1420,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1097 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1098 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',

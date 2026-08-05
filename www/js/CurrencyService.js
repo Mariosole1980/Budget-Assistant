@@ -273,7 +273,12 @@ class CurrencyService {
         const baseCurrency = tx.base_currency || 'EUR';
         if (targetCurrency === txCurrency) return Number(tx.amount);
         if (targetCurrency === baseCurrency) return this.toBase(tx);
-        return this.convert(this.toBase(tx), baseCurrency, targetCurrency, tx.date) || 0;
+        const baseAmount = this.toBase(tx);
+        const converted = this.convert(baseAmount, baseCurrency, targetCurrency, tx.date);
+        // Fall back to the base amount when the exchange rate is unavailable, so
+        // the UI never shows 0 for a real transaction (e.g. offline, or before
+        // today's rates have been fetched).
+        return converted != null ? converted : baseAmount;
     }
 
     /**
