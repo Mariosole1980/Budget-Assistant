@@ -968,7 +968,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1103 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1104 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1346,7 +1346,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1103 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1104 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -5955,6 +5955,10 @@ function saveCategoriesToStorage() {
 // ============================================================
 function renderStatsTab(skipChart = false) {
   const { start, end } = getStatsDateRange();
+  // Declared here (before the anti-flicker signature below) so it is available
+  // for the signature guard. It is also used later when aggregating in the
+  // display (app) currency.
+  const displayCurrency = getDisplayCurrency();
 
   // ANTI-FLICKER: Skip the full re-render if nothing that affects the stats
   // view has changed. Without this, every updateUI() (e.g. the deferred render
@@ -6078,7 +6082,6 @@ function renderStatsTab(skipChart = false) {
   // Aggregate directly in the display (app) currency so each transaction is
   // converted from its own stored base_currency with the exchange rate when the
   // app currency changes (e.g. 1316 € → ~1420 $).
-  const displayCurrency = getDisplayCurrency();
   const monthlyIncome = filteredTrans.filter(t => t.type === 'income').reduce((s, t) => s + CurrencyService.displayAmount(t, displayCurrency), 0);
   const monthlyExpense = filteredTrans.filter(t => t.type === 'expense').reduce((s, t) => s + CurrencyService.displayAmount(t, displayCurrency), 0);
 

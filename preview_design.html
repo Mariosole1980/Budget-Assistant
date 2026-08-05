@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="el">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>BudgetAssistant - Full App Redesign Preview</title>
+
+  <!-- Google Fonts: Outfit & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- Preview CSS -->
+  <link rel="stylesheet" href="preview_design.css">
+</head>
+
+<body>
+
+  <div class="preview-wrapper">
+    <!-- Top App Header -->
+    <div class="app-header">
+      <div class="month-selector">
+        <button class="month-nav-btn"><i class="fa-solid fa-chevron-left"></i></button>
+        <span class="month-title">Αύγουστος 2026</span>
+        <button class="month-nav-btn"><i class="fa-solid fa-chevron-right"></i></button>
+      </div>
+
+      <div class="header-actions">
+        <button class="icon-btn-circle" onclick="alert('Αναζήτηση συναλλαγών')">
+          <i class="fa-solid fa-magnifying-glass"></i>
+        </button>
+        <button class="icon-btn-circle" onclick="alert('Φίλτρα συναλλαγών')">
+          <i class="fa-solid fa-sliders"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- MAIN SCROLLABLE APP CONTENT CONTAINER -->
+    <div class="app-content">
+
+      <!-- ========================================================================== -->
+      <!-- TAB 1: ΚΙΝΗΣΕΙΣ (TRANSACTIONS TAB) -->
+      <!-- ========================================================================== -->
+      <div id="tab-trans" style="display: flex; flex-direction: column; gap: 16px;">
+        
+        <!-- Net Balance Summary Overview Card -->
+        <div class="overview-card">
+          <div class="overview-col">
+            <span class="overview-label">Έσοδα</span>
+            <span class="overview-val-income">+1,450.00 €</span>
+          </div>
+          <div style="width: 1px; height: 32px; background: var(--border);"></div>
+          <div class="overview-col">
+            <span class="overview-label">Έξοδα</span>
+            <span class="overview-val-expense">-620.00 €</span>
+          </div>
+          <div style="width: 1px; height: 32px; background: var(--border);"></div>
+          <div class="overview-col">
+            <span class="overview-label">Υπόλοιπο</span>
+            <span class="overview-val-net">830.00 €</span>
+          </div>
+        </div>
+
+        <!-- Day Group 1: Today -->
+        <div class="day-group">
+          <div class="day-header">
+            <span class="day-date">ΣΗΜΕΡΑ • 06 ΑΥΓΟΥΣΤΟΥ</span>
+            <span class="day-total">-45.50 €</span>
+          </div>
+
+          <div class="tx-list-container">
+            <!-- Tx Item 1 -->
+            <div class="tx-item" onclick="alert('Επεξεργασία συναλλαγής: Σούπερ Μάρκετ')">
+              <div class="tx-left">
+                <div class="tx-icon-squircle icon-red">
+                  <i class="fa-solid fa-cart-shopping"></i>
+                </div>
+                <div class="tx-details">
+                  <span class="tx-title">Σούπερ Μάρκετ</span>
+                  <div class="tx-subtext">
+                    <span>Τρόφιμα</span>
+                    <span class="account-tag">Πειραιώς</span>
+                  </div>
+                </div>
+              </div>
+              <span class="tx-amount expense">-32.50 €</span>
+            </div>
+
+            <!-- Tx Item 2 -->
+            <div class="tx-item" onclick="alert('Επεξεργασία συναλλαγής: Καφές & Snack')">
+              <div class="tx-left">
+                <div class="tx-icon-squircle icon-amber">
+                  <i class="fa-solid fa-mug-hot"></i>
+                </div>
+                <div class="tx-details">
+                  <span class="tx-title">Καφές & Snack</span>
+                  <div class="tx-subtext">
+                    <span>Ψυχαγωγία</span>
+                    <span class="account-tag">Μετρητά</span>
+                  </div>
+                </div>
+              </div>
+              <span class="tx-amount expense">-13.00 €</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Day Group 2: Yesterday -->
+        <div class="day-group">
+          <div class="day-header">
+            <span class="day-date">ΧΘΕΣ • 05 ΑΥΓΟΥΣΤΟΥ</span>
+            <span class="day-total">+1,200.00 €</span>
+          </div>
+
+          <div class="tx-list-container">
+            <!-- Tx Item 3 -->
+            <div class="tx-item" onclick="alert('Επεξεργασία συναλλαγής: Μισθοδοσία')">
+              <div class="tx-left">
+                <div class="tx-icon-squircle icon-emerald">
+                  <i class="fa-solid fa-wallet"></i>
+                </div>
+                <div class="tx-details">
+                  <span class="tx-title">Μισθοδοσία</span>
+                  <div class="tx-subtext">
+                    <span>Έσοδο</span>
+                    <span class="account-tag">Eurobank</span>
+                  </div>
+                </div>
+              </div>
+              <span class="tx-amount income">+1,200.00 €</span>
+            </div>
+
+            <!-- Tx Item 4 -->
+            <div class="tx-item" onclick="alert('Επεξεργασία συναλλαγής: Βενζίνη')">
+              <div class="tx-left">
+                <div class="tx-icon-squircle icon-blue">
+                  <i class="fa-solid fa-gas-pump"></i>
+                </div>
+                <div class="tx-details">
+                  <span class="tx-title">Βενζίνη</span>
+                  <div class="tx-subtext">
+                    <span>Μεταφορές</span>
+                    <span class="account-tag">Alpha Bank</span>
+                  </div>
+                </div>
+              </div>
+              <span class="tx-amount expense">-50.00 €</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ========================================================================== -->
+      <!-- TAB 2: ΣΤΑΤΙΣΤΙΚΑ (STATS TAB) -->
+      <!-- ========================================================================== -->
+      <div id="tab-stats" style="display: none; flex-direction: column; gap: 16px;">
+        
+        <div class="stats-chart-card">
+          <div class="stats-donut-mock">
+            <div class="stats-donut-inner">
+              <span class="donut-total-title">ΣΥΝΟΛΟ EXODΩN</span>
+              <span class="donut-total-val">620.00 €</span>
+            </div>
+          </div>
+
+          <div class="stats-category-list">
+            <!-- Stat 1 -->
+            <div class="stat-cat-row">
+              <div class="stat-cat-info">
+                <div class="stat-cat-left">
+                  <div class="cat-dot" style="background:#e05e55;"></div>
+                  <span>Σούπερ Μάρκετ & Τρόφιμα</span>
+                </div>
+                <span>279.00 € (45%)</span>
+              </div>
+              <div class="stat-bar-track">
+                <div class="stat-bar-fill" style="width:45%; background:#e05e55;"></div>
+              </div>
+            </div>
+
+            <!-- Stat 2 -->
+            <div class="stat-cat-row">
+              <div class="stat-cat-info">
+                <div class="stat-cat-left">
+                  <div class="cat-dot" style="background:#3b82f6;"></div>
+                  <span>Μεταφορές & Καύσιμα</span>
+                </div>
+                <span>155.00 € (25%)</span>
+              </div>
+              <div class="stat-bar-track">
+                <div class="stat-bar-fill" style="width:25%; background:#3b82f6;"></div>
+              </div>
+            </div>
+
+            <!-- Stat 3 -->
+            <div class="stat-cat-row">
+              <div class="stat-cat-info">
+                <div class="stat-cat-left">
+                  <div class="cat-dot" style="background:#f59e0b;"></div>
+                  <span>Λογαριασμοί & Σπίτι</span>
+                </div>
+                <span>111.60 € (18%)</span>
+              </div>
+              <div class="stat-bar-track">
+                <div class="stat-bar-fill" style="width:18%; background:#f59e0b;"></div>
+              </div>
+            </div>
+
+            <!-- Stat 4 -->
+            <div class="stat-cat-row">
+              <div class="stat-cat-info">
+                <div class="stat-cat-left">
+                  <div class="cat-dot" style="background:#8b5cf6;"></div>
+                  <span>Ψυχαγωγία & Καφέδες</span>
+                </div>
+                <span>74.40 € (12%)</span>
+              </div>
+              <div class="stat-bar-track">
+                <div class="stat-bar-fill" style="width:12%; background:#8b5cf6;"></div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ========================================================================== -->
+      <!-- TAB 3: ΛΟΓΑΡΙΑΣΜΟΙ (ACCOUNTS TAB) -->
+      <!-- ========================================================================== -->
+      <div id="tab-accounts" style="display: none; flex-direction: column; gap: 16px;">
+        
+        <div class="networth-hero-card">
+          <span class="networth-title">ΚΑΘΑΡΗ ΘΕΣΗ (NET WORTH)</span>
+          <span class="networth-val">5,090.50 €</span>
+        </div>
+
+        <span class="acct-section-title">ΛΟΓΑΡΙΑΣΜΟΙ & ΜΕΤΡΗΤΑ</span>
+        
+        <!-- Cash Account -->
+        <div class="acct-card-item">
+          <div class="acct-left">
+            <div class="acct-icon icon-emerald">
+              <i class="fa-solid fa-money-bill-wave"></i>
+            </div>
+            <div>
+              <div class="acct-name">Μετρητά</div>
+              <div class="acct-type">Πορτοφόλι</div>
+            </div>
+          </div>
+          <span class="acct-val">240.00 €</span>
+        </div>
+
+        <!-- Bank Account -->
+        <div class="acct-card-item">
+          <div class="acct-left">
+            <div class="acct-icon icon-blue">
+              <i class="fa-solid fa-building-columns"></i>
+            </div>
+            <div>
+              <div class="acct-name">Πειραιώς Ταμιευτήριο</div>
+              <div class="acct-type">Τραπέζης</div>
+            </div>
+          </div>
+          <span class="acct-val">3,850.00 €</span>
+        </div>
+
+        <span class="acct-section-title">ΠΙΣΤΩΤΙΚΕΣ & ΧΡΕΩΣΤΙΚΕΣ ΚΑΡΤΕΣ</span>
+
+        <!-- Bank Card Mockup 1 -->
+        <div class="bank-card card-skin-purple">
+          <div class="card-top-row">
+            <span class="card-bank-name">EUROBANK VISA CREDIT</span>
+            <div class="card-chip"></div>
+          </div>
+          <span class="card-number-masked">•••• •••• •••• 4821</span>
+          <div class="card-bottom-row">
+            <div>
+              <div style="font-size:9px; color:rgba(255,255,255,0.6);">ΚΑΤΟΧΟΣ</div>
+              <span class="card-holder-name">MARIOS APOSTOLOU</span>
+            </div>
+            <span class="card-brand-logo">VISA</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ========================================================================== -->
+      <!-- TAB 4: ΠΕΡΙΣΣΟΤΕΡΑ (MORE SCREEN TAB) -->
+      <!-- ========================================================================== -->
+      <div id="tab-more" style="display: none; flex-direction: column; gap: 16px;">
+        
+        <!-- Profile Header Card V2 -->
+        <div class="profile-card-v2">
+          <div class="profile-card-main">
+            <div class="avatar-wrapper">
+              <div class="profile-avatar-v2">MA</div>
+              <div class="status-indicator-dot" title="Cloud Synced"></div>
+            </div>
+            <div class="profile-info">
+              <span class="profile-name">Μάριος Αποστόλου</span>
+              <span class="profile-email-badge">
+                <i class="fa-regular fa-envelope"></i> mario@example.com
+              </span>
+              <div class="sync-status-chip">
+                <i class="fa-solid fa-cloud-check"></i> Cloud Synced
+              </div>
+            </div>
+          </div>
+
+          <div class="profile-actions-row">
+            <button class="profile-chip-btn" onclick="alert('Επεξεργασία προφίλ')">
+              <i class="fa-solid fa-user-pen"></i> Επεξεργασία
+            </button>
+            <button class="profile-chip-btn" onclick="alert('Εναλλαγή προφίλ (Family/Personal)')">
+              <i class="fa-solid fa-users-between-lines"></i> Εναλλαγή
+            </button>
+          </div>
+        </div>
+
+        <!-- Group 1: Appearance & Preferences -->
+        <div class="settings-group">
+          <span class="group-title">ΕΜΦΑΝΙΣΗ & ΠΡΟΤΙΜΗΣΕΙΣ</span>
+          <div class="group-card-container">
+            
+            <div class="settings-row-v2" onclick="alert('Άνοιγμα Προτιμήσεων')">
+              <div class="row-left">
+                <div class="squircle-icon icon-purple">
+                  <i class="fa-solid fa-sliders"></i>
+                </div>
+                <div class="row-text">
+                  <span class="row-title">Προτιμήσεις Εφαρμογής</span>
+                  <span class="row-desc">Θέμα, Νόμισμα & Προεπιλογές</span>
+                </div>
+              </div>
+              <div class="row-right">
+                <span class="live-badge">EUR € • Dark</span>
+                <i class="fa-solid fa-chevron-right chevron-icon"></i>
+              </div>
+            </div>
+
+            <div class="settings-row-v2" onclick="alert('Άνοιγμα Ειδοποιήσεων')">
+              <div class="row-left">
+                <div class="squircle-icon icon-red">
+                  <i class="fa-solid fa-bell"></i>
+                </div>
+                <div class="row-text">
+                  <span class="row-title">Ειδοποιήσεις & Υπενθυμίσεις</span>
+                  <span class="row-desc">Ημερήσιες υπενθυμίσεις & όρια</span>
+                </div>
+              </div>
+              <div class="row-right">
+                <span class="live-badge highlight">21:00</span>
+                <i class="fa-solid fa-chevron-right chevron-icon"></i>
+              </div>
+            </div>
+
+            <div class="settings-row-v2" onclick="alert('Άνοιγμα Επαναλαμβανόμενων')">
+              <div class="row-left">
+                <div class="squircle-icon icon-emerald">
+                  <i class="fa-solid fa-rotate-right"></i>
+                </div>
+                <div class="row-text">
+                  <span class="row-title">Επαναλαμβανόμενα</span>
+                  <span class="row-desc">Συνδρομές & Πάγιες εντολές</span>
+                </div>
+              </div>
+              <div class="row-right">
+                <span class="live-badge">4 ενεργές</span>
+                <i class="fa-solid fa-chevron-right chevron-icon"></i>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Group 2: Data & Security -->
+        <div class="settings-group">
+          <span class="group-title">ΔΕΔΟΜΕΝΑ & ΑΣΦΑΛΕΙΑ</span>
+          <div class="group-card-container">
+            
+            <div class="settings-row-v2" onclick="alert('Άνοιγμα Συγχρονισμού')">
+              <div class="row-left">
+                <div class="squircle-icon icon-blue">
+                  <i class="fa-solid fa-cloud-arrow-up"></i>
+                </div>
+                <div class="row-text">
+                  <span class="row-title">Δεδομένα & Συγχρονισμός</span>
+                  <span class="row-desc">Cloud Sync, Εισαγωγή & Εξαγωγή</span>
+                </div>
+              </div>
+              <div class="row-right">
+                <span class="live-badge">Auto Sync</span>
+                <i class="fa-solid fa-chevron-right chevron-icon"></i>
+              </div>
+            </div>
+
+            <div class="settings-row-v2" onclick="alert('Άνοιγμα Ασφάλειας')">
+              <div class="row-left">
+                <div class="squircle-icon icon-amber">
+                  <i class="fa-solid fa-shield-halved"></i>
+                </div>
+                <div class="row-text">
+                  <span class="row-title">Ασφάλεια & Ιδιωτικότητα</span>
+                  <span class="row-desc">PIN Κλειδώματος & Βιομετρικά</span>
+                </div>
+              </div>
+              <div class="row-right">
+                <span class="live-badge">PIN 🔒</span>
+                <i class="fa-solid fa-chevron-right chevron-icon"></i>
+              </div>
+            </div>
+
+            <div class="settings-row-v2" onclick="alert('Άνοιγμα Κάδου')">
+              <div class="row-left">
+                <div class="squircle-icon icon-slate">
+                  <i class="fa-solid fa-trash-can"></i>
+                </div>
+                <div class="row-text">
+                  <span class="row-title">Κάδος Ανακύκλωσης</span>
+                  <span class="row-desc">Πρόσφατα διαγραμμένες συναλλαγές</span>
+                </div>
+              </div>
+              <div class="row-right">
+                <span class="live-badge">2 στοιχεία</span>
+                <i class="fa-solid fa-chevron-right chevron-icon"></i>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Group 3: Family & Account -->
+        <div class="settings-group">
+          <span class="group-title">ΟΙΚΟΓΕΝΕΙΑ & ΛΟΓΑΡΙΑΣΜΟΣ</span>
+          <div class="group-card-container">
+            
+            <div class="settings-row-v2" onclick="alert('Άνοιγμα Οικογένειας')">
+              <div class="row-left">
+                <div class="squircle-icon icon-indigo">
+                  <i class="fa-solid fa-users"></i>
+                </div>
+                <div class="row-text">
+                  <span class="row-title">Διαχείριση Οικογένειας</span>
+                  <span class="row-desc">Σύνδεση με σύντροφο για προϋπολογισμό</span>
+                </div>
+              </div>
+              <div class="row-right">
+                <span class="live-badge">Συνδεδεμένο</span>
+                <i class="fa-solid fa-chevron-right chevron-icon"></i>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- Floating Action Button for Adding Transaction -->
+    <button class="fab-btn" onclick="alert('Προσθήκη Νέας Συναλλαγής')" title="Προσθήκη Συναλλαγής">
+      <i class="fa-solid fa-plus"></i>
+    </button>
+
+    <!-- Bottom Navigation Bar -->
+    <nav class="bottom-nav">
+      <div class="nav-item active" onclick="switchNavTab('trans')" id="nav-trans">
+        <i class="fa-solid fa-list-check"></i>
+        <span>Κινήσεις</span>
+      </div>
+      <div class="nav-item" onclick="switchNavTab('stats')" id="nav-stats">
+        <i class="fa-solid fa-chart-pie"></i>
+        <span>Στατιστικά</span>
+      </div>
+      <div class="nav-item" onclick="switchNavTab('accounts')" id="nav-accounts">
+        <i class="fa-solid fa-wallet"></i>
+        <span>Λογαριασμοί</span>
+      </div>
+      <div class="nav-item" onclick="switchNavTab('more')" id="nav-more">
+        <i class="fa-solid fa-ellipsis"></i>
+        <span>Περισσότερα</span>
+      </div>
+    </nav>
+  </div>
+
+  <script>
+    function switchNavTab(tabName) {
+      const tabs = ['trans', 'stats', 'accounts', 'more'];
+      tabs.forEach(t => {
+        const el = document.getElementById('tab-' + t);
+        const nav = document.getElementById('nav-' + t);
+        if (t === tabName) {
+          el.style.display = 'flex';
+          nav.classList.add('active');
+        } else {
+          el.style.display = 'none';
+          nav.classList.remove('active');
+        }
+      });
+    }
+  </script>
+
+</body>
+
+</html>
