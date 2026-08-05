@@ -1,0 +1,3 @@
+Comparing files JS\CurrencyService.js and WWW\JS\CURRENCYSERVICE.JS
+FC: no differences encountered
+

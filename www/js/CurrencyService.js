@@ -317,6 +317,18 @@ class CurrencyService {
             }
         }
 
+        // 3. Αντιστροφή ισοτιμίας: αν έχουμε μόνο quote→base (π.χ. USD→EUR)
+        //    αλλά χρειαζόμαστε base→quote (π.χ. EUR→USD), επέστρεψε 1/rate.
+        //    Αυτό συμβαίνει όταν ο χρήστης αλλάζει το νόμισμα εφαρμογής και οι
+        //    ισοτιμίες φορτώθηκαν με βάση το ΠΡΟΗΓΟΥΜΕΝΟ νόμισμα (π.χ. EUR).
+        const inverseKey = `${quote}_${base}_${dateKey}`;
+        if (this.rateCache.has(inverseKey)) {
+            const inv = this.rateCache.get(inverseKey).rate;
+            if (inv != null && inv !== 0) {
+                return this.round(1 / inv, 8);
+            }
+        }
+
         return null;
     }
 

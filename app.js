@@ -152,6 +152,17 @@
         return rate;
       }
     }
+    // Αντιστροφή ισοτιμίας: αν έχουμε μόνο quote→base (π.χ. USD→EUR) αλλά
+    // χρειαζόμαστε base→quote (π.χ. EUR→USD), επέστρεψε 1/rate. Συμβαίνει όταν
+    // ο χρήστης αλλάζει το νόμισμα εφαρμογής και οι ισοτιμίες φορτώθηκαν με
+    // βάση το ΠΡΟΗΓΟΥΜΕΝΟ νόμισμα (π.χ. EUR).
+    var inverseKey = quote + '_' + base + '_' + dateKey;
+    if (this.rateCache.has(inverseKey)) {
+      var inv = this.rateCache.get(inverseKey).rate;
+      if (inv != null && inv !== 0) {
+        return this.round(1 / inv, 8);
+      }
+    }
     return null;
   };
   FallbackCurrencyService.prototype.computeAmountBase = function (amount, currency, baseCurrency, date, rateToBaseActual) {
@@ -1042,7 +1053,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1098 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1099 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1420,7 +1431,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1098 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1099 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -17109,6 +17120,18 @@ function changeCurrencySetting(val) {
   // of staying stuck on the previous value (e.g. EUR).
   updateSettingsDisplay();
   updateUI();
+  // Fetch today's rates for the NEW app currency so conversions to/from it work
+  // immediately (e.g. switching EUR → USD must fetch USD-based rates). The
+  // inverse-rate fallback in CurrencyService.getRate() then lets transactions
+  // stored in the OLD base currency convert correctly in both directions.
+  if (typeof CurrencyService !== 'undefined' && typeof CurrencyService.fetchTodayRates === 'function') {
+    CurrencyService.fetchTodayRates(val).then((ok) => {
+      if (ok && typeof recomputePendingAmountBase === 'function') {
+        recomputePendingAmountBase();
+      }
+      updateUI();
+    });
+  }
 }
 
 function changeAutoLockSetting(val) {
