@@ -156,7 +156,7 @@ if ($deploy1 -ne 0) {
 # 7. Git Commit & Tag
 Write-Host "[INFO] Staging and committing to Git..." -ForegroundColor Yellow
 git add -A
-git commit -m "build v${newBuild}: Fixed startup flicker - don't pre-render transaction modal for first-time users (guard prerender-modal-style with cached user/guest check)"
+git commit -m "build v${newBuild}: Make advisor month comparison always visible - fall back to top current-month category when no MoM increase, always show comparison bars, and include current month in anti-flicker signature"
 Write-Host "  [SUCCESS] Git commit created for build v${newBuild}" -ForegroundColor Green
 
 Write-Host "[SUCCESS] All steps completed successfully! Builds are live at:" -ForegroundColor Green

@@ -1037,7 +1037,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1093 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1095 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1415,7 +1415,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1093 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1095 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -6803,12 +6803,14 @@ function renderAccountsTab() {
   const liabEl = document.getElementById('accounts-liabilities-list');
 
   // Anti-flicker signature check — skip full rebuild if data hasn't changed
+  const _now = new Date();
   const _acctSig = (state.accounts || []).map(a => `${a.id}_${a.name}_${a.balance}_${a.type}`).join('|')
     + '||' + (state.transactions || []).length
-    + '||' + (state.overviewYear || new Date().getFullYear())
+    + '||' + (state.overviewYear || _now.getFullYear())
     + '||' + (state.lang || 'el')
     + '||' + (state.currentUser ? state.currentUser.id : 'none')
-    + '||' + (state.customSavingsTarget || '');
+    + '||' + (state.customSavingsTarget || '')
+    + '||' + `${_now.getFullYear()}-${_now.getMonth()}`;
   if (assetsEl && assetsEl._lastRenderSignature === _acctSig) return;
   if (assetsEl) assetsEl._lastRenderSignature = _acctSig;
 
@@ -7114,7 +7116,9 @@ function renderAccountsTab() {
     }
   });
 
-  // Calculate MoM increases
+  // Determine the comparison category: prefer the category with the largest
+  // month-over-month increase, otherwise fall back to the top spending
+  // category of the current month so the comparison always has content.
   let maxIncreaseCat = null;
   let maxIncreaseAmt = 0;
 
@@ -7128,16 +7132,39 @@ function renderAccountsTab() {
     }
   });
 
+  // If there is no increase, fall back to the top current-month category so the
+  // comparison bars always render below the advisor.
+  if (!maxIncreaseCat || maxIncreaseAmt <= 0) {
+    let topCat = null;
+    let topAmt = 0;
+    Object.keys(currMonthExpenses).forEach(cat => {
+      const amt = currMonthExpenses[cat] || 0;
+      if (amt > topAmt) {
+        topAmt = amt;
+        topCat = cat;
+      }
+    });
+    if (topCat) {
+      maxIncreaseCat = topCat;
+      maxIncreaseAmt = (currMonthExpenses[topCat] || 0) - (prevMonthExpenses[topCat] || 0);
+    }
+  }
+
+  const hasComparison = !!maxIncreaseCat;
+
   let advisorText = '';
   const advisorEl = document.getElementById('advisor-text');
   const cardEl = document.getElementById('advisor-card');
   const chevronEl = document.getElementById('advisor-chevron');
   const expandedContentEl = document.getElementById('advisor-expanded-content');
 
-  if (maxIncreaseCat && maxIncreaseAmt > 0) {
+  if (hasComparison) {
     const prevAmt = prevMonthExpenses[maxIncreaseCat] || 0;
-    const pctVal = prevAmt > 0 ? Math.round((maxIncreaseAmt / prevAmt) * 100) : null;
-    const pctStr = pctVal !== null ? `${pctVal}%` : '';
+    const currAmt = currMonthExpenses[maxIncreaseCat] || 0;
+    const diffAmt = currAmt - prevAmt;
+    const isIncrease = diffAmt > 0;
+    const pctVal = prevAmt > 0 ? Math.round((diffAmt / prevAmt) * 100) : null;
+    const pctStr = pctVal !== null ? `${Math.abs(pctVal)}%` : '';
 
     // Clean emojis from category name for advice matching
     const cleanCat = maxIncreaseCat.replace(/[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF]/g, '').trim().toUpperCase();
@@ -7191,14 +7218,28 @@ function renderAccountsTab() {
     }
 
     if (state.lang === 'el') {
-      const pctPart = pctStr ? ` κατά **${pctStr}**` : '';
-      advisorText = `Τα έξοδα στην κατηγορία **${maxIncreaseCat}** ανέβηκαν${pctPart} (+${formatDisplayAmount(maxIncreaseAmt)}) αυτόν τον μήνα. Αν συνεχιστεί, ${grConsequence} — ${grAdvice}.`;
+      if (isIncrease) {
+        const pctPart = pctStr ? ` κατά **${pctStr}**` : '';
+        advisorText = `Τα έξοδα στην κατηγορία **${maxIncreaseCat}** ανέβηκαν${pctPart} (+${formatDisplayAmount(diffAmt)}) αυτόν τον μήνα. Αν συνεχιστεί, ${grConsequence} — ${grAdvice}.`;
+      } else if (diffAmt < 0) {
+        const pctPart = pctStr ? ` κατά **${pctStr}**` : '';
+        advisorText = `Τα έξοδα στην κατηγορία **${maxIncreaseCat}** μειώθηκαν${pctPart} (−${formatDisplayAmount(Math.abs(diffAmt))}) σε σχέση με τον προηγούμενο μήνα. Συνέχισε έτσι!`;
+      } else {
+        advisorText = `Τα έξοδα στην κατηγορία **${maxIncreaseCat}** παρέμειναν σταθερά σε σχέση με τον προηγούμενο μήνα. Συνέχισε έτσι!`;
+      }
     } else {
-      const pctPart = pctStr ? ` by **${pctStr}**` : '';
-      advisorText = `Expenses in **${maxIncreaseCat}** rose${pctPart} (+${formatDisplayAmount(maxIncreaseAmt)}) this month. If this continues, it ${enConsequence} — ${enAdvice}.`;
+      if (isIncrease) {
+        const pctPart = pctStr ? ` by **${pctStr}**` : '';
+        advisorText = `Expenses in **${maxIncreaseCat}** rose${pctPart} (+${formatDisplayAmount(diffAmt)}) this month. If this continues, it ${enConsequence} — ${enAdvice}.`;
+      } else if (diffAmt < 0) {
+        const pctPart = pctStr ? ` by **${pctStr}**` : '';
+        advisorText = `Expenses in **${maxIncreaseCat}** decreased${pctPart} (−${formatDisplayAmount(Math.abs(diffAmt))}) compared to last month. Keep it up!`;
+      } else {
+        advisorText = `Expenses in **${maxIncreaseCat}** stayed flat compared to last month. Keep it up!`;
+      }
     }
 
-    // Enable interaction
+    // Enable interaction (always expandable so the comparison is reachable)
     if (cardEl) {
       cardEl.classList.add('interactive');
       cardEl.onclick = () => {
@@ -7257,7 +7298,6 @@ function renderAccountsTab() {
     }
 
     // Populate Month comparison bars
-    const currAmt = currMonthExpenses[maxIncreaseCat] || 0;
     const maxVal = Math.max(prevAmt, currAmt, 1);
     const prevPct = Math.round((prevAmt / maxVal) * 100);
     const currPct = Math.round((currAmt / maxVal) * 100);
@@ -7300,8 +7340,8 @@ function renderAccountsTab() {
     }
   } else {
     advisorText = state.lang === 'el'
-      ? "Η οικονομική σου συμπεριφορά είναι απόλυτα σταθερή αυτόν τον μήνα. Συνέχισε έτσι!"
-      : "Your financial behavior is perfectly stable this month. Keep it up!";
+      ? "Δεν υπάρχουν ακόμη έξοδα αυτόν τον μήνα για σύγκριση."
+      : "No expenses yet this month to compare.";
 
     // Disable interaction
     if (cardEl) {
@@ -7317,7 +7357,7 @@ function renderAccountsTab() {
 
   if (advisorEl) {
     let html = advisorText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    if (maxIncreaseCat && maxIncreaseAmt > 0) {
+    if (hasComparison && maxIncreaseAmt > 0) {
       const discussText = state.lang === 'el' ? '💬 Συζήτησέ το' : '💬 Discuss it';
       const discussQuery = state.lang === 'el'
         ? `Γιατί αυξήθηκαν οι ${maxIncreaseCat} μου αυτόν τον μήνα;`
