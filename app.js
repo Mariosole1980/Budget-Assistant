@@ -972,7 +972,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1087 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1088 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1350,7 +1350,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1087 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1088 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -4115,6 +4115,7 @@ async function loadData() {
           .from('transactions')
           .select('*')
           .order('date', { ascending: false })
+          .order('id', { ascending: false })
           .range(page * pageSize, (page + 1) * pageSize - 1);
 
         if (familyId) {
@@ -4756,8 +4757,6 @@ function processRecurringTemplates() {
 
     if (template.years && template.years.length > 0) {
       if (!template.years.includes(year)) return dates;
-    } else if (template.endYear !== null && year > template.endYear) {
-      return dates;
     }
 
     const preset = template.preset || 'custom';
@@ -19598,6 +19597,7 @@ async function forceSyncNow(silent = false) {
         .from('transactions')
         .select('*')
         .order('date', { ascending: false })
+        .order('id', { ascending: false })
         .range(page * pageSize, (page + 1) * pageSize - 1);
 
       // FIX: Use proper Supabase .or() syntax with individual conditions
@@ -24690,7 +24690,6 @@ async function saveRecurringTemplateEdit() {
   } else {
     template.endType = 'perpetual';
     template.endDate = null;
-    template.endYear = null;
   }
 
   // Clear any deleted-dates markers so regeneration is clean
@@ -25604,9 +25603,9 @@ const USER_GUIDE_DATA = {
       {
         id: 'changelog',
         icon: 'fa-box-archive',
-        title: '1. Έκδοση & Τι Νέο Υπάρχει (v1029)',
+        title: '1. Έκδοση & Τι Νέο Υπάρχει (v1087)',
         content: `
-          <p><strong>Έκδοση Οδηγού:</strong> v1029 | <strong>Συγχρονισμένη Έκδοση Εφαρμογής:</strong> v1029</p>
+          <p><strong>Έκδοση Οδηγού:</strong> v1087 | <strong>Συγχρονισμένη Έκδοση Εφαρμογής:</strong> v1087</p>
           <div class="guide-feature-box">
             <h5 style="margin:0 0 6px; color:var(--primary);">✨ Τι νέο υπάρχει στην τελευταία έκδοση:</h5>
             <ul style="margin:0; padding-left:18px;">
@@ -25803,9 +25802,9 @@ const USER_GUIDE_DATA = {
       {
         id: 'changelog',
         icon: 'fa-box-archive',
-        title: '1. Version & What\'s New (v1029)',
+        title: '1. Version & What\'s New (v1087)',
         content: `
-          <p><strong>Guide Version:</strong> v1029 | <strong>Synchronized App Version:</strong> v1029</p>
+          <p><strong>Guide Version:</strong> v1087 | <strong>Synchronized App Version:</strong> v1087</p>
           <div class="guide-feature-box">
             <h5 style="margin:0 0 6px; color:var(--primary);">✨ What's new in the latest version:</h5>
             <ul style="margin:0; padding-left:18px;">
