@@ -972,7 +972,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1082 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1083 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1350,7 +1350,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1082 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1083 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -4059,6 +4059,9 @@ async function loadData() {
 
       // Process offline queue first (flushes offline deletes/saves) before fetching latest transactions
       await processSyncQueue({ skipReload: true });
+
+      // CRITICAL FIX: Pull cloud trash to local so Guard 3 (Tombstones) has the updated deleted IDs
+      await fetchCloudTrashToLocal();
 
       const userId = state.currentUser.id;
       const partnerId = state.partnerProfile ? state.partnerProfile.id : null;
