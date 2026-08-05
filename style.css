@@ -7813,3 +7813,303 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
   font-size: 12px;
   color: var(--accent, #10b981);
 }
+
+/* ============================================================
+   ULTRA-MODERN SETTINGS PICKERS (Themes, Month, Week, Lock, Currency)
+   ============================================================ */
+
+/* Theme Grid Layout */
+.theme-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+@media (max-width: 360px) {
+  .theme-picker-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.theme-card-option {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+  border-radius: 16px;
+  background: var(--card-bg, rgba(255, 255, 255, 0.03));
+  border: 2px solid var(--border-color, rgba(255, 255, 255, 0.08));
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+.theme-card-option:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.theme-card-option:active {
+  transform: scale(0.97);
+}
+
+.theme-card-option.selected {
+  border-color: var(--accent, #7c6af7);
+  box-shadow: 0 4px 20px rgba(124, 106, 247, 0.25);
+  background: rgba(124, 106, 247, 0.08);
+}
+
+.theme-swatch-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.theme-swatch-bubbles {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.theme-swatch-bubble {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+
+.theme-card-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-main, #ffffff);
+  margin-bottom: 2px;
+}
+
+.theme-card-desc {
+  font-size: 11px;
+  color: var(--text-muted, rgba(255, 255, 255, 0.6));
+  line-height: 1.25;
+}
+
+/* Month Start Circular Calendar Grid */
+.month-start-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.month-start-banner {
+  background: rgba(124, 106, 247, 0.08);
+  border: 1px solid rgba(124, 106, 247, 0.2);
+  border-radius: 14px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-main, #fff);
+}
+
+.month-start-banner i {
+  font-size: 16px;
+  color: var(--accent, #7c6af7);
+  flex-shrink: 0;
+}
+
+.month-picker-circles-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+}
+
+.month-circle-item {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--bg-input, rgba(255, 255, 255, 0.03));
+  border: 1.5px solid var(--border-color, rgba(255, 255, 255, 0.08));
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-main, #ffffff);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.month-circle-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.month-circle-item.selected {
+  background: var(--accent, #7c6af7);
+  border-color: var(--accent, #7c6af7);
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(124, 106, 247, 0.4);
+  transform: scale(1.08);
+}
+
+/* Card Option Rows (Week Start & Auto Lock) */
+.settings-card-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: var(--card-bg, rgba(255, 255, 255, 0.03));
+  border: 1.5px solid var(--border-color, rgba(255, 255, 255, 0.08));
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 8px;
+}
+
+.settings-card-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.settings-card-item.selected {
+  border-color: var(--accent, #7c6af7);
+  background: rgba(124, 106, 247, 0.08);
+  box-shadow: 0 4px 16px rgba(124, 106, 247, 0.15);
+}
+
+.settings-card-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.settings-card-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  color: var(--accent, #7c6af7);
+  flex-shrink: 0;
+}
+
+.settings-card-item.selected .settings-card-icon {
+  background: var(--accent, #7c6af7);
+  color: #fff;
+}
+
+.settings-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.settings-card-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-main, #ffffff);
+}
+
+.settings-card-sub {
+  font-size: 12px;
+  color: var(--text-muted, rgba(255, 255, 255, 0.55));
+}
+
+.settings-card-check {
+  font-size: 14px;
+  color: var(--accent, #7c6af7);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.settings-card-item.selected .settings-card-check {
+  opacity: 1;
+}
+
+/* Rich Currency Item Card */
+.currency-item-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 6px;
+}
+
+.currency-item-card:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.currency-item-card.selected {
+  border-color: var(--accent, #7c6af7);
+  background: rgba(124, 106, 247, 0.08);
+}
+
+.currency-card-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.currency-flag-box {
+  font-size: 24px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.currency-card-details {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.currency-card-main {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.currency-code-badge {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text-main, #ffffff);
+  letter-spacing: 0.5px;
+}
+
+.currency-symbol-tag {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent, #7c6af7);
+  background: rgba(124, 106, 247, 0.15);
+  padding: 1px 6px;
+  border-radius: 6px;
+}
+
+.currency-name-sub {
+  font-size: 12px;
+  color: var(--text-muted, rgba(255, 255, 255, 0.55));
+}
+
+.currency-section-title {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--accent, #7c6af7);
+  margin: 14px 0 8px 4px;
+}

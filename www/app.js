@@ -972,7 +972,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1088 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1089 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1350,7 +1350,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1088 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1089 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -10834,28 +10834,20 @@ function updateCurrencyTriggerDisplay() {
   triggerDisplay.innerHTML = `<span class="custom-select-icon" style="margin-right: 8px;">${flag}</span><span class="custom-select-text">${escapeHtml(name)}</span>`;
 }
 
-function openCurrencyPickerModal() {
+let _currencyPickerTarget = 'transaction';
+
+function openCurrencyPickerModal(options = {}) {
   try {
+    _currencyPickerTarget = (options && options.target) ? options.target : 'transaction';
     const form = document.getElementById('transaction-form');
-    if (form && form.getAttribute('data-readonly') === 'true') return;
-    // Close the calculator keypad so the currency list is fully visible on top
-    // (the keypad has a higher z-index than the picker, so it would otherwise
-    // cover the list). The keypad is reopened after a currency is selected.
-    if (typeof window.closeCalculatorKeypad === 'function') {
+    if (_currencyPickerTarget === 'transaction' && form && form.getAttribute('data-readonly') === 'true') return;
+    if (_currencyPickerTarget === 'transaction' && typeof window.closeCalculatorKeypad === 'function') {
       window.closeCalculatorKeypad();
     }
     const search = document.getElementById('currency-picker-search');
     if (search) search.value = '';
     renderCurrencyPickerOptions();
-    // Open synchronously (instant) instead of via requestAnimationFrame. This
-    // picker is opened from a capture-phase pointerdown handler that calls
-    // e.preventDefault(); on Android WebView that can leave the rendering loop in
-    // a state where a requestAnimationFrame callback is dropped/delayed, so the
-    // modal would never receive the 'active' class and appear to do nothing.
     openModal('currency-picker-modal', { instant: true });
-    // Bulletproof fallback: if for any reason the modal did not receive the
-    // 'active' class (e.g. openModal threw or was interrupted), force it open
-    // directly so the picker ALWAYS appears.
     const el = document.getElementById('currency-picker-modal');
     if (el && !el.classList.contains('active')) {
       el.classList.add('active');
@@ -10864,12 +10856,6 @@ function openCurrencyPickerModal() {
     setTimeout(() => { if (search) search.focus(); }, 100);
   } catch (err) {
     console.error('[CurrencySymbol] openCurrencyPickerModal error:', err);
-    try {
-      if (typeof showSyncToast === 'function') {
-        showSyncToast('Σφάλμα νομίσματος: ' + (err && err.message ? err.message : err), 3000);
-      }
-    } catch (_) { /* ignore */ }
-    // Even on error, force the modal open so the user always gets feedback.
     try {
       const el = document.getElementById('currency-picker-modal');
       if (el) {
@@ -10887,65 +10873,90 @@ function renderCurrencyPickerOptions() {
   const query = search ? search.value.trim().toLowerCase() : '';
 
   const allCurrencies = CurrencyService.getCurrencies();
-  const currentVal = getTransactionCurrency();
+  const currentVal = (_currencyPickerTarget === 'settings') 
+    ? (localStorage.getItem('app_currency') || 'EUR') 
+    : getTransactionCurrency();
   const recent = getRecentCurrencies();
 
-  let list = [];
+  container.innerHTML = '';
+
   if (query) {
-    // Search by code, name, or country
-    list = allCurrencies.filter(c =>
+    const matched = allCurrencies.filter(c =>
       c.code.toLowerCase().includes(query) ||
       (c.name || '').toLowerCase().includes(query) ||
       (c.countries || []).some(ct => String(ct).toLowerCase().includes(query))
     );
-  } else {
-    // Smart list: account currency first, then recent, then popular, then rest
-    const accountCurrency = getSelectedAccountCurrency();
-    const ordered = [];
-    const seen = new Set();
-    const push = (code) => {
-      if (!code || seen.has(code)) return;
-      const c = allCurrencies.find(x => x.code === code);
-      if (c) { ordered.push(c); seen.add(code); }
-    };
-    push(accountCurrency);
-    recent.forEach(push);
-    POPULAR_CURRENCIES.forEach(push);
-    allCurrencies.forEach(c => push(c.code));
-    list = ordered;
-  }
 
-  container.innerHTML = '';
-
-  if (list.length === 0) {
-    container.innerHTML = `<div style="color: var(--text-muted); text-align: center; padding: 20px;">${state.lang === 'el' ? 'Δεν βρέθηκαν νομίσματα' : 'No currencies found'}</div>`;
-    return;
-  }
-
-  // Όταν γίνεται αναζήτηση, δείξε και τις χώρες που ταιριάζουν (με σημαία + νόμισμα)
-  const showCountries = !!query;
-
-  list.forEach(c => {
-    const item = document.createElement('div');
-    item.className = 'account-picker-item';
-    if (c.code === currentVal) item.classList.add('selected');
-    const flag = c.flag || '';
-    const name = c.name || c.code;
-
-    let countryLine = '';
-    if (showCountries && Array.isArray(c.countries) && c.countries.length) {
-      const matched = c.countries.filter(ct => String(ct).toLowerCase().includes(query));
-      const shown = (matched.length ? matched : c.countries).slice(0, 3);
-      countryLine = `<div class="currency-picker-countries">${shown.map(ct => escapeHtml(ct)).join(' · ')}</div>`;
+    if (matched.length === 0) {
+      container.innerHTML = `<div style="color: var(--text-muted); text-align: center; padding: 20px;">${state.lang === 'el' ? 'Δεν βρέθηκαν νομίσματα' : 'No currencies found'}</div>`;
+      return;
     }
 
-    item.innerHTML = `
-      <span class="account-picker-item-icon">${flag}</span>
-      <span class="account-picker-item-name"><strong>${escapeHtml(c.code)}</strong> — ${escapeHtml(name)}${countryLine}</span>
-    `;
-    item.onclick = () => selectCurrencyOption(c.code);
-    container.appendChild(item);
-  });
+    matched.forEach(c => appendCurrencyCardItem(container, c, currentVal, true, query));
+  } else {
+    // 1. Popular & Recent Section
+    const accountCurrency = (_currencyPickerTarget === 'settings') ? null : getSelectedAccountCurrency();
+    const popularCodes = ['EUR', 'USD', 'GBP', 'JPY', 'CHF', 'CAD', 'AUD'];
+    const topList = [];
+    const seen = new Set();
+    const pushTop = (code) => {
+      if (!code || seen.has(code)) return;
+      const c = allCurrencies.find(x => x.code === code);
+      if (c) { topList.push(c); seen.add(code); }
+    };
+    pushTop(accountCurrency);
+    recent.forEach(pushTop);
+    popularCodes.forEach(pushTop);
+
+    if (topList.length > 0) {
+      const topHeader = document.createElement('div');
+      topHeader.className = 'currency-section-title';
+      topHeader.textContent = state.lang === 'el' ? '⭐ Δημοφιλή & Πρόσφατα' : '⭐ Popular & Recent';
+      container.appendChild(topHeader);
+
+      topList.forEach(c => appendCurrencyCardItem(container, c, currentVal, false, ''));
+    }
+
+    // 2. All Currencies Section
+    const allHeader = document.createElement('div');
+    allHeader.className = 'currency-section-title';
+    allHeader.textContent = state.lang === 'el' ? '🌍 Όλα τα Νομίσματα' : '🌍 All Currencies';
+    container.appendChild(allHeader);
+
+    const sortedAll = [...allCurrencies].sort((a, b) => a.code.localeCompare(b.code));
+    sortedAll.forEach(c => appendCurrencyCardItem(container, c, currentVal, false, ''));
+  }
+}
+
+function appendCurrencyCardItem(container, c, currentVal, showMatchedCountries, query) {
+  const isSelected = c.code === currentVal;
+  const card = document.createElement('div');
+  card.className = `currency-item-card ${isSelected ? 'selected' : ''}`;
+  
+  let countryLine = '';
+  if (showMatchedCountries && Array.isArray(c.countries) && c.countries.length) {
+    const matched = c.countries.filter(ct => String(ct).toLowerCase().includes(query));
+    const shown = (matched.length ? matched : c.countries).slice(0, 3);
+    countryLine = `<div class="currency-name-sub" style="margin-top:2px;">📍 ${shown.map(ct => escapeHtml(ct)).join(' · ')}</div>`;
+  }
+
+  card.innerHTML = `
+    <div class="currency-card-left">
+      <div class="currency-flag-box">${c.flag || '🌐'}</div>
+      <div class="currency-card-details">
+        <div class="currency-card-main">
+          <span class="currency-code-badge">${escapeHtml(c.code)}</span>
+          <span class="currency-symbol-tag">${escapeHtml(c.symbol || '')}</span>
+        </div>
+        <div class="currency-name-sub">${escapeHtml(c.name || c.code)}</div>
+        ${countryLine}
+      </div>
+    </div>
+    ${isSelected ? '<i class="fa-solid fa-check settings-card-check" style="opacity:1;"></i>' : ''}
+  `;
+
+  card.onclick = () => selectCurrencyOption(c.code);
+  container.appendChild(card);
 }
 
 function getSelectedAccountCurrency() {
@@ -10958,14 +10969,16 @@ function getSelectedAccountCurrency() {
 }
 
 function selectCurrencyOption(code) {
-  setTransactionCurrency(code);
-  rememberRecentCurrency(code);
-  closeModal('currency-picker-modal');
-  // Reopen the calculator keypad so the user can continue entering the amount
-  // in the newly selected currency (it was closed when the picker opened).
-  if (typeof window.openCalculatorKeypad === 'function') {
-    window.openCalculatorKeypad();
+  if (_currencyPickerTarget === 'settings') {
+    changeCurrencySetting(code);
+  } else {
+    setTransactionCurrency(code);
+    rememberRecentCurrency(code);
+    if (typeof window.openCalculatorKeypad === 'function') {
+      window.openCalculatorKeypad();
+    }
   }
+  closeModal('currency-picker-modal');
 }
 
 // Initializes the transaction currency when opening the form.
@@ -16992,114 +17005,235 @@ function updateSettingsDisplay() {
 }
 
 function openSettingsPicker(type) {
+  if (type === 'currency') {
+    openCurrencyPickerModal({ target: 'settings' });
+    return;
+  }
+
   const titleEl = document.getElementById('settings-picker-title');
   const container = document.getElementById('settings-picker-list');
   if (!titleEl || !container) return;
 
   container.innerHTML = '';
+  container.className = 'settings-picker-list';
 
-  let title = '';
-  let options = [];
-  let currentVal = '';
-  let onSelect = null;
+  if (type === 'theme') {
+    titleEl.textContent = state.lang === 'el' ? 'Θέμα Εμφάνισης' : 'Appearance Theme';
+    container.classList.add('theme-picker-grid');
 
-  if (type === 'currency') {
-    title = state.lang === 'el' ? 'Νόμισμα εφαρμογής' : 'App Currency';
-    currentVal = localStorage.getItem('app_currency') || 'EUR';
-    options = (CurrencyService.getCurrencies() || []).map(c => ({
-      value: c.code,
-      label: c.code + ' (' + (c.symbol || '') + ')'
-    }));
-    onSelect = (val) => {
-      changeCurrencySetting(val);
-    };
-  } else if (type === 'week-start') {
-    title = state.lang === 'el' ? 'Έναρξη Εβδομάδας' : 'Week Start';
-    currentVal = localStorage.getItem('app_week_start') || '1';
-    options = [
-      { value: '1', label: state.lang === 'el' ? 'Δευτέρα' : 'Monday' },
-      { value: '0', label: state.lang === 'el' ? 'Κυριακή' : 'Sunday' },
-      { value: '6', label: state.lang === 'el' ? 'Σάββατο' : 'Saturday' }
+    const currentVal = localStorage.getItem('app_theme') || 'dark';
+    const themes = [
+      {
+        id: 'dark',
+        title: 'Premium Dark',
+        desc: state.lang === 'el' ? 'Σκούρο μωβ & γκρι' : 'Dark purple & charcoal',
+        colors: ['#222731', '#7c6af7', '#1e222b']
+      },
+      {
+        id: 'oled',
+        title: 'OLED Black',
+        desc: state.lang === 'el' ? 'Απόλυτο μαύρο (OLED)' : 'Pure pitch black',
+        colors: ['#000000', '#7c6af7', '#121212']
+      },
+      {
+        id: 'light',
+        title: 'Classic Light',
+        desc: state.lang === 'el' ? 'Καθαρό φωτεινό' : 'Clean & bright light',
+        colors: ['#ffffff', '#2563eb', '#f1f5f9']
+      },
+      {
+        id: 'emerald',
+        title: 'Emerald Forest',
+        desc: state.lang === 'el' ? 'Βαθύ πράσινο' : 'Deep emerald green',
+        colors: ['#182823', '#10b981', '#121f1b']
+      },
+      {
+        id: 'ocean',
+        title: 'Ocean Breeze',
+        desc: state.lang === 'el' ? 'Νυχτερινό μπλε & κυανό' : 'Midnight blue & cyan',
+        colors: ['#1c2541', '#06b6d4', '#0b1329']
+      },
+      {
+        id: 'pink',
+        title: 'Blossom Pink',
+        desc: state.lang === 'el' ? 'Ματζέντα & ροζ' : 'Magenta & soft pink',
+        colors: ['#2d1b24', '#ec4899', '#1e1017']
+      }
     ];
-    onSelect = (val) => {
-      changeWeekStartSetting(val);
-    };
-  } else if (type === 'month-start') {
-    title = state.lang === 'el' ? 'Έναρξη Μήνα' : 'Month Start';
-    currentVal = localStorage.getItem('app_month_start') || '1';
+
+    themes.forEach(t => {
+      const isSelected = t.id === currentVal;
+      const card = document.createElement('div');
+      card.className = `theme-card-option ${isSelected ? 'selected' : ''}`;
+      card.innerHTML = `
+        <div class="theme-swatch-header">
+          <div class="theme-swatch-bubbles">
+            <span class="theme-swatch-bubble" style="background:${t.colors[0]};"></span>
+            <span class="theme-swatch-bubble" style="background:${t.colors[1]};"></span>
+            <span class="theme-swatch-bubble" style="background:${t.colors[2]};"></span>
+          </div>
+          ${isSelected ? '<i class="fa-solid fa-check settings-card-check" style="opacity:1;"></i>' : ''}
+        </div>
+        <div class="theme-card-title">${t.title}</div>
+        <div class="theme-card-desc">${t.desc}</div>
+      `;
+      card.onclick = () => {
+        changeThemeSetting(t.id);
+        updateUI();
+        closeModal('settings-picker-modal');
+      };
+      container.appendChild(card);
+    });
+
+    openModal('settings-picker-modal');
+    return;
+  }
+
+  if (type === 'month-start') {
+    titleEl.textContent = state.lang === 'el' ? 'Έναρξη Μήνα' : 'Month Start';
+    const currentVal = parseInt(localStorage.getItem('app_month_start') || '1');
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'month-start-container';
+
+    const endDay = currentVal === 1 ? 31 : (currentVal - 1);
+    const bannerText = state.lang === 'el'
+      ? `Ο οικονομικός μήνας θα υπολογίζεται από τις <strong>${currentVal}</strong> έως τις <strong>${endDay}</strong> του επόμενου μήνα.`
+      : `Budget month runs from <strong>${currentVal}</strong>th to <strong>${endDay}</strong>th of next month.`;
+
+    wrapper.innerHTML = `
+      <div class="month-start-banner">
+        <i class="fa-solid fa-calendar-days"></i>
+        <span>${bannerText}</span>
+      </div>
+      <div class="month-picker-circles-grid"></div>
+    `;
+
+    container.appendChild(wrapper);
+    const gridEl = wrapper.querySelector('.month-picker-circles-grid');
+
     for (let i = 1; i <= 28; i++) {
-      options.push({ value: String(i), label: String(i) });
+      const circle = document.createElement('div');
+      circle.className = `month-circle-item ${i === currentVal ? 'selected' : ''}`;
+      circle.textContent = i;
+
+      circle.onclick = () => {
+        changeMonthStartSetting(String(i));
+        closeModal('settings-picker-modal');
+      };
+
+      gridEl.appendChild(circle);
     }
-    onSelect = (val) => {
-      changeMonthStartSetting(val);
-    };
-  } else if (type === 'theme') {
-    title = state.lang === 'el' ? 'Θέμα Εμφάνισης' : 'Appearance Theme';
-    currentVal = localStorage.getItem('app_theme') || 'dark';
-    options = [
-      { value: 'dark', label: 'Premium Dark' },
-      { value: 'oled', label: 'OLED Black' },
-      { value: 'light', label: 'Classic Light' },
-      { value: 'emerald', label: 'Emerald Forest' },
-      { value: 'ocean', label: 'Ocean Breeze' },
-      { value: 'pink', label: 'Blossom Pink' }
-    ];
-    onSelect = (val) => {
-      changeThemeSetting(val);
-      updateUI();
-    };
-  } else if (type === 'auto-lock') {
-    title = state.lang === 'el' ? 'Αυτόματο Κλείδωμα' : 'Auto Lock';
-    currentVal = localStorage.getItem('settings_auto_lock_delay') || 'disabled';
-    options = [
-      { value: 'disabled', label: state.lang === 'el' ? 'Απενεργοποιημένο' : 'Disabled' },
-      { value: '1', label: state.lang === 'el' ? '1 λεπτό' : '1 minute' },
-      { value: '5', label: state.lang === 'el' ? '5 λεπτά' : '5 minutes' },
-      { value: '10', label: state.lang === 'el' ? '10 λεπτά' : '10 minutes' }
-    ];
-    onSelect = (val) => {
-      changeAutoLockSetting(val);
-    };
+
+    openModal('settings-picker-modal');
+    return;
   }
 
-  titleEl.textContent = title;
+  if (type === 'week-start') {
+    titleEl.textContent = state.lang === 'el' ? 'Έναρξη Εβδομάδας' : 'Week Start';
+    const currentVal = localStorage.getItem('app_week_start') || '1';
 
-  // For month-start, render the numbers in a modern calendar-style grid.
-  const isGrid = type === 'month-start';
-  if (isGrid) {
-    container.classList.add('settings-picker-grid');
-  } else {
-    container.classList.remove('settings-picker-grid');
+    const options = [
+      {
+        value: '1',
+        title: state.lang === 'el' ? 'Δευτέρα' : 'Monday',
+        sub: state.lang === 'el' ? 'Προεπιλογή Ευρώπης & Ελλάδας' : 'Europe & International standard',
+        icon: 'fa-calendar-week'
+      },
+      {
+        value: '0',
+        title: state.lang === 'el' ? 'Κυριακή' : 'Sunday',
+        sub: state.lang === 'el' ? 'Προεπιλογή Αμερικής & Ασίας' : 'US & Asia standard',
+        icon: 'fa-sun'
+      },
+      {
+        value: '6',
+        title: state.lang === 'el' ? 'Σάββατο' : 'Saturday',
+        sub: state.lang === 'el' ? 'Προεπιλογή Μέσης Ανατολής' : 'Middle East standard',
+        icon: 'fa-coffee'
+      }
+    ];
+
+    options.forEach(opt => {
+      const isSelected = opt.value === currentVal;
+      const card = document.createElement('div');
+      card.className = `settings-card-item ${isSelected ? 'selected' : ''}`;
+      card.innerHTML = `
+        <div class="settings-card-left">
+          <div class="settings-card-icon"><i class="fa-solid ${opt.icon}"></i></div>
+          <div class="settings-card-info">
+            <div class="settings-card-title">${opt.title}</div>
+            <div class="settings-card-sub">${opt.sub}</div>
+          </div>
+        </div>
+        <i class="fa-solid fa-check settings-card-check"></i>
+      `;
+      card.onclick = () => {
+        changeWeekStartSetting(opt.value);
+        closeModal('settings-picker-modal');
+      };
+      container.appendChild(card);
+    });
+
+    openModal('settings-picker-modal');
+    return;
   }
 
-  options.forEach(opt => {
-    const item = document.createElement('div');
-    item.className = 'settings-picker-item';
-    if (opt.value === currentVal) {
-      item.classList.add('selected');
-    }
+  if (type === 'auto-lock') {
+    titleEl.textContent = state.lang === 'el' ? 'Αυτόματο Κλείδωμα' : 'Auto Lock';
+    const currentVal = localStorage.getItem('settings_auto_lock_delay') || 'disabled';
 
-    if (isGrid) {
-      item.innerHTML = `
-        <span class="settings-picker-item-label">${opt.label}</span>
-        ${opt.value === currentVal ? '<i class="fa-solid fa-check settings-picker-item-check"></i>' : ''}
+    const options = [
+      {
+        value: 'disabled',
+        title: state.lang === 'el' ? 'Απενεργοποιημένο' : 'Disabled',
+        sub: state.lang === 'el' ? 'Η εφαρμογή δεν κλειδώνει αυτόματα' : 'App never auto-locks',
+        icon: 'fa-lock-open'
+      },
+      {
+        value: '1',
+        title: state.lang === 'el' ? '1 λεπτό' : '1 minute',
+        sub: state.lang === 'el' ? 'Κλείδωμα μετά από 1 λεπτό αδράνειας' : 'Locks after 1 min of inactivity',
+        icon: 'fa-clock'
+      },
+      {
+        value: '5',
+        title: state.lang === 'el' ? '5 λεπτά' : '5 minutes',
+        sub: state.lang === 'el' ? 'Κλείδωμα μετά από 5 λεπτά αδράνειας' : 'Locks after 5 mins of inactivity',
+        icon: 'fa-clock'
+      },
+      {
+        value: '10',
+        title: state.lang === 'el' ? '10 λεπτά' : '10 minutes',
+        sub: state.lang === 'el' ? 'Κλείδωμα μετά από 10 λεπτά αδράνειας' : 'Locks after 10 mins of inactivity',
+        icon: 'fa-clock'
+      }
+    ];
+
+    options.forEach(opt => {
+      const isSelected = opt.value === currentVal;
+      const card = document.createElement('div');
+      card.className = `settings-card-item ${isSelected ? 'selected' : ''}`;
+      card.innerHTML = `
+        <div class="settings-card-left">
+          <div class="settings-card-icon"><i class="fa-solid ${opt.icon}"></i></div>
+          <div class="settings-card-info">
+            <div class="settings-card-title">${opt.title}</div>
+            <div class="settings-card-sub">${opt.sub}</div>
+          </div>
+        </div>
+        <i class="fa-solid fa-check settings-card-check"></i>
       `;
-    } else {
-      item.innerHTML = `
-        <span class="settings-picker-item-label">${opt.label}</span>
-        ${opt.value === currentVal ? '<i class="fa-solid fa-check settings-picker-item-check"></i>' : ''}
-      `;
-    }
+      card.onclick = () => {
+        changeAutoLockSetting(opt.value);
+        closeModal('settings-picker-modal');
+      };
+      container.appendChild(card);
+    });
 
-    item.onclick = () => {
-      onSelect(opt.value);
-      closeModal('settings-picker-modal');
-    };
-
-    container.appendChild(item);
-  });
-
-  openModal('settings-picker-modal');
+    openModal('settings-picker-modal');
+    return;
+  }
 }
 
 function initSettingsFromStorage() {

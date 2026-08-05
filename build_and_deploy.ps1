@@ -1,10 +1,8 @@
-param(
-    [switch]$OTAOnly
-)
+param()
 
 # Set console output encoding to UTF8
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-Set-Location "C:\Users\mario\Desktop\money-manager"
+Set-Location "C:\Users\mario\Desktop\budget-assistant"
 
 Write-Host "[INFO] Starting Build & Deploy Automation Script..." -ForegroundColor Cyan
 
@@ -75,9 +73,6 @@ Copy-Item icon.png www/icon.png -Force
 Copy-Item xlsx.full.min.js www/xlsx.full.min.js -Force
 Copy-Item version.json www/version.json -Force
 Copy-Item _headers www/_headers -Force
-Copy-Item clear.html www/clear.html -Force
-Copy-Item nuke.html www/nuke.html -Force
-Copy-Item debug.html www/debug.html -Force
 if (Test-Path privacy.html) { Copy-Item privacy.html www/privacy.html -Force }
 Write-Host "  [SUCCESS] Files copied successfully." -ForegroundColor Green
 
@@ -103,10 +98,9 @@ $versionData = @{
 $versionData | ConvertTo-Json | Set-Content "www/version.json"
 Write-Host "  [SUCCESS] Capgo bundle generated and version.json updated." -ForegroundColor Green
 
-if (-not $OTAOnly) {
     # 3. Capacitor Sync
     Write-Host "[INFO] Running npx cap sync..." -ForegroundColor Yellow
-    npx cap sync
+    cmd /c npx cap sync android
     if ($LASTEXITCODE -ne 0) {
         Write-Host "[ERROR] Capacitor Sync failed!" -ForegroundColor Red
         Exit 1
@@ -134,25 +128,17 @@ if (-not $OTAOnly) {
     $aabSource = "android\app\build\outputs\bundle\release\app-release.aab"
     $desktopDir = [System.IO.Path]::Combine([System.Environment]::GetFolderPath("Desktop"))
 
-    if (Test-Path $apkDebugSource) {
-        Copy-Item $apkDebugSource "$desktopDir\BudgetAssistant-debug.apk" -Force
-        Copy-Item $apkDebugSource "$desktopDir\BudgetAssistant.apk" -Force
-        Write-Host "  [SUCCESS] Debug APK copied to Desktop as BudgetAssistant.apk and BudgetAssistant-debug.apk" -ForegroundColor Green
-    }
     if (Test-Path $apkReleaseSource) {
-        Copy-Item $apkReleaseSource "$desktopDir\BudgetAssistant-release.apk" -Force
-        Write-Host "  [SUCCESS] Signed Release APK copied to Desktop as BudgetAssistant-release.apk" -ForegroundColor Green
+        Copy-Item $apkReleaseSource "$desktopDir\BudgetAssistant-Latest.apk" -Force
+        Write-Host "  [SUCCESS] Signed Release APK copied to Desktop as BudgetAssistant-Latest.apk" -ForegroundColor Green
     }
     if (Test-Path $aabSource) {
         Copy-Item $aabSource "$desktopDir\BudgetAssistant.aab" -Force
         Write-Host "  [SUCCESS] Signed Play Store Bundle copied to Desktop as BudgetAssistant.aab" -ForegroundColor Green
     } else {
         Write-Host "[ERROR] Play Store Bundle (AAB) not found at $aabSource" -ForegroundColor Red
-        Exit 1
     }
-} else {
-    Write-Host "[INFO] -OTAOnly flag specified. Skipping Capacitor Sync and Android builds." -ForegroundColor Cyan
-}
+
 
 # 6. Wrangler Deploy to Cloudflare Pages
 Write-Host "[INFO] Deploying to Cloudflare Pages..." -ForegroundColor Yellow
@@ -162,11 +148,7 @@ Write-Host "  [DEPLOY] Deploying to budget-assistant-pwa..." -ForegroundColor Ye
 wrangler pages deploy www --project-name=budget-assistant-pwa --branch=main
 $deploy1 = $LASTEXITCODE
 
-Write-Host "  [DEPLOY] Deploying to money-manager-pwa..." -ForegroundColor Yellow
-wrangler pages deploy www --project-name=money-manager-pwa --branch=main
-$deploy2 = $LASTEXITCODE
-
-if ($deploy1 -ne 0 -or $deploy2 -ne 0) {
+if ($deploy1 -ne 0) {
     Write-Host "[ERROR] Wrangler deployment failed!" -ForegroundColor Red
     Exit 1
 }
@@ -179,5 +161,4 @@ Write-Host "  [SUCCESS] Git commit created for build v${newBuild}" -ForegroundCo
 
 Write-Host "[SUCCESS] All steps completed successfully! Builds are live at:" -ForegroundColor Green
 Write-Host "  - https://budget-assistant-pwa.pages.dev" -ForegroundColor Green
-Write-Host "  - https://money-manager-pwa.pages.dev" -ForegroundColor Green
-
+Write-Host "  - https://budget-assistant-pwa.pages.dev" -ForegroundColor Green
