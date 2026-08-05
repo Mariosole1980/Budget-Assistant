@@ -972,7 +972,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1079 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1080 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1350,7 +1350,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1079 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1080 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -5102,6 +5102,97 @@ async function saveDeletedTransactionsToSupabase(deletedTxs) {
 
 async function syncLocalTrashToCloud() {
   await saveDeletedTransactionsToSupabase(state.trashTransactions || []);
+}
+
+// Pull deleted transactions from the cloud (deleted_transactions table) and merge
+// them into the local trash bin. This makes the recycle bin consistent across all
+// devices (web + APK), since trash is otherwise stored only in each device's
+// localStorage and the cloud is used just as a push-only backup.
+async function fetchCloudTrashToLocal() {
+  if (!state.isSupabaseEnabled || !state.supabaseClient || !state.currentUser) return;
+
+  try {
+    const userId = state.currentUser.id;
+    const partnerId = state.partnerProfile ? state.partnerProfile.id : null;
+    const familyId = state.userProfile ? state.userProfile.family_id : null;
+
+    // Fetch ALL cloud trash rows (paginated) for this user/family/partner
+    let cloudTrash = [];
+    let page = 0;
+    const pageSize = 1000;
+    let hasMore = true;
+
+    while (hasMore) {
+      let trashQuery = state.supabaseClient
+        .from('deleted_transactions')
+        .select('*')
+        .order('deleted_at', { ascending: false })
+        .range(page * pageSize, (page + 1) * pageSize - 1);
+
+      if (familyId && partnerId) {
+        trashQuery = trashQuery.or(`family_id.eq.${familyId},user_id.eq.${userId},user_id.eq.${partnerId}`);
+      } else if (familyId) {
+        trashQuery = trashQuery.or(`family_id.eq.${familyId},user_id.eq.${userId}`);
+      } else if (partnerId) {
+        trashQuery = trashQuery.or(`user_id.eq.${userId},user_id.eq.${partnerId}`);
+      } else {
+        trashQuery = trashQuery.eq('user_id', userId);
+      }
+
+      const { data: pageData, error: pageErr } = await promiseTimeout(trashQuery, 15000);
+      if (pageErr) {
+        console.warn('Cloud trash fetch error:', pageErr);
+        return;
+      }
+
+      if (pageData && pageData.length > 0) {
+        cloudTrash = cloudTrash.concat(pageData);
+        page++;
+        if (pageData.length < pageSize) hasMore = false;
+      } else {
+        hasMore = false;
+      }
+    }
+
+    if (cloudTrash.length === 0) return;
+
+    // Merge cloud trash into local trash, deduplicating by id (keep local version
+    // if it already exists so we don't clobber locally-deleted items).
+    state.trashTransactions = state.trashTransactions || [];
+    const existingMap = new Map(state.trashTransactions.map(t => [String(t.id), t]));
+    let added = 0;
+    cloudTrash.forEach(item => {
+      if (item && item.id && !existingMap.has(String(item.id))) {
+        const trashItem = { ...item, deleted_at: item.deleted_at || new Date().toISOString() };
+        state.trashTransactions.push(trashItem);
+        existingMap.set(String(item.id), trashItem);
+        added++;
+      }
+    });
+
+    if (added === 0) return;
+
+    // Keep the same 100-item cap used everywhere else in the app
+    if (state.trashTransactions.length > 100) {
+      state.trashTransactions = state.trashTransactions.slice(-100);
+    }
+    localStorage.setItem('deleted_transactions_trash', JSON.stringify(state.trashTransactions));
+
+    // Refresh the trash count badge
+    const trashCount = state.trashTransactions.length;
+    const trashCountEl = document.getElementById('trash-bin-count-val');
+    if (trashCountEl) trashCountEl.textContent = trashCount;
+    const hubTrashCountEl = document.getElementById('hub-trash-count');
+    if (hubTrashCountEl) hubTrashCountEl.textContent = trashCount;
+
+    // If the trash modal is currently open, re-render its list
+    const trashModal = document.getElementById('trash-bin-modal');
+    if (trashModal && trashModal.classList.contains('show')) {
+      renderTrashBinList();
+    }
+  } catch (err) {
+    console.warn('Failed to fetch cloud trash:', err);
+  }
 }
 
 function deleteTransaction(id) {
@@ -19402,6 +19493,10 @@ async function forceSyncNow(silent = false) {
 
     // Auto-sync deleted transactions from local trash to Supabase
     await syncLocalTrashToCloud();
+
+    // Pull deleted transactions from the cloud into the local trash bin so the
+    // recycle bin stays consistent across all devices (web + APK)
+    await fetchCloudTrashToLocal();
 
     // Process offline sync queue (applies offline deletes/saves to cloud) before fetching
     await processSyncQueue({ skipReload: true });
