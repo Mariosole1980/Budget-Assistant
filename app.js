@@ -972,7 +972,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1072 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1073 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1350,7 +1350,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1072 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1073 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -16865,6 +16865,20 @@ function updateSettingsDisplay() {
       'pink': 'Blossom Pink'
     };
     themeDisplay.textContent = themeLabels[theme] || theme;
+  }
+  if (themeDisplay && themeDisplay.parentElement) {
+    themeDisplay.parentElement.style.background = "rgba(var(--accent-rgb, 124, 106, 247), 0.12)";
+    themeDisplay.parentElement.style.border = "1px solid rgba(var(--accent-rgb, 124, 106, 247), 0.3)";
+    themeDisplay.style.color = "var(--accent)";
+    const icon = themeDisplay.parentElement.querySelector("i");
+    if (icon) icon.style.color = "var(--accent)";
+  }
+  if (currencyDisplay && currencyDisplay.parentElement) {
+    currencyDisplay.parentElement.style.background = "rgba(var(--accent-rgb, 124, 106, 247), 0.12)";
+    currencyDisplay.parentElement.style.border = "1px solid rgba(var(--accent-rgb, 124, 106, 247), 0.3)";
+    currencyDisplay.style.color = "var(--accent)";
+    const icon = currencyDisplay.parentElement.querySelector("i");
+    if (icon) icon.style.color = "var(--accent)";
   }
 
   const autoLockDisplay = document.getElementById('settings-auto-lock-display');

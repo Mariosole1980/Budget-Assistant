@@ -16541,6 +16541,20 @@ function updateSettingsDisplay() {
     };
     themeDisplay.textContent = themeLabels[theme] || theme;
   }
+  if (themeDisplay && themeDisplay.parentElement) {
+    themeDisplay.parentElement.style.background = "rgba(var(--accent-rgb, 124, 106, 247), 0.12)";
+    themeDisplay.parentElement.style.border = "1px solid rgba(var(--accent-rgb, 124, 106, 247), 0.3)";
+    themeDisplay.style.color = "var(--accent)";
+    const icon = themeDisplay.parentElement.querySelector("i");
+    if (icon) icon.style.color = "var(--accent)";
+  }
+  if (currencyDisplay && currencyDisplay.parentElement) {
+    currencyDisplay.parentElement.style.background = "rgba(var(--accent-rgb, 124, 106, 247), 0.12)";
+    currencyDisplay.parentElement.style.border = "1px solid rgba(var(--accent-rgb, 124, 106, 247), 0.3)";
+    currencyDisplay.style.color = "var(--accent)";
+    const icon = currencyDisplay.parentElement.querySelector("i");
+    if (icon) icon.style.color = "var(--accent)";
+  }
 }
 
 function openSettingsPicker(type) {
