@@ -282,13 +282,39 @@ class CurrencyService {
         const txCurrency = tx.currency || 'EUR';
         const baseCurrency = tx.base_currency || 'EUR';
         if (targetCurrency === txCurrency) return Number(tx.amount);
-        if (targetCurrency === baseCurrency) return this.toBase(tx);
-        const baseAmount = this.toBase(tx);
+        
+        let baseAmount;
+        if (tx.fx_snapshot && typeof tx.fx_snapshot.rate === 'number' && tx.fx_snapshot.rate > 0) {
+            baseAmount = this.round(Number(tx.amount) / tx.fx_snapshot.rate, 4);
+        } else {
+            baseAmount = this.toBase(tx);
+        }
+
+        if (targetCurrency === baseCurrency) return baseAmount;
+
         const converted = this.convert(baseAmount, baseCurrency, targetCurrency, tx.date);
-        // Fall back to the base amount when the exchange rate is unavailable, so
-        // the UI never shows 0 for a real transaction (e.g. offline, or before
-        // today's rates have been fetched).
         return converted != null ? converted : baseAmount;
+    }
+
+    /**
+     * Καθαρίζει παλιές εγγραφές ισοτιμιών από το localStorage (παλαιότερες των 30 ημερών).
+     */
+    pruneFxCache() {
+        try {
+            const now = Date.now();
+            const maxAge = 30 * 24 * 60 * 60 * 1000;
+            for (let i = localStorage.length - 1; i >= 0; i--) {
+                const key = localStorage.key(i);
+                if (key && (key.startsWith('fx_') || key.startsWith('all_fx_rates_'))) {
+                    try {
+                        const item = JSON.parse(localStorage.getItem(key));
+                        if (item && item.fetched_at && (now - item.fetched_at > maxAge)) {
+                            localStorage.removeItem(key);
+                        }
+                    } catch (e) {}
+                }
+            }
+        } catch (e) {}
     }
 
     /**

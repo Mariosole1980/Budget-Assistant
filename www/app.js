@@ -1053,7 +1053,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1101 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1102 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1431,7 +1431,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1101 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1102 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -8220,26 +8220,38 @@ function setupEventListeners() {
       // Always computed so new transactions are consistent with the schema, even when the
       // feature flag is off (EUR → 1:1).
       {
-        const baseCurrency = localStorage.getItem('app_currency') || 'EUR';
+        const userPreferredCurrency = state.userProfile?.base_currency || state.userProfile?.display_currency || getDisplayCurrency();
+        const baseCurrency = userPreferredCurrency;
         const txCurrency = t.currency || 'EUR';
         t.base_currency = baseCurrency;
+
+        let rate = 1;
         if (txCurrency === baseCurrency) {
           t.rate_to_base = 1;
           t.amount_base = CurrencyService.round(Number(t.amount), 4);
           t.rate_source = 'api';
         } else {
-          const rate = CurrencyService.getRate(txCurrency, baseCurrency, t.date);
-          if (rate != null && rate > 0) {
+          const foundRate = CurrencyService.getRate(txCurrency, baseCurrency, t.date);
+          if (foundRate != null && foundRate > 0) {
+            rate = foundRate;
             t.rate_to_base = rate;
             t.amount_base = CurrencyService.round(Number(t.amount) / rate, 4);
             t.rate_source = 'api';
           } else {
-            // No rate available (offline) — store raw amount, will be corrected later
             t.rate_to_base = null;
             t.amount_base = null;
             t.rate_source = 'cached';
           }
         }
+
+        // Store immutable fx_snapshot on transaction for audit-reproducible historical rendering
+        t.fx_snapshot = {
+          base: txCurrency,
+          quote: baseCurrency,
+          rate: t.rate_to_base_actual || t.rate_to_base || rate || 1,
+          date: t.date ? String(t.date).split('T')[0] : new Date().toISOString().slice(0, 10),
+          source: t.rate_source || 'api'
+        };
       }
 
       // Multi-currency: apply the user-entered actual charged amount (base currency)
@@ -17022,17 +17034,20 @@ function updateDualAmountDisplay() {
 // Returns the display currency code. In the "Invisible Multi-Currency" model,
 // the display currency concept is removed: all amounts are shown in the
 // application currency (base currency). This always returns the base currency.
+// Returns the display currency code per user (or fallback to device setting).
 function getDisplayCurrency() {
+  const userId = state.currentUser ? state.currentUser.id : null;
+  const userDisplayCurrency = state.userProfile?.display_currency || state.userProfile?.preferred_currency;
+  if (userDisplayCurrency) return userDisplayCurrency;
+  if (userId) {
+    const userStored = localStorage.getItem(`app_currency_${userId}`);
+    if (userStored) return userStored;
+  }
   return localStorage.getItem('app_currency') || 'EUR';
 }
 
 // Determines the source currency of aggregated values that were computed via
-// CurrencyService.toBase(t) (e.g. FHS liquid balance, forecast savings). Those
-// values are cached in each transaction's `base_currency` (the app currency at
-// the time the transaction was created), so after an app-currency change they
-// are still in the OLD base currency. This returns the most common
-// `base_currency` among the given transactions, falling back to the current app
-// currency when there are no transactions or they are mixed.
+// CurrencyService.toBase(t) (e.g. FHS liquid balance, forecast savings).
 function getTransactionsBaseCurrency(transactions) {
   const counts = {};
   let best = getDisplayCurrency();
@@ -17048,18 +17063,7 @@ function getTransactionsBaseCurrency(transactions) {
   return best;
 }
 
-// Converts an amount expressed in `fromCurrency` to the current application
-// currency (display currency) for display purposes.
-//
-// `fromCurrency` defaults to the current app currency, which keeps the original
-// behaviour for callers that already pass amounts in the app currency (no
-// conversion happens). When the user changes the app currency, existing stored
-// amounts are still cached in the OLD base currency (each transaction's
-// `base_currency`), so callers must pass that old currency here to convert the
-// value with the exchange rate (e.g. 1316 € → ~1420 $) instead of just swapping
-// the symbol.
-//
-// Returns null when the conversion cannot be performed (no rate available).
+// Converts an amount expressed in `fromCurrency` to the current display currency.
 function displayAmountInDisplayCurrency(baseAmount, fromCurrency) {
   const displayCurrency = getDisplayCurrency();
   const sourceCurrency = fromCurrency || displayCurrency;
@@ -17069,38 +17073,32 @@ function displayAmountInDisplayCurrency(baseAmount, fromCurrency) {
   return CurrencyService.round(baseAmount * rate, 2);
 }
 
-// Formats an amount for display, converting it from `fromCurrency` (defaults to
-// the current app currency) to the display currency when a rate is available.
-// Falls back to the raw amount when conversion is not possible.
+// Formats an amount for display in the active display currency.
 function formatDisplayAmount(baseAmount, fromCurrency) {
   const displayVal = displayAmountInDisplayCurrency(baseAmount, fromCurrency);
   return formatCurrency(displayVal != null ? displayVal : baseAmount);
 }
 
-// Returns the account's balance converted to the base currency, using the
-// account's own currency (defaults to base currency when not set).
+// Returns the account's balance converted to the current display currency.
 function getAccountBalanceInBase(acc) {
   if (!acc) return 0;
   const balance = parseFloat(acc.balance) || 0;
-  const baseCurrency = localStorage.getItem('app_currency') || 'EUR';
+  const baseCurrency = getDisplayCurrency();
   const accCurrency = acc.currency || baseCurrency;
   if (accCurrency === baseCurrency) return balance;
   const rate = CurrencyService.getRate(accCurrency, baseCurrency, new Date().toISOString().slice(0, 10));
-  if (rate == null || rate <= 0) return null; // cannot convert
+  if (rate == null || rate <= 0) return balance; // Fall back to nominal balance if rate missing (never hide balance)
   return CurrencyService.round(balance / rate, 2);
 }
 
-// Computes the total net worth across all accounts, converting each account's
-// balance (in its own currency) to the base currency. Returns null if any
-// account balance cannot be converted (missing rate).
+// Computes the total net worth across all accounts in the display currency.
 function computeNetWorth() {
   const accounts = state.accounts || [];
   if (accounts.length === 0) return 0;
   let total = 0;
   for (const acc of accounts) {
     const inBase = getAccountBalanceInBase(acc);
-    if (inBase == null) return null; // missing rate — cannot compute reliably
-    total += inBase;
+    total += (inBase || 0);
   }
   return CurrencyService.round(total, 2);
 }
@@ -17116,16 +17114,23 @@ function changeWeekStartSetting(val) {
 }
 
 function changeCurrencySetting(val) {
+  const userId = state.currentUser ? state.currentUser.id : null;
+  if (userId) {
+    localStorage.setItem(`app_currency_${userId}`, val);
+  }
   localStorage.setItem('app_currency', val);
-  // Refresh the settings display immediately so the "Νόμισμα εφαρμογής" pill
-  // (and any other settings labels) reflect the newly selected currency instead
-  // of staying stuck on the previous value (e.g. EUR).
+
+  if (state.userProfile) {
+    state.userProfile.display_currency = val;
+    state.userProfile.preferred_currency = val;
+    if (state.supabaseClient && userId) {
+      state.supabaseClient.from('profiles').update({ display_currency: val, base_currency: val }).eq('id', userId).then(() => {}).catch(() => {});
+    }
+  }
+
   updateSettingsDisplay();
   updateUI();
-  // Fetch today's rates for the NEW app currency so conversions to/from it work
-  // immediately (e.g. switching EUR → USD must fetch USD-based rates). The
-  // inverse-rate fallback in CurrencyService.getRate() then lets transactions
-  // stored in the OLD base currency convert correctly in both directions.
+
   if (typeof CurrencyService !== 'undefined' && typeof CurrencyService.fetchTodayRates === 'function') {
     CurrencyService.fetchTodayRates(val).then((ok) => {
       if (ok && typeof recomputePendingAmountBase === 'function') {
