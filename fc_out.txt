@@ -1,3 +1,0 @@
-Comparing files app.js and WWW\APP.JS
-FC: no differences encountered
-
