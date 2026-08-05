@@ -620,6 +620,58 @@ function _markRecentlyDeleted(id) {
   setTimeout(() => { _recentlyDeletedTxIds.delete(String(id)); }, 30000);
 }
 
+// ============================================================
+// PERMANENT-DELETE TOMBSTONES
+// ------------------------------------------------------------
+// When the user empties the trash bin or permanently deletes a single
+// trash item, we record the item's ID here (persisted to localStorage).
+// This acts as a safety net so that fetchCloudTrashToLocal() never re-pulls
+// those items from the Supabase `deleted_transactions` table on the next
+// sync, even if the cloud delete raced with the fetch or failed while the
+// user was offline. The PRIMARY fix is that emptyTrashBin/deleteSingleTrashItem
+// now await a scoped cloud delete (user + family + partner); the tombstone
+// only guarantees permanent-delete semantics when that delete cannot complete.
+// ============================================================
+const PERMANENT_DELETE_KEY = 'permanently_deleted_trash_ids';
+let _permanentlyDeletedTrashIds = null;
+
+// Guards against a concurrent fetchCloudTrashToLocal() racing with an
+// in-progress permanent delete (empty trash / single permanent delete).
+let _permanentDeleteInProgress = false;
+
+function _loadPermanentlyDeletedTrashIds() {
+  if (_permanentlyDeletedTrashIds) return _permanentlyDeletedTrashIds;
+  try {
+    const raw = localStorage.getItem(PERMANENT_DELETE_KEY);
+    _permanentlyDeletedTrashIds = new Set(raw ? JSON.parse(raw) : []);
+  } catch (e) {
+    _permanentlyDeletedTrashIds = new Set();
+  }
+  return _permanentlyDeletedTrashIds;
+}
+
+function _persistPermanentlyDeletedTrashIds() {
+  try {
+    if (!_permanentlyDeletedTrashIds) return;
+    localStorage.setItem(PERMANENT_DELETE_KEY, JSON.stringify(Array.from(_permanentlyDeletedTrashIds)));
+  } catch (e) {
+    console.warn('Failed to persist permanently deleted trash IDs:', e);
+  }
+}
+
+function _markPermanentlyDeleted(id) {
+  if (!id) return;
+  const set = _loadPermanentlyDeletedTrashIds();
+  set.add(String(id));
+  _persistPermanentlyDeletedTrashIds();
+}
+
+function _isPermanentlyDeleted(id) {
+  if (!id) return false;
+  const set = _loadPermanentlyDeletedTrashIds();
+  return set.has(String(id));
+}
+
 function deduplicateCategories() {
   if (!state.categories) return;
   const seen = new Set();
@@ -662,6 +714,19 @@ function mergeAndDeduplicateTransactions(cloudTransactions, localPendingTransact
     });
   } catch (e) {
     console.error('Failed to collect trash IDs in mergeAndDeduplicateTransactions:', e);
+  }
+
+  // Guard 3b: PERMANENT-DELETE TOMBSTONES - IDs the user permanently deleted
+  // (emptied trash / single permanent delete). These must never reappear in the
+  // main transactions list either, even if a stale copy still exists in the
+  // cloud transactions table.
+  try {
+    const permSet = _loadPermanentlyDeletedTrashIds();
+    if (permSet && permSet.size > 0) {
+      permSet.forEach(id => deletedIds.add(String(id)));
+    }
+  } catch (e) {
+    console.error('Failed to collect permanently deleted IDs in mergeAndDeduplicateTransactions:', e);
   }
 
   // Guard 4: Sync queue pending deletes
@@ -972,7 +1037,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1090 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1091 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1350,7 +1415,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1090 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1091 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -4395,6 +4460,11 @@ function loadOfflineData() {
   try {
     const trash = localStorage.getItem('deleted_transactions_trash');
     state.trashTransactions = trash ? JSON.parse(trash) : [];
+    // Drop any items the user permanently deleted (emptied trash / single
+    // permanent delete) so they never reappear after a reload.
+    if (state.trashTransactions.length > 0) {
+      state.trashTransactions = state.trashTransactions.filter(t => t && t.id && !_isPermanentlyDeleted(t.id));
+    }
   } catch (e) {
     console.error('Failed to parse deleted transactions trash:', e);
     state.trashTransactions = [];
@@ -5112,6 +5182,10 @@ async function syncLocalTrashToCloud() {
 // localStorage and the cloud is used just as a push-only backup.
 async function fetchCloudTrashToLocal() {
   if (!state.isSupabaseEnabled || !state.supabaseClient || !state.currentUser) return;
+  // If a permanent delete (empty trash / single permanent delete) is in
+  // progress, skip this fetch so it cannot race and re-pull items that are
+  // being removed from the cloud right now.
+  if (_permanentDeleteInProgress) return;
 
   try {
     const userId = state.currentUser.id;
@@ -5161,6 +5235,17 @@ async function fetchCloudTrashToLocal() {
     // Merge cloud trash into local trash, deduplicating by id (keep local version
     // if it already exists so we don't clobber locally-deleted items).
     state.trashTransactions = state.trashTransactions || [];
+
+    // Drop any items the user has permanently deleted (emptied trash / single
+    // permanent delete). These must NEVER come back from the cloud, even if the
+    // Supabase delete raced with this fetch or belonged to a family/partner scope.
+    if (cloudTrash.length > 0) {
+      cloudTrash = cloudTrash.filter(item => item && item.id && !_isPermanentlyDeleted(item.id));
+    }
+    if (state.trashTransactions.length > 0) {
+      state.trashTransactions = state.trashTransactions.filter(t => t && t.id && !_isPermanentlyDeleted(t.id));
+    }
+
     const existingMap = new Map(state.trashTransactions.map(t => [String(t.id), t]));
     let added = 0;
     cloudTrash.forEach(item => {
@@ -10873,8 +10958,8 @@ function renderCurrencyPickerOptions() {
   const query = search ? search.value.trim().toLowerCase() : '';
 
   const allCurrencies = CurrencyService.getCurrencies();
-  const currentVal = (_currencyPickerTarget === 'settings') 
-    ? (localStorage.getItem('app_currency') || 'EUR') 
+  const currentVal = (_currencyPickerTarget === 'settings')
+    ? (localStorage.getItem('app_currency') || 'EUR')
     : getTransactionCurrency();
   const recent = getRecentCurrencies();
 
@@ -10932,7 +11017,7 @@ function appendCurrencyCardItem(container, c, currentVal, showMatchedCountries, 
   const isSelected = c.code === currentVal;
   const card = document.createElement('div');
   card.className = `currency-item-card ${isSelected ? 'selected' : ''}`;
-  
+
   let countryLine = '';
   if (showMatchedCountries && Array.isArray(c.countries) && c.countries.length) {
     const matched = c.countries.filter(ct => String(ct).toLowerCase().includes(query));
@@ -25165,21 +25250,62 @@ async function emptyTrashBin() {
   const confirmed = await showConfirm(confirmMsg, lang === 'el' ? 'Εκκαθάριση Κάδου' : 'Empty Trash', '🗑️');
   if (!confirmed) return;
 
-  // Clear on Supabase if logged in
-  if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
-    state.supabaseClient
-      .from('deleted_transactions')
-      .delete()
-      .eq('user_id', state.currentUser.id)
-      .then(({ error }) => {
-        if (error) console.warn('Failed to clear deleted_transactions on Supabase:', error);
+  // Record permanent-delete tombstones for every item being emptied so they can
+  // never be re-pulled from the cloud (fixes deleted transactions reappearing).
+  const itemsBeingEmptied = (state.trashTransactions || []).slice();
+  itemsBeingEmptied.forEach(t => {
+    if (!t) return;
+    if (t.id) _markPermanentlyDeleted(t.id);
+    // Recurring group items carry their affected transaction IDs
+    if (t.affectedTransactionIds && Array.isArray(t.affectedTransactionIds)) {
+      t.affectedTransactionIds.forEach(subId => _markPermanentlyDeleted(subId));
+    }
+    if (t.affectedTransactionsSnapshot && Array.isArray(t.affectedTransactionsSnapshot)) {
+      t.affectedTransactionsSnapshot.forEach(subTx => {
+        if (subTx && subTx.id) _markPermanentlyDeleted(subTx.id);
       });
+    }
+  });
+
+  // Clear on Supabase if logged in. We delete across the SAME scope that
+  // fetchCloudTrashToLocal() pulls from (user + family + partner), otherwise
+  // family/partner trash rows survive and get re-pulled on the next sync.
+  // We AWAIT this delete and set an in-progress guard so a concurrent
+  // fetchCloudTrashToLocal() cannot race and re-pull the rows mid-delete.
+  if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
+    const userId = state.currentUser.id;
+    const partnerId = state.partnerProfile ? state.partnerProfile.id : null;
+    const familyId = state.userProfile ? state.userProfile.family_id : null;
+
+    let delQuery = state.supabaseClient
+      .from('deleted_transactions')
+      .delete();
+
+    if (familyId && partnerId) {
+      delQuery = delQuery.or(`family_id.eq.${familyId},user_id.eq.${userId},user_id.eq.${partnerId}`);
+    } else if (familyId) {
+      delQuery = delQuery.or(`family_id.eq.${familyId},user_id.eq.${userId}`);
+    } else if (partnerId) {
+      delQuery = delQuery.or(`user_id.eq.${userId},user_id.eq.${partnerId}`);
+    } else {
+      delQuery = delQuery.eq('user_id', userId);
+    }
+
+    _permanentDeleteInProgress = true;
+    try {
+      const { error } = await delQuery;
+      if (error) console.warn('Failed to clear deleted_transactions on Supabase:', error);
+    } catch (err) {
+      console.warn('Failed to clear deleted_transactions on Supabase:', err);
+    } finally {
+      _permanentDeleteInProgress = false;
+    }
   }
 
   // Save notes of items in trash to dismissed_recovered_templates before emptying
   try {
     let dismissed = JSON.parse(localStorage.getItem('dismissed_recovered_templates') || '[]');
-    (state.trashTransactions || []).forEach(t => {
+    itemsBeingEmptied.forEach(t => {
       if (t.note && !dismissed.includes(t.note)) {
         dismissed.push(t.note);
       }
@@ -26430,11 +26556,37 @@ async function deleteSingleTrashItem(id) {
   const itemIndex = (state.trashTransactions || []).findIndex(t => String(t.id) === String(id));
   if (itemIndex === -1) return;
 
+  const item = state.trashTransactions[itemIndex];
+
+  // Record permanent-delete tombstones so the item can never be re-pulled from
+  // the cloud (fixes deleted transactions reappearing after permanent delete).
+  if (item) {
+    if (item.id) _markPermanentlyDeleted(item.id);
+    if (item.affectedTransactionIds && Array.isArray(item.affectedTransactionIds)) {
+      item.affectedTransactionIds.forEach(subId => _markPermanentlyDeleted(subId));
+    }
+    if (item.affectedTransactionsSnapshot && Array.isArray(item.affectedTransactionsSnapshot)) {
+      item.affectedTransactionsSnapshot.forEach(subTx => {
+        if (subTx && subTx.id) _markPermanentlyDeleted(subTx.id);
+      });
+    }
+  }
+
   state.trashTransactions.splice(itemIndex, 1);
   localStorage.setItem('deleted_transactions_trash', JSON.stringify(state.trashTransactions));
 
+  // Await the cloud delete and guard against a concurrent fetchCloudTrashToLocal()
+  // so the row cannot be re-pulled mid-delete.
   if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
-    state.supabaseClient.from('deleted_transactions').delete().eq('id', id);
+    _permanentDeleteInProgress = true;
+    try {
+      const { error } = await state.supabaseClient.from('deleted_transactions').delete().eq('id', id);
+      if (error) console.warn('Failed to delete trash item on Supabase:', error);
+    } catch (err) {
+      console.warn('Failed to delete trash item on Supabase:', err);
+    } finally {
+      _permanentDeleteInProgress = false;
+    }
   }
 
   renderTrashBinList();

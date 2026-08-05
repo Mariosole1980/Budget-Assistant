@@ -156,7 +156,7 @@ if ($deploy1 -ne 0) {
 # 7. Git Commit & Tag
 Write-Host "[INFO] Staging and committing to Git..." -ForegroundColor Yellow
 git add -A
-git commit -m "build v${newBuild}: Fixed sync queue bug where transactions with local-only fields were silently dropped"
+git commit -m "build v${newBuild}: Fixed deleted transactions reappearing in recycle bin after permanent delete (scoped awaited cloud delete + in-progress guard + tombstone safety net)"
 Write-Host "  [SUCCESS] Git commit created for build v${newBuild}" -ForegroundColor Green
 
 Write-Host "[SUCCESS] All steps completed successfully! Builds are live at:" -ForegroundColor Green
