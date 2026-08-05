@@ -972,7 +972,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1069 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1070 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1350,7 +1350,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1069 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1070 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -4227,7 +4227,7 @@ async function loadData() {
       if (toRecover.length > 0) {
         console.log(`Recovering ${toRecover.length} silently dropped transactions during loadData...`);
         const payloads = toRecover.map(t => {
-          const { description, is_shared, recurring_template_id, ...dbPayload } = t;
+          const { description, is_shared, recurring_template_id, photo_local_uri, photo_url, receipt, currency, base_currency, rate_to_base, amount_base, rate_source, ...dbPayload } = ;
           return dbPayload;
         });
         try {
@@ -4885,7 +4885,7 @@ function processRecurringTemplates() {
           saveTransactionOffline(newTx);
 
           if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
-            const { description, ...dbPayload } = newTx;
+            const { description, is_shared, recurring_template_id, photo_local_uri, photo_url, receipt, currency, base_currency, rate_to_base, amount_base, rate_source, ...dbPayload } = newTx;
             (async () => {
               try {
                 const { error } = await promiseTimeout(
@@ -5010,7 +5010,7 @@ async function saveTransaction(transaction) {
     // Note: description, is_shared, and recurring_template_id are client-only fields.
     // recurring_template_id does NOT exist in the transactions table (verified live: error 42703),
     // so it MUST be stripped here or the upsert fails with a 400. This matches processSyncQueue.
-    const { description, is_shared, recurring_template_id, ...dbPayload } = transaction;
+    const { description, is_shared, recurring_template_id, photo_local_uri, photo_url, receipt, currency, base_currency, rate_to_base, amount_base, rate_source, ...dbPayload } = ;
 
     // Enqueue immediately before starting the cloud request to prevent data loss if the app is closed/killed
     enqueueSyncMutation('save', transaction);
@@ -18925,7 +18925,7 @@ async function processSyncQueue(options = {}) {
           console.warn('Skipping invalid sync queue item (missing payload or id):', item);
           continue;
         }
-        const { description, is_shared, recurring_template_id, ...dbPayload } = transaction;
+        const { description, is_shared, recurring_template_id, photo_local_uri, photo_url, receipt, currency, base_currency, rate_to_base, amount_base, rate_source, ...dbPayload } = ;
 
         const { error } = await promiseTimeout(
           state.supabaseClient
@@ -19200,6 +19200,10 @@ function handleRealtimeTransactionChange(payload) {
       } else if (eventType === 'DELETE') {
         const deletedId = ev.old && ev.old.id;
         if (deletedId && trans.some(t => t.id === deletedId)) {
+          console.log('[REALTIME-DEBUG] DELETE event removing tx:', deletedId,
+            '| recentlySaved:', _recentlySavedTxIds.has(String(deletedId)),
+            '| deleting:', _deletingTxIds.has(String(deletedId)),
+            '| recentlyDeleted:', _recentlyDeletedTxIds.has(String(deletedId)));
           trans = trans.filter(t => t.id !== deletedId);
           changed = true;
         }
@@ -24655,7 +24659,7 @@ function regenerateRecurringTemplateTransactions(template) {
       };
       saveTransactionOffline(newTx);
       if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
-        const { description, ...dbPayload } = newTx;
+        const { description, is_shared, recurring_template_id, photo_local_uri, photo_url, receipt, currency, base_currency, rate_to_base, amount_base, rate_source, ...dbPayload } = newTx;
         (async () => {
           try {
             const { error } = await promiseTimeout(
