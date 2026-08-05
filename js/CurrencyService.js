@@ -298,7 +298,7 @@ class CurrencyService {
      * Επιστρέφει την ισοτιμία base→quote για μια ημερομηνία, με ιεραρχία:
      *  1) exchange_rates (ακριβής ημερομηνία) → 2) χειροκίνητη → 3) πλησιέστερη προηγούμενη
      */
-    getRate(base, quote, date) {
+    getRate(base, quote, date, allowTriangulation = true) {
         if (base === quote) return 1;
         const dateKey = this.toDateKey(date) || new Date().toISOString().slice(0, 10);
 
@@ -326,6 +326,38 @@ class CurrencyService {
             const inv = this.rateCache.get(inverseKey).rate;
             if (inv != null && inv !== 0) {
                 return this.round(1 / inv, 8);
+            }
+        }
+
+        // 4. Fallback: Αν δεν υπάρχει ισοτιμία για τη συγκεκριμένη ημερομηνία,
+        //    χρησιμοποίησε την πιο πρόσφατη διαθέσιμη ισοτιμία base→quote ή quote→base στο rateCache.
+        for (const [k, entry] of this.rateCache.entries()) {
+            if (k.startsWith(`${base}_${quote}_`)) {
+                if (entry && entry.rate != null && entry.rate !== 0) {
+                    return entry.rate;
+                }
+            }
+        }
+        for (const [k, entry] of this.rateCache.entries()) {
+            if (k.startsWith(`${quote}_${base}_`)) {
+                if (entry && entry.rate != null && entry.rate !== 0) {
+                    return this.round(1 / entry.rate, 8);
+                }
+            }
+        }
+
+        // 5. Cross-rate triangulation μέσω κοινών νομισμάτων (USD, EUR, GBP)
+        //    αν δεν υπάρχει απευθείας ισοτιμία base→quote ή quote→base στο cache.
+        if (allowTriangulation) {
+            const pivots = ['USD', 'EUR', 'GBP'];
+            for (let i = 0; i < pivots.length; i++) {
+                const pivot = pivots[i];
+                if (pivot === base || pivot === quote) continue;
+                const r1 = this.getRate(base, pivot, date, false);
+                const r2 = this.getRate(pivot, quote, date, false);
+                if (r1 != null && r2 != null && r1 !== 0 && r2 !== 0) {
+                    return this.round(r1 * r2, 8);
+                }
             }
         }
 
