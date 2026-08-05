@@ -972,7 +972,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1080 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1081 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1350,7 +1350,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1080 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1081 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -18727,9 +18727,22 @@ async function forceAppUpdate() {
   if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorUpdater) {
     try {
       console.log('[ForceUpdate] Triggering Capgo update check...');
+      // 1. Κατεβάζουμε το version.json χειροκίνητα
+      const manifestRes = await fetch("https://budget-assistant-pwa.pages.dev/version.json?_t=" + Date.now());
+      const manifest = await manifestRes.json();
+      
+      if (!manifest || !manifest.url) {
+        throw new Error("Invalid version.json format");
+      }
+
+      console.log('[ForceUpdate] Found zip url:', manifest.url);
+      
+      // 2. Δίνουμε το σωστό ZIP url στο Capgo
       const update = await window.Capacitor.Plugins.CapacitorUpdater.download({
-        url: "https://budget-assistant-pwa.pages.dev/version.json"
+        url: manifest.url,
+        version: manifest.version || Date.now().toString()
       });
+      
       console.log('[ForceUpdate] Downloaded update:', update);
       await window.Capacitor.Plugins.CapacitorUpdater.set({ id: update.id });
       return;
