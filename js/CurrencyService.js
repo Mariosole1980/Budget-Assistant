@@ -158,6 +158,16 @@ class CurrencyService {
         this._rateProvider = null;
         this._ratePersist = null;
         this._manualRateSink = null;
+
+        // Προ-ενημέρωση βασικών ισοτιμιών fallback (για offline λειτουργία & άμεση μετατροπή)
+        const DEFAULT_RATES_EUR = {
+            EUR: 1, USD: 1.085, GBP: 0.855, JPY: 162.5, CHF: 0.955, CAD: 1.48, AUD: 1.65, NZD: 1.80,
+            CNY: 7.82, INR: 90.5, RUB: 98.0, BRL: 6.0, MXN: 20.5, ZAR: 19.8, TRY: 36.5, SEK: 11.4,
+            NOK: 11.6, DKK: 7.46, PLN: 4.28, CZK: 25.2, HUF: 395.0, RON: 4.97, BGN: 1.9558, ILS: 4.0,
+            AED: 3.98, SAR: 4.07, KRW: 1480.0, SGD: 1.46, HKD: 8.47, THB: 38.5, IDR: 17500.0, PHP: 62.5, VND: 27500.0
+        };
+        const todayKey = new Date().toISOString().slice(0, 10);
+        this._ingestRates('EUR', todayKey, DEFAULT_RATES_EUR, 'cached');
     }
 
     // ===== Βοηθητικά =====
