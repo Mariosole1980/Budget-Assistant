@@ -972,7 +972,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1089 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1090 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1350,7 +1350,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1089 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1090 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -18864,10 +18864,13 @@ async function forceAppUpdate() {
   const confirmed = await showConfirm(confirmMsg, state.lang === 'el' ? 'Αναγκαστική Ενημέρωση' : 'Force Update', '🔄');
   if (!confirmed) return;
 
+  if (typeof showSyncToast === 'function') {
+    showSyncToast(state.lang === 'el' ? 'Έλεγχος & λήψη ενημέρωσης...' : 'Checking & downloading update...', 10000);
+  }
+
   if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorUpdater) {
     try {
       console.log('[ForceUpdate] Triggering Capgo update check...');
-      // 1. Κατεβάζουμε το version.json χειροκίνητα
       const manifestRes = await fetch("https://budget-assistant-pwa.pages.dev/version.json?_t=" + Date.now());
       const manifest = await manifestRes.json();
 
@@ -18877,7 +18880,10 @@ async function forceAppUpdate() {
 
       console.log('[ForceUpdate] Found zip url:', manifest.url);
 
-      // 2. Δίνουμε το σωστό ZIP url στο Capgo
+      if (typeof showSyncToast === 'function') {
+        showSyncToast((state.lang === 'el' ? 'Λήψη έκδοσης ' : 'Downloading version ') + (manifest.version || 'νέας') + '...', 10000);
+      }
+
       const update = await window.Capacitor.Plugins.CapacitorUpdater.download({
         url: manifest.url,
         version: manifest.version || Date.now().toString()
@@ -18885,6 +18891,22 @@ async function forceAppUpdate() {
 
       console.log('[ForceUpdate] Downloaded update:', update);
       await window.Capacitor.Plugins.CapacitorUpdater.set({ id: update.id });
+
+      if (typeof showSyncToast === 'function') {
+        showSyncToast(state.lang === 'el' ? 'Εφαρμογή ενημέρωσης & επανεκκίνηση...' : 'Applying update & reloading...', 3000);
+      }
+
+      setTimeout(async () => {
+        try {
+          if (window.Capacitor.Plugins.CapacitorUpdater.reload) {
+            await window.Capacitor.Plugins.CapacitorUpdater.reload();
+          } else {
+            window.location.reload(true);
+          }
+        } catch (_) {
+          window.location.reload(true);
+        }
+      }, 500);
       return;
     } catch (e) {
       console.error('[ForceUpdate] Capgo update failed; falling back to classic reload:', e);
