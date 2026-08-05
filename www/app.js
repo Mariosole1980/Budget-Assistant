@@ -1037,7 +1037,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1096 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1097 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1415,7 +1415,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1096 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1097 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -5686,14 +5686,17 @@ function renderTransactionsTab() {
 
   const sortedTrans = [...filteredTrans].sort(compareTransactions);
 
-  let monthlyIncome = 0, monthlyExpense = 0;
+  // Aggregate directly in the display (app) currency. Each transaction is
+  // converted from its own stored base_currency, so when the user changes the
+  // app currency the totals correctly reflect the exchange rate (e.g. 1316 € →
+  // ~1420 $) instead of just swapping the symbol.
+  const displayCurrency = getDisplayCurrency();
+  const monthlyIncome = CurrencyService.sumInCurrency(sortedTrans.filter(t => t.type === 'income'), displayCurrency);
+  const monthlyExpense = CurrencyService.sumInCurrency(sortedTrans.filter(t => t.type === 'expense'), displayCurrency);
   const groups = {};
 
   sortedTrans.forEach(t => {
-    const amt = CurrencyService.toBase(t);
-    if (t.type === 'income') monthlyIncome += amt;
-    else if (t.type === 'expense') monthlyExpense += amt;
-
+    const amt = CurrencyService.displayAmount(t, displayCurrency);
     const dateKey = String(t.date || '').split('T')[0].split(' ')[0];
     if (!groups[dateKey]) groups[dateKey] = { transactions: [], income: 0, expense: 0 };
     groups[dateKey].transactions.push(t);
@@ -5701,9 +5704,11 @@ function renderTransactionsTab() {
     else if (t.type === 'expense') groups[dateKey].expense += amt;
   });
 
-  document.getElementById('summary-income-val').textContent = `${getCurrencySymbol()} ${formatDisplayAmount(monthlyIncome)}`;
-  document.getElementById('summary-expense-val').textContent = `${getCurrencySymbol()} ${formatDisplayAmount(monthlyExpense)}`;
-  document.getElementById('summary-total-val').textContent = `${getCurrencySymbol()} ${formatDisplayAmount(monthlyIncome - monthlyExpense)}`;
+  // The aggregated totals are already in the display currency, so pass the
+  // display currency as the source to avoid a double conversion.
+  document.getElementById('summary-income-val').textContent = `${getCurrencySymbol()} ${formatDisplayAmount(monthlyIncome, displayCurrency)}`;
+  document.getElementById('summary-expense-val').textContent = `${getCurrencySymbol()} ${formatDisplayAmount(monthlyExpense, displayCurrency)}`;
+  document.getElementById('summary-total-val').textContent = `${getCurrencySymbol()} ${formatDisplayAmount(monthlyIncome - monthlyExpense, displayCurrency)}`;
 
   if (sortedTrans.length === 0) {
     if (listContainer._lastRenderSignature === 'empty') return;
@@ -5770,8 +5775,8 @@ function renderTransactionsTab() {
     const isToday = (dateStr === todayStr);
 
     let rightTotals = '';
-    if (group.income > 0) rightTotals += `<span class="day-group-income">${getCurrencySymbol()} ${formatDisplayAmount(group.income)}</span>`;
-    if (group.expense > 0) rightTotals += `<span class="day-group-expense">${getCurrencySymbol()} ${formatDisplayAmount(group.expense)}</span>`;
+    if (group.income > 0) rightTotals += `<span class="day-group-income">${getCurrencySymbol()} ${formatDisplayAmount(group.income, displayCurrency)}</span>`;
+    if (group.expense > 0) rightTotals += `<span class="day-group-expense">${getCurrencySymbol()} ${formatDisplayAmount(group.expense, displayCurrency)}</span>`;
 
     const header = document.createElement('div');
     header.className = 'day-header' + (isToday ? ' is-today' : '');
@@ -5922,7 +5927,7 @@ function renderTransactionsTab() {
             <span class="trans-acc-label">${escapeHtml(accountText)}</span>
           </div>
         </div>
-        <div class="${amountClass}">${getCurrencySymbol()} ${formatCurrency(t.amount)}${getTxCurrencyLabel(t)}${getReliabilityBadge(t)}</div>`;
+        <div class="${amountClass}">${getCurrencySymbol()} ${formatDisplayAmount(CurrencyService.displayAmount(t, displayCurrency), displayCurrency)}${getTxCurrencyLabel(t)}${getReliabilityBadge(t)}</div>`;
       fragment.appendChild(item);
     });
   });
@@ -6285,22 +6290,26 @@ function renderStatsTab(skipChart = false) {
     return tDate >= start && tDate <= end;
   });
 
-  const monthlyIncome = filteredTrans.filter(t => t.type === 'income').reduce((s, t) => s + CurrencyService.toBase(t), 0);
-  const monthlyExpense = filteredTrans.filter(t => t.type === 'expense').reduce((s, t) => s + CurrencyService.toBase(t), 0);
+  // Aggregate directly in the display (app) currency so each transaction is
+  // converted from its own stored base_currency with the exchange rate when the
+  // app currency changes (e.g. 1316 € → ~1420 $).
+  const displayCurrency = getDisplayCurrency();
+  const monthlyIncome = filteredTrans.filter(t => t.type === 'income').reduce((s, t) => s + CurrencyService.displayAmount(t, displayCurrency), 0);
+  const monthlyExpense = filteredTrans.filter(t => t.type === 'expense').reduce((s, t) => s + CurrencyService.displayAmount(t, displayCurrency), 0);
 
-  document.getElementById('stats-tab-income-amt').textContent = `${getCurrencySymbol()} ${formatDisplayAmount(monthlyIncome)}`;
-  document.getElementById('stats-tab-expense-amt').textContent = `${getCurrencySymbol()} ${formatDisplayAmount(monthlyExpense)}`;
+  document.getElementById('stats-tab-income-amt').textContent = `${getCurrencySymbol()} ${formatDisplayAmount(monthlyIncome, displayCurrency)}`;
+  document.getElementById('stats-tab-expense-amt').textContent = `${getCurrencySymbol()} ${formatDisplayAmount(monthlyExpense, displayCurrency)}`;
 
   // Calculate and display Net Savings
   const netSavings = monthlyIncome - monthlyExpense;
   const netValEl = document.getElementById('stats-net-savings-val');
   if (netValEl) {
-    netValEl.textContent = `${netSavings >= 0 ? '+' : ''}${getCurrencySymbol()} ${formatDisplayAmount(netSavings)}`;
+    netValEl.textContent = `${netSavings >= 0 ? '+' : ''}${getCurrencySymbol()} ${formatDisplayAmount(netSavings, displayCurrency)}`;
     netValEl.className = 'stats-net-val ' + (netSavings >= 0 ? 'positive' : 'negative');
   }
 
   const activeTrans = filteredTrans.filter(t => t.type === state.statsType);
-  const totalSum = activeTrans.reduce((s, t) => s + CurrencyService.toBase(t), 0);
+  const totalSum = activeTrans.reduce((s, t) => s + CurrencyService.displayAmount(t, displayCurrency), 0);
 
   const catGroups = {};
   activeTrans.forEach(t => {
@@ -6314,13 +6323,13 @@ function renderStatsTab(skipChart = false) {
         subcategories: {}
       };
     }
-    catGroups[key].amount += CurrencyService.toBase(t);
+    catGroups[key].amount += CurrencyService.displayAmount(t, displayCurrency);
 
     const subcatName = t.subcategory || '';
     if (!catGroups[key].subcategories[subcatName]) {
       catGroups[key].subcategories[subcatName] = 0;
     }
-    catGroups[key].subcategories[subcatName] += CurrencyService.toBase(t);
+    catGroups[key].subcategories[subcatName] += CurrencyService.displayAmount(t, displayCurrency);
   });
 
   const breakdownList = Object.entries(catGroups).map(([name, d]) => ({
@@ -6375,7 +6384,7 @@ function renderStatsTab(skipChart = false) {
       centerTitleEl.textContent = state.statsType === 'income' ? TRANSLATIONS[state.lang]['summary_income'] : TRANSLATIONS[state.lang]['summary_expense'];
     }
     if (centerAmountEl) {
-      centerAmountEl.textContent = `${getCurrencySymbol()} ${formatDisplayAmount(totalSum)}`;
+      centerAmountEl.textContent = `${getCurrencySymbol()} ${formatDisplayAmount(totalSum, displayCurrency)}`;
     }
   }
 
@@ -6413,7 +6422,7 @@ function renderStatsTab(skipChart = false) {
         <span class="stats-cat-icon">${item.icon}</span>
         <span class="stats-category-name">${getCategoryDisplayName(stripLeadingEmoji(item.name))}</span>
       </div>
-      <div class="stats-row-right">${getCurrencySymbol()} ${formatDisplayAmount(item.amount)}</div>`;
+      <div class="stats-row-right">${getCurrencySymbol()} ${formatDisplayAmount(item.amount, displayCurrency)}</div>`;
     statsFragment.appendChild(row);
 
     if (hasSubcats) {
@@ -6439,7 +6448,7 @@ function renderStatsTab(skipChart = false) {
             <span class="stats-sub-pct" style="background-color: ${catColor}26; color: ${catColor}; border: 1px solid ${catColor}33;">${Math.round(sub.percentage)}%</span>
             <span class="stats-sub-name">${subDisplayName}</span>
           </div>
-          <div class="stats-sub-right">${getCurrencySymbol()} ${formatDisplayAmount(sub.amount)}</div>
+          <div class="stats-sub-right">${getCurrencySymbol()} ${formatDisplayAmount(sub.amount, displayCurrency)}</div>
         `;
 
         let subFeedbackTimer;
@@ -6583,6 +6592,7 @@ function renderSubcategoryTransactions(category, subcategory) {
   const titleEl = document.getElementById('stats-transactions-title');
   const listContainer = document.getElementById('stats-transactions-list');
   if (!listContainer) return;
+  const displayCurrency = getDisplayCurrency();
 
   const subDisplayName = subcategory ? getSubcategoryDisplayName(subcategory, category) : (state.lang === 'el' ? 'Χωρίς υποκατηγορία' : 'Uncategorized');
   const catDisplayName = getCategoryDisplayName(category);
@@ -6715,7 +6725,7 @@ function renderSubcategoryTransactions(category, subcategory) {
           <span class="trans-acc-label">${escapeHtml(dateLabel)} · ${escapeHtml(accountText)}</span>
         </div>
       </div>
-      <div class="${amountClass}">${getCurrencySymbol()} ${formatCurrency(t.amount)}</div>`;
+      <div class="${amountClass}">${getCurrencySymbol()} ${formatDisplayAmount(CurrencyService.displayAmount(t, displayCurrency), displayCurrency)}</div>`;
     listContainer.appendChild(item);
   });
 }
@@ -6844,12 +6854,22 @@ function renderAccountsTab() {
   let overallIncome = 0;
   let overallExpense = 0;
 
+  // Aggregate directly in the display (app) currency so each transaction is
+  // converted from its own stored base_currency with the exchange rate when the
+  // app currency changes (e.g. 1316 € → ~1420 $).
+  const displayCurrency = getDisplayCurrency();
+  // FHS and forecast values are computed via CurrencyService.toBase(t), so they
+  // are cached in each transaction's `base_currency` (the OLD app currency after
+  // a currency change). Convert them from that source currency to the display
+  // currency when rendering.
+  const fhsSourceCurrency = getTransactionsBaseCurrency(activeTrans);
+
   nonTransferTrans.forEach(t => {
     if (!t.date) return;
     if (!overallMinDate || t.date < overallMinDate) overallMinDate = t.date;
     if (!overallMaxDate || t.date > overallMaxDate) overallMaxDate = t.date;
 
-    const amt = CurrencyService.toBase(t);
+    const amt = CurrencyService.displayAmount(t, displayCurrency);
     if (t.type === 'income') {
       overallIncome += amt;
     } else if (t.type === 'expense') {
@@ -6887,11 +6907,11 @@ function renderAccountsTab() {
   }
 
   // 3. Populate the top card overall columns (Income, Expenses, Net Balance)
-  document.getElementById('total-assets-val').textContent = `${getCurrencySymbol()} ${formatDisplayAmount(overallIncome)}`;
-  document.getElementById('total-liabilities-val').textContent = `${getCurrencySymbol()} ${formatDisplayAmount(overallExpense)}`;
+  document.getElementById('total-assets-val').textContent = `${getCurrencySymbol()} ${formatDisplayAmount(overallIncome, displayCurrency)}`;
+  document.getElementById('total-liabilities-val').textContent = `${getCurrencySymbol()} ${formatDisplayAmount(overallExpense, displayCurrency)}`;
   const netElContainer = document.getElementById('total-net-val-container');
   const netEl = document.getElementById('total-net-val');
-  if (netEl) netEl.textContent = `${getCurrencySymbol()} ${formatDisplayAmount(overallNet)}`;
+  if (netEl) netEl.textContent = `${getCurrencySymbol()} ${formatDisplayAmount(overallNet, displayCurrency)}`;
   if (netElContainer) {
     netElContainer.className = overallNet >= 0 ? 'overview-val' : 'overview-val negative';
   }
@@ -7032,7 +7052,7 @@ function renderAccountsTab() {
   const explainLifestyleEl = document.getElementById('fhs-explain-lifestyle-months');
 
   if (explainLiquidEl) {
-    explainLiquidEl.textContent = formatDisplayAmount(fhs.liquidBalance || 0);
+    explainLiquidEl.textContent = formatDisplayAmount(fhs.liquidBalance || 0, fhsSourceCurrency);
   }
   if (explainSurvivalEl) {
     const survVal = Math.round((fhs.survivalRunway || 0) * 10) / 10;
@@ -7099,6 +7119,10 @@ function renderAccountsTab() {
   const currMonthExpenses = {};
   const prevMonthExpenses = {};
 
+  // Aggregate in the display (app) currency so the advisor comparison reflects
+  // the exchange rate when the app currency changes.
+  // NOTE: `displayCurrency` is already declared earlier in renderAccountsTab.
+
   activeTrans.forEach(t => {
     if (t.type !== 'expense' || !t.date) return;
     const datePart = String(t.date || '').split('T')[0].split(' ')[0];
@@ -7106,7 +7130,7 @@ function renderAccountsTab() {
     if (parts.length !== 3) return;
     const y = parseInt(parts[0], 10);
     const m = parseInt(parts[1], 10) - 1;
-    const amt = CurrencyService.toBase(t);
+    const amt = CurrencyService.displayAmount(t, displayCurrency);
     const cat = t.category || '';
 
     if (y === currYear && m === currMonth) {
@@ -7220,20 +7244,20 @@ function renderAccountsTab() {
     if (state.lang === 'el') {
       if (isIncrease) {
         const pctPart = pctStr ? ` κατά **${pctStr}**` : '';
-        advisorText = `Τα έξοδα στην κατηγορία **${maxIncreaseCat}** ανέβηκαν${pctPart} (+${formatDisplayAmount(diffAmt)}) αυτόν τον μήνα. Αν συνεχιστεί, ${grConsequence} — ${grAdvice}.`;
+        advisorText = `Τα έξοδα στην κατηγορία **${maxIncreaseCat}** ανέβηκαν${pctPart} (+${formatDisplayAmount(diffAmt, displayCurrency)}) αυτόν τον μήνα. Αν συνεχιστεί, ${grConsequence} — ${grAdvice}.`;
       } else if (diffAmt < 0) {
         const pctPart = pctStr ? ` κατά **${pctStr}**` : '';
-        advisorText = `Τα έξοδα στην κατηγορία **${maxIncreaseCat}** μειώθηκαν${pctPart} (−${formatDisplayAmount(Math.abs(diffAmt))}) σε σχέση με τον προηγούμενο μήνα. Συνέχισε έτσι!`;
+        advisorText = `Τα έξοδα στην κατηγορία **${maxIncreaseCat}** μειώθηκαν${pctPart} (−${formatDisplayAmount(Math.abs(diffAmt), displayCurrency)}) σε σχέση με τον προηγούμενο μήνα. Συνέχισε έτσι!`;
       } else {
         advisorText = `Τα έξοδα στην κατηγορία **${maxIncreaseCat}** παρέμειναν σταθερά σε σχέση με τον προηγούμενο μήνα. Συνέχισε έτσι!`;
       }
     } else {
       if (isIncrease) {
         const pctPart = pctStr ? ` by **${pctStr}**` : '';
-        advisorText = `Expenses in **${maxIncreaseCat}** rose${pctPart} (+${formatDisplayAmount(diffAmt)}) this month. If this continues, it ${enConsequence} — ${enAdvice}.`;
+        advisorText = `Expenses in **${maxIncreaseCat}** rose${pctPart} (+${formatDisplayAmount(diffAmt, displayCurrency)}) this month. If this continues, it ${enConsequence} — ${enAdvice}.`;
       } else if (diffAmt < 0) {
         const pctPart = pctStr ? ` by **${pctStr}**` : '';
-        advisorText = `Expenses in **${maxIncreaseCat}** decreased${pctPart} (−${formatDisplayAmount(Math.abs(diffAmt))}) compared to last month. Keep it up!`;
+        advisorText = `Expenses in **${maxIncreaseCat}** decreased${pctPart} (−${formatDisplayAmount(Math.abs(diffAmt), displayCurrency)}) compared to last month. Keep it up!`;
       } else {
         advisorText = `Expenses in **${maxIncreaseCat}** stayed flat compared to last month. Keep it up!`;
       }
@@ -7287,7 +7311,7 @@ function renderAccountsTab() {
           return `
             <div class="advisor-trans-row">
               <span class="advisor-trans-desc">${escapeHtml(formattedDate)} - ${escapeHtml(displayTitle)}</span>
-              <span class="advisor-trans-amount">${formatCurrency(t.amount)}</span>
+              <span class="advisor-trans-amount">${formatDisplayAmount(CurrencyService.displayAmount(t, displayCurrency), displayCurrency)}</span>
             </div>
           `;
         }).join('');
@@ -7313,14 +7337,14 @@ function renderAccountsTab() {
           <div class="advisor-bar-container">
             <div class="advisor-bar" style="width: ${prevPct}%;"></div>
           </div>
-          <span class="advisor-bar-val">${formatDisplayAmount(prevAmt)}</span>
+          <span class="advisor-bar-val">${formatDisplayAmount(prevAmt, displayCurrency)}</span>
         </div>
         <div class="advisor-bar-row current">
           <span class="advisor-bar-label">${currLabel}</span>
           <div class="advisor-bar-container">
             <div class="advisor-bar" style="width: ${currPct}%;"></div>
           </div>
-          <span class="advisor-bar-val">${formatDisplayAmount(currAmt)}</span>
+          <span class="advisor-bar-val">${formatDisplayAmount(currAmt, displayCurrency)}</span>
         </div>
       `;
     }
@@ -7395,6 +7419,14 @@ function renderAccountsTab() {
   } else if (prevYearSavings > 0) {
     targetSavings = Math.round(prevYearSavings);
   }
+  // Convert the target to the display currency so the progress bar and target
+  // input stay consistent with `overallNet` (which is aggregated in the display
+  // currency). `targetSavings` is derived from prev-year values in the OLD base
+  // currency (via CurrencyService.toBase).
+  const targetSavingsDisplay = displayAmountInDisplayCurrency(targetSavings, fhsSourceCurrency);
+  if (targetSavingsDisplay != null) {
+    targetSavings = targetSavingsDisplay;
+  }
 
   const normalStateEl = document.getElementById('forecast-normal-state');
   const yearendStateEl = document.getElementById('forecast-yearend-state');
@@ -7428,7 +7460,7 @@ function renderAccountsTab() {
 
       const projectedValEl = document.getElementById('forecast-projected-val');
       if (projectedValEl) {
-        projectedValEl.textContent = formatDisplayAmount(forecast.projectedSavings);
+        projectedValEl.textContent = formatDisplayAmount(forecast.projectedSavings, fhsSourceCurrency);
       }
 
       // Update forecasting modal elements dynamically
@@ -7439,9 +7471,9 @@ function renderAccountsTab() {
         const roundedProj = Math.round(forecast.projectedSavings);
         const elapsed = currentMonth + 1;
         if (state.lang === 'el') {
-          explanationEl.innerHTML = `Έχετε αποταμιεύσει <strong>${formatDisplayAmount(roundedSavings)}</strong> κατά τους πρώτους <strong>${elapsed}</strong> μήνες του έτους.<br><br>Με βάση τον τρέχοντα μέσο ρυθμό σας (<strong>${formatDisplayAmount(roundedRate)} / μήνα</strong>), η προβλεπόμενη αποταμίευση για το τέλος του έτους είναι <strong>${formatDisplayAmount(roundedProj)}</strong>.`;
+          explanationEl.innerHTML = `Έχετε αποταμιεύσει <strong>${formatDisplayAmount(roundedSavings, fhsSourceCurrency)}</strong> κατά τους πρώτους <strong>${elapsed}</strong> μήνες του έτους.<br><br>Με βάση τον τρέχοντα μέσο ρυθμό σας (<strong>${formatDisplayAmount(roundedRate, fhsSourceCurrency)} / μήνα</strong>), η προβλεπόμενη αποταμίευση για το τέλος του έτους είναι <strong>${formatDisplayAmount(roundedProj, fhsSourceCurrency)}</strong>.`;
         } else {
-          explanationEl.innerHTML = `You have saved <strong>${formatDisplayAmount(roundedSavings)}</strong> during the first <strong>${elapsed}</strong> months of the year.<br><br>Based on your current average rate (<strong>${formatDisplayAmount(roundedRate)} / month</strong>), the projected savings for the end of the year is <strong>${formatDisplayAmount(roundedProj)}</strong>.`;
+          explanationEl.innerHTML = `You have saved <strong>${formatDisplayAmount(roundedSavings, fhsSourceCurrency)}</strong> during the first <strong>${elapsed}</strong> months of the year.<br><br>Based on your current average rate (<strong>${formatDisplayAmount(roundedRate, fhsSourceCurrency)} / month</strong>), the projected savings for the end of the year is <strong>${formatDisplayAmount(roundedProj, fhsSourceCurrency)}</strong>.`;
         }
       }
 
@@ -7450,9 +7482,9 @@ function renderAccountsTab() {
       const expectedValEl = document.getElementById('forecast-expected-val');
       const worstValEl = document.getElementById('forecast-worst-val');
 
-      if (bestValEl) bestValEl.textContent = formatDisplayAmount(forecast.bestCaseSavings);
-      if (expectedValEl) expectedValEl.textContent = formatDisplayAmount(forecast.projectedSavings);
-      if (worstValEl) worstValEl.textContent = formatDisplayAmount(forecast.worstCaseSavings);
+      if (bestValEl) bestValEl.textContent = formatDisplayAmount(forecast.bestCaseSavings, fhsSourceCurrency);
+      if (expectedValEl) expectedValEl.textContent = formatDisplayAmount(forecast.projectedSavings, fhsSourceCurrency);
+      if (worstValEl) worstValEl.textContent = formatDisplayAmount(forecast.worstCaseSavings, fhsSourceCurrency);
 
       const targetInputEl = document.getElementById('forecast-target-input');
       if (targetInputEl && !targetInputEl.matches(':focus')) {
@@ -7523,7 +7555,7 @@ function renderAccountsTab() {
         if (!t.date) return;
         const y = parseInt(String(t.date).split('T')[0].split('-')[0], 10);
         if (y === currentYearOverview) {
-          accIncome += CurrencyService.toBase(t);
+          accIncome += CurrencyService.displayAmount(t, displayCurrency);
         }
       }
     });
@@ -7543,7 +7575,7 @@ function renderAccountsTab() {
         <div class="account-icon">${icon}</div>
         ${displayHtml}
       </div>
-      <div class="account-value positive">${getCurrencySymbol()} ${formatDisplayAmount(accIncome)}</div>`;
+      <div class="account-value positive">${getCurrencySymbol()} ${formatDisplayAmount(accIncome, displayCurrency)}</div>`;
 
     if (assetsEl) assetsEl.appendChild(row);
   });
@@ -7562,7 +7594,7 @@ function renderAccountsTab() {
         if (!t.date) return;
         const y = parseInt(String(t.date).split('T')[0].split('-')[0], 10);
         if (y === currentYearOverview) {
-          accExpense += CurrencyService.toBase(t);
+          accExpense += CurrencyService.displayAmount(t, displayCurrency);
         }
       }
     });
@@ -7582,7 +7614,7 @@ function renderAccountsTab() {
         <div class="account-icon">${icon}</div>
         ${displayHtml}
       </div>
-      <div class="account-value negative">${getCurrencySymbol()} ${formatDisplayAmount(accExpense)}</div>`;
+      <div class="account-value negative">${getCurrencySymbol()} ${formatDisplayAmount(accExpense, displayCurrency)}</div>`;
 
     if (liabEl) liabEl.appendChild(row);
   });
@@ -7591,7 +7623,7 @@ function renderAccountsTab() {
   const yearlyData = {};
 
   activeTrans.forEach(t => {
-    const amt = CurrencyService.toBase(t);
+    const amt = CurrencyService.displayAmount(t, displayCurrency);
     if (!t.date) return;
     if (t.type === 'transfer' || t.category === 'ΜΕΤΑΦΟΡΑ' || t.category?.toLowerCase().includes('μεταφ') || t.category?.toLowerCase().includes('transfer')) return;
 
@@ -7674,7 +7706,7 @@ function renderAccountsTab() {
         row.innerHTML = `
           <span style="color: var(--text-secondary); font-weight: 700; font-size: 16px;">${label}</span>
           <div style="display: flex; align-items: center; gap: 12px;">
-            <span style="${colorStyle} font-size: 16px;">${sign}${getCurrencySymbol()}${formatDisplayAmount(Math.abs(data.net))}</span>
+            <span style="${colorStyle} font-size: 16px;">${sign}${getCurrencySymbol()}${formatDisplayAmount(Math.abs(data.net), displayCurrency)}</span>
             <i class="fa-solid fa-chevron-right archive-collapse-icon" style="font-size: 14px; color: var(--text-muted); transition: transform 0.25s;"></i>
           </div>
         `;
@@ -7693,11 +7725,11 @@ function renderAccountsTab() {
           <div style="padding: 10px 0 4px 0; display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; color: var(--text-secondary); opacity: 0.9; font-family: 'Outfit', sans-serif;">
             <div style="display: flex; justify-content: space-between;">
               <span>${incomeLabel}:</span>
-              <span style="font-weight: 700; color: var(--blue-positive);">${getCurrencySymbol()}${formatDisplayAmount(data.income)}</span>
+              <span style="font-weight: 700; color: var(--blue-positive);">${getCurrencySymbol()}${formatDisplayAmount(data.income, displayCurrency)}</span>
             </div>
             <div style="display: flex; justify-content: space-between;">
               <span>${expenseLabel}:</span>
-              <span style="font-weight: 700; color: var(--red-negative);">${getCurrencySymbol()}${formatDisplayAmount(data.expense)}</span>
+              <span style="font-weight: 700; color: var(--red-negative);">${getCurrencySymbol()}${formatDisplayAmount(data.expense, displayCurrency)}</span>
             </div>
             <div style="display: flex; justify-content: space-between;">
               <span>${savingsRateLabel}:</span>
@@ -13345,13 +13377,16 @@ function handleSearchChange(resetLimit = true) {
     countBadge.textContent = filtered.length;
   }
 
-  // Calculate Totals for search summary bar
+  // Calculate Totals for search summary bar. Aggregate each transaction in the
+  // display currency so amounts convert with the exchange rate when the app
+  // currency changes (e.g. 1316 € → ~1420 $).
+  const searchDisplayCurrency = getDisplayCurrency();
   let totalIncome = 0;
   let totalExpense = 0;
   let totalTransfer = 0;
 
   filtered.forEach(t => {
-    const amt = parseFloat(t.amount) || 0;
+    const amt = CurrencyService.displayAmount(t, searchDisplayCurrency);
     if (t.type === 'income') {
       totalIncome += amt;
     } else if (t.type === 'expense') {
@@ -13366,9 +13401,9 @@ function handleSearchChange(resetLimit = true) {
   const expenseValEl = document.getElementById('search-summary-expense-val');
   const transferValEl = document.getElementById('search-summary-transfer-val');
 
-  if (incomeValEl) incomeValEl.textContent = `${currencySymbol} ${formatDisplayAmount(totalIncome)}`;
-  if (expenseValEl) expenseValEl.textContent = `${currencySymbol} ${formatDisplayAmount(totalExpense)}`;
-  if (transferValEl) transferValEl.textContent = `${currencySymbol} ${formatDisplayAmount(totalTransfer)}`;
+  if (incomeValEl) incomeValEl.textContent = `${currencySymbol} ${formatDisplayAmount(totalIncome, searchDisplayCurrency)}`;
+  if (expenseValEl) expenseValEl.textContent = `${currencySymbol} ${formatDisplayAmount(totalExpense, searchDisplayCurrency)}`;
+  if (transferValEl) transferValEl.textContent = `${currencySymbol} ${formatDisplayAmount(totalTransfer, searchDisplayCurrency)}`;
 
   // Render Day-Grouped search results
   const resultsContainer = document.getElementById('search-results-list');
@@ -13378,6 +13413,7 @@ function handleSearchChange(resetLimit = true) {
 
 function renderGroupedTransactions(transactions, container) {
   container.innerHTML = '';
+  const searchDisplayCurrency = getDisplayCurrency();
 
   if (transactions.length === 0) {
     container.innerHTML = `
@@ -13527,7 +13563,7 @@ function renderGroupedTransactions(transactions, container) {
           </div>
         </div>
       </div>
-      <div class="${amountClass}">${getCurrencySymbol()} ${formatCurrency(t.amount)}</div>`;
+      <div class="${amountClass}">${getCurrencySymbol()} ${formatDisplayAmount(CurrencyService.displayAmount(t, searchDisplayCurrency), searchDisplayCurrency)}</div>`;
     container.appendChild(item);
   });
 
@@ -16972,22 +17008,54 @@ function getDisplayCurrency() {
   return localStorage.getItem('app_currency') || 'EUR';
 }
 
-// Converts a base-currency amount to the display currency for display purposes.
+// Determines the source currency of aggregated values that were computed via
+// CurrencyService.toBase(t) (e.g. FHS liquid balance, forecast savings). Those
+// values are cached in each transaction's `base_currency` (the app currency at
+// the time the transaction was created), so after an app-currency change they
+// are still in the OLD base currency. This returns the most common
+// `base_currency` among the given transactions, falling back to the current app
+// currency when there are no transactions or they are mixed.
+function getTransactionsBaseCurrency(transactions) {
+  const counts = {};
+  let best = getDisplayCurrency();
+  let bestCount = 0;
+  (transactions || []).forEach(t => {
+    const bc = t.base_currency || 'EUR';
+    counts[bc] = (counts[bc] || 0) + 1;
+    if (counts[bc] > bestCount) {
+      bestCount = counts[bc];
+      best = bc;
+    }
+  });
+  return best;
+}
+
+// Converts an amount expressed in `fromCurrency` to the current application
+// currency (display currency) for display purposes.
+//
+// `fromCurrency` defaults to the current app currency, which keeps the original
+// behaviour for callers that already pass amounts in the app currency (no
+// conversion happens). When the user changes the app currency, existing stored
+// amounts are still cached in the OLD base currency (each transaction's
+// `base_currency`), so callers must pass that old currency here to convert the
+// value with the exchange rate (e.g. 1316 € → ~1420 $) instead of just swapping
+// the symbol.
+//
 // Returns null when the conversion cannot be performed (no rate available).
-function displayAmountInDisplayCurrency(baseAmount) {
-  const baseCurrency = localStorage.getItem('app_currency') || 'EUR';
+function displayAmountInDisplayCurrency(baseAmount, fromCurrency) {
   const displayCurrency = getDisplayCurrency();
-  if (baseCurrency === displayCurrency) return baseAmount;
-  const rate = CurrencyService.getRate(baseCurrency, displayCurrency, new Date().toISOString().slice(0, 10));
+  const sourceCurrency = fromCurrency || displayCurrency;
+  if (sourceCurrency === displayCurrency) return baseAmount;
+  const rate = CurrencyService.getRate(sourceCurrency, displayCurrency, new Date().toISOString().slice(0, 10));
   if (rate == null || rate <= 0) return null;
   return CurrencyService.round(baseAmount * rate, 2);
 }
 
-// Formats a base-currency amount for display, converting it to the display
-// currency when multi-currency is enabled and a rate is available. Falls back
-// to the base amount when conversion is not possible.
-function formatDisplayAmount(baseAmount) {
-  const displayVal = displayAmountInDisplayCurrency(baseAmount);
+// Formats an amount for display, converting it from `fromCurrency` (defaults to
+// the current app currency) to the display currency when a rate is available.
+// Falls back to the raw amount when conversion is not possible.
+function formatDisplayAmount(baseAmount, fromCurrency) {
+  const displayVal = displayAmountInDisplayCurrency(baseAmount, fromCurrency);
   return formatCurrency(displayVal != null ? displayVal : baseAmount);
 }
 

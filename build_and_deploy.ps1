@@ -156,7 +156,7 @@ if ($deploy1 -ne 0) {
 # 7. Git Commit & Tag
 Write-Host "[INFO] Staging and committing to Git..." -ForegroundColor Yellow
 git add -A
-git commit -m "build v${newBuild}: Fix app currency setting not applying - refresh settings display immediately after selecting a currency and use CurrencyService for the currency symbol so non-EUR/USD/GBP/JPY currencies display correctly"
+git commit -m "build v${newBuild}: Convert existing amounts automatically with the exchange rate when app currency changes (display-layer conversion) so value stays the same (e.g. 1316 EUR -> ~1420 USD)"
 Write-Host "  [SUCCESS] Git commit created for build v${newBuild}" -ForegroundColor Green
 
 Write-Host "[SUCCESS] All steps completed successfully! Builds are live at:" -ForegroundColor Green
