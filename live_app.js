@@ -387,6 +387,20 @@ const DEFAULT_ACCOUNTS = [
   { name: 'Card', type: 'card', balance: 0 },
 ];
 
+// Recently-saved transaction IDs that must survive a re-fetch race.
+// When a logged-in user saves a transaction, it gets a valid UUID + user_id and is
+// dequeued from the sync queue right after a successful cloud upsert. If loadData()
+// re-fetches from the cloud before that write has propagated, getPendingLocalTransactions()
+// would NOT preserve it (valid UUID, user_id set, not in queue) and the transaction
+// would be silently dropped. We keep these IDs for a short grace window so the
+// optimistic local copy survives until the cloud fetch confirms it.
+const _recentlySavedTxIds = new Set();
+function _markRecentlySaved(id) {
+  if (!id) return;
+  _recentlySavedTxIds.add(String(id));
+  setTimeout(() => { _recentlySavedTxIds.delete(String(id)); }, 60000); // 60s grace window
+}
+
 // App State
 const state = {
   isLoggingOut: false,
@@ -606,6 +620,58 @@ function _markRecentlyDeleted(id) {
   setTimeout(() => { _recentlyDeletedTxIds.delete(String(id)); }, 30000);
 }
 
+// ============================================================
+// PERMANENT-DELETE TOMBSTONES
+// ------------------------------------------------------------
+// When the user empties the trash bin or permanently deletes a single
+// trash item, we record the item's ID here (persisted to localStorage).
+// This acts as a safety net so that fetchCloudTrashToLocal() never re-pulls
+// those items from the Supabase `deleted_transactions` table on the next
+// sync, even if the cloud delete raced with the fetch or failed while the
+// user was offline. The PRIMARY fix is that emptyTrashBin/deleteSingleTrashItem
+// now await a scoped cloud delete (user + family + partner); the tombstone
+// only guarantees permanent-delete semantics when that delete cannot complete.
+// ============================================================
+const PERMANENT_DELETE_KEY = 'permanently_deleted_trash_ids';
+let _permanentlyDeletedTrashIds = null;
+
+// Guards against a concurrent fetchCloudTrashToLocal() racing with an
+// in-progress permanent delete (empty trash / single permanent delete).
+let _permanentDeleteInProgress = false;
+
+function _loadPermanentlyDeletedTrashIds() {
+  if (_permanentlyDeletedTrashIds) return _permanentlyDeletedTrashIds;
+  try {
+    const raw = localStorage.getItem(PERMANENT_DELETE_KEY);
+    _permanentlyDeletedTrashIds = new Set(raw ? JSON.parse(raw) : []);
+  } catch (e) {
+    _permanentlyDeletedTrashIds = new Set();
+  }
+  return _permanentlyDeletedTrashIds;
+}
+
+function _persistPermanentlyDeletedTrashIds() {
+  try {
+    if (!_permanentlyDeletedTrashIds) return;
+    localStorage.setItem(PERMANENT_DELETE_KEY, JSON.stringify(Array.from(_permanentlyDeletedTrashIds)));
+  } catch (e) {
+    console.warn('Failed to persist permanently deleted trash IDs:', e);
+  }
+}
+
+function _markPermanentlyDeleted(id) {
+  if (!id) return;
+  const set = _loadPermanentlyDeletedTrashIds();
+  set.add(String(id));
+  _persistPermanentlyDeletedTrashIds();
+}
+
+function _isPermanentlyDeleted(id) {
+  if (!id) return false;
+  const set = _loadPermanentlyDeletedTrashIds();
+  return set.has(String(id));
+}
+
 function deduplicateCategories() {
   if (!state.categories) return;
   const seen = new Set();
@@ -648,6 +714,19 @@ function mergeAndDeduplicateTransactions(cloudTransactions, localPendingTransact
     });
   } catch (e) {
     console.error('Failed to collect trash IDs in mergeAndDeduplicateTransactions:', e);
+  }
+
+  // Guard 3b: PERMANENT-DELETE TOMBSTONES - IDs the user permanently deleted
+  // (emptied trash / single permanent delete). These must never reappear in the
+  // main transactions list either, even if a stale copy still exists in the
+  // cloud transactions table.
+  try {
+    const permSet = _loadPermanentlyDeletedTrashIds();
+    if (permSet && permSet.size > 0) {
+      permSet.forEach(id => deletedIds.add(String(id)));
+    }
+  } catch (e) {
+    console.error('Failed to collect permanently deleted IDs in mergeAndDeduplicateTransactions:', e);
   }
 
   // Guard 4: Sync queue pending deletes
@@ -774,8 +853,8 @@ const TRANSLATIONS = {
     pref_week_start_mon: 'Δευτέρα',
     pref_week_start_sun: 'Κυριακή',
     card_sync: 'Συγχρονισμός',
-    card_import_excel: 'Εισαγωγή Excel',
-    card_export_excel: 'Εξαγωγή Excel',
+    card_import_excel: 'Εισαγωγή Δεδομένων',
+    card_export_excel: 'Εξαγωγή Δεδομένων',
     item_language: 'Γλώσσα',
     item_month_start: 'Έναρξη Μήνα',
     item_week_start: 'Έναρξη Εβδομάδας',
@@ -958,7 +1037,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1063 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1095 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -994,6 +1073,12 @@ const TRANSLATIONS = {
     export_label_to: 'Έως:',
     export_btn_confirm: 'Επιβεβαίωση Εξαγωγής',
     export_no_data_range: 'Δεν υπάρχουν συναλλαγές σε αυτή την περίοδο!',
+    export_label_format: 'Μορφή Αρχείου:',
+    export_format_xlsx: 'Excel (XLSX)',
+    export_format_csv: 'CSV',
+    export_format_ods: 'OpenDocument (ODS)',
+    export_format_json: 'JSON',
+    export_format_pdf: 'PDF',
     row_receipt_photo: 'Φωτογραφία Απόδειξης',
     photo_mismatch_warning: 'Η εικόνα είναι διαθέσιμη μόνο στη συσκευή που καταχωρήθηκε.',
     photo_delete_confirm: 'Διαγραφή φωτογραφίας απόδειξης;',
@@ -1146,8 +1231,8 @@ const TRANSLATIONS = {
     pref_week_start_mon: 'Monday',
     pref_week_start_sun: 'Sunday',
     card_sync: 'Sync',
-    card_import_excel: 'Import Excel',
-    card_export_excel: 'Export Excel',
+    card_import_excel: 'Import Data',
+    card_export_excel: 'Export Data',
     item_language: 'Language',
     item_month_start: 'Month Start',
     item_week_start: 'Week Start',
@@ -1330,7 +1415,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1063 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1095 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -1366,6 +1451,12 @@ const TRANSLATIONS = {
     export_label_to: 'To:',
     export_btn_confirm: 'Confirm Export',
     export_no_data_range: 'No transactions found in this period!',
+    export_label_format: 'File Format:',
+    export_format_xlsx: 'Excel (XLSX)',
+    export_format_csv: 'CSV',
+    export_format_ods: 'OpenDocument (ODS)',
+    export_format_json: 'JSON',
+    export_format_pdf: 'PDF',
     row_receipt_photo: 'Receipt Photo',
     photo_mismatch_warning: 'Image is only available on the device where it was recorded.',
     photo_delete_confirm: 'Delete receipt photo?',
@@ -3989,6 +4080,11 @@ function getPendingLocalTransactions(cachedTransactions) {
       // Keep if in the offline sync queue (not yet successfully uploaded)
       if (queuedIds.has(t.id)) return true;
 
+      // Keep if recently saved (within the grace window). This protects a just-saved
+      // transaction from being dropped when a re-fetch races ahead of the cloud write
+      // propagation, even after it has been dequeued from the sync queue.
+      if (_recentlySavedTxIds && _recentlySavedTxIds.has(String(t.id))) return true;
+
       // If it is not a valid UUID, it is local
       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       if (!uuidRegex.test(String(t.id))) return true;
@@ -4028,6 +4124,9 @@ async function loadData() {
 
       // Process offline queue first (flushes offline deletes/saves) before fetching latest transactions
       await processSyncQueue({ skipReload: true });
+
+      // CRITICAL FIX: Pull cloud trash to local so Guard 3 (Tombstones) has the updated deleted IDs
+      await fetchCloudTrashToLocal();
 
       const userId = state.currentUser.id;
       const partnerId = state.partnerProfile ? state.partnerProfile.id : null;
@@ -4081,6 +4180,7 @@ async function loadData() {
           .from('transactions')
           .select('*')
           .order('date', { ascending: false })
+          .order('id', { ascending: false })
           .range(page * pageSize, (page + 1) * pageSize - 1);
 
         if (familyId) {
@@ -4360,6 +4460,11 @@ function loadOfflineData() {
   try {
     const trash = localStorage.getItem('deleted_transactions_trash');
     state.trashTransactions = trash ? JSON.parse(trash) : [];
+    // Drop any items the user permanently deleted (emptied trash / single
+    // permanent delete) so they never reappear after a reload.
+    if (state.trashTransactions.length > 0) {
+      state.trashTransactions = state.trashTransactions.filter(t => t && t.id && !_isPermanentlyDeleted(t.id));
+    }
   } catch (e) {
     console.error('Failed to parse deleted transactions trash:', e);
     state.trashTransactions = [];
@@ -4722,8 +4827,6 @@ function processRecurringTemplates() {
 
     if (template.years && template.years.length > 0) {
       if (!template.years.includes(year)) return dates;
-    } else if (template.endYear !== null && year > template.endYear) {
-      return dates;
     }
 
     const preset = template.preset || 'custom';
@@ -4967,6 +5070,9 @@ async function saveTransaction(transaction) {
 
   // 2. Optimistically save to local state and local storage immediately
   saveTransactionOffline(transaction);
+  // Guard against the re-fetch race: keep this transaction in the "recently saved"
+  // set so a loadData() re-fetch that hasn't yet seen the cloud write does NOT drop it.
+  _markRecentlySaved(transaction.id);
   calculateInitialBalances();
   updateUI();
 
@@ -5070,34 +5176,119 @@ async function syncLocalTrashToCloud() {
   await saveDeletedTransactionsToSupabase(state.trashTransactions || []);
 }
 
+// Pull deleted transactions from the cloud (deleted_transactions table) and merge
+// them into the local trash bin. This makes the recycle bin consistent across all
+// devices (web + APK), since trash is otherwise stored only in each device's
+// localStorage and the cloud is used just as a push-only backup.
+async function fetchCloudTrashToLocal() {
+  if (!state.isSupabaseEnabled || !state.supabaseClient || !state.currentUser) return;
+  // If a permanent delete (empty trash / single permanent delete) is in
+  // progress, skip this fetch so it cannot race and re-pull items that are
+  // being removed from the cloud right now.
+  if (_permanentDeleteInProgress) return;
+
+  try {
+    const userId = state.currentUser.id;
+    const partnerId = state.partnerProfile ? state.partnerProfile.id : null;
+    const familyId = state.userProfile ? state.userProfile.family_id : null;
+
+    // Fetch ALL cloud trash rows (paginated) for this user/family/partner
+    let cloudTrash = [];
+    let page = 0;
+    const pageSize = 1000;
+    let hasMore = true;
+
+    while (hasMore) {
+      let trashQuery = state.supabaseClient
+        .from('deleted_transactions')
+        .select('*')
+        .order('deleted_at', { ascending: false })
+        .range(page * pageSize, (page + 1) * pageSize - 1);
+
+      if (familyId && partnerId) {
+        trashQuery = trashQuery.or(`family_id.eq.${familyId},user_id.eq.${userId},user_id.eq.${partnerId}`);
+      } else if (familyId) {
+        trashQuery = trashQuery.or(`family_id.eq.${familyId},user_id.eq.${userId}`);
+      } else if (partnerId) {
+        trashQuery = trashQuery.or(`user_id.eq.${userId},user_id.eq.${partnerId}`);
+      } else {
+        trashQuery = trashQuery.eq('user_id', userId);
+      }
+
+      const { data: pageData, error: pageErr } = await promiseTimeout(trashQuery, 15000);
+      if (pageErr) {
+        console.warn('Cloud trash fetch error:', pageErr);
+        return;
+      }
+
+      if (pageData && pageData.length > 0) {
+        cloudTrash = cloudTrash.concat(pageData);
+        page++;
+        if (pageData.length < pageSize) hasMore = false;
+      } else {
+        hasMore = false;
+      }
+    }
+
+    if (cloudTrash.length === 0) return;
+
+    // Merge cloud trash into local trash, deduplicating by id (keep local version
+    // if it already exists so we don't clobber locally-deleted items).
+    state.trashTransactions = state.trashTransactions || [];
+
+    // Drop any items the user has permanently deleted (emptied trash / single
+    // permanent delete). These must NEVER come back from the cloud, even if the
+    // Supabase delete raced with this fetch or belonged to a family/partner scope.
+    if (cloudTrash.length > 0) {
+      cloudTrash = cloudTrash.filter(item => item && item.id && !_isPermanentlyDeleted(item.id));
+    }
+    if (state.trashTransactions.length > 0) {
+      state.trashTransactions = state.trashTransactions.filter(t => t && t.id && !_isPermanentlyDeleted(t.id));
+    }
+
+    const existingMap = new Map(state.trashTransactions.map(t => [String(t.id), t]));
+    let added = 0;
+    cloudTrash.forEach(item => {
+      if (item && item.id && !existingMap.has(String(item.id))) {
+        const trashItem = { ...item, deleted_at: item.deleted_at || new Date().toISOString() };
+        state.trashTransactions.push(trashItem);
+        existingMap.set(String(item.id), trashItem);
+        added++;
+      }
+    });
+
+    if (added === 0) return;
+
+    // Keep the same 100-item cap used everywhere else in the app
+    if (state.trashTransactions.length > 100) {
+      state.trashTransactions = state.trashTransactions.slice(-100);
+    }
+    localStorage.setItem('deleted_transactions_trash', JSON.stringify(state.trashTransactions));
+
+    // Refresh the trash count badge
+    const trashCount = state.trashTransactions.length;
+    const trashCountEl = document.getElementById('trash-bin-count-val');
+    if (trashCountEl) trashCountEl.textContent = trashCount;
+    const hubTrashCountEl = document.getElementById('hub-trash-count');
+    if (hubTrashCountEl) hubTrashCountEl.textContent = trashCount;
+
+    // If the trash modal is currently open, re-render its list
+    const trashModal = document.getElementById('trash-bin-modal');
+    if (trashModal && trashModal.classList.contains('show')) {
+      renderTrashBinList();
+    }
+  } catch (err) {
+    console.warn('Failed to fetch cloud trash:', err);
+  }
+}
+
 function deleteTransaction(id) {
   if (!id) return;
 
-  // Find duplicates of this transaction to delete them too (prevents them from reappearing due to Supabase sync)
-  const tx = state.transactions.find(t => t.id === id);
+  // Delete only the transaction with this unique id.
+  // Content-based "duplicate" matching was removed because it could delete
+  // legitimate identical transactions (same date/amount/category/note).
   const idsToDelete = [String(id)];
-
-  if (tx) {
-    const txDate = String(tx.date || '').split('T')[0].split(' ')[0];
-    const txAmount = (parseFloat(tx.amount) || 0).toFixed(2);
-    state.transactions.forEach(t => {
-      if (t.id && t.id !== id) {
-        const tDate = String(t.date || '').split('T')[0].split(' ')[0];
-        const tAmount = (parseFloat(t.amount) || 0).toFixed(2);
-        const isDupe = tDate === txDate &&
-          tAmount === txAmount &&
-          t.type === tx.type &&
-          t.category === tx.category &&
-          (t.account_from || '') === (tx.account_from || '') &&
-          (t.account_to || '') === (tx.account_to || '') &&
-          (t.note || '') === (tx.note || '') &&
-          (t.user_id || '') === (tx.user_id || '');
-        if (isDupe) {
-          idsToDelete.push(String(t.id));
-        }
-      }
-    });
-  }
 
   // 1. Mark all these IDs as deleting
   idsToDelete.forEach(dId => _deletingTxIds.add(dId));
@@ -5215,24 +5406,10 @@ function deleteTransactionOffline(id, skipSave = false) {
         }
       }
     }
-
-    // Also remove any content-based duplicates from local state
-    const txAmount = (parseFloat(tx.amount) || 0).toFixed(2);
-    state.transactions = state.transactions.filter(t => {
-      if (t.id === tx.id) return false;
-      const tDate = String(t.date || '').split('T')[0].split(' ')[0];
-      const tAmount = (parseFloat(t.amount) || 0).toFixed(2);
-      const isDupe = tDate === txDate &&
-        tAmount === txAmount &&
-        t.type === tx.type &&
-        t.category === tx.category &&
-        (t.account_from || '') === (tx.account_from || '') &&
-        (t.account_to || '') === (tx.account_to || '') &&
-        (t.note || '') === (tx.note || '') &&
-        (t.user_id || '') === (tx.user_id || '');
-      return !isDupe;
-    });
   }
+  // Remove only the transaction with this unique id.
+  // Content-based "duplicate" removal was removed because it could delete
+  // legitimate identical transactions (same date/amount/category/note).
   state.transactions = state.transactions.filter(t => t.id !== id);
   if (!skipSave) {
     localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
@@ -6626,12 +6803,14 @@ function renderAccountsTab() {
   const liabEl = document.getElementById('accounts-liabilities-list');
 
   // Anti-flicker signature check — skip full rebuild if data hasn't changed
+  const _now = new Date();
   const _acctSig = (state.accounts || []).map(a => `${a.id}_${a.name}_${a.balance}_${a.type}`).join('|')
     + '||' + (state.transactions || []).length
-    + '||' + (state.overviewYear || new Date().getFullYear())
+    + '||' + (state.overviewYear || _now.getFullYear())
     + '||' + (state.lang || 'el')
     + '||' + (state.currentUser ? state.currentUser.id : 'none')
-    + '||' + (state.customSavingsTarget || '');
+    + '||' + (state.customSavingsTarget || '')
+    + '||' + `${_now.getFullYear()}-${_now.getMonth()}`;
   if (assetsEl && assetsEl._lastRenderSignature === _acctSig) return;
   if (assetsEl) assetsEl._lastRenderSignature = _acctSig;
 
@@ -6937,7 +7116,9 @@ function renderAccountsTab() {
     }
   });
 
-  // Calculate MoM increases
+  // Determine the comparison category: prefer the category with the largest
+  // month-over-month increase, otherwise fall back to the top spending
+  // category of the current month so the comparison always has content.
   let maxIncreaseCat = null;
   let maxIncreaseAmt = 0;
 
@@ -6951,16 +7132,39 @@ function renderAccountsTab() {
     }
   });
 
+  // If there is no increase, fall back to the top current-month category so the
+  // comparison bars always render below the advisor.
+  if (!maxIncreaseCat || maxIncreaseAmt <= 0) {
+    let topCat = null;
+    let topAmt = 0;
+    Object.keys(currMonthExpenses).forEach(cat => {
+      const amt = currMonthExpenses[cat] || 0;
+      if (amt > topAmt) {
+        topAmt = amt;
+        topCat = cat;
+      }
+    });
+    if (topCat) {
+      maxIncreaseCat = topCat;
+      maxIncreaseAmt = (currMonthExpenses[topCat] || 0) - (prevMonthExpenses[topCat] || 0);
+    }
+  }
+
+  const hasComparison = !!maxIncreaseCat;
+
   let advisorText = '';
   const advisorEl = document.getElementById('advisor-text');
   const cardEl = document.getElementById('advisor-card');
   const chevronEl = document.getElementById('advisor-chevron');
   const expandedContentEl = document.getElementById('advisor-expanded-content');
 
-  if (maxIncreaseCat && maxIncreaseAmt > 0) {
+  if (hasComparison) {
     const prevAmt = prevMonthExpenses[maxIncreaseCat] || 0;
-    const pctVal = prevAmt > 0 ? Math.round((maxIncreaseAmt / prevAmt) * 100) : null;
-    const pctStr = pctVal !== null ? `${pctVal}%` : '';
+    const currAmt = currMonthExpenses[maxIncreaseCat] || 0;
+    const diffAmt = currAmt - prevAmt;
+    const isIncrease = diffAmt > 0;
+    const pctVal = prevAmt > 0 ? Math.round((diffAmt / prevAmt) * 100) : null;
+    const pctStr = pctVal !== null ? `${Math.abs(pctVal)}%` : '';
 
     // Clean emojis from category name for advice matching
     const cleanCat = maxIncreaseCat.replace(/[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF]/g, '').trim().toUpperCase();
@@ -7014,14 +7218,28 @@ function renderAccountsTab() {
     }
 
     if (state.lang === 'el') {
-      const pctPart = pctStr ? ` κατά **${pctStr}**` : '';
-      advisorText = `Τα έξοδα στην κατηγορία **${maxIncreaseCat}** ανέβηκαν${pctPart} (+${formatDisplayAmount(maxIncreaseAmt)}) αυτόν τον μήνα. Αν συνεχιστεί, ${grConsequence} — ${grAdvice}.`;
+      if (isIncrease) {
+        const pctPart = pctStr ? ` κατά **${pctStr}**` : '';
+        advisorText = `Τα έξοδα στην κατηγορία **${maxIncreaseCat}** ανέβηκαν${pctPart} (+${formatDisplayAmount(diffAmt)}) αυτόν τον μήνα. Αν συνεχιστεί, ${grConsequence} — ${grAdvice}.`;
+      } else if (diffAmt < 0) {
+        const pctPart = pctStr ? ` κατά **${pctStr}**` : '';
+        advisorText = `Τα έξοδα στην κατηγορία **${maxIncreaseCat}** μειώθηκαν${pctPart} (−${formatDisplayAmount(Math.abs(diffAmt))}) σε σχέση με τον προηγούμενο μήνα. Συνέχισε έτσι!`;
+      } else {
+        advisorText = `Τα έξοδα στην κατηγορία **${maxIncreaseCat}** παρέμειναν σταθερά σε σχέση με τον προηγούμενο μήνα. Συνέχισε έτσι!`;
+      }
     } else {
-      const pctPart = pctStr ? ` by **${pctStr}**` : '';
-      advisorText = `Expenses in **${maxIncreaseCat}** rose${pctPart} (+${formatDisplayAmount(maxIncreaseAmt)}) this month. If this continues, it ${enConsequence} — ${enAdvice}.`;
+      if (isIncrease) {
+        const pctPart = pctStr ? ` by **${pctStr}**` : '';
+        advisorText = `Expenses in **${maxIncreaseCat}** rose${pctPart} (+${formatDisplayAmount(diffAmt)}) this month. If this continues, it ${enConsequence} — ${enAdvice}.`;
+      } else if (diffAmt < 0) {
+        const pctPart = pctStr ? ` by **${pctStr}**` : '';
+        advisorText = `Expenses in **${maxIncreaseCat}** decreased${pctPart} (−${formatDisplayAmount(Math.abs(diffAmt))}) compared to last month. Keep it up!`;
+      } else {
+        advisorText = `Expenses in **${maxIncreaseCat}** stayed flat compared to last month. Keep it up!`;
+      }
     }
 
-    // Enable interaction
+    // Enable interaction (always expandable so the comparison is reachable)
     if (cardEl) {
       cardEl.classList.add('interactive');
       cardEl.onclick = () => {
@@ -7080,7 +7298,6 @@ function renderAccountsTab() {
     }
 
     // Populate Month comparison bars
-    const currAmt = currMonthExpenses[maxIncreaseCat] || 0;
     const maxVal = Math.max(prevAmt, currAmt, 1);
     const prevPct = Math.round((prevAmt / maxVal) * 100);
     const currPct = Math.round((currAmt / maxVal) * 100);
@@ -7123,8 +7340,8 @@ function renderAccountsTab() {
     }
   } else {
     advisorText = state.lang === 'el'
-      ? "Η οικονομική σου συμπεριφορά είναι απόλυτα σταθερή αυτόν τον μήνα. Συνέχισε έτσι!"
-      : "Your financial behavior is perfectly stable this month. Keep it up!";
+      ? "Δεν υπάρχουν ακόμη έξοδα αυτόν τον μήνα για σύγκριση."
+      : "No expenses yet this month to compare.";
 
     // Disable interaction
     if (cardEl) {
@@ -7140,7 +7357,7 @@ function renderAccountsTab() {
 
   if (advisorEl) {
     let html = advisorText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    if (maxIncreaseCat && maxIncreaseAmt > 0) {
+    if (hasComparison && maxIncreaseAmt > 0) {
       const discussText = state.lang === 'el' ? '💬 Συζήτησέ το' : '💬 Discuss it';
       const discussQuery = state.lang === 'el'
         ? `Γιατί αυξήθηκαν οι ${maxIncreaseCat} μου αυτόν τον μήνα;`
@@ -7876,6 +8093,9 @@ function setupEventListeners() {
             .then(({ data, error }) => {
               if (error) {
                 console.error('Failed to sync new recurring template to cloud:', error);
+                // Enqueue to the offline sync queue so the template is not lost
+                // when the user is offline or the cloud insert fails.
+                enqueueSyncMutation('save_template', template);
               } else if (data && data[0]) {
                 const idx = state.recurringTemplates.findIndex(t => t.id === template.id);
                 if (idx !== -1) {
@@ -7886,6 +8106,10 @@ function setupEventListeners() {
                 }
               }
             });
+        } else if (state.isSupabaseEnabled) {
+          // Supabase is enabled but the user is not logged in yet (e.g. offline/guest).
+          // Enqueue so the template syncs once a session is available.
+          enqueueSyncMutation('save_template', template);
         }
         state.recurringTemplates.push(template);
         localStorage.setItem('recurring_templates', JSON.stringify(state.recurringTemplates));
@@ -10735,28 +10959,20 @@ function updateCurrencyTriggerDisplay() {
   triggerDisplay.innerHTML = `<span class="custom-select-icon" style="margin-right: 8px;">${flag}</span><span class="custom-select-text">${escapeHtml(name)}</span>`;
 }
 
-function openCurrencyPickerModal() {
+let _currencyPickerTarget = 'transaction';
+
+function openCurrencyPickerModal(options = {}) {
   try {
+    _currencyPickerTarget = (options && options.target) ? options.target : 'transaction';
     const form = document.getElementById('transaction-form');
-    if (form && form.getAttribute('data-readonly') === 'true') return;
-    // Close the calculator keypad so the currency list is fully visible on top
-    // (the keypad has a higher z-index than the picker, so it would otherwise
-    // cover the list). The keypad is reopened after a currency is selected.
-    if (typeof window.closeCalculatorKeypad === 'function') {
+    if (_currencyPickerTarget === 'transaction' && form && form.getAttribute('data-readonly') === 'true') return;
+    if (_currencyPickerTarget === 'transaction' && typeof window.closeCalculatorKeypad === 'function') {
       window.closeCalculatorKeypad();
     }
     const search = document.getElementById('currency-picker-search');
     if (search) search.value = '';
     renderCurrencyPickerOptions();
-    // Open synchronously (instant) instead of via requestAnimationFrame. This
-    // picker is opened from a capture-phase pointerdown handler that calls
-    // e.preventDefault(); on Android WebView that can leave the rendering loop in
-    // a state where a requestAnimationFrame callback is dropped/delayed, so the
-    // modal would never receive the 'active' class and appear to do nothing.
     openModal('currency-picker-modal', { instant: true });
-    // Bulletproof fallback: if for any reason the modal did not receive the
-    // 'active' class (e.g. openModal threw or was interrupted), force it open
-    // directly so the picker ALWAYS appears.
     const el = document.getElementById('currency-picker-modal');
     if (el && !el.classList.contains('active')) {
       el.classList.add('active');
@@ -10765,12 +10981,6 @@ function openCurrencyPickerModal() {
     setTimeout(() => { if (search) search.focus(); }, 100);
   } catch (err) {
     console.error('[CurrencySymbol] openCurrencyPickerModal error:', err);
-    try {
-      if (typeof showSyncToast === 'function') {
-        showSyncToast('Σφάλμα νομίσματος: ' + (err && err.message ? err.message : err), 3000);
-      }
-    } catch (_) { /* ignore */ }
-    // Even on error, force the modal open so the user always gets feedback.
     try {
       const el = document.getElementById('currency-picker-modal');
       if (el) {
@@ -10788,65 +10998,90 @@ function renderCurrencyPickerOptions() {
   const query = search ? search.value.trim().toLowerCase() : '';
 
   const allCurrencies = CurrencyService.getCurrencies();
-  const currentVal = getTransactionCurrency();
+  const currentVal = (_currencyPickerTarget === 'settings')
+    ? (localStorage.getItem('app_currency') || 'EUR')
+    : getTransactionCurrency();
   const recent = getRecentCurrencies();
 
-  let list = [];
+  container.innerHTML = '';
+
   if (query) {
-    // Search by code, name, or country
-    list = allCurrencies.filter(c =>
+    const matched = allCurrencies.filter(c =>
       c.code.toLowerCase().includes(query) ||
       (c.name || '').toLowerCase().includes(query) ||
       (c.countries || []).some(ct => String(ct).toLowerCase().includes(query))
     );
-  } else {
-    // Smart list: account currency first, then recent, then popular, then rest
-    const accountCurrency = getSelectedAccountCurrency();
-    const ordered = [];
-    const seen = new Set();
-    const push = (code) => {
-      if (!code || seen.has(code)) return;
-      const c = allCurrencies.find(x => x.code === code);
-      if (c) { ordered.push(c); seen.add(code); }
-    };
-    push(accountCurrency);
-    recent.forEach(push);
-    POPULAR_CURRENCIES.forEach(push);
-    allCurrencies.forEach(c => push(c.code));
-    list = ordered;
-  }
 
-  container.innerHTML = '';
-
-  if (list.length === 0) {
-    container.innerHTML = `<div style="color: var(--text-muted); text-align: center; padding: 20px;">${state.lang === 'el' ? 'Δεν βρέθηκαν νομίσματα' : 'No currencies found'}</div>`;
-    return;
-  }
-
-  // Όταν γίνεται αναζήτηση, δείξε και τις χώρες που ταιριάζουν (με σημαία + νόμισμα)
-  const showCountries = !!query;
-
-  list.forEach(c => {
-    const item = document.createElement('div');
-    item.className = 'account-picker-item';
-    if (c.code === currentVal) item.classList.add('selected');
-    const flag = c.flag || '';
-    const name = c.name || c.code;
-
-    let countryLine = '';
-    if (showCountries && Array.isArray(c.countries) && c.countries.length) {
-      const matched = c.countries.filter(ct => String(ct).toLowerCase().includes(query));
-      const shown = (matched.length ? matched : c.countries).slice(0, 3);
-      countryLine = `<div class="currency-picker-countries">${shown.map(ct => escapeHtml(ct)).join(' · ')}</div>`;
+    if (matched.length === 0) {
+      container.innerHTML = `<div style="color: var(--text-muted); text-align: center; padding: 20px;">${state.lang === 'el' ? 'Δεν βρέθηκαν νομίσματα' : 'No currencies found'}</div>`;
+      return;
     }
 
-    item.innerHTML = `
-      <span class="account-picker-item-icon">${flag}</span>
-      <span class="account-picker-item-name"><strong>${escapeHtml(c.code)}</strong> — ${escapeHtml(name)}${countryLine}</span>
-    `;
-    item.onclick = () => selectCurrencyOption(c.code);
-    container.appendChild(item);
-  });
+    matched.forEach(c => appendCurrencyCardItem(container, c, currentVal, true, query));
+  } else {
+    // 1. Popular & Recent Section
+    const accountCurrency = (_currencyPickerTarget === 'settings') ? null : getSelectedAccountCurrency();
+    const popularCodes = ['EUR', 'USD', 'GBP', 'JPY', 'CHF', 'CAD', 'AUD'];
+    const topList = [];
+    const seen = new Set();
+    const pushTop = (code) => {
+      if (!code || seen.has(code)) return;
+      const c = allCurrencies.find(x => x.code === code);
+      if (c) { topList.push(c); seen.add(code); }
+    };
+    pushTop(accountCurrency);
+    recent.forEach(pushTop);
+    popularCodes.forEach(pushTop);
+
+    if (topList.length > 0) {
+      const topHeader = document.createElement('div');
+      topHeader.className = 'currency-section-title';
+      topHeader.textContent = state.lang === 'el' ? '⭐ Δημοφιλή & Πρόσφατα' : '⭐ Popular & Recent';
+      container.appendChild(topHeader);
+
+      topList.forEach(c => appendCurrencyCardItem(container, c, currentVal, false, ''));
+    }
+
+    // 2. All Currencies Section
+    const allHeader = document.createElement('div');
+    allHeader.className = 'currency-section-title';
+    allHeader.textContent = state.lang === 'el' ? '🌍 Όλα τα Νομίσματα' : '🌍 All Currencies';
+    container.appendChild(allHeader);
+
+    const sortedAll = [...allCurrencies].sort((a, b) => a.code.localeCompare(b.code));
+    sortedAll.forEach(c => appendCurrencyCardItem(container, c, currentVal, false, ''));
+  }
+}
+
+function appendCurrencyCardItem(container, c, currentVal, showMatchedCountries, query) {
+  const isSelected = c.code === currentVal;
+  const card = document.createElement('div');
+  card.className = `currency-item-card ${isSelected ? 'selected' : ''}`;
+
+  let countryLine = '';
+  if (showMatchedCountries && Array.isArray(c.countries) && c.countries.length) {
+    const matched = c.countries.filter(ct => String(ct).toLowerCase().includes(query));
+    const shown = (matched.length ? matched : c.countries).slice(0, 3);
+    countryLine = `<div class="currency-name-sub" style="margin-top:2px;">📍 ${shown.map(ct => escapeHtml(ct)).join(' · ')}</div>`;
+  }
+
+  card.innerHTML = `
+    <div class="currency-card-left">
+      <div class="currency-flag-box">${c.flag || '🌐'}</div>
+      <div class="currency-card-details">
+        <div class="currency-card-main">
+          <span class="currency-code-badge">${escapeHtml(c.code)}</span>
+          <span class="currency-symbol-tag">${escapeHtml(c.symbol || '')}</span>
+        </div>
+        <div class="currency-name-sub">${escapeHtml(c.name || c.code)}</div>
+        ${countryLine}
+      </div>
+    </div>
+    ${isSelected ? '<i class="fa-solid fa-check settings-card-check" style="opacity:1;"></i>' : ''}
+  `;
+
+  card.onclick = () => selectCurrencyOption(c.code);
+  container.appendChild(card);
 }
 
 function getSelectedAccountCurrency() {
@@ -10859,14 +11094,16 @@ function getSelectedAccountCurrency() {
 }
 
 function selectCurrencyOption(code) {
-  setTransactionCurrency(code);
-  rememberRecentCurrency(code);
-  closeModal('currency-picker-modal');
-  // Reopen the calculator keypad so the user can continue entering the amount
-  // in the newly selected currency (it was closed when the picker opened).
-  if (typeof window.openCalculatorKeypad === 'function') {
-    window.openCalculatorKeypad();
+  if (_currencyPickerTarget === 'settings') {
+    changeCurrencySetting(code);
+  } else {
+    setTransactionCurrency(code);
+    rememberRecentCurrency(code);
+    if (typeof window.openCalculatorKeypad === 'function') {
+      window.openCalculatorKeypad();
+    }
   }
+  closeModal('currency-picker-modal');
 }
 
 // Initializes the transaction currency when opening the form.
@@ -11196,6 +11433,7 @@ function updateExportSheetDateLabels() {
 }
 
 let selectedExportPeriod = 'current-month';
+let selectedExportFormat = 'xlsx';
 
 function openExportPeriodSheet() {
   if (typeof closeSearchBottomSheet === 'function') {
@@ -11210,7 +11448,13 @@ function openExportPeriodSheet() {
   const sheet = document.getElementById('export-period-bottom-sheet');
   if (sheet) sheet.classList.add('active');
 
-  selectExportOption('current-month');
+  // Reset to step 1
+  const step1 = document.getElementById('export-step-1');
+  const step2 = document.getElementById('export-step-2');
+  if (step1) step1.style.display = 'block';
+  if (step2) step2.style.display = 'none';
+
+  selectExportOption('current-month', false);
 
   const todayStr = new Date().toISOString().split('T')[0];
   const fromEl = document.getElementById('export-custom-from');
@@ -11227,7 +11471,23 @@ function closeExportPeriodSheet() {
   if (backdrop) backdrop.classList.remove('active');
 }
 
-function selectExportOption(option) {
+function goToExportStep1() {
+  const step1 = document.getElementById('export-step-1');
+  const step2 = document.getElementById('export-step-2');
+  if (step1) step1.style.display = 'block';
+  if (step2) step2.style.display = 'none';
+}
+window.goToExportStep1 = goToExportStep1;
+
+function goToExportStep2() {
+  const step1 = document.getElementById('export-step-1');
+  const step2 = document.getElementById('export-step-2');
+  if (step1) step1.style.display = 'none';
+  if (step2) step2.style.display = 'block';
+}
+window.goToExportStep2 = goToExportStep2;
+
+function selectExportOption(option, userInitiated = true) {
   selectedExportPeriod = option;
 
   const options = ['current-month', 'prev-month', 'current-year', 'prev-year', 'all', 'custom'];
@@ -11239,9 +11499,31 @@ function selectExportOption(option) {
   });
 
   const customContainer = document.getElementById('export-custom-range-container');
-  if (customContainer) {
-    customContainer.style.display = option === 'custom' ? 'flex' : 'none';
+  const nextBtnContainer = document.getElementById('export-next-btn-container');
+
+  if (option === 'custom') {
+    if (customContainer) customContainer.style.display = 'flex';
+    if (nextBtnContainer) nextBtnContainer.style.display = 'block';
+  } else {
+    if (customContainer) customContainer.style.display = 'none';
+    if (nextBtnContainer) nextBtnContainer.style.display = 'none';
+
+    if (userInitiated) {
+      setTimeout(() => goToExportStep2(), 150);
+    }
   }
+}
+
+function selectExportFormat(format) {
+  selectedExportFormat = format;
+
+  const formats = ['xlsx', 'csv', 'ods', 'json', 'pdf'];
+  formats.forEach(f => {
+    const el = document.getElementById(`export-format-${f}`);
+    if (el) {
+      el.classList.toggle('active', f === format);
+    }
+  });
 }
 
 function confirmExcelExport() {
@@ -11312,11 +11594,284 @@ function exportToExcel(startDate = null, endDate = null) {
     'Λογαριασμός': t.account_from, 'Σημείωση': t.note || '',
   }));
 
-  const ws = XLSX.utils.json_to_sheet(rows);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Συναλλαγές');
-  XLSX.writeFile(wb, `Budget_Assistant_Export_${new Date().toISOString().split('T')[0]}.xlsx`);
+  const format = selectedExportFormat || 'xlsx';
+  const baseName = `Budget_Assistant_Export_${new Date().toISOString().split('T')[0]}`;
+
+  // JSON export does not require the SheetJS library.
+  if (format === 'json') {
+    try {
+      const jsonStr = JSON.stringify(transactionsToExport, null, 2);
+      const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8;' });
+      downloadBlob(blob, `${baseName}.json`);
+      closeExportPeriodSheet();
+      return;
+    } catch (err) {
+      console.error('[export] JSON export failed.', err);
+      alert(state.lang === 'en' ? 'JSON export failed!' : 'Η εξαγωγή JSON απέτυχε!');
+      return;
+    }
+  }
+
+  // PDF export: generate a simple, readable table-based PDF without external libs.
+  if (format === 'pdf') {
+    try {
+      const blob = generatePdfBlob(rows, baseName);
+      downloadBlob(blob, `${baseName}.pdf`);
+      closeExportPeriodSheet();
+      return;
+    } catch (err) {
+      console.error('[export] PDF export failed.', err);
+      alert(state.lang === 'en' ? 'PDF export failed!' : 'Η εξαγωγή PDF απέτυχε!');
+      return;
+    }
+  }
+
+  // Guard: if the SheetJS library is not loaded, fall back to CSV so the export still works.
+  if (typeof XLSX === 'undefined' || !XLSX || !XLSX.utils) {
+    console.warn('[export] XLSX library not available, falling back to CSV export.');
+    exportRowsAsCSV(rows, `${baseName}.csv`);
+    closeExportPeriodSheet();
+    return;
+  }
+
+  try {
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Συναλλαγές');
+    // Generate the file as a Blob instead of using XLSX.writeFile, because
+    // writeFile relies on an <a>.click() download which silently fails inside
+    // the Capacitor/Android WebView. We route the Blob through downloadBlob()
+    // which uses the native Share sheet on mobile.
+    if (format === 'csv') {
+      const csvStr = XLSX.utils.sheet_to_csv(ws);
+      const blob = new Blob(['\uFEFF' + csvStr], { type: 'text/csv;charset=utf-8;' });
+      downloadBlob(blob, `${baseName}.csv`);
+    } else {
+      const bookType = format === 'ods' ? 'ods' : 'xlsx';
+      const wbout = XLSX.write(wb, { bookType: bookType, type: 'array' });
+      const mime = bookType === 'ods'
+        ? 'application/vnd.oasis.opendocument.spreadsheet'
+        : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      const blob = new Blob([wbout], { type: mime });
+      downloadBlob(blob, `${baseName}.${bookType}`);
+    }
+  } catch (err) {
+    console.error('[export] Spreadsheet export failed, falling back to CSV export.', err);
+    exportRowsAsCSV(rows, `${baseName}.csv`);
+  }
   closeExportPeriodSheet();
+}
+
+// Generate a valid, dependency-free PDF document from the export rows.
+// Uses PDF content-stream text operators (BT/Tf/Td/Tj) to draw a simple table.
+function generatePdfBlob(rows, baseName) {
+  const headers = Object.keys(rows[0] || {});
+  const pageWidth = 612;
+  const pageHeight = 792;
+  const margin = 40;
+  const fontSize = 8;
+  const lineHeight = 12;
+  const colWidth = Math.floor((pageWidth - margin * 2) / Math.max(headers.length, 1));
+
+  // Escape a string for a PDF literal string (parentheses and backslashes).
+  const escPdf = (v) => String(v == null ? '' : v).replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+
+  // Truncate text to fit the column width (approx 5.5 chars per 8pt char per 44px col).
+  const fit = (v) => {
+    const s = String(v == null ? '' : v);
+    const maxChars = Math.max(1, Math.floor(colWidth / 4.8));
+    return s.length > maxChars ? s.substring(0, maxChars - 1) + '…' : s;
+  };
+
+  let content = '';
+  let y = pageHeight - margin;
+
+  const drawLine = (cells, bold) => {
+    if (y < margin) return; // skip overflow (single page)
+    content += 'BT /F' + (bold ? '2' : '1') + ' ' + fontSize + ' Tf ' + margin + ' ' + y + ' Td\n';
+    cells.forEach((c, i) => {
+      const x = i * colWidth;
+      content += '1 0 0 1 ' + x + ' 0 Tm (' + escPdf(fit(c)) + ') Tj\n';
+    });
+    content += 'ET\n';
+    y -= lineHeight;
+  };
+
+  // Title
+  content += 'BT /F2 14 Tf ' + margin + ' ' + y + ' Td (' + escPdf(baseName) + ') Tj ET\n';
+  y -= 20;
+
+  // Header row
+  drawLine(headers, true);
+  // Separator line
+  content += '0.7 w ' + margin + ' ' + (y + 3) + ' m ' + (pageWidth - margin) + ' ' + (y + 3) + ' l S\n';
+  y -= 4;
+
+  // Data rows
+  rows.forEach(r => {
+    drawLine(headers.map(h => r[h]), false);
+  });
+
+  const objects = [];
+  const addObj = (body) => {
+    objects.push(body);
+    return objects.length;
+  };
+  addObj('<< /Type /Catalog /Pages 2 0 R >>');
+  addObj('<< /Type /Pages /Kids [3 0 R] /Count 1 >>');
+  addObj('<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' + pageWidth + ' ' + pageHeight + '] /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> /Contents 7 0 R >>');
+  addObj('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');
+  addObj('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>');
+  addObj('<< /Length ' + content.length + ' >>\nstream\n' + content + 'endstream');
+
+  let pdf = '%PDF-1.4\n';
+  const offsets = [];
+  objects.forEach((body, i) => {
+    offsets.push(pdf.length);
+    pdf += (i + 1) + ' 0 obj\n' + body + '\nendobj\n';
+  });
+  const xrefPos = pdf.length;
+  pdf += 'xref\n0 ' + (objects.length + 1) + '\n';
+  pdf += '0000000000 65535 f \n';
+  offsets.forEach(off => {
+    pdf += String(off).padStart(10, '0') + ' 00000 n \n';
+  });
+  pdf += 'trailer\n<< /Size ' + (objects.length + 1) + ' /Root 1 0 R >>\nstartxref\n' + xrefPos + '\n%%EOF';
+
+  return new Blob([pdf], { type: 'application/pdf' });
+}
+
+// Convert a Blob to a base64 data URL string (needed by the Capacitor
+// Filesystem plugin, which cannot write raw Blob objects directly).
+function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const dataUrl = reader.result;
+      // Strip the "data:<mime>;base64," prefix to get the raw base64 payload.
+      const commaIdx = dataUrl.indexOf(',');
+      resolve(commaIdx >= 0 ? dataUrl.substring(commaIdx + 1) : dataUrl);
+    };
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
+}
+
+// Robust download helper that works in browsers AND Capacitor/Android WebViews.
+// On native (Capacitor) platforms, <a>.click() blob downloads are silently
+// blocked, so we write the file to the app cache via the Capacitor Filesystem
+// plugin and open the native share sheet via the Capacitor Share plugin. This
+// is the most reliable mechanism on Android WebView.
+function downloadBlob(blob, fileName) {
+  const isNative = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+
+  // 1) Native / WebView: Capacitor Filesystem + Share plugins.
+  if (isNative) {
+    const Filesystem = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Filesystem;
+    const Share = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Share;
+    if (Filesystem && Share && typeof Filesystem.writeFile === 'function' && typeof Share.share === 'function') {
+      try {
+        blobToBase64(blob).then(async (base64) => {
+          const safeName = fileName.replace(/[^\w.\-]+/g, '_');
+          const result = await Filesystem.writeFile({
+            path: safeName,
+            data: base64,
+            directory: 'CACHE',
+            recursive: true
+          });
+          const fileUri = result && result.uri ? result.uri : safeName;
+          await Share.share({
+            title: fileName,
+            files: [fileUri],
+            dialogTitle: fileName
+          });
+        }).catch(err => {
+          console.warn('[export] Capacitor Filesystem/Share failed, falling back to Web Share API.', err);
+          shareViaWebApi(blob, fileName);
+        });
+        return true;
+      } catch (err) {
+        console.warn('[export] Capacitor Filesystem/Share threw, falling back to Web Share API.', err);
+      }
+    }
+  }
+
+  // 2) Native / WebView fallback: Web Share API with a File object.
+  if (isNative && navigator.share) {
+    try {
+      const file = new File([blob], fileName, { type: blob.type || 'application/octet-stream' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        navigator.share({ files: [file], title: fileName }).catch(err => {
+          console.warn('[export] Web Share API canceled or failed:', err);
+        });
+        return true;
+      }
+    } catch (err) {
+      console.warn('[export] Web Share API failed, falling back to anchor download.', err);
+    }
+  }
+
+  // 3) Standard browser / fallback: anchor element download.
+  try {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    return true;
+  } catch (err) {
+    console.error('[export] downloadBlob failed.', err);
+    return false;
+  }
+}
+
+// Web Share API fallback used when the Capacitor plugins are unavailable.
+function shareViaWebApi(blob, fileName) {
+  if (navigator.share) {
+    try {
+      const file = new File([blob], fileName, { type: blob.type || 'application/octet-stream' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        navigator.share({ files: [file], title: fileName }).catch(err => {
+          console.warn('[export] Web Share API canceled or failed:', err);
+        });
+        return;
+      }
+    } catch (err) {
+      console.warn('[export] Web Share API failed:', err);
+    }
+  }
+  // Last-resort anchor download.
+  try {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } catch (err) {
+    console.error('[export] shareViaWebApi anchor download failed.', err);
+  }
+}
+
+// Fallback CSV export used when the XLSX library is unavailable or fails.
+function exportRowsAsCSV(rows, fileName) {
+  const headers = Object.keys(rows[0] || {});
+  const escapeCell = (v) => {
+    const s = String(v == null ? '' : v);
+    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  };
+  const lines = [headers.map(escapeCell).join(',')];
+  rows.forEach(r => {
+    lines.push(headers.map(h => escapeCell(r[h])).join(','));
+  });
+  const csv = '\uFEFF' + lines.join('\r\n'); // BOM for Excel compatibility
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  downloadBlob(blob, fileName);
 }
 
 // ============================================================
@@ -16473,6 +17028,11 @@ function changeCurrencySetting(val) {
   updateUI();
 }
 
+function changeAutoLockSetting(val) {
+  localStorage.setItem('settings_auto_lock_delay', val);
+  updateSettingsDisplay();
+}
+
 // Populates the "Νόμισμα εφαρμογής" select in settings with ALL currencies
 // (150+), not just the 4 hardcoded ones. Called once on init.
 function populateCurrencySelect() {
@@ -16555,105 +17115,250 @@ function updateSettingsDisplay() {
     const icon = currencyDisplay.parentElement.querySelector("i");
     if (icon) icon.style.color = "var(--accent)";
   }
+
+  const autoLockDisplay = document.getElementById('settings-auto-lock-display');
+  if (autoLockDisplay) {
+    const autoLockDelay = localStorage.getItem('settings_auto_lock_delay') || 'disabled';
+    const autoLockLabels = {
+      'disabled': state.lang === 'el' ? 'Απενεργοποιημένο' : 'Disabled',
+      '1': state.lang === 'el' ? '1 λεπτό' : '1 minute',
+      '5': state.lang === 'el' ? '5 λεπτά' : '5 minutes',
+      '10': state.lang === 'el' ? '10 λεπτά' : '10 minutes'
+    };
+    autoLockDisplay.textContent = autoLockLabels[autoLockDelay] || autoLockDelay;
+  }
 }
 
 function openSettingsPicker(type) {
+  if (type === 'currency') {
+    openCurrencyPickerModal({ target: 'settings' });
+    return;
+  }
+
   const titleEl = document.getElementById('settings-picker-title');
   const container = document.getElementById('settings-picker-list');
   if (!titleEl || !container) return;
 
   container.innerHTML = '';
+  container.className = 'settings-picker-list';
 
-  let title = '';
-  let options = [];
-  let currentVal = '';
-  let onSelect = null;
+  if (type === 'theme') {
+    titleEl.textContent = state.lang === 'el' ? 'Θέμα Εμφάνισης' : 'Appearance Theme';
+    container.classList.add('theme-picker-grid');
 
-  if (type === 'currency') {
-    title = state.lang === 'el' ? 'Νόμισμα εφαρμογής' : 'App Currency';
-    currentVal = localStorage.getItem('app_currency') || 'EUR';
-    options = (CurrencyService.getCurrencies() || []).map(c => ({
-      value: c.code,
-      label: c.code + ' (' + (c.symbol || '') + ')'
-    }));
-    onSelect = (val) => {
-      changeCurrencySetting(val);
-    };
-  } else if (type === 'week-start') {
-    title = state.lang === 'el' ? 'Έναρξη Εβδομάδας' : 'Week Start';
-    currentVal = localStorage.getItem('app_week_start') || '1';
-    options = [
-      { value: '1', label: state.lang === 'el' ? 'Δευτέρα' : 'Monday' },
-      { value: '0', label: state.lang === 'el' ? 'Κυριακή' : 'Sunday' },
-      { value: '6', label: state.lang === 'el' ? 'Σάββατο' : 'Saturday' }
+    const currentVal = localStorage.getItem('app_theme') || 'dark';
+    const themes = [
+      {
+        id: 'dark',
+        title: 'Premium Dark',
+        desc: state.lang === 'el' ? 'Σκούρο μωβ & γκρι' : 'Dark purple & charcoal',
+        colors: ['#222731', '#7c6af7', '#1e222b']
+      },
+      {
+        id: 'oled',
+        title: 'OLED Black',
+        desc: state.lang === 'el' ? 'Απόλυτο μαύρο (OLED)' : 'Pure pitch black',
+        colors: ['#000000', '#7c6af7', '#121212']
+      },
+      {
+        id: 'light',
+        title: 'Classic Light',
+        desc: state.lang === 'el' ? 'Καθαρό φωτεινό' : 'Clean & bright light',
+        colors: ['#ffffff', '#2563eb', '#f1f5f9']
+      },
+      {
+        id: 'emerald',
+        title: 'Emerald Forest',
+        desc: state.lang === 'el' ? 'Βαθύ πράσινο' : 'Deep emerald green',
+        colors: ['#182823', '#10b981', '#121f1b']
+      },
+      {
+        id: 'ocean',
+        title: 'Ocean Breeze',
+        desc: state.lang === 'el' ? 'Νυχτερινό μπλε & κυανό' : 'Midnight blue & cyan',
+        colors: ['#1c2541', '#06b6d4', '#0b1329']
+      },
+      {
+        id: 'pink',
+        title: 'Blossom Pink',
+        desc: state.lang === 'el' ? 'Ματζέντα & ροζ' : 'Magenta & soft pink',
+        colors: ['#2d1b24', '#ec4899', '#1e1017']
+      }
     ];
-    onSelect = (val) => {
-      changeWeekStartSetting(val);
-    };
-  } else if (type === 'month-start') {
-    title = state.lang === 'el' ? 'Έναρξη Μήνα' : 'Month Start';
-    currentVal = localStorage.getItem('app_month_start') || '1';
+
+    themes.forEach(t => {
+      const isSelected = t.id === currentVal;
+      const card = document.createElement('div');
+      card.className = `theme-card-option ${isSelected ? 'selected' : ''}`;
+      card.innerHTML = `
+        <div class="theme-swatch-header">
+          <div class="theme-swatch-bubbles">
+            <span class="theme-swatch-bubble" style="background:${t.colors[0]};"></span>
+            <span class="theme-swatch-bubble" style="background:${t.colors[1]};"></span>
+            <span class="theme-swatch-bubble" style="background:${t.colors[2]};"></span>
+          </div>
+          ${isSelected ? '<i class="fa-solid fa-check settings-card-check" style="opacity:1;"></i>' : ''}
+        </div>
+        <div class="theme-card-title">${t.title}</div>
+        <div class="theme-card-desc">${t.desc}</div>
+      `;
+      card.onclick = () => {
+        changeThemeSetting(t.id);
+        updateUI();
+        closeModal('settings-picker-modal');
+      };
+      container.appendChild(card);
+    });
+
+    openModal('settings-picker-modal');
+    return;
+  }
+
+  if (type === 'month-start') {
+    titleEl.textContent = state.lang === 'el' ? 'Έναρξη Μήνα' : 'Month Start';
+    const currentVal = parseInt(localStorage.getItem('app_month_start') || '1');
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'month-start-container';
+
+    const endDay = currentVal === 1 ? 31 : (currentVal - 1);
+    const bannerText = state.lang === 'el'
+      ? `Ο οικονομικός μήνας θα υπολογίζεται από τις <strong>${currentVal}</strong> έως τις <strong>${endDay}</strong> του επόμενου μήνα.`
+      : `Budget month runs from <strong>${currentVal}</strong>th to <strong>${endDay}</strong>th of next month.`;
+
+    wrapper.innerHTML = `
+      <div class="month-start-banner">
+        <i class="fa-solid fa-calendar-days"></i>
+        <span>${bannerText}</span>
+      </div>
+      <div class="month-picker-circles-grid"></div>
+    `;
+
+    container.appendChild(wrapper);
+    const gridEl = wrapper.querySelector('.month-picker-circles-grid');
+
     for (let i = 1; i <= 28; i++) {
-      options.push({ value: String(i), label: String(i) });
+      const circle = document.createElement('div');
+      circle.className = `month-circle-item ${i === currentVal ? 'selected' : ''}`;
+      circle.textContent = i;
+
+      circle.onclick = () => {
+        changeMonthStartSetting(String(i));
+        closeModal('settings-picker-modal');
+      };
+
+      gridEl.appendChild(circle);
     }
-    onSelect = (val) => {
-      changeMonthStartSetting(val);
-    };
-  } else if (type === 'theme') {
-    title = state.lang === 'el' ? 'Θέμα Εμφάνισης' : 'Appearance Theme';
-    currentVal = localStorage.getItem('app_theme') || 'dark';
-    options = [
-      { value: 'dark', label: 'Premium Dark' },
-      { value: 'oled', label: 'OLED Black' },
-      { value: 'light', label: 'Classic Light' },
-      { value: 'emerald', label: 'Emerald Forest' },
-      { value: 'ocean', label: 'Ocean Breeze' },
-      { value: 'pink', label: 'Blossom Pink' }
+
+    openModal('settings-picker-modal');
+    return;
+  }
+
+  if (type === 'week-start') {
+    titleEl.textContent = state.lang === 'el' ? 'Έναρξη Εβδομάδας' : 'Week Start';
+    const currentVal = localStorage.getItem('app_week_start') || '1';
+
+    const options = [
+      {
+        value: '1',
+        title: state.lang === 'el' ? 'Δευτέρα' : 'Monday',
+        sub: state.lang === 'el' ? 'Προεπιλογή Ευρώπης & Ελλάδας' : 'Europe & International standard',
+        icon: 'fa-calendar-week'
+      },
+      {
+        value: '0',
+        title: state.lang === 'el' ? 'Κυριακή' : 'Sunday',
+        sub: state.lang === 'el' ? 'Προεπιλογή Αμερικής & Ασίας' : 'US & Asia standard',
+        icon: 'fa-sun'
+      },
+      {
+        value: '6',
+        title: state.lang === 'el' ? 'Σάββατο' : 'Saturday',
+        sub: state.lang === 'el' ? 'Προεπιλογή Μέσης Ανατολής' : 'Middle East standard',
+        icon: 'fa-coffee'
+      }
     ];
-    onSelect = (val) => {
-      changeThemeSetting(val);
-      updateUI();
-    };
+
+    options.forEach(opt => {
+      const isSelected = opt.value === currentVal;
+      const card = document.createElement('div');
+      card.className = `settings-card-item ${isSelected ? 'selected' : ''}`;
+      card.innerHTML = `
+        <div class="settings-card-left">
+          <div class="settings-card-icon"><i class="fa-solid ${opt.icon}"></i></div>
+          <div class="settings-card-info">
+            <div class="settings-card-title">${opt.title}</div>
+            <div class="settings-card-sub">${opt.sub}</div>
+          </div>
+        </div>
+        <i class="fa-solid fa-check settings-card-check"></i>
+      `;
+      card.onclick = () => {
+        changeWeekStartSetting(opt.value);
+        closeModal('settings-picker-modal');
+      };
+      container.appendChild(card);
+    });
+
+    openModal('settings-picker-modal');
+    return;
   }
 
-  titleEl.textContent = title;
+  if (type === 'auto-lock') {
+    titleEl.textContent = state.lang === 'el' ? 'Αυτόματο Κλείδωμα' : 'Auto Lock';
+    const currentVal = localStorage.getItem('settings_auto_lock_delay') || 'disabled';
 
-  // For month-start, render the numbers in a modern calendar-style grid.
-  const isGrid = type === 'month-start';
-  if (isGrid) {
-    container.classList.add('settings-picker-grid');
-  } else {
-    container.classList.remove('settings-picker-grid');
+    const options = [
+      {
+        value: 'disabled',
+        title: state.lang === 'el' ? 'Απενεργοποιημένο' : 'Disabled',
+        sub: state.lang === 'el' ? 'Η εφαρμογή δεν κλειδώνει αυτόματα' : 'App never auto-locks',
+        icon: 'fa-lock-open'
+      },
+      {
+        value: '1',
+        title: state.lang === 'el' ? '1 λεπτό' : '1 minute',
+        sub: state.lang === 'el' ? 'Κλείδωμα μετά από 1 λεπτό αδράνειας' : 'Locks after 1 min of inactivity',
+        icon: 'fa-clock'
+      },
+      {
+        value: '5',
+        title: state.lang === 'el' ? '5 λεπτά' : '5 minutes',
+        sub: state.lang === 'el' ? 'Κλείδωμα μετά από 5 λεπτά αδράνειας' : 'Locks after 5 mins of inactivity',
+        icon: 'fa-clock'
+      },
+      {
+        value: '10',
+        title: state.lang === 'el' ? '10 λεπτά' : '10 minutes',
+        sub: state.lang === 'el' ? 'Κλείδωμα μετά από 10 λεπτά αδράνειας' : 'Locks after 10 mins of inactivity',
+        icon: 'fa-clock'
+      }
+    ];
+
+    options.forEach(opt => {
+      const isSelected = opt.value === currentVal;
+      const card = document.createElement('div');
+      card.className = `settings-card-item ${isSelected ? 'selected' : ''}`;
+      card.innerHTML = `
+        <div class="settings-card-left">
+          <div class="settings-card-icon"><i class="fa-solid ${opt.icon}"></i></div>
+          <div class="settings-card-info">
+            <div class="settings-card-title">${opt.title}</div>
+            <div class="settings-card-sub">${opt.sub}</div>
+          </div>
+        </div>
+        <i class="fa-solid fa-check settings-card-check"></i>
+      `;
+      card.onclick = () => {
+        changeAutoLockSetting(opt.value);
+        closeModal('settings-picker-modal');
+      };
+      container.appendChild(card);
+    });
+
+    openModal('settings-picker-modal');
+    return;
   }
-
-  options.forEach(opt => {
-    const item = document.createElement('div');
-    item.className = 'settings-picker-item';
-    if (opt.value === currentVal) {
-      item.classList.add('selected');
-    }
-
-    if (isGrid) {
-      item.innerHTML = `
-        <span class="settings-picker-item-label">${opt.label}</span>
-        ${opt.value === currentVal ? '<i class="fa-solid fa-check settings-picker-item-check"></i>' : ''}
-      `;
-    } else {
-      item.innerHTML = `
-        <span class="settings-picker-item-label">${opt.label}</span>
-        ${opt.value === currentVal ? '<i class="fa-solid fa-check settings-picker-item-check"></i>' : ''}
-      `;
-    }
-
-    item.onclick = () => {
-      onSelect(opt.value);
-      closeModal('settings-picker-modal');
-    };
-
-    container.appendChild(item);
-  });
-
-  openModal('settings-picker-modal');
 }
 
 function initSettingsFromStorage() {
@@ -18284,14 +18989,58 @@ async function forceAppUpdate() {
   const confirmed = await showConfirm(confirmMsg, state.lang === 'el' ? 'Αναγκαστική Ενημέρωση' : 'Force Update', '🔄');
   if (!confirmed) return;
 
+  if (typeof showSyncToast === 'function') {
+    showSyncToast(state.lang === 'el' ? 'Έλεγχος & λήψη ενημέρωσης...' : 'Checking & downloading update...', 10000);
+  }
+
   if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorUpdater) {
     try {
       console.log('[ForceUpdate] Triggering Capgo update check...');
-      const update = await window.Capacitor.Plugins.CapacitorUpdater.download({
-        url: "https://budget-assistant-pwa.pages.dev/version.json"
+      const manifestRes = await fetch("https://budget-assistant-pwa.pages.dev/version.json?_t=" + Date.now());
+      const manifest = await manifestRes.json();
+
+      if (!manifest || !manifest.url) {
+        throw new Error("Invalid version.json format");
+      }
+
+      console.log('[ForceUpdate] Found zip url:', manifest.url);
+
+      if (typeof showSyncToast === 'function') {
+        showSyncToast((state.lang === 'el' ? 'Λήψη έκδοσης ' : 'Downloading version ') + (manifest.version || 'νέας') + '...', 10000);
+      }
+
+      // Wrap the native download in a timeout so it can never hang forever
+      // (Capgo's download() has no built-in timeout and can stall silently,
+      // leaving the user stuck on "Downloading version...").
+      const DOWNLOAD_TIMEOUT_MS = 90000;
+      const downloadPromise = window.Capacitor.Plugins.CapacitorUpdater.download({
+        url: manifest.url,
+        version: manifest.version || Date.now().toString(),
+        checksum: manifest.checksum || undefined
       });
+      const update = await Promise.race([
+        downloadPromise,
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Download timed out')), DOWNLOAD_TIMEOUT_MS))
+      ]);
+
       console.log('[ForceUpdate] Downloaded update:', update);
       await window.Capacitor.Plugins.CapacitorUpdater.set({ id: update.id });
+
+      if (typeof showSyncToast === 'function') {
+        showSyncToast(state.lang === 'el' ? 'Εφαρμογή ενημέρωσης & επανεκκίνηση...' : 'Applying update & reloading...', 3000);
+      }
+
+      setTimeout(async () => {
+        try {
+          if (window.Capacitor.Plugins.CapacitorUpdater.reload) {
+            await window.Capacitor.Plugins.CapacitorUpdater.reload();
+          } else {
+            window.location.reload(true);
+          }
+        } catch (_) {
+          window.location.reload(true);
+        }
+      }, 500);
       return;
     } catch (e) {
       console.error('[ForceUpdate] Capgo update failed; falling back to classic reload:', e);
@@ -18572,9 +19321,11 @@ async function processSyncQueue(options = {}) {
   console.log(`Processing offline sync queue of ${queue.length} items...`);
 
   let successCount = 0;
+  const remaining = [];
 
   for (let i = 0; i < queue.length; i++) {
     const item = queue[i];
+    let itemSucceeded = false;
     try {
       if (item.action === 'save') {
         const transaction = item.payload;
@@ -18596,7 +19347,11 @@ async function processSyncQueue(options = {}) {
             throw error;
           }
           console.warn(`Skipping invalid sync queue item:`, error);
+          // Keep the item so it is retried later instead of being silently dropped.
+          remaining.push(item);
+          continue;
         }
+        itemSucceeded = true;
       } else if (item.action === 'delete') {
         const transId = item.payload;
         if (!transId) {
@@ -18616,7 +19371,10 @@ async function processSyncQueue(options = {}) {
             throw error;
           }
           console.warn(`Skipping invalid sync queue delete item:`, error);
+          remaining.push(item);
+          continue;
         }
+        itemSucceeded = true;
       } else if (item.action === 'save_template') {
         const template = item.payload;
         const { error } = await promiseTimeout(
@@ -18630,7 +19388,10 @@ async function processSyncQueue(options = {}) {
             throw error;
           }
           console.warn(`Skipping invalid save_template queue item:`, error);
+          remaining.push(item);
+          continue;
         }
+        itemSucceeded = true;
       } else if (item.action === 'delete_template') {
         const templateId = item.payload;
         const { error } = await promiseTimeout(
@@ -18645,28 +19406,41 @@ async function processSyncQueue(options = {}) {
             throw error;
           }
           console.warn(`Skipping invalid delete_template queue item:`, error);
+          remaining.push(item);
+          continue;
         }
+        itemSucceeded = true;
+      } else {
+        console.warn(`Unknown sync queue action, dropping item:`, item.action);
+        continue;
       }
-
-      successCount++;
     } catch (err) {
       console.warn(`Network failure during sync queue replay at index ${i}:`, err);
-      break; // Abort and retry later to preserve sequence order
+      // Keep this item and all remaining ones for retry to preserve sequence order.
+      remaining.push(item);
+      for (let j = i + 1; j < queue.length; j++) {
+        remaining.push(queue[j]);
+      }
+      break;
+    }
+
+    if (itemSucceeded) {
+      successCount++;
     }
   }
 
-  if (successCount > 0) {
-    const remaining = queue.slice(successCount);
+  const queueChanged = remaining.length !== queue.length;
+  if (successCount > 0 || queueChanged) {
     localStorage.setItem('money_manager_sync_queue', JSON.stringify(remaining));
     console.log(`Synced ${successCount} mutations. ${remaining.length} remaining.`);
+  }
 
-    // Only reload and render here if the caller didn't request to skip it.
-    // When called from forceSyncNow, skipReload=true because forceSyncNow does its own
-    // full fetch + UI update immediately after, so we avoid a double render.
-    if (!skipReload) {
-      await loadData();
-      updateUI();
-    }
+  // Only reload and render here if the caller didn't request to skip it.
+  // When called from forceSyncNow, skipReload=true because forceSyncNow does its own
+  // full fetch + UI update immediately after, so we avoid a double render.
+  if (successCount > 0 && !skipReload) {
+    await loadData();
+    updateUI();
   }
 
   _isProcessingSyncQueue = false;
@@ -18857,6 +19631,10 @@ function handleRealtimeTransactionChange(payload) {
       } else if (eventType === 'DELETE') {
         const deletedId = ev.old && ev.old.id;
         if (deletedId && trans.some(t => t.id === deletedId)) {
+          console.log('[REALTIME-DEBUG] DELETE event removing tx:', deletedId,
+            '| recentlySaved:', _recentlySavedTxIds.has(String(deletedId)),
+            '| deleting:', _deletingTxIds.has(String(deletedId)),
+            '| recentlyDeleted:', _recentlyDeletedTxIds.has(String(deletedId)));
           trans = trans.filter(t => t.id !== deletedId);
           changed = true;
         }
@@ -19050,6 +19828,10 @@ async function forceSyncNow(silent = false) {
     // Auto-sync deleted transactions from local trash to Supabase
     await syncLocalTrashToCloud();
 
+    // Pull deleted transactions from the cloud into the local trash bin so the
+    // recycle bin stays consistent across all devices (web + APK)
+    await fetchCloudTrashToLocal();
+
     // Process offline sync queue (applies offline deletes/saves to cloud) before fetching
     await processSyncQueue({ skipReload: true });
 
@@ -19105,6 +19887,7 @@ async function forceSyncNow(silent = false) {
         .from('transactions')
         .select('*')
         .order('date', { ascending: false })
+        .order('id', { ascending: false })
         .range(page * pageSize, (page + 1) * pageSize - 1);
 
       // FIX: Use proper Supabase .or() syntax with individual conditions
@@ -24197,7 +24980,6 @@ async function saveRecurringTemplateEdit() {
   } else {
     template.endType = 'perpetual';
     template.endDate = null;
-    template.endYear = null;
   }
 
   // Clear any deleted-dates markers so regeneration is clean
@@ -24517,21 +25299,62 @@ async function emptyTrashBin() {
   const confirmed = await showConfirm(confirmMsg, lang === 'el' ? 'Εκκαθάριση Κάδου' : 'Empty Trash', '🗑️');
   if (!confirmed) return;
 
-  // Clear on Supabase if logged in
-  if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
-    state.supabaseClient
-      .from('deleted_transactions')
-      .delete()
-      .eq('user_id', state.currentUser.id)
-      .then(({ error }) => {
-        if (error) console.warn('Failed to clear deleted_transactions on Supabase:', error);
+  // Record permanent-delete tombstones for every item being emptied so they can
+  // never be re-pulled from the cloud (fixes deleted transactions reappearing).
+  const itemsBeingEmptied = (state.trashTransactions || []).slice();
+  itemsBeingEmptied.forEach(t => {
+    if (!t) return;
+    if (t.id) _markPermanentlyDeleted(t.id);
+    // Recurring group items carry their affected transaction IDs
+    if (t.affectedTransactionIds && Array.isArray(t.affectedTransactionIds)) {
+      t.affectedTransactionIds.forEach(subId => _markPermanentlyDeleted(subId));
+    }
+    if (t.affectedTransactionsSnapshot && Array.isArray(t.affectedTransactionsSnapshot)) {
+      t.affectedTransactionsSnapshot.forEach(subTx => {
+        if (subTx && subTx.id) _markPermanentlyDeleted(subTx.id);
       });
+    }
+  });
+
+  // Clear on Supabase if logged in. We delete across the SAME scope that
+  // fetchCloudTrashToLocal() pulls from (user + family + partner), otherwise
+  // family/partner trash rows survive and get re-pulled on the next sync.
+  // We AWAIT this delete and set an in-progress guard so a concurrent
+  // fetchCloudTrashToLocal() cannot race and re-pull the rows mid-delete.
+  if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
+    const userId = state.currentUser.id;
+    const partnerId = state.partnerProfile ? state.partnerProfile.id : null;
+    const familyId = state.userProfile ? state.userProfile.family_id : null;
+
+    let delQuery = state.supabaseClient
+      .from('deleted_transactions')
+      .delete();
+
+    if (familyId && partnerId) {
+      delQuery = delQuery.or(`family_id.eq.${familyId},user_id.eq.${userId},user_id.eq.${partnerId}`);
+    } else if (familyId) {
+      delQuery = delQuery.or(`family_id.eq.${familyId},user_id.eq.${userId}`);
+    } else if (partnerId) {
+      delQuery = delQuery.or(`user_id.eq.${userId},user_id.eq.${partnerId}`);
+    } else {
+      delQuery = delQuery.eq('user_id', userId);
+    }
+
+    _permanentDeleteInProgress = true;
+    try {
+      const { error } = await delQuery;
+      if (error) console.warn('Failed to clear deleted_transactions on Supabase:', error);
+    } catch (err) {
+      console.warn('Failed to clear deleted_transactions on Supabase:', err);
+    } finally {
+      _permanentDeleteInProgress = false;
+    }
   }
 
   // Save notes of items in trash to dismissed_recovered_templates before emptying
   try {
     let dismissed = JSON.parse(localStorage.getItem('dismissed_recovered_templates') || '[]');
-    (state.trashTransactions || []).forEach(t => {
+    itemsBeingEmptied.forEach(t => {
       if (t.note && !dismissed.includes(t.note)) {
         dismissed.push(t.note);
       }
@@ -25111,9 +25934,9 @@ const USER_GUIDE_DATA = {
       {
         id: 'changelog',
         icon: 'fa-box-archive',
-        title: '1. Έκδοση & Τι Νέο Υπάρχει (v1029)',
+        title: '1. Έκδοση & Τι Νέο Υπάρχει (v1087)',
         content: `
-          <p><strong>Έκδοση Οδηγού:</strong> v1029 | <strong>Συγχρονισμένη Έκδοση Εφαρμογής:</strong> v1029</p>
+          <p><strong>Έκδοση Οδηγού:</strong> v1087 | <strong>Συγχρονισμένη Έκδοση Εφαρμογής:</strong> v1087</p>
           <div class="guide-feature-box">
             <h5 style="margin:0 0 6px; color:var(--primary);">✨ Τι νέο υπάρχει στην τελευταία έκδοση:</h5>
             <ul style="margin:0; padding-left:18px;">
@@ -25310,9 +26133,9 @@ const USER_GUIDE_DATA = {
       {
         id: 'changelog',
         icon: 'fa-box-archive',
-        title: '1. Version & What\'s New (v1029)',
+        title: '1. Version & What\'s New (v1087)',
         content: `
-          <p><strong>Guide Version:</strong> v1029 | <strong>Synchronized App Version:</strong> v1029</p>
+          <p><strong>Guide Version:</strong> v1087 | <strong>Synchronized App Version:</strong> v1087</p>
           <div class="guide-feature-box">
             <h5 style="margin:0 0 6px; color:var(--primary);">✨ What's new in the latest version:</h5>
             <ul style="margin:0; padding-left:18px;">
@@ -25782,11 +26605,37 @@ async function deleteSingleTrashItem(id) {
   const itemIndex = (state.trashTransactions || []).findIndex(t => String(t.id) === String(id));
   if (itemIndex === -1) return;
 
+  const item = state.trashTransactions[itemIndex];
+
+  // Record permanent-delete tombstones so the item can never be re-pulled from
+  // the cloud (fixes deleted transactions reappearing after permanent delete).
+  if (item) {
+    if (item.id) _markPermanentlyDeleted(item.id);
+    if (item.affectedTransactionIds && Array.isArray(item.affectedTransactionIds)) {
+      item.affectedTransactionIds.forEach(subId => _markPermanentlyDeleted(subId));
+    }
+    if (item.affectedTransactionsSnapshot && Array.isArray(item.affectedTransactionsSnapshot)) {
+      item.affectedTransactionsSnapshot.forEach(subTx => {
+        if (subTx && subTx.id) _markPermanentlyDeleted(subTx.id);
+      });
+    }
+  }
+
   state.trashTransactions.splice(itemIndex, 1);
   localStorage.setItem('deleted_transactions_trash', JSON.stringify(state.trashTransactions));
 
+  // Await the cloud delete and guard against a concurrent fetchCloudTrashToLocal()
+  // so the row cannot be re-pulled mid-delete.
   if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
-    state.supabaseClient.from('deleted_transactions').delete().eq('id', id);
+    _permanentDeleteInProgress = true;
+    try {
+      const { error } = await state.supabaseClient.from('deleted_transactions').delete().eq('id', id);
+      if (error) console.warn('Failed to delete trash item on Supabase:', error);
+    } catch (err) {
+      console.warn('Failed to delete trash item on Supabase:', err);
+    } finally {
+      _permanentDeleteInProgress = false;
+    }
   }
 
   renderTrashBinList();

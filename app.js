@@ -1037,7 +1037,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1095 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1096 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1415,7 +1415,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1095 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1096 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -16767,6 +16767,12 @@ function getCurrencySymbol() {
   // When multi-currency is enabled, the display currency (if different from the
   // base currency) determines the symbol shown for aggregated/displayed amounts.
   const currency = getDisplayCurrency();
+  // Use CurrencyService so ANY currency (not just EUR/USD/GBP/JPY) gets its
+  // correct symbol. Fall back to the code itself if the symbol is unknown.
+  if (typeof CurrencyService !== 'undefined' && typeof CurrencyService.getSymbol === 'function') {
+    const sym = CurrencyService.getSymbol(currency);
+    if (sym) return sym;
+  }
   switch (currency) {
     case 'USD': return '$';
     case 'GBP': return '£';
@@ -17025,6 +17031,10 @@ function changeWeekStartSetting(val) {
 
 function changeCurrencySetting(val) {
   localStorage.setItem('app_currency', val);
+  // Refresh the settings display immediately so the "Νόμισμα εφαρμογής" pill
+  // (and any other settings labels) reflect the newly selected currency instead
+  // of staying stuck on the previous value (e.g. EUR).
+  updateSettingsDisplay();
   updateUI();
 }
 
