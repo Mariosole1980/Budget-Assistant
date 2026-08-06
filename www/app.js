@@ -968,7 +968,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1122 - 06/08/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1123 - 06/08/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1347,7 +1347,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1122 - 06/08/2026)',
+    app_version: 'Version 1.0.0 (build v1123 - 06/08/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -25330,7 +25330,17 @@ async function fetchTrashFromCloud() {
       return;
     }
 
-    state.trashTransactions = data || [];
+    // Preserve locally-stored recurring trash groups (is_recurring_group: true).
+    // These are NOT rows in the transactions table — they are local-only objects
+    // holding the full series snapshot + template backup. The cloud query above
+    // only returns individual soft-deleted transactions, so without merging them
+    // back in, a recurring group deleted moments ago would vanish from the trash
+    // the next time it is opened (until the user leaves and re-enters the tab).
+    const recurringGroups = (state.trashTransactions || []).filter(t => t && t.is_recurring_group);
+
+    // Merge the cloud-fetched individual transactions with the preserved local
+    // recurring groups (recurring groups first so the newest deletion is on top).
+    state.trashTransactions = [...recurringGroups, ...(data || [])];
     localStorage.setItem('deleted_transactions_trash', JSON.stringify(state.trashTransactions));
 
     // Refresh the trash count badge
@@ -26930,6 +26940,15 @@ async function executeRecurringDelete(scope) {
   window._activeRecurringDeleteContext = null;
   calculateInitialBalances();
   updateUI();
+
+  // If the trash bin modal is currently open, re-render it immediately so the
+  // newly deleted recurring group appears without requiring the user to leave
+  // and re-enter the tab. updateUI() above skips the tab re-render while any
+  // modal is open, so the trash list would otherwise stay stale.
+  const trashModal = document.getElementById('trash-bin-modal');
+  if (trashModal && trashModal.classList.contains('active')) {
+    renderTrashBinList();
+  }
 
   const successMsg = lang === 'el' ? '🗑️ Η διαγραφή πραγματοποιήθηκε.' : '🗑️ Deletion completed.';
   showSyncToast(successMsg, 3000);
