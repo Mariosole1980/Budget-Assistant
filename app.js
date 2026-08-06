@@ -26550,23 +26550,20 @@ window.handleRecurringDeleteStep2 = handleRecurringDeleteStep2;
 // deleted ONLY if it carries the exact recurring_template_id, OR (as a fallback
 // for transactions created before recurring_template_id was stored / where it
 // was stripped before cloud upsert) it matches the FULL content-key used by the
-// recurring generator: amount + type + category + account_from. The old fallback
-// matched only amount + category, which swept unrelated transactions sharing the
-// same category into the trash. account_from is intentionally required so that
-// two different recurring series (or a recurring + a manual transaction) in the
-// same category are never conflated.
+// recurring generator: amount + type + category. The old fallback matched only
+// amount + category. The account_from check was removed to allow users to move
+// recurring transactions between accounts without breaking the series link.
 function _txBelongsToRecurringSeries(t, ctx) {
   if (!t || !ctx) return false;
   if (ctx.templateId && String(t.recurring_template_id) === String(ctx.templateId)) {
     return true;
   }
-  // Strict content fallback — must match on every identifying field.
+  // Strict content fallback — must match on identifying fields.
   // Category is compared via normalizeCategoryName so a transaction whose
   // category was canonicalized still matches the series' stored category.
   return (parseFloat(t.amount || 0).toFixed(2) === (parseFloat(ctx.amount) || 0).toFixed(2)) &&
     (t.type || '') === (ctx.type || '') &&
-    normalizeCategoryName(t.category) === normalizeCategoryName(ctx.category) &&
-    (t.account_from || '') === (ctx.accountFrom || '');
+    normalizeCategoryName(t.category) === normalizeCategoryName(ctx.category);
 }
 
 // Compute the FULL set of occurrence dates for a recurring template, from its
