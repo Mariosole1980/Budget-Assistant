@@ -968,7 +968,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1131 - 06/08/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1132 - 06/08/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1347,7 +1347,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1131 - 06/08/2026)',
+    app_version: 'Version 1.0.0 (build v1132 - 06/08/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -6495,8 +6495,8 @@ function renderCategoryBudgetsView(catGroups = {}) {
     totalSpentInCurrency += spent;
 
     // Convert budget amount from EUR base to display currency
-    const budgetAmountInDisplay = window.CurrencyService 
-      ? window.CurrencyService.convert(b.amount, 'EUR', displayCurrency) 
+    const budgetAmountInDisplay = window.CurrencyService
+      ? window.CurrencyService.convert(b.amount, 'EUR', displayCurrency)
       : b.amount;
     totalBudgetInCurrency += budgetAmountInDisplay;
 
@@ -6774,7 +6774,10 @@ function saveCategoryBudgetFromModal() {
     syncBudgets();
   }
 }
-window.saveCategoryBudgetFromModal = saveCategoryBudgetFromModal;ainer = document.getElementById('stats-budgets-container');
+window.saveCategoryBudgetFromModal = saveCategoryBudgetFromModal;
+
+function renderCategoryBudgetsView(catGroups = {}) {
+  const container = document.getElementById('stats-budgets-container');
   if (!container) return;
 
   const displayCurrency = getDisplayCurrency();
