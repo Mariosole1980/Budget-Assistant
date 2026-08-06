@@ -65,7 +65,7 @@
               ${devButton}
             </div>
             <div style="font-size:11px;color:#8b949e;">
-              Budget Assistant • build v1120
+              Budget Assistant • build v1122
             </div>
           </div>
         `;
@@ -1287,7 +1287,8 @@
               <h3 class="modal-title" style="margin: 0; font-size: 16px; font-weight: 700; color: var(--text-main);"
                 data-i18n="item_user_guide">Οδηγός Χρήσης</h3>
               <div style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
-                <span id="user-guide-version-badge" style="font-size:10px; background:rgba(99,102,241,0.15); color:var(--primary); padding:2px 8px; border-radius:10px; font-weight:700; border:1px solid rgba(99,102,241,0.3);">v1117</span>
+                <span id="user-guide-version-badge"
+                  style="font-size:10px; background:rgba(99,102,241,0.15); color:var(--primary); padding:2px 8px; border-radius:10px; font-weight:700; border:1px solid rgba(99,102,241,0.3);">v1117</span>
                 <span>•</span>
                 <span id="user-guide-date-badge">Ιούλιος 2026</span>
               </div>
@@ -1993,7 +1994,7 @@
             <div class="settings-list-item version-info-row"
               style="padding: 14px 16px; background: transparent; border-top: 1px solid var(--border); margin-top: 8px;">
               <span class="settings-item-label" style="color:var(--text-muted); font-size:12px;"
-                data-i18n="app_version">Έκδοση 1.0.0 (build v1120)</span>
+                data-i18n="app_version">Έκδοση 1.0.0 (build v1122)</span>
               <span class="settings-item-value" style="font-size:12px; color:var(--text-muted); font-weight:600;">Budget
                 Assistant</span>
             </div>
@@ -2788,13 +2789,17 @@
       <div class="bottom-sheet-body" id="export-step-1" style="padding-top: 4px;">
         <!-- Period Selector Header -->
         <div style="padding: 0 14px; margin-bottom: 10px;">
-          <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 0.5px;" data-i18n="export_label_period">Επιλογή Περιόδου</div>
+          <div
+            style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 0.5px;"
+            data-i18n="export_label_period">Επιλογή Περιόδου</div>
         </div>
 
         <!-- Period Selector Cards Grid -->
-        <div class="export-period-grid" style="padding: 0 14px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 12px;">
-          
-          <div class="export-period-card active" id="export-opt-current-month" onclick="selectExportOption('current-month')">
+        <div class="export-period-grid"
+          style="padding: 0 14px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 12px;">
+
+          <div class="export-period-card active" id="export-opt-current-month"
+            onclick="selectExportOption('current-month')">
             <div class="export-period-icon-wrapper" style="background: rgba(16, 185, 129, 0.15); color: #10b981;">
               <i class="fa-regular fa-calendar-days"></i>
             </div>
@@ -2911,31 +2916,41 @@
 
       <!-- STEP 2: FORMAT SELECTION -->
       <div class="bottom-sheet-body" id="export-step-2" style="display: none; padding-top: 4px;">
-        
+
         <!-- Summary Card -->
-        <div style="margin: 0 14px 14px 14px; padding: 12px 14px; border-radius: 12px; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+        <div
+          style="margin: 0 14px 14px 14px; padding: 12px 14px; border-radius: 12px; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); display: flex; align-items: center; justify-content: space-between; gap: 10px;">
           <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
-            <div style="width: 34px; height: 34px; border-radius: 10px; background: rgba(16, 185, 129, 0.15); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <div
+              style="width: 34px; height: 34px; border-radius: 10px; background: rgba(16, 185, 129, 0.15); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
               <i class="fa-regular fa-calendar-check" style="color: var(--accent, #10b981); font-size: 16px;"></i>
             </div>
             <div style="min-width: 0;">
-              <div style="font-size: 10.5px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 0.5px;" data-i18n="export_step2_period_header">Περίοδος Εξαγωγής</div>
-              <div id="export-step2-period-label" style="font-size: 13.5px; font-weight: 600; color: var(--text-primary); text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">-</div>
+              <div
+                style="font-size: 10.5px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 0.5px;"
+                data-i18n="export_step2_period_header">Περίοδος Εξαγωγής</div>
+              <div id="export-step2-period-label"
+                style="font-size: 13.5px; font-weight: 600; color: var(--text-primary); text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">
+                -</div>
             </div>
           </div>
-          <span id="export-step2-count-badge" style="font-size: 11.5px; font-weight: 700; padding: 4px 10px; border-radius: 20px; background: var(--accent, #10b981); color: #ffffff; white-space: nowrap; flex-shrink: 0;">
+          <span id="export-step2-count-badge"
+            style="font-size: 11.5px; font-weight: 700; padding: 4px 10px; border-radius: 20px; background: var(--accent, #10b981); color: #ffffff; white-space: nowrap; flex-shrink: 0;">
             0 συναλλαγές
           </span>
         </div>
 
         <!-- Format Selector Header -->
         <div style="padding: 0 14px; margin-bottom: 10px;">
-          <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 0.5px;" data-i18n="export_label_format">Επιλογή Μορφής Αρχείου</div>
+          <div
+            style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 0.5px;"
+            data-i18n="export_label_format">Επιλογή Μορφής Αρχείου</div>
         </div>
 
         <!-- Format Selector Cards Grid -->
-        <div class="export-format-grid" style="padding: 0 14px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px;">
-          
+        <div class="export-format-grid"
+          style="padding: 0 14px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px;">
+
           <div class="export-format-card active" id="export-format-xlsx" onclick="selectExportFormat('xlsx')">
             <div class="export-format-icon-wrapper" style="background: rgba(16, 185, 129, 0.15); color: #10b981;">
               <i class="fa-solid fa-file-excel"></i>
@@ -2980,7 +2995,8 @@
             <i class="fa-solid fa-circle-check export-format-check"></i>
           </div>
 
-          <div class="export-format-card" id="export-format-ods" onclick="selectExportFormat('ods')" style="grid-column: span 2;">
+          <div class="export-format-card" id="export-format-ods" onclick="selectExportFormat('ods')"
+            style="grid-column: span 2;">
             <div class="export-format-icon-wrapper" style="background: rgba(139, 92, 246, 0.15); color: #8b5cf6;">
               <i class="fa-solid fa-file-lines"></i>
             </div>
@@ -3049,20 +3065,24 @@
     <div id="pin-modal" class="modal-overlay" style="z-index: 12500;">
       <div class="modal-content"
         style="max-width: 350px; text-align: center; border-radius: 16px; border: 1px solid var(--border-light, rgba(255,255,255,0.1)); padding: 24px 20px; background: var(--bg-card, #161622); box-shadow: 0 12px 32px rgba(0,0,0,0.4);">
-        
+
         <!-- Header Shield Icon -->
-        <div style="width: 50px; height: 50px; border-radius: 14px; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.25); display: flex; align-items: center; justify-content: center; margin: 0 auto 14px auto;">
+        <div
+          style="width: 50px; height: 50px; border-radius: 14px; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.25); display: flex; align-items: center; justify-content: center; margin: 0 auto 14px auto;">
           <i class="fa-solid fa-lock" style="color: var(--accent, #ef4444); font-size: 22px;"></i>
         </div>
 
-        <h3 class="modal-title" id="pin-modal-title" style="margin-bottom: 6px; font-weight: 800; font-size: 18px; color: var(--text-primary);">Ορισμός PIN</h3>
-        <p style="margin: 0 0 16px 0; color: var(--text-secondary); font-size: 13px; line-height: 1.45;" id="pin-modal-desc">
+        <h3 class="modal-title" id="pin-modal-title"
+          style="margin-bottom: 6px; font-weight: 800; font-size: 18px; color: var(--text-primary);">Ορισμός PIN</h3>
+        <p style="margin: 0 0 16px 0; color: var(--text-secondary); font-size: 13px; line-height: 1.45;"
+          id="pin-modal-desc">
           Εισάγετε ένα 4ψήφιο PIN για το κλείδωμα της εφαρμογής.
         </p>
 
         <!-- PIN Input Field -->
         <div style="position: relative; margin: 10px 0 20px 0; display: flex; justify-content: center;">
-          <input type="password" id="pin-input-field" pattern="[0-9]*" inputmode="numeric" maxlength="4" autocomplete="off"
+          <input type="password" id="pin-input-field" pattern="[0-9]*" inputmode="numeric" maxlength="4"
+            autocomplete="off"
             style="font-size: 26px; font-weight: 800; text-align: center; letter-spacing: 16px; width: 170px; padding: 12px 14px; background: var(--bg-input, rgba(0,0,0,0.3)); border: 1.5px solid var(--border, rgba(255,255,255,0.15)); color: var(--text-primary); border-radius: 12px; outline: none; box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);">
         </div>
 
@@ -3083,20 +3103,24 @@
     <div id="pin-verify-modal" class="modal-overlay" style="z-index: 12500;">
       <div class="modal-content"
         style="max-width: 350px; text-align: center; border-radius: 16px; border: 1px solid var(--border-light, rgba(255,255,255,0.1)); padding: 24px 20px; background: var(--bg-card, #161622); box-shadow: 0 12px 32px rgba(0,0,0,0.4);">
-        
+
         <!-- Header Shield Icon -->
-        <div style="width: 50px; height: 50px; border-radius: 14px; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.25); display: flex; align-items: center; justify-content: center; margin: 0 auto 14px auto;">
+        <div
+          style="width: 50px; height: 50px; border-radius: 14px; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.25); display: flex; align-items: center; justify-content: center; margin: 0 auto 14px auto;">
           <i class="fa-solid fa-shield-halved" style="color: var(--accent, #ef4444); font-size: 22px;"></i>
         </div>
 
-        <h3 class="modal-title" style="margin-bottom: 6px; font-weight: 800; font-size: 18px; color: var(--text-primary);">Απενεργοποίηση Κλειδώματος</h3>
+        <h3 class="modal-title"
+          style="margin-bottom: 6px; font-weight: 800; font-size: 18px; color: var(--text-primary);">Απενεργοποίηση
+          Κλειδώματος</h3>
         <p style="margin: 0 0 16px 0; color: var(--text-secondary); font-size: 13px; line-height: 1.45;">
           Εισάγετε το τρέχον PIN σας για να απενεργοποιήσετε το κλείδωμα της εφαρμογής:
         </p>
 
         <!-- PIN Verify Input -->
         <div style="position: relative; margin: 10px 0 20px 0; display: flex; justify-content: center;">
-          <input type="password" id="pin-verify-input" pattern="[0-9]*" inputmode="numeric" maxlength="4" autocomplete="off"
+          <input type="password" id="pin-verify-input" pattern="[0-9]*" inputmode="numeric" maxlength="4"
+            autocomplete="off"
             style="font-size: 26px; font-weight: 800; text-align: center; letter-spacing: 16px; width: 170px; padding: 12px 14px; background: var(--bg-input, rgba(0,0,0,0.3)); border: 1.5px solid var(--border, rgba(255,255,255,0.15)); color: var(--text-primary); border-radius: 12px; outline: none; box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);">
         </div>
 
@@ -3757,7 +3781,7 @@
       // OTA updates. Running both would cause a reload loop that never
       // baked into the APK and never changes on a plain reload).
       // ============================================================
-      const CURRENT_BUILD = 1120;
+      const CURRENT_BUILD = 1122;
       (function () {
         // Skip entirely when running inside the native APK (Capacitor bridge
         // present). Capgo handles OTA updates there.

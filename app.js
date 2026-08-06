@@ -968,7 +968,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1120 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1122 - 06/08/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1347,7 +1347,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1120 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1122 - 06/08/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -4252,6 +4252,11 @@ async function loadData() {
 
       autoRecoverTemplatesFromHistory();
 
+      // Link existing transactions to their recurring templates (content-key
+      // backfill) so the recurring delete options appear from the transaction
+      // modal even for transactions saved before recurring_template_id was kept.
+      backfillRecurringTemplateIds();
+
       localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
       localStorage.setItem('offline_accounts', JSON.stringify(state.accounts));
       localStorage.setItem('offline_categories', JSON.stringify(state.categories));
@@ -4883,7 +4888,7 @@ function processRecurringTemplates() {
           saveTransactionOffline(newTx);
 
           if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
-            const { description, is_shared, recurring_template_id, photo_local_uri, photo_url, receipt, currency, base_currency, rate_to_base, amount_base, rate_source, fx_snapshot, rate_to_base_actual, rate_fetched_at, transfer_id, transfer_rate, ...dbPayload } = newTx;
+            const { description, is_shared, photo_local_uri, photo_url, receipt, currency, base_currency, rate_to_base, amount_base, rate_source, fx_snapshot, rate_to_base_actual, rate_fetched_at, transfer_id, transfer_rate, ...dbPayload } = newTx;
             (async () => {
               try {
                 const { error } = await promiseTimeout(
@@ -5005,10 +5010,13 @@ async function saveTransaction(transaction) {
   // 3. Attempt to save to cloud in background
   if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
 
-    // Note: description, is_shared, and recurring_template_id are client-only fields.
-    // recurring_template_id does NOT exist in the transactions table (verified live: error 42703),
-    // so it MUST be stripped here or the upsert fails with a 400. This matches processSyncQueue.
-    const { description, is_shared, recurring_template_id, photo_local_uri, photo_url, receipt, currency, base_currency, rate_to_base, amount_base, rate_source, fx_snapshot, rate_to_base_actual, rate_fetched_at, transfer_id, transfer_rate, ...dbPayload } = transaction;
+    // Note: description and is_shared are client-only fields that do NOT exist as
+    // columns in the transactions table (verified live: error 42703), so they MUST
+    // be stripped here or the upsert fails with a 400. recurring_template_id DOES
+    // exist as a column, so it is intentionally KEPT so cloud-loaded transactions
+    // retain their link to the recurring template (fixes recurring delete options
+    // not appearing from the transaction modal in the APK).
+    const { description, is_shared, photo_local_uri, photo_url, receipt, currency, base_currency, rate_to_base, amount_base, rate_source, fx_snapshot, rate_to_base_actual, rate_fetched_at, transfer_id, transfer_rate, ...dbPayload } = transaction;
 
     // Enqueue immediately before starting the cloud request to prevent data loss if the app is closed/killed
     enqueueSyncMutation('save', transaction);
@@ -5445,6 +5453,85 @@ function isTransactionRecurring(tx) {
     }
     return false;
   });
+}
+
+// Resolve the recurring template a transaction belongs to, using recurring_template_id
+// when present, otherwise falling back to a content-key match (amount + type + category).
+// Returns the matching template object or null. Used by the transaction delete handler
+// so the 3-option recurring delete modal reliably appears even when the template link
+// is missing on an older cloud-loaded transaction.
+function resolveRecurringTemplateForTx(tx) {
+  if (!tx) return null;
+  const templates = state.recurringTemplates || [];
+  if (templates.length === 0) return null;
+
+  if (tx.recurring_template_id) {
+    const found = templates.find(t => String(t.id) === String(tx.recurring_template_id));
+    if (found) return found;
+  }
+
+  const txAmount = (parseFloat(tx.amount) || 0).toFixed(2);
+  const txType = tx.type;
+  const txCat = normalizeCategoryName(tx.category);
+
+  return templates.find(template => {
+    if (tx.recurring_template_id && String(tx.recurring_template_id) === String(template.id)) return true;
+    const tAmount = (parseFloat(template.amount) || 0).toFixed(2);
+    const tType = template.type;
+    const tCat = normalizeCategoryName(template.category);
+    return txAmount === tAmount && txType === tType && txCat === tCat;
+  }) || null;
+}
+
+// Backfill recurring_template_id on existing transactions that were saved before
+// the column was persisted (it was previously stripped before cloud upsert, so
+// cloud-loaded transactions arrived with recurring_template_id = null). Linking
+// them to their template by content-key makes isTransactionRecurring() work via
+// the reliable ID check, so the 3-option recurring delete modal appears from the
+// transaction modal in both web and APK.
+function backfillRecurringTemplateIds() {
+  const templates = state.recurringTemplates || [];
+  if (templates.length === 0) return;
+  const txs = state.transactions || [];
+  if (txs.length === 0) return;
+
+  const toUpdate = [];
+  txs.forEach(tx => {
+    if (tx.recurring_template_id) return; // already linked
+    const txAmount = (parseFloat(tx.amount) || 0).toFixed(2);
+    const txType = tx.type;
+    const txCat = normalizeCategoryName(tx.category);
+    const match = templates.find(t => {
+      return (parseFloat(t.amount) || 0).toFixed(2) === txAmount &&
+        t.type === txType &&
+        normalizeCategoryName(t.category) === txCat;
+    });
+    if (match) {
+      tx.recurring_template_id = match.id;
+      toUpdate.push({ id: tx.id, recurring_template_id: match.id });
+    }
+  });
+
+  if (toUpdate.length === 0) return;
+  console.log('[backfill] Linked ' + toUpdate.length + ' transactions to recurring templates');
+
+  // Persist the link to the cloud (only id + recurring_template_id) so it survives reloads.
+  if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
+    (async () => {
+      try {
+        for (let i = 0; i < toUpdate.length; i += 100) {
+          const chunk = toUpdate.slice(i, i + 100);
+          const { error } = await promiseTimeout(
+            state.supabaseClient.from('transactions').upsert(chunk),
+            15000
+          );
+          if (error) console.warn('[backfill] upsert error:', error);
+        }
+      } catch (e) {
+        console.warn('[backfill] failed to persist links:', e);
+      }
+    })();
+  }
 }
 
 function renderTransactionsTab() {
@@ -8076,8 +8163,11 @@ function setupEventListeners() {
     const tx = (state.transactions || []).find(t => String(t.id) === String(id));
     // If this is a recurring transaction, route through the scoped delete modal
     // (single / this + future / all repetitions) instead of deleting just this
-    // occurrence directly.
-    if (tx && isTransactionRecurring(tx)) {
+    // occurrence directly. Use isTransactionRecurring() OR a direct content-key
+    // template resolution so the 3-option modal reliably appears even if the
+    // recurring_template_id link is missing on an older cloud-loaded transaction.
+    const isRecurring = !!(tx && (isTransactionRecurring(tx) || resolveRecurringTemplateForTx(tx)));
+    if (isRecurring) {
       closeModal('transaction-modal');
       // Delay opening the recurring delete modal until the transaction modal has
       // fully closed. On mobile (Capacitor WebView) opening a modal synchronously
@@ -8085,7 +8175,7 @@ function setupEventListeners() {
       // viewport reset, so the 3-option modal never appears. A short delay lets the
       // close complete first, matching the working recurring-card delete path.
       setTimeout(() => {
-        openRecurringDeleteModal(tx, String(tx.date || '').split('T')[0].split(' ')[0]);
+        openRecurringDeleteModal(tx, String(tx.date || '').split('T')[0].split(' ')[0], { instant: true });
       }, 320);
       return;
     }
@@ -19242,9 +19332,10 @@ async function syncLocalTransactionsToCloud(userId, options = {}) {
         delete copy.id; // Let Supabase auto-generate UUIDs
         // Strip all client-only fields that do NOT exist as columns in the live DB
         // (verified live: error 42703). Without this the batch insert fails with a 400.
+        // recurring_template_id DOES exist as a column, so it is intentionally KEPT
+        // so guest/local transactions synced to cloud retain their recurring link.
         delete copy.description;
         delete copy.is_shared;
-        delete copy.recurring_template_id;
         delete copy.photo_local_uri;
         delete copy.photo_url;
         delete copy.receipt;
@@ -19406,7 +19497,7 @@ async function processSyncQueue(options = {}) {
           console.warn('Skipping invalid sync queue item (missing payload or id):', item);
           continue;
         }
-        const { description, is_shared, recurring_template_id, photo_local_uri, photo_url, receipt, currency, base_currency, rate_to_base, amount_base, rate_source, fx_snapshot, rate_to_base_actual, rate_fetched_at, transfer_id, transfer_rate, ...dbPayload } = transaction;
+        const { description, is_shared, photo_local_uri, photo_url, receipt, currency, base_currency, rate_to_base, amount_base, rate_source, fx_snapshot, rate_to_base_actual, rate_fetched_at, transfer_id, transfer_rate, ...dbPayload } = transaction;
 
         const { error } = await promiseTimeout(
           state.supabaseClient
@@ -25163,7 +25254,7 @@ function regenerateRecurringTemplateTransactions(template) {
       };
       saveTransactionOffline(newTx);
       if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
-        const { description, is_shared, recurring_template_id, photo_local_uri, photo_url, receipt, currency, base_currency, rate_to_base, amount_base, rate_source, fx_snapshot, rate_to_base_actual, rate_fetched_at, transfer_id, transfer_rate, ...dbPayload } = newTx;
+        const { description, is_shared, photo_local_uri, photo_url, receipt, currency, base_currency, rate_to_base, amount_base, rate_source, fx_snapshot, rate_to_base_actual, rate_fetched_at, transfer_id, transfer_rate, ...dbPayload } = newTx;
         (async () => {
           try {
             const { error } = await promiseTimeout(
@@ -26476,7 +26567,7 @@ function renderUserGuideContent(query = '') {
 // ============================================================
 window._activeRecurringDeleteContext = null;
 
-function openRecurringDeleteModal(target, occurrenceDateStr) {
+function openRecurringDeleteModal(target, occurrenceDateStr, opts) {
   let templateId = null;
   let txId = null;
   let anchorDate = occurrenceDateStr || '';
@@ -26538,7 +26629,10 @@ function openRecurringDeleteModal(target, occurrenceDateStr) {
   const singleRadio = document.querySelector('input[name="recurring_delete_scope"][value="single"]');
   if (singleRadio) singleRadio.checked = true;
 
-  openModal('recurring-delete-step1-modal');
+  // When opened right after closing the transaction modal (Capacitor WebView),
+  // use the instant path so the modal is activated synchronously and cannot be
+  // swallowed by the previous modal's close animation / viewport reset.
+  openModal('recurring-delete-step1-modal', { instant: !!(opts && opts.instant) });
 }
 window.openRecurringDeleteModal = openRecurringDeleteModal;
 
@@ -26926,7 +27020,7 @@ async function restoreTrashGroup(groupId) {
         // Strip client-only fields that do NOT exist as columns in the live DB
         // (verified live: error 42703) so the upsert does not fail with a 400.
         const dbPayloads = realSnapshot.map(tx => {
-          const { description, is_shared, recurring_template_id, photo_local_uri, photo_url, receipt, currency, base_currency, rate_to_base, amount_base, rate_source, fx_snapshot, rate_to_base_actual, rate_fetched_at, transfer_id, transfer_rate, ...clean } = tx;
+          const { description, is_shared, photo_local_uri, photo_url, receipt, currency, base_currency, rate_to_base, amount_base, rate_source, fx_snapshot, rate_to_base_actual, rate_fetched_at, transfer_id, transfer_rate, ...clean } = tx;
           return clean;
         });
         state.supabaseClient.from('transactions').upsert(dbPayloads);
