@@ -968,7 +968,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1109 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1110 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1347,7 +1347,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1109 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1110 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -8071,6 +8071,15 @@ function setupEventListeners() {
 
   document.getElementById('trans-delete-btn').addEventListener('click', async () => {
     const id = document.getElementById('trans-id').value;
+    const tx = (state.transactions || []).find(t => String(t.id) === String(id));
+    // If this is a recurring transaction, route through the scoped delete modal
+    // (single / this + future / all repetitions) instead of deleting just this
+    // occurrence directly.
+    if (tx && isTransactionRecurring(tx)) {
+      closeModal('transaction-modal');
+      openRecurringDeleteModal(tx, String(tx.date || '').split('T')[0].split(' ')[0]);
+      return;
+    }
     const confirmMsg = TRANSLATIONS[state.lang]['confirm_delete_transaction'];
     const confirmed = await showConfirm(confirmMsg, state.lang === 'el' ? 'Διαγραφή' : 'Delete', '🗑️');
     if (id && confirmed) {
@@ -26478,10 +26487,13 @@ function openRecurringDeleteModal(target, occurrenceDateStr) {
   if (!templateId && txId) {
     const tx = (state.transactions || []).find(t => String(t.id) === String(txId));
     if (tx) {
+      // Match by the FULL content-key (amount + type + category + account_from)
+      // so two different recurring series in the same category are never conflated.
       const match = (state.recurringTemplates || []).find(t => {
         return (parseFloat(tx.amount) || 0).toFixed(2) === (parseFloat(t.amount) || 0).toFixed(2) &&
           tx.type === t.type &&
-          tx.category === t.category;
+          tx.category === t.category &&
+          (tx.account_from || '') === (t.account_from || '');
       });
       if (match) templateId = match.id;
     }
