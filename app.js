@@ -968,7 +968,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1125 - 06/08/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1126 - 06/08/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1347,7 +1347,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1125 - 06/08/2026)',
+    app_version: 'Version 1.0.0 (build v1126 - 06/08/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -13680,6 +13680,18 @@ async function deleteSelectedSearchTransactions() {
   const selectedIds = Array.from(state.selectedSearchIds);
   if (selectedIds.length === 0) return;
 
+  if (selectedIds.length === 1) {
+    const singleId = selectedIds[0];
+    const tx = (state.transactions || []).find(t => String(t.id) === String(singleId));
+    if (tx && (isTransactionRecurring(tx) || resolveRecurringTemplateForTx(tx))) {
+      toggleSearchSelectMode();
+      setTimeout(() => {
+        openRecurringDeleteModal(tx, String(tx.date || '').split('T')[0].split(' ')[0], { instant: true });
+      }, 100);
+      return;
+    }
+  }
+
   const msg = state.lang === 'el'
     ? `Να διαγραφούν οι ${selectedIds.length} επιλεγμένες συναλλαγές;`
     : `Delete the ${selectedIds.length} selected transactions?`;
@@ -14098,6 +14110,20 @@ function toggleSelectAll() {
 async function deleteSelectedTransactions() {
   const selectedIds = Array.from(state.selectedIds);
   if (selectedIds.length === 0) return;
+
+  // Single-item recurring check: If only 1 transaction is selected and it is recurring,
+  // route through openRecurringDeleteModal so the 3-option modal appears!
+  if (selectedIds.length === 1) {
+    const singleId = selectedIds[0];
+    const tx = (state.transactions || []).find(t => String(t.id) === String(singleId));
+    if (tx && (isTransactionRecurring(tx) || resolveRecurringTemplateForTx(tx))) {
+      exitSelectionMode();
+      setTimeout(() => {
+        openRecurringDeleteModal(tx, String(tx.date || '').split('T')[0].split(' ')[0], { instant: true });
+      }, 100);
+      return;
+    }
+  }
 
   const msg = selectedIds.length === 1 ? 'Να διαγραφεί η επιλεγμένη συναλλαγή;' : `Να διαγραφούν οι ${selectedIds.length} επιλεγμένες συναλλαγές;`;
   const confirmed = await showConfirm(msg, state.lang === 'el' ? 'Διαγραφή' : 'Delete', '🗑️');
