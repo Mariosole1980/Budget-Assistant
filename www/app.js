@@ -968,7 +968,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1118 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1119 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1347,7 +1347,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1118 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1119 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -4883,7 +4883,7 @@ function processRecurringTemplates() {
           saveTransactionOffline(newTx);
 
           if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
-            const { description, is_shared, recurring_template_id, photo_local_uri, photo_url, receipt, currency, base_currency, rate_to_base, amount_base, rate_source, ...dbPayload } = newTx;
+            const { description, is_shared, recurring_template_id, photo_local_uri, photo_url, receipt, currency, base_currency, rate_to_base, amount_base, rate_source, fx_snapshot, rate_to_base_actual, rate_fetched_at, transfer_id, transfer_rate, ...dbPayload } = newTx;
             (async () => {
               try {
                 const { error } = await promiseTimeout(
@@ -5008,7 +5008,7 @@ async function saveTransaction(transaction) {
     // Note: description, is_shared, and recurring_template_id are client-only fields.
     // recurring_template_id does NOT exist in the transactions table (verified live: error 42703),
     // so it MUST be stripped here or the upsert fails with a 400. This matches processSyncQueue.
-    const { description, is_shared, recurring_template_id, photo_local_uri, photo_url, receipt, currency, base_currency, rate_to_base, amount_base, rate_source, ...dbPayload } = transaction;
+    const { description, is_shared, recurring_template_id, photo_local_uri, photo_url, receipt, currency, base_currency, rate_to_base, amount_base, rate_source, fx_snapshot, rate_to_base_actual, rate_fetched_at, transfer_id, transfer_rate, ...dbPayload } = transaction;
 
     // Enqueue immediately before starting the cloud request to prevent data loss if the app is closed/killed
     enqueueSyncMutation('save', transaction);
@@ -19391,7 +19391,7 @@ async function processSyncQueue(options = {}) {
           console.warn('Skipping invalid sync queue item (missing payload or id):', item);
           continue;
         }
-        const { description, is_shared, recurring_template_id, photo_local_uri, photo_url, receipt, currency, base_currency, rate_to_base, amount_base, rate_source, ...dbPayload } = transaction;
+        const { description, is_shared, recurring_template_id, photo_local_uri, photo_url, receipt, currency, base_currency, rate_to_base, amount_base, rate_source, fx_snapshot, rate_to_base_actual, rate_fetched_at, transfer_id, transfer_rate, ...dbPayload } = transaction;
 
         const { error } = await promiseTimeout(
           state.supabaseClient
@@ -25148,7 +25148,7 @@ function regenerateRecurringTemplateTransactions(template) {
       };
       saveTransactionOffline(newTx);
       if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
-        const { description, is_shared, recurring_template_id, photo_local_uri, photo_url, receipt, currency, base_currency, rate_to_base, amount_base, rate_source, ...dbPayload } = newTx;
+        const { description, is_shared, recurring_template_id, photo_local_uri, photo_url, receipt, currency, base_currency, rate_to_base, amount_base, rate_source, fx_snapshot, rate_to_base_actual, rate_fetched_at, transfer_id, transfer_rate, ...dbPayload } = newTx;
         (async () => {
           try {
             const { error } = await promiseTimeout(

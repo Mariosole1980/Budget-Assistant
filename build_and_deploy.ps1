@@ -156,7 +156,7 @@ if ($deploy1 -ne 0) {
 # 7. Git Commit & Tag
 Write-Host "[INFO] Staging and committing to Git..." -ForegroundColor Yellow
 git add -A
-git commit -m "build v${newBuild}: Fix recurring delete modal not appearing from transaction card on mobile (delay open until transaction modal fully closes)"
+git commit -m "build v${newBuild}: Fix sync - strip fx_snapshot and multi-currency client-only fields from dbPayload so transaction upserts no longer fail with 42703"
 Write-Host "  [SUCCESS] Git commit created for build v${newBuild}" -ForegroundColor Green
 
 Write-Host "[SUCCESS] All steps completed successfully! Builds are live at:" -ForegroundColor Green
