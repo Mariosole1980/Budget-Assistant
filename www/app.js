@@ -968,7 +968,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1115 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1116 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1347,7 +1347,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1115 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1116 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -26021,9 +26021,9 @@ const USER_GUIDE_DATA = {
       {
         id: 'changelog',
         icon: 'fa-box-archive',
-        title: '1. Έκδοση & Τι Νέο Υπάρχει (v1087)',
+        title: '1. Έκδοση & Τι Νέο Υπάρχει (v1116)',
         content: `
-          <p><strong>Έκδοση Οδηγού:</strong> v1087 | <strong>Συγχρονισμένη Έκδοση Εφαρμογής:</strong> v1087</p>
+          <p><strong>Έκδοση Οδηγού:</strong> v1116 | <strong>Συγχρονισμένη Έκδοση Εφαρμογής:</strong> v1116</p>
           <div class="guide-feature-box">
             <h5 style="margin:0 0 6px; color:var(--primary);">✨ Τι νέο υπάρχει στην τελευταία έκδοση:</h5>
             <ul style="margin:0; padding-left:18px;">
@@ -26220,9 +26220,9 @@ const USER_GUIDE_DATA = {
       {
         id: 'changelog',
         icon: 'fa-box-archive',
-        title: '1. Version & What\'s New (v1087)',
+        title: '1. Version & What\'s New (v1116)',
         content: `
-          <p><strong>Guide Version:</strong> v1087 | <strong>Synchronized App Version:</strong> v1087</p>
+          <p><strong>Guide Version:</strong> v1116 | <strong>Synchronized App Version:</strong> v1116</p>
           <div class="guide-feature-box">
             <h5 style="margin:0 0 6px; color:var(--primary);">✨ What's new in the latest version:</h5>
             <ul style="margin:0; padding-left:18px;">
@@ -26550,23 +26550,20 @@ window.handleRecurringDeleteStep2 = handleRecurringDeleteStep2;
 // deleted ONLY if it carries the exact recurring_template_id, OR (as a fallback
 // for transactions created before recurring_template_id was stored / where it
 // was stripped before cloud upsert) it matches the FULL content-key used by the
-// recurring generator: amount + type + category + account_from. The old fallback
-// matched only amount + category, which swept unrelated transactions sharing the
-// same category into the trash. account_from is intentionally required so that
-// two different recurring series (or a recurring + a manual transaction) in the
-// same category are never conflated.
+// recurring generator: amount + type + category. The old fallback matched only
+// amount + category. The account_from check was removed to allow users to move
+// recurring transactions between accounts without breaking the series link.
 function _txBelongsToRecurringSeries(t, ctx) {
   if (!t || !ctx) return false;
   if (ctx.templateId && String(t.recurring_template_id) === String(ctx.templateId)) {
     return true;
   }
-  // Strict content fallback — must match on every identifying field.
+  // Strict content fallback — must match on identifying fields.
   // Category is compared via normalizeCategoryName so a transaction whose
   // category was canonicalized still matches the series' stored category.
   return (parseFloat(t.amount || 0).toFixed(2) === (parseFloat(ctx.amount) || 0).toFixed(2)) &&
     (t.type || '') === (ctx.type || '') &&
-    normalizeCategoryName(t.category) === normalizeCategoryName(ctx.category) &&
-    (t.account_from || '') === (ctx.accountFrom || '');
+    normalizeCategoryName(t.category) === normalizeCategoryName(ctx.category);
 }
 
 // Compute the FULL set of occurrence dates for a recurring template, from its
