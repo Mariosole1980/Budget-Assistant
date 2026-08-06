@@ -968,7 +968,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1130 - 06/08/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1131 - 06/08/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1347,7 +1347,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1130 - 06/08/2026)',
+    app_version: 'Version 1.0.0 (build v1131 - 06/08/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -6241,10 +6241,6 @@ function renderStatsTab(skipChart = false) {
   const displayList = breakdownList;
 
   const listContainer = document.getElementById('stats-breakdown-list');
-  // ANTI-FLICKER: Build the breakdown rows into an off-DOM fragment and swap it
-  // in atomically with replaceChildren(). The old innerHTML='' + per-row
-  // appendChild() approach left a visible empty/black gap for a frame between
-  // the two DOM mutations, which appeared as a black flicker on resume/sync.
   const statsFragment = document.createDocumentFragment();
 
   const centerTitleEl = document.getElementById('chart-center-title');
@@ -6255,16 +6251,19 @@ function renderStatsTab(skipChart = false) {
     const lang = state.lang || 'el';
     const noDataText = lang === 'el' ? 'Δεν υπάρχουν στοιχεία ακόμη' : 'No data available';
     const addTransText = lang === 'el' ? 'Όταν προσθέσετε τα πρώτα σας έξοδα, εδώ θα βλέπετε όμορφες πίτες και αναλύσεις για το πού πηγαίνουν τα χρήματά σας.' : 'Add transactions to view your statistics.';
-    listContainer.innerHTML = `
-      <div style="text-align:center;padding:40px 20px;color:var(--text-secondary); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;">
-        <div style="font-size: 40px;">📊</div>
-        <h3 style="margin: 0; font-family: 'Outfit', sans-serif; font-size: 15px; font-weight: 700; color: var(--text-primary);">${noDataText}</h3>
-        <p style="margin: 0; font-size: 12px; color: var(--text-secondary); max-width: 220px; line-height: 1.4;">${addTransText}</p>
-      </div>`;
+    if (listContainer) {
+      listContainer.innerHTML = `
+        <div style="text-align:center;padding:40px 20px;color:var(--text-secondary); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;">
+          <div style="font-size: 40px;">📊</div>
+          <h3 style="margin: 0; font-family: 'Outfit', sans-serif; font-size: 15px; font-weight: 700; color: var(--text-primary);">${noDataText}</h3>
+          <p style="margin: 0; font-size: 12px; color: var(--text-secondary); max-width: 220px; line-height: 1.4;">${addTransText}</p>
+        </div>`;
+    }
     if (!skipChart) {
       if (statsChartInstance) { statsChartInstance.destroy(); statsChartInstance = null; }
       if (chartCenterVal) chartCenterVal.style.display = 'none';
     }
+    renderCategoryBudgetsView(catGroups);
     return;
   }
 
@@ -6321,7 +6320,6 @@ function renderStatsTab(skipChart = false) {
       subContainer.id = catId;
       subContainer.className = 'stats-subcategories-container';
 
-      // Restore expanded state if previously expanded
       const isExpanded = state.expandedStatsCategories.has(item.name);
       if (isExpanded) {
         row.classList.add('expanded');
@@ -6333,7 +6331,6 @@ function renderStatsTab(skipChart = false) {
         const subRow = document.createElement('div');
         subRow.className = 'stats-sub-row';
 
-        // Dynamically style subcategory percentage with parent category theme color (low opacity fill + solid text/border)
         subRow.innerHTML = `
           <div class="stats-sub-left">
             <span class="stats-sub-pct" style="background-color: ${catColor}26; color: ${catColor}; border: 1px solid ${catColor}33;">${Math.round(sub.percentage)}%</span>
@@ -6456,8 +6453,7 @@ function renderStatsTab(skipChart = false) {
     }
   });
 
-  // Swap the entire breakdown list in ONE atomic DOM mutation (no empty gap).
-  listContainer.replaceChildren(statsFragment);
+  if (listContainer) listContainer.replaceChildren(statsFragment);
 
   if (state.activeTab === 'stats' && !skipChart) {
     renderChart(displayList);
@@ -6467,48 +6463,318 @@ function renderStatsTab(skipChart = false) {
     renderSubcategoryTransactions(state.activeSubcategoryTransactions.category, state.activeSubcategoryTransactions.subcategory);
   }
 
-  // Render Category Budgets View using the computed catGroups
+  // Render Category Budgets View
   renderCategoryBudgetsView(catGroups);
 }
 
-// ============================================================
-// CATEGORY BUDGETS UI & MODAL HANDLERS
-// ============================================================
-function switchStatsSubtab(mode) {
-  state.statsSubTab = mode;
-  const btnBreakdown = document.getElementById('stats-subtab-breakdown');
-  const btnBudgets = document.getElementById('stats-subtab-budgets');
-  const viewBreakdown = document.getElementById('stats-breakdown-container');
-  const viewBudgets = document.getElementById('stats-budgets-container');
+function renderCategoryBudgetsView(catGroups = {}) {
+  const displayCurrency = getDisplayCurrency();
+  const symbol = getCurrencySymbol();
+  const lang = state.lang || 'el';
+  const budgets = (state.budgets || []).filter(b => !b.is_deleted);
 
-  if (mode === 'budgets') {
-    if (btnBudgets) {
-      btnBudgets.style.background = 'var(--accent)';
-      btnBudgets.style.color = '#ffffff';
+  // Remaining days in current month/period calculation
+  const now = new Date();
+  const startDay = parseInt(localStorage.getItem('app_month_start') || '1', 10);
+  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + (now.getDate() >= startDay ? 1 : 0), startDay - 1);
+  const diffTime = endOfMonth.getTime() - now.getTime();
+  const remainingDays = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+
+  let totalSpentInCurrency = 0;
+  let totalBudgetInCurrency = 0;
+
+  // Process defined budgets
+  const budgetRowsHtml = budgets.map(b => {
+    const catInfo = getCategoryInfo(b.category, 'expense');
+    let spent = 0;
+    if (b.subcategory) {
+      spent = catGroups[catInfo.name || b.category]?.subcategories?.[b.subcategory] || 0;
+    } else {
+      spent = catGroups[catInfo.name || b.category]?.amount || 0;
     }
-    if (btnBreakdown) {
-      btnBreakdown.style.background = 'transparent';
-      btnBreakdown.style.color = 'var(--text-secondary)';
+    totalSpentInCurrency += spent;
+
+    // Convert budget amount from EUR base to display currency
+    const budgetAmountInDisplay = window.CurrencyService 
+      ? window.CurrencyService.convert(b.amount, 'EUR', displayCurrency) 
+      : b.amount;
+    totalBudgetInCurrency += budgetAmountInDisplay;
+
+    const pct = budgetAmountInDisplay > 0 ? (spent / budgetAmountInDisplay) * 100 : 0;
+    const isOver = pct >= 100;
+    const isWarn = pct >= 75 && pct < 100;
+
+    let badgeClass = 'badge-ok';
+    let badgeText = `${Math.round(pct)}% ${lang === 'el' ? 'Εντός' : 'OK'}`;
+    let barColor = catInfo.color || '#10b981';
+
+    if (isOver) {
+      badgeClass = 'badge-alert';
+      const overAmt = (spent - budgetAmountInDisplay).toFixed(2);
+      badgeText = `⚠️ ${Math.round(pct)}% (${lang === 'el' ? 'Υπέρβαση' : 'Over'} +${symbol}${overAmt})`;
+      barColor = '#ff5b5b';
+    } else if (isWarn) {
+      badgeClass = 'badge-warn';
+      badgeText = `${Math.round(pct)}% (${lang === 'el' ? 'Πλησιάζει' : 'Warning'})`;
+      barColor = '#f59e0b';
     }
-    if (viewBreakdown) viewBreakdown.style.display = 'none';
-    if (viewBudgets) viewBudgets.style.display = 'flex';
+
+    const scopeIcon = b.scope === 'family' ? '<i class="fa-solid fa-users" style="font-size:11px; margin-left:4px; color:var(--primary);" title="Οικογενειακό"></i>' : '';
+    const titleLabel = b.subcategory ? `${catInfo.name || b.category} <span style="font-size:12px; opacity:0.75; font-weight:600;">(${b.subcategory})</span>` : (catInfo.name || b.category);
+
+    return `
+      <div class="budget-cat-row ${isOver ? 'over-budget' : ''}" style="background: var(--bg-card); border: 1px solid ${isOver ? 'rgba(255, 91, 91, 0.4)' : 'var(--border)'}; border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px;">
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; align-items: center; gap: 12px; min-width: 0;">
+            <div style="width: 40px; height: 40px; border-radius: 12px; background: ${catInfo.color}20; color: ${catInfo.color}; display: flex; align-items: center; justify-content: center; font-size: 19px; flex-shrink: 0;">
+              ${catInfo.icon}
+            </div>
+            <div style="display: flex; flex-direction: column; min-width: 0;">
+              <span style="font-size: 14.5px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 4px; word-break: break-word;">${titleLabel}${scopeIcon}</span>
+              <span style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">${symbol} ${formatDisplayAmount(spent, displayCurrency)} / ${symbol} ${formatDisplayAmount(budgetAmountInDisplay, displayCurrency)}</span>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
+            <span class="badge-status ${badgeClass}" style="font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 12px;">${badgeText}</span>
+            <button type="button" class="action-icon-btn" onclick="openCategoryBudgetModal('${escapeHtml(b.category)}', '${escapeHtml(b.subcategory || '')}')" title="${lang === 'el' ? 'Επεξεργασία' : 'Edit'}" style="width: 32px; height: 32px; border-radius: 10px; border: 1px solid var(--border); background: rgba(255,255,255,0.04); color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 13px;">
+              <i class="fa-solid fa-pen"></i>
+            </button>
+          </div>
+        </div>
+        <div style="height: 8px; border-radius: 6px; background: rgba(255, 255, 255, 0.06); width: 100%; overflow: hidden; position: relative;">
+          <div style="height: 100%; border-radius: 6px; width: ${Math.min(100, pct)}%; background: ${barColor}; transition: width 0.4s ease;"></div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  const overallPct = totalBudgetInCurrency > 0 ? (totalSpentInCurrency / totalBudgetInCurrency) * 100 : 0;
+  const remainingTotal = Math.max(0, totalBudgetInCurrency - totalSpentInCurrency);
+  const dailyAvailable = (remainingTotal / remainingDays).toFixed(2);
+
+  const overallCardHtml = `
+    <div style="background: linear-gradient(135deg, rgba(124, 106, 247, 0.12) 0%, rgba(99, 102, 241, 0.05) 100%); border: 1px solid var(--border-accent, rgba(124, 106, 247, 0.3)); border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 12px;">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div>
+          <span style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; display: block;">${lang === 'el' ? 'Συνολικό Budget Μήνα' : 'Total Monthly Budget'}</span>
+          <div style="font-size: 20px; font-weight: 800; color: var(--text-primary); margin-top: 2px;">
+            ${symbol} ${formatDisplayAmount(totalSpentInCurrency, displayCurrency)} <span style="font-size: 13.5px; font-weight: 600; color: var(--text-secondary);">/ ${symbol} ${formatDisplayAmount(totalBudgetInCurrency, displayCurrency)}</span>
+          </div>
+        </div>
+        <div style="text-align: right;">
+          <span class="badge-status ${overallPct >= 100 ? 'badge-alert' : overallPct >= 75 ? 'badge-warn' : 'badge-ok'}" style="font-size: 11.5px; font-weight: 700; padding: 4px 10px; border-radius: 12px;">${Math.round(overallPct)}% ${lang === 'el' ? 'Χρήση' : 'Used'}</span>
+          <div style="font-size: 11.5px; color: #10b981; font-weight: 700; margin-top: 4px;">${symbol} ${formatDisplayAmount(remainingTotal, displayCurrency)} ${lang === 'el' ? 'διαθέσιμα' : 'left'}</div>
+        </div>
+      </div>
+      <div>
+        <div style="height: 10px; border-radius: 6px; background: rgba(255, 255, 255, 0.08); width: 100%; overflow: hidden; position: relative;">
+          <div style="height: 100%; border-radius: 6px; width: ${Math.min(100, overallPct)}%; background: linear-gradient(90deg, var(--accent) 0%, var(--primary) 100%); transition: width 0.4s ease;"></div>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-top: 6px;">
+          <span>${lang === 'el' ? `Απομένουν ${remainingDays} ημέρες` : `${remainingDays} days remaining`}</span>
+          <span><strong>${symbol} ${formatDisplayAmount(dailyAvailable, displayCurrency)}</strong> / ${lang === 'el' ? 'ημέρα' : 'day'}</span>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const addBtnHtml = `
+    <button type="button" onclick="openCategoryBudgetModal()" style="width: 100%; padding: 14px; border-radius: 14px; background: rgba(124, 106, 247, 0.08); border: 1px dashed rgba(124, 106, 247, 0.3); color: var(--accent); font-size: 13.5px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: background 0.2s;">
+      <i class="fa-solid fa-plus"></i> ${lang === 'el' ? 'Ορισμός Νέου Προϋπολογισμού' : 'Set New Category Budget'}
+    </button>
+  `;
+
+  container.innerHTML = overallCardHtml + (budgetRowsHtml || `<div style="text-align: center; padding: 24px 16px; color: var(--text-secondary); font-size: 13.5px;">${lang === 'el' ? 'Δεν έχετε ορίσει ακόμα προϋπολογισμούς κατηγοριών.' : 'No category budgets set yet.'}</div>`) + addBtnHtml;
+}
+window.renderCategoryBudgetsView = renderCategoryBudgetsView;
+
+function getSubcategoriesForCategoryName(catName) {
+  if (!catName) return [];
+  const cleanCat = getCategoryInfo(catName, 'expense').name || catName;
+  let subcats = DEFAULT_SUBCATEGORIES_MAP[cleanCat] || DEFAULT_SUBCATEGORIES_MAP[catName] || [];
+  const foundCat = (state.categories || []).find(c => getCategoryInfo(c.name).name === cleanCat || c.name === catName);
+  if (foundCat && Array.isArray(foundCat.subcategories) && foundCat.subcategories.length > 0) {
+    subcats = [...new Set([...subcats, ...foundCat.subcategories])];
+  }
+  return subcats;
+}
+
+function onBudgetCategoryChange() {
+  const catSelect = document.getElementById('budget-modal-category');
+  const subcatContainer = document.getElementById('budget-modal-subcat-container');
+  const subcatSelect = document.getElementById('budget-modal-subcategory');
+  if (!catSelect || !subcatSelect) return;
+
+  const catName = catSelect.value;
+  const subcats = getSubcategoriesForCategoryName(catName);
+
+  if (subcats && subcats.length > 0) {
+    subcatSelect.innerHTML = `<option value="">${state.lang === 'el' ? 'Όλες οι υποκατηγορίες' : 'All subcategories'}</option>`;
+    subcats.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s;
+      opt.textContent = s;
+      subcatSelect.appendChild(opt);
+    });
+    if (subcatContainer) subcatContainer.style.display = 'block';
   } else {
-    if (btnBreakdown) {
-      btnBreakdown.style.background = 'var(--accent)';
-      btnBreakdown.style.color = '#ffffff';
-    }
-    if (btnBudgets) {
-      btnBudgets.style.background = 'transparent';
-      btnBudgets.style.color = 'var(--text-secondary)';
-    }
-    if (viewBreakdown) viewBreakdown.style.display = 'block';
-    if (viewBudgets) viewBudgets.style.display = 'none';
+    subcatSelect.innerHTML = `<option value="">${state.lang === 'el' ? 'Όλες οι υποκατηγορίες' : 'All subcategories'}</option>`;
+    if (subcatContainer) subcatContainer.style.display = 'none';
   }
 }
-window.switchStatsSubtab = switchStatsSubtab;
+window.onBudgetCategoryChange = onBudgetCategoryChange;
 
-function renderCategoryBudgetsView(catGroups = {}) {
-  const container = document.getElementById('stats-budgets-container');
+function openCategoryBudgetModal(targetCategoryName = null, targetSubcategory = null) {
+  const catSelect = document.getElementById('budget-modal-category');
+  const subcatSelect = document.getElementById('budget-modal-subcategory');
+  const amtInput = document.getElementById('budget-modal-amount');
+  const idInput = document.getElementById('budget-modal-id');
+  const delBtn = document.getElementById('budget-delete-btn');
+  if (!catSelect || !amtInput) return;
+
+  // Populate expense categories dropdown cleanly (NO DOUBLE EMOJIS)
+  catSelect.innerHTML = '';
+  const expenseCats = (state.categories || []).filter(c => c && (c.type === 'expense' || !c.type));
+  const seenCats = new Set();
+
+  expenseCats.forEach(c => {
+    const catInfo = getCategoryInfo(c.name, 'expense');
+    const cleanName = catInfo.name || c.name;
+    if (!seenCats.has(cleanName)) {
+      seenCats.add(cleanName);
+      const opt = document.createElement('option');
+      opt.value = cleanName;
+      opt.textContent = `${catInfo.icon} ${cleanName}`;
+      catSelect.appendChild(opt);
+    }
+  });
+
+  const existingBudgets = (state.budgets || []).filter(b => !b.is_deleted);
+  let existing = null;
+
+  if (targetCategoryName) {
+    const cleanTarget = getCategoryInfo(targetCategoryName).name || targetCategoryName;
+    existing = existingBudgets.find(b => {
+      const cleanB = getCategoryInfo(b.category).name || b.category;
+      if (targetSubcategory) {
+        return cleanB === cleanTarget && b.subcategory === targetSubcategory;
+      }
+      return cleanB === cleanTarget && (!b.subcategory || b.subcategory === '');
+    });
+  }
+
+  if (existing) {
+    idInput.value = existing.id;
+    catSelect.value = getCategoryInfo(existing.category).name || existing.category;
+    onBudgetCategoryChange();
+    if (subcatSelect && existing.subcategory) {
+      subcatSelect.value = existing.subcategory;
+    }
+    amtInput.value = existing.amount;
+    selectBudgetScope(existing.scope || 'personal');
+    if (delBtn) delBtn.style.display = 'block';
+  } else {
+    idInput.value = '';
+    if (targetCategoryName) {
+      catSelect.value = getCategoryInfo(targetCategoryName).name || targetCategoryName;
+    }
+    onBudgetCategoryChange();
+    if (subcatSelect && targetSubcategory) {
+      subcatSelect.value = targetSubcategory;
+    }
+    amtInput.value = '';
+    selectBudgetScope('personal');
+    if (delBtn) delBtn.style.display = 'none';
+  }
+
+  openModal('category-budget-modal');
+}
+window.openCategoryBudgetModal = openCategoryBudgetModal;
+
+function setBudgetAmountPreset(val) {
+  const amtInput = document.getElementById('budget-modal-amount');
+  if (amtInput) {
+    amtInput.value = val;
+  }
+}
+window.setBudgetAmountPreset = setBudgetAmountPreset;
+
+function selectBudgetScope(scope) {
+  const input = document.getElementById('budget-modal-scope');
+  const btnPersonal = document.getElementById('budget-scope-personal');
+  const btnFamily = document.getElementById('budget-scope-family');
+  if (input) input.value = scope;
+
+  if (scope === 'family') {
+    if (btnFamily) { btnFamily.style.background = 'var(--accent)'; btnFamily.style.color = '#ffffff'; }
+    if (btnPersonal) { btnPersonal.style.background = 'transparent'; btnPersonal.style.color = 'var(--text-secondary)'; }
+  } else {
+    if (btnPersonal) { btnPersonal.style.background = 'var(--accent)'; btnPersonal.style.color = '#ffffff'; }
+    if (btnFamily) { btnFamily.style.background = 'transparent'; btnFamily.style.color = 'var(--text-secondary)'; }
+  }
+}
+window.selectBudgetScope = selectBudgetScope;
+
+function saveCategoryBudgetFromModal() {
+  const idInput = document.getElementById('budget-modal-id');
+  const catSelect = document.getElementById('budget-modal-category');
+  const subcatSelect = document.getElementById('budget-modal-subcategory');
+  const amtInput = document.getElementById('budget-modal-amount');
+  const scopeInput = document.getElementById('budget-modal-scope');
+  const lang = state.lang || 'el';
+
+  if (!catSelect || !amtInput) return;
+
+  const categoryName = catSelect.value;
+  const subcategoryName = subcatSelect ? subcatSelect.value : '';
+  const amount = parseFloat(amtInput.value || 0);
+  const scope = scopeInput ? scopeInput.value : 'personal';
+
+  if (!categoryName) {
+    showToast(lang === 'el' ? 'Παρακαλώ επιλέξτε κατηγορία' : 'Please select category', 'warning');
+    return;
+  }
+  if (isNaN(amount) || amount <= 0) {
+    showToast(lang === 'el' ? 'Παρακαλώ εισάγετε έγκυρο θετικό ποσό' : 'Please enter valid positive amount', 'warning');
+    return;
+  }
+
+  const budgetId = idInput.value || generateUUID();
+  const existingIdx = (state.budgets || []).findIndex(b => b.id === budgetId || (b.category === categoryName && (b.subcategory || '') === subcategoryName));
+
+  const budgetRecord = {
+    id: budgetId,
+    user_id: state.currentUser ? state.currentUser.id : 'offline-user',
+    family_id: state.userProfile ? state.userProfile.family_id : null,
+    category: categoryName,
+    subcategory: subcategoryName,
+    amount: amount,
+    currency: 'EUR',
+    period: 'monthly',
+    scope: scope,
+    notify_threshold: 0.8,
+    is_deleted: false,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
+
+  if (existingIdx !== -1) {
+    state.budgets[existingIdx] = budgetRecord;
+  } else {
+    state.budgets.push(budgetRecord);
+  }
+
+  saveBudgets();
+  closeModal('category-budget-modal');
+  renderStatsTab();
+  const displayLabel = subcategoryName ? `${categoryName} (${subcategoryName})` : categoryName;
+  showToast(lang === 'el' ? `🎯 Ο προϋπολογισμός για "${displayLabel}" αποθηκεύτηκε!` : `🎯 Budget for "${displayLabel}" saved!`, 'success');
+
+  if (state.supabaseClient && state.currentUser) {
+    syncBudgets();
+  }
+}
+window.saveCategoryBudgetFromModal = saveCategoryBudgetFromModal;ainer = document.getElementById('stats-budgets-container');
   if (!container) return;
 
   const displayCurrency = getDisplayCurrency();
