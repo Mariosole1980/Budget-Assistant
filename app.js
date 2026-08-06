@@ -968,7 +968,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1129 - 06/08/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1130 - 06/08/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1347,7 +1347,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1129 - 06/08/2026)',
+    app_version: 'Version 1.0.0 (build v1130 - 06/08/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -6533,8 +6533,8 @@ function renderCategoryBudgetsView(catGroups = {}) {
     totalSpentInCurrency += spent;
 
     // Convert budget amount from EUR base to display currency
-    const budgetAmountInDisplay = window.CurrencyService 
-      ? window.CurrencyService.convert(b.amount, 'EUR', displayCurrency) 
+    const budgetAmountInDisplay = window.CurrencyService
+      ? window.CurrencyService.convert(b.amount, 'EUR', displayCurrency)
       : b.amount;
     totalBudgetInCurrency += budgetAmountInDisplay;
 
@@ -6634,7 +6634,7 @@ function openCategoryBudgetModal(targetCategoryName = null) {
 
   // Populate expense categories dropdown
   catSelect.innerHTML = '';
-  const expenseCats = getCategoriesList('expense');
+  const expenseCats = (state.categories || []).filter(c => c && (c.type === 'expense' || !c.type));
   expenseCats.forEach(c => {
     const opt = document.createElement('option');
     opt.value = c.name;
@@ -6796,15 +6796,15 @@ function checkOverBudgetNotification(transaction) {
     return sum;
   }, 0);
 
-  const budgetInDisplay = window.CurrencyService 
-    ? window.CurrencyService.convert(budget.amount, 'EUR', displayCurrency) 
+  const budgetInDisplay = window.CurrencyService
+    ? window.CurrencyService.convert(budget.amount, 'EUR', displayCurrency)
     : budget.amount;
 
   if (budgetInDisplay > 0 && catSpent >= budgetInDisplay) {
     const lang = state.lang || 'el';
     const overAmt = (catSpent - budgetInDisplay).toFixed(2);
     const title = lang === 'el' ? '⚠️ Υπέρβαση Προϋπολογισμού!' : '⚠️ Budget Limit Exceeded!';
-    const body = lang === 'el' 
+    const body = lang === 'el'
       ? `Έχετε υπερβεί το όριο στην κατηγορία "${catName}" κατά ${symbol}${overAmt}`
       : `You have exceeded the limit for "${catName}" by ${symbol}${overAmt}`;
 
