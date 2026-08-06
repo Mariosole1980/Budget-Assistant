@@ -968,7 +968,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1111 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1112 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1347,7 +1347,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1111 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1112 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -8074,6 +8074,18 @@ function setupEventListeners() {
   document.getElementById('trans-delete-btn').addEventListener('click', async () => {
     const id = document.getElementById('trans-id').value;
     const tx = (state.transactions || []).find(t => String(t.id) === String(id));
+    // TEMP DIAGNOSTIC
+    try {
+      const _templates = state.recurringTemplates || [];
+      const _txDate = String(tx && tx.date || '').split('T')[0].split(' ')[0];
+      const _txAmount = (parseFloat(tx && tx.amount) || 0).toFixed(2);
+      const _txCat = normalizeCategoryName(tx && tx.category);
+      const _txAcc = (tx && tx.account_from) || '';
+      console.log('[DIAG] tx=', JSON.stringify(tx));
+      console.log('[DIAG] txDate=', _txDate, 'txAmount=', _txAmount, 'txType=', tx && tx.type, 'txCat=', _txCat, 'txAcc=', _txAcc, 'recurring_template_id=', tx && tx.recurring_template_id);
+      console.log('[DIAG] templates=', JSON.stringify(_templates.map(t => ({ id: t.id, amount: (parseFloat(t.amount) || 0).toFixed(2), type: t.type, cat: normalizeCategoryName(t.category), acc: t.account_from || '' }))));
+      console.log('[DIAG] isRecurring=', isTransactionRecurring(tx));
+    } catch (e) { console.log('[DIAG] error', e); }
     // If this is a recurring transaction, route through the scoped delete modal
     // (single / this + future / all repetitions) instead of deleting just this
     // occurrence directly.
