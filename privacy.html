@@ -27,17 +27,44 @@
     header {
       background: var(--bg2);
       border-bottom: 1px solid var(--border);
-      padding: 20px 24px;
+      padding: 16px 24px;
       display: flex;
       align-items: center;
+      justify-content: space-between;
       gap: 12px;
       position: sticky;
       top: 0;
       z-index: 10;
     }
-    header img { width: 36px; height: 36px; border-radius: 8px; }
-    header h1 { font-size: 18px; font-weight: 700; color: var(--text); }
+    .back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 20px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.2s;
+    }
+    .back-btn:hover { background: rgba(255,255,255,0.15); }
+    header img { width: 32px; height: 32px; border-radius: 8px; }
+    header h1 { font-size: 16px; font-weight: 700; color: var(--text); }
     .container { max-width: 760px; margin: 0 auto; padding-top: 32px; }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="index.html" class="back-btn" onclick="if(window.history.length > 1){ window.history.back(); return false; }">← Πίσω στην Εφαρμογή</a>
+    <div style="display:flex; align-items:center; gap:10px;">
+      <img src="icon.png" alt="Logo">
+      <h1>Πολιτική Απορρήτου</h1>
+    </div>
+  </header>
     .hero {
       text-align: center;
       padding: 40px 24px;

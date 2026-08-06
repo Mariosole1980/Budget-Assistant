@@ -968,7 +968,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1127 - 06/08/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1128 - 06/08/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1347,7 +1347,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1127 - 06/08/2026)',
+    app_version: 'Version 1.0.0 (build v1128 - 06/08/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -24725,15 +24725,10 @@ function openRecurringTemplatesModal() {
     `;
   } else {
     templates.forEach(t => {
-      // Find category styling
-      const catName = t.category;
-      let icon = '🧩';
-      let color = '#78909c'; // Default grey
-      const found = Object.values(CATEGORY_EMOJI_MAP).find(c => c.name === catName);
-      if (found) {
-        icon = found.icon;
-        color = found.color;
-      }
+      // Find category styling using robust getCategoryInfo helper
+      const catInfo = getCategoryInfo(t.category, t.type);
+      const icon = catInfo.icon || (t.type === 'income' ? '🟢' : '🔴');
+      const color = catInfo.color || '#78909c';
 
       // Format preset type label
       let presetLabel = t.preset || 'custom';
@@ -24755,25 +24750,25 @@ function openRecurringTemplatesModal() {
       }
 
       const itemHtml = `
-        <div class="recurring-template-row" style="display: flex; flex-direction: row; align-items: center; justify-content: space-between; padding: 12px 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg-card); gap: 12px; margin-bottom: 0; min-height: 64px; box-sizing: border-box; width: 100%;">
+        <div class="recurring-template-row" style="display: flex; flex-direction: row; align-items: center; justify-content: space-between; padding: 12px 14px; border: 1px solid var(--border); border-radius: 14px; background: var(--bg-card); gap: 12px; margin-bottom: 0; min-height: 64px; box-sizing: border-box; width: 100%;">
           <div style="display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1; flex-direction: row;">
-            <div style="width: 40px; height: 40px; border-radius: 50%; background: ${color}20; color: ${color}; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;">
+            <div style="width: 42px; height: 42px; border-radius: 12px; background: ${color}20; color: ${color}; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0;">
               ${icon}
             </div>
             <div style="display: flex; flex-direction: column; min-width: 0; text-align: left; flex: 1;">
-              <span style="font-weight: 700; color: var(--text-primary); font-size: 14.5px; word-break: break-word; line-height: 1.3; display: flex; align-items: center; gap: 6px;">${t.note}<i class="fa-solid fa-arrows-rotate recurring-arrows-icon" title="${lang === 'el' ? 'Επαναλαμβανόμενη' : 'Recurring'}"></i></span>
+              <span style="font-weight: 700; color: var(--text-primary); font-size: 14.5px; word-break: break-word; line-height: 1.3; display: flex; align-items: center; gap: 6px;">${t.note || t.category}<i class="fa-solid fa-arrows-rotate recurring-arrows-icon" style="font-size: 12px; color: var(--primary);" title="${lang === 'el' ? 'Επαναλαμβανόμενη' : 'Recurring'}"></i></span>
               <span style="font-size: 12px; color: var(--text-secondary); margin-top: 3px; word-break: break-word; line-height: 1.2;">${presetLabel} • ${parseFloat(t.amount || 0).toFixed(2)}€${endDateLabel}</span>
             </div>
           </div>
-          <div style="display: flex; align-items: center; gap: 4px; flex-shrink: 0;">
-            <button class="details-btn" onclick="openRecurringDetailsModal('${t.id}')" title="${lang === 'el' ? 'Προβολή επαναλήψεων' : 'View repetitions'}" style="background: none; border: none; color: var(--text-secondary); font-size: 17px; cursor: pointer; padding: 8px; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: background-color 0.2s; flex-shrink: 0;" onmouseover="this.style.backgroundColor='rgba(124, 106, 247, 0.12)'; this.style.color='var(--accent)'" onmouseout="this.style.backgroundColor='transparent'; this.style.color='var(--text-secondary)'">
-              👁️
+          <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+            <button class="details-btn" onclick="openRecurringDetailsModal('${t.id}')" title="${lang === 'el' ? 'Προβολή επαναλήψεων' : 'View repetitions'}" style="width: 34px; height: 34px; border-radius: 10px; border: 1px solid var(--border); background: rgba(255,255,255,0.03); color: var(--text-secondary); display: flex; align-items: center; justify-content: center; font-size: 14px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.backgroundColor='rgba(124, 106, 247, 0.15)'; this.style.color='var(--primary)';" onmouseout="this.style.backgroundColor='rgba(255,255,255,0.03)'; this.style.color='var(--text-secondary)';">
+              <i class="fa-regular fa-eye"></i>
             </button>
-            <button class="edit-btn" onclick="openRecurringEditModal('${t.id}')" title="${lang === 'el' ? 'Επεξεργασία επανάληψης' : 'Edit recurring'}" style="background: none; border: none; color: var(--text-secondary); font-size: 17px; cursor: pointer; padding: 8px; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: background-color 0.2s; flex-shrink: 0;" onmouseover="this.style.backgroundColor='rgba(124, 106, 247, 0.12)'; this.style.color='var(--accent)'" onmouseout="this.style.backgroundColor='transparent'; this.style.color='var(--text-secondary)'">
-              ✏️
+            <button class="edit-btn" onclick="openRecurringEditModal('${t.id}')" title="${lang === 'el' ? 'Επεξεργασία επανάληψης' : 'Edit recurring'}" style="width: 34px; height: 34px; border-radius: 10px; border: 1px solid var(--border); background: rgba(255,255,255,0.03); color: var(--text-secondary); display: flex; align-items: center; justify-content: center; font-size: 14px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.backgroundColor='rgba(124, 106, 247, 0.15)'; this.style.color='var(--primary)';" onmouseout="this.style.backgroundColor='rgba(255,255,255,0.03)'; this.style.color='var(--text-secondary)';">
+              <i class="fa-regular fa-pen-to-square"></i>
             </button>
-            <button class="delete-btn" onclick="deleteRecurringTemplate('${t.id}')" style="background: none; border: none; color: var(--danger); font-size: 18px; cursor: pointer; padding: 8px; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: background-color 0.2s; flex-shrink: 0;" onmouseover="this.style.backgroundColor='rgba(239, 83, 80, 0.1)'" onmouseout="this.style.backgroundColor='transparent'">
-              🗑️
+            <button class="delete-btn" onclick="deleteRecurringTemplate('${t.id}')" title="${lang === 'el' ? 'Διαγραφή' : 'Delete'}" style="width: 34px; height: 34px; border-radius: 10px; border: 1px solid var(--border); background: rgba(255,255,255,0.03); color: var(--danger); display: flex; align-items: center; justify-content: center; font-size: 14px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.backgroundColor='rgba(255, 91, 91, 0.15)'; this.style.borderColor='rgba(255, 91, 91, 0.3)';" onmouseout="this.style.backgroundColor='rgba(255,255,255,0.03)'; this.style.borderColor='var(--border)';">
+              <i class="fa-regular fa-trash-can"></i>
             </button>
           </div>
         </div>

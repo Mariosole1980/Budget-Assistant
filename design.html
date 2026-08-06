@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Budget Assistant — Design Preview & Showcase</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- FontAwesome 6 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <style>
+    :root {
+      --bg-main: #121318;
+      --bg-card: #1c1f28;
+      --bg-card-hover: #242834;
+      --bg-input: rgba(255, 255, 255, 0.04);
+      --primary: #7c6af7;
+      --primary-glow: rgba(124, 106, 247, 0.25);
+      --accent: #7c6af7;
+      --accent-gradient: linear-gradient(135deg, #7c6af7 0%, #6366f1 100%);
+      --danger: #ff5b5b;
+      --danger-bg: rgba(255, 91, 91, 0.12);
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --border: rgba(255, 255, 255, 0.08);
+      --border-accent: rgba(124, 106, 247, 0.3);
+      --radius-lg: 20px;
+      --radius-md: 14px;
+      --radius-sm: 10px;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg-main);
+      color: var(--text-primary);
+      font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-bottom: 60px;
+    }
+
+    header {
+      width: 100%;
+      max-width: 480px;
+      padding: 20px 20px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+      background: linear-gradient(135deg, #fff 0%, #cbd5e1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    header span.badge {
+      font-size: 11px;
+      font-weight: 700;
+      background: var(--primary-glow);
+      color: var(--primary);
+      padding: 4px 10px;
+      border-radius: 20px;
+      border: 1px solid var(--border-accent);
+    }
+
+    .container {
+      width: 100%;
+      max-width: 480px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .section-title {
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .preview-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+
+    /* SEGMENTED CONTROL */
+    .segmented-control {
+      display: flex;
+      background: rgba(0, 0, 0, 0.25);
+      padding: 4px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+      gap: 4px;
+    }
+
+    .segmented-btn {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .segmented-btn.active {
+      background: var(--accent-gradient);
+      color: #ffffff;
+      box-shadow: 0 4px 14px var(--primary-glow);
+    }
+
+    /* CUSTOM SELECT */
+    .custom-select-wrapper {
+      position: relative;
+    }
+
+    .custom-select {
+      width: 100%;
+      padding: 14px 16px;
+      border-radius: var(--radius-md);
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      outline: none;
+      appearance: none;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+
+    .custom-select:focus {
+      border-color: var(--primary);
+    }
+
+    .custom-select-arrow {
+      position: absolute;
+      right: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      pointer-events: none;
+      color: var(--text-secondary);
+      font-size: 12px;
+    }
+
+    /* SUMMARY BANNER */
+    .summary-banner {
+      background: rgba(124, 106, 247, 0.08);
+      border: 1px solid rgba(124, 106, 247, 0.2);
+      border-radius: var(--radius-md);
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #e2e8f0;
+    }
+
+    .summary-banner i {
+      color: var(--primary);
+      font-size: 16px;
+    }
+
+    /* ACTION BUTTON */
+    .btn-primary-action {
+      width: 100%;
+      padding: 14px;
+      border-radius: 16px;
+      background: var(--accent-gradient);
+      color: #ffffff;
+      border: none;
+      font-family: inherit;
+      font-size: 14.5px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 6px 20px var(--primary-glow);
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+
+    .btn-primary-action:active {
+      transform: scale(0.98);
+    }
+
+    /* SETTINGS LIST */
+    .settings-group {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+
+    .settings-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      transition: background-color 0.15s;
+    }
+
+    .settings-row:last-child {
+      border-bottom: none;
+    }
+
+    .settings-row:hover {
+      background-color: var(--bg-card-hover);
+    }
+
+    .settings-row-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .icon-badge {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+    }
+
+    .settings-row-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .settings-row-sub {
+      font-size: 11.5px;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+
+    /* RECURRING ITEM CARD */
+    .recurring-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      gap: 12px;
+      transition: border-color 0.2s;
+    }
+
+    .recurring-item:hover {
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    .cat-avatar {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .action-icon-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .action-icon-btn:hover {
+      background: rgba(124, 106, 247, 0.15);
+      color: var(--primary);
+      border-color: var(--border-accent);
+    }
+
+    .action-icon-btn.delete-btn:hover {
+      background: var(--danger-bg);
+      color: var(--danger);
+      border-color: rgba(255, 91, 91, 0.3);
+    }
+
+    /* MODAL OVERLAY MOCKUP */
+    .modal-mockup {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+
+    .modal-mockup-header {
+      padding: 14px 18px;
+      background: rgba(255, 255, 255, 0.02);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .back-btn-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .back-btn-pill:hover {
+      background: rgba(255, 255, 255, 0.12);
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Design Preview — Budget Assistant</h1>
+    <span class="badge">v1127 Redesign</span>
+  </header>
+
+  <div class="container">
+
+    <!-- 1. RECURRING PICKER REDESIGN -->
+    <div>
+      <div class="section-title"><i class="fa-solid fa-repeat" style="color: var(--primary);"></i> 1. Modal Επανάληψη Κίνησης (New Layout)</div>
+      <div class="preview-card">
+        <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); padding-bottom: 12px;">
+          <span style="font-size: 13px; font-weight: 600; color: var(--text-secondary); cursor: pointer;"><i class="fa-solid fa-trash-can"></i> Καθαρισμός</span>
+          <span style="font-size: 15px; font-weight: 800; color: #fff;">⚡ Ρύθμιση Επανάληψης</span>
+          <span style="font-size: 18px; color: var(--text-muted); cursor: pointer;">✕</span>
+        </div>
+
+        <div>
+          <span style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Συχνότητα Επανάληψης</span>
+          <div class="custom-select-wrapper" style="margin-top: 8px;">
+            <select class="custom-select">
+              <option>📅 Μηνιαία (Monthly)</option>
+              <option>☀️ Καθημερινά (Daily)</option>
+              <option>📆 Εβδομαδιαία (Weekly)</option>
+              <option>🎆 Ετήσια (Yearly)</option>
+              <option>📌 Συγκεκριμένοι Μήνες</option>
+            </select>
+            <i class="fa-solid fa-chevron-down custom-select-arrow"></i>
+          </div>
+        </div>
+
+        <div>
+          <span style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Λήξη Επανάληψης</span>
+          <div class="segmented-control" style="margin-top: 8px;">
+            <button class="segmented-btn active" type="button"><i class="fa-solid fa-infinity"></i> Για πάντα</button>
+            <button class="segmented-btn" type="button"><i class="fa-regular fa-calendar-days"></i> Μέχρι ημερομηνία</button>
+          </div>
+        </div>
+
+        <div class="summary-banner">
+          <i class="fa-solid fa-circle-info"></i>
+          <span>Θα δημιουργούνται: <strong>Κάθε μήνα για πάντα</strong></span>
+        </div>
+
+        <button class="btn-primary-action" type="button">Επιβεβαίωση</button>
+      </div>
+    </div>
+
+
+    <!-- 2. ACCOUNT & LEGAL LIST HARMONIZATION -->
+    <div>
+      <div class="section-title"><i class="fa-solid fa-shield-halved" style="color: var(--primary);"></i> 2. Εναρμονισμένη Λίστα "Λογαριασμός & Νομικά"</div>
+      <div class="settings-group">
+        
+        <!-- Row 1: User Guide -->
+        <div class="settings-row">
+          <div class="settings-row-left">
+            <div class="icon-badge" style="background: rgba(124, 106, 247, 0.15); color: var(--primary);">
+              <i class="fa-solid fa-book-open"></i>
+            </div>
+            <div>
+              <div class="settings-row-title">Οδηγός Χρήσης</div>
+              <div class="settings-row-sub">Πλήρεις οδηγίες & συμβουλές</div>
+            </div>
+          </div>
+          <i class="fa-solid fa-chevron-right" style="color: var(--text-muted); font-size: 12px;"></i>
+        </div>
+
+        <!-- Row 2: Force Update -->
+        <div class="settings-row">
+          <div class="settings-row-left">
+            <div class="icon-badge" style="background: rgba(59, 130, 246, 0.15); color: #3b82f6;">
+              <i class="fa-solid fa-arrows-rotate"></i>
+            </div>
+            <div>
+              <div class="settings-row-title">Αναγκαστική Ενημέρωση</div>
+              <div class="settings-row-sub">Καθαρισμός Cache & λήψη νέας έκδοσης</div>
+            </div>
+          </div>
+          <i class="fa-solid fa-chevron-right" style="color: var(--text-muted); font-size: 12px;"></i>
+        </div>
+
+        <!-- Row 3: Privacy Policy -->
+        <div class="settings-row" onclick="alert('Ανοίγει το νέο In-App Modal Πολιτικής Απορρήτου με κουμπί Πίσω!')">
+          <div class="settings-row-left">
+            <div class="icon-badge" style="background: rgba(148, 163, 184, 0.15); color: #94a3b8;">
+              <i class="fa-solid fa-user-shield"></i>
+            </div>
+            <div>
+              <div class="settings-row-title">Πολιτική Απορρήτου</div>
+              <div class="settings-row-sub">Προστασία & Ασφάλεια Δεδομένων</div>
+            </div>
+          </div>
+          <i class="fa-solid fa-chevron-right" style="color: var(--text-muted); font-size: 12px;"></i>
+        </div>
+
+        <!-- Row 4: Logout -->
+        <div class="settings-row">
+          <div class="settings-row-left">
+            <div class="icon-badge" style="background: rgba(255, 91, 91, 0.15); color: var(--danger);">
+              <i class="fa-solid fa-right-from-bracket"></i>
+            </div>
+            <div>
+              <div class="settings-row-title" style="color: var(--danger);">Αποσύνδεση</div>
+            </div>
+          </div>
+          <i class="fa-solid fa-chevron-right" style="color: var(--danger); font-size: 12px;"></i>
+        </div>
+      </div>
+
+      <!-- App version without raw debug box -->
+      <div style="text-align: center; margin-top: 10px; font-size: 12px; color: var(--text-muted);">
+        Έκδοση 1.0.0 (build v1127) • Budget Assistant
+      </div>
+    </div>
+
+
+    <!-- 3. IN-APP PRIVACY POLICY MODAL SHOWCASE -->
+    <div>
+      <div class="section-title"><i class="fa-solid fa-file-contract" style="color: var(--primary);"></i> 3. In-App Modal Πολιτικής Απορρήτου (με Back Button)</div>
+      <div class="modal-mockup">
+        <div class="modal-mockup-header">
+          <button class="back-btn-pill" type="button"><i class="fa-solid fa-arrow-left"></i> Πίσω στο μενού</button>
+          <span style="font-size: 14px; font-weight: 700; color: #fff;">Πολιτική Απορρήτου</span>
+          <span style="font-size: 16px; color: var(--text-muted); cursor: pointer;">✕</span>
+        </div>
+        <div style="padding: 16px; font-size: 13px; color: var(--text-secondary); line-height: 1.6;">
+          <p style="margin-top: 0;"><strong>Προστασία Δεδομένων:</strong> Τα οικονομικά σας δεδομένα αποθηκεύονται τοπικά στη συσκευή σας και κρυπτογραφούνται κατά τη μεταφορά στο ασφαλές cloud.</p>
+          <p style="margin-bottom: 0;">Δεν κοινοποιούμε τα προσωπικά σας στοιχεία σε τρίτους.</p>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- 4. RECURRING TEMPLATES MODERN ITEMS & DYNAMIC ICONS -->
+    <div>
+      <div class="section-title"><i class="fa-solid fa-layer-group" style="color: var(--primary);"></i> 4. Επαναλαμβανόμενες Συναλλαγές (Διορθωμένα Εικονίδια & Μοντέρνα Actions)</div>
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        
+        <!-- Item 1: Home/Rent -->
+        <div class="recurring-item">
+          <div style="display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1;">
+            <div class="cat-avatar" style="background: rgba(224, 94, 85, 0.15); color: #e05e55;">
+              🏠
+            </div>
+            <div style="display: flex; flex-direction: column; min-width: 0;">
+              <div style="font-size: 14.5px; font-weight: 700; color: var(--text-primary);">ΣΠΙΤΙ (Ενοίκιο)</div>
+              <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">Μηνιαία • 450.00€</div>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <button class="action-icon-btn" title="Προβολή"><i class="fa-regular fa-eye"></i></button>
+            <button class="action-icon-btn" title="Επεξεργασία"><i class="fa-regular fa-pen-to-square"></i></button>
+            <button class="action-icon-btn delete-btn" title="Διαγραφή"><i class="fa-regular fa-trash-can"></i></button>
+          </div>
+        </div>
+
+        <!-- Item 2: Supermarket -->
+        <div class="recurring-item">
+          <div style="display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1;">
+            <div class="cat-avatar" style="background: rgba(76, 175, 80, 0.15); color: #4caf50;">
+              🛒
+            </div>
+            <div style="display: flex; flex-direction: column; min-width: 0;">
+              <div style="font-size: 14.5px; font-weight: 700; color: var(--text-primary);">ΣΚΛΑΒΕΝΙΤΗΣ</div>
+              <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">Εβδομαδιαία • 100.80€</div>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <button class="action-icon-btn" title="Προβολή"><i class="fa-regular fa-eye"></i></button>
+            <button class="action-icon-btn" title="Επεξεργασία"><i class="fa-regular fa-pen-to-square"></i></button>
+            <button class="action-icon-btn delete-btn" title="Διαγραφή"><i class="fa-regular fa-trash-can"></i></button>
+          </div>
+        </div>
+
+        <!-- Item 3: Car Insurance -->
+        <div class="recurring-item">
+          <div style="display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1;">
+            <div class="cat-avatar" style="background: rgba(33, 150, 243, 0.15); color: #2196f3;">
+              🚗
+            </div>
+            <div style="display: flex; flex-direction: column; min-width: 0;">
+              <div style="font-size: 14.5px; font-weight: 700; color: var(--text-primary);">ΑΣΦΑΛΕΙΑ ΑΥΤΟΚΙΝΗΤΟΥ</div>
+              <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">Ετήσια • 360.00€</div>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <button class="action-icon-btn" title="Προβολή"><i class="fa-regular fa-eye"></i></button>
+            <button class="action-icon-btn" title="Επεξεργασία"><i class="fa-regular fa-pen-to-square"></i></button>
+            <button class="action-icon-btn delete-btn" title="Διαγραφή"><i class="fa-regular fa-trash-can"></i></button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

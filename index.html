@@ -65,7 +65,7 @@
               ${devButton}
             </div>
             <div style="font-size:11px;color:#8b949e;">
-              Budget Assistant • build v1127
+              Budget Assistant • build v1128
             </div>
           </div>
         `;
@@ -1334,6 +1334,41 @@
       </div>
     </div>
 
+    <!-- MODAL: IN-APP PRIVACY POLICY -->
+    <div id="privacy-policy-modal" class="modal-overlay" style="z-index: 11000;">
+      <div class="modal-content" style="max-height: calc(var(--viewport-height, 100vh) * 0.95); display: flex; flex-direction: column; max-width: 520px; border-radius: 20px; overflow: hidden; background: var(--bg-card, #1c1f28); border: 1px solid var(--border);">
+        <div class="modal-header"
+          style="position: relative; min-height: 54px; box-sizing: border-box; border-bottom: 1px solid var(--border); padding: 0 16px; display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.02);">
+          <button type="button" onclick="closeModal('privacy-policy-modal')"
+            style="display: flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 20px; background: rgba(255,255,255,0.06); border: 1px solid var(--border); color: var(--text-primary); font-size: 12px; font-weight: 600; cursor: pointer; transition: background 0.2s;">
+            <i class="fa-solid fa-arrow-left"></i> Πίσω στο μενού
+          </button>
+          <h3 class="modal-title" style="margin: 0; font-size: 15px; font-weight: 700; color: #ffffff;">Πολιτική Απορρήτου</h3>
+          <span class="modal-close" onclick="closeModal('privacy-policy-modal')"
+            style="font-size: 20px; color: var(--text-muted); cursor: pointer; line-height: 1;">✕</span>
+        </div>
+        <div class="modal-body" style="padding: 20px; flex: 1; overflow-y: auto; font-size: 13.5px; color: var(--text-secondary); line-height: 1.6; display: flex; flex-direction: column; gap: 14px;">
+          <div style="background: rgba(124, 106, 247, 0.08); border: 1px solid rgba(124, 106, 247, 0.2); border-radius: 12px; padding: 14px; display: flex; align-items: center; gap: 12px;">
+            <i class="fa-solid fa-user-shield" style="font-size: 24px; color: var(--primary);"></i>
+            <div>
+              <strong style="color: var(--text-primary); display: block; font-size: 14px;">Απόλυτη Ασφάλεια &amp; Ιδιωτικότητα</strong>
+              <span style="font-size: 12px; color: var(--text-muted);">Τα δεδομένα σας ανήκουν αποκλειστικά σε εσάς.</span>
+            </div>
+          </div>
+          <h4 style="margin: 8px 0 2px; color: var(--text-primary); font-size: 14px; font-weight: 700;">1. Αποθήκευση Δεδομένων</h4>
+          <p style="margin: 0;">Όλες οι συναλλαγές, οι λογαριασμοί και οι ρυθμίσεις σας αποθηκεύονται ακαριαία στη συσκευή σας (Local Storage). Όταν είστε συνδεδεμένοι, συγχρονίζονται με ασφαλή κρυπτογράφηση στο Cloud (Supabase).</p>
+          <h4 style="margin: 8px 0 2px; color: var(--text-primary); font-size: 14px; font-weight: 700;">2. Χρήση &amp; Κοινοποίηση</h4>
+          <p style="margin: 0;">Δεν συλλέγουμε, δεν πωλούμε και δεν κοινοποιούμε τα οικονομικά σας δεδομένα σε κανέναν τρίτο οργανισμό ή διαφημιστική εταιρεία.</p>
+          <h4 style="margin: 8px 0 2px; color: var(--text-primary); font-size: 14px; font-weight: 700;">3. Διαγραφή Δεδομένων</h4>
+          <p style="margin: 0;">Έχετε τον πλήρη έλεγχο. Μπορείτε ανά πάσα στιγμή να διαγράψετε τον λογαριασμό σας και όλα τα δεδομένα σας οριστικά από το μενού Ρυθμίσεων.</p>
+        </div>
+        <div class="modal-footer" style="padding: 12px 18px; border-top: 1px solid var(--border); background: rgba(255,255,255,0.02); text-align: center;">
+          <button type="button" class="btn-primary" onclick="closeModal('privacy-policy-modal')"
+            style="width: 100%; padding: 12px; border-radius: 14px; font-size: 14px; font-weight: 700; background: rgba(255,255,255,0.06); border: 1px solid var(--border); color: var(--text-primary); cursor: pointer;">Έκλεισε</button>
+        </div>
+      </div>
+    </div>
+
     <!-- MODAL: SOFTWARE LICENSES -->
 
     <div id="settings-subscreen-modal" class="modal-overlay">
@@ -1889,18 +1924,17 @@
             style="display:none; flex-direction:column; gap:12px; padding-bottom:20px;">
 
             <!-- 1. User Guide -->
-            <div class="settings-list-item" id="legal-user-guide-row"
-              style="cursor:pointer; background: rgba(99,102,241,0.08); border: 1px solid rgba(99,102,241,0.25); border-radius: 14px; padding: 14px 16px;"
+            <div class="settings-list-item" id="legal-user-guide-row" style="cursor:pointer; padding: 14px 16px;"
               onclick="openUserGuideModal()">
               <div style="display:flex; align-items:center; gap:12px;">
                 <div
-                  style="width:34px; height:34px; border-radius:10px; background:rgba(99,102,241,0.2); display:flex; align-items:center; justify-content:center;">
+                  style="width:34px; height:34px; border-radius:10px; background:rgba(99,102,241,0.15); display:flex; align-items:center; justify-content:center;">
                   <i class="fa-solid fa-book-open" style="color:var(--primary); font-size:15px;"></i>
                 </div>
-                <span class="settings-item-label" style="color:var(--primary); font-weight:700; font-size:14px;"
+                <span class="settings-item-label" style="color:var(--text-primary); font-weight:600; font-size:14px;"
                   data-i18n="item_user_guide">Οδηγός Χρήσης</span>
               </div>
-              <i class="fa-solid fa-chevron-right" style="color:var(--primary); font-size:12px;"></i>
+              <i class="fa-solid fa-chevron-right" style="color:var(--text-muted); font-size:12px;"></i>
             </div>
 
             <!-- 2. Force Update -->
@@ -1918,7 +1952,7 @@
 
             <!-- 3. Privacy Policy -->
             <div class="settings-list-item" id="legal-privacy-row" style="cursor:pointer; padding: 14px 16px;"
-              onclick="window.open('privacy.html', '_blank')">
+              onclick="openModal('privacy-policy-modal')">
               <div style="display:flex; align-items:center; gap:12px;">
                 <div
                   style="width:34px; height:34px; border-radius:10px; background:rgba(148,163,184,0.15); display:flex; align-items:center; justify-content:center;">
@@ -1927,7 +1961,7 @@
                 <span class="settings-item-label" style="color:var(--text-primary); font-weight:600; font-size:14px;"
                   data-i18n="item_privacy">Πολιτική Απορρήτου</span>
               </div>
-              <i class="fa-solid fa-arrow-up-right-from-square" style="color:var(--text-muted); font-size:12px;"></i>
+              <i class="fa-solid fa-chevron-right" style="color:var(--text-muted); font-size:12px;"></i>
             </div>
 
             <!-- 4. Feedback & Rating -->
@@ -1994,17 +2028,9 @@
             <div class="settings-list-item version-info-row"
               style="padding: 14px 16px; background: transparent; border-top: 1px solid var(--border); margin-top: 8px;">
               <span class="settings-item-label" style="color:var(--text-muted); font-size:12px;"
-                data-i18n="app_version">Έκδοση 1.0.0 (build v1127)</span>
+                data-i18n="app_version">Έκδοση 1.0.0 (build v1128)</span>
               <span class="settings-item-value" style="font-size:12px; color:var(--text-muted); font-weight:600;">Budget
                 Assistant</span>
-            </div>
-
-            <!-- OTA Diagnostic (temporary - shows active build source) -->
-            <div id="ota-diagnostic"
-              style="padding: 10px 16px; background: rgba(255,255,255,0.03); border-radius: 8px; margin: 8px 16px 0 16px; font-size:11px; color:var(--text-muted); font-family:monospace; line-height:1.6; display:none;">
-              <div>OTA: <span id="ota-diag-active">-</span></div>
-              <div>Bundled: <span id="ota-diag-bundled">-</span></div>
-              <div>Source: <span id="ota-diag-source">-</span></div>
             </div>
 
           </div>
@@ -3415,39 +3441,42 @@
     <!-- MODAL: RECURRING EXPENSES PROGRAMMING -->
     <div id="recurring-picker-modal" class="modal-overlay" style="z-index: 12000;">
       <div class="modal-content"
-        style="max-height: calc(var(--viewport-height, 100vh) * 0.95); display: flex; flex-direction: column; max-width: 440px;">
+        style="max-height: calc(var(--viewport-height, 100vh) * 0.95); display: flex; flex-direction: column; max-width: 440px; border-radius: 20px; overflow: hidden; background: var(--bg-card, #1c1f28); border: 1px solid var(--border);">
         <div class="modal-header"
-          style="position: relative; min-height: 52px; box-sizing: border-box; border-bottom: 1px solid var(--border); padding: 0 16px; display: flex; align-items: center; justify-content: space-between;">
+          style="position: relative; min-height: 54px; box-sizing: border-box; border-bottom: 1px solid var(--border); padding: 0 18px; display: flex; align-items: center; justify-content: space-between; background: rgba(255, 255, 255, 0.02);">
           <span onclick="clearRecurringSettings(false)"
             style="font-size: 13px; font-weight: 600; color: var(--text-secondary); cursor: pointer; transition: color 0.2s; display: flex; align-items: center; gap: 6px;"><i
               class="fa-solid fa-trash-can"></i> Καθαρισμός</span>
-          <h3 class="modal-title" style="margin: 0; font-size: 15px; font-weight: 700; color: #ffffff;">Επανάληψη</h3>
+          <h3 class="modal-title" style="margin: 0; font-size: 15px; font-weight: 800; color: #ffffff;">⚡ Ρύθμιση Επανάληψης</h3>
           <span class="modal-close" onclick="closeModal('recurring-picker-modal')"
-            style="font-size: 24px; color: var(--text-secondary); cursor: pointer; line-height: 1;">&times;</span>
+            style="font-size: 20px; color: var(--text-muted); cursor: pointer; line-height: 1; transition: color 0.2s;">✕</span>
         </div>
         <div class="modal-body"
-          style="padding: 16px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 16px;">
+          style="padding: 18px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 18px;">
 
           <!-- Frequency Select -->
           <div>
             <span
-              style="font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Επανάληψη
-              Κάθε</span>
-            <select id="recurring-simple-preset" onchange="onSimplePresetChange()"
-              style="width: 100%; margin-top: 8px; padding: 12px; border-radius: 14px; background: var(--bg-main); color: var(--text-primary); border: 1px solid var(--border); font-size: 14.5px; font-weight: 600; outline: none; cursor: pointer;">
-              <option value="daily">Daily (Καθημερινά)</option>
-              <option value="weekly">Weekly (Εβδομαδιαία)</option>
-              <option value="monthly" selected>Monthly (Μηνιαία)</option>
-              <option value="yearly">Yearly (Ετήσια)</option>
-              <option value="specific_months">Specific Months (Συγκεκριμένοι Μήνες)</option>
-            </select>
+              style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Συχνότητα
+              Επανάληψης</span>
+            <div style="position: relative; margin-top: 8px;">
+              <select id="recurring-simple-preset" onchange="onSimplePresetChange()"
+                style="width: 100%; padding: 14px 16px; border-radius: 14px; background: rgba(255,255,255,0.04); color: var(--text-primary); border: 1px solid var(--border); font-size: 14px; font-weight: 600; outline: none; cursor: pointer; appearance: none;">
+                <option value="daily">☀️ Daily (Καθημερινά)</option>
+                <option value="weekly">📆 Weekly (Εβδομαδιαία)</option>
+                <option value="monthly" selected>📅 Monthly (Μηνιαία)</option>
+                <option value="yearly">🎆 Yearly (Ετήσια)</option>
+                <option value="specific_months">📌 Specific Months (Συγκεκριμένοι Μήνες)</option>
+              </select>
+              <i class="fa-solid fa-chevron-down" style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--text-secondary); font-size: 12px;"></i>
+            </div>
           </div>
 
           <!-- Specific Months Grid (Visible only when 'specific_months' is selected) -->
           <div id="recurring-specific-months-container"
-            style="display: none; flex-direction: column; gap: 8px; border-top: 1px dashed var(--border); padding-top: 12px;">
+            style="display: none; flex-direction: column; gap: 8px; border-top: 1px dashed var(--border); padding-top: 14px;">
             <span
-              style="font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Επιλογή
+              style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Επιλογή
               Μηνών</span>
             <div id="recurring-specific-months-grid"
               style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 4px;">
@@ -3457,30 +3486,30 @@
 
           <!-- Expiration Section (Λήξη) -->
           <div
-            style="border-top: 1px solid var(--border-light); padding-top: 16px; display: flex; flex-direction: column; gap: 10px;">
+            style="border-top: 1px solid var(--border); padding-top: 16px; display: flex; flex-direction: column; gap: 10px;">
             <span
-              style="font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Λήξη
+              style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Λήξη
               Επανάληψης</span>
 
             <!-- End Type Selector Buttons -->
-            <div style="display: flex; gap: 8px;">
+            <div style="display: flex; background: rgba(0, 0, 0, 0.25); padding: 4px; border-radius: 14px; border: 1px solid var(--border); gap: 4px;">
               <button type="button" id="recurring-end-type-perpetual" class="recurring-grid-btn active"
-                style="flex: 1; padding: 12px; border-radius: 12px; font-size: 13.5px; font-weight: 600;"
-                onclick="selectRecurringEndType('perpetual')">Για πάντα</button>
+                style="flex: 1; padding: 10px; border-radius: 10px; font-size: 13px; font-weight: 600; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;"
+                onclick="selectRecurringEndType('perpetual')"><i class="fa-solid fa-infinity"></i> Για πάντα</button>
               <button type="button" id="recurring-end-type-date" class="recurring-grid-btn"
-                style="flex: 1; padding: 12px; border-radius: 12px; font-size: 13.5px; font-weight: 600;"
-                onclick="selectRecurringEndType('date')">Μέχρι ημερομηνία...</button>
+                style="flex: 1; padding: 10px; border-radius: 10px; font-size: 13px; font-weight: 600; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;"
+                onclick="selectRecurringEndType('date')"><i class="fa-regular fa-calendar-days"></i> Μέχρι ημερομηνία</button>
             </div>
 
             <!-- Clickable Custom End Date Container (Visible only when 'date' is selected) -->
-            <div id="recurring-custom-end-date-container" style="display: none; flex-direction: column; gap: 6px;">
+            <div id="recurring-custom-end-date-container" style="display: none; flex-direction: column; gap: 6px; margin-top: 4px;">
               <span
                 style="font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Ημερομηνία
                 Λήξης</span>
               <div id="recurring-end-date-picker-trigger" onclick="openCustomDatePicker('recurring-end-date')"
-                style="display: flex; align-items: center; justify-content: space-between; padding: 14px; border-radius: 12px; background: var(--bg-input, rgba(255,255,255,0.03)); border: 1px solid var(--border); cursor: pointer; transition: all 0.2s; box-shadow: inset 0 1px 2px rgba(0,0,0,0.2);">
+                style="display: flex; align-items: center; justify-content: space-between; padding: 14px; border-radius: 12px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); cursor: pointer; transition: all 0.2s;">
                 <div style="display: flex; align-items: center; gap: 10px;">
-                  <i class="fa-regular fa-calendar-days" style="color: var(--accent, #e05e55); font-size: 16px;"></i>
+                  <i class="fa-regular fa-calendar-days" style="color: var(--accent, #7c6af7); font-size: 16px;"></i>
                   <span id="recurring-end-date-label"
                     style="font-size: 14.5px; font-weight: 600; color: var(--text-primary);">Επιλογή
                     ημερομηνίας...</span>
@@ -3494,16 +3523,16 @@
 
           <!-- Recurrence Summary Preview Banner -->
           <div id="recurring-summary-preview"
-            style="background: rgba(var(--accent-rgb, 224, 94, 85), 0.05); border: 1px dashed rgba(var(--accent-rgb, 224, 94, 85), 0.2); border-radius: 12px; padding: 12px; margin-top: 8px; font-size: 13px; color: var(--text-primary); text-align: center; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px;">
-            <i class="fa-solid fa-circle-info" style="color: var(--accent, #e05e55);"></i>
-            <span id="recurring-summary-text">Θα δημιουργούνται: Κάθε μήνα για πάντα</span>
+            style="background: rgba(124, 106, 247, 0.08); border: 1px solid rgba(124, 106, 247, 0.2); border-radius: 14px; padding: 12px 14px; margin-top: 4px; font-size: 13px; color: #e2e8f0; text-align: center; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 10px;">
+            <i class="fa-solid fa-circle-info" style="color: var(--accent, #7c6af7); font-size: 16px;"></i>
+            <span id="recurring-summary-text">Θα δημιουργούνται: <strong>Κάθε μήνα για πάντα</strong></span>
           </div>
 
         </div>
         <div class="modal-footer"
-          style="padding: 12px 16px; border-top: 1px solid var(--border); background: var(--bg-main);">
+          style="padding: 14px 18px; border-top: 1px solid var(--border); background: rgba(255,255,255,0.02);">
           <button type="button" class="btn-primary" onclick="saveRecurringSettings()"
-            style="width: 100%; padding: 12px; border-radius: 20px; font-size: 14px; font-weight: 700; background: var(--accent, #e05e55); color: white; border: none; cursor: pointer; text-align: center;">Επιβεβαίωση</button>
+            style="width: 100%; padding: 14px; border-radius: 16px; font-size: 14.5px; font-weight: 700; background: linear-gradient(135deg, #7c6af7 0%, #6366f1 100%); color: white; border: none; cursor: pointer; text-align: center; box-shadow: 0 6px 20px rgba(124, 106, 247, 0.25);">Επιβεβαίωση</button>
         </div>
       </div>
     </div>
@@ -3781,7 +3810,7 @@
       // OTA updates. Running both would cause a reload loop that never
       // baked into the APK and never changes on a plain reload).
       // ============================================================
-      const CURRENT_BUILD = 1127;
+      const CURRENT_BUILD = 1128;
       (function () {
         // Skip entirely when running inside the native APK (Capacitor bridge
         // present). Capgo handles OTA updates there.
