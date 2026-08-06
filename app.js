@@ -968,7 +968,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1110 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1111 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1347,7 +1347,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1110 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1111 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -5426,18 +5426,20 @@ function isTransactionRecurring(tx) {
   const txDate = String(tx.date || '').split('T')[0].split(' ')[0];
   const txAmount = (parseFloat(tx.amount) || 0).toFixed(2);
   const txType = tx.type;
-  const txCat = tx.category;
+  const txCat = normalizeCategoryName(tx.category);
   const txAcc = tx.account_from || '';
 
   return templates.some(template => {
     if (tx.recurring_template_id && String(tx.recurring_template_id) === String(template.id)) {
       return true;
     }
-    // Content-based fallback
+    // Content-based fallback. Category is compared via normalizeCategoryName so
+    // that a transaction whose category was canonicalized (e.g. "🚗 ΑΥΤΟΚΙΝΗΤΟ")
+    // still matches a template stored with a plain name (e.g. "Αυτοκίνητο").
     if (txDate &&
       txAmount === (parseFloat(template.amount) || 0).toFixed(2) &&
       txType === template.type &&
-      txCat === template.category &&
+      txCat === normalizeCategoryName(template.category) &&
       txAcc === (template.account_from || '')) {
       return true;
     }
@@ -26489,10 +26491,12 @@ function openRecurringDeleteModal(target, occurrenceDateStr) {
     if (tx) {
       // Match by the FULL content-key (amount + type + category + account_from)
       // so two different recurring series in the same category are never conflated.
+      // Category is compared via normalizeCategoryName so a transaction whose
+      // category was canonicalized still matches a template stored with a plain name.
       const match = (state.recurringTemplates || []).find(t => {
         return (parseFloat(tx.amount) || 0).toFixed(2) === (parseFloat(t.amount) || 0).toFixed(2) &&
           tx.type === t.type &&
-          tx.category === t.category &&
+          normalizeCategoryName(tx.category) === normalizeCategoryName(t.category) &&
           (tx.account_from || '') === (t.account_from || '');
       });
       if (match) templateId = match.id;
@@ -26551,9 +26555,11 @@ function _txBelongsToRecurringSeries(t, ctx) {
     return true;
   }
   // Strict content fallback — must match on every identifying field.
+  // Category is compared via normalizeCategoryName so a transaction whose
+  // category was canonicalized still matches the series' stored category.
   return (parseFloat(t.amount || 0).toFixed(2) === (parseFloat(ctx.amount) || 0).toFixed(2)) &&
     (t.type || '') === (ctx.type || '') &&
-    (t.category || '') === (ctx.category || '') &&
+    normalizeCategoryName(t.category) === normalizeCategoryName(ctx.category) &&
     (t.account_from || '') === (ctx.accountFrom || '');
 }
 

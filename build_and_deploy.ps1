@@ -1,4 +1,4 @@
-﻿param()
+param()
 
 # Set console output encoding to UTF8
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -21,7 +21,7 @@ if (Test-Path $versionJsonPath) {
     } catch {}
 }
 $newBuild = $currentBuild + 1
-Write-Host "  [INFO] Version: $currentBuild Ξ²β€ β€™ $newBuild" -ForegroundColor Cyan
+Write-Host "  [INFO] Version: $currentBuild β†’ $newBuild" -ForegroundColor Cyan
 
 # Update app.js
 $appPath = "app.js"
@@ -156,7 +156,7 @@ if ($deploy1 -ne 0) {
 # 7. Git Commit & Tag
 Write-Host "[INFO] Staging and committing to Git..." -ForegroundColor Yellow
 git add -A
-git commit -m "build v${newBuild}: Restore 3-option recurring delete modal when deleting a recurring transaction from the transaction modal (route to scoped single/future/all delete), and strengthen template fallback match with account_from"
+git commit -m "build v${newBuild}: Fix recurring delete modal not appearing from transaction card - normalize category in isTransactionRecurring and recurring delete matching so cloud-synced transactions (without recurring_template_id) are correctly recognized as recurring"
 Write-Host "  [SUCCESS] Git commit created for build v${newBuild}" -ForegroundColor Green
 
 Write-Host "[SUCCESS] All steps completed successfully! Builds are live at:" -ForegroundColor Green
