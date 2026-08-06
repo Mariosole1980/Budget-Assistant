@@ -65,7 +65,7 @@
               ${devButton}
             </div>
             <div style="font-size:11px;color:#8b949e;">
-              Budget Assistant • build v1107
+              Budget Assistant • build v1108
             </div>
           </div>
         `;
@@ -1827,10 +1827,10 @@
                     <span style="font-size:12px; color:var(--text-muted);">Χρόνος αδράνειας πριν το κλείδωμα</span>
                   </div>
                   <div
-                    style="display:flex; align-items:center; gap:8px; background:rgba(16,185,129,0.10); border:1px solid rgba(16,185,129,0.25); padding:7px 14px; border-radius:20px;">
+                    style="display:flex; align-items:center; gap:8px; background:rgba(239,68,68,0.10); border:1px solid rgba(239,68,68,0.25); padding:7px 14px; border-radius:20px;">
                     <span id="settings-auto-lock-display"
-                      style="font-size:13px; font-weight:800; color:#10b981;">Απενεργοποιημένο</span>
-                    <i class="fa-solid fa-chevron-right" style="color:#10b981; font-size:11px;"></i>
+                      style="font-size:13px; font-weight:800; color:#ef4444;">Απενεργοποιημένο</span>
+                    <i class="fa-solid fa-chevron-right" style="color:#ef4444; font-size:11px;"></i>
                   </div>
                 </div>
               </div>
@@ -1994,7 +1994,7 @@
             <div class="settings-list-item version-info-row"
               style="padding: 14px 16px; background: transparent; border-top: 1px solid var(--border); margin-top: 8px;">
               <span class="settings-item-label" style="color:var(--text-muted); font-size:12px;"
-                data-i18n="app_version">Έκδοση 1.0.0 (build v1107)</span>
+                data-i18n="app_version">Έκδοση 1.0.0 (build v1108)</span>
               <span class="settings-item-value" style="font-size:12px; color:var(--text-muted); font-weight:600;">Budget
                 Assistant</span>
             </div>
@@ -2786,63 +2786,86 @@
         <span class="bottom-sheet-title" data-i18n="export_sheet_title">Εξαγωγή Αρχείου</span>
         <button class="bottom-sheet-close-btn" onclick="closeExportPeriodSheet()">&times;</button>
       </div>
-      <div class="bottom-sheet-body" id="export-step-1">
-        <!-- Options List -->
-        <div class="bottom-sheet-option active" id="export-opt-current-month"
-          onclick="selectExportOption('current-month')">
-          <span class="option-label">
-            <i class="fa-regular fa-calendar-days" style="margin-right: 8px; color: var(--accent);"></i>
-            <span data-i18n="export_opt_current_month">Τρέχων Μήνας</span>
-            <span class="period-date-range" id="export-range-current-month"
-              style="font-size: 11.5px; color: var(--text-secondary); margin-left: 6px;"></span>
-          </span>
-          <i class="fa-solid fa-check option-check-icon"></i>
+      <div class="bottom-sheet-body" id="export-step-1" style="padding-top: 4px;">
+        <!-- Period Selector Header -->
+        <div style="padding: 0 14px; margin-bottom: 10px;">
+          <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 0.5px;" data-i18n="export_label_period">Επιλογή Περιόδου</div>
         </div>
-        <div class="bottom-sheet-option" id="export-opt-prev-month" onclick="selectExportOption('prev-month')">
-          <span class="option-label">
-            <i class="fa-regular fa-calendar-days" style="margin-right: 8px; color: var(--text-secondary);"></i>
-            <span data-i18n="export_opt_prev_month">Προηγούμενος Μήνας</span>
-            <span class="period-date-range" id="export-range-prev-month"
-              style="font-size: 11.5px; color: var(--text-secondary); margin-left: 6px;"></span>
-          </span>
-          <i class="fa-solid fa-check option-check-icon"></i>
-        </div>
-        <div class="bottom-sheet-option" id="export-opt-current-year" onclick="selectExportOption('current-year')">
-          <span class="option-label">
-            <i class="fa-regular fa-calendar" style="margin-right: 8px; color: var(--text-secondary);"></i>
-            <span data-i18n="export_opt_current_year">Τρέχων Έτος</span>
-            <span class="period-date-range" id="export-range-current-year"
-              style="font-size: 11.5px; color: var(--text-secondary); margin-left: 6px;"></span>
-          </span>
-          <i class="fa-solid fa-check option-check-icon"></i>
-        </div>
-        <div class="bottom-sheet-option" id="export-opt-prev-year" onclick="selectExportOption('prev-year')">
-          <span class="option-label">
-            <i class="fa-regular fa-calendar" style="margin-right: 8px; color: var(--text-secondary);"></i>
-            <span data-i18n="export_opt_prev_year">Προηγούμενο Έτος</span>
-            <span class="period-date-range" id="export-range-prev-year"
-              style="font-size: 11.5px; color: var(--text-secondary); margin-left: 6px;"></span>
-          </span>
-          <i class="fa-solid fa-check option-check-icon"></i>
-        </div>
-        <div class="bottom-sheet-option" id="export-opt-all" onclick="selectExportOption('all')">
-          <span class="option-label">
-            <i class="fa-solid fa-database" style="margin-right: 8px; color: var(--text-secondary);"></i>
-            <span data-i18n="export_opt_all">Όλα τα δεδομένα</span>
-          </span>
-          <i class="fa-solid fa-check option-check-icon"></i>
-        </div>
-        <div class="bottom-sheet-option" id="export-opt-custom" onclick="selectExportOption('custom')">
-          <span class="option-label">
-            <i class="fa-solid fa-sliders" style="margin-right: 8px; color: var(--text-secondary);"></i>
-            <span data-i18n="export_opt_custom">Επιλογή συγκεκριμένων ημερομηνιών</span>
-          </span>
-          <i class="fa-solid fa-check option-check-icon"></i>
+
+        <!-- Period Selector Cards Grid -->
+        <div class="export-period-grid" style="padding: 0 14px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 12px;">
+          
+          <div class="export-period-card active" id="export-opt-current-month" onclick="selectExportOption('current-month')">
+            <div class="export-period-icon-wrapper" style="background: rgba(16, 185, 129, 0.15); color: #10b981;">
+              <i class="fa-regular fa-calendar-days"></i>
+            </div>
+            <div class="export-period-info">
+              <div class="export-period-title" data-i18n="export_opt_current_month">Τρέχων Μήνας</div>
+              <div class="export-period-sub" id="export-range-current-month">-</div>
+            </div>
+            <i class="fa-solid fa-circle-check export-period-check"></i>
+          </div>
+
+          <div class="export-period-card" id="export-opt-prev-month" onclick="selectExportOption('prev-month')">
+            <div class="export-period-icon-wrapper" style="background: rgba(6, 182, 212, 0.15); color: #06b6d4;">
+              <i class="fa-regular fa-calendar-days"></i>
+            </div>
+            <div class="export-period-info">
+              <div class="export-period-title" data-i18n="export_opt_prev_month">Προηγούμενος Μήνας</div>
+              <div class="export-period-sub" id="export-range-prev-month">-</div>
+            </div>
+            <i class="fa-solid fa-circle-check export-period-check"></i>
+          </div>
+
+          <div class="export-period-card" id="export-opt-current-year" onclick="selectExportOption('current-year')">
+            <div class="export-period-icon-wrapper" style="background: rgba(59, 130, 246, 0.15); color: #3b82f6;">
+              <i class="fa-regular fa-calendar"></i>
+            </div>
+            <div class="export-period-info">
+              <div class="export-period-title" data-i18n="export_opt_current_year">Τρέχων Έτος</div>
+              <div class="export-period-sub" id="export-range-current-year">-</div>
+            </div>
+            <i class="fa-solid fa-circle-check export-period-check"></i>
+          </div>
+
+          <div class="export-period-card" id="export-opt-prev-year" onclick="selectExportOption('prev-year')">
+            <div class="export-period-icon-wrapper" style="background: rgba(99, 102, 241, 0.15); color: #6366f1;">
+              <i class="fa-regular fa-calendar"></i>
+            </div>
+            <div class="export-period-info">
+              <div class="export-period-title" data-i18n="export_opt_prev_year">Προηγούμενο Έτος</div>
+              <div class="export-period-sub" id="export-range-prev-year">-</div>
+            </div>
+            <i class="fa-solid fa-circle-check export-period-check"></i>
+          </div>
+
+          <div class="export-period-card" id="export-opt-all" onclick="selectExportOption('all')">
+            <div class="export-period-icon-wrapper" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b;">
+              <i class="fa-solid fa-database"></i>
+            </div>
+            <div class="export-period-info">
+              <div class="export-period-title" data-i18n="export_opt_all">Όλα τα δεδομένα</div>
+              <div class="export-period-sub" data-i18n="export_sub_all">Πλήρες Ιστορικό</div>
+            </div>
+            <i class="fa-solid fa-circle-check export-period-check"></i>
+          </div>
+
+          <div class="export-period-card" id="export-opt-custom" onclick="selectExportOption('custom')">
+            <div class="export-period-icon-wrapper" style="background: rgba(139, 92, 246, 0.15); color: #8b5cf6;">
+              <i class="fa-solid fa-sliders"></i>
+            </div>
+            <div class="export-period-info">
+              <div class="export-period-title" data-i18n="export_opt_custom">Συγκεκριμένες Ημερομηνίες</div>
+              <div class="export-period-sub" data-i18n="export_sub_custom">Προσαρμοσμένο Εύρος</div>
+            </div>
+            <i class="fa-solid fa-circle-check export-period-check"></i>
+          </div>
+
         </div>
 
         <!-- Custom Date Range Sub-Form (Collapsible) -->
         <div id="export-custom-range-container"
-          style="display: none; padding: 12px 14px; flex-direction: column; gap: 12px; margin-bottom: 8px; border-radius: 12px; background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05);">
+          style="display: none; margin: 0 14px 12px 14px; padding: 12px 14px; flex-direction: column; gap: 12px; border-radius: 12px; background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05);">
           <div style="display: flex; gap: 12px;">
             <div style="flex: 1; display: flex; flex-direction: column; gap: 6px;">
               <span
@@ -2878,9 +2901,9 @@
         </div>
 
         <!-- Step 1 Actions -->
-        <div id="export-next-btn-container" style="margin-top: 12px; padding: 0 14px; display: none;">
+        <div id="export-next-btn-container" style="margin-top: 8px; padding: 0 14px; display: none;">
           <button type="button" class="btn btn-primary" onclick="goToExportStep2()"
-            style="width: 100%; font-size: 14.5px; padding: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 10px;">
+            style="width: 100%; font-size: 14.5px; font-weight: 600; padding: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 12px;">
             <i class="fa-solid fa-arrow-right"></i>
             <span data-i18n="export_btn_next">Επόμενο</span>
           </button>
@@ -3026,39 +3049,67 @@
     <!-- MODAL: PIN SETUP -->
     <div id="pin-modal" class="modal-overlay" style="z-index: 12500;">
       <div class="modal-content"
-        style="max-width: 320px; text-align: center; border-radius: 12px; border: 1px solid var(--border);">
-        <h3 class="modal-title" id="pin-modal-title" style="margin-bottom: 8px;">Ορισμός PIN</h3>
-        <p style="margin: 12px 0; color: var(--text-secondary); font-size: 13px;" id="pin-modal-desc">Εισάγετε ένα
-          4ψήφιο PIN για το κλείδωμα της εφαρμογής.</p>
-        <input type="password" id="pin-input-field" pattern="[0-9]*" inputmode="numeric" maxlength="4"
-          style="font-size: 24px; text-align: center; letter-spacing: 12px; width: 150px; padding: 8px; margin: 16px auto; display: block; background: var(--bg-input); border: 1px solid var(--border); color: var(--text-main); border-radius: 8px;">
-        <div class="modal-buttons" style="margin-top: 16px; display: flex; gap: 8px;">
-          <button class="btn btn-secondary" onclick="closePinModal()" style="flex: 1; padding: 10px;">Ακύρωση</button>
-          <button class="btn btn-primary" id="btn-pin-submit" onclick="submitPinSetup()"
-            style="flex: 1; padding: 10px;">Επόμενο</button>
+        style="max-width: 350px; text-align: center; border-radius: 16px; border: 1px solid var(--border-light, rgba(255,255,255,0.1)); padding: 24px 20px; background: var(--bg-card, #161622); box-shadow: 0 12px 32px rgba(0,0,0,0.4);">
+        
+        <!-- Header Shield Icon -->
+        <div style="width: 50px; height: 50px; border-radius: 14px; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.25); display: flex; align-items: center; justify-content: center; margin: 0 auto 14px auto;">
+          <i class="fa-solid fa-lock" style="color: var(--accent, #ef4444); font-size: 22px;"></i>
+        </div>
+
+        <h3 class="modal-title" id="pin-modal-title" style="margin-bottom: 6px; font-weight: 800; font-size: 18px; color: var(--text-primary);">Ορισμός PIN</h3>
+        <p style="margin: 0 0 16px 0; color: var(--text-secondary); font-size: 13px; line-height: 1.45;" id="pin-modal-desc">
+          Εισάγετε ένα 4ψήφιο PIN για το κλείδωμα της εφαρμογής.
+        </p>
+
+        <!-- PIN Input Field -->
+        <div style="position: relative; margin: 10px 0 20px 0; display: flex; justify-content: center;">
+          <input type="password" id="pin-input-field" pattern="[0-9]*" inputmode="numeric" maxlength="4" autocomplete="off"
+            style="font-size: 26px; font-weight: 800; text-align: center; letter-spacing: 16px; width: 170px; padding: 12px 14px; background: var(--bg-input, rgba(0,0,0,0.3)); border: 1.5px solid var(--border, rgba(255,255,255,0.15)); color: var(--text-primary); border-radius: 12px; outline: none; box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);">
+        </div>
+
+        <div class="modal-buttons" style="display: flex; gap: 10px;">
+          <button type="button" class="btn btn-secondary" onclick="closePinModal()"
+            style="flex: 1; padding: 12px; font-size: 14px; font-weight: 600; border-radius: 10px; background: rgba(255,255,255,0.06); color: var(--text-primary); border: 1px solid var(--border-light);">
+            Ακύρωση
+          </button>
+          <button type="button" class="btn btn-primary" id="btn-pin-submit" onclick="submitPinSetup()"
+            style="flex: 1.2; padding: 12px; font-size: 14px; font-weight: 700; border-radius: 10px;">
+            Επόμενο
+          </button>
         </div>
       </div>
     </div>
 
-
-
     <!-- MODAL: PIN VERIFICATION -->
-    <div id="pin-verify-modal" class="modal-overlay" style="z-index: 12500;"
-      style="align-items: center; justify-content: center;">
+    <div id="pin-verify-modal" class="modal-overlay" style="z-index: 12500;">
       <div class="modal-content"
-        style="max-width: 320px; text-align: center; border-radius: 12px; border: 1px solid var(--border); padding: 20px; background-color: var(--bg-card, #161622);">
-        <h3 class="modal-title" style="margin-bottom: 12px; font-weight: 700; color: var(--text-main);">Απενεργοποίηση
-          Κλειδώματος</h3>
-        <p style="margin: 12px 0; color: var(--text-secondary); font-size: 13.5px; line-height: 1.5; text-align: left;">
+        style="max-width: 350px; text-align: center; border-radius: 16px; border: 1px solid var(--border-light, rgba(255,255,255,0.1)); padding: 24px 20px; background: var(--bg-card, #161622); box-shadow: 0 12px 32px rgba(0,0,0,0.4);">
+        
+        <!-- Header Shield Icon -->
+        <div style="width: 50px; height: 50px; border-radius: 14px; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.25); display: flex; align-items: center; justify-content: center; margin: 0 auto 14px auto;">
+          <i class="fa-solid fa-shield-halved" style="color: var(--accent, #ef4444); font-size: 22px;"></i>
+        </div>
+
+        <h3 class="modal-title" style="margin-bottom: 6px; font-weight: 800; font-size: 18px; color: var(--text-primary);">Απενεργοποίηση Κλειδώματος</h3>
+        <p style="margin: 0 0 16px 0; color: var(--text-secondary); font-size: 13px; line-height: 1.45;">
           Εισάγετε το τρέχον PIN σας για να απενεργοποιήσετε το κλείδωμα της εφαρμογής:
         </p>
-        <input type="password" id="pin-verify-input" pattern="[0-9]*" inputmode="numeric" maxlength="4"
-          style="font-size: 24px; text-align: center; letter-spacing: 12px; width: 150px; padding: 8px; margin: 16px auto; display: block; background: var(--bg-input, #000000); border: 1px solid var(--border); color: var(--text-main); border-radius: 8px; outline: none;">
-        <div class="modal-buttons" style="margin-top: 16px; display: flex; gap: 8px;">
-          <button class="btn btn-secondary" onclick="closePinVerifyModal()"
-            style="flex: 1; padding: 11px; border-radius: 8px;">Ακύρωση</button>
-          <button class="btn btn-primary" onclick="submitPinVerification()"
-            style="flex: 1.2; padding: 11px; border-radius: 8px; background-color: var(--accent); color: white; border: none; font-weight: 600; cursor: pointer;">Επιβεβαίωση</button>
+
+        <!-- PIN Verify Input -->
+        <div style="position: relative; margin: 10px 0 20px 0; display: flex; justify-content: center;">
+          <input type="password" id="pin-verify-input" pattern="[0-9]*" inputmode="numeric" maxlength="4" autocomplete="off"
+            style="font-size: 26px; font-weight: 800; text-align: center; letter-spacing: 16px; width: 170px; padding: 12px 14px; background: var(--bg-input, rgba(0,0,0,0.3)); border: 1.5px solid var(--border, rgba(255,255,255,0.15)); color: var(--text-primary); border-radius: 12px; outline: none; box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);">
+        </div>
+
+        <div class="modal-buttons" style="display: flex; gap: 10px;">
+          <button type="button" class="btn btn-secondary" onclick="closePinVerifyModal()"
+            style="flex: 1; padding: 12px; font-size: 14px; font-weight: 600; border-radius: 10px; background: rgba(255,255,255,0.06); color: var(--text-primary); border: 1px solid var(--border-light);">
+            Ακύρωση
+          </button>
+          <button type="button" class="btn btn-primary" onclick="submitPinVerification()"
+            style="flex: 1.2; padding: 12px; font-size: 14px; font-weight: 700; border-radius: 10px;">
+            Επιβεβαίωση
+          </button>
         </div>
       </div>
     </div>

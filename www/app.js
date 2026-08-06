@@ -968,7 +968,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1107 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1108 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1347,7 +1347,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1107 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1108 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -14806,17 +14806,34 @@ function renderCategoryManagerList() {
 
   const expenseTab = document.getElementById('cat-mgr-tab-expense');
   const incomeTab = document.getElementById('cat-mgr-tab-income');
+  const addCatBtn = document.querySelector('#category-manager-modal .btn-primary');
+  const isIncome = type === 'income';
+
   if (expenseTab && incomeTab) {
-    if (type === 'expense') {
-      expenseTab.style.background = 'var(--accent)';
-      expenseTab.style.color = 'white';
-      incomeTab.style.background = 'transparent';
-      incomeTab.style.color = 'var(--text-secondary)';
-    } else {
-      incomeTab.style.background = 'var(--accent)';
-      incomeTab.style.color = 'white';
+    if (isIncome) {
+      incomeTab.style.background = 'var(--blue-positive, #4ade80)';
+      incomeTab.style.color = '#064e3b';
+      incomeTab.style.fontWeight = '800';
       expenseTab.style.background = 'transparent';
       expenseTab.style.color = 'var(--text-secondary)';
+      expenseTab.style.fontWeight = '700';
+      if (addCatBtn) {
+        addCatBtn.style.background = 'var(--blue-positive, #4ade80)';
+        addCatBtn.style.color = '#064e3b';
+        addCatBtn.style.fontWeight = '700';
+      }
+    } else {
+      expenseTab.style.background = 'var(--red-negative, #e05e55)';
+      expenseTab.style.color = 'white';
+      expenseTab.style.fontWeight = '800';
+      incomeTab.style.background = 'transparent';
+      incomeTab.style.color = 'var(--text-secondary)';
+      incomeTab.style.fontWeight = '700';
+      if (addCatBtn) {
+        addCatBtn.style.background = 'var(--red-negative, #e05e55)';
+        addCatBtn.style.color = 'white';
+        addCatBtn.style.fontWeight = '700';
+      }
     }
   }
 
@@ -14862,6 +14879,8 @@ function renderCategoryManagerList() {
     return;
   }
 
+  const iconBg = isIncome ? 'rgba(74, 222, 128, 0.15)' : 'rgba(255, 255, 255, 0.04)';
+
   list.forEach((c, idx) => {
     const rawName = typeof c === 'string' ? c : (c && c.name ? String(c.name) : `Category ${idx + 1}`);
     const safeId = rawName.replace(/\s+/g, '-');
@@ -14887,7 +14906,7 @@ function renderCategoryManagerList() {
     header.style.cssText = 'display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; cursor: pointer; transition: background 0.2s;';
     header.innerHTML = `
       <div style="display: flex; align-items: center; gap: 12px;">
-        <span style="font-size: 18px; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.04); border-radius: 50%;">${icon}</span>
+        <span style="font-size: 18px; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; background: ${iconBg}; border-radius: 50%;">${icon}</span>
         <span style="font-weight: 600; font-size: 14px; color: var(--text-primary);">${displayName}</span>
       </div>
       <div style="display: flex; align-items: center; gap: 8px;" class="category-mgr-actions">
