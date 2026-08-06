@@ -968,7 +968,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1119 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1120 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1347,7 +1347,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1119 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1120 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -4227,7 +4227,7 @@ async function loadData() {
       if (toRecover.length > 0) {
         console.log(`Recovering ${toRecover.length} silently dropped transactions during loadData...`);
         const payloads = toRecover.map(t => {
-          const { description, is_shared, recurring_template_id, photo_local_uri, photo_url, receipt, currency, base_currency, rate_to_base, amount_base, rate_source, ...dbPayload } = t;
+          const { description, is_shared, recurring_template_id, photo_local_uri, photo_url, receipt, currency, base_currency, rate_to_base, amount_base, rate_source, fx_snapshot, rate_to_base_actual, rate_fetched_at, transfer_id, transfer_rate, ...dbPayload } = t;
           return dbPayload;
         });
         try {
@@ -19240,13 +19240,28 @@ async function syncLocalTransactionsToCloud(userId, options = {}) {
       const toInsert = localTrans.map(t => {
         const copy = { ...t };
         delete copy.id; // Let Supabase auto-generate UUIDs
-        delete copy.description; // Strip description from DB payload as database doesn't have it
+        // Strip all client-only fields that do NOT exist as columns in the live DB
+        // (verified live: error 42703). Without this the batch insert fails with a 400.
+        delete copy.description;
+        delete copy.is_shared;
+        delete copy.recurring_template_id;
+        delete copy.photo_local_uri;
+        delete copy.photo_url;
+        delete copy.receipt;
+        delete copy.currency;
+        delete copy.base_currency;
+        delete copy.rate_to_base;
+        delete copy.amount_base;
+        delete copy.rate_source;
+        delete copy.fx_snapshot;
+        delete copy.rate_to_base_actual;
+        delete copy.rate_fetched_at;
+        delete copy.transfer_id;
+        delete copy.transfer_rate;
         copy.user_id = userId;
         if (state.userProfile && state.userProfile.family_id) {
           copy.family_id = state.userProfile.family_id;
         }
-        delete copy.is_shared; // Ensure is_shared is not sent to DB
-        delete copy.recurring_template_id; // Ensure recurring_template_id is not sent to DB
         return copy;
       });
 
@@ -26908,7 +26923,13 @@ async function restoreTrashGroup(groupId) {
     if (group.affectedTransactionsSnapshot && group.affectedTransactionsSnapshot.length > 0) {
       const realSnapshot = group.affectedTransactionsSnapshot.filter(tx => !tx._synthetic);
       if (realSnapshot.length > 0) {
-        state.supabaseClient.from('transactions').upsert(realSnapshot);
+        // Strip client-only fields that do NOT exist as columns in the live DB
+        // (verified live: error 42703) so the upsert does not fail with a 400.
+        const dbPayloads = realSnapshot.map(tx => {
+          const { description, is_shared, recurring_template_id, photo_local_uri, photo_url, receipt, currency, base_currency, rate_to_base, amount_base, rate_source, fx_snapshot, rate_to_base_actual, rate_fetched_at, transfer_id, transfer_rate, ...clean } = tx;
+          return clean;
+        });
+        state.supabaseClient.from('transactions').upsert(dbPayloads);
       }
     }
   }
