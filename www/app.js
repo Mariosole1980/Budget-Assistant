@@ -759,7 +759,9 @@ const TRANSLATIONS = {
     settings_feedback_desc: 'Βαθμολογήστε μας και στείλτε τις προτάσεις σας',
     settings_legal_option: 'Λογαριασμός & Νομικά',
     settings_legal_desc: 'Πληροφορίες έκδοσης, όροι χρήσης, αποσύνδεση',
-    notes_manager_title: 'Σημειώσεις & Λίστες',
+    notes_manager_title: '📝 Σημειωματάριο & Checklists',
+    notes_title: '📝 Σημειωματάριο & Checklists',
+    notes_manager_subtitle: 'Προσωπικές σημειώσεις, λίστες & υπενθυμίσεις',
     notes_manager_search: 'Αναζήτηση σημειώσεων...',
     notes_manager_add: 'Νέα Σημείωση',
     legal_app_update: 'Έλεγχος Ενημέρωσης',
@@ -768,7 +770,7 @@ const TRANSLATIONS = {
     legal_app_version: 'Έκδοση',
     pref_app_lock: 'Κλείδωμα με PIN',
     pref_autocomplete: 'Έξυπνος Τίτλος (Autocomplete)',
-    pref_note_shortcut: 'Κουμπί Σημειώσεων δίπλα στο "+"',
+    pref_note_shortcut: 'Κουμπί Σημειωματάριου (📝)',
     notification_center_title: 'Ειδοποιήσεις',
     btn_clear_all: 'Καθαρισμός',
     item_daily_reminder: 'Καθημερινή Υπενθύμιση',
@@ -830,7 +832,7 @@ const TRANSLATIONS = {
     row_note: 'Τίτλος',
     row_description: 'Λεπτομέρειες',
     item_autocomplete: 'Έξυπνος Τίτλος (Autocomplete)',
-    item_note_shortcut: 'Κουμπί Σημειώσεων δίπλα στο "+"',
+    item_note_shortcut: 'Γρήγορο Σημειωματάριο (κουμπί 📝)',
     btn_save: 'Αποθήκευση',
     btn_continue: 'Ακύρωση',
     keypad_title: 'Ποσό',
@@ -969,7 +971,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1135 - 06/08/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1136 - 06/08/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1138,7 +1140,9 @@ const TRANSLATIONS = {
     settings_feedback_desc: 'Rate the app and send suggestions',
     settings_legal_option: 'Account & Legal',
     settings_legal_desc: 'Version info, privacy policy, logout',
-    notes_manager_title: 'Notes & Checklists',
+    notes_manager_title: '📝 Notepad & Checklists',
+    notes_title: '📝 Notepad & Checklists',
+    notes_manager_subtitle: 'Personal notes, checklists & reminders',
     notes_manager_search: 'Search notes...',
     notes_manager_add: 'New Note',
     legal_app_update: 'Check Update',
@@ -1147,7 +1151,7 @@ const TRANSLATIONS = {
     legal_app_version: 'Version',
     pref_app_lock: 'PIN Lock',
     pref_autocomplete: 'Smart Autocomplete',
-    pref_note_shortcut: 'FAB Note Shortcut',
+    pref_note_shortcut: 'Notepad FAB Shortcut',
     notification_center_title: 'Notifications',
     btn_clear_all: 'Clear All',
     item_daily_reminder: 'Daily Reminder',
@@ -1209,7 +1213,7 @@ const TRANSLATIONS = {
     row_note: 'Title',
     row_description: 'Details',
     item_autocomplete: 'Smart Title (Autocomplete)',
-    item_note_shortcut: 'Notes Shortcut Button next to "+"',
+    item_note_shortcut: 'Quick Notepad (📝 button)',
     btn_save: 'Save',
     btn_continue: 'Cancel',
     keypad_title: 'Amount',
@@ -1348,7 +1352,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1135 - 06/08/2026)',
+    app_version: 'Version 1.0.0 (build v1136 - 06/08/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -16271,15 +16275,17 @@ function renderNotesList() {
   });
 
   // Update badge count
-  if (badgeEl) {
-    const totalCount = (state.notes || []).length;
+  const hubBadgeEl = document.getElementById('hub-notes-count-badge');
+  const totalCount = (state.notes || []).length;
+  [badgeEl, hubBadgeEl].forEach(b => {
+    if (!b) return;
     if (totalCount > 0) {
-      badgeEl.textContent = totalCount;
-      badgeEl.style.display = 'inline-block';
+      b.textContent = totalCount;
+      b.style.display = 'inline-block';
     } else {
-      badgeEl.style.display = 'none';
+      b.style.display = 'none';
     }
-  }
+  });
 
   listEl.innerHTML = '';
 

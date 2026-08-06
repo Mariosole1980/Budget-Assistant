@@ -649,6 +649,36 @@ button:active,
   transform: translateY(-2px) scale(1.05);
 }
 
+.fab-note {
+  position: fixed;
+  bottom: calc(66px + var(--safe-area-bottom));
+  right: 78px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  font-size: 18px;
+  z-index: 99;
+  transition: var(--transition);
+  cursor: pointer;
+}
+
+.fab-note:hover {
+  transform: translateY(-2px) scale(1.05);
+  background-color: var(--accent);
+  color: white;
+}
+
+.fab-note:active {
+  transform: scale(0.92);
+}
+
 /* STATS SCREEN STYLES */
 .stats-header-bar {
   background-color: var(--bg-card);
@@ -3187,7 +3217,8 @@ body.is-ios .modal-content {
 }
 
 /* Hide FAB during selection mode */
-.fab.hidden {
+.fab.hidden,
+.fab-note.hidden {
   transform: translateY(100px) scale(0);
   opacity: 0;
   pointer-events: none;
