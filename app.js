@@ -968,7 +968,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1114 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1115 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1347,7 +1347,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1114 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1115 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -8079,7 +8079,14 @@ function setupEventListeners() {
     // occurrence directly.
     if (tx && isTransactionRecurring(tx)) {
       closeModal('transaction-modal');
-      openRecurringDeleteModal(tx, String(tx.date || '').split('T')[0].split(' ')[0]);
+      // Delay opening the recurring delete modal until the transaction modal has
+      // fully closed. On mobile (Capacitor WebView) opening a modal synchronously
+      // right after closing another can be swallowed by the close animation /
+      // viewport reset, so the 3-option modal never appears. A short delay lets the
+      // close complete first, matching the working recurring-card delete path.
+      setTimeout(() => {
+        openRecurringDeleteModal(tx, String(tx.date || '').split('T')[0].split(' ')[0]);
+      }, 320);
       return;
     }
     const confirmMsg = TRANSLATIONS[state.lang]['confirm_delete_transaction'];

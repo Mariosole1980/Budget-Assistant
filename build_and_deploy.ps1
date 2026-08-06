@@ -1,4 +1,4 @@
-param()
+﻿param()
 
 # Set console output encoding to UTF8
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -21,7 +21,7 @@ if (Test-Path $versionJsonPath) {
     } catch {}
 }
 $newBuild = $currentBuild + 1
-Write-Host "  [INFO] Version: $currentBuild β†’ $newBuild" -ForegroundColor Cyan
+Write-Host "  [INFO] Version: $currentBuild Ξ²β€ β€™ $newBuild" -ForegroundColor Cyan
 
 # Update app.js
 $appPath = "app.js"
@@ -156,7 +156,7 @@ if ($deploy1 -ne 0) {
 # 7. Git Commit & Tag
 Write-Host "[INFO] Staging and committing to Git..." -ForegroundColor Yellow
 git add -A
-git commit -m "build v${newBuild}: Make recurring detection tolerant on account_from so the 3-option delete modal appears from the transaction card for cloud-synced recurring transactions"
+git commit -m "build v${newBuild}: Fix recurring delete modal not appearing from transaction card on mobile (delay open until transaction modal fully closes)"
 Write-Host "  [SUCCESS] Git commit created for build v${newBuild}" -ForegroundColor Green
 
 Write-Host "[SUCCESS] All steps completed successfully! Builds are live at:" -ForegroundColor Green
