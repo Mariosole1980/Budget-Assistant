@@ -454,6 +454,7 @@ const state = {
   selectedFamilyMemberId: 'all',
   historyPushed: false,
   expandedStatsCategories: new Set(),
+  statsSubtab: 'breakdown',
   activeSubcategoryTransactions: null,
   isSwipingMonth: false,
   lastSwipeTime: 0,
@@ -968,7 +969,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1132 - 06/08/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1133 - 06/08/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1347,7 +1348,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1132 - 06/08/2026)',
+    app_version: 'Version 1.0.0 (build v1133 - 06/08/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -6080,7 +6081,8 @@ function renderStatsTab(skipChart = false) {
     state.statsCustomStart || '',
     state.statsCustomEnd || '',
     skipChart ? '1' : '0',
-    displayCurrency
+    displayCurrency,
+    state.statsSubtab || 'breakdown'
   ].join('||');
   const statsListEl = document.getElementById('stats-breakdown-list');
   if (statsListEl && statsListEl._lastRenderSignature === statsSig) {
@@ -6466,6 +6468,38 @@ function renderStatsTab(skipChart = false) {
   // Render Category Budgets View
   renderCategoryBudgetsView(catGroups);
 }
+
+function switchStatsSubtab(tab) {
+  state.statsSubtab = tab === 'budgets' ? 'budgets' : 'breakdown';
+
+  const breakdownContainer = document.getElementById('stats-breakdown-container');
+  const budgetsContainer = document.getElementById('stats-budgets-container');
+  const btnBreakdown = document.getElementById('stats-subtab-breakdown');
+  const btnBudgets = document.getElementById('stats-subtab-budgets');
+
+  if (breakdownContainer) {
+    breakdownContainer.style.display = state.statsSubtab === 'breakdown' ? 'block' : 'none';
+  }
+  if (budgetsContainer) {
+    budgetsContainer.style.display = state.statsSubtab === 'budgets' ? 'flex' : 'none';
+  }
+
+  // Update active button styling
+  if (btnBreakdown) {
+    btnBreakdown.classList.toggle('active', state.statsSubtab === 'breakdown');
+    btnBreakdown.style.background = state.statsSubtab === 'breakdown' ? 'var(--accent)' : 'transparent';
+    btnBreakdown.style.color = state.statsSubtab === 'breakdown' ? '#ffffff' : 'var(--text-secondary)';
+  }
+  if (btnBudgets) {
+    btnBudgets.classList.toggle('active', state.statsSubtab === 'budgets');
+    btnBudgets.style.background = state.statsSubtab === 'budgets' ? 'var(--accent)' : 'transparent';
+    btnBudgets.style.color = state.statsSubtab === 'budgets' ? '#ffffff' : 'var(--text-secondary)';
+  }
+
+  // Re-render so the active view is fresh (statsSubtab is part of the render signature)
+  renderStatsTab();
+}
+window.switchStatsSubtab = switchStatsSubtab;
 
 function renderCategoryBudgetsView(catGroups = {}) {
   const displayCurrency = getDisplayCurrency();
