@@ -968,7 +968,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1126 - 06/08/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1127 - 06/08/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1347,7 +1347,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1126 - 06/08/2026)',
+    app_version: 'Version 1.0.0 (build v1127 - 06/08/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -26756,9 +26756,24 @@ function _txBelongsToRecurringSeries(t, ctx) {
   // Strict content fallback — must match on identifying fields.
   // Category is compared via normalizeCategoryName so a transaction whose
   // category was canonicalized still matches the series' stored category.
-  return (parseFloat(t.amount || 0).toFixed(2) === (parseFloat(ctx.amount) || 0).toFixed(2)) &&
+  const matchesContent =
+    (parseFloat(t.amount || 0).toFixed(2) === (parseFloat(ctx.amount) || 0).toFixed(2)) &&
     (t.type || '') === (ctx.type || '') &&
     normalizeCategoryName(t.category) === normalizeCategoryName(ctx.category);
+  if (!matchesContent) return false;
+
+  // The content fallback alone (amount + type + category) is too loose: it would
+  // sweep up unrelated one-off transactions that merely share the same amount,
+  // type and category as the series. To keep the fallback safe for legacy
+  // transactions whose recurring_template_id was stripped, additionally require
+  // that the transaction's date is one of the ACTUAL computed occurrence dates of
+  // the series. A genuine recurring occurrence always falls on a series date,
+  // whereas a random manual transaction in the same category almost never does.
+  const template = (state.recurringTemplates || []).find(tm => String(tm.id) === String(ctx.templateId));
+  if (!template) return false;
+  const seriesDates = _computeRecurringSeriesDates(template);
+  const tDate = String(t.date || '').split('T')[0].split(' ')[0];
+  return seriesDates.includes(tDate);
 }
 
 // Compute the FULL set of occurrence dates for a recurring template, from its
