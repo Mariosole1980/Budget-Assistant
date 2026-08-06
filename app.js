@@ -971,7 +971,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1136 - 06/08/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1137 - 06/08/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1352,7 +1352,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1136 - 06/08/2026)',
+    app_version: 'Version 1.0.0 (build v1137 - 06/08/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -16234,6 +16234,31 @@ function saveNotes() {
   localStorage.setItem('offline_notes', JSON.stringify(state.notes));
 }
 
+let _notesFilterCategory = 'all';
+let _notesViewMode = 'grid';
+
+function setNotesFilterCategory(cat) {
+  _notesFilterCategory = cat;
+  const chips = document.querySelectorAll('#notes-filter-bar .notes-filter-chip');
+  chips.forEach(chip => {
+    if (chip.getAttribute('data-filter') === cat) {
+      chip.classList.add('active');
+    } else {
+      chip.classList.remove('active');
+    }
+  });
+  renderNotesList();
+}
+
+function toggleNotesViewMode() {
+  _notesViewMode = _notesViewMode === 'grid' ? 'list' : 'grid';
+  const btn = document.getElementById('notes-view-toggle-btn');
+  if (btn) {
+    btn.innerHTML = _notesViewMode === 'grid' ? '<i class="fa-solid fa-border-all"></i>' : '<i class="fa-solid fa-list"></i>';
+  }
+  renderNotesList();
+}
+
 function renderNotesList() {
   const listEl = document.getElementById('notes-manager-list');
   const badgeEl = document.getElementById('notes-manager-count-badge');
@@ -16241,7 +16266,7 @@ function renderNotesList() {
 
   const query = (document.getElementById('notes-manager-search-input')?.value || '').trim().toLowerCase();
 
-  // Filter notes
+  // 1. Search Query Filter
   let filtered = state.notes || [];
   if (query) {
     filtered = filtered.filter(note => {
@@ -16261,9 +16286,18 @@ function renderNotesList() {
     });
   }
 
-  // Sort notes:
-  // 1. Pinned first (pinned === true)
-  // 2. Then by updated_at descending
+  // 2. Category Filter
+  if (_notesFilterCategory === 'pinned') {
+    filtered = filtered.filter(n => n.pinned);
+  } else if (_notesFilterCategory === 'text') {
+    filtered = filtered.filter(n => n.type !== 'checklist');
+  } else if (_notesFilterCategory === 'checklist') {
+    filtered = filtered.filter(n => n.type === 'checklist');
+  } else if (_notesFilterCategory === 'reminder') {
+    filtered = filtered.filter(n => !!n.reminder_at);
+  }
+
+  // Sort notes: Pinned first, then by updated_at descending
   const sorted = [...filtered].sort((a, b) => {
     const pinA = a.pinned ? 1 : 0;
     const pinB = b.pinned ? 1 : 0;
@@ -16287,12 +16321,17 @@ function renderNotesList() {
     }
   });
 
+  listEl.className = `notes-grid-container ${_notesViewMode === 'grid' ? 'grid-view' : 'list-view'}`;
   listEl.innerHTML = '';
 
   if (sorted.length === 0) {
     listEl.innerHTML = `
-      <div style="text-align: center; padding: 24px; color: var(--text-muted); font-size: 13px; font-style: italic; font-family: 'Outfit', sans-serif; box-sizing: border-box; width: 100%;">
-        ${state.lang === 'el' ? 'Δεν βρέθηκαν σημειώσεις.' : 'No notes found.'}
+      <div style="grid-column: 1 / -1; text-align: center; padding: 36px 16px; color: var(--text-muted); font-size: 13.5px; font-family: 'Outfit', sans-serif; box-sizing: border-box; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 10px;">
+        <div style="width: 52px; height: 52px; border-radius: 50%; background: rgba(255,255,255,0.03); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 22px;">📝</div>
+        <span style="font-weight: 600;">${state.lang === 'el' ? 'Δεν βρέθηκαν σημειώσεις.' : 'No notes found.'}</span>
+        <button class="btn btn-secondary" onclick="openNoteEditor()" style="padding: 6px 14px; font-size: 12px; font-weight: 700; border-radius: 8px; margin-top: 4px; cursor: pointer;">
+          + ${state.lang === 'el' ? 'Δημιουργία Νέας' : 'Create New'}
+        </button>
       </div>
     `;
     return;
@@ -16300,89 +16339,64 @@ function renderNotesList() {
 
   sorted.forEach(note => {
     const card = document.createElement('div');
-    card.style.cssText = 'background: var(--card-bg2, rgba(255,255,255,0.02)); border: 1px solid var(--border); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 8px; position: relative; cursor: pointer; transition: background 0.2s, border-color 0.2s; box-sizing: border-box; width: 100%;';
+    card.className = `modern-note-card ${note.pinned ? 'pinned' : ''}`;
+    card.addEventListener('click', () => openNoteEditor(note.id));
 
-    // Highlight pinned note
-    if (note.pinned) {
-      card.style.borderColor = 'rgba(255, 179, 0, 0.4)';
-      card.style.background = 'rgba(255, 179, 0, 0.02)';
-    }
+    // Header: Title & Pin Button
+    const cardHeader = document.createElement('div');
+    cardHeader.className = 'note-card-header';
 
-    // Title & Pin indicator & User Avatar row
-    const titleRow = document.createElement('div');
-    titleRow.style.cssText = 'display: flex; align-items: center; justify-content: space-between; gap: 8px; box-sizing: border-box; width: 100%;';
-
-    const titleText = document.createElement('span');
-    titleText.style.cssText = 'font-weight: 700; font-size: 14.5px; color: var(--text-primary); font-family: \'Outfit\', sans-serif; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;';
+    const titleText = document.createElement('div');
+    titleText.className = 'note-card-title';
     titleText.textContent = note.title || (state.lang === 'el' ? 'Χωρίς τίτλο' : 'Untitled');
-    titleRow.appendChild(titleText);
+    cardHeader.appendChild(titleText);
 
-    // Avatar of author (initials)
-    const authorInitials = getAuthorInitials(note.user_id);
-    if (authorInitials) {
-      const avatar = document.createElement('div');
-      avatar.style.cssText = 'width: 20px; height: 20px; border-radius: 50%; background: var(--border); display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 800; color: var(--text-secondary); font-family: \'Outfit\', sans-serif; flex-shrink: 0;';
-      avatar.textContent = authorInitials;
-      avatar.title = state.lang === 'el' ? 'Δημιουργήθηκε από: ' + authorInitials : 'Created by: ' + authorInitials;
-      titleRow.appendChild(avatar);
-    }
-
-    // Pin Action Button
     const pinBtn = document.createElement('button');
-    pinBtn.className = 'icon-btn';
-    pinBtn.style.cssText = 'font-size: 13px; padding: 4px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: color 0.15s; margin: 0; flex-shrink: 0; border: none; background: transparent;';
-    pinBtn.style.color = note.pinned ? 'var(--accent)' : 'var(--text-muted)';
+    pinBtn.type = 'button';
+    pinBtn.className = `note-card-pin-btn ${note.pinned ? 'pinned' : ''}`;
+    pinBtn.title = note.pinned ? (state.lang === 'el' ? 'Ξεκαρφίτσωμα' : 'Unpin') : (state.lang === 'el' ? 'Καρφίτσωμα' : 'Pin');
     pinBtn.innerHTML = '<i class="fa-solid fa-thumbtack"></i>';
     pinBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       toggleNotePinInline(note.id);
     });
-    titleRow.appendChild(pinBtn);
+    cardHeader.appendChild(pinBtn);
+    card.appendChild(cardHeader);
 
-    card.appendChild(titleRow);
-
-    // Body / Content Preview
-    const contentArea = document.createElement('div');
-    contentArea.style.cssText = 'font-size: 13px; color: var(--text-secondary); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; box-sizing: border-box; width: 100%;';
+    // Body Content
+    const cardBody = document.createElement('div');
+    cardBody.className = 'note-card-body';
 
     if (note.type === 'checklist') {
       let items = [];
       try {
         items = JSON.parse(note.body || '[]');
-      } catch (e) {
-        console.error('Failed to parse checklist items:', e);
-      }
+      } catch (e) {}
 
       if (items.length === 0) {
-        contentArea.style.fontStyle = 'italic';
-        contentArea.style.color = 'var(--text-muted)';
-        contentArea.textContent = state.lang === 'el' ? 'Κενή λίστα' : 'Empty list';
-        card.appendChild(contentArea);
+        cardBody.style.fontStyle = 'italic';
+        cardBody.style.color = 'var(--text-muted)';
+        cardBody.textContent = state.lang === 'el' ? 'Κενή λίστα...' : 'Empty list...';
+        card.appendChild(cardBody);
       } else {
         const previewContainer = document.createElement('div');
-        previewContainer.style.cssText = 'display: flex; flex-direction: column; gap: 4px; margin-top: 2px; box-sizing: border-box; width: 100%;';
+        previewContainer.style.cssText = 'display: flex; flex-direction: column; gap: 5px; width: 100%; margin-bottom: 8px;';
 
-        items.slice(0, 3).forEach((item, idx) => {
+        const maxItems = _notesViewMode === 'grid' ? 3 : 5;
+        items.slice(0, maxItems).forEach((item, idx) => {
           const row = document.createElement('div');
-          row.style.cssText = 'display: flex; align-items: center; gap: 8px; box-sizing: border-box; width: 100%;';
+          row.style.cssText = 'display: flex; align-items: center; gap: 6px; width: 100%;';
 
           const chk = document.createElement('span');
-          chk.style.cssText = 'font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;';
-          chk.style.color = item.checked ? 'var(--accent)' : 'var(--text-muted)';
-          chk.innerHTML = item.checked ? '<i class="fa-solid fa-square-check"></i>' : '<i class="fa-regular fa-square"></i>';
+          chk.style.cssText = 'font-size: 13px; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; color: ' + (item.checked ? 'var(--accent)' : 'var(--text-muted)');
+          chk.innerHTML = item.checked ? '<i class="fa-solid fa-circle-check"></i>' : '<i class="fa-regular fa-circle"></i>';
           chk.addEventListener('click', (e) => {
             e.stopPropagation();
             toggleChecklistItemInline(note.id, idx);
           });
 
           const text = document.createElement('span');
-          text.style.cssText = 'font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;';
-          if (item.checked) {
-            text.style.textDecoration = 'line-through';
-            text.style.color = 'var(--text-muted)';
-          } else {
-            text.style.color = 'var(--text-secondary)';
-          }
+          text.style.cssText = 'font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; ' + (item.checked ? 'text-decoration: line-through; color: var(--text-muted);' : 'color: var(--text-secondary);');
           text.textContent = item.text || '';
 
           row.appendChild(chk);
@@ -16390,31 +16404,32 @@ function renderNotesList() {
           previewContainer.appendChild(row);
         });
 
-        if (items.length > 3) {
+        if (items.length > maxItems) {
           const moreText = document.createElement('div');
-          moreText.style.cssText = 'font-size: 11.5px; color: var(--text-muted); font-style: italic; margin-left: 22px; margin-top: 2px;';
-          moreText.textContent = `+ ${items.length - 3} ${(state.lang === 'el' ? 'ακόμη' : 'more')}`;
+          moreText.style.cssText = 'font-size: 11px; color: var(--text-muted); font-style: italic; margin-left: 19px;';
+          moreText.textContent = `+ ${items.length - maxItems} ${state.lang === 'el' ? 'ακόμη' : 'more'}`;
           previewContainer.appendChild(moreText);
         }
 
         card.appendChild(previewContainer);
 
+        // Progress Bar
         const total = items.length;
         const checked = items.filter(i => i.checked).length;
         const pct = total > 0 ? Math.round((checked / total) * 100) : 0;
 
         const progressContainer = document.createElement('div');
-        progressContainer.style.cssText = 'display: flex; align-items: center; gap: 10px; margin-top: 6px; box-sizing: border-box; width: 100%;';
+        progressContainer.style.cssText = 'display: flex; align-items: center; gap: 8px; margin-top: 4px; width: 100%;';
 
         const barBg = document.createElement('div');
-        barBg.style.cssText = 'flex: 1; height: 5px; background: rgba(255,255,255,0.06); border-radius: 4px; overflow: hidden;';
+        barBg.style.cssText = 'flex: 1; height: 4px; background: rgba(255,255,255,0.08); border-radius: 4px; overflow: hidden;';
 
         const barFill = document.createElement('div');
-        barFill.style.cssText = `height: 100%; width: ${pct}%; background: var(--accent); border-radius: 4px; transition: width 0.25s;`;
+        barFill.style.cssText = `height: 100%; width: ${pct}%; background: ${pct === 100 ? '#10b981' : 'var(--accent)'}; border-radius: 4px; transition: width 0.3s ease;`;
         barBg.appendChild(barFill);
 
         const label = document.createElement('span');
-        label.style.cssText = 'font-size: 11px; color: var(--text-muted); font-weight: 700; font-family: \'Outfit\', sans-serif; flex-shrink: 0;';
+        label.style.cssText = 'font-size: 10.5px; color: var(--text-muted); font-weight: 700; font-family: \'Outfit\', sans-serif; flex-shrink: 0;';
         label.textContent = `${checked}/${total}`;
 
         progressContainer.appendChild(barBg);
@@ -16422,35 +16437,50 @@ function renderNotesList() {
         card.appendChild(progressContainer);
       }
     } else {
-      contentArea.textContent = note.body || (state.lang === 'el' ? 'Κενή σημείωση' : 'Empty note');
-      card.appendChild(contentArea);
+      cardBody.textContent = note.body || (state.lang === 'el' ? 'Κενή σημείωση' : 'Empty note');
+      card.appendChild(cardBody);
     }
 
-    const dateRow = document.createElement('div');
-    dateRow.style.cssText = 'display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-top: 4px; box-sizing: border-box; width: 100%; gap: 8px;';
+    // Footer Meta (Date, Reminders, Author Avatar, Type Badge)
+    const cardFooter = document.createElement('div');
+    cardFooter.className = 'note-card-footer';
+
+    const leftMeta = document.createElement('div');
+    leftMeta.style.cssText = 'display: flex; align-items: center; gap: 6px;';
+
+    const authorInitials = getAuthorInitials(note.user_id);
+    if (authorInitials) {
+      const avatar = document.createElement('div');
+      avatar.style.cssText = 'width: 18px; height: 18px; border-radius: 50%; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 8.5px; font-weight: 800; color: var(--text-secondary); flex-shrink: 0;';
+      avatar.textContent = authorInitials;
+      avatar.title = (state.lang === 'el' ? 'Δημιουργήθηκε από: ' : 'Created by: ') + authorInitials;
+      leftMeta.appendChild(avatar);
+    }
 
     const timeLabel = document.createElement('span');
     timeLabel.textContent = formatNoteTimestamp(note.updated_at || note.created_at);
-    dateRow.appendChild(timeLabel);
+    leftMeta.appendChild(timeLabel);
+    cardFooter.appendChild(leftMeta);
+
+    const rightMeta = document.createElement('div');
+    rightMeta.style.cssText = 'display: flex; align-items: center; gap: 6px;';
 
     if (note.reminder_at) {
-      const reminderBadge = document.createElement('span');
       const remDate = new Date(note.reminder_at);
       const isPast = remDate < new Date();
-      reminderBadge.style.cssText = `display: inline-flex; align-items: center; gap: 4px; padding: 2px 6px; border-radius: 4px; font-weight: 700; font-family: 'Outfit', sans-serif; font-size: 10.5px; flex-shrink: 0; ${isPast
-        ? 'background: rgba(239, 68, 68, 0.12); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.25);'
-        : 'background: rgba(16, 185, 129, 0.12); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.25);'
-        }`;
-      const formattedRemTime = formatNoteTimestamp(note.reminder_at);
-      reminderBadge.innerHTML = `<i class="fa-regular fa-bell"></i> <span>${formattedRemTime}</span>`;
-      dateRow.appendChild(reminderBadge);
+      const remBadge = document.createElement('span');
+      remBadge.className = `note-reminder-badge ${isPast ? 'past' : 'future'}`;
+      remBadge.innerHTML = `<i class="fa-regular fa-bell"></i> ${formatNoteTimestamp(note.reminder_at)}`;
+      rightMeta.appendChild(remBadge);
     }
 
-    card.appendChild(dateRow);
+    const typeBadge = document.createElement('span');
+    typeBadge.className = `note-type-badge ${note.type === 'checklist' ? 'checklist' : ''}`;
+    typeBadge.innerHTML = note.type === 'checklist' ? '<i class="fa-solid fa-list-check"></i>' : '<i class="fa-regular fa-file-lines"></i>';
+    rightMeta.appendChild(typeBadge);
 
-    card.addEventListener('click', () => {
-      openNoteEditor(note.id);
-    });
+    cardFooter.appendChild(rightMeta);
+    card.appendChild(cardFooter);
 
     listEl.appendChild(card);
   });
@@ -17139,6 +17169,8 @@ window.saveNoteFromEditor = saveNoteFromEditor;
 window.deleteNoteFromEditor = deleteNoteFromEditor;
 window.toggleNoteEditorPin = toggleNoteEditorPin;
 window.renderNotesList = renderNotesList;
+window.setNotesFilterCategory = setNotesFilterCategory;
+window.toggleNotesViewMode = toggleNotesViewMode;
 window.loadNotes = loadNotes;
 window.saveNotes = saveNotes;
 window.deleteNote = deleteNote;
