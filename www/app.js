@@ -968,7 +968,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1112 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1113 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1347,7 +1347,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1112 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1113 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -5427,7 +5427,7 @@ function isTransactionRecurring(tx) {
   const txAmount = (parseFloat(tx.amount) || 0).toFixed(2);
   const txType = tx.type;
   const txCat = normalizeCategoryName(tx.category);
-  const txAcc = tx.account_from || '';
+  const txAcc = (tx.account_from || '').trim();
 
   return templates.some(template => {
     if (tx.recurring_template_id && String(tx.recurring_template_id) === String(template.id)) {
@@ -5436,11 +5436,18 @@ function isTransactionRecurring(tx) {
     // Content-based fallback. Category is compared via normalizeCategoryName so
     // that a transaction whose category was canonicalized (e.g. "🚗 ΑΥΤΟΚΙΝΗΤΟ")
     // still matches a template stored with a plain name (e.g. "Αυτοκίνητο").
+    // account_from is a SOFT match: it is only required when BOTH sides are
+    // non-empty. If either side is empty we skip the account check, because a
+    // template and its generated transactions may differ in account naming
+    // (e.g. template stored with no account but transactions carry one, or the
+    // account was renamed after the template was created).
+    const tAcc = (template.account_from || '').trim();
+    const accOk = !txAcc || !tAcc || txAcc === tAcc;
     if (txDate &&
       txAmount === (parseFloat(template.amount) || 0).toFixed(2) &&
       txType === template.type &&
       txCat === normalizeCategoryName(template.category) &&
-      txAcc === (template.account_from || '')) {
+      accOk) {
       return true;
     }
     return false;
@@ -8074,18 +8081,6 @@ function setupEventListeners() {
   document.getElementById('trans-delete-btn').addEventListener('click', async () => {
     const id = document.getElementById('trans-id').value;
     const tx = (state.transactions || []).find(t => String(t.id) === String(id));
-    // TEMP DIAGNOSTIC
-    try {
-      const _templates = state.recurringTemplates || [];
-      const _txDate = String(tx && tx.date || '').split('T')[0].split(' ')[0];
-      const _txAmount = (parseFloat(tx && tx.amount) || 0).toFixed(2);
-      const _txCat = normalizeCategoryName(tx && tx.category);
-      const _txAcc = (tx && tx.account_from) || '';
-      console.log('[DIAG] tx=', JSON.stringify(tx));
-      console.log('[DIAG] txDate=', _txDate, 'txAmount=', _txAmount, 'txType=', tx && tx.type, 'txCat=', _txCat, 'txAcc=', _txAcc, 'recurring_template_id=', tx && tx.recurring_template_id);
-      console.log('[DIAG] templates=', JSON.stringify(_templates.map(t => ({ id: t.id, amount: (parseFloat(t.amount) || 0).toFixed(2), type: t.type, cat: normalizeCategoryName(t.category), acc: t.account_from || '' }))));
-      console.log('[DIAG] isRecurring=', isTransactionRecurring(tx));
-    } catch (e) { console.log('[DIAG] error', e); }
     // If this is a recurring transaction, route through the scoped delete modal
     // (single / this + future / all repetitions) instead of deleting just this
     // occurrence directly.
@@ -26505,11 +26500,17 @@ function openRecurringDeleteModal(target, occurrenceDateStr) {
       // so two different recurring series in the same category are never conflated.
       // Category is compared via normalizeCategoryName so a transaction whose
       // category was canonicalized still matches a template stored with a plain name.
+      // account_from is a SOFT match (only required when both sides are non-empty)
+      // so a template and its generated transactions still match even if one side
+      // lacks an account or the account was renamed.
+      const txAcc = (tx.account_from || '').trim();
       const match = (state.recurringTemplates || []).find(t => {
+        const tAcc = (t.account_from || '').trim();
+        const accOk = !txAcc || !tAcc || txAcc === tAcc;
         return (parseFloat(tx.amount) || 0).toFixed(2) === (parseFloat(t.amount) || 0).toFixed(2) &&
           tx.type === t.type &&
           normalizeCategoryName(tx.category) === normalizeCategoryName(t.category) &&
-          (tx.account_from || '') === (t.account_from || '');
+          accOk;
       });
       if (match) templateId = match.id;
     }

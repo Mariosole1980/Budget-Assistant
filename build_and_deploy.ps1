@@ -156,7 +156,7 @@ if ($deploy1 -ne 0) {
 # 7. Git Commit & Tag
 Write-Host "[INFO] Staging and committing to Git..." -ForegroundColor Yellow
 git add -A
-git commit -m "build v${newBuild}: Add diagnostic logging to trans-delete-btn to capture tx/template values for recurring detection debugging"
+git commit -m "build v${newBuild}: Make recurring detection tolerant on account_from so the 3-option delete modal appears from the transaction card for cloud-synced recurring transactions"
 Write-Host "  [SUCCESS] Git commit created for build v${newBuild}" -ForegroundColor Green
 
 Write-Host "[SUCCESS] All steps completed successfully! Builds are live at:" -ForegroundColor Green
