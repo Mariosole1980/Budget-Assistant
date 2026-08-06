@@ -968,7 +968,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1108 - 22/06/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1109 - 22/06/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1347,7 +1347,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1108 - 22/06/2026)',
+    app_version: 'Version 1.0.0 (build v1109 - 22/06/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -26451,6 +26451,7 @@ function openRecurringDeleteModal(target, occurrenceDateStr) {
   let category = '';
   let amount = 0;
   let type = 'expense';
+  let accountFrom = '';
 
   if (typeof target === 'object' && target !== null) {
     txId = target.id;
@@ -26460,6 +26461,7 @@ function openRecurringDeleteModal(target, occurrenceDateStr) {
     category = target.category || '';
     amount = parseFloat(target.amount || 0);
     type = target.type || 'expense';
+    accountFrom = target.account_from || '';
   } else if (typeof target === 'string') {
     templateId = target;
     const template = (state.recurringTemplates || []).find(t => String(t.id) === String(target));
@@ -26469,6 +26471,7 @@ function openRecurringDeleteModal(target, occurrenceDateStr) {
       category = template.category || '';
       amount = parseFloat(template.amount || 0);
       type = template.type || 'expense';
+      accountFrom = template.account_from || '';
     }
   }
 
@@ -26491,7 +26494,8 @@ function openRecurringDeleteModal(target, occurrenceDateStr) {
     note,
     category,
     amount,
-    type
+    type,
+    accountFrom
   };
 
   const singleRadio = document.querySelector('input[name="recurring_delete_scope"][value="single"]');
@@ -26519,6 +26523,112 @@ function handleRecurringDeleteStep2() {
   executeRecurringDelete('all');
 }
 window.handleRecurringDeleteStep2 = handleRecurringDeleteStep2;
+
+// Strict membership test: a transaction belongs to the recurring series being
+// deleted ONLY if it carries the exact recurring_template_id, OR (as a fallback
+// for transactions created before recurring_template_id was stored / where it
+// was stripped before cloud upsert) it matches the FULL content-key used by the
+// recurring generator: amount + type + category + account_from. The old fallback
+// matched only amount + category, which swept unrelated transactions sharing the
+// same category into the trash. account_from is intentionally required so that
+// two different recurring series (or a recurring + a manual transaction) in the
+// same category are never conflated.
+function _txBelongsToRecurringSeries(t, ctx) {
+  if (!t || !ctx) return false;
+  if (ctx.templateId && String(t.recurring_template_id) === String(ctx.templateId)) {
+    return true;
+  }
+  // Strict content fallback — must match on every identifying field.
+  return (parseFloat(t.amount || 0).toFixed(2) === (parseFloat(ctx.amount) || 0).toFixed(2)) &&
+    (t.type || '') === (ctx.type || '') &&
+    (t.category || '') === (ctx.category || '') &&
+    (t.account_from || '') === (ctx.accountFrom || '');
+}
+
+// Compute the FULL set of occurrence dates for a recurring template, from its
+// start date up to its end date (or up to the app's 12-month future horizon for
+// perpetual "forever" series), skipping any deleted dates. This mirrors the
+// recurring generator's own logic so the trash can reflect the whole series even
+// when only a few months have actually been materialized in state.transactions.
+function _computeRecurringSeriesDates(template) {
+  if (!template) return [];
+  const preset = template.preset || 'monthly';
+  const startDate = new Date(template.startDate || new Date().toISOString().split('T')[0]);
+  const startYear = startDate.getFullYear();
+  const startMonth = startDate.getMonth();
+  const startDay = startDate.getDate();
+  const endDateStr = template.endDate || null;
+  const endLimit = endDateStr ? new Date(endDateStr) : null;
+  const today = new Date();
+  const maxFuture = new Date(today.getFullYear(), today.getMonth() + 12, 1);
+  const deletedDates = getDeletedDatesFromTemplate(template);
+  const dates = [];
+  let year = startYear;
+  let month = startMonth;
+
+  while (true) {
+    const yearMonth = new Date(year, month, 1);
+    if (yearMonth > maxFuture) break;
+    if (endLimit && yearMonth > endLimit) break;
+
+    const monthNum = month + 1;
+    const lastDay = new Date(year, month + 1, 0).getDate();
+    const monthDates = [];
+
+    if (preset === 'daily') {
+      for (let d = 1; d <= lastDay; d++) {
+        if (year === startYear && month === startMonth && d < startDay) continue;
+        monthDates.push(`${year}-${String(monthNum).padStart(2, '0')}-${String(d).padStart(2, '0')}`);
+      }
+    } else if (preset === 'weekly') {
+      const targetDayOfWeek = startDate.getDay();
+      for (let d = 1; d <= lastDay; d++) {
+        const dObj = new Date(year, month, d);
+        if (dObj.getDay() === targetDayOfWeek) {
+          if (year === startYear && month === startMonth && d < startDay) continue;
+          monthDates.push(`${year}-${String(monthNum).padStart(2, '0')}-${String(d).padStart(2, '0')}`);
+        }
+      }
+    } else if (preset === 'monthly') {
+      const day = Math.min(startDay, lastDay);
+      if (!(year === startYear && month === startMonth && day < startDay)) {
+        monthDates.push(`${year}-${String(monthNum).padStart(2, '0')}-${String(day).padStart(2, '0')}`);
+      }
+    } else if (preset === 'yearly') {
+      if (month === startMonth) {
+        const day = Math.min(startDay, lastDay);
+        monthDates.push(`${year}-${String(monthNum).padStart(2, '0')}-${String(day).padStart(2, '0')}`);
+      }
+    } else if (preset === 'specific_months') {
+      if (template.months && template.months.includes(monthNum)) {
+        const day = Math.min(startDay, lastDay);
+        if (!(year === startYear && month === startMonth && day < startDay)) {
+          monthDates.push(`${year}-${String(monthNum).padStart(2, '0')}-${String(day).padStart(2, '0')}`);
+        }
+      }
+    } else if (preset === 'custom') {
+      if (template.months && template.months.includes(monthNum) && template.days) {
+        template.days.forEach(day => {
+          if (day <= lastDay) {
+            if (year === startYear && month === startMonth && day < startDay) return;
+            monthDates.push(`${year}-${String(monthNum).padStart(2, '0')}-${String(day).padStart(2, '0')}`);
+          }
+        });
+      }
+    }
+
+    monthDates.forEach(ds => {
+      if (endLimit && ds > endDateStr) return;
+      if (deletedDates.includes(ds)) return;
+      dates.push(ds);
+    });
+
+    month++;
+    if (month > 11) { month = 0; year++; }
+  }
+
+  return dates;
+}
 
 async function executeRecurringDelete(scope) {
   const ctx = window._activeRecurringDeleteContext;
@@ -26561,10 +26671,7 @@ async function executeRecurringDelete(scope) {
     state.transactions = state.transactions.filter(t => {
       const tDate = String(t.date || '').split('T')[0];
       const match = (txId && String(t.id) === String(txId)) ||
-        (tDate === anchorDate && (
-          (templateId && String(t.recurring_template_id) === String(templateId)) ||
-          (parseFloat(t.amount || 0).toFixed(2) === (ctx.amount).toFixed(2) && t.category === ctx.category)
-        ));
+        (tDate === anchorDate && _txBelongsToRecurringSeries(t, ctx));
       if (match) {
         affectedTransactions.push({ ...t });
         affectedTransactionIds.push(t.id);
@@ -26581,10 +26688,7 @@ async function executeRecurringDelete(scope) {
     state.transactions = state.transactions.filter(t => {
       const tDate = String(t.date || '').split('T')[0];
       const isFromAnchorOnwards = tDate >= anchorDate;
-      const match = isFromAnchorOnwards && (
-        (templateId && String(t.recurring_template_id) === String(templateId)) ||
-        (parseFloat(t.amount || 0).toFixed(2) === (ctx.amount).toFixed(2) && t.category === ctx.category)
-      );
+      const match = isFromAnchorOnwards && _txBelongsToRecurringSeries(t, ctx);
       if (match) {
         affectedTransactions.push({ ...t });
         affectedTransactionIds.push(t.id);
@@ -26599,13 +26703,8 @@ async function executeRecurringDelete(scope) {
     }
 
   } else if (scope === 'all') {
-    subtitleText = lang === 'el'
-      ? `🔄 Επαναλαμβανόμενη • Όλη η σειρά`
-      : `🔄 Recurring • Full series`;
-
     state.transactions = state.transactions.filter(t => {
-      const match = (templateId && String(t.recurring_template_id) === String(templateId)) ||
-        (parseFloat(t.amount || 0).toFixed(2) === (ctx.amount).toFixed(2) && t.category === ctx.category);
+      const match = _txBelongsToRecurringSeries(t, ctx);
       if (match) {
         affectedTransactions.push({ ...t });
         affectedTransactionIds.push(t.id);
@@ -26613,6 +26712,41 @@ async function executeRecurringDelete(scope) {
       }
       return true;
     });
+
+    // For a perpetual ("forever") series, also capture the full series of
+    // not-yet-materialized future occurrences so the trash reflects the WHOLE
+    // series, not just the months already generated in state.transactions.
+    // Synthetic entries are marked _synthetic:true and are NOT soft-deleted in
+    // the cloud nor re-inserted on restore (the restored template regenerates
+    // them). They exist only so the trash shows the complete series.
+    if (template) {
+      const seriesDates = _computeRecurringSeriesDates(template);
+      const existingDates = new Set(affectedTransactions.map(t => String(t.date || '').split('T')[0]));
+      seriesDates.forEach(dateStr => {
+        if (existingDates.has(dateStr)) return;
+        affectedTransactions.push({
+          id: 'recurring_future_' + template.id + '_' + dateStr,
+          _synthetic: true,
+          recurring_template_id: template.id,
+          date: dateStr,
+          type: template.type,
+          amount: parseFloat(template.amount || 0),
+          category: template.category,
+          subcategory: template.subcategory || '',
+          account_from: template.account_from,
+          account_to: template.type === 'transfer' ? template.account_to : null,
+          note: template.note,
+          description: template.description || '',
+          user_id: template.user_id || (state.currentUser ? state.currentUser.id : null),
+          is_shared: template.is_shared !== undefined ? template.is_shared : (state.partnerProfile !== null),
+          family_id: template.family_id || (state.userProfile ? state.userProfile.family_id : null)
+        });
+      });
+    }
+
+    subtitleText = lang === 'el'
+      ? `🔄 Επαναλαμβανόμενη • Όλη η σειρά (${affectedTransactions.length} κινήσεις)`
+      : `🔄 Recurring • Full series (${affectedTransactions.length} occurrences)`;
 
     if (templateId) {
       state.recurringTemplates = (state.recurringTemplates || []).filter(t => String(t.id) !== String(templateId));
@@ -26728,10 +26862,15 @@ async function restoreTrashGroup(groupId) {
 
   if (group.affectedTransactionsSnapshot && group.affectedTransactionsSnapshot.length > 0) {
     const existingIds = new Set(state.transactions.map(t => String(t.id)));
-    group.affectedTransactionsSnapshot.forEach(tx => {
+    // Synthetic entries (future occurrences captured for a perpetual "forever"
+    // series) are NOT real transactions — they are regenerated by the restored
+    // template, so skip them on restore.
+    const realSnapshot = group.affectedTransactionsSnapshot.filter(tx => !tx._synthetic);
+    realSnapshot.forEach(tx => {
       if (!existingIds.has(String(tx.id))) {
         const cleaned = { ...tx };
         delete cleaned.deleted_at;
+        delete cleaned._synthetic;
         state.transactions.push(cleaned);
       }
     });
@@ -26746,7 +26885,10 @@ async function restoreTrashGroup(groupId) {
       state.supabaseClient.from('recurring_templates').upsert([mapTemplateToDb(group.templateBackup)]);
     }
     if (group.affectedTransactionsSnapshot && group.affectedTransactionsSnapshot.length > 0) {
-      state.supabaseClient.from('transactions').upsert(group.affectedTransactionsSnapshot);
+      const realSnapshot = group.affectedTransactionsSnapshot.filter(tx => !tx._synthetic);
+      if (realSnapshot.length > 0) {
+        state.supabaseClient.from('transactions').upsert(realSnapshot);
+      }
     }
   }
 

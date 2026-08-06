@@ -21,7 +21,7 @@ if (Test-Path $versionJsonPath) {
     } catch {}
 }
 $newBuild = $currentBuild + 1
-Write-Host "  [INFO] Version: $currentBuild → $newBuild" -ForegroundColor Cyan
+Write-Host "  [INFO] Version: $currentBuild β†’ $newBuild" -ForegroundColor Cyan
 
 # Update app.js
 $appPath = "app.js"
@@ -156,9 +156,8 @@ if ($deploy1 -ne 0) {
 # 7. Git Commit & Tag
 Write-Host "[INFO] Staging and committing to Git..." -ForegroundColor Yellow
 git add -A
-git commit -m "build v${newBuild}: Fix 'Cannot access displayCurrency before initialization' TDZ error in renderStatsTab by declaring displayCurrency before the anti-flicker signature"
+git commit -m "build v${newBuild}: Fix recurring delete trash β€” strict series matching (amount+type+category+account_from) to avoid sweeping unrelated same-category transactions, and capture full perpetual series in trash snapshot with synthetic future occurrences skipped on restore"
 Write-Host "  [SUCCESS] Git commit created for build v${newBuild}" -ForegroundColor Green
 
 Write-Host "[SUCCESS] All steps completed successfully! Builds are live at:" -ForegroundColor Green
-Write-Host "  - https://budget-assistant-pwa.pages.dev" -ForegroundColor Green
 Write-Host "  - https://budget-assistant-pwa.pages.dev" -ForegroundColor Green
