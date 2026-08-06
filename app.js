@@ -968,7 +968,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1124 - 06/08/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1125 - 06/08/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1347,7 +1347,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1124 - 06/08/2026)',
+    app_version: 'Version 1.0.0 (build v1125 - 06/08/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -5473,13 +5473,20 @@ function resolveRecurringTemplateForTx(tx) {
   const txAmount = (parseFloat(tx.amount) || 0).toFixed(2);
   const txType = tx.type;
   const txCat = normalizeCategoryName(tx.category);
+  const txNote = (tx.note || tx.description || '').trim().toLowerCase();
 
   return templates.find(template => {
     if (tx.recurring_template_id && String(tx.recurring_template_id) === String(template.id)) return true;
     const tAmount = (parseFloat(template.amount) || 0).toFixed(2);
     const tType = template.type;
     const tCat = normalizeCategoryName(template.category);
-    return txAmount === tAmount && txType === tType && txCat === tCat;
+    const tNote = (template.note || template.description || '').trim().toLowerCase();
+
+    if (txAmount === tAmount && txType === tType) {
+      if (txCat === tCat) return true;
+      if (txNote && tNote && txNote === tNote) return true;
+    }
+    return false;
   }) || null;
 }
 
@@ -24830,7 +24837,7 @@ function openRecurringDetailsModal(templateId) {
       const typeIcon = tx.type === 'expense' ? '🔴' : tx.type === 'income' ? '🟢' : '🔵';
 
       const rowHtml = `
-        <div style="display: flex; flex-direction: row; align-items: center; justify-content: space-between; padding: 10px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg-card); gap: 10px; box-sizing: border-box; width: 100%;">
+        <div style="display: flex; flex-direction: row; align-items: center; justify-content: space-between; padding: 10px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg-card); gap: 10px; box-sizing: border-box; width: 100%; cursor: pointer;" onclick="openEditTransactionModalFromDetails('${tx.id}')">
           <div style="display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1;">
             <div style="font-size: 15px; flex-shrink: 0;">${typeIcon}</div>
             <div style="display: flex; flex-direction: column; min-width: 0; text-align: left; flex: 1;">
@@ -24838,7 +24845,12 @@ function openRecurringDetailsModal(templateId) {
               <span style="font-size: 11.5px; color: var(--text-secondary); margin-top: 2px; word-break: break-word; line-height: 1.2;">${tx.category || ''}</span>
             </div>
           </div>
-          <span style="font-weight: 700; color: var(--text-primary); font-size: 13.5px; white-space: nowrap; flex-shrink: 0;">${amount}€</span>
+          <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
+            <span style="font-weight: 700; color: var(--text-primary); font-size: 13.5px; white-space: nowrap;">${amount}€</span>
+            <button type="button" onclick="event.stopPropagation(); handleDeleteFromRecurringDetails('${tx.id}', '${template.id}', '${String(tx.date || '').split('T')[0]}')" style="background: rgba(239, 83, 80, 0.1); border: 1px solid rgba(239, 83, 80, 0.2); color: var(--danger); font-size: 14px; cursor: pointer; padding: 5px 8px; border-radius: 8px; transition: background-color 0.2s;" title="${lang === 'el' ? 'Διαγραφή' : 'Delete'}">
+              🗑️
+            </button>
+          </div>
         </div>
       `;
       listContainer.insertAdjacentHTML('beforeend', rowHtml);
@@ -24847,6 +24859,27 @@ function openRecurringDetailsModal(templateId) {
 
   openModal('recurring-details-modal');
 }
+
+function openEditTransactionModalFromDetails(txId) {
+  const tx = (state.transactions || []).find(t => String(t.id) === String(txId));
+  if (tx) {
+    closeModal('recurring-details-modal');
+    setTimeout(() => {
+      openEditTransactionModal(tx, { instant: true });
+    }, 320);
+  }
+}
+window.openEditTransactionModalFromDetails = openEditTransactionModalFromDetails;
+
+function handleDeleteFromRecurringDetails(txId, templateId, dateStr) {
+  const tx = (state.transactions || []).find(t => String(t.id) === String(txId));
+  const target = tx || { id: txId, recurring_template_id: templateId, date: dateStr };
+  closeModal('recurring-details-modal');
+  setTimeout(() => {
+    openRecurringDeleteModal(target, dateStr, { instant: true });
+  }, 320);
+}
+window.handleDeleteFromRecurringDetails = handleDeleteFromRecurringDetails;
 
 function closeRecurringDetailsModal() {
   closeModal('recurring-details-modal');
@@ -26982,6 +27015,16 @@ async function executeRecurringDelete(scope) {
   const trashModal = document.getElementById('trash-bin-modal');
   if (trashModal && trashModal.classList.contains('active')) {
     renderTrashBinList();
+  }
+
+  const recDetailsModal = document.getElementById('recurring-details-modal');
+  if (recDetailsModal && recDetailsModal.classList.contains('active')) {
+    if (templateId && (state.recurringTemplates || []).some(t => String(t.id) === String(templateId))) {
+      openRecurringDetailsModal(templateId);
+    } else {
+      closeModal('recurring-details-modal');
+      openRecurringTemplatesModal();
+    }
   }
 
   const successMsg = lang === 'el' ? '🗑️ Η διαγραφή πραγματοποιήθηκε.' : '🗑️ Deletion completed.';
