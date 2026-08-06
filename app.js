@@ -968,7 +968,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1123 - 06/08/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1124 - 06/08/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1347,7 +1347,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1123 - 06/08/2026)',
+    app_version: 'Version 1.0.0 (build v1124 - 06/08/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -8011,7 +8011,24 @@ function setupEventListeners() {
               } else if (data && data[0]) {
                 const idx = state.recurringTemplates.findIndex(t => t.id === template.id);
                 if (idx !== -1) {
-                  state.recurringTemplates[idx] = mapTemplateFromDb(data[0]);
+                  const dbTemplate = mapTemplateFromDb(data[0]);
+                  // Preserve the locally-entered schedule (days/months/years/preset)
+                  // in case the DB round-trip returned empty arrays for them. This
+                  // prevents a newly added recurring template from silently losing
+                  // its schedule (and therefore never generating transactions).
+                  if (dbTemplate && (!dbTemplate.days || dbTemplate.days.length === 0)) {
+                    dbTemplate.days = Array.isArray(template.days) ? template.days : [];
+                  }
+                  if (dbTemplate && (!dbTemplate.months || dbTemplate.months.length === 0)) {
+                    dbTemplate.months = Array.isArray(template.months) ? template.months : [];
+                  }
+                  if (dbTemplate && (!dbTemplate.years || dbTemplate.years.length === 0)) {
+                    dbTemplate.years = Array.isArray(template.years) ? template.years : [];
+                  }
+                  if (dbTemplate && !dbTemplate.preset) {
+                    dbTemplate.preset = template.preset || 'monthly';
+                  }
+                  state.recurringTemplates[idx] = dbTemplate || template;
                   localStorage.setItem('recurring_templates', JSON.stringify(state.recurringTemplates));
                   processRecurringTemplates();
                   updateUI();
@@ -26805,6 +26822,15 @@ async function executeRecurringDelete(scope) {
       if (template) {
         addDeletedDateToTemplate(template, anchorDate);
         localStorage.setItem('recurring_templates', JSON.stringify(state.recurringTemplates));
+        // Persist the deleted-date marker to the cloud template so a later cloud
+        // sync (which overwrites state.recurringTemplates) does not lose it and
+        // re-create this occurrence via processRecurringTemplates().
+        if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
+          state.supabaseClient.from('recurring_templates').upsert([mapTemplateToDb(template)])
+            .then(({ error }) => {
+              if (error) console.warn('Failed to sync deleted recurring date to cloud:', error);
+            });
+        }
       }
     }
 
@@ -26840,6 +26866,14 @@ async function executeRecurringDelete(scope) {
     if (template) {
       template.untilDate = anchorDate;
       localStorage.setItem('recurring_templates', JSON.stringify(state.recurringTemplates));
+      // Persist the new end date to the cloud template so a later cloud sync
+      // does not resurrect the future occurrences that were just deleted.
+      if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
+        state.supabaseClient.from('recurring_templates').upsert([mapTemplateToDb(template)])
+          .then(({ error }) => {
+            if (error) console.warn('Failed to sync recurring end date to cloud:', error);
+          });
+      }
     }
 
   } else if (scope === 'all') {
