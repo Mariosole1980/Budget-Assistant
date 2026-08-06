@@ -104,6 +104,112 @@
       gap: 8px;
     }
 
+    /* Budget Switcher & Card Styles */
+    .budget-subtab-switcher {
+      display: flex;
+      background: rgba(0, 0, 0, 0.3);
+      padding: 4px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      gap: 4px;
+    }
+
+    .budget-subtab-btn {
+      flex: 1;
+      padding: 10px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 700;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .budget-subtab-btn.active {
+      background: var(--accent-gradient);
+      color: #ffffff;
+      box-shadow: 0 4px 12px var(--primary-glow);
+    }
+
+    .budget-overall-card {
+      background: linear-gradient(135deg, rgba(124, 106, 247, 0.12) 0%, rgba(99, 102, 241, 0.05) 100%);
+      border: 1px solid var(--border-accent);
+      border-radius: var(--radius-lg);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .budget-progress-track {
+      height: 10px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.08);
+      width: 100%;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .budget-progress-fill {
+      height: 100%;
+      border-radius: 6px;
+      transition: width 0.4s ease;
+    }
+
+    .budget-cat-row {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      transition: border-color 0.2s;
+    }
+
+    .budget-cat-row:hover {
+      border-color: rgba(255, 255, 255, 0.18);
+    }
+
+    .budget-cat-row.over-budget {
+      border-color: rgba(255, 91, 91, 0.4);
+      background: linear-gradient(135deg, rgba(255, 91, 91, 0.05) 0%, var(--bg-card) 100%);
+    }
+
+    .badge-status {
+      font-size: 10.5px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 12px;
+      letter-spacing: 0.2px;
+    }
+
+    .badge-ok {
+      background: rgba(16, 185, 129, 0.15);
+      color: #10b981;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .badge-warn {
+      background: rgba(245, 158, 11, 0.15);
+      color: #f59e0b;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    .badge-alert {
+      background: rgba(255, 91, 91, 0.18);
+      color: #ff5b5b;
+      border: 1px solid rgba(255, 91, 91, 0.4);
+    }
+
     .preview-card {
       background: var(--bg-card);
       border: 1px solid var(--border);
@@ -378,6 +484,152 @@
 
   <div class="container">
 
+    <!-- 0. CATEGORY BUDGETS (PROPOSED NEW FEATURE FOR TAB 2) -->
+    <div>
+      <div class="section-title"><i class="fa-solid fa-bullseye" style="color: #7c6af7;"></i> 🎯 ΝΕΟ FEATURE: Προϋπολογισμοί ανά Κατηγορία (Tab 2 Στατιστικά)</div>
+      
+      <!-- Tab Switcher Mockup inside Tab 2 -->
+      <div class="budget-subtab-switcher" style="margin-bottom: 14px;">
+        <button type="button" class="budget-subtab-btn" id="demo-subtab-breakdown" onclick="switchDemoSubtab('breakdown')">
+          <i class="fa-solid fa-chart-pie"></i> Κατανομή
+        </button>
+        <button type="button" class="budget-subtab-btn active" id="demo-subtab-budgets" onclick="switchDemoSubtab('budgets')">
+          <i class="fa-solid fa-bullseye"></i> Προϋπολογισμοί (Budgets)
+        </button>
+      </div>
+
+      <!-- VIEW A: BUDGETS VIEW (ACTIVE) -->
+      <div id="demo-budgets-view" style="display: flex; flex-direction: column; gap: 14px;">
+        
+        <!-- Overall Monthly Budget Card -->
+        <div class="budget-overall-card">
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <div>
+              <span style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; display: block;">Συνολικό Budget Μήνα</span>
+              <div style="font-size: 22px; font-weight: 800; color: var(--text-primary); margin-top: 2px;">
+                1.240,00€ <span style="font-size: 14px; font-weight: 600; color: var(--text-secondary);">/ 1.500,00€</span>
+              </div>
+            </div>
+            <div style="text-align: right;">
+              <span class="badge-status badge-ok" style="font-size: 12px; padding: 4px 10px;">82% Χρήση</span>
+              <div style="font-size: 11.5px; color: #10b981; font-weight: 700; margin-top: 4px;">260,00€ διαθέσιμα</div>
+            </div>
+          </div>
+
+          <!-- Overall Progress Bar -->
+          <div>
+            <div class="budget-progress-track">
+              <div class="budget-progress-fill" style="width: 82.6%; background: linear-gradient(90deg, #7c6af7 0%, #6366f1 100%);"></div>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-top: 6px;">
+              <span>Απομένουν 24 ημέρες</span>
+              <span>10,83€ / ημέρα</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Category Budgets List -->
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          
+          <!-- Category 1: Supermarket (80% - Approaching) -->
+          <div class="budget-cat-row">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <div style="width: 38px; height: 38px; border-radius: 12px; background: rgba(76, 175, 80, 0.15); color: #4caf50; display: flex; align-items: center; justify-content: center; font-size: 18px;">
+                  🛒
+                </div>
+                <div>
+                  <span style="font-size: 14.5px; font-weight: 700; color: var(--text-primary); display: block;">Σούπερ Μάρκετ</span>
+                  <span style="font-size: 12px; color: var(--text-secondary);">240,00€ / 300,00€</span>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="badge-status badge-warn">80% (Πλησιάζει)</span>
+                <button type="button" class="action-icon-btn" onclick="openBudgetModalDemo('Σούπερ Μάρκετ', 300)" title="Ρύθμιση ορίου"><i class="fa-solid fa-pen"></i></button>
+              </div>
+            </div>
+            <div class="budget-progress-track">
+              <div class="budget-progress-fill" style="width: 80%; background: #f59e0b;"></div>
+            </div>
+          </div>
+
+          <!-- Category 2: Fuel (123% - OVER BUDGET ALERT) -->
+          <div class="budget-cat-row over-budget">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <div style="width: 38px; height: 38px; border-radius: 12px; background: rgba(33, 150, 243, 0.15); color: #2196f3; display: flex; align-items: center; justify-content: center; font-size: 18px;">
+                  🚗
+                </div>
+                <div>
+                  <span style="font-size: 14.5px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">Καύσιμα &amp; Μετακινήσεις <i class="fa-solid fa-triangle-exclamation" style="color: #ff5b5b; font-size: 13px;"></i></span>
+                  <span style="font-size: 12px; color: #ff5b5b; font-weight: 700;">185,00€ / 150,00€ (+35,00€)</span>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="badge-status badge-alert">⚠️ 123% Υπέρβαση</span>
+                <button type="button" class="action-icon-btn" onclick="openBudgetModalDemo('Καύσιμα & Μετακινήσεις', 150)" title="Ρύθμιση ορίου"><i class="fa-solid fa-pen"></i></button>
+              </div>
+            </div>
+            <div class="budget-progress-track">
+              <div class="budget-progress-fill" style="width: 100%; background: #ff5b5b;"></div>
+            </div>
+          </div>
+
+          <!-- Category 3: Dining (37.5% - Safe) -->
+          <div class="budget-cat-row">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <div style="width: 38px; height: 38px; border-radius: 12px; background: rgba(236, 72, 153, 0.15); color: #ec4899; display: flex; align-items: center; justify-content: center; font-size: 18px;">
+                  🍕
+                </div>
+                <div>
+                  <span style="font-size: 14.5px; font-weight: 700; color: var(--text-primary); display: block;">Φαγητό &amp; Διασκέδαση</span>
+                  <span style="font-size: 12px; color: var(--text-secondary);">45,00€ / 120,00€</span>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="badge-status badge-ok">37.5% Εντός ορίου</span>
+                <button type="button" class="action-icon-btn" onclick="openBudgetModalDemo('Φαγητό & Διασκέδαση', 120)" title="Ρύθμιση ορίου"><i class="fa-solid fa-pen"></i></button>
+              </div>
+            </div>
+            <div class="budget-progress-track">
+              <div class="budget-progress-fill" style="width: 37.5%; background: #10b981;"></div>
+            </div>
+          </div>
+
+          <!-- Category 4: Bills (84% - OK) -->
+          <div class="budget-cat-row">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <div style="width: 38px; height: 38px; border-radius: 12px; background: rgba(245, 158, 11, 0.15); color: #f59e0b; display: flex; align-items: center; justify-content: center; font-size: 18px;">
+                  💡
+                </div>
+                <div>
+                  <span style="font-size: 14.5px; font-weight: 700; color: var(--text-primary); display: block;">Λογαριασμοί Σπιτιού</span>
+                  <span style="font-size: 12px; color: var(--text-secondary);">210,00€ / 250,00€</span>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="badge-status badge-ok">84%</span>
+                <button type="button" class="action-icon-btn" onclick="openBudgetModalDemo('Λογαριασμοί Σπιτιού', 250)" title="Ρύθμιση ορίου"><i class="fa-solid fa-pen"></i></button>
+              </div>
+            </div>
+            <div class="budget-progress-track">
+              <div class="budget-progress-fill" style="width: 84%; background: #7c6af7;"></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- VIEW B: BREAKDOWN VIEW (SIMULATED FOR SWITCHER DEMO) -->
+      <div id="demo-breakdown-view" style="display: none; padding: 24px 16px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); text-align: center; color: var(--text-secondary); font-size: 13.5px;">
+        <i class="fa-solid fa-chart-pie" style="font-size: 32px; color: var(--primary); margin-bottom: 8px;"></i>
+        <div>Εδώ εμφανίζεται το υπάρχον <strong>Donut Chart</strong> και η λίστα κατανομής ποσοστών.</div>
+      </div>
+
+    </div>
+
     <!-- 1. RECURRING PICKER REDESIGN -->
     <div>
       <div class="section-title"><i class="fa-solid fa-repeat" style="color: var(--primary);"></i> 1. Modal Επανάληψη Κίνησης (New Layout)</div>
@@ -568,6 +820,34 @@
     </div>
 
   </div>
+
+  <script>
+    function switchDemoSubtab(tab) {
+      const btnBreakdown = document.getElementById('demo-subtab-breakdown');
+      const btnBudgets = document.getElementById('demo-subtab-budgets');
+      const viewBreakdown = document.getElementById('demo-breakdown-view');
+      const viewBudgets = document.getElementById('demo-budgets-view');
+
+      if (tab === 'budgets') {
+        btnBudgets.classList.add('active');
+        btnBreakdown.classList.remove('active');
+        viewBudgets.style.display = 'flex';
+        viewBreakdown.style.display = 'none';
+      } else {
+        btnBreakdown.classList.add('active');
+        btnBudgets.classList.remove('active');
+        viewBreakdown.style.display = 'block';
+        viewBudgets.style.display = 'none';
+      }
+    }
+
+    function openBudgetModalDemo(catName, currentLimit) {
+      const newLimit = prompt(`Ορισμός Μηνιαίου Ορίου για "${catName}":`, currentLimit);
+      if (newLimit !== null) {
+        alert(`Το νέο όριο για "${catName}" ορίστηκε σε ${newLimit}€!`);
+      }
+    }
+  </script>
 
 </body>
 </html>
