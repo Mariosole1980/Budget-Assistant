@@ -45,6 +45,13 @@
       window.showRecoveryMode = function (reason) {
         if (document.getElementById('recovery-overlay')) return;
 
+        // Remove the cold-start fade overlay so it never hides the recovery UI
+        // (the recovery overlay's z-index is lower than the cold-start overlay's).
+        const coldStartOverlay = document.getElementById('cold-start-overlay');
+        if (coldStartOverlay && coldStartOverlay.parentNode) {
+          coldStartOverlay.parentNode.removeChild(coldStartOverlay);
+        }
+
         const isDev = localStorage.getItem('developer_mode_active') === 'true';
         const devButton = isDev ? `<button onclick="window.location.href='debug.html'" style="background:#30363d;color:#c9d1d9;border:1px solid #8b949e;padding:12px 20px;border-radius:6px;font-weight:600;cursor:pointer;font-size:14px;">⚙️ Διαγνωστικά & Αλλαγή Server</button>` : '';
 
@@ -65,7 +72,7 @@
               ${devButton}
             </div>
             <div style="font-size:11px;color:#8b949e;">
-              Budget Assistant • build v1144
+              Budget Assistant • build v1145
             </div>
           </div>
         `;
@@ -176,6 +183,11 @@
       document.documentElement.style.backgroundColor = bgColor;
       if (document.body) document.body.style.backgroundColor = bgColor; // Sync inline body background
       if (savedTheme !== 'dark') document.documentElement.classList.add(`theme-${savedTheme}`);
+
+      // Sync the cold-start fade overlay background to the saved theme color so
+      // the launch screen blends seamlessly into the app content on cold start.
+      const coldStartOverlay = document.getElementById('cold-start-overlay');
+      if (coldStartOverlay) coldStartOverlay.style.backgroundColor = bgColor;
 
       // Mark web (non-native) mode so desktop layout only applies to the browser link,
       // leaving Android/iOS native app layout untouched.
@@ -308,6 +320,15 @@
       }
     })();
   </script>
+
+  <!-- Cold-start fade overlay: covers the screen with the theme background color
+       while the WebView reloads after Android process death / activity recreation.
+       It is faded out smoothly by fadeOutColdStartOverlay() once the initial
+       content render has painted, so the dark launch screen transitions into the
+       app content without an abrupt black flash. -->
+  <div id="cold-start-overlay"
+    style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: #181b22; z-index: 2147483647; opacity: 1; transition: opacity 0.4s ease; pointer-events: none;">
+  </div>
 
   <div class="app-container">
 
@@ -482,11 +503,16 @@
 
         <!-- Sub-Tab Switcher: Breakdown vs Category Budgets -->
         <div class="stats-subtab-bar" style="padding: 10px 16px 4px 16px;">
-          <div class="stats-subtab-switcher" style="display: flex; background: rgba(0, 0, 0, 0.25); padding: 4px; border-radius: 14px; border: 1px solid var(--border); gap: 4px;">
-            <button type="button" id="stats-subtab-breakdown" class="stats-subtab-btn active" onclick="switchStatsSubtab('breakdown')" style="flex: 1; padding: 8px 12px; border-radius: 10px; font-size: 13px; font-weight: 700; border: none; background: var(--accent); color: #ffffff; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s;">
+          <div class="stats-subtab-switcher"
+            style="display: flex; background: rgba(0, 0, 0, 0.25); padding: 4px; border-radius: 14px; border: 1px solid var(--border); gap: 4px;">
+            <button type="button" id="stats-subtab-breakdown" class="stats-subtab-btn active"
+              onclick="switchStatsSubtab('breakdown')"
+              style="flex: 1; padding: 8px 12px; border-radius: 10px; font-size: 13px; font-weight: 700; border: none; background: var(--accent); color: #ffffff; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s;">
               <i class="fa-solid fa-chart-pie"></i> <span data-i18n="stats_subtab_breakdown">Κατανομή</span>
             </button>
-            <button type="button" id="stats-subtab-budgets" class="stats-subtab-btn" onclick="switchStatsSubtab('budgets')" style="flex: 1; padding: 8px 12px; border-radius: 10px; font-size: 13px; font-weight: 700; border: none; background: transparent; color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s;">
+            <button type="button" id="stats-subtab-budgets" class="stats-subtab-btn"
+              onclick="switchStatsSubtab('budgets')"
+              style="flex: 1; padding: 8px 12px; border-radius: 10px; font-size: 13px; font-weight: 700; border: none; background: transparent; color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s;">
               <i class="fa-solid fa-bullseye"></i> <span data-i18n="stats_subtab_budgets">Προϋπολογισμοί</span>
             </button>
           </div>
@@ -533,7 +559,8 @@
           </div>
 
           <!-- VIEW B: CATEGORY BUDGETS CONTAINER -->
-          <div id="stats-budgets-container" style="display: none; padding: 12px 16px; flex-direction: column; gap: 14px;">
+          <div id="stats-budgets-container"
+            style="display: none; padding: 12px 16px; flex-direction: column; gap: 14px;">
             <!-- Dynamically populated by renderCategoryBudgetsView() -->
           </div>
         </div>
@@ -828,8 +855,10 @@
                 </div>
                 <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;">
                   <span class="settings-item-label" data-i18n="notes_manager_title"
-                    style="font-weight:700; font-family:'Outfit',sans-serif; font-size:14px; color:var(--text-primary);">Σημειωματάριο &amp; Checklists</span>
-                  <span style="font-size:11px;color:var(--text-secondary);" data-i18n="notes_manager_subtitle">Προσωπικές σημειώσεις, λίστες &amp; υπενθυμίσεις</span>
+                    style="font-weight:700; font-family:'Outfit',sans-serif; font-size:14px; color:var(--text-primary);">Σημειωματάριο
+                    &amp; Checklists</span>
+                  <span style="font-size:11px;color:var(--text-secondary);"
+                    data-i18n="notes_manager_subtitle">Προσωπικές σημειώσεις, λίστες &amp; υπενθυμίσεις</span>
                 </div>
               </div>
               <div style="display:flex; align-items:center; gap:8px;">
@@ -1279,13 +1308,18 @@
     <!-- MODAL: NOTES MANAGER (Bottom Sheet)            -->
     <!-- ============================================== -->
     <div id="notes-manager-modal" class="modal-overlay">
-      <div class="modal-content" style="display: flex; flex-direction: column; height: 88vh; max-height: 88vh; border-radius: 20px 20px 0 0;">
-        <div class="modal-header" style="padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: space-between;">
+      <div class="modal-content"
+        style="display: flex; flex-direction: column; height: 88vh; max-height: 88vh; border-radius: 20px 20px 0 0;">
+        <div class="modal-header"
+          style="padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: space-between;">
           <div style="display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0;">
-            <button type="button" class="icon-btn" onclick="closeModal('notes-manager-modal')" style="flex-shrink: 0;"><i class="fa-solid fa-arrow-left"></i></button>
-            <h3 class="modal-title" style="font-weight: 700; font-family: 'Outfit', sans-serif; font-size: 15px; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 6px;">
+            <button type="button" class="icon-btn" onclick="closeModal('notes-manager-modal')"
+              style="flex-shrink: 0;"><i class="fa-solid fa-arrow-left"></i></button>
+            <h3 class="modal-title"
+              style="font-weight: 700; font-family: 'Outfit', sans-serif; font-size: 15px; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 6px;">
               <span>Σημειωματάριο</span>
-              <span id="notes-manager-count-badge" class="badge" style="background: var(--accent); color: white; font-size: 10px; padding: 2px 6px; border-radius: 10px; font-weight: 700; display: none;">0</span>
+              <span id="notes-manager-count-badge" class="badge"
+                style="background: var(--accent); color: white; font-size: 10px; padding: 2px 6px; border-radius: 10px; font-weight: 700; display: none;">0</span>
             </h3>
           </div>
           <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
@@ -1303,30 +1337,36 @@
 
         <div class="modal-body"
           style="padding: 12px 16px 16px 16px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 10px; min-height: 0;">
-          
+
           <!-- Search & Filters Container -->
           <div style="display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; width: 100%;">
             <!-- Slim Search Input Wrapper -->
             <div class="notes-search-wrapper">
               <i class="fa-solid fa-magnifying-glass" style="color: var(--text-muted); font-size: 13px;"></i>
-              <input type="text" id="notes-manager-search-input" placeholder="Αναζήτηση σημειώσεων..." oninput="renderNotesList()">
+              <input type="text" id="notes-manager-search-input" placeholder="Αναζήτηση σημειώσεων..."
+                oninput="renderNotesList()">
             </div>
 
             <!-- Category Filter Chips Bar -->
             <div class="notes-filter-bar" id="notes-filter-bar">
-              <button type="button" class="notes-filter-chip active" data-filter="all" onclick="setNotesFilterCategory('all')">
+              <button type="button" class="notes-filter-chip active" data-filter="all"
+                onclick="setNotesFilterCategory('all')">
                 <i class="fa-solid fa-layer-group"></i> <span>Όλες</span>
               </button>
-              <button type="button" class="notes-filter-chip" data-filter="pinned" onclick="setNotesFilterCategory('pinned')">
+              <button type="button" class="notes-filter-chip" data-filter="pinned"
+                onclick="setNotesFilterCategory('pinned')">
                 <i class="fa-solid fa-thumbtack" style="color:#f59e0b;"></i> <span>Καρφιτσωμένες</span>
               </button>
-              <button type="button" class="notes-filter-chip" data-filter="text" onclick="setNotesFilterCategory('text')">
+              <button type="button" class="notes-filter-chip" data-filter="text"
+                onclick="setNotesFilterCategory('text')">
                 <i class="fa-regular fa-file-lines"></i> <span>Σημειώσεις</span>
               </button>
-              <button type="button" class="notes-filter-chip" data-filter="checklist" onclick="setNotesFilterCategory('checklist')">
+              <button type="button" class="notes-filter-chip" data-filter="checklist"
+                onclick="setNotesFilterCategory('checklist')">
                 <i class="fa-solid fa-list-check" style="color:var(--accent);"></i> <span>Checklists</span>
               </button>
-              <button type="button" class="notes-filter-chip" data-filter="reminder" onclick="setNotesFilterCategory('reminder')">
+              <button type="button" class="notes-filter-chip" data-filter="reminder"
+                onclick="setNotesFilterCategory('reminder')">
                 <i class="fa-regular fa-bell" style="color:#10b981;"></i> <span>Υπενθυμίσεις</span>
               </button>
             </div>
@@ -1411,33 +1451,47 @@
 
     <!-- MODAL: IN-APP PRIVACY POLICY -->
     <div id="privacy-policy-modal" class="modal-overlay" style="z-index: 11000;">
-      <div class="modal-content" style="max-height: calc(var(--viewport-height, 100vh) * 0.95); display: flex; flex-direction: column; max-width: 520px; border-radius: 20px; overflow: hidden; background: var(--bg-card, #1c1f28); border: 1px solid var(--border);">
+      <div class="modal-content"
+        style="max-height: calc(var(--viewport-height, 100vh) * 0.95); display: flex; flex-direction: column; max-width: 520px; border-radius: 20px; overflow: hidden; background: var(--bg-card, #1c1f28); border: 1px solid var(--border);">
         <div class="modal-header"
           style="position: relative; min-height: 54px; box-sizing: border-box; border-bottom: 1px solid var(--border); padding: 0 16px; display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.02);">
           <button type="button" onclick="closeModal('privacy-policy-modal')"
             style="display: flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 20px; background: rgba(255,255,255,0.06); border: 1px solid var(--border); color: var(--text-primary); font-size: 12px; font-weight: 600; cursor: pointer; transition: background 0.2s;">
             <i class="fa-solid fa-arrow-left"></i> Πίσω στο μενού
           </button>
-          <h3 class="modal-title" style="margin: 0; font-size: 15px; font-weight: 700; color: #ffffff;">Πολιτική Απορρήτου</h3>
+          <h3 class="modal-title" style="margin: 0; font-size: 15px; font-weight: 700; color: #ffffff;">Πολιτική
+            Απορρήτου</h3>
           <span class="modal-close" onclick="closeModal('privacy-policy-modal')"
             style="font-size: 20px; color: var(--text-muted); cursor: pointer; line-height: 1;">✕</span>
         </div>
-        <div class="modal-body" style="padding: 20px; flex: 1; overflow-y: auto; font-size: 13.5px; color: var(--text-secondary); line-height: 1.6; display: flex; flex-direction: column; gap: 14px;">
-          <div style="background: rgba(124, 106, 247, 0.08); border: 1px solid rgba(124, 106, 247, 0.2); border-radius: 12px; padding: 14px; display: flex; align-items: center; gap: 12px;">
+        <div class="modal-body"
+          style="padding: 20px; flex: 1; overflow-y: auto; font-size: 13.5px; color: var(--text-secondary); line-height: 1.6; display: flex; flex-direction: column; gap: 14px;">
+          <div
+            style="background: rgba(124, 106, 247, 0.08); border: 1px solid rgba(124, 106, 247, 0.2); border-radius: 12px; padding: 14px; display: flex; align-items: center; gap: 12px;">
             <i class="fa-solid fa-user-shield" style="font-size: 24px; color: var(--primary);"></i>
             <div>
-              <strong style="color: var(--text-primary); display: block; font-size: 14px;">Απόλυτη Ασφάλεια &amp; Ιδιωτικότητα</strong>
-              <span style="font-size: 12px; color: var(--text-muted);">Τα δεδομένα σας ανήκουν αποκλειστικά σε εσάς.</span>
+              <strong style="color: var(--text-primary); display: block; font-size: 14px;">Απόλυτη Ασφάλεια &amp;
+                Ιδιωτικότητα</strong>
+              <span style="font-size: 12px; color: var(--text-muted);">Τα δεδομένα σας ανήκουν αποκλειστικά σε
+                εσάς.</span>
             </div>
           </div>
-          <h4 style="margin: 8px 0 2px; color: var(--text-primary); font-size: 14px; font-weight: 700;">1. Αποθήκευση Δεδομένων</h4>
-          <p style="margin: 0;">Όλες οι συναλλαγές, οι λογαριασμοί και οι ρυθμίσεις σας αποθηκεύονται ακαριαία στη συσκευή σας (Local Storage). Όταν είστε συνδεδεμένοι, συγχρονίζονται με ασφαλή κρυπτογράφηση στο Cloud (Supabase).</p>
-          <h4 style="margin: 8px 0 2px; color: var(--text-primary); font-size: 14px; font-weight: 700;">2. Χρήση &amp; Κοινοποίηση</h4>
-          <p style="margin: 0;">Δεν συλλέγουμε, δεν πωλούμε και δεν κοινοποιούμε τα οικονομικά σας δεδομένα σε κανέναν τρίτο οργανισμό ή διαφημιστική εταιρεία.</p>
-          <h4 style="margin: 8px 0 2px; color: var(--text-primary); font-size: 14px; font-weight: 700;">3. Διαγραφή Δεδομένων</h4>
-          <p style="margin: 0;">Έχετε τον πλήρη έλεγχο. Μπορείτε ανά πάσα στιγμή να διαγράψετε τον λογαριασμό σας και όλα τα δεδομένα σας οριστικά από το μενού Ρυθμίσεων.</p>
+          <h4 style="margin: 8px 0 2px; color: var(--text-primary); font-size: 14px; font-weight: 700;">1. Αποθήκευση
+            Δεδομένων</h4>
+          <p style="margin: 0;">Όλες οι συναλλαγές, οι λογαριασμοί και οι ρυθμίσεις σας αποθηκεύονται ακαριαία στη
+            συσκευή σας (Local Storage). Όταν είστε συνδεδεμένοι, συγχρονίζονται με ασφαλή κρυπτογράφηση στο Cloud
+            (Supabase).</p>
+          <h4 style="margin: 8px 0 2px; color: var(--text-primary); font-size: 14px; font-weight: 700;">2. Χρήση &amp;
+            Κοινοποίηση</h4>
+          <p style="margin: 0;">Δεν συλλέγουμε, δεν πωλούμε και δεν κοινοποιούμε τα οικονομικά σας δεδομένα σε κανέναν
+            τρίτο οργανισμό ή διαφημιστική εταιρεία.</p>
+          <h4 style="margin: 8px 0 2px; color: var(--text-primary); font-size: 14px; font-weight: 700;">3. Διαγραφή
+            Δεδομένων</h4>
+          <p style="margin: 0;">Έχετε τον πλήρη έλεγχο. Μπορείτε ανά πάσα στιγμή να διαγράψετε τον λογαριασμό σας και
+            όλα τα δεδομένα σας οριστικά από το μενού Ρυθμίσεων.</p>
         </div>
-        <div class="modal-footer" style="padding: 12px 18px; border-top: 1px solid var(--border); background: rgba(255,255,255,0.02); text-align: center;">
+        <div class="modal-footer"
+          style="padding: 12px 18px; border-top: 1px solid var(--border); background: rgba(255,255,255,0.02); text-align: center;">
           <button type="button" class="btn-primary" onclick="closeModal('privacy-policy-modal')"
             style="width: 100%; padding: 12px; border-radius: 14px; font-size: 14px; font-weight: 700; background: rgba(255,255,255,0.06); border: 1px solid var(--border); color: var(--text-primary); cursor: pointer;">Έκλεισε</button>
         </div>
@@ -2103,7 +2157,7 @@
             <div class="settings-list-item version-info-row"
               style="padding: 14px 16px; background: transparent; border-top: 1px solid var(--border); margin-top: 8px;">
               <span class="settings-item-label" style="color:var(--text-muted); font-size:12px;"
-                data-i18n="app_version">Έκδοση 1.0.0 (build v1144)</span>
+                data-i18n="app_version">Έκδοση 1.0.0 (build v1145)</span>
               <span class="settings-item-value" style="font-size:12px; color:var(--text-muted); font-weight:600;">Budget
                 Assistant</span>
             </div>
@@ -2934,7 +2988,8 @@
           </div>
 
           <div class="export-period-card" id="export-opt-prev-year" onclick="selectExportOption('prev-year')">
-            <div class="export-period-icon-wrapper" style="background: rgba(var(--accent-rgb, 224, 94, 85), 0.15); color: var(--accent);">
+            <div class="export-period-icon-wrapper"
+              style="background: rgba(var(--accent-rgb, 224, 94, 85), 0.15); color: var(--accent);">
               <i class="fa-regular fa-calendar"></i>
             </div>
             <div class="export-period-info">
@@ -3522,7 +3577,8 @@
           <span onclick="clearRecurringSettings(false)"
             style="font-size: 13px; font-weight: 600; color: var(--text-secondary); cursor: pointer; transition: color 0.2s; display: flex; align-items: center; gap: 6px;"><i
               class="fa-solid fa-trash-can"></i> Καθαρισμός</span>
-          <h3 class="modal-title" style="margin: 0; font-size: 15px; font-weight: 800; color: #ffffff;">⚡ Ρύθμιση Επανάληψης</h3>
+          <h3 class="modal-title" style="margin: 0; font-size: 15px; font-weight: 800; color: #ffffff;">⚡ Ρύθμιση
+            Επανάληψης</h3>
           <span class="modal-close" onclick="closeModal('recurring-picker-modal')"
             style="font-size: 20px; color: var(--text-muted); cursor: pointer; line-height: 1; transition: color 0.2s;">✕</span>
         </div>
@@ -3543,7 +3599,8 @@
                 <option value="yearly">🎆 Yearly (Ετήσια)</option>
                 <option value="specific_months">📌 Specific Months (Συγκεκριμένοι Μήνες)</option>
               </select>
-              <i class="fa-solid fa-chevron-down" style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--text-secondary); font-size: 12px;"></i>
+              <i class="fa-solid fa-chevron-down"
+                style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--text-secondary); font-size: 12px;"></i>
             </div>
           </div>
 
@@ -3567,17 +3624,20 @@
               Επανάληψης</span>
 
             <!-- End Type Selector Buttons -->
-            <div style="display: flex; background: rgba(0, 0, 0, 0.25); padding: 4px; border-radius: 14px; border: 1px solid var(--border); gap: 4px;">
+            <div
+              style="display: flex; background: rgba(0, 0, 0, 0.25); padding: 4px; border-radius: 14px; border: 1px solid var(--border); gap: 4px;">
               <button type="button" id="recurring-end-type-perpetual" class="recurring-grid-btn active"
                 style="flex: 1; padding: 10px; border-radius: 10px; font-size: 13px; font-weight: 600; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;"
                 onclick="selectRecurringEndType('perpetual')"><i class="fa-solid fa-infinity"></i> Για πάντα</button>
               <button type="button" id="recurring-end-type-date" class="recurring-grid-btn"
                 style="flex: 1; padding: 10px; border-radius: 10px; font-size: 13px; font-weight: 600; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;"
-                onclick="selectRecurringEndType('date')"><i class="fa-regular fa-calendar-days"></i> Μέχρι ημερομηνία</button>
+                onclick="selectRecurringEndType('date')"><i class="fa-regular fa-calendar-days"></i> Μέχρι
+                ημερομηνία</button>
             </div>
 
             <!-- Clickable Custom End Date Container (Visible only when 'date' is selected) -->
-            <div id="recurring-custom-end-date-container" style="display: none; flex-direction: column; gap: 6px; margin-top: 4px;">
+            <div id="recurring-custom-end-date-container"
+              style="display: none; flex-direction: column; gap: 6px; margin-top: 4px;">
               <span
                 style="font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Ημερομηνία
                 Λήξης</span>
@@ -3614,72 +3674,106 @@
 
     <!-- MODAL: EDIT / SET CATEGORY BUDGET -->
     <div id="category-budget-modal" class="modal-overlay" style="z-index: 12000;">
-      <div class="modal-content" style="max-height: calc(var(--viewport-height, 100vh) * 0.95); display: flex; flex-direction: column; max-width: 440px; border-radius: 20px; overflow: hidden; background: var(--bg-card, #1c1f28); border: 1px solid var(--border);">
-        <div class="modal-header" style="position: relative; min-height: 54px; box-sizing: border-box; border-bottom: 1px solid var(--border); padding: 0 18px; display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.02);">
-          <h3 class="modal-title" style="margin: 0; font-size: 15px; font-weight: 800; color: #ffffff;" id="budget-modal-title">🎯 Ορισμός Προϋπολογισμού</h3>
-          <span class="modal-close" onclick="closeModal('category-budget-modal')" style="font-size: 20px; color: var(--text-muted); cursor: pointer; line-height: 1;">✕</span>
+      <div class="modal-content"
+        style="max-height: calc(var(--viewport-height, 100vh) * 0.95); display: flex; flex-direction: column; max-width: 440px; border-radius: 20px; overflow: hidden; background: var(--bg-card, #1c1f28); border: 1px solid var(--border);">
+        <div class="modal-header"
+          style="position: relative; min-height: 54px; box-sizing: border-box; border-bottom: 1px solid var(--border); padding: 0 18px; display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.02);">
+          <h3 class="modal-title" style="margin: 0; font-size: 15px; font-weight: 800; color: #ffffff;"
+            id="budget-modal-title">🎯 Ορισμός Προϋπολογισμού</h3>
+          <span class="modal-close" onclick="closeModal('category-budget-modal')"
+            style="font-size: 20px; color: var(--text-muted); cursor: pointer; line-height: 1;">✕</span>
         </div>
-        <div class="modal-body" style="padding: 18px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 16px;">
+        <div class="modal-body"
+          style="padding: 18px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 16px;">
           <!-- Hidden budget ID -->
           <input type="hidden" id="budget-modal-id" value="">
 
           <!-- Category Select -->
           <div>
-            <span style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Κατηγορία</span>
+            <span
+              style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Κατηγορία</span>
             <div style="position: relative; margin-top: 6px;">
-              <select id="budget-modal-category" onchange="onBudgetCategoryChange()" style="width: 100%; padding: 14px 16px; border-radius: 14px; background: rgba(255,255,255,0.04); color: var(--text-primary); border: 1px solid var(--border); font-size: 14px; font-weight: 600; outline: none; cursor: pointer; appearance: none;">
+              <select id="budget-modal-category" onchange="onBudgetCategoryChange()"
+                style="width: 100%; padding: 14px 16px; border-radius: 14px; background: rgba(255,255,255,0.04); color: var(--text-primary); border: 1px solid var(--border); font-size: 14px; font-weight: 600; outline: none; cursor: pointer; appearance: none;">
                 <!-- Populated dynamically -->
               </select>
-              <i class="fa-solid fa-chevron-down" style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--text-secondary); font-size: 12px;"></i>
+              <i class="fa-solid fa-chevron-down"
+                style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--text-secondary); font-size: 12px;"></i>
             </div>
           </div>
 
           <!-- Subcategory Select (Optional) -->
           <div id="budget-modal-subcat-container" style="display: none;">
-            <span style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Υποκατηγορία (Προαιρετικό)</span>
+            <span
+              style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Υποκατηγορία
+              (Προαιρετικό)</span>
             <div style="position: relative; margin-top: 6px;">
-              <select id="budget-modal-subcategory" style="width: 100%; padding: 14px 16px; border-radius: 14px; background: rgba(255,255,255,0.04); color: var(--text-primary); border: 1px solid var(--border); font-size: 14px; font-weight: 600; outline: none; cursor: pointer; appearance: none;">
+              <select id="budget-modal-subcategory"
+                style="width: 100%; padding: 14px 16px; border-radius: 14px; background: rgba(255,255,255,0.04); color: var(--text-primary); border: 1px solid var(--border); font-size: 14px; font-weight: 600; outline: none; cursor: pointer; appearance: none;">
                 <option value="">Όλες οι υποκατηγορίες</option>
               </select>
-              <i class="fa-solid fa-chevron-down" style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--text-secondary); font-size: 12px;"></i>
+              <i class="fa-solid fa-chevron-down"
+                style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--text-secondary); font-size: 12px;"></i>
             </div>
           </div>
 
           <!-- Amount Input -->
           <div>
-            <span style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Μηνιαίο Όριο (€)</span>
+            <span
+              style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Μηνιαίο
+              Όριο (€)</span>
             <div style="position: relative; margin-top: 6px;">
-              <input type="number" step="0.01" min="0" id="budget-modal-amount" placeholder="π.χ. 300" style="width: 100%; padding: 14px 16px; border-radius: 14px; background: rgba(255,255,255,0.04); color: var(--text-primary); border: 1px solid var(--border); font-size: 18px; font-weight: 700; outline: none; box-sizing: border-box;">
-              <span style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); color: var(--primary); font-weight: 800; font-size: 16px;">€</span>
+              <input type="number" step="0.01" min="0" id="budget-modal-amount" placeholder="π.χ. 300"
+                style="width: 100%; padding: 14px 16px; border-radius: 14px; background: rgba(255,255,255,0.04); color: var(--text-primary); border: 1px solid var(--border); font-size: 18px; font-weight: 700; outline: none; box-sizing: border-box;">
+              <span
+                style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); color: var(--primary); font-weight: 800; font-size: 16px;">€</span>
             </div>
           </div>
 
           <!-- Quick-Add Amount Pills -->
           <div>
-            <span style="font-size: 10.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 6px;">Γρήγορη Επιλογή</span>
+            <span
+              style="font-size: 10.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 6px;">Γρήγορη
+              Επιλογή</span>
             <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-              <button type="button" onclick="setBudgetAmountPreset(50)" style="flex: 1; min-width: 60px; padding: 8px; border-radius: 10px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); color: var(--text-primary); font-size: 12.5px; font-weight: 600; cursor: pointer;">50€</button>
-              <button type="button" onclick="setBudgetAmountPreset(100)" style="flex: 1; min-width: 60px; padding: 8px; border-radius: 10px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); color: var(--text-primary); font-size: 12.5px; font-weight: 600; cursor: pointer;">100€</button>
-              <button type="button" onclick="setBudgetAmountPreset(200)" style="flex: 1; min-width: 60px; padding: 8px; border-radius: 10px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); color: var(--text-primary); font-size: 12.5px; font-weight: 600; cursor: pointer;">200€</button>
-              <button type="button" onclick="setBudgetAmountPreset(300)" style="flex: 1; min-width: 60px; padding: 8px; border-radius: 10px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); color: var(--text-primary); font-size: 12.5px; font-weight: 600; cursor: pointer;">300€</button>
-              <button type="button" onclick="setBudgetAmountPreset(500)" style="flex: 1; min-width: 60px; padding: 8px; border-radius: 10px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); color: var(--text-primary); font-size: 12.5px; font-weight: 600; cursor: pointer;">500€</button>
+              <button type="button" onclick="setBudgetAmountPreset(50)"
+                style="flex: 1; min-width: 60px; padding: 8px; border-radius: 10px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); color: var(--text-primary); font-size: 12.5px; font-weight: 600; cursor: pointer;">50€</button>
+              <button type="button" onclick="setBudgetAmountPreset(100)"
+                style="flex: 1; min-width: 60px; padding: 8px; border-radius: 10px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); color: var(--text-primary); font-size: 12.5px; font-weight: 600; cursor: pointer;">100€</button>
+              <button type="button" onclick="setBudgetAmountPreset(200)"
+                style="flex: 1; min-width: 60px; padding: 8px; border-radius: 10px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); color: var(--text-primary); font-size: 12.5px; font-weight: 600; cursor: pointer;">200€</button>
+              <button type="button" onclick="setBudgetAmountPreset(300)"
+                style="flex: 1; min-width: 60px; padding: 8px; border-radius: 10px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); color: var(--text-primary); font-size: 12.5px; font-weight: 600; cursor: pointer;">300€</button>
+              <button type="button" onclick="setBudgetAmountPreset(500)"
+                style="flex: 1; min-width: 60px; padding: 8px; border-radius: 10px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); color: var(--text-primary); font-size: 12.5px; font-weight: 600; cursor: pointer;">500€</button>
             </div>
           </div>
 
           <!-- Scope Selector (Personal vs Family) -->
           <div id="budget-modal-scope-container" style="display: flex; flex-direction: column; gap: 6px;">
-            <span style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Εμβέλεια (Scope)</span>
-            <div style="display: flex; background: rgba(0, 0, 0, 0.25); padding: 4px; border-radius: 14px; border: 1px solid var(--border); gap: 4px;">
-              <button type="button" id="budget-scope-personal" onclick="selectBudgetScope('personal')" style="flex: 1; padding: 10px; border-radius: 10px; font-size: 13px; font-weight: 600; border: none; background: var(--accent); color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;"><i class="fa-solid fa-user"></i> Προσωπικό</button>
-              <button type="button" id="budget-scope-family" onclick="selectBudgetScope('family')" style="flex: 1; padding: 10px; border-radius: 10px; font-size: 13px; font-weight: 600; border: none; background: transparent; color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;"><i class="fa-solid fa-users"></i> Οικογενειακό</button>
+            <span
+              style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Εμβέλεια
+              (Scope)</span>
+            <div
+              style="display: flex; background: rgba(0, 0, 0, 0.25); padding: 4px; border-radius: 14px; border: 1px solid var(--border); gap: 4px;">
+              <button type="button" id="budget-scope-personal" onclick="selectBudgetScope('personal')"
+                style="flex: 1; padding: 10px; border-radius: 10px; font-size: 13px; font-weight: 600; border: none; background: var(--accent); color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;"><i
+                  class="fa-solid fa-user"></i> Προσωπικό</button>
+              <button type="button" id="budget-scope-family" onclick="selectBudgetScope('family')"
+                style="flex: 1; padding: 10px; border-radius: 10px; font-size: 13px; font-weight: 600; border: none; background: transparent; color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;"><i
+                  class="fa-solid fa-users"></i> Οικογενειακό</button>
             </div>
             <input type="hidden" id="budget-modal-scope" value="personal">
           </div>
 
         </div>
-        <div class="modal-footer" style="padding: 14px 18px; border-top: 1px solid var(--border); background: rgba(255,255,255,0.02); display: flex; gap: 10px;">
-          <button type="button" id="budget-delete-btn" onclick="deleteSelectedCategoryBudget()" style="display: none; padding: 14px; border-radius: 16px; font-size: 14px; font-weight: 700; background: rgba(255, 91, 91, 0.15); border: 1px solid rgba(255, 91, 91, 0.3); color: var(--danger); cursor: pointer;"><i class="fa-regular fa-trash-can"></i></button>
-          <button type="button" onclick="saveCategoryBudgetFromModal()" style="flex: 1; padding: 14px; border-radius: 16px; font-size: 14.5px; font-weight: 700; background: var(--accent); color: white; border: none; cursor: pointer; text-align: center; box-shadow: 0 4px 14px rgba(0,0,0,0.2);">Αποθήκευση</button>
+        <div class="modal-footer"
+          style="padding: 14px 18px; border-top: 1px solid var(--border); background: rgba(255,255,255,0.02); display: flex; gap: 10px;">
+          <button type="button" id="budget-delete-btn" onclick="deleteSelectedCategoryBudget()"
+            style="display: none; padding: 14px; border-radius: 16px; font-size: 14px; font-weight: 700; background: rgba(255, 91, 91, 0.15); border: 1px solid rgba(255, 91, 91, 0.3); color: var(--danger); cursor: pointer;"><i
+              class="fa-regular fa-trash-can"></i></button>
+          <button type="button" onclick="saveCategoryBudgetFromModal()"
+            style="flex: 1; padding: 14px; border-radius: 16px; font-size: 14.5px; font-weight: 700; background: var(--accent); color: white; border: none; cursor: pointer; text-align: center; box-shadow: 0 4px 14px rgba(0,0,0,0.2);">Αποθήκευση</button>
         </div>
       </div>
     </div>
@@ -3957,7 +4051,7 @@
       // OTA updates. Running both would cause a reload loop that never
       // baked into the APK and never changes on a plain reload).
       // ============================================================
-      const CURRENT_BUILD = 1144;
+      const CURRENT_BUILD = 1145;
       (function () {
         // Skip entirely when running inside the native APK (Capacitor bridge
         // present). Capgo handles OTA updates there.

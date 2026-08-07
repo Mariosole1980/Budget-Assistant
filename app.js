@@ -971,7 +971,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1144 - 06/08/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1145 - 06/08/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1352,7 +1352,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1144 - 06/08/2026)',
+    app_version: 'Version 1.0.0 (build v1145 - 06/08/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -2280,6 +2280,38 @@ window.clearNotifications = clearNotifications;
 // DOMContentLoaded has already fired (e.g. when the OTA boot loader
 // injects app.js asynchronously via Blob URL AFTER the event fired).
 // ============================================================
+// COLD-START FADE-IN
+// After Android process death / activity recreation, the WebView reloads and
+// shows the dark launch background while content renders. This overlay (added
+// in index.html) covers the screen with the theme background color and is faded
+// out smoothly once the initial content render has painted, so the launch screen
+// transitions into the app content without an abrupt black flash.
+// ============================================================
+let _coldStartFadeDone = false;
+function fadeOutColdStartOverlay() {
+  if (_coldStartFadeDone) return;
+  _coldStartFadeDone = true;
+  const overlay = document.getElementById('cold-start-overlay');
+  if (!overlay) return;
+  // Force a reflow so the opacity transition actually animates from 1 -> 0.
+  void overlay.offsetHeight;
+  overlay.style.opacity = '0';
+  // Remove the overlay from the DOM after the transition completes so it never
+  // intercepts taps or lingers (pointer-events is already none, but clean up).
+  setTimeout(() => {
+    if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+  }, 500);
+}
+window.fadeOutColdStartOverlay = fadeOutColdStartOverlay;
+
+// SAFETY FALLBACK: If initApp() fails before reaching its fade-out trigger
+// (and recovery mode doesn't fire), force the cold-start overlay away after a
+// maximum delay so it never permanently blocks the UI.
+setTimeout(() => {
+  fadeOutColdStartOverlay();
+}, 5000);
+
+// ============================================================
 async function initApp() {
   if (isAndroid) {
     document.body.classList.add('is-android');
@@ -2541,6 +2573,18 @@ async function initApp() {
   });
   window._appLoaded = true;
   if (window._startupTimeout) clearTimeout(window._startupTimeout);
+
+  // COLD-START FADE-IN: The first updateUI() render is deferred by ~150ms
+  // (via _updateUIRAF). Wait for that deferred render to paint (double-rAF +
+  // a small buffer) before fading out the cold-start overlay, so the user sees
+  // the fully-rendered content fade in smoothly instead of an abrupt black flash.
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        fadeOutColdStartOverlay();
+      }, 120);
+    });
+  });
 }
 
 // Run initApp on DOMContentLoaded, OR (if the event has already fired,
