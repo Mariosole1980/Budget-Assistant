@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Android 12+ (API 31+) Splash API overrides.
+         The system splash screen background is controlled by
+         windowSplashScreenBackground (NOT android:background). Setting it to
+         @color/app_background (#181b22) ensures the native launch window matches
+         the app theme instead of showing a default (often black) background on
+         cold start / process death recreation. -->
+    <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
+        <item name="android:background">@color/app_background</item>
+        <item name="windowSplashScreenBackground">@color/app_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@android:color/transparent</item>
+        <item name="postSplashScreenTheme">@style/AppTheme</item>
+    </style>
+</resources>
