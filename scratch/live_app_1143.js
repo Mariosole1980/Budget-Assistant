@@ -971,7 +971,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1144 - 06/08/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1143 - 06/08/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1352,7 +1352,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1144 - 06/08/2026)',
+    app_version: 'Version 1.0.0 (build v1143 - 06/08/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -2454,22 +2454,19 @@ async function initApp() {
         return;
       }
 
-      pushNoTransition();
+      document.documentElement.classList.add('no-transition');
       restoreActiveModalsFromStorage();
-      // ANTI-FLICKER: Keep no-transition for the full resume guard window
-      // (_RESUME_GUARD_MS, ~1700ms) to cover the deferred updateUI render
-      // (700ms baseDelay when _appJustResumed is true) AND the 1500ms
-      // foreground sync. This ensures the tab re-render from the deferred
-      // updateUI is also invisible to the user, eliminating the second flash
-      // on resume. Uses the reference-counted guard so overlapping guards
-      // never prematurely remove the class.
+      // ANTI-FLICKER: Keep no-transition for 800ms to cover the full deferred
+      // updateUI window (700ms baseDelay when _appJustResumed is true).
+      // This ensures the tab re-render from the deferred updateUI is also
+      // invisible to the user, eliminating the second flash on resume.
       setTimeout(() => {
-        popNoTransition();
+        document.documentElement.classList.remove('no-transition');
         document.documentElement.classList.remove('modal-prerender');
         // Optional cleanup of the injected style tag
         const prerenderStyle = document.getElementById('prerender-modal-style');
         if (prerenderStyle) prerenderStyle.remove();
-      }, (typeof _RESUME_GUARD_MS === 'number' ? _RESUME_GUARD_MS : 1700));
+      }, 800);
     } catch (e) {
       console.warn('Failed to restore UI state without transitions:', e);
     }
@@ -5243,33 +5240,6 @@ let _updateUITimer = null;
 let _updateUIRAF = null;
 let _updateUIDirty = false;
 
-// ============================================================
-// ANTI-FLICKER: Reference-counted no-transition guard.
-//
-// PROBLEM: Multiple independent code paths (resume handler, forceSyncNow,
-// realtime handlers, modal restore) each add/remove the 'no-transition' class
-// on their own setTimeout. When they overlap (e.g. the resume handler's 1700ms
-// removal fires while forceSyncNow's deferred render is still pending), one
-// path can prematurely remove the class that another path is relying on,
-// leaving a deferred re-render UNCOVERED → visible flash on resume.
-//
-// SOLUTION: A counter. pushNoTransition() increments and adds the class;
-// popNoTransition() decrements and only removes the class when the counter
-// reaches zero. This guarantees the class stays active until EVERY guard has
-// released it, so no deferred render ever runs with transitions enabled.
-// ============================================================
-let _noTransitionCount = 0;
-function pushNoTransition() {
-  _noTransitionCount++;
-  document.documentElement.classList.add('no-transition');
-}
-function popNoTransition() {
-  _noTransitionCount = Math.max(0, _noTransitionCount - 1);
-  if (_noTransitionCount === 0) {
-    document.documentElement.classList.remove('no-transition');
-  }
-}
-
 function _runScheduledRender() {
   _updateUITimer = null;
   _updateUIRAF = null;
@@ -5280,13 +5250,13 @@ function _runScheduledRender() {
   // so the tab content does not visibly flash. This covers the full-reload
   // path that forceSyncNow's own guard cannot reach.
   const suppress = !!window._suppressTransitions;
-  if (suppress) pushNoTransition();
+  if (suppress) document.documentElement.classList.add('no-transition');
   try {
     _updateUIImpl();
   } finally {
     if (suppress) {
       setTimeout(() => {
-        popNoTransition();
+        document.documentElement.classList.remove('no-transition');
       }, 1000);
     }
   }
@@ -5303,10 +5273,8 @@ function updateUI() {
   _updateUIDirty = true;
 
   // ANTI-FLICKER: If the app just resumed from background, defer rendering
-  // until after the resume guard window expires. This prevents the DOM wipe
-  // from being visible during the resume animation frame. The guard window
-  // (_RESUME_GUARD_MS, ~1700ms) covers the full resume sequence including the
-  // 1500ms foreground sync and any realtime events that fire after re-subscribing.
+  // until after the 600ms resume guard window expires. This prevents the
+  // DOM wipe from being visible during the resume animation frame.
   const baseDelay = window._appJustResumed ? 700 : 0;
 
   if (baseDelay > 0) {
@@ -20742,18 +20710,7 @@ function handleRealtimeTransactionChange(payload) {
     localStorage.setItem('offline_transactions', JSON.stringify(trans));
 
     calculateInitialBalances();
-    // ANTI-FLICKER: If the app just resumed, wrap the re-render in no-transition
-    // so a realtime event arriving during the resume window (after re-subscribing)
-    // does not cause a visible flash. updateUI() defers the render by 700ms when
-    // _appJustResumed is true, so keep no-transition active long enough to cover it.
-    // Uses the reference-counted guard so overlapping guards never race.
-    if (window._appJustResumed) pushNoTransition();
     updateUI();
-    if (window._appJustResumed) {
-      setTimeout(() => {
-        popNoTransition();
-      }, 800);
-    }
 
     if (insertedByPartner) {
       showSyncToast('📥 Νέα κίνηση προστέθηκε από άλλο μέλος', 3000);
@@ -20788,17 +20745,7 @@ function handleRealtimeCategoryChange(payload) {
   state.categories = cats;
   localStorage.setItem('offline_categories', JSON.stringify(cats));
 
-  // ANTI-FLICKER: If the app just resumed, wrap the re-render in no-transition
-  // so a realtime category event arriving during the resume window does not
-  // cause a visible flash (same guard as handleRealtimeTransactionChange).
-  // Uses the reference-counted guard so overlapping guards never race.
-  if (window._appJustResumed) pushNoTransition();
   updateUI();
-  if (window._appJustResumed) {
-    setTimeout(() => {
-      popNoTransition();
-    }, 800);
-  }
 }
 
 window.generateUUID = generateUUID;
@@ -21077,17 +21024,15 @@ async function forceSyncNow(silent = false) {
       // that DOM mutations from forceSyncNow are invisible to the user.
       // Without this, the tab re-render caused by the 8s post-resume sync
       // appears as a visible flash on Android.
-      pushNoTransition();
+      document.documentElement.classList.add('no-transition');
       updateUI();
       // ANTI-FLICKER FIX: updateUI() defers the actual _updateUIImpl() re-render
       // via setTimeout (150ms normally, 700ms if _appJustResumed). Removing
       // no-transition after only 2 rAFs (~32ms) meant the deferred re-render ran
       // with transitions ENABLED, causing a visible flash on resume. Keep
       // no-transition active long enough to cover the deferred render window.
-      // Uses the reference-counted guard so the resume handler's guard is not
-      // prematurely removed by this path (and vice versa).
       setTimeout(() => {
-        popNoTransition();
+        document.documentElement.classList.remove('no-transition');
       }, 1000);
     } else {
       console.log('[SYNC] No data change detected — skipping UI refresh to prevent flickering.');
@@ -21209,37 +21154,24 @@ function handleAppForegroundSync() {
 // Capacitor appStateChange fire simultaneously), the restore + guard logic
 // runs only ONCE per resume event instead of 4 times in 150ms.
 let _resumeDebounceTimer = null;
-// ANTI-FLICKER: The resume guard window must cover the ENTIRE resume sequence,
-// not just the first 600ms. The foreground sync runs at 1500ms and realtime
-// events can fire at any moment after re-subscribing. If _appJustResumed is
-// cleared before those deferred renders run, updateUI() falls back to an
-// immediate render WITH transitions enabled → visible flash on resume.
-// We keep the guard active until the 1500ms foreground sync has completed.
-const _RESUME_GUARD_MS = 1700;
 function _handleAppResumed() {
   document.body.classList.add('no-transitions');
-  setTimeout(() => { document.body.classList.remove('no-transitions'); }, _RESUME_GUARD_MS);
+  setTimeout(() => { document.body.classList.remove('no-transitions'); }, 600);
   if (_resumeDebounceTimer) return; // already scheduled this resume cycle
   _resumeDebounceTimer = setTimeout(() => { _resumeDebounceTimer = null; }, 500);
 
-  // Set guard to block spurious closeModal calls during the resume transition.
-  // Extended to cover the full resume+sync window so updateUI() defers every
-  // render (modal restore, realtime events, foreground sync) until the resume
-  // animation is fully complete — eliminating the flash.
+  // Set guard to block spurious closeModal calls during the resume transition
   window._appJustResumed = true;
-  setTimeout(() => { window._appJustResumed = false; }, _RESUME_GUARD_MS);
+  setTimeout(() => { window._appJustResumed = false; }, 600);
 
   // ANTI-FLICKER: Immediately suppress all CSS transitions on resume.
   // This covers BOTH the modal restore AND the deferred updateUI tab re-render
   // (which fires at 700ms when _appJustResumed is true). Without this, the
   // tab content flashes visibly as elements animate in from their default states.
-  // Extended to cover the full 1500ms foreground sync + deferred render window.
-  // Uses the reference-counted guard so overlapping guards (forceSyncNow,
-  // realtime handlers) never prematurely remove the class.
-  pushNoTransition();
+  document.documentElement.classList.add('no-transition');
   setTimeout(() => {
-    popNoTransition();
-  }, _RESUME_GUARD_MS);
+    document.documentElement.classList.remove('no-transition');
+  }, 800);
 
   // Restore modals that were open before backgrounding.
   // Single call only — the old 150ms safety-net second call caused an extra
