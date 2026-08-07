@@ -65,7 +65,7 @@
               ${devButton}
             </div>
             <div style="font-size:11px;color:#8b949e;">
-              Budget Assistant • build v1137
+              Budget Assistant • build v1138
             </div>
           </div>
         `;
@@ -1280,22 +1280,22 @@
     <!-- ============================================== -->
     <div id="notes-manager-modal" class="modal-overlay">
       <div class="modal-content" style="display: flex; flex-direction: column; height: 88vh; max-height: 88vh; border-radius: 20px 20px 0 0;">
-        <div class="modal-header" style="padding: 14px 16px;">
-          <button type="button" class="icon-btn" onclick="closeModal('notes-manager-modal')"><i
-              class="fa-solid fa-arrow-left"></i></button>
-          <h3 class="modal-title" style="display: flex; align-items: center; gap: 8px; font-weight: 700; font-family: 'Outfit', sans-serif;">
-            📝 <span data-i18n="notes_manager_title">Σημειωματάριο &amp; Checklists</span>
-            <span id="notes-manager-count-badge" class="badge"
-              style="background: var(--accent); color: white; font-size: 11px; padding: 2px 7px; border-radius: 10px; font-weight: 700; display: none;">0</span>
-          </h3>
-          <div style="display: flex; align-items: center; gap: 8px;">
+        <div class="modal-header" style="padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0;">
+            <button type="button" class="icon-btn" onclick="closeModal('notes-manager-modal')" style="flex-shrink: 0;"><i class="fa-solid fa-arrow-left"></i></button>
+            <h3 class="modal-title" style="font-weight: 700; font-family: 'Outfit', sans-serif; font-size: 15px; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 6px;">
+              <span>📝 Σημειωματάριο</span>
+              <span id="notes-manager-count-badge" class="badge" style="background: #6366f1; color: white; font-size: 10px; padding: 2px 6px; border-radius: 10px; font-weight: 700; display: none;">0</span>
+            </h3>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
             <button type="button" class="icon-btn" id="notes-view-toggle-btn" onclick="toggleNotesViewMode()"
-              style="font-size: 15px; color: var(--text-secondary); background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 8px; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; cursor: pointer;"
-              title="Εναλλαγή προβολής (Πλέγμα/Λίστα)">
+              style="font-size: 14px; color: var(--text-secondary); background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 8px; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; cursor: pointer;"
+              title="Εναλλαγή προβολής">
               <i class="fa-solid fa-border-all"></i>
             </button>
             <button class="btn btn-primary" id="notes-manager-add-btn"
-              style="padding: 7px 14px; font-size: 12.5px; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 6px; border-radius: 10px; cursor: pointer; background: linear-gradient(135deg, var(--accent), var(--accent-hover, #6366f1)); box-shadow: 0 4px 12px rgba(var(--accent-rgb, 124, 106, 247), 0.3);">
+              style="padding: 6px 14px; font-size: 12.5px; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 6px; border-radius: 8px; cursor: pointer; background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; border: none; box-shadow: 0 3px 10px rgba(99, 102, 241, 0.35);">
               <i class="fa-solid fa-plus"></i> <span data-i18n="new_note_btn">Νέα</span>
             </button>
           </div>
@@ -1303,31 +1303,33 @@
 
         <div class="modal-body"
           style="padding: 12px 16px 16px 16px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 10px; min-height: 0;">
-          <!-- Notes Search bar -->
-          <div class="search-input-wrapper-modern"
-            style="background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 12px; padding: 8px 12px; display: flex; align-items: center; gap: 10px; box-sizing: border-box; width: 100%;">
-            <i class="fa-solid fa-magnifying-glass" style="color: var(--text-muted); font-size: 13.5px;"></i>
-            <input type="text" id="notes-manager-search-input" placeholder="Αναζήτηση σημειώσεων..."
-              style="background: transparent; border: none; outline: none; color: var(--text-primary); font-size: 13.5px; flex: 1; padding: 0;">
-          </div>
+          
+          <!-- Search & Filters Container -->
+          <div style="display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; width: 100%;">
+            <!-- Slim Search Input Wrapper -->
+            <div class="notes-search-wrapper">
+              <i class="fa-solid fa-magnifying-glass" style="color: var(--text-muted); font-size: 13px;"></i>
+              <input type="text" id="notes-manager-search-input" placeholder="Αναζήτηση σημειώσεων..." oninput="renderNotesList()">
+            </div>
 
-          <!-- Category Filter Chips Bar -->
-          <div class="notes-filter-bar" id="notes-filter-bar">
-            <button type="button" class="notes-filter-chip active" data-filter="all" onclick="setNotesFilterCategory('all')">
-              <i class="fa-solid fa-layer-group"></i> <span>Όλες</span>
-            </button>
-            <button type="button" class="notes-filter-chip" data-filter="pinned" onclick="setNotesFilterCategory('pinned')">
-              <i class="fa-solid fa-thumbtack" style="color:#f59e0b;"></i> <span>Καρφιτσωμένες</span>
-            </button>
-            <button type="button" class="notes-filter-chip" data-filter="text" onclick="setNotesFilterCategory('text')">
-              <i class="fa-regular fa-file-lines"></i> <span>Σημειώσεις</span>
-            </button>
-            <button type="button" class="notes-filter-chip" data-filter="checklist" onclick="setNotesFilterCategory('checklist')">
-              <i class="fa-solid fa-list-check" style="color:var(--accent);"></i> <span>Checklists</span>
-            </button>
-            <button type="button" class="notes-filter-chip" data-filter="reminder" onclick="setNotesFilterCategory('reminder')">
-              <i class="fa-regular fa-bell" style="color:#34d399;"></i> <span>Υπενθυμίσεις</span>
-            </button>
+            <!-- Category Filter Chips Bar -->
+            <div class="notes-filter-bar" id="notes-filter-bar">
+              <button type="button" class="notes-filter-chip active" data-filter="all" onclick="setNotesFilterCategory('all')">
+                <i class="fa-solid fa-layer-group"></i> <span>Όλες</span>
+              </button>
+              <button type="button" class="notes-filter-chip" data-filter="pinned" onclick="setNotesFilterCategory('pinned')">
+                <i class="fa-solid fa-thumbtack" style="color:#f59e0b;"></i> <span>Καρφιτσωμένες</span>
+              </button>
+              <button type="button" class="notes-filter-chip" data-filter="text" onclick="setNotesFilterCategory('text')">
+                <i class="fa-regular fa-file-lines"></i> <span>Σημειώσεις</span>
+              </button>
+              <button type="button" class="notes-filter-chip" data-filter="checklist" onclick="setNotesFilterCategory('checklist')">
+                <i class="fa-solid fa-list-check" style="color:#818cf8;"></i> <span>Checklists</span>
+              </button>
+              <button type="button" class="notes-filter-chip" data-filter="reminder" onclick="setNotesFilterCategory('reminder')">
+                <i class="fa-regular fa-bell" style="color:#10b981;"></i> <span>Υπενθυμίσεις</span>
+              </button>
+            </div>
           </div>
 
           <!-- Notes list container -->
@@ -2101,7 +2103,7 @@
             <div class="settings-list-item version-info-row"
               style="padding: 14px 16px; background: transparent; border-top: 1px solid var(--border); margin-top: 8px;">
               <span class="settings-item-label" style="color:var(--text-muted); font-size:12px;"
-                data-i18n="app_version">Έκδοση 1.0.0 (build v1137)</span>
+                data-i18n="app_version">Έκδοση 1.0.0 (build v1138)</span>
               <span class="settings-item-value" style="font-size:12px; color:var(--text-muted); font-weight:600;">Budget
                 Assistant</span>
             </div>
@@ -3955,7 +3957,7 @@
       // OTA updates. Running both would cause a reload loop that never
       // baked into the APK and never changes on a plain reload).
       // ============================================================
-      const CURRENT_BUILD = 1137;
+      const CURRENT_BUILD = 1138;
       (function () {
         // Skip entirely when running inside the native APK (Capacitor bridge
         // present). Capgo handles OTA updates there.
