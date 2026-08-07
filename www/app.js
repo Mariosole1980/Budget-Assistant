@@ -971,7 +971,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1139 - 06/08/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1141 - 06/08/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1352,7 +1352,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1139 - 06/08/2026)',
+    app_version: 'Version 1.0.0 (build v1141 - 06/08/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -6558,7 +6558,9 @@ function renderCategoryBudgetsView(catGroups = {}) {
     }
 
     const scopeIcon = b.scope === 'family' ? '<i class="fa-solid fa-users" style="font-size:11px; margin-left:4px; color:var(--primary);" title="Οικογενειακό"></i>' : '';
-    const titleLabel = b.subcategory ? `${catInfo.name || b.category} <span style="font-size:12px; opacity:0.75; font-weight:600;">(${b.subcategory})</span>` : (catInfo.name || b.category);
+    // Strip leading emoji from the name since the icon is already shown in the colored box
+    const cleanCatName = stripLeadingEmoji(catInfo.name || b.category).trim() || (catInfo.name || b.category);
+    const titleLabel = b.subcategory ? `${cleanCatName} <span style="font-size:12px; opacity:0.75; font-weight:600;">(${b.subcategory})</span>` : cleanCatName;
 
     return `
       <div class="budget-cat-row ${isOver ? 'over-budget' : ''}" style="background: var(--bg-card); border: 1px solid ${isOver ? 'rgba(255, 91, 91, 0.4)' : 'var(--border)'}; border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px;">
@@ -6874,7 +6876,7 @@ function renderCategoryBudgetsView(catGroups = {}) {
               ${catInfo.icon}
             </div>
             <div style="display: flex; flex-direction: column; min-width: 0;">
-              <span style="font-size: 14.5px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 4px; word-break: break-word;">${catInfo.name || b.category}${scopeIcon}</span>
+              <span style="font-size: 14.5px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 4px; word-break: break-word;">${stripLeadingEmoji(catInfo.name || b.category).trim() || (catInfo.name || b.category)}${scopeIcon}</span>
               <span style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">${symbol} ${formatDisplayAmount(spent, displayCurrency)} / ${symbol} ${formatDisplayAmount(budgetAmountInDisplay, displayCurrency)}</span>
             </div>
           </div>
@@ -16376,7 +16378,7 @@ function renderNotesList() {
       let items = [];
       try {
         items = JSON.parse(note.body || '[]');
-      } catch (e) {}
+      } catch (e) { }
 
       if (items.length === 0) {
         cardBody.style.fontStyle = 'italic';
