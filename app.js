@@ -971,7 +971,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1141 - 06/08/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1142 - 06/08/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1352,7 +1352,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1141 - 06/08/2026)',
+    app_version: 'Version 1.0.0 (build v1142 - 06/08/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -6679,7 +6679,8 @@ function openCategoryBudgetModal(targetCategoryName = null, targetSubcategory = 
 
   expenseCats.forEach(c => {
     const catInfo = getCategoryInfo(c.name, 'expense');
-    const cleanName = catInfo.name || c.name;
+    // Strip leading emoji from the name since the icon is prepended separately
+    const cleanName = stripLeadingEmoji(catInfo.name || c.name).trim() || (catInfo.name || c.name);
     if (!seenCats.has(cleanName)) {
       seenCats.add(cleanName);
       const opt = document.createElement('option');
@@ -6946,8 +6947,10 @@ function openCategoryBudgetModal(targetCategoryName = null) {
   const expenseCats = (state.categories || []).filter(c => c && (c.type === 'expense' || !c.type));
   expenseCats.forEach(c => {
     const opt = document.createElement('option');
-    opt.value = c.name;
-    opt.textContent = `${c.icon} ${c.name}`;
+    // Strip leading emoji from the name since the icon is prepended separately
+    const cleanName = stripLeadingEmoji(c.name).trim() || c.name;
+    opt.value = cleanName;
+    opt.textContent = `${c.icon} ${cleanName}`;
     catSelect.appendChild(opt);
   });
 
