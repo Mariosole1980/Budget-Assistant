@@ -8364,10 +8364,10 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
 }
 
 .notes-filter-chip.active {
-  background: linear-gradient(135deg, #6366f1, #4f46e5) !important;
-  border-color: #6366f1 !important;
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
   color: #ffffff !important;
-  box-shadow: 0 3px 10px rgba(99, 102, 241, 0.35);
+  box-shadow: 0 3px 10px rgba(var(--accent-rgb, 224, 94, 85), 0.35);
 }
 
 /* Notes Grid / List Layout */

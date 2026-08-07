@@ -971,7 +971,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1138 - 06/08/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1139 - 06/08/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1352,7 +1352,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1138 - 06/08/2026)',
+    app_version: 'Version 1.0.0 (build v1139 - 06/08/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -6912,7 +6912,7 @@ function renderCategoryBudgetsView(catGroups = {}) {
       </div>
       <div>
         <div style="height: 10px; border-radius: 6px; background: rgba(255, 255, 255, 0.08); width: 100%; overflow: hidden; position: relative;">
-          <div style="height: 100%; border-radius: 6px; width: ${Math.min(100, overallPct)}%; background: linear-gradient(90deg, #7c6af7 0%, #6366f1 100%); transition: width 0.4s ease;"></div>
+          <div style="height: 100%; border-radius: 6px; width: ${Math.min(100, overallPct)}%; background: var(--accent); transition: width 0.4s ease;"></div>
         </div>
         <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-top: 6px;">
           <span>${lang === 'el' ? `Απομένουν ${remainingDays} ημέρες` : `${remainingDays} days remaining`}</span>
@@ -16327,14 +16327,14 @@ function renderNotesList() {
   if (sorted.length === 0) {
     listEl.innerHTML = `
       <div style="grid-column: 1 / -1; text-align: center; padding: 40px 16px; color: var(--text-muted); font-size: 13.5px; font-family: 'Outfit', sans-serif; box-sizing: border-box; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; min-height: 220px;">
-        <div style="width: 56px; height: 56px; border-radius: 50%; background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.25); display: flex; align-items: center; justify-content: center; font-size: 24px; color: #818cf8;">
+        <div style="width: 56px; height: 56px; border-radius: 50%; background: rgba(var(--accent-rgb, 224, 94, 85), 0.12); border: 1px solid rgba(var(--accent-rgb, 224, 94, 85), 0.25); display: flex; align-items: center; justify-content: center; font-size: 24px; color: var(--accent);">
           <i class="fa-regular fa-note-sticky"></i>
         </div>
         <div style="display: flex; flex-direction: column; gap: 4px;">
           <span style="font-weight: 700; font-size: 15px; color: var(--text-primary);">${state.lang === 'el' ? 'Δεν υπάρχουν σημειώσεις' : 'No notes found'}</span>
           <span style="font-size: 12px; color: var(--text-muted);">${state.lang === 'el' ? 'Δημιουργήστε την πρώτη σας σημείωση ή checklist!' : 'Create your first note or checklist!'}</span>
         </div>
-        <button type="button" onclick="openNoteEditor()" style="margin-top: 4px; padding: 9px 20px; font-size: 12.5px; font-weight: 700; border-radius: 20px; background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; border: none; cursor: pointer; box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35); display: flex; align-items: center; gap: 6px;">
+        <button type="button" onclick="openNoteEditor()" style="margin-top: 4px; padding: 9px 20px; font-size: 12.5px; font-weight: 700; border-radius: 20px; background: var(--accent); color: white; border: none; cursor: pointer; box-shadow: 0 4px 14px rgba(var(--accent-rgb, 224, 94, 85), 0.35); display: flex; align-items: center; gap: 6px;">
           <i class="fa-solid fa-plus"></i> ${state.lang === 'el' ? 'Δημιουργία Νέας' : 'Create New'}
         </button>
       </div>

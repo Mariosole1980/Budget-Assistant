@@ -65,7 +65,7 @@
               ${devButton}
             </div>
             <div style="font-size:11px;color:#8b949e;">
-              Budget Assistant • build v1138
+              Budget Assistant • build v1139
             </div>
           </div>
         `;
@@ -1285,7 +1285,7 @@
             <button type="button" class="icon-btn" onclick="closeModal('notes-manager-modal')" style="flex-shrink: 0;"><i class="fa-solid fa-arrow-left"></i></button>
             <h3 class="modal-title" style="font-weight: 700; font-family: 'Outfit', sans-serif; font-size: 15px; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 6px;">
               <span>📝 Σημειωματάριο</span>
-              <span id="notes-manager-count-badge" class="badge" style="background: #6366f1; color: white; font-size: 10px; padding: 2px 6px; border-radius: 10px; font-weight: 700; display: none;">0</span>
+              <span id="notes-manager-count-badge" class="badge" style="background: var(--accent); color: white; font-size: 10px; padding: 2px 6px; border-radius: 10px; font-weight: 700; display: none;">0</span>
             </h3>
           </div>
           <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
@@ -1295,7 +1295,7 @@
               <i class="fa-solid fa-border-all"></i>
             </button>
             <button class="btn btn-primary" id="notes-manager-add-btn"
-              style="padding: 6px 14px; font-size: 12.5px; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 6px; border-radius: 8px; cursor: pointer; background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; border: none; box-shadow: 0 3px 10px rgba(99, 102, 241, 0.35);">
+              style="padding: 6px 14px; font-size: 12.5px; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 6px; border-radius: 8px; cursor: pointer; background: var(--accent); color: white; border: none; box-shadow: 0 3px 10px rgba(var(--accent-rgb, 224, 94, 85), 0.35);">
               <i class="fa-solid fa-plus"></i> <span data-i18n="new_note_btn">Νέα</span>
             </button>
           </div>
@@ -1324,7 +1324,7 @@
                 <i class="fa-regular fa-file-lines"></i> <span>Σημειώσεις</span>
               </button>
               <button type="button" class="notes-filter-chip" data-filter="checklist" onclick="setNotesFilterCategory('checklist')">
-                <i class="fa-solid fa-list-check" style="color:#818cf8;"></i> <span>Checklists</span>
+                <i class="fa-solid fa-list-check" style="color:var(--accent);"></i> <span>Checklists</span>
               </button>
               <button type="button" class="notes-filter-chip" data-filter="reminder" onclick="setNotesFilterCategory('reminder')">
                 <i class="fa-regular fa-bell" style="color:#10b981;"></i> <span>Υπενθυμίσεις</span>
@@ -2103,7 +2103,7 @@
             <div class="settings-list-item version-info-row"
               style="padding: 14px 16px; background: transparent; border-top: 1px solid var(--border); margin-top: 8px;">
               <span class="settings-item-label" style="color:var(--text-muted); font-size:12px;"
-                data-i18n="app_version">Έκδοση 1.0.0 (build v1138)</span>
+                data-i18n="app_version">Έκδοση 1.0.0 (build v1139)</span>
               <span class="settings-item-value" style="font-size:12px; color:var(--text-muted); font-weight:600;">Budget
                 Assistant</span>
             </div>
@@ -2934,7 +2934,7 @@
           </div>
 
           <div class="export-period-card" id="export-opt-prev-year" onclick="selectExportOption('prev-year')">
-            <div class="export-period-icon-wrapper" style="background: rgba(99, 102, 241, 0.15); color: #6366f1;">
+            <div class="export-period-icon-wrapper" style="background: rgba(var(--accent-rgb, 224, 94, 85), 0.15); color: var(--accent);">
               <i class="fa-regular fa-calendar"></i>
             </div>
             <div class="export-period-info">
@@ -3607,7 +3607,7 @@
         <div class="modal-footer"
           style="padding: 14px 18px; border-top: 1px solid var(--border); background: rgba(255,255,255,0.02);">
           <button type="button" class="btn-primary" onclick="saveRecurringSettings()"
-            style="width: 100%; padding: 14px; border-radius: 16px; font-size: 14.5px; font-weight: 700; background: linear-gradient(135deg, #7c6af7 0%, #6366f1 100%); color: white; border: none; cursor: pointer; text-align: center; box-shadow: 0 6px 20px rgba(124, 106, 247, 0.25);">Επιβεβαίωση</button>
+            style="width: 100%; padding: 14px; border-radius: 16px; font-size: 14.5px; font-weight: 700; background: var(--accent); color: white; border: none; cursor: pointer; text-align: center; box-shadow: 0 6px 20px rgba(var(--accent-rgb, 224, 94, 85), 0.25);">Επιβεβαίωση</button>
         </div>
       </div>
     </div>
@@ -3957,7 +3957,7 @@
       // OTA updates. Running both would cause a reload loop that never
       // baked into the APK and never changes on a plain reload).
       // ============================================================
-      const CURRENT_BUILD = 1138;
+      const CURRENT_BUILD = 1139;
       (function () {
         // Skip entirely when running inside the native APK (Capacitor bridge
         // present). Capgo handles OTA updates there.
