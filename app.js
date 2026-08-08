@@ -973,7 +973,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1147 - 06/08/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1148 - 06/08/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1356,7 +1356,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1147 - 06/08/2026)',
+    app_version: 'Version 1.0.0 (build v1148 - 06/08/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -22187,7 +22187,7 @@ function initBackdropTapHandlers() {
   // Modals that are FULL-SCREEN (no visible background to tap) should NOT close
   // on backdrop tap. These are the full-screen overlays where the card fills the
   // entire screen, so there is no "empty space on top" showing the background.
-  const fullScreenModals = ['transaction-modal', 'advisor-chat-modal', 'profile-settings-modal'];
+  const fullScreenModals = ['transaction-modal', 'profile-settings-modal'];
 
   // Mark a close as user-initiated so it bypasses the resume anti-ghost-click guard.
   // This makes back arrows and backdrop taps respond INSTANTLY with no lag.
@@ -26596,6 +26596,10 @@ window.closeAdvisorChat = closeAdvisorChat;
 window.submitCoachInput = submitCoachInput;
 window.submitCoachQuery = submitCoachQuery;
 window.handleAdvisorChatKeydown = handleAdvisorChatKeydown;
+window.startNewAdvisorConversation = startNewAdvisorConversation;
+window.showAdvisorConversationList = showAdvisorConversationList;
+window.deleteAdvisorConversation = deleteAdvisorConversation;
+window.openAdvisorConversation = openAdvisorConversation;
 window.openRecurringTemplatesModal = openRecurringTemplatesModal;
 window.deleteRecurringTemplate = deleteRecurringTemplate;
 window.openRecurringDetailsModal = openRecurringDetailsModal;
