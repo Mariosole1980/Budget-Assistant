@@ -974,7 +974,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1158 - 06/08/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1159 - 06/08/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1358,7 +1358,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1158 - 06/08/2026)',
+    app_version: 'Version 1.0.0 (build v1159 - 06/08/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -28108,17 +28108,21 @@ function renderUserGuideContent(query = '') {
 
   let html = '';
 
-  // Table of Contents
+  // Table of Contents (2-Column Quick Navigation Grid)
   if (!q) {
+    const tocTitleText = lang === 'el' ? '📑 Γρήγορη Πλοήγηση' : '📑 Quick Navigation';
     html += `
-      <div class="guide-toc-box">
-        <div class="guide-toc-title"><i class="fa-solid fa-list-ol" style="color:var(--primary);"></i> ${data.tocTitle}</div>
-        <div class="guide-toc-list">
+      <div class="guide-toc-section">
+        <div class="guide-toc-title"><i class="fa-solid fa-compass" style="color:var(--accent);"></i> ${tocTitleText}</div>
+        <div class="guide-toc-grid">
     `;
     data.chapters.forEach(chap => {
+      // Strip chapter numbering for clean card label
+      const cardTitle = chap.title.replace(/^\d+\.\s*/, '');
       html += `
-        <div class="guide-toc-item" onclick="jumpToGuideChapter('${chap.id}')">
-          <i class="fa-solid ${chap.icon}"></i> ${chap.title}
+        <div class="guide-toc-card" onclick="jumpToGuideChapter('${chap.id}')" title="${chap.title}">
+          <div class="guide-toc-icon"><i class="fa-solid ${chap.icon}"></i></div>
+          <div class="guide-toc-text">${cardTitle}</div>
         </div>
       `;
     });
