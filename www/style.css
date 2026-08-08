@@ -7926,7 +7926,7 @@ mark.guide-highlight {
   cursor: pointer;
   transition: var(--transition);
   box-sizing: border-box;
-  min-height: 60px;
+  min-height: 56px;
 }
 
 #hub-row-legal {
