@@ -748,12 +748,12 @@ const TRANSLATIONS = {
     settings_recurring_option: 'Επαναλαμβανόμενα',
     settings_recurring_desc: 'Προγραμματισμένα έξοδα, έσοδα & πάγιες εντολές',
     settings_categories_option: 'Κατηγορίες',
-    settings_categories_desc: 'Κατηγορίες, υποκατηγορίες & όρια προϋπολογισμού',
+    settings_categories_desc: 'Κατηγορίες & υποκατηγορίες',
     settings_trash_option: 'Κάδος Ανακύκλωσης',
     settings_trash_desc: 'Επαναφορά ή οριστική διαγραφή συναλλαγών',
     settings_sync_option: 'Συγχρονισμός & Cloud',
     settings_sync_desc: 'Συγχρονισμός Cloud, Εισαγωγή & Εξαγωγή Excel/CSV',
-    settings_data_desc: 'Συγχρονισμός Cloud, Εισαγωγή & Εξαγωγή Excel/CSV',
+    settings_data_desc: 'Συγχρονισμός Cloud, Εισαγωγή & Εξαγωγή δεδομένων',
     settings_security_desc: 'Κλείδωμα με PIN, Βιομετρικά & αυτόματο κλείδωμα',
     settings_family_option: 'Οικογένεια',
     settings_family_desc: 'Σύνδεση μελών & κοινό πορτοφόλι',
@@ -973,7 +973,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1149 - 06/08/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1151 - 06/08/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1131,12 +1131,12 @@ const TRANSLATIONS = {
     settings_recurring_option: 'Recurring',
     settings_recurring_desc: 'Scheduled expenses, income & recurring rules',
     settings_categories_option: 'Categories',
-    settings_categories_desc: 'Categories, subcategories & budget limits',
+    settings_categories_desc: 'Categories & subcategories',
     settings_trash_option: 'Trash Bin',
     settings_trash_desc: 'Restore or permanently delete transactions',
     settings_sync_option: 'Sync & Cloud',
     settings_sync_desc: 'Cloud sync, Excel/CSV import & export',
-    settings_data_desc: 'Cloud sync, Excel/CSV import & export',
+    settings_data_desc: 'Cloud sync, Data import & export',
     settings_security_desc: 'PIN lock, Biometrics & auto-lock',
     settings_family_option: 'Family',
     settings_family_desc: 'Connect family members & shared wallet',
@@ -1356,7 +1356,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1149 - 06/08/2026)',
+    app_version: 'Version 1.0.0 (build v1151 - 06/08/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -18258,18 +18258,6 @@ function openSettingsPicker(type) {
         colors: ['#261720', '#fb7185', '#180e14']
       },
       {
-        id: 'emerald',
-        title: 'Emerald Forest',
-        desc: state.lang === 'el' ? 'Βαθύ πράσινο' : 'Deep emerald green',
-        colors: ['#182823', '#10b981', '#121f1b']
-      },
-      {
-        id: 'ocean',
-        title: 'Ocean Breeze',
-        desc: state.lang === 'el' ? 'Νυχτερινό μπλε & κυανό' : 'Midnight blue & cyan',
-        colors: ['#1c2541', '#06b6d4', '#0b1329']
-      },
-      {
         id: 'cyber',
         title: 'Cyber Neon',
         desc: state.lang === 'el' ? 'Φουτουριστικό νέον βιολετί' : 'Cyberpunk neon violet',
@@ -18296,6 +18284,7 @@ function openSettingsPicker(type) {
       card.onclick = () => {
         changeThemeSetting(t.id);
         updateUI();
+        updateSettingsDisplay();
         closeModal('settings-picker-modal');
       };
       container.appendChild(card);

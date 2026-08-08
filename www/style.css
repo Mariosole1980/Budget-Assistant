@@ -7918,7 +7918,7 @@ mark.guide-highlight {
 
 .settings-list-item {
   background-color: var(--bg-card);
-  padding: 14px 16px;
+  padding: 18px 16px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -7926,11 +7926,11 @@ mark.guide-highlight {
   cursor: pointer;
   transition: var(--transition);
   box-sizing: border-box;
-  min-height: 56px;
+  min-height: 64px;
 }
 
 #hub-row-legal {
-  padding: 14px 16px !important;
+  padding: 18px 16px !important;
   box-sizing: border-box !important;
 }
 
@@ -8109,7 +8109,7 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
   height: 20px;
   border-radius: 50%;
   border: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
 }
 
 .theme-card-title {
@@ -8391,6 +8391,7 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
   scrollbar-width: none;
   flex-shrink: 0;
 }
+
 .notes-filter-bar::-webkit-scrollbar {
   display: none;
 }
@@ -8440,6 +8441,7 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
     grid-template-columns: repeat(2, 1fr);
     gap: 10px;
   }
+
   .notes-grid-container.list-view {
     grid-template-columns: 1fr;
     gap: 10px;
@@ -8630,4 +8632,3 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
 #note-editor-body-input:focus {
   border-color: var(--accent);
 }
-
