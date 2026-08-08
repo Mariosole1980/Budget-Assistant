@@ -7918,7 +7918,7 @@ mark.guide-highlight {
 
 .settings-list-item {
   background-color: var(--bg-card);
-  padding: 20px 16px;
+  padding: 16px 16px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -7926,11 +7926,11 @@ mark.guide-highlight {
   cursor: pointer;
   transition: var(--transition);
   box-sizing: border-box;
-  min-height: 68px;
+  min-height: 60px;
 }
 
 #hub-row-legal {
-  padding: 20px 16px !important;
+  padding: 16px 16px !important;
   box-sizing: border-box !important;
 }
 
