@@ -974,7 +974,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1162 - 06/08/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1163 - 06/08/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1358,7 +1358,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1162 - 06/08/2026)',
+    app_version: 'Version 1.0.0 (build v1163 - 06/08/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -19726,171 +19726,7 @@ function renderPartnerSection() {
     const inviteCode = state.familyGroup ? state.familyGroup.invite_code : '';
 
     // Build members list HTML
-    let membersHtml = '';
-    state.familyProfiles.forEach(m => {
-      const isMe = m.id === state.currentUser.id;
-      const meSuffix = isMe ? ` (${state.lang === 'el' ? 'Εσείς' : 'You'})` : '';
-      const roleBadge = m.role === 'admin'
-        ? `<span style="background:var(--accent-light);color:var(--accent);font-size:9.5px;padding:2px 6px;border-radius:4px;font-weight:700;margin-left:8px;">${state.lang === 'el' ? 'Διαχειριστής' : 'Admin'}</span>`
-        : `<span style="background:rgba(255,255,255,0.06);color:var(--text-secondary);font-size:9.5px;padding:2px 6px;border-radius:4px;font-weight:600;margin-left:8px;">${state.lang === 'el' ? 'Μέλος' : 'Member'}</span>`;
-
-      let actionButtons = '';
-      if (myRole === 'admin' && !isMe) {
-        const demoteText = state.lang === 'el' ? 'Ορισμός ως Μέλος' : 'Set as Member';
-        const promoteText = state.lang === 'el' ? 'Ορισμός ως Διαχειριστής' : 'Set as Admin';
-        const removeText = state.lang === 'el' ? 'Αφαίρεση από την Οικογένεια' : 'Remove from Family';
-
-        actionButtons = `
-          <div style="position:relative;display:inline-block;">
-            <button type="button" onclick="toggleMemberMenu(event, '${m.id}')" class="icon-btn" style="color:var(--text-secondary);padding:6px;font-size:14px;cursor:pointer;background:none;border:none;" title="${state.lang === 'el' ? 'Επιλογές' : 'Options'}">
-              <i class="fa-solid fa-ellipsis-vertical"></i>
-            </button>
-            <div id="member-menu-${m.id}" class="member-dropdown-menu" style="display:none;position:absolute;right:0;top:100%;z-index:1000;background:var(--card-bg2, #1f2230);border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.4);min-width:180px;padding:4px 0;text-align:left;">
-              ${m.role === 'admin' ? `
-                <div onclick="changeMemberRole('${m.id}', 'member')"
-                     onmouseenter="this.style.background='rgba(255,255,255,0.05)'"
-                     onmouseleave="this.style.background=''"
-                     style="padding:10px 12px;font-size:12.5px;cursor:pointer;color:var(--text-primary);transition:background 0.2s;white-space:nowrap;">
-                  <i class="fa-solid fa-user-tag" style="margin-right:8px;width:14px;"></i>${demoteText}
-                </div>
-              ` : `
-                <div onclick="changeMemberRole('${m.id}', 'admin')"
-                     onmouseenter="this.style.background='rgba(255,255,255,0.05)'"
-                     onmouseleave="this.style.background=''"
-                     style="padding:10px 12px;font-size:12.5px;cursor:pointer;color:var(--text-primary);transition:background 0.2s;white-space:nowrap;">
-                  <i class="fa-solid fa-user-shield" style="margin-right:8px;width:14px;"></i>${promoteText}
-                </div>
-              `}
-              <div onclick="kickFamilyMember('${m.id}')"
-                   onmouseenter="this.style.background='rgba(239,83,80,0.08)'"
-                   onmouseleave="this.style.background=''"
-                   style="padding:10px 12px;font-size:12.5px;cursor:pointer;color:#ef5350;border-top:1px solid var(--border-light);transition:background 0.2s;white-space:nowrap;">
-                <i class="fa-solid fa-user-minus" style="margin-right:8px;width:14px;"></i>${removeText}
-              </div>
-            </div>
-          </div>
-        `;
-      }
-
-      const initials = getMemberInitials(m);
-      const gradient = getMemberColorGradient(m.id);
-
-      membersHtml += `
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border-light);gap:10px;">
-          <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">
-            <div style="width:28px;height:28px;border-radius:50%;background:${gradient};color:white;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;text-transform:uppercase;box-shadow:0 1px 4px rgba(0,0,0,0.15);flex-shrink:0;">
-              ${initials}
-            </div>
-            <div style="display:flex;flex-direction:column;min-width:0;flex:1;">
-              <span style="font-size:12px;font-weight:600;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-                ${m.display_name || m.email.split('@')[0]}${meSuffix}
-              </span>
-              <span style="font-size:10px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-                ${m.email}
-              </span>
-            </div>
-            ${roleBadge}
-          </div>
-          ${actionButtons}
-        </div>
-      `;
-    });
-
-    // Admin invite block
-    let inviteBlockHtml = '';
-    if (myRole === 'admin') {
-      inviteBlockHtml = `
-        <div style="background:var(--bg-card, rgba(255,255,255,0.03));border:1px solid var(--border);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px;box-shadow:0 4px 14px rgba(0,0,0,0.1);">
-          <div style="display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:700;font-family:'Outfit',sans-serif;color:var(--text-primary);">
-            <i class="fa-solid fa-user-plus" style="color:var(--accent);"></i>
-            <span>${state.lang === 'el' ? 'Πρόσκληση Νέου Μέλους' : 'Invite New Member'}</span>
-          </div>
-
-          <!-- 1. STEP 1: Select Role FIRST -->
-          <div style="display:flex;flex-direction:column;gap:6px;">
-            <label style="font-size:11px;color:var(--text-muted);font-weight:600;margin-bottom:0;">
-              ${state.lang === 'el' ? '1. Επιλέξτε Ρόλο Νέου Μέλους:' : '1. Select New Member Role:'}
-            </label>
-            <div style="display:flex;gap:8px;margin-bottom:2px;">
-              <div id="role-card-member" onclick="selectInviteRole('member')" role="button" tabindex="0" style="flex:1;padding:10px 12px;border:2px solid var(--accent);border-radius:10px;background:rgba(var(--accent-rgb,124,106,247),0.08);cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:8px;position:relative;user-select:none;-webkit-user-select:none;">
-                <span style="font-size:16px;">👤</span>
-                <div style="flex:1;min-width:0;">
-                  <div style="font-size:12px;font-weight:700;color:var(--text-primary);">${state.lang === 'el' ? 'Μέλος' : 'Member'}</div>
-                  <div style="font-size:10px;color:var(--text-muted);">${state.lang === 'el' ? 'Δικαιώματα μέλους' : 'Member privileges'}</div>
-                </div>
-                <span id="role-check-member" style="font-size:13px;color:var(--accent);flex-shrink:0;">✓</span>
-              </div>
-              <div id="role-card-admin" onclick="selectInviteRole('admin')" role="button" tabindex="0" style="flex:1;padding:10px 12px;border:2px solid var(--card-border);border-radius:10px;background:var(--card-bg2,rgba(255,255,255,0.03));cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:8px;position:relative;user-select:none;-webkit-user-select:none;">
-                <span style="font-size:16px;">👑</span>
-                <div style="flex:1;min-width:0;">
-                  <div style="font-size:12px;font-weight:700;color:var(--text-primary);">${state.lang === 'el' ? 'Διαχειριστής' : 'Admin'}</div>
-                  <div style="font-size:10px;color:var(--text-muted);">${state.lang === 'el' ? 'Πλήρη δικαιώματα' : 'Full admin control'}</div>
-                </div>
-                <span id="role-check-admin" style="font-size:13px;color:var(--accent);flex-shrink:0;opacity:0;">✓</span>
-              </div>
-            </div>
-            <input type="hidden" id="invite-role-select" value="member">
-          </div>
-
-          <!-- 2. Code Badge & Quick Copy Chips -->
-          <div style="background:var(--card-bg2,rgba(255,255,255,0.04));border:1px solid var(--card-border);border-radius:12px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
-            <div style="display:flex;flex-direction:column;">
-              <span style="font-size:10px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">${state.lang === 'el' ? 'Κωδικός Πρόσκλησης' : 'Invite Code'}</span>
-              <span style="font-size:16px;font-weight:800;color:var(--accent);letter-spacing:2px;font-family:monospace;">${inviteCode}</span>
-            </div>
-            <div style="display:flex;gap:6px;flex-wrap:wrap;">
-              <button onclick="navigator.clipboard.writeText('${inviteCode}').then(()=>showSyncToast('${state.lang === 'el' ? '✓ Αντεγράφη ο κωδικός' : '✓ Code copied'}', 2000))" class="btn btn-secondary" style="padding:6px 10px;font-size:11px;border-radius:20px;line-height:1;font-weight:600;">
-                📋 ${state.lang === 'el' ? 'Κωδικός' : 'Code'}
-              </button>
-              <button onclick="copyDirectInviteLink('${inviteCode}')" class="btn btn-secondary" style="padding:6px 10px;font-size:11px;border-radius:20px;line-height:1;font-weight:600;">
-                🔗 ${state.lang === 'el' ? 'Σύνδεσμος' : 'Link'}
-              </button>
-            </div>
-          </div>
-
-          <!-- 3. STEP 2: Direct Messaging App Buttons -->
-          <div style="background:rgba(var(--accent-rgb,124,106,247),0.04);border:1px solid rgba(var(--accent-rgb,124,106,247),0.15);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px;">
-            <div style="font-size:12px;font-weight:700;color:var(--text-primary);display:flex;align-items:center;gap:6px;">
-              <i class="fa-solid fa-paper-plane" style="color:var(--accent);"></i>
-              <span>${state.lang === 'el' ? '2. Αποστολή σε Εφαρμογή' : '2. Send via App'}</span>
-            </div>
-
-            <!-- 4 Quick Action Buttons -->
-            <div style="display:grid;grid-template-columns:repeat(2, 1fr);gap:8px;">
-              <button onclick="sendFamilyInviteVia('whatsapp', '${inviteCode}')" style="background:#25D366;color:#fff;border:none;border-radius:10px;padding:10px;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 3px 8px rgba(37,211,102,0.25);">
-                <i class="fa-brands fa-whatsapp" style="font-size:16px;"></i>
-                <span>WhatsApp</span>
-              </button>
-              <button onclick="sendFamilyInviteVia('viber', '${inviteCode}')" style="background:#7360F2;color:#fff;border:none;border-radius:10px;padding:10px;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 3px 8px rgba(115,96,242,0.25);">
-                <i class="fa-brands fa-viber" style="font-size:16px;"></i>
-                <span>Viber</span>
-              </button>
-              <button onclick="sendFamilyInviteVia('sms', '${inviteCode}')" style="background:#007AFF;color:#fff;border:none;border-radius:10px;padding:10px;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 3px 8px rgba(0,122,255,0.25);">
-                <i class="fa-solid fa-comment-sms" style="font-size:15px;"></i>
-                <span>SMS</span>
-              </button>
-              <button onclick="sendFamilyInviteVia('native', '${inviteCode}')" class="btn btn-secondary" style="border-radius:10px;padding:10px;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
-                <i class="fa-solid fa-share-nodes" style="font-size:14px;"></i>
-                <span>${state.lang === 'el' ? '📱 Όλες οι Εφαρμογές' : '📱 All Apps'}</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- 4. STEP 3: Email Invite Block -->
-          <div style="display:flex;flex-direction:column;gap:6px;margin-top:2px;">
-            <label style="font-size:11px;color:var(--text-muted);font-weight:600;margin-bottom:0;">
-              ${state.lang === 'el' ? 'Ή Αποστολή Πρόσκλησης μέσω Email:' : 'Or Send Invite via Email:'}
-            </label>
-            <div style="display:flex;gap:8px;">
-              <input type="email" id="invite-email-input" class="form-input" placeholder="${state.lang === 'el' ? 'email@family.com' : 'email@family.com'}" style="flex:1;font-size:12.5px;padding:8px 10px;margin-bottom:0;border-radius:8px;">
-              <button onclick="inviteMemberByEmail()" class="btn btn-primary" style="padding:8px 14px;font-size:12.5px;font-weight:700;border-radius:8px;white-space:nowrap;">
-                <i class="fa-solid fa-paper-plane" style="margin-right:4px;"></i>${state.lang === 'el' ? 'Αποστολή' : 'Send'}
-              </button>
-            </div>
-          </div>
-        </div>
-      `;
-    }
+    const membersHtml = renderFamilyMembersList(state.familyProfiles, myRole);
 
     let nameHtml = `<div style="font-family:'Outfit',sans-serif;font-size:15px;font-weight:800;color:var(--text-primary);">${familyName}</div>`;
     if (myRole === 'admin') {
@@ -19900,6 +19736,17 @@ function renderPartnerSection() {
         </div>
       `;
     }
+
+    // Admin gets an "Add Member" button that opens the invite modal; members get a read-only invite code row
+    const addMemberBtnHtml = myRole === 'admin'
+      ? `<button type="button" onclick="openInviteModal('${inviteCode}')" style="margin-left:auto;display:flex;align-items:center;gap:5px;padding:6px 12px;font-size:11.5px;font-weight:700;border-radius:20px;background:var(--accent);color:#fff;border:none;cursor:pointer;box-shadow:0 3px 10px rgba(var(--accent-rgb,124,106,247),0.3);white-space:nowrap;">
+          <i class="fa-solid fa-user-plus" style="font-size:12px;"></i>${state.lang === 'el' ? 'Πρόσθεση Μέλους' : 'Add Member'}
+        </button>`
+      : `<span style="margin-left:auto;font-size:11px;font-weight:700;color:var(--text-secondary);background:rgba(var(--accent-rgb,124,106,247),0.12);padding:2px 8px;border-radius:20px;">${state.familyProfiles.length}</span>`;
+
+    const memberInviteCodeRowHtml = (myRole !== 'admin' && inviteCode)
+      ? renderMemberInviteCode(inviteCode)
+      : '';
 
     container.innerHTML = `
       <div style="display:flex;flex-direction:column;gap:16px;padding:2px 0;">
@@ -19928,35 +19775,16 @@ function renderPartnerSection() {
           <div style="display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:700;font-family:'Outfit',sans-serif;color:var(--text-primary);">
             <i class="fa-solid fa-users" style="color:var(--accent);"></i>
             <span>${state.lang === 'el' ? 'Μέλη Οικογένειας' : 'Family Members'}</span>
-            <span style="margin-left:auto;font-size:11px;font-weight:700;color:var(--text-secondary);background:rgba(var(--accent-rgb,124,106,247),0.12);padding:2px 8px;border-radius:20px;">${state.familyProfiles.length}</span>
+            ${addMemberBtnHtml}
           </div>
           <div style="display:flex;flex-direction:column;gap:4px;">
             ${membersHtml}
           </div>
+          ${memberInviteCodeRowHtml}
         </div>
-
-        ${inviteBlockHtml}
 
         <!-- Feature Highlights Card -->
-        <div style="background:rgba(0,0,0,0.15);border:1px solid var(--border);border-radius:16px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;">
-          <div style="font-size:12px;font-weight:800;font-family:'Outfit',sans-serif;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;">
-            ${state.lang === 'el' ? '✨ Πλεονεκτήματα Οικογενειακού Group' : '✨ Family Group Features'}
-          </div>
-          <div style="display:flex;flex-direction:column;gap:8px;font-size:12.5px;color:var(--text-secondary);line-height:1.45;">
-            <div style="display:flex;align-items:flex-start;gap:8px;">
-              <span style="color:var(--accent);font-size:14px;margin-top:1px;">⚡</span>
-              <span><strong>${state.lang === 'el' ? 'Ταυτόχρονος Συγχρονισμός' : 'Real-time Sync'}:</strong> ${state.lang === 'el' ? 'Κάθε έξοδο ή έσοδο εμφανίζεται ακαριαία στις συσκευές όλων των μελών.' : 'Instant synchronization of all expenses and income across family devices.'}</span>
-            </div>
-            <div style="display:flex;align-items:flex-start;gap:8px;">
-              <span style="color:var(--accent);font-size:14px;margin-top:1px;">📊</span>
-              <span><strong>${state.lang === 'el' ? 'Κοινοί Προϋπολογισμοί' : 'Shared Budgets'}:</strong> ${state.lang === 'el' ? 'Θέστε κοινά όρια δαπανών για σούπερ μάρκετ, λογαριασμούς & έξοδα σπιτιού.' : 'Set joint spending limits for household, groceries, and utility bills.'}</span>
-            </div>
-            <div style="display:flex;align-items:flex-start;gap:8px;">
-              <span style="color:var(--accent);font-size:14px;margin-top:1px;">🔒</span>
-              <span><strong>${state.lang === 'el' ? 'Απόλυτη Ιδιωτικότητα' : 'Full Privacy'}:</strong> ${state.lang === 'el' ? 'Μόνο τα μέλη του δικού σας group έχουν πρόσβαση στα οικονομικά δεδομένα.' : 'Your financial data is encrypted and accessible strictly to your family members.'}</span>
-            </div>
-          </div>
-        </div>
+        ${renderFamilyFeatures()}
 
       </div>
     `;
@@ -20077,6 +19905,269 @@ function renderPartnerSection() {
     `;
   }
 }
+
+// ============================================================
+// Family Management helper renderers (refactored from renderPartnerSection)
+// ============================================================
+
+// Renders the list of family members (avatars, names, roles, admin actions)
+function renderFamilyMembersList(members, myRole) {
+  if (!members || !members.length) {
+    return `<div style="font-size:12px;color:var(--text-muted);padding:6px 0;">${state.lang === 'el' ? 'Δεν υπάρχουν μέλη ακόμα.' : 'No members yet.'}</div>`;
+  }
+
+  let membersHtml = '';
+  members.forEach(m => {
+    const isMe = m.id === state.currentUser.id;
+    const meSuffix = isMe ? ` (${state.lang === 'el' ? 'Εσείς' : 'You'})` : '';
+    const roleBadge = m.role === 'admin'
+      ? `<span style="background:var(--accent-light);color:var(--accent);font-size:9.5px;padding:2px 6px;border-radius:4px;font-weight:700;margin-left:8px;">${state.lang === 'el' ? 'Διαχειριστής' : 'Admin'}</span>`
+      : `<span style="background:rgba(255,255,255,0.06);color:var(--text-secondary);font-size:9.5px;padding:2px 6px;border-radius:4px;font-weight:600;margin-left:8px;">${state.lang === 'el' ? 'Μέλος' : 'Member'}</span>`;
+
+    let actionButtons = '';
+    if (myRole === 'admin' && !isMe) {
+      const demoteText = state.lang === 'el' ? 'Ορισμός ως Μέλος' : 'Set as Member';
+      const promoteText = state.lang === 'el' ? 'Ορισμός ως Διαχειριστής' : 'Set as Admin';
+      const removeText = state.lang === 'el' ? 'Αφαίρεση από την Οικογένεια' : 'Remove from Family';
+
+      actionButtons = `
+        <div style="position:relative;display:inline-block;">
+          <button type="button" onclick="toggleMemberMenu(event, '${m.id}')" class="icon-btn" style="color:var(--text-secondary);padding:6px;font-size:14px;cursor:pointer;background:none;border:none;" title="${state.lang === 'el' ? 'Επιλογές' : 'Options'}">
+            <i class="fa-solid fa-ellipsis-vertical"></i>
+          </button>
+          <div id="member-menu-${m.id}" class="member-dropdown-menu" style="display:none;position:absolute;right:0;top:100%;z-index:1000;background:var(--card-bg2, #1f2230);border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.4);min-width:180px;padding:4px 0;text-align:left;">
+            ${m.role === 'admin' ? `
+              <div onclick="changeMemberRole('${m.id}', 'member')"
+                   onmouseenter="this.style.background='rgba(255,255,255,0.05)'"
+                   onmouseleave="this.style.background=''"
+                   style="padding:10px 12px;font-size:12.5px;cursor:pointer;color:var(--text-primary);transition:background 0.2s;white-space:nowrap;">
+                <i class="fa-solid fa-user-tag" style="margin-right:8px;width:14px;"></i>${demoteText}
+              </div>
+            ` : `
+              <div onclick="changeMemberRole('${m.id}', 'admin')"
+                   onmouseenter="this.style.background='rgba(255,255,255,0.05)'"
+                   onmouseleave="this.style.background=''"
+                   style="padding:10px 12px;font-size:12.5px;cursor:pointer;color:var(--text-primary);transition:background 0.2s;white-space:nowrap;">
+                <i class="fa-solid fa-user-shield" style="margin-right:8px;width:14px;"></i>${promoteText}
+              </div>
+            `}
+            <div onclick="kickFamilyMember('${m.id}')"
+                 onmouseenter="this.style.background='rgba(239,83,80,0.08)'"
+                 onmouseleave="this.style.background=''"
+                 style="padding:10px 12px;font-size:12.5px;cursor:pointer;color:#ef5350;border-top:1px solid var(--border-light);transition:background 0.2s;white-space:nowrap;">
+              <i class="fa-solid fa-user-minus" style="margin-right:8px;width:14px;"></i>${removeText}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    const initials = getMemberInitials(m);
+    const gradient = getMemberColorGradient(m.id);
+
+    membersHtml += `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border-light);gap:10px;">
+        <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">
+          <div style="width:28px;height:28px;border-radius:50%;background:${gradient};color:white;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;text-transform:uppercase;box-shadow:0 1px 4px rgba(0,0,0,0.15);flex-shrink:0;">
+            ${initials}
+          </div>
+          <div style="display:flex;flex-direction:column;min-width:0;flex:1;">
+            <span style="font-size:12px;font-weight:600;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+              ${m.display_name || m.email.split('@')[0]}${meSuffix}
+            </span>
+            <span style="font-size:10px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+              ${m.email}
+            </span>
+          </div>
+          ${roleBadge}
+        </div>
+        ${actionButtons}
+      </div>
+    `;
+  });
+  return membersHtml;
+}
+
+// Read-only invite code row shown to non-admin members (copy/share)
+function renderMemberInviteCode(inviteCode) {
+  if (!inviteCode) return '';
+  const isEl = state.lang === 'el';
+  return `
+    <div style="background:rgba(var(--accent-rgb,124,106,247),0.06);border:1px dashed rgba(var(--accent-rgb,124,106,247),0.35);border-radius:12px;padding:10px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:4px;">
+      <div style="display:flex;flex-direction:column;">
+        <span style="font-size:10px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">${isEl ? 'Κωδικός Πρόσκλησης' : 'Invite Code'}</span>
+        <span style="font-size:15px;font-weight:800;color:var(--accent);letter-spacing:2px;font-family:monospace;">${inviteCode}</span>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button onclick="navigator.clipboard.writeText('${inviteCode}').then(()=>showSyncToast('${isEl ? '✓ Αντεγράφη ο κωδικός' : '✓ Code copied'}', 2000))" class="btn btn-secondary" style="padding:6px 10px;font-size:11px;border-radius:20px;line-height:1;font-weight:600;">
+          📋 ${isEl ? 'Κωδικός' : 'Code'}
+        </button>
+        <button onclick="shareFamilyInviteCode('${inviteCode}')" class="btn btn-secondary" style="padding:6px 10px;font-size:11px;border-radius:20px;line-height:1;font-weight:600;">
+          🔗 ${isEl ? 'Κοινή χρήση' : 'Share'}
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+// Feature highlights card (shared with the connected-family view)
+function renderFamilyFeatures() {
+  const isEl = state.lang === 'el';
+  return `
+    <div style="background:rgba(0,0,0,0.15);border:1px solid var(--border);border-radius:16px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;">
+      <div style="font-size:12px;font-weight:800;font-family:'Outfit',sans-serif;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;">
+        ${isEl ? '✨ Πλεονεκτήματα Οικογενειακού Group' : '✨ Family Group Features'}
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;font-size:12.5px;color:var(--text-secondary);line-height:1.45;">
+        <div style="display:flex;align-items:flex-start;gap:8px;">
+          <span style="color:var(--accent);font-size:14px;margin-top:1px;">⚡</span>
+          <span><strong>${isEl ? 'Ταυτόχρονος Συγχρονισμός' : 'Real-time Sync'}:</strong> ${isEl ? 'Κάθε έξοδο ή έσοδο εμφανίζεται ακαριαία στις συσκευές όλων των μελών.' : 'Instant synchronization of all expenses and income across family devices.'}</span>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:8px;">
+          <span style="color:var(--accent);font-size:14px;margin-top:1px;">📊</span>
+          <span><strong>${isEl ? 'Κοινοί Προϋπολογισμοί' : 'Shared Budgets'}:</strong> ${isEl ? 'Θέστε κοινά όρια δαπανών για σούπερ μάρκετ, λογαριασμούς & έξοδα σπιτιού.' : 'Set joint spending limits for household, groceries, and utility bills.'}</span>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:8px;">
+          <span style="color:var(--accent);font-size:14px;margin-top:1px;">🔒</span>
+          <span><strong>${isEl ? 'Απόλυτη Ιδιωτικότητα' : 'Full Privacy'}:</strong> ${isEl ? 'Μόνο τα μέλη του δικού σας group έχουν πρόσβαση στα οικονομικά δεδομένα.' : 'Your financial data is encrypted and accessible strictly to your family members.'}</span>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ============================================================
+// Invite Member Modal (Option B — opens in a modal window)
+// ============================================================
+
+function openInviteModal(inviteCode) {
+  if (!state.currentUser) return;
+  const isEl = state.lang === 'el';
+
+  // Remove any existing instance first
+  const existing = document.getElementById('family-invite-modal');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'family-invite-modal';
+  overlay.className = 'modal-overlay';
+  overlay.style.zIndex = '15000';
+  overlay.style.alignItems = 'center';
+  overlay.style.justifyContent = 'center';
+  overlay.setAttribute('onclick', "if(event.target===this)closeInviteModal()");
+
+  overlay.innerHTML = `
+    <div class="modal-content" style="max-width:440px;max-height:88vh;overflow-y:auto;display:flex;flex-direction:column;gap:14px;padding:20px;border-radius:18px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,var(--accent),#4caf50);color:#fff;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;box-shadow:0 4px 12px rgba(var(--accent-rgb,124,106,247),0.35);">
+          <i class="fa-solid fa-user-plus"></i>
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-family:'Outfit',sans-serif;font-size:15px;font-weight:800;color:var(--text-primary);">${isEl ? 'Πρόσκληση Νέου Μέλους' : 'Invite New Member'}</div>
+          <div style="font-size:11px;color:var(--text-muted);">${isEl ? 'Μοιραστείτε τον κωδικό ή τον σύνδεσμο πρόσκλησης' : 'Share the invite code or link'}</div>
+        </div>
+        <button type="button" onclick="closeInviteModal()" class="icon-btn" style="color:var(--text-secondary);padding:6px;font-size:15px;cursor:pointer;background:none;border:none;flex-shrink:0;" aria-label="Close">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- 1. STEP 1: Select Role -->
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <label style="font-size:11px;color:var(--text-muted);font-weight:600;margin-bottom:0;">
+          ${isEl ? '1. Επιλέξτε Ρόλο Νέου Μέλους:' : '1. Select New Member Role:'}
+        </label>
+        <div style="display:flex;gap:8px;margin-bottom:2px;">
+          <div id="role-card-member" onclick="selectInviteRole('member')" role="button" tabindex="0" style="flex:1;padding:10px 12px;border:2px solid var(--accent);border-radius:10px;background:rgba(var(--accent-rgb,124,106,247),0.08);cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:8px;position:relative;user-select:none;-webkit-user-select:none;">
+            <span style="font-size:16px;">👤</span>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:12px;font-weight:700;color:var(--text-primary);">${isEl ? 'Μέλος' : 'Member'}</div>
+              <div style="font-size:10px;color:var(--text-muted);">${isEl ? 'Δικαιώματα μέλους' : 'Member privileges'}</div>
+            </div>
+            <span id="role-check-member" style="font-size:13px;color:var(--accent);flex-shrink:0;">✓</span>
+          </div>
+          <div id="role-card-admin" onclick="selectInviteRole('admin')" role="button" tabindex="0" style="flex:1;padding:10px 12px;border:2px solid var(--card-border);border-radius:10px;background:var(--card-bg2,rgba(255,255,255,0.03));cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:8px;position:relative;user-select:none;-webkit-user-select:none;">
+            <span style="font-size:16px;">👑</span>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:12px;font-weight:700;color:var(--text-primary);">${isEl ? 'Διαχειριστής' : 'Admin'}</div>
+              <div style="font-size:10px;color:var(--text-muted);">${isEl ? 'Πλήρη δικαιώματα' : 'Full admin control'}</div>
+            </div>
+            <span id="role-check-admin" style="font-size:13px;color:var(--accent);flex-shrink:0;opacity:0;">✓</span>
+          </div>
+        </div>
+        <input type="hidden" id="invite-role-select" value="member">
+      </div>
+
+      <!-- 2. Code Badge & Quick Copy Chips -->
+      <div style="background:var(--card-bg2,rgba(255,255,255,0.04));border:1px solid var(--card-border);border-radius:12px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+        <div style="display:flex;flex-direction:column;">
+          <span style="font-size:10px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">${isEl ? 'Κωδικός Πρόσκλησης' : 'Invite Code'}</span>
+          <span style="font-size:16px;font-weight:800;color:var(--accent);letter-spacing:2px;font-family:monospace;">${inviteCode}</span>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button onclick="navigator.clipboard.writeText('${inviteCode}').then(()=>showSyncToast('${isEl ? '✓ Αντεγράφη ο κωδικός' : '✓ Code copied'}', 2000))" class="btn btn-secondary" style="padding:6px 10px;font-size:11px;border-radius:20px;line-height:1;font-weight:600;">
+            📋 ${isEl ? 'Κωδικός' : 'Code'}
+          </button>
+          <button onclick="copyDirectInviteLink('${inviteCode}')" class="btn btn-secondary" style="padding:6px 10px;font-size:11px;border-radius:20px;line-height:1;font-weight:600;">
+            🔗 ${isEl ? 'Σύνδεσμος' : 'Link'}
+          </button>
+        </div>
+      </div>
+
+      <!-- 3. STEP 2: Direct Messaging App Buttons -->
+      <div style="background:rgba(var(--accent-rgb,124,106,247),0.04);border:1px solid rgba(var(--accent-rgb,124,106,247),0.15);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px;">
+        <div style="font-size:12px;font-weight:700;color:var(--text-primary);display:flex;align-items:center;gap:6px;">
+          <i class="fa-solid fa-paper-plane" style="color:var(--accent);"></i>
+          <span>${isEl ? '2. Αποστολή σε Εφαρμογή' : '2. Send via App'}</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(2, 1fr);gap:8px;">
+          <button onclick="sendFamilyInviteVia('whatsapp', '${inviteCode}')" style="background:#25D366;color:#fff;border:none;border-radius:10px;padding:10px;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 3px 8px rgba(37,211,102,0.25);">
+            <i class="fa-brands fa-whatsapp" style="font-size:16px;"></i>
+            <span>WhatsApp</span>
+          </button>
+          <button onclick="sendFamilyInviteVia('viber', '${inviteCode}')" style="background:#7360F2;color:#fff;border:none;border-radius:10px;padding:10px;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 3px 8px rgba(115,96,242,0.25);">
+            <i class="fa-brands fa-viber" style="font-size:16px;"></i>
+            <span>Viber</span>
+          </button>
+          <button onclick="sendFamilyInviteVia('sms', '${inviteCode}')" style="background:#007AFF;color:#fff;border:none;border-radius:10px;padding:10px;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 3px 8px rgba(0,122,255,0.25);">
+            <i class="fa-solid fa-comment-sms" style="font-size:15px;"></i>
+            <span>SMS</span>
+          </button>
+          <button onclick="sendFamilyInviteVia('native', '${inviteCode}')" class="btn btn-secondary" style="border-radius:10px;padding:10px;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+            <i class="fa-solid fa-share-nodes" style="font-size:14px;"></i>
+            <span>${isEl ? '📱 Όλες οι Εφαρμογές' : '📱 All Apps'}</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 4. STEP 3: Email Invite Block -->
+      <div style="display:flex;flex-direction:column;gap:6px;margin-top:2px;">
+        <label style="font-size:11px;color:var(--text-muted);font-weight:600;margin-bottom:0;">
+          ${isEl ? 'Ή Αποστολή Πρόσκλησης μέσω Email:' : 'Or Send Invite via Email:'}
+        </label>
+        <div style="display:flex;gap:8px;">
+          <input type="email" id="invite-email-input" class="form-input" placeholder="email@family.com" style="flex:1;font-size:12.5px;padding:8px 10px;margin-bottom:0;border-radius:8px;">
+          <button onclick="inviteMemberByEmail()" class="btn btn-primary" style="padding:8px 14px;font-size:12.5px;font-weight:700;border-radius:8px;white-space:nowrap;">
+            <i class="fa-solid fa-paper-plane" style="margin-right:4px;"></i>${isEl ? 'Αποστολή' : 'Send'}
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+  openModal('family-invite-modal', { instant: true });
+}
+
+function closeInviteModal() {
+  const el = document.getElementById('family-invite-modal');
+  if (el) {
+    closeModal('family-invite-modal');
+    setTimeout(() => { el.remove(); }, 250);
+  }
+}
+
+window.openInviteModal = openInviteModal;
+window.closeInviteModal = closeInviteModal;
 
 function getMemberInitials(m) {
   const name = (m.display_name || m.email.split('@')[0] || '').trim();
