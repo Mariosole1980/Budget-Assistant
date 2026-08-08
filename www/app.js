@@ -973,7 +973,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1151 - 06/08/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1152 - 06/08/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1356,7 +1356,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1151 - 06/08/2026)',
+    app_version: 'Version 1.0.0 (build v1152 - 06/08/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -14050,7 +14050,17 @@ function normalizeText(text) {
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
+    .replace(/ς/g, 'σ') // Normalize Greek final sigma so "καφές" matches "καφεσ"
     .trim();
+}
+
+// Debounce the search input so filtering/rendering only happens after the user
+// pauses typing. This avoids re-running the (potentially expensive) filter +
+// grouped render on every keystroke.
+let _searchDebounceTimer = null;
+function debouncedSearchChange() {
+  clearTimeout(_searchDebounceTimer);
+  _searchDebounceTimer = setTimeout(() => handleSearchChange(), 200);
 }
 
 function handleSearchChange(resetLimit = true) {
@@ -14094,13 +14104,20 @@ function handleSearchChange(resetLimit = true) {
       const acc = normalizeText(t.account_from);
       const accTo = normalizeText(t.account_to);
 
-      const amtStr = String(t.amount || '');
-      const amtGreekStr = amtStr.replace('.', ',');
-      const formattedAmt = formatCurrency(t.amount);
-      const formattedAmtClean = formattedAmt.replace(/\./g, '');
-
       const textMatch = note.includes(query) || cat.includes(query) || sub.includes(query) || desc.includes(query) || acc.includes(query) || accTo.includes(query);
-      const amtMatch = amtStr.includes(query) || amtGreekStr.includes(query) || formattedAmt.includes(query) || formattedAmtClean.includes(query);
+
+      // Amount matching: only treat the query as an amount when it is purely
+      // numeric (digits, optional decimal separator). This avoids noisy
+      // substring matches like "12" matching "112", "120", "12.50", etc.
+      let amtMatch = false;
+      const numericQuery = query.replace(',', '.').trim();
+      if (/^\d+(\.\d+)?$/.test(numericQuery)) {
+        const queryNum = parseFloat(numericQuery);
+        const amtNum = parseFloat(t.amount) || 0;
+        // Match when the query equals the amount, or is a prefix of it
+        // (e.g. "12" matches 12.50), but never a loose substring.
+        amtMatch = amtNum === queryNum || String(amtNum).startsWith(numericQuery);
+      }
 
       if (!textMatch && !amtMatch) {
         return false;
@@ -14190,143 +14207,188 @@ function renderGroupedTransactions(transactions, container) {
   const searchDisplayCurrency = getDisplayCurrency();
 
   if (transactions.length === 0) {
+    const lang = state.lang || 'el';
+    const title = lang === 'el' ? 'Δεν βρέθηκαν συναλλαγές' : 'No transactions found';
+    const desc = lang === 'el' ? 'Δοκιμάστε άλλα φίλτρα ή λέξεις-κλειδιά' : 'Try different filters or keywords';
     container.innerHTML = `
       <div style="text-align:center;padding:40px 10px;color:var(--text-secondary)">
-        <h4 style="margin-bottom:4px; font-weight:700;">Δεν βρέθηκαν συναλλαγές</h4>
-        <p style="font-size:11px">Δοκιμάστε άλλα φίλτρα ή λέξεις-κλειδιά</p>
+        <h4 style="margin-bottom:4px; font-weight:700;">${title}</h4>
+        <p style="font-size:11px">${desc}</p>
       </div>`;
     return;
   }
 
   const itemsToRender = transactions.slice(0, searchResultLimit);
 
-  // Flat list matching the screenshot layout
+  // Group transactions by day so results are not a flat, mixed list.
+  // Each day gets a header (with per-day income/expense totals) followed by
+  // its transactions, matching the main transactions list layout.
+  const groups = {};
   itemsToRender.forEach(t => {
-    const catInfo = getCategoryInfo(t.category, t.type);
-    const item = document.createElement('div');
+    const dateKey = String(t.date || '').split('T')[0].split(' ')[0];
+    if (!groups[dateKey]) groups[dateKey] = { transactions: [], income: 0, expense: 0 };
+    groups[dateKey].transactions.push(t);
+    const amt = CurrencyService.displayAmount(t, searchDisplayCurrency);
+    if (t.type === 'income') groups[dateKey].income += amt;
+    else if (t.type === 'expense') groups[dateKey].expense += amt;
+  });
 
-    const isSelected = state.selectedSearchIds && state.selectedSearchIds.has(t.id);
-    item.className = 'search-result-item';
-    if (state.searchSelectMode) {
-      item.className += ' selectable';
-      if (isSelected) {
-        item.style.background = 'rgba(33, 150, 243, 0.15)';
-      }
-    }
+  const todayObj = new Date();
+  const todayStr = `${todayObj.getFullYear()}-${String(todayObj.getMonth() + 1).padStart(2, '0')}-${String(todayObj.getDate()).padStart(2, '0')}`;
 
-    let pressTimer;
-    let feedbackTimer;
-    let isLongPress = false;
-    let touchDidMove = false;
+  Object.keys(groups).sort((a, b) => b.localeCompare(a)).forEach(dateStr => {
+    const group = groups[dateStr];
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const dateObj = new Date(y, m - 1, d);
+    const dayOfWeek = dateObj.getDay();
+    const shortDay = getWeekdayName(dayOfWeek);
+    const weekendClass = dayOfWeek === 6 ? ' saturday' : dayOfWeek === 0 ? ' sunday' : '';
+    const isToday = (dateStr === todayStr);
 
-    // touchstart listener for long-press selection initiation
-    item.addEventListener('touchstart', (e) => {
-      isLongPress = false;
-      touchDidMove = false;
+    let rightTotals = '';
+    if (group.income > 0) rightTotals += `<span class="day-group-income">${getCurrencySymbol()} ${formatDisplayAmount(group.income, searchDisplayCurrency)}</span>`;
+    if (group.expense > 0) rightTotals += `<span class="day-group-expense">${getCurrencySymbol()} ${formatDisplayAmount(group.expense, searchDisplayCurrency)}</span>`;
 
-      clearTimeout(feedbackTimer);
-      feedbackTimer = setTimeout(() => {
-        if (!touchDidMove) {
-          item.classList.add('pressed');
-        }
-      }, 80);
+    const header = document.createElement('div');
+    header.className = 'day-header' + (isToday ? ' is-today' : '');
+    const todayBadge = isToday ? ` <span class="today-badge">${state.lang === 'el' ? 'ΣΗΜΕΡΑ' : 'TODAY'}</span>` : '';
+    header.innerHTML = `
+      <div class="day-header-left">
+        <span class="day-num">${d}</span>
+        <div>
+          <span class="day-name${weekendClass}">${shortDay}</span>${todayBadge}
+          <span class="day-month">${getMonthName(m - 1, true)} ${y}</span>
+        </div>
+      </div>
+      <div class="day-header-right">${rightTotals}</div>`;
+    container.appendChild(header);
 
-      if (state.searchSelectMode) return;
-      pressTimer = setTimeout(() => {
-        isLongPress = true;
-        toggleSearchSelectMode(); // enter select mode
-        toggleSearchSelection(t.id, item); // select this item
-        if (navigator.vibrate) {
-          try { navigator.vibrate(15); } catch (err) { }
-        }
-      }, 600);
-    }, { passive: true });
+    group.transactions.forEach(t => {
+      const catInfo = getCategoryInfo(t.category, t.type);
+      const item = document.createElement('div');
 
-    // touchmove listener - scrolling cancels selection
-    item.addEventListener('touchmove', (e) => {
-      clearTimeout(pressTimer);
-      clearTimeout(feedbackTimer);
-      item.classList.remove('pressed');
-      touchDidMove = true;
-    }, { passive: true });
-
-    // touchend listener
-    item.addEventListener('touchend', (e) => {
-      clearTimeout(pressTimer);
-      clearTimeout(feedbackTimer);
-      item.classList.remove('pressed');
-    }, { passive: true });
-
-    // touchcancel listener
-    item.addEventListener('touchcancel', () => {
-      clearTimeout(pressTimer);
-      clearTimeout(feedbackTimer);
-      item.classList.remove('pressed');
-    });
-
-    // mousedown listener for mouse users
-    item.addEventListener('mousedown', (e) => {
-      isLongPress = false;
-      item.classList.add('pressed');
-      if (state.searchSelectMode) return;
-      pressTimer = setTimeout(() => {
-        isLongPress = true;
-        toggleSearchSelectMode(); // enter select mode
-        toggleSearchSelection(t.id, item); // select this item
-      }, 600);
-    });
-
-    // mouseup/mouseleave listeners
-    item.addEventListener('mouseup', () => {
-      clearTimeout(pressTimer);
-      item.classList.remove('pressed');
-    });
-    item.addEventListener('mouseleave', () => {
-      clearTimeout(pressTimer);
-      item.classList.remove('pressed');
-    });
-
-    item.onclick = (e) => {
-      if (touchDidMove) return;
-      if (isLongPress) {
-        e.preventDefault();
-        e.stopPropagation();
-        return;
-      }
+      const isSelected = state.selectedSearchIds && state.selectedSearchIds.has(t.id);
+      item.className = 'search-result-item';
       if (state.searchSelectMode) {
-        e.stopPropagation();
-        toggleSearchSelection(t.id, item);
-      } else {
-        closeSearchOverlay();
-        openEditTransactionModal(t);
+        item.className += ' selectable';
+        if (isSelected) {
+          item.style.background = 'rgba(33, 150, 243, 0.15)';
+        }
       }
-    };
 
-    let amountClass = 'search-item-amount';
-    let accountText = t.account_from || '';
-    if (t.type === 'expense') { amountClass += ' expense'; }
-    else if (t.type === 'income') { amountClass += ' income'; }
-    else if (t.type === 'transfer') { amountClass += ' transfer'; accountText = `${t.account_from} → ${t.account_to}`; }
+      let pressTimer;
+      let feedbackTimer;
+      let isLongPress = false;
+      let touchDidMove = false;
 
-    const translatedSub = getSubcategoryDisplayName(t.subcategory, t.category);
-    const translatedCat = getCategoryDisplayName(t.category);
-    const displayTitle = (t.note && t.note.trim()) ? t.note.trim()
-      : (t.description && t.description.trim()) ? t.description.trim()
-        : (translatedSub && translatedSub.trim()) ? translatedSub.trim()
-          : (translatedCat || '');
+      // touchstart listener for long-press selection initiation
+      item.addEventListener('touchstart', (e) => {
+        isLongPress = false;
+        touchDidMove = false;
 
-    const memberBadge = getMemberBadgeHTML(t);
-    const datePart = (t.date || '').split('T')[0];
+        clearTimeout(feedbackTimer);
+        feedbackTimer = setTimeout(() => {
+          if (!touchDidMove) {
+            item.classList.add('pressed');
+          }
+        }, 80);
 
-    const catSubLine = t.subcategory
-      ? `${catInfo.icon || ''} ${escapeHtml(translatedCat)}/${escapeHtml(translatedSub)}`
-      : `${catInfo.icon || ''} ${escapeHtml(translatedCat)}`;
+        if (state.searchSelectMode) return;
+        pressTimer = setTimeout(() => {
+          isLongPress = true;
+          toggleSearchSelectMode(); // enter select mode
+          toggleSearchSelection(t.id, item); // select this item
+          if (navigator.vibrate) {
+            try { navigator.vibrate(15); } catch (err) { }
+          }
+        }, 600);
+      }, { passive: true });
 
-    const selectIndicator = state.searchSelectMode
-      ? `<div class="search-item-select-circle" style="width: 20px; height: 20px; border-radius: 50%; border: 2px solid ${isSelected ? 'var(--primary)' : 'var(--text-secondary)'}; display: flex; align-items: center; justify-content: center; margin-right: 12px; flex-shrink: 0; background: ${isSelected ? 'var(--primary)' : 'transparent'}; color: white; font-size: 11px; font-weight: bold; box-sizing: border-box;">${isSelected ? '✓' : ''}</div>`
-      : '';
+      // touchmove listener - scrolling cancels selection
+      item.addEventListener('touchmove', (e) => {
+        clearTimeout(pressTimer);
+        clearTimeout(feedbackTimer);
+        item.classList.remove('pressed');
+        touchDidMove = true;
+      }, { passive: true });
 
-    item.innerHTML = `
+      // touchend listener
+      item.addEventListener('touchend', (e) => {
+        clearTimeout(pressTimer);
+        clearTimeout(feedbackTimer);
+        item.classList.remove('pressed');
+      }, { passive: true });
+
+      // touchcancel listener
+      item.addEventListener('touchcancel', () => {
+        clearTimeout(pressTimer);
+        clearTimeout(feedbackTimer);
+        item.classList.remove('pressed');
+      });
+
+      // mousedown listener for mouse users
+      item.addEventListener('mousedown', (e) => {
+        isLongPress = false;
+        item.classList.add('pressed');
+        if (state.searchSelectMode) return;
+        pressTimer = setTimeout(() => {
+          isLongPress = true;
+          toggleSearchSelectMode(); // enter select mode
+          toggleSearchSelection(t.id, item); // select this item
+        }, 600);
+      });
+
+      // mouseup/mouseleave listeners
+      item.addEventListener('mouseup', () => {
+        clearTimeout(pressTimer);
+        item.classList.remove('pressed');
+      });
+      item.addEventListener('mouseleave', () => {
+        clearTimeout(pressTimer);
+        item.classList.remove('pressed');
+      });
+
+      item.onclick = (e) => {
+        if (touchDidMove) return;
+        if (isLongPress) {
+          e.preventDefault();
+          e.stopPropagation();
+          return;
+        }
+        if (state.searchSelectMode) {
+          e.stopPropagation();
+          toggleSearchSelection(t.id, item);
+        } else {
+          closeSearchOverlay();
+          openEditTransactionModal(t);
+        }
+      };
+
+      let amountClass = 'search-item-amount';
+      let accountText = t.account_from || '';
+      if (t.type === 'expense') { amountClass += ' expense'; }
+      else if (t.type === 'income') { amountClass += ' income'; }
+      else if (t.type === 'transfer') { amountClass += ' transfer'; accountText = `${t.account_from} → ${t.account_to}`; }
+
+      const translatedSub = getSubcategoryDisplayName(t.subcategory, t.category);
+      const translatedCat = getCategoryDisplayName(t.category);
+      const displayTitle = (t.note && t.note.trim()) ? t.note.trim()
+        : (t.description && t.description.trim()) ? t.description.trim()
+          : (translatedSub && translatedSub.trim()) ? translatedSub.trim()
+            : (translatedCat || '');
+
+      const memberBadge = getMemberBadgeHTML(t);
+      const datePart = (t.date || '').split('T')[0];
+
+      const catSubLine = t.subcategory
+        ? `${catInfo.icon || ''} ${escapeHtml(translatedCat)}/${escapeHtml(translatedSub)}`
+        : `${catInfo.icon || ''} ${escapeHtml(translatedCat)}`;
+
+      const selectIndicator = state.searchSelectMode
+        ? `<div class="search-item-select-circle" style="width: 20px; height: 20px; border-radius: 50%; border: 2px solid ${isSelected ? 'var(--primary)' : 'var(--text-secondary)'}; display: flex; align-items: center; justify-content: center; margin-right: 12px; flex-shrink: 0; background: ${isSelected ? 'var(--primary)' : 'transparent'}; color: white; font-size: 11px; font-weight: bold; box-sizing: border-box;">${isSelected ? '✓' : ''}</div>`
+        : '';
+
+      item.innerHTML = `
       <div class="search-item-left" style="display: flex; align-items: center; min-width: 0; flex: 1;">
         ${selectIndicator}
         <div style="display: flex; flex-direction: column; min-width: 0; flex: 1;">
@@ -14338,7 +14400,8 @@ function renderGroupedTransactions(transactions, container) {
         </div>
       </div>
       <div class="${amountClass}">${getCurrencySymbol()} ${formatDisplayAmount(CurrencyService.displayAmount(t, searchDisplayCurrency), searchDisplayCurrency)}</div>`;
-    container.appendChild(item);
+      container.appendChild(item);
+    });
   });
 
   if (transactions.length > searchResultLimit) {

@@ -72,7 +72,7 @@
               ${devButton}
             </div>
             <div style="font-size:11px;color:#8b949e;">
-              Budget Assistant • build v1151
+              Budget Assistant • build v1152
             </div>
           </div>
         `;
@@ -801,7 +801,7 @@
 
           <!-- Settings Hub: clickable nav rows -->
           <div
-            style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; margin-bottom: 12px; overflow: hidden; display: flex; flex-direction: column;">
+            style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; margin-bottom: 12px; overflow: hidden; display: flex; flex-direction: column; flex-shrink: 0;">
 
             <!-- Preferences row -->
             <div class="settings-list-item" id="hub-row-preferences"
@@ -926,7 +926,8 @@
                   <span class="settings-item-label" data-i18n="settings_data_title"
                     style="font-weight:700; font-family:'Outfit',sans-serif; font-size:14px; color:var(--text-primary);">Δεδομένα
                     &amp; Συγχρονισμός</span>
-                  <span style="font-size:11px;color:var(--text-secondary);" data-i18n="settings_data_desc">Συγχρονισμός Cloud, Εισαγωγή &amp; Εξαγωγή δεδομένων</span>
+                  <span style="font-size:11px;color:var(--text-secondary);" data-i18n="settings_data_desc">Συγχρονισμός
+                    Cloud, Εισαγωγή &amp; Εξαγωγή δεδομένων</span>
                 </div>
               </div>
               <i class="fa-solid fa-chevron-right" style="color:var(--text-muted);font-size:12px;"></i>
@@ -2158,7 +2159,7 @@
             <div class="settings-list-item version-info-row"
               style="padding: 14px 16px; background: transparent; border-top: 1px solid var(--border); margin-top: 8px;">
               <span class="settings-item-label" style="color:var(--text-muted); font-size:12px;"
-                data-i18n="app_version">Έκδοση 1.0.0 (build v1151)</span>
+                data-i18n="app_version">Έκδοση 1.0.0 (build v1152)</span>
               <span class="settings-item-value" style="font-size:12px; color:var(--text-muted); font-weight:600;">Budget
                 Assistant</span>
             </div>
@@ -2595,8 +2596,8 @@
           <select id="search-filter-subcategory" onchange="handleSearchChange()">
             <option value="">Όλες</option>
           </select>
-          <input type="number" id="search-filter-amount-min" step="0.01" oninput="handleSearchChange()">
-          <input type="number" id="search-filter-amount-max" step="0.01" oninput="handleSearchChange()">
+          <input type="number" id="search-filter-amount-min" step="0.01" oninput="debouncedSearchChange()">
+          <input type="number" id="search-filter-amount-max" step="0.01" oninput="debouncedSearchChange()">
           <input type="date" id="search-filter-date-start" onchange="handleSearchChange()">
           <input type="date" id="search-filter-date-end" onchange="handleSearchChange()">
           <input type="hidden" id="search-filter-member" onchange="handleSearchChange()" value="">
@@ -2611,7 +2612,7 @@
         <div class="search-input-wrapper-modern">
           <i class="fa-solid fa-magnifying-glass search-input-icon-modern"></i>
           <input type="text" id="search-input" placeholder="Search Expenses, Accounts, or date..."
-            data-i18n-placeholder="search_placeholder" oninput="handleSearchChange()">
+            data-i18n-placeholder="search_placeholder" oninput="debouncedSearchChange()">
           <button class="search-clear-btn-modern" id="search-clear-btn" onclick="clearSearchInput()" title="Καθαρισμός">
             <i class="fa-solid fa-xmark"></i>
           </button>
@@ -4052,7 +4053,7 @@
       // OTA updates. Running both would cause a reload loop that never
       // baked into the APK and never changes on a plain reload).
       // ============================================================
-      const CURRENT_BUILD = 1151;
+      const CURRENT_BUILD = 1152;
       (function () {
         // Skip entirely when running inside the native APK (Capacitor bridge
         // present). Capgo handles OTA updates there.
