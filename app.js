@@ -974,7 +974,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1159 - 06/08/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1160 - 06/08/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1358,7 +1358,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1159 - 06/08/2026)',
+    app_version: 'Version 1.0.0 (build v1160 - 06/08/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -18723,7 +18723,18 @@ function applyFontSize(size) {
   // τα fixed-position modals. Τα modals έχουν zoom:1 στο CSS.
   const appContainer = document.querySelector('.app-container');
   if (appContainer) {
-    appContainer.style.zoom = zoom;
+    if (zoom === 1.0) {
+      // FIX (font-size fluctuation): Για το "normal" μέγεθος ΔΕΝ ορίζουμε
+      // zoom:1 αλλά αφαιρούμε εντελώς το inline zoom. Το zoom (ακόμα και 1.0)
+      // δημιουργεί νέο containing block / ξεχωριστό compositing layer στο
+      // .app-container. Στο Android WebView, όταν το .tab-screen κάνει το
+      // fade-in-premium animation (transform: translateY), ο compositor
+      // επανα-ραστεροποιεί το zoomed layer προκαλώντας ορατή αυξομείωση
+      // μεγέθους γραμμάτων κάθε φορά που ανοίγουμε/κλείνουμε ένα tab.
+      appContainer.style.removeProperty('zoom');
+    } else {
+      appContainer.style.zoom = zoom;
+    }
   }
 }
 
