@@ -1731,6 +1731,10 @@ input:focus+.slider {
   align-items: flex-end;
   /* Bottom sheet on mobile */
   justify-content: center;
+  /* Κρατά τα fixed-position modals σε κανονικό μέγεθος όταν το
+     .app-container έχει zoom (font-size setting). Χωρίς αυτό, το zoom
+     θα δημιουργούσε νέο containing block και τα modals θα τοποθετούνταν λάθος. */
+  zoom: 1;
   opacity: 0;
   pointer-events: none;
   /* visibility:hidden (delayed) forces the browser to fully exclude the overlay
@@ -8044,6 +8048,14 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
 .settings-picker-item-check {
   font-size: 12px;
   color: var(--accent, #10b981);
+}
+
+/* Font Size Picker — δείγμα κειμένου σε κάθε επιλογή μεγέθους */
+.font-size-sample {
+  margin-top: 6px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.3;
 }
 
 /* ============================================================

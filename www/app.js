@@ -803,6 +803,7 @@ const TRANSLATIONS = {
     restore: 'Επαναφορά',
     empty_trash: 'Εκκαθάριση Κάδου',
     item_currency: 'Κύριο Νόμισμα',
+    item_font_size: 'Μέγεθος Γραμματοσειράς',
     item_sync_status: 'Κατάσταση Συγχρονισμού',
     val_month_start: 'Κάθε 1',
     val_week_start: 'Δευτέρα',
@@ -973,7 +974,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1155 - 06/08/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1156 - 06/08/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1186,6 +1187,7 @@ const TRANSLATIONS = {
     restore: 'Restore',
     empty_trash: 'Empty Trash',
     item_currency: 'Main Currency',
+    item_font_size: 'Font Size',
     item_sync_status: 'Sync Status',
     val_month_start: 'Every 1st',
     val_week_start: 'Monday',
@@ -1356,7 +1358,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1155 - 06/08/2026)',
+    app_version: 'Version 1.0.0 (build v1156 - 06/08/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -18251,6 +18253,18 @@ function updateSettingsDisplay() {
     };
     autoLockDisplay.textContent = autoLockLabels[autoLockDelay] || autoLockDelay;
   }
+
+  const fontSizeDisplay = document.getElementById('settings-font-size-display');
+  if (fontSizeDisplay) {
+    const fontSize = localStorage.getItem('app_font_size') || 'normal';
+    const fontSizeLabels = {
+      'small': state.lang === 'el' ? 'Μικρό' : 'Small',
+      'normal': state.lang === 'el' ? 'Κανονικό' : 'Normal',
+      'large': state.lang === 'el' ? 'Μεγάλο' : 'Large',
+      'xlarge': state.lang === 'el' ? 'Πολύ Μεγάλο' : 'Extra Large'
+    };
+    fontSizeDisplay.textContent = fontSizeLabels[fontSize] || fontSize;
+  }
 }
 
 function openSettingsPicker(type) {
@@ -18502,6 +18516,67 @@ function openSettingsPicker(type) {
     openModal('settings-picker-modal');
     return;
   }
+
+  if (type === 'font-size') {
+    titleEl.textContent = state.lang === 'el' ? 'Μέγεθος Γραμματοσειράς' : 'Font Size';
+    const currentVal = localStorage.getItem('app_font_size') || 'normal';
+
+    const options = [
+      {
+        value: 'small',
+        title: state.lang === 'el' ? 'Μικρό' : 'Small',
+        sub: state.lang === 'el' ? '0.9x — συμπαγές κείμενο' : '0.9x — compact text',
+        icon: 'fa-text-height',
+        sample: 12
+      },
+      {
+        value: 'normal',
+        title: state.lang === 'el' ? 'Κανονικό' : 'Normal',
+        sub: state.lang === 'el' ? '1.0x — προεπιλογή' : '1.0x — default',
+        icon: 'fa-text-height',
+        sample: 14
+      },
+      {
+        value: 'large',
+        title: state.lang === 'el' ? 'Μεγάλο' : 'Large',
+        sub: state.lang === 'el' ? '1.15x — μεγαλύτερο κείμενο' : '1.15x — larger text',
+        icon: 'fa-text-height',
+        sample: 16
+      },
+      {
+        value: 'xlarge',
+        title: state.lang === 'el' ? 'Πολύ Μεγάλο' : 'Extra Large',
+        sub: state.lang === 'el' ? '1.3x — μέγιστο μέγεθος' : '1.3x — maximum size',
+        icon: 'fa-text-height',
+        sample: 18
+      }
+    ];
+
+    options.forEach(opt => {
+      const isSelected = opt.value === currentVal;
+      const card = document.createElement('div');
+      card.className = `settings-card-item ${isSelected ? 'selected' : ''}`;
+      card.innerHTML = `
+        <div class="settings-card-left">
+          <div class="settings-card-icon"><i class="fa-solid ${opt.icon}"></i></div>
+          <div class="settings-card-info">
+            <div class="settings-card-title">${opt.title}</div>
+            <div class="settings-card-sub">${opt.sub}</div>
+            <div class="font-size-sample" style="font-size:${opt.sample}px;">${state.lang === 'el' ? 'Δείγμα κειμένου' : 'Sample text'}</div>
+          </div>
+        </div>
+        <i class="fa-solid fa-check settings-card-check"></i>
+      `;
+      card.onclick = () => {
+        changeFontSizeSetting(opt.value);
+        closeModal('settings-picker-modal');
+      };
+      container.appendChild(card);
+    });
+
+    openModal('settings-picker-modal');
+    return;
+  }
 }
 
 function initSettingsFromStorage() {
@@ -18509,6 +18584,7 @@ function initSettingsFromStorage() {
   const weekStart = localStorage.getItem('app_week_start') || '1';
   const currency = localStorage.getItem('app_currency') || 'EUR';
   const theme = localStorage.getItem('app_theme') || 'dark';
+  const fontSize = localStorage.getItem('app_font_size') || 'normal';
 
   const savedPin = localStorage.getItem('app_pin');
   const validPin = savedPin && savedPin.length === 4;
@@ -18545,6 +18621,7 @@ function initSettingsFromStorage() {
   updateNoteShortcutVisibility();
   updateSettingsDisplay();
   applyTheme(theme);
+  applyFontSize(fontSize);
   checkBiometricsSupport();
 
   if (appLockEnabled || appBiometricsEnabled) {
@@ -18560,6 +18637,8 @@ window.getCurrencySymbol = getCurrencySymbol;
 window.initSettingsFromStorage = initSettingsFromStorage;
 window.openSettingsPicker = openSettingsPicker;
 window.updateSettingsDisplay = updateSettingsDisplay;
+window.applyFontSize = applyFontSize;
+window.changeFontSizeSetting = changeFontSizeSetting;
 
 // Theme & Appearance Helpers
 function applyTheme(theme) {
@@ -18634,6 +18713,24 @@ function applyTheme(theme) {
 function changeThemeSetting(theme) {
   localStorage.setItem('app_theme', theme);
   applyTheme(theme);
+}
+
+// Font Size Helpers
+function applyFontSize(size) {
+  const zoomMap = { small: 0.9, normal: 1.0, large: 1.15, xlarge: 1.3 };
+  const zoom = zoomMap[size] || 1.0;
+  // Εφαρμόζουμε zoom στο .app-container (ΟΧΙ στο body) για να μην σπάσουν
+  // τα fixed-position modals. Τα modals έχουν zoom:1 στο CSS.
+  const appContainer = document.querySelector('.app-container');
+  if (appContainer) {
+    appContainer.style.zoom = zoom;
+  }
+}
+
+function changeFontSizeSetting(size) {
+  localStorage.setItem('app_font_size', size);
+  applyFontSize(size);
+  updateSettingsDisplay();
 }
 
 // Security App Lock Logic
