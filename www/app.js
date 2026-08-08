@@ -974,7 +974,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1157 - 06/08/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1158 - 06/08/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1358,7 +1358,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1157 - 06/08/2026)',
+    app_version: 'Version 1.0.0 (build v1158 - 06/08/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -27666,10 +27666,11 @@ window._userGuideLang = 'el';
 
 function updateUserGuideHeaderBadges() {
   const vBadge = document.getElementById('user-guide-version-badge');
-  const currentVer = typeof BUILD_VERSION !== "undefined" ? BUILD_VERSION : (state.version || 939);
+  const currentVer = typeof CURRENT_BUILD !== "undefined" ? CURRENT_BUILD : (typeof getAppBuildVersion === 'function' ? getAppBuildVersion() : (state.version || 1157));
   if (vBadge) vBadge.textContent = `v${currentVer}`;
   const dBadge = document.getElementById('user-guide-date-badge');
-  if (dBadge) dBadge.textContent = state.lang === 'el' ? 'Ιούλιος 2026' : 'July 2026';
+  const lang = window._userGuideLang || state.lang || 'el';
+  if (dBadge) dBadge.textContent = lang === 'el' ? 'Αύγουστος 2026' : 'August 2026';
   const langLabel = document.getElementById('user-guide-lang-label');
   if (langLabel) langLabel.textContent = window._userGuideLang === 'el' ? 'EN' : 'ΕΛ';
 }
@@ -27728,16 +27729,16 @@ const USER_GUIDE_DATA = {
       {
         id: 'changelog',
         icon: 'fa-box-archive',
-        title: '1. Έκδοση & Τι Νέο Υπάρχει (v1117)',
+        title: `1. Έκδοση & Τι Νέο Υπάρχει (v${typeof CURRENT_BUILD !== "undefined" ? CURRENT_BUILD : 1157})`,
         content: `
-          <p><strong>Έκδοση Οδηγού:</strong> v1117 | <strong>Συγχρονισμένη Έκδοση Εφαρμογής:</strong> v1117</p>
+          <p><strong>Τρέχουσα Έκδοση Εφαρμογής:</strong> v${typeof CURRENT_BUILD !== "undefined" ? CURRENT_BUILD : 1157} | <strong>Ενημερώθηκε:</strong> Αύγουστος 2026</p>
           <div class="guide-feature-box">
-            <h5 style="margin:0 0 6px; color:var(--primary);">✨ Τι νέο υπάρχει στην τελευταία έκδοση:</h5>
+            <h5 style="margin:0 0 6px; color:var(--accent);">✨ Τι νέο υπάρχει στην τελευταία έκδοση:</h5>
             <ul style="margin:0; padding-left:18px;">
-              <li><strong>Πλήρης Οδηγός Χρήσης:</strong> Ενσωμάτωση ζωντανού δίγλωσσου οδηγού (Ελληνικά & Αγγλικά) στη σειρά Νομικά & Πληροφορίες.</li>
-              <li><strong>Ειδοποιήσεις & Όριο Δαπανών:</strong> Πλήρης διόρθωση toggles, ειδοποιήσεων και προσθήκη Ορίου Μεμονωμένης Δαπάνης σε €.</li>
-              <li><strong>Swipe Back Χειρονομία:</strong> Χειρουργική διόρθωση layout flex κατά το σύρσιμο πίσω ώστε να μην εμφανίζεται ποτέ κενή οθόνη.</li>
-              <li><strong>Αυτόματη Αρίθμηση Δόσεων:</strong> Αυτόματος υπολογισμός και διατήρηση σημειώσεων δόσεων (π.χ. 1/12, 2/12) σε επαναλαμβανόμενες συναλλαγές.</li>
+              <li><strong>Νέα Θέματα Εμφάνισης:</strong> 9 μοναδικές παλέτες (Sakura Pastel Pink, Rose Gold, Blossom Pink, Cyber Neon κ.ά.).</li>
+              <li><strong>Ευρύχωρος Οδηγός Χρήσης:</strong> Πλήρως ανανεωμένος δίγλωσσος οδηγός με άνετα cards, αναζήτηση & αυτόματη έκδοση.</li>
+              <li><strong>Σημειωματάριο & Checklists:</strong> Αυτόνομη διαχείριση προσωπικών σημειώσεων, checklists και υπενθυμίσεων.</li>
+              <li><strong>Ασφάλεια & Βιομετρικά:</strong> Κλείδωμα PIN, δακτυλικό αποτύπωμα & αυτόματο κλείδωμα σε αδράνεια.</li>
             </ul>
           </div>
         `
