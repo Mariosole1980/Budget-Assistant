@@ -973,7 +973,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1148 - 06/08/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1149 - 06/08/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1356,7 +1356,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1148 - 06/08/2026)',
+    app_version: 'Version 1.0.0 (build v1149 - 06/08/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -18153,9 +18153,12 @@ function updateSettingsDisplay() {
       'dark': 'Premium Dark',
       'oled': 'OLED Black',
       'light': 'Classic Light',
+      'pink': 'Blossom Pink',
+      'sakura': 'Sakura Pastel',
+      'rosegold': 'Rose Gold',
       'emerald': 'Emerald Forest',
       'ocean': 'Ocean Breeze',
-      'pink': 'Blossom Pink'
+      'cyber': 'Cyber Neon'
     };
     themeDisplay.textContent = themeLabels[theme] || theme;
   }
@@ -18239,8 +18242,38 @@ function openSettingsPicker(type) {
       {
         id: 'pink',
         title: 'Blossom Pink',
-        desc: state.lang === 'el' ? 'Ματζέντα & ροζ' : 'Magenta & soft pink',
-        colors: ['#2d1b24', '#ec4899', '#1e1017']
+        desc: state.lang === 'el' ? 'Σκούρο ματζέντα & ροζ' : 'Dark magenta & pink',
+        colors: ['#2d1b24', '#ff758f', '#1f1218']
+      },
+      {
+        id: 'sakura',
+        title: 'Sakura Pastel',
+        desc: state.lang === 'el' ? 'Φωτεινό παστέλ ροζ' : 'Light pastel sakura pink',
+        colors: ['#fff5f7', '#f43f5e', '#ffffff']
+      },
+      {
+        id: 'rosegold',
+        title: 'Rose Gold',
+        desc: state.lang === 'el' ? 'Πολυτελές ροζ χρυσό' : 'Luxury dark rose gold',
+        colors: ['#261720', '#fb7185', '#180e14']
+      },
+      {
+        id: 'emerald',
+        title: 'Emerald Forest',
+        desc: state.lang === 'el' ? 'Βαθύ πράσινο' : 'Deep emerald green',
+        colors: ['#182823', '#10b981', '#121f1b']
+      },
+      {
+        id: 'ocean',
+        title: 'Ocean Breeze',
+        desc: state.lang === 'el' ? 'Νυχτερινό μπλε & κυανό' : 'Midnight blue & cyan',
+        colors: ['#1c2541', '#06b6d4', '#0b1329']
+      },
+      {
+        id: 'cyber',
+        title: 'Cyber Neon',
+        desc: state.lang === 'el' ? 'Φουτουριστικό νέον βιολετί' : 'Cyberpunk neon violet',
+        colors: ['#1c102b', '#a855f7', '#11091c']
       }
     ];
 
@@ -18478,7 +18511,7 @@ window.updateSettingsDisplay = updateSettingsDisplay;
 
 // Theme & Appearance Helpers
 function applyTheme(theme) {
-  const themeClasses = ['theme-oled', 'theme-light', 'theme-emerald', 'theme-ocean', 'theme-pink'];
+  const themeClasses = ['theme-oled', 'theme-light', 'theme-emerald', 'theme-ocean', 'theme-pink', 'theme-sakura', 'theme-rosegold', 'theme-cyber'];
   themeClasses.forEach(cls => {
     document.body.classList.remove(cls);
     document.documentElement.classList.remove(cls);
@@ -18493,9 +18526,12 @@ function applyTheme(theme) {
     'dark': '#222731',
     'oled': '#0d0d0d',
     'light': '#ffffff',
+    'pink': '#2d1b24',
+    'sakura': '#fff5f7',
+    'rosegold': '#261720',
     'emerald': '#182823',
     'ocean': '#1c2541',
-    'pink': '#2d1b24'
+    'cyber': '#1c102b'
   };
   const metaThemeColor = document.querySelector('meta[name="theme-color"]');
   if (metaThemeColor) {
@@ -21653,7 +21689,7 @@ function triggerProfileExport() {
 }
 
 function cycleThemeFromProfile() {
-  const themes = ['dark', 'oled', 'light', 'emerald', 'ocean', 'pink'];
+  const themes = ['dark', 'oled', 'light', 'pink', 'sakura', 'rosegold', 'emerald', 'ocean', 'cyber'];
   const currentTheme = localStorage.getItem('app_theme') || 'dark';
   let nextIdx = (themes.indexOf(currentTheme) + 1) % themes.length;
   const nextTheme = themes[nextIdx];
@@ -21667,9 +21703,12 @@ function cycleThemeFromProfile() {
       'dark': 'Premium Dark',
       'oled': 'OLED Black',
       'light': 'Classic Light',
+      'pink': 'Blossom Pink',
+      'sakura': 'Sakura Pastel',
+      'rosegold': 'Rose Gold',
       'emerald': 'Emerald Forest',
       'ocean': 'Ocean Breeze',
-      'pink': 'Blossom Pink'
+      'cyber': 'Cyber Neon'
     };
     themeStatus.textContent = themeNames[nextTheme] || nextTheme;
   }

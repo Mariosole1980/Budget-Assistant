@@ -3265,18 +3265,57 @@ body.is-ios .modal-content {
   --bg-day-header: #080808;
 }
 
-/* Blossom Pink Theme */
+/* Blossom Pink Theme (Dark Magenta) */
 .theme-pink {
   --bg-main: #1f1218;
   --bg-card: #2d1b24;
   --bg-input: #3d2531;
+  --text-main: #fdf2f8;
+  --text-primary: #fdf2f8;
+  --text-secondary: #fbcfe8;
+  --text-muted: #f472b6;
   --accent: #ff758f;
-  /* Pastel Pink */
   --accent-rgb: 255, 117, 143;
-  --accent-light: rgba(255, 117, 143, 0.15);
-  --border: #422533;
-  --border-light: #522d3f;
+  --accent-light: rgba(255, 117, 143, 0.18);
+  --border: rgba(255, 117, 143, 0.25);
+  --border-light: rgba(255, 117, 143, 0.35);
   --bg-day-header: #261820;
+}
+
+/* Sakura Pastel Light Pink Theme */
+.theme-sakura {
+  --bg-main: #fff5f7;
+  --bg-card: #ffffff;
+  --bg-input: #fce7f3;
+  --text-main: #831843;
+  --text-primary: #831843;
+  --text-secondary: #9d174d;
+  --text-muted: #be185d;
+  --accent: #f43f5e;
+  --accent-rgb: 244, 63, 94;
+  --accent-light: rgba(244, 63, 94, 0.15);
+  --border: #fbcfe8;
+  --border-light: #f472b6;
+  --shadow: 0 4px 12px rgba(244, 63, 94, 0.08);
+  --shadow-lg: 0 10px 25px rgba(244, 63, 94, 0.12);
+  --bg-day-header: #fce7f3;
+}
+
+/* Rose Gold Luxury Dark Pink Theme */
+.theme-rosegold {
+  --bg-main: #180e14;
+  --bg-card: #261720;
+  --bg-input: #36202c;
+  --text-main: #fff1f2;
+  --text-primary: #fff1f2;
+  --text-secondary: #fecdd3;
+  --text-muted: #fda4af;
+  --accent: #fb7185;
+  --accent-rgb: 251, 113, 133;
+  --accent-light: rgba(251, 113, 133, 0.18);
+  --border: rgba(251, 113, 133, 0.22);
+  --border-light: rgba(251, 113, 133, 0.32);
+  --bg-day-header: #20121a;
 }
 
 /* Classic Light Theme */
@@ -3322,6 +3361,23 @@ body.is-ios .modal-content {
   --border: #2b3964;
   --border-light: #36487a;
   --bg-day-header: #141c33;
+}
+
+/* Cyber Neon Violet Theme */
+.theme-cyber {
+  --bg-main: #11091c;
+  --bg-card: #1c102b;
+  --bg-input: #29183d;
+  --text-main: #faf5ff;
+  --text-primary: #faf5ff;
+  --text-secondary: #e9d5ff;
+  --text-muted: #c084fc;
+  --accent: #a855f7;
+  --accent-rgb: 168, 85, 247;
+  --accent-light: rgba(168, 85, 247, 0.2);
+  --border: rgba(168, 85, 247, 0.25);
+  --border-light: rgba(168, 85, 247, 0.35);
+  --bg-day-header: #170c26;
 }
 
 /* Lock Screen Overlay */
