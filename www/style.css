@@ -7938,6 +7938,26 @@ mark.guide-highlight {
   box-sizing: border-box !important;
 }
 
+/* Legal & Account subscreen: render rows as a connected list (no gaps between
+   titles), matching the intended design. The generic .subscreen-section.active
+   forces gap:18px !important, which spreads the rows too far apart. */
+#subscreen-legal {
+  gap: 0 !important;
+}
+
+#subscreen-legal .settings-list-item {
+  border-bottom: 1px solid var(--border);
+}
+
+#subscreen-legal .settings-list-item:last-child {
+  border-bottom: none;
+}
+
+#subscreen-legal .version-info-row {
+  margin-top: 0 !important;
+  border-top: 1px solid var(--border);
+}
+
 
 /* Transaction Modal Keyboard Handling Strategy:
    1. Native Text Keyboard (body.keyboard-active):
