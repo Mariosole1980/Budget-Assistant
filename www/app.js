@@ -974,7 +974,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1161 - 06/08/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1162 - 06/08/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1358,7 +1358,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1161 - 06/08/2026)',
+    app_version: 'Version 1.0.0 (build v1162 - 06/08/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -19800,8 +19800,8 @@ function renderPartnerSection() {
     let inviteBlockHtml = '';
     if (myRole === 'admin') {
       inviteBlockHtml = `
-        <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--card-border);display:flex;flex-direction:column;gap:12px;">
-          <div style="font-size:13px;font-weight:700;color:var(--text-primary);display:flex;align-items:center;gap:6px;">
+        <div style="background:var(--bg-card, rgba(255,255,255,0.03));border:1px solid var(--border);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px;box-shadow:0 4px 14px rgba(0,0,0,0.1);">
+          <div style="display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:700;font-family:'Outfit',sans-serif;color:var(--text-primary);">
             <i class="fa-solid fa-user-plus" style="color:var(--accent);"></i>
             <span>${state.lang === 'el' ? 'Πρόσκληση Νέου Μέλους' : 'Invite New Member'}</span>
           </div>
@@ -19892,38 +19892,72 @@ function renderPartnerSection() {
       `;
     }
 
-    let nameHtml = `<div style="font-size:13px;font-weight:700;color:var(--text-primary);">${familyName}</div>`;
+    let nameHtml = `<div style="font-family:'Outfit',sans-serif;font-size:15px;font-weight:800;color:var(--text-primary);">${familyName}</div>`;
     if (myRole === 'admin') {
       nameHtml = `
-        <div id="family-group-name-label" style="font-size:13px;font-weight:700;color:var(--text-primary);cursor:pointer;user-select:none;border-bottom:1px dashed var(--text-muted);display:inline-block;" title="${state.lang === 'el' ? 'Κρατήστε πατημένο για μετονομασία' : 'Long press to rename'}">
+        <div id="family-group-name-label" style="font-family:'Outfit',sans-serif;font-size:15px;font-weight:800;color:var(--text-primary);cursor:pointer;user-select:none;border-bottom:1px dashed var(--text-muted);display:inline-block;" title="${state.lang === 'el' ? 'Κρατήστε πατημένο για μετονομασία' : 'Long press to rename'}">
           ${familyName}
         </div>
       `;
     }
 
     container.innerHTML = `
-      <div style="background:linear-gradient(135deg,rgba(var(--accent-rgb,124,106,247),0.06),rgba(255,255,255,0.01));border:1px solid var(--border);border-radius:16px;padding:16px;box-shadow:var(--shadow);">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;border-bottom:1px solid var(--border);padding-bottom:10px;">
-          <div style="display:flex;align-items:center;gap:10px;">
-            <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#4caf50);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">👥</div>
-            <div>
+      <div style="display:flex;flex-direction:column;gap:16px;padding:2px 0;">
+
+        <!-- Hero Header Banner Card -->
+        <div style="background:linear-gradient(135deg, rgba(var(--accent-rgb, 124, 106, 247), 0.12), rgba(255, 255, 255, 0.02));border:1px solid rgba(var(--accent-rgb, 124, 106, 247), 0.25);border-radius:18px;padding:18px;display:flex;align-items:center;gap:14px;box-shadow:0 6px 20px rgba(0,0,0,0.15);">
+          <div style="width:50px;height:50px;border-radius:14px;background:linear-gradient(135deg,var(--accent),#4caf50);color:#ffffff;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;box-shadow:0 6px 16px rgba(var(--accent-rgb, 124, 106, 247), 0.35);">
+            👨‍👩‍👧‍👦
+          </div>
+          <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:0;">
+            <div style="font-family:'Outfit',sans-serif;font-size:15px;font-weight:800;color:var(--text-primary);">
               ${nameHtml}
-              <div style="font-size:10px;color:#4caf50;font-weight:600;">● ${state.lang === 'el' ? 'Κοινό Ιστορικό' : 'Shared History'}</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:#4caf50;font-weight:700;">
+              <span style="width:7px;height:7px;border-radius:50%;background:#4caf50;display:inline-block;flex-shrink:0;"></span>
+              ${state.lang === 'el' ? 'Κοινό Ιστορικό · Συγχρονισμένο σε πραγματικό χρόνο' : 'Shared History · Real-time Sync Active'}
             </div>
           </div>
-          <button class="btn btn-secondary unlink-btn" onclick="leaveFamilyGroup()" style="padding:6px 10px;font-size:11px;border-radius:8px;margin-left:0;">
+          <button class="btn btn-secondary unlink-btn" onclick="leaveFamilyGroup()" style="padding:8px 12px;font-size:11px;font-weight:700;border-radius:10px;margin-left:0;white-space:nowrap;flex-shrink:0;">
             <i class="fa-solid fa-right-from-bracket" style="margin-right:5px;"></i>${state.lang === 'el' ? 'Αποχώρηση' : 'Leave'}
           </button>
         </div>
 
-        <div style="font-size:12px;font-weight:700;margin-bottom:8px;color:var(--text-secondary);">
-          👥 ${state.lang === 'el' ? 'Μέλη Οικογένειας' : 'Family Members'} (${state.familyProfiles.length})
-        </div>
-        <div style="display:flex;flex-direction:column;gap:4px;">
-          ${membersHtml}
+        <!-- Members Card -->
+        <div style="background:var(--bg-card, rgba(255,255,255,0.03));border:1px solid var(--border);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px;box-shadow:0 4px 14px rgba(0,0,0,0.1);">
+          <div style="display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:700;font-family:'Outfit',sans-serif;color:var(--text-primary);">
+            <i class="fa-solid fa-users" style="color:var(--accent);"></i>
+            <span>${state.lang === 'el' ? 'Μέλη Οικογένειας' : 'Family Members'}</span>
+            <span style="margin-left:auto;font-size:11px;font-weight:700;color:var(--text-secondary);background:rgba(var(--accent-rgb,124,106,247),0.12);padding:2px 8px;border-radius:20px;">${state.familyProfiles.length}</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:4px;">
+            ${membersHtml}
+          </div>
         </div>
 
         ${inviteBlockHtml}
+
+        <!-- Feature Highlights Card -->
+        <div style="background:rgba(0,0,0,0.15);border:1px solid var(--border);border-radius:16px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;">
+          <div style="font-size:12px;font-weight:800;font-family:'Outfit',sans-serif;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;">
+            ${state.lang === 'el' ? '✨ Πλεονεκτήματα Οικογενειακού Group' : '✨ Family Group Features'}
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;font-size:12.5px;color:var(--text-secondary);line-height:1.45;">
+            <div style="display:flex;align-items:flex-start;gap:8px;">
+              <span style="color:var(--accent);font-size:14px;margin-top:1px;">⚡</span>
+              <span><strong>${state.lang === 'el' ? 'Ταυτόχρονος Συγχρονισμός' : 'Real-time Sync'}:</strong> ${state.lang === 'el' ? 'Κάθε έξοδο ή έσοδο εμφανίζεται ακαριαία στις συσκευές όλων των μελών.' : 'Instant synchronization of all expenses and income across family devices.'}</span>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:8px;">
+              <span style="color:var(--accent);font-size:14px;margin-top:1px;">📊</span>
+              <span><strong>${state.lang === 'el' ? 'Κοινοί Προϋπολογισμοί' : 'Shared Budgets'}:</strong> ${state.lang === 'el' ? 'Θέστε κοινά όρια δαπανών για σούπερ μάρκετ, λογαριασμούς & έξοδα σπιτιού.' : 'Set joint spending limits for household, groceries, and utility bills.'}</span>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:8px;">
+              <span style="color:var(--accent);font-size:14px;margin-top:1px;">🔒</span>
+              <span><strong>${state.lang === 'el' ? 'Απόλυτη Ιδιωτικότητα' : 'Full Privacy'}:</strong> ${state.lang === 'el' ? 'Μόνο τα μέλη του δικού σας group έχουν πρόσβαση στα οικονομικά δεδομένα.' : 'Your financial data is encrypted and accessible strictly to your family members.'}</span>
+            </div>
+          </div>
+        </div>
+
       </div>
     `;
 
