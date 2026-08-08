@@ -974,7 +974,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1160 - 06/08/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1161 - 06/08/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1358,7 +1358,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1160 - 06/08/2026)',
+    app_version: 'Version 1.0.0 (build v1161 - 06/08/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -19967,35 +19967,78 @@ function renderPartnerSection() {
     }
   } else {
     // === SETUP / JOIN / CREATE FAMILY STATE ===
+    const isEl = state.lang === 'el';
     container.innerHTML = `
-      <div style="display:flex;flex-direction:column;gap:16px;padding:4px 0;">
-        <div style="font-size:13px;color:var(--text-secondary);line-height:1.5;">
-          ${state.lang === 'el'
-        ? 'Διαχειριστείτε τα κοινά οικονομικά του σπιτιού δημιουργώντας ένα Οικογενειακό Group, ή συνδεθείτε σε ένα υπάρχον με κωδικό πρόσκλησης.'
-        : 'Manage shared household finances by creating a Family Group, or join an existing one using an invite code.'}
+      <div style="display:flex;flex-direction:column;gap:16px;padding:2px 0;">
+        
+        <!-- Hero Header Banner Card -->
+        <div style="background:linear-gradient(135deg, rgba(var(--accent-rgb, 124, 106, 247), 0.12), rgba(255, 255, 255, 0.02));border:1px solid rgba(var(--accent-rgb, 124, 106, 247), 0.25);border-radius:18px;padding:18px;display:flex;align-items:center;gap:14px;box-shadow:0 6px 20px rgba(0,0,0,0.15);">
+          <div style="width:50px;height:50px;border-radius:14px;background:var(--accent);color:#ffffff;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;box-shadow:0 6px 16px rgba(var(--accent-rgb, 124, 106, 247), 0.35);">
+            👨‍👩‍👧‍👦
+          </div>
+          <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:0;">
+            <div style="font-family:'Outfit',sans-serif;font-size:15px;font-weight:800;color:var(--text-primary);">
+              ${isEl ? 'Οικογενειακός Προϋπολογισμός' : 'Family Budget & Shared Wallet'}
+            </div>
+            <div style="font-size:12px;color:var(--text-secondary);line-height:1.45;">
+              ${isEl ? 'Διαχειριστείτε τα κοινά οικονομικά του σπιτιού σε πραγματικό χρόνο με τον/την σύντροφό σας.' : 'Manage shared household finances in real-time with your partner or family members.'}
+            </div>
+          </div>
         </div>
 
-        <!-- Section A: Create Family -->
-        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px;">
-          <div style="font-size:12px;font-weight:700;color:var(--text-primary);">⭐ ${state.lang === 'el' ? 'Δημιουργία Νέας Οικογένειας' : 'Create New Family Group'}</div>
-          <div style="display:flex;gap:6px;">
-            <input type="text" id="create-family-name-input" class="form-input" placeholder="${state.lang === 'el' ? 'Όνομα Οικογένειας (π.χ. Οικ. Παπαδόπουλου)' : 'Family Name (e.g. Smith Family)'}" style="flex:1;font-size:13px;padding:8px 10px;margin-bottom:0;">
-            <button class="btn btn-primary" onclick="createFamilyGroup()" style="padding:8px 14px;font-size:12.5px;font-weight:700;white-space:nowrap;">
-              ${state.lang === 'el' ? 'Δημιουργία' : 'Create'}
+        <!-- Section 1: Join Family via Code -->
+        <div style="background:var(--bg-card, rgba(255,255,255,0.03));border:1px solid var(--border);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px;box-shadow:0 4px 14px rgba(0,0,0,0.1);">
+          <div style="display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:700;font-family:'Outfit',sans-serif;color:var(--text-primary);">
+            <i class="fa-solid fa-link" style="color:var(--accent);"></i>
+            <span>${isEl ? 'Σύνδεση σε Οικογένεια με Κωδικό' : 'Join Family Group via Code'}</span>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <input type="text" id="join-family-code-input" class="form-input" placeholder="X1Y2Z3" 
+              style="flex:1;font-size:14px;padding:10px 12px;text-transform:uppercase;letter-spacing:2px;font-family:monospace;text-align:center;margin-bottom:0;border-radius:10px;background:rgba(0,0,0,0.25);border:1px solid var(--border);color:var(--text-primary);">
+            <button class="btn btn-primary" onclick="joinFamilyGroup()" 
+              style="padding:10px 16px;font-size:12.5px;font-weight:700;white-space:nowrap;border-radius:10px;background:var(--accent);color:#fff;border:none;box-shadow:0 3px 10px rgba(var(--accent-rgb, 124, 106, 247), 0.3);cursor:pointer;display:flex;align-items:center;gap:6px;">
+              <i class="fa-solid fa-arrow-right-to-bracket"></i> ${isEl ? 'Σύνδεση' : 'Join'}
             </button>
           </div>
         </div>
 
-        <!-- Section B: Join Family -->
-        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px;">
-          <div style="font-size:12px;font-weight:700;color:var(--text-primary);">👥 ${state.lang === 'el' ? 'Σύνδεση σε Οικογένεια με Κωδικό' : 'Join Family Group via Code'}</div>
-          <div style="display:flex;gap:6px;">
-            <input type="text" id="join-family-code-input" class="form-input" placeholder="X1Y2Z3" style="flex:1;font-size:13px;padding:8px 10px;text-transform:uppercase;letter-spacing:1.5px;font-family:monospace;text-align:center;margin-bottom:0;">
-            <button class="btn btn-primary" onclick="joinFamilyGroup()" style="padding:8px 14px;font-size:12.5px;font-weight:700;white-space:nowrap;">
-              ${state.lang === 'el' ? 'Σύνδεση' : 'Join'}
+        <!-- Section 2: Create New Family -->
+        <div style="background:var(--bg-card, rgba(255,255,255,0.03));border:1px solid var(--border);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px;box-shadow:0 4px 14px rgba(0,0,0,0.1);">
+          <div style="display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:700;font-family:'Outfit',sans-serif;color:var(--text-primary);">
+            <i class="fa-solid fa-square-plus" style="color:var(--accent);"></i>
+            <span>${isEl ? 'Δημιουργία Νέας Οικογένειας' : 'Create New Family Group'}</span>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <input type="text" id="create-family-name-input" class="form-input" placeholder="${isEl ? 'Όνομα (π.χ. Οικ. Παπαδόπουλου)' : 'Group Name (e.g. Smith Family)'}" 
+              style="flex:1;font-size:13px;padding:10px 12px;margin-bottom:0;border-radius:10px;background:rgba(0,0,0,0.25);border:1px solid var(--border);color:var(--text-primary);">
+            <button class="btn btn-primary" onclick="createFamilyGroup()" 
+              style="padding:10px 16px;font-size:12.5px;font-weight:700;white-space:nowrap;border-radius:10px;background:var(--accent);color:#fff;border:none;box-shadow:0 3px 10px rgba(var(--accent-rgb, 124, 106, 247), 0.3);cursor:pointer;display:flex;align-items:center;gap:6px;">
+              <i class="fa-solid fa-plus"></i> ${isEl ? 'Δημιουργία' : 'Create'}
             </button>
           </div>
         </div>
+
+        <!-- Section 3: Feature Highlights Card -->
+        <div style="background:rgba(0,0,0,0.15);border:1px solid var(--border);border-radius:16px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;">
+          <div style="font-size:12px;font-weight:800;font-family:'Outfit',sans-serif;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;">
+            ${isEl ? '✨ Πλεονεκτήματα Οικογενειακού Group' : '✨ Family Group Features'}
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;font-size:12.5px;color:var(--text-secondary);line-height:1.45;">
+            <div style="display:flex;align-items:flex-start;gap:8px;">
+              <span style="color:var(--accent);font-size:14px;margin-top:1px;">⚡</span>
+              <span><strong>${isEl ? 'Ταυτόχρονος Συγχρονισμός' : 'Real-time Sync'}:</strong> ${isEl ? 'Κάθε έξοδο ή έσοδο εμφανίζεται ακαριαία στις συσκευές όλων των μελών.' : 'Instant synchronization of all expenses and income across family devices.'}</span>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:8px;">
+              <span style="color:var(--accent);font-size:14px;margin-top:1px;">📊</span>
+              <span><strong>${isEl ? 'Κοινοί Προϋπολογισμοί' : 'Shared Budgets'}:</strong> ${isEl ? 'Θέστε κοινά όρια δαπανών για σούπερ μάρκετ, λογαριασμούς & έξοδα σπιτιού.' : 'Set joint spending limits for household, groceries, and utility bills.'}</span>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:8px;">
+              <span style="color:var(--accent);font-size:14px;margin-top:1px;">🔒</span>
+              <span><strong>${isEl ? 'Απόλυτη Ιδιωτικότητα' : 'Full Privacy'}:</strong> ${isEl ? 'Μόνο τα μέλη του δικού σας group έχουν πρόσβαση στα οικονομικά δεδομένα.' : 'Your financial data is encrypted and accessible strictly to your family members.'}</span>
+            </div>
+          </div>
+        </div>
+
       </div>
     `;
   }
