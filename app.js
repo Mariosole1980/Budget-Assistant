@@ -974,7 +974,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1164 - 06/08/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1165 - 06/08/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1358,7 +1358,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1164 - 06/08/2026)',
+    app_version: 'Version 1.0.0 (build v1165 - 06/08/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -19740,7 +19740,7 @@ function renderPartnerSection() {
     // Admin gets an "Add Member" button that opens the invite modal; members get a read-only invite code row
     const addMemberBtnHtml = myRole === 'admin'
       ? `<button type="button" onclick="openInviteModal('${inviteCode}')" style="margin-left:auto;display:flex;align-items:center;gap:5px;padding:6px 12px;font-size:11.5px;font-weight:700;border-radius:20px;background:var(--accent);color:#fff;border:none;cursor:pointer;box-shadow:0 3px 10px rgba(var(--accent-rgb,124,106,247),0.3);white-space:nowrap;">
-          <i class="fa-solid fa-user-plus" style="font-size:12px;"></i>${state.lang === 'el' ? 'Πρόσθεση Μέλους' : 'Add Member'}
+          <i class="fa-solid fa-user-plus" style="font-size:12px;"></i>${state.lang === 'el' ? 'Προσθήκη Μέλους' : 'Add Member'}
         </button>`
       : `<span style="margin-left:auto;font-size:11px;font-weight:700;color:var(--text-secondary);background:rgba(var(--accent-rgb,124,106,247),0.12);padding:2px 8px;border-radius:20px;">${state.familyProfiles.length}</span>`;
 
@@ -19754,7 +19754,7 @@ function renderPartnerSection() {
         <!-- Hero Header Banner Card -->
         <div style="background:linear-gradient(135deg, rgba(var(--accent-rgb, 124, 106, 247), 0.12), rgba(255, 255, 255, 0.02));border:1px solid rgba(var(--accent-rgb, 124, 106, 247), 0.25);border-radius:18px;padding:18px;display:flex;align-items:center;gap:14px;box-shadow:0 6px 20px rgba(0,0,0,0.15);">
           <div style="width:50px;height:50px;border-radius:14px;background:linear-gradient(135deg,var(--accent),#4caf50);color:#ffffff;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;box-shadow:0 6px 16px rgba(var(--accent-rgb, 124, 106, 247), 0.35);">
-            👨‍👩‍👧‍👦
+            <i class="fa-solid fa-people-group" style="font-size:24px;"></i>
           </div>
           <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:0;">
             <div style="font-family:'Outfit',sans-serif;font-size:15px;font-weight:800;color:var(--text-primary);">
@@ -19836,7 +19836,7 @@ function renderPartnerSection() {
         <!-- Hero Header Banner Card -->
         <div style="background:linear-gradient(135deg, rgba(var(--accent-rgb, 124, 106, 247), 0.12), rgba(255, 255, 255, 0.02));border:1px solid rgba(var(--accent-rgb, 124, 106, 247), 0.25);border-radius:18px;padding:18px;display:flex;align-items:center;gap:14px;box-shadow:0 6px 20px rgba(0,0,0,0.15);">
           <div style="width:50px;height:50px;border-radius:14px;background:var(--accent);color:#ffffff;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;box-shadow:0 6px 16px rgba(var(--accent-rgb, 124, 106, 247), 0.35);">
-            👨‍👩‍👧‍👦
+            <i class="fa-solid fa-people-group" style="font-size:24px;"></i>
           </div>
           <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:0;">
             <div style="font-family:'Outfit',sans-serif;font-size:15px;font-weight:800;color:var(--text-primary);">
@@ -20381,28 +20381,113 @@ async function inviteMemberByEmail() {
   }
 }
 
-async function promptRenameFamilyGroup() {
-  if (!state.supabaseClient || !state.currentUser || !state.familyGroup) return;
+function openRenameFamilyModal() {
+  if (!state.currentUser || !state.familyGroup) return;
+  const isEl = state.lang === 'el';
   const currentName = state.familyGroup.name || '';
-  const newName = prompt(state.lang === 'el' ? 'Εισάγετε το νέο όνομα της οικογένειας:' : 'Enter new family name:', currentName);
-  if (newName === null) return;
+
+  // Remove any existing instance first
+  const existing = document.getElementById('family-rename-modal');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'family-rename-modal';
+  overlay.className = 'modal-overlay';
+  overlay.style.zIndex = '15000';
+  overlay.style.alignItems = 'center';
+  overlay.style.justifyContent = 'center';
+  overlay.setAttribute('onclick', "if(event.target===this)closeRenameFamilyModal()");
+
+  overlay.innerHTML = `
+    <div class="modal-content" style="max-width:400px;display:flex;flex-direction:column;gap:14px;padding:20px;border-radius:18px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,var(--accent),#4caf50);color:#fff;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;box-shadow:0 4px 12px rgba(var(--accent-rgb,124,106,247),0.35);">
+          <i class="fa-solid fa-pen-to-square"></i>
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-family:'Outfit',sans-serif;font-size:15px;font-weight:800;color:var(--text-primary);">${isEl ? 'Μετονομασία Οικογένειας' : 'Rename Family'}</div>
+          <div style="font-size:11px;color:var(--text-muted);">${isEl ? 'Εισάγετε το νέο όνομα της οικογένειας' : 'Enter the new family name'}</div>
+        </div>
+        <button type="button" onclick="closeRenameFamilyModal()" class="icon-btn" style="color:var(--text-secondary);padding:6px;font-size:15px;cursor:pointer;background:none;border:none;flex-shrink:0;" aria-label="Close">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <input type="text" id="family-rename-input" class="form-input" value="${escapeHtml(currentName)}" maxlength="60" placeholder="${isEl ? 'Όνομα οικογένειας' : 'Family name'}" style="font-size:14px;padding:10px 12px;margin-bottom:0;border-radius:10px;background:rgba(0,0,0,0.25);border:1px solid var(--border);color:var(--text-primary);">
+
+      <div style="display:flex;gap:8px;justify-content:flex-end;">
+        <button type="button" onclick="closeRenameFamilyModal()" class="btn btn-secondary" style="padding:9px 16px;font-size:12.5px;font-weight:700;border-radius:10px;white-space:nowrap;">
+          ${isEl ? 'Ακύρωση' : 'Cancel'}
+        </button>
+        <button type="button" id="family-rename-save-btn" onclick="submitRenameFamily()" class="btn btn-primary" style="padding:9px 16px;font-size:12.5px;font-weight:700;border-radius:10px;white-space:nowrap;background:var(--accent);color:#fff;border:none;box-shadow:0 3px 10px rgba(var(--accent-rgb,124,106,247),0.3);cursor:pointer;">
+          <i class="fa-solid fa-check" style="margin-right:4px;"></i>${isEl ? 'Αποθήκευση' : 'Save'}
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+  openModal('family-rename-modal', { instant: true });
+
+  // Focus the input and select existing text for easy replacement
+  const input = document.getElementById('family-rename-input');
+  if (input) {
+    setTimeout(() => {
+      input.focus();
+      try { input.select(); } catch (err) { }
+    }, 100);
+    // Enter key submits, Escape closes
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        submitRenameFamily();
+      } else if (e.key === 'Escape') {
+        closeRenameFamilyModal();
+      }
+    });
+  }
+}
+
+function closeRenameFamilyModal() {
+  const el = document.getElementById('family-rename-modal');
+  if (el) {
+    closeModal('family-rename-modal', { instant: true });
+    setTimeout(() => { if (el.parentNode) el.parentNode.removeChild(el); }, 250);
+  }
+}
+
+async function submitRenameFamily() {
+  if (!state.supabaseClient || !state.currentUser || !state.familyGroup) return;
+  const input = document.getElementById('family-rename-input');
+  const newName = input ? input.value : '';
   const trimmed = newName.trim();
   if (!trimmed) {
-    alert(state.lang === 'el' ? 'Το όνομα δεν μπορεί να είναι κενό.' : 'Name cannot be empty.');
+    showSyncToast(state.lang === 'el' ? 'Το όνομα δεν μπορεί να είναι κενό.' : 'Name cannot be empty.', 2500);
+    if (input) input.focus();
     return;
   }
+
+  const saveBtn = document.getElementById('family-rename-save-btn');
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.style.opacity = '0.6'; }
 
   try {
     const { data, error } = await state.supabaseClient.rpc('rename_family_group', { new_name: trimmed });
     if (error) throw error;
 
     state.familyGroup.name = trimmed;
+    closeRenameFamilyModal();
     showSyncToast(state.lang === 'el' ? '✓ Το όνομα ενημερώθηκε' : '✓ Name updated successfully', 2000);
     renderPartnerSection();
   } catch (err) {
     console.error('Error renaming family group:', err);
-    alert(state.lang === 'el' ? 'Σφάλμα κατά τη μετονομασία: ' + err.message : 'Error renaming family group: ' + err.message);
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.style.opacity = '1'; }
+    showSyncToast(state.lang === 'el' ? 'Σφάλμα κατά τη μετονομασία: ' + err.message : 'Error renaming family group: ' + err.message, 3000);
   }
+}
+
+// Keep the original async entry point name so the long-press handler still works
+async function promptRenameFamilyGroup() {
+  openRenameFamilyModal();
 }
 
 function toggleMemberMenu(event, memberId) {
@@ -20432,6 +20517,9 @@ window.changeMemberRole = changeMemberRole;
 window.inviteMemberByEmail = inviteMemberByEmail;
 window.renderPartnerSection = renderPartnerSection;
 window.promptRenameFamilyGroup = promptRenameFamilyGroup;
+window.openRenameFamilyModal = openRenameFamilyModal;
+window.closeRenameFamilyModal = closeRenameFamilyModal;
+window.submitRenameFamily = submitRenameFamily;
 window.toggleMemberMenu = toggleMemberMenu;
 window.selectInviteRole = selectInviteRole;
 
