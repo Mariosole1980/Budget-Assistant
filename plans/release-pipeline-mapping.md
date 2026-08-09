@@ -1,6 +1,12 @@
 # Release Pipeline Mapping & Canonical Proposal
 
-**Status:** Mapping + proposal only — NO scripts deleted or changed in this phase.
+**Status:** ✅ **SUPERSEDED (2026-08-09)** — this mapping + proposal has been
+implemented. See [`plans/release-pipeline-remediation-plan.md`](release-pipeline-remediation-plan.md).
+Canonical pipeline is now:
+- **Web release:** `npm run release:deploy` → `scripts/release-deploy.js`
+- **Native/OTA stage:** `npm run release:native` → `scripts/release-native.js`
+- `build_and_deploy.ps1` retired to `archive/`.
+This document is retained for historical reference only.
 **Phase:** Remediation Priority 3 (release pipeline mapping)
 **Date:** 2026-08-09
 **Scope:** `build_and_deploy.ps1`, `scripts/*`, `package.json`. No app.js / UI / DB changes.

@@ -47,10 +47,9 @@ const appPath = path.join(rootDir, 'app.js');
 let appContent = fs.readFileSync(appPath, 'utf8');
 
 appContent = appContent.replace(/build v\d+/g, `build v${version}`);
-appContent = appContent.replace(/title: '1\. Έκδοση & Τι Νέο Υπάρχει \(v\d+\)'/g, `title: '1. Έκδοση & Τι Νέο Υπάρχει (v${version})'`);
-appContent = appContent.replace(/<strong>Έκδοση Οδηγού:<\/strong> v\d+/g, `<strong>Έκδοση Οδηγού:</strong> v${version}`);
-appContent = appContent.replace(/<strong>Συγχρονισμένη Έκδοση Εφαρμογής:<\/strong> v\d+/g, `<strong>Συγχρονισμένη Έκδοση Εφαρμογής:</strong> v${version}`);
-
+// NOTE: The Greek guide title/version strings are now DYNAMIC (read CURRENT_BUILD
+// at runtime via template literals), so they self-sync and need no static replace.
+// Only the English guide strings remain static and require sync below.
 appContent = appContent.replace(/title: '1\. Version & What\\'s New \(v\d+\)'/g, `title: '1. Version & What\\'s New (v${version})'`);
 appContent = appContent.replace(/<strong>Guide Version:<\/strong> v\d+/g, `<strong>Guide Version:</strong> v${version}`);
 appContent = appContent.replace(/<strong>Synchronized App Version:<\/strong> v\d+/g, `<strong>Synchronized App Version:</strong> v${version}`);

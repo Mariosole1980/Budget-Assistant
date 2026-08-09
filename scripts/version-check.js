@@ -45,11 +45,14 @@ const appTxt = fs.readFileSync(appPath, 'utf8');
 if (!appTxt.includes(`(build v${canonicalVersion}`)) {
   errors.push(`app.js: app_version build number does not match v${canonicalVersion}`);
 }
-if (!appTxt.includes(`title: '1. Έκδοση & Τι Νέο Υπάρχει (v${canonicalVersion})'`)) {
-  errors.push(`app.js: Greek guide title does not match v${canonicalVersion}`);
+// NOTE: The Greek guide title/version strings are now DYNAMIC (read CURRENT_BUILD
+// at runtime via template literals), so they self-sync. Verify the dynamic pattern
+// exists rather than a static version, to avoid false failures.
+if (!appTxt.includes(`1. Έκδοση & Τι Νέο Υπάρχει (v\${typeof CURRENT_BUILD`)) {
+  errors.push(`app.js: Greek guide title is not dynamic (expected CURRENT_BUILD template)`);
 }
-if (!appTxt.includes(`<strong>Έκδοση Οδηγού:</strong> v${canonicalVersion}`)) {
-  errors.push(`app.js: Greek guide version string does not match v${canonicalVersion}`);
+if (!appTxt.includes(`<strong>Τρέχουσα Έκδοση Εφαρμογής:</strong> v\${typeof CURRENT_BUILD`)) {
+  errors.push(`app.js: Greek guide version string is not dynamic (expected CURRENT_BUILD template)`);
 }
 
 // 4. Check Root vs www parity

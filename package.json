@@ -9,6 +9,7 @@
     "version:bump": "node scripts/version-bump.js",
     "version:check": "node scripts/version-check.js",
     "release:deploy": "node scripts/release-deploy.js",
+    "release:native": "node scripts/release-native.js",
     "release:verify-live": "node scripts/release-verify-live.js",
     "build-deploy": "npm run release:deploy"
   },

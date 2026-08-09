@@ -7,6 +7,9 @@ const rootDir = path.resolve(__dirname, '..');
 console.log('====================================================');
 console.log('🚀 AUTOMATED FAIL-SAFE RELEASE WORKFLOW');
 console.log('====================================================\n');
+console.log('NOTE: This is the canonical WEB release path.');
+console.log('For the optional native/OTA stage (Capgo bundle, Capacitor sync,');
+console.log('APK/AAB builds), run: npm run release:native\n');
 
 // Step 1: Git Working Tree Status Check
 console.log('[STEP 1/7] Checking Git working tree status...');
