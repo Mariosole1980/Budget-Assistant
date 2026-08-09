@@ -1,10 +1,24 @@
+import { validateRequest } from './_security.js';
+
 export async function onRequestOptions(context) {
+  const { request } = context;
+  const origin = request.headers.get('Origin');
+  const allowedOrigins = [
+    'https://budget-assistant-pwa.pages.dev',
+    'capacitor://localhost',
+    'http://localhost',
+    'https://localhost'
+  ];
+  if (!origin || !allowedOrigins.includes(origin)) {
+    return new Response(null, { status: 204 });
+  }
   return new Response(null, {
     status: 204,
     headers: {
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': origin,
+      'Vary': 'Origin',
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
       'Access-Control-Max-Age': '86400',
     }
   });
@@ -12,37 +26,50 @@ export async function onRequestOptions(context) {
 
 export async function onRequestPost(context) {
   const { request, env } = context;
-  
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Content-Type': 'application/json'
-  };
 
-  // JWT Token Verification Check (Optional - supports Guest Mode & Logged-in users)
+  // Shared security: CORS origin check, rate limiting, body size guard.
+  const sec = validateRequest(request);
+  if (!sec.ok) {
+    return new Response(sec.body, { status: sec.status, headers: sec.headers });
+  }
+  const corsHeaders = sec.headers;
+
+  // JWT Token Verification (Optional - supports Guest Mode & Logged-in users).
+  // When a token IS present it must be valid; invalid tokens are rejected.
   const authHeader = request.headers.get('Authorization') || '';
   if (authHeader.startsWith('Bearer ')) {
     const token = authHeader.substring(7);
     const supabaseUrl = env.SUPABASE_URL || 'https://nnatvvahoeiemkfmzpwp.supabase.co';
     const supabaseKey = env.SUPABASE_ANON_KEY || 'sb_publishable_voBLw0kwLF07IWssRb4Q2w_sPlTUQNp';
-    
+
     try {
-      await fetch(`${supabaseUrl}/auth/v1/user`, {
+      const userRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
         method: 'GET',
         headers: {
           'apikey': supabaseKey,
           'Authorization': `Bearer ${token}`
         }
       });
+      if (!userRes.ok) {
+        return new Response(JSON.stringify({ error: 'Unauthorized: invalid session token' }), {
+          status: 401,
+          headers: corsHeaders
+        });
+      }
     } catch (err) {
-      console.warn('Session verification warning:', err.message);
+      console.warn('Session verification error:', err.message);
+      return new Response(JSON.stringify({ error: 'Unauthorized: could not verify session' }), {
+        status: 401,
+        headers: corsHeaders
+      });
     }
   }
-  
+
   let body;
   try {
     body = await request.json();
   } catch (e) {
-    return new Response(JSON.stringify({ error: "Invalid JSON body" }), { 
+    return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
       status: 400,
       headers: corsHeaders
     });
@@ -50,30 +77,25 @@ export async function onRequestPost(context) {
 
   const mode = body.mode || 'extract'; // 'extract' or 'advisor'
   const queryText = body.queryText;
-  
-  if (!queryText && mode !== 'test_models') {
-    return new Response(JSON.stringify({ error: "Missing queryText" }), { 
+
+  // Request validation: mode whitelist + queryText requirements.
+  if (mode !== 'extract' && mode !== 'advisor') {
+    return new Response(JSON.stringify({ error: "Invalid mode" }), {
       status: 400,
       headers: corsHeaders
     });
   }
-
-  if (mode === 'test_models') {
-    if (!env.GEMINI_API_KEY) return new Response('No key', { status: 400, headers: corsHeaders });
-    try {
-      let models = [];
-      let pageToken = '';
-      do {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${env.GEMINI_API_KEY}${pageToken ? '&pageToken='+pageToken : ''}`;
-        const res = await fetch(url);
-        const data = await res.json();
-        if (data.models) models = models.concat(data.models.map(m => m.name));
-        pageToken = data.nextPageToken;
-      } while (pageToken);
-      return new Response(JSON.stringify({ models }), { headers: corsHeaders });
-    } catch (e) {
-      return new Response(e.message, { status: 500, headers: corsHeaders });
-    }
+  if (typeof queryText !== 'string' || queryText.trim().length === 0) {
+    return new Response(JSON.stringify({ error: "Missing queryText" }), {
+      status: 400,
+      headers: corsHeaders
+    });
+  }
+  if (queryText.length > 4000) {
+    return new Response(JSON.stringify({ error: "queryText too long" }), {
+      status: 400,
+      headers: corsHeaders
+    });
   }
 
   let prompt = '';
@@ -133,8 +155,6 @@ ${statsStr}
     prompt = `${SYSTEM_PROMPT}\nΔιαθέσιμες κατηγορίες: ${categoriesStr}\n\nΠρόταση χρήστη: "${queryText}"`;
   }
 
-  let debugInfo = [];
-
   try {
     if (env.GEMINI_API_KEY) {
       const modelsToTry = [
@@ -145,9 +165,9 @@ ${statsStr}
       ];
       // Build request body dynamically
       const reqBody = {
-        generationConfig: { 
-          responseMimeType: "application/json", 
-          temperature: mode === 'advisor' ? 0.7 : 0.1 
+        generationConfig: {
+          responseMimeType: "application/json",
+          temperature: mode === 'advisor' ? 0.7 : 0.1
         }
       };
 
@@ -173,11 +193,11 @@ ${statsStr}
 
       let response;
       let lastErrText = '';
-      
+
       for (const modelName of modelsToTry) {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 8000);
-        
+
         try {
           const url = `https://generativelanguage.googleapis.com/v1beta/${modelName}:generateContent?key=${env.GEMINI_API_KEY}`;
           response = await fetch(url, {
@@ -186,40 +206,38 @@ ${statsStr}
             signal: controller.signal,
             body: JSON.stringify(reqBody)
           });
-          
+
           clearTimeout(timeoutId);
-          
+
           if (response.ok) {
             break;
           } else {
             lastErrText = await response.text();
-            debugInfo.push(`${modelName} Error: ` + lastErrText);
           }
         } catch (e) {
           clearTimeout(timeoutId);
-          debugInfo.push(`${modelName} Exception: ` + e.message);
         }
       }
-      
+
       if (response && response.ok) {
         const data = await response.json();
         const text = data.candidates[0].content.parts[0].text;
         return new Response(text, { headers: corsHeaders });
       } else {
-        return new Response(JSON.stringify({ error: "Gemini API failure", debug: debugInfo }), { 
-          status: response && response.status ? response.status : 500, 
-          headers: corsHeaders 
+        return new Response(JSON.stringify({ error: "Gemini API failure" }), {
+          status: response && response.status ? response.status : 502,
+          headers: corsHeaders
         });
       }
     } else {
-      debugInfo.push("GEMINI_API_KEY is not defined in env.");
-      return new Response(JSON.stringify({ error: "GEMINI_API_KEY missing from environment", debug: debugInfo }), { 
-        status: 500, 
-        headers: corsHeaders 
+      return new Response(JSON.stringify({ error: "GEMINI_API_KEY missing from environment" }), {
+        status: 500,
+        headers: corsHeaders
       });
     }
   } catch (err) {
-    return new Response(JSON.stringify({ error: err.message, debug: debugInfo }), { 
+    console.error('AI endpoint error:', err.message);
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,
       headers: corsHeaders
     });

@@ -34,6 +34,9 @@ Write-Host "  [SUCCESS] App build version bumped: $currentBuild -> $newBuild" -F
 $swPath = "sw.js"
 $swContent = Get-Content $swPath -Raw
 $swContent = $swContent -replace '// SW Version \d+', "// SW Version $newBuild"
+# Keep CACHE_NAME in sync with the canonical build version (single source of truth = version.json).
+# This ensures the service worker cache is busted on every build so clients fetch fresh assets.
+$swContent = $swContent -replace "const CACHE_NAME = 'money-manager-v\d+-'", "const CACHE_NAME = 'money-manager-v$newBuild-'"
 Set-Content $swPath $swContent -NoNewline
 Write-Host "  [SUCCESS] Service Worker version bumped: $currentBuild -> $newBuild" -ForegroundColor Green
 
@@ -71,6 +74,8 @@ Copy-Item style.css www/style.css -Force
 Copy-Item sw.js www/sw.js -Force
 Copy-Item manifest.json www/manifest.json -Force
 Copy-Item icon.png www/icon.png -Force
+# icon-192.png is referenced by manifest.json (192x192 PWA icon) and must ship in www/
+if (Test-Path icon-192.png) { Copy-Item icon-192.png www/icon-192.png -Force }
 Copy-Item xlsx.full.min.js www/xlsx.full.min.js -Force
 Copy-Item version.json www/version.json -Force
 Copy-Item _headers www/_headers -Force

@@ -1,10 +1,24 @@
+import { validateRequest } from './_security.js';
+
 export async function onRequestOptions(context) {
+  const { request } = context;
+  const origin = request.headers.get('Origin');
+  const allowedOrigins = [
+    'https://budget-assistant-pwa.pages.dev',
+    'capacitor://localhost',
+    'http://localhost',
+    'https://localhost'
+  ];
+  if (!origin || !allowedOrigins.includes(origin)) {
+    return new Response(null, { status: 204 });
+  }
   return new Response(null, {
     status: 204,
     headers: {
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': origin,
+      'Vary': 'Origin',
       'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
       'Access-Control-Max-Age': '86400',
     }
   });
@@ -13,28 +27,41 @@ export async function onRequestOptions(context) {
 export async function onRequestPost(context) {
   const { request, env } = context;
 
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Content-Type': 'application/json'
-  };
+  // Shared security: CORS origin check, rate limiting, body size guard.
+  const sec = validateRequest(request);
+  if (!sec.ok) {
+    return new Response(sec.body, { status: sec.status, headers: sec.headers });
+  }
+  const corsHeaders = sec.headers;
 
-  // JWT Token Verification Check (Optional - supports Guest Mode & Logged-in users)
+  // JWT Token Verification (Optional - supports Guest Mode & Logged-in users).
+  // When a token IS present it must be valid; invalid tokens are rejected.
   const authHeader = request.headers.get('Authorization') || '';
   if (authHeader.startsWith('Bearer ')) {
     const token = authHeader.substring(7);
     const supabaseUrl = env.SUPABASE_URL || 'https://nnatvvahoeiemkfmzpwp.supabase.co';
     const supabaseKey = env.SUPABASE_ANON_KEY || 'sb_publishable_voBLw0kwLF07IWssRb4Q2w_sPlTUQNp';
-    
+
     try {
-      await fetch(`${supabaseUrl}/auth/v1/user`, {
+      const userRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
         method: 'GET',
         headers: {
           'apikey': supabaseKey,
           'Authorization': `Bearer ${token}`
         }
       });
+      if (!userRes.ok) {
+        return new Response(JSON.stringify({ error: 'Unauthorized: invalid session token' }), {
+          status: 401,
+          headers: corsHeaders
+        });
+      }
     } catch (err) {
-      console.warn('Session verification warning:', err.message);
+      console.warn('Session verification error:', err.message);
+      return new Response(JSON.stringify({ error: 'Unauthorized: could not verify session' }), {
+        status: 401,
+        headers: corsHeaders
+      });
     }
   }
 
@@ -46,6 +73,20 @@ export async function onRequestPost(context) {
     financialContext = body.financialContext || {};
   } catch (e) {
     return new Response(JSON.stringify({ error: 'Invalid JSON body' }), {
+      status: 400,
+      headers: corsHeaders
+    });
+  }
+
+  // Request validation: question is required and length-capped.
+  if (typeof question !== 'string' || question.trim().length === 0) {
+    return new Response(JSON.stringify({ error: 'Missing question' }), {
+      status: 400,
+      headers: corsHeaders
+    });
+  }
+  if (question.length > 4000) {
+    return new Response(JSON.stringify({ error: 'Question too long' }), {
       status: 400,
       headers: corsHeaders
     });
@@ -169,7 +210,7 @@ ${contextBlock}
           return new Response(text2, { headers: corsHeaders });
         }
       }
-      return new Response(JSON.stringify({ error: 'Gemini API error', detail: errText }), { status: 502, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: 'Gemini API error' }), { status: 502, headers: corsHeaders });
     }
 
     const data = await response.json();
@@ -177,7 +218,8 @@ ${contextBlock}
     return new Response(text, { headers: corsHeaders });
 
   } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), {
+    console.error('Coach endpoint error:', err.message);
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
       headers: corsHeaders
     });
