@@ -4,10 +4,10 @@
   "webDir": "www",
   "server": {
     "androidScheme": "https",
-    "cleartext": true
+    "cleartext": false
   },
   "android": {
-    "allowMixedContent": true
+    "allowMixedContent": false
   },
   "ios": {
     "backgroundColor": "#181b22"
@@ -19,7 +19,7 @@
       "launchShowDuration": 0
     },
     "Browser": {
-      "androidScheme": "http"
+      "androidScheme": "https"
     },
     "CapacitorUpdater": {
       "autoUpdate": true,

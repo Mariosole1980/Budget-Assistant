@@ -28,23 +28,8 @@
 /style.css
   Cache-Control: max-age=0, no-cache, no-store, must-revalidate
 
-/clear.html
-  Cache-Control: max-age=0, no-cache, no-store, must-revalidate
-
-/nuke.html
-  Cache-Control: max-age=0, no-cache, no-store, must-revalidate
-
 /icon.png
   Cache-Control: max-age=0, no-cache, no-store, must-revalidate
 
 /icon-192.png
-  Cache-Control: max-age=0, no-cache, no-store, must-revalidate
-
-/ota-poc.html
-  Cache-Control: max-age=0, no-cache, no-store, must-revalidate
-
-/ota-proof.html
-  Cache-Control: max-age=0, no-cache, no-store, must-revalidate
-
-/test-version.js
   Cache-Control: max-age=0, no-cache, no-store, must-revalidate
