@@ -974,7 +974,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1170 - 06/08/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1171 - 06/08/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1358,7 +1358,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1170 - 06/08/2026)',
+    app_version: 'Version 1.0.0 (build v1171 - 06/08/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -19819,7 +19819,7 @@ function renderPartnerSection() {
             <div style="font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-secondary);">
               ${isEl ? 'Τελευταία Δραστηριότητα' : 'Latest Activity'}
             </div>
-            <div style="font-size:12.5px;color:var(--text-primary);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+            <div style="font-size:12.5px;color:var(--text-primary);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;">
               <strong>${lastActivity.memberName}</strong> ${actionText}${noteSuffix}
             </div>
             <div style="font-size:10.5px;color:#4caf50;font-weight:700;">
@@ -20068,7 +20068,6 @@ function renderFamilyMembersList(members, myRole) {
   let membersHtml = '';
   members.forEach(m => {
     const isMe = m.id === state.currentUser.id;
-    const meSuffix = isMe ? ` (${state.lang === 'el' ? 'Εσείς' : 'You'})` : '';
     // Prominent role badge for the current user
     const roleBadge = m.role === 'admin'
       ? (isMe
@@ -20086,7 +20085,7 @@ function renderFamilyMembersList(members, myRole) {
         ? `<span style="width:8px;height:8px;border-radius:50%;background:#4caf50;display:inline-block;flex-shrink:0;box-shadow:0 0 0 2px rgba(76,175,80,0.25);" title="${state.lang === 'el' ? 'Ενεργός τώρα' : 'Active now'}"></span>`
         : `<span style="width:8px;height:8px;border-radius:50%;background:#78909c;display:inline-block;flex-shrink:0;opacity:0.5;" title="${state.lang === 'el' ? 'Εκτός σύνδεσης' : 'Offline'}"></span>`);
     const presenceLabel = isMe
-      ? `<span style="font-size:9.5px;color:#4caf50;font-weight:700;">${state.lang === 'el' ? 'Εσείς' : 'You'}</span>`
+      ? `<span style="font-size:9.5px;color:#4caf50;font-weight:700;">${state.lang === 'el' ? 'Ενεργός τώρα' : 'Active now'}</span>`
       : (isOnline
         ? `<span style="font-size:9.5px;color:#4caf50;font-weight:700;">${state.lang === 'el' ? 'Ενεργός τώρα' : 'Active now'}</span>`
         : `<span style="font-size:9.5px;color:var(--text-muted);font-weight:600;">${state.lang === 'el' ? 'Εκτός σύνδεσης' : 'Offline'}</span>`);
@@ -20143,7 +20142,7 @@ function renderFamilyMembersList(members, myRole) {
           </div>
           <div style="display:flex;flex-direction:column;min-width:0;flex:1;">
             <span style="font-size:12px;font-weight:600;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-              ${m.display_name || m.email.split('@')[0]}${meSuffix}
+              ${m.display_name || m.email.split('@')[0]}
             </span>
             <span style="font-size:10px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
               ${m.email}
