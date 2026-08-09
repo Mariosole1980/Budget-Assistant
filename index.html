@@ -72,7 +72,7 @@
               ${devButton}
             </div>
             <div style="font-size:11px;color:#8b949e;">
-              Budget Assistant • build v1175
+              Budget Assistant • build v1176
             </div>
           </div>
         `;
@@ -1401,9 +1401,11 @@
               <i class="fa-solid fa-book-open" style="color: var(--accent); font-size: 16px;"></i>
             </div>
             <div>
-              <h3 class="modal-title" style="margin: 0; font-size: 16px; font-weight: 700; color: var(--text-primary); font-family: 'Outfit', sans-serif;"
+              <h3 class="modal-title"
+                style="margin: 0; font-size: 16px; font-weight: 700; color: var(--text-primary); font-family: 'Outfit', sans-serif;"
                 data-i18n="item_user_guide">Οδηγός Χρήσης</h3>
-              <div style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; font-family: 'Outfit', sans-serif;">
+              <div
+                style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; font-family: 'Outfit', sans-serif;">
                 <span id="user-guide-version-badge"
                   style="font-size: 10.5px; background: rgba(var(--accent-rgb, 124, 106, 247), 0.15); color: var(--accent); padding: 2px 8px; border-radius: 10px; font-weight: 700; border: 1px solid rgba(var(--accent-rgb, 124, 106, 247), 0.3);">v1157</span>
                 <span>•</span>
@@ -1443,56 +1445,94 @@
       </div>
     </div>
 
-    <!-- MODAL: IN-APP PRIVACY POLICY -->
-    <div id="privacy-policy-modal" class="modal-overlay" style="z-index: 11000;">
+        <!-- MODAL: IN-APP PRIVACY POLICY (MODERN) -->
+    <div id="privacy-policy-modal" class="modal-overlay" style="z-index: 11000; align-items: center; justify-content: center;">
       <div class="modal-content"
-        style="max-height: calc(var(--viewport-height, 100vh) * 0.95); display: flex; flex-direction: column; max-width: 520px; border-radius: 20px; overflow: hidden; background: var(--bg-card, #1c1f28); border: 1px solid var(--border);">
-        <div class="modal-header"
-          style="position: relative; min-height: 54px; box-sizing: border-box; border-bottom: 1px solid var(--border); padding: 0 16px; display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.02);">
-          <button type="button" onclick="closeModal('privacy-policy-modal')"
-            style="display: flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 20px; background: rgba(255,255,255,0.06); border: 1px solid var(--border); color: var(--text-primary); font-size: 12px; font-weight: 600; cursor: pointer; transition: background 0.2s;">
-            <i class="fa-solid fa-arrow-left"></i> Πίσω στο μενού
-          </button>
-          <h3 class="modal-title" style="margin: 0; font-size: 15px; font-weight: 700; color: #ffffff;">Πολιτική
-            Απορρήτου</h3>
-          <span class="modal-close" onclick="closeModal('privacy-policy-modal')"
-            style="font-size: 20px; color: var(--text-muted); cursor: pointer; line-height: 1;">✕</span>
+        style="max-width: 520px; width: 94%; max-height: calc(var(--viewport-height, 100vh) * 0.92); display: flex; flex-direction: column; border-radius: 24px; overflow: hidden; background: var(--bg-card, #1c1f28); border: 1px solid var(--border); box-shadow: 0 24px 60px rgba(0,0,0,0.6), 0 0 40px rgba(var(--accent-rgb, 124, 106, 247), 0.12);">
+        <!-- Hero Header -->
+        <div
+          style="position: relative; padding: 22px 20px 18px; background: linear-gradient(135deg, rgba(var(--accent-rgb, 124, 106, 247), 0.22), rgba(var(--accent-rgb, 124, 106, 247), 0.04)); border-bottom: 1px solid var(--border); overflow: hidden;">
+          <div style="position: absolute; top: -40px; right: -30px; width: 140px; height: 140px; border-radius: 50%; background: radial-gradient(circle, rgba(var(--accent-rgb, 124, 106, 247), 0.25), transparent 70%);"></div>
+          <div style="display: flex; align-items: center; gap: 14px; position: relative;">
+            <div
+              style="width: 52px; height: 52px; border-radius: 16px; background: linear-gradient(135deg, var(--accent, #7c6af7), rgba(var(--accent-rgb, 124, 106, 247), 0.7)); display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 22px rgba(var(--accent-rgb, 124, 106, 247), 0.4); flex-shrink: 0;">
+              <i class="fa-solid fa-user-shield" style="font-size: 24px; color: #fff;"></i>
+            </div>
+            <div style="flex: 1;">
+              <h3 class="modal-title" style="margin: 0; font-size: 19px; font-weight: 800; color: var(--text-primary); font-family: 'Outfit', sans-serif; letter-spacing: -0.2px;">Πολιτική Απορρήτου</h3>
+              <div style="font-size: 12px; color: var(--text-muted); margin-top: 3px; display: flex; align-items: center; gap: 6px;">
+                <i class="fa-solid fa-lock" style="font-size: 11px; color: var(--accent);"></i>
+                <span>Η ιδιωτικότητά σας προστατεύεται</span>
+              </div>
+            </div>
+            <span class="modal-close" onclick="closeModal('privacy-policy-modal')"
+              style="font-size: 22px; color: var(--text-muted); cursor: pointer; line-height: 1; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; border-radius: 10px; background: rgba(255,255,255,0.06); border: 1px solid var(--border); transition: background 0.2s; flex-shrink: 0;">✕</span>
+          </div>
         </div>
+
+        <!-- Body -->
         <div class="modal-body"
-          style="padding: 20px; flex: 1; overflow-y: auto; font-size: 13.5px; color: var(--text-secondary); line-height: 1.6; display: flex; flex-direction: column; gap: 14px;">
+          style="padding: 18px 18px 8px; flex: 1; overflow-y: auto; font-size: 13.5px; color: var(--text-secondary); line-height: 1.65; display: flex; flex-direction: column; gap: 12px;">
+          <!-- Trust banner -->
           <div
-            style="background: rgba(124, 106, 247, 0.08); border: 1px solid rgba(124, 106, 247, 0.2); border-radius: 12px; padding: 14px; display: flex; align-items: center; gap: 12px;">
-            <i class="fa-solid fa-user-shield" style="font-size: 24px; color: var(--primary);"></i>
+            style="background: linear-gradient(135deg, rgba(var(--accent-rgb, 124, 106, 247), 0.12), rgba(var(--accent-rgb, 124, 106, 247), 0.04)); border: 1px solid rgba(var(--accent-rgb, 124, 106, 247), 0.25); border-radius: 16px; padding: 14px 16px; display: flex; align-items: center; gap: 12px;">
+            <i class="fa-solid fa-shield-halved" style="font-size: 22px; color: var(--accent, #7c6af7); flex-shrink: 0;"></i>
             <div>
-              <strong style="color: var(--text-primary); display: block; font-size: 14px;">Απόλυτη Ασφάλεια &amp;
-                Ιδιωτικότητα</strong>
-              <span style="font-size: 12px; color: var(--text-muted);">Τα δεδομένα σας ανήκουν αποκλειστικά σε
-                εσάς.</span>
+              <strong style="color: var(--text-primary); display: block; font-size: 14px;">Απόλυτη Ασφάλεια & Ιδιωτικότητα</strong>
+              <span style="font-size: 12px; color: var(--text-muted);">Τα δεδομένα σας ανήκουν αποκλειστικά σε εσάς.</span>
             </div>
           </div>
-          <h4 style="margin: 8px 0 2px; color: var(--text-primary); font-size: 14px; font-weight: 700;">1. Αποθήκευση
-            Δεδομένων</h4>
-          <p style="margin: 0;">Όλες οι συναλλαγές, οι λογαριασμοί και οι ρυθμίσεις σας αποθηκεύονται ακαριαία στη
-            συσκευή σας (Local Storage). Όταν είστε συνδεδεμένοι, συγχρονίζονται με ασφαλή κρυπτογράφηση στο Cloud
-            (Supabase).</p>
-          <h4 style="margin: 8px 0 2px; color: var(--text-primary); font-size: 14px; font-weight: 700;">2. Χρήση &amp;
-            Κοινοποίηση</h4>
-          <p style="margin: 0;">Δεν συλλέγουμε, δεν πωλούμε και δεν κοινοποιούμε τα οικονομικά σας δεδομένα σε κανέναν
-            τρίτο οργανισμό ή διαφημιστική εταιρεία.</p>
-          <h4 style="margin: 8px 0 2px; color: var(--text-primary); font-size: 14px; font-weight: 700;">3. Διαγραφή
-            Δεδομένων</h4>
-          <p style="margin: 0;">Έχετε τον πλήρη έλεγχο. Μπορείτε ανά πάσα στιγμή να διαγράψετε τον λογαριασμό σας και
-            όλα τα δεδομένα σας οριστικά από το μενού Ρυθμίσεων.</p>
+
+          <!-- Section 1 -->
+          <div
+            style="background: rgba(255,255,255,0.025); border: 1px solid var(--border); border-radius: 16px; padding: 14px 16px; display: flex; gap: 12px;">
+            <div
+              style="width: 38px; height: 38px; border-radius: 12px; background: rgba(var(--accent-rgb, 124, 106, 247), 0.12); display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: 1px solid rgba(var(--accent-rgb, 124, 106, 247), 0.25);">
+              <i class="fa-solid fa-database" style="font-size: 16px; color: var(--accent, #7c6af7);"></i>
+            </div>
+            <div>
+              <h4 style="margin: 0 0 4px; color: var(--text-primary); font-size: 14px; font-weight: 700;">1. Αποθήκευση Δεδομένων</h4>
+              <p style="margin: 0; font-size: 12.5px;">Όλες οι συναλλαγές, οι λογαριασμοί και οι ρυθμίσεις σας αποθηκεύονται ακαριαία στη συσκευή σας (Local Storage). Όταν είστε συνδεδεμένοι, συγχρονίζονται με ασφαλή κρυπτογράφηση στο Cloud (Supabase).</p>
+            </div>
+          </div>
+
+          <!-- Section 2 -->
+          <div
+            style="background: rgba(255,255,255,0.025); border: 1px solid var(--border); border-radius: 16px; padding: 14px 16px; display: flex; gap: 12px;">
+            <div
+              style="width: 38px; height: 38px; border-radius: 12px; background: rgba(var(--accent-rgb, 124, 106, 247), 0.12); display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: 1px solid rgba(var(--accent-rgb, 124, 106, 247), 0.25);">
+              <i class="fa-solid fa-ban" style="font-size: 16px; color: var(--accent, #7c6af7);"></i>
+            </div>
+            <div>
+              <h4 style="margin: 0 0 4px; color: var(--text-primary); font-size: 14px; font-weight: 700;">2. Χρήση & Κοινοποίηση</h4>
+              <p style="margin: 0; font-size: 12.5px;">Δεν συλλέγουμε, δεν πωλούμε και δεν κοινοποιούμε τα οικονομικά σας δεδομένα σε κανέναν τρίτο οργανισμό ή διαφημιστική εταιρεία.</p>
+            </div>
+          </div>
+
+          <!-- Section 3 -->
+          <div
+            style="background: rgba(255,255,255,0.025); border: 1px solid var(--border); border-radius: 16px; padding: 14px 16px; display: flex; gap: 12px;">
+            <div
+              style="width: 38px; height: 38px; border-radius: 12px; background: rgba(var(--accent-rgb, 124, 106, 247), 0.12); display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: 1px solid rgba(var(--accent-rgb, 124, 106, 247), 0.25);">
+              <i class="fa-solid fa-trash-can" style="font-size: 16px; color: var(--accent, #7c6af7);"></i>
+            </div>
+            <div>
+              <h4 style="margin: 0 0 4px; color: var(--text-primary); font-size: 14px; font-weight: 700;">3. Διαγραφή Δεδομένων</h4>
+              <p style="margin: 0; font-size: 12.5px;">Έχετε τον πλήρη έλεγχο. Μπορείτε ανά πάσα στιγμή να διαγράψετε τον λογαριασμό σας και όλα τα δεδομένα σας οριστικά από το μενού Ρυθμίσεων.</p>
+            </div>
+          </div>
         </div>
+
+        <!-- Footer -->
         <div class="modal-footer"
-          style="padding: 12px 18px; border-top: 1px solid var(--border); background: rgba(255,255,255,0.02); text-align: center;">
-          <button type="button" class="btn-primary" onclick="closeModal('privacy-policy-modal')"
-            style="width: 100%; padding: 12px; border-radius: 14px; font-size: 14px; font-weight: 700; background: rgba(255,255,255,0.06); border: 1px solid var(--border); color: var(--text-primary); cursor: pointer;">Έκλεισε</button>
+          style="padding: 14px 18px; border-top: 1px solid var(--border); background: rgba(255,255,255,0.02); text-align: center;">
+          <button type="button" onclick="closeModal('privacy-policy-modal')"
+            style="width: 100%; padding: 13px; border-radius: 14px; font-size: 14px; font-weight: 700; background: linear-gradient(135deg, var(--accent, #7c6af7), rgba(var(--accent-rgb, 124, 106, 247), 0.8)); border: none; color: #fff; cursor: pointer; box-shadow: 0 6px 18px rgba(var(--accent-rgb, 124, 106, 247), 0.3); transition: transform 0.15s ease, box-shadow 0.15s ease;">Κατάλαβα</button>
         </div>
       </div>
     </div>
 
-    <!-- MODAL: SOFTWARE LICENSES -->
+<!-- MODAL: SOFTWARE LICENSES -->
 
     <div id="settings-subscreen-modal" class="modal-overlay">
       <div class="modal-content" style="display:flex;flex-direction:column;height:90vh;max-height:90vh;">
@@ -2169,7 +2209,7 @@
             <div class="settings-list-item version-info-row"
               style="padding: 14px 16px; background: transparent; border-top: 1px solid var(--border); margin-top: 8px;">
               <span class="settings-item-label" style="color:var(--text-muted); font-size:12px;"
-                data-i18n="app_version">Έκδοση 1.0.0 (build v1175)</span>
+                data-i18n="app_version">Έκδοση 1.0.0 (build v1176)</span>
               <span class="settings-item-value" style="font-size:12px; color:var(--text-muted); font-weight:600;">Budget
                 Assistant</span>
             </div>
@@ -4063,7 +4103,7 @@
       // OTA updates. Running both would cause a reload loop that never
       // baked into the APK and never changes on a plain reload).
       // ============================================================
-      const CURRENT_BUILD = 1175;
+      const CURRENT_BUILD = 1176;
       (function () {
         // Skip entirely when running inside the native APK (Capacitor bridge
         // present). Capgo handles OTA updates there.
@@ -4908,7 +4948,7 @@
 
   </div> <!-- End .app-container -->
 
-  <script src="app.js?v=1175"></script>
+  <script src="app.js?v=1176"></script>
 </body>
 
 

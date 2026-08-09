@@ -974,7 +974,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1175 - 06/08/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1176 - 06/08/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1358,7 +1358,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1175 - 06/08/2026)',
+    app_version: 'Version 1.0.0 (build v1176 - 06/08/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -24396,12 +24396,12 @@ function initSettingsSubscreenAndFhs() {
       });
     }
 
-    const privacyRow = document.getElementById('legal-privacy-row');
-    if (privacyRow) {
-      privacyRow.addEventListener('click', () => {
-        window.open('privacy.html', '_blank');
-      });
-    }
+    // NOTE: The privacy policy row (legal-privacy-row) is intentionally NOT
+    // bound here. It already has an inline onclick="openModal('privacy-policy-modal')"
+    // in index.html which opens the in-app privacy modal. A previous duplicate
+    // addEventListener here called window.open('privacy.html', '_blank'), which
+    // is broken in the Capacitor/Android WebView and fired on top of the modal,
+    // making the option appear broken. Removed to avoid the double-handler conflict.
 
     const logoutRow = document.getElementById('legal-logout-row');
     if (logoutRow) {
