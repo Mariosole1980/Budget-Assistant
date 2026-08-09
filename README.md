@@ -26,7 +26,15 @@ To allow you and **Vasoula** to input expenses simultaneously on the go (via mob
 2. Click **New Query**.
 3. Open the file `supabase-schema.sql` (located in your `money-manager` folder), copy all of its content, and paste it into the Supabase SQL query box.
 4. Click the green **Run** button at the top right.
-   *This will instantly create your `transactions`, `accounts`, and `categories` tables and populate them with the default items and transactions matching your screenshots.*
+   *This creates the base `transactions`, `accounts`, and `categories` tables with **Row Level Security (RLS) enabled** and tenant-isolated policies. The file is idempotent and safe to re-run — it never drops tables and never disables RLS.*
+5. **If you are setting up a fresh database**, also run the feature migrations in order (each is additive and idempotent):
+   - `tenant-isolation-migration.sql` (already covered by `supabase-schema.sql`; kept for reference)
+   - `family-budget-migration.sql` (profiles, family groups, pending invitations)
+   - `supabase-recurring-migration.sql` (recurring templates)
+   - `notes-migration.sql` (notes & checklists)
+   - `multi-currency-migration.sql` (currencies, exchange rates, budgets)
+   - `trash-status-migration.sql` (trash/status columns)
+   > **Note:** The `profiles` table and its RLS policies are created by `family-budget-migration.sql`. See `plans/rls-policy-inventory.md` for the full policy inventory and access rules.
 
 ### Step C: Link the Web App to Supabase
 1. In your Supabase Dashboard, click on **Project Settings** (gear icon at the bottom of the left sidebar).

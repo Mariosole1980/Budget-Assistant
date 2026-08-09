@@ -1,116 +1,248 @@
--- Supabase SQL Schema for Realbyte Money Manager Clone
+-- ============================================================================
+-- Supabase Canonical Schema — Budget Assistant
+-- ============================================================================
+-- IMPORTANT: This file is the SAFE, IDEMPOTENT, RLS-ENABLED canonical schema.
+--
+-- It reflects the REAL production architecture (tenant isolation via RLS).
+-- It is safe to run at any time:
+--   * It NEVER drops tables (no DROP TABLE).
+--   * It NEVER disables Row Level Security (no DISABLE ROW LEVEL SECURITY).
+--   * It NEVER creates "Allow public" (USING(true)/WITH CHECK(true)) policies
+--     on tenant data.
+--
+-- All statements are idempotent (IF NOT EXISTS / IF EXISTS / CREATE OR REPLACE),
+-- so re-running this file is a no-op on an already-migrated database.
+--
+-- This file is the single source of truth for the base tables and their RLS.
+-- Feature migrations (family, multi-currency, notes, recurring, trash, budgets)
+-- are additive and live in their own *.sql files; they are listed in
+-- plans/rls-policy-inventory.md.
+-- ============================================================================
 
--- Drop tables if they exist
-DROP TABLE IF EXISTS public.transactions;
-DROP TABLE IF EXISTS public.accounts;
-DROP TABLE IF EXISTS public.categories;
-
--- Create Accounts Table
-CREATE TABLE public.accounts (
+-- ============================================================================
+-- 1. ACCOUNTS
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS public.accounts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name TEXT NOT NULL UNIQUE,
+    name TEXT NOT NULL,
     type TEXT NOT NULL CHECK (type IN ('cash', 'bank', 'card', 'investment')),
     balance NUMERIC NOT NULL DEFAULT 0.0,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+    family_id UUID REFERENCES public.family_groups(id) ON DELETE SET NULL,
+    currency TEXT NOT NULL DEFAULT 'EUR' REFERENCES public.currencies(code),
+    is_active BOOLEAN NOT NULL DEFAULT true,
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Pre-populate default Accounts (matching user's screenshots)
-INSERT INTO public.accounts (name, type, balance) VALUES
-('Cash', 'cash', 5494.96),
-('Bank Account', 'bank', 36351.31),
-('Card', 'card', -18492.81),
-('ETF, ΜΕΤΟΧΕΣ', 'investment', 0.0)
-ON CONFLICT (name) DO UPDATE SET balance = EXCLUDED.balance;
+-- Uniqueness: family-scoped or user-scoped (partial unique indexes)
+DROP INDEX IF EXISTS public.accounts_family_name_idx;
+DROP INDEX IF EXISTS public.accounts_user_name_idx;
+CREATE UNIQUE INDEX accounts_family_name_idx ON public.accounts (family_id, name) WHERE family_id IS NOT NULL;
+CREATE UNIQUE INDEX accounts_user_name_idx ON public.accounts (user_id, name) WHERE family_id IS NULL;
 
--- Create Categories Table
-CREATE TABLE public.categories (
+-- ============================================================================
+-- 2. CATEGORIES
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS public.categories (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL,
     type TEXT NOT NULL CHECK (type IN ('income', 'expense')),
-    icon TEXT, -- emoji or fontawesome string
-    color TEXT, -- hex code for UI visualization
-    created_at TIMESTAMPTZ DEFAULT now(),
-    UNIQUE (name, type)
+    icon TEXT,
+    color TEXT,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+    family_id UUID REFERENCES public.family_groups(id) ON DELETE SET NULL,
+    hidden BOOLEAN DEFAULT false,
+    subcategories JSONB,
+    created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Pre-populate categories (matching screenshots and common ones)
-INSERT INTO public.categories (name, type, icon, color) VALUES
--- Expenses
-('ΣΠΙΤΙ', 'expense', '🏠', '#ff5b5b'),
-('ΔΙΑΤΡΟΦΗ', 'expense', '🛒', '#ffa726'),
-('ΓΡΑΦΕΙΟ Β2', 'expense', '🏢', '#ffd54f'),
-('ΑΥΤΟΚΙΝΗΤΟ', 'expense', '🚗', '#ffee58'),
-('ΥΓΕΙΑ', 'expense', '💖', '#66bb6a'),
-('ΔΙΑΣΚΕΔΑΣΗ/ΕΞΟΔΟΙ', 'expense', '🎉', '#26a69a'),
-('ΦΟΡΟΙ/ΛΟΓΙΣΤΗΣ', 'expense', '📄', '#26c6da'),
-('ΓΥΜΝΑΣΤΗΡΙΟ', 'expense', '🏋️', '#42a5f5'),
-('ΠΡΟΣΩΠΙΚΗ ΦΡΟΝΤΙΔΑ', 'expense', '👕', '#7e57c2'),
-('ΜΕΤΑΚΙΝΗΣΗ', 'expense', '🚇', '#ab47bc'),
-('ΑΛΛΑ ΕΞΟΔΑ', 'expense', '💸', '#78909c'),
--- Incomes
-('ΜΙΣΘΟΣ', 'income', '💰', '#4caf50'),
-('ΕΠΕΝΔΥΣΕΙΣ', 'income', '📈', '#2196f3'),
-('ΕΠΙΣΤΡΟΦΗ ΦΟΡΟΥ', 'income', '💵', '#009688'),
-('ΑΛΛΑ ΕΣΟΔΑ', 'income', '🏷️', '#9e9e9e')
-ON CONFLICT (name, type) DO NOTHING;
+-- Uniqueness: family-scoped or user-scoped (partial unique indexes)
+DROP INDEX IF EXISTS public.categories_family_name_type_idx;
+DROP INDEX IF EXISTS public.categories_user_name_type_idx;
+CREATE UNIQUE INDEX categories_family_name_type_idx ON public.categories (family_id, name, type) WHERE family_id IS NOT NULL;
+CREATE UNIQUE INDEX categories_user_name_type_idx ON public.categories (user_id, name, type) WHERE family_id IS NULL;
 
--- Create Transactions Table
-CREATE TABLE public.transactions (
+-- ============================================================================
+-- 3. TRANSACTIONS
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS public.transactions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     date DATE NOT NULL DEFAULT CURRENT_DATE,
     type TEXT NOT NULL CHECK (type IN ('income', 'expense', 'transfer')),
     amount NUMERIC(12,2) NOT NULL,
     category TEXT NOT NULL,
     subcategory TEXT,
-    account_from TEXT NOT NULL, -- The account debited (or source account)
-    account_to TEXT,           -- The account credited (only used for transfers)
+    account_from TEXT NOT NULL,
+    account_to TEXT,
     note TEXT,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+    family_id UUID REFERENCES public.family_groups(id) ON DELETE SET NULL,
+    is_shared BOOLEAN DEFAULT false,
+    currency TEXT NOT NULL DEFAULT 'EUR' REFERENCES public.currencies(code),
+    rate_to_base NUMERIC(18,8) NOT NULL DEFAULT 1,
+    amount_base NUMERIC(18,4),
+    base_currency TEXT NOT NULL DEFAULT 'EUR' REFERENCES public.currencies(code),
+    rate_source TEXT NOT NULL DEFAULT 'api' CHECK (rate_source IN ('api','cached','manual')),
+    rate_to_base_actual NUMERIC(18,8),
+    rate_fetched_at TIMESTAMPTZ,
+    transfer_id UUID,
+    transfer_rate NUMERIC(18,8),
+    status TEXT NOT NULL DEFAULT 'active',
+    deleted_at TIMESTAMPTZ,
+    deleted_by UUID,
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Enable Row Level Security (RLS) and define public access policies to avoid RLS violations
-ALTER TABLE public.transactions DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.accounts DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.categories DISABLE ROW LEVEL SECURITY;
+CREATE INDEX IF NOT EXISTS idx_transactions_status
+    ON public.transactions (status, deleted_at DESC);
+CREATE INDEX IF NOT EXISTS idx_transactions_active
+    ON public.transactions (user_id, date DESC)
+    WHERE status = 'active';
 
--- In case RLS is enabled manually, these policies guarantee public access via Anon key
-DROP POLICY IF EXISTS "Allow public select" ON public.transactions;
-DROP POLICY IF EXISTS "Allow public insert" ON public.transactions;
-DROP POLICY IF EXISTS "Allow public update" ON public.transactions;
-DROP POLICY IF EXISTS "Allow public delete" ON public.transactions;
-CREATE POLICY "Allow public select" ON public.transactions FOR SELECT USING (true);
-CREATE POLICY "Allow public insert" ON public.transactions FOR INSERT WITH CHECK (true);
-CREATE POLICY "Allow public update" ON public.transactions FOR UPDATE USING (true);
-CREATE POLICY "Allow public delete" ON public.transactions FOR DELETE USING (true);
+-- ============================================================================
+-- 4. ROW LEVEL SECURITY (RLS) — ENABLED
+-- ============================================================================
+-- RLS is ENABLED on all tenant tables. Policies below enforce tenant isolation:
+-- a user can access their own rows (user_id = auth.uid()) and, when part of a
+-- family, the family's shared rows (family_id = their family).
+-- ============================================================================
 
-DROP POLICY IF EXISTS "Allow public select" ON public.accounts;
-DROP POLICY IF EXISTS "Allow public insert" ON public.accounts;
-DROP POLICY IF EXISTS "Allow public update" ON public.accounts;
-DROP POLICY IF EXISTS "Allow public delete" ON public.accounts;
-CREATE POLICY "Allow public select" ON public.accounts FOR SELECT USING (true);
-CREATE POLICY "Allow public insert" ON public.accounts FOR INSERT WITH CHECK (true);
-CREATE POLICY "Allow public update" ON public.accounts FOR UPDATE USING (true);
-CREATE POLICY "Allow public delete" ON public.accounts FOR DELETE USING (true);
+ALTER TABLE public.accounts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "Allow public select" ON public.categories;
-DROP POLICY IF EXISTS "Allow public insert" ON public.categories;
-DROP POLICY IF EXISTS "Allow public update" ON public.categories;
-DROP POLICY IF EXISTS "Allow public delete" ON public.categories;
-CREATE POLICY "Allow public select" ON public.categories FOR SELECT USING (true);
-CREATE POLICY "Allow public insert" ON public.categories FOR INSERT WITH CHECK (true);
-CREATE POLICY "Allow public update" ON public.categories FOR UPDATE USING (true);
-CREATE POLICY "Allow public delete" ON public.categories FOR DELETE USING (true);
+-- ----------------------------------------------------------------------------
+-- ACCOUNTS policies
+-- ----------------------------------------------------------------------------
+DROP POLICY IF EXISTS "Allow select accounts" ON public.accounts;
+CREATE POLICY "Allow select accounts" ON public.accounts
+    FOR SELECT TO authenticated USING (
+        (family_id IS NOT NULL AND family_id = (SELECT family_id FROM public.profiles WHERE id = auth.uid()))
+        OR (family_id IS NULL AND user_id = auth.uid())
+    );
 
--- Insert some sample transactions to pre-populate and show visual correctness (May 2026, matching screenshot)
-INSERT INTO public.transactions (date, type, amount, category, account_from, note) VALUES
-('2026-05-15', 'expense', 1230.20, 'ΣΠΙΤΙ', 'Bank Account', 'Ενοίκιο & Κοινόχρηστα'),
-('2026-05-18', 'expense', 578.61, 'ΔΙΑΤΡΟΦΗ', 'Card', 'Σούπερ Μάρκετ'),
-('2026-05-19', 'expense', 472.68, 'ΓΡΑΦΕΙΟ Β2', 'Bank Account', 'Έξοδα Γραφείου'),
-('2026-05-20', 'expense', 433.84, 'ΑΥΤΟΚΙΝΗΤΟ', 'Card', 'Βενζίνη & Service'),
-('2026-05-21', 'expense', 276.11, 'ΥΓΕΙΑ', 'Card', 'Φαρμακείο'),
-('2026-05-22', 'expense', 153.00, 'ΔΙΑΣΚΕΔΑΣΗ/ΕΞΟΔΟΙ', 'Cash', 'Εστιατόριο'),
-('2026-05-23', 'expense', 92.74, 'ΦΟΡΟΙ/ΛΟΓΙΣΤΗΣ', 'Bank Account', 'Αμοιβή Λογιστή'),
-('2026-05-23', 'expense', 35.00, 'ΓΥΜΝΑΣΤΗΡΙΟ', 'Card', 'Μηνιαία Συνδρομή'),
-('2026-05-24', 'expense', 34.48, 'ΠΡΟΣΩΠΙΚΗ ΦΡΟΝΤΙΔΑ', 'Cash', 'Κούρεμα'),
-('2026-05-24', 'expense', 27.00, 'ΜΕΤΑΚΙΝΗΣΗ', 'Cash', 'Εισιτήρια'),
-('2026-05-01', 'income', 3921.22, 'ΜΙΣΘΟΣ', 'Bank Account', 'Μισθοδοσία Μαΐου');
+DROP POLICY IF EXISTS "Allow insert accounts" ON public.accounts;
+CREATE POLICY "Allow insert accounts" ON public.accounts
+    FOR INSERT TO authenticated WITH CHECK (
+        (family_id IS NOT NULL AND family_id = (SELECT family_id FROM public.profiles WHERE id = auth.uid()) AND user_id = auth.uid())
+        OR (family_id IS NULL AND user_id = auth.uid())
+    );
+
+DROP POLICY IF EXISTS "Allow update accounts" ON public.accounts;
+CREATE POLICY "Allow update accounts" ON public.accounts
+    FOR UPDATE TO authenticated USING (
+        (
+            family_id IS NOT NULL
+            AND family_id = (SELECT family_id FROM public.profiles WHERE id = auth.uid())
+            AND (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin'
+        )
+        OR (family_id IS NULL AND user_id = auth.uid())
+    );
+
+DROP POLICY IF EXISTS "Allow delete accounts" ON public.accounts;
+CREATE POLICY "Allow delete accounts" ON public.accounts
+    FOR DELETE TO authenticated USING (
+        (
+            family_id IS NOT NULL
+            AND family_id = (SELECT family_id FROM public.profiles WHERE id = auth.uid())
+            AND (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin'
+        )
+        OR (family_id IS NULL AND user_id = auth.uid())
+    );
+
+-- ----------------------------------------------------------------------------
+-- CATEGORIES policies
+-- ----------------------------------------------------------------------------
+DROP POLICY IF EXISTS "Allow select categories" ON public.categories;
+CREATE POLICY "Allow select categories" ON public.categories
+    FOR SELECT TO authenticated USING (
+        (family_id IS NOT NULL AND family_id = (SELECT family_id FROM public.profiles WHERE id = auth.uid()))
+        OR (family_id IS NULL AND user_id = auth.uid())
+    );
+
+DROP POLICY IF EXISTS "Allow insert categories" ON public.categories;
+CREATE POLICY "Allow insert categories" ON public.categories
+    FOR INSERT TO authenticated WITH CHECK (
+        (family_id IS NOT NULL AND family_id = (SELECT family_id FROM public.profiles WHERE id = auth.uid()) AND user_id = auth.uid())
+        OR (family_id IS NULL AND user_id = auth.uid())
+    );
+
+DROP POLICY IF EXISTS "Allow update categories" ON public.categories;
+CREATE POLICY "Allow update categories" ON public.categories
+    FOR UPDATE TO authenticated USING (
+        (
+            family_id IS NOT NULL
+            AND family_id = (SELECT family_id FROM public.profiles WHERE id = auth.uid())
+            AND (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin'
+        )
+        OR (family_id IS NULL AND user_id = auth.uid())
+    );
+
+DROP POLICY IF EXISTS "Allow delete categories" ON public.categories;
+CREATE POLICY "Allow delete categories" ON public.categories
+    FOR DELETE TO authenticated USING (
+        (
+            family_id IS NOT NULL
+            AND family_id = (SELECT family_id FROM public.profiles WHERE id = auth.uid())
+            AND (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin'
+        )
+        OR (family_id IS NULL AND user_id = auth.uid())
+    );
+
+-- ----------------------------------------------------------------------------
+-- TRANSACTIONS policies
+-- ----------------------------------------------------------------------------
+DROP POLICY IF EXISTS "Allow select transactions" ON public.transactions;
+CREATE POLICY "Allow select transactions" ON public.transactions
+    FOR SELECT TO authenticated USING (
+        (family_id IS NOT NULL AND family_id = (SELECT family_id FROM public.profiles WHERE id = auth.uid()))
+        OR (family_id IS NULL AND user_id = auth.uid())
+    );
+
+DROP POLICY IF EXISTS "Allow insert transactions" ON public.transactions;
+CREATE POLICY "Allow insert transactions" ON public.transactions
+    FOR INSERT TO authenticated WITH CHECK (
+        (family_id IS NOT NULL AND family_id = (SELECT family_id FROM public.profiles WHERE id = auth.uid()) AND user_id = auth.uid())
+        OR (family_id IS NULL AND user_id = auth.uid())
+    );
+
+DROP POLICY IF EXISTS "Allow update transactions" ON public.transactions;
+CREATE POLICY "Allow update transactions" ON public.transactions
+    FOR UPDATE TO authenticated USING (
+        (
+            family_id IS NOT NULL
+            AND family_id = (SELECT family_id FROM public.profiles WHERE id = auth.uid())
+        )
+        OR (family_id IS NULL AND user_id = auth.uid())
+    );
+
+DROP POLICY IF EXISTS "Allow delete transactions" ON public.transactions;
+CREATE POLICY "Allow delete transactions" ON public.transactions
+    FOR DELETE TO authenticated USING (
+        (
+            family_id IS NOT NULL
+            AND family_id = (SELECT family_id FROM public.profiles WHERE id = auth.uid())
+        )
+        OR (family_id IS NULL AND user_id = auth.uid())
+    );
+
+-- ============================================================================
+-- 5. DEFAULT SEED DATA (idempotent — ON CONFLICT DO NOTHING)
+-- ============================================================================
+-- NOTE: Default accounts/categories are seeded per-user at runtime by the app
+-- (see app.js loadData()). The rows below are only a minimal bootstrap for a
+-- brand-new database and are safe to skip on an existing database.
+-- ============================================================================
+
+-- ============================================================================
+-- END OF CANONICAL SCHEMA
+-- ============================================================================
+-- Feature tables and their RLS are defined in their own additive migrations:
+--   * profiles / family_groups / pending_invitations  -> family-budget-migration.sql
+--   * recurring_templates                              -> supabase-recurring-migration.sql
+--   * notes                                             -> notes-migration.sql
+--   * currencies / exchange_rates / budgets             -> multi-currency-migration.sql
+--   * category_budgets                                  -> (see plans/category-budgets-implementation-plan.md)
+--   * trash (status columns on transactions)            -> trash-status-migration.sql
+-- See plans/rls-policy-inventory.md for the full policy inventory.
+-- ============================================================================
