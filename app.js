@@ -974,7 +974,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1165 - 06/08/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1166 - 06/08/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1358,7 +1358,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1165 - 06/08/2026)',
+    app_version: 'Version 1.0.0 (build v1166 - 06/08/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -19765,7 +19765,7 @@ function renderPartnerSection() {
               ${state.lang === 'el' ? 'Κοινό Ιστορικό · Συγχρονισμένο σε πραγματικό χρόνο' : 'Shared History · Real-time Sync Active'}
             </div>
           </div>
-          <button class="btn btn-secondary unlink-btn" onclick="leaveFamilyGroup()" style="padding:8px 12px;font-size:11px;font-weight:700;border-radius:10px;margin-left:0;white-space:nowrap;flex-shrink:0;">
+          <button id="family-leave-btn" class="btn btn-secondary unlink-btn" onclick="leaveFamilyGroup()" style="padding:8px 12px;font-size:11px;font-weight:700;border-radius:10px;margin-left:0;white-space:nowrap;flex-shrink:0;">
             <i class="fa-solid fa-right-from-bracket" style="margin-right:5px;"></i>${state.lang === 'el' ? 'Αποχώρηση' : 'Leave'}
           </button>
         </div>
@@ -20263,19 +20263,77 @@ async function joinFamilyGroup() {
 
 async function leaveFamilyGroup() {
   if (!state.supabaseClient || !state.currentUser) return;
+  const isEl = state.lang === 'el';
 
-  const confirmed = await showConfirm(confirmMsg, state.lang === 'el' ? 'Αποχώρηση από Ομάδα' : 'Leave Group', '🚪');
+  // Determine if this user is the last admin AND alone in the family (family will be deleted)
+  const myRole = state.userProfile ? state.userProfile.role : 'member';
+  const otherMembers = (state.familyProfiles || []).filter(p => p.id !== state.currentUser.id);
+  const isLastAdminAlone = myRole === 'admin' && otherMembers.length === 0;
+
+  let confirmMsg;
+  if (isLastAdminAlone) {
+    confirmMsg = isEl
+      ? 'Είστε το μοναδικό μέλος. Με την αποχώρησή σας η οικογένεια θα διαγραφεί οριστικά.'
+      : 'You are the only member. Leaving will permanently delete the family.';
+  } else {
+    confirmMsg = isEl
+      ? 'Θα χάσετε την πρόσβαση στα κοινά οικονομικά δεδομένα και στο ιστορικό της ομάδας.'
+      : 'You will lose access to the shared financial data and the family history.';
+  }
+
+  const confirmed = await showConfirm(confirmMsg, isEl ? 'Αποχώρηση από την οικογένεια' : 'Leave Family', '🚪');
   if (!confirmed) return;
+
+  // Loading state on the Leave button to prevent double-clicks
+  const leaveBtn = document.getElementById('family-leave-btn');
+  if (leaveBtn) {
+    leaveBtn.disabled = true;
+    leaveBtn.style.opacity = '0.6';
+    leaveBtn.style.pointerEvents = 'none';
+    leaveBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin" style="margin-right:5px;"></i>${isEl ? 'Αποχώρηση...' : 'Leaving...'}`;
+  }
 
   try {
     const { data, error } = await state.supabaseClient.rpc('leave_family_group');
     if (error) throw error;
 
-    alert(state.lang === 'el' ? 'Αποχωρήσατε με επιτυχία!' : 'Left the family successfully!');
-    window.location.reload();
+    // Update local state to reflect leaving the family (no full page reload)
+    if (state.userProfile) {
+      state.userProfile.family_id = null;
+      state.userProfile.role = 'member';
+      localStorage.setItem('cached_user_profile', JSON.stringify(state.userProfile));
+    }
+    state.familyProfiles = [];
+    state.familyGroup = null;
+    state.partnerProfile = null;
+    localStorage.removeItem('cached_family_profiles');
+    localStorage.removeItem('cached_family_group');
+    localStorage.removeItem('cached_partner_profile');
+
+    // Re-render the Family Hub into the "Create / Join family" state
+    renderPartnerSection();
+
+    showSyncToast(isEl ? '✓ Αποχωρήσατε από την οικογένεια.' : '✓ You left the family.', 2500);
   } catch (err) {
     console.error('Error leaving family group:', err);
-    alert(state.lang === 'el' ? 'Σφάλμα κατά την αποχώρηση: ' + err.message : 'Error leaving family: ' + err.message);
+
+    // Restore the Leave button
+    if (leaveBtn) {
+      leaveBtn.disabled = false;
+      leaveBtn.style.opacity = '1';
+      leaveBtn.style.pointerEvents = 'auto';
+      leaveBtn.innerHTML = `<i class="fa-solid fa-right-from-bracket" style="margin-right:5px;"></i>${isEl ? 'Αποχώρηση' : 'Leave'}`;
+    }
+
+    // Friendly Greek message for the "last admin" database safeguard
+    const msg = (err && err.message) ? err.message.toLowerCase() : '';
+    if (msg.includes('last admin') || msg.includes('promote another member')) {
+      showSyncToast(isEl
+        ? '⚠️ Δεν μπορείτε να αποχωρήσετε γιατί είστε ο μόνος διαχειριστής. Προωθήστε κάποιο μέλος σε διαχειριστή πρώτα.'
+        : '⚠️ You cannot leave because you are the only admin. Promote another member to admin first.', 3500);
+    } else {
+      showSyncToast(isEl ? '⚠️ Σφάλμα κατά την αποχώρηση: ' + err.message : '⚠️ Error leaving family: ' + err.message, 3500);
+    }
   }
 }
 
