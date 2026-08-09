@@ -202,3 +202,33 @@ the sync flush, or the UI. It only stops the merge from collapsing distinct rows
 5. Run tests + manual smoke test (two identical transactions survive a sync).
 6. Commit as a single checkpoint.
 7. Re-audit; only then consider modularizing `app.js` subsystem-by-subsystem.
+
+---
+
+## Implementation status (2026-08-09) — DONE, committed `951d24f`
+
+All plan steps were executed autonomously. Summary of what changed:
+
+- **New module** [`js/transactionMerge.js`](../js/transactionMerge.js): pure, tested
+  implementation of `mergeAndDeduplicateTransactions`, `getPendingLocalTransactions`,
+  and `collectDeletedIds`. Deduplication is **ID-based only** (provable identity).
+- **`app.js`**:
+  - `mergeAndDeduplicateTransactions` now delegates to the module (content-dedup removed).
+  - `getPendingLocalTransactions` now delegates to the module.
+  - `cleanDuplicateTransactions` rewritten to ID-based only; **cloud-delete branch removed**.
+  - `getActiveTransactions` content-based local-dropping removed (ID-based only).
+  - Stale "content-based" comments corrected.
+- **`index.html`**: loads `js/transactionMerge.js` before `app.js`.
+- **`package.json`**: `npm test` now runs `node --test "test/**/*.test.js"`.
+- **`test/transactionMerge.test.js`**: 16 tests, all passing.
+- **`www/`** mirror updated locally (gitignored build artifact; regenerated at release).
+
+**Validation:** `node --check app.js` passes; `npm test` → 16/16 pass; manual smoke test
+confirms two identical-content transactions with distinct IDs both survive a merge.
+
+**Re-audit / next step:** The data-loss bug is fixed and covered by tests. The next most
+important problem is now the **release pipeline divergence** (Path A PowerShell vs Path B
+Node) documented in [`plans/release-pipeline-mapping.md`](release-pipeline-mapping.md),
+because it is the highest-risk production-reliability issue remaining and the new test
+harness is now in place to guard the core data logic during any pipeline work.
+Modularization of `app.js` remains deferred.
