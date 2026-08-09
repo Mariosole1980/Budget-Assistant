@@ -119,4 +119,33 @@ The repository is fundamentally sound: the build pipeline is coherent, `www/` is
 
 ---
 
-*This report is informational. No files were modified during the audit.*
+## Re-audit Status (2026-08-09, after release-pipeline consolidation `e42614b`)
+
+The following prior findings were **resolved** by the release-pipeline consolidation and subsequent hardening:
+
+| ID | Finding | Status |
+|----|---------|--------|
+| C1 | `sw.js` CACHE_NAME mismatch | ✅ Resolved — `version-sync.js` now updates CACHE_NAME |
+| H1 | `icon-192.png` missing from `www/` | ✅ Resolved — `version-sync.js` mirror list copies it |
+| H2 | Hardcoded commit message | ✅ Moot — `build_and_deploy.ps1` retired to `archive/` |
+| H3 | AI endpoints: no rate limit, open CORS | ✅ Resolved — shared `_security.js` enforces CORS restriction, rate limiting (30/min/IP), body-size guard, optional JWT |
+| H4 | `test_models` debug endpoint | ✅ Resolved — endpoint removed (0 matches in repo) |
+| M1 | `cleartext: true` + mixed content | ✅ Resolved — `cleartext: false`, `allowMixedContent: false` |
+| M2 | Browser `androidScheme: "http"` | ✅ Resolved — now `"https"` |
+| M4 | Stale `_headers` debug rules | ✅ Resolved — `_headers` is clean |
+| L1 | Duplicate version-bump tooling | ✅ Resolved — single canonical path |
+
+### New finding & fix (this re-audit)
+
+**N1. `functions/api/delete-account.js` used `Access-Control-Allow-Origin: *` and bypassed the shared security module.**
+- A destructive, high-privilege endpoint (permanently deletes user accounts via `SUPABASE_SERVICE_ROLE_KEY`) was inconsistent with the hardened AI endpoints: it allowed any origin to attempt the call and had no rate limiting or body-size guard.
+- **Fix applied:** `delete-account.js` now imports `validateRequest`/`corsHeadersFor` from `_security.js`, restricting CORS to the app's allowed origins and adding rate limiting + body-size guard. The app calls this endpoint via a same-origin relative fetch ([`app.js:27876`](../app.js:27876)), so legitimate use is unaffected.
+
+### Remaining (lower priority, from prior audit)
+- **M3** — `package.json` name still `money-manager` (cosmetic).
+- **M5** — heavy debug logging in production bundle.
+- **M6** — raw `alert()` global error handler.
+- **M7** — hardcoded one-off data-cleanup logic in the hot path.
+- **M8** — Android bundled web assets committed to repo.
+
+*This report is informational. The N1 fix is the only code change made during this re-audit.*

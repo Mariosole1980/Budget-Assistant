@@ -1,22 +1,27 @@
+import { validateRequest, corsHeadersFor } from './_security.js';
+
 export async function onRequestOptions(context) {
-  return new Response(null, {
-    status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      'Access-Control-Max-Age': '86400',
-    }
+  const { request } = context;
+  const corsHeaders = corsHeadersFor(request, {
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Max-Age': '86400',
   });
+  if (!corsHeaders) {
+    return new Response(null, { status: 204 });
+  }
+  return new Response(null, { status: 204, headers: corsHeaders });
 }
 
 export async function onRequestPost(context) {
   const { request, env } = context;
 
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Content-Type': 'application/json'
-  };
+  // Shared security: CORS origin check, rate limiting, body size guard.
+  const sec = validateRequest(request);
+  if (!sec.ok) {
+    return new Response(sec.body, { status: sec.status, headers: sec.headers });
+  }
+  const corsHeaders = sec.headers;
 
   // JWT Token Verification Check
   const authHeader = request.headers.get('Authorization') || '';
@@ -26,7 +31,7 @@ export async function onRequestPost(context) {
       headers: corsHeaders
     });
   }
-  
+
   const token = authHeader.substring(7);
   const supabaseUrl = env.SUPABASE_URL || 'https://nnatvvahoeiemkfmzpwp.supabase.co';
   const supabaseKey = env.SUPABASE_ANON_KEY || 'sb_publishable_voBLw0kwLF07IWssRb4Q2w_sPlTUQNp';
@@ -38,7 +43,7 @@ export async function onRequestPost(context) {
       headers: corsHeaders
     });
   }
-  
+
   try {
     // 1. Authenticate access token with Supabase Auth API
     const userRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
@@ -48,7 +53,7 @@ export async function onRequestPost(context) {
         'Authorization': `Bearer ${token}`
       }
     });
-    
+
     if (!userRes.ok) {
       const errText = await userRes.text();
       return new Response(JSON.stringify({ error: `Unauthorized: Invalid session token. Details: ${errText}` }), {
