@@ -974,7 +974,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1167 - 06/08/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1169 - 06/08/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1358,7 +1358,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1167 - 06/08/2026)',
+    app_version: 'Version 1.0.0 (build v1169 - 06/08/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -19778,6 +19778,44 @@ function renderPartnerSection() {
       ? renderMemberInviteCode(inviteCode)
       : '';
 
+    // Last-activity indicator ("Ο Άρης πρόσθεσε έξοδο πριν 5 λεπτά")
+    const lastActivity = getFamilyLastActivity();
+    let lastActivityHtml = '';
+    if (lastActivity && lastActivity.memberName) {
+      const isEl = state.lang === 'el';
+      let actionText = '';
+      if (lastActivity.type === 'expense') {
+        actionText = isEl ? 'πρόσθεσε έξοδο' : 'added an expense';
+      } else if (lastActivity.type === 'income') {
+        actionText = isEl ? 'πρόσθεσε έσοδο' : 'added income';
+      } else if (lastActivity.type === 'transfer') {
+        actionText = isEl ? 'έκανε μεταφορά' : 'made a transfer';
+      } else {
+        actionText = isEl ? 'ενημέρωσε τα οικονομικά' : 'updated the finances';
+      }
+      const noteSuffix = lastActivity.note
+        ? (isEl ? ` — «${lastActivity.note}»` : ` — "${lastActivity.note}"`)
+        : '';
+      lastActivityHtml = `
+        <div style="background:rgba(var(--accent-rgb,124,106,247),0.06);border:1px solid rgba(var(--accent-rgb,124,106,247),0.18);border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:10px;">
+          <div style="width:34px;height:34px;border-radius:10px;background:rgba(var(--accent-rgb,124,106,247),0.15);color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">
+            <i class="fa-solid fa-bolt"></i>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;">
+            <div style="font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-secondary);">
+              ${isEl ? 'Τελευταία Δραστηριότητα' : 'Latest Activity'}
+            </div>
+            <div style="font-size:12.5px;color:var(--text-primary);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+              <strong>${lastActivity.memberName}</strong> ${actionText}${noteSuffix}
+            </div>
+            <div style="font-size:10.5px;color:#4caf50;font-weight:700;">
+              ${lastActivity.timeStr}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
     container.innerHTML = `
       <div style="display:flex;flex-direction:column;gap:16px;padding:2px 0;">
 
@@ -19799,6 +19837,9 @@ function renderPartnerSection() {
             <i class="fa-solid fa-right-from-bracket" style="margin-right:5px;"></i>${state.lang === 'el' ? 'Αποχώρηση' : 'Leave'}
           </button>
         </div>
+
+        <!-- Last Activity Indicator -->
+        ${lastActivityHtml}
 
         <!-- Members Card -->
         <div style="background:var(--bg-card, rgba(255,255,255,0.03));border:1px solid var(--border);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px;box-shadow:0 4px 14px rgba(0,0,0,0.1);">
@@ -19941,6 +19982,70 @@ function renderPartnerSection() {
 // ============================================================
 
 // Renders the list of family members (avatars, names, roles, admin actions)
+// Relative time helper ("πριν 5 λεπτά" / "2 hours ago")
+function formatRelativeTime(dateStr) {
+  if (!dateStr) return '';
+  const then = new Date(dateStr).getTime();
+  if (isNaN(then)) return '';
+  const diffMs = Date.now() - then;
+  const isEl = state.lang === 'el';
+  const sec = Math.floor(diffMs / 1000);
+  if (sec < 60) return isEl ? 'μόλις τώρα' : 'just now';
+  const min = Math.floor(sec / 60);
+  if (min < 60) return isEl ? `πριν ${min} λεπτ${min === 1 ? 'ό' : 'ά'}` : `${min} min ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return isEl ? `πριν ${hr} ώρ${hr === 1 ? 'α' : 'ες'}` : `${hr} hour${hr === 1 ? '' : 's'} ago`;
+  const day = Math.floor(hr / 24);
+  if (day < 30) return isEl ? `πριν ${day} ημέρ${day === 1 ? 'α' : 'ες'}` : `${day} day${day === 1 ? '' : 's'} ago`;
+  const month = Math.floor(day / 30);
+  return isEl ? `πριν ${month} μήν${month === 1 ? 'α' : 'ες'}` : `${month} month${month === 1 ? '' : 's'} ago`;
+}
+
+// Presence proxy: a member is considered "online" if they have a transaction within the last 10 minutes.
+function getMemberPresence(memberId) {
+  const now = Date.now();
+  const windowMs = 10 * 60 * 1000;
+  const recent = (state.transactions || []).some(t => {
+    if (!t.user_id || t.user_id !== memberId) return false;
+    const ts = t.created_at ? new Date(t.created_at).getTime() : (t.date ? new Date(t.date).getTime() : 0);
+    if (!ts || isNaN(ts)) return false;
+    return (now - ts) <= windowMs;
+  });
+  return recent;
+}
+
+// Find the most recent transaction by a family member (excluding the current user).
+function getFamilyLastActivity() {
+  const familyId = state.userProfile ? state.userProfile.family_id : null;
+  const currentUserId = state.currentUser ? state.currentUser.id : null;
+  if (!familyId || !currentUserId) return null;
+
+  const candidates = (state.transactions || []).filter(t => {
+    if (!t.user_id || t.user_id === currentUserId) return false;
+    if (t.family_id && t.family_id !== familyId) return false;
+    return true;
+  });
+
+  if (!candidates.length) return null;
+
+  candidates.sort((a, b) => {
+    const ta = a.created_at ? new Date(a.created_at).getTime() : (a.date ? new Date(a.date).getTime() : 0);
+    const tb = b.created_at ? new Date(b.created_at).getTime() : (b.date ? new Date(b.date).getTime() : 0);
+    return (tb || 0) - (ta || 0);
+  });
+
+  const latest = candidates[0];
+  const member = (state.familyProfiles || []).find(p => p.id === latest.user_id);
+  const memberName = member ? (member.display_name || (member.email ? member.email.split('@')[0] : '')) : '';
+
+  return {
+    memberName,
+    type: latest.type,
+    note: latest.note || latest.description || '',
+    timeStr: formatRelativeTime(latest.created_at || latest.date)
+  };
+}
+
 function renderFamilyMembersList(members, myRole) {
   if (!members || !members.length) {
     return `<div style="font-size:12px;color:var(--text-muted);padding:6px 0;">${state.lang === 'el' ? 'Δεν υπάρχουν μέλη ακόμα.' : 'No members yet.'}</div>`;
@@ -19950,9 +20055,27 @@ function renderFamilyMembersList(members, myRole) {
   members.forEach(m => {
     const isMe = m.id === state.currentUser.id;
     const meSuffix = isMe ? ` (${state.lang === 'el' ? 'Εσείς' : 'You'})` : '';
+    // Prominent role badge for the current user
     const roleBadge = m.role === 'admin'
-      ? `<span style="background:var(--accent-light);color:var(--accent);font-size:9.5px;padding:2px 6px;border-radius:4px;font-weight:700;margin-left:8px;">${state.lang === 'el' ? 'Διαχειριστής' : 'Admin'}</span>`
-      : `<span style="background:rgba(255,255,255,0.06);color:var(--text-secondary);font-size:9.5px;padding:2px 6px;border-radius:4px;font-weight:600;margin-left:8px;">${state.lang === 'el' ? 'Μέλος' : 'Member'}</span>`;
+      ? (isMe
+        ? `<span style="background:var(--accent);color:#fff;font-size:9.5px;padding:2px 7px;border-radius:4px;font-weight:800;margin-left:8px;box-shadow:0 2px 6px rgba(var(--accent-rgb,124,106,247),0.35);">${state.lang === 'el' ? 'Εσείς · Διαχειριστής' : 'You · Admin'}</span>`
+        : `<span style="background:var(--accent-light);color:var(--accent);font-size:9.5px;padding:2px 6px;border-radius:4px;font-weight:700;margin-left:8px;">${state.lang === 'el' ? 'Διαχειριστής' : 'Admin'}</span>`)
+      : (isMe
+        ? `<span style="background:var(--accent);color:#fff;font-size:9.5px;padding:2px 7px;border-radius:4px;font-weight:800;margin-left:8px;box-shadow:0 2px 6px rgba(var(--accent-rgb,124,106,247),0.35);">${state.lang === 'el' ? 'Εσείς · Μέλος' : 'You · Member'}</span>`
+        : `<span style="background:rgba(255,255,255,0.06);color:var(--text-secondary);font-size:9.5px;padding:2px 6px;border-radius:4px;font-weight:600;margin-left:8px;">${state.lang === 'el' ? 'Μέλος' : 'Member'}</span>`);
+
+    // Online/offline presence indicator (proxy from recent activity)
+    const isOnline = getMemberPresence(m.id);
+    const presenceDot = isMe
+      ? `<span style="width:8px;height:8px;border-radius:50%;background:#4caf50;display:inline-block;flex-shrink:0;box-shadow:0 0 0 2px rgba(76,175,80,0.25);" title="${state.lang === 'el' ? 'Εσείς' : 'You'}"></span>`
+      : (isOnline
+        ? `<span style="width:8px;height:8px;border-radius:50%;background:#4caf50;display:inline-block;flex-shrink:0;box-shadow:0 0 0 2px rgba(76,175,80,0.25);" title="${state.lang === 'el' ? 'Ενεργός τώρα' : 'Active now'}"></span>`
+        : `<span style="width:8px;height:8px;border-radius:50%;background:#78909c;display:inline-block;flex-shrink:0;opacity:0.5;" title="${state.lang === 'el' ? 'Εκτός σύνδεσης' : 'Offline'}"></span>`);
+    const presenceLabel = isMe
+      ? `<span style="font-size:9.5px;color:#4caf50;font-weight:700;">${state.lang === 'el' ? 'Εσείς' : 'You'}</span>`
+      : (isOnline
+        ? `<span style="font-size:9.5px;color:#4caf50;font-weight:700;">${state.lang === 'el' ? 'Ενεργός τώρα' : 'Active now'}</span>`
+        : `<span style="font-size:9.5px;color:var(--text-muted);font-weight:600;">${state.lang === 'el' ? 'Εκτός σύνδεσης' : 'Offline'}</span>`);
 
     let actionButtons = '';
     if (myRole === 'admin' && !isMe) {
@@ -19998,8 +20121,11 @@ function renderFamilyMembersList(members, myRole) {
     membersHtml += `
       <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border-light);gap:10px;">
         <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">
-          <div style="width:28px;height:28px;border-radius:50%;background:${gradient};color:white;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;text-transform:uppercase;box-shadow:0 1px 4px rgba(0,0,0,0.15);flex-shrink:0;">
-            ${initials}
+          <div style="position:relative;flex-shrink:0;">
+            <div style="width:28px;height:28px;border-radius:50%;background:${gradient};color:white;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;text-transform:uppercase;box-shadow:0 1px 4px rgba(0,0,0,0.15);">
+              ${initials}
+            </div>
+            <span style="position:absolute;bottom:-1px;right:-1px;display:flex;">${presenceDot}</span>
           </div>
           <div style="display:flex;flex-direction:column;min-width:0;flex:1;">
             <span style="font-size:12px;font-weight:600;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
@@ -20008,6 +20134,7 @@ function renderFamilyMembersList(members, myRole) {
             <span style="font-size:10px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
               ${m.email}
             </span>
+            <span style="display:flex;align-items:center;gap:4px;margin-top:2px;">${presenceLabel}</span>
           </div>
           ${roleBadge}
         </div>
@@ -20369,37 +20496,75 @@ async function leaveFamilyGroup() {
 
 async function kickFamilyMember(memberId) {
   if (!state.supabaseClient || !state.currentUser) return;
+  const isEl = state.lang === 'el';
 
-  const confirmed = await showConfirm(confirmMsg, state.lang === 'el' ? 'Αποβολή Μέλους' : 'Kick Member', '🚪');
+  const member = (state.familyProfiles || []).find(p => p.id === memberId);
+  const memberName = member ? (member.display_name || (member.email ? member.email.split('@')[0] : '')) : '';
+
+  const confirmMsg = isEl
+    ? (memberName ? `Θα αφαιρέσετε τον/την ${memberName} από την οικογένεια. Θα χάσει την πρόσβαση στα κοινά οικονομικά δεδομένα.` : 'Θα αφαιρέσετε αυτό το μέλος από την οικογένεια. Θα χάσει την πρόσβαση στα κοινά οικονομικά δεδομένα.')
+    : (memberName ? `You are about to remove ${memberName} from the family. They will lose access to the shared financial data.` : 'You are about to remove this member from the family. They will lose access to the shared financial data.');
+
+  const confirmed = await showConfirm(confirmMsg, isEl ? 'Αποβολή Μέλους' : 'Kick Member', '🚪');
   if (!confirmed) return;
 
   try {
     const { data, error } = await state.supabaseClient.rpc('kick_family_member', { member_id_input: memberId });
     if (error) throw error;
 
-    alert(state.lang === 'el' ? 'Το μέλος αφαιρέθηκε με επιτυχία!' : 'Member kicked successfully!');
-    window.location.reload();
+    // Update local state: remove the member from familyProfiles
+    state.familyProfiles = (state.familyProfiles || []).filter(p => p.id !== memberId);
+    if (state.partnerProfile && state.partnerProfile.id === memberId) {
+      state.partnerProfile = null;
+      localStorage.removeItem('cached_partner_profile');
+    }
+    localStorage.setItem('cached_family_profiles', JSON.stringify(state.familyProfiles));
+
+    renderPartnerSection();
+    showSyncToast(isEl ? '✓ Το μέλος αφαιρέθηκε από την οικογένεια.' : '✓ Member removed from the family.', 2500);
   } catch (err) {
     console.error('Error kicking member:', err);
-    alert(state.lang === 'el' ? 'Σφάλμα κατά την αφαίρεση: ' + err.message : 'Error kicking member: ' + err.message);
+    showSyncToast(isEl ? '⚠️ Σφάλμα κατά την αφαίρεση: ' + err.message : '⚠️ Error kicking member: ' + err.message, 3500);
   }
 }
 
 async function changeMemberRole(memberId, role) {
   if (!state.supabaseClient || !state.currentUser) return;
+  const isEl = state.lang === 'el';
 
-  const confirmed = await showConfirm(confirmMsg, state.lang === 'el' ? 'Αλλαγή Ρόλου' : 'Change Role', '👤');
+  const member = (state.familyProfiles || []).find(p => p.id === memberId);
+  const memberName = member ? (member.display_name || (member.email ? member.email.split('@')[0] : '')) : '';
+  const isPromote = role === 'admin';
+
+  const confirmMsg = isEl
+    ? (isPromote
+      ? (memberName ? `Θα ορίσετε τον/την ${memberName} ως Διαχειριστή. Θα μπορεί να διαχειρίζεται τα μέλη και την οικογένεια.` : 'Θα ορίσετε αυτό το μέλος ως Διαχειριστή.')
+      : (memberName ? `Θα ορίσετε τον/την ${memberName} ως απλό Μέλος.` : 'Θα ορίσετε αυτό το μέλος ως απλό Μέλος.'))
+    : (isPromote
+      ? (memberName ? `You are about to make ${memberName} an Admin. They will be able to manage members and the family.` : 'You are about to make this member an Admin.')
+      : (memberName ? `You are about to set ${memberName} as a regular Member.` : 'You are about to set this member as a regular Member.'));
+
+  const confirmed = await showConfirm(confirmMsg, isEl ? 'Αλλαγή Ρόλου' : 'Change Role', '👤');
   if (!confirmed) return;
 
   try {
     const { data, error } = await state.supabaseClient.rpc('change_member_role', { member_id_input: memberId, new_role: role });
     if (error) throw error;
 
-    alert(state.lang === 'el' ? 'Ο ρόλος άλλαξε με επιτυχία!' : 'Role updated successfully!');
-    window.location.reload();
+    // Update local state: change the member's role
+    const target = (state.familyProfiles || []).find(p => p.id === memberId);
+    if (target) {
+      target.role = role;
+      localStorage.setItem('cached_family_profiles', JSON.stringify(state.familyProfiles));
+    }
+
+    renderPartnerSection();
+    showSyncToast(isEl
+      ? (isPromote ? '✓ Ο ρόλος άλλαξε σε Διαχειριστής.' : '✓ Ο ρόλος άλλαξε σε Μέλος.')
+      : (isPromote ? '✓ Role changed to Admin.' : '✓ Role changed to Member.'), 2500);
   } catch (err) {
     console.error('Error changing role:', err);
-    alert(state.lang === 'el' ? 'Σφάλμα κατά την αλλαγή ρόλου: ' + err.message : 'Error updating role: ' + err.message);
+    showSyncToast(isEl ? '⚠️ Σφάλμα κατά την αλλαγή ρόλου: ' + err.message : '⚠️ Error updating role: ' + err.message, 3500);
   }
 }
 
