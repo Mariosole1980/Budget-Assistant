@@ -4789,8 +4789,13 @@ html.auth-active .app-container {
     overflow-x: hidden !important;
     /* CRITICAL: as a grid item, min-height defaults to auto which prevents
        it from shrinking below its content. Setting min-height:0 lets the
-       element be bounded by the 1fr row so overflow-y:auto actually scrolls. */
+       element be bounded by the 1fr row so overflow-y:auto actually scrolls.
+       height:100% + align-self:stretch guarantee the element fills its grid
+       area so it is always a bounded, scrollable container. */
     min-height: 0 !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    align-self: stretch !important;
   }
 
   /* Turn bottom navigation bar into a left sidebar menu */
