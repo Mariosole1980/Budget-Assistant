@@ -974,7 +974,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1171 - 06/08/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1172 - 06/08/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1358,7 +1358,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1171 - 06/08/2026)',
+    app_version: 'Version 1.0.0 (build v1172 - 06/08/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -19819,7 +19819,7 @@ function renderPartnerSection() {
             <div style="font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-secondary);">
               ${isEl ? 'Τελευταία Δραστηριότητα' : 'Latest Activity'}
             </div>
-            <div style="font-size:12.5px;color:var(--text-primary);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;">
+            <div style="font-size:12.5px;color:var(--text-primary);font-weight:600;line-height:1.4;overflow-wrap:anywhere;word-break:break-word;max-width:100%;">
               <strong>${lastActivity.memberName}</strong> ${actionText}${noteSuffix}
             </div>
             <div style="font-size:10.5px;color:#4caf50;font-weight:700;">
