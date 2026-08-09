@@ -974,7 +974,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1174 - 06/08/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1175 - 06/08/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1358,7 +1358,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1174 - 06/08/2026)',
+    app_version: 'Version 1.0.0 (build v1175 - 06/08/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -5750,7 +5750,7 @@ function renderTransactionsTab() {
   const categoriesHash = state.categories.map(c => `${c.id}_${c.name}_${c.icon}`).join('|');
   const renderSignature = sortedTrans.map(t => {
     return `${t.id}_${t.date}_${t.amount}_${t.category}_${t.subcategory || ''}_${t.type}_${t.note || ''}_${t.user_id || ''}_${state.selectedIds.has(t.id) ? '1' : '0'}`;
-  }).join('|') + `_selMode_${state.selectionMode ? '1' : '0'}_lang_${state.lang || 'el'}_accs_${accountsHash}_cats_${categoriesHash}_curr_${displayCurrency}`;
+  }).join('|') + `_selMode_${state.selectionMode ? '1' : '0'}_lang_${state.lang || 'el'}_accs_${accountsHash}_cats_${categoriesHash}_curr_${displayCurrency}_hideAmt_${localStorage.getItem('settings_hide_amounts') === 'true' ? '1' : '0'}`;
 
   if (listContainer._lastRenderSignature === renderSignature) {
     return;
