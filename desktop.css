@@ -317,6 +317,33 @@ html.web-mode .stats-summary {
     margin-bottom: 20px !important;
 }
 
+/* The stats screen is a two-column grid on desktop (see style.css
+   html.web-mode #stats-screen.active). Because .stats-scroll-content
+   uses display:contents, the summary becomes a direct grid item. It
+   must span BOTH columns on its own row so it never gets squeezed into
+   a single cell (which caused content below to be cut off / unscrollable). */
+html.web-mode #stats-screen.active #stats-summary {
+    grid-column: 1 / span 2 !important;
+    grid-row: auto !important;
+    width: 100% !important;
+    min-width: 0 !important;
+}
+
+/* The breakdown and budgets containers are normal grid items whose
+   visibility is toggled via inline style.display (switchStatsSubtab).
+   We must NOT use display:contents on them — that would override the
+   inline display:none and break the subtab switching. Instead they span
+   both columns so the chart + breakdown list (and budgets) flow as
+   full-width blocks that stack vertically and scroll naturally with the
+   page. This guarantees the stats tab is always scrollable. */
+html.web-mode #stats-screen.active #stats-breakdown-container,
+html.web-mode #stats-screen.active #stats-budgets-container {
+    grid-column: 1 / span 2 !important;
+    grid-row: auto !important;
+    width: 100% !important;
+    min-width: 0 !important;
+}
+
 /* --- KPI grid --- */
 html.web-mode .stats-summary-grid {
     display: grid !important;
