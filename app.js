@@ -974,7 +974,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1172 - 06/08/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1173 - 06/08/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1358,7 +1358,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1172 - 06/08/2026)',
+    app_version: 'Version 1.0.0 (build v1173 - 06/08/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -20247,24 +20247,35 @@ function openInviteModal(inviteCode) {
           ${isEl ? '1. Επιλέξτε Ρόλο Νέου Μέλους:' : '1. Select New Member Role:'}
         </label>
         <div style="display:flex;gap:8px;margin-bottom:2px;">
-          <div id="role-card-member" onclick="selectInviteRole('member')" role="button" tabindex="0" style="flex:1;padding:10px 12px;border:2px solid var(--accent);border-radius:10px;background:rgba(var(--accent-rgb,124,106,247),0.08);cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:8px;position:relative;user-select:none;-webkit-user-select:none;">
+          <div id="role-card-member" onclick="selectInviteRole('member')" role="button" tabindex="0" style="flex:1;padding:10px 12px;border:2px solid var(--accent);border-radius:10px;background:rgba(var(--accent-rgb,124,106,247),0.10);cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:8px;position:relative;user-select:none;-webkit-user-select:none;box-shadow:0 0 0 3px rgba(var(--accent-rgb,124,106,247),0.18);">
             <span style="font-size:16px;">👤</span>
             <div style="flex:1;min-width:0;">
               <div style="font-size:12px;font-weight:700;color:var(--text-primary);">${isEl ? 'Μέλος' : 'Member'}</div>
-              <div style="font-size:10px;color:var(--text-muted);">${isEl ? 'Δικαιώματα μέλους' : 'Member privileges'}</div>
+              <div style="font-size:10px;color:var(--text-muted);">${isEl ? 'Βλέπει & προσθέτει κινήσεις' : 'View & add transactions'}</div>
             </div>
             <span id="role-check-member" style="font-size:13px;color:var(--accent);flex-shrink:0;">✓</span>
           </div>
-          <div id="role-card-admin" onclick="selectInviteRole('admin')" role="button" tabindex="0" style="flex:1;padding:10px 12px;border:2px solid var(--card-border);border-radius:10px;background:var(--card-bg2,rgba(255,255,255,0.03));cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:8px;position:relative;user-select:none;-webkit-user-select:none;">
+          <div id="role-card-admin" onclick="selectInviteRole('admin')" role="button" tabindex="0" style="flex:1;padding:10px 12px;border:2px dashed var(--card-border);border-radius:10px;background:var(--card-bg2,rgba(255,255,255,0.03));cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:8px;position:relative;user-select:none;-webkit-user-select:none;opacity:0.75;">
             <span style="font-size:16px;">👑</span>
             <div style="flex:1;min-width:0;">
               <div style="font-size:12px;font-weight:700;color:var(--text-primary);">${isEl ? 'Διαχειριστής' : 'Admin'}</div>
-              <div style="font-size:10px;color:var(--text-muted);">${isEl ? 'Πλήρη δικαιώματα' : 'Full admin control'}</div>
+              <div style="font-size:10px;color:var(--text-muted);">${isEl ? 'Πλήρης έλεγχος οικογένειας' : 'Full family control'}</div>
             </div>
             <span id="role-check-admin" style="font-size:13px;color:var(--accent);flex-shrink:0;opacity:0;">✓</span>
           </div>
         </div>
         <input type="hidden" id="invite-role-select" value="member">
+        <!-- Role permission details -->
+        <div id="role-permission-details" style="font-size:10.5px;line-height:1.5;color:var(--text-secondary);background:var(--card-bg2,rgba(255,255,255,0.04));border:1px solid var(--card-border);border-radius:8px;padding:8px 10px;">
+          <div id="role-permission-member" style="display:block;">
+            <span style="font-weight:700;color:var(--text-primary);">👤 ${isEl ? 'Μέλος:' : 'Member:'}</span>
+            <span> ${isEl ? 'Βλέπει όλες τις κινήσεις, προσθέτει/επεξεργάζεται τις δικές του κινήσεις. Δεν μπορεί να προσθέσει ή να αφαιρέσει μέλη.' : 'Views all transactions, adds/edits their own. Cannot add or remove members.'}</span>
+          </div>
+          <div id="role-permission-admin" style="display:none;">
+            <span style="font-weight:700;color:var(--text-primary);">👑 ${isEl ? 'Διαχειριστής:' : 'Admin:'}</span>
+            <span> ${isEl ? 'Όλα τα δικαιώματα μέλους, συν: προσθήκη/αφαίρεση μελών, αλλαγή ρόλων και διαχείριση της οικογένειας.' : 'All member rights, plus: add/remove members, change roles and manage the family.'}</span>
+          </div>
+        </div>
       </div>
 
       <!-- 2. Code Badge & Quick Copy Chips -->
@@ -20795,18 +20806,39 @@ function selectInviteRole(role) {
   const hiddenInput = document.getElementById('invite-role-select');
   const memberCheck = document.getElementById('role-check-member');
   const adminCheck = document.getElementById('role-check-admin');
+  const memberDetails = document.getElementById('role-permission-member');
+  const adminDetails = document.getElementById('role-permission-admin');
+
+  const selectCard = (card, selected) => {
+    if (!card) return;
+    if (selected) {
+      card.style.border = '2px solid var(--accent)';
+      card.style.background = 'rgba(var(--accent-rgb,124,106,247),0.10)';
+      card.style.boxShadow = '0 0 0 3px rgba(var(--accent-rgb,124,106,247),0.18)';
+      card.style.opacity = '1';
+    } else {
+      card.style.border = '2px dashed var(--card-border)';
+      card.style.background = 'var(--card-bg2,rgba(255,255,255,0.03))';
+      card.style.boxShadow = 'none';
+      card.style.opacity = '0.75';
+    }
+  };
 
   if (role === 'member') {
-    if (memberCard) memberCard.style.borderColor = 'var(--accent)';
-    if (adminCard) adminCard.style.borderColor = 'var(--border)';
+    selectCard(memberCard, true);
+    selectCard(adminCard, false);
     if (memberCheck) memberCheck.style.opacity = '1';
     if (adminCheck) adminCheck.style.opacity = '0';
+    if (memberDetails) memberDetails.style.display = 'block';
+    if (adminDetails) adminDetails.style.display = 'none';
     if (hiddenInput) hiddenInput.value = 'member';
   } else {
-    if (memberCard) memberCard.style.borderColor = 'var(--border)';
-    if (adminCard) adminCard.style.borderColor = 'var(--accent)';
+    selectCard(memberCard, false);
+    selectCard(adminCard, true);
     if (memberCheck) memberCheck.style.opacity = '0';
     if (adminCheck) adminCheck.style.opacity = '1';
+    if (memberDetails) memberDetails.style.display = 'none';
+    if (adminDetails) adminDetails.style.display = 'block';
     if (hiddenInput) hiddenInput.value = 'admin';
   }
 }
