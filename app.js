@@ -974,7 +974,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1169 - 06/08/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1170 - 06/08/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1358,7 +1358,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1169 - 06/08/2026)',
+    app_version: 'Version 1.0.0 (build v1170 - 06/08/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -19715,11 +19715,25 @@ function renderPartnerSection() {
   if (!container) return;
 
   // Anti-flicker signature check — skip rebuild if state hasn't changed
+  // Include a compact transaction signature so the last-activity indicator and
+  // presence dots refresh live when a family member adds/updates a transaction.
+  let _txSig = '';
+  try {
+    const _familyId = state.userProfile ? state.userProfile.family_id : null;
+    const _me = state.currentUser ? state.currentUser.id : null;
+    const _recent = (state.transactions || [])
+      .filter(t => t.user_id && t.user_id !== _me && (!t.family_id || t.family_id === _familyId))
+      .slice(0, 5)
+      .map(t => (t.user_id || '') + ':' + (t.created_at || t.date || '') + ':' + (t.type || ''))
+      .join('|');
+    _txSig = _recent;
+  } catch (e) { _txSig = ''; }
   const _partnerSig = (state.currentUser ? state.currentUser.id : 'none')
     + '||' + (state.userProfile ? (state.userProfile.family_id || '') + '_' + (state.userProfile.role || '') : 'noprof')
     + '||' + (state.familyProfiles || []).map(p => `${p.id}_${p.display_name || ''}_${p.role || ''}`).join(',')
     + '||' + (state.familyGroup ? (state.familyGroup.name || '') + '_' + (state.familyGroup.invite_code || '') : 'nogrp')
-    + '||' + (state.lang || 'el');
+    + '||' + (state.lang || 'el')
+    + '||tx:' + _txSig;
   if (container._lastRenderSignature === _partnerSig) return;
   container._lastRenderSignature = _partnerSig;
 
