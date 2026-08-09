@@ -974,7 +974,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1166 - 06/08/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1167 - 06/08/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1358,7 +1358,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1166 - 06/08/2026)',
+    app_version: 'Version 1.0.0 (build v1167 - 06/08/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -3048,6 +3048,36 @@ function initSupabaseAuth() {
         }
       })();
     } else {
+      // OFFLINE GUARD: When the device is offline, a null-session auth event is
+      // almost always a failed token refresh (the Supabase access token expired
+      // and could not be renewed without a network), NOT a genuine sign-out.
+      // Treating it as a logout wipes cached_current_user and locks the user out
+      // of the app until they get back online. Instead, keep the cached session
+      // alive so the app remains fully usable offline.
+      const isOfflineNow = typeof navigator !== 'undefined' && !navigator.onLine;
+      const cachedUserRaw = localStorage.getItem('cached_current_user');
+      if (isOfflineNow && cachedUserRaw) {
+        logAuthDebug('Offline null-session event ignored; preserving cached user.');
+        try {
+          state.currentUser = JSON.parse(cachedUserRaw);
+        } catch (e) {
+          state.currentUser = null;
+        }
+        // Keep the app usable offline: hide the auth overlay and render cached data.
+        const authOverlayEl = document.getElementById('auth-overlay');
+        if (authOverlayEl) authOverlayEl.style.display = 'none';
+        toggleLoader(false);
+        if (formsContainer) formsContainer.style.display = 'block';
+        updateHeaderSyncIcon('offline');
+        window._suppressTransitions = true;
+        try {
+          updateUI();
+        } finally {
+          setTimeout(() => { window._suppressTransitions = false; }, 1500);
+        }
+        return;
+      }
+
       // Stop automatic polling sync
       stopPartnerSyncPolling();
 
@@ -21368,6 +21398,25 @@ window.stopSupabaseRealtimeSubscription = stopSupabaseRealtimeSubscription;
 // Handle online connectivity restore events
 window.addEventListener('online', () => {
   console.log('Connection restored! Replaying sync queue...');
+
+  // Re-establish the Supabase session now that we are online again. If the
+  // access token expired while offline (which triggered a null-session auth
+  // event that we intentionally ignored), this refresh restores a valid
+  // session so cloud sync resumes. If the refresh token itself was rejected,
+  // getSession() returns no session and the normal auth flow takes over.
+  if (state.supabaseClient) {
+    state.supabaseClient.auth.getSession().then(({ data }) => {
+      if (data && data.session && data.session.user) {
+        state.currentUser = data.session.user;
+        localStorage.setItem('cached_current_user', JSON.stringify(data.session.user));
+        updateHeaderSyncIcon('synced');
+      }
+    }).catch(() => {
+      // Session refresh failed; fall through to queue replay which will
+      // surface any auth errors gracefully.
+    });
+  }
+
   processSyncQueue();
 });
 
