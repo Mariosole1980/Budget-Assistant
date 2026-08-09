@@ -294,6 +294,11 @@ html.web-mode .app-content {
     overflow-y: auto !important;
     overflow-x: hidden !important;
     -webkit-overflow-scrolling: touch !important;
+    /* CRITICAL: as a grid item, min-height defaults to auto which prevents
+       the element from shrinking below its content. Setting min-height:0
+       lets it be bounded by the 1fr grid row so overflow-y:auto actually
+       scrolls. Without this, content is clipped and cannot scroll in ANY tab. */
+    min-height: 0 !important;
 }
 
 /* ============================================================ */

@@ -4761,6 +4761,12 @@ html.auth-active .app-container {
     grid-template-areas:
       "sidebar header"
       "sidebar content" !important;
+    /* CRITICAL: allow the 1fr content row to shrink below its content
+       height. Without min-height:0 the grid item (.app-content) keeps its
+       default min-height:auto, grows to fit ALL tab content, and its
+       overflow-y:auto never engages — so the page is clipped and cannot
+       scroll in ANY tab. */
+    min-height: 0 !important;
   }
 
   /* Position header on the right content grid area */
@@ -4781,6 +4787,10 @@ html.auth-active .app-container {
     padding-bottom: 24px !important;
     overflow-y: auto !important;
     overflow-x: hidden !important;
+    /* CRITICAL: as a grid item, min-height defaults to auto which prevents
+       it from shrinking below its content. Setting min-height:0 lets the
+       element be bounded by the 1fr row so overflow-y:auto actually scrolls. */
+    min-height: 0 !important;
   }
 
   /* Turn bottom navigation bar into a left sidebar menu */
