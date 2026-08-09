@@ -45,12 +45,9 @@ console.log(`  [PASS] Git commit created for release v${newVersion}.\n`);
 console.log('[STEP 5/7] Deploying www/ artifact to Cloudflare Pages...');
 const wranglerPath = process.platform === 'win32' ? 'cmd /c npx wrangler' : 'npx wrangler';
 
-console.log('  [DEPLOY 1/2] Deploying to budget-assistant-pwa...');
+console.log('  [DEPLOY] Deploying to budget-assistant-pwa (canonical)...');
 execSync(`${wranglerPath} pages deploy www --project-name=budget-assistant-pwa --branch=main`, { cwd: rootDir, stdio: 'inherit' });
-
-console.log('  [DEPLOY 2/2] Deploying to money-manager-pwa...');
-execSync(`${wranglerPath} pages deploy www --project-name=money-manager-pwa --branch=main`, { cwd: rootDir, stdio: 'inherit' });
-console.log('  [PASS] Both Cloudflare Pages deployments complete.\n');
+console.log('  [PASS] Cloudflare Pages deployment complete.\n');
 
 // Step 7: Live Verification
 console.log('[STEP 6/7] Running live production verification...');
@@ -59,6 +56,5 @@ execSync('node scripts/release-verify-live.js', { cwd: rootDir, stdio: 'inherit'
 console.log('====================================================');
 console.log(`✨ SUCCESSFUL RELEASE: build v${newVersion}`);
 console.log('====================================================');
-console.log('Live URLs:');
-console.log('  - https://budget-assistant-pwa.pages.dev');
-console.log('  - https://money-manager-pwa.pages.dev\n');
+console.log('Live URL:');
+console.log('  - https://budget-assistant-pwa.pages.dev\n');

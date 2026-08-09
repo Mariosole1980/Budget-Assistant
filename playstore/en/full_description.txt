@@ -1,0 +1,63 @@
+📊 Take control of your finances with Budget Assistant — the smartest personal finance app.
+
+Budget Assistant gives you a complete picture of your spending, income and accounts, with smart charts, budgets and AI insights designed for real people.
+
+✨ KEY FEATURES
+
+💳 Transactions & Categories
+• Log expenses & income with 1 tap
+• 20+ built-in categories (food, transport, health & more)
+• Custom subcategories
+• Search, filter & sort
+
+📈 Statistics & Charts
+• Monthly & yearly analysis
+• Category breakdown charts
+• Income vs expenses comparison
+• Per family member view
+
+🏦 Accounts & Overview
+• Manage cash, bank & card accounts
+• Automatic balance updates
+• Overview card with Financial Health Score
+
+🔁 Recurring Transactions
+• Set up standing orders & subscriptions
+• Automatic reminders for upcoming payments
+
+🤖 AI Financial Advisor
+• Smart spending analysis & saving tips
+• Chat with your own financial data
+• Forecasts & personalized insights
+
+👨‍👩‍👧 Family Wallet
+• Shared account with partner/spouse
+• View transactions per family member
+• Manage from phone or desktop (PWA)
+
+☁️ Sync & Offline
+• Automatic cloud sync (Supabase)
+• Works offline too
+• Export to Excel/CSV
+
+🌙 Premium Design
+• Dark Mode
+• Neon color palette
+• Smooth animations & micro-interactions
+• Available in Greek & English
+
+📝 Notes & Checklists
+• Personal notes & to-do lists
+• Reminders & tasks
+
+🔒 Security
+• PIN lock & Biometric authentication
+• Privacy Screen support
+
+💱 Multi-Currency
+• Support for 50+ currencies
+• Automatic exchange rates
+
+---
+
+Budget Assistant is your all-in-one personal finance solution. Free, no ads, privacy-first.

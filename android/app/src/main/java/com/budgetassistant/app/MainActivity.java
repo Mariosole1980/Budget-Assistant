@@ -43,8 +43,17 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onResume() {
         super.onResume();
-        // Apply secure mode flags on resume (skip re-applying background color on every resume to avoid Android surface flicker)
+        // Apply secure mode flags on resume.
         applySecureMode();
+        // ANTI-BLANK-FLASH (native): Re-apply the saved theme background on every
+        // resume. When the Activity returns from the background, the WebView
+        // surface can be re-composited a frame or two AFTER the window is shown,
+        // exposing a blank/white flash before the JS content is drawn. Re-applying
+        // the window + WebView background to the saved theme color covers that gap
+        // with the correct theme color instead of a blank surface. This is safe
+        // because the JS-side resume overlay (showResumeOverlay) also runs, and the
+        // background color is idempotent (setting the same color causes no repaint).
+        applySavedTheme();
     }
 
     private void applySecureMode() {

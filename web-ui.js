@@ -20,6 +20,16 @@
         return document.documentElement && document.documentElement.classList.contains('web-mode');
     }
 
+    // Localize the dynamically-injected "New Transaction" buttons using the
+    // fab_add_transaction translation key (kept in sync with the current lang).
+    function localizeAddButton(btn) {
+        var span = btn.querySelector('span[data-i18n="fab_add_transaction"]');
+        if (!span) return;
+        var lang = (window.state && window.state.lang) || 'el';
+        var dict = (window.TRANSLATIONS && window.TRANSLATIONS[lang]) || {};
+        span.textContent = dict.fab_add_transaction || (lang === 'en' ? 'Add Transaction' : 'Προσθήκη Συναλλαγής');
+    }
+
     // ------------------------------------------------------------
     // Step 2: Desktop sidebar brand header + "Νέα Κίνηση" button.
     // Injected into the existing .bottom-nav (which desktop.css turns
@@ -45,17 +55,18 @@
             '</div>';
         nav.insertBefore(brand, nav.firstChild);
 
-        // "Νέα Κίνηση" primary action button
+        // "New Transaction" primary action button (localized via fab_add_transaction key)
         var addBtn = document.createElement('button');
         addBtn.type = 'button';
         addBtn.className = 'desktop-sidebar-add';
-        addBtn.innerHTML = '<i class="fa-solid fa-plus"></i><span>Νέα Κίνηση</span>';
+        addBtn.innerHTML = '<i class="fa-solid fa-plus"></i><span data-i18n="fab_add_transaction"></span>';
         addBtn.addEventListener('click', function () {
             if (typeof window.openAddTransactionModal === 'function') {
                 window.openAddTransactionModal();
             }
         });
         nav.insertBefore(addBtn, brand.nextSibling);
+        localizeAddButton(addBtn);
     }
 
     // ------------------------------------------------------------
@@ -72,7 +83,7 @@
         var addBtn = document.createElement('button');
         addBtn.type = 'button';
         addBtn.className = 'desktop-topbar-add';
-        addBtn.innerHTML = '<i class="fa-solid fa-plus"></i><span>Νέα Κίνηση</span>';
+        addBtn.innerHTML = '<i class="fa-solid fa-plus"></i><span data-i18n="fab_add_transaction"></span>';
         addBtn.addEventListener('click', function () {
             if (typeof window.openAddTransactionModal === 'function') {
                 window.openAddTransactionModal();
@@ -85,6 +96,7 @@
         } else {
             header.appendChild(addBtn);
         }
+        localizeAddButton(addBtn);
     }
 
     // ------------------------------------------------------------

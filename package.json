@@ -36,6 +36,7 @@
     "@capacitor/keyboard": "^6.0.3",
     "@capacitor/local-notifications": "^6.1.1",
     "@capacitor/share": "^6.0.2",
+    "@capacitor/splash-screen": "^6.0.0",
     "@capgo/capacitor-native-biometric": "6.0.4",
     "@capgo/capacitor-updater": "^6.50.2"
   },

@@ -36,7 +36,10 @@ export async function onRequestPost(context) {
 
   // JWT Token Verification (Optional - supports Guest Mode & Logged-in users).
   // When a token IS present it must be valid; invalid tokens are rejected.
+  // For authenticated users we also capture the user_id so we can enforce the
+  // AI Coach fair-use limit server-side (authoritative, cannot be bypassed).
   const authHeader = request.headers.get('Authorization') || '';
+  let authenticatedUserId = null;
   if (authHeader.startsWith('Bearer ')) {
     const token = authHeader.substring(7);
     const supabaseUrl = env.SUPABASE_URL || 'https://nnatvvahoeiemkfmzpwp.supabase.co';
@@ -56,6 +59,12 @@ export async function onRequestPost(context) {
           headers: corsHeaders
         });
       }
+      try {
+        const userData = await userRes.json();
+        if (userData && userData.id) {
+          authenticatedUserId = userData.id;
+        }
+      } catch (_) { /* ignore parse errors */ }
     } catch (err) {
       console.warn('Session verification error:', err.message);
       return new Response(JSON.stringify({ error: 'Unauthorized: could not verify session' }), {
@@ -96,6 +105,71 @@ export async function onRequestPost(context) {
       status: 400,
       headers: corsHeaders
     });
+  }
+
+  // --------------------------------------------------------------------------
+  // AI COACH FAIR-USE LIMIT (server-side, authoritative)
+  // Only online advisor calls count (they cost money). Offline fallback is free.
+  // Free: 10/month. Premium: 50/month. Guest mode (no user_id) is not tracked
+  // server-side and relies on the client-side gate.
+  // --------------------------------------------------------------------------
+  if (mode === 'advisor' && authenticatedUserId) {
+    const supabaseUrl = env.SUPABASE_URL || 'https://nnatvvahoeiemkfmzpwp.supabase.co';
+    const supabaseKey = env.SUPABASE_ANON_KEY || 'sb_publishable_voBLw0kwLF07IWssRb4Q2w_sPlTUQNp';
+    const authToken = authHeader.startsWith('Bearer ') ? authHeader.substring(7) : '';
+
+    const rpcCall = async (rpcName) => {
+      const res = await fetch(`${supabaseUrl}/rest/v1/rpc/${rpcName}`, {
+        method: 'POST',
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: '{}'
+      });
+      if (!res.ok) return null;
+      try { return await res.json(); } catch (_) { return null; }
+    };
+
+    // Determine the user's plan limit.
+    let premiumActive = false;
+    try {
+      const profileRes = await fetch(
+        `${supabaseUrl}/rest/v1/profiles?select=premium_active&id=eq.${authenticatedUserId}&limit=1`,
+        {
+          headers: {
+            'apikey': supabaseKey,
+            'Authorization': `Bearer ${authToken}`
+          }
+        }
+      );
+      if (profileRes.ok) {
+        const rows = await profileRes.json();
+        if (Array.isArray(rows) && rows.length > 0) {
+          premiumActive = rows[0].premium_active === true;
+        }
+      }
+    } catch (_) { /* ignore profile fetch errors */ }
+
+    const limit = premiumActive ? 50 : 10;
+    const currentUsage = await rpcCall('get_ai_usage');
+
+    if (currentUsage != null && currentUsage >= limit) {
+      return new Response(JSON.stringify({
+        error: 'AI_LIMIT_REACHED',
+        message: premiumActive
+          ? 'Monthly AI Coach limit (50) reached.'
+          : 'Monthly AI Coach limit (10) reached. Upgrade to Premium for 50/month.'
+      }), {
+        status: 429,
+        headers: corsHeaders
+      });
+    }
+
+    // Increment usage BEFORE calling Gemini so concurrent requests cannot
+    // exceed the limit. If the increment fails, still allow the call (best-effort).
+    await rpcCall('increment_ai_usage');
   }
 
   let prompt = '';

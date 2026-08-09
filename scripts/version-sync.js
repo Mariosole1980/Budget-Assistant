@@ -120,7 +120,7 @@ filesToMirror.forEach(file => {
   }
 });
 
-const dirsToMirror = ['js', 'assets', 'webfonts'];
+const dirsToMirror = ['js', 'assets', 'webfonts', 'functions'];
 dirsToMirror.forEach(dir => {
   const src = path.join(rootDir, dir);
   const dst = path.join(wwwDir, dir);

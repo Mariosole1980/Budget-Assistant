@@ -241,6 +241,7 @@ CREATE POLICY "Allow delete transactions" ON public.transactions
 --   * profiles / family_groups / pending_invitations  -> family-budget-migration.sql
 --   * recurring_templates                              -> supabase-recurring-migration.sql
 --   * notes                                             -> notes-migration.sql
+--   * ai_conversations                                  -> ai-conversations-migration.sql
 --   * currencies / exchange_rates / budgets             -> multi-currency-migration.sql
 --   * category_budgets                                  -> (see plans/category-budgets-implementation-plan.md)
 --   * trash (status columns on transactions)            -> trash-status-migration.sql

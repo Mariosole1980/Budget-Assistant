@@ -7,8 +7,7 @@ const versionJsonPath = path.join(rootDir, 'version.json');
 const canonicalVersion = JSON.parse(fs.readFileSync(versionJsonPath, 'utf8')).version;
 
 const projects = [
-  'https://budget-assistant-pwa.pages.dev',
-  'https://money-manager-pwa.pages.dev'
+  'https://budget-assistant-pwa.pages.dev'
 ];
 
 function fetchLiveUrl(url, maxRedirects = 5) {
@@ -101,7 +100,7 @@ async function verifyLive() {
     process.exit(1);
   }
 
-  console.log(`[PASS] Live Verification PASSED 100% for both Cloudflare Pages projects!\n`);
+  console.log(`[PASS] Live Verification PASSED 100% for the canonical Cloudflare Pages project!\n`);
 }
 
 verifyLive();

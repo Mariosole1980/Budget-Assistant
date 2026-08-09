@@ -486,6 +486,96 @@ const state = {
 // bind it explicitly here.
 window.state = state;
 
+// ============================================================
+// PREMIUM (Lifetime) — entitlement helpers & limits
+// ============================================================
+// Premium limits (Free vs Premium Lifetime). These are the CLIENT-side
+// (UX) limits. The authoritative enforcement happens SERVER-side (RLS/RPC
+// and the Cloudflare functions). The client limits only improve UX by
+// showing upgrade modals before the user hits a server rejection.
+const PREMIUM_LIMITS = {
+  familyMembers: 2,        // Free: user + 1. Premium: unlimited (3+)
+  cloudTxPerMonth: 100,    // Free: 100 cloud-synced tx/month. Premium: unlimited
+  currencies: 1,           // Free: 1 currency. Premium: unlimited
+  budgets: 2,              // Free: 2 category budgets. Premium: unlimited
+  aiCoachFree: 10,         // Free: 10 online AI calls/month
+  aiCoachPremium: 50       // Premium: 50 online AI calls/month (fair-use)
+};
+
+// Premium price (one-time Lifetime). Adjustable constant.
+const PREMIUM_PRICE_EUR = 9.99;
+
+// Returns true if the current user has an active Premium entitlement.
+// Source of truth is the server profile (state.userProfile.premium_active).
+// localStorage is only a cache for faster UI; it is NOT a security boundary.
+function isPremium() {
+  const p = state.userProfile;
+  return !!(p && p.premium_active === true);
+}
+
+// Returns the current user's premium status for UI display.
+function getPremiumStatus() {
+  return {
+    active: isPremium(),
+    purchasedAt: state.userProfile ? state.userProfile.premium_purchased_at : null
+  };
+}
+
+// Shows the Premium upgrade modal (used by all gated features).
+// If the user is already premium, does nothing.
+function requirePremium(featureKey) {
+  if (isPremium()) return true;
+  if (typeof openPremiumModal === 'function') {
+    openPremiumModal(featureKey);
+  }
+  return false;
+}
+
+// ---------------------------------------------------------------------------
+// AI COACH USAGE (client-side helper)
+// Only ONLINE advisor calls count toward the fair-use limit (they cost money).
+// The offline NLP fallback is free and unlimited for everyone.
+// The authoritative enforcement happens server-side in functions/api/ai.js;
+// this client-side helper is used for UX (showing the upgrade modal early).
+// ---------------------------------------------------------------------------
+
+// Returns the current month's online AI call count for the logged-in user,
+// or null when not authenticated (guest mode) / the RPC is unavailable.
+async function getAiUsageCount() {
+  try {
+    if (!state.supabaseClient || !state.currentUser) return null;
+    const { data, error } = await state.supabaseClient.rpc('get_ai_usage');
+    if (error) return null;
+    return typeof data === 'number' ? data : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+// Returns the online AI call limit for the current user (10 free / 50 premium).
+function getAiUsageLimit() {
+  return isPremium() ? PREMIUM_LIMITS.aiCoachPremium : PREMIUM_LIMITS.aiCoachFree;
+}
+
+// Checks whether the user may make another online AI call. Returns true if
+// allowed. If at the limit, shows the upgrade modal + toast and returns false.
+async function canUseOnlineAI() {
+  const limit = getAiUsageLimit();
+  const usage = await getAiUsageCount();
+  // If we cannot determine usage (guest/offline), allow the call — the
+  // server-side enforcement still protects the limit for authenticated users.
+  if (usage == null) return true;
+  if (usage < limit) return true;
+  if (typeof openPremiumModal === 'function') openPremiumModal('ai');
+  showSyncToast(
+    state.lang === 'el'
+      ? `Έχετε φτάσει το μηνιαίο όριο του Online AI Coach (${limit}). Αναβαθμίστε σε Premium για 50/μήνα.`
+      : `You have reached your monthly Online AI Coach limit (${limit}). Upgrade to Premium for 50/month.`,
+    5000
+  );
+  return false;
+}
+
 // Database mappers for recurring templates to handle camelCase JS <-> snake_case Postgres mapping
 function mapTemplateToDb(t) {
   if (!t) return null;
@@ -962,7 +1052,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1199 - 06/08/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1208 - 06/08/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1099,7 +1189,84 @@ const TRANSLATIONS = {
     cloud_sync_local: 'Συγχρονισμός Cloud: Τοπικός',
     subcategories_title: 'Υποκατηγορίες',
     btn_undo: 'Αναίρεση',
-    item_manage_categories: 'Διαχείριση Κατηγοριών'
+    item_manage_categories: 'Διαχείριση Κατηγοριών',
+    btn_clear_history: 'Καθαρισμός',
+    card_cleanup_dupes: 'Καθαρισμός Διπλών Δόσεων',
+    card_cleanup_dupes_desc: 'Αφαίρεση διπλών επαναλαμβανόμενων δόσεων (ίδια ημερομηνία & ποσό)',
+    clear_data_desc: 'Διαγραφή όλων των δεδομένων που είναι αποθηκευμένα στη συσκευή',
+    dashboard_month_expense: 'Έξοδα Μήνα',
+    dashboard_month_income: 'Έσοδα Μήνα',
+    dashboard_month_savings: 'Αποταμίευση Μήνα',
+    dashboard_net_worth: 'Καθαρή Αξία',
+    dashboard_recent: 'Πρόσφατες Κινήσεις',
+    export_btn_back: 'Πίσω',
+    export_btn_next: 'Επόμενο',
+    export_label_period: 'Επιλογή Περιόδου',
+    export_sub_all: 'Πλήρες Ιστορικό',
+    export_sub_custom: 'Προσαρμοσμένο Εύρος',
+    item_auto_lock: 'Αυτόματο Κλείδωμα',
+    item_biometric: 'Βιομετρικό Ξεκλείδωμα',
+    item_expense_alert: 'Όριο Υψηλής Δαπάνης (€)',
+    item_expense_limit: 'Μέγιστο Ποσό (€)',
+    item_hide_amounts: 'Απόκρυψη Ποσών',
+    item_reminder_time: 'Ώρα Υπενθύμισης',
+    item_screenshot_block: 'Αποκλεισμός Screenshots',
+    item_user_guide: 'Οδηγός Χρήσης',
+    modal_account_title: 'Επιλογή τρόπου πληρωμής',
+    modal_currency_title: 'Επιλογή νομίσματος',
+    new_note_btn: 'Νέα',
+    notification_history_title: 'Ιστορικό Ειδοποιήσεων',
+    row_actual_amount: 'Πραγματική χρέωση',
+    stats_period_all: 'Όλη η περίοδος',
+    stats_subtab_breakdown: 'Κατανομή',
+    stats_subtab_budgets: 'Προϋπολογισμοί',
+    label_camera: 'Κάμερα',
+    label_all_categories: 'Όλες οι κατηγορίες',
+    label_all: 'Όλες',
+    select_category_first: 'Επιλέξτε πρώτα κατηγορία',
+    pin_wrong: 'Λάθος PIN! Προσπαθήστε ξανά.',
+    pin_confirm_title: 'Επιβεβαίωση PIN',
+    pin_confirm_desc: 'Πληκτρολογήστε ξανά το PIN για επιβεβαίωση.',
+    auth_please_wait: 'Παρακαλώ περιμένετε...',
+    auth_sending: 'Αποστολή...',
+    sync_done: 'Ολοκληρώθηκε!',
+    select_date: 'Επιλογή ημερομηνίας...',
+    settings_notif_title: 'Ειδοποιήσεις & Υπενθυμίσεις',
+    settings_security_title: 'Ασφάλεια & Ιδιωτικότητα',
+    auth_signup_title: 'Σύνδεση / Εγγραφή',
+    recurring_label: 'Επαναλαμβανόμενη',
+    permanent_delete: 'Οριστική Διαγραφή',
+    auth_error_prefix: '❌ Σφάλμα: ',
+    auth_error_unhandled: '❌ Σφάλμα (Unhandled): ',
+    auth_error_auth: '❌ Σφάλμα ταυτοποίησης: ',
+    auth_fail_auth: 'Αποτυχία ταυτοποίησης.',
+    auth_fail_link: 'Αποτυχία αποστολής συνδέσμου.',
+    auth_fail_google: 'Αποτυχία σύνδεσης με Google.',
+    auth_magic_sent: '📩 Ο σύνδεσμος σύνδεσης στάλθηκε! Ελέγξτε τα εισερχόμενά σας (και τα Ανεπιθύμητα).',
+    pref_card_appearance_title: 'Γλώσσα & Εμφάνιση',
+    pref_card_appearance_desc: 'Προσαρμογή γλώσσας, θεμάτων & νομίσματος',
+    item_language_desc: 'Γλώσσα περιβάλλοντος (Ελληνικά / English)',
+    item_theme_desc: 'Παλέτα χρωμάτων & σκοτεινή λειτουργία',
+    item_currency_desc: 'Το νόμισμα που χρησιμοποιείς συνήθως',
+    item_font_size_desc: 'Αύξηση μεγέθους κειμένου για ευκολότερη ανάγνωση',
+    pref_card_calendar_title: 'Ημερολογιακοί Κύκλοι',
+    pref_card_calendar_desc: 'Έναρξη μηνιαίου & εβδομαδιαίου προϋπολογισμού',
+    item_month_start_desc: 'Ημέρα έναρξης μηνιαίου κύκλου (1 - 28)',
+    item_week_start_desc: 'Πρώτη ημέρα στα εβδομαδιαία γραφήματα',
+    pref_card_tools_title: 'Έξυπνα Εργαλεία & Συντομεύσεις',
+    pref_card_tools_desc: 'Αυτοματισμοί πληκτρολόγησης & ταχεία πρόσβαση',
+    item_autocomplete_desc: 'Αυτόματες προτάσεις κατά την πληκτρολόγηση',
+    item_note_shortcut_desc: 'Εμφάνιση συντόμευσης σημειωματάριου στην αρχική',
+    notif_card_desc: 'Υπενθυμίσεις καταγραφής & όρια δαπανών',
+    item_daily_reminder_desc: 'Υπενθύμιση καταγραφής εξόδων στις 21:00',
+    item_recurring_alerts_desc: 'Προειδοποίηση 1 ημέρα πριν τη λήξη',
+    item_expense_alert_desc: 'Ειδοποίηση για έξοδα άνω του ορίου',
+    security_card_desc: 'Κλείδωμα PIN, βιομετρικά & απόκρυψη ποσών',
+    item_app_lock_desc: 'Προστασία με 4ψήφιο κωδικό',
+    item_biometrics_desc: 'Δακτυλικό αποτύπωμα / Face ID',
+    item_hide_amounts_desc: 'Εμφάνιση 👁️ (***) στα υπόλοιπα',
+    item_screenshot_block_desc: 'Απαγόρευση στιγμιότυπων οθόνης',
+    item_auto_lock_desc: 'Χρόνος αδράνειας πριν το κλείδωμα'
   },
   en: {
     nav_trans: 'Transactions',
@@ -1346,7 +1513,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1199 - 06/08/2026)',
+    app_version: 'Version 1.0.0 (build v1208 - 06/08/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -1483,7 +1650,84 @@ const TRANSLATIONS = {
     cloud_sync_local: 'Cloud Sync: Local Mode',
     subcategories_title: 'Subcategories',
     btn_undo: 'Undo',
-    item_manage_categories: 'Manage Categories'
+    item_manage_categories: 'Manage Categories',
+    btn_clear_history: 'Clear',
+    card_cleanup_dupes: 'Clean Up Duplicate Installments',
+    card_cleanup_dupes_desc: 'Remove duplicate recurring installments (same date & amount)',
+    clear_data_desc: 'Delete all data stored on this device',
+    dashboard_month_expense: 'Month Expenses',
+    dashboard_month_income: 'Month Income',
+    dashboard_month_savings: 'Month Savings',
+    dashboard_net_worth: 'Net Worth',
+    dashboard_recent: 'Recent Transactions',
+    export_btn_back: 'Back',
+    export_btn_next: 'Next',
+    export_label_period: 'Select Period',
+    export_sub_all: 'Full History',
+    export_sub_custom: 'Custom Range',
+    item_auto_lock: 'Auto Lock',
+    item_biometric: 'Biometric Unlock',
+    item_expense_alert: 'High Expense Limit (€)',
+    item_expense_limit: 'Max Amount (€)',
+    item_hide_amounts: 'Hide Amounts',
+    item_reminder_time: 'Reminder Time',
+    item_screenshot_block: 'Block Screenshots',
+    item_user_guide: 'User Guide',
+    modal_account_title: 'Select Payment Method',
+    modal_currency_title: 'Select Currency',
+    new_note_btn: 'New',
+    notification_history_title: 'Notification History',
+    row_actual_amount: 'Actual Charge',
+    stats_period_all: 'All time',
+    stats_subtab_breakdown: 'Breakdown',
+    stats_subtab_budgets: 'Budgets',
+    label_camera: 'Camera',
+    label_all_categories: 'All categories',
+    label_all: 'All',
+    select_category_first: 'Select a category first',
+    pin_wrong: 'Wrong PIN! Try again.',
+    pin_confirm_title: 'Confirm PIN',
+    pin_confirm_desc: 'Re-enter the PIN to confirm.',
+    auth_please_wait: 'Please wait...',
+    auth_sending: 'Sending...',
+    sync_done: 'Done!',
+    select_date: 'Select date...',
+    settings_notif_title: 'Notifications & Reminders',
+    settings_security_title: 'Security & Privacy',
+    auth_signup_title: 'Sign In / Sign Up',
+    recurring_label: 'Recurring',
+    permanent_delete: 'Permanently Delete',
+    auth_error_prefix: '❌ Error: ',
+    auth_error_unhandled: '❌ Error (Unhandled): ',
+    auth_error_auth: '❌ Authentication error: ',
+    auth_fail_auth: 'Authentication failed.',
+    auth_fail_link: 'Failed to send link.',
+    auth_fail_google: 'Google sign-in failed.',
+    auth_magic_sent: '📩 Sign-in link sent! Check your inbox (and spam).',
+    pref_card_appearance_title: 'Language & Appearance',
+    pref_card_appearance_desc: 'Customize language, themes & currency',
+    item_language_desc: 'Interface language (Greek / English)',
+    item_theme_desc: 'Color palette & dark mode',
+    item_currency_desc: 'Currency used for transactions',
+    item_font_size_desc: 'Increase text size for easier reading',
+    pref_card_calendar_title: 'Calendar Cycles',
+    pref_card_calendar_desc: 'Monthly & weekly budget start days',
+    item_month_start_desc: 'Start day of monthly cycle (1 - 28)',
+    item_week_start_desc: 'First day in weekly charts',
+    pref_card_tools_title: 'Smart Tools & Shortcuts',
+    pref_card_tools_desc: 'Typing automation & quick access',
+    item_autocomplete_desc: 'Auto-suggestions while typing',
+    item_note_shortcut_desc: 'Show notepad shortcut on home screen',
+    notif_card_desc: 'Logging reminders & expense limits',
+    item_daily_reminder_desc: 'Expense logging reminder at 21:00',
+    item_recurring_alerts_desc: 'Alert 1 day before due date',
+    item_expense_alert_desc: 'Alert for expenses over limit',
+    security_card_desc: 'PIN lock, biometrics & hidden balances',
+    item_app_lock_desc: 'Protected with 4-digit PIN',
+    item_biometrics_desc: 'Fingerprint / Face ID',
+    item_hide_amounts_desc: 'Show 👁️ (***) on balances',
+    item_screenshot_block_desc: 'Prevent taking screenshots',
+    item_auto_lock_desc: 'Inactivity time before auto-lock'
   }
 };
 
@@ -2561,6 +2805,46 @@ async function initApp() {
   window._appLoaded = true;
   if (window._startupTimeout) clearTimeout(window._startupTimeout);
 
+  // PREMIUM RETURN HANDLER: After Stripe Checkout redirects back with
+  // ?premium=success, refresh the profile (server is the source of truth) so
+  // the Premium entitlement is reflected immediately. Also clean the URL so a
+  // refresh doesn't re-trigger the toast.
+  (function handlePremiumReturn() {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const status = params.get('premium');
+      if (!status) return;
+
+      // Remove the query param from the URL (history.replaceState keeps the page).
+      params.delete('premium');
+      const cleanUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '') + window.location.hash;
+      window.history.replaceState({}, '', cleanUrl);
+
+      if (status === 'success') {
+        showSyncToast(state.lang === 'el' ? '🎉 Το Premium ενεργοποιήθηκε! Ευχαριστούμε!' : '🎉 Premium activated! Thank you!', 5000);
+        // Refresh the profile once the user is authenticated. First run the
+        // server-side reconciliation (/api/premium-status) so the entitlement
+        // is granted even if the webhook hasn't processed yet, then re-fetch.
+        if (state.currentUser && typeof loadUserProfiles === 'function') {
+          (async () => {
+            try {
+              if (typeof reconcilePremiumPurchase === 'function') {
+                await reconcilePremiumPurchase();
+              }
+            } catch (e) { /* reconciliation is best-effort */ }
+            loadUserProfiles(state.currentUser).then(() => {
+              updatePremiumUI();
+            }).catch(() => { });
+          })();
+        }
+      } else if (status === 'cancelled') {
+        showSyncToast(state.lang === 'el' ? 'Η αγορά ακυρώθηκε.' : 'Purchase cancelled.', 3000);
+      }
+    } catch (e) {
+      console.warn('Premium return handler error:', e);
+    }
+  })();
+
   // COLD-START FADE-IN: The first updateUI() render is deferred by ~150ms
   // (via _updateUIRAF). Wait for that deferred render to paint (double-rAF +
   // a small buffer) before fading out the cold-start overlay, so the user sees
@@ -2815,7 +3099,7 @@ function initSupabaseAuth() {
           ? '❌ Υπάρχει ήδη λογαριασμός με αυτό το email. Δοκιμάστε να συνδεθείτε με email/κωδικό.'
           : '❌ An account with this email already exists. Try logging in with email/password.';
       } else {
-        errorMsg = `❌ Σφάλμα: ${errorDescription}`;
+        errorMsg = ((TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_error_prefix']) || '❌ Σφάλμα: ') + errorDescription;
       }
 
       processingRedirect = false;
@@ -2837,7 +3121,7 @@ function initSupabaseAuth() {
       processingRedirect = false;
       toggleLoader(false);
       if (formsContainer) formsContainer.style.display = 'block';
-      showAuthStatus('❌ Σφάλμα (Unhandled): ' + msg);
+      showAuthStatus(((TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_error_unhandled']) || '❌ Σφάλμα (Unhandled): ') + msg);
     }
   });
 
@@ -2850,7 +3134,7 @@ function initSupabaseAuth() {
       processingRedirect = false;
       toggleLoader(false);
       if (formsContainer) formsContainer.style.display = 'block';
-      showAuthStatus('❌ Σφάλμα ταυτοποίησης: ' + (error.message || error));
+      showAuthStatus(((TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_error_auth']) || '❌ Σφάλμα ταυτοποίησης: ') + (error.message || error));
       const earlyStyle = document.getElementById('early-auth-style');
       if (earlyStyle) earlyStyle.remove();
     } else {
@@ -2886,7 +3170,7 @@ function initSupabaseAuth() {
     processingRedirect = false;
     toggleLoader(false);
     if (formsContainer) formsContainer.style.display = 'block';
-    showAuthStatus('❌ Σφάλμα ταυτοποίησης: ' + (err.message || err));
+    showAuthStatus(((TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_error_auth']) || '❌ Σφάλμα ταυτοποίησης: ') + (err.message || err));
     const earlyStyle = document.getElementById('early-auth-style');
     if (earlyStyle) earlyStyle.remove();
   });
@@ -5186,26 +5470,15 @@ function updateUI() {
   }
   _updateUIDirty = true;
 
-  // ANTI-FLICKER: If the app just resumed from background, defer rendering
-  // until after the resume guard window expires. This prevents the DOM wipe
-  // from being visible during the resume animation frame. The guard window
-  // (_RESUME_GUARD_MS, ~1700ms) covers the full resume sequence including the
-  // 1500ms foreground sync and any realtime events that fire after re-subscribing.
-  const baseDelay = window._appJustResumed ? 700 : 0;
-
-  if (baseDelay > 0) {
-    _updateUITimer = setTimeout(() => {
-      _updateUITimer = null;
-      if (_updateUIRAF) cancelAnimationFrame(_updateUIRAF);
-      _updateUIRAF = requestAnimationFrame(_runScheduledRender);
-    }, baseDelay);
-  } else {
-    // No resume guard needed: flush on the next animation frame so that
-    // multiple synchronous updateUI() calls in the same tick still coalesce
-    // into a single render (avoids redundant DOM wipes).
-    if (_updateUIRAF) cancelAnimationFrame(_updateUIRAF);
-    _updateUIRAF = requestAnimationFrame(_runScheduledRender);
-  }
+  // INSTANT-RESUME: Always flush on the next animation frame so that multiple
+  // synchronous updateUI() calls in the same tick still coalesce into a single
+  // render (avoids redundant DOM wipes). We deliberately do NOT defer the render
+  // on resume — the user wants to return straight to where they were (like
+  // Messenger/Facebook) without seeing any background/splash flash. The
+  // no-transitions guard (_RESUME_GUARD_MS) already suppresses CSS transitions
+  // during the resume window, so an immediate render is flicker-free.
+  if (_updateUIRAF) cancelAnimationFrame(_updateUIRAF);
+  _updateUIRAF = requestAnimationFrame(_runScheduledRender);
 }
 
 // Immediately cancel any pending scheduled render and run the render NOW.
@@ -5813,7 +6086,8 @@ const CATEGORY_NAME_TRANSLATIONS = {
   'ΑΛΛΑ ΕΞΟΔΑ': 'Other Expenses',
   'Άλλα': 'Other',
   'ΑΛΛΑ': 'Other',
-  'ΑΛΛΑ ΕΣΟΔΑ': 'Other Income'
+  'ΑΛΛΑ ΕΣΟΔΑ': 'Other Income',
+  'Γενικά': 'General'
 };
 
 // Get category display name - translates default categories, preserves custom/user categories
@@ -6426,6 +6700,8 @@ function switchStatsSubtab(tab) {
 window.switchStatsSubtab = switchStatsSubtab;
 
 function renderCategoryBudgetsView(catGroups = {}) {
+  const container = document.getElementById('stats-budgets-container');
+  if (!container) return;
   const displayCurrency = getDisplayCurrency();
   const symbol = getCurrencySymbol();
   const lang = state.lang || 'el';
@@ -6722,6 +6998,21 @@ function saveCategoryBudgetFromModal() {
   if (existingIdx !== -1) {
     state.budgets[existingIdx] = budgetRecord;
   } else {
+    // Premium gate: Free users may create up to 2 category budgets.
+    // Adding a new (3rd+) budget requires Premium. Editing an existing
+    // budget is always allowed (never lose data).
+    const activeBudgetCount = (state.budgets || []).filter(b => !b.is_deleted).length;
+    if (activeBudgetCount >= PREMIUM_LIMITS.budgets && !isPremium()) {
+      closeModal('category-budget-modal');
+      if (typeof openPremiumModal === 'function') openPremiumModal('budgets');
+      showToast(
+        lang === 'el'
+          ? 'Μπορείτε να δημιουργήσετε έως 2 προϋπολογισμούς με το δωρεάν πλάνο. Αναβαθμίστε σε Premium για απεριόριστους.'
+          : 'You can create up to 2 budgets on the free plan. Upgrade to Premium for unlimited budgets.',
+        'warning'
+      );
+      return;
+    }
     state.budgets.push(budgetRecord);
   }
 
@@ -8056,7 +8347,7 @@ function setupEventListeners() {
   if (rowPref) rowPref.addEventListener('click', () => openSettingsSubscreen('preferences', 'settings_pref_title'));
 
   const rowNotifications = document.getElementById('hub-row-notifications');
-  if (rowNotifications) rowNotifications.addEventListener('click', () => openSettingsSubscreen('notifications', 'Ειδοποιήσεις & Υπενθυμίσεις'));
+  if (rowNotifications) rowNotifications.addEventListener('click', () => openSettingsSubscreen('notifications', 'settings_notif_title'));
 
   const rowRecurring = document.getElementById('hub-row-recurring');
   if (rowRecurring) rowRecurring.addEventListener('click', openRecurringTemplatesModal);
@@ -8065,7 +8356,7 @@ function setupEventListeners() {
   if (rowCategories) rowCategories.addEventListener('click', openSettingsCategoryManager);
 
   const rowSecurity = document.getElementById('hub-row-security');
-  if (rowSecurity) rowSecurity.addEventListener('click', () => openSettingsSubscreen('security', 'Ασφάλεια & Ιδιωτικότητα'));
+  if (rowSecurity) rowSecurity.addEventListener('click', () => openSettingsSubscreen('security', 'settings_security_title'));
 
   const rowTrash = document.getElementById('hub-row-trash');
   if (rowTrash) rowTrash.addEventListener('click', openTrashBinModal);
@@ -8587,7 +8878,7 @@ function setupEventListeners() {
       camIcon.style.cssText = 'font-size: 20px; color: var(--text-secondary);';
 
       const camLabel = document.createElement('span');
-      camLabel.textContent = 'Κάμερα';
+      camLabel.textContent = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['label_camera']) || 'Κάμερα';
       camLabel.style.cssText = 'font-size: 10px; color: var(--text-secondary); font-weight: 600;';
 
       cameraBox.appendChild(camIcon);
@@ -9642,7 +9933,7 @@ function openAddTransactionModal({ instant = false } = {}) {
 
   // Reset Category
   document.getElementById('trans-category').value = '';
-  document.getElementById('trans-category-display').innerHTML = `<span class="custom-select-placeholder">Επιλέξτε...</span>`;
+  document.getElementById('trans-category-display').innerHTML = `<span class="custom-select-placeholder">${(TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['label_select']) || 'Επιλέξτε...'}</span>`;
 
   // Reset Subcategory
   const customInput = document.getElementById('trans-subcategory-custom');
@@ -9879,7 +10170,7 @@ function updateCategoryDisplay() {
 
   const categoryVal = categoryHidden.value;
   if (!categoryVal) {
-    categoryDisplay.innerHTML = `<span class="custom-select-placeholder">Επιλέξτε...</span>`;
+    categoryDisplay.innerHTML = `<span class="custom-select-placeholder">${(TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['label_select']) || 'Επιλέξτε...'}</span>`;
     return;
   }
 
@@ -11399,6 +11690,22 @@ function selectCurrencyOption(code) {
   if (_currencyPickerTarget === 'settings') {
     changeCurrencySetting(code);
   } else {
+    // Premium gate: Free users may use only their base currency (1 currency).
+    // Selecting a different currency for a transaction means using a 2nd
+    // currency, which requires Premium. The base currency itself is always
+    // changeable via settings (that is the user's single currency).
+    const baseCurrency = localStorage.getItem('app_currency') || 'EUR';
+    if (code !== baseCurrency && !isPremium()) {
+      closeModal('currency-picker-modal');
+      if (typeof openPremiumModal === 'function') openPremiumModal('currency');
+      showSyncToast(
+        state.lang === 'el'
+          ? 'Η χρήση πολλαπλών νομισμάτων είναι διαθέσιμη μόνο με το Premium.'
+          : 'Multi-currency is only available with Premium.',
+        4000
+      );
+      return;
+    }
     setTransactionCurrency(code);
     rememberRecentCurrency(code);
     if (typeof window.openCalculatorKeypad === 'function') {
@@ -11533,6 +11840,172 @@ function openSupabaseSettings() {
   updateSupabaseUserModal();
   openModal('supabase-modal');
 }
+
+// ============================================================
+// PREMIUM MODAL & PURCHASE FLOW
+// ============================================================
+// Opens the Premium modal. If a featureKey is provided, it highlights the
+// relevant feature (used by requirePremium() from gated features).
+function openPremiumModal(featureKey) {
+  updatePremiumUI();
+  openModal('premium-modal');
+}
+
+// Updates the Premium modal + Settings Hub badge to reflect current status.
+function updatePremiumUI() {
+  const active = isPremium();
+  const banner = document.getElementById('premium-active-banner');
+  const buyBtn = document.getElementById('premium-purchase-btn');
+  const badge = document.getElementById('hub-premium-badge');
+  const subtitle = document.getElementById('hub-premium-subtitle');
+
+  if (banner) banner.style.display = active ? 'block' : 'none';
+  if (buyBtn) buyBtn.style.display = active ? 'none' : 'block';
+  if (badge) {
+    badge.textContent = active
+      ? (state.lang === 'el' ? 'Ενεργό' : 'Active')
+      : (state.lang === 'el' ? 'Αναβάθμισε' : 'Upgrade');
+    badge.style.background = active ? 'rgba(34,197,94,0.2)' : 'rgba(255,193,7,0.2)';
+    badge.style.color = active ? '#22c55e' : '#ffc107';
+  }
+  if (subtitle) {
+    subtitle.textContent = active
+      ? (state.lang === 'el' ? 'Όλα τα features ξεκλειδωμένα' : 'All features unlocked')
+      : (state.lang === 'el' ? 'Ξεκλείδωσε όλα τα features — εφάπαξ' : 'Unlock all features — one-time');
+  }
+}
+
+// Starts the web purchase flow (Stripe Checkout via /api/purchase).
+// Falls back to a manual-activation notice if the endpoint is not deployed.
+async function startPremiumPurchase() {
+  if (isPremium()) {
+    showSyncToast(state.lang === 'el' ? '✓ Είσαι ήδη Premium!' : '✓ You are already Premium!', 2500);
+    return;
+  }
+  if (!state.currentUser) {
+    showSyncToast(state.lang === 'el' ? '⚠️ Συνδέσου πρώτα για να αγοράσεις Premium.' : '⚠️ Please sign in first to purchase Premium.', 3500);
+    return;
+  }
+
+  const btn = document.getElementById('premium-purchase-btn');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = state.lang === 'el' ? 'Προετοιμασία...' : 'Preparing...';
+  }
+
+  try {
+    // Resolve the current session token for the Authorization header.
+    let accessToken = '';
+    if (state.supabaseClient) {
+      try {
+        const { data } = await state.supabaseClient.auth.getSession();
+        if (data && data.session && data.session.access_token) {
+          accessToken = data.session.access_token;
+        }
+      } catch (e) {
+        console.warn('Could not resolve session token for purchase:', e);
+      }
+    }
+    if (!accessToken) {
+      showSyncToast(state.lang === 'el' ? '⚠️ Συνδέσου πρώτα για να αγοράσεις Premium.' : '⚠️ Please sign in first to purchase Premium.', 3500);
+      return;
+    }
+
+    const res = await fetch('/api/purchase', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + accessToken
+      },
+      body: JSON.stringify({ userId: state.currentUser.id })
+    });
+    const data = await res.json().catch(() => ({}));
+
+    if (res.ok && data.url) {
+      // Redirect to Stripe Checkout
+      window.location.href = data.url;
+      return;
+    }
+    // Endpoint not deployed / error → manual activation fallback
+    console.warn('Premium purchase endpoint unavailable:', data);
+    showSyncToast(
+      state.lang === 'el'
+        ? '⚠️ Η πληρωμή δεν είναι ακόμα ενεργή. Επικοινώνησε με τον διαχειριστή.'
+        : '⚠️ Payment is not active yet. Please contact the administrator.',
+      5000
+    );
+  } catch (err) {
+    console.error('Premium purchase error:', err);
+    showSyncToast(state.lang === 'el' ? '⚠️ Σφάλμα κατά την αγορά.' : '⚠️ Purchase error.', 3500);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = `<i class="fa-solid fa-crown" style="margin-right:6px;"></i><span>${state.lang === 'el' ? 'Αγορά για 9,99 €' : 'Buy for €9.99'}</span>`;
+    }
+  }
+}
+
+// Restores a previously purchased Premium (Android / Google Play).
+async function restorePremiumPurchase() {
+  if (typeof window.Capacitor !== 'undefined' && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
+    // Native restore via a Capacitor plugin (to be wired in Phase 3).
+    showSyncToast(state.lang === 'el' ? '⚠️ Η επαναφορά δεν είναι ακόμα διαθέσιμη.' : '⚠️ Restore is not available yet.', 3000);
+    return;
+  }
+  // Web: first try server-side reconciliation (/api/premium-status). This
+  // queries Stripe for the user's paid sessions and grants the entitlement if
+  // the webhook was lost. Then re-fetch the profile (server is source of truth).
+  if (state.currentUser) {
+    await reconcilePremiumPurchase();
+    await loadUserProfiles(state.currentUser);
+    updatePremiumUI();
+    showSyncToast(state.lang === 'el' ? '✓ Το Premium ανανεώθηκε.' : '✓ Premium refreshed.', 2500);
+  }
+}
+
+// Call the server-side reconciliation endpoint. It queries Stripe for the
+// authenticated user's paid Checkout Sessions and grants the entitlement if a
+// paid session exists but the profile isn't premium (webhook-lost recovery).
+// Returns true if the server reported premium_active after reconciliation.
+async function reconcilePremiumPurchase() {
+  if (!state.currentUser || !state.supabaseClient) return false;
+  try {
+    const { data: sessionData } = await state.supabaseClient.auth.getSession();
+    const token = sessionData && sessionData.session ? sessionData.session.access_token : null;
+    if (!token) return false;
+
+    // Short retry loop: the webhook may still be processing, so give it a few
+    // attempts before giving up. Each attempt is idempotent.
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const res = await fetch('/api/premium-status', {
+          method: 'GET',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json().catch(() => ({}));
+          if (data && data.premium_active) {
+            return true;
+          }
+        }
+      } catch (err) {
+        console.warn('Premium reconciliation attempt failed:', err.message);
+      }
+      if (attempt < 2) {
+        await new Promise(r => setTimeout(r, 1500));
+      }
+    }
+    return false;
+  } catch (err) {
+    console.warn('Premium reconciliation error:', err);
+    return false;
+  }
+}
+
+window.openPremiumModal = openPremiumModal;
+window.updatePremiumUI = updatePremiumUI;
+window.startPremiumPurchase = startPremiumPurchase;
+window.restorePremiumPurchase = restorePremiumPurchase;
 
 // Floating toast for background sync feedback
 let _syncToastTimer = null;
@@ -13497,7 +13970,7 @@ function populateSearchFilterDropdowns() {
   // Populate categories filter
   const catSelect = document.getElementById('search-filter-category');
   if (catSelect) {
-    catSelect.innerHTML = '<option value="">Όλες οι κατηγορίες</option>';
+    catSelect.innerHTML = `<option value="">${(TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['label_all_categories']) || 'Όλες οι κατηγορίες'}</option>`;
     const allCats = new Set();
     state.categories.forEach(c => allCats.add(c.name));
     state.transactions.forEach(t => { if (t.category) allCats.add(t.category); });
@@ -13526,7 +13999,7 @@ function populateSearchFilterDropdowns() {
 function populateSearchSubcategoryDropdown(filterByCat) {
   const subSelect = document.getElementById('search-filter-subcategory');
   if (!subSelect) return;
-  subSelect.innerHTML = '<option value="">Όλες</option>';
+  subSelect.innerHTML = `<option value="">${(TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['label_all']) || 'Όλες'}</option>`;
   const allSubs = new Set();
   state.transactions.forEach(t => {
     if (t.subcategory && t.subcategory.trim()) {
@@ -14469,7 +14942,7 @@ function toggleSelection(id) {
 function updateSelectionHeader() {
   const countSpan = document.getElementById('selection-count');
   if (countSpan) {
-    countSpan.textContent = `${state.selectedIds.size} επιλεγμένα`;
+    countSpan.textContent = `${state.selectedIds.size} ${(TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['selection_count_text']) || 'επιλεγμένα'}`;
   }
 }
 
@@ -15256,7 +15729,7 @@ function updateSubcategorySuggestions() {
   const currentSubcategory = document.getElementById('trans-subcategory-select').value;
 
   if (!category) {
-    subcatList.innerHTML = `<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:12px;">Επιλέξτε πρώτα κατηγορία</div>`;
+    subcatList.innerHTML = `<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:12px;">${(TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['select_category_first']) || 'Επιλέξτε πρώτα κατηγορία'}</div>`;
     return;
   }
 
@@ -18674,7 +19147,7 @@ function verifyEnteredPin() {
   } else {
     const subtitle = document.getElementById('lock-subtitle');
     const oldText = subtitle.textContent;
-    subtitle.textContent = "Λάθος PIN! Προσπαθήστε ξανά.";
+    subtitle.textContent = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['pin_wrong']) || "Λάθος PIN! Προσπαθήστε ξανά.";
     subtitle.style.color = "var(--accent)";
 
     const dotsContainer = document.querySelector('.lock-dots');
@@ -18801,8 +19274,8 @@ function openPinModal() {
   const modal = document.getElementById('pin-modal');
   if (modal) {
     modal.classList.add('active');
-    document.getElementById('pin-modal-title').textContent = "Ορισμός PIN";
-    document.getElementById('pin-modal-desc').textContent = "Εισάγετε ένα 4ψήφιο PIN για το κλείδωμα της εφαρμογής.";
+    document.getElementById('pin-modal-title').textContent = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['modal_pin_title']) || "Ορισμός PIN";
+    document.getElementById('pin-modal-desc').textContent = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['modal_pin_desc']) || "Εισάγετε ένα 4ψήφιο PIN για το κλείδωμα της εφαρμογής.";
     document.getElementById('pin-input-field').value = "";
     pinSetupStep = 1;
     tempSetupPin = "";
@@ -18834,8 +19307,8 @@ function submitPinSetup() {
   if (pinSetupStep === 1) {
     tempSetupPin = pin;
     pinField.value = "";
-    document.getElementById('pin-modal-title').textContent = "Επιβεβαίωση PIN";
-    document.getElementById('pin-modal-desc').textContent = "Πληκτρολογήστε ξανά το PIN για επιβεβαίωση.";
+    document.getElementById('pin-modal-title').textContent = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['pin_confirm_title']) || "Επιβεβαίωση PIN";
+    document.getElementById('pin-modal-desc').textContent = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['pin_confirm_desc']) || "Πληκτρολογήστε ξανά το PIN για επιβεβαίωση.";
     pinSetupStep = 2;
   } else if (pinSetupStep === 2) {
     if (pin === tempSetupPin) {
@@ -18849,8 +19322,8 @@ function submitPinSetup() {
       pinSetupStep = 1;
       tempSetupPin = "";
       pinField.value = "";
-      document.getElementById('pin-modal-title').textContent = "Ορισμός PIN";
-      document.getElementById('pin-modal-desc').textContent = "Εισάγετε ένα 4ψήφιο PIN για το κλείδωμα της εφαρμογής.";
+      document.getElementById('pin-modal-title').textContent = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['modal_pin_title']) || "Ορισμός PIN";
+      document.getElementById('pin-modal-desc').textContent = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['modal_pin_desc']) || "Εισάγετε ένα 4ψήφιο PIN για το κλείδωμα της εφαρμογής.";
     }
   }
 }
@@ -19190,7 +19663,7 @@ async function handleForgotPassword() {
     showAuthStatus(successMsg, 'success');
   } catch (err) {
     console.error('Reset password error:', err);
-    showAuthStatus('❌ Σφάλμα: ' + (err.message || err));
+    showAuthStatus(((TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_error_prefix']) || '❌ Σφάλμα: ') + (err.message || err));
   }
 }
 
@@ -19246,7 +19719,7 @@ async function handlePasswordAuth(e) {
   const submitBtn = document.getElementById('auth-password-submit-btn');
   const originalText = submitBtn.textContent;
   submitBtn.disabled = true;
-  submitBtn.textContent = 'Παρακαλώ περιμένετε...';
+  submitBtn.textContent = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_please_wait']) || 'Παρακαλώ περιμένετε...';
   clearAuthStatus();
 
   try {
@@ -19275,7 +19748,7 @@ async function handlePasswordAuth(e) {
     }
   } catch (err) {
     console.error('Password auth failed:', err);
-    showAuthStatus('❌ Σφάλμα: ' + (err.message || 'Αποτυχία ταυτοποίησης.'));
+    showAuthStatus(((TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_error_prefix']) || '❌ Σφάλμα: ') + (err.message || (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_fail_auth']) || 'Αποτυχία ταυτοποίησης.'));
   } finally {
     submitBtn.disabled = false;
     submitBtn.textContent = originalText;
@@ -19290,7 +19763,7 @@ async function handleMagicAuth(e) {
   const submitBtn = document.getElementById('auth-magic-submit-btn');
   const originalText = submitBtn.textContent;
   submitBtn.disabled = true;
-  submitBtn.textContent = 'Αποστολή...';
+  submitBtn.textContent = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_sending']) || 'Αποστολή...';
   clearAuthStatus();
 
   try {
@@ -19301,10 +19774,10 @@ async function handleMagicAuth(e) {
       }
     });
     if (error) throw error;
-    showAuthStatus('📩 Ο σύνδεσμος σύνδεσης στάλθηκε! Ελέγξτε τα εισερχόμενά σας (και τα Ανεπιθύμητα).', 'success');
+    showAuthStatus((TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_magic_sent']) || '📩 Ο σύνδεσμος σύνδεσης στάλθηκε! Ελέγξτε τα εισερχόμενά σας (και τα Ανεπιθύμητα).', 'success');
   } catch (err) {
     console.error('Magic link failed:', err);
-    showAuthStatus('❌ Σφάλμα: ' + (err.message || 'Αποτυχία αποστολής συνδέσμου.'));
+    showAuthStatus(((TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_error_prefix']) || '❌ Σφάλμα: ') + (err.message || (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_fail_link']) || 'Αποτυχία αποστολής συνδέσμου.'));
   } finally {
     submitBtn.disabled = false;
     submitBtn.textContent = originalText;
@@ -19393,7 +19866,7 @@ async function handleGoogleAuth() {
   } catch (err) {
     console.error('Google auth flow failed:', err);
     toggleLoader(false);
-    showAuthStatus('❌ Σφάλμα: ' + (err.message || 'Αποτυχία σύνδεσης με Google.'));
+    showAuthStatus(((TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_error_prefix']) || '❌ Σφάλμα: ') + (err.message || (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_fail_google']) || 'Αποτυχία σύνδεσης με Google.'));
   }
 }
 
@@ -20433,6 +20906,23 @@ async function inviteMemberByEmail() {
       return;
     }
 
+    // PREMIUM GATE: Free allows up to 2 members (user + 1). Adding a 3rd member
+    // requires Premium. This is a UX check; the authoritative enforcement is
+    // server-side in join_family_group / the RPC.
+    const currentMemberCount = (state.familyProfiles || []).length;
+    if (currentMemberCount >= PREMIUM_LIMITS.familyMembers && !isPremium()) {
+      if (typeof openPremiumModal === 'function') {
+        openPremiumModal('family');
+      }
+      showSyncToast(
+        state.lang === 'el'
+          ? '⭐ Το δωρεάν πλάνο επιτρέπει έως 2 μέλη. Αναβάθμισε σε Premium για περισσότερα.'
+          : '⭐ The free plan allows up to 2 members. Upgrade to Premium for more.',
+        4000
+      );
+      return;
+    }
+
     const roleSelect = document.getElementById('invite-role-select');
     const selectedRole = roleSelect ? roleSelect.value : 'member';
 
@@ -20788,7 +21278,7 @@ async function enterGuestMode() {
   if (userBadge) {
     userBadge.style.display = 'flex';
     userBadge.innerHTML = '<i class="fa-solid fa-lock" style="font-size: 11px;"></i>';
-    userBadge.title = 'Σύνδεση / Sign Up';
+    userBadge.title = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_signup_title']) || 'Σύνδεση / Εγγραφή';
     userBadge.onclick = () => showAuthOverlay();
   }
 
@@ -20850,7 +21340,7 @@ async function syncLocalTransactionsToCloud(userId, options = {}) {
 
     if (localTrans.length > 0) {
 
-      const toInsert = localTrans.map(t => {
+      let toInsert = localTrans.map(t => {
         const copy = { ...t };
         delete copy.id; // Let Supabase auto-generate UUIDs
         // Strip all client-only fields that do NOT exist as columns in the live DB
@@ -20878,6 +21368,47 @@ async function syncLocalTransactionsToCloud(userId, options = {}) {
         }
         return copy;
       });
+
+      // PREMIUM GATE: Free plan allows up to PREMIUM_LIMITS.cloudTxPerMonth
+      // cloud-synced transactions per month. If the user is at the limit and
+      // not Premium, only sync up to the remaining allowance. The rest stay
+      // local (offline_transactions) — they are NEVER deleted, preserving data.
+      if (!isPremium()) {
+        try {
+          const monthStart = new Date();
+          monthStart.setDate(1);
+          monthStart.setHours(0, 0, 0, 0);
+          const { count } = await promiseTimeout(
+            state.supabaseClient
+              .from('transactions')
+              .select('id', { count: 'exact', head: true })
+              .eq('user_id', userId)
+              .gte('created_at', monthStart.toISOString())
+              .then(r => r),
+            8000
+          ).catch(() => ({ count: 0 }));
+          const used = count || 0;
+          const remaining = Math.max(0, PREMIUM_LIMITS.cloudTxPerMonth - used);
+          if (toInsert.length > remaining) {
+            const deferred = toInsert.slice(remaining);
+            toInsert = toInsert.slice(0, remaining);
+            if (deferred.length > 0) {
+              showSyncToast(
+                state.lang === 'el'
+                  ? `⭐ Έφτασες το μηνιαίο όριο cloud (${PREMIUM_LIMITS.cloudTxPerMonth}). Οι υπόλοιπες μένουν τοπικά.`
+                  : `⭐ You reached the monthly cloud limit (${PREMIUM_LIMITS.cloudTxPerMonth}). The rest stay local.`,
+                5000
+              );
+            }
+          }
+        } catch (err) {
+          console.warn('Cloud limit check failed, syncing all:', err);
+        }
+      }
+
+      if (toInsert.length === 0) {
+        return;
+      }
 
       // Suppress realtime events during batch insert so the resulting INSERT
       // events don't trigger handleRealtimeTransactionChange and cause flicker.
@@ -21017,6 +21548,39 @@ async function processSyncQueue(options = {}) {
           continue;
         }
         const { description, is_shared, photo_local_uri, photo_url, receipt, currency, base_currency, rate_to_base, amount_base, rate_source, fx_snapshot, rate_to_base_actual, rate_fetched_at, transfer_id, transfer_rate, ...dbPayload } = transaction;
+
+        // PREMIUM GATE: Free plan allows up to PREMIUM_LIMITS.cloudTxPerMonth
+        // cloud-synced transactions per month. If at the limit and not Premium,
+        // defer this save (keep it in the queue for later) instead of syncing.
+        if (!isPremium()) {
+          try {
+            const monthStart = new Date();
+            monthStart.setDate(1);
+            monthStart.setHours(0, 0, 0, 0);
+            const { count } = await promiseTimeout(
+              state.supabaseClient
+                .from('transactions')
+                .select('id', { count: 'exact', head: true })
+                .eq('user_id', state.currentUser.id)
+                .gte('created_at', monthStart.toISOString())
+                .then(r => r),
+              8000
+            ).catch(() => ({ count: 0 }));
+            if ((count || 0) >= PREMIUM_LIMITS.cloudTxPerMonth) {
+              // Keep the item queued for later (do not drop it).
+              remaining.push(item);
+              showSyncToast(
+                state.lang === 'el'
+                  ? `⭐ Έφτασες το μηνιαίο όριο cloud (${PREMIUM_LIMITS.cloudTxPerMonth}). Η κίνηση μένει τοπικά.`
+                  : `⭐ You reached the monthly cloud limit (${PREMIUM_LIMITS.cloudTxPerMonth}). The transaction stays local.`,
+                4000
+              );
+              continue;
+            }
+          } catch (err) {
+            console.warn('Cloud limit check failed in processSyncQueue:', err);
+          }
+        }
 
         const { error } = await promiseTimeout(
           state.supabaseClient
@@ -21650,9 +22214,10 @@ async function forceSyncNow(silent = false) {
     state.transactions = dedupedCombined;
     localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
 
-    // Sync notes & budgets
+    // Sync notes, budgets & AI conversations
     await syncNotes();
     await syncBudgets();
+    await syncAdvisorConversations();
 
     // 6. Check sync queue status
     const queueStr = localStorage.getItem('money_manager_sync_queue');
@@ -21821,7 +22386,10 @@ function _handleAppResumed() {
   document.body.classList.add('no-transitions');
   setTimeout(() => { document.body.classList.remove('no-transitions'); }, _RESUME_GUARD_MS);
   if (_resumeDebounceTimer) return; // already scheduled this resume cycle
-  _resumeDebounceTimer = setTimeout(() => { _resumeDebounceTimer = null; }, 500);
+  // Debounce window extended to 800ms so that when visibilitychange AND the
+  // Capacitor appStateChange fire in quick succession (Android fires both
+  // simultaneously), the restore + guard logic still runs only ONCE per resume.
+  _resumeDebounceTimer = setTimeout(() => { _resumeDebounceTimer = null; }, 800);
 
   // Set guard to block spurious closeModal calls during the resume transition.
   // Extended to cover the full resume+sync window so updateUI() defers every
@@ -21831,10 +22399,10 @@ function _handleAppResumed() {
   setTimeout(() => { window._appJustResumed = false; }, _RESUME_GUARD_MS);
 
   // ANTI-FLICKER: Immediately suppress all CSS transitions on resume.
-  // This covers BOTH the modal restore AND the deferred updateUI tab re-render
-  // (which fires at 700ms when _appJustResumed is true). Without this, the
-  // tab content flashes visibly as elements animate in from their default states.
-  // Extended to cover the full 1500ms foreground sync + deferred render window.
+  // This covers BOTH the modal restore AND the immediate updateUI tab re-render
+  // (which now fires on the next animation frame for instant restore). Without
+  // this, the tab content flashes visibly as elements animate in from their
+  // default states. Extended to cover the full 1500ms foreground sync window.
   // Uses the reference-counted guard so overlapping guards (forceSyncNow,
   // realtime handlers) never prematurely remove the class.
   pushNoTransition();
@@ -21920,7 +22488,7 @@ function updateHeaderProfileBadge() {
   if (state.guestMode || !state.currentUser) {
     userBadge.style.display = 'flex';
     userBadge.innerHTML = '<i class="fa-solid fa-lock" style="font-size: 11px;"></i>';
-    userBadge.title = 'Σύνδεση / Sign Up';
+    userBadge.title = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_signup_title']) || 'Σύνδεση / Εγγραφή';
     userBadge.onclick = () => showAuthOverlay();
     userBadge.style.backgroundImage = 'none';
     userBadge.className = 'user-profile-badge';
@@ -22176,7 +22744,7 @@ async function triggerProfileSync() {
   if (modalSyncSpinner) modalSyncSpinner.classList.add('fa-spin');
 
   const syncStatus = document.getElementById('profile-sync-status');
-  if (syncStatus) syncStatus.textContent = 'Συγχρονισμός...';
+  if (syncStatus) syncStatus.textContent = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['sync_status_syncing']) || 'Συγχρονισμός...';
 
   try {
     if (state.currentUser) {
@@ -22184,11 +22752,11 @@ async function triggerProfileSync() {
       await loadData();
       updateUI();
       renderPartnerSection();
-      if (syncStatus) syncStatus.textContent = 'Ολοκληρώθηκε!';
+      if (syncStatus) syncStatus.textContent = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['sync_done']) || 'Ολοκληρώθηκε!';
     }
   } catch (err) {
     console.error(err);
-    if (syncStatus) syncStatus.textContent = 'Σφάλμα';
+    if (syncStatus) syncStatus.textContent = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['val_sync_status_error']) || 'Σφάλμα';
   } finally {
     setTimeout(() => {
       if (syncBtn) syncBtn.classList.remove('fa-spin');
@@ -24378,7 +24946,7 @@ function openRecurringModal() {
     if (btnDate) btnDate.classList.remove('active');
     if (dateContainer) dateContainer.style.display = 'none';
     if (hiddenInput) hiddenInput.value = '';
-    if (label) label.textContent = 'Επιλογή ημερομηνίας...';
+    if (label) label.textContent = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['select_date']) || 'Επιλογή ημερομηνίας...';
   } else {
     if (btnPerpetual) btnPerpetual.classList.remove('active');
     if (btnDate) btnDate.classList.add('active');
@@ -24887,6 +25455,19 @@ function deleteAdvisorConversation(id) {
   }
 
   renderAdvisorConversationList();
+
+  // Διαγραφή και από το cloud backup
+  if (state.supabaseClient && state.currentUser) {
+    state.supabaseClient
+      .from('ai_conversations')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', state.currentUser.id)
+      .then(res => {
+        if (res.error) console.warn('[AdvisorSync] error deleting remote conversation:', res.error);
+      })
+      .catch(err => console.warn('[AdvisorSync] delete remote conversation failed:', err));
+  }
 }
 
 function persistAdvisorMessage(sender, htmlContent) {
@@ -24904,6 +25485,7 @@ function persistAdvisorMessage(sender, htmlContent) {
     conv.title = getConversationTitle(conv.messages);
   }
   saveAdvisorConversations(list);
+  scheduleAdvisorConversationSync();
 }
 
 function persistAdvisorGeminiHistory(history) {
@@ -24915,7 +25497,121 @@ function persistAdvisorGeminiHistory(history) {
   conv.geminiHistory = Array.isArray(history) ? history.slice() : [];
   conv.updatedAt = Date.now();
   saveAdvisorConversations(list);
+  scheduleAdvisorConversationSync();
 }
+
+// ============================================================
+// AI Σύμβουλος — Cloud Sync (backup των συνομιλιών στο Supabase)
+// ============================================================
+// Οι συνομιλίες αποθηκεύονται τοπικά στο localStorage με κλειδί
+// 'advisor_chat_conversations_v1'. Για να μην χάνονται όταν εκκαθαρίζεται
+// το τοπικό storage (εκκαθάριση WebView, επανεγκατάσταση κ.λπ.),
+// συγχρονίζονται και στον πίνακα public.ai_conversations (βλ.
+// ai-conversations-migration.sql), με λογική merge-by-updatedAt,
+// ακριβώς όπως οι σημειώσεις (syncNotes).
+// ============================================================
+let _advisorSyncTimer = null;
+
+function scheduleAdvisorConversationSync() {
+  if (_advisorSyncTimer) clearTimeout(_advisorSyncTimer);
+  _advisorSyncTimer = setTimeout(() => { syncAdvisorConversations(); }, 800);
+}
+
+async function syncAdvisorConversations() {
+  if (!state.supabaseClient || !state.currentUser) return;
+  const userId = state.currentUser.id;
+
+  try {
+    const { data: remoteConvs, error } = await state.supabaseClient
+      .from('ai_conversations')
+      .select('*')
+      .eq('user_id', userId);
+
+    if (error) {
+      if (error.code === 'PGRST116' || error.code === '42P01' || error.status === 404) {
+        console.log('[AdvisorSync] ai_conversations table not found in database. Skipping cloud sync.');
+        return;
+      }
+      console.warn('[AdvisorSync] error fetching remote conversations:', error);
+      return;
+    }
+
+    const localList = loadAdvisorConversations();
+    if (!Array.isArray(localList)) return;
+
+    const remoteMap = new Map();
+    (remoteConvs || []).forEach(rc => remoteMap.set(rc.id, rc));
+
+    const mergedList = [];
+    const convsToUpsert = [];
+
+    localList.forEach(localConv => {
+      const remoteConv = remoteMap.get(localConv.id);
+      if (remoteConv) {
+        const localDate = new Date(localConv.updatedAt || localConv.createdAt || 0);
+        const remoteDate = new Date(remoteConv.updated_at || remoteConv.created_at || 0);
+        if (localDate > remoteDate) {
+          mergedList.push(localConv);
+          convsToUpsert.push(localConv);
+        } else {
+          // Το cloud αντίγραφο είναι νεότερο — το υιοθετούμε τοπικά
+          mergedList.push({
+            id: remoteConv.id,
+            title: remoteConv.title || (state.lang === 'el' ? 'Νέα συνομιλία' : 'New conversation'),
+            createdAt: remoteConv.created_at ? new Date(remoteConv.created_at).getTime() : Date.now(),
+            updatedAt: remoteConv.updated_at ? new Date(remoteConv.updated_at).getTime() : Date.now(),
+            messages: Array.isArray(remoteConv.messages) ? remoteConv.messages : [],
+            geminiHistory: Array.isArray(remoteConv.gemini_history) ? remoteConv.gemini_history : []
+          });
+        }
+        remoteMap.delete(localConv.id);
+      } else {
+        mergedList.push(localConv);
+        convsToUpsert.push(localConv);
+      }
+    });
+
+    // Όσες υπάρχουν μόνο στο cloud, τις προσθέτουμε τοπικά
+    remoteMap.forEach(rc => {
+      mergedList.push({
+        id: rc.id,
+        title: rc.title || (state.lang === 'el' ? 'Νέα συνομιλία' : 'New conversation'),
+        createdAt: rc.created_at ? new Date(rc.created_at).getTime() : Date.now(),
+        updatedAt: rc.updated_at ? new Date(rc.updated_at).getTime() : Date.now(),
+        messages: Array.isArray(rc.messages) ? rc.messages : [],
+        geminiHistory: Array.isArray(rc.gemini_history) ? rc.gemini_history : []
+      });
+    });
+
+    // Ταξινόμηση κατά updatedAt (νεότερα πρώτα) και αποθήκευση τοπικά
+    mergedList.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+    saveAdvisorConversations(mergedList);
+
+    // Push τοπικών αλλαγών στο cloud
+    if (convsToUpsert.length > 0) {
+      const records = convsToUpsert.map(c => ({
+        id: c.id,
+        title: c.title || (state.lang === 'el' ? 'Νέα συνομιλία' : 'New conversation'),
+        messages: Array.isArray(c.messages) ? c.messages : [],
+        gemini_history: Array.isArray(c.geminiHistory) ? c.geminiHistory : [],
+        user_id: userId,
+        created_at: c.createdAt ? new Date(c.createdAt).toISOString() : new Date().toISOString(),
+        updated_at: c.updatedAt ? new Date(c.updatedAt).toISOString() : new Date().toISOString()
+      }));
+
+      const { error: upsertError } = await state.supabaseClient
+        .from('ai_conversations')
+        .upsert(records);
+
+      if (upsertError) {
+        console.warn('[AdvisorSync] error pushing local conversations to remote:', upsertError);
+      }
+    }
+  } catch (err) {
+    console.warn('[AdvisorSync] unhandled exception during conversations sync:', err);
+  }
+}
+window.syncAdvisorConversations = syncAdvisorConversations;
 
 function appendChatMessage(sender, htmlContent, persist = true) {
   const chatLog = document.getElementById('advisor-chat-log');
@@ -25003,7 +25699,14 @@ function submitCoachQuery(queryText) {
     const norm = normalizeGreekString(queryText);
     const isLocalReport = norm.includes('προϋπολογισμ') || norm.includes('οριο') || norm.includes('ορια') || norm.includes('που ξοδευω τα περισσοτερα') || norm.includes('που ξοδευω τα') || norm.includes('που πανε τα λεφτα') || norm.includes('μεγαλυτερα εξοδα') || norm.includes('top spending');
 
-    if (!isHardcodedCmd && !isLocalReport && window.OnlineAIProvider) {
+    // Premium gate: only ONLINE advisor calls count toward the fair-use limit.
+    // If the user is at their limit, skip the online call and fall through to
+    // the free offline NLP fallback below (never leave the user without an answer).
+    const aiAllowed = (!isHardcodedCmd && !isLocalReport && window.OnlineAIProvider)
+      ? await canUseOnlineAI()
+      : false;
+
+    if (aiAllowed) {
       try {
         const pacing = getCoachAveragePacing();
         const currentMonth = new Date().getMonth();
@@ -26825,6 +27528,9 @@ function regenerateRecurringTemplateTransactions(template) {
             );
             if (error) throw error;
           } catch (err) {
+            // If the server-side cloud limit trigger rejected this insert (free
+            // user over the monthly limit), keep the transaction locally and
+            // queue it for later sync — never drop financial data.
             console.warn('Cloud save failed for regenerated recurring, queueing:', newTx.id, err);
             enqueueSyncMutation('save', newTx);
           }
@@ -26970,9 +27676,9 @@ async function renderTrashBinList() {
               ${icon}
             </div>
             <div style="display: flex; flex-direction: column; min-width: 0; text-align: left; flex: 1;">
-              <span style="font-weight: 700; color: var(--text-primary); font-size: 14px; word-break: break-word; line-height: 1.3;">${t.note || 'Επαναλαμβανόμενη'}</span>
+              <span style="font-weight: 700; color: var(--text-primary); font-size: 14px; word-break: break-word; line-height: 1.3;">${t.note || (TRANSLATIONS[lang] && TRANSLATIONS[lang]['recurring_label']) || 'Επαναλαμβανόμενη'}</span>
               <span style="font-size: 11.5px; color: var(--text-secondary); margin-top: 3px; word-break: break-word; line-height: 1.2;">
-                ${t.subtitle || '🔄 Επαναλαμβανόμενη'} • ${parseFloat(t.amount || 0).toFixed(2)}€
+                ${t.subtitle || '🔄 ' + ((TRANSLATIONS[lang] && TRANSLATIONS[lang]['recurring_label']) || 'Επαναλαμβανόμενη')} • ${parseFloat(t.amount || 0).toFixed(2)}€
               </span>
             </div>
           </div>
@@ -26980,7 +27686,7 @@ async function renderTrashBinList() {
             <button class="restore-btn" onclick="restoreTrashGroup('${t.id}')" style="background: var(--primary); border: none; color: #ffffff; font-size: 12px; font-weight: 600; cursor: pointer; padding: 6px 12px; border-radius: 8px; transition: opacity 0.2s; outline: none;">
               ${restoreText}
             </button>
-            <button onclick="deleteSingleTrashItem('${t.id}')" style="background: transparent; border: none; color: var(--danger); font-size: 14px; cursor: pointer; padding: 6px; border-radius: 6px;" title="Οριστική Διαγραφή">
+            <button onclick="deleteSingleTrashItem('${t.id}')" style="background: transparent; border: none; color: var(--danger); font-size: 14px; cursor: pointer; padding: 6px; border-radius: 6px;" title="${(TRANSLATIONS[lang] && TRANSLATIONS[lang]['permanent_delete']) || 'Οριστική Διαγραφή'}">
               🗑️
             </button>
           </div>
@@ -27031,7 +27737,7 @@ async function renderTrashBinList() {
           <button class="restore-btn" onclick="restoreTransaction('${t.id}')" style="background: var(--primary); border: none; color: #ffffff; font-size: 12px; font-weight: 600; cursor: pointer; padding: 6px 12px; border-radius: 8px; transition: opacity 0.2s; outline: none;">
             ${restoreText}
           </button>
-          <button onclick="deleteSingleTrashItem('${t.id}')" style="background: transparent; border: none; color: var(--danger); font-size: 14px; cursor: pointer; padding: 6px; border-radius: 6px;" title="Οριστική Διαγραφή">
+          <button onclick="deleteSingleTrashItem('${t.id}')" style="background: transparent; border: none; color: var(--danger); font-size: 14px; cursor: pointer; padding: 6px; border-radius: 6px;" title="${(TRANSLATIONS[lang] && TRANSLATIONS[lang]['permanent_delete']) || 'Οριστική Διαγραφή'}">
             🗑️
           </button>
         </div>
@@ -28507,9 +29213,9 @@ const USER_GUIDE_DATA = {
       {
         id: 'changelog',
         icon: 'fa-box-archive',
-        title: '1. Version & What\'s New (v1199)',
+        title: '1. Version & What\'s New (v1208)',
         content: `
-          <p><strong>Guide Version:</strong> v1199 | <strong>Synchronized App Version:</strong> v1199</p>
+          <p><strong>Guide Version:</strong> v1208 | <strong>Synchronized App Version:</strong> v1208</p>
           <div class="guide-feature-box">
             <h5 style="margin:0 0 6px; color:var(--primary);">✨ What's new in the latest version:</h5>
             <ul style="margin:0; padding-left:18px;">
@@ -29109,7 +29815,7 @@ async function executeRecurringDelete(scope) {
     scope: scope,
     templateId: templateId,
     anchorDate: anchorDate,
-    note: ctx.note || ctx.category || 'Επαναλαμβανόμενη',
+    note: ctx.note || ctx.category || (lang === 'el' ? 'Επαναλαμβανόμενη' : 'Recurring'),
     amount: ctx.amount,
     category: ctx.category,
     type: ctx.type,
@@ -29259,7 +29965,20 @@ async function restoreTrashGroup(groupId) {
           const { description, is_shared, photo_local_uri, photo_url, receipt, currency, base_currency, rate_to_base, amount_base, rate_source, fx_snapshot, rate_to_base_actual, rate_fetched_at, transfer_id, transfer_rate, ...clean } = tx;
           return clean;
         });
-        state.supabaseClient.from('transactions').upsert(dbPayloads);
+        // Restore to cloud. If the server-side cloud limit trigger rejects the
+        // insert (free user over the monthly limit), queue each transaction for
+        // later sync instead of dropping it — never lose financial data.
+        state.supabaseClient.from('transactions').upsert(dbPayloads)
+          .then(({ error }) => {
+            if (error) {
+              console.warn('Cloud restore failed (possibly cloud limit), queueing for later:', error);
+              realSnapshot.forEach(tx => enqueueSyncMutation('save', tx));
+            }
+          })
+          .catch(err => {
+            console.warn('Cloud restore failed, queueing for later:', err);
+            realSnapshot.forEach(tx => enqueueSyncMutation('save', tx));
+          });
       }
     }
   }

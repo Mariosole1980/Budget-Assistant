@@ -1,5 +1,12 @@
 apply plugin: 'com.android.application'
 
+// Read signing credentials from local.properties (never commit these to git)
+def localProps = new Properties()
+def localPropsFile = rootProject.file('local.properties')
+if (localPropsFile.exists()) {
+    localProps.load(new FileInputStream(localPropsFile))
+}
+
 android {
     namespace "com.budgetassistant.app"
     compileSdk rootProject.ext.compileSdkVersion
@@ -7,8 +14,8 @@ android {
         applicationId "com.budgetassistant.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1199
-        versionName "1.0.1199"
+        versionCode 1208
+        versionName "1.0.0-v1208"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,12 +23,12 @@ android {
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
-        signingConfigs {
+    signingConfigs {
         release {
-            storeFile file("../release.keystore")
-            storePassword "mariobudget123"
-            keyAlias "budgetassistant"
-            keyPassword "mariobudget123"
+            storeFile file(localProps.getProperty('KEYSTORE_PATH', '../release.keystore'))
+            storePassword localProps.getProperty('KEYSTORE_PASSWORD', '')
+            keyAlias localProps.getProperty('KEY_ALIAS', '')
+            keyPassword localProps.getProperty('KEY_PASSWORD', '')
         }
     }
     buildTypes {

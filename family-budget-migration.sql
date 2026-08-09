@@ -286,6 +286,7 @@ DECLARE
     r_cat RECORD;
     my_email TEXT;
     invited_role TEXT;
+    member_count INT;
 BEGIN
     -- Find family group
     SELECT id INTO target_family_id
@@ -294,6 +295,20 @@ BEGIN
 
     IF target_family_id IS NULL THEN
         RAISE EXCEPTION 'Invalid invite code';
+    END IF;
+
+    -- PREMIUM GATE (server-side, authoritative): Free plan allows up to 2 members
+    -- (the creator + 1). Joining a family that is already at the free limit
+    -- requires the joining user to have Premium. This cannot be bypassed from
+    -- the client. NOTE: premium_active column is added by premium-subscription-migration.sql.
+    SELECT COUNT(*) INTO member_count
+    FROM public.profiles
+    WHERE family_id = target_family_id;
+
+    IF member_count >= 2 AND NOT COALESCE(
+        (SELECT premium_active FROM public.profiles WHERE id = auth.uid()), false
+    ) THEN
+        RAISE EXCEPTION 'Family member limit reached. Upgrade to Premium to add more members.';
     END IF;
 
     -- Get my email
