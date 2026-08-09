@@ -4700,12 +4700,17 @@ function processRecurringTemplates() {
           if (t.recurring_template_id && t.recurring_template_id === template.id && tDate === dateString) {
             return true;
           }
-          // Content-based fallback: same date + amount + type + category + account_from
+          // Content-based fallback: same date + amount + type + category + account_from + note.
+          // The note is included so a recurring occurrence is only matched by its OWN template,
+          // preventing a recurring generator from re-creating an occurrence that already exists
+          // under a slightly different account/category normalization (e.g. after a cloud sync
+          // that replaced state.transactions before the async recurring cloud save propagated).
           if (tDate === dateString &&
             (parseFloat(t.amount) || 0).toFixed(2) === (parseFloat(template.amount) || 0).toFixed(2) &&
             t.type === template.type &&
             t.category === template.category &&
-            (t.account_from || '') === (template.account_from || '')) {
+            (t.account_from || '') === (template.account_from || '') &&
+            String(t.note || '').trim().toLowerCase() === String(template.note || '').trim().toLowerCase()) {
             return true;
           }
           return false;
@@ -4743,6 +4748,18 @@ function processRecurringTemplates() {
           };
 
           saveTransactionOffline(newTx);
+
+          // DATA-INTEGRITY (recurring duplicates): Mark this newly created
+          // occurrence as "recently saved" so that a loadData() re-fetch that
+          // races ahead of the async cloud write propagation does NOT drop it
+          // from state.transactions. Without this, the occurrence disappears
+          // from state.transactions and the next processRecurringTemplates()
+          // call re-creates it, producing a duplicate installment within the
+          // same month. The 60s grace window (see _markRecentlySaved) covers
+          // the typical cloud write+read round-trip.
+          if (typeof _markRecentlySaved === 'function') {
+            _markRecentlySaved(newTx.id);
+          }
 
           if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
             const { description, is_shared, photo_local_uri, photo_url, receipt, currency, base_currency, rate_to_base, amount_base, rate_source, fx_snapshot, rate_to_base_actual, rate_fetched_at, transfer_id, transfer_rate, ...dbPayload } = newTx;
