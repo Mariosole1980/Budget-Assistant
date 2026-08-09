@@ -1,4 +1,6 @@
-﻿param()
+﻿param(
+    [string]$CommitMessage = ""
+)
 
 # Set console output encoding to UTF8
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -162,7 +164,10 @@ if ($deploy1 -ne 0) {
 # 7. Git Commit & Tag
 Write-Host "[INFO] Staging and committing to Git..." -ForegroundColor Yellow
 git add -A
-git commit -m "build v${newBuild}: Decrease More card spacing, increase title/subtitle font sizes"
+if ([string]::IsNullOrWhiteSpace($CommitMessage)) {
+    $CommitMessage = "build v${newBuild}: automated release"
+}
+git commit -m "build v${newBuild}: $CommitMessage"
 Write-Host "  [SUCCESS] Git commit created for build v${newBuild}" -ForegroundColor Green
 
 Write-Host "[SUCCESS] All steps completed successfully! Builds are live at:" -ForegroundColor Green
