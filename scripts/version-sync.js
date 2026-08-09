@@ -96,6 +96,8 @@ const filesToMirror = [
   'app.js',
   'index.html',
   'style.css',
+  'desktop.css',
+  'web-ui.js',
   'sw.js',
   'manifest.json',
   'version.json',

@@ -6586,6 +6586,41 @@ body.modal-open {
   flex-shrink: 0;
 }
 
+/* Native pager month-swipe: peek container that reveals the incoming month
+   behind the current list while dragging. Positioned over the scroll area. */
+.trans-scroll-content,
+.stats-scroll-content {
+  position: relative;
+}
+
+.swipe-peek-list {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 5;
+  will-change: transform, opacity;
+}
+
+.swipe-peek-placeholder {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  opacity: 0.55;
+}
+
+/* Header month title parallax during swipe */
+#current-period-title {
+  will-change: transform, opacity;
+}
+
 /* Αποτροπή click, active scale, και hover εφέ στις συναλλαγές και στατιστικά κατά το swipe */
 body.is-swiping-month .transaction-item,
 body.is-swiping-month .transaction-item:hover,

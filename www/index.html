@@ -72,7 +72,7 @@
               ${devButton}
             </div>
             <div style="font-size:11px;color:#8b949e;">
-              Budget Assistant • build v1183
+              Budget Assistant • build v1192
             </div>
           </div>
         `;
@@ -158,6 +158,11 @@
 
   <!-- Core Stylesheet -->
   <link rel="stylesheet" href="style.css" id="app-stylesheet">
+
+  <!-- Desktop Web UX Layer (loaded AFTER style.css so it can override).
+       All rules are scoped behind html.web-mode, so Android/iOS native
+       (Capacitor) layout is never affected. -->
+  <link rel="stylesheet" href="desktop.css?v=1192" id="desktop-stylesheet">
 
   <!-- Capacitor Bridge -->
   <script src="capacitor.js"></script>
@@ -526,6 +531,39 @@
 
         <!-- Scrollable content wrapper for mobile to prevent header jitter -->
         <div class="stats-scroll-content">
+          <!-- DESKTOP-ONLY SUMMARY (web-mode): KPI cards + recent transactions.
+               Mirrors the former Dashboard content so it lives in Στατιστικά.
+               Hidden on mobile via desktop.css (html.web-mode gating). -->
+          <div class="stats-summary" id="stats-summary">
+            <div class="stats-summary-grid">
+              <div class="stats-summary-card">
+                <div class="stats-summary-title" data-i18n="dashboard_net_worth">Καθαρή Αξία</div>
+                <div class="stats-summary-value" id="sum-net-worth">€ 0,00</div>
+                <div class="stats-summary-sub" id="sum-net-worth-sub"></div>
+              </div>
+              <div class="stats-summary-card">
+                <div class="stats-summary-title" data-i18n="dashboard_month_income">Έσοδα Μήνα</div>
+                <div class="stats-summary-value sum-income" id="sum-month-income">€ 0,00</div>
+                <div class="stats-summary-sub" id="sum-month-income-sub"></div>
+              </div>
+              <div class="stats-summary-card">
+                <div class="stats-summary-title" data-i18n="dashboard_month_expense">Έξοδα Μήνα</div>
+                <div class="stats-summary-value sum-expense" id="sum-month-expense">€ 0,00</div>
+                <div class="stats-summary-sub" id="sum-month-expense-sub"></div>
+              </div>
+              <div class="stats-summary-card">
+                <div class="stats-summary-title" data-i18n="dashboard_month_savings">Αποταμίευση Μήνα</div>
+                <div class="stats-summary-value sum-savings" id="sum-month-savings">€ 0,00</div>
+                <div class="stats-summary-sub" id="sum-month-savings-sub"></div>
+              </div>
+            </div>
+            <div class="stats-summary-recent">
+              <div class="stats-summary-recent-header">
+                <span class="stats-summary-title" data-i18n="dashboard_recent">Πρόσφατες Κινήσεις</span>
+              </div>
+              <div class="stats-summary-recent-list" id="sum-recent-list"></div>
+            </div>
+          </div>
           <!-- VIEW A: BREAKDOWN CONTAINER -->
           <div id="stats-breakdown-container">
             <!-- Chart Visualization Container -->
@@ -1406,7 +1444,8 @@
                 data-i18n="item_user_guide">Οδηγός Χρήσης</h3>
               <div
                 style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; font-family: 'Outfit', sans-serif;">
-                <span id="user-guide-version-badge" style="font-size:10px; background:rgba(99,102,241,0.15); color:var(--primary); padding:2px 8px; border-radius:10px; font-weight:700; border:1px solid rgba(99,102,241,0.3);">v1183</span>
+                <span id="user-guide-version-badge"
+                  style="font-size:10px; background:rgba(99,102,241,0.15); color:var(--primary); padding:2px 8px; border-radius:10px; font-weight:700; border:1px solid rgba(99,102,241,0.3);">v1192</span>
                 <span>•</span>
                 <span id="user-guide-date-badge">Αύγουστος 2026</span>
               </div>
@@ -1956,7 +1995,26 @@
                 style="color:var(--text-muted); font-size:12px; margin-left:10px;"></i>
             </div>
 
-            <!-- CARD 4: DANGER ZONE - CLEAR LOCAL DATA -->
+            <!-- CARD 4: CLEANUP DUPLICATE RECURRING INSTALLMENTS -->
+            <div class="settings-list-item" id="sync-cleanup-dupes-row" onclick="runRecurringDuplicateCleanup()"
+              style="cursor:pointer; border-radius:14px; padding:14px 16px; background:rgba(255,255,255,0.03); border:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; margin-top:8px;">
+              <div style="display:flex; flex-direction:column; gap:4px; flex:1;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <i class="fa-solid fa-wand-magic-sparkles" style="color:var(--primary); font-size:16px;"></i>
+                  <span class="settings-item-label" style="font-weight:700; font-size:14px;"
+                    data-i18n="card_cleanup_dupes">Καθαρισμός Διπλών Δόσεων</span>
+                </div>
+                <div style="display:flex; align-items:center; gap:6px; margin-top:2px; flex-wrap:wrap;">
+                  <span style="font-size:11.5px; color:var(--text-secondary);"
+                    data-i18n="card_cleanup_dupes_desc">Αφαίρεση
+                    διπλών επαναλαμβανόμενων δόσεων (ίδια ημερομηνία & ποσό)</span>
+                </div>
+              </div>
+              <i class="fa-solid fa-chevron-right"
+                style="color:var(--text-muted); font-size:12px; margin-left:10px;"></i>
+            </div>
+
+            <!-- CARD 5: DANGER ZONE - CLEAR LOCAL DATA -->
             <div style="margin-top:8px; border-top:1px solid var(--border); padding-top:14px;">
               <div class="settings-list-item" id="danger-zone-wipe-row" onclick="clearLocalDataConfirm()"
                 style="cursor:pointer; border:1px solid rgba(244,63,94,0.25); border-radius:14px; background:rgba(244,63,94,0.06); padding:14px 16px; display:flex; align-items:center; justify-content:space-between;">
@@ -2265,7 +2323,7 @@
             <div class="settings-list-item version-info-row"
               style="padding: 14px 16px; background: transparent; border-top: 1px solid var(--border); margin-top: 8px;">
               <span class="settings-item-label" style="color:var(--text-muted); font-size:12px;"
-                data-i18n="app_version">Έκδοση 1.0.0 (build v1183)</span>
+                data-i18n="app_version">Έκδοση 1.0.0 (build v1192)</span>
               <span class="settings-item-value" style="font-size:12px; color:var(--text-muted); font-weight:600;">Budget
                 Assistant</span>
             </div>
@@ -4159,7 +4217,7 @@
       // OTA updates. Running both would cause a reload loop that never
       // baked into the APK and never changes on a plain reload).
       // ============================================================
-      const CURRENT_BUILD = 1183;
+      const CURRENT_BUILD = 1192;
       (function () {
         // Skip entirely when running inside the native APK (Capacitor bridge
         // present). Capgo handles OTA updates there.
@@ -4472,7 +4530,7 @@
         <h4 id="custom-dialog-title"
           style="font-weight: 700; margin-bottom: 8px; color: var(--text-main); font-size: 16px;">Επιβεβαίωση</h4>
         <p id="custom-dialog-message"
-          style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 24px; word-break: break-word;">
+          style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 24px; word-break: break-word; max-height: 45vh; overflow-y: auto; text-align: left; -webkit-overflow-scrolling: touch;">
         </p>
         <div class="custom-dialog-buttons" style="display: flex; gap: 12px; justify-content: center; width: 100%;">
           <button id="custom-dialog-btn-cancel" class="btn btn-secondary"
@@ -5006,7 +5064,11 @@
 
   <!-- Transaction merge/dedup logic (pure, testable; loaded before app.js) -->
   <script src="js/transactionMerge.js"></script>
-  <script src="app.js?v=1183"></script>
+  <script src="app.js?v=1192"></script>
+  <!-- Desktop Web UX Layer (defer so it runs after app.js; invoked via
+       initDesktopUI() hook at the end of initApp()). Self-guards on
+       html.web-mode so native Android/iOS is never affected. -->
+  <script src="web-ui.js?v=1192" defer></script>
 </body>
 
 

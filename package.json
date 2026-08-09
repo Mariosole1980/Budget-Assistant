@@ -11,6 +11,7 @@
     "release:deploy": "node scripts/release-deploy.js",
     "release:native": "node scripts/release-native.js",
     "release:verify-live": "node scripts/release-verify-live.js",
+    "release:all": "node scripts/release-all.js",
     "build-deploy": "npm run release:deploy"
   },
   "repository": {

@@ -480,6 +480,12 @@ const state = {
   notifications: [],
 };
 
+// Expose state on window so the desktop web UI layer (web-ui.js) can read it.
+// NOTE: `state` is a top-level `const`, which does NOT become a window property
+// automatically (unlike `var`/`function`). web-ui.js reads window.state, so we
+// bind it explicitly here.
+window.state = state;
+
 // Database mappers for recurring templates to handle camelCase JS <-> snake_case Postgres mapping
 function mapTemplateToDb(t) {
   if (!t) return null;
@@ -956,7 +962,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1183 - 06/08/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1192 - 06/08/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1340,7 +1346,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1183 - 06/08/2026)',
+    app_version: 'Version 1.0.0 (build v1192 - 06/08/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -2566,6 +2572,20 @@ async function initApp() {
       }, 120);
     });
   });
+
+  // DESKTOP WEB UX HOOK: Initialize the desktop UI layer (sidebar, topbar,
+  // dashboard, keyboard shortcuts) ONLY when running in web-mode (browser/PWA).
+  // web-ui.js is loaded with `defer` after app.js, so initDesktopUI is defined.
+  // It self-guards on html.web-mode, so Android/iOS native is never affected.
+  if (document.documentElement.classList.contains('web-mode')) {
+    if (typeof window.initDesktopUI === 'function') {
+      try {
+        window.initDesktopUI();
+      } catch (e) {
+        console.error('[DesktopUI] init failed:', e);
+      }
+    }
+  }
 }
 
 // Run initApp on DOMContentLoaded, OR (if the event has already fired,
@@ -5444,19 +5464,23 @@ function backfillRecurringTemplateIds() {
   }
 }
 
-function renderTransactionsTab() {
-  const listContainer = document.getElementById('transactions-list');
+function renderTransactionsTab(containerOverride, yearOverride, monthOverride) {
+  const listContainer = containerOverride || document.getElementById('transactions-list');
   if (!listContainer) return;
 
+  // Allow rendering a specific month/year into a specific container (used by the
+  // native pager "peek" during month swipe). Defaults to the current selection.
+  const selectedYear = (yearOverride !== undefined && yearOverride !== null) ? yearOverride : state.selectedYear;
+  const selectedMonth = (monthOverride !== undefined && monthOverride !== null) ? monthOverride : state.selectedMonth;
 
   const monthStartDay = parseInt(localStorage.getItem('app_month_start') || '1', 10);
   let start, end;
   if (monthStartDay === 1) {
-    start = new Date(state.selectedYear, state.selectedMonth, 1, 0, 0, 0, 0);
-    end = new Date(state.selectedYear, state.selectedMonth + 1, 0, 23, 59, 59, 999);
+    start = new Date(selectedYear, selectedMonth, 1, 0, 0, 0, 0);
+    end = new Date(selectedYear, selectedMonth + 1, 0, 23, 59, 59, 999);
   } else {
-    start = new Date(state.selectedYear, state.selectedMonth, monthStartDay, 0, 0, 0, 0);
-    end = new Date(state.selectedYear, state.selectedMonth + 1, monthStartDay - 1, 23, 59, 59, 999);
+    start = new Date(selectedYear, selectedMonth, monthStartDay, 0, 0, 0, 0);
+    end = new Date(selectedYear, selectedMonth + 1, monthStartDay - 1, 23, 59, 59, 999);
   }
 
   const startISO = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-${String(start.getDate()).padStart(2, '0')}`;
@@ -15051,6 +15075,19 @@ function initSwipeToBack() {
     return false;
   }
 
+  // Full-screen modals (e.g. the transaction modal) fill the entire screen and
+  // have NO visible background behind them. Dragging them away via the edge
+  // swipe-back gesture is jarring and pointless (there is nothing to reveal), so
+  // the swipe-back must be disabled while one of these is open.
+  function hasFullScreenModalActive() {
+    const fullScreenModals = ['transaction-modal', 'profile-settings-modal'];
+    const activeModals = document.querySelectorAll('.modal-overlay.active, .tx-modal-overlay.active, .profile-sheet-overlay.active');
+    for (let i = 0; i < activeModals.length; i++) {
+      if (fullScreenModals.includes(activeModals[i].id)) return true;
+    }
+    return false;
+  }
+
   function getActiveOverlayElement() {
     const lightbox = document.getElementById('photo-lightbox-modal');
     if (lightbox && lightbox.style.display === 'flex') return lightbox;
@@ -15171,6 +15208,15 @@ function initSwipeToBack() {
     bsStartY = touch.clientY;
     bsSwiping = null;
     bsDragging = false;
+
+    // A full-screen modal (e.g. the transaction modal) fills the whole screen and
+    // has no visible background to reveal, so disable the edge swipe-back entirely
+    // while one is open — otherwise swiping from the left edge drags the whole
+    // modal away, which is jarring and feels like a bug.
+    if (hasFullScreenModalActive()) {
+      bsActive = false;
+      return;
+    }
 
     // If an overlay/modal is active, allow swiping back starting from the left 150px
     // If no overlay is active, only allow starting from the left 60px
@@ -17125,20 +17171,276 @@ function initTabSwipeNavigation() {
   const appContent = document.querySelector('.app-content');
   if (!appContent) return;
 
-  const TAB_ORDER = ['trans', 'stats', 'accounts', 'more'];
   let startX = 0;
   let startY = 0;
   let touchActive = false;
   let isSwipingHorizontal = null;
-  const dragThreshold = 55; // Minimum drag in px to trigger tab switch (reduced from 80 for snappier response)
+  let lastMoveX = 0;
+  let lastMoveTime = 0;
+  let velocity = 0;
+  let swipeDirection = 0; // +1 = next month (swipe left), -1 = prev month (swipe right)
+  let peekRendered = false;
+  let animating = false; // true while a commit/snap-back animation is running
+
   const edgeThreshold = 50; // Ignore starts within 50px of left edge (reserved for back swipe)
+  const commitRatio = 0.22; // Commit when dragged past 22% of screen width
+  const flingVelocity = 0.45; // px/ms — commit on fast flick even below the ratio
+  const resistanceStart = 90; // px of free drag before elastic resistance kicks in
+
+  // ---- Helpers -------------------------------------------------------------
+
+  function getSwipeListEl() {
+    return state.activeTab === 'trans'
+      ? document.getElementById('transactions-list')
+      : state.activeTab === 'stats'
+        ? document.getElementById('stats-breakdown-list')
+        : null;
+  }
+
+  // Elastic (rubber-band) resistance: the further past resistanceStart you drag,
+  // the harder it gets — feels natural and prevents the list from flying away.
+  function applyResistance(raw) {
+    const sign = raw >= 0 ? 1 : -1;
+    const abs = Math.abs(raw);
+    if (abs <= resistanceStart) return raw;
+    const over = abs - resistanceStart;
+    return sign * (resistanceStart + over * 0.35);
+  }
+
+  // Create (once) the absolutely-positioned "peek" container that reveals the
+  // incoming month behind the current list while dragging.
+  function getPeekContainer() {
+    let peek = document.getElementById('swipe-peek-list');
+    if (peek) return peek;
+    const parent = state.activeTab === 'trans'
+      ? document.querySelector('#trans-screen .trans-scroll-content')
+      : document.querySelector('#stats-screen .stats-scroll-content');
+    if (!parent) return null;
+    peek = document.createElement('div');
+    peek.id = 'swipe-peek-list';
+    peek.className = 'swipe-peek-list';
+    parent.appendChild(peek);
+    return peek;
+  }
+
+  // Render the incoming month's list into the peek container so it slides in
+  // from the opposite side as the user drags (native pager "peek").
+  function renderPeek(direction) {
+    const peek = getPeekContainer();
+    if (!peek) return;
+    if (state.activeTab === 'trans') {
+      const { year, month } = shiftMonth(state.selectedYear, state.selectedMonth, direction);
+      renderTransactionsTab(peek, year, month);
+    } else {
+      // Stats peek: render a lightweight placeholder label (stats list is heavy).
+      const { year, month } = shiftMonth(state.selectedYear, state.selectedMonth, direction);
+      const label = `${getMonthName(month, true)} ${year}`;
+      peek.innerHTML = `<div class="swipe-peek-placeholder">${label}</div>`;
+    }
+    peekRendered = true;
+  }
+
+  function shiftMonth(year, month, dir) {
+    let m = month + dir;
+    let y = year;
+    if (m < 0) { m = 11; y--; }
+    else if (m > 11) { m = 0; y++; }
+    return { year: y, month: m };
+  }
+
+  // Update the visual position of the current list + peek + header title while
+  // the finger moves. `dx` is the raw finger delta.
+  function updateDrag(dx) {
+    const width = window.innerWidth;
+    const listEl = getSwipeListEl();
+    const peek = document.getElementById('swipe-peek-list');
+    const resisted = applyResistance(dx);
+
+    if (listEl) {
+      listEl.style.transition = 'none';
+      listEl.style.transform = `translateX(${resisted}px)`;
+      // Slight fade as the list moves away for depth.
+      const fade = Math.max(0, 1 - Math.abs(resisted) / (width * 0.6));
+      listEl.style.opacity = String(fade);
+    }
+
+    if (peek) {
+      peek.style.transition = 'none';
+      // The peek sits just off-screen on the side the finger is dragging toward.
+      const peekOffset = resisted - (resisted > 0 ? width : -width);
+      peek.style.transform = `translateX(${peekOffset}px)`;
+      peek.style.opacity = String(Math.min(1, Math.abs(resisted) / (width * 0.35)));
+    }
+
+    // Header title parallax: the title slides a fraction of the drag and fades.
+    const titleEl = document.getElementById('current-period-title');
+    if (titleEl) {
+      titleEl.style.transition = 'none';
+      titleEl.style.transform = `translateX(${resisted * 0.3}px)`;
+      titleEl.style.opacity = String(Math.max(0.35, 1 - Math.abs(resisted) / (width * 0.5)));
+    }
+  }
+
+  // Animate an element to a target transform/opacity with a springy easing.
+  function animateTo(el, toX, toOpacity, duration, easing, cb) {
+    if (!el) { if (cb) cb(); return; }
+    el.style.transition = `transform ${duration}ms ${easing}, opacity ${duration}ms ${easing}`;
+    el.style.transform = `translateX(${toX}px)`;
+    el.style.opacity = String(toOpacity);
+    setTimeout(() => {
+      el.style.transition = '';
+      el.style.transform = '';
+      el.style.opacity = '';
+      if (cb) cb();
+    }, duration);
+  }
+
+  // Commit the swipe: change the month IMMEDIATELY on finger lift, then slide
+  // the freshly-rendered list in from the opposite side. The old list is simply
+  // discarded (it's replaced by the new render), which removes the perceived
+  // "keeps changing after I lift my finger" lag.
+  function commitSwipe(direction) {
+    animating = true;
+    const width = window.innerWidth;
+    const listEl = getSwipeListEl();
+    const peek = document.getElementById('swipe-peek-list');
+    const outX = direction > 0 ? -width : width;
+
+    // For the stats tab, adjustStatsPeriod already runs its own animated
+    // slide-out/slide-in transition, so delegate to it entirely.
+    if (state.activeTab === 'stats') {
+      if (peek) peek.remove();
+      if (listEl) {
+        listEl.style.transition = 'none';
+        listEl.style.transform = '';
+        listEl.style.opacity = '';
+      }
+      // Reset the local animating flag — adjustStatsPeriod manages its own
+      // animation lifecycle via animateSwipeTransition.
+      animating = false;
+      peekRendered = false;
+      swipeDirection = 0;
+      adjustStatsPeriod(direction, 0);
+      return;
+    }
+
+    // Change the month right away — no waiting for a slide-out first.
+    const shifted = shiftMonth(state.selectedYear, state.selectedMonth, direction);
+    state.selectedYear = shifted.year;
+    state.selectedMonth = shifted.month;
+    syncStatsDate();
+
+    // The peek container already holds the fully-rendered next month (built
+    // during the drag in renderPeek). Move its DOM into the main list with a
+    // fast node move (replaceChildren) instead of re-rendering synchronously —
+    // re-rendering a month with hundreds of transactions blocks the main thread
+    // and causes the "stick" on finger lift. This keeps the commit instant.
+    if (peek && peek.childNodes.length > 0 && listEl) {
+      listEl.replaceChildren(...peek.childNodes);
+      listEl._lastRenderSignature = null; // force a fresh signature on next render
+      peek.remove();
+      updateHeaderAndSync();
+      lastRenderedCategoryType = null;
+    } else {
+      // Fallback: peek wasn't available — do the normal (heavier) render.
+      if (peek) peek.remove();
+      renderTransactionsForSwipe();
+    }
+    setTimeout(() => scrollToToday('auto'), 30);
+
+    // Reset the header title to identity.
+    const titleEl = document.getElementById('current-period-title');
+    if (titleEl) {
+      titleEl.style.transition = '';
+      titleEl.style.transform = '';
+      titleEl.style.opacity = '';
+    }
+
+    // Slide the freshly-rendered list in from the opposite side (snappy).
+    const newListEl = getSwipeListEl();
+    const inX = -outX;
+    if (newListEl) {
+      newListEl.style.transition = 'none';
+      newListEl.style.transform = `translateX(${inX}px)`;
+      newListEl.style.opacity = '0';
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          newListEl.style.transition = `transform 150ms cubic-bezier(0.2, 0.8, 0.4, 1), opacity 150ms cubic-bezier(0.2, 0.8, 0.4, 1)`;
+          newListEl.style.transform = 'translateX(0px)';
+          newListEl.style.opacity = '1';
+          // Release the lock as soon as the new content is rendered and the
+          // slide-in begins, so rapid successive swipes aren't blocked. The
+          // CSS transition keeps running; if a new swipe starts it re-renders
+          // the list anyway.
+          animating = false;
+          state.isSwipingMonth = false;
+          state.touchDidMove = false;
+          document.body.classList.remove('is-swiping-month');
+          setTimeout(() => {
+            newListEl.style.transition = '';
+            newListEl.style.transform = '';
+            newListEl.style.opacity = '';
+            finishSwipe();
+          }, 150);
+        });
+      });
+    } else {
+      finishSwipe();
+    }
+  }
+
+  // Snap back: the drag didn't reach the threshold — animate everything back to
+  // its resting position with a springy ease.
+  function snapBackSwipe() {
+    animating = true;
+    const listEl = getSwipeListEl();
+    const peek = document.getElementById('swipe-peek-list');
+    const titleEl = document.getElementById('current-period-title');
+    const easing = 'cubic-bezier(0.34, 1.56, 0.64, 1)'; // springy overshoot
+
+    if (listEl) animateTo(listEl, 0, 1, 180, easing);
+    if (titleEl) animateTo(titleEl, 0, 1, 180, easing);
+    if (peek) {
+      peek.style.transition = `opacity 120ms ease`;
+      peek.style.opacity = '0';
+      setTimeout(() => { if (peek.parentNode) peek.remove(); }, 120);
+    }
+    setTimeout(finishSwipe, 180);
+  }
+
+  function finishSwipe() {
+    // If a new swipe is already in progress (rapid successive swipes), don't
+    // clobber its state — the new swipe manages its own lifecycle.
+    if (touchActive && isSwipingHorizontal === true) {
+      return;
+    }
+    animating = false;
+    peekRendered = false;
+    swipeDirection = 0;
+    state.isSwipingMonth = false;
+    state.touchDidMove = false;
+    state.lastSwipeTime = Date.now();
+    document.body.classList.remove('is-swiping-month');
+    // Safety net: clear any leftover inline transform/opacity on the header title.
+    const titleEl = document.getElementById('current-period-title');
+    if (titleEl) {
+      titleEl.style.transition = '';
+      titleEl.style.transform = '';
+      titleEl.style.opacity = '';
+    }
+    if (state.activeTab === 'stats') {
+      renderStatsTab(false);
+    }
+  }
+
+  // ---- Event listeners -----------------------------------------------------
 
   appContent.addEventListener('touchstart', (e) => {
     // Only capture if no modals are active, not in selection mode, and not already swiping
     const activeModals = document.querySelectorAll('.modal-overlay.active');
     const searchOverlay = document.getElementById('search-overlay');
     const isSearchActive = searchOverlay && searchOverlay.classList.contains('active');
-    if (activeModals.length > 0 || isSearchActive || state.selectionMode || state.isSwipingMonth) {
+    if (activeModals.length > 0 || isSearchActive || state.selectionMode || state.isSwipingMonth || animating) {
       touchActive = false;
       return;
     }
@@ -17152,6 +17454,9 @@ function initTabSwipeNavigation() {
     const touch = e.touches[0];
     startX = touch.clientX;
     startY = touch.clientY;
+    lastMoveX = startX;
+    lastMoveTime = Date.now();
+    velocity = 0;
 
     // Ignore edge starts so they don't double-trigger with edge-swipe-to-back
     if (startX <= edgeThreshold) {
@@ -17164,7 +17469,7 @@ function initTabSwipeNavigation() {
   }, { passive: true });
 
   appContent.addEventListener('touchmove', (e) => {
-    if (!touchActive) return;
+    if (!touchActive || animating) return;
     const touch = e.touches[0];
     const deltaX = touch.clientX - startX;
     const deltaY = touch.clientY - startY;
@@ -17172,13 +17477,14 @@ function initTabSwipeNavigation() {
     if (isSwipingHorizontal === null) {
       if (Math.abs(deltaX) > 8 || Math.abs(deltaY) > 8) {
         // Allow a slightly diagonal swipe (horizontal is at least 0.65 of vertical)
-        // for more forgiving touch tracking when the finger moves slightly curved
         if (Math.abs(deltaX) > Math.abs(deltaY) * 0.65) {
-          // Only enable horizontal swipes on Transactions and Stats tabs
           if (state.activeTab === 'trans' || state.activeTab === 'stats') {
             isSwipingHorizontal = true;
             state.isSwipingMonth = true;
             document.body.classList.add('is-swiping-month');
+            swipeDirection = deltaX < 0 ? 1 : -1;
+            // Render the incoming month once the swipe is confirmed.
+            renderPeek(swipeDirection);
           } else {
             isSwipingHorizontal = false;
             touchActive = false;
@@ -17193,6 +17499,18 @@ function initTabSwipeNavigation() {
     if (isSwipingHorizontal === true) {
       // Prevent vertical scrolling while swiping months
       if (e.cancelable) e.preventDefault();
+
+      // Track velocity for fling detection.
+      const now = Date.now();
+      const dt = now - lastMoveTime;
+      if (dt > 0) {
+        velocity = (touch.clientX - lastMoveX) / dt;
+      }
+      lastMoveX = touch.clientX;
+      lastMoveTime = now;
+
+      // Follow the finger in real time.
+      updateDrag(deltaX);
     }
   }, { passive: false });
 
@@ -17205,29 +17523,17 @@ function initTabSwipeNavigation() {
       state.lastSwipeTime = Date.now();
       const touch = e.changedTouches[0] || e.touches[0];
       const deltaX = touch.clientX - startX;
+      const width = window.innerWidth;
+      const absDelta = Math.abs(deltaX);
+      const absVelocity = Math.abs(velocity);
 
-      if (Math.abs(deltaX) >= dragThreshold) {
-        if (state.activeTab === 'trans') {
-          if (deltaX > 0) {
-            navigateMonth(-1, deltaX);
-          } else {
-            navigateMonth(1, deltaX);
-          }
-        } else if (state.activeTab === 'stats') {
-          if (deltaX > 0) {
-            adjustStatsPeriod(-1, deltaX);
-          } else {
-            adjustStatsPeriod(1, deltaX);
-          }
-        }
+      // Decide: commit if dragged past the ratio OR flung fast enough.
+      const shouldCommit = absDelta >= width * commitRatio || absVelocity >= flingVelocity;
+
+      if (shouldCommit && swipeDirection !== 0) {
+        commitSwipe(swipeDirection);
       } else {
-        // Cancelled swipe: clear state after 100ms to ignore delayed click events
-        setTimeout(() => {
-          state.isSwipingMonth = false;
-          state.touchDidMove = false;
-          state.lastSwipeTime = Date.now();
-          document.body.classList.remove('is-swiping-month');
-        }, 100);
+        snapBackSwipe();
       }
     } else {
       state.isSwipingMonth = false;
@@ -17242,19 +17548,32 @@ function initTabSwipeNavigation() {
   appContent.addEventListener('touchcancel', () => {
     touchActive = false;
     isSwipingHorizontal = null;
-    setTimeout(() => {
-      state.isSwipingMonth = false;
-      state.touchDidMove = false;
-      state.lastSwipeTime = Date.now();
-      document.body.classList.remove('is-swiping-month');
-    }, 100);
+    if (state.isSwipingMonth) {
+      snapBackSwipe();
+    } else {
+      setTimeout(() => {
+        state.isSwipingMonth = false;
+        state.touchDidMove = false;
+        state.lastSwipeTime = Date.now();
+        document.body.classList.remove('is-swiping-month');
+      }, 100);
+    }
   }, { passive: true });
 }
 
+// Lightweight render for swipe navigation — only updates list + header, skips dropdowns/currency/etc.
+function renderTransactionsForSwipe() {
+  // Skip the heavy processRecurringTemplates() here — it's only needed to
+  // generate recurring transactions, not to change the displayed month. Doing
+  // it on every swipe caused jank/flicker. Recurring generation still runs on
+  // the normal (non-swipe) render paths.
+  updateHeaderAndSync();
+  renderTransactionsTab();
+  lastRenderedCategoryType = null;
+}
 
+// Animated transition used by the period-prev/next buttons (no finger drag).
 function animateSwipeTransition(direction, callback, startingDeltaX = 0) {
-  // Only slide the scrollable content list, not the entire screen
-  // This keeps the header, summary bar, and stats header stable
   const listEl = state.activeTab === 'trans'
     ? document.getElementById('transactions-list')
     : state.activeTab === 'stats'
@@ -17264,13 +17583,11 @@ function animateSwipeTransition(direction, callback, startingDeltaX = 0) {
   const width = window.innerWidth;
   const outX = direction > 0 ? -width * 0.5 : width * 0.5;
 
-  // Use rAF instead of forced reflow to avoid blocking the main thread
   function animateEl(el, fromX, toX, opacity, duration, easing, cb) {
     if (!el) { if (cb) cb(); return; }
     el.style.transition = 'none';
     el.style.transform = `translateX(${fromX}px)`;
     el.style.opacity = String(opacity[0]);
-    // rAF to allow browser to paint before starting transition
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         el.style.transition = `transform ${duration}ms ${easing}, opacity ${duration}ms ${easing}`;
@@ -17281,22 +17598,18 @@ function animateSwipeTransition(direction, callback, startingDeltaX = 0) {
     });
   }
 
-  // Ensure isSwipingMonth is active during the animation
   state.isSwipingMonth = true;
   document.body.classList.add('is-swiping-month');
 
   if (listEl) {
-    // Slide current content out — faster exit (75ms, reduced from 100ms)
     const startFrom = startingDeltaX !== 0 ? startingDeltaX : 0;
     animateEl(listEl, startFrom, outX, [1, 0], 75, 'cubic-bezier(0.4, 0, 0.6, 1)', () => {
       callback();
-      // Slide new content in from opposite direction — snappy entrance (110ms, reduced from 160ms)
       const inX = -outX;
       const newListEl = state.activeTab === 'trans'
         ? document.getElementById('transactions-list')
         : document.getElementById('stats-breakdown-list');
       animateEl(newListEl, inX, 0, [0, 1], 110, 'cubic-bezier(0.2, 0.8, 0.4, 1)', () => {
-        // Clear swiping state immediately after animations complete to allow consecutive fast swipes
         state.isSwipingMonth = false;
         state.touchDidMove = false;
         state.lastSwipeTime = Date.now();
@@ -17315,14 +17628,7 @@ function animateSwipeTransition(direction, callback, startingDeltaX = 0) {
   }
 }
 
-// Lightweight render for swipe navigation — only updates list + header, skips dropdowns/currency/etc.
-function renderTransactionsForSwipe() {
-  processRecurringTemplates();
-  updateHeaderAndSync();
-  renderTransactionsTab();
-  lastRenderedCategoryType = null;
-}
-
+// Navigate to an adjacent month (used by the period-prev/next chevron buttons).
 function navigateMonth(direction, startingDeltaX = 0) {
   animateSwipeTransition(direction, () => {
     state.selectedMonth += direction;
@@ -17334,7 +17640,6 @@ function navigateMonth(direction, startingDeltaX = 0) {
       state.selectedYear++;
     }
     syncStatsDate();
-    // Use lightweight render during swipe — skips dropdowns, currency symbols etc.
     renderTransactionsForSwipe();
     setTimeout(() => scrollToToday('auto'), 50);
   }, startingDeltaX);
@@ -26836,9 +27141,18 @@ async function fetchTrashFromCloud() {
     // the next time it is opened (until the user leaves and re-enters the tab).
     const recurringGroups = (state.trashTransactions || []).filter(t => t && t.is_recurring_group);
 
-    // Merge the cloud-fetched individual transactions with the preserved local
-    // recurring groups (recurring groups first so the newest deletion is on top).
-    state.trashTransactions = [...recurringGroups, ...(data || [])];
+    // IMPORTANT: The Supabase DB may be EMPTY (all data is local on device). The
+    // cloud query above returns only soft-deleted rows that exist in the cloud.
+    // We must MERGE the cloud results with the locally-stored trash items instead
+    // of replacing them — otherwise locally-deleted items (which never reached the
+    // cloud) would vanish from the trash the moment it is opened.
+    const cloudItems = data || [];
+    const cloudIds = new Set(cloudItems.map(t => String(t.id)));
+    const localItems = (state.trashTransactions || []).filter(t => t && !t.is_recurring_group && !cloudIds.has(String(t.id)));
+
+    // Merge: recurring groups first (newest deletion on top), then cloud items,
+    // then any remaining local-only items that are not already in the cloud.
+    state.trashTransactions = [...recurringGroups, ...cloudItems, ...localItems];
     localStorage.setItem('deleted_transactions_trash', JSON.stringify(state.trashTransactions));
 
     // Refresh the trash count badge
@@ -27839,6 +28153,220 @@ async function clearLocalDataConfirm() {
 }
 window.clearLocalDataConfirm = clearLocalDataConfirm;
 
+// ============================================================
+// 🧹 Cleanup duplicate recurring installments (loan installments
+// appearing multiple times in the same month due to a cloud-sync
+// race condition). Calls the server-side endpoint which uses the
+// service-role key to bypass RLS and soft-delete true duplicates
+// (same recurring_template_id + date + amount), keeping the oldest.
+// ============================================================
+// Local duplicate-installment cleanup.
+//
+// NOTE: This operates on LOCAL state.transactions (localStorage/IndexedDB), NOT
+// the cloud database. The user's data lives on-device; the Supabase DB may be
+// empty, so a cloud-side cleanup finds nothing. We scan the local transactions
+// for content-key duplicates (same date + amount + type + category +
+// account_from + note) — the same heuristic processRecurringTemplates() uses to
+// avoid re-creating an occurrence — keep the oldest, and move the rest to the
+// LOCAL Trash Bin (state.trashTransactions).
+//
+// To make the cleanup actually STICK (so processRecurringTemplates() does not
+// re-create the removed occurrences on the next run), we also mark each removed
+// occurrence's date as "deleted" on its matching recurring template via
+// addDeletedDateToTemplate(). This does NOT delete the template — it only tells
+// the recurring generator to skip those specific past dates. Future months keep
+// generating normally.
+async function runRecurringDuplicateCleanup() {
+  const lang = state.lang || 'el';
+  const t = (el, en) => (lang === 'el' ? el : en);
+
+  const txList = Array.isArray(state.transactions) ? state.transactions : [];
+
+  // Build a content-key -> list of transactions (oldest first).
+  const groups = new Map();
+  const keyOf = (tx) => {
+    const d = String(tx.date || '').split('T')[0].split(' ')[0];
+    return [
+      d,
+      (parseFloat(tx.amount) || 0).toFixed(2),
+      tx.type || '',
+      tx.category || '',
+      tx.account_from || '',
+      String(tx.note || '').trim().toLowerCase()
+    ].join('|');
+  };
+
+  for (const tx of txList) {
+    const key = keyOf(tx);
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(tx);
+  }
+
+  // Only consider groups with more than one transaction (true duplicates).
+  // Keep the oldest (by created_at, then by insertion order); the rest are
+  // candidates for removal.
+  const duplicateGroups = [];
+  for (const list of groups.values()) {
+    if (list.length < 2) continue;
+    list.sort((a, b) => {
+      const ta = a.created_at || '';
+      const tb = b.created_at || '';
+      if (ta !== tb) return ta < tb ? -1 : 1;
+      return 0;
+    });
+    duplicateGroups.push({ kept: list[0], duplicates: list.slice(1) });
+  }
+
+  const n = duplicateGroups.reduce((sum, g) => sum + g.duplicates.length, 0);
+  if (n === 0) {
+    showSyncToast("✅ " + t('Δεν βρέθηκαν διπλές δόσεις.', 'No duplicate installments found.'), 3500);
+    return;
+  }
+
+  // Build a detailed analysis list for the confirmation dialog.
+  const fmtAmount = (v) => {
+    try {
+      return new Intl.NumberFormat(lang === 'el' ? 'el-GR' : 'en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(parseFloat(v) || 0);
+    } catch (_) {
+      return String(v);
+    }
+  };
+  const analysisLines = duplicateGroups.map((g, idx) => {
+    const d = String(g.kept.date || '').split('T')[0].split(' ')[0];
+    const cat = g.kept.category || '';
+    const note = (g.kept.note || g.kept.description || '').trim();
+    const extra = g.duplicates.length;
+    return `${idx + 1}. ${d} · ${fmtAmount(g.kept.amount)} · ${cat}${note ? ' · ' + note : ''} — <b>${extra}</b> ${t('επιπλέον', 'extra')}`;
+  }).join('<br>');
+
+  const confirmMsg = t(
+    `Βρέθηκαν <b>${n}</b> διπλές δόσεις σε <b>${duplicateGroups.length}</b> ομάδες (ίδια ημερομηνία, ποσό, κατηγορία & σημείωση). Θα κρατηθεί μόνο η παλαιότερη από κάθε ομάδα και οι υπόλοιπες θα μετακινηθούν στον <b>Κάδο Ανακύκλωσης</b>. Η επαναλαμβανόμενη δόση (template) δεν διαγράφεται — απλώς δεν θα ξαναδημιουργηθούν αυτές οι συγκεκριμένες ημερομηνίες.<br><br><b>Ανάλυση:</b><br>${analysisLines}<br><br>Να συνεχίσω;`,
+    `Found <b>${n}</b> duplicate installments in <b>${duplicateGroups.length}</b> groups (same date, amount, category & note). Only the oldest of each group will be kept and the rest moved to the <b>Trash Bin</b>. The recurring template is not deleted — it just won't regenerate those specific dates.<br><br><b>Analysis:</b><br>${analysisLines}<br><br>Continue?`
+  );
+  const ok = await showCustomDialog({ message: confirmMsg, title: t('Καθαρισμός Διπλών Δόσεων', 'Cleanup Duplicate Installments'), icon: '🧹', showCancel: true });
+  if (!ok) return;
+
+  // Apply.
+  showSyncToast("⏳ " + t('Καθαρισμός διπλών δόσεων...', 'Cleaning up duplicate installments...'), 0);
+
+  // 1. Move each duplicate to the LOCAL trash bin.
+  state.trashTransactions = state.trashTransactions || [];
+  const deleteIds = new Set();
+  for (const g of duplicateGroups) {
+    for (const dup of g.duplicates) {
+      deleteIds.add(dup.id);
+      const alreadyInTrash = state.trashTransactions.some(tt => String(tt.id) === String(dup.id));
+      if (!alreadyInTrash) {
+        state.trashTransactions.push({ ...dup, deleted_at: new Date().toISOString() });
+      }
+    }
+  }
+  if (state.trashTransactions.length > 100) {
+    state.trashTransactions = state.trashTransactions.slice(-100);
+  }
+  localStorage.setItem('deleted_transactions_trash', JSON.stringify(state.trashTransactions));
+
+  // 2. Remove the duplicates from state.transactions.
+  state.transactions = state.transactions.filter(tx => !deleteIds.has(tx.id));
+  localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
+
+  // 2b. Soft-delete the duplicates on the cloud (status='deleted') so they stay
+  //     consistent across devices AND so emptying the trash bin actually
+  //     hard-deletes them. Without this, the duplicates were only moved to the
+  //     LOCAL trash; emptying the trash cleared the local list but the cloud
+  //     rows were never marked deleted, so the next loadData()/sync re-fetched
+  //     and re-added them — the "they come back after emptying the trash" bug.
+  if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
+    const cloudDeleteIds = [...deleteIds].filter(id => !String(id).startsWith('local_'));
+    if (cloudDeleteIds.length > 0) {
+      cloudDeleteIds.forEach(dId => enqueueSyncMutation('delete', dId));
+      (async () => {
+        try {
+          _suppressRealtimeEvents = true;
+          const { error } = await promiseTimeout(
+            state.supabaseClient
+              .from('transactions')
+              .update({
+                status: 'deleted',
+                deleted_at: new Date().toISOString(),
+                deleted_by: state.currentUser.id
+              })
+              .in('id', cloudDeleteIds),
+            12000
+          );
+          if (error) throw error;
+          cloudDeleteIds.forEach(dId => _markRecentlyDeleted(dId));
+          cloudDeleteIds.forEach(dId => dequeueSyncMutation('delete', dId));
+        } catch (err) {
+          console.warn('Cloud soft-delete of duplicate installments failed, keeping in queue:', cloudDeleteIds, err);
+        } finally {
+          setTimeout(() => { _suppressRealtimeEvents = false; }, 8000);
+        }
+      })();
+    }
+  }
+
+  // 3. Mark each removed occurrence's date as deleted on its matching recurring
+  //    template so processRecurringTemplates() does NOT re-create it. This does
+  //    NOT delete the template — it only skips those specific past dates.
+  //
+  //    IMPORTANT: We persist the deleted dates in TWO places:
+  //      a) state.deletedRecurringDates (localStorage 'deleted_recurring_dates') —
+  //         the dedicated, proven mechanism checked by processRecurringTemplates().
+  //         It lives in its OWN localStorage key, so it SURVIVES loadData() which
+  //         overwrites state.recurringTemplates with the cloud version.
+  //      b) addDeletedDateToTemplate() (template.description marker) — a best-effort
+  //         extra marker that also propagates to the cloud template.
+  const templatesToSave = new Set();
+  state.deletedRecurringDates = Array.isArray(state.deletedRecurringDates) ? state.deletedRecurringDates : [];
+  for (const g of duplicateGroups) {
+    const template = resolveRecurringTemplateForTx(g.kept) || resolveRecurringTemplateForTx(g.duplicates[0]);
+    if (!template) continue;
+    const dateStr = String(g.kept.date || '').split('T')[0].split(' ')[0];
+    // (a) Dedicated persistent mechanism — survives loadData().
+    const deleteKey = `${template.id}_${dateStr}`;
+    if (!state.deletedRecurringDates.includes(deleteKey)) {
+      state.deletedRecurringDates.push(deleteKey);
+    }
+    // (b) Best-effort template.description marker (also synced to cloud).
+    addDeletedDateToTemplate(template, dateStr);
+    templatesToSave.add(template);
+  }
+  // Persist the dedicated deleted-dates list immediately (survives loadData()).
+  localStorage.setItem('deleted_recurring_dates', JSON.stringify(state.deletedRecurringDates));
+  if (templatesToSave.size > 0) {
+    localStorage.setItem('recurring_templates', JSON.stringify(state.recurringTemplates));
+    if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
+      templatesToSave.forEach(template => {
+        enqueueSyncMutation('save_template', template);
+        state.supabaseClient
+          .from('recurring_templates')
+          .upsert([mapTemplateToDb(template)])
+          .then(({ error }) => {
+            if (!error) dequeueSyncMutation('save_template', template.id);
+          });
+      });
+    }
+  }
+
+  // 4. Refresh trash count badge.
+  const trashCount = state.trashTransactions.length;
+  const trashCountEl = document.getElementById('trash-bin-count-val');
+  if (trashCountEl) trashCountEl.textContent = trashCount;
+  const hubTrashCountEl = document.getElementById('hub-trash-count');
+  if (hubTrashCountEl) hubTrashCountEl.textContent = trashCount;
+
+  showSyncToast("✅ " + t(`Καθαρίστηκαν ${n} διπλές δόσεις (μετακινήθηκαν στον Κάδο Ανακύκλωσης).`, `Cleaned up ${n} duplicate installments (moved to Trash Bin).`), 3500);
+
+  // Refresh local data so the removed duplicates disappear immediately.
+  try {
+    await loadData();
+  } catch (_) {
+    // Non-fatal: data will refresh on next sync.
+  }
+  updateUI();
+}
+
 // ⚠️ Delete Account - PIN if exists, otherwise type "ΔΙΑΓΡΑΦΗ ΛΟΓΑΡΙΑΣΜΟΥ"
 async function deleteAccountConfirm() {
   const hasPin = localStorage.getItem('app_pin') && localStorage.getItem('app_lock_enabled') === 'true';
@@ -28220,9 +28748,9 @@ const USER_GUIDE_DATA = {
       {
         id: 'changelog',
         icon: 'fa-box-archive',
-        title: '1. Version & What\'s New (v1183)',
+        title: '1. Version & What\'s New (v1192)',
         content: `
-          <p><strong>Guide Version:</strong> v1183 | <strong>Synchronized App Version:</strong> v1183</p>
+          <p><strong>Guide Version:</strong> v1192 | <strong>Synchronized App Version:</strong> v1192</p>
           <div class="guide-feature-box">
             <h5 style="margin:0 0 6px; color:var(--primary);">✨ What's new in the latest version:</h5>
             <ul style="margin:0; padding-left:18px;">

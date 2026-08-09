@@ -1,0 +1,490 @@
+/* ============================================================ */
+/* BUDGET ASSISTANT — DESKTOP WEB UX LAYER                       */
+/* ============================================================ */
+/* ============================================================ */
+/* STEP 2 — SIDEBAR & TOPBAR                                     */
+/* ============================================================ */
+/* The existing .bottom-nav is turned into a left sidebar by the */
+/* desktop block in style.css. Here we add the brand header and  */
+/* "Νέα Κίνηση" button (injected by web-ui.js) plus polish.      */
+/* ============================================================ */
+
+/* --- Sidebar brand header (injected) --- */
+html.web-mode .desktop-sidebar-brand {
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    padding: 4px 12px 20px 12px !important;
+    margin-bottom: 8px !important;
+    border-bottom: 1px solid var(--border) !important;
+}
+
+html.web-mode .desktop-brand-logo {
+    width: 38px !important;
+    height: 38px !important;
+    border-radius: 12px !important;
+    background: linear-gradient(135deg, var(--accent), rgba(224, 94, 85, 0.6)) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    color: #fff !important;
+    font-size: 18px !important;
+    flex-shrink: 0 !important;
+    box-shadow: 0 4px 12px rgba(224, 94, 85, 0.35) !important;
+}
+
+html.web-mode .desktop-brand-text {
+    display: flex !important;
+    flex-direction: column !important;
+    min-width: 0 !important;
+}
+
+html.web-mode .desktop-brand-name {
+    font-family: 'Outfit', sans-serif !important;
+    font-size: 16px !important;
+    font-weight: 800 !important;
+    color: var(--text-main) !important;
+    letter-spacing: -0.3px !important;
+    white-space: nowrap !important;
+}
+
+/* --- Sidebar "Νέα Κίνηση" primary button (injected) --- */
+html.web-mode .desktop-sidebar-add {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    width: 100% !important;
+    padding: 12px 16px !important;
+    margin-bottom: 16px !important;
+    border-radius: 12px !important;
+    background: var(--accent) !important;
+    color: #fff !important;
+    font-family: 'Outfit', sans-serif !important;
+    font-size: 14px !important;
+    font-weight: 700 !important;
+    border: none !important;
+    cursor: pointer !important;
+    box-shadow: 0 4px 14px rgba(224, 94, 85, 0.3) !important;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease !important;
+}
+
+html.web-mode .desktop-sidebar-add:hover {
+    background: #d04e46 !important;
+    box-shadow: 0 6px 18px rgba(224, 94, 85, 0.4) !important;
+    transform: translateY(-1px) !important;
+}
+
+html.web-mode .desktop-sidebar-add:active {
+    transform: translateY(0) !important;
+}
+
+/* --- Topbar "Νέα Κίνηση" button (injected) --- */
+html.web-mode .desktop-topbar-add {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    padding: 9px 16px !important;
+    border-radius: 10px !important;
+    background: var(--accent) !important;
+    color: #fff !important;
+    font-family: 'Outfit', sans-serif !important;
+    font-size: 13.5px !important;
+    font-weight: 700 !important;
+    border: none !important;
+    cursor: pointer !important;
+    box-shadow: 0 3px 10px rgba(224, 94, 85, 0.3) !important;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease !important;
+    white-space: nowrap !important;
+}
+
+html.web-mode .desktop-topbar-add:hover {
+    background: #d04e46 !important;
+    box-shadow: 0 5px 14px rgba(224, 94, 85, 0.4) !important;
+    transform: translateY(-1px) !important;
+}
+
+/* --- Polish the existing sidebar nav items --- */
+html.web-mode .bottom-nav .nav-item {
+    font-family: 'Inter', sans-serif !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.2px !important;
+}
+
+html.web-mode .bottom-nav .nav-item.active {
+    font-weight: 700 !important;
+}
+
+/* --- Hide the mobile FAB on desktop (replaced by topbar/sidebar buttons) --- */
+html.web-mode .fab {
+    display: none !important;
+}
+
+/* --- Hide the mobile quick-notepad FAB on desktop --- */
+html.web-mode .fab-note {
+    display: none !important;
+}
+
+/* ============================================================ */
+/* STEP 1 — P0 FOUNDATION (below)                                */
+/* ============================================================ */
+/* Desktop/PWA redesign for the WEB version only.                */
+/*                                                               */
+/* SAFETY: Every rule is scoped behind `html.web-mode` so the    */
+/* Android/iOS native app (Capacitor) is NEVER affected.         */
+/* `html.web-mode` is added by index.html only when NOT running  */
+/* inside Capacitor (see index.html web-mode detection).         */
+/*                                                               */
+/* This file is loaded AFTER style.css (see index.html <head>)   */
+/* so it can safely override the mobile-first base rules.        */
+/* ============================================================ */
+
+/* ------------------------------------------------------------ */
+/* DESIGN TOKENS (Desktop)                                       */
+/* ------------------------------------------------------------ */
+html.web-mode {
+    /* Layout */
+    --desktop-sidebar-width: 220px;
+    --desktop-topbar-height: 64px;
+    --desktop-panel-width: 360px;
+    --desktop-content-padding: 32px;
+    --desktop-gap: 20px;
+    --touch-target: 36px;
+
+    /* Surfaces */
+    --card-radius: 16px;
+    --glass-bg: rgba(34, 39, 49, 0.85);
+    --glass-blur: blur(20px);
+    --glass-border: 1px solid rgba(255, 255, 255, 0.06);
+
+    /* Focus ring accent */
+    --focus-ring: 2px solid var(--accent);
+}
+
+/* ------------------------------------------------------------ */
+/* P0-1: Restore body scrolling (mobile locks it to overflow:hidden) */
+/* ------------------------------------------------------------ */
+html.web-mode body {
+    overflow: auto !important;
+    overflow-x: hidden !important;
+    height: auto !important;
+    min-height: 100dvh !important;
+    touch-action: auto !important;
+}
+
+/* ------------------------------------------------------------ */
+/* P0-2: Re-enable text selection on desktop                     */
+/* ------------------------------------------------------------ */
+html.web-mode body,
+html.web-mode button,
+html.web-mode .nav-item,
+html.web-mode .transaction-item,
+html.web-mode .settings-card,
+html.web-mode .settings-list-item,
+html.web-mode .stats-tab-btn,
+html.web-mode .stats-dropdown-item,
+html.web-mode .stats-row,
+html.web-mode .stats-sub-row {
+    user-select: text !important;
+    -webkit-user-select: text !important;
+    -moz-user-select: text !important;
+    -ms-user-select: text !important;
+}
+
+/* ------------------------------------------------------------ */
+/* P0-3: Restore visible, styled scrollbars (6px thin)           */
+/* ------------------------------------------------------------ */
+html.web-mode * {
+    scrollbar-width: thin !important;
+    scrollbar-color: var(--border-light) transparent !important;
+    -ms-overflow-style: auto !important;
+}
+
+html.web-mode ::-webkit-scrollbar {
+    width: 6px !important;
+    height: 6px !important;
+}
+
+html.web-mode ::-webkit-scrollbar-track {
+    background: transparent !important;
+}
+
+html.web-mode ::-webkit-scrollbar-thumb {
+    background: var(--border-light) !important;
+    border-radius: 6px !important;
+}
+
+html.web-mode ::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted) !important;
+}
+
+/* ------------------------------------------------------------ */
+/* P0-4: Disable touch-first scale(0.94) press feedback          */
+/* ------------------------------------------------------------ */
+html.web-mode button:active,
+html.web-mode .nav-item:active,
+html.web-mode .calc-key-btn:active,
+html.web-mode .fab:active,
+html.web-mode .settings-card:active,
+html.web-mode .settings-list-item:active,
+html.web-mode .stats-tab-btn:active,
+html.web-mode .stats-dropdown-item:active,
+html.web-mode .transaction-item.pressed,
+html.web-mode .stats-row.pressed,
+html.web-mode .stats-sub-row.pressed {
+    transform: none !important;
+    opacity: 1 !important;
+}
+
+/* ------------------------------------------------------------ */
+/* P0-5: Visible focus rings for keyboard navigation             */
+/* ------------------------------------------------------------ */
+html.web-mode :focus-visible {
+    outline: var(--focus-ring) !important;
+    outline-offset: 2px !important;
+    border-radius: 4px !important;
+}
+
+/* ------------------------------------------------------------ */
+/* P0-6: Disable tap-highlight flash on desktop                  */
+/* ------------------------------------------------------------ */
+html.web-mode {
+    -webkit-tap-highlight-color: transparent !important;
+}
+
+/* ------------------------------------------------------------ */
+/* P0-7: Desktop cursor affordance                               */
+/* ------------------------------------------------------------ */
+html.web-mode .nav-item,
+html.web-mode .transaction-item,
+html.web-mode .settings-card,
+html.web-mode .settings-list-item,
+html.web-mode .stats-tab-btn,
+html.web-mode .stats-dropdown-item {
+    cursor: pointer !important;
+}
+
+/* ------------------------------------------------------------ */
+/* P0-8: Hover feedback on interactive cards (desktop only)      */
+/* ------------------------------------------------------------ */
+html.web-mode .transaction-item:hover,
+html.web-mode .settings-card:hover,
+html.web-mode .settings-list-item:hover {
+    background-color: var(--border-light) !important;
+}
+
+/* ------------------------------------------------------------ */
+/* P0-9: Smooth hover lift on cards                              */
+/* ------------------------------------------------------------ */
+html.web-mode .transaction-item,
+html.web-mode .settings-card {
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease !important;
+}
+
+html.web-mode .transaction-item:hover,
+html.web-mode .settings-card:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: var(--shadow) !important;
+}
+
+/* ------------------------------------------------------------ */
+/* P0-10: Ensure the app content area scrolls naturally          */
+/* ------------------------------------------------------------ */
+html.web-mode .app-content {
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+}
+
+/* ============================================================ */
+/* STEP 4 — STATS SUMMARY (desktop-only)                        */
+/* ============================================================ */
+/* The former Dashboard content (KPI cards + recent transactions) */
+/* now lives at the top of the Στατιστικά (Stats) tab. It is      */
+/* populated by web-ui.js (renderStatsSummary) and hidden on      */
+/* mobile via the html.web-mode gating below.                    */
+/* ============================================================ */
+
+/* MOBILE SAFETY GUARD: the stats summary is desktop-only. Outside
+   web-mode (native Android/iOS) it must NEVER be visible. */
+html:not(.web-mode) .stats-summary {
+    display: none !important;
+}
+
+/* --- Summary container --- */
+html.web-mode .stats-summary {
+    display: block !important;
+    margin-bottom: 20px !important;
+}
+
+/* --- KPI grid --- */
+html.web-mode .stats-summary-grid {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 16px !important;
+    margin-bottom: 16px !important;
+}
+
+/* --- KPI cards --- */
+html.web-mode .stats-summary-card {
+    background: var(--card-bg, #1e222b) !important;
+    border: 1px solid var(--border, rgba(148, 163, 184, 0.15)) !important;
+    border-radius: 16px !important;
+    padding: 18px 20px !important;
+    box-shadow: var(--shadow, 0 4px 16px rgba(0, 0, 0, 0.2)) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 6px !important;
+}
+
+html.web-mode .stats-summary-title {
+    font-family: 'Outfit', sans-serif !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    color: var(--text-secondary, #94a3b8) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.4px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+}
+
+html.web-mode .stats-summary-value {
+    font-family: 'Outfit', sans-serif !important;
+    font-size: 24px !important;
+    font-weight: 800 !important;
+    color: var(--text-main, #f1f5f9) !important;
+    letter-spacing: -0.5px !important;
+    line-height: 1.1 !important;
+}
+
+html.web-mode .stats-summary-value.sum-income {
+    color: #4ade80 !important;
+}
+
+html.web-mode .stats-summary-value.sum-expense {
+    color: #f87171 !important;
+}
+
+html.web-mode .stats-summary-value.sum-savings {
+    color: #38bdf8 !important;
+}
+
+html.web-mode .stats-summary-sub {
+    font-size: 12px !important;
+    color: var(--text-muted, #64748b) !important;
+}
+
+/* --- Recent transactions card --- */
+html.web-mode .stats-summary-recent {
+    background: var(--card-bg, #1e222b) !important;
+    border: 1px solid var(--border, rgba(148, 163, 184, 0.15)) !important;
+    border-radius: 16px !important;
+    padding: 18px 20px !important;
+    box-shadow: var(--shadow, 0 4px 16px rgba(0, 0, 0, 0.2)) !important;
+}
+
+html.web-mode .stats-summary-recent-header {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    margin-bottom: 12px !important;
+    gap: 8px !important;
+}
+
+html.web-mode .stats-summary-recent-list {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 4px !important;
+}
+
+html.web-mode .stats-summary-recent-item {
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    padding: 8px 6px !important;
+    border-radius: 10px !important;
+    transition: background-color 0.15s ease !important;
+}
+
+html.web-mode .stats-summary-recent-item:hover {
+    background: rgba(148, 163, 184, 0.08) !important;
+}
+
+html.web-mode .stats-summary-recent-icon {
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: 10px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 16px !important;
+    flex-shrink: 0 !important;
+}
+
+html.web-mode .stats-summary-recent-info {
+    flex: 1 !important;
+    min-width: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 2px !important;
+}
+
+html.web-mode .stats-summary-recent-name {
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    color: var(--text-main, #f1f5f9) !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+html.web-mode .stats-summary-recent-date {
+    font-size: 11px !important;
+    color: var(--text-muted, #64748b) !important;
+}
+
+html.web-mode .stats-summary-recent-amount {
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    white-space: nowrap !important;
+}
+
+html.web-mode .stats-summary-recent-amount.sum-income {
+    color: #4ade80 !important;
+}
+
+html.web-mode .stats-summary-recent-amount.sum-expense {
+    color: #f87171 !important;
+}
+
+html.web-mode .stats-summary-recent-amount.sum-transfer {
+    color: #94a3b8 !important;
+}
+
+/* --- Empty state --- */
+html.web-mode .stats-summary-empty {
+    font-size: 13px !important;
+    color: var(--text-muted, #64748b) !important;
+    padding: 12px 0 !important;
+    text-align: center !important;
+}
+
+/* --- Responsive: collapse KPI grid on narrower desktop widths --- */
+@media (max-width: 1100px) {
+    html.web-mode .stats-summary-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+}
+
+/* ------------------------------------------------------------ */
+/* IMPLEMENTED PHASES:                                          */
+/*   Step 1 — P0 foundation (scrolling, selection, scrollbars,  */
+/*            press feedback, focus rings)                      */
+/*   Step 2 — Sidebar brand + topbar "Νέα Κίνηση" button        */
+/*   Step 3 — Keyboard shortcuts (in web-ui.js)                 */
+/*   Step 4 — Stats summary (former Dashboard content)          */
+/*                                                              */
+/* FUTURE PHASES (not yet added):                              */
+/*   Detail panel, inline search, table view                    */
+/* ------------------------------------------------------------ */
