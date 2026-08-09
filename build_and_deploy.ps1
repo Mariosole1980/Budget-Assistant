@@ -165,7 +165,7 @@ if ($deploy1 -ne 0) {
 Write-Host "[INFO] Staging and committing to Git..." -ForegroundColor Yellow
 git add -A
 if ([string]::IsNullOrWhiteSpace($CommitMessage)) {
-    $CommitMessage = "build v${newBuild}: automated release"
+    $CommitMessage = "automated release"
 }
 git commit -m "build v${newBuild}: $CommitMessage"
 Write-Host "  [SUCCESS] Git commit created for build v${newBuild}" -ForegroundColor Green
