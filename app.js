@@ -4278,6 +4278,7 @@ function loadOfflineData() {
     state.trashTransactions = [];
     state.notifications = [];
     state.notes = [];
+    state.budgets = [];
     calculateInitialBalances();
     return;
   }
@@ -4375,6 +4376,7 @@ function loadOfflineData() {
   }
 
   loadNotes();
+  loadBudgets();
 
   autoRecoverTemplatesFromHistory();
   processRecurringTemplates();
@@ -6003,7 +6005,8 @@ function renderStatsTab(skipChart = false) {
     state.statsCustomEnd || '',
     skipChart ? '1' : '0',
     displayCurrency,
-    state.statsSubtab || 'breakdown'
+    state.statsSubtab || 'breakdown',
+    (state.budgets || []).map(b => `${b.id}_${b.amount}_${b.currency}_${b.subcategory || ''}_${b.is_deleted ? '1' : '0'}_${b.updated_at || ''}`).join('|')
   ].join('||');
   const statsListEl = document.getElementById('stats-breakdown-list');
   if (statsListEl && statsListEl._lastRenderSignature === statsSig) {
@@ -6449,9 +6452,9 @@ function renderCategoryBudgetsView(catGroups = {}) {
     }
     totalSpentInCurrency += spent;
 
-    // Convert budget amount from EUR base to display currency
+    // Convert budget amount from its stored currency to display currency
     const budgetAmountInDisplay = window.CurrencyService
-      ? window.CurrencyService.convert(b.amount, 'EUR', displayCurrency)
+      ? window.CurrencyService.convert(b.amount, b.currency || 'EUR', displayCurrency)
       : b.amount;
     totalBudgetInCurrency += budgetAmountInDisplay;
 
@@ -6707,7 +6710,7 @@ function saveCategoryBudgetFromModal() {
     category: categoryName,
     subcategory: subcategoryName,
     amount: amount,
-    currency: 'EUR',
+    currency: getDisplayCurrency(),
     period: 'monthly',
     scope: scope,
     notify_threshold: 0.8,
@@ -6728,253 +6731,6 @@ function saveCategoryBudgetFromModal() {
   const displayLabel = subcategoryName ? `${categoryName} (${subcategoryName})` : categoryName;
   showToast(lang === 'el' ? `🎯 Ο προϋπολογισμός για "${displayLabel}" αποθηκεύτηκε!` : `🎯 Budget for "${displayLabel}" saved!`, 'success');
 
-  if (state.supabaseClient && state.currentUser) {
-    syncBudgets();
-  }
-}
-window.saveCategoryBudgetFromModal = saveCategoryBudgetFromModal;
-
-function renderCategoryBudgetsView(catGroups = {}) {
-  const container = document.getElementById('stats-budgets-container');
-  if (!container) return;
-
-  const displayCurrency = getDisplayCurrency();
-  const symbol = getCurrencySymbol();
-  const lang = state.lang || 'el';
-  const budgets = (state.budgets || []).filter(b => !b.is_deleted);
-
-  // Remaining days in current month/period calculation
-  const now = new Date();
-  const startDay = parseInt(localStorage.getItem('app_month_start') || '1', 10);
-  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + (now.getDate() >= startDay ? 1 : 0), startDay - 1);
-  const diffTime = endOfMonth.getTime() - now.getTime();
-  const remainingDays = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
-
-  let totalSpentInCurrency = 0;
-  let totalBudgetInCurrency = 0;
-
-  // Process defined budgets
-  const budgetRowsHtml = budgets.map(b => {
-    const catInfo = getCategoryInfo(b.category, 'expense');
-    const spent = catGroups[catInfo.name || b.category]?.amount || 0;
-    totalSpentInCurrency += spent;
-
-    // Convert budget amount from EUR base to display currency
-    const budgetAmountInDisplay = window.CurrencyService
-      ? window.CurrencyService.convert(b.amount, 'EUR', displayCurrency)
-      : b.amount;
-    totalBudgetInCurrency += budgetAmountInDisplay;
-
-    const pct = budgetAmountInDisplay > 0 ? (spent / budgetAmountInDisplay) * 100 : 0;
-    const isOver = pct >= 100;
-    const isWarn = pct >= 75 && pct < 100;
-
-    let badgeClass = 'badge-ok';
-    let badgeText = `${Math.round(pct)}% ${lang === 'el' ? 'Εντός' : 'OK'}`;
-    let barColor = catInfo.color || '#10b981';
-
-    if (isOver) {
-      badgeClass = 'badge-alert';
-      const overAmt = (spent - budgetAmountInDisplay).toFixed(2);
-      badgeText = `⚠️ ${Math.round(pct)}% (${lang === 'el' ? 'Υπέρβαση' : 'Over'} +${symbol}${overAmt})`;
-      barColor = '#ff5b5b';
-    } else if (isWarn) {
-      badgeClass = 'badge-warn';
-      badgeText = `${Math.round(pct)}% (${lang === 'el' ? 'Πλησιάζει' : 'Warning'})`;
-      barColor = '#f59e0b';
-    }
-
-    const scopeIcon = b.scope === 'family' ? '<i class="fa-solid fa-users" style="font-size:11px; margin-left:4px; color:var(--primary);" title="Οικογενειακό"></i>' : '';
-
-    return `
-      <div class="budget-cat-row ${isOver ? 'over-budget' : ''}" style="background: var(--bg-card); border: 1px solid ${isOver ? 'rgba(255, 91, 91, 0.4)' : 'var(--border)'}; border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px;">
-        <div style="display: flex; align-items: center; justify-content: space-between;">
-          <div style="display: flex; align-items: center; gap: 12px; min-width: 0;">
-            <div style="width: 40px; height: 40px; border-radius: 12px; background: ${catInfo.color}20; color: ${catInfo.color}; display: flex; align-items: center; justify-content: center; font-size: 19px; flex-shrink: 0;">
-              ${catInfo.icon}
-            </div>
-            <div style="display: flex; flex-direction: column; min-width: 0;">
-              <span style="font-size: 14.5px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 4px; word-break: break-word;">${stripLeadingEmoji(catInfo.name || b.category).trim() || (catInfo.name || b.category)}${scopeIcon}</span>
-              <span style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">${symbol} ${formatDisplayAmount(spent, displayCurrency)} / ${symbol} ${formatDisplayAmount(budgetAmountInDisplay, displayCurrency)}</span>
-            </div>
-          </div>
-          <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
-            <span class="badge-status ${badgeClass}" style="font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 12px;">${badgeText}</span>
-            <button type="button" class="action-icon-btn" onclick="openCategoryBudgetModal('${escapeHtml(b.category)}')" title="${lang === 'el' ? 'Επεξεργασία' : 'Edit'}" style="width: 32px; height: 32px; border-radius: 10px; border: 1px solid var(--border); background: rgba(255,255,255,0.04); color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 13px;">
-              <i class="fa-solid fa-pen"></i>
-            </button>
-          </div>
-        </div>
-        <div style="height: 8px; border-radius: 6px; background: rgba(255, 255, 255, 0.06); width: 100%; overflow: hidden; position: relative;">
-          <div style="height: 100%; border-radius: 6px; width: ${Math.min(100, pct)}%; background: ${barColor}; transition: width 0.4s ease;"></div>
-        </div>
-      </div>
-    `;
-  }).join('');
-
-  const overallPct = totalBudgetInCurrency > 0 ? (totalSpentInCurrency / totalBudgetInCurrency) * 100 : 0;
-  const remainingTotal = Math.max(0, totalBudgetInCurrency - totalSpentInCurrency);
-  const dailyAvailable = (remainingTotal / remainingDays).toFixed(2);
-
-  const overallCardHtml = `
-    <div style="background: linear-gradient(135deg, rgba(124, 106, 247, 0.12) 0%, rgba(99, 102, 241, 0.05) 100%); border: 1px solid var(--border-accent, rgba(124, 106, 247, 0.3)); border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 12px;">
-      <div style="display: flex; align-items: center; justify-content: space-between;">
-        <div>
-          <span style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; display: block;">${lang === 'el' ? 'Συνολικό Budget Μήνα' : 'Total Monthly Budget'}</span>
-          <div style="font-size: 20px; font-weight: 800; color: var(--text-primary); margin-top: 2px;">
-            ${symbol} ${formatDisplayAmount(totalSpentInCurrency, displayCurrency)} <span style="font-size: 13.5px; font-weight: 600; color: var(--text-secondary);">/ ${symbol} ${formatDisplayAmount(totalBudgetInCurrency, displayCurrency)}</span>
-          </div>
-        </div>
-        <div style="text-align: right;">
-          <span class="badge-status ${overallPct >= 100 ? 'badge-alert' : overallPct >= 75 ? 'badge-warn' : 'badge-ok'}" style="font-size: 11.5px; font-weight: 700; padding: 4px 10px; border-radius: 12px;">${Math.round(overallPct)}% ${lang === 'el' ? 'Χρήση' : 'Used'}</span>
-          <div style="font-size: 11.5px; color: #10b981; font-weight: 700; margin-top: 4px;">${symbol} ${formatDisplayAmount(remainingTotal, displayCurrency)} ${lang === 'el' ? 'διαθέσιμα' : 'left'}</div>
-        </div>
-      </div>
-      <div>
-        <div style="height: 10px; border-radius: 6px; background: rgba(255, 255, 255, 0.08); width: 100%; overflow: hidden; position: relative;">
-          <div style="height: 100%; border-radius: 6px; width: ${Math.min(100, overallPct)}%; background: var(--accent); transition: width 0.4s ease;"></div>
-        </div>
-        <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-top: 6px;">
-          <span>${lang === 'el' ? `Απομένουν ${remainingDays} ημέρες` : `${remainingDays} days remaining`}</span>
-          <span><strong>${symbol} ${formatDisplayAmount(dailyAvailable, displayCurrency)}</strong> / ${lang === 'el' ? 'ημέρα' : 'day'}</span>
-        </div>
-      </div>
-    </div>
-  `;
-
-  const addBtnHtml = `
-    <button type="button" onclick="openCategoryBudgetModal()" style="width: 100%; padding: 14px; border-radius: 14px; background: rgba(124, 106, 247, 0.08); border: 1px dashed rgba(124, 106, 247, 0.3); color: var(--primary); font-size: 13.5px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: background 0.2s;">
-      <i class="fa-solid fa-plus"></i> ${lang === 'el' ? 'Ορισμός Νέου Προϋπολογισμού' : 'Set New Category Budget'}
-    </button>
-  `;
-
-  container.innerHTML = overallCardHtml + (budgetRowsHtml || `<div style="text-align: center; padding: 24px 16px; color: var(--text-secondary); font-size: 13.5px;">${lang === 'el' ? 'Δεν έχετε ορίσει ακόμα προϋπολογισμούς κατηγοριών.' : 'No category budgets set yet.'}</div>`) + addBtnHtml;
-}
-window.renderCategoryBudgetsView = renderCategoryBudgetsView;
-
-function openCategoryBudgetModal(targetCategoryName = null) {
-  const catSelect = document.getElementById('budget-modal-category');
-  const amtInput = document.getElementById('budget-modal-amount');
-  const idInput = document.getElementById('budget-modal-id');
-  const delBtn = document.getElementById('budget-delete-btn');
-  if (!catSelect || !amtInput) return;
-
-  // Populate expense categories dropdown
-  catSelect.innerHTML = '';
-  const expenseCats = (state.categories || []).filter(c => c && (c.type === 'expense' || !c.type));
-  expenseCats.forEach(c => {
-    const opt = document.createElement('option');
-    // Strip leading emoji from the name since the icon is prepended separately
-    const cleanName = stripLeadingEmoji(c.name).trim() || c.name;
-    opt.value = cleanName;
-    opt.textContent = `${c.icon} ${cleanName}`;
-    catSelect.appendChild(opt);
-  });
-
-  const existingBudgets = (state.budgets || []).filter(b => !b.is_deleted);
-  let existing = null;
-
-  if (targetCategoryName) {
-    existing = existingBudgets.find(b => b.category === targetCategoryName || getCategoryInfo(b.category).name === targetCategoryName);
-  }
-
-  if (existing) {
-    idInput.value = existing.id;
-    catSelect.value = getCategoryInfo(existing.category).name || existing.category;
-    amtInput.value = existing.amount;
-    selectBudgetScope(existing.scope || 'personal');
-    if (delBtn) delBtn.style.display = 'block';
-  } else {
-    idInput.value = '';
-    if (targetCategoryName) {
-      catSelect.value = targetCategoryName;
-    }
-    amtInput.value = '';
-    selectBudgetScope('personal');
-    if (delBtn) delBtn.style.display = 'none';
-  }
-
-  openModal('category-budget-modal');
-}
-window.openCategoryBudgetModal = openCategoryBudgetModal;
-
-function setBudgetAmountPreset(val) {
-  const amtInput = document.getElementById('budget-modal-amount');
-  if (amtInput) {
-    amtInput.value = val;
-  }
-}
-window.setBudgetAmountPreset = setBudgetAmountPreset;
-
-function selectBudgetScope(scope) {
-  const input = document.getElementById('budget-modal-scope');
-  const btnPersonal = document.getElementById('budget-scope-personal');
-  const btnFamily = document.getElementById('budget-scope-family');
-  if (input) input.value = scope;
-
-  if (scope === 'family') {
-    if (btnFamily) { btnFamily.style.background = 'var(--accent)'; btnFamily.style.color = '#ffffff'; }
-    if (btnPersonal) { btnPersonal.style.background = 'transparent'; btnPersonal.style.color = 'var(--text-secondary)'; }
-  } else {
-    if (btnPersonal) { btnPersonal.style.background = 'var(--accent)'; btnPersonal.style.color = '#ffffff'; }
-    if (btnFamily) { btnFamily.style.background = 'transparent'; btnFamily.style.color = 'var(--text-secondary)'; }
-  }
-}
-window.selectBudgetScope = selectBudgetScope;
-
-function saveCategoryBudgetFromModal() {
-  const idInput = document.getElementById('budget-modal-id');
-  const catSelect = document.getElementById('budget-modal-category');
-  const amtInput = document.getElementById('budget-modal-amount');
-  const scopeInput = document.getElementById('budget-modal-scope');
-  const lang = state.lang || 'el';
-
-  if (!catSelect || !amtInput) return;
-
-  const categoryName = catSelect.value;
-  const amount = parseFloat(amtInput.value || 0);
-  const scope = scopeInput ? scopeInput.value : 'personal';
-
-  if (!categoryName) {
-    showToast(lang === 'el' ? 'Παρακαλώ επιλέξτε κατηγορία' : 'Please select category', 'warning');
-    return;
-  }
-  if (isNaN(amount) || amount <= 0) {
-    showToast(lang === 'el' ? 'Παρακαλώ εισάγετε έγκυρο θετικό ποσό' : 'Please enter valid positive amount', 'warning');
-    return;
-  }
-
-  const budgetId = idInput.value || generateUUID();
-  const existingIdx = (state.budgets || []).findIndex(b => b.id === budgetId || b.category === categoryName);
-
-  const budgetRecord = {
-    id: budgetId,
-    user_id: state.currentUser ? state.currentUser.id : 'offline-user',
-    family_id: state.userProfile ? state.userProfile.family_id : null,
-    category: categoryName,
-    subcategory: '',
-    amount: amount,
-    currency: 'EUR',
-    period: 'monthly',
-    scope: scope,
-    notify_threshold: 0.8,
-    is_deleted: false,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  };
-
-  if (existingIdx !== -1) {
-    state.budgets[existingIdx] = budgetRecord;
-  } else {
-    state.budgets.push(budgetRecord);
-  }
-
-  saveBudgets();
-  closeModal('category-budget-modal');
-  renderStatsTab();
-  showToast(lang === 'el' ? `🎯 Ο προϋπολογισμός για "${categoryName}" αποθηκεύτηκε!` : `🎯 Budget for "${categoryName}" saved!`, 'success');
-
-  // Async push to Supabase if connected
   if (state.supabaseClient && state.currentUser) {
     syncBudgets();
   }
@@ -7026,7 +6782,7 @@ function checkOverBudgetNotification(transaction) {
   }, 0);
 
   const budgetInDisplay = window.CurrencyService
-    ? window.CurrencyService.convert(budget.amount, 'EUR', displayCurrency)
+    ? window.CurrencyService.convert(budget.amount, budget.currency || 'EUR', displayCurrency)
     : budget.amount;
 
   if (budgetInDisplay > 0 && catSpent >= budgetInDisplay) {
@@ -26308,7 +26064,7 @@ function processCoachQuery(queryText) {
 
   // 4. Budgets Status
   if (normQuery.includes('προϋπολογισμ') || normQuery.includes('προϋπολογισμο') || normQuery.includes('προϋπολογισμοι') || normQuery.includes('προϋπολογισμους') || normQuery.includes('proypologism') || normQuery.includes('budget') || normQuery.includes('οριο') || normQuery.includes('ορια')) {
-    const budgets = state.budgets || {};
+    const budgets = state.budgets || [];
     const activeExpenses = state.transactions.filter(t => {
       const datePart = String(t.date || '').split('T')[0];
       const parts = datePart.split('-');
@@ -26327,13 +26083,16 @@ function processCoachQuery(queryText) {
     let html = state.lang === 'el' ? "📊 **Κατάσταση Προϋπολογισμών (Budgets):**<br><br>" : "📊 **Budget Status:**<br><br>";
     let hasBudgets = false;
 
-    Object.keys(budgets).forEach(cat => {
-      const limit = parseFloat(budgets[cat]) || 0;
+    budgets.forEach(b => {
+      if (b.is_deleted) return;
+      const catInfo = getCategoryInfo(b.category, 'expense');
+      const catName = catInfo.name || b.category;
+      const limit = parseFloat(b.amount) || 0;
       if (limit > 0) {
         hasBudgets = true;
-        const spent = expenseTotals[cat] || 0;
+        const spent = expenseTotals[catName] || 0;
         const pct = Math.round((spent / limit) * 100);
-        const dispCat = getCategoryDisplayName(cat);
+        const dispCat = getCategoryDisplayName(catName);
         const indicator = pct >= 100 ? '🔴' : pct >= 80 ? '🟡' : '🟢';
         html += `${indicator} **${dispCat}**: ${formatCurrency(spent)} / ${formatCurrency(limit)} (**${pct}%**)<br>`;
       }
