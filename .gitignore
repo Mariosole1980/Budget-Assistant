@@ -1,1 +1,26 @@
 node_modules
+
+# Build artifacts
+www/
+android/app/build/
+android/.gradle/
+android/build/
+*.apk
+*.zip
+*.aab
+
+# Cloudflare / deployment caches
+.wrangler/
+.netlify/
+.uploads/
+
+# Local environment / secrets
+.capgo_key_v2
+.capgo_key_v2.pub
+release.keystore
+
+# Archive of stale duplicates (kept for reference, not part of the app)
+archive/
+
+# Scratch / diagnostic scripts (development only)
+scratch/
