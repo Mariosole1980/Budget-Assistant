@@ -4,7 +4,7 @@
   "description": "A premium, collaborative mobile-first web app clone of Realbyte's Money Manager.",
   "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node --test \"test/**/*.test.js\"",
     "version:sync": "node scripts/version-sync.js",
     "version:bump": "node scripts/version-bump.js",
     "version:check": "node scripts/version-check.js",

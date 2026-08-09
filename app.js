@@ -666,63 +666,29 @@ function deduplicateCategories() {
 }
 
 function mergeAndDeduplicateTransactions(cloudTransactions, localPendingTransactions) {
-  const deletedIds = new Set();
+  // DATA-INTEGRITY: Deduplication is performed ONLY by primary key `id`
+  // (provable identity). Content-based "duplicate" matching was REMOVED because
+  // two legitimate, distinct transactions can be identical in every visible
+  // field (same date/amount/category/note) — collapsing them destroys real
+  // financial data. See js/transactionMerge.js for the tested implementation.
+  const deps = {
+    deletingTxIds: (typeof _deletingTxIds !== 'undefined' && _deletingTxIds) ? _deletingTxIds : null,
+    recentlyDeletedTxIds: (typeof _recentlyDeletedTxIds !== 'undefined' && _recentlyDeletedTxIds) ? _recentlyDeletedTxIds : null,
+    syncQueue: readSyncQueueForMerge(),
+  };
+  return window.TransactionMerge.mergeAndDeduplicateTransactions(cloudTransactions, localPendingTransactions, deps);
+}
 
-  // Guard 1: IDs actively being deleted right now
-  if (typeof _deletingTxIds !== 'undefined' && _deletingTxIds) {
-    _deletingTxIds.forEach(id => deletedIds.add(String(id)));
-  }
-  // Guard 2: IDs deleted in the last 30s (prevents race condition with Supabase propagation)
-  if (typeof _recentlyDeletedTxIds !== 'undefined' && _recentlyDeletedTxIds) {
-    _recentlyDeletedTxIds.forEach(id => deletedIds.add(String(id)));
-  }
-
-  // Guard 4: Sync queue pending deletes
+function readSyncQueueForMerge() {
   try {
     const queueStr = localStorage.getItem('money_manager_sync_queue');
     if (queueStr) {
-      const queue = JSON.parse(queueStr) || [];
-      queue.forEach(item => {
-        if (item.action === 'delete' && item.payload) {
-          deletedIds.add(String(item.payload));
-        }
-      });
+      return JSON.parse(queueStr) || [];
     }
   } catch (e) {
     console.error('Failed to parse sync queue in mergeAndDeduplicateTransactions:', e);
   }
-
-  const idMap = {};
-
-  (cloudTransactions || []).forEach(t => {
-    if (t && t.id && !deletedIds.has(String(t.id))) {
-      idMap[t.id] = t;
-    }
-  });
-
-  (localPendingTransactions || []).forEach(t => {
-    if (t && t.id && !deletedIds.has(String(t.id))) {
-      idMap[t.id] = t;
-    }
-  });
-
-  const uniqueById = Object.values(idMap);
-  const dedupMap = {};
-  const result = [];
-
-  uniqueById.forEach(t => {
-    if (!t) return;
-    const datePart = String(t.date || '').split('T')[0].split(' ')[0];
-    const uid = t.user_id || 'unknown';
-    const amountVal = (parseFloat(t.amount) || 0).toFixed(2);
-    const key = `${uid}|${datePart}|${amountVal}|${t.type || ''}|${t.category || ''}|${t.account_from || ''}|${t.account_to || ''}|${t.note || ''}`;
-    if (!dedupMap[key]) {
-      dedupMap[key] = true;
-      result.push(t);
-    }
-  });
-
-  return result;
+  return [];
 }
 
 
@@ -3418,35 +3384,18 @@ function getActiveTransactions() {
     }
   });
 
-  // Deduplicate: (1) ID-based to remove exact duplicates, then
-  // (2) content-based to remove local_ copies that were synced to cloud
+  // Deduplicate by ID only (provable identity). Content-based dedup was REMOVED:
+  // it dropped local_ transactions whose contents matched a cloud transaction,
+  // which destroyed legitimate distinct transactions (same date/amount/category).
+  // Per data-integrity policy we never drop a record based on content heuristics.
   const seenIds = new Set();
-  const idDeduped = filtered.filter(t => {
+  return filtered.filter(t => {
     const id = t.id;
     if (!id) return true;
     if (seenIds.has(id)) return false;
     seenIds.add(id);
     return true;
   });
-
-  const cloudKeys = new Set();
-  const locals = [];
-  const others = [];
-  idDeduped.forEach(t => {
-    if (t.id && String(t.id).startsWith('local_')) {
-      locals.push(t);
-    } else {
-      // Include user_id so that Marios & Vasoula identical transactions are NOT merged
-      const key = `${t.user_id || 'unknown'}|${t.amount || 0}|${String(t.date || '').split('T')[0]}|${t.type || ''}|${t.category || ''}|${t.account_from || ''}`;
-      cloudKeys.add(key);
-      others.push(t);
-    }
-  });
-  const dedupedLocals = locals.filter(t => {
-    const key = `${t.user_id || 'unknown'}|${t.amount || 0}|${String(t.date || '').split('T')[0]}|${t.type || ''}|${t.category || ''}|${t.account_from || ''}`;
-    return !cloudKeys.has(key);
-  });
-  return [...others, ...dedupedLocals];
 }
 
 function calculateInitialBalances() {
@@ -3970,77 +3919,40 @@ async function cleanDuplicateCategories() {
   }
 }
 
-// Scan transactions list and delete duplicate entries (both locally and in Cloud)
+// DATA-INTEGRITY SAFETY: This function previously grouped transactions by their
+// VISIBLE CONTENTS (date/amount/category/note) and PERMANENTLY DELETED the
+// "duplicates" from the cloud. That is unsafe: two legitimate, distinct
+// transactions can be identical in every visible field, so content-based
+// matching destroys real financial data. Per project policy we NEVER delete or
+// overwrite user financial data based on heuristics unless the identity of the
+// record is provably established.
+//
+// The only provable identity is the primary key `id`. Records with DIFFERENT
+// ids are never considered duplicates, regardless of identical contents.
+// This function now performs a safe, ID-based dedup only (removing records that
+// share the exact same id) and NEVER deletes from the cloud.
 async function cleanDuplicateTransactions() {
   if (!state.transactions || state.transactions.length === 0) return;
 
-  const groups = {};
+  const seenIds = new Set();
   const localCleaned = [];
-  const cloudDeleteIds = [];
   let didChangeLocal = false;
 
-  // Group all transactions by their visual contents.
-  // IMPORTANT: user_id is included in the key so that transactions from different
-  // family members with the same amount/date/category are NOT treated as duplicates.
   state.transactions.forEach(t => {
     if (!t) return;
-    const datePart = String(t.date || '').split('T')[0].split(' ')[0];
-    const amount = parseFloat(t.amount) || 0;
-    const type = t.type || '';
-    const category = t.category || '';
-    const accountFrom = t.account_from || '';
-    const accountTo = t.account_to || '';
-    const note = t.note || '';
-    // Include user_id so family members' identical transactions are NOT merged
-    const userId = t.user_id || 'unknown';
-    const key = `${userId}|${datePart}|${amount.toFixed(2)}|${type}|${category}|${accountFrom}|${accountTo}|${note}`;
-
-    if (!groups[key]) {
-      groups[key] = [];
-    }
-    groups[key].push(t);
-  });
-
-  // Process groups to identify duplicates
-  Object.keys(groups).forEach(key => {
-    const list = groups[key];
-    if (list.length === 1) {
-      localCleaned.push(list[0]);
-    } else {
-      // Sort to determine which one to keep
-      // Local pending items (starting with local_) come first because they are not yet synced.
-      // Otherwise, keep the earliest created_at, or fallback to alphabetical ID comparison.
-      list.sort((a, b) => {
-        const aIsLocal = a.id && String(a.id).startsWith('local_');
-        const bIsLocal = b.id && String(b.id).startsWith('local_');
-        if (aIsLocal && !bIsLocal) return -1;
-        if (!aIsLocal && bIsLocal) return 1;
-
-        const timeA = a.created_at ? getTransactionTime({ created_at: a.created_at }) : 0;
-        const timeB = b.created_at ? getTransactionTime({ created_at: b.created_at }) : 0;
-        if (timeA !== timeB) return timeA - timeB;
-
-        return String(a.id || '').localeCompare(String(b.id || ''));
-      });
-
-      const canonical = list[0];
-      localCleaned.push(canonical);
-
-      // All others are duplicates to be deleted
-      for (let i = 1; i < list.length; i++) {
-        const dupe = list[i];
-        if (dupe.id) {
-          if (!String(dupe.id).startsWith('local_')) {
-            cloudDeleteIds.push(dupe.id);
-          }
-          didChangeLocal = true;
-        }
+    if (t.id) {
+      const idStr = String(t.id);
+      if (seenIds.has(idStr)) {
+        // Same provable id -> genuine duplicate; keep the first occurrence.
+        didChangeLocal = true;
+        return;
       }
+      seenIds.add(idStr);
     }
+    localCleaned.push(t);
   });
 
   if (didChangeLocal) {
-
     // Preserve sorting
     localCleaned.sort(compareTransactions);
 
@@ -4050,71 +3962,19 @@ async function cleanDuplicateTransactions() {
     updateUI();
   }
 
-  if (cloudDeleteIds.length > 0 && state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
-    // Suppress realtime events during cleanup to prevent the DELETE operations
-    // from triggering UI re-renders (flickering numbers).
-    _suppressRealtimeEvents = true;
-    try {
-      for (let i = 0; i < cloudDeleteIds.length; i += 50) {
-        const batch = cloudDeleteIds.slice(i, i + 50);
-        const { error } = await state.supabaseClient
-          .from('transactions')
-          .delete()
-          .in('id', batch)
-          .eq('user_id', state.currentUser.id); // safety: only delete own transactions
-        if (error) {
-          console.error('[DEDUPLICATION] Cloud delete error:', error);
-        }
-      }
-    } catch (e) {
-      console.error('[DEDUPLICATION] Exception during cloud delete:', e);
-    } finally {
-      // Re-enable realtime events after a short delay (to let any in-flight events pass)
-      setTimeout(() => { _suppressRealtimeEvents = false; }, 5000);
-    }
-  }
+  // NOTE: No cloud deletion is performed here. Cloud-side duplicate cleanup is
+  // handled safely by the ID-based merge in js/transactionMerge.js.
 }
 
 window.cleanDuplicateTransactions = cleanDuplicateTransactions;
 
 function getPendingLocalTransactions(cachedTransactions) {
-  if (!cachedTransactions || !Array.isArray(cachedTransactions)) return [];
-  try {
-    const queueStr = localStorage.getItem('money_manager_sync_queue');
-    const queuedIds = new Set();
-    if (queueStr) {
-      const queue = JSON.parse(queueStr) || [];
-      queue.forEach(item => {
-        if (item.action === 'save' && item.payload && item.payload.id) {
-          queuedIds.add(item.payload.id);
-        }
-      });
-    }
-
-    return cachedTransactions.filter(t => {
-      if (!t || typeof t !== 'object') return false;
-      if (!t.id) return true;
-      if (String(t.id).startsWith('local_')) return true;
-      if (t.user_id === null || t.user_id === undefined) return true;
-
-      // Keep if in the offline sync queue (not yet successfully uploaded)
-      if (queuedIds.has(t.id)) return true;
-
-      // Keep if recently saved (within the grace window). This protects a just-saved
-      // transaction from being dropped when a re-fetch races ahead of the cloud write
-      // propagation, even after it has been dequeued from the sync queue.
-      if (_recentlySavedTxIds && _recentlySavedTxIds.has(String(t.id))) return true;
-
-      // If it is not a valid UUID, it is local
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-      if (!uuidRegex.test(String(t.id))) return true;
-
-      return false;
-    });
-  } catch (e) {
-    console.error('Error getting pending local transactions:', e);
-    return [];
-  }
+  // Delegates to the tested pure implementation in js/transactionMerge.js.
+  const deps = {
+    syncQueue: readSyncQueueForMerge(),
+    recentlySavedTxIds: (typeof _recentlySavedTxIds !== 'undefined' && _recentlySavedTxIds) ? _recentlySavedTxIds : null,
+  };
+  return window.TransactionMerge.getPendingLocalTransactions(cachedTransactions, deps);
 }
 
 // ============================================================
@@ -4325,7 +4185,8 @@ async function loadData() {
       }
       */
 
-      // Deduplicate merged transactions (ID-based first, then content-based)
+      // Deduplicate merged transactions (ID-based only — content-based dedup was
+      // removed because it destroyed legitimate identical transactions)
       const mergedTransactions = mergeAndDeduplicateTransactions(allTransactions, pendingLocal);
       mergedTransactions.sort(compareTransactions);
       state.transactions = mergedTransactions;
@@ -21693,7 +21554,8 @@ async function forceSyncNow(silent = false) {
 
     // 4.5. RECOVERY: Disabled - was causing infinite upsert loops when RLS filtered out partner transactions
 
-    // 5. Update state — deduplicate combined result before storing (ID-based first, then content-based)
+    // 5. Update state — deduplicate combined result before storing (ID-based only;
+    //    content-based dedup was removed because it destroyed legitimate identical transactions)
     const prevCount = (state.transactions || []).filter(t => t.id && !String(t.id).startsWith('local_')).length;
     const dedupedCombined = mergeAndDeduplicateTransactions(allTransactions, localPending);
     dedupedCombined.sort(compareTransactions);
