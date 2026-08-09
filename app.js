@@ -287,10 +287,20 @@
   }
 })();
 
-// Global error boundary to capture and display initialization or runtime errors
+// Global error boundary to capture and display initialization or runtime errors.
+// Logs full diagnostics to the console for debugging, but only shows a safe,
+// non-technical message to the user via the in-app dialog (never raw stack traces).
 window.onerror = function (message, source, lineno, colno, error) {
   console.error("Global Error Boundary Caught:", message, "at", source, ":", lineno, ":", colno, error);
-  alert("❌ " + (state.lang === 'en' ? 'Application Error' : 'Σφάλμα Εφαρμογής') + ":\n" + message + "\n" + (state.lang === 'en' ? 'Line' : 'Γραμμή') + ": " + lineno + ", " + (state.lang === 'en' ? 'Column' : 'Στήλη') + ": " + colno);
+  if (typeof window.showAlert === 'function') {
+    window.showAlert(
+      state.lang === 'en'
+        ? 'Something went wrong. Your data is safe. Please try again.'
+        : 'Κάτι πήγε στραβά. Τα δεδομένα σας είναι ασφαλή. Δοκιμάστε ξανά.',
+      state.lang === 'en' ? 'Application Error' : 'Σφάλμα Εφαρμογής',
+      '❌'
+    );
+  }
 };
 
 window.addEventListener('unhandledrejection', function (event) {
@@ -305,7 +315,15 @@ window.addEventListener('unhandledrejection', function (event) {
       console.error("STACK OVERFLOW DETECTED. Full stack:\n" + (event.reason.stack || '(no stack)'));
     }
   } catch (e) { /* best-effort logging */ }
-  alert("⚠️ Unhandled Promise Rejection:\n" + (event.reason?.message || event.reason));
+  if (typeof window.showAlert === 'function') {
+    window.showAlert(
+      state.lang === 'en'
+        ? 'Something went wrong. Your data is safe. Please try again.'
+        : 'Κάτι πήγε στραβά. Τα δεδομένα σας είναι ασφαλή. Δοκιμάστε ξανά.',
+      state.lang === 'en' ? 'Application Error' : 'Σφάλμα Εφαρμογής',
+      '⚠️'
+    );
+  }
 });
 
 window.autocompleteJustSelected = false;
@@ -322,13 +340,11 @@ function escapeHtml(str) {
 }
 window.escapeHtml = escapeHtml;
 
-// One-time cache clear to purge duplicated local transactions.
-// This forces a clean sync from Supabase when the user launches the updated app.
-if (!localStorage.getItem('clear_duplicates_v3')) {
-  localStorage.removeItem('offline_transactions');
-  localStorage.setItem('clear_duplicates_v3', 'true');
-  console.log('Successfully cleared offline_transactions cache to purge duplicates.');
-}
+// NOTE: A legacy one-time cache clear (clear_duplicates_v3) that purged the
+// offline_transactions cache to remove duplicated local transactions was removed here.
+// It was a migration workaround that already executed for all existing users (guarded
+// by the clear_duplicates_v3 flag), and it risked wiping a user's offline cache on a
+// fresh install. Duplicate handling is now covered by cleanDuplicateTransactions.
 
 // Money Manager App - Rebuilt based on actual Excel data structure
 // Excel columns: Date | Account | Category | Subcategory | Note | EUR | Income/Expense | Description | Amount | Currency | Account
@@ -974,7 +990,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1179 - 06/08/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1180 - 06/08/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1358,7 +1374,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1179 - 06/08/2026)',
+    app_version: 'Version 1.0.0 (build v1180 - 06/08/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -2167,7 +2183,6 @@ async function scheduleDailyReminder(enabled, timeString) {
         }
       ]
     });
-    console.log(`Daily reminder scheduled successfully for ${timeString}`);
   } catch (err) {
     console.error('Error scheduling daily reminder:', err);
   }
@@ -2215,7 +2230,6 @@ async function scheduleNoteReminder(note) {
         }
       ]
     });
-    console.log(`Scheduled note reminder for note ${note.id} at ${note.reminder_at}`);
   } catch (err) {
     console.error('Error scheduling local notification:', err);
   }
@@ -2251,11 +2265,9 @@ async function initLocalNotifications() {
       }
     }
     await LocalNotifications.addListener('localNotificationReceived', (notification) => {
-      console.log('Local notification received:', notification);
       handleIncomingLocalNotification(notification);
     });
     await LocalNotifications.addListener('localNotificationActionPerformed', (action) => {
-      console.log('Local notification action performed:', action);
       if (action.notification) {
         handleIncomingLocalNotification(action.notification);
         if (action.notification.extra && action.notification.extra.type === 'note_reminder') {
@@ -2268,7 +2280,6 @@ async function initLocalNotifications() {
         }
       }
     });
-    console.log('Capacitor Local Notifications listeners registered');
   } catch (err) {
     console.error('Failed to initialize Capacitor Local Notifications:', err);
   }
@@ -2364,7 +2375,6 @@ async function initApp() {
     // Also reset any inline display:flex on modals
     const txModal = document.getElementById('transaction-modal');
     if (txModal && txModal.style.display === 'flex') txModal.style.display = '';
-    console.log('[Init] All modals force-closed');
   }
   // Expose globally so auth handler can call it too
   window.forceCloseAllModals = forceCloseAllModals;
@@ -2396,7 +2406,6 @@ async function initApp() {
   window.addEventListener('pageshow', function (event) {
     if (event.persisted) {
       // Page restored from bfcache (iOS back navigation or OAuth redirect)
-      console.log('[pageshow] bfcache restore detected — restoring modals if missing');
       if (typeof window.restoreActiveModalsWithoutTransition === 'function') {
         window.restoreActiveModalsWithoutTransition();
       }
@@ -2726,8 +2735,11 @@ function initSupabaseAuth() {
     window.history.replaceState({}, document.title, cleanUrl);
   }
 
+  // Debug-only auth logging. Disabled in production to reduce console noise and
+  // avoid logging potentially sensitive auth/session details.
+  const AUTH_DEBUG = false;
   function logAuthDebug(msg) {
-    console.log('[AuthDebug]', msg);
+    if (AUTH_DEBUG) console.log('[AuthDebug]', msg);
   }
 
   // Global error handler to capture runtime JS errors and display them in the debug overlay
@@ -2896,7 +2908,6 @@ function initSupabaseAuth() {
   logAuthDebug('Subscribing to onAuthStateChange...');
   state.supabaseClient.auth.onAuthStateChange(async (event, session) => {
     logAuthDebug(`Auth Event Fired: ${event}, Session: ${!!session}`);
-    console.log('Supabase Auth Event:', event, session);
 
     if (state.isLoggingOut) {
       logAuthDebug('Sign-out in progress, ignoring auth state change.');
@@ -3191,7 +3202,6 @@ async function loadUserProfiles(user) {
     ).catch(e => ({ data: null, error: e }));
 
     if (error || !profile) {
-      console.log('Profile not found, inserting profile for user...');
       // Insert profile manually if trigger didn't do it
       const { data: newProfile, error: insertError } = await promiseTimeout(
         state.supabaseClient
@@ -3344,7 +3354,6 @@ function showPendingInvitationPrompt(invite) {
     } else {
       // Delete the pending invitation from database so they are not prompted again
       state.supabaseClient.from('pending_invitations').delete().eq('id', invite.id).then(() => {
-        console.log('Rejected and deleted pending invitation:', invite.id);
       });
     }
   });
@@ -3894,8 +3903,6 @@ async function cleanDuplicateCategories() {
 
   if (badCategories.length === 0 && badCategoryNamesInTrans.size === 0) return;
 
-  console.log('Duplicate categories cleanup: found bad categories in list:', badCategories, 'and in transactions:', Array.from(badCategoryNamesInTrans));
-
   let didChange = false;
   const isOnline = state.supabaseClient && state.currentUser;
 
@@ -3903,7 +3910,6 @@ async function cleanDuplicateCategories() {
   for (const badCatName of badCategoryNamesInTrans) {
     try {
       if (isOnline) {
-        console.log(`Updating transactions from bad category name "${badCatName}" to "${targetCategoryName}" in Cloud`);
         await state.supabaseClient
           .from('transactions')
           .update({ category: targetCategoryName })
@@ -3926,13 +3932,11 @@ async function cleanDuplicateCategories() {
   for (const badCat of badCategories) {
     try {
       if (isOnline) {
-        console.log(`Updating transactions from bad category object name "${badCat.name}" to "${targetCategoryName}" in Cloud`);
         await state.supabaseClient
           .from('transactions')
           .update({ category: targetCategoryName })
           .eq('category', badCat.name);
 
-        console.log(`Deleting bad category "${badCat.name}" (ID: ${badCat.id}) from Cloud`);
         await state.supabaseClient
           .from('categories')
           .delete()
@@ -3955,7 +3959,6 @@ async function cleanDuplicateCategories() {
   }
 
   if (didChange) {
-    console.log('Cleanup completed successfully. Saving to offline storage and updating UI.');
     localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
     localStorage.setItem('offline_categories', JSON.stringify(state.categories));
     calculateInitialBalances();
@@ -4037,7 +4040,6 @@ async function cleanDuplicateTransactions() {
   });
 
   if (didChangeLocal) {
-    console.log(`[DEDUPLICATION] Cleaned up local transactions state. Removed ${cloudDeleteIds.length} duplicates from local cache.`);
 
     // Preserve sorting
     localCleaned.sort(compareTransactions);
@@ -4053,7 +4055,6 @@ async function cleanDuplicateTransactions() {
     // from triggering UI re-renders (flickering numbers).
     _suppressRealtimeEvents = true;
     try {
-      console.log(`[DEDUPLICATION] Deleting ${cloudDeleteIds.length} duplicate transaction records from Cloud Database...`);
       for (let i = 0; i < cloudDeleteIds.length; i += 50) {
         const batch = cloudDeleteIds.slice(i, i + 50);
         const { error } = await state.supabaseClient
@@ -4063,8 +4064,6 @@ async function cleanDuplicateTransactions() {
           .eq('user_id', state.currentUser.id); // safety: only delete own transactions
         if (error) {
           console.error('[DEDUPLICATION] Cloud delete error:', error);
-        } else {
-          console.log(`[DEDUPLICATION] Successfully deleted batch of ${batch.length} duplicates from Cloud.`);
         }
       }
     } catch (e) {
@@ -4128,7 +4127,6 @@ async function loadData() {
     clearTimeout(_realtimeDebounceTimer);
     _realtimeDebounceTimer = null;
     _pendingRealtimeEvents = [];
-    console.log('[loadData] Cancelled stale realtime debounce before fetch.');
   }
 
   // PRIVACY/ISOLATION: In guest mode, never fetch or load a previous account's
@@ -4313,7 +4311,6 @@ async function loadData() {
       // 4.5. RECOVERY: Disabled - was causing infinite loops and duplicate clutter
       /*
       if (toRecover.length > 0) {
-        console.log(`Recovering ${toRecover.length} silently dropped transactions during loadData...`);
         const payloads = toRecover.map(t => {
           const { description, is_shared, recurring_template_id, photo_local_uri, photo_url, receipt, currency, base_currency, rate_to_base, amount_base, rate_source, fx_snapshot, rate_to_base_actual, rate_fetched_at, transfer_id, transfer_rate, ...dbPayload } = t;
           return dbPayload;
@@ -4524,7 +4521,6 @@ function autoRecoverTemplatesFromHistory() {
     const note = (t.note || '').toLowerCase();
     const isBad = note.includes('συμπληρώματα') || note.includes('συμπληρωματα') || note.includes('συμπλήρωμα') || note.includes('συμπληρωμα');
     if (isBad) {
-      console.log('Auto-removed bad template:', t);
       if (state.supabaseClient && state.currentUser && t.id && !String(t.id).startsWith('recovered_')) {
         state.supabaseClient
           .from('recurring_templates')
@@ -4601,7 +4597,6 @@ function autoRecoverTemplatesFromHistory() {
       return dnLower === defaultNote.toLowerCase() || keywords.some(kw => dnLower.includes(kw.toLowerCase()));
     });
     if (isDismissed) {
-      console.log('[AutoRecover] Skipping recovery for:', defaultNote, 'as it is in the dismissed list');
       return;
     }
     if (hasTemplate(keywords)) return;
@@ -4655,7 +4650,6 @@ function autoRecoverTemplatesFromHistory() {
     };
 
     state.recurringTemplates.push(template);
-    console.log('Auto-recovered template for keywords ' + keywords.join('/') + ':', template);
 
     if (state.supabaseClient && state.currentUser) {
       state.supabaseClient
@@ -4689,99 +4683,13 @@ function autoRecoverTemplatesFromHistory() {
     updateUI();
   }
 
-  // Broad automatic cleanup of duplicate/stranded templates and transactions
-  if (state.transactions && state.transactions.length > 0) {
-    let anyChanges = false;
-    const idsToDelete = [];
+  // NOTE: A legacy one-off hardcoded cleanup (v672/v673) that deleted duplicate
+  // transactions/templates by specific amounts (644.92€, 524.38€, 273.01€) and notes
+  // (ΔΑΝΕΙΟ ΣΠΙΤΙΩΝ, ΕΝΦΙΑ 2025) was removed here. It was a single-user data migration
+  // that already executed for all existing users (guarded by templates_autorecovered),
+  // and it risked deleting real user data from the cloud. General duplicate handling is
+  // now covered by cleanDuplicateTransactions/cleanDuplicateCategories.
 
-    // A. Clean up templates from recurringTemplates & Supabase
-    const templatesToDelete = (state.recurringTemplates || []).filter(t => {
-      const note = (t.note || '').toUpperCase();
-      const amt = parseFloat(t.amount) || 0;
-      return note.includes('ΔΑΝΕΙΟ ΣΠΙΤΙΩΝ') || note.includes('ΕΝΦΙΑ 2025') || Math.abs(amt - 273.01) < 0.01;
-    });
-
-    if (templatesToDelete.length > 0) {
-      const templateIds = templatesToDelete.map(t => t.id);
-      console.log('[Cleanup] Found bad templates in state, removing:', templateIds);
-      state.recurringTemplates = (state.recurringTemplates || []).filter(t => !templateIds.includes(t.id));
-      localStorage.setItem('recurring_templates', JSON.stringify(state.recurringTemplates));
-      anyChanges = true;
-
-      if (state.supabaseClient && state.currentUser) {
-        state.supabaseClient
-          .from('recurring_templates')
-          .delete()
-          .in('id', templateIds)
-          .then(({ error }) => {
-            if (error) console.error('[Cleanup] Failed to delete templates from cloud:', error);
-            else console.log('[Cleanup] Successfully deleted bad templates from cloud');
-          });
-      }
-    }
-
-    // B. Clean up transactions for ΔΑΝΕΙΟ ΣΠΙΤΙΟΥ +120 ΑΣΦΑΛΕΙΑ (644.92€)
-    const match644 = state.transactions.filter(t => {
-      const note = (t.note || '').toUpperCase();
-      const amt = parseFloat(t.amount) || 0;
-      return (note.includes('ΔΑΝΕΙΟ') && note.includes('ΑΣΦΑΛΕΙΑ')) || Math.abs(amt - 644.92) < 0.01;
-    });
-    if (match644.length > 1) {
-      match644.sort((a, b) => new Date(a.date) - new Date(b.date));
-      const duplicates = match644.slice(1);
-      duplicates.forEach(d => idsToDelete.push(d.id));
-      console.log('[Cleanup] Found', match644.length, '644.92€ transactions. Keeping original from:', match644[0].date);
-    }
-
-    // C. Clean up transactions for ΔΑΝΕΙΟ ΣΠΙΤΙΩΝ (524.38€)
-    const match524 = state.transactions.filter(t => {
-      const note = (t.note || '').toUpperCase();
-      return note.includes('ΔΑΝΕΙΟ ΣΠΙΤΙΩΝ');
-    });
-    if (match524.length > 1) {
-      match524.sort((a, b) => new Date(a.date) - new Date(b.date));
-      const duplicates = match524.slice(1);
-      duplicates.forEach(d => idsToDelete.push(d.id));
-      console.log('[Cleanup] Found', match524.length, 'ΔΑΝΕΙΟ ΣΠΙΤΙΩΝ transactions. Keeping original from:', match524[0].date);
-    }
-
-    // D. Clean up transactions for ΕΝΦΙΑ 2025 (273.01€)
-    const match273 = state.transactions.filter(t => {
-      const note = (t.note || '').toUpperCase();
-      const amt = parseFloat(t.amount) || 0;
-      return note.includes('ΕΝΦΙΑ 2025') || Math.abs(amt - 273.01) < 0.01;
-    });
-    if (match273.length > 1) {
-      match273.sort((a, b) => new Date(a.date) - new Date(b.date));
-      const duplicates = match273.slice(1);
-      duplicates.forEach(d => idsToDelete.push(d.id));
-      console.log('[Cleanup] Found', match273.length, 'ENFIA 273.01€ transactions. Keeping original from:', match273[0].date);
-    }
-
-    if (idsToDelete.length > 0) {
-      state.transactions = state.transactions.filter(t => !idsToDelete.includes(t.id));
-      localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
-      anyChanges = true;
-
-      if (state.supabaseClient && state.currentUser) {
-        state.supabaseClient
-          .from('transactions')
-          .delete()
-          .in('id', idsToDelete)
-          .then(({ error }) => {
-            if (error) console.error('[Cleanup] Failed to delete cloud transactions:', error);
-            else console.log('[Cleanup] Successfully deleted duplicate transactions from cloud');
-          });
-      }
-    }
-
-    if (anyChanges) {
-      setTimeout(() => {
-        calculateInitialBalances();
-        updateUI();
-      }, 100);
-    }
-  }
   localStorage.setItem('templates_autorecovered', 'true');
 }
 
@@ -4986,7 +4894,6 @@ function processRecurringTemplates() {
                   12000
                 );
                 if (error) throw error;
-                console.log(`Cloud sync success for recurring transaction: ${newTx.id}`);
               } catch (err) {
                 console.warn(`Cloud save failed for recurring, queueing transaction: ${newTx.id}`, err);
                 enqueueSyncMutation('save', newTx);
@@ -5058,7 +4965,6 @@ function checkHighExpenseAlert(transaction) {
       }).catch(err => console.warn('Failed to schedule high-expense native notification:', err));
     }
 
-    console.log(`[ALERT] High expense detected: ${amount} >= ${limit}`);
   } catch (err) {
     // Never let a notification failure break the transaction save.
     console.warn('checkHighExpenseAlert error:', err);
@@ -5120,7 +5026,6 @@ async function saveTransaction(transaction) {
           12000
         );
         if (error) throw error;
-        console.log(`Cloud sync success for transaction: ${transaction.id}`);
         dequeueSyncMutation('save', transaction.id);
       } catch (err) {
         console.warn(`Cloud save failed, keeping in queue: ${transaction.id}`, err);
@@ -5234,7 +5139,6 @@ function deleteTransaction(id) {
           12000
         );
         if (error) throw error;
-        console.log(`Cloud soft-delete success for transaction:`, idsToDelete);
         // Keep IDs in _recentlyDeletedTxIds for 30s to guard against Supabase propagation race:
         // loadData() may run shortly after and re-fetch the transaction before the DB confirms the delete.
         idsToDelete.forEach(dId => _markRecentlyDeleted(dId));
@@ -5642,7 +5546,6 @@ function backfillRecurringTemplateIds() {
   });
 
   if (toUpdate.length === 0) return;
-  console.log('[backfill] Linked ' + toUpdate.length + ' transactions to recurring templates');
 
   // Persist the link to the cloud (only id + recurring_template_id) so it survives reloads.
   if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
@@ -8940,7 +8843,6 @@ function setupEventListeners() {
           await ReceiptStorage.save(t.id, blobsToSave);
           t.photo_local_uri = 'local-file://' + t.id;
           saveTransactionOffline(t);
-          console.log('Receipt photos saved locally for:', t.id);
         } catch (err) {
           console.warn('Failed to save receipt photos:', err);
         }
@@ -8949,7 +8851,6 @@ function setupEventListeners() {
           await ReceiptStorage.remove(t.id);
           t.photo_local_uri = null;
           saveTransactionOffline(t);
-          console.log('Receipt photos deleted for:', t.id);
         } catch (err) {
           console.warn('Failed to delete receipt photos:', err);
         }
@@ -9910,14 +9811,12 @@ function closeModal(id, opts) {
   // User-initiated closes (back arrow / backdrop tap) bypass this guard so they
   // respond instantly with no lag.
   if (window._appJustResumed && !userInitiated) {
-    console.log('[closeModal] Blocked — app just resumed, ignoring close for:', id);
     return;
   }
 
   // Guard: if app is backgrounding, hidden, or blurred, ignore close requests
   // to prevent OS swipe gestures or ghost clicks from closing modals during transition.
   if (document.visibilityState === 'hidden') {
-    console.log('[closeModal] Blocked — app is backgrounding/hidden/blurred, ignoring close for:', id);
     return;
   }
 
@@ -9943,13 +9842,6 @@ function closeModal(id, opts) {
     window._settingsSubscreenHistory = [];
   }
   el.classList.remove('active');
-  console.log('[DEBUG closeModal] after remove active — id =', id, '| still has active class?', el.classList.contains('active'), '| display =', el.style.display, '| opacity =', getComputedStyle(el).opacity);
-  if (id === 'settings-subscreen-modal') {
-    const contentEl = el.querySelector('.modal-content');
-    const syncSection = document.getElementById('subscreen-sync');
-    console.log('[DEBUG closeModal] content child of overlay?', contentEl && contentEl.parentElement === el, '| content opacity =', contentEl ? getComputedStyle(contentEl).opacity : 'N/A', '| content transform =', contentEl ? getComputedStyle(contentEl).transform : 'N/A', '| content display =', contentEl ? contentEl.style.display : 'N/A');
-    console.log('[DEBUG closeModal] subscreen-sync opacity =', syncSection ? getComputedStyle(syncSection).opacity : 'N/A', '| sync display =', syncSection ? syncSection.style.display : 'N/A', '| sync has active class?', syncSection ? syncSection.classList.contains('active') : 'N/A');
-  }
   const activeModals = document.querySelectorAll('.modal-overlay.active, .tx-modal-overlay.active, .profile-sheet-overlay.active');
   if (activeModals.length === 0) {
     document.body.classList.remove('modal-open');
@@ -12732,7 +12624,6 @@ function toggleSearchFiltersPanel() {
     return;
   }
   const isActive = panel.classList.toggle('active');
-  console.log('[filters] toggled, active=', isActive);
   if (btn) btn.classList.toggle('active', isActive);
 }
 
@@ -15064,7 +14955,6 @@ async function deleteSelectedTransactions() {
           12000
         );
         if (error) throw error;
-        console.log(`Cloud soft-delete success for selected transactions:`, idsToDelete);
         idsToDelete.forEach(id => dequeueSyncMutation('delete', id));
       } catch (err) {
         console.warn(`Cloud delete failed for selected, keeping in queue:`, idsToDelete, err);
@@ -15119,7 +15009,6 @@ function initSwipeToBack() {
   function handleBackNavigation(source, e) {
     const now = Date.now();
     if (now - lastBackHandledAt < BACK_DEBOUNCE_MS) {
-      console.log('[BackNav] Debounced duplicate back event from:', source);
       return;
     }
     lastBackHandledAt = now;
@@ -15127,7 +15016,6 @@ function initSwipeToBack() {
     // Guard: Ignore back if the document is hidden, backgrounding, or blurred
     // (e.g. during home swipe gesture).
     if (document.visibilityState === 'hidden') {
-      console.log('[BackNav] Ignored back event — document hidden/blurred. source:', source);
       return;
     }
 
@@ -15135,7 +15023,6 @@ function initSwipeToBack() {
     // ignore the native back event so it does not double-fire and cause jitter.
     // The in-app swipe will commit the close itself (with a smooth slide).
     if (window._swipeBackDragging) {
-      console.log('[BackNav] Ignored back event — in-app swipe-back is dragging. source:', source);
       return;
     }
 
@@ -15215,8 +15102,6 @@ function initSwipeToBack() {
       const App = window.Capacitor.Plugins.App;
       if (App && typeof App.addListener === 'function') {
         App.addListener('appUrlOpen', (data) => {
-          console.log('[DeepLink] App opened with URL:', data.url);
-
           if (data.url && (data.url.includes('access_token=') || data.url.includes('error='))) {
             const hashIndex = data.url.indexOf('#');
             const searchIndex = data.url.indexOf('?');
@@ -15244,7 +15129,6 @@ function initSwipeToBack() {
                   console.error('[DeepLink] Failed to set session:', error);
                   toggleLoader(false);
                 } else {
-                  console.log('[DeepLink] Successfully signed in via deep link!');
                   localStorage.setItem('active_tab', 'trans');
                   window.location.replace('/');
                 }
@@ -15322,7 +15206,6 @@ function initSwipeToBack() {
 
   function triggerBackAction() {
     if (document.visibilityState === 'hidden') {
-      console.log('[triggerBackAction] Ignored back action — document is hidden or blurred.');
       return false;
     }
 
@@ -17086,8 +16969,6 @@ async function syncNotes() {
 
       if (upsertError) {
         console.warn('[NotesSync] error pushing local notes to remote:', upsertError);
-      } else {
-        console.log(`[NotesSync] successfully pushed ${records.length} notes to database.`);
       }
     }
   } catch (err) {
@@ -17201,8 +17082,6 @@ async function syncBudgets() {
 
       if (upsertError) {
         console.warn('[BudgetsSync] error pushing local budgets to remote:', upsertError);
-      } else {
-        console.log(`[BudgetsSync] successfully pushed ${records.length} budgets to database.`);
       }
     }
   } catch (err) {
@@ -20853,15 +20732,12 @@ async function forceAppUpdate() {
 
   if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorUpdater) {
     try {
-      console.log('[ForceUpdate] Triggering Capgo update check...');
       const manifestRes = await fetch("https://budget-assistant-pwa.pages.dev/version.json?_t=" + Date.now());
       const manifest = await manifestRes.json();
 
       if (!manifest || !manifest.url) {
         throw new Error("Invalid version.json format");
       }
-
-      console.log('[ForceUpdate] Found zip url:', manifest.url);
 
       if (typeof showSyncToast === 'function') {
         showSyncToast((state.lang === 'el' ? 'Λήψη έκδοσης ' : 'Downloading version ') + (manifest.version || 'νέας') + '...', 10000);
@@ -20881,7 +20757,6 @@ async function forceAppUpdate() {
         new Promise((_, reject) => setTimeout(() => reject(new Error('Download timed out')), DOWNLOAD_TIMEOUT_MS))
       ]);
 
-      console.log('[ForceUpdate] Downloaded update:', update);
       await window.Capacitor.Plugins.CapacitorUpdater.set({ id: update.id });
 
       if (typeof showSyncToast === 'function') {
@@ -21035,7 +20910,6 @@ async function syncLocalTransactionsToCloud(userId, options = {}) {
     });
 
     if (localTrans.length > 0) {
-      console.log(`Syncing ${localTrans.length} guest/local transactions to cloud...`);
 
       const toInsert = localTrans.map(t => {
         const copy = { ...t };
@@ -21088,7 +20962,6 @@ async function syncLocalTransactionsToCloud(userId, options = {}) {
         if (hasError) {
           console.error('Failed to sync guest transactions:', lastErr);
         } else {
-          console.log('Successfully synced guest transactions!');
           // Remove synced transactions from offline cache
           const cleanOffline = allTrans.filter(t => !localTrans.includes(t));
           localStorage.setItem('offline_transactions', JSON.stringify(cleanOffline));
@@ -21147,7 +21020,6 @@ function enqueueSyncMutation(action, payload) {
     });
 
     localStorage.setItem('money_manager_sync_queue', JSON.stringify(cleanQueue));
-    console.log(`Enqueued offline mutation: ${action} for ${itemId}`);
   } catch (err) {
     console.error('Failed to enqueue sync mutation:', err);
   }
@@ -21162,7 +21034,6 @@ function dequeueSyncMutation(action, itemId) {
       return !(item.action === action && itemKey === itemId);
     });
     localStorage.setItem('money_manager_sync_queue', JSON.stringify(cleanQueue));
-    console.log(`Dequeued offline mutation: ${action} for ${itemId}`);
   } catch (err) {
     console.error('Failed to dequeue sync mutation:', err);
   }
@@ -21192,7 +21063,6 @@ async function processSyncQueue(options = {}) {
   if (typeof navigator !== 'undefined' && !navigator.onLine) return;
 
   _isProcessingSyncQueue = true;
-  console.log(`Processing offline sync queue of ${queue.length} items...`);
 
   let successCount = 0;
   const remaining = [];
@@ -21312,7 +21182,6 @@ async function processSyncQueue(options = {}) {
   const queueChanged = remaining.length !== queue.length;
   if (successCount > 0 || queueChanged) {
     localStorage.setItem('money_manager_sync_queue', JSON.stringify(remaining));
-    console.log(`Synced ${successCount} mutations. ${remaining.length} remaining.`);
   }
 
   // Only reload and render here if the caller didn't request to skip it.
@@ -21339,8 +21208,6 @@ function setupSupabaseRealtimeSubscription() {
   const userId = state.currentUser.id;
   const partnerId = state.partnerProfile ? state.partnerProfile.id : null;
   const familyId = state.userProfile ? state.userProfile.family_id : null;
-
-  console.log('Setting up Supabase Realtime channel subscription...');
 
   _supabaseRealtimeChannel = state.supabaseClient.channel('family-changes-channel');
 
@@ -21379,7 +21246,6 @@ function setupSupabaseRealtimeSubscription() {
   }
 
   _supabaseRealtimeChannel.subscribe((status) => {
-    console.log(`Supabase Realtime subscription status: ${status}`);
   });
 }
 
@@ -21387,7 +21253,6 @@ function stopSupabaseRealtimeSubscription() {
   if (_supabaseRealtimeChannel && state.supabaseClient) {
     state.supabaseClient.removeChannel(_supabaseRealtimeChannel);
     _supabaseRealtimeChannel = null;
-    console.log('Removed Supabase Realtime channel subscription.');
   }
 }
 
@@ -21404,10 +21269,8 @@ Object.defineProperty(window, '_suppressRealtimeEvents', {
   set: (val) => {
     if (val) {
       _suppressRealtimeEventsCount++;
-      console.log(`[REALTIME] Suppression enabled (count: ${_suppressRealtimeEventsCount})`);
     } else {
       _suppressRealtimeEventsCount = Math.max(0, _suppressRealtimeEventsCount - 1);
-      console.log(`[REALTIME] Suppression disabled (count: ${_suppressRealtimeEventsCount})`);
     }
   },
   configurable: true
@@ -21459,7 +21322,6 @@ function handleRealtimeTransactionChange(payload) {
 
   // 1. If it's a delete event of a transaction we are actively deleting locally, always suppress it
   if (isDelete && eventId && _deletingTxIds.has(String(eventId))) {
-    console.log('[REALTIME] Delete event suppressed (active local delete):', eventId);
     return;
   }
 
@@ -21470,14 +21332,9 @@ function handleRealtimeTransactionChange(payload) {
       : (payload.new && state.currentUser && payload.new.user_id !== state.currentUser.id);
 
     if (!isPartnerEvent) {
-      console.log('[REALTIME] Own event suppressed during active suppression:', payload.eventType, eventId);
       return;
-    } else {
-      console.log('[REALTIME] Partner event allowed during active suppression:', payload.eventType, eventId);
     }
   }
-
-  console.log('Realtime transaction event received:', payload.eventType);
 
   // Accumulate events, then apply them all at once after a short delay
   _pendingRealtimeEvents.push(payload);
@@ -21518,10 +21375,6 @@ function handleRealtimeTransactionChange(payload) {
       } else if (eventType === 'DELETE') {
         const deletedId = ev.old && ev.old.id;
         if (deletedId && trans.some(t => t.id === deletedId)) {
-          console.log('[REALTIME-DEBUG] DELETE event removing tx:', deletedId,
-            '| recentlySaved:', _recentlySavedTxIds.has(String(deletedId)),
-            '| deleting:', _deletingTxIds.has(String(deletedId)),
-            '| recentlyDeleted:', _recentlyDeletedTxIds.has(String(deletedId)));
           trans = trans.filter(t => t.id !== deletedId);
           changed = true;
         }
@@ -21530,7 +21383,6 @@ function handleRealtimeTransactionChange(payload) {
 
     // Only update UI if something actually changed
     if (!changed) {
-      console.log('[REALTIME] No effective changes — skipping UI refresh.');
       return;
     }
 
@@ -21562,10 +21414,8 @@ function handleRealtimeTransactionChange(payload) {
 function handleRealtimeCategoryChange(payload) {
   // Ignore events generated by our own internal cleanup operations.
   if (_suppressRealtimeEvents) {
-    console.log('[REALTIME] Category event suppressed (internal operation in progress):', payload.eventType);
     return;
   }
-  console.log('Realtime category event received:', payload.eventType, payload.new, payload.old);
 
   let cats = [...state.categories];
   const eventType = payload.eventType;
@@ -21607,7 +21457,6 @@ window.stopSupabaseRealtimeSubscription = stopSupabaseRealtimeSubscription;
 
 // Handle online connectivity restore events
 window.addEventListener('online', () => {
-  console.log('Connection restored! Replaying sync queue...');
 
   // Re-establish the Supabase session now that we are online again. If the
   // access token expired while offline (which triggered a null-session auth
@@ -21888,7 +21737,6 @@ async function forceSyncNow(silent = false) {
     }
 
     if (dataChanged) {
-      console.log('[SYNC] Data changed — refreshing balances and UI.');
       calculateInitialBalances();
       // ANTI-FLICKER: Wrap the sync-triggered re-render in no-transition so
       // that DOM mutations from forceSyncNow are invisible to the user.
@@ -21906,8 +21754,6 @@ async function forceSyncNow(silent = false) {
       setTimeout(() => {
         popNoTransition();
       }, 1000);
-    } else {
-      console.log('[SYNC] No data change detected — skipping UI refresh to prevent flickering.');
     }
 
     // Compute how many transactions are genuinely new (IDs that did not exist before sync)
@@ -21950,7 +21796,6 @@ function startPartnerSyncPolling() {
   //   if (!state.supabaseClient || !state.currentUser) return;
   //   forceSyncNow(true);
   // }, 300000); // every 5 minutes
-  console.log('[SYNC] Background polling disabled to prevent flickering.');
 }
 
 function saveCurrentUIStateToStorage() {
@@ -21997,7 +21842,6 @@ function saveCurrentUIStateToStorage() {
     // NOTE: We intentionally do NOT remove bg_active_modal_id here even if no modal is currently active.
     // The key is managed exclusively by openModal() (sets it) and closeModal() (removes it).
     // Removing it here would erase the record if the OS closed the modal during the background transition.
-    console.log('[STATE] UI state saved successfully.');
   } catch (e) {
     console.warn('[STATE] Failed to save UI state:', e);
   } finally {
@@ -22088,14 +21932,12 @@ if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App
     const App = window.Capacitor.Plugins.App;
     if (App && typeof App.addListener === 'function') {
       App.addListener('appStateChange', (appState) => {
-        console.log('[Capacitor] App state changed. isActive:', appState.isActive);
         if (appState.isActive) {
           _handleAppResumed();
         } else {
           saveCurrentUIStateToStorage();
         }
       });
-      console.log('[Capacitor] Registered appStateChange listener successfully');
     }
   } catch (e) {
     console.warn('[Capacitor] Failed to register appStateChange listener:', e);
@@ -22968,7 +22810,6 @@ function initBackdropTapHandlers() {
   }
 
   function attachBackdropTap(modal) {
-    console.log('[BackdropTap] Attaching backdrop-tap-to-close to modal:', modal.id);
     let touchStartTarget = null;
 
     modal.addEventListener('touchstart', (e) => {
@@ -22984,7 +22825,6 @@ function initBackdropTapHandlers() {
         if (fullScreenModals.includes(modal.id)) return;
         e.preventDefault(); // prevent the synthetic click from also firing
         markUserInitiated();
-        console.log('[BackdropTap] Closing modal via backdrop tap:', modal.id);
         closeModal(modal.id);
       }
       touchStartTarget = null;
@@ -22995,7 +22835,6 @@ function initBackdropTapHandlers() {
       if (e.target === modal) {
         if (fullScreenModals.includes(modal.id)) return;
         markUserInitiated();
-        console.log('[BackdropTap] Closing modal via backdrop click:', modal.id);
         closeModal(modal.id);
       }
     });
@@ -24159,8 +23998,6 @@ async function submitUserFeedback() {
 
       if (error) {
         console.warn('Supabase feedback insert failed (table might not exist):', error);
-      } else {
-        console.log('Feedback synced to Supabase!');
       }
     } catch (err) {
       console.warn('Error syncing feedback to Supabase:', err);
@@ -24426,11 +24263,9 @@ function initSettingsSubscreenAndFhs() {
 
     const backBtn = document.getElementById('settings-subscreen-back-btn');
     if (backBtn) {
-      console.log('[DEBUG] settings-subscreen-back-btn found, binding click handler');
       backBtn.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        console.log('[DEBUG] settings-subscreen-back-btn CLICKED. history len =', window._settingsSubscreenHistory ? window._settingsSubscreenHistory.length : 'N/A');
         if (window._settingsSubscreenHistory && window._settingsSubscreenHistory.length > 0) {
           const prev = window._settingsSubscreenHistory.pop();
           openSettingsSubscreen(prev.id, prev.titleKey, true);
@@ -24452,8 +24287,6 @@ function initSettingsSubscreenAndFhs() {
           }
         }
       });
-    } else {
-      console.warn('[DEBUG] settings-subscreen-back-btn NOT FOUND at bind time');
     }
   }
 
@@ -25287,11 +25120,9 @@ function submitCoachQuery(queryText) {
           allTransactions
         };
 
-        console.log('[AIEngine] Requesting Advisor advice from Gemini...', queryText, stats);
         if (!state.advisorChatHistory) {
           state.advisorChatHistory = [];
         }
-        console.log('[AIEngine] Requesting Advisor advice from Gemini...', queryText, stats, 'History length:', state.advisorChatHistory.length);
         const data = await window.OnlineAIProvider.processAdvisorQuery(queryText, stats, state.advisorChatHistory);
 
         // Remove typing indicator AFTER fetch completes
@@ -25383,13 +25214,11 @@ function submitCoachQuery(queryText) {
           if (data.classifiedIntent && data.classifiedIntent !== 'unknown' && data.alternativePhrasings && Array.isArray(data.alternativePhrasings)) {
             if (window.IntentCorpus && window.IntentCorpus.learnFromGemini) {
               const count = window.IntentCorpus.learnFromGemini(data.classifiedIntent, data.alternativePhrasings);
-              console.log(`[AIEngine] Learned ${count} phrasings for intent: ${data.classifiedIntent}`);
             }
           }
           if (data.extractedEntities && Array.isArray(data.extractedEntities)) {
             if (window.KnowledgeGraph && window.KnowledgeGraph.learnFromGeminiEntities) {
               const res = window.KnowledgeGraph.learnFromGeminiEntities(data.extractedEntities);
-              console.log('[AIEngine] Learned entities for KnowledgeGraph:', res);
             }
           }
 
