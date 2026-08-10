@@ -72,7 +72,7 @@
               ${devButton}
             </div>
             <div style="font-size:11px;color:#8b949e;">
-              Budget Assistant • build v1211
+              Budget Assistant • build v1212
             </div>
           </div>
         `;
@@ -162,7 +162,7 @@
   <!-- Desktop Web UX Layer (loaded AFTER style.css so it can override).
        All rules are scoped behind html.web-mode, so Android/iOS native
        (Capacitor) layout is never affected. -->
-  <link rel="stylesheet" href="desktop.css?v=1211" id="desktop-stylesheet">
+  <link rel="stylesheet" href="desktop.css?v=1212" id="desktop-stylesheet">
 
   <!-- Capacitor Bridge -->
   <script src="capacitor.js"></script>
@@ -1495,8 +1495,7 @@
                 data-i18n="item_user_guide">Οδηγός Χρήσης</h3>
               <div
                 style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; font-family: 'Outfit', sans-serif;">
-                <span id="user-guide-version-badge"
-                  style="font-size:10px; background:rgba(99,102,241,0.15); color:var(--primary); padding:2px 8px; border-radius:10px; font-weight:700; border:1px solid rgba(99,102,241,0.3);">v1211</span>
+                <span id="user-guide-version-badge" style="font-size:10px; background:rgba(99,102,241,0.15); color:var(--primary); padding:2px 8px; border-radius:10px; font-weight:700; border:1px solid rgba(99,102,241,0.3);">v1212</span>
                 <span>•</span>
                 <span id="user-guide-date-badge">Αύγουστος 2026</span>
               </div>
@@ -2396,7 +2395,7 @@
             <div class="settings-list-item version-info-row"
               style="padding: 14px 16px; background: transparent; border-top: 1px solid var(--border); margin-top: 8px;">
               <span class="settings-item-label" style="color:var(--text-muted); font-size:12px;"
-                data-i18n="app_version">Έκδοση 1.0.0 (build v1211)</span>
+                data-i18n="app_version">Έκδοση 1.0.0 (build v1212)</span>
               <span class="settings-item-value" style="font-size:12px; color:var(--text-muted); font-weight:600;">Budget
                 Assistant</span>
             </div>
@@ -4018,39 +4017,32 @@
           <!-- Hidden budget ID -->
           <input type="hidden" id="budget-modal-id" value="">
 
-          <!-- Category Select (modern trigger + hidden native select) -->
+          <!-- Category Select -->
           <div>
             <span
               style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Κατηγορία</span>
             <div style="position: relative; margin-top: 6px;">
-              <select id="budget-modal-category" onchange="onBudgetCategoryChange()" style="display: none;">
+              <select id="budget-modal-category" onchange="onBudgetCategoryChange()"
+                style="width: 100%; padding: 14px 16px; border-radius: 14px; background: rgba(255,255,255,0.04); color: var(--text-primary); border: 1px solid var(--border); font-size: 14px; font-weight: 600; outline: none; cursor: pointer; appearance: none;">
                 <!-- Populated dynamically -->
               </select>
-              <button type="button" id="budget-category-trigger" class="budget-picker-trigger"
-                onclick="openBudgetCategoryPicker()">
-                <span class="budget-picker-trigger-icon" id="budget-category-trigger-icon">🏷️</span>
-                <span class="budget-picker-trigger-label" id="budget-category-trigger-label">Επιλέξτε κατηγορία</span>
-                <i class="fa-solid fa-chevron-down budget-picker-trigger-chevron"></i>
-              </button>
+              <i class="fa-solid fa-chevron-down"
+                style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--text-secondary); font-size: 12px;"></i>
             </div>
           </div>
 
-          <!-- Subcategory Select (Optional) (modern trigger + hidden native select) -->
+          <!-- Subcategory Select (Optional) -->
           <div id="budget-modal-subcat-container" style="display: none;">
             <span
               style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Υποκατηγορία
               (Προαιρετικό)</span>
             <div style="position: relative; margin-top: 6px;">
-              <select id="budget-modal-subcategory" style="display: none;">
+              <select id="budget-modal-subcategory"
+                style="width: 100%; padding: 14px 16px; border-radius: 14px; background: rgba(255,255,255,0.04); color: var(--text-primary); border: 1px solid var(--border); font-size: 14px; font-weight: 600; outline: none; cursor: pointer; appearance: none;">
                 <option value="">Όλες οι υποκατηγορίες</option>
               </select>
-              <button type="button" id="budget-subcategory-trigger" class="budget-picker-trigger"
-                onclick="openBudgetSubcategoryPicker()">
-                <span class="budget-picker-trigger-icon" id="budget-subcategory-trigger-icon">🗂️</span>
-                <span class="budget-picker-trigger-label" id="budget-subcategory-trigger-label">Όλες οι
-                  υποκατηγορίες</span>
-                <i class="fa-solid fa-chevron-down budget-picker-trigger-chevron"></i>
-              </button>
+              <i class="fa-solid fa-chevron-down"
+                style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--text-secondary); font-size: 12px;"></i>
             </div>
           </div>
 
@@ -4111,33 +4103,6 @@
               class="fa-regular fa-trash-can"></i></button>
           <button type="button" onclick="saveCategoryBudgetFromModal()"
             style="flex: 1; padding: 14px; border-radius: 16px; font-size: 14.5px; font-weight: 700; background: var(--accent); color: white; border: none; cursor: pointer; text-align: center; box-shadow: 0 4px 14px rgba(0,0,0,0.2);">Αποθήκευση</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- MODAL: BUDGET CATEGORY / SUBCATEGORY PICKER (modern list) -->
-    <div id="budget-picker-modal" class="modal-overlay" style="z-index: 13000;">
-      <div class="modal-content"
-        style="max-height: 85vh; display: flex; flex-direction: column; max-width: 440px; border-radius: 20px; overflow: hidden; background: var(--bg-card, #1c1f28); border: 1px solid var(--border);">
-        <div class="modal-header"
-          style="position: relative; min-height: 54px; box-sizing: border-box; border-bottom: 1px solid var(--border); padding: 0 18px; display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.02);">
-          <button type="button" id="budget-picker-back" class="icon-btn" onclick="budgetPickerGoBack()"
-            style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 18px; background: transparent; border: none; color: var(--text-secondary); cursor: pointer; padding: 4px; display: none; align-items: center; justify-content: center;"><i
-              class="fa-solid fa-arrow-left"></i></button>
-          <h3 class="modal-title" id="budget-picker-title"
-            style="margin: 0; font-size: 15px; font-weight: 800; color: #ffffff; text-align: center; flex: 1;">Επιλογή
-            Κατηγορίας</h3>
-          <span class="modal-close" onclick="closeModal('budget-picker-modal')"
-            style="font-size: 20px; color: var(--text-muted); cursor: pointer; line-height: 1;">✕</span>
-        </div>
-        <div class="modal-body" style="padding: 16px; flex: 1; overflow-y: auto;">
-          <div id="budget-picker-search-wrap" style="margin-bottom: 12px; display: none;">
-            <input type="text" id="budget-picker-search" class="form-row-input" placeholder="🔍 Αναζήτηση..."
-              style="width: 100%; box-sizing: border-box;" oninput="renderBudgetPickerOptions()">
-          </div>
-          <div id="budget-picker-list" class="budget-picker-list">
-            <!-- Options injected here -->
-          </div>
         </div>
       </div>
     </div>
@@ -4416,7 +4381,7 @@
       // OTA updates. Running both would cause a reload loop that never
       // baked into the APK and never changes on a plain reload).
       // ============================================================
-      const CURRENT_BUILD = 1211;
+      const CURRENT_BUILD = 1212;
       (function () {
         // Skip entirely when running inside the native APK (Capacitor bridge
         // present). Capgo handles OTA updates there.
@@ -5268,11 +5233,11 @@
 
   <!-- Transaction merge/dedup logic (pure, testable; loaded before app.js) -->
   <script src="js/transactionMerge.js"></script>
-  <script src="app.js?v=1211"></script>
+  <script src="app.js?v=1212"></script>
   <!-- Desktop Web UX Layer (defer so it runs after app.js; invoked via
        initDesktopUI() hook at the end of initApp()). Self-guards on
        html.web-mode so native Android/iOS is never affected. -->
-  <script src="web-ui.js?v=1211" defer></script>
+  <script src="web-ui.js?v=1212" defer></script>
 </body>
 
 

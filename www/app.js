@@ -1052,7 +1052,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1211 - 06/08/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1212 - 06/08/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1513,7 +1513,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1211 - 06/08/2026)',
+    app_version: 'Version 1.0.0 (build v1212 - 06/08/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -3615,14 +3615,6 @@ async function loadUserProfiles(user) {
           setTimeout(() => showPendingInvitationPrompt(pending[0]), 1000);
         }
       }
-    }
-
-    // Refresh the Premium UI (Settings Hub badge + banner) so it reflects the
-    // authoritative server profile on app load / login — not only when the user
-    // taps the Premium card. Without this, a premium user would see "Upgrade"
-    // until they open the Premium modal.
-    if (typeof updatePremiumUI === 'function') {
-      updatePremiumUI();
     }
   } catch (e) {
     console.error('Error loading user profiles:', e);
@@ -6925,199 +6917,8 @@ function onBudgetCategoryChange() {
     subcatSelect.innerHTML = `<option value="">${state.lang === 'el' ? 'Όλες οι υποκατηγορίες' : 'All subcategories'}</option>`;
     if (subcatContainer) subcatContainer.style.display = 'none';
   }
-
-  // Keep the modern trigger buttons in sync with the hidden native selects.
-  if (typeof syncBudgetPickerTriggers === 'function') {
-    syncBudgetPickerTriggers();
-  }
 }
 window.onBudgetCategoryChange = onBudgetCategoryChange;
-
-// ============================================================
-// MODERN BUDGET CATEGORY / SUBCATEGORY PICKER
-// ============================================================
-// State for the budget picker modal: which mode (category/subcategory) and
-// the currently selected category (needed to list its subcategories).
-let _budgetPickerMode = 'category';
-let _budgetPickerCategory = '';
-
-function openBudgetCategoryPicker() {
-  _budgetPickerMode = 'category';
-  _budgetPickerCategory = '';
-  const catSelect = document.getElementById('budget-modal-category');
-  if (catSelect && catSelect.value) {
-    _budgetPickerCategory = catSelect.value;
-  }
-  const backBtn = document.getElementById('budget-picker-back');
-  if (backBtn) backBtn.style.display = 'none';
-  const title = document.getElementById('budget-picker-title');
-  if (title) title.textContent = state.lang === 'el' ? 'Επιλογή Κατηγορίας' : 'Select Category';
-  const searchWrap = document.getElementById('budget-picker-search-wrap');
-  if (searchWrap) searchWrap.style.display = 'block';
-  const search = document.getElementById('budget-picker-search');
-  if (search) search.value = '';
-  renderBudgetPickerOptions();
-  openModal('budget-picker-modal');
-}
-window.openBudgetCategoryPicker = openBudgetCategoryPicker;
-
-function openBudgetSubcategoryPicker() {
-  const catSelect = document.getElementById('budget-modal-category');
-  if (!catSelect || !catSelect.value) {
-    showToast(state.lang === 'el' ? 'Παρακαλώ επιλέξτε πρώτα κατηγορία' : 'Please select a category first', 'warning');
-    return;
-  }
-  _budgetPickerMode = 'subcategory';
-  _budgetPickerCategory = catSelect.value;
-  const backBtn = document.getElementById('budget-picker-back');
-  if (backBtn) backBtn.style.display = 'flex';
-  const title = document.getElementById('budget-picker-title');
-  if (title) title.textContent = state.lang === 'el' ? 'Επιλογή Υποκατηγορίας' : 'Select Subcategory';
-  const searchWrap = document.getElementById('budget-picker-search-wrap');
-  if (searchWrap) searchWrap.style.display = 'block';
-  const search = document.getElementById('budget-picker-search');
-  if (search) search.value = '';
-  renderBudgetPickerOptions();
-  openModal('budget-picker-modal');
-}
-window.openBudgetSubcategoryPicker = openBudgetSubcategoryPicker;
-
-function renderBudgetPickerOptions() {
-  const list = document.getElementById('budget-picker-list');
-  if (!list) return;
-  const search = document.getElementById('budget-picker-search');
-  const query = (search ? search.value : '').trim().toLowerCase();
-  list.innerHTML = '';
-
-  if (_budgetPickerMode === 'category') {
-    const catSelect = document.getElementById('budget-modal-category');
-    const currentCat = catSelect ? catSelect.value : '';
-    // Show expense categories (budgets are expense-only), excluding hidden ones,
-    // matching the rest of the app. Use c.name directly (not fuzzy getCategoryInfo)
-    // so no valid category is dropped by name collisions.
-    const expenseCats = (state.categories || [])
-      .filter(c => c && (c.type === 'expense' || !c.type) && !c.hidden);
-    const seenCats = new Set();
-    let any = false;
-
-    expenseCats.forEach(c => {
-      const cleanName = stripLeadingEmoji(c.name).trim() || c.name;
-      if (seenCats.has(cleanName)) return;
-      seenCats.add(cleanName);
-      const displayName = getCategoryDisplayName(cleanName) || cleanName;
-      if (query && !displayName.toLowerCase().includes(query) && !cleanName.toLowerCase().includes(query)) return;
-      any = true;
-      const item = document.createElement('div');
-      item.className = 'budget-picker-item' + (cleanName === currentCat ? ' selected' : '');
-      item.innerHTML = `
-        <span class="budget-picker-item-icon">${c.icon || '🏷️'}</span>
-        <span class="budget-picker-item-name">${escapeHtml(displayName)}</span>`;
-      item.onclick = () => selectBudgetPickerCategory(cleanName);
-      list.appendChild(item);
-    });
-
-    if (!any) {
-      list.innerHTML = `<div class="budget-picker-empty">${state.lang === 'el' ? 'Δεν βρέθηκαν κατηγορίες' : 'No categories found'}</div>`;
-    }
-  } else {
-    // Subcategory mode
-    const subcats = getSubcategoriesForCategoryName(_budgetPickerCategory);
-    const subcatSelect = document.getElementById('budget-modal-subcategory');
-    const currentSub = subcatSelect ? subcatSelect.value : '';
-    let any = false;
-
-    // "All subcategories" option (no subcategory filter)
-    const allItem = document.createElement('div');
-    allItem.className = 'budget-picker-item' + (currentSub === '' ? ' selected' : '');
-    allItem.innerHTML = `
-      <span class="budget-picker-item-icon">🗂️</span>
-      <span class="budget-picker-item-name">${state.lang === 'el' ? 'Όλες οι υποκατηγορίες' : 'All subcategories'}</span>`;
-    allItem.onclick = () => selectBudgetPickerSubcategory('');
-    list.appendChild(allItem);
-    any = true;
-
-    subcats.forEach(sub => {
-      const displayName = getSubcategoryDisplayName(sub, _budgetPickerCategory) || sub;
-      if (query && !displayName.toLowerCase().includes(query) && !sub.toLowerCase().includes(query)) return;
-      any = true;
-      const item = document.createElement('div');
-      item.className = 'budget-picker-item sub' + (sub === currentSub ? ' selected' : '');
-      item.innerHTML = `
-        <span class="budget-picker-item-icon">🔹</span>
-        <span class="budget-picker-item-name">${escapeHtml(displayName)}</span>`;
-      item.onclick = () => selectBudgetPickerSubcategory(sub);
-      list.appendChild(item);
-    });
-
-    if (!any) {
-      list.innerHTML = `<div class="budget-picker-empty">${state.lang === 'el' ? 'Δεν βρέθηκαν υποκατηγορίες' : 'No subcategories found'}</div>`;
-    }
-  }
-}
-window.renderBudgetPickerOptions = renderBudgetPickerOptions;
-
-function selectBudgetPickerCategory(name) {
-  const catSelect = document.getElementById('budget-modal-category');
-  if (catSelect) {
-    catSelect.value = name;
-    onBudgetCategoryChange();
-  }
-  syncBudgetPickerTriggers();
-  closeModal('budget-picker-modal');
-}
-window.selectBudgetPickerCategory = selectBudgetPickerCategory;
-
-function selectBudgetPickerSubcategory(name) {
-  const subcatSelect = document.getElementById('budget-modal-subcategory');
-  if (subcatSelect) {
-    subcatSelect.value = name;
-  }
-  syncBudgetPickerTriggers();
-  closeModal('budget-picker-modal');
-}
-window.selectBudgetPickerSubcategory = selectBudgetPickerSubcategory;
-
-// Syncs the modern trigger buttons with the hidden native selects.
-function syncBudgetPickerTriggers() {
-  const catSelect = document.getElementById('budget-modal-category');
-  const subcatSelect = document.getElementById('budget-modal-subcategory');
-  const catTrigger = document.getElementById('budget-category-trigger');
-  const subTrigger = document.getElementById('budget-subcategory-trigger');
-
-  if (catSelect && catTrigger) {
-    const catInfo = getCategoryInfo(catSelect.value, 'expense');
-    const cleanName = catSelect.value ? (stripLeadingEmoji(catInfo.name || catSelect.value).trim() || catSelect.value) : '';
-    const iconEl = document.getElementById('budget-category-trigger-icon');
-    const labelEl = document.getElementById('budget-category-trigger-label');
-    if (iconEl) iconEl.textContent = catSelect.value ? (catInfo.icon || '🏷️') : '🏷️';
-    if (labelEl) labelEl.textContent = cleanName || (state.lang === 'el' ? 'Επιλέξτε κατηγορία' : 'Select category');
-    catTrigger.classList.toggle('placeholder', !catSelect.value);
-  }
-
-  if (subcatSelect && subTrigger) {
-    const labelEl = document.getElementById('budget-subcategory-trigger-label');
-    if (labelEl) {
-      labelEl.textContent = subcatSelect.value
-        ? (getSubcategoryDisplayName(subcatSelect.value, catSelect ? catSelect.value : '') || subcatSelect.value)
-        : (state.lang === 'el' ? 'Όλες οι υποκατηγορίες' : 'All subcategories');
-    }
-    subTrigger.classList.toggle('placeholder', !subcatSelect.value);
-  }
-}
-window.syncBudgetPickerTriggers = syncBudgetPickerTriggers;
-
-// Back button in the budget picker: return to category selection.
-function budgetPickerGoBack() {
-  _budgetPickerMode = 'category';
-  const backBtn = document.getElementById('budget-picker-back');
-  if (backBtn) backBtn.style.display = 'none';
-  const title = document.getElementById('budget-picker-title');
-  if (title) title.textContent = state.lang === 'el' ? 'Επιλογή Κατηγορίας' : 'Select Category';
-  const search = document.getElementById('budget-picker-search');
-  if (search) search.value = '';
-  renderBudgetPickerOptions();
-}
-window.budgetPickerGoBack = budgetPickerGoBack;
 
 function openCategoryBudgetModal(targetCategoryName = null, targetSubcategory = null) {
   const catSelect = document.getElementById('budget-modal-category');
@@ -7129,7 +6930,7 @@ function openCategoryBudgetModal(targetCategoryName = null, targetSubcategory = 
 
   // Populate expense categories dropdown cleanly (NO DOUBLE EMOJIS)
   catSelect.innerHTML = '';
-  const expenseCats = (state.categories || []).filter(c => c && (c.type === 'expense' || !c.type) && !c.hidden);
+  const expenseCats = (state.categories || []).filter(c => c && (c.type === 'expense' || !c.type));
   const seenCats = new Set();
 
   expenseCats.forEach(c => {
@@ -7181,11 +6982,6 @@ function openCategoryBudgetModal(targetCategoryName = null, targetSubcategory = 
     amtInput.value = '';
     selectBudgetScope('personal');
     if (delBtn) delBtn.style.display = 'none';
-  }
-
-  // Sync the modern trigger buttons with the selected values.
-  if (typeof syncBudgetPickerTriggers === 'function') {
-    syncBudgetPickerTriggers();
   }
 
   openModal('category-budget-modal');
@@ -29738,9 +29534,9 @@ const USER_GUIDE_DATA = {
       {
         id: 'changelog',
         icon: 'fa-box-archive',
-        title: '1. Version & What\'s New (v1211)',
+        title: '1. Version & What\'s New (v1212)',
         content: `
-          <p><strong>Guide Version:</strong> v1211 | <strong>Synchronized App Version:</strong> v1211</p>
+          <p><strong>Guide Version:</strong> v1212 | <strong>Synchronized App Version:</strong> v1212</p>
           <div class="guide-feature-box">
             <h5 style="margin:0 0 6px; color:var(--primary);">✨ What's new in the latest version:</h5>
             <ul style="margin:0; padding-left:18px;">
