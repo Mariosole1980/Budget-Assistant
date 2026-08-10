@@ -1,5 +1,5 @@
 {
-  "name": "money-manager",
+  "name": "budget-assistant",
   "version": "1.0.0",
   "description": "A premium, collaborative mobile-first web app clone of Realbyte's Money Manager.",
   "main": "app.js",

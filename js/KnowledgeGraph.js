@@ -15,57 +15,57 @@ window.KnowledgeGraph = (function () {
   // Known brand/merchant → { concept, category, confidence, source }
   const SEED_ENTITIES = {
     // Fuel
-    'shell':        { concept: 'βενζινη', category: '🚗 ΑΥΤΟΚΙΝΗΤΟ', confidence: 0.9, source: 'seed' },
-    'eko':          { concept: 'βενζινη', category: '🚗 ΑΥΤΟΚΙΝΗΤΟ', confidence: 0.9, source: 'seed' },
-    'avin':         { concept: 'βενζινη', category: '🚗 ΑΥΤΟΚΙΝΗΤΟ', confidence: 0.9, source: 'seed' },
-    'bp':           { concept: 'βενζινη', category: '🚗 ΑΥΤΟΚΙΝΗΤΟ', confidence: 0.9, source: 'seed' },
-    'revoil':       { concept: 'βενζινη', category: '🚗 ΑΥΤΟΚΙΝΗΤΟ', confidence: 0.9, source: 'seed' },
-    'elin':         { concept: 'βενζινη', category: '🚗 ΑΥΤΟΚΙΝΗΤΟ', confidence: 0.9, source: 'seed' },
+    'shell': { concept: 'βενζινη', category: '🚗 ΑΥΤΟΚΙΝΗΤΟ', confidence: 0.9, source: 'seed' },
+    'eko': { concept: 'βενζινη', category: '🚗 ΑΥΤΟΚΙΝΗΤΟ', confidence: 0.9, source: 'seed' },
+    'avin': { concept: 'βενζινη', category: '🚗 ΑΥΤΟΚΙΝΗΤΟ', confidence: 0.9, source: 'seed' },
+    'bp': { concept: 'βενζινη', category: '🚗 ΑΥΤΟΚΙΝΗΤΟ', confidence: 0.9, source: 'seed' },
+    'revoil': { concept: 'βενζινη', category: '🚗 ΑΥΤΟΚΙΝΗΤΟ', confidence: 0.9, source: 'seed' },
+    'elin': { concept: 'βενζινη', category: '🚗 ΑΥΤΟΚΙΝΗΤΟ', confidence: 0.9, source: 'seed' },
     // Supermarkets
-    'σκλαβενιτης':  { concept: 'σουπερμαρκετ', category: '🛒 ΔΙΑΤΡΟΦΗ', confidence: 0.9, source: 'seed' },
-    'lidl':         { concept: 'σουπερμαρκετ', category: '🛒 ΔΙΑΤΡΟΦΗ', confidence: 0.9, source: 'seed' },
-    'ab':           { concept: 'σουπερμαρκετ', category: '🛒 ΔΙΑΤΡΟΦΗ', confidence: 0.85, source: 'seed' },
-    'mymarket':     { concept: 'σουπερμαρκετ', category: '🛒 ΔΙΑΤΡΟΦΗ', confidence: 0.9, source: 'seed' },
-    'masoutis':     { concept: 'σουπερμαρκετ', category: '🛒 ΔΙΑΤΡΟΦΗ', confidence: 0.9, source: 'seed' },
-    'bazaraki':     { concept: 'σουπερμαρκετ', category: '🛒 ΔΙΑΤΡΟΦΗ', confidence: 0.85, source: 'seed' },
+    'σκλαβενιτης': { concept: 'σουπερμαρκετ', category: '🛒 ΔΙΑΤΡΟΦΗ', confidence: 0.9, source: 'seed' },
+    'lidl': { concept: 'σουπερμαρκετ', category: '🛒 ΔΙΑΤΡΟΦΗ', confidence: 0.9, source: 'seed' },
+    'ab': { concept: 'σουπερμαρκετ', category: '🛒 ΔΙΑΤΡΟΦΗ', confidence: 0.85, source: 'seed' },
+    'mymarket': { concept: 'σουπερμαρκετ', category: '🛒 ΔΙΑΤΡΟΦΗ', confidence: 0.9, source: 'seed' },
+    'masoutis': { concept: 'σουπερμαρκετ', category: '🛒 ΔΙΑΤΡΟΦΗ', confidence: 0.9, source: 'seed' },
+    'bazaraki': { concept: 'σουπερμαρκετ', category: '🛒 ΔΙΑΤΡΟΦΗ', confidence: 0.85, source: 'seed' },
     // Utilities / Telecom
-    'δεη':          { concept: 'ρευμα',     category: '🏠 ΣΠΙΤΙ', confidence: 0.95, source: 'seed' },
-    'ευδαπ':        { concept: 'νερο',      category: '🏠 ΣΠΙΤΙ', confidence: 0.95, source: 'seed' },
-    'cosmote':      { concept: 'τηλεφωνο', category: '🏠 ΣΠΙΤΙ', confidence: 0.9, source: 'seed' },
-    'vodafone':     { concept: 'τηλεφωνο', category: '🏠 ΣΠΙΤΙ', confidence: 0.9, source: 'seed' },
-    'nova':         { concept: 'τηλεφωνο', category: '🏠 ΣΠΙΤΙ', confidence: 0.9, source: 'seed' },
-    'wind':         { concept: 'τηλεφωνο', category: '🏠 ΣΠΙΤΙ', confidence: 0.9, source: 'seed' },
+    'δεη': { concept: 'ρευμα', category: '🏠 ΣΠΙΤΙ', confidence: 0.95, source: 'seed' },
+    'ευδαπ': { concept: 'νερο', category: '🏠 ΣΠΙΤΙ', confidence: 0.95, source: 'seed' },
+    'cosmote': { concept: 'τηλεφωνο', category: '🏠 ΣΠΙΤΙ', confidence: 0.9, source: 'seed' },
+    'vodafone': { concept: 'τηλεφωνο', category: '🏠 ΣΠΙΤΙ', confidence: 0.9, source: 'seed' },
+    'nova': { concept: 'τηλεφωνο', category: '🏠 ΣΠΙΤΙ', confidence: 0.9, source: 'seed' },
+    'wind': { concept: 'τηλεφωνο', category: '🏠 ΣΠΙΤΙ', confidence: 0.9, source: 'seed' },
     // Pharmacies / Health
-    'φαρμακειο':    { concept: 'φαρμακα',  category: '❤️ ΥΓΕΙΑ', confidence: 0.9, source: 'seed' },
-    'pharmacity':   { concept: 'φαρμακα',  category: '❤️ ΥΓΕΙΑ', confidence: 0.9, source: 'seed' },
+    'φαρμακειο': { concept: 'φαρμακα', category: '❤️ ΥΓΕΙΑ', confidence: 0.9, source: 'seed' },
+    'pharmacity': { concept: 'φαρμακα', category: '❤️ ΥΓΕΙΑ', confidence: 0.9, source: 'seed' },
     // Delivery
-    'efood':        { concept: 'delivery',  category: '🛒 ΔΙΑΤΡΟΦΗ', confidence: 0.9, source: 'seed' },
-    'wolt':         { concept: 'delivery',  category: '🛒 ΔΙΑΤΡΟΦΗ', confidence: 0.9, source: 'seed' },
-    'box':          { concept: 'delivery',  category: '🛒 ΔΙΑΤΡΟΦΗ', confidence: 0.85, source: 'seed' },
+    'efood': { concept: 'delivery', category: '🛒 ΔΙΑΤΡΟΦΗ', confidence: 0.9, source: 'seed' },
+    'wolt': { concept: 'delivery', category: '🛒 ΔΙΑΤΡΟΦΗ', confidence: 0.9, source: 'seed' },
+    'box': { concept: 'delivery', category: '🛒 ΔΙΑΤΡΟΦΗ', confidence: 0.85, source: 'seed' },
   };
 
   // Concept → Category mapping (semantic layer)
   const CONCEPT_CATEGORY_MAP = {
-    'βενζινη':      '🚗 ΑΥΤΟΚΙΝΗΤΟ',
-    'καυσιμα':      '🚗 ΑΥΤΟΚΙΝΗΤΟ',
+    'βενζινη': '🚗 ΑΥΤΟΚΙΝΗΤΟ',
+    'καυσιμα': '🚗 ΑΥΤΟΚΙΝΗΤΟ',
     'σουπερμαρκετ': '🛒 ΔΙΑΤΡΟΦΗ',
-    'φαγητο':       '🛒 ΔΙΑΤΡΟΦΗ',
-    'καφε':         '🛒 ΔΙΑΤΡΟΦΗ',
-    'delivery':     '🛒 ΔΙΑΤΡΟΦΗ',
-    'ρευμα':        '🏠 ΣΠΙΤΙ',
-    'νερο':         '🏠 ΣΠΙΤΙ',
-    'τηλεφωνο':     '🏠 ΣΠΙΤΙ',
-    'ενοικιο':      '🏠 ΣΠΙΤΙ',
-    'internet':     '🏠 ΣΠΙΤΙ',
-    'φαρμακα':      '❤️ ΥΓΕΙΑ',
-    'γιατρος':      '❤️ ΥΓΕΙΑ',
-    'υγεια':        '❤️ ΥΓΕΙΑ',
-    'γυμναστηριο':  '🏋️ ΓΥΜΝΑΣΤΗΡΙΟ',
-    'ρουχα':        '👕 ΠΡΟΣΩΠΙΚΗ ΦΡΟΝΤΙΔΑ',
-    'κομμωτηριο':   '👕 ΠΡΟΣΩΠΙΚΗ ΦΡΟΝΤΙΔΑ',
-    'ποτο':         '🎉 ΔΙΑΣΚΕΔΑΣΗ/ΕΞΟΔΟΙ',
-    'σινεμα':       '🎉 ΔΙΑΣΚΕΔΑΣΗ/ΕΞΟΔΟΙ',
-    'ταξιδι':       '✈️ ΤΑΞΙΔΙ',
+    'φαγητο': '🛒 ΔΙΑΤΡΟΦΗ',
+    'καφε': '🛒 ΔΙΑΤΡΟΦΗ',
+    'delivery': '🛒 ΔΙΑΤΡΟΦΗ',
+    'ρευμα': '🏠 ΣΠΙΤΙ',
+    'νερο': '🏠 ΣΠΙΤΙ',
+    'τηλεφωνο': '🏠 ΣΠΙΤΙ',
+    'ενοικιο': '🏠 ΣΠΙΤΙ',
+    'internet': '🏠 ΣΠΙΤΙ',
+    'φαρμακα': '❤️ ΥΓΕΙΑ',
+    'γιατρος': '❤️ ΥΓΕΙΑ',
+    'υγεια': '❤️ ΥΓΕΙΑ',
+    'γυμναστηριο': '🏋️ ΓΥΜΝΑΣΤΗΡΙΟ',
+    'ρουχα': '👕 ΠΡΟΣΩΠΙΚΗ ΦΡΟΝΤΙΔΑ',
+    'κομμωτηριο': '👕 ΠΡΟΣΩΠΙΚΗ ΦΡΟΝΤΙΔΑ',
+    'ποτο': '🎉 ΔΙΑΣΚΕΔΑΣΗ/ΕΞΟΔΟΙ',
+    'σινεμα': '🎉 ΔΙΑΣΚΕΔΑΣΗ/ΕΞΟΔΟΙ',
+    'ταξιδι': '✈️ ΤΑΞΙΔΙ',
   };
 
   // ─── NORMALIZATION ─────────────────────────────────────────────────────────
@@ -166,7 +166,7 @@ window.KnowledgeGraph = (function () {
     // Don't overwrite user-provided data with lower-confidence source
     const existing = graph[key];
     if (existing && existing.source === 'user' && source !== 'user') {
-      console.log(`[KnowledgeGraph] Skipping: "${key}" already has user-trusted data`);
+      if (window.AI_DEBUG) console.log(`[KnowledgeGraph] Skipping: "${key}" already has user-trusted data`);
       return false;
     }
 
@@ -179,7 +179,7 @@ window.KnowledgeGraph = (function () {
       window.MemoryEngine.addTokenToMemory(entityText, category, weight);
     }
 
-    console.log(`[KnowledgeGraph] Learned: "${key}" → ${concept} → ${category} (${source}, ${confidence})`);
+    if (window.AI_DEBUG) console.log(`[KnowledgeGraph] Learned: "${key}" → ${concept} → ${category} (${source}, ${confidence})`);
     return true;
   }
 
@@ -205,7 +205,7 @@ window.KnowledgeGraph = (function () {
 
   function resetToSeed() {
     localStorage.removeItem(STORAGE_KEY);
-    console.log('[KnowledgeGraph] Reset to seed');
+    if (window.AI_DEBUG) console.log('[KnowledgeGraph] Reset to seed');
   }
 
   return {

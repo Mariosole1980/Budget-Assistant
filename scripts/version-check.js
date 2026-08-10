@@ -56,8 +56,14 @@ if (!appTxt.includes(`<strong>Τρέχουσα Έκδοση Εφαρμογής:<
 }
 
 // 4. Check Root vs www parity
+// NOTE: 'version.json' is intentionally EXCLUDED from this list. The root
+// version.json is the canonical build number (e.g. {"version": 1209}), while
+// www/version.json is rewritten by release-native.js (Step 5) into the Capgo
+// OTA manifest format (version string "1.0.1209", url, checksum). These are
+// two different files serving different purposes, so byte-equality would be a
+// false positive. desktop.css and web-ui.js are included per the web-ux audit.
 const wwwDir = path.join(rootDir, 'www');
-const filesToCompare = ['version.json', 'sw.js', 'index.html', 'app.js'];
+const filesToCompare = ['sw.js', 'index.html', 'app.js', 'desktop.css', 'web-ui.js'];
 
 filesToCompare.forEach(f => {
   const rootFile = path.join(rootDir, f);

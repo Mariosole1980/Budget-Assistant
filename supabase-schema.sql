@@ -243,7 +243,7 @@ CREATE POLICY "Allow delete transactions" ON public.transactions
 --   * notes                                             -> notes-migration.sql
 --   * ai_conversations                                  -> ai-conversations-migration.sql
 --   * currencies / exchange_rates / budgets             -> multi-currency-migration.sql
---   * category_budgets                                  -> (see plans/category-budgets-implementation-plan.md)
+--   * category_budgets                                  -> category-budgets-migration.sql
 --   * trash (status columns on transactions)            -> trash-status-migration.sql
 -- See plans/rls-policy-inventory.md for the full policy inventory.
 -- ============================================================================

@@ -270,7 +270,7 @@ window.IntentCorpus = (function () {
 
     if (added > 0) {
       saveCorpus(corpus);
-      console.log(`[IntentCorpus] Learned ${added} new examples for intent "${intent}"`);
+      if (window.AI_DEBUG) console.log(`[IntentCorpus] Learned ${added} new examples for intent "${intent}"`);
     }
     return added;
   }
@@ -296,7 +296,7 @@ window.IntentCorpus = (function () {
     if (!isDuplicate) {
       corpus[intent].examples.push(normQuery);
       saveCorpus(corpus);
-      console.log(`[IntentCorpus] User-confirmed: "${normQuery}" → "${intent}"`);
+      if (window.AI_DEBUG) console.log(`[IntentCorpus] User-confirmed: "${normQuery}" → "${intent}"`);
     }
   }
 
@@ -317,7 +317,7 @@ window.IntentCorpus = (function () {
   // ─── RESET (debug) ──────────────────────────────────────────────────────────
   function resetToSeed() {
     localStorage.removeItem(STORAGE_KEY);
-    console.log('[IntentCorpus] Reset to seed corpus');
+    if (window.AI_DEBUG) console.log('[IntentCorpus] Reset to seed corpus');
   }
 
   return {

@@ -162,13 +162,36 @@ html.web-mode {
 }
 
 /* ------------------------------------------------------------ */
-/* P0-1: Restore body scrolling (mobile locks it to overflow:hidden) */
+/* P0-0: Establish a DEFINITE height chain so .app-content is the
+   bounded scroll container (sticky header stays put).
+   The mobile-first base rule (style.css) sets `html, body {
+   height:100dvh; overflow:hidden }`. The previous P0-1 rule tried
+   to fix scrolling by setting `body { height:auto; overflow:auto }`,
+   but that BROKE the height chain: with `body` at auto height,
+   `.app-container { height:100% }` and `.app-content { height:100% }`
+   both resolve to auto, so NO element is bounded and no scrollbar
+   ever engages. The page cannot scroll in ANY tab.
+   Fix: keep the root locked at 100dvh (viewport clipped) and give
+   `body` a DEFINITE 100dvh height. Then `.app-container`'s 100%
+   resolves against it, the grid `1fr` content row is bounded, and
+   `.app-content` (min-height:0 / max-height:100% / overflow-y:auto)
+   becomes the real scroll container. Scoped behind html.web-mode so
+   native Android/iOS is unaffected. */
+/* ------------------------------------------------------------ */
+html.web-mode {
+    height: 100dvh !important;
+    overflow: hidden !important;
+}
+
+/* ------------------------------------------------------------ */
+/* P0-1: Lock body to a definite height so the grid content row
+   (1fr) is bounded and .app-content can scroll internally. */
 /* ------------------------------------------------------------ */
 html.web-mode body {
-    overflow: auto !important;
+    height: 100dvh !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
     overflow-x: hidden !important;
-    height: auto !important;
-    min-height: 100dvh !important;
     touch-action: auto !important;
 }
 

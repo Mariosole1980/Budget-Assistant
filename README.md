@@ -33,6 +33,7 @@ To allow you and **Vasoula** to input expenses simultaneously on the go (via mob
    - `supabase-recurring-migration.sql` (recurring templates)
    - `notes-migration.sql` (notes & checklists)
    - `multi-currency-migration.sql` (currencies, exchange rates, budgets)
+   - `category-budgets-migration.sql` (per-category monthly budgets)
    - `trash-status-migration.sql` (trash/status columns)
    > **Note:** The `profiles` table and its RLS policies are created by `family-budget-migration.sql`. See `plans/rls-policy-inventory.md` for the full policy inventory and access rules.
 

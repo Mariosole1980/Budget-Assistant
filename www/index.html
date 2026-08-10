@@ -72,7 +72,7 @@
               ${devButton}
             </div>
             <div style="font-size:11px;color:#8b949e;">
-              Budget Assistant • build v1208
+              Budget Assistant • build v1211
             </div>
           </div>
         `;
@@ -162,7 +162,7 @@
   <!-- Desktop Web UX Layer (loaded AFTER style.css so it can override).
        All rules are scoped behind html.web-mode, so Android/iOS native
        (Capacitor) layout is never affected. -->
-  <link rel="stylesheet" href="desktop.css?v=1208" id="desktop-stylesheet">
+  <link rel="stylesheet" href="desktop.css?v=1211" id="desktop-stylesheet">
 
   <!-- Capacitor Bridge -->
   <script src="capacitor.js"></script>
@@ -1390,6 +1390,11 @@
               title="Εναλλαγή προβολής">
               <i class="fa-solid fa-border-all"></i>
             </button>
+            <button type="button" class="icon-btn" onclick="openNotesTrashModal()"
+              style="font-size: 14px; color: var(--text-secondary); background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 8px; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; cursor: pointer;"
+              title="Κάδος Σημειώσεων">
+              <i class="fa-solid fa-trash-can"></i>
+            </button>
             <button class="btn btn-primary" id="notes-manager-add-btn"
               style="padding: 6px 14px; font-size: 12.5px; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 6px; border-radius: 8px; cursor: pointer; background: var(--accent); color: white; border: none; box-shadow: 0 3px 10px rgba(var(--accent-rgb, 224, 94, 85), 0.35);">
               <i class="fa-solid fa-plus"></i> <span data-i18n="new_note_btn">Νέα</span>
@@ -1444,6 +1449,30 @@
     </div>
 
     <!-- ============================================== -->
+    <!-- MODAL: NOTES TRASH BIN (soft-deleted notes)   -->
+    <!-- ============================================== -->
+    <div id="notes-trash-modal" class="modal-overlay">
+      <div class="modal-content" style="max-width: 520px; max-height: 85vh;">
+        <div class="modal-header">
+          <h3 class="modal-title">🗑️ <span data-i18n="notes_trash_title">Κάδος Σημειώσεων</span></h3>
+          <span class="modal-close" onclick="closeModal('notes-trash-modal')">&times;</span>
+        </div>
+        <div class="modal-body" style="padding-bottom: 24px; display: flex; flex-direction: column; gap: 16px;">
+          <div style="display: flex; justify-content: flex-end;">
+            <button id="btn-empty-notes-trash" onclick="emptyNotesTrash()"
+              style="font-size: 13px; padding: 6px 12px; border-radius: 6px; background: rgba(244, 63, 94, 0.15); color: #f43f5e; border: 1px solid rgba(244, 63, 94, 0.3); font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+              <i class="fa-solid fa-trash-can"></i> <span data-i18n="empty_trash">Εκκαθάριση Κάδου</span>
+            </button>
+          </div>
+          <div id="notes-trash-list-container"
+            style="display: flex; flex-direction: column; gap: 12px; max-height: 55vh; overflow-y: auto; padding-right: 4px;">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================== -->
     <!-- MODAL: SETTINGS SUBSCREEN (hub navigation)   -->
     <!-- ============================================== -->
 
@@ -1466,7 +1495,8 @@
                 data-i18n="item_user_guide">Οδηγός Χρήσης</h3>
               <div
                 style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; font-family: 'Outfit', sans-serif;">
-                <span id="user-guide-version-badge" style="font-size:10px; background:rgba(99,102,241,0.15); color:var(--primary); padding:2px 8px; border-radius:10px; font-weight:700; border:1px solid rgba(99,102,241,0.3);">v1208</span>
+                <span id="user-guide-version-badge"
+                  style="font-size:10px; background:rgba(99,102,241,0.15); color:var(--primary); padding:2px 8px; border-radius:10px; font-weight:700; border:1px solid rgba(99,102,241,0.3);">v1211</span>
                 <span>•</span>
                 <span id="user-guide-date-badge">Αύγουστος 2026</span>
               </div>
@@ -1637,7 +1667,8 @@
                   <div data-i18n="pref_card_appearance_title"
                     style="font-size:15px; font-weight:800; color:var(--text-primary); font-family:'Outfit',sans-serif;">
                     Γλώσσα &amp; Εμφάνιση</div>
-                  <div data-i18n="pref_card_appearance_desc" style="font-size:12px; color:var(--text-muted);">Προσαρμογή γλώσσας, θεμάτων &amp; νομίσματος</div>
+                  <div data-i18n="pref_card_appearance_desc" style="font-size:12px; color:var(--text-muted);">Προσαρμογή
+                    γλώσσας, θεμάτων &amp; νομίσματος</div>
                 </div>
               </div>
 
@@ -1650,7 +1681,8 @@
                     <span class="settings-item-label"
                       style="font-weight:700; font-size:14px; color:var(--text-primary);"
                       data-i18n="item_language">Γλώσσα</span>
-                    <span style="font-size:12px; color:var(--text-muted);" data-i18n="item_language_desc">Γλώσσα περιβάλλοντος (Ελληνικά /
+                    <span style="font-size:12px; color:var(--text-muted);" data-i18n="item_language_desc">Γλώσσα
+                      περιβάλλοντος (Ελληνικά /
                       English)</span>
                   </div>
                   <div
@@ -1668,7 +1700,8 @@
                     <span class="settings-item-label"
                       style="font-weight:700; font-size:14px; color:var(--text-primary);" data-i18n="item_theme">Θέμα
                       Εμφάνισης</span>
-                    <span style="font-size:12px; color:var(--text-muted);" data-i18n="item_theme_desc">Παλέτα χρωμάτων &amp; σκοτεινή λειτουργία</span>
+                    <span style="font-size:12px; color:var(--text-muted);" data-i18n="item_theme_desc">Παλέτα χρωμάτων
+                      &amp; σκοτεινή λειτουργία</span>
                   </div>
                   <div
                     style="display:flex; align-items:center; gap:8px; background:rgba(var(--accent-rgb,124,106,247),0.12); border:1px solid rgba(var(--accent-rgb,124,106,247),0.3); padding:7px 14px; border-radius:20px;">
@@ -1686,7 +1719,8 @@
                     <span class="settings-item-label"
                       style="font-weight:700; font-size:14px; color:var(--text-primary);"
                       data-i18n="item_currency">Νόμισμα εφαρμογής</span>
-                    <span style="font-size:12px; color:var(--text-muted);" data-i18n="item_currency_desc">Το νόμισμα που χρησιμοποιείς συνήθως</span>
+                    <span style="font-size:12px; color:var(--text-muted);" data-i18n="item_currency_desc">Το νόμισμα που
+                      χρησιμοποιείς συνήθως</span>
                   </div>
                   <div
                     style="display:flex; align-items:center; gap:8px; background:rgba(var(--accent-rgb,124,106,247),0.12); border:1px solid rgba(var(--accent-rgb,124,106,247),0.3); padding:7px 14px; border-radius:20px;">
@@ -1704,7 +1738,8 @@
                     <span class="settings-item-label"
                       style="font-weight:700; font-size:14px; color:var(--text-primary);"
                       data-i18n="item_font_size">Μέγεθος Γραμματοσειράς</span>
-                    <span style="font-size:12px; color:var(--text-muted);" data-i18n="item_font_size_desc">Αύξηση μεγέθους κειμένου για ευκολότερη
+                    <span style="font-size:12px; color:var(--text-muted);" data-i18n="item_font_size_desc">Αύξηση
+                      μεγέθους κειμένου για ευκολότερη
                       ανάγνωση</span>
                   </div>
                   <div
@@ -1731,7 +1766,8 @@
                   <div data-i18n="pref_card_calendar_title"
                     style="font-size:15px; font-weight:800; color:var(--text-primary); font-family:'Outfit',sans-serif;">
                     Ημερολογιακοί Κύκλοι</div>
-                  <div data-i18n="pref_card_calendar_desc" style="font-size:12px; color:var(--text-muted);">Έναρξη μηνιαίου &amp; εβδομαδιαίου προϋπολογισμού
+                  <div data-i18n="pref_card_calendar_desc" style="font-size:12px; color:var(--text-muted);">Έναρξη
+                    μηνιαίου &amp; εβδομαδιαίου προϋπολογισμού
                   </div>
                 </div>
               </div>
@@ -1745,7 +1781,8 @@
                     <span class="settings-item-label"
                       style="font-weight:700; font-size:14px; color:var(--text-primary);"
                       data-i18n="item_month_start">Έναρξη Μήνα</span>
-                    <span style="font-size:12px; color:var(--text-muted);" data-i18n="item_month_start_desc">Ημέρα έναρξης μηνιαίου κύκλου (1 - 28)</span>
+                    <span style="font-size:12px; color:var(--text-muted);" data-i18n="item_month_start_desc">Ημέρα
+                      έναρξης μηνιαίου κύκλου (1 - 28)</span>
                   </div>
                   <div
                     style="display:flex; align-items:center; gap:8px; background:rgba(16,185,129,0.10); border:1px solid rgba(16,185,129,0.25); padding:7px 14px; border-radius:20px;">
@@ -1762,7 +1799,8 @@
                     <span class="settings-item-label"
                       style="font-weight:700; font-size:14px; color:var(--text-primary);"
                       data-i18n="item_week_start">Έναρξη Εβδομάδας</span>
-                    <span style="font-size:12px; color:var(--text-muted);" data-i18n="item_week_start_desc">Πρώτη ημέρα στα εβδομαδιαία γραφήματα</span>
+                    <span style="font-size:12px; color:var(--text-muted);" data-i18n="item_week_start_desc">Πρώτη ημέρα
+                      στα εβδομαδιαία γραφήματα</span>
                   </div>
                   <div
                     style="display:flex; align-items:center; gap:8px; background:rgba(16,185,129,0.10); border:1px solid rgba(16,185,129,0.25); padding:7px 14px; border-radius:20px;">
@@ -1788,7 +1826,8 @@
                   <div data-i18n="pref_card_tools_title"
                     style="font-size:15px; font-weight:800; color:var(--text-primary); font-family:'Outfit',sans-serif;">
                     Έξυπνα Εργαλεία &amp; Συντομεύσεις</div>
-                  <div data-i18n="pref_card_tools_desc" style="font-size:12px; color:var(--text-muted);">Αυτοματισμοί πληκτρολόγησης &amp; ταχεία πρόσβαση
+                  <div data-i18n="pref_card_tools_desc" style="font-size:12px; color:var(--text-muted);">Αυτοματισμοί
+                    πληκτρολόγησης &amp; ταχεία πρόσβαση
                   </div>
                 </div>
               </div>
@@ -1802,7 +1841,8 @@
                     <span class="settings-item-label"
                       style="font-weight:700; font-size:14px; color:var(--text-primary);"
                       data-i18n="item_autocomplete">Έξυπνος Τίτλος (Autocomplete)</span>
-                    <span style="font-size:12px; color:var(--text-muted);" data-i18n="item_autocomplete_desc">Αυτόματες προτάσεις κατά την
+                    <span style="font-size:12px; color:var(--text-muted);" data-i18n="item_autocomplete_desc">Αυτόματες
+                      προτάσεις κατά την
                       πληκτρολόγηση</span>
                   </div>
                   <label class="switch">
@@ -1819,7 +1859,8 @@
                     <span class="settings-item-label"
                       style="font-weight:700; font-size:14px; color:var(--text-primary);"
                       data-i18n="item_note_shortcut">Γρήγορες Σημειώσεις (κουμπί 📝)</span>
-                    <span style="font-size:12px; color:var(--text-muted);" data-i18n="item_note_shortcut_desc">Εμφάνιση συντόμευσης σημειωματάριου στην
+                    <span style="font-size:12px; color:var(--text-muted);" data-i18n="item_note_shortcut_desc">Εμφάνιση
+                      συντόμευσης σημειωματάριου στην
                       αρχική</span>
                   </div>
                   <label class="switch">
@@ -1850,7 +1891,8 @@
                   <div data-i18n="settings_notif_title"
                     style="font-size:15px; font-weight:800; color:var(--text-primary); font-family:'Outfit',sans-serif;">
                     Ειδοποιήσεις &amp; Υπενθυμίσεις</div>
-                  <div data-i18n="notif_card_desc" style="font-size:12px; color:var(--text-muted);">Υπενθυμίσεις καταγραφής &amp; όρια δαπανών</div>
+                  <div data-i18n="notif_card_desc" style="font-size:12px; color:var(--text-muted);">Υπενθυμίσεις
+                    καταγραφής &amp; όρια δαπανών</div>
                 </div>
               </div>
 
@@ -1863,7 +1905,8 @@
                     <span class="settings-item-label"
                       style="font-weight:700; font-size:14px; color:var(--text-primary);"
                       data-i18n="item_daily_reminder">Ημερήσια Υπενθύμιση</span>
-                    <span style="font-size:12px; color:var(--text-muted);" data-i18n="item_daily_reminder_desc">Υπενθύμιση καταγραφής εξόδων στις
+                    <span style="font-size:12px; color:var(--text-muted);"
+                      data-i18n="item_daily_reminder_desc">Υπενθύμιση καταγραφής εξόδων στις
                       21:00</span>
                   </div>
                   <label class="switch">
@@ -1888,7 +1931,8 @@
                     <span class="settings-item-label"
                       style="font-weight:700; font-size:14px; color:var(--text-primary);"
                       data-i18n="item_recurring_alerts">Ειδοποίηση Πληρωμών</span>
-                    <span style="font-size:12px; color:var(--text-muted);" data-i18n="item_recurring_alerts_desc">Προειδοποίηση 1 ημέρα πριν τη λήξη</span>
+                    <span style="font-size:12px; color:var(--text-muted);"
+                      data-i18n="item_recurring_alerts_desc">Προειδοποίηση 1 ημέρα πριν τη λήξη</span>
                   </div>
                   <label class="switch">
                     <input type="checkbox" id="settings-recurring-alerts"
@@ -1904,7 +1948,8 @@
                     <span class="settings-item-label"
                       style="font-weight:700; font-size:14px; color:var(--text-primary);"
                       data-i18n="item_expense_alert">Όριο Υψηλής Δαπάνης (€)</span>
-                    <span style="font-size:12px; color:var(--text-muted);" data-i18n="item_expense_alert_desc">Ειδοποίηση για έξοδα άνω του ορίου</span>
+                    <span style="font-size:12px; color:var(--text-muted);"
+                      data-i18n="item_expense_alert_desc">Ειδοποίηση για έξοδα άνω του ορίου</span>
                   </div>
                   <label class="switch">
                     <input type="checkbox" id="settings-expense-alert" onchange="toggleExpenseAlert(this.checked)">
@@ -1939,7 +1984,8 @@
               </div>
               <div id="notifications-history-list"
                 style="display:flex; flex-direction:column; gap:10px; max-height:40vh; overflow-y:auto; padding:2px;">
-                <div style="font-size:12px; color:var(--text-muted); text-align:center; padding:12px 0;" data-i18n="no_notifications">Δεν υπάρχουν
+                <div style="font-size:12px; color:var(--text-muted); text-align:center; padding:12px 0;"
+                  data-i18n="no_notifications">Δεν υπάρχουν
                   πρόσφατες ειδοποιήσεις.</div>
               </div>
             </div>
@@ -2067,7 +2113,8 @@
                   <div data-i18n="settings_security_title"
                     style="font-size:15px; font-weight:800; color:var(--text-primary); font-family:'Outfit',sans-serif;">
                     Ασφάλεια &amp; Ιδιωτικότητα</div>
-                  <div data-i18n="security_card_desc" style="font-size:12px; color:var(--text-muted);">Κλείδωμα PIN, βιομετρικά &amp; απόκρυψη ποσών
+                  <div data-i18n="security_card_desc" style="font-size:12px; color:var(--text-muted);">Κλείδωμα PIN,
+                    βιομετρικά &amp; απόκρυψη ποσών
                   </div>
                 </div>
               </div>
@@ -2079,7 +2126,8 @@
                     <span class="settings-item-label"
                       style="font-weight:700; font-size:14px; color:var(--text-primary);"
                       data-i18n="item_app_lock">Κλείδωμα Εφαρμογής (PIN)</span>
-                    <span style="font-size:12px; color:var(--text-muted);" data-i18n="item_app_lock_desc">Προστασία με 4ψήφιο κωδικό</span>
+                    <span style="font-size:12px; color:var(--text-muted);" data-i18n="item_app_lock_desc">Προστασία με
+                      4ψήφιο κωδικό</span>
                   </div>
                   <label class="switch">
                     <input type="checkbox" id="settings-app-lock" onchange="toggleAppLock(this.checked)">
@@ -2092,7 +2140,8 @@
                     <span class="settings-item-label"
                       style="font-weight:700; font-size:14px; color:var(--text-primary);"
                       data-i18n="item_biometric">Βιομετρικό Ξεκλείδωμα</span>
-                    <span id="biometrics-platform-info" style="font-size:12px; color:var(--text-muted);" data-i18n="item_biometrics_desc">Δακτυλικό
+                    <span id="biometrics-platform-info" style="font-size:12px; color:var(--text-muted);"
+                      data-i18n="item_biometrics_desc">Δακτυλικό
                       αποτύπωμα / Face ID</span>
                   </div>
                   <label class="switch">
@@ -2106,7 +2155,8 @@
                     <span class="settings-item-label"
                       style="font-weight:700; font-size:14px; color:var(--text-primary);"
                       data-i18n="item_hide_amounts">Απόκρυψη Ποσών</span>
-                    <span style="font-size:12px; color:var(--text-muted);" data-i18n="item_hide_amounts_desc">Εμφάνιση 👁️ (***) στα υπόλοιπα</span>
+                    <span style="font-size:12px; color:var(--text-muted);" data-i18n="item_hide_amounts_desc">Εμφάνιση
+                      👁️ (***) στα υπόλοιπα</span>
                   </div>
                   <label class="switch">
                     <input type="checkbox" id="settings-hide-amounts" onchange="toggleHideAmountsSetting(this.checked)">
@@ -2119,7 +2169,8 @@
                     <span class="settings-item-label"
                       style="font-weight:700; font-size:14px; color:var(--text-primary);"
                       data-i18n="item_screenshot_block">Αποκλεισμός Screenshots</span>
-                    <span id="screenshot-platform-info" style="font-size:12px; color:var(--text-muted);" data-i18n="item_screenshot_block_desc">Απαγόρευση
+                    <span id="screenshot-platform-info" style="font-size:12px; color:var(--text-muted);"
+                      data-i18n="item_screenshot_block_desc">Απαγόρευση
                       στιγμιότυπων οθόνης</span>
                   </div>
                   <label class="switch">
@@ -2134,7 +2185,8 @@
                     <span class="settings-item-label"
                       style="font-weight:700; font-size:14px; color:var(--text-primary);"
                       data-i18n="item_auto_lock">Αυτόματο Κλείδωμα</span>
-                    <span style="font-size:12px; color:var(--text-muted);" data-i18n="item_auto_lock_desc">Χρόνος αδράνειας πριν το κλείδωμα</span>
+                    <span style="font-size:12px; color:var(--text-muted);" data-i18n="item_auto_lock_desc">Χρόνος
+                      αδράνειας πριν το κλείδωμα</span>
                   </div>
                   <div
                     style="display:flex; align-items:center; gap:8px; background:rgba(239,68,68,0.10); border:1px solid rgba(239,68,68,0.25); padding:7px 14px; border-radius:20px;">
@@ -2344,7 +2396,7 @@
             <div class="settings-list-item version-info-row"
               style="padding: 14px 16px; background: transparent; border-top: 1px solid var(--border); margin-top: 8px;">
               <span class="settings-item-label" style="color:var(--text-muted); font-size:12px;"
-                data-i18n="app_version">Έκδοση 1.0.0 (build v1208)</span>
+                data-i18n="app_version">Έκδοση 1.0.0 (build v1211)</span>
               <span class="settings-item-value" style="font-size:12px; color:var(--text-muted); font-weight:600;">Budget
                 Assistant</span>
             </div>
@@ -3966,32 +4018,39 @@
           <!-- Hidden budget ID -->
           <input type="hidden" id="budget-modal-id" value="">
 
-          <!-- Category Select -->
+          <!-- Category Select (modern trigger + hidden native select) -->
           <div>
             <span
               style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Κατηγορία</span>
             <div style="position: relative; margin-top: 6px;">
-              <select id="budget-modal-category" onchange="onBudgetCategoryChange()"
-                style="width: 100%; padding: 14px 16px; border-radius: 14px; background: rgba(255,255,255,0.04); color: var(--text-primary); border: 1px solid var(--border); font-size: 14px; font-weight: 600; outline: none; cursor: pointer; appearance: none;">
+              <select id="budget-modal-category" onchange="onBudgetCategoryChange()" style="display: none;">
                 <!-- Populated dynamically -->
               </select>
-              <i class="fa-solid fa-chevron-down"
-                style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--text-secondary); font-size: 12px;"></i>
+              <button type="button" id="budget-category-trigger" class="budget-picker-trigger"
+                onclick="openBudgetCategoryPicker()">
+                <span class="budget-picker-trigger-icon" id="budget-category-trigger-icon">🏷️</span>
+                <span class="budget-picker-trigger-label" id="budget-category-trigger-label">Επιλέξτε κατηγορία</span>
+                <i class="fa-solid fa-chevron-down budget-picker-trigger-chevron"></i>
+              </button>
             </div>
           </div>
 
-          <!-- Subcategory Select (Optional) -->
+          <!-- Subcategory Select (Optional) (modern trigger + hidden native select) -->
           <div id="budget-modal-subcat-container" style="display: none;">
             <span
               style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Υποκατηγορία
               (Προαιρετικό)</span>
             <div style="position: relative; margin-top: 6px;">
-              <select id="budget-modal-subcategory"
-                style="width: 100%; padding: 14px 16px; border-radius: 14px; background: rgba(255,255,255,0.04); color: var(--text-primary); border: 1px solid var(--border); font-size: 14px; font-weight: 600; outline: none; cursor: pointer; appearance: none;">
+              <select id="budget-modal-subcategory" style="display: none;">
                 <option value="">Όλες οι υποκατηγορίες</option>
               </select>
-              <i class="fa-solid fa-chevron-down"
-                style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--text-secondary); font-size: 12px;"></i>
+              <button type="button" id="budget-subcategory-trigger" class="budget-picker-trigger"
+                onclick="openBudgetSubcategoryPicker()">
+                <span class="budget-picker-trigger-icon" id="budget-subcategory-trigger-icon">🗂️</span>
+                <span class="budget-picker-trigger-label" id="budget-subcategory-trigger-label">Όλες οι
+                  υποκατηγορίες</span>
+                <i class="fa-solid fa-chevron-down budget-picker-trigger-chevron"></i>
+              </button>
             </div>
           </div>
 
@@ -4052,6 +4111,33 @@
               class="fa-regular fa-trash-can"></i></button>
           <button type="button" onclick="saveCategoryBudgetFromModal()"
             style="flex: 1; padding: 14px; border-radius: 16px; font-size: 14.5px; font-weight: 700; background: var(--accent); color: white; border: none; cursor: pointer; text-align: center; box-shadow: 0 4px 14px rgba(0,0,0,0.2);">Αποθήκευση</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: BUDGET CATEGORY / SUBCATEGORY PICKER (modern list) -->
+    <div id="budget-picker-modal" class="modal-overlay" style="z-index: 13000;">
+      <div class="modal-content"
+        style="max-height: 85vh; display: flex; flex-direction: column; max-width: 440px; border-radius: 20px; overflow: hidden; background: var(--bg-card, #1c1f28); border: 1px solid var(--border);">
+        <div class="modal-header"
+          style="position: relative; min-height: 54px; box-sizing: border-box; border-bottom: 1px solid var(--border); padding: 0 18px; display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.02);">
+          <button type="button" id="budget-picker-back" class="icon-btn" onclick="budgetPickerGoBack()"
+            style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 18px; background: transparent; border: none; color: var(--text-secondary); cursor: pointer; padding: 4px; display: none; align-items: center; justify-content: center;"><i
+              class="fa-solid fa-arrow-left"></i></button>
+          <h3 class="modal-title" id="budget-picker-title"
+            style="margin: 0; font-size: 15px; font-weight: 800; color: #ffffff; text-align: center; flex: 1;">Επιλογή
+            Κατηγορίας</h3>
+          <span class="modal-close" onclick="closeModal('budget-picker-modal')"
+            style="font-size: 20px; color: var(--text-muted); cursor: pointer; line-height: 1;">✕</span>
+        </div>
+        <div class="modal-body" style="padding: 16px; flex: 1; overflow-y: auto;">
+          <div id="budget-picker-search-wrap" style="margin-bottom: 12px; display: none;">
+            <input type="text" id="budget-picker-search" class="form-row-input" placeholder="🔍 Αναζήτηση..."
+              style="width: 100%; box-sizing: border-box;" oninput="renderBudgetPickerOptions()">
+          </div>
+          <div id="budget-picker-list" class="budget-picker-list">
+            <!-- Options injected here -->
+          </div>
         </div>
       </div>
     </div>
@@ -4149,14 +4235,11 @@
         </div>
 
         <!-- Segmented Type Selector -->
-        <div
-          style="display: flex; background: rgba(0,0,0,0.15); border: 1px solid var(--border); border-radius: 10px; padding: 3px; margin: 0 16px 12px 16px; box-sizing: border-box;">
-          <button id="note-type-text-btn" onclick="setNoteEditorType('text')"
-            style="flex: 1; padding: 6px; font-size: 12.5px; border-radius: 8px; border: none; cursor: pointer; font-weight: 700; font-family: 'Outfit', sans-serif; transition: all 0.2s; background: var(--accent); color: white;">
+        <div class="note-type-segment">
+          <button id="note-type-text-btn" class="active" onclick="setNoteEditorType('text')">
             📝 Κείμενο
           </button>
-          <button id="note-type-checklist-btn" onclick="setNoteEditorType('checklist')"
-            style="flex: 1; padding: 6px; font-size: 12.5px; border-radius: 8px; border: none; cursor: pointer; font-weight: 700; font-family: 'Outfit', sans-serif; transition: all 0.2s; background: transparent; color: var(--text-secondary);">
+          <button id="note-type-checklist-btn" onclick="setNoteEditorType('checklist')">
             ☑️ Λίστα
           </button>
         </div>
@@ -4203,8 +4286,7 @@
               style="display: flex; flex-direction: column; gap: 8px; max-height: 250px; overflow-y: auto; padding-right: 4px; box-sizing: border-box;">
               <!-- Dynamically generated list items with inputs and delete buttons -->
             </div>
-            <button class="btn btn-secondary" onclick="addNoteEditorChecklistItem()"
-              style="padding: 8px; font-size: 13px; font-weight: 700; margin-top: 4px; display: flex; align-items: center; justify-content: center; gap: 6px; border-radius: 8px; background: rgba(255,255,255,0.02); border: 1px dashed var(--border); color: var(--text-primary); cursor: pointer; box-sizing: border-box;">
+            <button class="note-checklist-add" onclick="addNoteEditorChecklistItem()">
               <i class="fa-solid fa-plus" style="color: var(--accent);"></i> Προσθήκη αντικειμένου
             </button>
           </div>
@@ -4304,6 +4386,11 @@
     </div>
 
     <!-- Core Application Scripts -->
+    <!-- AI debug logging flag: gates verbose console.* output from the AI engine
+         modules (AIEngine, OnlineAIProvider, IntentCorpus, KnowledgeGraph,
+         MemoryEngine). The in-app AIDebugLog panel is unaffected. Set to true
+         only during local development. -->
+    <script>window.AI_DEBUG = false;</script>
     <script src="js/NLPProcessor.js"></script>
     <script src="js/MemoryEngine.js"></script>
     <script src="js/DecisionEngine.js"></script>
@@ -4329,7 +4416,7 @@
       // OTA updates. Running both would cause a reload loop that never
       // baked into the APK and never changes on a plain reload).
       // ============================================================
-      const CURRENT_BUILD = 1208;
+      const CURRENT_BUILD = 1211;
       (function () {
         // Skip entirely when running inside the native APK (Capacitor bridge
         // present). Capgo handles OTA updates there.
@@ -5181,11 +5268,11 @@
 
   <!-- Transaction merge/dedup logic (pure, testable; loaded before app.js) -->
   <script src="js/transactionMerge.js"></script>
-  <script src="app.js?v=1208"></script>
+  <script src="app.js?v=1211"></script>
   <!-- Desktop Web UX Layer (defer so it runs after app.js; invoked via
        initDesktopUI() hook at the end of initApp()). Self-guards on
        html.web-mode so native Android/iOS is never affected. -->
-  <script src="web-ui.js?v=1208" defer></script>
+  <script src="web-ui.js?v=1211" defer></script>
 </body>
 
 

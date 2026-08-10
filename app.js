@@ -1052,7 +1052,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1208 - 06/08/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1211 - 06/08/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1513,7 +1513,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1208 - 06/08/2026)',
+    app_version: 'Version 1.0.0 (build v1211 - 06/08/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -2404,6 +2404,42 @@ async function scheduleDailyReminder(enabled, timeString) {
   }
 }
 
+// Persist pending note reminders so they survive app restarts. The native
+// LocalNotifications plugin already persists scheduled notifications, but the
+// setTimeout fallback (web / non-Capacitor) is lost on reload. Storing the
+// pending reminders lets us re-schedule them on startup.
+function persistPendingNoteReminders() {
+  try {
+    const pending = (state.notes || [])
+      .filter(n => n.reminder_at && new Date(n.reminder_at).getTime() > Date.now())
+      .map(n => ({ id: n.id, reminder_at: n.reminder_at, title: n.title }));
+    localStorage.setItem('pending_note_reminders', JSON.stringify(pending));
+  } catch (e) {
+    console.warn('Failed to persist pending note reminders:', e);
+  }
+}
+
+// Re-schedule all pending note reminders (called on app startup so reminders
+// set before a reload/restart are not lost).
+async function rescheduleAllNoteReminders() {
+  try {
+    const pending = JSON.parse(localStorage.getItem('pending_note_reminders') || '[]');
+    if (!Array.isArray(pending)) return;
+    pending.forEach(p => {
+      if (!p.id || !p.reminder_at) return;
+      const note = state.notes.find(n => n.id === p.id);
+      if (note) {
+        scheduleNoteReminder(note);
+      } else {
+        // Note no longer exists — schedule a bare reminder from the stored data.
+        scheduleNoteReminder({ id: p.id, title: p.title || '', reminder_at: p.reminder_at });
+      }
+    });
+  } catch (e) {
+    console.warn('Failed to reschedule note reminders:', e);
+  }
+}
+
 async function scheduleNoteReminder(note) {
   const notificationId = uuidToNotificationId(note.id);
   if (!window.Capacitor || !window.Capacitor.Plugins || !window.Capacitor.Plugins.LocalNotifications) {
@@ -2419,16 +2455,26 @@ async function scheduleNoteReminder(note) {
         }, ms);
       }
     }
+    persistPendingNoteReminders();
     return;
   }
   const LocalNotifications = window.Capacitor.Plugins.LocalNotifications;
   try {
     await LocalNotifications.cancel({ notifications: [{ id: notificationId }] });
-    if (!note.reminder_at) return;
+    if (!note.reminder_at) {
+      persistPendingNoteReminders();
+      return;
+    }
     const reminderTime = new Date(note.reminder_at);
-    if (reminderTime.getTime() <= Date.now()) return;
+    if (reminderTime.getTime() <= Date.now()) {
+      persistPendingNoteReminders();
+      return;
+    }
     const perm = await LocalNotifications.requestPermissions();
-    if (perm.display !== 'granted') return;
+    if (perm.display !== 'granted') {
+      persistPendingNoteReminders();
+      return;
+    }
     await LocalNotifications.schedule({
       notifications: [
         {
@@ -2446,6 +2492,7 @@ async function scheduleNoteReminder(note) {
         }
       ]
     });
+    persistPendingNoteReminders();
   } catch (err) {
     console.error('Error scheduling local notification:', err);
   }
@@ -2464,10 +2511,21 @@ async function cancelNoteReminder(noteId) {
       console.warn('Failed to cancel local notification:', err);
     }
   }
+  // Remove from the persisted pending list so it is not re-scheduled on restart.
+  try {
+    const pending = JSON.parse(localStorage.getItem('pending_note_reminders') || '[]');
+    const filtered = (Array.isArray(pending) ? pending : []).filter(p => String(p.id) !== String(noteId));
+    localStorage.setItem('pending_note_reminders', JSON.stringify(filtered));
+  } catch (e) {
+    console.warn('Failed to clear persisted note reminder:', e);
+  }
 }
 
 async function initLocalNotifications() {
   if (!window.Capacitor || !window.Capacitor.Plugins || !window.Capacitor.Plugins.LocalNotifications) {
+    // Non-Capacitor (web) environment: still re-schedule the setTimeout-based
+    // fallback reminders so they survive a page reload.
+    rescheduleAllNoteReminders();
     return;
   }
   const LocalNotifications = window.Capacitor.Plugins.LocalNotifications;
@@ -2480,6 +2538,8 @@ async function initLocalNotifications() {
         scheduleDailyReminder(true, timeVal);
       }
     }
+    // Re-schedule any pending note reminders that were set before a restart.
+    rescheduleAllNoteReminders();
     await LocalNotifications.addListener('localNotificationReceived', (notification) => {
       handleIncomingLocalNotification(notification);
     });
@@ -16439,7 +16499,32 @@ let _currentEditingNoteType = 'text';
 function loadNotes() {
   try {
     const cached = localStorage.getItem('offline_notes');
-    state.notes = cached ? JSON.parse(cached) : [];
+    const all = cached ? JSON.parse(cached) : [];
+    // Separate any soft-deleted notes into the trash bin so they don't
+    // reappear in the active list after a reload.
+    const active = [];
+    const deleted = [];
+    (Array.isArray(all) ? all : []).forEach(n => {
+      if (n && n.status === 'deleted') {
+        deleted.push(n);
+      } else {
+        active.push(n);
+      }
+    });
+    state.notes = active;
+    if (deleted.length > 0) {
+      const trash = loadNotesTrash();
+      const trashIds = new Set(trash.map(t => String(t.id)));
+      deleted.forEach(n => {
+        if (!trashIds.has(String(n.id))) {
+          trash.push(n);
+          trashIds.add(String(n.id));
+        }
+      });
+      saveNotesTrash(trash);
+      // Persist the cleaned active list.
+      saveNotes();
+    }
   } catch (e) {
     console.error('Failed to parse offline notes:', e);
     state.notes = [];
@@ -16489,12 +16574,8 @@ function renderNotesList() {
       const titleMatch = (note.title || '').toLowerCase().includes(query);
       let bodyMatch = false;
       if (note.type === 'checklist') {
-        try {
-          const items = JSON.parse(note.body || '[]');
-          bodyMatch = items.some(item => (item.text || '').toLowerCase().includes(query));
-        } catch (e) {
-          bodyMatch = (note.body || '').toLowerCase().includes(query);
-        }
+        const items = getNoteChecklistItems(note);
+        bodyMatch = items.some(item => (item.text || '').toLowerCase().includes(query));
       } else {
         bodyMatch = (note.body || '').toLowerCase().includes(query);
       }
@@ -16589,10 +16670,7 @@ function renderNotesList() {
     cardBody.className = 'note-card-body';
 
     if (note.type === 'checklist') {
-      let items = [];
-      try {
-        items = JSON.parse(note.body || '[]');
-      } catch (e) { }
+      const items = getNoteChecklistItems(note);
 
       if (items.length === 0) {
         cardBody.style.fontStyle = 'italic';
@@ -16799,11 +16877,8 @@ function setNoteEditorType(type) {
   const checklistItemsEl = document.getElementById('note-editor-checklist-items');
 
   if (type === 'checklist') {
-    textBtn.style.background = 'transparent';
-    textBtn.style.color = 'var(--text-secondary)';
-
-    checklistBtn.style.background = 'var(--accent)';
-    checklistBtn.style.color = 'white';
+    textBtn.classList.remove('active');
+    checklistBtn.classList.add('active');
 
     textContainer.style.display = 'none';
     checklistContainer.style.display = 'flex';
@@ -16812,11 +16887,8 @@ function setNoteEditorType(type) {
       addNoteEditorChecklistItemRow('', false);
     }
   } else {
-    textBtn.style.background = 'var(--accent)';
-    textBtn.style.color = 'white';
-
-    checklistBtn.style.background = 'transparent';
-    checklistBtn.style.color = 'var(--text-secondary)';
+    textBtn.classList.add('active');
+    checklistBtn.classList.remove('active');
 
     textContainer.style.display = 'flex';
     checklistContainer.style.display = 'none';
@@ -16828,19 +16900,16 @@ function addNoteEditorChecklistItemRow(text = '', checked = false) {
   if (!container) return;
 
   const row = document.createElement('div');
-  row.style.cssText = 'display: flex; align-items: center; gap: 8px; box-sizing: border-box;';
+  row.className = 'note-checklist-row';
 
   const chk = document.createElement('input');
   chk.type = 'checkbox';
   chk.checked = checked;
-  chk.style.cssText = 'width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; margin: 0;';
 
   const input = document.createElement('input');
   input.type = 'text';
   input.value = text;
   input.placeholder = state.lang === 'el' ? 'Αντικείμενο...' : 'Item...';
-  input.className = 'form-row-input';
-  input.style.cssText = 'flex: 1; padding: 8px; font-size: 13.5px; margin: 0;';
 
   if (checked) {
     input.style.textDecoration = 'line-through';
@@ -16858,8 +16927,7 @@ function addNoteEditorChecklistItemRow(text = '', checked = false) {
   });
 
   const delBtn = document.createElement('button');
-  delBtn.className = 'icon-btn';
-  delBtn.style.cssText = 'font-size: 13px; color: var(--red-negative); padding: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; border: none; background: transparent; margin: 0;';
+  delBtn.className = 'note-checklist-del';
   delBtn.innerHTML = '<i class="fa-solid fa-trash-can"></i>';
   delBtn.addEventListener('click', () => {
     row.remove();
@@ -16911,6 +16979,7 @@ async function saveNoteFromEditor() {
     return;
   }
 
+  let checklistItems = null;
   if (_currentEditingNoteType === 'checklist') {
     const rows = checklistItemsEl.querySelectorAll('div');
     const items = [];
@@ -16924,6 +16993,10 @@ async function saveNoteFromEditor() {
         });
       }
     });
+    // Store structured items in the dedicated JSONB column (avoids fragile
+    // JSON-string parsing of `body`). `body` is kept as a JSON string for
+    // backward compatibility with existing rows / older app versions.
+    checklistItems = items;
     body = JSON.stringify(items);
   } else {
     body = bodyInput.value.trim();
@@ -16946,6 +17019,8 @@ async function saveNoteFromEditor() {
     user_id: user_id,
     family_id: family_id,
     reminder_at: reminderAt,
+    checklist_items: checklistItems,
+    status: 'active',
     updated_at: new Date().toISOString()
   };
 
@@ -16967,27 +17042,8 @@ async function saveNoteFromEditor() {
   renderNotesList();
   closeModal('note-editor-modal');
 
-  if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
-    try {
-      const { error } = await state.supabaseClient
-        .from('notes')
-        .upsert({
-          id: noteObj.id,
-          title: noteObj.title,
-          body: noteObj.body,
-          type: noteObj.type,
-          pinned: noteObj.pinned,
-          user_id: state.currentUser.id,
-          family_id: family_id,
-          reminder_at: noteObj.reminder_at,
-          updated_at: noteObj.updated_at,
-          created_at: noteObj.created_at
-        });
-      if (error) console.warn('Supabase note save error:', error);
-    } catch (err) {
-      console.warn('Supabase note save exception:', err);
-    }
-  }
+  // Centralized cloud persistence (single source of truth for the upsert shape).
+  await upsertNoteToCloud(noteObj);
 }
 
 async function deleteNoteFromEditor() {
@@ -17023,39 +17079,186 @@ function clearNoteEditorReminder() {
   if (clearReminderBtn) clearReminderBtn.style.display = 'none';
 }
 
+// Soft-delete a note: instead of permanently removing the row, we flip its
+// status to 'deleted' and record when/who deleted it. This mirrors the
+// transactions trash-bin pattern so accidentally-deleted notes can be restored.
 async function deleteNote(noteId) {
+  const note = state.notes.find(n => n.id === noteId);
+  if (!note) return;
+
+  // Move the note into the local trash bin (kept even when offline).
+  const deletedNote = {
+    ...note,
+    status: 'deleted',
+    deleted_at: new Date().toISOString(),
+    deleted_by: state.currentUser ? state.currentUser.id : null
+  };
+  const trash = loadNotesTrash();
+  trash.push(deletedNote);
+  saveNotesTrash(trash);
+
+  // Remove from the active list.
   state.notes = state.notes.filter(n => n.id !== noteId);
   saveNotes();
   cancelNoteReminder(noteId);
   renderNotesList();
 
+  // Soft-delete on the cloud (status='deleted' + tombstone timestamps).
   if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
     try {
       const { error } = await state.supabaseClient
         .from('notes')
-        .delete()
+        .update({
+          status: 'deleted',
+          deleted_at: deletedNote.deleted_at,
+          deleted_by: state.currentUser.id,
+          updated_at: deletedNote.deleted_at
+        })
         .match({ id: noteId });
-      if (error) console.warn('Supabase note delete error:', error);
+      if (error) console.warn('Supabase note soft-delete error:', error);
     } catch (err) {
-      console.warn('Supabase note delete exception:', err);
+      console.warn('Supabase note soft-delete exception:', err);
     }
   }
+}
+
+// ============================================================
+// NOTES REPOSITORY (centralized data access for the notes subsystem)
+// ------------------------------------------------------------
+// Consolidates the previously-duplicated `.from('notes')` calls (save, pin,
+// checklist toggle, sync) into a single place, and provides the soft-delete /
+// trash-bin helpers. This removes the "duplicate sync code" weakness.
+// ============================================================
+
+const NOTES_TRASH_KEY = 'deleted_notes_trash';
+
+function loadNotesTrash() {
+  try {
+    const raw = localStorage.getItem(NOTES_TRASH_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    console.error('Failed to parse notes trash:', e);
+    return [];
+  }
+}
+
+function saveNotesTrash(trash) {
+  try {
+    localStorage.setItem(NOTES_TRASH_KEY, JSON.stringify(trash || []));
+  } catch (e) {
+    console.error('Failed to save notes trash:', e);
+  }
+}
+
+// Build the DB record for a note (single source of truth for the upsert shape).
+function mapNoteToDb(n, userId, familyId) {
+  return {
+    id: n.id,
+    title: n.title,
+    body: n.body,
+    type: n.type,
+    pinned: !!n.pinned,
+    user_id: n.user_id === 'offline-user' ? userId : n.user_id,
+    family_id: familyId,
+    reminder_at: n.reminder_at || null,
+    status: n.status || 'active',
+    deleted_at: n.deleted_at || null,
+    deleted_by: n.deleted_by || null,
+    checklist_items: n.checklist_items || null,
+    created_at: n.created_at || new Date().toISOString(),
+    updated_at: n.updated_at || new Date().toISOString()
+  };
+}
+
+// Read a note's checklist items, preferring the structured JSONB column and
+// falling back to parsing the legacy JSON-string `body`. This centralizes the
+// previously-repeated `JSON.parse(note.body)` logic.
+function getNoteChecklistItems(note) {
+  if (note && Array.isArray(note.checklist_items)) {
+    return note.checklist_items;
+  }
+  if (note && note.body) {
+    try {
+      const parsed = JSON.parse(note.body);
+      if (Array.isArray(parsed)) return parsed;
+    } catch (e) { /* not JSON — treat as empty */ }
+  }
+  return [];
+}
+
+// Persist a single note to the cloud (used by save/pin/checklist-toggle).
+async function upsertNoteToCloud(note) {
+  if (!state.isSupabaseEnabled || !state.supabaseClient || !state.currentUser) return;
+  const familyId = state.userProfile ? state.userProfile.family_id : null;
+  const record = mapNoteToDb(note, state.currentUser.id, familyId);
+  try {
+    const { error } = await state.supabaseClient.from('notes').upsert(record);
+    if (error) console.warn('[NotesRepo] upsert error:', error);
+  } catch (err) {
+    console.warn('[NotesRepo] upsert exception:', err);
+  }
+}
+
+// Build the scope filter (user + family) used by both sync and trash queries.
+function buildNotesScopeQuery(baseQuery) {
+  const familyId = state.userProfile ? state.userProfile.family_id : null;
+  const userId = state.currentUser.id;
+  if (familyId) {
+    return baseQuery.or(`family_id.eq.${familyId},user_id.eq.${userId}`);
+  }
+  return baseQuery.eq('user_id', userId);
+}
+
+// Conflict-aware merge: for each note id, pick the newest version by
+// updated_at. A soft-deleted note (status='deleted') is treated as a
+// tombstone — it is excluded from the active list but preserved in the trash.
+function mergeNotes(localNotes, remoteNotes) {
+  const byId = new Map();
+
+  const ingest = (n) => {
+    const existing = byId.get(n.id);
+    if (!existing) {
+      byId.set(n.id, n);
+      return;
+    }
+    const existingDate = new Date(existing.updated_at || existing.created_at || 0);
+    const incomingDate = new Date(n.updated_at || n.created_at || 0);
+    if (incomingDate > existingDate) {
+      byId.set(n.id, n);
+    }
+  };
+
+  (localNotes || []).forEach(ingest);
+  (remoteNotes || []).forEach(ingest);
+
+  const merged = [];
+  const notesToUpsert = [];
+  const tombstones = [];
+
+  byId.forEach(n => {
+    if (n.status === 'deleted') {
+      tombstones.push(n);
+    } else {
+      merged.push(n);
+      // If this note came from local and is newer than what the cloud has,
+      // we still push it (the upsert is idempotent). To avoid re-pushing
+      // unchanged remote notes, only push notes that are locally dirty.
+      if (n._dirty) notesToUpsert.push(n);
+    }
+  });
+
+  return { merged, notesToUpsert, tombstones };
 }
 
 async function syncNotes() {
   if (!state.supabaseClient || !state.currentUser) return;
 
-  const familyId = state.userProfile ? state.userProfile.family_id : null;
   const userId = state.currentUser.id;
 
   try {
+    // Fetch active + soft-deleted notes so tombstones propagate across devices.
     let query = state.supabaseClient.from('notes').select('*');
-    if (familyId) {
-      query = query.or(`family_id.eq.${familyId},user_id.eq.${userId}`);
-    } else {
-      query = query.eq('user_id', userId);
-    }
-
+    query = buildNotesScopeQuery(query);
     const { data: remoteNotes, error } = await query;
 
     if (error) {
@@ -17069,57 +17272,34 @@ async function syncNotes() {
 
     if (!remoteNotes) return;
 
-    const remoteMap = new Map();
-    remoteNotes.forEach(rn => remoteMap.set(rn.id, rn));
+    // Mark local notes as dirty so the merge knows which ones to push back.
+    state.notes.forEach(n => { n._dirty = true; });
 
-    const mergedNotes = [];
-    const notesToUpsert = [];
+    const { merged, notesToUpsert, tombstones } = mergeNotes(state.notes, remoteNotes);
 
-    state.notes.forEach(localNote => {
-      const remoteNote = remoteMap.get(localNote.id);
-      if (remoteNote) {
-        const localDate = new Date(localNote.updated_at || localNote.created_at || 0);
-        const remoteDate = new Date(remoteNote.updated_at || remoteNote.created_at || 0);
-
-        if (localDate > remoteDate) {
-          mergedNotes.push(localNote);
-          notesToUpsert.push(localNote);
-        } else {
-          mergedNotes.push(remoteNote);
-        }
-        remoteMap.delete(localNote.id);
-      } else {
-        mergedNotes.push(localNote);
-        notesToUpsert.push(localNote);
-      }
-    });
-
-    remoteMap.forEach(rn => {
-      mergedNotes.push(rn);
-    });
-
-    state.notes = mergedNotes;
+    state.notes = merged;
     saveNotes();
     renderNotesList();
 
-    if (notesToUpsert.length > 0) {
-      const records = notesToUpsert.map(n => ({
-        id: n.id,
-        title: n.title,
-        body: n.body,
-        type: n.type,
-        pinned: !!n.pinned,
-        user_id: n.user_id === 'offline-user' ? userId : n.user_id,
-        family_id: familyId,
-        reminder_at: n.reminder_at || null,
-        created_at: n.created_at || new Date().toISOString(),
-        updated_at: n.updated_at || new Date().toISOString()
-      }));
+    // Fold any remote tombstones into the local trash bin so a note deleted on
+    // another device shows up here too.
+    if (tombstones.length > 0) {
+      const trash = loadNotesTrash();
+      const trashIds = new Set(trash.map(t => String(t.id)));
+      tombstones.forEach(t => {
+        if (!trashIds.has(String(t.id))) {
+          trash.push(t);
+          trashIds.add(String(t.id));
+        }
+      });
+      saveNotesTrash(trash);
+    }
 
+    if (notesToUpsert.length > 0) {
+      const records = notesToUpsert.map(n => mapNoteToDb(n, userId, state.userProfile ? state.userProfile.family_id : null));
       const { error: upsertError } = await state.supabaseClient
         .from('notes')
         .upsert(records);
-
       if (upsertError) {
         console.warn('[NotesSync] error pushing local notes to remote:', upsertError);
       }
@@ -17128,6 +17308,169 @@ async function syncNotes() {
     console.warn('[NotesSync] unhandled exception during notes sync:', err);
   }
 }
+
+// ============================================================
+// NOTES TRASH BIN (soft-deleted notes)
+// ============================================================
+
+// Fetch soft-deleted notes from the cloud and merge them with the local trash.
+async function fetchNotesTrashFromCloud() {
+  if (!state.isSupabaseEnabled || !state.supabaseClient || !state.currentUser) return;
+  try {
+    let query = state.supabaseClient
+      .from('notes')
+      .select('*')
+      .eq('status', 'deleted')
+      .order('deleted_at', { ascending: false })
+      .limit(100);
+    query = buildNotesScopeQuery(query);
+
+    const { data, error } = await promiseTimeout(query, 15000);
+    if (error) {
+      console.warn('[NotesTrash] cloud fetch error:', error);
+      return;
+    }
+
+    const cloudItems = data || [];
+    const cloudIds = new Set(cloudItems.map(t => String(t.id)));
+    const localItems = loadNotesTrash().filter(t => !cloudIds.has(String(t.id)));
+
+    const merged = [...cloudItems, ...localItems];
+    saveNotesTrash(merged);
+    return merged;
+  } catch (err) {
+    console.warn('[NotesTrash] cloud fetch exception:', err);
+  }
+}
+
+// Restore a soft-deleted note back to the active list.
+async function restoreNote(noteId) {
+  const trash = loadNotesTrash();
+  const item = trash.find(t => String(t.id) === String(noteId));
+  if (!item) return;
+
+  const restored = { ...item };
+  delete restored.deleted_at;
+  delete restored.deleted_by;
+  restored.status = 'active';
+  restored.updated_at = new Date().toISOString();
+
+  // Remove from trash, add back to active list.
+  saveNotesTrash(trash.filter(t => String(t.id) !== String(noteId)));
+  state.notes.push(restored);
+  saveNotes();
+  renderNotesList();
+
+  if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
+    try {
+      await state.supabaseClient
+        .from('notes')
+        .update({ status: 'active', deleted_at: null, deleted_by: null, updated_at: restored.updated_at })
+        .eq('id', noteId);
+    } catch (err) {
+      console.warn('[NotesTrash] restore exception:', err);
+    }
+  }
+}
+
+// Permanently delete a single note from the trash (local + cloud).
+async function deleteNotePermanently(noteId) {
+  saveNotesTrash(loadNotesTrash().filter(t => String(t.id) !== String(noteId)));
+
+  if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
+    try {
+      await state.supabaseClient.from('notes').delete().eq('id', noteId);
+    } catch (err) {
+      console.warn('[NotesTrash] permanent delete exception:', err);
+    }
+  }
+}
+
+// Empty the entire notes trash bin (local + cloud).
+async function emptyNotesTrash() {
+  const trash = loadNotesTrash();
+  const ids = trash.map(t => t.id).filter(Boolean);
+
+  saveNotesTrash([]);
+
+  if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser && ids.length > 0) {
+    try {
+      await state.supabaseClient.from('notes').delete().in('id', ids);
+    } catch (err) {
+      console.warn('[NotesTrash] empty trash exception:', err);
+    }
+  }
+}
+
+// Render the notes trash bin list inside the trash modal.
+async function renderNotesTrashList() {
+  const trash = await fetchNotesTrashFromCloud();
+  const container = document.getElementById('notes-trash-list-container');
+  if (!container) return;
+
+  const items = trash || loadNotesTrash();
+  container.innerHTML = '';
+
+  const btnEmpty = document.getElementById('btn-empty-notes-trash');
+  if (btnEmpty) btnEmpty.style.display = items.length === 0 ? 'none' : 'flex';
+
+  if (items.length === 0) {
+    container.innerHTML = `
+      <div style="text-align: center; padding: 32px 16px; color: var(--text-secondary); font-size: 14px; line-height: 1.5;">
+        ${state.lang === 'el' ? 'Ο κάδος σημειώσεων είναι άδειος.' : 'The notes trash bin is empty.'}
+      </div>
+    `;
+    return;
+  }
+
+  const sorted = [...items].sort((a, b) => new Date(b.deleted_at || 0) - new Date(a.deleted_at || 0));
+
+  sorted.forEach(n => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display: flex; flex-direction: row; align-items: center; justify-content: space-between; padding: 12px 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg-card); gap: 12px; box-sizing: border-box; width: 100%;';
+
+    const left = document.createElement('div');
+    left.style.cssText = 'display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1;';
+    left.innerHTML = `
+      <div style="width: 40px; height: 40px; border-radius: 50%; background: rgba(var(--accent-rgb, 224, 94, 85), 0.12); color: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;">
+        ${n.type === 'checklist' ? '<i class="fa-solid fa-list-check"></i>' : '<i class="fa-regular fa-file-lines"></i>'}
+      </div>
+      <div style="display: flex; flex-direction: column; min-width: 0; text-align: left; flex: 1;">
+        <span style="font-weight: 700; color: var(--text-primary); font-size: 14px; word-break: break-word; line-height: 1.3;">${escapeHtml(n.title || (state.lang === 'el' ? 'Χωρίς τίτλο' : 'Untitled'))}</span>
+        <span style="font-size: 11.5px; color: var(--text-secondary); margin-top: 3px; word-break: break-word; line-height: 1.2;">${formatNoteTimestamp(n.deleted_at || n.updated_at)}</span>
+      </div>
+    `;
+
+    const right = document.createElement('div');
+    right.style.cssText = 'display: flex; align-items: center; gap: 8px; flex-shrink: 0;';
+    right.innerHTML = `
+      <button class="restore-btn" onclick="restoreNote('${n.id}')" style="background: var(--primary); border: none; color: #ffffff; font-size: 12px; font-weight: 600; cursor: pointer; padding: 6px 12px; border-radius: 8px; transition: opacity 0.2s; outline: none;">
+        ${state.lang === 'el' ? 'Επαναφορά' : 'Restore'}
+      </button>
+      <button onclick="deleteNotePermanently('${n.id}')" style="background: transparent; border: none; color: var(--danger); font-size: 14px; cursor: pointer; padding: 6px; border-radius: 6px;" title="${state.lang === 'el' ? 'Οριστική Διαγραφή' : 'Permanent Delete'}">
+        🗑️
+      </button>
+    `;
+
+    row.appendChild(left);
+    row.appendChild(right);
+    container.appendChild(row);
+  });
+}
+
+function openNotesTrashModal() {
+  renderNotesTrashList();
+  openModal('notes-trash-modal');
+}
+
+// Expose to window for HTML onclick handlers.
+window.loadNotesTrash = loadNotesTrash;
+window.saveNotesTrash = saveNotesTrash;
+window.restoreNote = restoreNote;
+window.deleteNotePermanently = deleteNotePermanently;
+window.emptyNotesTrash = emptyNotesTrash;
+window.renderNotesTrashList = renderNotesTrashList;
+window.openNotesTrashModal = openNotesTrashModal;
 
 // ============================================================
 // CATEGORY BUDGETS SUBSYSTEM (LOAD, SAVE, SYNC)
@@ -17273,50 +17616,28 @@ async function toggleNotePinInline(noteId) {
   saveNotes();
   renderNotesList();
 
-  if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
-    try {
-      const { error } = await state.supabaseClient
-        .from('notes')
-        .update({ pinned: note.pinned, updated_at: note.updated_at })
-        .match({ id: note.id });
-      if (error) console.warn('Supabase note pin toggle error:', error);
-    } catch (err) {
-      console.warn('Supabase note pin toggle exception:', err);
-    }
-  }
+  // Centralized cloud persistence.
+  await upsertNoteToCloud(note);
 }
 
 async function toggleChecklistItemInline(noteId, itemIndex) {
   const note = state.notes.find(n => n.id === noteId);
   if (!note || note.type !== 'checklist') return;
 
-  let items = [];
-  try {
-    items = JSON.parse(note.body || '[]');
-  } catch (e) {
-    console.error('Failed to parse checklist items in inline toggle:', e);
-    return;
-  }
+  const items = getNoteChecklistItems(note);
 
   if (items[itemIndex]) {
     items[itemIndex].checked = !items[itemIndex].checked;
     note.body = JSON.stringify(items);
+    // Keep the structured JSONB column in sync with the body string.
+    note.checklist_items = items;
     note.updated_at = new Date().toISOString();
 
     saveNotes();
     renderNotesList();
 
-    if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
-      try {
-        const { error } = await state.supabaseClient
-          .from('notes')
-          .update({ body: note.body, updated_at: note.updated_at })
-          .match({ id: note.id });
-        if (error) console.warn('Supabase note checklist inline toggle error:', error);
-      } catch (err) {
-        console.warn('Supabase note checklist inline toggle exception:', err);
-      }
-    }
+    // Centralized cloud persistence.
+    await upsertNoteToCloud(note);
   }
 }
 
@@ -29213,9 +29534,9 @@ const USER_GUIDE_DATA = {
       {
         id: 'changelog',
         icon: 'fa-box-archive',
-        title: '1. Version & What\'s New (v1208)',
+        title: '1. Version & What\'s New (v1211)',
         content: `
-          <p><strong>Guide Version:</strong> v1208 | <strong>Synchronized App Version:</strong> v1208</p>
+          <p><strong>Guide Version:</strong> v1211 | <strong>Synchronized App Version:</strong> v1211</p>
           <div class="guide-feature-box">
             <h5 style="margin:0 0 6px; color:var(--primary);">✨ What's new in the latest version:</h5>
             <ul style="margin:0; padding-left:18px;">
