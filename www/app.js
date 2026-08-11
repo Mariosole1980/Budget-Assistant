@@ -453,14 +453,14 @@ function _markRecentlySaved(id) {
     const stored = JSON.parse(localStorage.getItem(_RECENTLY_SAVED_LS_KEY) || '{}');
     stored[idStr] = Date.now();
     localStorage.setItem(_RECENTLY_SAVED_LS_KEY, JSON.stringify(stored));
-  } catch (_) {}
+  } catch (_) { }
   setTimeout(() => {
     _recentlySavedTxIds.delete(idStr);
     try {
       const stored = JSON.parse(localStorage.getItem(_RECENTLY_SAVED_LS_KEY) || '{}');
       delete stored[idStr];
       localStorage.setItem(_RECENTLY_SAVED_LS_KEY, JSON.stringify(stored));
-    } catch (_) {}
+    } catch (_) { }
   }, _RECENTLY_SAVED_GRACE_MS);
 }
 
@@ -1083,7 +1083,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1221 - 06/08/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1222 - 06/08/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1544,7 +1544,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1221 - 06/08/2026)',
+    app_version: 'Version 1.0.0 (build v1222 - 06/08/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -3967,15 +3967,40 @@ function getActiveTransactions() {
   });
 }
 
+// Central helper that decides whether a transaction is a transfer.
+// A transaction is a transfer when its type is 'transfer'. We ALSO treat a
+// transaction as a transfer when its category is a transfer category (e.g.
+// 'ΜΕΤΑΦΟΡΑ' / 'transfer'), which covers legacy records that were stored with
+// type='expense' but a transfer category. Using this single helper everywhere
+// keeps the exclusion from income/expense reports consistent across the app.
+function isTransferTransaction(t) {
+  if (!t) return false;
+  if (t.type === 'transfer') return true;
+  const cat = t.category ? String(t.category).toLowerCase() : '';
+  return cat.includes('μεταφ') || cat.includes('transfer');
+}
+
 function calculateInitialBalances() {
   if (!state.accounts) return;
   state.accounts.forEach(acc => {
     let netSum = 0;
+    // The account balance is stored in the account's own currency (acc.currency),
+    // so every transaction must be converted into that currency before being
+    // added/subtracted. Using CurrencyService.toBase(t) here would be wrong for
+    // multi-currency accounts, because it returns the amount in the transaction's
+    // base_currency rather than the account's currency.
+    const accCurrency = acc.currency || getDisplayCurrency();
     // Base balance is calculated from all active transactions going backwards
     const activeTrans = getActiveTransactions();
     activeTrans.forEach(t => {
-      const amt = CurrencyService.toBase(t);
-      if (t.type === 'transfer') {
+      // displayAmount(t, accCurrency) converts the transaction amount into the
+      // target account's currency (handles fx_snapshot / amount_base / rates).
+      const amt = CurrencyService.displayAmount(t, accCurrency);
+      // Use the same isTransferTransaction() helper as the reports so a legacy
+      // record stored as type='expense' with a transfer category is treated as a
+      // transfer here too (subtract from source, add to destination) instead of
+      // being counted as an expense.
+      if (isTransferTransaction(t)) {
         if (t.account_from === acc.name) netSum -= amt;
         if (t.account_to === acc.name) netSum += amt;
       } else {
@@ -4030,7 +4055,7 @@ function calculateFinancialHealthScore(transactions, accounts, hasHistoricalData
 
   // Filter current month transactions (excluding transfers)
   const currentMonthTrans = transactions.filter(t => {
-    if (!t.date || t.type === 'transfer') return false;
+    if (!t.date || isTransferTransaction(t)) return false;
     const datePart = String(t.date || '').split('T')[0].split(' ')[0];
     const parts = datePart.split('-');
     if (parts.length !== 3) return false;
@@ -4073,7 +4098,7 @@ function calculateFinancialHealthScore(transactions, accounts, hasHistoricalData
   // --- CRITERION 2: Emergency Fund (40%) ---
   // Calculate liquid balance as the net balance (income - expense) of the target year (currentYear)
   const targetYearTrans = transactions.filter(t => {
-    if (!t.date || t.type === 'transfer') return false;
+    if (!t.date || isTransferTransaction(t)) return false;
     const parts = String(t.date).split('T')[0].split(' ')[0].split('-');
     if (parts.length !== 3) return false;
     return parseInt(parts[0], 10) === currentYear;
@@ -4270,7 +4295,7 @@ function calculateForecasting(transactions, hasHistoricalData) {
 
   // Filter current year transactions (excluding transfers)
   const currentYearTrans = transactions.filter(t => {
-    if (!t.date || t.type === 'transfer') return false;
+    if (!t.date || isTransferTransaction(t)) return false;
     const datePart = String(t.date || '').split('T')[0].split(' ')[0];
     const parts = datePart.split('-');
     if (parts.length !== 3) return false;
@@ -4327,7 +4352,7 @@ function calculateForecasting(transactions, hasHistoricalData) {
     } else {
       const prevYear = currentYear - 1;
       const prevYearTrans = transactions.filter(t => {
-        if (!t.date || t.type === 'transfer') return false;
+        if (!t.date || isTransferTransaction(t)) return false;
         const datePart = String(t.date || '').split('T')[0].split(' ')[0];
         const parts = datePart.split('-');
         if (parts.length !== 3) return false;
@@ -7852,7 +7877,7 @@ function renderAccountsTab() {
   const currentYearOverview = state.overviewYear || new Date().getFullYear();
 
   const nonTransferTrans = activeTrans.filter(t => {
-    if (t.type === 'transfer' || t.category?.toLowerCase().includes('μεταφ') || t.category?.toLowerCase().includes('transfer')) return false;
+    if (isTransferTransaction(t)) return false;
     if (!t.date) return false;
     const y = parseInt(String(t.date).split('T')[0].split('-')[0], 10);
     return y === currentYearOverview;
@@ -7954,7 +7979,7 @@ function renderAccountsTab() {
   const currentYear = today.getFullYear();
   const currentMonth = today.getMonth();
   const hasHistoricalData = activeTrans.some(t => {
-    if (!t.date || t.type === 'transfer') return false;
+    if (!t.date || isTransferTransaction(t)) return false;
     const datePart = String(t.date || '').split('T')[0].split(' ')[0];
     const parts = datePart.split('-');
     if (parts.length !== 3) return false;
@@ -8411,7 +8436,7 @@ function renderAccountsTab() {
   let prevYearIncome = 0;
   let prevYearExpense = 0;
   activeTrans.forEach(t => {
-    if (!t.date || t.type === 'transfer') return;
+    if (!t.date || isTransferTransaction(t)) return;
     const parts = String(t.date || '').split('T')[0].split(' ')[0].split('-');
     if (parts.length === 3 && parseInt(parts[0], 10) === prevYear) {
       const amt = CurrencyService.toBase(t);
@@ -8634,7 +8659,7 @@ function renderAccountsTab() {
   activeTrans.forEach(t => {
     const amt = CurrencyService.displayAmount(t, displayCurrency);
     if (!t.date) return;
-    if (t.type === 'transfer' || t.category === 'ΜΕΤΑΦΟΡΑ' || t.category?.toLowerCase().includes('μεταφ') || t.category?.toLowerCase().includes('transfer')) return;
+    if (isTransferTransaction(t)) return;
 
     let year;
     if (t.date) {
@@ -9083,6 +9108,19 @@ function setupEventListeners() {
         const msg = lang === 'el' ? 'Παρακαλώ εισάγετε τίτλο!' : 'Please enter a title!';
         await showCustomDialog({ message: msg, icon: '⚠️' });
         return;
+      }
+
+      // Transfers must move money between two DIFFERENT accounts. Reject a
+      // transfer where the source and destination account are the same, as it
+      // would be a meaningless no-op that only distorts account balances.
+      if (type === 'transfer') {
+        const fromAcc = document.getElementById('trans-account-from').value;
+        const toAcc = document.getElementById('trans-account-to').value;
+        if (fromAcc && toAcc && fromAcc === toAcc) {
+          const msg = lang === 'el' ? 'Η μεταφορά πρέπει να γίνει μεταξύ δύο διαφορετικών λογαριασμών!' : 'A transfer must be between two different accounts!';
+          await showCustomDialog({ message: msg, icon: '⚠️' });
+          return;
+        }
       }
 
       const isRecurringActive = _pendingRecurringSettings.isActive === true;
@@ -26504,7 +26542,7 @@ function submitCoachQuery(queryText) {
 
         // Calculate this month's stats
         const thisMonthTrans = (state.transactions || []).filter(t => {
-          if (!t.date || t.type === 'transfer') return false;
+          if (!t.date || isTransferTransaction(t)) return false;
           const datePart = String(t.date).split('T')[0];
           const parts = datePart.split('-');
           if (parts.length !== 3) return false;
@@ -26519,16 +26557,46 @@ function submitCoachQuery(queryText) {
           if (t.type === 'expense') thisMonthExpense += amt;
         });
 
-        // Map simplified allTransactions to save tokens
-        const allTransactions = (state.transactions || []).map(t => ({
-          id: t.id,
-          date: String(t.date || '').split('T')[0].split(' ')[0],
-          type: t.type,
-          amount: CurrencyService.toBase(t),
-          category: t.category || '',
-          subcategory: t.subcategory || '',
-          note: t.note || t.description || ''
-        }));
+        // Map simplified allTransactions to save tokens.
+        // IMPORTANT: The online AI endpoint enforces a 64 KB request-body limit
+        // (see functions/api/_security.js validateRequest). Sending the ENTIRE
+        // transaction history can exceed that limit and cause a 413
+        // "Request body too large" error, forcing a fallback to the local system.
+        // To stay within the limit we (a) cap the number of raw transactions sent
+        // to the most recent MAX_AI_TX (enough for specific lookups / edits),
+        // (b) truncate long note fields, and (c) as a final safety net, trim the
+        // array until the serialized stats payload fits under the server limit.
+        //
+        // CRITICAL: Because raw transactions are capped, the AI could NOT answer
+        // "all-time" questions (e.g. "how much did I spend on groceries overall?")
+        // from the raw list alone. To preserve full-history coverage we ALSO send
+        // pre-aggregated summaries computed over the ENTIRE history (all months,
+        // all categories, all years) in a tiny payload. The AI uses these
+        // aggregates for any question spanning more than the recent window.
+        const MAX_AI_TX = 400;
+        const MAX_AI_NOTE_LEN = 60;
+        const AI_BODY_BUDGET = 40 * 1024; // 40 KB headroom (server allows 64 KB)
+
+        const rawTxs = (state.transactions || []).slice();
+        // Newest first so the most relevant/recent history is preserved when we cap.
+        rawTxs.sort((a, b) => {
+          const da = String(a.date || '').split('T')[0].split(' ')[0];
+          const db = String(b.date || '').split('T')[0].split(' ')[0];
+          return db.localeCompare(da);
+        });
+
+        let allTransactions = rawTxs.slice(0, MAX_AI_TX).map(t => {
+          const note = (t.note || t.description || '').trim();
+          return {
+            id: t.id,
+            date: String(t.date || '').split('T')[0].split(' ')[0],
+            type: t.type,
+            amount: CurrencyService.toBase(t),
+            category: t.category || '',
+            subcategory: t.subcategory || '',
+            note: note.length > MAX_AI_NOTE_LEN ? note.slice(0, MAX_AI_NOTE_LEN) : note
+          };
+        });
 
         // Map simplified accounts
         const accounts = (state.accounts || []).map(a => ({
@@ -26540,6 +26608,51 @@ function submitCoachQuery(queryText) {
         const today = new Date();
         const currentDate = today.toISOString().split('T')[0];
 
+        // ---- Full-history aggregates (computed over ALL transactions) ----
+        // These let the AI answer "all-time" / "this year" / "per category"
+        // questions accurately even though raw transactions are capped.
+        const allRawTxs = state.transactions || [];
+        const monthAgg = {};   // key: "YYYY-MM" -> { income, expense }
+        const catAgg = {};     // key: category -> { income, expense }
+        const yearAgg = {};    // key: "YYYY" -> { income, expense }
+        const subcatAgg = {};  // key: "category|subcategory" -> { expense }
+
+        allRawTxs.forEach(t => {
+          if (!t.date || isTransferTransaction(t)) return;
+          const datePart = String(t.date).split('T')[0].split(' ')[0];
+          const parts = datePart.split('-');
+          if (parts.length !== 3) return;
+          const year = parts[0];
+          const monthKey = `${year}-${parts[1]}`;
+          const amt = CurrencyService.toBase(t);
+          const isIncome = t.type === 'income';
+          const isExpense = t.type === 'expense';
+          if (!isIncome && !isExpense) return;
+
+          if (!monthAgg[monthKey]) monthAgg[monthKey] = { income: 0, expense: 0 };
+          if (!yearAgg[year]) yearAgg[year] = { income: 0, expense: 0 };
+          if (isIncome) {
+            monthAgg[monthKey].income += amt;
+            yearAgg[year].income += amt;
+          } else {
+            monthAgg[monthKey].expense += amt;
+            yearAgg[year].expense += amt;
+          }
+
+          const cat = t.category || '';
+          if (cat) {
+            if (!catAgg[cat]) catAgg[cat] = { income: 0, expense: 0 };
+            if (isIncome) catAgg[cat].income += amt;
+            else catAgg[cat].expense += amt;
+          }
+          const subcat = t.subcategory || '';
+          if (cat && subcat) {
+            const key = `${cat}|${subcat}`;
+            if (!subcatAgg[key]) subcatAgg[key] = { expense: 0 };
+            if (isExpense) subcatAgg[key].expense += amt;
+          }
+        });
+
         const stats = {
           lang: state.lang,
           currentDate,
@@ -26550,13 +26663,33 @@ function submitCoachQuery(queryText) {
           averageMonthlyExpense: pacing.avgExpense || 0,
           budgets: state.budgets || {},
           accounts,
-          allTransactions
+          allTransactions,
+          // Full-history aggregates (entire history, not capped):
+          monthlyTotals: monthAgg,
+          yearlyTotals: yearAgg,
+          categoryTotals: catAgg,
+          subcategoryTotals: subcatAgg
         };
+
+        // Final safety net: if the serialized stats payload is still too large
+        // (e.g. an enormous budgets object or very long history), trim the
+        // transaction array until it fits under the budget. This guarantees the
+        // request never trips the server's 64 KB body guard. The full-history
+        // aggregates above are tiny and are NOT trimmed, so all-time questions
+        // remain answerable even after raw transactions are reduced.
+        while (allTransactions.length > 0 && JSON.stringify(stats).length > AI_BODY_BUDGET) {
+          allTransactions = allTransactions.slice(0, Math.floor(allTransactions.length / 2));
+          stats.allTransactions = allTransactions;
+        }
 
         if (!state.advisorChatHistory) {
           state.advisorChatHistory = [];
         }
-        const data = await window.OnlineAIProvider.processAdvisorQuery(queryText, stats, state.advisorChatHistory);
+        // Defensive cap on the conversation history sent to the online AI so the
+        // request body stays well under the server's 64 KB limit even if a large
+        // history was loaded from a persisted conversation.
+        const advisorHistory = state.advisorChatHistory.slice(-12);
+        const data = await window.OnlineAIProvider.processAdvisorQuery(queryText, stats, advisorHistory);
 
         // Remove typing indicator AFTER fetch completes
         const temp = document.querySelector('.typing-temp');
@@ -26680,7 +26813,7 @@ function getCoachAveragePacing() {
   const monthlyData = {};
 
   trans.forEach(t => {
-    if (!t.date || t.type === 'transfer') return;
+    if (!t.date || isTransferTransaction(t)) return;
     const datePart = String(t.date).split('T')[0].split(' ')[0];
     const parts = datePart.split('-');
     if (parts.length !== 3) return;
@@ -27435,7 +27568,7 @@ function runCoachSearchQuery(keyword) {
   const currentYear = today.getFullYear();
 
   const matchedTrans = trans.filter(t => {
-    if (!t.date || t.type === 'transfer') return false;
+    if (!t.date || isTransferTransaction(t)) return false;
 
     const datePart = String(t.date).split('T')[0];
     const parts = datePart.split('-');
@@ -30003,9 +30136,9 @@ const USER_GUIDE_DATA = {
       {
         id: 'changelog',
         icon: 'fa-box-archive',
-        title: '1. Version & What\'s New (v1221)',
+        title: '1. Version & What\'s New (v1222)',
         content: `
-          <p><strong>Guide Version:</strong> v1221 | <strong>Synchronized App Version:</strong> v1221</p>
+          <p><strong>Guide Version:</strong> v1222 | <strong>Synchronized App Version:</strong> v1222</p>
           <div class="guide-feature-box">
             <h5 style="margin:0 0 6px; color:var(--primary);">✨ What's new in the latest version:</h5>
             <ul style="margin:0; padding-left:18px;">
