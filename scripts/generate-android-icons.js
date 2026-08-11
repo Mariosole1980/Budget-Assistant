@@ -1,12 +1,11 @@
-/* Regenerate Android legacy mipmap launcher PNGs from the SVG logo. */
+/* Regenerate Android mipmap launcher PNGs and drawable splash screens from user_logo.png using sharp. */
 const sharp = require('sharp');
 const path = require('path');
 const fs = require('fs');
 
 const ROOT = path.resolve(__dirname, '..');
-const LOGO_SVG = path.join(ROOT, 'assets', 'logo', 'budget-assistant-logo.svg');
-const FG_SVG = path.join(ROOT, 'assets', 'logo', 'foreground.svg');
-const BG_COLOR = '#181b22';
+const SOURCE_IMAGE = path.join(ROOT, 'assets', 'logo', 'user_logo.png');
+const BG_COLOR = '#0c0d12';
 
 // Legacy launcher icon sizes per density (launcher icon = 48dp base).
 const densities = {
@@ -17,22 +16,56 @@ const densities = {
     xxxhdpi: 192,
 };
 
+// Splash screen dimensions (width x height) per density for portrait and landscape
+const splashDimensions = {
+    'drawable': { width: 1080, height: 1920, logoSize: 600 },
+    'drawable-port-mdpi': { width: 320, height: 480, logoSize: 220 },
+    'drawable-port-hdpi': { width: 480, height: 800, logoSize: 320 },
+    'drawable-port-xhdpi': { width: 720, height: 1280, logoSize: 480 },
+    'drawable-port-xxhdpi': { width: 1080, height: 1920, logoSize: 680 },
+    'drawable-port-xxxhdpi': { width: 1440, height: 2560, logoSize: 900 },
+
+    'drawable-land-mdpi': { width: 480, height: 320, logoSize: 220 },
+    'drawable-land-hdpi': { width: 800, height: 480, logoSize: 320 },
+    'drawable-land-xhdpi': { width: 1280, height: 720, logoSize: 480 },
+    'drawable-land-xxhdpi': { width: 1920, height: 1080, logoSize: 680 },
+    'drawable-land-xxxhdpi': { width: 2560, height: 1440, logoSize: 900 },
+};
+
+// Add night variants too
+Object.keys(splashDimensions).forEach((key) => {
+    if (key.startsWith('drawable-port-') && !key.includes('night')) {
+        splashDimensions[key.replace('drawable-port-', 'drawable-port-night-')] = splashDimensions[key];
+    }
+    if (key.startsWith('drawable-land-') && !key.includes('night')) {
+        splashDimensions[key.replace('drawable-land-', 'drawable-land-night-')] = splashDimensions[key];
+    }
+});
+
 const resDir = path.join(ROOT, 'android', 'app', 'src', 'main', 'res');
 
 (async () => {
-    const logoBuf = fs.readFileSync(LOGO_SVG);
-    const fgBuf = fs.readFileSync(FG_SVG);
+    if (!fs.existsSync(SOURCE_IMAGE)) {
+        console.error('Source image not found:', SOURCE_IMAGE);
+        process.exit(1);
+    }
+    const imgBuf = fs.readFileSync(SOURCE_IMAGE);
 
+    // 1. Generate Mipmap Launcher Icons
     for (const [density, size] of Object.entries(densities)) {
         const dir = path.join(resDir, `mipmap-${density}`);
+        fs.mkdirSync(dir, { recursive: true });
 
-        // Legacy launcher + round icons (full logo with background).
+        // Legacy launcher + round icons (full logo)
         for (const name of ['ic_launcher.png', 'ic_launcher_round.png']) {
-            await sharp(logoBuf).resize(size, size).png().toFile(path.join(dir, name));
+            await sharp(imgBuf)
+                .resize(size, size, { fit: 'cover' })
+                .png()
+                .toFile(path.join(dir, name));
             console.log('Wrote', path.join(`mipmap-${density}`, name), `(${size}x${size})`);
         }
 
-        // Adaptive icon background (solid dark color).
+        // Adaptive icon background (solid dark matching image background)
         await sharp({
             create: {
                 width: size,
@@ -41,11 +74,14 @@ const resDir = path.join(ROOT, 'android', 'app', 'src', 'main', 'res');
                 background: BG_COLOR,
             },
         }).png().toFile(path.join(dir, 'ic_launcher_background.png'));
-        console.log('Wrote', path.join(`mipmap-${density}`, 'ic_launcher_background.png'), `(${size}x${size})`);
 
-        // Adaptive icon foreground (transparent logo, centered with safe-zone padding).
-        const fgSize = Math.round(size * 0.66);
-        const fg = await sharp(fgBuf).resize(fgSize, fgSize).png().toBuffer();
+        // Adaptive icon foreground (centered logo in safe-zone)
+        const fgSize = Math.round(size * 0.72);
+        const fg = await sharp(imgBuf)
+            .resize(fgSize, fgSize, { fit: 'cover' })
+            .png()
+            .toBuffer();
+
         await sharp({
             create: {
                 width: size,
@@ -59,8 +95,38 @@ const resDir = path.join(ROOT, 'android', 'app', 'src', 'main', 'res');
             .toFile(path.join(dir, 'ic_launcher_foreground.png'));
         console.log('Wrote', path.join(`mipmap-${density}`, 'ic_launcher_foreground.png'), `(${size}x${size})`);
     }
-    console.log('Done.');
+
+    // 2. Generate Splash Screens across drawables
+    for (const [dirName, dim] of Object.entries(splashDimensions)) {
+        const dir = path.join(resDir, dirName);
+        fs.mkdirSync(dir, { recursive: true });
+
+        const logoResized = await sharp(imgBuf)
+            .resize(dim.logoSize, dim.logoSize, { fit: 'contain' })
+            .png()
+            .toBuffer();
+
+        const left = Math.round((dim.width - dim.logoSize) / 2);
+        const top = Math.round((dim.height - dim.logoSize) / 2);
+
+        await sharp({
+            create: {
+                width: dim.width,
+                height: dim.height,
+                channels: 4,
+                background: BG_COLOR,
+            },
+        })
+            .composite([{ input: logoResized, left, top }])
+            .png()
+            .toFile(path.join(dir, 'splash.png'));
+
+        console.log('Wrote splash to', dirName, `(${dim.width}x${dim.height})`);
+    }
+
+    console.log('Done generating Android launcher icons and splash screens.');
 })().catch((e) => {
     console.error('Error:', e.message);
     process.exit(1);
 });
+

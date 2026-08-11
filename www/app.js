@@ -419,18 +419,49 @@ const DEFAULT_ACCOUNTS = [
   { name: 'Card', type: 'card', balance: 0 },
 ];
 
-// Recently-saved transaction IDs that must survive a re-fetch race.
-// When a logged-in user saves a transaction, it gets a valid UUID + user_id and is
-// dequeued from the sync queue right after a successful cloud upsert. If loadData()
-// re-fetches from the cloud before that write has propagated, getPendingLocalTransactions()
-// would NOT preserve it (valid UUID, user_id set, not in queue) and the transaction
-// would be silently dropped. We keep these IDs for a short grace window so the
-// optimistic local copy survives until the cloud fetch confirms it.
-const _recentlySavedTxIds = new Set();
+// Recently-saved transaction IDs that must survive a re-fetch race AND an app
+// reload (OTA deploy, cold start). When a logged-in user saves a transaction, it
+// gets a valid UUID + user_id and is dequeued from the sync queue right after a
+// successful cloud upsert. If loadData() re-fetches from the cloud before that
+// write has propagated, getPendingLocalTransactions() would NOT preserve it (valid
+// UUID, user_id set, not in queue) and the transaction would be silently dropped.
+//
+// FIX (data loss on deploy): Persisted to localStorage so the grace window
+// survives app reloads. Extended to 5 minutes to cover OTA reload propagation.
+const _RECENTLY_SAVED_LS_KEY = 'recently_saved_tx_ids';
+const _RECENTLY_SAVED_GRACE_MS = 5 * 60 * 1000; // 5 minutes (was 60s — too short for OTA)
+const _recentlySavedTxIds = (() => {
+  try {
+    const stored = JSON.parse(localStorage.getItem(_RECENTLY_SAVED_LS_KEY) || '{}');
+    const now = Date.now();
+    const valid = {};
+    for (const [id, ts] of Object.entries(stored)) {
+      if (now - ts < _RECENTLY_SAVED_GRACE_MS) valid[id] = ts;
+    }
+    // Prune expired entries
+    if (Object.keys(valid).length !== Object.keys(stored).length) {
+      localStorage.setItem(_RECENTLY_SAVED_LS_KEY, JSON.stringify(valid));
+    }
+    return new Set(Object.keys(valid));
+  } catch (_) { return new Set(); }
+})();
 function _markRecentlySaved(id) {
   if (!id) return;
-  _recentlySavedTxIds.add(String(id));
-  setTimeout(() => { _recentlySavedTxIds.delete(String(id)); }, 60000); // 60s grace window
+  const idStr = String(id);
+  _recentlySavedTxIds.add(idStr);
+  try {
+    const stored = JSON.parse(localStorage.getItem(_RECENTLY_SAVED_LS_KEY) || '{}');
+    stored[idStr] = Date.now();
+    localStorage.setItem(_RECENTLY_SAVED_LS_KEY, JSON.stringify(stored));
+  } catch (_) {}
+  setTimeout(() => {
+    _recentlySavedTxIds.delete(idStr);
+    try {
+      const stored = JSON.parse(localStorage.getItem(_RECENTLY_SAVED_LS_KEY) || '{}');
+      delete stored[idStr];
+      localStorage.setItem(_RECENTLY_SAVED_LS_KEY, JSON.stringify(stored));
+    } catch (_) {}
+  }, _RECENTLY_SAVED_GRACE_MS);
 }
 
 // App State
@@ -1052,7 +1083,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1213 - 06/08/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1221 - 06/08/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1513,7 +1544,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1213 - 06/08/2026)',
+    app_version: 'Version 1.0.0 (build v1221 - 06/08/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -2597,6 +2628,78 @@ function fadeOutColdStartOverlay() {
 }
 window.fadeOutColdStartOverlay = fadeOutColdStartOverlay;
 
+// ============================================================
+// RESUME OVERLAY (anti blank/black flash on background -> resume)
+// ============================================================
+// On native Android the WebView surface can be blank for 1-3 frames while it
+// recomposites after returning from background. The native MainActivity overlay
+// covers that gap at the framework level. This JS overlay is the complementary
+// layer: it covers the Web/PWA case (no native layer) and any JS-level re-render
+// flash during the resume window. It is shown on resume and faded out after the
+// recompositing window so the user never sees a blank/black flash.
+let _resumeOverlayTimer = null;
+function showResumeOverlay() {
+  const overlay = document.getElementById('resume-overlay');
+  if (!overlay) return;
+  // Sync background to the current theme color in case it changed while backgrounded.
+  const savedTheme = localStorage.getItem('app_theme') || 'dark';
+  const themeBgColors = { 'dark': '#181b22', 'oled': '#000000', 'light': '#f4f6f9', 'emerald': '#0f1916', 'ocean': '#0b132b', 'pink': '#1f1218' };
+  overlay.style.backgroundColor = themeBgColors[savedTheme] || '#181b22';
+  // Show instantly (no fade-in) — must be visible before any blank frame.
+  overlay.style.transition = 'none';
+  overlay.style.opacity = '1';
+  overlay.style.visibility = 'visible';
+  // Schedule the fade-out (web/PWA only — native hides via JS interface signal).
+  if (_resumeOverlayTimer) clearTimeout(_resumeOverlayTimer);
+  _resumeOverlayTimer = setTimeout(() => {
+    _resumeOverlayTimer = null;
+    hideResumeOverlay();
+  }, 450);
+}
+function hideResumeOverlay() {
+  const overlay = document.getElementById('resume-overlay');
+  if (!overlay) return;
+  overlay.style.transition = 'opacity 0.25s ease';
+  overlay.style.opacity = '0';
+  setTimeout(() => {
+    overlay.style.visibility = 'hidden';
+  }, 280);
+}
+window.showResumeOverlay = showResumeOverlay;
+window.hideResumeOverlay = hideResumeOverlay;
+
+// CONTENT-PAINTED SIGNAL (native Android): The native MainActivity overlay must
+// stay visible until the WebView has actually RENDERED the real UI content
+// (transactions, numbers, colors) -- not merely committed a blank first frame.
+// A double-rAF alone only confirms the browser committed *a* frame, which may
+// still be the blank WebView surface recompositing gap. So we call this ONLY
+// after _updateUIImpl() has written the real content into the DOM, then wait a
+// double-rAF (so that content frame is composited to screen) plus a small safety
+// delay before signalling the native layer to hide the overlay. This guarantees
+// the user never sees a black OR a blank/monochrome frame on resume.
+function _notifyNativeContentPainted() {
+  const _isNativeAndroid = !!(window.Capacitor &&
+    window.Capacitor.isNativePlatform &&
+    window.Capacitor.isNativePlatform());
+  if (!_isNativeAndroid) return;
+  if (!window.NativeApp || typeof window.NativeApp.onFirstPaint !== 'function') return;
+  // Coalesce multiple render passes in the same resume cycle into one signal.
+  // The flag lives on window so _handleAppResumed() can re-arm it each resume.
+  if (window._contentPaintNotified) return;
+  window._contentPaintNotified = true;
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      // Extra delay so the content frame is definitely composited to the screen
+      // on slower devices before signalling the native overlay to hide. The native
+      // side ALSO enforces a minimum visible time, so this is belt-and-suspenders.
+      setTimeout(() => {
+        try { window.NativeApp.onFirstPaint(); } catch (e) { /* fail silently */ }
+      }, 250);
+    });
+  });
+}
+window._notifyNativeContentPainted = _notifyNativeContentPainted;
+
 // SAFETY FALLBACK: If initApp() fails before reaching its fade-out trigger
 // (and recovery mode doesn't fire), force the cold-start overlay away after a
 // maximum delay so it never permanently blocks the UI.
@@ -2703,6 +2806,9 @@ async function initApp() {
         try { state.currentUser = JSON.parse(hasCachedUser); } catch (e) { }
       }
       if (isGuestMode) state.guestMode = true;
+      // SECURITY: Offline startup with a cached user or guest mode - the app
+      // intentionally allows offline access, so mark the session confirmed.
+      window._authConfirmed = true;
     } else {
       // No cached session — show login so user can pick "Continue as Guest"
       const formsContainer = document.getElementById('auth-forms-container');
@@ -2728,8 +2834,11 @@ async function initApp() {
 
   function restoreActiveModalsFromStorage() {
     try {
-      // If not logged in and not in guest mode, do not restore modals!
-      if (!state.currentUser && !state.guestMode) {
+      // SECURITY: Never restore a previous user's personal-data modal (e.g. the
+      // transactions modal) before the session is confirmed valid. _isAuthenticated()
+      // is true only after _authConfirmed is set (valid session / guest / offline
+      // cached user). Until then, clear any saved modal state so nothing flashes.
+      if (!_isAuthenticated()) {
         localStorage.removeItem('bg_active_modal_id');
         localStorage.removeItem('bg_active_modal_tx_id');
         localStorage.removeItem('bg_active_subcat_txs');
@@ -2828,6 +2937,9 @@ async function initApp() {
         try { state.currentUser = JSON.parse(hasCachedUser); } catch (e) { }
       }
       if (isGuestMode) state.guestMode = true;
+      // SECURITY: Offline startup with a cached user or guest mode - the app
+      // intentionally allows offline access, so mark the session confirmed.
+      window._authConfirmed = true;
     } else {
       const formsContainer = document.getElementById('auth-forms-container');
       const authCard = document.getElementById('auth-card');
@@ -2909,13 +3021,46 @@ async function initApp() {
   // (via _updateUIRAF). Wait for that deferred render to paint (double-rAF +
   // a small buffer) before fading out the cold-start overlay, so the user sees
   // the fully-rendered content fade in smoothly instead of an abrupt black flash.
-  requestAnimationFrame(() => {
+  //
+  // On FIRST LAUNCH (no cached session) the login card is shown via the auth
+  // overlay. Because the security guard skips _updateUIImpl() rendering while
+  // unauthenticated, the content-painted signal never fires — so we must wait
+  // until the auth overlay (login card) is actually VISIBLE before fading out,
+  // otherwise the cold-start overlay lifts too early and the user sees a flash
+  // of the blank background before the login card appears. We poll for it.
+  const _authOverlayEl = document.getElementById('auth-overlay');
+  const _isFirstLaunchLogin = !!_authOverlayEl &&
+    _authOverlayEl.style.display !== 'none' &&
+    !window._authConfirmed;
+  if (_isFirstLaunchLogin) {
+    // Poll until the login card is actually painted (visible + non-empty), then
+    // fade out. A hard cap prevents the overlay from ever blocking the UI.
+    const _coldStartPollStart = Date.now();
+    const _coldStartPoll = setInterval(() => {
+      const authCard = document.getElementById('auth-card');
+      const cardVisible = authCard &&
+        authCard.offsetParent !== null &&
+        authCard.offsetHeight > 0;
+      const authVisible = _authOverlayEl.style.display !== 'none' &&
+        _authOverlayEl.offsetParent !== null;
+      if ((cardVisible || authVisible) || (Date.now() - _coldStartPollStart > 2500)) {
+        clearInterval(_coldStartPoll);
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            setTimeout(() => { fadeOutColdStartOverlay(); }, 120);
+          });
+        });
+      }
+    }, 80);
+  } else {
     requestAnimationFrame(() => {
-      setTimeout(() => {
-        fadeOutColdStartOverlay();
-      }, 120);
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          fadeOutColdStartOverlay();
+        }, 120);
+      });
     });
-  });
+  }
 
   // DESKTOP WEB UX HOOK: Initialize the desktop UI layer (sidebar, topbar,
   // dashboard, keyboard shortcuts) ONLY when running in web-mode (browser/PWA).
@@ -3220,6 +3365,8 @@ function initSupabaseAuth() {
       } else if (data.session && data.session.user) {
         // Fallback for browsers where INITIAL_SESSION event may be delayed/missed
         state.currentUser = data.session.user;
+        // SECURITY: Session verified valid - safe to render this user's data.
+        window._authConfirmed = true;
         localStorage.setItem('cached_current_user', JSON.stringify(data.session.user));
         updateHeaderSyncIcon('synced');
       }
@@ -3247,6 +3394,8 @@ function initSupabaseAuth() {
     if (session && session.user) {
       processingRedirect = false;
       state.currentUser = session.user;
+      // SECURITY: Session verified valid - safe to render this user's data.
+      window._authConfirmed = true;
       localStorage.setItem('cached_current_user', JSON.stringify(session.user));
 
       // Load cached partner and user profile if available
@@ -3382,8 +3531,47 @@ function initSupabaseAuth() {
             setTimeout(() => { _suppressRealtimeEvents = false; }, 10000);
           }
 
-          // 3. Sync guest transactions in the background (silent, no extra render)
-          await syncLocalTransactionsToCloud(session.user.id, { silent: true });
+          // 3. Import locally-saved data from the phone. If there are pending
+          // local transactions (e.g. recorded while offline / as guest), ASK the
+          // user whether to import them into their account instead of silently
+          // syncing. This is the "auto-import saved data" option on entry.
+          //
+          // FIX (dialog loop): Added a 24h cooldown after the user dismisses the
+          // dialog. If the sync fails for some items (e.g. schema mismatch), the
+          // dialog no longer re-appears on every app open — it silently retries
+          // instead. Also re-checks pending count AFTER sync to avoid re-prompting.
+          try {
+            const localTransStr = localStorage.getItem('offline_transactions');
+            const localAll = localTransStr ? (JSON.parse(localTransStr) || []) : [];
+            const pendingLocal = getPendingLocalTransactions(localAll);
+            if (pendingLocal.length > 0) {
+              // Check if the user recently dismissed this dialog (24h cooldown)
+              const dismissedAt = parseInt(localStorage.getItem('import_dialog_dismissed_at') || '0');
+              const DISMISS_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 hours
+              if (Date.now() - dismissedAt < DISMISS_COOLDOWN_MS) {
+                // Within cooldown — silently sync instead of re-asking
+                await syncLocalTransactionsToCloud(session.user.id, { silent: true });
+              } else {
+                const importLocal = await showCustomDialog({
+                  title: state.lang === 'el' ? 'Εισαγωγή Αποθηκευμένων Δεδομένων' : 'Import Saved Data',
+                  icon: '📥',
+                  message: state.lang === 'el'
+                    ? `Βρήκαμε <b>${pendingLocal.length}</b> αποθηκευμένες κινήσεις στο τηλέφωνό σας. Θέλετε να τις εισαγάγετε αυτόματα στον λογαριασμό σας;`
+                    : `We found <b>${pendingLocal.length}</b> saved transactions on your phone. Would you like to import them into your account automatically?`,
+                  showCancel: true
+                });
+                if (importLocal) {
+                  await syncLocalTransactionsToCloud(session.user.id, { silent: false });
+                } else {
+                  // User dismissed — set cooldown so we don't re-ask immediately
+                  localStorage.setItem('import_dialog_dismissed_at', Date.now().toString());
+                }
+              }
+            }
+          } catch (err) {
+            console.warn('Local data import prompt failed, falling back to silent sync:', err);
+            await syncLocalTransactionsToCloud(session.user.id, { silent: true });
+          }
         } catch (err) {
           console.error('Error during background auth setup:', err);
         }
@@ -3404,6 +3592,9 @@ function initSupabaseAuth() {
         } catch (e) {
           state.currentUser = null;
         }
+        // SECURITY: Offline with a cached user - the app intentionally allows
+        // offline access to the cached session, so mark it confirmed.
+        window._authConfirmed = true;
         // Keep the app usable offline: hide the auth overlay and render cached data.
         const authOverlayEl = document.getElementById('auth-overlay');
         if (authOverlayEl) authOverlayEl.style.display = 'none';
@@ -3426,6 +3617,10 @@ function initSupabaseAuth() {
       stopSupabaseRealtimeSubscription();
 
       state.currentUser = null;
+      // SECURITY: The session is no longer valid, so the user is NOT authenticated.
+      // Reset _authConfirmed so no personal data can be rendered behind the login
+      // screen. (The guest-mode branch below re-confirms auth for guest users.)
+      window._authConfirmed = false;
       state.userProfile = null;
       state.partnerProfile = null;
       state.familyProfiles = [];
@@ -3442,6 +3637,8 @@ function initSupabaseAuth() {
 
       if (localStorage.getItem('auth_guest_mode') === 'true') {
         state.guestMode = true;
+        // SECURITY: Guest mode is a valid authenticated state (clean slate).
+        window._authConfirmed = true;
 
         const earlyStyle = document.getElementById('early-auth-style');
         if (earlyStyle) earlyStyle.remove();
@@ -5573,9 +5770,34 @@ function getActiveScrollContainer() {
   return null;
 }
 
+// SECURITY GUARD: Returns true only when the user is actually authenticated and
+// the auth overlay is hidden. When the auth overlay is visible (the user is being
+// asked to log in / sign up), we must NEVER render personal data (transactions,
+// stats, accounts) or restore modals - otherwise a previous user's cached data
+// would flash on screen before the login card appears.
+// SECURITY: _authConfirmed is set to true ONLY once the user's session has been
+// verified as valid (or guest mode / offline-with-cached-user is active). Until
+// it is true, the app must never render or restore personal data, so a previous
+// user's cached transactions can never flash before the login card appears.
+function _isAuthenticated() {
+  return !!window._authConfirmed;
+}
+window._isAuthenticated = _isAuthenticated;
+
 function _updateUIImpl() {
   processRecurringTemplates();
   updateHeaderAndSync();
+
+  // SECURITY: If the user is not authenticated (_authConfirmed not yet set), do
+  // NOT render any personal data. The content behind the login card must stay
+  // blank so a previous user's cached transactions/balances are never exposed
+  // before the current user logs in. We skip the tab rendering, modal restore,
+  // and the content-painted signal. The cached data stays in memory (state) so
+  // it renders immediately once the session is confirmed - it is just never
+  // written to the DOM while unauthenticated.
+  if (!_isAuthenticated()) {
+    return;
+  }
 
   const countEl = document.getElementById('recurring-templates-count-val');
   if (countEl) {
@@ -5672,6 +5894,15 @@ function _updateUIImpl() {
     setTimeout(() => {
       openModal('onboarding-modal');
     }, 800);
+  }
+
+  // CONTENT-PAINTED SIGNAL: The real UI content has now been written into the
+  // DOM. Signal the native overlay to hide (after the content frame is
+  // composited via double-rAF inside _notifyNativeContentPainted). This is the
+  // ONLY point we consider the UI "actually painted" — a plain double-rAF in
+  // _handleAppResumed could fire on a still-blank frame.
+  if (typeof window._notifyNativeContentPainted === 'function') {
+    window._notifyNativeContentPainted();
   }
 }
 
@@ -22746,7 +22977,10 @@ async function forceSyncNow(silent = false) {
     }
 
     state.lastSyncTime = Date.now();
-    state.syncStatus = state.syncPendingCount > 0 ? 'error' : 'success';
+    // FIX (false error icon): Pending queue items are NOT errors — they are
+    // waiting for retry (network, premium limit, etc). Show 'synced' (green)
+    // with a pending count tooltip instead of the alarming red cloud-bolt.
+    state.syncStatus = 'success';
     updateSyncStatusIndicator();
 
     // Update last sync time display in settings
@@ -22900,34 +23134,49 @@ const _RESUME_GUARD_MS = 1700;
 function _handleAppResumed() {
   document.body.classList.add('no-transitions');
   setTimeout(() => { document.body.classList.remove('no-transitions'); }, _RESUME_GUARD_MS);
+
+  // ANTI-BLANK-FLASH:
+  // - Native Android: The native overlay (MainActivity) is already VISIBLE (shown
+  //   in onPause before backgrounding). The JS overlay runs INSIDE the WebView so
+  //   it cannot cover the WebView surface recompositing gap — skip it for native.
+  //   Instead, we signal the native layer to hide the overlay after double-rAF
+  //   (confirming first paint) via the NativeApp JavascriptInterface.
+  // - Web/PWA: No native layer. Use the JS overlay to cover the tab re-paint flash.
+  const _isNativeAndroid = !!(window.Capacitor &&
+    window.Capacitor.isNativePlatform &&
+    window.Capacitor.isNativePlatform());
+  if (!_isNativeAndroid && typeof window.showResumeOverlay === 'function') {
+    window.showResumeOverlay();
+  }
+
   if (_resumeDebounceTimer) return; // already scheduled this resume cycle
   // Debounce window extended to 800ms so that when visibilitychange AND the
   // Capacitor appStateChange fire in quick succession (Android fires both
   // simultaneously), the restore + guard logic still runs only ONCE per resume.
   _resumeDebounceTimer = setTimeout(() => { _resumeDebounceTimer = null; }, 800);
 
+  // NATIVE SIGNAL: The overlay is hidden by _notifyNativeContentPainted(), which
+  // is called at the END of _updateUIImpl() — i.e. only after the real UI content
+  // (transactions, numbers, colors) has been written into the DOM and composited
+  // (double-rAF). A plain double-rAF here could fire on a still-blank frame, so we
+  // deliberately do NOT signal from this function. We only re-arm the flag so the
+  // content-painted signal can fire once for this new resume cycle.
+  if (_isNativeAndroid && typeof window._contentPaintNotified !== 'undefined') {
+    window._contentPaintNotified = false;
+  }
+
   // Set guard to block spurious closeModal calls during the resume transition.
-  // Extended to cover the full resume+sync window so updateUI() defers every
-  // render (modal restore, realtime events, foreground sync) until the resume
-  // animation is fully complete — eliminating the flash.
   window._appJustResumed = true;
   setTimeout(() => { window._appJustResumed = false; }, _RESUME_GUARD_MS);
 
-  // ANTI-FLICKER: Immediately suppress all CSS transitions on resume.
-  // This covers BOTH the modal restore AND the immediate updateUI tab re-render
-  // (which now fires on the next animation frame for instant restore). Without
-  // this, the tab content flashes visibly as elements animate in from their
-  // default states. Extended to cover the full 1500ms foreground sync window.
-  // Uses the reference-counted guard so overlapping guards (forceSyncNow,
-  // realtime handlers) never prematurely remove the class.
+  // ANTI-FLICKER: Suppress CSS transitions during the entire resume window.
+  // Uses reference-counted guard so overlapping guards never race.
   pushNoTransition();
   setTimeout(() => {
     popNoTransition();
   }, _RESUME_GUARD_MS);
 
   // Restore modals that were open before backgrounding.
-  // Single call only — the old 150ms safety-net second call caused an extra
-  // style recalculation (2 repaints) which itself was a flicker source.
   const savedModalId = localStorage.getItem('bg_active_modal_id');
   const savedEl = savedModalId ? document.getElementById(savedModalId) : null;
   const needsRestore = savedEl && !savedEl.classList.contains('active');
@@ -22937,6 +23186,32 @@ function _handleAppResumed() {
 
   // Re-establish realtime channel in case connection was dropped by OS
   setupSupabaseRealtimeSubscription();
+
+  // GUARANTEE the content-painted signal fires on EVERY resume. The native overlay
+  // is only hidden when _notifyNativeContentPainted() runs at the end of
+  // _updateUIImpl(). But handleAppForegroundSync() only triggers forceSyncNow()
+  // (which calls updateUI()) when the app was backgrounded > 30s. For shorter
+  // backgrounds no updateUI() would run, so the native overlay would linger until
+  // the 2000ms fallback timer — and worse, the UI might not refresh. Calling
+  // updateUI() here (coalesced via rAF) guarantees the real content is re-painted
+  // and the native overlay is hidden promptly after that paint. The no-transitions
+  // guard (_RESUME_GUARD_MS) keeps this render flicker-free.
+  if (typeof updateUI === 'function') {
+    updateUI();
+  }
+
+  // UNAUTHENTICATED RESUME: When the login card is showing, _updateUIImpl() returns
+  // early (security guard) so _notifyNativeContentPainted() never fires and the
+  // native overlay would linger until the 2000ms fallback. The login card is static
+  // content that is already painted, so signal the native overlay to hide after a
+  // short delay (matching the native minimum-visible-time) to reveal it promptly.
+  if (_isNativeAndroid && typeof window._isAuthenticated === 'function' &&
+    !window._isAuthenticated() && window.NativeApp &&
+    typeof window.NativeApp.onFirstPaint === 'function') {
+    setTimeout(() => {
+      try { window.NativeApp.onFirstPaint(); } catch (e) { /* fail silently */ }
+    }, 500);
+  }
 
   handleAppForegroundSync();
 }
@@ -29728,9 +30003,9 @@ const USER_GUIDE_DATA = {
       {
         id: 'changelog',
         icon: 'fa-box-archive',
-        title: '1. Version & What\'s New (v1213)',
+        title: '1. Version & What\'s New (v1221)',
         content: `
-          <p><strong>Guide Version:</strong> v1213 | <strong>Synchronized App Version:</strong> v1213</p>
+          <p><strong>Guide Version:</strong> v1221 | <strong>Synchronized App Version:</strong> v1221</p>
           <div class="guide-feature-box">
             <h5 style="margin:0 0 6px; color:var(--primary);">✨ What's new in the latest version:</h5>
             <ul style="margin:0; padding-left:18px;">

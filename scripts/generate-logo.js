@@ -1,10 +1,10 @@
-/* Generate Play Store / PWA icon PNGs from the SVG logo using sharp. */
+/* Generate Play Store / PWA icon PNGs from user_logo.png using sharp. */
 const sharp = require('sharp');
 const path = require('path');
 const fs = require('fs');
 
 const ROOT = path.resolve(__dirname, '..');
-const SVG = path.join(ROOT, 'assets', 'logo', 'budget-assistant-logo.svg');
+const SOURCE_IMAGE = path.join(ROOT, 'assets', 'logo', 'user_logo.png');
 
 const outputs = [
     // Root PWA icons
@@ -29,17 +29,22 @@ const outputs = [
 ];
 
 (async () => {
-    const svgBuf = fs.readFileSync(SVG);
+    if (!fs.existsSync(SOURCE_IMAGE)) {
+        console.error('Source image not found:', SOURCE_IMAGE);
+        process.exit(1);
+    }
+    const imgBuf = fs.readFileSync(SOURCE_IMAGE);
     for (const out of outputs) {
         fs.mkdirSync(path.dirname(out.file), { recursive: true });
-        await sharp(svgBuf)
-            .resize(out.size, out.size)
+        await sharp(imgBuf)
+            .resize(out.size, out.size, { fit: 'cover' })
             .png()
             .toFile(out.file);
         console.log('Wrote', path.relative(ROOT, out.file), `(${out.size}x${out.size})`);
     }
-    console.log('Done.');
+    console.log('Done generating web/PWA logo icons.');
 })().catch((e) => {
     console.error('Error:', e.message);
     process.exit(1);
 });
+
