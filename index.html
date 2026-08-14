@@ -7,7 +7,7 @@
 
   <meta charset="UTF-8">
   <meta name="viewport"
-    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=overlays-content">
   <script>
     // 1. Environment Manager Redirect
     (function () {
@@ -72,7 +72,7 @@
               ${devButton}
             </div>
             <div style="font-size:11px;color:#8b949e;">
-              Budget Assistant • build v1224
+              Budget Assistant • build v1254
             </div>
           </div>
         `;
@@ -162,7 +162,7 @@
   <!-- Desktop Web UX Layer (loaded AFTER style.css so it can override).
        All rules are scoped behind html.web-mode, so Android/iOS native
        (Capacitor) layout is never affected. -->
-  <link rel="stylesheet" href="desktop.css?v=1224" id="desktop-stylesheet">
+  <link rel="stylesheet" href="desktop.css?v=1254" id="desktop-stylesheet">
 
   <!-- Capacitor Bridge -->
   <script src="capacitor.js"></script>
@@ -1344,7 +1344,10 @@
         <!-- Custom Calculator Keypad -->
         <div id="custom-calculator-keypad" class="calc-keypad-container">
           <div class="calc-keypad-header">
-            <span class="calc-keypad-title" data-i18n="keypad_title">Ποσό</span>
+            <div class="calc-keypad-preview-container">
+              <span class="calc-keypad-title" data-i18n="keypad_title">Ποσό</span>
+              <span id="calc-live-formula" class="calc-live-formula"></span>
+            </div>
             <div style="display: flex; gap: 16px; align-items: center;">
               <i class="fa-solid fa-xmark" style="color: var(--text-secondary); font-size: 16px; cursor: pointer;"
                 onclick="closeCalculatorKeypad()"></i>
@@ -1360,18 +1363,17 @@
             <button type="button" class="calc-key-btn" data-val="4">4</button>
             <button type="button" class="calc-key-btn" data-val="5">5</button>
             <button type="button" class="calc-key-btn" data-val="6">6</button>
-            <button type="button" class="calc-key-btn minus-key" data-val="-">-</button>
+            <button type="button" class="calc-key-btn op-key" data-val="+">+</button>
 
             <button type="button" class="calc-key-btn" data-val="7">7</button>
             <button type="button" class="calc-key-btn" data-val="8">8</button>
             <button type="button" class="calc-key-btn" data-val="9">9</button>
-            <button type="button" class="calc-key-btn calc-op-key" data-val="calc"><i
-                class="fa-solid fa-calculator"></i></button>
+            <button type="button" class="calc-key-btn minus-key op-key" data-val="-">-</button>
 
             <button type="button" class="calc-key-btn" data-val="00">00</button>
             <button type="button" class="calc-key-btn" data-val="0">0</button>
             <button type="button" class="calc-key-btn" data-val=".">.</button>
-            <button type="button" class="calc-key-btn done-key" data-val="done"
+            <button type="button" class="calc-key-btn done-key" id="calc-done-btn" data-val="done"
               data-i18n="keypad_btn_done">Τέλος</button>
           </div>
         </div>
@@ -1510,7 +1512,7 @@
                 data-i18n="item_user_guide">Οδηγός Χρήσης</h3>
               <div
                 style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; font-family: 'Outfit', sans-serif;">
-                <span id="user-guide-version-badge" style="font-size:10px; background:rgba(99,102,241,0.15); color:var(--primary); padding:2px 8px; border-radius:10px; font-weight:700; border:1px solid rgba(99,102,241,0.3);">v1224</span>
+                <span id="user-guide-version-badge" style="font-size:10px; background:rgba(99,102,241,0.15); color:var(--primary); padding:2px 8px; border-radius:10px; font-weight:700; border:1px solid rgba(99,102,241,0.3);">v1254</span>
                 <span>•</span>
                 <span id="user-guide-date-badge">Αύγουστος 2026</span>
               </div>
@@ -1979,6 +1981,13 @@
                     style="padding:6px 12px; border-radius:8px; font-family:'Outfit',sans-serif; width:100px; text-align:right;"
                     placeholder="500" onchange="saveExpenseLimit(this.value)">
                 </div>
+
+                <!-- Test Notification Action Button -->
+                <div style="padding:14px 16px; border-top:1px solid var(--border, rgba(255,255,255,0.05)); margin:0; background:rgba(0,0,0,0.1);">
+                  <button type="button" onclick="sendTestNotification()" class="btn btn-secondary" style="width:100%; font-size:13px; font-weight:700; padding:10px; border-radius:10px; display:flex; align-items:center; justify-content:center; gap:8px; background:rgba(var(--accent-rgb,124,106,247),0.15); color:var(--accent); border:1px solid rgba(var(--accent-rgb,124,106,247),0.3); cursor:pointer;">
+                    <i class="fa-solid fa-paper-plane"></i> <span>Δοκιμή Ειδοποίησης (Send Test Notification)</span>
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -2410,7 +2419,7 @@
             <div class="settings-list-item version-info-row"
               style="padding: 14px 16px; background: transparent; border-top: 1px solid var(--border); margin-top: 8px;">
               <span class="settings-item-label" style="color:var(--text-muted); font-size:12px;"
-                data-i18n="app_version">Έκδοση 1.0.0 (build v1224)</span>
+                data-i18n="app_version">Έκδοση 1.0.0 (build v1254)</span>
               <span class="settings-item-value" style="font-size:12px; color:var(--text-muted); font-weight:600;">Budget
                 Assistant</span>
             </div>
@@ -4320,7 +4329,7 @@
       </div>
     </div>
 
-    <!-- MODAL: PROFILE SETTINGS SHEET (iOS-STYLE) -->
+    <!-- MODAL: PROFILE SETTINGS SHEET (PREMIUM REDESIGN) -->
     <div id="profile-settings-modal" class="modal-overlay profile-sheet-overlay"
       onclick="handleProfileSheetOverlayClick(event)">
       <div class="modal-content profile-sheet-content" id="profile-sheet-content">
@@ -4328,54 +4337,134 @@
         <div class="profile-sheet-handle"></div>
 
         <div class="profile-sheet-header">
-          <h3 class="profile-sheet-title" data-i18n="profile_title">Το Προφίλ μου</h3>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <i class="fa-solid fa-user-gear" style="color:var(--accent); font-size:18px;"></i>
+            <h3 class="profile-sheet-title" data-i18n="profile_title">Το Προφίλ μου</h3>
+          </div>
           <span class="profile-sheet-close" onclick="closeProfileSheet()">&times;</span>
         </div>
 
         <div class="profile-sheet-body">
-          <!-- Avatar Preview & Camera overlay for upload -->
-          <div class="profile-avatar-container">
-            <div id="profile-sheet-avatar-preview" class="profile-sheet-avatar"></div>
-            <div class="profile-avatar-edit-badge" onclick="triggerAvatarUpload()"
-              data-i18n-title="profile_change_photo" title="Αλλαγή φωτογραφίας">
-              <i class="fa-solid fa-camera"></i>
+          <!-- Hero Card: Avatar, Name, Email, Role -->
+          <div class="profile-hero-card">
+            <div class="profile-avatar-container">
+              <div id="profile-sheet-avatar-preview" class="profile-sheet-avatar"></div>
+              <div class="profile-avatar-edit-badge" onclick="triggerAvatarUpload()"
+                data-i18n-title="profile_change_photo" title="Αλλαγή φωτογραφίας">
+                <i class="fa-solid fa-camera"></i>
+              </div>
+            </div>
+
+            <div class="profile-info-section">
+              <div class="profile-name-edit-group">
+                <input type="text" id="profile-name-input" class="profile-name-input" placeholder="Το όνομά σας" value=""
+                  onblur="saveProfileName()" onkeydown="handleProfileNameKeydown(event)">
+                <i class="fa-solid fa-pen profile-name-edit-icon"></i>
+              </div>
+              <div id="profile-email-display" class="profile-email-display">—</div>
+              <div id="profile-role-badge" class="profile-role-badge personal">
+                <i class="fa-solid fa-user-shield"></i> <span>Ατομικός Λογαριασμός</span>
+              </div>
             </div>
           </div>
 
-          <!-- Nickname (editable inline) and Email -->
-          <div class="profile-info-section">
-            <div class="profile-name-edit-group">
-              <input type="text" id="profile-name-input" class="profile-name-input" placeholder="Το όνομά σας" value=""
-                onblur="saveProfileName()" onkeydown="handleProfileNameKeydown(event)">
-              <i class="fa-solid fa-pen profile-name-edit-icon"></i>
+          <!-- Financial Quick Stats Grid -->
+          <div class="profile-stats-grid">
+            <div class="profile-stat-card">
+              <div class="profile-stat-icon" style="background:rgba(124,106,247,0.15); color:var(--accent);">
+                <i class="fa-solid fa-receipt"></i>
+              </div>
+              <div class="profile-stat-info">
+                <div class="profile-stat-value" id="profile-stat-transactions">0</div>
+                <div class="profile-stat-label">Συναλλαγές</div>
+              </div>
             </div>
-            <div id="profile-email-display" class="profile-email-display">—</div>
+
+            <div class="profile-stat-card">
+              <div class="profile-stat-icon" style="background:rgba(76,175,80,0.15); color:#4caf50;">
+                <i class="fa-solid fa-layer-group"></i>
+              </div>
+              <div class="profile-stat-info">
+                <div class="profile-stat-value" id="profile-stat-categories">0</div>
+                <div class="profile-stat-label">Κατηγορίες</div>
+              </div>
+            </div>
+
+            <div class="profile-stat-card" onclick="closeProfileSheet(); navigateToSubscreen('partner');" style="cursor:pointer;">
+              <div class="profile-stat-icon" style="background:rgba(255,152,0,0.15); color:#ff9800;">
+                <i class="fa-solid fa-users"></i>
+              </div>
+              <div class="profile-stat-info">
+                <div class="profile-stat-value" id="profile-stat-group">Ατομικό</div>
+                <div class="profile-stat-label">Ομάδα</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Account View Mode Switcher -->
+          <div class="profile-mode-section">
+            <div class="profile-section-title">Λειτουργία Προβολής</div>
+            <div class="profile-account-mode-switcher">
+              <button type="button" id="profile-mode-btn-personal" class="profile-mode-btn" onclick="setAccountViewMode('personal')">
+                <i class="fa-solid fa-user"></i>
+                <span>👤 Ατομικός</span>
+              </button>
+              <button type="button" id="profile-mode-btn-family" class="profile-mode-btn" onclick="setAccountViewMode('family')">
+                <i class="fa-solid fa-people-roof"></i>
+                <span>👥 Οικογενειακός</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Quick Shortcuts Bar -->
+          <div class="profile-shortcuts-section">
+            <div class="profile-section-title">Γρήγορες Επιλογές</div>
+            <div class="profile-shortcuts-grid">
+              <button type="button" class="profile-shortcut-btn" onclick="closeProfileSheet(); openSettingsSubscreen('family', 'settings_family_title');">
+                <i class="fa-solid fa-people-roof" style="color:var(--accent);"></i>
+                <span>Οικογένεια</span>
+              </button>
+              <button type="button" class="profile-shortcut-btn" onclick="closeProfileSheet(); openSettingsSubscreen('preferences', 'settings_pref_title');">
+                <i class="fa-solid fa-sliders" style="color:#2196f3;"></i>
+                <span>Ρυθμίσεις</span>
+              </button>
+              <button type="button" class="profile-shortcut-btn" onclick="closeProfileSheet(); openSettingsSubscreen('notifications', 'settings_notif_title');">
+                <i class="fa-solid fa-bell" style="color:#ff9800;"></i>
+                <span>Ειδοποιήσεις</span>
+              </button>
+              <button type="button" class="profile-shortcut-btn" onclick="closeProfileSheet(); switchTab('stats');">
+                <i class="fa-solid fa-chart-pie" style="color:#4caf50;"></i>
+                <span>Αναφορές</span>
+              </button>
+            </div>
           </div>
 
           <!-- Preset Avatar Selection -->
-          <div class="profile-presets-title" data-i18n="profile_select_avatar">Επιλέξτε Avatar</div>
-          <div class="profile-presets-grid">
-            <div class="preset-avatar-option preset-custom-trigger" onclick="triggerAvatarUpload()"
-              data-i18n-title="profile_upload_image" title="Μεταφόρτωση εικόνας">
-              <div class="preset-avatar-inner preset-custom-icon"><i class="fa-solid fa-upload"></i></div>
-            </div>
-            <div class="preset-avatar-option" data-preset="1" onclick="selectPresetAvatar(1)">
-              <div class="preset-avatar-inner preset-1"><i class="fa-solid fa-user"></i></div>
-            </div>
-            <div class="preset-avatar-option" data-preset="2" onclick="selectPresetAvatar(2)">
-              <div class="preset-avatar-inner preset-2"><i class="fa-solid fa-rocket"></i></div>
-            </div>
-            <div class="preset-avatar-option" data-preset="3" onclick="selectPresetAvatar(3)">
-              <div class="preset-avatar-inner preset-3"><i class="fa-solid fa-gem"></i></div>
-            </div>
-            <div class="preset-avatar-option" data-preset="4" onclick="selectPresetAvatar(4)">
-              <div class="preset-avatar-inner preset-4"><i class="fa-solid fa-cat"></i></div>
-            </div>
-            <div class="preset-avatar-option" data-preset="5" onclick="selectPresetAvatar(5)">
-              <div class="preset-avatar-inner preset-5"><i class="fa-solid fa-heart"></i></div>
-            </div>
-            <div class="preset-avatar-option" data-preset="6" onclick="selectPresetAvatar(6)">
-              <div class="preset-avatar-inner preset-6"><i class="fa-solid fa-crown"></i></div>
+          <div class="profile-presets-section">
+            <div class="profile-presets-title" data-i18n="profile_select_avatar">Επιλογή Avatar</div>
+            <div class="profile-presets-grid">
+              <div class="preset-avatar-option preset-custom-trigger" onclick="triggerAvatarUpload()"
+                data-i18n-title="profile_upload_image" title="Μεταφόρτωση εικόνας">
+                <div class="preset-avatar-inner preset-custom-icon"><i class="fa-solid fa-upload"></i></div>
+              </div>
+              <div class="preset-avatar-option" data-preset="1" onclick="selectPresetAvatar(1)">
+                <div class="preset-avatar-inner preset-1"><i class="fa-solid fa-user"></i></div>
+              </div>
+              <div class="preset-avatar-option" data-preset="2" onclick="selectPresetAvatar(2)">
+                <div class="preset-avatar-inner preset-2"><i class="fa-solid fa-rocket"></i></div>
+              </div>
+              <div class="preset-avatar-option" data-preset="3" onclick="selectPresetAvatar(3)">
+                <div class="preset-avatar-inner preset-3"><i class="fa-solid fa-gem"></i></div>
+              </div>
+              <div class="preset-avatar-option" data-preset="4" onclick="selectPresetAvatar(4)">
+                <div class="preset-avatar-inner preset-4"><i class="fa-solid fa-cat"></i></div>
+              </div>
+              <div class="preset-avatar-option" data-preset="5" onclick="selectPresetAvatar(5)">
+                <div class="preset-avatar-inner preset-5"><i class="fa-solid fa-heart"></i></div>
+              </div>
+              <div class="preset-avatar-option" data-preset="6" onclick="selectPresetAvatar(6)">
+                <div class="preset-avatar-inner preset-6"><i class="fa-solid fa-crown"></i></div>
+              </div>
             </div>
           </div>
 
@@ -4383,17 +4472,19 @@
           <input type="file" id="profile-avatar-file-input" accept="image/*" style="display: none;"
             onchange="handleCustomAvatarUpload(event)">
 
-          <!-- Cloud Sync Status -->
-          <div class="profile-cloud-status" id="profile-cloud-status">
-            <i class="fa-solid fa-cloud-check"></i>
-            <span data-i18n="cloud_sync_active">Συγχρονισμός Cloud: Ενεργός</span>
-          </div>
+          <!-- Cloud Sync Status & Account Actions Footer -->
+          <div class="profile-footer-card">
+            <div class="profile-cloud-status" id="profile-cloud-status">
+              <i class="fa-solid fa-cloud-check"></i>
+              <span data-i18n="cloud_sync_active">Συγχρονισμός Cloud: Ενεργός</span>
+            </div>
 
-          <!-- Logout button -->
-          <button class="btn btn-secondary profile-logout-btn" onclick="handleProfileLogout()">
-            <i class="fa-solid fa-right-from-bracket" style="margin-right: 8px;"></i><span
-              data-i18n="profile_logout_btn">Αποσύνδεση Λογαριασμού</span>
-          </button>
+            <!-- Logout button -->
+            <button class="btn btn-secondary profile-logout-btn" onclick="handleProfileLogout()">
+              <i class="fa-solid fa-right-from-bracket" style="margin-right: 8px;"></i>
+              <span data-i18n="profile_logout_btn">Αποσύνδεση Λογαριασμού</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -4429,7 +4520,7 @@
       // OTA updates. Running both would cause a reload loop that never
       // baked into the APK and never changes on a plain reload).
       // ============================================================
-      const CURRENT_BUILD = 1224;
+      const CURRENT_BUILD = 1254;
       (function () {
         // Skip entirely when running inside the native APK (Capacitor bridge
         // present). Capgo handles OTA updates there.
@@ -5281,11 +5372,11 @@
 
   <!-- Transaction merge/dedup logic (pure, testable; loaded before app.js) -->
   <script src="js/transactionMerge.js"></script>
-  <script src="app.js?v=1224"></script>
+  <script src="app.js?v=1254"></script>
   <!-- Desktop Web UX Layer (defer so it runs after app.js; invoked via
        initDesktopUI() hook at the end of initApp()). Self-guards on
        html.web-mode so native Android/iOS is never affected. -->
-  <script src="web-ui.js?v=1224" defer></script>
+  <script src="web-ui.js?v=1254" defer></script>
 </body>
 
 

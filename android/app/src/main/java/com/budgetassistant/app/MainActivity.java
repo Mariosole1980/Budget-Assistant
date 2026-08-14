@@ -6,6 +6,7 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.PixelFormat;
+import android.graphics.Rect;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Build;
@@ -200,23 +201,35 @@ public class MainActivity extends BridgeActivity {
         // (~16ms), well before the app is fully backgrounded.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             try {
-                View decorView = getWindow().getDecorView();
-                int w = decorView.getWidth();
-                int h = decorView.getHeight();
-                if (w > 0 && h > 0) {
-                    recycleSnapshot();
-                    lastSnapshot = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
-                    PixelCopy.request(getWindow(), lastSnapshot, (result) -> {
-                        if (result == PixelCopy.SUCCESS && resumeOverlay != null) {
-                            BitmapDrawable bd = new BitmapDrawable(getResources(), lastSnapshot);
-                            resumeOverlay.setBackground(bd);
-                            Log.d(TAG, "Snapshot captured via PixelCopy (" + w + "x" + h + ")");
-                        } else {
-                            Log.w(TAG, "PixelCopy failed (result=" + result + "), trying Canvas");
-                            captureViaCanvas();
-                        }
-                    }, mainHandler);
-                    return; // PixelCopy started, will update overlay asynchronously
+                if (bridge != null && bridge.getWebView() != null) {
+                    WebView wv = bridge.getWebView();
+                    int w = wv.getWidth();
+                    int h = wv.getHeight();
+                    if (w > 0 && h > 0) {
+                        recycleSnapshot();
+                        lastSnapshot = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+
+                        int[] location = new int[2];
+                        wv.getLocationInWindow(location);
+                        Rect rect = new Rect(
+                                location[0],
+                                location[1],
+                                location[0] + w,
+                                location[1] + h
+                        );
+
+                        PixelCopy.request(getWindow(), rect, lastSnapshot, (result) -> {
+                            if (result == PixelCopy.SUCCESS && resumeOverlay != null) {
+                                BitmapDrawable bd = new BitmapDrawable(getResources(), lastSnapshot);
+                                resumeOverlay.setBackground(bd);
+                                Log.d(TAG, "Snapshot captured via PixelCopy (" + w + "x" + h + " at " + location[0] + "," + location[1] + ")");
+                            } else {
+                                Log.w(TAG, "PixelCopy failed (result=" + result + "), trying Canvas");
+                                captureViaCanvas();
+                            }
+                        }, mainHandler);
+                        return;
+                    }
                 }
             } catch (Exception e) {
                 Log.w(TAG, "PixelCopy exception, trying Canvas fallback", e);
@@ -297,8 +310,7 @@ public class MainActivity extends BridgeActivity {
                     WindowManager.LayoutParams.TYPE_APPLICATION_PANEL,
                     WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
                             | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
-                            | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
-                            | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                            | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
                     PixelFormat.TRANSLUCENT);
             params.gravity = Gravity.TOP | Gravity.START;
             params.token = getWindow().getDecorView().getWindowToken();

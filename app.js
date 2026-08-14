@@ -680,7 +680,8 @@ function ensureHistoryPushed() {
 
 function getTransactionTime(t) {
   if (!t) return 0;
-  const ref = t.created_at || t.date;
+  // Prioritize user's explicitly chosen date and time (t.date) over system created_at timestamp
+  const ref = t.date || t.created_at;
   if (!ref) return 0;
   if (typeof ref === 'number') return ref;
   if (ref instanceof Date) return ref.getTime();
@@ -745,21 +746,28 @@ function compareTransactions(a, b) {
   if (!a) return 1;
   if (!b) return -1;
 
-  // Level 1: date descending (locale-independent string comparison)
+  // Level 1: date descending (YYYY-MM-DD)
   const dateA = String(a.date || '').split('T')[0].split(' ')[0];
   const dateB = String(b.date || '').split('T')[0].split(' ')[0];
   if (dateA !== dateB) {
     return dateA < dateB ? 1 : -1;
   }
 
-  // Level 2: created_at timestamp descending (UTC epoch ms)
+  // Level 2: User-selected transaction time descending (t.date timestamp ms)
   const timeA = getTransactionTime(a);
   const timeB = getTransactionTime(b);
   if (timeA !== timeB) {
     return timeB - timeA;
   }
 
-  // Level 3: id ascending (unique fallback)
+  // Level 3: created_at timestamp descending (UTC epoch ms as tie-breaker)
+  const createdA = a.created_at ? getTransactionTime({ date: a.created_at }) : 0;
+  const createdB = b.created_at ? getTransactionTime({ date: b.created_at }) : 0;
+  if (createdA !== createdB) {
+    return createdB - createdA;
+  }
+
+  // Level 4: id ascending (unique fallback)
   const idA = String(a.id || '');
   const idB = String(b.id || '');
   if (idA !== idB) {
@@ -774,10 +782,45 @@ const _deletingTxIds = new Set();
 // IDs that were successfully deleted from the cloud within the last 30 seconds.
 // This prevents a race condition where loadData() fetches from Supabase before
 // the DB deletion has propagated, bringing deleted transactions back.
-const _recentlyDeletedTxIds = new Set();
+//
+// FIX (data loss on deploy): Persisted to localStorage so the guard window
+// survives app reloads / OTA / cold start — symmetric with _recentlySavedTxIds.
+// Without this, a delete followed by an immediate reload could re-fetch the
+// still-propagating soft-deleted row and resurrect it in the active list.
+const _RECENTLY_DELETED_LS_KEY = 'recently_deleted_tx_ids';
+const _RECENTLY_DELETED_GRACE_MS = 30 * 1000; // 30 seconds
+const _recentlyDeletedTxIds = (() => {
+  try {
+    const stored = JSON.parse(localStorage.getItem(_RECENTLY_DELETED_LS_KEY) || '{}');
+    const now = Date.now();
+    const valid = {};
+    for (const [id, ts] of Object.entries(stored)) {
+      if (now - ts < _RECENTLY_DELETED_GRACE_MS) valid[id] = ts;
+    }
+    // Prune expired entries
+    if (Object.keys(valid).length !== Object.keys(stored).length) {
+      localStorage.setItem(_RECENTLY_DELETED_LS_KEY, JSON.stringify(valid));
+    }
+    return new Set(Object.keys(valid));
+  } catch (_) { return new Set(); }
+})();
 function _markRecentlyDeleted(id) {
-  _recentlyDeletedTxIds.add(String(id));
-  setTimeout(() => { _recentlyDeletedTxIds.delete(String(id)); }, 30000);
+  if (!id) return;
+  const idStr = String(id);
+  _recentlyDeletedTxIds.add(idStr);
+  try {
+    const stored = JSON.parse(localStorage.getItem(_RECENTLY_DELETED_LS_KEY) || '{}');
+    stored[idStr] = Date.now();
+    localStorage.setItem(_RECENTLY_DELETED_LS_KEY, JSON.stringify(stored));
+  } catch (_) { }
+  setTimeout(() => {
+    _recentlyDeletedTxIds.delete(idStr);
+    try {
+      const stored = JSON.parse(localStorage.getItem(_RECENTLY_DELETED_LS_KEY) || '{}');
+      delete stored[idStr];
+      localStorage.setItem(_RECENTLY_DELETED_LS_KEY, JSON.stringify(stored));
+    } catch (_) { }
+  }, _RECENTLY_DELETED_GRACE_MS);
 }
 
 function deduplicateCategories() {
@@ -1083,7 +1126,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1223 - 06/08/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1254 - 06/08/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1544,7 +1587,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1223 - 06/08/2026)',
+    app_version: 'Version 1.0.0 (build v1254 - 06/08/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -2031,15 +2074,63 @@ function evaluateCalcBuffer(buf) {
   }
   if (!cleanBuf) return '0';
   try {
-    const parts = cleanBuf.split('-');
-    let result = parseFloat(parts[0]) || 0;
-    for (let i = 1; i < parts.length; i++) {
-      result -= parseFloat(parts[i]) || 0;
+    const tokens = cleanBuf.match(/(\d+\.?\d*|[-+*/])/g);
+    if (!tokens || tokens.length === 0) return '0';
+
+    let total = parseFloat(tokens[0]) || 0;
+    let currentOp = '+';
+
+    for (let i = 1; i < tokens.length; i++) {
+      const tok = tokens[i];
+      if (['+', '-', '*', '/'].includes(tok)) {
+        currentOp = tok;
+      } else {
+        const num = parseFloat(tok) || 0;
+        if (currentOp === '+') total += num;
+        else if (currentOp === '-') total -= num;
+        else if (currentOp === '*') total *= num;
+        else if (currentOp === '/') total = num !== 0 ? total / num : total;
+      }
     }
-    return String(Math.round(result * 100) / 100);
+    return String(Math.round(total * 100) / 100);
   } catch (e) {
     console.error('Calculation error:', e);
     return cleanBuf;
+  }
+}
+
+function hasPendingMathOperator(buf) {
+  if (!buf) return false;
+  return /[-+*/]/.test(String(buf));
+}
+
+function updateKeypadDoneButton() {
+  const doneBtn = document.getElementById('calc-done-btn');
+  const liveFormula = document.getElementById('calc-live-formula');
+  const buf = state.calcBuffer || '';
+  const isExpression = hasPendingMathOperator(buf);
+
+  if (liveFormula) {
+    if (isExpression) {
+      const evaluated = evaluateCalcBuffer(buf);
+      liveFormula.textContent = `= ${formatCalcDisplay(evaluated)} €`;
+      liveFormula.style.display = 'inline';
+    } else {
+      liveFormula.textContent = '';
+      liveFormula.style.display = 'none';
+    }
+  }
+
+  if (doneBtn) {
+    if (isExpression) {
+      doneBtn.textContent = '=';
+      doneBtn.setAttribute('data-mode', 'equals');
+    } else {
+      const lang = localStorage.getItem('bg_language') || 'el';
+      const label = lang === 'en' ? 'Done' : 'Τέλος';
+      doneBtn.textContent = label;
+      doneBtn.setAttribute('data-mode', 'done');
+    }
   }
 }
 
@@ -3540,37 +3631,22 @@ function initSupabaseAuth() {
           // dialog. If the sync fails for some items (e.g. schema mismatch), the
           // dialog no longer re-appears on every app open — it silently retries
           // instead. Also re-checks pending count AFTER sync to avoid re-prompting.
+          // AUTO-IMPORT (no dialog): Locally-saved transactions (e.g. recorded while
+          // offline / as guest) are synced silently into the account, without asking.
+          //
+          // ACCOUNT-ISOLATION: Only sync when the cache belongs to the CURRENT account
+          // (or is unowned guest/legacy data). If a DIFFERENT account owns the local
+          // cache, do NOT import — that data belongs to another account and must not
+          // be mixed in. syncLocalTransactionsToCloud is re-entrancy-guarded, so the
+          // background flush inside loadData() and this call cannot double-insert.
           try {
-            const localTransStr = localStorage.getItem('offline_transactions');
-            const localAll = localTransStr ? (JSON.parse(localTransStr) || []) : [];
-            const pendingLocal = getPendingLocalTransactions(localAll);
-            if (pendingLocal.length > 0) {
-              // Check if the user recently dismissed this dialog (24h cooldown)
-              const dismissedAt = parseInt(localStorage.getItem('import_dialog_dismissed_at') || '0');
-              const DISMISS_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 hours
-              if (Date.now() - dismissedAt < DISMISS_COOLDOWN_MS) {
-                // Within cooldown — silently sync instead of re-asking
-                await syncLocalTransactionsToCloud(session.user.id, { silent: true });
-              } else {
-                const importLocal = await showCustomDialog({
-                  title: state.lang === 'el' ? 'Εισαγωγή Αποθηκευμένων Δεδομένων' : 'Import Saved Data',
-                  icon: '📥',
-                  message: state.lang === 'el'
-                    ? `Βρήκαμε <b>${pendingLocal.length}</b> αποθηκευμένες κινήσεις στο τηλέφωνό σας. Θέλετε να τις εισαγάγετε αυτόματα στον λογαριασμό σας;`
-                    : `We found <b>${pendingLocal.length}</b> saved transactions on your phone. Would you like to import them into your account automatically?`,
-                  showCancel: true
-                });
-                if (importLocal) {
-                  await syncLocalTransactionsToCloud(session.user.id, { silent: false });
-                } else {
-                  // User dismissed — set cooldown so we don't re-ask immediately
-                  localStorage.setItem('import_dialog_dismissed_at', Date.now().toString());
-                }
-              }
+            const cachedOwner = localStorage.getItem('offline_transactions_owner');
+            const cacheBelongsToCurrentUser = !cachedOwner || cachedOwner === session.user.id;
+            if (cacheBelongsToCurrentUser) {
+              await syncLocalTransactionsToCloud(session.user.id, { silent: true });
             }
           } catch (err) {
-            console.warn('Local data import prompt failed, falling back to silent sync:', err);
-            await syncLocalTransactionsToCloud(session.user.id, { silent: true });
+            console.warn('Silent local data sync failed:', err);
           }
         } catch (err) {
           console.error('Error during background auth setup:', err);
@@ -3625,6 +3701,8 @@ function initSupabaseAuth() {
       state.partnerProfile = null;
       state.familyProfiles = [];
       state.familyGroup = null;
+      state.activeAccountMode = 'family';
+      localStorage.removeItem('account_view_mode');
       localStorage.removeItem('cached_current_user');
       localStorage.removeItem('cached_partner_profile');
       localStorage.removeItem('cached_user_profile');
@@ -3633,6 +3711,7 @@ function initSupabaseAuth() {
       localStorage.removeItem('offline_transactions');
       localStorage.removeItem('offline_accounts');
       localStorage.removeItem('offline_categories');
+      localStorage.removeItem('offline_transactions_owner');
       updateHeaderSyncIcon('offline');
 
       if (localStorage.getItem('auth_guest_mode') === 'true') {
@@ -3932,6 +4011,7 @@ function getActiveTransactions() {
   const currentUserId = state.currentUser ? state.currentUser.id : null;
   const partnerId = state.partnerProfile ? state.partnerProfile.id : null;
   const familyId = state.userProfile ? state.userProfile.family_id : null;
+  const isPersonalMode = state.activeAccountMode === 'personal';
 
   const filtered = state.transactions.filter(t => {
     if (t.user_id === undefined) {
@@ -3939,6 +4019,11 @@ function getActiveTransactions() {
     }
 
     if (currentUserId) {
+      if (isPersonalMode) {
+        return (t.user_id === currentUserId && (!t.family_id || t.family_id === null)) ||
+          (t.id && String(t.id).startsWith('local_') && (!t.family_id || t.family_id === null));
+      }
+
       if (familyId) {
         return t.family_id === familyId ||
           t.user_id === currentUserId ||
@@ -3990,8 +4075,17 @@ function calculateInitialBalances() {
     // multi-currency accounts, because it returns the amount in the transaction's
     // base_currency rather than the account's currency.
     const accCurrency = acc.currency || getDisplayCurrency();
-    // Base balance is calculated from all active transactions going backwards
-    const activeTrans = getActiveTransactions();
+    // For family accounts during Personal Mode, calculate balance using all family transactions to avoid zero/distorted balances
+    let activeTrans = getActiveTransactions();
+    if (state.activeAccountMode === 'personal' && (acc.scope === 'family' || acc.family_id)) {
+      const familyId = state.userProfile ? state.userProfile.family_id : null;
+      const currentUserId = state.currentUser ? state.currentUser.id : null;
+      const partnerId = state.partnerProfile ? state.partnerProfile.id : null;
+      activeTrans = state.transactions.filter(t => {
+        if (familyId) return t.family_id === familyId || t.user_id === currentUserId || t.user_id === partnerId;
+        return t.user_id === currentUserId;
+      });
+    }
     activeTrans.forEach(t => {
       // displayAmount(t, accCurrency) converts the transaction amount into the
       // target account's currency (handles fx_snapshot / amount_base / rates).
@@ -4740,7 +4834,17 @@ async function loadData() {
 
       // Preserve pending local transactions that failed to sync (offline fallback),
       // so they are not lost when fresh cloud data overwrites local cache.
-      const pendingLocal = getPendingLocalTransactions(JSON.parse(localStorage.getItem('offline_transactions') || '[]'));
+      //
+      // ACCOUNT-ISOLATION (fix): The offline cache is NOT account-scoped, so when a
+      // user signs into a DIFFERENT account, the previous account's unsynced local
+      // transactions would otherwise be merged into this account's data (a
+      // cross-account data leak). We only preserve/merge pending local transactions
+      // when the cache belongs to the current user (or is unowned guest/legacy data).
+      const cachedOwner = localStorage.getItem('offline_transactions_owner');
+      const cacheBelongsToCurrentUser = !cachedOwner || cachedOwner === userId;
+      const pendingLocal = cacheBelongsToCurrentUser
+        ? getPendingLocalTransactions(JSON.parse(localStorage.getItem('offline_transactions') || '[]'))
+        : [];
 
       // 4.5. RECOVERY: Rescue local transactions that were dropped from the sync queue due to schema errors (e.g., recurring_template_id)
       const cloudIds = new Set(allTransactions.map(t => t.id));
@@ -4800,6 +4904,9 @@ async function loadData() {
       localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
       localStorage.setItem('offline_accounts', JSON.stringify(state.accounts));
       localStorage.setItem('offline_categories', JSON.stringify(state.categories));
+      // ACCOUNT-ISOLATION: Attribute the local cache to the current user so a
+      // later sign-in with a DIFFERENT account does not import/merge this data.
+      localStorage.setItem('offline_transactions_owner', userId);
 
       updateHeaderSyncIcon('synced');
 
@@ -5408,11 +5515,27 @@ function checkHighExpenseAlert(transaction) {
     const amount = parseFloat(transaction.amount) || 0;
     if (amount < limit) return;
 
+    const isPartner = state.currentUser && transaction.user_id && transaction.user_id !== state.currentUser.id;
+    let partnerName = '';
+    if (isPartner && state.familyProfiles) {
+      const p = state.familyProfiles.find(fp => fp.id === transaction.user_id);
+      if (p) partnerName = p.display_name || p.email || '';
+    }
+
     const catName = getCategoryDisplayName ? getCategoryDisplayName(transaction.category) : (transaction.category || '');
     const title = state.lang === 'el' ? '⚠️ Υψηλή Δαπάνη' : '⚠️ High Expense Alert';
-    const body = state.lang === 'el'
-      ? `Καταχωρήθηκε δαπάνη ${formatCurrency(amount)} (${catName}) που υπερβαίνει το όριο των ${formatCurrency(limit)}.`
-      : `An expense of ${formatCurrency(amount)} (${catName}) was recorded, exceeding your limit of ${formatCurrency(limit)}.`;
+
+    let body = '';
+    if (isPartner) {
+      const who = partnerName ? `Ο/Η ${partnerName}` : (state.lang === 'el' ? 'Μέλος της οικογένειας' : 'A family member');
+      body = state.lang === 'el'
+        ? `${who} καταχώρησε δαπάνη ${formatCurrency(amount)} (${catName}) που υπερβαίνει το όριο των ${formatCurrency(limit)}.`
+        : `${who} logged an expense of ${formatCurrency(amount)} (${catName}), exceeding the limit of ${formatCurrency(limit)}.`;
+    } else {
+      body = state.lang === 'el'
+        ? `Καταχωρήθηκε δαπάνη ${formatCurrency(amount)} (${catName}) που υπερβαίνει το όριο των ${formatCurrency(limit)}.`
+        : `An expense of ${formatCurrency(amount)} (${catName}) was recorded, exceeding your limit of ${formatCurrency(limit)}.`;
+    }
 
     // 1. In-app notification (notification center / badge)
     addInAppNotification(title, body, { type: 'open_transactions' });
@@ -5424,13 +5547,16 @@ function checkHighExpenseAlert(transaction) {
 
     // 3. Native push-style notification (works when app is in background)
     if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.LocalNotifications) {
-      const LocalNotifications = window.Capacitor.Plugins.LocalNotifications;
-      LocalNotifications.schedule({
+      const notifId = Math.floor(Math.random() * 899999) + 100000;
+      window.Capacitor.Plugins.LocalNotifications.schedule({
         notifications: [{
-          id: 9000 + (Math.floor(Math.random() * 900) + 100),
+          id: notifId,
           title: title,
           body: body,
-          schedule: { at: new Date(Date.now() + 500) },
+          smallIcon: 'ic_stat_icon_config_sample',
+          iconColor: '#7c6af7',
+          largeIcon: 'splash_logo',
+          schedule: { at: new Date(Date.now() + 50) },
           sound: null,
           attachments: null,
           actionTypeId: '',
@@ -5462,7 +5588,13 @@ async function saveTransaction(transaction) {
     if (!transaction.user_id) {
       transaction.user_id = state.currentUser.id;
     }
-    if (!transaction.family_id && state.userProfile && state.userProfile.family_id) {
+    if (state.activeAccountMode === 'personal') {
+      // In Personal Mode, new transactions default to personal scope (family_id = null)
+      if (!transaction.family_id) {
+        transaction.family_id = null;
+        transaction.is_shared = false;
+      }
+    } else if (!transaction.family_id && state.userProfile && state.userProfile.family_id) {
       transaction.family_id = state.userProfile.family_id;
     }
   }
@@ -7150,13 +7282,7 @@ window.renderCategoryBudgetsView = renderCategoryBudgetsView;
 
 function getSubcategoriesForCategoryName(catName) {
   if (!catName) return [];
-  const cleanCat = getCategoryInfo(catName, 'expense').name || catName;
-  let subcats = DEFAULT_SUBCATEGORIES_MAP[cleanCat] || DEFAULT_SUBCATEGORIES_MAP[catName] || [];
-  const foundCat = (state.categories || []).find(c => getCategoryInfo(c.name).name === cleanCat || c.name === catName);
-  if (foundCat && Array.isArray(foundCat.subcategories) && foundCat.subcategories.length > 0) {
-    subcats = [...new Set([...subcats, ...foundCat.subcategories])];
-  }
-  return subcats;
+  return getSubcategoriesForCategory(catName);
 }
 
 function onBudgetCategoryChange() {
@@ -9580,6 +9706,7 @@ function setupEventListeners() {
       }
     }
     state.calcBuffer = stripThousandsSeparators(document.getElementById('trans-amount').value).replace(/\,/g, '.') || '';
+    updateKeypadDoneButton();
   }
 
   window.openCalculatorKeypad = openCalculatorKeypad;
@@ -9698,24 +9825,37 @@ function setupEventListeners() {
   window.closeCalculatorKeypad = closeCalculatorKeypad;
 
   function handleCalculatorKeyPress(val) {
-    let buf = state.calcBuffer;
+    let buf = state.calcBuffer || '0';
 
     if (val === 'done') {
-      buf = evaluateCalcBuffer(buf);
-      document.getElementById('trans-amount').value = formatCalcDisplay(buf);
-      state.calcBuffer = buf;
-      updateAmountCurrencySymbol();
-      closeCalculatorKeypad();
-      return;
+      const isExpression = hasPendingMathOperator(buf);
+      if (isExpression) {
+        // Pressing '=' evaluates the math expression first
+        buf = evaluateCalcBuffer(buf);
+        state.calcBuffer = buf;
+        document.getElementById('trans-amount').value = formatCalcDisplay(buf);
+        updateAmountCurrencySymbol();
+        updateKeypadDoneButton();
+        return;
+      } else {
+        // Clean result: close keypad
+        buf = evaluateCalcBuffer(buf);
+        document.getElementById('trans-amount').value = formatCalcDisplay(buf);
+        state.calcBuffer = buf;
+        updateAmountCurrencySymbol();
+        closeCalculatorKeypad();
+        return;
+      }
     }
 
     if (val === 'backspace') {
       if (buf.length > 0) {
         buf = buf.slice(0, -1);
       }
-    } else if (val === '-') {
+      if (buf === '') buf = '0';
+    } else if (val === '+' || val === '-') {
       if (buf.length > 0 && !['-', '+', '*', '/'].includes(buf.slice(-1))) {
-        buf += '-';
+        buf += val;
       }
     } else if (val === 'calc') {
       buf = evaluateCalcBuffer(buf);
@@ -9735,6 +9875,7 @@ function setupEventListeners() {
     state.calcBuffer = buf;
     document.getElementById('trans-amount').value = formatCalcDisplay(buf);
     updateAmountCurrencySymbol();
+    updateKeypadDoneButton();
   }
 
   // Stats period navigation
@@ -10531,11 +10672,23 @@ function openEditTransactionModal(t, { instant = false } = {}) {
   document.getElementById('trans-id').value = t.id;
 
   let dateVal = t.date;
-  if (dateVal && dateVal.length === 10) {
-    const now = new Date();
-    const hrs = String(now.getHours()).padStart(2, '0');
-    const mins = String(now.getMinutes()).padStart(2, '0');
-    dateVal = `${dateVal}T${hrs}:${mins}`;
+  if (dateVal) {
+    if (dateVal.includes('T')) {
+      dateVal = dateVal.slice(0, 16);
+    } else if (dateVal.length === 10) {
+      if (t.created_at) {
+        const createdDate = new Date(t.created_at);
+        if (!isNaN(createdDate.getTime())) {
+          const hrs = String(createdDate.getHours()).padStart(2, '0');
+          const mins = String(createdDate.getMinutes()).padStart(2, '0');
+          dateVal = `${dateVal}T${hrs}:${mins}`;
+        } else {
+          dateVal = `${dateVal}T00:00`;
+        }
+      } else {
+        dateVal = `${dateVal}T00:00`;
+      }
+    }
   }
   document.getElementById('trans-date').value = dateVal;
   document.getElementById('trans-date-display').textContent = formatGreekDateTime(dateVal);
@@ -10712,17 +10865,25 @@ function updateCategoryDisplay() {
     subcatText = getSubcategoryDisplayName(subcatSelect.trim(), categoryVal);
   }
 
+  const fullText = subcatText ? `${cleanName} > ${subcatText}` : cleanName;
+  const isLongText = fullText.length > 22;
+  const fontSizeStyle = isLongText ? 'font-size: 11.5px;' : 'font-size: 13px;';
+
   if (subcatText) {
     categoryDisplay.innerHTML = `
-      <span class="category-picker-icon" style="font-size:16px;">${icon}</span>
-      <span style="font-weight:600;">${cleanName}</span>
-      <span style="color: var(--text-muted); margin: 0 4px;">&gt;</span>
-      <span style="font-weight:600;">${subcatText}</span>
+      <div style="display: flex; align-items: center; gap: 4px; ${fontSizeStyle} white-space: nowrap;">
+        <span class="category-picker-icon" style="font-size:14px; flex-shrink:0;">${icon}</span>
+        <span style="font-weight:600;">${cleanName}</span>
+        <span style="color: var(--text-muted); margin: 0 2px; flex-shrink:0;">&gt;</span>
+        <span style="font-weight:600;">${subcatText}</span>
+      </div>
     `;
   } else {
     categoryDisplay.innerHTML = `
-      <span class="category-picker-icon" style="font-size:16px;">${icon}</span>
-      <span style="font-weight:600;">${cleanName}</span>
+      <div style="display: flex; align-items: center; gap: 6px; ${fontSizeStyle} white-space: nowrap;">
+        <span class="category-picker-icon" style="font-size:14px; flex-shrink:0;">${icon}</span>
+        <span style="font-weight:600;">${cleanName}</span>
+      </div>
     `;
   }
 }
@@ -20677,8 +20838,11 @@ async function handleLogout() {
     localStorage.removeItem('offline_transactions');
     localStorage.removeItem('offline_accounts');
     localStorage.removeItem('offline_categories');
+    localStorage.removeItem('offline_transactions_owner');
     localStorage.removeItem('auth_guest_mode');
     localStorage.removeItem('app_theme'); // Reset theme to default (Premium Dark) on logout
+    localStorage.removeItem('account_view_mode');
+    state.activeAccountMode = 'family';
     localStorage.removeItem('bg_active_modal_id');
     localStorage.removeItem('bg_active_modal_tx_id');
     localStorage.removeItem('bg_active_subcat_txs');
@@ -21439,6 +21603,9 @@ function getMemberInitials(m) {
 
 function getMemberBadgeHTML(t) {
   if (state.userProfile && state.userProfile.family_id && t.user_id) {
+    if (!t.family_id) {
+      return `<span class="trans-personal-badge" style="background:rgba(255,255,255,0.08);color:var(--text-muted);display:inline-flex;align-items:center;gap:3px;padding:1px 6px;border-radius:10px;font-size:9.5px;font-weight:600;margin-left:6px;vertical-align:middle;border:1px solid rgba(255,255,255,0.1);" title="${state.lang === 'el' ? 'Ατομική Κίνηση' : 'Personal Entry'}"><i class="fa-solid fa-lock" style="font-size:8px;"></i> ${state.lang === 'el' ? 'Ατομική' : 'Personal'}</span>`;
+    }
     const creator = state.familyProfiles.find(p => p.id === t.user_id);
     if (creator) {
       const initials = getMemberInitials(creator);
@@ -21768,7 +21935,7 @@ function openRenameFamilyModal() {
   overlay.setAttribute('onclick', "if(event.target===this)closeRenameFamilyModal()");
 
   overlay.innerHTML = `
-    <div class="modal-content" style="max-width:400px;display:flex;flex-direction:column;gap:14px;padding:20px;border-radius:18px;">
+    <div class="modal-content" style="max-width:400px;display:flex;flex-direction:column;gap:16px;padding:24px 20px;border-radius:18px;margin:auto;">
       <div style="display:flex;align-items:center;gap:10px;">
         <div style="width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,var(--accent),#4caf50);color:#fff;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;box-shadow:0 4px 12px rgba(var(--accent-rgb,124,106,247),0.35);">
           <i class="fa-solid fa-pen-to-square"></i>
@@ -21782,7 +21949,7 @@ function openRenameFamilyModal() {
         </button>
       </div>
 
-      <input type="text" id="family-rename-input" class="form-input" value="${escapeHtml(currentName)}" maxlength="60" placeholder="${isEl ? 'Όνομα οικογένειας' : 'Family name'}" style="font-size:14px;padding:10px 12px;margin-bottom:0;border-radius:10px;background:rgba(0,0,0,0.25);border:1px solid var(--border);color:var(--text-primary);">
+      <input type="text" id="family-rename-input" class="form-input" value="${escapeHtml(currentName)}" maxlength="60" placeholder="${isEl ? 'Όνομα οικογένειας' : 'Family name'}" style="font-size:16px !important;padding:12px 14px;margin:4px 0 6px 0;border-radius:12px;background:rgba(0,0,0,0.25);border:1px solid var(--border);color:var(--text-primary);">
 
       <div style="display:flex;gap:8px;justify-content:flex-end;">
         <button type="button" onclick="closeRenameFamilyModal()" class="btn btn-secondary" style="padding:9px 16px;font-size:12.5px;font-weight:700;border-radius:10px;white-space:nowrap;">
@@ -21798,12 +21965,15 @@ function openRenameFamilyModal() {
   document.body.appendChild(overlay);
   openModal('family-rename-modal', { instant: true });
 
-  // Focus the input and select existing text for easy replacement
+  // Focus the input safely without forcing full text selection overlay
   const input = document.getElementById('family-rename-input');
   if (input) {
     setTimeout(() => {
       input.focus();
-      try { input.select(); } catch (err) { }
+      try {
+        const len = input.value.length;
+        input.setSelectionRange(len, len);
+      } catch (err) { }
     }, 100);
     // Enter key submits, Escape closes
     input.addEventListener('keydown', (e) => {
@@ -22049,6 +22219,10 @@ window.handleLogout = handleLogout;
 async function enterGuestMode() {
   state.guestMode = true;
   localStorage.setItem('auth_guest_mode', 'true');
+  // ACCOUNT-ISOLATION: Guest data is unowned — clear any previous account's owner
+  // marker so guest transactions can be imported into whichever account the user
+  // later signs into (the intended "auto-import saved data" flow).
+  localStorage.removeItem('offline_transactions_owner');
 
   // Show premium splash loader immediately
   toggleLoader(true);
@@ -22104,10 +22278,24 @@ function showAuthOverlay() {
   }
 }
 
+// Re-entrancy guard: prevents the same local transactions from being inserted
+// into the cloud twice (with two different UUIDs) when syncLocalTransactionsToCloud
+// is invoked concurrently — e.g. the background flush inside loadData() racing with
+// the import-prompt sync in onAuthStateChange. Each insert deletes the local id and
+// lets Supabase generate a NEW uuid, so a double-run produces duplicate rows.
+let _syncLocalInFlight = false;
+
 async function syncLocalTransactionsToCloud(userId, options = {}) {
   const silent = !!options.silent;
   const transStr = localStorage.getItem('offline_transactions');
   if (!transStr) return;
+
+  // If another sync is already running, skip — it will handle the pending items.
+  if (_syncLocalInFlight) {
+    console.warn('syncLocalTransactionsToCloud: already in flight, skipping concurrent call.');
+    return;
+  }
+  _syncLocalInFlight = true;
 
   try {
     const allTrans = JSON.parse(transStr) || [];
@@ -22219,6 +22407,8 @@ async function syncLocalTransactionsToCloud(userId, options = {}) {
           // Remove synced transactions from offline cache
           const cleanOffline = allTrans.filter(t => !localTrans.includes(t));
           localStorage.setItem('offline_transactions', JSON.stringify(cleanOffline));
+          // ACCOUNT-ISOLATION: The remaining cache now belongs to this user.
+          localStorage.setItem('offline_transactions_owner', userId);
 
           if (!silent) {
             alert(`🎉 ${localTrans.length} τοπικές κινήσεις που είχατε καταγράψει μεταφέρθηκαν αυτόματα στον λογαριασμό σας!`);
@@ -22231,6 +22421,9 @@ async function syncLocalTransactionsToCloud(userId, options = {}) {
     }
   } catch (err) {
     console.error('Error in syncLocalTransactionsToCloud:', err);
+  } finally {
+    // Always release the re-entrancy guard so future syncs can run.
+    _syncLocalInFlight = false;
   }
 }
 
@@ -22447,6 +22640,31 @@ async function processSyncQueue(options = {}) {
           continue;
         }
         itemSucceeded = true;
+      } else if (item.action === 'upsert') {
+        // Restore-from-trash queued action. The payload is the transaction id.
+        // The transaction was soft-deleted (status='deleted'); restoring flips it
+        // back to 'active' so it reappears on all devices.
+        const transId = item.payload;
+        if (!transId) {
+          console.warn('Skipping invalid sync queue upsert item (missing id):', item);
+          continue;
+        }
+        const { error } = await promiseTimeout(
+          state.supabaseClient
+            .from('transactions')
+            .update({ status: 'active', deleted_at: null, deleted_by: null })
+            .eq('id', transId),
+          15000
+        );
+        if (error) {
+          if (error.message && (error.message.includes('Fetch') || error.message.includes('network') || error.message.includes('timeout'))) {
+            throw error;
+          }
+          console.warn(`Skipping invalid sync queue upsert item:`, error);
+          remaining.push(item);
+          continue;
+        }
+        itemSucceeded = true;
       } else {
         console.warn(`Unknown sync queue action, dropping item:`, item.action);
         continue;
@@ -22643,20 +22861,26 @@ function handleRealtimeTransactionChange(payload) {
         if (!trans.some(t => t.id === newTrans.id)) {
           trans.unshift(newTrans);
           changed = true;
-          if (newTrans.user_id !== state.currentUser.id) insertedByPartner = true;
+          if (newTrans && state.currentUser && newTrans.user_id !== state.currentUser.id) {
+            insertedByPartner = true;
+            if (newTrans.type === 'expense') {
+              checkHighExpenseAlert(newTrans);
+            }
+          }
         }
       } else if (eventType === 'UPDATE') {
         const updatedTrans = ev.new;
         const idx = trans.findIndex(t => t.id === updatedTrans.id);
         if (idx !== -1) {
-          // Status model: if the transaction was soft-deleted, remove it from the
-          // active lists (it belongs in the trash now). Otherwise update in place.
           if (updatedTrans.status === 'deleted') {
             trans.splice(idx, 1);
             changed = true;
           } else {
             trans[idx] = updatedTrans;
             changed = true;
+            if (updatedTrans && state.currentUser && updatedTrans.user_id !== state.currentUser.id && updatedTrans.type === 'expense') {
+              checkHighExpenseAlert(updatedTrans);
+            }
           }
         }
       } else if (eventType === 'DELETE') {
@@ -22997,6 +23221,10 @@ async function forceSyncNow(silent = false) {
 
     state.transactions = dedupedCombined;
     localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
+    // ACCOUNT-ISOLATION: Attribute the local cache to the current user.
+    if (state.currentUser && state.currentUser.id) {
+      localStorage.setItem('offline_transactions_owner', state.currentUser.id);
+    }
 
     // Sync notes, budgets & AI conversations
     await syncNotes();
@@ -23142,6 +23370,31 @@ function saveCurrentUIStateToStorage() {
 }
 
 let _visibilitySyncTimer = null;
+// FIX (background auth recovery): After returning from background the Supabase
+// access token may have expired (default 1h) or the session may need a refresh.
+// Refreshing the session BEFORE forceSyncNow() prevents spurious 401 Unauthorized
+// errors that would otherwise set syncStatus='error' (red cloud-bolt) even though
+// the network is fine. getSession() triggers an automatic token refresh when the
+// access token is near/at expiry, so this is cheap and safe to call on every resume.
+async function _refreshSessionIfNeeded() {
+  if (!state.supabaseClient || !state.currentUser) return;
+  try {
+    const { data, error } = await state.supabaseClient.auth.getSession();
+    if (error) {
+      console.warn('[SYNC] Session refresh failed on resume:', error.message);
+      return;
+    }
+    if (data && data.session) {
+      // Keep currentUser in sync with the (possibly refreshed) session identity.
+      const sessionUser = data.session.user;
+      if (sessionUser && sessionUser.id && state.currentUser.id !== sessionUser.id) {
+        state.currentUser = sessionUser;
+      }
+    }
+  } catch (e) {
+    console.warn('[SYNC] Session refresh threw on resume:', e);
+  }
+}
 function handleAppForegroundSync() {
   if (state.currentUser && state.supabaseClient) {
     if (_visibilitySyncTimer) clearTimeout(_visibilitySyncTimer);
@@ -23149,8 +23402,11 @@ function handleAppForegroundSync() {
     if (timeSinceLastSync > 30000) {
       // ANTI-FLICKER: Wait 1.5s after resume to ensure animations are complete
       // before updating UI.
-      _visibilitySyncTimer = setTimeout(() => {
+      _visibilitySyncTimer = setTimeout(async () => {
         _visibilitySyncTimer = null;
+        // Refresh the Supabase session first so a stale/expired token from the
+        // background period does not cause a false sync error on resume.
+        await _refreshSessionIfNeeded();
         forceSyncNow(true);
       }, 1500);
     }
@@ -23171,7 +23427,9 @@ let _resumeDebounceTimer = null;
 const _RESUME_GUARD_MS = 1700;
 function _handleAppResumed() {
   document.body.classList.add('no-transitions');
-  setTimeout(() => { document.body.classList.remove('no-transitions'); }, _RESUME_GUARD_MS);
+  setTimeout(() => {
+    document.body.classList.remove('no-transitions');
+  }, _RESUME_GUARD_MS);
 
   // ANTI-BLANK-FLASH:
   // - Native Android: The native overlay (MainActivity) is already VISIBLE (shown
@@ -23213,6 +23471,20 @@ function _handleAppResumed() {
   setTimeout(() => {
     popNoTransition();
   }, _RESUME_GUARD_MS);
+
+  // MODAL HEIGHT STABILITY: Force an immediate refresh of the CSS viewport
+  // variables (--viewport-height / --keyboard-height) at 0ms, while the native
+  // snapshot overlay still covers the screen and no-transition is active.
+  // This writes the FINAL correct values before the overlay fades, so the modal
+  // is already at its exact final height when revealed — eliminating the
+  // vertical re-adjustment that previously happened ~1s after resume (when the
+  // _appJustResumed guard cleared and a normal visualViewport event fired with
+  // transitions re-enabled). The force flag bypasses the _appJustResumed guard
+  // inside updateViewportHeight; the full computation (including keyboard
+  // height) runs so the result is idempotent with the next normal update.
+  if (typeof window._updateViewportHeight === 'function') {
+    window._updateViewportHeight(true);
+  }
 
   // Restore modals that were open before backgrounding.
   const savedModalId = localStorage.getItem('bg_active_modal_id');
@@ -23363,6 +23635,64 @@ function updateHeaderProfileBadge() {
   }
 }
 
+function getMyFamilyRole() {
+  if (!state.currentUser) return 'personal';
+  if (!state.familyGroup && (!state.userProfile || !state.userProfile.family_id)) return 'personal';
+
+  if (Array.isArray(state.familyProfiles)) {
+    const myProf = state.familyProfiles.find(p => p.id === state.currentUser.id);
+    if (myProf && myProf.role) return myProf.role;
+  }
+
+  if (state.userProfile && state.userProfile.role) {
+    return state.userProfile.role;
+  }
+
+  return 'member';
+}
+window.getMyFamilyRole = getMyFamilyRole;
+
+function setAccountViewMode(mode) {
+  if (mode !== 'family' && mode !== 'personal') return;
+  if (!state.familyGroup && mode === 'family') {
+    closeProfileSheet();
+    if (typeof openSettingsSubscreen === 'function') {
+      openSettingsSubscreen('family', 'settings_family_title');
+    }
+    if (typeof showSyncToast === 'function') {
+      showSyncToast(state.lang === 'el' ? '⚠️ Συνδεθείτε ή δημιουργήστε οικογενειακή ομάδα' : '⚠️ Join or create a family group first', 2500);
+    }
+    return;
+  }
+  state.activeAccountMode = mode;
+  localStorage.setItem('account_view_mode', mode);
+
+  updateProfileSheetModeButtons();
+  calculateInitialBalances();
+  updateUI();
+
+  if (typeof showSyncToast === 'function') {
+    const msg = mode === 'personal'
+      ? (state.lang === 'el' ? '👤 Ατομικός Λογαριασμός ενεργός' : '👤 Personal Account Mode active')
+      : (state.lang === 'el' ? '👥 Οικογενειακός Λογαριασμός ενεργός' : '👥 Family Account Mode active');
+    showSyncToast(msg, 2000);
+  }
+}
+window.setAccountViewMode = setAccountViewMode;
+
+function updateProfileSheetModeButtons() {
+  const mode = state.activeAccountMode || 'family';
+  const btnPersonal = document.getElementById('profile-mode-btn-personal');
+  const btnFamily = document.getElementById('profile-mode-btn-family');
+  if (btnPersonal) {
+    btnPersonal.classList.toggle('active', mode === 'personal');
+  }
+  if (btnFamily) {
+    btnFamily.classList.toggle('active', mode === 'family');
+  }
+}
+window.updateProfileSheetModeButtons = updateProfileSheetModeButtons;
+
 function openProfileSheet() {
   if (state.guestMode || !state.currentUser) {
     showAuthOverlay();
@@ -23377,6 +23707,42 @@ function openProfileSheet() {
 
   const emailDisplay = document.getElementById('profile-email-display');
   if (emailDisplay) emailDisplay.textContent = email;
+
+  // Calculate & populate profile quick stats
+  const activeTransactions = (typeof getActiveTransactions === 'function') ? getActiveTransactions() : (state.transactions || []);
+  const totalTransCount = activeTransactions.length;
+  const activeCatsCount = (state.categories || []).filter(c => c && !c.hidden).length;
+
+  const statTransEl = document.getElementById('profile-stat-transactions');
+  if (statTransEl) statTransEl.textContent = totalTransCount;
+
+  const statCatsEl = document.getElementById('profile-stat-categories');
+  if (statCatsEl) statCatsEl.textContent = activeCatsCount;
+
+  // Populate Role & Family Badge
+  const roleBadgeEl = document.getElementById('profile-role-badge');
+  const statGroupEl = document.getElementById('profile-stat-group');
+  if (state.familyGroup) {
+    const myRole = getMyFamilyRole();
+    if (roleBadgeEl) {
+      if (myRole === 'admin') {
+        roleBadgeEl.className = 'profile-role-badge admin';
+        roleBadgeEl.innerHTML = `<i class="fa-solid fa-crown"></i> <span>${state.lang === 'el' ? 'Διαχειριστής Οικογένειας' : 'Family Admin'}</span>`;
+      } else {
+        roleBadgeEl.className = 'profile-role-badge member';
+        roleBadgeEl.innerHTML = `<i class="fa-solid fa-users"></i> <span>${state.lang === 'el' ? 'Μέλος Οικογένειας' : 'Family Member'}</span>`;
+      }
+    }
+    if (statGroupEl) statGroupEl.textContent = state.familyGroup.name || (state.lang === 'el' ? 'Οικογένεια' : 'Family');
+  } else {
+    if (roleBadgeEl) {
+      roleBadgeEl.className = 'profile-role-badge personal';
+      roleBadgeEl.innerHTML = `<i class="fa-solid fa-user-shield"></i> <span>${state.lang === 'el' ? 'Ατομικός Λογαριασμός' : 'Personal Account'}</span>`;
+    }
+    if (statGroupEl) statGroupEl.textContent = state.lang === 'el' ? 'Ατομικό' : 'Personal';
+  }
+
+  updateProfileSheetModeButtons();
 
   // Update cloud sync status
   const cloudStatus = document.getElementById('profile-cloud-status');
@@ -23408,6 +23774,11 @@ function closeProfileSheet() {
   if (modal) {
     modal.classList.remove('active');
   }
+  // Re-render the active tab now that the sheet is closed. Without this, changes
+  // made inside the sheet (e.g. the Personal/Family account mode switcher) would
+  // not be reflected in the underlying tab until a full refresh, because
+  // _updateUIImpl() skips the tab re-render while the sheet overlay is open.
+  if (typeof updateUI === 'function') updateUI();
 }
 
 function handleProfileSheetOverlayClick(e) {
@@ -24219,9 +24590,30 @@ document.addEventListener('DOMContentLoaded', () => {
   let maxViewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
 
   if (window.visualViewport) {
-    const updateViewportHeight = () => {
-      // Guard against layout thrashing during resume unfreeze animation
-      if (window._appJustResumed) return;
+    const updateViewportHeight = (force = false) => {
+      // Guard against layout thrashing during resume unfreeze animation.
+      // When force === true (called from _handleAppResumed while the native
+      // snapshot overlay still covers the screen), we bypass the guard so the
+      // CSS variables receive their final values at 0ms — before the overlay
+      // fades and reveals the live UI. This eliminates the modal height
+      // re-adjustment that previously happened ~1s after resume.
+      if (window._appJustResumed && !force) return;
+
+      // FORCED RESUME UPDATE: During resume the keyboard is NOT open (the focused
+      // input was blurred in saveCurrentUIStateToStorage on backgrounding), so
+      // --keyboard-height must be 0px. We must NOT compute it from visualViewport
+      // here: at 0ms the visual viewport has not yet "unfrozen"/finished resizing,
+      // so visualViewport.height can be smaller than window.innerHeight, which
+      // would yield a spurious non-zero keyboard height → a black empty gap that
+      // pushes the modal down and only disappears ~1s later when the normal
+      // update runs. So for the forced path we write the known-correct values
+      // directly (full viewport height, zero keyboard).
+      if (force) {
+        document.documentElement.style.setProperty('--viewport-height', `${window.innerHeight}px`);
+        document.documentElement.style.setProperty('--viewport-offset-top', '0px');
+        document.documentElement.style.setProperty('--keyboard-height', '0px');
+        return;
+      }
 
       const vvHeight = window.visualViewport.height;
       const offsetTop = window.visualViewport.offsetTop;
@@ -24249,6 +24641,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // VisualViewport height updated cleanly via --keyboard-height CSS variable
     };
+
+    // Expose the updater so the top-level _handleAppResumed() can force an
+    // immediate, transition-free refresh of the CSS variables at resume time
+    // (0ms) while the native snapshot overlay still covers the screen.
+    window._updateViewportHeight = updateViewportHeight;
 
     // On iOS, visualViewport fires 'resize' on every frame during keyboard animation,
     // which causes continuous expensive JS + style recalculations and visible lag.
@@ -24891,7 +25288,7 @@ function renderNoteAutocomplete(query) {
     }
 
     item.innerHTML = `<i class="fa-solid fa-clock-rotate-left" style="color:var(--text-muted);font-size:11px;flex-shrink:0;"></i>
-                      <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-right:8px;">${highlightMatch(suggestion.title, q)}</span>
+                      <span style="white-space:nowrap;margin-right:8px;font-weight:600;">${highlightMatch(suggestion.title, q)}</span>
                       ${categoryBadgeHTML}`;
 
     // Use pointerdown only to prevent focus loss (prevent blur from closing dropdown)
@@ -25128,28 +25525,141 @@ window.onSubscreenShow_notifications = function () {
   }
 };
 
+function checkRecurringPaymentAlerts() {
+  try {
+    const enabled = localStorage.getItem('settings_recurring_alerts_enabled') !== 'false';
+    if (!enabled) return;
+
+    const now = new Date();
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = tomorrow.toISOString().slice(0, 10);
+
+    const recurringList = state.recurringTransactions || [];
+    recurringList.forEach((item, index) => {
+      if (!item || !item.next_date) return;
+      const nextDateStr = String(item.next_date).slice(0, 10);
+      if (nextDateStr === tomorrowStr) {
+        const alertKey = `recurring_alert_sent_${item.id}_${nextDateStr}`;
+        if (localStorage.getItem(alertKey)) return;
+
+        const title = state.lang === 'el' ? '🔔 Υπενθύμιση Πληρωμής' : '🔔 Payment Reminder';
+        const catName = getCategoryDisplayName ? getCategoryDisplayName(item.category) : (item.category || '');
+        const body = state.lang === 'el'
+          ? `Η πληρωμή «${item.note || catName}» (${formatCurrency(item.amount)}) λήγει αύριο!`
+          : `Payment "${item.note || catName}" (${formatCurrency(item.amount)}) is due tomorrow!`;
+
+        addInAppNotification(title, body, { type: 'open_transactions' });
+        localStorage.setItem(alertKey, 'true');
+
+        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.LocalNotifications) {
+          window.Capacitor.Plugins.LocalNotifications.schedule({
+            notifications: [{
+              id: 8000 + index,
+              title: title,
+              body: body,
+              schedule: { at: new Date(Date.now() + 1000) },
+              extra: { type: 'recurring_alert' }
+            }]
+          }).catch(err => console.warn('Failed native recurring notification:', err));
+        }
+      }
+    });
+  } catch (err) {
+    console.warn('checkRecurringPaymentAlerts error:', err);
+  }
+}
+window.checkRecurringPaymentAlerts = checkRecurringPaymentAlerts;
+
+async function sendTestNotification() {
+  const title = state.lang === 'el' ? '🔔 Δοκιμαστική Ειδοποίηση' : '🔔 Test Notification';
+  const body = state.lang === 'el'
+    ? 'Οι ειδοποιήσεις της εφαρμογής Budget Assistant λειτουργούν κανονικά!'
+    : 'Budget Assistant notifications are working properly on your device!';
+
+  addInAppNotification(title, body, { type: 'open_transactions' });
+
+  if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.LocalNotifications) {
+    try {
+      const LocalNotifications = window.Capacitor.Plugins.LocalNotifications;
+      const perm = await LocalNotifications.requestPermissions();
+      if (perm.display === 'granted') {
+        await LocalNotifications.schedule({
+          notifications: [{
+            id: 99999,
+            title: title,
+            body: body,
+            schedule: { at: new Date(Date.now() + 800) },
+            extra: { type: 'test' }
+          }]
+        });
+        showSyncToast(state.lang === 'el' ? '✓ Στάλθηκε δοκιμαστική ειδοποίηση συσκευής!' : '✓ Test notification sent to device!', 2500);
+      } else {
+        showSyncToast(state.lang === 'el' ? '⚠️ Δεν έχετε δώσει άδεια ειδοποιήσεων στη συσκευή.' : '⚠️ Notification permission denied.', 3000);
+      }
+    } catch (err) {
+      console.warn('Test notification error:', err);
+      showSyncToast(state.lang === 'el' ? '✓ Δοκιμαστική ειδοποίηση ελήφθη (εντός εφαρμογής)' : '✓ In-app test notification created', 2500);
+    }
+  } else {
+    showSyncToast(state.lang === 'el' ? '✓ Δοκιμαστική ειδοποίηση ελήφθη (εντός εφαρμογής)' : '✓ In-app test notification created', 2500);
+  }
+}
+window.sendTestNotification = sendTestNotification;
+
 window.toggleDailyReminder = function (checked) {
   localStorage.setItem('settings_daily_reminder_enabled', checked ? 'true' : 'false');
   const timeRow = document.getElementById('settings-daily-reminder-time-row');
   if (timeRow) timeRow.style.display = checked ? 'flex' : 'none';
+  const timeVal = localStorage.getItem('settings_daily_reminder_time') || '21:00';
+  if (typeof scheduleDailyReminder === 'function') {
+    scheduleDailyReminder(checked, timeVal);
+  }
+  if (checked && typeof showSyncToast === 'function') {
+    showSyncToast(state.lang === 'el' ? '✓ Ημερήσια υπενθύμιση ενεργοποιήθηκε' : '✓ Daily reminder enabled', 2000);
+  }
 };
 
 window.saveDailyReminderTime = function (val) {
-  if (val) localStorage.setItem('settings_daily_reminder_time', val);
+  if (val) {
+    localStorage.setItem('settings_daily_reminder_time', val);
+    const enabled = localStorage.getItem('settings_daily_reminder_enabled') === 'true';
+    if (enabled && typeof scheduleDailyReminder === 'function') {
+      scheduleDailyReminder(true, val);
+      if (typeof showSyncToast === 'function') {
+        showSyncToast(state.lang === 'el' ? `✓ Ώρα υπενθύμισης ορίστηκε: ${val}` : `✓ Reminder time set to ${val}`, 2000);
+      }
+    }
+  }
 };
 
 window.toggleRecurringAlerts = function (checked) {
   localStorage.setItem('settings_recurring_alerts_enabled', checked ? 'true' : 'false');
+  if (checked) {
+    checkRecurringPaymentAlerts();
+    if (typeof showSyncToast === 'function') {
+      showSyncToast(state.lang === 'el' ? '✓ Ειδοποιήσεις πληρωμών ενεργοποιήθηκαν' : '✓ Recurring payment alerts enabled', 2000);
+    }
+  }
 };
 
 window.toggleExpenseAlert = function (checked) {
   localStorage.setItem('settings_expense_alert_enabled', checked ? 'true' : 'false');
   const limitRow = document.getElementById('settings-expense-alert-limit-row');
   if (limitRow) limitRow.style.display = checked ? 'flex' : 'none';
+  if (checked && typeof showSyncToast === 'function') {
+    const limit = localStorage.getItem('settings_expense_alert_limit') || '500';
+    showSyncToast(state.lang === 'el' ? `✓ Ειδοποίηση ορίου ενεργοποιήθηκε (${limit} €)` : `✓ High expense alert enabled (${limit} €)`, 2000);
+  }
 };
 
 window.saveExpenseLimit = function (val) {
-  if (val) localStorage.setItem('settings_expense_alert_limit', val);
+  if (val) {
+    localStorage.setItem('settings_expense_alert_limit', val);
+    if (typeof showSyncToast === 'function') {
+      showSyncToast(state.lang === 'el' ? `✓ Όριο ορίστηκε στα ${val} €` : `✓ Expense limit set to ${val} €`, 2000);
+    }
+  }
 };
 
 window.renderNotificationHistory = function () {
@@ -27192,21 +27702,37 @@ function predictCategoryFromHistory(noteText) {
 
 function getSubcategoriesForCategory(category) {
   if (!category) return [];
-  const cleanedCat = stripLeadingEmoji(category).toUpperCase();
+  const rawCat = stripLeadingEmoji(category).trim();
+  const cleanedCat = rawCat.toUpperCase();
   const uniqueSubcats = new Set();
 
-  const defaults = DEFAULT_SUBCATEGORIES_MAP[cleanedCat];
-  if (defaults) {
-    defaults.forEach(sub => uniqueSubcats.add(sub));
+  // 1. Match DEFAULT_SUBCATEGORIES_MAP case-insensitively
+  if (typeof DEFAULT_SUBCATEGORIES_MAP === 'object' && DEFAULT_SUBCATEGORIES_MAP) {
+    Object.keys(DEFAULT_SUBCATEGORIES_MAP).forEach(key => {
+      const keyClean = stripLeadingEmoji(key).trim().toUpperCase();
+      if (keyClean === cleanedCat || key.toUpperCase() === cleanedCat) {
+        (DEFAULT_SUBCATEGORIES_MAP[key] || []).forEach(sub => uniqueSubcats.add(sub));
+      }
+    });
   }
 
+  // 2. Match custom subcategories attached to state.categories
+  (state.categories || []).forEach(c => {
+    const cClean = stripLeadingEmoji(c.name || '').trim().toUpperCase();
+    if (cClean === cleanedCat && Array.isArray(c.subcategories)) {
+      c.subcategories.forEach(sub => uniqueSubcats.add(sub));
+    }
+  });
+
+  // 3. Match subcategories from existing transactions
   (state.transactions || []).forEach(t => {
-    if (t.category && stripLeadingEmoji(t.category).toUpperCase() === cleanedCat) {
+    if (t.category && stripLeadingEmoji(t.category).trim().toUpperCase() === cleanedCat) {
       if (t.subcategory && t.subcategory.trim() !== '') {
         uniqueSubcats.add(t.subcategory.trim());
       }
     }
   });
+
   return Array.from(uniqueSubcats).sort();
 }
 
@@ -29506,7 +30032,7 @@ async function clearLocalDataConfirm() {
   try {
     const keysToRemove = [
       'cached_current_user', 'cached_partner_profile',
-      'offline_transactions', 'offline_accounts', 'offline_categories',
+      'offline_transactions', 'offline_accounts', 'offline_categories', 'offline_transactions_owner',
       'bg_active_modal_id', 'bg_active_modal_tx_id', 'bg_active_subcat_txs', 'bg_modal_scroll_top',
       'advisor_conversations', 'active_advisor_conversation_id',
       'notes_cache', 'recurring_templates_cache', 'trash_cache'
@@ -29571,6 +30097,11 @@ async function runRecurringDuplicateCleanup() {
   const txList = Array.isArray(state.transactions) ? state.transactions : [];
 
   // Build a content-key -> list of transactions (oldest first).
+  // NOTE: The note is intentionally EXCLUDED from the dedup key. Duplicate
+  // recurring installments (e.g. the same loan installment generated twice with
+  // different labels like "ΔΟΣΗ ΔΑΝΕΙΟΥ" vs "HOME") must still be detected as
+  // duplicates based on date + amount + type + category + account. The note is
+  // just a label and should not prevent dedup of the same installment.
   const groups = new Map();
   const keyOf = (tx) => {
     const d = String(tx.date || '').split('T')[0].split(' ')[0];
@@ -29579,8 +30110,7 @@ async function runRecurringDuplicateCleanup() {
       (parseFloat(tx.amount) || 0).toFixed(2),
       tx.type || '',
       tx.category || '',
-      tx.account_from || '',
-      String(tx.note || '').trim().toLowerCase()
+      tx.account_from || ''
     ].join('|');
   };
 
@@ -30136,9 +30666,9 @@ const USER_GUIDE_DATA = {
       {
         id: 'changelog',
         icon: 'fa-box-archive',
-        title: '1. Version & What\'s New (v1223)',
+        title: '1. Version & What\'s New (v1254)',
         content: `
-          <p><strong>Guide Version:</strong> v1223 | <strong>Synchronized App Version:</strong> v1223</p>
+          <p><strong>Guide Version:</strong> v1254 | <strong>Synchronized App Version:</strong> v1254</p>
           <div class="guide-feature-box">
             <h5 style="margin:0 0 6px; color:var(--primary);">✨ What's new in the latest version:</h5>
             <ul style="margin:0; padding-left:18px;">

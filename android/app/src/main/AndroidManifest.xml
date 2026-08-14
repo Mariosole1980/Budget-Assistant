@@ -28,6 +28,16 @@
                 <data android:scheme="https" android:host="budget-assistant-pwa.pages.dev" />
             </intent-filter>
 
+            <!-- OAuth callback for Google sign-in (redirectTo = https://localhost).
+                 NOTE: no autoVerify here because localhost cannot be verified via
+                 Android App Links; the callback is delivered as a deep link. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="localhost" />
+            </intent-filter>
+
             <!-- Custom URL schemes for deep linking -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />

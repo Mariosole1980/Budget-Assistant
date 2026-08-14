@@ -53,7 +53,13 @@ async function verifyLive() {
           attemptErrors.push(`${baseUrl}/version.json HTTP ${vRes.statusCode}`);
         } else {
           const liveV = JSON.parse(vRes.data).version;
-          if (liveV !== canonicalVersion) {
+          // Accept both the canonical numeric format (e.g. 1229) and the
+          // Capgo OTA format (e.g. "1.0.1229") which the OTA step writes to
+          // www/version.json after every release.
+          const liveVStr = String(liveV);
+          const canonicalStr = String(canonicalVersion);
+          const isMatch = liveVStr === canonicalStr || liveVStr === `1.0.${canonicalStr}`;
+          if (!isMatch) {
             attemptErrors.push(`${baseUrl}/version.json live version is ${liveV}, expected ${canonicalVersion}`);
           }
         }
