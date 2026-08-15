@@ -2098,14 +2098,35 @@ if (document.readyState === 'loading') {
 // ============================================================
 // CUSTOM ALERT & CONFIRM MODALS
 // ============================================================
+// Ensures the custom dialog modal exists in the DOM. If it is missing for any
+// reason (e.g. an old cached HTML without the modal, or it was removed), it is
+// created on the fly as a top-level child of <body>. This guarantees the
+// confirmation/alert ALWAYS renders as an in-app centered dialog and NEVER
+// falls back to the native browser/WebView confirm()/alert() "separate window".
+function ensureCustomDialogModal() {
+  let modal = document.getElementById('custom-dialog-modal');
+  if (modal) return modal;
+
+  modal = document.createElement('div');
+  modal.id = 'custom-dialog-modal';
+  modal.className = 'modal-overlay';
+  modal.style.zIndex = '999999';
+  modal.innerHTML =
+    '<div class="modal-content custom-dialog-content" style="max-width: 320px; text-align: center; padding: 24px; border-radius: 20px; background: var(--bg-card); border: 1px solid var(--border); box-shadow: 0 10px 30px rgba(0,0,0,0.5);">' +
+    '<div id="custom-dialog-icon" style="font-size: 40px; margin-bottom: 16px;">💬</div>' +
+    '<h4 id="custom-dialog-title" style="font-weight: 700; margin-bottom: 8px; color: var(--text-main); font-size: 16px;">Επιβεβαίωση</h4>' +
+    '<p id="custom-dialog-message" style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 24px; word-break: break-word; max-height: 45vh; overflow-y: auto; text-align: left; -webkit-overflow-scrolling: touch;"></p>' +
+    '<div class="custom-dialog-buttons" style="display: flex; gap: 12px; justify-content: center; width: 100%;">' +
+    '<button id="custom-dialog-btn-cancel" class="btn btn-secondary" style="flex: 1; padding: 12px; font-weight: 700; border-radius: 12px; border: 1px solid var(--border); background: var(--bg-main); font-size: 13px;">Ακύρωση</button>' +
+    '<button id="custom-dialog-btn-ok" class="btn btn-primary" style="flex: 1; padding: 12px; font-weight: 700; border-radius: 12px; font-size: 13px;">OK</button>' +
+    '</div></div>';
+  document.body.appendChild(modal);
+  return modal;
+}
+
 function showCustomDialog({ message, title = '', icon = '💬', showCancel = false }) {
   return new Promise((resolve) => {
-    const modal = document.getElementById('custom-dialog-modal');
-    if (!modal) {
-      const res = showCancel ? confirm(message) : (alert(message), true);
-      resolve(res);
-      return;
-    }
+    const modal = ensureCustomDialogModal();
 
     document.getElementById('custom-dialog-title').textContent = title || (showCancel ? (state.lang === 'el' ? 'Επιβεβαίωση' : 'Confirm') : (state.lang === 'el' ? 'Ειδοποίηση' : 'Alert'));
     document.getElementById('custom-dialog-message').innerHTML = message;
