@@ -73,6 +73,7 @@ public class MainActivity extends BridgeActivity {
         super.onCreate(savedInstanceState);
         registerPlugin(NativeThemePlugin.class);
         registerPlugin(SecurityPlugin.class);
+        registerPlugin(com.codetrixstudio.capacitor.GoogleAuth.GoogleAuth.class);
 
         // Lock WebView text zoom to 100% — prevents Android system "Font Size" setting
         // from scaling the WebView content and causing the intermittent zoom/large-text
@@ -80,6 +81,9 @@ public class MainActivity extends BridgeActivity {
         if (bridge != null && bridge.getWebView() != null) {
             WebSettings settings = bridge.getWebView().getSettings();
             settings.setTextZoom(100);
+            settings.setSupportZoom(false);
+            settings.setBuiltInZoomControls(false);
+            settings.setDisplayZoomControls(false);
 
             // INSTANT-RESUME: Keep the WebView renderer process alive when the app
             // is backgrounded. This prevents the surface recreation gap that causes

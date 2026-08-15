@@ -329,17 +329,6 @@ window.addEventListener('unhandledrejection', function (event) {
 window.autocompleteJustSelected = false;
 
 // HTML Escaping Utility to prevent XSS
-function escapeHtml(str) {
-  if (str === null || str === undefined) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-}
-window.escapeHtml = escapeHtml;
-
 // NOTE: A legacy one-time cache clear (clear_duplicates_v3) that purged the
 // offline_transactions cache to remove duplicated local transactions was removed here.
 // It was a migration workaround that already executed for all existing users (guarded
@@ -350,74 +339,7 @@ window.escapeHtml = escapeHtml;
 // Excel columns: Date | Account | Category | Subcategory | Note | EUR | Income/Expense | Description | Amount | Currency | Account
 
 
-// ============================================================
-// CATEGORY MAP: Maps emoji codepoint -> { greekName, icon, color }
-// Discovered from actual Excel data analysis
-// ============================================================
-const CATEGORY_EMOJI_MAP = {
-  // Expense categories
-  '1F3E1': { name: '🏠 Σπίτι', icon: '🏠', color: '#e05e55', type: 'expense' },
-  '1F3E0': { name: '🏠 Σπίτι', icon: '🏠', color: '#ffd54f', type: 'expense' },
-  '1F697': { name: '🚗 Μεταφορές', icon: '🚗', color: '#ffa726', type: 'expense' },
-  '1F6D2': { name: '🍔 Τρόφιμα', icon: '🍔', color: '#ffb300', type: 'expense' },
-  '1F3CB': { name: '🎉 Διασκέδαση', icon: '🎉', color: '#42a5f5', type: 'expense' },
-  '1F389': { name: '🎉 Διασκέδαση', icon: '🎉', color: '#26a69a', type: 'expense' },
-  '1F9FE': { name: '🧾 Φόροι', icon: '🧾', color: '#26c6da', type: 'expense' },
-  '1F455': { name: '👕 Αγορές', icon: '👕', color: '#7e57c2', type: 'expense' },
-  '1F687': { name: '🚗 Μεταφορές', icon: '🚗', color: '#ab47bc', type: 'expense' },
-  '1F4BB': { name: '📦 Διάφορα', icon: '📦', color: '#5c6bc0', type: 'expense' },
-  '1F4BC': { name: '💼 Μισθός', icon: '💼', color: '#4caf50', type: 'income' },
-  '1F9E9': { name: '📦 Διάφορα', icon: '📦', color: '#78909c', type: 'expense' },
-  '1F3AC': { name: '📱 Συνδρομές', icon: '📱', color: '#ec407a', type: 'expense' },
-  '2764': { name: '❤️ Υγεία', icon: '❤️', color: '#ef5350', type: 'expense' },
-  '1F489': { name: '❤️ Υγεία', icon: '❤️', color: '#ef5350', type: 'expense' },
-  '1F48A': { name: '❤️ Υγεία', icon: '❤️', color: '#ef5350', type: 'expense' },
-  '1F527': { name: '📦 Διάφορα', icon: '📦', color: '#78909c', type: 'expense' },
-
-  // Income categories
-  '1F911': { name: '➕ Άλλα έσοδα', icon: '➕', color: '#607d8b', type: 'income' },
-  '1F4B0': { name: '💼 Μισθός', icon: '💼', color: '#4caf50', type: 'income' },
-  '1F381': { name: '🎁 Δώρα', icon: '🎁', color: '#66bb6a', type: 'income' },
-  '1F9D1': { name: '➕ Άλλα έσοδα', icon: '➕', color: '#009688', type: 'income' },
-  '1F4E6': { name: '📦 Πωλήσεις', icon: '📦', color: '#26a69a', type: 'income' },
-  '1F3C5': { name: '💸 Bonus', icon: '💸', color: '#ffb300', type: 'income' },
-  '1F468': { name: '➕ Άλλα έσοδα', icon: '➕', color: '#9e9e9e', type: 'income' },
-  '1F393': { name: '🎓 Εκπαίδευση', icon: '🎓', color: '#2196f3', type: 'expense' },
-  '1F47D': { name: '➕ Άλλα έσοδα', icon: '➕', color: '#607d8b', type: 'income' },
-  '1F4B6': { name: '🏠 Ενοίκια', icon: '🏠', color: '#00bcd4', type: 'income' },
-  '1F3DB': { name: '➕ Άλλα έσοδα', icon: '➕', color: '#8bc34a', type: 'income' },
-};
-
-// Fallback categories for any that don't match
-const DEFAULT_CATEGORIES = [
-  { name: '🏠 Σπίτι', type: 'expense', icon: '🏠', color: '#e05e55' },
-  { name: '🍔 Τρόφιμα', type: 'expense', icon: '🍔', color: '#ffb300' },
-  { name: '🚗 Μεταφορές', type: 'expense', icon: '🚗', color: '#ffa726' },
-  { name: '❤️ Υγεία', type: 'expense', icon: '❤️', color: '#ef5350' },
-  { name: '🎓 Εκπαίδευση', type: 'expense', icon: '🎓', color: '#2196f3' },
-  { name: '🎉 Διασκέδαση', type: 'expense', icon: '🎉', color: '#26a69a' },
-  { name: '👕 Αγορές', type: 'expense', icon: '👕', color: '#7e57c2' },
-  { name: '📱 Συνδρομές', type: 'expense', icon: '📱', color: '#ec407a' },
-  { name: '🧾 Φόροι', type: 'expense', icon: '🧾', color: '#26c6da' },
-  { name: '📦 Διάφορα', type: 'expense', icon: '📦', color: '#78909c' },
-
-  { name: '💼 Μισθός', type: 'income', icon: '💼', color: '#4caf50' },
-  { name: '💸 Bonus', type: 'income', icon: '💸', color: '#ffb300' },
-  { name: '🏠 Ενοίκια', type: 'income', icon: '🏠', color: '#00bcd4' },
-  { name: '📈 Επενδύσεις', type: 'income', icon: '📈', color: '#8bc34a' },
-  { name: '🎁 Δώρα', type: 'income', icon: '🎁', color: '#66bb6a' },
-  { name: '💰 Cashback / Τόκοι', type: 'income', icon: '💰', color: '#607d8b' },
-  { name: '💼 Freelance', type: 'income', icon: '💼', color: '#9e9e9e' },
-  { name: '📦 Πωλήσεις', type: 'income', icon: '📦', color: '#26a69a' },
-  { name: '➕ Άλλα έσοδα', type: 'income', icon: '➕', color: '#90a4ae' }
-];
-
-// Default Accounts - 3 real accounts from Excel: Cash, Card, Accounts (= Bank Account)
-const DEFAULT_ACCOUNTS = [
-  { name: 'Cash', type: 'cash', balance: 0 },
-  { name: 'Bank Account', type: 'bank', balance: 0 },
-  { name: 'Card', type: 'card', balance: 0 },
-];
+// (CATEGORY_EMOJI_MAP, DEFAULT_CATEGORIES, DEFAULT_ACCOUNTS moved to js/constants.js)
 
 // Recently-saved transaction IDs that must survive a re-fetch race AND an app
 // reload (OTA deploy, cold start). When a logged-in user saves a transaction, it
@@ -662,11 +584,7 @@ function mapTemplateFromDb(t) {
   };
 }
 
-const NEON_PALETTE = [
-  '#6366f1', '#f43f5e', '#10b981', '#f59e0b', '#3b82f6',
-  '#ec4899', '#14b8a6', '#f97316', '#8b5cf6', '#06b6d4',
-  '#22c55e', '#eab308', '#a855f7', '#ef4444', '#0ea5e9'
-];
+// (NEON_PALETTE moved to js/constants.js)
 
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 const isAndroid = /Android/i.test(navigator.userAgent);
@@ -862,1069 +780,24 @@ function readSyncQueueForMerge() {
 }
 
 
-const GREEK_MONTHS = [
-  'Ιανουάριος', 'Φεβρουάριος', 'Μάρτιος', 'Απρίλιος', 'Μάιος', 'Ιούνιος',
-  'Ιούλιος', 'Αύγουστος', 'Σεπτέμβριος', 'Οκτώβριος', 'Νοέμβριος', 'Δεκέμβριος'
-];
+// (GREEK_MONTHS moved to js/constants.js)
 const GREEK_MONTHS_SHORT = [
   'Ιαν', 'Φεβ', 'Μαρ', 'Απρ', 'Μαΐ', 'Ιουν', 'Ιουλ', 'Αυγ', 'Σεπ', 'Οκτ', 'Νοε', 'Δεκ'
 ];
 const GREEK_WEEKDAYS_SHORT = ['Κυρ', 'Δευ', 'Τρί', 'Τετ', 'Πέμ', 'Παρ', 'Σάβ'];
 
-const ENGLISH_MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December'
-];
+// (ENGLISH_MONTHS moved to js/constants.js)
 const ENGLISH_MONTHS_SHORT = [
   'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
 ];
 const ENGLISH_WEEKDAYS_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
-const TRANSLATIONS = {
-  el: {
-    nav_trans: 'Κινήσεις',
-    nav_stats: 'Στατιστικά',
-    nav_accounts: 'Επισκόπηση',
-    nav_more: 'Περισσότερα',
-    section_data_mgmt: 'Διαχείριση Δεδομένων',
-    section_settings: 'Ρυθμίσεις',
-    settings_pref_title: 'Προτιμήσεις Εφαρμογής',
-    settings_data_title: 'Δεδομένα & Συγχρονισμός',
-    settings_family_title: 'Διαχείριση Οικογένειας',
-    settings_feedback_title: 'Σχόλια & Αξιολόγηση',
-    settings_account_legal_title: 'Λογαριασμός & Νομικά',
-    settings_preferences_option: 'Προτιμήσεις',
-    settings_preferences_desc: 'Θέμα εμφανίσης, κύριο νόμισμα & έξυπνος τίτλος',
-    settings_pref_desc: 'Θέμα εμφανίσης, κύριο νόμισμα & έξυπνος τίτλος',
-    settings_notif_desc: 'Ημερήσια υπενθύμιση καταγραφής & ειδοποιήσεις πληρωμών',
-    settings_recurring_option: 'Επαναλαμβανόμενα',
-    settings_recurring_desc: 'Προγραμματισμένα έξοδα, έσοδα & πάγιες εντολές',
-    settings_categories_option: 'Κατηγορίες',
-    settings_categories_desc: 'Κατηγορίες & υποκατηγορίες',
-    settings_trash_option: 'Κάδος Ανακύκλωσης',
-    settings_trash_desc: 'Επαναφορά ή οριστική διαγραφή συναλλαγών',
-    settings_sync_option: 'Συγχρονισμός & Cloud',
-    settings_sync_desc: 'Συγχρονισμός Cloud, Εισαγωγή & Εξαγωγή Excel/CSV',
-    settings_data_desc: 'Συγχρονισμός Cloud, Εισαγωγή & Εξαγωγή δεδομένων',
-    settings_security_desc: 'Κλείδωμα με PIN, Βιομετρικά & αυτόματο κλείδωμα',
-    settings_family_option: 'Οικογένεια',
-    settings_family_desc: 'Σύνδεση μελών & κοινό πορτοφόλι',
-    settings_feedback_option: 'Σχόλια & Αξιολόγηση',
-    settings_feedback_desc: 'Βαθμολογήστε μας και στείλτε τις προτάσεις σας',
-    settings_legal_option: 'Λογαριασμός & Νομικά',
-    settings_legal_desc: 'Πληροφορίες έκδοσης, έλεγχος ενημερώσεων & αποσύνδεση',
-    notes_manager_title: 'Σημειωματάριο & Checklists',
-    notes_title: 'Σημειωματάριο & Checklists',
-    notes_manager_subtitle: 'Προσωπικές σημειώσεις, λίστες & υπενθυμίσεις',
-    notes_manager_search: 'Αναζήτηση σημειώσεων...',
-    notes_manager_add: 'Νέα Σημείωση',
-    notes_filter_all: 'Όλες',
-    notes_filter_pinned: 'Καρφιτσωμένες',
-    notes_filter_text: 'Σημειώσεις',
-    notes_filter_checklist: 'Checklists',
-    notes_filter_reminder: 'Υπενθυμίσεις',
-    legal_app_update: 'Έλεγχος Ενημέρωσης',
-    legal_privacy: 'Πολιτική Απορρήτου',
-    legal_logout: 'Αποσύνδεση',
-    legal_app_version: 'Έκδοση',
-    pref_app_lock: 'Κλείδωμα με PIN',
-    pref_autocomplete: 'Έξυπνος Τίτλος (Autocomplete)',
-    pref_note_shortcut: 'Κουμπί Σημειωματάριου (📝)',
-    notification_center_title: 'Ειδοποιήσεις',
-    btn_clear_all: 'Καθαρισμός',
-    btn_send_test_notif: 'Δοκιμή Ειδοποίησης',
-    item_daily_reminder: 'Καθημερινή Υπενθύμιση',
-    item_daily_reminder_time: 'Ώρα Υπενθύμισης',
-    item_recurring_alerts: 'Ειδοποιήσεις Επαναλαμβανόμενων',
-    item_weekly_digest: 'Εβδομαδιαία Σύνοψη',
-    item_weekly_digest_desc: 'Σύνοψη εξόδων & τάσης κάθε Κυριακή (21:00)',
-    item_monthly_digest: 'Μηνιαία Ανασκόπηση',
-    item_monthly_digest_desc: 'Ισοζύγιο & αποταμίευση την 1η του μήνα',
-    item_partner_alerts: 'Δραστηριότητα Συνεργάτη',
-    item_partner_alerts_desc: 'Ειδοποίηση κατά την καταχώρηση νέων κοινών εξόδων',
-    no_notifications: 'Δεν υπάρχουν ειδοποιήσεις.',
-    pref_theme: 'Θέμα',
-    pref_theme_dark: 'Σκούρο',
-    pref_theme_light: 'Ανοιχτό',
-    pref_theme_auto: 'Σύστημα',
-    pref_currency: 'Νόμισμα',
-    pref_month_start: 'Έναρξη Μήνα',
-    pref_week_start: 'Έναρξη Εβδομάδας',
-    pref_week_start_mon: 'Δευτέρα',
-    pref_week_start_sun: 'Κυριακή',
-    card_sync: 'Συγχρονισμός',
-    card_import_excel: 'Εισαγωγή Δεδομένων',
-    card_export_excel: 'Εξαγωγή Δεδομένων',
-    item_language: 'Γλώσσα',
-    item_month_start: 'Έναρξη Μήνα',
-    item_week_start: 'Έναρξη Εβδομάδας',
-    item_recurring_templates: 'Επαναλαμβανόμενες Συναλλαγές',
-    no_recurring_templates: 'Δεν υπάρχουν ενεργές επαναλαμβανόμενες συναλλαγές.',
-    monthly_on_day: 'Κάθε μήνα στις',
-    item_trash_bin: 'Κάδος Ανακύκλωσης',
-    no_trash_items: 'Ο κάδος ανακύκλωσης είναι άδειος.',
-    confirm_empty_trash: 'Είστε σίγουροι ότι θέλετε να αδειάσετε τον κάδο; Αυτή η ενέργεια είναι οριστική.',
-    restore: 'Επαναφορά',
-    empty_trash: 'Εκκαθάριση Κάδου',
-    item_currency: 'Κύριο Νόμισμα',
-    item_font_size: 'Μέγεθος Γραμματοσειράς',
-    item_sync_status: 'Κατάσταση Συγχρονισμού',
-    val_month_start: 'Κάθε 1',
-    val_week_start: 'Δευτέρα',
-    val_week_start_sun: 'Κυριακή',
-    val_week_start_sat: 'Σάββατο',
-    val_currency: 'EUR (€)',
-    val_sync_status_off: 'Ρύθμιση',
-    val_sync_status_on: 'Ενεργό',
-    val_sync_status_error: 'Σφάλμα',
-    summary_income: 'Έσοδα',
-    summary_expense: 'Έξοδα',
-    summary_total: 'Υπόλοιπο',
-    stats_tab_expense: 'Έξοδα',
-    stats_tab_income: 'Έσοδα',
-    stats_tab_net_label: 'Υπόλοιπο:',
-    assets_title: 'Έσοδα',
-    liabilities_title: 'Έξοδα',
-    total_title: 'Υπόλοιπο',
-    accounts_header_title: 'Λογαριασμοί',
-    overall_history_title: 'Επισκόπηση',
-    overall_history_period_label: 'Περίοδος:',
-    cards_header_title: 'Έξοδα',
-    row_date: 'Ημερομηνία',
-    row_amount: 'Ποσό',
-    row_category: 'Κατηγορία',
-    row_subcategory: 'Υποκατηγορία',
-    row_account_from: 'Τρόπος πληρωμής',
-    row_account_to: 'Προς',
-    row_note: 'Τίτλος',
-    row_description: 'Λεπτομέρειες',
-    item_autocomplete: 'Έξυπνος Τίτλος (Autocomplete)',
-    item_note_shortcut: 'Γρήγορο Σημειωματάριο (κουμπί 📝)',
-    btn_save: 'Αποθήκευση',
-    btn_continue: 'Ακύρωση',
-    keypad_title: 'Ποσό',
-    keypad_btn_done: 'Τέλος',
-    placeholder_subcategory: 'Πατήστε για επιλογή ή πληκτρολόγηση',
-    placeholder_note: 'Πατήστε για τίτλο',
-    placeholder_description: 'Λεπτομέρειες',
-    placeholder_type_new_sub: 'Πληκτρολογήστε νέα υποκατηγορία',
-    status_local_mode: 'Local Mode',
-    status_cloud_mode: 'Cloud Mode',
-    option_new_subcategory: '+ Νέα υποκατηγορία...',
-    option_select_subcategory: 'Επιλέξτε υποκατηγορία',
-    stats_period_weekly: 'Εβδομαδιαία',
-    stats_period_monthly: 'Μηνιαία',
-    stats_period_annually: 'Ετήσια',
-    stats_period_custom: 'Περίοδος',
-    type_tab_income: 'Έσοδο',
-    type_tab_expense: 'Έξοδο',
-    type_tab_transfer: 'Μεταφορά',
-    selection_count_text: 'επιλεγμένα',
-    selection_select_all: 'Επιλογή όλων',
-    selection_delete: 'Διαγραφή',
-    auth_welcome: 'Καλώς ορίσατε! Συνδεθείτε για συγχρονισμό',
-    auth_create_account: 'Δημιουργήστε έναν νέο λογαριασμό',
-    auth_tab_password: 'Κωδικός',
-    auth_tab_magic: 'Magic Link',
-    auth_tab_google: 'Google',
-    auth_mode_login: 'Σύνδεση',
-    auth_mode_signup: 'Εγγραφή',
-    auth_email_label: 'Email',
-    auth_password_label: 'Κωδικός',
-    auth_forgot_password: 'Ξεχάσατε τον κωδικό σας;',
-    auth_submit_login: 'Είσοδος',
-    auth_submit_signup: 'Δημιουργία Λογαριασμού',
-    auth_magic_desc: 'Εισάγετε το email σας για να λάβετε έναν σύνδεσμο σύνδεσης (Magic Link) ή OTP στα εισερχόμενά σας.',
-    auth_magic_submit: 'Αποστολή Συνδέσμου',
-    auth_google_desc: 'Συνδεθείτε γρήγορα και με ασφάλεια χρησιμοποιώντας τον Google λογαριασμό σας.',
-    auth_google_submit: 'Σύνδεση με Google',
-    auth_btn_guest: '👤 Χρήση ως Επισκέπτης (Offline)',
-    auth_signup_success: '🎉 Η εγγραφή ολοκληρώθηκε! Ελέγξτε το email σας για το σύνδεσμο επιβεβαίωσης.',
-    auth_loading_title: 'Σύνδεση σε εξέλιξη',
-    auth_loading_desc: 'Παρακαλώ περιμένετε όσο ολοκληρώνεται η ταυτοποίηση με το λογαριασμό σας...',
-    onboarding_title: 'Καλώς ήρθατε στην παρέα μας! 🚀',
-    onboarding_desc: 'Το Budget Assistant σας βοηθάει να διαχειρίζεστε τα χρήματα της οικογενείας εύκολα και απλά. Διαλέξτε πώς θέλετε να ξεκινήσουμε:',
-    onboarding_demo_title: 'Δείτε πώς λειτουργεί (Δοκιμαστικά δεδομένα)',
-    onboarding_demo_desc: 'Θα γεμίσουμε την εφαρμογή με μερικά τυπικά έξοδα (σουπερμάρκετ, λογαριασμούς) για να δείτε αμέσως τα γραφήματα και τις αναλύσεις.',
-    onboarding_add_title: 'Καταχωρήστε το πρώτο σας έξοδο ή έσοδο',
-    onboarding_add_desc: 'Ξεκινήστε να γράφετε τα δικά σας καθημερινά έξοδα από το μηδέν.',
-    onboarding_guide_title: 'Μάθετε τα βασικά (Οδηγός)',
-    onboarding_guide_desc: 'Δείτε σε 1 λεπτό πώς να καταγράφετε έξοδα, πώς να συνδέσετε τον/την σύντροφό σας και πώς να ρωτάτε τον ψηφιακό βοηθό.',
-    onboarding_skip: 'Θέλω να εξερευνήσω μόνος μου',
-    demo_clear_btn: 'Καθαρισμός δοκιμαστικών δεδομένων',
-    modal_sync_title: 'Συγχρονισμός',
-    family_management_title: 'Διαχείριση Οικογένειας',
-    create_family_btn: 'Δημιουργία Οικογένειας',
-    join_family_btn: 'Εισαγωγή Κωδικού',
-    role_admin: 'Διαχειριστής',
-    role_member: 'Μέλος',
-    invite_code_label: 'Κωδικός Πρόσκλησης:',
-    invite_email_placeholder: 'email@family.com',
-    invite_email_btn: 'Αποστολή Πρόσκλησης',
-    stats_filter_member: 'Μέλος Οικογένειας',
-    only_creator_edit_warning: 'Μόνο ο δημιουργός ή ο διαχειριστής μπορεί να επεξεργαστεί αυτή την κίνηση',
-    item_category_manager: 'Διαχείριση Κατηγοριών',
-    item_theme: 'Θέμα Εμφάνισης',
-    item_app_lock: 'Κλείδωμα Εφαρμογής (PIN)',
-    item_biometrics: 'Face ID / Αποτύπωμα',
-    item_user_account: 'Λογαριασμός Χρήστη',
-    item_logout: 'Αποσύνδεση',
-    item_delete_account: 'Διαγραφή Λογαριασμού',
-    item_export_data: 'Εξαγωγή Δεδομένων',
-    item_clear_data: 'Καθαρισμός Δεδομένων',
-    delete_account_desc: 'Οριστική διαγραφή λογαριασμού και όλων των δεδομένων από το cloud',
-    item_about: 'Σχετικά',
-    item_privacy: 'Πολιτική Απορρήτου',
-    modal_category_title: 'Επιλογή Κατηγορίας',
-    modal_subcategory_title: 'Επιλογή Υποκατηγορίας',
-    modal_category_manager_title: 'Διαχείριση Κατηγοριών',
-    modal_excel_title: 'Εισαγωγή Ιστορικού από Excel / CSV',
-    modal_excel_mapping: 'Αντιστοίχιση Στηλών',
-    modal_excel_mapping_desc: 'Αντιστοιχίστε τις στήλες του δικού σας αρχείου Excel με τα πεδία της εφαρμογής.',
-    modal_pin_title: 'Ορισμός PIN',
-    modal_pin_desc: 'Εισάγετε ένα 4ψήφιο PIN για το κλείδωμα της εφαρμογής.',
-    modal_period_title: 'Επιλογή Περιόδου',
-    modal_profile_title: 'Προφίλ & Ρυθμίσεις',
-    new_category_label: 'Νέα Κατηγορία',
-    new_category_title_expense: 'Νέα Κατηγορία Εξόδου',
-    new_category_title_income: 'Νέα Κατηγορία Εσόδου',
-    new_category_name_placeholder: 'Όνομα κατηγορίας',
-    new_category_icon_label: 'Εικονίδιο',
-    new_category_add_title: 'Προσθήκη Νέας Κατηγορίας',
-    new_category_list_title: 'Λίστα Κατηγοριών',
-    btn_cancel: 'Άκυρο',
-    btn_add: 'Προσθήκη',
-    btn_delete: 'Διαγραφή',
-    btn_edit: 'Επεξεργασία',
-    btn_close: 'Κλείσιμο',
-    btn_back: 'Πίσω',
-    btn_export: 'Εξαγωγή',
-    btn_import: 'Εισαγωγή',
-    btn_select_file: 'Επιλογή Αρχείου',
-    btn_start_import: 'Έναρξη Εισαγωγής',
-    error_app: 'Σφάλμα Εφαρμογής',
-    error_csv: 'Σφάλμα CSV',
-    error_csv_read: 'Σφάλμα ανάγνωσης αρχείου CSV',
-    error_excel: 'Σφάλμα Excel',
-    error_excel_read: 'Σφάλμα ανάγνωσης αρχείου Excel',
-    error_xlsx_lib: 'Η βιβλιοθήκη XLSX δεν φορτώθηκε!\nΑνανεώστε τη σελίδα (Ctrl+Shift+R) και δοκιμάστε ξανά.',
-    error_line: 'Γραμμή',
-    error_column: 'Στήλη',
-    sync_status_offline: 'Τοπική Αποθήκευση',
-    sync_status_syncing: 'Συγχρονισμός...',
-    sync_status_synced: 'Ενεργός',
-    confirm_delete_transaction: 'Να διαγραφεί η συναλλαγή;',
-    confirm_delete_category: 'Είστε σίγουρος ότι θέλετε να διαγράψετε αυτή την κατηγορία;',
-    alert_enter_category_name: 'Παρακαλώ εισάγετε όνομα κατηγορίας',
-    alert_category_exists: 'Αυτή η κατηγορία υπάρχει ήδη',
-    alert_select_category_first: 'Παρακαλώ επιλέξτε πρώτα Κατηγορία!',
-    alert_csv_empty: 'Το αρχείο CSV είναι άδειο ή μη έγκυρο!',
-    alert_excel_empty: 'Το αρχείο Excel είναι άδειο!',
-    alert_date_required: 'Η στήλη Ημερομηνία είναι υποχρεωτική!',
-    alert_date_order: 'Η ημερομηνία έναρξης πρέπει να είναι προγενέστερη της ημερομηνίας λήξης!',
-    label_from: 'Από',
-    label_to: 'Προς',
-    label_account: 'Τρόπος πληρωμής',
-    label_select: 'Επιλέξτε...',
-    label_search: 'Αναζήτηση',
-    label_cloud_account: 'Λογαριασμός Cloud',
-    label_loading: 'Φόρτωση στοιχείων...',
-    theme_dark: 'Premium Dark',
-    theme_oled: 'OLED Black',
-    theme_light: 'Classic Light',
-    theme_emerald: 'Emerald Forest',
-    theme_ocean: 'Ocean Breeze',
-    theme_pink: 'Blossom Pink',
-    logged_in_as: 'Συνδεδεμένος ως',
-    force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
-    section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1285 - 06/08/2026)',
-    fab_add_transaction: 'Προσθήκη Συναλλαγής',
-    yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
-    period_label: 'Περίοδος',
-    sync_now_btn: 'Συγχρονισμός Τώρα',
-    search_btn_clear: 'Καθαρισμός',
-    search_filters_title: 'Φίλτρα Αναζήτησης',
-    search_results_header: 'Αποτελέσματα',
-    search_title_type: 'Επιλογή Τύπου',
-    search_title_category: 'Επιλογή Κατηγορίας',
-    search_title_account: 'Επιλογή τρόπου πληρωμής',
-    search_title_member: 'Επιλογή Μέλους',
-    search_title_advanced: 'Σύνθετα Φίλτρα',
-    search_all_types: 'Όλοι οι τύποι',
-    search_chip_type: 'Τύπος',
-    search_chip_category: 'Κατηγορία',
-    search_chip_account: 'Τρόπος πληρωμής',
-    search_chip_member: 'Μέλος',
-    search_chip_advanced: 'Σύνθετη',
-    search_placeholder: 'Αναζήτηση σε έξοδα, λογαριασμούς ή ημερομηνία...',
-    adv_amount_from: 'Ποσό από (€)',
-    adv_amount_to: 'Ποσό έως (€)',
-    adv_date_from: 'Από ημερομηνία',
-    adv_date_to: 'Έως ημερομηνία',
-    btn_apply: 'Εφαρμογή',
-    export_sheet_title: 'Εξαγωγή Αρχείου',
-    export_step2_period_header: 'Περίοδος Εξαγωγής',
-    export_opt_current_month: 'Τρέχων Μήνας',
-    export_opt_prev_month: 'Προηγούμενος Μήνας',
-    export_opt_current_year: 'Τρέχων Έτος',
-    export_opt_prev_year: 'Προηγούμενο Έτος',
-    export_opt_all: 'Όλα τα δεδομένα',
-    export_opt_custom: 'Επιλογή συγκεκριμένων ημερομηνιών',
-    export_label_from: 'Από:',
-    export_label_to: 'Έως:',
-    export_btn_confirm: 'Επιβεβαίωση Εξαγωγής',
-    export_no_data_range: 'Δεν υπάρχουν συναλλαγές σε αυτή την περίοδο!',
-    export_label_format: 'Επιλογή Μορφής Αρχείου:',
-    export_format_xlsx: 'Excel (XLSX)',
-    export_format_csv: 'CSV',
-    export_format_ods: 'OpenDocument (ODS)',
-    export_format_json: 'JSON',
-    export_format_pdf: 'PDF',
-    row_receipt_photo: 'Φωτογραφία Απόδειξης',
-    photo_mismatch_warning: 'Η εικόνα είναι διαθέσιμη μόνο στη συσκευή που καταχωρήθηκε.',
-    photo_delete_confirm: 'Διαγραφή φωτογραφίας απόδειξης;',
-    excel_dep_title: 'Εισαγωγή Excel/CSV (Υπό κατάργηση)',
-    excel_dep_text: 'Η εισαγωγή δεδομένων από αρχεία Excel ή CSV δεν υποστηρίζεται πλέον. Παρακαλώ εισάγετε τις συναλλαγές σας χειροκίνητα για την αποφυγή διπλότυπων και την καλύτερη συμβατότητα με τις νέες κατηγορίες.',
-    excel_dep_btn: 'Κατάλαβα',
-    section_feedback: '💬 Σχόλια & Αξιολόγηση',
-    feedback_rating_title: 'Πώς θα βαθμολογούσατε την εφαρμογή;',
-    feedback_type_label: 'Τύπος Σχολίου',
-    feedback_type_bug: 'Σφάλμα (Bug)',
-    feedback_type_feature: 'Νέα Λειτουργία',
-    feedback_type_other: 'Άλλο',
-    feedback_comment_placeholder: 'Γράψτε τα σχόλιά σας εδώ...',
-    feedback_submit_btn: 'Αποστολή Σχολίων',
-    feedback_success_msg: 'Σας ευχαριστούμε για τα σχόλιά σας!',
-    feedback_reset_btn: 'Νέα Αξιολόγηση',
-    search_chip_photo: 'Απόδειξη',
-    search_title_photo: 'Φίλτρο Απόδειξης',
-    photo_all: 'Όλες οι συναλλαγές',
-    photo_with: 'Με απόδειξη',
-    photo_without: 'Χωρίς απόδειξη',
-    btn_manage: 'Διαχείριση',
-    btn_set: 'Ορισμός',
-    date_picker_title: 'Ορισμός ημερομηνίας και ώρας',
-    date_picker_time_label: 'ΩΡΑ',
-    forecast_title: 'Εκτίμηση Έτους',
-    forecast_projected_savings: 'Προβλεπόμενη Αποταμίευση:',
-    forecast_modal_title: '🔮 Ανάλυση & Σενάρια',
-    forecast_current_status_title: 'Τρέχουσα Πορεία',
-    forecast_scenarios_title: '🔮 ΣΕΝΑΡΙΑ ΕΞΕΛΙΞΗΣ (ΕΩΣ ΔΕΚΕΜΒΡΙΟ)',
-    forecast_best_case: 'Βέλτιστο Σενάριο (-15% έξοδα):',
-    forecast_expected_case: 'Αναμενόμενο (Τρέχουσα πορεία):',
-    forecast_worst_case: 'Απαισιόδοξο Σενάριο (+15% έξοδα):',
-    forecast_target_title: 'ΠΡΟΣΩΠΙΚΟΣ ΣΤΟΧΟΣ ΑΠΟΤΑΜΙΕΥΣΗΣ',
-    forecast_target_save_btn: 'Αποθήκευση',
-    forecast_required_monthly_label: 'Απαιτούμενη Μηνιαία Αποταμίευση:',
-    forecast_goal_timeline_label: 'Εκτιμώμενος Χρόνος Επίτευξης:',
-    fhs_modal_title: '📊 Οικονομική Υγεία',
-    fhs_tab_breakdown: 'Ανάλυση',
-    fhs_tab_methodology: 'Μεθοδολογία',
-    fhs_savings_rate_title: 'Δείκτης Αποταμίευσης (40%)',
-    fhs_emergency_fund_title: 'Ταμείο Έκτακτης Ανάγκης (40%)',
-    fhs_expense_trend_title: 'Έλεγχος Ρίσκου & Τάση (20%)',
-    fhs_explain_title: '💡 Πώς υπολογίστηκε;',
-    fhs_explain_liquid_balance_label: 'Διαθέσιμο Υπόλοιπο:',
-    fhs_explain_survival_title: '🛡️ Βασική Επιβίωση:',
-    fhs_explain_survival_desc: '(Πόσο αντέχεις αν κόψεις τα περιττά και κρατήσεις μόνο ενοίκιο, λογαριασμούς, super market)',
-    fhs_explain_lifestyle_title: '🛒 Τρέχουσα Ζωή:',
-    fhs_explain_lifestyle_desc: '(Πόσο αντέχεις αν συνεχίσεις να ζεις και να ξοδεύεις ακριβώς όπως τώρα)',
-    fhs_explain_target_title: '🎯 Στόχος Ασφαλείας:',
-    fhs_explain_target_months: '6.0 μήνες Τρέχουσας Ζωής',
-    fhs_methodology_title: '📈 Μεθοδολογία Financial Health Score',
-    fhs_methodology_intro: 'Το σκορ οικονομικής υγείας υπολογίζεται με βάση τα διεθνή πρότυπα του <strong>Financial Health Network (FHN)</strong> και του <strong>Consumer Financial Protection Bureau (CFPB)</strong>, χρησιμοποιώντας 3 βασικούς πυλώνες:',
-    fhs_methodology_savings_title: '• Δείκτης Αποταμίευσης (Savings Rate) — 40%:',
-    fhs_methodology_savings_desc: 'Βασίζεται στον κανόνα <strong>50/30/20</strong> (Harvard Law School). Η διατήρηση αποταμίευσης άνω του 20% των καθαρών εσόδων είναι ο θεμέλιος λίθος για τη μακροχρόνια οικονομική ελευθερία.',
-    fhs_methodology_emergency_title: '• Ταμείο Έκτακτης Ανάγκης (Emergency Fund) — 40%:',
-    fhs_methodology_emergency_desc: 'Μελέτες του <strong>CFPB</strong> δείχνουν ότι η ύπαρξη ρευστότητας για την κάλυψη <strong>3 έως 6 μηνών σταθερών εξόδων</strong> μειώνει κατά 85% την πιθανότητα δημιουργίας προβληματικού χρέους.',
-    fhs_methodology_trend_title: '• Τάση & Έλεγχος Ρίσκου (Expense Trend) — 20%:',
-    fhs_methodology_trend_desc: 'Επιβραβεύει τη σταθερότητα και τη διατήρηση των μηνιαίων εξόδων κάτω από το όριο των εσόδων.',
-    fhs_methodology_note: '(Σημείωση: Για νέους χρήστες εφαρμόζεται προσαρμοσμένο μοντέλο εκκίνησης βάσει των πρώτων δεδομένων, το οποίο ωριμάζει μετά το πέρας του πρώτου τριμήνου).',
-    excel_select_file_label: 'Επιλέξτε Αρχείο Excel (.xlsx, .xls) ή CSV',
-    excel_clear_data_warning: '⚠️ Διαγραφή παλιών δεδομένων πριν την εισαγωγή (καθαρή επανεισαγωγή)',
-    excel_field_app: 'Πεδίο Εφαρμογής',
-    excel_column_file: 'Στήλη Excel',
-    excel_field_date: 'Ημερομηνία *',
-    excel_field_note: 'Σημείωση / Note',
-    excel_field_amount: 'Ποσό (Amount)',
-    excel_field_inflow: 'Εισροή / Credit (Inflow)',
-    excel_field_outflow: 'Εκροή / Debit (Outflow)',
-    excel_field_type: 'Τύπος (Expense/Income)',
-    excel_field_description: 'Περιγραφή (Description)',
-    // Advisor related
-    advisor_title: 'Έξυπνος Σύμβουλος',
-    advisor_chat_trigger: '💬 Ρωτήστε τον AI Σύμβουλο...',
-    advisor_comparison_title: 'Σύγκριση με Προηγούμενο Μήνα',
-    advisor_top_trans_title: 'Μεγαλύτερες Δαπάνες',
-    advisor_action_text: 'Προβολή όλων στο Ιστορικό',
-    advisor_chat_title: 'Οικονομικός Σύμβουλος AI',
-    advisor_suggest_overspending: '🔍 Πού ξοδεύω υπερβολικά;',
-    advisor_suggest_savings: '💡 Πώς να αποταμιεύσω περισσότερο;',
-    advisor_suggest_forecast_5y: '📈 Πού θα είμαι σε 5 χρόνια;',
-    advisor_suggest_milestone_50k: '🎯 Πότε θα φτάσω τα 50.000€;',
-    advisor_placeholder: 'Ρωτήστε κάτι τον σύμβουλο...',
-    // Profile related
-    profile_title: 'Το Προφίλ μου',
-    profile_name_placeholder: 'Το όνομά σας',
-    profile_select_avatar: 'Επιλέξτε Avatar',
-    profile_logout_btn: 'Αποσύνδεση Λογαριασμού',
-    profile_change_photo: 'Αλλαγή φωτογραφίας',
-    profile_upload_image: 'Μεταφόρτωση εικόνας',
-    cloud_sync_active: 'Συγχρονισμός Cloud: Ενεργός',
-    cloud_sync_local: 'Συγχρονισμός Cloud: Τοπικός',
-    subcategories_title: 'Υποκατηγορίες',
-    btn_undo: 'Αναίρεση',
-    item_manage_categories: 'Διαχείριση Κατηγοριών',
-    btn_clear_history: 'Καθαρισμός',
-    card_cleanup_dupes: 'Καθαρισμός Διπλών Δόσεων',
-    card_cleanup_dupes_desc: 'Αφαίρεση διπλών επαναλαμβανόμενων δόσεων (ίδια ημερομηνία & ποσό)',
-    clear_data_desc: 'Διαγραφή όλων των δεδομένων που είναι αποθηκευμένα στη συσκευή',
-    dashboard_month_expense: 'Έξοδα Μήνα',
-    dashboard_month_income: 'Έσοδα Μήνα',
-    dashboard_month_savings: 'Αποταμίευση Μήνα',
-    dashboard_net_worth: 'Καθαρή Αξία',
-    dashboard_recent: 'Πρόσφατες Κινήσεις',
-    export_btn_back: 'Πίσω',
-    export_btn_next: 'Επόμενο',
-    export_label_period: 'Επιλογή Περιόδου',
-    export_sub_all: 'Πλήρες Ιστορικό',
-    export_sub_custom: 'Προσαρμοσμένο Εύρος',
-    item_auto_lock: 'Αυτόματο Κλείδωμα',
-    item_biometric: 'Βιομετρικό Ξεκλείδωμα',
-    item_expense_alert: 'Όριο Υψηλής Δαπάνης (€)',
-    item_expense_limit: 'Μέγιστο Ποσό (€)',
-    item_hide_amounts: 'Απόκρυψη Ποσών',
-    item_reminder_time: 'Ώρα Υπενθύμισης',
-    item_screenshot_block: 'Αποκλεισμός Screenshots',
-    item_user_guide: 'Οδηγός Χρήσης',
-    modal_account_title: 'Επιλογή τρόπου πληρωμής',
-    modal_currency_title: 'Επιλογή νομίσματος',
-    new_note_btn: 'Νέα',
-    notification_history_title: 'Ιστορικό Ειδοποιήσεων',
-    row_actual_amount: 'Πραγματική χρέωση',
-    stats_period_all: 'Όλη η περίοδος',
-    stats_subtab_breakdown: 'Κατανομή',
-    stats_subtab_budgets: 'Προϋπολογισμοί',
-    label_camera: 'Κάμερα',
-    label_all_categories: 'Όλες οι κατηγορίες',
-    label_all: 'Όλες',
-    select_category_first: 'Επιλέξτε πρώτα κατηγορία',
-    pin_wrong: 'Λάθος PIN! Προσπαθήστε ξανά.',
-    pin_confirm_title: 'Επιβεβαίωση PIN',
-    pin_confirm_desc: 'Πληκτρολογήστε ξανά το PIN για επιβεβαίωση.',
-    auth_please_wait: 'Παρακαλώ περιμένετε...',
-    auth_sending: 'Αποστολή...',
-    sync_done: 'Ολοκληρώθηκε!',
-    select_date: 'Επιλογή ημερομηνίας...',
-    settings_notif_title: 'Ειδοποιήσεις & Υπενθυμίσεις',
-    settings_security_title: 'Ασφάλεια & Ιδιωτικότητα',
-    auth_signup_title: 'Σύνδεση / Εγγραφή',
-    recurring_label: 'Επαναλαμβανόμενη',
-    permanent_delete: 'Οριστική Διαγραφή',
-    auth_error_prefix: '❌ Σφάλμα: ',
-    auth_error_unhandled: '❌ Σφάλμα (Unhandled): ',
-    auth_error_auth: '❌ Σφάλμα ταυτοποίησης: ',
-    auth_fail_auth: 'Αποτυχία ταυτοποίησης.',
-    auth_fail_link: 'Αποτυχία αποστολής συνδέσμου.',
-    auth_fail_google: 'Αποτυχία σύνδεσης με Google.',
-    auth_magic_sent: '📩 Ο σύνδεσμος σύνδεσης στάλθηκε! Ελέγξτε τα εισερχόμενά σας (και τα Ανεπιθύμητα).',
-    pref_card_appearance_title: 'Γλώσσα & Εμφάνιση',
-    pref_card_appearance_desc: 'Προσαρμογή γλώσσας, θεμάτων & νομίσματος',
-    item_language_desc: 'Γλώσσα περιβάλλοντος (Ελληνικά / English)',
-    item_theme_desc: 'Παλέτα χρωμάτων & σκοτεινή λειτουργία',
-    item_currency_desc: 'Το νόμισμα που χρησιμοποιείς συνήθως',
-    item_font_size_desc: 'Αύξηση μεγέθους κειμένου για ευκολότερη ανάγνωση',
-    pref_card_calendar_title: 'Ημερολογιακοί Κύκλοι',
-    pref_card_calendar_desc: 'Έναρξη μηνιαίου & εβδομαδιαίου προϋπολογισμού',
-    item_month_start_desc: 'Ημέρα έναρξης μηνιαίου κύκλου (1 - 28)',
-    item_week_start_desc: 'Πρώτη ημέρα στα εβδομαδιαία γραφήματα',
-    pref_card_tools_title: 'Έξυπνα Εργαλεία & Συντομεύσεις',
-    pref_card_tools_desc: 'Αυτοματισμοί πληκτρολόγησης & ταχεία πρόσβαση',
-    item_autocomplete_desc: 'Αυτόματες προτάσεις κατά την πληκτρολόγηση',
-    item_note_shortcut_desc: 'Εμφάνιση συντόμευσης σημειωματάριου στην αρχική',
-    notif_card_desc: 'Υπενθυμίσεις καταγραφής & όρια δαπανών',
-    item_daily_reminder_desc: 'Υπενθύμιση καταγραφής εξόδων στις 21:00',
-    item_recurring_alerts_desc: 'Προειδοποίηση 1 ημέρα πριν τη λήξη',
-    item_expense_alert_desc: 'Ειδοποίηση για έξοδα άνω του ορίου',
-    security_card_desc: 'Κλείδωμα PIN, βιομετρικά & απόκρυψη ποσών',
-    item_app_lock_desc: 'Προστασία με 4ψήφιο κωδικό',
-    item_biometrics_desc: 'Δακτυλικό αποτύπωμα / Face ID',
-    item_hide_amounts_desc: 'Εμφάνιση 👁️ (***) στα υπόλοιπα',
-    item_screenshot_block_desc: 'Απαγόρευση στιγμιότυπων οθόνης',
-    item_auto_lock_desc: 'Χρόνος αδράνειας πριν το κλείδωμα'
-  },
-  en: {
-    nav_trans: 'Transactions',
-    nav_stats: 'Stats',
-    nav_accounts: 'Overview',
-    nav_more: 'More',
-    section_data_mgmt: 'Data Management',
-    section_settings: 'Settings',
-    settings_pref_title: 'App Preferences',
-    settings_data_title: 'Data & Sync',
-    settings_family_title: 'Family Management',
-    settings_feedback_title: 'Feedback & Rating',
-    settings_account_legal_title: 'Account & Legal',
-    settings_preferences_option: 'Preferences',
-    settings_preferences_desc: 'Theme, primary currency & smart autocomplete',
-    settings_pref_desc: 'Theme, primary currency & smart autocomplete',
-    settings_notif_desc: 'Daily reminder & payment alerts',
-    settings_recurring_option: 'Recurring',
-    settings_recurring_desc: 'Scheduled expenses, income & recurring rules',
-    settings_categories_option: 'Categories',
-    settings_categories_desc: 'Categories & subcategories',
-    settings_trash_option: 'Trash Bin',
-    settings_trash_desc: 'Restore or permanently delete transactions',
-    settings_sync_option: 'Sync & Cloud',
-    settings_sync_desc: 'Cloud sync, Excel/CSV import & export',
-    settings_data_desc: 'Cloud sync, Data import & export',
-    settings_security_desc: 'PIN lock, Biometrics & auto-lock',
-    settings_family_option: 'Family',
-    settings_family_desc: 'Connect family members & shared wallet',
-    settings_feedback_option: 'Feedback & Rating',
-    settings_feedback_desc: 'Rate the app and send suggestions',
-    settings_legal_option: 'Account & Legal',
-    settings_legal_desc: 'Version info, check updates & log out',
-    notes_manager_title: 'Notepad & Checklists',
-    notes_title: 'Notepad & Checklists',
-    notes_manager_subtitle: 'Personal notes, checklists & reminders',
-    notes_manager_search: 'Search notes...',
-    notes_manager_add: 'New Note',
-    notes_filter_all: 'All',
-    notes_filter_pinned: 'Pinned',
-    notes_filter_text: 'Notes',
-    notes_filter_checklist: 'Checklists',
-    notes_filter_reminder: 'Reminders',
-    legal_app_update: 'Check Update',
-    legal_privacy: 'Privacy Policy',
-    legal_logout: 'Log Out',
-    legal_app_version: 'Version',
-    pref_app_lock: 'PIN Lock',
-    pref_autocomplete: 'Smart Autocomplete',
-    pref_note_shortcut: 'Notepad FAB Shortcut',
-    notification_center_title: 'Notifications',
-    btn_clear_all: 'Clear All',
-    btn_send_test_notif: 'Send Test Notification',
-    item_daily_reminder: 'Daily Reminder',
-    item_daily_reminder_time: 'Reminder Time',
-    item_recurring_alerts: 'Recurring Alerts',
-    item_weekly_digest: 'Weekly Digest',
-    item_weekly_digest_desc: 'Expense & trend summary every Sunday (21:00)',
-    item_monthly_digest: 'Monthly Review',
-    item_monthly_digest_desc: 'Balance & savings rate on the 1st of each month',
-    item_partner_alerts: 'Partner Activity Alerts',
-    item_partner_alerts_desc: 'Notify when shared transactions are logged by partner',
-    no_notifications: 'No notifications.',
-    pref_theme: 'Theme',
-    pref_theme_dark: 'Dark',
-    pref_theme_light: 'Light',
-    pref_theme_auto: 'System',
-    pref_currency: 'Currency',
-    pref_month_start: 'Month Start',
-    pref_week_start: 'Week Start',
-    pref_week_start_mon: 'Monday',
-    pref_week_start_sun: 'Sunday',
-    card_sync: 'Sync',
-    card_import_excel: 'Import Data',
-    card_export_excel: 'Export Data',
-    item_language: 'Language',
-    item_month_start: 'Month Start',
-    item_week_start: 'Week Start',
-    item_recurring_templates: 'Recurring Transactions',
-    no_recurring_templates: 'No active recurring transactions found.',
-    monthly_on_day: 'Monthly on day',
-    item_trash_bin: 'Trash Bin',
-    no_trash_items: 'The trash bin is empty.',
-    confirm_empty_trash: 'Are you sure you want to empty the trash bin? This action is permanent.',
-    restore: 'Restore',
-    empty_trash: 'Empty Trash',
-    item_currency: 'Main Currency',
-    item_font_size: 'Font Size',
-    item_sync_status: 'Sync Status',
-    val_month_start: 'Every 1st',
-    val_week_start: 'Monday',
-    val_week_start_sun: 'Sunday',
-    val_week_start_sat: 'Saturday',
-    val_currency: 'EUR (€)',
-    val_sync_status_off: 'Setup',
-    val_sync_status_on: 'Active',
-    val_sync_status_error: 'Error',
-    summary_income: 'Income',
-    summary_expense: 'Expenses',
-    summary_total: 'Total',
-    stats_tab_expense: 'Expenses',
-    stats_tab_income: 'Income',
-    stats_tab_net_label: 'Net Balance:',
-    assets_title: 'Income',
-    liabilities_title: 'Expenses',
-    total_title: 'Balance',
-    accounts_header_title: 'Accounts',
-    overall_history_title: 'Overview',
-    overall_history_period_label: 'Period:',
-    cards_header_title: 'Expenses',
-    row_date: 'Date',
-    row_amount: 'Amount',
-    row_category: 'Category',
-    row_subcategory: 'Subcategory',
-    row_account_from: 'Payment Method',
-    row_account_to: 'To',
-    row_note: 'Title',
-    row_description: 'Details',
-    item_autocomplete: 'Smart Title (Autocomplete)',
-    item_note_shortcut: 'Quick Notepad (📝 button)',
-    btn_save: 'Save',
-    btn_continue: 'Cancel',
-    keypad_title: 'Amount',
-    keypad_btn_done: 'Done',
-    placeholder_subcategory: 'Tap to select or type',
-    placeholder_note: 'Tap for title',
-    placeholder_description: 'Details',
-    placeholder_type_new_sub: 'Type new subcategory',
-    status_local_mode: 'Local Mode',
-    status_cloud_mode: 'Cloud Mode',
-    option_new_subcategory: '+ New subcategory...',
-    option_select_subcategory: 'Select subcategory',
-    stats_period_weekly: 'Weekly',
-    stats_period_monthly: 'Monthly',
-    stats_period_annually: 'Annually',
-    stats_period_custom: 'Custom Period',
-    type_tab_income: 'Income',
-    type_tab_expense: 'Expense',
-    type_tab_transfer: 'Transfer',
-    selection_count_text: 'selected',
-    selection_select_all: 'Select All',
-    selection_delete: 'Delete',
-    auth_welcome: 'Welcome! Sign in to sync your data',
-    auth_create_account: 'Create a new account',
-    auth_tab_password: 'Password',
-    auth_tab_magic: 'Magic Link',
-    auth_tab_google: 'Google',
-    auth_mode_login: 'Log In',
-    auth_mode_signup: 'Sign Up',
-    auth_email_label: 'Email',
-    auth_password_label: 'Password',
-    auth_forgot_password: 'Forgot your password?',
-    auth_submit_login: 'Log In',
-    auth_submit_signup: 'Create Account',
-    auth_magic_desc: 'Enter your email to receive a login link (Magic Link) or OTP in your inbox.',
-    auth_magic_submit: 'Send Magic Link',
-    auth_google_desc: 'Log in quickly and securely using your Google account.',
-    auth_google_submit: 'Sign in with Google',
-    auth_btn_guest: '👤 Continue as Guest (Offline)',
-    auth_signup_success: '🎉 Registration completed! Check your email for the confirmation link.',
-    auth_loading_title: 'Signing in',
-    auth_loading_desc: 'Please wait while we complete the authentication with your account...',
-    onboarding_title: 'Welcome! 🚀',
-    onboarding_desc: 'Get started with **Budget Assistant**! Choose an action to bring your dashboard to life:',
-    onboarding_demo_title: 'Add Sample Data',
-    onboarding_demo_desc: 'Fill the app with 10 realistic transactions to see charts and reports instantly.',
-    onboarding_add_title: 'Add First Transaction',
-    onboarding_add_desc: 'Manually register an expense or income to start from scratch.',
-    onboarding_guide_title: 'Quick Tour',
-    onboarding_guide_desc: 'Learn about the 3 core features of the app in a fast interactive guide.',
-    onboarding_skip: 'Skip Walkthrough',
-    demo_clear_btn: 'Delete Demo Data',
-    modal_sync_title: 'Cloud Sync',
-    family_management_title: 'Family Management',
-    create_family_btn: 'Create Family Group',
-    join_family_btn: 'Enter Invite Code',
-    role_admin: 'Admin',
-    role_member: 'Member',
-    invite_code_label: 'Invite Code:',
-    invite_email_placeholder: 'email@family.com',
-    invite_email_btn: 'Send Invitation',
-    stats_filter_member: 'Family Member',
-    only_creator_edit_warning: 'Only the creator or admin can edit this transaction',
-    item_category_manager: 'Category Manager',
-    item_theme: 'Appearance Theme',
-    item_app_lock: 'App Lock (PIN)',
-    item_biometrics: 'Face ID / Fingerprint',
-    item_user_account: 'User Account',
-    item_logout: 'Log Out',
-    item_delete_account: 'Delete Account',
-    item_export_data: 'Export Data',
-    item_clear_data: 'Clear Data',
-    delete_account_desc: 'Permanently delete your account and all data from the cloud',
-    item_about: 'About',
-    item_privacy: 'Privacy Policy',
-    modal_category_title: 'Select Category',
-    modal_subcategory_title: 'Select Subcategory',
-    modal_category_manager_title: 'Category Manager',
-    modal_excel_title: 'Import History from Excel / CSV',
-    modal_excel_mapping: 'Column Mapping',
-    modal_excel_mapping_desc: 'Map your Excel columns to the application fields.',
-    modal_pin_title: 'Set PIN',
-    modal_pin_desc: 'Enter a 4-digit PIN to lock the application.',
-    modal_period_title: 'Select Period',
-    modal_profile_title: 'Profile & Settings',
-    new_category_label: 'New Category',
-    new_category_title_expense: 'New Expense Category',
-    new_category_title_income: 'New Income Category',
-    new_category_name_placeholder: 'Category name',
-    new_category_icon_label: 'Icon',
-    new_category_add_title: 'Add New Category',
-    new_category_list_title: 'Category List',
-    btn_cancel: 'Cancel',
-    btn_add: 'Add',
-    btn_delete: 'Delete',
-    btn_edit: 'Edit',
-    btn_close: 'Close',
-    btn_back: 'Back',
-    btn_export: 'Export',
-    btn_import: 'Import',
-    btn_select_file: 'Select File',
-    btn_start_import: 'Start Import',
-    error_app: 'Application Error',
-    error_csv: 'CSV Error',
-    error_csv_read: 'Error reading CSV file',
-    error_excel: 'Excel Error',
-    error_excel_read: 'Error reading Excel file',
-    error_xlsx_lib: 'XLSX library not loaded!\nRefresh the page (Ctrl+Shift+R) and try again.',
-    error_line: 'Line',
-    error_column: 'Column',
-    sync_status_offline: 'Local Storage',
-    sync_status_syncing: 'Syncing...',
-    sync_status_synced: 'Active',
-    confirm_delete_transaction: 'Delete this transaction?',
-    confirm_delete_category: 'Are you sure you want to delete this category?',
-    alert_enter_category_name: 'Please enter a category name',
-    alert_category_exists: 'This category already exists',
-    alert_select_category_first: 'Please select a Category first!',
-    alert_csv_empty: 'CSV file is empty or invalid!',
-    alert_excel_empty: 'Excel file is empty!',
-    alert_date_required: 'Date column is required!',
-    alert_date_order: 'Start date must be earlier than end date!',
-    label_from: 'From',
-    label_to: 'To',
-    label_account: 'Payment Method',
-    label_select: 'Select...',
-    label_search: 'Search',
-    label_cloud_account: 'Cloud Account',
-    label_loading: 'Loading...',
-    theme_dark: 'Premium Dark',
-    theme_oled: 'OLED Black',
-    theme_light: 'Classic Light',
-    theme_emerald: 'Emerald Forest',
-    theme_ocean: 'Ocean Breeze',
-    theme_pink: 'Blossom Pink',
-    logged_in_as: 'Logged in as',
-    force_update: 'Force Update (Clear Cache)',
-    section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1285 - 06/08/2026)',
-    fab_add_transaction: 'Add Transaction',
-    yearly_savings_title: 'Previous Years History',
-    period_label: 'Period',
-    sync_now_btn: 'Sync Now',
-    search_btn_clear: 'Clear',
-    search_filters_title: 'Search Filters',
-    search_results_header: 'Results',
-    search_title_type: 'Select Type',
-    search_title_category: 'Select Category',
-    search_title_account: 'Select Payment Method',
-    search_title_member: 'Select Member',
-    search_title_advanced: 'Advanced Filters',
-    search_all_types: 'All types',
-    search_chip_type: 'Type',
-    search_chip_category: 'Category',
-    search_chip_account: 'Payment Method',
-    search_chip_member: 'Member',
-    search_chip_advanced: 'Advanced',
-    search_placeholder: 'Search Expenses, Accounts, or date...',
-    adv_amount_from: 'Min Amount (€)',
-    adv_amount_to: 'Max Amount (€)',
-    adv_date_from: 'From Date',
-    adv_date_to: 'To Date',
-    btn_apply: 'Apply',
-    export_sheet_title: 'Export File',
-    export_step2_period_header: 'Export Period',
-    export_opt_current_month: 'Current Month',
-    export_opt_prev_month: 'Previous Month',
-    export_opt_current_year: 'Current Year',
-    export_opt_prev_year: 'Previous Year',
-    export_opt_all: 'All data',
-    export_opt_custom: 'Custom Date Range',
-    export_label_from: 'From:',
-    export_label_to: 'To:',
-    export_btn_confirm: 'Confirm Export',
-    export_no_data_range: 'No transactions found in this period!',
-    export_label_format: 'Select File Format:',
-    export_format_xlsx: 'Excel (XLSX)',
-    export_format_csv: 'CSV',
-    export_format_ods: 'OpenDocument (ODS)',
-    export_format_json: 'JSON',
-    export_format_pdf: 'PDF',
-    row_receipt_photo: 'Receipt Photo',
-    photo_mismatch_warning: 'Image is only available on the device where it was recorded.',
-    photo_delete_confirm: 'Delete receipt photo?',
-    excel_dep_title: 'Excel/CSV Import (Deprecated)',
-    excel_dep_text: 'Importing data from Excel or CSV files is no longer supported. Please input your transactions manually to avoid duplicates and ensure better compatibility with the new categories.',
-    excel_dep_btn: 'I Understand',
-    section_feedback: '💬 Feedback & Rating',
-    feedback_rating_title: 'How would you rate the app?',
-    feedback_type_label: 'Feedback Type',
-    feedback_type_bug: 'Bug Report',
-    feedback_type_feature: 'Feature Request',
-    feedback_type_other: 'Other',
-    feedback_comment_placeholder: 'Write your feedback here...',
-    feedback_submit_btn: 'Submit Feedback',
-    feedback_success_msg: 'Thank you for your feedback!',
-    feedback_reset_btn: 'New Feedback',
-    search_chip_photo: 'Receipt',
-    search_title_photo: 'Receipt Filter',
-    photo_all: 'All transactions',
-    photo_with: 'With receipt',
-    photo_without: 'Without receipt',
-    btn_manage: 'Manage',
-    btn_set: 'Set',
-    date_picker_title: 'Set Date and Time',
-    date_picker_time_label: 'TIME',
-    forecast_title: 'Year-End Forecast',
-    forecast_projected_savings: 'Projected Savings:',
-    forecast_modal_title: '🔮 Analysis & Scenarios',
-    forecast_current_status_title: 'Current Status',
-    forecast_scenarios_title: '🔮 PROJECTION SCENARIOS (UNTIL DECEMBER)',
-    forecast_best_case: 'Best Case Scenario (-15% expenses):',
-    forecast_expected_case: 'Expected Case (Current path):',
-    forecast_worst_case: 'Worst Case Scenario (+15% expenses):',
-    forecast_target_title: 'PERSONAL SAVINGS TARGET',
-    forecast_target_save_btn: 'Save',
-    forecast_required_monthly_label: 'Required Monthly Savings:',
-    forecast_goal_timeline_label: 'Estimated Time to Achieve:',
-    fhs_modal_title: '📊 Financial Health',
-    fhs_tab_breakdown: 'Breakdown',
-    fhs_tab_methodology: 'Methodology',
-    fhs_savings_rate_title: 'Savings Rate (40%)',
-    fhs_emergency_fund_title: 'Emergency Fund (40%)',
-    fhs_expense_trend_title: 'Expense Trend & Risk (20%)',
-    fhs_explain_title: '💡 How was it calculated?',
-    fhs_explain_liquid_balance_label: 'Available Balance:',
-    fhs_explain_survival_title: '🛡️ Basic Survival:',
-    fhs_explain_survival_desc: '(How long you can last if you cut all discretionary spending and keep only rent, bills, groceries)',
-    fhs_explain_lifestyle_title: '🛒 Current Lifestyle:',
-    fhs_explain_lifestyle_desc: '(How long you can last if you continue to live and spend exactly as you do now)',
-    fhs_explain_target_title: '🎯 Safety Target:',
-    fhs_explain_target_months: '6.0 months of Current Lifestyle',
-    fhs_methodology_title: '📈 Financial Health Score Methodology',
-    fhs_methodology_intro: 'The financial health score is calculated based on international standards of the <strong>Financial Health Network (FHN)</strong> and the <strong>Consumer Financial Protection Bureau (CFPB)</strong>, using 3 key pillars:',
-    fhs_methodology_savings_title: '• Savings Rate — 40%:',
-    fhs_methodology_savings_desc: 'Based on the <strong>50/30/20 rule</strong> (Harvard Law School). Maintaining savings above 20% of net income is the cornerstone of long-term financial freedom.',
-    fhs_methodology_emergency_title: '• Emergency Fund — 40%:',
-    fhs_methodology_emergency_desc: 'Studies by the <strong>CFPB</strong> show that having liquidity to cover <strong>3 to 6 months of fixed expenses</strong> reduces the probability of problematic debt by 85%.',
-    fhs_methodology_trend_title: '• Expense Trend & Risk Control — 20%:',
-    fhs_methodology_trend_desc: 'Rewards stability and keeping monthly expenses below net income limits.',
-    fhs_methodology_note: '(Note: For new users, a customized start model is applied based on initial data, which matures after the end of the first quarter).',
-    excel_select_file_label: 'Select Excel File (.xlsx, .xls) or CSV',
-    excel_clear_data_warning: '⚠️ Clear old data before import (clean re-import)',
-    excel_field_app: 'Application Field',
-    excel_column_file: 'Excel Column',
-    excel_field_date: 'Date *',
-    excel_field_note: 'Note',
-    excel_field_amount: 'Amount',
-    excel_field_inflow: 'Credit (Inflow)',
-    excel_field_outflow: 'Debit (Outflow)',
-    excel_field_type: 'Type (Expense/Income)',
-    excel_field_description: 'Description',
-    // Advisor related
-    advisor_title: 'Smart Advisor',
-    advisor_chat_trigger: '💬 Ask AI Advisor...',
-    advisor_comparison_title: 'Compare with Previous Month',
-    advisor_top_trans_title: 'Top Expenses',
-    advisor_action_text: 'View all in History',
-    advisor_chat_title: 'AI Financial Advisor',
-    advisor_suggest_overspending: '🔍 Where am I overspending?',
-    advisor_suggest_savings: '💡 How to save more?',
-    advisor_suggest_forecast_5y: '📈 Where will I be in 5 years?',
-    advisor_suggest_milestone_50k: '🎯 When will I reach €50k?',
-    advisor_placeholder: 'Ask the advisor something...',
-    // Profile related
-    profile_title: 'My Profile',
-    profile_name_placeholder: 'Your name',
-    profile_select_avatar: 'Select Avatar',
-    profile_logout_btn: 'Sign Out Account',
-    profile_change_photo: 'Change photo',
-    profile_upload_image: 'Upload image',
-    cloud_sync_active: 'Cloud Sync: Active',
-    cloud_sync_local: 'Cloud Sync: Local Mode',
-    subcategories_title: 'Subcategories',
-    btn_undo: 'Undo',
-    item_manage_categories: 'Manage Categories',
-    btn_clear_history: 'Clear',
-    card_cleanup_dupes: 'Clean Up Duplicate Installments',
-    card_cleanup_dupes_desc: 'Remove duplicate recurring installments (same date & amount)',
-    clear_data_desc: 'Delete all data stored on this device',
-    dashboard_month_expense: 'Month Expenses',
-    dashboard_month_income: 'Month Income',
-    dashboard_month_savings: 'Month Savings',
-    dashboard_net_worth: 'Net Worth',
-    dashboard_recent: 'Recent Transactions',
-    export_btn_back: 'Back',
-    export_btn_next: 'Next',
-    export_label_period: 'Select Period',
-    export_sub_all: 'Full History',
-    export_sub_custom: 'Custom Range',
-    item_auto_lock: 'Auto Lock',
-    item_biometric: 'Biometric Unlock',
-    item_expense_alert: 'High Expense Limit (€)',
-    item_expense_limit: 'Max Amount (€)',
-    item_hide_amounts: 'Hide Amounts',
-    item_reminder_time: 'Reminder Time',
-    item_screenshot_block: 'Block Screenshots',
-    item_user_guide: 'User Guide',
-    modal_account_title: 'Select Payment Method',
-    modal_currency_title: 'Select Currency',
-    new_note_btn: 'New',
-    notification_history_title: 'Notification History',
-    row_actual_amount: 'Actual Charge',
-    stats_period_all: 'All time',
-    stats_subtab_breakdown: 'Breakdown',
-    stats_subtab_budgets: 'Budgets',
-    label_camera: 'Camera',
-    label_all_categories: 'All categories',
-    label_all: 'All',
-    select_category_first: 'Select a category first',
-    pin_wrong: 'Wrong PIN! Try again.',
-    pin_confirm_title: 'Confirm PIN',
-    pin_confirm_desc: 'Re-enter the PIN to confirm.',
-    auth_please_wait: 'Please wait...',
-    auth_sending: 'Sending...',
-    sync_done: 'Done!',
-    select_date: 'Select date...',
-    settings_notif_title: 'Notifications & Reminders',
-    settings_security_title: 'Security & Privacy',
-    auth_signup_title: 'Sign In / Sign Up',
-    recurring_label: 'Recurring',
-    permanent_delete: 'Permanently Delete',
-    auth_error_prefix: '❌ Error: ',
-    auth_error_unhandled: '❌ Error (Unhandled): ',
-    auth_error_auth: '❌ Authentication error: ',
-    auth_fail_auth: 'Authentication failed.',
-    auth_fail_link: 'Failed to send link.',
-    auth_fail_google: 'Google sign-in failed.',
-    auth_magic_sent: '📩 Sign-in link sent! Check your inbox (and spam).',
-    pref_card_appearance_title: 'Language & Appearance',
-    pref_card_appearance_desc: 'Customize language, themes & currency',
-    item_language_desc: 'Interface language (Greek / English)',
-    item_theme_desc: 'Color palette & dark mode',
-    item_currency_desc: 'Currency used for transactions',
-    item_font_size_desc: 'Increase text size for easier reading',
-    pref_card_calendar_title: 'Calendar Cycles',
-    pref_card_calendar_desc: 'Monthly & weekly budget start days',
-    item_month_start_desc: 'Start day of monthly cycle (1 - 28)',
-    item_week_start_desc: 'First day in weekly charts',
-    pref_card_tools_title: 'Smart Tools & Shortcuts',
-    pref_card_tools_desc: 'Typing automation & quick access',
-    item_autocomplete_desc: 'Auto-suggestions while typing',
-    item_note_shortcut_desc: 'Show notepad shortcut on home screen',
-    notif_card_desc: 'Logging reminders & expense limits',
-    item_daily_reminder_desc: 'Expense logging reminder at 21:00',
-    item_recurring_alerts_desc: 'Alert 1 day before due date',
-    item_expense_alert_desc: 'Alert for expenses over limit',
-    security_card_desc: 'PIN lock, biometrics & hidden balances',
-    item_app_lock_desc: 'Protected with 4-digit PIN',
-    item_biometrics_desc: 'Fingerprint / Face ID',
-    item_hide_amounts_desc: 'Show 👁️ (***) on balances',
-    item_screenshot_block_desc: 'Prevent taking screenshots',
-    item_auto_lock_desc: 'Inactivity time before auto-lock'
-  }
-};
-
-// ============================================================
-// LOCAL RECEIPT PHOTO STORAGE (IndexedDB)
-// 100% free, no Supabase Storage costs
-// ============================================================
-const ReceiptStorage = {
-  _db: null,
-  DB_NAME: 'BudgetReceiptsDB',
-  STORE_NAME: 'receipts',
-
-  async _getDB() {
-    if (this._db) return this._db;
-    return new Promise((resolve, reject) => {
-      const req = indexedDB.open(this.DB_NAME, 1);
-      req.onupgradeneeded = (e) => {
-        const db = e.target.result;
-        if (!db.objectStoreNames.contains(this.STORE_NAME)) {
-          db.createObjectStore(this.STORE_NAME, { keyPath: 'id' });
-        }
-      };
-      req.onsuccess = (e) => { this._db = e.target.result; resolve(this._db); };
-      req.onerror = (e) => { console.error('ReceiptStorage DB error:', e); reject(e); };
-    });
-  },
-
-  async save(transactionId, blobs) {
-    const db = await this._getDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(this.STORE_NAME, 'readwrite');
-      tx.objectStore(this.STORE_NAME).put({ id: transactionId, blobs, savedAt: Date.now() });
-      tx.oncomplete = () => resolve();
-      tx.onerror = (e) => reject(e);
-      tx.onabort = (e) => reject(e);
-    });
-  },
-
-  async load(transactionId) {
-    const db = await this._getDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(this.STORE_NAME, 'readonly');
-      const req = tx.objectStore(this.STORE_NAME).get(transactionId);
-      req.onsuccess = () => {
-        if (!req.result) {
-          resolve([]);
-        } else if (req.result.blobs) {
-          resolve(req.result.blobs);
-        } else if (req.result.blob) {
-          resolve([req.result.blob]); // Backward compatibility for single blob
-        } else {
-          resolve([]);
-        }
-      };
-      req.onerror = (e) => reject(e);
-      tx.oncomplete = () => { /* resolve already called in onsuccess, but good for lifecycle */ };
-      tx.onerror = (e) => reject(e);
-      tx.onabort = (e) => reject(e);
-    });
-  },
-
-  async remove(transactionId) {
-    const db = await this._getDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(this.STORE_NAME, 'readwrite');
-      tx.objectStore(this.STORE_NAME).delete(transactionId);
-      tx.oncomplete = () => resolve();
-      tx.onerror = (e) => reject(e);
-      tx.onabort = (e) => reject(e);
-    });
-  }
-};
 
 // Pending receipt files for the current transaction form session
 let _pendingReceiptFiles = [];
 let _pendingReceiptDeleted = false;
 let _pendingRecurringSettings = { isActive: false, days: [], months: [], years: [], preset: 'monthly' };
 
-const DEFAULT_SUBCATEGORIES_MAP = {
-  'ΣΠΙΤΙ': ['Ενοίκιο', 'Ρεύμα', 'Νερό', 'Internet', 'Συντήρηση', 'Έπιπλα'],
-  'ΤΡΟΦΙΜΑ': ['Super Market', 'Delivery', 'Καφές', 'Φούρνος'],
-  'ΜΕΤΑΦΟΡΕΣ': ['Καύσιμα', 'Parking', 'Service', 'Ασφάλεια', 'Μέσα Μαζικής Μεταφοράς'],
-  'ΥΓΕΙΑ': [],
-  'ΕΚΠΑΙΔΕΥΣΗ': [],
-  'ΔΙΑΣΚΕΔΑΣΗ': [],
-  'ΑΓΟΡΕΣ': [],
-  'ΣΥΝΔΡΟΜΕΣ': [],
-  'ΦΟΡΟΙ': [],
-  'ΔΙΑΦΟΡΑ': [],
-  'ΜΙΣΘΟΣ': [],
-  'BONUS': [],
-  'ΕΝΟΙΚΙΑ': [],
-  'ΕΠΕΝΔΥΣΕΙΣ': [],
-  'ΔΩΡΑ': [],
-  'CASHBACK / ΤΟΚΟΙ': [],
-  'FREELANCE': [],
-  'ΠΩΛΗΣΕΙΣ': [],
-  '➕ ΑΛΛΑ ΕΣΟΔΑ': []
-};
+// (DEFAULT_SUBCATEGORIES_MAP moved to js/constants.js)
 
 function getMonthName(index, short = false) {
   if (state.lang === 'en') {
@@ -2178,11 +1051,6 @@ function formatCalcDisplay(buf) {
 
 // Remove thousands separators ('.' followed by exactly 3 digits) so a formatted
 // display value like "5.000" or "1.234.56" can be parsed back to a raw number.
-function stripThousandsSeparators(str) {
-  if (!str) return str;
-  return String(str).replace(/(\d)\.(?=\d{3}(?!\d))/g, '$1');
-}
-
 let statsChartInstance = null;
 if (window.Chart && window.ChartDataLabels) {
   Chart.register(ChartDataLabels);
@@ -2374,7 +1242,7 @@ function uuidToNotificationId(uuid) {
 
 function loadNotifications() {
   try {
-    const stored = localStorage.getItem('state_notifications');
+    const stored = localStorage.getItem('state_notifications') || localStorage.getItem('money_manager_notifications');
     state.notifications = stored ? JSON.parse(stored) : [];
   } catch (err) {
     console.warn('Failed to load notifications from localStorage', err);
@@ -2385,7 +1253,7 @@ function loadNotifications() {
 
 function saveNotifications() {
   try {
-    localStorage.setItem('state_notifications', JSON.stringify(state.notifications));
+    localStorage.setItem('state_notifications', JSON.stringify(state.notifications || []));
   } catch (err) {
     console.warn('Failed to save notifications to localStorage', err);
   }
@@ -2410,8 +1278,8 @@ function addInAppNotification(title, body, action = null) {
     timestamp: new Date().toISOString()
   };
   state.notifications.unshift(notif);
-  if (state.notifications.length > 50) {
-    state.notifications = state.notifications.slice(0, 50);
+  if (state.notifications.length > 250) {
+    state.notifications = state.notifications.slice(0, 250);
   }
   saveNotifications();
   updateNotificationBadge();
@@ -2758,6 +1626,7 @@ window.fadeOutColdStartOverlay = fadeOutColdStartOverlay;
 // recompositing window so the user never sees a blank/black flash.
 let _resumeOverlayTimer = null;
 function showResumeOverlay() {
+  if (document.documentElement.classList.contains('web-mode')) return; // Web browsers keep DOM alive; no black flash overlay needed
   const overlay = document.getElementById('resume-overlay');
   if (!overlay) return;
   // Sync background to the current theme color in case it changed while backgrounded.
@@ -2884,6 +1753,18 @@ async function initApp() {
   document.body.classList.add('trans-tab-active');
   loadConfig();
   initSettingsFromStorage();
+  // FIX (overlay placement): Self-heal any full-screen overlay that is nested
+  // inside .app-container (position:relative + overflow:hidden) by moving it
+  // directly under <body>. This prevents the auth-overlay-style "trapped modal"
+  // bug from recurring on any overlay. Must run early, before any overlay shows.
+  if (typeof initOverlayPlacement === 'function') {
+    initOverlayPlacement();
+  }
+  // FIX #1: Start the auto-lock inactivity timer (if enabled). This must run
+  // AFTER initSettingsFromStorage() so the stored delay is already loaded.
+  if (typeof _initAutoLock === 'function') {
+    _initAutoLock();
+  }
   initMultiCurrency();
   loadNotifications();
   initLocalNotifications();
@@ -2917,10 +1798,9 @@ async function initApp() {
   if (isOffline || !state.supabaseClient) {
     const hasCachedUser = localStorage.getItem('cached_current_user');
     const isGuestMode = localStorage.getItem('auth_guest_mode') === 'true';
-    const authOverlay = document.getElementById('auth-overlay');
 
     if (hasCachedUser || isGuestMode) {
-      if (authOverlay) authOverlay.style.display = 'none';
+      hideAuthOverlay();
       if (hasCachedUser) {
         try { state.currentUser = JSON.parse(hasCachedUser); } catch (e) { }
       }
@@ -2929,16 +1809,8 @@ async function initApp() {
       // intentionally allows offline access, so mark the session confirmed.
       window._authConfirmed = true;
     } else {
-      // No cached session — show login so user can pick "Continue as Guest"
-      const formsContainer = document.getElementById('auth-forms-container');
-      const authCard = document.getElementById('auth-card');
-      const loadingState = document.getElementById('auth-loading-state');
-      if (authOverlay) authOverlay.style.display = 'flex';
-      if (formsContainer) formsContainer.style.display = 'block';
-      if (authCard) authCard.style.display = 'flex';
-      if (loadingState) loadingState.style.display = 'none';
-      const earlyStyle = document.getElementById('early-auth-style');
-      if (earlyStyle) earlyStyle.remove();
+      // No cached session — show login
+      showAuthOverlay();
     }
     // ANTI-FLICKER: This offline render is deferred by updateUI() (150ms), which
     // runs AFTER the startup double-rAF removes the 'no-transition' class from
@@ -3148,8 +2020,18 @@ async function initApp() {
   // otherwise the cold-start overlay lifts too early and the user sees a flash
   // of the blank background before the login card appears. We poll for it.
   const _authOverlayEl = document.getElementById('auth-overlay');
+  // Detect a genuine first-launch / unauthenticated state (no cached session, not
+  // guest, not yet confirmed) rather than relying on the overlay's inline
+  // style.display. The early-auth-style CSS rule makes the overlay visible via a
+  // stylesheet (display:flex !important), which does NOT update the inline
+  // style.display property — so checking style.display here would always read
+  // 'none' and fade the cold-start overlay out before the login card is painted,
+  // producing a visible blank gap on first open.
+  const _hasCachedUserAtBoot = !!localStorage.getItem('cached_current_user');
+  const _isGuestModeAtBoot = localStorage.getItem('auth_guest_mode') === 'true';
   const _isFirstLaunchLogin = !!_authOverlayEl &&
-    _authOverlayEl.style.display !== 'none' &&
+    !_hasCachedUserAtBoot &&
+    !_isGuestModeAtBoot &&
     !window._authConfirmed;
   if (_isFirstLaunchLogin) {
     // Poll until the login card is actually painted (visible + non-empty), then
@@ -3179,6 +2061,10 @@ async function initApp() {
         }, 120);
       });
     });
+  }
+
+  if (typeof updateNotesTrashBadge === 'function') {
+    updateNotesTrashBadge();
   }
 
   // DESKTOP WEB UX HOOK: Initialize the desktop UI layer (sidebar, topbar,
@@ -3457,10 +2343,19 @@ function initSupabaseAuth() {
       console.error('Supabase getSession error:', error);
       processingRedirect = false;
       toggleLoader(false);
+      // SECURITY/UX: Even on a session-check error the user is NOT authenticated,
+      // so we MUST show the login overlay. Removing early-auth-style without
+      // re-showing the overlay left the app on a blank screen with only the lock
+      // icon on fresh installs / when no valid session existed.
+      if (authOverlay) authOverlay.style.display = 'flex';
       if (formsContainer) formsContainer.style.display = 'block';
+      if (authCard) authCard.style.display = 'flex';
+      if (loadingState) loadingState.style.display = 'none';
       showAuthStatus(((TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_error_auth']) || '❌ Σφάλμα ταυτοποίησης: ') + (error.message || error));
       const earlyStyle = document.getElementById('early-auth-style');
       if (earlyStyle) earlyStyle.remove();
+      const earlyHideStyle = document.getElementById('early-auth-hide-style');
+      if (earlyHideStyle) earlyHideStyle.remove();
     } else {
       logAuthDebug(`getSession resolved. Session exists: ${!!(data && data.session)}`);
       if (data && data.session && (window.location.hash || window.location.search)) {
@@ -3468,18 +2363,8 @@ function initSupabaseAuth() {
       }
       if (!data || !data.session) {
         // Only show login forms if onAuthStateChange hasn't already logged us in
-        if (!state.currentUser) {
-          const alreadyShowing = authOverlay && authOverlay.style.display === 'flex' && formsContainer && formsContainer.style.display === 'block';
-          if (!alreadyShowing) {
-            processingRedirect = false;
-            toggleLoader(false);
-            if (formsContainer) formsContainer.style.display = 'block';
-            const earlyStyle = document.getElementById('early-auth-style');
-            if (earlyStyle) earlyStyle.remove();
-
-            const emailInput = document.getElementById('auth-email');
-            if (emailInput && !emailInput.value) setTimeout(() => { emailInput.focus(); }, 150);
-          }
+        if (!state.currentUser && !state.guestMode) {
+          showAuthOverlay();
         }
       } else if (data.session && data.session.user) {
         // Fallback for browsers where INITIAL_SESSION event may be delayed/missed
@@ -3488,6 +2373,7 @@ function initSupabaseAuth() {
         window._authConfirmed = true;
         localStorage.setItem('cached_current_user', JSON.stringify(data.session.user));
         updateHeaderSyncIcon('synced');
+        hideAuthOverlay();
       }
     }
   }).catch(err => {
@@ -3495,10 +2381,17 @@ function initSupabaseAuth() {
     console.error('Supabase getSession catch error:', err);
     processingRedirect = false;
     toggleLoader(false);
+    // SECURITY/UX: Same as the error path above - the user is NOT authenticated,
+    // so we MUST show the login overlay instead of leaving a blank screen.
+    if (authOverlay) authOverlay.style.display = 'flex';
     if (formsContainer) formsContainer.style.display = 'block';
+    if (authCard) authCard.style.display = 'flex';
+    if (loadingState) loadingState.style.display = 'none';
     showAuthStatus(((TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_error_auth']) || '❌ Σφάλμα ταυτοποίησης: ') + (err.message || err));
     const earlyStyle = document.getElementById('early-auth-style');
     if (earlyStyle) earlyStyle.remove();
+    const earlyHideStyle = document.getElementById('early-auth-hide-style');
+    if (earlyHideStyle) earlyHideStyle.remove();
   });
 
   logAuthDebug('Subscribing to onAuthStateChange...');
@@ -3549,26 +2442,7 @@ function initSupabaseAuth() {
       }
 
       // Hide auth overlay & reset elements
-      const earlyStyle = document.getElementById('early-auth-style');
-      if (earlyStyle) earlyStyle.remove();
-
-      if (authOverlay) {
-        // Prevent click penetration (ghost clicks) to elements underneath (like the FAB button)
-        authOverlay.style.pointerEvents = 'none';
-        // document.body.style.pointerEvents = 'none'; (disabled to prevent app freeze)
-        setTimeout(() => {
-          authOverlay.style.display = 'none';
-          authOverlay.style.pointerEvents = '';
-          document.body.style.pointerEvents = '';
-          // Reset loader & forms state only after the overlay is completely hidden
-          toggleLoader(false);
-          if (formsContainer) formsContainer.style.display = 'block';
-          forceViewportReset();
-        }, 350);
-      } else {
-        toggleLoader(false);
-        if (formsContainer) formsContainer.style.display = 'block';
-      }
+      hideAuthOverlay();
       // Modals should NOT be force-closed here since we want to restore them on resume/boot
       // if (typeof window.forceCloseAllModals === 'function') window.forceCloseAllModals();
 
@@ -3750,20 +2624,13 @@ function initSupabaseAuth() {
         const earlyStyle = document.getElementById('early-auth-style');
         if (earlyStyle) earlyStyle.remove();
 
-        // Hide auth overlay & reset elements
-        if (authOverlay) {
-          // Prevent click penetration (ghost clicks) to elements underneath (like the FAB button)
-          authOverlay.style.pointerEvents = 'none';
-          // document.body.style.pointerEvents = 'none'; (disabled to prevent app freeze)
-          setTimeout(() => {
-            authOverlay.style.display = 'none';
-            authOverlay.style.pointerEvents = '';
-            document.body.style.pointerEvents = '';
-            forceViewportReset();
-          }, 350);
+        // Hide auth overlay & reset elements — UNLESS the user explicitly opened
+        // the login card (e.g. by tapping the lock icon). In that case a
+        // null-session event must not yank the login form away from under them.
+        if (!_authOverlayUserRequested) {
+          hideAuthOverlay();
         }
         toggleLoader(false);
-        if (formsContainer) formsContainer.style.display = 'block';
 
         // Hide switcher (guest has no shared wallet)
         const switcher = document.getElementById('wallet-switcher-container');
@@ -3782,27 +2649,7 @@ function initSupabaseAuth() {
         }
         renderPartnerSection();
       } else {
-        const alreadyShowing = authOverlay && authOverlay.style.display === 'flex' && formsContainer && formsContainer.style.display === 'block';
-
-        if (!alreadyShowing) {
-          // If we are currently processing a redirect, do not show the forms container yet
-          if (processingRedirect) {
-            if (authOverlay) authOverlay.style.display = 'flex';
-            toggleLoader(true);
-            if (formsContainer) formsContainer.style.display = 'none';
-          } else {
-            // Show auth overlay normally
-            if (authOverlay) authOverlay.style.display = 'flex';
-            toggleLoader(false);
-            if (formsContainer) formsContainer.style.display = 'block';
-          }
-
-          const earlyStyle = document.getElementById('early-auth-style');
-          if (earlyStyle) earlyStyle.remove();
-
-          const emailInput = document.getElementById('auth-email');
-          if (emailInput && !emailInput.value) setTimeout(() => { emailInput.focus(); }, 150);
-        }
+        showAuthOverlay();
 
         // Hide switcher
         const switcher = document.getElementById('wallet-switcher-container');
@@ -3818,6 +2665,47 @@ function initSupabaseAuth() {
       renderPartnerSection();
     }
   });
+
+  // ============================================================
+  // FALLBACK SAFETY NET: Guarantee the login screen is shown.
+  // ============================================================
+  // After the initial auth check (getSession + INITIAL_SESSION) has had time to
+  // resolve, if the user is STILL not authenticated (no valid session, not guest,
+  // not offline-with-cached-user), force the auth overlay to appear. This catches
+  // every edge case that could otherwise leave the app on a blank screen with only
+  // the lock icon: a stale/invalid cached_current_user, a getSession error/catch
+  // that previously removed early-auth-style without re-showing the overlay, or a
+  // delayed/missed INITIAL_SESSION event.
+  setTimeout(() => {
+    try {
+      const isAuthed = !!window._authConfirmed;
+      const isGuest = !!state.guestMode;
+      const hasCachedUser = !!localStorage.getItem('cached_current_user');
+      const isOfflineNow = typeof navigator !== 'undefined' && !navigator.onLine;
+      // A user is considered "effectively logged in" if the session was confirmed
+      // OR (offline with a cached user / guest mode) - in those cases the overlay
+      // must stay hidden.
+      const effectivelyLoggedIn = isAuthed || isGuest || (isOfflineNow && hasCachedUser);
+      if (effectivelyLoggedIn) return;
+
+      const overlay = document.getElementById('auth-overlay');
+      const forms = document.getElementById('auth-forms-container');
+      const card = document.getElementById('auth-card');
+      const loading = document.getElementById('auth-loading-state');
+      if (overlay) overlay.style.display = 'flex';
+      if (forms) forms.style.display = 'block';
+      if (card) card.style.display = 'flex';
+      if (loading) loading.style.display = 'none';
+      const earlyStyle = document.getElementById('early-auth-style');
+      if (earlyStyle) earlyStyle.remove();
+      const earlyHideStyle = document.getElementById('early-auth-hide-style');
+      if (earlyHideStyle) earlyHideStyle.remove();
+      // Ensure the header shows the lock icon (unauthenticated state).
+      updateHeaderProfileBadge();
+    } catch (e) {
+      console.warn('Auth fallback overlay failed:', e);
+    }
+  }, 2500);
 }
 
 async function loadUserProfiles(user) {
@@ -4134,21 +3022,6 @@ function calculateInitialBalances() {
     });
     acc.initial_balance = sanitizeFloat((parseFloat(acc.balance) || 0) - netSum);
   });
-}
-
-function normalizeString(str) {
-  if (!str) return '';
-  let s = String(str).toLowerCase().trim();
-  const map = {
-    'ά': 'α', 'έ': 'ε', 'ή': 'η', 'ί': 'ι', 'ό': 'ο', 'ύ': 'υ', 'ώ': 'ω',
-    'ΐ': 'ι', 'ΰ': 'υ', 'ϊ': 'ι', 'ϋ': 'υ'
-  };
-  let res = '';
-  for (let i = 0; i < s.length; i++) {
-    const c = s[i];
-    res += map[c] || c;
-  }
-  return res.toUpperCase();
 }
 
 function classifyCategory(categoryName) {
@@ -5077,7 +3950,7 @@ function loadOfflineData() {
     state.trashTransactions = [];
   }
   try {
-    const notifs = localStorage.getItem('money_manager_notifications');
+    const notifs = localStorage.getItem('state_notifications') || localStorage.getItem('money_manager_notifications');
     state.notifications = notifs ? JSON.parse(notifs) : [];
   } catch (e) {
     console.error('Failed to parse notifications:', e);
@@ -6099,6 +4972,9 @@ function updateHeaderAndSync() {
   if (typeof updateSyncStatusIndicator === 'function') {
     updateSyncStatusIndicator();
   }
+  if (typeof window.updateDesktopSidebarUser === 'function') {
+    window.updateDesktopSidebarUser();
+  }
 }
 
 // ============================================================
@@ -6542,37 +5418,7 @@ function getCategoryInfo(categoryName, transType) {
   return { icon: transType === 'income' ? '💰' : '💸', name: cleaned || categoryName, color: '#78909c' };
 }
 
-// Category name translations for default categories (UI only, never applied to user data)
-const CATEGORY_NAME_TRANSLATIONS = {
-  '🏡 ΣΠΙΤΙ': '🏡 Home',
-  '🏠ΓΡΑΦΕΙΟ Β2': '🏠 Office B2',
-  '🚗 ΑΥΤΟΚΙΝΗΤΟ': '🚗 Car',
-  '🛒 ΔΙΑΤΡΟΦΗ': '🛒 Food/Groceries',
-  '🏋️ΓΥΜΝΑΣΤΗΡΙΟ': '🏋️ Gym',
-  '🎉ΔΙΑΣΚΕΔΑΣΗ/ΕΞΟΔΟΙ': '🎉 Entertainment',
-  '🧾ΦΟΡΟΙ/ΛΟΓΙΣΤΗΣ': '🧾 Taxes/Accountant',
-  '👕 ΠΡΟΣΩΠΙΚΗ ΦΡΟΝΤΙΔΑ': '👕 Personal Care',
-  '🚇 ΜΕΤΑΚΙΝΗΣΗ': '🚇 Transport',
-  '💻 ΤΕΧΝΟΛΟΓΙΑ': '💻 Technology',
-  '💼 ΜΙΣΘΟΣ': '💼 Salary',
-  '🧩ΔΙΑΦΟΡΑ ΕΞΟΔΑ': '🧩 Misc Expenses',
-  '🎬 ΣΥΝΔΡΟΜΕΣ': '🎬 Subscriptions',
-  '❤️ ΥΓΕΙΑ': '❤️ Health',
-  '🤑 ΕΞΤΡΑ ΕΙΣΟΔΗΜΑΤΑ': '🤑 Extra Income',
-  '🎁ΔΩΡΑ/ΕΣΟΔΑ': '🎁 Gifts/Income',
-  'ΕΠΙΣΤΡΟΦΕΣ': 'Refunds',
-  'ΠΩΛΗΣΕΙΣ': 'Sales',
-  'BONUS': 'Bonus',
-  'ΑΛΛΑ ΕΣΟΔΑ': 'Other Income',
-  '🎓 ΕΚΠΑΙΔΕΥΣΗ': '🎓 Education',
-  '💶  ΕΝΟΙΚΙΟ Β2 (Έσοδο)': '💶 Rent B2 (Income)',
-  '🏛️ΜΕΡΙΔΙΟ ΔΟΣΗΣ ΔΑΝΕΙΟΥ (ΓΟΝΕΙΣ)': '🏛️ Loan Share (Parents)',
-  'ΑΛΛΑ ΕΞΟΔΑ': 'Other Expenses',
-  'Άλλα': 'Other',
-  'ΑΛΛΑ': 'Other',
-  'ΑΛΛΑ ΕΣΟΔΑ': 'Other Income',
-  'Γενικά': 'General'
-};
+// (CATEGORY_NAME_TRANSLATIONS moved to js/constants.js)
 
 // Get category display name - translates default categories, preserves custom/user categories
 function getCategoryDisplayName(categoryName) {
@@ -6592,79 +5438,7 @@ function getCategoryDisplayName(categoryName) {
   return stripped;
 }
 
-const SUBCATEGORY_NAME_TRANSLATIONS = {
-  'Γιατρός': 'Doctor',
-  'Εξετάσεις': 'Medical Exams',
-  'Συμπληρώματα διατροφής': 'Supplements',
-  'Φάρμακα': 'Medicines',
-  'Parking': 'Parking',
-  'Service/Ανταλλακτικά': 'Service/Parts',
-  'Αγορά αυτοκινήτου/Δόσεις': 'Car Purchase/Installments',
-  'Ασφάλεια αυτοκινήτου': 'Car Insurance',
-  'Βενζίνες': 'Gas',
-  'Διόδια e-pass': 'Tolls e-pass',
-  'Τέλη κυκλορίσας': 'Road Tax',
-  'ΔΙΑΦΟΡΑ Β2': 'Misc B2',
-  'ΕΝΟΙΚΙΟ Β2': 'Rent B2',
-  'ΦΟΡΟΛΟΓΊΑ Β2': 'Tax B2',
-  'Έξοδος/Βόλτα': 'Going Out',
-  'Ταξίδια': 'Travel',
-  'Delivery/φαγητό απέξω/γλυκά': 'Delivery/Takeout',
-  'Κρεοπωλείο': 'Butcher',
-  'Λαϊκή': 'Farmers Market',
-  'Νερό rainbow': 'Water Rainbow',
-  'Σουπερμάρκετ': 'Supermarket',
-  'Tips/Προμήθειες': 'Tips/Fees',
-  'Διαφήμιση': 'Advertising',
-  'Μικροέξοδα': 'Petty Cash',
-  'Μισθώματα Αποθήκης Ι. Σούτσου 18': 'Warehouse Rent I. Soutsou 18',
-  'Στοίχημα/Καζίνο': 'Betting/Casino',
-  'Βιβλία': 'Books',
-  '🎁ΑΛΛΑ ΕΞΤΡΑ': '🎁 Other Extras',
-  '🎁 ΑΛΛΑ ΕΞΤΡΑ': '🎁 Other Extras',
-  '🏅 BONUS': '🏅 Bonus',
-  '👨‍👩‍👦ΟΙΚΟΓΕΝΕΙΑ/ΒΟΗΘΕΙΑ': '👨‍👩‍👦 Family Help',
-  '👨‍👩‍👦 ΟΙΚΟΓΕΝΕΙΑ/ΒΟΗΘΕΙΑ': '👨‍👩‍👦 Family Help',
-  '💰ΤΟΚΟΙ/CASHBACK/ΤΡΑΠΕΖΕΣ': '💰 Interests/Cashback/Banks',
-  '💰 ΤΟΚΟΙ/CASHBACK/ΤΡΑΠΕΖΕΣ': '💰 Interests/Cashback/Banks',
-  '💻ΙΝΣΤΑ': '💻 Instagram',
-  '💻 ΙΝΣΤΑ': '💻 Instagram',
-  '📦VINTED': '📦 Vinted',
-  '📦 VINTED': '📦 Vinted',
-  '🧑‍🎓ΕΠΙΔΟΜΑΤΑ/ΣΕΜΙΝΑΡΙΑ': '🧑‍🎓 Allowances/Seminars',
-  '🧑‍🎓 ΕΠΙΔΟΜΑΤΑ/ΣΕΜΙΝΑΡΙΑ': '🧑‍🎓 Allowances/Seminars',
-  'Taxi': 'Taxi',
-  'Μετρό - Λεωφορείο': 'Metro - Bus',
-  'ΜΙΣΘΟΣ ΒΑΣΟΥΛΑ': 'Salary Vasoula',
-  'ΜΙΣΘΟΣ ΓΡΑΦΕΙΩΝ ΒΑΣΟΥΛΑ': 'Office Salary Vasoula',
-  'ΜΙΣΘΟΣ ΜΑΡΙΟΣ': 'Salary Marios',
-  'Accessories': 'Accessories',
-  'Makeup': 'Makeup',
-  'Εσώρουχα': 'Underwear',
-  'Καλλυντικά': 'Cosmetics',
-  'Κομμωτήριο': 'Hair Salon',
-  'Παπούτσια': 'Shoes',
-  'Ρούχα': 'Clothing',
-  'Τσάντες/Τσαντάκια': 'Bags',
-  'Υπηρεσίες': 'Services',
-  'Vodafone': 'Vodafone',
-  'ΔΕΗ': 'Electricity (PPC)',
-  'Έπιπλα/Διακόσμηση': 'Furniture/Decor',
-  'ΕΥΔΑΠ': 'Water (EYDAP)',
-  'Οικιακά Είδη': 'Household Goods',
-  'Στεγαστικό Δάνειο': 'Mortgage',
-  'Συντήρηση Σπιτιού': 'Home Maintenance',
-  'Συσκευές Σπιτιού': 'Home Appliances',
-  'Apple Music': 'Apple Music',
-  'Icloud': 'iCloud',
-  'Streaming': 'Streaming',
-  'Διάφορες': 'Various',
-  'Εφαρμογές/Appstore': 'Apps/Appstore',
-  'Συνδρομές Τραπεζικών Καρτών': 'Bank Card Subscriptions',
-  'ΕΝΦΙΑ': 'ENFIA (Property Tax)',
-  'ΛΟΓΙΣΤΗΣ': 'Accountant',
-  'ΠΑΡΑΒΟΛΑ/ΚΡΑΤΗΣΕΙΣ': 'Government Fees'
-};
+// (SUBCATEGORY_NAME_TRANSLATIONS moved to js/constants.js)
 
 function isDefaultSubcategory(categoryName, subcategoryName) {
   if (!subcategoryName) return false;
@@ -9741,10 +8515,8 @@ function setupEventListeners() {
 
   // Routes taps on the amount row: tapping the currency symbol opens the
   // currency picker, tapping anywhere else opens the calculator keypad.
-  // Using a single routing handler (instead of relying on stopPropagation)
-  // makes the currency symbol reliably tappable on Android WebView.
   function handleAmountRowClick(e) {
-    if (e && e.target && e.target.closest && e.target.closest('.currency-symbol-tappable')) {
+    if (e && e.target && e.target.closest && (e.target.closest('.currency-symbol-tappable') || e.target.closest('.currency-symbol'))) {
       openCurrencyPickerModal();
     } else {
       openCalculatorKeypad();
@@ -9753,43 +8525,20 @@ function setupEventListeners() {
 
   window.handleAmountRowClick = handleAmountRowClick;
 
-  // Robust tap interception for the currency symbol. index.html is NOT replaced
-  // by OTA updates, so on installed devices the amount row still has
-  // onclick="openCalculatorKeypad()" on the parent div. A capture-phase listener
-  // fires BEFORE that bubble-phase handler, letting us reliably open the currency
-  // picker and stop the keypad from opening — no reliance on stopPropagation in
-  // the (stale) inline HTML.
-  //
-  // On Android WebView the 'click' event can be delayed or swallowed, so we also
-  // intercept 'pointerdown' (fires earlier and more reliably). We open the picker
-  // on pointerdown and set a flag so the subsequent click on the parent row
-  // (which would otherwise open the calculator) is suppressed.
+  // Robust tap interception for the currency symbol.
+  // Note: We intentionally avoid opening the modal during 'pointerdown' because
+  // displaying an overlay before finger-up causes the subsequent 'click' event
+  // to hit the newly-opened modal backdrop, which would immediately dismiss it
+  // on fast taps. Instead, we capture the gesture and open cleanly on 'click'.
   let _symbolTapPending = false;
-  // Determine whether a tap should open the currency picker. We match BOTH by
-  // class (the injected span) AND by position (the symbol sits to the LEFT of
-  // the amount input). The position fallback is essential on installed devices
-  // whose stale index.html may not render the span with the tappable class, or
-  // where the span is covered — so we still reliably open the picker when the
-  // user taps the symbol area of the amount row.
   const isSymbolTap = (t) => {
+    if (!t) return false;
     const form = document.getElementById('transaction-form');
     if (!form) return false;
-    if (t && t.closest) {
-      if (t.closest('.currency-symbol-tappable')) return true;
-    }
-    // Position fallback: the tap is inside the amount row but NOT on the amount
-    // input (i.e. it's on the symbol / label / padding area to the left).
-    const row = document.getElementById('form-row-amount');
-    if (!row) return false;
-    if (!row.contains(t)) return false;
-    const input = document.getElementById('trans-amount');
-    if (input && (t === input || input.contains(t))) return false;
-    return true;
+    if (t.closest && (t.closest('.currency-symbol-tappable') || t.closest('.currency-symbol'))) return true;
+    return false;
   };
-  // Helper: open the currency picker, but if it throws for any reason, do NOT
-  // swallow the tap — let the event fall through so the calculator keypad opens
-  // as a fallback. This guarantees the user always gets SOME visual feedback
-  // even if the picker fails to render on a given device/version.
+
   function safeOpenCurrencyPicker(e) {
     try {
       openCurrencyPickerModal();
@@ -9801,36 +8550,26 @@ function setupEventListeners() {
           showSyncToast('Σφάλμα νομίσματος: ' + (err && err.message ? err.message : err), 3000);
         }
       } catch (_) { /* ignore */ }
-      // Do NOT stopPropagation/preventDefault — let the tap reach the amount row
-      // so the calculator opens as a fallback.
       return false;
     }
   }
+
   document.addEventListener('pointerdown', (e) => {
     if (!isSymbolTap(e.target)) return;
     _symbolTapPending = true;
-    if (!safeOpenCurrencyPicker(e)) {
-      // Picker failed — do not swallow; allow the calculator to open.
-      _symbolTapPending = false;
-      return;
-    }
     e.stopPropagation();
-    e.preventDefault();
   }, true);
+
   document.addEventListener('click', (e) => {
-    if (!isSymbolTap(e.target)) return;
-    if (!_symbolTapPending) {
-      if (!safeOpenCurrencyPicker(e)) {
-        // Picker failed — do not swallow; allow the calculator to open.
-        return;
-      }
+    if (!isSymbolTap(e.target) && !_symbolTapPending) return;
+    if (isSymbolTap(e.target) || _symbolTapPending) {
+      _symbolTapPending = false;
+      e.stopPropagation();
+      e.preventDefault();
+      safeOpenCurrencyPicker(e);
     }
-    e.stopPropagation();
-    e.preventDefault();
-    _symbolTapPending = false;
   }, true);
-  // Reset the pending flag if a click never follows the pointerdown (e.g. the
-  // user dragged away), so a later unrelated tap isn't wrongly suppressed.
+
   document.addEventListener('pointerup', () => {
     setTimeout(() => { _symbolTapPending = false; }, 300);
   }, true);
@@ -10042,10 +8781,61 @@ function setupEventListeners() {
   });
 }
 
+// ============================================================
+// OVERLAY POSITIONING GUARD
+// ============================================================
+// FIX (auth-overlay root cause): A `position: fixed` overlay that lives inside
+// an ancestor with `position: relative` + `overflow: hidden` (like .app-container)
+// gets trapped and clipped instead of covering the viewport. This helper ensures
+// every full-screen overlay is a DIRECT child of <body> so `fixed` always anchors
+// to the viewport. It is idempotent and safe to call before showing any overlay.
+function ensureOverlayInBody(el) {
+  if (!el || !el.id) return;
+  try {
+    if (el.parentElement !== document.body) {
+      document.body.appendChild(el);
+      console.warn('[OVERLAY] Moved #' + el.id + ' to <body> (was nested inside a positioned/overflow container).');
+    }
+  } catch (e) {
+    console.warn('[OVERLAY] Failed to reposition #' + el.id + ':', e);
+  }
+}
+
+// Registry of all full-screen overlays that must be direct children of <body>.
+// Used by initOverlayPlacement() to self-heal at startup and by the open paths.
+const FULLSCREEN_OVERLAY_IDS = [
+  'auth-overlay',
+  'app-redirect-overlay',
+  'lock-screen',
+  'transaction-modal',
+  'search-overlay'
+];
+
+// Self-healing startup check: move any full-screen overlay that is currently
+// nested inside .app-container (or any non-body parent) directly under <body>.
+function initOverlayPlacement() {
+  try {
+    FULLSCREEN_OVERLAY_IDS.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) ensureOverlayInBody(el);
+    });
+  } catch (e) {
+    console.warn('[OVERLAY] initOverlayPlacement failed:', e);
+  }
+}
+
+window.ensureOverlayInBody = ensureOverlayInBody;
+window.initOverlayPlacement = initOverlayPlacement;
+
 function openModal(id, { instant = false } = {}) {
   ensureHistoryPushed();
   const el = document.getElementById(id);
   if (!el) return;
+  // FIX: Ensure full-screen overlays are direct children of <body> before showing.
+  if (FULLSCREEN_OVERLAY_IDS.indexOf(id) !== -1) {
+    ensureOverlayInBody(el);
+  }
+  el._openedAt = Date.now();
 
   // For the transaction modal, counteract body { zoom: 0.93 } to perfectly fill physical screen.
   // IMPORTANT: Set inline styles BEFORE adding 'active' class so that the layout is
@@ -12279,16 +11069,20 @@ function openCurrencyPickerModal(options = {}) {
     renderCurrencyPickerOptions();
     openModal('currency-picker-modal', { instant: true });
     const el = document.getElementById('currency-picker-modal');
-    if (el && !el.classList.contains('active')) {
-      el.classList.add('active');
-      document.body.classList.add('modal-open');
+    if (el) {
+      el._openedAt = Date.now();
+      if (!el.classList.contains('active')) {
+        el.classList.add('active');
+        document.body.classList.add('modal-open');
+      }
     }
-    setTimeout(() => { if (search) search.focus(); }, 100);
+    setTimeout(() => { if (search) search.focus(); }, 150);
   } catch (err) {
     console.error('[CurrencySymbol] openCurrencyPickerModal error:', err);
     try {
       const el = document.getElementById('currency-picker-modal');
       if (el) {
+        el._openedAt = Date.now();
         el.classList.add('active');
         document.body.classList.add('modal-open');
       }
@@ -12864,35 +11658,10 @@ function promiseTimeout(promise, ms) {
 // ============================================================
 // UTILITIES
 // ============================================================
-function sanitizeFloat(val) {
-  const num = parseFloat(val);
-  if (isNaN(num)) return 0;
-  return Math.round((num + Number.EPSILON) * 100) / 100;
-}
-
 function formatCurrency(val) {
   if (localStorage.getItem('settings_hide_amounts') === 'true') return '*** €';
   if (isNaN(val)) return '0,00';
   return parseFloat(val).toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
-function getRandomColor() {
-  const colors = ['#f44336', '#e91e63', '#9c27b0', '#673ab7', '#3f51b5', '#2196f3', '#03a9f4', '#00bcd4', '#009688', '#4caf50', '#8bc34a', '#ffc107', '#ff9800', '#ff5722', '#607d8b'];
-  return colors[Math.floor(Math.random() * colors.length)];
-}
-
-function formatISODateLocal(date) {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
-
-function formatShortDate(date) {
-  const d = date.getDate();
-  const m = date.getMonth() + 1;
-  const y = String(date.getFullYear()).slice(-2);
-  return `${d}.${m}.${y}`;
 }
 
 function updateExportSheetDateLabels() {
@@ -13473,7 +12242,11 @@ function toggleSearchFiltersPanel() {
 function openSearchOverlay() {
   ensureHistoryPushed();
   const overlay = document.getElementById('search-overlay');
-  if (overlay) overlay.classList.add('active');
+  if (overlay) {
+    // FIX: Ensure the search overlay is a direct child of <body> before showing.
+    ensureOverlayInBody(overlay);
+    overlay.classList.add('active');
+  }
 
   searchResultLimit = 50;
 
@@ -17360,10 +16133,14 @@ function selectNoteColor(color) {
 
   const theme = colorMap[_currentEditingNoteColor] || colorMap.default;
   const modal = document.getElementById('note-editor-modal');
+  const card = document.getElementById('note-seamless-editor-content');
   if (modal) {
     modal.style.setProperty('--note-theme-color', theme.hex);
     modal.style.setProperty('--note-theme-shadow', theme.shadow);
     modal.style.setProperty('--note-theme-alpha', theme.alpha);
+  }
+  if (card) {
+    card.setAttribute('data-color', _currentEditingNoteColor);
   }
 
   document.querySelectorAll('#note-color-palette .note-color-swatch').forEach(swatch => {
@@ -17371,6 +16148,10 @@ function selectNoteColor(color) {
     swatch.classList.toggle('active', isCurrent);
     swatch.innerHTML = isCurrent ? '<i class="fa-solid fa-check"></i>' : '';
   });
+
+  if (_currentEditingNoteId && typeof autoSaveNoteEditor === 'function') {
+    autoSaveNoteEditor();
+  }
 }
 window.selectNoteColor = selectNoteColor;
 
@@ -17378,6 +16159,7 @@ function updateNoteEditorReminderDisplay() {
   const reminderInput = document.getElementById('note-editor-reminder-input');
   const pill = document.getElementById('note-active-reminder-pill');
   const textEl = document.getElementById('note-active-reminder-text');
+  const presetsContainer = document.getElementById('note-reminder-presets-container');
   if (!reminderInput || !pill || !textEl) return;
 
   if (reminderInput.value) {
@@ -17401,11 +16183,13 @@ function updateNoteEditorReminderDisplay() {
         const mins = String(d.getMinutes()).padStart(2, '0');
         textEl.textContent = `${day} ${m}, ${hrs}:${mins}`;
         pill.style.display = 'inline-flex';
+        if (presetsContainer) presetsContainer.style.display = 'none';
         return;
       }
     }
   }
   pill.style.display = 'none';
+  if (presetsContainer) presetsContainer.style.display = 'flex';
 }
 
 function renderNoteReminderPresets() {
@@ -17418,12 +16202,12 @@ function renderNoteReminderPresets() {
   // Preset 1: +1 hour
   const in1h = new Date(now.getTime() + 60 * 60 * 1000);
   const in1hTimeStr = `${String(in1h.getHours()).padStart(2, '0')}:${String(in1h.getMinutes()).padStart(2, '0')}`;
-  const label1h = state.lang === 'el' ? `⚡ ${in1hTimeStr} (Σε 1 ώρα)` : `⚡ ${in1hTimeStr} (In 1 hr)`;
+  const label1h = state.lang === 'el' ? `⚡ +1 ώρα (${in1hTimeStr})` : `⚡ +1 hr (${in1hTimeStr})`;
 
   // Preset 2: +3 hours
   const in3h = new Date(now.getTime() + 3 * 60 * 60 * 1000);
   const in3hTimeStr = `${String(in3h.getHours()).padStart(2, '0')}:${String(in3h.getMinutes()).padStart(2, '0')}`;
-  const label3h = state.lang === 'el' ? `⏳ ${in3hTimeStr} (Σε 3 ώρες)` : `⏳ ${in3hTimeStr} (In 3 hrs)`;
+  const label3h = state.lang === 'el' ? `⏳ +3 ώρες (${in3hTimeStr})` : `⏳ +3 hrs (${in3hTimeStr})`;
 
   // Preset 3: Today 20:00 or Tomorrow 20:00
   let eveningDate = new Date();
@@ -17443,7 +16227,7 @@ function renderNoteReminderPresets() {
   morningDate.setHours(9, 0, 0, 0);
   const morningLabel = state.lang === 'el' ? '🌅 Αύριο 09:00' : '🌅 Tomorrow 9 AM';
 
-  const customLabel = state.lang === 'el' ? '📅 Επιλογή...' : '📅 Custom...';
+  const customLabel = state.lang === 'el' ? '📅 Άλλο...' : '📅 Custom...';
 
   const in1hISO = `${in1h.getFullYear()}-${String(in1h.getMonth() + 1).padStart(2, '0')}-${String(in1h.getDate()).padStart(2, '0')}T${String(in1h.getHours()).padStart(2, '0')}:${String(in1h.getMinutes()).padStart(2, '0')}`;
   const in3hISO = `${in3h.getFullYear()}-${String(in3h.getMonth() + 1).padStart(2, '0')}-${String(in3h.getDate()).padStart(2, '0')}T${String(in3h.getHours()).padStart(2, '0')}:${String(in3h.getMinutes()).padStart(2, '0')}`;
@@ -17614,14 +16398,14 @@ function renderNotesList() {
   if (sorted.length === 0) {
     listEl.innerHTML = `
       <div style="grid-column: 1 / -1; text-align: center; padding: 40px 16px; color: var(--text-muted); font-size: 13.5px; font-family: 'Outfit', sans-serif; box-sizing: border-box; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; min-height: 220px;">
-        <div style="width: 56px; height: 56px; border-radius: 50%; background: rgba(var(--accent-rgb, 224, 94, 85), 0.12); border: 1px solid rgba(var(--accent-rgb, 224, 94, 85), 0.25); display: flex; align-items: center; justify-content: center; font-size: 24px; color: var(--accent);">
+        <div style="width: 58px; height: 58px; border-radius: 50%; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.3); display: flex; align-items: center; justify-content: center; font-size: 25px; color: #f59e0b; box-shadow: 0 4px 16px rgba(245, 158, 11, 0.15);">
           <i class="fa-regular fa-note-sticky"></i>
         </div>
         <div style="display: flex; flex-direction: column; gap: 4px;">
           <span style="font-weight: 700; font-size: 15px; color: var(--text-primary);">${state.lang === 'el' ? 'Δεν υπάρχουν σημειώσεις' : 'No notes found'}</span>
           <span style="font-size: 12px; color: var(--text-muted);">${state.lang === 'el' ? 'Δημιουργήστε την πρώτη σας σημείωση ή checklist!' : 'Create your first note or checklist!'}</span>
         </div>
-        <button type="button" onclick="openNoteEditor()" style="margin-top: 4px; padding: 9px 20px; font-size: 12.5px; font-weight: 700; border-radius: 20px; background: var(--accent); color: white; border: none; cursor: pointer; box-shadow: 0 4px 14px rgba(var(--accent-rgb, 224, 94, 85), 0.35); display: flex; align-items: center; gap: 6px;">
+        <button type="button" onclick="openNoteEditor()" style="margin-top: 4px; padding: 9px 22px; font-size: 13px; font-weight: 700; border-radius: 20px; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: #ffffff; border: none; cursor: pointer; box-shadow: 0 4px 14px rgba(245, 158, 11, 0.4); display: flex; align-items: center; gap: 6px; transition: transform 0.15s ease;">
           <i class="fa-solid fa-plus"></i> ${state.lang === 'el' ? 'Δημιουργία Νέας' : 'Create New'}
         </button>
       </div>
@@ -17629,10 +16413,65 @@ function renderNotesList() {
     return;
   }
 
+  let _contextMenuNoteId = null;
+
   sorted.forEach(note => {
     const card = document.createElement('div');
     card.className = `modern-note-card ${note.pinned ? 'pinned' : ''}`;
-    card.addEventListener('click', () => openNoteEditor(note.id));
+    card.setAttribute('data-color', note.color || 'default');
+
+    // Long-Press & Touch Handlers
+    let pressTimer = null;
+    let isLongPress = false;
+    let touchStartX = 0;
+    let touchStartY = 0;
+
+    card.addEventListener('touchstart', (e) => {
+      isLongPress = false;
+      if (e.touches && e.touches.length > 0) {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+      }
+      clearTimeout(pressTimer);
+      pressTimer = setTimeout(() => {
+        isLongPress = true;
+        if (navigator.vibrate) {
+          try { navigator.vibrate(35); } catch (err) { }
+        }
+        showNoteContextMenu(note.id);
+      }, 380);
+    }, { passive: true });
+
+    card.addEventListener('touchmove', (e) => {
+      if (e.touches && e.touches.length > 0) {
+        const dx = Math.abs(e.touches[0].clientX - touchStartX);
+        const dy = Math.abs(e.touches[0].clientY - touchStartY);
+        if (dx > 8 || dy > 8) {
+          clearTimeout(pressTimer);
+        }
+      }
+    }, { passive: true });
+
+    card.addEventListener('touchend', () => {
+      clearTimeout(pressTimer);
+    }, { passive: true });
+
+    card.addEventListener('touchcancel', () => {
+      clearTimeout(pressTimer);
+    });
+
+    card.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      showNoteContextMenu(note.id);
+    });
+
+    card.addEventListener('click', (e) => {
+      if (isLongPress) {
+        isLongPress = false;
+        return;
+      }
+      openNoteEditor(note.id);
+    });
 
     // Header: Title & Pin Button
     const cardHeader = document.createElement('div');
@@ -17775,37 +16614,267 @@ function renderNotesList() {
   });
 }
 
+// ============================================================
+// QUICK ACTIONS CONTEXT MENU (LONG-PRESS / RIGHT-CLICK)
+// ============================================================
+let _contextMenuNoteId = null;
+
+function showNoteContextMenu(noteId) {
+  _contextMenuNoteId = noteId;
+  const note = (state.notes || []).find(n => String(n.id) === String(noteId));
+  if (!note) return;
+
+  const titleEl = document.getElementById('note-context-title');
+  const subEl = document.getElementById('note-context-subtitle');
+  const iconEl = document.getElementById('note-context-icon');
+  const pinTextEl = document.getElementById('note-context-pin-text');
+  const colorContainer = document.getElementById('note-context-color-palette');
+
+  if (titleEl) titleEl.textContent = note.title || (state.lang === 'el' ? 'Χωρίς τίτλο' : 'Untitled');
+  if (subEl) subEl.textContent = formatNoteTimestamp(note.updated_at || note.created_at);
+  if (iconEl) {
+    iconEl.innerHTML = note.type === 'checklist' ? '<i class="fa-solid fa-list-check"></i>' : '<i class="fa-regular fa-file-lines"></i>';
+  }
+  if (pinTextEl) {
+    pinTextEl.textContent = note.pinned
+      ? (state.lang === 'el' ? 'Ξεκαρφίτσωμα' : 'Unpin')
+      : (state.lang === 'el' ? 'Καρφίτσωμα' : 'Pin');
+  }
+
+  if (colorContainer) {
+    const colors = ['default', 'amber', 'emerald', 'blue', 'purple', 'rose', 'teal'];
+    const curColor = note.color || 'default';
+    colorContainer.innerHTML = colors.map(c => {
+      const isAct = c === curColor;
+      const bgMap = {
+        default: 'rgba(255,255,255,0.1)',
+        amber: '#f59e0b',
+        emerald: '#10b981',
+        blue: '#3b82f6',
+        purple: '#8b5cf6',
+        rose: '#f43f5e',
+        teal: '#14b8a6'
+      };
+      return `<button type="button" class="note-color-swatch ${isAct ? 'active' : ''}" style="background: ${bgMap[c]}; width: 26px; height: 26px;" onclick="quickSetNoteColor('${note.id}', '${c}')">${isAct ? '<i class="fa-solid fa-check" style="font-size: 10px;"></i>' : ''}</button>`;
+    }).join('');
+  }
+
+  openModal('note-context-menu-modal');
+}
+window.showNoteContextMenu = showNoteContextMenu;
+
+async function quickSetNoteColor(noteId, color) {
+  const note = (state.notes || []).find(n => String(n.id) === String(noteId));
+  if (!note) return;
+
+  note.color = color;
+  note.updated_at = new Date().toISOString();
+  saveNotes();
+  renderNotesList();
+  showNoteContextMenu(noteId); // refresh active color in context menu
+  await upsertNoteToCloud(note);
+}
+window.quickSetNoteColor = quickSetNoteColor;
+
+async function triggerContextPin() {
+  if (!_contextMenuNoteId) return;
+  closeModal('note-context-menu-modal');
+  await toggleNotePinInline(_contextMenuNoteId);
+}
+window.triggerContextPin = triggerContextPin;
+
+function triggerContextEdit() {
+  if (!_contextMenuNoteId) return;
+  const id = _contextMenuNoteId;
+  closeModal('note-context-menu-modal');
+  openNoteEditor(id);
+}
+window.triggerContextEdit = triggerContextEdit;
+
+async function triggerContextCopy() {
+  if (!_contextMenuNoteId) return;
+  const note = (state.notes || []).find(n => String(n.id) === String(_contextMenuNoteId));
+  closeModal('note-context-menu-modal');
+  if (!note) return;
+
+  let textToCopy = (note.title ? `${note.title}\n\n` : '');
+  if (note.type === 'checklist') {
+    const items = getNoteChecklistItems(note);
+    textToCopy += items.map(i => `${i.checked ? '☑' : '☐'} ${i.text}`).join('\n');
+  } else {
+    textToCopy += (note.body || '');
+  }
+
+  try {
+    await navigator.clipboard.writeText(textToCopy);
+    if (typeof showToast === 'function') {
+      showToast(state.lang === 'el' ? 'Το κείμενο αντιγράφηκε στο πρόχειρο' : 'Note copied to clipboard');
+    }
+  } catch (err) {
+    console.warn('Clipboard write error:', err);
+  }
+}
+window.triggerContextCopy = triggerContextCopy;
+
+function triggerContextReminder() {
+  if (!_contextMenuNoteId) return;
+  const id = _contextMenuNoteId;
+  closeModal('note-context-menu-modal');
+  openNoteEditor(id);
+  setTimeout(() => {
+    toggleNoteEditorReminderTools();
+  }, 100);
+}
+window.triggerContextReminder = triggerContextReminder;
+
+async function triggerContextDelete() {
+  if (!_contextMenuNoteId) return;
+  const id = _contextMenuNoteId;
+  closeModal('note-context-menu-modal');
+
+  const confirmMsg = state.lang === 'el'
+    ? 'Είστε σίγουροι ότι θέλετε να διαγράψετε αυτή τη σημείωση;'
+    : 'Are you sure you want to delete this note?';
+
+  const confirmed = (typeof showConfirm === 'function')
+    ? await showConfirm(confirmMsg, state.lang === 'el' ? 'Διαγραφή Σημείωσης' : 'Delete Note', '🗑️')
+    : confirm(confirmMsg);
+
+  if (!confirmed) return;
+
+  await deleteNote(id);
+}
+window.triggerContextDelete = triggerContextDelete;
+
+// ============================================================
+// SEAMLESS NOTE EDITOR (GOOGLE KEEP / APPLE NOTES STYLE)
+// ============================================================
+let _noteAutoSaveTimer = null;
+
+function _showNoteSaveStatus(text, isSaved = true) {
+  const statusEl = document.getElementById('note-editor-save-status');
+  if (!statusEl) return;
+  statusEl.textContent = text;
+  statusEl.className = `note-save-status-pill ${isSaved ? 'saved' : ''}`;
+  statusEl.style.opacity = '1';
+}
+
+function autoSaveNoteEditor() {
+  clearTimeout(_noteAutoSaveTimer);
+  _showNoteSaveStatus(state.lang === 'el' ? 'Αποθήκευση...' : 'Saving...', false);
+
+  _noteAutoSaveTimer = setTimeout(async () => {
+    await saveNoteFromEditor({ silent: true });
+    _showNoteSaveStatus('✓ ' + (state.lang === 'el' ? 'Αποθηκεύτηκε' : 'Saved'), true);
+  }, 400);
+}
+
+function updateNoteEditorMetaFooter() {
+  const dateEl = document.getElementById('note-editor-meta-date');
+  const countEl = document.getElementById('note-editor-meta-count');
+  const titleInput = document.getElementById('note-editor-title-input');
+  const bodyInput = document.getElementById('note-editor-body-input');
+  const checklistItemsEl = document.getElementById('note-editor-checklist-items');
+
+  if (dateEl) {
+    if (_currentEditingNoteId) {
+      const note = (state.notes || []).find(n => String(n.id) === String(_currentEditingNoteId));
+      if (note) {
+        dateEl.textContent = (state.lang === 'el' ? 'Επεξεργασία ' : 'Edited ') + formatNoteTimestamp(note.updated_at || note.created_at);
+      }
+    } else {
+      dateEl.textContent = state.lang === 'el' ? 'Νέα σημείωση' : 'New note';
+    }
+  }
+
+  if (countEl) {
+    if (_currentEditingNoteType === 'checklist') {
+      const count = checklistItemsEl ? checklistItemsEl.children.length : 0;
+      countEl.textContent = `${count} ${state.lang === 'el' ? 'αντικείμενα' : 'items'}`;
+    } else {
+      const text = (bodyInput?.value || '').trim();
+      const chars = text.length;
+      const words = text ? text.split(/\s+/).length : 0;
+      countEl.textContent = `${words} ${state.lang === 'el' ? 'λέξεις' : 'words'} · ${chars} ${state.lang === 'el' ? 'χαρ.' : 'chars'}`;
+    }
+  }
+}
+
+function toggleNoteEditorColorPalette() {
+  const bar = document.getElementById('note-color-palette-bar');
+  const btn = document.getElementById('note-editor-color-toggle-btn');
+  if (!bar) return;
+  const isHidden = bar.style.display === 'none' || !bar.style.display;
+  bar.style.display = isHidden ? 'block' : 'none';
+  if (btn) btn.classList.toggle('active', isHidden);
+}
+window.toggleNoteEditorColorPalette = toggleNoteEditorColorPalette;
+
+function toggleNoteEditorReminderTools() {
+  const bar = document.getElementById('note-reminder-tools-bar');
+  const btn = document.getElementById('note-editor-reminder-toggle-btn');
+  if (!bar) return;
+  const isHidden = bar.style.display === 'none' || !bar.style.display;
+  bar.style.display = isHidden ? 'block' : 'none';
+  if (btn) btn.classList.toggle('active', isHidden);
+}
+window.toggleNoteEditorReminderTools = toggleNoteEditorReminderTools;
+
+function toggleNoteEditorPin() {
+  _currentEditingNotePinned = !_currentEditingNotePinned;
+  updateNoteEditorPinUI();
+  autoSaveNoteEditor();
+}
+window.toggleNoteEditorPin = toggleNoteEditorPin;
+
+function updateNoteEditorPinUI() {
+  const pinBtn = document.getElementById('note-editor-pin-btn');
+  if (!pinBtn) return;
+  pinBtn.classList.toggle('pinned', !!_currentEditingNotePinned);
+  pinBtn.title = _currentEditingNotePinned
+    ? (state.lang === 'el' ? 'Ξεκαρφίτσωμα' : 'Unpin')
+    : (state.lang === 'el' ? 'Καρφίτσωμα' : 'Pin');
+}
+
+function handleNoteEditorOverlayClick(event) {
+  if (event.target && event.target.id === 'note-editor-modal') {
+    closeNoteEditor();
+  }
+}
+window.handleNoteEditorOverlayClick = handleNoteEditorOverlayClick;
+
 function openNoteEditor(noteId = null) {
   _currentEditingNoteId = noteId;
 
   const modal = document.getElementById('note-editor-modal');
-  const titleEl = document.getElementById('note-editor-title');
+  const card = document.getElementById('note-seamless-editor-content');
   const titleInput = document.getElementById('note-editor-title-input');
   const bodyInput = document.getElementById('note-editor-body-input');
   const checklistItemsEl = document.getElementById('note-editor-checklist-items');
   const deleteBtn = document.getElementById('note-editor-delete-btn');
+  const colorBar = document.getElementById('note-color-palette-bar');
+  const reminderBar = document.getElementById('note-reminder-tools-bar');
+  const statusEl = document.getElementById('note-editor-save-status');
 
-  if (!modal) return;
+  if (!modal || !titleInput || !bodyInput) return;
+
+  if (colorBar) colorBar.style.display = 'none';
+  if (reminderBar) reminderBar.style.display = 'none';
+  if (statusEl) statusEl.textContent = '';
 
   titleInput.value = '';
   bodyInput.value = '';
-  checklistItemsEl.innerHTML = '';
+  if (checklistItemsEl) checklistItemsEl.innerHTML = '';
   _currentEditingNotePinned = false;
   _currentEditingNoteType = 'text';
 
   const reminderInput = document.getElementById('note-editor-reminder-input');
   if (reminderInput) reminderInput.value = '';
 
-  const labelEl = document.getElementById('note-editor-reminder-label');
-  if (labelEl) {
-    labelEl.textContent = state.lang === 'el' ? '⏰ Υπενθύμιση' : '⏰ Reminder';
-  }
-
   setNoteEditorType('text');
 
   if (noteId) {
-    titleEl.textContent = state.lang === 'el' ? 'Επεξεργασία Σημείωσης' : 'Edit Note';
-    deleteBtn.style.display = 'block';
+    if (deleteBtn) deleteBtn.style.display = 'flex';
 
     const note = (state.notes || []).find(n => String(n.id) === String(noteId));
     if (note) {
@@ -17821,7 +16890,6 @@ function openNoteEditor(noteId = null) {
         try {
           items = typeof note.body === 'string' ? JSON.parse(note.body || '[]') : (Array.isArray(note.body) ? note.body : []);
         } catch (e) {
-          console.error('Failed to parse checklist body:', e);
           items = [];
         }
         (Array.isArray(items) ? items : []).forEach(item => {
@@ -17844,19 +16912,42 @@ function openNoteEditor(noteId = null) {
       }
     }
   } else {
-    titleEl.textContent = state.lang === 'el' ? 'Νέα Σημείωση' : 'New Note';
-    deleteBtn.style.display = 'none';
+    if (deleteBtn) deleteBtn.style.display = 'none';
     selectNoteColor('default');
   }
+
+  // Bind live listeners for auto-save and count update
+  titleInput.oninput = () => {
+    updateNoteEditorMetaFooter();
+    autoSaveNoteEditor();
+  };
+  bodyInput.oninput = () => {
+    updateNoteEditorMetaFooter();
+    autoSaveNoteEditor();
+  };
 
   renderNoteReminderPresets();
   updateNoteEditorReminderDisplay();
   updateNoteEditorPinUI();
-  translateNotepadUI();
-  restoreNoteEditorInitialPosition();
-  bindNoteEditorFocusScroll();
+  updateNoteEditorMetaFooter();
   openModal('note-editor-modal');
+
+  // Auto-focus on text or title
+  setTimeout(() => {
+    if (!titleInput.value) {
+      titleInput.focus();
+    } else if (bodyInput && _currentEditingNoteType === 'text') {
+      bodyInput.focus();
+    }
+  }, 120);
 }
+
+async function closeNoteEditor() {
+  clearTimeout(_noteAutoSaveTimer);
+  await saveNoteFromEditor({ silent: true });
+  closeModal('note-editor-modal');
+}
+window.closeNoteEditor = closeNoteEditor;
 
 function setNoteEditorType(type) {
   _currentEditingNoteType = type;
@@ -17868,21 +16959,26 @@ function setNoteEditorType(type) {
   const checklistItemsEl = document.getElementById('note-editor-checklist-items');
 
   if (type === 'checklist') {
-    textBtn.classList.remove('active');
-    checklistBtn.classList.add('active');
+    if (textBtn) textBtn.classList.remove('active');
+    if (checklistBtn) checklistBtn.classList.add('active');
 
-    textContainer.style.display = 'none';
-    checklistContainer.style.display = 'flex';
+    if (textContainer) textContainer.style.display = 'none';
+    if (checklistContainer) checklistContainer.style.display = 'flex';
 
-    if (checklistItemsEl.children.length === 0) {
+    if (checklistItemsEl && checklistItemsEl.children.length === 0) {
       addNoteEditorChecklistItemRow('', false);
     }
   } else {
-    textBtn.classList.add('active');
-    checklistBtn.classList.remove('active');
+    if (textBtn) textBtn.classList.add('active');
+    if (checklistBtn) checklistBtn.classList.remove('active');
 
-    textContainer.style.display = 'flex';
-    checklistContainer.style.display = 'none';
+    if (textContainer) textContainer.style.display = 'flex';
+    if (checklistContainer) checklistContainer.style.display = 'none';
+  }
+
+  updateNoteEditorMetaFooter();
+  if (_currentEditingNoteId) {
+    autoSaveNoteEditor();
   }
 }
 
@@ -17891,85 +16987,28 @@ function addNoteEditorChecklistItemRow(text = '', checked = false) {
   if (!container) return;
 
   const row = document.createElement('div');
-  row.className = 'note-checklist-row';
-  row.draggable = true;
+  row.className = `note-checklist-row ${checked ? 'checked-row' : ''}`;
 
-  // Grip handle for Drag & Drop
-  const handle = document.createElement('div');
-  handle.className = 'note-checklist-handle';
-  handle.innerHTML = '<i class="fa-solid fa-grip-vertical"></i>';
-  row.appendChild(handle);
-
-  // Custom Modern Round Checkbox
+  // Custom Interactive Round Checkbox
   const chkBox = document.createElement('div');
   chkBox.className = `note-custom-checkbox ${checked ? 'checked' : ''}`;
-  chkBox.innerHTML = `<i class="fa-solid fa-check" style="${checked ? '' : 'display:none;'}"></i>`;
+  chkBox.innerHTML = '<i class="fa-solid fa-check"></i>';
 
   const input = document.createElement('input');
   input.type = 'text';
   input.value = text;
-  input.placeholder = state.lang === 'el' ? 'Αντικείμενο...' : 'Item...';
-
-  if (checked) {
-    input.style.textDecoration = 'line-through';
-    input.style.color = 'var(--text-muted)';
-  }
+  input.placeholder = state.lang === 'el' ? 'Στοιχείο λίστας...' : 'List item...';
 
   chkBox.addEventListener('click', () => {
     const isNowChecked = !chkBox.classList.contains('checked');
     chkBox.classList.toggle('checked', isNowChecked);
-    const icon = chkBox.querySelector('i');
-    if (icon) icon.style.display = isNowChecked ? 'inline-block' : 'none';
-
-    if (isNowChecked) {
-      input.style.textDecoration = 'line-through';
-      input.style.color = 'var(--text-muted)';
-    } else {
-      input.style.textDecoration = '';
-      input.style.color = 'var(--text-primary)';
-    }
+    row.classList.toggle('checked-row', isNowChecked);
+    autoSaveNoteEditor();
   });
 
-  const delBtn = document.createElement('button');
-  delBtn.className = 'note-checklist-del';
-  delBtn.innerHTML = '<i class="fa-solid fa-trash-can"></i>';
-  delBtn.addEventListener('click', () => {
-    row.remove();
-    if (container.children.length === 0) {
-      addNoteEditorChecklistItemRow('', false);
-    }
-  });
-
-  row.appendChild(chkBox);
-  row.appendChild(input);
-  row.appendChild(delBtn);
-
-  // Desktop Drag & Drop event handlers
-  row.addEventListener('dragstart', (e) => {
-    row.classList.add('dragging');
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', '');
-    window._draggedChecklistRow = row;
-  });
-
-  row.addEventListener('dragend', () => {
-    row.classList.remove('dragging');
-    window._draggedChecklistRow = null;
-  });
-
-  row.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    const draggingEl = window._draggedChecklistRow;
-    if (draggingEl && draggingEl !== row) {
-      const rect = row.getBoundingClientRect();
-      const midY = rect.top + rect.height / 2;
-      if (e.clientY < midY) {
-        container.insertBefore(draggingEl, row);
-      } else {
-        container.insertBefore(draggingEl, row.nextSibling);
-      }
-    }
+  input.addEventListener('input', () => {
+    updateNoteEditorMetaFooter();
+    autoSaveNoteEditor();
   });
 
   input.addEventListener('keydown', (e) => {
@@ -17982,10 +17021,37 @@ function addNoteEditorChecklistItemRow(text = '', checked = false) {
           const lastInput = lastRow.querySelector('input[type="text"]');
           if (lastInput) lastInput.focus();
         }
-      }, 50);
+      }, 30);
+    } else if (e.key === 'Backspace' && !input.value && container.children.length > 1) {
+      e.preventDefault();
+      const prev = row.previousElementSibling;
+      row.remove();
+      updateNoteEditorMetaFooter();
+      autoSaveNoteEditor();
+      if (prev) {
+        const prevInput = prev.querySelector('input[type="text"]');
+        if (prevInput) prevInput.focus();
+      }
     }
   });
 
+  const delBtn = document.createElement('button');
+  delBtn.type = 'button';
+  delBtn.className = 'note-checklist-del';
+  delBtn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+  delBtn.title = state.lang === 'el' ? 'Διαγραφή' : 'Delete';
+  delBtn.addEventListener('click', () => {
+    row.remove();
+    updateNoteEditorMetaFooter();
+    autoSaveNoteEditor();
+    if (container.children.length === 0) {
+      addNoteEditorChecklistItemRow('', false);
+    }
+  });
+
+  row.appendChild(chkBox);
+  row.appendChild(input);
+  row.appendChild(delBtn);
   container.appendChild(row);
 }
 
@@ -17998,22 +17064,19 @@ function addNoteEditorChecklistItem() {
   }
 }
 
-async function saveNoteFromEditor() {
+async function saveNoteFromEditor({ silent = false } = {}) {
   const titleInput = document.getElementById('note-editor-title-input');
   const bodyInput = document.getElementById('note-editor-body-input');
   const checklistItemsEl = document.getElementById('note-editor-checklist-items');
 
+  if (!titleInput || !bodyInput) return;
+
   let title = titleInput.value.trim();
   let body = '';
-
-  if (!title) {
-    alert(state.lang === 'el' ? 'Παρακαλώ εισάγετε έναν τίτλο!' : 'Please enter a title!');
-    return;
-  }
-
   let checklistItems = null;
+
   if (_currentEditingNoteType === 'checklist') {
-    const rows = checklistItemsEl.querySelectorAll('.note-checklist-row');
+    const rows = checklistItemsEl ? checklistItemsEl.querySelectorAll('.note-checklist-row') : [];
     const items = [];
     rows.forEach(row => {
       const chkBox = row.querySelector('.note-custom-checkbox');
@@ -18031,6 +17094,28 @@ async function saveNoteFromEditor() {
     body = bodyInput.value.trim();
   }
 
+  // If title is empty, derive from body or fallback
+  if (!title) {
+    if (_currentEditingNoteType === 'checklist' && checklistItems && checklistItems.length > 0) {
+      title = checklistItems[0].text.substring(0, 35);
+    } else if (body) {
+      const firstLine = body.split('\n')[0].trim();
+      title = firstLine.substring(0, 35);
+    }
+  }
+
+  // If note is completely empty and was never saved, ignore silently
+  const isCompletelyEmpty = !title && !body && (!checklistItems || checklistItems.length === 0);
+  if (isCompletelyEmpty) {
+    if (!_currentEditingNoteId) {
+      return;
+    }
+  }
+
+  if (!title) {
+    title = state.lang === 'el' ? 'Σημείωση' : 'Note';
+  }
+
   const user_id = state.currentUser ? state.currentUser.id : 'offline-user';
   const family_id = state.userProfile ? state.userProfile.family_id : null;
 
@@ -18045,6 +17130,7 @@ async function saveNoteFromEditor() {
     body: body,
     type: _currentEditingNoteType,
     pinned: _currentEditingNotePinned,
+    color: _currentEditingNoteColor || 'default',
     user_id: user_id,
     family_id: family_id,
     reminder_at: reminderAt,
@@ -18055,7 +17141,7 @@ async function saveNoteFromEditor() {
 
   if (_currentEditingNoteId) {
     noteObj.id = _currentEditingNoteId;
-    const idx = state.notes.findIndex(n => n.id === _currentEditingNoteId);
+    const idx = state.notes.findIndex(n => String(n.id) === String(_currentEditingNoteId));
     if (idx !== -1) {
       noteObj.created_at = state.notes[idx].created_at || noteObj.updated_at;
       state.notes[idx] = noteObj;
@@ -18063,15 +17149,15 @@ async function saveNoteFromEditor() {
   } else {
     noteObj.id = generateUUID();
     noteObj.created_at = noteObj.updated_at;
-    state.notes.push(noteObj);
+    _currentEditingNoteId = noteObj.id; // promote to active editing id
+    state.notes.unshift(noteObj);
   }
 
   saveNotes();
   scheduleNoteReminder(noteObj);
   renderNotesList();
-  closeModal('note-editor-modal');
 
-  // Centralized cloud persistence (single source of truth for the upsert shape).
+  // Centralized cloud persistence
   await upsertNoteToCloud(noteObj);
 }
 
@@ -18082,10 +17168,15 @@ async function deleteNoteFromEditor() {
     ? 'Είστε σίγουροι ότι θέλετε να διαγράψετε αυτή τη σημείωση;'
     : 'Are you sure you want to delete this note?';
 
-  const confirmed = await showConfirm(confirmMsg, state.lang === 'el' ? 'Διαγραφή Σημείωσης' : 'Delete Note', '🗑️');
+  const confirmed = (typeof showConfirm === 'function')
+    ? await showConfirm(confirmMsg, state.lang === 'el' ? 'Διαγραφή Σημείωσης' : 'Delete Note', '🗑️')
+    : confirm(confirmMsg);
+
   if (!confirmed) return;
 
-  await deleteNote(_currentEditingNoteId);
+  const id = _currentEditingNoteId;
+  _currentEditingNoteId = null; // prevent auto-save on close
+  await deleteNote(id);
   closeModal('note-editor-modal');
 }
 
@@ -18131,6 +17222,7 @@ async function deleteNote(noteId) {
   saveNotes();
   cancelNoteReminder(noteId);
   renderNotesList();
+  updateNotesTrashBadge();
 
   // Soft-delete on the cloud (status='deleted' + tombstone timestamps).
   if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
@@ -18174,6 +17266,9 @@ function loadNotesTrash() {
 function saveNotesTrash(trash) {
   try {
     localStorage.setItem(NOTES_TRASH_KEY, JSON.stringify(trash || []));
+    if (typeof updateNotesTrashBadge === 'function') {
+      updateNotesTrashBadge();
+    }
   } catch (e) {
     console.error('Failed to save notes trash:', e);
   }
@@ -18366,11 +17461,27 @@ async function fetchNotesTrashFromCloud() {
 
     const merged = [...cloudItems, ...localItems];
     saveNotesTrash(merged);
+    updateNotesTrashBadge();
     return merged;
   } catch (err) {
     console.warn('[NotesTrash] cloud fetch exception:', err);
   }
 }
+
+// Update the badge displaying the number of notes in the trash.
+function updateNotesTrashBadge() {
+  const badge = document.getElementById('notes-trash-count-badge');
+  if (!badge) return;
+  const trash = loadNotesTrash();
+  const count = Array.isArray(trash) ? trash.length : 0;
+  if (count > 0) {
+    badge.textContent = count > 99 ? '99+' : count;
+    badge.style.display = 'inline-flex';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+window.updateNotesTrashBadge = updateNotesTrashBadge;
 
 // Restore a soft-deleted note back to the active list.
 async function restoreNote(noteId) {
@@ -18386,9 +17497,16 @@ async function restoreNote(noteId) {
 
   // Remove from trash, add back to active list.
   saveNotesTrash(trash.filter(t => String(t.id) !== String(noteId)));
+  if (!state.notes) state.notes = [];
   state.notes.push(restored);
   saveNotes();
   renderNotesList();
+  renderNotesTrashList();
+  updateNotesTrashBadge();
+
+  if (typeof showToast === 'function') {
+    showToast(state.lang === 'el' ? 'Η σημείωση επαναφέρθηκε' : 'Note restored');
+  }
 
   if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
     try {
@@ -18404,7 +17522,14 @@ async function restoreNote(noteId) {
 
 // Permanently delete a single note from the trash (local + cloud).
 async function deleteNotePermanently(noteId) {
-  saveNotesTrash(loadNotesTrash().filter(t => String(t.id) !== String(noteId)));
+  const trash = loadNotesTrash().filter(t => String(t.id) !== String(noteId));
+  saveNotesTrash(trash);
+  renderNotesTrashList();
+  updateNotesTrashBadge();
+
+  if (typeof showToast === 'function') {
+    showToast(state.lang === 'el' ? 'Η σημείωση διαγράφηκε οριστικά' : 'Note permanently deleted');
+  }
 
   if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
     try {
@@ -18418,9 +17543,32 @@ async function deleteNotePermanently(noteId) {
 // Empty the entire notes trash bin (local + cloud).
 async function emptyNotesTrash() {
   const trash = loadNotesTrash();
+  if (!trash || trash.length === 0) {
+    if (typeof showToast === 'function') {
+      showToast(state.lang === 'el' ? 'Ο κάδος σημειώσεων είναι ήδη άδειος' : 'Notes trash is already empty');
+    }
+    return;
+  }
+
+  const confirmMsg = state.lang === 'el'
+    ? 'Είστε σίγουροι ότι θέλετε να αδειάσετε οριστικά όλες τις σημειώσεις από τον κάδο;'
+    : 'Are you sure you want to permanently empty all items from the notes trash bin?';
+
+  const confirmed = (typeof showConfirm === 'function')
+    ? await showConfirm(confirmMsg, state.lang === 'el' ? 'Εκκαθάριση Κάδου' : 'Empty Trash', '🗑️')
+    : confirm(confirmMsg);
+
+  if (!confirmed) return;
+
   const ids = trash.map(t => t.id).filter(Boolean);
 
   saveNotesTrash([]);
+  renderNotesTrashList();
+  updateNotesTrashBadge();
+
+  if (typeof showToast === 'function') {
+    showToast(state.lang === 'el' ? 'Ο κάδος σημειώσεων άδειασε' : 'Notes trash emptied');
+  }
 
   if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser && ids.length > 0) {
     try {
@@ -18442,6 +17590,8 @@ async function renderNotesTrashList() {
 
   const btnEmpty = document.getElementById('btn-empty-notes-trash');
   if (btnEmpty) btnEmpty.style.display = items.length === 0 ? 'none' : 'flex';
+
+  updateNotesTrashBadge();
 
   if (items.length === 0) {
     container.innerHTML = `
@@ -18500,6 +17650,7 @@ window.deleteNotePermanently = deleteNotePermanently;
 window.emptyNotesTrash = emptyNotesTrash;
 window.renderNotesTrashList = renderNotesTrashList;
 window.openNotesTrashModal = openNotesTrashModal;
+window.updateNotesTrashBadge = updateNotesTrashBadge;
 
 // ============================================================
 // CATEGORY BUDGETS SUBSYSTEM (LOAD, SAVE, SYNC)
@@ -18729,6 +17880,10 @@ function formatNoteTimestamp(tsString) {
 
 
 window.openNoteEditor = openNoteEditor;
+window.closeNoteEditor = closeNoteEditor;
+window.handleNoteEditorOverlayClick = handleNoteEditorOverlayClick;
+window.toggleNoteEditorColorPalette = toggleNoteEditorColorPalette;
+window.toggleNoteEditorReminderTools = toggleNoteEditorReminderTools;
 window.setNoteEditorType = setNoteEditorType;
 window.addNoteEditorChecklistItemRow = addNoteEditorChecklistItemRow;
 window.addNoteEditorChecklistItem = addNoteEditorChecklistItem;
@@ -18744,6 +17899,13 @@ window.deleteNote = deleteNote;
 window.onNoteReminderChanged = onNoteReminderChanged;
 window.clearNoteEditorReminder = clearNoteEditorReminder;
 window.syncNotes = syncNotes;
+window.showNoteContextMenu = showNoteContextMenu;
+window.quickSetNoteColor = quickSetNoteColor;
+window.triggerContextPin = triggerContextPin;
+window.triggerContextEdit = triggerContextEdit;
+window.triggerContextCopy = triggerContextCopy;
+window.triggerContextReminder = triggerContextReminder;
+window.triggerContextDelete = triggerContextDelete;
 
 
 function initTabSwipeNavigation() {
@@ -19606,7 +18768,7 @@ function updateAmountCurrencySymbol() {
   // when the span already exists in the HTML markup. Bind BOTH click and
   // pointerdown for maximum reliability on Android WebView.
   span.onclick = (e) => { e.stopPropagation(); e.preventDefault(); openCurrencyPickerModal(); };
-  span.onpointerdown = (e) => { e.stopPropagation(); e.preventDefault(); openCurrencyPickerModal(); };
+  span.onpointerdown = (e) => { e.stopPropagation(); };
   // Use a FontAwesome chevron icon (not the text glyph ▾) so it renders
   // reliably BESIDE the currency symbol instead of wrapping below it.
   span.innerHTML = escapeHtml(getTransactionCurrencySymbol()) +
@@ -19825,7 +18987,66 @@ function changeCurrencySetting(val) {
 function changeAutoLockSetting(val) {
   localStorage.setItem('settings_auto_lock_delay', val);
   updateSettingsDisplay();
+  // Restart the inactivity timer with the new delay (or stop if disabled).
+  if (typeof _resetAutoLockTimer === 'function') {
+    _resetAutoLockTimer();
+  }
 }
+
+// ============================================================
+// AUTO-LOCK (inactivity timer)
+// ============================================================
+// FIX: The auto-lock setting was stored and displayed but never actually
+// triggered a lock. This block implements a real inactivity timer that calls
+// showLockScreen() after the configured delay. showLockScreen() itself guards
+// against covering the login overlay (see bug #2 fix), so this is safe.
+let _autoLockTimer = null;
+let _lastUserActivity = Date.now();
+
+function _getAutoLockDelayMs() {
+  const val = localStorage.getItem('settings_auto_lock_delay') || 'disabled';
+  switch (val) {
+    case '1': return 60 * 1000;        // 1 minute
+    case '5': return 5 * 60 * 1000;    // 5 minutes
+    case '10': return 10 * 60 * 1000;  // 10 minutes
+    default: return 0;                 // disabled
+  }
+}
+
+function _resetAutoLockTimer() {
+  _lastUserActivity = Date.now();
+  if (_autoLockTimer) { clearTimeout(_autoLockTimer); _autoLockTimer = null; }
+  const delay = _getAutoLockDelayMs();
+  if (delay <= 0) return;
+  _autoLockTimer = setTimeout(() => {
+    _autoLockTimer = null;
+    _triggerAutoLock();
+  }, delay);
+}
+
+function _triggerAutoLock() {
+  // Only lock while the app is in the foreground. If it is hidden, the
+  // background/resume path handles the lock (see _handleAppResumed).
+  if (document.visibilityState === 'hidden') return;
+  if (typeof showLockScreen === 'function') {
+    showLockScreen();
+  }
+}
+
+function _initAutoLock() {
+  // Reset the inactivity timer on any user interaction.
+  const events = ['touchstart', 'click', 'keydown', 'mousemove', 'scroll', 'wheel'];
+  const handler = () => _resetAutoLockTimer();
+  events.forEach(ev => {
+    document.addEventListener(ev, handler, { passive: true, capture: true });
+  });
+  _resetAutoLockTimer();
+}
+
+// Expose for the background/resume path.
+window._resetAutoLockTimer = _resetAutoLockTimer;
+window._getAutoLockDelayMs = _getAutoLockDelayMs;
+window._lastUserActivity = _lastUserActivity;
 
 // Populates the "Νόμισμα εφαρμογής" select in settings with ALL currencies
 // (150+), not just the 4 hardcoded ones. Called once on init.
@@ -20430,8 +19651,24 @@ function showLockScreen() {
     return;
   }
 
+  // SECURITY/UX FIX: Never show the lock screen OVER the login overlay.
+  // The lock screen has z-index 99999 while the auth overlay has z-index 20000,
+  // so showing it while the user is NOT authenticated would cover the login card
+  // and trap the user on the PIN screen (unable to reach the sign-in form).
+  // Only show the lock screen when there is a valid authenticated context:
+  // a cached user, guest mode, or an already-confirmed session.
+  const hasCachedUser = !!localStorage.getItem('cached_current_user');
+  const isGuestMode = localStorage.getItem('auth_guest_mode') === 'true';
+  const isConfirmed = !!window._authConfirmed;
+  if (!hasCachedUser && !isGuestMode && !isConfirmed) {
+    hideLockScreen();
+    return;
+  }
+
   const lockScreen = document.getElementById('lock-screen');
   if (lockScreen) {
+    // FIX: Ensure the lock screen is a direct child of <body> before showing.
+    ensureOverlayInBody(lockScreen);
     lockScreen.classList.add('active');
     enteredPin = [];
     resetLockDots();
@@ -20961,17 +20198,23 @@ function switchAuthTab(tab) {
   clearAuthStatus();
 }
 
-function togglePasswordVisibility() {
-  const passwordInput = document.getElementById('auth-password');
-  const icon = document.getElementById('toggle-password-icon');
-  if (!passwordInput || !icon) return;
+function togglePasswordVisibility(inputId, btnEl) {
+  const targetId = inputId || 'auth-password';
+  const passwordInput = document.getElementById(targetId);
+  if (!passwordInput) return;
+
+  const icon = btnEl ? btnEl.querySelector('i') : document.getElementById('toggle-password-icon');
 
   if (passwordInput.type === 'password') {
     passwordInput.type = 'text';
-    icon.className = 'fa-solid fa-eye-slash';
+    if (icon) {
+      icon.className = 'fa-solid fa-eye-slash';
+    }
   } else {
     passwordInput.type = 'password';
-    icon.className = 'fa-solid fa-eye';
+    if (icon) {
+      icon.className = 'fa-regular fa-eye';
+    }
   }
 }
 
@@ -21017,8 +20260,186 @@ async function handleForgotPassword() {
   }
 }
 
+// ============================================================
+// CHANGE EMAIL & PASSWORD HANDLERS
+// ============================================================
+function openChangeEmailModal() {
+  if (!state.currentUser || state.currentUser.id === 'offline-user' || !state.supabaseClient) {
+    const msg = state.lang === 'el'
+      ? 'Η λειτουργία αυτή απαιτεί σύνδεση σε λογαριασμό Cloud.'
+      : 'This feature requires a signed-in Cloud account.';
+    if (typeof showToast === 'function') showToast(msg, 'warning');
+    else alert(msg);
+    return;
+  }
+
+  const currentEmail = state.currentUser.email || '';
+  const currentValEl = document.getElementById('change-email-current-val');
+  const inputEl = document.getElementById('change-email-new-input');
+
+  if (currentValEl) currentValEl.textContent = currentEmail;
+  if (inputEl) {
+    inputEl.value = '';
+    setTimeout(() => inputEl.focus(), 150);
+  }
+
+  openModal('change-email-modal');
+}
+
+async function handleUserEmailChange(event) {
+  if (event) event.preventDefault();
+
+  if (!state.currentUser || !state.supabaseClient) {
+    const msg = state.lang === 'el' ? 'Απαιτείται ενεργή σύνδεση.' : 'Active session required.';
+    if (typeof showToast === 'function') showToast(msg, 'warning');
+    return;
+  }
+
+  const inputEl = document.getElementById('change-email-new-input');
+  const newEmail = (inputEl?.value || '').trim();
+
+  if (!newEmail || !newEmail.includes('@') || !newEmail.includes('.')) {
+    const msg = state.lang === 'el' ? 'Παρακαλώ εισάγετε ένα έγκυρο email.' : 'Please enter a valid email address.';
+    alert(msg);
+    return;
+  }
+
+  const currentEmail = (state.currentUser.email || '').trim().toLowerCase();
+  if (newEmail.toLowerCase() === currentEmail) {
+    const msg = state.lang === 'el' ? 'Το νέο email είναι ίδιο με το τρέχον.' : 'The new email is identical to your current one.';
+    alert(msg);
+    return;
+  }
+
+  const submitBtn = document.getElementById('btn-submit-change-email');
+  const origBtnHtml = submitBtn ? submitBtn.innerHTML : '';
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> ' + (state.lang === 'el' ? 'Αποστολή...' : 'Sending...');
+  }
+
+  try {
+    const { data, error } = await state.supabaseClient.auth.updateUser({
+      email: newEmail
+    });
+
+    if (error) throw error;
+
+    closeModal('change-email-modal');
+
+    const successMsg = state.lang === 'el'
+      ? `📩 Στάλθηκε σύνδεσμος επιβεβαίωσης στο ${newEmail}. Παρακαλώ επιβεβαιώστε το email σας για να ολοκληρωθεί η αλλαγή.`
+      : `📩 A confirmation link was sent to ${newEmail}. Please confirm it to complete the update.`;
+
+    if (typeof showToast === 'function') {
+      showToast(successMsg, 'success');
+    }
+    alert(successMsg);
+  } catch (err) {
+    console.error('Email update error:', err);
+    const errMsg = (state.lang === 'el' ? 'Σφάλμα αλλαγής email: ' : 'Email update error: ') + (err.message || err);
+    alert(errMsg);
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = origBtnHtml;
+    }
+  }
+}
+
+function openChangePasswordModal() {
+  if (!state.currentUser || state.currentUser.id === 'offline-user' || !state.supabaseClient) {
+    const msg = state.lang === 'el'
+      ? 'Η λειτουργία αυτή απαιτεί σύνδεση σε λογαριασμό Cloud.'
+      : 'This feature requires a signed-in Cloud account.';
+    if (typeof showToast === 'function') showToast(msg, 'warning');
+    else alert(msg);
+    return;
+  }
+
+  const newPwdInput = document.getElementById('change-pwd-new-input');
+  const confirmPwdInput = document.getElementById('change-pwd-confirm-input');
+
+  if (newPwdInput) newPwdInput.value = '';
+  if (confirmPwdInput) confirmPwdInput.value = '';
+
+  openModal('change-password-modal');
+  setTimeout(() => {
+    if (newPwdInput) newPwdInput.focus();
+  }, 150);
+}
+
+async function handleUserPasswordChange(event) {
+  if (event) event.preventDefault();
+
+  if (!state.currentUser || !state.supabaseClient) {
+    const msg = state.lang === 'el' ? 'Απαιτείται ενεργή σύνδεση.' : 'Active session required.';
+    if (typeof showToast === 'function') showToast(msg, 'warning');
+    return;
+  }
+
+  const newPwdInput = document.getElementById('change-pwd-new-input');
+  const confirmPwdInput = document.getElementById('change-pwd-confirm-input');
+  const newPwd = (newPwdInput?.value || '').trim();
+  const confirmPwd = (confirmPwdInput?.value || '').trim();
+
+  if (newPwd.length < 6) {
+    const msg = state.lang === 'el' ? 'Ο κωδικός πρέπει να περιέχει τουλάχιστον 6 χαρακτήρες.' : 'Password must be at least 6 characters long.';
+    alert(msg);
+    if (newPwdInput) newPwdInput.focus();
+    return;
+  }
+
+  if (newPwd !== confirmPwd) {
+    const msg = state.lang === 'el' ? 'Οι κωδικοί δεν ταιριάζουν. Παρακαλώ ελέγξτε ξανά.' : 'Passwords do not match. Please verify and try again.';
+    alert(msg);
+    if (confirmPwdInput) confirmPwdInput.focus();
+    return;
+  }
+
+  const submitBtn = document.getElementById('btn-submit-change-pwd');
+  const origBtnHtml = submitBtn ? submitBtn.innerHTML : '';
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> ' + (state.lang === 'el' ? 'Ενημέρωση...' : 'Updating...');
+  }
+
+  try {
+    const { data, error } = await state.supabaseClient.auth.updateUser({
+      password: newPwd
+    });
+
+    if (error) throw error;
+
+    closeModal('change-password-modal');
+
+    const successMsg = state.lang === 'el'
+      ? '🔒 Ο κωδικός πρόσβασης άλλαξε με επιτυχία!'
+      : '🔒 Password updated successfully!';
+
+    if (typeof showToast === 'function') {
+      showToast(successMsg, 'success');
+    } else {
+      alert(successMsg);
+    }
+  } catch (err) {
+    console.error('Password update error:', err);
+    const errMsg = (state.lang === 'el' ? 'Σφάλμα αλλαγής κωδικού: ' : 'Password update error: ') + (err.message || err);
+    alert(errMsg);
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = origBtnHtml;
+    }
+  }
+}
+
 window.togglePasswordVisibility = togglePasswordVisibility;
 window.handleForgotPassword = handleForgotPassword;
+window.openChangeEmailModal = openChangeEmailModal;
+window.handleUserEmailChange = handleUserEmailChange;
+window.openChangePasswordModal = openChangePasswordModal;
+window.handleUserPasswordChange = handleUserPasswordChange;
 
 function setAuthMode(mode) {
   currentAuthMode = mode;
@@ -21141,13 +20562,40 @@ async function handleGoogleAuth() {
 
   try {
     const isCapacitor = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+    const GoogleAuth = window.Capacitor?.Plugins?.GoogleAuth;
+
+    // 1. Native Android Google Sign-In (No browser redirect, zero url exposed)
+    if (isCapacitor && GoogleAuth) {
+      try {
+        await GoogleAuth.initialize({
+          clientId: '331220079759-nrguc2ujof9u9mqhbn2mouhpga2iniqj.apps.googleusercontent.com',
+          scopes: ['profile', 'email'],
+          grantOfflineAccess: true,
+        });
+      } catch (initErr) {
+        console.warn('GoogleAuth initialize warning:', initErr);
+      }
+
+      const googleUser = await GoogleAuth.signIn();
+      const idToken = googleUser?.authentication?.idToken || googleUser?.idToken;
+
+      if (!idToken) {
+        throw new Error('Google did not return an ID token.');
+      }
+
+      // Authenticate with Supabase using native Google ID token
+      const { data, error } = await state.supabaseClient.auth.signInWithIdToken({
+        provider: 'google',
+        token: idToken,
+      });
+
+      if (error) throw error;
+      toggleLoader(false);
+      return;
+    }
 
     if (isCapacitor) {
-      // On Android (Capacitor), use PKCE + in-app browser (Chrome Custom Tab)
-      // so the user never leaves the app during OAuth.
-
-      // Step 1: Get the OAuth URL from Supabase WITHOUT triggering a redirect
-      // redirectTo uses https://localhost — Capacitor's local origin when assets are bundled
+      // Fallback for native if GoogleAuth plugin is unavailable: in-app browser
       const nativeRedirectUrl = 'https://localhost';
       const { data, error } = await state.supabaseClient.auth.signInWithOAuth({
         provider: 'google',
@@ -21159,21 +20607,17 @@ async function handleGoogleAuth() {
       });
       if (error) throw error;
 
-      // Step 2: Access Capacitor plugins through the native bridge
       const Browser = window.Capacitor?.Plugins?.Browser;
       const App = window.Capacitor?.Plugins?.App;
 
       if (Browser && data?.url) {
-        // Step 3: Open Google login in an in-app Chrome Custom Tab
         await Browser.open({ url: data.url, windowName: '_self' });
 
-        // Step 4: Listen for the deep-link when Google redirects back to the app
         if (App) {
           const handle = await App.addListener('appUrlOpen', async (event) => {
             await handle.remove();
             if (Browser.close) await Browser.close();
 
-            // Extract tokens from the callback URL
             const url = new URL(event.url);
             const hashParams = new URLSearchParams(url.hash.replace('#', ''));
             const queryParams = new URLSearchParams(url.search);
@@ -21197,7 +20641,6 @@ async function handleGoogleAuth() {
           toggleLoader(false);
         }
       } else {
-        // Browser plugin not available — fall back to standard redirect
         window.location.href = data?.url || '';
       }
     } else {
@@ -21211,11 +20654,24 @@ async function handleGoogleAuth() {
         }
       });
       if (error) throw error;
-      // Supabase redirects to Google; on return, initSupabaseAuth handles the session
     }
   } catch (err) {
-    console.error('Google auth flow failed:', err);
     toggleLoader(false);
+    const errMsg = (err?.message || '').toLowerCase();
+    // Ignore normal user cancellation (dismiss, back press, tapped outside, code 12501)
+    if (
+      errMsg.includes('cancel') ||
+      errMsg.includes('canceled') ||
+      errMsg.includes('cancelled') ||
+      errMsg.includes('closed') ||
+      errMsg.includes('dismiss') ||
+      errMsg.includes('12501') ||
+      errMsg.includes('abort')
+    ) {
+      console.log('[GoogleAuth] User dismissed or canceled sign-in prompt.');
+      return;
+    }
+    console.error('Google auth flow failed:', err);
     showAuthStatus(((TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_error_prefix']) || '❌ Σφάλμα: ') + (err.message || (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_fail_google']) || 'Αποτυχία σύνδεσης με Google.'));
   }
 }
@@ -22637,17 +22093,9 @@ async function enterGuestMode() {
   if (switcher) switcher.style.display = 'none';
 
   // Show lock icon user badge in header to connect/sign up
-  const userBadge = document.getElementById('user-profile-badge');
-  if (userBadge) {
-    userBadge.style.display = 'flex';
-    userBadge.innerHTML = '<i class="fa-solid fa-lock" style="font-size: 11px;"></i>';
-    userBadge.title = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_signup_title']) || 'Σύνδεση / Εγγραφή';
-    userBadge.onclick = () => showAuthOverlay();
-  }
+  updateHeaderProfileBadge();
 
   // Load data & update UI
-  // ANTI-FLICKER: Suppress transitions during the guest-mode data load +
-  // re-render so the DOM wipe is invisible (covers the full-reload path).
   window._suppressTransitions = true;
   try {
     await loadData();
@@ -22657,31 +22105,346 @@ async function enterGuestMode() {
   }
   renderPartnerSection();
 
-  // Hide auth overlay after UI updates
-  const authOverlay = document.getElementById('auth-overlay');
-  if (authOverlay) {
-    // Prevent click penetration (ghost clicks) to elements underneath (like the FAB button)
-    authOverlay.style.pointerEvents = 'none';
-    // document.body.style.pointerEvents = 'none'; (disabled to prevent app freeze)
-    setTimeout(() => {
-      authOverlay.style.display = 'none';
-      authOverlay.style.pointerEvents = '';
-      document.body.style.pointerEvents = '';
-      forceViewportReset();
-    }, 350);
-  }
+  // Hide auth overlay cleanly
+  hideAuthOverlay();
   toggleLoader(false);
 }
 
-function showAuthOverlay() {
-  document.querySelectorAll('.modal-overlay, .tx-modal-overlay').forEach(m => m.classList.remove('active'));
-  const txModal = document.getElementById('transaction-modal');
-  if (txModal) txModal.style.display = 'none';
-  const authOverlay = document.getElementById('auth-overlay');
-  if (authOverlay) {
-    authOverlay.style.display = 'flex';
+// Tracks whether the auth overlay was explicitly opened by the user (e.g. by
+// tapping the lock icon in the header). When true, a null-session auth event
+// (INITIAL_SESSION / SIGNED_OUT) must NOT auto-hide the overlay — the user
+// explicitly asked to see the login form, so it must stay until they either
+// sign in, dismiss it, or the session is actually restored.
+let _authOverlayUserRequested = false;
+
+// ============================================================
+// AUTH OVERLAY DIAGNOSTICS
+// ------------------------------------------------------------
+// When the user taps the lock icon in the header and the login
+// overlay fails to open, this mechanism runs a battery of checks
+// and displays a detailed diagnostic panel explaining EXACTLY
+// what is wrong (missing element, JS error, CSS hiding it, etc.)
+// so the problem can be identified and reported precisely.
+// ============================================================
+
+// Renders a full-screen diagnostic panel with a list of checks.
+function showAuthDiagnosticPanel(checks, thrownError) {
+  try {
+    // Remove any existing diagnostic panel
+    const existing = document.getElementById('auth-diagnostic-panel');
+    if (existing) existing.remove();
+
+    const isEl = (state && state.lang === 'el');
+    const panel = document.createElement('div');
+    panel.id = 'auth-diagnostic-panel';
+    panel.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:2147483646;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;padding:20px;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;';
+
+    const card = document.createElement('div');
+    card.style.cssText = 'background:#1e1e2e;color:#e4e4ef;border:1px solid #3a3a52;border-radius:16px;max-width:520px;width:100%;max-height:85vh;overflow-y:auto;padding:22px;box-shadow:0 20px 60px rgba(0,0,0,0.6);';
+
+    const title = document.createElement('div');
+    title.style.cssText = 'font-size:18px;font-weight:800;margin-bottom:6px;display:flex;align-items:center;gap:8px;';
+    title.innerHTML = '🔍 ' + (isEl ? 'Διαγνωστικά Σύνδεσης' : 'Login Diagnostics');
+
+    const subtitle = document.createElement('div');
+    subtitle.style.cssText = 'font-size:13px;color:#9aa0b5;margin-bottom:16px;line-height:1.5;';
+    subtitle.textContent = isEl
+      ? 'Το λουκέτο σύνδεσης δεν άνοιξε. Παρακάτω φαίνεται τι ακριβώς πήγε στραβά:'
+      : 'The login lock did not open. Below is exactly what went wrong:';
+
+    card.appendChild(title);
+    card.appendChild(subtitle);
+
+    // Render each check result
+    checks.forEach(function (c) {
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;align-items:flex-start;gap:10px;padding:9px 12px;border-radius:10px;margin-bottom:8px;background:' + (c.ok ? 'rgba(46,204,113,0.10)' : 'rgba(239,68,68,0.12)') + ';border:1px solid ' + (c.ok ? 'rgba(46,204,113,0.35)' : 'rgba(239,68,68,0.4)') + ';';
+      const icon = document.createElement('span');
+      icon.style.cssText = 'font-size:15px;flex-shrink:0;';
+      icon.textContent = c.ok ? '✅' : '❌';
+      const body = document.createElement('div');
+      body.style.cssText = 'font-size:13px;line-height:1.45;';
+      const name = document.createElement('div');
+      name.style.cssText = 'font-weight:700;color:' + (c.ok ? '#4ade80' : '#f87171') + ';';
+      name.textContent = c.label;
+      body.appendChild(name);
+      if (c.detail) {
+        const detail = document.createElement('div');
+        detail.style.cssText = 'color:#cbd5e1;font-size:12px;margin-top:2px;word-break:break-word;';
+        detail.textContent = c.detail;
+        body.appendChild(detail);
+      }
+      row.appendChild(icon);
+      row.appendChild(body);
+      card.appendChild(row);
+    });
+
+    // Show thrown error if any
+    if (thrownError) {
+      const errBox = document.createElement('div');
+      errBox.style.cssText = 'margin-top:10px;padding:10px 12px;border-radius:10px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.5);';
+      errBox.innerHTML = '<div style="font-weight:700;color:#f87171;font-size:13px;margin-bottom:4px;">⚠️ ' + (isEl ? 'Σφάλμα JavaScript' : 'JavaScript Error') + '</div><div style="font-size:12px;color:#fecaca;word-break:break-word;font-family:monospace;">' + String(thrownError && thrownError.message ? thrownError.message : thrownError) + '</div>';
+      card.appendChild(errBox);
+    }
+
+    // Buttons
+    const btnRow = document.createElement('div');
+    btnRow.style.cssText = 'display:flex;gap:10px;margin-top:18px;';
+
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = isEl ? 'Κλείσιμο' : 'Close';
+    closeBtn.style.cssText = 'flex:1;padding:11px;border:none;border-radius:10px;background:#3a3a52;color:#fff;font-weight:700;font-size:14px;cursor:pointer;';
+    closeBtn.onclick = function () { panel.remove(); };
+
+    const copyBtn = document.createElement('button');
+    copyBtn.textContent = isEl ? '📋 Αντιγραφή Διαγνωστικών' : '📋 Copy Diagnostics';
+    copyBtn.style.cssText = 'flex:1;padding:11px;border:none;border-radius:10px;background:#7c6af7;color:#fff;font-weight:700;font-size:14px;cursor:pointer;';
+    copyBtn.onclick = function () {
+      try {
+        const lines = checks.map(function (c) { return (c.ok ? '[OK] ' : '[FAIL] ') + c.label + (c.detail ? ' — ' + c.detail : ''); });
+        if (thrownError) lines.push('[ERROR] ' + (thrownError.message || thrownError));
+        navigator.clipboard.writeText(lines.join('\n')).then(function () {
+          copyBtn.textContent = isEl ? '✅ Αντιγράφηκε!' : '✅ Copied!';
+        }).catch(function () {
+          copyBtn.textContent = isEl ? '⚠️ Αποτυχία' : '⚠️ Failed';
+        });
+      } catch (e) { /* ignore */ }
+    };
+
+    btnRow.appendChild(closeBtn);
+    btnRow.appendChild(copyBtn);
+    card.appendChild(btnRow);
+
+    panel.appendChild(card);
+    panel.addEventListener('click', function (e) { if (e.target === panel) panel.remove(); });
+    document.body.appendChild(panel);
+  } catch (e) {
+    console.error('[AuthDiag] Failed to render diagnostic panel:', e);
+    alert('Διαγνωστικά σύνδεσης:\n' + JSON.stringify(checks) + '\n' + (thrownError ? thrownError.message : ''));
   }
 }
+
+// Runs diagnostics and attempts to open the auth overlay. If it fails,
+// shows the diagnostic panel explaining exactly what is wrong.
+function openAuthWithDiagnostics() {
+  const checks = [];
+  const isEl = (state && state.lang === 'el');
+
+  // 1. Check the auth overlay element exists
+  const authOverlay = document.getElementById('auth-overlay');
+  checks.push({
+    ok: !!authOverlay,
+    label: isEl ? 'Στοιχείο auth-overlay' : 'auth-overlay element',
+    detail: authOverlay ? 'Βρέθηκε (#auth-overlay)' : 'ΔΕΝ βρέθηκε — λείπει από το index.html'
+  });
+
+  // 2. Check auth-card exists
+  const authCard = document.getElementById('auth-card');
+  checks.push({
+    ok: !!authCard,
+    label: isEl ? 'Στοιχείο auth-card' : 'auth-card element',
+    detail: authCard ? 'Βρέθηκε (#auth-card)' : 'ΔΕΝ βρέθηκε — λείπει από το index.html'
+  });
+
+  // 3. Check auth-forms-container exists
+  const formsContainer = document.getElementById('auth-forms-container');
+  checks.push({
+    ok: !!formsContainer,
+    label: isEl ? 'Στοιχείο auth-forms-container' : 'auth-forms-container element',
+    detail: formsContainer ? 'Βρέθηκε (#auth-forms-container)' : 'ΔΕΝ βρέθηκε — λείπει από το index.html'
+  });
+
+  // 4. Check showAuthOverlay is defined
+  const fnOk = typeof showAuthOverlay === 'function';
+  checks.push({
+    ok: fnOk,
+    label: isEl ? 'Συνάρτηση showAuthOverlay' : 'showAuthOverlay function',
+    detail: fnOk ? 'Ορίζεται σωστά' : 'ΔΕΝ ορίζεται — σφάλμα φόρτωσης app.js'
+  });
+
+  // 5. Check for early-auth style blocks that might hide the overlay
+  const earlyHide = document.getElementById('early-auth-hide-style');
+  const earlyStyle = document.getElementById('early-auth-style');
+  const hasEarlyHide = !!earlyHide;
+  const hasEarlyStyle = !!earlyStyle;
+  checks.push({
+    ok: !hasEarlyHide && !hasEarlyStyle,
+    label: isEl ? 'Προσωρινά style blocks' : 'Temporary style blocks',
+    detail: (hasEarlyHide || hasEarlyStyle)
+      ? 'Βρέθηκαν blocks που κρύβουν το overlay (early-auth-hide-style' + (hasEarlyHide ? ' ✓' : '') + ', early-auth-style' + (hasEarlyStyle ? ' ✓' : '') + ') — θα αφαιρεθούν'
+      : 'Κανένα block που κρύβει το overlay'
+  });
+
+  // 6. Check the overlay's current computed display state
+  let displayState = 'unknown';
+  let visibilityState = 'unknown';
+  if (authOverlay) {
+    try {
+      const cs = window.getComputedStyle(authOverlay);
+      displayState = cs.display;
+      visibilityState = cs.visibility;
+    } catch (e) { /* ignore */ }
+  }
+  checks.push({
+    ok: true,
+    label: isEl ? 'Τρέχουσα κατάσταση overlay' : 'Current overlay state',
+    detail: 'display=' + displayState + ', visibility=' + visibilityState
+  });
+
+  // Attempt to open the overlay, capturing any thrown error
+  let thrownError = null;
+  let opened = false;
+  try {
+    showAuthOverlay();
+    // Verify it actually became visible
+    if (authOverlay) {
+      const cs = window.getComputedStyle(authOverlay);
+      opened = cs.display !== 'none' && cs.visibility !== 'hidden';
+    } else {
+      opened = false;
+    }
+  } catch (err) {
+    thrownError = err;
+    opened = false;
+  }
+
+  checks.push({
+    ok: opened,
+    label: isEl ? 'Άνοιγμα overlay' : 'Overlay opened',
+    detail: opened
+      ? (isEl ? 'Το λουκέτο άνοιξε επιτυχώς ✅' : 'The lock opened successfully ✅')
+      : (isEl ? 'Το overlay ΔΕΝ εμφανίστηκε' : 'The overlay did NOT appear')
+  });
+
+  if (opened) {
+    // Success — no need to show the diagnostic panel.
+    return;
+  }
+
+  // Failure — show the diagnostic panel with all the details.
+  showAuthDiagnosticPanel(checks, thrownError);
+}
+window.openAuthWithDiagnostics = openAuthWithDiagnostics;
+
+// Delegated document-level listener: guarantees the diagnostic fires on the
+// lock badge (#user-profile-badge) even if updateHeaderProfileBadge() did not
+// set the onclick handler (e.g. stale cache / re-render race on web).
+(function ensureLockBadgeDiagnosticListener() {
+  try {
+    document.addEventListener('click', function (e) {
+      try {
+        var badge = e.target && e.target.closest ? e.target.closest('#user-profile-badge') : null;
+        if (!badge) return;
+        // If the overlay is already open, let the normal handler manage it.
+        var overlay = document.getElementById('auth-overlay');
+        if (overlay && !overlay.classList.contains('hidden')) return;
+        // Only intercept if the badge has no working onclick that opens the overlay.
+        if (typeof badge.onclick === 'function') return;
+        // Fallback: show auth overlay directly.
+        if (typeof showAuthOverlay === 'function') {
+          showAuthOverlay();
+        }
+      } catch (err) {
+        // Never break other click handling.
+      }
+    }, true);
+  } catch (err) {
+    // Ignore — the direct onclick handler remains the primary path.
+  }
+})();
+
+function showAuthOverlay() {
+  try {
+    _authOverlayUserRequested = true;
+    if (typeof hideLockScreen === 'function') {
+      try { hideLockScreen(); } catch (e) { }
+    }
+    const authOverlay = document.getElementById('auth-overlay');
+    if (!authOverlay) return;
+
+    if (authOverlay.parentElement !== document.body) {
+      document.body.appendChild(authOverlay);
+    }
+
+    const formsContainer = document.getElementById('auth-forms-container');
+    const authCard = document.getElementById('auth-card');
+    const loadingState = document.getElementById('auth-loading-state');
+
+    // Clean up early styles
+    const earlyHideStyle = document.getElementById('early-auth-hide-style');
+    if (earlyHideStyle) earlyHideStyle.remove();
+    const earlyStyle = document.getElementById('early-auth-style');
+    if (earlyStyle) earlyStyle.remove();
+
+    // Also remove any anonymous style blocks in head that hide the overlay
+    try {
+      document.querySelectorAll('head style').forEach(s => {
+        if (s.innerHTML && s.innerHTML.includes('#auth-overlay') && s.innerHTML.includes('none')) {
+          s.remove();
+        }
+      });
+    } catch (e) { }
+
+    authOverlay.classList.remove('hidden');
+    authOverlay.classList.add('active');
+    authOverlay.style.cssText = 'display: flex !important; visibility: visible !important; opacity: 1 !important; z-index: 2147483647 !important; pointer-events: auto !important; position: fixed !important; inset: 0 !important; width: 100vw !important; height: 100vh !important; min-height: 100dvh !important; background: radial-gradient(circle at 50% 30%, #1c2536 0%, #090c13 100%) !important;';
+
+    if (formsContainer) formsContainer.style.setProperty('display', 'block', 'important');
+    if (authCard) {
+      authCard.style.setProperty('display', 'flex', 'important');
+      authCard.style.setProperty('visibility', 'visible', 'important');
+      authCard.style.setProperty('opacity', '1', 'important');
+    }
+    if (loadingState) loadingState.style.setProperty('display', 'none', 'important');
+
+    if (typeof switchAuthTab === 'function') {
+      try { switchAuthTab('password'); } catch (e) { }
+    }
+
+    // Clear other open modals safely
+    try {
+      document.querySelectorAll('.modal-overlay:not(#auth-overlay), .tx-modal-overlay, .profile-sheet-overlay').forEach(m => m.classList.remove('active'));
+    } catch (err) {
+      console.warn("Failed to clear modals", err);
+    }
+
+    const txModal = document.getElementById('transaction-modal');
+    if (txModal) txModal.style.display = 'none';
+
+    const emailInput = document.getElementById('auth-email');
+    if (emailInput && !emailInput.value) {
+      setTimeout(() => { try { emailInput.focus(); } catch (e) { } }, 150);
+    }
+  } catch (err) {
+    console.error("Auth Overlay Error:", err);
+  }
+}
+window.showAuthOverlay = showAuthOverlay;
+
+function hideAuthOverlay() {
+  _authOverlayUserRequested = false;
+  const authOverlay = document.getElementById('auth-overlay');
+  const formsContainer = document.getElementById('auth-forms-container');
+  const loadingState = document.getElementById('auth-loading-state');
+  const earlyStyle = document.getElementById('early-auth-style');
+  if (earlyStyle) earlyStyle.remove();
+
+  if (authOverlay) {
+    authOverlay.classList.remove('active');
+    authOverlay.style.removeProperty('display');
+    authOverlay.style.display = 'none';
+    authOverlay.style.pointerEvents = '';
+  }
+  if (loadingState) loadingState.style.display = 'none';
+  if (formsContainer) formsContainer.style.display = 'block';
+  forceViewportReset();
+}
+window.hideAuthOverlay = hideAuthOverlay;
+
+function closeAuth() {
+  hideAuthOverlay();
+}
+window.closeAuth = closeAuth;
 
 // Re-entrancy guard: prevents the same local transactions from being inserted
 // into the cloud twice (with two different UUIDs) when syncLocalTransactionsToCloud
@@ -22839,17 +22602,6 @@ window.syncLocalTransactionsToCloud = syncLocalTransactionsToCloud;
 // ============================================================
 // REAL-TIME SYNC & OFFLINE QUEUE SYSTEM
 // ============================================================
-function generateUUID() {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID();
-  }
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-    const r = Math.random() * 16 | 0;
-    const v = c === 'x' ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
-  });
-}
-
 function enqueueSyncMutation(action, payload) {
   try {
     const queue = JSON.parse(localStorage.getItem('money_manager_sync_queue') || '[]');
@@ -23726,6 +23478,14 @@ function startPartnerSyncPolling() {
 function saveCurrentUIStateToStorage() {
   try {
     window._appIsBackgrounding = true;
+    // FIX #1 (auto-lock): Record the exact moment the app went to the background.
+    // On resume, _handleAppResumed() compares this against the configured delay so
+    // the app locks even while it was in the background (where the foreground
+    // inactivity timer cannot fire).
+    window._lastUserActivity = Date.now();
+    if (typeof window._resetAutoLockTimer === 'function') {
+      window._resetAutoLockTimer();
+    }
     // Blur any focused input so the keyboard doesn't re-appear on resume
     if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) {
       document.activeElement.blur();
@@ -23831,6 +23591,27 @@ let _resumeDebounceTimer = null;
 // We keep the guard active until the 1500ms foreground sync has completed.
 const _RESUME_GUARD_MS = 1700;
 function _handleAppResumed() {
+  // FIX #1 (auto-lock): If the app was in the background longer than the
+  // configured auto-lock delay, lock it immediately on resume. The foreground
+  // inactivity timer cannot fire while the app is hidden, so this covers the
+  // background case. showLockScreen() itself guards against covering the login
+  // overlay (see bug #2 fix), so this is safe even if the session is invalid.
+  try {
+    const delay = (typeof window._getAutoLockDelayMs === 'function')
+      ? window._getAutoLockDelayMs()
+      : 0;
+    if (delay > 0) {
+      const lastActivity = window._lastUserActivity || Date.now();
+      if (Date.now() - lastActivity >= delay) {
+        if (typeof showLockScreen === 'function') {
+          showLockScreen();
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('[AUTO-LOCK] Resume check failed:', e);
+  }
+
   document.body.classList.add('no-transitions');
   setTimeout(() => {
     document.body.classList.remove('no-transitions');
@@ -23846,7 +23627,8 @@ function _handleAppResumed() {
   const _isNativeAndroid = !!(window.Capacitor &&
     window.Capacitor.isNativePlatform &&
     window.Capacitor.isNativePlatform());
-  if (!_isNativeAndroid && typeof window.showResumeOverlay === 'function') {
+  const _isWebMode = document.documentElement.classList.contains('web-mode');
+  if (!_isNativeAndroid && !_isWebMode && typeof window.showResumeOverlay === 'function') {
     window.showResumeOverlay();
   }
 
@@ -23990,11 +23772,22 @@ function updateHeaderProfileBadge() {
     devSettingsRow.style.display = isDev ? 'flex' : 'none';
   }
 
+  // NOTE: The guest-connect-banner element was removed from index.html (the
+  // "Σύνδεση & Συγχρονισμός Cloud" card). Cloud connection happens automatically
+  // on app open or via the lock icon, so the banner was redundant.
+
   if (state.guestMode || !state.currentUser) {
     userBadge.style.display = 'flex';
-    userBadge.innerHTML = '<i class="fa-solid fa-lock" style="font-size: 11px;"></i>';
+    userBadge.style.cursor = 'pointer';
+    userBadge.innerHTML = '<i class="fa-solid fa-lock" style="font-size: 11px; pointer-events: none;"></i>';
     userBadge.title = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_signup_title']) || 'Σύνδεση / Εγγραφή';
-    userBadge.onclick = () => showAuthOverlay();
+    userBadge.removeAttribute('onclick');
+    userBadge.onclick = function (e) {
+      if (e) {
+        try { e.preventDefault(); e.stopPropagation(); } catch (err) { }
+      }
+      showAuthOverlay();
+    };
     userBadge.style.backgroundImage = 'none';
     userBadge.className = 'user-profile-badge';
     return;
@@ -24075,6 +23868,9 @@ function setAccountViewMode(mode) {
   updateProfileSheetModeButtons();
   calculateInitialBalances();
   updateUI();
+  if (typeof window.updateDesktopSidebarUser === 'function') {
+    window.updateDesktopSidebarUser();
+  }
 
   if (typeof showSyncToast === 'function') {
     const msg = mode === 'personal'
@@ -24104,11 +23900,17 @@ function openProfileSheet() {
     return;
   }
 
+  // Ensure all translations are applied to profile sheet elements
+  applyLanguage(state.lang);
+
   const email = state.currentUser.email || '';
   const name = state.userProfile?.display_name || email.split('@')[0];
 
   const nameInput = document.getElementById('profile-name-input');
-  if (nameInput) nameInput.value = name;
+  if (nameInput) {
+    nameInput.value = name;
+    nameInput.placeholder = state.lang === 'el' ? 'Το όνομά σας' : 'Your name';
+  }
 
   const emailDisplay = document.getElementById('profile-email-display');
   if (emailDisplay) emailDisplay.textContent = email;
@@ -24941,6 +24743,8 @@ function initBackdropTapHandlers() {
       if (touchStartTarget === modal && e.target === modal) {
         // Skip full-screen modals (no visible background to tap)
         if (fullScreenModals.includes(modal.id)) return;
+        // ANTI-GHOST-TAP GUARD: Ignore backdrop taps within 350ms of modal opening
+        if (modal._openedAt && (Date.now() - modal._openedAt < 350)) return;
         e.preventDefault(); // prevent the synthetic click from also firing
         markUserInitiated();
         closeModal(modal.id);
@@ -24952,6 +24756,8 @@ function initBackdropTapHandlers() {
     modal.addEventListener('click', (e) => {
       if (e.target === modal) {
         if (fullScreenModals.includes(modal.id)) return;
+        // ANTI-GHOST-TAP GUARD: Ignore backdrop clicks within 350ms of modal opening
+        if (modal._openedAt && (Date.now() - modal._openedAt < 350)) return;
         markUserInitiated();
         closeModal(modal.id);
       }
@@ -25819,12 +25625,6 @@ function updateNoteShortcutVisibility() {
 
 // Convert a hex color (#rrggbb) to a comma-separated "r,g,b" string for use in
 // rgba() backgrounds/shadows. Falls back to the accent purple on parse failure.
-function hexToRgb(hex) {
-  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex || '');
-  if (!m) return '124,106,247';
-  return parseInt(m[1], 16) + ',' + parseInt(m[2], 16) + ',' + parseInt(m[3], 16);
-}
-
 function openSettingsSubscreen(screenId, titleKey, skipHistory = false) {
   if (!window._settingsSubscreenHistory) {
     window._settingsSubscreenHistory = [];
@@ -25912,6 +25712,9 @@ window.openSettingsSubscreen = openSettingsSubscreen;
 function openNotesManager() {
   openModal('notes-manager-modal');
   renderNotesList();
+  if (typeof updateNotesTrashBadge === 'function') {
+    updateNotesTrashBadge();
+  }
 }
 window.openNotesManager = openNotesManager;
 
@@ -25920,6 +25723,15 @@ window.onSubscreenShow_family = function () {
 };
 
 window.onSubscreenShow_security = function () {
+  const secEmailEl = document.getElementById('security-current-email-text');
+  if (secEmailEl) {
+    if (state.currentUser && state.currentUser.email && state.currentUser.id !== 'offline-user') {
+      secEmailEl.textContent = state.currentUser.email;
+    } else {
+      secEmailEl.textContent = state.lang === 'el' ? 'Διαχείριση διεύθυνσης email' : 'Manage email address';
+    }
+  }
+
   const appLockEnabled = localStorage.getItem('app_lock_enabled') === 'true';
   const appLockCheckbox = document.getElementById('settings-app-lock');
   if (appLockCheckbox) appLockCheckbox.checked = appLockEnabled;
@@ -25963,6 +25775,8 @@ window.onSubscreenShow_notifications = function () {
   const dailyTime = localStorage.getItem('settings_daily_reminder_time') || '21:00';
   const dailyTimeInput = document.getElementById('settings-daily-reminder-time');
   if (dailyTimeInput) dailyTimeInput.value = dailyTime;
+  const dailyTimeDisplay = document.getElementById('settings-daily-reminder-time-display');
+  if (dailyTimeDisplay) dailyTimeDisplay.textContent = dailyTime;
 
   const recurringAlertsEnabled = localStorage.getItem('settings_recurring_alerts_enabled') !== 'false';
   const recurringAlertsCheckbox = document.getElementById('settings-recurring-alerts');
@@ -26176,7 +25990,7 @@ function checkPartnerActivityAlerts(transactions) {
     try {
       const stored = localStorage.getItem('seen_partner_tx_ids');
       if (stored) seenIds = new Set(JSON.parse(stored));
-    } catch (e) {}
+    } catch (e) { }
 
     const myUserId = state.currentUser.id;
     const isEl = (state.lang === 'el');
@@ -26358,18 +26172,27 @@ window.renderNotificationHistory = function () {
     return;
   }
 
-  container.innerHTML = state.notifications.map(n => `
+  container.innerHTML = state.notifications.map(n => {
+    const rawTime = n.timestamp || n.date || n.created_at;
+    const formattedDate = rawTime ? new Date(rawTime).toLocaleString(state.lang === 'el' ? 'el-GR' : 'en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    }) : '';
+    return `
     <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:12px; padding:12px; display:flex; gap:12px; align-items:flex-start;">
-      <div style="width:28px; height:28px; border-radius:8px; background:rgba(239,68,68,0.15); color:#ef4444; display:flex; align-items:center; justify-content:center; font-size:13px; margin-top:2px;">
+      <div style="width:28px; height:28px; border-radius:8px; background:rgba(239,68,68,0.15); color:#ef4444; display:flex; align-items:center; justify-content:center; font-size:13px; margin-top:2px; flex-shrink: 0;">
         <i class="fa-solid fa-bell"></i>
       </div>
-      <div style="flex:1; display:flex; flex-direction:column; gap:2px;">
-        <div style="font-size:13px; font-weight:700; color:var(--text-primary);">${n.title || ''}</div>
-        <div style="font-size:12px; color:var(--text-secondary); line-height:1.4;">${n.body || n.message || ''}</div>
-        <div style="font-size:10px; color:var(--text-muted); margin-top:4px;">${n.date ? new Date(n.date).toLocaleString(state.lang === 'el' ? 'el-GR' : 'en-US') : ''}</div>
+      <div style="flex:1; display:flex; flex-direction:column; gap:2px; min-width: 0;">
+        <div style="font-size:13px; font-weight:700; color:var(--text-primary); word-break: break-word;">${escapeHtml(n.title || '')}</div>
+        <div style="font-size:12px; color:var(--text-secondary); line-height:1.4; word-break: break-word;">${escapeHtml(n.body || n.message || '')}</div>
+        <div style="font-size:10px; color:var(--text-muted); margin-top:4px;">${formattedDate}</div>
       </div>
     </div>
-  `).join('');
+  `;
+  }).join('');
 };
 
 window.clearNotificationHistory = function () {
@@ -26451,6 +26274,305 @@ window.toggleNoteShortcutSetting = toggleNoteShortcutSetting;
 window.updateNoteShortcutVisibility = updateNoteShortcutVisibility;
 window.initNoteAutocomplete = initNoteAutocomplete;
 window.closeNoteAutocomplete = closeNoteAutocomplete;
+
+// ============================================================
+// MODERN CLOCK & TIME PICKER CONTROLLER
+// ============================================================
+let _modernTimePickerCallback = null;
+let _modernTimePickerHour = 21;
+let _modernTimePickerMinute = 0;
+let _modernTimePickerMode = 'hour'; // 'hour' | 'minute'
+let _modernTimePickerIsDragging = false;
+let _modernTimePickerListenersAttached = false;
+
+function openModernTimePicker(initialTime, onConfirmCallback) {
+  _modernTimePickerCallback = onConfirmCallback;
+  _modernTimePickerMode = 'hour';
+
+  if (initialTime && typeof initialTime === 'string' && initialTime.includes(':')) {
+    const parts = initialTime.split(':');
+    const h = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10);
+    _modernTimePickerHour = (!isNaN(h) && h >= 0 && h <= 23) ? h : 21;
+    _modernTimePickerMinute = (!isNaN(m) && m >= 0 && m <= 59) ? m : 0;
+  } else {
+    _modernTimePickerHour = 21;
+    _modernTimePickerMinute = 0;
+  }
+
+  updateModernTimePickerDigitalDisplay();
+  renderModernClockFace();
+  updateModernTimePickerPresets();
+
+  const modal = document.getElementById('modern-time-picker-modal');
+  if (modal) {
+    modal.classList.add('active');
+  }
+
+  initModernClockEvents();
+}
+window.openModernTimePicker = openModernTimePicker;
+
+function closeModernTimePicker() {
+  const modal = document.getElementById('modern-time-picker-modal');
+  if (modal) {
+    modal.classList.remove('active');
+  }
+}
+window.closeModernTimePicker = closeModernTimePicker;
+
+function handleModernTimePickerOverlayClick(e) {
+  if (e.target.id === 'modern-time-picker-modal') {
+    closeModernTimePicker();
+  }
+}
+window.handleModernTimePickerOverlayClick = handleModernTimePickerOverlayClick;
+
+function setModernTimePickerMode(mode) {
+  _modernTimePickerMode = mode === 'minute' ? 'minute' : 'hour';
+  updateModernTimePickerDigitalDisplay();
+  renderModernClockFace();
+}
+window.setModernTimePickerMode = setModernTimePickerMode;
+
+function updateModernTimePickerDigitalDisplay() {
+  const hourBtn = document.getElementById('time-picker-hour-btn');
+  const minBtn = document.getElementById('time-picker-min-btn');
+  const hourVal = document.getElementById('time-picker-hour-val');
+  const minVal = document.getElementById('time-picker-min-val');
+  const hintEl = document.getElementById('time-picker-mode-hint');
+
+  if (hourVal) hourVal.textContent = String(_modernTimePickerHour).padStart(2, '0');
+  if (minVal) minVal.textContent = String(_modernTimePickerMinute).padStart(2, '0');
+
+  if (hourBtn && minBtn) {
+    hourBtn.classList.toggle('active', _modernTimePickerMode === 'hour');
+    minBtn.classList.toggle('active', _modernTimePickerMode === 'minute');
+  }
+
+  if (hintEl) {
+    hintEl.textContent = _modernTimePickerMode === 'hour'
+      ? (state.lang === 'el' ? 'Επιλέξτε ώρα (00 - 23)' : 'Select hour (00 - 23)')
+      : (state.lang === 'el' ? 'Επιλέξτε λεπτά (00 - 59)' : 'Select minutes (00 - 59)');
+  }
+}
+
+function updateModernTimePickerPresets() {
+  const formatted = `${String(_modernTimePickerHour).padStart(2, '0')}:${String(_modernTimePickerMinute).padStart(2, '0')}`;
+  document.querySelectorAll('.time-preset-chip').forEach(chip => {
+    chip.classList.toggle('active', chip.textContent.trim() === formatted);
+  });
+}
+
+function selectModernTimePreset(timeStr) {
+  if (!timeStr || !timeStr.includes(':')) return;
+  const parts = timeStr.split(':');
+  _modernTimePickerHour = parseInt(parts[0], 10) || 0;
+  _modernTimePickerMinute = parseInt(parts[1], 10) || 0;
+  updateModernTimePickerDigitalDisplay();
+  renderModernClockFace();
+  updateModernTimePickerPresets();
+}
+window.selectModernTimePreset = selectModernTimePreset;
+
+function renderModernClockFace() {
+  const numbersContainer = document.getElementById('modern-clock-numbers');
+  const handEl = document.getElementById('modern-clock-hand');
+  if (!numbersContainer || !handEl) return;
+
+  numbersContainer.innerHTML = '';
+  const centerX = 110;
+  const centerY = 110;
+
+  if (_modernTimePickerMode === 'hour') {
+    const outerRadius = 78;
+    const innerRadius = 48;
+
+    // 12 Outer hours: 1 to 12
+    for (let i = 1; i <= 12; i++) {
+      const angleRad = (i * 30 - 90) * (Math.PI / 180);
+      const x = centerX + outerRadius * Math.cos(angleRad);
+      const y = centerY + outerRadius * Math.sin(angleRad);
+
+      const numEl = document.createElement('div');
+      numEl.className = `clock-num outer ${(_modernTimePickerHour === i || (_modernTimePickerHour === 0 && i === 12)) ? 'selected' : ''}`;
+      numEl.style.left = `${x}px`;
+      numEl.style.top = `${y}px`;
+      numEl.textContent = i;
+      numEl.onclick = (e) => {
+        e.stopPropagation();
+        _modernTimePickerHour = i === 12 ? 12 : i;
+        updateModernTimePickerDigitalDisplay();
+        renderModernClockFace();
+        updateModernTimePickerPresets();
+        setTimeout(() => setModernTimePickerMode('minute'), 240);
+      };
+      numbersContainer.appendChild(numEl);
+    }
+
+    // 12 Inner hours: 13 to 23 and 00
+    const innerHours = [13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 0];
+    for (let idx = 0; idx < innerHours.length; idx++) {
+      const val = innerHours[idx];
+      const step = (idx + 1);
+      const angleRad = (step * 30 - 90) * (Math.PI / 180);
+      const x = centerX + innerRadius * Math.cos(angleRad);
+      const y = centerY + innerRadius * Math.sin(angleRad);
+
+      const numEl = document.createElement('div');
+      numEl.className = `clock-num inner ${(_modernTimePickerHour === val) ? 'selected' : ''}`;
+      numEl.style.left = `${x}px`;
+      numEl.style.top = `${y}px`;
+      numEl.textContent = val === 0 ? '00' : String(val);
+      numEl.onclick = (e) => {
+        e.stopPropagation();
+        _modernTimePickerHour = val;
+        updateModernTimePickerDigitalDisplay();
+        renderModernClockFace();
+        updateModernTimePickerPresets();
+        setTimeout(() => setModernTimePickerMode('minute'), 240);
+      };
+      numbersContainer.appendChild(numEl);
+    }
+
+    // Set Hand angle and length
+    const isInner = (_modernTimePickerHour === 0 || (_modernTimePickerHour >= 13 && _modernTimePickerHour <= 23));
+    const hStep = (_modernTimePickerHour % 12);
+    const handAngle = hStep * 30;
+    const handLen = isInner ? 48 : 78;
+
+    handEl.style.transform = `rotate(${handAngle}deg)`;
+    handEl.style.height = `${handLen}px`;
+  } else {
+    // Minute mode
+    const minuteRadius = 78;
+    for (let i = 0; i < 60; i += 5) {
+      const step = i / 5;
+      const angleRad = (step * 30 - 90) * (Math.PI / 180);
+      const x = centerX + minuteRadius * Math.cos(angleRad);
+      const y = centerY + minuteRadius * Math.sin(angleRad);
+
+      const numEl = document.createElement('div');
+      numEl.className = `clock-num outer ${Math.round(_modernTimePickerMinute / 5) * 5 === i ? 'selected' : ''}`;
+      numEl.style.left = `${x}px`;
+      numEl.style.top = `${y}px`;
+      numEl.textContent = String(i).padStart(2, '0');
+      numEl.onclick = (e) => {
+        e.stopPropagation();
+        _modernTimePickerMinute = i;
+        updateModernTimePickerDigitalDisplay();
+        renderModernClockFace();
+        updateModernTimePickerPresets();
+      };
+      numbersContainer.appendChild(numEl);
+    }
+
+    const handAngle = _modernTimePickerMinute * 6;
+    handEl.style.transform = `rotate(${handAngle}deg)`;
+    handEl.style.height = `78px`;
+  }
+}
+
+function handleClockDialPointer(e, isRelease) {
+  const clockFace = document.getElementById('modern-clock-face');
+  if (!clockFace) return;
+
+  const rect = clockFace.getBoundingClientRect();
+  const centerX = rect.left + rect.width / 2;
+  const centerY = rect.top + rect.height / 2;
+
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+  const dx = clientX - centerX;
+  const dy = clientY - centerY;
+  const dist = Math.hypot(dx, dy);
+
+  let deg = Math.atan2(dy, dx) * (180 / Math.PI) + 90;
+  if (deg < 0) deg += 360;
+
+  if (_modernTimePickerMode === 'hour') {
+    let step = Math.round(deg / 30) % 12;
+    if (step === 0) step = 12;
+
+    const isInner = dist < 64;
+    if (isInner) {
+      _modernTimePickerHour = step === 12 ? 0 : step + 12;
+    } else {
+      _modernTimePickerHour = step;
+    }
+
+    updateModernTimePickerDigitalDisplay();
+    renderModernClockFace();
+    updateModernTimePickerPresets();
+
+    if (isRelease) {
+      setTimeout(() => setModernTimePickerMode('minute'), 240);
+    }
+  } else {
+    let m = Math.round(deg / 6) % 60;
+    _modernTimePickerMinute = m;
+    updateModernTimePickerDigitalDisplay();
+    renderModernClockFace();
+    updateModernTimePickerPresets();
+  }
+}
+
+function initModernClockEvents() {
+  if (_modernTimePickerListenersAttached) return;
+  const clockFace = document.getElementById('modern-clock-face');
+  if (!clockFace) return;
+
+  _modernTimePickerListenersAttached = true;
+
+  const onStart = (e) => {
+    _modernTimePickerIsDragging = true;
+    handleClockDialPointer(e, false);
+  };
+
+  const onMove = (e) => {
+    if (!_modernTimePickerIsDragging) return;
+    if (e.cancelable) e.preventDefault();
+    handleClockDialPointer(e, false);
+  };
+
+  const onEnd = (e) => {
+    if (!_modernTimePickerIsDragging) return;
+    _modernTimePickerIsDragging = false;
+    handleClockDialPointer(e, true);
+  };
+
+  clockFace.addEventListener('mousedown', onStart);
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', onEnd);
+
+  clockFace.addEventListener('touchstart', onStart, { passive: false });
+  window.addEventListener('touchmove', onMove, { passive: false });
+  window.addEventListener('touchend', onEnd);
+}
+
+function confirmModernTimePicker() {
+  const formatted = `${String(_modernTimePickerHour).padStart(2, '0')}:${String(_modernTimePickerMinute).padStart(2, '0')}`;
+  if (typeof _modernTimePickerCallback === 'function') {
+    _modernTimePickerCallback(formatted);
+  }
+  closeModernTimePicker();
+}
+window.confirmModernTimePicker = confirmModernTimePicker;
+
+function openModernTimePickerForDailyReminder() {
+  const currentVal = localStorage.getItem('settings_daily_reminder_time') || '21:00';
+  openModernTimePicker(currentVal, (newTime) => {
+    const displayEl = document.getElementById('settings-daily-reminder-time-display');
+    if (displayEl) displayEl.textContent = newTime;
+    const inputEl = document.getElementById('settings-daily-reminder-time');
+    if (inputEl) inputEl.value = newTime;
+    if (typeof saveDailyReminderTime === 'function') {
+      saveDailyReminderTime(newTime);
+    }
+  });
+}
+window.openModernTimePickerForDailyReminder = openModernTimePickerForDailyReminder;
 
 // FEATURE: TEXTAREA AUTO-GROW FOR DESCRIPTION/DETAILS
 function initDescriptionAutoGrow() {
@@ -26759,12 +26881,11 @@ function initSettingsSubscreenAndFhs() {
       });
     }
 
-    const forceUpdateRow = document.getElementById('legal-force-update-row');
-    if (forceUpdateRow) {
-      forceUpdateRow.addEventListener('click', () => {
-        forceAppUpdate();
-      });
-    }
+    // NOTE: The force update row (legal-force-update-row) is intentionally NOT
+    // bound here. It already has an inline onclick="forceAppUpdate()" in
+    // index.html. A previous duplicate addEventListener here caused forceAppUpdate()
+    // to fire TWICE, stacking two confirmation dialogs on top of each other.
+    // Removed to avoid the double-handler conflict.
 
     // NOTE: The privacy policy row (legal-privacy-row) is intentionally NOT
     // bound here. It already has an inline onclick="openModal('privacy-policy-modal')"
@@ -28353,16 +28474,6 @@ function runCoachCategoryAnalysis(categoryName) {
   }
 
   return html;
-}
-
-function normalizeGreekString(str) {
-  if (!str) return '';
-  return str
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "") // Removes accents
-    .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?¿€]/g, "") // Removes punctuation
-    .trim();
 }
 
 function predictCategoryFromHistory(noteText) {
@@ -31098,6 +31209,10 @@ function updateUserGuideHeaderBadges() {
   if (dBadge) dBadge.textContent = lang === 'el' ? 'Αύγουστος 2026' : 'August 2026';
   const langLabel = document.getElementById('user-guide-lang-label');
   if (langLabel) langLabel.textContent = window._userGuideLang === 'el' ? 'EN' : 'ΕΛ';
+  const searchInput = document.getElementById('user-guide-search-input');
+  if (searchInput) {
+    searchInput.placeholder = lang === 'el' ? 'Αναζήτηση στον οδηγό (π.χ. Δόσεις, PIN, Cloud)...' : 'Search guide & FAQ (e.g. Recurring, PIN, Cloud)...';
+  }
 }
 
 window.openUserGuideModal = function () {
@@ -31353,9 +31468,9 @@ const USER_GUIDE_DATA = {
       {
         id: 'changelog',
         icon: 'fa-box-archive',
-        title: '1. Version & What\'s New (v1285)',
+        title: '1. Version & What\'s New (v1328)',
         content: `
-          <p><strong>Guide Version:</strong> v1285 | <strong>Synchronized App Version:</strong> v1285</p>
+          <p><strong>Guide Version:</strong> v1328 | <strong>Synchronized App Version:</strong> v1328</p>
           <div class="guide-feature-box">
             <h5 style="margin:0 0 6px; color:var(--primary);">✨ What's new in the latest version:</h5>
             <ul style="margin:0; padding-left:18px;">

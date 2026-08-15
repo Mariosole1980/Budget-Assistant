@@ -30,20 +30,57 @@
         span.textContent = dict.fab_add_transaction || (lang === 'en' ? 'Add Transaction' : 'Προσθήκη Συναλλαγής');
     }
 
+    var TAB_TITLES = {
+        'trans': {
+            icon: 'fa-receipt',
+            el: 'Κινήσεις',
+            en: 'Transactions'
+        },
+        'stats': {
+            icon: 'fa-chart-pie',
+            el: 'Στατιστικά & Ανάλυση',
+            en: 'Statistics & Analytics'
+        },
+        'accounts': {
+            icon: 'fa-credit-card',
+            el: 'Λογαριασμοί & Πορτοφόλια',
+            en: 'Accounts & Wallets'
+        },
+        'more': {
+            icon: 'fa-sliders',
+            el: 'Περισσότερα & Ρυθμίσεις',
+            en: 'More & Settings'
+        }
+    };
+
+    function updateDesktopTopbarTitle(tabKey) {
+        if (!isWebMode()) return;
+        var tab = tabKey || (window.state && window.state.activeTab) || 'trans';
+        var info = TAB_TITLES[tab] || TAB_TITLES['trans'];
+        var lang = (window.state && window.state.lang) || 'el';
+        var text = info[lang] || info['el'];
+
+        var heading = document.getElementById('app-heading-title');
+        if (heading) {
+            heading.innerHTML =
+                '<div class="desktop-header-title-badge">' +
+                '  <i class="fa-solid ' + info.icon + '"></i>' +
+                '</div>' +
+                '<span class="desktop-header-title-text">' + text + '</span>';
+        }
+    }
+
     // ------------------------------------------------------------
-    // Step 2: Desktop sidebar brand header + "Νέα Κίνηση" button.
-    // Injected into the existing .bottom-nav (which desktop.css turns
-    // into a left sidebar). Reuses the existing nav-item click logic
-    // (data-tab / switchTab) so no duplicate navigation wiring.
+    // Step 2: Desktop sidebar brand header & User Profile Card
     // ------------------------------------------------------------
     function initDesktopSidebar() {
         var nav = document.querySelector('.bottom-nav');
         if (!nav) return;
 
-        // Avoid double-injection if initDesktopUI runs more than once.
+        // Avoid double-injection
         if (nav.querySelector('.desktop-sidebar-brand')) return;
 
-        // Brand header (logo + app name)
+        // Brand header (logo + app name + desktop badge)
         var brand = document.createElement('div');
         brand.className = 'desktop-sidebar-brand';
         brand.innerHTML =
@@ -52,58 +89,149 @@
             '</div>' +
             '<div class="desktop-brand-text">' +
             '  <span class="desktop-brand-name">Budget Assistant</span>' +
+            '  <span class="desktop-brand-badge">WEB PRO</span>' +
             '</div>';
         nav.insertBefore(brand, nav.firstChild);
 
-        // "New Transaction" primary action button (localized via fab_add_transaction key)
-        var addBtn = document.createElement('button');
-        addBtn.type = 'button';
-        addBtn.className = 'desktop-sidebar-add';
-        addBtn.innerHTML = '<i class="fa-solid fa-plus"></i><span data-i18n="fab_add_transaction"></span>';
-        addBtn.addEventListener('click', function () {
-            if (typeof window.openAddTransactionModal === 'function') {
-                window.openAddTransactionModal();
+        // Sidebar User Profile widget at bottom
+        var userCard = document.createElement('div');
+        userCard.className = 'desktop-sidebar-user-card';
+        userCard.setAttribute('title', 'Προφίλ & Ρυθμίσεις');
+        userCard.innerHTML =
+            '<div class="desktop-user-avatar" id="desktop-sidebar-avatar">' +
+            '  <i class="fa-solid fa-user"></i>' +
+            '</div>' +
+            '<div class="desktop-user-info">' +
+            '  <span class="desktop-user-name" id="desktop-sidebar-name">Mario</span>' +
+            '  <span class="desktop-user-status" id="desktop-sidebar-status"><i class="fa-solid fa-crown" style="color:#ffc107;font-size:10px;"></i> Premium</span>' +
+            '</div>' +
+            '<i class="fa-solid fa-chevron-right desktop-user-chevron"></i>';
+
+        userCard.addEventListener('click', function () {
+            if (window.state && (window.state.guestMode || !window.state.currentUser)) {
+                if (typeof window.showAuthOverlay === 'function') {
+                    window.showAuthOverlay();
+                    return;
+                }
+            }
+            if (typeof window.openProfileSettingsModal === 'function') {
+                window.openProfileSettingsModal();
+            } else if (typeof window.switchTab === 'function') {
+                window.switchTab('more');
             }
         });
-        nav.insertBefore(addBtn, brand.nextSibling);
-        localizeAddButton(addBtn);
+
+        nav.appendChild(userCard);
+        updateDesktopSidebarUser();
     }
 
+    function updateDesktopSidebarUser() {
+        if (!isWebMode()) return;
+        var nameEl = document.getElementById('desktop-sidebar-name');
+        var avatarEl = document.getElementById('desktop-sidebar-avatar');
+        var statusEl = document.getElementById('desktop-sidebar-status');
+
+        var state = window.state || {};
+        var user = state.currentUser;
+        var isPrem = (typeof window.isPremium === 'function') ? window.isPremium() : true;
+
+        if (nameEl) {
+            var profileName = (state.userProfile && (state.userProfile.display_name || state.userProfile.name)) ||
+                              localStorage.getItem('profile_name') ||
+                              (user ? (user.user_metadata && user.user_metadata.full_name) : null);
+            if (!profileName && user && user.email) {
+                profileName = user.email.split('@')[0];
+            }
+            nameEl.textContent = profileName || (state.lang === 'en' ? 'Guest' : 'Επισκέπτης');
+        }
+
+        if (avatarEl) {
+            var avatarUrl = localStorage.getItem('profile_avatar_url') || (state.userProfile && state.userProfile.avatar_url);
+            if (avatarUrl) {
+                avatarEl.innerHTML = '<img src="' + avatarUrl + '" alt="Avatar" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">';
+            } else {
+                var initial = (nameEl && nameEl.textContent) ? nameEl.textContent.trim().charAt(0).toUpperCase() : 'M';
+                avatarEl.textContent = initial || 'M';
+            }
+        }
+
+        if (statusEl) {
+            var hasFamily = Boolean(state.familyGroup || (state.userProfile && state.userProfile.family_id) || (user && user.family_id));
+            var currentMode = state.activeAccountMode || (hasFamily ? 'family' : 'personal');
+            var isFamilyActive = (currentMode === 'family' && hasFamily);
+            var planLabel = isPrem ? 'PRO' : 'Free';
+            var scopeLabel = isFamilyActive ? (state.lang === 'en' ? 'Family' : 'Οικογένεια') : (state.lang === 'en' ? 'Personal' : 'Ατομικό');
+            statusEl.innerHTML = (isPrem ? '<i class="fa-solid fa-crown" style="color:#ffc107;font-size:10px;margin-right:3px;"></i>' : '') + planLabel + ' • ' + scopeLabel;
+        }
+    }
+    window.updateDesktopSidebarUser = updateDesktopSidebarUser;
+
     // ------------------------------------------------------------
-    // Step 2: Desktop topbar "Νέα Κίνηση" button.
-    // Injected into the existing .app-header (which desktop.css turns
-    // into the top bar). Reuses openAddTransactionModal().
+    // Step 2: Desktop topbar (Dynamic Breadcrumb, Search, Add Button)
     // ------------------------------------------------------------
     function initDesktopTopbar() {
         var header = document.querySelector('.app-header');
         if (!header) return;
 
-        if (header.querySelector('.desktop-topbar-add')) return;
-
-        var addBtn = document.createElement('button');
-        addBtn.type = 'button';
-        addBtn.className = 'desktop-topbar-add';
-        addBtn.innerHTML = '<i class="fa-solid fa-plus"></i><span data-i18n="fab_add_transaction"></span>';
-        addBtn.addEventListener('click', function () {
-            if (typeof window.openAddTransactionModal === 'function') {
-                window.openAddTransactionModal();
-            }
-        });
+        // Set initial dynamic section title
+        updateDesktopTopbarTitle(window.state && window.state.activeTab);
 
         var actions = header.querySelector('.header-actions');
-        if (actions) {
-            actions.insertBefore(addBtn, actions.firstChild);
-        } else {
-            header.appendChild(addBtn);
+        if (!actions) return;
+
+        // Desktop Global Search Trigger Chip
+        if (!header.querySelector('.desktop-topbar-search')) {
+            var searchChip = document.createElement('button');
+            searchChip.type = 'button';
+            searchChip.className = 'desktop-topbar-search';
+            searchChip.innerHTML =
+                '<i class="fa-solid fa-magnifying-glass"></i>' +
+                '<span data-i18n="search_placeholder">' + (window.state && window.state.lang === 'en' ? 'Search expenses...' : 'Αναζήτηση κινήσεων...') + '</span>' +
+                '<kbd>/</kbd>';
+            searchChip.addEventListener('click', function () {
+                if (typeof window.openSearchOverlay === 'function') {
+                    window.openSearchOverlay();
+                }
+            });
+            actions.insertBefore(searchChip, actions.firstChild);
         }
-        localizeAddButton(addBtn);
+
+        // Single Primary "New Transaction" Button in Header
+        if (!header.querySelector('.desktop-topbar-add')) {
+            var addBtn = document.createElement('button');
+            addBtn.type = 'button';
+            addBtn.className = 'desktop-topbar-add';
+            addBtn.innerHTML = '<i class="fa-solid fa-plus"></i><span data-i18n="fab_add_transaction">Προσθήκη</span>';
+            addBtn.addEventListener('click', function () {
+                if (typeof window.openAddTransactionModal === 'function') {
+                    window.openAddTransactionModal();
+                }
+            });
+            actions.insertBefore(addBtn, actions.firstChild.nextSibling);
+            localizeAddButton(addBtn);
+        }
+
+        // Quick Notepad Header Trigger
+        if (!header.querySelector('.desktop-topbar-note')) {
+            var noteBtn = document.createElement('button');
+            noteBtn.type = 'button';
+            noteBtn.className = 'icon-btn desktop-topbar-note';
+            noteBtn.setAttribute('title', window.state && window.state.lang === 'en' ? 'Notepad & Reminders' : 'Σημειωματάριο & Υπενθυμίσεις');
+            noteBtn.innerHTML = '<i class="fa-solid fa-note-sticky"></i>';
+            noteBtn.addEventListener('click', function () {
+                if (typeof window.openNotesManagerModal === 'function') {
+                    window.openNotesManagerModal();
+                }
+            });
+            actions.appendChild(noteBtn);
+        }
     }
 
     // ------------------------------------------------------------
     // Step 3: Keyboard shortcuts (desktop only).
     //   N        → New transaction
     //   Escape   → Close any open modal / sheet
-    //   /        → Focus global search (when a search field exists)
+    //   /        → Focus global search
     //   ← / →    → Navigate between tabs
     // ------------------------------------------------------------
     function initKeyboardShortcuts() {
@@ -112,7 +240,6 @@
 
         var TAB_ORDER = ['trans', 'stats', 'accounts', 'more'];
 
-        // Ignore shortcuts while the user is typing in a field.
         function isTypingTarget(e) {
             var t = e.target;
             if (!t) return false;
@@ -122,10 +249,8 @@
         }
 
         document.addEventListener('keydown', function (e) {
-            // Only active in web-mode (defensive; listener is only added in web-mode).
             if (!isWebMode()) return;
 
-            // Don't hijack keys while typing (except Escape to close modals).
             if (isTypingTarget(e) && e.key !== 'Escape') return;
 
             // N → New transaction
@@ -145,17 +270,16 @@
                 return;
             }
 
-            // / → focus global search (if present in a future phase)
+            // / → open search
             if (e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey) {
-                var search = document.querySelector('.desktop-global-search input, #desktop-search-input');
-                if (search) {
-                    e.preventDefault();
-                    search.focus();
+                e.preventDefault();
+                if (typeof window.openSearchOverlay === 'function') {
+                    window.openSearchOverlay();
                 }
                 return;
             }
 
-            // ← / → → tab navigation (only when not typing)
+            // ← / → → tab navigation
             if (isTypingTarget(e)) return;
             if (e.altKey || e.ctrlKey || e.metaKey) return;
 
@@ -179,15 +303,28 @@
     }
 
     // ------------------------------------------------------------
-    // Stats Summary (desktop-only).
-    //
-    // The former Dashboard content (KPI cards + recent transactions)
-    // now lives at the top of the Στατιστικά (Stats) tab, so the
-    // redundant "Dashboard" nav item/screen were removed. This
-    // function populates that summary whenever the stats tab renders.
-    // It is web-mode gated and hidden on mobile via desktop.css.
+    // Hook into switchTab to update the topbar title & sidebar
     // ------------------------------------------------------------
+    function initTabSwitchHook() {
+        if (window.__desktopTabSwitchHooked) return;
+        window.__desktopTabSwitchHooked = true;
 
+        var origSwitchTab = window.switchTab;
+        if (typeof origSwitchTab === 'function') {
+            window.switchTab = function (tab, instant) {
+                var res = origSwitchTab(tab, instant);
+                if (isWebMode()) {
+                    updateDesktopTopbarTitle(tab);
+                    updateDesktopSidebarUser();
+                }
+                return res;
+            };
+        }
+    }
+
+    // ------------------------------------------------------------
+    // Stats Summary (desktop-only).
+    // ------------------------------------------------------------
     function sumCurrencySymbol() {
         var code = (typeof window.getDisplayCurrency === 'function')
             ? window.getDisplayCurrency()
@@ -213,7 +350,6 @@
         if (el) el.textContent = text;
     }
 
-    // Populate the KPI cards + recent transactions in the stats summary.
     function renderStatsSummary() {
         var summary = document.getElementById('stats-summary');
         if (!summary) return;
@@ -225,7 +361,7 @@
         var accounts = state.accounts || [];
         var symbol = sumCurrencySymbol();
 
-        // ---- KPI: Net worth ----
+        // Net worth
         var netWorth = 0;
         if (typeof window.computeNetWorth === 'function') {
             netWorth = window.computeNetWorth();
@@ -237,7 +373,7 @@
         sumSetText('sum-net-worth', symbol + ' ' + sumFmt(netWorth));
         sumSetText('sum-net-worth-sub', accounts.length + ' ' + (state.lang === 'en' ? 'accounts' : 'λογαριασμοί'));
 
-        // ---- KPI: Current month income / expense / savings ----
+        // Income / Expense / Savings
         var now = new Date();
         var curKey = sumMonthKey(now);
         var monthIncome = 0, monthExpense = 0;
@@ -266,7 +402,7 @@
         sumSetText('sum-month-expense-sub', monthName);
         sumSetText('sum-month-savings-sub', monthName);
 
-        // ---- Recent transactions (last 6) ----
+        // Recent transactions (last 6)
         var recent = transactions.slice().sort(function (a, b) {
             var ta = (typeof window.getTransactionTime === 'function') ? window.getTransactionTime(a) : 0;
             var tb = (typeof window.getTransactionTime === 'function') ? window.getTransactionTime(b) : 0;
@@ -322,11 +458,6 @@
         container.innerHTML = html;
     }
 
-    // ------------------------------------------------------------
-    // Hook into renderStatsTab so the desktop summary is refreshed
-    // whenever the stats tab re-renders (period change, data change,
-    // tab switch, etc.). Web-mode only; no-op elsewhere.
-    // ------------------------------------------------------------
     function initStatsSummaryHook() {
         if (window.__desktopStatsSummaryHooked) return;
         window.__desktopStatsSummaryHooked = true;
@@ -353,34 +484,20 @@
     function initDesktopUI() {
         if (!isWebMode()) return;
 
-        // Phase 1 (foundation): P0 fixes handled entirely in desktop.css.
-        // Phase 2 (navigation): sidebar brand + topbar add button.
         initDesktopSidebar();
         initDesktopTopbar();
-
-        // Phase 3 (keyboard): shortcuts.
         initKeyboardShortcuts();
-
-        // Stats summary: populate the KPI/recent section in Στατιστικά
-        // and keep it in sync with every stats re-render.
+        initTabSwitchHook();
         initStatsSummaryHook();
         renderStatsSummary();
 
-        // Mark the desktop UI as initialized (useful for debugging).
         document.documentElement.classList.add('desktop-ui-ready');
     }
 
-    // Expose globally so app.js can call it via the hook line.
     window.initDesktopUI = initDesktopUI;
 
-    // ------------------------------------------------------------
-    // Auto-init fallback: if app.js's hook line is not present
-    // (e.g. older cached app.js), still initialize on DOM ready.
-    // This keeps the desktop layer self-sufficient and safe.
-    // ------------------------------------------------------------
     function autoInit() {
         if (isWebMode() && typeof window.initDesktopUI === 'function') {
-            // Defer slightly so app.js has finished its own init.
             setTimeout(function () {
                 window.initDesktopUI();
             }, 0);

@@ -57,6 +57,16 @@ appContent = appContent.replace(/<strong>Synchronized App Version:<\/strong> v\d
 fs.writeFileSync(appPath, appContent);
 console.log('  [OK] app.js updated');
 
+// 4b. Sync js/translations.js (the app_version translation string carries the
+// "(build vN)" marker that was extracted from app.js in Phase 3).
+const translationsPath = path.join(rootDir, 'js', 'translations.js');
+if (fs.existsSync(translationsPath)) {
+  let translationsContent = fs.readFileSync(translationsPath, 'utf8');
+  translationsContent = translationsContent.replace(/build v\d+/g, `build v${version}`);
+  fs.writeFileSync(translationsPath, translationsContent);
+  console.log('  [OK] js/translations.js updated');
+}
+
 // 5. Sync android/app/build.gradle
 const gradlePath = path.join(rootDir, 'android', 'app', 'build.gradle');
 if (fs.existsSync(gradlePath)) {

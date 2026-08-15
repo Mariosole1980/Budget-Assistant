@@ -42,8 +42,13 @@ if (!swTxt.includes(`const CACHE_NAME = 'money-manager-v${canonicalVersion}-'`))
 const appPath = path.join(rootDir, 'app.js');
 const appTxt = fs.readFileSync(appPath, 'utf8');
 
-if (!appTxt.includes(`(build v${canonicalVersion}`)) {
-  errors.push(`app.js: app_version build number does not match v${canonicalVersion}`);
+// NOTE: The app_version label is now DYNAMIC — getActiveBuildLabel() (app.js)
+// constructs "(build vN)" at runtime from window.OTA_ACTIVE_VERSION / CURRENT_BUILD
+// (fallback template: 'Έκδοση 1.0.0 (build v' + ...). There is no static
+// "(build vN)" literal in app.js anymore, so we verify the dynamic template
+// pattern exists instead of a hard-coded version (avoids false failures).
+if (!appTxt.includes(`(build v' + (build != null ? build : '?') + ')'`)) {
+  errors.push(`app.js: dynamic app_version build label template missing (expected getActiveBuildLabel fallback)`);
 }
 // NOTE: The Greek guide title/version strings are now DYNAMIC (read CURRENT_BUILD
 // at runtime via template literals), so they self-sync. Verify the dynamic pattern

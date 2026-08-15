@@ -1,203 +1,33 @@
 /* ============================================================ */
-/* BUDGET ASSISTANT — DESKTOP WEB UX LAYER                       */
+/* BUDGET ASSISTANT — DESKTOP WEB UX LAYER (desktop.css)         */
 /* ============================================================ */
-/* ============================================================ */
-/* STEP 2 — SIDEBAR & TOPBAR                                     */
-/* ============================================================ */
-/* The existing .bottom-nav is turned into a left sidebar by the */
-/* desktop block in style.css. Here we add the brand header and  */
-/* "Νέα Κίνηση" button (injected by web-ui.js) plus polish.      */
-/* ============================================================ */
-
-/* --- Sidebar brand header (injected) --- */
-html.web-mode .desktop-sidebar-brand {
-    display: flex !important;
-    align-items: center !important;
-    gap: 12px !important;
-    padding: 4px 12px 20px 12px !important;
-    margin-bottom: 8px !important;
-    border-bottom: 1px solid var(--border) !important;
-}
-
-html.web-mode .desktop-brand-logo {
-    width: 38px !important;
-    height: 38px !important;
-    border-radius: 12px !important;
-    background: linear-gradient(135deg, var(--accent), rgba(224, 94, 85, 0.6)) !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    color: #fff !important;
-    font-size: 18px !important;
-    flex-shrink: 0 !important;
-    box-shadow: 0 4px 12px rgba(224, 94, 85, 0.35) !important;
-}
-
-html.web-mode .desktop-brand-text {
-    display: flex !important;
-    flex-direction: column !important;
-    min-width: 0 !important;
-}
-
-html.web-mode .desktop-brand-name {
-    font-family: 'Outfit', sans-serif !important;
-    font-size: 16px !important;
-    font-weight: 800 !important;
-    color: var(--text-main) !important;
-    letter-spacing: -0.3px !important;
-    white-space: nowrap !important;
-}
-
-/* --- Sidebar "Νέα Κίνηση" primary button (injected) --- */
-html.web-mode .desktop-sidebar-add {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    gap: 8px !important;
-    width: 100% !important;
-    padding: 12px 16px !important;
-    margin-bottom: 16px !important;
-    border-radius: 12px !important;
-    background: var(--accent) !important;
-    color: #fff !important;
-    font-family: 'Outfit', sans-serif !important;
-    font-size: 14px !important;
-    font-weight: 700 !important;
-    border: none !important;
-    cursor: pointer !important;
-    box-shadow: 0 4px 14px rgba(224, 94, 85, 0.3) !important;
-    transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease !important;
-}
-
-html.web-mode .desktop-sidebar-add:hover {
-    background: #d04e46 !important;
-    box-shadow: 0 6px 18px rgba(224, 94, 85, 0.4) !important;
-    transform: translateY(-1px) !important;
-}
-
-html.web-mode .desktop-sidebar-add:active {
-    transform: translateY(0) !important;
-}
-
-/* --- Topbar "Νέα Κίνηση" button (injected) --- */
-html.web-mode .desktop-topbar-add {
-    display: inline-flex !important;
-    align-items: center !important;
-    gap: 8px !important;
-    padding: 9px 16px !important;
-    border-radius: 10px !important;
-    background: var(--accent) !important;
-    color: #fff !important;
-    font-family: 'Outfit', sans-serif !important;
-    font-size: 13.5px !important;
-    font-weight: 700 !important;
-    border: none !important;
-    cursor: pointer !important;
-    box-shadow: 0 3px 10px rgba(224, 94, 85, 0.3) !important;
-    transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease !important;
-    white-space: nowrap !important;
-}
-
-html.web-mode .desktop-topbar-add:hover {
-    background: #d04e46 !important;
-    box-shadow: 0 5px 14px rgba(224, 94, 85, 0.4) !important;
-    transform: translateY(-1px) !important;
-}
-
-/* --- Polish the existing sidebar nav items --- */
-html.web-mode .bottom-nav .nav-item {
-    font-family: 'Inter', sans-serif !important;
-    font-weight: 500 !important;
-    letter-spacing: 0.2px !important;
-}
-
-html.web-mode .bottom-nav .nav-item.active {
-    font-weight: 700 !important;
-}
-
-/* --- Hide the mobile FAB on desktop (replaced by topbar/sidebar buttons) --- */
-html.web-mode .fab {
-    display: none !important;
-}
-
-/* --- Hide the mobile quick-notepad FAB on desktop --- */
-html.web-mode .fab-note {
-    display: none !important;
-}
-
-/* ============================================================ */
-/* STEP 1 — P0 FOUNDATION (below)                                */
-/* ============================================================ */
-/* Desktop/PWA redesign for the WEB version only.                */
+/* High-End Modern Fintech Desktop UI for the WEB version only. */
 /*                                                               */
 /* SAFETY: Every rule is scoped behind `html.web-mode` so the    */
 /* Android/iOS native app (Capacitor) is NEVER affected.         */
 /* `html.web-mode` is added by index.html only when NOT running  */
 /* inside Capacitor (see index.html web-mode detection).         */
-/*                                                               */
-/* This file is loaded AFTER style.css (see index.html <head>)   */
-/* so it can safely override the mobile-first base rules.        */
 /* ============================================================ */
 
 /* ------------------------------------------------------------ */
-/* DESIGN TOKENS (Desktop)                                       */
-/* ------------------------------------------------------------ */
-html.web-mode {
-    /* Layout */
-    --desktop-sidebar-width: 220px;
-    --desktop-topbar-height: 64px;
-    --desktop-panel-width: 360px;
-    --desktop-content-padding: 32px;
-    --desktop-gap: 20px;
-    --touch-target: 36px;
-
-    /* Surfaces */
-    --card-radius: 16px;
-    --glass-bg: rgba(34, 39, 49, 0.85);
-    --glass-blur: blur(20px);
-    --glass-border: 1px solid rgba(255, 255, 255, 0.06);
-
-    /* Focus ring accent */
-    --focus-ring: 2px solid var(--accent);
-}
-
-/* ------------------------------------------------------------ */
-/* P0-0: Establish a DEFINITE height chain so .app-content is the
-   bounded scroll container (sticky header stays put).
-   The mobile-first base rule (style.css) sets `html, body {
-   height:100dvh; overflow:hidden }`. The previous P0-1 rule tried
-   to fix scrolling by setting `body { height:auto; overflow:auto }`,
-   but that BROKE the height chain: with `body` at auto height,
-   `.app-container { height:100% }` and `.app-content { height:100% }`
-   both resolve to auto, so NO element is bounded and no scrollbar
-   ever engages. The page cannot scroll in ANY tab.
-   Fix: keep the root locked at 100dvh (viewport clipped) and give
-   `body` a DEFINITE 100dvh height. Then `.app-container`'s 100%
-   resolves against it, the grid `1fr` content row is bounded, and
-   `.app-content` (min-height:0 / max-height:100% / overflow-y:auto)
-   becomes the real scroll container. Scoped behind html.web-mode so
-   native Android/iOS is unaffected. */
+/* 1. ROOT & FOUNDATION (Height chain & Smooth scrolling)        */
 /* ------------------------------------------------------------ */
 html.web-mode {
     height: 100dvh !important;
     overflow: hidden !important;
+    -webkit-tap-highlight-color: transparent !important;
 }
 
-/* ------------------------------------------------------------ */
-/* P0-1: Lock body to a definite height so the grid content row
-   (1fr) is bounded and .app-content can scroll internally. */
-/* ------------------------------------------------------------ */
 html.web-mode body {
     height: 100dvh !important;
     min-height: 0 !important;
     overflow: hidden !important;
     overflow-x: hidden !important;
     touch-action: auto !important;
+    background-color: var(--bg-main, #0f1117) !important;
 }
 
-/* ------------------------------------------------------------ */
-/* P0-2: Re-enable text selection on desktop                     */
-/* ------------------------------------------------------------ */
+/* Text selection enabled on desktop */
 html.web-mode body,
 html.web-mode button,
 html.web-mode .nav-item,
@@ -210,17 +40,12 @@ html.web-mode .stats-row,
 html.web-mode .stats-sub-row {
     user-select: text !important;
     -webkit-user-select: text !important;
-    -moz-user-select: text !important;
-    -ms-user-select: text !important;
 }
 
-/* ------------------------------------------------------------ */
-/* P0-3: Restore visible, styled scrollbars (6px thin)           */
-/* ------------------------------------------------------------ */
+/* Custom Sleek Scrollbars */
 html.web-mode * {
     scrollbar-width: thin !important;
-    scrollbar-color: var(--border-light) transparent !important;
-    -ms-overflow-style: auto !important;
+    scrollbar-color: rgba(255, 255, 255, 0.15) transparent !important;
 }
 
 html.web-mode ::-webkit-scrollbar {
@@ -233,318 +58,706 @@ html.web-mode ::-webkit-scrollbar-track {
 }
 
 html.web-mode ::-webkit-scrollbar-thumb {
-    background: var(--border-light) !important;
+    background: rgba(255, 255, 255, 0.14) !important;
     border-radius: 6px !important;
 }
 
 html.web-mode ::-webkit-scrollbar-thumb:hover {
-    background: var(--text-muted) !important;
+    background: rgba(255, 255, 255, 0.28) !important;
 }
 
-/* ------------------------------------------------------------ */
-/* P0-4: Disable touch-first scale(0.94) press feedback          */
-/* ------------------------------------------------------------ */
+/* Disable touch scale feedback */
 html.web-mode button:active,
 html.web-mode .nav-item:active,
 html.web-mode .calc-key-btn:active,
 html.web-mode .fab:active,
 html.web-mode .settings-card:active,
 html.web-mode .settings-list-item:active,
-html.web-mode .stats-tab-btn:active,
-html.web-mode .stats-dropdown-item:active,
 html.web-mode .transaction-item.pressed,
-html.web-mode .stats-row.pressed,
-html.web-mode .stats-sub-row.pressed {
+html.web-mode .stats-row.pressed {
     transform: none !important;
     opacity: 1 !important;
 }
 
-/* ------------------------------------------------------------ */
-/* P0-5: Visible focus rings for keyboard navigation             */
-/* ------------------------------------------------------------ */
+/* Keyboard focus rings */
 html.web-mode :focus-visible {
-    outline: var(--focus-ring) !important;
+    outline: 2px solid var(--accent, #e05e55) !important;
     outline-offset: 2px !important;
-    border-radius: 4px !important;
+    border-radius: 6px !important;
 }
 
-/* ------------------------------------------------------------ */
-/* P0-6: Disable tap-highlight flash on desktop                  */
-/* ------------------------------------------------------------ */
-html.web-mode {
-    -webkit-tap-highlight-color: transparent !important;
-}
-
-/* ------------------------------------------------------------ */
-/* P0-7: Desktop cursor affordance                               */
-/* ------------------------------------------------------------ */
+/* Cursor affordance */
 html.web-mode .nav-item,
 html.web-mode .transaction-item,
 html.web-mode .settings-card,
 html.web-mode .settings-list-item,
 html.web-mode .stats-tab-btn,
-html.web-mode .stats-dropdown-item {
+html.web-mode .stats-dropdown-item,
+html.web-mode .desktop-topbar-search,
+html.web-mode .desktop-topbar-add,
+html.web-mode .desktop-sidebar-user-card {
     cursor: pointer !important;
 }
 
 /* ------------------------------------------------------------ */
-/* P0-8: Hover feedback on interactive cards (desktop only)      */
+/* 2. APP CONTAINER & GRID LAYOUT                                */
 /* ------------------------------------------------------------ */
-html.web-mode .transaction-item:hover,
-html.web-mode .settings-card:hover,
-html.web-mode .settings-list-item:hover {
-    background-color: var(--border-light) !important;
-}
+@media (min-width: 768px) {
+    html.web-mode .app-container {
+        max-width: 100% !important;
+        width: 100% !important;
+        height: 100% !important;
+        margin: 0 !important;
+        border-radius: 0 !important;
+        border: none !important;
+        box-shadow: none !important;
+        display: grid !important;
+        grid-template-columns: 250px 1fr !important;
+        grid-template-rows: 64px 1fr !important;
+        grid-template-areas:
+            "sidebar header"
+            "sidebar content" !important;
+        min-height: 0 !important;
+    }
 
-/* ------------------------------------------------------------ */
-/* P0-9: Smooth hover lift on cards                              */
-/* ------------------------------------------------------------ */
-html.web-mode .transaction-item,
-html.web-mode .settings-card {
-    transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease !important;
-}
+    /* ------------------------------------------------------------ */
+    /* 3. SIDEBAR NAVIGATION (Modern SaaS Left Rail)                */
+    /* ------------------------------------------------------------ */
+    html.web-mode .bottom-nav {
+        grid-area: sidebar !important;
+        position: fixed !important;
+        left: 0 !important;
+        top: 0 !important;
+        bottom: 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: flex-start !important;
+        height: 100% !important;
+        width: 250px !important;
+        padding: 20px 14px 16px 14px !important;
+        gap: 6px !important;
+        border-top: none !important;
+        border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+        box-shadow: none !important;
+        background: var(--bg-card, #161b22) !important;
+        transform: none !important;
+        max-width: none !important;
+        z-index: 100 !important;
+        box-sizing: border-box !important;
+    }
 
-html.web-mode .transaction-item:hover,
-html.web-mode .settings-card:hover {
-    transform: translateY(-1px) !important;
-    box-shadow: var(--shadow) !important;
-}
+    html.web-mode .bottom-nav::after {
+        display: none !important;
+    }
 
-/* ------------------------------------------------------------ */
-/* P0-10: Ensure the app content area scrolls naturally          */
-/* ------------------------------------------------------------ */
-html.web-mode .app-content {
-    overflow-y: auto !important;
-    overflow-x: hidden !important;
-    -webkit-overflow-scrolling: touch !important;
-    /* CRITICAL: as a grid item, min-height defaults to auto which prevents
-       the element from shrinking below its content. Setting min-height:0
-       lets it be bounded by the 1fr grid row so overflow-y:auto actually
-       scrolls. Without this, content is clipped and cannot scroll in ANY tab.
-       height:100% + max-height:100% + align-self:stretch guarantee the element
-       fills its grid area so it is ALWAYS a bounded, scrollable container. */
-    min-height: 0 !important;
-    height: 100% !important;
-    max-height: 100% !important;
-    align-self: stretch !important;
-}
+    /* Sidebar Brand Header */
+    html.web-mode .desktop-sidebar-brand {
+        display: flex !important;
+        align-items: center !important;
+        gap: 12px !important;
+        padding: 4px 8px 18px 8px !important;
+        margin-bottom: 10px !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+    }
 
-/* ============================================================ */
-/* STEP 4 — STATS SUMMARY (desktop-only)                        */
-/* ============================================================ */
-/* The former Dashboard content (KPI cards + recent transactions) */
-/* now lives at the top of the Στατιστικά (Stats) tab. It is      */
-/* populated by web-ui.js (renderStatsSummary) and hidden on      */
-/* mobile via the html.web-mode gating below.                    */
-/* ============================================================ */
+    html.web-mode .desktop-brand-logo {
+        width: 38px !important;
+        height: 38px !important;
+        border-radius: 12px !important;
+        background: linear-gradient(135deg, var(--accent, #e05e55), #c0392b) !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        color: #fff !important;
+        font-size: 17px !important;
+        flex-shrink: 0 !important;
+        box-shadow: 0 4px 14px rgba(224, 94, 85, 0.35) !important;
+    }
 
-/* MOBILE SAFETY GUARD: the stats summary is desktop-only. Outside
-   web-mode (native Android/iOS) it must NEVER be visible. */
-html:not(.web-mode) .stats-summary {
-    display: none !important;
-}
+    html.web-mode .desktop-brand-text {
+        display: flex !important;
+        flex-direction: column !important;
+        min-width: 0 !important;
+        gap: 2px !important;
+    }
 
-/* --- Summary container --- */
-html.web-mode .stats-summary {
-    display: block !important;
-    margin-bottom: 20px !important;
-}
+    html.web-mode .desktop-brand-name {
+        font-family: 'Outfit', sans-serif !important;
+        font-size: 15.5px !important;
+        font-weight: 800 !important;
+        color: var(--text-main, #f1f5f9) !important;
+        letter-spacing: -0.3px !important;
+        white-space: nowrap !important;
+    }
 
-/* The stats screen is a two-column grid on desktop (see style.css
-   html.web-mode #stats-screen.active). Because .stats-scroll-content
-   uses display:contents, the summary becomes a direct grid item. It
-   must span BOTH columns on its own row so it never gets squeezed into
-   a single cell (which caused content below to be cut off / unscrollable). */
-html.web-mode #stats-screen.active #stats-summary {
-    grid-column: 1 / span 2 !important;
-    grid-row: auto !important;
-    width: 100% !important;
-    min-width: 0 !important;
-}
+    html.web-mode .desktop-brand-badge {
+        font-size: 9.5px !important;
+        font-weight: 800 !important;
+        letter-spacing: 0.6px !important;
+        text-transform: uppercase !important;
+        color: var(--accent, #e05e55) !important;
+        background: rgba(224, 94, 85, 0.12) !important;
+        padding: 1px 6px !important;
+        border-radius: 6px !important;
+        width: fit-content !important;
+    }
 
-/* The breakdown and budgets containers are normal grid items whose
-   visibility is toggled via inline style.display (switchStatsSubtab).
-   We must NOT use display:contents on them — that would override the
-   inline display:none and break the subtab switching. Instead they span
-   both columns so the chart + breakdown list (and budgets) flow as
-   full-width blocks that stack vertically and scroll naturally with the
-   page. This guarantees the stats tab is always scrollable. */
-html.web-mode #stats-screen.active #stats-breakdown-container,
-html.web-mode #stats-screen.active #stats-budgets-container {
-    grid-column: 1 / span 2 !important;
-    grid-row: auto !important;
-    width: 100% !important;
-    min-width: 0 !important;
-}
+    /* Sidebar Nav Items */
+    html.web-mode .bottom-nav .nav-item {
+        flex: none !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: flex-start !important;
+        width: 100% !important;
+        padding: 11px 14px !important;
+        border-radius: 12px !important;
+        gap: 12px !important;
+        font-family: 'Outfit', sans-serif !important;
+        font-size: 14px !important;
+        font-weight: 600 !important;
+        color: var(--text-secondary, #94a3b8) !important;
+        height: auto !important;
+        transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        border: 1px solid transparent !important;
+        background: transparent !important;
+        box-sizing: border-box !important;
+    }
 
-/* --- KPI grid --- */
-html.web-mode .stats-summary-grid {
-    display: grid !important;
-    grid-template-columns: repeat(4, 1fr) !important;
-    gap: 16px !important;
-    margin-bottom: 16px !important;
-}
+    html.web-mode .bottom-nav .nav-item svg {
+        width: 19px !important;
+        height: 19px !important;
+        margin-bottom: 0 !important;
+        fill: currentColor !important;
+        transition: transform 0.18s ease !important;
+    }
 
-/* --- KPI cards --- */
-html.web-mode .stats-summary-card {
-    background: var(--card-bg, #1e222b) !important;
-    border: 1px solid var(--border, rgba(148, 163, 184, 0.15)) !important;
-    border-radius: 16px !important;
-    padding: 18px 20px !important;
-    box-shadow: var(--shadow, 0 4px 16px rgba(0, 0, 0, 0.2)) !important;
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 6px !important;
-}
+    html.web-mode .bottom-nav .nav-item:hover {
+        background: rgba(255, 255, 255, 0.05) !important;
+        color: var(--text-main, #f1f5f9) !important;
+        transform: translateX(3px) !important;
+    }
 
-html.web-mode .stats-summary-title {
-    font-family: 'Outfit', sans-serif !important;
-    font-size: 12px !important;
-    font-weight: 700 !important;
-    color: var(--text-secondary, #94a3b8) !important;
-    text-transform: uppercase !important;
-    letter-spacing: 0.4px !important;
-    display: flex !important;
-    align-items: center !important;
-    gap: 6px !important;
-}
+    html.web-mode .bottom-nav .nav-item.active {
+        background: linear-gradient(135deg, rgba(224, 94, 85, 0.15), rgba(224, 94, 85, 0.04)) !important;
+        color: var(--accent, #e05e55) !important;
+        border: 1px solid rgba(224, 94, 85, 0.28) !important;
+        font-weight: 700 !important;
+        box-shadow: 0 2px 10px rgba(224, 94, 85, 0.1) !important;
+    }
 
-html.web-mode .stats-summary-value {
-    font-family: 'Outfit', sans-serif !important;
-    font-size: 24px !important;
-    font-weight: 800 !important;
-    color: var(--text-main, #f1f5f9) !important;
-    letter-spacing: -0.5px !important;
-    line-height: 1.1 !important;
-}
+    html.web-mode .bottom-nav .nav-item.active svg {
+        fill: var(--accent, #e05e55) !important;
+    }
 
-html.web-mode .stats-summary-value.sum-income {
-    color: #4ade80 !important;
-}
+    /* Sidebar User Profile Card (Bottom of Sidebar) */
+    html.web-mode .desktop-sidebar-user-card {
+        margin-top: auto !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 10px !important;
+        padding: 10px 12px !important;
+        border-radius: 14px !important;
+        background: rgba(255, 255, 255, 0.03) !important;
+        border: 1px solid rgba(255, 255, 255, 0.07) !important;
+        transition: all 0.18s ease !important;
+    }
 
-html.web-mode .stats-summary-value.sum-expense {
-    color: #f87171 !important;
-}
+    html.web-mode .desktop-sidebar-user-card:hover {
+        background: rgba(255, 255, 255, 0.07) !important;
+        border-color: rgba(255, 255, 255, 0.14) !important;
+        transform: translateY(-1px) !important;
+    }
 
-html.web-mode .stats-summary-value.sum-savings {
-    color: #38bdf8 !important;
-}
+    html.web-mode .desktop-user-avatar {
+        width: 32px !important;
+        height: 32px !important;
+        border-radius: 50% !important;
+        background: linear-gradient(135deg, #6366f1, #8b5cf6) !important;
+        color: #fff !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 13px !important;
+        font-weight: 800 !important;
+        flex-shrink: 0 !important;
+    }
 
-html.web-mode .stats-summary-sub {
-    font-size: 12px !important;
-    color: var(--text-muted, #64748b) !important;
-}
+    html.web-mode .desktop-user-info {
+        display: flex !important;
+        flex-direction: column !important;
+        min-width: 0 !important;
+        flex: 1 !important;
+        gap: 1px !important;
+    }
 
-/* --- Recent transactions card --- */
-html.web-mode .stats-summary-recent {
-    background: var(--card-bg, #1e222b) !important;
-    border: 1px solid var(--border, rgba(148, 163, 184, 0.15)) !important;
-    border-radius: 16px !important;
-    padding: 18px 20px !important;
-    box-shadow: var(--shadow, 0 4px 16px rgba(0, 0, 0, 0.2)) !important;
-}
+    html.web-mode .desktop-user-name {
+        font-family: 'Outfit', sans-serif !important;
+        font-size: 13px !important;
+        font-weight: 700 !important;
+        color: var(--text-main, #f1f5f9) !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+    }
 
-html.web-mode .stats-summary-recent-header {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: space-between !important;
-    margin-bottom: 12px !important;
-    gap: 8px !important;
-}
+    html.web-mode .desktop-user-status {
+        font-size: 10.5px !important;
+        color: var(--text-muted, #64748b) !important;
+        white-space: nowrap !important;
+    }
 
-html.web-mode .stats-summary-recent-list {
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 4px !important;
-}
+    html.web-mode .desktop-user-chevron {
+        font-size: 11px !important;
+        color: var(--text-muted, #64748b) !important;
+    }
 
-html.web-mode .stats-summary-recent-item {
-    display: flex !important;
-    align-items: center !important;
-    gap: 12px !important;
-    padding: 8px 6px !important;
-    border-radius: 10px !important;
-    transition: background-color 0.15s ease !important;
-}
+    /* ------------------------------------------------------------ */
+    /* 4. TOPBAR (Modern Dynamic Breadcrumb & Header Bar)           */
+    /* ------------------------------------------------------------ */
+    html.web-mode .app-header {
+        grid-area: header !important;
+        position: sticky !important;
+        top: 0 !important;
+        z-index: 90 !important;
+        width: 100% !important;
+        height: 64px !important;
+        padding: 0 32px !important;
+        background: rgba(22, 27, 34, 0.85) !important;
+        backdrop-filter: blur(20px) !important;
+        -webkit-backdrop-filter: blur(20px) !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        box-sizing: border-box !important;
+    }
 
-html.web-mode .stats-summary-recent-item:hover {
-    background: rgba(148, 163, 184, 0.08) !important;
-}
+    /* Dynamic Section Breadcrumb */
+    html.web-mode .app-header .app-title {
+        display: flex !important;
+        align-items: center !important;
+        gap: 10px !important;
+        margin: 0 !important;
+    }
 
-html.web-mode .stats-summary-recent-icon {
-    width: 36px !important;
-    height: 36px !important;
-    border-radius: 10px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    font-size: 16px !important;
-    flex-shrink: 0 !important;
-}
+    html.web-mode .desktop-header-title-badge {
+        width: 32px !important;
+        height: 32px !important;
+        border-radius: 10px !important;
+        background: rgba(224, 94, 85, 0.12) !important;
+        color: var(--accent, #e05e55) !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 14px !important;
+    }
 
-html.web-mode .stats-summary-recent-info {
-    flex: 1 !important;
-    min-width: 0 !important;
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 2px !important;
-}
+    html.web-mode .desktop-header-title-text {
+        font-family: 'Outfit', sans-serif !important;
+        font-size: 17px !important;
+        font-weight: 800 !important;
+        color: var(--text-main, #f1f5f9) !important;
+        letter-spacing: -0.3px !important;
+    }
 
-html.web-mode .stats-summary-recent-name {
-    font-size: 13px !important;
-    font-weight: 600 !important;
-    color: var(--text-main, #f1f5f9) !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-}
+    /* Header Actions Container */
+    html.web-mode .app-header .header-actions {
+        display: flex !important;
+        align-items: center !important;
+        gap: 12px !important;
+    }
 
-html.web-mode .stats-summary-recent-date {
-    font-size: 11px !important;
-    color: var(--text-muted, #64748b) !important;
-}
+    /* Global Search Trigger Chip */
+    html.web-mode .desktop-topbar-search {
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+        padding: 7px 12px !important;
+        border-radius: 10px !important;
+        background: rgba(255, 255, 255, 0.04) !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        color: var(--text-secondary, #94a3b8) !important;
+        font-family: 'Inter', sans-serif !important;
+        font-size: 12.5px !important;
+        transition: all 0.18s ease !important;
+    }
 
-html.web-mode .stats-summary-recent-amount {
-    font-size: 13px !important;
-    font-weight: 700 !important;
-    white-space: nowrap !important;
-}
+    html.web-mode .desktop-topbar-search:hover {
+        background: rgba(255, 255, 255, 0.08) !important;
+        border-color: rgba(255, 255, 255, 0.16) !important;
+        color: var(--text-main, #f1f5f9) !important;
+    }
 
-html.web-mode .stats-summary-recent-amount.sum-income {
-    color: #4ade80 !important;
-}
+    html.web-mode .desktop-topbar-search kbd {
+        background: rgba(255, 255, 255, 0.08) !important;
+        border: 1px solid rgba(255, 255, 255, 0.12) !important;
+        border-radius: 5px !important;
+        padding: 1px 5px !important;
+        font-size: 10.5px !important;
+        font-weight: 700 !important;
+        color: var(--text-muted, #64748b) !important;
+    }
 
-html.web-mode .stats-summary-recent-amount.sum-expense {
-    color: #f87171 !important;
-}
+    /* Primary Add Transaction Button (Topbar) */
+    html.web-mode .desktop-topbar-add {
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+        padding: 8px 16px !important;
+        border-radius: 11px !important;
+        background: linear-gradient(135deg, var(--accent, #e05e55), #c0392b) !important;
+        color: #fff !important;
+        font-family: 'Outfit', sans-serif !important;
+        font-size: 13.5px !important;
+        font-weight: 700 !important;
+        border: none !important;
+        box-shadow: 0 4px 14px rgba(224, 94, 85, 0.35) !important;
+        transition: all 0.18s ease !important;
+        white-space: nowrap !important;
+    }
 
-html.web-mode .stats-summary-recent-amount.sum-transfer {
-    color: #94a3b8 !important;
-}
+    html.web-mode .desktop-topbar-add:hover {
+        background: linear-gradient(135deg, #ea6b62, #d04334) !important;
+        box-shadow: 0 6px 18px rgba(224, 94, 85, 0.45) !important;
+        transform: translateY(-1px) !important;
+    }
 
-/* --- Empty state --- */
-html.web-mode .stats-summary-empty {
-    font-size: 13px !important;
-    color: var(--text-muted, #64748b) !important;
-    padding: 12px 0 !important;
-    text-align: center !important;
-}
+    /* Quick Notepad Trigger (Topbar) */
+    html.web-mode .desktop-topbar-note {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 36px !important;
+        height: 36px !important;
+        border-radius: 10px !important;
+        background: rgba(255, 255, 255, 0.04) !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        color: var(--text-secondary, #94a3b8) !important;
+        font-size: 14px !important;
+        transition: all 0.18s ease !important;
+    }
 
-/* --- Responsive: collapse KPI grid on narrower desktop widths --- */
-@media (max-width: 1100px) {
+    html.web-mode .desktop-topbar-note:hover {
+        background: rgba(255, 255, 255, 0.08) !important;
+        color: var(--accent, #e05e55) !important;
+    }
+
+    /* Hide redundant sidebar add button if exists */
+    html.web-mode .desktop-sidebar-add {
+        display: none !important;
+    }
+
+    /* ------------------------------------------------------------ */
+    /* 5. APP CONTENT CONTAINER                                     */
+    /* ------------------------------------------------------------ */
+    html.web-mode .app-content {
+        grid-area: content !important;
+        padding: 0 !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        min-height: 0 !important;
+        height: 100% !important;
+        max-height: 100% !important;
+        align-self: stretch !important;
+    }
+
+    /* ------------------------------------------------------------ */
+    /* 6. TRANSACTIONS SCREEN (2-Column Modern Fintech Dashboard)    */
+    /* ------------------------------------------------------------ */
+    html.web-mode #trans-screen.active {
+        display: grid !important;
+        grid-template-columns: 1fr 340px !important;
+        gap: 28px !important;
+        padding: 28px 36px !important;
+        align-items: start !important;
+        max-width: 1400px !important;
+        margin: 0 auto !important;
+    }
+
+    html.web-mode #trans-screen .stats-header-bar {
+        grid-column: 1 / -1 !important;
+        padding: 0 0 16px 0 !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+        margin-bottom: 8px !important;
+    }
+
+    /* Right Column: Modern KPI Summary Cards */
+    html.web-mode #trans-screen .summary-bar {
+        grid-column: 2 !important;
+        grid-row: 2 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 14px !important;
+        padding: 0 !important;
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        height: auto !important;
+        position: sticky !important;
+        top: 24px !important;
+    }
+
+    html.web-mode #trans-screen .summary-item {
+        width: 100% !important;
+        padding: 18px 20px !important;
+        border-radius: 16px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 6px !important;
+        flex: none !important;
+        box-sizing: border-box !important;
+        transition: transform 0.18s ease, box-shadow 0.18s ease !important;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15) !important;
+    }
+
+    html.web-mode #trans-screen .summary-item:hover {
+        transform: translateY(-2px) !important;
+    }
+
+    html.web-mode #trans-screen .summary-item div:first-child {
+        font-family: 'Outfit', sans-serif !important;
+        font-size: 11px !important;
+        font-weight: 800 !important;
+        letter-spacing: 0.6px !important;
+        text-transform: uppercase !important;
+        margin-bottom: 2px !important;
+    }
+
+    html.web-mode #trans-screen .summary-item span {
+        font-family: 'Outfit', sans-serif !important;
+        font-size: 24px !important;
+        font-weight: 800 !important;
+        letter-spacing: -0.4px !important;
+    }
+
+    /* Income Card */
+    html.web-mode #trans-screen .summary-item:nth-child(1) {
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.02)) !important;
+        border: 1px solid rgba(16, 185, 129, 0.22) !important;
+        border-left: 4px solid #10b981 !important;
+    }
+    html.web-mode #trans-screen .summary-item:nth-child(1) div:first-child {
+        color: #10b981 !important;
+    }
+    html.web-mode #trans-screen .summary-item:nth-child(1) span {
+        color: #34d399 !important;
+    }
+
+    /* Expense Card */
+    html.web-mode #trans-screen .summary-item:nth-child(2) {
+        background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(239, 68, 68, 0.02)) !important;
+        border: 1px solid rgba(239, 68, 68, 0.22) !important;
+        border-left: 4px solid #ef4444 !important;
+    }
+    html.web-mode #trans-screen .summary-item:nth-child(2) div:first-child {
+        color: #ef4444 !important;
+    }
+    html.web-mode #trans-screen .summary-item:nth-child(2) span {
+        color: #f87171 !important;
+    }
+
+    /* Net Balance Card */
+    html.web-mode #trans-screen .summary-item:nth-child(3) {
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(124, 106, 247, 0.03)) !important;
+        border: 1px solid rgba(124, 106, 247, 0.25) !important;
+        border-left: 4px solid #6366f1 !important;
+    }
+    html.web-mode #trans-screen .summary-item:nth-child(3) div:first-child {
+        color: #818cf8 !important;
+    }
+    html.web-mode #trans-screen .summary-item:nth-child(3) span {
+        color: #ffffff !important;
+    }
+
+    /* Left Column: Transaction Feed */
+    html.web-mode #trans-screen .trans-scroll-content {
+        grid-column: 1 !important;
+        grid-row: 2 !important;
+        width: 100% !important;
+    }
+
+    html.web-mode #trans-screen #transactions-list {
+        margin-top: 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 6px !important;
+    }
+
+    html.web-mode .day-group-header {
+        font-family: 'Outfit', sans-serif !important;
+        font-size: 12.5px !important;
+        font-weight: 700 !important;
+        color: var(--text-secondary, #94a3b8) !important;
+        padding: 14px 4px 6px 4px !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+        margin-bottom: 4px !important;
+    }
+
+    html.web-mode .transaction-item {
+        background: rgba(255, 255, 255, 0.02) !important;
+        border: 1px solid rgba(255, 255, 255, 0.06) !important;
+        border-radius: 14px !important;
+        padding: 12px 16px !important;
+        margin-bottom: 4px !important;
+        transition: all 0.15s ease !important;
+    }
+
+    html.web-mode .transaction-item:hover {
+        background: rgba(255, 255, 255, 0.05) !important;
+        border-color: rgba(255, 255, 255, 0.12) !important;
+        transform: translateY(-1px) !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+    }
+
+    /* ------------------------------------------------------------ */
+    /* 7. STATISTICS SCREEN (Desktop Optimization)                   */
+    /* ------------------------------------------------------------ */
+    html.web-mode #stats-screen.active {
+        display: grid !important;
+        grid-template-columns: 1fr 1.2fr !important;
+        gap: 24px !important;
+        padding: 28px 36px !important;
+        align-items: start !important;
+        max-width: 1400px !important;
+        margin: 0 auto !important;
+    }
+
+    html.web-mode #stats-screen .stats-header-bar,
+    html.web-mode #stats-screen .stats-subheader-bar,
+    html.web-mode #stats-screen .stats-subtab-bar,
+    html.web-mode #stats-screen .stats-net-bar,
+    html.web-mode #stats-screen #stats-summary {
+        grid-column: 1 / span 2 !important;
+    }
+
     html.web-mode .stats-summary-grid {
-        grid-template-columns: repeat(2, 1fr) !important;
+        display: grid !important;
+        grid-template-columns: repeat(4, 1fr) !important;
+        gap: 16px !important;
+        margin-bottom: 16px !important;
+    }
+
+    html.web-mode .stats-summary-card {
+        background: var(--bg-card, #161b22) !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        border-radius: 16px !important;
+        padding: 18px 20px !important;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15) !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 6px !important;
+    }
+
+    html.web-mode .stats-summary-title {
+        font-family: 'Outfit', sans-serif !important;
+        font-size: 11.5px !important;
+        font-weight: 700 !important;
+        color: var(--text-secondary, #94a3b8) !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.5px !important;
+    }
+
+    html.web-mode .stats-summary-value {
+        font-family: 'Outfit', sans-serif !important;
+        font-size: 24px !important;
+        font-weight: 800 !important;
+        color: var(--text-main, #f1f5f9) !important;
+        letter-spacing: -0.4px !important;
+    }
+
+    html.web-mode .stats-summary-value.sum-income {
+        color: #34d399 !important;
+    }
+
+    html.web-mode .stats-summary-value.sum-expense {
+        color: #f87171 !important;
+    }
+
+    html.web-mode .stats-summary-value.sum-savings {
+        color: #38bdf8 !important;
+    }
+
+    html.web-mode #stats-screen .chart-container {
+        grid-column: 1 !important;
+        background: var(--bg-card, #161b22) !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        border-radius: 18px !important;
+        padding: 20px !important;
+    }
+
+    html.web-mode #stats-screen #stats-breakdown-list {
+        grid-column: 2 !important;
+    }
+
+    /* ------------------------------------------------------------ */
+    /* 8. ACCOUNTS & SETTINGS SCREENS                               */
+    /* ------------------------------------------------------------ */
+    html.web-mode #accounts-screen.active,
+    html.web-mode #more-screen.active {
+        max-width: 900px !important;
+        margin: 0 auto !important;
+        padding: 28px 36px !important;
+    }
+
+    /* ------------------------------------------------------------ */
+    /* 9. DESKTOP MODALS (Centered, Elevated Floating Cards)         */
+    /* ------------------------------------------------------------ */
+    html.web-mode .modal-overlay {
+        align-items: center !important;
+        justify-content: center !important;
+        background: rgba(0, 0, 0, 0.65) !important;
+        backdrop-filter: blur(8px) !important;
+        -webkit-backdrop-filter: blur(8px) !important;
+    }
+
+    html.web-mode .modal-content {
+        border-radius: 20px !important;
+        height: auto !important;
+        max-height: 85vh !important;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        transform: scale(0.96) !important;
+        transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    }
+
+    html.web-mode .modal-overlay.active .modal-content {
+        transform: scale(1) !important;
+    }
+
+    html.web-mode .tx-modal-overlay {
+        align-items: center !important;
+        justify-content: center !important;
+        background-color: rgba(0, 0, 0, 0.7) !important;
+        backdrop-filter: blur(8px) !important;
+        -webkit-backdrop-filter: blur(8px) !important;
+    }
+
+    html.web-mode .tx-modal-overlay .modal-content {
+        width: 100% !important;
+        max-width: 520px !important;
+        height: 88vh !important;
+        max-height: 88vh !important;
+        border-radius: 22px !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7) !important;
+        margin: 0 auto !important;
+        transform: scale(0.96) !important;
+        transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    }
+
+    html.web-mode .tx-modal-overlay.active .modal-content {
+        transform: scale(1) !important;
     }
 }
 
-/* ------------------------------------------------------------ */
-/* IMPLEMENTED PHASES:                                          */
-/*   Step 1 — P0 foundation (scrolling, selection, scrollbars,  */
-/*            press feedback, focus rings)                      */
-/*   Step 2 — Sidebar brand + topbar "Νέα Κίνηση" button        */
-/*   Step 3 — Keyboard shortcuts (in web-ui.js)                 */
-/*   Step 4 — Stats summary (former Dashboard content)          */
-/*                                                              */
-/* FUTURE PHASES (not yet added):                              */
-/*   Detail panel, inline search, table view                    */
-/* ------------------------------------------------------------ */
+/* Hide mobile FABs on desktop */
+html.web-mode .fab,
+html.web-mode .fab-note {
+    display: none !important;
+}
+
+/* Mobile safety guard: Stats summary hidden outside web-mode */
+html:not(.web-mode) .stats-summary {
+    display: none !important;
+}

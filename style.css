@@ -4110,45 +4110,44 @@ body.shared-wallet-active .day-header {
    FULL-SCREEN AUTH OVERLAY SCREEN (0ms Flicker)
    ============================================= */
 .auth-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  width: 100vw;
-  height: 100%;
-  min-height: 100dvh;
-  background: radial-gradient(circle at 50% 25%, #1b2334 0%, #090c13 100%) !important;
-  z-index: 20000;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  min-height: 100dvh !important;
+  background: radial-gradient(circle at 50% 30%, #1c2536 0%, #090c13 100%) !important;
+  z-index: 2147483647 !important;
   display: none;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 20px 16px;
+  padding: 24px 16px;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   box-sizing: border-box;
 }
 
-html.auth-active .auth-overlay,
-#auth-overlay.active {
+#auth-overlay.active,
+.auth-overlay.active {
   display: flex !important;
-}
-
-html.auth-active .app-container {
-  display: none !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
 }
 
 .auth-card {
   position: relative;
-  width: 95%;
+  width: 100%;
   max-width: 440px;
   margin: auto;
-  padding: 32px 24px 24px 24px;
-  background: rgba(22, 28, 42, 0.88) !important;
-  border: 1px solid rgba(255, 255, 255, 0.14) !important;
-  border-radius: 24px !important;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7), 0 0 35px rgba(var(--accent-rgb), 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
+  padding: 34px 26px 28px 26px;
+  background: rgba(22, 28, 42, 0.94) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 26px !important;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7), 0 0 35px rgba(var(--accent-rgb), 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   display: flex;
@@ -4194,37 +4193,37 @@ html.auth-active .app-container {
 
 .auth-header {
   text-align: center;
-  margin-top: 8px;
+  margin-top: 6px;
   margin-bottom: 12px;
 }
 
 .auth-logo {
-  width: 62px;
-  height: 62px;
+  width: 58px;
+  height: 58px;
   background: linear-gradient(135deg, var(--accent) 0%, #ff6b62 100%);
   color: white;
-  border-radius: 18px;
+  border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 28px;
-  margin: 0 auto 14px;
+  font-size: 26px;
+  margin: 0 auto 12px;
   box-shadow: 0 8px 25px rgba(var(--accent-rgb), 0.45);
 }
 
 .auth-title {
-  font-size: 24px;
+  font-size: 23px;
   font-weight: 900;
-  letter-spacing: -0.5px;
+  letter-spacing: -0.4px;
   color: #ffffff;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
   font-family: 'Outfit', 'Inter', system-ui, sans-serif;
 }
 
 .auth-subtitle {
   font-size: 13.5px;
   color: #94a3b8;
-  line-height: 1.45;
+  line-height: 1.4;
 }
 
 .auth-tabs {
@@ -4233,7 +4232,7 @@ html.auth-active .app-container {
   border-radius: 14px;
   padding: 4px;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
 
 .auth-tab-btn {
@@ -4271,7 +4270,7 @@ html.auth-active .app-container {
 
 .form-input {
   height: 48px !important;
-  font-size: 16px !important;
+  font-size: 15.5px !important;
   border-radius: 14px !important;
   background: rgba(10, 14, 22, 0.65) !important;
   border: 1px solid rgba(255, 255, 255, 0.14) !important;
@@ -4320,11 +4319,11 @@ html.auth-active .app-container {
 .forgot-password-container {
   display: flex;
   justify-content: flex-end;
-  margin-top: 6px;
+  margin-top: 4px;
 }
 
 .forgot-password-link {
-  font-size: 13px;
+  font-size: 12.5px;
   color: var(--accent);
   text-decoration: none;
   transition: var(--transition);
@@ -4359,8 +4358,8 @@ html.auth-active .app-container {
 }
 
 .auth-submit-btn {
-  height: 50px !important;
-  font-size: 16px !important;
+  height: 48px !important;
+  font-size: 15.5px !important;
   font-weight: 800 !important;
   border-radius: 14px !important;
   background: linear-gradient(135deg, var(--accent) 0%, #e0483e 100%) !important;
@@ -4369,8 +4368,8 @@ html.auth-active .app-container {
 }
 
 .btn-secondary {
-  height: 48px;
-  font-size: 14.5px;
+  height: 46px;
+  font-size: 14px;
   font-weight: 700;
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.07);
@@ -4378,8 +4377,41 @@ html.auth-active .app-container {
   color: #ffffff;
 }
 
+.btn-google {
+  height: 48px !important;
+  background: white !important;
+  color: #1f2937 !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 14px !important;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 10px !important;
+  padding: 0 16px !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2) !important;
+  margin-top: 8px;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.btn-google:hover {
+  background: #f9fafb !important;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25) !important;
+}
+
+.btn-google:active {
+  transform: scale(0.985);
+}
+
+.google-icon {
+  font-size: 18px;
+  color: #4285f4;
+}
+
 .auth-desc {
-  font-size: 13px;
+  font-size: 13.5px;
   color: #94a3b8;
   line-height: 1.45;
   text-align: center;
@@ -4389,39 +4421,29 @@ html.auth-active .app-container {
   width: 100%;
 }
 
-.btn-google {
-  background: white !important;
-  color: #1f2937 !important;
-  border: 1px solid #e5e7eb !important;
-  font-weight: 700 !important;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 12px !important;
-  font-size: 13.5px !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  margin-top: 10px;
-}
-
-.btn-google:hover {
-  background: #f9fafb !important;
-}
-
-.google-icon {
-  font-size: 16px;
-  color: #4285f4;
-}
-
 .auth-status-box {
-  background: rgba(224, 94, 85, 0.12);
-  border: 1px solid rgba(224, 94, 85, 0.3);
+  background: rgba(224, 94, 85, 0.14);
+  border: 1px solid rgba(224, 94, 85, 0.35);
   color: #fca5a5;
-  border-radius: 8px;
-  padding: 10px 12px;
-  font-size: 12px;
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 13px;
+  font-weight: 600;
   line-height: 1.4;
-  text-align: center;
+  margin-top: 6px;
+  animation: fadeIn 0.2s ease;
+}
+
+/* Landscape compact mode only */
+@media (max-height: 480px) {
+  .auth-card {
+    padding: 18px 16px 14px 16px !important;
+    gap: 8px !important;
+  }
+
+  .auth-logo {
+    display: none !important;
+  }
 }
 
 .auth-status-box.success {
@@ -4584,39 +4606,59 @@ html.auth-active .app-container {
 
 .profile-name-edit-group {
   position: relative;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 4px;
+  gap: 8px;
+  max-width: 90%;
+  margin: 0 auto 4px auto;
 }
 
 .profile-name-input {
   background: transparent;
-  border: none;
-  font-family: 'Inter', sans-serif;
+  border: 1px solid transparent;
+  font-family: 'Outfit', sans-serif;
   font-size: 18px;
-  font-weight: 700;
-  color: var(--text-main, #ffffff);
+  font-weight: 800;
+  color: var(--text-primary, #ffffff);
   text-align: center;
-  padding: 4px 12px;
-  border-radius: 6px;
-  max-width: 200px;
-  transition: background 0.2s, box-shadow 0.2s;
+  padding: 4px 10px;
+  border-radius: 10px;
+  max-width: 240px;
+  transition: all 0.2s ease;
 }
 
 .profile-name-input:focus {
   outline: none;
-  background: rgba(255, 255, 255, 0.05);
-  box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(var(--accent-rgb, 124, 106, 247), 0.4);
+  box-shadow: 0 0 0 2px rgba(var(--accent-rgb, 124, 106, 247), 0.15);
 }
 
 .profile-name-edit-icon {
-  position: absolute;
-  right: -20px;
-  font-size: 12px;
-  color: var(--text-secondary, #a0aec0);
-  opacity: 0.7;
+  position: static;
+  font-size: 12.5px;
+  color: var(--accent, #7c6af7);
+  opacity: 0.85;
   cursor: pointer;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(var(--accent-rgb, 124, 106, 247), 0.12);
+  border: 1px solid rgba(var(--accent-rgb, 124, 106, 247), 0.2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+  padding: 0;
+  margin: 0;
+}
+
+.profile-name-edit-icon:hover {
+  opacity: 1;
+  transform: scale(1.08);
+  background: rgba(var(--accent-rgb, 124, 106, 247), 0.22);
 }
 
 .profile-email-display {
@@ -5295,6 +5337,31 @@ html.auth-active .app-container {
     box-sizing: border-box !important;
   }
 
+  /* Center Settings Subscreen Modal on Desktop Web */
+  html.web-mode #settings-subscreen-modal {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: rgba(0, 0, 0, 0.75) !important;
+    backdrop-filter: blur(8px) !important;
+  }
+
+  html.web-mode #settings-subscreen-modal .modal-card {
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    width: 92% !important;
+    max-width: 680px !important;
+    height: auto !important;
+    max-height: 88vh !important;
+    border-radius: 24px !important;
+    border: 1px solid var(--border) !important;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7) !important;
+    overflow: hidden !important;
+  }
+
   html.web-mode .profile-sheet-overlay.active .profile-sheet-content {
     transform: scale(1) !important;
   }
@@ -5389,55 +5456,124 @@ html.auth-active .app-container {
   /* --- Statistics Screen Desktop Optimization (Two Columns) --- */
   html.web-mode #stats-screen.active {
     display: grid !important;
-    grid-template-columns: 1fr 1.2fr !important;
+    grid-template-columns: 1.1fr 1fr !important;
     gap: 24px !important;
-    padding: 24px !important;
+    padding: 28px 36px !important;
     align-items: start !important;
-  }
-
-  html.web-mode #stats-screen .stats-header-bar {
-    grid-column: 1 / span 2 !important;
-  }
-
-  html.web-mode #stats-screen .stats-subheader-bar {
-    grid-column: 1 / span 2 !important;
-  }
-
-  html.web-mode #stats-screen .stats-net-bar {
-    grid-column: 1 / span 2 !important;
-    position: static !important;
-  }
-
-  html.web-mode #stats-screen .chart-container {
-    grid-column: 1 !important;
-    margin-top: 0 !important;
-    border-radius: 16px !important;
-    border: 1px solid var(--border) !important;
-  }
-
-  html.web-mode #stats-screen #stats-breakdown-list {
-    grid-column: 2 !important;
-    margin-top: 0 !important;
-    max-height: 65vh !important;
-    overflow-y: auto !important;
-  }
-
-  /* --- Accounts Screen Desktop Optimization (Responsive Two Columns) --- */
-  html.web-mode #accounts-screen.active {
-    display: grid !important;
-    grid-template-columns: minmax(320px, 0.9fr) minmax(0, 1.6fr) !important;
-    gap: 24px !important;
-    padding: 24px !important;
-    align-items: start !important;
-    max-width: 1440px !important;
+    max-width: 1400px !important;
     margin: 0 auto !important;
     width: 100% !important;
     box-sizing: border-box !important;
   }
 
-  /* Left column: overview summary (year selector, balances, FHS, forecast, advisor).
-     No sticky positioning so cards stack vertically in normal document flow and
-     never overlap the period breakdown below. */
+  html.web-mode #stats-screen .stats-header-bar {
+    grid-column: 1 / span 2 !important;
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 18px !important;
+    padding: 14px 22px !important;
+    margin-bottom: 4px !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2) !important;
+  }
+
+  html.web-mode #stats-screen .stats-subheader-bar {
+    grid-column: 1 / span 2 !important;
+    position: static !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin-bottom: 4px !important;
+  }
+
+  html.web-mode #stats-screen .stats-subtab-bar {
+    grid-column: 1 / span 2 !important;
+    padding: 0 !important;
+    margin-bottom: 4px !important;
+  }
+
+  html.web-mode #stats-screen .stats-net-bar {
+    grid-column: 1 / span 2 !important;
+    position: static !important;
+    border-radius: 16px !important;
+    padding: 14px 22px !important;
+    background: linear-gradient(135deg, rgba(var(--accent-rgb, 124, 106, 247), 0.15), rgba(255, 255, 255, 0.02)) !important;
+    border: 1px solid rgba(var(--accent-rgb, 124, 106, 247), 0.25) !important;
+    margin-bottom: 8px !important;
+  }
+
+  html.web-mode #stats-screen .stats-summary {
+    grid-column: 1 / span 2 !important;
+    margin-bottom: 12px !important;
+  }
+
+  html.web-mode #stats-screen .stats-summary-grid {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 16px !important;
+  }
+
+  html.web-mode #stats-screen .stats-summary-card {
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 16px !important;
+    padding: 16px 18px !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2) !important;
+  }
+
+  html.web-mode #stats-screen #stats-breakdown-container {
+    grid-column: 1 / span 2 !important;
+    display: grid !important;
+    grid-template-columns: 1.1fr 1fr !important;
+    gap: 24px !important;
+    align-items: start !important;
+  }
+
+  html.web-mode #stats-screen .chart-container {
+    grid-column: 1 !important;
+    margin-top: 0 !important;
+    border-radius: 20px !important;
+    border: 1px solid var(--border) !important;
+    background: var(--bg-card) !important;
+    padding: 24px !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2) !important;
+    min-height: 400px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+  }
+
+  html.web-mode #stats-screen #stats-breakdown-list {
+    grid-column: 2 !important;
+    margin-top: 0 !important;
+    max-height: 70vh !important;
+    overflow-y: auto !important;
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 20px !important;
+    padding: 20px !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2) !important;
+  }
+
+  html.web-mode #stats-screen #stats-budgets-container {
+    grid-column: 1 / span 2 !important;
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)) !important;
+    gap: 20px !important;
+  }
+
+  /* --- Accounts Screen Desktop Optimization (Balanced Two Columns) --- */
+  html.web-mode #accounts-screen.active {
+    display: grid !important;
+    grid-template-columns: minmax(440px, 1.15fr) minmax(400px, 1fr) !important;
+    gap: 28px !important;
+    padding: 28px 36px !important;
+    align-items: start !important;
+    max-width: 1400px !important;
+    margin: 0 auto !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Left column: overview summary (year selector, balances, FHS, forecast, advisor) */
   html.web-mode #accounts-screen .accounts-overview-card {
     grid-column: 1 !important;
     grid-row: 1 !important;
@@ -5448,55 +5584,138 @@ html.auth-active .app-container {
     padding: 0 !important;
     display: flex !important;
     flex-direction: column !important;
-    gap: 12px !important;
+    gap: 16px !important;
     min-width: 0 !important;
   }
 
   html.web-mode #accounts-screen .accounts-overview-card .overview-grid {
-    grid-template-columns: 1fr !important;
-    gap: 20px !important;
-    text-align: left !important;
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 14px !important;
+    text-align: center !important;
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 18px !important;
+    padding: 18px 20px !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2) !important;
+  }
+
+  html.web-mode #accounts-screen .accounts-overview-card .overview-health-card,
+  html.web-mode #accounts-screen .accounts-overview-card .overview-forecast-card,
+  html.web-mode #accounts-screen .accounts-overview-card .advisor-card {
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 18px !important;
+    padding: 18px 20px !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2) !important;
   }
 
   /* Right column: collapsible account lists (Λογαριασμοί, Έξοδα) */
   html.web-mode #accounts-screen .collapsible-sections-container {
     grid-column: 2 !important;
     grid-row: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 16px !important;
     min-width: 0 !important;
   }
 
-  /* Period breakdown (Ιστορικό Προηγούμενων Ετών) placed in the right column,
-     below the collapsible sections, so it never overlaps the advisor card. */
+  html.web-mode #accounts-screen .collapsible-section {
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 18px !important;
+    padding: 18px 20px !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2) !important;
+    margin-bottom: 0 !important;
+  }
+
+  /* Period breakdown (Ιστορικό Προηγούμενων Ετών) placed in the right column, below collapsible sections */
   html.web-mode #accounts-screen #accounts-periods-breakdown {
     grid-column: 2 !important;
     grid-row: 2 !important;
     margin-top: 0 !important;
     min-width: 0 !important;
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 18px !important;
+    padding: 18px 20px !important;
   }
 
-  /* --- More/Settings Screen Desktop Optimization (Two Columns) --- */
+  /* --- More/Settings Screen Desktop Optimization (Master-Detail Dashboard) --- */
   html.web-mode #more-screen.active {
-    display: block !important;
-    column-count: 2 !important;
-    column-gap: 32px !important;
-    padding: 32px !important;
-    max-width: 1000px !important;
+    display: grid !important;
+    grid-template-columns: minmax(320px, 360px) minmax(0, 1fr) !important;
+    gap: 28px !important;
+    padding: 28px 36px !important;
+    max-width: 1400px !important;
     margin: 0 auto !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    align-items: start !important;
   }
 
-  html.web-mode #more-screen.active>* {
-    break-inside: avoid !important;
-    -webkit-column-break-inside: avoid !important;
+  html.web-mode #more-screen .more-scroll-content {
+    display: contents !important;
   }
 
-  html.web-mode #more-screen.active>.settings-section-title:first-child {
-    margin-top: 0 !important;
+  /* Left Column: Account Profile Card */
+  html.web-mode #more-screen .profile-header-card {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    position: sticky !important;
+    top: 24px !important;
+    padding: 26px 22px !important;
+    border-radius: 22px !important;
+    background: linear-gradient(135deg, rgba(var(--accent-rgb, 124, 106, 247), 0.15), rgba(255, 255, 255, 0.03)) !important;
+    border: 1px solid rgba(var(--accent-rgb, 124, 106, 247), 0.3) !important;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center !important;
+    gap: 14px !important;
+  }
+
+  html.web-mode #more-screen .profile-header-card .profile-avatar {
+    width: 72px !important;
+    height: 72px !important;
+    font-size: 28px !important;
+    box-shadow: 0 8px 24px rgba(var(--accent-rgb, 124, 106, 247), 0.4) !important;
+  }
+
+  html.web-mode #more-screen .profile-header-card i.fa-chevron-right {
+    display: none !important;
+  }
+
+  /* Right Column: Settings Hub Group */
+  html.web-mode #more-screen .more-scroll-content>div:not(.profile-header-card):not(#more-subscreens-container) {
+    grid-column: 2 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 22px !important;
+    overflow: hidden !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25) !important;
+  }
+
+  html.web-mode #more-screen .settings-list-item {
+    padding: 16px 24px !important;
+    transition: background 0.15s ease !important;
+  }
+
+  html.web-mode #more-screen .settings-list-item:hover {
+    background: rgba(255, 255, 255, 0.045) !important;
+  }
+
+  html.web-mode #more-screen #more-subscreens-container {
+    grid-column: 1 / span 2 !important;
+    width: 100% !important;
   }
 
   html.web-mode .stats-scroll-content,
   html.web-mode .trans-scroll-content,
-  html.web-mode .accounts-scroll-content,
-  html.web-mode .more-scroll-content {
+  html.web-mode .accounts-scroll-content {
     display: contents !important;
   }
 }
@@ -8358,12 +8577,19 @@ mark.guide-highlight {
   z-index: 10000 !important;
 }
 
+#custom-dialog-modal,
+#type-confirm-modal {
+  z-index: 999999 !important;
+}
+
 /* Modals opened from within the settings subscreen (Data & Sync) must render
    ABOVE the subscreen modal (z-index 10000). Their default .modal-overlay /
    bottom-sheet z-index (1000/1001) would otherwise place them behind it. */
 #excel-modal,
-#supabase-modal {
-  z-index: 10500 !important;
+#supabase-modal,
+#change-email-modal,
+#change-password-modal {
+  z-index: 12000 !important;
 }
 
 #export-period-backdrop {
@@ -9257,6 +9483,7 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
   background: linear-gradient(160deg, rgba(245, 158, 11, 0.12), rgba(255, 255, 255, 0.02) 60%, rgba(245, 158, 11, 0.04));
   border-color: rgba(245, 158, 11, 0.28);
 }
+
 .modern-note-card.color-amber::before {
   background: linear-gradient(90deg, transparent, rgba(245, 158, 11, 0.7), transparent);
   opacity: 1;
@@ -9266,6 +9493,7 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
   background: linear-gradient(160deg, rgba(16, 185, 129, 0.12), rgba(255, 255, 255, 0.02) 60%, rgba(16, 185, 129, 0.04));
   border-color: rgba(16, 185, 129, 0.28);
 }
+
 .modern-note-card.color-emerald::before {
   background: linear-gradient(90deg, transparent, rgba(16, 185, 129, 0.7), transparent);
   opacity: 1;
@@ -9275,6 +9503,7 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
   background: linear-gradient(160deg, rgba(59, 130, 246, 0.12), rgba(255, 255, 255, 0.02) 60%, rgba(59, 130, 246, 0.04));
   border-color: rgba(59, 130, 246, 0.28);
 }
+
 .modern-note-card.color-blue::before {
   background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.7), transparent);
   opacity: 1;
@@ -9284,6 +9513,7 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
   background: linear-gradient(160deg, rgba(139, 92, 246, 0.12), rgba(255, 255, 255, 0.02) 60%, rgba(139, 92, 246, 0.04));
   border-color: rgba(139, 92, 246, 0.28);
 }
+
 .modern-note-card.color-purple::before {
   background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.7), transparent);
   opacity: 1;
@@ -9293,6 +9523,7 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
   background: linear-gradient(160deg, rgba(244, 63, 94, 0.12), rgba(255, 255, 255, 0.02) 60%, rgba(244, 63, 94, 0.04));
   border-color: rgba(244, 63, 94, 0.28);
 }
+
 .modern-note-card.color-rose::before {
   background: linear-gradient(90deg, transparent, rgba(244, 63, 94, 0.7), transparent);
   opacity: 1;
@@ -9302,6 +9533,7 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
   background: linear-gradient(160deg, rgba(20, 184, 166, 0.12), rgba(255, 255, 255, 0.02) 60%, rgba(20, 184, 166, 0.04));
   border-color: rgba(20, 184, 166, 0.28);
 }
+
 .modern-note-card.color-teal::before {
   background: linear-gradient(90deg, transparent, rgba(20, 184, 166, 0.7), transparent);
   opacity: 1;
@@ -9329,7 +9561,7 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
   color: white;
   transition: transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1), border-color 0.18s ease, box-shadow 0.18s ease;
   flex-shrink: 0;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
 }
 
 .note-color-swatch:hover {
@@ -9339,21 +9571,30 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
 .note-color-swatch.active {
   border-color: #ffffff;
   transform: scale(1.18);
-  box-shadow: 0 0 0 2px rgba(255,255,255,0.4), 0 4px 12px rgba(0,0,0,0.35);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.4), 0 4px 12px rgba(0, 0, 0, 0.35);
 }
 
-/* Modern Reminder UI */
+/* Modern Compact Reminder UI */
 .note-reminder-presets-row {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 4px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  gap: 5px;
+  margin-top: 2px;
+  margin-bottom: 2px;
+  padding: 1px 0 3px 0;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.note-reminder-presets-row::-webkit-scrollbar {
+  display: none;
 }
 
 .note-reminder-chip {
-  padding: 6px 12px;
-  border-radius: 10px;
-  font-size: 11.5px;
+  padding: 3px 8px;
+  border-radius: 8px;
+  font-size: 11px;
   font-weight: 600;
   font-family: 'Outfit', sans-serif;
   background: rgba(255, 255, 255, 0.05);
@@ -9362,18 +9603,22 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  transition: all 0.18s ease;
+  gap: 4px;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+  height: 24px;
+  box-sizing: border-box;
 }
 
 .note-reminder-chip:hover {
-  background: rgba(245, 158, 11, 0.12);
-  border-color: rgba(245, 158, 11, 0.3);
+  background: rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.35);
   color: #f59e0b;
 }
 
 .note-reminder-chip.active {
-  background: rgba(245, 158, 11, 0.2);
+  background: rgba(245, 158, 11, 0.22);
   border-color: #f59e0b;
   color: #f59e0b;
   font-weight: 700;
@@ -9382,17 +9627,19 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
 .note-active-reminder-pill {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
-  border-radius: 12px;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: 8px;
   background: rgba(245, 158, 11, 0.12);
   border: 1px solid rgba(245, 158, 11, 0.35);
   color: #f59e0b;
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 700;
   font-family: 'Outfit', sans-serif;
-  margin-top: 6px;
+  margin-top: 2px;
   width: fit-content;
+  height: 24px;
+  box-sizing: border-box;
 }
 
 .note-active-reminder-pill button {
@@ -9400,213 +9647,516 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
   border: none;
   color: #f59e0b;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 11px;
   padding: 0;
   display: flex;
   align-items: center;
   margin-left: 2px;
 }
 
-/* Note Editor Modal Enhancements */
-#note-editor-modal .modal-content {
+/* ============================================================
+   SEAMLESS NOTE EDITOR (GOOGLE KEEP / APPLE NOTES STYLE)
+   ============================================================ */
+#note-editor-modal .modal-content.note-seamless-editor-card {
   border-radius: 24px;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(245, 158, 11, 0.08);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(245, 158, 11, 0.08);
   background: var(--bg-card);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
-#note-editor-title-input {
-  font-size: 15px;
+/* Note Color Theme Background Tints */
+#note-editor-modal .modal-content.note-seamless-editor-card[data-color="amber"] {
+  background: linear-gradient(180deg, rgba(245, 158, 11, 0.15) 0%, var(--bg-card) 25%);
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+#note-editor-modal .modal-content.note-seamless-editor-card[data-color="emerald"] {
+  background: linear-gradient(180deg, rgba(16, 185, 129, 0.15) 0%, var(--bg-card) 25%);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+#note-editor-modal .modal-content.note-seamless-editor-card[data-color="blue"] {
+  background: linear-gradient(180deg, rgba(59, 130, 246, 0.15) 0%, var(--bg-card) 25%);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+#note-editor-modal .modal-content.note-seamless-editor-card[data-color="purple"] {
+  background: linear-gradient(180deg, rgba(139, 92, 246, 0.15) 0%, var(--bg-card) 25%);
+  border-color: rgba(139, 92, 246, 0.3);
+}
+
+#note-editor-modal .modal-content.note-seamless-editor-card[data-color="rose"] {
+  background: linear-gradient(180deg, rgba(244, 63, 94, 0.15) 0%, var(--bg-card) 25%);
+  border-color: rgba(244, 63, 94, 0.3);
+}
+
+#note-editor-modal .modal-content.note-seamless-editor-card[data-color="teal"] {
+  background: linear-gradient(180deg, rgba(20, 184, 166, 0.15) 0%, var(--bg-card) 25%);
+  border-color: rgba(20, 184, 166, 0.3);
+}
+
+/* Seamless Header */
+.note-seamless-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px 10px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  box-sizing: border-box;
+  gap: 8px;
+}
+
+.note-header-icon-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary);
+  font-size: 16.5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.note-header-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--text-primary);
+  transform: translateY(-1px);
+}
+
+.note-header-icon-btn.active,
+.note-header-icon-btn.pinned {
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.35);
+}
+
+.note-header-icon-btn.danger:hover {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.35);
+}
+
+.note-header-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.note-save-status-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+}
+
+.note-save-status-pill {
+  font-size: 11px;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 600;
+  color: var(--text-muted);
+  opacity: 0.85;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: opacity 0.3s ease, color 0.3s ease;
+}
+
+.note-save-status-pill.saved {
+  color: #10b981;
+}
+
+.note-done-btn {
+  padding: 6px 14px;
+  border-radius: 10px;
+  font-size: 12px;
   font-weight: 700;
-  border-radius: 14px;
-  padding: 12px 14px;
-  background: rgba(0, 0, 0, 0.25);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: var(--text-primary);
-  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+  font-family: 'Outfit', sans-serif;
+  background: #f59e0b;
+  color: white;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 3px 10px rgba(245, 158, 11, 0.3);
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
-#note-editor-title-input:focus {
-  border-color: #f59e0b;
-  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
-  background: rgba(0, 0, 0, 0.3);
+.note-done-btn:hover {
+  background: #d97706;
+  transform: translateY(-1px);
 }
 
-#note-editor-body-input {
-  border-radius: 14px;
-  background: rgba(0, 0, 0, 0.25);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: var(--text-primary);
-  font-size: 13.5px;
-  line-height: 1.6;
-  padding: 14px;
-  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+/* Color Palette Bar & Reminder Tools Bar */
+.note-color-palette-bar,
+.note-reminder-tools-bar {
+  padding: 8px 18px;
+  background: rgba(0, 0, 0, 0.2);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  animation: noteToolsSlideDown 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-#note-editor-body-input:focus {
-  border-color: #f59e0b;
-  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.18);
-  background: rgba(0, 0, 0, 0.3);
+@keyframes noteToolsSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-/* Segmented type selector - Premium Glass Pill */
+/* Segmented type selector */
 #note-editor-modal .note-type-segment {
   display: flex;
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 14px;
-  padding: 4px;
-  margin: 0 16px 14px 16px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 3px;
+  margin-bottom: 4px;
   box-sizing: border-box;
   gap: 4px;
 }
 
 #note-editor-modal .note-type-segment button {
   flex: 1;
-  padding: 9px 12px;
-  font-size: 13px;
-  border-radius: 10px;
+  padding: 6px 10px;
+  font-size: 12px;
+  border-radius: 8px;
   border: none;
   cursor: pointer;
   font-weight: 700;
   font-family: 'Outfit', sans-serif;
-  transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: all 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
   background: transparent;
   color: var(--text-secondary);
 }
 
 #note-editor-modal .note-type-segment button.active {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
-  color: #ffffff;
-  box-shadow: 0 3px 12px rgba(245, 158, 11, 0.35);
+  background: rgba(245, 158, 11, 0.25);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  color: #f59e0b;
 }
 
-/* Checklist editor rows with Drag Handle */
+/* Seamless Inputs */
+.note-seamless-title-input {
+  width: 100%;
+  font-size: 19px;
+  font-weight: 800;
+  font-family: 'Outfit', sans-serif;
+  color: var(--text-primary);
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: 6px 0;
+  margin: 0;
+  box-sizing: border-box;
+  line-height: 1.3;
+}
+
+.note-seamless-title-input::placeholder {
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.note-seamless-body-textarea {
+  width: 100%;
+  flex: 1;
+  min-height: 220px;
+  font-size: 14.5px;
+  line-height: 1.65;
+  font-family: inherit;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  outline: none;
+  resize: none;
+  padding: 4px 0;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+.note-seamless-body-textarea::placeholder {
+  color: var(--text-muted);
+}
+
+/* Interactive Checklist Items */
 #note-editor-modal .note-checklist-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 12px;
-  padding: 6px 8px 6px 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  padding: 5px 8px;
   box-sizing: border-box;
-  transition: border-color 0.2s ease, background 0.2s ease, transform 0.15s ease, opacity 0.15s ease;
-  user-select: none;
+  transition: all 0.15s ease;
 }
 
-#note-editor-modal .note-checklist-row.dragging {
-  opacity: 0.45;
-  background: rgba(245, 158, 11, 0.08);
-  border: 1px dashed #f59e0b;
-}
-
-#note-editor-modal .note-checklist-row:focus-within {
-  border-color: rgba(245, 158, 11, 0.4);
+#note-editor-modal .note-checklist-row:hover {
   background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
-.note-checklist-handle {
+#note-editor-modal .note-checklist-row.checked-row input[type="text"] {
+  text-decoration: line-through;
   color: var(--text-muted);
-  cursor: grab;
-  padding: 4px;
+}
+
+.note-custom-checkbox {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1.5px solid var(--text-muted);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 13px;
-  transition: color 0.15s ease;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-size: 10px;
+  color: transparent;
   flex-shrink: 0;
 }
 
-.note-checklist-handle:hover,
-.note-checklist-handle:active {
-  color: #f59e0b;
-  cursor: grabbing;
+.note-custom-checkbox.checked {
+  background: #10b981;
+  border-color: #10b981;
+  color: white;
 }
 
 #note-editor-modal .note-checklist-row input[type="text"] {
   flex: 1;
-  padding: 8px 10px;
+  padding: 4px 6px;
   font-size: 13.5px;
   margin: 0;
-  border-radius: 8px;
+  border-radius: 6px;
   background: transparent;
   border: none;
   color: var(--text-primary);
   outline: none;
-  user-select: text;
 }
 
-#note-editor-modal .note-checklist-row input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
-  accent-color: #f59e0b;
-  cursor: pointer;
-  margin: 0;
-  flex-shrink: 0;
-}
-
-.note-checklist-reorder-group {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  flex-shrink: 0;
-}
-
-.note-checklist-reorder-btn {
-  background: transparent;
-  border: none;
+#note-editor-modal .note-checklist-del {
+  font-size: 12px;
   color: var(--text-muted);
-  font-size: 9px;
-  padding: 1px 3px;
-  cursor: pointer;
-  border-radius: 4px;
-  line-height: 1;
-}
-
-.note-checklist-reorder-btn:hover {
-  color: #f59e0b;
-  background: rgba(255,255,255,0.08);
-}
-
-#note-editor-modal .note-checklist-row .note-checklist-del {
-  font-size: 13px;
-  color: var(--red-negative);
-  padding: 8px;
+  padding: 4px 6px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   border: none;
   background: transparent;
-  margin: 0;
-  border-radius: 8px;
-  transition: background 0.15s ease;
+  border-radius: 6px;
+  transition: color 0.15s, background 0.15s;
   flex-shrink: 0;
 }
 
-#note-editor-modal .note-checklist-row .note-checklist-del:hover {
-  background: rgba(239, 68, 68, 0.12);
+#note-editor-modal .note-checklist-del:hover {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.15);
 }
 
-#note-editor-modal .note-checklist-add {
-  padding: 11px;
-  font-size: 13px;
+.note-seamless-add-item-btn {
+  padding: 8px 12px;
+  font-size: 12.5px;
   font-weight: 700;
-  margin-top: 6px;
+  font-family: 'Outfit', sans-serif;
+  margin-top: 4px;
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: 6px;
-  border-radius: 12px;
-  background: rgba(245, 158, 11, 0.06);
-  border: 1px dashed rgba(245, 158, 11, 0.35);
+  border-radius: 10px;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px dashed rgba(245, 158, 11, 0.3);
   color: #f59e0b;
   cursor: pointer;
   box-sizing: border-box;
-  transition: border-color 0.2s ease, background 0.2s ease;
+  transition: all 0.15s ease;
+}
+
+.note-seamless-add-item-btn:hover {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: #f59e0b;
+}
+
+.note-seamless-footer-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--text-muted);
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  margin-top: auto;
+}
+
+/* ============================================================
+   NOTE QUICK ACTIONS CONTEXT MENU (LONG-PRESS)
+   ============================================================ */
+.note-context-menu-content {
+  max-width: 360px;
+  width: 90vw;
+  border-radius: 22px;
+  padding: 16px 18px;
+  box-sizing: border-box;
+  background: var(--bg-card);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(245, 158, 11, 0.1);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  animation: noteContextMenuPop 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes noteContextMenuPop {
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.note-context-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  margin-bottom: 12px;
+}
+
+.note-context-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.note-context-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.note-context-info h4 {
+  margin: 0;
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-family: 'Outfit', sans-serif;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.note-context-info span {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.note-context-close-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.note-context-colors-wrap {
+  margin-bottom: 12px;
+  padding: 8px 10px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.note-context-section-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+  font-family: 'Outfit', sans-serif;
+}
+
+.note-context-actions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.note-context-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid transparent;
+  color: var(--text-primary);
+  font-size: 13.5px;
+  font-weight: 600;
+  font-family: 'Outfit', sans-serif;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  width: 100%;
+  box-sizing: border-box;
+  text-align: left;
+}
+
+.note-context-action-btn:hover {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.1);
+  transform: translateX(3px);
+}
+
+.note-context-action-btn i {
+  font-size: 15px;
+  width: 18px;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.note-context-action-btn.danger {
+  color: #f87171;
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.note-context-action-btn.danger i {
+  color: #f87171;
+}
+
+.note-context-action-btn.danger:hover {
+  background: rgba(239, 68, 68, 0.18);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.note-context-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.07);
+  margin: 4px 0;
 }
 
 #note-editor-modal .note-checklist-add:hover {
@@ -9619,4 +10169,227 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
   background: rgba(245, 158, 11, 0.18) !important;
   color: #f59e0b !important;
   border-color: rgba(245, 158, 11, 0.4) !important;
+}
+
+/* Interactive Top Profile Card in More tab */
+.profile-header-card {
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+.profile-header-card:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+/* ============================================================
+   MODERN CLOCK & TIME PICKER (LUXURY DARK DIAL)
+   ============================================================ */
+.time-picker-digital-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 4px 0 2px 0;
+}
+
+.time-picker-digit {
+  padding: 8px 18px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 2px solid transparent;
+  font-size: 32px;
+  font-weight: 800;
+  font-family: 'Outfit', sans-serif;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  min-width: 72px;
+  text-align: center;
+}
+
+.time-picker-digit:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+}
+
+.time-picker-digit.active {
+  background: rgba(var(--accent-rgb, 124, 106, 247), 0.16);
+  border-color: var(--accent);
+  color: var(--accent);
+  box-shadow: 0 0 20px rgba(var(--accent-rgb, 124, 106, 247), 0.35);
+  transform: scale(1.04);
+}
+
+.time-picker-colon {
+  font-size: 30px;
+  font-weight: 800;
+  font-family: 'Outfit', sans-serif;
+  color: var(--text-muted);
+  animation: timeColonBlink 1.5s infinite;
+}
+
+@keyframes timeColonBlink {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.3;
+  }
+}
+
+.time-picker-presets-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.time-preset-chip {
+  padding: 4px 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary);
+  font-size: 11.5px;
+  font-weight: 700;
+  font-family: 'Outfit', sans-serif;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.time-preset-chip:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+}
+
+.time-preset-chip.active {
+  background: rgba(var(--accent-rgb, 124, 106, 247), 0.2);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.modern-clock-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 4px 0;
+}
+
+.modern-clock-face {
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.03) 0%, rgba(0, 0, 0, 0.35) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  position: relative;
+  touch-action: none;
+  user-select: none;
+  box-shadow: inset 0 2px 12px rgba(0, 0, 0, 0.5), 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.modern-clock-pivot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 5;
+  box-shadow: 0 0 8px var(--accent);
+}
+
+.modern-clock-hand {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 2px;
+  height: 76px;
+  transform-origin: 50% 0%;
+  background: var(--accent);
+  border-radius: 2px;
+  pointer-events: none;
+  z-index: 4;
+  transition: transform 0.12s cubic-bezier(0.2, 0, 0, 1), height 0.15s ease;
+}
+
+.modern-clock-hand-indicator {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(var(--accent-rgb, 124, 106, 247), 0.25);
+  border: 2px solid var(--accent);
+  position: absolute;
+  left: 50%;
+  bottom: -16px;
+  transform: translateX(-50%);
+  box-shadow: 0 0 14px rgba(var(--accent-rgb, 124, 106, 247), 0.6);
+}
+
+.modern-clock-numbers {
+  position: absolute;
+  inset: 0;
+  pointer-events: auto;
+}
+
+.clock-num {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: 'Outfit', sans-serif;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transform: translate(-50%, -50%);
+  transition: color 0.15s ease, transform 0.15s ease;
+  z-index: 6;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.clock-num.inner {
+  font-size: 11px;
+  opacity: 0.75;
+  color: var(--text-muted);
+}
+
+.clock-num.selected {
+  color: #ffffff;
+  font-weight: 900;
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
+}
+
+/* Global Mobile Anti-Auto-Zoom Fix (Android & iOS)
+   Prevents browser/WebView from magnifying viewport when inputs receive focus,
+   virtual keyboards open, or autofill (Samsung Pass / Google Autofill) prompts appear. */
+input,
+select,
+textarea,
+.form-input,
+.form-control,
+.form-row-input,
+.profile-name-input {
+  font-size: 16px !important;
+  touch-action: manipulation;
+}
+
+html,
+body {
+  touch-action: pan-x pan-y;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
