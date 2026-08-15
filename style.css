@@ -1718,7 +1718,7 @@ input:focus+.slider {
    (which uses z-index 13200). index.html is NOT replaced by OTA updates,
    so this override lives in style.css (which IS OTA-updated). */
 #currency-picker-modal {
-  z-index: 14000 !important;
+  z-index: 25000 !important;
 }
 
 .modal-overlay {
@@ -4734,7 +4734,10 @@ html.auth-active .app-container {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--border-light, rgba(255, 255, 255, 0.06));
   border-radius: 14px;
-  padding: 12px 14px;
+  padding: 10px 12px;
+  min-height: 52px;
+  height: auto;
+  box-sizing: border-box;
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -4743,8 +4746,17 @@ html.auth-active .app-container {
   color: var(--text-primary, #ffffff);
   font-size: 13px;
   font-weight: 700;
+  font-family: 'Outfit', sans-serif;
   cursor: pointer;
   transition: all 0.2s;
+}
+
+.profile-shortcut-btn span {
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.25;
+  flex: 1;
+  text-align: left;
 }
 
 .profile-shortcut-btn i {
@@ -4790,6 +4802,37 @@ html.auth-active .app-container {
   background: var(--accent, #7c6af7);
   color: #ffffff;
   box-shadow: 0 4px 14px rgba(var(--accent-rgb, 124, 106, 247), 0.35);
+}
+
+/* Luxury Profile Premium Badge */
+.profile-premium-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(255, 193, 7, 0.22), rgba(255, 152, 0, 0.16));
+  border: 1px solid rgba(255, 193, 7, 0.45);
+  color: #ffc107;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  box-shadow: 0 2px 10px rgba(255, 193, 7, 0.2);
+  text-transform: uppercase;
+}
+
+.profile-premium-badge i {
+  font-size: 12px;
+  filter: drop-shadow(0 0 4px rgba(255, 193, 7, 0.6));
+}
+
+/* Subscreen Card Design System Standard (App Preferences Benchmark) */
+.subscreen-card-standard {
+  background: var(--bg-card, #161622);
+  border: 1px solid var(--border-light, rgba(255, 255, 255, 0.08));
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 }
 
 .profile-footer-card {
@@ -8947,7 +8990,7 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
   background: linear-gradient(160deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02) 55%, rgba(var(--accent-rgb, 124, 106, 247), 0.04));
   border: 1px solid rgba(255, 255, 255, 0.09);
   border-radius: 18px;
-  padding: 16px;
+  padding: 14px 16px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -8957,10 +9000,99 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
   transition: transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1), border-color 0.22s ease, box-shadow 0.22s ease, background 0.22s ease;
   box-sizing: border-box;
   width: 100%;
-  min-height: 132px;
+  max-height: 155px;
+  min-height: 110px;
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+}
+
+/* Custom Modern Round Checkbox */
+.note-custom-checkbox {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: #ffffff;
+  transition: all 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.note-custom-checkbox:hover {
+  border-color: var(--note-theme-color, #f59e0b);
+  transform: scale(1.12);
+}
+
+.note-custom-checkbox.checked {
+  background: var(--note-theme-color, #f59e0b);
+  border-color: var(--note-theme-color, #f59e0b);
+  box-shadow: 0 2px 8px var(--note-theme-shadow, rgba(245, 158, 11, 0.35));
+}
+
+/* Dynamic Theme Colors for Note Editor Modal */
+#note-editor-modal {
+  --note-theme-color: #f59e0b;
+  --note-theme-shadow: rgba(245, 158, 11, 0.35);
+  --note-theme-alpha: rgba(245, 158, 11, 0.12);
+}
+
+#note-editor-modal .modal-content {
+  max-height: calc(100dvh - 32px);
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  transition: max-height 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+#note-editor-modal .modal-body {
+  transition: padding-bottom 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+#note-editor-modal .note-type-segment button {
+  transition: all 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+  color: var(--text-muted);
+}
+
+#note-editor-modal .note-type-segment button.active {
+  background: var(--note-theme-color, #f59e0b) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px var(--note-theme-shadow, rgba(245, 158, 11, 0.35)) !important;
+  font-weight: 700;
+}
+
+#note-editor-modal .note-type-segment button:not(.active):hover {
+  color: var(--note-theme-color, #f59e0b) !important;
+  background: var(--note-theme-alpha, rgba(245, 158, 11, 0.12)) !important;
+}
+
+#note-editor-save-btn {
+  background: var(--note-theme-color, #f59e0b) !important;
+  box-shadow: 0 4px 14px var(--note-theme-shadow, rgba(245, 158, 11, 0.35)) !important;
+}
+
+#note-editor-modal .note-checklist-add {
+  color: var(--note-theme-color, #f59e0b) !important;
+  border-color: var(--note-theme-shadow, rgba(245, 158, 11, 0.35)) !important;
+  background: var(--note-theme-alpha, rgba(245, 158, 11, 0.08)) !important;
+}
+
+#note-editor-modal .note-checklist-add i {
+  color: var(--note-theme-color, #f59e0b) !important;
+}
+
+#note-editor-body-input:focus,
+#note-editor-title-input:focus,
+.note-checklist-row input[type="text"]:focus {
+  border-color: var(--note-theme-color, #f59e0b) !important;
+  box-shadow: 0 0 0 3px var(--note-theme-alpha, rgba(245, 158, 11, 0.18)) !important;
+  outline: none;
 }
 
 /* Soft top accent glow line */
@@ -9120,11 +9252,166 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
   border: 1px solid rgba(239, 68, 68, 0.28);
 }
 
+/* Note Card Color Variations */
+.modern-note-card.color-amber {
+  background: linear-gradient(160deg, rgba(245, 158, 11, 0.12), rgba(255, 255, 255, 0.02) 60%, rgba(245, 158, 11, 0.04));
+  border-color: rgba(245, 158, 11, 0.28);
+}
+.modern-note-card.color-amber::before {
+  background: linear-gradient(90deg, transparent, rgba(245, 158, 11, 0.7), transparent);
+  opacity: 1;
+}
+
+.modern-note-card.color-emerald {
+  background: linear-gradient(160deg, rgba(16, 185, 129, 0.12), rgba(255, 255, 255, 0.02) 60%, rgba(16, 185, 129, 0.04));
+  border-color: rgba(16, 185, 129, 0.28);
+}
+.modern-note-card.color-emerald::before {
+  background: linear-gradient(90deg, transparent, rgba(16, 185, 129, 0.7), transparent);
+  opacity: 1;
+}
+
+.modern-note-card.color-blue {
+  background: linear-gradient(160deg, rgba(59, 130, 246, 0.12), rgba(255, 255, 255, 0.02) 60%, rgba(59, 130, 246, 0.04));
+  border-color: rgba(59, 130, 246, 0.28);
+}
+.modern-note-card.color-blue::before {
+  background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.7), transparent);
+  opacity: 1;
+}
+
+.modern-note-card.color-purple {
+  background: linear-gradient(160deg, rgba(139, 92, 246, 0.12), rgba(255, 255, 255, 0.02) 60%, rgba(139, 92, 246, 0.04));
+  border-color: rgba(139, 92, 246, 0.28);
+}
+.modern-note-card.color-purple::before {
+  background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.7), transparent);
+  opacity: 1;
+}
+
+.modern-note-card.color-rose {
+  background: linear-gradient(160deg, rgba(244, 63, 94, 0.12), rgba(255, 255, 255, 0.02) 60%, rgba(244, 63, 94, 0.04));
+  border-color: rgba(244, 63, 94, 0.28);
+}
+.modern-note-card.color-rose::before {
+  background: linear-gradient(90deg, transparent, rgba(244, 63, 94, 0.7), transparent);
+  opacity: 1;
+}
+
+.modern-note-card.color-teal {
+  background: linear-gradient(160deg, rgba(20, 184, 166, 0.12), rgba(255, 255, 255, 0.02) 60%, rgba(20, 184, 166, 0.04));
+  border-color: rgba(20, 184, 166, 0.28);
+}
+.modern-note-card.color-teal::before {
+  background: linear-gradient(90deg, transparent, rgba(20, 184, 166, 0.7), transparent);
+  opacity: 1;
+}
+
+/* Color Palette Picker */
+.note-color-picker-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 4px 2px 8px 2px;
+}
+
+.note-color-swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: white;
+  transition: transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1), border-color 0.18s ease, box-shadow 0.18s ease;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+}
+
+.note-color-swatch:hover {
+  transform: scale(1.15);
+}
+
+.note-color-swatch.active {
+  border-color: #ffffff;
+  transform: scale(1.18);
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.4), 0 4px 12px rgba(0,0,0,0.35);
+}
+
+/* Modern Reminder UI */
+.note-reminder-presets-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.note-reminder-chip {
+  padding: 6px 12px;
+  border-radius: 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  font-family: 'Outfit', sans-serif;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.18s ease;
+}
+
+.note-reminder-chip:hover {
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.3);
+  color: #f59e0b;
+}
+
+.note-reminder-chip.active {
+  background: rgba(245, 158, 11, 0.2);
+  border-color: #f59e0b;
+  color: #f59e0b;
+  font-weight: 700;
+}
+
+.note-active-reminder-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 12px;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  color: #f59e0b;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: 'Outfit', sans-serif;
+  margin-top: 6px;
+  width: fit-content;
+}
+
+.note-active-reminder-pill button {
+  background: transparent;
+  border: none;
+  color: #f59e0b;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  margin-left: 2px;
+}
+
 /* Note Editor Modal Enhancements */
 #note-editor-modal .modal-content {
-  border-radius: 22px;
+  border-radius: 24px;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(var(--accent-rgb, 124, 106, 247), 0.05);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(245, 158, 11, 0.08);
   background: var(--bg-card);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
@@ -9133,7 +9420,7 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
 #note-editor-title-input {
   font-size: 15px;
   font-weight: 700;
-  border-radius: 12px;
+  border-radius: 14px;
   padding: 12px 14px;
   background: rgba(0, 0, 0, 0.25);
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -9142,8 +9429,8 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
 }
 
 #note-editor-title-input:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(var(--accent-rgb, 124, 106, 247), 0.2);
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
   background: rgba(0, 0, 0, 0.3);
 }
 
@@ -9159,17 +9446,17 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
 }
 
 #note-editor-body-input:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(var(--accent-rgb, 124, 106, 247), 0.15);
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.18);
   background: rgba(0, 0, 0, 0.3);
 }
 
-/* Segmented type selector */
+/* Segmented type selector - Premium Glass Pill */
 #note-editor-modal .note-type-segment {
   display: flex;
-  background: rgba(0, 0, 0, 0.22);
+  background: rgba(0, 0, 0, 0.3);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
+  border-radius: 14px;
   padding: 4px;
   margin: 0 16px 14px 16px;
   box-sizing: border-box;
@@ -9178,9 +9465,9 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
 
 #note-editor-modal .note-type-segment button {
   flex: 1;
-  padding: 8px;
-  font-size: 12.5px;
-  border-radius: 9px;
+  padding: 9px 12px;
+  font-size: 13px;
+  border-radius: 10px;
   border: none;
   cursor: pointer;
   font-weight: 700;
@@ -9191,27 +9478,52 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
 }
 
 #note-editor-modal .note-type-segment button.active {
-  background: linear-gradient(135deg, var(--accent), rgba(var(--accent-rgb, 124, 106, 247), 0.8));
+  background: linear-gradient(135deg, #f59e0b, #d97706);
   color: #ffffff;
-  box-shadow: 0 3px 10px rgba(var(--accent-rgb, 124, 106, 247), 0.35);
+  box-shadow: 0 3px 12px rgba(245, 158, 11, 0.35);
 }
 
-/* Checklist editor rows */
+/* Checklist editor rows with Drag Handle */
 #note-editor-modal .note-checklist-row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 12px;
-  padding: 6px 8px 6px 10px;
+  padding: 6px 8px 6px 8px;
   box-sizing: border-box;
-  transition: border-color 0.2s ease, background 0.2s ease;
+  transition: border-color 0.2s ease, background 0.2s ease, transform 0.15s ease, opacity 0.15s ease;
+  user-select: none;
+}
+
+#note-editor-modal .note-checklist-row.dragging {
+  opacity: 0.45;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px dashed #f59e0b;
 }
 
 #note-editor-modal .note-checklist-row:focus-within {
-  border-color: rgba(var(--accent-rgb, 124, 106, 247), 0.4);
+  border-color: rgba(245, 158, 11, 0.4);
   background: rgba(255, 255, 255, 0.06);
+}
+
+.note-checklist-handle {
+  color: var(--text-muted);
+  cursor: grab;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  transition: color 0.15s ease;
+  flex-shrink: 0;
+}
+
+.note-checklist-handle:hover,
+.note-checklist-handle:active {
+  color: #f59e0b;
+  cursor: grabbing;
 }
 
 #note-editor-modal .note-checklist-row input[type="text"] {
@@ -9224,15 +9536,39 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
   border: none;
   color: var(--text-primary);
   outline: none;
+  user-select: text;
 }
 
 #note-editor-modal .note-checklist-row input[type="checkbox"] {
   width: 18px;
   height: 18px;
-  accent-color: var(--accent);
+  accent-color: #f59e0b;
   cursor: pointer;
   margin: 0;
   flex-shrink: 0;
+}
+
+.note-checklist-reorder-group {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex-shrink: 0;
+}
+
+.note-checklist-reorder-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 9px;
+  padding: 1px 3px;
+  cursor: pointer;
+  border-radius: 4px;
+  line-height: 1;
+}
+
+.note-checklist-reorder-btn:hover {
+  color: #f59e0b;
+  background: rgba(255,255,255,0.08);
 }
 
 #note-editor-modal .note-checklist-row .note-checklist-del {
@@ -9256,7 +9592,7 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
 }
 
 #note-editor-modal .note-checklist-add {
-  padding: 10px;
+  padding: 11px;
   font-size: 13px;
   font-weight: 700;
   margin-top: 6px;
@@ -9265,15 +9601,22 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
   justify-content: center;
   gap: 6px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px dashed rgba(255, 255, 255, 0.14);
-  color: var(--text-primary);
+  background: rgba(245, 158, 11, 0.06);
+  border: 1px dashed rgba(245, 158, 11, 0.35);
+  color: #f59e0b;
   cursor: pointer;
   box-sizing: border-box;
   transition: border-color 0.2s ease, background 0.2s ease;
 }
 
 #note-editor-modal .note-checklist-add:hover {
-  border-color: rgba(var(--accent-rgb, 124, 106, 247), 0.5);
-  background: rgba(var(--accent-rgb, 124, 106, 247), 0.06);
+  border-color: #f59e0b;
+  background: rgba(245, 158, 11, 0.14);
+}
+
+/* Harmonize Notepad All filter chip */
+.notes-filter-chip.active[data-filter="all"] {
+  background: rgba(245, 158, 11, 0.18) !important;
+  color: #f59e0b !important;
+  border-color: rgba(245, 158, 11, 0.4) !important;
 }

@@ -72,7 +72,7 @@
               ${devButton}
             </div>
             <div style="font-size:11px;color:#8b949e;">
-              Budget Assistant • build v1255
+              Budget Assistant • build v1279
             </div>
           </div>
         `;
@@ -162,7 +162,7 @@
   <!-- Desktop Web UX Layer (loaded AFTER style.css so it can override).
        All rules are scoped behind html.web-mode, so Android/iOS native
        (Capacitor) layout is never affected. -->
-  <link rel="stylesheet" href="desktop.css?v=1255" id="desktop-stylesheet">
+  <link rel="stylesheet" href="desktop.css?v=1279" id="desktop-stylesheet">
 
   <!-- Capacitor Bridge -->
   <script src="capacitor.js"></script>
@@ -1167,9 +1167,9 @@
 
           <!-- Type Selector Tabs (Income, Expense, Transfer) -->
           <div class="type-selector-tabs" style="margin: 0 16px 8px 16px; width: calc(100% - 32px); flex-shrink: 0;">
-            <button type="button" class="type-tab-btn" data-type="income">Έσοδο</button>
-            <button type="button" class="type-tab-btn active expense" data-type="expense">Έξοδο</button>
-            <button type="button" class="type-tab-btn" data-type="transfer">Μεταφορά</button>
+            <button type="button" class="type-tab-btn" data-type="income" data-i18n="type_tab_income">Έσοδο</button>
+            <button type="button" class="type-tab-btn active expense" data-type="expense" data-i18n="type_tab_expense">Έξοδο</button>
+            <button type="button" class="type-tab-btn" data-type="transfer" data-i18n="type_tab_transfer">Μεταφορά</button>
           </div>
 
           <div class="modal-body"
@@ -1281,7 +1281,7 @@
               <label class="form-row-label" data-i18n="row_note">Τίτλος</label>
               <div class="form-row-value-container title-input-container" style="position: relative;">
                 <div id="note-autocomplete-dropdown" class="note-autocomplete-dropdown" style="display:none;"></div>
-                <input type="text" id="trans-note" class="form-row-input" placeholder="Πατήστε για τίτλο"
+                <input type="text" id="trans-note" class="form-row-input" placeholder="Πατήστε για τίτλο" data-i18n-placeholder="placeholder_note"
                   autocomplete="off">
               </div>
             </div>
@@ -1290,7 +1290,7 @@
             <div class="form-row" style="margin-top: 12px;">
               <label class="form-row-label" data-i18n="row_description">Λεπτομέρειες</label>
               <div class="form-row-value-container" style="display: flex; align-items: center; position: relative;">
-                <input type="text" id="trans-description" class="form-row-input" placeholder="Λεπτομέρειες"
+                <input type="text" id="trans-description" class="form-row-input" placeholder="Λεπτομέρειες" data-i18n-placeholder="placeholder_description"
                   autocomplete="off" style="flex: 1; border: none; outline: none; background: transparent;">
                 <input type="file" id="trans-photo-input" accept="image/*" style="display: none;" multiple>
                 <input type="file" id="trans-camera-input" accept="image/*" capture="environment"
@@ -1387,34 +1387,32 @@
     <!-- MODAL: NOTES MANAGER (Bottom Sheet)            -->
     <!-- ============================================== -->
     <div id="notes-manager-modal" class="modal-overlay">
-      <div class="modal-content"
-        style="display: flex; flex-direction: column; height: 88vh; max-height: 88vh; border-radius: 20px 20px 0 0;">
-        <div class="modal-header"
-          style="padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: space-between;">
-          <div style="display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0;">
-            <button type="button" class="icon-btn" onclick="closeModal('notes-manager-modal')"
-              style="flex-shrink: 0;"><i class="fa-solid fa-arrow-left"></i></button>
-            <h3 class="modal-title"
-              style="font-weight: 700; font-family: 'Outfit', sans-serif; font-size: 15px; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 6px;">
-              <span>Σημειωματάριο</span>
-              <span id="notes-manager-count-badge" class="badge"
-                style="background: var(--accent); color: white; font-size: 10px; padding: 2px 6px; border-radius: 10px; font-weight: 700; display: none;">0</span>
-            </h3>
+      <div class="modal-content subscreen-card-standard"
+        style="display: flex; flex-direction: column; height: 88vh; max-height: 88vh; border-radius: 20px 20px 0 0; padding: 0;">
+        <!-- Card Header Band (Amber/Gold #f59e0b) -->
+        <div style="padding: 14px 18px; background: rgba(245, 158, 11, 0.08); border-bottom: 1px solid rgba(245, 158, 11, 0.25); display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1;">
+            <button type="button" class="icon-btn" onclick="closeModal('notes-manager-modal')" style="flex-shrink: 0;"><i class="fa-solid fa-arrow-left"></i></button>
+            <div style="width: 34px; height: 34px; border-radius: 10px; background: #f59e0b; color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; flex-shrink: 0; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.35);">
+              <i class="fa-solid fa-note-sticky"></i>
+            </div>
+            <div style="min-width: 0; flex: 1;">
+              <div style="font-size: 15px; font-weight: 800; color: var(--text-primary); font-family: 'Outfit', sans-serif; display: flex; align-items: center; gap: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                <span data-i18n="notes_manager_title">Σημειωματάριο &amp; Checklists</span>
+                <span id="notes-manager-count-badge" class="badge" style="background: #f59e0b; color: white; font-size: 10px; padding: 2px 6px; border-radius: 10px; font-weight: 700; display: none;">0</span>
+              </div>
+              <div data-i18n="notes_manager_subtitle" style="font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Προσωπικές σημειώσεις, λίστες &amp; υπενθυμίσεις</div>
+            </div>
           </div>
-          <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
-            <button type="button" class="icon-btn" id="notes-view-toggle-btn" onclick="toggleNotesViewMode()"
-              style="font-size: 14px; color: var(--text-secondary); background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 8px; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; cursor: pointer;"
-              title="Εναλλαγή προβολής">
+          <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0; margin-left: 8px;">
+            <button type="button" class="icon-btn" id="notes-view-toggle-btn" onclick="toggleNotesViewMode()" style="font-size: 14px; color: var(--text-secondary); background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 8px; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; cursor: pointer;" title="Εναλλαγή προβολής">
               <i class="fa-solid fa-border-all"></i>
             </button>
-            <button type="button" class="icon-btn" onclick="openNotesTrashModal()"
-              style="font-size: 14px; color: var(--text-secondary); background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 8px; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; cursor: pointer;"
-              title="Κάδος Σημειώσεων">
+            <button type="button" class="icon-btn" onclick="openNotesTrashModal()" style="font-size: 14px; color: var(--text-secondary); background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 8px; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; cursor: pointer;" title="Κάδος Σημειώσεων">
               <i class="fa-solid fa-trash-can"></i>
             </button>
-            <button class="btn btn-primary" id="notes-manager-add-btn"
-              style="padding: 6px 14px; font-size: 12.5px; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 6px; border-radius: 8px; cursor: pointer; background: var(--accent); color: white; border: none; box-shadow: 0 3px 10px rgba(var(--accent-rgb, 224, 94, 85), 0.35);">
-              <i class="fa-solid fa-plus"></i> <span data-i18n="new_note_btn">Νέα</span>
+            <button class="btn btn-primary" id="notes-manager-add-btn" style="padding: 6px 14px; font-size: 12.5px; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 6px; border-radius: 8px; cursor: pointer; background: #f59e0b; color: white; border: none; box-shadow: 0 3px 10px rgba(245, 158, 11, 0.35);">
+              <i class="fa-solid fa-plus"></i> <span data-i18n="notes_manager_add">Νέα</span>
             </button>
           </div>
         </div>
@@ -1427,7 +1425,7 @@
             <!-- Slim Search Input Wrapper -->
             <div class="notes-search-wrapper">
               <i class="fa-solid fa-magnifying-glass" style="color: var(--text-muted); font-size: 13px;"></i>
-              <input type="text" id="notes-manager-search-input" placeholder="Αναζήτηση σημειώσεων..."
+              <input type="text" id="notes-manager-search-input" placeholder="Αναζήτηση σημειώσεων..." data-i18n-placeholder="notes_manager_search"
                 oninput="renderNotesList()">
             </div>
 
@@ -1435,23 +1433,23 @@
             <div class="notes-filter-bar" id="notes-filter-bar">
               <button type="button" class="notes-filter-chip active" data-filter="all"
                 onclick="setNotesFilterCategory('all')">
-                <i class="fa-solid fa-layer-group"></i> <span>Όλες</span>
+                <i class="fa-solid fa-layer-group"></i> <span data-i18n="notes_filter_all">Όλες</span>
               </button>
               <button type="button" class="notes-filter-chip" data-filter="pinned"
                 onclick="setNotesFilterCategory('pinned')">
-                <i class="fa-solid fa-thumbtack" style="color:#f59e0b;"></i> <span>Καρφιτσωμένες</span>
+                <i class="fa-solid fa-thumbtack" style="color:#f59e0b;"></i> <span data-i18n="notes_filter_pinned">Καρφιτσωμένες</span>
               </button>
               <button type="button" class="notes-filter-chip" data-filter="text"
                 onclick="setNotesFilterCategory('text')">
-                <i class="fa-regular fa-file-lines"></i> <span>Σημειώσεις</span>
+                <i class="fa-regular fa-file-lines"></i> <span data-i18n="notes_filter_text">Σημειώσεις</span>
               </button>
               <button type="button" class="notes-filter-chip" data-filter="checklist"
                 onclick="setNotesFilterCategory('checklist')">
-                <i class="fa-solid fa-list-check" style="color:var(--accent);"></i> <span>Checklists</span>
+                <i class="fa-solid fa-list-check" style="color:var(--accent);"></i> <span data-i18n="notes_filter_checklist">Checklists</span>
               </button>
               <button type="button" class="notes-filter-chip" data-filter="reminder"
                 onclick="setNotesFilterCategory('reminder')">
-                <i class="fa-regular fa-bell" style="color:#10b981;"></i> <span>Υπενθυμίσεις</span>
+                <i class="fa-regular fa-bell" style="color:#10b981;"></i> <span data-i18n="notes_filter_reminder">Υπενθυμίσεις</span>
               </button>
             </div>
           </div>
@@ -1512,9 +1510,9 @@
                 data-i18n="item_user_guide">Οδηγός Χρήσης</h3>
               <div
                 style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; font-family: 'Outfit', sans-serif;">
-                <span id="user-guide-version-badge" style="font-size:10px; background:rgba(99,102,241,0.15); color:var(--primary); padding:2px 8px; border-radius:10px; font-weight:700; border:1px solid rgba(99,102,241,0.3);">v1255</span>
+                <span id="user-guide-version-badge" style="font-size:10px; background:rgba(99,102,241,0.15); color:var(--primary); padding:2px 8px; border-radius:10px; font-weight:700; border:1px solid rgba(99,102,241,0.3);">v1279</span>
                 <span>•</span>
-                <span id="user-guide-date-badge">Αύγουστος 2026</span>
+                <span id="user-guide-date-badge" data-i18n="user_guide_date_badge">Αύγουστος 2026</span>
               </div>
             </div>
           </div>
@@ -1535,7 +1533,7 @@
             <i class="fa-solid fa-magnifying-glass"
               style="position: absolute; left: 14px; color: var(--text-muted); font-size: 13px;"></i>
             <input type="text" id="user-guide-search-input" oninput="filterUserGuide(this.value)"
-              placeholder="Αναζήτηση στον οδηγό (π.χ. Δόσεις, PIN, Cloud)..."
+              placeholder="Αναζήτηση στον οδηγό (π.χ. Δόσεις, PIN, Cloud)..." data-i18n-placeholder="user_guide_search_placeholder"
               style="width: 100%; padding: 9px 36px 9px 36px; border-radius: 12px; border: 1px solid var(--border); background: rgba(0,0,0,0.2); color: var(--text-primary); font-size: 13px; outline: none; font-family: 'Outfit', sans-serif;">
             <button id="user-guide-search-clear" onclick="clearUserGuideSearch()"
               style="position: absolute; right: 10px; background: none; border: none; color: var(--text-muted); font-size: 14px; display: none; cursor: pointer;">✕</button>
@@ -1609,7 +1607,7 @@
                 Δεδομένων</h4>
               <p style="margin: 0; font-size: 12.5px;">Όλες οι συναλλαγές, οι λογαριασμοί και οι ρυθμίσεις σας
                 αποθηκεύονται ακαριαία στη συσκευή σας (Local Storage). Όταν είστε συνδεδεμένοι, συγχρονίζονται με
-                ασφαλή κρυπτογράφηση στο Cloud (Supabase).</p>
+                ασφαλή κρυπτογράφηση στο Ασφαλές Cloud Storage.</p>
             </div>
           </div>
 
@@ -1656,12 +1654,20 @@
     <!-- MODAL: SOFTWARE LICENSES -->
 
     <div id="settings-subscreen-modal" class="modal-overlay">
-      <div class="modal-content" style="display:flex;flex-direction:column;height:90vh;max-height:90vh;">
-        <div class="modal-header">
-          <button type="button" class="icon-btn" id="settings-subscreen-back-btn"><i
-              class="fa-solid fa-arrow-left"></i></button>
-          <h3 class="modal-title" id="settings-subscreen-title">Ρυθμίσεις</h3>
-          <div style="width:36px;"></div>
+      <div class="modal-content subscreen-card-standard" style="display:flex;flex-direction:column;height:90vh;max-height:90vh;padding:0;border-radius:18px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,0.4);">
+        <!-- Dynamic Card Header Band (App Preferences Standard) -->
+        <div id="settings-subscreen-header-band" style="padding:14px 18px; background:rgba(124,106,247,0.08); border-bottom:1px solid rgba(124,106,247,0.25); display:flex; align-items:center; justify-content:space-between;">
+          <div style="display:flex; align-items:center; gap:12px; min-width:0; flex:1;">
+            <button type="button" class="icon-btn" id="settings-subscreen-back-btn" style="flex-shrink:0;"><i class="fa-solid fa-arrow-left"></i></button>
+            <div id="settings-subscreen-icon-box" style="width:34px; height:34px; border-radius:10px; background:#7c6af7; color:#ffffff; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:700; flex-shrink:0; box-shadow:0 4px 12px rgba(124,106,247,0.35);">
+              <i id="settings-subscreen-icon" class="fa-solid fa-palette"></i>
+            </div>
+            <div style="min-width:0; flex:1;">
+              <div id="settings-subscreen-title" style="font-size:15px; font-weight:800; color:var(--text-primary); font-family:'Outfit',sans-serif; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Προτιμήσεις Εφαρμογής</div>
+              <div id="settings-subscreen-subtitle" style="font-size:12px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Θέμα, κύριο νόμισμα &amp; έξυπνη συμπλήρωση</div>
+            </div>
+          </div>
+          <button type="button" onclick="closeModal('settings-subscreen-modal')" style="background: rgba(255,255,255,0.06); border: 1px solid var(--border); color: var(--text-muted); width: 32px; height: 32px; border-radius: 8px; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-left: 8px;" title="Κλείσιμο">✕</button>
         </div>
         <div class="modal-body" style="flex:1;overflow-y:auto;padding:16px;">
 
@@ -2246,12 +2252,13 @@
                 </div>
                 <div style="flex: 1; min-width: 0;">
                   <div
-                    style="font-size: 17px; font-weight: 800; color: var(--text-primary); font-family: 'Outfit', sans-serif; letter-spacing: -0.2px;">
+                    style="font-size: 17px; font-weight: 800; color: var(--text-primary); font-family: 'Outfit', sans-serif; letter-spacing: -0.2px;"
+                    data-i18n="feedback_hero_title">
                     Σχόλια & Αξιολόγηση</div>
                   <div
                     style="font-size: 12px; color: var(--text-muted); margin-top: 3px; display: flex; align-items: center; gap: 6px;">
                     <i class="fa-solid fa-heart" style="font-size: 11px; color: var(--accent);"></i>
-                    <span>Η γνώμη σας μας βοηθά να βελτιωνόμαστε</span>
+                    <span data-i18n="feedback_hero_subtitle">Η γνώμη σας μας βοηθά να βελτιωνόμαστε</span>
                   </div>
                 </div>
               </div>
@@ -2270,6 +2277,9 @@
                   <button type="button" class="emoji-rate-btn" data-rate="3" title="Neutral">&#x1F610;</button>
                   <button type="button" class="emoji-rate-btn" data-rate="4" title="Happy">&#x1F642;</button>
                   <button type="button" class="emoji-rate-btn" data-rate="5" title="Love it">&#x1F60D;</button>
+                </div>
+                <div id="emoji-rate-label" class="emoji-rate-label"
+                  style="text-align: center; margin-top: 10px; font-size: 13px; font-weight: 700; color: var(--accent); min-height: 18px; opacity: 0; transition: opacity 0.2s;">
                 </div>
               </div>
 
@@ -2293,12 +2303,16 @@
               <!-- Comment card -->
               <div class="feedback-form-group"
                 style="background: rgba(255,255,255,0.025); border: 1px solid var(--border); border-radius: 18px; padding: 16px;">
-                <div class="feedback-subtitle"
+                <div class="feedback-subtitle" data-i18n="feedback_comment_label"
                   style="font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px;">Το σχόλιό
                   σας
                 </div>
-                <textarea id="feedback-comment" class="feedback-textarea" placeholder="Γράψτε τα σχόλιά σας εδώ..."
+                <textarea id="feedback-comment" class="feedback-textarea" maxlength="500" placeholder="Γράψτε τα σχόλιά σας εδώ..."
                   data-i18n-placeholder="feedback_comment_placeholder"></textarea>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                  <span style="font-size: 11px; color: var(--text-muted);">Max 500 χαρακτήρες</span>
+                  <span id="feedback-char-count" style="font-size: 11px; font-weight: 600; color: var(--text-muted);">0 / 500</span>
+                </div>
               </div>
 
               <button type="button" id="feedback-submit-btn" class="feedback-btn">
@@ -2419,7 +2433,7 @@
             <div class="settings-list-item version-info-row"
               style="padding: 14px 16px; background: transparent; border-top: 1px solid var(--border); margin-top: 8px;">
               <span class="settings-item-label" style="color:var(--text-muted); font-size:12px;"
-                data-i18n="app_version">Έκδοση 1.0.0 (build v1255)</span>
+                data-i18n="app_version">Έκδοση 1.0.0 (build v1279)</span>
               <span class="settings-item-value" style="font-size:12px; color:var(--text-muted); font-weight:600;">Budget
                 Assistant</span>
             </div>
@@ -2539,14 +2553,24 @@
     <!-- MODAL: RECURRING TEMPLATES MANAGEMENT -->
     <!-- ============================================== -->
     <div id="recurring-templates-modal" class="modal-overlay">
-      <div class="modal-content" style="max-width: 480px; max-height: 85vh;">
-        <div class="modal-header">
-          <h3 class="modal-title" data-i18n="item_recurring_templates">🔁 Επαναλαμβανόμενες Συναλλαγές</h3>
-          <span class="modal-close" onclick="closeModal('recurring-templates-modal')">&times;</span>
+      <div class="modal-content subscreen-card-standard" style="max-width: 520px; width: 94%; max-height: 85vh; padding: 0; border-radius: 18px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.4);">
+        <!-- Card Header Band (Blue #3b82f6) -->
+        <div style="padding: 14px 18px; background: rgba(59, 130, 246, 0.08); border-bottom: 1px solid rgba(59, 130, 246, 0.25); display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1;">
+            <button type="button" class="icon-btn" onclick="closeModal('recurring-templates-modal')" style="flex-shrink: 0;"><i class="fa-solid fa-arrow-left"></i></button>
+            <div style="width: 34px; height: 34px; border-radius: 10px; background: #3b82f6; color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; flex-shrink: 0; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35);">
+              <i class="fa-solid fa-arrows-spin"></i>
+            </div>
+            <div style="min-width: 0; flex: 1;">
+              <div data-i18n="item_recurring_templates" style="font-size: 15px; font-weight: 800; color: var(--text-primary); font-family: 'Outfit', sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Επαναλαμβανόμενες Συναλλαγές</div>
+              <div data-i18n="settings_recurring_desc" style="font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Προγραμματισμένα έξοδα, έσοδα &amp; πάγιες εντολές</div>
+            </div>
+          </div>
+          <button type="button" onclick="closeModal('recurring-templates-modal')" style="background: rgba(255,255,255,0.06); border: 1px solid var(--border); color: var(--text-muted); width: 32px; height: 32px; border-radius: 8px; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-left: 8px;" title="Κλείσιμο">✕</button>
         </div>
-        <div class="modal-body" style="padding-bottom: 24px;">
+        <div class="modal-body" style="padding: 16px 18px 24px 18px;">
           <div id="recurring-templates-list-container"
-            style="display: flex; flex-direction: column; gap: 12px; max-height: 60vh; overflow-y: auto; padding-right: 4px;">
+            style="display: flex; flex-direction: column; gap: 10px; max-height: 60vh; overflow-y: auto; padding-right: 4px;">
             <!-- Populated dynamically -->
           </div>
         </div>
@@ -2557,33 +2581,42 @@
     <!-- MODAL: RECURRING DETAILS (all repetitions + edit name) -->
     <!-- ============================================== -->
     <div id="recurring-details-modal" class="modal-overlay" style="z-index: 12000;">
-      <div class="modal-content" style="max-width: 520px; max-height: 88vh; display: flex; flex-direction: column;">
-        <div class="modal-header">
-          <h3 class="modal-title" id="recurring-details-title">🔁 Επαναλήψεις</h3>
-          <span class="modal-close" onclick="closeRecurringDetailsModal()">&times;</span>
+      <div class="modal-content subscreen-card-standard" style="max-width: 520px; width: 94%; max-height: 88vh; padding: 0; border-radius: 18px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.4);">
+        <!-- Card Header Band (Blue #3b82f6) -->
+        <div style="padding: 14px 18px; background: rgba(59, 130, 246, 0.08); border-bottom: 1px solid rgba(59, 130, 246, 0.25); display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1;">
+            <button type="button" class="icon-btn" onclick="closeRecurringDetailsModal()" style="flex-shrink: 0;"><i class="fa-solid fa-arrow-left"></i></button>
+            <div style="width: 34px; height: 34px; border-radius: 10px; background: #3b82f6; color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; flex-shrink: 0; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35);">
+              <i class="fa-solid fa-arrows-spin"></i>
+            </div>
+            <div style="min-width: 0; flex: 1;">
+              <div id="recurring-details-title" data-i18n="modal_recurring_details_title" style="font-size: 15px; font-weight: 800; color: var(--text-primary); font-family: 'Outfit', sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Λεπτομέρειες Επανάληψης</div>
+              <div data-i18n="modal_recurring_details_desc" style="font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Ιστορικό κινήσεων &amp; όνομα επανάληψης</div>
+            </div>
+          </div>
+          <button type="button" onclick="closeRecurringDetailsModal()" style="background: rgba(255,255,255,0.06); border: 1px solid var(--border); color: var(--text-muted); width: 32px; height: 32px; border-radius: 8px; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-left: 8px;" title="Κλείσιμο">✕</button>
         </div>
-        <div class="modal-body"
-          style="padding-bottom: 24px; display: flex; flex-direction: column; gap: 14px; overflow-y: auto;">
+        <div class="modal-body" style="padding: 16px 18px 24px 18px; display: flex; flex-direction: column; gap: 14px; overflow-y: auto;">
           <!-- Edit name section -->
           <div style="display: flex; flex-direction: column; gap: 6px;">
-            <label id="recurring-details-name-label"
-              style="font-size: 12px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.4px;">
+            <label id="recurring-details-name-label" data-i18n="label_repetition_name"
+              style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; font-family: 'Outfit', sans-serif;">
               Όνομα Επανάληψης
             </label>
             <div style="display: flex; gap: 8px; align-items: center;">
               <input type="text" id="recurring-details-name-input"
-                style="flex: 1; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border, rgba(255,255,255,0.1)); background: rgba(255,255,255,0.04); color: var(--text-primary); font-size: 14px; outline: none; box-sizing: border-box;">
+                style="flex: 1; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--border-light, rgba(255,255,255,0.08)); background: rgba(255,255,255,0.03); color: var(--text-primary); font-size: 14px; font-family: 'Outfit', sans-serif; outline: none; box-sizing: border-box;">
               <button type="button" onclick="saveRecurringTemplateName()"
-                style="padding: 10px 16px; border-radius: 10px; font-size: 13px; font-weight: 700; border: none; background: var(--accent, #7c6af7); color: white; cursor: pointer; white-space: nowrap;">
-                💾 Αποθήκευση
+                style="padding: 10px 16px; border-radius: 12px; font-size: 13px; font-weight: 700; border: none; background: #3b82f6; color: white; cursor: pointer; white-space: nowrap; font-family: 'Outfit', sans-serif; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);">
+                💾 <span data-i18n="btn_save">Αποθήκευση</span>
               </button>
             </div>
           </div>
 
           <!-- Repetitions list -->
-          <div style="display: flex; flex-direction: column; gap: 6px;">
-            <label id="recurring-details-list-label"
-              style="font-size: 12px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.4px;">
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <label id="recurring-details-list-label" data-i18n="label_all_repetitions"
+              style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; font-family: 'Outfit', sans-serif;">
               Όλες οι Επαναλήψεις
             </label>
             <div id="recurring-details-list-container"
@@ -2599,116 +2632,87 @@
     <!-- MODAL: RECURRING EDITOR (full management with calendar) -->
     <!-- ============================================== -->
     <div id="recurring-edit-modal" class="modal-overlay" style="z-index: 13000;">
-      <div class="modal-content"
-        style="max-height: calc(var(--viewport-height, 100vh) * 0.95); display: flex; flex-direction: column; max-width: 460px;">
-        <div class="modal-header"
-          style="position: relative; min-height: 52px; box-sizing: border-box; border-bottom: 1px solid var(--border); padding: 0 16px; display: flex; align-items: center; justify-content: space-between;">
-          <span style="font-size: 13px; font-weight: 600; color: var(--text-secondary);"></span>
-          <h3 class="modal-title" id="recurring-edit-title"
-            style="margin: 0; font-size: 15px; font-weight: 700; color: #ffffff;">✏️ Επεξεργασία Επανάληψης</h3>
-          <span class="modal-close" onclick="closeRecurringEditModal()"
-            style="font-size: 24px; color: var(--text-secondary); cursor: pointer; line-height: 1;">&times;</span>
+      <div class="modal-content subscreen-card-standard" style="max-width: 480px; width: 94%; max-height: 90vh; padding: 0; border-radius: 18px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.4);">
+        <!-- Card Header Band (Blue #3b82f6) -->
+        <div style="padding: 14px 18px; background: rgba(59, 130, 246, 0.08); border-bottom: 1px solid rgba(59, 130, 246, 0.25); display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1;">
+            <button type="button" class="icon-btn" onclick="closeRecurringEditModal()" style="flex-shrink: 0;"><i class="fa-solid fa-arrow-left"></i></button>
+            <div style="width: 34px; height: 34px; border-radius: 10px; background: #3b82f6; color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; flex-shrink: 0; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35);">
+              <i class="fa-solid fa-arrows-spin"></i>
+            </div>
+            <div style="min-width: 0; flex: 1;">
+              <div id="recurring-edit-title" data-i18n="modal_recurring_edit_title" style="font-size: 15px; font-weight: 800; color: var(--text-primary); font-family: 'Outfit', sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Επεξεργασία Επανάληψης</div>
+              <div data-i18n="modal_recurring_edit_desc" style="font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Προγραμματισμός &amp; συχνότητα</div>
+            </div>
+          </div>
+          <button type="button" onclick="closeRecurringEditModal()" style="background: rgba(255,255,255,0.06); border: 1px solid var(--border); color: var(--text-muted); width: 32px; height: 32px; border-radius: 8px; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-left: 8px;" title="Κλείσιμο">✕</button>
         </div>
-        <div class="modal-body"
-          style="padding: 16px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 16px;">
-
+        <div class="modal-body" style="padding: 16px 18px 24px 18px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; font-family: 'Outfit', sans-serif;">
           <!-- Name -->
           <div>
-            <span
-              style="font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Όνομα
-              Επανάληψης</span>
-            <input type="text" id="recurring-edit-name-input"
-              style="width: 100%; margin-top: 8px; padding: 12px; border-radius: 14px; background: var(--bg-main); color: var(--text-primary); border: 1px solid var(--border); font-size: 14.5px; font-weight: 600; outline: none; box-sizing: border-box;">
+            <span data-i18n="label_repetition_name" style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Όνομα Επανάληψης</span>
+            <input type="text" id="recurring-edit-name-input" style="width: 100%; margin-top: 6px; padding: 12px 14px; border-radius: 12px; background: rgba(255,255,255,0.03); color: var(--text-primary); border: 1px solid var(--border-light, rgba(255,255,255,0.08)); font-size: 14.5px; font-weight: 600; font-family: 'Outfit', sans-serif; outline: none; box-sizing: border-box;">
           </div>
 
           <!-- Start Date (calendar) -->
           <div>
-            <span
-              style="font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Έναρξη
-              (Από)</span>
-            <div id="recurring-edit-start-trigger" onclick="openCustomDatePicker('recurring-edit-start')"
-              style="display: flex; align-items: center; justify-content: space-between; padding: 14px; border-radius: 12px; background: var(--bg-input, rgba(255,255,255,0.03)); border: 1px solid var(--border); cursor: pointer; transition: all 0.2s; box-shadow: inset 0 1px 2px rgba(0,0,0,0.2); margin-top: 8px;">
+            <span data-i18n="label_start_date" style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Έναρξη (Από)</span>
+            <div id="recurring-edit-start-trigger" onclick="openCustomDatePicker('recurring-edit-start')" style="display: flex; align-items: center; justify-content: space-between; padding: 14px; border-radius: 12px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-light, rgba(255,255,255,0.08)); cursor: pointer; transition: all 0.2s; margin-top: 6px;">
               <div style="display: flex; align-items: center; gap: 10px;">
-                <i class="fa-regular fa-calendar-days" style="color: var(--accent, #e05e55); font-size: 16px;"></i>
-                <span id="recurring-edit-start-label"
-                  style="font-size: 14.5px; font-weight: 600; color: var(--text-primary);">Επιλογή ημερομηνίας...</span>
+                <i class="fa-regular fa-calendar-days" style="color: #3b82f6; font-size: 16px;"></i>
+                <span id="recurring-edit-start-label" style="font-size: 14.5px; font-weight: 600; color: var(--text-primary); font-family: 'Outfit', sans-serif;">Επιλογή ημερομηνίας...</span>
               </div>
-              <i class="fa-solid fa-chevron-right" style="color: var(--text-secondary); font-size: 12px;"></i>
+              <i class="fa-solid fa-chevron-right" style="color: var(--text-muted); font-size: 12px;"></i>
             </div>
             <input type="hidden" id="recurring-edit-start" value="">
           </div>
 
           <!-- Frequency Select -->
           <div>
-            <span
-              style="font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Επανάληψη
-              Κάθε</span>
-            <select id="recurring-edit-preset" onchange="onRecurringEditPresetChange()"
-              style="width: 100%; margin-top: 8px; padding: 12px; border-radius: 14px; background: var(--bg-main); color: var(--text-primary); border: 1px solid var(--border); font-size: 14.5px; font-weight: 600; outline: none; cursor: pointer;">
-              <option value="daily">Daily (Καθημερινά)</option>
-              <option value="weekly">Weekly (Εβδομαδιαία)</option>
-              <option value="monthly">Monthly (Μηνιαία)</option>
-              <option value="yearly">Yearly (Ετήσια)</option>
-              <option value="specific_months">Specific Months (Συγκεκριμένοι Μήνες)</option>
+            <span data-i18n="label_frequency" style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Επανάληψη Κάθε</span>
+            <select id="recurring-edit-preset" onchange="onRecurringEditPresetChange()" style="width: 100%; margin-top: 6px; padding: 12px 14px; border-radius: 12px; background: rgba(255,255,255,0.04); color: var(--text-primary); border: 1px solid var(--border-light, rgba(255,255,255,0.08)); font-size: 14.5px; font-weight: 600; font-family: 'Outfit', sans-serif; outline: none; cursor: pointer;">
+              <option value="daily" data-i18n="preset_daily">Daily (Καθημερινά)</option>
+              <option value="weekly" data-i18n="preset_weekly">Weekly (Εβδομαδιαία)</option>
+              <option value="monthly" data-i18n="preset_monthly">Monthly (Μηνιαία)</option>
+              <option value="yearly" data-i18n="preset_yearly">Yearly (Ετήσια)</option>
+              <option value="specific_months" data-i18n="preset_specific_months">Specific Months (Συγκεκριμένοι Μήνες)</option>
             </select>
           </div>
 
           <!-- Specific Months Grid -->
-          <div id="recurring-edit-months-container"
-            style="display: none; flex-direction: column; gap: 8px; border-top: 1px dashed var(--border); padding-top: 12px;">
-            <span
-              style="font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Επιλογή
-              Μηνών</span>
-            <div id="recurring-edit-months-grid"
-              style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 4px;">
-            </div>
+          <div id="recurring-edit-months-container" style="display: none; flex-direction: column; gap: 8px; border-top: 1px dashed var(--border-light, rgba(255,255,255,0.08)); padding-top: 12px;">
+            <span data-i18n="label_select_months" style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Επιλογή Μηνών</span>
+            <div id="recurring-edit-months-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 4px;"></div>
           </div>
 
           <!-- Expiration Section -->
-          <div
-            style="border-top: 1px solid var(--border-light); padding-top: 16px; display: flex; flex-direction: column; gap: 10px;">
-            <span
-              style="font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Λήξη
-              Επανάληψης</span>
+          <div style="border-top: 1px solid var(--border-light, rgba(255,255,255,0.08)); padding-top: 16px; display: flex; flex-direction: column; gap: 10px;">
+            <span data-i18n="label_expiration" style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Λήξη Επανάληψης</span>
             <div style="display: flex; gap: 8px;">
-              <button type="button" id="recurring-edit-end-perpetual" class="recurring-grid-btn active"
-                style="flex: 1; padding: 12px; border-radius: 12px; font-size: 13.5px; font-weight: 600;"
-                onclick="selectRecurringEditEndType('perpetual')">Για πάντα</button>
-              <button type="button" id="recurring-edit-end-date" class="recurring-grid-btn"
-                style="flex: 1; padding: 12px; border-radius: 12px; font-size: 13.5px; font-weight: 600;"
-                onclick="selectRecurringEditEndType('date')">Μέχρι ημερομηνία...</button>
+              <button type="button" id="recurring-edit-end-perpetual" class="recurring-grid-btn active" style="flex: 1; padding: 12px; border-radius: 12px; font-size: 13.5px; font-weight: 700; font-family: 'Outfit', sans-serif;" onclick="selectRecurringEditEndType('perpetual')" data-i18n="end_perpetual">Για πάντα</button>
+              <button type="button" id="recurring-edit-end-date" class="recurring-grid-btn" style="flex: 1; padding: 12px; border-radius: 12px; font-size: 13.5px; font-weight: 700; font-family: 'Outfit', sans-serif;" onclick="selectRecurringEditEndType('date')" data-i18n="end_until_date">Μέχρι ημερομηνία...</button>
             </div>
             <div id="recurring-edit-end-date-container" style="display: none; flex-direction: column; gap: 6px;">
-              <span
-                style="font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Ημερομηνία
-                Λήξης</span>
-              <div id="recurring-edit-end-trigger" onclick="openCustomDatePicker('recurring-edit-end')"
-                style="display: flex; align-items: center; justify-content: space-between; padding: 14px; border-radius: 12px; background: var(--bg-input, rgba(255,255,255,0.03)); border: 1px solid var(--border); cursor: pointer; transition: all 0.2s; box-shadow: inset 0 1px 2px rgba(0,0,0,0.2);">
+              <span data-i18n="label_end_date" style="font-size: 10.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Ημερομηνία Λήξης</span>
+              <div id="recurring-edit-end-trigger" onclick="openCustomDatePicker('recurring-edit-end')" style="display: flex; align-items: center; justify-content: space-between; padding: 14px; border-radius: 12px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-light, rgba(255,255,255,0.08)); cursor: pointer; transition: all 0.2s;">
                 <div style="display: flex; align-items: center; gap: 10px;">
-                  <i class="fa-regular fa-calendar-days" style="color: var(--accent, #e05e55); font-size: 16px;"></i>
-                  <span id="recurring-edit-end-label"
-                    style="font-size: 14.5px; font-weight: 600; color: var(--text-primary);">Επιλογή
-                    ημερομηνίας...</span>
+                  <i class="fa-regular fa-calendar-days" style="color: #3b82f6; font-size: 16px;"></i>
+                  <span id="recurring-edit-end-label" style="font-size: 14.5px; font-weight: 600; color: var(--text-primary); font-family: 'Outfit', sans-serif;">Επιλογή ημερομηνίας...</span>
                 </div>
-                <i class="fa-solid fa-chevron-right" style="color: var(--text-secondary); font-size: 12px;"></i>
+                <i class="fa-solid fa-chevron-right" style="color: var(--text-muted); font-size: 12px;"></i>
               </div>
               <input type="hidden" id="recurring-edit-end" value="">
             </div>
           </div>
 
           <!-- Summary Preview -->
-          <div id="recurring-edit-summary"
-            style="background: rgba(var(--accent-rgb, 224, 94, 85), 0.05); border: 1px dashed rgba(var(--accent-rgb, 224, 94, 85), 0.2); border-radius: 12px; padding: 12px; margin-top: 8px; font-size: 13px; color: var(--text-primary); text-align: center; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px;">
-            <i class="fa-solid fa-circle-info" style="color: var(--accent, #e05e55);"></i>
+          <div id="recurring-edit-summary" style="background: rgba(59, 130, 246, 0.08); border: 1px dashed rgba(59, 130, 246, 0.3); border-radius: 12px; padding: 12px; margin-top: 4px; font-size: 13px; color: var(--text-primary); text-align: center; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px; font-family: 'Outfit', sans-serif;">
+            <i class="fa-solid fa-circle-info" style="color: #3b82f6;"></i>
             <span id="recurring-edit-summary-text">Θα δημιουργούνται: Κάθε μήνα για πάντα</span>
           </div>
-
         </div>
-        <div class="modal-footer"
-          style="padding: 12px 16px; border-top: 1px solid var(--border); background: var(--bg-main);">
-          <button type="button" class="btn-primary" onclick="saveRecurringTemplateEdit()"
-            style="width: 100%; padding: 12px; border-radius: 20px; font-size: 14px; font-weight: 700; background: var(--accent, #e05e55); color: white; border: none; cursor: pointer; text-align: center;">💾
-            Αποθήκευση & Αναδημιουργία</button>
+        <div class="modal-footer" style="padding: 14px 18px; border-top: 1px solid var(--border-light, rgba(255,255,255,0.08)); background: transparent;">
+          <button type="button" class="btn-primary" onclick="saveRecurringTemplateEdit()" style="width: 100%; padding: 13px; border-radius: 12px; font-size: 14px; font-weight: 700; background: #3b82f6; color: white; border: none; cursor: pointer; text-align: center; font-family: 'Outfit', sans-serif; box-shadow: 0 4px 14px rgba(59, 130, 246, 0.35);">💾 <span data-i18n="btn_save_recurring">Αποθήκευση &amp; Αναδημιουργία</span></button>
         </div>
       </div>
     </div>
@@ -2717,20 +2721,30 @@
     <!-- MODAL: TRASH BIN -->
     <!-- ============================================== -->
     <div id="trash-bin-modal" class="modal-overlay">
-      <div class="modal-content" style="max-width: 520px; max-height: 85vh;">
-        <div class="modal-header">
-          <h3 class="modal-title"><span data-i18n="item_trash_bin">🗑️ Κάδος Ανακύκλωσης</span></h3>
-          <span class="modal-close" onclick="closeModal('trash-bin-modal')">&times;</span>
+      <div class="modal-content subscreen-card-standard" style="max-width: 520px; width: 94%; max-height: 85vh; padding: 0; border-radius: 18px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.4);">
+        <!-- Card Header Band (Slate Gray #94a3b8) -->
+        <div style="padding: 14px 18px; background: rgba(148, 163, 184, 0.08); border-bottom: 1px solid rgba(148, 163, 184, 0.25); display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1;">
+            <button type="button" class="icon-btn" onclick="closeModal('trash-bin-modal')" style="flex-shrink: 0;"><i class="fa-solid fa-arrow-left"></i></button>
+            <div style="width: 34px; height: 34px; border-radius: 10px; background: #94a3b8; color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; flex-shrink: 0; box-shadow: 0 4px 12px rgba(148, 163, 184, 0.35);">
+              <i class="fa-solid fa-trash-can"></i>
+            </div>
+            <div style="min-width: 0; flex: 1;">
+              <div data-i18n="item_trash_bin" style="font-size: 15px; font-weight: 800; color: var(--text-primary); font-family: 'Outfit', sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Κάδος Ανακύκλωσης</div>
+              <div data-i18n="settings_trash_desc" style="font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Επαναφορά ή οριστική διαγραφή συναλλαγών</div>
+            </div>
+          </div>
+          <button type="button" onclick="closeModal('trash-bin-modal')" style="background: rgba(255,255,255,0.06); border: 1px solid var(--border); color: var(--text-muted); width: 32px; height: 32px; border-radius: 8px; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-left: 8px;" title="Κλείσιμο">✕</button>
         </div>
-        <div class="modal-body" style="padding-bottom: 24px; display: flex; flex-direction: column; gap: 16px;">
+        <div class="modal-body" style="padding: 16px 18px 24px 18px; display: flex; flex-direction: column; gap: 16px;">
           <div style="display: flex; justify-content: flex-end;">
             <button id="btn-empty-trash" onclick="emptyTrashBin()"
-              style="font-size: 13px; padding: 6px 12px; border-radius: 6px; background: rgba(244, 63, 94, 0.15); color: #f43f5e; border: 1px solid rgba(244, 63, 94, 0.3); font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+              style="font-size: 13px; padding: 7px 14px; border-radius: 10px; background: rgba(244, 63, 94, 0.12); color: #f43f5e; border: 1px solid rgba(244, 63, 94, 0.3); font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; font-family: 'Outfit', sans-serif;">
               <i class="fa-solid fa-trash-can"></i> <span data-i18n="empty_trash">Εκκαθάριση Κάδου</span>
             </button>
           </div>
           <div id="trash-bin-list-container"
-            style="display: flex; flex-direction: column; gap: 12px; max-height: 55vh; overflow-y: auto; padding-right: 4px;">
+            style="display: flex; flex-direction: column; gap: 10px; max-height: 55vh; overflow-y: auto; padding-right: 4px;">
             <!-- Populated dynamically -->
           </div>
         </div>
@@ -3757,17 +3771,27 @@
 
     <!-- MODAL: CURRENCY PICKER -->
     <div id="currency-picker-modal" class="modal-overlay" style="z-index: 14000;">
-      <div class="modal-content" style="max-height: 90vh; display: flex; flex-direction: column;">
-        <div class="modal-header">
-          <h3 class="modal-title" data-i18n="modal_currency_title">Επιλογή νομίσματος</h3>
-          <span class="modal-close" onclick="closeModal('currency-picker-modal')">&times;</span>
+      <div class="modal-content subscreen-card-standard" style="max-width: 500px; width: 94%; max-height: 88vh; padding: 0; border-radius: 18px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.4); display: flex; flex-direction: column;">
+        <!-- Card Header Band (Emerald Green #10b981) -->
+        <div style="padding: 14px 18px; background: rgba(16, 185, 129, 0.08); border-bottom: 1px solid rgba(16, 185, 129, 0.25); display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1;">
+            <button type="button" class="icon-btn" onclick="closeModal('currency-picker-modal')" style="flex-shrink: 0;"><i class="fa-solid fa-arrow-left"></i></button>
+            <div style="width: 34px; height: 34px; border-radius: 10px; background: #10b981; color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; flex-shrink: 0; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);">
+              <i class="fa-solid fa-coins"></i>
+            </div>
+            <div style="min-width: 0; flex: 1;">
+              <div data-i18n="modal_currency_title" style="font-size: 15px; font-weight: 800; color: var(--text-primary); font-family: 'Outfit', sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Επιλογή Νομίσματος</div>
+              <div data-i18n="modal_currency_desc" style="font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Αναζήτηση &amp; επιλογή νομίσματος</div>
+            </div>
+          </div>
+          <button type="button" onclick="closeModal('currency-picker-modal')" style="background: rgba(255,255,255,0.06); border: 1px solid var(--border); color: var(--text-muted); width: 32px; height: 32px; border-radius: 8px; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-left: 8px;" title="Κλείσιμο">✕</button>
         </div>
-        <div class="modal-body" style="padding: 16px; flex: 1; overflow-y: auto;">
+        <div class="modal-body" style="padding: 16px 18px 24px 18px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 14px;">
           <input type="text" id="currency-picker-search" class="form-row-input"
-            placeholder="🔍 Αναζήτηση (κωδικός, όνομα, χώρα)..."
-            style="width: 100%; box-sizing: border-box; margin-bottom: 12px;" oninput="renderCurrencyPickerOptions()">
+            placeholder="🔍 Αναζήτηση (κωδικός, όνομα, χώρα)..." data-i18n-placeholder="currency_search_placeholder"
+            style="width: 100%; box-sizing: border-box; padding: 12px 14px; border-radius: 12px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-light, rgba(255,255,255,0.08)); color: var(--text-primary); font-size: 14px; font-family: 'Outfit', sans-serif; outline: none;" oninput="renderCurrencyPickerOptions()">
           <div id="currency-picker-list" class="account-picker-list"
-            style="display: flex; flex-direction: column; gap: 12px;">
+            style="display: flex; flex-direction: column; gap: 10px;">
             <!-- Currencies injected here -->
           </div>
         </div>
@@ -3790,37 +3814,37 @@
       </div>
     </div>
 
-    <!-- MODAL: CUSTOM DATE PICKER -->
+    <!-- MODAL: CUSTOM DATE PICKER (GLASSMORPHIC REDESIGN) -->
     <div id="custom-date-picker-modal" class="modal-overlay" style="z-index: 13000;">
       <div class="modal-content"
-        style="max-height: calc(var(--viewport-height, 100vh) * 0.95); display: flex; flex-direction: column; background: #000000; position: relative; overflow: hidden;">
+        style="max-height: calc(var(--viewport-height, 100vh) * 0.95); display: flex; flex-direction: column; background: rgba(18, 18, 24, 0.96); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border-radius: 24px; border: 1px solid rgba(255, 255, 255, 0.12); box-shadow: 0 24px 60px rgba(0, 0, 0, 0.65); position: relative; overflow: hidden;">
 
-        <!-- Google-Style Header -->
+        <!-- Glass Header -->
         <div
-          style="position: relative; display: flex; justify-content: space-between; align-items: center; padding: 16px 20px 8px 20px; background: #000000;">
+          style="position: relative; display: flex; justify-content: space-between; align-items: center; padding: 18px 20px 10px 20px; background: rgba(0, 0, 0, 0.2); border-bottom: 1px solid rgba(255, 255, 255, 0.08);">
           <!-- Clickable Month/Year Title (Left side) -->
           <div id="custom-date-picker-month-title-btn"
             style="display: flex; align-items: center; gap: 8px; cursor: pointer;"
             onclick="event.stopPropagation(); openCustomDatePickerBS(false)">
             <span id="custom-date-picker-month-large-label"
-              style="font-size: 26px; font-weight: 700; color: #ffffff; text-transform: uppercase;">ΙΟΥΝ</span>
+              style="font-size: 24px; font-weight: 800; color: #ffffff; text-transform: uppercase; font-family: 'Outfit', sans-serif;">ΙΟΥΝ</span>
             <span id="custom-date-picker-year-large-label"
-              style="font-size: 26px; font-weight: 700; color: var(--text-secondary);">2026</span>
+              style="font-size: 24px; font-weight: 800; color: var(--picker-accent, #f59e0b); font-family: 'Outfit', sans-serif;">2026</span>
             <i class="fa-solid fa-chevron-down" id="custom-date-picker-header-chevron"
               style="font-size: 14px; color: var(--text-secondary); margin-left: 2px;"></i>
           </div>
-
+          <button type="button" onclick="closeModal('custom-date-picker-modal')" style="background: transparent; border: none; color: var(--text-muted); font-size: 22px; cursor: pointer; padding: 4px;">&times;</button>
         </div>
 
         <div class="modal-body"
-          style="padding: 16px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; background: #000000;">
+          style="padding: 16px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; background: transparent;">
 
           <!-- Calendar Grid View -->
           <div id="custom-date-picker-calendar-view"
-            style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">
+            style="display: flex; flex-direction: column; gap: 8px; margin-top: 4px;">
             <!-- Weekday initials -->
             <div id="custom-date-picker-weekdays"
-              style="display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.08);">
+              style="display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.08); font-family: 'Outfit', sans-serif;">
               <span>Δε</span><span>Τρ</span><span>Τε</span><span>Πε</span><span>Πα</span><span
                 style="color: #3b82f6;">Σα</span><span style="color: #ef4444;">Κυ</span>
             </div>
@@ -3837,9 +3861,8 @@
             <div
               style="display: flex; align-items: center; justify-content: space-between; width: 100%; max-width: 256px; padding: 0 4px;">
               <label
-                style="font-size: 12px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.8px; margin: 0;"
+                style="font-size: 12px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.8px; margin: 0; font-family: 'Outfit', sans-serif;"
                 data-i18n="date_picker_time_label">ΩΡΑ</label>
-
             </div>
 
             <!-- Wheels Mode Row -->
@@ -3853,7 +3876,7 @@
                 <div class="time-wheel-highlighter"></div>
               </div>
 
-              <span style="font-size: 24px; font-weight: 700; color: var(--text-muted); line-height: 60px;">:</span>
+              <span style="font-size: 24px; font-weight: 700; color: var(--picker-accent, #f59e0b); line-height: 60px;">:</span>
 
               <!-- OLED Scroll Wheel for Minutes -->
               <div class="time-wheel-container">
@@ -3869,7 +3892,7 @@
               style="display: none; align-items: center; justify-content: center; gap: 16px; width: 100%;">
               <input type="number" id="custom-time-input-hours" class="time-input-box" min="0" max="23" placeholder="00"
                 pattern="[0-9]*" inputmode="numeric">
-              <span style="font-size: 24px; font-weight: 700; color: var(--text-muted); line-height: 60px;">:</span>
+              <span style="font-size: 24px; font-weight: 700; color: var(--picker-accent, #f59e0b); line-height: 60px;">:</span>
               <input type="number" id="custom-time-input-minutes" class="time-input-box" min="0" max="59"
                 placeholder="00" pattern="[0-9]*" inputmode="numeric">
             </div>
@@ -3879,13 +3902,13 @@
 
         <!-- Bottom Actions -->
         <div
-          style="display: flex; gap: 10px; padding: 16px; border-top: 1px solid rgba(255,255,255,0.08); background: #000000;">
+          style="display: flex; gap: 12px; padding: 16px; border-top: 1px solid rgba(255,255,255,0.08); background: rgba(0, 0, 0, 0.2);">
 
           <button type="button" class="btn-secondary" onclick="closeModal('custom-date-picker-modal')"
-            style="flex: 1; padding: 12px; border-radius: 20px; font-size: 14px; font-weight: 600; border: 1px solid var(--border); background: transparent; color: var(--text-secondary);"
+            style="flex: 1; padding: 12px; border-radius: 14px; font-size: 14px; font-weight: 600; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.05); color: var(--text-secondary); font-family: 'Outfit', sans-serif;"
             data-i18n="btn_cancel">Ακύρωση</button>
           <button type="button" class="btn-primary" onclick="setCustomDatePickerValue()"
-            style="flex: 1; padding: 12px; border-radius: 20px; font-size: 14px; font-weight: 700; background: var(--picker-accent, var(--accent, #f43f5e)); color: white; border: none; cursor: pointer; text-align: center;"
+            style="flex: 1; padding: 12px; border-radius: 14px; font-size: 14px; font-weight: 700; background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; cursor: pointer; text-align: center; font-family: 'Outfit', sans-serif; box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35);"
             data-i18n="btn_set">Ορισμός</button>
         </div>
 
@@ -3923,104 +3946,127 @@
 
     <!-- MODAL: RECURRING EXPENSES PROGRAMMING -->
     <div id="recurring-picker-modal" class="modal-overlay" style="z-index: 12000;">
-      <div class="modal-content"
-        style="max-height: calc(var(--viewport-height, 100vh) * 0.95); display: flex; flex-direction: column; max-width: 440px; border-radius: 20px; overflow: hidden; background: var(--bg-card, #1c1f28); border: 1px solid var(--border);">
-        <div class="modal-header"
-          style="position: relative; min-height: 54px; box-sizing: border-box; border-bottom: 1px solid var(--border); padding: 0 18px; display: flex; align-items: center; justify-content: space-between; background: rgba(255, 255, 255, 0.02);">
-          <span onclick="clearRecurringSettings(false)"
-            style="font-size: 13px; font-weight: 600; color: var(--text-secondary); cursor: pointer; transition: color 0.2s; display: flex; align-items: center; gap: 6px;"><i
-              class="fa-solid fa-trash-can"></i> Καθαρισμός</span>
-          <h3 class="modal-title" style="margin: 0; font-size: 15px; font-weight: 800; color: #ffffff;">⚡ Ρύθμιση
-            Επανάληψης</h3>
-          <span class="modal-close" onclick="closeModal('recurring-picker-modal')"
-            style="font-size: 20px; color: var(--text-muted); cursor: pointer; line-height: 1; transition: color 0.2s;">✕</span>
+      <div class="modal-content subscreen-card-standard" style="max-width: 480px; width: 94%; max-height: 90vh; padding: 0; border-radius: 18px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.4); display: flex; flex-direction: column;">
+        <!-- Card Header Band (Blue #3b82f6) -->
+        <div style="padding: 14px 18px; background: rgba(59, 130, 246, 0.08); border-bottom: 1px solid rgba(59, 130, 246, 0.25); display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1;">
+            <button type="button" class="icon-btn" onclick="closeModal('recurring-picker-modal')" style="flex-shrink: 0;"><i class="fa-solid fa-arrow-left"></i></button>
+            <div style="width: 34px; height: 34px; border-radius: 10px; background: #3b82f6; color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; flex-shrink: 0; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35);">
+              <i class="fa-solid fa-arrows-spin"></i>
+            </div>
+            <div style="min-width: 0; flex: 1;">
+              <div data-i18n="modal_recurring_picker_title" style="font-size: 15px; font-weight: 800; color: var(--text-primary); font-family: 'Outfit', sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Ρύθμιση Επανάληψης</div>
+              <div data-i18n="modal_recurring_picker_desc" style="font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Συχνότητα &amp; λήξη επανάληψης</div>
+            </div>
+          </div>
+          <button type="button" onclick="closeModal('recurring-picker-modal')" style="background: rgba(255,255,255,0.06); border: 1px solid var(--border); color: var(--text-muted); width: 32px; height: 32px; border-radius: 8px; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="Κλείσιμο">✕</button>
         </div>
-        <div class="modal-body"
-          style="padding: 18px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 18px;">
-
-          <!-- Frequency Select -->
+        <div class="modal-body" style="padding: 16px 18px 24px 18px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; font-family: 'Outfit', sans-serif;">
+          <!-- Frequency Select Custom Picker -->
           <div>
-            <span
-              style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Συχνότητα
-              Επανάληψης</span>
-            <div style="position: relative; margin-top: 8px;">
-              <select id="recurring-simple-preset" onchange="onSimplePresetChange()"
-                style="width: 100%; padding: 14px 16px; border-radius: 14px; background: rgba(255,255,255,0.04); color: var(--text-primary); border: 1px solid var(--border); font-size: 14px; font-weight: 600; outline: none; cursor: pointer; appearance: none;">
-                <option value="daily">☀️ Daily (Καθημερινά)</option>
-                <option value="weekly">📆 Weekly (Εβδομαδιαία)</option>
-                <option value="monthly" selected>📅 Monthly (Μηνιαία)</option>
-                <option value="yearly">🎆 Yearly (Ετήσια)</option>
-                <option value="specific_months">📌 Specific Months (Συγκεκριμένοι Μήνες)</option>
-              </select>
-              <i class="fa-solid fa-chevron-down"
-                style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--text-secondary); font-size: 12px;"></i>
-            </div>
-          </div>
-
-          <!-- Specific Months Grid (Visible only when 'specific_months' is selected) -->
-          <div id="recurring-specific-months-container"
-            style="display: none; flex-direction: column; gap: 8px; border-top: 1px dashed var(--border); padding-top: 14px;">
-            <span
-              style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Επιλογή
-              Μηνών</span>
-            <div id="recurring-specific-months-grid"
-              style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 4px;">
-              <!-- 12 months buttons will be dynamically injected in JS -->
-            </div>
-          </div>
-
-          <!-- Expiration Section (Λήξη) -->
-          <div
-            style="border-top: 1px solid var(--border); padding-top: 16px; display: flex; flex-direction: column; gap: 10px;">
-            <span
-              style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Λήξη
-              Επανάληψης</span>
-
-            <!-- End Type Selector Buttons -->
-            <div
-              style="display: flex; background: rgba(0, 0, 0, 0.25); padding: 4px; border-radius: 14px; border: 1px solid var(--border); gap: 4px;">
-              <button type="button" id="recurring-end-type-perpetual" class="recurring-grid-btn active"
-                style="flex: 1; padding: 10px; border-radius: 10px; font-size: 13px; font-weight: 600; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;"
-                onclick="selectRecurringEndType('perpetual')"><i class="fa-solid fa-infinity"></i> Για πάντα</button>
-              <button type="button" id="recurring-end-type-date" class="recurring-grid-btn"
-                style="flex: 1; padding: 10px; border-radius: 10px; font-size: 13px; font-weight: 600; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;"
-                onclick="selectRecurringEndType('date')"><i class="fa-regular fa-calendar-days"></i> Μέχρι
-                ημερομηνία</button>
-            </div>
-
-            <!-- Clickable Custom End Date Container (Visible only when 'date' is selected) -->
-            <div id="recurring-custom-end-date-container"
-              style="display: none; flex-direction: column; gap: 6px; margin-top: 4px;">
-              <span
-                style="font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Ημερομηνία
-                Λήξης</span>
-              <div id="recurring-end-date-picker-trigger" onclick="openCustomDatePicker('recurring-end-date')"
-                style="display: flex; align-items: center; justify-content: space-between; padding: 14px; border-radius: 12px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); cursor: pointer; transition: all 0.2s;">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                  <i class="fa-regular fa-calendar-days" style="color: var(--accent, #7c6af7); font-size: 16px;"></i>
-                  <span id="recurring-end-date-label"
-                    style="font-size: 14.5px; font-weight: 600; color: var(--text-primary);">Επιλογή
-                    ημερομηνίας...</span>
-                </div>
-                <i class="fa-solid fa-chevron-right" style="color: var(--text-secondary); font-size: 12px;"></i>
+            <span data-i18n="label_frequency" style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Συχνότητα Επανάληψης</span>
+            <input type="hidden" id="recurring-simple-preset" value="monthly">
+            <div id="recurring-frequency-trigger" onclick="toggleRecurringFrequencyList()" style="margin-top: 6px; width: 100%; padding: 12px 14px; border-radius: 12px; background: rgba(255,255,255,0.04); color: var(--text-primary); border: 1px solid var(--border-light, rgba(255,255,255,0.08)); font-size: 14.5px; font-weight: 600; font-family: 'Outfit', sans-serif; cursor: pointer; display: flex; align-items: center; justify-content: space-between; box-sizing: border-box;">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <span id="recurring-frequency-icon" style="font-size: 18px;">📅</span>
+                <span id="recurring-frequency-label" style="font-size: 14px; font-weight: 700; font-family: 'Outfit', sans-serif;">Monthly (Μηνιαία)</span>
               </div>
-              <!-- Hidden input to store value -->
+              <i id="recurring-frequency-chevron" class="fa-solid fa-chevron-down" style="color: var(--text-muted); font-size: 12px; transition: transform 0.2s;"></i>
+            </div>
+
+            <!-- Modern Custom Options List -->
+            <div id="recurring-frequency-options-list" style="display: none; flex-direction: column; gap: 6px; margin-top: 8px; background: rgba(0,0,0,0.25); border: 1px solid var(--border-light, rgba(255,255,255,0.08)); border-radius: 14px; padding: 6px; box-sizing: border-box;">
+              <div class="freq-option-item" data-value="daily" onclick="selectRecurringFrequencyOption('daily')" style="padding: 10px 12px; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: background 0.2s;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <span style="font-size: 18px;">☀️</span>
+                  <div>
+                    <div class="freq-option-title" style="font-size: 13.5px; font-weight: 700; color: var(--text-primary);" data-i18n="preset_daily">Daily (Καθημερινά)</div>
+                    <div class="freq-option-desc" style="font-size: 11px; color: var(--text-muted);" data-i18n="desc_daily">Repeats every single day</div>
+                  </div>
+                </div>
+                <i class="fa-solid fa-check freq-check-icon" style="color: #3b82f6; font-size: 14px; display: none;"></i>
+              </div>
+
+              <div class="freq-option-item" data-value="weekly" onclick="selectRecurringFrequencyOption('weekly')" style="padding: 10px 12px; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: background 0.2s;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <span style="font-size: 18px;">📆</span>
+                  <div>
+                    <div class="freq-option-title" style="font-size: 13.5px; font-weight: 700; color: var(--text-primary);" data-i18n="preset_weekly">Weekly (Εβδομαδιαία)</div>
+                    <div class="freq-option-desc" style="font-size: 11px; color: var(--text-muted);" data-i18n="desc_weekly">Repeats once every week</div>
+                  </div>
+                </div>
+                <i class="fa-solid fa-check freq-check-icon" style="color: #3b82f6; font-size: 14px; display: none;"></i>
+              </div>
+
+              <div class="freq-option-item selected" data-value="monthly" onclick="selectRecurringFrequencyOption('monthly')" style="padding: 10px 12px; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: background 0.2s; background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.3);">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <span style="font-size: 18px;">📅</span>
+                  <div>
+                    <div class="freq-option-title" style="font-size: 13.5px; font-weight: 700; color: var(--text-primary);" data-i18n="preset_monthly">Monthly (Μηνιαία)</div>
+                    <div class="freq-option-desc" style="font-size: 11px; color: var(--text-muted);" data-i18n="desc_monthly">Repeats once every month</div>
+                  </div>
+                </div>
+                <i class="fa-solid fa-check freq-check-icon" style="color: #3b82f6; font-size: 14px; display: block;"></i>
+              </div>
+
+              <div class="freq-option-item" data-value="yearly" onclick="selectRecurringFrequencyOption('yearly')" style="padding: 10px 12px; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: background 0.2s;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <span style="font-size: 18px;">🎆</span>
+                  <div>
+                    <div class="freq-option-title" style="font-size: 13.5px; font-weight: 700; color: var(--text-primary);" data-i18n="preset_yearly">Yearly (Ετήσια)</div>
+                    <div class="freq-option-desc" style="font-size: 11px; color: var(--text-muted);" data-i18n="desc_yearly">Repeats once every year</div>
+                  </div>
+                </div>
+                <i class="fa-solid fa-check freq-check-icon" style="color: #3b82f6; font-size: 14px; display: none;"></i>
+              </div>
+
+              <div class="freq-option-item" data-value="specific_months" onclick="selectRecurringFrequencyOption('specific_months')" style="padding: 10px 12px; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: background 0.2s;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <span style="font-size: 18px;">📌</span>
+                  <div>
+                    <div class="freq-option-title" style="font-size: 13.5px; font-weight: 700; color: var(--text-primary);" data-i18n="preset_specific_months">Specific Months (Συγκεκριμένοι Μήνες)</div>
+                    <div class="freq-option-desc" style="font-size: 11px; color: var(--text-muted);" data-i18n="desc_specific_months">Pick custom months</div>
+                  </div>
+                </div>
+                <i class="fa-solid fa-check freq-check-icon" style="color: #3b82f6; font-size: 14px; display: none;"></i>
+              </div>
+            </div>
+          </div>
+
+          <!-- Specific Months Grid -->
+          <div id="recurring-specific-months-container" style="display: none; flex-direction: column; gap: 8px; border-top: 1px dashed var(--border-light, rgba(255,255,255,0.08)); padding-top: 12px;">
+            <span data-i18n="label_select_months" style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Επιλογή Μηνών</span>
+            <div id="recurring-specific-months-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 4px;"></div>
+          </div>
+
+          <!-- Expiration Section -->
+          <div style="border-top: 1px solid var(--border-light, rgba(255,255,255,0.08)); padding-top: 16px; display: flex; flex-direction: column; gap: 10px;">
+            <span data-i18n="label_expiration" style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Λήξη Επανάληψης</span>
+            <div style="display: flex; gap: 8px;">
+              <button type="button" id="recurring-end-type-perpetual" class="recurring-grid-btn active" style="flex: 1; padding: 12px; border-radius: 12px; font-size: 13.5px; font-weight: 700; font-family: 'Outfit', sans-serif;" onclick="selectRecurringEndType('perpetual')" data-i18n="end_perpetual"><i class="fa-solid fa-infinity"></i> Για πάντα</button>
+              <button type="button" id="recurring-end-type-date" class="recurring-grid-btn" style="flex: 1; padding: 12px; border-radius: 12px; font-size: 13.5px; font-weight: 700; font-family: 'Outfit', sans-serif;" onclick="selectRecurringEndType('date')" data-i18n="end_until_date"><i class="fa-regular fa-calendar-days"></i> Μέχρι ημερομηνία</button>
+            </div>
+            <div id="recurring-custom-end-date-container" style="display: none; flex-direction: column; gap: 6px;">
+              <span data-i18n="label_end_date" style="font-size: 10.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Ημερομηνία Λήξης</span>
+              <div id="recurring-end-date-picker-trigger" onclick="openCustomDatePicker('recurring-end-date')" style="display: flex; align-items: center; justify-content: space-between; padding: 14px; border-radius: 12px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-light, rgba(255,255,255,0.08)); cursor: pointer; transition: all 0.2s;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <i class="fa-regular fa-calendar-days" style="color: #3b82f6; font-size: 16px;"></i>
+                  <span id="recurring-end-date-label" style="font-size: 14.5px; font-weight: 600; color: var(--text-primary); font-family: 'Outfit', sans-serif;">Επιλογή ημερομηνίας...</span>
+                </div>
+                <i class="fa-solid fa-chevron-right" style="color: var(--text-muted); font-size: 12px;"></i>
+              </div>
               <input type="hidden" id="recurring-end-date" value="">
             </div>
           </div>
 
-          <!-- Recurrence Summary Preview Banner -->
-          <div id="recurring-summary-preview"
-            style="background: rgba(124, 106, 247, 0.08); border: 1px solid rgba(124, 106, 247, 0.2); border-radius: 14px; padding: 12px 14px; margin-top: 4px; font-size: 13px; color: #e2e8f0; text-align: center; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 10px;">
-            <i class="fa-solid fa-circle-info" style="color: var(--accent, #7c6af7); font-size: 16px;"></i>
+          <!-- Summary Preview -->
+          <div id="recurring-summary-preview" style="background: rgba(59, 130, 246, 0.08); border: 1px dashed rgba(59, 130, 246, 0.3); border-radius: 12px; padding: 12px; margin-top: 4px; font-size: 13px; color: var(--text-primary); text-align: center; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px; font-family: 'Outfit', sans-serif;">
+            <i class="fa-solid fa-circle-info" style="color: #3b82f6;"></i>
             <span id="recurring-summary-text">Θα δημιουργούνται: <strong>Κάθε μήνα για πάντα</strong></span>
           </div>
-
         </div>
-        <div class="modal-footer"
-          style="padding: 14px 18px; border-top: 1px solid var(--border); background: rgba(255,255,255,0.02);">
-          <button type="button" class="btn-primary" onclick="saveRecurringSettings()"
-            style="width: 100%; padding: 14px; border-radius: 16px; font-size: 14.5px; font-weight: 700; background: var(--accent); color: white; border: none; cursor: pointer; text-align: center; box-shadow: 0 6px 20px rgba(var(--accent-rgb, 224, 94, 85), 0.25);">Επιβεβαίωση</button>
+        <div class="modal-footer" style="padding: 14px 18px; border-top: 1px solid var(--border-light, rgba(255,255,255,0.08)); background: transparent;">
+          <button type="button" class="btn-primary" onclick="saveRecurringSettings()" style="width: 100%; padding: 13px; border-radius: 12px; font-size: 14px; font-weight: 700; background: #3b82f6; color: white; border: none; cursor: pointer; text-align: center; font-family: 'Outfit', sans-serif; box-shadow: 0 4px 14px rgba(59, 130, 246, 0.35);">💾 <span data-i18n="btn_confirm">Επιβεβαίωση</span></button>
         </div>
       </div>
     </div>
@@ -4166,33 +4212,39 @@
 
     <!-- MODAL: CATEGORY MANAGER -->
     <div id="category-manager-modal" class="modal-overlay" style="z-index: 10000;">
-      <div class="modal-content" style="max-width: 580px; max-height: 85vh; display: flex; flex-direction: column;">
-        <div class="modal-header" style="display: flex; align-items: center; justify-content: space-between;">
-          <h3 class="modal-title" style="font-weight: 700;">🏷️ Διαχείριση Κατηγοριών</h3>
-          <span class="modal-close" onclick="closeModal('category-manager-modal')">&times;</span>
+      <div class="modal-content subscreen-card-standard" style="max-width: 580px; width: 94%; max-height: 85vh; padding: 0; border-radius: 18px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.4);">
+        <!-- Card Header Band (Gold #f59e0b) -->
+        <div style="padding: 14px 18px; background: rgba(245, 158, 11, 0.08); border-bottom: 1px solid rgba(245, 158, 11, 0.25); display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1;">
+            <button type="button" class="icon-btn" onclick="closeModal('category-manager-modal')" style="flex-shrink: 0;"><i class="fa-solid fa-arrow-left"></i></button>
+            <div style="width: 34px; height: 34px; border-radius: 10px; background: #f59e0b; color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; flex-shrink: 0; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.35);">
+              <i class="fa-solid fa-tags"></i>
+            </div>
+            <div style="min-width: 0; flex: 1;">
+              <div data-i18n="settings_categories_option" style="font-size: 15px; font-weight: 800; color: var(--text-primary); font-family: 'Outfit', sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Διαχείριση Κατηγοριών</div>
+              <div data-i18n="settings_categories_desc" style="font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Κατηγορίες &amp; υποκατηγορίες</div>
+            </div>
+          </div>
+          <button type="button" onclick="closeModal('category-manager-modal')" style="background: rgba(255,255,255,0.06); border: 1px solid var(--border); color: var(--text-muted); width: 32px; height: 32px; border-radius: 8px; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-left: 8px;" title="Κλείσιμο">✕</button>
         </div>
-        <div class="modal-body"
-          style="padding: 16px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 16px;">
-
+        <div class="modal-body" style="padding: 16px 18px 24px 18px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 16px;">
           <!-- Toggle Tabs -->
-          <div
-            style="display: flex; background: rgba(0, 0, 0, 0.15); border: 1px solid rgba(255,255,255,0.04); border-radius: 12px; padding: 2px;">
-            <button type="button" id="cat-mgr-tab-expense"
-              style="flex: 1; border: none; padding: 10px; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s; background: var(--accent); color: white;"
+          <div style="display: flex; background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-light, rgba(255,255,255,0.08)); border-radius: 12px; padding: 3px;">
+            <button type="button" id="cat-mgr-tab-expense" data-i18n="categories_tab_expense"
+              style="flex: 1; border: none; padding: 10px; border-radius: 9px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s; background: var(--accent); color: white;"
               onclick="setCategoryManagerType('expense')">Έξοδα</button>
-            <button type="button" id="cat-mgr-tab-income"
-              style="flex: 1; border: none; padding: 10px; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s; background: transparent; color: var(--text-secondary);"
+            <button type="button" id="cat-mgr-tab-income" data-i18n="categories_tab_income"
+              style="flex: 1; border: none; padding: 10px; border-radius: 9px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s; background: transparent; color: var(--text-secondary);"
               onclick="setCategoryManagerType('income')">Έσοδα</button>
           </div>
 
           <!-- Add Category Row -->
           <div style="display: flex; justify-content: space-between; align-items: center;">
-            <span style="font-size: 13px; color: var(--text-muted); font-weight: 500;"
-              id="cat-mgr-count-label">Φορτώνει...</span>
-            <button type="button" class="btn btn-primary"
-              style="padding: 8px 14px; font-size: 13px; font-weight: 600; border-radius: 8px; display: flex; align-items: center; gap: 6px;"
+            <span style="font-size: 13px; color: var(--text-muted); font-weight: 500; font-family:'Outfit',sans-serif;" id="cat-mgr-count-label">Φορτώνει...</span>
+            <button type="button" class="btn btn-primary" id="cat-mgr-add-btn"
+              style="padding: 8px 14px; font-size: 13px; font-weight: 600; border-radius: 10px; display: flex; align-items: center; gap: 6px;"
               onclick="openCategoryManagerAddDialog()">
-              <i class="fa-solid fa-plus"></i> Νέα Κατηγορία
+              <i class="fa-solid fa-plus"></i> <span data-i18n="categories_add_category">Νέα Κατηγορία</span>
             </button>
           </div>
 
@@ -4258,35 +4310,58 @@
 
         <!-- Segmented Type Selector -->
         <div class="note-type-segment">
-          <button id="note-type-text-btn" class="active" onclick="setNoteEditorType('text')">
+          <button id="note-type-text-btn" class="active" onclick="setNoteEditorType('text')" data-i18n="note_type_text">
             📝 Κείμενο
           </button>
-          <button id="note-type-checklist-btn" onclick="setNoteEditorType('checklist')">
+          <button id="note-type-checklist-btn" onclick="setNoteEditorType('checklist')" data-i18n="note_type_checklist">
             ☑️ Λίστα
           </button>
         </div>
 
         <div class="modal-body"
           style="padding: 0 16px 16px 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; flex: 1; box-sizing: border-box;">
+          
+          <!-- Color Palette Picker -->
+          <div class="form-row" style="margin-bottom: 2px;">
+            <label class="form-row-label" style="font-family: 'Outfit', sans-serif; font-size: 12px;" data-i18n="note_label_color">Χρώμα Σημείωσης</label>
+            <div class="note-color-picker-container" id="note-color-palette">
+              <button type="button" class="note-color-swatch active" data-color="default" onclick="selectNoteColor('default')" style="background: rgba(255,255,255,0.1); border: 1px solid var(--border);" title="Default"><i class="fa-solid fa-check"></i></button>
+              <button type="button" class="note-color-swatch" data-color="amber" onclick="selectNoteColor('amber')" style="background: #f59e0b;" title="Amber Gold"></button>
+              <button type="button" class="note-color-swatch" data-color="emerald" onclick="selectNoteColor('emerald')" style="background: #10b981;" title="Emerald Green"></button>
+              <button type="button" class="note-color-swatch" data-color="blue" onclick="selectNoteColor('blue')" style="background: #3b82f6;" title="Ocean Blue"></button>
+              <button type="button" class="note-color-swatch" data-color="purple" onclick="selectNoteColor('purple')" style="background: #8b5cf6;" title="Purple"></button>
+              <button type="button" class="note-color-swatch" data-color="rose" onclick="selectNoteColor('rose')" style="background: #f43f5e;" title="Rose Pink"></button>
+              <button type="button" class="note-color-swatch" data-color="teal" onclick="selectNoteColor('teal')" style="background: #14b8a6;" title="Teal"></button>
+            </div>
+          </div>
+
           <!-- Title Input -->
-          <div class="form-row" style="margin-bottom: 4px;">
-            <label class="form-row-label" style="font-family: 'Outfit', sans-serif; font-size: 12px;">Τίτλος</label>
-            <input type="text" id="note-editor-title-input" class="form-row-input" placeholder="Τίτλος σημείωσης..."
+          <div class="form-row" style="margin-bottom: 2px;">
+            <label class="form-row-label" style="font-family: 'Outfit', sans-serif; font-size: 12px;" data-i18n="note_label_title">Τίτλος</label>
+            <input type="text" id="note-editor-title-input" class="form-row-input" placeholder="Τίτλος σημείωσης..." data-i18n-placeholder="note_placeholder_title"
               style="font-family: 'Outfit', sans-serif;">
           </div>
 
-          <!-- Date/Time Reminder Input -->
-          <div class="form-row" style="margin-bottom: 4px;">
-            <div
-              style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; box-sizing: border-box; width: 100%;">
+          <!-- Date/Time Reminder Input (Modern Redesign) -->
+          <div class="form-row" style="margin-bottom: 2px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; box-sizing: border-box; width: 100%;">
               <label id="note-editor-reminder-label" class="form-row-label"
-                style="font-family: 'Outfit', sans-serif; font-size: 12px; margin: 0;">Ημερομηνία & Ώρα
-                (Υπενθύμιση)</label>
-              <button id="note-editor-clear-reminder-btn" class="icon-btn" onclick="clearNoteEditorReminder()"
-                style="font-size: 11px; color: var(--red-negative); background: transparent; border: none; padding: 0 4px; cursor: pointer; display: none; font-family: 'Outfit', sans-serif;">Καθαρισμός</button>
+                style="font-family: 'Outfit', sans-serif; font-size: 12px; margin: 0;" data-i18n="note_label_reminder">⏰ Υπενθύμιση</label>
             </div>
-            <input type="datetime-local" id="note-editor-reminder-input" class="form-row-input"
-              style="font-family: 'Outfit', sans-serif; padding: 10px; font-size: 13.5px; box-sizing: border-box;"
+            
+            <!-- Quick Reminder Presets (Dynamically generated in JS) -->
+            <div class="note-reminder-presets-row" id="note-reminder-presets-container">
+            </div>
+
+            <!-- Active Reminder Pill (visible when reminder is set) -->
+            <div id="note-active-reminder-pill" class="note-active-reminder-pill" style="display: none;">
+              <i class="fa-solid fa-bell"></i>
+              <span id="note-active-reminder-text">15 Αυγ, 20:00</span>
+              <button type="button" onclick="clearNoteEditorReminder()" title="Διαγραφή υπενθύμισης">✕</button>
+            </div>
+
+            <!-- Hidden actual datetime-local input triggered on custom -->
+            <input type="datetime-local" id="note-editor-reminder-input" style="position: absolute; opacity: 0; pointer-events: none; width: 1px; height: 1px;"
               onchange="onNoteReminderChanged()">
           </div>
 
@@ -4294,36 +4369,36 @@
           <div id="note-editor-text-container"
             style="display: flex; flex-direction: column; gap: 6px; flex: 1; box-sizing: border-box;">
             <label class="form-row-label"
-              style="font-family: 'Outfit', sans-serif; font-size: 12px;">Περιεχόμενο</label>
-            <textarea id="note-editor-body-input" class="form-row-input" placeholder="Γράψτε εδώ τη σημείωση..."
-              style="min-height: 180px; font-family: sans-serif; resize: vertical; padding: 12px; line-height: 1.5; box-sizing: border-box;"></textarea>
+              style="font-family: 'Outfit', sans-serif; font-size: 12px;" data-i18n="note_label_content">Περιεχόμενο</label>
+            <textarea id="note-editor-body-input" class="form-row-input" placeholder="Γράψτε εδώ τη σημείωση..." data-i18n-placeholder="note_placeholder_body"
+              style="min-height: 170px; font-family: sans-serif; resize: vertical; padding: 12px; line-height: 1.5; box-sizing: border-box;"></textarea>
           </div>
 
           <!-- Checklist Editor -->
           <div id="note-editor-checklist-container"
             style="display: none; flex-direction: column; gap: 8px; box-sizing: border-box;">
-            <label class="form-row-label" style="font-family: 'Outfit', sans-serif; font-size: 12px;">Αντικείμενα
+            <label class="form-row-label" style="font-family: 'Outfit', sans-serif; font-size: 12px;" data-i18n="note_label_checklist_items">Αντικείμενα
               Λίστας</label>
             <div id="note-editor-checklist-items"
               style="display: flex; flex-direction: column; gap: 8px; max-height: 250px; overflow-y: auto; padding-right: 4px; box-sizing: border-box;">
               <!-- Dynamically generated list items with inputs and delete buttons -->
             </div>
             <button class="note-checklist-add" onclick="addNoteEditorChecklistItem()">
-              <i class="fa-solid fa-plus" style="color: var(--accent);"></i> Προσθήκη αντικειμένου
+              <i class="fa-solid fa-plus" style="color: #f59e0b;"></i> <span data-i18n="note_add_item">Προσθήκη αντικειμένου</span>
             </button>
           </div>
 
           <!-- Footer Actions -->
           <div style="display: flex; gap: 10px; margin-top: 12px; box-sizing: border-box;">
-            <button class="btn btn-primary"
-              style="flex: 1; padding: 12px; font-weight: 700; border-radius: 8px; font-family: 'Outfit', sans-serif; cursor: pointer;"
-              onclick="saveNoteFromEditor()">Αποθήκευση</button>
+            <button class="btn btn-primary" id="note-editor-save-btn"
+              style="flex: 1; padding: 12px; font-weight: 700; border-radius: 12px; font-family: 'Outfit', sans-serif; cursor: pointer; background: #f59e0b; color: white; border: none; box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35);"
+              onclick="saveNoteFromEditor()" data-i18n="btn_save">Αποθήκευση</button>
             <button id="note-editor-delete-btn" class="btn btn-secondary"
-              style="padding: 12px; border-radius: 8px; background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.3); color: #f87171; font-weight: 700; display: none; cursor: pointer;"
-              onclick="deleteNoteFromEditor()">Διαγραφή</button>
+              style="padding: 12px; border-radius: 12px; background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.3); color: #f87171; font-weight: 700; display: none; cursor: pointer;"
+              onclick="deleteNoteFromEditor()" data-i18n="btn_delete">Διαγραφή</button>
             <button class="btn btn-secondary"
-              style="padding: 12px 18px; border-radius: 8px; font-family: 'Outfit', sans-serif; cursor: pointer;"
-              onclick="closeModal('note-editor-modal')">Άκυρο</button>
+              style="padding: 12px 18px; border-radius: 12px; font-family: 'Outfit', sans-serif; cursor: pointer;"
+              onclick="closeModal('note-editor-modal')" data-i18n="btn_cancel">Άκυρο</button>
           </div>
         </div>
       </div>
@@ -4356,14 +4431,23 @@
             </div>
 
             <div class="profile-info-section">
-              <div class="profile-name-edit-group">
+              <div class="profile-name-edit-group" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px; width: 100%; position: relative;">
                 <input type="text" id="profile-name-input" class="profile-name-input" placeholder="Το όνομά σας" value=""
-                  onblur="saveProfileName()" onkeydown="handleProfileNameKeydown(event)">
-                <i class="fa-solid fa-pen profile-name-edit-icon"></i>
+                  autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false"
+                  onfocus="if (this.setSelectionRange) { const len = this.value.length; this.setSelectionRange(len, len); }"
+                  onblur="saveProfileName()" onkeydown="handleProfileNameKeydown(event)"
+                  style="font-size: 18px; font-weight: 800; font-family: 'Outfit', sans-serif; color: var(--text-primary); background: transparent; border: none; outline: none; text-align: center; max-width: 220px; text-overflow: ellipsis; -webkit-touch-callout: none;">
+                <i class="fa-solid fa-pen profile-name-edit-icon" onclick="document.getElementById('profile-name-input').focus()" style="font-size: 13px; color: var(--accent, #7c6af7); cursor: pointer; padding: 4px; flex-shrink: 0;" title="Επεξεργασία ονόματος"></i>
               </div>
               <div id="profile-email-display" class="profile-email-display">—</div>
-              <div id="profile-role-badge" class="profile-role-badge personal">
-                <i class="fa-solid fa-user-shield"></i> <span>Ατομικός Λογαριασμός</span>
+              <div class="profile-badges-row" style="display:flex; align-items:center; justify-content:center; gap:8px; flex-wrap:wrap; margin-top:6px;">
+                <div id="profile-role-badge" class="profile-role-badge personal">
+                  <i class="fa-solid fa-user-shield"></i> <span>Ατομικός Λογαριασμός</span>
+                </div>
+                <div class="profile-premium-badge">
+                  <i class="fa-solid fa-crown" style="color:#ffc107;"></i>
+                  <span data-i18n="profile_premium_badge">PRO PREMIUM</span>
+                </div>
               </div>
             </div>
           </div>
@@ -4376,7 +4460,7 @@
               </div>
               <div class="profile-stat-info">
                 <div class="profile-stat-value" id="profile-stat-transactions">0</div>
-                <div class="profile-stat-label">Συναλλαγές</div>
+                <div class="profile-stat-label" data-i18n="label_transactions">Συναλλαγές</div>
               </div>
             </div>
 
@@ -4386,7 +4470,7 @@
               </div>
               <div class="profile-stat-info">
                 <div class="profile-stat-value" id="profile-stat-categories">0</div>
-                <div class="profile-stat-label">Κατηγορίες</div>
+                <div class="profile-stat-label" data-i18n="label_categories">Κατηγορίες</div>
               </div>
             </div>
 
@@ -4396,45 +4480,45 @@
               </div>
               <div class="profile-stat-info">
                 <div class="profile-stat-value" id="profile-stat-group">Ατομικό</div>
-                <div class="profile-stat-label">Ομάδα</div>
+                <div class="profile-stat-label" data-i18n="label_group">Ομάδα</div>
               </div>
             </div>
           </div>
 
           <!-- Account View Mode Switcher -->
           <div class="profile-mode-section">
-            <div class="profile-section-title">Λειτουργία Προβολής</div>
+            <div class="profile-section-title" data-i18n="profile_view_mode_title">Λειτουργία Προβολής</div>
             <div class="profile-account-mode-switcher">
               <button type="button" id="profile-mode-btn-personal" class="profile-mode-btn" onclick="setAccountViewMode('personal')">
                 <i class="fa-solid fa-user"></i>
-                <span>👤 Ατομικός</span>
+                <span data-i18n="profile_mode_personal">Ατομικός</span>
               </button>
               <button type="button" id="profile-mode-btn-family" class="profile-mode-btn" onclick="setAccountViewMode('family')">
                 <i class="fa-solid fa-people-roof"></i>
-                <span>👥 Οικογενειακός</span>
+                <span data-i18n="profile_mode_family">Οικογενειακός</span>
               </button>
             </div>
           </div>
 
           <!-- Quick Shortcuts Bar -->
           <div class="profile-shortcuts-section">
-            <div class="profile-section-title">Γρήγορες Επιλογές</div>
+            <div class="profile-section-title" data-i18n="profile_shortcuts_title">Γρήγορες Επιλογές</div>
             <div class="profile-shortcuts-grid">
-              <button type="button" class="profile-shortcut-btn" onclick="closeProfileSheet(); openSettingsSubscreen('family', 'settings_family_title');">
+              <button type="button" class="profile-shortcut-btn" onclick="closeModal('profile-modal'); openSettingsSubscreen('family', 'settings_family_title');">
                 <i class="fa-solid fa-people-roof" style="color:var(--accent);"></i>
-                <span>Οικογένεια</span>
+                <span data-i18n="profile_shortcut_family">Οικογένεια</span>
               </button>
-              <button type="button" class="profile-shortcut-btn" onclick="closeProfileSheet(); openSettingsSubscreen('preferences', 'settings_pref_title');">
+              <button type="button" class="profile-shortcut-btn" onclick="closeModal('profile-modal'); openSettingsSubscreen('preferences', 'settings_pref_title');">
                 <i class="fa-solid fa-sliders" style="color:#2196f3;"></i>
-                <span>Ρυθμίσεις</span>
+                <span data-i18n="profile_shortcut_preferences">Προτιμήσεις</span>
               </button>
-              <button type="button" class="profile-shortcut-btn" onclick="closeProfileSheet(); openSettingsSubscreen('notifications', 'settings_notif_title');">
+              <button type="button" class="profile-shortcut-btn" onclick="closeModal('profile-modal'); openSettingsSubscreen('notifications', 'settings_notif_title');">
                 <i class="fa-solid fa-bell" style="color:#ff9800;"></i>
-                <span>Ειδοποιήσεις</span>
+                <span data-i18n="profile_shortcut_notifications">Ειδοποιήσεις</span>
               </button>
-              <button type="button" class="profile-shortcut-btn" onclick="closeProfileSheet(); switchTab('stats');">
+              <button type="button" class="profile-shortcut-btn" onclick="closeModal('profile-modal'); switchTab('stats');">
                 <i class="fa-solid fa-chart-pie" style="color:#4caf50;"></i>
-                <span>Αναφορές</span>
+                <span data-i18n="profile_shortcut_reports">Αναφορές</span>
               </button>
             </div>
           </div>
@@ -4520,7 +4604,7 @@
       // OTA updates. Running both would cause a reload loop that never
       // baked into the APK and never changes on a plain reload).
       // ============================================================
-      const CURRENT_BUILD = 1255;
+      const CURRENT_BUILD = 1279;
       (function () {
         // Skip entirely when running inside the native APK (Capacitor bridge
         // present). Capgo handles OTA updates there.
@@ -5372,11 +5456,11 @@
 
   <!-- Transaction merge/dedup logic (pure, testable; loaded before app.js) -->
   <script src="js/transactionMerge.js"></script>
-  <script src="app.js?v=1255"></script>
+  <script src="app.js?v=1279"></script>
   <!-- Desktop Web UX Layer (defer so it runs after app.js; invoked via
        initDesktopUI() hook at the end of initApp()). Self-guards on
        html.web-mode so native Android/iOS is never affected. -->
-  <script src="web-ui.js?v=1255" defer></script>
+  <script src="web-ui.js?v=1279" defer></script>
 </body>
 
 

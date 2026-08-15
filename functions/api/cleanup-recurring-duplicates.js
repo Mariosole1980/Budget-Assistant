@@ -113,7 +113,11 @@ export async function onRequestPost(context) {
         const pageSize = 1000;
         let hasMore = true;
         while (hasMore) {
-            const url = `${supabaseUrl}/rest/v1/transactions?select=id,recurring_template_id,date,amount,user_id,created_at,status&recurring_template_id=not.is.null&status=eq.active&order=created_at.asc&order=id.asc&range=${page * pageSize}-${(page + 1) * pageSize - 1}`;
+            // PostgREST accepts a single `order` param; multiple comma-separated
+            // columns are supported within it. Using two separate `order` params
+            // would only honor the last one, silently dropping the created_at sort
+            // and breaking the "keep oldest by created_at" dedup logic.
+            const url = `${supabaseUrl}/rest/v1/transactions?select=id,recurring_template_id,date,amount,user_id,created_at,status&recurring_template_id=not.is.null&status=eq.active&order=created_at.asc,id.asc&range=${page * pageSize}-${(page + 1) * pageSize - 1}`;
             const res = await fetch(url, { headers });
             if (!res.ok) {
                 const errText = await res.text();

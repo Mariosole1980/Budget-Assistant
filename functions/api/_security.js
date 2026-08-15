@@ -43,6 +43,15 @@ function checkRateLimit(ip) {
     const bucket = rateBuckets.get(ip);
     if (!bucket || now - bucket.windowStart >= RATE_LIMIT_WINDOW_MS) {
         rateBuckets.set(ip, { count: 1, windowStart: now });
+        // Opportunistic cleanup: evict buckets whose window has fully expired so the
+        // Map does not grow unboundedly over the lifetime of the isolate (memory leak).
+        if (rateBuckets.size > 1000) {
+            for (const [key, b] of rateBuckets) {
+                if (now - b.windowStart >= RATE_LIMIT_WINDOW_MS) {
+                    rateBuckets.delete(key);
+                }
+            }
+        }
         return { allowed: true, remaining: RATE_LIMIT_MAX - 1 };
     }
     if (bucket.count >= RATE_LIMIT_MAX) {

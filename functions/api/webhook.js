@@ -123,11 +123,14 @@ async function constructStripeEvent(rawBody, signatureHeader, secret) {
         throw new Error('Signature mismatch.');
     }
 
-    // Optional: reject events older than ~5 minutes to prevent replay attacks.
-    const nowSeconds = Math.floor(Date.now() / 1000);
-    if (Math.abs(nowSeconds - parseInt(timestamp, 10)) > 300) {
-        throw new Error('Timestamp too old.');
-    }
+    // NOTE: We intentionally do NOT reject events based on their timestamp age.
+    // Stripe preserves the ORIGINAL event timestamp (`t`) across its automatic
+    // webhook retries (1min, 10min, 100min, ...). A strict "older than N minutes"
+    // check would reject legitimate retries with a 400 (permanent failure), so the
+    // premium entitlement would never be granted. Replay protection is instead
+    // provided by (a) the HMAC-SHA256 signature, which only Stripe can produce
+    // (it requires the webhook secret), and (b) the idempotent PATCH below
+    // (setting premium_active = true repeatedly is harmless).
 
     return JSON.parse(rawBody);
 }

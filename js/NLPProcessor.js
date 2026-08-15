@@ -1,4 +1,4 @@
-window.NLPProcessor = (function() {
+window.NLPProcessor = (function () {
   const INTENT_CORPORA = {
     add_transaction: ["βαλε", "εδωσα", "εσκασα", "πληρωσα", "εφυγαν", "γεμισα", "αγορασα", "πηρα", "εφαγα", "ξοδεψα", "add", "spent"],
     affordability: ["μπορω", "αντεχω", "να παρω", "φτανουν", "βγαινω", "εξω", "afford", "buy"],
@@ -27,7 +27,7 @@ window.NLPProcessor = (function() {
     const hasNegation = words.some(w => NEGATION_WORDS.includes(w));
     let bestIntent = 'unknown';
     let intentScore = 0;
-    
+
     for (const [intent, keywords] of Object.entries(INTENT_CORPORA)) {
       let score = 0;
       for (const kw of keywords) {
@@ -38,7 +38,7 @@ window.NLPProcessor = (function() {
         bestIntent = intent;
       }
     }
-    
+
     if (hasNegation) {
       if (bestIntent === 'add_transaction' || bestIntent === 'affordability') {
         bestIntent = 'clarification_needed';
@@ -55,8 +55,11 @@ window.NLPProcessor = (function() {
   }
 
   function extractEntities(queryText, intent) {
-    const numMatch = queryText.replace(/\./g, '').match(/\d+/);
-    const amount = numMatch ? parseInt(numMatch[0], 10) : null;
+    // Extract the amount BEFORE stripping decimal separators so "12.50" / "12,50"
+    // is parsed correctly instead of becoming "1250". Match an optional integer
+    // part plus an optional decimal part (dot or comma), then parseFloat.
+    const numMatch = queryText.match(/\d+(?:[.,]\d+)?/);
+    const amount = numMatch ? parseFloat(numMatch[0].replace(',', '.')) : null;
     let merchant = null;
 
     if (intent === 'add_transaction') {

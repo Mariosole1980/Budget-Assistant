@@ -918,6 +918,11 @@ const TRANSLATIONS = {
     notes_manager_subtitle: 'Προσωπικές σημειώσεις, λίστες & υπενθυμίσεις',
     notes_manager_search: 'Αναζήτηση σημειώσεων...',
     notes_manager_add: 'Νέα Σημείωση',
+    notes_filter_all: 'Όλες',
+    notes_filter_pinned: 'Καρφιτσωμένες',
+    notes_filter_text: 'Σημειώσεις',
+    notes_filter_checklist: 'Checklists',
+    notes_filter_reminder: 'Υπενθυμίσεις',
     legal_app_update: 'Έλεγχος Ενημέρωσης',
     legal_privacy: 'Πολιτική Απορρήτου',
     legal_logout: 'Αποσύνδεση',
@@ -1126,7 +1131,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1255 - 06/08/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1279 - 06/08/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1379,6 +1384,11 @@ const TRANSLATIONS = {
     notes_manager_subtitle: 'Personal notes, checklists & reminders',
     notes_manager_search: 'Search notes...',
     notes_manager_add: 'New Note',
+    notes_filter_all: 'All',
+    notes_filter_pinned: 'Pinned',
+    notes_filter_text: 'Notes',
+    notes_filter_checklist: 'Checklists',
+    notes_filter_reminder: 'Reminders',
     legal_app_update: 'Check Update',
     legal_privacy: 'Privacy Policy',
     legal_logout: 'Log Out',
@@ -1587,7 +1597,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1255 - 06/08/2026)',
+    app_version: 'Version 1.0.0 (build v1279 - 06/08/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -2004,6 +2014,10 @@ function applyLanguage(lang) {
   // Re-render UI dynamic elements and screens
   if (typeof updateUI === 'function') {
     updateUI();
+  }
+
+  if (typeof translateNotepadUI === 'function') {
+    translateNotepadUI();
   }
 
   // Update OTA diagnostic (shows active build source)
@@ -17119,6 +17133,346 @@ window.deleteCategoryFromManager = deleteCategoryFromManager;
 let _currentEditingNoteId = null;
 let _currentEditingNotePinned = false;
 let _currentEditingNoteType = 'text';
+let _currentEditingNoteColor = 'default';
+
+function translateNotepadUI() {
+  const isEl = (state.lang === 'el');
+
+  // Notepad Manager Filter Chips
+  const filterAllSpan = document.querySelector('#notes-filter-bar [data-filter="all"] span');
+  if (filterAllSpan) filterAllSpan.textContent = isEl ? 'Όλες' : 'All';
+
+  const filterPinnedSpan = document.querySelector('#notes-filter-bar [data-filter="pinned"] span');
+  if (filterPinnedSpan) filterPinnedSpan.textContent = isEl ? 'Καρφιτσωμένες' : 'Pinned';
+
+  const filterTextSpan = document.querySelector('#notes-filter-bar [data-filter="text"] span');
+  if (filterTextSpan) filterTextSpan.textContent = isEl ? 'Σημειώσεις' : 'Notes';
+
+  const filterChecklistSpan = document.querySelector('#notes-filter-bar [data-filter="checklist"] span');
+  if (filterChecklistSpan) filterChecklistSpan.textContent = isEl ? 'Checklists' : 'Checklists';
+
+  const filterReminderSpan = document.querySelector('#notes-filter-bar [data-filter="reminder"] span');
+  if (filterReminderSpan) filterReminderSpan.textContent = isEl ? 'Υπενθυμίσεις' : 'Reminders';
+
+  // Notepad Subtitle & Search
+  const subtitleEl = document.querySelector('[data-i18n="notes_manager_subtitle"]');
+  if (subtitleEl) subtitleEl.textContent = isEl ? 'Προσωπικές σημειώσεις, λίστες & υπενθυμίσεις' : 'Personal notes, checklists & reminders';
+
+  const searchInput = document.getElementById('notes-manager-search-input');
+  if (searchInput) searchInput.placeholder = isEl ? 'Αναζήτηση σημειώσεων...' : 'Search notes...';
+
+  // Note Editor Segmented Tabs
+  const tabText = document.getElementById('note-type-text-btn');
+  if (tabText) tabText.textContent = isEl ? '📝 Κείμενο' : '📝 Text';
+
+  const tabChecklist = document.getElementById('note-type-checklist-btn');
+  if (tabChecklist) tabChecklist.textContent = isEl ? '☑️ Λίστα' : '☑️ Checklist';
+
+  // Labels inside Note Editor Modal
+  const colorLabel = document.querySelector('#note-editor-modal [data-i18n="note_label_color"]');
+  if (colorLabel) colorLabel.textContent = isEl ? 'Χρώμα Σημείωσης' : 'Note Color';
+
+  const titleLabel = document.querySelector('#note-editor-modal [data-i18n="note_label_title"]');
+  if (titleLabel) titleLabel.textContent = isEl ? 'Τίτλος' : 'Title';
+
+  const reminderLabel = document.getElementById('note-editor-reminder-label');
+  if (reminderLabel) reminderLabel.textContent = isEl ? '⏰ Υπενθύμιση' : '⏰ Reminder';
+
+  const contentLabel = document.querySelector('#note-editor-modal [data-i18n="note_label_content"]');
+  if (contentLabel) contentLabel.textContent = isEl ? 'Περιεχόμενο' : 'Content';
+
+  const checklistItemsLabel = document.querySelector('#note-editor-modal [data-i18n="note_label_checklist_items"]');
+  if (checklistItemsLabel) checklistItemsLabel.textContent = isEl ? 'Αντικείμενα Λίστας' : 'Checklist Items';
+
+  const addItemSpan = document.querySelector('#note-editor-modal .note-checklist-add span');
+  if (addItemSpan) addItemSpan.textContent = isEl ? 'Προσθήκη αντικειμένου' : 'Add item';
+
+  // Placeholders
+  const titleInput = document.getElementById('note-editor-title-input');
+  if (titleInput) titleInput.placeholder = isEl ? 'Τίτλος σημείωσης...' : 'Note title...';
+
+  const bodyInput = document.getElementById('note-editor-body-input');
+  if (bodyInput) bodyInput.placeholder = isEl ? 'Γράψτε τη σημείωσή σας εδώ...' : 'Write your note here...';
+
+  // Action Buttons
+  const saveBtn = document.getElementById('note-editor-save-btn');
+  if (saveBtn) saveBtn.textContent = isEl ? 'Αποθήκευση' : 'Save';
+
+  const deleteBtn = document.getElementById('note-editor-delete-btn');
+  if (deleteBtn) deleteBtn.textContent = isEl ? 'Διαγραφή' : 'Delete';
+
+  const cancelBtn = document.querySelector('#note-editor-modal [data-i18n="btn_cancel"]');
+  if (cancelBtn) cancelBtn.textContent = isEl ? 'Άκυρο' : 'Cancel';
+}
+window.translateNotepadUI = translateNotepadUI;
+
+// Tracks whether the note editor modal is currently shrunk to sit above the
+// virtual keyboard. Used to reliably restore the modal once the keyboard closes,
+// even when the visualViewport fires multiple resize events during the close
+// animation (which previously left the fields pushed up with an empty gap below).
+let _noteEditorKeyboardOpen = false;
+
+function restoreNoteEditorInitialPosition() {
+  const modal = document.getElementById('note-editor-modal');
+  if (!modal) return;
+  const modalBody = modal.querySelector('.modal-body');
+  const content = modal.querySelector('.modal-content');
+  if (modalBody) {
+    modalBody.style.paddingBottom = '16px';
+    modalBody.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  if (content) {
+    // Restore the original inline max-height (85vh) instead of clearing it to ''.
+    // Clearing it removed the inline value entirely, so the modal no longer
+    // respected the intended 85vh and could stay collapsed with a bottom gap.
+    content.style.maxHeight = '85vh';
+  }
+  // Reset the keyboard-height CSS variable so the modal overlay's
+  // padding-bottom (var(--keyboard-height)) doesn't leave a persistent gap.
+  document.documentElement.style.setProperty('--keyboard-height', '0px');
+  _noteEditorKeyboardOpen = false;
+}
+window.restoreNoteEditorInitialPosition = restoreNoteEditorInitialPosition;
+
+function bindNoteEditorFocusScroll() {
+  const modal = document.getElementById('note-editor-modal');
+  if (!modal) return;
+  const modalBody = modal.querySelector('.modal-body');
+
+  const adjustScroll = (el) => {
+    if (!el) return;
+    _noteEditorKeyboardOpen = true;
+    if (modalBody) {
+      modalBody.style.paddingBottom = '260px';
+    }
+    setTimeout(() => {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+    }, 80);
+  };
+
+  const attachEvents = (el) => {
+    if (!el || el._scrollEventsAttached) return;
+    el._scrollEventsAttached = true;
+
+    el.addEventListener('focus', () => adjustScroll(el));
+    el.addEventListener('click', () => adjustScroll(el));
+    el.addEventListener('input', () => {
+      el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+    el.addEventListener('blur', () => {
+      setTimeout(() => {
+        const active = document.activeElement;
+        if (!active || !modal.contains(active) || (active.tagName !== 'INPUT' && active.tagName !== 'TEXTAREA')) {
+          restoreNoteEditorInitialPosition();
+        }
+      }, 80);
+    });
+  };
+
+  attachEvents(document.getElementById('note-editor-body-input'));
+  attachEvents(document.getElementById('note-editor-title-input'));
+  document.querySelectorAll('#note-editor-checklist-items input[type="text"]').forEach(input => {
+    attachEvents(input);
+  });
+}
+window.bindNoteEditorFocusScroll = bindNoteEditorFocusScroll;
+
+if (typeof window !== 'undefined') {
+  if (window.visualViewport) {
+    // Debounce visualViewport resize events (they fire repeatedly during the
+    // keyboard open/close animation). We coalesce them into one update per frame
+    // so the modal doesn't get re-shrunk mid-close and left with a bottom gap.
+    let _noteVpRafId = null;
+    const handleNoteViewportResize = () => {
+      const modal = document.getElementById('note-editor-modal');
+      if (!modal || !(modal.classList.contains('active') || modal.style.display === 'flex')) return;
+
+      const currentHeight = window.visualViewport.height;
+      const content = modal.querySelector('.modal-content');
+      const keyboardVisible = currentHeight < window.innerHeight * 0.75;
+
+      if (keyboardVisible) {
+        _noteEditorKeyboardOpen = true;
+        if (content) {
+          content.style.maxHeight = `${Math.max(250, currentHeight - 16)}px`;
+        }
+        const active = document.activeElement;
+        if (active && modal.contains(active)) {
+          setTimeout(() => {
+            active.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+          }, 80);
+        }
+      } else if (_noteEditorKeyboardOpen) {
+        // Keyboard has fully closed — restore the modal to its natural position.
+        restoreNoteEditorInitialPosition();
+      }
+    };
+
+    const debouncedNoteViewportResize = () => {
+      if (_noteVpRafId) return;
+      _noteVpRafId = requestAnimationFrame(() => {
+        _noteVpRafId = null;
+        handleNoteViewportResize();
+      });
+    };
+
+    window.visualViewport.addEventListener('resize', debouncedNoteViewportResize);
+    window.visualViewport.addEventListener('scroll', debouncedNoteViewportResize);
+  }
+
+  if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Keyboard) {
+    try {
+      window.Capacitor.Plugins.Keyboard.addListener('keyboardWillHide', () => {
+        restoreNoteEditorInitialPosition();
+      });
+      window.Capacitor.Plugins.Keyboard.addListener('keyboardDidHide', () => {
+        restoreNoteEditorInitialPosition();
+      });
+    } catch (e) {
+      console.warn('Capacitor Keyboard listener error:', e);
+    }
+  }
+}
+
+function selectNoteColor(color) {
+  _currentEditingNoteColor = color || 'default';
+
+  const colorMap = {
+    default: { hex: '#f59e0b', shadow: 'rgba(245, 158, 11, 0.35)', alpha: 'rgba(245, 158, 11, 0.08)' },
+    amber: { hex: '#f59e0b', shadow: 'rgba(245, 158, 11, 0.35)', alpha: 'rgba(245, 158, 11, 0.08)' },
+    emerald: { hex: '#10b981', shadow: 'rgba(16, 185, 129, 0.35)', alpha: 'rgba(16, 185, 129, 0.08)' },
+    blue: { hex: '#3b82f6', shadow: 'rgba(59, 130, 246, 0.35)', alpha: 'rgba(59, 130, 246, 0.08)' },
+    purple: { hex: '#8b5cf6', shadow: 'rgba(139, 92, 246, 0.35)', alpha: 'rgba(139, 92, 246, 0.08)' },
+    rose: { hex: '#f43f5e', shadow: 'rgba(244, 63, 94, 0.35)', alpha: 'rgba(244, 63, 94, 0.08)' },
+    teal: { hex: '#14b8a6', shadow: 'rgba(20, 184, 166, 0.35)', alpha: 'rgba(20, 184, 166, 0.08)' }
+  };
+
+  const theme = colorMap[_currentEditingNoteColor] || colorMap.default;
+  const modal = document.getElementById('note-editor-modal');
+  if (modal) {
+    modal.style.setProperty('--note-theme-color', theme.hex);
+    modal.style.setProperty('--note-theme-shadow', theme.shadow);
+    modal.style.setProperty('--note-theme-alpha', theme.alpha);
+  }
+
+  document.querySelectorAll('#note-color-palette .note-color-swatch').forEach(swatch => {
+    const isCurrent = swatch.getAttribute('data-color') === _currentEditingNoteColor;
+    swatch.classList.toggle('active', isCurrent);
+    swatch.innerHTML = isCurrent ? '<i class="fa-solid fa-check"></i>' : '';
+  });
+}
+window.selectNoteColor = selectNoteColor;
+
+function updateNoteEditorReminderDisplay() {
+  const reminderInput = document.getElementById('note-editor-reminder-input');
+  const pill = document.getElementById('note-active-reminder-pill');
+  const textEl = document.getElementById('note-active-reminder-text');
+  if (!reminderInput || !pill || !textEl) return;
+
+  if (reminderInput.value) {
+    const parts = reminderInput.value.split('T');
+    if (parts.length === 2) {
+      const dateParts = parts[0].split('-');
+      const timeParts = parts[1].split(':');
+      if (dateParts.length === 3 && timeParts.length >= 2) {
+        const d = new Date(
+          parseInt(dateParts[0], 10),
+          parseInt(dateParts[1], 10) - 1,
+          parseInt(dateParts[2], 10),
+          parseInt(timeParts[0], 10),
+          parseInt(timeParts[1], 10)
+        );
+        const day = d.getDate();
+        const monthNamesEl = ['Ιαν', 'Φεβ', 'Μαρ', 'Απρ', 'Μαϊ', 'Ιουν', 'Ιουλ', 'Αυγ', 'Σεπ', 'Οκτ', 'Νοε', 'Δεκ'];
+        const monthNamesEn = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const m = (state.lang === 'el' ? monthNamesEl : monthNamesEn)[d.getMonth()];
+        const hrs = String(d.getHours()).padStart(2, '0');
+        const mins = String(d.getMinutes()).padStart(2, '0');
+        textEl.textContent = `${day} ${m}, ${hrs}:${mins}`;
+        pill.style.display = 'inline-flex';
+        return;
+      }
+    }
+  }
+  pill.style.display = 'none';
+}
+
+function renderNoteReminderPresets() {
+  const container = document.getElementById('note-reminder-presets-container');
+  if (!container) return;
+
+  const now = new Date();
+  const nowHrs = now.getHours();
+
+  // Preset 1: +1 hour
+  const in1h = new Date(now.getTime() + 60 * 60 * 1000);
+  const in1hTimeStr = `${String(in1h.getHours()).padStart(2, '0')}:${String(in1h.getMinutes()).padStart(2, '0')}`;
+  const label1h = state.lang === 'el' ? `⚡ ${in1hTimeStr} (Σε 1 ώρα)` : `⚡ ${in1hTimeStr} (In 1 hr)`;
+
+  // Preset 2: +3 hours
+  const in3h = new Date(now.getTime() + 3 * 60 * 60 * 1000);
+  const in3hTimeStr = `${String(in3h.getHours()).padStart(2, '0')}:${String(in3h.getMinutes()).padStart(2, '0')}`;
+  const label3h = state.lang === 'el' ? `⏳ ${in3hTimeStr} (Σε 3 ώρες)` : `⏳ ${in3hTimeStr} (In 3 hrs)`;
+
+  // Preset 3: Today 20:00 or Tomorrow 20:00
+  let eveningDate = new Date();
+  let eveningLabel = '';
+  if (nowHrs < 19) {
+    eveningDate.setHours(20, 0, 0, 0);
+    eveningLabel = state.lang === 'el' ? '🌙 Σήμερα 20:00' : '🌙 Today 8 PM';
+  } else {
+    eveningDate.setDate(eveningDate.getDate() + 1);
+    eveningDate.setHours(20, 0, 0, 0);
+    eveningLabel = state.lang === 'el' ? '🌙 Αύριο 20:00' : '🌙 Tomorrow 8 PM';
+  }
+
+  // Preset 4: Tomorrow Morning 09:00
+  let morningDate = new Date();
+  morningDate.setDate(morningDate.getDate() + 1);
+  morningDate.setHours(9, 0, 0, 0);
+  const morningLabel = state.lang === 'el' ? '🌅 Αύριο 09:00' : '🌅 Tomorrow 9 AM';
+
+  const customLabel = state.lang === 'el' ? '📅 Επιλογή...' : '📅 Custom...';
+
+  const in1hISO = `${in1h.getFullYear()}-${String(in1h.getMonth() + 1).padStart(2, '0')}-${String(in1h.getDate()).padStart(2, '0')}T${String(in1h.getHours()).padStart(2, '0')}:${String(in1h.getMinutes()).padStart(2, '0')}`;
+  const in3hISO = `${in3h.getFullYear()}-${String(in3h.getMonth() + 1).padStart(2, '0')}-${String(in3h.getDate()).padStart(2, '0')}T${String(in3h.getHours()).padStart(2, '0')}:${String(in3h.getMinutes()).padStart(2, '0')}`;
+  const eveISO = `${eveningDate.getFullYear()}-${String(eveningDate.getMonth() + 1).padStart(2, '0')}-${String(eveningDate.getDate()).padStart(2, '0')}T20:00`;
+  const mornISO = `${morningDate.getFullYear()}-${String(morningDate.getMonth() + 1).padStart(2, '0')}-${String(morningDate.getDate()).padStart(2, '0')}T09:00`;
+
+  container.innerHTML = `
+    <button type="button" class="note-reminder-chip" onclick="applyNoteReminderString('${in1hISO}')">${label1h}</button>
+    <button type="button" class="note-reminder-chip" onclick="applyNoteReminderString('${in3hISO}')">${label3h}</button>
+    <button type="button" class="note-reminder-chip" onclick="applyNoteReminderString('${eveISO}')">${eveningLabel}</button>
+    <button type="button" class="note-reminder-chip" onclick="applyNoteReminderString('${mornISO}')">${morningLabel}</button>
+    <button type="button" class="note-reminder-chip" onclick="triggerCustomReminderInput()">${customLabel}</button>
+  `;
+}
+
+function applyNoteReminderString(isoVal) {
+  const reminderInput = document.getElementById('note-editor-reminder-input');
+  if (reminderInput) {
+    reminderInput.value = isoVal;
+    updateNoteEditorReminderDisplay();
+  }
+}
+window.applyNoteReminderString = applyNoteReminderString;
+
+function triggerCustomReminderInput() {
+  openCustomDatePicker('note-editor-reminder-input');
+}
+window.triggerCustomReminderInput = triggerCustomReminderInput;
+
+function onNoteReminderChanged() {
+  updateNoteEditorReminderDisplay();
+}
+window.onNoteReminderChanged = onNoteReminderChanged;
+
+function clearNoteEditorReminder() {
+  const reminderInput = document.getElementById('note-editor-reminder-input');
+  if (reminderInput) reminderInput.value = '';
+  updateNoteEditorReminderDisplay();
+}
+window.clearNoteEditorReminder = clearNoteEditorReminder;
 
 function loadNotes() {
   try {
@@ -17185,6 +17539,7 @@ function toggleNotesViewMode() {
 }
 
 function renderNotesList() {
+  if (typeof translateNotepadUI === 'function') translateNotepadUI();
   const listEl = document.getElementById('notes-manager-list');
   const badgeEl = document.getElementById('notes-manager-count-badge');
   if (!listEl) return;
@@ -17418,7 +17773,6 @@ function openNoteEditor(noteId = null) {
   const bodyInput = document.getElementById('note-editor-body-input');
   const checklistItemsEl = document.getElementById('note-editor-checklist-items');
   const deleteBtn = document.getElementById('note-editor-delete-btn');
-  const pinBtn = document.getElementById('note-editor-pin-btn');
 
   if (!modal) return;
 
@@ -17429,16 +17783,11 @@ function openNoteEditor(noteId = null) {
   _currentEditingNoteType = 'text';
 
   const reminderInput = document.getElementById('note-editor-reminder-input');
-  const clearReminderBtn = document.getElementById('note-editor-clear-reminder-btn');
   if (reminderInput) reminderInput.value = '';
-  if (clearReminderBtn) clearReminderBtn.style.display = 'none';
 
   const labelEl = document.getElementById('note-editor-reminder-label');
   if (labelEl) {
-    labelEl.textContent = state.lang === 'el' ? 'Ημερομηνία & Ώρα (Υπενθύμιση)' : 'Date & Time (Reminder)';
-  }
-  if (clearReminderBtn) {
-    clearReminderBtn.textContent = state.lang === 'el' ? 'Καθαρισμός' : 'Clear';
+    labelEl.textContent = state.lang === 'el' ? '⏰ Υπενθύμιση' : '⏰ Reminder';
   }
 
   setNoteEditorType('text');
@@ -17447,23 +17796,25 @@ function openNoteEditor(noteId = null) {
     titleEl.textContent = state.lang === 'el' ? 'Επεξεργασία Σημείωσης' : 'Edit Note';
     deleteBtn.style.display = 'block';
 
-    const note = state.notes.find(n => n.id === noteId);
+    const note = (state.notes || []).find(n => String(n.id) === String(noteId));
     if (note) {
       titleInput.value = note.title || '';
       _currentEditingNotePinned = !!note.pinned;
       _currentEditingNoteType = note.type || 'text';
+      selectNoteColor(note.color || 'default');
 
       setNoteEditorType(_currentEditingNoteType);
 
       if (_currentEditingNoteType === 'checklist') {
         let items = [];
         try {
-          items = JSON.parse(note.body || '[]');
+          items = typeof note.body === 'string' ? JSON.parse(note.body || '[]') : (Array.isArray(note.body) ? note.body : []);
         } catch (e) {
           console.error('Failed to parse checklist body:', e);
+          items = [];
         }
-        items.forEach(item => {
-          addNoteEditorChecklistItemRow(item.text, item.checked);
+        (Array.isArray(items) ? items : []).forEach(item => {
+          if (item) addNoteEditorChecklistItemRow(item.text || '', !!item.checked);
         });
       } else {
         bodyInput.value = note.body || '';
@@ -17478,16 +17829,21 @@ function openNoteEditor(noteId = null) {
           const hh = String(remDate.getHours()).padStart(2, '0');
           const min = String(remDate.getMinutes()).padStart(2, '0');
           reminderInput.value = `${yyyy}-${mm}-${dd}T${hh}:${min}`;
-          if (clearReminderBtn) clearReminderBtn.style.display = 'inline-block';
         }
       }
     }
   } else {
     titleEl.textContent = state.lang === 'el' ? 'Νέα Σημείωση' : 'New Note';
     deleteBtn.style.display = 'none';
+    selectNoteColor('default');
   }
 
+  renderNoteReminderPresets();
+  updateNoteEditorReminderDisplay();
   updateNoteEditorPinUI();
+  translateNotepadUI();
+  restoreNoteEditorInitialPosition();
+  bindNoteEditorFocusScroll();
   openModal('note-editor-modal');
 }
 
@@ -17525,10 +17881,18 @@ function addNoteEditorChecklistItemRow(text = '', checked = false) {
 
   const row = document.createElement('div');
   row.className = 'note-checklist-row';
+  row.draggable = true;
 
-  const chk = document.createElement('input');
-  chk.type = 'checkbox';
-  chk.checked = checked;
+  // Grip handle for Drag & Drop
+  const handle = document.createElement('div');
+  handle.className = 'note-checklist-handle';
+  handle.innerHTML = '<i class="fa-solid fa-grip-vertical"></i>';
+  row.appendChild(handle);
+
+  // Custom Modern Round Checkbox
+  const chkBox = document.createElement('div');
+  chkBox.className = `note-custom-checkbox ${checked ? 'checked' : ''}`;
+  chkBox.innerHTML = `<i class="fa-solid fa-check" style="${checked ? '' : 'display:none;'}"></i>`;
 
   const input = document.createElement('input');
   input.type = 'text';
@@ -17540,8 +17904,13 @@ function addNoteEditorChecklistItemRow(text = '', checked = false) {
     input.style.color = 'var(--text-muted)';
   }
 
-  chk.addEventListener('change', () => {
-    if (chk.checked) {
+  chkBox.addEventListener('click', () => {
+    const isNowChecked = !chkBox.classList.contains('checked');
+    chkBox.classList.toggle('checked', isNowChecked);
+    const icon = chkBox.querySelector('i');
+    if (icon) icon.style.display = isNowChecked ? 'inline-block' : 'none';
+
+    if (isNowChecked) {
       input.style.textDecoration = 'line-through';
       input.style.color = 'var(--text-muted)';
     } else {
@@ -17560,9 +17929,37 @@ function addNoteEditorChecklistItemRow(text = '', checked = false) {
     }
   });
 
-  row.appendChild(chk);
+  row.appendChild(chkBox);
   row.appendChild(input);
   row.appendChild(delBtn);
+
+  // Desktop Drag & Drop event handlers
+  row.addEventListener('dragstart', (e) => {
+    row.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', '');
+    window._draggedChecklistRow = row;
+  });
+
+  row.addEventListener('dragend', () => {
+    row.classList.remove('dragging');
+    window._draggedChecklistRow = null;
+  });
+
+  row.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    const draggingEl = window._draggedChecklistRow;
+    if (draggingEl && draggingEl !== row) {
+      const rect = row.getBoundingClientRect();
+      const midY = rect.top + rect.height / 2;
+      if (e.clientY < midY) {
+        container.insertBefore(draggingEl, row);
+      } else {
+        container.insertBefore(draggingEl, row.nextSibling);
+      }
+    }
+  });
 
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
@@ -17605,21 +18002,18 @@ async function saveNoteFromEditor() {
 
   let checklistItems = null;
   if (_currentEditingNoteType === 'checklist') {
-    const rows = checklistItemsEl.querySelectorAll('div');
+    const rows = checklistItemsEl.querySelectorAll('.note-checklist-row');
     const items = [];
     rows.forEach(row => {
-      const chk = row.querySelector('input[type="checkbox"]');
+      const chkBox = row.querySelector('.note-custom-checkbox');
       const input = row.querySelector('input[type="text"]');
       if (input && input.value.trim()) {
         items.push({
           text: input.value.trim(),
-          checked: !!chk.checked
+          checked: chkBox ? chkBox.classList.contains('checked') : false
         });
       }
     });
-    // Store structured items in the dedicated JSONB column (avoids fragile
-    // JSON-string parsing of `body`). `body` is kept as a JSON string for
-    // backward compatibility with existing rows / older app versions.
     checklistItems = items;
     body = JSON.stringify(items);
   } else {
@@ -24155,7 +24549,7 @@ function openCustomDatePicker(targetInputId = 'trans-date') {
 
   const timeContainer = document.getElementById('custom-date-picker-time-container');
   if (timeContainer) {
-    if (targetInputId === 'trans-date') {
+    if (targetInputId === 'trans-date' || targetInputId === 'note-editor-reminder-input') {
       timeContainer.style.display = 'flex';
     } else {
       timeContainer.style.display = 'none';
@@ -25169,10 +25563,13 @@ function setCustomDatePickerValue() {
   const targetId = _customDatePickerTargetInput || 'trans-date';
   const dateInput = document.getElementById(targetId);
   if (dateInput) {
-    if (targetId === 'trans-date') {
+    if (targetId === 'trans-date' || targetId === 'note-editor-reminder-input') {
       const hh = String(customDatePickerSelectedDate.getHours()).padStart(2, '0');
       const min = String(customDatePickerSelectedDate.getMinutes()).padStart(2, '0');
       dateInput.value = `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+      if (targetId === 'note-editor-reminder-input' && typeof updateNoteEditorReminderDisplay === 'function') {
+        updateNoteEditorReminderDisplay();
+      }
     } else {
       dateInput.value = `${yyyy}-${mm}-${dd}`;
       const label = document.getElementById(`${targetId}-label`);
@@ -30666,9 +31063,9 @@ const USER_GUIDE_DATA = {
       {
         id: 'changelog',
         icon: 'fa-box-archive',
-        title: '1. Version & What\'s New (v1255)',
+        title: '1. Version & What\'s New (v1279)',
         content: `
-          <p><strong>Guide Version:</strong> v1255 | <strong>Synchronized App Version:</strong> v1255</p>
+          <p><strong>Guide Version:</strong> v1279 | <strong>Synchronized App Version:</strong> v1279</p>
           <div class="guide-feature-box">
             <h5 style="margin:0 0 6px; color:var(--primary);">✨ What's new in the latest version:</h5>
             <ul style="margin:0; padding-left:18px;">
