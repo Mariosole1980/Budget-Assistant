@@ -1,4 +1,4 @@
-import { validateRequest } from './_security.js';
+import { validateRequest, getSupabasePublicConfig } from './_security.js';
 
 export async function onRequestOptions(context) {
   const { request } = context;
@@ -39,8 +39,14 @@ export async function onRequestPost(context) {
   const authHeader = request.headers.get('Authorization') || '';
   if (authHeader.startsWith('Bearer ')) {
     const token = authHeader.substring(7);
-    const supabaseUrl = env.SUPABASE_URL || 'https://nnatvvahoeiemkfmzpwp.supabase.co';
-    const supabaseKey = env.SUPABASE_ANON_KEY || 'sb_publishable_voBLw0kwLF07IWssRb4Q2w_sPlTUQNp';
+    const supabase = getSupabasePublicConfig(env);
+    if (!supabase) {
+      return new Response(JSON.stringify({ error: 'Server configuration error: SUPABASE_URL / SUPABASE_ANON_KEY not configured.' }), {
+        status: 500,
+        headers: corsHeaders
+      });
+    }
+    const { supabaseUrl, supabaseKey } = supabase;
 
     try {
       const userRes = await fetch(`${supabaseUrl}/auth/v1/user`, {

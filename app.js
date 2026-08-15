@@ -932,9 +932,16 @@ const TRANSLATIONS = {
     pref_note_shortcut: 'Κουμπί Σημειωματάριου (📝)',
     notification_center_title: 'Ειδοποιήσεις',
     btn_clear_all: 'Καθαρισμός',
+    btn_send_test_notif: 'Δοκιμή Ειδοποίησης',
     item_daily_reminder: 'Καθημερινή Υπενθύμιση',
     item_daily_reminder_time: 'Ώρα Υπενθύμισης',
     item_recurring_alerts: 'Ειδοποιήσεις Επαναλαμβανόμενων',
+    item_weekly_digest: 'Εβδομαδιαία Σύνοψη',
+    item_weekly_digest_desc: 'Σύνοψη εξόδων & τάσης κάθε Κυριακή (21:00)',
+    item_monthly_digest: 'Μηνιαία Ανασκόπηση',
+    item_monthly_digest_desc: 'Ισοζύγιο & αποταμίευση την 1η του μήνα',
+    item_partner_alerts: 'Δραστηριότητα Συνεργάτη',
+    item_partner_alerts_desc: 'Ειδοποίηση κατά την καταχώρηση νέων κοινών εξόδων',
     no_notifications: 'Δεν υπάρχουν ειδοποιήσεις.',
     pref_theme: 'Θέμα',
     pref_theme_dark: 'Σκούρο',
@@ -1131,7 +1138,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Συνδεδεμένος ως',
     force_update: 'Αναγκαστική Ενημέρωση (Καθαρισμός Cache)',
     section_legal: 'Νομικά',
-    app_version: 'Έκδοση 1.0.0 (build v1280 - 06/08/2026)',
+    app_version: 'Έκδοση 1.0.0 (build v1284 - 06/08/2026)',
     fab_add_transaction: 'Προσθήκη Συναλλαγής',
     yearly_savings_title: 'Ιστορικό Προηγούμενων Ετών',
     period_label: 'Περίοδος',
@@ -1398,9 +1405,16 @@ const TRANSLATIONS = {
     pref_note_shortcut: 'Notepad FAB Shortcut',
     notification_center_title: 'Notifications',
     btn_clear_all: 'Clear All',
+    btn_send_test_notif: 'Send Test Notification',
     item_daily_reminder: 'Daily Reminder',
     item_daily_reminder_time: 'Reminder Time',
     item_recurring_alerts: 'Recurring Alerts',
+    item_weekly_digest: 'Weekly Digest',
+    item_weekly_digest_desc: 'Expense & trend summary every Sunday (21:00)',
+    item_monthly_digest: 'Monthly Review',
+    item_monthly_digest_desc: 'Balance & savings rate on the 1st of each month',
+    item_partner_alerts: 'Partner Activity Alerts',
+    item_partner_alerts_desc: 'Notify when shared transactions are logged by partner',
     no_notifications: 'No notifications.',
     pref_theme: 'Theme',
     pref_theme_dark: 'Dark',
@@ -1597,7 +1611,7 @@ const TRANSLATIONS = {
     logged_in_as: 'Logged in as',
     force_update: 'Force Update (Clear Cache)',
     section_legal: 'Legal',
-    app_version: 'Version 1.0.0 (build v1280 - 06/08/2026)',
+    app_version: 'Version 1.0.0 (build v1284 - 06/08/2026)',
     fab_add_transaction: 'Add Transaction',
     yearly_savings_title: 'Previous Years History',
     period_label: 'Period',
@@ -24340,6 +24354,12 @@ async function triggerProfileSync() {
     if (state.currentUser) {
       await loadUserProfiles(state.currentUser);
       await loadData();
+      if (typeof checkPartnerActivityAlerts === 'function') {
+        checkPartnerActivityAlerts(state.transactions);
+      }
+      if (typeof checkWeeklyAndMonthlyDigests === 'function') {
+        checkWeeklyAndMonthlyDigests();
+      }
       updateUI();
       renderPartnerSection();
       if (syncStatus) syncStatus.textContent = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['sync_done']) || 'Ολοκληρώθηκε!';
@@ -25797,6 +25817,14 @@ function updateNoteShortcutVisibility() {
   }
 }
 
+// Convert a hex color (#rrggbb) to a comma-separated "r,g,b" string for use in
+// rgba() backgrounds/shadows. Falls back to the accent purple on parse failure.
+function hexToRgb(hex) {
+  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex || '');
+  if (!m) return '124,106,247';
+  return parseInt(m[1], 16) + ',' + parseInt(m[2], 16) + ',' + parseInt(m[3], 16);
+}
+
 function openSettingsSubscreen(screenId, titleKey, skipHistory = false) {
   if (!window._settingsSubscreenHistory) {
     window._settingsSubscreenHistory = [];
@@ -25813,6 +25841,43 @@ function openSettingsSubscreen(screenId, titleKey, skipHistory = false) {
   const titleEl = document.getElementById('settings-subscreen-title');
   if (titleEl) {
     titleEl.textContent = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang][titleKey]) || titleKey;
+  }
+
+  // Per-screen header metadata (icon, accent color, subtitle key) so the
+  // dynamic header band reflects the section being viewed instead of always
+  // showing the App Preferences palette/color/subtitle.
+  const subscreenMeta = {
+    preferences: { icon: 'fa-gear', color: '#7c6af7', subtitleKey: 'settings_pref_desc' },
+    notifications: { icon: 'fa-bell', color: '#ef4444', subtitleKey: 'settings_notif_desc' },
+    sync: { icon: 'fa-cloud-arrow-up', color: '#10b981', subtitleKey: 'settings_data_desc' },
+    security: { icon: 'fa-shield-halved', color: '#ef4444', subtitleKey: 'settings_security_desc' },
+    family: { icon: 'fa-users', color: '#6366f1', subtitleKey: 'settings_family_desc' },
+    legal: { icon: 'fa-circle-info', color: '#94a3b8', subtitleKey: 'settings_legal_desc' },
+    feedback: { icon: 'fa-heart', color: '#f43f5e', subtitleKey: 'settings_feedback_desc' }
+  };
+  const meta = subscreenMeta[screenId] || subscreenMeta.preferences;
+
+  const headerBand = document.getElementById('settings-subscreen-header-band');
+  if (headerBand) {
+    headerBand.style.background = `rgba(${hexToRgb(meta.color)},0.08)`;
+    headerBand.style.borderBottom = `1px solid rgba(${hexToRgb(meta.color)},0.25)`;
+  }
+
+  const iconBox = document.getElementById('settings-subscreen-icon-box');
+  if (iconBox) {
+    iconBox.style.background = meta.color;
+    iconBox.style.boxShadow = `0 4px 12px rgba(${hexToRgb(meta.color)},0.35)`;
+  }
+
+  const iconEl = document.getElementById('settings-subscreen-icon');
+  if (iconEl) {
+    iconEl.className = 'fa-solid ' + meta.icon;
+  }
+
+  const subtitleEl = document.getElementById('settings-subscreen-subtitle');
+  if (subtitleEl) {
+    const subText = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang][meta.subtitleKey]) || meta.subtitleKey;
+    subtitleEl.textContent = subText;
   }
 
   document.querySelectorAll('.subscreen-section').forEach(section => {
@@ -25914,6 +25979,18 @@ window.onSubscreenShow_notifications = function () {
   const expenseLimitInput = document.getElementById('settings-expense-alert-limit');
   if (expenseLimitInput) expenseLimitInput.value = expenseLimit;
 
+  const weeklyDigestEnabled = localStorage.getItem('settings_weekly_digest_enabled') !== 'false';
+  const weeklyDigestCheckbox = document.getElementById('settings-weekly-digest');
+  if (weeklyDigestCheckbox) weeklyDigestCheckbox.checked = weeklyDigestEnabled;
+
+  const monthlyDigestEnabled = localStorage.getItem('settings_monthly_digest_enabled') !== 'false';
+  const monthlyDigestCheckbox = document.getElementById('settings-monthly-digest');
+  if (monthlyDigestCheckbox) monthlyDigestCheckbox.checked = monthlyDigestEnabled;
+
+  const partnerAlertsEnabled = localStorage.getItem('settings_partner_alerts_enabled') !== 'false';
+  const partnerAlertsCheckbox = document.getElementById('settings-partner-alerts');
+  if (partnerAlertsCheckbox) partnerAlertsCheckbox.checked = partnerAlertsEnabled;
+
   if (typeof window.renderNotificationHistory === 'function') {
     window.renderNotificationHistory();
   }
@@ -25964,6 +26041,195 @@ function checkRecurringPaymentAlerts() {
   }
 }
 window.checkRecurringPaymentAlerts = checkRecurringPaymentAlerts;
+
+function checkWeeklyAndMonthlyDigests(manualCheck = false) {
+  try {
+    const weeklyEnabled = localStorage.getItem('settings_weekly_digest_enabled') !== 'false';
+    const monthlyEnabled = localStorage.getItem('settings_monthly_digest_enabled') !== 'false';
+    const now = new Date();
+    const currentDay = now.getDay();
+    const currentHour = now.getHours();
+    const currentDate = now.getDate();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+
+    const isEl = (state.lang === 'el');
+
+    // 1. Weekly Digest Check (Every Sunday evening >= 18:00 or manual check)
+    if (weeklyEnabled && ((currentDay === 0 && currentHour >= 18) || (manualCheck && currentDay === 0))) {
+      const d = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+      const dayNum = d.getUTCDay() || 7;
+      d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+      const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+      const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+      const weekKey = `weekly_digest_sent_${d.getUTCFullYear()}_W${weekNo}`;
+
+      if (!localStorage.getItem(weekKey) || manualCheck) {
+        const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+
+        let thisWeekExp = 0;
+        let thisWeekInc = 0;
+        let prevWeekExp = 0;
+
+        (state.transactions || []).forEach(t => {
+          if (!t.date || isTransferTransaction(t)) return;
+          const tDate = new Date(t.date);
+          const amt = CurrencyService.toBase(t);
+          if (tDate >= sevenDaysAgo && tDate <= now) {
+            if (t.type === 'expense') thisWeekExp += amt;
+            if (t.type === 'income') thisWeekInc += amt;
+          } else if (tDate >= fourteenDaysAgo && tDate < sevenDaysAgo) {
+            if (t.type === 'expense') prevWeekExp += amt;
+          }
+        });
+
+        if (thisWeekExp > 0 || thisWeekInc > 0) {
+          let trendStr = '';
+          if (prevWeekExp > 0) {
+            const diffPct = Math.round(((thisWeekExp - prevWeekExp) / prevWeekExp) * 100);
+            trendStr = diffPct > 0 ? ` (+${diffPct}%)` : ` (${diffPct}%)`;
+          }
+
+          const title = isEl ? '📊 Εβδομαδιαία Οικονομική Σύνοψη' : '📊 Weekly Financial Digest';
+          const body = isEl
+            ? `Αυτή την εβδομάδα: Έξοδα ${formatCurrency(thisWeekExp)}${trendStr}, Έσοδα ${formatCurrency(thisWeekInc)}. Καλή νέα εβδομάδα!`
+            : `This week: Expenses ${formatCurrency(thisWeekExp)}${trendStr}, Income ${formatCurrency(thisWeekInc)}. Have a great week!`;
+
+          addInAppNotification(title, body, { type: 'open_analytics' });
+          localStorage.setItem(weekKey, 'true');
+
+          if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.LocalNotifications) {
+            window.Capacitor.Plugins.LocalNotifications.schedule({
+              notifications: [{
+                id: 8500,
+                title: title,
+                body: body,
+                schedule: { at: new Date(Date.now() + 1000) },
+                extra: { type: 'weekly_digest' }
+              }]
+            }).catch(e => console.warn('Failed native weekly digest:', e));
+          }
+        }
+      }
+    }
+
+    // 2. Monthly Review Check (On day 1 of month or manual check on day 1)
+    if (monthlyEnabled && (currentDate === 1 || (manualCheck && currentDate <= 2))) {
+      const prevMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+      const prevYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+      const monthKey = `monthly_review_sent_${prevYear}_${prevMonth + 1}`;
+
+      if (!localStorage.getItem(monthKey) || manualCheck) {
+        let prevMonthExp = 0;
+        let prevMonthInc = 0;
+
+        (state.transactions || []).forEach(t => {
+          if (!t.date || isTransferTransaction(t)) return;
+          const tDate = new Date(t.date);
+          if (tDate.getFullYear() === prevYear && tDate.getMonth() === prevMonth) {
+            const amt = CurrencyService.toBase(t);
+            if (t.type === 'expense') prevMonthExp += amt;
+            if (t.type === 'income') prevMonthInc += amt;
+          }
+        });
+
+        if (prevMonthExp > 0 || prevMonthInc > 0) {
+          const savings = prevMonthInc - prevMonthExp;
+          const savingsRate = prevMonthInc > 0 ? Math.round((savings / prevMonthInc) * 100) : 0;
+          const monthName = getMonthName(prevMonth);
+
+          const title = isEl ? `📅 Μηνιαία Ανασκόπηση (${monthName})` : `📅 Monthly Review (${monthName})`;
+          const body = isEl
+            ? `Έξοδα: ${formatCurrency(prevMonthExp)} | Έσοδα: ${formatCurrency(prevMonthInc)} | Αποταμίευση: ${formatCurrency(savings)} (${savingsRate}%)`
+            : `Expenses: ${formatCurrency(prevMonthExp)} | Income: ${formatCurrency(prevMonthInc)} | Savings: ${formatCurrency(savings)} (${savingsRate}%)`;
+
+          addInAppNotification(title, body, { type: 'open_analytics' });
+          localStorage.setItem(monthKey, 'true');
+
+          if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.LocalNotifications) {
+            window.Capacitor.Plugins.LocalNotifications.schedule({
+              notifications: [{
+                id: 8600,
+                title: title,
+                body: body,
+                schedule: { at: new Date(Date.now() + 1000) },
+                extra: { type: 'monthly_review' }
+              }]
+            }).catch(e => console.warn('Failed native monthly review:', e));
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('checkWeeklyAndMonthlyDigests error:', err);
+  }
+}
+window.checkWeeklyAndMonthlyDigests = checkWeeklyAndMonthlyDigests;
+
+function checkPartnerActivityAlerts(transactions) {
+  try {
+    const enabled = localStorage.getItem('settings_partner_alerts_enabled') !== 'false';
+    if (!enabled || !state.currentUser || !Array.isArray(transactions) || transactions.length === 0) return;
+
+    let seenIds = new Set();
+    try {
+      const stored = localStorage.getItem('seen_partner_tx_ids');
+      if (stored) seenIds = new Set(JSON.parse(stored));
+    } catch (e) {}
+
+    const myUserId = state.currentUser.id;
+    const isEl = (state.lang === 'el');
+
+    transactions.forEach((tx, idx) => {
+      if (!tx || !tx.id) return;
+      const txUserId = tx.user_id || tx.created_by;
+
+      if (txUserId && txUserId !== myUserId && !seenIds.has(String(tx.id))) {
+        seenIds.add(String(tx.id));
+
+        let partnerName = isEl ? 'Συνεργάτης' : 'Partner';
+        if (state.familyProfiles && Array.isArray(state.familyProfiles)) {
+          const profile = state.familyProfiles.find(p => p.id === txUserId);
+          if (profile && profile.display_name) partnerName = profile.display_name;
+        } else if (state.partnerProfile && state.partnerProfile.display_name) {
+          partnerName = state.partnerProfile.display_name;
+        }
+
+        const catName = getCategoryDisplayName ? getCategoryDisplayName(tx.category) : (tx.category || '');
+        const desc = tx.note ? `${tx.note} (${catName})` : catName;
+        const amt = formatCurrency(tx.amount || 0);
+
+        const title = isEl ? `👥 Νέα Συναλλαγή από ${partnerName}` : `👥 New Transaction by ${partnerName}`;
+        const body = isEl
+          ? `Καταγράφηκε: «${desc}» αξίας ${amt}`
+          : `Recorded: "${desc}" for ${amt}`;
+
+        addInAppNotification(title, body, { type: 'open_transactions' });
+
+        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.LocalNotifications) {
+          window.Capacitor.Plugins.LocalNotifications.schedule({
+            notifications: [{
+              id: 9000 + (idx % 100),
+              title: title,
+              body: body,
+              schedule: { at: new Date(Date.now() + 500) },
+              extra: { type: 'partner_activity' }
+            }]
+          }).catch(e => console.warn('Failed partner notification:', e));
+        }
+      } else if (tx.id) {
+        seenIds.add(String(tx.id));
+      }
+    });
+
+    const seenArray = Array.from(seenIds).slice(-300);
+    localStorage.setItem('seen_partner_tx_ids', JSON.stringify(seenArray));
+  } catch (err) {
+    console.warn('checkPartnerActivityAlerts error:', err);
+  }
+}
+window.checkPartnerActivityAlerts = checkPartnerActivityAlerts;
 
 async function sendTestNotification() {
   const title = state.lang === 'el' ? '🔔 Δοκιμαστική Ειδοποίηση' : '🔔 Test Notification';
@@ -26053,6 +26319,33 @@ window.saveExpenseLimit = function (val) {
     if (typeof showSyncToast === 'function') {
       showSyncToast(state.lang === 'el' ? `✓ Όριο ορίστηκε στα ${val} €` : `✓ Expense limit set to ${val} €`, 2000);
     }
+  }
+};
+
+window.toggleWeeklyDigest = function (checked) {
+  localStorage.setItem('settings_weekly_digest_enabled', checked ? 'true' : 'false');
+  if (checked) {
+    checkWeeklyAndMonthlyDigests(true);
+    if (typeof showSyncToast === 'function') {
+      showSyncToast(state.lang === 'el' ? '✓ Εβδομαδιαία σύνοψη ενεργοποιήθηκε' : '✓ Weekly digest enabled', 2000);
+    }
+  }
+};
+
+window.toggleMonthlyDigest = function (checked) {
+  localStorage.setItem('settings_monthly_digest_enabled', checked ? 'true' : 'false');
+  if (checked) {
+    checkWeeklyAndMonthlyDigests(true);
+    if (typeof showSyncToast === 'function') {
+      showSyncToast(state.lang === 'el' ? '✓ Μηνιαία ανασκόπηση ενεργοποιήθηκε' : '✓ Monthly review enabled', 2000);
+    }
+  }
+};
+
+window.togglePartnerAlerts = function (checked) {
+  localStorage.setItem('settings_partner_alerts_enabled', checked ? 'true' : 'false');
+  if (checked && typeof showSyncToast === 'function') {
+    showSyncToast(state.lang === 'el' ? '✓ Ειδοποιήσεις συνεργάτη ενεργοποιήθηκαν' : '✓ Partner activity alerts enabled', 2000);
   }
 };
 
@@ -31060,9 +31353,9 @@ const USER_GUIDE_DATA = {
       {
         id: 'changelog',
         icon: 'fa-box-archive',
-        title: '1. Version & What\'s New (v1280)',
+        title: '1. Version & What\'s New (v1284)',
         content: `
-          <p><strong>Guide Version:</strong> v1280 | <strong>Synchronized App Version:</strong> v1280</p>
+          <p><strong>Guide Version:</strong> v1284 | <strong>Synchronized App Version:</strong> v1284</p>
           <div class="guide-feature-box">
             <h5 style="margin:0 0 6px; color:var(--primary);">✨ What's new in the latest version:</h5>
             <ul style="margin:0; padding-left:18px;">
@@ -31975,3 +32268,12 @@ window.syncTimeInputsBackToWheels = syncTimeInputsBackToWheels;
 if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorUpdater) {
   window.Capacitor.Plugins.CapacitorUpdater.notifyAppReady();
 }
+
+setTimeout(() => {
+  if (typeof checkWeeklyAndMonthlyDigests === 'function') {
+    checkWeeklyAndMonthlyDigests();
+  }
+  if (typeof checkRecurringPaymentAlerts === 'function') {
+    checkRecurringPaymentAlerts();
+  }
+}, 2500);

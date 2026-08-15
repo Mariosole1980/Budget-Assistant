@@ -1,4 +1,4 @@
-import { validateRequest, corsHeadersFor } from './_security.js';
+import { validateRequest, corsHeadersFor, getSupabasePublicConfig } from './_security.js';
 
 // ============================================================================
 // POST /api/cleanup-recurring-duplicates
@@ -54,16 +54,16 @@ export async function onRequestPost(context) {
     }
 
     const token = authHeader.substring(7);
-    const supabaseUrl = env.SUPABASE_URL || 'https://nnatvvahoeiemkfmzpwp.supabase.co';
-    const supabaseKey = env.SUPABASE_ANON_KEY || 'sb_publishable_voBLw0kwLF07IWssRb4Q2w_sPlTUQNp';
+    const supabase = getSupabasePublicConfig(env);
     const serviceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY;
 
-    if (!serviceRoleKey) {
-        return new Response(JSON.stringify({ error: 'Server configuration error: SUPABASE_SERVICE_ROLE_KEY not configured.' }), {
+    if (!supabase || !serviceRoleKey) {
+        return new Response(JSON.stringify({ error: 'Server configuration error: SUPABASE_URL / SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY not configured.' }), {
             status: 500,
             headers: corsHeaders
         });
     }
+    const { supabaseUrl, supabaseKey } = supabase;
 
     // Optional dry-run flag: { "dryRun": true } only reports, does not modify.
     let dryRun = false;

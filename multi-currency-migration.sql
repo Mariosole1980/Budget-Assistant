@@ -158,9 +158,19 @@ DROP POLICY IF EXISTS "Allow select exchange rates" ON public.exchange_rates;
 CREATE POLICY "Allow select exchange rates" ON public.exchange_rates
     FOR SELECT TO authenticated USING (true);
 
+-- Insert is constrained (NOT open-ended) to prevent a malicious authenticated
+-- user from polluting the shared rate catalog. See exchange-rates-security-fix.sql.
 DROP POLICY IF EXISTS "Allow insert exchange rates" ON public.exchange_rates;
 CREATE POLICY "Allow insert exchange rates" ON public.exchange_rates
-    FOR INSERT TO authenticated WITH CHECK (true);
+    FOR INSERT TO authenticated
+    WITH CHECK (
+        rate > 0
+        AND rate < 1000000
+        AND base_currency <> quote_currency
+        AND rate_date >= DATE '2000-01-01'
+        AND rate_date <= (CURRENT_DATE + 1)
+        AND source IN ('api', 'cached', 'manual')
+    );
 
 -- BUDGETS: tenant-isolated (personal or family)
 ALTER TABLE public.budgets ENABLE ROW LEVEL SECURITY;

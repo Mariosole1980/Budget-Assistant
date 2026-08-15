@@ -114,4 +114,45 @@ function validateRequest(request, { maxBodyBytes = 64 * 1024 } = {}) {
     return { ok: true, headers: corsHeaders };
 }
 
-export { corsHeadersFor, validateRequest, getClientIp, ALLOWED_ORIGINS };
+// ---------------------------------------------------------------------------
+// Supabase configuration resolution (fail-closed)
+// ---------------------------------------------------------------------------
+// The functions previously fell back to hardcoded Supabase URL / anon key when
+// the Cloudflare environment variables were missing. That is a security risk:
+// credentials in source control are exposed to anyone with repo access, and a
+// silent fallback masks misconfiguration. These helpers resolve credentials
+// ONLY from `env` (Cloudflare Pages environment variables / secrets) and return
+// null when a required value is absent, so callers can fail-closed with a 500
+// instead of silently using hardcoded credentials.
+//
+// Required env vars (set in Cloudflare Pages -> Settings -> Environment
+// variables & secrets):
+//   SUPABASE_URL            e.g. https://<project>.supabase.co
+//   SUPABASE_ANON_KEY       publishable anon key (client-safe)
+//   SUPABASE_SERVICE_ROLE_KEY  service-role key (server-only secret)
+// ---------------------------------------------------------------------------
+
+// Resolve the public (anon) Supabase config. Returns null if either var is missing.
+function getSupabasePublicConfig(env) {
+    const supabaseUrl = env?.SUPABASE_URL;
+    const supabaseKey = env?.SUPABASE_ANON_KEY;
+    if (!supabaseUrl || !supabaseKey) return null;
+    return { supabaseUrl, supabaseKey };
+}
+
+// Resolve the service-role config. Returns null if any required var is missing.
+function getSupabaseServiceConfig(env) {
+    const base = getSupabasePublicConfig(env);
+    const serviceRoleKey = env?.SUPABASE_SERVICE_ROLE_KEY;
+    if (!base || !serviceRoleKey) return null;
+    return { ...base, serviceRoleKey };
+}
+
+export {
+    corsHeadersFor,
+    validateRequest,
+    getClientIp,
+    ALLOWED_ORIGINS,
+    getSupabasePublicConfig,
+    getSupabaseServiceConfig
+};

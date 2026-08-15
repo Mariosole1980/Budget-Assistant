@@ -30,7 +30,12 @@ export async function onRequestPost(context) {
         });
     }
 
-    const supabaseUrl = env.SUPABASE_URL || 'https://nnatvvahoeiemkfmzpwp.supabase.co';
+    const supabaseUrl = env.SUPABASE_URL;
+    if (!supabaseUrl) {
+        return new Response(JSON.stringify({ error: 'Server configuration error: SUPABASE_URL not configured.' }), {
+            status: 500,
+        });
+    }
 
     // Read the raw body (needed for signature verification).
     let rawBody;

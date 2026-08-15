@@ -27,13 +27,13 @@
 | `recurring_templates` | ✅ | `supabase-recurring-migration.sql` | Yes (user or partner) |
 | `notes` | ✅ | `notes-migration.sql` | Yes (user or family) |
 | `currencies` | ✅ | `multi-currency-migration.sql` | Read-only catalog |
-| `exchange_rates` | ✅ | `multi-currency-migration.sql` | Read-only catalog (insert = any auth) |
+| `exchange_rates` | ✅ | `multi-currency-migration.sql` + `exchange-rates-security-fix.sql` | Read-only catalog (insert = constrained auth) |
 | `budgets` | ✅ | `multi-currency-migration.sql` | Yes (user or family) |
-| `category_budgets` | ✅ | (see category-budgets plan) | Yes (user or family) |
-| `feedback` | ✅ | (dashboard-created) | Insert-only |
-| `deleted_transactions` | ✅ | (legacy trash table) | Yes (user or family) |
+| `category_budgets` | ✅ | `category-budgets-migration.sql` | Yes (user or family) |
+| `feedback` | ✅ | `feedback-schema-migration.sql` | Insert-only |
+| `deleted_transactions` | ✅ | (legacy trash table — being dropped by `trash-status-migration.sql`) | Yes (user or family) |
 
-> **Note:** `profiles`, `feedback`, `deleted_transactions`, and `category_budgets` are **not** created by any repo SQL file — they are created manually in the Supabase dashboard. This is a known gap (see §6).
+> **Note:** `profiles` is now versioned in [`profiles-canonical-schema.sql`](../profiles-canonical-schema.sql). `feedback` and `category_budgets` are versioned in their own repo SQL files. `deleted_transactions` is a **legacy** table being dropped by `trash-status-migration.sql` (migrated to `transactions.status = 'deleted'`) and should NOT be re-versioned.
 
 ---
 
@@ -118,9 +118,9 @@ Identical structure to `accounts` (select/insert/update/delete), with the same t
 | Policy | Command | Role | USING / WITH CHECK | Source |
 |---|---|---|---|---|
 | Allow select exchange rates | SELECT | authenticated | `true` | `multi-currency-migration.sql` |
-| Allow insert exchange rates | INSERT | authenticated | WITH CHECK: `true` | `multi-currency-migration.sql` |
+| Allow insert exchange rates | INSERT | authenticated | WITH CHECK: `rate > 0 AND rate < 1000000 AND base_currency <> quote_currency AND rate_date >= '2000-01-01' AND rate_date <= today+1 AND source IN ('api','cached','manual')` | `exchange-rates-security-fix.sql` |
 
-> **⚠️ Medium risk:** `exchange_rates` allows **any authenticated user** to insert rows (`WITH CHECK (true)`). This is intended for the service role but is currently open to all authenticated users. See §6.
+> **✅ Fixed:** `exchange_rates` insert policy was previously `WITH CHECK (true)` (any authenticated user could insert arbitrary rows). It is now constrained by `exchange-rates-security-fix.sql`, which also adds a table-level `CHECK` constraint (`exchange_rates_sane_rate`) as defense-in-depth. The client still writes rates directly via `supabaseClient.from('exchange_rates').upsert(...)`, so the policy remains open to authenticated users but only for sane rate rows.
 
 ### 3.11 `budgets`
 
@@ -133,7 +133,7 @@ Identical structure to `accounts` (select/insert/update/delete), with the same t
 
 ### 3.12 `category_budgets`
 
-Defined in the category-budgets plan (not a repo SQL file). Policies: select/update/delete allow `(user_id = auth.uid()) OR (family_id = user's family)`; insert requires `user_id = auth.uid()`.
+Defined in [`category-budgets-migration.sql`](../category-budgets-migration.sql). Policies: select/update/delete allow `(user_id = auth.uid()) OR (family_id = user's family)`; insert requires `user_id = auth.uid()`.
 
 ---
 
@@ -144,7 +144,7 @@ Defined in the category-budgets plan (not a repo SQL file). Policies: select/upd
 | `profiles` | read-only select | `USING(true)` | **Low** | Needed for partner/family lookup by email/id; SELECT only, no sensitive financial data |
 | `currencies` | select | `USING(true)` | **Low** | Read-only ISO catalog |
 | `exchange_rates` | select | `USING(true)` | **Low** | Read-only rate history |
-| `exchange_rates` | insert | `WITH CHECK(true)` | **Medium** | Any authenticated user can insert rates; should be service-role only |
+| `exchange_rates` | insert | `WITH CHECK(rate > 0 AND ...)` | **Low** | Constrained by `exchange-rates-security-fix.sql`; only sane rate rows accepted (defense-in-depth via table CHECK) |
 | ~~transactions/accounts/categories~~ | ~~"Allow public"~~ | ~~`USING(true)`/`WITH CHECK(true)`~~ | **Removed** | These existed only in the legacy `supabase-schema.sql`, which has been rewritten to remove them and enable RLS |
 
 ---
@@ -160,12 +160,12 @@ Defined in the category-budgets plan (not a repo SQL file). Policies: select/upd
 
 ---
 
-## 6. Known gaps & recommendations (documented, NOT yet changed)
+## 6. Known gaps & recommendations
 
 1. **`recurring_templates` uses the legacy partner model** (`partner_id`) while all other tables use the family model. This is an inconsistency that should be reconciled in a future migration (out of scope for this remediation).
-2. **`exchange_rates` insert is open to all authenticated users** (`WITH CHECK(true)`). Recommend restricting to service role only. **Not changed** in this remediation to avoid altering production behavior without explicit approval.
-3. **`profiles`, `feedback`, `deleted_transactions`, `category_budgets` are not in any repo SQL file** — they are dashboard-created. The repo has no complete canonical schema for these. Consider adding them to the canonical schema in a future phase.
-4. **No migration tooling / ordering** — the 8 SQL files have no enforced order or idempotency guarantee. This remediation makes `supabase-schema.sql` idempotent and RLS-safe, but a proper migration tool is a future recommendation.
+2. **`exchange_rates` insert** — **FIXED** by `exchange-rates-security-fix.sql`: the `WITH CHECK (true)` policy is now constrained to sane rate rows, with a table-level `CHECK` constraint as defense-in-depth.
+3. **Dashboard-created tables** — **RESOLVED**: `profiles` now has a canonical definition in [`profiles-canonical-schema.sql`](../profiles-canonical-schema.sql). `feedback` and `category_budgets` were already versioned in their own repo SQL files. `deleted_transactions` is a legacy table being dropped by `trash-status-migration.sql` and should NOT be re-versioned.
+4. **No migration tooling / ordering** — the SQL files have no enforced order or idempotency guarantee. This remediation makes `supabase-schema.sql` idempotent and RLS-safe, but a proper migration tool is a future recommendation.
 
 ---
 

@@ -1,4 +1,4 @@
-import { validateRequest, corsHeadersFor } from './_security.js';
+import { validateRequest, corsHeadersFor, getSupabasePublicConfig } from './_security.js';
 
 // Premium status / reconciliation endpoint (web / PWA).
 //
@@ -61,8 +61,14 @@ export async function onRequestGet(context) {
         });
     }
 
-    const supabaseUrl = env.SUPABASE_URL || 'https://nnatvvahoeiemkfmzpwp.supabase.co';
-    const supabaseKey = env.SUPABASE_ANON_KEY || 'sb_publishable_voBLw0kwLF07IWssRb4Q2w_sPlTUQNp';
+    const supabase = getSupabasePublicConfig(env);
+    if (!supabase) {
+        return new Response(JSON.stringify({ error: 'Server configuration error: SUPABASE_URL / SUPABASE_ANON_KEY not configured.' }), {
+            status: 500,
+            headers: corsHeaders
+        });
+    }
+    const { supabaseUrl, supabaseKey } = supabase;
 
     // Authenticate the user via JWT.
     const authHeader = request.headers.get('Authorization') || '';

@@ -1,4 +1,4 @@
-import { validateRequest, corsHeadersFor } from './_security.js';
+import { validateRequest, corsHeadersFor, getSupabasePublicConfig } from './_security.js';
 
 export async function onRequestOptions(context) {
   const { request } = context;
@@ -33,16 +33,16 @@ export async function onRequestPost(context) {
   }
 
   const token = authHeader.substring(7);
-  const supabaseUrl = env.SUPABASE_URL || 'https://nnatvvahoeiemkfmzpwp.supabase.co';
-  const supabaseKey = env.SUPABASE_ANON_KEY || 'sb_publishable_voBLw0kwLF07IWssRb4Q2w_sPlTUQNp';
+  const supabase = getSupabasePublicConfig(env);
   const serviceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY;
 
-  if (!serviceRoleKey) {
-    return new Response(JSON.stringify({ error: 'Server configuration error: SUPABASE_SERVICE_ROLE_KEY not configured.' }), {
+  if (!supabase || !serviceRoleKey) {
+    return new Response(JSON.stringify({ error: 'Server configuration error: SUPABASE_URL / SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY not configured.' }), {
       status: 500,
       headers: corsHeaders
     });
   }
+  const { supabaseUrl, supabaseKey } = supabase;
 
   try {
     // 1. Authenticate access token with Supabase Auth API

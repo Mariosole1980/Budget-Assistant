@@ -72,7 +72,7 @@
               ${devButton}
             </div>
             <div style="font-size:11px;color:#8b949e;">
-              Budget Assistant • build v1284
+              Budget Assistant • build v1279
             </div>
           </div>
         `;
@@ -162,7 +162,7 @@
   <!-- Desktop Web UX Layer (loaded AFTER style.css so it can override).
        All rules are scoped behind html.web-mode, so Android/iOS native
        (Capacitor) layout is never affected. -->
-  <link rel="stylesheet" href="desktop.css?v=1284" id="desktop-stylesheet">
+  <link rel="stylesheet" href="desktop.css?v=1279" id="desktop-stylesheet">
 
   <!-- Capacitor Bridge -->
   <script src="capacitor.js"></script>
@@ -1510,7 +1510,7 @@
                 data-i18n="item_user_guide">Οδηγός Χρήσης</h3>
               <div
                 style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; font-family: 'Outfit', sans-serif;">
-                <span id="user-guide-version-badge" style="font-size:10px; background:rgba(99,102,241,0.15); color:var(--primary); padding:2px 8px; border-radius:10px; font-weight:700; border:1px solid rgba(99,102,241,0.3);">v1284</span>
+                <span id="user-guide-version-badge" style="font-size:10px; background:rgba(99,102,241,0.15); color:var(--primary); padding:2px 8px; border-radius:10px; font-weight:700; border:1px solid rgba(99,102,241,0.3);">v1279</span>
                 <span>•</span>
                 <span id="user-guide-date-badge" data-i18n="user_guide_date_badge">Αύγουστος 2026</span>
               </div>
@@ -1902,6 +1902,22 @@
             <!-- Notifications Card -->
             <div
               style="background:var(--bg-card, #161622); border:1px solid var(--border, rgba(255,255,255,0.08)); border-radius:16px; overflow:hidden; box-shadow:0 4px 16px rgba(0,0,0,0.2);">
+              <!-- Card Header Band -->
+              <div
+                style="padding:14px 16px; background:rgba(239,68,68,0.08); border-bottom:1px solid var(--border, rgba(255,255,255,0.08)); display:flex; align-items:center; gap:12px;">
+                <div
+                  style="width:32px; height:32px; border-radius:10px; background:#ef4444; color:#fff; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:700;">
+                  <i class="fa-solid fa-bell"></i>
+                </div>
+                <div>
+                  <div data-i18n="settings_notif_title"
+                    style="font-size:15px; font-weight:800; color:var(--text-primary); font-family:'Outfit',sans-serif;">
+                    Ειδοποιήσεις &amp; Υπενθυμίσεις</div>
+                  <div data-i18n="notif_card_desc" style="font-size:12px; color:var(--text-muted);">Υπενθυμίσεις
+                    καταγραφής &amp; όρια δαπανών</div>
+                </div>
+              </div>
+
               <!-- Card Items -->
               <div style="display:flex; flex-direction:column;">
                 <!-- Row 1: Daily Logging Reminder -->
@@ -1949,7 +1965,7 @@
 
                 <!-- Row 3: Single High Expense Alert -->
                 <div class="settings-list-item"
-                  style="padding:14px 16px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border, rgba(255,255,255,0.05)); margin:0;">
+                  style="padding:14px 16px; display:flex; align-items:center; justify-content:space-between; margin:0;">
                   <div style="display:flex; flex-direction:column; gap:3px; flex:1; padding-right:12px;">
                     <span class="settings-item-label"
                       style="font-weight:700; font-size:14px; color:var(--text-primary);"
@@ -1964,7 +1980,7 @@
                 </div>
 
                 <div class="settings-list-item" id="settings-expense-alert-limit-row"
-                  style="padding:12px 16px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border, rgba(255,255,255,0.05)); margin:0; background:rgba(0,0,0,0.15);">
+                  style="padding:12px 16px; display:flex; align-items:center; justify-content:space-between; margin:0; background:rgba(0,0,0,0.15);">
                   <span class="settings-item-label" style="font-size:13px; color:var(--text-secondary);"
                     data-i18n="item_expense_limit">Μέγιστο Ποσό (€)</span>
                   <input type="number" id="settings-expense-alert-limit" class="settings-select"
@@ -1972,58 +1988,10 @@
                     placeholder="500" onchange="saveExpenseLimit(this.value)">
                 </div>
 
-                <!-- Row 4: Weekly Financial Digest -->
-                <div class="settings-list-item"
-                  style="padding:14px 16px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border, rgba(255,255,255,0.05)); margin:0;">
-                  <div style="display:flex; flex-direction:column; gap:3px; flex:1; padding-right:12px;">
-                    <span class="settings-item-label"
-                      style="font-weight:700; font-size:14px; color:var(--text-primary);"
-                      data-i18n="item_weekly_digest">Εβδομαδιαία Σύνοψη</span>
-                    <span style="font-size:12px; color:var(--text-muted);"
-                      data-i18n="item_weekly_digest_desc">Σύνοψη εξόδων & τάσης κάθε Κυριακή (21:00)</span>
-                  </div>
-                  <label class="switch">
-                    <input type="checkbox" id="settings-weekly-digest" onchange="toggleWeeklyDigest(this.checked)">
-                    <span class="slider round"></span>
-                  </label>
-                </div>
-
-                <!-- Row 5: Monthly Financial Review -->
-                <div class="settings-list-item"
-                  style="padding:14px 16px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border, rgba(255,255,255,0.05)); margin:0;">
-                  <div style="display:flex; flex-direction:column; gap:3px; flex:1; padding-right:12px;">
-                    <span class="settings-item-label"
-                      style="font-weight:700; font-size:14px; color:var(--text-primary);"
-                      data-i18n="item_monthly_digest">Μηνιαία Ανασκόπηση</span>
-                    <span style="font-size:12px; color:var(--text-muted);"
-                      data-i18n="item_monthly_digest_desc">Ισοζύγιο & αποταμίευση την 1η του μήνα</span>
-                  </div>
-                  <label class="switch">
-                    <input type="checkbox" id="settings-monthly-digest" onchange="toggleMonthlyDigest(this.checked)">
-                    <span class="slider round"></span>
-                  </label>
-                </div>
-
-                <!-- Row 6: Partner & Family Activity -->
-                <div class="settings-list-item"
-                  style="padding:14px 16px; display:flex; align-items:center; justify-content:space-between; margin:0;">
-                  <div style="display:flex; flex-direction:column; gap:3px; flex:1; padding-right:12px;">
-                    <span class="settings-item-label"
-                      style="font-weight:700; font-size:14px; color:var(--text-primary);"
-                      data-i18n="item_partner_alerts">Δραστηριότητα Συνεργάτη</span>
-                    <span style="font-size:12px; color:var(--text-muted);"
-                      data-i18n="item_partner_alerts_desc">Ειδοποίηση κατά την καταχώρηση νέων κοινών εξόδων</span>
-                  </div>
-                  <label class="switch">
-                    <input type="checkbox" id="settings-partner-alerts" onchange="togglePartnerAlerts(this.checked)">
-                    <span class="slider round"></span>
-                  </label>
-                </div>
-
                 <!-- Test Notification Action Button -->
                 <div style="padding:14px 16px; border-top:1px solid var(--border, rgba(255,255,255,0.05)); margin:0; background:rgba(0,0,0,0.1);">
                   <button type="button" onclick="sendTestNotification()" class="btn btn-secondary" style="width:100%; font-size:13px; font-weight:700; padding:10px; border-radius:10px; display:flex; align-items:center; justify-content:center; gap:8px; background:rgba(var(--accent-rgb,124,106,247),0.15); color:var(--accent); border:1px solid rgba(var(--accent-rgb,124,106,247),0.3); cursor:pointer;">
-                    <i class="fa-solid fa-paper-plane"></i> <span data-i18n="btn_send_test_notif">Δοκιμή Ειδοποίησης</span>
+                    <i class="fa-solid fa-paper-plane"></i> <span>Δοκιμή Ειδοποίησης (Send Test Notification)</span>
                   </button>
                 </div>
               </div>
@@ -2163,6 +2131,22 @@
             <!-- Security Card -->
             <div
               style="background:var(--bg-card, #161622); border:1px solid var(--border, rgba(255,255,255,0.08)); border-radius:16px; overflow:hidden; box-shadow:0 4px 16px rgba(0,0,0,0.2);">
+              <!-- Card Header Band -->
+              <div
+                style="padding:14px 16px; background:rgba(239,68,68,0.08); border-bottom:1px solid var(--border, rgba(255,255,255,0.08)); display:flex; align-items:center; gap:12px;">
+                <div
+                  style="width:32px; height:32px; border-radius:10px; background:#ef4444; color:#fff; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:700;">
+                  <i class="fa-solid fa-shield-halved"></i>
+                </div>
+                <div>
+                  <div data-i18n="settings_security_title"
+                    style="font-size:15px; font-weight:800; color:var(--text-primary); font-family:'Outfit',sans-serif;">
+                    Ασφάλεια &amp; Ιδιωτικότητα</div>
+                  <div data-i18n="security_card_desc" style="font-size:12px; color:var(--text-muted);">Κλείδωμα PIN,
+                    βιομετρικά &amp; απόκρυψη ποσών
+                  </div>
+                </div>
+              </div>
               <!-- Card Items -->
               <div style="display:flex; flex-direction:column;">
                 <div class="settings-list-item"
@@ -2449,7 +2433,7 @@
             <div class="settings-list-item version-info-row"
               style="padding: 14px 16px; background: transparent; border-top: 1px solid var(--border); margin-top: 8px;">
               <span class="settings-item-label" style="color:var(--text-muted); font-size:12px;"
-                data-i18n="app_version">Έκδοση 1.0.0 (build v1284)</span>
+                data-i18n="app_version">Έκδοση 1.0.0 (build v1279)</span>
               <span class="settings-item-value" style="font-size:12px; color:var(--text-muted); font-weight:600;">Budget
                 Assistant</span>
             </div>
@@ -4620,7 +4604,7 @@
       // OTA updates. Running both would cause a reload loop that never
       // baked into the APK and never changes on a plain reload).
       // ============================================================
-      const CURRENT_BUILD = 1284;
+      const CURRENT_BUILD = 1279;
       (function () {
         // Skip entirely when running inside the native APK (Capacitor bridge
         // present). Capgo handles OTA updates there.
@@ -5472,11 +5456,11 @@
 
   <!-- Transaction merge/dedup logic (pure, testable; loaded before app.js) -->
   <script src="js/transactionMerge.js"></script>
-  <script src="app.js?v=1284"></script>
+  <script src="app.js?v=1279"></script>
   <!-- Desktop Web UX Layer (defer so it runs after app.js; invoked via
        initDesktopUI() hook at the end of initApp()). Self-guards on
        html.web-mode so native Android/iOS is never affected. -->
-  <script src="web-ui.js?v=1284" defer></script>
+  <script src="web-ui.js?v=1279" defer></script>
 </body>
 
 
