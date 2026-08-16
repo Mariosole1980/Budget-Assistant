@@ -20101,6 +20101,17 @@ function setAuthMode(mode) {
   clearAuthStatus();
 }
 
+function formatAuthErrorMessage(err) {
+  if (!err) return (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_fail_auth']) || 'Αποτυχία ταυτοποίησης.';
+  if (typeof err === 'string') return err;
+  if (err.message && typeof err.message === 'string' && err.message !== '{}' && err.message.trim() !== '') return err.message;
+  if (err.error_description) return err.error_description;
+  if (err.msg) return err.msg;
+  if (err.error && typeof err.error === 'string') return err.error;
+  if (err.error && err.error.message) return err.error.message;
+  return (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_fail_auth']) || 'Αποτυχία ταυτοποίησης.';
+}
+
 function showAuthStatus(msg, type = 'error') {
   const box = document.getElementById('auth-status-message');
   if (!box) return;
@@ -20181,7 +20192,7 @@ async function handlePasswordAuth(e) {
     }
   } catch (err) {
     console.error('Password auth failed:', err);
-    showAuthStatus(((TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_error_prefix']) || '❌ Σφάλμα: ') + (err.message || (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_fail_auth']) || 'Αποτυχία ταυτοποίησης.'));
+    showAuthStatus(((TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_error_prefix']) || '❌ Σφάλμα: ') + formatAuthErrorMessage(err));
   } finally {
     submitBtn.disabled = false;
     submitBtn.textContent = originalText;
@@ -20210,7 +20221,7 @@ async function handleMagicAuth(e) {
     showAuthStatus((TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_magic_sent']) || '📩 Ο σύνδεσμος σύνδεσης στάλθηκε! Ελέγξτε τα εισερχόμενά σας (και τα Ανεπιθύμητα).', 'success');
   } catch (err) {
     console.error('Magic link failed:', err);
-    showAuthStatus(((TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_error_prefix']) || '❌ Σφάλμα: ') + (err.message || (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_fail_link']) || 'Αποτυχία αποστολής συνδέσμου.'));
+    showAuthStatus(((TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_error_prefix']) || '❌ Σφάλμα: ') + formatAuthErrorMessage(err));
   } finally {
     submitBtn.disabled = false;
     submitBtn.textContent = originalText;
@@ -31123,9 +31134,9 @@ const USER_GUIDE_DATA = {
       {
         id: 'changelog',
         icon: 'fa-box-archive',
-        title: '1. Version & What\'s New (v1354)',
+        title: '1. Version & What\'s New (v1356)',
         content: `
-          <p><strong>Guide Version:</strong> v1354 | <strong>Synchronized App Version:</strong> v1354</p>
+          <p><strong>Guide Version:</strong> v1356 | <strong>Synchronized App Version:</strong> v1356</p>
           <div class="guide-feature-box">
             <h5 style="margin:0 0 6px; color:var(--primary);">✨ What's new in the latest version:</h5>
             <ul style="margin:0; padding-left:18px;">
