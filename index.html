@@ -74,7 +74,7 @@
               ${devButton}
             </div>
             <div style="font-size:11px;color:#8b949e;">
-              Budget Assistant • build v1356
+              Budget Assistant • build v1358
             </div>
           </div>
         `;
@@ -164,7 +164,7 @@
   <!-- Desktop Web UX Layer (loaded AFTER style.css so it can override).
        All rules are scoped behind html.web-mode, so Android/iOS native
        (Capacitor) layout is never affected. -->
-  <link rel="stylesheet" href="desktop.css?v=1356" id="desktop-stylesheet">
+  <link rel="stylesheet" href="desktop.css?v=1358" id="desktop-stylesheet">
 
   <!-- Capacitor Bridge
        NOTE: The native Capacitor runtime injects its bridge JS automatically into
@@ -1528,7 +1528,7 @@
                 data-i18n="item_user_guide">Οδηγός Χρήσης</h3>
               <div
                 style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; font-family: 'Outfit', sans-serif;">
-                <span id="user-guide-version-badge" style="font-size:10px; background:rgba(99,102,241,0.15); color:var(--primary); padding:2px 8px; border-radius:10px; font-weight:700; border:1px solid rgba(99,102,241,0.3);">v1356</span>
+                <span id="user-guide-version-badge" style="font-size:10px; background:rgba(99,102,241,0.15); color:var(--primary); padding:2px 8px; border-radius:10px; font-weight:700; border:1px solid rgba(99,102,241,0.3);">v1358</span>
                 <span>•</span>
                 <span id="user-guide-date-badge" data-i18n="user_guide_date_badge">Αύγουστος 2026</span>
               </div>
@@ -2541,7 +2541,7 @@
             <div class="settings-list-item version-info-row"
               style="padding: 14px 16px; background: transparent; border-top: 1px solid var(--border); margin-top: 8px;">
               <span class="settings-item-label" style="color:var(--text-muted); font-size:12px;"
-                data-i18n="app_version">Έκδοση 1.0.0 (build v1356)</span>
+                data-i18n="app_version">Έκδοση 1.0.0 (build v1358)</span>
               <span class="settings-item-value" style="font-size:12px; color:var(--text-muted); font-weight:600;">Budget
                 Assistant</span>
             </div>
@@ -5204,6 +5204,66 @@
     </div>
 
     <!-- ============================================================ -->
+    <!-- MODAL: FORGOT PASSWORD (MODERN GLASSMORPHIC RECOVERY)        -->
+    <!-- ============================================================ -->
+    <div id="forgot-password-modal" class="modal-overlay" style="z-index: 12000; display: none;"
+      onclick="handleForgotPasswordOverlayClick(event)">
+      <div class="modal-content forgot-password-modal-card"
+        style="max-width: 400px; width: 92%; border-radius: 28px; background: var(--bg-card, #161622); border: 1px solid var(--border, rgba(255,255,255,0.08)); padding: 24px 22px; box-shadow: 0 24px 60px rgba(0,0,0,0.65); display: flex; flex-direction: column; gap: 16px; box-sizing: border-box;">
+
+        <!-- Header -->
+        <div style="width: 100%; display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div
+              style="width: 38px; height: 38px; border-radius: 12px; background: rgba(var(--accent-rgb, 124, 106, 247), 0.15); display: flex; align-items: center; justify-content: center; color: var(--accent); border: 1px solid rgba(var(--accent-rgb, 124, 106, 247), 0.3);">
+              <i class="fa-solid fa-key" style="font-size: 16px;"></i>
+            </div>
+            <div>
+              <div
+                style="font-size: 16px; font-weight: 800; font-family: 'Outfit', sans-serif; color: var(--text-primary);"
+                data-i18n="forgot_password_modal_title">Επαναφορά Κωδικού</div>
+              <div style="font-size: 11.5px; color: var(--text-muted);" data-i18n="forgot_password_modal_subtitle">Ανάκτηση πρόσβασης λογαριασμού</div>
+            </div>
+          </div>
+          <button type="button" onclick="closeForgotPasswordModal()"
+            style="background: rgba(255,255,255,0.06); border: 1px solid var(--border); color: var(--text-muted); width: 32px; height: 32px; border-radius: 50%; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center;">✕</button>
+        </div>
+
+        <!-- Description -->
+        <p style="margin: 0; font-size: 13.5px; color: var(--text-muted); line-height: 1.5;" data-i18n="forgot_password_modal_desc">
+          Εισάγετε το email του λογαριασμού σας για να λάβετε έναν σύνδεσμο ασφαλούς επαναφοράς κωδικού.
+        </p>
+
+        <!-- Status Message Box -->
+        <div id="forgot-modal-status" class="auth-status-box" style="display: none; margin: 0;"></div>
+
+        <!-- Input Form -->
+        <form id="forgot-password-form" onsubmit="submitForgotPasswordModal(event)" style="display: flex; flex-direction: column; gap: 14px; width: 100%; margin: 0;">
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label" for="forgot-modal-email" data-i18n="auth_email_label" style="font-size: 12px; margin-bottom: 6px;">Email</label>
+            <div style="position: relative; display: flex; align-items: center;">
+              <input type="email" id="forgot-modal-email" class="form-input" placeholder="name@example.com" required autocomplete="email"
+                style="width: 100%; box-sizing: border-box; padding-left: 38px; border-radius: 14px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); color: var(--text-primary); font-size: 14.5px; height: 46px;">
+              <i class="fa-regular fa-envelope" style="position: absolute; left: 13px; color: var(--text-muted); font-size: 14px; pointer-events: none;"></i>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 10px; margin-top: 4px;">
+            <button type="button" class="btn btn-secondary" onclick="closeForgotPasswordModal()"
+              style="flex: 1; padding: 12px; border-radius: 12px; font-weight: 700; font-size: 14px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--text-primary);"
+              data-i18n="modal_cancel">Ακύρωση</button>
+            <button type="submit" id="forgot-modal-submit-btn" class="btn btn-primary"
+              style="flex: 2; padding: 12px; border-radius: 12px; font-weight: 800; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px;"
+              data-i18n="forgot_password_modal_submit">
+              <i class="fa-solid fa-paper-plane"></i> <span>Αποστολή Συνδέσμου</span>
+            </button>
+          </div>
+        </form>
+
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
     <!-- MODAL: MODERN CLOCK & TIME PICKER (APPLE & MATERIAL 3 DIAL)  -->
     <!-- ============================================================ -->
     <div id="modern-time-picker-modal" class="modal-overlay" style="z-index: 12000;"
@@ -5310,7 +5370,7 @@
           // OTA updates. Running both would cause a reload loop that never
           // baked into the APK and never changes on a plain reload).
           // ============================================================
-          const CURRENT_BUILD = 1356;
+          const CURRENT_BUILD = 1358;
           (function () {
             // Skip entirely when running inside the native APK (Capacitor bridge
             // present). Capgo handles OTA updates there.
@@ -6136,11 +6196,11 @@
       <script src="js/translations.js"></script>
       <!-- Local receipt photo storage (IndexedDB; extracted from app.js; loaded before app.js) -->
       <script src="js/receiptStorage.js"></script>
-      <script src="app.js?v=1356"></script>
+      <script src="app.js?v=1358"></script>
       <!-- Desktop Web UX Layer (defer so it runs after app.js; invoked via
        initDesktopUI() hook at the end of initApp()). Self-guards on
        html.web-mode so native Android/iOS is never affected. -->
-      <script src="web-ui.js?v=1356" defer></script>
+      <script src="web-ui.js?v=1358" defer></script>
 
       <!-- MODAL: TYPE-TO-CONFIRM (for destructive actions) -->
       <div id="type-confirm-modal" class="modal-overlay" style="z-index: 2147483647;">

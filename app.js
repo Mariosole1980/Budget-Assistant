@@ -2501,6 +2501,18 @@ function initSupabaseAuth() {
       // Modals should NOT be force-closed here since we want to restore them on resume/boot
       // if (typeof window.forceCloseAllModals === 'function') window.forceCloseAllModals();
 
+      if (event === 'PASSWORD_RECOVERY') {
+        setTimeout(() => {
+          if (typeof openChangePasswordModal === 'function') {
+            openChangePasswordModal();
+            const msg = (state.lang === 'el')
+              ? '🔑 Παρακαλώ ορίστε τον νέο σας κωδικό πρόσβασης.'
+              : '🔑 Please set your new password.';
+            if (typeof showToast === 'function') showToast(msg, 'info');
+          }
+        }, 400);
+      }
+
       // Show switcher in header
       const switcher = document.getElementById('wallet-switcher-container');
       if (switcher) switcher.style.display = 'inline-block';
@@ -19855,46 +19867,102 @@ function togglePasswordVisibility(inputId, btnEl) {
   }
 }
 
-async function handleForgotPassword() {
+function openForgotPasswordModal() {
+  const modal = document.getElementById('forgot-password-modal');
+  const emailInput = document.getElementById('auth-email');
+  const modalEmailInput = document.getElementById('forgot-modal-email');
+  const statusBox = document.getElementById('forgot-modal-status');
+  
+  if (statusBox) statusBox.style.display = 'none';
+  
+  if (modalEmailInput) {
+    modalEmailInput.value = emailInput && emailInput.value ? emailInput.value.trim() : '';
+  }
+  
+  if (modal) {
+    modal.style.display = 'flex';
+    modal.classList.add('show');
+    setTimeout(() => {
+      if (modalEmailInput) modalEmailInput.focus();
+    }, 150);
+  }
+}
+
+function closeForgotPasswordModal() {
+  const modal = document.getElementById('forgot-password-modal');
+  if (modal) {
+    modal.style.display = 'none';
+    modal.classList.remove('show');
+  }
+}
+
+function handleForgotPasswordOverlayClick(e) {
+  if (e.target && e.target.id === 'forgot-password-modal') {
+    closeForgotPasswordModal();
+  }
+}
+
+async function submitForgotPasswordModal(e) {
+  if (e) e.preventDefault();
   if (!state.supabaseClient) {
     alert('Supabase is not initialized.');
     return;
   }
-
-  const emailInput = document.getElementById('auth-email');
+  
+  const emailInput = document.getElementById('forgot-modal-email');
   const email = emailInput ? emailInput.value.trim() : '';
-  const lang = state.lang || 'el';
-
-  const promptMsg = lang === 'el'
-    ? 'Εισάγετε το email σας για να λάβετε σύνδεσμο επαναφοράς κωδικού:'
-    : 'Enter your email to receive a password reset link:';
-
-  const successMsg = lang === 'el'
-    ? '✅ Στάλθηκε σύνδεσμος επαναφοράς κωδικού στα εισερχόμενά σας!'
-    : '✅ Password reset link has been sent to your inbox!';
-
-  const enterEmailMsg = lang === 'el'
-    ? 'Παρακαλώ πληκτρολογήστε το email σας πρώτα.'
-    : 'Please enter your email first.';
-
-  const userEmail = prompt(promptMsg, email);
-  if (userEmail === null) return; // User cancelled
-
-  if (!userEmail.trim()) {
-    alert(enterEmailMsg);
+  const statusBox = document.getElementById('forgot-modal-status');
+  const submitBtn = document.getElementById('forgot-modal-submit-btn');
+  
+  if (!email) {
+    if (statusBox) {
+      statusBox.textContent = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_email_label']) + ': ' + 'Παρακαλώ εισάγετε email.';
+      statusBox.className = 'auth-status-box';
+      statusBox.style.display = 'block';
+    }
     return;
   }
-
+  
+  const originalHtml = submitBtn ? submitBtn.innerHTML : '';
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['forgot_password_modal_sending']) || 'Αποστολή...';
+  }
+  if (statusBox) statusBox.style.display = 'none';
+  
   try {
-    const { error } = await state.supabaseClient.auth.resetPasswordForEmail(userEmail.trim(), {
+    const { error } = await state.supabaseClient.auth.resetPasswordForEmail(email, {
       redirectTo: window.location.origin + window.location.pathname
     });
     if (error) throw error;
-    showAuthStatus(successMsg, 'success');
+    
+    if (statusBox) {
+      statusBox.textContent = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['forgot_password_modal_success']) || '✅ Στάλθηκε σύνδεσμος επαναφοράς κωδικού! Ελέγξτε τα εισερχόμενά σας (και τα Ανεπιθύμητα).';
+      statusBox.className = 'auth-status-box success';
+      statusBox.style.display = 'block';
+    }
+    
+    setTimeout(() => {
+      closeForgotPasswordModal();
+      showAuthStatus((TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['forgot_password_modal_success']) || '✅ Στάλθηκε σύνδεσμος επαναφοράς κωδικού στα εισερχόμενά σας!', 'success');
+    }, 2500);
   } catch (err) {
     console.error('Reset password error:', err);
-    showAuthStatus(((TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_error_prefix']) || '❌ Σφάλμα: ') + (err.message || err));
+    if (statusBox) {
+      statusBox.textContent = ((TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_error_prefix']) || '❌ Σφάλμα: ') + formatAuthErrorMessage(err);
+      statusBox.className = 'auth-status-box';
+      statusBox.style.display = 'block';
+    }
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalHtml;
+    }
   }
+}
+
+function handleForgotPassword() {
+  openForgotPasswordModal();
 }
 
 // ============================================================
@@ -20073,6 +20141,10 @@ async function handleUserPasswordChange(event) {
 
 window.togglePasswordVisibility = togglePasswordVisibility;
 window.handleForgotPassword = handleForgotPassword;
+window.openForgotPasswordModal = openForgotPasswordModal;
+window.closeForgotPasswordModal = closeForgotPasswordModal;
+window.handleForgotPasswordOverlayClick = handleForgotPasswordOverlayClick;
+window.submitForgotPasswordModal = submitForgotPasswordModal;
 window.openChangeEmailModal = openChangeEmailModal;
 window.handleUserEmailChange = handleUserEmailChange;
 window.openChangePasswordModal = openChangePasswordModal;
@@ -31134,9 +31206,9 @@ const USER_GUIDE_DATA = {
       {
         id: 'changelog',
         icon: 'fa-box-archive',
-        title: '1. Version & What\'s New (v1356)',
+        title: '1. Version & What\'s New (v1358)',
         content: `
-          <p><strong>Guide Version:</strong> v1356 | <strong>Synchronized App Version:</strong> v1356</p>
+          <p><strong>Guide Version:</strong> v1358 | <strong>Synchronized App Version:</strong> v1358</p>
           <div class="guide-feature-box">
             <h5 style="margin:0 0 6px; color:var(--primary);">✨ What's new in the latest version:</h5>
             <ul style="margin:0; padding-left:18px;">
