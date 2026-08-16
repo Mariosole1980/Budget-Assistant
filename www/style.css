@@ -5042,20 +5042,30 @@ body.shared-wallet-active .day-header {
 /* Subscreen Specific Color Theming */
 /* 1. Smart Tools Theme (Amber Gold) */
 #pref_card_tools input:checked + .slider,
-.switch-amber input:checked + .slider {
+.switch-amber input:checked + .slider,
+#settings-autocomplete:checked + .slider,
+#settings-note-shortcut:checked + .slider {
   background-color: #f59e0b !important;
+}
+#pref_card_tools .btn,
+#pref_card_tools button {
+  background: rgba(245, 158, 11, 0.15) !important;
+  color: #f59e0b !important;
+  border: 1px solid rgba(245, 158, 11, 0.35) !important;
 }
 
 /* 2. Notifications Theme (Coral Red) */
 #subscreen-notifications input:checked + .slider {
   background-color: #ef4444 !important;
 }
-#subscreen-notifications .btn-test-notif,
-#subscreen-notifications .btn-primary {
-  background: linear-gradient(135deg, #ef4444, #dc2626) !important;
-  color: #ffffff !important;
-  border: none !important;
-  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.35) !important;
+#subscreen-notifications .btn-test-notif {
+  background: rgba(239, 68, 68, 0.15) !important;
+  color: #ef4444 !important;
+  border: 1px solid rgba(239, 68, 68, 0.35) !important;
+}
+#subscreen-notifications .btn-test-notif:hover,
+#subscreen-notifications .btn-test-notif:active {
+  background: rgba(239, 68, 68, 0.25) !important;
 }
 
 /* 3. Security & Privacy Theme (Red / Shield) */

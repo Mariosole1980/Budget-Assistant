@@ -1401,6 +1401,9 @@ async function scheduleDailyReminder(enabled, timeString) {
           id: 9999,
           title: state.lang === 'el' ? 'Καταγραφή Εξόδων' : 'Log Expenses',
           body: state.lang === 'el' ? 'Έχεις καταγράψει τα σημερινά έξοδά σου;' : 'Have you logged today\'s expenses?',
+          channelId: 'budget_reminders',
+          smallIcon: 'ic_stat_icon_config_sample',
+          iconColor: '#7c6af7',
           schedule: {
             on: {
               hour: hours,
@@ -1500,7 +1503,10 @@ async function scheduleNoteReminder(note) {
           id: notificationId,
           title: state.lang === 'el' ? 'Υπενθύμιση Σημείωσης' : 'Note Reminder',
           body: note.title,
-          schedule: { at: reminderTime },
+          channelId: 'budget_reminders',
+          smallIcon: 'ic_stat_icon_config_sample',
+          iconColor: '#7c6af7',
+          schedule: { at: reminderTime, allowWhileIdle: true },
           sound: null,
           attachments: null,
           actionTypeId: '',
@@ -1549,6 +1555,24 @@ async function initLocalNotifications() {
   }
   const LocalNotifications = window.Capacitor.Plugins.LocalNotifications;
   try {
+    // Ensure High-Priority Notification Channel exists for Android 8.0+ (required for heads-up alerts & sound)
+    try {
+      if (typeof LocalNotifications.createChannel === 'function') {
+        await LocalNotifications.createChannel({
+          id: 'budget_reminders',
+          name: 'Budget Assistant Reminders',
+          description: 'Daily expense reminders, payment alerts and updates',
+          importance: 5,
+          visibility: 1,
+          vibration: true,
+          lights: true,
+          lightColor: '#7c6af7'
+        });
+      }
+    } catch (chanErr) {
+      console.warn('Channel creation warning:', chanErr);
+    }
+
     const enabled = localStorage.getItem('settings_daily_reminder_enabled') === 'true';
     if (enabled) {
       const perm = await LocalNotifications.requestPermissions();
@@ -25739,6 +25763,23 @@ async function sendTestNotification() {
   if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.LocalNotifications) {
     try {
       const LocalNotifications = window.Capacitor.Plugins.LocalNotifications;
+      
+      // Ensure channel exists
+      try {
+        if (typeof LocalNotifications.createChannel === 'function') {
+          await LocalNotifications.createChannel({
+            id: 'budget_reminders',
+            name: 'Budget Assistant Reminders',
+            description: 'Daily expense reminders and alerts',
+            importance: 5,
+            visibility: 1,
+            vibration: true,
+            lights: true,
+            lightColor: '#7c6af7'
+          });
+        }
+      } catch (chanErr) { }
+
       const perm = await LocalNotifications.requestPermissions();
       if (perm.display === 'granted') {
         await LocalNotifications.schedule({
@@ -25746,13 +25787,16 @@ async function sendTestNotification() {
             id: 99999,
             title: title,
             body: body,
-            schedule: { at: new Date(Date.now() + 800) },
+            channelId: 'budget_reminders',
+            smallIcon: 'ic_stat_icon_config_sample',
+            iconColor: '#7c6af7',
+            schedule: { at: new Date(Date.now() + 400), allowWhileIdle: true },
             extra: { type: 'test' }
           }]
         });
         showSyncToast(state.lang === 'el' ? '✓ Στάλθηκε δοκιμαστική ειδοποίηση συσκευής!' : '✓ Test notification sent to device!', 2500);
       } else {
-        showSyncToast(state.lang === 'el' ? '⚠️ Δεν έχετε δώσει άδεια ειδοποιήσεων στη συσκευή.' : '⚠️ Notification permission denied.', 3000);
+        showSyncToast(state.lang === 'el' ? '⚠️ Παρακαλούμε επιτρέψτε τις ειδοποιήσεις στις ρυθμίσεις της συσκευής.' : '⚠️ Please grant notification permission in device settings.', 3000);
       }
     } catch (err) {
       console.warn('Test notification error:', err);
@@ -30600,224 +30644,6 @@ async function clearLocalDataConfirm() {
 }
 window.clearLocalDataConfirm = clearLocalDataConfirm;
 
-// ============================================================
-// 🧹 Cleanup duplicate recurring installments (loan installments
-// appearing multiple times in the same month due to a cloud-sync
-// race condition). Calls the server-side endpoint which uses the
-// service-role key to bypass RLS and soft-delete true duplicates
-// (same recurring_template_id + date + amount), keeping the oldest.
-// ============================================================
-// Local duplicate-installment cleanup.
-//
-// NOTE: This operates on LOCAL state.transactions (localStorage/IndexedDB), NOT
-// the cloud database. The user's data lives on-device; the Supabase DB may be
-// empty, so a cloud-side cleanup finds nothing. We scan the local transactions
-// for content-key duplicates (same date + amount + type + category +
-// account_from + note) — the same heuristic processRecurringTemplates() uses to
-// avoid re-creating an occurrence — keep the oldest, and move the rest to the
-// LOCAL Trash Bin (state.trashTransactions).
-//
-// To make the cleanup actually STICK (so processRecurringTemplates() does not
-// re-create the removed occurrences on the next run), we also mark each removed
-// occurrence's date as "deleted" on its matching recurring template via
-// addDeletedDateToTemplate(). This does NOT delete the template — it only tells
-// the recurring generator to skip those specific past dates. Future months keep
-// generating normally.
-async function runRecurringDuplicateCleanup() {
-  const lang = state.lang || 'el';
-  const t = (el, en) => (lang === 'el' ? el : en);
-
-  const txList = Array.isArray(state.transactions) ? state.transactions : [];
-
-  // Build a content-key -> list of transactions (oldest first).
-  // NOTE: The note is intentionally EXCLUDED from the dedup key. Duplicate
-  // recurring installments (e.g. the same loan installment generated twice with
-  // different labels like "ΔΟΣΗ ΔΑΝΕΙΟΥ" vs "HOME") must still be detected as
-  // duplicates based on date + amount + type + category + account. The note is
-  // just a label and should not prevent dedup of the same installment.
-  const groups = new Map();
-  const keyOf = (tx) => {
-    const d = String(tx.date || '').split('T')[0].split(' ')[0];
-    return [
-      d,
-      (parseFloat(tx.amount) || 0).toFixed(2),
-      tx.type || '',
-      tx.category || '',
-      tx.account_from || ''
-    ].join('|');
-  };
-
-  for (const tx of txList) {
-    const key = keyOf(tx);
-    if (!groups.has(key)) groups.set(key, []);
-    groups.get(key).push(tx);
-  }
-
-  // Only consider groups with more than one transaction (true duplicates).
-  // Keep the oldest (by created_at, then by insertion order); the rest are
-  // candidates for removal.
-  const duplicateGroups = [];
-  for (const list of groups.values()) {
-    if (list.length < 2) continue;
-    list.sort((a, b) => {
-      const ta = a.created_at || '';
-      const tb = b.created_at || '';
-      if (ta !== tb) return ta < tb ? -1 : 1;
-      return 0;
-    });
-    duplicateGroups.push({ kept: list[0], duplicates: list.slice(1) });
-  }
-
-  const n = duplicateGroups.reduce((sum, g) => sum + g.duplicates.length, 0);
-  if (n === 0) {
-    showSyncToast("✅ " + t('Δεν βρέθηκαν διπλές δόσεις.', 'No duplicate installments found.'), 3500);
-    return;
-  }
-
-  // Build a detailed analysis list for the confirmation dialog.
-  const fmtAmount = (v) => {
-    try {
-      return new Intl.NumberFormat(lang === 'el' ? 'el-GR' : 'en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(parseFloat(v) || 0);
-    } catch (_) {
-      return String(v);
-    }
-  };
-  const analysisLines = duplicateGroups.map((g, idx) => {
-    const d = String(g.kept.date || '').split('T')[0].split(' ')[0];
-    const cat = g.kept.category || '';
-    const note = (g.kept.note || g.kept.description || '').trim();
-    const extra = g.duplicates.length;
-    return `${idx + 1}. ${d} · ${fmtAmount(g.kept.amount)} · ${cat}${note ? ' · ' + note : ''} — <b>${extra}</b> ${t('επιπλέον', 'extra')}`;
-  }).join('<br>');
-
-  const confirmMsg = t(
-    `Βρέθηκαν <b>${n}</b> διπλές δόσεις σε <b>${duplicateGroups.length}</b> ομάδες (ίδια ημερομηνία, ποσό, κατηγορία & σημείωση). Θα κρατηθεί μόνο η παλαιότερη από κάθε ομάδα και οι υπόλοιπες θα μετακινηθούν στον <b>Κάδο Ανακύκλωσης</b>. Η επαναλαμβανόμενη δόση (template) δεν διαγράφεται — απλώς δεν θα ξαναδημιουργηθούν αυτές οι συγκεκριμένες ημερομηνίες.<br><br><b>Ανάλυση:</b><br>${analysisLines}<br><br>Να συνεχίσω;`,
-    `Found <b>${n}</b> duplicate installments in <b>${duplicateGroups.length}</b> groups (same date, amount, category & note). Only the oldest of each group will be kept and the rest moved to the <b>Trash Bin</b>. The recurring template is not deleted — it just won't regenerate those specific dates.<br><br><b>Analysis:</b><br>${analysisLines}<br><br>Continue?`
-  );
-  const ok = await showCustomDialog({ message: confirmMsg, title: t('Καθαρισμός Διπλών Δόσεων', 'Cleanup Duplicate Installments'), icon: '🧹', showCancel: true });
-  if (!ok) return;
-
-  // Apply.
-  showSyncToast("⏳ " + t('Καθαρισμός διπλών δόσεων...', 'Cleaning up duplicate installments...'), 0);
-
-  // 1. Move each duplicate to the LOCAL trash bin.
-  state.trashTransactions = state.trashTransactions || [];
-  const deleteIds = new Set();
-  for (const g of duplicateGroups) {
-    for (const dup of g.duplicates) {
-      deleteIds.add(dup.id);
-      const alreadyInTrash = state.trashTransactions.some(tt => String(tt.id) === String(dup.id));
-      if (!alreadyInTrash) {
-        state.trashTransactions.push({ ...dup, deleted_at: new Date().toISOString() });
-      }
-    }
-  }
-  if (state.trashTransactions.length > 100) {
-    state.trashTransactions = state.trashTransactions.slice(-100);
-  }
-  localStorage.setItem('deleted_transactions_trash', JSON.stringify(state.trashTransactions));
-
-  // 2. Remove the duplicates from state.transactions.
-  state.transactions = state.transactions.filter(tx => !deleteIds.has(tx.id));
-  localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
-
-  // 2b. Soft-delete the duplicates on the cloud (status='deleted') so they stay
-  //     consistent across devices AND so emptying the trash bin actually
-  //     hard-deletes them. Without this, the duplicates were only moved to the
-  //     LOCAL trash; emptying the trash cleared the local list but the cloud
-  //     rows were never marked deleted, so the next loadData()/sync re-fetched
-  //     and re-added them — the "they come back after emptying the trash" bug.
-  if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
-    const cloudDeleteIds = [...deleteIds].filter(id => !String(id).startsWith('local_'));
-    if (cloudDeleteIds.length > 0) {
-      cloudDeleteIds.forEach(dId => enqueueSyncMutation('delete', dId));
-      (async () => {
-        try {
-          _suppressRealtimeEvents = true;
-          const { error } = await promiseTimeout(
-            state.supabaseClient
-              .from('transactions')
-              .update({
-                status: 'deleted',
-                deleted_at: new Date().toISOString(),
-                deleted_by: state.currentUser.id
-              })
-              .in('id', cloudDeleteIds),
-            12000
-          );
-          if (error) throw error;
-          cloudDeleteIds.forEach(dId => _markRecentlyDeleted(dId));
-          cloudDeleteIds.forEach(dId => dequeueSyncMutation('delete', dId));
-        } catch (err) {
-          console.warn('Cloud soft-delete of duplicate installments failed, keeping in queue:', cloudDeleteIds, err);
-        } finally {
-          setTimeout(() => { _suppressRealtimeEvents = false; }, 8000);
-        }
-      })();
-    }
-  }
-
-  // 3. Mark each removed occurrence's date as deleted on its matching recurring
-  //    template so processRecurringTemplates() does NOT re-create it. This does
-  //    NOT delete the template — it only skips those specific past dates.
-  //
-  //    IMPORTANT: We persist the deleted dates in TWO places:
-  //      a) state.deletedRecurringDates (localStorage 'deleted_recurring_dates') —
-  //         the dedicated, proven mechanism checked by processRecurringTemplates().
-  //         It lives in its OWN localStorage key, so it SURVIVES loadData() which
-  //         overwrites state.recurringTemplates with the cloud version.
-  //      b) addDeletedDateToTemplate() (template.description marker) — a best-effort
-  //         extra marker that also propagates to the cloud template.
-  const templatesToSave = new Set();
-  state.deletedRecurringDates = Array.isArray(state.deletedRecurringDates) ? state.deletedRecurringDates : [];
-  for (const g of duplicateGroups) {
-    const template = resolveRecurringTemplateForTx(g.kept) || resolveRecurringTemplateForTx(g.duplicates[0]);
-    if (!template) continue;
-    const dateStr = String(g.kept.date || '').split('T')[0].split(' ')[0];
-    // (a) Dedicated persistent mechanism — survives loadData().
-    const deleteKey = `${template.id}_${dateStr}`;
-    if (!state.deletedRecurringDates.includes(deleteKey)) {
-      state.deletedRecurringDates.push(deleteKey);
-    }
-    // (b) Best-effort template.description marker (also synced to cloud).
-    addDeletedDateToTemplate(template, dateStr);
-    templatesToSave.add(template);
-  }
-  // Persist the dedicated deleted-dates list immediately (survives loadData()).
-  localStorage.setItem('deleted_recurring_dates', JSON.stringify(state.deletedRecurringDates));
-  if (templatesToSave.size > 0) {
-    localStorage.setItem('recurring_templates', JSON.stringify(state.recurringTemplates));
-    if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
-      templatesToSave.forEach(template => {
-        enqueueSyncMutation('save_template', template);
-        state.supabaseClient
-          .from('recurring_templates')
-          .upsert([mapTemplateToDb(template)])
-          .then(({ error }) => {
-            if (!error) dequeueSyncMutation('save_template', template.id);
-          });
-      });
-    }
-  }
-
-  // 4. Refresh trash count badge.
-  const trashCount = state.trashTransactions.length;
-  const trashCountEl = document.getElementById('trash-bin-count-val');
-  if (trashCountEl) trashCountEl.textContent = trashCount;
-  const hubTrashCountEl = document.getElementById('hub-trash-count');
-  if (hubTrashCountEl) hubTrashCountEl.textContent = trashCount;
-
-  showSyncToast("✅ " + t(`Καθαρίστηκαν ${n} διπλές δόσεις (μετακινήθηκαν στον Κάδο Ανακύκλωσης).`, `Cleaned up ${n} duplicate installments (moved to Trash Bin).`), 3500);
-
-  // Refresh local data so the removed duplicates disappear immediately.
-  try {
-    await loadData();
-  } catch (_) {
-    // Non-fatal: data will refresh on next sync.
-  }
-  updateUI();
-}
-
 // ⚠️ Delete Account - PIN if exists, otherwise type "ΔΙΑΓΡΑΦΗ ΛΟΓΑΡΙΑΣΜΟΥ"
 async function deleteAccountConfirm() {
   const hasPin = localStorage.getItem('app_pin') && localStorage.getItem('app_lock_enabled') === 'true';
@@ -31203,9 +31029,9 @@ const USER_GUIDE_DATA = {
       {
         id: 'changelog',
         icon: 'fa-box-archive',
-        title: '1. Version & What\'s New (v1348)',
+        title: '1. Version & What\'s New (v1350)',
         content: `
-          <p><strong>Guide Version:</strong> v1348 | <strong>Synchronized App Version:</strong> v1348</p>
+          <p><strong>Guide Version:</strong> v1350 | <strong>Synchronized App Version:</strong> v1350</p>
           <div class="guide-feature-box">
             <h5 style="margin:0 0 6px; color:var(--primary);">✨ What's new in the latest version:</h5>
             <ul style="margin:0; padding-left:18px;">

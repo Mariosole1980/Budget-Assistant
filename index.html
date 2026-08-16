@@ -74,7 +74,7 @@
               ${devButton}
             </div>
             <div style="font-size:11px;color:#8b949e;">
-              Budget Assistant • build v1348
+              Budget Assistant • build v1350
             </div>
           </div>
         `;
@@ -164,7 +164,7 @@
   <!-- Desktop Web UX Layer (loaded AFTER style.css so it can override).
        All rules are scoped behind html.web-mode, so Android/iOS native
        (Capacitor) layout is never affected. -->
-  <link rel="stylesheet" href="desktop.css?v=1348" id="desktop-stylesheet">
+  <link rel="stylesheet" href="desktop.css?v=1350" id="desktop-stylesheet">
 
   <!-- Capacitor Bridge
        NOTE: The native Capacitor runtime injects its bridge JS automatically into
@@ -1528,7 +1528,7 @@
                 data-i18n="item_user_guide">Οδηγός Χρήσης</h3>
               <div
                 style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; font-family: 'Outfit', sans-serif;">
-                <span id="user-guide-version-badge" style="font-size:10px; background:rgba(99,102,241,0.15); color:var(--primary); padding:2px 8px; border-radius:10px; font-weight:700; border:1px solid rgba(99,102,241,0.3);">v1348</span>
+                <span id="user-guide-version-badge" style="font-size:10px; background:rgba(99,102,241,0.15); color:var(--primary); padding:2px 8px; border-radius:10px; font-weight:700; border:1px solid rgba(99,102,241,0.3);">v1350</span>
                 <span>•</span>
                 <span id="user-guide-date-badge" data-i18n="user_guide_date_badge">Αύγουστος 2026</span>
               </div>
@@ -1874,7 +1874,7 @@
             </div>
 
             <!-- CARD 3: Έξυπνα Εργαλεία & Συντομεύσεις -->
-            <div
+            <div id="pref_card_tools"
               style="background:var(--bg-card, #161622); border:1px solid var(--border, rgba(255,255,255,0.08)); border-radius:16px; overflow:hidden; box-shadow:0 4px 16px rgba(0,0,0,0.2);">
               <!-- Card Header Band -->
               <div
@@ -1906,7 +1906,7 @@
                       προτάσεις κατά την
                       πληκτρολόγηση</span>
                   </div>
-                  <label class="switch">
+                  <label class="switch switch-amber">
                     <input type="checkbox" id="settings-autocomplete"
                       onchange="toggleAutocompleteSetting(this.checked)">
                     <span class="slider round"></span>
@@ -1924,7 +1924,7 @@
                       συντόμευσης σημειωματάριου στην
                       αρχική</span>
                   </div>
-                  <label class="switch">
+                  <label class="switch switch-amber">
                     <input type="checkbox" id="settings-note-shortcut">
                     <span class="slider round"></span>
                   </label>
@@ -2067,9 +2067,9 @@
                 <!-- Test Notification Action Button -->
                 <div
                   style="padding:14px 16px; border-top:1px solid var(--border, rgba(255,255,255,0.05)); margin:0; background:rgba(0,0,0,0.1);">
-                  <button type="button" onclick="sendTestNotification()" class="btn btn-secondary"
-                    style="width:100%; font-size:13px; font-weight:700; padding:10px; border-radius:10px; display:flex; align-items:center; justify-content:center; gap:8px; background:rgba(var(--accent-rgb,124,106,247),0.15); color:var(--accent); border:1px solid rgba(var(--accent-rgb,124,106,247),0.3); cursor:pointer;">
-                    <i class="fa-solid fa-paper-plane"></i> <span data-i18n="btn_send_test_notif">Δοκιμή
+                  <button type="button" onclick="sendTestNotification()" class="btn btn-secondary btn-test-notif"
+                    style="width:100%; font-size:13px; font-weight:700; padding:11px; border-radius:12px; display:flex; align-items:center; justify-content:center; gap:8px; background:rgba(239,68,68,0.15); color:#ef4444; border:1px solid rgba(239,68,68,0.35); cursor:pointer;">
+                    <i class="fa-solid fa-paper-plane" style="color:#ef4444;"></i> <span data-i18n="btn_send_test_notif">Δοκιμή
                       Ειδοποίησης</span>
                   </button>
                 </div>
@@ -2170,26 +2170,7 @@
                 style="color:var(--text-muted); font-size:12px; margin-left:10px;"></i>
             </div>
 
-            <!-- CARD 4: CLEANUP DUPLICATE RECURRING INSTALLMENTS -->
-            <div class="settings-list-item" id="sync-cleanup-dupes-row" onclick="runRecurringDuplicateCleanup()"
-              style="cursor:pointer; border-radius:14px; padding:14px 16px; background:rgba(255,255,255,0.03); border:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; margin-top:8px;">
-              <div style="display:flex; flex-direction:column; gap:4px; flex:1;">
-                <div style="display:flex; align-items:center; gap:8px;">
-                  <i class="fa-solid fa-wand-magic-sparkles" style="color:var(--primary); font-size:16px;"></i>
-                  <span class="settings-item-label" style="font-weight:700; font-size:14px;"
-                    data-i18n="card_cleanup_dupes">Καθαρισμός Διπλών Δόσεων</span>
-                </div>
-                <div style="display:flex; align-items:center; gap:6px; margin-top:2px; flex-wrap:wrap;">
-                  <span style="font-size:11.5px; color:var(--text-secondary);"
-                    data-i18n="card_cleanup_dupes_desc">Αφαίρεση
-                    διπλών επαναλαμβανόμενων δόσεων (ίδια ημερομηνία & ποσό)</span>
-                </div>
-              </div>
-              <i class="fa-solid fa-chevron-right"
-                style="color:var(--text-muted); font-size:12px; margin-left:10px;"></i>
-            </div>
-
-            <!-- CARD 5: DANGER ZONE - CLEAR LOCAL DATA -->
+            <!-- CARD 4: DANGER ZONE - CLEAR LOCAL DATA -->
             <div style="margin-top:8px; border-top:1px solid var(--border); padding-top:14px;">
               <div class="settings-list-item" id="danger-zone-wipe-row" onclick="clearLocalDataConfirm()"
                 style="cursor:pointer; border:1px solid rgba(244,63,94,0.25); border-radius:14px; background:rgba(244,63,94,0.06); padding:14px 16px; display:flex; align-items:center; justify-content:space-between;">
@@ -2560,7 +2541,7 @@
             <div class="settings-list-item version-info-row"
               style="padding: 14px 16px; background: transparent; border-top: 1px solid var(--border); margin-top: 8px;">
               <span class="settings-item-label" style="color:var(--text-muted); font-size:12px;"
-                data-i18n="app_version">Έκδοση 1.0.0 (build v1348)</span>
+                data-i18n="app_version">Έκδοση 1.0.0 (build v1350)</span>
               <span class="settings-item-value" style="font-size:12px; color:var(--text-muted); font-weight:600;">Budget
                 Assistant</span>
             </div>
@@ -5293,7 +5274,7 @@
           // OTA updates. Running both would cause a reload loop that never
           // baked into the APK and never changes on a plain reload).
           // ============================================================
-          const CURRENT_BUILD = 1348;
+          const CURRENT_BUILD = 1350;
           (function () {
             // Skip entirely when running inside the native APK (Capacitor bridge
             // present). Capgo handles OTA updates there.
@@ -6125,11 +6106,11 @@
       <script src="js/translations.js"></script>
       <!-- Local receipt photo storage (IndexedDB; extracted from app.js; loaded before app.js) -->
       <script src="js/receiptStorage.js"></script>
-      <script src="app.js?v=1348"></script>
+      <script src="app.js?v=1350"></script>
       <!-- Desktop Web UX Layer (defer so it runs after app.js; invoked via
        initDesktopUI() hook at the end of initApp()). Self-guards on
        html.web-mode so native Android/iOS is never affected. -->
-      <script src="web-ui.js?v=1348" defer></script>
+      <script src="web-ui.js?v=1350" defer></script>
 
       <!-- MODAL: TYPE-TO-CONFIRM (for destructive actions) -->
       <div id="type-confirm-modal" class="modal-overlay" style="z-index: 2147483647;">
