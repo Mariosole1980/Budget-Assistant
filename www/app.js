@@ -1127,11 +1127,12 @@ function formatStatsPeriodTitle(start, end) {
 }
 
 function wrapPeriodTitleWithSpans(titleText) {
-  const match = titleText.match(/^(.*)\b(\d{4})$/);
-  if (match) {
+  if (!titleText) return '';
+  const match = titleText.trim().match(/^(.*?)(?:\s+)?(\d{4})$/);
+  if (match && match[1]) {
     const mainPart = match[1].trim();
     const yearPart = match[2];
-    return `<span class="month-part">${mainPart}</span> <span class="year-part" style="color: var(--text-secondary);">${yearPart}</span>`;
+    return `<span class="month-part">${mainPart}</span><span class="year-part" style="color: var(--text-secondary); margin-left: 6px;">${yearPart}</span>`;
   }
   if (/^\d{4}$/.test(titleText.trim())) {
     return `<span class="year-part">${titleText.trim()}</span>`;
@@ -11116,7 +11117,6 @@ function openCurrencyPickerModal(options = {}) {
         document.body.classList.add('modal-open');
       }
     }
-    setTimeout(() => { if (search) search.focus(); }, 150);
   } catch (err) {
     console.error('[CurrencySymbol] openCurrencyPickerModal error:', err);
     try {
@@ -18004,17 +18004,77 @@ function initTabSwipeNavigation() {
     return peek;
   }
 
+  function renderTransactionsTabPeek(container, selectedYear, selectedMonth) {
+    if (!container) return;
+    const monthStartDay = parseInt(localStorage.getItem('app_month_start') || '1', 10);
+    let start, end;
+    if (monthStartDay === 1) {
+      start = new Date(selectedYear, selectedMonth, 1, 0, 0, 0, 0);
+      end = new Date(selectedYear, selectedMonth + 1, 0, 23, 59, 59, 999);
+    } else {
+      start = new Date(selectedYear, selectedMonth, monthStartDay, 0, 0, 0, 0);
+      end = new Date(selectedYear, selectedMonth + 1, monthStartDay - 1, 23, 59, 59, 999);
+    }
+    const startISO = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-${String(start.getDate()).padStart(2, '0')}`;
+    const endISO = `${end.getFullYear()}-${String(end.getMonth() + 1).padStart(2, '0')}-${String(end.getDate()).padStart(2, '0')}`;
+
+    const walletTrans = getActiveTransactions();
+    const filteredTrans = walletTrans.filter(t => {
+      if (!t.date) return false;
+      const tDatePart = String(t.date).split('T')[0].split(' ')[0];
+      return tDatePart >= startISO && tDatePart <= endISO;
+    });
+
+    const displayCurrency = getDisplayCurrency();
+    const monthlyIncome = CurrencyService.sumInCurrency(filteredTrans.filter(t => t.type === 'income'), displayCurrency);
+    const monthlyExpense = CurrencyService.sumInCurrency(filteredTrans.filter(t => t.type === 'expense'), displayCurrency);
+
+    const label = `${getMonthName(selectedMonth, true)} ${selectedYear}`;
+    const sampleItems = filteredTrans.slice(0, 10);
+
+    let html = `
+      <div style="padding: 14px 16px; display: flex; flex-direction: column; gap: 10px;">
+        <div style="display: flex; justify-content: space-around; background: rgba(255,255,255,0.03); padding: 10px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.06);">
+          <div style="text-align: center;"><div style="font-size: 10px; color: var(--text-muted); font-weight: 700;">Εσοδα</div><div style="font-size: 12.5px; font-weight: 800; color: #10b981;">${getCurrencySymbol()} ${formatDisplayAmount(monthlyIncome, displayCurrency)}</div></div>
+          <div style="text-align: center;"><div style="font-size: 10px; color: var(--text-muted); font-weight: 700;">Εξοδα</div><div style="font-size: 12.5px; font-weight: 800; color: #f43f5e;">${getCurrencySymbol()} ${formatDisplayAmount(monthlyExpense, displayCurrency)}</div></div>
+          <div style="text-align: center;"><div style="font-size: 10px; color: var(--text-muted); font-weight: 700;">Υπολοιπο</div><div style="font-size: 12.5px; font-weight: 800; color: #3b82f6;">${getCurrencySymbol()} ${formatDisplayAmount(monthlyIncome - monthlyExpense, displayCurrency)}</div></div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+    `;
+
+    if (sampleItems.length === 0) {
+      html += `<div style="text-align: center; padding: 30px 0; color: var(--text-muted); font-size: 13px;">Δεν υπάρχουν συναλλαγές</div>`;
+    } else {
+      sampleItems.forEach(t => {
+        const amt = CurrencyService.displayAmount(t, displayCurrency);
+        const isInc = t.type === 'income';
+        const color = isInc ? '#10b981' : '#f43f5e';
+        const prefix = isInc ? '+' : '-';
+        html += `
+          <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.05);">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span style="font-size: 15px;">${t.category_icon || (isInc ? '💰' : '🛒')}</span>
+              <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">${t.category || t.note || 'Συναλλαγή'}</span>
+            </div>
+            <span style="font-size: 13.5px; font-weight: 800; color: ${color};">${prefix}${getCurrencySymbol()} ${formatDisplayAmount(amt, displayCurrency)}</span>
+          </div>
+        `;
+      });
+    }
+
+    html += `</div></div>`;
+    container.innerHTML = html;
+  }
+
   // Render the incoming month's list into the peek container so it slides in
   // from the opposite side as the user drags (native pager "peek").
   function renderPeek(direction) {
     const peek = getPeekContainer();
     if (!peek) return;
+    const { year, month } = shiftMonth(state.selectedYear, state.selectedMonth, direction);
     if (state.activeTab === 'trans') {
-      const { year, month } = shiftMonth(state.selectedYear, state.selectedMonth, direction);
-      renderTransactionsTab(peek, year, month);
+      renderTransactionsTabPeek(peek, year, month);
     } else {
-      // Stats peek: render a lightweight placeholder label (stats list is heavy).
-      const { year, month } = shiftMonth(state.selectedYear, state.selectedMonth, direction);
       const label = `${getMonthName(month, true)} ${year}`;
       peek.innerHTML = `<div class="swipe-peek-placeholder">${label}</div>`;
     }
@@ -18989,11 +19049,13 @@ function computeNetWorth() {
 
 function changeMonthStartSetting(val) {
   localStorage.setItem('app_month_start', val);
+  updateSettingsDisplay();
   updateUI();
 }
 
 function changeWeekStartSetting(val) {
   localStorage.setItem('app_week_start', val);
+  updateSettingsDisplay();
   updateUI();
 }
 
@@ -19302,6 +19364,17 @@ function openSettingsPicker(type) {
 
     openModal('settings-picker-modal');
     return;
+  }
+
+  const pickerModal = document.getElementById('settings-picker-modal');
+  if (pickerModal) {
+    if (type === 'month-start' || type === 'week-start') {
+      pickerModal.setAttribute('data-theme', 'emerald');
+    } else if (type === 'auto-lock') {
+      pickerModal.setAttribute('data-theme', 'red');
+    } else {
+      pickerModal.removeAttribute('data-theme');
+    }
   }
 
   if (type === 'month-start') {
@@ -23223,6 +23296,12 @@ function updateSyncStatusIndicator() {
   if (state.currentUser) {
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
       state.syncStatus = 'offline';
+    } else if (state.syncStatus === 'error') {
+      if (!state._syncErrorTimestamp) state._syncErrorTimestamp = Date.now();
+      if (Date.now() - state._syncErrorTimestamp > 4000) {
+        state.syncStatus = 'synced';
+        state._syncErrorTimestamp = null;
+      }
     } else if (!state.syncStatus || state.syncStatus === 'idle' || state.syncStatus === 'offline') {
       state.syncStatus = 'synced';
     }
@@ -23885,14 +23964,14 @@ function updateHeaderProfileBadge() {
 
   if (avatarType === 'preset') {
     const presetIcons = {
-      '1': 'fa-user',
-      '2': 'fa-rocket',
-      '3': 'fa-gem',
-      '4': 'fa-cat',
-      '5': 'fa-heart',
-      '6': 'fa-crown'
+      '1': 'fa-user-tie', '2': 'fa-gem', '3': 'fa-crown', '4': 'fa-coins',
+      '5': 'fa-chart-line', '6': 'fa-vault', '7': 'fa-rocket', '8': 'fa-robot',
+      '9': 'fa-bolt', '10': 'fa-gamepad', '11': 'fa-shield-halved', '12': 'fa-laptop-code',
+      '13': 'fa-cat', '14': 'fa-dog', '15': 'fa-dragon', '16': 'fa-dove',
+      '17': 'fa-fire', '18': 'fa-heart', '19': 'fa-mask', '20': 'fa-ghost',
+      '21': 'fa-star', '22': 'fa-tree', '23': 'fa-globe', '24': 'fa-wand-magic-sparkles'
     };
-    const iconClass = presetIcons[presetId] || 'fa-user';
+    const iconClass = presetIcons[presetId] || 'fa-user-tie';
 
     if (userBadge) {
       userBadge.classList.add('avatar-preset-badge', 'preset-' + presetId);
@@ -23901,8 +23980,8 @@ function updateHeaderProfileBadge() {
     }
     if (moreAvatar) {
       moreAvatar.style.backgroundImage = 'none';
-      moreAvatar.style.background = 'linear-gradient(135deg, var(--accent) 0%, var(--blue-positive) 100%)';
-      moreAvatar.innerHTML = `<i class="fa-solid ${iconClass}" style="font-size: 22px;"></i>`;
+      moreAvatar.className = 'profile-avatar preset-' + presetId;
+      moreAvatar.innerHTML = `<i class="fa-solid ${iconClass}" style="font-size: 22px; color: #fff;"></i>`;
     }
   } else if (avatarType === 'custom' && customData) {
     if (userBadge) {
@@ -24131,15 +24210,15 @@ function updateProfileSheetAvatarPreview() {
   if (avatarType === 'preset') {
     preview.classList.add('preset-' + presetId);
     const presetIcons = {
-      '1': 'fa-user',
-      '2': 'fa-rocket',
-      '3': 'fa-gem',
-      '4': 'fa-cat',
-      '5': 'fa-heart',
-      '6': 'fa-crown'
+      '1': 'fa-user-tie', '2': 'fa-gem', '3': 'fa-crown', '4': 'fa-coins',
+      '5': 'fa-chart-line', '6': 'fa-vault', '7': 'fa-rocket', '8': 'fa-robot',
+      '9': 'fa-bolt', '10': 'fa-gamepad', '11': 'fa-shield-halved', '12': 'fa-laptop-code',
+      '13': 'fa-cat', '14': 'fa-dog', '15': 'fa-dragon', '16': 'fa-dove',
+      '17': 'fa-fire', '18': 'fa-heart', '19': 'fa-mask', '20': 'fa-ghost',
+      '21': 'fa-star', '22': 'fa-tree', '23': 'fa-globe', '24': 'fa-wand-magic-sparkles'
     };
-    const iconClass = presetIcons[presetId] || 'fa-user';
-    preview.innerHTML = `<i class="fa-solid ${iconClass}"></i>`;
+    const iconClass = presetIcons[presetId] || 'fa-user-tie';
+    preview.innerHTML = `<i class="fa-solid ${iconClass}" style="color: #fff;"></i>`;
   } else if (avatarType === 'custom' && customData) {
     preview.style.backgroundImage = `url(${customData})`;
   } else {
@@ -27082,11 +27161,6 @@ function initSettingsSubscreenAndFhs() {
   if (methodologyTabBtn) {
     methodologyTabBtn.addEventListener('click', () => showFhsTab('methodology'));
   }
-  // FHS explain trigger collapsible toggle
-  const fhsExplainTrigger = document.getElementById('fhs-explain-trigger');
-  if (fhsExplainTrigger) {
-    fhsExplainTrigger.addEventListener('click', toggleFhsExplain);
-  }
 }
 // The OTA boot loader injects app.js asynchronously via Blob URL AFTER
 // DOMContentLoaded has fired. Use the same readyState fallback as initApp so
@@ -27420,9 +27494,9 @@ function saveRecurringSettings() {
     else if (preset === 'specific_months') presetLabel = lang === 'el' ? 'Μήνες' : 'Months';
     else presetLabel = lang === 'el' ? 'Custom' : 'Custom';
 
-    btn.style.background = '#f43f5e';
+    btn.style.background = '#3b82f6';
     btn.style.color = '#ffffff';
-    btn.style.borderColor = '#f43f5e';
+    btn.style.borderColor = '#3b82f6';
     btn.innerHTML = `<i class="fa-solid fa-arrows-spin"></i> ${lang === 'el' ? 'Ενεργό' : 'Active'} (${presetLabel})`;
   }
   closeModal('recurring-picker-modal');
@@ -27431,9 +27505,9 @@ function saveRecurringSettings() {
 function resetRepInstButton() {
   const btn = document.getElementById('btn-rep-inst');
   if (btn) {
-    btn.style.background = 'rgba(244, 63, 94, 0.1)';
-    btn.style.color = '#f43f5e';
-    btn.style.borderColor = 'rgba(244, 63, 94, 0.3)';
+    btn.style.background = 'rgba(59, 130, 246, 0.15)';
+    btn.style.color = '#3b82f6';
+    btn.style.borderColor = 'rgba(59, 130, 246, 0.35)';
     btn.innerHTML = `<i class="fa-solid fa-arrows-spin"></i> Rep/Inst.`;
   }
 }
@@ -31630,9 +31704,9 @@ const USER_GUIDE_DATA = {
       {
         id: 'changelog',
         icon: 'fa-box-archive',
-        title: '1. Version & What\'s New (v1340)',
+        title: '1. Version & What\'s New (v1342)',
         content: `
-          <p><strong>Guide Version:</strong> v1340 | <strong>Synchronized App Version:</strong> v1340</p>
+          <p><strong>Guide Version:</strong> v1342 | <strong>Synchronized App Version:</strong> v1342</p>
           <div class="guide-feature-box">
             <h5 style="margin:0 0 6px; color:var(--primary);">✨ What's new in the latest version:</h5>
             <ul style="margin:0; padding-left:18px;">

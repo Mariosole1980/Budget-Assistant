@@ -302,20 +302,18 @@ button:active,
   display: block;
 }
 
-/* Premium Tab Transition Animations */
+/* Premium Tab Transition Animations - Instant & Smooth */
 .tab-screen.fade-in-premium {
-  animation: fadeInPremium 0.15s cubic-bezier(0.3, 0.8, 0.3, 1) forwards;
+  animation: fadeInPremium 0.08s ease-out forwards;
 }
 
 @keyframes fadeInPremium {
   from {
-    opacity: 0;
-    transform: translateY(4px);
+    opacity: 0.85;
   }
 
   to {
     opacity: 1;
-    transform: translateY(0);
   }
 }
 
@@ -701,7 +699,7 @@ button:active,
 .month-selector {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 4px;
   font-size: 15px;
   font-weight: 700;
   min-width: 0;
@@ -713,7 +711,8 @@ button:active,
   align-items: center;
   justify-content: center;
   text-align: center;
-  min-width: 90px;
+  min-width: auto;
+  padding: 0 4px;
   white-space: nowrap;
   user-select: none;
   -webkit-user-select: none;
@@ -4327,7 +4326,7 @@ body.shared-wallet-active .day-header {
 
 .form-input {
   height: 48px !important;
-  font-size: 15.5px !important;
+  font-size: 16px !important;
   border-radius: 14px !important;
   background: rgba(10, 14, 22, 0.65) !important;
   border: 1px solid rgba(255, 255, 255, 0.14) !important;
@@ -5014,29 +5013,129 @@ body.shared-wallet-active .day-header {
   color: var(--text-main, #ffffff);
 }
 
-/* Presets Specific Gradients */
-.preset-1 {
-  background: linear-gradient(135deg, #3f51b5, #00bcd4);
+/* Presets Specific Gradients (24 Rich Modern Avatars) */
+.preset-1 { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
+.preset-2 { background: linear-gradient(135deg, #06b6d4, #0284c7); }
+.preset-3 { background: linear-gradient(135deg, #f59e0b, #d97706); }
+.preset-4 { background: linear-gradient(135deg, #eab308, #ca8a04); }
+.preset-5 { background: linear-gradient(135deg, #10b981, #059669); }
+.preset-6 { background: linear-gradient(135deg, #6366f1, #4f46e5); }
+.preset-7 { background: linear-gradient(135deg, #f43f5e, #e11d48); }
+.preset-8 { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+.preset-9 { background: linear-gradient(135deg, #ec4899, #db2777); }
+.preset-10 { background: linear-gradient(135deg, #14b8a6, #0d9488); }
+.preset-11 { background: linear-gradient(135deg, #38bdf8, #2563eb); }
+.preset-12 { background: linear-gradient(135deg, #a855f7, #9333ea); }
+.preset-13 { background: linear-gradient(135deg, #fb923c, #ea580c); }
+.preset-14 { background: linear-gradient(135deg, #f97316, #c2410c); }
+.preset-15 { background: linear-gradient(135deg, #ef4444, #b91c1c); }
+.preset-16 { background: linear-gradient(135deg, #2dd4bf, #0f766e); }
+.preset-17 { background: linear-gradient(135deg, #fb7185, #e11d48); }
+.preset-18 { background: linear-gradient(135deg, #f472b6, #be185d); }
+.preset-19 { background: linear-gradient(135deg, #64748b, #334155); }
+.preset-20 { background: linear-gradient(135deg, #818cf8, #4338ca); }
+.preset-21 { background: linear-gradient(135deg, #facc15, #eab308); }
+.preset-22 { background: linear-gradient(135deg, #34d399, #059669); }
+.preset-23 { background: linear-gradient(135deg, #60a5fa, #1e40af); }
+.preset-24 { background: linear-gradient(135deg, #c084fc, #7e22ce); }
+
+/* Subscreen Specific Color Theming */
+/* 1. Smart Tools Theme (Amber Gold) */
+#pref_card_tools input:checked + .slider,
+.switch-amber input:checked + .slider {
+  background-color: #f59e0b !important;
 }
 
-.preset-2 {
-  background: linear-gradient(135deg, #ff9800, #ff5722);
+/* 2. Notifications Theme (Coral Red) */
+#subscreen-notifications input:checked + .slider {
+  background-color: #ef4444 !important;
+}
+#subscreen-notifications .btn-test-notif,
+#subscreen-notifications .btn-primary {
+  background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+  color: #ffffff !important;
+  border: none !important;
+  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.35) !important;
 }
 
-.preset-3 {
-  background: linear-gradient(135deg, #009688, #4caf50);
+/* 3. Security & Privacy Theme (Red / Shield) */
+#subscreen-security input:checked + .slider {
+  background-color: #ef4444 !important;
+}
+#subscreen-security .settings-card-item.selected {
+  border-color: #ef4444 !important;
+  background: rgba(239, 68, 68, 0.1) !important;
+}
+#subscreen-security .settings-card-item.selected .settings-card-icon {
+  background: #ef4444 !important;
+  color: #fff !important;
+}
+#subscreen-security .settings-card-item.selected .settings-card-check {
+  color: #ef4444 !important;
 }
 
-.preset-4 {
-  background: linear-gradient(135deg, #9c27b0, #e91e63);
+/* 4. Data & Sync Theme (Emerald Green) */
+#btn-force-sync-now,
+#subscreen-datasync .btn-primary {
+  background: linear-gradient(135deg, #10b981, #059669) !important;
+  color: #ffffff !important;
+  border: none !important;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35) !important;
 }
 
-.preset-5 {
-  background: linear-gradient(135deg, #e91e63, #ff8a80);
+/* 5. Calendar Style Modal Picker (Emerald Green) */
+#settings-picker-modal[data-theme="emerald"] .month-circle-item.selected {
+  background: #10b981 !important;
+  border-color: #10b981 !important;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4) !important;
+}
+#settings-picker-modal[data-theme="emerald"] .settings-card-item.selected {
+  border-color: #10b981 !important;
+  background: rgba(16, 185, 129, 0.1) !important;
+}
+#settings-picker-modal[data-theme="emerald"] .settings-card-item.selected .settings-card-icon {
+  background: #10b981 !important;
+  color: #fff !important;
+}
+#settings-picker-modal[data-theme="emerald"] .settings-card-item.selected .settings-card-check {
+  color: #10b981 !important;
 }
 
-.preset-6 {
-  background: linear-gradient(135deg, #ffc107, #ff5722);
+/* 6. Auto-Lock Modal Picker (Red) */
+#settings-picker-modal[data-theme="red"] .settings-card-item.selected {
+  border-color: #ef4444 !important;
+  background: rgba(239, 68, 68, 0.1) !important;
+}
+#settings-picker-modal[data-theme="red"] .settings-card-item.selected .settings-card-icon {
+  background: #ef4444 !important;
+  color: #fff !important;
+}
+#settings-picker-modal[data-theme="red"] .settings-card-item.selected .settings-card-check {
+  color: #ef4444 !important;
+}
+
+/* 7. Notepad & Checklist Theme (Amber Gold) */
+#notes-manager-modal .notes-filter-chip.active {
+  background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+  border-color: transparent !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35) !important;
+}
+.note-custom-checkbox.checked {
+  background: #f59e0b !important;
+  border-color: #f59e0b !important;
+  color: #ffffff !important;
+}
+#notes-manager-add-btn {
+  background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+  border: none !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35) !important;
+}
+#note-editor-modal .btn-primary {
+  background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+  border: none !important;
+  color: #ffffff !important;
 }
 
 /* iOS Style settings rows */

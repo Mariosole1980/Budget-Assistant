@@ -7,7 +7,7 @@
 
   <meta charset="UTF-8">
   <meta name="viewport"
-    content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no, viewport-fit=cover, interactive-widget=resizes-content">
   <meta name="google-signin-client_id"
     content="331220079759-nrguc2ujof9u9mqhbn2mouhpga2iniqj.apps.googleusercontent.com">
   <script>
@@ -74,7 +74,7 @@
               ${devButton}
             </div>
             <div style="font-size:11px;color:#8b949e;">
-              Budget Assistant • build v1340
+              Budget Assistant • build v1342
             </div>
           </div>
         `;
@@ -164,7 +164,7 @@
   <!-- Desktop Web UX Layer (loaded AFTER style.css so it can override).
        All rules are scoped behind html.web-mode, so Android/iOS native
        (Capacitor) layout is never affected. -->
-  <link rel="stylesheet" href="desktop.css?v=1340" id="desktop-stylesheet">
+  <link rel="stylesheet" href="desktop.css?v=1342" id="desktop-stylesheet">
 
   <!-- Capacitor Bridge
        NOTE: The native Capacitor runtime injects its bridge JS automatically into
@@ -1184,7 +1184,7 @@
                 <span id="trans-date-display" class="form-row-display-text" style="flex: 1;">24/5/26 (Kυρ) 19:38</span>
                 <input type="hidden" id="trans-date" required>
                 <button type="button" id="btn-rep-inst" onclick="event.stopPropagation(); openRecurringModal();"
-                  style="margin-left: auto; padding: 4px 10px; border-radius: 12px; border: 1px solid rgba(244, 63, 94, 0.3); background: rgba(244, 63, 94, 0.1); color: #f43f5e; font-size: 11px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 4px; z-index: 2;"><i
+                  style="margin-left: auto; padding: 4px 10px; border-radius: 12px; border: 1px solid rgba(59, 130, 246, 0.35); background: rgba(59, 130, 246, 0.15); color: #3b82f6; font-size: 11px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 4px; z-index: 2;"><i
                     class="fa-solid fa-arrows-spin"></i> Rep/Inst.</button>
               </div>
             </div>
@@ -1528,7 +1528,7 @@
                 data-i18n="item_user_guide">Οδηγός Χρήσης</h3>
               <div
                 style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; font-family: 'Outfit', sans-serif;">
-                <span id="user-guide-version-badge" style="font-size:10px; background:rgba(99,102,241,0.15); color:var(--primary); padding:2px 8px; border-radius:10px; font-weight:700; border:1px solid rgba(99,102,241,0.3);">v1340</span>
+                <span id="user-guide-version-badge" style="font-size:10px; background:rgba(99,102,241,0.15); color:var(--primary); padding:2px 8px; border-radius:10px; font-weight:700; border:1px solid rgba(99,102,241,0.3);">v1342</span>
                 <span>•</span>
                 <span id="user-guide-date-badge" data-i18n="user_guide_date_badge">Αύγουστος 2026</span>
               </div>
@@ -2560,7 +2560,7 @@
             <div class="settings-list-item version-info-row"
               style="padding: 14px 16px; background: transparent; border-top: 1px solid var(--border); margin-top: 8px;">
               <span class="settings-item-label" style="color:var(--text-muted); font-size:12px;"
-                data-i18n="app_version">Έκδοση 1.0.0 (build v1340)</span>
+                data-i18n="app_version">Έκδοση 1.0.0 (build v1342)</span>
               <span class="settings-item-value" style="font-size:12px; color:var(--text-muted); font-weight:600;">Budget
                 Assistant</span>
             </div>
@@ -5060,7 +5060,7 @@
             <div class="profile-shortcuts-grid">
               <button type="button" class="profile-shortcut-btn"
                 onclick="closeProfileSheet(); openSettingsSubscreen('family', 'settings_family_title');">
-                <i class="fa-solid fa-people-roof" style="color:var(--accent);"></i>
+                <i class="fa-solid fa-people-roof" style="color:#6366f1;"></i>
                 <span data-i18n="profile_shortcut_family">Οικογένεια</span>
               </button>
               <button type="button" class="profile-shortcut-btn"
@@ -5080,31 +5080,88 @@
             </div>
           </div>
 
-          <!-- Preset Avatar Selection -->
+          <!-- Preset Avatar Selection (24 Curated Options) -->
           <div class="profile-presets-section">
-            <div class="profile-presets-title" data-i18n="profile_select_avatar">Επιλογή Avatar</div>
-            <div class="profile-presets-grid">
+            <div class="profile-presets-title" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+              <span data-i18n="profile_select_avatar">Επιλογή Avatar</span>
+              <span style="font-size:11px; color:var(--text-muted); font-weight:600;">24 Επιλογές</span>
+            </div>
+            <div class="profile-presets-grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(44px, 1fr)); gap:10px; max-height:220px; overflow-y:auto; padding:4px 2px;">
               <div class="preset-avatar-option preset-custom-trigger" onclick="triggerAvatarUpload()"
                 data-i18n-title="profile_upload_image" title="Μεταφόρτωση εικόνας">
-                <div class="preset-avatar-inner preset-custom-icon"><i class="fa-solid fa-upload"></i></div>
+                <div class="preset-avatar-inner preset-custom-icon"><i class="fa-solid fa-camera"></i></div>
               </div>
-              <div class="preset-avatar-option" data-preset="1" onclick="selectPresetAvatar(1)">
-                <div class="preset-avatar-inner preset-1"><i class="fa-solid fa-user"></i></div>
+              <div class="preset-avatar-option" data-preset="1" onclick="selectPresetAvatar(1)" title="Professional">
+                <div class="preset-avatar-inner preset-1"><i class="fa-solid fa-user-tie"></i></div>
               </div>
-              <div class="preset-avatar-option" data-preset="2" onclick="selectPresetAvatar(2)">
-                <div class="preset-avatar-inner preset-2"><i class="fa-solid fa-rocket"></i></div>
+              <div class="preset-avatar-option" data-preset="2" onclick="selectPresetAvatar(2)" title="Diamond">
+                <div class="preset-avatar-inner preset-2"><i class="fa-solid fa-gem"></i></div>
               </div>
-              <div class="preset-avatar-option" data-preset="3" onclick="selectPresetAvatar(3)">
-                <div class="preset-avatar-inner preset-3"><i class="fa-solid fa-gem"></i></div>
+              <div class="preset-avatar-option" data-preset="3" onclick="selectPresetAvatar(3)" title="Crown">
+                <div class="preset-avatar-inner preset-3"><i class="fa-solid fa-crown"></i></div>
               </div>
-              <div class="preset-avatar-option" data-preset="4" onclick="selectPresetAvatar(4)">
-                <div class="preset-avatar-inner preset-4"><i class="fa-solid fa-cat"></i></div>
+              <div class="preset-avatar-option" data-preset="4" onclick="selectPresetAvatar(4)" title="Coins">
+                <div class="preset-avatar-inner preset-4"><i class="fa-solid fa-coins"></i></div>
               </div>
-              <div class="preset-avatar-option" data-preset="5" onclick="selectPresetAvatar(5)">
-                <div class="preset-avatar-inner preset-5"><i class="fa-solid fa-heart"></i></div>
+              <div class="preset-avatar-option" data-preset="5" onclick="selectPresetAvatar(5)" title="Growth">
+                <div class="preset-avatar-inner preset-5"><i class="fa-solid fa-chart-line"></i></div>
               </div>
-              <div class="preset-avatar-option" data-preset="6" onclick="selectPresetAvatar(6)">
-                <div class="preset-avatar-inner preset-6"><i class="fa-solid fa-crown"></i></div>
+              <div class="preset-avatar-option" data-preset="6" onclick="selectPresetAvatar(6)" title="Vault">
+                <div class="preset-avatar-inner preset-6"><i class="fa-solid fa-vault"></i></div>
+              </div>
+              <div class="preset-avatar-option" data-preset="7" onclick="selectPresetAvatar(7)" title="Rocket">
+                <div class="preset-avatar-inner preset-7"><i class="fa-solid fa-rocket"></i></div>
+              </div>
+              <div class="preset-avatar-option" data-preset="8" onclick="selectPresetAvatar(8)" title="Robot">
+                <div class="preset-avatar-inner preset-8"><i class="fa-solid fa-robot"></i></div>
+              </div>
+              <div class="preset-avatar-option" data-preset="9" onclick="selectPresetAvatar(9)" title="Energy">
+                <div class="preset-avatar-inner preset-9"><i class="fa-solid fa-bolt"></i></div>
+              </div>
+              <div class="preset-avatar-option" data-preset="10" onclick="selectPresetAvatar(10)" title="Gaming">
+                <div class="preset-avatar-inner preset-10"><i class="fa-solid fa-gamepad"></i></div>
+              </div>
+              <div class="preset-avatar-option" data-preset="11" onclick="selectPresetAvatar(11)" title="Guardian">
+                <div class="preset-avatar-inner preset-11"><i class="fa-solid fa-shield-halved"></i></div>
+              </div>
+              <div class="preset-avatar-option" data-preset="12" onclick="selectPresetAvatar(12)" title="Developer">
+                <div class="preset-avatar-inner preset-12"><i class="fa-solid fa-laptop-code"></i></div>
+              </div>
+              <div class="preset-avatar-option" data-preset="13" onclick="selectPresetAvatar(13)" title="Cat">
+                <div class="preset-avatar-inner preset-13"><i class="fa-solid fa-cat"></i></div>
+              </div>
+              <div class="preset-avatar-option" data-preset="14" onclick="selectPresetAvatar(14)" title="Dog">
+                <div class="preset-avatar-inner preset-14"><i class="fa-solid fa-dog"></i></div>
+              </div>
+              <div class="preset-avatar-option" data-preset="15" onclick="selectPresetAvatar(15)" title="Dragon">
+                <div class="preset-avatar-inner preset-15"><i class="fa-solid fa-dragon"></i></div>
+              </div>
+              <div class="preset-avatar-option" data-preset="16" onclick="selectPresetAvatar(16)" title="Dove">
+                <div class="preset-avatar-inner preset-16"><i class="fa-solid fa-dove"></i></div>
+              </div>
+              <div class="preset-avatar-option" data-preset="17" onclick="selectPresetAvatar(17)" title="Fire">
+                <div class="preset-avatar-inner preset-17"><i class="fa-solid fa-fire"></i></div>
+              </div>
+              <div class="preset-avatar-option" data-preset="18" onclick="selectPresetAvatar(18)" title="Heart">
+                <div class="preset-avatar-inner preset-18"><i class="fa-solid fa-heart"></i></div>
+              </div>
+              <div class="preset-avatar-option" data-preset="19" onclick="selectPresetAvatar(19)" title="Hero">
+                <div class="preset-avatar-inner preset-19"><i class="fa-solid fa-mask"></i></div>
+              </div>
+              <div class="preset-avatar-option" data-preset="20" onclick="selectPresetAvatar(20)" title="Spirit">
+                <div class="preset-avatar-inner preset-20"><i class="fa-solid fa-ghost"></i></div>
+              </div>
+              <div class="preset-avatar-option" data-preset="21" onclick="selectPresetAvatar(21)" title="Star">
+                <div class="preset-avatar-inner preset-21"><i class="fa-solid fa-star"></i></div>
+              </div>
+              <div class="preset-avatar-option" data-preset="22" onclick="selectPresetAvatar(22)" title="Zen Tree">
+                <div class="preset-avatar-inner preset-22"><i class="fa-solid fa-tree"></i></div>
+              </div>
+              <div class="preset-avatar-option" data-preset="23" onclick="selectPresetAvatar(23)" title="Globe">
+                <div class="preset-avatar-inner preset-23"><i class="fa-solid fa-globe"></i></div>
+              </div>
+              <div class="preset-avatar-option" data-preset="24" onclick="selectPresetAvatar(24)" title="Magic">
+                <div class="preset-avatar-inner preset-24"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
               </div>
             </div>
           </div>
@@ -5236,7 +5293,7 @@
           // OTA updates. Running both would cause a reload loop that never
           // baked into the APK and never changes on a plain reload).
           // ============================================================
-          const CURRENT_BUILD = 1340;
+          const CURRENT_BUILD = 1342;
           (function () {
             // Skip entirely when running inside the native APK (Capacitor bridge
             // present). Capgo handles OTA updates there.
@@ -6068,11 +6125,11 @@
       <script src="js/translations.js"></script>
       <!-- Local receipt photo storage (IndexedDB; extracted from app.js; loaded before app.js) -->
       <script src="js/receiptStorage.js"></script>
-      <script src="app.js?v=1340"></script>
+      <script src="app.js?v=1342"></script>
       <!-- Desktop Web UX Layer (defer so it runs after app.js; invoked via
        initDesktopUI() hook at the end of initApp()). Self-guards on
        html.web-mode so native Android/iOS is never affected. -->
-      <script src="web-ui.js?v=1340" defer></script>
+      <script src="web-ui.js?v=1342" defer></script>
 
       <!-- MODAL: TYPE-TO-CONFIRM (for destructive actions) -->
       <div id="type-confirm-modal" class="modal-overlay" style="z-index: 2147483647;">
