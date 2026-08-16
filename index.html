@@ -74,7 +74,7 @@
               ${devButton}
             </div>
             <div style="font-size:11px;color:#8b949e;">
-              Budget Assistant • build v1359
+              Budget Assistant • build v1361
             </div>
           </div>
         `;
@@ -164,7 +164,7 @@
   <!-- Desktop Web UX Layer (loaded AFTER style.css so it can override).
        All rules are scoped behind html.web-mode, so Android/iOS native
        (Capacitor) layout is never affected. -->
-  <link rel="stylesheet" href="desktop.css?v=1359" id="desktop-stylesheet">
+  <link rel="stylesheet" href="desktop.css?v=1361" id="desktop-stylesheet">
 
   <!-- Capacitor Bridge
        NOTE: The native Capacitor runtime injects its bridge JS automatically into
@@ -379,6 +379,13 @@
       <!-- Wallet Switcher Removed (Unified Wallet Mode) -->
 
       <div class="header-actions">
+        <!-- Compact Glowing Demo Mode Badge -->
+        <div id="header-demo-badge" class="header-demo-badge" onclick="handleHeaderDemoClick()"
+          title="Δοκιμαστική Λειτουργία (Demo) - Πατήστε για έξοδο" style="display: none;">
+          <i class="fa-solid fa-bolt" style="font-size: 11px;"></i>
+          <span>DEMO</span>
+        </div>
+
         <div id="user-profile-badge" class="user-profile-badge" style="display: none;">
           <!-- Initials like MB -->
         </div>
@@ -1528,7 +1535,7 @@
                 data-i18n="item_user_guide">Οδηγός Χρήσης</h3>
               <div
                 style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; font-family: 'Outfit', sans-serif;">
-                <span id="user-guide-version-badge" style="font-size:10px; background:rgba(99,102,241,0.15); color:var(--primary); padding:2px 8px; border-radius:10px; font-weight:700; border:1px solid rgba(99,102,241,0.3);">v1359</span>
+                <span id="user-guide-version-badge" style="font-size:10px; background:rgba(99,102,241,0.15); color:var(--primary); padding:2px 8px; border-radius:10px; font-weight:700; border:1px solid rgba(99,102,241,0.3);">v1361</span>
                 <span>•</span>
                 <span id="user-guide-date-badge" data-i18n="user_guide_date_badge">Αύγουστος 2026</span>
               </div>
@@ -2170,6 +2177,35 @@
                 style="color:var(--text-muted); font-size:12px; margin-left:10px;"></i>
             </div>
 
+            <!-- CARD: DEMO DATA MANAGEMENT -->
+            <div class="settings-list-item" id="sync-demo-load-row" onclick="onboardingAddDemoData()"
+              style="cursor:pointer; border-radius:14px; padding:14px 16px; background:rgba(245,158,11,0.06); border:1px solid rgba(245,158,11,0.25); display:flex; align-items:center; justify-content:space-between;">
+              <div style="display:flex; flex-direction:column; gap:4px; flex:1;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <i class="fa-solid fa-bolt" style="color:#fbbf24; font-size:16px;"></i>
+                  <span class="settings-item-label" style="font-weight:700; font-size:14px; color:#fbbf24;"
+                    data-i18n="card_demo_mode">Δοκιμαστικά Δεδομένα (Demo Mode)</span>
+                </div>
+                <span style="font-size:11.5px; color:var(--text-secondary);" data-i18n="demo_mode_desc">Φόρτωση 15 ρεαλιστικών κινήσεων & 5 προϋπολογισμών</span>
+              </div>
+              <i class="fa-solid fa-chevron-right"
+                style="color:var(--text-muted); font-size:12px; margin-left:10px;"></i>
+            </div>
+
+            <div class="settings-list-item" id="sync-demo-clear-row" onclick="onboardingClearDemoData()"
+              style="cursor:pointer; border-radius:14px; padding:14px 16px; background:rgba(239,68,68,0.06); border:1px solid rgba(239,68,68,0.25); display:none; align-items:center; justify-content:space-between;">
+              <div style="display:flex; flex-direction:column; gap:4px; flex:1;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <i class="fa-solid fa-trash-can" style="color:#ef4444; font-size:16px;"></i>
+                  <span class="settings-item-label" style="font-weight:700; font-size:14px; color:#ef4444;"
+                    data-i18n="card_demo_clear">Έξοδος & Καθαρισμός Demo</span>
+                </div>
+                <span style="font-size:11.5px; color:var(--text-secondary);" data-i18n="demo_clear_desc">Άμεση διαγραφή όλων των δοκιμαστικών δεδομένων</span>
+              </div>
+              <i class="fa-solid fa-chevron-right"
+                style="color:var(--text-muted); font-size:12px; margin-left:10px;"></i>
+            </div>
+
             <!-- CARD 4: DANGER ZONE - CLEAR LOCAL DATA -->
             <div style="margin-top:8px; border-top:1px solid var(--border); padding-top:14px;">
               <div class="settings-list-item" id="danger-zone-wipe-row" onclick="clearLocalDataConfirm()"
@@ -2541,7 +2577,7 @@
             <div class="settings-list-item version-info-row"
               style="padding: 14px 16px; background: transparent; border-top: 1px solid var(--border); margin-top: 8px;">
               <span class="settings-item-label" style="color:var(--text-muted); font-size:12px;"
-                data-i18n="app_version">Έκδοση 1.0.0 (build v1359)</span>
+                data-i18n="app_version">Έκδοση 1.0.0 (build v1361)</span>
               <span class="settings-item-value" style="font-size:12px; color:var(--text-muted); font-weight:600;">Budget
                 Assistant</span>
             </div>
@@ -5310,7 +5346,7 @@
           // OTA updates. Running both would cause a reload loop that never
           // baked into the APK and never changes on a plain reload).
           // ============================================================
-          const CURRENT_BUILD = 1359;
+          const CURRENT_BUILD = 1361;
           (function () {
             // Skip entirely when running inside the native APK (Capacitor bridge
             // present). Capgo handles OTA updates there.
@@ -6136,11 +6172,11 @@
       <script src="js/translations.js"></script>
       <!-- Local receipt photo storage (IndexedDB; extracted from app.js; loaded before app.js) -->
       <script src="js/receiptStorage.js"></script>
-      <script src="app.js?v=1359"></script>
+      <script src="app.js?v=1361"></script>
       <!-- Desktop Web UX Layer (defer so it runs after app.js; invoked via
        initDesktopUI() hook at the end of initApp()). Self-guards on
        html.web-mode so native Android/iOS is never affected. -->
-      <script src="web-ui.js?v=1359" defer></script>
+      <script src="web-ui.js?v=1361" defer></script>
 
       <!-- MODAL: TYPE-TO-CONFIRM (for destructive actions) -->
       <div id="type-confirm-modal" class="modal-overlay" style="z-index: 2147483647;">

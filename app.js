@@ -4923,6 +4923,9 @@ window._isAuthenticated = _isAuthenticated;
 function _updateUIImpl() {
   processRecurringTemplates();
   updateHeaderAndSync();
+  if (typeof updateHeaderDemoBadge === 'function') {
+    updateHeaderDemoBadge();
+  }
 
   // SECURITY: If the user is not authenticated (_authConfirmed not yet set), do
   // NOT render any personal data. The content behind the login card must stay
@@ -23565,6 +23568,10 @@ window.updateSyncStatusIndicator = updateSyncStatusIndicator;
 // ============================================================
 
 function updateHeaderProfileBadge() {
+  if (typeof updateHeaderDemoBadge === 'function') {
+    updateHeaderDemoBadge();
+  }
+
   const userBadge = document.getElementById('user-profile-badge');
   if (!userBadge) return;
 
@@ -30113,49 +30120,91 @@ window.restoreTransaction = restoreTransaction;
 window.emptyTrashBin = emptyTrashBin;
 
 // ============================================================
-// ONBOARDING & SAMPLE DATA GENERATOR
+// ONBOARDING & SAMPLE DATA GENERATOR (15 TX + 5 BUDGETS)
 // ============================================================
+function hasDemoData() {
+  const hasDemoTx = Array.isArray(state.transactions) && state.transactions.some(t => t && (t.is_demo || (t.id && String(t.id).startsWith('demo_'))));
+  const hasDemoBudget = Array.isArray(state.budgets) && state.budgets.some(b => b && (b.is_demo || (b.id && String(b.id).startsWith('demo_'))));
+  return hasDemoTx || hasDemoBudget;
+}
+
+function updateHeaderDemoBadge() {
+  const badge = document.getElementById('header-demo-badge');
+  const hasDemo = hasDemoData();
+  if (badge) {
+    badge.style.display = hasDemo ? 'inline-flex' : 'none';
+  }
+  const clearRow = document.getElementById('sync-demo-clear-row');
+  if (clearRow) {
+    clearRow.style.display = hasDemo ? 'flex' : 'none';
+  }
+}
+
+async function handleHeaderDemoClick() {
+  const lang = state.lang || 'el';
+  const confirmMsg = (TRANSLATIONS[lang] && TRANSLATIONS[lang]['demo_exit_confirm']) ||
+    (lang === 'el'
+      ? 'Βρίσκεστε σε λειτουργία Demo.\n\nΘέλετε να βγείτε από το Demo και να επιστρέψετε στα πραγματικά σας δεδομένα;'
+      : 'You are currently in Demo Mode.\n\nDo you want to exit Demo Mode and return to your real account?');
+
+  const btnText = (TRANSLATIONS[lang] && TRANSLATIONS[lang]['demo_exit_btn']) || (lang === 'el' ? 'Έξοδος από Demo' : 'Exit Demo');
+
+  const confirmed = await showConfirm(
+    confirmMsg,
+    btnText,
+    '⚡'
+  );
+  if (confirmed) {
+    await onboardingClearDemoData(true);
+  }
+}
+
 async function onboardingAddDemoData() {
   closeModal('onboarding-modal');
-
-  // Show progress feedback
-  const authOverlay = document.getElementById('auth-overlay');
-  const loadingState = document.getElementById('auth-loading-state');
-  const formsContainer = document.getElementById('auth-forms-container');
-  const authCard = document.getElementById('auth-card');
-
-  if (authOverlay) authOverlay.style.display = 'flex';
-  if (loadingState) loadingState.style.display = 'flex';
-  if (authCard) authCard.style.display = 'none';
-  if (formsContainer) formsContainer.style.display = 'none';
 
   const getDemoDateISO = (day) => {
     const y = new Date().getFullYear();
     const m = String(new Date().getMonth() + 1).padStart(2, '0');
-    const d = String(day).padStart(2, '0');
+    const d = String(Math.min(Math.max(1, day), 28)).padStart(2, '0');
     return `${y}-${m}-${d}T12:00:00Z`;
   };
 
   const uid = state.currentUser ? state.currentUser.id : 'guest';
 
+  // 15 Realistic Transactions across current month
   const demoTxs = [
-    { amount: 1800, type: 'income', category: '💼 Μισθός', subcategory: '', date: getDemoDateISO(1), note: 'Μισθός', description: 'Μηνιαία πληρωμή', account_from: 'Bank Account', account_to: '' },
-    { amount: 450, type: 'expense', category: '🏠 Σπίτι', subcategory: '', date: getDemoDateISO(2), note: 'Ενοίκιο σπιτιού', description: 'Μηνιαίο ενοίκιο', account_from: 'Bank Account', account_to: '' },
-    { amount: 68.4, type: 'expense', category: '🍔 Τρόφιμα', subcategory: '', date: getDemoDateISO(3), note: 'Ψώνια για το σπίτι', description: 'Εβδομαδιαία ψώνια στο σουπερμάρκετ', account_from: 'Card', account_to: '' },
-    { amount: 45, type: 'expense', category: '🚗 Μεταφορές', subcategory: '', date: getDemoDateISO(5), note: 'Βενζίνη', description: 'Καύσιμα για το αυτοκίνητο', account_from: 'Card', account_to: '' },
-    { amount: 25, type: 'expense', category: '🎉 Διασκέδαση', subcategory: '', date: getDemoDateISO(8), note: 'Εισιτήρια σινεμά', description: 'Εισιτήρια και σνακ', account_from: 'Card', account_to: '' },
-    { amount: 10.99, type: 'expense', category: '📱 Συνδρομές', subcategory: '', date: getDemoDateISO(10), note: 'Συνδρομή Netflix', description: 'Μηνιαία συνδρομή ταινιών', account_from: 'Card', account_to: '' },
-    { amount: 250, type: 'income', category: '💼 Freelance', subcategory: '', date: getDemoDateISO(12), note: 'Έξτρα μεροκάματο', description: 'Πρόσθετη εργασία', account_from: 'Bank Account', account_to: '' },
-    { amount: 15, type: 'expense', category: '📦 Διάφορα', subcategory: '', date: getDemoDateISO(15), note: 'Καφέδες', description: 'Καφέδες της εβδομάδας', account_from: 'Cash', account_to: '' },
-    { amount: 150, type: 'transfer', category: 'Μεταφορά', subcategory: '', date: getDemoDateISO(18), note: 'Μεταφορά στην κάρτα', description: 'Μεταφορά χρημάτων για καθημερινά έξοδα', account_from: 'Bank Account', account_to: 'Card' },
-    { amount: 14.5, type: 'expense', category: '🍔 Τρόφιμα', subcategory: '', date: getDemoDateISO(20), note: 'Πίτσες', description: 'Παραγγελία έτοιμου φαγητού', account_from: 'Card', account_to: '' }
+    { amount: 1850, type: 'income', category: '💼 Μισθοδοσία', subcategory: '', date: getDemoDateISO(1), note: 'Μηνιαίος μισθός', description: 'Τακτική μισθοδοσία', account_from: 'Bank Account', account_to: '' },
+    { amount: 320, type: 'income', category: '💻 Freelance', subcategory: '', date: getDemoDateISO(12), note: 'Πρόσθετο project', description: 'Έξτρα εργασία & συμβουλευτική', account_from: 'Bank Account', account_to: '' },
+    { amount: 450, type: 'expense', category: '🏠 Σπίτι', subcategory: 'Ενοίκιο', date: getDemoDateISO(2), note: 'Μηνιαίο ενοίκιο', description: 'Ενοίκιο κατοικίας', account_from: 'Bank Account', account_to: '' },
+    { amount: 115, type: 'expense', category: '🏠 Σπίτι', subcategory: 'Ρεύμα', date: getDemoDateISO(4), note: 'Εκκαθαριστικός ΔΕΗ', description: 'Λογαριασμός ηλεκτρικού ρεύματος', account_from: 'Card', account_to: '' },
+    { amount: 84.50, type: 'expense', category: '🍔 Τρόφιμα', subcategory: 'Σουπερμάρκετ', date: getDemoDateISO(5), note: 'Εβδομαδιαία ψώνια', description: 'Σουπερμάρκετ προμήθειες', account_from: 'Card', account_to: '' },
+    { amount: 42.30, type: 'expense', category: '🍔 Τρόφιμα', subcategory: 'Μανάβικο', date: getDemoDateISO(10), note: 'Μανάβικο & κρεοπωλείο', description: 'Φρέσκα φρούτα και κρέας', account_from: 'Card', account_to: '' },
+    { amount: 18.50, type: 'expense', category: '🍔 Τρόφιμα', subcategory: 'Delivery', date: getDemoDateISO(14), note: 'Delivery πίτσες', description: 'Παραγγελία έτοιμου φαγητού', account_from: 'Card', account_to: '' },
+    { amount: 60, type: 'expense', category: '🚗 Μεταφορές', subcategory: 'Καύσιμα', date: getDemoDateISO(7), note: 'Βενζίνη', description: 'Γέμισμα ρεζερβουάρ', account_from: 'Card', account_to: '' },
+    { amount: 14, type: 'expense', category: '📦 Διάφορα', subcategory: 'Καφέδες', date: getDemoDateISO(8), note: 'Καφέδες εβδομάδας', description: 'Καθημερινοί καφέδες & σνακ', account_from: 'Cash', account_to: '' },
+    { amount: 28, type: 'expense', category: '🎉 Διασκέδαση', subcategory: 'Σινεμά', date: getDemoDateISO(11), note: 'Εισιτήρια σινεμά', description: 'Έξοδος σινεμά & ποπ κορν', account_from: 'Card', account_to: '' },
+    { amount: 17.98, type: 'expense', category: '📱 Συνδρομές', subcategory: 'Streaming', date: getDemoDateISO(9), note: 'Netflix & Spotify', description: 'Μηνιαίες ψηφιακές συνδρομές', account_from: 'Card', account_to: '' },
+    { amount: 24.50, type: 'expense', category: '💊 Υγεία', subcategory: 'Φαρμακείο', date: getDemoDateISO(13), note: 'Φάρμακα & βιταμίνες', description: 'Εποχιακά φάρμακα', account_from: 'Cash', account_to: '' },
+    { amount: 55, type: 'expense', category: '👕 Αγορές', subcategory: 'Ρούχα', date: getDemoDateISO(16), note: 'Αθλητικά ρούχα', description: 'Αγορά αθλητικού εξοπλισμού', account_from: 'Card', account_to: '' },
+    { amount: 35, type: 'expense', category: '🏋️ Γυμναστήριο', subcategory: 'Συνδρομή', date: getDemoDateISO(3), note: 'Μηνιαία συνδρομή', description: 'Συνδρομή γυμναστηρίου', account_from: 'Card', account_to: '' },
+    { amount: 200, type: 'transfer', category: 'Μεταφορά', subcategory: '', date: getDemoDateISO(18), note: 'Μεταφορά στην Αποταμίευση', description: 'Μηνιαία αποταμίευση', account_from: 'Bank Account', account_to: 'Card' }
   ];
 
-  // Save all transactions
+  // 5 Realistic Category Budgets
+  const demoBudgets = [
+    { category: '🍔 Τρόφιμα', amount: 350 },
+    { category: '🏠 Σπίτι', amount: 600 },
+    { category: '🚗 Μεταφορές', amount: 150 },
+    { category: '🎉 Διασκέδαση', amount: 100 },
+    { category: '💊 Υγεία', amount: 80 }
+  ];
+
   try {
-    for (const item of demoTxs) {
+    // 1. Save demo transactions
+    for (let i = 0; i < demoTxs.length; i++) {
+      const item = demoTxs[i];
       const tx = {
-        id: 'demo_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+        id: 'demo_' + Date.now() + '_' + i + '_' + Math.random().toString(36).substr(2, 6),
         amount: item.amount,
         type: item.type,
         category: item.category,
@@ -30176,21 +30225,44 @@ async function onboardingAddDemoData() {
       }
     }
 
-    // Reload & Update UI
+    // 2. Save demo budgets
+    if (!state.budgets) state.budgets = [];
+    state.budgets = state.budgets.filter(b => !(b && (b.is_demo || (b.id && String(b.id).startsWith('demo_')))));
+
+    for (let i = 0; i < demoBudgets.length; i++) {
+      const bItem = demoBudgets[i];
+      const budgetRecord = {
+        id: 'demo_budget_' + Date.now() + '_' + i,
+        user_id: uid,
+        family_id: null,
+        category: bItem.category,
+        subcategory: '',
+        amount: bItem.amount,
+        currency: getDisplayCurrency(),
+        period: 'monthly',
+        scope: 'personal',
+        notify_threshold: 0.8,
+        is_demo: true,
+        is_deleted: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      state.budgets.push(budgetRecord);
+    }
+    localStorage.setItem('cached_budgets', JSON.stringify(state.budgets));
+
+    // Reload data & refresh UI
     await loadData();
     updateUI();
+    updateHeaderDemoBadge();
+
+    const successMsg = state.lang === 'el'
+      ? '⚡ Είσοδος σε Demo Mode! (15 κινήσεις & 5 budgets)'
+      : '⚡ Entered Demo Mode! (15 transactions & 5 budgets)';
+    if (typeof showToast === 'function') showToast(successMsg, 'success');
   } catch (err) {
     console.error('Failed to pre-populate demo data:', err);
-  } finally {
-    // Hide loader
-    if (authOverlay) authOverlay.style.display = 'none';
-    if (loadingState) loadingState.style.display = 'none';
   }
-
-  const msg = state.lang === 'el'
-    ? '🎉 Τα παραδείγματα προστέθηκαν! Μπορείτε να τα σβήσετε όποτε θέλετε πηγαίνοντας στις ρυθμίσεις: "Περισσότερα -> Δεδομένα & Συγχρονισμός -> Καθαρισμός δοκιμαστικών δεδομένων".'
-    : '🎉 Demo data added successfully! You can delete them at any time from Settings -> Data & Sync.';
-  window.showAlert(msg, state.lang === 'el' ? 'Έτοιμο!' : 'Success', 'ℹ️');
 }
 
 function onboardingCreateTransaction() {
@@ -30219,66 +30291,58 @@ function onboardingShowGuide() {
   appendChatMessage('advisor', welcomeText);
 }
 
-async function onboardingClearDemoData() {
-  const confirmed = await showConfirm(
-    state.lang === 'el' ? 'Θέλετε σίγουρα να σβήσετε όλα τα δοκιμαστικά δεδομένα;' : 'Are you sure you want to delete all demo data?',
-    state.lang === 'el' ? 'Σβήσιμο' : 'Delete Demo',
-    '🗑️'
-  );
-  if (!confirmed) return;
+async function onboardingClearDemoData(isSilent = false) {
+  if (!isSilent) {
+    const lang = state.lang || 'el';
+    const confirmed = await showConfirm(
+      (TRANSLATIONS[lang] && TRANSLATIONS[lang]['demo_exit_confirm']) ||
+      (lang === 'el' ? 'Θέλετε να βγείτε από το Demo και να σβήσετε όλα τα δοκιμαστικά δεδομένα;' : 'Do you want to exit Demo Mode and delete all sample data?'),
+      (TRANSLATIONS[lang] && TRANSLATIONS[lang]['demo_exit_btn']) || (lang === 'el' ? 'Έξοδος από Demo' : 'Exit Demo'),
+      '🗑️'
+    );
+    if (!confirmed) return;
+  }
 
-  // Show progress feedback
-  const authOverlay = document.getElementById('auth-overlay');
-  const loadingState = document.getElementById('auth-loading-state');
-  const formsContainer = document.getElementById('auth-forms-container');
-  const authCard = document.getElementById('auth-card');
-
-  if (authOverlay) authOverlay.style.display = 'flex';
-  if (loadingState) loadingState.style.display = 'flex';
-  if (authCard) authCard.style.display = 'none';
-  if (formsContainer) formsContainer.style.display = 'none';
-
-  const demoTxs = state.transactions.filter(t => t.id && (String(t.id).startsWith('demo_') || t.is_demo));
+  const demoTxs = (state.transactions || []).filter(t => t && (t.is_demo || (t.id && String(t.id).startsWith('demo_'))));
 
   try {
     if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
-      // Delete from Supabase
-      const ids = demoTxs.map(t => t.id);
+      const ids = demoTxs.map(t => t.id).filter(Boolean);
       if (ids.length > 0) {
         await state.supabaseClient.from('transactions').delete().in('id', ids);
       }
     }
 
     // Delete from local memory/cache
-    state.transactions = state.transactions.filter(t => !(t.id && (String(t.id).startsWith('demo_') || t.is_demo)));
+    state.transactions = (state.transactions || []).filter(t => !(t && (t.is_demo || (t.id && String(t.id).startsWith('demo_')))));
     localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
+
+    state.budgets = (state.budgets || []).filter(b => !(b && (b.is_demo || (b.id && String(b.id).startsWith('demo_')))));
+    localStorage.setItem('cached_budgets', JSON.stringify(state.budgets));
 
     // Reload & Update UI
     await loadData();
     updateUI();
+    updateHeaderDemoBadge();
+
+    const msg = state.lang === 'el'
+      ? '👋 Επιστρέψατε στα πραγματικά σας δεδομένα!'
+      : '👋 Returned to your real account data!';
+    if (typeof showToast === 'function') showToast(msg, 'info');
+    else alert(msg);
   } catch (err) {
     console.error('Failed to delete demo data:', err);
-  } finally {
-    // Hide loader
-    if (authOverlay) authOverlay.style.display = 'none';
-    if (loadingState) loadingState.style.display = 'none';
   }
-
-  const msg = state.lang === 'el'
-    ? '🗑️ Όλα τα δοκιμαστικά δεδομένα σβήστηκαν!'
-    : '🗑️ All demo data deleted successfully!';
-  window.showAlert(msg, state.lang === 'el' ? 'Έτοιμο!' : 'Success', 'ℹ️');
 }
 
 window.onSubscreenShow_sync = function () {
-  const hasDemo = state.transactions.some(t => t.id && (String(t.id).startsWith('demo_') || t.is_demo));
-  const row = document.getElementById('sync-demo-clear-row');
-  if (row) {
-    row.style.display = hasDemo ? 'flex' : 'none';
-  }
+  updateHeaderDemoBadge();
 };
 
 // Bind to window for HTML access
+window.hasDemoData = hasDemoData;
+window.updateHeaderDemoBadge = updateHeaderDemoBadge;
+window.handleHeaderDemoClick = handleHeaderDemoClick;
 window.onboardingAddDemoData = onboardingAddDemoData;
 window.onboardingCreateTransaction = onboardingCreateTransaction;
 window.onboardingShowGuide = onboardingShowGuide;
@@ -31241,9 +31305,9 @@ const USER_GUIDE_DATA = {
       {
         id: 'changelog',
         icon: 'fa-box-archive',
-        title: '1. Version & What\'s New (v1359)',
+        title: '1. Version & What\'s New (v1361)',
         content: `
-          <p><strong>Guide Version:</strong> v1359 | <strong>Synchronized App Version:</strong> v1359</p>
+          <p><strong>Guide Version:</strong> v1361 | <strong>Synchronized App Version:</strong> v1361</p>
           <div class="guide-feature-box">
             <h5 style="margin:0 0 6px; color:var(--primary);">✨ What's new in the latest version:</h5>
             <ul style="margin:0; padding-left:18px;">
