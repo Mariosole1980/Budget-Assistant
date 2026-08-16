@@ -17803,8 +17803,8 @@ function initTabSwipeNavigation() {
   let isSwipingHorizontal = null;
 
   const edgeThreshold = 40; // Avoid edge gesture conflicts with system back gesture
-  const triggerThreshold = 25; // Snappy 25px threshold
-  const flingVelocity = 0.28; // Light flick velocity
+  const triggerThreshold = 18; // Instant 18px threshold
+  const flingVelocity = 0.22; // Very responsive flick velocity
 
   appContent.addEventListener('touchstart', (e) => {
     const activeModals = document.querySelectorAll('.modal-overlay.active, .tx-modal-overlay.active');
@@ -17844,8 +17844,8 @@ function initTabSwipeNavigation() {
     const deltaY = touch.clientY - startY;
 
     if (isSwipingHorizontal === null) {
-      if (Math.abs(deltaX) > 8 || Math.abs(deltaY) > 8) {
-        if (Math.abs(deltaX) > Math.abs(deltaY) * 0.75) {
+      if (Math.abs(deltaX) > 6 || Math.abs(deltaY) > 6) {
+        if (Math.abs(deltaX) > Math.abs(deltaY) * 0.7) {
           if (state.activeTab === 'trans' || state.activeTab === 'stats') {
             isSwipingHorizontal = true;
             state.touchDidMove = true;
@@ -17896,7 +17896,7 @@ function initTabSwipeNavigation() {
     }
 
     isSwipingHorizontal = null;
-    setTimeout(() => { state.touchDidMove = false; }, 300);
+    setTimeout(() => { state.touchDidMove = false; }, 200);
   }, { passive: false });
 
   appContent.addEventListener('touchcancel', () => {
@@ -17913,7 +17913,7 @@ function renderTransactionsForSwipe() {
   lastRenderedCategoryType = null;
 }
 
-// High-performance GPU transition for month navigation (used by both swipe gestures & chevron buttons)
+// High-performance ultra-snappy GPU transition for month navigation (used by both swipe gestures & chevron buttons)
 function animateSwipeTransition(direction, callback) {
   const listEl = state.activeTab === 'trans'
     ? document.getElementById('transactions-list')
@@ -17921,15 +17921,17 @@ function animateSwipeTransition(direction, callback) {
       ? document.getElementById('stats-breakdown-list')
       : null;
 
-  const width = window.innerWidth;
-  const outX = direction > 0 ? -Math.min(width * 0.28, 100) : Math.min(width * 0.28, 100);
-  const inX = -outX;
-
   state.isSwipingMonth = true;
   document.body.classList.add('is-swiping-month');
 
-  if (!listEl) {
-    callback();
+  // Immediately execute the state change & render (0ms pre-delay)
+  callback();
+
+  const currentListEl = state.activeTab === 'trans'
+    ? document.getElementById('transactions-list')
+    : document.getElementById('stats-breakdown-list');
+
+  if (!currentListEl) {
     state.isSwipingMonth = false;
     state.touchDidMove = false;
     state.lastSwipeTime = Date.now();
@@ -17937,56 +17939,34 @@ function animateSwipeTransition(direction, callback) {
     return;
   }
 
-  // Phase 1: Slide current month out smoothly (GPU transform only)
-  listEl.style.transition = 'transform 70ms cubic-bezier(0.4, 0, 0.6, 1), opacity 70ms ease';
-  listEl.style.transform = `translateX(${outX}px)`;
-  listEl.style.opacity = '0.2';
+  // Crisp micro-offset on the incoming side
+  const inX = direction > 0 ? 36 : -36;
 
-  setTimeout(() => {
-    // Phase 2: Execute state change & render
-    callback();
+  currentListEl.style.transition = 'none';
+  currentListEl.style.transform = `translateX(${inX}px)`;
+  currentListEl.style.opacity = '0.75';
 
-    const currentListEl = state.activeTab === 'trans'
-      ? document.getElementById('transactions-list')
-      : document.getElementById('stats-breakdown-list');
+  // Instant snap into place (60ms GPU transition)
+  requestAnimationFrame(() => {
+    currentListEl.style.transition = 'transform 65ms cubic-bezier(0.1, 0.9, 0.2, 1), opacity 65ms ease';
+    currentListEl.style.transform = 'translateX(0)';
+    currentListEl.style.opacity = '1';
 
-    if (!currentListEl) {
+    setTimeout(() => {
+      currentListEl.style.transition = '';
+      currentListEl.style.transform = '';
+      currentListEl.style.opacity = '';
+
       state.isSwipingMonth = false;
       state.touchDidMove = false;
       state.lastSwipeTime = Date.now();
       document.body.classList.remove('is-swiping-month');
-      return;
-    }
 
-    // Position new month on the opposite side instantly
-    currentListEl.style.transition = 'none';
-    currentListEl.style.transform = `translateX(${inX}px)`;
-    currentListEl.style.opacity = '0.2';
-
-    // Slide new month smoothly into center
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        currentListEl.style.transition = 'transform 95ms cubic-bezier(0.2, 0.8, 0.4, 1), opacity 95ms ease';
-        currentListEl.style.transform = 'translateX(0)';
-        currentListEl.style.opacity = '1';
-
-        setTimeout(() => {
-          currentListEl.style.transition = '';
-          currentListEl.style.transform = '';
-          currentListEl.style.opacity = '';
-
-          state.isSwipingMonth = false;
-          state.touchDidMove = false;
-          state.lastSwipeTime = Date.now();
-          document.body.classList.remove('is-swiping-month');
-
-          if (state.activeTab === 'stats') {
-            renderStatsTab(false);
-          }
-        }, 100);
-      });
-    });
-  }, 75);
+      if (state.activeTab === 'stats') {
+        renderStatsTab(false);
+      }
+    }, 70);
+  });
 }
 
 // Navigate to an adjacent month (used by the period-prev/next chevron buttons).
@@ -31223,9 +31203,9 @@ const USER_GUIDE_DATA = {
       {
         id: 'changelog',
         icon: 'fa-box-archive',
-        title: '1. Version & What\'s New (v1347)',
+        title: '1. Version & What\'s New (v1348)',
         content: `
-          <p><strong>Guide Version:</strong> v1347 | <strong>Synchronized App Version:</strong> v1347</p>
+          <p><strong>Guide Version:</strong> v1348 | <strong>Synchronized App Version:</strong> v1348</p>
           <div class="guide-feature-box">
             <h5 style="margin:0 0 6px; color:var(--primary);">✨ What's new in the latest version:</h5>
             <ul style="margin:0; padding-left:18px;">
