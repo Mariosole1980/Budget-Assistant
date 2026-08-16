@@ -3099,6 +3099,30 @@ function classifyCategory(categoryName) {
  * Calculates the Financial Health Score (1-100)
  */
 function calculateFinancialHealthScore(transactions, accounts, hasHistoricalData) {
+  const lang = state.lang || 'el';
+  const hasAnyActivity = Array.isArray(transactions) && transactions.some(t => t && t.date && !isTransferTransaction(t) && (t.type === 'income' || t.type === 'expense'));
+
+  if (!hasAnyActivity) {
+    return {
+      score: null,
+      displayScore: '--',
+      label: lang === 'el' ? 'Αναμονή Δεδομένων' : 'Awaiting Data',
+      isNoData: true,
+      isTemporary: true,
+      savingsRateScore: 0,
+      emergencyFundScore: 0,
+      expenseTrendScore: 0,
+      weightedSavings: 0,
+      weightedEmergency: 0,
+      weightedTrend: 0,
+      monthsCovered: 0,
+      savingsRate: 0,
+      survivalRunway: 0,
+      lifestyleRunway: 0,
+      liquidBalance: 0
+    };
+  }
+
   const today = new Date();
   const currentYear = today.getFullYear();
   const currentMonth = today.getMonth(); // 0-11
@@ -3304,7 +3328,6 @@ function calculateFinancialHealthScore(transactions, accounts, hasHistoricalData
   finalScore = Math.min(100, Math.max(0, finalScore));
 
   let label = '';
-  const lang = state.lang || 'el';
   if (lang === 'el') {
     if (finalScore >= 85) label = 'Εξαιρετική Οικονομική Υγεία';
     else if (finalScore >= 70) label = 'Καλή Οικονομική Υγεία';
@@ -6984,11 +7007,15 @@ function renderAccountsTab() {
   const labelEl = document.getElementById('fhs-label');
   const hintEl = document.getElementById('fhs-hint');
 
-  const scoreStr = typeof fhs.score === 'number' ? fhs.score.toFixed(1) + '%' : fhs.score;
+  const scoreStr = typeof fhs.score === 'number' ? fhs.score.toFixed(1) + '%' : (fhs.displayScore || '--');
   if (scoreEl) scoreEl.textContent = scoreStr;
   if (labelEl) labelEl.textContent = fhs.label;
   if (hintEl) {
-    if (fhs.isTemporary) {
+    if (fhs.isNoData) {
+      hintEl.textContent = state.lang === 'el'
+        ? 'Καταχωρήστε τα πρώτα σας έσοδα και έξοδα για να υπολογιστεί το σκορ'
+        : 'Add your first income and expenses to calculate your score';
+    } else if (fhs.isTemporary) {
       hintEl.textContent = state.lang === 'el'
         ? 'Προσωρινό σκορ βάσει των πρώτων δεδομένων'
         : 'Temporary score based on initial data';
@@ -20158,6 +20185,11 @@ function setAuthMode(mode) {
   const submitBtn = document.getElementById('auth-password-submit-btn');
   const lang = state.lang || 'el';
 
+  const emailInput = document.getElementById('auth-email');
+  const pwdInput = document.getElementById('auth-password');
+  if (emailInput) emailInput.value = '';
+  if (pwdInput) pwdInput.value = '';
+
   const forgotContainer = document.getElementById('forgot-password-container');
   if (forgotContainer) {
     forgotContainer.style.display = mode === 'login' ? 'flex' : 'none';
@@ -20171,6 +20203,9 @@ function setAuthMode(mode) {
     document.getElementById('auth-subtitle').textContent = TRANSLATIONS[lang]['auth_create_account'];
   }
   clearAuthStatus();
+  if (emailInput) {
+    setTimeout(() => emailInput.focus(), 60);
+  }
 }
 
 function formatAuthErrorMessage(err) {
@@ -31206,9 +31241,9 @@ const USER_GUIDE_DATA = {
       {
         id: 'changelog',
         icon: 'fa-box-archive',
-        title: '1. Version & What\'s New (v1358)',
+        title: '1. Version & What\'s New (v1359)',
         content: `
-          <p><strong>Guide Version:</strong> v1358 | <strong>Synchronized App Version:</strong> v1358</p>
+          <p><strong>Guide Version:</strong> v1359 | <strong>Synchronized App Version:</strong> v1359</p>
           <div class="guide-feature-box">
             <h5 style="margin:0 0 6px; color:var(--primary);">✨ What's new in the latest version:</h5>
             <ul style="margin:0; padding-left:18px;">
