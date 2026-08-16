@@ -118,6 +118,7 @@ const filesToMirror = [
   'debug.html',
   'xlsx.full.min.js',
   'ota-boot-loader.js',
+  'logo-mark.png',
   'icon.png',
   'icon-192.png'
 ];

@@ -8781,11 +8781,26 @@ function setupEventListeners() {
     }, { passive: true });
   }
 
-  // Feedback rating emojis clicks
+  // Feedback rating emojis clicks with explanatory text
+  const ratingTexts = {
+    1: { el: '😡 Πολύ κακό', en: '😡 Very Bad' },
+    2: { el: '🙁 Χρειάζεται βελτίωση', en: '🙁 Needs Improvement' },
+    3: { el: '😐 Μέτριο', en: '😐 Neutral' },
+    4: { el: '😊 Καλό', en: '😊 Good' },
+    5: { el: '🤩 Εξαιρετικό!', en: '🤩 Love it!' }
+  };
+
   document.querySelectorAll('.emoji-rate-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.emoji-rate-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
+      const rate = parseInt(btn.getAttribute('data-rate'));
+      const labelEl = document.getElementById('emoji-rate-label');
+      if (labelEl && ratingTexts[rate]) {
+        const lang = state.lang || 'el';
+        labelEl.textContent = ratingTexts[rate][lang] || ratingTexts[rate]['el'];
+        labelEl.style.opacity = '1';
+      }
     });
   });
 
@@ -9054,6 +9069,13 @@ function switchTab(tab, instant = false) {
 
   // Clear expanded categories on active tab change
   state.expandedStatsCategories.clear();
+
+  if (tab === 'stats') {
+    state.statsSubtab = 'breakdown';
+    if (typeof switchStatsSubtab === 'function') {
+      switchStatsSubtab('breakdown');
+    }
+  }
 
   // Cancel any pending deferred UI rendering for a previous tab switch
   if (state.tabRenderTimeoutId) {
@@ -9486,6 +9508,7 @@ function openAddTransactionModal({ instant = false } = {}) {
   updateAmountCurrencySymbol();
   setTimeout(() => initNoteAutocomplete(), 50);
 }
+window.openAddTransactionModal = openAddTransactionModal;
 
 function openEditTransactionModal(t, { instant = false } = {}) {
   state.lastOpenedTransactionId = t.id;
@@ -21183,8 +21206,19 @@ function renderFamilyMembersList(members, myRole) {
     return `<div style="font-size:12px;color:var(--text-muted);padding:6px 0;">${state.lang === 'el' ? 'Δεν υπάρχουν μέλη ακόμα.' : 'No members yet.'}</div>`;
   }
 
+  // Sort members: Current User (Admin) always first at top, then other admins, then members
+  const sortedMembers = [...members].sort((a, b) => {
+    const isMeA = a.id === state.currentUser?.id;
+    const isMeB = b.id === state.currentUser?.id;
+    if (isMeA) return -1;
+    if (isMeB) return 1;
+    if (a.role === 'admin' && b.role !== 'admin') return -1;
+    if (a.role !== 'admin' && b.role === 'admin') return 1;
+    return (a.display_name || a.email || '').localeCompare(b.display_name || b.email || '');
+  });
+
   let membersHtml = '';
-  members.forEach(m => {
+  sortedMembers.forEach(m => {
     const isMe = m.id === state.currentUser.id;
     // Prominent role badge for the current user
     const roleBadge = m.role === 'admin'
@@ -25718,7 +25752,7 @@ function openSettingsSubscreen(screenId, titleKey, skipHistory = false) {
   // dynamic header band reflects the section being viewed instead of always
   // showing the App Preferences palette/color/subtitle.
   const subscreenMeta = {
-    preferences: { icon: 'fa-gear', color: '#7c6af7', subtitleKey: 'settings_pref_desc' },
+    preferences: { icon: 'fa-sliders', color: '#2196f3', subtitleKey: 'settings_pref_desc' },
     notifications: { icon: 'fa-bell', color: '#ef4444', subtitleKey: 'settings_notif_desc' },
     sync: { icon: 'fa-cloud-arrow-up', color: '#10b981', subtitleKey: 'settings_data_desc' },
     security: { icon: 'fa-shield-halved', color: '#ef4444', subtitleKey: 'settings_security_desc' },
@@ -26783,6 +26817,11 @@ function resetFeedbackForm() {
     // Reset inputs
     document.getElementById('feedback-comment').value = '';
     document.querySelectorAll('.emoji-rate-btn').forEach(btn => btn.classList.remove('active'));
+    const labelEl = document.getElementById('emoji-rate-label');
+    if (labelEl) {
+      labelEl.textContent = '';
+      labelEl.style.opacity = '0';
+    }
     document.querySelectorAll('.feedback-chip').forEach((btn, idx) => {
       btn.classList.toggle('active', idx === 0);
     });
@@ -31591,9 +31630,9 @@ const USER_GUIDE_DATA = {
       {
         id: 'changelog',
         icon: 'fa-box-archive',
-        title: '1. Version & What\'s New (v1339)',
+        title: '1. Version & What\'s New (v1340)',
         content: `
-          <p><strong>Guide Version:</strong> v1339 | <strong>Synchronized App Version:</strong> v1339</p>
+          <p><strong>Guide Version:</strong> v1340 | <strong>Synchronized App Version:</strong> v1340</p>
           <div class="guide-feature-box">
             <h5 style="margin:0 0 6px; color:var(--primary);">✨ What's new in the latest version:</h5>
             <ul style="margin:0; padding-left:18px;">

@@ -74,7 +74,7 @@
               ${devButton}
             </div>
             <div style="font-size:11px;color:#8b949e;">
-              Budget Assistant • build v1339
+              Budget Assistant • build v1340
             </div>
           </div>
         `;
@@ -164,7 +164,7 @@
   <!-- Desktop Web UX Layer (loaded AFTER style.css so it can override).
        All rules are scoped behind html.web-mode, so Android/iOS native
        (Capacitor) layout is never affected. -->
-  <link rel="stylesheet" href="desktop.css?v=1339" id="desktop-stylesheet">
+  <link rel="stylesheet" href="desktop.css?v=1340" id="desktop-stylesheet">
 
   <!-- Capacitor Bridge
        NOTE: The native Capacitor runtime injects its bridge JS automatically into
@@ -371,7 +371,7 @@
     <header class="app-header">
       <div style="display: flex; align-items: center; gap: 8px;">
         <h1 class="app-title" id="app-heading-title" style="margin: 0; display: flex; align-items: center; gap: 10px;">
-          <img src="logo-mark.png" id="header-wallet-icon" class="header-app-logo" alt="Budget Assistant Logo" onerror="this.src='assets/logo/user_logo.png'">
+          <img src="logo-mark.png" id="header-wallet-icon" class="header-app-logo" alt="Budget Assistant Logo" onerror="this.src='assets/logo/logo-mark.png'">
           <span class="header-title-text">Budget Assistant</span>
         </h1>
       </div>
@@ -856,22 +856,22 @@
 
             <!-- ⭐ Premium row (highlighted, at top of Settings Hub) -->
             <div class="settings-list-item" id="hub-row-premium" onclick="openPremiumModal()"
-              style="cursor: pointer; padding: 14px 16px; background: linear-gradient(135deg, rgba(255,193,7,0.12), rgba(255,152,0,0.06));">
+              style="cursor: pointer; padding: 14px 16px; background: linear-gradient(135deg, rgba(245,158,11,0.14) 0%, rgba(217,119,6,0.05) 100%); border-bottom: 1px solid rgba(245,158,11,0.25);">
               <div style="display:flex; align-items:center; gap:12px; flex:1;">
                 <div
-                  style="width:36px;height:36px;border-radius:10px;background:rgba(255,193,7,0.18);display:flex;align-items:center;justify-content:center;">
-                  <i class="fa-solid fa-crown" style="color:#ffc107;font-size:16px;"></i>
+                  style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#f59e0b,#d97706);color:#ffffff;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(245,158,11,0.35);">
+                  <i class="fa-solid fa-crown" style="font-size:16px;"></i>
                 </div>
                 <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;">
                   <span class="settings-item-label" data-i18n="settings_premium_title"
-                    style="font-weight:700; font-family:'Outfit',sans-serif; font-size:15px; color:#ffc107;">⭐ Premium
+                    style="font-weight:800; font-family:'Outfit',sans-serif; font-size:15px; color:#fbbf24;">⭐ Premium
                     Lifetime</span>
                   <span id="hub-premium-subtitle" style="font-size:12px;color:var(--text-secondary);"
                     data-i18n="settings_premium_desc">Ξεκλείδωσε όλα τα features — εφάπαξ</span>
                 </div>
               </div>
               <span id="hub-premium-badge"
-                style="font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;background:rgba(255,193,7,0.2);color:#ffc107;flex-shrink:0;">Αναβάθμισε</span>
+                style="font-size:11px;font-weight:800;padding:4px 10px;border-radius:12px;background:rgba(245,158,11,0.22);color:#fbbf24;border:1px solid rgba(245,158,11,0.35);flex-shrink:0;">Αναβάθμισε</span>
               <i class="fa-solid fa-chevron-right" style="color:var(--text-muted);font-size:12px;margin-left:4px;"></i>
             </div>
             <div style="height:1px;background:var(--border);margin:0 16px;"></div>
@@ -882,8 +882,8 @@
               style="cursor: pointer; padding: 14px 16px;">
               <div style="display:flex; align-items:center; gap:12px; flex:1;">
                 <div
-                  style="width:36px;height:36px;border-radius:10px;background:rgba(124,106,247,0.15);display:flex;align-items:center;justify-content:center;">
-                  <i class="fa-solid fa-gear" style="color:var(--accent);font-size:16px;"></i>
+                  style="width:36px;height:36px;border-radius:10px;background:rgba(33,150,243,0.15);display:flex;align-items:center;justify-content:center;">
+                  <i class="fa-solid fa-sliders" style="color:#2196f3;font-size:16px;"></i>
                 </div>
                 <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;">
                   <span class="settings-item-label" data-i18n="settings_pref_title"
@@ -960,7 +960,7 @@
               </div>
               <div style="display:flex; align-items:center; gap:8px;">
                 <span class="badge" id="recurring-templates-count-val"
-                  style="background:var(--border); color:var(--text-muted); font-size:11px; padding:2px 8px; border-radius:10px; font-weight:700;">0</span>
+                  style="background:#3b82f6; color:#ffffff; font-size:11px; padding:2px 8px; border-radius:10px; font-weight:800;">0</span>
                 <i class="fa-solid fa-chevron-right" style="color:var(--text-muted);font-size:12px;"></i>
               </div>
             </div>
@@ -1033,8 +1033,8 @@
               style="cursor: pointer; padding: 14px 16px;">
               <div style="display:flex; align-items:center; gap:12px; flex:1;">
                 <div
-                  style="width:36px;height:36px;border-radius:10px;background:rgba(148,163,184,0.15);display:flex;align-items:center;justify-content:center;">
-                  <i class="fa-solid fa-trash-can" style="color:#94a3b8;font-size:16px;"></i>
+                  style="width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,0.12);display:flex;align-items:center;justify-content:center;">
+                  <i class="fa-solid fa-trash-can" style="color:#f1f5f9;font-size:16px;"></i>
                 </div>
                 <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;">
                   <span class="settings-item-label"
@@ -1046,7 +1046,7 @@
               </div>
               <div style="display:flex; align-items:center; gap:8px;">
                 <span class="badge" id="hub-trash-count"
-                  style="background:var(--border); color:var(--text-muted); font-size:11px; padding:2px 8px; border-radius:10px; font-weight:700;">0</span>
+                  style="background:rgba(255,255,255,0.18); color:#f8fafc; font-size:11px; padding:2px 8px; border-radius:10px; font-weight:800; border:1px solid rgba(255,255,255,0.2);">0</span>
                 <i class="fa-solid fa-chevron-right" style="color:var(--text-muted);font-size:12px;"></i>
               </div>
             </div>
@@ -1104,7 +1104,7 @@
       </section>
 
       <!-- Floating Action Button for Adding Transaction -->
-      <button class="fab" id="fab-btn" data-i18n-title="fab_add_transaction" title="Προσθήκη Συναλλαγής">
+      <button class="fab" id="fab-btn" data-i18n-title="fab_add_transaction" title="Προσθήκη Συναλλαγής" onclick="openAddTransactionModal()">
         <i class="fa-solid fa-plus"></i>
       </button>
 
@@ -1528,7 +1528,7 @@
                 data-i18n="item_user_guide">Οδηγός Χρήσης</h3>
               <div
                 style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; font-family: 'Outfit', sans-serif;">
-                <span id="user-guide-version-badge" style="font-size:10px; background:rgba(99,102,241,0.15); color:var(--primary); padding:2px 8px; border-radius:10px; font-weight:700; border:1px solid rgba(99,102,241,0.3);">v1339</span>
+                <span id="user-guide-version-badge" style="font-size:10px; background:rgba(99,102,241,0.15); color:var(--primary); padding:2px 8px; border-radius:10px; font-weight:700; border:1px solid rgba(99,102,241,0.3);">v1340</span>
                 <span>•</span>
                 <span id="user-guide-date-badge" data-i18n="user_guide_date_badge">Αύγουστος 2026</span>
               </div>
@@ -2374,7 +2374,7 @@
                   <button type="button" class="emoji-rate-btn" data-rate="5" title="Love it">&#x1F60D;</button>
                 </div>
                 <div id="emoji-rate-label" class="emoji-rate-label"
-                  style="text-align: center; margin-top: 10px; font-size: 13px; font-weight: 700; color: var(--accent); min-height: 18px; opacity: 0; transition: opacity 0.2s;">
+                  style="text-align: center; margin-top: 10px; font-size: 13.5px; font-weight: 800; color: var(--accent); min-height: 20px; opacity: 0; transition: opacity 0.2s;">
                 </div>
               </div>
 
@@ -2560,7 +2560,7 @@
             <div class="settings-list-item version-info-row"
               style="padding: 14px 16px; background: transparent; border-top: 1px solid var(--border); margin-top: 8px;">
               <span class="settings-item-label" style="color:var(--text-muted); font-size:12px;"
-                data-i18n="app_version">Έκδοση 1.0.0 (build v1339)</span>
+                data-i18n="app_version">Έκδοση 1.0.0 (build v1340)</span>
               <span class="settings-item-value" style="font-size:12px; color:var(--text-muted); font-weight:600;">Budget
                 Assistant</span>
             </div>
@@ -2612,54 +2612,60 @@
 
           <!-- Plan card -->
           <div
-            style="padding:16px; border-radius:14px; background:var(--bg-card); border:1px solid var(--border); margin-bottom:14px;">
-            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
-              <span style="font-weight:700; font-size:16px; color:var(--text-primary);"
-                data-i18n="premium_plan_name">Premium
-                Lifetime</span>
-              <span style="font-size:20px; font-weight:800; color:#ffc107;">9,99 €</span>
+            style="padding: 20px; border-radius: 18px; background: linear-gradient(145deg, rgba(245,158,11,0.08) 0%, rgba(22,28,42,0.95) 100%); border: 1px solid rgba(245,158,11,0.25); box-shadow: 0 10px 30px rgba(0,0,0,0.35); margin-bottom: 16px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <div style="width: 28px; height: 28px; border-radius: 8px; background: linear-gradient(135deg, #f59e0b, #d97706); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 13px;">
+                  <i class="fa-solid fa-crown"></i>
+                </div>
+                <span style="font-weight:800; font-size:16px; color:#fbbf24; font-family:'Outfit',sans-serif;"
+                  data-i18n="premium_plan_name">Premium Lifetime</span>
+              </div>
+              <span style="font-size:22px; font-weight:900; color:#fbbf24; font-family:'Outfit',sans-serif;">9,99 €</span>
             </div>
-            <div style="font-size:12px; color:var(--text-secondary); margin-bottom:12px;" data-i18n="premium_plan_desc">
-              Εφάπαξ
-              πληρωμή — ξεκλείδωσε για πάντα.</div>
+            <div style="font-size:12.5px; color:var(--text-secondary); margin-bottom:16px;" data-i18n="premium_plan_desc">
+              Εφάπαξ πληρωμή — ξεκλείδωσε για πάντα.</div>
 
             <!-- Features list -->
-            <div style="display:flex; flex-direction:column; gap:8px;">
-              <div style="display:flex; gap:8px; align-items:flex-start;">
-                <i class="fa-solid fa-check" style="color:#22c55e; font-size:13px; margin-top:2px;"></i>
-                <span style="font-size:13px; color:var(--text-primary);" data-i18n="premium_feat_family">Απεριόριστα
-                  μέλη
-                  οικογένειας (3+)</span>
+            <div style="display:flex; flex-direction:column; gap:10px; padding: 12px 14px; background: rgba(0,0,0,0.25); border-radius: 14px; border: 1px solid rgba(255,255,255,0.05);">
+              <div style="display:flex; gap:10px; align-items:center;">
+                <div style="width: 20px; height: 20px; border-radius: 50%; background: rgba(34,197,94,0.15); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                  <i class="fa-solid fa-check" style="color:#22c55e; font-size:11px;"></i>
+                </div>
+                <span style="font-size:13px; font-weight:600; color:var(--text-primary);" data-i18n="premium_feat_family">Απεριόριστα μέλη οικογένειας (3+)</span>
               </div>
-              <div style="display:flex; gap:8px; align-items:flex-start;">
-                <i class="fa-solid fa-check" style="color:#22c55e; font-size:13px; margin-top:2px;"></i>
-                <span style="font-size:13px; color:var(--text-primary);" data-i18n="premium_feat_cloud">Απεριόριστες
-                  cloud
-                  συναλλαγές</span>
+              <div style="display:flex; gap:10px; align-items:center;">
+                <div style="width: 20px; height: 20px; border-radius: 50%; background: rgba(34,197,94,0.15); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                  <i class="fa-solid fa-check" style="color:#22c55e; font-size:11px;"></i>
+                </div>
+                <span style="font-size:13px; font-weight:600; color:var(--text-primary);" data-i18n="premium_feat_cloud">Απεριόριστες cloud συναλλαγές</span>
               </div>
-              <div style="display:flex; gap:8px; align-items:flex-start;">
-                <i class="fa-solid fa-check" style="color:#22c55e; font-size:13px; margin-top:2px;"></i>
-                <span style="font-size:13px; color:var(--text-primary);" data-i18n="premium_feat_currency">Απεριόριστα
-                  νομίσματα</span>
+              <div style="display:flex; gap:10px; align-items:center;">
+                <div style="width: 20px; height: 20px; border-radius: 50%; background: rgba(34,197,94,0.15); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                  <i class="fa-solid fa-check" style="color:#22c55e; font-size:11px;"></i>
+                </div>
+                <span style="font-size:13px; font-weight:600; color:var(--text-primary);" data-i18n="premium_feat_currency">Απεριόριστα νομίσματα</span>
               </div>
-              <div style="display:flex; gap:8px; align-items:flex-start;">
-                <i class="fa-solid fa-check" style="color:#22c55e; font-size:13px; margin-top:2px;"></i>
-                <span style="font-size:13px; color:var(--text-primary);" data-i18n="premium_feat_budgets">Απεριόριστοι
-                  προϋπολογισμοί</span>
+              <div style="display:flex; gap:10px; align-items:center;">
+                <div style="width: 20px; height: 20px; border-radius: 50%; background: rgba(34,197,94,0.15); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                  <i class="fa-solid fa-check" style="color:#22c55e; font-size:11px;"></i>
+                </div>
+                <span style="font-size:13px; font-weight:600; color:var(--text-primary);" data-i18n="premium_feat_budgets">Απεριόριστοι προϋπολογισμοί</span>
               </div>
-              <div style="display:flex; gap:8px; align-items:flex-start;">
-                <i class="fa-solid fa-check" style="color:#22c55e; font-size:13px; margin-top:2px;"></i>
-                <span style="font-size:13px; color:var(--text-primary);" data-i18n="premium_feat_ai">AI Σύμβουλος με
-                  αυξημένο όριο (50/μήνα)</span>
+              <div style="display:flex; gap:10px; align-items:center;">
+                <div style="width: 20px; height: 20px; border-radius: 50%; background: rgba(34,197,94,0.15); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                  <i class="fa-solid fa-check" style="color:#22c55e; font-size:11px;"></i>
+                </div>
+                <span style="font-size:13px; font-weight:600; color:var(--text-primary);" data-i18n="premium_feat_ai">AI Σύμβουλος με αυξημένο όριο (50/μήνα)</span>
               </div>
             </div>
           </div>
 
           <!-- Purchase button (web) -->
           <button id="premium-purchase-btn" type="button" class="btn btn-primary"
-            style="width:100%; padding:14px; font-size:15px; font-weight:700; background:linear-gradient(135deg,#ffc107,#ff9800); color:#181b22; border:none; border-radius:12px;"
+            style="width:100%; padding:15px; font-size:15px; font-weight:800; font-family:'Outfit',sans-serif; background:linear-gradient(135deg,#f59e0b,#d97706); color:#ffffff; border:none; border-radius:14px; box-shadow: 0 4px 16px rgba(245,158,11,0.4); display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer;"
             onclick="startPremiumPurchase()">
-            <i class="fa-solid fa-crown" style="margin-right:6px;"></i>
+            <i class="fa-solid fa-crown"></i>
             <span data-i18n="premium_buy_btn">Αγορά για 9,99 €</span>
           </button>
 
@@ -5230,7 +5236,7 @@
           // OTA updates. Running both would cause a reload loop that never
           // baked into the APK and never changes on a plain reload).
           // ============================================================
-          const CURRENT_BUILD = 1339;
+          const CURRENT_BUILD = 1340;
           (function () {
             // Skip entirely when running inside the native APK (Capacitor bridge
             // present). Capgo handles OTA updates there.
@@ -6062,11 +6068,11 @@
       <script src="js/translations.js"></script>
       <!-- Local receipt photo storage (IndexedDB; extracted from app.js; loaded before app.js) -->
       <script src="js/receiptStorage.js"></script>
-      <script src="app.js?v=1339"></script>
+      <script src="app.js?v=1340"></script>
       <!-- Desktop Web UX Layer (defer so it runs after app.js; invoked via
        initDesktopUI() hook at the end of initApp()). Self-guards on
        html.web-mode so native Android/iOS is never affected. -->
-      <script src="web-ui.js?v=1339" defer></script>
+      <script src="web-ui.js?v=1340" defer></script>
 
       <!-- MODAL: TYPE-TO-CONFIRM (for destructive actions) -->
       <div id="type-confirm-modal" class="modal-overlay" style="z-index: 2147483647;">
