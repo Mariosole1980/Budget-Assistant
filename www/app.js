@@ -1774,6 +1774,7 @@ async function initApp() {
   initPullToRefresh();
   initSwipeToBack();
   initTabSwipeNavigation();
+  resetAllTabScreenStyles();
   initRippleEffects();
   initLightboxPinchZoom();
 
@@ -14936,20 +14937,21 @@ function initSwipeToBack() {
     return false;
   }
 
-  // --- Interactive drag-to-go-back gesture ---
-  let currentScreen = null;
-  let prevScreen = null;
+  // --- Interactive drag-to-go-back gesture (overlays/modals only) ---
   let screenWidth = 0;
 
   document.addEventListener('touchstart', (e) => {
-    if (_isTabSwipeAnimating) { bsActive = false; return; }
-    // Check if touch starts in scrollable elements to ignore
+    // Only handle swipe back gesture when an overlay/modal/sheet is actively open!
+    if (!hasActiveOverlay() || hasFullScreenModalActive()) {
+      bsActive = false;
+      return;
+    }
+
     if (e.target.closest('#trans-photo-previews-list, .lightbox-zoom-container, #statsChart, canvas')) {
       bsActive = false;
       return;
     }
 
-    // Also ignore if lightbox is zoomed in
     const img = document.getElementById('photo-lightbox-img');
     const isZoomed = img && parseFloat(img.dataset.scale || '1') > 1;
     if (isZoomed) {
@@ -14963,43 +14965,20 @@ function initSwipeToBack() {
     bsSwiping = null;
     bsDragging = false;
 
-    // A full-screen modal (e.g. the transaction modal) fills the whole screen and
-    // has no visible background to reveal, so disable the edge swipe-back entirely
-    // while one is open — otherwise swiping from the left edge drags the whole
-    // modal away, which is jarring and feels like a bug.
-    if (hasFullScreenModalActive()) {
-      bsActive = false;
-      return;
-    }
+    // Allow swipe back starting from the left 150px of an active overlay
+    bsActive = bsStartX <= 150;
 
-    // If an overlay/modal is active, allow swiping back starting from the left 150px
-    // If no overlay is active, only allow starting from the left 60px
-    const activeZone = hasActiveOverlay() ? 150 : 60;
-    // On the 'more' tab, disable the in-app custom edge-swipe-back ONLY when no
-    // overlay/subscreen is open, so it does not conflict with Android's native back
-    // gesture on the plain hub screen (which caused jitter). When a subscreen card
-    // IS open (overlay active), keep the in-app swipe-back enabled so the card
-    // slides away smoothly with a native feel instead of closing abruptly.
-    if (state.activeTab === 'more' && !hasActiveOverlay()) {
-      bsActive = false;
-    } else {
-      bsActive = bsStartX <= activeZone;
-    }
-
-    currentScreen = null;
-    prevScreen = null;
     screenWidth = window.innerWidth;
     activeOverlayEl = null;
     activeOverlayParent = null;
   }, { passive: true });
 
   document.addEventListener('touchmove', (e) => {
-    if (!bsActive) return;
+    if (!bsActive || !hasActiveOverlay()) return;
     const touch = e.touches[0];
     const dx = touch.clientX - bsStartX;
     const dy = touch.clientY - bsStartY;
 
-    // Determine if this is a horizontal swipe
     if (bsSwiping === null) {
       if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
         bsSwiping = Math.abs(dx) > Math.abs(dy) && dx > 0;
@@ -15012,110 +14991,37 @@ function initSwipeToBack() {
     const clampedDx = Math.max(0, Math.min(dx, screenWidth));
     const progress = clampedDx / screenWidth;
 
-    // If there are overlays active, slide the active overlay horizontally
-    if (hasActiveOverlay()) {
-      if (!bsDragging) {
-        bsDragging = true;
-        window._swipeBackDragging = true;
-        activeOverlayEl = getActiveOverlayElement();
-        if (activeOverlayEl) {
-          activeOverlayParent = activeOverlayEl.closest('.modal-overlay, .tx-modal-overlay') || activeOverlayEl;
-          activeOverlayEl.style.transition = 'none';
-          activeOverlayEl.style.willChange = 'transform';
-          if (activeOverlayParent) {
-            activeOverlayParent.style.transition = 'none';
-            activeOverlayParent.style.willChange = 'opacity';
-          }
-        }
-      }
-
-      if (activeOverlayEl) {
-        activeOverlayEl.style.transform = `translateX(${clampedDx}px)`;
-        if (activeOverlayParent) {
-          activeOverlayParent.style.opacity = String(1 - progress * 0.5);
-        }
-      }
-      return;
-    }
-
-    // Start drag: set up screens for interactive slide (when no overlays)
     if (!bsDragging) {
       bsDragging = true;
       window._swipeBackDragging = true;
-      const currentTabIdx = TAB_ORDER.indexOf(state.activeTab);
-      currentScreen = document.getElementById(`${state.activeTab}-screen`);
-
-      if (currentTabIdx > 0) {
-        const prevTabName = TAB_ORDER[currentTabIdx - 1];
-        prevScreen = document.getElementById(`${prevTabName}-screen`);
-
-        // Prepare prev screen: show it behind current, shifted left
-        if (prevScreen) {
-          prevScreen.style.display = 'block';
-          prevScreen.style.visibility = 'visible';
-          prevScreen.classList.remove('active', 'slide-out-left', 'slide-out-right', 'slide-in-left', 'slide-in-right');
-          prevScreen.style.position = 'absolute';
-          prevScreen.style.top = '0';
-          prevScreen.style.left = '0';
-          prevScreen.style.width = '100%';
-          prevScreen.style.zIndex = '1';
-          prevScreen.style.transform = 'translateX(-30%)';
-          prevScreen.style.transition = 'none';
+      activeOverlayEl = getActiveOverlayElement();
+      if (activeOverlayEl) {
+        activeOverlayParent = activeOverlayEl.closest('.modal-overlay, .tx-modal-overlay') || activeOverlayEl;
+        activeOverlayEl.style.transition = 'none';
+        activeOverlayEl.style.willChange = 'transform';
+        if (activeOverlayParent) {
+          activeOverlayParent.style.transition = 'none';
+          activeOverlayParent.style.willChange = 'opacity';
         }
       }
+    }
 
-      if (currentScreen) {
-        currentScreen.style.position = 'absolute';
-        currentScreen.style.top = '0';
-        currentScreen.style.left = '0';
-        currentScreen.style.width = '100%';
-        currentScreen.style.zIndex = '5';
-        currentScreen.style.transition = 'none';
-        currentScreen.style.willChange = 'transform';
+    if (activeOverlayEl) {
+      activeOverlayEl.style.transform = `translateX(${clampedDx}px)`;
+      if (activeOverlayParent) {
+        activeOverlayParent.style.opacity = String(1 - progress * 0.5);
       }
     }
-
-    // Move current screen with finger
-    if (currentScreen) {
-      currentScreen.style.transform = `translateX(${clampedDx}px)`;
-      currentScreen.style.opacity = String(1 - progress * 0.3);
-    }
-    if (prevScreen) {
-      // Prev screen parallax: from -30% to 0%
-      const prevOffset = -30 + (progress * 30);
-      prevScreen.style.transform = `translateX(${prevOffset}%)`;
-      prevScreen.style.opacity = String(0.6 + progress * 0.4);
-    }
   }, { passive: false });
-
-  function cleanupDragStyles(screen) {
-    if (!screen) return;
-    screen.style.position = '';
-    screen.style.top = '';
-    screen.style.left = '';
-    screen.style.width = '';
-    screen.style.zIndex = '';
-    screen.style.transition = '';
-    screen.style.transform = '';
-    screen.style.opacity = '';
-    screen.style.willChange = '';
-  }
 
   function finishDrag(committed) {
     if (!bsDragging) return;
 
-    // Capture screen references immediately in local variables to avoid race conditions
-    // with touchstart resetting outer scope variables before our timeout runs.
-    const currScreen = currentScreen;
-    const pScreen = prevScreen;
     const activeEl = activeOverlayEl;
     const parentEl = activeOverlayParent;
 
-    // Reset outer references immediately
     activeOverlayEl = null;
     activeOverlayParent = null;
-    currentScreen = null;
-    prevScreen = null;
     bsDragging = false;
     window._swipeBackDragging = false;
 
@@ -15143,72 +15049,6 @@ function initSwipeToBack() {
           cleanupOverlayStyles(activeEl, parentEl);
         }, 210);
       }
-      return;
-    }
-
-    const currentTabIdx = TAB_ORDER.indexOf(state.activeTab);
-
-    if (committed && currentTabIdx > 0) {
-      // Animate current screen off to the right
-      const dur = '0.22s';
-      if (currScreen) {
-        currScreen.style.transition = `transform ${dur} cubic-bezier(0.2, 0.8, 0.3, 1), opacity ${dur} ease`;
-        currScreen.style.transform = `translateX(${screenWidth}px)`;
-        currScreen.style.opacity = '0';
-      }
-      if (pScreen) {
-        pScreen.style.transition = `transform ${dur} cubic-bezier(0.2, 0.8, 0.3, 1), opacity ${dur} ease`;
-        pScreen.style.transform = 'translateX(0)';
-        pScreen.style.opacity = '1';
-      }
-
-      _isTabSwipeAnimating = true;
-      setTimeout(() => {
-        const prevTabName = TAB_ORDER[currentTabIdx - 1];
-        resetAllTabScreenStyles();
-        switchTab(prevTabName, true);
-        _isTabSwipeAnimating = false;
-      }, 230);
-    } else if (committed && currentTabIdx === 0) {
-      // On trans tab - snap back instead of exiting
-      const dur = '0.2s';
-      if (currScreen) {
-        currScreen.style.transition = `transform ${dur} cubic-bezier(0.2, 0.8, 0.3, 1), opacity ${dur} ease`;
-        currScreen.style.transform = 'translateX(0)';
-        currScreen.style.opacity = '1';
-      }
-      setTimeout(() => {
-        resetAllTabScreenStyles();
-        _isTabSwipeAnimating = false;
-      }, 210);
-    } else {
-      // Snap back - not committed
-      const dur = '0.2s';
-      if (currScreen) {
-        currScreen.style.transition = `transform ${dur} cubic-bezier(0.2, 0.8, 0.3, 1), opacity ${dur} ease`;
-        currScreen.style.transform = 'translateX(0)';
-        currScreen.style.opacity = '1';
-      }
-      if (pScreen) {
-        pScreen.style.transition = `transform ${dur} cubic-bezier(0.2, 0.8, 0.3, 1), opacity ${dur} ease`;
-        pScreen.style.transform = 'translateX(-30%)';
-        pScreen.style.opacity = '0.6';
-      }
-
-      setTimeout(() => {
-        cleanupDragStyles(currScreen);
-        if (currScreen) {
-          currScreen.style.display = '';
-          currScreen.style.visibility = '';
-          currScreen.classList.add('active');
-        }
-        if (pScreen) {
-          pScreen.style.display = 'none';
-          pScreen.style.visibility = 'hidden';
-          pScreen.classList.remove('active');
-          cleanupDragStyles(pScreen);
-        }
-      }, 210);
     }
   }
 
@@ -15225,14 +15065,10 @@ function initSwipeToBack() {
     bsActive = false; bsSwiping = null;
 
     if (bsDragging) {
-      // For drag: commit if past threshold
       const committed = dx >= screenWidth * COMMIT_RATIO;
       finishDrag(committed);
-    } else if (dx >= 72) {
-      // Quick swipe past threshold without full drag (overlay mode)
-      triggerBackAction();
     }
-  }, { passive: true });
+  }, { passive: false });
 
   document.addEventListener('touchcancel', () => {
     if (bsDragging) finishDrag(false);
@@ -31350,9 +31186,9 @@ const USER_GUIDE_DATA = {
       {
         id: 'changelog',
         icon: 'fa-box-archive',
-        title: '1. Version & What\'s New (v1344)',
+        title: '1. Version & What\'s New (v1345)',
         content: `
-          <p><strong>Guide Version:</strong> v1344 | <strong>Synchronized App Version:</strong> v1344</p>
+          <p><strong>Guide Version:</strong> v1345 | <strong>Synchronized App Version:</strong> v1345</p>
           <div class="guide-feature-box">
             <h5 style="margin:0 0 6px; color:var(--primary);">✨ What's new in the latest version:</h5>
             <ul style="margin:0; padding-left:18px;">
