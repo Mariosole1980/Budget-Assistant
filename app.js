@@ -8808,6 +8808,14 @@ function setupEventListeners() {
 // to the viewport. It is idempotent and safe to call before showing any overlay.
 function ensureOverlayInBody(el) {
   if (!el || !el.id) return;
+  // Guard: ONLY move top-level overlay containers, NEVER inner children or inputs
+  const isOverlay = el.classList.contains('modal-overlay') ||
+    el.classList.contains('auth-overlay') ||
+    el.classList.contains('tx-modal-overlay') ||
+    el.id === 'lock-screen' ||
+    el.id === 'search-overlay';
+  if (!isOverlay) return;
+
   try {
     if (el.parentElement !== document.body) {
       document.body.appendChild(el);
@@ -8833,11 +8841,11 @@ const FULLSCREEN_OVERLAY_IDS = [
   'settings-subscreen-modal'
 ];
 
-// Self-healing startup check: move any modal or overlay that is currently
+// Self-healing startup check: move any top-level overlay that is currently
 // nested inside .app-container directly under <body>.
 function initOverlayPlacement() {
   try {
-    document.querySelectorAll('.modal-overlay, .auth-overlay, .tx-modal-overlay, [id$="-modal"], [id*="modal"]').forEach(el => {
+    document.querySelectorAll('.modal-overlay, .auth-overlay, .tx-modal-overlay, #lock-screen, #search-overlay').forEach(el => {
       ensureOverlayInBody(el);
     });
   } catch (e) {
