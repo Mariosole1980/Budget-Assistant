@@ -23765,14 +23765,82 @@ function selectPresetAvatar(id) {
   updateHeaderProfileBadge();
 }
 
-function triggerAvatarUpload() {
+function triggerAvatarUpload(e) {
+  if (e) {
+    if (typeof e.stopPropagation === 'function') e.stopPropagation();
+    if (typeof e.preventDefault === 'function') e.preventDefault();
+  }
   const fileInput = document.getElementById('profile-avatar-file-input');
-  if (fileInput) fileInput.click();
+  if (fileInput) {
+    fileInput.value = '';
+    fileInput.click();
+  }
 }
+window.triggerAvatarUpload = triggerAvatarUpload;
+
+function openAvatarViewerModal() {
+  const email = state.currentUser ? (state.currentUser.email || '') : '';
+  const avatarType = localStorage.getItem('avatar_type_' + email) || 'initials';
+  const customData = localStorage.getItem('avatar_custom_data_' + email);
+  const presetId = localStorage.getItem('avatar_preset_id_' + email);
+
+  const preview = document.getElementById('avatar-viewer-large-preview');
+  const deleteBtn = document.getElementById('avatar-viewer-delete-btn');
+
+  if (preview) {
+    preview.className = '';
+    preview.style.background = '';
+    preview.innerHTML = '';
+
+    if (avatarType === 'custom' && customData) {
+      preview.innerHTML = `<img src="${customData}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`;
+      if (deleteBtn) deleteBtn.style.display = 'flex';
+    } else if (avatarType === 'preset' && presetId) {
+      preview.className = 'preset-' + presetId;
+      preview.innerHTML = `<i class="fa-solid fa-user" style="font-size:48px;"></i>`;
+      if (deleteBtn) deleteBtn.style.display = 'flex';
+    } else {
+      let initials = 'BA';
+      if (state.userProfile && state.userProfile.display_name) {
+        initials = state.userProfile.display_name.substring(0, 2).toUpperCase();
+      } else if (email) {
+        initials = email.substring(0, 2).toUpperCase();
+      }
+      preview.style.background = 'linear-gradient(135deg, #7c6af7, #5a48e8)';
+      preview.textContent = initials;
+      if (deleteBtn) deleteBtn.style.display = 'none';
+    }
+  }
+
+  openModal('avatar-viewer-modal');
+}
+window.openAvatarViewerModal = openAvatarViewerModal;
+
+function triggerAvatarUploadFromViewer() {
+  closeModal('avatar-viewer-modal');
+  setTimeout(() => {
+    triggerAvatarUpload();
+  }, 200);
+}
+window.triggerAvatarUploadFromViewer = triggerAvatarUploadFromViewer;
+
+function deleteCustomAvatar() {
+  if (!state.currentUser) return;
+  const email = state.currentUser.email || '';
+  localStorage.removeItem('avatar_type_' + email);
+  localStorage.removeItem('avatar_custom_data_' + email);
+  localStorage.removeItem('avatar_preset_id_' + email);
+
+  updateProfileSheetAvatarPreview();
+  updateHeaderProfileBadge();
+  closeModal('avatar-viewer-modal');
+  showSyncToast(state.lang === 'el' ? '✓ Η φωτογραφία αφαιρέθηκε' : '✓ Photo removed', 2000);
+}
+window.deleteCustomAvatar = deleteCustomAvatar;
 
 function handleCustomAvatarUpload(e) {
   if (!state.currentUser) return;
-  const file = e.target.files[0];
+  const file = e.target.files && e.target.files[0];
   if (!file) return;
 
   const reader = new FileReader();
@@ -23783,6 +23851,7 @@ function handleCustomAvatarUpload(e) {
 
     updateProfileSheetAvatarPreview();
     updateHeaderProfileBadge();
+    showSyncToast(state.lang === 'el' ? '✓ Η φωτογραφία ενημερώθηκε' : '✓ Photo updated', 2000);
   };
   reader.readAsDataURL(file);
 }
@@ -31029,9 +31098,9 @@ const USER_GUIDE_DATA = {
       {
         id: 'changelog',
         icon: 'fa-box-archive',
-        title: '1. Version & What\'s New (v1350)',
+        title: '1. Version & What\'s New (v1352)',
         content: `
-          <p><strong>Guide Version:</strong> v1350 | <strong>Synchronized App Version:</strong> v1350</p>
+          <p><strong>Guide Version:</strong> v1352 | <strong>Synchronized App Version:</strong> v1352</p>
           <div class="guide-feature-box">
             <h5 style="margin:0 0 6px; color:var(--primary);">✨ What's new in the latest version:</h5>
             <ul style="margin:0; padding-left:18px;">

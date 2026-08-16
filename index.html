@@ -74,7 +74,7 @@
               ${devButton}
             </div>
             <div style="font-size:11px;color:#8b949e;">
-              Budget Assistant • build v1350
+              Budget Assistant • build v1352
             </div>
           </div>
         `;
@@ -164,7 +164,7 @@
   <!-- Desktop Web UX Layer (loaded AFTER style.css so it can override).
        All rules are scoped behind html.web-mode, so Android/iOS native
        (Capacitor) layout is never affected. -->
-  <link rel="stylesheet" href="desktop.css?v=1350" id="desktop-stylesheet">
+  <link rel="stylesheet" href="desktop.css?v=1352" id="desktop-stylesheet">
 
   <!-- Capacitor Bridge
        NOTE: The native Capacitor runtime injects its bridge JS automatically into
@@ -1528,7 +1528,7 @@
                 data-i18n="item_user_guide">Οδηγός Χρήσης</h3>
               <div
                 style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; font-family: 'Outfit', sans-serif;">
-                <span id="user-guide-version-badge" style="font-size:10px; background:rgba(99,102,241,0.15); color:var(--primary); padding:2px 8px; border-radius:10px; font-weight:700; border:1px solid rgba(99,102,241,0.3);">v1350</span>
+                <span id="user-guide-version-badge" style="font-size:10px; background:rgba(99,102,241,0.15); color:var(--primary); padding:2px 8px; border-radius:10px; font-weight:700; border:1px solid rgba(99,102,241,0.3);">v1352</span>
                 <span>•</span>
                 <span id="user-guide-date-badge" data-i18n="user_guide_date_badge">Αύγουστος 2026</span>
               </div>
@@ -2541,7 +2541,7 @@
             <div class="settings-list-item version-info-row"
               style="padding: 14px 16px; background: transparent; border-top: 1px solid var(--border); margin-top: 8px;">
               <span class="settings-item-label" style="color:var(--text-muted); font-size:12px;"
-                data-i18n="app_version">Έκδοση 1.0.0 (build v1350)</span>
+                data-i18n="app_version">Έκδοση 1.0.0 (build v1352)</span>
               <span class="settings-item-value" style="font-size:12px; color:var(--text-muted); font-weight:600;">Budget
                 Assistant</span>
             </div>
@@ -4935,8 +4935,8 @@
           <!-- Hero Card: Avatar, Name, Email, Role -->
           <div class="profile-hero-card">
             <div class="profile-avatar-container">
-              <div id="profile-sheet-avatar-preview" class="profile-sheet-avatar"></div>
-              <div class="profile-avatar-edit-badge" onclick="triggerAvatarUpload()"
+              <div id="profile-sheet-avatar-preview" class="profile-sheet-avatar" onclick="openAvatarViewerModal()" style="cursor: pointer;" title="Προβολή φωτογραφίας"></div>
+              <div class="profile-avatar-edit-badge" onclick="event.stopPropagation(); triggerAvatarUpload(event)"
                 data-i18n-title="profile_change_photo" title="Αλλαγή φωτογραφίας">
                 <i class="fa-solid fa-camera"></i>
               </div>
@@ -5167,6 +5167,42 @@
         </div>
       </div>
     </div>
+
+    <!-- ============================================== -->
+    <!-- MODAL: AVATAR VIEWER & MANAGEMENT              -->
+    <!-- ============================================== -->
+    <div id="avatar-viewer-modal" class="modal-overlay" style="z-index: 10005;">
+      <div class="modal-content"
+        style="max-width: 360px; width: 92%; border-radius: 24px; padding: 24px 20px; text-align: center; background: var(--bg-card); border: 1px solid var(--border); box-shadow: 0 16px 48px rgba(0,0,0,0.6); display: flex; flex-direction: column; align-items: center; gap: 18px; box-sizing: border-box;">
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+          <span style="font-size: 15px; font-weight: 800; color: var(--text-primary); font-family: 'Outfit', sans-serif;"
+            data-i18n="avatar_modal_title">Φωτογραφία Προφίλ</span>
+          <button type="button" onclick="closeModal('avatar-viewer-modal')"
+            style="background: rgba(255,255,255,0.06); border: 1px solid var(--border); color: var(--text-muted); width: 30px; height: 30px; border-radius: 8px; font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center;">✕</button>
+        </div>
+
+        <!-- Large Avatar Display Circle -->
+        <div id="avatar-viewer-large-preview"
+          style="width: 140px; height: 140px; border-radius: 50%; overflow: hidden; display: flex; align-items: center; justify-content: center; border: 3px solid var(--accent); box-shadow: 0 8px 24px rgba(0,0,0,0.4); background: rgba(255,255,255,0.05); font-size: 48px; font-weight: 800; color: white;">
+          <!-- Image or initials injected dynamically -->
+        </div>
+
+        <!-- Actions -->
+        <div style="display: flex; flex-direction: column; gap: 10px; width: 100%; margin-top: 6px;">
+          <button type="button" class="btn btn-primary" onclick="triggerAvatarUploadFromViewer()"
+            style="width: 100%; padding: 12px; border-radius: 12px; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer;">
+            <i class="fa-solid fa-camera"></i> <span data-i18n="btn_change_photo">Αντικατάσταση Φωτογραφίας</span>
+          </button>
+          
+          <button type="button" id="avatar-viewer-delete-btn" class="btn btn-secondary" onclick="deleteCustomAvatar()"
+            style="width: 100%; padding: 12px; border-radius: 12px; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; color: #ef4444; border: 1px solid rgba(239,68,68,0.3); background: rgba(239,68,68,0.1); cursor: pointer;">
+            <i class="fa-solid fa-trash-can"></i> <span data-i18n="btn_delete_photo">Διαγραφή Φωτογραφίας</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- ============================================================ -->
     <!-- MODAL: MODERN CLOCK & TIME PICKER (APPLE & MATERIAL 3 DIAL)  -->
     <!-- ============================================================ -->
@@ -5274,7 +5310,7 @@
           // OTA updates. Running both would cause a reload loop that never
           // baked into the APK and never changes on a plain reload).
           // ============================================================
-          const CURRENT_BUILD = 1350;
+          const CURRENT_BUILD = 1352;
           (function () {
             // Skip entirely when running inside the native APK (Capacitor bridge
             // present). Capgo handles OTA updates there.
@@ -5988,12 +6024,6 @@
         </div>
 
         <div class="auth-card" id="auth-card">
-          <!-- Close Button for dismissing auth modal when in guest mode -->
-          <button type="button" class="modal-close" onclick="closeAuth()"
-            style="position: absolute; top: 16px; left: 16px; font-size: 16px; color: var(--text-muted); cursor: pointer; border: 1px solid var(--border, rgba(255,255,255,0.1)); background: rgba(255,255,255,0.06); border-radius: 10px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; z-index: 20;"
-            title="Κλείσιμο">
-            ✕
-          </button>
           <div id="auth-forms-container">
             <!-- Language Selector -->
             <div class="auth-lang-selector">
@@ -6106,11 +6136,11 @@
       <script src="js/translations.js"></script>
       <!-- Local receipt photo storage (IndexedDB; extracted from app.js; loaded before app.js) -->
       <script src="js/receiptStorage.js"></script>
-      <script src="app.js?v=1350"></script>
+      <script src="app.js?v=1352"></script>
       <!-- Desktop Web UX Layer (defer so it runs after app.js; invoked via
        initDesktopUI() hook at the end of initApp()). Self-guards on
        html.web-mode so native Android/iOS is never affected. -->
-      <script src="web-ui.js?v=1350" defer></script>
+      <script src="web-ui.js?v=1352" defer></script>
 
       <!-- MODAL: TYPE-TO-CONFIRM (for destructive actions) -->
       <div id="type-confirm-modal" class="modal-overlay" style="z-index: 2147483647;">
