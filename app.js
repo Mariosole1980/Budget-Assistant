@@ -18004,80 +18004,14 @@ function initTabSwipeNavigation() {
     return peek;
   }
 
-  function renderTransactionsTabPeek(container, selectedYear, selectedMonth) {
-    if (!container) return;
-    const monthStartDay = parseInt(localStorage.getItem('app_month_start') || '1', 10);
-    let start, end;
-    if (monthStartDay === 1) {
-      start = new Date(selectedYear, selectedMonth, 1, 0, 0, 0, 0);
-      end = new Date(selectedYear, selectedMonth + 1, 0, 23, 59, 59, 999);
-    } else {
-      start = new Date(selectedYear, selectedMonth, monthStartDay, 0, 0, 0, 0);
-      end = new Date(selectedYear, selectedMonth + 1, monthStartDay - 1, 23, 59, 59, 999);
-    }
-    const startISO = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-${String(start.getDate()).padStart(2, '0')}`;
-    const endISO = `${end.getFullYear()}-${String(end.getMonth() + 1).padStart(2, '0')}-${String(end.getDate()).padStart(2, '0')}`;
-
-    const walletTrans = getActiveTransactions();
-    const filteredTrans = walletTrans.filter(t => {
-      if (!t.date) return false;
-      const tDatePart = String(t.date).split('T')[0].split(' ')[0];
-      return tDatePart >= startISO && tDatePart <= endISO;
-    });
-
-    const displayCurrency = getDisplayCurrency();
-    const monthlyIncome = CurrencyService.sumInCurrency(filteredTrans.filter(t => t.type === 'income'), displayCurrency);
-    const monthlyExpense = CurrencyService.sumInCurrency(filteredTrans.filter(t => t.type === 'expense'), displayCurrency);
-
-    const label = `${getMonthName(selectedMonth, true)} ${selectedYear}`;
-    const sampleItems = filteredTrans.slice(0, 10);
-
-    let html = `
-      <div style="padding: 14px 16px; display: flex; flex-direction: column; gap: 10px;">
-        <div style="display: flex; justify-content: space-around; background: rgba(255,255,255,0.03); padding: 10px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.06);">
-          <div style="text-align: center;"><div style="font-size: 10px; color: var(--text-muted); font-weight: 700;">Εσοδα</div><div style="font-size: 12.5px; font-weight: 800; color: #10b981;">${getCurrencySymbol()} ${formatDisplayAmount(monthlyIncome, displayCurrency)}</div></div>
-          <div style="text-align: center;"><div style="font-size: 10px; color: var(--text-muted); font-weight: 700;">Εξοδα</div><div style="font-size: 12.5px; font-weight: 800; color: #f43f5e;">${getCurrencySymbol()} ${formatDisplayAmount(monthlyExpense, displayCurrency)}</div></div>
-          <div style="text-align: center;"><div style="font-size: 10px; color: var(--text-muted); font-weight: 700;">Υπολοιπο</div><div style="font-size: 12.5px; font-weight: 800; color: #3b82f6;">${getCurrencySymbol()} ${formatDisplayAmount(monthlyIncome - monthlyExpense, displayCurrency)}</div></div>
-        </div>
-        <div style="display: flex; flex-direction: column; gap: 8px;">
-    `;
-
-    if (sampleItems.length === 0) {
-      html += `<div style="text-align: center; padding: 30px 0; color: var(--text-muted); font-size: 13px;">Δεν υπάρχουν συναλλαγές</div>`;
-    } else {
-      sampleItems.forEach(t => {
-        const amt = CurrencyService.displayAmount(t, displayCurrency);
-        const isInc = t.type === 'income';
-        const color = isInc ? '#10b981' : '#f43f5e';
-        const prefix = isInc ? '+' : '-';
-        html += `
-          <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.05);">
-            <div style="display: flex; align-items: center; gap: 10px;">
-              <span style="font-size: 15px;">${t.category_icon || (isInc ? '💰' : '🛒')}</span>
-              <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">${t.category || t.note || 'Συναλλαγή'}</span>
-            </div>
-            <span style="font-size: 13.5px; font-weight: 800; color: ${color};">${prefix}${getCurrencySymbol()} ${formatDisplayAmount(amt, displayCurrency)}</span>
-          </div>
-        `;
-      });
-    }
-
-    html += `</div></div>`;
-    container.innerHTML = html;
-  }
-
-  // Render the incoming month's list into the peek container so it slides in
+  // Render the incoming month's label into the peek container so it slides in
   // from the opposite side as the user drags (native pager "peek").
   function renderPeek(direction) {
     const peek = getPeekContainer();
     if (!peek) return;
     const { year, month } = shiftMonth(state.selectedYear, state.selectedMonth, direction);
-    if (state.activeTab === 'trans') {
-      renderTransactionsTabPeek(peek, year, month);
-    } else {
-      const label = `${getMonthName(month, true)} ${year}`;
-      peek.innerHTML = `<div class="swipe-peek-placeholder">${label}</div>`;
-    }
+    const label = `${getMonthName(month, true)} ${year}`;
+    peek.innerHTML = `<div class="swipe-peek-placeholder"><i class="fa-solid fa-calendar-days" style="margin-right: 8px;"></i> ${label}</div>`;
     peekRendered = true;
   }
 
@@ -18150,9 +18084,7 @@ function initTabSwipeNavigation() {
   }
 
   // Commit the swipe: change the month IMMEDIATELY on finger lift, then slide
-  // the freshly-rendered list in from the opposite side. The old list is simply
-  // discarded (it's replaced by the new render), which removes the perceived
-  // "keeps changing after I lift my finger" lag.
+  // the freshly-rendered list in from the opposite side.
   function commitSwipe(direction) {
     animating = true;
     const width = window.innerWidth;
@@ -18172,8 +18104,6 @@ function initTabSwipeNavigation() {
         listEl.style.transform = '';
         listEl.style.opacity = '';
       }
-      // Reset the local animating flag — adjustStatsPeriod manages its own
-      // animation lifecycle via animateSwipeTransition.
       animating = false;
       peekRendered = false;
       swipeDirection = 0;
@@ -18187,22 +18117,15 @@ function initTabSwipeNavigation() {
     state.selectedMonth = shifted.month;
     syncStatsDate();
 
-    // The peek container already holds the fully-rendered next month (built
-    // during the drag in renderPeek). Move its DOM into the main list with a
-    // fast node move (replaceChildren) instead of re-rendering synchronously —
-    // re-rendering a month with hundreds of transactions blocks the main thread
-    // and causes the "stick" on finger lift. This keeps the commit instant.
-    if (peek && peek.childNodes.length > 0 && listEl) {
-      listEl.replaceChildren(...peek.childNodes);
-      listEl._lastRenderSignature = null; // force a fresh signature on next render
-      peek.remove();
-      updateHeaderAndSync();
-      lastRenderedCategoryType = null;
-    } else {
-      // Fallback: peek wasn't available — do the normal (heavier) render.
-      if (peek) peek.remove();
-      renderTransactionsForSwipe();
+    // Remove peek container completely
+    if (peek) peek.remove();
+    peekRendered = false;
+
+    // Fully render the authentic transactions list for the new month
+    if (listEl) {
+      listEl._lastRenderSignature = null;
     }
+    renderTransactionsForSwipe();
     setTimeout(() => scrollToToday('auto'), 30);
 
     // Slide the freshly-rendered list in from the opposite side (snappy).
@@ -31704,9 +31627,9 @@ const USER_GUIDE_DATA = {
       {
         id: 'changelog',
         icon: 'fa-box-archive',
-        title: '1. Version & What\'s New (v1342)',
+        title: '1. Version & What\'s New (v1343)',
         content: `
-          <p><strong>Guide Version:</strong> v1342 | <strong>Synchronized App Version:</strong> v1342</p>
+          <p><strong>Guide Version:</strong> v1343 | <strong>Synchronized App Version:</strong> v1343</p>
           <div class="guide-feature-box">
             <h5 style="margin:0 0 6px; color:var(--primary);">✨ What's new in the latest version:</h5>
             <ul style="margin:0; padding-left:18px;">
