@@ -20138,20 +20138,45 @@ async function handlePasswordAuth(e) {
       });
       if (error) throw error;
     } else {
+      const redirectUrl = window.location.origin + window.location.pathname;
       const { data, error } = await state.supabaseClient.auth.signUp({
         email,
         password,
         options: {
+          emailRedirectTo: redirectUrl,
           data: {
             lang: state.lang
           }
         }
       });
-      if (error) throw error;
 
-      // If user is not logged in immediately (needs confirmation), show status
-      if (data && data.user && !data.session) {
-        showAuthStatus(TRANSLATIONS[state.lang]['auth_signup_success'], 'success');
+      if (error) {
+        const errMsg = (error.message || '').toLowerCase();
+        if (errMsg.includes('already registered') || errMsg.includes('already exists') || error.status === 422) {
+          showAuthStatus((TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_email_already_exists']) || '⚠️ Αυτό το email είναι ήδη εγγεγραμμένο. Παρακαλούμε συνδεθείτε με τον κωδικό σας ή πατήστε «Ξεχάσατε τον κωδικό σας;».', 'error');
+          setAuthMode('login');
+          return;
+        }
+        throw error;
+      }
+
+      // Check if user already exists (Supabase returns user object with identities: [] when email already exists)
+      const isExistingUser = data && data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0;
+      if (isExistingUser) {
+        showAuthStatus((TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_email_already_exists']) || '⚠️ Αυτό το email είναι ήδη εγγεγραμμένο. Παρακαλούμε συνδεθείτε με τον κωδικό σας ή πατήστε «Ξεχάσατε τον κωδικό σας;».', 'error');
+        setAuthMode('login');
+        return;
+      }
+
+      // If user is logged in immediately (email confirmation is off in Supabase)
+      if (data && data.session) {
+        showAuthStatus((TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_signup_instant_success']) || '🎉 Ο λογαριασμός δημιουργήθηκε και συνδεθήκατε επιτυχώς!', 'success');
+        return;
+      }
+
+      // If user is created but awaiting confirmation
+      if (data && data.user) {
+        showAuthStatus((TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_signup_success']) || '🎉 Η εγγραφή ολοκληρώθηκε! Ελέγξτε τα εισερχόμενά σας (και τα Ανεπιθύμητα/Spam) για το σύνδεσμο επιβεβαίωσης.', 'success');
       }
     }
   } catch (err) {
@@ -31098,9 +31123,9 @@ const USER_GUIDE_DATA = {
       {
         id: 'changelog',
         icon: 'fa-box-archive',
-        title: '1. Version & What\'s New (v1352)',
+        title: '1. Version & What\'s New (v1354)',
         content: `
-          <p><strong>Guide Version:</strong> v1352 | <strong>Synchronized App Version:</strong> v1352</p>
+          <p><strong>Guide Version:</strong> v1354 | <strong>Synchronized App Version:</strong> v1354</p>
           <div class="guide-feature-box">
             <h5 style="margin:0 0 6px; color:var(--primary);">✨ What's new in the latest version:</h5>
             <ul style="margin:0; padding-left:18px;">
