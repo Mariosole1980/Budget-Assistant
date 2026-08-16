@@ -74,7 +74,7 @@
               ${devButton}
             </div>
             <div style="font-size:11px;color:#8b949e;">
-              Budget Assistant • build v1330
+              Budget Assistant • build v1337
             </div>
           </div>
         `;
@@ -164,7 +164,7 @@
   <!-- Desktop Web UX Layer (loaded AFTER style.css so it can override).
        All rules are scoped behind html.web-mode, so Android/iOS native
        (Capacitor) layout is never affected. -->
-  <link rel="stylesheet" href="desktop.css?v=1330" id="desktop-stylesheet">
+  <link rel="stylesheet" href="desktop.css?v=1337" id="desktop-stylesheet">
 
   <!-- Capacitor Bridge
        NOTE: The native Capacitor runtime injects its bridge JS automatically into
@@ -370,9 +370,8 @@
     <!-- Top Header App Bar -->
     <header class="app-header">
       <div style="display: flex; align-items: center; gap: 8px;">
-        <h1 class="app-title" id="app-heading-title" style="margin: 0;">
-          <i class="fa-solid fa-wallet" id="header-wallet-icon"
-            style="color: var(--accent); transition: var(--transition);"></i>
+        <h1 class="app-title" id="app-heading-title" style="margin: 0; display: flex; align-items: center; gap: 10px;">
+          <img src="logo-mark.png" id="header-wallet-icon" class="header-app-logo" alt="Budget Assistant Logo" onerror="this.src='assets/logo/user_logo.png'">
           <span class="header-title-text">Budget Assistant</span>
         </h1>
       </div>
@@ -432,7 +431,7 @@
             <button class="icon-btn" id="trans-select-btn" title="Επιλογή" onclick="enterSelectionMode()">
               <i class="fa-solid fa-list-check" style="font-size: 15px;"></i>
             </button>
-            <button class="icon-btn" id="trans-search-btn" title="Αναζήτηση">
+            <button class="icon-btn" id="trans-search-btn" title="Αναζήτηση" onclick="openSearchOverlay()">
               <i class="fa-solid fa-magnifying-glass" style="font-size: 18px;"></i>
             </button>
           </div>
@@ -675,8 +674,8 @@
 
             <!-- Financial Health Score Card (NEW) -->
             <div class="fhs-card-container">
-              <div class="fhs-card">
-                <div class="fhs-help-icon" id="fhs-help-trigger">
+              <div class="fhs-card" onclick="openFinancialHealthModal('breakdown')" style="cursor: pointer;">
+                <div class="fhs-help-icon" id="fhs-help-trigger" onclick="event.stopPropagation(); openFinancialHealthModal('methodology')">
                   <i class="fa-regular fa-circle-question"></i>
                 </div>
                 <div class="fhs-glowing-bg"></div>
@@ -837,8 +836,8 @@
           <div class="profile-header-card"
             onclick="if(window.state && (window.state.guestMode || !window.state.currentUser)){ showAuthOverlay(); } else { openProfileSheet(); }"
             style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 16px; display: flex; align-items: center; gap: 16px; box-sizing: border-box; cursor: pointer;">
-            <div class="profile-avatar"
-              style="width: 50px; height: 50px; border-radius: 50%; background: linear-gradient(135deg, var(--accent) 0%, var(--blue-positive) 100%); display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 800; color: #fff; font-family: 'Outfit', sans-serif; flex-shrink: 0;">
+            <div class="profile-avatar" id="more-profile-avatar"
+              style="width: 50px; height: 50px; border-radius: 50%; background: linear-gradient(135deg, var(--accent) 0%, var(--blue-positive) 100%); display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 800; color: #fff; font-family: 'Outfit', sans-serif; flex-shrink: 0; background-size: cover; background-position: center; border: 2px solid rgba(56, 189, 248, 0.3);">
               <span id="profile-avatar-letters">MA</span>
             </div>
             <div style="display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0;">
@@ -937,7 +936,7 @@
               </div>
               <div style="display:flex; align-items:center; gap:8px;">
                 <span class="badge" id="hub-notes-count-badge"
-                  style="background:var(--accent); color:white; font-size:11px; padding:2px 8px; border-radius:10px; font-weight:700; display:none;">0</span>
+                  style="background:#f59e0b; color:#ffffff; font-size:11px; padding:2px 8px; border-radius:10px; font-weight:800; display:none;">0</span>
                 <i class="fa-solid fa-chevron-right" style="color:var(--text-muted);font-size:12px;"></i>
               </div>
             </div>
@@ -1529,7 +1528,7 @@
                 data-i18n="item_user_guide">Οδηγός Χρήσης</h3>
               <div
                 style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; font-family: 'Outfit', sans-serif;">
-                <span id="user-guide-version-badge" style="font-size:10px; background:rgba(99,102,241,0.15); color:var(--primary); padding:2px 8px; border-radius:10px; font-weight:700; border:1px solid rgba(99,102,241,0.3);">v1330</span>
+                <span id="user-guide-version-badge" style="font-size:10px; background:rgba(99,102,241,0.15); color:var(--primary); padding:2px 8px; border-radius:10px; font-weight:700; border:1px solid rgba(99,102,241,0.3);">v1337</span>
                 <span>•</span>
                 <span id="user-guide-date-badge" data-i18n="user_guide_date_badge">Αύγουστος 2026</span>
               </div>
@@ -2561,7 +2560,7 @@
             <div class="settings-list-item version-info-row"
               style="padding: 14px 16px; background: transparent; border-top: 1px solid var(--border); margin-top: 8px;">
               <span class="settings-item-label" style="color:var(--text-muted); font-size:12px;"
-                data-i18n="app_version">Έκδοση 1.0.0 (build v1330)</span>
+                data-i18n="app_version">Έκδοση 1.0.0 (build v1337)</span>
               <span class="settings-item-value" style="font-size:12px; color:var(--text-muted); font-weight:600;">Budget
                 Assistant</span>
             </div>
@@ -5122,10 +5121,12 @@
             </button>
           </div>
         </div>
-        <!-- ============================================================ -->
-        <!-- MODAL: MODERN CLOCK & TIME PICKER (APPLE & MATERIAL 3 DIAL)  -->
-        <!-- ============================================================ -->
-        <div id="modern-time-picker-modal" class="modal-overlay" style="z-index: 12000;"
+      </div>
+    </div>
+    <!-- ============================================================ -->
+    <!-- MODAL: MODERN CLOCK & TIME PICKER (APPLE & MATERIAL 3 DIAL)  -->
+    <!-- ============================================================ -->
+    <div id="modern-time-picker-modal" class="modal-overlay" style="z-index: 12000;"
           onclick="handleModernTimePickerOverlayClick(event)">
           <div class="modal-content modern-time-picker-card"
             style="max-width: 360px; width: 92%; border-radius: 28px; background: var(--bg-card, #161622); border: 1px solid var(--border, rgba(255,255,255,0.08)); padding: 22px 20px 20px 20px; box-shadow: 0 24px 60px rgba(0,0,0,0.65); display: flex; flex-direction: column; gap: 14px; align-items: center; box-sizing: border-box;">
@@ -5229,7 +5230,7 @@
           // OTA updates. Running both would cause a reload loop that never
           // baked into the APK and never changes on a plain reload).
           // ============================================================
-          const CURRENT_BUILD = 1330;
+          const CURRENT_BUILD = 1337;
           (function () {
             // Skip entirely when running inside the native APK (Capacitor bridge
             // present). Capgo handles OTA updates there.
@@ -5410,49 +5411,7 @@
           </div>
         </div>
 
-        <!-- MODAL: TYPE-TO-CONFIRM (for destructive actions) -->
-        <div id="type-confirm-modal" class="modal-overlay" style="z-index: 999998;">
-          <div class="modal-content"
-            style="max-width: 340px; text-align: center; border-radius: 20px; background: var(--bg-card); border: 1px solid var(--border); box-shadow: 0 10px 30px rgba(0,0,0,0.5); padding: 24px;">
-            <div id="type-confirm-icon" style="font-size: 40px; margin-bottom: 16px;">⚠️</div>
-            <h4 id="type-confirm-title"
-              style="font-weight: 700; margin-bottom: 8px; color: var(--text-main); font-size: 16px;">Επιβεβαίωση</h4>
-            <p id="type-confirm-message"
-              style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 16px; word-break: break-word;">
-            </p>
-            <input type="text" id="type-confirm-input" autocomplete="off" autocapitalize="characters"
-              style="font-size: 15px; text-align: center; letter-spacing: 2px; width: 100%; padding: 12px; margin-bottom: 8px; box-sizing: border-box; background: var(--bg-input, #000000); border: 1px solid var(--border); color: var(--text-main); border-radius: 10px; outline: none;">
-            <div id="type-confirm-hint"
-              style="font-size: 11.5px; color: var(--text-muted); margin-bottom: 16px; line-height: 1.4;"></div>
-            <div class="custom-dialog-buttons" style="display: flex; gap: 12px; justify-content: center; width: 100%;">
-              <button id="type-confirm-btn-cancel" class="btn btn-secondary"
-                style="flex: 1; padding: 12px; font-weight: 700; border-radius: 12px; border: 1px solid var(--border); background: var(--bg-main); font-size: 13px;">Ακύρωση</button>
-              <button id="type-confirm-btn-ok" class="btn btn-primary"
-                style="flex: 1; padding: 12px; font-weight: 700; border-radius: 12px; font-size: 13px; background-color: var(--red-negative, #ef4444); color: white; border: none;">Διαγραφή</button>
-            </div>
-          </div>
-        </div>
 
-        <!-- MODAL: PIN PROMPT (for destructive actions requiring PIN) -->
-        <div id="pin-prompt-modal" class="modal-overlay" style="z-index: 999998;">
-          <div class="modal-content"
-            style="max-width: 320px; text-align: center; border-radius: 20px; background: var(--bg-card); border: 1px solid var(--border); box-shadow: 0 10px 30px rgba(0,0,0,0.5); padding: 24px;">
-            <div id="pin-prompt-icon" style="font-size: 40px; margin-bottom: 16px;">🔒</div>
-            <h4 id="pin-prompt-title"
-              style="font-weight: 700; margin-bottom: 8px; color: var(--text-main); font-size: 16px;">Εισαγωγή PIN</h4>
-            <p id="pin-prompt-message"
-              style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 16px; word-break: break-word;">
-            </p>
-            <input type="password" id="pin-prompt-input" pattern="[0-9]*" inputmode="numeric" maxlength="4"
-              style="font-size: 24px; text-align: center; letter-spacing: 12px; width: 150px; padding: 8px; margin: 0 auto 16px auto; display: block; background: var(--bg-input, #000000); border: 1px solid var(--border); color: var(--text-main); border-radius: 8px; outline: none;">
-            <div class="custom-dialog-buttons" style="display: flex; gap: 12px; justify-content: center; width: 100%;">
-              <button id="pin-prompt-btn-cancel" class="btn btn-secondary"
-                style="flex: 1; padding: 12px; font-weight: 700; border-radius: 12px; border: 1px solid var(--border); background: var(--bg-main); font-size: 13px;">Ακύρωση</button>
-              <button id="pin-prompt-btn-ok" class="btn btn-primary"
-                style="flex: 1; padding: 12px; font-weight: 700; border-radius: 12px; font-size: 13px;">Επιβεβαίωση</button>
-            </div>
-          </div>
-        </div>
 
         <!-- MODAL: FINANCIAL HEALTH SCORE DETAILS -->
         <div id="fhs-details-modal" class="modal-overlay" style="z-index: 10008;">
@@ -5470,10 +5429,10 @@
             <!-- Modal Tabs -->
             <div class="fhs-modal-tabs"
               style="display: flex; border-bottom: 1px solid rgba(255, 255, 255, 0.08); background: rgba(255, 255, 255, 0.02);">
-              <button id="fhs-tab-breakdown" class="fhs-tab-btn active"
+              <button id="fhs-tab-breakdown" class="fhs-tab-btn active" onclick="showFhsTab('breakdown')"
                 style="flex: 1; padding: 14px; background: transparent; border: none; color: var(--text-primary); font-size: 12.5px; font-weight: 700; cursor: pointer; border-bottom: 2px solid var(--accent); outline: none;"
                 data-i18n="fhs_tab_breakdown">Ανάλυση</button>
-              <button id="fhs-tab-methodology" class="fhs-tab-btn"
+              <button id="fhs-tab-methodology" class="fhs-tab-btn" onclick="showFhsTab('methodology')"
                 style="flex: 1; padding: 14px; background: transparent; border: none; color: var(--text-secondary); font-size: 12.5px; font-weight: 600; cursor: pointer; outline: none;"
                 data-i18n="fhs_tab_methodology">Μεθοδολογία</button>
             </div>
@@ -5556,7 +5515,7 @@
                 </div>
 
                 <!-- Collapsible Explainability Section -->
-                <div class="fhs-collapsible-header" id="fhs-explain-trigger"
+                <div class="fhs-collapsible-header" id="fhs-explain-trigger" onclick="toggleFhsExplain()"
                   style="display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; background: rgba(255, 255, 255, 0.03); border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.08); margin-top: 16px; cursor: pointer; transition: all 0.2s; user-select: none;">
                   <span
                     style="font-weight: 800; font-size: 13px; color: var(--text-primary); letter-spacing: 0.5px; text-transform: uppercase;"
@@ -5978,7 +5937,9 @@
       <div id="auth-overlay" class="auth-overlay" style="display: none;">
         <!-- Loading State Overlay for OAuth redirects -->
         <div id="auth-loading-state" class="auth-redirect-loader" style="display: none;">
-          <div class="auth-redirect-logo"><i class="fa-solid fa-wallet"></i></div>
+          <div class="auth-redirect-logo">
+            <img src="logo-mark.png" alt="Logo" class="auth-brand-icon" onerror="this.src='assets/logo/user_logo.png'">
+          </div>
           <div class="auth-redirect-spinner"></div>
         </div>
 
@@ -5998,7 +5959,9 @@
             </div>
 
             <div class="auth-header">
-              <div class="auth-logo"><i class="fa-solid fa-wallet"></i></div>
+              <div class="auth-logo">
+                <img src="logo-mark.png" alt="Logo" class="auth-brand-icon" onerror="this.src='assets/logo/user_logo.png'">
+              </div>
               <h2 class="auth-title">Budget Assistant</h2>
               <p class="auth-subtitle" id="auth-subtitle" data-i18n="auth_welcome">Καλώς ορίσατε! Συνδεθείτε για
                 συγχρονισμό</p>
@@ -6099,16 +6062,58 @@
       <script src="js/translations.js"></script>
       <!-- Local receipt photo storage (IndexedDB; extracted from app.js; loaded before app.js) -->
       <script src="js/receiptStorage.js"></script>
-      <script src="app.js?v=1330"></script>
+      <script src="app.js?v=1337"></script>
       <!-- Desktop Web UX Layer (defer so it runs after app.js; invoked via
        initDesktopUI() hook at the end of initApp()). Self-guards on
        html.web-mode so native Android/iOS is never affected. -->
-      <script src="web-ui.js?v=1330" defer></script>
+      <script src="web-ui.js?v=1337" defer></script>
 
-      <!-- Custom Dialog Modal (Alert/Confirm) - top-level child of body so
-           position:fixed is not broken by ancestor transforms/overflow
-           (e.g. the profile sheet's translateY + overflow:hidden). -->
-      <div id="custom-dialog-modal" class="modal-overlay" style="z-index: 999999;">
+      <!-- MODAL: TYPE-TO-CONFIRM (for destructive actions) -->
+      <div id="type-confirm-modal" class="modal-overlay" style="z-index: 2147483647;">
+        <div class="modal-content"
+          style="max-width: 340px; text-align: center; border-radius: 20px; background: var(--bg-card); border: 1px solid var(--border); box-shadow: 0 10px 30px rgba(0,0,0,0.5); padding: 24px;">
+          <div id="type-confirm-icon" style="font-size: 40px; margin-bottom: 16px;">⚠️</div>
+          <h4 id="type-confirm-title"
+            style="font-weight: 700; margin-bottom: 8px; color: var(--text-main); font-size: 16px;">Επιβεβαίωση</h4>
+          <p id="type-confirm-message"
+            style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 16px; word-break: break-word;">
+          </p>
+          <input type="text" id="type-confirm-input" autocomplete="off" autocapitalize="characters"
+            style="font-size: 15px; text-align: center; letter-spacing: 2px; width: 100%; padding: 12px; margin-bottom: 8px; box-sizing: border-box; background: var(--bg-input, #000000); border: 1px solid var(--border); color: var(--text-main); border-radius: 10px; outline: none;">
+          <div id="type-confirm-hint"
+            style="font-size: 11.5px; color: var(--text-muted); margin-bottom: 16px; line-height: 1.4;"></div>
+          <div class="custom-dialog-buttons" style="display: flex; gap: 12px; justify-content: center; width: 100%;">
+            <button id="type-confirm-btn-cancel" class="btn btn-secondary"
+              style="flex: 1; padding: 12px; font-weight: 700; border-radius: 12px; border: 1px solid var(--border); background: var(--bg-main); font-size: 13px;">Ακύρωση</button>
+            <button id="type-confirm-btn-ok" class="btn btn-primary"
+              style="flex: 1; padding: 12px; font-weight: 700; border-radius: 12px; font-size: 13px; background-color: var(--red-negative, #ef4444); color: white; border: none;">Διαγραφή</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- MODAL: PIN PROMPT (for destructive actions requiring PIN) -->
+      <div id="pin-prompt-modal" class="modal-overlay" style="z-index: 2147483647;">
+        <div class="modal-content"
+          style="max-width: 320px; text-align: center; border-radius: 20px; background: var(--bg-card); border: 1px solid var(--border); box-shadow: 0 10px 30px rgba(0,0,0,0.5); padding: 24px;">
+          <div id="pin-prompt-icon" style="font-size: 40px; margin-bottom: 16px;">🔒</div>
+          <h4 id="pin-prompt-title"
+            style="font-weight: 700; margin-bottom: 8px; color: var(--text-main); font-size: 16px;">Εισαγωγή PIN</h4>
+          <p id="pin-prompt-message"
+            style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 16px; word-break: break-word;">
+          </p>
+          <input type="password" id="pin-prompt-input" pattern="[0-9]*" inputmode="numeric" maxlength="4"
+            style="font-size: 24px; text-align: center; letter-spacing: 12px; width: 150px; padding: 8px; margin: 0 auto 16px auto; display: block; background: var(--bg-input, #000000); border: 1px solid var(--border); color: var(--text-main); border-radius: 8px; outline: none;">
+          <div class="custom-dialog-buttons" style="display: flex; gap: 12px; justify-content: center; width: 100%;">
+            <button id="pin-prompt-btn-cancel" class="btn btn-secondary"
+              style="flex: 1; padding: 12px; font-weight: 700; border-radius: 12px; border: 1px solid var(--border); background: var(--bg-main); font-size: 13px;">Ακύρωση</button>
+            <button id="pin-prompt-btn-ok" class="btn btn-primary"
+              style="flex: 1; padding: 12px; font-weight: 700; border-radius: 12px; font-size: 13px;">Επιβεβαίωση</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Custom Dialog Modal (Alert/Confirm) - top-level child of body -->
+      <div id="custom-dialog-modal" class="modal-overlay" style="z-index: 2147483647;">
         <div class="modal-content custom-dialog-content"
           style="max-width: 320px; text-align: center; padding: 24px; border-radius: 20px; background: var(--bg-card); border: 1px solid var(--border); box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
           <div id="custom-dialog-icon" style="font-size: 40px; margin-bottom: 16px;">💬</div>

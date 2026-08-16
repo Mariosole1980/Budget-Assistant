@@ -8,17 +8,18 @@
   --text-secondary: #8a99ad;
   --text-muted: #64748b;
 
-  /* Brand Accents */
-  --accent: #e05e55;
-  /* Realbyte Coral Red (Default Accent) */
-  --accent-rgb: 224, 94, 85;
-  --accent-light: rgba(224, 94, 85, 0.15);
+  /* Brand Accents (Harmonized with Logo Growth Chart) */
+  --accent: #38bdf8;
+  /* Electric Cyan / Cyber Blue Accent */
+  --accent-rgb: 56, 189, 248;
+  --accent-light: rgba(56, 189, 248, 0.15);
+  --accent-gradient: linear-gradient(135deg, #3b82f6 0%, #10b981 100%);
   --blue-positive: #4ade80;
-  /* Positive Income / Assets (Redefined to Green) */
+  /* Positive Income / Assets (Vibrant Emerald Green) */
   --blue-positive-light: rgba(74, 222, 128, 0.1);
-  --red-negative: #e05e55;
-  /* Negative Expenses / Liabilities */
-  --red-negative-light: rgba(224, 94, 85, 0.1);
+  --red-negative: #ef4444;
+  /* Negative Expenses / Liabilities (Clean Modern Financial Red) */
+  --red-negative-light: rgba(239, 68, 68, 0.1);
   --border: #2e3543;
   --border-light: #384152;
 
@@ -183,13 +184,19 @@ button:active,
 
 
 .app-title {
-  font-size: 17px;
-  font-weight: 700;
-  letter-spacing: 0.3px;
+  font-size: 17.5px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
   color: var(--text-main);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+}
+
+.header-title-text {
+  transform: translateY(2px);
+  display: inline-block;
+  line-height: 1;
 }
 
 .header-actions {
@@ -372,13 +379,13 @@ button:active,
 }
 
 .summary-income {
-  color: #4ade80;
-  text-shadow: 0 0 10px rgba(74, 222, 128, 0.3);
+  color: var(--blue-positive);
+  text-shadow: 0 0 10px rgba(74, 222, 128, 0.2);
 }
 
 .summary-expense {
-  color: #f87171;
-  text-shadow: 0 0 10px rgba(248, 113, 113, 0.3);
+  color: var(--red-negative);
+  text-shadow: 0 0 10px rgba(239, 68, 68, 0.2);
 }
 
 .summary-total {
@@ -636,12 +643,12 @@ button:active,
   width: 50px;
   height: 50px;
   border-radius: 50%;
-  background-color: var(--accent);
+  background: var(--accent-gradient, linear-gradient(135deg, #3b82f6 0%, #10b981 100%));
   color: white;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 15px rgba(var(--accent-rgb), 0.4);
+  box-shadow: 0 6px 20px rgba(56, 189, 248, 0.4);
   font-size: 24px;
   z-index: 99;
   transition: var(--transition);
@@ -694,9 +701,22 @@ button:active,
 .month-selector {
   display: flex;
   align-items: center;
-  gap: 16px;
-  font-size: 16px;
+  gap: 12px;
+  font-size: 15px;
   font-weight: 700;
+  min-width: 0;
+}
+
+#current-period-title,
+#stats-period-title {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-width: 90px;
+  white-space: nowrap;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .stats-tabs {
@@ -963,14 +983,14 @@ button:active,
 }
 
 .ratio-income-label {
-  color: #4ade80;
+  color: var(--blue-positive);
   display: flex;
   align-items: center;
   gap: 4px;
 }
 
 .ratio-expense-label {
-  color: #f87171;
+  color: var(--red-negative);
   display: flex;
   align-items: center;
   gap: 4px;
@@ -986,16 +1006,16 @@ button:active,
 
 .chart-ratio-fill-income {
   height: 100%;
-  background: linear-gradient(90deg, #22c55e, #4ade80);
-  box-shadow: 0 0 8px rgba(74, 222, 128, 0.5);
+  background: linear-gradient(90deg, #22c55e, var(--blue-positive));
+  box-shadow: 0 0 8px rgba(74, 222, 128, 0.4);
   transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
   border-radius: 6px 0 0 6px;
 }
 
 .chart-ratio-fill-expense {
   height: 100%;
-  background: linear-gradient(90deg, #f87171, #ef4444);
-  box-shadow: 0 0 8px rgba(248, 113, 113, 0.5);
+  background: linear-gradient(90deg, #f87171, var(--red-negative));
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.4);
   transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
   border-radius: 0 6px 6px 0;
 }
@@ -2344,40 +2364,52 @@ body.is-ios .modal-content {
    SEARCH OVERLAY - PREMIUM HIGH-TECH REDESIGN
    ============================================= */
 .search-overlay-container {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(160deg, #181b22 0%, #1e2230 100%);
-  z-index: 500;
-  display: flex;
-  flex-direction: column;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  background: linear-gradient(160deg, #181b22 0%, #1e2230 100%) !important;
+  z-index: 10000 !important;
+  display: flex !important;
+  flex-direction: column !important;
   transform: translateY(100%);
-  transition: transform 0.38s cubic-bezier(0.32, 0.72, 0, 1);
+  transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.25s ease, visibility 0.35s !important;
   max-width: 480px;
   margin: 0 auto;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+  opacity: 0;
+  visibility: hidden !important;
+  pointer-events: none !important;
 }
 
 .search-overlay-container.active {
-  transform: translateY(0);
+  transform: translateY(0) !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
 }
 
-/* Glassmorphism header bar */
 /* Glassmorphism header bar - Revolut Style */
 .search-overlay-header-modern {
-  background: rgba(30, 34, 48, 0.92);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-  padding: 12px 16px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.3);
+  background: rgba(30, 34, 48, 0.92) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07) !important;
+  padding: 12px 16px !important;
+  padding-top: max(12px, env(safe-area-inset-top, 12px)) !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 100 !important;
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.3) !important;
+  flex-shrink: 0 !important;
 }
 
 .search-back-btn-modern {
@@ -3900,10 +3932,12 @@ body.is-ios .modal-content {
    USER PROFILE BADGE
    ============================================= */
 .user-profile-badge {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--accent), #ff8a80);
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
   color: white;
   display: flex;
   align-items: center;
@@ -3911,9 +3945,11 @@ body.is-ios .modal-content {
   font-size: 12.5px;
   font-weight: 800;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), 0 0 0 2px rgba(255, 255, 255, 0.08);
+  border: 1.5px solid rgba(56, 189, 248, 0.45);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4), 0 0 10px rgba(56, 189, 248, 0.2);
   transition: var(--transition);
   text-transform: uppercase;
+  overflow: hidden;
 }
 
 .user-profile-badge:hover {
@@ -4160,8 +4196,8 @@ body.shared-wallet-active .day-header {
 
 .auth-lang-selector {
   position: absolute;
-  top: 18px;
-  right: 18px;
+  top: 16px;
+  right: 16px;
   display: flex;
   gap: 6px;
   z-index: 10;
@@ -4187,28 +4223,45 @@ body.shared-wallet-active .day-header {
 .lang-pill.active {
   border-color: var(--accent) !important;
   color: #ffffff !important;
-  background: rgba(224, 94, 85, 0.18) !important;
-  box-shadow: 0 0 10px rgba(224, 94, 85, 0.3);
+  background: rgba(56, 189, 248, 0.18) !important;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
+}
+
+.header-app-logo {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  vertical-align: middle;
+  flex-shrink: 0;
+  background: transparent;
+  border: none;
+  filter: drop-shadow(0 0 6px rgba(56, 189, 248, 0.4));
 }
 
 .auth-header {
   text-align: center;
-  margin-top: 6px;
+  margin-top: 28px;
   margin-bottom: 12px;
 }
 
 .auth-logo {
-  width: 58px;
-  height: 58px;
-  background: linear-gradient(135deg, var(--accent) 0%, #ff6b62 100%);
-  color: white;
-  border-radius: 16px;
+  width: auto;
+  height: auto;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 26px;
   margin: 0 auto 12px;
-  box-shadow: 0 8px 25px rgba(var(--accent-rgb), 0.45);
+}
+
+.auth-brand-icon {
+  width: 58px;
+  height: 58px;
+  object-fit: contain;
+  display: block;
+  filter: drop-shadow(0 0 10px rgba(56, 189, 248, 0.35));
 }
 
 .auth-title {
@@ -4362,8 +4415,8 @@ body.shared-wallet-active .day-header {
   font-size: 15.5px !important;
   font-weight: 800 !important;
   border-radius: 14px !important;
-  background: linear-gradient(135deg, var(--accent) 0%, #e0483e 100%) !important;
-  box-shadow: 0 8px 24px rgba(224, 94, 85, 0.38) !important;
+  background: linear-gradient(135deg, #2563eb 0%, #10b981 100%) !important;
+  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.35) !important;
   margin-top: 8px !important;
 }
 
@@ -8578,35 +8631,54 @@ mark.guide-highlight {
 }
 
 #custom-dialog-modal,
-#type-confirm-modal {
-  z-index: 999999 !important;
-}
-
-/* The custom dialog (Alert/Confirm) must render as a proper CENTERED modal
-   dialog, not as a bottom sheet. The generic .modal-overlay uses
-   align-items:flex-end (bottom sheet) + .modal-content translateY(100%),
-   which makes the confirmation appear as a separate sliding window on top of
-   whatever sheet is open (e.g. the My Profile sheet). Override it here so the
-   force-update / delete / logout confirmations look like an intentional,
-   centered in-app dialog. */
-#custom-dialog-modal {
+#type-confirm-modal,
+#pin-prompt-modal {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  min-height: 100dvh !important;
+  z-index: 2147483647 !important;
+  display: none;
   align-items: center !important;
   justify-content: center !important;
-  padding-bottom: 0 !important;
+  padding: 16px !important;
+  background: rgba(0, 0, 0, 0.75) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  box-sizing: border-box !important;
 }
 
-#custom-dialog-modal .modal-content {
-  transform: translateY(0) scale(0.9) !important;
+#custom-dialog-modal.active,
+#type-confirm-modal.active,
+#pin-prompt-modal.active {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+#custom-dialog-modal .modal-content,
+#type-confirm-modal .modal-content,
+#pin-prompt-modal .modal-content {
+  position: relative !important;
+  margin: auto !important;
+  transform: scale(0.95) !important;
   opacity: 0;
-  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.18s ease;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease !important;
   border-radius: 20px !important;
   border-bottom: 1px solid var(--border) !important;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5) !important;
 }
 
-#custom-dialog-modal.active .modal-content {
-  transform: translateY(0) scale(1) !important;
-  opacity: 1;
+#custom-dialog-modal.active .modal-content,
+#type-confirm-modal.active .modal-content,
+#pin-prompt-modal.active .modal-content {
+  transform: scale(1) !important;
+  opacity: 1 !important;
 }
 
 /* Modals opened from within the settings subscreen (Data & Sync) must render

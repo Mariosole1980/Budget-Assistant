@@ -2105,12 +2105,17 @@ if (document.readyState === 'loading') {
 // falls back to the native browser/WebView confirm()/alert() "separate window".
 function ensureCustomDialogModal() {
   let modal = document.getElementById('custom-dialog-modal');
-  if (modal) return modal;
+  if (modal) {
+    if (modal.parentElement !== document.body) {
+      document.body.appendChild(modal);
+    }
+    return modal;
+  }
 
   modal = document.createElement('div');
   modal.id = 'custom-dialog-modal';
   modal.className = 'modal-overlay';
-  modal.style.zIndex = '999999';
+  modal.style.zIndex = '2147483647';
   modal.innerHTML =
     '<div class="modal-content custom-dialog-content" style="max-width: 320px; text-align: center; padding: 24px; border-radius: 20px; background: var(--bg-card); border: 1px solid var(--border); box-shadow: 0 10px 30px rgba(0,0,0,0.5);">' +
     '<div id="custom-dialog-icon" style="font-size: 40px; margin-bottom: 16px;">💬</div>' +
@@ -2143,14 +2148,17 @@ function showCustomDialog({ message, title = '', icon = '💬', showCancel = fal
     btnOk.parentNode.replaceChild(newBtnOk, btnOk);
 
     modal.classList.add('active');
+    modal.style.cssText = 'display: flex !important; visibility: visible !important; opacity: 1 !important; z-index: 2147483647 !important; pointer-events: auto !important; position: fixed !important; inset: 0 !important; width: 100vw !important; height: 100vh !important; min-height: 100dvh !important; background: rgba(0, 0, 0, 0.75) !important; align-items: center !important; justify-content: center !important;';
 
     newBtnCancel.addEventListener('click', () => {
       modal.classList.remove('active');
+      modal.style.display = 'none';
       resolve(false);
     });
 
     newBtnOk.addEventListener('click', () => {
       modal.classList.remove('active');
+      modal.style.display = 'none';
       resolve(true);
     });
   });
@@ -2915,20 +2923,8 @@ function showPendingInvitationPrompt(invite) {
 function applyWalletTheme() {
   if (state.partnerProfile) {
     document.body.classList.add('shared-wallet-active');
-
-    // Replace wallet icon in header with user group
-    const icon = document.getElementById('header-wallet-icon');
-    if (icon) {
-      icon.className = 'fa-solid fa-people-roof';
-    }
   } else {
     document.body.classList.remove('shared-wallet-active');
-
-    // Restore wallet icon in header
-    const icon = document.getElementById('header-wallet-icon');
-    if (icon) {
-      icon.className = 'fa-solid fa-wallet';
-    }
   }
 
   // IMPORTANT: Always re-apply the user's chosen theme so that shared-wallet-active
@@ -8829,16 +8825,20 @@ const FULLSCREEN_OVERLAY_IDS = [
   'app-redirect-overlay',
   'lock-screen',
   'transaction-modal',
-  'search-overlay'
+  'search-overlay',
+  'fhs-details-modal',
+  'forecast-details-modal',
+  'advisor-chat-modal',
+  'profile-settings-modal',
+  'settings-subscreen-modal'
 ];
 
-// Self-healing startup check: move any full-screen overlay that is currently
-// nested inside .app-container (or any non-body parent) directly under <body>.
+// Self-healing startup check: move any modal or overlay that is currently
+// nested inside .app-container directly under <body>.
 function initOverlayPlacement() {
   try {
-    FULLSCREEN_OVERLAY_IDS.forEach(id => {
-      const el = document.getElementById(id);
-      if (el) ensureOverlayInBody(el);
+    document.querySelectorAll('.modal-overlay, .auth-overlay, .tx-modal-overlay, [id$="-modal"], [id*="modal"]').forEach(el => {
+      ensureOverlayInBody(el);
     });
   } catch (e) {
     console.warn('[OVERLAY] initOverlayPlacement failed:', e);
@@ -8852,10 +8852,8 @@ function openModal(id, { instant = false } = {}) {
   ensureHistoryPushed();
   const el = document.getElementById(id);
   if (!el) return;
-  // FIX: Ensure full-screen overlays are direct children of <body> before showing.
-  if (FULLSCREEN_OVERLAY_IDS.indexOf(id) !== -1) {
-    ensureOverlayInBody(el);
-  }
+  // FIX: Ensure ALL modals/overlays are direct children of <body> before showing.
+  ensureOverlayInBody(el);
   el._openedAt = Date.now();
 
   // For the transaction modal, counteract body { zoom: 0.93 } to perfectly fill physical screen.
@@ -8982,6 +8980,15 @@ function resetAllTabScreenStyles() {
     screen.style.willChange = '';
     screen.style.display = '';
     screen.style.visibility = '';
+  });
+  // Clear any leftover inline transforms/opacities on month titles and transaction lists
+  ['current-period-title', 'stats-period-title', 'transactions-list', 'stats-breakdown-list'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.style.transition = '';
+      el.style.transform = '';
+      el.style.opacity = '';
+    }
   });
 }
 window.resetAllTabScreenStyles = resetAllTabScreenStyles;
@@ -9182,32 +9189,13 @@ function switchTab(tab, instant = false) {
   }
 
   if (tab === 'more') {
+    updateHeaderProfileBadge();
     if (state.currentUser) {
       const emailDisplay = document.getElementById('settings-user-email-value');
       if (emailDisplay) {
         emailDisplay.textContent = state.currentUser.email;
         emailDisplay.title = state.currentUser.email;
       }
-    }
-
-    // Dynamically populate Profile Header Card
-    const headerName = document.getElementById('profile-user-name');
-    const headerEmail = document.getElementById('profile-user-email');
-    const headerAvatar = document.getElementById('profile-avatar-letters');
-    if (headerName) {
-      headerName.textContent = state.userProfile?.display_name || state.currentUser?.email?.split('@')[0] || 'User';
-    }
-    if (headerEmail) {
-      headerEmail.textContent = state.currentUser ? state.currentUser.email : 'email@example.com';
-    }
-    if (headerAvatar) {
-      const nameVal = state.userProfile?.display_name || state.currentUser?.email?.split('@')[0] || 'U';
-      const parts = nameVal.trim().split(/\s+/).filter(p => p.length > 0);
-      let initials = 'U';
-      if (parts.length > 0) {
-        initials = parts.map(p => p[0]).join('').substring(0, 2).toUpperCase();
-      }
-      headerAvatar.textContent = initials;
     }
     renderNotesList();
   }
@@ -18034,13 +18022,26 @@ function initTabSwipeNavigation() {
       peek.style.opacity = String(Math.min(1, Math.abs(resisted) / (width * 0.35)));
     }
 
-    // Header title parallax: the title slides a fraction of the drag and fades.
-    const titleEl = document.getElementById('current-period-title');
+    // Header title parallax: the active tab title slides a fraction of the drag and fades.
+    const titleEl = state.activeTab === 'stats'
+      ? document.getElementById('stats-period-title')
+      : document.getElementById('current-period-title');
     if (titleEl) {
       titleEl.style.transition = 'none';
       titleEl.style.transform = `translateX(${resisted * 0.3}px)`;
       titleEl.style.opacity = String(Math.max(0.35, 1 - Math.abs(resisted) / (width * 0.5)));
     }
+  }
+
+  function resetTitleElements() {
+    ['current-period-title', 'stats-period-title'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.style.transition = '';
+        el.style.transform = '';
+        el.style.opacity = '';
+      }
+    });
   }
 
   // Animate an element to a target transform/opacity with a springy easing.
@@ -18067,6 +18068,9 @@ function initTabSwipeNavigation() {
     const listEl = getSwipeListEl();
     const peek = document.getElementById('swipe-peek-list');
     const outX = direction > 0 ? -width : width;
+
+    // Reset title styles immediately on commit
+    resetTitleElements();
 
     // For the stats tab, adjustStatsPeriod already runs its own animated
     // slide-out/slide-in transition, so delegate to it entirely.
@@ -18110,14 +18114,6 @@ function initTabSwipeNavigation() {
     }
     setTimeout(() => scrollToToday('auto'), 30);
 
-    // Reset the header title to identity.
-    const titleEl = document.getElementById('current-period-title');
-    if (titleEl) {
-      titleEl.style.transition = '';
-      titleEl.style.transform = '';
-      titleEl.style.opacity = '';
-    }
-
     // Slide the freshly-rendered list in from the opposite side (snappy).
     const newListEl = getSwipeListEl();
     const inX = -outX;
@@ -18130,10 +18126,6 @@ function initTabSwipeNavigation() {
           newListEl.style.transition = `transform 150ms cubic-bezier(0.2, 0.8, 0.4, 1), opacity 150ms cubic-bezier(0.2, 0.8, 0.4, 1)`;
           newListEl.style.transform = 'translateX(0px)';
           newListEl.style.opacity = '1';
-          // Release the lock as soon as the new content is rendered and the
-          // slide-in begins, so rapid successive swipes aren't blocked. The
-          // CSS transition keeps running; if a new swipe starts it re-renders
-          // the list anyway.
           animating = false;
           state.isSwipingMonth = false;
           state.touchDidMove = false;
@@ -18157,7 +18149,9 @@ function initTabSwipeNavigation() {
     animating = true;
     const listEl = getSwipeListEl();
     const peek = document.getElementById('swipe-peek-list');
-    const titleEl = document.getElementById('current-period-title');
+    const titleEl = state.activeTab === 'stats'
+      ? document.getElementById('stats-period-title')
+      : document.getElementById('current-period-title');
     const easing = 'cubic-bezier(0.34, 1.56, 0.64, 1)'; // springy overshoot
 
     if (listEl) animateTo(listEl, 0, 1, 180, easing);
@@ -18183,13 +18177,8 @@ function initTabSwipeNavigation() {
     state.touchDidMove = false;
     state.lastSwipeTime = Date.now();
     document.body.classList.remove('is-swiping-month');
-    // Safety net: clear any leftover inline transform/opacity on the header title.
-    const titleEl = document.getElementById('current-period-title');
-    if (titleEl) {
-      titleEl.style.transition = '';
-      titleEl.style.transform = '';
-      titleEl.style.opacity = '';
-    }
+    // Safety net: clear any leftover inline transform/opacity on both header titles.
+    resetTitleElements();
     if (state.activeTab === 'stats') {
       renderStatsTab(false);
     }
@@ -21251,14 +21240,19 @@ function renderFamilyMembersList(members, myRole) {
 
     const initials = getMemberInitials(m);
     const gradient = getMemberColorGradient(m.id);
+    const avatarImg = m.avatar_url || m.avatar || '';
+
+    const avatarNodeHtml = avatarImg
+      ? `<div style="width:36px;height:36px;border-radius:50%;background-image:url(${avatarImg});background-size:cover;background-position:center;border:1.5px solid var(--accent);box-shadow:0 2px 8px rgba(0,0,0,0.3);flex-shrink:0;"></div>`
+      : `<div style="width:36px;height:36px;border-radius:50%;background:${gradient};color:white;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;text-transform:uppercase;box-shadow:0 1px 4px rgba(0,0,0,0.15);flex-shrink:0;">
+          ${initials}
+        </div>`;
 
     membersHtml += `
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border-light);gap:10px;">
-        <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border-light);gap:10px;">
+        <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0;">
           <div style="position:relative;flex-shrink:0;">
-            <div style="width:28px;height:28px;border-radius:50%;background:${gradient};color:white;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;text-transform:uppercase;box-shadow:0 1px 4px rgba(0,0,0,0.15);">
-              ${initials}
-            </div>
+            ${avatarNodeHtml}
             <span style="position:absolute;bottom:-1px;right:-1px;display:flex;">${presenceDot}</span>
           </div>
           <div style="display:flex;flex-direction:column;min-width:0;flex:1;">
@@ -23797,20 +23791,34 @@ function updateHeaderProfileBadge() {
   // "Σύνδεση & Συγχρονισμός Cloud" card). Cloud connection happens automatically
   // on app open or via the lock icon, so the banner was redundant.
 
+  const moreAvatar = document.getElementById('more-profile-avatar') || document.querySelector('#more-screen .profile-avatar');
+  const moreLetters = document.getElementById('profile-avatar-letters');
+  const moreName = document.getElementById('profile-user-name');
+  const moreEmail = document.getElementById('profile-user-email');
+
   if (state.guestMode || !state.currentUser) {
-    userBadge.style.display = 'flex';
-    userBadge.style.cursor = 'pointer';
-    userBadge.innerHTML = '<i class="fa-solid fa-lock" style="font-size: 11px; pointer-events: none;"></i>';
-    userBadge.title = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_signup_title']) || 'Σύνδεση / Εγγραφή';
-    userBadge.removeAttribute('onclick');
-    userBadge.onclick = function (e) {
-      if (e) {
-        try { e.preventDefault(); e.stopPropagation(); } catch (err) { }
-      }
-      showAuthOverlay();
-    };
-    userBadge.style.backgroundImage = 'none';
-    userBadge.className = 'user-profile-badge';
+    if (userBadge) {
+      userBadge.style.display = 'flex';
+      userBadge.style.cursor = 'pointer';
+      userBadge.innerHTML = '<i class="fa-solid fa-lock" style="font-size: 11px; pointer-events: none;"></i>';
+      userBadge.title = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_signup_title']) || 'Σύνδεση / Εγγραφή';
+      userBadge.removeAttribute('onclick');
+      userBadge.onclick = function (e) {
+        if (e) {
+          try { e.preventDefault(); e.stopPropagation(); } catch (err) { }
+        }
+        showAuthOverlay();
+      };
+      userBadge.style.backgroundImage = 'none';
+      userBadge.className = 'user-profile-badge';
+    }
+    if (moreAvatar) {
+      moreAvatar.style.backgroundImage = 'none';
+      moreAvatar.style.background = 'linear-gradient(135deg, var(--accent) 0%, var(--blue-positive) 100%)';
+      moreAvatar.innerHTML = '<i class="fa-solid fa-user" style="font-size: 20px;"></i>';
+    }
+    if (moreName) moreName.textContent = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_guest_title']) || 'Επισκέπτης (Offline)';
+    if (moreEmail) moreEmail.textContent = 'Πατήστε για σύνδεση';
     return;
   }
 
@@ -23819,15 +23827,21 @@ function updateHeaderProfileBadge() {
   const presetId = localStorage.getItem('avatar_preset_id_' + email) || '1';
   const customData = localStorage.getItem('avatar_custom_data_' + email) || '';
 
-  userBadge.style.display = 'flex';
-  userBadge.title = email;
-  userBadge.onclick = () => openProfileSheet();
+  if (moreName) {
+    moreName.textContent = state.userProfile?.display_name || state.currentUser?.email?.split('@')[0] || 'User';
+  }
+  if (moreEmail) {
+    moreEmail.textContent = email || 'email@example.com';
+  }
 
-  userBadge.className = 'user-profile-badge';
+  if (userBadge) {
+    userBadge.style.display = 'flex';
+    userBadge.title = email;
+    userBadge.onclick = () => openProfileSheet();
+    userBadge.className = 'user-profile-badge';
+  }
 
   if (avatarType === 'preset') {
-    userBadge.classList.add('avatar-preset-badge', 'preset-' + presetId);
-    userBadge.style.backgroundImage = 'none';
     const presetIcons = {
       '1': 'fa-user',
       '2': 'fa-rocket',
@@ -23837,20 +23851,48 @@ function updateHeaderProfileBadge() {
       '6': 'fa-crown'
     };
     const iconClass = presetIcons[presetId] || 'fa-user';
-    userBadge.innerHTML = `<i class="fa-solid ${iconClass}"></i>`;
+
+    if (userBadge) {
+      userBadge.classList.add('avatar-preset-badge', 'preset-' + presetId);
+      userBadge.style.backgroundImage = 'none';
+      userBadge.innerHTML = `<i class="fa-solid ${iconClass}"></i>`;
+    }
+    if (moreAvatar) {
+      moreAvatar.style.backgroundImage = 'none';
+      moreAvatar.style.background = 'linear-gradient(135deg, var(--accent) 0%, var(--blue-positive) 100%)';
+      moreAvatar.innerHTML = `<i class="fa-solid ${iconClass}" style="font-size: 22px;"></i>`;
+    }
   } else if (avatarType === 'custom' && customData) {
-    userBadge.classList.add('avatar-img-badge');
-    userBadge.style.backgroundImage = `url(${customData})`;
-    userBadge.innerHTML = '';
+    if (userBadge) {
+      userBadge.classList.add('avatar-img-badge');
+      userBadge.style.backgroundImage = `url(${customData})`;
+      userBadge.innerHTML = '';
+    }
+    if (moreAvatar) {
+      moreAvatar.style.backgroundImage = `url(${customData})`;
+      moreAvatar.style.backgroundSize = 'cover';
+      moreAvatar.style.backgroundPosition = 'center';
+      moreAvatar.innerHTML = '';
+    }
   } else {
-    userBadge.style.backgroundImage = 'none';
     let initials = '👤';
     if (state.userProfile && state.userProfile.display_name) {
-      initials = state.userProfile.display_name.substring(0, 2).toUpperCase();
+      const parts = state.userProfile.display_name.trim().split(/\s+/).filter(p => p.length > 0);
+      if (parts.length > 0) {
+        initials = parts.map(p => p[0]).join('').substring(0, 2).toUpperCase();
+      }
     } else if (email) {
       initials = email.substring(0, 2).toUpperCase();
     }
-    userBadge.textContent = initials;
+    if (userBadge) {
+      userBadge.style.backgroundImage = 'none';
+      userBadge.textContent = initials;
+    }
+    if (moreAvatar) {
+      moreAvatar.style.backgroundImage = 'none';
+      moreAvatar.style.background = 'linear-gradient(135deg, var(--accent) 0%, var(--blue-positive) 100%)';
+      moreAvatar.innerHTML = `<span id="profile-avatar-letters">${initials}</span>`;
+    }
   }
 }
 
@@ -26972,16 +27014,14 @@ function initSettingsSubscreenAndFhs() {
   if (fhsHelpTrigger) {
     fhsHelpTrigger.addEventListener('click', (e) => {
       e.stopPropagation(); // Prevents the card click from firing
-      showFhsTab('methodology');
-      openModal('fhs-details-modal');
+      openFinancialHealthModal('methodology');
     });
   }
 
   if (fhsCard) {
     fhsCard.addEventListener('click', (e) => {
       if (!e.target.closest('#fhs-help-trigger')) {
-        showFhsTab('breakdown');
-        openModal('fhs-details-modal');
+        openFinancialHealthModal('breakdown');
       }
     });
   }
@@ -26997,19 +27037,8 @@ function initSettingsSubscreenAndFhs() {
   }
   // FHS explain trigger collapsible toggle
   const fhsExplainTrigger = document.getElementById('fhs-explain-trigger');
-  const fhsExplainContent = document.getElementById('fhs-explain-content');
-  const fhsExplainChevron = document.getElementById('fhs-explain-chevron');
-  if (fhsExplainTrigger && fhsExplainContent) {
-    fhsExplainTrigger.addEventListener('click', () => {
-      const isHidden = fhsExplainContent.style.display === 'none';
-      if (isHidden) {
-        fhsExplainContent.style.display = 'block';
-        if (fhsExplainChevron) fhsExplainChevron.style.transform = 'rotate(180deg)';
-      } else {
-        fhsExplainContent.style.display = 'none';
-        if (fhsExplainChevron) fhsExplainChevron.style.transform = 'rotate(0deg)';
-      }
-    });
+  if (fhsExplainTrigger) {
+    fhsExplainTrigger.addEventListener('click', toggleFhsExplain);
   }
 }
 // The OTA boot loader injects app.js asynchronously via Blob URL AFTER
@@ -27021,6 +27050,27 @@ if (document.readyState === 'loading') {
 } else {
   setTimeout(initSettingsSubscreenAndFhs, 0);
 }
+
+function openFinancialHealthModal(tab = 'breakdown') {
+  showFhsTab(tab);
+  openModal('fhs-details-modal');
+}
+window.openFinancialHealthModal = openFinancialHealthModal;
+
+function toggleFhsExplain() {
+  const fhsExplainContent = document.getElementById('fhs-explain-content');
+  const fhsExplainChevron = document.getElementById('fhs-explain-chevron');
+  if (!fhsExplainContent) return;
+  const isHidden = fhsExplainContent.style.display === 'none' || !fhsExplainContent.style.display;
+  if (isHidden) {
+    fhsExplainContent.style.display = 'block';
+    if (fhsExplainChevron) fhsExplainChevron.style.transform = 'rotate(180deg)';
+  } else {
+    fhsExplainContent.style.display = 'none';
+    if (fhsExplainChevron) fhsExplainChevron.style.transform = 'rotate(0deg)';
+  }
+}
+window.toggleFhsExplain = toggleFhsExplain;
 
 // Helper for FHS Tab switching
 function showFhsTab(tabName) {
@@ -27355,14 +27405,39 @@ window.onSimplePresetChange = onSimplePresetChange;
 
 function openAdvisorChat(initialQuery = null) {
   const modalId = 'advisor-chat-modal';
-  openModal(modalId);
+  // Open the modal FIRST and unconditionally. Any error below must never prevent
+  // the bottom sheet from appearing — otherwise the button appears "dead".
+  try {
+    openModal(modalId);
+  } catch (e) {
+    console.error('[AdvisorChat] openModal failed:', e);
+    // Last-resort fallback: force the overlay visible even if openModal threw.
+    const el = document.getElementById(modalId);
+    if (el) {
+      el.classList.add('active');
+      document.body.classList.add('modal-open');
+    }
+  }
 
-  // If we have an active conversation, load it; otherwise show the conversation list
-  const activeId = getActiveAdvisorConversationId();
-  if (activeId) {
-    openAdvisorConversation(activeId, false);
-  } else {
-    showAdvisorConversationList();
+  try {
+    // If we have an active conversation, load it; otherwise show the conversation list.
+    // Guard against a stale active ID (points to a conversation that no longer exists,
+    // e.g. after local storage was cleared or a conversation was removed). Without this,
+    // openAdvisorConversation() returns early and the modal opens blank — appearing as
+    // if the AI advisor "doesn't open".
+    const activeId = getActiveAdvisorConversationId();
+    const activeConv = activeId ? getActiveAdvisorConversation() : null;
+    if (activeConv) {
+      openAdvisorConversation(activeId, false);
+    } else {
+      // Clear any stale active ID so the next open starts fresh.
+      if (activeId) setActiveAdvisorConversationId(null);
+      showAdvisorConversationList();
+    }
+  } catch (e) {
+    console.error('[AdvisorChat] conversation load failed:', e);
+    // Ensure the conversation list is shown so the modal is never blank.
+    try { showAdvisorConversationList(); } catch (e2) { console.error(e2); }
   }
 
   setTimeout(() => {
@@ -30127,6 +30202,25 @@ window.startNewAdvisorConversation = startNewAdvisorConversation;
 window.showAdvisorConversationList = showAdvisorConversationList;
 window.deleteAdvisorConversation = deleteAdvisorConversation;
 window.openAdvisorConversation = openAdvisorConversation;
+
+// Delegated fallback for the AI advisor trigger. The inline onclick on
+// #advisor-chat-trigger should work, but if for any reason the click/tap does not
+// reach the inline handler (e.g. the element was re-rendered, or a parent handler
+// swallowed the event), this document-level listener guarantees the chat still opens.
+document.addEventListener('click', function _advisorTriggerFallback(e) {
+  const t = e.target && e.target.closest ? e.target.closest('#advisor-chat-trigger, .advisor-chat-trigger') : null;
+  if (!t) return;
+  // Avoid double-opening if the inline onclick already handled it (it stops propagation,
+  // so this only fires when the inline handler did NOT run).
+  if (window._advisorChatOpening) return;
+  window._advisorChatOpening = true;
+  try {
+    e.stopPropagation();
+    openAdvisorChat();
+  } finally {
+    setTimeout(() => { window._advisorChatOpening = false; }, 400);
+  }
+});
 window.openRecurringTemplatesModal = openRecurringTemplatesModal;
 window.deleteRecurringTemplate = deleteRecurringTemplate;
 window.openRecurringDetailsModal = openRecurringDetailsModal;
@@ -31489,9 +31583,9 @@ const USER_GUIDE_DATA = {
       {
         id: 'changelog',
         icon: 'fa-box-archive',
-        title: '1. Version & What\'s New (v1330)',
+        title: '1. Version & What\'s New (v1337)',
         content: `
-          <p><strong>Guide Version:</strong> v1330 | <strong>Synchronized App Version:</strong> v1330</p>
+          <p><strong>Guide Version:</strong> v1337 | <strong>Synchronized App Version:</strong> v1337</p>
           <div class="guide-feature-box">
             <h5 style="margin:0 0 6px; color:var(--primary);">✨ What's new in the latest version:</h5>
             <ul style="margin:0; padding-left:18px;">

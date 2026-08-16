@@ -53,6 +53,8 @@
         }
     };
 
+    var LOGO_IMG_HTML = '<img src="logo-mark.png" id="header-wallet-icon" class="header-app-logo" alt="Budget Assistant Logo">';
+
     function updateDesktopTopbarTitle(tabKey) {
         if (!isWebMode()) return;
         var tab = tabKey || (window.state && window.state.activeTab) || 'trans';
@@ -62,11 +64,17 @@
 
         var heading = document.getElementById('app-heading-title');
         if (heading) {
-            heading.innerHTML =
-                '<div class="desktop-header-title-badge">' +
-                '  <i class="fa-solid ' + info.icon + '"></i>' +
-                '</div>' +
-                '<span class="desktop-header-title-text">' + text + '</span>';
+            if (window.innerWidth >= 768) {
+                heading.innerHTML =
+                    '<div class="desktop-header-title-badge">' +
+                    '  <i class="fa-solid ' + info.icon + '"></i>' +
+                    '</div>' +
+                    '<span class="desktop-header-title-text">' + text + '</span>';
+            } else {
+                heading.innerHTML =
+                    LOGO_IMG_HTML +
+                    '<span class="header-title-text">Budget Assistant</span>';
+            }
         }
     }
 
@@ -85,7 +93,7 @@
         brand.className = 'desktop-sidebar-brand';
         brand.innerHTML =
             '<div class="desktop-brand-logo">' +
-            '  <i class="fa-solid fa-wallet"></i>' +
+            LOGO_IMG_HTML +
             '</div>' +
             '<div class="desktop-brand-text">' +
             '  <span class="desktop-brand-name">Budget Assistant</span>' +
@@ -186,7 +194,7 @@
             searchChip.className = 'desktop-topbar-search';
             searchChip.innerHTML =
                 '<i class="fa-solid fa-magnifying-glass"></i>' +
-                '<span data-i18n="search_placeholder">' + (window.state && window.state.lang === 'en' ? 'Search expenses...' : 'Αναζήτηση κινήσεων...') + '</span>' +
+                '<span data-i18n="search_placeholder">' + (window.state && window.state.lang === 'en' ? 'Search in expenses, accounts or dates...' : 'Αναζήτηση σε έξοδα, λογαριασμούς ή ημερομηνία...') + '</span>' +
                 '<kbd>/</kbd>';
             searchChip.addEventListener('click', function () {
                 if (typeof window.openSearchOverlay === 'function') {
@@ -201,7 +209,7 @@
             var addBtn = document.createElement('button');
             addBtn.type = 'button';
             addBtn.className = 'desktop-topbar-add';
-            addBtn.innerHTML = '<i class="fa-solid fa-plus"></i><span data-i18n="fab_add_transaction">Προσθήκη</span>';
+            addBtn.innerHTML = '<i class="fa-solid fa-plus"></i> <span data-i18n="fab_add_transaction">' + (window.state && window.state.lang === 'en' ? 'Add Transaction' : 'Προσθήκη Συναλλαγής') + '</span>';
             addBtn.addEventListener('click', function () {
                 if (typeof window.openAddTransactionModal === 'function') {
                     window.openAddTransactionModal();
@@ -492,6 +500,10 @@
         renderStatsSummary();
 
         document.documentElement.classList.add('desktop-ui-ready');
+
+        window.addEventListener('resize', function () {
+            updateDesktopTopbarTitle();
+        });
     }
 
     window.initDesktopUI = initDesktopUI;

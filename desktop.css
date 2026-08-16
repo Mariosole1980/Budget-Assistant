@@ -100,7 +100,29 @@ html.web-mode .desktop-sidebar-user-card {
 }
 
 /* ------------------------------------------------------------ */
-/* 2. APP CONTAINER & GRID LAYOUT                                */
+/* MOBILE GUARD (< 768px): Hide all desktop-specific injected UI */
+/* ------------------------------------------------------------ */
+@media (max-width: 767px) {
+    .desktop-sidebar-brand,
+    .desktop-sidebar-user-card,
+    .desktop-topbar-search,
+    .desktop-topbar-add,
+    .desktop-topbar-note,
+    .desktop-sidebar-add,
+    .desktop-header-title-badge,
+    .desktop-user-chevron,
+    .stats-summary,
+    #stats-summary {
+        display: none !important;
+    }
+
+    html.web-mode .fab {
+        display: flex !important;
+    }
+}
+
+/* ------------------------------------------------------------ */
+/* 2. APP CONTAINER & GRID LAYOUT (>= 768px)                     */
 /* ------------------------------------------------------------ */
 @media (min-width: 768px) {
     html.web-mode .app-container {
@@ -751,13 +773,58 @@ html.web-mode .desktop-sidebar-user-card {
     }
 }
 
-/* Hide mobile FABs on desktop */
-html.web-mode .fab,
-html.web-mode .fab-note {
+/* ------------------------------------------------------------ */
+/* 8. MOBILE vs DESKTOP CONTROLS                                 */
+/* ------------------------------------------------------------ */
+
+/* On mobile (< 768px), ALWAYS show the FAB */
+html.web-mode .fab {
+    display: flex !important;
+}
+
+/* On mobile (< 768px), ALWAYS hide the stats summary cards */
+.stats-summary,
+#stats-summary {
     display: none !important;
 }
 
-/* Mobile safety guard: Stats summary hidden outside web-mode */
-html:not(.web-mode) .stats-summary {
-    display: none !important;
+@media (min-width: 768px) {
+    /* Hide mobile FABs on desktop (>= 768px) */
+    html.web-mode .fab,
+    html.web-mode .fab-note {
+        display: none !important;
+    }
+
+    /* Show stats summary only on desktop (>= 768px) */
+    html.web-mode .stats-summary,
+    html.web-mode #stats-summary {
+        display: block !important;
+    }
+
+    /* Desktop Search Overlay Modal */
+    html.web-mode .search-overlay-container {
+        position: fixed !important;
+        inset: 0 !important;
+        max-width: 620px !important;
+        max-height: 86vh !important;
+        height: 86vh !important;
+        margin: auto !important;
+        border-radius: 24px !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7) !important;
+        z-index: 10000 !important;
+        overflow: hidden !important;
+        transform: scale(0.96) !important;
+        opacity: 0 !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+        transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease, visibility 0.2s !important;
+    }
+
+    html.web-mode .search-overlay-container.active {
+        transform: scale(1) !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        pointer-events: auto !important;
+    }
 }
