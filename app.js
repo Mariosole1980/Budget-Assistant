@@ -17801,238 +17801,16 @@ function initTabSwipeNavigation() {
   let velocity = 0;
   let touchActive = false;
   let isSwipingHorizontal = null;
-  let swipeDirection = 0; // +1 = next month (swipe left), -1 = prev month (swipe right)
-  let peekRendered = false;
-  let animating = false;
 
-  const edgeThreshold = 40; // Avoid edge gesture conflicts with Android back gesture
-  const commitRatio = 0.20; // 20% of screen width to commit
-  const flingVelocity = 0.35; // px/ms
-  const resistanceStart = 90; // px before elastic resistance
+  const edgeThreshold = 40; // Avoid edge gesture conflicts with system back gesture
+  const triggerThreshold = 25; // Snappy 25px threshold
+  const flingVelocity = 0.28; // Light flick velocity
 
-  function getSwipeListEl() {
-    return state.activeTab === 'trans'
-      ? document.getElementById('transactions-list')
-      : state.activeTab === 'stats'
-        ? document.getElementById('stats-breakdown-list')
-        : null;
-  }
-
-  function applyResistance(raw) {
-    const sign = raw >= 0 ? 1 : -1;
-    const abs = Math.abs(raw);
-    if (abs <= resistanceStart) return raw;
-    const over = abs - resistanceStart;
-    return sign * (resistanceStart + over * 0.45);
-  }
-
-  function shiftMonth(year, month, dir) {
-    let m = month + dir;
-    let y = year;
-    if (m < 0) { m = 11; y--; }
-    else if (m > 11) { m = 0; y++; }
-    return { year: y, month: m };
-  }
-
-  function getPeekContainer() {
-    let peek = document.getElementById('swipe-peek-list');
-    if (peek) return peek;
-    const parent = state.activeTab === 'trans'
-      ? document.querySelector('#trans-screen .trans-scroll-content')
-      : document.querySelector('#stats-screen .stats-scroll-content');
-    if (!parent) return null;
-    peek = document.createElement('div');
-    peek.id = 'swipe-peek-list';
-    peek.className = 'swipe-peek-list';
-    parent.appendChild(peek);
-    return peek;
-  }
-
-  function renderPeek(direction) {
-    const peek = getPeekContainer();
-    if (!peek) return;
-    const { year, month } = shiftMonth(state.selectedYear, state.selectedMonth, direction);
-    if (state.activeTab === 'trans') {
-      renderTransactionsTab(peek, year, month);
-    } else {
-      const label = `${getMonthName(month, true)} ${year}`;
-      peek.innerHTML = `<div class="swipe-peek-placeholder"><i class="fa-solid fa-chart-pie" style="margin-right: 8px;"></i> ${label}</div>`;
-    }
-    peekRendered = true;
-  }
-
-  function updateDrag(dx) {
-    const width = window.innerWidth;
-    const listEl = getSwipeListEl();
-    const peek = document.getElementById('swipe-peek-list');
-    const resisted = applyResistance(dx);
-
-    if (listEl) {
-      listEl.style.transition = 'none';
-      listEl.style.transform = `translateX(${resisted}px)`;
-      const fade = Math.max(0.35, 1 - Math.abs(resisted) / (width * 0.75));
-      listEl.style.opacity = String(fade);
-    }
-
-    if (peek) {
-      peek.style.transition = 'none';
-      const peekOffset = resisted + (resisted > 0 ? -width : width);
-      peek.style.transform = `translateX(${peekOffset}px)`;
-      peek.style.opacity = '1';
-    }
-
-    const titleEl = state.activeTab === 'stats'
-      ? document.getElementById('stats-period-title')
-      : document.getElementById('current-period-title');
-    if (titleEl) {
-      titleEl.style.transition = 'none';
-      titleEl.style.transform = `translateX(${resisted * 0.25}px)`;
-      titleEl.style.opacity = String(Math.max(0.4, 1 - Math.abs(resisted) / (width * 0.5)));
-    }
-  }
-
-  function resetTitleElements() {
-    ['current-period-title', 'stats-period-title'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) {
-        el.style.transition = '';
-        el.style.transform = '';
-        el.style.opacity = '';
-      }
-    });
-  }
-
-  function animateTo(el, toX, toOpacity, duration, easing, cb) {
-    if (!el) { if (cb) cb(); return; }
-    el.style.transition = `transform ${duration}ms ${easing}, opacity ${duration}ms ${easing}`;
-    el.style.transform = `translateX(${toX}px)`;
-    el.style.opacity = String(toOpacity);
-    setTimeout(() => {
-      el.style.transition = '';
-      el.style.transform = '';
-      el.style.opacity = '';
-      if (cb) cb();
-    }, duration);
-  }
-
-  function commitSwipe(direction) {
-    animating = true;
-    const width = window.innerWidth;
-    const listEl = getSwipeListEl();
-    const peek = document.getElementById('swipe-peek-list');
-    const outX = direction > 0 ? -width : width;
-    const dur = 135;
-    const easing = 'cubic-bezier(0.2, 0.8, 0.3, 1)';
-
-    resetTitleElements();
-
-    if (state.activeTab === 'stats') {
-      if (peek) peek.remove();
-      if (listEl) {
-        listEl.style.transition = 'none';
-        listEl.style.transform = '';
-        listEl.style.opacity = '';
-      }
-      animating = false;
-      peekRendered = false;
-      swipeDirection = 0;
-      adjustStatsPeriod(direction, 0);
-      return;
-    }
-
-    const shifted = shiftMonth(state.selectedYear, state.selectedMonth, direction);
-
-    // Concurrently animate current list out and peek in
-    if (listEl) {
-      listEl.style.transition = `transform ${dur}ms ${easing}, opacity ${dur}ms ease`;
-      listEl.style.transform = `translateX(${outX}px)`;
-      listEl.style.opacity = '0.3';
-    }
-
-    if (peek) {
-      peek.style.transition = `transform ${dur}ms ${easing}`;
-      peek.style.transform = 'translateX(0px)';
-    }
-
-    setTimeout(() => {
-      state.selectedYear = shifted.year;
-      state.selectedMonth = shifted.month;
-      syncStatsDate();
-
-      if (peek && peek.childNodes.length > 0 && listEl) {
-        listEl.replaceChildren(...peek.childNodes);
-        listEl._lastRenderSignature = null;
-        peek.remove();
-        updateHeaderAndSync();
-        lastRenderedCategoryType = null;
-      } else {
-        if (peek) peek.remove();
-        renderTransactionsForSwipe();
-      }
-
-      if (listEl) {
-        listEl.style.transition = 'none';
-        listEl.style.transform = '';
-        listEl.style.opacity = '';
-      }
-
-      animating = false;
-      peekRendered = false;
-      swipeDirection = 0;
-      state.isSwipingMonth = false;
-      state.touchDidMove = false;
-      state.lastSwipeTime = Date.now();
-      document.body.classList.remove('is-swiping-month');
-
-      requestAnimationFrame(() => {
-        setTimeout(() => scrollToToday('auto'), 50);
-      });
-    }, dur);
-  }
-
-  function snapBackSwipe() {
-    animating = true;
-    const listEl = getSwipeListEl();
-    const peek = document.getElementById('swipe-peek-list');
-    const titleEl = state.activeTab === 'stats'
-      ? document.getElementById('stats-period-title')
-      : document.getElementById('current-period-title');
-    const easing = 'cubic-bezier(0.34, 1.56, 0.64, 1)';
-    const dur = 150;
-
-    if (listEl) animateTo(listEl, 0, 1, dur, easing);
-    if (titleEl) animateTo(titleEl, 0, 1, dur, easing);
-    if (peek) {
-      peek.style.transition = `opacity 100ms ease`;
-      peek.style.opacity = '0';
-      setTimeout(() => { if (peek.parentNode) peek.remove(); }, 100);
-    }
-    setTimeout(finishSwipe, dur);
-  }
-
-  function finishSwipe() {
-    if (touchActive) return;
-    animating = false;
-    peekRendered = false;
-    swipeDirection = 0;
-    state.isSwipingMonth = false;
-    state.touchDidMove = false;
-    state.lastSwipeTime = Date.now();
-    const peek = document.getElementById('swipe-peek-list');
-    if (peek) peek.remove();
-    document.body.classList.remove('is-swiping-month');
-    resetTitleElements();
-    if (state.activeTab === 'stats') {
-      renderStatsTab(false);
-    }
-  }
-
-  // Touch event listeners
   appContent.addEventListener('touchstart', (e) => {
     const activeModals = document.querySelectorAll('.modal-overlay.active, .tx-modal-overlay.active');
     const searchOverlay = document.getElementById('search-overlay');
     const isSearchActive = searchOverlay && searchOverlay.classList.contains('active');
-    if (activeModals.length > 0 || isSearchActive || state.selectionMode || state.isSwipingMonth || animating) {
+    if (activeModals.length > 0 || isSearchActive || state.selectionMode || state.isSwipingMonth) {
       touchActive = false;
       return;
     }
@@ -18048,8 +17826,7 @@ function initTabSwipeNavigation() {
     lastMoveX = startX;
     lastMoveTime = Date.now();
     velocity = 0;
-    swipeDirection = 0;
-    peekRendered = false;
+    startTime = lastMoveTime;
 
     if (startX <= edgeThreshold || startX >= window.innerWidth - edgeThreshold) {
       touchActive = false;
@@ -18061,35 +17838,29 @@ function initTabSwipeNavigation() {
   }, { passive: true });
 
   appContent.addEventListener('touchmove', (e) => {
-    if (!touchActive || animating) return;
+    if (!touchActive || state.isSwipingMonth) return;
     const touch = e.touches[0];
     const deltaX = touch.clientX - startX;
     const deltaY = touch.clientY - startY;
 
     if (isSwipingHorizontal === null) {
       if (Math.abs(deltaX) > 8 || Math.abs(deltaY) > 8) {
-        if (Math.abs(deltaX) > Math.abs(deltaY) * 0.7) {
+        if (Math.abs(deltaX) > Math.abs(deltaY) * 0.75) {
           if (state.activeTab === 'trans' || state.activeTab === 'stats') {
             isSwipingHorizontal = true;
-            state.isSwipingMonth = true;
             state.touchDidMove = true;
-            document.body.classList.add('is-swiping-month');
-            swipeDirection = deltaX < 0 ? 1 : -1;
-            renderPeek(swipeDirection);
           } else {
             isSwipingHorizontal = false;
             touchActive = false;
           }
         } else {
           isSwipingHorizontal = false;
-          touchActive = false;
         }
       }
     }
 
     if (isSwipingHorizontal === true) {
       if (e.cancelable) e.preventDefault();
-
       const now = Date.now();
       const dt = now - lastMoveTime;
       if (dt > 0) {
@@ -18097,8 +17868,6 @@ function initTabSwipeNavigation() {
       }
       lastMoveX = touch.clientX;
       lastMoveTime = now;
-
-      updateDrag(deltaX);
     }
   }, { passive: false });
 
@@ -18106,43 +17875,34 @@ function initTabSwipeNavigation() {
     if (!touchActive) return;
     touchActive = false;
 
-    if (isSwipingHorizontal === true) {
+    if (isSwipingHorizontal === true && !state.isSwipingMonth) {
       if (e.cancelable) e.preventDefault();
       state.lastSwipeTime = Date.now();
       const touch = e.changedTouches[0] || e.touches[0];
       const deltaX = touch.clientX - startX;
-      const width = window.innerWidth;
       const absDelta = Math.abs(deltaX);
       const absVelocity = Math.abs(velocity);
 
-      const shouldCommit = absDelta >= width * commitRatio || absVelocity >= flingVelocity;
+      const shouldTrigger = absDelta >= triggerThreshold || absVelocity >= flingVelocity;
 
-      if (shouldCommit && swipeDirection !== 0) {
-        commitSwipe(swipeDirection);
-      } else {
-        snapBackSwipe();
+      if (shouldTrigger) {
+        const direction = deltaX < 0 ? 1 : -1; // 1 = next month, -1 = prev month
+        if (state.activeTab === 'trans') {
+          navigateMonth(direction);
+        } else if (state.activeTab === 'stats') {
+          adjustStatsPeriod(direction, 0);
+        }
       }
-    } else {
-      state.isSwipingMonth = false;
-      setTimeout(() => { state.touchDidMove = false; }, 300);
-      document.body.classList.remove('is-swiping-month');
     }
+
     isSwipingHorizontal = null;
+    setTimeout(() => { state.touchDidMove = false; }, 300);
   }, { passive: false });
 
   appContent.addEventListener('touchcancel', () => {
     touchActive = false;
     isSwipingHorizontal = null;
-    if (state.isSwipingMonth) {
-      snapBackSwipe();
-    } else {
-      setTimeout(() => {
-        state.isSwipingMonth = false;
-        state.touchDidMove = false;
-        state.lastSwipeTime = Date.now();
-        document.body.classList.remove('is-swiping-month');
-      }, 100);
-    }
+    setTimeout(() => { state.touchDidMove = false; }, 100);
   }, { passive: true });
 }
 
@@ -18153,8 +17913,8 @@ function renderTransactionsForSwipe() {
   lastRenderedCategoryType = null;
 }
 
-// Animated transition used by period-prev/next buttons (no finger drag).
-function animateSwipeTransition(direction, callback, startingDeltaX = 0) {
+// High-performance GPU transition for month navigation (used by both swipe gestures & chevron buttons)
+function animateSwipeTransition(direction, callback) {
   const listEl = state.activeTab === 'trans'
     ? document.getElementById('transactions-list')
     : state.activeTab === 'stats'
@@ -18162,50 +17922,71 @@ function animateSwipeTransition(direction, callback, startingDeltaX = 0) {
       : null;
 
   const width = window.innerWidth;
-  const outX = direction > 0 ? -Math.min(width * 0.35, 140) : Math.min(width * 0.35, 140);
-
-  function animateEl(el, fromX, toX, opacity, duration, easing, cb) {
-    if (!el) { if (cb) cb(); return; }
-    el.style.transition = 'none';
-    el.style.transform = `translateX(${fromX}px)`;
-    el.style.opacity = String(opacity[0]);
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        el.style.transition = `transform ${duration}ms ${easing}, opacity ${duration}ms ${easing}`;
-        el.style.transform = `translateX(${toX}px)`;
-        el.style.opacity = String(opacity[1]);
-        setTimeout(() => { el.style.transition = ''; el.style.transform = ''; el.style.opacity = ''; if (cb) cb(); }, duration);
-      });
-    });
-  }
+  const outX = direction > 0 ? -Math.min(width * 0.28, 100) : Math.min(width * 0.28, 100);
+  const inX = -outX;
 
   state.isSwipingMonth = true;
   document.body.classList.add('is-swiping-month');
 
-  if (listEl) {
-    animateEl(listEl, 0, outX, [1, 0.25], 65, 'cubic-bezier(0.4, 0, 0.6, 1)', () => {
-      callback();
-      const inX = -outX;
-      const newListEl = state.activeTab === 'trans'
-        ? document.getElementById('transactions-list')
-        : document.getElementById('stats-breakdown-list');
-      animateEl(newListEl, inX, 0, [0.25, 1], 100, 'cubic-bezier(0.2, 0.8, 0.4, 1)', () => {
-        state.isSwipingMonth = false;
-        state.touchDidMove = false;
-        state.lastSwipeTime = Date.now();
-        document.body.classList.remove('is-swiping-month');
-        if (state.activeTab === 'stats') {
-          renderStatsTab(false);
-        }
-      });
-    });
-  } else {
+  if (!listEl) {
     callback();
     state.isSwipingMonth = false;
     state.touchDidMove = false;
     state.lastSwipeTime = Date.now();
     document.body.classList.remove('is-swiping-month');
+    return;
   }
+
+  // Phase 1: Slide current month out smoothly (GPU transform only)
+  listEl.style.transition = 'transform 70ms cubic-bezier(0.4, 0, 0.6, 1), opacity 70ms ease';
+  listEl.style.transform = `translateX(${outX}px)`;
+  listEl.style.opacity = '0.2';
+
+  setTimeout(() => {
+    // Phase 2: Execute state change & render
+    callback();
+
+    const currentListEl = state.activeTab === 'trans'
+      ? document.getElementById('transactions-list')
+      : document.getElementById('stats-breakdown-list');
+
+    if (!currentListEl) {
+      state.isSwipingMonth = false;
+      state.touchDidMove = false;
+      state.lastSwipeTime = Date.now();
+      document.body.classList.remove('is-swiping-month');
+      return;
+    }
+
+    // Position new month on the opposite side instantly
+    currentListEl.style.transition = 'none';
+    currentListEl.style.transform = `translateX(${inX}px)`;
+    currentListEl.style.opacity = '0.2';
+
+    // Slide new month smoothly into center
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        currentListEl.style.transition = 'transform 95ms cubic-bezier(0.2, 0.8, 0.4, 1), opacity 95ms ease';
+        currentListEl.style.transform = 'translateX(0)';
+        currentListEl.style.opacity = '1';
+
+        setTimeout(() => {
+          currentListEl.style.transition = '';
+          currentListEl.style.transform = '';
+          currentListEl.style.opacity = '';
+
+          state.isSwipingMonth = false;
+          state.touchDidMove = false;
+          state.lastSwipeTime = Date.now();
+          document.body.classList.remove('is-swiping-month');
+
+          if (state.activeTab === 'stats') {
+            renderStatsTab(false);
+          }
+        }, 100);
+      });
+    });
+  }, 75);
 }
 
 // Navigate to an adjacent month (used by the period-prev/next chevron buttons).
@@ -31442,9 +31223,9 @@ const USER_GUIDE_DATA = {
       {
         id: 'changelog',
         icon: 'fa-box-archive',
-        title: '1. Version & What\'s New (v1346)',
+        title: '1. Version & What\'s New (v1347)',
         content: `
-          <p><strong>Guide Version:</strong> v1346 | <strong>Synchronized App Version:</strong> v1346</p>
+          <p><strong>Guide Version:</strong> v1347 | <strong>Synchronized App Version:</strong> v1347</p>
           <div class="guide-feature-box">
             <h5 style="margin:0 0 6px; color:var(--primary);">✨ What's new in the latest version:</h5>
             <ul style="margin:0; padding-left:18px;">
