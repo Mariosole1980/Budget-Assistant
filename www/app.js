@@ -1697,7 +1697,13 @@ setTimeout(() => {
 
 // ============================================================
 async function initApp() {
-  window._appLoaded = true;
+  // NOTE: _appLoaded is intentionally NOT set to true here at the start.
+  // It is set to true only AFTER initApp() completes successfully (see the
+  // end of this function). This keeps the recovery-mode error handler in
+  // index.html armed (it checks `!window._appLoaded`) so that if initApp()
+  // throws partway through, the user is shown the Recovery overlay instead
+  // of being left stuck in a half-initialized broken state (untranslated nav
+  // labels, dead tab switching, frozen scroll) with no way out.
   if (window._startupTimeout) clearTimeout(window._startupTimeout);
 
   if (isAndroid) {
@@ -2120,11 +2126,70 @@ async function initApp() {
 // so all top-level `let`/`const` declarations (e.g. _updateUITimer) are
 // initialized before initApp() runs — otherwise they are in the temporal
 // dead zone and throw "cannot access before initialization".
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initApp);
-} else {
-  setTimeout(initApp, 0);
+//
+// RESILIENCE: initApp() is wrapped so that if it throws partway through
+// initialization, we do NOT leave the user stuck in a half-initialized broken
+// state (untranslated nav labels, dead tab switching, frozen scroll). Instead
+// we trigger the Recovery overlay (if present) and log the error. _appLoaded
+// is only set true at the very end of initApp(), so the recovery-mode error
+// handler in index.html stays armed until initialization fully completes.
+function _bootApp() {
+  initApp().catch(function (err) {
+    console.error('[Boot] initApp() failed:', err);
+    if (typeof window.showRecoveryMode === 'function') {
+      try {
+        window.showRecoveryMode('App initialization failed: ' + (err && err.message ? err.message : String(err)));
+      } catch (e) { /* recovery overlay itself failed; nothing more we can do */ }
+    }
+  });
 }
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', _bootApp);
+} else {
+  setTimeout(_bootApp, 0);
+}
+
+// ============================================================
+// HALF-INITIALIZED STATE WATCHDOG
+// ============================================================
+// Even when initApp() does not throw, a critical step can silently fail and
+// leave the app in a broken half-initialized state: the nav labels stay as the
+// hardcoded HTML fallback (e.g. "Λογαριασμοί" instead of the translated
+// "Επισκόπηση"), tab switching is dead, and scroll is frozen. This watchdog
+// verifies the app actually finished initializing (nav labels translated +
+// tab screens present) shortly after boot. If it detects a broken state, it
+// triggers the Recovery overlay so the user is never left stuck.
+(function installHalfInitWatchdog() {
+  // Only run once, after a generous window that covers the full initApp()
+  // sequence (which includes deferred renders and async auth/offline paths).
+  setTimeout(function () {
+    // If the app fully loaded, _appLoaded is true and we have nothing to do.
+    if (window._appLoaded) return;
+    // If recovery is already showing, don't double-trigger.
+    if (document.getElementById('recovery-overlay')) return;
+    // If the auth overlay is legitimately showing (first launch login), the
+    // app is NOT broken — it's waiting for the user to log in. Skip.
+    var authOverlay = document.getElementById('auth-overlay');
+    if (authOverlay && authOverlay.style.display !== 'none') return;
+
+    // Heuristic: the nav accounts label should have been translated by
+    // applyLanguage(). If it still equals the hardcoded HTML fallback
+    // ("Λογαριασμοί" / "Accounts"), applyLanguage() never ran -> broken state.
+    var accountsNav = document.querySelector('#tab-nav-accounts span[data-i18n="nav_accounts"]');
+    if (accountsNav) {
+      var text = (accountsNav.textContent || '').trim();
+      var isFallback = (text === 'Λογαριασμοί' || text === 'Accounts');
+      if (isFallback) {
+        console.error('[Watchdog] App left in half-initialized state (nav not translated). Triggering recovery.');
+        if (typeof window.showRecoveryMode === 'function') {
+          try {
+            window.showRecoveryMode('App did not finish initializing (nav labels not applied). Please reload.');
+          } catch (e) { /* ignore */ }
+        }
+      }
+    }
+  }, 6000);
+})();
 
 
 // ============================================================
@@ -31650,9 +31715,9 @@ const USER_GUIDE_DATA = {
       {
         id: 'changelog',
         icon: 'fa-box-archive',
-        title: '1. Version & What\'s New (v1387)',
+        title: '1. Version & What\'s New (v1388)',
         content: `
-          <p><strong>Guide Version:</strong> v1387 | <strong>Synchronized App Version:</strong> v1387</p>
+          <p><strong>Guide Version:</strong> v1388 | <strong>Synchronized App Version:</strong> v1388</p>
           <div class="guide-feature-box">
             <h5 style="margin:0 0 6px; color:var(--primary);">✨ What's new in the latest version:</h5>
             <ul style="margin:0; padding-left:18px;">
