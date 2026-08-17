@@ -79,7 +79,8 @@ async function main() {
         console.log('[STEP 3+5/6] Building Android (Debug APK, Release APK, AAB) in parallel with OTA bundle...');
         const gradleProc = spawn('gradlew.bat', ['assembleDebug', 'assembleRelease', 'bundleRelease'], {
             cwd: path.join(rootDir, 'android'),
-            stdio: 'inherit'
+            stdio: 'inherit',
+            shell: true
         });
 
         // OTA bundle (runs while gradle builds in the background)
