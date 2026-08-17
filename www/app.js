@@ -4393,7 +4393,7 @@ function cleanDuplicateTemplates() {
       const sameCat = isSameCategory(t1.category, t2.category);
       const n1 = normalizeGreekString(t1.note || t1.description || '');
       const n2 = normalizeGreekString(t2.note || t2.description || '');
-      const sameNote = (n1 === n2) || (n1.length > 0 && n2.length > 0 && (n1.includes(n2) || n2.includes(n1)));
+      const sameNote = (n1.length > 0 && n1 === n2);
 
       if (sameAmount && sameType && sameCat && sameNote) {
         isDup = true;

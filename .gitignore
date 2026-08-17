@@ -24,3 +24,8 @@ archive/
 
 # Scratch / diagnostic scripts (development only)
 scratch/
+
+# Recurring recovery diagnostic artifacts (development only)
+recurring-recovery-*.sql
+recurring-recovery-*.js
+recurring-recovery-*.md
