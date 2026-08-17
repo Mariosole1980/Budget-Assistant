@@ -29,3 +29,8 @@ scratch/
 recurring-recovery-*.sql
 recurring-recovery-*.js
 recurring-recovery-*.md
+
+# OTA boot/engine modules (generated build artifacts produced by the native/OTA
+# release step; must never be swept into a release commit)
+ota-boot-loader.js
+js/OTAEngine.js

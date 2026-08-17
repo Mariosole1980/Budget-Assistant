@@ -7,9 +7,11 @@ const rootDir = path.resolve(__dirname, '..');
 console.log('====================================================');
 console.log('🚀 AUTOMATED FAIL-SAFE RELEASE WORKFLOW');
 console.log('====================================================\n');
-console.log('NOTE: This is the canonical WEB release path.');
-console.log('For the optional native/OTA stage (Capgo bundle, Capacitor sync,');
-console.log('APK/AAB builds), run: npm run release:native\n');
+console.log('⚠️  DEPRECATED: This is the WEB-ONLY release path.');
+console.log('    The canonical Universal Release (WEB + NATIVE/OTA) is:');
+console.log('    npm run release:all');
+console.log('    This path deploys web only (no OTA bundle) and is kept for');
+console.log('    reference/backward compatibility. Prefer release:all.\n');
 
 // Step 1: Git Working Tree Status Check
 console.log('[STEP 1/7] Checking Git working tree status...');
@@ -36,8 +38,18 @@ console.log('[STEP 3/7] Running strict version consistency check...');
 execSync('node scripts/version-check.js', { cwd: rootDir, stdio: 'inherit' });
 
 // Step 5: Git Commit Release State BEFORE Deploy
+// SAFETY: Explicit allowlist (not `git add -A`) so no untracked/unexpected file
+// can be swept into a release commit. Only version-sync-modified files are staged.
 console.log('[STEP 4/7] Committing release state to Git...');
-execSync('git add -A', { cwd: rootDir, stdio: 'inherit' });
+const releaseFiles = [
+  'version.json',
+  'index.html',
+  'sw.js',
+  'app.js',
+  'js/translations.js',
+  'android/app/build.gradle'
+];
+execSync(`git add ${releaseFiles.join(' ')}`, { cwd: rootDir, stdio: 'inherit' });
 execSync(`git commit -m "release: build v${newVersion} [automated release workflow]"`, { cwd: rootDir, stdio: 'inherit' });
 console.log(`  [PASS] Git commit created for release v${newVersion}.\n`);
 
