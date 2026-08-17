@@ -117,26 +117,80 @@
       font-size: 12px;
       margin-top: 32px;
     }
-    a { color: var(--accent); text-decoration: none; }
-    a:hover { text-decoration: underline; }
+    .lang-toggle {
+      display: flex;
+      gap: 6px;
+      background: rgba(255,255,255,0.06);
+      padding: 3px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+    }
+    .lang-btn {
+      padding: 4px 12px;
+      border-radius: 16px;
+      font-size: 12px;
+      font-weight: 700;
+      border: none;
+      background: transparent;
+      color: var(--text2);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .lang-btn.active {
+      background: var(--accent);
+      color: #12151c;
+    }
+    [data-lang="en"] { display: none; }
+    body.show-en [data-lang="el"] { display: none; }
+    body.show-en [data-lang="en"] { display: block; }
   </style>
 </head>
 <body>
   <header>
-    <a href="index.html" class="back-btn" onclick="if(window.history.length > 1){ window.history.back(); return false; }">← Πίσω στην Εφαρμογή</a>
-    <div style="display:flex; align-items:center; gap:10px;">
-      <img src="icon.png" alt="Logo">
-      <h1>Πολιτική Απορρήτου</h1>
+    <a href="index.html" class="back-btn" onclick="if(window.history.length > 1){ window.history.back(); return false; }">
+      <span data-lang="el">← Πίσω στην Εφαρμογή</span>
+      <span data-lang="en">← Back to App</span>
+    </a>
+    <div style="display:flex; align-items:center; gap:14px;">
+      <div class="lang-toggle">
+        <button class="lang-btn active" id="btn-el" onclick="setLang('el')">🇬🇷 ΕΛ</button>
+        <button class="lang-btn" id="btn-en" onclick="setLang('en')">🇬🇧 EN</button>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <img src="icon.png" alt="Logo" style="width:30px;height:30px;border-radius:6px;">
+        <h1 style="font-size:15px;" data-lang="el">Πολιτική Απορρήτου</h1>
+        <h1 style="font-size:15px;" data-lang="en">Privacy Policy</h1>
+      </div>
     </div>
   </header>
 
+  <script>
+    function setLang(l) {
+      if (l === 'en') {
+        document.body.classList.add('show-en');
+        document.getElementById('btn-en').classList.add('active');
+        document.getElementById('btn-el').classList.remove('active');
+      } else {
+        document.body.classList.remove('show-en');
+        document.getElementById('btn-el').classList.add('active');
+        document.getElementById('btn-en').classList.remove('active');
+      }
+    }
+    // Auto-detect English browser / reviewer locale
+    if (navigator.language && !navigator.language.startsWith('el')) {
+      setLang('en');
+    }
+  </script>
+
   <div class="container">
 
-    <div class="hero">
-      <div class="badge">📋 Νομικό Έγγραφο</div>
-      <h2>Πολιτική Απορρήτου</h2>
-      <p>Τελευταία ενημέρωση: Αυγούστου 2026</p>
-    </div>
+    <!-- GREEK VERSION -->
+    <div data-lang="el">
+      <div class="hero">
+        <div class="badge">📋 Νομικό Έγγραφο</div>
+        <h2>Πολιτική Απορρήτου</h2>
+        <p>Τελευταία ενημέρωση: Αύγουστος 2026</p>
+      </div>
 
     <section>
       <h3>Εισαγωγή</h3>
@@ -266,7 +320,81 @@
       </p>
     </section>
 
-    <p class="updated">© 2026 Budget Assistant · Πολιτική Απορρήτου · Τελευταία ενημέρωση: Αυγούστου 2026</p>
+      <p class="updated">© 2026 Budget Assistant · Πολιτική Απορρήτου · Τελευταία ενημέρωση: Αύγουστος 2026</p>
+    </div>
+
+    <!-- ENGLISH VERSION (FOR GOOGLE REVIEWERS & INTERNATIONAL USERS) -->
+    <div data-lang="en">
+      <div class="hero">
+        <div class="badge">📋 Legal Document</div>
+        <h2>Privacy Policy</h2>
+        <p>Last updated: August 2026</p>
+      </div>
+
+      <section>
+        <h3>Introduction</h3>
+        <p>
+          The <strong>Budget Assistant</strong> application ("App", "we", "us") is dedicated to safeguarding your personal data and privacy.
+          This Privacy Policy outlines how your data is collected, processed, and protected, as well as your statutory rights under applicable privacy laws (including GDPR and CCPA).
+        </p>
+        <div class="highlight">
+          🔒 Budget Assistant <strong>does not sell, rent, monetize, or disclose</strong> your financial or personal information to any third parties or advertising brokers.
+        </div>
+      </section>
+
+      <section>
+        <h3>Data We Collect & Process</h3>
+        <p>The application only stores information that you <strong>explicitly and voluntarily enter</strong>:</p>
+        <ul>
+          <li><strong>Financial Records:</strong> Transaction date, amount, category, subcategory, payment method/account, notes, and transaction type (income, expense, transfer).</li>
+          <li><strong>Accounts & Balances:</strong> Custom wallet/bank account names and starting balances.</li>
+          <li><strong>App Preferences:</strong> Display currency, language, visual themes, budget thresholds.</li>
+          <li><strong>User Account (Optional):</strong> If you choose to enable cloud synchronization, your email address is used solely for secure authentication and multi-device cloud backup.</li>
+        </ul>
+        <p>
+          <strong>Data We Never Collect:</strong> Real bank credentials, credit card numbers, national identification numbers, phone numbers, or contacts.
+        </p>
+      </section>
+
+      <section>
+        <h3>Data Storage & Cloud Synchronization</h3>
+        <p>
+          By default, all your records are stored <strong>locally on your device</strong> using secure local browser/app storage.
+          When cloud sync is active, your records are transmitted and synchronized over an encrypted channel (HTTPS/TLS) to enterprise-grade cloud database infrastructure (Supabase / AWS EU servers).
+        </p>
+      </section>
+
+      <section>
+        <h3>User Rights & Account Deletion (GDPR)</h3>
+        <p>You maintain complete ownership and control over all your data at all times:</p>
+        <ul>
+          <li><strong>Right to Access & Export:</strong> You can view all records directly in the app or export your entire database anytime (Excel, CSV, PDF, JSON).</li>
+          <li><strong>Right to Rectification:</strong> You can edit any transaction, account, or category instantly.</li>
+          <li><strong>Right to Erasure (Account Deletion):</strong> You can permanently delete any transaction, or delete your entire account and all associated cloud data directly from the in-app Settings menu (Settings &rarr; Delete Account) or by requesting deletion via support.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h3>Security Standards</h3>
+        <p>We implement robust technical and organizational measures to ensure data protection:</p>
+        <ul>
+          <li>End-to-end transport encryption via HTTPS / TLS 1.3.</li>
+          <li>Row-Level Security (RLS) policies ensuring users can only read and write their own data.</li>
+          <li>Optional in-app PIN protection and native biometric authentication (fingerprint / Face Unlock).</li>
+        </ul>
+      </section>
+
+      <section class="contact-card">
+        <h3 style="justify-content: center;">Contact & Data Protection</h3>
+        <p>If you have any questions or data requests regarding this Privacy Policy, please contact our support team:</p>
+        <p style="margin-top: 16px;">
+          <strong style="color: var(--accent);">Budget Assistant Support</strong><br>
+          📧 <a href="mailto:budgetassistant2026@gmail.com">budgetassistant2026@gmail.com</a>
+        </p>
+      </section>
+
+      <p class="updated">© 2026 Budget Assistant · Privacy Policy · Last updated: August 2026</p>
+    </div>
 
   </div>
 </body>
