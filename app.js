@@ -19038,8 +19038,24 @@ function changeCurrencySetting(val) {
   if (state.userProfile) {
     state.userProfile.display_currency = val;
     state.userProfile.preferred_currency = val;
+    // HARDENING (v1389): Guard against a non-thenable result from the Supabase
+    // chain. If the bundled supabase client's .eq() ever returns a plain object
+    // (e.g. due to a corrupted/older supabase.js or a version mismatch), calling
+    // .then()/.catch() on it would throw "state.supabaseClient.from(...).update(...)
+    // .eq(...).then is not a function" and could crash the app. Wrap the whole
+    // chain in try/catch and only attach .then/.catch when the result is thenable.
     if (state.supabaseClient && userId) {
-      state.supabaseClient.from('profiles').update({ display_currency: val, base_currency: val }).eq('id', userId).then(() => { }).catch(() => { });
+      try {
+        const chain = state.supabaseClient
+          .from('profiles')
+          .update({ display_currency: val, base_currency: val })
+          .eq('id', userId);
+        if (chain && typeof chain.then === 'function') {
+          chain.then(() => { }).catch(() => { });
+        }
+      } catch (e) {
+        console.warn('[Currency] Failed to persist display currency to cloud:', e);
+      }
     }
   }
 
