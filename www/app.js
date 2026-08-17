@@ -4115,8 +4115,21 @@ function loadOfflineData() {
 
 
 function autoRecoverTemplatesFromHistory() {
-  if (localStorage.getItem('templates_autorecovered') === 'true') return;
-  if (!state.transactions || state.transactions.length === 0) return;
+  // DISABLED (v1391): This function previously auto-created recurring templates
+  // from transaction history based on keyword matching. It proved dangerous:
+  //   * The insurance keyword 'ασφάλεια' matched the one-off transaction
+  //     "ΔΑΝΕΙΟ ΣΠΙΤΙΟΥ +120 Η ΑΣΦΑΛΕΙΑ" (644.92), re-creating a template the
+  //     user had intentionally deleted.
+  //   * It re-created duplicate templates on every load when the guard flag was
+  //     not set, flooding the cloud with duplicates.
+  // The user has confirmed the correct recurring templates manually. Auto-recovery
+  // from history is no longer needed and is actively harmful, so it is disabled.
+  // The guard flag is set so any legacy code path that checks it behaves as if
+  // recovery already ran.
+  try {
+    localStorage.setItem('templates_autorecovered', 'true');
+  } catch (e) { }
+  return;
 
   let dismissed = [];
   try {
