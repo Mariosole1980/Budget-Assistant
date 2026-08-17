@@ -217,6 +217,12 @@
     tx.rate_to_base_actual = this.round(amount / actualAmountInBase, 8);
     tx.amount_base = this.computeAmountBase(amount, tx.currency || 'EUR', tx.base_currency || 'EUR', tx.date, tx.rate_to_base_actual);
     tx.rate_source = 'manual';
+    // Keep fx_snapshot.rate consistent with the corrected actual rate so that
+    // displayAmount (which prefers fx_snapshot.rate) matches amount_base/toBase.
+    if (tx.fx_snapshot && typeof tx.fx_snapshot === 'object') {
+      tx.fx_snapshot.rate = tx.rate_to_base_actual;
+      tx.fx_snapshot.source = 'manual';
+    }
     return tx;
   };
   FallbackCurrencyService.prototype.conversionStatus = function (tx) {
@@ -513,6 +519,7 @@ function mapTemplateToDb(t) {
     family_id: t.family_id || null,
     is_shared: !!t.is_shared,
     amount: parseFloat(t.amount || 0),
+    currency: t.currency || 'EUR',
     type: t.type,
     category: t.category,
     subcategory: t.subcategory || null,
@@ -540,6 +547,7 @@ function mapTemplateFromDb(t) {
     family_id: t.family_id,
     is_shared: !!t.is_shared,
     amount: parseFloat(t.amount || 0),
+    currency: t.currency || 'EUR',
     type: t.type,
     category: t.category,
     subcategory: t.subcategory || '',
@@ -4558,6 +4566,7 @@ function processRecurringTemplates() {
             date: dateString,
             type: template.type,
             amount: parseFloat(template.amount),
+            currency: template.currency || 'EUR',
             category: (() => {
               // Normalize a ghost template category (e.g. "Αυτοκίνητο") to its
               // canonical stored name (e.g. "🚗 ΑΥΤΟΚΙΝΗΤΟ") so generated
@@ -4582,6 +4591,8 @@ function processRecurringTemplates() {
             created_at: new Date().toISOString()
           };
 
+          computeCurrencyFields(newTx);
+
           saveTransactionOffline(newTx);
 
           // DATA-INTEGRITY (recurring duplicates): Mark this newly created
@@ -4597,7 +4608,7 @@ function processRecurringTemplates() {
           }
 
           if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
-            const { description, is_shared, photo_local_uri, photo_url, receipt, currency, base_currency, rate_to_base, amount_base, rate_source, fx_snapshot, rate_to_base_actual, rate_fetched_at, transfer_id, transfer_rate, ...dbPayload } = newTx;
+            const { description, is_shared, photo_local_uri, photo_url, receipt, fx_snapshot, ...dbPayload } = newTx;
             (async () => {
               try {
                 const { error } = await promiseTimeout(
@@ -4703,6 +4714,47 @@ function checkHighExpenseAlert(transaction) {
   }
 }
 
+// Multi-currency: compute base-currency fields (amount_base, rate_to_base, base_currency).
+// Always computed so new transactions are consistent with the schema, even when the
+// feature flag is off (EUR → 1:1).
+// This is the single canonical implementation reused by normal, recurring, and
+// imported transactions so they all behave identically.
+function computeCurrencyFields(t) {
+  const userPreferredCurrency = state.userProfile?.base_currency || state.userProfile?.display_currency || getDisplayCurrency();
+  const baseCurrency = userPreferredCurrency;
+  const txCurrency = t.currency || 'EUR';
+  t.base_currency = baseCurrency;
+
+  let rate = 1;
+  if (txCurrency === baseCurrency) {
+    t.rate_to_base = 1;
+    t.amount_base = CurrencyService.round(Number(t.amount), 4);
+    t.rate_source = 'api';
+  } else {
+    const foundRate = CurrencyService.getRate(txCurrency, baseCurrency, t.date);
+    if (foundRate != null && foundRate > 0) {
+      rate = foundRate;
+      t.rate_to_base = rate;
+      t.amount_base = CurrencyService.round(Number(t.amount) / rate, 4);
+      t.rate_source = 'api';
+    } else {
+      t.rate_to_base = null;
+      t.amount_base = null;
+      t.rate_source = 'cached';
+    }
+  }
+
+  // Store immutable fx_snapshot on transaction for audit-reproducible historical rendering
+  t.fx_snapshot = {
+    base: txCurrency,
+    quote: baseCurrency,
+    rate: t.rate_to_base_actual || t.rate_to_base || rate || 1,
+    date: t.date ? String(t.date).split('T')[0] : new Date().toISOString().slice(0, 10),
+    source: t.rate_source || 'api'
+  };
+  return t;
+}
+
 async function saveTransaction(transaction) {
   transaction.amount = parseFloat(transaction.amount);
 
@@ -4748,7 +4800,7 @@ async function saveTransaction(transaction) {
     // exist as a column, so it is intentionally KEPT so cloud-loaded transactions
     // retain their link to the recurring template (fixes recurring delete options
     // not appearing from the transaction modal in the APK).
-    const { description, is_shared, photo_local_uri, photo_url, receipt, currency, base_currency, rate_to_base, amount_base, rate_source, fx_snapshot, rate_to_base_actual, rate_fetched_at, transfer_id, transfer_rate, ...dbPayload } = transaction;
+    const { description, is_shared, photo_local_uri, photo_url, receipt, fx_snapshot, ...dbPayload } = transaction;
 
     // Enqueue immediately before starting the cloud request to prevent data loss if the app is closed/killed
     enqueueSyncMutation('save', transaction);
@@ -8296,6 +8348,7 @@ function setupEventListeners() {
           id: generateUUID(),
           type,
           amount: amountVal,
+          currency: getTransactionCurrency(),
           category: categoryVal,
           subcategory: (() => {
             if (type === 'transfer') return '';
@@ -8431,40 +8484,7 @@ function setupEventListeners() {
       // Multi-currency: compute base-currency fields (amount_base, rate_to_base, base_currency).
       // Always computed so new transactions are consistent with the schema, even when the
       // feature flag is off (EUR → 1:1).
-      {
-        const userPreferredCurrency = state.userProfile?.base_currency || state.userProfile?.display_currency || getDisplayCurrency();
-        const baseCurrency = userPreferredCurrency;
-        const txCurrency = t.currency || 'EUR';
-        t.base_currency = baseCurrency;
-
-        let rate = 1;
-        if (txCurrency === baseCurrency) {
-          t.rate_to_base = 1;
-          t.amount_base = CurrencyService.round(Number(t.amount), 4);
-          t.rate_source = 'api';
-        } else {
-          const foundRate = CurrencyService.getRate(txCurrency, baseCurrency, t.date);
-          if (foundRate != null && foundRate > 0) {
-            rate = foundRate;
-            t.rate_to_base = rate;
-            t.amount_base = CurrencyService.round(Number(t.amount) / rate, 4);
-            t.rate_source = 'api';
-          } else {
-            t.rate_to_base = null;
-            t.amount_base = null;
-            t.rate_source = 'cached';
-          }
-        }
-
-        // Store immutable fx_snapshot on transaction for audit-reproducible historical rendering
-        t.fx_snapshot = {
-          base: txCurrency,
-          quote: baseCurrency,
-          rate: t.rate_to_base_actual || t.rate_to_base || rate || 1,
-          date: t.date ? String(t.date).split('T')[0] : new Date().toISOString().slice(0, 10),
-          source: t.rate_source || 'api'
-        };
-      }
+      computeCurrencyFields(t);
 
       // Multi-currency: apply the user-entered actual charged amount (base currency)
       // correction, which overrides the estimated rate with the real one (source='manual').
@@ -16473,18 +16493,6 @@ function triggerCustomReminderInput() {
 }
 window.triggerCustomReminderInput = triggerCustomReminderInput;
 
-function onNoteReminderChanged() {
-  updateNoteEditorReminderDisplay();
-}
-window.onNoteReminderChanged = onNoteReminderChanged;
-
-function clearNoteEditorReminder() {
-  const reminderInput = document.getElementById('note-editor-reminder-input');
-  if (reminderInput) reminderInput.value = '';
-  updateNoteEditorReminderDisplay();
-}
-window.clearNoteEditorReminder = clearNoteEditorReminder;
-
 function loadNotes() {
   try {
     const cached = localStorage.getItem('offline_notes');
@@ -17035,22 +17043,6 @@ function toggleNoteEditorReminderTools() {
   if (btn) btn.classList.toggle('active', isHidden);
 }
 window.toggleNoteEditorReminderTools = toggleNoteEditorReminderTools;
-
-function toggleNoteEditorPin() {
-  _currentEditingNotePinned = !_currentEditingNotePinned;
-  updateNoteEditorPinUI();
-  autoSaveNoteEditor();
-}
-window.toggleNoteEditorPin = toggleNoteEditorPin;
-
-function updateNoteEditorPinUI() {
-  const pinBtn = document.getElementById('note-editor-pin-btn');
-  if (!pinBtn) return;
-  pinBtn.classList.toggle('pinned', !!_currentEditingNotePinned);
-  pinBtn.title = _currentEditingNotePinned
-    ? (state.lang === 'el' ? 'Ξεκαρφίτσωμα' : 'Unpin')
-    : (state.lang === 'el' ? 'Καρφίτσωμα' : 'Pin');
-}
 
 function handleNoteEditorOverlayClick(event) {
   if (event.target && event.target.id === 'note-editor-modal') {
@@ -18001,6 +17993,7 @@ function updateNoteEditorPinUI() {
     pinBtn.title = state.lang === 'el' ? 'Καρφίτσωμα' : 'Pin';
   }
 }
+window.updateNoteEditorPinUI = updateNoteEditorPinUI;
 
 async function toggleNotePinInline(noteId) {
   const note = state.notes.find(n => n.id === noteId);
@@ -22590,16 +22583,7 @@ async function syncLocalTransactionsToCloud(userId, options = {}) {
         delete copy.photo_local_uri;
         delete copy.photo_url;
         delete copy.receipt;
-        delete copy.currency;
-        delete copy.base_currency;
-        delete copy.rate_to_base;
-        delete copy.amount_base;
-        delete copy.rate_source;
         delete copy.fx_snapshot;
-        delete copy.rate_to_base_actual;
-        delete copy.rate_fetched_at;
-        delete copy.transfer_id;
-        delete copy.transfer_rate;
         copy.user_id = userId;
         if (state.userProfile && state.userProfile.family_id) {
           copy.family_id = state.userProfile.family_id;
@@ -22779,7 +22763,7 @@ async function processSyncQueue(options = {}) {
           console.warn('Skipping invalid sync queue item (missing payload or id):', item);
           continue;
         }
-        const { description, is_shared, photo_local_uri, photo_url, receipt, currency, base_currency, rate_to_base, amount_base, rate_source, fx_snapshot, rate_to_base_actual, rate_fetched_at, transfer_id, transfer_rate, ...dbPayload } = transaction;
+        const { description, is_shared, photo_local_uri, photo_url, receipt, fx_snapshot, ...dbPayload } = transaction;
 
         // PREMIUM GATE: Free plan allows up to PREMIUM_LIMITS.cloudTxPerMonth
         // cloud-synced transactions per month. If at the limit and not Premium,
@@ -30033,6 +30017,7 @@ function regenerateRecurringTemplateTransactions(template) {
         date: dateString,
         type: template.type,
         amount: parseFloat(template.amount),
+        currency: template.currency || 'EUR',
         category: template.category,
         subcategory: template.subcategory || '',
         account_from: template.account_from,
@@ -30044,9 +30029,10 @@ function regenerateRecurringTemplateTransactions(template) {
         family_id: template.family_id || (state.userProfile ? state.userProfile.family_id : null),
         created_at: new Date().toISOString()
       };
+      computeCurrencyFields(newTx);
       saveTransactionOffline(newTx);
       if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
-        const { description, is_shared, photo_local_uri, photo_url, receipt, currency, base_currency, rate_to_base, amount_base, rate_source, fx_snapshot, rate_to_base_actual, rate_fetched_at, transfer_id, transfer_rate, ...dbPayload } = newTx;
+        const { description, is_shared, photo_local_uri, photo_url, receipt, fx_snapshot, ...dbPayload } = newTx;
         (async () => {
           try {
             const { error } = await promiseTimeout(
@@ -31014,6 +31000,7 @@ async function importExcelData() {
       date: dateStr,
       type: type,
       amount: amount,
+      currency: 'EUR',
       category: map.category != null ? String(row[map.category] || '').trim() : 'Γενικά',
       subcategory: map.subcategory != null ? String(row[map.subcategory] || '').trim() : '',
       account_from: map.account != null ? String(row[map.account] || '').trim() : '',
@@ -31021,6 +31008,7 @@ async function importExcelData() {
     };
 
     try {
+      computeCurrencyFields(tx);
       await saveTransaction(tx);
       imported++;
     } catch (err) {
@@ -31613,9 +31601,9 @@ const USER_GUIDE_DATA = {
       {
         id: 'changelog',
         icon: 'fa-box-archive',
-        title: '1. Version & What\'s New (v1406)',
+        title: `1. Version & What's New (v${typeof CURRENT_BUILD !== "undefined" ? CURRENT_BUILD : 1157})`,
         content: `
-          <p><strong>Guide Version:</strong> v1406 | <strong>Synchronized App Version:</strong> v1406</p>
+          <p><strong>Guide Version:</strong> v${typeof CURRENT_BUILD !== "undefined" ? CURRENT_BUILD : 1157} | <strong>Synchronized App Version:</strong> v${typeof CURRENT_BUILD !== "undefined" ? CURRENT_BUILD : 1157}</p>
           <div class="guide-feature-box">
             <h5 style="margin:0 0 6px; color:var(--primary);">✨ What's new in the latest version:</h5>
             <ul style="margin:0; padding-left:18px;">
@@ -32389,7 +32377,7 @@ async function restoreTrashGroup(groupId) {
         // Strip client-only fields that do NOT exist as columns in the live DB
         // (verified live: error 42703) so the upsert does not fail with a 400.
         const dbPayloads = realSnapshot.map(tx => {
-          const { description, is_shared, photo_local_uri, photo_url, receipt, currency, base_currency, rate_to_base, amount_base, rate_source, fx_snapshot, rate_to_base_actual, rate_fetched_at, transfer_id, transfer_rate, ...clean } = tx;
+          const { description, is_shared, photo_local_uri, photo_url, receipt, fx_snapshot, ...clean } = tx;
           return clean;
         });
         // Restore to cloud. If the server-side cloud limit trigger rejects the

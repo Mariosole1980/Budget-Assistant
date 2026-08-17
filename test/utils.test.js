@@ -20,8 +20,8 @@ const {
 // escapeHtml
 // ---------------------------------------------------------------------------
 test('escapeHtml escapes HTML special characters', () => {
-    assert.strictEqual(escapeHtml('<script>alert("x")</script>'), '<script>alert("x")</script>');
-    assert.strictEqual(escapeHtml("it's & <b>"), 'it&#039;s & <b>');
+    assert.strictEqual(escapeHtml('<script>alert("x")</script>'), '&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt;');
+    assert.strictEqual(escapeHtml("it's & <b>"), 'it&#039;s &amp; &lt;b&gt;');
 });
 
 test('escapeHtml returns empty string for null/undefined', () => {

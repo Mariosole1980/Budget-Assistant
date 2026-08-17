@@ -282,7 +282,7 @@ class CurrencyService {
         const txCurrency = tx.currency || 'EUR';
         const baseCurrency = tx.base_currency || 'EUR';
         if (targetCurrency === txCurrency) return Number(tx.amount);
-        
+
         let baseAmount;
         if (tx.fx_snapshot && typeof tx.fx_snapshot.rate === 'number' && tx.fx_snapshot.rate > 0) {
             baseAmount = this.round(Number(tx.amount) / tx.fx_snapshot.rate, 4);
@@ -311,10 +311,10 @@ class CurrencyService {
                         if (item && item.fetched_at && (now - item.fetched_at > maxAge)) {
                             localStorage.removeItem(key);
                         }
-                    } catch (e) {}
+                    } catch (e) { }
                 }
             }
-        } catch (e) {}
+        } catch (e) { }
     }
 
     /**
@@ -428,6 +428,12 @@ class CurrencyService {
             tx.rate_to_base_actual
         );
         tx.rate_source = 'manual';
+        // Keep fx_snapshot.rate consistent with the corrected actual rate so that
+        // displayAmount (which prefers fx_snapshot.rate) matches amount_base/toBase.
+        if (tx.fx_snapshot && typeof tx.fx_snapshot === 'object') {
+            tx.fx_snapshot.rate = tx.rate_to_base_actual;
+            tx.fx_snapshot.source = 'manual';
+        }
         return tx;
     }
 
