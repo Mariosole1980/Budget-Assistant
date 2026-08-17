@@ -1,5 +1,6 @@
 apply plugin: 'com.android.application'
 
+// Play Store release build (v1408): full native APK/AAB + OTA bundle.
 // Read signing credentials from local.properties (never commit these to git)
 def localProps = new Properties()
 def localPropsFile = rootProject.file('local.properties')
