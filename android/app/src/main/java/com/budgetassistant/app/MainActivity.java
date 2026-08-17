@@ -74,17 +74,12 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(NativeThemePlugin.class);
         registerPlugin(SecurityPlugin.class);
         registerPlugin(com.codetrixstudio.capacitor.GoogleAuth.GoogleAuth.class);
+        registerPlugin(de.carstenklaffke.billing.BillingPlugin.class);
 
-        // Lock WebView text zoom to 100% — prevents Android system "Font Size" setting
-        // from scaling the WebView content and causing the intermittent zoom/large-text
-        // bug.
+        // Lock WebView text zoom and prevent Android autofill/system font scaling issues
+        lockWebViewSettings();
+
         if (bridge != null && bridge.getWebView() != null) {
-            WebSettings settings = bridge.getWebView().getSettings();
-            settings.setTextZoom(100);
-            settings.setSupportZoom(false);
-            settings.setBuiltInZoomControls(false);
-            settings.setDisplayZoomControls(false);
-
             // INSTANT-RESUME: Keep the WebView renderer process alive when the app
             // is backgrounded. This prevents the surface recreation gap that causes
             // blank frames on resume — the renderer stays in memory so the content
@@ -135,7 +130,8 @@ public class MainActivity extends BridgeActivity {
         applySecureMode();
 
         // Create the native resume overlay as a top-level window. Deferred until the
-        // decor view is attached so the window token is valid for TYPE_APPLICATION_PANEL.
+        // decor view is attached so the window token is valid for
+        // TYPE_APPLICATION_PANEL.
         // On cold start, the overlay starts VISIBLE with the theme background color
         // (no bitmap available yet). The JS content-painted signal or fallback timer
         // will hide it once the WebView has rendered the initial content.
@@ -197,7 +193,8 @@ public class MainActivity extends BridgeActivity {
      * If all capture methods fail, the solid theme color remains as fallback.
      */
     private void captureWebViewSnapshot() {
-        if (DIAGNOSTIC_OVERLAY_COLOR) return;
+        if (DIAGNOSTIC_OVERLAY_COLOR)
+            return;
 
         // Try PixelCopy first (API 26+): captures the Window's Surface directly,
         // including status bar and nav bar backgrounds, for a pixel-perfect match
@@ -219,14 +216,14 @@ public class MainActivity extends BridgeActivity {
                                 location[0],
                                 location[1],
                                 location[0] + w,
-                                location[1] + h
-                        );
+                                location[1] + h);
 
                         PixelCopy.request(getWindow(), rect, lastSnapshot, (result) -> {
                             if (result == PixelCopy.SUCCESS && resumeOverlay != null) {
                                 BitmapDrawable bd = new BitmapDrawable(getResources(), lastSnapshot);
                                 resumeOverlay.setBackground(bd);
-                                Log.d(TAG, "Snapshot captured via PixelCopy (" + w + "x" + h + " at " + location[0] + "," + location[1] + ")");
+                                Log.d(TAG, "Snapshot captured via PixelCopy (" + w + "x" + h + " at " + location[0]
+                                        + "," + location[1] + ")");
                             } else {
                                 Log.w(TAG, "PixelCopy failed (result=" + result + "), trying Canvas");
                                 captureViaCanvas();
@@ -249,12 +246,14 @@ public class MainActivity extends BridgeActivity {
      * with hardware-accelerated WebViews.
      */
     private void captureViaCanvas() {
-        if (bridge == null || bridge.getWebView() == null) return;
+        if (bridge == null || bridge.getWebView() == null)
+            return;
 
         WebView wv = bridge.getWebView();
         int w = wv.getWidth();
         int h = wv.getHeight();
-        if (w <= 0 || h <= 0) return;
+        if (w <= 0 || h <= 0)
+            return;
 
         try {
             recycleSnapshot();
@@ -344,7 +343,8 @@ public class MainActivity extends BridgeActivity {
     }
 
     private void hideResumeOverlay() {
-        if (resumeOverlay == null || resumeOverlay.getVisibility() != View.VISIBLE) return;
+        if (resumeOverlay == null || resumeOverlay.getVisibility() != View.VISIBLE)
+            return;
         Log.d(TAG, "hideResumeOverlay() — fading out");
 
         // Cancel any existing animation to prevent conflicts (e.g. if both the
@@ -372,7 +372,8 @@ public class MainActivity extends BridgeActivity {
 
     /** Reset the overlay background to the current theme's solid color. */
     private void restoreOverlaySolidColor() {
-        if (resumeOverlay == null) return;
+        if (resumeOverlay == null)
+            return;
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         String bgColor = prefs.getString(KEY_BG_COLOR, "#181b22");
         try {
@@ -445,6 +446,82 @@ public class MainActivity extends BridgeActivity {
 
         } catch (Exception e) {
             // Ignore color parsing errors
+        }
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (hasFocus) {
+            lockWebViewSettings();
+            // After Samsung Pass or any overlay dismisses and focus returns,
+            // force-reset the WebView zoom to 100% via JavaScript.
+            resetWebViewZoom();
+        }
+    }
+
+    private void lockWebViewSettings() {
+        try {
+            if (bridge != null && bridge.getWebView() != null) {
+                android.webkit.WebView wv = bridge.getWebView();
+                WebSettings settings = wv.getSettings();
+                settings.setTextZoom(100);
+                settings.setSupportZoom(false);
+                settings.setBuiltInZoomControls(false);
+                settings.setDisplayZoomControls(false);
+                settings.setUseWideViewPort(true);
+                settings.setLoadWithOverviewMode(true);
+                settings.setDefaultFontSize(16);
+                settings.setMinimumFontSize(1);
+                settings.setMinimumLogicalFontSize(1);
+                // Force initial scale to 100% — prevents Samsung Pass autofill zoom
+                wv.setInitialScale(100);
+                // SAMSUNG PASS FIX: Disable the Android AutofillManager for
+                // this WebView. Samsung Pass (and other autofill providers)
+                // trigger an unwanted zoom when the AutofillManager focuses
+                // input fields. This is the ROOT CAUSE that CSS/JS/viewport
+                // meta cannot fix — the zoom happens at the native framework
+                // level before any web code runs. Samsung Pass still works
+                // via keyboard integration (Samsung Keyboard suggestions).
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    wv.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS);
+                }
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "Could not lock WebView settings", e);
+        }
+    }
+
+    /**
+     * Force-resets the WebView zoom/scale back to 1.0 after Samsung Pass
+     * or any system overlay that may have caused an unwanted zoom.
+     * Uses both WebView.zoomOut() calls and JavaScript meta-viewport reset.
+     */
+    private void resetWebViewZoom() {
+        try {
+            if (bridge != null && bridge.getWebView() != null) {
+                android.webkit.WebView wv = bridge.getWebView();
+                // Force scale back to 100%
+                wv.setInitialScale(100);
+                // Use JS to forcefully reset the viewport meta tag and scroll position
+                wv.evaluateJavascript(
+                    "(function(){" +
+                    "  var vp = document.querySelector('meta[name=viewport]');" +
+                    "  if(vp){" +
+                    "    vp.setAttribute('content','width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no,shrink-to-fit=no,viewport-fit=cover');" +
+                    "  }" +
+                    "  window.scrollTo(0,0);" +
+                    "  document.body.scrollTop=0;" +
+                    "  document.documentElement.scrollTop=0;" +
+                    "  if(window.visualViewport && window.visualViewport.scale !== 1){" +
+                    "    document.body.style.zoom='1';" +
+                    "  }" +
+                    "})();",
+                    null
+                );
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "Could not reset WebView zoom", e);
         }
     }
 }

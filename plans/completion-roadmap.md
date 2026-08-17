@@ -57,8 +57,16 @@
 ## Φάση 2 — Λειτουργικές Εκκρεμότητες 🟠
 
 ### 2.1 Android / Google Play Billing (Premium στο native)
-- **Πρόβλημα:** Το premium στο native Android είναι "not available yet" ([`plans/premium-stripe-security-fix-report.md`](plans/premium-stripe-security-fix-report.md:115)).
-- **Ενέργεια:** Υλοποίηση Google Play Billing για το native APK/AAB (Phase 3 του αρχικού πλάνου). Αυτό είναι ξεχωριστό έργο — μπορεί να γίνει μετά το web launch.
+- **Πρόβλημα:** Το premium στο native Android ήταν "not available yet" ([`plans/premium-stripe-security-fix-report.md`](plans/premium-stripe-security-fix-report.md:115)).
+- **✅ ΟΛΟΚΛΗΡΩΘΗΚΕ:** Υλοποιήθηκε το Google Play Billing για το native APK/AAB (Phase 3 του αρχικού πλάνου). Οι δύο ροές πληρωμής συνυπάρχουν — Stripe (web/PWA) και Google Play Billing (native Android), με το σύστημα να επιλέγει αυτόματα βάσει πλατφόρμας.
+- **Αλλαγμένα αρχεία:**
+  - [`package.json`](package.json:1) — προστέθηκε το `capacitor-billing@6.0.2` (συμβατό με Capacitor 6).
+  - [`functions/api/play-billing.js`](functions/api/play-billing.js:1) — **ΝΕΟ** server-side endpoint `/api/play-billing` που επαληθεύει το purchase token μέσω Google Play Developer API (RS256 JWT με Web Crypto) και χορηγεί το entitlement (`profiles.premium_active = true`).
+  - [`app.js`](app.js:11501) — προστέθηκε native branch στο [`startPremiumPurchase()`](app.js:11501) (Google Play Billing) + helpers [`getBillingPlugin()`](app.js:11583), [`purchasePremiumViaPlayBilling()`](app.js:11602), [`verifyPlayBillingPurchase()`](app.js:11651). Το [`restorePremiumPurchase()`](app.js:11675) χρησιμοποιεί πλέον server-side reconciliation και στο native.
+  - [`android/app/src/main/java/com/budgetassistant/app/MainActivity.java`](android/app/src/main/java/com/budgetassistant/app/MainActivity.java:77) — εγγραφή του `BillingPlugin` (`de.carstenklaffke.billing.BillingPlugin`).
+  - [`scripts/verify-health.js`](scripts/verify-health.js:1) — προστέθηκε το `functions/api/play-billing.js` στο `CRITICAL_JS_ESM`.
+- **Επαλήθευση:** `node scripts/version-sync.js` → mirrored σε `www/`. `node scripts/verify-health.js` → **0 FAIL** (συμπ. syntax check του `play-billing.js`). `node scripts/version-check.js` → **PASS** για v1361. `npx cap sync android` → plugin `capacitor-billing@6.0.2` ενσωματώθηκε στα Android build files.
+- **Προϋποθέσεις για live:** Ορίστε τα secrets στο Cloudflare Pages: `GOOGLE_SERVICE_ACCOUNT_JSON`, `PLAY_PACKAGE_NAME`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`. Δημιουργήστε το προϊόν `premium_lifetime` (INAPP) στο Google Play Console και ανεβάστε το APK/AAB σε Closed/Internal testing για πραγματική δοκιμή αγοράς.
 
 ### 2.2 Επιβεβαίωση `www/` ↔ root parity
 - **✅ ΟΛΟΚΛΗΡΩΘΗΚΕ:** Τρέχει `node scripts/version-check.js` → **PASS** για v1209. Όλα τα markers και το www parity 100% επαληθευμένα.
@@ -114,6 +122,8 @@
 ### 4.1 Pre-release checklist
 - [ ] Όλα τα migrations εφαρμοσμένα (Φάση 1)
 - [ ] Stripe ρυθμισμένο + webhook + test mode pass (Φάση 1)
+- [ ] Google Play Billing secrets στο Cloudflare Pages (`GOOGLE_SERVICE_ACCOUNT_JSON`, `PLAY_PACKAGE_NAME`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`)
+- [ ] Προϊόν `premium_lifetime` (INAPP) δημιουργημένο στο Google Play Console
 - [ ] `npm test` → 32/32 pass
 - [ ] `node scripts/version-check.js` → PASS
 - [ ] `node --check app.js` → PASS
@@ -138,7 +148,7 @@
 | 1 | Migration `category_budgets` | 🔴 Blocking | ✅ Ναι |
 | 2 | Stripe setup + webhook + test | 🔴 Blocking | ✅ Ναι |
 | 3 | Επιβεβαίωση migrations στη βάση | 🔴 Blocking | ✅ Ναι |
-| 4 | Google Play Billing (native) | 🟠 Λειτουργικό | ⏳ Μετά |
+| 4 | Google Play Billing (native) | 🟠 Λειτουργικό | ✅ Υλοποιήθηκε (χρειάζεται secrets + Play Console setup) |
 | 5 | `www/` parity check | 🟠 Λειτουργικό | ✅ Ναι |
 | 6 | Dead code / logging / toast / name | 🟡 Βελτίωση | ⏳ Μετά |
 | 7 | Monolith decomposition | 🟡 Βελτίωση | ⏳ Μετά |

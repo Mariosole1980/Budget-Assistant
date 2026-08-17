@@ -109,6 +109,7 @@ const CRITICAL_JS_ESM = [
     'functions/api/coach.js',
     'functions/api/delete-account.js',
     'functions/api/feedback.js',
+    'functions/api/play-billing.js',
     'functions/api/premium-status.js',
     'functions/api/purchase.js',
     'functions/api/webhook.js',

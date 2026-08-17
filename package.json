@@ -39,7 +39,8 @@
     "@capacitor/splash-screen": "^6.0.0",
     "@capgo/capacitor-native-biometric": "6.0.4",
     "@capgo/capacitor-updater": "^6.50.2",
-    "@codetrix-studio/capacitor-google-auth": "^3.4.0-rc.4"
+    "@codetrix-studio/capacitor-google-auth": "^3.4.0-rc.4",
+    "capacitor-billing": "^6.0.2"
   },
   "devDependencies": {
     "@capacitor/cli": "^6.2.1",

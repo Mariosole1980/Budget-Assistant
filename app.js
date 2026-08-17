@@ -287,43 +287,18 @@
   }
 })();
 
-// Global error boundary to capture and display initialization or runtime errors.
-// Logs full diagnostics to the console for debugging, but only shows a safe,
-// non-technical message to the user via the in-app dialog (never raw stack traces).
+// Global error boundary: Logs diagnostics without showing blocking modal alerts
 window.onerror = function (message, source, lineno, colno, error) {
   console.error("Global Error Boundary Caught:", message, "at", source, ":", lineno, ":", colno, error);
-  if (typeof window.showAlert === 'function') {
-    window.showAlert(
-      state.lang === 'en'
-        ? 'Something went wrong. Your data is safe. Please try again.'
-        : 'Κάτι πήγε στραβά. Τα δεδομένα σας είναι ασφαλή. Δοκιμάστε ξανά.',
-      state.lang === 'en' ? 'Application Error' : 'Σφάλμα Εφαρμογής',
-      '❌'
-    );
-  }
 };
 
 window.addEventListener('unhandledrejection', function (event) {
   console.error("Unhandled Rejection:", event.reason);
-  // DIAGNOSTIC: Log the full stack trace so the exact recursion source can be
-  // pinpointed. event.reason.stack reveals which function overflows the call stack.
   try {
     if (event.reason && event.reason.stack) {
       console.error("Unhandled Rejection STACK:\n" + event.reason.stack);
     }
-    if (event.reason && event.reason.message && String(event.reason.message).indexOf('call stack') !== -1) {
-      console.error("STACK OVERFLOW DETECTED. Full stack:\n" + (event.reason.stack || '(no stack)'));
-    }
   } catch (e) { /* best-effort logging */ }
-  if (typeof window.showAlert === 'function') {
-    window.showAlert(
-      state.lang === 'en'
-        ? 'Something went wrong. Your data is safe. Please try again.'
-        : 'Κάτι πήγε στραβά. Τα δεδομένα σας είναι ασφαλή. Δοκιμάστε ξανά.',
-      state.lang === 'en' ? 'Application Error' : 'Σφάλμα Εφαρμογής',
-      '⚠️'
-    );
-  }
 });
 
 window.autocompleteJustSelected = false;
@@ -1722,6 +1697,9 @@ setTimeout(() => {
 
 // ============================================================
 async function initApp() {
+  window._appLoaded = true;
+  if (window._startupTimeout) clearTimeout(window._startupTimeout);
+
   if (isAndroid) {
     document.body.classList.add('is-android');
   }
@@ -2108,6 +2086,34 @@ async function initApp() {
   }
 }
 
+// ============================================================
+// ANTI-ZOOM: Samsung Pass / Autofill zoom prevention (Android)
+// ============================================================
+// Samsung Pass and other autofill services can trigger an unwanted zoom
+// on the WebView when they focus input fields. This listener detects any
+// scale change via visualViewport and immediately resets it to 1.0.
+(function installAntiZoomGuard() {
+  if (!window.visualViewport) return;
+  let _resetting = false;
+  window.visualViewport.addEventListener('resize', function () {
+    if (_resetting) return;
+    const scale = window.visualViewport.scale;
+    if (scale !== 1) {
+      _resetting = true;
+      // Re-stamp the viewport meta to force scale back to 1.0
+      const vp = document.querySelector('meta[name="viewport"]');
+      if (vp) {
+        vp.setAttribute('content',
+          'width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no, viewport-fit=cover');
+      }
+      window.scrollTo(0, 0);
+      document.body.scrollTop = 0;
+      document.documentElement.scrollTop = 0;
+      setTimeout(function () { _resetting = false; }, 300);
+    }
+  });
+})();
+
 // Run initApp on DOMContentLoaded, OR (if the event has already fired,
 // e.g. the async boot loader injects app.js after DOMContentLoaded) run it
 // as soon as the rest of this script has executed. We defer with setTimeout(0)
@@ -2427,8 +2433,8 @@ function initSupabaseAuth() {
         // SECURITY: Session verified valid - safe to render this user's data.
         window._authConfirmed = true;
         localStorage.setItem('cached_current_user', JSON.stringify(data.session.user));
-        updateHeaderSyncIcon('synced');
         hideAuthOverlay();
+        forceSyncNow(true).catch(console.error);
       }
     }
   }).catch(err => {
@@ -2556,26 +2562,10 @@ function initSupabaseAuth() {
           applyWalletTheme();
           renderPartnerSection();
 
-          // 2. Load fresh data from cloud.
-          // Suppress realtime during the fetch so that echo/bounce events from the
-          // subscription setup don't trigger a second render on top of our clean one.
+          // 2. Load fresh data from cloud immediately.
           _suppressRealtimeEvents = true;
           try {
-            // Replay offline sync queue first, so that deletions/saves are pushed
-            // to Supabase before we load the fresh dataset.
-            await processSyncQueue({ skipReload: true });
-
-            // ANTI-FLICKER: On a full reload (e.g. after a long background where
-            // the OS reloaded the WebView), loadData() re-renders the tab with
-            // fresh cloud data on top of the cached render. Suppress transitions
-            // during this re-render so the DOM wipe is invisible to the user.
-            window._suppressTransitions = true;
-            try {
-              await loadData();
-              updateUI();
-            } finally {
-              setTimeout(() => { window._suppressTransitions = false; }, 1500);
-            }
+            await forceSyncNow(true);
 
             // Start automatic polling sync
             startPartnerSyncPolling();
@@ -3664,6 +3654,14 @@ async function loadData() {
     return;
   }
 
+  // 1. INSTANT LOCAL CACHE LOAD (0ms):
+  // Immediately load cached data into memory and render the UI.
+  // The user sees all transactions, accounts, categories, and balances INSTANTLY
+  // on cold start without waiting for any network round-trip.
+  loadOfflineData();
+  calculateInitialBalances();
+  updateUI();
+
   if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
     try {
       updateHeaderSyncIcon('syncing');
@@ -3880,6 +3878,9 @@ async function loadData() {
       // modal even for transactions saved before recurring_template_id was kept.
       backfillRecurringTemplateIds();
 
+      // Clean up any cross-language duplicate templates or duplicate recurring transactions
+      cleanCrossLanguageRecurringDuplicates();
+
       localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
       localStorage.setItem('offline_accounts', JSON.stringify(state.accounts));
       localStorage.setItem('offline_categories', JSON.stringify(state.categories));
@@ -4039,6 +4040,7 @@ function loadOfflineData() {
   loadBudgets();
 
   autoRecoverTemplatesFromHistory();
+  cleanCrossLanguageRecurringDuplicates();
   processRecurringTemplates();
   calculateInitialBalances();
   cleanDuplicateCategories().catch(e => console.warn('Offline automatic categories cleanup error:', e));
@@ -4256,6 +4258,217 @@ function addDeletedDateToTemplate(template, dateString) {
   template.description = `${cleanDesc} ||deleted_dates:${currentDates.join(',')}`.trim();
 }
 
+// Cross-language and canonical category comparison helper:
+// Matches category names across Greek and English translations, emoji prefixes,
+// casing, and accents (e.g. "Home" === "Σπίτι", "🏡 Home" === "🏡 ΣΠΙΤΙ").
+function isSameCategory(catA, catB) {
+  if (!catA && !catB) return true;
+  if (!catA || !catB) return false;
+  if (catA === catB) return true;
+
+  const normA = normalizeString(stripLeadingEmoji(String(catA)).trim());
+  const normB = normalizeString(stripLeadingEmoji(String(catB)).trim());
+  if (normA && normB && normA === normB) return true;
+
+  const translations = (typeof CATEGORY_NAME_TRANSLATIONS !== 'undefined')
+    ? CATEGORY_NAME_TRANSLATIONS
+    : ((typeof window !== 'undefined' && window.CATEGORY_NAME_TRANSLATIONS) || {});
+
+  for (const [elKey, enVal] of Object.entries(translations)) {
+    const normEl = normalizeString(stripLeadingEmoji(elKey).trim());
+    const normEn = normalizeString(stripLeadingEmoji(enVal).trim());
+
+    const aMatches = (normA === normEl || normA === normEn);
+    const bMatches = (normB === normEl || normB === normEn);
+
+    if (aMatches && bMatches) {
+      return true;
+    }
+  }
+
+  return false;
+}
+window.isSameCategory = isSameCategory;
+
+// Automatically cleans up duplicate recurring installments generated when
+// an existing transaction was stored in one language (e.g. English "Home")
+// Helper: Generate a deterministic, valid RFC4122 v4 UUID from template ID and date.
+// Ensures that generating an installment for a given template+date always produces
+// the exact same valid UUID, which Supabase accepts without PostgreSQL type errors.
+function generateDeterministicUUID(templateId, dateString) {
+  const str = `rec_${templateId}_${dateString}`;
+  let h1 = 0xdeadbeef, h2 = 0x41c6ce57, h3 = 0x7fed211a, h4 = 0x12345678;
+  for (let i = 0; i < str.length; i++) {
+    const ch = str.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+    h3 = Math.imul(h3 ^ ch, 3812015801);
+    h4 = Math.imul(h4 ^ ch, 2718281829);
+  }
+  const toHex = (n) => (n >>> 0).toString(16).padStart(8, '0');
+  const hex = toHex(h1) + toHex(h2) + toHex(h3) + toHex(h4);
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-4${hex.slice(13, 16)}-a${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
+}
+window.generateDeterministicUUID = generateDeterministicUUID;
+
+// Clean up duplicate recurring templates (e.g. Greek "Σπίτι" vs English "Home" or duplicated recovery)
+function cleanDuplicateTemplates() {
+  if (!state.recurringTemplates || state.recurringTemplates.length < 2) return;
+  const templates = state.recurringTemplates;
+  const toDelete = [];
+  const kept = [];
+
+  for (let i = 0; i < templates.length; i++) {
+    const t1 = templates[i];
+    let isDup = false;
+    for (let j = 0; j < kept.length; j++) {
+      const t2 = kept[j];
+      const sameAmount = (parseFloat(t1.amount) || 0).toFixed(2) === (parseFloat(t2.amount) || 0).toFixed(2);
+      const sameType = t1.type === t2.type;
+      const sameCat = isSameCategory(t1.category, t2.category);
+      const n1 = normalizeGreekString(t1.note || t1.description || '');
+      const n2 = normalizeGreekString(t2.note || t2.description || '');
+      const sameNote = (n1 === n2) || (n1.length > 0 && n2.length > 0 && (n1.includes(n2) || n2.includes(n1)));
+
+      if (sameAmount && sameType && sameCat && sameNote) {
+        isDup = true;
+        toDelete.push(t1);
+        break;
+      }
+    }
+    if (!isDup) {
+      kept.push(t1);
+    }
+  }
+
+  if (toDelete.length > 0) {
+    console.warn(`[TemplateCleanup] Removing ${toDelete.length} duplicate recurring templates`);
+    state.recurringTemplates = kept;
+    localStorage.setItem('recurring_templates', JSON.stringify(state.recurringTemplates));
+    toDelete.forEach(t => {
+      if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser && t.id) {
+        state.supabaseClient.from('recurring_templates').delete().eq('id', t.id).then(({ error }) => {
+          if (error) console.warn('Failed to delete duplicate template from cloud:', error);
+        });
+      }
+    });
+  }
+}
+window.cleanDuplicateTemplates = cleanDuplicateTemplates;
+
+// Automatically cleans up duplicate recurring installments generated when
+// an existing transaction was stored in one language (e.g. English "Home")
+// while the template was evaluated in another (e.g. Greek "Σπίτι"), or when
+// multiple passes / syncs generated extra rows with random/different IDs.
+// Fast O(N) duplicate cleaner: groups transactions by date (only ~1-5 txs per date)
+function cleanCrossLanguageRecurringDuplicates() {
+  cleanDuplicateTemplates();
+
+  if (!state.transactions || state.transactions.length < 2) return;
+  const txs = state.transactions;
+  const toDeleteIds = new Set();
+
+  // Fast O(N) grouping by date string — completely avoids O(N^2) lag
+  const dateGroups = new Map();
+  for (let i = 0; i < txs.length; i++) {
+    const t = txs[i];
+    const dStr = String(t.date || '').split('T')[0].split(' ')[0];
+    if (!dStr) continue;
+    if (!dateGroups.has(dStr)) dateGroups.set(dStr, []);
+    dateGroups.get(dStr).push(t);
+  }
+
+  dateGroups.forEach((dayTxs) => {
+    if (dayTxs.length < 2) return;
+
+    for (let i = 0; i < dayTxs.length; i++) {
+      const t1 = dayTxs[i];
+      if (toDeleteIds.has(t1.id)) continue;
+      const t1Amount = (parseFloat(t1.amount) || 0).toFixed(2);
+      const t1Type = t1.type;
+      const t1Note = normalizeGreekString(t1.note || t1.description || '');
+      const isRecurringPrefix1 = String(t1.id || '').startsWith('recurring_');
+
+      for (let j = i + 1; j < dayTxs.length; j++) {
+        const t2 = dayTxs[j];
+        if (toDeleteIds.has(t2.id)) continue;
+        const t2Amount = (parseFloat(t2.amount) || 0).toFixed(2);
+        const t2Type = t2.type;
+        const t2Note = normalizeGreekString(t2.note || t2.description || '');
+        const isRecurringPrefix2 = String(t2.id || '').startsWith('recurring_');
+
+        if (t1Amount === t2Amount && t1Type === t2Type) {
+          if (isSameCategory(t1.category, t2.category)) {
+            const noteMatch = (t1Note === t2Note) ||
+              (t1Note.length > 0 && t2Note.length > 0 && (t1Note.includes(t2Note) || t2Note.includes(t1Note))) ||
+              (!t1Note || !t2Note) ||
+              isRecurringPrefix1 || isRecurringPrefix2;
+
+            if (noteMatch) {
+              let duplicate = null;
+              if (isRecurringPrefix1 && !isRecurringPrefix2) {
+                duplicate = t1;
+              } else if (isRecurringPrefix2 && !isRecurringPrefix1) {
+                duplicate = t2;
+              } else {
+                const isT1Newer = (t1.created_at && t2.created_at)
+                  ? (new Date(t1.created_at) > new Date(t2.created_at))
+                  : (t1.recurring_template_id && !t2.recurring_template_id);
+                duplicate = isT1Newer ? t1 : t2;
+              }
+
+              if (duplicate) {
+                toDeleteIds.add(duplicate.id);
+              }
+            }
+          }
+        }
+      }
+    }
+  });
+
+  // Clean orphan "recurring_" non-UUID items
+  for (let i = 0; i < txs.length; i++) {
+    const t = txs[i];
+    if (String(t.id || '').startsWith('recurring_') && !toDeleteIds.has(t.id)) {
+      toDeleteIds.add(t.id);
+    }
+  }
+
+  if (toDeleteIds.size > 0) {
+    console.log(`[RecurringCleanup] Removing ${toDeleteIds.size} duplicate recurring occurrences`);
+    toDeleteIds.forEach(id => {
+      deleteTransactionOffline(id);
+      try {
+        const queueStr = localStorage.getItem('money_manager_sync_queue');
+        if (queueStr) {
+          let q = JSON.parse(queueStr) || [];
+          q = q.filter(item => {
+            if (!item || !item.payload) return false;
+            const itemId = item.payload.id || item.payload;
+            if (toDeleteIds.has(itemId) || String(itemId || '').startsWith('recurring_')) return false;
+            return true;
+          });
+          localStorage.setItem('money_manager_sync_queue', JSON.stringify(q));
+          state.syncPendingCount = q.length;
+        }
+      } catch (e) { }
+      if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
+        if (!String(id).startsWith('recurring_')) {
+          state.supabaseClient
+            .from('transactions')
+            .update({ status: 'deleted', deleted_at: new Date().toISOString() })
+            .eq('id', id)
+            .catch(() => { });
+        }
+      }
+    });
+    state.transactions = state.transactions.filter(t => !toDeleteIds.has(t.id));
+    localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
+  }
+}
+window.cleanCrossLanguageRecurringDuplicates = cleanCrossLanguageRecurringDuplicates;
+
 function processRecurringTemplates() {
   if (!state.recurringTemplates || state.recurringTemplates.length === 0) return;
 
@@ -4373,34 +4586,43 @@ function processRecurringTemplates() {
           return;
         }
 
-        // Check for duplicates by BOTH recurring_template_id (if stored) AND by content-key.
-        // The content-key fallback is critical because the recurring_template_id column may not
-        // exist in the database, so fetched transactions arrive with recurring_template_id=null,
-        // causing false negatives in the ID-only check and infinite re-creation loops.
+        const expectedDeterministicId = generateDeterministicUUID(template.id, dateString);
+
+        // Check for duplicates by BOTH recurring_template_id (if stored) AND by content-key / deterministic ID.
         const duplicateExists = state.transactions.some(t => {
           const tDate = String(t.date || '').split('T')[0].split(' ')[0];
-          if (t.recurring_template_id && t.recurring_template_id === template.id && tDate === dateString) {
+          if (tDate !== dateString) return false;
+
+          // 1. Match by deterministic UUID
+          if (t.id === expectedDeterministicId) return true;
+
+          // 2. Match by template id
+          if (t.recurring_template_id && String(t.recurring_template_id) === String(template.id)) {
             return true;
           }
-          // Content-based fallback: same date + amount + type + category + account_from + note.
-          // The note is included so a recurring occurrence is only matched by its OWN template,
-          // preventing a recurring generator from re-creating an occurrence that already exists
-          // under a slightly different account/category normalization (e.g. after a cloud sync
-          // that replaced state.transactions before the async recurring cloud save propagated).
-          if (tDate === dateString &&
-            (parseFloat(t.amount) || 0).toFixed(2) === (parseFloat(template.amount) || 0).toFixed(2) &&
-            t.type === template.type &&
-            t.category === template.category &&
-            (t.account_from || '') === (template.account_from || '') &&
-            String(t.note || '').trim().toLowerCase() === String(template.note || '').trim().toLowerCase()) {
-            return true;
+
+          // 3. Content-based fallback: same amount + type + category (translation-aware) + note.
+          const tAmount = (parseFloat(t.amount) || 0).toFixed(2);
+          const templAmount = (parseFloat(template.amount) || 0).toFixed(2);
+          if (tAmount === templAmount && t.type === template.type && isSameCategory(t.category, template.category)) {
+            const tNote = normalizeGreekString(t.note || t.description || '');
+            const templNote = normalizeGreekString(template.note || template.description || '');
+            if (!tNote || !templNote || tNote === templNote || tNote.includes(templNote) || templNote.includes(tNote)) {
+              return true;
+            }
           }
           return false;
         });
 
         if (!duplicateExists) {
+          const deterministicId = expectedDeterministicId;
+
+          // Also check if this deterministic ID already exists (belt-and-suspenders)
+          const idAlreadyExists = state.transactions.some(t => t.id === deterministicId);
+          if (idAlreadyExists) return;
+
           const newTx = {
-            id: generateUUID(),
+            id: deterministicId,
             recurring_template_id: template.id,
             date: dateString,
             type: template.type,
@@ -4751,7 +4973,7 @@ function deleteTransactionOffline(id, skipSave = false) {
       const match = state.recurringTemplates.find(template => {
         return (parseFloat(tx.amount) || 0).toFixed(2) === (parseFloat(template.amount) || 0).toFixed(2) &&
           tx.type === template.type &&
-          tx.category === template.category &&
+          isSameCategory(tx.category, template.category) &&
           (tx.account_from || '') === (template.account_from || '');
       });
       if (match) {
@@ -5078,7 +5300,6 @@ function isTransactionRecurring(tx) {
 
   const txAmount = (parseFloat(tx.amount) || 0).toFixed(2);
   const txType = tx.type;
-  const txCat = normalizeCategoryName(tx.category);
 
   return templates.some(template => {
     if (tx.recurring_template_id && String(tx.recurring_template_id) === String(template.id)) {
@@ -5086,9 +5307,8 @@ function isTransactionRecurring(tx) {
     }
     const tAmount = (parseFloat(template.amount) || 0).toFixed(2);
     const tType = template.type;
-    const tCat = normalizeCategoryName(template.category);
 
-    if (txAmount === tAmount && txType === tType && txCat === tCat) {
+    if (txAmount === tAmount && txType === tType && isSameCategory(tx.category, template.category)) {
       return true;
     }
     return false;
@@ -5112,18 +5332,16 @@ function resolveRecurringTemplateForTx(tx) {
 
   const txAmount = (parseFloat(tx.amount) || 0).toFixed(2);
   const txType = tx.type;
-  const txCat = normalizeCategoryName(tx.category);
   const txNote = (tx.note || tx.description || '').trim().toLowerCase();
 
   return templates.find(template => {
     if (tx.recurring_template_id && String(tx.recurring_template_id) === String(template.id)) return true;
     const tAmount = (parseFloat(template.amount) || 0).toFixed(2);
     const tType = template.type;
-    const tCat = normalizeCategoryName(template.category);
     const tNote = (template.note || template.description || '').trim().toLowerCase();
 
     if (txAmount === tAmount && txType === tType) {
-      if (txCat === tCat) return true;
+      if (isSameCategory(tx.category, template.category)) return true;
       if (txNote && tNote && txNote === tNote) return true;
     }
     return false;
@@ -5147,11 +5365,10 @@ function backfillRecurringTemplateIds() {
     if (tx.recurring_template_id) return; // already linked
     const txAmount = (parseFloat(tx.amount) || 0).toFixed(2);
     const txType = tx.type;
-    const txCat = normalizeCategoryName(tx.category);
     const match = templates.find(t => {
       return (parseFloat(t.amount) || 0).toFixed(2) === txAmount &&
         t.type === txType &&
-        normalizeCategoryName(t.category) === txCat;
+        isSameCategory(t.category, tx.category);
     });
     if (match) {
       tx.recurring_template_id = match.id;
@@ -11493,7 +11710,10 @@ function updatePremiumUI() {
   }
 }
 
-// Starts the web purchase flow (Stripe Checkout via /api/purchase).
+// Starts the premium purchase flow.
+// - Native Android (Capacitor): Google Play Billing via the `capacitor-billing`
+//   plugin. The purchase token is verified server-side by /api/play-billing.
+// - Web / PWA: Stripe Checkout via /api/purchase.
 // Falls back to a manual-activation notice if the endpoint is not deployed.
 async function startPremiumPurchase() {
   if (isPremium()) {
@@ -11512,6 +11732,19 @@ async function startPremiumPurchase() {
   }
 
   try {
+    // Native Android → Google Play Billing.
+    if (typeof window.Capacitor !== 'undefined' && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
+      const Billing = getBillingPlugin();
+      if (Billing) {
+        await purchasePremiumViaPlayBilling(Billing);
+        return;
+      }
+      // Plugin unavailable on native → fall through to web flow with a notice.
+      showSyncToast(state.lang === 'el' ? '⚠️ Το Google Play Billing δεν είναι διαθέσιμο.' : '⚠️ Google Play Billing is not available.', 3500);
+      return;
+    }
+
+    // Web / PWA → Stripe Checkout.
     // Resolve the current session token for the Authorization header.
     let accessToken = '';
     if (state.supabaseClient) {
@@ -11563,22 +11796,128 @@ async function startPremiumPurchase() {
   }
 }
 
+// Resolve the capacitor-billing plugin (BillingPlugin) if present on native.
+function getBillingPlugin() {
+  if (typeof window.Capacitor === 'undefined') return null;
+  if (window.Capacitor.Plugins && window.Capacitor.Plugins.BillingPlugin) {
+    return window.Capacitor.Plugins.BillingPlugin;
+  }
+  if (typeof window.Capacitor.registerPlugin === 'function') {
+    try {
+      return window.Capacitor.registerPlugin('BillingPlugin');
+    } catch (e) {
+      console.warn('Could not register BillingPlugin:', e);
+      return null;
+    }
+  }
+  return null;
+}
+
+// Native Android purchase via Google Play Billing. Launches the Play purchase
+// sheet for the Premium Lifetime one-time product, then verifies the returned
+// purchase token server-side and grants the entitlement.
+async function purchasePremiumViaPlayBilling(Billing) {
+  const PRODUCT_ID = 'premium_lifetime';
+  const PRODUCT_TYPE = 'INAPP'; // one-time purchase (Premium Lifetime)
+
+  try {
+    const result = await Billing.launchBillingFlow({
+      product: PRODUCT_ID,
+      type: PRODUCT_TYPE
+    });
+
+    // On Android the plugin resolves with the purchase's original JSON, which
+    // contains the purchaseToken. On web it returns { value: 'web' } (unsupported).
+    if (!result || result.value === 'web') {
+      showSyncToast(state.lang === 'el' ? '⚠️ Η αγορά δεν ολοκληρώθηκε.' : '⚠️ Purchase was not completed.', 3500);
+      return;
+    }
+
+    const purchaseToken = result.purchaseToken;
+    if (!purchaseToken) {
+      console.warn('Play Billing purchase resolved without a purchaseToken:', result);
+      showSyncToast(state.lang === 'el' ? '⚠️ Η αγορά δεν ολοκληρώθηκε.' : '⚠️ Purchase was not completed.', 3500);
+      return;
+    }
+
+    // Acknowledge the purchase (required within 3 days for one-time products).
+    try {
+      await Billing.sendAck({ purchaseToken });
+    } catch (ackErr) {
+      console.warn('Play Billing sendAck failed (will retry later):', ackErr.message);
+    }
+
+    // Verify server-side and grant entitlement.
+    const ok = await verifyPlayBillingPurchase(purchaseToken, PRODUCT_ID);
+    if (ok) {
+      await loadUserProfiles(state.currentUser);
+      updatePremiumUI();
+      showSyncToast(state.lang === 'el' ? '✓ Το Premium ενεργοποιήθηκε!' : '✓ Premium activated!', 3000);
+    } else {
+      showSyncToast(state.lang === 'el' ? '⚠️ Δεν ήταν δυνατή η επαλήθευση της αγοράς.' : '⚠️ Could not verify the purchase.', 4000);
+    }
+  } catch (err) {
+    // USER_CANCELED is surfaced as a rejection by the plugin.
+    console.warn('Play Billing purchase error:', err && err.message ? err.message : err);
+    showSyncToast(state.lang === 'el' ? '⚠️ Η αγορά ακυρώθηκε.' : '⚠️ Purchase cancelled.', 3000);
+  }
+}
+
+// Verify a Google Play purchase token server-side (/api/play-billing) and grant
+// the Premium entitlement. Returns true when the server confirmed premium_active.
+async function verifyPlayBillingPurchase(purchaseToken, productId) {
+  if (!state.currentUser || !state.supabaseClient) return false;
+  try {
+    const { data: sessionData } = await state.supabaseClient.auth.getSession();
+    const token = sessionData && sessionData.session ? sessionData.session.access_token : null;
+    if (!token) return false;
+
+    const res = await fetch('/api/play-billing', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ purchaseToken, productId })
+    });
+    const data = await res.json().catch(() => ({}));
+    return !!(res.ok && data && data.ok && data.premium_active);
+  } catch (err) {
+    console.warn('Play Billing verification error:', err.message);
+    return false;
+  }
+}
+
 // Restores a previously purchased Premium (Android / Google Play).
 async function restorePremiumPurchase() {
-  if (typeof window.Capacitor !== 'undefined' && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
-    // Native restore via a Capacitor plugin (to be wired in Phase 3).
-    showSyncToast(state.lang === 'el' ? '⚠️ Η επαναφορά δεν είναι ακόμα διαθέσιμη.' : '⚠️ Restore is not available yet.', 3000);
+  if (!state.currentUser) {
+    showSyncToast(state.lang === 'el' ? '⚠️ Συνδέσου πρώτα για να επαναφέρεις το Premium.' : '⚠️ Please sign in first to restore Premium.', 3500);
     return;
   }
+
+  // Native Android: the capacitor-billing plugin has no restorePurchases()
+  // method, so we rely on server-side reconciliation (/api/premium-status).
+  // That endpoint re-reads the profile (source of truth) and reconciles any
+  // previously granted entitlement, so a reinstall / re-login picks it up.
+  if (typeof window.Capacitor !== 'undefined' && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
+    const restored = await reconcilePremiumPurchase();
+    await loadUserProfiles(state.currentUser);
+    updatePremiumUI();
+    if (restored || isPremium()) {
+      showSyncToast(state.lang === 'el' ? '✓ Το Premium επαναφέρθηκε.' : '✓ Premium restored.', 3000);
+    } else {
+      showSyncToast(state.lang === 'el' ? '⚠️ Δεν βρέθηκε ενεργό Premium.' : '⚠️ No active Premium found.', 3500);
+    }
+    return;
+  }
+
   // Web: first try server-side reconciliation (/api/premium-status). This
   // queries Stripe for the user's paid sessions and grants the entitlement if
   // the webhook was lost. Then re-fetch the profile (server is source of truth).
-  if (state.currentUser) {
-    await reconcilePremiumPurchase();
-    await loadUserProfiles(state.currentUser);
-    updatePremiumUI();
-    showSyncToast(state.lang === 'el' ? '✓ Το Premium ανανεώθηκε.' : '✓ Premium refreshed.', 2500);
-  }
+  await reconcilePremiumPurchase();
+  await loadUserProfiles(state.currentUser);
+  updatePremiumUI();
+  showSyncToast(state.lang === 'el' ? '✓ Το Premium ανανεώθηκε.' : '✓ Premium refreshed.', 2500);
 }
 
 // Call the server-side reconciliation endpoint. It queries Stripe for the
@@ -19902,15 +20241,16 @@ function openForgotPasswordModal() {
   const emailInput = document.getElementById('auth-email');
   const modalEmailInput = document.getElementById('forgot-modal-email');
   const statusBox = document.getElementById('forgot-modal-status');
-  
+
   if (statusBox) statusBox.style.display = 'none';
-  
+
   if (modalEmailInput) {
     modalEmailInput.value = emailInput && emailInput.value ? emailInput.value.trim() : '';
   }
-  
+
   if (modal) {
     modal.style.display = 'flex';
+    modal.classList.add('active');
     modal.classList.add('show');
     setTimeout(() => {
       if (modalEmailInput) modalEmailInput.focus();
@@ -19922,6 +20262,7 @@ function closeForgotPasswordModal() {
   const modal = document.getElementById('forgot-password-modal');
   if (modal) {
     modal.style.display = 'none';
+    modal.classList.remove('active');
     modal.classList.remove('show');
   }
 }
@@ -19938,12 +20279,12 @@ async function submitForgotPasswordModal(e) {
     alert('Supabase is not initialized.');
     return;
   }
-  
+
   const emailInput = document.getElementById('forgot-modal-email');
   const email = emailInput ? emailInput.value.trim() : '';
   const statusBox = document.getElementById('forgot-modal-status');
   const submitBtn = document.getElementById('forgot-modal-submit-btn');
-  
+
   if (!email) {
     if (statusBox) {
       statusBox.textContent = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_email_label']) + ': ' + 'Παρακαλώ εισάγετε email.';
@@ -19952,26 +20293,26 @@ async function submitForgotPasswordModal(e) {
     }
     return;
   }
-  
+
   const originalHtml = submitBtn ? submitBtn.innerHTML : '';
   if (submitBtn) {
     submitBtn.disabled = true;
     submitBtn.textContent = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['forgot_password_modal_sending']) || 'Αποστολή...';
   }
   if (statusBox) statusBox.style.display = 'none';
-  
+
   try {
     const { error } = await state.supabaseClient.auth.resetPasswordForEmail(email, {
       redirectTo: window.location.origin + window.location.pathname
     });
     if (error) throw error;
-    
+
     if (statusBox) {
       statusBox.textContent = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['forgot_password_modal_success']) || '✅ Στάλθηκε σύνδεσμος επαναφοράς κωδικού! Ελέγξτε τα εισερχόμενά σας (και τα Ανεπιθύμητα).';
       statusBox.className = 'auth-status-box success';
       statusBox.style.display = 'block';
     }
-    
+
     setTimeout(() => {
       closeForgotPasswordModal();
       showAuthStatus((TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['forgot_password_modal_success']) || '✅ Στάλθηκε σύνδεσμος επαναφοράς κωδικού στα εισερχόμενά σας!', 'success');
@@ -20258,6 +20599,12 @@ async function handlePasswordAuth(e) {
         password
       });
       if (error) throw error;
+      if (data && data.session && data.session.user) {
+        state.currentUser = data.session.user;
+        localStorage.setItem('cached_current_user', JSON.stringify(data.session.user));
+        hideAuthOverlay();
+        forceSyncNow(true).catch(console.error);
+      }
     } else {
       const redirectUrl = window.location.origin + window.location.pathname;
       const { data, error } = await state.supabaseClient.auth.signUp({
@@ -20373,6 +20720,12 @@ async function handleGoogleAuth() {
       });
 
       if (error) throw error;
+      if (data && data.session && data.session.user) {
+        state.currentUser = data.session.user;
+        localStorage.setItem('cached_current_user', JSON.stringify(data.session.user));
+        hideAuthOverlay();
+        forceSyncNow(true).catch(console.error);
+      }
       toggleLoader(false);
       return;
     }
@@ -22527,15 +22880,19 @@ async function processSyncQueue(options = {}) {
             throw error;
           }
           console.warn(`Skipping invalid sync queue item:`, error);
-          // Keep the item so it is retried later instead of being silently dropped.
-          remaining.push(item);
+          // Drop permanent schema / type errors (e.g. invalid UUID 22P02) so they don't block the queue forever
+          const isPermanent = error.code === '22P02' ||
+            (error.message && (error.message.includes('uuid') || error.message.includes('syntax') || error.message.includes('violates foreign key')));
+          if (!isPermanent) {
+            remaining.push(item);
+          }
           continue;
         }
         itemSucceeded = true;
       } else if (item.action === 'delete') {
         const transId = item.payload;
-        if (!transId) {
-          console.warn('Skipping invalid sync queue delete item (missing id):', item);
+        if (!transId || String(transId).startsWith('recurring_')) {
+          console.warn('Skipping invalid sync queue delete item (missing or non-uuid id):', item);
           continue;
         }
         // Status model: offline deletes soft-delete via status='deleted' so the
@@ -22557,7 +22914,10 @@ async function processSyncQueue(options = {}) {
             throw error;
           }
           console.warn(`Skipping invalid sync queue delete item:`, error);
-          remaining.push(item);
+          const isPermanent = error.code === '22P02' || (error.message && error.message.includes('uuid'));
+          if (!isPermanent) {
+            remaining.push(item);
+          }
           continue;
         }
         itemSucceeded = true;
@@ -22644,6 +23004,8 @@ async function processSyncQueue(options = {}) {
   if (successCount > 0 || queueChanged) {
     localStorage.setItem('money_manager_sync_queue', JSON.stringify(remaining));
   }
+  state.syncPendingCount = remaining.length;
+  updateSyncStatusIndicator();
 
   // Only reload and render here if the caller didn't request to skip it.
   // When called from forceSyncNow, skipReload=true because forceSyncNow does its own
@@ -23053,214 +23415,197 @@ function updateSyncStatusIndicator() {
   }
 }
 
+let _forceSyncInFlight = null;
+
 async function forceSyncNow(silent = false) {
   if (!state.supabaseClient || !state.currentUser) {
     if (!silent) alert(state.lang === 'en' ? 'Please log in first to sync.' : 'Παρακαλώ συνδεθείτε πρώτα για συγχρονισμό.');
     return false;
   }
 
-  state.syncStatus = 'syncing';
-  updateSyncStatusIndicator();
+  if (_forceSyncInFlight) {
+    return _forceSyncInFlight;
+  }
 
-  // Suppress realtime events for the duration of this sync to prevent
-  // DB mutations (upserts/inserts from queue flush) from firing handleRealtimeTransactionChange
-  // and causing flickering numbers. We will do a single clean render at the end.
-  // Safe helper: auto-releases after 4s regardless of success/failure.
-  suppressRealtimeFor(4000);
+  _forceSyncInFlight = (async () => {
+    state.syncStatus = 'syncing';
+    updateSyncStatusIndicator();
 
-  try {
-    const userId = state.currentUser.id;
+    // Suppress realtime events for the duration of this sync
+    suppressRealtimeFor(4000);
 
-    // Auto-sync any stuck local transactions (e.g. from guest mode or legacy local_ items)
-    await syncLocalTransactionsToCloud(userId, { silent: true });
+    try {
+      const userId = state.currentUser.id;
 
-    // Process offline sync queue (applies offline deletes/saves to cloud) before fetching
-    await processSyncQueue({ skipReload: true });
+      // Auto-sync any stuck local transactions (e.g. from guest mode or legacy local_ items)
+      await syncLocalTransactionsToCloud(userId, { silent: true });
 
-    const partnerId = state.partnerProfile ? state.partnerProfile.id : null;
-    const familyId = state.userProfile ? state.userProfile.family_id : null;
+      // Process offline sync queue (applies offline deletes/saves to cloud) before fetching
+      await processSyncQueue({ skipReload: true });
 
-    let catsQuery = state.supabaseClient.from('categories').select('*');
-    let accsQuery = state.supabaseClient.from('accounts').select('*');
+      const partnerId = state.partnerProfile ? state.partnerProfile.id : null;
+      const familyId = state.userProfile ? state.userProfile.family_id : null;
 
-    if (familyId && partnerId) {
-      const filter = `family_id.eq.${familyId},user_id.eq.${userId},user_id.eq.${partnerId}`;
-      catsQuery = catsQuery.or(filter);
-      accsQuery = accsQuery.or(filter);
-    } else if (familyId) {
-      const filter = `family_id.eq.${familyId},user_id.eq.${userId}`;
-      catsQuery = catsQuery.or(filter);
-      accsQuery = accsQuery.or(filter);
-    } else if (partnerId) {
-      const filter = `user_id.eq.${userId},user_id.eq.${partnerId}`;
-      catsQuery = catsQuery.or(filter);
-      accsQuery = accsQuery.or(filter);
-    } else {
-      catsQuery = catsQuery.eq('user_id', userId);
-      accsQuery = accsQuery.eq('user_id', userId);
-    }
+      let catsQuery = state.supabaseClient.from('categories').select('*');
+      let accsQuery = state.supabaseClient.from('accounts').select('*');
 
-    // 1. Fetch categories and accounts
-    const [catsRes, accsRes] = await promiseTimeout(
-      Promise.all([
-        catsQuery,
-        accsQuery,
-      ]),
-      15000
-    );
-
-    if (!catsRes.error && catsRes.data) {
-      state.categories = catsRes.data;
-      localStorage.setItem('offline_categories', JSON.stringify(state.categories));
-    }
-    if (!accsRes.error && accsRes.data) {
-      state.accounts = accsRes.data;
-      localStorage.setItem('offline_accounts', JSON.stringify(state.accounts));
-    }
-
-    // 2. Fetch ALL transactions (paginated)
-    let allTransactions = [];
-    let page = 0;
-    const pageSize = 1000;
-    let hasMore = true;
-
-    while (hasMore) {
-      let transQuery = state.supabaseClient
-        .from('transactions')
-        .select('*')
-        .eq('status', 'active')
-        .order('date', { ascending: false })
-        .order('id', { ascending: false })
-        .range(page * pageSize, (page + 1) * pageSize - 1);
-
-      // FIX: Use proper Supabase .or() syntax with individual conditions
       if (familyId && partnerId) {
-        transQuery = transQuery.or(`family_id.eq.${familyId},user_id.eq.${userId},user_id.eq.${partnerId}`);
+        const filter = `family_id.eq.${familyId},user_id.eq.${userId},user_id.eq.${partnerId}`;
+        catsQuery = catsQuery.or(filter);
+        accsQuery = accsQuery.or(filter);
       } else if (familyId) {
-        transQuery = transQuery.or(`family_id.eq.${familyId},user_id.eq.${userId}`);
+        const filter = `family_id.eq.${familyId},user_id.eq.${userId}`;
+        catsQuery = catsQuery.or(filter);
+        accsQuery = accsQuery.or(filter);
       } else if (partnerId) {
-        transQuery = transQuery.or(`user_id.eq.${userId},user_id.eq.${partnerId}`);
+        const filter = `user_id.eq.${userId},user_id.eq.${partnerId}`;
+        catsQuery = catsQuery.or(filter);
+        accsQuery = accsQuery.or(filter);
       } else {
-        transQuery = transQuery.eq('user_id', userId);
+        catsQuery = catsQuery.eq('user_id', userId);
+        accsQuery = accsQuery.eq('user_id', userId);
       }
 
-      const { data: pageData, error: pageErr } = await promiseTimeout(
-        transQuery,
+      // 1. Fetch categories and accounts
+      const [catsRes, accsRes] = await promiseTimeout(
+        Promise.all([
+          catsQuery,
+          accsQuery,
+        ]),
         15000
       );
-      if (pageErr) throw pageErr;
 
-      if (pageData && pageData.length > 0) {
-        allTransactions = allTransactions.concat(pageData);
-        page++;
-        if (pageData.length < pageSize) hasMore = false;
-      } else {
-        hasMore = false;
+      if (!catsRes.error && catsRes.data) {
+        state.categories = catsRes.data;
+        localStorage.setItem('offline_categories', JSON.stringify(state.categories));
       }
+      if (!accsRes.error && accsRes.data) {
+        state.accounts = accsRes.data;
+        localStorage.setItem('offline_accounts', JSON.stringify(state.accounts));
+      }
+
+      // 2. Fetch ALL transactions (paginated)
+      let allTransactions = [];
+      let page = 0;
+      const pageSize = 1000;
+      let hasMore = true;
+
+      while (hasMore) {
+        let transQuery = state.supabaseClient
+          .from('transactions')
+          .select('*')
+          .eq('status', 'active')
+          .order('date', { ascending: false })
+          .order('id', { ascending: false })
+          .range(page * pageSize, (page + 1) * pageSize - 1);
+
+        // FIX: Use proper Supabase .or() syntax with individual conditions
+        if (familyId && partnerId) {
+          transQuery = transQuery.or(`family_id.eq.${familyId},user_id.eq.${userId},user_id.eq.${partnerId}`);
+        } else if (familyId) {
+          transQuery = transQuery.or(`family_id.eq.${familyId},user_id.eq.${userId}`);
+        } else if (partnerId) {
+          transQuery = transQuery.or(`user_id.eq.${userId},user_id.eq.${partnerId}`);
+        } else {
+          transQuery = transQuery.eq('user_id', userId);
+        }
+
+        const { data: pageData, error: pageErr } = await promiseTimeout(
+          transQuery,
+          15000
+        );
+        if (pageErr) throw pageErr;
+
+        if (pageData && pageData.length > 0) {
+          allTransactions = allTransactions.concat(pageData);
+          page++;
+          if (pageData.length < pageSize) hasMore = false;
+        } else {
+          hasMore = false;
+        }
+      }
+
+      // 4. Keep local pending transactions
+      const localPending = getPendingLocalTransactions(state.transactions);
+
+      // 5. Update state
+      const dedupedCombined = mergeAndDeduplicateTransactions(allTransactions, localPending);
+      dedupedCombined.sort(compareTransactions);
+
+      // Snapshot IDs that existed BEFORE the sync to detect truly new entries
+      const prevIdSet = new Set((state.transactions || []).map(t => String(t.id || '')));
+
+      // === ANTI-FLICKER GUARD ===
+      const newIds = dedupedCombined.map(t => t.id || '').join(',');
+      const oldIds = (state.transactions || []).map(t => t.id || '').join(',');
+      const dataChanged = newIds !== oldIds;
+
+      state.transactions = dedupedCombined;
+      localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
+      if (state.currentUser && state.currentUser.id) {
+        localStorage.setItem('offline_transactions_owner', state.currentUser.id);
+      }
+
+      // Sync notes, budgets & AI conversations
+      await syncNotes();
+      await syncBudgets();
+      await syncAdvisorConversations();
+
+      // 6. Check sync queue status
+      const queueStr = localStorage.getItem('money_manager_sync_queue');
+      if (queueStr) {
+        try {
+          const queue = JSON.parse(queueStr) || [];
+          state.syncPendingCount = queue.length;
+        } catch (e) { state.syncPendingCount = 0; }
+      } else {
+        state.syncPendingCount = 0;
+      }
+
+      state.lastSyncTime = Date.now();
+      state.syncStatus = 'success';
+      updateSyncStatusIndicator();
+
+      // Update last sync time display in settings
+      const lastSyncEl = document.getElementById('val_last_sync_time');
+      if (lastSyncEl) {
+        const d = new Date(state.lastSyncTime);
+        lastSyncEl.textContent = d.toLocaleTimeString(state.lang === 'el' ? 'el-GR' : 'en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      }
+
+      if (dataChanged) {
+        calculateInitialBalances();
+        pushNoTransition();
+        updateUI();
+        setTimeout(() => {
+          popNoTransition();
+        }, 1000);
+      }
+
+      // Compute how many transactions are genuinely new
+      const newCount = dedupedCombined.filter(t => !prevIdSet.has(String(t.id || ''))).length;
+      if (!silent && newCount > 0) {
+        showSyncToast('✅ +' + newCount + ' ' + (state.lang === 'en' ? 'new transactions synced' : 'νέες κινήσεις συγχρονίστηκαν'), 3000);
+      } else if (!silent && newCount === 0) {
+        showSyncToast('✅ ' + (state.lang === 'en' ? 'Everything is up to date' : 'Όλα είναι ενημερωμένα'), 2000);
+      }
+
+      return true;
+    } catch (e) {
+      console.error('Force sync failed:', e);
+      state.syncStatus = 'error';
+      updateSyncStatusIndicator();
+      if (!silent) {
+        showSyncToast('❌ ' + (state.lang === 'en' ? 'Sync failed: ' : 'Αποτυχία συγχρονισμού: ') + (e.message || e), 4000);
+      }
+      return false;
+    } finally {
+      _forceSyncInFlight = null;
+      suppressRealtimeFor(4000);
     }
+  })();
 
-    // 3. Process offline queue was moved to the start of forceSyncNow
-
-    // 4. Keep local pending transactions
-    const localPending = getPendingLocalTransactions(state.transactions);
-
-    // 4.5. RECOVERY: Disabled - was causing infinite upsert loops when RLS filtered out partner transactions
-
-    // 5. Update state — deduplicate combined result before storing (ID-based only;
-    //    content-based dedup was removed because it destroyed legitimate identical transactions)
-    const prevCount = (state.transactions || []).filter(t => t.id && !String(t.id).startsWith('local_')).length;
-    const dedupedCombined = mergeAndDeduplicateTransactions(allTransactions, localPending);
-    dedupedCombined.sort(compareTransactions);
-
-    // Snapshot IDs that existed BEFORE the sync to detect truly new entries
-    const prevIdSet = new Set((state.transactions || []).map(t => String(t.id || '')));
-
-    // === ANTI-FLICKER GUARD ===
-    // Only update UI if the data has actually changed (compare transaction IDs)
-    const newIds = dedupedCombined.map(t => t.id || '').join(',');
-    const oldIds = (state.transactions || []).map(t => t.id || '').join(',');
-    const dataChanged = newIds !== oldIds;
-
-    state.transactions = dedupedCombined;
-    localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
-    // ACCOUNT-ISOLATION: Attribute the local cache to the current user.
-    if (state.currentUser && state.currentUser.id) {
-      localStorage.setItem('offline_transactions_owner', state.currentUser.id);
-    }
-
-    // Sync notes, budgets & AI conversations
-    await syncNotes();
-    await syncBudgets();
-    await syncAdvisorConversations();
-
-    // 6. Check sync queue status
-    const queueStr = localStorage.getItem('money_manager_sync_queue');
-    if (queueStr) {
-      try {
-        const queue = JSON.parse(queueStr) || [];
-        state.syncPendingCount = queue.length;
-      } catch (e) { state.syncPendingCount = 0; }
-    } else {
-      state.syncPendingCount = 0;
-    }
-
-    state.lastSyncTime = Date.now();
-    // FIX (false error icon): Pending queue items are NOT errors — they are
-    // waiting for retry (network, premium limit, etc). Show 'synced' (green)
-    // with a pending count tooltip instead of the alarming red cloud-bolt.
-    state.syncStatus = 'success';
-    updateSyncStatusIndicator();
-
-    // Update last sync time display in settings
-    const lastSyncEl = document.getElementById('val_last_sync_time');
-    if (lastSyncEl) {
-      const d = new Date(state.lastSyncTime);
-      lastSyncEl.textContent = d.toLocaleTimeString(state.lang === 'el' ? 'el-GR' : 'en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    }
-
-    if (dataChanged) {
-      calculateInitialBalances();
-      // ANTI-FLICKER: Wrap the sync-triggered re-render in no-transition so
-      // that DOM mutations from forceSyncNow are invisible to the user.
-      // Without this, the tab re-render caused by the 8s post-resume sync
-      // appears as a visible flash on Android.
-      pushNoTransition();
-      updateUI();
-      // ANTI-FLICKER FIX: updateUI() defers the actual _updateUIImpl() re-render
-      // via setTimeout (150ms normally, 700ms if _appJustResumed). Removing
-      // no-transition after only 2 rAFs (~32ms) meant the deferred re-render ran
-      // with transitions ENABLED, causing a visible flash on resume. Keep
-      // no-transition active long enough to cover the deferred render window.
-      // Uses the reference-counted guard so the resume handler's guard is not
-      // prematurely removed by this path (and vice versa).
-      setTimeout(() => {
-        popNoTransition();
-      }, 1000);
-    }
-
-    // Compute how many transactions are genuinely new (IDs that did not exist before sync)
-    const newCount = dedupedCombined.filter(t => !prevIdSet.has(String(t.id || ''))).length;
-    if (!silent && newCount > 0) {
-      showSyncToast('✅ +' + newCount + ' ' + (state.lang === 'en' ? 'new transactions synced' : 'νέες κινήσεις συγχρονίστηκαν'), 3000);
-    } else if (!silent && newCount === 0) {
-      showSyncToast('✅ ' + (state.lang === 'en' ? 'Everything is up to date' : 'Όλα είναι ενημερωμένα'), 2000);
-    }
-
-    return true;
-  } catch (e) {
-    console.error('Force sync failed:', e);
-    state.syncStatus = 'error';
-    updateSyncStatusIndicator();
-    if (!silent) {
-      showSyncToast('❌ ' + (state.lang === 'en' ? 'Sync failed: ' : 'Αποτυχία συγχρονισμού: ') + (e.message || e), 4000);
-    }
-    return false;
-  } finally {
-    // Realtime suppression is auto-released by suppressRealtimeFor(4000) above.
-    // Keep this finally as a safety net in case the helper's timer was somehow
-    // cleared, guaranteeing the counter never stays stuck.
-    suppressRealtimeFor(4000);
-  }
+  return _forceSyncInFlight;
 }
 
 function stopPartnerSyncPolling() {
@@ -25982,7 +26327,7 @@ async function sendTestNotification() {
   if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.LocalNotifications) {
     try {
       const LocalNotifications = window.Capacitor.Plugins.LocalNotifications;
-      
+
       // Ensure channel exists
       try {
         if (typeof LocalNotifications.createChannel === 'function') {
@@ -31305,9 +31650,9 @@ const USER_GUIDE_DATA = {
       {
         id: 'changelog',
         icon: 'fa-box-archive',
-        title: '1. Version & What\'s New (v1361)',
+        title: '1. Version & What\'s New (v1386)',
         content: `
-          <p><strong>Guide Version:</strong> v1361 | <strong>Synchronized App Version:</strong> v1361</p>
+          <p><strong>Guide Version:</strong> v1386 | <strong>Synchronized App Version:</strong> v1386</p>
           <div class="guide-feature-box">
             <h5 style="margin:0 0 6px; color:var(--primary);">✨ What's new in the latest version:</h5>
             <ul style="margin:0; padding-left:18px;">
@@ -31592,7 +31937,7 @@ function openRecurringDeleteModal(target, occurrenceDateStr, opts) {
       const match = (state.recurringTemplates || []).find(t => {
         return (parseFloat(t.amount) || 0).toFixed(2) === txAmount &&
           t.type === txType &&
-          normalizeCategoryName(t.category) === txCat;
+          isSameCategory(t.category, tx.category);
       });
       if (match) templateId = match.id;
     }
@@ -31651,12 +31996,12 @@ function _txBelongsToRecurringSeries(t, ctx) {
     return true;
   }
   // Strict content fallback — must match on identifying fields.
-  // Category is compared via normalizeCategoryName so a transaction whose
-  // category was canonicalized still matches the series' stored category.
+  // Category is compared via isSameCategory so a transaction whose
+  // category is translated (Greek/English) still matches the series.
   const matchesContent =
     (parseFloat(t.amount || 0).toFixed(2) === (parseFloat(ctx.amount) || 0).toFixed(2)) &&
     (t.type || '') === (ctx.type || '') &&
-    normalizeCategoryName(t.category) === normalizeCategoryName(ctx.category);
+    isSameCategory(t.category, ctx.category);
   if (!matchesContent) return false;
 
   // The content fallback alone (amount + type + category) is too loose: it would

@@ -4161,12 +4161,16 @@ body.shared-wallet-active .day-header {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 24px 16px;
+  padding: 24px 16px !important;
   overflow-x: hidden !important;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   box-sizing: border-box !important;
-  touch-action: pan-y;
+  touch-action: pan-y !important;
+  -ms-touch-action: pan-y !important;
+  /* Prevent Samsung Pass / autofill zoom */
+  zoom: 1 !important;
+  -ms-content-zooming: none !important;
 }
 
 #auth-overlay.active,
@@ -4180,18 +4184,18 @@ body.shared-wallet-active .day-header {
 .auth-card {
   position: relative;
   width: 100% !important;
-  max-width: 440px !important;
+  max-width: 380px !important;
   margin: auto;
-  padding: 34px 24px 28px 24px;
-  background: rgba(22, 28, 42, 0.94) !important;
+  padding: 24px 20px 20px 20px !important;
+  background: rgba(22, 28, 42, 0.96) !important;
   border: 1px solid rgba(255, 255, 255, 0.12) !important;
-  border-radius: 26px !important;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7), 0 0 35px rgba(var(--accent-rgb), 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+  border-radius: 24px !important;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7), 0 0 30px rgba(var(--accent-rgb), 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px !important;
   flex-shrink: 0 !important;
   box-sizing: border-box !important;
   animation: none !important;
@@ -4199,18 +4203,18 @@ body.shared-wallet-active .day-header {
 
 .auth-lang-selector {
   position: absolute;
-  top: 16px;
-  right: 16px;
+  top: 14px;
+  right: 14px;
   display: flex;
   gap: 6px;
   z-index: 10;
 }
 
 .lang-pill {
-  padding: 5px 10px;
-  font-size: 11.5px;
+  padding: 4px 8px;
+  font-size: 11px;
   font-weight: 700;
-  border-radius: 12px;
+  border-radius: 10px;
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.12);
   color: var(--text-secondary);
@@ -4243,8 +4247,8 @@ body.shared-wallet-active .day-header {
 
 .auth-header {
   text-align: center;
-  margin-top: 28px;
-  margin-bottom: 12px;
+  margin-top: 12px !important;
+  margin-bottom: 6px !important;
 }
 
 .auth-logo {
@@ -4256,47 +4260,47 @@ body.shared-wallet-active .day-header {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 12px;
+  margin: 0 auto 8px !important;
 }
 
 .auth-brand-icon {
-  width: 58px;
-  height: 58px;
+  width: 46px !important;
+  height: 46px !important;
   object-fit: contain;
   display: block;
   filter: drop-shadow(0 0 10px rgba(56, 189, 248, 0.35));
 }
 
 .auth-title {
-  font-size: 23px;
+  font-size: 20px !important;
   font-weight: 900;
-  letter-spacing: -0.4px;
+  letter-spacing: -0.3px;
   color: #ffffff;
-  margin-bottom: 4px;
+  margin-bottom: 2px !important;
   font-family: 'Outfit', 'Inter', system-ui, sans-serif;
 }
 
 .auth-subtitle {
-  font-size: 13.5px;
+  font-size: 12.5px !important;
   color: #94a3b8;
-  line-height: 1.4;
+  line-height: 1.3;
 }
 
 .auth-tabs {
   display: flex;
   background: rgba(0, 0, 0, 0.35);
-  border-radius: 14px;
-  padding: 4px;
+  border-radius: 12px;
+  padding: 3px;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  margin-bottom: 12px;
+  margin-bottom: 8px !important;
 }
 
 .auth-tab-btn {
   flex: 1;
-  padding: 10px 6px;
-  font-size: 13.5px;
+  padding: 8px 4px !important;
+  font-size: 12.5px !important;
   font-weight: 700;
-  border-radius: 10px;
+  border-radius: 8px;
   color: #94a3b8;
   transition: all 0.2s ease;
   text-align: center;
@@ -4332,6 +4336,9 @@ body.shared-wallet-active .day-header {
   border: 1px solid rgba(255, 255, 255, 0.14) !important;
   color: #ffffff !important;
   padding: 0 16px !important;
+  /* Prevent Samsung Pass / autofill zoom */
+  touch-action: manipulation !important;
+  transform-origin: left top !important;
 }
 
 .form-input:focus {
@@ -4388,6 +4395,60 @@ body.shared-wallet-active .day-header {
 .forgot-password-link:hover {
   text-decoration: underline;
   opacity: 0.95;
+}
+
+/* ============================================================ */
+/* FORGOT PASSWORD MODAL (TOP-LEVEL OVERLAY)                   */
+/* ============================================================ */
+#forgot-password-modal.modal-overlay,
+.forgot-password-modal-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  max-width: 100vw !important;
+  height: 100% !important;
+  height: 100dvh !important;
+  min-height: 100dvh !important;
+  z-index: 2147483647 !important;
+  background: rgba(0, 0, 0, 0.85) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 16px !important;
+  box-sizing: border-box !important;
+  overflow-y: auto !important;
+}
+
+#forgot-password-modal.active,
+#forgot-password-modal.show,
+.forgot-password-modal-overlay.active,
+.forgot-password-modal-overlay.show {
+  display: flex !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+
+.forgot-password-modal-card {
+  max-width: 380px !important;
+  width: 94% !important;
+  border-radius: 24px !important;
+  background: #181c26 !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  padding: 22px 20px !important;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.8), 0 0 30px rgba(var(--accent-rgb), 0.15) !important;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-sizing: border-box;
+  margin: auto !important;
+  z-index: 2147483647 !important;
+  pointer-events: auto !important;
 }
 
 .auth-mode-switch {
