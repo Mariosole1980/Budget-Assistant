@@ -31650,9 +31650,9 @@ const USER_GUIDE_DATA = {
       {
         id: 'changelog',
         icon: 'fa-box-archive',
-        title: '1. Version & What\'s New (v1386)',
+        title: '1. Version & What\'s New (v1387)',
         content: `
-          <p><strong>Guide Version:</strong> v1386 | <strong>Synchronized App Version:</strong> v1386</p>
+          <p><strong>Guide Version:</strong> v1387 | <strong>Synchronized App Version:</strong> v1387</p>
           <div class="guide-feature-box">
             <h5 style="margin:0 0 6px; color:var(--primary);">✨ What's new in the latest version:</h5>
             <ul style="margin:0; padding-left:18px;">
