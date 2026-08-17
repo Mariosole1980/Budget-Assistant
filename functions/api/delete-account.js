@@ -72,7 +72,42 @@ export async function onRequestPost(context) {
       });
     }
 
-    // 2. Cascade delete database tables for this user via SQL or simple delete API calls if there's no foreign key constraints blocking it.
+    // 2. Family-safety guard (prevents data loss for other family members).
+    // When a user belongs to a family group, their family-shared rows (transactions,
+    // accounts, categories, notes) carry BOTH user_id (this user) AND family_id.
+    // Deleting the auth user cascades on user_id and would destroy those shared rows
+    // for every other member. It could also orphan a family group if this user is its
+    // last admin. To keep account deletion family-safe, refuse deletion while the user
+    // is still a member of a family group and instruct them to leave it first.
+    const profileRes = await fetch(
+      `${supabaseUrl}/rest/v1/profiles?select=family_id,role&id=eq.${encodeURIComponent(userId)}&limit=1`,
+      {
+        method: 'GET',
+        headers: {
+          'apikey': serviceRoleKey,
+          'Authorization': `Bearer ${serviceRoleKey}`
+        }
+      }
+    );
+
+    if (profileRes.ok) {
+      const profileData = await profileRes.json();
+      const profile = Array.isArray(profileData) ? profileData[0] : profileData;
+      if (profile && profile.family_id) {
+        return new Response(JSON.stringify({
+          error: 'Cannot delete account while you are a member of a family group. Please leave the family group first (or transfer admin to another member if you are the only admin), then try again.',
+          code: 'FAMILY_MEMBERSHIP_REQUIRED'
+        }), {
+          status: 409,
+          headers: corsHeaders
+        });
+      }
+    }
+    // If the profile lookup fails (e.g. transient error), we do NOT block deletion —
+    // the lookup is a best-effort safety check and must not lock users out of deleting
+    // their own account.
+
+    // 3. Cascade delete database tables for this user via SQL or simple delete API calls if there's no foreign key constraints blocking it.
     // GoTrue admin delete user endpoint:
     const deleteRes = await fetch(`${supabaseUrl}/auth/v1/admin/users/${userId}`, {
       method: 'DELETE',

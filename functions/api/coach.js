@@ -1,4 +1,4 @@
-import { validateRequest, getSupabasePublicConfig } from './_security.js';
+import { validateRequest, getSupabasePublicConfig, generateWithGeminiFallback } from './_security.js';
 
 export async function onRequestOptions(context) {
   const { request } = context;
@@ -182,46 +182,26 @@ ${contextBlock}
       flashModelName = "models/gemini-1.5-flash";
     }
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/${flashModelName}:generateContent?key=${env.GEMINI_API_KEY}`;
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: promptText }] }],
-        generationConfig: {
-          responseMimeType: 'application/json',
-          temperature: 0.3,
-          maxOutputTokens: 512
-        }
-      })
-    });
-
-    if (!response.ok) {
-      const errText = await response.text();
-      // Try fallback to gemini-1.5-flash if we tried something else
-      if (flashModelName !== "models/gemini-1.5-flash") {
-        const url2 = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${env.GEMINI_API_KEY}`;
-        const response2 = await fetch(url2, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: promptText }] }],
-            generationConfig: { responseMimeType: 'application/json', temperature: 0.3, maxOutputTokens: 512 }
-          })
-        });
-        if (response2.ok) {
-          const data2 = await response2.json();
-          const text2 = data2.candidates[0].content.parts[0].text;
-          return new Response(text2, { headers: corsHeaders });
-        }
+    // Try the discovered model first, then fall back to gemini-1.5-flash.
+    // The shared helper tries each model in order and returns the first success.
+    const reqBody = {
+      contents: [{ parts: [{ text: promptText }] }],
+      generationConfig: {
+        responseMimeType: 'application/json',
+        temperature: 0.3,
+        maxOutputTokens: 512
       }
-      return new Response(JSON.stringify({ error: 'Gemini API error' }), { status: 502, headers: corsHeaders });
-    }
+    };
+    const modelNames = flashModelName === "models/gemini-1.5-flash"
+      ? [flashModelName]
+      : [flashModelName, "models/gemini-1.5-flash"];
 
-    const data = await response.json();
-    const text = data.candidates[0].content.parts[0].text;
-    return new Response(text, { headers: corsHeaders });
+    const result = await generateWithGeminiFallback({ env, modelNames, reqBody });
+
+    if (result.ok) {
+      return new Response(result.text, { headers: corsHeaders });
+    }
+    return new Response(JSON.stringify({ error: 'Gemini API error' }), { status: result.status, headers: corsHeaders });
 
   } catch (err) {
     console.error('Coach endpoint error:', err.message);

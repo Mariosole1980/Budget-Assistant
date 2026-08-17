@@ -148,11 +148,60 @@ function getSupabaseServiceConfig(env) {
     return { ...base, serviceRoleKey };
 }
 
+// ---------------------------------------------------------------------------
+// Gemini model-fallback helper (shared by ai.js and coach.js)
+// ---------------------------------------------------------------------------
+// Both AI endpoints previously duplicated the same "try a list of models in
+// order until one succeeds" pattern. This helper centralizes that logic so the
+// two endpoints stay consistent and the fallback behavior is defined once.
+//
+// It is behavior-preserving: it takes an ordered list of model names and a
+// request body, and returns the first successful response. Callers decide the
+// model list and body (ai.js uses a hardcoded list; coach.js uses dynamic model
+// discovery), so each endpoint keeps its own strategy.
+//
+// Returns { ok: true, text } on success, or { ok: false, status, errorText }.
+async function generateWithGeminiFallback({ env, modelNames, reqBody, timeoutMs = 8000 }) {
+    if (!env?.GEMINI_API_KEY) {
+        return { ok: false, status: 500, errorText: 'GEMINI_API_KEY missing from environment' };
+    }
+    let response;
+    let lastErrText = '';
+    for (const modelName of modelNames) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+        try {
+            const url = `https://generativelanguage.googleapis.com/v1beta/${modelName}:generateContent?key=${env.GEMINI_API_KEY}`;
+            response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                signal: controller.signal,
+                body: JSON.stringify(reqBody)
+            });
+            clearTimeout(timeoutId);
+            if (response.ok) {
+                break;
+            } else {
+                lastErrText = await response.text();
+            }
+        } catch (e) {
+            clearTimeout(timeoutId);
+        }
+    }
+    if (response && response.ok) {
+        const data = await response.json();
+        const text = data.candidates[0].content.parts[0].text;
+        return { ok: true, text };
+    }
+    return { ok: false, status: response && response.status ? response.status : 502, errorText: lastErrText };
+}
+
 export {
     corsHeadersFor,
     validateRequest,
     getClientIp,
     ALLOWED_ORIGINS,
     getSupabasePublicConfig,
-    getSupabaseServiceConfig
+    getSupabaseServiceConfig,
+    generateWithGeminiFallback
 };

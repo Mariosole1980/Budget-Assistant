@@ -1,6 +1,28 @@
 import { validateRequest, corsHeadersFor, getSupabasePublicConfig } from './_security.js';
 
 // ============================================================================
+// 🔒🔒🔒 FROZEN / DO-NOT-TOUCH — RECURRING TRANSACTIONS SUBSYSTEM 🔒🔒🔒
+// ============================================================================
+// ⚠️  THIS FILE IS FROZEN. DO NOT MODIFY, REFACTOR, "CLEAN UP", OR "OPTIMIZE"
+//     UNLESS THE USER EXPLICITLY ASKS FOR IT.
+//
+// WHY: This endpoint was deeply audited (see plans/recurring-architecture-deep-review.md)
+//      and hardened (Build v1400–v1402). Critical invariants that are easy to break:
+//        • Dedup MUST be scoped per-user (user_id=eq filter + user_id in grouping key)
+//          to prevent cross-tenant data corruption.
+//        • The orphan sweep ONLY deletes 'recurring_' prefixed rows when a canonical
+//          UUID counterpart exists (date+amount+category match). Never delete
+//          legitimate manual transactions.
+//        • Soft-delete only (status='deleted') — never hard-delete.
+//      Past "innocent" edits broke these invariants and caused user-facing data
+//      corruption. See plans/RECURRING-FROZEN-GUARDRAIL.md for the full rules.
+//
+// RULE: If you are an AI agent or developer making an UNRELATED change, leave this
+//       file untouched. Only edit when the user explicitly requests a change to
+//       recurring transactions.
+// ============================================================================
+
+// ============================================================================
 // POST /api/cleanup-recurring-duplicates
 // ============================================================================
 // One-off maintenance endpoint that removes duplicate recurring installments
@@ -117,7 +139,7 @@ export async function onRequestPost(context) {
             // columns are supported within it. Using two separate `order` params
             // would only honor the last one, silently dropping the created_at sort
             // and breaking the "keep oldest by created_at" dedup logic.
-            const url = `${supabaseUrl}/rest/v1/transactions?select=id,recurring_template_id,date,amount,user_id,created_at,status&recurring_template_id=not.is.null&status=eq.active&order=created_at.asc,id.asc&range=${page * pageSize}-${(page + 1) * pageSize - 1}`;
+            const url = `${supabaseUrl}/rest/v1/transactions?select=id,recurring_template_id,date,amount,user_id,created_at,status&user_id=eq.${userId}&recurring_template_id=not.is.null&status=eq.active&order=created_at.asc,id.asc&range=${page * pageSize}-${(page + 1) * pageSize - 1}`;
             const res = await fetch(url, { headers });
             if (!res.ok) {
                 const errText = await res.text();
@@ -139,10 +161,10 @@ export async function onRequestPost(context) {
             }
         }
 
-        // 3. Group by (recurring_template_id, date, amount) and find duplicates.
+        // 3. Group by (user_id, recurring_template_id, date, amount) and find duplicates.
         const groups = new Map();
         for (const t of allTx) {
-            const key = `${t.recurring_template_id}|${String(t.date || '').split('T')[0]}|${(parseFloat(t.amount) || 0).toFixed(2)}`;
+            const key = `${userId}|${t.recurring_template_id}|${String(t.date || '').split('T')[0]}|${(parseFloat(t.amount) || 0).toFixed(2)}`;
             if (!groups.has(key)) groups.set(key, []);
             groups.get(key).push(t);
         }

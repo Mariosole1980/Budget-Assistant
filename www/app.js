@@ -4115,205 +4115,11 @@ function loadOfflineData() {
 
 
 function autoRecoverTemplatesFromHistory() {
-  // DISABLED (v1391): This function previously auto-created recurring templates
-  // from transaction history based on keyword matching. It proved dangerous:
-  //   * The insurance keyword 'ασφάλεια' matched the one-off transaction
-  //     "ΔΑΝΕΙΟ ΣΠΙΤΙΟΥ +120 Η ΑΣΦΑΛΕΙΑ" (644.92), re-creating a template the
-  //     user had intentionally deleted.
-  //   * It re-created duplicate templates on every load when the guard flag was
-  //     not set, flooding the cloud with duplicates.
-  // The user has confirmed the correct recurring templates manually. Auto-recovery
-  // from history is no longer needed and is actively harmful, so it is disabled.
-  // The guard flag is set so any legacy code path that checks it behaves as if
-  // recovery already ran.
+  // Permanently disabled: auto-recovery from historical transactions caused
+  // spurious duplicate recurring templates. Guard flag kept for backward compatibility.
   try {
     localStorage.setItem('templates_autorecovered', 'true');
   } catch (e) { }
-  return;
-
-  let dismissed = [];
-  try {
-    dismissed = JSON.parse(localStorage.getItem('dismissed_recovered_templates') || '[]');
-  } catch (e) { }
-
-  let updated = false;
-
-  // 1. Auto-cleanup of bad "διάφορα συμπληρώματα" templates
-  const originalLength = (state.recurringTemplates || []).length;
-  state.recurringTemplates = (state.recurringTemplates || []).filter(t => {
-    const note = (t.note || '').toLowerCase();
-    const isBad = note.includes('συμπληρώματα') || note.includes('συμπληρωματα') || note.includes('συμπλήρωμα') || note.includes('συμπληρωμα');
-    if (isBad) {
-      if (state.supabaseClient && state.currentUser && t.id && !String(t.id).startsWith('recovered_')) {
-        state.supabaseClient
-          .from('recurring_templates')
-          .delete()
-          .eq('id', t.id)
-          .then(({ error }) => {
-            if (error) console.error('Failed to delete bad template from cloud:', error);
-          });
-      }
-    }
-    return !isBad;
-  });
-
-  if ((state.recurringTemplates || []).length !== originalLength) {
-    updated = true;
-  }
-
-  // Disabled auto-clear of recovered templates to prevent deleted templates/transactions from returning
-
-  const templates = state.recurringTemplates || [];
-
-  const hasTemplate = (keywords) => {
-    return templates.some(t => {
-      const noteLower = (t.note || '').toLowerCase();
-      return keywords.some(kw => noteLower.includes(kw));
-    });
-  };
-
-  const cleanNoteOfInstallments = (note) => {
-    // Remove "δόση X/Y", "δόση X", "X/Y", "δόση", etc.
-    let cleaned = note.replace(/δ[όο]ση\s+\d+\/\d+/gi, '');
-    cleaned = cleaned.replace(/δ[όο]ση\s+\d+/gi, '');
-    cleaned = cleaned.replace(/\d+\/\d+/g, '');
-    cleaned = cleaned.replace(/δ[όο]ση/gi, '');
-    // Remove extra spaces
-    cleaned = cleaned.replace(/\s+/g, ' ').trim();
-    return cleaned || note;
-  };
-
-  const findInstallmentEndDate = (matches) => {
-    let maxCurrent = 0, maxTotal = 0, maxDate = null;
-    for (const t of matches) {
-      const m = (t.note || '').match(/(\d+)\/(\d+)/);
-      if (m) {
-        const c = parseInt(m[1]), tot = parseInt(m[2]);
-        if (c > maxCurrent) {
-          maxCurrent = c;
-          maxTotal = tot;
-          maxDate = String(t.date || '').split('T')[0];
-        }
-      }
-    }
-    if (maxDate && maxTotal > 0) {
-      const remaining = maxTotal - maxCurrent;
-      const d = new Date(maxDate);
-
-      // Move to the 1st of the month first to avoid month rollover bugs (e.g. Feb 30th)
-      d.setDate(1);
-      d.setMonth(d.getMonth() + remaining);
-
-      // Set to the last day of that target month to cover all days of that last installment month
-      const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
-      d.setDate(lastDay);
-
-      return d.toISOString().split('T')[0];
-    }
-    return null; // No installment pattern found → perpetual
-  };
-
-  const recoverForKeywords = (keywords, defaultNote, preset = 'monthly') => {
-    // Check if any dismissed note matches this template's defaultNote or contains its keywords
-    const isDismissed = dismissed.some(dn => {
-      const dnLower = String(dn || '').toLowerCase();
-      return dnLower === defaultNote.toLowerCase() || keywords.some(kw => dnLower.includes(kw.toLowerCase()));
-    });
-    if (isDismissed) {
-      return;
-    }
-    if (hasTemplate(keywords)) return;
-
-    const matches = state.transactions.filter(t => {
-      const noteLower = (t.note || '').toLowerCase();
-      return keywords.some(kw => noteLower.includes(kw));
-    });
-    if (matches.length === 0) return;
-
-    // Prioritize transactions that have installment indicators (e.g. X/Y, "δόση")
-    // to avoid recovering large one-off bulk payments (like a total annual ENFIA of 273.01€)
-    let targetMatches = matches;
-    const installmentMatches = matches.filter(t => {
-      const noteLower = (t.note || '').toLowerCase();
-      return noteLower.match(/\d+\/\d+/) || noteLower.includes('δόση') || noteLower.includes('δοση');
-    });
-    if (installmentMatches.length > 0) {
-      targetMatches = installmentMatches;
-    }
-
-    // For end date, use all relevant matches; for the template base use the earliest transaction (startDate)
-    const sortedAsc = [...targetMatches].sort((a, b) => new Date(a.date) - new Date(b.date));
-    const tx = sortedAsc[0]; // Earliest transaction = true startDate
-
-    const cleanedNote = defaultNote === 'ΔΟΣΗ ΔΑΝΕΙΟΥ' ? 'ΔΟΣΗ ΔΑΝΕΙΟΥ' : cleanNoteOfInstallments(tx.note || defaultNote);
-    const detectedEndDate = findInstallmentEndDate(targetMatches);
-
-    const template = {
-      id: generateUUID(),
-      amount: parseFloat(tx.amount),
-      type: tx.type,
-      category: tx.category,
-      subcategory: tx.subcategory || '',
-      account_from: tx.account_from,
-      account_to: tx.account_to || null,
-      note: cleanedNote,
-      description: tx.description || '',
-      preset: preset,
-      days: [new Date(tx.date).getDate()],
-      months: preset === 'yearly' ? [new Date(tx.date).getMonth() + 1] : [],
-      years: [],
-      endType: detectedEndDate ? 'date' : 'perpetual',
-      endDate: detectedEndDate || null,
-      startDate: tx.date,
-      startYear: new Date(tx.date).getFullYear(),
-      startMonth: new Date(tx.date).getMonth() + 1,
-      user_id: tx.user_id || (state.currentUser ? state.currentUser.id : null),
-      family_id: tx.family_id || (state.userProfile ? state.userProfile.family_id : null),
-      is_shared: tx.family_id ? true : false
-    };
-
-    state.recurringTemplates.push(template);
-
-    if (state.supabaseClient && state.currentUser) {
-      state.supabaseClient
-        .from('recurring_templates')
-        .insert([mapTemplateToDb(template)])
-        .then(({ error }) => {
-          if (error) console.error('Failed to save auto-recovered template to Supabase:', error);
-        });
-    }
-    updated = true;
-  };
-
-  // 1. Car insurance (Yearly)
-  const insuranceKeywords = ['ασφάλεια', 'ασφαλεια', 'ετησια ασφ', 'ετήσια ασφ', 'asfaleia', 'ασφάλιστρα', 'ασφαλιστρα', 'insurance'];
-  recoverForKeywords(insuranceKeywords, 'Ετήσια Ασφάλεια Αυτοκινήτου', 'monthly');
-
-  // 2. Home loan (Monthly) - Only match 'δόση δανείου' exactly to prevent matching general loan transactions
-  const loanKeywords = ['δόση δανείου', 'δοση δανειου', 'δωση δανειου'];
-  recoverForKeywords(loanKeywords, 'ΔΟΣΗ ΔΑΝΕΙΟΥ', 'monthly');
-
-  // 3. Tires change (Yearly)
-  const tiresKeywords = ['ελαστικά', 'ελαστικα', 'ελαστικων', 'ελαστικω', 'ελαστικ', 'λάστιχα', 'λαστιχα', 'λαστιχο', 'tires', 'tyres'];
-  recoverForKeywords(tiresKeywords, 'Αλλαγή Ελαστικών', 'monthly');
-
-  // 4. ENFIA (Monthly)
-  const enfiaKeywords = ['ενφια', 'enfia'];
-  recoverForKeywords(enfiaKeywords, 'ΕΝΦΙΑ', 'monthly');
-
-  if (updated) {
-    localStorage.setItem('recurring_templates', JSON.stringify(state.recurringTemplates));
-    updateUI();
-  }
-
-  // NOTE: A legacy one-off hardcoded cleanup (v672/v673) that deleted duplicate
-  // transactions/templates by specific amounts (644.92€, 524.38€, 273.01€) and notes
-  // (ΔΑΝΕΙΟ ΣΠΙΤΙΩΝ, ΕΝΦΙΑ 2025) was removed here. It was a single-user data migration
-  // that already executed for all existing users (guarded by templates_autorecovered),
-  // and it risked deleting real user data from the cloud. General duplicate handling is
-  // now covered by cleanDuplicateTransactions/cleanDuplicateCategories.
-
-  localStorage.setItem('templates_autorecovered', 'true');
 }
 
 function getDeletedDatesFromTemplate(template) {
@@ -4389,29 +4195,27 @@ function generateDeterministicUUID(templateId, dateString) {
 }
 window.generateDeterministicUUID = generateDeterministicUUID;
 
-// Clean up duplicate recurring templates (e.g. Greek "Σπίτι" vs English "Home" or duplicated recovery)
+// Clean up duplicate recurring templates using safe exact-match (same note + amount + type + category)
 function cleanDuplicateTemplates() {
   if (!state.recurringTemplates || state.recurringTemplates.length < 2) return;
+
   const templates = state.recurringTemplates;
   const toDelete = [];
   const kept = [];
 
   for (let i = 0; i < templates.length; i++) {
     const t1 = templates[i];
+    const normNote1 = normalizeGreekString(t1.note || t1.description || '');
+    const amountStr1 = (parseFloat(t1.amount) || 0).toFixed(2);
+
     let isDup = false;
     for (let j = 0; j < kept.length; j++) {
       const t2 = kept[j];
-      const sameAmount = (parseFloat(t1.amount) || 0).toFixed(2) === (parseFloat(t2.amount) || 0).toFixed(2);
+      const sameAmount = amountStr1 === (parseFloat(t2.amount) || 0).toFixed(2);
       const sameType = t1.type === t2.type;
       const sameCat = isSameCategory(t1.category, t2.category);
-      const n1 = normalizeGreekString(t1.note || t1.description || '');
-      const n2 = normalizeGreekString(t2.note || t2.description || '');
-      // SAFETY FIX: Only treat as a duplicate when the notes are EXACTLY equal.
-      // Previously used substring matching (n1.includes(n2) || n2.includes(n1)),
-      // which wrongly deleted legitimate distinct templates whose note was a
-      // substring of another (e.g. "ΕΝΦΙΑ" vs "ΔΑΝΕΙΟ ΣΠΙΤΙΟΥ +120 Η ΑΣΦΑΛΕΙΑ").
-      // Exact-match only prevents permanent cloud deletion of real templates.
-      const sameNote = (n1.length > 0 && n1 === n2);
+      const normNote2 = normalizeGreekString(t2.note || t2.description || '');
+      const sameNote = (normNote1.length > 0 && normNote1 === normNote2);
 
       if (sameAmount && sameType && sameCat && sameNote) {
         isDup = true;
@@ -4430,11 +4234,18 @@ function cleanDuplicateTemplates() {
     localStorage.setItem('recurring_templates', JSON.stringify(state.recurringTemplates));
     toDelete.forEach(t => {
       if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser && t.id) {
-        state.supabaseClient.from('recurring_templates').delete().eq('id', t.id).then(({ error }) => {
-          if (error) console.warn('Failed to delete duplicate template from cloud:', error);
-        });
+        state.supabaseClient
+          .from('recurring_templates')
+          .delete()
+          .eq('id', t.id)
+          .then(() => { }, ({ error }) => {
+            if (error) console.warn('Failed to delete duplicate template from cloud:', error);
+          });
       }
     });
+  } else {
+    state.recurringTemplates = kept;
+    localStorage.setItem('recurring_templates', JSON.stringify(state.recurringTemplates));
   }
 }
 window.cleanDuplicateTemplates = cleanDuplicateTemplates;
@@ -4481,28 +4292,32 @@ function cleanCrossLanguageRecurringDuplicates() {
         const isRecurringPrefix2 = String(t2.id || '').startsWith('recurring_');
 
         if (t1Amount === t2Amount && t1Type === t2Type) {
-          if (isSameCategory(t1.category, t2.category)) {
-            const noteMatch = (t1Note === t2Note) ||
-              (t1Note.length > 0 && t2Note.length > 0 && (t1Note.includes(t2Note) || t2Note.includes(t1Note))) ||
-              (!t1Note || !t2Note) ||
-              isRecurringPrefix1 || isRecurringPrefix2;
+          // Only consider duplicates if:
+          // 1. Both share the same recurring_template_id, OR
+          // 2. Both have non-empty notes that are EXACTLY identical, OR
+          // 3. One has a legacy 'recurring_' temporary ID and matching note
+          // NEVER treat empty notes or arbitrary substrings as duplicates!
+          const bothHaveTemplate = t1.recurring_template_id && t2.recurring_template_id && (t1.recurring_template_id === t2.recurring_template_id);
+          const exactNoteMatch = (t1Note.length > 0 && t1Note === t2Note);
+          const legacyPrefixMatch = (isRecurringPrefix1 || isRecurringPrefix2) && (t1Note.length === 0 || t2Note.length === 0 || t1Note === t2Note);
 
-            if (noteMatch) {
-              let duplicate = null;
-              if (isRecurringPrefix1 && !isRecurringPrefix2) {
-                duplicate = t1;
-              } else if (isRecurringPrefix2 && !isRecurringPrefix1) {
-                duplicate = t2;
-              } else {
-                const isT1Newer = (t1.created_at && t2.created_at)
-                  ? (new Date(t1.created_at) > new Date(t2.created_at))
-                  : (t1.recurring_template_id && !t2.recurring_template_id);
-                duplicate = isT1Newer ? t1 : t2;
-              }
+          const isGenuineDuplicate = bothHaveTemplate || exactNoteMatch || legacyPrefixMatch;
 
-              if (duplicate) {
-                toDeleteIds.add(duplicate.id);
-              }
+          if (isGenuineDuplicate) {
+            let duplicate = null;
+            if (isRecurringPrefix1 && !isRecurringPrefix2) {
+              duplicate = t1;
+            } else if (isRecurringPrefix2 && !isRecurringPrefix1) {
+              duplicate = t2;
+            } else {
+              const isT1Newer = (t1.created_at && t2.created_at)
+                ? (new Date(t1.created_at) > new Date(t2.created_at))
+                : (t1.recurring_template_id && !t2.recurring_template_id);
+              duplicate = isT1Newer ? t1 : t2;
+            }
+
+            if (duplicate) {
+              toDeleteIds.add(duplicate.id);
             }
           }
         }
@@ -4510,11 +4325,23 @@ function cleanCrossLanguageRecurringDuplicates() {
     }
   });
 
-  // Clean orphan "recurring_" non-UUID items
+  // Clean legacy "recurring_" non-UUID items ONLY when a canonical UUID counterpart exists
   for (let i = 0; i < txs.length; i++) {
     const t = txs[i];
-    if (String(t.id || '').startsWith('recurring_') && !toDeleteIds.has(t.id)) {
-      toDeleteIds.add(t.id);
+    const idStr = String(t.id || '');
+    if (idStr.startsWith('recurring_') && !toDeleteIds.has(t.id)) {
+      const tDate = String(t.date || '').split('T')[0].split(' ')[0];
+      const tAmount = (parseFloat(t.amount) || 0).toFixed(2);
+      const hasCanonicalCounterpart = txs.some(other => {
+        if (other.id === t.id || toDeleteIds.has(other.id)) return false;
+        if (String(other.id || '').startsWith('recurring_')) return false;
+        const oDate = String(other.date || '').split('T')[0].split(' ')[0];
+        const oAmount = (parseFloat(other.amount) || 0).toFixed(2);
+        return oDate === tDate && oAmount === tAmount && isSameCategory(other.category, t.category);
+      });
+      if (hasCanonicalCounterpart) {
+        toDeleteIds.add(t.id);
+      }
     }
   }
 
@@ -4542,7 +4369,7 @@ function cleanCrossLanguageRecurringDuplicates() {
             .from('transactions')
             .update({ status: 'deleted', deleted_at: new Date().toISOString() })
             .eq('id', id)
-            .catch(() => { });
+            .then(() => { }, () => { });
         }
       }
     });
@@ -4552,6 +4379,27 @@ function cleanCrossLanguageRecurringDuplicates() {
 }
 window.cleanCrossLanguageRecurringDuplicates = cleanCrossLanguageRecurringDuplicates;
 
+// ============================================================================
+// 🔒🔒🔒 FROZEN / DO-NOT-TOUCH — RECURRING TRANSACTIONS SUBSYSTEM 🔒🔒🔒
+// ============================================================================
+// ⚠️  THIS CODE IS FROZEN. DO NOT MODIFY, REFACTOR, "CLEAN UP", OR "OPTIMIZE"
+//     ANY RECURRING-TRANSACTIONS CODE UNLESS THE USER EXPLICITLY ASKS FOR IT.
+//
+// WHY: This subsystem was deeply audited (see plans/recurring-architecture-deep-review.md)
+//      and hardened (Build v1400–v1402). It has subtle invariants that are easy to break:
+//        • Deterministic UUIDs (generateDeterministicUUID) keep occurrences idempotent.
+//        • Deleted-date markers are stored in the template description field.
+//        • The 60s grace window (_markRecentlySaved) prevents duplicate re-creation.
+//        • endType='date' + endDate drive "delete future occurrences" (NOT untilDate).
+//        • _computeRecurringSeriesDates() has a NaN guard + 240-iteration cap.
+//      Past "innocent" edits repeatedly broke these invariants and caused user-facing
+//      data corruption / crashes. See plans/RECURRING-FROZEN-GUARDRAIL.md for the full
+//      list of frozen functions and the exact rules.
+//
+// RULE: If you are an AI agent or developer making an UNRELATED change, leave this
+//       entire block untouched. Only edit when the user explicitly requests a change
+//       to recurring transactions.
+// ============================================================================
 function processRecurringTemplates() {
   if (!state.recurringTemplates || state.recurringTemplates.length === 0) return;
 
@@ -11708,8 +11556,7 @@ function initMultiCurrency() {
     }));
     if (rows.length === 0) return;
     state.supabaseClient.from('exchange_rates').upsert(rows, { onConflict: 'base_currency,quote_currency,rate_date' })
-      .then(() => { })
-      .catch((err) => console.warn('[MultiCurrency] Failed to persist rates:', err));
+      .then(() => { }, (err) => console.warn('[MultiCurrency] Failed to persist rates:', err));
   });
 
   // 3. Fetch today's rates (non-blocking). Multi-currency is always active
@@ -16096,7 +15943,7 @@ function addSubcategoryToCategory(categoryName, subcatName) {
           color: cat.color,
           hidden: cat.hidden,
           subcategories: cat.subcategories
-        }, { onConflict: 'user_id,name' }).catch(err => console.warn('Sync categories subcategories warning:', err));
+        }, { onConflict: 'user_id,name' }).then(() => { }, err => console.warn('Sync categories subcategories warning:', err));
       }
     }
   }
@@ -23547,29 +23394,35 @@ async function forceSyncNow(silent = false) {
 
       let catsQuery = state.supabaseClient.from('categories').select('*');
       let accsQuery = state.supabaseClient.from('accounts').select('*');
+      let tempsQuery = state.supabaseClient.from('recurring_templates').select('*');
 
       if (familyId && partnerId) {
         const filter = `family_id.eq.${familyId},user_id.eq.${userId},user_id.eq.${partnerId}`;
         catsQuery = catsQuery.or(filter);
         accsQuery = accsQuery.or(filter);
+        tempsQuery = tempsQuery.or(filter);
       } else if (familyId) {
         const filter = `family_id.eq.${familyId},user_id.eq.${userId}`;
         catsQuery = catsQuery.or(filter);
         accsQuery = accsQuery.or(filter);
+        tempsQuery = tempsQuery.or(filter);
       } else if (partnerId) {
         const filter = `user_id.eq.${userId},user_id.eq.${partnerId}`;
         catsQuery = catsQuery.or(filter);
         accsQuery = accsQuery.or(filter);
+        tempsQuery = tempsQuery.or(filter);
       } else {
         catsQuery = catsQuery.eq('user_id', userId);
         accsQuery = accsQuery.eq('user_id', userId);
+        tempsQuery = tempsQuery.eq('user_id', userId);
       }
 
-      // 1. Fetch categories and accounts
-      const [catsRes, accsRes] = await promiseTimeout(
+      // 1. Fetch categories, accounts, and recurring templates
+      const [catsRes, accsRes, tempsRes] = await promiseTimeout(
         Promise.all([
           catsQuery,
           accsQuery,
+          tempsQuery.then(r => r, () => ({ data: [], error: null }))
         ]),
         15000
       );
@@ -23581,6 +23434,11 @@ async function forceSyncNow(silent = false) {
       if (!accsRes.error && accsRes.data) {
         state.accounts = accsRes.data;
         localStorage.setItem('offline_accounts', JSON.stringify(state.accounts));
+      }
+      if (tempsRes && tempsRes.data) {
+        state.recurringTemplates = tempsRes.data.map(mapTemplateFromDb);
+        cleanDuplicateTemplates();
+        localStorage.setItem('recurring_templates', JSON.stringify(state.recurringTemplates));
       }
 
       // 2. Fetch ALL transactions (paginated)
@@ -28033,9 +27891,8 @@ function deleteAdvisorConversation(id) {
       .eq('id', id)
       .eq('user_id', state.currentUser.id)
       .then(res => {
-        if (res.error) console.warn('[AdvisorSync] error deleting remote conversation:', res.error);
-      })
-      .catch(err => console.warn('[AdvisorSync] delete remote conversation failed:', err));
+        if (res && res.error) console.warn('[AdvisorSync] error deleting remote conversation:', res.error);
+      }, err => console.warn('[AdvisorSync] delete remote conversation failed:', err));
   }
 }
 
@@ -31425,7 +31282,14 @@ async function deleteAccountConfirm() {
     const result = await res.json().catch(() => ({}));
 
     if (!res.ok || !result.success) {
-      showSyncToast("❌ " + (state.lang === 'el' ? 'Αποτυχία διαγραφής: ' : 'Deletion failed: ') + (result.error || res.status), 4000);
+      // Localize the family-membership block message (server returns it in English only).
+      let errorText = result.error || res.status;
+      if (result.code === 'FAMILY_MEMBERSHIP_REQUIRED') {
+        errorText = state.lang === 'el'
+          ? 'Δεν μπορείτε να διαγράψετε τον λογαριασμό σας όσο είστε μέλος μιας οικογενειακής ομάδας. Αποχωρήστε πρώτα από την ομάδα (ή μεταφέρετε τα δικαιώματα διαχειριστή σε άλλο μέλος αν είστε ο μόνος διαχειριστής) και δοκιμάστε ξανά.'
+          : 'Cannot delete account while you are a member of a family group. Please leave the family group first (or transfer admin to another member if you are the only admin), then try again.';
+      }
+      showSyncToast("❌ " + (state.lang === 'el' ? 'Αποτυχία διαγραφής: ' : 'Deletion failed: ') + errorText, 4000);
       return;
     }
 
@@ -31749,9 +31613,9 @@ const USER_GUIDE_DATA = {
       {
         id: 'changelog',
         icon: 'fa-box-archive',
-        title: '1. Version & What\'s New (v1391)',
+        title: '1. Version & What\'s New (v1404)',
         content: `
-          <p><strong>Guide Version:</strong> v1391 | <strong>Synchronized App Version:</strong> v1391</p>
+          <p><strong>Guide Version:</strong> v1404 | <strong>Synchronized App Version:</strong> v1404</p>
           <div class="guide-feature-box">
             <h5 style="margin:0 0 6px; color:var(--primary);">✨ What's new in the latest version:</h5>
             <ul style="margin:0; padding-left:18px;">
@@ -31989,6 +31853,25 @@ function renderUserGuideContent(query = '') {
 }
 
 
+// ============================================================================
+// 🔒🔒🔒 FROZEN / DO-NOT-TOUCH — RECURRING DELETION & GROUPED TRASH 🔒🔒🔒
+// ============================================================================
+// ⚠️  THIS CODE IS FROZEN. DO NOT MODIFY, REFACTOR, "CLEAN UP", OR "OPTIMIZE"
+//     ANY RECURRING-TRANSACTIONS CODE UNLESS THE USER EXPLICITLY ASKS FOR IT.
+//
+// WHY: This subsystem was deeply audited (see plans/recurring-architecture-deep-review.md)
+//      and hardened (Build v1400–v1402). It has subtle invariants that are easy to break:
+//        • "Delete future occurrences" MUST set endType='date' + endDate (NOT untilDate).
+//        • _computeRecurringSeriesDates() has a NaN guard + 240-iteration cap.
+//        • Grouped trash restore must preserve the recurring series linkage.
+//      Past "innocent" edits repeatedly broke these invariants and caused user-facing
+//      data corruption / crashes. See plans/RECURRING-FROZEN-GUARDRAIL.md for the full
+//      list of frozen functions and the exact rules.
+//
+// RULE: If you are an AI agent or developer making an UNRELATED change, leave this
+//       entire block untouched. Only edit when the user explicitly requests a change
+//       to recurring transactions.
+// ============================================================================
 // ============================================================
 // SCOPED RECURRING DELETION & GROUPED TRASH SYSTEM
 // ============================================================
@@ -32126,11 +32009,12 @@ function _computeRecurringSeriesDates(template) {
   if (!template) return [];
   const preset = template.preset || 'monthly';
   const startDate = new Date(template.startDate || new Date().toISOString().split('T')[0]);
+  if (isNaN(startDate.getTime())) return [];
   const startYear = startDate.getFullYear();
   const startMonth = startDate.getMonth();
   const startDay = startDate.getDate();
   const endDateStr = template.endDate || null;
-  const endLimit = endDateStr ? new Date(endDateStr) : null;
+  const endLimit = (endDateStr && !isNaN(new Date(endDateStr).getTime())) ? new Date(endDateStr) : null;
   const today = new Date();
   const maxFuture = new Date(today.getFullYear(), today.getMonth() + 12, 1);
   const deletedDates = getDeletedDatesFromTemplate(template);
@@ -32138,7 +32022,8 @@ function _computeRecurringSeriesDates(template) {
   let year = startYear;
   let month = startMonth;
 
-  while (true) {
+  let maxIterations = 240; // Hard cap at 20 years to guarantee termination
+  while (maxIterations-- > 0) {
     const yearMonth = new Date(year, month, 1);
     if (yearMonth > maxFuture) break;
     if (endLimit && yearMonth > endLimit) break;
@@ -32279,13 +32164,19 @@ async function executeRecurringDelete(scope) {
     });
 
     if (template) {
-      template.untilDate = anchorDate;
+      // Terminate the recurring series on the day before the deleted anchorDate
+      const anchorD = new Date(anchorDate);
+      if (!isNaN(anchorD.getTime())) {
+        anchorD.setDate(anchorD.getDate() - 1);
+        template.endType = 'date';
+        template.endDate = anchorD.toISOString().split('T')[0];
+      }
       localStorage.setItem('recurring_templates', JSON.stringify(state.recurringTemplates));
       // Persist the new end date to the cloud template so a later cloud sync
       // does not resurrect the future occurrences that were just deleted.
       if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
         state.supabaseClient.from('recurring_templates').upsert([mapTemplateToDb(template)])
-          .then(({ error }) => {
+          .then(() => { }, ({ error }) => {
             if (error) console.warn('Failed to sync recurring end date to cloud:', error);
           });
       }
@@ -32510,8 +32401,7 @@ async function restoreTrashGroup(groupId) {
               console.warn('Cloud restore failed (possibly cloud limit), queueing for later:', error);
               realSnapshot.forEach(tx => enqueueSyncMutation('save', tx));
             }
-          })
-          .catch(err => {
+          }, err => {
             console.warn('Cloud restore failed, queueing for later:', err);
             realSnapshot.forEach(tx => enqueueSyncMutation('save', tx));
           });

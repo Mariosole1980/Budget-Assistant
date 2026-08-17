@@ -52,6 +52,10 @@ window.MemoryEngine = (function () {
     }
   }
 
+  // Maximum number of distinct merchants to keep in the learned-mappings store.
+  // Prevents unbounded growth of localStorage (each unique merchant adds a key).
+  const MAX_MERCHANTS = 2000;
+
   function addTokenToMemory(merchant, category, weight = 3.0) {
     if (!merchant || !category) return;
     const normMerchant = normalize(merchant);
@@ -67,6 +71,27 @@ window.MemoryEngine = (function () {
     // Cap the weight at a reasonable maximum (e.g., 10) so it doesn't spiral out of control
     if (mappings[normMerchant][category] > 10) {
       mappings[normMerchant][category] = 10;
+    }
+
+    // Enforce a cap on the number of distinct merchants (LRU-style eviction).
+    // When the store exceeds MAX_MERCHANTS, evict the least-recently-used merchant
+    // (i.e. the one with the lowest total learned weight) to keep localStorage bounded.
+    const merchantKeys = Object.keys(mappings);
+    if (merchantKeys.length > MAX_MERCHANTS) {
+      let lruKey = null;
+      let lruWeight = Infinity;
+      for (const key of merchantKeys) {
+        let total = 0;
+        for (const w of Object.values(mappings[key])) total += w;
+        if (total < lruWeight) {
+          lruWeight = total;
+          lruKey = key;
+        }
+      }
+      if (lruKey) {
+        delete mappings[lruKey];
+        if (window.AI_DEBUG) console.log(`MemoryEngine evicted merchant "${lruKey}" (store at ${MAX_MERCHANTS} cap)`);
+      }
     }
 
     localStorage.setItem('ai_learned_mappings', JSON.stringify(mappings));

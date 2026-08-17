@@ -1,4 +1,4 @@
-import { validateRequest, getSupabasePublicConfig } from './_security.js';
+import { validateRequest, getSupabasePublicConfig, generateWithGeminiFallback } from './_security.js';
 
 export async function onRequestOptions(context) {
   const { request } = context;
@@ -247,82 +247,52 @@ ${statsStr}
   }
 
   try {
-    if (env.GEMINI_API_KEY) {
-      const modelsToTry = [
-        'models/gemini-flash-lite-latest',
-        'models/gemini-3.1-flash-lite',
-        'models/gemini-2.5-flash',
-        'models/gemini-3.5-flash'
-      ];
-      // Build request body dynamically
-      const reqBody = {
-        generationConfig: {
-          responseMimeType: "application/json",
-          temperature: mode === 'advisor' ? 0.7 : 0.1
-        }
+    const modelsToTry = [
+      'models/gemini-flash-lite-latest',
+      'models/gemini-3.1-flash-lite',
+      'models/gemini-2.5-flash',
+      'models/gemini-3.5-flash'
+    ];
+    // Build request body dynamically
+    const reqBody = {
+      generationConfig: {
+        responseMimeType: "application/json",
+        temperature: mode === 'advisor' ? 0.7 : 0.1
+      }
+    };
+
+    if (mode === 'advisor') {
+      let contents = [];
+      if (body.history && Array.isArray(body.history)) {
+        contents = body.history.map(h => ({
+          role: h.role === 'user' ? 'user' : 'model',
+          parts: [{ text: h.content }]
+        }));
+      }
+      contents.push({
+        role: 'user',
+        parts: [{ text: queryText }]
+      });
+      reqBody.contents = contents;
+      reqBody.systemInstruction = {
+        parts: [{ text: prompt }]
       };
-
-      if (mode === 'advisor') {
-        let contents = [];
-        if (body.history && Array.isArray(body.history)) {
-          contents = body.history.map(h => ({
-            role: h.role === 'user' ? 'user' : 'model',
-            parts: [{ text: h.content }]
-          }));
-        }
-        contents.push({
-          role: 'user',
-          parts: [{ text: queryText }]
-        });
-        reqBody.contents = contents;
-        reqBody.systemInstruction = {
-          parts: [{ text: prompt }]
-        };
-      } else {
-        reqBody.contents = [{ parts: [{ text: prompt }] }];
-      }
-
-      let response;
-      let lastErrText = '';
-
-      for (const modelName of modelsToTry) {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 8000);
-
-        try {
-          const url = `https://generativelanguage.googleapis.com/v1beta/${modelName}:generateContent?key=${env.GEMINI_API_KEY}`;
-          response = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            signal: controller.signal,
-            body: JSON.stringify(reqBody)
-          });
-
-          clearTimeout(timeoutId);
-
-          if (response.ok) {
-            break;
-          } else {
-            lastErrText = await response.text();
-          }
-        } catch (e) {
-          clearTimeout(timeoutId);
-        }
-      }
-
-      if (response && response.ok) {
-        const data = await response.json();
-        const text = data.candidates[0].content.parts[0].text;
-        return new Response(text, { headers: corsHeaders });
-      } else {
-        return new Response(JSON.stringify({ error: "Gemini API failure" }), {
-          status: response && response.status ? response.status : 502,
-          headers: corsHeaders
-        });
-      }
     } else {
+      reqBody.contents = [{ parts: [{ text: prompt }] }];
+    }
+
+    const result = await generateWithGeminiFallback({ env, modelNames: modelsToTry, reqBody });
+
+    if (result.ok) {
+      return new Response(result.text, { headers: corsHeaders });
+    } else if (result.status === 500 && result.errorText === 'GEMINI_API_KEY missing from environment') {
       return new Response(JSON.stringify({ error: "GEMINI_API_KEY missing from environment" }), {
         status: 500,
+        headers: corsHeaders
+      });
+    } else {
+      return new Response(JSON.stringify({ error: "Gemini API failure" }), {
+        status: result.status,
         headers: corsHeaders
       });
     }
