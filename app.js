@@ -2539,6 +2539,23 @@ function initSupabaseAuth() {
 
     if (session && session.user) {
       processingRedirect = false;
+      const cachedRawUser = localStorage.getItem('cached_current_user');
+      let previousUserId = null;
+      try {
+        if (cachedRawUser) previousUserId = JSON.parse(cachedRawUser).id;
+      } catch (e) {}
+
+      if (previousUserId && previousUserId !== session.user.id) {
+        // User account changed! Clean previous user's local caches & trash
+        state.trashTransactions = [];
+        localStorage.removeItem('deleted_transactions_trash');
+        localStorage.removeItem('offline_transactions');
+        localStorage.removeItem('cached_partner_profile');
+        localStorage.removeItem('cached_user_profile');
+        localStorage.removeItem('cached_family_profiles');
+        localStorage.removeItem('cached_family_group');
+      }
+
       state.currentUser = session.user;
       // SECURITY: Session verified valid - safe to render this user's data.
       window._authConfirmed = true;
@@ -4096,7 +4113,13 @@ function loadOfflineData() {
   }
   try {
     const trash = localStorage.getItem('deleted_transactions_trash');
-    state.trashTransactions = trash ? JSON.parse(trash) : [];
+    const parsedTrash = trash ? JSON.parse(trash) : [];
+    const currentUid = state.currentUser ? state.currentUser.id : (localStorage.getItem('cached_current_user') ? JSON.parse(localStorage.getItem('cached_current_user')).id : null);
+    if (currentUid) {
+      state.trashTransactions = parsedTrash.filter(t => !t || !t.user_id || t.user_id === currentUid || (state.partnerProfile && t.user_id === state.partnerProfile.id) || (state.userProfile && t.family_id && t.family_id === state.userProfile.family_id));
+    } else {
+      state.trashTransactions = parsedTrash.filter(t => !t || !t.user_id);
+    }
   } catch (e) {
     console.error('Failed to parse deleted transactions trash:', e);
     state.trashTransactions = [];
@@ -14623,14 +14646,15 @@ function initPullToRefresh() {
   if (!container || !ptr) return;
 
   const ptrIcon = ptr.querySelector('.pull-to-refresh-icon');
+  const ptrSpinner = ptr.querySelector('.pull-to-refresh-spinner');
   const ptrContent = ptr.querySelector('.pull-to-refresh-content');
 
   let startX = 0;
   let startY = 0;
   let currentY = 0;
   let pulling = false; // false, true, or null (undetermined)
-  const threshold = 60; // px to trigger refresh
-  const maxPull = 100; // max px to pull container
+  const threshold = 48; // px to trigger refresh (snappy and responsive)
+  const maxPull = 90; // max px to pull container
 
   // Helper to update pull state visually
   function updatePull(diff) {
@@ -14641,19 +14665,21 @@ function initPullToRefresh() {
       return;
     }
     // simple rubber band effect
-    const pullHeight = Math.min(maxPull, diff * 0.4);
+    const pullHeight = Math.min(maxPull, diff * 0.45);
     ptr.style.height = `${pullHeight}px`;
 
     const progress = Math.min(1, pullHeight / threshold);
     ptrContent.style.opacity = progress.toString();
     ptrContent.style.transform = `scale(${0.8 + progress * 0.2})`;
 
-    if (pullHeight >= threshold) {
-      ptrIcon.style.transform = 'rotate(180deg)';
-      ptrIcon.style.color = 'var(--blue-positive)';
-    } else {
-      ptrIcon.style.transform = 'rotate(0deg)';
-      ptrIcon.style.color = 'var(--accent)';
+    const rot = Math.min(180, progress * 180);
+    if (ptrIcon) {
+      ptrIcon.style.transform = `rotate(${rot}deg)`;
+      if (pullHeight >= threshold) {
+        ptrIcon.style.color = 'var(--blue-positive)';
+      } else {
+        ptrIcon.style.color = 'var(--accent)';
+      }
     }
   }
 
@@ -14661,9 +14687,12 @@ function initPullToRefresh() {
   async function triggerRefresh() {
     ptr.classList.remove('pulling');
     ptr.classList.add('refreshing');
-    ptr.style.height = '55px';
+    ptr.style.height = '50px';
     ptrContent.style.opacity = '1';
     ptrContent.style.transform = 'scale(1)';
+
+    if (ptrIcon) ptrIcon.style.display = 'none';
+    if (ptrSpinner) ptrSpinner.style.display = 'flex';
 
     if (navigator.vibrate) {
       try {
@@ -14677,35 +14706,39 @@ function initPullToRefresh() {
     } catch (err) {
       console.error('Refresh failed:', err);
     } finally {
-      // Keep showing spinner for a brief moment for smooth visual confirmation
+      // Snappy, instant dismiss with smooth ease transition
+      ptr.style.transition = 'height 0.22s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.2s ease';
+      ptr.style.height = '0px';
+      ptrContent.style.opacity = '0';
+      ptr.classList.remove('refreshing');
       setTimeout(() => {
-        ptr.style.transition = 'height 0.3s cubic-bezier(0.19, 1, 0.22, 1), opacity 0.3s ease';
-        ptr.style.height = '0px';
-        ptrContent.style.opacity = '0';
-        ptr.classList.remove('refreshing');
-        setTimeout(() => {
-          ptr.style.transition = '';
+        ptr.style.transition = '';
+        if (ptrIcon) {
           ptrIcon.style.transform = '';
           ptrIcon.style.display = '';
           ptrIcon.style.color = '';
-        }, 300);
-      }, 800);
+        }
+        if (ptrSpinner) ptrSpinner.style.display = 'none';
+      }, 230);
     }
   }
 
   // Helper to cancel the pull and snap back
   function cancelPull() {
     ptr.classList.remove('pulling');
-    ptr.style.transition = 'height 0.3s cubic-bezier(0.19, 1, 0.22, 1)';
+    ptr.style.transition = 'height 0.2s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.18s ease';
     ptr.style.height = '0px';
     ptrContent.style.opacity = '0';
     ptrContent.style.transform = 'scale(0.8)';
     setTimeout(() => {
       ptr.style.transition = '';
-      ptrIcon.style.transform = '';
-      ptrIcon.style.display = '';
-      ptrIcon.style.color = '';
-    }, 300);
+      if (ptrIcon) {
+        ptrIcon.style.transform = '';
+        ptrIcon.style.display = '';
+        ptrIcon.style.color = '';
+      }
+      if (ptrSpinner) ptrSpinner.style.display = 'none';
+    }, 220);
   }
 
   // TOUCH EVENTS
@@ -14732,14 +14765,14 @@ function initPullToRefresh() {
     const dy = touch.pageY - startY;
 
     if (pulling === null) {
-      // Must drag at least 10px to determine intention
-      if (Math.abs(dy) > 10 || Math.abs(dx) > 10) {
+      // Must drag at least 8px to determine intention
+      if (Math.abs(dy) > 8 || Math.abs(dx) > 8) {
         if (Math.abs(dy) > Math.abs(dx) && dy > 0) {
           pulling = true;
           ptr.classList.add('pulling');
           ptr.classList.remove('refreshing');
-          ptrIcon.style.display = 'flex';
-          ptr.querySelector('.pull-to-refresh-spinner').style.display = 'none';
+          if (ptrIcon) ptrIcon.style.display = 'flex';
+          if (ptrSpinner) ptrSpinner.style.display = 'none';
         } else {
           pulling = false;
           return;
@@ -14771,18 +14804,14 @@ function initPullToRefresh() {
     }
     pulling = false;
     const diff = currentY - startY;
-    const pullHeight = Math.min(maxPull, diff * 0.4);
+    const pullHeight = Math.min(maxPull, diff * 0.45);
     if (pullHeight >= threshold) {
       triggerRefresh();
     } else {
       cancelPull();
     }
   }, { passive: true });
-
-  container.addEventListener('touchcancel', () => {
-    pulling = false;
-    cancelPull();
-  }, { passive: true });
+}, { passive: true });
 }
 
 function enterSelectionMode() {
@@ -20770,11 +20799,15 @@ async function handleLogout() {
 
     // Clear user-specific cached data
     localStorage.removeItem('cached_current_user');
+    localStorage.removeItem('cached_user_profile');
     localStorage.removeItem('cached_partner_profile');
+    localStorage.removeItem('cached_family_profiles');
+    localStorage.removeItem('cached_family_group');
     localStorage.removeItem('offline_transactions');
     localStorage.removeItem('offline_accounts');
     localStorage.removeItem('offline_categories');
     localStorage.removeItem('offline_transactions_owner');
+    localStorage.removeItem('deleted_transactions_trash');
     localStorage.removeItem('auth_guest_mode');
     localStorage.removeItem('app_theme'); // Reset theme to default (Premium Dark) on logout
     localStorage.removeItem('account_view_mode');
@@ -29491,6 +29524,9 @@ function openRecurringTemplatesModal() {
 let activeRecurringDetailsTemplateId = null;
 
 function openRecurringDetailsModal(templateId) {
+  const userId = state.userId;
+  const partnerId = state.partnerId;
+  const familyId = state.familyId;
   const template = (state.recurringTemplates || []).find(t => String(t.id) === String(templateId));
   if (!template) return;
   activeRecurringDetailsTemplateId = template.id;
