@@ -6092,10 +6092,16 @@
       <div id="auth-overlay" class="auth-overlay" style="display: none;">
         <!-- Loading State Overlay for OAuth redirects -->
         <div id="auth-loading-state" class="auth-redirect-loader" style="display: none;">
-          <div class="auth-redirect-logo">
-            <img src="logo-mark.png" alt="Logo" class="auth-brand-icon" onerror="this.src='assets/logo/user_logo.png'">
+          <div class="auth-loading-card">
+            <div class="auth-redirect-logo">
+              <img src="logo-mark.png" alt="Logo" class="auth-brand-icon" onerror="this.src='assets/logo/user_logo.png'">
+            </div>
+            <div class="auth-loading-title" id="auth-loading-title" data-i18n="auth_loading_title">Σύνδεση σε εξέλιξη</div>
+            <div class="auth-loading-desc" id="auth-loading-desc" data-i18n="auth_loading_desc">Παρακαλώ περιμένετε όσο ολοκληρώνεται η ταυτοποίηση με το λογαριασμό σας...</div>
+            <div class="auth-loading-progress">
+              <div class="auth-loading-progress-bar"></div>
+            </div>
           </div>
-          <div class="auth-redirect-spinner"></div>
         </div>
 
         <div class="auth-card" id="auth-card">
