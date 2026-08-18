@@ -4729,9 +4729,11 @@ function checkHighExpenseAlert(transaction) {
     // 1. In-app notification (notification center / badge)
     addInAppNotification(title, body, { type: 'open_transactions' });
 
-    // 2. Toast so the user sees it immediately
-    if (typeof showToast === 'function') {
-      showToast(title + ' — ' + body, 'warning');
+    // 2. Toast so the user sees it immediately. NOTE: `showToast` is not defined
+    // anywhere in the codebase, so the previous guard always failed and the user
+    // never saw any immediate feedback. Use the working `showSyncToast` instead.
+    if (typeof showSyncToast === 'function') {
+      showSyncToast(title + ' — ' + body, 6000);
     }
 
     // 3. Native push-style notification (works when app is in background)
@@ -16273,7 +16275,10 @@ function translateNotepadUI() {
   if (saveBtn) saveBtn.textContent = isEl ? 'Αποθήκευση' : 'Save';
 
   const deleteBtn = document.getElementById('note-editor-delete-btn');
-  if (deleteBtn) deleteBtn.textContent = isEl ? 'Διαγραφή' : 'Delete';
+  // Keep the trash-can icon inside the button (the HTML already contains
+  // <i class="fa-solid fa-trash-can"></i>). Only update the tooltip title so
+  // the label text doesn't overflow the icon button.
+  if (deleteBtn) deleteBtn.title = isEl ? 'Διαγραφή' : 'Delete';
 
   const cancelBtn = document.querySelector('#note-editor-modal [data-i18n="btn_cancel"]');
   if (cancelBtn) cancelBtn.textContent = isEl ? 'Άκυρο' : 'Cancel';
@@ -23556,10 +23561,14 @@ async function forceSyncNow(silent = false) {
         localStorage.setItem('offline_transactions_owner', state.currentUser.id);
       }
 
-      // Sync notes, budgets & AI conversations
-      await syncNotes();
-      await syncBudgets();
-      await syncAdvisorConversations();
+      // Sync notes, budgets & AI conversations. These are independent of each
+      // other, so run them concurrently to cut total sync time (previously they
+      // ran sequentially, adding each network round-trip's latency together).
+      await Promise.all([
+        syncNotes(),
+        syncBudgets(),
+        syncAdvisorConversations()
+      ]);
 
       // 6. Check sync queue status
       const queueStr = localStorage.getItem('money_manager_sync_queue');
@@ -30102,6 +30111,9 @@ function regenerateRecurringTemplateTransactions(template) {
         created_at: new Date().toISOString()
       };
       computeCurrencyFields(newTx);
+      // HIGH-EXPENSE ALERT: recurring-generated expenses also respect the
+      // "Single Expense Alert" limit (previously only manual saves fired it).
+      checkHighExpenseAlert(newTx);
       saveTransactionOffline(newTx);
       if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
         const { description, is_shared, photo_local_uri, photo_url, receipt, fx_snapshot, ...dbPayload } = newTx;
