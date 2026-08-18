@@ -88,7 +88,7 @@ DECLARE
     is_premium BOOLEAN;
     month_start TIMESTAMPTZ;
     used_count INT;
-    limit_val INT := 100;  -- keep in sync with PREMIUM_LIMITS.cloudTxPerMonth in app.js
+    limit_val INT := 75;  -- keep in sync with PREMIUM_LIMITS.cloudTxPerMonth in app.js
 BEGIN
     -- Only enforce for authenticated (non-service-role) inserts. The service
     -- role (admin/backfill) is trusted and unlimited.
@@ -105,12 +105,16 @@ BEGIN
         RETURN NEW;
     END IF;
 
-    -- Count this user's rows created in the current calendar month.
+    -- Count this user's ACTIVE rows created in the current calendar month.
+    -- Soft-deleted (status='deleted') rows in the trash are excluded so they
+    -- don't inflate the count and trigger a false "limit reached" for users
+    -- who are well under the limit (kept in sync with the client-side query).
     month_start := date_trunc('month', now());
     SELECT COUNT(*) INTO used_count
     FROM public.transactions
     WHERE user_id = auth.uid()
-      AND created_at >= month_start;
+      AND created_at >= month_start
+      AND status = 'active';
 
     IF used_count >= limit_val THEN
         RAISE EXCEPTION 'Monthly cloud transaction limit reached (% per month). Upgrade to Premium for unlimited cloud sync.', limit_val;

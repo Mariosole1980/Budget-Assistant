@@ -429,7 +429,7 @@ window.state = state;
 // showing upgrade modals before the user hits a server rejection.
 const PREMIUM_LIMITS = {
   familyMembers: 2,        // Free: user + 1. Premium: unlimited (3+)
-  cloudTxPerMonth: 100,    // Free: 100 cloud-synced tx/month. Premium: unlimited
+  cloudTxPerMonth: 75,     // Free: 75 cloud-synced tx/month. Premium: unlimited
   currencies: 1,           // Free: 1 currency. Premium: unlimited
   budgets: 2,              // Free: 2 category budgets. Premium: unlimited
   aiCoachFree: 10,         // Free: 10 online AI calls/month
@@ -22637,6 +22637,7 @@ async function syncLocalTransactionsToCloud(userId, options = {}) {
               .from('transactions')
               .select('id', { count: 'exact', head: true })
               .eq('user_id', userId)
+              .eq('status', 'active')
               .gte('created_at', monthStart.toISOString())
               .then(r => r),
             8000
@@ -22649,8 +22650,8 @@ async function syncLocalTransactionsToCloud(userId, options = {}) {
             if (deferred.length > 0) {
               showSyncToast(
                 state.lang === 'el'
-                  ? `⭐ Έφτασες το μηνιαίο όριο cloud (${PREMIUM_LIMITS.cloudTxPerMonth}). Οι υπόλοιπες μένουν τοπικά.`
-                  : `⭐ You reached the monthly cloud limit (${PREMIUM_LIMITS.cloudTxPerMonth}). The rest stay local.`,
+                  ? `⭐ Έφτασες το μηνιαίο όριο cloud (${PREMIUM_LIMITS.cloudTxPerMonth}). Οι υπόλοιπες μένουν τοπικά. Αναβάθμισε σε Premium για απεριόριστες κινήσεις!`
+                  : `⭐ You reached the monthly cloud limit (${PREMIUM_LIMITS.cloudTxPerMonth}). The rest stay local. Upgrade to Premium for unlimited transactions!`,
                 5000
               );
             }
@@ -22810,6 +22811,7 @@ async function processSyncQueue(options = {}) {
                 .from('transactions')
                 .select('id', { count: 'exact', head: true })
                 .eq('user_id', state.currentUser.id)
+                .eq('status', 'active')
                 .gte('created_at', monthStart.toISOString())
                 .then(r => r),
               8000
@@ -22819,8 +22821,8 @@ async function processSyncQueue(options = {}) {
               remaining.push(item);
               showSyncToast(
                 state.lang === 'el'
-                  ? `⭐ Έφτασες το μηνιαίο όριο cloud (${PREMIUM_LIMITS.cloudTxPerMonth}). Η κίνηση μένει τοπικά.`
-                  : `⭐ You reached the monthly cloud limit (${PREMIUM_LIMITS.cloudTxPerMonth}). The transaction stays local.`,
+                  ? `⭐ Έφτασες το μηνιαίο όριο cloud (${PREMIUM_LIMITS.cloudTxPerMonth}). Η κίνηση μένει τοπικά. Αναβάθμισε σε Premium για απεριόριστες κινήσεις!`
+                  : `⭐ You reached the monthly cloud limit (${PREMIUM_LIMITS.cloudTxPerMonth}). The transaction stays local. Upgrade to Premium for unlimited transactions!`,
                 4000
               );
               continue;
@@ -23254,20 +23256,32 @@ window.addEventListener('online', () => {
   // event that we intentionally ignored), this refresh restores a valid
   // session so cloud sync resumes. If the refresh token itself was rejected,
   // getSession() returns no session and the normal auth flow takes over.
-  if (state.supabaseClient) {
-    state.supabaseClient.auth.getSession().then(({ data }) => {
+  const refreshSessionAndProfile = async () => {
+    if (!state.supabaseClient) return;
+    try {
+      const { data } = await state.supabaseClient.auth.getSession();
       if (data && data.session && data.session.user) {
         state.currentUser = data.session.user;
         localStorage.setItem('cached_current_user', JSON.stringify(data.session.user));
         updateHeaderSyncIcon('synced');
+        // PREMIUM FIX: Refresh the authoritative user profile BEFORE replaying
+        // the sync queue. Without this, isPremium() can read a stale/null
+        // state.userProfile (e.g. from before Premium was activated) and
+        // incorrectly trigger the monthly cloud-limit toast for a Premium user.
+        if (typeof loadUserProfiles === 'function') {
+          await loadUserProfiles(data.session.user);
+        }
       }
-    }).catch(() => {
+    } catch (err) {
       // Session refresh failed; fall through to queue replay which will
       // surface any auth errors gracefully.
-    });
-  }
+      console.warn('Online session/profile refresh failed:', err);
+    }
+  };
 
-  processSyncQueue();
+  refreshSessionAndProfile().finally(() => {
+    processSyncQueue();
+  });
 });
 
 // ============================================================
