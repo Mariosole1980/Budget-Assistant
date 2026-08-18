@@ -2543,7 +2543,7 @@ function initSupabaseAuth() {
       let previousUserId = null;
       try {
         if (cachedRawUser) previousUserId = JSON.parse(cachedRawUser).id;
-      } catch (e) {}
+      } catch (e) { }
 
       if (previousUserId && previousUserId !== session.user.id) {
         // User account changed! Clean previous user's local caches & trash
@@ -14811,7 +14811,6 @@ function initPullToRefresh() {
       cancelPull();
     }
   }, { passive: true });
-}, { passive: true });
 }
 
 function enterSelectionMode() {
