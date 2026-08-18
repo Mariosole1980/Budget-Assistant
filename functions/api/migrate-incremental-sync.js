@@ -156,30 +156,65 @@ export async function onRequestPost(context) {
         });
     }
 
-    // 2. Resolve Supabase service-role config.
+    // 2. Resolve Supabase config.
     const supabaseUrl = env.SUPABASE_URL;
     const serviceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!supabaseUrl || !serviceRoleKey) {
+    const managementToken = env.SUPABASE_MANAGEMENT_TOKEN;
+    if (!supabaseUrl) {
         return new Response(JSON.stringify({
             ok: false,
-            error: 'Server configuration error: SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY not configured.'
+            error: 'Server configuration error: SUPABASE_URL not configured.'
         }), { status: 500, headers: { 'Content-Type': 'application/json' } });
     }
 
-    // 3. Run the migration via Supabase SQL-over-HTTP (pg/query), which accepts
-    //    raw SQL when authenticated with the service-role key.
+    // 3. Run the migration. Two supported mechanisms:
+    //    A) Supabase Management API (official, works on ALL projects):
+    //       POST https://api.supabase.com/v1/projects/{ref}/database/query
+    //       Requires a Management API access token (env.SUPABASE_MANAGEMENT_TOKEN).
+    //    B) Legacy SQL-over-HTTP (pg/query) using the service-role key.
+    //       Only available on OLDER Supabase projects; returns 404 on newer ones.
     try {
-        const res = await fetch(`${supabaseUrl}/pg/query`, {
-            method: 'POST',
-            headers: {
-                'apikey': serviceRoleKey,
-                'Authorization': `Bearer ${serviceRoleKey}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ query: MIGRATION_SQL })
-        });
+        let res;
+        let text;
 
-        const text = await res.text();
+        if (managementToken) {
+            // Extract the project ref from the Supabase URL, e.g.
+            // https://<ref>.supabase.co -> <ref>
+            const refMatch = supabaseUrl.match(/https:\/\/([^.]+)\.supabase\.co/);
+            const projectRef = refMatch ? refMatch[1] : null;
+            if (!projectRef) {
+                return new Response(JSON.stringify({
+                    ok: false,
+                    error: 'Could not determine Supabase project ref from SUPABASE_URL.'
+                }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+            }
+            res = await fetch(`https://api.supabase.com/v1/projects/${projectRef}/database/query`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${managementToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ query: MIGRATION_SQL })
+            });
+            text = await res.text();
+        } else if (serviceRoleKey) {
+            res = await fetch(`${supabaseUrl}/pg/query`, {
+                method: 'POST',
+                headers: {
+                    'apikey': serviceRoleKey,
+                    'Authorization': `Bearer ${serviceRoleKey}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ query: MIGRATION_SQL })
+            });
+            text = await res.text();
+        } else {
+            return new Response(JSON.stringify({
+                ok: false,
+                error: 'Server configuration error: neither SUPABASE_MANAGEMENT_TOKEN nor SUPABASE_SERVICE_ROLE_KEY configured.'
+            }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+        }
+
         let data = null;
         try { data = JSON.parse(text); } catch (e) { /* keep raw text */ }
 
