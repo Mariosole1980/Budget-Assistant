@@ -113,6 +113,7 @@ const CRITICAL_JS_ESM = [
     'functions/api/premium-status.js',
     'functions/api/purchase.js',
     'functions/api/webhook.js',
+    'functions/api/migrate-incremental-sync.js',
 ];
 
 // Generated only during release-native; absent in a clean checkout.
