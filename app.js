@@ -4882,6 +4882,9 @@ function saveTransactionOffline(transaction) {
   if (!transaction.created_at) {
     transaction.created_at = new Date().toISOString();
   }
+  // Incremental sync: stamp updated_at on every local write so the local cache
+  // carries a valid cursor baseline. The DB trigger also sets it on cloud UPDATEs.
+  transaction.updated_at = new Date().toISOString();
   let trans = [...state.transactions];
   const existingIdx = trans.findIndex(t => t.id === transaction.id);
   if (existingIdx !== -1) {
@@ -4981,6 +4984,11 @@ function deleteTransaction(id) {
         // loadData() may run shortly after and re-fetch the transaction before the DB confirms the delete.
         idsToDelete.forEach(dId => _markRecentlyDeleted(dId));
         idsToDelete.forEach(dId => dequeueSyncMutation('delete', dId));
+        // Incremental sync: record a durable tombstone so other devices can apply
+        // this deletion without a full re-fetch. Best-effort; never blocks the delete.
+        writeSyncTombstones('transactions', idsToDelete).catch(err => {
+          console.warn('Failed to write transaction tombstone:', err);
+        });
       } catch (err) {
         console.warn(`Cloud delete failed, keeping in queue:`, idsToDelete, err);
       } finally {
@@ -23419,6 +23427,257 @@ function updateSyncStatusIndicator() {
   }
 }
 
+// ============================================================
+// INCREMENTAL SYNC INFRASTRUCTURE
+// ============================================================
+// Lossless incremental sync using a composite cursor (updated_at, id) for
+// keyset pagination. The full re-fetch in forceSyncNow() remains the durable
+// fallback; incremental is an optimization layered on top, gated by a flag.
+// ============================================================
+
+const SYNC_CURSORS_KEY = 'sync_cursors_v1';
+const SYNC_INCREMENTAL_FLAG = 'sync_incremental_enabled';
+const SYNC_FULL_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000; // full reconcile every 7 days
+
+function isIncrementalSyncEnabled() {
+  try {
+    return localStorage.getItem(SYNC_INCREMENTAL_FLAG) === '1';
+  } catch (e) { return false; }
+}
+
+function setIncrementalSyncEnabled(enabled) {
+  try {
+    localStorage.setItem(SYNC_INCREMENTAL_FLAG, enabled ? '1' : '0');
+  } catch (e) { /* ignore */ }
+}
+
+// Probe whether the live schema supports incremental sync (i.e. the migration
+// has been applied and transactions.updated_at exists). If it does, auto-enable
+// the flag so rollout is automatic once the migration is deployed. If the probe
+// fails or the column is absent, keep the flag off (full sync remains safe).
+// Cached per session to avoid a probe on every sync.
+let _incrementalCapabilityChecked = false;
+async function ensureIncrementalSyncCapability() {
+  if (_incrementalCapabilityChecked) return isIncrementalSyncEnabled();
+  _incrementalCapabilityChecked = true;
+  if (!state.supabaseClient || !state.currentUser) return false;
+  try {
+    const { data, error } = await promiseTimeout(
+      state.supabaseClient
+        .from('transactions')
+        .select('updated_at')
+        .limit(1),
+      8000
+    );
+    // If the column exists, the query succeeds (even with 0 rows). If the
+    // migration hasn't been applied, PostgREST returns a 42703 column error.
+    if (error) {
+      console.warn('[IncrementalSync] schema probe failed, keeping full sync:', error.message || error);
+      setIncrementalSyncEnabled(false);
+      return false;
+    }
+    setIncrementalSyncEnabled(true);
+    return true;
+  } catch (err) {
+    console.warn('[IncrementalSync] schema probe error, keeping full sync:', err);
+    setIncrementalSyncEnabled(false);
+    return false;
+  }
+}
+
+function getSyncCursors() {
+  try {
+    return JSON.parse(localStorage.getItem(SYNC_CURSORS_KEY) || '{}');
+  } catch (e) { return {}; }
+}
+
+function saveSyncCursors(cursors) {
+  try {
+    localStorage.setItem(SYNC_CURSORS_KEY, JSON.stringify(cursors));
+  } catch (e) { /* ignore */ }
+}
+
+// A cursor is { ts: <ISO string>, id: <uuid> }. Returns null if not set.
+function getTableCursor(cursors, table) {
+  const c = cursors && cursors[table];
+  if (!c || !c.ts || !c.id) return null;
+  return c;
+}
+
+// Write durable tombstones for deleted rows so other devices can apply the
+// deletion without a full re-fetch. Best-effort; never throws.
+async function writeSyncTombstones(tableName, rowIds) {
+  if (!state.supabaseClient || !state.currentUser) return;
+  if (!Array.isArray(rowIds) || rowIds.length === 0) return;
+  const userId = state.currentUser.id;
+  const familyId = state.userProfile ? state.userProfile.family_id : null;
+  const rows = rowIds.map(rid => ({
+    table_name: tableName,
+    row_id: rid,
+    user_id: userId,
+    family_id: familyId
+  }));
+  try {
+    await promiseTimeout(
+      state.supabaseClient.from('sync_tombstones').upsert(rows, { onConflict: 'table_name,row_id' }),
+      8000
+    );
+  } catch (err) {
+    console.warn('[IncrementalSync] tombstone write failed:', err);
+  }
+}
+
+// Should we run a full re-fetch this cycle instead of incremental?
+function shouldFullSync() {
+  // No cursor baseline yet → must full sync to establish it.
+  const cursors = getSyncCursors();
+  if (!getTableCursor(cursors, 'transactions')) return true;
+  // Periodic full reconcile to catch any drift / lost realtime events.
+  const lastFull = parseInt(localStorage.getItem('sync_last_full_ts') || '0', 10);
+  if (Date.now() - lastFull > SYNC_FULL_INTERVAL_MS) return true;
+  return false;
+}
+
+function markFullSyncDone() {
+  try {
+    localStorage.setItem('sync_last_full_ts', String(Date.now()));
+  } catch (e) { /* ignore */ }
+}
+
+// Build the scope filter string (family/partner/user) reused by incremental
+// queries. Returns a PostgREST or-filter string (comma-separated OR list).
+function buildIncrementalScopeString() {
+  const userId = state.currentUser.id;
+  const partnerId = state.partnerProfile ? state.partnerProfile.id : null;
+  const familyId = state.userProfile ? state.userProfile.family_id : null;
+  if (familyId && partnerId) {
+    return `family_id.eq.${familyId},user_id.eq.${userId},user_id.eq.${partnerId}`;
+  } else if (familyId) {
+    return `family_id.eq.${familyId},user_id.eq.${userId}`;
+  } else if (partnerId) {
+    return `user_id.eq.${userId},user_id.eq.${partnerId}`;
+  }
+  return `user_id.eq.${userId}`;
+}
+
+// Combine the scope OR-list with an optional keyset predicate into a single
+// PostgREST or-filter. The keyset predicate is:
+//   updated_at > ts OR (updated_at = ts AND id > lastId)
+// ANDed with the scope. PostgREST supports nested and()/or().
+function buildIncrementalFilter(scopeStr, tsCol, ts, id) {
+  if (!ts || !id) return scopeStr; // first page: scope only
+  const keyset = `or(${tsCol}.gt.${ts},and(${tsCol}.eq.${ts},id.gt.${id}))`;
+  return `and(${scopeStr},${keyset})`;
+}
+
+// Keyset-paginated incremental fetch of transactions changed since the cursor.
+// Returns { rows, nextCursor } where nextCursor is the last consumed (updated_at, id).
+async function fetchIncrementalTransactions(cursor) {
+  const pageSize = 1000;
+  let allRows = [];
+  let lastTs = cursor ? cursor.ts : null;
+  let lastId = cursor ? cursor.id : null;
+  let hasMore = true;
+  const scopeStr = buildIncrementalScopeString();
+
+  while (hasMore) {
+    let q = state.supabaseClient
+      .from('transactions')
+      .select('*')
+      .eq('status', 'active')
+      .order('updated_at', { ascending: true })
+      .order('id', { ascending: true })
+      .limit(pageSize);
+
+    q = q.or(buildIncrementalFilter(scopeStr, 'updated_at', lastTs, lastId));
+
+    const { data, error } = await promiseTimeout(q, 15000);
+    if (error) throw error;
+
+    const page = data || [];
+    if (page.length === 0) {
+      hasMore = false;
+    } else {
+      allRows = allRows.concat(page);
+      const lastRow = page[page.length - 1];
+      lastTs = lastRow.updated_at;
+      lastId = lastRow.id;
+      if (page.length < pageSize) hasMore = false;
+    }
+  }
+
+  return {
+    rows: allRows,
+    nextCursor: allRows.length > 0 ? { ts: lastTs, id: lastId } : (cursor || null)
+  };
+}
+
+// Pull tombstones newer than the cursor and apply local deletions.
+async function fetchIncrementalTombstones(cursor) {
+  const pageSize = 1000;
+  let allTombstones = [];
+  let lastTs = cursor ? cursor.ts : null;
+  let lastId = cursor ? cursor.id : null;
+  let hasMore = true;
+  const scopeStr = buildIncrementalScopeString();
+
+  while (hasMore) {
+    let q = state.supabaseClient
+      .from('sync_tombstones')
+      .select('*')
+      .order('deleted_at', { ascending: true })
+      .order('id', { ascending: true })
+      .limit(pageSize);
+
+    q = q.or(buildIncrementalFilter(scopeStr, 'deleted_at', lastTs, lastId));
+
+    const { data, error } = await promiseTimeout(q, 15000);
+    if (error) throw error;
+
+    const page = data || [];
+    if (page.length === 0) {
+      hasMore = false;
+    } else {
+      allTombstones = allTombstones.concat(page);
+      const lastRow = page[page.length - 1];
+      lastTs = lastRow.deleted_at;
+      lastId = lastRow.id;
+      if (page.length < pageSize) hasMore = false;
+    }
+  }
+
+  return {
+    rows: allTombstones,
+    nextCursor: allTombstones.length > 0 ? { ts: lastTs, id: lastId } : (cursor || null)
+  };
+}
+
+// Apply incremental transaction rows + tombstones into local state.
+function applyIncrementalTransactions(newRows, tombstones) {
+  const current = Array.isArray(state.transactions) ? state.transactions : [];
+  const byId = new Map(current.map(t => [String(t.id), t]));
+
+  // Upsert changed/new rows.
+  (newRows || []).forEach(t => {
+    byId.set(String(t.id), t);
+  });
+
+  // Apply deletions from tombstones (only for transactions).
+  (tombstones || []).forEach(tb => {
+    if (tb.table_name === 'transactions') {
+      byId.delete(String(tb.row_id));
+    }
+  });
+
+  const merged = Array.from(byId.values());
+  merged.sort(compareTransactions);
+  state.transactions = merged;
+  localStorage.setItem('offline_transactions', JSON.stringify(merged));
+  if (state.currentUser && state.currentUser.id) {
+    localStorage.setItem('offline_transactions_owner', state.currentUser.id);
+  }
+}
+
 let _forceSyncInFlight = null;
 
 async function forceSyncNow(silent = false) {
@@ -23499,45 +23758,101 @@ async function forceSyncNow(silent = false) {
         localStorage.setItem('recurring_templates', JSON.stringify(state.recurringTemplates));
       }
 
-      // 2. Fetch ALL transactions (paginated)
+      // 2. Fetch transactions — INCREMENTAL (fast) or FULL (fallback)
+      // Incremental uses a composite cursor (updated_at, id) for lossless
+      // keyset pagination. Full re-fetch remains the durable fallback and is
+      // used on first run, after N days, or whenever the flag is off.
       let allTransactions = [];
-      let page = 0;
-      const pageSize = 1000;
-      let hasMore = true;
+      let usedIncremental = false;
 
-      while (hasMore) {
-        let transQuery = state.supabaseClient
-          .from('transactions')
-          .select('*')
-          .eq('status', 'active')
-          .order('date', { ascending: false })
-          .order('id', { ascending: false })
-          .range(page * pageSize, (page + 1) * pageSize - 1);
+      // Auto-detect incremental capability: if the migration has been applied
+      // (transactions.updated_at exists), the probe enables the flag so rollout
+      // is automatic. If the probe fails or the column is absent, the flag stays
+      // off and we fall through to the durable full re-fetch.
+      const incrementalReady = (await ensureIncrementalSyncCapability()) && !shouldFullSync();
+      if (incrementalReady) {
+        try {
+          const cursors = getSyncCursors();
+          const txCursor = getTableCursor(cursors, 'transactions');
+          const tombCursor = getTableCursor(cursors, 'transactions_tombstones');
 
-        // FIX: Use proper Supabase .or() syntax with individual conditions
-        if (familyId && partnerId) {
-          transQuery = transQuery.or(`family_id.eq.${familyId},user_id.eq.${userId},user_id.eq.${partnerId}`);
-        } else if (familyId) {
-          transQuery = transQuery.or(`family_id.eq.${familyId},user_id.eq.${userId}`);
-        } else if (partnerId) {
-          transQuery = transQuery.or(`user_id.eq.${userId},user_id.eq.${partnerId}`);
-        } else {
-          transQuery = transQuery.eq('user_id', userId);
+          const [txResult, tombResult] = await Promise.all([
+            fetchIncrementalTransactions(txCursor),
+            fetchIncrementalTombstones(tombCursor)
+          ]);
+
+          // Apply incremental changes into local state (upserts + deletions).
+          applyIncrementalTransactions(txResult.rows, tombResult.rows);
+
+          // Advance cursors to the last consumed row (composite cursor).
+          const nextCursors = { ...cursors };
+          nextCursors.transactions = txResult.nextCursor;
+          nextCursors.transactions_tombstones = tombResult.nextCursor;
+          saveSyncCursors(nextCursors);
+
+          // Keep local pending transactions (never dropped).
+          const localPending = getPendingLocalTransactions(state.transactions);
+          allTransactions = mergeAndDeduplicateTransactions(state.transactions, localPending);
+          usedIncremental = true;
+        } catch (incErr) {
+          // Any incremental failure → fall back to full re-fetch (data safety).
+          console.warn('[IncrementalSync] incremental fetch failed, falling back to full sync:', incErr);
+          usedIncremental = false;
+        }
+      }
+
+      if (!usedIncremental) {
+        // FULL re-fetch (existing behavior) — also establishes the cursor baseline.
+        let page = 0;
+        const pageSize = 1000;
+        let hasMore = true;
+
+        while (hasMore) {
+          let transQuery = state.supabaseClient
+            .from('transactions')
+            .select('*')
+            .eq('status', 'active')
+            .order('date', { ascending: false })
+            .order('id', { ascending: false })
+            .range(page * pageSize, (page + 1) * pageSize - 1);
+
+          // FIX: Use proper Supabase .or() syntax with individual conditions
+          if (familyId && partnerId) {
+            transQuery = transQuery.or(`family_id.eq.${familyId},user_id.eq.${userId},user_id.eq.${partnerId}`);
+          } else if (familyId) {
+            transQuery = transQuery.or(`family_id.eq.${familyId},user_id.eq.${userId}`);
+          } else if (partnerId) {
+            transQuery = transQuery.or(`user_id.eq.${userId},user_id.eq.${partnerId}`);
+          } else {
+            transQuery = transQuery.eq('user_id', userId);
+          }
+
+          const { data: pageData, error: pageErr } = await promiseTimeout(
+            transQuery,
+            15000
+          );
+          if (pageErr) throw pageErr;
+
+          if (pageData && pageData.length > 0) {
+            allTransactions = allTransactions.concat(pageData);
+            page++;
+            if (pageData.length < pageSize) hasMore = false;
+          } else {
+            hasMore = false;
+          }
         }
 
-        const { data: pageData, error: pageErr } = await promiseTimeout(
-          transQuery,
-          15000
-        );
-        if (pageErr) throw pageErr;
-
-        if (pageData && pageData.length > 0) {
-          allTransactions = allTransactions.concat(pageData);
-          page++;
-          if (pageData.length < pageSize) hasMore = false;
+        // Establish the incremental cursor baseline from the full fetch.
+        const cursors = getSyncCursors();
+        const nextCursors = { ...cursors };
+        if (allTransactions.length > 0) {
+          const lastTx = allTransactions[allTransactions.length - 1];
+          nextCursors.transactions = { ts: lastTx.updated_at, id: lastTx.id };
         } else {
-          hasMore = false;
+          nextCursors.transactions = { ts: new Date(0).toISOString(), id: '00000000-0000-0000-0000-000000000000' };
         }
+        saveSyncCursors(nextCursors);
+        markFullSyncDone();
       }
 
       // 4. Keep local pending transactions
