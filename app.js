@@ -3085,7 +3085,13 @@ function getActiveTransactions() {
         t.user_id === partnerId ||
         (t.id && String(t.id).startsWith('local_'));
     } else {
-      return t.user_id === null || t.user_id === undefined;
+      // Guest mode: show unowned/legacy transactions AND guest-owned demo data
+      // (user_id === 'guest' or is_demo / demo_ id). Demo transactions created via
+      // onboardingAddDemoData() carry user_id 'guest', so without this they would be
+      // silently filtered out and Demo Mode would appear empty for guests.
+      return t.user_id === null || t.user_id === undefined ||
+        t.user_id === 'guest' || t.is_demo === true ||
+        (t.id && String(t.id).startsWith('demo_'));
     }
   });
 
