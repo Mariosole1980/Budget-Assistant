@@ -4021,7 +4021,25 @@ function loadOfflineData() {
     state.userProfile = null;
     state.familyProfiles = [];
     state.familyGroup = null;
-    state.transactions = [];
+    // PRIVACY/ISOLATION: Guest mode starts with a clean slate, so we never load a
+    // previous account's personal data. However, DEMO data (is_demo / demo_ id) that
+    // the guest explicitly added via onboardingAddDemoData() must be preserved — it is
+    // guest-owned sample data, not another account's private data. Without this, the
+    // demo transactions/budgets are wiped the moment loadData() -> loadOfflineData()
+    // runs right after they are created, so the Demo Mode appears broken for guests.
+    const isDemoItem = (it) => it && (it.is_demo || (it.id && String(it.id).startsWith('demo_')));
+    try {
+      const cachedTxs = JSON.parse(localStorage.getItem('offline_transactions') || '[]');
+      state.transactions = Array.isArray(cachedTxs) ? cachedTxs.filter(isDemoItem) : [];
+    } catch (e) {
+      state.transactions = [];
+    }
+    try {
+      const cachedBudgets = JSON.parse(localStorage.getItem('cached_budgets') || '[]');
+      state.budgets = Array.isArray(cachedBudgets) ? cachedBudgets.filter(isDemoItem) : [];
+    } catch (e) {
+      state.budgets = [];
+    }
     state.accounts = DEFAULT_ACCOUNTS.slice();
     state.categories = DEFAULT_CATEGORIES.slice();
     state.recurringTemplates = [];
@@ -4029,7 +4047,6 @@ function loadOfflineData() {
     state.trashTransactions = [];
     state.notifications = [];
     state.notes = [];
-    state.budgets = [];
     calculateInitialBalances();
     return;
   }
