@@ -41,8 +41,8 @@ async function verifyLive() {
     let targetPassed = false;
     let attemptErrors = [];
 
-    // Retry up to 4 attempts with 2.5s delay to allow Cloudflare Edge propagation
-    for (let attempt = 1; attempt <= 4; attempt++) {
+    // Retry up to 6 attempts with 3s delay to allow Cloudflare Edge propagation
+    for (let attempt = 1; attempt <= 6; attempt++) {
       attemptErrors = [];
       const timestamp = Date.now() + '_' + attempt;
 
@@ -89,9 +89,9 @@ async function verifyLive() {
         attemptErrors.push(`${baseUrl} network error: ${err.message}`);
       }
 
-      if (attempt < 4) {
-        console.log(`    [RETRY] Edge propagation pending, retrying in 2.5s (attempt ${attempt}/4)...`);
-        await sleep(2500);
+      if (attempt < 6) {
+        console.log(`    [RETRY] Edge propagation pending, retrying in 3s (attempt ${attempt}/6)...`);
+        await sleep(3000);
       }
     }
 
