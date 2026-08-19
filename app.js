@@ -5899,7 +5899,7 @@ function renderStatsTab(skipChart = false) {
   else if (state.statsPeriodType === 'period') periodLabel = TRANSLATIONS[state.lang]['stats_period_custom'];
 
   document.getElementById('stats-period-dropdown-btn').innerHTML =
-    `${periodLabel} <i class="fa-solid fa-chevron-down" style="font-size: 9px; margin-left: 4px;"></i>`;
+    `<span class="stats-btn-text">${periodLabel}</span> <i class="fa-solid fa-chevron-down" style="font-size: 9px; margin-left: 4px; flex-shrink: 0;"></i>`;
 
   // Highlight active dropdown choice
   document.querySelectorAll('.stats-dropdown-item').forEach(item => {
@@ -5960,7 +5960,7 @@ function renderStatsTab(skipChart = false) {
           activeText = (activeMember.display_name || activeMember.email.split('@')[0]) + meSuffix;
         }
       }
-      familyFilterBtn.innerHTML = `${activeText} <i class="fa-solid fa-chevron-down" style="font-size: 9px; margin-left: 4px;"></i>`;
+      familyFilterBtn.innerHTML = `<span class="stats-btn-text">${activeText}</span> <i class="fa-solid fa-chevron-down" style="font-size: 9px; margin-left: 4px; flex-shrink: 0;"></i>`;
     }
   } else {
     if (familyFilterContainer) familyFilterContainer.style.display = 'none';

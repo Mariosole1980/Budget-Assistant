@@ -513,7 +513,7 @@
           <div class="stats-header-controls" style="display: flex; gap: 12px; align-items: center;">
             <div class="stats-period-dropdown-container" style="position: relative;">
               <button class="stats-period-btn" id="stats-period-dropdown-btn">
-                Μηνιαία <i class="fa-solid fa-chevron-down" style="font-size: 9px; margin-left: 4px;"></i>
+                <span class="stats-btn-text">Μηνιαία</span> <i class="fa-solid fa-chevron-down"></i>
               </button>
               <div class="stats-dropdown-menu" id="stats-period-dropdown-menu">
                 <div class="stats-dropdown-item" data-value="weekly">Εβδομαδιαία</div>
@@ -526,10 +526,8 @@
             <!-- Family Member Filter Dropdown -->
             <div id="stats-family-dropdown-container" class="stats-period-dropdown-container"
               style="position: relative; display: none;">
-              <button class="stats-period-btn" id="stats-family-dropdown-btn"
-                style="white-space: nowrap; max-width: 180px; width: 100%; overflow: hidden; text-overflow: ellipsis;">
-                <span data-i18n="stats_filter_member">Μέλος</span> <i class="fa-solid fa-chevron-down"
-                  style="font-size: 9px; margin-left: 4px;"></i>
+              <button class="stats-period-btn" id="stats-family-dropdown-btn">
+                <span class="stats-btn-text" data-i18n="stats_filter_member">Μέλος</span> <i class="fa-solid fa-chevron-down"></i>
               </button>
               <div class="stats-dropdown-menu" id="stats-family-dropdown-menu"
                 style="right: 0; left: auto; min-width: 140px; max-height: 250px; overflow-y: auto;">
