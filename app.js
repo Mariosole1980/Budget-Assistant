@@ -9625,6 +9625,9 @@ function closeModal(id, opts) {
     localStorage.removeItem('bg_modal_scroll_top');
     localStorage.removeItem('bg_active_modal_tx_id');
     localStorage.removeItem('bg_active_subcat_txs');
+
+    // Refresh UI now that no modal is blocking tab rendering
+    updateUI();
   } else {
     const topModal = activeModals[activeModals.length - 1];
     if (topModal && topModal.id) {
@@ -22244,6 +22247,9 @@ async function enterGuestMode() {
   // later signs into (the intended "auto-import saved data" flow).
   localStorage.removeItem('offline_transactions_owner');
 
+  // Hide auth overlay cleanly FIRST so anyModalOpen check in _runScheduledRender doesn't block rendering
+  hideAuthOverlay();
+
   // Show premium splash loader immediately
   toggleLoader(true);
 
@@ -22258,14 +22264,11 @@ async function enterGuestMode() {
   window._suppressTransitions = true;
   try {
     await loadData();
-    updateUI();
+    flushUI();
   } finally {
     setTimeout(() => { window._suppressTransitions = false; }, 1500);
   }
   renderPartnerSection();
-
-  // Hide auth overlay cleanly
-  hideAuthOverlay();
   toggleLoader(false);
 }
 
@@ -22597,6 +22600,9 @@ function hideAuthOverlay() {
   if (loadingState) loadingState.style.display = 'none';
   if (formsContainer) formsContainer.style.display = 'block';
   forceViewportReset();
+  if (state.guestMode || state.currentUser) {
+    flushUI();
+  }
 }
 window.hideAuthOverlay = hideAuthOverlay;
 
