@@ -2062,14 +2062,14 @@ body.is-ios .modal-content {
 }
 
 .calc-keypad-container.active {
-  max-height: 264px;
+  max-height: 298px;
 }
 
 .calc-keypad-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 6px 14px;
+  padding: 7px 16px;
   background-color: #090b10;
   border-bottom: 1px solid var(--border-light);
 }
@@ -2089,7 +2089,7 @@ body.is-ios .modal-content {
 }
 
 .calc-live-formula {
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 700;
   color: var(--accent, #7c6af7);
   letter-spacing: 0.3px;
@@ -2101,7 +2101,7 @@ body.is-ios .modal-content {
   grid-template-rows: repeat(4, 1fr);
   background-color: transparent;
   gap: 4px;
-  padding: 4px 8px 6px 8px;
+  padding: 6px 10px 8px 10px;
   flex: 1;
 }
 
@@ -2109,15 +2109,15 @@ body.is-ios .modal-content {
   background-color: var(--bg-input, #1d2330);
   color: var(--text-main, #ffffff);
   padding: 0;
-  height: 46px;
-  font-size: 19px;
+  height: 52px;
+  font-size: 21.5px;
   font-weight: 600;
   text-align: center;
   display: flex;
   align-items: center;
   justify-content: center;
   user-select: none;
-  border-radius: 10px !important;
+  border-radius: 12px !important;
   border: 1px solid var(--border-light, rgba(255, 255, 255, 0.05));
   transition: background-color 0.1s ease, transform 0.05s ease;
   -webkit-tap-highlight-color: transparent;
@@ -2137,7 +2137,7 @@ body.is-ios .modal-content {
   background-color: rgba(255, 255, 255, 0.06) !important;
   color: var(--accent, #7c6af7) !important;
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  font-size: 17px !important;
+  font-size: 19.5px !important;
   font-weight: 700 !important;
 }
 
@@ -2154,16 +2154,16 @@ body.is-ios .modal-content {
 .calc-key-btn.done-key {
   color: white;
   font-weight: 800;
-  font-size: 14.5px;
+  font-size: 16px;
   letter-spacing: 0.3px;
-  border-radius: 10px !important;
+  border-radius: 12px !important;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
 }
 
 .calc-key-btn.done-key[data-mode="equals"] {
   background: linear-gradient(135deg, var(--accent, #8b5cf6) 0%, var(--accent, #6d28d9) 100%) !important;
   color: #ffffff !important;
-  font-size: 21px !important;
+  font-size: 23px !important;
   font-weight: 800 !important;
   box-shadow: 0 4px 18px rgba(var(--accent-rgb, 139, 92, 246), 0.45) !important;
 }
@@ -7718,22 +7718,22 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
 }
 
 .calc-keypad-container.active {
-  height: 264px !important;
-  max-height: 264px !important;
-  padding-bottom: calc(4px + env(safe-area-inset-bottom, 0px)) !important;
+  height: 298px !important;
+  max-height: 298px !important;
+  padding-bottom: calc(6px + env(safe-area-inset-bottom, 0px)) !important;
 }
 
 .calc-keypad-grid {
   gap: 4px !important;
-  padding: 4px 8px 6px 8px !important;
+  padding: 6px 10px 8px 10px !important;
   flex: 1 !important;
 }
 
 .calc-key-btn {
   height: 100% !important;
-  min-height: 44px !important;
-  font-size: 19px !important;
-  border-radius: 10px !important;
+  min-height: 50px !important;
+  font-size: 21.5px !important;
+  border-radius: 12px !important;
 }
 
 #transaction-modal .modal-header {
@@ -8542,16 +8542,16 @@ body.is-android .calc-keypad-container {
 }
 
 body.is-android .calc-keypad-container.active {
-  height: 264px !important;
-  max-height: 264px !important;
-  padding-bottom: calc(4px + env(safe-area-inset-bottom, 0px)) !important;
+  height: 298px !important;
+  max-height: 298px !important;
+  padding-bottom: calc(6px + env(safe-area-inset-bottom, 0px)) !important;
 }
 
 body.is-android .calc-keypad-container .calc-key-btn {
   height: 100% !important;
-  min-height: 44px !important;
-  font-size: 19px !important;
-  border-radius: 10px !important;
+  min-height: 50px !important;
+  font-size: 21.5px !important;
+  border-radius: 12px !important;
 }
 
 /* Restoring UI state without transitions helper */
