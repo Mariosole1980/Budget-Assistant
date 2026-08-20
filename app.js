@@ -2554,6 +2554,8 @@ function initSupabaseAuth() {
         localStorage.removeItem('cached_user_profile');
         localStorage.removeItem('cached_family_profiles');
         localStorage.removeItem('cached_family_group');
+        localStorage.removeItem('sync_cursors_v1');
+        localStorage.removeItem('sync_last_full_ts');
       }
 
       state.currentUser = session.user;
@@ -20871,6 +20873,8 @@ async function handleLogout() {
     localStorage.removeItem('offline_categories');
     localStorage.removeItem('offline_transactions_owner');
     localStorage.removeItem('deleted_transactions_trash');
+    localStorage.removeItem('sync_cursors_v1');
+    localStorage.removeItem('sync_last_full_ts');
     localStorage.removeItem('auth_guest_mode');
     localStorage.removeItem('app_theme'); // Reset theme to default (Premium Dark) on logout
     localStorage.removeItem('account_view_mode');
@@ -23558,8 +23562,22 @@ async function writeSyncTombstones(tableName, rowIds) {
   }
 }
 
+function resetSyncCursors() {
+  try {
+    localStorage.removeItem(SYNC_CURSORS_KEY);
+    localStorage.removeItem('sync_last_full_ts');
+  } catch (e) { /* ignore */ }
+}
+
 // Should we run a full re-fetch this cycle instead of incremental?
 function shouldFullSync() {
+  // If local transactions array is empty or offline_transactions is missing,
+  // incremental sync CANNOT work (there is no local baseline to apply diffs to).
+  // A full re-fetch is mandatory to load all transactions from the cloud.
+  const offlineTrans = localStorage.getItem('offline_transactions');
+  if (!offlineTrans || !Array.isArray(state.transactions) || state.transactions.length === 0) {
+    return true;
+  }
   // No cursor baseline yet → must full sync to establish it.
   const cursors = getSyncCursors();
   if (!getTableCursor(cursors, 'transactions')) return true;
@@ -23877,8 +23895,17 @@ async function forceSyncNow(silent = false) {
         const cursors = getSyncCursors();
         const nextCursors = { ...cursors };
         if (allTransactions.length > 0) {
-          const lastTx = allTransactions[allTransactions.length - 1];
-          nextCursors.transactions = { ts: lastTx.updated_at, id: lastTx.id };
+          let maxTs = '';
+          let maxId = '';
+          for (let i = 0; i < allTransactions.length; i++) {
+            const tx = allTransactions[i];
+            const txTs = tx.updated_at || tx.created_at || '';
+            if (txTs && (!maxTs || txTs > maxTs)) {
+              maxTs = txTs;
+              maxId = tx.id || '';
+            }
+          }
+          nextCursors.transactions = maxTs ? { ts: maxTs, id: maxId } : { ts: new Date().toISOString(), id: '00000000-0000-0000-0000-000000000000' };
         } else {
           nextCursors.transactions = { ts: new Date(0).toISOString(), id: '00000000-0000-0000-0000-000000000000' };
         }
