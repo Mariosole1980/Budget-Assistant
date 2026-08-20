@@ -110,7 +110,10 @@ const releaseFiles = [
     'sw.js',
     'app.js',
     'js/translations.js',
-    'android/app/build.gradle'
+    'android/app/build.gradle',
+    'android/build.gradle',
+    'android/variables.gradle',
+    'android/gradle.properties'
 ];
 execSync(`git add ${releaseFiles.join(' ')}`, { cwd: rootDir, stdio: 'inherit' });
 execSync(`git commit -m "release: build v${version} [automated universal release]"`, { cwd: rootDir, stdio: 'inherit' });

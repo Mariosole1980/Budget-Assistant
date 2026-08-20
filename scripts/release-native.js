@@ -69,6 +69,7 @@ async function main() {
         // android/app/src/main/assets/public/ which cap sync populates).
         console.log('[STEP 2/6] Running npx cap sync android...');
         execSync('npx cap sync android', { cwd: rootDir, stdio: 'inherit' });
+        execSync('node scripts/patch-billing.js', { cwd: rootDir, stdio: 'inherit' });
         console.log('  [PASS] Capacitor sync complete.\n');
 
         // Step 3 + Step 5 (parallel): Gradle Android builds ∥ Capgo OTA bundle.
