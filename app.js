@@ -11717,6 +11717,28 @@ function updatePremiumUI() {
       ? (state.lang === 'el' ? 'Όλα τα features ξεκλειδωμένα' : 'All features unlocked')
       : (state.lang === 'el' ? 'Ξεκλείδωσε όλα τα features — εφάπαξ' : 'Unlock all features — one-time');
   }
+
+  const isNative = typeof window.Capacitor !== 'undefined' &&
+    typeof window.Capacitor.isNativePlatform === 'function' &&
+    window.Capacitor.isNativePlatform();
+
+  const footnoteEl = document.querySelector('#premium-modal [data-i18n="premium_footnote"]');
+  if (footnoteEl) {
+    if (isNative) {
+      footnoteEl.textContent = state.lang === 'el'
+        ? 'Ασφαλείς συναλλαγές μέσω Google Play'
+        : 'Secure transactions guaranteed via Google Play';
+    } else {
+      footnoteEl.textContent = state.lang === 'el'
+        ? 'Ασφαλείς συναλλαγές μέσω Stripe'
+        : 'Secure transactions guaranteed via Stripe';
+    }
+  }
+
+  const restoreBtn = document.getElementById('premium-restore-btn');
+  if (restoreBtn) {
+    restoreBtn.style.display = (isNative && !active) ? 'block' : 'none';
+  }
 }
 
 // Starts the premium purchase flow.
@@ -11808,16 +11830,19 @@ async function startPremiumPurchase() {
 // Resolve the capacitor-billing plugin (BillingPlugin) if present on native.
 function getBillingPlugin() {
   if (typeof window.Capacitor === 'undefined') return null;
-  if (window.Capacitor.Plugins && window.Capacitor.Plugins.BillingPlugin) {
-    return window.Capacitor.Plugins.BillingPlugin;
+  if (window.Capacitor.Plugins) {
+    if (window.Capacitor.Plugins.BillingPlugin) return window.Capacitor.Plugins.BillingPlugin;
+    if (window.Capacitor.Plugins.Billing) return window.Capacitor.Plugins.Billing;
   }
   if (typeof window.Capacitor.registerPlugin === 'function') {
     try {
-      return window.Capacitor.registerPlugin('BillingPlugin');
-    } catch (e) {
-      console.warn('Could not register BillingPlugin:', e);
-      return null;
-    }
+      const p = window.Capacitor.registerPlugin('BillingPlugin');
+      if (p) return p;
+    } catch (e) { }
+    try {
+      const p2 = window.Capacitor.registerPlugin('Billing');
+      if (p2) return p2;
+    } catch (e) { }
   }
   return null;
 }
