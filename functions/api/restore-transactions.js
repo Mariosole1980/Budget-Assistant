@@ -69,7 +69,8 @@ export async function onRequestPost(context) {
             });
         }
 
-        // 2. Fetch user profile to get family_id
+        // 2. Fetch user profile to get family_id and partner_id
+        //    TABLE NAME: "profiles" (not "user_profiles")
         const serviceHeaders = {
             'apikey': serviceRoleKey,
             'Authorization': `Bearer ${serviceRoleKey}`,
@@ -78,22 +79,29 @@ export async function onRequestPost(context) {
         };
 
         let familyId = null;
+        let partnerId = null;
         try {
-            const profRes = await fetch(`${supabaseUrl}/rest/v1/user_profiles?select=family_id&id=eq.${userId}`, {
+            const profRes = await fetch(`${supabaseUrl}/rest/v1/profiles?select=family_id,partner_id&id=eq.${userId}`, {
                 headers: serviceHeaders
             });
             if (profRes.ok) {
                 const profData = await profRes.json();
                 if (Array.isArray(profData) && profData.length > 0) {
                     familyId = profData[0].family_id;
+                    partnerId = profData[0].partner_id;
                 }
             }
         } catch (_) { }
 
-        // 3. Query all soft-deleted transactions for this user or family
-        let txUrl = `${supabaseUrl}/rest/v1/transactions?select=*&status=eq.deleted`;
-        if (familyId) {
+        // 3. Query all soft-deleted transactions for this user, partner, or family
+        //    Using service role key to bypass RLS.
+        let txUrl = `${supabaseUrl}/rest/v1/transactions?select=*&status=eq.deleted&limit=5000`;
+        if (familyId && partnerId) {
+            txUrl += `&or=(user_id.eq.${userId},user_id.eq.${partnerId},family_id.eq.${familyId})`;
+        } else if (familyId) {
             txUrl += `&or=(user_id.eq.${userId},family_id.eq.${familyId})`;
+        } else if (partnerId) {
+            txUrl += `&or=(user_id.eq.${userId},user_id.eq.${partnerId})`;
         } else {
             txUrl += `&user_id=eq.${userId}`;
         }
@@ -109,7 +117,12 @@ export async function onRequestPost(context) {
 
         const deletedRows = await txRes.json();
         if (!Array.isArray(deletedRows) || deletedRows.length === 0) {
-            return new Response(JSON.stringify({ success: true, restoredCount: 0, restoredRows: [] }), {
+            return new Response(JSON.stringify({
+                success: true,
+                restoredCount: 0,
+                restoredRows: [],
+                debug: { userId, familyId, partnerId, deletedCount: 0, txUrl }
+            }), {
                 status: 200,
                 headers: corsHeaders
             });
@@ -124,7 +137,12 @@ export async function onRequestPost(context) {
         });
 
         if (manualRows.length === 0) {
-            return new Response(JSON.stringify({ success: true, restoredCount: 0, restoredRows: [] }), {
+            return new Response(JSON.stringify({
+                success: true,
+                restoredCount: 0,
+                restoredRows: [],
+                debug: { userId, familyId, partnerId, deletedCount: deletedRows.length, manualCount: 0 }
+            }), {
                 status: 200,
                 headers: corsHeaders
             });
@@ -153,9 +171,9 @@ export async function onRequestPost(context) {
             });
         }
 
-        // 6. Clean up tombstones
+        // 6. Clean up tombstones (correct table name: sync_tombstones)
         try {
-            const tombUrl = `${supabaseUrl}/rest/v1/transactions_tombstones?row_id=in.(${idsToRestore.join(',')})`;
+            const tombUrl = `${supabaseUrl}/rest/v1/sync_tombstones?row_id=in.(${idsToRestore.join(',')})`;
             await fetch(tombUrl, {
                 method: 'DELETE',
                 headers: serviceHeaders
@@ -172,7 +190,8 @@ export async function onRequestPost(context) {
         return new Response(JSON.stringify({
             success: true,
             restoredCount: restoredRows.length,
-            restoredRows
+            restoredRows,
+            debug: { userId, familyId, partnerId, deletedCount: deletedRows.length, restoredIds: idsToRestore }
         }), {
             status: 200,
             headers: corsHeaders

@@ -4482,10 +4482,12 @@ async function autoRestoreMistakenlyDeletedManualTransactions() {
             'Authorization': `Bearer ${token}`
           }
         });
+        console.log('[AutoRestore API] Response status:', resp.status);
         if (resp.ok) {
           const result = await resp.json();
+          console.log('[AutoRestore API] Server response:', JSON.stringify(result.debug || {}), 'restoredCount:', result.restoredCount);
           if (result && result.success && Array.isArray(result.restoredRows) && result.restoredRows.length > 0) {
-            console.log(`[AutoRestore API] Server restored ${result.restoredRows.length} transactions:`, result.restoredRows);
+            console.log(`[AutoRestore API] Server restored ${result.restoredRows.length} transactions:`, result.restoredRows.map(r => `${r.id?.substring(0,8)} ${r.amount}`));
             const currentIdMap = new Map((state.transactions || []).map(t => [String(t.id), t]));
             let addedCount = 0;
             for (const r of result.restoredRows) {
@@ -4503,6 +4505,9 @@ async function autoRestoreMistakenlyDeletedManualTransactions() {
               updateUI();
             }
           }
+        } else {
+          const errBody = await resp.text();
+          console.warn('[AutoRestore API] Error response:', resp.status, errBody);
         }
       }
     } catch (apiErr) {
