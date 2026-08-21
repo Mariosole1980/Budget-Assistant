@@ -4472,24 +4472,11 @@ async function autoRestoreMistakenlyDeletedManualTransactions() {
   // 2. Check cloud trash if Supabase is enabled
   if (!state.isSupabaseEnabled || !state.supabaseClient || !state.currentUser) return;
   try {
-    const userId = state.currentUser.id;
-    const partnerId = state.partnerProfile ? state.partnerProfile.id : null;
-    const familyId = state.userProfile ? state.userProfile.family_id : null;
-
-    let query = state.supabaseClient
+    // Rely on Supabase RLS to return all soft-deleted rows accessible to this user, partner, and family.
+    const query = state.supabaseClient
       .from('transactions')
       .select('*')
       .eq('status', 'deleted');
-
-    if (familyId && partnerId) {
-      query = query.or(`family_id.eq.${familyId},user_id.eq.${userId},user_id.eq.${partnerId}`);
-    } else if (familyId) {
-      query = query.or(`family_id.eq.${familyId},user_id.eq.${userId}`);
-    } else if (partnerId) {
-      query = query.or(`user_id.eq.${userId},user_id.eq.${partnerId}`);
-    } else {
-      query = query.eq('user_id', userId);
-    }
 
     const { data: deletedRows, error } = await promiseTimeout(query, 15000);
     if (error || !deletedRows || deletedRows.length === 0) return;
@@ -30696,22 +30683,12 @@ async function fetchTrashFromCloud() {
     const partnerId = state.partnerProfile ? state.partnerProfile.id : null;
     const familyId = state.userProfile ? state.userProfile.family_id : null;
 
-    let trashQuery = state.supabaseClient
+    const trashQuery = state.supabaseClient
       .from('transactions')
       .select('*')
       .eq('status', 'deleted')
       .order('deleted_at', { ascending: false })
       .limit(100);
-
-    if (familyId && partnerId) {
-      trashQuery = trashQuery.or(`family_id.eq.${familyId},user_id.eq.${userId},user_id.eq.${partnerId}`);
-    } else if (familyId) {
-      trashQuery = trashQuery.or(`family_id.eq.${familyId},user_id.eq.${userId}`);
-    } else if (partnerId) {
-      trashQuery = trashQuery.or(`user_id.eq.${userId},user_id.eq.${partnerId}`);
-    } else {
-      trashQuery = trashQuery.eq('user_id', userId);
-    }
 
     const { data, error } = await promiseTimeout(trashQuery, 15000);
     if (error) {
