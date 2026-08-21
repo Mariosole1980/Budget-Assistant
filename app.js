@@ -20746,12 +20746,14 @@ function setAuthMode(mode) {
 
 function formatAuthErrorMessage(err) {
   if (!err) return (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_fail_auth']) || 'Αποτυχία ταυτοποίησης.';
-  if (typeof err === 'string') return err;
-  if (err.message && typeof err.message === 'string' && err.message !== '{}' && err.message.trim() !== '') return err.message;
-  if (err.error_description) return err.error_description;
-  if (err.msg) return err.msg;
-  if (err.error && typeof err.error === 'string') return err.error;
-  if (err.error && err.error.message) return err.error.message;
+  const msg = typeof err === 'string' ? err : (err.message || err.error_description || err.msg || (err.error && (typeof err.error === 'string' ? err.error : err.error.message)) || '');
+  const lower = String(msg).toLowerCase();
+  if (lower.includes('rate limit') || lower.includes('over_email_send_rate_limit')) {
+    return state.lang === 'el'
+      ? 'Υπέρβαση ορίου αποστολής email. Παρακαλούμε περιμένετε 60 δευτερόλεπτα ή συνδεθείτε άμεσα με Κωδικό ή Google.'
+      : 'Email rate limit reached. Please wait 60 seconds or sign in directly with Password or Google.';
+  }
+  if (msg && msg !== '{}' && String(msg).trim() !== '') return msg;
   return (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_fail_auth']) || 'Αποτυχία ταυτοποίησης.';
 }
 
@@ -20882,49 +20884,67 @@ async function handleGoogleAuth() {
   clearAuthStatus();
   toggleLoader(true);
 
-  try {
-    const isCapacitor = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
-    const GoogleAuth = window.Capacitor?.Plugins?.GoogleAuth;
+  const clientId = '331220079759-nrguc2ujof9u9mqhbn2mouhpga2iniqj.apps.googleusercontent.com';
+  const isCapacitor = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+  const GoogleAuth = window.Capacitor?.Plugins?.GoogleAuth;
 
-    // 1. Native Android Google Sign-In (No browser redirect, zero url exposed)
-    if (isCapacitor && GoogleAuth) {
+  // 1. Try Native Android Google Sign-In (Native ID Token)
+  if (isCapacitor && GoogleAuth) {
+    try {
       try {
         await GoogleAuth.initialize({
-          clientId: '331220079759-nrguc2ujof9u9mqhbn2mouhpga2iniqj.apps.googleusercontent.com',
+          clientId: clientId,
+          serverClientId: clientId,
           scopes: ['profile', 'email'],
           grantOfflineAccess: true,
         });
       } catch (initErr) {
-        console.warn('GoogleAuth initialize warning:', initErr);
+        console.warn('[GoogleAuth] Native initialize warning:', initErr);
       }
 
       const googleUser = await GoogleAuth.signIn();
       const idToken = googleUser?.authentication?.idToken || googleUser?.idToken;
 
-      if (!idToken) {
-        throw new Error('Google did not return an ID token.');
-      }
+      if (idToken) {
+        const { data, error } = await state.supabaseClient.auth.signInWithIdToken({
+          provider: 'google',
+          token: idToken,
+        });
 
-      // Authenticate with Supabase using native Google ID token
-      const { data, error } = await state.supabaseClient.auth.signInWithIdToken({
-        provider: 'google',
-        token: idToken,
-      });
-
-      if (error) throw error;
-      if (data && data.session && data.session.user) {
-        state.currentUser = data.session.user;
-        localStorage.setItem('cached_current_user', JSON.stringify(data.session.user));
-        hideAuthOverlay();
-        forceSyncNow(true).catch(console.error);
+        if (error) throw error;
+        if (data && data.session && data.session.user) {
+          state.currentUser = data.session.user;
+          localStorage.setItem('cached_current_user', JSON.stringify(data.session.user));
+          hideAuthOverlay();
+          forceSyncNow(true).catch(console.error);
+          toggleLoader(false);
+          return;
+        }
       }
-      toggleLoader(false);
-      return;
+    } catch (nativeErr) {
+      const errMsg = (nativeErr?.message || '').toLowerCase();
+      // If user explicitly dismissed or canceled the native picker, exit cleanly
+      if (
+        errMsg.includes('cancel') ||
+        errMsg.includes('canceled') ||
+        errMsg.includes('cancelled') ||
+        errMsg.includes('closed') ||
+        errMsg.includes('dismiss') ||
+        errMsg.includes('12501') ||
+        errMsg.includes('abort')
+      ) {
+        toggleLoader(false);
+        console.log('[GoogleAuth] User dismissed native prompt.');
+        return;
+      }
+      console.warn('[GoogleAuth] Native sign-in failed, seamlessly falling back to OAuth flow:', nativeErr);
     }
+  }
 
+  // 2. OAuth Flow (Seamless fallback for Native + Standard for Web/PWA)
+  try {
     if (isCapacitor) {
-      // Fallback for native if GoogleAuth plugin is unavailable: in-app browser
-      const nativeRedirectUrl = 'https://localhost';
+      const nativeRedirectUrl = 'https://budget-assistant-pwa.pages.dev';
       const { data, error } = await state.supabaseClient.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -20939,8 +20959,6 @@ async function handleGoogleAuth() {
       const App = window.Capacitor?.Plugins?.App;
 
       if (Browser && data?.url) {
-        await Browser.open({ url: data.url, windowName: '_self' });
-
         if (App) {
           const handle = await App.addListener('appUrlOpen', async (event) => {
             await handle.remove();
@@ -20959,15 +20977,15 @@ async function handleGoogleAuth() {
                 refresh_token: refreshToken
               });
               if (sessionError) {
-                console.error('Google session error:', sessionError);
+                console.error('[GoogleAuth] Session error:', sessionError);
                 showAuthStatus('❌ ' + sessionError.message);
               }
             }
             toggleLoader(false);
           });
-        } else {
-          toggleLoader(false);
         }
+
+        await Browser.open({ url: data.url, windowName: '_self' });
       } else {
         window.location.href = data?.url || '';
       }
@@ -20986,7 +21004,6 @@ async function handleGoogleAuth() {
   } catch (err) {
     toggleLoader(false);
     const errMsg = (err?.message || '').toLowerCase();
-    // Ignore normal user cancellation (dismiss, back press, tapped outside, code 12501)
     if (
       errMsg.includes('cancel') ||
       errMsg.includes('canceled') ||
@@ -20996,7 +21013,7 @@ async function handleGoogleAuth() {
       errMsg.includes('12501') ||
       errMsg.includes('abort')
     ) {
-      console.log('[GoogleAuth] User dismissed or canceled sign-in prompt.');
+      console.log('[GoogleAuth] User dismissed OAuth prompt.');
       return;
     }
     console.error('Google auth flow failed:', err);

@@ -4,4 +4,5 @@
     <string name="title_activity_main">Budget Assistant</string>
     <string name="package_name">com.budgetassistant.app</string>
     <string name="custom_url_scheme">com.budgetassistant.app</string>
+    <string name="server_client_id">331220079759-nrguc2ujof9u9mqhbn2mouhpga2iniqj.apps.googleusercontent.com</string>
 </resources>
