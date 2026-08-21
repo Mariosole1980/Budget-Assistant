@@ -4271,9 +4271,10 @@ function cleanDuplicateTemplates() {
       const sameType = t1.type === t2.type;
       const sameCat = isSameCategory(t1.category, t2.category);
       const normNote2 = normalizeGreekString(t2.note || t2.description || '');
+      const notesMatch = normNote1.length > 0 && normNote2.length > 0 && (normNote1 === normNote2 || normNote1.includes(normNote2) || normNote2.includes(normNote1));
       const sameNote = (normNote1.length > 0 && normNote1 === normNote2);
 
-      if (sameAmount && sameType && sameCat && sameNote) {
+      if (sameAmount && sameType && (notesMatch || (sameCat && (sameNote || (!normNote1 && !normNote2))))) {
         isDup = true;
         toDelete.push(t1);
         break;
@@ -4348,16 +4349,14 @@ function cleanCrossLanguageRecurringDuplicates() {
         const isRecurringPrefix2 = String(t2.id || '').startsWith('recurring_');
 
         if (t1Amount === t2Amount && t1Type === t2Type) {
-          // Only consider duplicates if:
-          // 1. Both share the same recurring_template_id, OR
-          // 2. Both have non-empty notes that are EXACTLY identical, OR
-          // 3. One has a legacy 'recurring_' temporary ID and matching note
-          // NEVER treat empty notes or arbitrary substrings as duplicates!
-          const bothHaveTemplate = t1.recurring_template_id && t2.recurring_template_id && (t1.recurring_template_id === t2.recurring_template_id);
+          const bothHaveTemplate = t1.recurring_template_id && t2.recurring_template_id;
           const exactNoteMatch = (t1Note.length > 0 && t1Note === t2Note);
+          const noteIncludesMatch = (t1Note.length > 0 && t2Note.length > 0 && (t1Note.includes(t2Note) || t2Note.includes(t1Note)));
           const legacyPrefixMatch = (isRecurringPrefix1 || isRecurringPrefix2) && (t1Note.length === 0 || t2Note.length === 0 || t1Note === t2Note);
+          const sameCat = isSameCategory(t1.category, t2.category);
+          const isRecurring = t1.recurring_template_id || t2.recurring_template_id || isRecurringPrefix1 || isRecurringPrefix2;
 
-          const isGenuineDuplicate = bothHaveTemplate || exactNoteMatch || legacyPrefixMatch;
+          const isGenuineDuplicate = bothHaveTemplate || exactNoteMatch || noteIncludesMatch || legacyPrefixMatch || (isRecurring && sameCat);
 
           if (isGenuineDuplicate) {
             let duplicate = null;
@@ -4588,13 +4587,16 @@ function processRecurringTemplates() {
             return true;
           }
 
-          // 3. Content-based fallback: same amount + type + category (translation-aware) + note.
+          // 3. Content-based fallback: same amount + type + (notesMatch or (categoriesMatch and matching notes))
           const tAmount = (parseFloat(t.amount) || 0).toFixed(2);
           const templAmount = (parseFloat(template.amount) || 0).toFixed(2);
-          if (tAmount === templAmount && t.type === template.type && isSameCategory(t.category, template.category)) {
+          if (tAmount === templAmount && t.type === template.type) {
             const tNote = normalizeGreekString(t.note || t.description || '');
             const templNote = normalizeGreekString(template.note || template.description || '');
-            if (!tNote || !templNote || tNote === templNote || tNote.includes(templNote) || templNote.includes(tNote)) {
+            const notesMatch = tNote.length > 0 && templNote.length > 0 && (tNote === templNote || tNote.includes(templNote) || templNote.includes(tNote));
+            const categoriesMatch = isSameCategory(t.category, template.category);
+
+            if (notesMatch || (categoriesMatch && (!tNote || !templNote || notesMatch))) {
               return true;
             }
           }
@@ -4680,6 +4682,7 @@ function processRecurringTemplates() {
   });
 
   if (transactionsUpdated) {
+    cleanCrossLanguageRecurringDuplicates();
     calculateInitialBalances();
   }
 }
@@ -5185,6 +5188,7 @@ window._isAuthenticated = _isAuthenticated;
 
 function _updateUIImpl() {
   processRecurringTemplates();
+  cleanCrossLanguageRecurringDuplicates();
   updateHeaderAndSync();
   if (typeof updateHeaderDemoBadge === 'function') {
     updateHeaderDemoBadge();
@@ -23929,6 +23933,9 @@ async function forceSyncNow(silent = false) {
       const dataChanged = newIds !== oldIds;
 
       state.transactions = dedupedCombined;
+      cleanCrossLanguageRecurringDuplicates();
+      processRecurringTemplates();
+      cleanCrossLanguageRecurringDuplicates();
       localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
       if (state.currentUser && state.currentUser.id) {
         localStorage.setItem('offline_transactions_owner', state.currentUser.id);
@@ -30465,8 +30472,28 @@ function regenerateRecurringTemplateTransactions(template) {
     datesToCreate.forEach(dateString => {
       if (endLimit && dateString > endDateStr) return;
       if (deletedDates.includes(dateString)) return;
+
+      const expectedDeterministicId = generateDeterministicUUID(template.id, dateString);
+      const exists = state.transactions.some(t => {
+        const tDate = String(t.date || '').split('T')[0].split(' ')[0];
+        if (tDate !== dateString) return false;
+        if (t.id === expectedDeterministicId) return true;
+        if (t.recurring_template_id && String(t.recurring_template_id) === String(template.id)) return true;
+        const tAmount = (parseFloat(t.amount) || 0).toFixed(2);
+        const templAmount = (parseFloat(template.amount) || 0).toFixed(2);
+        if (tAmount === templAmount && t.type === template.type) {
+          const tNote = normalizeGreekString(t.note || t.description || '');
+          const templNote = normalizeGreekString(template.note || template.description || '');
+          const notesMatch = tNote.length > 0 && templNote.length > 0 && (tNote === templNote || tNote.includes(templNote) || templNote.includes(tNote));
+          if (notesMatch) return true;
+          if (isSameCategory(t.category, template.category) && (!tNote || !templNote || notesMatch)) return true;
+        }
+        return false;
+      });
+      if (exists) return;
+
       const newTx = {
-        id: generateUUID(),
+        id: expectedDeterministicId,
         recurring_template_id: template.id,
         date: dateString,
         type: template.type,
@@ -30518,6 +30545,7 @@ function regenerateRecurringTemplateTransactions(template) {
     if (year > maxFuture.getFullYear() + 1) break;
   }
 
+  cleanCrossLanguageRecurringDuplicates();
   calculateInitialBalances();
   updateUI();
   return created;
