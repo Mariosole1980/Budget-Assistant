@@ -114,6 +114,7 @@ const CRITICAL_JS_ESM = [
     'functions/api/purchase.js',
     'functions/api/webhook.js',
     'functions/api/migrate-incremental-sync.js',
+    'functions/api/restore-transactions.js',
 ];
 
 // Generated only during release-native; absent in a clean checkout.

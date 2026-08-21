@@ -4469,6 +4469,47 @@ async function autoRestoreMistakenlyDeletedManualTransactions() {
     }
   } catch (e) { }
 
+  // 1.5. Call Cloudflare Pages server-side endpoint with service-role privileges (bypasses RLS)
+  if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
+    try {
+      const { data: sessionData } = await state.supabaseClient.auth.getSession();
+      const token = sessionData && sessionData.session ? sessionData.session.access_token : null;
+      if (token) {
+        const resp = await fetch('/api/restore-transactions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        if (resp.ok) {
+          const result = await resp.json();
+          if (result && result.success && Array.isArray(result.restoredRows) && result.restoredRows.length > 0) {
+            console.log(`[AutoRestore API] Server restored ${result.restoredRows.length} transactions:`, result.restoredRows);
+            const currentIdMap = new Map((state.transactions || []).map(t => [String(t.id), t]));
+            let addedCount = 0;
+            for (const r of result.restoredRows) {
+              if (!currentIdMap.has(String(r.id))) {
+                state.transactions.push(r);
+                currentIdMap.set(String(r.id), r);
+                addedCount++;
+              }
+            }
+            if (addedCount > 0) {
+              state.transactions.sort(compareTransactions);
+              localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
+              saveSyncCursors({});
+              calculateInitialBalances();
+              updateUI();
+            }
+          }
+        }
+      }
+    } catch (apiErr) {
+      console.warn('AutoRestore API call failed:', apiErr);
+    }
+  }
+
   // 2. Check cloud trash if Supabase is enabled
   if (!state.isSupabaseEnabled || !state.supabaseClient || !state.currentUser) return;
   try {
