@@ -4160,9 +4160,10 @@ function loadOfflineData() {
   loadNotes();
   loadBudgets();
 
-  autoRecoverTemplatesFromHistory();
   cleanCrossLanguageRecurringDuplicates();
+  autoRestoreMistakenlyDeletedManualTransactions();
   processRecurringTemplates();
+  cleanCrossLanguageRecurringDuplicates();
   calculateInitialBalances();
   cleanDuplicateCategories().catch(e => console.warn('Offline automatic categories cleanup error:', e));
 }
@@ -4348,15 +4349,18 @@ function cleanCrossLanguageRecurringDuplicates() {
         const t2Note = normalizeGreekString(t2.note || t2.description || '');
         const isRecurringPrefix2 = String(t2.id || '').startsWith('recurring_');
 
-        if (t1Amount === t2Amount && t1Type === t2Type) {
-          const bothHaveTemplate = t1.recurring_template_id && t2.recurring_template_id;
-          const exactNoteMatch = (t1Note.length > 0 && t1Note === t2Note);
-          const noteIncludesMatch = (t1Note.length > 0 && t2Note.length > 0 && (t1Note.includes(t2Note) || t2Note.includes(t1Note)));
-          const legacyPrefixMatch = (isRecurringPrefix1 || isRecurringPrefix2) && (t1Note.length === 0 || t2Note.length === 0 || t1Note === t2Note);
-          const sameCat = isSameCategory(t1.category, t2.category);
-          const isRecurring = t1.recurring_template_id || t2.recurring_template_id || isRecurringPrefix1 || isRecurringPrefix2;
+        // CRITICAL DATA INTEGRITY: Only evaluate duplicate candidates if AT LEAST ONE
+        // transaction is provably generated from a recurring template or has a legacy recurring prefix.
+        // NEVER EVER deduplicate or delete regular/manual user transactions!
+        const hasRecurringOrigin = !!(t1.recurring_template_id || t2.recurring_template_id || isRecurringPrefix1 || isRecurringPrefix2);
+        if (!hasRecurringOrigin) continue;
 
-          const isGenuineDuplicate = bothHaveTemplate || exactNoteMatch || noteIncludesMatch || legacyPrefixMatch || (isRecurring && sameCat);
+        if (t1Amount === t2Amount && t1Type === t2Type) {
+          const sameTemplate = t1.recurring_template_id && t2.recurring_template_id && (String(t1.recurring_template_id) === String(t2.recurring_template_id));
+          const exactNoteMatch = (t1Note.length > 0 && t1Note === t2Note);
+          const legacyPrefixMatch = (isRecurringPrefix1 || isRecurringPrefix2) && (t1Note.length === 0 || t2Note.length === 0 || t1Note === t2Note);
+
+          const isGenuineDuplicate = sameTemplate || (legacyPrefixMatch && exactNoteMatch);
 
           if (isGenuineDuplicate) {
             let duplicate = null;
@@ -4364,10 +4368,10 @@ function cleanCrossLanguageRecurringDuplicates() {
               duplicate = t1;
             } else if (isRecurringPrefix2 && !isRecurringPrefix1) {
               duplicate = t2;
-            } else {
+            } else if (t1.recurring_template_id && t2.recurring_template_id) {
               const isT1Newer = (t1.created_at && t2.created_at)
                 ? (new Date(t1.created_at) > new Date(t2.created_at))
-                : (t1.recurring_template_id && !t2.recurring_template_id);
+                : true;
               duplicate = isT1Newer ? t1 : t2;
             }
 
@@ -4433,6 +4437,99 @@ function cleanCrossLanguageRecurringDuplicates() {
   }
 }
 window.cleanCrossLanguageRecurringDuplicates = cleanCrossLanguageRecurringDuplicates;
+
+// AUTO-RESTORE RECOVERY: Restore any manual (non-recurring) transactions that may have
+// been mistakenly soft-deleted.
+async function autoRestoreMistakenlyDeletedManualTransactions() {
+  // 1. Check local trash
+  try {
+    const localTrash = JSON.parse(localStorage.getItem('deleted_transactions_trash') || '[]');
+    if (Array.isArray(localTrash) && localTrash.length > 0) {
+      const currentIdSet = new Set((state.transactions || []).map(t => String(t.id)));
+      let localRestored = false;
+      const remainingTrash = [];
+      for (const t of localTrash) {
+        if (t && t.id && !t.is_recurring_group && !t.recurring_template_id && !currentIdSet.has(String(t.id))) {
+          const restored = { ...t, status: 'active' };
+          delete restored.deleted_at;
+          delete restored.deleted_by;
+          state.transactions.push(restored);
+          currentIdSet.add(String(restored.id));
+          localRestored = true;
+        } else {
+          remainingTrash.push(t);
+        }
+      }
+      if (localRestored) {
+        state.trashTransactions = remainingTrash;
+        localStorage.setItem('deleted_transactions_trash', JSON.stringify(remainingTrash));
+        localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
+      }
+    }
+  } catch (e) { }
+
+  // 2. Check cloud trash if Supabase is enabled
+  if (!state.isSupabaseEnabled || !state.supabaseClient || !state.currentUser) return;
+  try {
+    const userId = state.currentUser.id;
+    const partnerId = state.partnerProfile ? state.partnerProfile.id : null;
+    const familyId = state.userProfile ? state.userProfile.family_id : null;
+
+    let query = state.supabaseClient
+      .from('transactions')
+      .select('*')
+      .eq('status', 'deleted')
+      .is('recurring_template_id', null);
+
+    if (familyId && partnerId) {
+      query = query.or(`family_id.eq.${familyId},user_id.eq.${userId},user_id.eq.${partnerId}`);
+    } else if (familyId) {
+      query = query.or(`family_id.eq.${familyId},user_id.eq.${userId}`);
+    } else if (partnerId) {
+      query = query.or(`user_id.eq.${userId},user_id.eq.${partnerId}`);
+    } else {
+      query = query.eq('user_id', userId);
+    }
+
+    const { data: deletedRows, error } = await promiseTimeout(query, 12000);
+    if (error || !deletedRows || deletedRows.length === 0) return;
+
+    const currentIdSet = new Set((state.transactions || []).map(t => String(t.id)));
+    const restoredItems = [];
+
+    for (const row of deletedRows) {
+      if (!row || !row.id) continue;
+      if (currentIdSet.has(String(row.id))) continue;
+
+      const restored = { ...row, status: 'active' };
+      delete restored.deleted_at;
+      delete restored.deleted_by;
+      state.transactions.push(restored);
+      currentIdSet.add(String(restored.id));
+      restoredItems.push(restored.id);
+
+      state.supabaseClient
+        .from('transactions')
+        .update({ status: 'active', deleted_at: null, deleted_by: null })
+        .eq('id', row.id)
+        .then(() => {}, (e) => console.warn('Restore sync err:', e));
+    }
+
+    if (restoredItems.length > 0) {
+      console.log(`[AutoRestore] Restored ${restoredItems.length} manual transactions from trash`);
+      state.transactions.sort(compareTransactions);
+      localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
+      const restoredSet = new Set(restoredItems.map(String));
+      state.trashTransactions = (state.trashTransactions || []).filter(t => !restoredSet.has(String(t.id)));
+      localStorage.setItem('deleted_transactions_trash', JSON.stringify(state.trashTransactions));
+      calculateInitialBalances();
+      updateUI();
+    }
+  } catch (err) {
+    console.warn('AutoRestore failed:', err);
+  }
+}
+window.autoRestoreMistakenlyDeletedManualTransactions = autoRestoreMistakenlyDeletedManualTransactions;
 
 // ============================================================================
 // 🔒🔒🔒 FROZEN / DO-NOT-TOUCH — RECURRING TRANSACTIONS SUBSYSTEM 🔒🔒🔒
@@ -23934,6 +24031,7 @@ async function forceSyncNow(silent = false) {
 
       state.transactions = dedupedCombined;
       cleanCrossLanguageRecurringDuplicates();
+      await autoRestoreMistakenlyDeletedManualTransactions();
       processRecurringTemplates();
       cleanCrossLanguageRecurringDuplicates();
       localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
