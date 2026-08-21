@@ -3978,6 +3978,7 @@ async function loadData() {
 
       // Clean up any cross-language duplicate templates or duplicate recurring transactions
       cleanCrossLanguageRecurringDuplicates();
+      await autoRestoreMistakenlyDeletedManualTransactions();
 
       localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
       localStorage.setItem('offline_accounts', JSON.stringify(state.accounts));
@@ -4449,7 +4450,7 @@ async function autoRestoreMistakenlyDeletedManualTransactions() {
       let localRestored = false;
       const remainingTrash = [];
       for (const t of localTrash) {
-        if (t && t.id && !t.is_recurring_group && !t.recurring_template_id && !currentIdSet.has(String(t.id))) {
+        if (t && t.id && !t.is_recurring_group && !t.recurring_template_id && !String(t.id).startsWith('recurring_') && !currentIdSet.has(String(t.id))) {
           const restored = { ...t, status: 'active' };
           delete restored.deleted_at;
           delete restored.deleted_by;
@@ -4478,8 +4479,7 @@ async function autoRestoreMistakenlyDeletedManualTransactions() {
     let query = state.supabaseClient
       .from('transactions')
       .select('*')
-      .eq('status', 'deleted')
-      .is('recurring_template_id', null);
+      .eq('status', 'deleted');
 
     if (familyId && partnerId) {
       query = query.or(`family_id.eq.${familyId},user_id.eq.${userId},user_id.eq.${partnerId}`);
@@ -4491,37 +4491,62 @@ async function autoRestoreMistakenlyDeletedManualTransactions() {
       query = query.eq('user_id', userId);
     }
 
-    const { data: deletedRows, error } = await promiseTimeout(query, 12000);
+    const { data: deletedRows, error } = await promiseTimeout(query, 15000);
     if (error || !deletedRows || deletedRows.length === 0) return;
 
-    const currentIdSet = new Set((state.transactions || []).map(t => String(t.id)));
-    const restoredItems = [];
+    // Filter in JS: ONLY restore manual, non-recurring transactions (or any transaction without a template)
+    const manualRows = deletedRows.filter(r => {
+      if (!r || !r.id) return false;
+      if (r.is_recurring_group) return false;
+      if (r.recurring_template_id) return false;
+      if (String(r.id).startsWith('recurring_')) return false;
+      return true;
+    });
 
-    for (const row of deletedRows) {
-      if (!row || !row.id) continue;
-      if (currentIdSet.has(String(row.id))) continue;
+    if (manualRows.length === 0) return;
 
+    const currentIdMap = new Map((state.transactions || []).map(t => [String(t.id), t]));
+    const idsToRestoreInDb = [];
+
+    for (const row of manualRows) {
+      const rowId = String(row.id);
       const restored = { ...row, status: 'active' };
       delete restored.deleted_at;
       delete restored.deleted_by;
-      state.transactions.push(restored);
-      currentIdSet.add(String(restored.id));
-      restoredItems.push(restored.id);
 
-      state.supabaseClient
-        .from('transactions')
-        .update({ status: 'active', deleted_at: null, deleted_by: null })
-        .eq('id', row.id)
-        .then(() => {}, (e) => console.warn('Restore sync err:', e));
+      if (!currentIdMap.has(rowId)) {
+        state.transactions.push(restored);
+        currentIdMap.set(rowId, restored);
+      }
+      idsToRestoreInDb.push(row.id);
     }
 
-    if (restoredItems.length > 0) {
-      console.log(`[AutoRestore] Restored ${restoredItems.length} manual transactions from trash`);
+    if (idsToRestoreInDb.length > 0) {
+      console.log(`[AutoRestore] Restoring ${idsToRestoreInDb.length} manual transactions in Supabase & state:`, idsToRestoreInDb);
       state.transactions.sort(compareTransactions);
       localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
-      const restoredSet = new Set(restoredItems.map(String));
+
+      // Batch update in Supabase
+      await state.supabaseClient
+        .from('transactions')
+        .update({ status: 'active', deleted_at: null, deleted_by: null, updated_at: new Date().toISOString() })
+        .in('id', idsToRestoreInDb);
+
+      // Clean tombstones if table exists
+      try {
+        await state.supabaseClient
+          .from('transactions_tombstones')
+          .delete()
+          .in('row_id', idsToRestoreInDb);
+      } catch (tErr) { }
+
+      // Clear sync cursors so next sync fetches fresh active rows
+      saveSyncCursors({});
+
+      const restoredSet = new Set(idsToRestoreInDb.map(String));
       state.trashTransactions = (state.trashTransactions || []).filter(t => !restoredSet.has(String(t.id)));
       localStorage.setItem('deleted_transactions_trash', JSON.stringify(state.trashTransactions));
+
       calculateInitialBalances();
       updateUI();
     }
