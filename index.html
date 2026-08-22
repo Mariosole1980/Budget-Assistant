@@ -1232,6 +1232,30 @@
             style="padding: 8px 16px 8px 16px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 6px; min-height: 0;">
             <input type="hidden" id="trans-id">
 
+            <!-- AI Scanning Loader Banner -->
+            <div id="ai-receipt-scanning-banner" style="display: none; align-items: center; justify-content: center; gap: 10px; padding: 12px 16px; border-radius: 14px; background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.4); margin-bottom: 8px; color: #a5b4fc; font-size: 13.5px; font-weight: 600; text-align: center;">
+              <i class="fa-solid fa-wand-magic-sparkles fa-spin" style="color: #818cf8; font-size: 16px;"></i>
+              <span data-i18n="ai_scanning_receipt">⚡ Ανάλυση απόδειξης με AI...</span>
+            </div>
+
+            <!-- AI Receipt Result Confirmation Card -->
+            <div id="ai-receipt-confirmation-card" style="display: none; flex-direction: column; gap: 8px; padding: 14px 16px; border-radius: 16px; background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(99, 102, 241, 0.12) 100%); border: 1px solid rgba(16, 185, 129, 0.35); margin-bottom: 10px; box-shadow: 0 4px 16px rgba(0,0,0,0.25);">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 12.5px; font-weight: 700; color: #34d399; display: flex; align-items: center; gap: 6px;">
+                  <i class="fa-solid fa-circle-check"></i> <span data-i18n="ai_scan_confirm_title">✨ Στοιχεία Απόδειξης (AI)</span>
+                </span>
+                <button type="button" onclick="dismissAIConfirmationCard(event)" style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 2px 6px; font-size: 13px;">✕</button>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 2px;">
+                <span id="ai-confirm-merchant" style="font-size: 15px; font-weight: 700; color: #ffffff;"></span>
+                <span id="ai-confirm-amount" style="font-size: 17px; font-weight: 800; color: var(--accent);"></span>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--text-secondary);">
+                <span id="ai-confirm-category"></span>
+                <span id="ai-confirm-date"></span>
+              </div>
+            </div>
+
             <!-- Date Row -->
             <div class="form-row focusable" id="form-row-date" onclick="openCustomDatePicker()">
               <label class="form-row-label" data-i18n="row_date">Ημερομηνία</label>
@@ -1350,8 +1374,9 @@
                   data-i18n-placeholder="placeholder_description" autocomplete="off"
                   style="flex: 1; border: none; outline: none; background: transparent;">
                 <input type="file" id="trans-photo-input" accept="image/*" style="display: none;" multiple>
-                <input type="file" id="trans-camera-input" accept="image/*" capture="environment"
-                  style="display: none;">
+                <input type="file" id="trans-camera-input" accept="image/*" capture="environment" style="display: none;">
+                <input type="file" id="trans-ai-camera-input" accept="image/*" capture="environment" style="display: none;">
+                <input type="file" id="trans-ai-gallery-input" accept="image/*" style="display: none;">
                 <i class="fa-solid fa-camera" id="trans-camera-btn"
                   onclick="openReceiptPhotoSourcePicker(event)"
                   data-i18n-title="photo_picker_title" title="Προσθήκη Φωτογραφίας"
@@ -5359,23 +5384,34 @@
         </div>
 
         <div style="display: flex; flex-direction: column; gap: 10px; width: 100%; margin-top: 4px;">
-          <!-- Take Live Photo Button -->
-          <button type="button" class="btn btn-primary" onclick="triggerReceiptCameraCapture(event)"
-            style="width: 100%; padding: 14px; border-radius: 14px; font-size: 15px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; background: var(--accent); color: #fff;">
-            <i class="fa-solid fa-camera" style="font-size: 18px;"></i>
-            <span data-i18n="photo_picker_camera">Λήψη με Κάμερα</span>
+          <!-- 1. AI Receipt Scan (Hero Primary Action) -->
+          <button type="button" class="btn btn-primary" onclick="triggerReceiptAIScan(event)"
+            style="width: 100%; padding: 14px 16px; border-radius: 16px; font-size: 15px; font-weight: 800; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; cursor: pointer; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 50%, #4338ca 100%); color: #fff; box-shadow: 0 4px 18px rgba(99, 102, 241, 0.45); border: 1px solid rgba(255,255,255,0.2);">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <i class="fa-solid fa-wand-magic-sparkles" style="font-size: 16px; color: #fbbf24;"></i>
+              <span data-i18n="photo_picker_ai_scan">⚡ Σάρωση Απόδειξης με AI</span>
+              <span id="ai-scan-badge-quota" style="font-size: 10px; padding: 2px 7px; border-radius: 10px; background: rgba(0,0,0,0.3); font-weight: 800; color: #fbbf24; border: 1px solid rgba(251,191,36,0.4);">5/5</span>
+            </div>
+            <span data-i18n="photo_picker_ai_scan_desc" style="font-size: 11px; opacity: 0.85; font-weight: 500;">Αυτόματη ανάγνωση ποσού, καταστήματος & κατηγορίας</span>
+          </button>
+
+          <!-- 2. Plain Camera Photo -->
+          <button type="button" class="btn btn-secondary" onclick="triggerReceiptCameraCapture(event)"
+            style="width: 100%; padding: 13px; border-radius: 14px; font-size: 14.5px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; background: rgba(255,255,255,0.06); border: 1px solid var(--border); color: var(--text-primary);">
+            <i class="fa-solid fa-camera" style="font-size: 16px; color: var(--text-secondary);"></i>
+            <span data-i18n="photo_picker_camera">📸 Απλή Λήψη με Κάμερα</span>
           </button>
           
-          <!-- Choose from Gallery Button -->
+          <!-- 3. Choose from Gallery -->
           <button type="button" class="btn btn-secondary" onclick="triggerReceiptGalleryUpload(event)"
-            style="width: 100%; padding: 14px; border-radius: 14px; font-size: 15px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; background: rgba(255,255,255,0.06); border: 1px solid var(--border); color: var(--text-primary);">
-            <i class="fa-solid fa-images" style="font-size: 18px; color: var(--accent);"></i>
-            <span data-i18n="photo_picker_gallery">Επιλογή από Συλλογή</span>
+            style="width: 100%; padding: 13px; border-radius: 14px; font-size: 14.5px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; background: rgba(255,255,255,0.06); border: 1px solid var(--border); color: var(--text-primary);">
+            <i class="fa-solid fa-images" style="font-size: 16px; color: var(--text-secondary);"></i>
+            <span data-i18n="photo_picker_gallery">🖼️ Επιλογή από Συλλογή</span>
           </button>
 
           <!-- Cancel Button -->
           <button type="button" class="btn btn-secondary" onclick="closeModal('receipt-photo-source-modal')"
-            style="width: 100%; padding: 11px; border-radius: 12px; font-size: 13.5px; font-weight: 600; display: flex; align-items: center; justify-content: center; color: var(--text-muted); background: transparent; border: none; cursor: pointer; margin-top: 2px;">
+            style="width: 100%; padding: 10px; border-radius: 12px; font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; color: var(--text-muted); background: transparent; border: none; cursor: pointer; margin-top: 2px;">
             <span data-i18n="photo_picker_cancel">Ακύρωση</span>
           </button>
         </div>

@@ -9278,6 +9278,33 @@ function setupEventListeners() {
     }
   }
 
+  function getMonthlyAIScanUsage() {
+    const isPro = !!(state.is_premium || state.is_vip || state.is_unlocked);
+    const now = new Date();
+    const monthKey = `ai_scans_${now.getFullYear()}_${now.getMonth() + 1}`;
+    const used = parseInt(localStorage.getItem(monthKey) || '0', 10);
+    const max = 5;
+    const remaining = isPro ? Infinity : Math.max(0, max - used);
+    return { isPro, used, max, remaining, monthKey };
+  }
+
+  function updateAIScanQuotaBadge() {
+    const badge = document.getElementById('ai-scan-badge-quota');
+    if (!badge) return;
+    const quota = getMonthlyAIScanUsage();
+    if (quota.isPro) {
+      badge.textContent = 'PRO ✨';
+      badge.style.color = '#34d399';
+      badge.style.borderColor = 'rgba(52, 211, 153, 0.5)';
+      badge.style.background = 'rgba(16, 185, 129, 0.2)';
+    } else {
+      badge.textContent = `${quota.remaining}/${quota.max}`;
+      badge.style.color = quota.remaining > 0 ? '#fbbf24' : '#ef4444';
+      badge.style.borderColor = quota.remaining > 0 ? 'rgba(251, 191, 36, 0.4)' : 'rgba(239, 68, 68, 0.4)';
+      badge.style.background = 'rgba(0, 0, 0, 0.3)';
+    }
+  }
+
   function openReceiptPhotoSourcePicker(e) {
     if (e) {
       e.preventDefault();
@@ -9290,7 +9317,37 @@ function setupEventListeners() {
     const form = document.getElementById('transaction-form');
     if (form && form.getAttribute('data-readonly') === 'true') return;
 
+    updateAIScanQuotaBadge();
     openModal('receipt-photo-source-modal');
+  }
+
+  function triggerReceiptAIScan(e) {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    closeModal('receipt-photo-source-modal');
+    if (document.activeElement && typeof document.activeElement.blur === 'function') {
+      document.activeElement.blur();
+    }
+
+    const quota = getMonthlyAIScanUsage();
+    if (!quota.isPro && quota.remaining <= 0) {
+      const msg = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['ai_scan_quota_msg']) ||
+        'Έχετε χρησιμοποιήσει τις 5 δωρεάν σαρώσεις αυτού του μήνα. Αναβαθμίστε σε Lifetime PRO για απεριόριστες σαρώσεις!';
+      window.showAlert(msg, (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['ai_scan_quota_limit']) || 'Όριο Δωρεάν Σαρώσεων AI', '👑');
+      if (typeof openLifetimeProModal === 'function') {
+        setTimeout(() => openLifetimeProModal(), 200);
+      }
+      return;
+    }
+
+    const aiCameraInput = document.getElementById('trans-ai-camera-input');
+    if (aiCameraInput) {
+      setTimeout(() => {
+        aiCameraInput.click();
+      }, 60);
+    }
   }
 
   function triggerReceiptCameraCapture(e) {
@@ -9333,10 +9390,203 @@ function setupEventListeners() {
     }
   }
 
+  function compressImageForAI(file, maxDimension = 1280, quality = 0.82) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          let width = img.width;
+          let height = img.height;
+          if (width > maxDimension || height > maxDimension) {
+            if (width > height) {
+              height = Math.round((height * maxDimension) / width);
+              width = maxDimension;
+            } else {
+              width = Math.round((width * maxDimension) / height);
+              height = maxDimension;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          const dataUrl = canvas.toDataURL('image/jpeg', quality);
+          resolve(dataUrl);
+        };
+        img.onerror = () => reject(new Error('Failed to load image for compression'));
+        img.src = e.target.result;
+      };
+      reader.onerror = (err) => reject(err);
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function processReceiptImageWithAI(file) {
+    if (!file) return;
+
+    const quota = getMonthlyAIScanUsage();
+    if (!quota.isPro && quota.remaining <= 0) {
+      const msg = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['ai_scan_quota_msg']) ||
+        'Έχετε χρησιμοποιήσει τις 5 δωρεάν σαρώσεις αυτού του μήνα. Αναβαθμίστε σε Lifetime PRO για απεριόριστες σαρώσεις!';
+      window.showAlert(msg, (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['ai_scan_quota_limit']) || 'Όριο Δωρεάν Σαρώσεων AI', '👑');
+      if (typeof openLifetimeProModal === 'function') {
+        openLifetimeProModal();
+      }
+      return;
+    }
+
+    // 1. Add image to pending receipt photos (so user sees thumbnail preview immediately)
+    const url = URL.createObjectURL(file);
+    _pendingReceiptFiles.push({
+      id: Date.now() + '-' + Math.random().toString(36).substr(2, 9),
+      file: file,
+      url: url,
+      isExisting: false
+    });
+    _pendingReceiptDeleted = false;
+    renderPhotoPreviews();
+
+    // 2. Show AI scanning loader banner
+    const banner = document.getElementById('ai-receipt-scanning-banner');
+    const confirmCard = document.getElementById('ai-receipt-confirmation-card');
+    if (banner) banner.style.display = 'flex';
+    if (confirmCard) confirmCard.style.display = 'none';
+
+    try {
+      // 3. Compress image client-side to ~150KB for rapid upload
+      const base64 = await compressImageForAI(file, 1280, 0.82);
+
+      // 4. Send to Cloudflare Function /api/scan-receipt
+      const res = await fetch('/api/scan-receipt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageBase64: base64,
+          mimeType: 'image/jpeg',
+          currentLang: state.lang
+        })
+      });
+
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+
+      const json = await res.json();
+      if (!json.success || !json.data) {
+        throw new Error(json.error || 'Invalid AI result');
+      }
+
+      const data = json.data;
+      if (banner) banner.style.display = 'none';
+
+      // 5. Increment quota for free users
+      if (!quota.isPro) {
+        localStorage.setItem(quota.monthKey, String(quota.used + 1));
+        updateAIScanQuotaBadge();
+      }
+
+      // 6. Auto-fill form fields
+      if (data.amount && !isNaN(Number(data.amount)) && Number(data.amount) > 0) {
+        const amtNum = parseFloat(data.amount);
+        const amtStr = String(amtNum);
+        const amountInput = document.getElementById('trans-amount');
+        if (amountInput) amountInput.value = formatCalcDisplay(amtStr);
+        if (window.calculatorKeypadState) {
+          window.calculatorKeypadState.currentValue = amtStr;
+        }
+      }
+
+      if (data.merchant) {
+        const noteInput = document.getElementById('trans-note');
+        if (noteInput) noteInput.value = data.merchant;
+      }
+
+      if (data.date) {
+        let dVal = data.date;
+        if (data.time) {
+          dVal = `${dVal}T${data.time}`;
+        } else {
+          const now = new Date();
+          const hrs = String(now.getHours()).padStart(2, '0');
+          const mins = String(now.getMinutes()).padStart(2, '0');
+          dVal = `${dVal}T${hrs}:${mins}`;
+        }
+        const dateInput = document.getElementById('trans-date');
+        const dateDisplay = document.getElementById('trans-date-display');
+        if (dateInput) dateInput.value = dVal;
+        if (dateDisplay) dateDisplay.textContent = formatGreekDateTime(dVal);
+      }
+
+      // Match Category
+      if (data.category && state.categories) {
+        const cleanTarget = data.category.toLowerCase().replace(/^[^\w\s\u0370-\u03ff]+/, '').trim();
+        const matchedCat = state.categories.find(c => {
+          const cleanName = c.name.toLowerCase().replace(/^[^\w\s\u0370-\u03ff]+/, '').trim();
+          return cleanName.includes(cleanTarget) || cleanTarget.includes(cleanName);
+        });
+        if (matchedCat) {
+          selectCategory(matchedCat.name, matchedCat.icon, matchedCat.color, false);
+        }
+      }
+
+      // Match or fill Subcategory
+      if (data.subcategory) {
+        const subInput = document.getElementById('trans-subcategory-custom');
+        const subSelect = document.getElementById('trans-subcategory-select');
+        if (subSelect && Array.from(subSelect.options).some(o => o.value === data.subcategory)) {
+          subSelect.value = data.subcategory;
+        } else if (subInput) {
+          subInput.value = data.subcategory;
+        }
+        updateSubcategoryRowVisibility();
+      }
+
+      // 7. Show AI Confirmation Card
+      if (confirmCard) {
+        const merchEl = document.getElementById('ai-confirm-merchant');
+        const amtEl = document.getElementById('ai-confirm-amount');
+        const catEl = document.getElementById('ai-confirm-category');
+        const dateEl = document.getElementById('ai-confirm-date');
+
+        if (merchEl) merchEl.textContent = data.merchant || '—';
+        if (amtEl) amtEl.textContent = formatCurrency(Number(data.amount || 0));
+        if (catEl) catEl.textContent = `${data.category || ''} ${data.subcategory ? '• ' + data.subcategory : ''}`.trim();
+        if (dateEl) dateEl.textContent = data.date || '';
+
+        confirmCard.style.display = 'flex';
+      }
+
+      showSyncToast((TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['ai_scan_success']) || '✨ Αναγνωρίστηκε επιτυχώς με AI', 3000);
+
+    } catch (err) {
+      console.error('AI Receipt Processing Error:', err);
+      if (banner) banner.style.display = 'none';
+      const failMsg = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['ai_scan_fail']) ||
+        'Δεν ήταν δυνατή η ανάγνωση της απόδειξης. Παρακαλώ ελέγξτε τη φωτογραφία ή συμπληρώστε τα πεδία χειροκίνητα.';
+      showSyncToast(failMsg, 4000);
+    }
+  }
+
+  function dismissAIConfirmationCard(e) {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    const card = document.getElementById('ai-receipt-confirmation-card');
+    if (card) card.style.display = 'none';
+  }
+
   window.openReceiptPhotoSourcePicker = openReceiptPhotoSourcePicker;
+  window.triggerReceiptAIScan = triggerReceiptAIScan;
   window.triggerReceiptCameraCapture = triggerReceiptCameraCapture;
   window.triggerReceiptGalleryUpload = triggerReceiptGalleryUpload;
   window.handleReceiptPhotoSourceOverlayClick = handleReceiptPhotoSourceOverlayClick;
+  window.dismissAIConfirmationCard = dismissAIConfirmationCard;
+  window.processReceiptImageWithAI = processReceiptImageWithAI;
+  window.getMonthlyAIScanUsage = getMonthlyAIScanUsage;
+  window.updateAIScanQuotaBadge = updateAIScanQuotaBadge;
   window.removePendingPhoto = removePendingPhoto;
   window.renderPhotoPreviews = renderPhotoPreviews;
 
@@ -9413,6 +9663,32 @@ function setupEventListeners() {
 
         renderPhotoPreviews();
         cameraInputEl.value = ''; // Reset file input
+      });
+    }
+
+    const aiCameraInputEl = document.getElementById('trans-ai-camera-input');
+    if (aiCameraInputEl) {
+      aiCameraInputEl.addEventListener('change', (e) => {
+        const files = e.target.files;
+        if (!files || files.length === 0) return;
+        const file = files[0];
+        if (file) {
+          processReceiptImageWithAI(file);
+        }
+        aiCameraInputEl.value = '';
+      });
+    }
+
+    const aiGalleryInputEl = document.getElementById('trans-ai-gallery-input');
+    if (aiGalleryInputEl) {
+      aiGalleryInputEl.addEventListener('change', (e) => {
+        const files = e.target.files;
+        if (!files || files.length === 0) return;
+        const file = files[0];
+        if (file) {
+          processReceiptImageWithAI(file);
+        }
+        aiGalleryInputEl.value = '';
       });
     }
   }
@@ -10410,6 +10686,15 @@ function openAddTransactionModal({ instant = false } = {}) {
   const placeholderContainer = document.getElementById('trans-photo-placeholder-container');
   if (placeholderContainer) placeholderContainer.style.display = 'none';
 
+  const aiBanner = document.getElementById('ai-receipt-scanning-banner');
+  if (aiBanner) aiBanner.style.display = 'none';
+  const aiCard = document.getElementById('ai-receipt-confirmation-card');
+  if (aiCard) aiCard.style.display = 'none';
+  const aiCamInput = document.getElementById('trans-ai-camera-input');
+  if (aiCamInput) aiCamInput.value = '';
+  const aiGalInput = document.getElementById('trans-ai-gallery-input');
+  if (aiGalInput) aiGalInput.value = '';
+
   const now = new Date();
   const tzOffset = now.getTimezoneOffset() * 60000;
   const localISOTime = (new Date(now.getTime() - tzOffset)).toISOString().slice(0, 16);
@@ -10505,6 +10790,15 @@ function openEditTransactionModal(t, { instant = false } = {}) {
   const placeholderContainer = document.getElementById('trans-photo-placeholder-container');
   if (previewContainer) previewContainer.style.display = 'none';
   if (placeholderContainer) placeholderContainer.style.display = 'none';
+
+  const aiBanner = document.getElementById('ai-receipt-scanning-banner');
+  if (aiBanner) aiBanner.style.display = 'none';
+  const aiCard = document.getElementById('ai-receipt-confirmation-card');
+  if (aiCard) aiCard.style.display = 'none';
+  const aiCamInput = document.getElementById('trans-ai-camera-input');
+  if (aiCamInput) aiCamInput.value = '';
+  const aiGalInput = document.getElementById('trans-ai-gallery-input');
+  if (aiGalInput) aiGalInput.value = '';
 
   // Load receipt photos from IndexedDB
   if (t.photo_local_uri && t.id) {
