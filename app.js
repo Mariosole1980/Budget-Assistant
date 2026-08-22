@@ -28165,16 +28165,46 @@ function openRecurringModal() {
     monthsGrid.appendChild(btn);
   }
 
-  // Populate preset dropdown
-  const select = document.getElementById('recurring-simple-preset');
-  if (select) {
-    select.value = _pendingRecurringSettings.preset || 'monthly';
+  // Sync frequency preset and dropdown UI
+  const currentPreset = _pendingRecurringSettings.preset || 'monthly';
+  const presetInput = document.getElementById('recurring-simple-preset');
+  if (presetInput) {
+    presetInput.value = currentPreset;
   }
+
+  const lang = state.lang || 'el';
+  const freqLabel = document.getElementById('recurring-frequency-label');
+  const icon = document.getElementById('recurring-frequency-icon');
+  const meta = {
+    daily: { icon: '☀️', el: 'Daily (Καθημερινά)', en: 'Daily' },
+    weekly: { icon: '📆', el: 'Weekly (Εβδομαδιαία)', en: 'Weekly' },
+    monthly: { icon: '📅', el: 'Monthly (Μηνιαία)', en: 'Monthly' },
+    yearly: { icon: '🎆', el: 'Yearly (Ετήσια)', en: 'Yearly' },
+    specific_months: { icon: '📌', el: 'Specific Months (Συγκεκριμένοι Μήνες)', en: 'Specific Months' }
+  }[currentPreset] || { icon: '📅', el: 'Monthly (Μηνιαία)', en: 'Monthly' };
+
+  if (icon) icon.textContent = meta.icon;
+  if (freqLabel) freqLabel.textContent = lang === 'el' ? meta.el : meta.en;
+
+  const options = document.querySelectorAll('#recurring-frequency-options-list .freq-option-item');
+  options.forEach(opt => {
+    const isSelected = opt.getAttribute('data-value') === currentPreset;
+    opt.classList.toggle('selected', isSelected);
+    opt.style.background = isSelected ? 'rgba(59, 130, 246, 0.12)' : 'transparent';
+    opt.style.border = isSelected ? '1px solid rgba(59, 130, 246, 0.3)' : 'none';
+    const check = opt.querySelector('.freq-check-icon');
+    if (check) check.style.display = isSelected ? 'block' : 'none';
+  });
+
+  const list = document.getElementById('recurring-frequency-options-list');
+  const chevron = document.getElementById('recurring-frequency-chevron');
+  if (list) list.style.display = 'none';
+  if (chevron) chevron.style.transform = 'rotate(0deg)';
 
   // Show or hide Specific Months container
   const monthsContainer = document.getElementById('recurring-specific-months-container');
   if (monthsContainer) {
-    if (_pendingRecurringSettings.preset === 'specific_months') {
+    if (currentPreset === 'specific_months') {
       monthsContainer.style.display = 'flex';
     } else {
       monthsContainer.style.display = 'none';
@@ -28186,14 +28216,14 @@ function openRecurringModal() {
   const btnDate = document.getElementById('recurring-end-type-date');
   const dateContainer = document.getElementById('recurring-custom-end-date-container');
   const hiddenInput = document.getElementById('recurring-end-date');
-  const label = document.getElementById('recurring-end-date-label');
+  const dateLabel = document.getElementById('recurring-end-date-label');
 
   if (!_pendingRecurringSettings.endType || _pendingRecurringSettings.endType === 'perpetual') {
     if (btnPerpetual) btnPerpetual.classList.add('active');
     if (btnDate) btnDate.classList.remove('active');
     if (dateContainer) dateContainer.style.display = 'none';
     if (hiddenInput) hiddenInput.value = '';
-    if (label) label.textContent = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['select_date']) || 'Επιλογή ημερομηνίας...';
+    if (dateLabel) dateLabel.textContent = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['select_date']) || 'Επιλογή ημερομηνίας...';
   } else {
     if (btnPerpetual) btnPerpetual.classList.remove('active');
     if (btnDate) btnDate.classList.add('active');
@@ -28201,10 +28231,10 @@ function openRecurringModal() {
 
     if (_pendingRecurringSettings.endDate) {
       if (hiddenInput) hiddenInput.value = _pendingRecurringSettings.endDate;
-      if (label) {
+      if (dateLabel) {
         const parts = _pendingRecurringSettings.endDate.split('-');
         if (parts.length === 3) {
-          label.textContent = `${parts[2]}/${parts[1]}/${parts[0]}`;
+          dateLabel.textContent = `${parts[2]}/${parts[1]}/${parts[0]}`;
         }
       }
     }
@@ -28213,6 +28243,73 @@ function openRecurringModal() {
   updateRecurringSummary();
   openModal('recurring-picker-modal');
 }
+
+function toggleRecurringFrequencyList() {
+  const list = document.getElementById('recurring-frequency-options-list');
+  const chevron = document.getElementById('recurring-frequency-chevron');
+  if (!list) return;
+  const isHidden = list.style.display === 'none' || getComputedStyle(list).display === 'none';
+  list.style.display = isHidden ? 'flex' : 'none';
+  if (chevron) {
+    chevron.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+  }
+}
+window.toggleRecurringFrequencyList = toggleRecurringFrequencyList;
+
+function selectRecurringFrequencyOption(val) {
+  _pendingRecurringSettings.preset = val;
+  const input = document.getElementById('recurring-simple-preset');
+  if (input) input.value = val;
+
+  const lang = state.lang || 'el';
+  const label = document.getElementById('recurring-frequency-label');
+  const icon = document.getElementById('recurring-frequency-icon');
+
+  const meta = {
+    daily: { icon: '☀️', el: 'Daily (Καθημερινά)', en: 'Daily' },
+    weekly: { icon: '📆', el: 'Weekly (Εβδομαδιαία)', en: 'Weekly' },
+    monthly: { icon: '📅', el: 'Monthly (Μηνιαία)', en: 'Monthly' },
+    yearly: { icon: '🎆', el: 'Yearly (Ετήσια)', en: 'Yearly' },
+    specific_months: { icon: '📌', el: 'Specific Months (Συγκεκριμένοι Μήνες)', en: 'Specific Months' }
+  }[val] || { icon: '📅', el: 'Monthly (Μηνιαία)', en: 'Monthly' };
+
+  if (icon) icon.textContent = meta.icon;
+  if (label) label.textContent = lang === 'el' ? meta.el : meta.en;
+
+  const options = document.querySelectorAll('#recurring-frequency-options-list .freq-option-item');
+  options.forEach(opt => {
+    const isSelected = opt.getAttribute('data-value') === val;
+    opt.classList.toggle('selected', isSelected);
+    opt.style.background = isSelected ? 'rgba(59, 130, 246, 0.12)' : 'transparent';
+    opt.style.border = isSelected ? '1px solid rgba(59, 130, 246, 0.3)' : 'none';
+    const check = opt.querySelector('.freq-check-icon');
+    if (check) check.style.display = isSelected ? 'block' : 'none';
+  });
+
+  const monthsContainer = document.getElementById('recurring-specific-months-container');
+  if (monthsContainer) {
+    if (val === 'specific_months') {
+      monthsContainer.style.display = 'flex';
+      if (!_pendingRecurringSettings.months || _pendingRecurringSettings.months.length === 0) {
+        const transDateVal = document.getElementById('trans-date')?.value;
+        const currentMonth = transDateVal ? new Date(transDateVal).getMonth() + 1 : new Date().getMonth() + 1;
+        _pendingRecurringSettings.months = [currentMonth];
+        openRecurringModal();
+        return;
+      }
+    } else {
+      monthsContainer.style.display = 'none';
+    }
+  }
+
+  const list = document.getElementById('recurring-frequency-options-list');
+  const chevron = document.getElementById('recurring-frequency-chevron');
+  if (list) list.style.display = 'none';
+  if (chevron) chevron.style.transform = 'rotate(0deg)';
+
+  updateRecurringSummary();
+}
+window.selectRecurringFrequencyOption = selectRecurringFrequencyOption;
 
 function onSimplePresetChange() {
   const select = document.getElementById('recurring-simple-preset');
