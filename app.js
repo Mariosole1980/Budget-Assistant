@@ -1951,9 +1951,9 @@ function fadeOutColdStartOverlay() {
     return;
   }
 
-  // Ensure total display time of splash (native + HTML) is capped at exactly ~2.5s
+  // Ensure total display time of splash is snappy and finishes within ~1.4s
   const elapsed = Date.now() - _splashAppStartTime;
-  const minDuration = 2500;
+  const minDuration = 1400;
   if (elapsed < minDuration) {
     setTimeout(fadeOutColdStartOverlay, minDuration - elapsed);
     return;
@@ -1961,11 +1961,11 @@ function fadeOutColdStartOverlay() {
 
   _coldStartFadeDone = true;
   // Smooth fade-out before removing iframe from DOM
-  frame.style.transition = 'opacity 0.45s ease';
+  frame.style.transition = 'opacity 0.35s ease';
   frame.style.opacity = '0';
   setTimeout(() => {
     if (frame.parentNode) frame.parentNode.removeChild(frame);
-  }, 450);
+  }, 350);
 }
 window.fadeOutColdStartOverlay = fadeOutColdStartOverlay;
 
