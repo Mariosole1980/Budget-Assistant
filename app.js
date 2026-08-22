@@ -1410,14 +1410,6 @@ async function scheduleDailyReminder(enabled, timeString) {
     } catch (chanErr) { }
 
     const [hours, minutes] = timeString.split(':').map(Number);
-    const now = new Date();
-    let scheduledDate = new Date();
-    scheduledDate.setHours(hours, minutes, 0, 0);
-
-    // If the scheduled time has already passed today, advance to tomorrow
-    if (scheduledDate.getTime() <= now.getTime()) {
-      scheduledDate.setDate(scheduledDate.getDate() + 1);
-    }
 
     await LocalNotifications.schedule({
       notifications: [
@@ -1429,9 +1421,10 @@ async function scheduleDailyReminder(enabled, timeString) {
           smallIcon: 'ic_stat_icon_config_sample',
           iconColor: '#7c6af7',
           schedule: {
-            at: scheduledDate,
-            repeats: true,
-            every: 'day',
+            on: {
+              hour: hours,
+              minute: minutes
+            },
             allowWhileIdle: true
           },
           sound: null,
