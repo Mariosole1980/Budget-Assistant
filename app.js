@@ -20958,7 +20958,7 @@ async function handleGoogleAuth() {
   const isCapacitor = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
   const GoogleAuth = window.Capacitor?.Plugins?.GoogleAuth;
 
-  // 1. Try Native Android Google Sign-In (Native ID Token)
+  // 1. Pure Native Android Google Sign-In (Zero Browser, Zero URLs)
   if (isCapacitor && GoogleAuth) {
     try {
       try {
@@ -20975,24 +20975,28 @@ async function handleGoogleAuth() {
       const googleUser = await GoogleAuth.signIn();
       const idToken = googleUser?.authentication?.idToken || googleUser?.idToken;
 
-      if (idToken) {
-        const { data, error } = await state.supabaseClient.auth.signInWithIdToken({
-          provider: 'google',
-          token: idToken,
-        });
-
-        if (error) throw error;
-        if (data && data.session && data.session.user) {
-          state.currentUser = data.session.user;
-          localStorage.setItem('cached_current_user', JSON.stringify(data.session.user));
-          hideAuthOverlay();
-          forceSyncNow(true).catch(console.error);
-          toggleLoader(false);
-          return;
-        }
+      if (!idToken) {
+        throw new Error('Google did not return an ID token.');
       }
-    } catch (nativeErr) {
-      const errMsg = (nativeErr?.message || '').toLowerCase();
+
+      // Authenticate directly with Supabase using the native Google ID token
+      const { data, error } = await state.supabaseClient.auth.signInWithIdToken({
+        provider: 'google',
+        token: idToken,
+      });
+
+      if (error) throw error;
+      if (data && data.session && data.session.user) {
+        state.currentUser = data.session.user;
+        localStorage.setItem('cached_current_user', JSON.stringify(data.session.user));
+        hideAuthOverlay();
+        await forceSyncNow(true);
+      }
+      toggleLoader(false);
+      return;
+    } catch (err) {
+      toggleLoader(false);
+      const errMsg = (err?.message || '').toLowerCase();
       // If user explicitly dismissed or canceled the native picker, exit cleanly
       if (
         errMsg.includes('cancel') ||
@@ -21003,118 +21007,26 @@ async function handleGoogleAuth() {
         errMsg.includes('12501') ||
         errMsg.includes('abort')
       ) {
-        toggleLoader(false);
         console.log('[GoogleAuth] User dismissed native prompt.');
         return;
       }
-      console.warn('[GoogleAuth] Native sign-in failed, seamlessly falling back to OAuth flow:', nativeErr);
+      console.error('[GoogleAuth] Native auth failed:', err);
+      showAuthStatus(((TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_error_prefix']) || '❌ Σφάλμα: ') + formatAuthErrorMessage(err));
+      return;
     }
   }
 
-  // 2. OAuth Flow (Seamless fallback for Native + Standard for Web/PWA)
+  // 2. Web/PWA redirect flow (Only for Desktop / Mobile Web browsers)
   try {
-    if (isCapacitor) {
-      const nativeRedirectUrl = 'com.budgetassistant.app://login-callback';
-      const { data, error } = await state.supabaseClient.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: nativeRedirectUrl,
-          queryParams: { prompt: 'select_account' },
-          skipBrowserRedirect: true
-        }
-      });
-      if (error) throw error;
-
-      const Browser = window.Capacitor?.Plugins?.Browser;
-      const App = window.Capacitor?.Plugins?.App;
-
-      if (Browser && data?.url) {
-        if (Browser.addListener) {
-          Browser.addListener('browserFinished', async () => {
-            console.log('[GoogleAuth] In-App Browser closed, checking session...');
-            toggleLoader(true);
-            try {
-              if (state.supabaseClient) {
-                const { data: sessData } = await state.supabaseClient.auth.getSession();
-                if (sessData && sessData.session && sessData.session.user) {
-                  state.currentUser = sessData.session.user;
-                  localStorage.setItem('cached_current_user', JSON.stringify(sessData.session.user));
-                  hideAuthOverlay();
-                  await forceSyncNow(true);
-                }
-              }
-            } catch (e) {
-              console.warn('[GoogleAuth] Session check on close failed:', e);
-            } finally {
-              toggleLoader(false);
-            }
-          });
-        }
-
-        if (App) {
-          const handle = await App.addListener('appUrlOpen', async (event) => {
-            try {
-              await handle.remove();
-              if (Browser && Browser.close) await Browser.close();
-
-              const url = new URL(event.url);
-              const hashParams = new URLSearchParams(url.hash.replace('#', ''));
-              const queryParams = new URLSearchParams(url.search);
-
-              const code = queryParams.get('code') || hashParams.get('code');
-              const accessToken = hashParams.get('access_token') || queryParams.get('access_token');
-              const refreshToken = hashParams.get('refresh_token') || queryParams.get('refresh_token');
-
-              if (code) {
-                const { data: sessionData, error: sessionError } = await state.supabaseClient.auth.exchangeCodeForSession(code);
-                if (sessionError) {
-                  console.error('[GoogleAuth] PKCE error:', sessionError);
-                  showAuthStatus('❌ ' + sessionError.message);
-                } else if (sessionData && sessionData.session && sessionData.session.user) {
-                  state.currentUser = sessionData.session.user;
-                  localStorage.setItem('cached_current_user', JSON.stringify(sessionData.session.user));
-                  hideAuthOverlay();
-                  await forceSyncNow(true);
-                }
-              } else if (accessToken && refreshToken) {
-                const { data: sessionData, error: sessionError } = await state.supabaseClient.auth.setSession({
-                  access_token: accessToken,
-                  refresh_token: refreshToken
-                });
-                if (sessionError) {
-                  console.error('[GoogleAuth] Session error:', sessionError);
-                  showAuthStatus('❌ ' + sessionError.message);
-                } else if (sessionData && sessionData.session && sessionData.session.user) {
-                  state.currentUser = sessionData.session.user;
-                  localStorage.setItem('cached_current_user', JSON.stringify(sessionData.session.user));
-                  hideAuthOverlay();
-                  await forceSyncNow(true);
-                }
-              }
-            } catch (authErr) {
-              console.error('[GoogleAuth] Callback error:', authErr);
-            } finally {
-              toggleLoader(false);
-            }
-          });
-        }
-
-        await Browser.open({ url: data.url, windowName: '_self' });
-      } else {
-        window.location.href = data?.url || '';
+    const redirectToUrl = window.location.origin + (window.location.pathname || '/');
+    const { error } = await state.supabaseClient.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: redirectToUrl,
+        queryParams: { prompt: 'select_account' }
       }
-    } else {
-      // Standard web/PWA redirect flow (desktop & mobile web)
-      const redirectToUrl = window.location.origin + (window.location.pathname || '/');
-      const { error } = await state.supabaseClient.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: redirectToUrl,
-          queryParams: { prompt: 'select_account' }
-        }
-      });
-      if (error) throw error;
-    }
+    });
+    if (error) throw error;
   } catch (err) {
     toggleLoader(false);
     const errMsg = (err?.message || '').toLowerCase();
@@ -21127,11 +21039,11 @@ async function handleGoogleAuth() {
       errMsg.includes('12501') ||
       errMsg.includes('abort')
     ) {
-      console.log('[GoogleAuth] User dismissed OAuth prompt.');
+      console.log('[GoogleAuth] User dismissed prompt.');
       return;
     }
     console.error('Google auth flow failed:', err);
-    showAuthStatus(((TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_error_prefix']) || '❌ Σφάλμα: ') + (err.message || (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_fail_google']) || 'Αποτυχία σύνδεσης με Google.'));
+    showAuthStatus(((TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_error_prefix']) || '❌ Σφάλμα: ') + formatAuthErrorMessage(err));
   }
 }
 
