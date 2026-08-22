@@ -5371,28 +5371,36 @@
         <div style="font-size: 17px; font-weight: 800; color: #ffffff; font-family: 'Outfit', sans-serif; text-align: center;"
           data-i18n="time_picker_title">Επιλογή Ώρας</div>
 
-        <!-- Top Hero Direct Typable Display -->
+        <!-- Top Hero Grand Digital Display -->
         <div class="modern-time-hero-box">
           <div class="modern-time-hero-digits">
-            <input type="tel" id="modern-time-input-hours" class="hero-time-digit-input"
-              maxlength="2" pattern="[0-9]*" inputmode="numeric" placeholder="21"
-              autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
-              oncontextmenu="return false;"
-              onfocus="handleModernHeroInputFocus(event, 'hours')"
-              oninput="handleModernTimeInputHours(event)"
-              onkeydown="handleModernTimeInputKeydown(event, 'hours')">
+            <!-- Hour Box -->
+            <div class="hero-digit-wrapper" id="hero-hour-wrapper" onclick="focusHeroTimeInput('hours')">
+              <input type="tel" id="modern-time-input-hours" class="hero-time-digit-input"
+                maxlength="2" pattern="[0-9]*" inputmode="numeric" placeholder="21"
+                autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+                oncontextmenu="return false;"
+                onfocus="handleModernHeroInputFocus(event, 'hours')"
+                onblur="handleModernHeroInputBlur('hours')"
+                oninput="handleModernTimeInputHours(event)"
+                onkeydown="handleModernTimeInputKeydown(event, 'hours')">
+              <span class="modern-time-hero-label" data-i18n="time_hours_label">ΩΡΑ</span>
+            </div>
+
             <span class="modern-time-hero-colon">:</span>
-            <input type="tel" id="modern-time-input-minutes" class="hero-time-digit-input"
-              maxlength="2" pattern="[0-9]*" inputmode="numeric" placeholder="00"
-              autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
-              oncontextmenu="return false;"
-              onfocus="handleModernHeroInputFocus(event, 'minutes')"
-              oninput="handleModernTimeInputMinutes(event)"
-              onkeydown="handleModernTimeInputKeydown(event, 'minutes')">
-          </div>
-          <div class="modern-time-hero-labels">
-            <span class="modern-time-hero-label" data-i18n="time_hours_label">ΩΡΑ</span>
-            <span class="modern-time-hero-label" data-i18n="time_minutes_label">ΛΕΠΤΑ</span>
+
+            <!-- Minute Box -->
+            <div class="hero-digit-wrapper" id="hero-minute-wrapper" onclick="focusHeroTimeInput('minutes')">
+              <input type="tel" id="modern-time-input-minutes" class="hero-time-digit-input"
+                maxlength="2" pattern="[0-9]*" inputmode="numeric" placeholder="00"
+                autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+                oncontextmenu="return false;"
+                onfocus="handleModernHeroInputFocus(event, 'minutes')"
+                onblur="handleModernHeroInputBlur('minutes')"
+                oninput="handleModernTimeInputMinutes(event)"
+                onkeydown="handleModernTimeInputKeydown(event, 'minutes')">
+              <span class="modern-time-hero-label" data-i18n="time_minutes_label">ΛΕΠΤΑ</span>
+            </div>
           </div>
         </div>
 

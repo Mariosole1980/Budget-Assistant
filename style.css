@@ -10549,31 +10549,31 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
   max-width: 350px !important;
   width: 92% !important;
   border-radius: 28px !important;
-  background: rgba(22, 27, 36, 0.98) !important;
+  background: rgba(20, 24, 33, 0.98) !important;
   backdrop-filter: blur(28px) !important;
   -webkit-backdrop-filter: blur(28px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.75) !important;
-  padding: 24px 22px !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.8) !important;
+  padding: 22px 20px !important;
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
-  gap: 18px !important;
+  gap: 16px !important;
   box-sizing: border-box !important;
   margin: auto !important;
 }
 
 .modern-time-hero-box {
   width: 100%;
-  padding: 14px 18px;
+  padding: 14px 16px;
   border-radius: 22px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%);
+  border: 1.5px solid rgba(255, 255, 255, 0.14);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.15);
   box-sizing: border-box;
 }
 
@@ -10581,14 +10581,41 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 12px;
+  width: 100%;
+}
+
+.hero-digit-wrapper {
+  flex: 1;
+  max-width: 120px;
+  padding: 8px 10px 6px 10px;
+  border-radius: 18px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1.5px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.5);
+  box-sizing: border-box;
+}
+
+.hero-digit-wrapper.active,
+.hero-digit-wrapper:focus-within {
+  background: rgba(56, 189, 248, 0.12);
+  border-color: rgba(56, 189, 248, 0.55);
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.25), inset 0 2px 8px rgba(0, 0, 0, 0.4);
+  transform: translateY(-2px);
 }
 
 .hero-time-digit-input {
-  width: 72px;
-  height: 52px;
+  width: 100%;
+  height: 56px;
   padding: 0;
-  font-size: 42px;
+  font-size: 52px;
   font-weight: 800;
   font-family: 'Outfit', sans-serif;
   color: #ffffff;
@@ -10596,12 +10623,14 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
   background: transparent;
   border: none;
   outline: none;
-  caret-color: #38bdf8;
+  caret-color: transparent;
   -webkit-user-select: text;
   user-select: text;
   -webkit-touch-callout: none;
   -moz-appearance: textfield;
   touch-action: manipulation;
+  text-shadow: 0 0 22px rgba(255, 255, 255, 0.45), 0 2px 8px rgba(0, 0, 0, 0.6);
+  line-height: 1;
 }
 
 .hero-time-digit-input::-webkit-outer-spin-button,
@@ -10610,34 +10639,29 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
   margin: 0;
 }
 
-.hero-time-digit-input:focus {
-  color: #ffffff;
-  text-shadow: 0 0 16px rgba(56, 189, 248, 0.6);
-}
-
 .modern-time-hero-colon {
-  font-size: 38px;
+  font-size: 44px;
   font-weight: 800;
   font-family: 'Outfit', sans-serif;
-  color: rgba(255, 255, 255, 0.8);
-  line-height: 52px;
-  margin-top: -6px;
-}
-
-.modern-time-hero-labels {
-  display: flex;
-  justify-content: space-around;
-  width: 170px;
-  margin-top: 2px;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1;
+  margin-top: -14px;
+  text-shadow: 0 0 16px rgba(255, 255, 255, 0.3);
 }
 
 .modern-time-hero-label {
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 800;
   color: #8a99ad;
-  letter-spacing: 1px;
+  letter-spacing: 1.5px;
   text-transform: uppercase;
   font-family: 'Outfit', sans-serif;
+  transition: color 0.2s ease;
+}
+
+.hero-digit-wrapper.active .modern-time-hero-label,
+.hero-digit-wrapper:focus-within .modern-time-hero-label {
+  color: #38bdf8;
 }
 
 .modern-time-drums-row {
@@ -10650,8 +10674,8 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
 
 .modern-drum-cylinder {
   position: relative;
-  width: 125px;
-  height: 192px;
+  width: 120px;
+  height: 176px;
   background: rgba(10, 14, 22, 0.88);
   border: 1.5px solid rgba(255, 255, 255, 0.1);
   border-radius: 20px;
@@ -10665,7 +10689,7 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
   overflow-y: scroll;
   overflow-x: hidden;
   scroll-snap-type: y mandatory;
-  padding: 72px 0;
+  padding: 66px 0;
   box-sizing: border-box;
   scrollbar-width: none;
   touch-action: pan-y;
@@ -10676,10 +10700,10 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
 }
 
 .modern-drum-item {
-  height: 48px;
-  line-height: 48px;
+  height: 44px;
+  line-height: 44px;
   text-align: center;
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 600;
   font-family: 'Outfit', sans-serif;
   color: rgba(255, 255, 255, 0.35);
@@ -10691,17 +10715,17 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
 
 .modern-drum-item.selected {
   color: #ffffff;
-  font-size: 30px;
+  font-size: 26px;
   font-weight: 800;
-  text-shadow: 0 0 14px rgba(255, 255, 255, 0.5);
+  text-shadow: 0 0 12px rgba(255, 255, 255, 0.5);
 }
 
 .modern-drum-lens {
   position: absolute;
-  top: 72px;
+  top: 66px;
   left: 6px;
   right: 6px;
-  height: 48px;
+  height: 44px;
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.07);
   border: 1.5px solid rgba(255, 255, 255, 0.2);
@@ -10714,7 +10738,7 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
   position: absolute;
   inset: 0;
   border-radius: 20px;
-  background: linear-gradient(to bottom, rgba(10, 14, 22, 0.96) 0%, transparent 32%, transparent 68%, rgba(10, 14, 22, 0.96) 100%);
+  background: linear-gradient(to bottom, rgba(10, 14, 22, 0.96) 0%, transparent 30%, transparent 70%, rgba(10, 14, 22, 0.96) 100%);
 }
 
 .modern-time-actions-row {

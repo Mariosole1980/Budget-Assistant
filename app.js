@@ -27311,7 +27311,7 @@ function populateModernTimeWheels() {
       item.className = 'modern-drum-item';
       item.textContent = String(i).padStart(2, '0');
       item.onclick = () => {
-        hoursScroll.scrollTop = i * 48;
+        hoursScroll.scrollTop = i * 44;
       };
       hoursScroll.appendChild(item);
     }
@@ -27323,7 +27323,7 @@ function populateModernTimeWheels() {
       item.className = 'modern-drum-item';
       item.textContent = String(i).padStart(2, '0');
       item.onclick = () => {
-        minutesScroll.scrollTop = i * 48;
+        minutesScroll.scrollTop = i * 44;
       };
       minutesScroll.appendChild(item);
     }
@@ -27339,7 +27339,7 @@ function setupModernTimeWheelScrollListeners() {
 
     const updateSelection = () => {
       const scrollTop = scrollEl.scrollTop;
-      const selectedIndex = Math.max(0, Math.min(scrollId === 'modern-scroll-hours' ? 23 : 59, Math.round(scrollTop / 48)));
+      const selectedIndex = Math.max(0, Math.min(scrollId === 'modern-scroll-hours' ? 23 : 59, Math.round(scrollTop / 44)));
       const items = scrollEl.querySelectorAll('.modern-drum-item');
       items.forEach((item, idx) => {
         if (idx === selectedIndex) {
@@ -27401,6 +27401,11 @@ function openModernTimePicker(initialTime, onConfirmCallback) {
     inputMinutes.dataset.fresh = 'true';
   }
 
+  const hourWrap = document.getElementById('hero-hour-wrapper');
+  const minWrap = document.getElementById('hero-minute-wrapper');
+  if (hourWrap) hourWrap.classList.remove('active');
+  if (minWrap) minWrap.classList.remove('active');
+
   const modal = document.getElementById('modern-time-picker-modal');
   if (modal) {
     modal.classList.add('active');
@@ -27409,8 +27414,8 @@ function openModernTimePicker(initialTime, onConfirmCallback) {
   setTimeout(() => {
     const hs = document.getElementById('modern-scroll-hours');
     const ms = document.getElementById('modern-scroll-minutes');
-    if (hs) hs.scrollTop = _modernTimePickerHour * 48;
-    if (ms) ms.scrollTop = _modernTimePickerMinute * 48;
+    if (hs) hs.scrollTop = _modernTimePickerHour * 44;
+    if (ms) ms.scrollTop = _modernTimePickerMinute * 44;
   }, 60);
 }
 window.openModernTimePicker = openModernTimePicker;
@@ -27430,11 +27435,29 @@ function handleModernTimePickerOverlayClick(e) {
 }
 window.handleModernTimePickerOverlayClick = handleModernTimePickerOverlayClick;
 
+function focusHeroTimeInput(field) {
+  const el = document.getElementById(field === 'hours' ? 'modern-time-input-hours' : 'modern-time-input-minutes');
+  if (el) {
+    el.focus();
+    el.dataset.fresh = 'true';
+  }
+}
+window.focusHeroTimeInput = focusHeroTimeInput;
+
 function handleModernHeroInputFocus(e, field) {
-  // Avoid calling .select() which triggers Android system CAB ("Αποκοπή Αντιγραφή")
   e.target.dataset.fresh = 'true';
+  const hourWrap = document.getElementById('hero-hour-wrapper');
+  const minWrap = document.getElementById('hero-minute-wrapper');
+  if (hourWrap) hourWrap.classList.toggle('active', field === 'hours');
+  if (minWrap) minWrap.classList.toggle('active', field === 'minutes');
 }
 window.handleModernHeroInputFocus = handleModernHeroInputFocus;
+
+function handleModernHeroInputBlur(field) {
+  const wrap = document.getElementById(field === 'hours' ? 'hero-hour-wrapper' : 'hero-minute-wrapper');
+  if (wrap) wrap.classList.remove('active');
+}
+window.handleModernHeroInputBlur = handleModernHeroInputBlur;
 
 function handleModernTimeInputHours(e) {
   let val = e.target.value.replace(/\D/g, '');
@@ -27452,7 +27475,7 @@ function handleModernTimeInputHours(e) {
     }
     _modernTimePickerHour = num;
     const hs = document.getElementById('modern-scroll-hours');
-    if (hs) hs.scrollTop = num * 48;
+    if (hs) hs.scrollTop = num * 44;
   } else {
     _modernTimePickerHour = 0;
   }
@@ -27485,7 +27508,7 @@ function handleModernTimeInputMinutes(e) {
     }
     _modernTimePickerMinute = num;
     const ms = document.getElementById('modern-scroll-minutes');
-    if (ms) ms.scrollTop = num * 48;
+    if (ms) ms.scrollTop = num * 44;
   } else {
     _modernTimePickerMinute = 0;
   }
