@@ -124,7 +124,59 @@ const resDir = path.join(ROOT, 'android', 'app', 'src', 'main', 'res');
         console.log('Wrote splash to', dirName, `(${dim.width}x${dim.height})`);
     }
 
-    console.log('Done generating Android launcher icons and splash screens.');
+    // 3. Generate Notification Small Icons (pure white silhouette on transparent background)
+    const logoMarkPath = path.join(ROOT, 'logo-mark.png');
+    if (fs.existsSync(logoMarkPath)) {
+        const notifSizes = {
+            'drawable-mdpi': 24,
+            'drawable-hdpi': 36,
+            'drawable-xhdpi': 48,
+            'drawable-xxhdpi': 72,
+            'drawable-xxxhdpi': 96,
+            'drawable': 48
+        };
+
+        const { data, info } = await sharp(logoMarkPath).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+        for (let i = 0; i < data.length; i += 4) {
+            if (data[i + 3] > 20) {
+                data[i] = 255;
+                data[i + 1] = 255;
+                data[i + 2] = 255;
+            }
+        }
+
+        const whiteSilhouette = await sharp(data, {
+            raw: { width: info.width, height: info.height, channels: 4 }
+        }).png().toBuffer();
+
+        for (const [folder, size] of Object.entries(notifSizes)) {
+            const targetDir = path.join(resDir, folder);
+            if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true });
+            const targetFile = path.join(targetDir, 'ic_stat_icon_config_sample.png');
+
+            const innerSize = Math.round(size * 0.85);
+            const resized = await sharp(whiteSilhouette)
+                .resize(innerSize, innerSize, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+                .toBuffer();
+
+            const pad = Math.round((size - innerSize) / 2);
+            await sharp({
+                create: {
+                    width: size,
+                    height: size,
+                    channels: 4,
+                    background: { r: 0, g: 0, b: 0, alpha: 0 }
+                }
+            })
+                .composite([{ input: resized, left: pad, top: pad }])
+                .png()
+                .toFile(targetFile);
+
+            console.log('Wrote notification icon to', path.join(folder, 'ic_stat_icon_config_sample.png'), `(${size}x${size})`);
+        }
+    }
+
+    console.log('Done generating Android launcher icons, notification icons, and splash screens.');
 })().catch((e) => {
     console.error('Error:', e.message);
     process.exit(1);

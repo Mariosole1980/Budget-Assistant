@@ -1392,7 +1392,33 @@ async function scheduleDailyReminder(enabled, timeString) {
       console.warn('Notification permission denied');
       return;
     }
+
+    // Ensure notification channel exists with high priority and bypass
+    try {
+      if (typeof LocalNotifications.createChannel === 'function') {
+        await LocalNotifications.createChannel({
+          id: 'budget_reminders',
+          name: 'Budget Assistant Reminders',
+          description: 'Daily expense reminders and alerts',
+          importance: 5,
+          visibility: 1,
+          vibration: true,
+          lights: true,
+          lightColor: '#7c6af7'
+        });
+      }
+    } catch (chanErr) { }
+
     const [hours, minutes] = timeString.split(':').map(Number);
+    const now = new Date();
+    let scheduledDate = new Date();
+    scheduledDate.setHours(hours, minutes, 0, 0);
+
+    // If the scheduled time has already passed today, advance to tomorrow
+    if (scheduledDate.getTime() <= now.getTime()) {
+      scheduledDate.setDate(scheduledDate.getDate() + 1);
+    }
+
     await LocalNotifications.schedule({
       notifications: [
         {
@@ -1403,11 +1429,9 @@ async function scheduleDailyReminder(enabled, timeString) {
           smallIcon: 'ic_stat_icon_config_sample',
           iconColor: '#7c6af7',
           schedule: {
-            on: {
-              hour: hours,
-              minute: minutes
-            },
+            at: scheduledDate,
             repeats: true,
+            every: 'day',
             allowWhileIdle: true
           },
           sound: null,
