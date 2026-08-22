@@ -10546,33 +10546,34 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
    MODERN TIME PICKER (OLED DRUM CYLINDERS & DIRECT TYPING)
    ============================================================ */
 .modern-time-picker-card-v2 {
-  max-width: 320px !important;
-  width: 88% !important;
+  max-width: 350px !important;
+  width: 92% !important;
   border-radius: 28px !important;
-  background: rgba(22, 27, 36, 0.96) !important;
-  backdrop-filter: blur(24px) !important;
-  -webkit-backdrop-filter: blur(24px) !important;
+  background: rgba(22, 27, 36, 0.98) !important;
+  backdrop-filter: blur(28px) !important;
+  -webkit-backdrop-filter: blur(28px) !important;
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7) !important;
-  padding: 22px 20px !important;
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.75) !important;
+  padding: 24px 22px !important;
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
-  gap: 16px !important;
+  gap: 18px !important;
   box-sizing: border-box !important;
+  margin: auto !important;
 }
 
 .modern-time-hero-box {
   width: 100%;
-  padding: 12px 16px;
-  border-radius: 20px;
+  padding: 14px 18px;
+  border-radius: 22px;
   background: rgba(255, 255, 255, 0.04);
   border: 1.5px solid rgba(255, 255, 255, 0.12);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.3);
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.35);
   box-sizing: border-box;
 }
 
@@ -10584,10 +10585,10 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
 }
 
 .hero-time-digit-input {
-  width: 64px;
-  height: 48px;
+  width: 72px;
+  height: 52px;
   padding: 0;
-  font-size: 38px;
+  font-size: 42px;
   font-weight: 800;
   font-family: 'Outfit', sans-serif;
   color: #ffffff;
@@ -10596,7 +10597,11 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
   border: none;
   outline: none;
   caret-color: #38bdf8;
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: none;
   -moz-appearance: textfield;
+  touch-action: manipulation;
 }
 
 .hero-time-digit-input::-webkit-outer-spin-button,
@@ -10607,27 +10612,27 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
 
 .hero-time-digit-input:focus {
   color: #ffffff;
-  text-shadow: 0 0 14px rgba(56, 189, 248, 0.6);
+  text-shadow: 0 0 16px rgba(56, 189, 248, 0.6);
 }
 
 .modern-time-hero-colon {
-  font-size: 34px;
+  font-size: 38px;
   font-weight: 800;
   font-family: 'Outfit', sans-serif;
   color: rgba(255, 255, 255, 0.8);
-  line-height: 48px;
+  line-height: 52px;
   margin-top: -6px;
 }
 
 .modern-time-hero-labels {
   display: flex;
   justify-content: space-around;
-  width: 150px;
+  width: 170px;
   margin-top: 2px;
 }
 
 .modern-time-hero-label {
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 700;
   color: #8a99ad;
   letter-spacing: 1px;
@@ -10639,19 +10644,19 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 16px;
+  gap: 18px;
   width: 100%;
 }
 
 .modern-drum-cylinder {
   position: relative;
-  width: 110px;
-  height: 176px;
-  background: rgba(10, 14, 22, 0.85);
+  width: 125px;
+  height: 192px;
+  background: rgba(10, 14, 22, 0.88);
   border: 1.5px solid rgba(255, 255, 255, 0.1);
-  border-radius: 18px;
+  border-radius: 20px;
   overflow: hidden;
-  box-shadow: inset 0 4px 16px rgba(0, 0, 0, 0.8);
+  box-shadow: inset 0 4px 18px rgba(0, 0, 0, 0.85);
   box-sizing: border-box;
 }
 
@@ -10660,7 +10665,7 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
   overflow-y: scroll;
   overflow-x: hidden;
   scroll-snap-type: y mandatory;
-  padding: 66px 0;
+  padding: 72px 0;
   box-sizing: border-box;
   scrollbar-width: none;
   touch-action: pan-y;
@@ -10671,10 +10676,10 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
 }
 
 .modern-drum-item {
-  height: 44px;
-  line-height: 44px;
+  height: 48px;
+  line-height: 48px;
   text-align: center;
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 600;
   font-family: 'Outfit', sans-serif;
   color: rgba(255, 255, 255, 0.35);
@@ -10686,44 +10691,44 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
 
 .modern-drum-item.selected {
   color: #ffffff;
-  font-size: 28px;
+  font-size: 30px;
   font-weight: 800;
-  text-shadow: 0 0 12px rgba(255, 255, 255, 0.5);
+  text-shadow: 0 0 14px rgba(255, 255, 255, 0.5);
 }
 
 .modern-drum-lens {
   position: absolute;
-  top: 66px;
+  top: 72px;
   left: 6px;
   right: 6px;
-  height: 44px;
-  border-radius: 12px;
+  height: 48px;
+  border-radius: 14px;
   background: rgba(255, 255, 255, 0.07);
   border: 1.5px solid rgba(255, 255, 255, 0.2);
   pointer-events: none;
-  box-shadow: 0 0 12px rgba(255, 255, 255, 0.05);
+  box-shadow: 0 0 14px rgba(255, 255, 255, 0.06);
 }
 
 .modern-drum-gradient-mask {
   pointer-events: none;
   position: absolute;
   inset: 0;
-  border-radius: 18px;
-  background: linear-gradient(to bottom, rgba(10, 14, 22, 0.95) 0%, transparent 30%, transparent 70%, rgba(10, 14, 22, 0.95) 100%);
+  border-radius: 20px;
+  background: linear-gradient(to bottom, rgba(10, 14, 22, 0.96) 0%, transparent 32%, transparent 68%, rgba(10, 14, 22, 0.96) 100%);
 }
 
 .modern-time-actions-row {
   display: flex;
-  gap: 12px;
+  gap: 14px;
   width: 100%;
   margin-top: 4px;
 }
 
 .modern-time-btn-cancel {
   flex: 1;
-  padding: 12px;
+  padding: 13px;
   border-radius: 16px;
-  font-size: 14px;
+  font-size: 14.5px;
   font-weight: 700;
   font-family: 'Outfit', sans-serif;
   background: rgba(239, 68, 68, 0.08);
@@ -10741,9 +10746,9 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
 
 .modern-time-btn-confirm {
   flex: 1;
-  padding: 12px;
+  padding: 13px;
   border-radius: 16px;
-  font-size: 14px;
+  font-size: 14.5px;
   font-weight: 700;
   font-family: 'Outfit', sans-serif;
   background: rgba(16, 185, 129, 0.12);

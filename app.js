@@ -27311,7 +27311,7 @@ function populateModernTimeWheels() {
       item.className = 'modern-drum-item';
       item.textContent = String(i).padStart(2, '0');
       item.onclick = () => {
-        hoursScroll.scrollTop = i * 44;
+        hoursScroll.scrollTop = i * 48;
       };
       hoursScroll.appendChild(item);
     }
@@ -27323,7 +27323,7 @@ function populateModernTimeWheels() {
       item.className = 'modern-drum-item';
       item.textContent = String(i).padStart(2, '0');
       item.onclick = () => {
-        minutesScroll.scrollTop = i * 44;
+        minutesScroll.scrollTop = i * 48;
       };
       minutesScroll.appendChild(item);
     }
@@ -27339,7 +27339,7 @@ function setupModernTimeWheelScrollListeners() {
 
     const updateSelection = () => {
       const scrollTop = scrollEl.scrollTop;
-      const selectedIndex = Math.max(0, Math.min(scrollId === 'modern-scroll-hours' ? 23 : 59, Math.round(scrollTop / 44)));
+      const selectedIndex = Math.max(0, Math.min(scrollId === 'modern-scroll-hours' ? 23 : 59, Math.round(scrollTop / 48)));
       const items = scrollEl.querySelectorAll('.modern-drum-item');
       items.forEach((item, idx) => {
         if (idx === selectedIndex) {
@@ -27392,8 +27392,14 @@ function openModernTimePicker(initialTime, onConfirmCallback) {
 
   const inputHours = document.getElementById('modern-time-input-hours');
   const inputMinutes = document.getElementById('modern-time-input-minutes');
-  if (inputHours) inputHours.value = String(_modernTimePickerHour).padStart(2, '0');
-  if (inputMinutes) inputMinutes.value = String(_modernTimePickerMinute).padStart(2, '0');
+  if (inputHours) {
+    inputHours.value = String(_modernTimePickerHour).padStart(2, '0');
+    inputHours.dataset.fresh = 'true';
+  }
+  if (inputMinutes) {
+    inputMinutes.value = String(_modernTimePickerMinute).padStart(2, '0');
+    inputMinutes.dataset.fresh = 'true';
+  }
 
   const modal = document.getElementById('modern-time-picker-modal');
   if (modal) {
@@ -27403,8 +27409,8 @@ function openModernTimePicker(initialTime, onConfirmCallback) {
   setTimeout(() => {
     const hs = document.getElementById('modern-scroll-hours');
     const ms = document.getElementById('modern-scroll-minutes');
-    if (hs) hs.scrollTop = _modernTimePickerHour * 44;
-    if (ms) ms.scrollTop = _modernTimePickerMinute * 44;
+    if (hs) hs.scrollTop = _modernTimePickerHour * 48;
+    if (ms) ms.scrollTop = _modernTimePickerMinute * 48;
   }, 60);
 }
 window.openModernTimePicker = openModernTimePicker;
@@ -27424,8 +27430,19 @@ function handleModernTimePickerOverlayClick(e) {
 }
 window.handleModernTimePickerOverlayClick = handleModernTimePickerOverlayClick;
 
+function handleModernHeroInputFocus(e, field) {
+  // Avoid calling .select() which triggers Android system CAB ("Αποκοπή Αντιγραφή")
+  e.target.dataset.fresh = 'true';
+}
+window.handleModernHeroInputFocus = handleModernHeroInputFocus;
+
 function handleModernTimeInputHours(e) {
   let val = e.target.value.replace(/\D/g, '');
+  if (e.target.dataset.fresh === 'true' && val.length > 0) {
+    // If just focused, take the newly typed character as replacement
+    val = val.slice(-1);
+    e.target.dataset.fresh = 'false';
+  }
   if (val.length > 2) val = val.slice(0, 2);
   let num = parseInt(val, 10);
   if (!isNaN(num)) {
@@ -27435,7 +27452,7 @@ function handleModernTimeInputHours(e) {
     }
     _modernTimePickerHour = num;
     const hs = document.getElementById('modern-scroll-hours');
-    if (hs) hs.scrollTop = num * 44;
+    if (hs) hs.scrollTop = num * 48;
   } else {
     _modernTimePickerHour = 0;
   }
@@ -27446,7 +27463,7 @@ function handleModernTimeInputHours(e) {
     const minInput = document.getElementById('modern-time-input-minutes');
     if (minInput) {
       minInput.focus();
-      setTimeout(() => minInput.select(), 30);
+      minInput.dataset.fresh = 'true';
     }
   }
 }
@@ -27454,6 +27471,11 @@ window.handleModernTimeInputHours = handleModernTimeInputHours;
 
 function handleModernTimeInputMinutes(e) {
   let val = e.target.value.replace(/\D/g, '');
+  if (e.target.dataset.fresh === 'true' && val.length > 0) {
+    // If just focused, take the newly typed character as replacement
+    val = val.slice(-1);
+    e.target.dataset.fresh = 'false';
+  }
   if (val.length > 2) val = val.slice(0, 2);
   let num = parseInt(val, 10);
   if (!isNaN(num)) {
@@ -27463,7 +27485,7 @@ function handleModernTimeInputMinutes(e) {
     }
     _modernTimePickerMinute = num;
     const ms = document.getElementById('modern-scroll-minutes');
-    if (ms) ms.scrollTop = num * 44;
+    if (ms) ms.scrollTop = num * 48;
   } else {
     _modernTimePickerMinute = 0;
   }
@@ -27481,7 +27503,7 @@ function handleModernTimeInputKeydown(e, field) {
     const hourInput = document.getElementById('modern-time-input-hours');
     if (hourInput) {
       hourInput.focus();
-      setTimeout(() => hourInput.select(), 30);
+      hourInput.dataset.fresh = 'true';
     }
   }
 }

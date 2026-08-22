@@ -5376,13 +5376,17 @@
           <div class="modern-time-hero-digits">
             <input type="tel" id="modern-time-input-hours" class="hero-time-digit-input"
               maxlength="2" pattern="[0-9]*" inputmode="numeric" placeholder="21"
-              onfocus="this.select()"
+              autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+              oncontextmenu="return false;"
+              onfocus="handleModernHeroInputFocus(event, 'hours')"
               oninput="handleModernTimeInputHours(event)"
               onkeydown="handleModernTimeInputKeydown(event, 'hours')">
             <span class="modern-time-hero-colon">:</span>
             <input type="tel" id="modern-time-input-minutes" class="hero-time-digit-input"
               maxlength="2" pattern="[0-9]*" inputmode="numeric" placeholder="00"
-              onfocus="this.select()"
+              autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+              oncontextmenu="return false;"
+              onfocus="handleModernHeroInputFocus(event, 'minutes')"
               oninput="handleModernTimeInputMinutes(event)"
               onkeydown="handleModernTimeInputKeydown(event, 'minutes')">
           </div>
