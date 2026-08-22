@@ -11,6 +11,7 @@
   <meta name="google-signin-client_id"
     content="331220079759-nrguc2ujof9u9mqhbn2mouhpga2iniqj.apps.googleusercontent.com">
   <script>
+    window._pageLoadTimestamp = Date.now();
     // 1. Environment Manager Redirect
     (function () {
       const override = localStorage.getItem('override_server_url');
@@ -375,15 +376,15 @@
 
   <!-- Luxury Cold-Start Splash Overlay (Exact User Design) -->
   <div id="cold-start-overlay">
-    <div class="splash-glow"></div>
-    <div class="splash-content">
-      <div class="splash-mark">
-        <img src="logo-mark.png" alt="Budget Assistant icon">
+    <div class="splash-glow glow"></div>
+    <div class="splash-content content">
+      <div class="splash-mark mark">
+        <img src="logo-mark.png" alt="Budget Assistant icon" onerror="this.src='assets/logo/user_logo.png'">
       </div>
-      <div class="splash-wordmark">Budget Assistant</div>
-      <div class="splash-tagline">Smart finance, elevated</div>
+      <div class="splash-wordmark wordmark">Budget Assistant</div>
+      <div class="splash-tagline tagline">Smart finance, elevated</div>
     </div>
-    <div class="splash-loader"></div>
+    <div class="splash-loader loader"></div>
   </div>
 
   <!-- Resume overlay: covers the screen with the theme background color during the

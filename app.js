@@ -1951,9 +1951,10 @@ function fadeOutColdStartOverlay() {
     return;
   }
 
-  // Ensure user sees the branded luxury splash for at least 1200ms on cold start
+  // Ensure user sees the complete luxury entrance animation sequence
+  // (glow 1.65s, logo mark 1.05s, wordmark 1.75s, tagline 1.95s, loader 2.1s, sweep loop)
   const elapsed = Date.now() - _splashAppStartTime;
-  const minDuration = 1200;
+  const minDuration = 2500;
   if (elapsed < minDuration) {
     setTimeout(fadeOutColdStartOverlay, minDuration - elapsed);
     return;
