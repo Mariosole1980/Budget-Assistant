@@ -4205,7 +4205,7 @@
             </div>
           </div>
 
-          <!-- Time Picker Scroll Wheels Container -->
+          <!-- Time Picker Direct Input & OLED Scroll Wheels -->
           <div id="custom-date-picker-time-container"
             style="display: flex; flex-direction: column; align-items: center; gap: 10px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 16px; width: 100%;">
             <div
@@ -4213,9 +4213,28 @@
               <label
                 style="font-size: 12px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.8px; margin: 0; font-family: 'Outfit', sans-serif;"
                 data-i18n="date_picker_time_label">ΩΡΑ</label>
+              <div style="display: flex; gap: 6px;">
+                <button type="button" class="btn" style="padding: 3px 8px; font-size: 11px; font-weight: 700; border-radius: 8px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: var(--text-secondary); cursor: pointer;" onclick="setCustomDatePickerNowTime()">ΤΩΡΑ</button>
+              </div>
             </div>
 
-            <!-- Wheels Mode Row -->
+            <!-- Direct Typable Time Display & Input Boxes -->
+            <div id="custom-date-picker-time-inputs"
+              style="display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%;">
+              <div style="display: flex; flex-direction: column; align-items: center; gap: 3px;">
+                <input type="tel" id="custom-time-input-hours" class="time-input-box" min="0" max="23" placeholder="00"
+                  maxlength="2" pattern="[0-9]*" inputmode="numeric" onfocus="this.select()">
+                <span style="font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">ΩΡΑ</span>
+              </div>
+              <span style="font-size: 28px; font-weight: 800; color: var(--picker-accent, #f59e0b); line-height: 1; margin-top: -14px;">:</span>
+              <div style="display: flex; flex-direction: column; align-items: center; gap: 3px;">
+                <input type="tel" id="custom-time-input-minutes" class="time-input-box" min="0" max="59"
+                  placeholder="00" maxlength="2" pattern="[0-9]*" inputmode="numeric" onfocus="this.select()">
+                <span style="font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">ΛΕΠΤΑ</span>
+              </div>
+            </div>
+
+            <!-- OLED Scroll Wheel (Always synced in 2-way) -->
             <div id="custom-date-picker-time-wheels-row"
               style="display: flex; align-items: center; justify-content: center; gap: 16px; width: 100%;">
               <!-- OLED Scroll Wheel for Hours -->
@@ -4236,17 +4255,6 @@
                 </div>
                 <div class="time-wheel-highlighter"></div>
               </div>
-            </div>
-
-            <!-- Manual Input Mode Row -->
-            <div id="custom-date-picker-time-inputs"
-              style="display: none; align-items: center; justify-content: center; gap: 16px; width: 100%;">
-              <input type="number" id="custom-time-input-hours" class="time-input-box" min="0" max="23" placeholder="00"
-                pattern="[0-9]*" inputmode="numeric">
-              <span
-                style="font-size: 24px; font-weight: 700; color: var(--picker-accent, #f59e0b); line-height: 60px;">:</span>
-              <input type="number" id="custom-time-input-minutes" class="time-input-box" min="0" max="59"
-                placeholder="00" pattern="[0-9]*" inputmode="numeric">
             </div>
           </div>
 
@@ -5379,26 +5387,35 @@
                 style="background: rgba(255,255,255,0.06); border: 1px solid var(--border); color: var(--text-muted); width: 32px; height: 32px; border-radius: 50%; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center;">✕</button>
             </div>
 
-            <!-- Glowing Digital Header (HH : MM) -->
+            <!-- Glowing Digital Header (HH : MM) with Direct Typing -->
             <div class="time-picker-digital-display">
-              <button type="button" id="time-picker-hour-btn" class="time-picker-digit active"
-                onclick="setModernTimePickerMode('hour')">
-                <span id="time-picker-hour-val">21</span>
-              </button>
+              <div class="time-picker-input-wrap">
+                <input type="tel" id="modern-time-input-hours" class="time-picker-digit-input active"
+                  maxlength="2" pattern="[0-9]*" inputmode="numeric" placeholder="21"
+                  onfocus="this.select(); setModernTimePickerMode('hour');"
+                  oninput="handleModernTimeInputHours(event)"
+                  onkeydown="handleModernTimeInputKeydown(event, 'hours')">
+                <span class="time-picker-input-label" data-i18n="time_hours_label">ΩΡΑ</span>
+              </div>
               <span class="time-picker-colon">:</span>
-              <button type="button" id="time-picker-min-btn" class="time-picker-digit"
-                onclick="setModernTimePickerMode('minute')">
-                <span id="time-picker-min-val">00</span>
-              </button>
+              <div class="time-picker-input-wrap">
+                <input type="tel" id="modern-time-input-minutes" class="time-picker-digit-input"
+                  maxlength="2" pattern="[0-9]*" inputmode="numeric" placeholder="00"
+                  onfocus="this.select(); setModernTimePickerMode('minute');"
+                  oninput="handleModernTimeInputMinutes(event)"
+                  onkeydown="handleModernTimeInputKeydown(event, 'minutes')">
+                <span class="time-picker-input-label" data-i18n="time_minutes_label">ΛΕΠΤΑ</span>
+              </div>
             </div>
 
             <!-- Quick Presets Strip -->
             <div class="time-picker-presets-row">
-              <button type="button" class="time-preset-chip" onclick="selectModernTimePreset('08:00')">08:00</button>
-              <button type="button" class="time-preset-chip" onclick="selectModernTimePreset('14:00')">14:00</button>
-              <button type="button" class="time-preset-chip" onclick="selectModernTimePreset('20:00')">20:00</button>
-              <button type="button" class="time-preset-chip" onclick="selectModernTimePreset('21:00')">21:00</button>
-              <button type="button" class="time-preset-chip" onclick="selectModernTimePreset('22:00')">22:00</button>
+              <button type="button" class="time-preset-chip" onclick="selectModernTimePreset('08:00')">🌅 08:00</button>
+              <button type="button" class="time-preset-chip" onclick="selectModernTimePreset('14:00')">☀️ 14:00</button>
+              <button type="button" class="time-preset-chip" onclick="selectModernTimePreset('18:00')">🌇 18:00</button>
+              <button type="button" class="time-preset-chip" onclick="selectModernTimePreset('20:00')">🌙 20:00</button>
+              <button type="button" class="time-preset-chip" onclick="selectModernTimePreset('21:00')">⏰ 21:00</button>
+              <button type="button" class="time-preset-chip" onclick="selectModernTimePreset('22:00')">🛏️ 22:00</button>
             </div>
 
             <!-- Interactive Clock Face -->

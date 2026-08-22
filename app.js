@@ -25958,7 +25958,7 @@ function setupTimeWheelScrollListeners() {
 
     const updateSelection = () => {
       const scrollTop = scrollEl.scrollTop;
-      const selectedIndex = Math.round(scrollTop / 60);
+      const selectedIndex = Math.max(0, Math.min(scrollId === 'scroll-hours' ? 23 : 59, Math.round(scrollTop / 60)));
       const items = scrollEl.querySelectorAll('.time-wheel-item');
       items.forEach((item, idx) => {
         if (idx === selectedIndex) {
@@ -25967,9 +25967,21 @@ function setupTimeWheelScrollListeners() {
           item.classList.remove('selected');
         }
       });
+
+      if (scrollId === 'scroll-hours') {
+        const inputHours = document.getElementById('custom-time-input-hours');
+        if (inputHours && document.activeElement !== inputHours) {
+          inputHours.value = String(selectedIndex).padStart(2, '0');
+        }
+      } else if (scrollId === 'scroll-minutes') {
+        const inputMinutes = document.getElementById('custom-time-input-minutes');
+        if (inputMinutes && document.activeElement !== inputMinutes) {
+          inputMinutes.value = String(selectedIndex).padStart(2, '0');
+        }
+      }
     };
 
-    scrollEl.addEventListener('scroll', updateSelection);
+    scrollEl.addEventListener('scroll', updateSelection, { passive: true });
     // Initial call
     updateSelection();
   };
@@ -25979,64 +25991,20 @@ function setupTimeWheelScrollListeners() {
   timeWheelsInitialized = true;
 }
 
-function toggleTimeInputMode() {
-  const wheelsRow = document.getElementById('custom-date-picker-time-wheels-row');
-  const inputsRow = document.getElementById('custom-date-picker-time-inputs');
-  const toggleBtn = document.getElementById('toggle-time-input-mode');
-
-  if (!wheelsRow || !inputsRow || !toggleBtn) return;
-
-  const isWheelsMode = wheelsRow.style.display !== 'none';
-
-  if (isWheelsMode) {
-    // Switch to Manual INPUT Mode
-    wheelsRow.style.display = 'none';
-    inputsRow.style.display = 'flex';
-    toggleBtn.innerHTML = '<i class="fa-solid fa-clock"></i>';
-
-    // Sync inputs with wheel values
-    const hs = document.getElementById('scroll-hours');
-    const ms = document.getElementById('scroll-minutes');
-    let h = 0;
-    let m = 0;
-    if (hs) h = Math.round(hs.scrollTop / 60);
-    if (ms) m = Math.round(ms.scrollTop / 60);
-
-    const inputHours = document.getElementById('custom-time-input-hours');
-    const inputMinutes = document.getElementById('custom-time-input-minutes');
-    if (inputHours) {
-      inputHours.value = String(h).padStart(2, '0');
-      inputHours.focus();
-      setTimeout(() => inputHours.select(), 50);
-    }
-    if (inputMinutes) {
-      inputMinutes.value = String(m).padStart(2, '0');
-    }
-  } else {
-    // Switch to WHEELS Mode
-    wheelsRow.style.display = 'flex';
-    inputsRow.style.display = 'none';
-    toggleBtn.innerHTML = '<i class="fa-regular fa-keyboard"></i>';
-
-    // Sync wheels with typed values
-    const inputHours = document.getElementById('custom-time-input-hours');
-    const inputMinutes = document.getElementById('custom-time-input-minutes');
-
-    let h = parseInt(inputHours.value, 10);
-    let m = parseInt(inputMinutes.value, 10);
-
-    if (isNaN(h) || h < 0) h = 0;
-    if (h > 23) h = 23;
-    if (isNaN(m) || m < 0) m = 0;
-    if (m > 59) m = 59;
-
-    const hs = document.getElementById('scroll-hours');
-    if (hs) hs.scrollTop = h * 60;
-    const ms = document.getElementById('scroll-minutes');
-    if (ms) ms.scrollTop = m * 60;
-  }
+function setCustomDatePickerNowTime() {
+  const now = new Date();
+  const h = now.getHours();
+  const m = now.getMinutes();
+  const inputHours = document.getElementById('custom-time-input-hours');
+  const inputMinutes = document.getElementById('custom-time-input-minutes');
+  if (inputHours) inputHours.value = String(h).padStart(2, '0');
+  if (inputMinutes) inputMinutes.value = String(m).padStart(2, '0');
+  const hs = document.getElementById('scroll-hours');
+  const ms = document.getElementById('scroll-minutes');
+  if (hs) hs.scrollTop = h * 60;
+  if (ms) ms.scrollTop = m * 60;
 }
-window.toggleTimeInputMode = toggleTimeInputMode;
+window.setCustomDatePickerNowTime = setCustomDatePickerNowTime;
 
 let timeInputsInitialized = false;
 function initTimeInputListeners() {
@@ -26048,39 +26016,37 @@ function initTimeInputListeners() {
   if (!inputHours || !inputMinutes) return;
 
   inputHours.addEventListener('input', (e) => {
-    let val = e.target.value;
-    if (val.length > 2) {
-      val = val.slice(0, 2);
-    }
+    let val = e.target.value.replace(/\D/g, '');
+    if (val.length > 2) val = val.slice(0, 2);
     let num = parseInt(val, 10);
     if (!isNaN(num)) {
       if (num > 23) {
         val = '23';
-      } else if (num < 0) {
-        val = '00';
+        num = 23;
       }
+      const hs = document.getElementById('scroll-hours');
+      if (hs) hs.scrollTop = num * 60;
     }
     e.target.value = val;
 
-    // Auto-focus minutes input when 2 digits are entered
-    if (val.length === 2) {
+    // Auto-focus minutes input when 2 digits are entered or first digit is > 2 (e.g. 3..9)
+    if (val.length === 2 || (val.length === 1 && parseInt(val, 10) > 2)) {
       inputMinutes.focus();
       setTimeout(() => inputMinutes.select(), 50);
     }
   });
 
   inputMinutes.addEventListener('input', (e) => {
-    let val = e.target.value;
-    if (val.length > 2) {
-      val = val.slice(0, 2);
-    }
+    let val = e.target.value.replace(/\D/g, '');
+    if (val.length > 2) val = val.slice(0, 2);
     let num = parseInt(val, 10);
     if (!isNaN(num)) {
       if (num > 59) {
         val = '59';
-      } else if (num < 0) {
-        val = '00';
+        num = 59;
       }
+      const ms = document.getElementById('scroll-minutes');
+      if (ms) ms.scrollTop = num * 60;
     }
     e.target.value = val;
   });
@@ -26088,7 +26054,7 @@ function initTimeInputListeners() {
   inputHours.addEventListener('blur', (e) => {
     let val = e.target.value;
     if (val !== '') {
-      e.target.value = String(parseInt(val, 10)).padStart(2, '0');
+      e.target.value = String(parseInt(val, 10) || 0).padStart(2, '0');
     } else {
       e.target.value = '00';
     }
@@ -26097,7 +26063,7 @@ function initTimeInputListeners() {
   inputMinutes.addEventListener('blur', (e) => {
     let val = e.target.value;
     if (val !== '') {
-      e.target.value = String(parseInt(val, 10)).padStart(2, '0');
+      e.target.value = String(parseInt(val, 10) || 0).padStart(2, '0');
     } else {
       e.target.value = '00';
     }
@@ -27387,16 +27353,92 @@ function setModernTimePickerMode(mode) {
 }
 window.setModernTimePickerMode = setModernTimePickerMode;
 
+function handleModernTimeInputHours(e) {
+  let val = e.target.value.replace(/\D/g, '');
+  if (val.length > 2) val = val.slice(0, 2);
+  let num = parseInt(val, 10);
+  if (!isNaN(num)) {
+    if (num > 23) {
+      num = 23;
+      val = '23';
+    }
+    _modernTimePickerHour = num;
+  } else {
+    _modernTimePickerHour = 0;
+  }
+  e.target.value = val;
+  renderModernClockFace();
+  updateModernTimePickerPresets();
+
+  // Auto-advance to minutes if 2 digits entered or if first digit is > 2 (3..9)
+  if (val.length === 2 || (val.length === 1 && parseInt(val, 10) > 2)) {
+    const minInput = document.getElementById('modern-time-input-minutes');
+    if (minInput) {
+      setModernTimePickerMode('minute');
+      minInput.focus();
+      setTimeout(() => minInput.select(), 30);
+    }
+  }
+}
+window.handleModernTimeInputHours = handleModernTimeInputHours;
+
+function handleModernTimeInputMinutes(e) {
+  let val = e.target.value.replace(/\D/g, '');
+  if (val.length > 2) val = val.slice(0, 2);
+  let num = parseInt(val, 10);
+  if (!isNaN(num)) {
+    if (num > 59) {
+      num = 59;
+      val = '59';
+    }
+    _modernTimePickerMinute = num;
+  } else {
+    _modernTimePickerMinute = 0;
+  }
+  e.target.value = val;
+  renderModernClockFace();
+  updateModernTimePickerPresets();
+}
+window.handleModernTimeInputMinutes = handleModernTimeInputMinutes;
+
+function handleModernTimeInputKeydown(e, field) {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    confirmModernTimePicker();
+    return;
+  }
+  if (e.key === 'Backspace' && field === 'minutes' && e.target.value === '') {
+    const hourInput = document.getElementById('modern-time-input-hours');
+    if (hourInput) {
+      setModernTimePickerMode('hour');
+      hourInput.focus();
+      setTimeout(() => hourInput.select(), 30);
+    }
+  }
+}
+window.handleModernTimeInputKeydown = handleModernTimeInputKeydown;
+
 function updateModernTimePickerDigitalDisplay() {
+  const hourInput = document.getElementById('modern-time-input-hours');
+  const minInput = document.getElementById('modern-time-input-minutes');
   const hourBtn = document.getElementById('time-picker-hour-btn');
   const minBtn = document.getElementById('time-picker-min-btn');
   const hourVal = document.getElementById('time-picker-hour-val');
   const minVal = document.getElementById('time-picker-min-val');
   const hintEl = document.getElementById('time-picker-mode-hint');
 
-  if (hourVal) hourVal.textContent = String(_modernTimePickerHour).padStart(2, '0');
-  if (minVal) minVal.textContent = String(_modernTimePickerMinute).padStart(2, '0');
+  const hStr = String(_modernTimePickerHour).padStart(2, '0');
+  const mStr = String(_modernTimePickerMinute).padStart(2, '0');
 
+  if (hourInput && document.activeElement !== hourInput) hourInput.value = hStr;
+  if (minInput && document.activeElement !== minInput) minInput.value = mStr;
+  if (hourVal) hourVal.textContent = hStr;
+  if (minVal) minVal.textContent = mStr;
+
+  if (hourInput && minInput) {
+    hourInput.classList.toggle('active', _modernTimePickerMode === 'hour');
+    minInput.classList.toggle('active', _modernTimePickerMode === 'minute');
+  }
   if (hourBtn && minBtn) {
     hourBtn.classList.toggle('active', _modernTimePickerMode === 'hour');
     minBtn.classList.toggle('active', _modernTimePickerMode === 'minute');
@@ -27404,23 +27446,24 @@ function updateModernTimePickerDigitalDisplay() {
 
   if (hintEl) {
     hintEl.textContent = _modernTimePickerMode === 'hour'
-      ? (state.lang === 'el' ? 'Επιλέξτε ώρα (00 - 23)' : 'Select hour (00 - 23)')
-      : (state.lang === 'el' ? 'Επιλέξτε λεπτά (00 - 59)' : 'Select minutes (00 - 59)');
+      ? (state.lang === 'el' ? 'Πληκτρολογήστε ή επιλέξτε ώρα (00 - 23)' : 'Type or select hour (00 - 23)')
+      : (state.lang === 'el' ? 'Πληκτρολογήστε ή επιλέξτε λεπτά (00 - 59)' : 'Type or select minutes (00 - 59)');
   }
 }
 
 function updateModernTimePickerPresets() {
   const formatted = `${String(_modernTimePickerHour).padStart(2, '0')}:${String(_modernTimePickerMinute).padStart(2, '0')}`;
   document.querySelectorAll('.time-preset-chip').forEach(chip => {
-    chip.classList.toggle('active', chip.textContent.trim() === formatted);
+    chip.classList.toggle('active', chip.textContent.includes(formatted));
   });
 }
 
 function selectModernTimePreset(timeStr) {
-  if (!timeStr || !timeStr.includes(':')) return;
-  const parts = timeStr.split(':');
-  _modernTimePickerHour = parseInt(parts[0], 10) || 0;
-  _modernTimePickerMinute = parseInt(parts[1], 10) || 0;
+  if (!timeStr) return;
+  const match = timeStr.match(/(\d{1,2}):(\d{2})/);
+  if (!match) return;
+  _modernTimePickerHour = parseInt(match[1], 10) || 0;
+  _modernTimePickerMinute = parseInt(match[2], 10) || 0;
   updateModernTimePickerDigitalDisplay();
   renderModernClockFace();
   updateModernTimePickerPresets();
@@ -27433,12 +27476,12 @@ function renderModernClockFace() {
   if (!numbersContainer || !handEl) return;
 
   numbersContainer.innerHTML = '';
-  const centerX = 110;
-  const centerY = 110;
+  const centerX = 114;
+  const centerY = 114;
 
   if (_modernTimePickerMode === 'hour') {
-    const outerRadius = 78;
-    const innerRadius = 48;
+    const outerRadius = 82;
+    const innerRadius = 50;
 
     // 12 Outer hours: 1 to 12
     for (let i = 1; i <= 12; i++) {
@@ -27457,7 +27500,11 @@ function renderModernClockFace() {
         updateModernTimePickerDigitalDisplay();
         renderModernClockFace();
         updateModernTimePickerPresets();
-        setTimeout(() => setModernTimePickerMode('minute'), 240);
+        setTimeout(() => {
+          setModernTimePickerMode('minute');
+          const minInput = document.getElementById('modern-time-input-minutes');
+          if (minInput) minInput.focus();
+        }, 220);
       };
       numbersContainer.appendChild(numEl);
     }
@@ -27482,7 +27529,11 @@ function renderModernClockFace() {
         updateModernTimePickerDigitalDisplay();
         renderModernClockFace();
         updateModernTimePickerPresets();
-        setTimeout(() => setModernTimePickerMode('minute'), 240);
+        setTimeout(() => {
+          setModernTimePickerMode('minute');
+          const minInput = document.getElementById('modern-time-input-minutes');
+          if (minInput) minInput.focus();
+        }, 220);
       };
       numbersContainer.appendChild(numEl);
     }
@@ -27491,13 +27542,13 @@ function renderModernClockFace() {
     const isInner = (_modernTimePickerHour === 0 || (_modernTimePickerHour >= 13 && _modernTimePickerHour <= 23));
     const hStep = (_modernTimePickerHour % 12);
     const handAngle = hStep * 30;
-    const handLen = isInner ? 48 : 78;
+    const handLen = isInner ? 50 : 82;
 
     handEl.style.transform = `rotate(${handAngle}deg)`;
     handEl.style.height = `${handLen}px`;
   } else {
     // Minute mode
-    const minuteRadius = 78;
+    const minuteRadius = 82;
     for (let i = 0; i < 60; i += 5) {
       const step = i / 5;
       const angleRad = (step * 30 - 90) * (Math.PI / 180);
@@ -27521,7 +27572,7 @@ function renderModernClockFace() {
 
     const handAngle = _modernTimePickerMinute * 6;
     handEl.style.transform = `rotate(${handAngle}deg)`;
-    handEl.style.height = `78px`;
+    handEl.style.height = `82px`;
   }
 }
 
