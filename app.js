@@ -3978,8 +3978,32 @@ async function loadData() {
       const mergedTransactions = mergeAndDeduplicateTransactions(allTransactions, pendingLocal);
       mergedTransactions.sort(compareTransactions);
       state.transactions = mergedTransactions;
-      state.categories = categories;
+      
+      // Merge categories: retain any local custom categories that haven't synced to cloud yet
+      const cloudCatNames = new Set((categories || []).map(c => c && c.name ? c.name.trim().toLowerCase() : ''));
+      const localCustomCats = (state.categories || []).filter(c => c && c.name && !cloudCatNames.has(c.name.trim().toLowerCase()));
+      state.categories = [...(categories || []), ...localCustomCats];
       deduplicateCategories();
+
+      // If there are unsynced local categories, sync them to cloud in background
+      if (localCustomCats.length > 0 && state.supabaseClient && userId) {
+        localCustomCats.forEach(localCat => {
+          const now = new Date().toISOString();
+          state.supabaseClient.from('categories').insert({
+            id: localCat.id || (typeof generateUUID === 'function' ? generateUUID() : crypto.randomUUID()),
+            user_id: userId,
+            family_id: familyId,
+            name: localCat.name,
+            type: localCat.type || 'expense',
+            icon: localCat.icon || '💸',
+            color: localCat.color || '#78909c',
+            hidden: !!localCat.hidden,
+            created_at: localCat.created_at || now,
+            updated_at: localCat.updated_at || now
+          }).then(({ error }) => { if (error) console.warn('Background sync category warning:', error); });
+        });
+      }
+
       state.accounts = accounts;
 
       calculateInitialBalances();
@@ -8493,6 +8517,10 @@ function setupEventListeners() {
 
   // Document keydown for calculator keyboard support
   document.addEventListener('keydown', (e) => {
+    // Never intercept typing or backspace when the user is focused on an input or textarea
+    if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable)) {
+      return;
+    }
     const modal = document.getElementById('transaction-modal');
     const keypad = document.getElementById('custom-calculator-keypad');
     if (modal && modal.classList.contains('active') && keypad && keypad.classList.contains('active')) {
@@ -10318,6 +10346,8 @@ function inlineToggleCategoryHidden(categoryName, type) {
   const cat = state.categories.find(c => c.name === categoryName);
   if (cat) {
     cat.hidden = !cat.hidden;
+    const now = new Date().toISOString();
+    cat.updated_at = now;
     saveCategoriesToStorage();
 
     // Sync to cloud if enabled
@@ -10325,14 +10355,11 @@ function inlineToggleCategoryHidden(categoryName, type) {
       try {
         state.supabaseClient
           .from('categories')
-          .upsert({
-            user_id: state.currentUser.id,
-            name: cat.name,
-            type: cat.type,
-            icon: cat.icon,
-            color: cat.color,
-            hidden: cat.hidden
-          }, { onConflict: 'user_id,name' })
+          .update({
+            hidden: !!cat.hidden,
+            updated_at: now
+          })
+          .match({ user_id: state.currentUser.id, name: cat.name })
           .then(({ error }) => {
             if (error) console.warn('Cloud category sync warning:', error);
           });
@@ -10423,9 +10450,11 @@ function inlineRenameCategory(categoryName, type) {
   }
 
   const oldName = cat.name;
+  const now = new Date().toISOString();
 
   // Update category name
   cat.name = trimmed;
+  cat.updated_at = now;
 
   // Update all transactions that were using the old category name
   let transactionsUpdated = 0;
@@ -10453,19 +10482,23 @@ function inlineRenameCategory(categoryName, type) {
         .then(({ error }) => {
           if (error) console.warn('Cloud category old name delete warning:', error);
 
-          // 2. Upsert the renamed category
+          // 2. Insert the renamed category
           state.supabaseClient
             .from('categories')
-            .upsert({
+            .insert({
+              id: cat.id || (typeof generateUUID === 'function' ? generateUUID() : crypto.randomUUID()),
               user_id: state.currentUser.id,
+              family_id: state.userProfile ? state.userProfile.family_id : null,
               name: cat.name,
               type: cat.type,
               icon: cat.icon,
               color: cat.color,
-              hidden: cat.hidden
-            }, { onConflict: 'user_id,name' })
-            .then(({ error: upsertErr }) => {
-              if (upsertErr) console.warn('Cloud category renamed sync warning:', upsertErr);
+              hidden: !!cat.hidden,
+              created_at: cat.created_at || now,
+              updated_at: now
+            })
+            .then(({ error: insertErr }) => {
+              if (insertErr) console.warn('Cloud category renamed insert warning:', insertErr);
             });
         });
 
@@ -10710,19 +10743,16 @@ async function renameSubcategoryGlobally(categoryName, oldSub, newSub) {
     } else {
       cat.subcategories = cat.subcategories.map(s => s.trim() === oldSub.trim() ? newSub : s);
     }
+    const now = new Date().toISOString();
+    cat.updated_at = now;
     saveCategoriesToStorage();
 
     if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
       try {
-        await state.supabaseClient.from('categories').upsert({
-          user_id: state.currentUser.id,
-          name: cat.name,
-          type: cat.type,
-          icon: cat.icon,
-          color: cat.color,
-          hidden: cat.hidden,
-          subcategories: cat.subcategories
-        }, { onConflict: 'user_id,name' });
+        await state.supabaseClient.from('categories').update({
+          subcategories: cat.subcategories,
+          updated_at: now
+        }).match({ user_id: state.currentUser.id, name: cat.name });
       } catch (err) {
         console.warn('Supabase categories update error:', err);
       }
@@ -10769,19 +10799,16 @@ async function deleteSubcategoryGlobally(categoryName, subToDelete) {
   const cat = state.categories.find(c => c.name === categoryName);
   if (cat && Array.isArray(cat.subcategories)) {
     cat.subcategories = cat.subcategories.filter(s => s.trim() !== subToDelete.trim());
+    const now = new Date().toISOString();
+    cat.updated_at = now;
     saveCategoriesToStorage();
 
     if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
       try {
-        await state.supabaseClient.from('categories').upsert({
-          user_id: state.currentUser.id,
-          name: cat.name,
-          type: cat.type,
-          icon: cat.icon,
-          color: cat.color,
-          hidden: cat.hidden,
-          subcategories: cat.subcategories
-        }, { onConflict: 'user_id,name' });
+        await state.supabaseClient.from('categories').update({
+          subcategories: cat.subcategories,
+          updated_at: now
+        }).match({ user_id: state.currentUser.id, name: cat.name });
       } catch (err) {
         console.warn('Supabase categories update error:', err);
       }
@@ -11299,9 +11326,10 @@ function saveNewCategoryFromPicker() {
       }
     }
 
-    // Update name and icon
+    const now = new Date().toISOString();
     cat.name = name;
     cat.icon = newCategorySelectedEmoji;
+    cat.updated_at = now;
 
     // Update transactions using old name
     let transactionsUpdated = 0;
@@ -11323,20 +11351,35 @@ function saveNewCategoryFromPicker() {
     if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
       try {
         if (nameChanged) {
-          // Delete old, upsert new
+          // Delete old, insert new
           state.supabaseClient.from('categories').delete().match({ user_id: state.currentUser.id, name: oldName })
             .then(() => {
-              state.supabaseClient.from('categories').upsert({ user_id: state.currentUser.id, name: cat.name, type: cat.type, icon: cat.icon, color: cat.color, hidden: cat.hidden }, { onConflict: 'user_id,name' })
-                .then(({ error }) => { if (error) console.warn('Cloud category rename sync warning:', error); });
+              state.supabaseClient.from('categories').insert({
+                id: cat.id || (typeof generateUUID === 'function' ? generateUUID() : crypto.randomUUID()),
+                user_id: state.currentUser.id,
+                family_id: state.userProfile ? state.userProfile.family_id : null,
+                name: cat.name,
+                type: cat.type,
+                icon: cat.icon,
+                color: cat.color,
+                hidden: !!cat.hidden,
+                created_at: cat.created_at || now,
+                updated_at: now
+              }).then(({ error }) => { if (error) console.warn('Cloud category rename insert warning:', error); });
             });
           if (transactionsUpdated > 0) {
             state.supabaseClient.from('transactions').update({ category: name }).match({ user_id: state.currentUser.id, category: oldName })
               .then(({ error }) => { if (error) console.warn('Cloud transactions rename warning:', error); });
           }
         } else {
-          // Only icon changed
-          state.supabaseClient.from('categories').upsert({ user_id: state.currentUser.id, name: cat.name, type: cat.type, icon: cat.icon, color: cat.color, hidden: cat.hidden }, { onConflict: 'user_id,name' })
-            .then(({ error }) => { if (error) console.warn('Cloud category icon sync warning:', error); });
+          // Only icon / details changed
+          state.supabaseClient.from('categories').update({
+            icon: cat.icon,
+            color: cat.color,
+            hidden: !!cat.hidden,
+            updated_at: now
+          }).match({ user_id: state.currentUser.id, name: cat.name })
+            .then(({ error }) => { if (error) console.warn('Cloud category update warning:', error); });
         }
       } catch (e) {
         console.warn('Cloud category edit sync failed:', e);
@@ -11361,12 +11404,17 @@ function saveNewCategoryFromPicker() {
   }
 
   // Create new category
+  const now = new Date().toISOString();
   const newCategory = {
+    id: typeof generateUUID === 'function' ? generateUUID() : crypto.randomUUID(),
     name: name,
     type: newCategoryDialogType,
     icon: newCategorySelectedEmoji,
     color: getRandomColor(),
-    user_id: state.currentUser ? state.currentUser.id : null
+    user_id: state.currentUser ? state.currentUser.id : null,
+    family_id: state.userProfile ? state.userProfile.family_id : null,
+    created_at: now,
+    updated_at: now
   };
 
   state.categories.push(newCategory);
@@ -11377,18 +11425,22 @@ function saveNewCategoryFromPicker() {
     try {
       state.supabaseClient
         .from('categories')
-        .upsert({
+        .insert({
+          id: newCategory.id,
           user_id: state.currentUser.id,
+          family_id: state.userProfile ? state.userProfile.family_id : null,
           name: newCategory.name,
           type: newCategory.type,
           icon: newCategory.icon,
-          color: newCategory.color
-        }, { onConflict: 'user_id,name' })
+          color: newCategory.color,
+          created_at: newCategory.created_at,
+          updated_at: newCategory.updated_at
+        })
         .then(({ error }) => {
-          if (error) console.warn('Cloud category sync warning:', error);
+          if (error) console.warn('Cloud category insert warning:', error);
         });
     } catch (e) {
-      console.warn('Cloud category sync failed:', e);
+      console.warn('Cloud category insert failed:', e);
     }
   }
 
@@ -16357,8 +16409,10 @@ async function saveCategoryManagerEdit() {
       }
     }
 
+    const now = new Date().toISOString();
     cat.name = name;
     cat.icon = window._categoryManagerSelectedEmoji;
+    cat.updated_at = now;
 
     let transactionsUpdated = 0;
     if (nameChanged) {
@@ -16379,12 +16433,28 @@ async function saveCategoryManagerEdit() {
       try {
         if (nameChanged) {
           await state.supabaseClient.from('categories').delete().match({ user_id: state.currentUser.id, name: oldName });
-          await state.supabaseClient.from('categories').upsert({ user_id: state.currentUser.id, name: cat.name, type: cat.type, icon: cat.icon, color: cat.color, hidden: cat.hidden }, { onConflict: 'user_id,name' });
+          await state.supabaseClient.from('categories').insert({
+            id: cat.id || (typeof generateUUID === 'function' ? generateUUID() : crypto.randomUUID()),
+            user_id: state.currentUser.id,
+            family_id: state.userProfile ? state.userProfile.family_id : null,
+            name: cat.name,
+            type: cat.type,
+            icon: cat.icon,
+            color: cat.color,
+            hidden: !!cat.hidden,
+            created_at: cat.created_at || now,
+            updated_at: now
+          });
           if (transactionsUpdated > 0) {
             await state.supabaseClient.from('transactions').update({ category: name }).match({ user_id: state.currentUser.id, category: oldName });
           }
         } else {
-          await state.supabaseClient.from('categories').upsert({ user_id: state.currentUser.id, name: cat.name, type: cat.type, icon: cat.icon, color: cat.color, hidden: cat.hidden }, { onConflict: 'user_id,name' });
+          await state.supabaseClient.from('categories').update({
+            icon: cat.icon,
+            color: cat.color,
+            hidden: !!cat.hidden,
+            updated_at: now
+          }).match({ user_id: state.currentUser.id, name: cat.name });
         }
       } catch (err) {
         console.warn('Supabase category edit sync error:', err);
@@ -16397,12 +16467,18 @@ async function saveCategoryManagerEdit() {
       return;
     }
 
+    const now = new Date().toISOString();
     const newCat = {
+      id: typeof generateUUID === 'function' ? generateUUID() : crypto.randomUUID(),
       name: name,
       type: type,
       icon: window._categoryManagerSelectedEmoji,
       color: window._categoryManagerSelectedEmoji === '💸' ? '#ef4444' : '#10b981',
       hidden: false,
+      user_id: state.currentUser ? state.currentUser.id : null,
+      family_id: state.userProfile ? state.userProfile.family_id : null,
+      created_at: now,
+      updated_at: now,
       subcategories: []
     };
 
@@ -16412,12 +16488,16 @@ async function saveCategoryManagerEdit() {
     if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
       try {
         await state.supabaseClient.from('categories').insert({
+          id: newCat.id,
           user_id: state.currentUser.id,
+          family_id: state.userProfile ? state.userProfile.family_id : null,
           name: newCat.name,
           type: newCat.type,
           icon: newCat.icon,
           color: newCat.color,
-          hidden: newCat.hidden
+          hidden: !!newCat.hidden,
+          created_at: newCat.created_at,
+          updated_at: newCat.updated_at
         });
       } catch (err) {
         console.warn('Supabase category insert sync error:', err);
