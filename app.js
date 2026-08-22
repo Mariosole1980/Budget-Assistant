@@ -9792,24 +9792,12 @@ function setupEventListeners() {
     }
   }
 
-  document.addEventListener('pointerdown', (e) => {
-    if (!isSymbolTap(e.target)) return;
-    _symbolTapPending = true;
-    e.stopPropagation();
-  }, true);
-
   document.addEventListener('click', (e) => {
-    if (!isSymbolTap(e.target) && !_symbolTapPending) return;
-    if (isSymbolTap(e.target) || _symbolTapPending) {
-      _symbolTapPending = false;
+    if (isSymbolTap(e.target)) {
       e.stopPropagation();
       e.preventDefault();
       safeOpenCurrencyPicker(e);
     }
-  }, true);
-
-  document.addEventListener('pointerup', () => {
-    setTimeout(() => { _symbolTapPending = false; }, 300);
   }, true);
 
   function closeCalculatorKeypad() {

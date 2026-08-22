@@ -1208,9 +1208,9 @@
     <!-- ============================================== -->
     <div id="transaction-modal" class="tx-modal-overlay">
       <div class="modal-content" style="display: flex; flex-direction: column;">
-        <form id="transaction-form" style="display: flex; flex-direction: column; margin: 0; min-height: 0; flex: 1;">
+        <form id="transaction-form" novalidate style="display: flex; flex-direction: column; margin: 0; min-height: 0; flex: 1;">
           <div class="modal-header">
-            <button type="button" class="icon-btn" onclick="closeModal('transaction-modal')"><i
+            <button type="button" class="icon-btn" onclick="closeModal('transaction-modal', { userInitiated: true })"><i
                 class="fa-solid fa-arrow-left"></i></button>
             <h3 class="modal-title" id="modal-trans-title">Έξοδο</h3>
             <div style="display: flex; gap: 12px; align-items: center;">
@@ -1262,7 +1262,7 @@
               <div class="form-row-value-container"
                 style="position: relative; display: flex; width: 100%; align-items: center;">
                 <span id="trans-date-display" class="form-row-display-text" style="flex: 1;">24/5/26 (Kυρ) 19:38</span>
-                <input type="hidden" id="trans-date" required>
+                <input type="hidden" id="trans-date">
                 <button type="button" id="btn-rep-inst" onclick="event.stopPropagation(); openRecurringModal();"
                   style="margin-left: auto; padding: 4px 10px; border-radius: 12px; border: 1px solid rgba(59, 130, 246, 0.35); background: rgba(59, 130, 246, 0.15); color: #3b82f6; font-size: 11px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 4px; z-index: 2;"><i
                     class="fa-solid fa-arrows-spin"></i> Rep/Inst.</button>
@@ -1276,7 +1276,7 @@
                 <span class="currency-symbol currency-symbol-tappable"
                   onclick="event.stopPropagation(); openCurrencyPickerModal();"
                   style="font-size: 18px; font-weight: 600; color: var(--text-secondary, #9aa0b4); cursor: pointer; padding: 4px 6px; border-radius: 8px; display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; z-index: 2; position: relative;"></span>
-                <input type="text" id="trans-amount" class="form-row-input" placeholder="0" readonly required
+                <input type="text" id="trans-amount" class="form-row-input" placeholder="0" readonly
                   inputmode="none" onfocus="this.blur()" style="flex: 1; min-width: 0;">
               </div>
             </div>
@@ -1331,7 +1331,7 @@
             <div class="form-row" id="form-row-account-from">
               <label class="form-row-label" id="label-account-from" data-i18n="row_account_from">Τρόπος πληρωμής</label>
               <div class="form-row-value-container">
-                <input type="hidden" id="trans-account-from" required>
+                <input type="hidden" id="trans-account-from">
                 <div id="trans-account-from-trigger" class="custom-select-trigger"
                   onclick="openAccountPickerModal('from')">
                   <div class="custom-select-trigger-content" id="trans-account-from-display">
@@ -1419,7 +1419,7 @@
             <button type="submit" class="btn-primary-save" id="btn-save-transaction" data-i18n="btn_save"
               style="flex: 2.2; margin: 0; padding: 12px 16px; border-radius: 24px; font-size: 14.5px; font-weight: 700; width: auto; border: none; cursor: pointer;">Αποθήκευση</button>
             <button type="button" class="btn-secondary-continue" id="btn-continue-transaction"
-              onclick="closeModal('transaction-modal')" data-i18n="btn_continue"
+              onclick="closeModal('transaction-modal', { userInitiated: true })" data-i18n="btn_continue"
               style="flex: 1; margin: 0; padding: 12px 16px; border-radius: 24px; font-size: 14.5px; font-weight: 700; width: auto; cursor: pointer;">Ακύρωση</button>
           </div>
 

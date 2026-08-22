@@ -7722,8 +7722,10 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
   position: static !important;
   height: 0px !important;
   max-height: 0px !important;
+  overflow: hidden !important;
+  pointer-events: none !important;
   background-color: #0f121a !important;
-  border-top: 1px solid var(--border) !important;
+  border-top: none !important;
   display: flex !important;
   flex-direction: column !important;
   padding-bottom: 0px !important;
@@ -7741,6 +7743,8 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
 .calc-keypad-container.active {
   height: 298px !important;
   max-height: 298px !important;
+  pointer-events: auto !important;
+  border-top: 1px solid var(--border) !important;
   padding-bottom: calc(6px + env(safe-area-inset-bottom, 0px)) !important;
 }
 
@@ -7779,11 +7783,18 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
   position: relative !important;
   transform: none !important;
   background-color: #121824 !important;
-  z-index: 25 !important;
+  z-index: 50 !important;
+  pointer-events: auto !important;
   padding-top: 14px !important;
   padding-bottom: 14px !important;
   flex-shrink: 0 !important;
   border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+#transaction-modal .modal-action-buttons button {
+  pointer-events: auto !important;
+  position: relative !important;
+  z-index: 51 !important;
 }
 
 #transaction-modal.keypad-active .modal-action-buttons {
