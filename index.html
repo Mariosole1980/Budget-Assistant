@@ -28,7 +28,12 @@
         try {
           const customSchemeUrl = 'com.budgetassistant.app://login-callback' + window.location.search + window.location.hash;
           console.log('[OAuth Bounce] Redirecting to native app:', customSchemeUrl);
-          window.location.href = customSchemeUrl;
+          window.location.replace(customSchemeUrl);
+          setTimeout(function () {
+            if (document.body) {
+              document.body.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:#181b22;color:#fff;font-family:sans-serif;text-align:center;padding:24px;"><h2 style="color:#4ade80;margin-bottom:12px;">✅ Επιτυχής Σύνδεση!</h2><p style="color:#94a3b8;margin-bottom:28px;">Πατήστε παρακάτω για επιστροφή στην εφαρμογή:</p><a href="' + customSchemeUrl + '" style="background:#4f46e5;color:#fff;padding:14px 28px;border-radius:12px;text-decoration:none;font-weight:bold;font-size:16px;box-shadow:0 4px 12px rgba(79,70,229,0.4);">📲 Άνοιγμα Εφαρμογής</a></div>';
+            }
+          }, 400);
         } catch (e) {
           console.warn('[OAuth Bounce] Failed:', e);
         }
