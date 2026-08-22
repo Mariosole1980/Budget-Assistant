@@ -22,7 +22,7 @@ export async function onRequestPost(context) {
   }
   const corsHeaders = sec.headers;
 
-  const paypalClientId = env.PAYPAL_CLIENT_ID || 'BAAPrv586Eftb2ZZpvcJSO30qDGRzULdVaOOhAZ-4jUlsZC5-Iq6Ungx5EsGgBYwA0bAi2WnzYayxofCkQ';
+  const paypalClientId = env.PAYPAL_CLIENT_ID || 'BAAPrv586Eftb2ZZpvcJSO30qDGRzULdVaOOhAZ-4jUIsZC5-lq6Ungx5EsGgBYwA0bAi2WnzYayxofCkQ';
   const paypalSecret = env.PAYPAL_CLIENT_SECRET || 'ELf0xoqbR0qgDpRA-PqrGKrn5k1eg307kH2rl9p22MdoCyu3lxkexOWtV7js5rhuZDZj2cg9MceAOcCe';
   const isSandbox = (env.PAYPAL_MODE || '').toLowerCase() === 'sandbox';
   const paypalBaseUrl = isSandbox ? 'https://api-m.sandbox.paypal.com' : 'https://api-m.paypal.com';
