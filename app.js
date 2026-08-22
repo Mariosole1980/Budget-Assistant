@@ -27008,12 +27008,6 @@ window.onSubscreenShow_notifications = function () {
   const timeRow = document.getElementById('settings-daily-reminder-time-row');
   if (timeRow) timeRow.style.display = dailyReminderEnabled ? 'flex' : 'none';
 
-  const batteryCard = document.getElementById('settings-native-battery-card');
-  const isNative = typeof window.Capacitor !== 'undefined' && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform();
-  if (batteryCard) {
-    batteryCard.style.display = (dailyReminderEnabled && isNative) ? 'flex' : 'none';
-  }
-
   const dailyTime = localStorage.getItem('settings_daily_reminder_time') || '21:00';
   const dailyTimeInput = document.getElementById('settings-daily-reminder-time');
   if (dailyTimeInput) dailyTimeInput.value = dailyTime;
@@ -27347,12 +27341,6 @@ window.toggleDailyReminder = function (checked) {
   localStorage.setItem('settings_daily_reminder_enabled', checked ? 'true' : 'false');
   const timeRow = document.getElementById('settings-daily-reminder-time-row');
   if (timeRow) timeRow.style.display = checked ? 'flex' : 'none';
-
-  const batteryCard = document.getElementById('settings-native-battery-card');
-  const isNative = typeof window.Capacitor !== 'undefined' && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform();
-  if (batteryCard) {
-    batteryCard.style.display = (checked && isNative) ? 'flex' : 'none';
-  }
 
   const timeVal = localStorage.getItem('settings_daily_reminder_time') || '21:00';
   if (typeof scheduleDailyReminder === 'function') {
