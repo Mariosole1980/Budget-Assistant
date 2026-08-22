@@ -1788,8 +1788,126 @@ async function initLocalNotifications() {
         }
       }
     });
+
+    // Initialize Google Firebase Cloud Messaging (FCM) Push Notifications
+    await initPushNotifications();
+
   } catch (err) {
     console.error('Failed to initialize Capacitor Local Notifications:', err);
+  }
+}
+
+async function initPushNotifications() {
+  const isNative = typeof window.Capacitor !== 'undefined' && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform();
+  if (!isNative) return;
+
+  const PushNotifications = window.Capacitor.Plugins && window.Capacitor.Plugins.PushNotifications;
+  if (!PushNotifications) return;
+
+  try {
+    let perm = await PushNotifications.checkPermissions();
+    if (perm.receive !== 'granted') {
+      perm = await PushNotifications.requestPermissions();
+    }
+    if (perm.receive === 'granted') {
+      await PushNotifications.register();
+    }
+
+    // Listen for FCM Device Token registration
+    PushNotifications.addListener('registration', async (token) => {
+      console.log('FCM Token registered:', token.value);
+      localStorage.setItem('fcm_token', token.value);
+      if (typeof syncFcmTokenToProfile === 'function') {
+        syncFcmTokenToProfile(token.value);
+      }
+    });
+
+    PushNotifications.addListener('registrationError', (err) => {
+      console.warn('FCM Registration Error:', err);
+    });
+
+    // Handle Push Notifications delivered while app is in foreground
+    PushNotifications.addListener('pushNotificationReceived', (notification) => {
+      console.log('Push notification received:', notification);
+      const title = notification.title || (state.lang === 'el' ? 'Νέα Ειδοποίηση' : 'New Notification');
+      const body = notification.body || '';
+      const data = notification.data || {};
+      
+      // If partner transaction alert, trigger automatic balance/transaction sync
+      if (data.type === 'partner_transaction' && typeof syncCloudTransactions === 'function') {
+        syncCloudTransactions(true);
+      }
+      
+      if (typeof addInAppNotification === 'function') {
+        addInAppNotification(title, body, { type: data.type || 'general' });
+      }
+    });
+
+    // Handle user tapping on a Push Notification
+    PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
+      console.log('Push notification action performed:', action);
+      const data = (action.notification && action.notification.data) || {};
+      if (data.type === 'partner_transaction' && typeof openScreen === 'function') {
+        openScreen('transactions');
+      }
+    });
+
+  } catch (err) {
+    console.warn('PushNotifications initialization failed:', err);
+  }
+}
+
+async function syncFcmTokenToProfile(token) {
+  if (!token) token = localStorage.getItem('fcm_token');
+  if (!token || !window.supabase || !state.user || !state.user.id) return;
+  try {
+    const { error } = await window.supabase
+      .from('user_profiles')
+      .update({ fcm_token: token, updated_at: new Date().toISOString() })
+      .eq('user_id', state.user.id);
+    if (!error) {
+      console.log('FCM token synced with user profile');
+    }
+  } catch (e) {
+    console.warn('Error syncing FCM token:', e);
+  }
+}
+
+async function sendPartnerPushNotification(transaction, partnerUserId) {
+  if (!partnerUserId || !state.supabaseClient || !transaction) return;
+  try {
+    const sessionRes = state.supabaseClient.auth.session ? { data: { session: state.supabaseClient.auth.session() } } : await state.supabaseClient.auth.getSession();
+    const token = sessionRes && sessionRes.data && sessionRes.data.session ? sessionRes.data.session.access_token : null;
+    if (!token) return;
+
+    const senderName = (state.userProfile && state.userProfile.full_name) || (state.currentUser && state.currentUser.email) || (state.lang === 'el' ? 'Ο συνεργάτης σου' : 'Your partner');
+    const typeLabel = transaction.type === 'income' ? (state.lang === 'el' ? 'έσοδο' : 'income') : (state.lang === 'el' ? 'έξοδο' : 'expense');
+    const currency = (typeof getCurrencySymbol === 'function' ? getCurrencySymbol(transaction.currency || state.mainCurrency || 'EUR') : '€');
+    const amountStr = `${Number(transaction.amount || 0).toFixed(2)} ${currency}`;
+    const category = transaction.category || '';
+
+    const title = state.lang === 'el' ? `👥 Νέο ${typeLabel} από ${senderName}` : `👥 New ${typeLabel} from ${senderName}`;
+    const body = `${category ? category + ' — ' : ''}${amountStr}${transaction.notes ? ' (' + transaction.notes + ')' : ''}`;
+
+    await fetch('/api/push-notify', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        recipient_user_id: partnerUserId,
+        title: title,
+        body: body,
+        data: {
+          type: 'partner_transaction',
+          transaction_id: transaction.id,
+          amount: String(transaction.amount)
+        }
+      })
+    });
+  } catch (err) {
+    console.warn('Partner push dispatch error (silent):', err);
   }
 }
 
@@ -5265,6 +5383,11 @@ async function saveTransaction(transaction) {
         );
         if (error) throw error;
         dequeueSyncMutation('save', transaction.id);
+
+        // Notify partner via Cloudflare Function /api/push-notify if transaction is shared
+        if (state.partnerProfile && state.partnerProfile.user_id && transaction.family_id) {
+          sendPartnerPushNotification(transaction, state.partnerProfile.user_id);
+        }
       } catch (err) {
         console.warn(`Cloud save failed, keeping in queue: ${transaction.id}`, err);
       } finally {
