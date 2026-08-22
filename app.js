@@ -433,7 +433,9 @@ const PREMIUM_LIMITS = {
   currencies: 1,           // Free: 1 currency. Premium: unlimited
   budgets: 2,              // Free: 2 category budgets. Premium: unlimited
   aiCoachFree: 10,         // Free: 10 online AI calls/month
-  aiCoachPremium: 50       // Premium: 50 online AI calls/month (fair-use)
+  aiCoachPremium: 50,      // Premium: 50 online AI calls/month (fair-use)
+  aiReceiptsFree: 5,       // Free: 5 AI receipt scans/month
+  aiReceiptsPremium: 100   // Premium: 100 AI receipt scans/month (fair-use)
 };
 
 // Premium price (one-time Lifetime). Adjustable constant.
@@ -9279,11 +9281,11 @@ function setupEventListeners() {
   }
 
   function getMonthlyAIScanUsage() {
-    const isPro = !!(state.is_premium || state.is_vip || state.is_unlocked);
+    const isPro = isPremium();
     const now = new Date();
     const monthKey = `ai_scans_${now.getFullYear()}_${now.getMonth() + 1}`;
     const used = parseInt(localStorage.getItem(monthKey) || '0', 10);
-    const max = 5;
+    const max = isPro ? (PREMIUM_LIMITS.aiReceiptsPremium || 100) : (PREMIUM_LIMITS.aiReceiptsFree || 5);
     const remaining = isPro ? Infinity : Math.max(0, max - used);
     return { isPro, used, max, remaining, monthKey };
   }
@@ -9335,9 +9337,9 @@ function setupEventListeners() {
     if (!quota.isPro && quota.remaining <= 0) {
       const msg = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['ai_scan_quota_msg']) ||
         'Έχετε χρησιμοποιήσει τις 5 δωρεάν σαρώσεις αυτού του μήνα. Αναβαθμίστε σε Lifetime PRO για απεριόριστες σαρώσεις!';
-      window.showAlert(msg, (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['ai_scan_quota_limit']) || 'Όριο Δωρεάν Σαρώσεων AI', '👑');
-      if (typeof openLifetimeProModal === 'function') {
-        setTimeout(() => openLifetimeProModal(), 200);
+      showSyncToast(msg, 3500);
+      if (typeof openPremiumModal === 'function') {
+        setTimeout(() => openPremiumModal('receipts'), 200);
       }
       return;
     }
@@ -9390,7 +9392,7 @@ function setupEventListeners() {
     }
   }
 
-  function compressImageForAI(file, maxDimension = 1280, quality = 0.82) {
+  function compressImageForAI(file, maxDimension = 1400, quality = 0.82) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -9430,9 +9432,9 @@ function setupEventListeners() {
     if (!quota.isPro && quota.remaining <= 0) {
       const msg = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['ai_scan_quota_msg']) ||
         'Έχετε χρησιμοποιήσει τις 5 δωρεάν σαρώσεις αυτού του μήνα. Αναβαθμίστε σε Lifetime PRO για απεριόριστες σαρώσεις!';
-      window.showAlert(msg, (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['ai_scan_quota_limit']) || 'Όριο Δωρεάν Σαρώσεων AI', '👑');
-      if (typeof openLifetimeProModal === 'function') {
-        openLifetimeProModal();
+      showSyncToast(msg, 3500);
+      if (typeof openPremiumModal === 'function') {
+        openPremiumModal('receipts');
       }
       return;
     }
@@ -9456,12 +9458,30 @@ function setupEventListeners() {
 
     try {
       // 3. Compress image client-side to ~150KB for rapid upload
-      const base64 = await compressImageForAI(file, 1280, 0.82);
+      const base64 = await compressImageForAI(file, 1400, 0.82);
 
-      // 4. Send to Cloudflare Function /api/scan-receipt
-      const res = await fetch('/api/scan-receipt', {
+      // 4. Resolve URL via getBackendApiUrl for Capacitor & Web
+      const apiUrl = getBackendApiUrl('/api/scan-receipt');
+      const headers = { 'Content-Type': 'application/json' };
+
+      // Attach Supabase Session Bearer token if available
+      try {
+        if (state.session && state.session.access_token) {
+          headers['Authorization'] = `Bearer ${state.session.access_token}`;
+        } else if (state.supabaseClient && typeof state.supabaseClient.auth?.getSession === 'function') {
+          const sessRes = await state.supabaseClient.auth.getSession();
+          if (sessRes?.data?.session?.access_token) {
+            headers['Authorization'] = `Bearer ${sessRes.data.session.access_token}`;
+          }
+        }
+      } catch (authErr) {
+        console.warn('Could not extract session token for receipt scan:', authErr);
+      }
+
+      // 5. Send to Cloudflare Function
+      const res = await fetch(apiUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: headers,
         body: JSON.stringify({
           imageBase64: base64,
           mimeType: 'image/jpeg',
@@ -9481,13 +9501,13 @@ function setupEventListeners() {
       const data = json.data;
       if (banner) banner.style.display = 'none';
 
-      // 5. Increment quota for free users
+      // 6. Increment quota for free users
       if (!quota.isPro) {
         localStorage.setItem(quota.monthKey, String(quota.used + 1));
         updateAIScanQuotaBadge();
       }
 
-      // 6. Auto-fill form fields
+      // 7. Auto-fill form fields
       if (data.amount && !isNaN(Number(data.amount)) && Number(data.amount) > 0) {
         const amtNum = parseFloat(data.amount);
         const amtStr = String(amtNum);
@@ -9543,7 +9563,7 @@ function setupEventListeners() {
         updateSubcategoryRowVisibility();
       }
 
-      // 7. Show AI Confirmation Card
+      // 8. Show AI Confirmation Card
       if (confirmCard) {
         const merchEl = document.getElementById('ai-confirm-merchant');
         const amtEl = document.getElementById('ai-confirm-amount');

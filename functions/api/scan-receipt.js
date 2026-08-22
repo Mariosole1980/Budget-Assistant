@@ -1,4 +1,4 @@
-import { validateRequest, generateWithGeminiFallback } from './_security.js';
+import { validateRequest, getSupabasePublicConfig, generateWithGeminiFallback } from './_security.js';
 
 export async function onRequestOptions(context) {
   const { request } = context;
@@ -34,7 +34,38 @@ export async function onRequestPost(context) {
   }
   const corsHeaders = sec.headers;
 
-  // 2. Parse request body
+  // 2. JWT Token Verification (Optional - supports Guest Mode & Logged-in users)
+  const authHeader = request.headers.get('Authorization') || '';
+  if (authHeader.startsWith('Bearer ')) {
+    const token = authHeader.substring(7);
+    const supabase = getSupabasePublicConfig(env);
+    if (supabase) {
+      const { supabaseUrl, supabaseKey } = supabase;
+      try {
+        const userRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
+          method: 'GET',
+          headers: {
+            'apikey': supabaseKey,
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        if (!userRes.ok) {
+          return new Response(JSON.stringify({ error: 'Unauthorized: invalid session token' }), {
+            status: 401,
+            headers: corsHeaders
+          });
+        }
+      } catch (err) {
+        console.warn('Session verification error:', err.message);
+        return new Response(JSON.stringify({ error: 'Unauthorized: could not verify session' }), {
+          status: 401,
+          headers: corsHeaders
+        });
+      }
+    }
+  }
+
+  // 3. Parse request body
   let body;
   try {
     body = await request.json();
@@ -45,7 +76,7 @@ export async function onRequestPost(context) {
     });
   }
 
-  const { imageBase64, mimeType = 'image/jpeg', currentLang = 'el' } = body || {};
+  const { imageBase64, mimeType = 'image/jpeg' } = body || {};
   if (!imageBase64 || typeof imageBase64 !== 'string') {
     return new Response(JSON.stringify({ error: 'Missing imageBase64 in request body' }), {
       status: 400,
@@ -56,7 +87,7 @@ export async function onRequestPost(context) {
   // Strip data:image/...;base64, prefix if present
   const cleanBase64 = imageBase64.replace(/^data:image\/[a-zA-Z+]+;base64,/, '');
 
-  // 3. Prepare Prompt for Gemini Vision
+  // 4. Prepare Prompt for Gemini Vision
   const categoriesList = [
     '🏠 Σπίτι', '🍔 Τρόφιμα', '🚗 Μεταφορές', '❤️ Υγεία',
     '🎓 Εκπαίδευση', '🎉 Διασκέδαση', '👕 Αγορές', '📱 Συνδρομές',
@@ -82,7 +113,7 @@ Return ONLY valid JSON matching this exact schema:
 
 Strict Rules:
 - Return ONLY pure JSON. No markdown code blocks, no explanation.
-- "amount" MUST be the total final amount paid (number, positive).
+- "amount" MUST be the total final amount paid (number, positive). If no total is found, return 0.
 - "merchant" should be clean and capitalized properly.
 - If date is not visible on receipt, return today's date in YYYY-MM-DD format.`;
 
@@ -116,7 +147,7 @@ Strict Rules:
     env,
     modelNames,
     reqBody,
-    timeoutMs: 12000
+    timeoutMs: 14000
   });
 
   if (!result.ok) {
@@ -126,7 +157,7 @@ Strict Rules:
     });
   }
 
-  // 4. Parse result JSON
+  // 5. Parse result JSON & validate
   try {
     let parsedText = result.text.trim();
     if (parsedText.startsWith('```json')) {
