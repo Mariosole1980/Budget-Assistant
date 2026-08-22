@@ -17708,9 +17708,19 @@ function triggerCustomReminderInput() {
 }
 window.triggerCustomReminderInput = triggerCustomReminderInput;
 
+function getUserScopedKey(baseKey) {
+  const uid = state.currentUser ? (state.currentUser.id || state.currentUser.email || 'anonymous') : 'guest';
+  return `${baseKey}_${uid}`;
+}
+window.getUserScopedKey = getUserScopedKey;
+
 function loadNotes() {
   try {
-    const cached = localStorage.getItem('offline_notes');
+    const key = getUserScopedKey('offline_notes');
+    let cached = localStorage.getItem(key);
+    if (!cached && !state.currentUser) {
+      cached = localStorage.getItem('offline_notes');
+    }
     const all = cached ? JSON.parse(cached) : [];
     // Separate any soft-deleted notes into the trash bin so they don't
     // reappear in the active list after a reload.
@@ -17744,7 +17754,8 @@ function loadNotes() {
 }
 
 function saveNotes() {
-  localStorage.setItem('offline_notes', JSON.stringify(state.notes));
+  const key = getUserScopedKey('offline_notes');
+  localStorage.setItem(key, JSON.stringify(state.notes || []));
 }
 
 let _notesFilterCategory = 'all';
@@ -18678,7 +18689,11 @@ const NOTES_TRASH_KEY = 'deleted_notes_trash';
 
 function loadNotesTrash() {
   try {
-    const raw = localStorage.getItem(NOTES_TRASH_KEY);
+    const key = getUserScopedKey(NOTES_TRASH_KEY);
+    let raw = localStorage.getItem(key);
+    if (!raw && !state.currentUser) {
+      raw = localStorage.getItem(NOTES_TRASH_KEY);
+    }
     return raw ? JSON.parse(raw) : [];
   } catch (e) {
     console.error('Failed to parse notes trash:', e);
@@ -18688,7 +18703,8 @@ function loadNotesTrash() {
 
 function saveNotesTrash(trash) {
   try {
-    localStorage.setItem(NOTES_TRASH_KEY, JSON.stringify(trash || []));
+    const key = getUserScopedKey(NOTES_TRASH_KEY);
+    localStorage.setItem(key, JSON.stringify(trash || []));
     if (typeof updateNotesTrashBadge === 'function') {
       updateNotesTrashBadge();
     }
@@ -21882,13 +21898,19 @@ async function handleMagicAuth(e) {
 async function handleGoogleAuth() {
   if (!state.supabaseClient) return;
   clearAuthStatus();
-  toggleLoader(true);
+
+  const googleBtn = document.getElementById('auth-google-submit-btn');
+  const origGoogleBtnHtml = googleBtn ? googleBtn.innerHTML : '';
+  if (googleBtn) {
+    googleBtn.disabled = true;
+    googleBtn.innerHTML = `<i class="fa-brands fa-google google-icon"></i> <span>${state.lang === 'el' ? 'Σύνδεση σε εξέλιξη...' : 'Signing in...'}</span>`;
+  }
 
   const clientId = '331220079759-nrguc2ujof9u9mqhbn2mouhpga2iniqj.apps.googleusercontent.com';
   const isCapacitor = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
   const GoogleAuth = window.Capacitor?.Plugins?.GoogleAuth;
 
-  // 1. Pure Native Android Google Sign-In (Zero Browser, Instant One-Tap)
+  // 1. Pure Native Android Google Sign-In (Zero Browser, Instant One-Tap, No screen dimming)
   if (isCapacitor && GoogleAuth) {
     try {
       if (!window._googleAuthInitialized) {
@@ -21923,20 +21945,33 @@ async function handleGoogleAuth() {
         state.currentUser = data.session.user;
         localStorage.setItem('cached_current_user', JSON.stringify(data.session.user));
         
-        // INSTANT ENTRY: Dismiss login screen and loader immediately for zero perceived latency
+        // Load user-scoped notes and chat history for the new account
+        loadNotes();
+        
+        // INSTANT ENTRY: Dismiss login screen immediately for zero perceived latency
         hideAuthOverlay();
-        toggleLoader(false);
+        if (googleBtn) {
+          googleBtn.disabled = false;
+          googleBtn.innerHTML = origGoogleBtnHtml;
+        }
         if (typeof updateUI === 'function') updateUI();
         if (typeof updateHeaderProfileBadge === 'function') updateHeaderProfileBadge();
+        if (typeof renderNotesList === 'function') renderNotesList();
         
         // Background sync so user isn't kept waiting at the login screen
         forceSyncNow(true).catch(e => console.warn('Background post-login sync warning:', e));
       } else {
-        toggleLoader(false);
+        if (googleBtn) {
+          googleBtn.disabled = false;
+          googleBtn.innerHTML = origGoogleBtnHtml;
+        }
       }
       return;
     } catch (err) {
-      toggleLoader(false);
+      if (googleBtn) {
+        googleBtn.disabled = false;
+        googleBtn.innerHTML = origGoogleBtnHtml;
+      }
       const errMsg = (err?.message || '').toLowerCase();
       // If user explicitly dismissed or canceled the native picker, exit cleanly
       if (
@@ -21959,6 +21994,7 @@ async function handleGoogleAuth() {
 
   // 2. Web/PWA redirect flow (Only for Desktop / Mobile Web browsers)
   try {
+    toggleLoader(true);
     const redirectToUrl = window.location.origin + (window.location.pathname || '/');
     const { error } = await state.supabaseClient.auth.signInWithOAuth({
       provider: 'google',
@@ -21970,6 +22006,10 @@ async function handleGoogleAuth() {
     if (error) throw error;
   } catch (err) {
     toggleLoader(false);
+    if (googleBtn) {
+      googleBtn.disabled = false;
+      googleBtn.innerHTML = origGoogleBtnHtml;
+    }
     const errMsg = (err?.message || '').toLowerCase();
     if (
       errMsg.includes('cancel') ||
@@ -22021,6 +22061,10 @@ async function handleLogout() {
     localStorage.removeItem('auth_guest_mode');
     localStorage.removeItem('app_theme'); // Reset theme to default (Premium Dark) on logout
     localStorage.removeItem('account_view_mode');
+    localStorage.removeItem('offline_notes');
+    localStorage.removeItem('deleted_notes_trash');
+    localStorage.removeItem('advisor_chat_conversations_v1');
+    localStorage.removeItem('advisor_chat_active_id_v1');
     state.activeAccountMode = 'family';
     localStorage.removeItem('bg_active_modal_id');
     localStorage.removeItem('bg_active_modal_tx_id');
@@ -22044,6 +22088,12 @@ async function handleLogout() {
     state.notifications = [];
     state.guestMode = false;
 
+    // Reset AI advisor conversation DOM
+    const chatLog = document.getElementById('advisor-chat-log');
+    if (chatLog) chatLog.innerHTML = '';
+    const convList = document.getElementById('advisor-conversation-list');
+    if (convList) convList.innerHTML = '';
+
     // Close any open modals to avoid lingering UI elements
     document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
     document.querySelectorAll('.tx-modal-overlay').forEach(m => m.classList.remove('active'));
@@ -22063,6 +22113,7 @@ async function handleLogout() {
 
     // Update main UI to clear any underlying DOM nodes
     updateUI();
+    if (typeof renderNotesList === 'function') renderNotesList();
 
     state.isLoggingOut = false;
   } catch (err) {
@@ -29386,7 +29437,8 @@ const ADVISOR_ACTIVE_KEY = 'advisor_chat_active_id_v1';
 
 function loadAdvisorConversations() {
   try {
-    const raw = localStorage.getItem(ADVISOR_CONVERSATIONS_KEY);
+    const key = getUserScopedKey(ADVISOR_CONVERSATIONS_KEY);
+    const raw = localStorage.getItem(key);
     const list = raw ? JSON.parse(raw) : [];
     return Array.isArray(list) ? list : [];
   } catch (e) {
@@ -29397,7 +29449,8 @@ function loadAdvisorConversations() {
 
 function saveAdvisorConversations(list) {
   try {
-    localStorage.setItem(ADVISOR_CONVERSATIONS_KEY, JSON.stringify(list));
+    const key = getUserScopedKey(ADVISOR_CONVERSATIONS_KEY);
+    localStorage.setItem(key, JSON.stringify(list || []));
   } catch (e) {
     console.warn('[AdvisorChat] Failed to save conversations:', e);
   }
@@ -29405,7 +29458,8 @@ function saveAdvisorConversations(list) {
 
 function getActiveAdvisorConversationId() {
   try {
-    return localStorage.getItem(ADVISOR_ACTIVE_KEY) || null;
+    const key = getUserScopedKey(ADVISOR_ACTIVE_KEY);
+    return localStorage.getItem(key) || null;
   } catch (e) {
     return null;
   }
@@ -29413,8 +29467,9 @@ function getActiveAdvisorConversationId() {
 
 function setActiveAdvisorConversationId(id) {
   try {
-    if (id) localStorage.setItem(ADVISOR_ACTIVE_KEY, id);
-    else localStorage.removeItem(ADVISOR_ACTIVE_KEY);
+    const key = getUserScopedKey(ADVISOR_ACTIVE_KEY);
+    if (id) localStorage.setItem(key, id);
+    else localStorage.removeItem(key);
   } catch (e) { }
 }
 
