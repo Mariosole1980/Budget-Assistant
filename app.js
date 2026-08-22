@@ -11965,11 +11965,21 @@ function updatePremiumUI() {
   const active = isPremium();
   const banner = document.getElementById('premium-active-banner');
   const buyBtn = document.getElementById('premium-purchase-btn');
+  const cardBtn = document.getElementById('premium-pay-card-btn');
+  const paypalBtn = document.getElementById('premium-pay-paypal-btn');
+  const gplayBtn = document.getElementById('premium-pay-gplay-btn');
+  const chooseHeading = document.querySelector('#premium-modal [data-i18n="premium_choose_payment"]');
   const badge = document.getElementById('hub-premium-badge');
   const subtitle = document.getElementById('hub-premium-subtitle');
 
   if (banner) banner.style.display = active ? 'block' : 'none';
   if (buyBtn) buyBtn.style.display = active ? 'none' : 'block';
+  if (cardBtn) cardBtn.style.display = active ? 'none' : 'flex';
+  if (paypalBtn) paypalBtn.style.display = active ? 'none' : 'flex';
+  if (gplayBtn) gplayBtn.style.display = active ? 'none' : 'flex';
+  if (chooseHeading && chooseHeading.parentElement) {
+    chooseHeading.parentElement.style.display = active ? 'none' : 'flex';
+  }
   if (badge) {
     badge.textContent = active
       ? (state.lang === 'el' ? 'Ενεργό' : 'Active')
@@ -12011,7 +12021,7 @@ function updatePremiumUI() {
 //   plugin. The purchase token is verified server-side by /api/play-billing.
 // - Web / PWA: Stripe Checkout via /api/purchase.
 // Falls back to a manual-activation notice if the endpoint is not deployed.
-async function startPremiumPurchase() {
+async function startPremiumPurchase(method = 'card') {
   if (isPremium()) {
     showSyncToast(state.lang === 'el' ? '✓ Είσαι ήδη Premium!' : '✓ You are already Premium!', 2500);
     return;
@@ -12021,37 +12031,46 @@ async function startPremiumPurchase() {
     return;
   }
 
-  const btn = document.getElementById('premium-purchase-btn');
+  const btnId = method === 'paypal' ? 'premium-pay-paypal-btn' : (method === 'gplay' ? 'premium-pay-gplay-btn' : 'premium-pay-card-btn');
+  const btn = document.getElementById(btnId) || document.getElementById('premium-purchase-btn');
+  const originalHtml = btn ? btn.innerHTML : '';
   if (btn) {
     btn.disabled = true;
-    btn.innerHTML = state.lang === 'el' ? 'Προετοιμασία...' : 'Preparing...';
+    btn.innerHTML = `<span style="display:flex;align-items:center;gap:8px;margin:auto;"><i class="fa-solid fa-spinner fa-spin"></i><span>${state.lang === 'el' ? 'Προετοιμασία...' : 'Preparing...'}</span></span>`;
   }
 
   try {
-    // Native Android → Try Google Play Billing first if available, otherwise Stripe Checkout
-    if (typeof window.Capacitor !== 'undefined' && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
-      const Billing = getBillingPlugin();
-      if (Billing) {
-        const handled = await purchasePremiumViaPlayBilling(Billing);
-        if (handled) return;
+    if (method === 'gplay') {
+      // Native Android Google Play Billing
+      if (typeof window.Capacitor !== 'undefined' && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
+        const Billing = getBillingPlugin();
+        if (Billing) {
+          const handled = await purchasePremiumViaPlayBilling(Billing);
+          if (handled) return;
+        }
+      }
+      // If on Web or Play Billing isn't available
+      if (!(typeof window.Capacitor !== 'undefined' && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform())) {
+        showSyncToast(state.lang === 'el' ? 'ℹ️ Το Google Play είναι διαθέσιμο στο Android app. Επιλέξτε «Πληρωμή με Κάρτα» ή «PayPal».' : 'ℹ️ Google Play is available on Android. Please choose "Pay with Card" or "PayPal".', 4000);
+        return;
       }
     }
 
-    // Web / PWA or Native Fallback → Stripe Checkout
-    await startWebPremiumPurchase();
+    // Card or PayPal -> Stripe Checkout
+    await startWebPremiumPurchase(method);
   } catch (err) {
     console.error('Premium purchase error:', err);
     showSyncToast(state.lang === 'el' ? '⚠️ Σφάλμα κατά την αγορά.' : '⚠️ Purchase error.', 3500);
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.innerHTML = `<i class="fa-solid fa-crown" style="margin-right:6px;"></i><span>${state.lang === 'el' ? 'Αγορά για 9,99 €' : 'Buy for €9.99'}</span>`;
+      btn.innerHTML = originalHtml;
     }
   }
 }
 
 // Web / PWA Stripe Checkout flow
-async function startWebPremiumPurchase() {
+async function startWebPremiumPurchase(method = 'card') {
   let accessToken = '';
   if (state.supabaseClient) {
     try {
@@ -12074,7 +12093,7 @@ async function startWebPremiumPurchase() {
       'Content-Type': 'application/json',
       'Authorization': 'Bearer ' + accessToken
     },
-    body: JSON.stringify({ userId: state.currentUser.id })
+    body: JSON.stringify({ userId: state.currentUser.id, method: method })
   });
   const data = await res.json().catch(() => ({}));
 

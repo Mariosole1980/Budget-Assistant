@@ -2736,17 +2736,51 @@
             </div>
           </div>
 
-          <!-- Purchase button (web) -->
-          <button id="premium-purchase-btn" type="button" class="btn btn-primary"
-            style="width:100%; padding:15px; font-size:15px; font-weight:800; font-family:'Outfit',sans-serif; background:linear-gradient(135deg,#f59e0b,#d97706); color:#ffffff; border:none; border-radius:14px; box-shadow: 0 4px 16px rgba(245,158,11,0.4); display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer;"
-            onclick="startPremiumPurchase()">
-            <i class="fa-solid fa-crown"></i>
-            <span data-i18n="premium_buy_btn">Αγορά για 9,99 €</span>
-          </button>
+          <!-- Payment Options Heading -->
+          <div style="margin: 16px 0 10px 0; font-size: 13px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+            <i class="fa-solid fa-credit-card" style="color: #fbbf24; font-size: 13px;"></i>
+            <span data-i18n="premium_choose_payment">Επιλέξτε τρόπο πληρωμής:</span>
+          </div>
+
+          <!-- Payment Methods Selection -->
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <!-- Option 1: Card / Stripe -->
+            <button id="premium-pay-card-btn" type="button" class="btn"
+              style="width: 100%; padding: 14px 16px; font-size: 14px; font-weight: 700; font-family: 'Outfit', sans-serif; background: linear-gradient(135deg, #6366f1, #4f46e5); color: #ffffff; border: none; border-radius: 14px; box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35); display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: transform 0.15s;"
+              onclick="startPremiumPurchase('card')">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <i class="fa-solid fa-credit-card" style="font-size: 16px;"></i>
+                <span data-i18n="premium_pay_card">Πληρωμή με Κάρτα (Stripe)</span>
+              </div>
+              <span style="font-size: 13px; font-weight: 800; opacity: 0.95;">9,99 € ➔</span>
+            </button>
+
+            <!-- Option 2: PayPal -->
+            <button id="premium-pay-paypal-btn" type="button" class="btn"
+              style="width: 100%; padding: 14px 16px; font-size: 14px; font-weight: 700; font-family: 'Outfit', sans-serif; background: linear-gradient(135deg, #0070ba, #003087); color: #ffffff; border: none; border-radius: 14px; box-shadow: 0 4px 14px rgba(0, 112, 186, 0.3); display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: transform 0.15s;"
+              onclick="startPremiumPurchase('paypal')">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <i class="fa-brands fa-paypal" style="font-size: 17px;"></i>
+                <span data-i18n="premium_pay_paypal">Πληρωμή με PayPal</span>
+              </div>
+              <span style="font-size: 13px; font-weight: 800; opacity: 0.95;">9,99 € ➔</span>
+            </button>
+
+            <!-- Option 3: Google Play -->
+            <button id="premium-pay-gplay-btn" type="button" class="btn"
+              style="width: 100%; padding: 14px 16px; font-size: 14px; font-weight: 700; font-family: 'Outfit', sans-serif; background: linear-gradient(135deg, #0f9d58, #0b8043); color: #ffffff; border: none; border-radius: 14px; box-shadow: 0 4px 14px rgba(15, 157, 88, 0.3); display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: transform 0.15s;"
+              onclick="startPremiumPurchase('gplay')">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <i class="fa-brands fa-google-play" style="font-size: 16px;"></i>
+                <span data-i18n="premium_pay_gplay">Πληρωμή με Google Play</span>
+              </div>
+              <span style="font-size: 13px; font-weight: 800; opacity: 0.95;">9,99 € ➔</span>
+            </button>
+          </div>
 
           <!-- Restore purchases (Android) -->
           <button id="premium-restore-btn" type="button"
-            style="width:100%; margin-top:8px; padding:10px; font-size:13px; background:transparent; color:var(--text-secondary); border:1px solid var(--border); border-radius:12px; display:none;"
+            style="width:100%; margin-top:12px; padding:10px; font-size:13px; background:transparent; color:var(--text-secondary); border:1px solid var(--border); border-radius:12px; display:none;"
             onclick="restorePremiumPurchase()">
             <span data-i18n="premium_restore_btn">Επαναφορά αγοράς</span>
           </button>

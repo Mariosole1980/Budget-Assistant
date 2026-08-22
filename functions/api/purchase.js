@@ -93,6 +93,12 @@ export async function onRequestPost(context) {
         });
     }
 
+    let reqBody = {};
+    try {
+        reqBody = await request.json();
+    } catch (e) { }
+    const paymentMethod = reqBody.method || 'card';
+
     // Determine the app origin for the success/cancel redirect URLs.
     const origin = request.headers.get('Origin') || 'https://budget-assistant-pwa.pages.dev';
     const successUrl = `${origin}/?premium=success`;
@@ -111,6 +117,7 @@ export async function onRequestPost(context) {
         body.append('line_items[0][price_data][product_data][description]', 'One-time payment. Unlock all Premium features forever.');
         body.append('line_items[0][quantity]', '1');
         body.append('metadata[user_id]', userId);
+        body.append('metadata[selected_method]', paymentMethod);
 
         const stripeRes = await fetch('https://api.stripe.com/v1/checkout/sessions', {
             method: 'POST',
