@@ -205,7 +205,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
-    href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Inter:wght@400;500;600;700&family=Poppins:wght@400;600;700&display=swap"
     rel="stylesheet">
   <link rel="stylesheet" href="js/fontawesome.min.css">
 
@@ -243,11 +243,6 @@
       document.documentElement.style.backgroundColor = bgColor;
       if (document.body) document.body.style.backgroundColor = bgColor; // Sync inline body background
       if (savedTheme !== 'dark') document.documentElement.classList.add(`theme-${savedTheme}`);
-
-      // Sync the cold-start fade overlay background to the saved theme color so
-      // the launch screen blends seamlessly into the app content on cold start.
-      const coldStartOverlay = document.getElementById('cold-start-overlay');
-      if (coldStartOverlay) coldStartOverlay.style.backgroundColor = bgColor;
 
       // Sync the resume overlay background to the saved theme color so it blends
       // seamlessly with the app content when it fades out after a resume.
@@ -378,17 +373,17 @@
     })();
   </script>
 
-  <!-- Luxury Cold-Start Splash Overlay: Displays the premium branded splash screen
-       on startup with rich radial background, glowing chart icon, title and tagline.
-       Fades out smoothly once the app is ready. -->
-  <div id="cold-start-overlay"
-    style="position: fixed; inset: 0; width: 100%; height: 100%; background: radial-gradient(130% 60% at 50% 18%, #232A3B 0%, #171B26 48%, #0F1219 100%); z-index: 2147483647; opacity: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1); pointer-events: none; box-sizing: border-box; padding: 20px;">
-    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; margin-top: -30px;">
-      <img src="logo-mark.png" alt="Budget Assistant"
-        style="width: 140px; height: 140px; object-fit: contain; filter: drop-shadow(0 14px 36px rgba(99, 102, 241, 0.45));">
-      <div style="font-family: 'Outfit', 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 27px; font-weight: 800; color: #F2F4F8; letter-spacing: -0.5px; margin-top: 18px;">Budget Assistant</div>
-      <div style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 11px; font-weight: 600; color: #8A93A6; letter-spacing: 3px; text-transform: uppercase; margin-top: 6px;">SMART FINANCE, ELEVATED</div>
+  <!-- Luxury Cold-Start Splash Overlay (Exact User Design) -->
+  <div id="cold-start-overlay">
+    <div class="splash-glow"></div>
+    <div class="splash-content">
+      <div class="splash-mark">
+        <img src="logo-mark.png" alt="Budget Assistant icon">
+      </div>
+      <div class="splash-wordmark">Budget Assistant</div>
+      <div class="splash-tagline">Smart finance, elevated</div>
     </div>
+    <div class="splash-loader"></div>
   </div>
 
   <!-- Resume overlay: covers the screen with the theme background color during the

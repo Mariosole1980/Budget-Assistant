@@ -1951,9 +1951,9 @@ function fadeOutColdStartOverlay() {
     return;
   }
 
-  // Ensure user sees the branded luxury splash for at least 850ms on cold start
+  // Ensure user sees the branded luxury splash for at least 1200ms on cold start
   const elapsed = Date.now() - _splashAppStartTime;
-  const minDuration = 850;
+  const minDuration = 1200;
   if (elapsed < minDuration) {
     setTimeout(fadeOutColdStartOverlay, minDuration - elapsed);
     return;
