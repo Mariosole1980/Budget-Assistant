@@ -34,8 +34,8 @@ function getClientIp(request) {
 }
 
 function isAllowedOrigin(origin) {
-    if (!origin) return false;
-    return ALLOWED_ORIGINS.includes(origin);
+    if (!origin) return true;
+    return ALLOWED_ORIGINS.includes(origin) || origin.endsWith('.pages.dev') || origin.includes('localhost');
 }
 
 function checkRateLimit(ip) {
@@ -64,11 +64,12 @@ function checkRateLimit(ip) {
 // Build CORS headers for a request. Returns null when the origin is not allowed.
 function corsHeadersFor(request, extra = {}) {
     const origin = request.headers.get('Origin');
-    if (!isAllowedOrigin(origin)) {
+    if (origin && !isAllowedOrigin(origin)) {
         return null;
     }
+    const allowOrigin = origin || '*';
     return {
-        'Access-Control-Allow-Origin': origin,
+        'Access-Control-Allow-Origin': allowOrigin,
         'Vary': 'Origin',
         'Content-Type': 'application/json',
         ...extra

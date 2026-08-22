@@ -466,6 +466,21 @@ function requirePremium(featureKey) {
 }
 
 // ---------------------------------------------------------------------------
+// BACKEND API ENDPOINT RESOLVER
+// Resolves relative API routes (/api/...) to the Cloudflare Pages backend
+// when running inside Capacitor (native Android/iOS) or local environment.
+// ---------------------------------------------------------------------------
+function getBackendApiUrl(endpoint) {
+  const cleanEndpoint = endpoint.startsWith('/') ? endpoint : '/' + endpoint;
+  const isCapacitorOrLocal = (typeof window.Capacitor !== 'undefined' && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) ||
+    window.location.protocol === 'capacitor:' ||
+    window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1';
+  const base = isCapacitorOrLocal ? 'https://budget-assistant-pwa.pages.dev' : '';
+  return `${base}${cleanEndpoint}`;
+}
+
+// ---------------------------------------------------------------------------
 // AI COACH USAGE (client-side helper)
 // Only ONLINE advisor calls count toward the fair-use limit (they cost money).
 // The offline NLP fallback is free and unlimited for everyone.
@@ -4475,7 +4490,7 @@ async function autoRestoreMistakenlyDeletedManualTransactions() {
       const { data: sessionData } = await state.supabaseClient.auth.getSession();
       const token = sessionData && sessionData.session ? sessionData.session.access_token : null;
       if (token) {
-        const resp = await fetch('/api/restore-transactions', {
+        const resp = await fetch(getBackendApiUrl('/api/restore-transactions'), {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -11954,7 +11969,7 @@ async function startPremiumPurchase() {
       return;
     }
 
-    const res = await fetch('/api/purchase', {
+    const res = await fetch(getBackendApiUrl('/api/purchase'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -12067,7 +12082,7 @@ async function verifyPlayBillingPurchase(purchaseToken, productId) {
     const token = sessionData && sessionData.session ? sessionData.session.access_token : null;
     if (!token) return false;
 
-    const res = await fetch('/api/play-billing', {
+    const res = await fetch(getBackendApiUrl('/api/play-billing'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -12130,7 +12145,7 @@ async function reconcilePremiumPurchase() {
     // attempts before giving up. Each attempt is idempotent.
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
-        const res = await fetch('/api/premium-status', {
+        const res = await fetch(getBackendApiUrl('/api/premium-status'), {
           method: 'GET',
           headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -20834,7 +20849,7 @@ async function handlePasswordAuth(e) {
     } else {
       let signedUp = false;
       try {
-        const signupRes = await fetch('/api/auth-signup', {
+        const signupRes = await fetch(getBackendApiUrl('/api/auth-signup'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, password, lang: state.lang })
@@ -31934,7 +31949,7 @@ async function deleteAccountConfirm() {
 
     showSyncToast("⏳ " + (state.lang === 'el' ? 'Διαγραφή λογαριασμού...' : 'Deleting account...'), 0);
 
-    const res = await fetch('/api/delete-account', {
+    const res = await fetch(getBackendApiUrl('/api/delete-account'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
