@@ -1456,6 +1456,7 @@ async function scheduleDailyReminder(enabled, timeString) {
             body: state.lang === 'el' ? 'Έχεις καταγράψει τα σημερινά έξοδά σου;' : 'Have you logged today\'s expenses?',
             channelId: 'budget_reminders',
             smallIcon: 'ic_stat_icon_config_sample',
+            largeIcon: 'ic_launcher',
             iconColor: '#7c6af7',
             schedule: {
               on: {
