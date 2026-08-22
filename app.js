@@ -26279,6 +26279,7 @@ function toggleCustomDatePickerBSYearView(forceYearView) {
   const monthsView = document.getElementById('custom-date-picker-bs-months-view');
   const yearsView = document.getElementById('custom-date-picker-bs-years-view');
   const chevron = document.getElementById('custom-date-picker-bs-year-chevron');
+  const labelSpan = document.getElementById('custom-date-picker-bs-year-label');
   if (!monthsView || !yearsView) return;
 
   let showYears = false;
@@ -26292,8 +26293,9 @@ function toggleCustomDatePickerBSYearView(forceYearView) {
     monthsView.style.display = 'none';
     yearsView.style.display = 'grid';
     if (chevron) chevron.style.display = 'none';
-    const selectedYear = customDatePickerViewingMonth.getFullYear();
-    window.customDatePickerBSYearStart = Math.floor((selectedYear - 2020) / 6) * 6 + 2020;
+    if (labelSpan) {
+      labelSpan.textContent = state.lang === 'en' ? 'Select Year' : 'Επιλογή Έτους';
+    }
     renderCustomDatePickerBSGrids('year');
   } else {
     monthsView.style.display = 'grid';
@@ -26302,19 +26304,11 @@ function toggleCustomDatePickerBSYearView(forceYearView) {
       chevron.style.display = 'inline-block';
       chevron.style.transform = 'rotate(0deg)';
     }
-    const labelSpan = document.getElementById('custom-date-picker-bs-year-label');
     if (labelSpan) {
-      labelSpan.style.display = '';
       labelSpan.textContent = customDatePickerViewingMonth.getFullYear();
     }
   }
 }
-
-function shiftCustomDatePickerBSYears(delta) {
-  window.customDatePickerBSYearStart += delta;
-  renderCustomDatePickerBSGrids('year');
-}
-window.shiftCustomDatePickerBSYears = shiftCustomDatePickerBSYears;
 
 function renderCustomDatePickerBSGrids(type) {
   if (type === 'month') {
@@ -26350,34 +26344,13 @@ function renderCustomDatePickerBSGrids(type) {
     if (!grid) return;
     grid.innerHTML = '';
 
-    if (!window.customDatePickerBSYearStart) {
-      const selectedYear = customDatePickerViewingMonth.getFullYear();
-      window.customDatePickerBSYearStart = Math.floor((selectedYear - 2020) / 6) * 6 + 2020;
-    }
-
-    const startY = window.customDatePickerBSYearStart;
-    const endY = startY + 5;
-
-    const labelSpan = document.getElementById('custom-date-picker-bs-year-label');
-    if (labelSpan) {
-      labelSpan.style.display = 'flex';
-      labelSpan.style.alignItems = 'center';
-      labelSpan.style.justifyContent = 'center';
-      labelSpan.innerHTML = `
-        <span style="cursor: pointer; padding: 6px 16px; display: inline-flex; align-items: center; justify-content: center; opacity: 0.7; transition: opacity 0.2s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.7" onclick="event.stopPropagation(); shiftCustomDatePickerBSYears(-6)">
-          <i class="fa-solid fa-chevron-left" style="font-size: 14px; color: var(--accent, #e05e55);"></i>
-        </span>
-        <span style="margin: 0 8px; font-weight: 700; color: #ffffff; min-width: 110px; text-align: center;">${startY} - ${endY}</span>
-        <span style="cursor: pointer; padding: 6px 16px; display: inline-flex; align-items: center; justify-content: center; opacity: 0.7; transition: opacity 0.2s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.7" onclick="event.stopPropagation(); shiftCustomDatePickerBSYears(6)">
-          <i class="fa-solid fa-chevron-right" style="font-size: 14px; color: var(--accent, #e05e55);"></i>
-        </span>
-      `;
-    }
-
     const currentYear = customDatePickerViewingMonth.getFullYear();
     const systemYear = new Date().getFullYear();
 
-    for (let y = startY; y <= endY; y++) {
+    const startYear = 1970;
+    const endYear = 2050;
+
+    for (let y = startYear; y <= endYear; y++) {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'google-picker-btn';
@@ -26397,12 +26370,17 @@ function renderCustomDatePickerBSGrids(type) {
         customDatePickerSelectedDate = new Date(y, curMonth, safeDay);
         toggleCustomDatePickerBSYearView(false);
         renderCustomDatePickerBSGrids('month');
-        // Keep the main calendar in sync with the newly selected year so the
-        // displayed grid never shows a stale year/month after choosing a year.
         renderCustomDatePickerCalendar();
       };
       grid.appendChild(btn);
     }
+
+    setTimeout(() => {
+      const activeBtn = grid.querySelector('.active') || grid.querySelector('.today-year');
+      if (activeBtn) {
+        activeBtn.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      }
+    }, 50);
   }
 }
 
