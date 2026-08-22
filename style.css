@@ -8364,6 +8364,51 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
   transform: translateY(0) !important;
 }
 
+/* Custom Date Picker Modal as Bottom Sheet (matching Month Picker structure) */
+#custom-date-picker-modal.modal-overlay {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transition: opacity 0.3s ease !important;
+  padding: 0 !important;
+  z-index: 13000 !important;
+  background: rgba(0, 0, 0, 0.6) !important;
+}
+
+#custom-date-picker-modal.modal-overlay.active {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+#custom-date-picker-modal .modal-content {
+  position: relative !important;
+  width: 100% !important;
+  max-width: 480px !important;
+  margin: 0 auto !important;
+  background: rgba(18, 22, 32, 0.98) !important;
+  backdrop-filter: blur(28px) !important;
+  -webkit-backdrop-filter: blur(28px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-bottom: none !important;
+  border-top-left-radius: 28px !important;
+  border-top-right-radius: 28px !important;
+  border-bottom-left-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.65) !important;
+  transform: translateY(100%) !important;
+  transition: transform 0.3s cubic-bezier(0.1, 0.76, 0.55, 0.94) !important;
+  max-height: 90vh !important;
+  overflow-y: auto !important;
+  padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px)) !important;
+}
+
+#custom-date-picker-modal.modal-overlay.active .modal-content {
+  transform: translateY(0) !important;
+}
+
 #custom-date-picker-bs {
   position: absolute !important;
   bottom: 0 !important;

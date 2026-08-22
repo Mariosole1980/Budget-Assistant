@@ -4189,10 +4189,15 @@
       </div>
     </div>
 
-    <!-- MODAL: CUSTOM DATE PICKER (GLASSMORPHIC REDESIGN) -->
-    <div id="custom-date-picker-modal" class="modal-overlay" style="z-index: 13000;">
-      <div class="modal-content"
-        style="max-height: calc(var(--viewport-height, 100vh) * 0.95); display: flex; flex-direction: column; background: rgba(18, 18, 24, 0.96); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border-radius: 24px; border: 1px solid rgba(255, 255, 255, 0.12); box-shadow: 0 24px 60px rgba(0, 0, 0, 0.65); position: relative; overflow: hidden;">
+    <!-- MODAL: CUSTOM DATE PICKER (GOOGLE BOTTOM SHEET) -->
+    <div id="custom-date-picker-modal" class="modal-overlay" onclick="closeModal('custom-date-picker-modal')" style="z-index: 13000;">
+      <div class="modal-content" onclick="event.stopPropagation()"
+        style="max-height: 88vh; display: flex; flex-direction: column; position: relative; overflow: hidden;">
+
+        <!-- Pull handle -->
+        <div
+          style="width: 36px; height: 4px; background: rgba(255,255,255,0.2); border-radius: 2px; align-self: center; margin: 12px auto 6px auto;">
+        </div>
 
         <!-- Header with Month Selector Navigation (matching Transactions structure) -->
         <div
