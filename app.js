@@ -21029,6 +21029,28 @@ async function handleGoogleAuth() {
       const App = window.Capacitor?.Plugins?.App;
 
       if (Browser && data?.url) {
+        if (Browser.addListener) {
+          Browser.addListener('browserFinished', async () => {
+            console.log('[GoogleAuth] In-App Browser closed, checking session...');
+            toggleLoader(true);
+            try {
+              if (state.supabaseClient) {
+                const { data: sessData } = await state.supabaseClient.auth.getSession();
+                if (sessData && sessData.session && sessData.session.user) {
+                  state.currentUser = sessData.session.user;
+                  localStorage.setItem('cached_current_user', JSON.stringify(sessData.session.user));
+                  hideAuthOverlay();
+                  await forceSyncNow(true);
+                }
+              }
+            } catch (e) {
+              console.warn('[GoogleAuth] Session check on close failed:', e);
+            } finally {
+              toggleLoader(false);
+            }
+          });
+        }
+
         if (App) {
           const handle = await App.addListener('appUrlOpen', async (event) => {
             try {

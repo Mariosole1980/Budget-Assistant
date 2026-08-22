@@ -19,6 +19,22 @@
       }
     })();
 
+    // 1.5. Mobile In-App Browser OAuth Bounce to Native App
+    (function () {
+      const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+      const isNative = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+      const hasAuthParams = window.location.hash.includes('access_token=') || window.location.search.includes('code=');
+      if (isMobile && !isNative && hasAuthParams) {
+        try {
+          const customSchemeUrl = 'com.budgetassistant.app://login-callback' + window.location.search + window.location.hash;
+          console.log('[OAuth Bounce] Redirecting to native app:', customSchemeUrl);
+          window.location.href = customSchemeUrl;
+        } catch (e) {
+          console.warn('[OAuth Bounce] Failed:', e);
+        }
+      }
+    })();
+
     // 2. Recovery Mode Bootloader
     (function () {
       window._appLoaded = false;
