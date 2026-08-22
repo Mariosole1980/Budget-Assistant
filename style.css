@@ -10849,3 +10849,20 @@ body {
 .header-demo-badge:active {
   transform: scale(0.95);
 }
+
+/* ============================================================ */
+/* PHOTO SOURCE PICKER BOTTOM SHEET (REDESIGN)                 */
+/* ============================================================ */
+.photo-source-opt-primary:hover {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+}
+.photo-source-opt-primary:active {
+  transform: scale(0.98);
+}
+.photo-source-opt:hover {
+  background: #262D3C !important;
+}
+.photo-source-opt:active {
+  transform: scale(0.98);
+}

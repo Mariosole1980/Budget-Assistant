@@ -9296,14 +9296,13 @@ function setupEventListeners() {
     const quota = getMonthlyAIScanUsage();
     if (quota.isPro) {
       badge.textContent = 'PRO ✨';
-      badge.style.color = '#34d399';
-      badge.style.borderColor = 'rgba(52, 211, 153, 0.5)';
-      badge.style.background = 'rgba(16, 185, 129, 0.2)';
+      badge.style.color = '#fff';
+      badge.style.background = 'rgba(255, 255, 255, 0.28)';
     } else {
-      badge.textContent = `${quota.remaining}/${quota.max}`;
-      badge.style.color = quota.remaining > 0 ? '#fbbf24' : '#ef4444';
-      badge.style.borderColor = quota.remaining > 0 ? 'rgba(251, 191, 36, 0.4)' : 'rgba(239, 68, 68, 0.4)';
-      badge.style.background = 'rgba(0, 0, 0, 0.3)';
+      const freeLabel = state.lang === 'el' ? 'δωρεάν' : 'free';
+      badge.textContent = `${quota.remaining}/${quota.max} ${freeLabel}`;
+      badge.style.color = '#fff';
+      badge.style.background = quota.remaining > 0 ? 'rgba(255, 255, 255, 0.22)' : 'rgba(239, 68, 68, 0.45)';
     }
   }
 
