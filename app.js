@@ -12065,22 +12065,32 @@ async function startPremiumPurchase(method = 'card') {
 
   try {
     if (method === 'gplay') {
-      // Native Android Google Play Billing
-      if (typeof window.Capacitor !== 'undefined' && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
+      const isNative = typeof window.Capacitor !== 'undefined' && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform();
+      if (isNative) {
         const Billing = getBillingPlugin();
         if (Billing) {
           const handled = await purchasePremiumViaPlayBilling(Billing);
           if (handled) return;
         }
-      }
-      // If on Web or Play Billing isn't available
-      if (!(typeof window.Capacitor !== 'undefined' && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform())) {
-        showSyncToast(state.lang === 'el' ? 'ℹ️ Το Google Play είναι διαθέσιμο στο Android app. Επιλέξτε «Πληρωμή με Κάρτα» ή «PayPal».' : 'ℹ️ Google Play is available on Android. Please choose "Pay with Card" or "PayPal".', 4000);
+        showSyncToast(
+          state.lang === 'el'
+            ? 'ℹ️ Η πληρωμή μέσω Google Play δεν είναι διαθέσιμη προς το παρόν. Παρακαλώ επιλέξτε «Πληρωμή με Κάρτα» ή «PayPal».'
+            : 'ℹ️ Google Play billing is currently unavailable. Please choose "Pay with Card" or "PayPal".',
+          4500
+        );
+        return;
+      } else {
+        showSyncToast(
+          state.lang === 'el'
+            ? 'ℹ️ Το Google Play είναι διαθέσιμο μόνο στην Android εφαρμογή. Επιλέξτε «Πληρωμή με Κάρτα» ή «PayPal».'
+            : 'ℹ️ Google Play is only available in the Android app. Please choose "Pay with Card" or "PayPal".',
+          4500
+        );
         return;
       }
     }
 
-    // Card or PayPal -> Stripe Checkout
+    // Card or PayPal web purchase flow
     await startWebPremiumPurchase(method);
   } catch (err) {
     console.error('Premium purchase error:', err);

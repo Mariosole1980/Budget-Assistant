@@ -119,7 +119,13 @@ export async function onRequestPost(context) {
         body.append('metadata[user_id]', userId);
         body.append('metadata[selected_method]', paymentMethod);
 
-        const stripeRes = await fetch('https://api.stripe.com/v1/checkout/sessions', {
+        if (paymentMethod === 'paypal') {
+            body.append('payment_method_types[0]', 'paypal');
+        } else {
+            body.append('payment_method_types[0]', 'card');
+        }
+
+        let stripeRes = await fetch('https://api.stripe.com/v1/checkout/sessions', {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${stripeSecretKey}`,
@@ -128,11 +134,28 @@ export async function onRequestPost(context) {
             body: body.toString()
         });
 
-        const data = await stripeRes.json().catch(() => ({}));
+        let data = await stripeRes.json().catch(() => ({}));
+
+        // If PayPal was requested but not enabled on Stripe account, retry with standard card
+        if (!stripeRes.ok && paymentMethod === 'paypal' && data.error && data.error.message && data.error.message.includes('paypal')) {
+            const fallbackBody = new URLSearchParams(body);
+            fallbackBody.delete('payment_method_types[0]');
+            fallbackBody.append('payment_method_types[0]', 'card');
+
+            stripeRes = await fetch('https://api.stripe.com/v1/checkout/sessions', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${stripeSecretKey}`,
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: fallbackBody.toString()
+            });
+            data = await stripeRes.json().catch(() => ({}));
+        }
 
         if (!stripeRes.ok) {
             console.error('Stripe Checkout error:', data);
-            return new Response(JSON.stringify({ error: 'Failed to create checkout session.' }), {
+            return new Response(JSON.stringify({ error: data.error?.message || 'Failed to create checkout session.' }), {
                 status: 502,
                 headers: corsHeaders
             });
