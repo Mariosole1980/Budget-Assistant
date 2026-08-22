@@ -187,7 +187,13 @@ export async function onRequestPost(context) {
         body.append('line_items[0][quantity]', '1');
         body.append('metadata[user_id]', userId);
         body.append('metadata[selected_method]', paymentMethod);
-        body.append('payment_method_types[0]', 'card');
+        
+        if (paymentMethod === 'paypal') {
+            body.append('payment_method_types[0]', 'paypal');
+            body.append('payment_method_types[1]', 'card');
+        } else {
+            body.append('payment_method_types[0]', 'card');
+        }
 
         let stripeRes = await fetch('https://api.stripe.com/v1/checkout/sessions', {
             method: 'POST',
@@ -204,6 +210,7 @@ export async function onRequestPost(context) {
         if (!stripeRes.ok && paymentMethod === 'paypal' && data.error && data.error.message && data.error.message.includes('paypal')) {
             const fallbackBody = new URLSearchParams(body);
             fallbackBody.delete('payment_method_types[0]');
+            fallbackBody.delete('payment_method_types[1]');
             fallbackBody.append('payment_method_types[0]', 'card');
 
             stripeRes = await fetch('https://api.stripe.com/v1/checkout/sessions', {
