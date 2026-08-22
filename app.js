@@ -10004,15 +10004,13 @@ function openAddTransactionModal({ instant = false } = {}) {
   setTransactionFormType('expense');
 
   // Set default account values to avoid empty payment methods
-  if (state.accounts && state.accounts.length > 0) {
-    const cardAcc = state.accounts.find(acc => acc.type === 'card' || acc.name.toLowerCase().trim() === 'card' || acc.name.trim() === 'Κάρτα');
-    const defaultFromAcc = cardAcc || state.accounts[0];
-    document.getElementById('trans-account-from').value = defaultFromAcc.name;
-    document.getElementById('trans-account-to').value = state.accounts.length > 1 ? (state.accounts.find(acc => acc.name !== defaultFromAcc.name) || state.accounts[0]).name : state.accounts[0].name;
-  } else {
-    document.getElementById('trans-account-from').value = 'Card';
-    document.getElementById('trans-account-to').value = 'Bank Account';
+  if (!state.accounts || state.accounts.length === 0) {
+    state.accounts = DEFAULT_ACCOUNTS.slice();
   }
+  const cardAcc = state.accounts.find(acc => acc.type === 'card' || acc.name.toLowerCase().trim() === 'card' || acc.name.trim() === 'Κάρτα');
+  const defaultFromAcc = cardAcc || state.accounts[0];
+  document.getElementById('trans-account-from').value = defaultFromAcc.name;
+  document.getElementById('trans-account-to').value = state.accounts.length > 1 ? (state.accounts.find(acc => acc.name !== defaultFromAcc.name) || state.accounts[0]).name : state.accounts[0].name;
   updateAccountDropdowns();
 
   // Multi-currency: default currency from selected account (or base currency), show row if enabled
@@ -11537,12 +11535,16 @@ function openAccountPickerModal(target) {
 }
 
 function renderAccountPickerOptions() {
+  if (!state.accounts || state.accounts.length === 0) {
+    state.accounts = DEFAULT_ACCOUNTS.slice();
+  }
   const container = document.getElementById('account-picker-list');
   if (!container) return;
 
   container.innerHTML = '';
 
-  const currentVal = document.getElementById(`trans-account-${_currentAccountPickerTarget}`).value;
+  const targetInput = document.getElementById(`trans-account-${_currentAccountPickerTarget}`);
+  const currentVal = targetInput ? targetInput.value : '';
   const icons = { cash: '💵', bank: '🏦', card: '💳' };
 
   state.accounts.forEach(acc => {
@@ -11576,13 +11578,27 @@ function selectAccountOption(name) {
 function updateAccountTriggerDisplay(target) {
   const input = document.getElementById(`trans-account-${target}`);
   if (!input) return;
-  const value = input.value;
+  let value = input.value;
   const triggerDisplay = document.getElementById(`trans-account-${target}-display`);
   if (!triggerDisplay) return;
 
   if (!value) {
+    if (!state.accounts || state.accounts.length === 0) {
+      state.accounts = DEFAULT_ACCOUNTS.slice();
+    }
+    const defaultAcc = target === 'to' ? (state.accounts[1] || state.accounts[0]) : state.accounts[0];
+    if (defaultAcc) {
+      input.value = defaultAcc.name;
+      value = defaultAcc.name;
+    }
+  }
+
+  if (!value) {
     triggerDisplay.innerHTML = `<span class="custom-select-placeholder">${state.lang === 'el' ? 'Επιλέξτε...' : 'Select...'}</span>`;
   } else {
+    if (!state.accounts || state.accounts.length === 0) {
+      state.accounts = DEFAULT_ACCOUNTS.slice();
+    }
     const acc = state.accounts.find(a => a.name === value);
     const icons = { cash: '💵', bank: '🏦', card: '💳' };
     const icon = acc ? (icons[acc.type] || '💳') : '💳';
