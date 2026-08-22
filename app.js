@@ -2118,6 +2118,20 @@ async function initApp() {
   document.body.classList.add('trans-tab-active');
   loadConfig();
   initSettingsFromStorage();
+
+  // Pre-warm Google Play Services Auth in background for instant 0ms tap response
+  if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
+    const GoogleAuth = window.Capacitor.Plugins && window.Capacitor.Plugins.GoogleAuth;
+    if (GoogleAuth && typeof GoogleAuth.initialize === 'function') {
+      GoogleAuth.initialize({
+        clientId: '331220079759-nrguc2ujof9u9mqhbn2mouhpga2iniqj.apps.googleusercontent.com',
+        serverClientId: '331220079759-nrguc2ujof9u9mqhbn2mouhpga2iniqj.apps.googleusercontent.com',
+        scopes: ['profile', 'email'],
+        grantOfflineAccess: false,
+      }).then(() => { window._googleAuthInitialized = true; })
+        .catch(e => console.warn('[GoogleAuth] Pre-warm warning:', e));
+    }
+  }
   // FIX (overlay placement): Self-heal any full-screen overlay that is nested
   // inside .app-container (position:relative + overflow:hidden) by moving it
   // directly under <body>. This prevents the auth-overlay-style "trapped modal"
@@ -21874,18 +21888,21 @@ async function handleGoogleAuth() {
   const isCapacitor = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
   const GoogleAuth = window.Capacitor?.Plugins?.GoogleAuth;
 
-  // 1. Pure Native Android Google Sign-In (Zero Browser, Zero URLs)
+  // 1. Pure Native Android Google Sign-In (Zero Browser, Instant One-Tap)
   if (isCapacitor && GoogleAuth) {
     try {
-      try {
-        await GoogleAuth.initialize({
-          clientId: clientId,
-          serverClientId: clientId,
-          scopes: ['profile', 'email'],
-          grantOfflineAccess: true,
-        });
-      } catch (initErr) {
-        console.warn('[GoogleAuth] Native initialize warning:', initErr);
+      if (!window._googleAuthInitialized) {
+        try {
+          await GoogleAuth.initialize({
+            clientId: clientId,
+            serverClientId: clientId,
+            scopes: ['profile', 'email'],
+            grantOfflineAccess: false,
+          });
+          window._googleAuthInitialized = true;
+        } catch (initErr) {
+          console.warn('[GoogleAuth] Native initialize warning:', initErr);
+        }
       }
 
       const googleUser = await GoogleAuth.signIn();
@@ -21905,10 +21922,18 @@ async function handleGoogleAuth() {
       if (data && data.session && data.session.user) {
         state.currentUser = data.session.user;
         localStorage.setItem('cached_current_user', JSON.stringify(data.session.user));
+        
+        // INSTANT ENTRY: Dismiss login screen and loader immediately for zero perceived latency
         hideAuthOverlay();
-        await forceSyncNow(true);
+        toggleLoader(false);
+        if (typeof updateUI === 'function') updateUI();
+        if (typeof updateHeaderProfileBadge === 'function') updateHeaderProfileBadge();
+        
+        // Background sync so user isn't kept waiting at the login screen
+        forceSyncNow(true).catch(e => console.warn('Background post-login sync warning:', e));
+      } else {
+        toggleLoader(false);
       }
-      toggleLoader(false);
       return;
     } catch (err) {
       toggleLoader(false);
