@@ -75,6 +75,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(SecurityPlugin.class);
         registerPlugin(com.codetrixstudio.capacitor.GoogleAuth.GoogleAuth.class);
         registerPlugin(de.carstenklaffke.billing.BillingPlugin.class);
+        registerPlugin(ReliableNotificationPlugin.class);
 
         // Lock WebView text zoom and prevent Android autofill/system font scaling issues
         lockWebViewSettings();

@@ -61,6 +61,24 @@
             android:grantUriPermissions="true">
             <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />
         </provider>
+
+        <!-- Pure Native Reliable Alarm BroadcastReceiver -->
+        <receiver
+            android:name=".ReliableAlarmReceiver"
+            android:exported="false" />
+
+        <!-- Auto-Restore Alarms on Reboot, Package Update & Time Changes -->
+        <receiver
+            android:name=".BootAndPackageReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+            </intent-filter>
+        </receiver>
     </application>
 
     <!-- Permissions -->

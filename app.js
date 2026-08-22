@@ -1380,66 +1380,145 @@ function handleIncomingLocalNotification(notification) {
 }
 
 async function scheduleDailyReminder(enabled, timeString) {
-  if (!window.Capacitor || !window.Capacitor.Plugins || !window.Capacitor.Plugins.LocalNotifications) {
+  const isNative = typeof window.Capacitor !== 'undefined' && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform();
+  if (!isNative) {
     return;
   }
-  const LocalNotifications = window.Capacitor.Plugins.LocalNotifications;
-  try {
-    await LocalNotifications.cancel({ notifications: [{ id: 9999 }] });
-    if (!enabled) return;
-    const perm = await LocalNotifications.requestPermissions();
-    if (perm.display !== 'granted') {
-      console.warn('Notification permission denied');
-      return;
-    }
 
-    // Ensure notification channel exists with high priority and bypass
+  // 1. Primary: Pure Native ReliableNotification Plugin (Bypasses WebView, auto-reschedules on boot/alarm)
+  const ReliableNotification = window.Capacitor.Plugins && window.Capacitor.Plugins.ReliableNotification;
+  if (ReliableNotification) {
     try {
-      if (typeof LocalNotifications.createChannel === 'function') {
-        await LocalNotifications.createChannel({
-          id: 'budget_reminders',
-          name: 'Budget Assistant Reminders',
-          description: 'Daily expense reminders and alerts',
-          importance: 5,
-          visibility: 1,
-          vibration: true,
-          lights: true,
-          lightColor: '#7c6af7'
-        });
+      // Check / request POST_NOTIFICATIONS permission
+      if (window.Capacitor.Plugins.LocalNotifications) {
+        try {
+          await window.Capacitor.Plugins.LocalNotifications.requestPermissions();
+        } catch (pErr) {}
       }
-    } catch (chanErr) { }
 
-    const [hours, minutes] = timeString.split(':').map(Number);
+      if (!enabled) {
+        await ReliableNotification.cancelDailyReminder();
+        return;
+      }
 
-    await LocalNotifications.schedule({
-      notifications: [
-        {
-          id: 9999,
-          title: state.lang === 'el' ? 'Καταγραφή Εξόδων' : 'Log Expenses',
-          body: state.lang === 'el' ? 'Έχεις καταγράψει τα σημερινά έξοδά σου;' : 'Have you logged today\'s expenses?',
-          channelId: 'budget_reminders',
-          smallIcon: 'ic_stat_icon_config_sample',
-          iconColor: '#7c6af7',
-          schedule: {
-            on: {
-              hour: hours,
-              minute: minutes
-            },
-            allowWhileIdle: true
-          },
-          sound: null,
-          attachments: null,
-          actionTypeId: '',
-          extra: {
-            type: 'daily_reminder'
-          }
+      const [hours, minutes] = (timeString || '21:00').split(':').map(Number);
+      const title = state.lang === 'el' ? 'Καταγραφή Εξόδων' : 'Log Expenses';
+      const body = state.lang === 'el' ? 'Έχεις καταγράψει τα σημερινά έξοδά σου;' : 'Have you logged today\'s expenses?';
+
+      await ReliableNotification.scheduleDailyReminder({
+        hour: hours,
+        minute: minutes,
+        title: title,
+        body: body,
+        enabled: true
+      });
+      console.log('ReliableNotification armed successfully for', hours, minutes);
+      return;
+    } catch (err) {
+      console.warn('ReliableNotification failed, falling back to LocalNotifications:', err);
+    }
+  }
+
+  // 2. Secondary Fallback: Capacitor LocalNotifications
+  const LocalNotifications = window.Capacitor.Plugins && window.Capacitor.Plugins.LocalNotifications;
+  if (LocalNotifications) {
+    try {
+      await LocalNotifications.cancel({ notifications: [{ id: 9999 }] });
+      if (!enabled) return;
+      const perm = await LocalNotifications.requestPermissions();
+      if (perm.display !== 'granted') {
+        console.warn('Notification permission denied');
+        return;
+      }
+
+      try {
+        if (typeof LocalNotifications.createChannel === 'function') {
+          await LocalNotifications.createChannel({
+            id: 'budget_reminders',
+            name: 'Budget Assistant Reminders',
+            description: 'Daily expense reminders and alerts',
+            importance: 5,
+            visibility: 1,
+            vibration: true,
+            lights: true,
+            lightColor: '#7c6af7'
+          });
         }
-      ]
-    });
-  } catch (err) {
-    console.error('Error scheduling daily reminder:', err);
+      } catch (chanErr) { }
+
+      const [hours, minutes] = (timeString || '21:00').split(':').map(Number);
+
+      await LocalNotifications.schedule({
+        notifications: [
+          {
+            id: 9999,
+            title: state.lang === 'el' ? 'Καταγραφή Εξόδων' : 'Log Expenses',
+            body: state.lang === 'el' ? 'Έχεις καταγράψει τα σημερινά έξοδά σου;' : 'Have you logged today\'s expenses?',
+            channelId: 'budget_reminders',
+            smallIcon: 'ic_stat_icon_config_sample',
+            iconColor: '#7c6af7',
+            schedule: {
+              on: {
+                hour: hours,
+                minute: minutes
+              },
+              allowWhileIdle: true
+            },
+            sound: null,
+            attachments: null,
+            actionTypeId: '',
+            extra: {
+              type: 'daily_reminder'
+            }
+          }
+        ]
+      });
+    } catch (err) {
+      console.error('Error scheduling daily reminder fallback:', err);
+    }
   }
 }
+
+// Native Device Battery & Background Optimization Helper Methods
+window.requestBatteryOptimizationExemption = async function () {
+  if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.ReliableNotification) {
+    try {
+      await window.Capacitor.Plugins.ReliableNotification.requestIgnoreBatteryOptimizations();
+      showSyncToast(state.lang === 'el' ? 'ℹ️ Επιλέξτε «Να επιτρέπεται / Χωρίς περιορισμούς»' : 'ℹ️ Select "Allow / No restrictions"', 4000);
+    } catch (e) {
+      console.warn('Could not request battery exemption:', e);
+    }
+  }
+};
+
+window.openDeviceAutostartSettings = async function () {
+  if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.ReliableNotification) {
+    try {
+      const res = await window.Capacitor.Plugins.ReliableNotification.openAutostartSettings();
+      showSyncToast(state.lang === 'el' ? 'ℹ️ Ενεργοποιήστε την «Αυτόματη έναρξη» για το Budget Assistant' : 'ℹ️ Enable "Autostart" for Budget Assistant', 4000);
+    } catch (e) {
+      console.warn('Could not open autostart settings:', e);
+    }
+  }
+};
+
+window.testReliableNotification = async function () {
+  if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.ReliableNotification) {
+    try {
+      await window.Capacitor.Plugins.ReliableNotification.testNotification({
+        title: state.lang === 'el' ? '⚡ Δοκιμή Budget Assistant' : '⚡ Budget Assistant Test',
+        body: state.lang === 'el' ? 'Η ειδοποίηση παραδίδεται άψογα και στην οθόνη κλειδώματος!' : 'Notification delivered with lock-screen support!'
+      });
+      showSyncToast(state.lang === 'el' ? '✓ Δοκιμαστική ειδοποίηση εστάλη!' : '✓ Test notification dispatched!', 2500);
+      return;
+    } catch (e) {
+      console.warn('ReliableNotification test error:', e);
+    }
+  }
+  if (typeof sendTestNotification === 'function') {
+    sendTestNotification();
+  }
+};
 
 // Persist pending note reminders so they survive app restarts. The native
 // LocalNotifications plugin already persists scheduled notifications, but the
@@ -26834,6 +26913,12 @@ window.onSubscreenShow_notifications = function () {
   const timeRow = document.getElementById('settings-daily-reminder-time-row');
   if (timeRow) timeRow.style.display = dailyReminderEnabled ? 'flex' : 'none';
 
+  const batteryCard = document.getElementById('settings-native-battery-card');
+  const isNative = typeof window.Capacitor !== 'undefined' && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform();
+  if (batteryCard) {
+    batteryCard.style.display = (dailyReminderEnabled && isNative) ? 'flex' : 'none';
+  }
+
   const dailyTime = localStorage.getItem('settings_daily_reminder_time') || '21:00';
   const dailyTimeInput = document.getElementById('settings-daily-reminder-time');
   if (dailyTimeInput) dailyTimeInput.value = dailyTime;
@@ -27167,6 +27252,13 @@ window.toggleDailyReminder = function (checked) {
   localStorage.setItem('settings_daily_reminder_enabled', checked ? 'true' : 'false');
   const timeRow = document.getElementById('settings-daily-reminder-time-row');
   if (timeRow) timeRow.style.display = checked ? 'flex' : 'none';
+
+  const batteryCard = document.getElementById('settings-native-battery-card');
+  const isNative = typeof window.Capacitor !== 'undefined' && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform();
+  if (batteryCard) {
+    batteryCard.style.display = (checked && isNative) ? 'flex' : 'none';
+  }
+
   const timeVal = localStorage.getItem('settings_daily_reminder_time') || '21:00';
   if (typeof scheduleDailyReminder === 'function') {
     scheduleDailyReminder(checked, timeVal);

@@ -2039,6 +2039,37 @@
                   </div>
                 </div>
 
+                <!-- Native Android Battery & Background Reliability Settings -->
+                <div id="settings-native-battery-card"
+                  style="margin: 10px 16px 14px 16px; padding: 12px 14px; background: rgba(124, 106, 247, 0.08); border: 1px solid rgba(124, 106, 247, 0.25); border-radius: 14px; display: flex; flex-direction: column; gap: 8px;">
+                  <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <div style="font-size: 12.5px; font-weight: 700; color: #a78bfa; display: flex; align-items: center; gap: 6px;">
+                      <i class="fa-solid fa-bolt" style="color: #fbbf24;"></i>
+                      <span>Αξιοπιστία Παρασκηνίου (Xiaomi / Android)</span>
+                    </div>
+                  </div>
+                  <div style="font-size: 11px; color: var(--text-secondary); line-height: 1.4;">
+                    Για εγγυημένη παράδοση με κλειδωμένη οθόνη ή κλειστή εφαρμογή:
+                  </div>
+                  <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                    <button type="button" class="btn" onclick="requestBatteryOptimizationExemption()"
+                      style="padding: 6px 10px; font-size: 11px; font-weight: 600; border-radius: 8px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); color: #fff; display: flex; align-items: center; gap: 5px;">
+                      <i class="fa-solid fa-battery-full" style="color: #10b981;"></i>
+                      <span>Χωρίς Περιορισμούς</span>
+                    </button>
+                    <button type="button" class="btn" onclick="openDeviceAutostartSettings()"
+                      style="padding: 6px 10px; font-size: 11px; font-weight: 600; border-radius: 8px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); color: #fff; display: flex; align-items: center; gap: 5px;">
+                      <i class="fa-solid fa-rocket" style="color: #38bdf8;"></i>
+                      <span>Αυτόματη Έναρξη</span>
+                    </button>
+                    <button type="button" class="btn" onclick="testReliableNotification()"
+                      style="padding: 6px 10px; font-size: 11px; font-weight: 600; border-radius: 8px; background: rgba(124, 106, 247, 0.2); border: 1px solid rgba(124, 106, 247, 0.4); color: #fff; display: flex; align-items: center; gap: 5px;">
+                      <i class="fa-solid fa-bell" style="color: #fbbf24;"></i>
+                      <span>Δοκιμή</span>
+                    </button>
+                  </div>
+                </div>
+
                 <!-- Row 2: Recurring Payment Alert -->
                 <div class="settings-list-item"
                   style="padding:14px 16px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border, rgba(255,255,255,0.05)); margin:0;">

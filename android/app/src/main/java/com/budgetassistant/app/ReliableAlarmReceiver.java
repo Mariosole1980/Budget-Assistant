@@ -1,0 +1,224 @@
+package com.budgetassistant.app;
+
+import android.app.AlarmManager;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.graphics.Color;
+import android.media.AudioAttributes;
+import android.media.RingtoneManager;
+import android.net.Uri;
+import android.os.Build;
+import android.os.PowerManager;
+import android.util.Log;
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
+import java.util.Calendar;
+
+public class ReliableAlarmReceiver extends BroadcastReceiver {
+
+    public static final String TAG = "BA-ReliableAlarm";
+    public static final String CHANNEL_ID = "budget_assistant_daily_reminders_v2";
+    public static final int NOTIFICATION_ID = 9999;
+    public static final String PREFS_NAME = "ReliableNotificationPrefs";
+    public static final String KEY_ENABLED = "reminder_enabled";
+    public static final String KEY_HOUR = "reminder_hour";
+    public static final String KEY_MINUTE = "reminder_minute";
+    public static final String KEY_TITLE = "reminder_title";
+    public static final String KEY_BODY = "reminder_body";
+
+    @Override
+    public void onReceive(Context context, Intent intent) {
+        Log.d(TAG, "onReceive triggered at " + System.currentTimeMillis());
+
+        PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
+        PowerManager.WakeLock wakeLock = null;
+        if (pm != null) {
+            wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "budgetassistant:reliable_alarm_wakelock");
+            wakeLock.acquire(10 * 1000L); // Hold for 10 seconds max
+        }
+
+        try {
+            SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+            boolean enabled = prefs.getBoolean(KEY_ENABLED, false);
+            int hour = prefs.getInt(KEY_HOUR, 21);
+            int minute = prefs.getInt(KEY_MINUTE, 0);
+            String title = prefs.getString(KEY_TITLE, "Καταγραφή Εξόδων");
+            String body = prefs.getString(KEY_BODY, "Έχεις καταγράψει τα σημερινά έξοδά σου;");
+
+            if (enabled) {
+                // 1. Show the notification
+                showNotification(context, title, body);
+
+                // 2. Self-Healing: reschedule next alarm for tomorrow
+                scheduleNextAlarm(context, hour, minute);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error processing alarm broadcast", e);
+        } finally {
+            if (wakeLock != null && wakeLock.isHeld()) {
+                try {
+                    wakeLock.release();
+                } catch (Exception ignored) {}
+            }
+        }
+    }
+
+    public static void showNotification(Context context, String title, String body) {
+        createNotificationChannel(context);
+
+        Intent openAppIntent = new Intent(context, MainActivity.class);
+        openAppIntent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        openAppIntent.putExtra("from_notification", true);
+        openAppIntent.putExtra("notification_type", "daily_reminder");
+
+        int flags = PendingIntent.FLAG_UPDATE_CURRENT;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            flags |= PendingIntent.FLAG_IMMUTABLE;
+        }
+
+        PendingIntent pendingIntent = PendingIntent.getActivity(
+                context,
+                NOTIFICATION_ID,
+                openAppIntent,
+                flags
+        );
+
+        Uri soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+
+        int smallIconRes = context.getResources().getIdentifier(
+                "ic_stat_icon_config_sample",
+                "drawable",
+                context.getPackageName()
+        );
+        if (smallIconRes == 0) {
+            smallIconRes = context.getApplicationInfo().icon;
+        }
+
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
+                .setSmallIcon(smallIconRes)
+                .setContentTitle(title)
+                .setContentText(body)
+                .setStyle(new NotificationCompat.BigTextStyle().bigText(body))
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                .setCategory(NotificationCompat.CATEGORY_REMINDER)
+                .setAutoCancel(true)
+                .setSound(soundUri)
+                .setColor(Color.parseColor("#7c6af7"))
+                .setContentIntent(pendingIntent)
+                .setDefaults(NotificationCompat.DEFAULT_ALL);
+
+        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
+        try {
+            notificationManager.notify(NOTIFICATION_ID, builder.build());
+            Log.d(TAG, "Notification successfully dispatched");
+        } catch (SecurityException se) {
+            Log.w(TAG, "POST_NOTIFICATIONS permission missing", se);
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to display notification", e);
+        }
+    }
+
+    public static void createNotificationChannel(Context context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+            if (notificationManager != null) {
+                NotificationChannel channel = notificationManager.getNotificationChannel(CHANNEL_ID);
+                if (channel == null) {
+                    channel = new NotificationChannel(
+                            CHANNEL_ID,
+                            "Budget Assistant Reminders",
+                            NotificationManager.IMPORTANCE_HIGH
+                    );
+                    channel.setDescription("Daily expense logging reminders and budget alerts");
+                    channel.enableLights(true);
+                    channel.setLightColor(Color.parseColor("#7c6af7"));
+                    channel.enableVibration(true);
+                    channel.setLockscreenVisibility(NotificationCompat.VISIBILITY_PUBLIC);
+
+                    Uri soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+                    AudioAttributes audioAttributes = new AudioAttributes.Builder()
+                            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                            .setUsage(AudioAttributes.USAGE_NOTIFICATION_REMINDER)
+                            .build();
+                    channel.setSound(soundUri, audioAttributes);
+
+                    notificationManager.createNotificationChannel(channel);
+                    Log.d(TAG, "Notification channel created: " + CHANNEL_ID);
+                }
+            }
+        }
+    }
+
+    public static void scheduleNextAlarm(Context context, int hour, int minute) {
+        AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+        if (alarmManager == null) return;
+
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTimeInMillis(System.currentTimeMillis());
+        calendar.set(Calendar.HOUR_OF_DAY, hour);
+        calendar.set(Calendar.MINUTE, minute);
+        calendar.set(Calendar.SECOND, 0);
+        calendar.set(Calendar.MILLISECOND, 0);
+
+        // If target time has already passed today, advance to tomorrow
+        if (calendar.getTimeInMillis() <= System.currentTimeMillis()) {
+            calendar.add(Calendar.DAY_OF_YEAR, 1);
+        }
+
+        long triggerAtMillis = calendar.getTimeInMillis();
+
+        Intent intent = new Intent(context, ReliableAlarmReceiver.class);
+        int flags = PendingIntent.FLAG_UPDATE_CURRENT;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            flags |= PendingIntent.FLAG_IMMUTABLE;
+        }
+
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(
+                context,
+                NOTIFICATION_ID,
+                intent,
+                flags
+        );
+
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
+                    Log.w(TAG, "Exact alarms not allowed. Using setAndAllowWhileIdle fallback.");
+                    alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent);
+                } else {
+                    alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent);
+                    Log.d(TAG, "Armed setExactAndAllowWhileIdle for: " + calendar.getTime().toString());
+                }
+            } else {
+                alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error scheduling alarm with AlarmManager", e);
+        }
+    }
+
+    public static void cancelAlarm(Context context) {
+        AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+        if (alarmManager != null) {
+            Intent intent = new Intent(context, ReliableAlarmReceiver.class);
+            int flags = PendingIntent.FLAG_UPDATE_CURRENT;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                flags |= PendingIntent.FLAG_IMMUTABLE;
+            }
+            PendingIntent pendingIntent = PendingIntent.getBroadcast(
+                    context,
+                    NOTIFICATION_ID,
+                    intent,
+                    flags
+            );
+            alarmManager.cancel(pendingIntent);
+            Log.d(TAG, "Alarm cancelled.");
+        }
+    }
+}
