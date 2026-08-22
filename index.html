@@ -1353,7 +1353,9 @@
                 <input type="file" id="trans-camera-input" accept="image/*" capture="environment"
                   style="display: none;">
                 <i class="fa-solid fa-camera" id="trans-camera-btn"
-                  style="color: var(--text-muted); font-size: 16px; margin-left: 8px; cursor: pointer; padding: 4px;"></i>
+                  onclick="openReceiptPhotoSourcePicker(event)"
+                  data-i18n-title="photo_picker_title" title="Προσθήκη Φωτογραφίας"
+                  style="color: var(--text-muted); font-size: 16px; margin-left: 8px; cursor: pointer; padding: 6px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; transition: color 0.15s ease;"></i>
               </div>
             </div>
 
@@ -5336,6 +5338,45 @@
           <button type="button" id="avatar-viewer-delete-btn" class="btn btn-secondary" onclick="deleteCustomAvatar()"
             style="width: 100%; padding: 12px; border-radius: 12px; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; color: #ef4444; border: 1px solid rgba(239,68,68,0.3); background: rgba(239,68,68,0.1); cursor: pointer;">
             <i class="fa-solid fa-trash-can"></i> <span data-i18n="btn_delete_photo">Διαγραφή Φωτογραφίας</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- MODAL: RECEIPT PHOTO SOURCE PICKER (CAMERA OR GALLERY)       -->
+    <!-- ============================================================ -->
+    <div id="receipt-photo-source-modal" class="modal-overlay" style="z-index: 10005;"
+      onclick="handleReceiptPhotoSourceOverlayClick(event)">
+      <div class="modal-content"
+        style="max-width: 360px; width: 92%; border-radius: 24px; padding: 22px 20px; text-align: center; background: var(--bg-card); border: 1px solid var(--border); box-shadow: 0 16px 48px rgba(0,0,0,0.6); display: flex; flex-direction: column; align-items: center; gap: 14px; box-sizing: border-box;">
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+          <span style="font-size: 16px; font-weight: 800; color: var(--text-primary); font-family: 'Outfit', sans-serif;"
+            data-i18n="photo_picker_title">Προσθήκη Φωτογραφίας</span>
+          <button type="button" onclick="closeModal('receipt-photo-source-modal')"
+            style="background: rgba(255,255,255,0.06); border: 1px solid var(--border); color: var(--text-muted); width: 30px; height: 30px; border-radius: 8px; font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center;">✕</button>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 10px; width: 100%; margin-top: 4px;">
+          <!-- Take Live Photo Button -->
+          <button type="button" class="btn btn-primary" onclick="triggerReceiptCameraCapture(event)"
+            style="width: 100%; padding: 14px; border-radius: 14px; font-size: 15px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; background: var(--accent); color: #fff;">
+            <i class="fa-solid fa-camera" style="font-size: 18px;"></i>
+            <span data-i18n="photo_picker_camera">Λήψη με Κάμερα</span>
+          </button>
+          
+          <!-- Choose from Gallery Button -->
+          <button type="button" class="btn btn-secondary" onclick="triggerReceiptGalleryUpload(event)"
+            style="width: 100%; padding: 14px; border-radius: 14px; font-size: 15px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; background: rgba(255,255,255,0.06); border: 1px solid var(--border); color: var(--text-primary);">
+            <i class="fa-solid fa-images" style="font-size: 18px; color: var(--accent);"></i>
+            <span data-i18n="photo_picker_gallery">Επιλογή από Συλλογή</span>
+          </button>
+
+          <!-- Cancel Button -->
+          <button type="button" class="btn btn-secondary" onclick="closeModal('receipt-photo-source-modal')"
+            style="width: 100%; padding: 11px; border-radius: 12px; font-size: 13.5px; font-weight: 600; display: flex; align-items: center; justify-content: center; color: var(--text-muted); background: transparent; border: none; cursor: pointer; margin-top: 2px;">
+            <span data-i18n="photo_picker_cancel">Ακύρωση</span>
           </button>
         </div>
       </div>

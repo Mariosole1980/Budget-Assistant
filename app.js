@@ -9205,7 +9205,7 @@ function setupEventListeners() {
     const form = document.getElementById('transaction-form');
     const isReadOnly = form && form.getAttribute('data-readonly') === 'true';
 
-    // 1. If not read-only, prepend the Camera capture button as the first item
+    // 1. If not read-only, prepend the Camera/Gallery capture button as the first item
     if (!isReadOnly) {
       const cameraBox = document.createElement('div');
       cameraBox.className = 'photo-thumbnail-wrapper camera-capture-btn';
@@ -9222,9 +9222,8 @@ function setupEventListeners() {
       cameraBox.appendChild(camIcon);
       cameraBox.appendChild(camLabel);
 
-      cameraBox.addEventListener('click', () => {
-        const cameraInput = document.getElementById('trans-camera-input');
-        if (cameraInput) cameraInput.click();
+      cameraBox.addEventListener('click', (e) => {
+        openReceiptPhotoSourcePicker(e);
       });
 
       list.appendChild(cameraBox);
@@ -9279,14 +9278,71 @@ function setupEventListeners() {
     }
   }
 
+  function openReceiptPhotoSourcePicker(e) {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    // Blur any active input to prevent keyboard resize / screen flickering
+    if (document.activeElement && typeof document.activeElement.blur === 'function') {
+      document.activeElement.blur();
+    }
+    const form = document.getElementById('transaction-form');
+    if (form && form.getAttribute('data-readonly') === 'true') return;
+
+    openModal('receipt-photo-source-modal');
+  }
+
+  function triggerReceiptCameraCapture(e) {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    closeModal('receipt-photo-source-modal');
+    if (document.activeElement && typeof document.activeElement.blur === 'function') {
+      document.activeElement.blur();
+    }
+    const cameraInput = document.getElementById('trans-camera-input');
+    if (cameraInput) {
+      setTimeout(() => {
+        cameraInput.click();
+      }, 60);
+    }
+  }
+
+  function triggerReceiptGalleryUpload(e) {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    closeModal('receipt-photo-source-modal');
+    if (document.activeElement && typeof document.activeElement.blur === 'function') {
+      document.activeElement.blur();
+    }
+    const photoInput = document.getElementById('trans-photo-input');
+    if (photoInput) {
+      setTimeout(() => {
+        photoInput.click();
+      }, 60);
+    }
+  }
+
+  function handleReceiptPhotoSourceOverlayClick(e) {
+    if (e.target.id === 'receipt-photo-source-modal') {
+      closeModal('receipt-photo-source-modal');
+    }
+  }
+
+  window.openReceiptPhotoSourcePicker = openReceiptPhotoSourcePicker;
+  window.triggerReceiptCameraCapture = triggerReceiptCameraCapture;
+  window.triggerReceiptGalleryUpload = triggerReceiptGalleryUpload;
+  window.handleReceiptPhotoSourceOverlayClick = handleReceiptPhotoSourceOverlayClick;
   window.removePendingPhoto = removePendingPhoto;
   window.renderPhotoPreviews = renderPhotoPreviews;
 
   if (cameraBtnEl && photoInputEl) {
-    cameraBtnEl.addEventListener('click', () => {
-      const form = document.getElementById('transaction-form');
-      if (form && form.getAttribute('data-readonly') === 'true') return;
-      photoInputEl.click();
+    cameraBtnEl.addEventListener('click', (e) => {
+      openReceiptPhotoSourcePicker(e);
     });
 
     photoInputEl.addEventListener('change', (e) => {
