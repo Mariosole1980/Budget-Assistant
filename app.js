@@ -27300,32 +27300,42 @@ let _modernTimePickerCallback = null;
 let _modernTimePickerHour = 21;
 let _modernTimePickerMinute = 0;
 let _modernTimeWheelsInitialized = false;
+const DRUM_CYCLES = 5;
+const DRUM_ITEM_HEIGHT = 44;
 
 function populateModernTimeWheels() {
   const hoursScroll = document.getElementById('modern-scroll-hours');
   const minutesScroll = document.getElementById('modern-scroll-minutes');
 
   if (hoursScroll && hoursScroll.children.length === 0) {
-    for (let i = 0; i <= 23; i++) {
-      const item = document.createElement('div');
-      item.className = 'modern-drum-item';
-      item.textContent = String(i).padStart(2, '0');
-      item.onclick = () => {
-        hoursScroll.scrollTop = i * 44;
-      };
-      hoursScroll.appendChild(item);
+    for (let c = 0; c < DRUM_CYCLES; c++) {
+      for (let i = 0; i <= 23; i++) {
+        const item = document.createElement('div');
+        item.className = 'modern-drum-item';
+        item.dataset.val = i;
+        item.textContent = String(i).padStart(2, '0');
+        const targetScroll = (c * 24 + i) * DRUM_ITEM_HEIGHT;
+        item.onclick = () => {
+          hoursScroll.scrollTop = targetScroll;
+        };
+        hoursScroll.appendChild(item);
+      }
     }
   }
 
   if (minutesScroll && minutesScroll.children.length === 0) {
-    for (let i = 0; i <= 59; i++) {
-      const item = document.createElement('div');
-      item.className = 'modern-drum-item';
-      item.textContent = String(i).padStart(2, '0');
-      item.onclick = () => {
-        minutesScroll.scrollTop = i * 44;
-      };
-      minutesScroll.appendChild(item);
+    for (let c = 0; c < DRUM_CYCLES; c++) {
+      for (let i = 0; i <= 59; i++) {
+        const item = document.createElement('div');
+        item.className = 'modern-drum-item';
+        item.dataset.val = i;
+        item.textContent = String(i).padStart(2, '0');
+        const targetScroll = (c * 60 + i) * DRUM_ITEM_HEIGHT;
+        item.onclick = () => {
+          minutesScroll.scrollTop = targetScroll;
+        };
+        minutesScroll.appendChild(item);
+      }
     }
   }
 }
@@ -27337,12 +27347,32 @@ function setupModernTimeWheelScrollListeners() {
     const scrollEl = document.getElementById(scrollId);
     if (!scrollEl) return;
 
+    const itemsPerCycle = scrollId === 'modern-scroll-hours' ? 24 : 60;
+    const cycleHeight = itemsPerCycle * DRUM_ITEM_HEIGHT;
+    let isAdjusting = false;
+
     const updateSelection = () => {
+      if (isAdjusting) return;
       const scrollTop = scrollEl.scrollTop;
-      const selectedIndex = Math.max(0, Math.min(scrollId === 'modern-scroll-hours' ? 23 : 59, Math.round(scrollTop / 44)));
+
+      // Seamless infinite looping boundary check
+      if (scrollTop < cycleHeight * 0.8) {
+        isAdjusting = true;
+        scrollEl.scrollTop += cycleHeight * 2;
+        isAdjusting = false;
+        return;
+      } else if (scrollTop > cycleHeight * 3.2) {
+        isAdjusting = true;
+        scrollEl.scrollTop -= cycleHeight * 2;
+        isAdjusting = false;
+        return;
+      }
+
+      const totalIdx = Math.round(scrollTop / DRUM_ITEM_HEIGHT);
+      const selectedVal = ((totalIdx % itemsPerCycle) + itemsPerCycle) % itemsPerCycle;
       const items = scrollEl.querySelectorAll('.modern-drum-item');
       items.forEach((item, idx) => {
-        if (idx === selectedIndex) {
+        if (idx === totalIdx) {
           item.classList.add('selected');
         } else {
           item.classList.remove('selected');
@@ -27350,16 +27380,16 @@ function setupModernTimeWheelScrollListeners() {
       });
 
       if (scrollId === 'modern-scroll-hours') {
-        _modernTimePickerHour = selectedIndex;
+        _modernTimePickerHour = selectedVal;
         const inputHours = document.getElementById('modern-time-input-hours');
         if (inputHours && document.activeElement !== inputHours) {
-          inputHours.value = String(selectedIndex).padStart(2, '0');
+          inputHours.value = String(selectedVal).padStart(2, '0');
         }
       } else if (scrollId === 'modern-scroll-minutes') {
-        _modernTimePickerMinute = selectedIndex;
+        _modernTimePickerMinute = selectedVal;
         const inputMinutes = document.getElementById('modern-time-input-minutes');
         if (inputMinutes && document.activeElement !== inputMinutes) {
-          inputMinutes.value = String(selectedIndex).padStart(2, '0');
+          inputMinutes.value = String(selectedVal).padStart(2, '0');
         }
       }
     };
@@ -27385,6 +27415,21 @@ function openModernTimePicker(initialTime, onConfirmCallback) {
   } else {
     _modernTimePickerHour = 21;
     _modernTimePickerMinute = 0;
+  }
+
+  // Update translated labels
+  const titleEl = document.querySelector('#modern-time-picker-modal [data-i18n="time_picker_title"]');
+  const hoursLabelEl = document.querySelector('#modern-time-picker-modal [data-i18n="time_hours_label"]');
+  const minutesLabelEl = document.querySelector('#modern-time-picker-modal [data-i18n="time_minutes_label"]');
+  const cancelBtnEl = document.querySelector('#modern-time-picker-modal [data-i18n="btn_cancel"]');
+  const setBtnEl = document.querySelector('#modern-time-picker-modal [data-i18n="btn_set_time"]');
+
+  if (typeof t === 'function') {
+    if (titleEl) titleEl.textContent = t('time_picker_title');
+    if (hoursLabelEl) hoursLabelEl.textContent = t('time_hours_label');
+    if (minutesLabelEl) minutesLabelEl.textContent = t('time_minutes_label');
+    if (cancelBtnEl) cancelBtnEl.textContent = t('btn_cancel');
+    if (setBtnEl) setBtnEl.textContent = t('btn_set_time');
   }
 
   populateModernTimeWheels();
@@ -27414,8 +27459,8 @@ function openModernTimePicker(initialTime, onConfirmCallback) {
   setTimeout(() => {
     const hs = document.getElementById('modern-scroll-hours');
     const ms = document.getElementById('modern-scroll-minutes');
-    if (hs) hs.scrollTop = _modernTimePickerHour * 44;
-    if (ms) ms.scrollTop = _modernTimePickerMinute * 44;
+    if (hs) hs.scrollTop = (2 * 24 + _modernTimePickerHour) * DRUM_ITEM_HEIGHT;
+    if (ms) ms.scrollTop = (2 * 60 + _modernTimePickerMinute) * DRUM_ITEM_HEIGHT;
   }, 60);
 }
 window.openModernTimePicker = openModernTimePicker;
@@ -27475,7 +27520,7 @@ function handleModernTimeInputHours(e) {
     }
     _modernTimePickerHour = num;
     const hs = document.getElementById('modern-scroll-hours');
-    if (hs) hs.scrollTop = num * 44;
+    if (hs) hs.scrollTop = (2 * 24 + num) * DRUM_ITEM_HEIGHT;
   } else {
     _modernTimePickerHour = 0;
   }
@@ -27508,7 +27553,7 @@ function handleModernTimeInputMinutes(e) {
     }
     _modernTimePickerMinute = num;
     const ms = document.getElementById('modern-scroll-minutes');
-    if (ms) ms.scrollTop = num * 44;
+    if (ms) ms.scrollTop = (2 * 60 + num) * DRUM_ITEM_HEIGHT;
   } else {
     _modernTimePickerMinute = 0;
   }
