@@ -12028,59 +12028,17 @@ async function startPremiumPurchase() {
   }
 
   try {
-    // Native Android → Google Play Billing.
+    // Native Android → Try Google Play Billing first if available, otherwise Stripe Checkout
     if (typeof window.Capacitor !== 'undefined' && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
       const Billing = getBillingPlugin();
       if (Billing) {
-        await purchasePremiumViaPlayBilling(Billing);
-        return;
-      }
-      // Plugin unavailable on native → fall through to web flow with a notice.
-      showSyncToast(state.lang === 'el' ? '⚠️ Το Google Play Billing δεν είναι διαθέσιμο.' : '⚠️ Google Play Billing is not available.', 3500);
-      return;
-    }
-
-    // Web / PWA → Stripe Checkout.
-    // Resolve the current session token for the Authorization header.
-    let accessToken = '';
-    if (state.supabaseClient) {
-      try {
-        const { data } = await state.supabaseClient.auth.getSession();
-        if (data && data.session && data.session.access_token) {
-          accessToken = data.session.access_token;
-        }
-      } catch (e) {
-        console.warn('Could not resolve session token for purchase:', e);
+        const handled = await purchasePremiumViaPlayBilling(Billing);
+        if (handled) return;
       }
     }
-    if (!accessToken) {
-      showSyncToast(state.lang === 'el' ? '⚠️ Συνδέσου πρώτα για να αγοράσεις Premium.' : '⚠️ Please sign in first to purchase Premium.', 3500);
-      return;
-    }
 
-    const res = await fetch(getBackendApiUrl('/api/purchase'), {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + accessToken
-      },
-      body: JSON.stringify({ userId: state.currentUser.id })
-    });
-    const data = await res.json().catch(() => ({}));
-
-    if (res.ok && data.url) {
-      // Redirect to Stripe Checkout
-      window.location.href = data.url;
-      return;
-    }
-    // Endpoint not deployed / error → manual activation fallback
-    console.warn('Premium purchase endpoint unavailable:', data);
-    showSyncToast(
-      state.lang === 'el'
-        ? '⚠️ Η πληρωμή δεν είναι ακόμα ενεργή. Επικοινώνησε με τον διαχειριστή.'
-        : '⚠️ Payment is not active yet. Please contact the administrator.',
-      5000
-    );
+    // Web / PWA or Native Fallback → Stripe Checkout
+    await startWebPremiumPurchase();
   } catch (err) {
     console.error('Premium purchase error:', err);
     showSyncToast(state.lang === 'el' ? '⚠️ Σφάλμα κατά την αγορά.' : '⚠️ Purchase error.', 3500);
@@ -12090,6 +12048,55 @@ async function startPremiumPurchase() {
       btn.innerHTML = `<i class="fa-solid fa-crown" style="margin-right:6px;"></i><span>${state.lang === 'el' ? 'Αγορά για 9,99 €' : 'Buy for €9.99'}</span>`;
     }
   }
+}
+
+// Web / PWA Stripe Checkout flow
+async function startWebPremiumPurchase() {
+  let accessToken = '';
+  if (state.supabaseClient) {
+    try {
+      const { data } = await state.supabaseClient.auth.getSession();
+      if (data && data.session && data.session.access_token) {
+        accessToken = data.session.access_token;
+      }
+    } catch (e) {
+      console.warn('Could not resolve session token for purchase:', e);
+    }
+  }
+  if (!accessToken) {
+    showSyncToast(state.lang === 'el' ? '⚠️ Συνδέσου πρώτα για να αγοράσεις Premium.' : '⚠️ Please sign in first to purchase Premium.', 3500);
+    return;
+  }
+
+  const res = await fetch(getBackendApiUrl('/api/purchase'), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + accessToken
+    },
+    body: JSON.stringify({ userId: state.currentUser.id })
+  });
+  const data = await res.json().catch(() => ({}));
+
+  if (res.ok && data.url) {
+    // If in Capacitor Native, open in system browser
+    if (typeof window.Capacitor !== 'undefined' && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
+      if (window.Capacitor.Plugins && window.Capacitor.Plugins.Browser) {
+        await window.Capacitor.Plugins.Browser.open({ url: data.url });
+        return;
+      }
+    }
+    window.location.href = data.url;
+    return;
+  }
+
+  console.warn('Premium purchase endpoint unavailable:', data);
+  showSyncToast(
+    state.lang === 'el'
+      ? (data.error || '⚠️ Η πληρωμή δεν είναι ακόμα ενεργή. Επικοινώνησε με τον διαχειριστή.')
+      : (data.error || '⚠️ Payment is not active yet. Please contact the administrator.'),
+    5000
+  );
 }
 
 // Resolve the capacitor-billing plugin (BillingPlugin) if present on native.
@@ -12125,18 +12132,14 @@ async function purchasePremiumViaPlayBilling(Billing) {
       type: PRODUCT_TYPE
     });
 
-    // On Android the plugin resolves with the purchase's original JSON, which
-    // contains the purchaseToken. On web it returns { value: 'web' } (unsupported).
     if (!result || result.value === 'web') {
-      showSyncToast(state.lang === 'el' ? '⚠️ Η αγορά δεν ολοκληρώθηκε.' : '⚠️ Purchase was not completed.', 3500);
-      return;
+      return false; // Fallback to Stripe
     }
 
     const purchaseToken = result.purchaseToken;
     if (!purchaseToken) {
       console.warn('Play Billing purchase resolved without a purchaseToken:', result);
-      showSyncToast(state.lang === 'el' ? '⚠️ Η αγορά δεν ολοκληρώθηκε.' : '⚠️ Purchase was not completed.', 3500);
-      return;
+      return false; // Fallback to Stripe
     }
 
     // Acknowledge the purchase (required within 3 days for one-time products).
@@ -12152,13 +12155,22 @@ async function purchasePremiumViaPlayBilling(Billing) {
       await loadUserProfiles(state.currentUser);
       updatePremiumUI();
       showSyncToast(state.lang === 'el' ? '✓ Το Premium ενεργοποιήθηκε!' : '✓ Premium activated!', 3000);
+      return true;
     } else {
       showSyncToast(state.lang === 'el' ? '⚠️ Δεν ήταν δυνατή η επαλήθευση της αγοράς.' : '⚠️ Could not verify the purchase.', 4000);
+      return true;
     }
   } catch (err) {
-    // USER_CANCELED is surfaced as a rejection by the plugin.
-    console.warn('Play Billing purchase error:', err && err.message ? err.message : err);
-    showSyncToast(state.lang === 'el' ? '⚠️ Η αγορά ακυρώθηκε.' : '⚠️ Purchase cancelled.', 3000);
+    const errMsg = (err && err.message) ? err.message.toLowerCase() : String(err).toLowerCase();
+    console.warn('Play Billing purchase error:', err);
+
+    if (errMsg.includes('user_canceled') || errMsg.includes('user canceled') || errMsg.includes('user cancelled')) {
+      showSyncToast(state.lang === 'el' ? 'Η αγορά ακυρώθηκε.' : 'Purchase cancelled.', 3000);
+      return true;
+    }
+
+    // Product not configured in Play Store or Billing unavailable -> seamlessly fallback to Stripe Checkout
+    return false;
   }
 }
 
