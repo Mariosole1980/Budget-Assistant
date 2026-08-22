@@ -3876,49 +3876,57 @@ async function loadData() {
       }
 
       // Pre-populate standard categories in the cloud for this user if they don't have any
-      if (categories.length === 0) {
+      if (!categories || categories.length === 0) {
+        const now = new Date().toISOString();
         const catsToInsert = DEFAULT_CATEGORIES.map(c => ({
+          id: typeof generateUUID === 'function' ? generateUUID() : crypto.randomUUID(),
           name: c.name,
           type: c.type,
           icon: c.icon,
           color: c.color,
           user_id: userId,
-          family_id: familyId
+          family_id: familyId,
+          created_at: now,
+          updated_at: now
         }));
         try {
           const { data: newCats, error: catErr } = await state.supabaseClient.from('categories').insert(catsToInsert).select();
-          if (!catErr && newCats) {
+          if (!catErr && newCats && newCats.length > 0) {
             categories = newCats;
           } else {
             console.warn('Failed to pre-populate categories:', catErr);
-            categories = DEFAULT_CATEGORIES;
+            categories = DEFAULT_CATEGORIES.slice();
           }
         } catch (e) {
           console.warn('Failed to pre-populate categories catch:', e);
-          categories = DEFAULT_CATEGORIES;
+          categories = DEFAULT_CATEGORIES.slice();
         }
       }
 
       // Pre-populate standard accounts in the cloud for this user if they don't have any
-      if (accounts.length === 0) {
+      if (!accounts || accounts.length === 0) {
+        const now = new Date().toISOString();
         const accsToInsert = DEFAULT_ACCOUNTS.map(a => ({
+          id: typeof generateUUID === 'function' ? generateUUID() : crypto.randomUUID(),
           name: a.name,
           type: a.type,
           balance: a.balance,
           user_id: userId,
-          family_id: familyId
+          family_id: familyId,
+          created_at: now,
+          updated_at: now
         }));
         try {
           const { data: newAccs, error: accErr } = await state.supabaseClient.from('accounts').insert(accsToInsert).select();
-          if (!accErr && newAccs) {
+          if (!accErr && newAccs && newAccs.length > 0) {
             accounts = newAccs;
           } else {
             console.warn('Failed to pre-populate accounts:', accErr);
-            accounts = DEFAULT_ACCOUNTS;
+            accounts = DEFAULT_ACCOUNTS.slice();
           }
         } catch (e) {
           console.warn('Failed to pre-populate accounts catch:', e);
-          accounts = DEFAULT_ACCOUNTS;
+          accounts = DEFAULT_ACCOUNTS.slice();
         }
       }
 
@@ -4147,18 +4155,20 @@ function loadOfflineData() {
   }
   try {
     const accs = localStorage.getItem('offline_accounts');
-    state.accounts = accs ? JSON.parse(accs) : DEFAULT_ACCOUNTS;
+    const parsedAccs = accs ? JSON.parse(accs) : null;
+    state.accounts = (Array.isArray(parsedAccs) && parsedAccs.length > 0) ? parsedAccs : DEFAULT_ACCOUNTS.slice();
   } catch (e) {
     console.error('Failed to parse offline accounts:', e);
-    state.accounts = DEFAULT_ACCOUNTS;
+    state.accounts = DEFAULT_ACCOUNTS.slice();
   }
   try {
     const cats = localStorage.getItem('offline_categories');
-    state.categories = cats ? JSON.parse(cats) : DEFAULT_CATEGORIES;
+    const parsedCats = cats ? JSON.parse(cats) : null;
+    state.categories = (Array.isArray(parsedCats) && parsedCats.length > 0) ? parsedCats : DEFAULT_CATEGORIES.slice();
     deduplicateCategories();
   } catch (e) {
     console.error('Failed to parse offline categories:', e);
-    state.categories = DEFAULT_CATEGORIES;
+    state.categories = DEFAULT_CATEGORIES.slice();
     deduplicateCategories();
   }
 
@@ -10528,6 +10538,9 @@ let lastRenderedCategoryType = null;
 let lastRenderedCategoryEditMode = null;
 
 function updateCategoryDropdowns(type = 'expense', force = false) {
+  if (!state.categories || state.categories.length === 0) {
+    state.categories = DEFAULT_CATEGORIES.slice();
+  }
   deduplicateCategories();
   const grid = document.getElementById('category-picker-grid');
   if (!grid) return;
@@ -10545,7 +10558,15 @@ function updateCategoryDropdowns(type = 'expense', force = false) {
   let categoryExists = false;
 
   // Filter by type. In edit mode, show all. Otherwise, hide hidden categories.
-  const visibleCategories = state.categories.filter(c => c.type === type && (categoryPickerEditMode || !c.hidden));
+  let visibleCategories = state.categories.filter(c => c.type === type && (categoryPickerEditMode || !c.hidden));
+
+  // Fallback: If no categories found for this type, inject defaults for this type
+  if (visibleCategories.length === 0) {
+    const defaultsForType = DEFAULT_CATEGORIES.filter(c => c.type === type);
+    state.categories.push(...defaultsForType);
+    deduplicateCategories();
+    visibleCategories = state.categories.filter(c => c.type === type && (categoryPickerEditMode || !c.hidden));
+  }
 
   // Sort categories alphabetically based on display name in the active language
   const lang = state.lang || 'el';
