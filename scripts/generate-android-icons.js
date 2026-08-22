@@ -56,14 +56,28 @@ const resDir = path.join(ROOT, 'android', 'app', 'src', 'main', 'res');
         const dir = path.join(resDir, `mipmap-${density}`);
         fs.mkdirSync(dir, { recursive: true });
 
-        // Legacy launcher + round icons (full logo)
-        for (const name of ['ic_launcher.png', 'ic_launcher_round.png']) {
-            await sharp(imgBuf)
-                .resize(size, size, { fit: 'cover' })
-                .png()
-                .toFile(path.join(dir, name));
-            console.log('Wrote', path.join(`mipmap-${density}`, name), `(${size}x${size})`);
-        }
+        // Square launcher icon
+        await sharp(imgBuf)
+            .resize(size, size, { fit: 'cover' })
+            .png()
+            .toFile(path.join(dir, 'ic_launcher.png'));
+        console.log('Wrote', path.join(`mipmap-${density}`, 'ic_launcher.png'), `(${size}x${size})`);
+
+        // Circular launcher icon with perfect circle alpha mask (eliminates white corner borders!)
+        const resizedSquare = await sharp(imgBuf)
+            .resize(size, size, { fit: 'cover' })
+            .png()
+            .toBuffer();
+
+        const circleMask = Buffer.from(
+            `<svg width="${size}" height="${size}"><circle cx="${size / 2}" cy="${size / 2}" r="${size / 2}" fill="#fff"/></svg>`
+        );
+
+        await sharp(resizedSquare)
+            .composite([{ input: circleMask, blend: 'dest-in' }])
+            .png()
+            .toFile(path.join(dir, 'ic_launcher_round.png'));
+        console.log('Wrote', path.join(`mipmap-${density}`, 'ic_launcher_round.png'), `(${size}x${size}) [circular mask]`);
 
         // Adaptive icon background (solid dark matching image background)
         await sharp({
@@ -136,7 +150,6 @@ const resDir = path.join(ROOT, 'android', 'app', 'src', 'main', 'res');
             'drawable': 48
         };
 
-        // Trim transparent borders from logo-mark first so it fills the canvas properly
         const trimmedLogoBuf = await sharp(logoMarkPath).trim().png().toBuffer();
         const { data, info } = await sharp(trimmedLogoBuf).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
         for (let i = 0; i < data.length; i += 4) {
@@ -144,6 +157,8 @@ const resDir = path.join(ROOT, 'android', 'app', 'src', 'main', 'res');
                 data[i] = 255;
                 data[i + 1] = 255;
                 data[i + 2] = 255;
+            } else {
+                data[i + 3] = 0;
             }
         }
 
@@ -156,8 +171,22 @@ const resDir = path.join(ROOT, 'android', 'app', 'src', 'main', 'res');
             if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true });
             const targetFile = path.join(targetDir, 'ic_stat_icon_config_sample.png');
 
-            await sharp(whiteSilhouette)
-                .resize(size, size, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+            const glyphSize = Math.round(size * 0.72);
+            const pad = Math.round((size - glyphSize) / 2);
+
+            const glyphResized = await sharp(whiteSilhouette)
+                .resize(glyphSize, glyphSize, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+                .toBuffer();
+
+            await sharp({
+                create: {
+                    width: size,
+                    height: size,
+                    channels: 4,
+                    background: { r: 0, g: 0, b: 0, alpha: 0 }
+                }
+            })
+                .composite([{ input: glyphResized, left: pad, top: pad }])
                 .png()
                 .toFile(targetFile);
 
