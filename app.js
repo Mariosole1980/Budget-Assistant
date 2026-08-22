@@ -1938,12 +1938,28 @@ window.clearNotifications = clearNotifications;
 // out smoothly once the initial content render has painted, so the launch screen
 // transitions into the app content without an abrupt black flash.
 // ============================================================
+// LUXURY SPLASH & COLD-START OVERLAY (smooth branded launch)
+// ============================================================
+const _splashAppStartTime = (typeof window._pageLoadTimestamp === 'number') ? window._pageLoadTimestamp : Date.now();
 let _coldStartFadeDone = false;
+
 function fadeOutColdStartOverlay() {
   if (_coldStartFadeDone) return;
-  _coldStartFadeDone = true;
   const overlay = document.getElementById('cold-start-overlay');
-  if (!overlay) return;
+  if (!overlay) {
+    _coldStartFadeDone = true;
+    return;
+  }
+
+  // Ensure user sees the branded luxury splash for at least 850ms on cold start
+  const elapsed = Date.now() - _splashAppStartTime;
+  const minDuration = 850;
+  if (elapsed < minDuration) {
+    setTimeout(fadeOutColdStartOverlay, minDuration - elapsed);
+    return;
+  }
+
+  _coldStartFadeDone = true;
   // Force a reflow so the opacity transition actually animates from 1 -> 0.
   void overlay.offsetHeight;
   overlay.style.opacity = '0';

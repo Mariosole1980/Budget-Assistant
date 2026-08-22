@@ -93,13 +93,30 @@ Object.keys(splashDimensions).forEach((key) => {
     console.log('Wrote splash.png to', dirName);
   }
 
-  // 2. Generate Android 12+ Splash Logo (pure transparent glyph inside 288x288)
+  // 2. Generate Android 12+ Splash Logo (centered inside 160dp safe circle on 288x288 canvas)
   const splashLogoPath = path.join(resDir, 'drawable', 'splash_logo.png');
-  await sharp(logoPath)
-    .resize(288, 288, { fit: 'contain' })
+  const innerMarkSize = 154; // Safe zone diameter on Android 12 is 160dp
+  const markInnerBuf = await sharp(logoPath)
+    .resize(innerMarkSize, innerMarkSize, { fit: 'contain' })
+    .png()
+    .toBuffer();
+
+  const markOffset = Math.round((288 - innerMarkSize) / 2);
+
+  await sharp({
+    create: {
+      width: 288,
+      height: 288,
+      channels: 4,
+      background: { r: 0, g: 0, b: 0, alpha: 0 }
+    }
+  })
+    .composite([
+      { input: markInnerBuf, left: markOffset, top: markOffset }
+    ])
     .png()
     .toFile(splashLogoPath);
-  console.log('Wrote splash_logo.png to drawable');
+  console.log('Wrote Android 12 unclipped splash_logo.png to drawable');
 
   // Copy preview
   const previewPath = 'C:\\Users\\mario\\.gemini\\antigravity\\brain\\d00c3a35-fc18-43bf-940c-2561fd43c2eb\\splash_chosen_design.png';

@@ -378,13 +378,17 @@
     })();
   </script>
 
-  <!-- Cold-start fade overlay: covers the screen with the theme background color
-       while the WebView reloads after Android process death / activity recreation.
-       It is faded out smoothly by fadeOutColdStartOverlay() once the initial
-       content render has painted, so the dark launch screen transitions into the
-       app content without an abrupt black flash. -->
+  <!-- Luxury Cold-Start Splash Overlay: Displays the premium branded splash screen
+       on startup with rich radial background, glowing chart icon, title and tagline.
+       Fades out smoothly once the app is ready. -->
   <div id="cold-start-overlay"
-    style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: #181b22; z-index: 2147483647; opacity: 1; transition: opacity 0.4s ease; pointer-events: none;">
+    style="position: fixed; inset: 0; width: 100%; height: 100%; background: radial-gradient(130% 60% at 50% 18%, #232A3B 0%, #171B26 48%, #0F1219 100%); z-index: 2147483647; opacity: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1); pointer-events: none; box-sizing: border-box; padding: 20px;">
+    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; margin-top: -30px;">
+      <img src="logo-mark.png" alt="Budget Assistant"
+        style="width: 140px; height: 140px; object-fit: contain; filter: drop-shadow(0 14px 36px rgba(99, 102, 241, 0.45));">
+      <div style="font-family: 'Outfit', 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 27px; font-weight: 800; color: #F2F4F8; letter-spacing: -0.5px; margin-top: 18px;">Budget Assistant</div>
+      <div style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 11px; font-weight: 600; color: #8A93A6; letter-spacing: 3px; text-transform: uppercase; margin-top: 6px;">SMART FINANCE, ELEVATED</div>
+    </div>
   </div>
 
   <!-- Resume overlay: covers the screen with the theme background color during the
