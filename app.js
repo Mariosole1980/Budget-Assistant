@@ -1792,8 +1792,12 @@ async function initLocalNotifications() {
       }
     });
 
-    // Initialize Google Firebase Cloud Messaging (FCM) Push Notifications
-    await initPushNotifications();
+    // Push Notifications (FCM) are guarded safely
+    try {
+      await initPushNotifications();
+    } catch (pushErr) {
+      console.warn('initPushNotifications skipped or failed safely:', pushErr);
+    }
 
   } catch (err) {
     console.error('Failed to initialize Capacitor Local Notifications:', err);
@@ -1808,55 +1812,56 @@ async function initPushNotifications() {
   if (!PushNotifications) return;
 
   try {
-    let perm = await PushNotifications.checkPermissions();
-    if (perm.receive !== 'granted') {
-      perm = await PushNotifications.requestPermissions();
-    }
-    if (perm.receive === 'granted') {
-      await PushNotifications.register();
+    const perm = await PushNotifications.checkPermissions();
+    if (perm && perm.receive === 'granted') {
+      try {
+        await PushNotifications.register();
+      } catch (regErr) {
+        console.warn('FCM register ignored (Google services not active):', regErr);
+      }
     }
 
     // Listen for FCM Device Token registration
-    PushNotifications.addListener('registration', async (token) => {
-      console.log('FCM Token registered:', token.value);
-      localStorage.setItem('fcm_token', token.value);
-      if (typeof syncFcmTokenToProfile === 'function') {
-        syncFcmTokenToProfile(token.value);
-      }
-    });
+    if (typeof PushNotifications.addListener === 'function') {
+      PushNotifications.addListener('registration', async (token) => {
+        if (token && token.value) {
+          localStorage.setItem('fcm_token', token.value);
+          if (typeof syncFcmTokenToProfile === 'function') {
+            syncFcmTokenToProfile(token.value);
+          }
+        }
+      });
 
-    PushNotifications.addListener('registrationError', (err) => {
-      console.warn('FCM Registration Error:', err);
-    });
+      PushNotifications.addListener('registrationError', (err) => {
+        console.warn('FCM Registration Error:', err);
+      });
 
-    // Handle Push Notifications delivered while app is in foreground
-    PushNotifications.addListener('pushNotificationReceived', (notification) => {
-      console.log('Push notification received:', notification);
-      const title = notification.title || (state.lang === 'el' ? 'Νέα Ειδοποίηση' : 'New Notification');
-      const body = notification.body || '';
-      const data = notification.data || {};
-      
-      // If partner transaction alert, trigger automatic balance/transaction sync
-      if (data.type === 'partner_transaction' && typeof syncCloudTransactions === 'function') {
-        syncCloudTransactions(true);
-      }
-      
-      if (typeof addInAppNotification === 'function') {
-        addInAppNotification(title, body, { type: data.type || 'general' });
-      }
-    });
+      // Handle Push Notifications delivered while app is in foreground
+      PushNotifications.addListener('pushNotificationReceived', (notification) => {
+        const title = notification.title || (state.lang === 'el' ? 'Νέα Ειδοποίηση' : 'New Notification');
+        const body = notification.body || '';
+        const data = notification.data || {};
+        
+        if (data.type === 'partner_transaction' && typeof syncCloudTransactions === 'function') {
+          syncCloudTransactions(true);
+        }
+        
+        if (typeof addInAppNotification === 'function') {
+          addInAppNotification(title, body, { type: data.type || 'general' });
+        }
+      });
 
-    // Handle user tapping on a Push Notification
-    PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
-      console.log('Push notification action performed:', action);
-      const data = (action.notification && action.notification.data) || {};
-      if (data.type === 'partner_transaction' && typeof openScreen === 'function') {
-        openScreen('transactions');
-      }
-    });
+      // Handle user tapping on a Push Notification
+      PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
+        const data = (action.notification && action.notification.data) || {};
+        if (data.type === 'partner_transaction' && typeof openScreen === 'function') {
+          openScreen('transactions');
+        }
+      });
+    }
 
   } catch (err) {
-    console.warn('PushNotifications initialization failed:', err);
+    console.warn('PushNotifications initialization failed safely:', err);
   }
 }
 
