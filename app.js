@@ -25774,17 +25774,57 @@ function selectPresetAvatar(id) {
   updateHeaderProfileBadge();
 }
 
-function triggerAvatarUpload(e) {
+function openProfilePhotoSourcePicker(e) {
   if (e) {
     if (typeof e.stopPropagation === 'function') e.stopPropagation();
     if (typeof e.preventDefault === 'function') e.preventDefault();
   }
+  openModal('profile-photo-source-modal');
+}
+
+function triggerProfileCameraCapture(e) {
+  if (e) {
+    if (typeof e.stopPropagation === 'function') e.stopPropagation();
+    if (typeof e.preventDefault === 'function') e.preventDefault();
+  }
+  closeModal('profile-photo-source-modal');
+  const cameraInput = document.getElementById('profile-avatar-camera-input');
+  if (cameraInput) {
+    cameraInput.value = '';
+    setTimeout(() => {
+      cameraInput.click();
+    }, 60);
+  }
+}
+
+function triggerProfileGalleryUpload(e) {
+  if (e) {
+    if (typeof e.stopPropagation === 'function') e.stopPropagation();
+    if (typeof e.preventDefault === 'function') e.preventDefault();
+  }
+  closeModal('profile-photo-source-modal');
   const fileInput = document.getElementById('profile-avatar-file-input');
   if (fileInput) {
     fileInput.value = '';
-    fileInput.click();
+    setTimeout(() => {
+      fileInput.click();
+    }, 60);
   }
 }
+
+function handleProfilePhotoSourceOverlayClick(e) {
+  if (e.target.id === 'profile-photo-source-modal') {
+    closeModal('profile-photo-source-modal');
+  }
+}
+
+function triggerAvatarUpload(e) {
+  openProfilePhotoSourcePicker(e);
+}
+window.openProfilePhotoSourcePicker = openProfilePhotoSourcePicker;
+window.triggerProfileCameraCapture = triggerProfileCameraCapture;
+window.triggerProfileGalleryUpload = triggerProfileGalleryUpload;
+window.handleProfilePhotoSourceOverlayClick = handleProfilePhotoSourceOverlayClick;
 window.triggerAvatarUpload = triggerAvatarUpload;
 
 function openAvatarViewerModal() {
@@ -25828,7 +25868,7 @@ window.openAvatarViewerModal = openAvatarViewerModal;
 function triggerAvatarUploadFromViewer() {
   closeModal('avatar-viewer-modal');
   setTimeout(() => {
-    triggerAvatarUpload();
+    openProfilePhotoSourcePicker();
   }, 200);
 }
 window.triggerAvatarUploadFromViewer = triggerAvatarUploadFromViewer;
