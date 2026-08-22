@@ -12214,16 +12214,22 @@ async function purchasePremiumViaPlayBilling(Billing) {
       return true;
     }
   } catch (err) {
-    const errMsg = (err && err.message) ? err.message.toLowerCase() : String(err).toLowerCase();
+    const rawMsg = (err && (err.message || err.errorMessage)) || String(err);
+    const errMsg = rawMsg.toLowerCase();
     console.warn('Play Billing purchase error:', err);
 
-    if (errMsg.includes('user_canceled') || errMsg.includes('user canceled') || errMsg.includes('user cancelled')) {
+    if (errMsg.includes('user_canceled') || errMsg.includes('user canceled') || errMsg.includes('user cancelled') || errMsg.includes('purchase canceled')) {
       showSyncToast(state.lang === 'el' ? 'Η αγορά ακυρώθηκε.' : 'Purchase cancelled.', 3000);
       return true;
     }
 
-    // Product not configured in Play Store or Billing unavailable -> seamlessly fallback to Stripe Checkout
-    return false;
+    showSyncToast(
+      state.lang === 'el'
+        ? `⚠️ Google Play: ${rawMsg}`
+        : `⚠️ Google Play: ${rawMsg}`,
+      5000
+    );
+    return true;
   }
 }
 
