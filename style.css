@@ -10543,143 +10543,220 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
 
 /* ============================================================
 /* ============================================================
-   MODERN TIME PICKER (OLED DRUM WHEELS & DIRECT TYPING)
+   MODERN TIME PICKER (OLED DRUM CYLINDERS & DIRECT TYPING)
    ============================================================ */
-.modern-time-wheel-container {
-  position: relative;
-  width: 110px;
-  height: 132px;
-  background: rgba(0, 0, 0, 0.45);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
-  overflow: hidden;
-  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.6);
+.modern-time-picker-card-v2 {
+  max-width: 320px !important;
+  width: 88% !important;
+  border-radius: 28px !important;
+  background: rgba(22, 27, 36, 0.96) !important;
+  backdrop-filter: blur(24px) !important;
+  -webkit-backdrop-filter: blur(24px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7) !important;
+  padding: 22px 20px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 16px !important;
+  box-sizing: border-box !important;
 }
 
-.modern-time-wheel-scroll {
+.modern-time-hero-box {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.3);
+  box-sizing: border-box;
+}
+
+.modern-time-hero-digits {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.hero-time-digit-input {
+  width: 64px;
+  height: 48px;
+  padding: 0;
+  font-size: 38px;
+  font-weight: 800;
+  font-family: 'Outfit', sans-serif;
+  color: #ffffff;
+  text-align: center;
+  background: transparent;
+  border: none;
+  outline: none;
+  caret-color: #38bdf8;
+  -moz-appearance: textfield;
+}
+
+.hero-time-digit-input::-webkit-outer-spin-button,
+.hero-time-digit-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.hero-time-digit-input:focus {
+  color: #ffffff;
+  text-shadow: 0 0 14px rgba(56, 189, 248, 0.6);
+}
+
+.modern-time-hero-colon {
+  font-size: 34px;
+  font-weight: 800;
+  font-family: 'Outfit', sans-serif;
+  color: rgba(255, 255, 255, 0.8);
+  line-height: 48px;
+  margin-top: -6px;
+}
+
+.modern-time-hero-labels {
+  display: flex;
+  justify-content: space-around;
+  width: 150px;
+  margin-top: 2px;
+}
+
+.modern-time-hero-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #8a99ad;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  font-family: 'Outfit', sans-serif;
+}
+
+.modern-time-drums-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  width: 100%;
+}
+
+.modern-drum-cylinder {
+  position: relative;
+  width: 110px;
+  height: 176px;
+  background: rgba(10, 14, 22, 0.85);
+  border: 1.5px solid rgba(255, 255, 255, 0.1);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: inset 0 4px 16px rgba(0, 0, 0, 0.8);
+  box-sizing: border-box;
+}
+
+.modern-drum-scroll {
   height: 100%;
   overflow-y: scroll;
   overflow-x: hidden;
   scroll-snap-type: y mandatory;
-  padding: 44px 0;
+  padding: 66px 0;
   box-sizing: border-box;
   scrollbar-width: none;
   touch-action: pan-y;
 }
 
-.modern-time-wheel-scroll::-webkit-scrollbar {
+.modern-drum-scroll::-webkit-scrollbar {
   display: none;
 }
 
-.modern-time-wheel-item {
+.modern-drum-item {
   height: 44px;
   line-height: 44px;
   text-align: center;
-  font-size: 24px;
-  font-weight: 700;
+  font-size: 22px;
+  font-weight: 600;
   font-family: 'Outfit', sans-serif;
-  color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.35);
   scroll-snap-align: center;
   cursor: pointer;
   user-select: none;
-  transition: color 0.15s ease, font-size 0.15s ease;
+  transition: color 0.15s ease, font-size 0.15s ease, font-weight 0.15s ease;
 }
 
-.modern-time-wheel-item.selected {
+.modern-drum-item.selected {
   color: #ffffff;
   font-size: 28px;
   font-weight: 800;
-  text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+  text-shadow: 0 0 12px rgba(255, 255, 255, 0.5);
 }
 
-.modern-time-wheel-highlighter {
+.modern-drum-lens {
   position: absolute;
-  top: 44px;
+  top: 66px;
   left: 6px;
   right: 6px;
   height: 44px;
-  border-radius: 10px;
-  background: rgba(99, 102, 241, 0.2);
-  border: 1.5px solid rgba(99, 102, 241, 0.45);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
   pointer-events: none;
-  box-shadow: 0 0 14px rgba(99, 102, 241, 0.3);
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.05);
 }
 
-.time-picker-digital-display {
+.modern-drum-gradient-mask {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  border-radius: 18px;
+  background: linear-gradient(to bottom, rgba(10, 14, 22, 0.95) 0%, transparent 30%, transparent 70%, rgba(10, 14, 22, 0.95) 100%);
+}
+
+.modern-time-actions-row {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
+  gap: 12px;
+  width: 100%;
+  margin-top: 4px;
 }
 
-.time-picker-input-wrap {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
-}
-
-.time-picker-digit-input {
-  width: 76px;
-  height: 56px;
-  padding: 0;
+.modern-time-btn-cancel {
+  flex: 1;
+  padding: 12px;
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 2px solid rgba(255, 255, 255, 0.12);
-  font-size: 32px;
-  font-weight: 800;
-  font-family: 'Outfit', sans-serif;
-  color: #ffffff;
-  cursor: text;
-  text-align: center;
-  outline: none;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  -moz-appearance: textfield;
-  box-sizing: border-box;
-}
-
-.time-picker-digit-input::-webkit-outer-spin-button,
-.time-picker-digit-input::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-.time-picker-digit-input:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.22);
-}
-
-.time-picker-digit-input:focus,
-.time-picker-digit-input.active {
-  background: rgba(99, 102, 241, 0.18);
-  border-color: #6366f1;
-  color: #a5b4fc;
-  box-shadow: 0 0 20px rgba(99, 102, 241, 0.4);
-  transform: scale(1.03);
-}
-
-.time-picker-input-label {
-  font-size: 10px;
+  font-size: 14px;
   font-weight: 700;
-  letter-spacing: 0.8px;
-  color: var(--text-muted, #94a3b8);
-  text-transform: uppercase;
   font-family: 'Outfit', sans-serif;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1.5px solid rgba(239, 68, 68, 0.35);
+  color: #ef4444;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: center;
 }
 
-.time-picker-colon {
-  font-size: 28px;
-  font-weight: 800;
-  font-family: 'Outfit', sans-serif;
-  color: #6366f1;
-  line-height: 56px;
-  margin-top: -12px;
-  animation: timeColonBlink 1.5s infinite;
+.modern-time-btn-cancel:active {
+  transform: scale(0.97);
+  background: rgba(239, 68, 68, 0.15);
 }
 
-@keyframes timeColonBlink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.3; }
+.modern-time-btn-confirm {
+  flex: 1;
+  padding: 12px;
+  border-radius: 16px;
+  font-size: 14px;
+  font-weight: 700;
+  font-family: 'Outfit', sans-serif;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1.5px solid rgba(16, 185, 129, 0.5);
+  color: #34d399;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: center;
+}
+
+.modern-time-btn-confirm:active {
+  transform: scale(0.97);
+  background: rgba(16, 185, 129, 0.22);
 }
 
 /* Global Mobile Anti-Auto-Zoom Fix (Android & iOS)
