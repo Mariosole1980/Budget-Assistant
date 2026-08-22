@@ -10543,31 +10543,90 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
 
 /* ============================================================
 /* ============================================================
-   MODERN CLOCK & TIME PICKER (LUXURY DARK DIAL & DIRECT TYPING)
+   MODERN TIME PICKER (OLED DRUM WHEELS & DIRECT TYPING)
    ============================================================ */
+.modern-time-wheel-container {
+  position: relative;
+  width: 110px;
+  height: 132px;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.6);
+}
+
+.modern-time-wheel-scroll {
+  height: 100%;
+  overflow-y: scroll;
+  overflow-x: hidden;
+  scroll-snap-type: y mandatory;
+  padding: 44px 0;
+  box-sizing: border-box;
+  scrollbar-width: none;
+  touch-action: pan-y;
+}
+
+.modern-time-wheel-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.modern-time-wheel-item {
+  height: 44px;
+  line-height: 44px;
+  text-align: center;
+  font-size: 24px;
+  font-weight: 700;
+  font-family: 'Outfit', sans-serif;
+  color: rgba(255, 255, 255, 0.3);
+  scroll-snap-align: center;
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.15s ease, font-size 0.15s ease;
+}
+
+.modern-time-wheel-item.selected {
+  color: #ffffff;
+  font-size: 28px;
+  font-weight: 800;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+.modern-time-wheel-highlighter {
+  position: absolute;
+  top: 44px;
+  left: 6px;
+  right: 6px;
+  height: 44px;
+  border-radius: 10px;
+  background: rgba(99, 102, 241, 0.2);
+  border: 1.5px solid rgba(99, 102, 241, 0.45);
+  pointer-events: none;
+  box-shadow: 0 0 14px rgba(99, 102, 241, 0.3);
+}
+
 .time-picker-digital-display {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  margin: 6px 0 2px 0;
+  gap: 10px;
 }
 
 .time-picker-input-wrap {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
 }
 
 .time-picker-digit-input {
-  width: 82px;
-  height: 64px;
+  width: 76px;
+  height: 56px;
   padding: 0;
-  border-radius: 18px;
+  border-radius: 16px;
   background: rgba(255, 255, 255, 0.05);
   border: 2px solid rgba(255, 255, 255, 0.12);
-  font-size: 36px;
+  font-size: 32px;
   font-weight: 800;
   font-family: 'Outfit', sans-serif;
   color: #ffffff;
@@ -10595,12 +10654,12 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
   background: rgba(99, 102, 241, 0.18);
   border-color: #6366f1;
   color: #a5b4fc;
-  box-shadow: 0 0 24px rgba(99, 102, 241, 0.45);
-  transform: scale(1.04);
+  box-shadow: 0 0 20px rgba(99, 102, 241, 0.4);
+  transform: scale(1.03);
 }
 
 .time-picker-input-label {
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.8px;
   color: var(--text-muted, #94a3b8);
@@ -10608,179 +10667,19 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
   font-family: 'Outfit', sans-serif;
 }
 
-.time-picker-digit {
-  padding: 8px 18px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 2px solid transparent;
-  font-size: 32px;
-  font-weight: 800;
-  font-family: 'Outfit', sans-serif;
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  min-width: 72px;
-  text-align: center;
-}
-
-.time-picker-digit:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--text-primary);
-}
-
-.time-picker-digit.active {
-  background: rgba(var(--accent-rgb, 124, 106, 247), 0.16);
-  border-color: var(--accent);
-  color: var(--accent);
-  box-shadow: 0 0 20px rgba(var(--accent-rgb, 124, 106, 247), 0.35);
-  transform: scale(1.04);
-}
-
 .time-picker-colon {
-  font-size: 34px;
+  font-size: 28px;
   font-weight: 800;
   font-family: 'Outfit', sans-serif;
   color: #6366f1;
-  line-height: 64px;
-  margin-top: -16px;
+  line-height: 56px;
+  margin-top: -12px;
   animation: timeColonBlink 1.5s infinite;
 }
 
 @keyframes timeColonBlink {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.3; }
-}
-
-.time-picker-presets-row {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  flex-wrap: wrap;
-  width: 100%;
-}
-
-.time-preset-chip {
-  padding: 6px 12px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  color: var(--text-secondary);
-  font-size: 12px;
-  font-weight: 700;
-  font-family: 'Outfit', sans-serif;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.time-preset-chip:hover {
-  background: rgba(99, 102, 241, 0.15);
-  border-color: rgba(99, 102, 241, 0.3);
-  color: #ffffff;
-}
-
-.time-preset-chip.active {
-  background: #6366f1;
-  border-color: #6366f1;
-  color: #ffffff;
-  box-shadow: 0 2px 10px rgba(99, 102, 241, 0.4);
-}
-
-.modern-clock-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  padding: 6px 0;
-}
-
-.modern-clock-face {
-  width: 228px;
-  height: 228px;
-  border-radius: 50%;
-  background: radial-gradient(circle at center, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.95) 100%);
-  border: 1.5px solid rgba(255, 255, 255, 0.1);
-  position: relative;
-  touch-action: none;
-  user-select: none;
-  box-shadow: inset 0 2px 16px rgba(0, 0, 0, 0.6), 0 10px 30px rgba(0, 0, 0, 0.4);
-}
-
-.modern-clock-pivot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: #6366f1;
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 5;
-  box-shadow: 0 0 10px #6366f1;
-}
-
-.modern-clock-hand {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 2.5px;
-  height: 76px;
-  transform-origin: 50% 0%;
-  background: #6366f1;
-  border-radius: 2px;
-  pointer-events: none;
-  z-index: 4;
-  transition: transform 0.12s cubic-bezier(0.2, 0, 0, 1), height 0.15s ease;
-}
-
-.modern-clock-hand-indicator {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  background: rgba(99, 102, 241, 0.28);
-  border: 2px solid #6366f1;
-  position: absolute;
-  left: 50%;
-  bottom: -17px;
-  transform: translateX(-50%);
-  box-shadow: 0 0 16px rgba(99, 102, 241, 0.6);
-}
-
-.modern-clock-numbers {
-  position: absolute;
-  inset: 0;
-  pointer-events: auto;
-}
-
-.clock-num {
-  position: absolute;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 13px;
-  font-weight: 700;
-  font-family: 'Outfit', sans-serif;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transform: translate(-50%, -50%);
-  transition: color 0.15s ease, transform 0.15s ease;
-  z-index: 6;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.clock-num.inner {
-  font-size: 11px;
-  opacity: 0.75;
-  color: var(--text-muted);
-}
-
-.clock-num.selected {
-  color: #ffffff;
-  font-weight: 900;
-  text-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
 }
 
 /* Global Mobile Anti-Auto-Zoom Fix (Android & iOS)

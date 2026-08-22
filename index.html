@@ -5361,89 +5361,81 @@
     </div>
 
     <!-- ============================================================ -->
-    <!-- MODAL: MODERN CLOCK & TIME PICKER (APPLE & MATERIAL 3 DIAL)  -->
+    <!-- MODAL: TIME PICKER (NATIVE APP STYLE - COMPACT OLED WHEELS)  -->
     <!-- ============================================================ -->
-    <div id="modern-time-picker-modal" class="modal-overlay" style="z-index: 12000;"
-          onclick="handleModernTimePickerOverlayClick(event)">
-          <div class="modal-content modern-time-picker-card"
-            style="max-width: 360px; width: 92%; border-radius: 28px; background: var(--bg-card, #161622); border: 1px solid var(--border, rgba(255,255,255,0.08)); padding: 22px 20px 20px 20px; box-shadow: 0 24px 60px rgba(0,0,0,0.65); display: flex; flex-direction: column; gap: 14px; align-items: center; box-sizing: border-box;">
+    <div id="modern-time-picker-modal" class="modal-overlay" style="z-index: 13000;"
+      onclick="handleModernTimePickerOverlayClick(event)">
+      <div class="modal-content"
+        style="max-width: 320px; width: 90%; background: rgba(18, 18, 24, 0.96); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border-radius: 24px; border: 1px solid rgba(255, 255, 255, 0.12); box-shadow: 0 24px 60px rgba(0, 0, 0, 0.65); display: flex; flex-direction: column; overflow: hidden; padding: 0;">
 
-            <!-- Header -->
-            <div style="width: 100%; display: flex; align-items: center; justify-content: space-between;">
-              <div style="display: flex; align-items: center; gap: 10px;">
-                <div
-                  style="width: 34px; height: 34px; border-radius: 10px; background: rgba(var(--accent-rgb, 124, 106, 247), 0.15); display: flex; align-items: center; justify-content: center; color: var(--accent); border: 1px solid rgba(var(--accent-rgb, 124, 106, 247), 0.3);">
-                  <i class="fa-regular fa-clock" style="font-size: 16px;"></i>
-                </div>
-                <div>
-                  <div
-                    style="font-size: 15px; font-weight: 800; font-family: 'Outfit', sans-serif; color: var(--text-primary);"
-                    data-i18n="time_picker_title">Επιλογή Ώρας</div>
-                  <div style="font-size: 11px; color: var(--text-muted);" id="time-picker-mode-hint">Πατήστε ή σύρετε
-                    στο ρολόι</div>
-                </div>
+        <!-- Header -->
+        <div
+          style="display: flex; justify-content: space-between; align-items: center; padding: 16px 18px 12px 18px; background: rgba(0, 0, 0, 0.2); border-bottom: 1px solid rgba(255, 255, 255, 0.08);">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <i class="fa-regular fa-clock" style="font-size: 16px; color: var(--picker-accent, #f59e0b);"></i>
+            <span style="font-size: 16px; font-weight: 800; color: #ffffff; font-family: 'Outfit', sans-serif;"
+              data-i18n="time_picker_title">Επιλογή Ώρας</span>
+          </div>
+          <button type="button" onclick="closeModernTimePicker()"
+            style="background: transparent; border: none; color: var(--text-muted); font-size: 22px; cursor: pointer; padding: 2px;">&times;</button>
+        </div>
+
+        <!-- Body -->
+        <div style="padding: 16px; display: flex; flex-direction: column; align-items: center; gap: 14px;">
+          <!-- Direct Typable Input Boxes -->
+          <div style="display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%;">
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 3px;">
+              <input type="tel" id="modern-time-input-hours" class="time-input-box" min="0" max="23" placeholder="00"
+                maxlength="2" pattern="[0-9]*" inputmode="numeric" onfocus="this.select()"
+                oninput="handleModernTimeInputHours(event)"
+                onkeydown="handleModernTimeInputKeydown(event, 'hours')">
+              <span style="font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;" data-i18n="time_hours_label">ΩΡΑ</span>
+            </div>
+            <span style="font-size: 28px; font-weight: 800; color: var(--picker-accent, #f59e0b); line-height: 1; margin-top: -14px;">:</span>
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 3px;">
+              <input type="tel" id="modern-time-input-minutes" class="time-input-box" min="0" max="59"
+                placeholder="00" maxlength="2" pattern="[0-9]*" inputmode="numeric" onfocus="this.select()"
+                oninput="handleModernTimeInputMinutes(event)"
+                onkeydown="handleModernTimeInputKeydown(event, 'minutes')">
+              <span style="font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;" data-i18n="time_minutes_label">ΛΕΠΤΑ</span>
+            </div>
+          </div>
+
+          <!-- Compact OLED Drum Wheels -->
+          <div style="display: flex; align-items: center; justify-content: center; gap: 16px; width: 100%;">
+            <!-- Hours Wheel -->
+            <div class="time-wheel-container">
+              <div class="time-wheel-scroll" id="modern-scroll-hours">
+                <!-- Generated dynamically in JS -->
               </div>
-              <button type="button" onclick="closeModernTimePicker()"
-                style="background: rgba(255,255,255,0.06); border: 1px solid var(--border); color: var(--text-muted); width: 32px; height: 32px; border-radius: 50%; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center;">✕</button>
+              <div class="time-wheel-highlighter"></div>
             </div>
 
-            <!-- Glowing Digital Header (HH : MM) with Direct Typing -->
-            <div class="time-picker-digital-display">
-              <div class="time-picker-input-wrap">
-                <input type="tel" id="modern-time-input-hours" class="time-picker-digit-input active"
-                  maxlength="2" pattern="[0-9]*" inputmode="numeric" placeholder="21"
-                  onfocus="this.select(); setModernTimePickerMode('hour');"
-                  oninput="handleModernTimeInputHours(event)"
-                  onkeydown="handleModernTimeInputKeydown(event, 'hours')">
-                <span class="time-picker-input-label" data-i18n="time_hours_label">ΩΡΑ</span>
-              </div>
-              <span class="time-picker-colon">:</span>
-              <div class="time-picker-input-wrap">
-                <input type="tel" id="modern-time-input-minutes" class="time-picker-digit-input"
-                  maxlength="2" pattern="[0-9]*" inputmode="numeric" placeholder="00"
-                  onfocus="this.select(); setModernTimePickerMode('minute');"
-                  oninput="handleModernTimeInputMinutes(event)"
-                  onkeydown="handleModernTimeInputKeydown(event, 'minutes')">
-                <span class="time-picker-input-label" data-i18n="time_minutes_label">ΛΕΠΤΑ</span>
-              </div>
-            </div>
+            <span style="font-size: 24px; font-weight: 700; color: var(--picker-accent, #f59e0b); line-height: 60px;">:</span>
 
-            <!-- Quick Presets Strip -->
-            <div class="time-picker-presets-row">
-              <button type="button" class="time-preset-chip" onclick="selectModernTimePreset('08:00')">🌅 08:00</button>
-              <button type="button" class="time-preset-chip" onclick="selectModernTimePreset('14:00')">☀️ 14:00</button>
-              <button type="button" class="time-preset-chip" onclick="selectModernTimePreset('18:00')">🌇 18:00</button>
-              <button type="button" class="time-preset-chip" onclick="selectModernTimePreset('20:00')">🌙 20:00</button>
-              <button type="button" class="time-preset-chip" onclick="selectModernTimePreset('21:00')">⏰ 21:00</button>
-              <button type="button" class="time-preset-chip" onclick="selectModernTimePreset('22:00')">🛏️ 22:00</button>
-            </div>
-
-            <!-- Interactive Clock Face -->
-            <div class="modern-clock-container" id="modern-clock-container">
-              <div class="modern-clock-face" id="modern-clock-face">
-                <!-- Center Pivot Point -->
-                <div class="modern-clock-pivot"></div>
-                <!-- Rotating Hand -->
-                <div class="modern-clock-hand" id="modern-clock-hand">
-                  <div class="modern-clock-hand-indicator"></div>
-                </div>
-                <!-- Clock Numbers Grid -->
-                <div class="modern-clock-numbers" id="modern-clock-numbers"></div>
+            <!-- Minutes Wheel -->
+            <div class="time-wheel-container">
+              <div class="time-wheel-scroll" id="modern-scroll-minutes">
+                <!-- Generated dynamically in JS -->
               </div>
-            </div>
-
-            <!-- Actions Footer -->
-            <div style="width: 100%; display: flex; align-items: center; gap: 10px; margin-top: 4px;">
-              <button type="button" onclick="closeModernTimePicker()" class="btn btn-secondary"
-                style="flex: 1; padding: 10px; font-size: 13px; font-weight: 700; border-radius: 12px;"
-                data-i18n="btn_cancel">Ακύρωση</button>
-              <button type="button" onclick="confirmModernTimePicker()" class="btn btn-primary"
-                style="flex: 1; padding: 10px; font-size: 13px; font-weight: 700; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 16px rgba(var(--accent-rgb, 124, 106, 247), 0.35);">
-                <i class="fa-solid fa-check"></i> <span data-i18n="btn_set_time">Ορισμός</span>
-              </button>
+              <div class="time-wheel-highlighter"></div>
             </div>
           </div>
         </div>
+
+        <!-- Bottom Actions -->
+        <div
+          style="display: flex; gap: 10px; padding: 14px 16px; border-top: 1px solid rgba(255,255,255,0.08); background: rgba(0, 0, 0, 0.2);">
+          <button type="button" class="btn-secondary" onclick="closeModernTimePicker()"
+            style="flex: 1; padding: 11px; border-radius: 14px; font-size: 13.5px; font-weight: 600; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.05); color: var(--text-secondary); font-family: 'Outfit', sans-serif;"
+            data-i18n="btn_cancel">Ακύρωση</button>
+          <button type="button" class="btn-primary" onclick="confirmModernTimePicker()"
+            style="flex: 1; padding: 11px; border-radius: 14px; font-size: 13.5px; font-weight: 700; background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; cursor: pointer; text-align: center; font-family: 'Outfit', sans-serif; box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35); display: flex; align-items: center; justify-content: center; gap: 6px;">
+            <i class="fa-solid fa-check"></i> <span data-i18n="btn_set_time">Ορισμός</span>
+          </button>
+        </div>
+      </div>
+    </div>
 
         <!-- Core Application Scripts -->
         <!-- AI debug logging flag: gates verbose console.* output from the AI engine
