@@ -4223,14 +4223,18 @@
               style="display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%;">
               <div style="display: flex; flex-direction: column; align-items: center; gap: 3px;">
                 <input type="tel" id="custom-time-input-hours" class="time-input-box" min="0" max="23" placeholder="00"
-                  maxlength="2" pattern="[0-9]*" inputmode="numeric" onfocus="this.select()">
-                <span style="font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">ΩΡΑ</span>
+                  maxlength="2" pattern="[0-9]*" inputmode="numeric"
+                  autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+                  oncontextmenu="return false;">
+                <span style="font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;" data-i18n="time_hours_label">ΩΡΑ</span>
               </div>
-              <span style="font-size: 28px; font-weight: 800; color: var(--picker-accent, #f59e0b); line-height: 1; margin-top: -14px;">:</span>
+              <span style="font-size: 28px; font-weight: 800; color: var(--picker-accent, #3b82f6); line-height: 1; margin-top: -14px;">:</span>
               <div style="display: flex; flex-direction: column; align-items: center; gap: 3px;">
                 <input type="tel" id="custom-time-input-minutes" class="time-input-box" min="0" max="59"
-                  placeholder="00" maxlength="2" pattern="[0-9]*" inputmode="numeric" onfocus="this.select()">
-                <span style="font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">ΛΕΠΤΑ</span>
+                  placeholder="00" maxlength="2" pattern="[0-9]*" inputmode="numeric"
+                  autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+                  oncontextmenu="return false;">
+                <span style="font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;" data-i18n="time_minutes_label">ΛΕΠΤΑ</span>
               </div>
             </div>
 
@@ -4246,7 +4250,7 @@
               </div>
 
               <span
-                style="font-size: 24px; font-weight: 700; color: var(--picker-accent, #f59e0b); line-height: 60px;">:</span>
+                style="font-size: 24px; font-weight: 700; color: var(--picker-accent, #3b82f6); line-height: 60px;">:</span>
 
               <!-- OLED Scroll Wheel for Minutes -->
               <div class="time-wheel-container">
@@ -4267,8 +4271,8 @@
           <button type="button" class="btn-secondary" onclick="closeModal('custom-date-picker-modal')"
             style="flex: 1; padding: 12px; border-radius: 14px; font-size: 14px; font-weight: 600; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.05); color: var(--text-secondary); font-family: 'Outfit', sans-serif;"
             data-i18n="btn_cancel">Ακύρωση</button>
-          <button type="button" class="btn-primary" onclick="setCustomDatePickerValue()"
-            style="flex: 1; padding: 12px; border-radius: 14px; font-size: 14px; font-weight: 700; background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; cursor: pointer; text-align: center; font-family: 'Outfit', sans-serif; box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35);"
+          <button type="button" class="btn-primary" id="custom-date-picker-confirm-btn" onclick="setCustomDatePickerValue()"
+            style="flex: 1; padding: 12px; border-radius: 14px; font-size: 14px; font-weight: 700; background: var(--picker-btn-bg, var(--picker-accent, #3b82f6)); color: white; border: none; cursor: pointer; text-align: center; font-family: 'Outfit', sans-serif; box-shadow: 0 4px 14px var(--picker-btn-shadow, rgba(59, 130, 246, 0.35));"
             data-i18n="btn_set">Ορισμός</button>
         </div>
 

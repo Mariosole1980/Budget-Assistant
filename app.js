@@ -25378,20 +25378,38 @@ function openCustomDatePicker(targetInputId = 'trans-date') {
   _customDatePickerTargetInput = targetInputId;
   ensureHistoryPushed();
 
-  const txModal = document.getElementById('transaction-form');
   const datePickerModal = document.getElementById('custom-date-picker-modal');
   if (datePickerModal) {
-    if (txModal && document.getElementById('transaction-modal').classList.contains('active')) {
-      const modalParent = document.getElementById('transaction-modal');
-      if (modalParent.classList.contains('expense')) {
-        datePickerModal.style.setProperty('--picker-accent', 'var(--red-negative)');
-      } else if (modalParent.classList.contains('income')) {
-        datePickerModal.style.setProperty('--picker-accent', 'var(--blue-positive)');
+    const txModal = document.getElementById('transaction-modal');
+    let currentType = 'expense';
+    if (txModal && txModal.classList.contains('active')) {
+      if (txModal.classList.contains('income') || (typeof state !== 'undefined' && state.activeTab === 'income')) {
+        currentType = 'income';
+      } else if (txModal.classList.contains('transfer') || (typeof state !== 'undefined' && state.activeTab === 'transfer')) {
+        currentType = 'transfer';
       } else {
-        datePickerModal.style.setProperty('--picker-accent', 'var(--text-secondary)');
+        currentType = 'expense';
       }
+    } else if (typeof state !== 'undefined' && state.activeTab) {
+      currentType = state.activeTab;
+    }
+
+    if (currentType === 'expense') {
+      datePickerModal.style.setProperty('--picker-accent', 'var(--red-negative, #ef4444)');
+      datePickerModal.style.setProperty('--picker-btn-bg', 'linear-gradient(135deg, #ef4444, #dc2626)');
+      datePickerModal.style.setProperty('--picker-btn-shadow', 'rgba(239, 68, 68, 0.35)');
+    } else if (currentType === 'income') {
+      datePickerModal.style.setProperty('--picker-accent', 'var(--blue-positive, #10b981)');
+      datePickerModal.style.setProperty('--picker-btn-bg', 'linear-gradient(135deg, #10b981, #059669)');
+      datePickerModal.style.setProperty('--picker-btn-shadow', 'rgba(16, 185, 129, 0.35)');
+    } else if (currentType === 'transfer') {
+      datePickerModal.style.setProperty('--picker-accent', 'var(--accent, #3b82f6)');
+      datePickerModal.style.setProperty('--picker-btn-bg', 'linear-gradient(135deg, #3b82f6, #2563eb)');
+      datePickerModal.style.setProperty('--picker-btn-shadow', 'rgba(59, 130, 246, 0.35)');
     } else {
-      datePickerModal.style.removeProperty('--picker-accent');
+      datePickerModal.style.setProperty('--picker-accent', 'var(--accent, #38bdf8)');
+      datePickerModal.style.setProperty('--picker-btn-bg', 'linear-gradient(135deg, #38bdf8, #0284c7)');
+      datePickerModal.style.setProperty('--picker-btn-shadow', 'rgba(56, 189, 248, 0.35)');
     }
   }
 
@@ -25445,24 +25463,36 @@ function openCustomDatePicker(targetInputId = 'trans-date') {
   customDatePickerSelectedDate = new Date(currentDate);
   customDatePickerViewingMonth = new Date(currentDate);
 
-  // Populate scroll wheels if empty
+  // Populate scroll wheels if empty (5 repeat cycles for infinite circular scrolling)
   const hoursScroll = document.getElementById('scroll-hours');
   if (hoursScroll && hoursScroll.children.length === 0) {
-    for (let i = 0; i < 24; i++) {
-      const div = document.createElement('div');
-      div.className = 'time-wheel-item';
-      div.textContent = String(i).padStart(2, '0');
-      hoursScroll.appendChild(div);
+    for (let c = 0; c < 5; c++) {
+      for (let i = 0; i < 24; i++) {
+        const div = document.createElement('div');
+        div.className = 'time-wheel-item';
+        div.textContent = String(i).padStart(2, '0');
+        const targetScroll = (c * 24 + i) * 60;
+        div.onclick = () => {
+          hoursScroll.scrollTop = targetScroll;
+        };
+        hoursScroll.appendChild(div);
+      }
     }
   }
 
   const minutesScroll = document.getElementById('scroll-minutes');
   if (minutesScroll && minutesScroll.children.length === 0) {
-    for (let i = 0; i < 60; i++) {
-      const div = document.createElement('div');
-      div.className = 'time-wheel-item';
-      div.textContent = String(i).padStart(2, '0');
-      minutesScroll.appendChild(div);
+    for (let c = 0; c < 5; c++) {
+      for (let i = 0; i < 60; i++) {
+        const div = document.createElement('div');
+        div.className = 'time-wheel-item';
+        div.textContent = String(i).padStart(2, '0');
+        const targetScroll = (c * 60 + i) * 60;
+        div.onclick = () => {
+          minutesScroll.scrollTop = targetScroll;
+        };
+        minutesScroll.appendChild(div);
+      }
     }
   }
 
@@ -25470,13 +25500,11 @@ function openCustomDatePicker(targetInputId = 'trans-date') {
   setupTimeWheelScrollListeners();
   initTimeInputListeners();
 
-  // Reset time picker mode to Wheels by default on open
+  // Keep both typable input boxes and scrolling wheels visible and synced
   const wheelsRow = document.getElementById('custom-date-picker-time-wheels-row');
   const inputsRow = document.getElementById('custom-date-picker-time-inputs');
-  const toggleBtn = document.getElementById('toggle-time-input-mode');
   if (wheelsRow) wheelsRow.style.display = 'flex';
-  if (inputsRow) inputsRow.style.display = 'none';
-  if (toggleBtn) toggleBtn.innerHTML = '<i class="fa-regular fa-keyboard"></i>';
+  if (inputsRow) inputsRow.style.display = 'flex';
 
   renderCustomDatePickerCalendar();
 
@@ -25487,11 +25515,11 @@ function openCustomDatePicker(targetInputId = 'trans-date') {
   setTimeout(() => {
     const hs = document.getElementById('scroll-hours');
     if (hs) {
-      hs.scrollTop = currentDate.getHours() * 60;
+      hs.scrollTop = (2 * 24 + currentDate.getHours()) * 60;
     }
     const ms = document.getElementById('scroll-minutes');
     if (ms) {
-      ms.scrollTop = currentDate.getMinutes() * 60;
+      ms.scrollTop = (2 * 60 + currentDate.getMinutes()) * 60;
     }
 
     // Set manual input values
@@ -25956,12 +25984,32 @@ function setupTimeWheelScrollListeners() {
     const scrollEl = document.getElementById(scrollId);
     if (!scrollEl) return;
 
+    const itemsPerCycle = scrollId === 'scroll-hours' ? 24 : 60;
+    const cycleHeight = itemsPerCycle * 60;
+    let isAdjusting = false;
+
     const updateSelection = () => {
+      if (isAdjusting) return;
       const scrollTop = scrollEl.scrollTop;
-      const selectedIndex = Math.max(0, Math.min(scrollId === 'scroll-hours' ? 23 : 59, Math.round(scrollTop / 60)));
+
+      // Infinite loop boundary jump
+      if (scrollTop < cycleHeight * 0.8) {
+        isAdjusting = true;
+        scrollEl.scrollTop += cycleHeight * 2;
+        isAdjusting = false;
+        return;
+      } else if (scrollTop > cycleHeight * 3.2) {
+        isAdjusting = true;
+        scrollEl.scrollTop -= cycleHeight * 2;
+        isAdjusting = false;
+        return;
+      }
+
+      const totalIdx = Math.round(scrollTop / 60);
+      const selectedVal = ((totalIdx % itemsPerCycle) + itemsPerCycle) % itemsPerCycle;
       const items = scrollEl.querySelectorAll('.time-wheel-item');
       items.forEach((item, idx) => {
-        if (idx === selectedIndex) {
+        if (idx === totalIdx) {
           item.classList.add('selected');
         } else {
           item.classList.remove('selected');
@@ -25971,18 +26019,17 @@ function setupTimeWheelScrollListeners() {
       if (scrollId === 'scroll-hours') {
         const inputHours = document.getElementById('custom-time-input-hours');
         if (inputHours && document.activeElement !== inputHours) {
-          inputHours.value = String(selectedIndex).padStart(2, '0');
+          inputHours.value = String(selectedVal).padStart(2, '0');
         }
       } else if (scrollId === 'scroll-minutes') {
         const inputMinutes = document.getElementById('custom-time-input-minutes');
         if (inputMinutes && document.activeElement !== inputMinutes) {
-          inputMinutes.value = String(selectedIndex).padStart(2, '0');
+          inputMinutes.value = String(selectedVal).padStart(2, '0');
         }
       }
     };
 
     scrollEl.addEventListener('scroll', updateSelection, { passive: true });
-    // Initial call
     updateSelection();
   };
 
@@ -26001,8 +26048,8 @@ function setCustomDatePickerNowTime() {
   if (inputMinutes) inputMinutes.value = String(m).padStart(2, '0');
   const hs = document.getElementById('scroll-hours');
   const ms = document.getElementById('scroll-minutes');
-  if (hs) hs.scrollTop = h * 60;
-  if (ms) ms.scrollTop = m * 60;
+  if (hs) hs.scrollTop = (2 * 24 + h) * 60;
+  if (ms) ms.scrollTop = (2 * 60 + m) * 60;
 }
 window.setCustomDatePickerNowTime = setCustomDatePickerNowTime;
 
@@ -26015,8 +26062,20 @@ function initTimeInputListeners() {
 
   if (!inputHours || !inputMinutes) return;
 
+  inputHours.addEventListener('focus', (e) => {
+    e.target.dataset.fresh = 'true';
+  });
+
+  inputMinutes.addEventListener('focus', (e) => {
+    e.target.dataset.fresh = 'true';
+  });
+
   inputHours.addEventListener('input', (e) => {
     let val = e.target.value.replace(/\D/g, '');
+    if (e.target.dataset.fresh === 'true' && val.length > 0) {
+      val = val.slice(-1);
+      e.target.dataset.fresh = 'false';
+    }
     if (val.length > 2) val = val.slice(0, 2);
     let num = parseInt(val, 10);
     if (!isNaN(num)) {
@@ -26025,19 +26084,23 @@ function initTimeInputListeners() {
         num = 23;
       }
       const hs = document.getElementById('scroll-hours');
-      if (hs) hs.scrollTop = num * 60;
+      if (hs) hs.scrollTop = (2 * 24 + num) * 60;
     }
     e.target.value = val;
 
     // Auto-focus minutes input when 2 digits are entered or first digit is > 2 (e.g. 3..9)
     if (val.length === 2 || (val.length === 1 && parseInt(val, 10) > 2)) {
       inputMinutes.focus();
-      setTimeout(() => inputMinutes.select(), 50);
+      inputMinutes.dataset.fresh = 'true';
     }
   });
 
   inputMinutes.addEventListener('input', (e) => {
     let val = e.target.value.replace(/\D/g, '');
+    if (e.target.dataset.fresh === 'true' && val.length > 0) {
+      val = val.slice(-1);
+      e.target.dataset.fresh = 'false';
+    }
     if (val.length > 2) val = val.slice(0, 2);
     let num = parseInt(val, 10);
     if (!isNaN(num)) {
@@ -26046,9 +26109,26 @@ function initTimeInputListeners() {
         num = 59;
       }
       const ms = document.getElementById('scroll-minutes');
-      if (ms) ms.scrollTop = num * 60;
+      if (ms) ms.scrollTop = (2 * 60 + num) * 60;
     }
     e.target.value = val;
+  });
+
+  inputHours.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      setCustomDatePickerValue();
+    }
+  });
+
+  inputMinutes.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      setCustomDatePickerValue();
+    } else if (e.key === 'Backspace' && e.target.value === '') {
+      inputHours.focus();
+      inputHours.dataset.fresh = 'true';
+    }
   });
 
   inputHours.addEventListener('blur', (e) => {
