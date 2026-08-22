@@ -104,6 +104,75 @@ export async function onRequestPost(context) {
     const successUrl = `${origin}/?premium=success`;
     const cancelUrl = `${origin}/?premium=cancelled`;
 
+    // Direct PayPal Flow (using user's PayPal Developer credentials)
+    if (paymentMethod === 'paypal') {
+        const paypalClientId = env.PAYPAL_CLIENT_ID || 'BAAPrv586Eftb2ZZpvcJSO30qDGRzULdVaOOhAZ-4jUlsZC5-Iq6Ungx5EsGgBYwA0bAi2WnzYayxofCkQ';
+        const paypalSecret = env.PAYPAL_CLIENT_SECRET || 'ELf0xoqbR0qgDpRA-PqrGKrn5k1eg307kH2rl9p22MdoCyu3lxkexOWtV7js5rhuZDZj2cg9MceAOcCe';
+        const isSandbox = (env.PAYPAL_MODE || '').toLowerCase() === 'sandbox';
+        const paypalBaseUrl = isSandbox ? 'https://api-m.sandbox.paypal.com' : 'https://api-m.paypal.com';
+
+        try {
+            const basicAuth = btoa(`${paypalClientId}:${paypalSecret}`);
+            const tokenRes = await fetch(`${paypalBaseUrl}/v1/oauth2/token`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Basic ${basicAuth}`,
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: 'grant_type=client_credentials'
+            });
+
+            if (tokenRes.ok) {
+                const tokenData = await tokenRes.json();
+                const paypalAccessToken = tokenData.access_token;
+
+                const orderRes = await fetch(`${paypalBaseUrl}/v2/checkout/orders`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${paypalAccessToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        intent: 'CAPTURE',
+                        purchase_units: [
+                            {
+                                reference_id: 'budget_assistant_lifetime_pro',
+                                custom_id: userId,
+                                description: 'Budget Assistant Lifetime PRO',
+                                amount: {
+                                    currency_code: 'EUR',
+                                    value: '9.99'
+                                }
+                            }
+                        ],
+                        application_context: {
+                            brand_name: 'MKlogic',
+                            landing_page: 'NO_PREFERENCE',
+                            user_action: 'PAY_NOW',
+                            return_url: `${origin}/?paypal=success`,
+                            cancel_url: `${origin}/?premium=cancelled`
+                        }
+                    })
+                });
+
+                if (orderRes.ok) {
+                    const orderData = await orderRes.json();
+                    const approveLink = (orderData.links || []).find(l => l.rel === 'approve');
+                    if (approveLink && approveLink.href) {
+                        return new Response(JSON.stringify({ url: approveLink.href, orderId: orderData.id }), {
+                            status: 200,
+                            headers: corsHeaders
+                        });
+                    }
+                } else {
+                    console.error('PayPal Order Create Error:', await orderRes.text());
+                }
+            }
+        } catch (paypalErr) {
+            console.warn('Direct PayPal Order creation error:', paypalErr);
+        }
+    }
+
     try {
         // Create a Stripe Checkout Session (one-time payment).
         const body = new URLSearchParams();
@@ -118,12 +187,7 @@ export async function onRequestPost(context) {
         body.append('line_items[0][quantity]', '1');
         body.append('metadata[user_id]', userId);
         body.append('metadata[selected_method]', paymentMethod);
-
-        if (paymentMethod === 'paypal') {
-            body.append('payment_method_types[0]', 'paypal');
-        } else {
-            body.append('payment_method_types[0]', 'card');
-        }
+        body.append('payment_method_types[0]', 'card');
 
         let stripeRes = await fetch('https://api.stripe.com/v1/checkout/sessions', {
             method: 'POST',

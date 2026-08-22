@@ -2318,6 +2318,50 @@ async function initApp() {
     try {
       const params = new URLSearchParams(window.location.search);
       const status = params.get('premium');
+      const paypalStatus = params.get('paypal');
+      const paypalToken = params.get('token');
+
+      // Handle PayPal return
+      if (paypalStatus === 'success' && paypalToken) {
+        params.delete('paypal');
+        params.delete('token');
+        params.delete('PayerID');
+        const cleanUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '') + window.location.hash;
+        window.history.replaceState({}, '', cleanUrl);
+
+        (async () => {
+          try {
+            let sessionToken = '';
+            if (state.supabaseClient) {
+              const sRes = state.supabaseClient.auth.session ? { data: { session: state.supabaseClient.auth.session() } } : await state.supabaseClient.auth.getSession();
+              sessionToken = (sRes && sRes.data && sRes.data.session) ? sRes.data.session.access_token : '';
+            }
+            if (sessionToken) {
+              const capRes = await fetch(getBackendApiUrl('/api/paypal-capture'), {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': 'Bearer ' + sessionToken
+                },
+                body: JSON.stringify({ orderId: paypalToken })
+              });
+              const capData = await capRes.json().catch(() => ({}));
+              if (capData.success) {
+                showSyncToast(state.lang === 'el' ? '🎉 Το Premium ενεργοποιήθηκε μέσω PayPal! Ευχαριστούμε!' : '🎉 Premium activated via PayPal! Thank you!', 5000);
+                if (state.currentUser && typeof loadUserProfiles === 'function') {
+                  await loadUserProfiles(state.currentUser);
+                  updatePremiumUI();
+                }
+                return;
+              }
+            }
+          } catch (pErr) {
+            console.warn('PayPal capture error:', pErr);
+          }
+        })();
+        return;
+      }
+
       if (!status) return;
 
       // Remove the query param from the URL (history.replaceState keeps the page).
