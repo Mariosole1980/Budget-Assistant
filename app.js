@@ -1945,14 +1945,13 @@ let _coldStartFadeDone = false;
 
 function fadeOutColdStartOverlay() {
   if (_coldStartFadeDone) return;
-  const overlay = document.getElementById('cold-start-overlay');
-  if (!overlay) {
+  const frame = document.getElementById('cold-start-frame') || document.getElementById('cold-start-overlay');
+  if (!frame) {
     _coldStartFadeDone = true;
     return;
   }
 
-  // Ensure user sees the complete luxury entrance animation sequence
-  // (glow 1.65s, logo mark 1.05s, wordmark 1.75s, tagline 1.95s, loader 2.1s, sweep loop)
+  // Ensure total display time of splash (native + HTML) is capped at exactly ~2.5s
   const elapsed = Date.now() - _splashAppStartTime;
   const minDuration = 2500;
   if (elapsed < minDuration) {
@@ -1961,14 +1960,12 @@ function fadeOutColdStartOverlay() {
   }
 
   _coldStartFadeDone = true;
-  // Force a reflow so the opacity transition actually animates from 1 -> 0.
-  void overlay.offsetHeight;
-  overlay.style.opacity = '0';
-  // Remove the overlay from the DOM after the transition completes so it never
-  // intercepts taps or lingers (pointer-events is already none, but clean up).
+  // Smooth fade-out before removing iframe from DOM
+  frame.style.transition = 'opacity 0.45s ease';
+  frame.style.opacity = '0';
   setTimeout(() => {
-    if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
-  }, 500);
+    if (frame.parentNode) frame.parentNode.removeChild(frame);
+  }, 450);
 }
 window.fadeOutColdStartOverlay = fadeOutColdStartOverlay;
 

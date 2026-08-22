@@ -3,11 +3,14 @@ const CACHE_VERSION = 'v' + Date.now();
 const CACHE_NAME = 'money-manager-v1490-' + Date.now();
 const ASSETS = [
   'index.html',
+  'splash.html',
   'style.css',
   'logo-mark.png',
   'manifest.json',
   'icon.png',
   'xlsx.full.min.js',
+  'js/webfonts/poppins-bold.woff2',
+  'js/webfonts/inter-medium.woff2',
   'js/supabase.js',
   'js/chart.js',
   'js/chartjs-plugin-datalabels.js',

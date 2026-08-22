@@ -103,6 +103,7 @@ if (fs.existsSync(wwwDir)) {
 fs.mkdirSync(wwwDir, { recursive: true });
 
 const filesToMirror = [
+  'splash.html',
   'app.js',
   'index.html',
   'style.css',

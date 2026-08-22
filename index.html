@@ -69,11 +69,10 @@
       window.showRecoveryMode = function (reason) {
         if (document.getElementById('recovery-overlay')) return;
 
-        // Remove the cold-start fade overlay so it never hides the recovery UI
-        // (the recovery overlay's z-index is lower than the cold-start overlay's).
-        const coldStartOverlay = document.getElementById('cold-start-overlay');
-        if (coldStartOverlay && coldStartOverlay.parentNode) {
-          coldStartOverlay.parentNode.removeChild(coldStartOverlay);
+        // Remove the cold-start splash iframe so it never hides the recovery UI
+        const coldStartFrame = document.getElementById('cold-start-frame');
+        if (coldStartFrame && coldStartFrame.parentNode) {
+          coldStartFrame.parentNode.removeChild(coldStartFrame);
         }
 
         const isDev = localStorage.getItem('developer_mode_active') === 'true';
@@ -374,18 +373,8 @@
     })();
   </script>
 
-  <!-- Luxury Cold-Start Splash Overlay (Exact User Design) -->
-  <div id="cold-start-overlay">
-    <div class="splash-glow glow"></div>
-    <div class="splash-content content">
-      <div class="splash-mark mark">
-        <img src="logo-mark.png" alt="Budget Assistant icon" onerror="this.src='assets/logo/user_logo.png'">
-      </div>
-      <div class="splash-wordmark wordmark">Budget Assistant</div>
-      <div class="splash-tagline tagline">Smart finance, elevated</div>
-    </div>
-    <div class="splash-loader loader"></div>
-  </div>
+  <!-- Cold-Start Splash Iframe (Untouched Static Component) -->
+  <iframe id="cold-start-frame" src="splash.html" style="position:fixed;inset:0;width:100vw;height:100vh;border:0;z-index:2147483647;"></iframe>
 
   <!-- Resume overlay: covers the screen with the theme background color during the
        brief window after the app returns from background. On native Android the
