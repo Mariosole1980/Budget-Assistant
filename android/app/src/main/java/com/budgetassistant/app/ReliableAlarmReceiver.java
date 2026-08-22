@@ -144,7 +144,7 @@ public class ReliableAlarmReceiver extends BroadcastReceiver {
                     Uri soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
                     AudioAttributes audioAttributes = new AudioAttributes.Builder()
                             .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                            .setUsage(AudioAttributes.USAGE_NOTIFICATION_REMINDER)
+                            .setUsage(AudioAttributes.USAGE_NOTIFICATION_EVENT)
                             .build();
                     channel.setSound(soundUri, audioAttributes);
 
