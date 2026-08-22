@@ -1,6 +1,7 @@
 package com.budgetassistant.app;
 
 import android.app.AlarmManager;
+import android.app.PendingIntent;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -10,11 +11,17 @@ import android.os.Build;
 import android.os.PowerManager;
 import android.provider.Settings;
 import android.util.Log;
+import androidx.work.WorkInfo;
+import androidx.work.WorkManager;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
+import java.util.Locale;
 
 @CapacitorPlugin(name = "ReliableNotification")
 public class ReliableNotificationPlugin extends Plugin {
@@ -83,7 +90,7 @@ public class ReliableNotificationPlugin extends Plugin {
     }
 
     @PluginMethod
-    public void getDailyReminderStatus(PluginCall call) {
+    public void getDiagnostics(PluginCall call) {
         try {
             Context context = getContext();
             SharedPreferences prefs = context.getSharedPreferences(
@@ -96,9 +103,48 @@ public class ReliableNotificationPlugin extends Plugin {
             int minute = prefs.getInt(ReliableAlarmReceiver.KEY_MINUTE, 0);
             String title = prefs.getString(ReliableAlarmReceiver.KEY_TITLE, "Καταγραφή Εξόδων");
             String body = prefs.getString(ReliableAlarmReceiver.KEY_BODY, "Έχεις καταγράψει τα σημερινά έξοδά σου;");
+            String lastDispatchDate = prefs.getString(ReliableAlarmReceiver.KEY_LAST_DISPATCH_DATE, "—");
+            long lastDispatchTimestamp = prefs.getLong(ReliableAlarmReceiver.KEY_LAST_DISPATCH_TIME, 0);
+            String lastDispatchSource = prefs.getString(ReliableAlarmReceiver.KEY_LAST_DISPATCH_SOURCE, "—");
+            int totalDispatches = prefs.getInt(ReliableAlarmReceiver.KEY_TOTAL_DISPATCHES, 0);
+            long nextTriggerMillis = prefs.getLong(ReliableAlarmReceiver.KEY_NEXT_TRIGGER_MILLIS, 0);
+
+            // Verify if AlarmManager PendingIntent is actively registered in OS
+            Intent intent = new Intent(context, ReliableAlarmReceiver.class);
+            int flags = PendingIntent.FLAG_NO_CREATE;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                flags |= PendingIntent.FLAG_IMMUTABLE;
+            }
+            PendingIntent existingIntent = PendingIntent.getBroadcast(
+                    context,
+                    ReliableAlarmReceiver.NOTIFICATION_ID,
+                    intent,
+                    flags
+            );
+            boolean isAlarmArmed = existingIntent != null;
+
+            // Check WorkManager status
+            String workStatus = "INACTIVE";
+            try {
+                List<WorkInfo> workList = WorkManager.getInstance(context)
+                        .getWorkInfosForUniqueWork(ReliableNotificationWorker.WORK_NAME)
+                        .get();
+                if (workList != null && !workList.isEmpty()) {
+                    workStatus = workList.get(0).getState().name();
+                }
+            } catch (Exception ignored) {}
 
             boolean isBatteryIgnored = isBatteryOptimizationIgnored(context);
             boolean isExactAllowed = isExactAlarmAllowed(context);
+
+            SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault());
+            String nextTriggerFormatted = nextTriggerMillis > 0 ? sdf.format(new Date(nextTriggerMillis)) : "—";
+            String lastDispatchFormatted = lastDispatchTimestamp > 0 ? sdf.format(new Date(lastDispatchTimestamp)) : "—";
+
+            String healthStatus = "HEALTHY";
+            if (!isBatteryIgnored || !isExactAllowed) {
+                healthStatus = "ATTENTION_REQUIRED";
+            }
 
             JSObject ret = new JSObject();
             ret.put("enabled", enabled);
@@ -106,16 +152,32 @@ public class ReliableNotificationPlugin extends Plugin {
             ret.put("minute", minute);
             ret.put("title", title);
             ret.put("body", body);
+            ret.put("isAlarmArmed", isAlarmArmed);
+            ret.put("workStatus", workStatus);
             ret.put("isBatteryIgnored", isBatteryIgnored);
             ret.put("isExactAllowed", isExactAllowed);
+            ret.put("nextTriggerMillis", nextTriggerMillis);
+            ret.put("nextTriggerFormatted", nextTriggerFormatted);
+            ret.put("lastDispatchDate", lastDispatchDate);
+            ret.put("lastDispatchTimestamp", lastDispatchTimestamp);
+            ret.put("lastDispatchFormatted", lastDispatchFormatted);
+            ret.put("lastDispatchSource", lastDispatchSource);
+            ret.put("totalDispatches", totalDispatches);
             ret.put("manufacturer", Build.MANUFACTURER);
             ret.put("model", Build.MODEL);
             ret.put("sdkInt", Build.VERSION.SDK_INT);
+            ret.put("healthStatus", healthStatus);
 
             call.resolve(ret);
         } catch (Exception e) {
-            call.reject("Failed to get status: " + e.getMessage());
+            Log.e(TAG, "Failed to get diagnostics", e);
+            call.reject("Failed to get diagnostics: " + e.getMessage());
         }
+    }
+
+    @PluginMethod
+    public void getDailyReminderStatus(PluginCall call) {
+        getDiagnostics(call);
     }
 
     @PluginMethod
@@ -138,7 +200,6 @@ public class ReliableNotificationPlugin extends Plugin {
         } catch (Exception e) {
             Log.w(TAG, "Could not open request ignore battery optimizations", e);
             try {
-                // Fallback to general battery settings
                 Intent fallback = new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS);
                 fallback.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 getContext().startActivity(fallback);
@@ -218,6 +279,19 @@ public class ReliableNotificationPlugin extends Plugin {
         String body = call.getString("body", "Η ειδοποίηση λειτουργεί άψογα!");
         try {
             ReliableAlarmReceiver.showNotification(getContext(), title, body);
+
+            // Log test dispatch in diagnostics
+            Context context = getContext();
+            SharedPreferences prefs = context.getSharedPreferences(
+                    ReliableAlarmReceiver.PREFS_NAME,
+                    Context.MODE_PRIVATE
+            );
+            prefs.edit()
+                    .putLong(ReliableAlarmReceiver.KEY_LAST_DISPATCH_TIME, System.currentTimeMillis())
+                    .putString(ReliableAlarmReceiver.KEY_LAST_DISPATCH_SOURCE, "ManualTest")
+                    .putInt(ReliableAlarmReceiver.KEY_TOTAL_DISPATCHES, prefs.getInt(ReliableAlarmReceiver.KEY_TOTAL_DISPATCHES, 0) + 1)
+                    .apply();
+
             JSObject ret = new JSObject();
             ret.put("success", true);
             call.resolve(ret);

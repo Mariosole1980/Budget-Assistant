@@ -17,7 +17,10 @@ import android.os.PowerManager;
 import android.util.Log;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Date;
+import java.util.Locale;
 
 public class ReliableAlarmReceiver extends BroadcastReceiver {
 
@@ -30,6 +33,11 @@ public class ReliableAlarmReceiver extends BroadcastReceiver {
     public static final String KEY_MINUTE = "reminder_minute";
     public static final String KEY_TITLE = "reminder_title";
     public static final String KEY_BODY = "reminder_body";
+    public static final String KEY_LAST_DISPATCH_DATE = "last_dispatch_date";
+    public static final String KEY_LAST_DISPATCH_TIME = "last_dispatch_timestamp";
+    public static final String KEY_LAST_DISPATCH_SOURCE = "last_dispatch_source";
+    public static final String KEY_TOTAL_DISPATCHES = "total_dispatches";
+    public static final String KEY_NEXT_TRIGGER_MILLIS = "next_trigger_millis";
 
     @Override
     public void onReceive(Context context, Intent intent) {
@@ -51,8 +59,24 @@ public class ReliableAlarmReceiver extends BroadcastReceiver {
             String body = prefs.getString(KEY_BODY, "Έχεις καταγράψει τα σημερινά έξοδά σου;");
 
             if (enabled) {
-                // 1. Show the notification
-                showNotification(context, title, body);
+                String todayDate = new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(new Date());
+                String lastDispatchedDate = prefs.getString(KEY_LAST_DISPATCH_DATE, "");
+
+                // Idempotent Check: Prevent duplicate notification on the same calendar day
+                if (!todayDate.equals(lastDispatchedDate)) {
+                    // 1. Show the notification
+                    showNotification(context, title, body);
+
+                    // Update diagnostic tracking
+                    prefs.edit()
+                            .putString(KEY_LAST_DISPATCH_DATE, todayDate)
+                            .putLong(KEY_LAST_DISPATCH_TIME, System.currentTimeMillis())
+                            .putString(KEY_LAST_DISPATCH_SOURCE, "AlarmManager")
+                            .putInt(KEY_TOTAL_DISPATCHES, prefs.getInt(KEY_TOTAL_DISPATCHES, 0) + 1)
+                            .apply();
+                } else {
+                    Log.d(TAG, "Notification already dispatched today (" + todayDate + "). Skipping duplicate.");
+                }
 
                 // 2. Self-Healing: reschedule next alarm for tomorrow
                 scheduleNextAlarm(context, hour, minute);
@@ -173,6 +197,10 @@ public class ReliableAlarmReceiver extends BroadcastReceiver {
 
         long triggerAtMillis = calendar.getTimeInMillis();
 
+        // Persist next trigger for diagnostics
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        prefs.edit().putLong(KEY_NEXT_TRIGGER_MILLIS, triggerAtMillis).apply();
+
         Intent intent = new Intent(context, ReliableAlarmReceiver.class);
         int flags = PendingIntent.FLAG_UPDATE_CURRENT;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -198,6 +226,10 @@ public class ReliableAlarmReceiver extends BroadcastReceiver {
             } else {
                 alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent);
             }
+
+            // Ensure the WorkManager fallback watchdog is also active
+            ReliableNotificationWorker.enqueueWatchdog(context);
+
         } catch (Exception e) {
             Log.e(TAG, "Error scheduling alarm with AlarmManager", e);
         }
@@ -220,5 +252,11 @@ public class ReliableAlarmReceiver extends BroadcastReceiver {
             alarmManager.cancel(pendingIntent);
             Log.d(TAG, "Alarm cancelled.");
         }
+
+        // Cancel WorkManager watchdog
+        ReliableNotificationWorker.cancelWatchdog(context);
+
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        prefs.edit().putLong(KEY_NEXT_TRIGGER_MILLIS, 0).apply();
     }
 }

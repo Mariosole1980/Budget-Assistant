@@ -1520,6 +1520,101 @@ window.testReliableNotification = async function () {
   }
 };
 
+window.requestExactAlarmPermission = async function () {
+  if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.ReliableNotification) {
+    try {
+      await window.Capacitor.Plugins.ReliableNotification.requestExactAlarmPermission();
+      showSyncToast(state.lang === 'el' ? 'ℹ️ Επιτρέψτε τη ρύθμιση «Ακριβείς Ειδοποιήσεις / Alarms»' : 'ℹ️ Enable "Exact Alarms / Reminders"', 4000);
+    } catch (e) {
+      console.warn('Could not request exact alarm permission:', e);
+    }
+  }
+};
+
+window.openNotificationDiagnosticsModal = async function () {
+  openModal('notification-diagnostics-modal');
+
+  const banner = document.getElementById('notif-diag-health-banner');
+  const icon = document.getElementById('notif-diag-health-icon');
+  const title = document.getElementById('notif-diag-health-title');
+  const desc = document.getElementById('notif-diag-health-desc');
+  const alarmStatus = document.getElementById('notif-diag-alarm-status');
+  const workStatus = document.getElementById('notif-diag-work-status');
+  const exactStatus = document.getElementById('notif-diag-exact-status');
+  const batteryStatus = document.getElementById('notif-diag-battery-status');
+  const nextTrigger = document.getElementById('notif-diag-next-trigger');
+  const lastDispatch = document.getElementById('notif-diag-last-dispatch');
+  const lastSource = document.getElementById('notif-diag-last-source');
+  const totalCount = document.getElementById('notif-diag-total-count');
+  const deviceInfo = document.getElementById('notif-diag-device-info');
+
+  if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.ReliableNotification) {
+    try {
+      const diag = await window.Capacitor.Plugins.ReliableNotification.getDiagnostics();
+      if (!diag) return;
+
+      const isHealthy = diag.healthStatus === 'HEALTHY' && diag.enabled;
+      if (banner) {
+        banner.style.background = isHealthy ? 'rgba(16,185,129,0.12)' : 'rgba(245,158,11,0.12)';
+        banner.style.borderColor = isHealthy ? 'rgba(16,185,129,0.3)' : 'rgba(245,158,11,0.3)';
+      }
+      if (icon) {
+        icon.className = isHealthy ? 'fa-solid fa-circle-check' : 'fa-solid fa-triangle-exclamation';
+        icon.style.color = isHealthy ? '#10b981' : '#f59e0b';
+      }
+      if (title) {
+        title.style.color = isHealthy ? '#10b981' : '#f59e0b';
+        title.textContent = isHealthy
+          ? (state.lang === 'el' ? 'Σύστημα Υγιές & Ενεργό' : 'System Healthy & Active')
+          : (state.lang === 'el' ? 'Απαιτείται Βελτιστοποίηση' : 'Optimization Recommended');
+      }
+      if (desc) {
+        if (!diag.enabled) {
+          desc.textContent = state.lang === 'el' ? 'Η ημερήσια υπενθύμιση είναι απενεργοποιημένη.' : 'Daily reminder is currently turned off.';
+        } else if (!diag.isBatteryIgnored) {
+          desc.textContent = state.lang === 'el' ? 'Πατήστε «Χωρίς Περιορισμούς» για παράδοση με κλειστή οθόνη.' : 'Grant battery exemption for lock-screen delivery.';
+        } else {
+          desc.textContent = state.lang === 'el' ? 'Όλες οι εγγενείς διεργασίες παρασκηνίου λειτουργούν κανονικά.' : 'All native background services are operating normally.';
+        }
+      }
+
+      if (alarmStatus) {
+        const armed = diag.enabled && diag.isAlarmArmed;
+        alarmStatus.style.color = armed ? '#10b981' : '#94a3b8';
+        alarmStatus.innerHTML = `<i class="fa-solid fa-circle" style="font-size:8px;"></i> <span>${armed ? (state.lang === 'el' ? `Οπλισμένο (${String(diag.hour).padStart(2, '0')}:${String(diag.minute).padStart(2, '0')})` : `Armed (${String(diag.hour).padStart(2, '0')}:${String(diag.minute).padStart(2, '0')})`) : (state.lang === 'el' ? 'Ανενεργό' : 'Inactive')}</span>`;
+      }
+
+      if (workStatus) {
+        const active = diag.workStatus === 'ENQUEUED' || diag.workStatus === 'RUNNING';
+        workStatus.style.color = active ? '#38bdf8' : '#94a3b8';
+        workStatus.innerHTML = `<i class="fa-solid fa-circle" style="font-size:8px;"></i> <span>${active ? (state.lang === 'el' ? 'Ενεργό (Watchdog)' : 'Active (Watchdog)') : (state.lang === 'el' ? 'Ανενεργό' : 'Inactive')}</span>`;
+      }
+
+      if (exactStatus) {
+        exactStatus.style.color = diag.isExactAllowed ? '#10b981' : '#f59e0b';
+        exactStatus.textContent = diag.isExactAllowed ? (state.lang === 'el' ? '✓ Επιτρέπεται' : '✓ Allowed') : (state.lang === 'el' ? '⚠️ Απαιτείται Άδεια' : '⚠️ Action Needed');
+      }
+
+      if (batteryStatus) {
+        batteryStatus.style.color = diag.isBatteryIgnored ? '#10b981' : '#f59e0b';
+        batteryStatus.textContent = diag.isBatteryIgnored ? (state.lang === 'el' ? '✓ Εξαιρείται' : '✓ Excluded') : (state.lang === 'el' ? '⚠️ Περιορίζεται' : '⚠️ Restricted');
+      }
+
+      if (nextTrigger) nextTrigger.textContent = diag.nextTriggerFormatted || '—';
+      if (lastDispatch) lastDispatch.textContent = diag.lastDispatchFormatted || '—';
+      if (lastSource) lastSource.textContent = diag.lastDispatchSource || '—';
+      if (totalCount) totalCount.textContent = String(diag.totalDispatches || 0);
+      if (deviceInfo) deviceInfo.textContent = `${diag.manufacturer || ''} ${diag.model || ''} (SDK ${diag.sdkInt || ''})`;
+
+    } catch (err) {
+      console.warn('Diagnostics error:', err);
+    }
+  } else {
+    if (desc) desc.textContent = state.lang === 'el' ? 'Η λειτουργία εκτελείται σε Web περιβάλλον.' : 'Running in Web environment.';
+    if (deviceInfo) deviceInfo.textContent = navigator.userAgent ? 'Web Browser' : '—';
+  }
+};
+
 // Persist pending note reminders so they survive app restarts. The native
 // LocalNotifications plugin already persists scheduled notifications, but the
 // setTimeout fallback (web / non-Capacitor) is lost on reload. Storing the
