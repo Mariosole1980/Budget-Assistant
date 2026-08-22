@@ -1,6 +1,6 @@
-// SW Version 1484
+// SW Version 1485
 const CACHE_VERSION = 'v' + Date.now();
-const CACHE_NAME = 'money-manager-v1484-' + Date.now();
+const CACHE_NAME = 'money-manager-v1485-' + Date.now();
 const ASSETS = [
   'index.html',
   'style.css',
