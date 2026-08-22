@@ -8234,6 +8234,14 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
 
 /* Removed custom Android keyboard offset hacks, JS handles layout scaling naturally */
 
+/* Custom Date Picker Modal Card Constraints */
+#custom-date-picker-modal .modal-content {
+  max-width: 350px !important;
+  width: 92% !important;
+  margin: auto !important;
+  box-sizing: border-box !important;
+}
+
 /* Google-Style Picker & Bottom Sheet Overrides */
 .google-picker-btn {
   background: transparent;
