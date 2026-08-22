@@ -15368,41 +15368,73 @@ function initSwipeToBack() {
     if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
       const App = window.Capacitor.Plugins.App;
       if (App && typeof App.addListener === 'function') {
-        App.addListener('appUrlOpen', (data) => {
-          if (data.url && (data.url.includes('access_token=') || data.url.includes('error='))) {
-            const hashIndex = data.url.indexOf('#');
-            const searchIndex = data.url.indexOf('?');
-            let hash = '';
-            let search = '';
-            if (hashIndex !== -1) {
-              hash = data.url.substring(hashIndex);
-            }
-            if (searchIndex !== -1) {
-              const endIdx = hashIndex !== -1 && hashIndex > searchIndex ? hashIndex : data.url.length;
-              search = data.url.substring(searchIndex, endIdx);
-            }
+        App.addListener('appUrlOpen', async (data) => {
+          if (!data || !data.url) return;
+          console.log('[DeepLink] Received URL:', data.url);
 
-            const hashParams = new URLSearchParams(hash.substring(1));
-            const accessToken = hashParams.get('access_token');
-            const refreshToken = hashParams.get('refresh_token');
+          const hashIndex = data.url.indexOf('#');
+          const searchIndex = data.url.indexOf('?');
+          let hash = '';
+          let search = '';
+          if (hashIndex !== -1) {
+            hash = data.url.substring(hashIndex);
+          }
+          if (searchIndex !== -1) {
+            const endIdx = hashIndex !== -1 && hashIndex > searchIndex ? hashIndex : data.url.length;
+            search = data.url.substring(searchIndex, endIdx);
+          }
 
-            if (accessToken && state.supabaseClient) {
-              toggleLoader(true);
-              state.supabaseClient.auth.setSession({
+          const hashParams = new URLSearchParams(hash.substring(1));
+          const searchParams = new URLSearchParams(search.substring(1));
+
+          const code = searchParams.get('code') || hashParams.get('code');
+          const accessToken = hashParams.get('access_token') || searchParams.get('access_token');
+          const refreshToken = hashParams.get('refresh_token') || searchParams.get('refresh_token');
+
+          if (!state.supabaseClient) return;
+
+          if (code) {
+            toggleLoader(true);
+            try {
+              const { data: sessionData, error } = await state.supabaseClient.auth.exchangeCodeForSession(code);
+              if (error) {
+                console.error('[DeepLink] exchangeCodeForSession failed:', error);
+                toggleLoader(false);
+              } else if (sessionData && sessionData.session && sessionData.session.user) {
+                state.currentUser = sessionData.session.user;
+                localStorage.setItem('cached_current_user', JSON.stringify(sessionData.session.user));
+                hideAuthOverlay();
+                await forceSyncNow(true);
+                toggleLoader(false);
+              } else {
+                toggleLoader(false);
+              }
+            } catch (err) {
+              console.error('[DeepLink] exchangeCodeForSession error:', err);
+              toggleLoader(false);
+            }
+          } else if (accessToken) {
+            toggleLoader(true);
+            try {
+              const { data: sessionData, error } = await state.supabaseClient.auth.setSession({
                 access_token: accessToken,
                 refresh_token: refreshToken || ''
-              }).then(({ error }) => {
-                if (error) {
-                  console.error('[DeepLink] Failed to set session:', error);
-                  toggleLoader(false);
-                } else {
-                  localStorage.setItem('active_tab', 'trans');
-                  window.location.replace('/');
-                }
-              }).catch(err => {
-                console.error('[DeepLink] Error setting session:', err);
-                toggleLoader(false);
               });
+              if (error) {
+                console.error('[DeepLink] Failed to set session:', error);
+                toggleLoader(false);
+              } else if (sessionData && sessionData.session && sessionData.session.user) {
+                state.currentUser = sessionData.session.user;
+                localStorage.setItem('cached_current_user', JSON.stringify(sessionData.session.user));
+                hideAuthOverlay();
+                await forceSyncNow(true);
+                toggleLoader(false);
+              } else {
+                toggleLoader(false);
+              }
+            } catch (err) {
+              console.error('[DeepLink] Error setting session:', err);
+              toggleLoader(false);
             }
           }
         });
@@ -20800,45 +20832,83 @@ async function handlePasswordAuth(e) {
         forceSyncNow(true).catch(console.error);
       }
     } else {
-      const redirectUrl = window.location.origin + window.location.pathname;
-      const { data, error } = await state.supabaseClient.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: redirectUrl,
-          data: {
-            lang: state.lang
+      let signedUp = false;
+      try {
+        const signupRes = await fetch('/api/auth-signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password, lang: state.lang })
+        });
+        const signupData = await signupRes.json().catch(() => ({}));
+        if (signupRes.ok && signupData.success) {
+          signedUp = true;
+          // Auto login immediately
+          const { data: loginData, error: loginErr } = await state.supabaseClient.auth.signInWithPassword({
+            email,
+            password
+          });
+          if (loginErr) throw loginErr;
+          if (loginData && loginData.session && loginData.session.user) {
+            state.currentUser = loginData.session.user;
+            localStorage.setItem('cached_current_user', JSON.stringify(loginData.session.user));
+            hideAuthOverlay();
+            forceSyncNow(true).catch(console.error);
+            showAuthStatus((TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_signup_instant_success']) || '🎉 Ο λογαριασμός δημιουργήθηκε και συνδεθήκατε επιτυχώς!', 'success');
+            return;
+          }
+        } else if (signupData?.error) {
+          const errMsg = (signupData.error || '').toLowerCase();
+          if (errMsg.includes('already registered') || errMsg.includes('already exists') || signupRes.status === 422) {
+            showAuthStatus((TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_email_already_exists']) || '⚠️ Αυτό το email είναι ήδη εγγεγραμμένο. Παρακαλούμε συνδεθείτε με τον κωδικό σας ή πατήστε «Ξεχάσατε τον κωδικό σας;».', 'error');
+            setAuthMode('login');
+            return;
           }
         }
-      });
+      } catch (srvErr) {
+        console.warn('Backend signup failed, falling back to standard signup:', srvErr);
+      }
 
-      if (error) {
-        const errMsg = (error.message || '').toLowerCase();
-        if (errMsg.includes('already registered') || errMsg.includes('already exists') || error.status === 422) {
+      if (!signedUp) {
+        const redirectUrl = window.location.origin + window.location.pathname;
+        const { data, error } = await state.supabaseClient.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: redirectUrl,
+            data: {
+              lang: state.lang
+            }
+          }
+        });
+
+        if (error) {
+          const errMsg = (error.message || '').toLowerCase();
+          if (errMsg.includes('already registered') || errMsg.includes('already exists') || error.status === 422) {
+            showAuthStatus((TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_email_already_exists']) || '⚠️ Αυτό το email είναι ήδη εγγεγραμμένο. Παρακαλούμε συνδεθείτε με τον κωδικό σας ή πατήστε «Ξεχάσατε τον κωδικό σας;».', 'error');
+            setAuthMode('login');
+            return;
+          }
+          throw error;
+        }
+
+        // Check if user already exists (Supabase returns user object with identities: [] when email already exists)
+        const isExistingUser = data && data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0;
+        if (isExistingUser) {
           showAuthStatus((TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_email_already_exists']) || '⚠️ Αυτό το email είναι ήδη εγγεγραμμένο. Παρακαλούμε συνδεθείτε με τον κωδικό σας ή πατήστε «Ξεχάσατε τον κωδικό σας;».', 'error');
           setAuthMode('login');
           return;
         }
-        throw error;
-      }
 
-      // Check if user already exists (Supabase returns user object with identities: [] when email already exists)
-      const isExistingUser = data && data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0;
-      if (isExistingUser) {
-        showAuthStatus((TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_email_already_exists']) || '⚠️ Αυτό το email είναι ήδη εγγεγραμμένο. Παρακαλούμε συνδεθείτε με τον κωδικό σας ή πατήστε «Ξεχάσατε τον κωδικό σας;».', 'error');
-        setAuthMode('login');
-        return;
-      }
+        // If user is logged in immediately (email confirmation is off in Supabase)
+        if (data && data.session) {
+          showAuthStatus((TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_signup_instant_success']) || '🎉 Ο λογαριασμός δημιουργήθηκε και συνδεθήκατε επιτυχώς!', 'success');
+          return;
+        }
 
-      // If user is logged in immediately (email confirmation is off in Supabase)
-      if (data && data.session) {
-        showAuthStatus((TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_signup_instant_success']) || '🎉 Ο λογαριασμός δημιουργήθηκε και συνδεθήκατε επιτυχώς!', 'success');
-        return;
-      }
-
-      // If user is created but awaiting confirmation
-      if (data && data.user) {
-        showAuthStatus((TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_signup_success']) || '🎉 Η εγγραφή ολοκληρώθηκε! Ελέγξτε τα εισερχόμενά σας (και τα Ανεπιθύμητα/Spam) για το σύνδεσμο επιβεβαίωσης.', 'success');
+        // If user is created but awaiting confirmation
+        if (data && data.user) {
+          showAuthStatus((TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_signup_success']) || '🎉 Η εγγραφή ολοκληρώθηκε! Ελέγξτε τα εισερχόμενά σας (και τα Ανεπιθύμητα/Spam) για το σύνδεσμο επιβεβαίωσης.', 'success');
+        }
       }
     }
   } catch (err) {
@@ -20944,7 +21014,7 @@ async function handleGoogleAuth() {
   // 2. OAuth Flow (Seamless fallback for Native + Standard for Web/PWA)
   try {
     if (isCapacitor) {
-      const nativeRedirectUrl = 'https://budget-assistant-pwa.pages.dev';
+      const nativeRedirectUrl = 'com.budgetassistant.app://login-callback';
       const { data, error } = await state.supabaseClient.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -20961,27 +21031,49 @@ async function handleGoogleAuth() {
       if (Browser && data?.url) {
         if (App) {
           const handle = await App.addListener('appUrlOpen', async (event) => {
-            await handle.remove();
-            if (Browser.close) await Browser.close();
+            try {
+              await handle.remove();
+              if (Browser && Browser.close) await Browser.close();
 
-            const url = new URL(event.url);
-            const hashParams = new URLSearchParams(url.hash.replace('#', ''));
-            const queryParams = new URLSearchParams(url.search);
+              const url = new URL(event.url);
+              const hashParams = new URLSearchParams(url.hash.replace('#', ''));
+              const queryParams = new URLSearchParams(url.search);
 
-            const accessToken = hashParams.get('access_token') || queryParams.get('access_token');
-            const refreshToken = hashParams.get('refresh_token') || queryParams.get('refresh_token');
+              const code = queryParams.get('code') || hashParams.get('code');
+              const accessToken = hashParams.get('access_token') || queryParams.get('access_token');
+              const refreshToken = hashParams.get('refresh_token') || queryParams.get('refresh_token');
 
-            if (accessToken && refreshToken) {
-              const { error: sessionError } = await state.supabaseClient.auth.setSession({
-                access_token: accessToken,
-                refresh_token: refreshToken
-              });
-              if (sessionError) {
-                console.error('[GoogleAuth] Session error:', sessionError);
-                showAuthStatus('❌ ' + sessionError.message);
+              if (code) {
+                const { data: sessionData, error: sessionError } = await state.supabaseClient.auth.exchangeCodeForSession(code);
+                if (sessionError) {
+                  console.error('[GoogleAuth] PKCE error:', sessionError);
+                  showAuthStatus('❌ ' + sessionError.message);
+                } else if (sessionData && sessionData.session && sessionData.session.user) {
+                  state.currentUser = sessionData.session.user;
+                  localStorage.setItem('cached_current_user', JSON.stringify(sessionData.session.user));
+                  hideAuthOverlay();
+                  await forceSyncNow(true);
+                }
+              } else if (accessToken && refreshToken) {
+                const { data: sessionData, error: sessionError } = await state.supabaseClient.auth.setSession({
+                  access_token: accessToken,
+                  refresh_token: refreshToken
+                });
+                if (sessionError) {
+                  console.error('[GoogleAuth] Session error:', sessionError);
+                  showAuthStatus('❌ ' + sessionError.message);
+                } else if (sessionData && sessionData.session && sessionData.session.user) {
+                  state.currentUser = sessionData.session.user;
+                  localStorage.setItem('cached_current_user', JSON.stringify(sessionData.session.user));
+                  hideAuthOverlay();
+                  await forceSyncNow(true);
+                }
               }
+            } catch (authErr) {
+              console.error('[GoogleAuth] Callback error:', authErr);
+            } finally {
+              toggleLoader(false);
             }
-            toggleLoader(false);
           });
         }
 
