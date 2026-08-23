@@ -33243,16 +33243,17 @@ const USER_GUIDE_DATA = {
       {
         id: 'changelog',
         icon: 'fa-box-archive',
-        title: `1. Έκδοση & Τι Νέο Υπάρχει (v${typeof CURRENT_BUILD !== "undefined" ? CURRENT_BUILD : 1157})`,
+        title: `1. Έκδοση & Τι Νέο Υπάρχει (v${typeof CURRENT_BUILD !== "undefined" ? CURRENT_BUILD : 1499})`,
         content: `
-          <p><strong>Τρέχουσα Έκδοση Εφαρμογής:</strong> v${typeof CURRENT_BUILD !== "undefined" ? CURRENT_BUILD : 1157} | <strong>Ενημερώθηκε:</strong> Αύγουστος 2026</p>
+          <p><strong>Τρέχουσα Έκδοση Εφαρμογής:</strong> v${typeof CURRENT_BUILD !== "undefined" ? CURRENT_BUILD : 1499} | <strong>Ενημερώθηκε:</strong> Αύγουστος 2026</p>
           <div class="guide-feature-box">
             <h5 style="margin:0 0 6px; color:var(--accent);">✨ Τι νέο υπάρχει στην τελευταία έκδοση:</h5>
             <ul style="margin:0; padding-left:18px;">
-              <li><strong>Νέα Θέματα Εμφάνισης:</strong> 9 μοναδικές παλέτες (Sakura Pastel Pink, Rose Gold, Blossom Pink, Cyber Neon κ.ά.).</li>
-              <li><strong>Ευρύχωρος Οδηγός Χρήσης:</strong> Πλήρως ανανεωμένος δίγλωσσος οδηγός με άνετα cards, αναζήτηση & αυτόματη έκδοση.</li>
-              <li><strong>Σημειωματάριο & Checklists:</strong> Αυτόνομη διαχείριση προσωπικών σημειώσεων, checklists και υπενθυμίσεων.</li>
-              <li><strong>Ασφάλεια & Βιομετρικά:</strong> Κλείδωμα PIN, δακτυλικό αποτύπωμα & αυτόματο κλείδωμα σε αδράνεια.</li>
+              <li><strong>🤖 AI Οικονομικός Σύμβουλος:</strong> Έξυπνος ψηφιακός σύμβουλος με ανάλυση των οικονομικών σας, συμβουλές εξοικονόμησης και πλήρη απομόνωση ιστορικού ανά λογαριασμό.</li>
+              <li><strong>📝 Σημειωματάριο & Checklists:</strong> Αυτόνομη διαχείριση προσωπικών σημειώσεων και λιστών αγορών με κουτάκια επιλογής (Checkboxes) και κάδο ανάκτησης.</li>
+              <li><strong>📅 Σύγχρονο Bottom Sheet Ημερολόγιο:</strong> Εύχρηστη επιλογή ημερομηνίας με δυναμική χρωματική προσαρμογή ανάλογα με τον τύπο της συναλλαγής (Έξοδο 🔴, Έσοδο 🟢, Μεταφορά 🔵).</li>
+              <li><strong>🔒 100% Απομόνωση Δεδομένων:</strong> Αυστηρός διαχωρισμός σημειώσεων και συνομιλιών ανά χρήστη για απόλυτη ιδιωτικότητα κατά την εναλλαγή λογαριασμών Google.</li>
+              <li><strong>🚀 Edge-to-Edge Splash Screen:</strong> Αστραπιαία εκκίνηση με 3D νέον λογότυπο, ομαλό ambient glow και αυτόνομη offline λειτουργία.</li>
             </ul>
           </div>
         `
@@ -33268,7 +33269,7 @@ const USER_GUIDE_DATA = {
             <ul class="guide-step-list">
               <li><strong>Πλήρης Έλεγχος Ροής Χρημάτων:</strong> Παρακολούθηση εσόδων, εξόδων και μεταφορών μεταξύ λογαριασμών.</li>
               <li><strong>Προϋπολογισμός & Δόσεις:</strong> Αυτόματος προγραμματισμός μηνιαίων υποχρεώσεων, δόσεων και παγίων.</li>
-              <li><strong>Κοινή Χρήση (Partner Sync):** Αυτόματος συγχρονισμός σε πραγματικό χρόνο μεταξύ συντρόφων ή οικογένειας.</li>
+              <li><strong>Κοινή Χρήση (Partner Sync):</strong> Αυτόματος συγχρονισμός σε πραγματικό χρόνο μεταξύ συντρόφων ή οικογένειας.</li>
               <li><strong>Ιδιωτικότητα & Offline Πρώτα:</strong> Πλήρης λειτουργία ακόμα και χωρίς σύνδεση στο Διαδίκτυο.</li>
             </ul>
           </div>
@@ -33284,7 +33285,7 @@ const USER_GUIDE_DATA = {
             <li><strong>💸 Κινήσεις (Transactions):</strong> Η κεντρική οθόνη καταγραφής. Εμφανίζει τη λίστα συναλλαγών του επιλεγμένου μήνα, το συνολικό υπόλοιπο, έσοδα και έξοδα.</li>
             <li><strong>📊 Στατιστικά (Stats):</strong> Αναλυτική οπτικοποίηση δαπανών ανά κατηγορία με διαγράμματα (Pie chart), ποσοστά και συγκρίσεις.</li>
             <li><strong>🏦 Λογαριασμοί (Accounts):</strong> Συνολική επισκόπηση τραπεζικών λογαριασμών, καρτών, μετρητών και υπολογισμός καθαρής θέσης (Net Worth).</li>
-            <li><strong>⚙️ Περισσότερα (Settings/More):</strong> Διαχείριση προφίλ, ειδοποιήσεων, ασφάλειας PIN, κάδου ανακύκλωσης και ρυθμίσεων.</li>
+            <li><strong>⚙️ Περισσότερα (Settings/More):</strong> Διαχείριση προφίλ, ειδοποιήσεων, ασφάλειας PIN, σημειώσεων, κάδου ανακύκλωσης και ρυθμίσεων.</li>
           </ol>
         `
       },
@@ -33299,6 +33300,7 @@ const USER_GUIDE_DATA = {
               <li>Πατήστε το στρογγυλό κουμπί συν <strong>(+)</strong> κάτω δεξιά.</li>
               <li>Επιλέξτε τύπο: <strong>Έξοδο</strong>, <strong>Έσοδο</strong> ή <strong>Μεταφορά</strong>.</li>
               <li>Πληκτρολογήστε το ποσό (π.χ. 45.00€) και επιλέξτε Κατηγορία & Λογαριασμό.</li>
+              <li>Επιλέξτε Ημερομηνία μέσω του νέου συρόμενου Google-style <strong>Bottom Sheet Ημερολογίου</strong>.</li>
               <li>(Προαιρετικά) Προσθέστε σημείωση (π.χ. <em>🛒 Σούπερ Μάρκετ</em>) ή βγάλτε φωτογραφία την απόδειξη.</li>
               <li>Πατήστε <strong>Αποθήκευση</strong>.</li>
             </ol>
@@ -33312,9 +33314,42 @@ const USER_GUIDE_DATA = {
         `
       },
       {
+        id: 'ai_advisor',
+        icon: 'fa-brain',
+        title: '5. AI Οικονομικός Σύμβουλος (Smart Insights)',
+        content: `
+          <div class="guide-feature-box">
+            <h5 style="margin:0 0 6px; color:var(--accent);">🤖 Πώς λειτουργεί ο AI Σύμβουλος:</h5>
+            <p style="margin:0 0 6px;">Ο AI Οικονομικός Σύμβουλος αναλύει τις καταχωρημένες συναλλαγές σας και σας προσφέρει εξατομικευμένες συμβουλές βελτιστοποίησης του προϋπολογισμού σας σε φυσική γλώσσα.</p>
+            <ul class="guide-step-list">
+              <li><strong>Συνομιλία σε Πραγματικό Χρόνο:</strong> Κάντε ερωτήσεις όπως <em>"Πόσα ξόδεψα αυτόν τον μήνα σε Supermarket;"</em> ή <em>"Πώς μπορώ να εξοικονομήσω 100€;"</em>.</li>
+              <li><strong>Πλήρης Ιδιωτικότητα:</strong> Το ιστορικό συνομιλιών κρυπτογραφείται και απομονώνεται αυστηρά ανά λογαριασμό χρήστη.</li>
+              <li><strong>Αυτόματες Προτάσεις:</strong> Εντοπισμός ασυνήθιστα υψηλών δαπανών και προτάσεις εξοικονόμησης.</li>
+            </ul>
+          </div>
+        `
+      },
+      {
+        id: 'notes_lists',
+        icon: 'fa-note-sticky',
+        title: '6. Σημειωματάριο & Λίστες Αγορών (Checklists)',
+        content: `
+          <div class="guide-feature-box">
+            <h5 style="margin:0 0 6px; color:var(--text-main);">📝 Διαχείριση Σημειώσεων & To-Do:</h5>
+            <p style="margin:0 0 6px;">Στην ενότητα Σημειώσεις μπορείτε να οργανώσετε τις οικονομικές σας σκέψεις, υποχρεώσεις και λίστες αγορών:</p>
+            <ul class="guide-step-list">
+              <li><strong>Λίστες με Checkboxes:</strong> Δημιουργήστε λίστες για ψώνια ή εκκρεμότητες και τσεκάρετε τα ολοκληρωμένα αντικείμενα.</li>
+              <li><strong>Χρωματική Οργάνωση:</strong> Ομαδοποιήστε τις σημειώσεις σας με διαφορετικά χρώματα και ετικέτες.</li>
+              <li><strong>Κάδος Σημειώσεων:</strong> Οι διαγραμμένες σημειώσεις μεταφέρονται στον δικό τους κάδο για ασφαλή επαναφορά.</li>
+              <li><strong>Προσωπική Απομόνωση:</strong> Οι σημειώσεις είναι 100% προσωπικές και συνδεδεμένες με το μοναδικό σας ID.</li>
+            </ul>
+          </div>
+        `
+      },
+      {
         id: 'budgeting',
         icon: 'fa-piggy-bank',
-        title: '5. Προϋπολογισμός & Όρια Δαπανών',
+        title: '7. Προϋπολογισμός & Όρια Δαπανών',
         content: `
           <div class="guide-feature-box">
             <h5 style="margin:0 0 6px; color:var(--text-main);">⚠️ Όριο Μεμονωμένης Δαπάνης (€):</h5>
@@ -33329,7 +33364,7 @@ const USER_GUIDE_DATA = {
       {
         id: 'notifications',
         icon: 'fa-bell',
-        title: '6. Ειδοποιήσεις & Υπενθυμίσεις',
+        title: '8. Ειδοποιήσεις & Υπενθυμίσεις',
         content: `
           <p>Το σύστημα ειδοποιήσεων περιλαμβάνει 3 διακριτούς μηχανισμούς:</p>
           <ul class="guide-step-list">
@@ -33343,7 +33378,7 @@ const USER_GUIDE_DATA = {
       {
         id: 'cloud_offline',
         icon: 'fa-cloud-arrow-up',
-        title: '7. Cloud Συγχρονισμός, Σύντροφος & Offline Λειτουργία',
+        title: '9. Cloud Συγχρονισμός, Σύντροφος & Offline Λειτουργία',
         content: `
           <div class="guide-feature-box">
             <h5 style="margin:0 0 4px; color:var(--text-main);">☁️ Real-time Cloud Sync:</h5>
@@ -33361,7 +33396,7 @@ const USER_GUIDE_DATA = {
       {
         id: 'security_trash',
         icon: 'fa-shield-halved',
-        title: '8. Ασφάλεια, Κάδος Ανακύκλωσης & Αντίγραφα (Backups)',
+        title: '10. Ασφάλεια, Κάδος Ανακύκλωσης & Αντίγραφα (Backups)',
         content: `
           <div class="guide-feature-box">
             <h5 style="margin:0 0 4px; color:var(--text-main);">🔒 Κλείδωμα Εφαρμογής (PIN & Βιομετρικά):</h5>
@@ -33373,14 +33408,14 @@ const USER_GUIDE_DATA = {
           </div>
           <div class="guide-feature-box">
             <h5 style="margin:0 0 4px; color:var(--text-main);">💾 Εξαγωγή & Εισαγωγή Δεδομένων:</h5>
-            <p style="margin:0;">Μπορείτε να κάνετε πλήρη εξαγωγή των δεδομένων σας σε αρχείο <strong>JSON</strong> ή <strong>CSV (Excel)</strong> για δημιουργία δημιουργία αντιγράφων ασφαλείας.</p>
+            <p style="margin:0;">Μπορείτε να κάνετε πλήρη εξαγωγή των δεδομένων σας σε αρχείο <strong>JSON</strong> ή <strong>CSV (Excel)</strong> για δημιουργία αντιγράφων ασφαλείας.</p>
           </div>
         `
       },
       {
         id: 'troubleshooting',
         icon: 'fa-wrench',
-        title: '9. Αντιμετώπιση Προβλημάτων (Troubleshooting)',
+        title: '11. Αντιμετώπιση Προβλημάτων (Troubleshooting)',
         content: `
           <div class="guide-callout-warning">
             ❓ <strong>"Δεν συγχρονίζουν οι συναλλαγές μου":</strong>
@@ -33407,13 +33442,13 @@ const USER_GUIDE_DATA = {
       {
         id: 'faq',
         icon: 'fa-circle-question',
-        title: '10. Συχνές Ερωτήσεις (FAQ)',
+        title: '12. Συχνές Ερωτήσεις (FAQ)',
         content: `
           <div class="guide-feature-box">
             <strong>Q: Είναι τα δεδομένα μου ασφαλή;</strong>
             <p style="margin:2px 0 8px;">A: Ναι! Όλα τα δεδομένα κρυπτογραφούνται κατά τη μεταφορά και την αποθήκευση στο Supabase Cloud.</p>
             <strong>Q: Πόσο κοστίζει η εφαρμογή;</strong>
-            <p style="margin:2px 0 8px;">A: Όλες οι βασικές και προηγμένες λειτουργίες παρέχονται δωρεάν.</p>
+            <p style="margin:2px 0 8px;">A: Όλες οι βασικές λειτουργίες παρέχονται δωρεάν, με διαθέσιμες Premium επιλογές.</p>
             <strong>Q: Μπορώ να χρησιμοποιήσω την εφαρμογή σε περισσότερες από μία συσκευές;</strong>
             <p style="margin:2px 0 0;">A: Ναι, συνδεθείτε με το ίδιο email και τα δεδομένα σας θα συγχρονιστούν αυτόματα παντού.</p>
           </div>
@@ -33422,7 +33457,7 @@ const USER_GUIDE_DATA = {
       {
         id: 'tips_gestures',
         icon: 'fa-hand-pointer',
-        title: '11. Συμβουλές, Χειρονομίες & Προσβασιμότητα',
+        title: '13. Συμβουλές, Χειρονομίες & Προσβασιμότητα',
         content: `
           <div class="guide-feature-box">
             <strong>🖐️ Χειρονομίες (Gestures):</strong>
@@ -33442,16 +33477,17 @@ const USER_GUIDE_DATA = {
       {
         id: 'changelog',
         icon: 'fa-box-archive',
-        title: `1. Version & What's New (v${typeof CURRENT_BUILD !== "undefined" ? CURRENT_BUILD : 1157})`,
+        title: `1. Version & What's New (v${typeof CURRENT_BUILD !== "undefined" ? CURRENT_BUILD : 1499})`,
         content: `
-          <p><strong>Guide Version:</strong> v${typeof CURRENT_BUILD !== "undefined" ? CURRENT_BUILD : 1157} | <strong>Synchronized App Version:</strong> v${typeof CURRENT_BUILD !== "undefined" ? CURRENT_BUILD : 1157}</p>
+          <p><strong>Guide Version:</strong> v${typeof CURRENT_BUILD !== "undefined" ? CURRENT_BUILD : 1499} | <strong>Synchronized App Version:</strong> v${typeof CURRENT_BUILD !== "undefined" ? CURRENT_BUILD : 1499}</p>
           <div class="guide-feature-box">
             <h5 style="margin:0 0 6px; color:var(--primary);">✨ What's new in the latest version:</h5>
             <ul style="margin:0; padding-left:18px;">
-              <li><strong>Full User Guide:</strong> Embedded live bilingual user guide (Greek & English) under Legal & Info.</li>
-              <li><strong>Notifications & Expense Limits:</strong> Fixed switches, notifications, and added Single Expense Alert Limit in €.</li>
-              <li><strong>Swipe Back Gesture:</strong> Surgical layout flex cleanup during back swipe guaranteeing zero blank screens.</li>
-              <li><strong>Automatic Installment Counter:</strong> Auto-calculation and note preservation for installment entries (e.g. 1/12, 2/12).</li>
+              <li><strong>🤖 AI Financial Advisor:</strong> Intelligent financial advisor providing personalized insights and strict per-user chat privacy.</li>
+              <li><strong>📝 Notepad & Checklists:</strong> Standalone notes and shopping checklists with checkboxes, custom tags, and dedicated trash bin.</li>
+              <li><strong>📅 Modern Bottom Sheet Calendar:</strong> Dynamic date picker with type-based styling (Expense 🔴, Income 🟢, Transfer 🔵).</li>
+              <li><strong>🔒 Per-User Data Isolation:</strong> Complete separation of notes and AI conversations per Google account.</li>
+              <li><strong>🚀 Edge-to-Edge Splash Screen:</strong> Ultra-fast startup with 3D neon logo, ambient glow, and 100% offline WOFF2 fonts.</li>
             </ul>
           </div>
         `
@@ -33483,7 +33519,7 @@ const USER_GUIDE_DATA = {
             <li><strong>💸 Transactions:</strong> The primary logging screen displaying transactions for the selected month, total balance, income, and expenses.</li>
             <li><strong>📊 Analytics:</strong> Visual category breakdown with pie charts, percentages, and period comparisons.</li>
             <li><strong>🏦 Accounts:</strong> Overview of bank accounts, credit cards, cash, and Net Worth calculation.</li>
-            <li><strong>⚙️ More (Settings):</strong> Manage profile, notifications, PIN security, trash bin, and preferences.</li>
+            <li><strong>⚙️ More (Settings):</strong> Manage profile, notifications, PIN security, notes, trash bin, and preferences.</li>
           </ol>
         `
       },
@@ -33498,6 +33534,7 @@ const USER_GUIDE_DATA = {
               <li>Tap the round plus button <strong>(+)</strong> at the bottom right.</li>
               <li>Select type: <strong>Expense</strong>, <strong>Income</strong>, or <strong>Transfer</strong>.</li>
               <li>Enter amount (e.g. €45.00) and pick Category & Account.</li>
+              <li>Select Date using the new Google-style <strong>Bottom Sheet Calendar</strong>.</li>
               <li>(Optional) Add a note (e.g. <em>🛒 Supermarket</em>) or take a receipt photo.</li>
               <li>Tap <strong>Save</strong>.</li>
             </ol>
@@ -33508,9 +33545,40 @@ const USER_GUIDE_DATA = {
         `
       },
       {
+        id: 'ai_advisor',
+        icon: 'fa-brain',
+        title: '5. AI Financial Advisor (Smart Insights)',
+        content: `
+          <div class="guide-feature-box">
+            <h5 style="margin:0 0 6px; color:var(--primary);">🤖 How the AI Advisor works:</h5>
+            <p style="margin:0 0 6px;">The AI Advisor analyzes your logged transactions to offer tailored financial insights and savings advice in natural language.</p>
+            <ul class="guide-step-list">
+              <li><strong>Interactive Real-Time Chat:</strong> Ask questions like <em>"How much did I spend on groceries this month?"</em> or <em>"How can I save €100?"</em>.</li>
+              <li><strong>Complete Privacy:</strong> Chat conversations are encrypted and isolated per user account.</li>
+            </ul>
+          </div>
+        `
+      },
+      {
+        id: 'notes_lists',
+        icon: 'fa-note-sticky',
+        title: '6. Notepad & Shopping Checklists',
+        content: `
+          <div class="guide-feature-box">
+            <h5 style="margin:0 0 6px; color:var(--text-main);">📝 Notes & Checklists Management:</h5>
+            <p style="margin:0 0 6px;">Organize your financial reminders and shopping lists easily:</p>
+            <ul class="guide-step-list">
+              <li><strong>Checklist Items:</strong> Create to-do lists and check off completed items.</li>
+              <li><strong>Color Tags & Trash:</strong> Organize notes with custom colors and recover deleted notes from the Notes Trash.</li>
+              <li><strong>User Scoped:</strong> All notes are strictly private to your account ID.</li>
+            </ul>
+          </div>
+        `
+      },
+      {
         id: 'budgeting',
         icon: 'fa-piggy-bank',
-        title: '5. Budgeting & Expense Limits',
+        title: '7. Budgeting & Expense Limits',
         content: `
           <div class="guide-feature-box">
             <h5 style="margin:0 0 6px; color:var(--text-main);">⚠️ Single Expense Alert (€):</h5>
@@ -33522,7 +33590,7 @@ const USER_GUIDE_DATA = {
       {
         id: 'notifications',
         icon: 'fa-bell',
-        title: '6. Notification Center & Reminders',
+        title: '8. Notification Center & Reminders',
         content: `
           <p>The notification system operates on 3 distinct triggers:</p>
           <ul class="guide-step-list">
@@ -33535,7 +33603,7 @@ const USER_GUIDE_DATA = {
       {
         id: 'cloud_offline',
         icon: 'fa-cloud-arrow-up',
-        title: '7. Cloud Sync, Partner Sharing & Offline Mode',
+        title: '9. Cloud Sync, Partner Sharing & Offline Mode',
         content: `
           <div class="guide-feature-box">
             <h5 style="margin:0 0 4px; color:var(--text-main);">☁️ Real-time Cloud Sync:</h5>
@@ -33549,7 +33617,7 @@ const USER_GUIDE_DATA = {
       {
         id: 'security_trash',
         icon: 'fa-shield-halved',
-        title: '8. Security, Trash Bin & Backups',
+        title: '10. Security, Trash Bin & Backups',
         content: `
           <div class="guide-feature-box">
             <h5 style="margin:0 0 4px; color:var(--text-main);">🔒 App Lock (PIN & Biometrics):</h5>
@@ -33564,7 +33632,7 @@ const USER_GUIDE_DATA = {
       {
         id: 'troubleshooting',
         icon: 'fa-wrench',
-        title: '9. Troubleshooting Guide',
+        title: '11. Troubleshooting Guide',
         content: `
           <div class="guide-callout-warning">
             ❓ <strong>"Transactions not syncing":</strong>
@@ -33584,7 +33652,7 @@ const USER_GUIDE_DATA = {
       {
         id: 'faq',
         icon: 'fa-circle-question',
-        title: '10. Frequently Asked Questions (FAQ)',
+        title: '12. Frequently Asked Questions (FAQ)',
         content: `
           <div class="guide-feature-box">
             <strong>Q: Is my financial data safe?</strong>
@@ -33597,7 +33665,7 @@ const USER_GUIDE_DATA = {
       {
         id: 'tips_gestures',
         icon: 'fa-hand-pointer',
-        title: '11. Tips, Gestures & Accessibility',
+        title: '13. Tips, Gestures & Accessibility',
         content: `
           <div class="guide-feature-box">
             <strong>🖐️ Gestures:</strong>
