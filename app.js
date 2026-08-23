@@ -1996,8 +1996,9 @@ function fadeOutColdStartOverlay() {
     _splashAppStartTime
   );
   const elapsed = Date.now() - anchor;
-  // Full splash sequence (mark -> wordmark -> tagline -> loader) is ~1.95s.
-  const minVisibleMs = 2600;
+  // Full splash sequence (mark -> wordmark -> tagline -> loader sweep) is ~3.2s.
+  // 3500ms guarantees the entire animation plays out completely before fade-out.
+  const minVisibleMs = 3500;
   if (elapsed < minVisibleMs) {
     setTimeout(fadeOutColdStartOverlay, minVisibleMs - elapsed);
     return;
