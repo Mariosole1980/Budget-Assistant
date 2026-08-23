@@ -19,9 +19,15 @@
         instead of flashing a broken/stretched splash image.
     -->
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
-        <item name="android:windowBackground">#171B26</item>
+        <item name="android:background">#171B26</item>
         <item name="windowSplashScreenBackground">#171B26</item>
-        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_icon</item>
+        <!-- splash_transparent.xml = empty 1x1 vector: forces Android 12+
+             to render NO icon (not even the ic_launcher fallback), so the
+             native launch window shows ONLY the dark #171B26 fill.
+             Using @android:color/transparent as icon causes a fallback to
+             ic_launcher on many OEMs — this is the reliable solution. -->
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_transparent</item>
+        <item name="windowSplashScreenIconBackgroundColor">#171B26</item>
         <item name="postSplashScreenTheme">@style/AppTheme</item>
     </style>
 </resources>
