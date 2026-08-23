@@ -9468,6 +9468,13 @@ function setupEventListeners() {
     if (form && form.getAttribute('data-readonly') === 'true') return;
 
     updateAIScanQuotaBadge();
+    const modalEl = document.getElementById('receipt-photo-source-modal');
+    if (modalEl) {
+      if (typeof ensureOverlayInBody === 'function') ensureOverlayInBody(modalEl);
+      if (modalEl.parentElement === document.body) {
+        document.body.appendChild(modalEl); // re-append to be visually on top of active transaction modal
+      }
+    }
     openModal('receipt-photo-source-modal');
   }
 
@@ -26166,6 +26173,13 @@ function openProfilePhotoSourcePicker(e) {
   if (e) {
     if (typeof e.stopPropagation === 'function') e.stopPropagation();
     if (typeof e.preventDefault === 'function') e.preventDefault();
+  }
+  const modalEl = document.getElementById('profile-photo-source-modal');
+  if (modalEl) {
+    if (typeof ensureOverlayInBody === 'function') ensureOverlayInBody(modalEl);
+    if (modalEl.parentElement === document.body) {
+      document.body.appendChild(modalEl);
+    }
   }
   openModal('profile-photo-source-modal');
 }
