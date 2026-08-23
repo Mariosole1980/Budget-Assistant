@@ -902,8 +902,8 @@ function applyLanguage(lang) {
   }
 
   // Update Settings Summary Displays (Font size, week start, auto lock, etc.)
-  if (typeof updateSettingsSummaryDisplays === 'function') {
-    updateSettingsSummaryDisplays();
+  if (typeof updateSettingsDisplay === 'function') {
+    updateSettingsDisplay();
   }
 
   // Update Language Settings UI value
@@ -27919,6 +27919,9 @@ function openSettingsSubscreen(screenId, titleKey, skipHistory = false) {
   }
 
   // Trigger optional custom lifecycle init hooks
+  if (typeof updateSettingsDisplay === 'function') {
+    updateSettingsDisplay();
+  }
   const initHook = window['onSubscreenShow_' + screenId];
   if (typeof initHook === 'function') {
     try {
