@@ -22,10 +22,12 @@ import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
 import android.webkit.JavascriptInterface;
+import android.webkit.RenderProcessGoneDetail;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import androidx.core.view.WindowInsetsControllerCompat;
 import com.getcapacitor.BridgeActivity;
+import com.getcapacitor.WebViewListener;
 
 public class MainActivity extends BridgeActivity {
 
@@ -112,6 +114,29 @@ public class MainActivity extends BridgeActivity {
 
         // Lock WebView text zoom and prevent Android autofill/system font scaling issues
         lockWebViewSettings();
+
+        if (bridge != null) {
+            bridge.addWebViewListener(new WebViewListener() {
+                @Override
+                public boolean onRenderProcessGone(WebView webView, RenderProcessGoneDetail detail) {
+                    Log.e(TAG, "WebView renderer process gone (" + detail + ") — recovering without crash");
+                    try {
+                        if (webView != null) {
+                            webView.post(() -> {
+                                try {
+                                    webView.loadUrl("https://localhost");
+                                } catch (Exception e) {
+                                    Log.e(TAG, "Failed to reload webview after renderer crash", e);
+                                }
+                            });
+                        }
+                    } catch (Exception e) {
+                        Log.e(TAG, "Error in onRenderProcessGone recovery", e);
+                    }
+                    return true; // Prevents the OS from killing the host app process!
+                }
+            });
+        }
 
         if (bridge != null && bridge.getWebView() != null) {
             // INSTANT-RESUME: Keep the WebView renderer process alive when the app
@@ -356,8 +381,8 @@ public class MainActivity extends BridgeActivity {
             // It is only shown on onPause() -> onResume() with the captured bitmap snapshot.
             resumeOverlay.setVisibility(View.GONE);
             Log.d(TAG, "Resume overlay created (GONE for cold start)");
-        } catch (Exception e) {
-            Log.e(TAG, "Failed to create resume overlay window", e);
+        } catch (Throwable t) {
+            Log.e(TAG, "Failed to create resume overlay window", t);
             resumeOverlay = null;
         }
     }

@@ -2185,19 +2185,6 @@ async function initApp() {
   loadConfig();
   initSettingsFromStorage();
 
-  // Pre-warm Google Play Services Auth in background for instant 0ms tap response
-  if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
-    const GoogleAuth = window.Capacitor.Plugins && window.Capacitor.Plugins.GoogleAuth;
-    if (GoogleAuth && typeof GoogleAuth.initialize === 'function') {
-      GoogleAuth.initialize({
-        clientId: '331220079759-nrguc2ujof9u9mqhbn2mouhpga2iniqj.apps.googleusercontent.com',
-        serverClientId: '331220079759-nrguc2ujof9u9mqhbn2mouhpga2iniqj.apps.googleusercontent.com',
-        scopes: ['profile', 'email'],
-        grantOfflineAccess: false,
-      }).then(() => { window._googleAuthInitialized = true; })
-        .catch(e => console.warn('[GoogleAuth] Pre-warm warning:', e));
-    }
-  }
   // FIX (overlay placement): Self-heal any full-screen overlay that is nested
   // inside .app-container (position:relative + overflow:hidden) by moving it
   // directly under <body>. This prevents the auth-overlay-style "trapped modal"
