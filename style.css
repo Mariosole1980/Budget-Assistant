@@ -241,7 +241,8 @@ button:active,
   display: flex;
   justify-content: space-around;
   padding: 8px 0 calc(12px + var(--safe-area-bottom, 0px)) 0;
-  z-index: 100;
+  z-index: 500;
+  pointer-events: auto !important;
   box-shadow: none !important;
 }
 
@@ -269,6 +270,9 @@ button:active,
   flex: 1;
   transition: var(--transition);
   gap: 4px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  pointer-events: auto !important;
 }
 
 .nav-item svg {

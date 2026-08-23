@@ -10603,6 +10603,7 @@ function switchTab(tab, instant = false) {
     renderNotesList();
   }
 }
+window.switchTab = switchTab;
 
 function toggleStatsType(type) {
   state.expandedStatsCategories.clear();
