@@ -95,11 +95,11 @@ public class MainActivity extends BridgeActivity {
             // so the WebView surface never shows the default white background during
             // cold start.
             SharedPreferences earlyPrefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-            String earlyBg = earlyPrefs.getString(KEY_BG_COLOR, "#181b22");
+            String earlyBg = earlyPrefs.getString(KEY_BG_COLOR, "#171B26");
             try {
                 bridge.getWebView().setBackgroundColor(Color.parseColor(earlyBg));
             } catch (Exception e) {
-                bridge.getWebView().setBackgroundColor(Color.parseColor("#181b22"));
+                bridge.getWebView().setBackgroundColor(Color.parseColor("#171B26"));
             }
 
             // Expose a JS→Native bridge so JS can hide the overlay as soon as the
@@ -134,13 +134,11 @@ public class MainActivity extends BridgeActivity {
         // Create the native resume overlay as a top-level window. Deferred until the
         // decor view is attached so the window token is valid for
         // TYPE_APPLICATION_PANEL.
-        // On cold start, the overlay starts VISIBLE with the theme background color
-        // (no bitmap available yet). The JS content-painted signal or fallback timer
-        // will hide it once the WebView has rendered the initial content.
+        // On cold start, the overlay starts GONE so it NEVER blocks or covers the
+        // branded HTML splash screen (splash.html).
+        // It is only shown on onPause() -> onResume() with the captured bitmap snapshot.
         getWindow().getDecorView().post(() -> {
             createResumeOverlay();
-            resumeTimestamp = SystemClock.uptimeMillis();
-            mainHandler.postDelayed(hideResumeOverlayRunnable, RESUME_OVERLAY_HIDE_DELAY_MS);
         });
     }
 
@@ -296,12 +294,12 @@ public class MainActivity extends BridgeActivity {
             // Set initial background to the theme color. Used during cold start
             // (no bitmap available yet) and as fallback when capture fails.
             SharedPreferences prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-            String bgColor = prefs.getString(KEY_BG_COLOR, "#181b22");
+            String bgColor = prefs.getString(KEY_BG_COLOR, "#171B26");
             try {
                 resumeOverlay.setBackgroundColor(Color.parseColor(
                         DIAGNOSTIC_OVERLAY_COLOR ? DIAGNOSTIC_COLOR : bgColor));
             } catch (Exception e) {
-                resumeOverlay.setBackgroundColor(Color.parseColor("#181b22"));
+                resumeOverlay.setBackgroundColor(Color.parseColor("#171B26"));
             }
 
             // TRANSLUCENT pixel format ensures the overlay is ALWAYS composited
@@ -323,10 +321,10 @@ public class MainActivity extends BridgeActivity {
 
             WindowManager wm = getWindowManager();
             wm.addView(resumeOverlay, params);
-            // Start VISIBLE for cold start coverage (solid theme color).
-            // The bitmap snapshot is only available after the first onPause().
-            resumeOverlay.setVisibility(View.VISIBLE);
-            Log.d(TAG, "Resume overlay created (VISIBLE for cold start)");
+            // Start GONE for cold start so it never covers the HTML splash screen.
+            // The bitmap snapshot is captured in onPause() and shown on onResume().
+            resumeOverlay.setVisibility(View.GONE);
+            Log.d(TAG, "Resume overlay created (GONE for cold start)");
         } catch (Exception e) {
             Log.e(TAG, "Failed to create resume overlay window", e);
             resumeOverlay = null;
@@ -377,12 +375,12 @@ public class MainActivity extends BridgeActivity {
         if (resumeOverlay == null)
             return;
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-        String bgColor = prefs.getString(KEY_BG_COLOR, "#181b22");
+        String bgColor = prefs.getString(KEY_BG_COLOR, "#171B26");
         try {
             resumeOverlay.setBackgroundColor(Color.parseColor(
                     DIAGNOSTIC_OVERLAY_COLOR ? DIAGNOSTIC_COLOR : bgColor));
         } catch (Exception e) {
-            resumeOverlay.setBackgroundColor(Color.parseColor("#181b22"));
+            resumeOverlay.setBackgroundColor(Color.parseColor("#171B26"));
         }
     }
 
@@ -409,9 +407,9 @@ public class MainActivity extends BridgeActivity {
 
     private void applySavedTheme() {
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-        String bgColor = prefs.getString(KEY_BG_COLOR, "#181b22"); // default dark
-        String statusBarColor = prefs.getString(KEY_STATUS_BAR_COLOR, "#222731");
-        String navBarColor = prefs.getString(KEY_NAV_BAR_COLOR, "#181b22");
+        String bgColor = prefs.getString(KEY_BG_COLOR, "#171B26"); // default dark
+        String statusBarColor = prefs.getString(KEY_STATUS_BAR_COLOR, "#171B26");
+        String navBarColor = prefs.getString(KEY_NAV_BAR_COLOR, "#171B26");
         boolean isLight = prefs.getBoolean(KEY_IS_LIGHT, false);
 
         try {
