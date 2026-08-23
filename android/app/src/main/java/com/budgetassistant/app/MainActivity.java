@@ -87,6 +87,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         androidx.core.splashscreen.SplashScreen.installSplashScreen(this);
+        super.onCreate(savedInstanceState);
         SharedPreferences earlyPrefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         String earlyBg = earlyPrefs.getString(KEY_BG_COLOR, "#181b22");
         int initialBgColor = Color.parseColor("#181b22");
