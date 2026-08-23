@@ -33315,7 +33315,12 @@ const USER_GUIDE_DATA = {
             💡 <strong>Αυτόματες Δόσεις & Επαναλαμβανόμενες:</strong> Αν ορίσετε μια συναλλαγή ως επαναλαμβανόμενη με σημείωση δόσεων (π.χ. <em>Δόση ΕΝΦΙΑ 1/12</em>), η εφαρμογή θα αυξάνει αυτόματα τον αριθμό του μήνα (2/12, 3/12... 12/12) κάθε επόμενο μήνα!
           </div>
           <div class="guide-feature-box">
-            <strong>📸 Φωτογραφίες Αποδείξεων:</strong> Μπορείτε να επισυνάψετε φωτογραφίες σε κάθε συναλλαγή. Κάνοντας κλικ στη φωτογραφία ανοίγει πλήρης Lightbox προβολή με δυνατότητα Pinch-to-Zoom!
+            <strong>📸 Φωτογραφίες & Έξυπνη Σάρωση Αποδείξεων με AI:</strong>
+            <ul class="guide-step-list">
+              <li><strong>⚡ Αυτόματη Αναγνώριση AI:</strong> Τραβήξτε φωτογραφία την απόδειξή σας ή επιλέξτε την από τη συλλογή και το AI αναγνωρίζει αυτόματα το ποσό, την ημερομηνία και την προτεινόμενη κατηγορία!</li>
+              <li><strong>⭐ PRO Προνόμιο:</strong> Οι Free χρήστες έχουν 5 σαρώσεις/μήνα, ενώ οι <strong>PRO χρήστες απολαμβάνουν 100 AI σαρώσεις αποδείξεων κάθε μήνα</strong>.</li>
+              <li><strong>🔍 Lightbox Προβολή:</strong> Πλήρης προβολή με δυνατότητα Pinch-to-Zoom και ασφαλής τοπική αποθήκευση.</li>
+            </ul>
           </div>
         `
       },
@@ -33547,6 +33552,14 @@ const USER_GUIDE_DATA = {
           </div>
           <div class="guide-callout-tip">
             💡 <strong>Recurring Installments:</strong> Setting a recurring template with installment notes (e.g., <em>Tax Installment 1/12</em>) automatically increments month counters (2/12, 3/12... 12/12) every month!
+          </div>
+          <div class="guide-feature-box">
+            <strong>📸 Receipt Photos & Smart AI Scanning:</strong>
+            <ul class="guide-step-list">
+              <li><strong>⚡ Smart AI Auto-Fill:</strong> Snap a receipt photo or choose one from your gallery and AI will automatically parse the amount, date, and suggest the right category!</li>
+              <li><strong>⭐ PRO Benefit:</strong> Free users get 5 scans/month, while <strong>PRO users enjoy 100 AI receipt scans every month</strong>.</li>
+              <li><strong>🔍 Lightbox Zoom:</strong> Full pinch-to-zoom viewer with secure local offline storage.</li>
+            </ul>
           </div>
         `
       },
