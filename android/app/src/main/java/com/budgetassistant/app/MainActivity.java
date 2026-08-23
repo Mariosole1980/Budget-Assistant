@@ -132,15 +132,12 @@ public class MainActivity extends BridgeActivity {
         applySecureMode();
 
         // Create the native resume overlay as a top-level window. Deferred until the
-        // decor view is attached so the window token is valid for
-        // TYPE_APPLICATION_PANEL.
-        // On cold start, the overlay starts VISIBLE with the theme background color
-        // (no bitmap available yet). The JS content-painted signal or fallback timer
-        // will hide it once the WebView has rendered the initial content.
+        // decor view is attached so the window token is valid for TYPE_APPLICATION_PANEL.
+        // On cold start, the overlay starts GONE so it NEVER blocks or covers the
+        // branded HTML splash screen (splash.html).
+        // It is only shown on onPause() -> onResume() with the captured bitmap snapshot.
         getWindow().getDecorView().post(() -> {
             createResumeOverlay();
-            resumeTimestamp = SystemClock.uptimeMillis();
-            mainHandler.postDelayed(hideResumeOverlayRunnable, RESUME_OVERLAY_HIDE_DELAY_MS);
         });
     }
 
@@ -319,10 +316,10 @@ public class MainActivity extends BridgeActivity {
 
             WindowManager wm = getWindowManager();
             wm.addView(resumeOverlay, params);
-            // Start VISIBLE for cold start coverage (solid theme color).
-            // The bitmap snapshot is only available after the first onPause().
-            resumeOverlay.setVisibility(View.VISIBLE);
-            Log.d(TAG, "Resume overlay created (VISIBLE for cold start)");
+            // Start GONE for cold start so it NEVER blocks or covers the HTML splash screen (splash.html).
+            // It is only shown on onPause() -> onResume() with the captured bitmap snapshot.
+            resumeOverlay.setVisibility(View.GONE);
+            Log.d(TAG, "Resume overlay created (GONE for cold start)");
         } catch (Exception e) {
             Log.e(TAG, "Failed to create resume overlay window", e);
             resumeOverlay = null;
