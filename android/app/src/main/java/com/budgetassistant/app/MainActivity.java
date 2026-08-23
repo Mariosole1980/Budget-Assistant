@@ -92,6 +92,13 @@ public class MainActivity extends BridgeActivity {
         } catch (Throwable t) {
             Log.w(TAG, "SplashScreen.installSplashScreen failed, falling back to standard theme", t);
         }
+        try {
+            if (com.google.firebase.FirebaseApp.getApps(this).isEmpty()) {
+                com.google.firebase.FirebaseApp.initializeApp(this);
+            }
+        } catch (Throwable t) {
+            Log.w(TAG, "FirebaseApp check: " + t.getMessage());
+        }
         super.onCreate(savedInstanceState);
         SharedPreferences earlyPrefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         String earlyBg = earlyPrefs.getString(KEY_BG_COLOR, "#181b22");

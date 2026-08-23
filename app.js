@@ -1839,13 +1839,11 @@ async function initPushNotifications() {
   if (!PushNotifications) return;
 
   try {
+    // Note: PushNotifications.register() requires Firebase google-services.json which is not configured.
+    // Local notifications and exact alarms are handled reliably via ReliableNotificationPlugin.
     const perm = await PushNotifications.checkPermissions();
     if (perm && perm.receive === 'granted') {
-      try {
-        await PushNotifications.register();
-      } catch (regErr) {
-        console.warn('FCM register ignored (Google services not active):', regErr);
-      }
+      // Intentionally do not call PushNotifications.register() to avoid FirebaseApp initialization crashes.
     }
 
     // Listen for FCM Device Token registration
