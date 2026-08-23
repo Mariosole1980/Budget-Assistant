@@ -19,6 +19,7 @@ import android.view.Gravity;
 import android.view.PixelCopy;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 import android.view.Window;
 import android.view.WindowManager;
 import android.webkit.JavascriptInterface;
@@ -62,6 +63,15 @@ public class MainActivity extends BridgeActivity {
     private static final long OVERLAY_FADE_OUT_MS = 180;
     private long resumeTimestamp = 0;
 
+    // COLD-START LAUNCH WINDOW GUARD:
+    // While true, applySavedTheme() must NOT replace the branded splash PNG
+    // (android:windowBackground = @drawable/splash) with a solid color. If it
+    // did, the user would see a flat color instead of the glow during the whole
+    // launch window (the time between the native splash dismissal and the
+    // WebView first paint). It is flipped to false after the first real draw of
+    // the decor view, i.e. once the WebView content is on screen.
+    private volatile boolean coldStartInProgress = true;
+
     // DIAGNOSTIC MODE: When true, the overlay uses bright magenta so you can
     // VISUALLY confirm whether the overlay is covering the WebView on resume.
     // Set to false for production.
@@ -96,15 +106,20 @@ public class MainActivity extends BridgeActivity {
                         WebView.RENDERER_PRIORITY_IMPORTANT, false);
             }
 
-            // Pre-set WebView background to the saved theme color BEFORE HTML loads
-            // so the WebView surface never shows the default white background during
-            // cold start.
+            // Pre-set WebView background to the branded splash glow BEFORE HTML
+            // loads, so the WebView surface never shows a flat/white background
+            // during the cold-start launch window. Once index.html + splash.html
+            // render (opaque), they cover this background seamlessly.
             SharedPreferences earlyPrefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
             String earlyBg = earlyPrefs.getString(KEY_BG_COLOR, "#181b22");
             try {
-                bridge.getWebView().setBackgroundColor(Color.parseColor(earlyBg));
+                bridge.getWebView().setBackground(androidx.core.content.ContextCompat.getDrawable(this, R.drawable.splash));
             } catch (Exception e) {
-                bridge.getWebView().setBackgroundColor(Color.parseColor("#181b22"));
+                try {
+                    bridge.getWebView().setBackgroundColor(Color.parseColor(earlyBg));
+                } catch (Exception e2) {
+                    bridge.getWebView().setBackgroundColor(Color.parseColor("#181b22"));
+                }
             }
 
             // Expose a JS→Native bridge so JS can hide the overlay as soon as the
@@ -143,6 +158,39 @@ public class MainActivity extends BridgeActivity {
         // It is only shown on onPause() -> onResume() with the captured bitmap snapshot.
         getWindow().getDecorView().post(() -> {
             createResumeOverlay();
+        });
+
+        // LAUNCH-WINDOW-DONE SIGNAL (fixes the HTML splash being cut short):
+        // The very first real draw of the decor view is the moment the native
+        // launch window (system splash on Android 12+ / launch window on older
+        // APIs) is dismissed and the user can actually SEE the WebView. We tell
+        // the web layer so the HTML splash countdown (fadeOutColdStartOverlay)
+        // starts from when the splash is really visible — not from the iframe
+        // onload, which fires while the native window still covers the screen.
+        // The same moment ends the cold-start phase so applySavedTheme() may
+        // re-apply the solid theme color on subsequent resumes.
+        getWindow().getDecorView().getViewTreeObserver().addOnDrawListener(new ViewTreeObserver.OnDrawListener() {
+            private boolean fired = false;
+
+            @Override
+            public void onDraw() {
+                if (fired) return;
+                fired = true;
+                getWindow().getDecorView().getViewTreeObserver().removeOnDrawListener(this);
+                // Give the WebView a beat to composite its first content frame
+                // before anchoring the web-side splash timer.
+                mainHandler.postDelayed(() -> {
+                    coldStartInProgress = false;
+                    try {
+                        if (bridge != null && bridge.getWebView() != null) {
+                            bridge.getWebView().evaluateJavascript(
+                                    "window._markLaunchWindowGone&&window._markLaunchWindowGone()", null);
+                        }
+                    } catch (Exception e) {
+                        Log.w(TAG, "Could not signal launch window done to JS", e);
+                    }
+                }, 200);
+            }
         });
     }
 
@@ -416,11 +464,20 @@ public class MainActivity extends BridgeActivity {
             int statusVal = Color.parseColor(statusBarColor);
             int navVal = Color.parseColor(navBarColor);
 
-            // Apply window background using ColorDrawable
-            window.setBackgroundDrawable(new ColorDrawable(bgVal));
+            // Apply window background using ColorDrawable — but ONLY after the
+            // cold-start launch window is over. During cold start the window
+            // keeps the branded splash PNG (theme android:windowBackground =
+            // @drawable/splash) so the glow is visible while the WebView loads;
+            // replacing it here would show a flat color instead of the PNG.
+            if (!coldStartInProgress) {
+                window.setBackgroundDrawable(new ColorDrawable(bgVal));
+            }
 
-            // Apply WebView background if initialized
-            if (bridge != null && bridge.getWebView() != null) {
+            // Apply WebView background if initialized. Skip during the cold-start
+            // launch window so the branded splash glow (set in onCreate) stays
+            // visible while the HTML loads; apply the theme color after launch
+            // (and on every resume) to prevent any flat/white flash on resume.
+            if (!coldStartInProgress && bridge != null && bridge.getWebView() != null) {
                 bridge.getWebView().setBackgroundColor(bgVal);
             }
 

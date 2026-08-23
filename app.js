@@ -1959,6 +1959,20 @@ function _markSplashFrameLoaded() {
 }
 window._markSplashFrameLoaded = _markSplashFrameLoaded;
 
+// LAUNCH-WINDOW-DONE ANCHOR (native Android):
+// The native MainActivity signals this the moment its launch window is dismissed
+// and the user can actually SEE the WebView (first real decor draw). The HTML
+// splash countdown anchors to the LATEST of (splash-frame-load, launch-window-gone)
+// so the animated splash always plays its full sequence once it is truly visible —
+// instead of being cut short by a timer that started while the native window
+// (system splash on Android 12+) still covered the screen. On web/PWA there is no
+// native launch window, so this stays 0 and the iframe onload anchor is used.
+let _launchWindowGoneMs = 0;
+function _markLaunchWindowGone() {
+  if (!_launchWindowGoneMs) _launchWindowGoneMs = Date.now();
+}
+window._markLaunchWindowGone = _markLaunchWindowGone;
+
 function fadeOutColdStartOverlay() {
   if (_coldStartFadeDone) return;
   const frame = document.getElementById('cold-start-frame') || document.getElementById('cold-start-overlay');
@@ -1968,7 +1982,16 @@ function fadeOutColdStartOverlay() {
   }
 
   // Anchor to the real in-page/native load time (fallback: page parse time).
-  const anchor = _splashFrameStartMs || window._splashFrameStartMs || _splashAppStartTime;
+  // On native Android, _launchWindowGoneMs is the moment the native launch window
+  // was dismissed and the splash became actually visible to the user — the
+  // countdown must start from the LATEST of all candidates (never before the user
+  // can see the splash), otherwise the animated splash gets cut short by a timer
+  // that started while the native window still covered the screen.
+  const anchor = Math.max(
+    _splashFrameStartMs || window._splashFrameStartMs || 0,
+    _launchWindowGoneMs || 0,
+    _splashAppStartTime
+  );
   const elapsed = Date.now() - anchor;
   // Full splash sequence (mark -> wordmark -> tagline -> loader) is ~1.95s.
   const minVisibleMs = 2600;

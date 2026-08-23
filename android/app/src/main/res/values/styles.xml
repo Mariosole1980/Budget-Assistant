@@ -7,7 +7,12 @@
         <item name="colorPrimary">@color/colorPrimary</item>
         <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
         <item name="colorAccent">@color/colorAccent</item>
-        <item name="android:windowBackground">@color/app_background</item>
+        <!-- The window background is the branded splash (glow gradient + logo),
+             NOT a flat color, so the cold-start launch window shows the PNG
+             between the native splash dismissal and the WebView first paint
+             (MainActivity.applySavedTheme() re-applies the solid theme color
+             after the cold-start phase is over). -->
+        <item name="android:windowBackground">@drawable/splash</item>
     </style>
 
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
