@@ -8,10 +8,10 @@
   },
   "android": {
     "allowMixedContent": false,
-    "backgroundColor": "#171B26"
+    "backgroundColor": "#181b22"
   },
   "ios": {
-    "backgroundColor": "#171B26"
+    "backgroundColor": "#181b22"
   },
   "plugins": {
     "SplashScreen": {
