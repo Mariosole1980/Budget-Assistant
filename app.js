@@ -401,7 +401,8 @@ const state = {
   userProfile: null,
   partnerProfile: null,
   familyProfiles: [],
-  selectedFamilyMemberId: 'all',
+  activeAccountMode: localStorage.getItem('account_view_mode') || 'family',
+  selectedFamilyMemberId: localStorage.getItem('selected_family_member_id') || 'all',
   historyPushed: false,
   expandedStatsCategories: new Set(),
   statsSubtab: 'breakdown',
@@ -3030,6 +3031,14 @@ function initSupabaseAuth() {
         const cachedGroup = localStorage.getItem('cached_family_group');
         if (cachedGroup) {
           state.familyGroup = JSON.parse(cachedGroup);
+        }
+        const cachedMode = localStorage.getItem('account_view_mode');
+        if (cachedMode === 'personal' || cachedMode === 'family') {
+          state.activeAccountMode = cachedMode;
+        }
+        const cachedMember = localStorage.getItem('selected_family_member_id');
+        if (cachedMember) {
+          state.selectedFamilyMemberId = cachedMember;
         }
       } catch (e) {
         console.error('Failed to parse cached profiles:', e);
@@ -6575,6 +6584,7 @@ function renderStatsTab(skipChart = false) {
       allItem.addEventListener('click', (e) => {
         e.stopPropagation();
         state.selectedFamilyMemberId = 'all';
+        localStorage.setItem('selected_family_member_id', 'all');
         familyFilterMenu.classList.remove('active');
         renderStatsTab();
       });
@@ -6593,6 +6603,7 @@ function renderStatsTab(skipChart = false) {
         item.addEventListener('click', (e) => {
           e.stopPropagation();
           state.selectedFamilyMemberId = member.id;
+          localStorage.setItem('selected_family_member_id', member.id);
           familyFilterMenu.classList.remove('active');
           renderStatsTab();
         });
