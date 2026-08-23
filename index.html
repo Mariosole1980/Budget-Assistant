@@ -374,7 +374,9 @@
   </script>
 
   <!-- Cold-Start Splash Iframe (Untouched Static Component) -->
-  <iframe id="cold-start-frame" src="splash.html" style="position:fixed;inset:0;width:100vw;height:100vh;border:0;z-index:2147483647;"></iframe>
+  <iframe id="cold-start-frame" src="splash.html" title="Budget Assistant — Cold Start"
+    style="position: fixed; inset: 0; width: 100vw; height: 100vh; border: 0; background-color: #0F1219; z-index: 2147483647;"
+    onload="window._splashFrameStartMs=window._splashFrameStartMs||Date.now();try{window._markSplashFrameLoaded&&window._markSplashFrameLoaded()}catch(e){}"></iframe>
 
   <!-- Resume overlay: covers the screen with the theme background color during the
        brief window after the app returns from background. On native Android the

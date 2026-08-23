@@ -1942,6 +1942,22 @@ window.clearNotifications = clearNotifications;
 // ============================================================
 const _splashAppStartTime = (typeof window._pageLoadTimestamp === 'number') ? window._pageLoadTimestamp : Date.now();
 let _coldStartFadeDone = false;
+// COLD START FIX: On Index cold start the native Android launch window stays on
+// screen while the WebView loads index.html + splash.html together, so the branded
+// splash is NOT actually visible to the user until considerably later than the
+// index.html parse timestamp. The old timer started at _splashAppStartTime
+// (index.html), so by the time the splash appeared the 2000ms budget had mostly
+// elapsed and the fade-out fired almost immediately by cutting it off abruptly.
+// _splashFrameStartMs is recorded by the iframe onload hook in index.html the
+// moment the splash sub-document is actually ready to be painted; the countdown
+// is anchored to that, so the full mark -> wordmark -> tagline -> loader sequence
+// (~1.95s) gets to play out before the handoff begins.
+let _splashFrameStartMs = 0;
+
+function _markSplashFrameLoaded() {
+  if (!_splashFrameStartMs) _splashFrameStartMs = Date.now();
+}
+window._markSplashFrameLoaded = _markSplashFrameLoaded;
 
 function fadeOutColdStartOverlay() {
   if (_coldStartFadeDone) return;
@@ -1951,22 +1967,23 @@ function fadeOutColdStartOverlay() {
     return;
   }
 
-  // Ensure the full v5 splash animation sequence (~1.95s: mark -> wordmark ->
-  // tagline -> loader) has time to play before the splash fades out.
-  const elapsed = Date.now() - _splashAppStartTime;
-  const minDuration = 2000;
-  if (elapsed < minDuration) {
-    setTimeout(fadeOutColdStartOverlay, minDuration - elapsed);
+  // Anchor to the real in-page/native load time (fallback: page parse time).
+  const anchor = _splashFrameStartMs || window._splashFrameStartMs || _splashAppStartTime;
+  const elapsed = Date.now() - anchor;
+  // Full splash sequence (mark -> wordmark -> tagline -> loader) is ~1.95s.
+  const minVisibleMs = 2600;
+  if (elapsed < minVisibleMs) {
+    setTimeout(fadeOutColdStartOverlay, minVisibleMs - elapsed);
     return;
   }
 
   _coldStartFadeDone = true;
   // Smooth fade-out before removing iframe from DOM
-  frame.style.transition = 'opacity 0.35s ease';
+  frame.style.transition = 'opacity 0.45s ease';
   frame.style.opacity = '0';
   setTimeout(() => {
     if (frame.parentNode) frame.parentNode.removeChild(frame);
-  }, 350);
+  }, 450);
 }
 window.fadeOutColdStartOverlay = fadeOutColdStartOverlay;
 
