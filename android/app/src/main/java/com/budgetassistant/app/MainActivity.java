@@ -108,8 +108,6 @@ public class MainActivity extends BridgeActivity {
         }
         registerPlugin(NativeThemePlugin.class);
         registerPlugin(SecurityPlugin.class);
-        registerPlugin(com.codetrixstudio.capacitor.GoogleAuth.GoogleAuth.class);
-        registerPlugin(de.carstenklaffke.billing.BillingPlugin.class);
         registerPlugin(ReliableNotificationPlugin.class);
 
         // Lock WebView text zoom and prevent Android autofill/system font scaling issues
@@ -347,9 +345,10 @@ public class MainActivity extends BridgeActivity {
     private void createResumeOverlay() {
         try {
             resumeOverlay = new View(this);
-            resumeOverlay.setLayoutParams(new ViewGroup.LayoutParams(
+            ViewGroup.LayoutParams lp = new ViewGroup.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.MATCH_PARENT));
+                    ViewGroup.LayoutParams.MATCH_PARENT);
+            resumeOverlay.setLayoutParams(lp);
 
             // Set initial background to the splash drawable (glow background) for cold start.
             try {
@@ -358,31 +357,18 @@ public class MainActivity extends BridgeActivity {
                 resumeOverlay.setBackgroundColor(Color.parseColor("#171B26"));
             }
 
-            // TRANSLUCENT pixel format ensures the overlay is ALWAYS composited
-            // above the WebView surface by the system compositor. PixelFormat.OPAQUE
-            // can cause z-ordering races on Samsung OneUI where the hardware
-            // compositor re-orders surfaces, making the overlay invisible behind
-            // the WebView — this is the root cause of the flickering on Samsung.
-            WindowManager.LayoutParams params = new WindowManager.LayoutParams(
-                    WindowManager.LayoutParams.MATCH_PARENT,
-                    WindowManager.LayoutParams.MATCH_PARENT,
-                    WindowManager.LayoutParams.TYPE_APPLICATION_PANEL,
-                    WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
-                            | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
-                            | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
-                    PixelFormat.TRANSLUCENT);
-            params.gravity = Gravity.TOP | Gravity.START;
-            params.token = getWindow().getDecorView().getWindowToken();
-            params.setTitle("ResumeOverlay");
-
-            WindowManager wm = getWindowManager();
-            wm.addView(resumeOverlay, params);
             // Start GONE for cold start so it NEVER blocks or covers the HTML splash screen (splash.html).
             // It is only shown on onPause() -> onResume() with the captured bitmap snapshot.
             resumeOverlay.setVisibility(View.GONE);
-            Log.d(TAG, "Resume overlay created (GONE for cold start)");
+
+            // Add overlay directly to the activity's DecorView hierarchy (safe on ALL Android OEMs including Xiaomi/HyperOS)
+            ViewGroup decor = (ViewGroup) getWindow().getDecorView();
+            if (decor != null) {
+                decor.addView(resumeOverlay);
+                Log.d(TAG, "Resume overlay added to DecorView (GONE for cold start)");
+            }
         } catch (Throwable t) {
-            Log.e(TAG, "Failed to create resume overlay window", t);
+            Log.e(TAG, "Failed to create resume overlay", t);
             resumeOverlay = null;
         }
     }
@@ -606,6 +592,23 @@ public class MainActivity extends BridgeActivity {
             }
         } catch (Exception e) {
             Log.w(TAG, "Could not reset WebView zoom", e);
+        }
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        try {
+            if (resumeOverlay != null) {
+                ViewGroup decor = (ViewGroup) getWindow().getDecorView();
+                if (decor != null) {
+                    decor.removeView(resumeOverlay);
+                }
+                resumeOverlay = null;
+            }
+            recycleSnapshot();
+        } catch (Throwable t) {
+            Log.w(TAG, "Error cleaning up resume overlay in onDestroy", t);
         }
     }
 }
