@@ -134,15 +134,17 @@ public class MainActivity extends BridgeActivity {
                 @JavascriptInterface
                 public void onFirstPaint() {
                     Log.d(TAG, "JS onFirstPaint signal received");
+                    mainHandler.post(() -> {
+                        coldStartInProgress = false;
+                        applySavedTheme();
+                    });
                     // Enforce a minimum visible time so the WebView surface has
                     // fully recomposited and painted the real content before we
                     // reveal it. If the signal arrived too early, defer the hide
                     // until the minimum window has elapsed.
                     long elapsed = SystemClock.uptimeMillis() - resumeTimestamp;
-                    long remaining = MIN_RESUME_OVERLAY_VISIBLE_MS - elapsed;
-                    if (remaining > 0) {
-                        Log.d(TAG, "onFirstPaint too early (" + elapsed + "ms), deferring " + remaining + "ms");
-                        mainHandler.removeCallbacks(hideResumeOverlayRunnable);
+                    if (elapsed < MIN_RESUME_OVERLAY_VISIBLE_MS) {
+                        long remaining = MIN_RESUME_OVERLAY_VISIBLE_MS - elapsed;
                         mainHandler.postDelayed(hideResumeOverlayRunnable, remaining);
                     } else {
                         mainHandler.post(MainActivity.this::hideResumeOverlay);
@@ -503,6 +505,7 @@ public class MainActivity extends BridgeActivity {
             if (!launchSignalSent) {
                 launchSignalSent = true;
                 coldStartInProgress = false;
+                applySavedTheme();
                 // Give the WebView a beat to composite its first content frame
                 // before anchoring the web-side splash timer.
                 mainHandler.postDelayed(() -> {
