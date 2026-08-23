@@ -1951,9 +1951,10 @@ function fadeOutColdStartOverlay() {
     return;
   }
 
-  // Ensure total display time of splash is snappy and finishes within ~1.4s
+  // Ensure the full v5 splash animation sequence (~1.95s: mark -> wordmark ->
+  // tagline -> loader) has time to play before the splash fades out.
   const elapsed = Date.now() - _splashAppStartTime;
-  const minDuration = 1400;
+  const minDuration = 2000;
   if (elapsed < minDuration) {
     setTimeout(fadeOutColdStartOverlay, minDuration - elapsed);
     return;
