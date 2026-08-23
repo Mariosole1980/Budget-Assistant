@@ -1,17 +1,18 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <resources>
 
     <!-- Android 12+ (API 31+) Splash API overrides.
-         The system splash screen background is controlled by
-         windowSplashScreenBackground (NOT android:background). Setting it to
-         @color/app_background (#181b22) ensures the native launch window matches
-         the app theme instead of showing a default (often black) background on
-         cold start / process death recreation. -->
+         windowSplashScreenBackground controls the native launch window color.
+         splash_solid_bg is a solid #171B26 rectangle — same color as the
+         background, so the squircle container is invisible (Samsung-proof fix:
+         Samsung OneUI ignores empty/transparent vectors and shows ic_launcher,
+         but a solid fill matching the background blends in perfectly). -->
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
         <item name="android:background">#171B26</item>
         <item name="windowSplashScreenBackground">#171B26</item>
-        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_transparent</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_solid_bg</item>
         <item name="windowSplashScreenIconBackgroundColor">#171B26</item>
         <item name="postSplashScreenTheme">@style/AppTheme</item>
     </style>
+
 </resources>

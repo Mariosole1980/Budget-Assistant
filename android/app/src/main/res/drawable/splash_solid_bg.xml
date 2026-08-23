@@ -1,0 +1,12 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!-- Solid fill matching the app background color (#171B26).
+     Used as windowSplashScreenAnimatedIcon so that Samsung OneUI
+     (which overrides empty/transparent icons with ic_launcher) instead
+     renders a squircle that is EXACTLY the same color as the splash
+     background — making it invisible to the user.
+     windowSplashScreenIconBackgroundColor is also #171B26 so the
+     squircle container matches perfectly. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="#171B26"/>
+</shape>

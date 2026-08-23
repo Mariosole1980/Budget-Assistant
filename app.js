@@ -1967,10 +1967,18 @@ function fadeOutColdStartOverlay() {
     return;
   }
 
+  // If the iframe onload hasn't fired yet, wait for it.
+  // This prevents the splash from being dismissed before its animation has
+  // even started (happens when initApp() finishes before splash.html loads).
+  if (!_splashFrameStartMs && !window._splashFrameStartMs) {
+    setTimeout(fadeOutColdStartOverlay, 100);
+    return;
+  }
+
   // Anchor to the real in-page/native load time (fallback: page parse time).
   const anchor = _splashFrameStartMs || window._splashFrameStartMs || _splashAppStartTime;
   const elapsed = Date.now() - anchor;
-  // Full splash sequence (mark -> wordmark -> tagline -> loader) is ~1.95s.
+  // Full splash sequence (mark → wordmark → tagline → loader) is ~1.95s.
   const minVisibleMs = 2600;
   if (elapsed < minVisibleMs) {
     setTimeout(fadeOutColdStartOverlay, minVisibleMs - elapsed);
