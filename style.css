@@ -2443,7 +2443,8 @@ body.is-ios .modal-content {
 
 .search-input-wrapper-modern {
   position: relative;
-  flex: 1;
+  width: 100%;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
 }
@@ -7314,13 +7315,16 @@ body.modal-open {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #181b22;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  padding: 12px 16px;
-  margin-top: 12px;
-  margin-bottom: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  background: var(--bg-card, #1c2331);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  border-radius: 16px;
+  padding: 14px 16px;
+  margin-top: 4px;
+  margin-bottom: 8px;
+  width: 100%;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 }
 
 .search-summary-item {

@@ -2104,12 +2104,7 @@ function _notifyNativeContentPainted() {
   window._contentPaintNotified = true;
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
-      // Extra delay so the content frame is definitely composited to the screen
-      // on slower devices before signalling the native overlay to hide. The native
-      // side ALSO enforces a minimum visible time, so this is belt-and-suspenders.
-      setTimeout(() => {
-        try { window.NativeApp.onFirstPaint(); } catch (e) { /* fail silently */ }
-      }, 250);
+      try { window.NativeApp.onFirstPaint(); } catch (e) { /* fail silently */ }
     });
   });
 }
@@ -6476,13 +6471,19 @@ function getCategoryInfo(categoryName, transType) {
 function getCategoryDisplayName(categoryName) {
   if (!categoryName) return '';
   const stripped = stripLeadingEmoji(categoryName).trim();
+  const normInput = normalizeCategoryName(categoryName);
+  if (!normInput) return stripped;
   const lang = state.lang || 'el';
 
-  for (const [elKey, enVal] of Object.entries(CATEGORY_NAME_TRANSLATIONS)) {
-    const strippedEl = stripLeadingEmoji(elKey).trim().toUpperCase();
-    const strippedEn = stripLeadingEmoji(enVal).trim().toUpperCase();
+  const translations = (typeof CATEGORY_NAME_TRANSLATIONS !== 'undefined')
+    ? CATEGORY_NAME_TRANSLATIONS
+    : ((typeof window !== 'undefined' && window.CATEGORY_NAME_TRANSLATIONS) || {});
 
-    if (stripped.toUpperCase() === strippedEl || stripped.toUpperCase() === strippedEn) {
+  for (const [elKey, enVal] of Object.entries(translations)) {
+    const normEl = normalizeCategoryName(elKey);
+    const normEn = normalizeCategoryName(enVal);
+
+    if (normInput === normEl || normInput === normEn) {
       const target = lang === 'en' ? enVal : elKey;
       return stripLeadingEmoji(target).trim();
     }
@@ -6490,42 +6491,14 @@ function getCategoryDisplayName(categoryName) {
   return stripped;
 }
 
-// (SUBCATEGORY_NAME_TRANSLATIONS moved to js/constants.js)
-
 function isDefaultSubcategory(categoryName, subcategoryName) {
   if (!subcategoryName) return false;
 
-  // Normalize categoryName to Greek default category name key
-  let greekCategoryName = categoryName || '';
-  if (categoryName) {
-    const stripped = stripLeadingEmoji(categoryName).trim().toUpperCase();
-    for (const [elKey, enVal] of Object.entries(CATEGORY_NAME_TRANSLATIONS)) {
-      const strippedEl = stripLeadingEmoji(elKey).trim().toUpperCase();
-      const strippedEn = stripLeadingEmoji(enVal).trim().toUpperCase();
-      if (stripped === strippedEl || stripped === strippedEn) {
-        greekCategoryName = elKey;
-        break;
-      }
-    }
-  }
-
-  const cleanedCat = stripLeadingEmoji(greekCategoryName).trim().toUpperCase();
-  const subcats = DEFAULT_SUBCATEGORIES_MAP[cleanedCat];
-  const normSub = stripLeadingEmoji(subcategoryName).trim().toUpperCase();
-
-  if (subcats) {
-    const found = subcats.some(s => {
-      return s.trim().toUpperCase() === subcategoryName.trim().toUpperCase() ||
-        stripLeadingEmoji(s).trim().toUpperCase() === normSub;
-    });
-    if (found) return true;
-  }
+  const normSub = normalizeCategoryName(subcategoryName);
+  if (!normSub) return false;
 
   for (const subcats of Object.values(DEFAULT_SUBCATEGORIES_MAP)) {
-    const found = subcats.some(s => {
-      return s.trim().toUpperCase() === subcategoryName.trim().toUpperCase() ||
-        stripLeadingEmoji(s).trim().toUpperCase() === normSub;
-    });
+    const found = subcats.some(s => normalizeCategoryName(s) === normSub);
     if (found) return true;
   }
 
@@ -6535,17 +6508,23 @@ function isDefaultSubcategory(categoryName, subcategoryName) {
 function getSubcategoryDisplayName(subName, categoryName) {
   if (!subName) return '';
   const stripped = stripLeadingEmoji(subName).trim();
+  const normInput = normalizeCategoryName(subName);
+  if (!normInput) return stripped;
   const lang = state.lang || 'el';
 
   if (!isDefaultSubcategory(categoryName, subName)) {
     return subName; // Custom entries are never translated
   }
 
-  for (const [elKey, enVal] of Object.entries(SUBCATEGORY_NAME_TRANSLATIONS)) {
-    const strippedEl = stripLeadingEmoji(elKey).trim().toUpperCase();
-    const strippedEn = stripLeadingEmoji(enVal).trim().toUpperCase();
+  const translations = (typeof SUBCATEGORY_NAME_TRANSLATIONS !== 'undefined')
+    ? SUBCATEGORY_NAME_TRANSLATIONS
+    : ((typeof window !== 'undefined' && window.SUBCATEGORY_NAME_TRANSLATIONS) || {});
 
-    if (stripped.toUpperCase() === strippedEl || stripped.toUpperCase() === strippedEn) {
+  for (const [elKey, enVal] of Object.entries(translations)) {
+    const normEl = normalizeCategoryName(elKey);
+    const normEn = normalizeCategoryName(enVal);
+
+    if (normInput === normEl || normInput === normEn) {
       const target = lang === 'en' ? enVal : elKey;
       return stripLeadingEmoji(target).trim();
     }
@@ -14696,19 +14675,22 @@ function populateSearchCategorySheet() {
       return type === searchType;
     });
   }
-  sortedCats.sort();
+  sortedCats.sort((a, b) => getCategoryDisplayName(a).localeCompare(getCategoryDisplayName(b)));
 
   sortedCats.forEach(catName => {
     const isCatActive = catName === currentCat && !currentSub;
-    const catObj = state.categories.find(c => c.name === catName);
-    const emoji = catObj?.icon || '📁';
+    const catInfo = getCategoryInfo(catName);
+    const emoji = catInfo.icon || '📁';
+    const displayName = getCategoryDisplayName(catName);
 
     html += `
       <div class="bottom-sheet-option ${isCatActive ? 'active' : ''}" onclick="selectCategorySearchFilter('${catName}', '')">
-        <span class="option-label">${emoji} ${getCategoryDisplayName(catName)}</span>
+        <span class="option-label">${emoji} ${displayName}</span>
         <i class="fa-solid fa-check option-check-icon"></i>
       </div>
     `;
+
+    const catObj = state.categories.find(c => c.name === catName);
 
     // Find subcategories for this category
     const subcats = new Set();
@@ -15405,9 +15387,12 @@ function renderGroupedTransactions(transactions, container) {
     const title = lang === 'el' ? 'Δεν βρέθηκαν συναλλαγές' : 'No transactions found';
     const desc = lang === 'el' ? 'Δοκιμάστε άλλα φίλτρα ή λέξεις-κλειδιά' : 'Try different filters or keywords';
     container.innerHTML = `
-      <div style="text-align:center;padding:40px 10px;color:var(--text-secondary)">
-        <h4 style="margin-bottom:4px; font-weight:700;">${title}</h4>
-        <p style="font-size:11px">${desc}</p>
+      <div style="text-align:center; padding: 48px 16px; color:var(--text-secondary); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px;">
+        <div style="width:54px; height:54px; border-radius:50%; background:rgba(255,255,255,0.03); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:22px; color:var(--text-muted); margin-bottom:4px;">
+          <i class="fa-solid fa-magnifying-glass"></i>
+        </div>
+        <h4 style="margin:0; font-family:'Outfit',sans-serif; font-size:16px; font-weight:700; color:var(--text-primary);">${title}</h4>
+        <p style="margin:0; font-size:13px; color:var(--text-secondary); line-height:1.4; max-width:260px;">${desc}</p>
       </div>`;
     return;
   }
@@ -25488,11 +25473,9 @@ function _handleAppResumed() {
   // NATIVE SIGNAL: The overlay is hidden by _notifyNativeContentPainted(), which
   // is called at the END of _updateUIImpl() — i.e. only after the real UI content
   // (transactions, numbers, colors) has been written into the DOM and composited
-  // (double-rAF). A plain double-rAF here could fire on a still-blank frame, so we
-  // deliberately do NOT signal from this function. We only re-arm the flag so the
-  // content-painted signal can fire once for this new resume cycle.
-  if (_isNativeAndroid && typeof window._contentPaintNotified !== 'undefined') {
+  if (_isNativeAndroid) {
     window._contentPaintNotified = false;
+    _notifyNativeContentPainted();
   }
 
   // Set guard to block spurious closeModal calls during the resume transition.

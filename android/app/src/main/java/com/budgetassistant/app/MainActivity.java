@@ -52,14 +52,13 @@ public class MainActivity extends BridgeActivity {
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
     // Fallback: hides overlay if JS content-painted signal never arrives.
-    private static final long RESUME_OVERLAY_HIDE_DELAY_MS = 2000;
+    private static final long RESUME_OVERLAY_HIDE_DELAY_MS = 1000;
     // Minimum time the overlay stays visible after resume. With
     // setRendererPriorityPolicy() keeping the renderer alive, the surface
-    // recompositing gap is much shorter, so we can use a smaller value.
-    private static final long MIN_RESUME_OVERLAY_VISIBLE_MS = 350;
-    // Smooth fade-out duration. Short enough to feel instant, long enough to
-    // mask any sub-frame rendering differences between snapshot and live content.
-    private static final long OVERLAY_FADE_OUT_MS = 180;
+    // recompositing gap is minimal, so 80ms is enough to avoid blank flicker.
+    private static final long MIN_RESUME_OVERLAY_VISIBLE_MS = 80;
+    // Smooth fade-out duration. Short enough to feel instant.
+    private static final long OVERLAY_FADE_OUT_MS = 100;
     private long resumeTimestamp = 0;
 
     // COLD-START LAUNCH WINDOW GUARD:
