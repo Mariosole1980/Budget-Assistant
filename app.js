@@ -2715,7 +2715,7 @@ function showCustomDialog({ message, title = '', icon = '💬', showCancel = fal
       if (isResolved) return;
       isResolved = true;
       modal.classList.remove('active');
-      modal.style.display = 'none';
+      modal.style.cssText = 'display: none !important; visibility: hidden !important; pointer-events: none !important; opacity: 0 !important;';
       document.body.classList.remove('modal-open');
       modal.onclick = null;
       resolve(result);
@@ -5886,7 +5886,7 @@ function getActiveScrollContainer() {
 // it is true, the app must never render or restore personal data, so a previous
 // user's cached transactions can never flash before the login card appears.
 function _isAuthenticated() {
-  return !!window._authConfirmed;
+  return !!window._authConfirmed || !!state.guestMode || localStorage.getItem('auth_guest_mode') === 'true';
 }
 window._isAuthenticated = _isAuthenticated;
 
@@ -6213,26 +6213,28 @@ function renderTransactionsTab(containerOverride, yearOverride, monthOverride) {
     listContainer._lastRenderSignature = emptySig;
 
     const lang = state.lang || 'el';
-    const title = lang === 'el' ? 'Δεν έχετε προσθέσει κάτι ακόμα' : 'No transactions found';
-    const desc = lang === 'el'
-      ? 'Γράψτε το πρώτο σας έξοδο ή δοκιμάστε την εφαρμογή βάζοντας μερικά έτοιμα παραδείγματα!'
-      : 'Start tracking your expenses or try the app with sample data!';
-    const addBtnText = lang === 'el' ? '✍️ Γράψτε ένα έξοδο / έσοδο' : '✍️ Add Transaction';
-    const demoBtnText = lang === 'el' ? '📊 Δείτε έτοιμα παραδείγματα' : '📊 Insert Demo Data';
+    const title = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['trans_empty_title']) || (lang === 'el' ? 'Δεν υπάρχουν συναλλαγές για αυτόν τον μήνα' : 'No Transactions This Month');
+    const desc = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['trans_empty_desc']) || (lang === 'el'
+      ? 'Προσθέστε την πρώτη σας συναλλαγή για να παρακολουθείτε την καθημερινή ροή των χρημάτων σας.'
+      : 'Add your first transaction to start tracking your daily cash flow.');
+    const addBtnText = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['trans_empty_btn_add']) || (lang === 'el' ? '➕ Προσθήκη Συναλλαγής' : '➕ Add Transaction');
+    const demoBtnText = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['trans_empty_btn_demo']) || (lang === 'el' ? '📊 Δοκιμή με Δείγματα (Demo)' : '📊 Try Demo Mode');
 
     listContainer.innerHTML = `
-      <div style="text-align:center;padding:60px 20px;color:var(--text-secondary); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;">
-        <div style="font-size:56px;">📅</div>
-        <div style="display: flex; flex-direction: column; gap: 6px;">
-          <h3 style="margin: 0; font-family: 'Outfit', sans-serif; font-size: 18px; font-weight: 800; color: var(--text-primary);">${title}</h3>
-          <p style="margin: 0; font-size: 12.5px; max-width: 280px; line-height: 1.4; color: var(--text-secondary);">${desc}</p>
+      <div class="stats-empty-card" style="margin: 28px 14px;">
+        <div style="width: 76px; height: 76px; border-radius: 24px; background: rgba(99, 102, 241, 0.12); border: 1px solid rgba(99, 102, 241, 0.3); display: flex; align-items: center; justify-content: center; font-size: 32px; color: var(--accent); box-shadow: 0 0 25px rgba(99, 102, 241, 0.25); margin-bottom: 2px;">
+          <i class="fa-solid fa-receipt"></i>
         </div>
-        <div style="display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 240px; margin-top: 10px;">
-          <button class="btn btn-primary" onclick="openModal('transaction-modal')" style="padding: 12px; font-size: 13.5px; font-weight: 700; border-radius: 12px; width: 100%;">
-            ${addBtnText}
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <h3 class="stats-empty-title">${title}</h3>
+          <p class="stats-empty-desc">${desc}</p>
+        </div>
+        <div class="stats-empty-actions">
+          <button class="stats-empty-btn-primary" onclick="openAddTransactionModal()">
+            <span>${addBtnText}</span>
           </button>
-          <button class="btn btn-secondary" onclick="onboardingAddDemoData()" style="padding: 12px; font-size: 13.5px; font-weight: 700; border-radius: 12px; width: 100%; border: 1px dashed var(--accent); color: var(--accent); background: rgba(124,106,247,0.04);">
-            ${demoBtnText}
+          <button class="stats-empty-btn-secondary" onclick="onboardingAddDemoData()">
+            <span>${demoBtnText}</span>
           </button>
         </div>
       </div>`;
@@ -6783,7 +6785,7 @@ function renderStatsTab(skipChart = false) {
     return;
   }
 
-  if (chartContainer) chartContainer.style.display = 'block';
+  if (chartContainer) chartContainer.style.display = 'flex';
 
   // Update high tech doughnut center text
   if (!skipChart && chartCenterVal) {
@@ -23583,6 +23585,7 @@ window.handleLogout = handleLogout;
 
 async function enterGuestMode() {
   state.guestMode = true;
+  window._authConfirmed = true;
   localStorage.setItem('auth_guest_mode', 'true');
   // ACCOUNT-ISOLATION: Guest data is unowned — clear any previous account's owner
   // marker so guest transactions can be imported into whichever account the user
@@ -24109,7 +24112,7 @@ function showOfflineImportPrompt(userId, userEmail, isManual = false) {
       resolved = true;
       _offlinePromptInFlight = false;
       modal.classList.remove('active');
-      modal.style.display = 'none';
+      modal.style.cssText = 'display: none !important; visibility: hidden !important; pointer-events: none !important; opacity: 0 !important;';
       document.body.classList.remove('modal-open');
       modal.onclick = null;
       resolve(choice);
