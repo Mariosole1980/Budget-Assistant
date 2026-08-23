@@ -26,8 +26,13 @@
              A solid fill matching the background color renders as an invisible
              squircle (same color as windowSplashScreenBackground) — no icon
              visible to the user, no black box. -->
+        <!-- NOTE: windowSplashScreenIconBackgroundColor is deliberately ABSENT.
+             It draws a colored circle/squircle container behind the splash icon
+             that can be perceived as a flash when Android re-shows the splash
+             on resume from background (process-death cold start). v1502 (known
+             good, no resume flicker) had NO such attribute. The solid
+             splash_solid_bg icon already blends with the #171B26 background. -->
         <item name="windowSplashScreenAnimatedIcon">@drawable/splash_solid_bg</item>
-        <item name="windowSplashScreenIconBackgroundColor">#171B26</item>
         <item name="postSplashScreenTheme">@style/AppTheme</item>
     </style>
 </resources>

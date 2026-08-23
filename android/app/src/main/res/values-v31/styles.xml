@@ -11,7 +11,9 @@
         <item name="android:background">#171B26</item>
         <item name="windowSplashScreenBackground">#171B26</item>
         <item name="windowSplashScreenAnimatedIcon">@drawable/splash_solid_bg</item>
-        <item name="windowSplashScreenIconBackgroundColor">#171B26</item>
+        <!-- windowSplashScreenIconBackgroundColor intentionally omitted (see
+             values/styles.xml) — it caused a visible splash-icon container
+             flash on resume from background. -->
         <item name="postSplashScreenTheme">@style/AppTheme</item>
     </style>
 
