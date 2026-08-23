@@ -72,6 +72,11 @@ public class MainActivity extends BridgeActivity {
     protected void onCreate(Bundle savedInstanceState) {
         androidx.core.splashscreen.SplashScreen.installSplashScreen(this);
         super.onCreate(savedInstanceState);
+        try {
+            getWindow().setBackgroundDrawable(androidx.core.content.ContextCompat.getDrawable(this, R.drawable.splash));
+        } catch (Exception e) {
+            // Ignore
+        }
         registerPlugin(NativeThemePlugin.class);
         registerPlugin(SecurityPlugin.class);
         registerPlugin(com.codetrixstudio.capacitor.GoogleAuth.GoogleAuth.class);
