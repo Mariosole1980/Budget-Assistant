@@ -2715,8 +2715,10 @@ function showCustomDialog({ message, title = '', icon = '💬', showCancel = fal
       if (isResolved) return;
       isResolved = true;
       modal.classList.remove('active');
-      modal.style.cssText = 'display: none !important; visibility: hidden !important; pointer-events: none !important; opacity: 0 !important;';
+      modal.style.cssText = '';
       document.body.classList.remove('modal-open');
+      modal.ontouchstart = null;
+      modal.ontouchend = null;
       modal.onclick = null;
       resolve(result);
     };
@@ -2743,7 +2745,7 @@ function showCustomDialog({ message, title = '', icon = '💬', showCancel = fal
     btnOk.parentNode.replaceChild(newBtnOk, btnOk);
 
     modal.classList.add('active');
-    modal.style.cssText = 'display: flex !important; visibility: visible !important; opacity: 1 !important; z-index: 2147483647 !important; pointer-events: auto !important; position: fixed !important; inset: 0 !important; width: 100vw !important; height: 100vh !important; min-height: 100dvh !important; background: rgba(0, 0, 0, 0.75) !important; align-items: center !important; justify-content: center !important;';
+    document.body.classList.add('modal-open');
 
     newBtnCancel.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -2756,6 +2758,18 @@ function showCustomDialog({ message, title = '', icon = '💬', showCancel = fal
     });
 
     // Close and resolve cleanly when tapping outside (backdrop) so the app NEVER hangs/freezes
+    let touchStartTarget = null;
+    modal.ontouchstart = (e) => {
+      touchStartTarget = e.target;
+    };
+    modal.ontouchend = (e) => {
+      if (touchStartTarget === modal && e.target === modal) {
+        e.preventDefault();
+        e.stopPropagation();
+        cleanupAndResolve(showCancel ? false : true);
+      }
+      touchStartTarget = null;
+    };
     modal.onclick = (e) => {
       if (e.target === modal) {
         e.stopPropagation();
@@ -10671,6 +10685,7 @@ function closeModal(id, opts) {
     window._settingsSubscreenHistory = [];
   }
   el.classList.remove('active');
+  if (el.style) el.style.cssText = '';
   const activeModals = document.querySelectorAll('.modal-overlay.active, .tx-modal-overlay.active, .profile-sheet-overlay.active');
   if (activeModals.length === 0) {
     document.body.classList.remove('modal-open');
@@ -24112,8 +24127,10 @@ function showOfflineImportPrompt(userId, userEmail, isManual = false) {
       resolved = true;
       _offlinePromptInFlight = false;
       modal.classList.remove('active');
-      modal.style.cssText = 'display: none !important; visibility: hidden !important; pointer-events: none !important; opacity: 0 !important;';
+      modal.style.cssText = '';
       document.body.classList.remove('modal-open');
+      modal.ontouchstart = null;
+      modal.ontouchend = null;
       modal.onclick = null;
       resolve(choice);
     };
@@ -24150,8 +24167,20 @@ function showOfflineImportPrompt(userId, userEmail, isManual = false) {
     };
 
     modal.classList.add('active');
-    modal.style.cssText = 'display: flex !important; visibility: visible !important; opacity: 1 !important; z-index: 2147483647 !important; pointer-events: auto !important; position: fixed !important; inset: 0 !important; width: 100vw !important; height: 100vh !important; min-height: 100dvh !important; background: rgba(0, 0, 0, 0.75) !important; align-items: center !important; justify-content: center !important;';
+    document.body.classList.add('modal-open');
 
+    let touchStartTarget = null;
+    modal.ontouchstart = (e) => {
+      touchStartTarget = e.target;
+    };
+    modal.ontouchend = (e) => {
+      if (touchStartTarget === modal && e.target === modal) {
+        e.preventDefault();
+        e.stopPropagation();
+        closeModal('keep');
+      }
+      touchStartTarget = null;
+    };
     modal.onclick = (e) => {
       if (e.target === modal) {
         e.stopPropagation();
@@ -26983,7 +27012,7 @@ function initBackdropTapHandlers() {
   // NOTE: profile-settings-modal is EXCLUDED because it already has its own
   // inline onclick="handleProfileSheetOverlayClick(event)" backdrop handler.
   document.querySelectorAll('.modal-overlay, .tx-modal-overlay, .profile-sheet-overlay').forEach((modal) => {
-    if (modal.id === 'profile-settings-modal') return;
+    if (modal.id === 'profile-settings-modal' || modal.id === 'custom-dialog-modal' || modal.id === 'offline-import-modal') return;
     attachBackdropTap(modal);
   });
 

@@ -8959,7 +8959,8 @@ mark.guide-highlight {
 
 #custom-dialog-modal,
 #type-confirm-modal,
-#pin-prompt-modal {
+#pin-prompt-modal,
+#offline-import-modal {
   position: fixed !important;
   top: 0 !important;
   left: 0 !important;
@@ -8969,7 +8970,10 @@ mark.guide-highlight {
   height: 100vh !important;
   min-height: 100dvh !important;
   z-index: 2147483647 !important;
-  display: none;
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
   align-items: center !important;
   justify-content: center !important;
   padding: 16px !important;
@@ -8981,7 +8985,8 @@ mark.guide-highlight {
 
 #custom-dialog-modal.active,
 #type-confirm-modal.active,
-#pin-prompt-modal.active {
+#pin-prompt-modal.active,
+#offline-import-modal.active {
   display: flex !important;
   visibility: visible !important;
   opacity: 1 !important;
