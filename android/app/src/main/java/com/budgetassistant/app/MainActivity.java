@@ -87,9 +87,16 @@ public class MainActivity extends BridgeActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         androidx.core.splashscreen.SplashScreen.installSplashScreen(this);
-        super.onCreate(savedInstanceState);
+        SharedPreferences earlyPrefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        String earlyBg = earlyPrefs.getString(KEY_BG_COLOR, "#181b22");
+        int initialBgColor = Color.parseColor("#181b22");
         try {
-            getWindow().setBackgroundDrawable(androidx.core.content.ContextCompat.getDrawable(this, R.drawable.splash));
+            initialBgColor = Color.parseColor(earlyBg);
+        } catch (Exception e) {
+            // Ignore
+        }
+        try {
+            getWindow().setBackgroundDrawable(new ColorDrawable(initialBgColor));
         } catch (Exception e) {
             // Ignore
         }
@@ -112,20 +119,11 @@ public class MainActivity extends BridgeActivity {
                         WebView.RENDERER_PRIORITY_IMPORTANT, false);
             }
 
-            // Pre-set WebView background to the branded splash glow BEFORE HTML
-            // loads, so the WebView surface never shows a flat/white background
-            // during the cold-start launch window. Once index.html + splash.html
-            // render (opaque), they cover this background seamlessly.
-            SharedPreferences earlyPrefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-            String earlyBg = earlyPrefs.getString(KEY_BG_COLOR, "#181b22");
             try {
-                bridge.getWebView().setBackground(androidx.core.content.ContextCompat.getDrawable(this, R.drawable.splash));
+                bridge.getWebView().setBackground(null);
+                bridge.getWebView().setBackgroundColor(initialBgColor);
             } catch (Exception e) {
-                try {
-                    bridge.getWebView().setBackgroundColor(Color.parseColor(earlyBg));
-                } catch (Exception e2) {
-                    bridge.getWebView().setBackgroundColor(Color.parseColor("#181b22"));
-                }
+                // Ignore
             }
 
             // Expose a JS→Native bridge so JS can hide the overlay as soon as the
@@ -450,15 +448,10 @@ public class MainActivity extends BridgeActivity {
             // keeps the branded splash PNG (theme android:windowBackground =
             // @drawable/splash) so the glow is visible while the WebView loads;
             // replacing it here would show a flat color instead of the PNG.
-            if (!coldStartInProgress) {
-                window.setBackgroundDrawable(new ColorDrawable(bgVal));
-            }
+            window.setBackgroundDrawable(new ColorDrawable(bgVal));
 
-            // Apply WebView background if initialized. Skip during the cold-start
-            // launch window so the branded splash glow (set in onCreate) stays
-            // visible while the HTML loads; apply the theme color after launch
-            // (and on every resume) to prevent any flat/white flash on resume.
-            if (!coldStartInProgress && bridge != null && bridge.getWebView() != null) {
+            if (bridge != null && bridge.getWebView() != null) {
+                bridge.getWebView().setBackground(null);
                 bridge.getWebView().setBackgroundColor(bgVal);
             }
 

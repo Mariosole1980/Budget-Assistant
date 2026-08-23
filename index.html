@@ -537,10 +537,10 @@
                 <span class="stats-btn-text">Μηνιαία</span> <i class="fa-solid fa-chevron-down"></i>
               </button>
               <div class="stats-dropdown-menu" id="stats-period-dropdown-menu">
-                <div class="stats-dropdown-item" data-value="weekly">Εβδομαδιαία</div>
-                <div class="stats-dropdown-item active" data-value="monthly">Μηνιαία</div>
-                <div class="stats-dropdown-item" data-value="annually">Ετήσια</div>
-                <div class="stats-dropdown-item" data-value="period">Περίοδος</div>
+                <div class="stats-dropdown-item" data-value="weekly" data-i18n="stats_period_weekly">Εβδομαδιαία</div>
+                <div class="stats-dropdown-item active" data-value="monthly" data-i18n="stats_period_monthly">Μηνιαία</div>
+                <div class="stats-dropdown-item" data-value="annually" data-i18n="stats_period_annually">Ετήσια</div>
+                <div class="stats-dropdown-item" data-value="period" data-i18n="stats_period_custom">Περίοδος</div>
               </div>
             </div>
 
@@ -6257,7 +6257,7 @@
               style="padding: 12px 16px 20px 16px; border-top: 1px solid rgba(255, 255, 255, 0.08); background: var(--bg-card); display: flex; gap: 8px; align-items: center; flex-shrink: 0;">
               <input type="text" id="advisor-chat-input"
                 style="flex: 1; min-width: 0; padding: 12px 16px; border-radius: 16px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); color: var(--text-primary); outline: none; font-family: 'Outfit', sans-serif; font-size: 14px; box-sizing: border-box;"
-                placeholder="Ρωτήστε κάτι τον σύμβουλο..." onkeydown="handleAdvisorChatKeydown(event)">
+                placeholder="Ρωτήστε κάτι τον σύμβουλο..." data-i18n-placeholder="advisor_chat_placeholder" onkeydown="handleAdvisorChatKeydown(event)">
               <button type="button" id="advisor-chat-send-btn" onclick="submitCoachInput()"
                 style="flex-shrink: 0; height: 44px; width: 44px; border-radius: 16px; background: var(--accent); color: white; border: none; font-size: 16px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.2s;"><i
                   class="fa-solid fa-paper-plane"></i></button>

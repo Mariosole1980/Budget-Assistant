@@ -2711,17 +2711,35 @@ function ensureCustomDialogModal() {
   return modal;
 }
 
-function showCustomDialog({ message, title = '', icon = '💬', showCancel = false }) {
+function showCustomDialog({ message, title = '', icon = '💬', showCancel = false, confirmBtnText = '', cancelBtnText = '' }) {
   return new Promise((resolve) => {
     const modal = ensureCustomDialogModal();
+    let isResolved = false;
 
-    document.getElementById('custom-dialog-title').textContent = title || (showCancel ? (state.lang === 'el' ? 'Επιβεβαίωση' : 'Confirm') : (state.lang === 'el' ? 'Ειδοποίηση' : 'Alert'));
+    const cleanupAndResolve = (result) => {
+      if (isResolved) return;
+      isResolved = true;
+      modal.classList.remove('active');
+      modal.style.display = 'none';
+      document.body.classList.remove('modal-open');
+      modal.onclick = null;
+      resolve(result);
+    };
+
+    const isEl = (state.lang || 'el') === 'el';
+    const defaultTitle = showCancel ? (isEl ? 'Επιβεβαίωση' : 'Confirm') : (isEl ? 'Ειδοποίηση' : 'Alert');
+    const defaultCancelText = isEl ? 'Ακύρωση' : 'Cancel';
+    const defaultOkText = 'OK';
+
+    document.getElementById('custom-dialog-title').textContent = title || defaultTitle;
     document.getElementById('custom-dialog-message').innerHTML = message;
     document.getElementById('custom-dialog-icon').textContent = icon;
 
     const btnCancel = document.getElementById('custom-dialog-btn-cancel');
     const btnOk = document.getElementById('custom-dialog-btn-ok');
 
+    btnCancel.textContent = cancelBtnText || defaultCancelText;
+    btnOk.textContent = confirmBtnText || defaultOkText;
     btnCancel.style.display = showCancel ? 'block' : 'none';
 
     const newBtnCancel = btnCancel.cloneNode(true);
@@ -2732,17 +2750,23 @@ function showCustomDialog({ message, title = '', icon = '💬', showCancel = fal
     modal.classList.add('active');
     modal.style.cssText = 'display: flex !important; visibility: visible !important; opacity: 1 !important; z-index: 2147483647 !important; pointer-events: auto !important; position: fixed !important; inset: 0 !important; width: 100vw !important; height: 100vh !important; min-height: 100dvh !important; background: rgba(0, 0, 0, 0.75) !important; align-items: center !important; justify-content: center !important;';
 
-    newBtnCancel.addEventListener('click', () => {
-      modal.classList.remove('active');
-      modal.style.display = 'none';
-      resolve(false);
+    newBtnCancel.addEventListener('click', (e) => {
+      e.stopPropagation();
+      cleanupAndResolve(false);
     });
 
-    newBtnOk.addEventListener('click', () => {
-      modal.classList.remove('active');
-      modal.style.display = 'none';
-      resolve(true);
+    newBtnOk.addEventListener('click', (e) => {
+      e.stopPropagation();
+      cleanupAndResolve(true);
     });
+
+    // Close and resolve cleanly when tapping outside (backdrop) so the app NEVER hangs/freezes
+    modal.onclick = (e) => {
+      if (e.target === modal) {
+        e.stopPropagation();
+        cleanupAndResolve(showCancel ? false : true);
+      }
+    };
   });
 }
 
@@ -7041,9 +7065,10 @@ function renderCategoryBudgetsView(catGroups = {}) {
     }
 
     const scopeIcon = b.scope === 'family' ? '<i class="fa-solid fa-users" style="font-size:11px; margin-left:4px; color:var(--primary);" title="Οικογενειακό"></i>' : '';
-    // Strip leading emoji from the name since the icon is already shown in the colored box
-    const cleanCatName = stripLeadingEmoji(catInfo.name || b.category).trim() || (catInfo.name || b.category);
-    const titleLabel = b.subcategory ? `${cleanCatName} <span style="font-size:12px; opacity:0.75; font-weight:600;">(${b.subcategory})</span>` : cleanCatName;
+    // Use translated display name for category and subcategory
+    const cleanCatName = getCategoryDisplayName(catInfo.name || b.category) || stripLeadingEmoji(catInfo.name || b.category).trim();
+    const subcatDisplayName = b.subcategory ? (typeof getSubcategoryDisplayName === 'function' ? getSubcategoryDisplayName(b.subcategory) : b.subcategory) : '';
+    const titleLabel = subcatDisplayName ? `${cleanCatName} <span style="font-size:12px; opacity:0.75; font-weight:600;">(${subcatDisplayName})</span>` : cleanCatName;
 
     return `
       <div class="budget-cat-row ${isOver ? 'over-budget' : ''}" style="background: var(--bg-card); border: 1px solid ${isOver ? 'rgba(255, 91, 91, 0.4)' : 'var(--border)'}; border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px;">

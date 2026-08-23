@@ -3,8 +3,8 @@
     <!-- App background matching CSS bg-main.
          Used as native windowBackground so the OS never shows a white/black flash
          when the WebView re-renders on app resume. -->
-    <color name="app_background">#0c0d12</color>
-    <color name="colorPrimary">#0c0d12</color>
-    <color name="colorPrimaryDark">#08090d</color>
-    <color name="colorAccent">#6C63FF</color>
+    <color name="app_background">#181b22</color>
+    <color name="colorPrimary">#181b22</color>
+    <color name="colorPrimaryDark">#181b22</color>
+    <color name="colorAccent">#7c6af7</color>
 </resources>
