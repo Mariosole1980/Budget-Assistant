@@ -878,11 +878,32 @@ function applyLanguage(lang) {
     if (translation) el.placeholder = translation;
   });
 
-  // Update settings subscreen title if active
+  // Update settings subscreen title and subtitle if active
   const titleEl = document.getElementById('settings-subscreen-title');
   if (titleEl && window._currentSettingsSubscreenTitleKey) {
     const titleKey = window._currentSettingsSubscreenTitleKey;
     titleEl.textContent = (TRANSLATIONS[lang] && TRANSLATIONS[lang][titleKey]) || titleKey;
+  }
+  const subtitleEl = document.getElementById('settings-subscreen-subtitle');
+  if (subtitleEl && window._currentSettingsSubscreenId) {
+    const subscreenMeta = {
+      preferences: 'settings_pref_desc',
+      notifications: 'settings_notif_desc',
+      sync: 'settings_data_desc',
+      security: 'settings_security_desc',
+      family: 'settings_family_desc',
+      legal: 'settings_legal_desc',
+      feedback: 'settings_feedback_desc'
+    };
+    const subKey = subscreenMeta[window._currentSettingsSubscreenId];
+    if (subKey && TRANSLATIONS[lang] && TRANSLATIONS[lang][subKey]) {
+      subtitleEl.textContent = TRANSLATIONS[lang][subKey];
+    }
+  }
+
+  // Update Settings Summary Displays (Font size, week start, auto lock, etc.)
+  if (typeof updateSettingsSummaryDisplays === 'function') {
+    updateSettingsSummaryDisplays();
   }
 
   // Update Language Settings UI value
@@ -897,6 +918,11 @@ function applyLanguage(lang) {
   if (authLangEl && authLangEn) {
     authLangEl.classList.toggle('active', lang === 'el');
     authLangEn.classList.toggle('active', lang === 'en');
+  }
+
+  // Update Header Profile Badge (includes Guest / User names and badges)
+  if (typeof updateHeaderProfileBadge === 'function') {
+    updateHeaderProfileBadge();
   }
 
   // Re-render UI dynamic elements and screens
@@ -25579,8 +25605,8 @@ function updateHeaderProfileBadge() {
       moreAvatar.style.background = 'linear-gradient(135deg, var(--accent) 0%, var(--blue-positive) 100%)';
       moreAvatar.innerHTML = '<i class="fa-solid fa-user" style="font-size: 20px;"></i>';
     }
-    if (moreName) moreName.textContent = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_guest_title']) || 'Επισκέπτης (Offline)';
-    if (moreEmail) moreEmail.textContent = 'Πατήστε για σύνδεση';
+    if (moreName) moreName.textContent = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_guest_title']) || (state.lang === 'el' ? 'Επισκέπτης (Offline)' : 'Guest (Offline)');
+    if (moreEmail) moreEmail.textContent = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_guest_tap_to_signin']) || (state.lang === 'el' ? 'Πατήστε για σύνδεση' : 'Tap to sign in');
     return;
   }
 
