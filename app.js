@@ -6739,6 +6739,7 @@ function renderStatsTab(skipChart = false) {
   const displayList = breakdownList;
 
   const listContainer = document.getElementById('stats-breakdown-list');
+  const chartContainer = document.querySelector('.chart-container');
   const statsFragment = document.createDocumentFragment();
 
   const centerTitleEl = document.getElementById('chart-center-title');
@@ -6746,15 +6747,32 @@ function renderStatsTab(skipChart = false) {
   const chartCenterVal = document.getElementById('chart-center-val');
 
   if (!displayList.length) {
+    if (chartContainer) chartContainer.style.display = 'none';
     const lang = state.lang || 'el';
-    const noDataText = lang === 'el' ? 'Δεν υπάρχουν στοιχεία ακόμη' : 'No data available';
-    const addTransText = lang === 'el' ? 'Όταν προσθέσετε τα πρώτα σας έξοδα, εδώ θα βλέπετε όμορφες πίτες και αναλύσεις για το πού πηγαίνουν τα χρήματά σας.' : 'Add transactions to view your statistics.';
+    const emptyTitle = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['stats_empty_title']) || (lang === 'el' ? 'Δεν υπάρχουν δεδομένα για αυτόν τον μήνα' : 'No Data for this Month');
+    const emptyDesc = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['stats_empty_desc']) || (lang === 'el' ? 'Καταγράψτε τα έξοδά σας για να ξεκλειδώσετε αναλυτικά γραφήματα και στατιστικά ανά κατηγορία.' : 'Track your expenses to see detailed breakdown charts and category insights.');
+    const btnAddText = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['stats_empty_btn_add']) || (lang === 'el' ? '➕ Προσθήκη Συναλλαγής' : '➕ Add Transaction');
+    const btnDemoText = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['stats_empty_btn_demo']) || (lang === 'el' ? '📊 Δοκιμή με Δείγματα (Demo)' : '📊 Try Demo Mode');
+
     if (listContainer) {
       listContainer.innerHTML = `
-        <div style="text-align:center;padding:40px 20px;color:var(--text-secondary); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;">
-          <div style="font-size: 40px;">📊</div>
-          <h3 style="margin: 0; font-family: 'Outfit', sans-serif; font-size: 15px; font-weight: 700; color: var(--text-primary);">${noDataText}</h3>
-          <p style="margin: 0; font-size: 12px; color: var(--text-secondary); max-width: 220px; line-height: 1.4;">${addTransText}</p>
+        <div class="stats-empty-card">
+          <div class="stats-ghost-ring-wrapper">
+            <div class="stats-ghost-ring"></div>
+            <div class="stats-ghost-ring-inner"></div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:6px;">
+            <h3 class="stats-empty-title">${emptyTitle}</h3>
+            <p class="stats-empty-desc">${emptyDesc}</p>
+          </div>
+          <div class="stats-empty-actions">
+            <button class="stats-empty-btn-primary" onclick="openAddTransactionModal()">
+              <span>${btnAddText}</span>
+            </button>
+            <button class="stats-empty-btn-secondary" onclick="onboardingAddDemoData()">
+              <span>${btnDemoText}</span>
+            </button>
+          </div>
         </div>`;
     }
     if (!skipChart) {
@@ -6764,6 +6782,8 @@ function renderStatsTab(skipChart = false) {
     renderCategoryBudgetsView(catGroups);
     return;
   }
+
+  if (chartContainer) chartContainer.style.display = 'block';
 
   // Update high tech doughnut center text
   if (!skipChart && chartCenterVal) {
