@@ -11,10 +11,21 @@
         <item name="android:windowDisablePreview">true</item>
     </style>
 
+    <!-- COLD-START BRANDING (native-first splash):
+         The Android 12+ launch window previously showed a transparent icon on a
+         solid #171B26 background, so during the WebView cold-start the user saw a
+         "blank/grey" field before the HTML splash could render. Big apps never
+         leave this first OS-drawn frame empty: they show their logo from the very
+         first frame. splash_logo.png (288x288) is the branded square logo, drawn
+         centered by the OS while the WebView boots, so the perceived start is
+         logo -> branded HTML splash instead of blank -> branded splash.
+         Background stays #171B26 which matches the mid-point of the HTML splash
+         gradient (splash.html), giving a seamless handoff. -->
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
         <item name="android:background">#171B26</item>
         <item name="windowSplashScreenBackground">#171B26</item>
-        <item name="windowSplashScreenAnimatedIcon">@android:color/transparent</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_logo</item>
+        <item name="windowSplashScreenIconBackgroundColor">#171B26</item>
         <item name="postSplashScreenTheme">@style/AppTheme</item>
     </style>
 </resources>
