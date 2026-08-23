@@ -19,7 +19,6 @@ import android.view.Gravity;
 import android.view.PixelCopy;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.ViewTreeObserver;
 import android.view.Window;
 import android.view.WindowManager;
 import android.webkit.JavascriptInterface;
@@ -71,6 +70,13 @@ public class MainActivity extends BridgeActivity {
     // WebView first paint). It is flipped to false after the first real draw of
     // the decor view, i.e. once the WebView content is on screen.
     private volatile boolean coldStartInProgress = true;
+
+    // LAUNCH-DONE SIGNAL GUARD: Sent exactly once from the first
+    // onWindowFocusChanged(true) so the web layer can anchor the HTML splash
+    // countdown to when the launch window is actually gone and the splash is
+    // visible to the user (instead of the iframe onload, which fires while the
+    // native window still covers the screen).
+    private volatile boolean launchSignalSent = false;
 
     // DIAGNOSTIC MODE: When true, the overlay uses bright magenta so you can
     // VISUALLY confirm whether the overlay is covering the WebView on resume.
@@ -160,38 +166,11 @@ public class MainActivity extends BridgeActivity {
             createResumeOverlay();
         });
 
-        // LAUNCH-WINDOW-DONE SIGNAL (fixes the HTML splash being cut short):
-        // The very first real draw of the decor view is the moment the native
-        // launch window (system splash on Android 12+ / launch window on older
-        // APIs) is dismissed and the user can actually SEE the WebView. We tell
-        // the web layer so the HTML splash countdown (fadeOutColdStartOverlay)
-        // starts from when the splash is really visible — not from the iframe
-        // onload, which fires while the native window still covers the screen.
-        // The same moment ends the cold-start phase so applySavedTheme() may
-        // re-apply the solid theme color on subsequent resumes.
-        getWindow().getDecorView().getViewTreeObserver().addOnDrawListener(new ViewTreeObserver.OnDrawListener() {
-            private boolean fired = false;
-
-            @Override
-            public void onDraw() {
-                if (fired) return;
-                fired = true;
-                getWindow().getDecorView().getViewTreeObserver().removeOnDrawListener(this);
-                // Give the WebView a beat to composite its first content frame
-                // before anchoring the web-side splash timer.
-                mainHandler.postDelayed(() -> {
-                    coldStartInProgress = false;
-                    try {
-                        if (bridge != null && bridge.getWebView() != null) {
-                            bridge.getWebView().evaluateJavascript(
-                                    "window._markLaunchWindowGone&&window._markLaunchWindowGone()", null);
-                        }
-                    } catch (Exception e) {
-                        Log.w(TAG, "Could not signal launch window done to JS", e);
-                    }
-                }, 200);
-            }
-        });
+        // NOTE: The launch-window-done signal that anchors the web-side HTML
+        // splash countdown (window._markLaunchWindowGone) is sent from the first
+        // onWindowFocusChanged(true) below — a safe, well-established callback —
+        // instead of a ViewTreeObserver.OnDrawListener, which is unnecessary and
+        // adds a risky extra lifecycle hook on some OEM builds.
     }
 
     @Override
@@ -511,6 +490,32 @@ public class MainActivity extends BridgeActivity {
             // After Samsung Pass or any overlay dismisses and focus returns,
             // force-reset the WebView zoom to 100% via JavaScript.
             resetWebViewZoom();
+
+            // LAUNCH-WINDOW-DONE SIGNAL (fixes the HTML splash being cut short):
+            // The first time the window gains focus, the native launch window
+            // (system splash on Android 12+ / launch window on older APIs) is
+            // gone and the user can actually SEE the WebView. Tell the web layer
+            // so the HTML splash countdown (fadeOutColdStartOverlay) starts from
+            // when the splash is really visible — not from the iframe onload,
+            // which fires while the native window still covers the screen. The
+            // same moment ends the cold-start phase so applySavedTheme() may
+            // re-apply the solid theme color on subsequent resumes.
+            if (!launchSignalSent) {
+                launchSignalSent = true;
+                coldStartInProgress = false;
+                // Give the WebView a beat to composite its first content frame
+                // before anchoring the web-side splash timer.
+                mainHandler.postDelayed(() -> {
+                    try {
+                        if (bridge != null && bridge.getWebView() != null) {
+                            bridge.getWebView().evaluateJavascript(
+                                    "window._markLaunchWindowGone&&window._markLaunchWindowGone()", null);
+                        }
+                    } catch (Exception e) {
+                        Log.w(TAG, "Could not signal launch window done to JS", e);
+                    }
+                }, 200);
+            }
         }
     }
 

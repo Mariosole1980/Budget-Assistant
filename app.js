@@ -1961,15 +1961,18 @@ window._markSplashFrameLoaded = _markSplashFrameLoaded;
 
 // LAUNCH-WINDOW-DONE ANCHOR (native Android):
 // The native MainActivity signals this the moment its launch window is dismissed
-// and the user can actually SEE the WebView (first real decor draw). The HTML
+// and the user can actually SEE the WebView (first window focus). The HTML
 // splash countdown anchors to the LATEST of (splash-frame-load, launch-window-gone)
 // so the animated splash always plays its full sequence once it is truly visible —
 // instead of being cut short by a timer that started while the native window
 // (system splash on Android 12+) still covered the screen. On web/PWA there is no
 // native launch window, so this stays 0 and the iframe onload anchor is used.
+// window.__launchGoneAt is set by an inline script in index.html <head> so the
+// timestamp survives even if app.js was still loading when the signal arrived.
 let _launchWindowGoneMs = 0;
 function _markLaunchWindowGone() {
   if (!_launchWindowGoneMs) _launchWindowGoneMs = Date.now();
+  if (!window.__launchGoneAt) window.__launchGoneAt = _launchWindowGoneMs;
 }
 window._markLaunchWindowGone = _markLaunchWindowGone;
 
@@ -1989,7 +1992,7 @@ function fadeOutColdStartOverlay() {
   // that started while the native window still covered the screen.
   const anchor = Math.max(
     _splashFrameStartMs || window._splashFrameStartMs || 0,
-    _launchWindowGoneMs || 0,
+    _launchWindowGoneMs || window.__launchGoneAt || 0,
     _splashAppStartTime
   );
   const elapsed = Date.now() - anchor;

@@ -12,6 +12,15 @@
     content="331220079759-nrguc2ujof9u9mqhbn2mouhpga2iniqj.apps.googleusercontent.com">
   <script>
     window._pageLoadTimestamp = Date.now();
+    // LAUNCH-WINDOW-DONE TIMESTAMP (native Android): set by MainActivity the
+    // moment the native launch window is gone and the splash is actually visible.
+    // Defined HERE (head, before app.js loads) so the native signal is never
+    // lost even while app.js is still parsing. app.js reads window.__launchGoneAt
+    // as the anchor for the HTML splash countdown.
+    window.__launchGoneAt = 0;
+    window._markLaunchWindowGone = function () {
+      if (!window.__launchGoneAt) window.__launchGoneAt = Date.now();
+    };
     // 1. Environment Manager Redirect
     (function () {
       const override = localStorage.getItem('override_server_url');
