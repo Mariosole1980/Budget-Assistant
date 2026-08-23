@@ -3186,22 +3186,17 @@ function initSupabaseAuth() {
           // dialog. If the sync fails for some items (e.g. schema mismatch), the
           // dialog no longer re-appears on every app open — it silently retries
           // instead. Also re-checks pending count AFTER sync to avoid re-prompting.
-          // AUTO-IMPORT (no dialog): Locally-saved transactions (e.g. recorded while
-          // offline / as guest) are synced silently into the account, without asking.
-          //
-          // ACCOUNT-ISOLATION: Only sync when the cache belongs to the CURRENT account
-          // (or is unowned guest/legacy data). If a DIFFERENT account owns the local
-          // cache, do NOT import — that data belongs to another account and must not
-          // be mixed in. syncLocalTransactionsToCloud is re-entrancy-guarded, so the
-          // background flush inside loadData() and this call cannot double-insert.
+          // OFFLINE GUEST DATA PROMPT: If there are unowned transactions recorded
+          // in offline guest mode, ask the user what to do with them for this specific account.
           try {
-            const cachedOwner = localStorage.getItem('offline_transactions_owner');
-            const cacheBelongsToCurrentUser = !cachedOwner || cachedOwner === session.user.id;
-            if (cacheBelongsToCurrentUser) {
-              await syncLocalTransactionsToCloud(session.user.id, { silent: true });
+            const guestTxs = getOfflineGuestTransactions();
+            if (guestTxs.length > 0) {
+              setTimeout(() => {
+                showOfflineImportPrompt(session.user.id, session.user.email);
+              }, 600);
             }
           } catch (err) {
-            console.warn('Silent local data sync failed:', err);
+            console.warn('Offline data prompt check failed:', err);
           }
         } catch (err) {
           console.error('Error during background auth setup:', err);
@@ -4636,8 +4631,12 @@ function loadOfflineData() {
   }
 
   try {
-    const trans = localStorage.getItem('offline_transactions');
-    state.transactions = trans ? JSON.parse(trans) : [];
+    if (!state.currentUser && !localStorage.getItem('cached_current_user')) {
+      state.transactions = getOfflineGuestTransactions();
+    } else {
+      const trans = localStorage.getItem('offline_transactions');
+      state.transactions = trans ? JSON.parse(trans) : [];
+    }
   } catch (e) {
     console.error('Failed to parse offline transactions:', e);
     state.transactions = [];
@@ -5612,6 +5611,10 @@ function saveTransactionOffline(transaction) {
   state.transactions = trans;
   localStorage.setItem('offline_transactions', JSON.stringify(trans));
 
+  if (!state.currentUser) {
+    saveOfflineGuestTransactions(trans);
+  }
+
   // Check category budget limit alert
   if (typeof checkOverBudgetNotification === 'function') {
     checkOverBudgetNotification(transaction);
@@ -5622,9 +5625,12 @@ function deleteTransaction(id) {
   if (!id) return;
 
   // Delete only the transaction with this unique id.
-  // Content-based "duplicate" matching was removed because it could delete
-  // legitimate identical transactions (same date/amount/category/note).
   const idsToDelete = [String(id)];
+
+  if (!state.currentUser) {
+    const guestTxs = getOfflineGuestTransactions().filter(t => !idsToDelete.includes(String(t.id)));
+    saveOfflineGuestTransactions(guestTxs);
+  }
 
   // 1. Mark all these IDs as deleting
   idsToDelete.forEach(dId => _deletingTxIds.add(dId));
@@ -5946,6 +5952,7 @@ function _updateUIImpl() {
     } else if (state.activeTab === 'more') {
       renderPartnerSection();
       renderNotesList();
+      updateOfflineImportSettingsRow();
     }
 
     // Restore scroll position
@@ -23927,10 +23934,277 @@ function closeAuth() {
 window.closeAuth = closeAuth;
 
 // Re-entrancy guard: prevents the same local transactions from being inserted
-// into the cloud twice (with two different UUIDs) when syncLocalTransactionsToCloud
-// is invoked concurrently — e.g. the background flush inside loadData() racing with
-// the import-prompt sync in onAuthStateChange. Each insert deletes the local id and
-// lets Supabase generate a NEW uuid, so a double-run produces duplicate rows.
+// ============================================================
+// OFFLINE GUEST DATA MANAGEMENT & IDEMPOTENT CLOUD IMPORT
+// ============================================================
+
+function getOfflineGuestTransactions() {
+  try {
+    const raw = localStorage.getItem('offline_guest_transactions');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch (e) {
+    console.warn('Failed to parse offline_guest_transactions:', e);
+  }
+  // Fallback check for unowned legacy offline_transactions
+  try {
+    const owner = localStorage.getItem('offline_transactions_owner');
+    if (!owner) {
+      const rawLegacy = localStorage.getItem('offline_transactions');
+      if (rawLegacy) {
+        const parsedLegacy = JSON.parse(rawLegacy);
+        if (Array.isArray(parsedLegacy) && parsedLegacy.length > 0) {
+          const localOnly = parsedLegacy.filter(t => !t.user_id || String(t.id).startsWith('local_') || String(t.id).startsWith('demo_'));
+          if (localOnly.length > 0) return localOnly;
+        }
+      }
+    }
+  } catch (e) { }
+  return [];
+}
+
+function saveOfflineGuestTransactions(trans) {
+  try {
+    if (!Array.isArray(trans) || trans.length === 0) {
+      localStorage.removeItem('offline_guest_transactions');
+    } else {
+      localStorage.setItem('offline_guest_transactions', JSON.stringify(trans));
+    }
+  } catch (e) {
+    console.error('Failed to save offline_guest_transactions:', e);
+  }
+  updateOfflineImportSettingsRow();
+}
+
+function updateOfflineImportSettingsRow() {
+  const row = document.getElementById('settings-offline-import-row');
+  if (!row) return;
+  const count = getOfflineGuestTransactions().length;
+  if (count > 0 && state.currentUser) {
+    row.style.display = 'flex';
+    const descEl = document.getElementById('settings-offline-import-desc');
+    if (descEl) {
+      const template = (state.lang === 'el')
+        ? `Μεταφορά των ${count} τοπικών κινήσεων στον λογαριασμό σας`
+        : `Transfer ${count} local transactions to your account`;
+      descEl.textContent = template;
+    }
+  } else {
+    row.style.display = 'none';
+  }
+}
+
+function ensureOfflineImportModal() {
+  let modal = document.getElementById('offline-import-modal');
+  if (modal) return modal;
+
+  modal = document.createElement('div');
+  modal.id = 'offline-import-modal';
+  modal.className = 'modal-overlay';
+  modal.style.zIndex = '2147483647';
+  modal.innerHTML = `
+    <div class="modal-content" style="max-width: 360px; text-align: center; padding: 26px 20px; border-radius: 24px; background: var(--bg-card); border: 1px solid var(--border); box-shadow: 0 20px 60px rgba(0,0,0,0.6); display: flex; flex-direction: column; gap: 16px;">
+      <div style="width: 56px; height: 56px; border-radius: 18px; background: rgba(99,102,241,0.12); color: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 26px; margin: 0 auto;">
+        <i class="fa-solid fa-cloud-arrow-up"></i>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <h3 id="offline-import-modal-title" style="margin: 0; font-size: 17px; font-weight: 800; color: var(--text-primary); font-family: 'Outfit', sans-serif;">
+          Διαχείριση Offline Κινήσεων
+        </h3>
+        <p id="offline-import-modal-desc" style="margin: 0; font-size: 13px; color: var(--text-secondary); line-height: 1.45;">
+          Βρέθηκαν offline κινήσεις. Τι θέλετε να κάνετε για τον λογαριασμό σας;
+        </p>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 10px; width: 100%; margin-top: 4px;">
+        <!-- Option 1: Sync to Cloud -->
+        <button id="offline-import-btn-sync" class="btn btn-primary" style="padding: 13px 16px; font-size: 13.5px; font-weight: 700; border-radius: 14px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;">
+          <i class="fa-solid fa-cloud-arrow-up"></i>
+          <span id="offline-import-btn-sync-text">Μεταφορά στον Λογαριασμό</span>
+        </button>
+        <!-- Option 2: Keep Offline Only -->
+        <button id="offline-import-btn-keep" class="btn btn-secondary" style="padding: 12px 16px; font-size: 13px; font-weight: 600; border-radius: 14px; width: 100%; border: 1px solid var(--border); background: rgba(255,255,255,0.04); color: var(--text-primary); display: flex; align-items: center; justify-content: center; gap: 8px;">
+          <i class="fa-solid fa-floppy-disk"></i>
+          <span id="offline-import-btn-keep-text">Διατήρηση μόνο Offline</span>
+        </button>
+        <!-- Option 3: Discard / Delete -->
+        <button id="offline-import-btn-discard" class="btn btn-danger-outline" style="padding: 10px 16px; font-size: 12.5px; font-weight: 600; border-radius: 14px; width: 100%; border: 1px solid rgba(239,68,68,0.25); background: rgba(239,68,68,0.04); color: #ef4444; display: flex; align-items: center; justify-content: center; gap: 8px;">
+          <i class="fa-solid fa-trash"></i>
+          <span id="offline-import-btn-discard-text">Διαγραφή</span>
+        </button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  return modal;
+}
+
+let _offlinePromptInFlight = false;
+
+function showOfflineImportPrompt(userId, userEmail, isManual = false) {
+  return new Promise((resolve) => {
+    if (_offlinePromptInFlight) {
+      resolve(null);
+      return;
+    }
+
+    const guestTxs = getOfflineGuestTransactions();
+    const count = guestTxs.length;
+    if (count === 0) {
+      if (isManual) {
+        showToast(state.lang === 'el' ? 'Δεν βρέθηκαν εκκρεμείς offline κινήσεις.' : 'No pending offline transactions found.');
+      }
+      resolve(null);
+      return;
+    }
+
+    _offlinePromptInFlight = true;
+    const modal = ensureOfflineImportModal();
+    const isEl = (state.lang || 'el') === 'el';
+    const emailDisplay = userEmail || (state.currentUser?.email || 'Cloud');
+
+    const titleEl = document.getElementById('offline-import-modal-title');
+    const descEl = document.getElementById('offline-import-modal-desc');
+    const btnSyncText = document.getElementById('offline-import-btn-sync-text');
+    const btnKeepText = document.getElementById('offline-import-btn-keep-text');
+    const btnDiscardText = document.getElementById('offline-import-btn-discard-text');
+
+    if (titleEl) titleEl.textContent = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['modal_offline_import_title']) || 'Διαχείριση Offline Κινήσεων';
+    if (descEl) {
+      const descTemplate = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['modal_offline_import_desc']) || 'Βρέθηκαν {count} κινήσεις που καταγράψατε σε λειτουργία Offline. Τι θέλετε να κάνετε για τον λογαριασμό {email};';
+      descEl.textContent = descTemplate.replace('{count}', count).replace('{email}', emailDisplay);
+    }
+    if (btnSyncText) btnSyncText.textContent = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['btn_sync_to_cloud']) || '☁️ Μεταφορά στον Λογαριασμό';
+    if (btnKeepText) btnKeepText.textContent = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['btn_keep_offline_only']) || '💾 Διατήρηση μόνο Offline';
+    if (btnDiscardText) btnDiscardText.textContent = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['btn_discard_offline']) || '🗑️ Διαγραφή';
+
+    const btnSync = document.getElementById('offline-import-btn-sync');
+    const btnKeep = document.getElementById('offline-import-btn-keep');
+    const btnDiscard = document.getElementById('offline-import-btn-discard');
+
+    let resolved = false;
+    const closeModal = (choice) => {
+      if (resolved) return;
+      resolved = true;
+      _offlinePromptInFlight = false;
+      modal.classList.remove('active');
+      modal.style.display = 'none';
+      document.body.classList.remove('modal-open');
+      modal.onclick = null;
+      resolve(choice);
+    };
+
+    const newBtnSync = btnSync.cloneNode(true);
+    const newBtnKeep = btnKeep.cloneNode(true);
+    const newBtnDiscard = btnDiscard.cloneNode(true);
+
+    btnSync.parentNode.replaceChild(newBtnSync, btnSync);
+    btnKeep.parentNode.replaceChild(newBtnKeep, btnKeep);
+    btnDiscard.parentNode.replaceChild(newBtnDiscard, btnDiscard);
+
+    newBtnSync.onclick = async (e) => {
+      e.stopPropagation();
+      closeModal('sync');
+      await transferOfflineDataToAccount(userId, userEmail);
+    };
+
+    newBtnKeep.onclick = (e) => {
+      e.stopPropagation();
+      closeModal('keep');
+      updateOfflineImportSettingsRow();
+    };
+
+    newBtnDiscard.onclick = async (e) => {
+      e.stopPropagation();
+      const confirmText = ((TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['offline_discard_confirm']) || 'Είστε σίγουροι ότι θέλετε να διαγράψετε τις {count} offline κινήσεις;').replace('{count}', count);
+      const ok = await showConfirm(confirmText, '', '🗑️');
+      if (ok) {
+        localStorage.removeItem('offline_guest_transactions');
+        updateOfflineImportSettingsRow();
+        closeModal('discard');
+      }
+    };
+
+    modal.classList.add('active');
+    modal.style.cssText = 'display: flex !important; visibility: visible !important; opacity: 1 !important; z-index: 2147483647 !important; pointer-events: auto !important; position: fixed !important; inset: 0 !important; width: 100vw !important; height: 100vh !important; min-height: 100dvh !important; background: rgba(0, 0, 0, 0.75) !important; align-items: center !important; justify-content: center !important;';
+
+    modal.onclick = (e) => {
+      if (e.target === modal) {
+        e.stopPropagation();
+        closeModal('keep');
+      }
+    };
+  });
+}
+
+function triggerManualOfflineImport() {
+  if (!state.currentUser) {
+    showAuthOverlay();
+    return;
+  }
+  showOfflineImportPrompt(state.currentUser.id, state.currentUser.email, true);
+}
+
+// 100% IDEMPOTENT CLOUD UPSERT (Persistent UUIDs - Zero Duplicates)
+async function transferOfflineDataToAccount(userId, userEmail) {
+  if (!userId || !state.supabaseClient) return;
+  const guestTxs = getOfflineGuestTransactions();
+  if (guestTxs.length === 0) return;
+
+  toggleLoader(true);
+  try {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const toUpsert = guestTxs.map(t => {
+      const copy = { ...t };
+      // IDEMPOTENCY: Keep exact original UUID so repeated calls or network retries NEVER duplicate!
+      if (!copy.id || !uuidRegex.test(String(copy.id))) {
+        copy.id = generateUUID();
+      }
+      delete copy.description;
+      delete copy.is_shared;
+      delete copy.photo_local_uri;
+      delete copy.photo_url;
+      delete copy.receipt;
+      delete copy.fx_snapshot;
+      copy.user_id = userId;
+      if (state.userProfile && state.userProfile.family_id) {
+        copy.family_id = state.userProfile.family_id;
+      }
+      return copy;
+    });
+
+    _suppressRealtimeEvents = true;
+    for (let i = 0; i < toUpsert.length; i += 50) {
+      const batch = toUpsert.slice(i, i + 50);
+      const { error } = await promiseTimeout(
+        state.supabaseClient.from('transactions').upsert(batch, { onConflict: 'id' }).then(r => r),
+        60000
+      );
+      if (error) throw error;
+    }
+
+    // ONLY ON 100% SUCCESS: Clean guest storage
+    localStorage.removeItem('offline_guest_transactions');
+    updateOfflineImportSettingsRow();
+
+    // Reload user data & update UI
+    await loadData();
+    flushUI();
+
+    const successMsg = ((TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['offline_import_success']) || '🎉 {count} offline κινήσεις μεταφέρθηκαν επιτυχώς στον λογαριασμό σας!').replace('{count}', toUpsert.length);
+    showToast(successMsg, 4000);
+  } catch (err) {
+    console.error('Failed to transfer offline transactions:', err);
+    const errorMsg = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['offline_import_error']) || '❌ Προέκυψε σφάλμα κατά τη μεταφορά. Ελέγξτε τη σύνδεσή σας και δοκιμάστε ξανά.';
+    showToast(errorMsg, 4000);
+  } finally {
+    toggleLoader(false);
+    setTimeout(() => { _suppressRealtimeEvents = false; }, 3000);
+  }
+}
+
+// Background sync helper for pending local items belonging to the current user
 let _syncLocalInFlight = false;
 
 async function syncLocalTransactionsToCloud(userId, options = {}) {
@@ -23938,35 +24212,28 @@ async function syncLocalTransactionsToCloud(userId, options = {}) {
   const transStr = localStorage.getItem('offline_transactions');
   if (!transStr) return;
 
-  // If another sync is already running, skip — it will handle the pending items.
   if (_syncLocalInFlight) {
-    console.warn('syncLocalTransactionsToCloud: already in flight, skipping concurrent call.');
     return;
   }
   _syncLocalInFlight = true;
 
   try {
     const allTrans = JSON.parse(transStr) || [];
-
-    // Identify unsynced transactions (local_ prefix, no id, null user_id, or non-UUID id)
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     const localTrans = allTrans.filter(t => {
       if (!t.id) return true;
       if (String(t.id).startsWith('local_')) return true;
-      if (t.user_id === null || t.user_id === undefined) return true;
+      if (t.user_id === userId) return true;
       if (!uuidRegex.test(String(t.id))) return true;
       return false;
     });
 
     if (localTrans.length > 0) {
-
       let toInsert = localTrans.map(t => {
         const copy = { ...t };
-        delete copy.id; // Let Supabase auto-generate UUIDs
-        // Strip all client-only fields that do NOT exist as columns in the live DB
-        // (verified live: error 42703). Without this the batch insert fails with a 400.
-        // recurring_template_id DOES exist as a column, so it is intentionally KEPT
-        // so guest/local transactions synced to cloud retain their recurring link.
+        if (!copy.id || !uuidRegex.test(String(copy.id))) {
+          copy.id = generateUUID();
+        }
         delete copy.description;
         delete copy.is_shared;
         delete copy.photo_local_uri;
@@ -23980,89 +24247,26 @@ async function syncLocalTransactionsToCloud(userId, options = {}) {
         return copy;
       });
 
-      // PREMIUM GATE: Free plan allows up to PREMIUM_LIMITS.cloudTxPerMonth
-      // cloud-synced transactions per month. If the user is at the limit and
-      // not Premium, only sync up to the remaining allowance. The rest stay
-      // local (offline_transactions) — they are NEVER deleted, preserving data.
-      if (!isPremium()) {
-        try {
-          const monthStart = new Date();
-          monthStart.setDate(1);
-          monthStart.setHours(0, 0, 0, 0);
-          const { count } = await promiseTimeout(
-            state.supabaseClient
-              .from('transactions')
-              .select('id', { count: 'exact', head: true })
-              .eq('user_id', userId)
-              .eq('status', 'active')
-              .gte('created_at', monthStart.toISOString())
-              .then(r => r),
-            8000
-          ).catch(() => ({ count: 0 }));
-          const used = count || 0;
-          const remaining = Math.max(0, PREMIUM_LIMITS.cloudTxPerMonth - used);
-          if (toInsert.length > remaining) {
-            const deferred = toInsert.slice(remaining);
-            toInsert = toInsert.slice(0, remaining);
-            if (deferred.length > 0) {
-              showSyncToast(
-                state.lang === 'el'
-                  ? `⭐ Έφτασες το μηνιαίο όριο cloud (${PREMIUM_LIMITS.cloudTxPerMonth}). Οι υπόλοιπες μένουν τοπικά. Αναβάθμισε σε Premium για απεριόριστες κινήσεις!`
-                  : `⭐ You reached the monthly cloud limit (${PREMIUM_LIMITS.cloudTxPerMonth}). The rest stay local. Upgrade to Premium for unlimited transactions!`,
-                5000
-              );
-            }
-          }
-        } catch (err) {
-          console.warn('Cloud limit check failed, syncing all:', err);
-        }
-      }
-
-      if (toInsert.length === 0) {
-        return;
-      }
-
-      // Suppress realtime events during batch insert so the resulting INSERT
-      // events don't trigger handleRealtimeTransactionChange and cause flicker.
       _suppressRealtimeEvents = true;
       try {
-        // Batch sync in groups of 50 to avoid timeouts
-        let hasError = false;
-        let lastErr = null;
         for (let i = 0; i < toInsert.length; i += 50) {
           const batch = toInsert.slice(i, i + 50);
           const { error } = await promiseTimeout(state.supabaseClient
             .from('transactions')
-            .insert(batch).then(r => r), 60000);
-          if (error) {
-            hasError = true;
-            lastErr = error;
-            break;
-          }
+            .upsert(batch, { onConflict: 'id' }).then(r => r), 60000);
+          if (error) throw error;
         }
 
-        if (hasError) {
-          console.error('Failed to sync guest transactions:', lastErr);
-        } else {
-          // Remove synced transactions from offline cache
-          const cleanOffline = allTrans.filter(t => !localTrans.includes(t));
-          localStorage.setItem('offline_transactions', JSON.stringify(cleanOffline));
-          // ACCOUNT-ISOLATION: The remaining cache now belongs to this user.
-          localStorage.setItem('offline_transactions_owner', userId);
-
-          if (!silent) {
-            alert(`🎉 ${localTrans.length} τοπικές κινήσεις που είχατε καταγράψει μεταφέρθηκαν αυτόματα στον λογαριασμό σας!`);
-          }
-        }
+        const cleanOffline = allTrans.filter(t => !localTrans.includes(t));
+        localStorage.setItem('offline_transactions', JSON.stringify(cleanOffline));
+        localStorage.setItem('offline_transactions_owner', userId);
       } finally {
-        // Re-enable realtime events after a short delay to let in-flight events drain
         setTimeout(() => { _suppressRealtimeEvents = false; }, 5000);
       }
     }
   } catch (err) {
     console.error('Error in syncLocalTransactionsToCloud:', err);
   } finally {
-    // Always release the re-entrancy guard so future syncs can run.
     _syncLocalInFlight = false;
   }
 }
@@ -24070,6 +24274,8 @@ async function syncLocalTransactionsToCloud(userId, options = {}) {
 window.enterGuestMode = enterGuestMode;
 window.showAuthOverlay = showAuthOverlay;
 window.syncLocalTransactionsToCloud = syncLocalTransactionsToCloud;
+window.triggerManualOfflineImport = triggerManualOfflineImport;
+window.showOfflineImportPrompt = showOfflineImportPrompt;
 
 // ============================================================
 // REAL-TIME SYNC & OFFLINE QUEUE SYSTEM
@@ -33442,6 +33648,16 @@ const USER_GUIDE_DATA = {
             <p style="margin:0;">Όλες οι συναλλαγές σας αποθηκεύονται ακαριαία στη συσκευή (Offline) και μόλις υπάρχει σύνδεση στο Διαδίκτυο συγχρονίζονται αυτόματα στο ασφαλές Cloud (Supabase).</p>
           </div>
           <div class="guide-feature-box">
+            <h5 style="margin:0 0 4px; color:var(--text-main);">📥 Έξυπνη Μεταφορά από Offline σε Cloud Λογαριασμό:</h5>
+            <p style="margin:0 0 6px;">Μπορείτε να ξεκινήσετε άφοβα ως Offline Επισκέπτης. Μόλις συνδεθείτε ή δημιουργήσετε λογαριασμό, η εφαρμογή σας δίνει 3 επιλογές:</p>
+            <ul class="guide-step-list" style="margin:0; padding-left:16px;">
+              <li><strong>☁️ Μεταφορά στον Λογαριασμό:</strong> Οι offline κινήσεις συγχωνεύονται στον συνδεδεμένο λογαριασμό σας με 100% ασφάλεια και προστασία από διπλότυπα (Persistent UUIDs).</li>
+              <li><strong>💾 Διατήρηση μόνο Offline:</strong> Οι κινήσεις μένουν τοπικά στη συσκευή για το offline mode, ενώ ο online λογαριασμός παραμένει καθαρός.</li>
+              <li><strong>🗑️ Διαγραφή:</strong> Οριστικός καθαρισμός αν ήταν απλώς δοκιμαστικά δεδομένα.</li>
+            </ul>
+            <p style="margin:6px 0 0; font-size:12px; color:var(--accent);">💡 <em>Μπορείτε επίσης να εκτελέσετε τη μεταφορά ανά πάσα στιγμή από τις Ρυθμίσεις -> Εισαγωγή Offline Κινήσεων.</em></p>
+          </div>
+          <div class="guide-feature-box">
             <h5 style="margin:0 0 4px; color:var(--text-main);">👩‍❤️‍👨 Σύνδεση Συντρόφου / Οικογένειας:</h5>
             <p style="margin:0;">Στο Προφίλ μπορείτε να συνδέσετε το λογαριασμό σας με τον/την σύντροφό σας. Όλες οι κοινές συναλλαγές εμφανίζονται αμέσως και στις δύο συσκευές σε πραγματικό χρόνο!</p>
           </div>
@@ -33673,6 +33889,16 @@ const USER_GUIDE_DATA = {
           <div class="guide-feature-box">
             <h5 style="margin:0 0 4px; color:var(--text-main);">☁️ Real-time Cloud Sync:</h5>
             <p style="margin:0;">Transactions are stored instantly on-device (Offline) and automatically synced to Supabase Cloud whenever internet is available.</p>
+          </div>
+          <div class="guide-feature-box">
+            <h5 style="margin:0 0 4px; color:var(--text-main);">📥 Smart Offline-to-Cloud Migration:</h5>
+            <p style="margin:0 0 6px;">Feel free to start as an Offline Guest. The moment you sign in or register with an account, the app offers 3 flexible choices:</p>
+            <ul class="guide-step-list" style="margin:0; padding-left:16px;">
+              <li><strong>☁️ Transfer to Account:</strong> Merges your offline transactions into your cloud account with 100% safety and zero duplicates (Persistent UUIDs).</li>
+              <li><strong>💾 Keep Offline Only:</strong> Keeps transactions stored locally on the device for guest mode, leaving the cloud account clean.</li>
+              <li><strong>🗑️ Delete / Discard:</strong> Permanently cleans up test data if you don't need it.</li>
+            </ul>
+            <p style="margin:6px 0 0; font-size:12px; color:var(--accent);">💡 <em>You can also trigger the transfer anytime via Settings -> Import Offline Transactions.</em></p>
           </div>
           <div class="guide-callout-tip">
             📡 <strong>Offline Capability:</strong> Everything works offline! You can add, edit, or delete transactions without internet connection.

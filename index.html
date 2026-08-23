@@ -2263,6 +2263,21 @@
                 style="color:var(--text-muted); font-size:12px; margin-left:10px;"></i>
             </div>
 
+            <!-- CARD: IMPORT OFFLINE DATA (shown when offline guest transactions exist) -->
+            <div class="settings-list-item" id="settings-offline-import-row" onclick="triggerManualOfflineImport()"
+              style="display:none; cursor:pointer; border-radius:14px; padding:14px 16px; background:rgba(99,102,241,0.08); border:1px solid rgba(99,102,241,0.3); align-items:center; justify-content:space-between;">
+              <div style="display:flex; flex-direction:column; gap:4px; flex:1;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <i class="fa-solid fa-cloud-arrow-up" style="color:var(--accent); font-size:16px;"></i>
+                  <span class="settings-item-label" style="font-weight:700; font-size:14px; color:var(--text-primary);"
+                    id="settings-offline-import-title" data-i18n="settings_import_offline_title">Εισαγωγή Offline Κινήσεων</span>
+                </div>
+                <span id="settings-offline-import-desc" style="font-size:11.5px; color:var(--text-secondary);" data-i18n="settings_import_offline_desc">Μεταφορά των τοπικών κινήσεων στον τρέχοντα λογαριασμό</span>
+              </div>
+              <i class="fa-solid fa-chevron-right"
+                style="color:var(--accent); font-size:12px; margin-left:10px;"></i>
+            </div>
+
             <!-- CARD: DEMO DATA MANAGEMENT -->
             <div class="settings-list-item" id="sync-demo-load-row" onclick="onboardingAddDemoData()"
               style="cursor:pointer; border-radius:14px; padding:14px 16px; background:rgba(245,158,11,0.06); border:1px solid rgba(245,158,11,0.25); display:flex; align-items:center; justify-content:space-between;">
