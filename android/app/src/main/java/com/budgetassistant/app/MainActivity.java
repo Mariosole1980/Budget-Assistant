@@ -293,15 +293,11 @@ public class MainActivity extends BridgeActivity {
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.MATCH_PARENT));
 
-            // Set initial background to the theme color. Used during cold start
-            // (no bitmap available yet) and as fallback when capture fails.
-            SharedPreferences prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-            String bgColor = prefs.getString(KEY_BG_COLOR, "#181b22");
+            // Set initial background to the splash drawable (glow background) for cold start.
             try {
-                resumeOverlay.setBackgroundColor(Color.parseColor(
-                        DIAGNOSTIC_OVERLAY_COLOR ? DIAGNOSTIC_COLOR : bgColor));
+                resumeOverlay.setBackground(androidx.core.content.ContextCompat.getDrawable(this, R.drawable.splash));
             } catch (Exception e) {
-                resumeOverlay.setBackgroundColor(Color.parseColor("#181b22"));
+                resumeOverlay.setBackgroundColor(Color.parseColor("#171B26"));
             }
 
             // TRANSLUCENT pixel format ensures the overlay is ALWAYS composited
@@ -372,17 +368,14 @@ public class MainActivity extends BridgeActivity {
                 .start();
     }
 
-    /** Reset the overlay background to the current theme's solid color. */
+    /** Reset the overlay background to the splash drawable. */
     private void restoreOverlaySolidColor() {
         if (resumeOverlay == null)
             return;
-        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-        String bgColor = prefs.getString(KEY_BG_COLOR, "#181b22");
         try {
-            resumeOverlay.setBackgroundColor(Color.parseColor(
-                    DIAGNOSTIC_OVERLAY_COLOR ? DIAGNOSTIC_COLOR : bgColor));
+            resumeOverlay.setBackground(androidx.core.content.ContextCompat.getDrawable(this, R.drawable.splash));
         } catch (Exception e) {
-            resumeOverlay.setBackgroundColor(Color.parseColor("#181b22"));
+            resumeOverlay.setBackgroundColor(Color.parseColor("#171B26"));
         }
     }
 
