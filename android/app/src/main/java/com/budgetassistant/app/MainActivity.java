@@ -66,7 +66,6 @@ public class MainActivity extends BridgeActivity {
     public void onResume() {
         super.onResume();
         applySecureMode();
-        applySavedTheme();
     }
 
     // =========================================================================
@@ -131,7 +130,6 @@ public class MainActivity extends BridgeActivity {
         super.onWindowFocusChanged(hasFocus);
         if (hasFocus) {
             lockWebViewSettings();
-            resetWebViewZoom();
         }
     }
 
@@ -149,7 +147,6 @@ public class MainActivity extends BridgeActivity {
                 settings.setDefaultFontSize(16);
                 settings.setMinimumFontSize(1);
                 settings.setMinimumLogicalFontSize(1);
-                // Force initial scale to 100% — prevents Samsung Pass autofill zoom
                 wv.setInitialScale(100);
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     wv.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS);
@@ -157,36 +154,6 @@ public class MainActivity extends BridgeActivity {
             }
         } catch (Exception e) {
             Log.w(TAG, "Could not lock WebView settings", e);
-        }
-    }
-
-    /**
-     * Force-resets the WebView zoom/scale back to 1.0 after Samsung Pass
-     * or any system overlay that may have caused an unwanted zoom.
-     */
-    private void resetWebViewZoom() {
-        try {
-            if (bridge != null && bridge.getWebView() != null) {
-                WebView wv = bridge.getWebView();
-                wv.setInitialScale(100);
-                wv.evaluateJavascript(
-                    "(function(){" +
-                    "  var vp = document.querySelector('meta[name=viewport]');" +
-                    "  if(vp){" +
-                    "    vp.setAttribute('content','width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no,shrink-to-fit=no,viewport-fit=cover');" +
-                    "  }" +
-                    "  window.scrollTo(0,0);" +
-                    "  document.body.scrollTop=0;" +
-                    "  document.documentElement.scrollTop=0;" +
-                    "  if(window.visualViewport && window.visualViewport.scale !== 1){" +
-                    "    document.body.style.zoom='1';" +
-                    "  }" +
-                    "})();",
-                    null
-                );
-            }
-        } catch (Exception e) {
-            Log.w(TAG, "Could not reset WebView zoom", e);
         }
     }
 }

@@ -25448,32 +25448,10 @@ function _handleAppResumed() {
   // Re-establish realtime channel in case connection was dropped by OS
   setupSupabaseRealtimeSubscription();
 
-  // GUARANTEE the content-painted signal fires on EVERY resume. The native overlay
-  // is only hidden when _notifyNativeContentPainted() runs at the end of
-  // _updateUIImpl(). But handleAppForegroundSync() only triggers forceSyncNow()
-  // (which calls updateUI()) when the app was backgrounded > 30s. For shorter
-  // backgrounds no updateUI() would run, so the native overlay would linger until
-  // the 2000ms fallback timer — and worse, the UI might not refresh. Calling
-  // updateUI() here (coalesced via rAF) guarantees the real content is re-painted
-  // and the native overlay is hidden promptly after that paint. The no-transitions
-  // guard (_RESUME_GUARD_MS) keeps this render flicker-free.
-  if (typeof updateUI === 'function') {
-    updateUI();
-  }
-
-  // UNAUTHENTICATED RESUME: When the login card is showing, _updateUIImpl() returns
-  // early (security guard) so _notifyNativeContentPainted() never fires and the
-  // native overlay would linger until the 2000ms fallback. The login card is static
-  // content that is already painted, so signal the native overlay to hide after a
-  // short delay (matching the native minimum-visible-time) to reveal it promptly.
-  if (_isNativeAndroid && typeof window._isAuthenticated === 'function' &&
-    !window._isAuthenticated() && window.NativeApp &&
-    typeof window.NativeApp.onFirstPaint === 'function') {
-    setTimeout(() => {
-      try { window.NativeApp.onFirstPaint(); } catch (e) { /* fail silently */ }
-    }, 500);
-  }
-
+  // Background sync is handled smoothly by handleAppForegroundSync() after 1.5s
+  // only if >30s have elapsed. We do NOT call updateUI() synchronously here,
+  // because the DOM is already preserved in memory and rebuilding it on every quick
+  // app switch caused visible flickering.
   handleAppForegroundSync();
 }
 
