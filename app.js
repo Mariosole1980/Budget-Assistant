@@ -6206,8 +6206,9 @@ function renderTransactionsTab(containerOverride, yearOverride, monthOverride) {
   }
 
   if (sortedTrans.length === 0) {
-    if (listContainer._lastRenderSignature === 'empty') return;
-    listContainer._lastRenderSignature = 'empty';
+    const emptySig = 'empty_' + (state.lang || 'el');
+    if (listContainer._lastRenderSignature === emptySig) return;
+    listContainer._lastRenderSignature = emptySig;
 
     const lang = state.lang || 'el';
     const title = lang === 'el' ? 'Δεν έχετε προσθέσει κάτι ακόμα' : 'No transactions found';
