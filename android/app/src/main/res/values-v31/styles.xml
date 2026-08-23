@@ -8,9 +8,9 @@
          the app theme instead of showing a default (often black) background on
          cold start / process death recreation. -->
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
-        <item name="android:background">#171B26</item>
+        <item name="android:windowBackground">#171B26</item>
         <item name="windowSplashScreenBackground">#171B26</item>
-        <item name="windowSplashScreenAnimatedIcon">@android:color/transparent</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_icon</item>
         <item name="postSplashScreenTheme">@style/AppTheme</item>
     </style>
 </resources>

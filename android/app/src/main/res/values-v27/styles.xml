@@ -2,10 +2,13 @@
 <resources>
 
     <!-- Android 8.0 – 11 (API 27–30): pre-Splash-API devices.
-         Uses the splash drawable as the window background so the launch window
-         shows the branded splash image instead of a blank/black frame. -->
+         The launch window is a plain solid #171B26 screen (no photo, no icon)
+         so it transitions straight into the HTML splash instead of showing the
+         old full-screen splash.png which looked stretched/broken on devices. -->
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.AppCompat.DayNight.NoActionBar">
-        <item name="android:windowBackground">@drawable/splash</item>
+        <item name="android:windowBackground">#171B26</item>
         <item name="android:windowDisablePreview">true</item>
+        <item name="windowSplashScreenBackground">#171B26</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_icon</item>
     </style>
 </resources>
