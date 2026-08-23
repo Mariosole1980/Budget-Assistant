@@ -85,7 +85,11 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        androidx.core.splashscreen.SplashScreen.installSplashScreen(this);
+        try {
+            androidx.core.splashscreen.SplashScreen.installSplashScreen(this);
+        } catch (Throwable t) {
+            Log.w(TAG, "SplashScreen.installSplashScreen failed, falling back to standard theme", t);
+        }
         super.onCreate(savedInstanceState);
         SharedPreferences earlyPrefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         String earlyBg = earlyPrefs.getString(KEY_BG_COLOR, "#181b22");
