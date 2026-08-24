@@ -695,7 +695,14 @@
         "budget_saved_toast": "✓ Ο προϋπολογισμός αποθηκεύτηκε",
         "budget_deleted_toast": "🗑️ Ο προϋπολογισμός διαγράφηκε",
         "budget_select_cat_first": "Παρακαλώ επιλέξτε πρώτα κατηγορία",
-        "btn_select": "Επιλογή"
+        "btn_select": "Επιλογή",
+        "recurring_delete_title": "Διαγραφή επαναλαμβανόμενης κίνησης",
+        "recurring_delete_desc": "Η κίνηση αυτή ανήκει σε μια επανάληψη. Τι ακριβώς θέλετε να διαγραφεί;",
+        "recurring_delete_opt_single": "Μόνο αυτή την κίνηση",
+        "recurring_delete_opt_future": "Αυτή και οι μελλοντικές",
+        "recurring_delete_opt_all": "Όλες τις κινήσεις της επανάληψης",
+        "recurring_delete_all_title": "Διαγραφή όλων των κινήσεων;",
+        "recurring_delete_all_desc": "Θα διαγραφούν όλες οι κινήσεις αυτής της επανάληψης. Είστε σίγουρος/η ότι θέλετε να συνεχίσετε;"
 },
       en: {
         "nav_trans": "Transactions",
@@ -1375,7 +1382,14 @@
         "budget_saved_toast": "✓ Budget saved",
         "budget_deleted_toast": "🗑️ Budget deleted",
         "budget_select_cat_first": "Please select a category first",
-        "btn_select": "Select"
+        "btn_select": "Select",
+        "recurring_delete_title": "Delete Recurring Transaction",
+        "recurring_delete_desc": "This transaction belongs to a recurring series. What would you like to delete?",
+        "recurring_delete_opt_single": "Only this transaction",
+        "recurring_delete_opt_future": "This and future transactions",
+        "recurring_delete_opt_all": "All transactions in the series",
+        "recurring_delete_all_title": "Delete all transactions?",
+        "recurring_delete_all_desc": "All transactions in this recurring series will be deleted. Are you sure you want to proceed?"
 }
     };
 

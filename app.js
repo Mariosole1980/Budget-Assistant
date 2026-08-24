@@ -34419,6 +34419,15 @@ function openRecurringDeleteModal(target, occurrenceDateStr, opts) {
     accountFrom
   };
 
+  const lang = state.lang || 'el';
+  const dict = (typeof TRANSLATIONS !== 'undefined' && TRANSLATIONS[lang]) ? TRANSLATIONS[lang] : {};
+  document.querySelectorAll('#recurring-delete-step1-modal [data-i18n], #recurring-delete-step2-modal [data-i18n]').forEach(el => {
+    const k = el.getAttribute('data-i18n');
+    if (k && dict[k]) {
+      el.textContent = dict[k];
+    }
+  });
+
   const singleRadio = document.querySelector('input[name="recurring_delete_scope"][value="single"]');
   if (singleRadio) singleRadio.checked = true;
 
@@ -34429,22 +34438,56 @@ function openRecurringDeleteModal(target, occurrenceDateStr, opts) {
 }
 window.openRecurringDeleteModal = openRecurringDeleteModal;
 
+let _isExecutingRecurringDelete = false;
+
 function handleRecurringDeleteStep1() {
   const selectedScope = document.querySelector('input[name="recurring_delete_scope"]:checked')?.value || 'single';
 
+  const modal1 = document.getElementById('recurring-delete-step1-modal');
+  if (modal1) modal1.classList.remove('active');
+  closeModal('recurring-delete-step1-modal', { userInitiated: true });
+
   if (selectedScope === 'all') {
-    closeModal('recurring-delete-step1-modal');
-    openModal('recurring-delete-step2-modal');
+    const btn2 = document.getElementById('recurring-delete-step2-confirm-btn');
+    if (btn2) {
+      btn2.disabled = false;
+      btn2.style.opacity = '1';
+      btn2.style.pointerEvents = 'auto';
+    }
+    openModal('recurring-delete-step2-modal', { instant: true });
   } else {
-    closeModal('recurring-delete-step1-modal');
     executeRecurringDelete(selectedScope);
   }
 }
 window.handleRecurringDeleteStep1 = handleRecurringDeleteStep1;
 
 function handleRecurringDeleteStep2() {
-  closeModal('recurring-delete-step2-modal');
-  executeRecurringDelete('all');
+  if (_isExecutingRecurringDelete) return;
+  _isExecutingRecurringDelete = true;
+
+  const btn = document.getElementById('recurring-delete-step2-confirm-btn');
+  if (btn) {
+    btn.disabled = true;
+    btn.style.opacity = '0.6';
+    btn.style.pointerEvents = 'none';
+  }
+
+  const modal1 = document.getElementById('recurring-delete-step1-modal');
+  if (modal1) modal1.classList.remove('active');
+  const modal2 = document.getElementById('recurring-delete-step2-modal');
+  if (modal2) modal2.classList.remove('active');
+
+  closeModal('recurring-delete-step2-modal', { userInitiated: true });
+  closeModal('recurring-delete-step1-modal', { userInitiated: true });
+
+  executeRecurringDelete('all').finally(() => {
+    _isExecutingRecurringDelete = false;
+    if (btn) {
+      btn.disabled = false;
+      btn.style.opacity = '1';
+      btn.style.pointerEvents = 'auto';
+    }
+  });
 }
 window.handleRecurringDeleteStep2 = handleRecurringDeleteStep2;
 
@@ -34571,6 +34614,13 @@ function _computeRecurringSeriesDates(template) {
 }
 
 async function executeRecurringDelete(scope) {
+  const m1 = document.getElementById('recurring-delete-step1-modal');
+  if (m1) m1.classList.remove('active');
+  const m2 = document.getElementById('recurring-delete-step2-modal');
+  if (m2) m2.classList.remove('active');
+  closeModal('recurring-delete-step1-modal', { userInitiated: true });
+  closeModal('recurring-delete-step2-modal', { userInitiated: true });
+
   const ctx = window._activeRecurringDeleteContext;
   if (!ctx) return;
 
