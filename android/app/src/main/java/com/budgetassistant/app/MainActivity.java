@@ -370,12 +370,16 @@ public class MainActivity extends BridgeActivity {
                     ViewGroup.LayoutParams.MATCH_PARENT);
             resumeOverlay.setLayoutParams(lp);
 
-            // Set initial background to the splash drawable (glow background) for cold start.
+            // Set initial solid background matching the saved theme (prevents any splash glow leakage)
+            SharedPreferences earlyPrefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+            String earlyBg = earlyPrefs.getString(KEY_BG_COLOR, "#181b22");
+            int initialBgColor = Color.parseColor("#181b22");
             try {
-                resumeOverlay.setBackground(androidx.core.content.ContextCompat.getDrawable(this, R.drawable.splash));
+                initialBgColor = Color.parseColor(earlyBg);
             } catch (Exception e) {
-                resumeOverlay.setBackgroundColor(Color.parseColor("#171B26"));
+                // Fallback to default dark
             }
+            resumeOverlay.setBackgroundColor(initialBgColor);
 
             // Dedicated snapshot image view positioned with exact WebView bounds (x, y, w, h)
             snapshotImageView = new ImageView(this);
@@ -439,7 +443,7 @@ public class MainActivity extends BridgeActivity {
                 .start();
     }
 
-    /** Reset the overlay background to the splash drawable. */
+    /** Reset the overlay background to the solid theme color. Never use R.drawable.splash. */
     private void restoreOverlaySolidColor() {
         if (snapshotImageView != null) {
             snapshotImageView.setImageDrawable(null);
@@ -447,11 +451,15 @@ public class MainActivity extends BridgeActivity {
         }
         if (resumeOverlay == null)
             return;
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        String bgColor = prefs.getString(KEY_BG_COLOR, "#181b22");
+        int bgVal = Color.parseColor("#181b22");
         try {
-            resumeOverlay.setBackground(androidx.core.content.ContextCompat.getDrawable(this, R.drawable.splash));
+            bgVal = Color.parseColor(bgColor);
         } catch (Exception e) {
-            resumeOverlay.setBackgroundColor(Color.parseColor("#171B26"));
+            // Fallback to default dark
         }
+        resumeOverlay.setBackgroundColor(bgVal);
     }
 
     // =========================================================================
