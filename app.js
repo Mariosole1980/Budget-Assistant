@@ -9595,6 +9595,16 @@ function setupEventListeners() {
     updateAIScanQuotaBadge();
     const modalEl = document.getElementById('receipt-photo-source-modal');
     if (modalEl) {
+      // FIX (stuck picker): If the sheet was left mid-fade by a previous flow
+      // (e.g. the close transition was interrupted when the native camera opened
+      // / closed the app), force it back to a fully-closed state before opening
+      // again — otherwise openModal() re-activates an invisible full-screen
+      // overlay (opacity 0 / visibility stuck) that swallows every tap and the
+      // camera icon appears "dead".
+      modalEl.classList.remove('active');
+      modalEl.style.opacity = '';
+      modalEl.style.visibility = '';
+      modalEl.style.pointerEvents = '';
       if (typeof ensureOverlayInBody === 'function') ensureOverlayInBody(modalEl);
       if (modalEl.parentElement === document.body) {
         document.body.appendChild(modalEl); // re-append to be visually on top of active transaction modal
@@ -9608,7 +9618,11 @@ function setupEventListeners() {
       e.preventDefault();
       e.stopPropagation();
     }
-    closeModal('receipt-photo-source-modal');
+    // userInitiated: the user explicitly chose this option, so closing the sheet
+    // must NEVER be blocked by the resume anti-ghost-click guard — otherwise a
+    // stuck full-screen overlay (z-index 25000) swallows every later tap on the
+    // camera icon ("camera dead" after the first scan).
+    closeModal('receipt-photo-source-modal', { userInitiated: true });
     if (document.activeElement && typeof document.activeElement.blur === 'function') {
       document.activeElement.blur();
     }
@@ -9626,6 +9640,9 @@ function setupEventListeners() {
 
     const aiCameraInput = document.getElementById('trans-ai-camera-input');
     if (aiCameraInput) {
+      // Reset the hidden input so Android WebView reliably re-opens the camera
+      // on a second AI scan (a leftover value can make .click() a silent no-op).
+      aiCameraInput.value = '';
       setTimeout(() => {
         aiCameraInput.click();
       }, 60);
@@ -9637,12 +9654,15 @@ function setupEventListeners() {
       e.preventDefault();
       e.stopPropagation();
     }
-    closeModal('receipt-photo-source-modal');
+    // userInitiated: never let the resume guard block closing the sheet.
+    closeModal('receipt-photo-source-modal', { userInitiated: true });
     if (document.activeElement && typeof document.activeElement.blur === 'function') {
       document.activeElement.blur();
     }
     const cameraInput = document.getElementById('trans-camera-input');
     if (cameraInput) {
+      // Reset the hidden input so the camera re-opens reliably on a second use.
+      cameraInput.value = '';
       setTimeout(() => {
         cameraInput.click();
       }, 60);
@@ -9654,12 +9674,14 @@ function setupEventListeners() {
       e.preventDefault();
       e.stopPropagation();
     }
-    closeModal('receipt-photo-source-modal');
+    // userInitiated: never let the resume guard block closing the sheet.
+    closeModal('receipt-photo-source-modal', { userInitiated: true });
     if (document.activeElement && typeof document.activeElement.blur === 'function') {
       document.activeElement.blur();
     }
     const photoInput = document.getElementById('trans-photo-input');
     if (photoInput) {
+      photoInput.value = '';
       setTimeout(() => {
         photoInput.click();
       }, 60);
@@ -9668,7 +9690,7 @@ function setupEventListeners() {
 
   function handleReceiptPhotoSourceOverlayClick(e) {
     if (e.target.id === 'receipt-photo-source-modal') {
-      closeModal('receipt-photo-source-modal');
+      closeModal('receipt-photo-source-modal', { userInitiated: true });
     }
   }
 
@@ -9705,6 +9727,8 @@ function setupEventListeners() {
     });
   }
 
+  let _aiScanInFlight = false;
+
   async function processReceiptImageWithAI(file) {
     if (!file) return;
 
@@ -9718,6 +9742,18 @@ function setupEventListeners() {
       }
       return;
     }
+
+    // RE-ENTRANCY GUARD: Some Android WebViews fire the hidden file input's
+    // 'change' event TWICE for a single capture, and a user may also tap the
+    // camera twice quickly. Only ONE AI scan may run at a time — a duplicate
+    // concurrent call would double-charge the scan quota and could surface a
+    // misleading "recognition failed" toast (e.g. the duplicate request being
+    // rate-limited after the first one already filled the fields).
+    if (_aiScanInFlight) {
+      console.warn('AI receipt scan already in progress — ignoring duplicate trigger.');
+      return;
+    }
+    _aiScanInFlight = true;
 
     // 1. Add image to pending receipt photos (so user sees thumbnail preview immediately)
     const url = URL.createObjectURL(file);
@@ -9781,84 +9817,115 @@ function setupEventListeners() {
       const data = json.data;
       if (banner) banner.style.display = 'none';
 
-      // 6. Increment quota for free users
+      // 6. Increment quota for free users (guarded: a quota bookkeeping hiccup
+      // must never turn a successful scan into a "recognition failed" toast).
       if (!quota.isPro) {
-        localStorage.setItem(quota.monthKey, String(quota.used + 1));
-        updateAIScanQuotaBadge();
-      }
-
-      // 7. Auto-fill form fields
-      if (data.amount && !isNaN(Number(data.amount)) && Number(data.amount) > 0) {
-        const amtNum = parseFloat(data.amount);
-        const amtStr = String(amtNum);
-        const amountInput = document.getElementById('trans-amount');
-        if (amountInput) amountInput.value = formatCalcDisplay(amtStr);
-        if (window.calculatorKeypadState) {
-          window.calculatorKeypadState.currentValue = amtStr;
+        try {
+          localStorage.setItem(quota.monthKey, String(quota.used + 1));
+          updateAIScanQuotaBadge();
+        } catch (qErr) {
+          console.warn('AI scan quota increment warning:', qErr);
         }
       }
 
-      if (data.merchant) {
-        const noteInput = document.getElementById('trans-note');
-        if (noteInput) noteInput.value = data.merchant;
-      }
-
-      if (data.date) {
-        let dVal = data.date;
-        if (data.time) {
-          dVal = `${dVal}T${data.time}`;
-        } else {
-          const now = new Date();
-          const hrs = String(now.getHours()).padStart(2, '0');
-          const mins = String(now.getMinutes()).padStart(2, '0');
-          dVal = `${dVal}T${hrs}:${mins}`;
+      // 7. Auto-fill form fields — DEFENSIVE on purpose. A single malformed AI
+      // value (non-string category, invalid date, odd amount) or a UI hiccup
+      // must NEVER fall into the outer catch — otherwise the user sees the
+      // "Δεν ήταν δυνατή η αναγνώριση" failure toast AFTER the fields were
+      // already filled by a successful scan. All autofill runs inside its own
+      // try/catch so partial fills stay filled and success is still reported.
+      try {
+        const amtNum = Number(data.amount);
+        if (data.amount !== undefined && data.amount !== null && !isNaN(amtNum) && amtNum > 0) {
+          const amtStr = String(amtNum);
+          const amountInput = document.getElementById('trans-amount');
+          if (amountInput) amountInput.value = formatCalcDisplay(amtStr);
+          if (window.calculatorKeypadState) {
+            window.calculatorKeypadState.currentValue = amtStr;
+          }
         }
-        const dateInput = document.getElementById('trans-date');
-        const dateDisplay = document.getElementById('trans-date-display');
-        if (dateInput) dateInput.value = dVal;
-        if (dateDisplay) dateDisplay.textContent = formatGreekDateTime(dVal);
-      }
 
-      // Match Category
-      if (data.category && state.categories) {
-        const cleanTarget = data.category.toLowerCase().replace(/^[^\w\s\u0370-\u03ff]+/, '').trim();
-        const matchedCat = state.categories.find(c => {
-          const cleanName = c.name.toLowerCase().replace(/^[^\w\s\u0370-\u03ff]+/, '').trim();
-          return cleanName.includes(cleanTarget) || cleanTarget.includes(cleanName);
-        });
-        if (matchedCat) {
-          selectCategory(matchedCat.name, matchedCat.icon, matchedCat.color, false);
+        if (typeof data.merchant === 'string' && data.merchant.trim()) {
+          const noteInput = document.getElementById('trans-note');
+          if (noteInput) noteInput.value = data.merchant;
         }
-      }
 
-      // Match or fill Subcategory
-      if (data.subcategory) {
-        const subInput = document.getElementById('trans-subcategory-custom');
-        const subSelect = document.getElementById('trans-subcategory-select');
-        if (subSelect && Array.from(subSelect.options).some(o => o.value === data.subcategory)) {
-          subSelect.value = data.subcategory;
-        } else if (subInput) {
-          subInput.value = data.subcategory;
+        if (typeof data.date === 'string' && data.date.trim()) {
+          let dVal = data.date;
+          if (typeof data.time === 'string' && data.time.trim()) {
+            dVal = `${dVal}T${data.time}`;
+          } else {
+            const now = new Date();
+            const hrs = String(now.getHours()).padStart(2, '0');
+            const mins = String(now.getMinutes()).padStart(2, '0');
+            dVal = `${dVal}T${hrs}:${mins}`;
+          }
+          const dateInput = document.getElementById('trans-date');
+          const dateDisplay = document.getElementById('trans-date-display');
+          if (dateInput) dateInput.value = dVal;
+          if (dateDisplay) {
+            try {
+              dateDisplay.textContent = formatGreekDateTime(dVal);
+            } catch (e) {
+              dateDisplay.textContent = dVal;
+            }
+          }
         }
-        updateSubcategoryRowVisibility();
+
+        // Match Category (guard the string ops — the AI occasionally returns a
+        // non-string value here which used to throw and kill the whole scan).
+        if (typeof data.category === 'string' && data.category.trim() && state.categories) {
+          const cleanTarget = data.category.toLowerCase().replace(/^[^\w\s\u0370-\u03ff]+/, '').trim();
+          const matchedCat = state.categories.find(c => {
+            const cleanName = (c.name || '').toLowerCase().replace(/^[^\w\s\u0370-\u03ff]+/, '').trim();
+            return cleanName.includes(cleanTarget) || cleanTarget.includes(cleanName);
+          });
+          if (matchedCat) {
+            try {
+              selectCategory(matchedCat.name, matchedCat.icon, matchedCat.color, false);
+            } catch (e) {
+              console.warn('AI category select warning:', e);
+            }
+          }
+        }
+
+        // Match or fill Subcategory
+        if (typeof data.subcategory === 'string' && data.subcategory.trim()) {
+          const subInput = document.getElementById('trans-subcategory-custom');
+          const subSelect = document.getElementById('trans-subcategory-select');
+          if (subSelect && Array.from(subSelect.options).some(o => o.value === data.subcategory)) {
+            subSelect.value = data.subcategory;
+          } else if (subInput) {
+            subInput.value = data.subcategory;
+          }
+          updateSubcategoryRowVisibility();
+        }
+      } catch (fillErr) {
+        console.warn('AI autofill completed with warnings:', fillErr);
       }
 
-      // 8. Show AI Confirmation Card
-      if (confirmCard) {
-        const merchEl = document.getElementById('ai-confirm-merchant');
-        const amtEl = document.getElementById('ai-confirm-amount');
-        const catEl = document.getElementById('ai-confirm-category');
-        const dateEl = document.getElementById('ai-confirm-date');
+      // 8. Show AI Confirmation Card + success toast — cosmetic UI, fully
+      // isolated from the outer catch so it can never surface as a failure.
+      const successMsg = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['ai_scan_success']) || '✨ Αναγνωρίστηκε επιτυχώς με AI';
+      try {
+        if (confirmCard) {
+          const merchEl = document.getElementById('ai-confirm-merchant');
+          const amtEl = document.getElementById('ai-confirm-amount');
+          const catEl = document.getElementById('ai-confirm-category');
+          const dateEl = document.getElementById('ai-confirm-date');
 
-        if (merchEl) merchEl.textContent = data.merchant || '—';
-        if (amtEl) amtEl.textContent = formatCurrency(Number(data.amount || 0));
-        if (catEl) catEl.textContent = `${data.category || ''} ${data.subcategory ? '• ' + data.subcategory : ''}`.trim();
-        if (dateEl) dateEl.textContent = data.date || '';
+          if (merchEl) merchEl.textContent = data.merchant || '—';
+          if (amtEl) amtEl.textContent = formatCurrency(Number(data.amount || 0));
+          if (catEl) catEl.textContent = `${data.category || ''} ${data.subcategory ? '• ' + data.subcategory : ''}`.trim();
+          if (dateEl) dateEl.textContent = data.date || '';
 
-        confirmCard.style.display = 'flex';
+          confirmCard.style.display = 'flex';
+        }
+        showSyncToast(successMsg, 3000);
+      } catch (uiErr) {
+        console.warn('AI confirmation UI error:', uiErr);
+        try { showSyncToast(successMsg, 3000); } catch (e) { /* ignore */ }
       }
-
-      showSyncToast((TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['ai_scan_success']) || '✨ Αναγνωρίστηκε επιτυχώς με AI', 3000);
 
     } catch (err) {
       console.error('AI Receipt Processing Error:', err);
@@ -9866,6 +9933,8 @@ function setupEventListeners() {
       const failMsg = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['ai_scan_fail']) ||
         'Δεν ήταν δυνατή η ανάγνωση της απόδειξης. Παρακαλώ ελέγξτε τη φωτογραφία ή συμπληρώστε τα πεδία χειροκίνητα.';
       showSyncToast(failMsg, 4000);
+    } finally {
+      _aiScanInFlight = false;
     }
   }
 
@@ -16125,8 +16194,19 @@ async function deleteSelectedTransactions() {
     }
   }
 
-  const msg = selectedIds.length === 1 ? 'Να διαγραφεί η επιλεγμένη συναλλαγή;' : `Να διαγραφούν οι ${selectedIds.length} επιλεγμένες συναλλαγές;`;
-  const confirmed = await showConfirm(msg, state.lang === 'el' ? 'Διαγραφή' : 'Delete', '🗑️');
+  const count = selectedIds.length;
+  const isEl = (state.lang === 'el');
+  let msg;
+  if (count === 1) {
+    msg = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['confirm_delete_selected_singular']) ||
+      (isEl ? 'Να διαγραφεί η επιλεγμένη συναλλαγή;' : 'Delete the selected transaction?');
+  } else {
+    const template = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['confirm_delete_transactions_plural']) ||
+      (isEl ? 'Να διαγραφούν οι {count} επιλεγμένες συναλλαγές;' : 'Delete {count} selected transactions?');
+    msg = template.replace('{count}', count);
+  }
+  const title = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['btn_delete']) || (isEl ? 'Διαγραφή' : 'Delete');
+  const confirmed = await showConfirm(msg, title, '🗑️');
   if (!confirmed) return;
 
   // Find duplicates of all selected transactions to delete them too
