@@ -241,7 +241,7 @@ button:active,
   display: flex;
   justify-content: space-around;
   padding: 8px 0 calc(12px + var(--safe-area-bottom, 0px)) 0;
-  z-index: 500;
+  z-index: 1000 !important;
   pointer-events: auto !important;
   box-shadow: none !important;
 }
@@ -268,11 +268,14 @@ button:active,
   font-size: 11px;
   font-weight: 600;
   flex: 1;
+  min-height: 44px;
+  justify-content: center;
   transition: var(--transition);
   gap: 4px;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   pointer-events: auto !important;
+  touch-action: manipulation !important;
 }
 
 .nav-item svg {
@@ -11305,95 +11308,89 @@ body {
     -webkit-overflow-scrolling: touch;
   }
 
-  /* 3. Statistics Screen (#stats-screen) — True 2-Column Split Dashboard (Proposal 2) */
+  /* 3. Statistics Screen (#stats-screen) — Clean Responsive Landscape Layout */
   #stats-screen.active {
-    display: grid !important;
-    grid-template-columns: minmax(280px, 340px) 1fr !important;
-    grid-template-rows: auto auto auto 1fr !important;
-    grid-template-areas:
-      "month-nav subtabs-bar"
-      "inc-exp   main-content"
-      "net-bar   main-content"
-      "chart-col main-content" !important;
-    gap: 4px 16px !important;
+    display: flex !important;
+    flex-direction: column !important;
     flex: 1 !important;
     min-height: 0 !important;
-    height: 100% !important;
-    padding: 6px 16px 0 16px !important;
+    height: auto !important;
+    overflow-y: auto !important;
+    padding: 6px 16px 16px 16px !important;
     box-sizing: border-box !important;
-    overflow: hidden !important;
-    align-content: stretch !important;
+    -webkit-overflow-scrolling: touch !important;
   }
 
   #stats-screen .stats-header-bar {
-    grid-area: month-nav !important;
-    padding: 2px 4px !important;
-    margin: 0 !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding: 4px 0 !important;
+    margin: 0 0 6px 0 !important;
+    width: 100% !important;
+    flex-shrink: 0 !important;
   }
 
   #stats-screen .stats-subheader-bar {
-    grid-area: inc-exp !important;
-    padding: 0 !important;
-    margin: 0 !important;
-  }
-
-  #stats-screen #stats-net-savings-bar {
-    grid-area: net-bar !important;
-    margin: 2px 0 4px 0 !important;
-    padding: 4px 10px !important;
+    margin-bottom: 6px !important;
+    flex-shrink: 0 !important;
   }
 
   #stats-screen .stats-subtab-bar {
-    grid-area: subtabs-bar !important;
+    margin-bottom: 6px !important;
     padding: 0 !important;
-    margin: 0 !important;
+    flex-shrink: 0 !important;
+  }
+
+  #stats-screen #stats-net-savings-bar {
+    margin: 0 0 8px 0 !important;
+    padding: 4px 12px !important;
+    flex-shrink: 0 !important;
   }
 
   #stats-screen .stats-scroll-content {
-    display: contents !important;
+    flex: 1 !important;
+    min-height: 0 !important;
+    overflow: visible !important;
   }
 
   #stats-breakdown-container {
-    display: contents !important;
+    display: grid !important;
+    grid-template-columns: minmax(190px, 250px) 1fr !important;
+    gap: 16px !important;
+    align-items: start !important;
+    padding: 0 !important;
   }
 
-  #stats-screen .chart-container {
-    grid-area: chart-col !important;
+  #stats-breakdown-container .chart-container {
+    position: sticky !important;
+    top: 0 !important;
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
     justify-content: center !important;
-    padding: 4px !important;
-    margin-top: 2px !important;
+    padding: 8px !important;
+    background: var(--bg-card) !important;
+    border-radius: 16px !important;
+    border: 1px solid var(--border) !important;
   }
 
-  #stats-screen .chart-wrapper {
-    width: 155px !important;
-    height: 155px !important;
-    max-width: 155px !important;
-    max-height: 155px !important;
+  #stats-breakdown-container .chart-wrapper {
+    width: 150px !important;
+    height: 150px !important;
+    max-width: 150px !important;
+    max-height: 150px !important;
     margin: 0 auto !important;
   }
 
   #stats-breakdown-list {
-    grid-area: main-content !important;
-    flex: 1 !important;
     min-height: 0 !important;
-    height: 100% !important;
-    overflow-y: auto !important;
-    padding: 0 4px 16px 0 !important;
-    -webkit-overflow-scrolling: touch !important;
   }
 
   #stats-budgets-container {
-    grid-area: main-content !important;
-    display: grid !important;
     grid-template-columns: repeat(2, 1fr) !important;
     gap: 12px !important;
-    padding: 4px 4px 16px 0 !important;
-    overflow-y: auto !important;
-    box-sizing: border-box !important;
-    -webkit-overflow-scrolling: touch !important;
+    padding: 6px 0 !important;
   }
 
   /* 4. Accounts / Overview Screen (#accounts-screen) — Clean Fluid Cards */
