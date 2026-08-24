@@ -11810,6 +11810,308 @@ function closeNewCategoryDialog() {
   renderEditCategorySubcategories(null);
 }
 
+// ═══════════════════════════════════════════════════════════════════════
+// Vector Category Icon Dialog – renders library tabs, color palette,
+// icon grid, and live preview inside the #category-editor-modal.
+// ═══════════════════════════════════════════════════════════════════════
+
+const NEON_BADGE_COLORS = [
+  '#f59e0b', '#ef5350', '#ec407a', '#ab47bc', '#7c6af7',
+  '#5c6bc0', '#42a5f5', '#26c6da', '#26a69a', '#66bb6a',
+  '#8bc34a', '#4caf50', '#ff7043', '#78909c', '#8d6e63'
+];
+
+function renderCategoryIconDialog(libraryFilter, searchQuery) {
+  const tabsContainer = document.getElementById('new-cat-library-tabs');
+  const grid = document.getElementById('new-cat-emoji-grid');
+  const colorPalette = document.getElementById('new-cat-color-palette');
+  if (!grid) return;
+
+  // ── Library Tabs ──
+  if (tabsContainer) {
+    tabsContainer.innerHTML = '';
+    const lang = state.lang || 'el';
+    const libs = (typeof ICON_LIBRARIES !== 'undefined') ? ICON_LIBRARIES : [];
+    const allTab = document.createElement('button');
+    allTab.type = 'button';
+    allTab.textContent = lang === 'el' ? 'Όλα' : 'All';
+    allTab.style.cssText = `padding:6px 12px; font-size:11px; font-weight:700; border-radius:8px; cursor:pointer; white-space:nowrap; border:1px solid ${libraryFilter === 'all' ? 'var(--accent)' : 'rgba(255,255,255,0.1)'}; background:${libraryFilter === 'all' ? 'rgba(124,106,247,0.18)' : 'rgba(0,0,0,0.25)'}; color:${libraryFilter === 'all' ? 'var(--accent)' : 'var(--text-secondary)'};`;
+    allTab.onclick = () => renderCategoryIconDialog('all', searchQuery || '');
+    tabsContainer.appendChild(allTab);
+
+    libs.forEach(lib => {
+      const tab = document.createElement('button');
+      tab.type = 'button';
+      const isActive = libraryFilter === lib.id;
+      tab.innerHTML = `<i class="${lib.icon}" style="margin-right:4px;"></i>${lang === 'el' ? lib.labelEl : lib.labelEn}`;
+      tab.style.cssText = `padding:6px 12px; font-size:11px; font-weight:600; border-radius:8px; cursor:pointer; white-space:nowrap; border:1px solid ${isActive ? 'var(--accent)' : 'rgba(255,255,255,0.1)'}; background:${isActive ? 'rgba(124,106,247,0.18)' : 'rgba(0,0,0,0.25)'}; color:${isActive ? 'var(--accent)' : 'var(--text-secondary)'};`;
+      tab.onclick = () => renderCategoryIconDialog(lib.id, searchQuery || '');
+      tabsContainer.appendChild(tab);
+    });
+  }
+
+  // ── Color Palette ──
+  if (colorPalette && colorPalette.children.length === 0) {
+    NEON_BADGE_COLORS.forEach(hex => {
+      const swatch = document.createElement('div');
+      const isSelected = hex === newCategorySelectedColor;
+      swatch.style.cssText = `width:28px; height:28px; min-width:28px; border-radius:50%; background:${hex}; cursor:pointer; border:2.5px solid ${isSelected ? 'white' : 'transparent'}; box-shadow:${isSelected ? '0 0 0 2px var(--accent)' : 'none'}; transition:all 0.15s;`;
+      swatch.onclick = () => {
+        newCategorySelectedColor = hex;
+        colorPalette.querySelectorAll('div').forEach(s => {
+          s.style.border = '2.5px solid transparent';
+          s.style.boxShadow = 'none';
+        });
+        swatch.style.border = '2.5px solid white';
+        swatch.style.boxShadow = '0 0 0 2px var(--accent)';
+        updateNewCategoryLivePreview();
+      };
+      colorPalette.appendChild(swatch);
+    });
+  }
+
+  // ── Icon Grid ──
+  grid.innerHTML = '';
+  const searchFn = (typeof searchCategoryIcons === 'function') ? searchCategoryIcons : null;
+  const registry = (typeof CATEGORY_ICON_REGISTRY !== 'undefined') ? CATEGORY_ICON_REGISTRY : [];
+  let icons;
+  if (searchFn) {
+    icons = searchFn(searchQuery || '', libraryFilter || 'all');
+  } else {
+    icons = registry.filter(item => {
+      if (libraryFilter && libraryFilter !== 'all' && item.library !== libraryFilter) return false;
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        return item.id.includes(q) || (item.keywords && item.keywords.some(kw => kw.toLowerCase().includes(q)));
+      }
+      return true;
+    });
+  }
+
+  if (icons.length === 0) {
+    grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:16px; color:var(--text-muted); font-size:12px;">${state.lang === 'el' ? 'Δε βρέθηκαν εικονίδια' : 'No icons found'}</div>`;
+    return;
+  }
+
+  icons.forEach(item => {
+    const btn = document.createElement('div');
+    const isSelected = item.icon === newCategorySelectedIcon;
+    btn.style.cssText = `display:flex; align-items:center; justify-content:center; width:38px; height:38px; border-radius:8px; cursor:pointer; transition:all 0.15s; font-size:17px; color:${isSelected ? newCategorySelectedColor : 'var(--text-secondary)'}; border:2px solid ${isSelected ? newCategorySelectedColor : 'transparent'}; background:${isSelected ? 'rgba(124,106,247,0.12)' : 'transparent'};`;
+    btn.innerHTML = `<i class="${item.icon}"></i>`;
+    btn.title = item.id;
+    btn.onclick = () => {
+      newCategorySelectedIcon = item.icon;
+      grid.querySelectorAll('div').forEach(d => {
+        d.style.border = '2px solid transparent';
+        d.style.background = 'transparent';
+        d.style.color = 'var(--text-secondary)';
+      });
+      btn.style.border = `2px solid ${newCategorySelectedColor}`;
+      btn.style.background = 'rgba(124,106,247,0.12)';
+      btn.style.color = newCategorySelectedColor;
+      updateNewCategoryLivePreview();
+    };
+    grid.appendChild(btn);
+  });
+
+  updateNewCategoryLivePreview();
+}
+
+function handleCategoryIconSearch(value) {
+  const tabsContainer = document.getElementById('new-cat-library-tabs');
+  // Determine currently active library tab
+  let activeLib = 'all';
+  if (tabsContainer) {
+    const activeBtn = tabsContainer.querySelector('button[style*="accent"]');
+    if (activeBtn) {
+      const libs = (typeof ICON_LIBRARIES !== 'undefined') ? ICON_LIBRARIES : [];
+      const btnText = activeBtn.textContent.trim();
+      const match = libs.find(l => l.labelEl === btnText || l.labelEn === btnText);
+      if (match) activeLib = match.id;
+    }
+  }
+  renderCategoryIconDialog(activeLib, value || '');
+}
+
+function updateNewCategoryLivePreview() {
+  const previewContainer = document.getElementById('new-cat-preview-icon-container');
+  const previewName = document.getElementById('new-cat-preview-name');
+  const previewType = document.getElementById('new-cat-preview-type');
+  const nameInput = document.getElementById('new-cat-name-input');
+
+  if (previewContainer) {
+    const color = newCategorySelectedColor || '#f59e0b';
+    const iconClass = newCategorySelectedIcon || 'fa-solid fa-basket-shopping';
+    const hexToRgbaFn = (typeof hexToRgba === 'function') ? hexToRgba : (h, a) => `rgba(120,144,156,${a})`;
+    const bgGlow = hexToRgbaFn(color, 0.15);
+    const borderGlow = hexToRgbaFn(color, 0.28);
+    previewContainer.innerHTML = `<div class="cat-vector-badge" style="width:40px; height:40px; min-width:40px; border-radius:12px; background:${bgGlow}; border:1px solid ${borderGlow}; color:${color}; display:inline-flex; align-items:center; justify-content:center; font-size:17px;"><i class="${iconClass}"></i></div>`;
+  }
+
+  if (previewName && nameInput) {
+    const val = nameInput.value.trim();
+    previewName.textContent = val || (state.lang === 'el' ? 'Όνομα κατηγορίας' : 'Category name');
+  }
+
+  if (previewType) {
+    const label = newCategoryDialogType === 'income'
+      ? (state.lang === 'el' ? 'Κατηγορία Εσόδου' : 'Income Category')
+      : (state.lang === 'el' ? 'Κατηγορία Εξόδου' : 'Expense Category');
+    previewType.textContent = editingCategoryName
+      ? (state.lang === 'el' ? 'Επεξεργασία' : 'Editing')
+      : label;
+  }
+}
+
+function renderEditCategorySubcategories(categoryName) {
+  const section = document.getElementById('edit-cat-subcategories-section');
+  if (!section) return;
+
+  if (!categoryName) {
+    section.style.display = 'none';
+    return;
+  }
+
+  section.style.display = 'flex';
+  section.innerHTML = '';
+
+  const lang = state.lang || 'el';
+  const stats = (typeof getSubcategoriesStatsForCategory === 'function')
+    ? getSubcategoriesStatsForCategory(categoryName)
+    : {};
+  const subcatKeys = Object.keys(stats);
+
+  // Header
+  const header = document.createElement('div');
+  header.style.cssText = 'display:flex; align-items:center; justify-content:space-between;';
+  header.innerHTML = `
+    <label style="font-size:11px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">
+      ${lang === 'el' ? 'Υποκατηγορίες' : 'Subcategories'}
+      <span style="color:var(--accent); font-weight:800; margin-left:4px;">${subcatKeys.length > 0 ? `(${subcatKeys.length})` : ''}</span>
+    </label>
+  `;
+  section.appendChild(header);
+
+  if (subcatKeys.length === 0) {
+    const empty = document.createElement('div');
+    empty.style.cssText = 'font-size:12.5px; color:var(--text-muted); padding:16px 12px; text-align:center; line-height:1.5; background:rgba(0,0,0,0.1); border:1px solid rgba(255,255,255,0.04); border-radius:10px;';
+    empty.innerHTML = lang === 'el'
+      ? 'Δεν υπάρχουν ακόμη υποκατηγορίες.<br><span style="font-size:11px; opacity:0.8;">Οι υποκατηγορίες δημιουργούνται αυτόματα όταν καταχωρείς συναλλαγές.</span>'
+      : 'No subcategories yet.<br><span style="font-size:11px; opacity:0.8;">Subcategories are created automatically when you record transactions.</span>';
+    section.appendChild(empty);
+    return;
+  }
+
+  const sortedSubs = subcatKeys.sort((a, b) => {
+    const diff = stats[b].count - stats[a].count;
+    if (diff !== 0) return diff;
+    return a.localeCompare(b);
+  });
+
+  sortedSubs.forEach(sub => {
+    const item = document.createElement('div');
+    item.style.cssText = 'display:flex; align-items:center; justify-content:space-between; padding:8px 12px; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.04); border-radius:10px; font-size:13px; color:var(--text-secondary); transition: background 0.2s;';
+
+    const count = stats[sub].count;
+    const lastUsed = stats[sub].lastUsedDate;
+    let lastUsedStr = '';
+    if (lastUsed) {
+      const parts = lastUsed.split('-');
+      if (parts.length === 3) {
+        lastUsedStr = lang === 'el'
+          ? ` • Τελ. χρήση: ${parts[2]}/${parts[1]}/${parts[0]}`
+          : ` • Last used: ${parts[2]}/${parts[1]}/${parts[0]}`;
+      }
+    }
+
+    const txLabel = lang === 'el'
+      ? (count === 1 ? 'συναλλαγή' : 'συναλλαγές')
+      : (count === 1 ? 'transaction' : 'transactions');
+
+    item.innerHTML = `
+      <div style="display:flex; flex-direction:column; flex:1; overflow:hidden; margin-right:8px;">
+        <span style="font-weight:600; color:var(--text-primary); text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">${sub}</span>
+        <span style="font-size:11px; color:var(--text-muted); margin-top:2px;">${count} ${txLabel}${lastUsedStr}</span>
+      </div>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <button type="button" class="icon-btn edit-sub-btn" style="color:var(--text-muted); cursor:pointer; font-size:12.5px; background:none; border:none; padding:6px; transition:color 0.2s;"><i class="fa-solid fa-pen"></i></button>
+        <button type="button" class="icon-btn delete-sub-btn" style="color:var(--red-negative, #ff4a4a); cursor:pointer; font-size:12.5px; background:none; border:none; padding:6px; transition:color 0.2s;"><i class="fa-solid fa-trash-can"></i></button>
+      </div>
+    `;
+
+    item.querySelector('.edit-sub-btn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      item.innerHTML = `
+        <div style="display:flex; align-items:center; gap:8px; flex:1; margin-right:8px;">
+          <input type="text" class="rename-sub-input" value="${sub}" style="flex:1; padding:6px 10px; font-size:13px; border-radius:8px; background:rgba(0,0,0,0.35); border:1px solid var(--accent, #7c6af7); color:var(--text-primary); outline:none; font-family:'Outfit',sans-serif;">
+        </div>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <button type="button" class="icon-btn save-rename-btn" style="color:var(--accent, #7c6af7); cursor:pointer; font-size:13px; background:none; border:none; padding:6px;"><i class="fa-solid fa-check"></i></button>
+          <button type="button" class="icon-btn cancel-rename-btn" style="color:var(--text-muted); cursor:pointer; font-size:13px; background:none; border:none; padding:6px;"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+      `;
+
+      const input = item.querySelector('.rename-sub-input');
+      if (input) {
+        input.focus();
+        input.addEventListener('keydown', (evt) => {
+          if (evt.key === 'Enter') {
+            evt.preventDefault();
+            item.querySelector('.save-rename-btn').click();
+          }
+        });
+      }
+
+      item.querySelector('.save-rename-btn').addEventListener('click', async (evt) => {
+        evt.stopPropagation();
+        const newName = input.value.trim();
+        if (newName === '') {
+          showSyncToast(lang === 'el' ? '⚠️ Το όνομα δεν μπορεί να είναι κενό!' : '⚠️ Name cannot be empty!', 2500);
+          return;
+        }
+        if (/^[ \-_\.\*]+$/.test(newName)) {
+          showSyncToast(lang === 'el' ? '⚠️ Μη έγκυρο όνομα υποκατηγορίας!' : '⚠️ Invalid subcategory name!', 2500);
+          return;
+        }
+        if (newName === sub) {
+          renderEditCategorySubcategories(categoryName);
+          return;
+        }
+        if (stats[newName]) {
+          const confirmTitle = lang === 'el' ? 'Συγχώνευση Υποκατηγοριών' : 'Merge Subcategories';
+          const confirmMsg = lang === 'el'
+            ? `Η υποκατηγορία "${newName}" υπάρχει ήδη. Θέλετε να συγχωνεύσετε όλες τις συναλλαγές της "${sub}" στην "${newName}";`
+            : `Subcategory "${newName}" already exists. Do you want to merge all transactions from "${sub}" into "${newName}"?`;
+          const confirmed = await showConfirm(confirmMsg, confirmTitle, '🔀');
+          if (!confirmed) return;
+        }
+        await renameSubcategoryGlobally(categoryName, sub, newName);
+        renderEditCategorySubcategories(categoryName);
+      });
+
+      item.querySelector('.cancel-rename-btn').addEventListener('click', (evt) => {
+        evt.stopPropagation();
+        renderEditCategorySubcategories(categoryName);
+      });
+    });
+
+    item.querySelector('.delete-sub-btn').addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const confirmTitle = lang === 'el' ? 'Διαγραφή Υποκατηγορίας' : 'Delete Subcategory';
+      const confirmMsg = lang === 'el'
+        ? `Είστε σίγουροι ότι θέλετε να διαγράψετε την υποκατηγορία "${sub}";\nΘα αφαιρεθεί από όλες τις συναλλαγές.`
+        : `Are you sure you want to delete subcategory "${sub}"?\nIt will be removed from all transactions.`;
+      const confirmed = await showConfirm(confirmMsg, confirmTitle, '🗑️');
+      if (confirmed) {
+        await deleteSubcategoryGlobally(categoryName, sub);
+        renderEditCategorySubcategories(categoryName);
+      }
+    });
+
+    section.appendChild(item);
+  });
+}
+
 function saveNewCategoryFromPicker() {
   const nameInput = document.getElementById('new-cat-name-input');
   const name = nameInput ? nameInput.value.trim() : '';
