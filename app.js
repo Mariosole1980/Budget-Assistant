@@ -9682,6 +9682,7 @@ function setupEventListeners() {
       // on a second AI scan (a leftover value can make .click() a silent no-op).
       aiCameraInput.value = '';
       setTimeout(() => {
+        stabilizeLayoutBeforeNativePicker();
         aiCameraInput.click();
       }, 60);
     }
@@ -9702,6 +9703,7 @@ function setupEventListeners() {
       // Reset the hidden input so the camera re-opens reliably on a second use.
       cameraInput.value = '';
       setTimeout(() => {
+        stabilizeLayoutBeforeNativePicker();
         cameraInput.click();
       }, 60);
     }
@@ -9721,9 +9723,26 @@ function setupEventListeners() {
     if (photoInput) {
       photoInput.value = '';
       setTimeout(() => {
+        stabilizeLayoutBeforeNativePicker();
         photoInput.click();
       }, 60);
     }
+  }
+
+  // Called at the exact moment a native camera / file picker is about to cover the
+  // WebView. When the picker opens, Android fires visibilitychange→hidden and
+  // visualViewport resize, which blur the focused input, drop body.keyboard-active
+  // and reset --keyboard-height. The transaction modal lays out with
+  // padding-bottom: var(--keyboard-height), so those changes re-flow the modal and
+  // produce a visible flicker right before the camera opens and again when the
+  // Android permission / chooser dialog appears. Stabilize the layout to its final
+  // (no-keyboard) state and suppress CSS transitions for the handoff window so the
+  // native handoff is seamless.
+  function stabilizeLayoutBeforeNativePicker() {
+    document.body.classList.remove('keyboard-active');
+    document.documentElement.style.setProperty('--keyboard-height', '0px');
+    pushNoTransition();
+    setTimeout(() => popNoTransition(), 700);
   }
 
   function handleReceiptPhotoSourceOverlayClick(e) {
