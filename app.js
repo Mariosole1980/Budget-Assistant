@@ -23974,7 +23974,11 @@ function getOfflineGuestTransactions() {
     const raw = localStorage.getItem('offline_guest_transactions');
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        // Strictly exclude demo sample transactions so new accounts are never prompted for demo data
+        const realTxs = parsed.filter(t => t && !t.is_demo && !String(t.id || '').startsWith('demo_'));
+        return realTxs;
+      }
     }
   } catch (e) {
     console.warn('Failed to parse offline_guest_transactions:', e);
@@ -23987,7 +23991,13 @@ function saveOfflineGuestTransactions(trans) {
     if (!Array.isArray(trans) || trans.length === 0) {
       localStorage.removeItem('offline_guest_transactions');
     } else {
-      localStorage.setItem('offline_guest_transactions', JSON.stringify(trans));
+      // Exclude demo transactions from guest backup
+      const realTxs = trans.filter(t => t && !t.is_demo && !String(t.id || '').startsWith('demo_'));
+      if (realTxs.length === 0) {
+        localStorage.removeItem('offline_guest_transactions');
+      } else {
+        localStorage.setItem('offline_guest_transactions', JSON.stringify(realTxs));
+      }
     }
   } catch (e) {
     console.error('Failed to save offline_guest_transactions:', e);
