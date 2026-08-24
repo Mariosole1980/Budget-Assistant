@@ -4554,7 +4554,7 @@
         <div class="modal-header"
           style="position: relative; min-height: 54px; box-sizing: border-box; border-bottom: 1px solid var(--border); padding: 0 18px; display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.02);">
           <h3 class="modal-title" style="margin: 0; font-size: 15px; font-weight: 800; color: #ffffff;"
-            id="budget-modal-title">🎯 Ορισμός Προϋπολογισμού</h3>
+            id="budget-modal-title" data-i18n="budget_modal_title_set">🎯 Ορισμός Προϋπολογισμού</h3>
           <span class="modal-close" onclick="closeModal('category-budget-modal')"
             style="font-size: 20px; color: var(--text-muted); cursor: pointer; line-height: 1;">✕</span>
         </div>
@@ -4566,14 +4566,14 @@
           <!-- Category Select (hidden native + modern trigger) -->
           <div>
             <span
-              style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Κατηγορία</span>
+              style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;" data-i18n="budget_modal_category">Κατηγορία</span>
             <select id="budget-modal-category" onchange="onBudgetCategoryChange()" style="display: none;">
               <!-- Populated dynamically -->
             </select>
             <button type="button" class="budget-picker-trigger placeholder" id="budget-category-trigger"
               onclick="openBudgetCategoryPicker()" style="margin-top: 6px;">
               <span class="budget-picker-trigger-icon" id="budget-category-trigger-icon">🏷️</span>
-              <span class="budget-picker-trigger-label" id="budget-category-trigger-label">Επιλέξτε κατηγορία</span>
+              <span class="budget-picker-trigger-label" id="budget-category-trigger-label" data-i18n="budget_modal_category_placeholder">Επιλέξτε κατηγορία</span>
               <i class="fa-solid fa-chevron-down budget-picker-trigger-chevron"></i>
             </button>
           </div>
@@ -4581,15 +4581,15 @@
           <!-- Subcategory Select (Optional) (hidden native + modern trigger) -->
           <div id="budget-modal-subcat-container" style="display: none;">
             <span
-              style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Υποκατηγορία
+              style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;" data-i18n="budget_modal_subcategory">Υποκατηγορία
               (Προαιρετικό)</span>
             <select id="budget-modal-subcategory" style="display: none;">
-              <option value="">Όλες οι υποκατηγορίες</option>
+              <option value="" data-i18n="budget_modal_all_subcategories">Όλες οι υποκατηγορίες</option>
             </select>
             <button type="button" class="budget-picker-trigger placeholder" id="budget-subcategory-trigger"
               onclick="openBudgetSubcategoryPicker()" style="margin-top: 6px;">
               <span class="budget-picker-trigger-icon">🔹</span>
-              <span class="budget-picker-trigger-label" id="budget-subcategory-trigger-label">Όλες οι
+              <span class="budget-picker-trigger-label" id="budget-subcategory-trigger-label" data-i18n="budget_modal_all_subcategories">Όλες οι
                 υποκατηγορίες</span>
               <i class="fa-solid fa-chevron-down budget-picker-trigger-chevron"></i>
             </button>
@@ -4598,7 +4598,7 @@
           <!-- Amount Input -->
           <div>
             <span
-              style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Μηνιαίο
+              style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;" data-i18n="budget_modal_limit">Μηνιαίο
               Όριο (€)</span>
             <div style="position: relative; margin-top: 6px;">
               <input type="number" step="0.01" min="0" id="budget-modal-amount" placeholder="π.χ. 300"
@@ -4611,7 +4611,7 @@
           <!-- Quick-Add Amount Pills -->
           <div>
             <span
-              style="font-size: 10.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 6px;">Γρήγορη
+              style="font-size: 10.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 6px;" data-i18n="budget_modal_quick_select">Γρήγορη
               Επιλογή</span>
             <div style="display: flex; gap: 6px; flex-wrap: wrap;">
               <button type="button" onclick="setBudgetAmountPreset(50)"
@@ -4630,16 +4630,16 @@
           <!-- Scope Selector (Personal vs Family) -->
           <div id="budget-modal-scope-container" style="display: flex; flex-direction: column; gap: 6px;">
             <span
-              style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Εμβέλεια
+              style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;" data-i18n="budget_modal_scope">Εμβέλεια
               (Scope)</span>
             <div
               style="display: flex; background: rgba(0, 0, 0, 0.25); padding: 4px; border-radius: 14px; border: 1px solid var(--border); gap: 4px;">
               <button type="button" id="budget-scope-personal" onclick="selectBudgetScope('personal')"
                 style="flex: 1; padding: 10px; border-radius: 10px; font-size: 13px; font-weight: 600; border: none; background: var(--accent); color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;"><i
-                  class="fa-solid fa-user"></i> Προσωπικό</button>
+                  class="fa-solid fa-user"></i> <span data-i18n="budget_modal_personal">Προσωπικό</span></button>
               <button type="button" id="budget-scope-family" onclick="selectBudgetScope('family')"
                 style="flex: 1; padding: 10px; border-radius: 10px; font-size: 13px; font-weight: 600; border: none; background: transparent; color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;"><i
-                  class="fa-solid fa-users"></i> Οικογενειακό</button>
+                  class="fa-solid fa-users"></i> <span data-i18n="budget_modal_family">Οικογενειακό</span></button>
             </div>
             <input type="hidden" id="budget-modal-scope" value="personal">
           </div>
@@ -4651,7 +4651,7 @@
             style="display: none; padding: 14px; border-radius: 16px; font-size: 14px; font-weight: 700; background: rgba(255, 91, 91, 0.15); border: 1px solid rgba(255, 91, 91, 0.3); color: var(--danger); cursor: pointer;"><i
               class="fa-regular fa-trash-can"></i></button>
           <button type="button" onclick="saveCategoryBudgetFromModal()"
-            style="flex: 1; padding: 14px; border-radius: 16px; font-size: 14.5px; font-weight: 700; background: var(--accent); color: white; border: none; cursor: pointer; text-align: center; box-shadow: 0 4px 14px rgba(0,0,0,0.2);">Αποθήκευση</button>
+            style="flex: 1; padding: 14px; border-radius: 16px; font-size: 14.5px; font-weight: 700; background: var(--accent); color: white; border: none; cursor: pointer; text-align: center; box-shadow: 0 4px 14px rgba(0,0,0,0.2);" data-i18n="btn_save">Αποθήκευση</button>
         </div>
       </div>
     </div>
@@ -4664,7 +4664,7 @@
             <button type="button" id="budget-picker-back" onclick="budgetPickerGoBack()"
               style="display: none; background: transparent; border: none; color: var(--text-primary); font-size: 16px; cursor: pointer; padding: 4px;"><i
                 class="fa-solid fa-arrow-left"></i></button>
-            <h3 class="modal-title" id="budget-picker-title" style="font-weight: 700;">Επιλογή Κατηγορίας</h3>
+            <h3 class="modal-title" id="budget-picker-title" style="font-weight: 700;" data-i18n="budget_picker_title_cat">Επιλογή Κατηγορίας</h3>
           </div>
           <span class="modal-close" onclick="closeModal('budget-picker-modal')">&times;</span>
         </div>
@@ -4676,6 +4676,7 @@
                 style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-secondary); font-size: 13px;"></i>
               <input type="text" id="budget-picker-search" placeholder="Αναζήτηση..."
                 oninput="renderBudgetPickerOptions()"
+                data-i18n-placeholder="budget_picker_search_placeholder"
                 style="width: 100%; padding: 12px 14px 12px 38px; border-radius: 12px; background: rgba(255,255,255,0.04); color: var(--text-primary); border: 1px solid var(--border); font-size: 14px; outline: none; box-sizing: border-box;">
             </div>
           </div>

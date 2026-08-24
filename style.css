@@ -1878,6 +1878,18 @@ body.is-ios .modal-content {
   margin: 0 !important;
 }
 
+#transaction-modal .modal-header-actions {
+  display: flex !important;
+  gap: 8px !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  flex-shrink: 0 !important;
+  width: 36px !important;
+  min-width: 36px !important;
+  height: 36px !important;
+  box-sizing: border-box !important;
+}
+
 #transaction-modal #trans-delete-btn {
   width: 36px !important;
   height: 36px !important;
@@ -1887,6 +1899,8 @@ body.is-ios .modal-content {
   align-items: center !important;
   justify-content: center !important;
   box-sizing: border-box !important;
+  padding: 0 !important;
+  margin: 0 !important;
 }
 
 .modal-close {

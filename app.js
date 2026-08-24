@@ -4508,7 +4508,6 @@ async function loadData() {
 
       // Clean up any cross-language duplicate templates or duplicate recurring transactions
       cleanCrossLanguageRecurringDuplicates();
-      await autoRestoreMistakenlyDeletedManualTransactions();
 
       localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
       localStorage.setItem('offline_accounts', JSON.stringify(state.accounts));
@@ -4698,7 +4697,6 @@ function loadOfflineData() {
   loadBudgets();
 
   cleanCrossLanguageRecurringDuplicates();
-  autoRestoreMistakenlyDeletedManualTransactions();
   processRecurringTemplates();
   cleanCrossLanguageRecurringDuplicates();
   calculateInitialBalances();
@@ -4789,59 +4787,27 @@ function generateDeterministicUUID(templateId, dateString) {
 }
 window.generateDeterministicUUID = generateDeterministicUUID;
 
-// Clean up duplicate recurring templates using safe exact-match (same note + amount + type + category)
+// Report-only duplicate inspection for recurring templates (auditing only, zero deletions)
 function cleanDuplicateTemplates() {
   if (!state.recurringTemplates || state.recurringTemplates.length < 2) return;
 
-  const templates = state.recurringTemplates;
-  const toDelete = [];
-  const kept = [];
-
-  for (let i = 0; i < templates.length; i++) {
-    const t1 = templates[i];
-    const normNote1 = normalizeGreekString(t1.note || t1.description || '');
-    const amountStr1 = (parseFloat(t1.amount) || 0).toFixed(2);
-
-    let isDup = false;
-    for (let j = 0; j < kept.length; j++) {
-      const t2 = kept[j];
-      const sameAmount = amountStr1 === (parseFloat(t2.amount) || 0).toFixed(2);
-      const sameType = t1.type === t2.type;
-      const sameCat = isSameCategory(t1.category, t2.category);
-      const normNote2 = normalizeGreekString(t2.note || t2.description || '');
-      const notesMatch = normNote1.length > 0 && normNote2.length > 0 && (normNote1 === normNote2 || normNote1.includes(normNote2) || normNote2.includes(normNote1));
-      const sameNote = (normNote1.length > 0 && normNote1 === normNote2);
-
-      if (sameAmount && sameType && (notesMatch || (sameCat && (sameNote || (!normNote1 && !normNote2))))) {
-        isDup = true;
-        toDelete.push(t1);
-        break;
-      }
+  // Exact ID deduplication in memory only (safe safeguard against array duplicate insertions)
+  const seenIds = new Set();
+  const dedupedById = [];
+  for (const t of state.recurringTemplates) {
+    if (!t || !t.id) {
+      dedupedById.push(t);
+      continue;
     }
-    if (!isDup) {
-      kept.push(t1);
+    const idStr = String(t.id);
+    if (!seenIds.has(idStr)) {
+      seenIds.add(idStr);
+      dedupedById.push(t);
+    } else {
+      console.info('[TemplateAudit] Duplicate template ID in array collapsed:', idStr);
     }
   }
-
-  if (toDelete.length > 0) {
-    console.warn(`[TemplateCleanup] Removing ${toDelete.length} duplicate recurring templates`);
-    state.recurringTemplates = kept;
-    localStorage.setItem('recurring_templates', JSON.stringify(state.recurringTemplates));
-    toDelete.forEach(t => {
-      if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser && t.id) {
-        state.supabaseClient
-          .from('recurring_templates')
-          .delete()
-          .eq('id', t.id)
-          .then(() => { }, ({ error }) => {
-            if (error) console.warn('Failed to delete duplicate template from cloud:', error);
-          });
-      }
-    });
-  } else {
-    state.recurringTemplates = kept;
-    localStorage.setItem('recurring_templates', JSON.stringify(state.recurringTemplates));
-  }
+  state.recurringTemplates = dedupedById;
 }
 window.cleanDuplicateTemplates = cleanDuplicateTemplates;
 
@@ -6318,10 +6284,16 @@ function renderTransactionsTab(containerOverride, yearOverride, monthOverride) {
       let pressTimer;
       let feedbackTimer;
       let isLongPress = false;
+      let touchStartX = 0;
+      let touchStartY = 0;
 
       item.addEventListener('touchstart', (e) => {
         isLongPress = false;
         state.touchDidMove = false;
+        if (e.touches && e.touches[0]) {
+          touchStartX = e.touches[0].clientX;
+          touchStartY = e.touches[0].clientY;
+        }
 
         // Active visual feedback with 80ms delay to prevent flashing on swipe/scroll
         clearTimeout(feedbackTimer);
@@ -6343,10 +6315,21 @@ function renderTransactionsTab(containerOverride, yearOverride, monthOverride) {
       }, { passive: true });
 
       item.addEventListener('touchmove', (e) => {
-        clearTimeout(pressTimer);
-        clearTimeout(feedbackTimer);
-        item.classList.remove('pressed');
-        state.touchDidMove = true;
+        if (e.touches && e.touches[0]) {
+          const dx = e.touches[0].clientX - touchStartX;
+          const dy = e.touches[0].clientY - touchStartY;
+          if (Math.hypot(dx, dy) > 10) {
+            clearTimeout(pressTimer);
+            clearTimeout(feedbackTimer);
+            item.classList.remove('pressed');
+            state.touchDidMove = true;
+          }
+        } else {
+          clearTimeout(pressTimer);
+          clearTimeout(feedbackTimer);
+          item.classList.remove('pressed');
+          state.touchDidMove = true;
+        }
       }, { passive: true });
 
       item.addEventListener('touchend', (e) => {
@@ -7065,21 +7048,23 @@ function renderCategoryBudgetsView(catGroups = {}) {
     const isWarn = pct >= 75 && pct < 100;
 
     let badgeClass = 'badge-ok';
-    let badgeText = `${Math.round(pct)}% ${lang === 'el' ? 'Εντός' : 'OK'}`;
+    let badgeText = `${Math.round(pct)}% ${(TRANSLATIONS[lang] && TRANSLATIONS[lang]['budget_status_ok']) || (lang === 'el' ? 'Εντός' : 'OK')}`;
     let barColor = catInfo.color || '#10b981';
 
     if (isOver) {
       badgeClass = 'badge-alert';
       const overAmt = (spent - budgetAmountInDisplay).toFixed(2);
-      badgeText = `⚠️ ${Math.round(pct)}% (${lang === 'el' ? 'Υπέρβαση' : 'Over'} +${symbol}${overAmt})`;
+      const overLabel = (TRANSLATIONS[lang] && TRANSLATIONS[lang]['budget_status_over']) || (lang === 'el' ? 'Υπέρβαση' : 'Over');
+      badgeText = `⚠️ ${Math.round(pct)}% (${overLabel} +${symbol}${overAmt})`;
       barColor = '#ff5b5b';
     } else if (isWarn) {
       badgeClass = 'badge-warn';
-      badgeText = `${Math.round(pct)}% (${lang === 'el' ? 'Πλησιάζει' : 'Warning'})`;
+      const warnLabel = (TRANSLATIONS[lang] && TRANSLATIONS[lang]['budget_status_warn']) || (lang === 'el' ? 'Πλησιάζει' : 'Warning');
+      badgeText = `${Math.round(pct)}% (${warnLabel})`;
       barColor = '#f59e0b';
     }
 
-    const scopeIcon = b.scope === 'family' ? '<i class="fa-solid fa-users" style="font-size:11px; margin-left:4px; color:var(--primary);" title="Οικογενειακό"></i>' : '';
+    const scopeIcon = b.scope === 'family' ? `<i class="fa-solid fa-users" style="font-size:11px; margin-left:4px; color:var(--primary);" title="${(TRANSLATIONS[lang] && TRANSLATIONS[lang]['budget_modal_family']) || 'Οικογενειακό'}"></i>` : '';
     // Use translated display name for category and subcategory
     const cleanCatName = getCategoryDisplayName(catInfo.name || b.category) || stripLeadingEmoji(catInfo.name || b.category).trim();
     const subcatDisplayName = b.subcategory ? (typeof getSubcategoryDisplayName === 'function' ? getSubcategoryDisplayName(b.subcategory) : b.subcategory) : '';
@@ -7099,7 +7084,7 @@ function renderCategoryBudgetsView(catGroups = {}) {
           </div>
           <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
             <span class="badge-status ${badgeClass}" style="font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 12px;">${badgeText}</span>
-            <button type="button" class="action-icon-btn" onclick="openCategoryBudgetModal('${escapeHtml(b.category)}', '${escapeHtml(b.subcategory || '')}')" title="${lang === 'el' ? 'Επεξεργασία' : 'Edit'}" style="width: 32px; height: 32px; border-radius: 10px; border: 1px solid var(--border); background: rgba(255,255,255,0.04); color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 13px;">
+            <button type="button" class="action-icon-btn" onclick="openCategoryBudgetModal('${escapeHtml(b.category)}', '${escapeHtml(b.subcategory || '')}')" title="${(TRANSLATIONS[lang] && TRANSLATIONS[lang]['btn_edit']) || (lang === 'el' ? 'Επεξεργασία' : 'Edit')}" style="width: 32px; height: 32px; border-radius: 10px; border: 1px solid var(--border); background: rgba(255,255,255,0.04); color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 13px;">
               <i class="fa-solid fa-pen"></i>
             </button>
           </div>
@@ -7119,14 +7104,14 @@ function renderCategoryBudgetsView(catGroups = {}) {
     <div style="background: linear-gradient(135deg, rgba(124, 106, 247, 0.12) 0%, rgba(99, 102, 241, 0.05) 100%); border: 1px solid var(--border-accent, rgba(124, 106, 247, 0.3)); border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 12px;">
       <div style="display: flex; align-items: center; justify-content: space-between;">
         <div>
-          <span style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; display: block;">${lang === 'el' ? 'Συνολικό Budget Μήνα' : 'Total Monthly Budget'}</span>
+          <span style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; display: block;">${(TRANSLATIONS[lang] && TRANSLATIONS[lang]['budget_total_monthly']) || (lang === 'el' ? 'Συνολικό Budget Μήνα' : 'Total Monthly Budget')}</span>
           <div style="font-size: 20px; font-weight: 800; color: var(--text-primary); margin-top: 2px;">
             ${symbol} ${formatDisplayAmount(totalSpentInCurrency, displayCurrency)} <span style="font-size: 13.5px; font-weight: 600; color: var(--text-secondary);">/ ${symbol} ${formatDisplayAmount(totalBudgetInCurrency, displayCurrency)}</span>
           </div>
         </div>
         <div style="text-align: right;">
-          <span class="badge-status ${overallPct >= 100 ? 'badge-alert' : overallPct >= 75 ? 'badge-warn' : 'badge-ok'}" style="font-size: 11.5px; font-weight: 700; padding: 4px 10px; border-radius: 12px;">${Math.round(overallPct)}% ${lang === 'el' ? 'Χρήση' : 'Used'}</span>
-          <div style="font-size: 11.5px; color: #10b981; font-weight: 700; margin-top: 4px;">${symbol} ${formatDisplayAmount(remainingTotal, displayCurrency)} ${lang === 'el' ? 'διαθέσιμα' : 'left'}</div>
+          <span class="badge-status ${overallPct >= 100 ? 'badge-alert' : overallPct >= 75 ? 'badge-warn' : 'badge-ok'}" style="font-size: 11.5px; font-weight: 700; padding: 4px 10px; border-radius: 12px;">${Math.round(overallPct)}% ${(TRANSLATIONS[lang] && TRANSLATIONS[lang]['budget_used_badge']) || (lang === 'el' ? 'Χρήση' : 'Used')}</span>
+          <div style="font-size: 11.5px; color: #10b981; font-weight: 700; margin-top: 4px;">${symbol} ${formatDisplayAmount(remainingTotal, displayCurrency)} ${(TRANSLATIONS[lang] && TRANSLATIONS[lang]['budget_remaining_badge']) || (lang === 'el' ? 'διαθέσιμα' : 'left')}</div>
         </div>
       </div>
       <div>
@@ -7134,8 +7119,8 @@ function renderCategoryBudgetsView(catGroups = {}) {
           <div style="height: 100%; border-radius: 6px; width: ${Math.min(100, overallPct)}%; background: linear-gradient(90deg, var(--accent) 0%, var(--primary) 100%); transition: width 0.4s ease;"></div>
         </div>
         <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-top: 6px;">
-          <span>${lang === 'el' ? `Απομένουν ${remainingDays} ημέρες` : `${remainingDays} days remaining`}</span>
-          <span><strong>${symbol} ${formatDisplayAmount(dailyAvailable, displayCurrency)}</strong> / ${lang === 'el' ? 'ημέρα' : 'day'}</span>
+          <span>${(TRANSLATIONS[lang] && TRANSLATIONS[lang]['budget_days_remaining']) || (lang === 'el' ? 'Απομένουν' : 'Remaining')} ${remainingDays} ${(TRANSLATIONS[lang] && TRANSLATIONS[lang]['budget_days_unit']) || (lang === 'el' ? 'ημέρες' : 'days')}</span>
+          <span><strong>${symbol} ${formatDisplayAmount(dailyAvailable, displayCurrency)}</strong> / ${(TRANSLATIONS[lang] && TRANSLATIONS[lang]['budget_per_day']) || (lang === 'el' ? 'ημέρα' : 'day')}</span>
         </div>
       </div>
     </div>
@@ -7143,11 +7128,11 @@ function renderCategoryBudgetsView(catGroups = {}) {
 
   const addBtnHtml = `
     <button type="button" onclick="openCategoryBudgetModal()" style="width: 100%; padding: 14px; border-radius: 14px; background: rgba(124, 106, 247, 0.08); border: 1px dashed rgba(124, 106, 247, 0.3); color: var(--accent); font-size: 13.5px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: background 0.2s;">
-      <i class="fa-solid fa-plus"></i> ${lang === 'el' ? 'Ορισμός Νέου Προϋπολογισμού' : 'Set New Category Budget'}
+      <i class="fa-solid fa-plus"></i> ${(TRANSLATIONS[lang] && TRANSLATIONS[lang]['budget_add_new_btn']) || (lang === 'el' ? 'Ορισμός Νέου Προϋπολογισμού' : 'Set New Category Budget')}
     </button>
   `;
 
-  container.innerHTML = overallCardHtml + (budgetRowsHtml || `<div style="text-align: center; padding: 24px 16px; color: var(--text-secondary); font-size: 13.5px;">${lang === 'el' ? 'Δεν έχετε ορίσει ακόμα προϋπολογισμούς κατηγοριών.' : 'No category budgets set yet.'}</div>`) + addBtnHtml;
+  container.innerHTML = overallCardHtml + (budgetRowsHtml || `<div style="text-align: center; padding: 24px 16px; color: var(--text-secondary); font-size: 13.5px;">${(TRANSLATIONS[lang] && TRANSLATIONS[lang]['budget_no_budgets_empty']) || (lang === 'el' ? 'Δεν έχετε ορίσει ακόμα προϋπολογισμούς κατηγοριών.' : 'No category budgets set yet.')}</div>`) + addBtnHtml;
 }
 window.renderCategoryBudgetsView = renderCategoryBudgetsView;
 
@@ -7202,7 +7187,7 @@ function openBudgetCategoryPicker() {
   const backBtn = document.getElementById('budget-picker-back');
   if (backBtn) backBtn.style.display = 'none';
   const title = document.getElementById('budget-picker-title');
-  if (title) title.textContent = state.lang === 'el' ? 'Επιλογή Κατηγορίας' : 'Select Category';
+  if (title) title.textContent = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['budget_picker_title_cat']) || (state.lang === 'el' ? 'Επιλογή Κατηγορίας' : 'Select Category');
   const searchWrap = document.getElementById('budget-picker-search-wrap');
   if (searchWrap) searchWrap.style.display = 'block';
   const search = document.getElementById('budget-picker-search');
@@ -7215,7 +7200,7 @@ window.openBudgetCategoryPicker = openBudgetCategoryPicker;
 function openBudgetSubcategoryPicker() {
   const catSelect = document.getElementById('budget-modal-category');
   if (!catSelect || !catSelect.value) {
-    showToast(state.lang === 'el' ? 'Παρακαλώ επιλέξτε πρώτα κατηγορία' : 'Please select a category first', 'warning');
+    showToast((TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['budget_select_cat_first']) || (state.lang === 'el' ? 'Παρακαλώ επιλέξτε πρώτα κατηγορία' : 'Please select a category first'), 'warning');
     return;
   }
   _budgetPickerMode = 'subcategory';
@@ -7223,7 +7208,7 @@ function openBudgetSubcategoryPicker() {
   const backBtn = document.getElementById('budget-picker-back');
   if (backBtn) backBtn.style.display = 'flex';
   const title = document.getElementById('budget-picker-title');
-  if (title) title.textContent = state.lang === 'el' ? 'Επιλογή Υποκατηγορίας' : 'Select Subcategory';
+  if (title) title.textContent = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['budget_picker_title_subcat']) || (state.lang === 'el' ? 'Επιλογή Υποκατηγορίας' : 'Select Subcategory');
   const searchWrap = document.getElementById('budget-picker-search-wrap');
   if (searchWrap) searchWrap.style.display = 'block';
   const search = document.getElementById('budget-picker-search');
@@ -7277,7 +7262,7 @@ function renderBudgetPickerOptions() {
     allItem.className = 'budget-picker-item' + (currentSub === '' ? ' selected' : '');
     allItem.innerHTML = `
       <span class="budget-picker-item-icon">🗂️</span>
-      <span class="budget-picker-item-name">${state.lang === 'el' ? 'Όλες οι υποκατηγορίες' : 'All subcategories'}</span>`;
+      <span class="budget-picker-item-name">${(TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['budget_modal_all_subcategories']) || (state.lang === 'el' ? 'Όλες οι υποκατηγορίες' : 'All subcategories')}</span>`;
     allItem.onclick = () => selectBudgetPickerSubcategory('');
     list.appendChild(allItem);
     any = true;
@@ -7335,7 +7320,7 @@ function syncBudgetPickerTriggers() {
     const iconEl = document.getElementById('budget-category-trigger-icon');
     const labelEl = document.getElementById('budget-category-trigger-label');
     if (iconEl) iconEl.textContent = catSelect.value ? (catInfo.icon || '🏷️') : '🏷️';
-    if (labelEl) labelEl.textContent = cleanName || (state.lang === 'el' ? 'Επιλέξτε κατηγορία' : 'Select category');
+    if (labelEl) labelEl.textContent = cleanName || ((TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['budget_modal_category_placeholder']) || (state.lang === 'el' ? 'Επιλέξτε κατηγορία' : 'Select category'));
     catTrigger.classList.toggle('placeholder', !catSelect.value);
   }
 
@@ -7344,7 +7329,7 @@ function syncBudgetPickerTriggers() {
     if (labelEl) {
       labelEl.textContent = subcatSelect.value
         ? (getSubcategoryDisplayName(subcatSelect.value, catSelect ? catSelect.value : '') || subcatSelect.value)
-        : (state.lang === 'el' ? 'Όλες οι υποκατηγορίες' : 'All subcategories');
+        : ((TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['budget_modal_all_subcategories']) || (state.lang === 'el' ? 'Όλες οι υποκατηγορίες' : 'All subcategories'));
     }
     subTrigger.classList.toggle('placeholder', !subcatSelect.value);
   }
@@ -7356,7 +7341,7 @@ function budgetPickerGoBack() {
   const backBtn = document.getElementById('budget-picker-back');
   if (backBtn) backBtn.style.display = 'none';
   const title = document.getElementById('budget-picker-title');
-  if (title) title.textContent = state.lang === 'el' ? 'Επιλογή Κατηγορίας' : 'Select Category';
+  if (title) title.textContent = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['budget_picker_title_cat']) || (state.lang === 'el' ? 'Επιλογή Κατηγορίας' : 'Select Category');
   const search = document.getElementById('budget-picker-search');
   if (search) search.value = '';
   renderBudgetPickerOptions();
@@ -7427,6 +7412,13 @@ function openCategoryBudgetModal(targetCategoryName = null, targetSubcategory = 
     if (delBtn) delBtn.style.display = 'none';
   }
 
+  const titleEl = document.getElementById('budget-modal-title');
+  if (titleEl) {
+    titleEl.textContent = existing
+      ? ((TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['budget_modal_title_edit']) || (state.lang === 'el' ? '🎯 Επεξεργασία Προϋπολογισμού' : '🎯 Edit Category Budget'))
+      : ((TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['budget_modal_title_set']) || (state.lang === 'el' ? '🎯 Ορισμός Προϋπολογισμού' : '🎯 Set Category Budget'));
+  }
+
   if (typeof syncBudgetPickerTriggers === 'function') {
     syncBudgetPickerTriggers();
   }
@@ -7475,7 +7467,7 @@ function saveCategoryBudgetFromModal() {
   const scope = scopeInput ? scopeInput.value : 'personal';
 
   if (!categoryName) {
-    showToast(lang === 'el' ? 'Παρακαλώ επιλέξτε κατηγορία' : 'Please select category', 'warning');
+    showToast((TRANSLATIONS[lang] && TRANSLATIONS[lang]['budget_select_cat_first']) || (lang === 'el' ? 'Παρακαλώ επιλέξτε κατηγορία' : 'Please select category'), 'warning');
     return;
   }
   if (isNaN(amount) || amount <= 0) {
@@ -7526,8 +7518,8 @@ function saveCategoryBudgetFromModal() {
   saveBudgets();
   closeModal('category-budget-modal');
   renderStatsTab();
-  const displayLabel = subcategoryName ? `${categoryName} (${subcategoryName})` : categoryName;
-  showToast(lang === 'el' ? `🎯 Ο προϋπολογισμός για "${displayLabel}" αποθηκεύτηκε!` : `🎯 Budget for "${displayLabel}" saved!`, 'success');
+  const savedToast = (TRANSLATIONS[lang] && TRANSLATIONS[lang]['budget_saved_toast']) || (lang === 'el' ? '🎯 Ο προϋπολογισμός αποθηκεύτηκε!' : '🎯 Budget saved!');
+  showToast(savedToast, 'success');
 
   if (state.supabaseClient && state.currentUser) {
     syncBudgets();
@@ -7535,7 +7527,7 @@ function saveCategoryBudgetFromModal() {
 }
 window.saveCategoryBudgetFromModal = saveCategoryBudgetFromModal;
 
-function deleteSelectedCategoryBudget() {
+async function deleteSelectedCategoryBudget() {
   const idInput = document.getElementById('budget-modal-id');
   const catSelect = document.getElementById('budget-modal-category');
   const lang = state.lang || 'el';
@@ -7543,6 +7535,10 @@ function deleteSelectedCategoryBudget() {
   if (!idInput || !idInput.value) return;
   const budgetId = idInput.value;
   const categoryName = catSelect ? catSelect.value : '';
+
+  const confirmMsg = (TRANSLATIONS[lang] && TRANSLATIONS[lang]['budget_delete_confirm']) || (lang === 'el' ? 'Είστε σίγουροι ότι θέλετε να διαγράψετε αυτόν τον προϋπολογισμό;' : 'Are you sure you want to delete this budget?');
+  const confirmed = await showConfirm(confirmMsg, lang === 'el' ? 'Διαγραφή Προϋπολογισμού' : 'Delete Budget', '🗑️');
+  if (!confirmed) return;
 
   const idx = (state.budgets || []).findIndex(b => b.id === budgetId);
   if (idx !== -1) {
@@ -7553,7 +7549,8 @@ function deleteSelectedCategoryBudget() {
   saveBudgets();
   closeModal('category-budget-modal');
   renderStatsTab();
-  showToast(lang === 'el' ? `Διαγράφηκε ο προϋπολογισμός για "${categoryName}"` : `Deleted budget for "${categoryName}"`, 'info');
+  const deletedToast = (TRANSLATIONS[lang] && TRANSLATIONS[lang]['budget_deleted_toast']) || (lang === 'el' ? '🗑️ Ο προϋπολογισμός διαγράφηκε' : '🗑️ Budget deleted');
+  showToast(deletedToast, 'info');
 
   if (state.supabaseClient && state.currentUser) {
     syncBudgets();
@@ -9225,6 +9222,10 @@ function setupEventListeners() {
         _pendingReceiptFiles = [];
         _pendingReceiptDeleted = false;
 
+        if (typeof clearRecurringSettings === 'function') {
+          clearRecurringSettings(false);
+        }
+
         closeModal('transaction-modal');
         return;
       }
@@ -10716,6 +10717,9 @@ function closeModal(id, opts) {
       window.closeCalculatorKeypad();
     }
     state.lastOpenedTransactionId = null;
+    if (typeof clearRecurringSettings === 'function') {
+      clearRecurringSettings(false);
+    }
   }
   if (id === 'category-picker-modal') {
     const settingsTabs = document.getElementById('category-picker-settings-tabs');
@@ -10849,6 +10853,10 @@ function openAddTransactionModal({ instant = false } = {}) {
     repInstBtn.style.display = 'flex';
     resetRepInstButton();
     repInstBtn.onclick = () => openRecurringModal();
+  }
+
+  if (typeof clearRecurringSettings === 'function') {
+    clearRecurringSettings(false);
   }
 
   toggleTransactionFormLock(false);
@@ -15774,7 +15782,7 @@ function clearSearchSelection() {
 }
 
 async function deleteSelectedSearchTransactions() {
-  const selectedIds = Array.from(state.selectedSearchIds);
+  const selectedIds = Array.from(state.selectedSearchIds || state.searchSelectedIds || []);
   if (selectedIds.length === 0) return;
 
   if (selectedIds.length === 1) {
@@ -15789,18 +15797,12 @@ async function deleteSelectedSearchTransactions() {
     }
   }
 
-  const msg = state.lang === 'el'
-    ? `Να διαγραφούν οι ${selectedIds.length} επιλεγμένες συναλλαγές;`
-    : `Delete the ${selectedIds.length} selected transactions?`;
-
-  const confirmed = await showConfirm(msg, state.lang === 'el' ? 'Διαγραφή' : 'Delete', '🗑️');
-  if (!confirmed) return;
-
-  selectedIds.forEach(id => {
-    deleteTransaction(id);
-  });
-
+  state.selectedIds = new Set(selectedIds);
   toggleSearchSelectMode();
+  await deleteSelectedTransactions();
+  if (typeof renderSearchResults === 'function') {
+    renderSearchResults();
+  }
 }
 
 window.toggleSearchSelectMode = toggleSearchSelectMode;
@@ -25536,7 +25538,6 @@ async function forceSyncNow(silent = false) {
 
       state.transactions = dedupedCombined;
       cleanCrossLanguageRecurringDuplicates();
-      await autoRestoreMistakenlyDeletedManualTransactions();
       processRecurringTemplates();
       cleanCrossLanguageRecurringDuplicates();
       localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
@@ -30550,8 +30551,14 @@ function submitCoachQuery(queryText) {
           }
           // Persist Gemini context to the active conversation
           persistAdvisorGeminiHistory(state.advisorChatHistory);
+          const isExplicitAddIntent = data.classifiedIntent === 'add_transaction' || (function () {
+            const nq = normalizeGreekString(queryText);
+            const hasAddVerb = nq.includes('βαλε') || nq.includes('προσθεσε') || nq.includes('καταχωρησε') || nq.includes('χρεωσε') || nq.includes('πληρωσα') || nq.includes('ξοδεψα') || nq.startsWith('add ') || nq.includes('spent ');
+            const isQuestion = nq.includes('ποτε') || nq.includes('ποσα') || nq.includes('ποσο') || nq.includes('θα φτασω') || nq.includes('θα εχω') || nq.includes('when') || nq.includes('how much');
+            return hasAddVerb && !isQuestion;
+          })();
 
-          if (data.transactionsToAdd && Array.isArray(data.transactionsToAdd)) {
+          if (isExplicitAddIntent && data.transactionsToAdd && Array.isArray(data.transactionsToAdd)) {
             data.transactionsToAdd.forEach(tx => {
               if (tx.amount && tx.amount > 0) {
                 const txHtml = runCoachTransactionEntry(tx.amount, tx.note || '', tx.type || 'expense', tx.category, tx.subcategory, tx.account_from, tx.date);
@@ -34684,10 +34691,13 @@ async function deleteSingleTrashItem(id) {
   state.trashTransactions.splice(itemIndex, 1);
   localStorage.setItem('deleted_transactions_trash', JSON.stringify(state.trashTransactions));
 
-  // Hard-delete the transaction row from the cloud (status model permanent delete).
+  // Hard-delete the transaction row(s) from the cloud (permanent delete).
   if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
     try {
-      const { error } = await state.supabaseClient.from('transactions').delete().eq('id', id);
+      const idsToDelete = Array.isArray(item.affectedTransactionIds) && item.affectedTransactionIds.length > 0
+        ? item.affectedTransactionIds
+        : [id];
+      const { error } = await state.supabaseClient.from('transactions').delete().in('id', idsToDelete);
       if (error) console.warn('Failed to delete trash item on Supabase:', error);
     } catch (err) {
       console.warn('Failed to delete trash item on Supabase:', err);
