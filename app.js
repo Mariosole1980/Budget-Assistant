@@ -19063,13 +19063,13 @@ async function restoreNote(noteId) {
   restored.status = 'active';
   restored.updated_at = new Date().toISOString();
 
-  // Remove from trash, add back to active list.
+  // Remove from trash, add back to active list immediately
   saveNotesTrash(trash.filter(t => String(t.id) !== String(noteId)));
   if (!state.notes) state.notes = [];
   state.notes.push(restored);
   saveNotes();
   renderNotesList();
-  renderNotesTrashList();
+  renderNotesTrashList(false);
   updateNotesTrashBadge();
 
   if (typeof showToast === 'function') {
@@ -19090,15 +19090,17 @@ async function restoreNote(noteId) {
 
 // Permanently delete a single note from the trash (local + cloud).
 async function deleteNotePermanently(noteId) {
+  // 1. Immediately remove locally and re-render without cloud roundtrip
   const trash = loadNotesTrash().filter(t => String(t.id) !== String(noteId));
   saveNotesTrash(trash);
-  renderNotesTrashList();
+  renderNotesTrashList(false);
   updateNotesTrashBadge();
 
   if (typeof showToast === 'function') {
     showToast(state.lang === 'el' ? 'Η σημείωση διαγράφηκε οριστικά' : 'Note permanently deleted');
   }
 
+  // 2. Perform background deletion in cloud
   if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
     try {
       await state.supabaseClient.from('notes').delete().eq('id', noteId);
@@ -19130,14 +19132,16 @@ async function emptyNotesTrash() {
 
   const ids = trash.map(t => t.id).filter(Boolean);
 
+  // 1. Immediately clear locally and update UI
   saveNotesTrash([]);
-  renderNotesTrashList();
+  renderNotesTrashList(false);
   updateNotesTrashBadge();
 
   if (typeof showToast === 'function') {
     showToast(state.lang === 'el' ? 'Ο κάδος σημειώσεων άδειασε' : 'Notes trash emptied');
   }
 
+  // 2. Perform batch deletion in cloud
   if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser && ids.length > 0) {
     try {
       await state.supabaseClient.from('notes').delete().in('id', ids);
@@ -19148,12 +19152,16 @@ async function emptyNotesTrash() {
 }
 
 // Render the notes trash bin list inside the trash modal.
-async function renderNotesTrashList() {
-  const trash = await fetchNotesTrashFromCloud();
+async function renderNotesTrashList(syncCloud = false) {
+  let items = loadNotesTrash();
+  if (syncCloud) {
+    const cloudTrash = await fetchNotesTrashFromCloud();
+    if (cloudTrash) items = cloudTrash;
+  }
+
   const container = document.getElementById('notes-trash-list-container');
   if (!container) return;
 
-  const items = trash || loadNotesTrash();
   container.innerHTML = '';
 
   const btnEmpty = document.getElementById('btn-empty-notes-trash');
@@ -19206,7 +19214,7 @@ async function renderNotesTrashList() {
 }
 
 function openNotesTrashModal() {
-  renderNotesTrashList();
+  renderNotesTrashList(true);
   openModal('notes-trash-modal');
 }
 
