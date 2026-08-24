@@ -6061,11 +6061,7 @@ function _updateUIImpl() {
     countEl.textContent = state.recurringTemplates ? state.recurringTemplates.length : 0;
   }
   const trashCount = state.trashTransactions ? state.trashTransactions.length : 0;
-  // Update both the legacy ID and the actual badge ID used in index.html (hub-trash-count)
-  const trashCountEl = document.getElementById('trash-bin-count-val');
-  if (trashCountEl) {
-    trashCountEl.textContent = trashCount;
-  }
+  // Update the trash badge used in index.html (hub-trash-count).
   const hubTrashCountEl = document.getElementById('hub-trash-count');
   if (hubTrashCountEl) {
     hubTrashCountEl.textContent = trashCount;
@@ -9060,8 +9056,8 @@ function setupEventListeners() {
   const rowFamily = document.getElementById('hub-row-family');
   if (rowFamily) rowFamily.addEventListener('click', () => openSettingsSubscreen('family', 'settings_family_title'));
 
-  const rowFeedback = document.getElementById('hub-row-feedback');
-  if (rowFeedback) rowFeedback.addEventListener('click', () => openSettingsSubscreen('feedback', 'settings_feedback_title'));
+  // NOTE: The Feedback & Rating entry point lives inside the Legal subscreen
+  // (legal-feedback-row), so there is no hub-row-feedback element to bind here.
 
   const rowLegal = document.getElementById('hub-row-legal');
   if (rowLegal) rowLegal.addEventListener('click', () => openSettingsSubscreen('legal', 'settings_account_legal_title'));
@@ -28650,9 +28646,10 @@ window.onSubscreenShow_security = function () {
     }
   }
 
-  const autoLockDelay = localStorage.getItem('settings_auto_lock_delay') || 'disabled';
-  const autoLockSelect = document.getElementById('settings-auto-lock-delay');
-  if (autoLockSelect) autoLockSelect.value = autoLockDelay;
+  // NOTE: The auto-lock delay is configured through the settings picker and its
+  // current value is rendered by updateSettingsDisplay() into the
+  // settings-auto-lock-display span — there is no settings-auto-lock-delay
+  // select element anymore, so no select binding is needed here.
 };
 
 window.onSubscreenShow_notifications = function () {
@@ -28664,8 +28661,6 @@ window.onSubscreenShow_notifications = function () {
   if (timeRow) timeRow.style.display = dailyReminderEnabled ? 'flex' : 'none';
 
   const dailyTime = localStorage.getItem('settings_daily_reminder_time') || '21:00';
-  const dailyTimeInput = document.getElementById('settings-daily-reminder-time');
-  if (dailyTimeInput) dailyTimeInput.value = dailyTime;
   const dailyTimeDisplay = document.getElementById('settings-daily-reminder-time-display');
   if (dailyTimeDisplay) dailyTimeDisplay.textContent = dailyTime;
 
@@ -29169,10 +29164,6 @@ window.onSubscreenShow_preferences = function () {
   const dailyReminderCheckbox = document.getElementById('settings-daily-reminder');
   if (dailyReminderCheckbox) dailyReminderCheckbox.checked = dailyReminderEnabled;
 
-  const dailyReminderTime = localStorage.getItem('settings_daily_reminder_time') || '21:00';
-  const dailyReminderTimeInput = document.getElementById('settings-daily-reminder-time');
-  if (dailyReminderTimeInput) dailyReminderTimeInput.value = dailyReminderTime;
-
   const dailyReminderTimeRow = document.getElementById('settings-daily-reminder-time-row');
   if (dailyReminderTimeRow) dailyReminderTimeRow.style.display = dailyReminderEnabled ? 'flex' : 'none';
 
@@ -29182,6 +29173,23 @@ window.onSubscreenShow_preferences = function () {
 
   const langVal = document.getElementById('lang-setting-val');
   if (langVal) langVal.textContent = state.lang === 'el' ? 'Ελληνικά' : 'English';
+};
+
+// Lifecycle hooks for the subscreens that were missing one. The feedback form
+// must start clean on every open — otherwise the rating/label/comment from a
+// previous visit stay visible between openings.
+window.onSubscreenShow_feedback = function () {
+  if (typeof resetFeedbackForm === 'function') {
+    resetFeedbackForm();
+  }
+};
+
+window.onSubscreenShow_legal = function () {
+  // Account & Legal has no stateful form of its own, but the Feedback & Rating
+  // subscreen is reached from here, so keep its form clean as well.
+  if (typeof resetFeedbackForm === 'function') {
+    resetFeedbackForm();
+  }
 };
 
 function changeOverviewYear(dir) {
@@ -29412,8 +29420,6 @@ function openModernTimePickerForDailyReminder() {
   openModernTimePicker(currentVal, (newTime) => {
     const displayEl = document.getElementById('settings-daily-reminder-time-display');
     if (displayEl) displayEl.textContent = newTime;
-    const inputEl = document.getElementById('settings-daily-reminder-time');
-    if (inputEl) inputEl.value = newTime;
     if (typeof saveDailyReminderTime === 'function') {
       saveDailyReminderTime(newTime);
     }
@@ -29672,21 +29678,11 @@ function initSettingsSubscreenAndFhs() {
       dailyReminderCheckbox.addEventListener('change', (e) => {
         const enabled = e.target.checked;
         localStorage.setItem('settings_daily_reminder_enabled', enabled ? 'true' : 'false');
-        const timeInput = document.getElementById('settings-daily-reminder-time');
-        const timeVal = timeInput ? timeInput.value : '21:00';
+        // The reminder time lives in localStorage (set via the modern time
+        // picker); there is no settings-daily-reminder-time input element.
+        const timeVal = localStorage.getItem('settings_daily_reminder_time') || '21:00';
         const timeRow = document.getElementById('settings-daily-reminder-time-row');
         if (timeRow) timeRow.style.display = enabled ? 'flex' : 'none';
-        scheduleDailyReminder(enabled, timeVal);
-      });
-    }
-
-    const dailyReminderTimeInput = document.getElementById('settings-daily-reminder-time');
-    if (dailyReminderTimeInput) {
-      dailyReminderTimeInput.addEventListener('change', (e) => {
-        const timeVal = e.target.value;
-        localStorage.setItem('settings_daily_reminder_time', timeVal);
-        const chk = document.getElementById('settings-daily-reminder');
-        const enabled = chk ? chk.checked : false;
         scheduleDailyReminder(enabled, timeVal);
       });
     }
@@ -32274,14 +32270,14 @@ function openRecurringTemplatesModal() {
               : `<div style="width: 42px; height: 42px; border-radius: 12px; background: ${color}20; color: ${color}; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0;">${icon}</div>`}
             <div style="display: flex; flex-direction: column; min-width: 0; text-align: left; flex: 1;">
               <span style="font-weight: 700; color: var(--text-primary); font-size: 14.5px; word-break: break-word; line-height: 1.3; display: flex; align-items: center; gap: 6px;">${t.note || t.category}<i class="fa-solid fa-arrows-rotate recurring-arrows-icon" style="font-size: 12px; color: var(--primary);" title="${lang === 'el' ? 'Επαναλαμβανόμενη' : 'Recurring'}"></i></span>
-              <span style="font-size: 12px; color: var(--text-secondary); margin-top: 3px; word-break: break-word; line-height: 1.2;">${presetLabel} • ${parseFloat(t.amount || 0).toFixed(2)}€${endDateLabel}</span>
+              <span style="font-size: 12px; color: var(--text-secondary); margin-top: 3px; word-break: break-word; line-height: 1.2;">${presetLabel} • ${getCurrencySymbol()} ${formatDisplayAmount(t.amount, t.currency || state.mainCurrency || 'EUR')}${endDateLabel}</span>
             </div>
           </div>
           <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
-            <button class="details-btn" onclick="openRecurringDetailsModal('${t.id}')" title="${lang === 'el' ? 'Προβολή επαναλήψεων' : 'View repetitions'}" style="width: 34px; height: 34px; border-radius: 10px; border: 1px solid var(--border); background: rgba(255,255,255,0.03); color: var(--text-secondary); display: flex; align-items: center; justify-content: center; font-size: 14px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.backgroundColor='rgba(124, 106, 247, 0.15)'; this.style.color='var(--primary)';" onmouseout="this.style.backgroundColor='rgba(255,255,255,0.03)'; this.style.color='var(--text-secondary)';">
+            <button class="details-btn" onclick="openRecurringDetailsModal('${t.id}')" title="${lang === 'el' ? 'Προβολή επαναλήψεων' : 'View repetitions'}" style="width: 34px; height: 34px; border-radius: 10px; border: 1px solid var(--border); background: rgba(255,255,255,0.03); color: var(--text-secondary); display: flex; align-items: center; justify-content: center; font-size: 14px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.backgroundColor='rgba(var(--accent-rgb), 0.15)'; this.style.color='var(--primary)';" onmouseout="this.style.backgroundColor='rgba(255,255,255,0.03)'; this.style.color='var(--text-secondary)';">
               <i class="fa-regular fa-eye"></i>
             </button>
-            <button class="edit-btn" onclick="openRecurringEditModal('${t.id}')" title="${lang === 'el' ? 'Επεξεργασία επανάληψης' : 'Edit recurring'}" style="width: 34px; height: 34px; border-radius: 10px; border: 1px solid var(--border); background: rgba(255,255,255,0.03); color: var(--text-secondary); display: flex; align-items: center; justify-content: center; font-size: 14px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.backgroundColor='rgba(124, 106, 247, 0.15)'; this.style.color='var(--primary)';" onmouseout="this.style.backgroundColor='rgba(255,255,255,0.03)'; this.style.color='var(--text-secondary)';">
+            <button class="edit-btn" onclick="openRecurringEditModal('${t.id}')" title="${lang === 'el' ? 'Επεξεργασία επανάληψης' : 'Edit recurring'}" style="width: 34px; height: 34px; border-radius: 10px; border: 1px solid var(--border); background: rgba(255,255,255,0.03); color: var(--text-secondary); display: flex; align-items: center; justify-content: center; font-size: 14px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.backgroundColor='rgba(var(--accent-rgb), 0.15)'; this.style.color='var(--primary)';" onmouseout="this.style.backgroundColor='rgba(255,255,255,0.03)'; this.style.color='var(--text-secondary)';">
               <i class="fa-regular fa-pen-to-square"></i>
             </button>
             <button class="delete-btn" onclick="deleteRecurringTemplate('${t.id}')" title="${lang === 'el' ? 'Διαγραφή' : 'Delete'}" style="width: 34px; height: 34px; border-radius: 10px; border: 1px solid var(--border); background: rgba(255,255,255,0.03); color: var(--danger); display: flex; align-items: center; justify-content: center; font-size: 14px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.backgroundColor='rgba(255, 91, 91, 0.15)'; this.style.borderColor='rgba(255, 91, 91, 0.3)';" onmouseout="this.style.backgroundColor='rgba(255,255,255,0.03)'; this.style.borderColor='var(--border)';">
@@ -32966,8 +32962,6 @@ async function fetchTrashFromCloud() {
 
     // Refresh the trash count badge
     const trashCount = state.trashTransactions.length;
-    const trashCountEl = document.getElementById('trash-bin-count-val');
-    if (trashCountEl) trashCountEl.textContent = trashCount;
     const hubTrashCountEl = document.getElementById('hub-trash-count');
     if (hubTrashCountEl) hubTrashCountEl.textContent = trashCount;
   } catch (err) {
@@ -33009,7 +33003,10 @@ async function renderTrashBinList() {
 
   sortedTrash.forEach(t => {
     if (t.is_recurring_group) {
-      const color = '#7c6af7';
+      // Resolve the theme accent at runtime so the recurring-group badge follows
+      // the active theme. renderCategoryIconHtml()/hexToRgba() need a concrete
+      // hex value, so var(--accent) alone cannot be passed straight through.
+      const color = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#7c6af7';
       const restoreText = TRANSLATIONS[lang]['restore'] || 'Restore';
       const badgeHtml = (typeof renderCategoryIconHtml === 'function')
         ? renderCategoryIconHtml(t.category || '🔄', { size: 'sm', customColor: color })
@@ -33022,7 +33019,7 @@ async function renderTrashBinList() {
             <div style="display: flex; flex-direction: column; min-width: 0; text-align: left; flex: 1;">
               <span style="font-weight: 700; color: var(--text-primary); font-size: 14px; word-break: break-word; line-height: 1.3;">${t.note || (TRANSLATIONS[lang] && TRANSLATIONS[lang]['recurring_label']) || 'Επαναλαμβανόμενη'}</span>
               <span style="font-size: 11.5px; color: var(--text-secondary); margin-top: 3px; word-break: break-word; line-height: 1.2;">
-                ${t.subtitle || '🔄 ' + ((TRANSLATIONS[lang] && TRANSLATIONS[lang]['recurring_label']) || 'Επαναλαμβανόμενη')} • ${parseFloat(t.amount || 0).toFixed(2)}€
+                ${t.subtitle || '🔄 ' + ((TRANSLATIONS[lang] && TRANSLATIONS[lang]['recurring_label']) || 'Επαναλαμβανόμενη')} • ${getCurrencySymbol()} ${formatDisplayAmount(t.amount, t.currency || state.mainCurrency || 'EUR')}
               </span>
             </div>
           </div>
@@ -33070,7 +33067,7 @@ async function renderTrashBinList() {
           <div style="display: flex; flex-direction: column; min-width: 0; text-align: left; flex: 1;">
             <span style="font-weight: 700; color: var(--text-primary); font-size: 14px; word-break: break-word; line-height: 1.3;">${t.note || ''}</span>
             <span style="font-size: 11.5px; color: var(--text-secondary); margin-top: 3px; word-break: break-word; line-height: 1.2;">
-              ${formattedDate} • ${parseFloat(t.amount || 0).toFixed(2)}€
+              ${formattedDate} • ${getCurrencySymbol()} ${formatDisplayAmount(t.amount, t.currency || state.mainCurrency || 'EUR')}
             </span>
           </div>
         </div>
