@@ -5666,6 +5666,13 @@ function deleteTransaction(id) {
   calculateInitialBalances();
   updateUI();
 
+  if (typeof executeSearch === 'function') {
+    const searchInput = document.getElementById('search-input');
+    if (searchInput && searchInput.value) {
+      executeSearch();
+    }
+  }
+
   // 4. Perform background delete (status model: soft-delete via status='deleted')
   if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
     // Enqueue immediately before starting the cloud request to prevent data loss if the app is closed/killed
@@ -34511,7 +34518,10 @@ async function executeRecurringDelete(scope) {
       state.supabaseClient.from('recurring_templates').delete().eq('id', templateId);
     }
     if (affectedTransactionIds.length > 0) {
-      affectedTransactionIds.forEach(dId => enqueueSyncMutation('delete', dId));
+      affectedTransactionIds.forEach(dId => {
+        _markRecentlyDeleted(dId);
+        enqueueSyncMutation('delete', dId);
+      });
       // Status model: soft-delete the affected transactions so they stay
       // restorable in the trash across all devices.
       state.supabaseClient.from('transactions')
@@ -34524,9 +34534,21 @@ async function executeRecurringDelete(scope) {
     }
   }
 
+  if (affectedTransactionIds.length > 0) {
+    affectedTransactionIds.forEach(dId => _markRecentlyDeleted(dId));
+  }
+
   window._activeRecurringDeleteContext = null;
   calculateInitialBalances();
   updateUI();
+
+  // Re-run active search if search overlay has a query so deleted items disappear immediately
+  if (typeof executeSearch === 'function') {
+    const searchInput = document.getElementById('search-input');
+    if (searchInput && searchInput.value) {
+      executeSearch();
+    }
+  }
 
   // If the trash bin modal is currently open, re-render it immediately so the
   // newly deleted recurring group appears without requiring the user to leave
