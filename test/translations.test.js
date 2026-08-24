@@ -59,3 +59,56 @@ test('app_version key exists in both languages', () => {
     assert.ok(TRANSLATIONS.el.app_version, 'el missing app_version');
     assert.ok(TRANSLATIONS.en.app_version, 'en missing app_version');
 });
+
+// ---------------------------------------------------------------------------
+// GUARD (i18n key coverage): every data-i18n* attribute used in index.html and
+// every TRANSLATIONS[...]['key'] reference in app.js must exist in BOTH el and en.
+//
+// ROOT CAUSE this guards against: when an agent (e.g. Gemini) adds a new UI string
+// via data-i18n in index.html with a hardcoded (usually Greek) default but forgets
+// to register the key in js/translations.js, applyLanguage() silently skips the
+// missing key and the element keeps its hardcoded Greek content — so the English
+// UI shows Greek "out of nowhere". This test makes any dangling key fail loudly.
+// ---------------------------------------------------------------------------
+const fs = require('fs');
+const path = require('path');
+
+test('every data-i18n key used in index.html exists in both el and en', () => {
+    const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+    const attrs = ['data-i18n', 'data-i18n-html', 'data-i18n-title', 'data-i18n-placeholder'];
+    const used = new Set();
+    attrs.forEach(attr => {
+        const re = new RegExp(`${attr}="([^"]+)"`, 'g');
+        let m;
+        while ((m = re.exec(html)) !== null) used.add(m[1]);
+    });
+    assert.ok(used.size > 100, 'expected many data-i18n keys in index.html');
+
+    const missingInEl = [];
+    const missingInEn = [];
+    used.forEach(k => {
+        if (!TRANSLATIONS.el[k]) missingInEl.push(k);
+        if (!TRANSLATIONS.en[k]) missingInEn.push(k);
+    });
+    assert.deepStrictEqual(missingInEn, [], `data-i18n keys missing from EN: ${missingInEn.join(', ')}`);
+    assert.deepStrictEqual(missingInEl, [], `data-i18n keys missing from EL: ${missingInEl.join(', ')}`);
+});
+
+test('every TRANSLATIONS[lang][key] reference in app.js exists in both el and en', () => {
+    const app = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
+    const re = /TRANSLATIONS\[(?:state\.)?lang\]\[['"]([^'"]+)['"]\]/g;
+    const refs = new Set();
+    let m;
+    while ((m = re.exec(app)) !== null) refs.add(m[1]);
+    assert.ok(refs.size > 50, 'expected many TRANSLATIONS references in app.js');
+
+    const missingInEl = [];
+    const missingInEn = [];
+    refs.forEach(k => {
+        if (!TRANSLATIONS.el[k]) missingInEl.push(k);
+        if (!TRANSLATIONS.en[k]) missingInEn.push(k);
+    });
+    assert.deepStrictEqual(missingInEn, [], `app.js translation keys missing from EN: ${missingInEn.join(', ')}`);
+    assert.deepStrictEqual(missingInEl, [], `app.js translation keys missing from EL: ${missingInEl.join(', ')}`);
+});
+

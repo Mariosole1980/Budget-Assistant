@@ -1609,6 +1609,41 @@ window.requestExactAlarmPermission = async function () {
   }
 };
 
+// EXACT-ALARM STATUS: returns true when the OS allows exact alarms
+// (setExactAndAllowWhileIdle), false when it will silently fall back to an
+// INEXACT alarm (which Android typically delivers ~1 minute late), and null
+// when not running on native with the ReliableNotification plugin.
+window.getExactAlarmStatus = async function () {
+  if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.ReliableNotification) {
+    try {
+      const diag = await window.Capacitor.Plugins.ReliableNotification.getDiagnostics();
+      return !!(diag && diag.isExactAllowed);
+    } catch (e) {
+      console.warn('[ExactAlarm] Could not read exact alarm status:', e);
+    }
+  }
+  return null;
+};
+
+// Refreshes the "⚡ Exact Notification Time" badge in the Notifications settings.
+window.refreshExactAlarmBadge = async function () {
+  const badge = document.getElementById('settings-exact-alarm-status');
+  if (!badge) return;
+  const exact = await window.getExactAlarmStatus();
+  if (exact === null) return; // web / plugin missing — leave the placeholder badge
+  if (exact) {
+    badge.textContent = state.lang === 'el' ? '✓ Ενεργό' : '✓ Enabled';
+    badge.style.color = '#10b981';
+    badge.style.borderColor = 'rgba(16,185,129,0.35)';
+    badge.style.background = 'rgba(16,185,129,0.12)';
+  } else {
+    badge.textContent = state.lang === 'el' ? '⚠️ Απαιτείται' : '⚠️ Needed';
+    badge.style.color = '#f59e0b';
+    badge.style.borderColor = 'rgba(245,158,11,0.35)';
+    badge.style.background = 'rgba(245,158,11,0.12)';
+  }
+};
+
 window.openNotificationDiagnosticsModal = async function () {
   openModal('notification-diagnostics-modal');
 
@@ -28408,6 +28443,9 @@ window.onSubscreenShow_notifications = function () {
   const dailyTimeDisplay = document.getElementById('settings-daily-reminder-time-display');
   if (dailyTimeDisplay) dailyTimeDisplay.textContent = dailyTime;
 
+  // Refresh the "⚡ Exact Notification Time" status badge.
+  if (typeof window.refreshExactAlarmBadge === 'function') window.refreshExactAlarmBadge();
+
   const recurringAlertsEnabled = localStorage.getItem('settings_recurring_alerts_enabled') !== 'false';
   const recurringAlertsCheckbox = document.getElementById('settings-recurring-alerts');
   if (recurringAlertsCheckbox) recurringAlertsCheckbox.checked = recurringAlertsEnabled;
@@ -28735,6 +28773,7 @@ window.toggleDailyReminder = function (checked) {
   localStorage.setItem('settings_daily_reminder_enabled', checked ? 'true' : 'false');
   const timeRow = document.getElementById('settings-daily-reminder-time-row');
   if (timeRow) timeRow.style.display = checked ? 'flex' : 'none';
+  if (typeof window.refreshExactAlarmBadge === 'function') window.refreshExactAlarmBadge();
 
   const timeVal = localStorage.getItem('settings_daily_reminder_time') || '21:00';
   if (typeof scheduleDailyReminder === 'function') {
@@ -28742,6 +28781,26 @@ window.toggleDailyReminder = function (checked) {
   }
   if (checked && typeof showSyncToast === 'function') {
     showSyncToast(state.lang === 'el' ? '✓ Ημερήσια υπενθύμιση ενεργοποιήθηκε' : '✓ Daily reminder enabled', 2000);
+  }
+
+  // EXACT-ALARM PROMPT: when the reminder is ON but the device has exact alarms
+  // disabled, AlarmManager silently falls back to an INEXACT alarm which
+  // Android typically delivers ~1 minute late. Ask the user to enable it so
+  // the reminder arrives exactly on time.
+  if (checked) {
+    setTimeout(async () => {
+      try {
+        const exact = await window.getExactAlarmStatus();
+        if (exact === false && typeof window.requestExactAlarmPermission === 'function') {
+          showSyncToast(state.lang === 'el'
+            ? '⚠️ Χωρίς «Ακριβείς Ειδοποιήσεις» η υπενθύμιση καθυστερεί ~1 λεπτό. Ενεργοποιήστε το…'
+            : '⚠️ Without "Exact alarms" the reminder arrives ~1 min late. Enable it…', 4500);
+          setTimeout(() => { window.requestExactAlarmPermission(); }, 700);
+        }
+      } catch (e) {
+        console.warn('[ExactAlarm] check failed:', e);
+      }
+    }, 400);
   }
 };
 

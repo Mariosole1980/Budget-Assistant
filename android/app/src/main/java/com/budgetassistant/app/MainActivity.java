@@ -66,6 +66,20 @@ public class MainActivity extends BridgeActivity {
     private static final long OVERLAY_FADE_OUT_MS = 100;
     private long resumeTimestamp = 0;
 
+    // LONG-BACKGROUND RESUME (anti one-time flash):
+    // After the app has been backgrounded for a long time (deep sleep, hours),
+    // the WebView surface can take noticeably longer to recomposite than after
+    // a quick app switch. Hiding the snapshot overlay after the usual 80ms (or
+    // the 1000ms fallback) can reveal a blank/stale frame for a moment → the
+    // "small one-time flicker" on resume. When the background was long, hold
+    // the snapshot overlay longer so the first real frame is guaranteed to be
+    // on screen before we reveal it. For quick switches the timing is unchanged.
+    private static final long LONG_BACKGROUND_THRESHOLD_MS = 60_000;
+    private static final long MIN_RESUME_OVERLAY_VISIBLE_MS_LONG = 350;
+    private static final long RESUME_OVERLAY_HIDE_DELAY_MS_LONG = 2500;
+    private long backgroundStartTime = 0;
+    private boolean longBackgroundResume = false;
+
     // COLD-START LAUNCH WINDOW GUARD:
     // While true, applySavedTheme() must NOT replace the branded splash PNG
     // (android:windowBackground = @drawable/splash) with a solid color. If it
@@ -169,14 +183,20 @@ public class MainActivity extends BridgeActivity {
                     // Enforce a minimum visible time so the WebView surface has
                     // fully recomposited and painted the real content before we
                     // reveal it. If the signal arrived too early, defer the hide
-                    // until the minimum window has elapsed.
+                    // until the minimum window has elapsed. After a LONG
+                    // background the surface recomposite takes longer, so the
+                    // minimum is raised for that resume cycle.
+                    long minVisible = longBackgroundResume
+                            ? MIN_RESUME_OVERLAY_VISIBLE_MS_LONG
+                            : MIN_RESUME_OVERLAY_VISIBLE_MS;
                     long elapsed = SystemClock.uptimeMillis() - resumeTimestamp;
-                    if (elapsed < MIN_RESUME_OVERLAY_VISIBLE_MS) {
-                        long remaining = MIN_RESUME_OVERLAY_VISIBLE_MS - elapsed;
+                    if (elapsed < minVisible) {
+                        long remaining = minVisible - elapsed;
                         mainHandler.postDelayed(hideResumeOverlayRunnable, remaining);
                     } else {
                         mainHandler.post(MainActivity.this::hideResumeOverlay);
                     }
+                    longBackgroundResume = false;
                 }
             }, "NativeApp");
         }
@@ -210,6 +230,11 @@ public class MainActivity extends BridgeActivity {
         // Record when this resume started so onFirstPaint() can enforce the
         // minimum visible time for the overlay.
         resumeTimestamp = SystemClock.uptimeMillis();
+        // Detect a LONG background (deep sleep / hours away). In that case the
+        // WebView surface needs longer to recomposite, so the snapshot overlay
+        // is held longer to avoid the small one-time flash on resume.
+        longBackgroundResume = (backgroundStartTime > 0)
+                && (SystemClock.uptimeMillis() - backgroundStartTime) > LONG_BACKGROUND_THRESHOLD_MS;
         // Apply secure mode flags on resume.
         applySecureMode();
         // Re-apply the saved theme background on every resume.
@@ -219,13 +244,21 @@ public class MainActivity extends BridgeActivity {
         // covering the WebView. Start the fallback timer. The JS onFirstPaint
         // signal normally hides it much sooner.
         mainHandler.removeCallbacks(hideResumeOverlayRunnable);
-        mainHandler.postDelayed(hideResumeOverlayRunnable, RESUME_OVERLAY_HIDE_DELAY_MS);
+        long hideDelay = longBackgroundResume
+                ? RESUME_OVERLAY_HIDE_DELAY_MS_LONG
+                : RESUME_OVERLAY_HIDE_DELAY_MS;
+        mainHandler.postDelayed(hideResumeOverlayRunnable, hideDelay);
     }
 
     @Override
     public void onPause() {
         super.onPause();
         Log.d(TAG, "onPause — capturing snapshot and showing overlay");
+        // Record when the app went to the background so onResume() can detect a
+        // long background (deep sleep / hours away) and hold the snapshot overlay
+        // longer, preventing the small one-time flash when the WebView surface
+        // needs extra time to recomposite.
+        backgroundStartTime = SystemClock.uptimeMillis();
         // Capture a bitmap snapshot of the WebView BEFORE showing the overlay.
         // This snapshot becomes the overlay's background, making the resume
         // transition seamless because the overlay shows the exact last frame
