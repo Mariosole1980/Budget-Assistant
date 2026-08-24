@@ -247,7 +247,7 @@
     (function () {
       // Apply theme background color immediately to prevent white/beige flash on resume
       const savedTheme = localStorage.getItem('app_theme') || 'dark';
-      const themeBgColors = { 'dark': '#181b22', 'oled': '#000000', 'light': '#f4f6f9', 'emerald': '#0f1916', 'ocean': '#0b132b', 'pink': '#1f1218' };
+      const themeBgColors = { 'dark': '#181b22', 'oled': '#000000', 'light': '#f4f6f9', 'emerald': '#0f1916', 'ocean': '#0b132b', 'pink': '#1f1218', 'sakura': '#fff5f7', 'rosegold': '#180e14', 'cyber': '#11091c' };
       const bgColor = themeBgColors[savedTheme] || '#181b22';
       document.documentElement.style.backgroundColor = bgColor;
       if (document.body) document.body.style.backgroundColor = bgColor; // Sync inline body background

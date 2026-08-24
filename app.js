@@ -2147,8 +2147,10 @@ function showResumeOverlay() {
   if (!overlay) return;
   // Sync background to the current theme color in case it changed while backgrounded.
   const savedTheme = localStorage.getItem('app_theme') || 'dark';
-  const themeBgColors = { 'dark': '#181b22', 'oled': '#000000', 'light': '#f4f6f9', 'emerald': '#0f1916', 'ocean': '#0b132b', 'pink': '#1f1218' };
-  overlay.style.backgroundColor = themeBgColors[savedTheme] || '#181b22';
+  const bgColor = (typeof window.getThemeBgColor === 'function')
+    ? window.getThemeBgColor(savedTheme)
+    : '#181b22';
+  overlay.style.backgroundColor = bgColor;
   // Show instantly (no fade-in) — must be visible before any blank frame.
   overlay.style.transition = 'none';
   overlay.style.opacity = '1';
@@ -3656,12 +3658,20 @@ function applyWalletTheme() {
   }
 
   // IMPORTANT: Always re-apply the user's chosen theme so that shared-wallet-active
-  // never overrides the colour scheme. The theme is the single source of truth for colours.
+  // never overrides the colour scheme. The theme is the single source of truth.
+  // Clean ALL theme classes on BOTH <body> and <html> (same set as applyTheme),
+  // then re-apply the full token set from the central THEMES config.
   const savedTheme = localStorage.getItem('app_theme') || 'dark';
-  document.body.classList.remove('theme-oled', 'theme-light', 'theme-emerald', 'theme-ocean', 'theme-pink');
+  const themeClasses = ['theme-oled', 'theme-light', 'theme-emerald', 'theme-ocean', 'theme-pink', 'theme-sakura', 'theme-rosegold', 'theme-cyber'];
+  themeClasses.forEach(cls => {
+    document.body.classList.remove(cls);
+    document.documentElement.classList.remove(cls);
+  });
   if (savedTheme !== 'dark') {
     document.body.classList.add(`theme-${savedTheme}`);
+    document.documentElement.classList.add(`theme-${savedTheme}`);
   }
+  if (typeof applyTheme === 'function') applyTheme(savedTheme);
 }
 
 
@@ -20863,31 +20873,31 @@ function openSettingsPicker(type) {
         id: 'dark',
         title: 'Premium Dark',
         desc: state.lang === 'el' ? 'Σκούρο μωβ & γκρι' : 'Dark purple & charcoal',
-        colors: ['#222731', '#7c6af7', '#1e222b']
+        colors: ['#181b22', '#38bdf8', '#222731']
       },
       {
         id: 'oled',
         title: 'OLED Black',
         desc: state.lang === 'el' ? 'Απόλυτο μαύρο (OLED)' : 'Pure pitch black',
-        colors: ['#000000', '#7c6af7', '#121212']
+        colors: ['#000000', '#2ec4b6', '#0d0d0d']
       },
       {
         id: 'light',
         title: 'Classic Light',
         desc: state.lang === 'el' ? 'Καθαρό φωτεινό' : 'Clean & bright light',
-        colors: ['#ffffff', '#2563eb', '#f1f5f9']
+        colors: ['#f4f6f9', '#2ec4b6', '#ffffff']
       },
       {
         id: 'emerald',
         title: 'Emerald Forest',
         desc: state.lang === 'el' ? 'Βαθύ πράσινο' : 'Deep emerald green',
-        colors: ['#182823', '#10b981', '#121f1b']
+        colors: ['#182823', '#2ec4b6', '#0f1916']
       },
       {
         id: 'ocean',
         title: 'Ocean Breeze',
         desc: state.lang === 'el' ? 'Νυχτερινό μπλε & κυανό' : 'Midnight blue & cyan',
-        colors: ['#1c2541', '#06b6d4', '#0b1329']
+        colors: ['#1c2541', '#00b4d8', '#0b1329']
       },
       {
         id: 'pink',
@@ -21224,8 +21234,115 @@ window.updateSettingsDisplay = updateSettingsDisplay;
 window.applyFontSize = applyFontSize;
 window.changeFontSizeSetting = changeFontSizeSetting;
 
-// Theme & Appearance Helpers
+// ============================================================
+// THEME SYSTEM — single source of truth for all 9 themes.
+// Each theme defines its FULL token set (bg, cards, text hierarchy,
+// accent + gradient, overlay, borders, day-header, shadows) instead of a
+// partial "repaint". applyTheme() writes these as CSS custom properties on
+// <html>, so every var(--*) consumer follows the active theme.
+// ============================================================
+const THEMES = {
+  dark: {
+    bgMain: '#181b22', bgCard: '#222731', bgInput: '#2b313d',
+    textMain: '#e3e8f0', textSecondary: '#8a99ad', textMuted: '#64748b',
+    accent: '#38bdf8', accentRgb: '56, 189, 248',
+    accentGradient: 'linear-gradient(135deg, #38bdf8 0%, #3b82f6 100%)',
+    overlay: 'rgba(255,255,255,0.05)', overlayStrong: 'rgba(255,255,255,0.09)',
+    border: '#2e3543', borderLight: '#384152', dayHeader: '#1b1f28',
+    shadow: '0 4px 12px rgba(0,0,0,0.3)', shadowLg: '0 10px 25px rgba(0,0,0,0.4)',
+    isLight: false
+  },
+  oled: {
+    bgMain: '#000000', bgCard: '#0d0d0d', bgInput: '#151515',
+    textMain: '#e3e8f0', textSecondary: '#8a99ad', textMuted: '#64748b',
+    accent: '#2ec4b6', accentRgb: '46, 196, 182',
+    accentGradient: 'linear-gradient(135deg, #2ec4b6 0%, #10b981 100%)',
+    overlay: 'rgba(255,255,255,0.05)', overlayStrong: 'rgba(255,255,255,0.10)',
+    border: '#1f1f1f', borderLight: '#262626', dayHeader: '#080808',
+    shadow: '0 4px 12px rgba(0,0,0,0.6)', shadowLg: '0 10px 25px rgba(0,0,0,0.8)',
+    isLight: false
+  },
+  light: {
+    bgMain: '#f4f6f9', bgCard: '#ffffff', bgInput: '#e9ecef',
+    textMain: '#1e293b', textSecondary: '#475569', textMuted: '#64748b',
+    accent: '#2ec4b6', accentRgb: '46, 196, 182',
+    accentGradient: 'linear-gradient(135deg, #2ec4b6 0%, #2563eb 100%)',
+    overlay: 'rgba(15,23,42,0.05)', overlayStrong: 'rgba(15,23,42,0.09)',
+    border: '#e2e8f0', borderLight: '#f1f5f9', dayHeader: '#e9ecef',
+    shadow: '0 4px 12px rgba(15,23,42,0.08)', shadowLg: '0 10px 25px rgba(15,23,42,0.12)',
+    isLight: true
+  },
+  pink: {
+    bgMain: '#1f1218', bgCard: '#2d1b24', bgInput: '#3d2531',
+    textMain: '#fdf2f8', textSecondary: '#fbcfe8', textMuted: '#f472b6',
+    accent: '#ff758f', accentRgb: '255, 117, 143',
+    accentGradient: 'linear-gradient(135deg, #ff758f 0%, #d946ef 100%)',
+    overlay: 'rgba(255,255,255,0.06)', overlayStrong: 'rgba(255,255,255,0.10)',
+    border: 'rgba(255,117,143,0.25)', borderLight: 'rgba(255,117,143,0.35)', dayHeader: '#261820',
+    shadow: '0 4px 12px rgba(0,0,0,0.35)', shadowLg: '0 10px 25px rgba(0,0,0,0.45)',
+    isLight: false
+  },
+  sakura: {
+    bgMain: '#fff5f7', bgCard: '#ffffff', bgInput: '#fce7f3',
+    textMain: '#831843', textSecondary: '#9d174d', textMuted: '#be185d',
+    accent: '#f43f5e', accentRgb: '244, 63, 94',
+    accentGradient: 'linear-gradient(135deg, #f43f5e 0%, #fb7185 100%)',
+    overlay: 'rgba(131,24,67,0.05)', overlayStrong: 'rgba(131,24,67,0.09)',
+    border: '#fbcfe8', borderLight: '#f472b6', dayHeader: '#fce7f3',
+    shadow: '0 4px 12px rgba(244,63,94,0.08)', shadowLg: '0 10px 25px rgba(244,63,94,0.12)',
+    isLight: true
+  },
+
+  rosegold: {
+    bgMain: '#180e14', bgCard: '#261720', bgInput: '#36202c',
+    textMain: '#fff1f2', textSecondary: '#fecdd3', textMuted: '#fda4af',
+    accent: '#fb7185', accentRgb: '251, 113, 133',
+    accentGradient: 'linear-gradient(135deg, #fb7185 0%, #c2410c 100%)',
+    overlay: 'rgba(255,255,255,0.05)', overlayStrong: 'rgba(255,255,255,0.09)',
+    border: 'rgba(251,113,133,0.22)', borderLight: 'rgba(251,113,133,0.32)', dayHeader: '#20121a',
+    shadow: '0 4px 12px rgba(0,0,0,0.4)', shadowLg: '0 10px 25px rgba(0,0,0,0.5)',
+    isLight: false
+  },
+  emerald: {
+    bgMain: '#0f1916', bgCard: '#182823', bgInput: '#20352e',
+    textMain: '#e3e8f0', textSecondary: '#8a99ad', textMuted: '#64748b',
+    accent: '#2ec4b6', accentRgb: '46, 196, 182',
+    accentGradient: 'linear-gradient(135deg, #2ec4b6 0%, #10b981 100%)',
+    overlay: 'rgba(255,255,255,0.05)', overlayStrong: 'rgba(255,255,255,0.09)',
+    border: '#233d35', borderLight: '#2c4c42', dayHeader: '#13221e',
+    shadow: '0 4px 12px rgba(0,0,0,0.35)', shadowLg: '0 10px 25px rgba(0,0,0,0.45)',
+    isLight: false
+  },
+  ocean: {
+    bgMain: '#0b132b', bgCard: '#1c2541', bgInput: '#293250',
+    textMain: '#e3e8f0', textSecondary: '#8a99ad', textMuted: '#64748b',
+    accent: '#00b4d8', accentRgb: '0, 180, 216',
+    accentGradient: 'linear-gradient(135deg, #00b4d8 0%, #3b82f6 100%)',
+    overlay: 'rgba(255,255,255,0.05)', overlayStrong: 'rgba(255,255,255,0.09)',
+    border: '#2b3964', borderLight: '#36487a', dayHeader: '#141c33',
+    shadow: '0 4px 12px rgba(0,0,0,0.35)', shadowLg: '0 10px 25px rgba(0,0,0,0.45)',
+    isLight: false
+  },
+  cyber: {
+    bgMain: '#11091c', bgCard: '#1c102b', bgInput: '#29183d',
+    textMain: '#faf5ff', textSecondary: '#e9d5ff', textMuted: '#c084fc',
+    accent: '#a855f7', accentRgb: '168, 85, 247',
+    accentGradient: 'linear-gradient(135deg, #a855f7 0%, #6366f1 100%)',
+    overlay: 'rgba(255,255,255,0.05)', overlayStrong: 'rgba(255,255,255,0.09)',
+    border: 'rgba(168,85,247,0.25)', borderLight: 'rgba(168,85,247,0.35)', dayHeader: '#170c26',
+    shadow: '0 4px 12px rgba(0,0,0,0.4)', shadowLg: '0 10px 25px rgba(0,0,0,0.5)',
+    isLight: false
+  }
+};
+
+// Returns the theme's main background color (used by resume/cold-start overlays).
+function getThemeBgColor(theme) {
+  return (THEMES[theme] && THEMES[theme].bgMain) || THEMES.dark.bgMain;
+}
+window.getThemeBgColor = getThemeBgColor;
+
 function applyTheme(theme) {
+  const t = THEMES[theme] || THEMES.dark;
   const themeClasses = ['theme-oled', 'theme-light', 'theme-emerald', 'theme-ocean', 'theme-pink', 'theme-sakura', 'theme-rosegold', 'theme-cyber'];
   themeClasses.forEach(cls => {
     document.body.classList.remove(cls);
@@ -21236,36 +21353,36 @@ function applyTheme(theme) {
     document.documentElement.classList.add(`theme-${theme}`);
   }
 
-  // Dynamically update meta theme-color to match theme's card/header background
-  const themeColors = {
-    'dark': '#222731',
-    'oled': '#0d0d0d',
-    'light': '#ffffff',
-    'pink': '#2d1b24',
-    'sakura': '#fff5f7',
-    'rosegold': '#261720',
-    'emerald': '#182823',
-    'ocean': '#1c2541',
-    'cyber': '#1c102b'
+  // FULL token set → every var(--*) consumer follows the theme (not a repaint).
+  const rootStyle = document.documentElement.style;
+  const tokens = {
+    '--bg-main': t.bgMain,
+    '--bg-card': t.bgCard,
+    '--bg-input': t.bgInput,
+    '--text-main': t.textMain,
+    '--text-primary': t.textMain,
+    '--text-secondary': t.textSecondary,
+    '--text-muted': t.textMuted,
+    '--accent': t.accent,
+    '--accent-rgb': t.accentRgb,
+    '--accent-gradient': t.accentGradient,
+    '--overlay-alpha': t.overlay,
+    '--overlay-alpha-strong': t.overlayStrong,
+    '--border': t.border,
+    '--border-light': t.borderLight,
+    '--bg-day-header': t.dayHeader,
+    '--shadow': t.shadow,
+    '--shadow-lg': t.shadowLg
   };
-  const metaThemeColor = document.querySelector('meta[name="theme-color"]');
-  if (metaThemeColor) {
-    metaThemeColor.setAttribute('content', themeColors[theme] || '#222731');
-  }
+  Object.keys(tokens).forEach(k => rootStyle.setProperty(k, tokens[k]));
 
-  // Sync background color to native Android window/webview to prevent flashing on resume
-  const bodyBgColors = {
-    'dark': '#181b22',
-    'oled': '#000000',
-    'light': '#f4f6f9',
-    'emerald': '#0f1916',
-    'ocean': '#0b132b',
-    'pink': '#1f1218'
-  };
-  const isLight = theme === 'light';
-  const bgColor = bodyBgColors[theme] || '#181b22';
-  const statusBarColor = themeColors[theme] || '#222731';
+  // Sync meta theme-color + native Android window bars (all 9 themes covered).
+  const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+  if (metaThemeColor) metaThemeColor.setAttribute('content', t.bgMain);
+  const bgColor = t.bgMain;
+  const statusBarColor = t.bgCard;
   const navBarColor = bgColor; // Match navigation bar to body background
+  const isLight = !!t.isLight;
 
   if (window.Capacitor) {
     try {

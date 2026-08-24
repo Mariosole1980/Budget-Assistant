@@ -28,6 +28,11 @@
   --shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.4);
 
+  /* Theme-aware translucent surfaces: white-alpha on dark themes,
+     dark-alpha on light themes. Set per theme by applyTheme(). */
+  --overlay-alpha: rgba(255, 255, 255, 0.05);
+  --overlay-alpha-strong: rgba(255, 255, 255, 0.09);
+
   /* Safe Area Safe Insets */
   --safe-area-bottom: env(safe-area-inset-bottom, 0px);
   --bg-day-header: #1b1f28;
@@ -3428,8 +3433,10 @@ body.is-ios .modal-content {
   --border-light: #262626;
   --shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
   --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.8);
+  --accent: #2ec4b6;
   --accent-rgb: 46, 196, 182;
   --accent-light: rgba(46, 196, 182, 0.15);
+  --accent-gradient: linear-gradient(135deg, #2ec4b6 0%, #10b981 100%);
   --bg-day-header: #080808;
 }
 
@@ -3498,8 +3505,10 @@ body.is-ios .modal-content {
   --border-light: #f1f5f9;
   --shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.08);
+  --accent: #2ec4b6;
   --accent-rgb: 46, 196, 182;
   --accent-light: rgba(46, 196, 182, 0.15);
+  --accent-gradient: linear-gradient(135deg, #2ec4b6 0%, #2563eb 100%);
   --bg-day-header: #e9ecef;
 }
 
