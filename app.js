@@ -6465,11 +6465,15 @@ function renderTransactionsTab(containerOverride, yearOverride, monthOverride) {
 
       const memberBadge = getMemberBadgeHTML(t);
 
+      const catBadgeHtml = (typeof renderCategoryIconHtml === 'function')
+        ? renderCategoryIconHtml(t.category, { size: 'sm', transType: t.type })
+        : `<div class="trans-cat-icon">${catInfo.icon || '💰'}</div>`;
+
       item.innerHTML = `
         ${checkboxHtml}
         <div class="trans-left">
           <div class="trans-category-container">
-            <div class="trans-cat-icon">${catInfo.icon || '💰'}</div>
+            ${catBadgeHtml}
             <div class="trans-cat-name">${escapeHtml(translatedCat) || ''}</div>
             ${t.subcategory ? `<div class="trans-sub-name">${escapeHtml(translatedSub)}</div>` : ''}
           </div>
@@ -6877,10 +6881,14 @@ function renderStatsTab(skipChart = false) {
     const hasSubcats = item.subcategories.length > 0 && item.subcategories.some(s => s.name);
     const catColor = NEON_PALETTE[idx % NEON_PALETTE.length];
 
+    const statsIconHtml = (typeof renderCategoryIconHtml === 'function')
+      ? renderCategoryIconHtml(item.name, { size: 'inline', customColor: catColor })
+      : item.icon;
+
     row.innerHTML = `
       <div class="stats-row-left">
         <span class="stats-pct-badge" style="background-color: ${catColor};">${Math.round(item.percentage)}%</span>
-        <span class="stats-cat-icon">${item.icon}</span>
+        <span class="stats-cat-icon" style="font-size:14px; margin-right:4px; display:inline-flex; align-items:center;">${statsIconHtml}</span>
         <span class="stats-category-name">${getCategoryDisplayName(stripLeadingEmoji(item.name))}</span>
       </div>
       <div class="stats-row-right">${getCurrencySymbol()} ${formatDisplayAmount(item.amount, displayCurrency)}</div>`;
@@ -7132,13 +7140,15 @@ function renderCategoryBudgetsView(catGroups = {}) {
     const subcatDisplayName = b.subcategory ? (typeof getSubcategoryDisplayName === 'function' ? getSubcategoryDisplayName(b.subcategory) : b.subcategory) : '';
     const titleLabel = subcatDisplayName ? `${cleanCatName} <span style="font-size:12px; opacity:0.75; font-weight:600;">(${subcatDisplayName})</span>` : cleanCatName;
 
+    const budgetBadgeHtml = (typeof renderCategoryIconHtml === 'function')
+      ? renderCategoryIconHtml(b.category, { size: 'md', customColor: catInfo.color })
+      : `<div style="width: 40px; height: 40px; border-radius: 12px; background: ${catInfo.color}20; color: ${catInfo.color}; display: flex; align-items: center; justify-content: center; font-size: 19px; flex-shrink: 0;">${catInfo.icon}</div>`;
+
     return `
       <div class="budget-cat-row ${isOver ? 'over-budget' : ''}" style="background: var(--bg-card); border: 1px solid ${isOver ? 'rgba(255, 91, 91, 0.4)' : 'var(--border)'}; border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px;">
         <div style="display: flex; align-items: center; justify-content: space-between;">
           <div style="display: flex; align-items: center; gap: 12px; min-width: 0;">
-            <div style="width: 40px; height: 40px; border-radius: 12px; background: ${catInfo.color}20; color: ${catInfo.color}; display: flex; align-items: center; justify-content: center; font-size: 19px; flex-shrink: 0;">
-              ${catInfo.icon}
-            </div>
+            ${budgetBadgeHtml}
             <div style="display: flex; flex-direction: column; min-width: 0;">
               <span style="font-size: 14.5px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 4px; word-break: break-word;">${titleLabel}${scopeIcon}</span>
               <span style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">${symbol} ${formatDisplayAmount(spent, displayCurrency)} / ${symbol} ${formatDisplayAmount(budgetAmountInDisplay, displayCurrency)}</span>
@@ -11241,9 +11251,10 @@ function updateCategoryDisplay() {
   }
 
   const type = document.querySelector('.type-tab-btn.active')?.getAttribute('data-type') || 'expense';
-  const catInfo = getCategoryInfo(categoryVal, type);
-  const icon = catInfo.icon || '';
   const cleanName = getCategoryDisplayName(categoryVal);
+  const iconHtml = (typeof renderCategoryIconHtml === 'function')
+    ? renderCategoryIconHtml(categoryVal, { size: 'inline', transType: type })
+    : '';
 
   const subcatSelect = document.getElementById('trans-subcategory-select')?.value || '';
   const subcatCustom = document.getElementById('trans-subcategory-custom')?.value || '';
@@ -11261,8 +11272,8 @@ function updateCategoryDisplay() {
 
   if (subcatText) {
     categoryDisplay.innerHTML = `
-      <div style="display: flex; align-items: center; gap: 4px; ${fontSizeStyle} white-space: nowrap;">
-        <span class="category-picker-icon" style="font-size:14px; flex-shrink:0;">${icon}</span>
+      <div style="display: flex; align-items: center; gap: 6px; ${fontSizeStyle} white-space: nowrap;">
+        <span style="font-size:14px; flex-shrink:0; display:inline-flex; align-items:center;">${iconHtml}</span>
         <span style="font-weight:600;">${cleanName}</span>
         <span style="color: var(--text-muted); margin: 0 2px; flex-shrink:0;">&gt;</span>
         <span style="font-weight:600;">${subcatText}</span>
@@ -11271,7 +11282,7 @@ function updateCategoryDisplay() {
   } else {
     categoryDisplay.innerHTML = `
       <div style="display: flex; align-items: center; gap: 6px; ${fontSizeStyle} white-space: nowrap;">
-        <span class="category-picker-icon" style="font-size:14px; flex-shrink:0;">${icon}</span>
+        <span style="font-size:14px; flex-shrink:0; display:inline-flex; align-items:center;">${iconHtml}</span>
         <span style="font-weight:600;">${cleanName}</span>
       </div>
     `;
@@ -11600,12 +11611,15 @@ function updateCategoryDropdowns(type = 'expense', force = false) {
     div.setAttribute('data-category-name', c.name);
 
     const displayName = getCategoryDisplayName(c.name);
+    const catBadge = (typeof renderCategoryIconHtml === 'function')
+      ? renderCategoryIconHtml(c, { size: 'sm', transType: type })
+      : `<span class="category-picker-icon">${c.icon}</span>`;
 
     if (categoryPickerEditMode) {
       div.classList.add('in-edit-mode');
       if (c.hidden) div.style.opacity = '0.55';
       div.innerHTML = `
-        <span class="category-picker-icon">${c.icon}</span>
+        ${catBadge}
         <span class="category-picker-name">${displayName}</span>
         <span class="category-delete-badge" title="${state.lang === 'el' ? 'Διαγραφή' : 'Delete'}">
           <i class="fa-solid fa-xmark"></i>
@@ -11624,7 +11638,7 @@ function updateCategoryDropdowns(type = 'expense', force = false) {
         div.classList.add('selected');
         categoryExists = true;
       }
-      div.innerHTML = `<span class="category-picker-icon">${c.icon}</span><span class="category-picker-name">${displayName}</span>`;
+      div.innerHTML = `${catBadge}<span class="category-picker-name">${displayName}</span>`;
       div.onclick = () => selectCategory(c.name, c.icon, c.color, true);
     }
 
@@ -11634,13 +11648,8 @@ function updateCategoryDropdowns(type = 'expense', force = false) {
   // "+" New Category box (always visible, both in normal and edit mode)
   const addBox = document.createElement('div');
   addBox.className = 'category-picker-item category-picker-add';
-  if (categoryPickerEditMode) {
-    addBox.innerHTML = `<span class="category-picker-icon" style="font-size:28px;color:var(--accent);">+</span><span class="category-picker-name">${state.lang === 'el' ? 'Νέα Κατηγορία' : 'New Category'}</span>`;
-    addBox.onclick = () => openNewCategoryDialog(type);
-  } else {
-    addBox.innerHTML = `<span class="category-picker-icon" style="font-size:28px;color:var(--accent);">+</span><span class="category-picker-name">${state.lang === 'el' ? 'Νέα Κατηγορία' : 'New Category'}</span>`;
-    addBox.onclick = () => openNewCategoryDialog(type);
-  }
+  addBox.innerHTML = `<div class="cat-vector-badge" style="width:28px; height:28px; border-radius:8px; background:rgba(124,106,247,0.15); border:1px solid rgba(124,106,247,0.3); color:var(--accent); display:inline-flex; align-items:center; justify-content:center; font-size:14px;"><i class="fa-solid fa-plus"></i></div><span class="category-picker-name">${state.lang === 'el' ? 'Νέα Κατηγορία' : 'New Category'}</span>`;
+  addBox.onclick = () => openNewCategoryDialog(type);
   grid.appendChild(addBox);
 
   if (!categoryPickerEditMode && !categoryExists && currentCategory !== '') {
@@ -11686,265 +11695,6 @@ function selectSubcategory(name) {
   closeModal('subcategory-picker-modal');
 }
 
-function openCategoryModal() {
-  if (window.autocompleteJustSelected) return;
-  const form = document.getElementById('transaction-form');
-  if (form && form.getAttribute('data-readonly') === 'true') return;
-  const currentType = document.querySelector('.type-tab-btn.active').getAttribute('data-type');
-
-  // Reset edit mode on modal open
-  categoryPickerEditMode = false;
-  const btn = document.getElementById('btn-toggle-cat-edit');
-  if (btn) {
-    btn.textContent = state.lang === 'el' ? 'Διαχείριση' : 'Manage';
-    btn.style.borderColor = 'var(--border)';
-    btn.style.color = 'var(--text-secondary)';
-  }
-
-  // Force update to prevent any stale flash or lag when switching tabs
-  updateCategoryDropdowns(currentType, true);
-  closeNewCategoryDialog(); // Reset dialog state
-  openModal('category-picker-modal');
-}
-
-// ============================================================
-// SUBCATEGORY MANAGER LOGIC (INLINE EDIT, MERGE, SORT, UNDO)
-// ============================================================
-let _lastSubcatDeleteBackup = null;
-let _subcatUndoTimer = null;
-let _subcatUndoActiveCallback = null;
-
-function getSubcategoriesStatsForCategory(categoryName) {
-  const cleanedCat = stripLeadingEmoji(categoryName).toUpperCase();
-  const stats = {};
-
-  state.transactions.forEach(t => {
-    if (t.category && stripLeadingEmoji(t.category).toUpperCase() === cleanedCat) {
-      if (t.subcategory && t.subcategory.trim() !== '') {
-        const sub = t.subcategory.trim();
-        if (!stats[sub]) {
-          stats[sub] = { count: 0, lastUsedDate: '' };
-        }
-        stats[sub].count++;
-
-        const tDate = t.date || '';
-        if (tDate && (!stats[sub].lastUsedDate || tDate > stats[sub].lastUsedDate)) {
-          stats[sub].lastUsedDate = tDate;
-        }
-      }
-    }
-  });
-
-  return stats;
-}
-
-function getSortedSubcategoriesForCategory(categoryName) {
-  const stats = getSubcategoriesStatsForCategory(categoryName);
-  const subcatKeys = new Set(Object.keys(stats));
-
-  // Merge static subcategories from the category object
-  const cat = state.categories.find(c => c.name === categoryName);
-  if (cat && Array.isArray(cat.subcategories)) {
-    cat.subcategories.forEach(sub => {
-      const s = sub.trim();
-      if (s) {
-        subcatKeys.add(s);
-      }
-    });
-  }
-
-  const arr = Array.from(subcatKeys);
-
-  // Sort them:
-  // 1. By transaction count descending
-  // 2. If counts are equal, alphabetically
-  arr.sort((a, b) => {
-    const countA = stats[a] ? stats[a].count : 0;
-    const countB = stats[b] ? stats[b].count : 0;
-
-    if (countB !== countA) {
-      return countB - countA;
-    }
-    return a.localeCompare(b, state.lang === 'el' ? 'el' : 'en', { sensitivity: 'base' });
-  });
-
-  return arr;
-}
-
-async function renameSubcategoryGlobally(categoryName, oldSub, newSub) {
-  const cleanedCat = stripLeadingEmoji(categoryName).toUpperCase();
-
-  // 1. Update static subcategories list in the category object
-  const cat = state.categories.find(c => c.name === categoryName);
-  if (cat && Array.isArray(cat.subcategories)) {
-    if (cat.subcategories.includes(newSub)) {
-      cat.subcategories = cat.subcategories.filter(s => s.trim() !== oldSub.trim());
-    } else {
-      cat.subcategories = cat.subcategories.map(s => s.trim() === oldSub.trim() ? newSub : s);
-    }
-    const now = new Date().toISOString();
-    cat.updated_at = now;
-    saveCategoriesToStorage();
-
-    if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
-      try {
-        await state.supabaseClient.from('categories').update({
-          subcategories: cat.subcategories,
-          updated_at: now
-        }).match({ user_id: state.currentUser.id, name: cat.name });
-      } catch (err) {
-        console.warn('Supabase categories update error:', err);
-      }
-    }
-  }
-
-  // 2. Update transactions
-  let updatedCount = 0;
-  state.transactions.forEach(t => {
-    if (t.category && stripLeadingEmoji(t.category).toUpperCase() === cleanedCat) {
-      if (t.subcategory && t.subcategory.trim() === oldSub.trim()) {
-        t.subcategory = newSub;
-        updatedCount++;
-      }
-    }
-  });
-
-  if (updatedCount > 0) {
-    localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
-    calculateInitialBalances();
-    updateUI();
-  }
-
-  if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
-    try {
-      const { error } = await state.supabaseClient
-        .from('transactions')
-        .update({ subcategory: newSub })
-        .match({ user_id: state.currentUser.id, category: categoryName, subcategory: oldSub });
-
-      if (error) console.warn('Supabase subcategory rename sync error:', error);
-    } catch (err) {
-      console.warn('Supabase subcategory rename sync failed:', err);
-    }
-  }
-
-  showSyncToast(state.lang === 'el' ? '✓ Υποκατηγορία μετονομάστηκε' : '✓ Subcategory renamed', 2000);
-}
-
-async function deleteSubcategoryGlobally(categoryName, subToDelete) {
-  const cleanedCat = stripLeadingEmoji(categoryName).toUpperCase();
-
-  // 1. Remove from static list in category object
-  const cat = state.categories.find(c => c.name === categoryName);
-  if (cat && Array.isArray(cat.subcategories)) {
-    cat.subcategories = cat.subcategories.filter(s => s.trim() !== subToDelete.trim());
-    const now = new Date().toISOString();
-    cat.updated_at = now;
-    saveCategoriesToStorage();
-
-    if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
-      try {
-        await state.supabaseClient.from('categories').update({
-          subcategories: cat.subcategories,
-          updated_at: now
-        }).match({ user_id: state.currentUser.id, name: cat.name });
-      } catch (err) {
-        console.warn('Supabase categories update error:', err);
-      }
-    }
-  }
-
-  // 2. Remove from transactions
-  const backupItems = [];
-  state.transactions.forEach(t => {
-    if (t.category && stripLeadingEmoji(t.category).toUpperCase() === cleanedCat) {
-      if (t.subcategory && t.subcategory.trim() === subToDelete.trim()) {
-        backupItems.push({ txId: t.id, oldSub: t.subcategory });
-        t.subcategory = '';
-      }
-    }
-  });
-
-  if (backupItems.length > 0) {
-    _lastSubcatDeleteBackup = {
-      categoryName: categoryName,
-      subcategoryName: subToDelete,
-      items: backupItems,
-      timestamp: Date.now()
-    };
-
-    localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
-    calculateInitialBalances();
-    updateUI();
-
-    if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
-      try {
-        const { error } = await state.supabaseClient
-          .from('transactions')
-          .update({ subcategory: '' })
-          .match({ user_id: state.currentUser.id, category: categoryName, subcategory: subToDelete });
-
-        if (error) console.warn('Supabase subcategory delete sync error:', error);
-      } catch (err) {
-        console.warn('Supabase subcategory delete sync failed:', err);
-      }
-    }
-
-    const msg = state.lang === 'el'
-      ? `Διαγράφηκε η υποκατηγορία "${subToDelete}"`
-      : `Deleted subcategory "${subToDelete}"`;
-
-    showSubcatUndoSnackbar(msg, () => {
-      undoLastSubcategoryDelete();
-    });
-  } else {
-    updateUI();
-  }
-}
-
-async function undoLastSubcategoryDelete() {
-  if (!_lastSubcatDeleteBackup) return;
-
-  const { categoryName, subcategoryName, items } = _lastSubcatDeleteBackup;
-  let restoredCount = 0;
-
-  items.forEach(backup => {
-    const t = state.transactions.find(tx => tx.id === backup.txId);
-    if (t) {
-      t.subcategory = backup.oldSub;
-      restoredCount++;
-    }
-  });
-
-  if (restoredCount > 0) {
-    localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
-    calculateInitialBalances();
-    updateUI();
-  }
-
-  if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser && restoredCount > 0) {
-    try {
-      const idsToRestore = items.map(item => item.txId);
-      const { error } = await state.supabaseClient
-        .from('transactions')
-        .update({ subcategory: subcategoryName })
-        .in('id', idsToRestore)
-        .eq('user_id', state.currentUser.id);
-
-      if (error) console.warn('Supabase subcategory undo sync error:', error);
-    } catch (err) {
-      console.warn('Supabase subcategory undo sync failed:', err);
-    }
-  }
-
-  _lastSubcatDeleteBackup = null;
-
-  if (editingCategoryName) {
-    renderEditCategorySubcategories(editingCategoryName);
-  }
-
-  showSyncToast(state.lang === 'el' ? '✓ Η διαγραφή αναιρέθηκε' : '✓ Deletion undone', 2000);
-}
 
 function showSubcatUndoSnackbar(message, undoCallback) {
   let snackbar = document.getElementById('subcat-undo-snackbar');
@@ -11960,285 +11710,225 @@ function showSubcatUndoSnackbar(message, undoCallback) {
       display: flex; align-items: center; justify-content: space-between; gap: 16px;
       opacity: 0;
       transition: transform 0.3s cubic-bezier(.34,1.56,.64,1), opacity 0.3s ease;
-      width: 90%; max-width: 380px; box-sizing: border-box;
-      font-family: 'Outfit', sans-serif;
-    `;
+      wi  renderCategoryIconDialog('all', '');
 
-    const textSpan = document.createElement('span');
-    textSpan.id = 'subcat-undo-text';
-    textSpan.style.flex = '1';
+  const saveBtn = dialog.querySelector('.btn-primary');
+  if (saveBtn) saveBtn.textContent = state.lang === 'el' ? 'Αποθήκευση' : 'Save';
+  const cancelBtn = dialog.querySelector('.btn-secondary');
+  if (cancelBtn) cancelBtn.textContent = state.lang === 'el' ? 'Άκυρο' : 'Cancel';
 
-    const undoBtn = document.createElement('button');
-    undoBtn.id = 'subcat-undo-btn';
-    undoBtn.className = 'btn btn-primary';
-    undoBtn.style.cssText = 'padding: 6px 12px; font-size: 12px; margin: 0; font-weight: 700; width: auto; flex-shrink: 0;';
-    undoBtn.textContent = state.lang === 'el' ? 'Αναίρεση' : 'Undo';
-
-    snackbar.appendChild(textSpan);
-    snackbar.appendChild(undoBtn);
-    document.body.appendChild(snackbar);
-  }
-
-  const textSpan = snackbar.querySelector('#subcat-undo-text');
-  if (textSpan) textSpan.textContent = message;
-
-  _subcatUndoActiveCallback = undoCallback;
-
-  const undoBtn = snackbar.querySelector('#subcat-undo-btn');
-  if (undoBtn) {
-    const newBtn = undoBtn.cloneNode(true);
-    undoBtn.parentNode.replaceChild(newBtn, undoBtn);
-
-    newBtn.addEventListener('click', () => {
-      if (typeof _subcatUndoActiveCallback === 'function') {
-        _subcatUndoActiveCallback();
-        _subcatUndoActiveCallback = null;
-      }
-      hideSubcatUndoSnackbar();
-    });
-  }
-
-  requestAnimationFrame(() => {
-    snackbar.style.transform = 'translate(-50%, 0)';
-    snackbar.style.opacity = '1';
-  });
-
-  if (_subcatUndoTimer) clearTimeout(_subcatUndoTimer);
-  _subcatUndoTimer = setTimeout(() => {
-    hideSubcatUndoSnackbar();
-  }, 5000);
+  renderEditCategorySubcategories(categoryName);
+  dialog.style.display = 'block';
+  nameInput.focus();
 }
 
-function hideSubcatUndoSnackbar() {
-  const snackbar = document.getElementById('subcat-undo-snackbar');
-  if (snackbar) {
-    snackbar.style.transform = 'translate(-50%, 80px)';
-    snackbar.style.opacity = '0';
-  }
-  _subcatUndoActiveCallback = null;
-  if (_subcatUndoTimer) {
-    clearTimeout(_subcatUndoTimer);
-    _subcatUndoTimer = null;
-  }
-}
-
-function renderEditCategorySubcategories(categoryName) {
-  const dialog = document.getElementById('new-category-inline-dialog');
-  if (!dialog) return;
-
-  let subcatSection = document.getElementById('new-cat-subcategories-section');
-  if (!subcatSection) {
-    subcatSection = document.createElement('div');
-    subcatSection.id = 'new-cat-subcategories-section';
-    subcatSection.style.cssText = 'display:none; margin-top:16px; padding-top:12px; border-top:1px solid rgba(255,255,255,0.08); margin-bottom:16px;';
-    subcatSection.innerHTML = `
-      <label style="font-size:11px; color:var(--text-muted); font-weight:600; display:block; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px;">
-        <span data-i18n="subcategories_title">${TRANSLATIONS[state.lang]['subcategories_title'] || 'Υποκατηγορίες'}</span> <span id="new-cat-subcategories-count" style="color:var(--accent); font-weight:800; margin-left:4px;"></span>
-      </label>
-      <div id="new-cat-subcategories-list" style="display:flex; flex-direction:column; gap:6px; max-height:150px; overflow-y:auto; padding:4px; background:rgba(0,0,0,0.1); border:1px solid rgba(255,255,255,0.04); border-radius:8px;"></div>
-    `;
-
-    const actionBtns = dialog.querySelector('div[style*="display:flex"][style*="gap:8px"]');
-    if (actionBtns) {
-      dialog.insertBefore(subcatSection, actionBtns);
-    } else {
-      dialog.appendChild(subcatSection);
-    }
-  }
-
-  const listEl = document.getElementById('new-cat-subcategories-list');
-  const countEl = document.getElementById('new-cat-subcategories-count');
-  if (!listEl) return;
-
-  if (!categoryName) {
-    subcatSection.style.display = 'none';
-    return;
-  }
-
-  subcatSection.style.display = 'block';
-  listEl.innerHTML = '';
-
-  const stats = getSubcategoriesStatsForCategory(categoryName);
-  const subcatKeys = Object.keys(stats);
-
-  if (subcatKeys.length === 0) {
-    if (countEl) countEl.textContent = '';
-    listEl.innerHTML = `
-      <div style="font-size:12.5px; color:var(--text-muted); padding:16px 12px; text-align:center; line-height:1.5;">
-        ${state.lang === 'el'
-        ? 'Δεν υπάρχουν ακόμη υποκατηγορίες.<br><span style="font-size:11px; opacity:0.8;">Οι υποκατηγορίες δημιουργούνται αυτόματα όταν καταχωρείς συναλλαγές.</span>'
-        : 'No subcategories yet.<br><span style="font-size:11px; opacity:0.8;">Subcategories are created automatically when you record transactions.</span>'}
-      </div>
-    `;
-    return;
-  }
-
-  if (countEl) {
-    countEl.textContent = `(${subcatKeys.length})`;
-  }
-
-  const sortedSubs = subcatKeys.sort((a, b) => {
-    const diff = stats[b].count - stats[a].count;
-    if (diff !== 0) return diff;
-    return a.localeCompare(b);
-  });
-
-  sortedSubs.forEach(sub => {
-    const item = document.createElement('div');
-    item.style.cssText = 'display:flex; align-items:center; justify-content:space-between; padding:8px 12px; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.04); border-radius:10px; font-size:13px; color:var(--text-secondary); transition: background 0.2s;';
-
-    const count = stats[sub].count;
-    const lastUsed = stats[sub].lastUsedDate;
-
-    let lastUsedStr = '';
-    if (lastUsed) {
-      const parts = lastUsed.split('-');
-      if (parts.length === 3) {
-        lastUsedStr = state.lang === 'el'
-          ? ` • Τελ. χρήση: ${parts[2]}/${parts[1]}/${parts[0]}`
-          : ` • Last used: ${parts[2]}/${parts[1]}/${parts[0]}`;
-      }
-    }
-
-    const txLabel = state.lang === 'el'
-      ? (count === 1 ? 'συναλλαγή' : 'συναλλαγές')
-      : (count === 1 ? 'transaction' : 'transactions');
-
-    const normalHtml = `
-      <div style="display:flex; flex-direction:column; flex:1; overflow:hidden; margin-right:8px;">
-        <span style="font-weight:600; color:var(--text-primary); text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">${sub}</span>
-        <span style="font-size:11px; color:var(--text-muted); margin-top:2px;">${count} ${txLabel}${lastUsedStr}</span>
-      </div>
-      <div style="display:flex; gap:8px; align-items:center;">
-        <button type="button" class="icon-btn edit-sub-btn" style="color:var(--text-muted); cursor:pointer; font-size:12.5px; background:none; border:none; padding:6px; transition:color 0.2s;"><i class="fa-solid fa-pen"></i></button>
-        <button type="button" class="icon-btn delete-sub-btn" style="color:var(--red-negative, #ff4a4a); cursor:pointer; font-size:12.5px; background:none; border:none; padding:6px; transition:color 0.2s;"><i class="fa-solid fa-trash-can"></i></button>
-      </div>
-    `;
-
-    item.innerHTML = normalHtml;
-
-    item.querySelector('.edit-sub-btn').addEventListener('click', (e) => {
-      e.stopPropagation();
-
-      item.innerHTML = `
-        <div style="display:flex; align-items:center; gap:8px; flex:1; margin-right:8px;">
-          <input type="text" class="rename-sub-input" value="${sub}" style="flex:1; padding:6px 10px; font-size:13px; border-radius:8px; background:rgba(0,0,0,0.35); border:1px solid var(--accent, #7c6af7); color:var(--text-primary); outline:none; font-family:'Outfit',sans-serif;">
-        </div>
-        <div style="display:flex; gap:8px; align-items:center;">
-          <button type="button" class="icon-btn save-rename-btn" style="color:var(--accent, #7c6af7); cursor:pointer; font-size:13px; background:none; border:none; padding:6px;"><i class="fa-solid fa-check"></i></button>
-          <button type="button" class="icon-btn cancel-rename-btn" style="color:var(--text-muted); cursor:pointer; font-size:13px; background:none; border:none; padding:6px;"><i class="fa-solid fa-xmark"></i></button>
-        </div>
-      `;
-
-      const input = item.querySelector('.rename-sub-input');
-      if (input) {
-        input.focus();
-        input.addEventListener('keydown', (evt) => {
-          if (evt.key === 'Enter') {
-            evt.preventDefault();
-            item.querySelector('.save-rename-btn').click();
-          }
-        });
-      }
-
-      item.querySelector('.save-rename-btn').addEventListener('click', async (evt) => {
-        evt.stopPropagation();
-        const newName = input.value.trim();
-
-        if (newName === '') {
-          showSyncToast(state.lang === 'el' ? '⚠️ Το όνομα δεν μπορεί να είναι κενό!' : '⚠️ Name cannot be empty!', 2500);
-          return;
-        }
-
-        if (/^[ \-_\.\*]+$/.test(newName)) {
-          showSyncToast(state.lang === 'el' ? '⚠️ Μη έγκυρο όνομα υποκατηγορίας!' : '⚠️ Invalid subcategory name!', 2500);
-          return;
-        }
-
-        if (newName === sub) {
-          renderEditCategorySubcategories(categoryName);
-          return;
-        }
-
-        if (stats[newName]) {
-          const confirmTitle = state.lang === 'el' ? 'Συγχώνευση Υποκατηγοριών' : 'Merge Subcategories';
-          const confirmMsg = state.lang === 'el'
-            ? `Η υποκατηγορία "${newName}" υπάρχει ήδη. Θέλετε να συγχωνεύσετε όλες τις συναλλαγές της "${sub}" στην "${newName}";`
-            : `Subcategory "${newName}" already exists. Do you want to merge all transactions from "${sub}" into "${newName}"?`;
-
-          const confirmed = await showConfirm(confirmMsg, confirmTitle, '🔀');
-          if (!confirmed) {
-            return;
-          }
-        }
-
-        await renameSubcategoryGlobally(categoryName, sub, newName);
-        renderEditCategorySubcategories(categoryName);
-      });
-
-      item.querySelector('.cancel-rename-btn').addEventListener('click', (evt) => {
-        evt.stopPropagation();
-        renderEditCategorySubcategories(categoryName);
-      });
-    });
-
-    item.querySelector('.delete-sub-btn').addEventListener('click', async (e) => {
-      e.stopPropagation();
-
-      const confirmTitle = state.lang === 'el' ? 'Διαγραφή Υποκατηγορίας' : 'Delete Subcategory';
-      const confirmMsg = state.lang === 'el'
-        ? `Είστε σίγουροι ότι θέλετε να διαγράψετε την υποκατηγορία "${sub}";\nΘα αφαιρεθεί από όλες τις συναλλαγές.`
-        : `Are you sure you want to delete subcategory "${sub}"?\nIt will be removed from all transactions.`;
-
-      const confirmed = await showConfirm(confirmMsg, confirmTitle, '🗑️');
-      if (confirmed) {
-        await deleteSubcategoryGlobally(categoryName, sub);
-        renderEditCategorySubcategories(categoryName);
-      }
-    });
-
-    listEl.appendChild(item);
-  });
-}
-
-// New Category inline dialog state
-let newCategoryDialogType = 'expense';
-let newCategorySelectedEmoji = '💸';
-let editingCategoryName = null; // null = new, string = editing existing
-
-const EMOJI_OPTIONS = ['💰', '💸', '🏡', '🛒', '🚗', '❤️', '🎉', '🧾', '🏋️', '👕', '🚇', '💻', '🎬', '🎓', '🧩', '🤑', '🎁', '💼', '💶', '🏛️', '📦', '🏅', '👨', '💵', '🔧', '⭐', '🔥', '🎯', '📱', '☕', '🎵', '✈️', '🏖️', '📚', '🐶', '🌱', '💡', '🗂️', '🛠️', '🎮'];
-
-function openEditCategoryDialog(categoryName, type) {
-  const cat = state.categories.find(c => c.name === categoryName);
-  if (!cat) return;
-
-  editingCategoryName = categoryName;
+function openNewCategoryDialog(type) {
+  editingCategoryName = null; // ensure we are in create mode
   newCategoryDialogType = type;
-  newCategorySelectedEmoji = cat.icon || (type === 'income' ? '💰' : '💸');
+  newCategorySelectedIcon = type === 'income' ? 'fa-solid fa-wallet' : 'fa-solid fa-basket-shopping';
+  newCategorySelectedColor = type === 'income' ? '#4caf50' : '#f59e0b';
 
   const dialog = document.getElementById('new-category-inline-dialog');
   const nameInput = document.getElementById('new-cat-name-input');
   const titleEl = document.getElementById('new-cat-dialog-title');
+  const searchInput = document.getElementById('new-cat-icon-search');
 
   if (!dialog || !nameInput) return;
 
   if (titleEl) {
-    titleEl.textContent = state.lang === 'el' ? 'Επεξεργασία Κατηγορίας' : 'Edit Category';
+    titleEl.textContent = type === 'income'
+      ? (state.lang === 'el' ? 'Νέα Κατηγορία Εσόδου' : 'New Income Category')
+      : (state.lang === 'el' ? 'Νέα Κατηγορία Εξόδου' : 'New Expense Category');
   }
 
+  if (searchInput) searchInput.value = '';
+  nameInput.value = '';
+  nameInput.placeholder = state.lang === 'el' ? 'Όνομα κατηγορίας' : 'Category name';
+
+  renderCategoryIconDialog('all', '');
+
+  const saveBtn = dialog.querySelector('.btn-primary');
+  if (saveBtn) {
+    saveBtn.textContent = state.lang === 'el' ? 'Αποθήκευση' : 'Save';
+  }
+  const cancelBtn = dialog.querySelector('.btn-secondary');
+  if (cancelBtn) {
+    cancelBtn.textContent = state.lang === 'el' ? 'Άκυρο' : 'Cancel';
+  }
+
+  renderEditCategorySubcategories(null);
+  dialog.style.display = 'block';
+  nameInput.focus();
+}
+
+function closeNewCategoryDialog() {
+  const dialog = document.getElementById('new-category-inline-dialog');
+  if (dialog) dialog.style.display = 'none';
+  newCategoryDialogType = 'expense';
+  newCategorySelectedIcon = 'fa-solid fa-basket-shopping';
+  newCategorySelectedColor = '#f59e0b';
+  editingCategoryName = null;
+  renderEditCategorySubcategories(null);
+}
+
+function saveNewCategoryFromPicker() {
+  const nameInput = document.getElementById('new-cat-name-input');
+  const name = nameInput ? nameInput.value.trim() : '';
+
+  if (!name) {
+    alert(TRANSLATIONS[state.lang]['alert_enter_category_name']);
+    return;
+  }
+
+  // === EDIT MODE: Update existing category ===
+  if (editingCategoryName) {
+    const cat = state.categories.find(c => c.name === editingCategoryName);
+    if (!cat) {
+      closeNewCategoryDialog();
+      return;
+    }
+
+    const oldName = cat.name;
+    const currentDisplayName = getCategoryDisplayName(oldName);
+    const nameChanged = name !== currentDisplayName;
+    const iconChanged = newCategorySelectedIcon !== cat.icon;
+    const colorChanged = newCategorySelectedColor !== cat.color;
+
+    if (!nameChanged && !iconChanged && !colorChanged) {
+      closeNewCategoryDialog();
+      return;
+    }
+
+    // Check for name collision with another category (only if name changed)
+    if (nameChanged) {
+      const collision = state.categories.find(c => c.name !== oldName && getCategoryDisplayName(c.name).toLowerCase() === name.toLowerCase() && c.type === cat.type);
+      if (collision) {
+        alert(state.lang === 'el' ? 'Υπάρχει ήδη κατηγορία με αυτό το όνομα!' : 'A category with this name already exists!');
+        return;
+      }
+    }
+
+    const now = new Date().toISOString();
+    cat.name = name;
+    cat.icon = newCategorySelectedIcon;
+    cat.color = newCategorySelectedColor;
+    cat.updated_at = now;
+
+    // Update transactions using old name
+    let transactionsUpdated = 0;
+    if (nameChanged) {
+      state.transactions.forEach(t => {
+        if (t.category === oldName) {
+          t.category = name;
+          transactionsUpdated++;
+        }
+      });
+      if (transactionsUpdated > 0) {
+        localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
+      }
+    }
+
+    saveCategoriesToStorage();
+
+    // Cloud sync
+    if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
+      try {
+        if (nameChanged) {
+          // Delete old, insert new
+          state.supabaseClient.from('categories').delete().match({ user_id: state.currentUser.id, name: oldName })
+            .then(() => {
+              state.supabaseClient.from('categories').insert({
+                id: cat.id || (typeof generateUUID === 'function' ? generateUUID() : crypto.randomUUID()),
+                user_id: state.currentUser.id,
+                family_id: state.userProfile ? state.userProfile.family_id : null,
+                name: cat.name,
+                type: cat.type,
+                icon: cat.icon,
+                color: cat.color,
+                hidden: !!cat.hidden,
+                created_at: cat.created_at || now,
+                updated_at: now
+              }).then(({ error }) => { if (error) console.warn('Cloud category rename insert warning:', error); });
+            });
+          if (transactionsUpdated > 0) {
+            state.supabaseClient.from('transactions').update({ category: name }).match({ user_id: state.currentUser.id, category: oldName })
+              .then(({ error }) => { if (error) console.warn('Cloud transactions rename warning:', error); });
+          }
+        } else {
+          // Only icon / color / details changed
+          state.supabaseClient.from('categories').update({
+            icon: cat.icon,
+            color: cat.color,
+            hidden: !!cat.hidden,
+            updated_at: now
+          }).match({ user_id: state.currentUser.id, name: cat.name })
+            .then(({ error }) => { if (error) console.warn('Cloud category update warning:', error); });
+        }
+      } catch (e) {
+        console.warn('Cloud category edit sync failed:', e);
+      }
+    }
+
+    closeNewCategoryDialog();
+    updateCategoryDropdowns(newCategoryDialogType, true);
+    updateUI();
+    showSyncToast(state.lang === 'el' ? '✓ Κατηγορία ενημερώθηκε' : '✓ Category updated', 2000);
+    return;
+  }
+
+  // === CREATE MODE: New category ===
+  // Check for duplicate
+  const exists = state.categories.find(c =>
+    c.name && c.name.toUpperCase() === name.toUpperCase()
+  );
+  if (exists) {
+    alert(TRANSLATIONS[state.lang]['alert_category_exists']);
+    return;
+  }
+
+  // Create new category
+  const now = new Date().toISOString();
+  const newCategory = {
+    id: typeof generateUUID === 'function' ? generateUUID() : crypto.randomUUID(),
+    name: name,
+    type: newCategoryDialogType,
+    icon: newCategorySelectedIcon,
+    color: newCategorySelectedColor,
+    user_id: state.currentUser ? state.currentUser.id : null,
+    family_id: state.userProfile ? state.userProfile.family_id : null,
+    created_at: now,
+    updated_at: now
+  };
+
+  state.categories.push(newCategory);
+  saveCategoriesToStorage();
+
+  // Sync to cloud if enabled
+  if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
+    try {
+      state.supabaseClient
+        .from('categories')
+        .insert({
+          id: newCategory.id,
+          user_id: state.currentUser.id,
+          family_id: state.userProfile ? state.userProfile.family_id : null,
+          name: newCategory.name,
+          type: newCategory.type,
+          icon: newCategory.icon,
+          color: newCategory.color,
+          created_at: newCategory.created_at,
+          updated_at: newCategory.updated_at
+        })
+        .then(({ error }) => {
+          if (error) console.warn('Cloud category insert warning:', error);
+        });
+    } catch (e) {
+      console.warn('Cloud category insert catch:', e);
+    }
+  }earchInput) searchInput.value = '';
   nameInput.value = getCategoryDisplayName(categoryName);
   nameInput.placeholder = state.lang === 'el' ? 'Όνομα κατηγορίας' : 'Category name';
 
-  // Render emoji grid with the current icon pre-selected
-  const emojiGrid = document.getElementById('new-cat-emoji-grid');
-  if (emojiGrid) {
-    emojiGrid.innerHTML = '';
-    // Ensure the current emoji is available
-    const emojiList = EMOJI_OPTIONS.includes(cat.icon) ? EMOJI_OPTIONS : [cat.icon, ...EMOJI_OPTIONS];
-    emojiList.forEach(emoji => {
-      const btn = document.createElement('span');
-      btn.textContent = emoji;
-      btn.style.cssText = `font-size:22px; padding:6px 8px; cursor:pointer; border-radius:8px; transition:all 0.15s; border:2px solid ${emoji === newCategorySelectedEmoji ? 'var(--accent)' : 'transparent'}; background:${emoji === newCategorySelectedEmoji ? 'var(--accent-light)' : 'transparent'};`;
       btn.onclick = () => {
         newCategorySelectedEmoji = emoji;
         emojiGrid.querySelectorAll('span').forEach(s => {
@@ -25475,7 +25165,36 @@ async function forceSyncNow(silent = false) {
       );
 
       if (!catsRes.error && catsRes.data) {
-        state.categories = catsRes.data;
+        if (Array.isArray(catsRes.data) && catsRes.data.length > 0) {
+          // Cloud has categories -> keep cloud categories, and merge any unsynced local custom categories
+          const cloudNames = new Set(catsRes.data.map(c => (c && c.name ? c.name.trim().toLowerCase() : '')));
+          const localCustom = (state.categories || []).filter(c => c && c.name && !cloudNames.has(c.name.trim().toLowerCase()) && !c.is_deleted);
+          state.categories = [...catsRes.data, ...localCustom];
+          deduplicateCategories();
+        } else {
+          // Cloud categories empty (e.g. newly registered account) -> preserve local categories or seed with defaults
+          if (!state.categories || state.categories.length === 0) {
+            state.categories = DEFAULT_CATEGORIES.slice();
+          }
+          // Seed defaults in Supabase in background for this new user
+          if (state.currentUser && state.currentUser.id && state.categories.length > 0) {
+            const now = new Date().toISOString();
+            const catsToInsert = state.categories.map(c => ({
+              id: c.id || (typeof generateUUID === 'function' ? generateUUID() : crypto.randomUUID()),
+              name: c.name,
+              type: c.type || 'expense',
+              icon: c.icon || 'fa-solid fa-shapes',
+              color: c.color || '#78909c',
+              user_id: state.currentUser.id,
+              family_id: state.userProfile ? state.userProfile.family_id : null,
+              created_at: c.created_at || now,
+              updated_at: now
+            }));
+            state.supabaseClient.from('categories').insert(catsToInsert).then(({ error }) => {
+              if (error) console.warn('Background category seeding warning:', error);
+            });
+          }
+        }
         localStorage.setItem('offline_categories', JSON.stringify(state.categories));
       }
       if (!accsRes.error && accsRes.data) {
@@ -31834,9 +31553,9 @@ function openRecurringTemplatesModal() {
       const itemHtml = `
         <div class="recurring-template-row" style="display: flex; flex-direction: row; align-items: center; justify-content: space-between; padding: 12px 14px; border: 1px solid var(--border); border-radius: 14px; background: var(--bg-card); gap: 12px; margin-bottom: 0; min-height: 64px; box-sizing: border-box; width: 100%;">
           <div style="display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1; flex-direction: row;">
-            <div style="width: 42px; height: 42px; border-radius: 12px; background: ${color}20; color: ${color}; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0;">
-              ${icon}
-            </div>
+            ${(typeof renderCategoryIconHtml === 'function')
+              ? renderCategoryIconHtml(t.category, { size: 'md', customColor: color, transType: t.type })
+              : `<div style="width: 42px; height: 42px; border-radius: 12px; background: ${color}20; color: ${color}; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0;">${icon}</div>`}
             <div style="display: flex; flex-direction: column; min-width: 0; text-align: left; flex: 1;">
               <span style="font-weight: 700; color: var(--text-primary); font-size: 14.5px; word-break: break-word; line-height: 1.3; display: flex; align-items: center; gap: 6px;">${t.note || t.category}<i class="fa-solid fa-arrows-rotate recurring-arrows-icon" style="font-size: 12px; color: var(--primary);" title="${lang === 'el' ? 'Επαναλαμβανόμενη' : 'Recurring'}"></i></span>
               <span style="font-size: 12px; color: var(--text-secondary); margin-top: 3px; word-break: break-word; line-height: 1.2;">${presetLabel} • ${parseFloat(t.amount || 0).toFixed(2)}€${endDateLabel}</span>
@@ -31940,12 +31659,14 @@ function openRecurringDetailsModal(templateId) {
       } catch (e) { }
 
       const amount = parseFloat(tx.amount || 0).toFixed(2);
-      const typeIcon = tx.type === 'expense' ? '🔴' : tx.type === 'income' ? '🟢' : '🔵';
+      const catBadge = (typeof renderCategoryIconHtml === 'function')
+        ? renderCategoryIconHtml(tx.category, { size: 'sm', transType: tx.type })
+        : `<div style="font-size: 15px; flex-shrink: 0;">${tx.type === 'expense' ? '🔴' : '🟢'}</div>`;
 
       const rowHtml = `
         <div style="display: flex; flex-direction: row; align-items: center; justify-content: space-between; padding: 10px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg-card); gap: 10px; box-sizing: border-box; width: 100%; cursor: pointer;" onclick="openEditTransactionModalFromDetails('${tx.id}')">
           <div style="display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1;">
-            <div style="font-size: 15px; flex-shrink: 0;">${typeIcon}</div>
+            ${catBadge}
             <div style="display: flex; flex-direction: column; min-width: 0; text-align: left; flex: 1;">
               <span style="font-weight: 600; color: var(--text-primary); font-size: 13.5px; word-break: break-word; line-height: 1.3;">${formattedDate}</span>
               <span style="font-size: 11.5px; color: var(--text-secondary); margin-top: 2px; word-break: break-word; line-height: 1.2;">${tx.category || ''}</span>
@@ -31953,8 +31674,8 @@ function openRecurringDetailsModal(templateId) {
           </div>
           <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
             <span style="font-weight: 700; color: var(--text-primary); font-size: 13.5px; white-space: nowrap;">${amount}€</span>
-            <button type="button" onclick="event.stopPropagation(); handleDeleteFromRecurringDetails('${tx.id}', '${template.id}', '${String(tx.date || '').split('T')[0]}')" style="background: rgba(239, 83, 80, 0.1); border: 1px solid rgba(239, 83, 80, 0.2); color: var(--danger); font-size: 14px; cursor: pointer; padding: 5px 8px; border-radius: 8px; transition: background-color 0.2s;" title="${lang === 'el' ? 'Διαγραφή' : 'Delete'}">
-              🗑️
+            <button type="button" onclick="event.stopPropagation(); handleDeleteFromRecurringDetails('${tx.id}', '${template.id}', '${String(tx.date || '').split('T')[0]}')" style="background: rgba(239, 83, 80, 0.1); border: 1px solid rgba(239, 83, 80, 0.2); color: var(--danger); font-size: 13px; cursor: pointer; padding: 6px 10px; border-radius: 8px; transition: background-color 0.2s;" title="${lang === 'el' ? 'Διαγραφή' : 'Delete'}">
+              <i class="fa-solid fa-trash-can"></i>
             </button>
           </div>
         </div>
@@ -32572,16 +32293,16 @@ async function renderTrashBinList() {
 
   sortedTrash.forEach(t => {
     if (t.is_recurring_group) {
-      const catName = t.category;
-      let icon = '🔄';
-      let color = '#7c6af7';
+      const color = '#7c6af7';
       const restoreText = TRANSLATIONS[lang]['restore'] || 'Restore';
+      const badgeHtml = (typeof renderCategoryIconHtml === 'function')
+        ? renderCategoryIconHtml(t.category || '🔄', { size: 'sm', customColor: color })
+        : `<div style="width: 40px; height: 40px; border-radius: 50%; background: ${color}20; color: ${color}; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;"><i class="fa-solid fa-arrows-rotate"></i></div>`;
+
       const itemHtml = `
         <div class="trash-item-row" style="display: flex; flex-direction: row; align-items: center; justify-content: space-between; padding: 12px 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg-card); gap: 12px; box-sizing: border-box; width: 100%;">
           <div style="display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1; flex-direction: row;">
-            <div style="width: 40px; height: 40px; border-radius: 50%; background: ${color}20; color: ${color}; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;">
-              ${icon}
-            </div>
+            ${badgeHtml}
             <div style="display: flex; flex-direction: column; min-width: 0; text-align: left; flex: 1;">
               <span style="font-weight: 700; color: var(--text-primary); font-size: 14px; word-break: break-word; line-height: 1.3;">${t.note || (TRANSLATIONS[lang] && TRANSLATIONS[lang]['recurring_label']) || 'Επαναλαμβανόμενη'}</span>
               <span style="font-size: 11.5px; color: var(--text-secondary); margin-top: 3px; word-break: break-word; line-height: 1.2;">
@@ -32593,8 +32314,8 @@ async function renderTrashBinList() {
             <button class="restore-btn" onclick="restoreTrashGroup('${t.id}')" style="background: var(--primary); border: none; color: #ffffff; font-size: 12px; font-weight: 600; cursor: pointer; padding: 6px 12px; border-radius: 8px; transition: opacity 0.2s; outline: none;">
               ${restoreText}
             </button>
-            <button onclick="deleteSingleTrashItem('${t.id}')" style="background: transparent; border: none; color: var(--danger); font-size: 14px; cursor: pointer; padding: 6px; border-radius: 6px;" title="${(TRANSLATIONS[lang] && TRANSLATIONS[lang]['permanent_delete']) || 'Οριστική Διαγραφή'}">
-              🗑️
+            <button onclick="deleteSingleTrashItem('${t.id}')" style="background: transparent; border: none; color: var(--danger); font-size: 13px; cursor: pointer; padding: 6px; border-radius: 6px;" title="${(TRANSLATIONS[lang] && TRANSLATIONS[lang]['permanent_delete']) || 'Οριστική Διαγραφή'}">
+              <i class="fa-solid fa-trash-can"></i>
             </button>
           </div>
         </div>
@@ -32603,14 +32324,13 @@ async function renderTrashBinList() {
       return;
     }
     // Find category styling
-    const catName = t.category;
-    let icon = '🧩';
-    let color = '#78909c';
-    const found = Object.values(CATEGORY_EMOJI_MAP).find(c => c.name === catName);
-    if (found) {
-      icon = found.icon;
-      color = found.color;
-    }
+    const catVisual = (typeof getCategoryVisual === 'function')
+      ? getCategoryVisual(t.category, t.type)
+      : { iconClass: 'fa-solid fa-shapes', color: '#78909c' };
+    const color = catVisual.color || '#78909c';
+    const badgeHtml = (typeof renderCategoryIconHtml === 'function')
+      ? renderCategoryIconHtml(t.category, { size: 'sm', transType: t.type })
+      : `<div style="width: 40px; height: 40px; border-radius: 50%; background: ${color}20; color: ${color}; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;">${catVisual.iconClass ? `<i class="${catVisual.iconClass}"></i>` : '🧩'}</div>`;
 
     const restoreText = TRANSLATIONS[lang]['restore'] || 'Restore';
 
@@ -32630,13 +32350,11 @@ async function renderTrashBinList() {
     const itemHtml = `
       <div class="trash-item-row" style="display: flex; flex-direction: row; align-items: center; justify-content: space-between; padding: 12px 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg-card); gap: 12px; box-sizing: border-box; width: 100%;">
         <div style="display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1; flex-direction: row;">
-          <div style="width: 40px; height: 40px; border-radius: 50%; background: ${color}20; color: ${color}; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;">
-            ${icon}
-          </div>
+          ${badgeHtml}
           <div style="display: flex; flex-direction: column; min-width: 0; text-align: left; flex: 1;">
             <span style="font-weight: 700; color: var(--text-primary); font-size: 14px; word-break: break-word; line-height: 1.3;">${t.note || ''}</span>
             <span style="font-size: 11.5px; color: var(--text-secondary); margin-top: 3px; word-break: break-word; line-height: 1.2;">
-              ${formattedDate} • ${parseFloat(t.amount || 0).toFixed(2)}€ ${t.type === 'expense' ? '🔴' : t.type === 'income' ? '🟢' : '🔵'}
+              ${formattedDate} • ${parseFloat(t.amount || 0).toFixed(2)}€
             </span>
           </div>
         </div>
@@ -32644,8 +32362,8 @@ async function renderTrashBinList() {
           <button class="restore-btn" onclick="restoreTransaction('${t.id}')" style="background: var(--primary); border: none; color: #ffffff; font-size: 12px; font-weight: 600; cursor: pointer; padding: 6px 12px; border-radius: 8px; transition: opacity 0.2s; outline: none;">
             ${restoreText}
           </button>
-          <button onclick="deleteSingleTrashItem('${t.id}')" style="background: transparent; border: none; color: var(--danger); font-size: 14px; cursor: pointer; padding: 6px; border-radius: 6px;" title="${(TRANSLATIONS[lang] && TRANSLATIONS[lang]['permanent_delete']) || 'Οριστική Διαγραφή'}">
-            🗑️
+          <button onclick="deleteSingleTrashItem('${t.id}')" style="background: transparent; border: none; color: var(--danger); font-size: 13px; cursor: pointer; padding: 6px; border-radius: 6px;" title="${(TRANSLATIONS[lang] && TRANSLATIONS[lang]['permanent_delete']) || 'Οριστική Διαγραφή'}">
+            <i class="fa-solid fa-trash-can"></i>
           </button>
         </div>
       </div>

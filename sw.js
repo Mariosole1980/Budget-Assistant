@@ -22,6 +22,7 @@ const ASSETS = [
   'js/IntentCorpus.js',
   'js/KnowledgeGraph.js',
   'js/CurrencyService.js',
+  'js/categoryIcons.js',
   'js/fontawesome.min.css',
   'js/webfonts/fa-solid-900.woff2',
   'js/webfonts/fa-solid-900.ttf',

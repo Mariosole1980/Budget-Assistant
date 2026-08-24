@@ -4093,19 +4093,56 @@
           </div>
           <!-- Inline New Category Dialog (hidden by default) -->
           <div id="new-category-inline-dialog"
-            style="display:none; margin-top:12px; padding:16px; background:var(--card-bg2,rgba(255,255,255,0.04)); border:1px solid var(--border); border-radius:12px;">
-            <div style="font-size:13px; font-weight:700; margin-bottom:12px; color:var(--text-primary);">
+            style="display:none; margin-top:12px; padding:16px; background:var(--card-bg2,rgba(255,255,255,0.04)); border:1px solid var(--border); border-radius:14px; box-shadow:0 8px 24px rgba(0,0,0,0.3);">
+            <div style="font-size:14px; font-weight:700; margin-bottom:12px; color:var(--text-primary); display:flex; justify-content:space-between; align-items:center;">
               <span id="new-cat-dialog-title" data-i18n="new_category_label">Νέα Κατηγορία</span>
             </div>
-            <input type="text" id="new-cat-name-input" class="form-input" placeholder="Όνομα κατηγορίας"
-              style="margin-bottom:10px; font-size:13px; padding:10px; border-radius:8px;">
-            <div style="margin-bottom:10px;">
-              <label style="font-size:11px; color:var(--text-muted); font-weight:600; display:block; margin-bottom:6px;"
-                data-i18n="new_category_icon_label">Εικονίδιο</label>
-              <div id="new-cat-emoji-grid" style="display:flex; flex-wrap:wrap; gap:6px;">
-                <!-- Emoji options injected by JS -->
+
+            <!-- Live Badge Preview Card -->
+            <div id="new-cat-live-preview-card" style="display:flex; align-items:center; gap:12px; padding:10px 14px; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.08); border-radius:12px; margin-bottom:12px;">
+              <div id="new-cat-preview-icon-container"></div>
+              <div style="flex:1; min-width:0;">
+                <div id="new-cat-preview-name" style="font-size:14px; font-weight:700; color:var(--text-primary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Όνομα κατηγορίας</div>
+                <div id="new-cat-preview-type" style="font-size:11px; color:var(--text-muted);">Προεπισκόπηση badge</div>
               </div>
             </div>
+
+            <!-- Category Name Input -->
+            <input type="text" id="new-cat-name-input" class="form-input" placeholder="Όνομα κατηγορίας"
+              style="margin-bottom:12px; font-size:13px; padding:10px; border-radius:8px;" oninput="updateNewCategoryLivePreview()">
+
+            <!-- Neon Color Palette -->
+            <div style="margin-bottom:12px;">
+              <label style="font-size:11px; color:var(--text-muted); font-weight:600; display:block; margin-bottom:6px;">Χρώμα Badge (Neon)</label>
+              <div id="new-cat-color-palette" style="display:flex; gap:8px; overflow-x:auto; padding:4px 2px; scrollbar-width:none;">
+                <!-- Injected by JS -->
+              </div>
+            </div>
+
+            <!-- Icon Picker Section -->
+            <div style="margin-bottom:12px;">
+              <label style="font-size:11px; color:var(--text-muted); font-weight:600; display:block; margin-bottom:6px;" data-i18n="new_category_icon_label">Εικονίδιο</label>
+              
+              <!-- Search Bar -->
+              <input type="text" id="new-cat-icon-search" class="form-input" placeholder="🔍 Αναζήτηση (π.χ. καφές, burger, car)..."
+                style="margin-bottom:8px; font-size:12px; padding:8px 10px; border-radius:8px;" oninput="handleCategoryIconSearch(this.value)">
+
+              <!-- Horizontal Library Tabs -->
+              <div id="new-cat-library-tabs" style="display:flex; gap:6px; overflow-x:auto; padding-bottom:6px; margin-bottom:8px; scrollbar-width:none;">
+                <!-- Library tabs injected by JS -->
+              </div>
+
+              <!-- 215 Vector Icons Grid -->
+              <div id="new-cat-emoji-grid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(38px, 1fr)); gap:6px; max-height:160px; overflow-y:auto; padding:6px; background:rgba(0,0,0,0.2); border-radius:10px; border:1px solid rgba(255,255,255,0.06);">
+                <!-- Vector icons injected by JS -->
+              </div>
+            </div>
+
+            <!-- Subcategories Section for Edit Mode -->
+            <div id="edit-cat-subcategories-section" style="margin-bottom:12px; display:none;">
+              <!-- Subcategory manager in edit dialog -->
+            </div>
+
             <div style="display:flex; gap:8px;">
               <button onclick="saveNewCategoryFromPicker()" class="btn btn-primary"
                 style="flex:1; padding:10px; font-size:13px; font-weight:700; border-radius:8px;"
@@ -6538,6 +6575,8 @@
       <script src="js/utils.js"></script>
       <!-- Pure-data constants (extracted from app.js; loaded before app.js) -->
       <script src="js/constants.js"></script>
+      <!-- Category Vector Icon Registry & System (loaded before app.js) -->
+      <script src="js/categoryIcons.js"></script>
       <!-- Translation dictionary (extracted from app.js; loaded before app.js) -->
       <script src="js/translations.js"></script>
       <!-- Local receipt photo storage (IndexedDB; extracted from app.js; loaded before app.js) -->

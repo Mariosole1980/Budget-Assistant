@@ -61,26 +61,27 @@
 
     // Fallback categories for any that don't match
     const DEFAULT_CATEGORIES = [
-        { name: '🏠 Σπίτι', type: 'expense', icon: '🏠', color: '#e05e55' },
-        { name: '🍔 Τρόφιμα', type: 'expense', icon: '🍔', color: '#ffb300' },
-        { name: '🚗 Μεταφορές', type: 'expense', icon: '🚗', color: '#ffa726' },
-        { name: '❤️ Υγεία', type: 'expense', icon: '❤️', color: '#ef5350' },
-        { name: '🎓 Εκπαίδευση', type: 'expense', icon: '🎓', color: '#2196f3' },
-        { name: '🎉 Διασκέδαση', type: 'expense', icon: '🎉', color: '#26a69a' },
-        { name: '👕 Αγορές', type: 'expense', icon: '👕', color: '#7e57c2' },
-        { name: '📱 Συνδρομές', type: 'expense', icon: '📱', color: '#ec407a' },
-        { name: '🧾 Φόροι', type: 'expense', icon: '🧾', color: '#26c6da' },
-        { name: '📦 Διάφορα', type: 'expense', icon: '📦', color: '#78909c' },
+        { name: '🛒 Σούπερ Μάρκετ', type: 'expense', icon: 'fa-solid fa-basket-shopping', color: '#f59e0b' },
+        { name: '🍔 Τρόφιμα', type: 'expense', icon: 'fa-solid fa-burger', color: '#ffb300' },
+        { name: '🏠 Σπίτι', type: 'expense', icon: 'fa-solid fa-house', color: '#e05e55' },
+        { name: '🚗 Μεταφορές', type: 'expense', icon: 'fa-solid fa-car-side', color: '#ffa726' },
+        { name: '❤️ Υγεία', type: 'expense', icon: 'fa-solid fa-heart-pulse', color: '#ef5350' },
+        { name: '🎓 Εκπαίδευση', type: 'expense', icon: 'fa-solid fa-graduation-cap', color: '#2196f3' },
+        { name: '🎉 Διασκέδαση', type: 'expense', icon: 'fa-solid fa-icons', color: '#26a69a' },
+        { name: '👕 Αγορές', type: 'expense', icon: 'fa-solid fa-bag-shopping', color: '#7e57c2' },
+        { name: '📱 Συνδρομές', type: 'expense', icon: 'fa-solid fa-film', color: '#ec407a' },
+        { name: '🧾 Φόροι', type: 'expense', icon: 'fa-solid fa-receipt', color: '#26c6da' },
+        { name: '📦 Διάφορα', type: 'expense', icon: 'fa-solid fa-shapes', color: '#78909c' },
 
-        { name: '💼 Μισθός', type: 'income', icon: '💼', color: '#4caf50' },
-        { name: '💸 Bonus', type: 'income', icon: '💸', color: '#ffb300' },
-        { name: '🏠 Ενοίκια', type: 'income', icon: '🏠', color: '#00bcd4' },
-        { name: '📈 Επενδύσεις', type: 'income', icon: '📈', color: '#8bc34a' },
-        { name: '🎁 Δώρα', type: 'income', icon: '🎁', color: '#66bb6a' },
-        { name: '💰 Cashback / Τόκοι', type: 'income', icon: '💰', color: '#607d8b' },
-        { name: '💼 Freelance', type: 'income', icon: '💼', color: '#9e9e9e' },
-        { name: '📦 Πωλήσεις', type: 'income', icon: '📦', color: '#26a69a' },
-        { name: '➕ Άλλα έσοδα', type: 'income', icon: '➕', color: '#90a4ae' }
+        { name: '💼 Μισθός', type: 'income', icon: 'fa-solid fa-briefcase', color: '#4caf50' },
+        { name: '💸 Bonus', type: 'income', icon: 'fa-solid fa-award', color: '#ffb300' },
+        { name: '🏠 Ενοίκια', type: 'income', icon: 'fa-solid fa-key', color: '#00bcd4' },
+        { name: '📈 Επενδύσεις', type: 'income', icon: 'fa-solid fa-chart-line', color: '#8bc34a' },
+        { name: '🎁 Δώρα', type: 'income', icon: 'fa-solid fa-gift', color: '#66bb6a' },
+        { name: '💰 Cashback / Τόκοι', type: 'income', icon: 'fa-solid fa-coins', color: '#607d8b' },
+        { name: '💼 Freelance', type: 'income', icon: 'fa-solid fa-laptop-code', color: '#9e9e9e' },
+        { name: '📦 Πωλήσεις', type: 'income', icon: 'fa-solid fa-tags', color: '#26a69a' },
+        { name: '➕ Άλλα έσοδα', type: 'income', icon: 'fa-solid fa-plus', color: '#90a4ae' }
     ];
 
     // Default Accounts - 3 real accounts from Excel: Cash, Card, Accounts (= Bank Account)
@@ -107,8 +108,9 @@
     ];
 
     const DEFAULT_SUBCATEGORIES_MAP = {
+        'ΣΟΥΠΕΡ ΜΑΡΚΕΤ': ['Τρόφιμα', 'Απορρυπαντικά', 'Προσωπική Φροντίδα', 'Μανάβικο', 'Κρεοπωλείο'],
         'ΣΠΙΤΙ': ['Ενοίκιο', 'Ρεύμα', 'Νερό', 'Internet', 'Συντήρηση', 'Έπιπλα'],
-        'ΤΡΟΦΙΜΑ': ['Super Market', 'Delivery', 'Καφές', 'Φούρνος'],
+        'ΤΡΟΦΙΜΑ': ['Delivery', 'Καφές', 'Εστιατόριο', 'Φούρνος', 'Fast Food', 'Σνακ'],
         'ΜΕΤΑΦΟΡΕΣ': ['Καύσιμα', 'Parking', 'Service', 'Ασφάλεια', 'Μέσα Μαζικής Μεταφοράς'],
         'ΥΓΕΙΑ': [],
         'ΕΚΠΑΙΔΕΥΣΗ': [],
@@ -130,6 +132,9 @@
 
     // Category name translations for default categories (UI only, never applied to user data)
     const CATEGORY_NAME_TRANSLATIONS = {
+        '🛒 ΣΟΥΠΕΡ ΜΑΡΚΕΤ': '🛒 Supermarket',
+        'ΣΟΥΠΕΡ ΜΑΡΚΕΤ': 'Supermarket',
+        'ΣΟΥΠΕΡΜΑΡΚΕΤ': 'Supermarket',
         '🏠 ΣΠΙΤΙ': '🏠 Home',
         '🏡 ΣΠΙΤΙ': '🏡 Home',
         'ΣΠΙΤΙ': 'Home',
@@ -137,8 +142,8 @@
         'ΓΡΑΦΕΙΟ Β2': 'Office B2',
         '🚗 ΑΥΤΟΚΙΝΗΤΟ': '🚗 Car',
         'ΑΥΤΟΚΙΝΗΤΟ': 'Car',
-        '🍔 ΤΡΟΦΙΜΑ': '🍔 Food/Groceries',
-        'ΤΡΟΦΙΜΑ': 'Food/Groceries',
+        '🍔 ΤΡΟΦΙΜΑ': '🍔 Food/Dining',
+        'ΤΡΟΦΙΜΑ': 'Food/Dining',
         '🛒 ΔΙΑΤΡΟΦΗ': '🛒 Food/Groceries',
         'ΔΙΑΤΡΟΦΗ': 'Food/Groceries',
         '🚗 ΜΕΤΑΦΟΡΕΣ': '🚗 Transport',
