@@ -12061,8 +12061,10 @@ function renderCategoryIconDialog(libraryFilter, searchQuery) {
   icons.forEach(item => {
     const btn = document.createElement('div');
     const isSelected = item.icon === newCategorySelectedIcon;
-    btn.style.cssText = `display:flex; align-items:center; justify-content:center; width:38px; height:38px; border-radius:8px; cursor:pointer; transition:all 0.15s; font-size:17px; color:${isSelected ? newCategorySelectedColor : 'var(--text-secondary)'}; border:2px solid ${isSelected ? newCategorySelectedColor : 'transparent'}; background:${isSelected ? 'rgba(124,106,247,0.12)' : 'transparent'};`;
-    btn.innerHTML = `<i class="${item.icon}"></i>`;
+    btn.style.cssText = `display:flex; align-items:center; justify-content:center; width:46px; height:46px; border-radius:9px; cursor:pointer; transition:all 0.15s; font-size:22px; color:${isSelected ? newCategorySelectedColor : 'var(--text-secondary)'}; border:2px solid ${isSelected ? newCategorySelectedColor : 'transparent'}; background:${isSelected ? 'rgba(124,106,247,0.12)' : 'transparent'};`;
+    btn.innerHTML = (typeof renderIconGlyph === 'function')
+      ? renderIconGlyph(item.icon, '', 'style="pointer-events:none;"')
+      : (String(item.icon).startsWith('fa-') ? `<i class="${item.icon}"></i>` : `<span>${item.icon}</span>`);
     btn.title = item.id;
     btn.onclick = () => {
       newCategorySelectedIcon = item.icon;
@@ -12110,7 +12112,7 @@ function updateNewCategoryLivePreview() {
     const hexToRgbaFn = (typeof hexToRgba === 'function') ? hexToRgba : (h, a) => `rgba(120,144,156,${a})`;
     const bgGlow = hexToRgbaFn(color, 0.15);
     const borderGlow = hexToRgbaFn(color, 0.28);
-    previewContainer.innerHTML = `<div class="cat-vector-badge" style="width:40px; height:40px; min-width:40px; border-radius:12px; background:${bgGlow}; border:1px solid ${borderGlow}; color:${color}; display:inline-flex; align-items:center; justify-content:center; font-size:17px;"><i class="${iconClass}"></i></div>`;
+    previewContainer.innerHTML = `<div class="cat-vector-badge" style="width:44px; height:44px; min-width:44px; border-radius:12px; background:${bgGlow}; border:1px solid ${borderGlow}; color:${color}; display:inline-flex; align-items:center; justify-content:center; font-size:22px;">${(typeof renderIconGlyph === 'function') ? renderIconGlyph(iconClass) : (String(iconClass).startsWith('fa-') ? `<i class="${iconClass}"></i>` : `<span>${iconClass}</span>`)}</div>`;
   }
 
   if (previewName && nameInput) {
@@ -32868,7 +32870,7 @@ async function renderTrashBinList() {
     const color = catVisual.color || '#78909c';
     const badgeHtml = (typeof renderCategoryIconHtml === 'function')
       ? renderCategoryIconHtml(t.category, { size: 'sm', transType: t.type })
-      : `<div style="width: 40px; height: 40px; border-radius: 50%; background: ${color}20; color: ${color}; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;">${catVisual.iconClass ? `<i class="${catVisual.iconClass}"></i>` : '🧩'}</div>`;
+      : `<div style="width: 40px; height: 40px; border-radius: 50%; background: ${color}20; color: ${color}; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;">${(catVisual.iconClass && typeof renderIconGlyph === 'function') ? renderIconGlyph(catVisual.iconClass) : (catVisual.iconClass ? `<i class="${catVisual.iconClass}"></i>` : '🧩')}</div>`;
 
     const restoreText = TRANSLATIONS[lang]['restore'] || 'Restore';
 

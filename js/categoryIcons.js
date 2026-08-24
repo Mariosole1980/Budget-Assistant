@@ -32,7 +32,7 @@
     { id: 'general', labelEl: 'Γενικά', labelEn: 'General', icon: 'fa-solid fa-star' }
   ];
 
-  // 215 Verified FontAwesome 6 Solid Icons (Zero Missing, Zero Cross-Library Duplication)
+  // 216 Verified FontAwesome 6 Solid Icons + emoji glyphs (Zero Missing, Zero Cross-Library Duplication)
   const CATEGORY_ICON_REGISTRY = [
     // 🍔 FOOD & DRINKS (30 icons)
     { id: 'burger', icon: 'fa-solid fa-burger', library: 'food', keywords: ['burger', 'φαγητό', 'μπέργκερ', 'fast food', 'food', 'snack'] },
@@ -100,6 +100,7 @@
     { id: 'plane', icon: 'fa-solid fa-plane', library: 'transport', keywords: ['plane', 'αεροπλάνο', 'πτήση', 'ταξίδι', 'flight', 'travel'] },
     { id: 'plane-departure', icon: 'fa-solid fa-plane-departure', library: 'transport', keywords: ['flight', 'αναχώρηση', 'αεροδρόμιο', 'vacation'] },
     { id: 'motorcycle', icon: 'fa-solid fa-motorcycle', library: 'transport', keywords: ['moto', 'μηχανή', 'μηχανάκι', 'scooter'] },
+    { id: 'scooter', icon: '🛴', library: 'transport', keywords: ['scooter', 'πατίνι', 'ηλεκτρικό πατίνι', 'monopatin', 'micro'] },
     { id: 'bicycle', icon: 'fa-solid fa-bicycle', library: 'transport', keywords: ['bike', 'ποδήλατο', 'cycling'] },
     { id: 'taxi', icon: 'fa-solid fa-taxi', library: 'transport', keywords: ['taxi', 'ταξί', 'uber', 'freenow'] },
     { id: 'ship', icon: 'fa-solid fa-ship', library: 'transport', keywords: ['ship', 'πλοίο', 'καράβι', 'ακτοπλοϊκά', 'ferry'] },
@@ -351,6 +352,7 @@
     '🍔': '#ffb300',
     '🏠': '#e05e55',
     '🚗': '#ffa726',
+    '🛴': '#ffa726',
     '❤️': '#ef5350',
     '🎓': '#2196f3',
     '🎉': '#26a69a',
@@ -452,6 +454,14 @@
     if (rawIcon && EMOJI_TO_FA_MAP[rawIcon]) {
       const color = rawColor || EMOJI_DEFAULT_COLOR_MAP[rawIcon] || (transType === 'income' ? '#4caf50' : '#7c6af7');
       return { iconClass: EMOJI_TO_FA_MAP[rawIcon], color, bgGlow: hexToRgba(color, 0.15), rawName };
+    }
+
+    // 2.5 Emoji glyphs that have NO FontAwesome mapping are preserved as-is
+    // (e.g. the 🛴 scooter added to the transport library — FA Free 6.4.0 has no
+    // scooter vector icon). They render as colored emoji text instead of a vector.
+    if (rawIcon && !rawIcon.startsWith('fa-')) {
+      const color = rawColor || EMOJI_DEFAULT_COLOR_MAP[rawIcon] || (transType === 'income' ? '#4caf50' : '#7c6af7');
+      return { iconClass: rawIcon, color, bgGlow: hexToRgba(color, 0.15), rawName };
     }
 
     // 3. Extract leading emoji from category name string (e.g. "🚗 ΜΕΤΑΦΟΡΕΣ")
@@ -566,6 +576,24 @@
   }
 
   /**
+   * True when an icon value is a FontAwesome class (renders as <i>), false when it is
+   * an emoji/glyph (renders as text — e.g. the 🛴 scooter, which has no FA Free icon).
+   */
+  function isVectorIcon(iconClass) {
+    return !!iconClass && String(iconClass).startsWith('fa-');
+  }
+
+  /**
+   * Renders a single icon glyph (FontAwesome <i> or emoji text <span>).
+   */
+  function renderIconGlyph(iconClass, customClass = '', extraStyle = '') {
+    if (isVectorIcon(iconClass)) {
+      return `<i class="${iconClass} ${customClass}" ${extraStyle}></i>`;
+    }
+    return `<span class="${customClass}" ${extraStyle}>${iconClass || '🧩'}</span>`;
+  }
+
+  /**
    * Universal HTML Category Icon Component Renderer
    */
   function renderCategoryIconHtml(categoryInput, options = {}) {
@@ -583,7 +611,7 @@
     const borderGlow = hexToRgba(color, 0.28);
 
     if (size === 'inline') {
-      return `<i class="${visual.iconClass} ${customClass}" style="color: ${color};" aria-hidden="true"></i>`;
+      return renderIconGlyph(visual.iconClass, customClass, `style="color: ${color};" aria-hidden="true"`);
     }
 
     const sizeDimensions = {
@@ -594,7 +622,7 @@
 
     const bgStyle = showGlow ? `background: ${bgGlow}; border: 1px solid ${borderGlow};` : 'background: transparent;';
 
-    return `<div class="cat-vector-badge ${customClass}" style="width: ${sizeDimensions.dim}; height: ${sizeDimensions.dim}; min-width: ${sizeDimensions.dim}; border-radius: ${sizeDimensions.radius}; ${bgStyle} color: ${color}; display: inline-flex; align-items: center; justify-content: center; font-size: ${sizeDimensions.fontSize}; flex-shrink: 0; box-sizing: border-box; transition: all 0.2s;" aria-hidden="true"><i class="${visual.iconClass}"></i></div>`;
+    return `<div class="cat-vector-badge ${customClass}" style="width: ${sizeDimensions.dim}; height: ${sizeDimensions.dim}; min-width: ${sizeDimensions.dim}; border-radius: ${sizeDimensions.radius}; ${bgStyle} color: ${color}; display: inline-flex; align-items: center; justify-content: center; font-size: ${sizeDimensions.fontSize}; flex-shrink: 0; box-sizing: border-box; transition: all 0.2s;" aria-hidden="true">${renderIconGlyph(visual.iconClass)}</div>`;
   }
 
   const BACategoryIcons = {
@@ -604,6 +632,8 @@
     searchCategoryIcons,
     getCategoryVisual,
     renderCategoryIconHtml,
+    renderIconGlyph,
+    isVectorIcon,
     hexToRgba
   };
 
@@ -616,6 +646,8 @@
     window.searchCategoryIcons = searchCategoryIcons;
     window.getCategoryVisual = getCategoryVisual;
     window.renderCategoryIconHtml = renderCategoryIconHtml;
+    window.renderIconGlyph = renderIconGlyph;
+    window.isVectorIcon = isVectorIcon;
   }
 
   return BACategoryIcons;

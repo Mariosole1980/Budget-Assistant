@@ -9,9 +9,9 @@ const css = fs.readFileSync(__dirname + '/../js/fontawesome.min.css', 'utf8');
 const matches = css.match(/\.fa-[a-z0-9-]+(?=:before)/g) || [];
 const availableIcons = new Set(matches.map(m => m.substring(1)));
 
-test('categoryIcons registry contains 215 icons and all exist in CSS', () => {
+test('categoryIcons registry contains 216 icons and all FA icons exist in CSS', () => {
   const registry = BACategoryIcons.CATEGORY_ICON_REGISTRY;
-  assert.equal(registry.length, 215);
+  assert.equal(registry.length, 216);
 
   registry.forEach(item => {
     assert.ok(item.id, 'item must have id');
@@ -19,9 +19,30 @@ test('categoryIcons registry contains 215 icons and all exist in CSS', () => {
     assert.ok(item.library, 'item must have library');
     assert.ok(Array.isArray(item.keywords) && item.keywords.length > 0, 'item must have keywords');
 
-    const iconClass = item.icon.replace('fa-solid ', '').trim();
-    assert.ok(availableIcons.has(iconClass), `Icon class ${iconClass} must exist in fontawesome.min.css`);
+    // Emoji glyphs (e.g. the 🛴 scooter) are intentional — FA Free 6.4.0 has no vector
+    // icon for a scooter, so they render as emoji text via renderIconGlyph.
+    if (String(item.icon).startsWith('fa-')) {
+      const iconClass = item.icon.replace('fa-solid ', '').trim();
+      assert.ok(availableIcons.has(iconClass), `Icon class ${iconClass} must exist in fontawesome.min.css`);
+    } else {
+      assert.equal(BACategoryIcons.isVectorIcon(item.icon), false, `${item.icon} should be treated as an emoji glyph`);
+    }
   });
+});
+
+test('categoryIcons scooter emoji is preserved and rendered as a glyph', () => {
+  const scooter = BACategoryIcons.CATEGORY_ICON_REGISTRY.find(i => i.id === 'scooter');
+  assert.ok(scooter, 'scooter entry must exist in the transport library');
+  assert.equal(scooter.icon, '🛴');
+  assert.equal(scooter.library, 'transport');
+
+  const visual = BACategoryIcons.getCategoryVisual({ icon: '🛴', name: 'ΠΑΤΙΝΙ' }, 'expense');
+  assert.equal(visual.iconClass, '🛴');
+  assert.equal(visual.color, '#ffa726');
+
+  const badge = BACategoryIcons.renderCategoryIconHtml({ icon: '🛴', name: 'ΠΑΤΙΝΙ' }, { size: 'sm' });
+  assert.ok(badge.includes('<span'), 'emoji icon should render inside a <span>');
+  assert.ok(!badge.includes('<i class="🛴"'), 'emoji icon must NOT render as an <i class>');
 });
 
 test('categoryIcons search works in both Greek and English', () => {

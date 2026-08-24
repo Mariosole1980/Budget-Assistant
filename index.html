@@ -4761,7 +4761,7 @@
           <!-- Neon Color Palette -->
           <div>
             <label style="font-size: 11px; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 6px;">Χρώμα Badge (Neon)</label>
-            <div id="new-cat-color-palette" style="display: flex; gap: 8px; overflow-x: auto; padding: 4px 2px; scrollbar-width: none;">
+            <div id="new-cat-color-palette" style="display: flex; flex-wrap: wrap; gap: 8px; padding: 4px 2px;">
               <!-- Injected by JS -->
             </div>
           </div>
@@ -4774,13 +4774,13 @@
             <input type="text" id="new-cat-icon-search" class="form-input" placeholder="🔍 Αναζήτηση (π.χ. καφές, burger, car)..."
               style="margin-bottom: 8px; font-size: 12px; padding: 8px 10px; border-radius: 8px; width: 100%; box-sizing: border-box;" oninput="handleCategoryIconSearch(this.value)">
 
-            <!-- Horizontal Library Tabs -->
-            <div id="new-cat-library-tabs" style="display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 8px; scrollbar-width: none;">
+            <!-- Library Tabs (wrap so every category is visible without horizontal scroll) -->
+            <div id="new-cat-library-tabs" style="display: flex; flex-wrap: wrap; gap: 6px; padding-bottom: 6px; margin-bottom: 8px;">
               <!-- Library tabs injected by JS -->
             </div>
 
-            <!-- 215 Vector Icons Grid -->
-            <div id="new-cat-emoji-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(38px, 1fr)); gap: 6px; max-height: 160px; overflow-y: auto; padding: 6px; background: rgba(0,0,0,0.2); border-radius: 10px; border: 1px solid rgba(255,255,255,0.06);">
+            <!-- 216 Vector Icons Grid (bigger cells, fewer per row) -->
+            <div id="new-cat-emoji-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(46px, 1fr)); gap: 6px; max-height: 168px; overflow-y: auto; padding: 6px; background: rgba(0,0,0,0.2); border-radius: 10px; border: 1px solid rgba(255,255,255,0.06);">
               <!-- Vector icons injected by JS -->
             </div>
           </div>
