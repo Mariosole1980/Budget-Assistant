@@ -11961,21 +11961,40 @@ function openEditCategoryDialog(categoryName, type) {
   const searchInput = document.getElementById('new-cat-icon-search');
 
   if (titleEl) {
-    titleEl.textContent = state.lang === 'el' ? 'Επεξεργασία Κατηγορίας' : 'Edit Category';
+    titleEl.textContent = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['new_category_edit_title']) || (state.lang === 'el' ? 'Επεξεργασία Κατηγορίας' : 'Edit Category');
   }
 
-  if (searchInput) searchInput.value = '';
+  if (searchInput) {
+    searchInput.value = '';
+    searchInput.placeholder = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['new_category_search_placeholder']) || (state.lang === 'el' ? '🔍 Αναζήτηση (π.χ. καφές, burger, car)...' : '🔍 Search (e.g. coffee, burger, car)...');
+  }
   if (nameInput) {
     nameInput.value = getCategoryDisplayName(categoryName);
-    nameInput.placeholder = state.lang === 'el' ? 'Όνομα κατηγορίας' : 'Category name';
+    nameInput.placeholder = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['new_category_name_placeholder']) || (state.lang === 'el' ? 'Όνομα κατηγορίας' : 'Category name');
+  }
+
+  const modal = document.getElementById('category-editor-modal');
+  if (modal) {
+    modal.querySelectorAll('[data-i18n]').forEach(el => {
+      const k = el.getAttribute('data-i18n');
+      if (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang][k]) {
+        el.textContent = TRANSLATIONS[state.lang][k];
+      }
+    });
+    modal.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+      const k = el.getAttribute('data-i18n-placeholder');
+      if (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang][k]) {
+        el.placeholder = TRANSLATIONS[state.lang][k];
+      }
+    });
   }
 
   renderCategoryIconDialog('all', '');
 
   const saveBtn = document.querySelector('#category-editor-modal .btn-primary');
-  if (saveBtn) saveBtn.textContent = state.lang === 'el' ? 'Αποθήκευση' : 'Save';
+  if (saveBtn) saveBtn.textContent = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['btn_save']) || (state.lang === 'el' ? 'Αποθήκευση' : 'Save');
   const cancelBtn = document.querySelector('#category-editor-modal .btn-secondary');
-  if (cancelBtn) cancelBtn.textContent = state.lang === 'el' ? 'Άκυρο' : 'Cancel';
+  if (cancelBtn) cancelBtn.textContent = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['btn_cancel']) || (state.lang === 'el' ? 'Άκυρο' : 'Cancel');
 
   renderEditCategorySubcategories(categoryName);
   openModal('category-editor-modal');
@@ -11994,25 +12013,44 @@ function openNewCategoryDialog(type) {
 
   if (titleEl) {
     titleEl.textContent = newCategoryDialogType === 'income'
-      ? (state.lang === 'el' ? 'Νέα Κατηγορία Εσόδου' : 'New Income Category')
-      : (state.lang === 'el' ? 'Νέα Κατηγορία Εξόδου' : 'New Expense Category');
+      ? ((TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['new_category_title_income']) || (state.lang === 'el' ? 'Νέα Κατηγορία Εσόδου' : 'New Income Category'))
+      : ((TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['new_category_title_expense']) || (state.lang === 'el' ? 'Νέα Κατηγορία Εξόδου' : 'New Expense Category'));
   }
 
-  if (searchInput) searchInput.value = '';
+  if (searchInput) {
+    searchInput.value = '';
+    searchInput.placeholder = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['new_category_search_placeholder']) || (state.lang === 'el' ? '🔍 Αναζήτηση (π.χ. καφές, burger, car)...' : '🔍 Search (e.g. coffee, burger, car)...');
+  }
   if (nameInput) {
     nameInput.value = '';
-    nameInput.placeholder = state.lang === 'el' ? 'Όνομα κατηγορίας' : 'Category name';
+    nameInput.placeholder = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['new_category_name_placeholder']) || (state.lang === 'el' ? 'Όνομα κατηγορίας' : 'Category name');
+  }
+
+  const modal = document.getElementById('category-editor-modal');
+  if (modal) {
+    modal.querySelectorAll('[data-i18n]').forEach(el => {
+      const k = el.getAttribute('data-i18n');
+      if (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang][k]) {
+        el.textContent = TRANSLATIONS[state.lang][k];
+      }
+    });
+    modal.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+      const k = el.getAttribute('data-i18n-placeholder');
+      if (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang][k]) {
+        el.placeholder = TRANSLATIONS[state.lang][k];
+      }
+    });
   }
 
   renderCategoryIconDialog('all', '');
 
   const saveBtn = document.querySelector('#category-editor-modal .btn-primary');
   if (saveBtn) {
-    saveBtn.textContent = state.lang === 'el' ? 'Αποθήκευση' : 'Save';
+    saveBtn.textContent = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['btn_save']) || (state.lang === 'el' ? 'Αποθήκευση' : 'Save');
   }
   const cancelBtn = document.querySelector('#category-editor-modal .btn-secondary');
   if (cancelBtn) {
-    cancelBtn.textContent = state.lang === 'el' ? 'Άκυρο' : 'Cancel';
+    cancelBtn.textContent = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['btn_cancel']) || (state.lang === 'el' ? 'Άκυρο' : 'Cancel');
   }
 
   renderEditCategorySubcategories(null);
@@ -12171,15 +12209,15 @@ function updateNewCategoryLivePreview() {
 
   if (previewName && nameInput) {
     const val = nameInput.value.trim();
-    previewName.textContent = val || (state.lang === 'el' ? 'Όνομα κατηγορίας' : 'Category name');
+    previewName.textContent = val || ((TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['new_category_name_placeholder']) || (state.lang === 'el' ? 'Όνομα κατηγορίας' : 'Category name'));
   }
 
   if (previewType) {
     const label = newCategoryDialogType === 'income'
-      ? (state.lang === 'el' ? 'Κατηγορία Εσόδου' : 'Income Category')
-      : (state.lang === 'el' ? 'Κατηγορία Εξόδου' : 'Expense Category');
+      ? ((TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['new_category_preview_type_income']) || (state.lang === 'el' ? 'Κατηγορία Εσόδου' : 'Income Category'))
+      : ((TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['new_category_preview_type_expense']) || (state.lang === 'el' ? 'Κατηγορία Εξόδου' : 'Expense Category'));
     previewType.textContent = editingCategoryName
-      ? (state.lang === 'el' ? 'Επεξεργασία' : 'Editing')
+      ? ((TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['btn_edit']) || (state.lang === 'el' ? 'Επεξεργασία' : 'Editing'))
       : label;
   }
 }

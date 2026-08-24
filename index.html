@@ -104,7 +104,7 @@
               ${devButton}
             </div>
             <div style="font-size:11px;color:#8b949e;">
-              Budget Assistant • build v1570
+              Budget Assistant • build v1571
             </div>
           </div>
         `;
@@ -224,7 +224,7 @@
   <!-- Desktop Web UX Layer (loaded AFTER style.css so it can override).
        All rules are scoped behind html.web-mode, so Android/iOS native
        (Capacitor) layout is never affected. -->
-  <link rel="stylesheet" href="desktop.css?v=1570" id="desktop-stylesheet">
+  <link rel="stylesheet" href="desktop.css?v=1571" id="desktop-stylesheet">
 
   <!-- Capacitor Bridge
        NOTE: The native Capacitor runtime injects its bridge JS automatically into
@@ -1612,7 +1612,7 @@
                 data-i18n="item_user_guide">Οδηγός Χρήσης</h3>
               <div
                 style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; font-family: 'Outfit', sans-serif;">
-                <span id="user-guide-version-badge" style="font-size:10px; background:rgba(99,102,241,0.15); color:var(--primary); padding:2px 8px; border-radius:10px; font-weight:700; border:1px solid rgba(99,102,241,0.3);">v1570</span>
+                <span id="user-guide-version-badge" style="font-size:10px; background:rgba(99,102,241,0.15); color:var(--primary); padding:2px 8px; border-radius:10px; font-weight:700; border:1px solid rgba(99,102,241,0.3);">v1571</span>
                 <span>•</span>
                 <span id="user-guide-date-badge" data-i18n="user_guide_date_badge">Αύγουστος 2026</span>
               </div>
@@ -1758,7 +1758,7 @@
             <a href="https://budget-assistant-pwa.pages.dev/privacy" target="_blank" rel="noopener noreferrer"
               style="color: var(--accent, #7c6af7); font-size: 12.5px; font-weight: 600; text-decoration: underline; display: inline-flex; align-items: center; gap: 6px;">
               <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 11px;"></i>
-              <span>Προβολή Πλήρους Εγγράφου Πολιτικής Απορρήτου Online</span>
+              <span data-i18n="privacy_link_full_policy">Προβολή Πλήρους Εγγράφου Πολιτικής Απορρήτου Online</span>
             </a>
           </div>
         </div>
@@ -2693,7 +2693,7 @@
             <div class="settings-list-item version-info-row"
               style="padding: 14px 16px; background: transparent; border-top: 1px solid var(--border); margin-top: 8px;">
               <span class="settings-item-label" style="color:var(--text-muted); font-size:12px;"
-                data-i18n="app_version">Έκδοση 1.0.0 (build v1570)</span>
+                data-i18n="app_version">Έκδοση 1.0.0 (build v1571)</span>
               <span class="settings-item-value" style="font-size:12px; color:var(--text-muted); font-weight:600;">Budget
                 Assistant</span>
             </div>
@@ -4761,21 +4761,21 @@
           <div id="new-cat-live-preview-card" style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: rgba(0,0,0,0.3); border: 1px solid var(--overlay-080); border-radius: 12px;">
             <div id="new-cat-preview-icon-container"></div>
             <div style="flex: 1; min-width: 0;">
-              <div id="new-cat-preview-name" style="font-size: 14px; font-weight: 700; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Όνομα κατηγορίας</div>
-              <div id="new-cat-preview-type" style="font-size: 11px; color: var(--text-muted);">Προεπισκόπηση badge</div>
+              <div id="new-cat-preview-name" style="font-size: 14px; font-weight: 700; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" data-i18n="new_category_name_placeholder">Όνομα κατηγορίας</div>
+              <div id="new-cat-preview-type" style="font-size: 11px; color: var(--text-muted);" data-i18n="new_category_preview_badge">Προεπισκόπηση badge</div>
             </div>
           </div>
 
           <!-- Category Name Input -->
           <div>
-            <label style="font-size: 11px; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 6px;">Όνομα Κατηγορίας</label>
-            <input type="text" id="new-cat-name-input" class="form-input" placeholder="Όνομα κατηγορίας"
+            <label style="font-size: 11px; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 6px;" data-i18n="new_category_name_label">Όνομα Κατηγορίας</label>
+            <input type="text" id="new-cat-name-input" class="form-input" placeholder="Όνομα κατηγορίας" data-i18n-placeholder="new_category_name_placeholder"
               style="font-size: 13px; padding: 10px 12px; border-radius: 8px; width: 100%; box-sizing: border-box;" oninput="updateNewCategoryLivePreview()">
           </div>
 
           <!-- Neon Color Palette -->
           <div>
-            <label style="font-size: 11px; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 6px;">Χρώμα Badge (Neon)</label>
+            <label style="font-size: 11px; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 6px;" data-i18n="new_category_color_label">Χρώμα Badge (Neon)</label>
             <div id="new-cat-color-palette" style="display: flex; flex-wrap: wrap; gap: 8px; padding: 4px 2px;">
               <!-- Injected by JS -->
             </div>
@@ -4786,7 +4786,7 @@
             <label style="font-size: 11px; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 6px;" data-i18n="new_category_icon_label">Εικονίδιο</label>
             
             <!-- Search Bar -->
-            <input type="text" id="new-cat-icon-search" class="form-input" placeholder="🔍 Αναζήτηση (π.χ. καφές, burger, car)..."
+            <input type="text" id="new-cat-icon-search" class="form-input" placeholder="🔍 Αναζήτηση (π.χ. καφές, burger, car)..." data-i18n-placeholder="new_category_search_placeholder"
               style="margin-bottom: 8px; font-size: 12px; padding: 8px 10px; border-radius: 8px; width: 100%; box-sizing: border-box;" oninput="handleCategoryIconSearch(this.value)">
 
             <!-- Library Tabs (wrap so every category is visible without horizontal scroll) -->
@@ -4808,9 +4808,9 @@
           <!-- Action Buttons -->
           <div style="display: flex; gap: 10px; margin-top: 6px;">
             <button onclick="saveNewCategoryFromPicker()" class="btn btn-primary"
-              style="flex: 1; padding: 11px; font-size: 13px; font-weight: 700; border-radius: 8px;">Αποθήκευση</button>
+              style="flex: 1; padding: 11px; font-size: 13px; font-weight: 700; border-radius: 8px;" data-i18n="btn_save">Αποθήκευση</button>
             <button onclick="closeNewCategoryDialog()" class="btn btn-secondary"
-              style="padding: 11px 18px; font-size: 13px; border-radius: 8px;">Άκυρο</button>
+              style="padding: 11px 18px; font-size: 13px; border-radius: 8px;" data-i18n="btn_cancel">Άκυρο</button>
           </div>
         </div>
       </div>
@@ -5741,7 +5741,7 @@
           // OTA updates. Running both would cause a reload loop that never
           // baked into the APK and never changes on a plain reload).
           // ============================================================
-          const CURRENT_BUILD = 1570;
+          const CURRENT_BUILD = 1571;
           (function () {
             // Skip entirely when running inside the native APK (Capacitor bridge
             // present). Capgo handles OTA updates there.
@@ -6575,11 +6575,11 @@
       <script src="js/translations.js"></script>
       <!-- Local receipt photo storage (IndexedDB; extracted from app.js; loaded before app.js) -->
       <script src="js/receiptStorage.js"></script>
-      <script src="app.js?v=1570"></script>
+      <script src="app.js?v=1571"></script>
       <!-- Desktop Web UX Layer (defer so it runs after app.js; invoked via
        initDesktopUI() hook at the end of initApp()). Self-guards on
        html.web-mode so native Android/iOS is never affected. -->
-      <script src="web-ui.js?v=1570" defer></script>
+      <script src="web-ui.js?v=1571" defer></script>
 
       <!-- MODAL: TYPE-TO-CONFIRM (for destructive actions) -->
       <div id="type-confirm-modal" class="modal-overlay" style="z-index: 2147483647;">
