@@ -190,10 +190,11 @@ button:active,
   overflow-x: hidden;
 }
 
-/* Top App Bar Header (Phase 3: blends with bg-main status bar) */
+/* Top App Bar Header (Phase 3: blends with bg-main status bar; accent glow line) */
 .app-header {
   background-color: var(--bg-main);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--accent);
+  box-shadow: 0 4px 20px rgba(var(--accent-rgb), 0.22);
   padding: 14px 16px;
   padding-top: calc(14px + env(safe-area-inset-top, 0px));
   display: flex;
@@ -259,14 +260,14 @@ button:active,
   width: 100%;
   max-width: 480px;
   background-color: var(--bg-main); /* Phase 3: blends with bg-main nav bar */
-  border-top: 1px solid var(--border) !important;
+  border-top: 1px solid var(--accent) !important;
   outline: none !important;
   display: flex;
   justify-content: space-around;
   padding: 8px 0 calc(12px + var(--safe-area-bottom, 0px)) 0;
   z-index: 1000 !important;
   pointer-events: auto !important;
-  box-shadow: none !important;
+  box-shadow: 0 -4px 20px rgba(var(--accent-rgb), 0.22) !important;
 }
 
 .bottom-nav::after {
