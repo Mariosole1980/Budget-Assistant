@@ -4,8 +4,10 @@ const path = require('path');
 const fs = require('fs');
 
 const ROOT = path.resolve(__dirname, '..');
-const SOURCE_IMAGE = path.join(ROOT, 'assets', 'logo', 'user_logo.png');
-const BG_COLOR = '#0c0d12';
+const SOURCE_IMAGE = fs.existsSync(path.join(ROOT, 'logo-mark.png')) 
+    ? path.join(ROOT, 'logo-mark.png')
+    : path.join(ROOT, 'assets', 'logo', 'user_chosen_logo_mark.png');
+const BG_COLOR = '#0F1219';
 
 // Legacy launcher icon sizes per density (launcher icon = 48dp base).
 const densities = {

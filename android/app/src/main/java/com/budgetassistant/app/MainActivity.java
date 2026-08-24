@@ -553,9 +553,7 @@ public class MainActivity extends BridgeActivity {
                 launchSignalSent = true;
                 coldStartInProgress = false;
                 applySavedTheme();
-                // Give the WebView a beat to composite its first content frame
-                // before anchoring the web-side splash timer.
-                mainHandler.postDelayed(() -> {
+                mainHandler.post(() -> {
                     try {
                         if (bridge != null && bridge.getWebView() != null) {
                             bridge.getWebView().evaluateJavascript(
@@ -564,7 +562,7 @@ public class MainActivity extends BridgeActivity {
                     } catch (Exception e) {
                         Log.w(TAG, "Could not signal launch window done to JS", e);
                     }
-                }, 200);
+                });
             }
         }
     }
