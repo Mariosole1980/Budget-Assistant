@@ -4534,8 +4534,22 @@ async function loadData() {
       */
 
       // Deduplicate merged transactions (ID-based only — content-based dedup was
-      // removed because it destroyed legitimate identical transactions)
-      const mergedTransactions = mergeAndDeduplicateTransactions(allTransactions, pendingLocal);
+      // removed because it destroyed legitimate identical transactions).
+      //
+      // DATA-PRESERVATION (refresh flicker fix): the cloud fetch above can be temporarily
+      // BEHIND (read-replica lag, slow device, pagination inconsistency), so it may miss
+      // transactions that ARE safely stored in the local cache. Preserve those cached
+      // transactions in the merge (the FRESH cloud version always wins when a transaction
+      // is present in both — only cache-missing ones are added) instead of dropping them,
+      // which made transactions "vanish for a while on refresh" until a later sync re-added
+      // them. Genuinely soft-deleted rows are still removed by the realtime handler.
+      const cachedForMerge = cacheBelongsToCurrentUser
+        ? (JSON.parse(localStorage.getItem('offline_transactions') || '[]') || [])
+        : [];
+      const cachedMissingFromCloud = cachedForMerge.filter(t =>
+        !(t && t.id && cloudIds.has(String(t.id)))
+      );
+      const mergedTransactions = mergeAndDeduplicateTransactions(allTransactions, [...pendingLocal, ...cachedMissingFromCloud]);
       mergedTransactions.sort(compareTransactions);
       state.transactions = mergedTransactions;
       
@@ -5333,10 +5347,17 @@ function processRecurringTemplates() {
             return true;
           }
 
-          // 3. Content-based fallback: same amount + type + (notesMatch or (categoriesMatch and matching notes))
+          // 3. Content-based fallback: same amount + type + (notesMatch or (categoriesMatch and matching notes)).
+          //    IMPORTANT: only apply this fallback to transactions that are provably recurring-origin
+          //    (they carry recurring_template_id or a legacy 'recurring_' id prefix). Without this guard a
+          //    plain MANUAL transaction that happens to share the date + amount + type + category (and an
+          //    empty or matching note) would silently suppress a brand-new recurring occurrence: the
+          //    template is saved but NO transaction is ever created — the "recurring save did nothing" bug.
+          //    This mirrors the hasRecurringOrigin guard already used in cleanCrossLanguageRecurringDuplicates().
+          const isRecurringOrigin = !!(t.recurring_template_id || String(t.id || '').startsWith('recurring_'));
           const tAmount = (parseFloat(t.amount) || 0).toFixed(2);
           const templAmount = (parseFloat(template.amount) || 0).toFixed(2);
-          if (tAmount === templAmount && t.type === template.type) {
+          if (isRecurringOrigin && tAmount === templAmount && t.type === template.type) {
             const tNote = normalizeGreekString(t.note || t.description || '');
             const templNote = normalizeGreekString(template.note || template.description || '');
             const notesMatch = tNote.length > 0 && templNote.length > 0 && (tNote === templNote || tNote.includes(templNote) || templNote.includes(tNote));
@@ -9237,6 +9258,23 @@ function setupEventListeners() {
       }
 
       const isRecurringActive = _pendingRecurringSettings.isActive === true;
+
+      // Recurring "μέχρι ημερομηνία" guard: when the chosen end date is EARLIER than the transaction
+      // date, the generator would silently produce ZERO occurrences (the template is saved but no
+      // transaction ever appears — the "recurring save did nothing" bug). Detect this up-front and
+      // tell the user instead of failing silently.
+      if (!id && isRecurringActive && _pendingRecurringSettings.endType === 'date' && _pendingRecurringSettings.endDate) {
+        const startStr = String(document.getElementById('trans-date').value || '').split('T')[0].split(' ')[0];
+        const endStr = String(_pendingRecurringSettings.endDate).split('T')[0].split(' ')[0];
+        if (startStr && endStr && endStr < startStr) {
+          const fmt = (s) => s.split('-').reverse().join('/');
+          const msg = lang === 'el'
+            ? `⚠️ Η επανάληψη δεν θα δημιουργούσε καμία κίνηση: η ημερομηνία λήξης (${fmt(endStr)}) είναι ΠΡΙΝ την ημερομηνία της συναλλαγής (${fmt(startStr)}). Ανοίξτε το Rep/Inst. και επιλέξτε λήξη μετά την έναρξη.`
+            : `⚠️ This recurrence would create no transactions: the end date (${fmt(endStr)}) is BEFORE the transaction date (${fmt(startStr)}). Open Rep/Inst. and pick an end date after the start.`;
+          await showCustomDialog({ message: msg, icon: '⚠️' });
+          return;
+        }
+      }
 
       if (!id && isRecurringActive) {
         const template = {
@@ -19863,6 +19901,11 @@ function initTabSwipeNavigation() {
 
 // Lightweight render for swipe navigation — only updates list + header, skips dropdowns/currency/etc.
 function renderTransactionsForSwipe() {
+  // Regenerate recurring occurrences for the newly-selected month BEFORE rendering the list.
+  // Without this, a recurring the user added only shows up after a full app refresh (and the
+  // new month's occurrence would stay missing until refresh every single month). This is the
+  // exact call the older builds made here; it was dropped during a later render-refactor.
+  processRecurringTemplates();
   updateHeaderAndSync();
   renderTransactionsTab();
   lastRenderedCategoryType = null;
