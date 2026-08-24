@@ -11454,6 +11454,9 @@ async function inlineDeleteCustomCategory(categoryName, type) {
   }
 
   updateCategoryDropdowns(type);
+  if (typeof renderCategoryManagerList === 'function') {
+    renderCategoryManagerList();
+  }
   updateUI();
 }
 
@@ -11885,6 +11888,9 @@ function saveNewCategoryFromPicker() {
 
     closeNewCategoryDialog();
     updateCategoryDropdowns(newCategoryDialogType, true);
+    if (typeof renderCategoryManagerList === 'function') {
+      renderCategoryManagerList();
+    }
     updateUI();
     showSyncToast(state.lang === 'el' ? '✓ Κατηγορία ενημερώθηκε' : '✓ Category updated', 2000);
     return;
@@ -11946,6 +11952,9 @@ function saveNewCategoryFromPicker() {
 
   // Refresh grid
   updateCategoryDropdowns(newCategoryDialogType);
+  if (typeof renderCategoryManagerList === 'function') {
+    renderCategoryManagerList();
+  }
 
   // Auto-select the new category
   document.getElementById('trans-category').value = newCategory.name;
@@ -13817,8 +13826,10 @@ function renderCategoryChips() {
   const filteredCats = state.categories.filter(c => c.type === currentCategoryType);
 
   filteredCats.forEach(cat => {
-    const icon = cat.icon || '📁';
-    const hasSubcats = cat.subcategories && cat.subcategories.length > 0;
+    const iconHtml = (typeof renderCategoryIconHtml === 'function')
+      ? renderCategoryIconHtml(cat, { size: 'inline', transType: currentCategoryType })
+      : (cat.icon && cat.icon.startsWith('fa-') ? `<i class="${cat.icon}"></i>` : (cat.icon || '📁'));
+    const hasSubcats = getSortedSubcategoriesForCategory(cat.name).length > 0;
     const arrow = hasSubcats ? ' <i class="fa-solid fa-chevron-down" style="font-size:8px; opacity:0.7;"></i>' : '';
 
     // Check if selected
@@ -13829,7 +13840,7 @@ function renderCategoryChips() {
     const chip = document.createElement('button');
     chip.type = 'button';
     chip.className = `filter-chip ${isSelected ? 'active' : ''}`;
-    chip.innerHTML = `${icon} ${cat.name}${arrow}${checkmark}`;
+    chip.innerHTML = `${iconHtml} <span>${getCategoryDisplayName(cat.name)}</span>${arrow}${checkmark}`;
     chip.onclick = function () {
       selectCategoryChipFilter(cat.name, this);
     };
@@ -14321,32 +14332,23 @@ function populateSearchCategorySheet() {
   sortedCats.forEach(catName => {
     const isCatActive = catName === currentCat && !currentSub;
     const catInfo = getCategoryInfo(catName);
-    const emoji = catInfo.icon || '📁';
+    const iconHtml = (typeof renderCategoryIconHtml === 'function')
+      ? renderCategoryIconHtml(catName, { size: 'inline' })
+      : (catInfo.icon && catInfo.icon.startsWith('fa-') ? `<i class="${catInfo.icon}"></i>` : (catInfo.icon || '📁'));
     const displayName = getCategoryDisplayName(catName);
 
     html += `
       <div class="bottom-sheet-option ${isCatActive ? 'active' : ''}" onclick="selectCategorySearchFilter('${catName}', '')">
-        <span class="option-label">${emoji} ${displayName}</span>
+        <span class="option-label" style="display:flex; align-items:center; gap:6px;">${iconHtml} ${displayName}</span>
         <i class="fa-solid fa-check option-check-icon"></i>
       </div>
     `;
 
-    const catObj = state.categories.find(c => c.name === catName);
+    // Find subcategories for this category using getSortedSubcategoriesForCategory
+    const subcats = getSortedSubcategoriesForCategory(catName);
 
-    // Find subcategories for this category
-    const subcats = new Set();
-    state.transactions.forEach(t => {
-      if (t.category === catName && t.subcategory && t.subcategory.trim()) {
-        subcats.add(t.subcategory.trim());
-      }
-    });
-
-    if (catObj?.subcategories) {
-      catObj.subcategories.forEach(s => subcats.add(s.trim()));
-    }
-
-    if (subcats.size > 0) {
-      Array.from(subcats).sort().forEach(subName => {
+    if (subcats.length > 0) {
+      subcats.forEach(subName => {
         const isSubActive = catName === currentCat && subName === currentSub;
         html += `
           <div class="bottom-sheet-option subcategory-option ${isSubActive ? 'active' : ''}" onclick="selectCategorySearchFilter('${catName}', '${subName}')" style="padding-left: 36px; font-size: 12.5px; opacity: 0.9;">
@@ -16449,6 +16451,257 @@ window._categoryManagerType = 'expense';
 window._categoryManagerSelectedEmoji = '💸';
 window._editingCategoryManagerName = null;
 
+// ============================================================
+// SUBCATEGORY MANAGER LOGIC (INLINE EDIT, MERGE, SORT, UNDO)
+// ============================================================
+let _lastSubcatDeleteBackup = null;
+let _subcatUndoTimer = null;
+let _subcatUndoActiveCallback = null;
+
+function getSubcategoriesStatsForCategory(categoryName) {
+  const cleanedCat = stripLeadingEmoji(categoryName).toUpperCase().trim();
+  const stats = {};
+
+  (state.transactions || []).forEach(t => {
+    if (t && t.category && stripLeadingEmoji(t.category).toUpperCase().trim() === cleanedCat) {
+      if (t.subcategory && t.subcategory.trim() !== '') {
+        const sub = t.subcategory.trim();
+        if (!stats[sub]) {
+          stats[sub] = { count: 0, lastUsedDate: '' };
+        }
+        stats[sub].count++;
+
+        const tDate = t.date || '';
+        if (tDate && (!stats[sub].lastUsedDate || tDate > stats[sub].lastUsedDate)) {
+          stats[sub].lastUsedDate = tDate;
+        }
+      }
+    }
+  });
+
+  return stats;
+}
+
+function getSortedSubcategoriesForCategory(categoryName) {
+  const stats = getSubcategoriesStatsForCategory(categoryName);
+  const subcatKeys = new Set(Object.keys(stats));
+
+  const cleanedCat = stripLeadingEmoji(categoryName).toUpperCase().trim();
+
+  // 1. Merge default subcategories from DEFAULT_SUBCATEGORIES_MAP
+  if (typeof DEFAULT_SUBCATEGORIES_MAP === 'object' && DEFAULT_SUBCATEGORIES_MAP) {
+    Object.keys(DEFAULT_SUBCATEGORIES_MAP).forEach(key => {
+      if (stripLeadingEmoji(key).toUpperCase().trim() === cleanedCat) {
+        (DEFAULT_SUBCATEGORIES_MAP[key] || []).forEach(sub => {
+          const s = String(sub || '').trim();
+          if (s) subcatKeys.add(s);
+        });
+      }
+    });
+  }
+
+  // 2. Merge static subcategories from category object in state.categories
+  const cat = (state.categories || []).find(c => c && stripLeadingEmoji(c.name).toUpperCase().trim() === cleanedCat);
+  if (cat && Array.isArray(cat.subcategories)) {
+    cat.subcategories.forEach(sub => {
+      const s = typeof sub === 'string' ? sub.trim() : (sub && sub.name ? String(sub.name).trim() : String(sub || '').trim());
+      if (s) subcatKeys.add(s);
+    });
+  }
+
+  const arr = Array.from(subcatKeys);
+
+  // Sort them:
+  // 1. By transaction count descending
+  // 2. If counts are equal, alphabetically
+  arr.sort((a, b) => {
+    const countA = stats[a] ? stats[a].count : 0;
+    const countB = stats[b] ? stats[b].count : 0;
+
+    if (countB !== countA) {
+      return countB - countA;
+    }
+    return a.localeCompare(b, state.lang === 'el' ? 'el' : 'en', { sensitivity: 'base' });
+  });
+
+  return arr;
+}
+
+async function renameSubcategoryGlobally(categoryName, oldSub, newSub) {
+  const cleanedCat = stripLeadingEmoji(categoryName).toUpperCase().trim();
+
+  // 1. Update static subcategories list in the category object
+  const cat = (state.categories || []).find(c => c && stripLeadingEmoji(c.name).toUpperCase().trim() === cleanedCat);
+  if (cat && Array.isArray(cat.subcategories)) {
+    if (cat.subcategories.includes(newSub)) {
+      cat.subcategories = cat.subcategories.filter(s => s.trim() !== oldSub.trim());
+    } else {
+      cat.subcategories = cat.subcategories.map(s => s.trim() === oldSub.trim() ? newSub : s);
+    }
+    const now = new Date().toISOString();
+    cat.updated_at = now;
+    saveCategoriesToStorage();
+
+    if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
+      try {
+        await state.supabaseClient.from('categories').update({
+          subcategories: cat.subcategories,
+          updated_at: now
+        }).match({ user_id: state.currentUser.id, name: cat.name });
+      } catch (err) {
+        console.warn('Supabase categories update error:', err);
+      }
+    }
+  }
+
+  // 2. Update transactions
+  let updatedCount = 0;
+  (state.transactions || []).forEach(t => {
+    if (t && t.category && stripLeadingEmoji(t.category).toUpperCase().trim() === cleanedCat) {
+      if (t.subcategory && t.subcategory.trim() === oldSub.trim()) {
+        t.subcategory = newSub;
+        updatedCount++;
+      }
+    }
+  });
+
+  if (updatedCount > 0) {
+    localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
+    calculateInitialBalances();
+    updateUI();
+  }
+
+  if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
+    try {
+      const { error } = await state.supabaseClient
+        .from('transactions')
+        .update({ subcategory: newSub })
+        .match({ user_id: state.currentUser.id, category: categoryName, subcategory: oldSub });
+
+      if (error) console.warn('Supabase subcategory rename sync error:', error);
+    } catch (err) {
+      console.warn('Supabase subcategory rename sync failed:', err);
+    }
+  }
+
+  showSyncToast(state.lang === 'el' ? '✓ Υποκατηγορία μετονομάστηκε' : '✓ Subcategory renamed', 2000);
+}
+
+async function deleteSubcategoryGlobally(categoryName, subToDelete) {
+  const cleanedCat = stripLeadingEmoji(categoryName).toUpperCase().trim();
+
+  // 1. Remove from static list in category object
+  const cat = (state.categories || []).find(c => c && stripLeadingEmoji(c.name).toUpperCase().trim() === cleanedCat);
+  if (cat && Array.isArray(cat.subcategories)) {
+    cat.subcategories = cat.subcategories.filter(s => s.trim() !== subToDelete.trim());
+    const now = new Date().toISOString();
+    cat.updated_at = now;
+    saveCategoriesToStorage();
+
+    if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
+      try {
+        await state.supabaseClient.from('categories').update({
+          subcategories: cat.subcategories,
+          updated_at: now
+        }).match({ user_id: state.currentUser.id, name: cat.name });
+      } catch (err) {
+        console.warn('Supabase categories update error:', err);
+      }
+    }
+  }
+
+  // 2. Remove from transactions
+  const backupItems = [];
+  (state.transactions || []).forEach(t => {
+    if (t && t.category && stripLeadingEmoji(t.category).toUpperCase().trim() === cleanedCat) {
+      if (t.subcategory && t.subcategory.trim() === subToDelete.trim()) {
+        backupItems.push({ txId: t.id, oldSub: t.subcategory });
+        t.subcategory = '';
+      }
+    }
+  });
+
+  if (backupItems.length > 0) {
+    _lastSubcatDeleteBackup = {
+      categoryName: categoryName,
+      subcategoryName: subToDelete,
+      items: backupItems,
+      timestamp: Date.now()
+    };
+
+    localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
+    calculateInitialBalances();
+    updateUI();
+
+    if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
+      try {
+        const { error } = await state.supabaseClient
+          .from('transactions')
+          .update({ subcategory: '' })
+          .match({ user_id: state.currentUser.id, category: categoryName, subcategory: subToDelete });
+
+        if (error) console.warn('Supabase subcategory delete sync error:', error);
+      } catch (err) {
+        console.warn('Supabase subcategory delete sync failed:', err);
+      }
+    }
+
+    const msg = state.lang === 'el'
+      ? `Διαγράφηκε η υποκατηγορία "${subToDelete}"`
+      : `Deleted subcategory "${subToDelete}"`;
+
+    showSubcatUndoSnackbar(msg, () => {
+      undoLastSubcategoryDelete();
+    });
+  } else {
+    updateUI();
+  }
+}
+
+async function undoLastSubcategoryDelete() {
+  if (!_lastSubcatDeleteBackup) return;
+
+  const { categoryName, subcategoryName, items } = _lastSubcatDeleteBackup;
+  let restoredCount = 0;
+
+  items.forEach(backup => {
+    const t = state.transactions.find(tx => tx.id === backup.txId);
+    if (t) {
+      t.subcategory = backup.oldSub;
+      restoredCount++;
+    }
+  });
+
+  if (restoredCount > 0) {
+    localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
+    calculateInitialBalances();
+    updateUI();
+  }
+
+  if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser && restoredCount > 0) {
+    try {
+      const idsToRestore = items.map(item => item.txId);
+      const { error } = await state.supabaseClient
+        .from('transactions')
+        .update({ subcategory: subcategoryName })
+        .in('id', idsToRestore)
+        .eq('user_id', state.currentUser.id);
+
+      if (error) console.warn('Supabase subcategory undo sync error:', error);
+    } catch (err) {
+      console.warn('Supabase subcategory undo sync failed:', err);
+    }
+  }
+
+  _lastSubcatDeleteBackup = null;
+
+  if (editingCategoryName) {
+    renderEditCategorySubcategories(editingCategoryName);
+  }
+
+  showSyncToast(state.lang === 'el' ? '✓ Η διαγραφή αναιρέθηκε' : '✓ Deletion undone', 2000);
+}
+
 function openSettingsCategoryManager() {
   window._categoryManagerType = 'expense';
   try {
@@ -16513,21 +16766,6 @@ function renderCategoryManagerList() {
 
   const list = (state.categories || []).filter(c => c && (c.type === type || (type === 'expense' && !c.type)));
 
-  // Single-pass subcategory name set pre-calculation to optimize performance O(N)
-  const subcatSets = {};
-  (state.transactions || []).forEach(t => {
-    if (t && t.category && t.subcategory) {
-      const catName = String(t.category).trim();
-      const sub = String(t.subcategory).trim();
-      if (catName && sub) {
-        if (!subcatSets[catName]) {
-          subcatSets[catName] = new Set();
-        }
-        subcatSets[catName].add(sub);
-      }
-    }
-  });
-
   const lang = state.lang || 'el';
   list.sort((a, b) => {
     const rawA = typeof a === 'string' ? a : (a ? a.name : '');
@@ -16553,24 +16791,15 @@ function renderCategoryManagerList() {
     return;
   }
 
-  const iconBg = isIncome ? 'rgba(74, 222, 128, 0.15)' : 'rgba(255, 255, 255, 0.04)';
-
   list.forEach((c, idx) => {
     const rawName = typeof c === 'string' ? c : (c && c.name ? String(c.name) : `Category ${idx + 1}`);
     const safeId = rawName.replace(/\s+/g, '-');
     const displayName = getCategoryDisplayName(rawName);
-    const icon = (typeof c === 'object' && c.icon) || '📁';
+    const subCount = getSortedSubcategoriesForCategory(rawName).length;
 
-    // Union with static subcategories from categories configuration
-    const uniqueSubs = new Set(subcatSets[rawName] || []);
-    if (c && Array.isArray(c.subcategories)) {
-      c.subcategories.forEach(sub => {
-        if (!sub) return;
-        const s = typeof sub === 'string' ? sub.trim() : (sub.name ? String(sub.name).trim() : String(sub).trim());
-        if (s) uniqueSubs.add(s);
-      });
-    }
-    const subCount = uniqueSubs.size;
+    const catBadgeHtml = (typeof renderCategoryIconHtml === 'function')
+      ? renderCategoryIconHtml(c, { size: 'sm', transType: type })
+      : `<span style="font-size: 16px;">📁</span>`;
 
     const card = document.createElement('div');
     card.style.cssText = 'background: var(--card-bg2, rgba(255,255,255,0.02)); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column;';
@@ -16579,18 +16808,18 @@ function renderCategoryManagerList() {
     header.className = 'category-mgr-header';
     header.style.cssText = 'display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; cursor: pointer; transition: background 0.2s;';
     header.innerHTML = `
-      <div style="display: flex; align-items: center; gap: 12px;">
-        <span style="font-size: 18px; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; background: ${iconBg}; border-radius: 50%;">${icon}</span>
-        <span style="font-weight: 600; font-size: 14px; color: var(--text-primary);">${displayName}</span>
+      <div style="display: flex; align-items: center; gap: 12px; min-width: 0;">
+        ${catBadgeHtml}
+        <span style="font-weight: 600; font-size: 14px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${displayName}</span>
       </div>
       <div style="display: flex; align-items: center; gap: 8px;" class="category-mgr-actions">
-        <span style="font-size: 11px; color: var(--text-muted); background: rgba(255,255,255,0.06); padding: 3px 8px; border-radius: 20px; font-weight:600;">
+        <span style="font-size: 11px; color: var(--text-muted); background: rgba(255,255,255,0.06); padding: 3px 8px; border-radius: 20px; font-weight:600; flex-shrink:0;">
           ${subCount} ${lang === 'el' ? 'υποκ.' : 'subcats'}
         </span>
-        <button type="button" class="btn-edit-cat icon-btn" style="font-size: 13px; color: var(--text-secondary); width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: none; background: transparent; cursor: pointer;">
+        <button type="button" class="btn-edit-cat icon-btn" style="font-size: 13px; color: var(--text-secondary); width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: none; background: transparent; cursor: pointer;" title="${lang === 'el' ? 'Επεξεργασία' : 'Edit'}">
           <i class="fa-solid fa-pen"></i>
         </button>
-        <button type="button" class="btn-delete-cat icon-btn" style="font-size: 13px; color: var(--red-negative); width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: none; background: transparent; cursor: pointer;">
+        <button type="button" class="btn-delete-cat icon-btn" style="font-size: 13px; color: var(--red-negative); width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: none; background: transparent; cursor: pointer;" title="${lang === 'el' ? 'Διαγραφή' : 'Delete'}">
           <i class="fa-solid fa-trash-can"></i>
         </button>
         <i class="fa-solid fa-chevron-down category-mgr-chevron" id="chevron-${safeId}" style="font-size: 12px; color: var(--text-muted); margin-left: 4px; transition: transform 0.2s; padding: 4px;"></i>
@@ -16618,7 +16847,7 @@ function renderCategoryManagerList() {
     const btnEdit = header.querySelector('.btn-edit-cat');
     if (btnEdit) {
       btnEdit.addEventListener('click', () => {
-        openCategoryEditorModal(rawName);
+        openEditCategoryDialog(rawName, type);
       });
     }
 
@@ -16905,39 +17134,14 @@ function renderCategoryEditorEmojiGrid(selectedEmoji) {
 }
 
 function openCategoryManagerAddDialog() {
-  window._editingCategoryManagerName = null;
-  window._categoryManagerSelectedEmoji = window._categoryManagerType === 'income' ? '💰' : '💸';
-
-  const title = document.getElementById('cat-editor-title');
-  if (title) title.textContent = state.lang === 'el' ? 'Νέα Κατηγορία' : 'New Category';
-
-  const input = document.getElementById('cat-editor-name-input');
-  if (input) {
-    input.value = '';
-    input.placeholder = state.lang === 'el' ? 'Όνομα κατηγορίας...' : 'Category name...';
-  }
-
-  renderCategoryEditorEmojiGrid(window._categoryManagerSelectedEmoji);
-  openModal('category-editor-modal');
+  const type = window._categoryManagerType || 'expense';
+  openNewCategoryDialog(type);
 }
 
 function openCategoryEditorModal(categoryName) {
   const cat = state.categories.find(c => c.name === categoryName);
-  if (!cat) return;
-
-  window._editingCategoryManagerName = categoryName;
-  window._categoryManagerSelectedEmoji = cat.icon || '📁';
-
-  const title = document.getElementById('cat-editor-title');
-  if (title) title.textContent = state.lang === 'el' ? 'Επεξεργασία Κατηγορίας' : 'Edit Category';
-
-  const input = document.getElementById('cat-editor-name-input');
-  if (input) {
-    input.value = getCategoryDisplayName(categoryName);
-  }
-
-  renderCategoryEditorEmojiGrid(window._categoryManagerSelectedEmoji);
-  openModal('category-editor-modal');
+  const type = cat ? cat.type : (window._categoryManagerType || 'expense');
+  openEditCategoryDialog(categoryName, type);
 }
 
 async function saveCategoryManagerEdit() {
@@ -27363,10 +27567,11 @@ function renderNoteAutocomplete(query) {
     // Find category details to show badge
     let categoryBadgeHTML = '';
     if (suggestion.category) {
-      const catObj = state.categories.find(c => c.name === suggestion.category);
-      const icon = catObj ? catObj.icon : '🧩';
-      const catCleanName = stripLeadingEmoji(suggestion.category);
-      categoryBadgeHTML = `<span class="note-category-pill" style="font-size: 10px; opacity: 0.7; padding: 2px 6px; background: rgba(255,255,255,0.06); border-radius: 8px; margin-left: auto; flex-shrink: 0; display: flex; align-items: center; gap: 4px;">${icon} ${catCleanName}</span>`;
+      const catCleanName = getCategoryDisplayName(suggestion.category);
+      const iconHtml = (typeof renderCategoryIconHtml === 'function')
+        ? renderCategoryIconHtml(suggestion.category, { size: 'inline' })
+        : `<i class="fa-solid fa-shapes"></i>`;
+      categoryBadgeHTML = `<span class="note-category-pill" style="font-size: 10px; opacity: 0.7; padding: 2px 6px; background: rgba(255,255,255,0.06); border-radius: 8px; margin-left: auto; flex-shrink: 0; display: flex; align-items: center; gap: 4px;">${iconHtml} ${catCleanName}</span>`;
     }
 
     item.innerHTML = `<i class="fa-solid fa-clock-rotate-left" style="color:var(--text-muted);font-size:11px;flex-shrink:0;"></i>
