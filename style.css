@@ -190,10 +190,11 @@ button:active,
   overflow-x: hidden;
 }
 
-/* Top App Bar Header (Phase 3: blends with bg-main status bar) */
+/* Top App Bar Header (Phase 3: blends with bg-main status bar; accent glow line) */
 .app-header {
   background-color: var(--bg-main);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--accent);
+  box-shadow: 0 4px 20px rgba(var(--accent-rgb), 0.22);
   padding: 14px 16px;
   padding-top: calc(14px + env(safe-area-inset-top, 0px));
   display: flex;
