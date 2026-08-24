@@ -23979,20 +23979,6 @@ function getOfflineGuestTransactions() {
   } catch (e) {
     console.warn('Failed to parse offline_guest_transactions:', e);
   }
-  // Fallback check for unowned legacy offline_transactions
-  try {
-    const owner = localStorage.getItem('offline_transactions_owner');
-    if (!owner) {
-      const rawLegacy = localStorage.getItem('offline_transactions');
-      if (rawLegacy) {
-        const parsedLegacy = JSON.parse(rawLegacy);
-        if (Array.isArray(parsedLegacy) && parsedLegacy.length > 0) {
-          const localOnly = parsedLegacy.filter(t => !t.user_id || String(t.id).startsWith('local_') || String(t.id).startsWith('demo_'));
-          if (localOnly.length > 0) return localOnly;
-        }
-      }
-    }
-  } catch (e) { }
   return [];
 }
 
