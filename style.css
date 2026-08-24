@@ -11176,7 +11176,12 @@ body {
     box-sizing: border-box;
   }
 
-  .tab-screen {
+  /* Only active tab screen is visible */
+  .tab-screen:not(.active) {
+    display: none !important;
+  }
+
+  .tab-screen.active {
     flex: 1;
     min-height: 0;
     height: auto;
@@ -11243,8 +11248,8 @@ body {
   }
 
   /* 2. Transactions Screen (#trans-screen) — 2-Column Split */
-  #trans-screen {
-    display: grid;
+  #trans-screen.active {
+    display: grid !important;
     grid-template-columns: minmax(240px, 300px) 1fr;
     grid-template-rows: auto 1fr;
     grid-template-areas:
@@ -11301,8 +11306,8 @@ body {
   }
 
   /* 3. Statistics Screen (#stats-screen) — 2-Column Split */
-  #stats-screen {
-    display: flex;
+  #stats-screen.active {
+    display: flex !important;
     flex-direction: column;
     flex: 1;
     min-height: 0;
@@ -11369,11 +11374,11 @@ body {
   }
 
   /* 4. Accounts / Overview Screen (#accounts-screen) — 2-Column Split */
-  #accounts-screen {
+  #accounts-screen.active {
+    display: flex !important;
     flex: 1;
     min-height: 0;
     height: auto;
-    display: flex;
     flex-direction: column;
   }
 
@@ -11396,7 +11401,8 @@ body {
   }
 
   /* 5. More / Settings Screen (#more-screen) */
-  #more-screen {
+  #more-screen.active {
+    display: block !important;
     flex: 1;
     min-height: 0;
     overflow-y: auto;
