@@ -11305,36 +11305,37 @@ body {
     -webkit-overflow-scrolling: touch;
   }
 
-  /* 3. Statistics Screen (#stats-screen) — Compact Headers & Visible Donut */
+  /* 3. Statistics Screen (#stats-screen) — Compact Headers, Visible Donut & Budgets Grid */
   #stats-screen.active {
     display: flex !important;
     flex-direction: column;
     flex: 1;
     min-height: 0;
     height: auto;
-    overflow: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   #stats-screen .stats-header-bar {
-    padding: 2px 14px;
+    padding: 4px 16px;
     margin: 0;
     flex-shrink: 0;
   }
 
   #stats-screen .stats-subheader-bar {
-    padding: 2px 14px;
+    padding: 2px 16px;
     margin: 0;
     flex-shrink: 0;
   }
 
   #stats-screen .stats-subtab-bar {
-    padding: 2px 14px;
+    padding: 2px 16px;
     margin: 0;
     flex-shrink: 0;
   }
 
   #stats-screen .stats-net-bar {
-    margin: 2px 14px 4px 14px;
+    margin: 2px 16px 6px 16px;
     padding: 4px 14px;
     flex-shrink: 0;
   }
@@ -11342,39 +11343,46 @@ body {
   #stats-screen .stats-scroll-content {
     flex: 1;
     min-height: 0;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
+    overflow: visible;
   }
 
   #stats-breakdown-container {
     display: grid !important;
-    grid-template-columns: minmax(170px, 220px) 1fr !important;
-    gap: 14px !important;
+    grid-template-columns: minmax(180px, 240px) 1fr !important;
+    gap: 16px !important;
     align-items: start !important;
-    padding: 4px 14px 14px 14px !important;
+    padding: 4px 16px 16px 16px !important;
     box-sizing: border-box !important;
   }
 
   #stats-breakdown-container .chart-container {
     position: sticky;
-    top: 0;
+    top: 4px;
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
     justify-content: center !important;
-    padding: 2px !important;
+    padding: 4px !important;
   }
 
   #stats-breakdown-container .chart-wrapper {
-    width: 140px !important;
-    height: 140px !important;
-    max-width: 140px !important;
-    max-height: 140px !important;
+    width: 155px !important;
+    height: 155px !important;
+    max-width: 155px !important;
+    max-height: 155px !important;
     margin: 0 auto !important;
   }
 
   #stats-breakdown-container #stats-breakdown-list {
     min-height: 0;
+  }
+
+  #stats-budgets-container {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
+    padding: 8px 16px 20px 16px !important;
+    box-sizing: border-box !important;
   }
 
   /* 4. Accounts / Overview Screen (#accounts-screen) — Clean Fluid Cards */
