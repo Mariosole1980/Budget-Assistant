@@ -10714,18 +10714,19 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
 
 /* ============================================================
 /* ============================================================
-   MODERN TIME PICKER (OLED DRUM CYLINDERS & DIRECT TYPING)
+/* ============================================================
+   MODERN FROSTED TIME PICKER & PRESETS (REALBYTE DARK THEME)
    ============================================================ */
 .modern-time-picker-card-v2 {
-  max-width: 350px !important;
+  max-width: 340px !important;
   width: 92% !important;
   border-radius: 28px !important;
-  background: rgba(20, 24, 33, 0.98) !important;
-  backdrop-filter: blur(28px) !important;
-  -webkit-backdrop-filter: blur(28px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.12) !important;
-  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.8) !important;
-  padding: 22px 20px !important;
+  background: rgba(20, 24, 33, 0.96) !important;
+  backdrop-filter: blur(32px) !important;
+  -webkit-backdrop-filter: blur(32px) !important;
+  border: 1px solid rgba(124, 106, 247, 0.25) !important;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.85), 0 0 35px rgba(124, 106, 247, 0.16) !important;
+  padding: 22px 18px !important;
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
@@ -10734,229 +10735,235 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
   margin: auto !important;
 }
 
-.modern-time-hero-box {
+/* Header */
+.modern-time-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   width: 100%;
-  padding: 14px 16px;
-  border-radius: 22px;
-  background: linear-gradient(180deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.95) 100%);
-  border: 1.5px solid rgba(56, 189, 248, 0.28);
+}
+
+.modern-time-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffffff;
+  font-family: 'Outfit', sans-serif;
+  letter-spacing: -0.2px;
+}
+
+.modern-time-close-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.modern-time-close-btn:hover,
+.modern-time-close-btn:active {
+  background: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+  transform: scale(1.05);
+}
+
+/* Quick Presets Row */
+.modern-time-presets {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  width: 100%;
+}
+
+.time-preset-chip {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(56, 189, 248, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  box-sizing: border-box;
-}
-
-.modern-time-hero-digits {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  width: 100%;
-}
-
-.hero-digit-wrapper {
-  flex: 1;
-  max-width: 120px;
-  padding: 8px 10px 6px 10px;
-  border-radius: 18px;
-  background: rgba(10, 15, 26, 0.85);
-  border: 1.5px solid rgba(255, 255, 255, 0.12);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
+  gap: 3px;
+  padding: 8px 6px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.6);
   box-sizing: border-box;
 }
 
-.hero-digit-wrapper.active,
-.hero-digit-wrapper:focus-within {
-  background: rgba(56, 189, 248, 0.15);
-  border-color: rgba(56, 189, 248, 0.7);
-  box-shadow: 0 0 24px rgba(56, 189, 248, 0.35), inset 0 2px 8px rgba(0, 0, 0, 0.4);
-  transform: translateY(-2px);
+.time-preset-chip .preset-icon {
+  font-size: 13px;
+  color: #a5b4fc;
 }
 
-.hero-time-digit-input {
-  width: 100%;
-  height: 56px;
-  padding: 0;
-  font-size: 52px;
-  font-weight: 800;
-  font-family: 'Outfit', sans-serif;
-  color: #ffffff;
-  text-align: center;
-  background: transparent;
-  border: none;
-  outline: none;
-  caret-color: transparent;
-  -webkit-user-select: text;
-  user-select: text;
-  -webkit-touch-callout: none;
-  -moz-appearance: textfield;
-  touch-action: manipulation;
-  text-shadow: 0 0 22px rgba(255, 255, 255, 0.45), 0 2px 8px rgba(0, 0, 0, 0.6);
-  line-height: 1;
-}
-
-.hero-time-digit-input::-webkit-outer-spin-button,
-.hero-time-digit-input::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-.modern-time-hero-colon {
-  font-size: 44px;
-  font-weight: 800;
-  font-family: 'Outfit', sans-serif;
-  color: rgba(255, 255, 255, 0.7);
-  line-height: 1;
-  margin-top: -14px;
-  text-shadow: 0 0 16px rgba(255, 255, 255, 0.3);
-}
-
-.modern-time-hero-label {
+.time-preset-chip .preset-label {
   font-size: 11px;
-  font-weight: 800;
-  color: #8a99ad;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
+  font-weight: 700;
   font-family: 'Outfit', sans-serif;
-  transition: color 0.2s ease;
 }
 
-.hero-digit-wrapper.active .modern-time-hero-label,
-.hero-digit-wrapper:focus-within .modern-time-hero-label {
-  color: #38bdf8;
+.time-preset-chip .preset-time {
+  font-size: 10px;
+  opacity: 0.75;
+  font-family: 'Outfit', monospace;
+  font-weight: 600;
 }
 
-.modern-time-drums-row {
+.time-preset-chip:active,
+.time-preset-chip.active {
+  background: rgba(124, 106, 247, 0.22);
+  border-color: rgba(124, 106, 247, 0.65);
+  color: #ffffff;
+  box-shadow: 0 0 16px rgba(124, 106, 247, 0.35);
+  transform: scale(1.02);
+}
+
+.time-preset-chip.active .preset-icon {
+  color: #ffffff;
+}
+
+/* Center Frosted Wheel Container */
+.modern-time-wheel-container {
+  position: relative;
+  width: 100%;
+  height: 200px;
+  border-radius: 20px;
+  background: rgba(11, 14, 22, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.07);
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 18px;
-  width: 100%;
-}
-
-.modern-drum-cylinder {
-  position: relative;
-  width: 120px;
-  height: 176px;
-  background: rgba(10, 14, 22, 0.88);
-  border: 1.5px solid rgba(255, 255, 255, 0.1);
-  border-radius: 20px;
   overflow: hidden;
-  box-shadow: inset 0 4px 18px rgba(0, 0, 0, 0.85);
   box-sizing: border-box;
 }
 
-.modern-drum-scroll {
+/* Glowing Selection Lens Pill */
+.modern-time-selection-lens {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 52px;
+  border-radius: 16px;
+  background: rgba(124, 106, 247, 0.18);
+  border: 1.5px solid rgba(124, 106, 247, 0.6);
+  box-shadow: 0 0 24px rgba(124, 106, 247, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  pointer-events: none;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lens-colon {
+  font-size: 30px;
+  font-weight: 800;
+  color: #ffffff;
+  font-family: 'Outfit', sans-serif;
+  text-shadow: 0 0 14px rgba(124, 106, 247, 0.8);
+  line-height: 1;
+}
+
+/* Wheels Columns */
+.modern-time-wheel-col {
+  flex: 1;
+  height: 100%;
+  position: relative;
+  z-index: 1;
+}
+
+.modern-wheel-scroll {
   height: 100%;
   overflow-y: scroll;
   overflow-x: hidden;
   scroll-snap-type: y mandatory;
-  padding: 66px 0;
+  padding: 76px 0;
   box-sizing: border-box;
   scrollbar-width: none;
+  -ms-overflow-style: none;
   touch-action: pan-y;
 }
 
-.modern-drum-scroll::-webkit-scrollbar {
+.modern-wheel-scroll::-webkit-scrollbar {
   display: none;
 }
 
-.modern-drum-item {
-  height: 44px;
-  line-height: 44px;
+.modern-wheel-item {
+  height: 48px;
+  line-height: 48px;
   text-align: center;
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 600;
   font-family: 'Outfit', sans-serif;
-  color: rgba(255, 255, 255, 0.35);
+  color: rgba(255, 255, 255, 0.3);
   scroll-snap-align: center;
   cursor: pointer;
   user-select: none;
-  transition: color 0.15s ease, font-size 0.15s ease, font-weight 0.15s ease;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.modern-drum-item.selected {
+.modern-wheel-item.selected {
   color: #ffffff;
-  font-size: 26px;
+  font-size: 32px;
   font-weight: 800;
-  text-shadow: 0 0 12px rgba(255, 255, 255, 0.5);
+  text-shadow: 0 0 18px rgba(255, 255, 255, 0.7), 0 0 32px rgba(124, 106, 247, 0.6);
+  transform: scale(1.06);
 }
 
-.modern-drum-lens {
+/* Gradient Fade Masks */
+.modern-wheel-fade-top {
   position: absolute;
-  top: 66px;
-  left: 6px;
-  right: 6px;
-  height: 44px;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.07);
-  border: 1.5px solid rgba(255, 255, 255, 0.2);
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: linear-gradient(180deg, rgba(11, 14, 22, 0.98) 0%, transparent 100%);
   pointer-events: none;
-  box-shadow: 0 0 14px rgba(255, 255, 255, 0.06);
+  z-index: 3;
 }
 
-.modern-drum-gradient-mask {
-  pointer-events: none;
+.modern-wheel-fade-bottom {
   position: absolute;
-  inset: 0;
-  border-radius: 20px;
-  background: linear-gradient(to bottom, rgba(10, 14, 22, 0.96) 0%, transparent 30%, transparent 70%, rgba(10, 14, 22, 0.96) 100%);
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: linear-gradient(0deg, rgba(11, 14, 22, 0.98) 0%, transparent 100%);
+  pointer-events: none;
+  z-index: 3;
 }
 
-.modern-time-actions-row {
-  display: flex;
-  gap: 14px;
+/* Full Width Save Button */
+.modern-time-save-btn {
   width: 100%;
-  margin-top: 4px;
-}
-
-.modern-time-btn-cancel {
-  flex: 1;
-  padding: 13px;
+  height: 50px;
   border-radius: 16px;
-  font-size: 14.5px;
+  background: linear-gradient(135deg, #7c6af7 0%, #5e4be0 100%);
+  border: none;
+  color: #ffffff;
+  font-size: 15px;
   font-weight: 700;
   font-family: 'Outfit', sans-serif;
-  background: rgba(239, 68, 68, 0.08);
-  border: 1.5px solid rgba(239, 68, 68, 0.35);
-  color: #ef4444;
   cursor: pointer;
-  transition: all 0.15s ease;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 8px 24px rgba(124, 106, 247, 0.45);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
 }
 
-.modern-time-btn-cancel:active {
-  transform: scale(0.97);
-  background: rgba(239, 68, 68, 0.15);
-}
-
-.modern-time-btn-confirm {
-  flex: 1;
-  padding: 13px;
-  border-radius: 16px;
-  font-size: 14.5px;
-  font-weight: 700;
-  font-family: 'Outfit', sans-serif;
-  background: rgba(16, 185, 129, 0.12);
-  border: 1.5px solid rgba(16, 185, 129, 0.5);
-  color: #34d399;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  text-align: center;
-}
-
-.modern-time-btn-confirm:active {
-  transform: scale(0.97);
-  background: rgba(16, 185, 129, 0.22);
+.modern-time-save-btn:active {
+  transform: scale(0.98);
+  box-shadow: 0 4px 12px rgba(124, 106, 247, 0.3);
 }
 
 /* Global Mobile Anti-Auto-Zoom Fix (Android & iOS)

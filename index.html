@@ -5643,77 +5643,70 @@
     </div>
 
     <!-- ============================================================ -->
-    <!-- MODAL: TIME PICKER (OLED DRUM CYLINDERS - EXACT MOCKUP)      -->
+    <!-- MODAL: TIME PICKER (FROSTED GLASS WHEEL + PRESETS)           -->
     <!-- ============================================================ -->
     <div id="modern-time-picker-modal" class="modal-overlay" style="z-index: 13000;"
       onclick="handleModernTimePickerOverlayClick(event)">
       <div class="modal-content modern-time-picker-card-v2">
 
-        <!-- Title -->
-        <div style="font-size: 17px; font-weight: 800; color: #ffffff; font-family: 'Outfit', sans-serif; text-align: center;"
-          data-i18n="time_picker_title">Επιλογή Ώρας</div>
-
-        <!-- Top Hero Grand Digital Display -->
-        <div class="modern-time-hero-box">
-          <div class="modern-time-hero-digits">
-            <!-- Hour Box -->
-            <div class="hero-digit-wrapper" id="hero-hour-wrapper" onclick="focusHeroTimeInput('hours')">
-              <input type="tel" id="modern-time-input-hours" class="hero-time-digit-input"
-                maxlength="2" pattern="[0-9]*" inputmode="numeric" placeholder="21"
-                autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
-                oncontextmenu="return false;"
-                onfocus="handleModernHeroInputFocus(event, 'hours')"
-                onblur="handleModernHeroInputBlur('hours')"
-                oninput="handleModernTimeInputHours(event)"
-                onkeydown="handleModernTimeInputKeydown(event, 'hours')">
-              <span class="modern-time-hero-label" data-i18n="time_hours_label">ΩΡΑ</span>
-            </div>
-
-            <span class="modern-time-hero-colon">:</span>
-
-            <!-- Minute Box -->
-            <div class="hero-digit-wrapper" id="hero-minute-wrapper" onclick="focusHeroTimeInput('minutes')">
-              <input type="tel" id="modern-time-input-minutes" class="hero-time-digit-input"
-                maxlength="2" pattern="[0-9]*" inputmode="numeric" placeholder="00"
-                autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
-                oncontextmenu="return false;"
-                onfocus="handleModernHeroInputFocus(event, 'minutes')"
-                onblur="handleModernHeroInputBlur('minutes')"
-                oninput="handleModernTimeInputMinutes(event)"
-                onkeydown="handleModernTimeInputKeydown(event, 'minutes')">
-              <span class="modern-time-hero-label" data-i18n="time_minutes_label">ΛΕΠΤΑ</span>
-            </div>
-          </div>
+        <!-- Top Header with title & close button -->
+        <div class="modern-time-header">
+          <div class="modern-time-title" data-i18n="time_picker_title">Επιλογή Ώρας Υπενθύμισης</div>
+          <button type="button" class="modern-time-close-btn" onclick="closeModernTimePicker()" aria-label="Close">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
         </div>
 
-        <!-- Dual 5-Row OLED Drum Cylinders -->
-        <div class="modern-time-drums-row">
-          <!-- Hours Cylinder -->
-          <div class="modern-drum-cylinder">
-            <div class="modern-drum-scroll" id="modern-scroll-hours">
-              <!-- Hours 00 to 23 injected dynamically in JS -->
-            </div>
-            <div class="modern-drum-lens"></div>
-            <div class="modern-drum-gradient-mask"></div>
-          </div>
-
-          <!-- Minutes Cylinder -->
-          <div class="modern-drum-cylinder">
-            <div class="modern-drum-scroll" id="modern-scroll-minutes">
-              <!-- Minutes 00 to 59 injected dynamically in JS -->
-            </div>
-            <div class="modern-drum-lens"></div>
-            <div class="modern-drum-gradient-mask"></div>
-          </div>
+        <!-- Quick Presets Row -->
+        <div class="modern-time-presets">
+          <button type="button" class="time-preset-chip" id="preset-morning" onclick="selectModernTimePreset(9, 0)">
+            <i class="fa-solid fa-sun preset-icon"></i>
+            <span class="preset-label" data-i18n="time_preset_morning">Πρωί</span>
+            <span class="preset-time">09:00</span>
+          </button>
+          <button type="button" class="time-preset-chip" id="preset-evening" onclick="selectModernTimePreset(20, 0)">
+            <i class="fa-solid fa-cloud-sun preset-icon"></i>
+            <span class="preset-label" data-i18n="time_preset_evening">Βράδυ</span>
+            <span class="preset-time">20:00</span>
+          </button>
+          <button type="button" class="time-preset-chip" id="preset-night" onclick="selectModernTimePreset(22, 30)">
+            <i class="fa-solid fa-moon preset-icon"></i>
+            <span class="preset-label" data-i18n="time_preset_night">Ύπνος</span>
+            <span class="preset-time">22:30</span>
+          </button>
         </div>
 
-        <!-- Bottom Action Buttons -->
-        <div class="modern-time-actions-row">
-          <button type="button" class="modern-time-btn-cancel" onclick="closeModernTimePicker()"
-            data-i18n="btn_cancel">Ακύρωση</button>
-          <button type="button" class="modern-time-btn-confirm" onclick="confirmModernTimePicker()"
-            data-i18n="btn_set_time">Ορισμός</button>
+        <!-- Center Frosted Wheel Container -->
+        <div class="modern-time-wheel-container">
+          <!-- Selection Frosted Lens Pill (21 : 30) -->
+          <div class="modern-time-selection-lens">
+            <div class="lens-colon">:</div>
+          </div>
+
+          <!-- Hours Column Wheel -->
+          <div class="modern-time-wheel-col">
+            <div class="modern-wheel-scroll" id="modern-scroll-hours">
+              <!-- Hours 00..23 dynamically populated -->
+            </div>
+          </div>
+
+          <!-- Minutes Column Wheel -->
+          <div class="modern-time-wheel-col">
+            <div class="modern-wheel-scroll" id="modern-scroll-minutes">
+              <!-- Minutes 00..59 dynamically populated -->
+            </div>
+          </div>
+
+          <!-- Top and Bottom Fade Masks -->
+          <div class="modern-wheel-fade-top"></div>
+          <div class="modern-wheel-fade-bottom"></div>
         </div>
+
+        <!-- Bottom Action Button -->
+        <button type="button" class="modern-time-save-btn" onclick="confirmModernTimePicker()">
+          <i class="fa-solid fa-check"></i>
+          <span data-i18n="btn_set_time">Αποθήκευση Ώρας</span>
+        </button>
       </div>
     </div>
 
