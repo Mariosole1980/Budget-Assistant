@@ -21376,6 +21376,17 @@ function applyTheme(theme) {
   };
   Object.keys(tokens).forEach(k => rootStyle.setProperty(k, tokens[k]));
 
+  // Per-alpha theme-aware overlays (replaces inline rgba(255,255,255,A) tints).
+  // Derive the RGB base from the theme's own overlay token: white on dark
+  // themes, theme-tinted dark on light themes (slate for light, rose for sakura)
+  // so the ~120 inline surfaces stay visible everywhere (not a repaint).
+  const overlayMatch = t.overlay.match(/rgba\((\d+),\s*(\d+),\s*(\d+)/);
+  const overlayBase = overlayMatch ? overlayMatch[1] + ',' + overlayMatch[2] + ',' + overlayMatch[3] : '255,255,255';
+  const overlayAlphas = [0.01, 0.02, 0.025, 0.03, 0.04, 0.05, 0.06, 0.08, 0.1, 0.12, 0.14, 0.18, 0.2, 0.22];
+  overlayAlphas.forEach(v => {
+    rootStyle.setProperty('--overlay-' + String(Math.round(v * 1000)).padStart(3, '0'), `rgba(${overlayBase},${v})`);
+  });
+
   // Sync meta theme-color + native Android window bars (all 9 themes covered).
   const metaThemeColor = document.querySelector('meta[name="theme-color"]');
   if (metaThemeColor) metaThemeColor.setAttribute('content', t.bgMain);

@@ -770,7 +770,7 @@
                   </div>
 
                   <div class="forecast-progress-track"
-                    style="height: 12px; position: relative; border-radius: 6px; background: rgba(255, 255, 255, 0.06); width: 100%; margin-top: 12px; overflow: visible; display: flex; align-items: center;">
+                    style="height: 12px; position: relative; border-radius: 6px; background: var(--overlay-060); width: 100%; margin-top: 12px; overflow: visible; display: flex; align-items: center;">
                     <div id="forecast-progress-bar"
                       style="position: absolute; left: 0; top: 0; height: 100%; border-radius: 6px; width: 0%; z-index: 1; background: linear-gradient(90deg, var(--accent), var(--blue-positive));">
                     </div>
@@ -1004,8 +1004,8 @@
               style="cursor: pointer; padding: 14px 16px;">
               <div style="display:flex; align-items:center; gap:12px; flex:1;">
                 <div
-                  style="width:36px;height:36px;border-radius:10px;background:rgba(59,130,246,0.15);display:flex;align-items:center;justify-content:center;">
-                  <i class="fa-solid fa-arrows-spin" style="color:#3b82f6;font-size:16px;"></i>
+                  style="width:36px;height:36px;border-radius:10px;background:rgba(var(--accent-rgb), 0.15);display:flex;align-items:center;justify-content:center;">
+                  <i class="fa-solid fa-arrows-spin" style="color:var(--accent);font-size:16px;"></i>
                 </div>
                 <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;">
                   <span class="settings-item-label" data-i18n="settings_recurring_option"
@@ -1017,7 +1017,7 @@
               </div>
               <div style="display:flex; align-items:center; gap:8px;">
                 <span class="badge" id="recurring-templates-count-val"
-                  style="background:#3b82f6; color:#ffffff; font-size:11px; padding:2px 8px; border-radius:10px; font-weight:800;">0</span>
+                  style="background:var(--accent); color:#ffffff; font-size:11px; padding:2px 8px; border-radius:10px; font-weight:800;">0</span>
                 <i class="fa-solid fa-chevron-right" style="color:var(--text-muted);font-size:12px;"></i>
               </div>
             </div>
@@ -1090,7 +1090,7 @@
               style="cursor: pointer; padding: 14px 16px;">
               <div style="display:flex; align-items:center; gap:12px; flex:1;">
                 <div
-                  style="width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,0.12);display:flex;align-items:center;justify-content:center;">
+                  style="width:36px;height:36px;border-radius:10px;background:var(--overlay-120);display:flex;align-items:center;justify-content:center;">
                   <i class="fa-solid fa-trash-can" style="color:#f1f5f9;font-size:16px;"></i>
                 </div>
                 <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;">
@@ -1103,7 +1103,7 @@
               </div>
               <div style="display:flex; align-items:center; gap:8px;">
                 <span class="badge" id="hub-trash-count"
-                  style="background:rgba(255,255,255,0.18); color:#f8fafc; font-size:11px; padding:2px 8px; border-radius:10px; font-weight:800; border:1px solid rgba(255,255,255,0.2);">0</span>
+                  style="background:var(--overlay-180); color:#f8fafc; font-size:11px; padding:2px 8px; border-radius:10px; font-weight:800; border:1px solid var(--overlay-200);">0</span>
                 <i class="fa-solid fa-chevron-right" style="color:var(--text-muted);font-size:12px;"></i>
               </div>
             </div>
@@ -1265,7 +1265,7 @@
                 <span id="trans-date-display" class="form-row-display-text" style="flex: 1;">24/5/26 (Kυρ) 19:38</span>
                 <input type="hidden" id="trans-date">
                 <button type="button" id="btn-rep-inst" onclick="event.stopPropagation(); openRecurringModal();"
-                  style="margin-left: auto; padding: 4px 10px; border-radius: 12px; border: 1px solid rgba(59, 130, 246, 0.35); background: rgba(59, 130, 246, 0.15); color: #3b82f6; font-size: 11px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 4px; z-index: 2;"><i
+                  style="margin-left: auto; padding: 4px 10px; border-radius: 12px; border: 1px solid rgba(var(--accent-rgb), 0.35); background: rgba(var(--accent-rgb), 0.15); color: var(--accent); font-size: 11px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 4px; z-index: 2;"><i
                     class="fa-solid fa-arrows-rotate"></i> Rep/Inst.</button>
               </div>
             </div>
@@ -1498,12 +1498,12 @@
           </div>
           <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0; margin-left: 8px;">
             <button type="button" class="icon-btn" id="notes-view-toggle-btn" onclick="toggleNotesViewMode()"
-              style="font-size: 14px; color: var(--text-secondary); background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 8px; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; cursor: pointer;"
+              style="font-size: 14px; color: var(--text-secondary); background: var(--overlay-050); border: 1px solid var(--border); border-radius: 8px; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; cursor: pointer;"
               title="Εναλλαγή προβολής">
               <i class="fa-solid fa-border-all"></i>
             </button>
             <button type="button" class="icon-btn" onclick="openNotesTrashModal()"
-              style="position: relative; font-size: 14px; color: var(--text-secondary); background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 8px; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; cursor: pointer;"
+              style="position: relative; font-size: 14px; color: var(--text-secondary); background: var(--overlay-050); border: 1px solid var(--border); border-radius: 8px; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; cursor: pointer;"
               title="Κάδος Σημειώσεων">
               <i class="fa-solid fa-trash-can"></i>
               <span id="notes-trash-count-badge" class="badge"
@@ -1600,7 +1600,7 @@
         style="max-width: 640px; width: 94%; height: 88vh; max-height: 820px; display: flex; flex-direction: column; border-radius: 20px; border: 1px solid var(--border); padding: 0; background: var(--bg-card, #161622); overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.5);">
         <!-- Header -->
         <div
-          style="display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; background: rgba(255,255,255,0.03); border-bottom: 1px solid var(--border);">
+          style="display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; background: var(--overlay-030); border-bottom: 1px solid var(--border);">
           <div style="display: flex; align-items: center; gap: 10px;">
             <div
               style="width: 36px; height: 36px; border-radius: 10px; background: rgba(var(--accent-rgb, 124, 106, 247), 0.15); display: flex; align-items: center; justify-content: center; border: 1px solid rgba(var(--accent-rgb, 124, 106, 247), 0.3);">
@@ -1620,11 +1620,11 @@
           </div>
           <div style="display: flex; align-items: center; gap: 8px;">
             <button id="user-guide-lang-btn" onclick="toggleUserGuideLanguage()" class="btn btn-secondary"
-              style="padding: 5px 12px; font-size: 12px; border-radius: 8px; font-weight: 600; display: flex; align-items: center; gap: 5px; background: rgba(255,255,255,0.06); border: 1px solid var(--border); cursor: pointer;">
+              style="padding: 5px 12px; font-size: 12px; border-radius: 8px; font-weight: 600; display: flex; align-items: center; gap: 5px; background: var(--overlay-060); border: 1px solid var(--border); cursor: pointer;">
               <i class="fa-solid fa-globe"></i> <span id="user-guide-lang-label">EN</span>
             </button>
             <button onclick="closeModal('user-guide-modal')"
-              style="background: rgba(255,255,255,0.06); border: 1px solid var(--border); color: var(--text-muted); width: 32px; height: 32px; border-radius: 8px; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center;"
+              style="background: var(--overlay-060); border: 1px solid var(--border); color: var(--text-muted); width: 32px; height: 32px; border-radius: 8px; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center;"
               title="Κλείσιμο">✕</button>
           </div>
         </div>
@@ -1679,7 +1679,7 @@
               </div>
             </div>
             <span class="modal-close" onclick="closeModal('privacy-policy-modal')"
-              style="font-size: 22px; color: var(--text-muted); cursor: pointer; line-height: 1; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; border-radius: 10px; background: rgba(255,255,255,0.06); border: 1px solid var(--border); transition: background 0.2s; flex-shrink: 0;">✕</span>
+              style="font-size: 22px; color: var(--text-muted); cursor: pointer; line-height: 1; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; border-radius: 10px; background: var(--overlay-060); border: 1px solid var(--border); transition: background 0.2s; flex-shrink: 0;">✕</span>
           </div>
         </div>
 
@@ -1703,7 +1703,7 @@
 
           <!-- Section 1 -->
           <div
-            style="background: rgba(255,255,255,0.025); border: 1px solid var(--border); border-radius: 16px; padding: 14px 16px; display: flex; gap: 12px;">
+            style="background: var(--overlay-025); border: 1px solid var(--border); border-radius: 16px; padding: 14px 16px; display: flex; gap: 12px;">
             <div
               style="width: 38px; height: 38px; border-radius: 12px; background: rgba(var(--accent-rgb, 124, 106, 247), 0.12); display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: 1px solid rgba(var(--accent-rgb, 124, 106, 247), 0.25);">
               <i class="fa-solid fa-database" style="font-size: 16px; color: var(--accent, #7c6af7);"></i>
@@ -1721,7 +1721,7 @@
 
           <!-- Section 2 -->
           <div
-            style="background: rgba(255,255,255,0.025); border: 1px solid var(--border); border-radius: 16px; padding: 14px 16px; display: flex; gap: 12px;">
+            style="background: var(--overlay-025); border: 1px solid var(--border); border-radius: 16px; padding: 14px 16px; display: flex; gap: 12px;">
             <div
               style="width: 38px; height: 38px; border-radius: 12px; background: rgba(var(--accent-rgb, 124, 106, 247), 0.12); display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: 1px solid rgba(var(--accent-rgb, 124, 106, 247), 0.25);">
               <i class="fa-solid fa-ban" style="font-size: 16px; color: var(--accent, #7c6af7);"></i>
@@ -1738,7 +1738,7 @@
 
           <!-- Section 3 -->
           <div
-            style="background: rgba(255,255,255,0.025); border: 1px solid var(--border); border-radius: 16px; padding: 14px 16px; display: flex; gap: 12px;">
+            style="background: var(--overlay-025); border: 1px solid var(--border); border-radius: 16px; padding: 14px 16px; display: flex; gap: 12px;">
             <div
               style="width: 38px; height: 38px; border-radius: 12px; background: rgba(var(--accent-rgb, 124, 106, 247), 0.12); display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: 1px solid rgba(var(--accent-rgb, 124, 106, 247), 0.25);">
               <i class="fa-solid fa-trash-can" style="font-size: 16px; color: var(--accent, #7c6af7);"></i>
@@ -1765,7 +1765,7 @@
 
         <!-- Footer -->
         <div class="modal-footer"
-          style="padding: 14px 18px; border-top: 1px solid var(--border); background: rgba(255,255,255,0.02); text-align: center;">
+          style="padding: 14px 18px; border-top: 1px solid var(--border); background: var(--overlay-020); text-align: center;">
           <button type="button" onclick="closeModal('privacy-policy-modal')"
             style="width: 100%; padding: 13px; border-radius: 14px; font-size: 14px; font-weight: 700; background: linear-gradient(135deg, var(--accent, #7c6af7), rgba(var(--accent-rgb, 124, 106, 247), 0.8)); border: none; color: #fff; cursor: pointer; box-shadow: 0 6px 18px rgba(var(--accent-rgb, 124, 106, 247), 0.3); transition: transform 0.15s ease, box-shadow 0.15s ease;"
             data-i18n="privacy_btn_understand">Κατάλαβα</button>
@@ -1780,12 +1780,12 @@
         style="display:flex;flex-direction:column;height:90vh;max-height:90vh;padding:0;border-radius:18px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,0.4);">
         <!-- Dynamic Card Header Band (App Preferences Standard) -->
         <div id="settings-subscreen-header-band"
-          style="padding:14px 18px; background:rgba(124,106,247,0.08); border-bottom:1px solid rgba(124,106,247,0.25); display:flex; align-items:center; justify-content:space-between;">
+          style="padding:14px 18px; background:rgba(var(--accent-rgb), 0.08); border-bottom:1px solid rgba(var(--accent-rgb), 0.25); display:flex; align-items:center; justify-content:space-between;">
           <div style="display:flex; align-items:center; gap:12px; min-width:0; flex:1;">
             <button type="button" class="icon-btn" id="settings-subscreen-back-btn" style="flex-shrink:0;"><i
                 class="fa-solid fa-arrow-left"></i></button>
             <div id="settings-subscreen-icon-box"
-              style="width:34px; height:34px; border-radius:10px; background:#7c6af7; color:#ffffff; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:700; flex-shrink:0; box-shadow:0 4px 12px rgba(124,106,247,0.35);">
+              style="width:34px; height:34px; border-radius:10px; background:var(--accent); color:#ffffff; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:700; flex-shrink:0; box-shadow:0 4px 12px rgba(var(--accent-rgb), 0.35);">
               <i id="settings-subscreen-icon" class="fa-solid fa-palette"></i>
             </div>
             <div style="min-width:0; flex:1;">
@@ -1798,7 +1798,7 @@
             </div>
           </div>
           <button type="button" onclick="closeModal('settings-subscreen-modal')"
-            style="background: rgba(255,255,255,0.06); border: 1px solid var(--border); color: var(--text-muted); width: 32px; height: 32px; border-radius: 8px; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-left: 8px;"
+            style="background: var(--overlay-060); border: 1px solid var(--border); color: var(--text-muted); width: 32px; height: 32px; border-radius: 8px; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-left: 8px;"
             title="Κλείσιμο">✕</button>
         </div>
         <div class="modal-body" style="flex:1;overflow-y:auto;padding:16px;">
@@ -2079,7 +2079,7 @@
                       data-i18n="item_exact_alarms_desc">Αν δεν είναι ενεργό, η υπενθύμιση μπορεί να καθυστερήσει ~1 λεπτό</span>
                   </div>
                   <span id="settings-exact-alarm-status"
-                    style="flex-shrink:0; font-size:12px; font-weight:800; padding:5px 12px; border-radius:10px; border:1px solid var(--border, rgba(255,255,255,0.08)); background:rgba(255,255,255,0.04); color:var(--text-muted); white-space:nowrap;">···</span>
+                    style="flex-shrink:0; font-size:12px; font-weight:800; padding:5px 12px; border-radius:10px; border:1px solid var(--border, rgba(255,255,255,0.08)); background:var(--overlay-040); color:var(--text-muted); white-space:nowrap;">···</span>
                 </div>
 
                 <!-- Row 2: Recurring Payment Alert -->
@@ -2213,7 +2213,7 @@
 
             <!-- CARD 1: Cloud Sync Status -->
             <div class="settings-list-item" id="sync-supabase-row" onclick="openSupabaseSettings()"
-              style="cursor:pointer; border-radius:14px; padding:14px 16px; background:rgba(255,255,255,0.03); border:1px solid var(--border); display:flex; align-items:center; justify-content:space-between;">
+              style="cursor:pointer; border-radius:14px; padding:14px 16px; background:var(--overlay-030); border:1px solid var(--border); display:flex; align-items:center; justify-content:space-between;">
               <div style="display:flex; flex-direction:column; flex:1;">
                 <span class="settings-item-label" style="font-weight:700; font-size:14px;"
                   data-i18n="item_sync_status">Κατάσταση Συγχρονισμού</span>
@@ -2221,7 +2221,7 @@
                   style="font-size:11.5px; margin-top:4px; color:var(--accent);">Τοπική Αποθήκευση</span>
               </div>
               <div id="sync-now-row" onclick="forceSyncNow()"
-                style="display:flex; align-items:center; gap:6px; background:rgba(59,130,246,0.12); border:1px solid rgba(59,130,246,0.3); padding:6px 12px; border-radius:8px; color:var(--accent); font-weight:700; font-size:12px; cursor:pointer;">
+                style="display:flex; align-items:center; gap:6px; background:rgba(var(--accent-rgb), 0.12); border:1px solid rgba(var(--accent-rgb), 0.3); padding:6px 12px; border-radius:8px; color:var(--accent); font-weight:700; font-size:12px; cursor:pointer;">
                 <i class="fa-solid fa-arrows-rotate"></i>
                 <span data-i18n="sync_now_btn">Συγχρονισμός</span>
               </div>
@@ -2229,7 +2229,7 @@
 
             <!-- CARD 2: UNIFIED FILE IMPORT (Restore) -->
             <div class="settings-list-item" id="sync-excel-import-row" onclick="openModal('excel-modal')"
-              style="cursor:pointer; border-radius:14px; padding:14px 16px; background:rgba(255,255,255,0.03); border:1px solid var(--border); display:flex; align-items:center; justify-content:space-between;">
+              style="cursor:pointer; border-radius:14px; padding:14px 16px; background:var(--overlay-030); border:1px solid var(--border); display:flex; align-items:center; justify-content:space-between;">
               <div style="display:flex; flex-direction:column; gap:4px; flex:1;">
                 <div style="display:flex; align-items:center; gap:8px;">
                   <i class="fa-solid fa-file-import" style="color:var(--primary); font-size:16px;"></i>
@@ -2238,7 +2238,7 @@
                 </div>
                 <div style="display:flex; align-items:center; gap:6px; margin-top:2px; flex-wrap:wrap;">
                   <span class="badge-pill"
-                    style="font-size:10px; background:rgba(59,130,246,0.15); color:var(--primary); padding:2px 8px; border-radius:6px; font-weight:600;">.xlsx</span>
+                    style="font-size:10px; background:rgba(var(--accent-rgb), 0.15); color:var(--primary); padding:2px 8px; border-radius:6px; font-weight:600;">.xlsx</span>
                   <span class="badge-pill"
                     style="font-size:10px; background:rgba(16,185,129,0.15); color:#10b981; padding:2px 8px; border-radius:6px; font-weight:600;">.csv</span>
                   <span class="badge-pill"
@@ -2254,7 +2254,7 @@
 
             <!-- CARD 3: UNIFIED FILE EXPORT (Backup) -->
             <div class="settings-list-item" id="sync-excel-export-row" onclick="openExportPeriodSheet()"
-              style="cursor:pointer; border-radius:14px; padding:14px 16px; background:rgba(255,255,255,0.03); border:1px solid var(--border); display:flex; align-items:center; justify-content:space-between;">
+              style="cursor:pointer; border-radius:14px; padding:14px 16px; background:var(--overlay-030); border:1px solid var(--border); display:flex; align-items:center; justify-content:space-between;">
               <div style="display:flex; flex-direction:column; gap:4px; flex:1;">
                 <div style="display:flex; align-items:center; gap:8px;">
                   <i class="fa-solid fa-file-export" style="color:#10b981; font-size:16px;"></i>
@@ -2263,7 +2263,7 @@
                 </div>
                 <div style="display:flex; align-items:center; gap:6px; margin-top:2px; flex-wrap:wrap;">
                   <span class="badge-pill"
-                    style="font-size:10px; background:rgba(59,130,246,0.15); color:var(--primary); padding:2px 8px; border-radius:6px; font-weight:600;">Excel
+                    style="font-size:10px; background:rgba(var(--accent-rgb), 0.15); color:var(--primary); padding:2px 8px; border-radius:6px; font-weight:600;">Excel
                     (.xlsx)</span>
                   <span class="badge-pill"
                     style="font-size:10px; background:rgba(16,185,129,0.15); color:#10b981; padding:2px 8px; border-radius:6px; font-weight:600;">CSV</span>
@@ -2345,7 +2345,7 @@
             <div
               style="background:var(--bg-card, #161622); border:1px solid var(--border, rgba(255,255,255,0.08)); border-radius:16px; overflow:hidden; box-shadow:0 4px 16px rgba(0,0,0,0.2);">
               <div
-                style="padding:12px 16px; background:rgba(255,255,255,0.02); border-bottom:1px solid var(--border, rgba(255,255,255,0.05)); font-size:11.5px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.6px;"
+                style="padding:12px 16px; background:var(--overlay-020); border-bottom:1px solid var(--border, rgba(255,255,255,0.05)); font-size:11.5px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.6px;"
                 data-i18n="sec_account_credentials_header">
                 Διαπιστευτήρια Λογαριασμού
               </div>
@@ -2355,7 +2355,7 @@
                   style="cursor:pointer; padding:14px 16px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border, rgba(255,255,255,0.05)); margin:0;">
                   <div style="display:flex; align-items:center; gap:12px; flex:1;">
                     <div
-                      style="width:34px; height:34px; border-radius:10px; background:rgba(59,130,246,0.15); display:flex; align-items:center; justify-content:center; color:#3b82f6; font-size:15px; flex-shrink:0;">
+                      style="width:34px; height:34px; border-radius:10px; background:rgba(var(--accent-rgb), 0.15); display:flex; align-items:center; justify-content:center; color:var(--accent); font-size:15px; flex-shrink:0;">
                       <i class="fa-solid fa-envelope"></i>
                     </div>
                     <div style="display:flex; flex-direction:column; gap:2px; min-width:0;">
@@ -2395,7 +2395,7 @@
             <div
               style="background:var(--bg-card, #161622); border:1px solid var(--border, rgba(255,255,255,0.08)); border-radius:16px; overflow:hidden; box-shadow:0 4px 16px rgba(0,0,0,0.2);">
               <div
-                style="padding:12px 16px; background:rgba(255,255,255,0.02); border-bottom:1px solid var(--border, rgba(255,255,255,0.05)); font-size:11.5px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.6px;"
+                style="padding:12px 16px; background:var(--overlay-020); border-bottom:1px solid var(--border, rgba(255,255,255,0.05)); font-size:11.5px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.6px;"
                 data-i18n="sec_device_security_header">
                 Ασφάλεια Εφαρμογής &amp; Συσκευής
               </div>
@@ -2495,7 +2495,7 @@
             <div id="feedback-card-container" style="display: flex; flex-direction: column; gap: 14px;">
               <!-- Rating card -->
               <div class="feedback-rating-container"
-                style="background: rgba(255,255,255,0.025); border: 1px solid var(--border); border-radius: 18px; padding: 16px;">
+                style="background: var(--overlay-025); border: 1px solid var(--border); border-radius: 18px; padding: 16px;">
                 <div class="feedback-subtitle" data-i18n="feedback_rating_title"
                   style="font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px;">Πώς θα
                   βαθμολογούσατε την εφαρμογή;</div>
@@ -2513,7 +2513,7 @@
 
               <!-- Type card -->
               <div class="feedback-form-group"
-                style="background: rgba(255,255,255,0.025); border: 1px solid var(--border); border-radius: 18px; padding: 16px;">
+                style="background: var(--overlay-025); border: 1px solid var(--border); border-radius: 18px; padding: 16px;">
                 <div class="feedback-subtitle" data-i18n="feedback_type_label"
                   style="font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px;">Τύπος
                   Σχολίου
@@ -2530,7 +2530,7 @@
 
               <!-- Comment card -->
               <div class="feedback-form-group"
-                style="background: rgba(255,255,255,0.025); border: 1px solid var(--border); border-radius: 18px; padding: 16px;">
+                style="background: var(--overlay-025); border: 1px solid var(--border); border-radius: 18px; padding: 16px;">
                 <div class="feedback-subtitle" data-i18n="feedback_comment_label"
                   style="font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px;">Το σχόλιό
                   σας
@@ -2578,7 +2578,7 @@
               onclick="forceAppUpdate()">
               <div style="display:flex; align-items:center; gap:12px;">
                 <div
-                  style="width:34px; height:34px; border-radius:10px; background:rgba(59,130,246,0.15); display:flex; align-items:center; justify-content:center;">
+                  style="width:34px; height:34px; border-radius:10px; background:rgba(var(--accent-rgb), 0.15); display:flex; align-items:center; justify-content:center;">
                   <i class="fa-solid fa-arrows-rotate" style="color:var(--blue-positive); font-size:15px;"></i>
                 </div>
                 <span class="settings-item-label" style="color:var(--text-primary); font-weight:600; font-size:14px;"
@@ -2620,8 +2620,8 @@
               onclick="openChangeEmailModal()">
               <div style="display:flex; align-items:center; gap:12px;">
                 <div
-                  style="width:34px; height:34px; border-radius:10px; background:rgba(59,130,246,0.15); display:flex; align-items:center; justify-content:center;">
-                  <i class="fa-solid fa-envelope" style="color:#3b82f6; font-size:15px;"></i>
+                  style="width:34px; height:34px; border-radius:10px; background:rgba(var(--accent-rgb), 0.15); display:flex; align-items:center; justify-content:center;">
+                  <i class="fa-solid fa-envelope" style="color:var(--accent); font-size:15px;"></i>
                 </div>
                 <span class="settings-item-label" style="color:var(--text-primary); font-weight:600; font-size:14px;"
                   data-i18n="item_change_email">Αλλαγή Email</span>
@@ -2760,7 +2760,7 @@
               Εφάπαξ πληρωμή — ξεκλείδωσε για πάντα.</div>
 
             <!-- Features list -->
-            <div style="display:flex; flex-direction:column; gap:10px; padding: 12px 14px; background: rgba(0,0,0,0.25); border-radius: 14px; border: 1px solid rgba(255,255,255,0.05);">
+            <div style="display:flex; flex-direction:column; gap:10px; padding: 12px 14px; background: rgba(0,0,0,0.25); border-radius: 14px; border: 1px solid var(--overlay-050);">
               <div style="display:flex; gap:10px; align-items:center;">
                 <div style="width: 20px; height: 20px; border-radius: 50%; background: rgba(34,197,94,0.15); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
                   <i class="fa-solid fa-check" style="color:#22c55e; font-size:11px;"></i>
@@ -2882,14 +2882,14 @@
     <div id="recurring-templates-modal" class="modal-overlay">
       <div class="modal-content subscreen-card-standard"
         style="max-width: 520px; width: 94%; max-height: 85vh; padding: 0; border-radius: 18px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.4);">
-        <!-- Card Header Band (Blue #3b82f6) -->
+        <!-- Card Header Band (Accent) -->
         <div
-          style="padding: 14px 18px; background: rgba(59, 130, 246, 0.08); border-bottom: 1px solid rgba(59, 130, 246, 0.25); display: flex; align-items: center; justify-content: space-between;">
+          style="padding: 14px 18px; background: rgba(var(--accent-rgb), 0.08); border-bottom: 1px solid rgba(var(--accent-rgb), 0.25); display: flex; align-items: center; justify-content: space-between;">
           <div style="display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1;">
             <button type="button" class="icon-btn" onclick="closeModal('recurring-templates-modal')"
               style="flex-shrink: 0;"><i class="fa-solid fa-arrow-left"></i></button>
             <div
-              style="width: 34px; height: 34px; border-radius: 10px; background: #3b82f6; color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; flex-shrink: 0; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35);">
+              style="width: 34px; height: 34px; border-radius: 10px; background: var(--accent); color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; flex-shrink: 0; box-shadow: 0 4px 12px rgba(var(--accent-rgb), 0.35);">
               <i class="fa-solid fa-arrows-spin"></i>
             </div>
             <div style="min-width: 0; flex: 1;">
@@ -2902,7 +2902,7 @@
             </div>
           </div>
           <button type="button" onclick="closeModal('recurring-templates-modal')"
-            style="background: rgba(255,255,255,0.06); border: 1px solid var(--border); color: var(--text-muted); width: 32px; height: 32px; border-radius: 8px; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-left: 8px;"
+            style="background: var(--overlay-060); border: 1px solid var(--border); color: var(--text-muted); width: 32px; height: 32px; border-radius: 8px; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-left: 8px;"
             title="Κλείσιμο">✕</button>
         </div>
         <div class="modal-body" style="padding: 16px 18px 24px 18px;">
@@ -2920,14 +2920,14 @@
     <div id="recurring-details-modal" class="modal-overlay" style="z-index: 12000;">
       <div class="modal-content subscreen-card-standard"
         style="max-width: 520px; width: 94%; max-height: 88vh; padding: 0; border-radius: 18px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.4);">
-        <!-- Card Header Band (Blue #3b82f6) -->
+        <!-- Card Header Band (Accent) -->
         <div
-          style="padding: 14px 18px; background: rgba(59, 130, 246, 0.08); border-bottom: 1px solid rgba(59, 130, 246, 0.25); display: flex; align-items: center; justify-content: space-between;">
+          style="padding: 14px 18px; background: rgba(var(--accent-rgb), 0.08); border-bottom: 1px solid rgba(var(--accent-rgb), 0.25); display: flex; align-items: center; justify-content: space-between;">
           <div style="display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1;">
             <button type="button" class="icon-btn" onclick="closeRecurringDetailsModal()" style="flex-shrink: 0;"><i
                 class="fa-solid fa-arrow-left"></i></button>
             <div
-              style="width: 34px; height: 34px; border-radius: 10px; background: #3b82f6; color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; flex-shrink: 0; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35);">
+              style="width: 34px; height: 34px; border-radius: 10px; background: var(--accent); color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; flex-shrink: 0; box-shadow: 0 4px 12px rgba(var(--accent-rgb), 0.35);">
               <i class="fa-solid fa-arrows-spin"></i>
             </div>
             <div style="min-width: 0; flex: 1;">
@@ -2940,7 +2940,7 @@
             </div>
           </div>
           <button type="button" onclick="closeRecurringDetailsModal()"
-            style="background: rgba(255,255,255,0.06); border: 1px solid var(--border); color: var(--text-muted); width: 32px; height: 32px; border-radius: 8px; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-left: 8px;"
+            style="background: var(--overlay-060); border: 1px solid var(--border); color: var(--text-muted); width: 32px; height: 32px; border-radius: 8px; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-left: 8px;"
             title="Κλείσιμο">✕</button>
         </div>
         <div class="modal-body"
@@ -2953,9 +2953,9 @@
             </label>
             <div style="display: flex; gap: 8px; align-items: center;">
               <input type="text" id="recurring-details-name-input"
-                style="flex: 1; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--border-light, rgba(255,255,255,0.08)); background: rgba(255,255,255,0.03); color: var(--text-primary); font-size: 14px; font-family: 'Outfit', sans-serif; outline: none; box-sizing: border-box;">
+                style="flex: 1; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--border-light, rgba(255,255,255,0.08)); background: var(--overlay-030); color: var(--text-primary); font-size: 14px; font-family: 'Outfit', sans-serif; outline: none; box-sizing: border-box;">
               <button type="button" onclick="saveRecurringTemplateName()"
-                style="padding: 10px 16px; border-radius: 12px; font-size: 13px; font-weight: 700; border: none; background: #3b82f6; color: white; cursor: pointer; white-space: nowrap; font-family: 'Outfit', sans-serif; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);">
+                style="padding: 10px 16px; border-radius: 12px; font-size: 13px; font-weight: 700; border: none; background: var(--accent); color: white; cursor: pointer; white-space: nowrap; font-family: 'Outfit', sans-serif; box-shadow: 0 4px 12px rgba(var(--accent-rgb), 0.3);">
                 <i class="fa-solid fa-check" style="font-size: 13px; margin-right: 5px;"></i><span data-i18n="btn_save">Αποθήκευση</span>
               </button>
             </div>
@@ -2982,14 +2982,14 @@
     <div id="recurring-edit-modal" class="modal-overlay" style="z-index: 13000;">
       <div class="modal-content subscreen-card-standard"
         style="max-width: 480px; width: 94%; max-height: 90vh; padding: 0; border-radius: 18px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.4);">
-        <!-- Card Header Band (Blue #3b82f6) -->
+        <!-- Card Header Band (Accent) -->
         <div
-          style="padding: 14px 18px; background: rgba(59, 130, 246, 0.08); border-bottom: 1px solid rgba(59, 130, 246, 0.25); display: flex; align-items: center; justify-content: space-between;">
+          style="padding: 14px 18px; background: rgba(var(--accent-rgb), 0.08); border-bottom: 1px solid rgba(var(--accent-rgb), 0.25); display: flex; align-items: center; justify-content: space-between;">
           <div style="display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1;">
             <button type="button" class="icon-btn" onclick="closeRecurringEditModal()" style="flex-shrink: 0;"><i
                 class="fa-solid fa-arrow-left"></i></button>
             <div
-              style="width: 34px; height: 34px; border-radius: 10px; background: #3b82f6; color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; flex-shrink: 0; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35);">
+              style="width: 34px; height: 34px; border-radius: 10px; background: var(--accent); color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; flex-shrink: 0; box-shadow: 0 4px 12px rgba(var(--accent-rgb), 0.35);">
               <i class="fa-solid fa-arrows-spin"></i>
             </div>
             <div style="min-width: 0; flex: 1;">
@@ -3002,7 +3002,7 @@
             </div>
           </div>
           <button type="button" onclick="closeRecurringEditModal()"
-            style="background: rgba(255,255,255,0.06); border: 1px solid var(--border); color: var(--text-muted); width: 32px; height: 32px; border-radius: 8px; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-left: 8px;"
+            style="background: var(--overlay-060); border: 1px solid var(--border); color: var(--text-muted); width: 32px; height: 32px; border-radius: 8px; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-left: 8px;"
             title="Κλείσιμο">✕</button>
         </div>
         <div class="modal-body"
@@ -3013,7 +3013,7 @@
               style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Όνομα
               Επανάληψης</span>
             <input type="text" id="recurring-edit-name-input"
-              style="width: 100%; margin-top: 6px; padding: 12px 14px; border-radius: 12px; background: rgba(255,255,255,0.03); color: var(--text-primary); border: 1px solid var(--border-light, rgba(255,255,255,0.08)); font-size: 14.5px; font-weight: 600; font-family: 'Outfit', sans-serif; outline: none; box-sizing: border-box;">
+              style="width: 100%; margin-top: 6px; padding: 12px 14px; border-radius: 12px; background: var(--overlay-030); color: var(--text-primary); border: 1px solid var(--border-light, rgba(255,255,255,0.08)); font-size: 14.5px; font-weight: 600; font-family: 'Outfit', sans-serif; outline: none; box-sizing: border-box;">
           </div>
 
           <!-- Start Date (calendar) -->
@@ -3022,9 +3022,9 @@
               style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Έναρξη
               (Από)</span>
             <div id="recurring-edit-start-trigger" onclick="openCustomDatePicker('recurring-edit-start')"
-              style="display: flex; align-items: center; justify-content: space-between; padding: 14px; border-radius: 12px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-light, rgba(255,255,255,0.08)); cursor: pointer; transition: all 0.2s; margin-top: 6px;">
+              style="display: flex; align-items: center; justify-content: space-between; padding: 14px; border-radius: 12px; background: var(--overlay-030); border: 1px solid var(--border-light, rgba(255,255,255,0.08)); cursor: pointer; transition: all 0.2s; margin-top: 6px;">
               <div style="display: flex; align-items: center; gap: 10px;">
-                <i class="fa-regular fa-calendar-days" style="color: #3b82f6; font-size: 16px;"></i>
+                <i class="fa-regular fa-calendar-days" style="color: var(--accent); font-size: 16px;"></i>
                 <span id="recurring-edit-start-label"
                   style="font-size: 14.5px; font-weight: 600; color: var(--text-primary); font-family: 'Outfit', sans-serif;">Επιλογή
                   ημερομηνίας...</span>
@@ -3040,7 +3040,7 @@
               style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Επανάληψη
               Κάθε</span>
             <select id="recurring-edit-preset" onchange="onRecurringEditPresetChange()"
-              style="width: 100%; margin-top: 6px; padding: 12px 14px; border-radius: 12px; background: rgba(255,255,255,0.04); color: var(--text-primary); border: 1px solid var(--border-light, rgba(255,255,255,0.08)); font-size: 14.5px; font-weight: 600; font-family: 'Outfit', sans-serif; outline: none; cursor: pointer;">
+              style="width: 100%; margin-top: 6px; padding: 12px 14px; border-radius: 12px; background: var(--overlay-040); color: var(--text-primary); border: 1px solid var(--border-light, rgba(255,255,255,0.08)); font-size: 14.5px; font-weight: 600; font-family: 'Outfit', sans-serif; outline: none; cursor: pointer;">
               <option value="daily" data-i18n="preset_daily">Daily (Καθημερινά)</option>
               <option value="weekly" data-i18n="preset_weekly">Weekly (Εβδομαδιαία)</option>
               <option value="monthly" data-i18n="preset_monthly">Monthly (Μηνιαία)</option>
@@ -3079,9 +3079,9 @@
                 style="font-size: 10.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Ημερομηνία
                 Λήξης</span>
               <div id="recurring-edit-end-trigger" onclick="openCustomDatePicker('recurring-edit-end')"
-                style="display: flex; align-items: center; justify-content: space-between; padding: 14px; border-radius: 12px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-light, rgba(255,255,255,0.08)); cursor: pointer; transition: all 0.2s;">
+                style="display: flex; align-items: center; justify-content: space-between; padding: 14px; border-radius: 12px; background: var(--overlay-030); border: 1px solid var(--border-light, rgba(255,255,255,0.08)); cursor: pointer; transition: all 0.2s;">
                 <div style="display: flex; align-items: center; gap: 10px;">
-                  <i class="fa-regular fa-calendar-days" style="color: #3b82f6; font-size: 16px;"></i>
+                  <i class="fa-regular fa-calendar-days" style="color: var(--accent); font-size: 16px;"></i>
                   <span id="recurring-edit-end-label"
                     style="font-size: 14.5px; font-weight: 600; color: var(--text-primary); font-family: 'Outfit', sans-serif;">Επιλογή
                     ημερομηνίας...</span>
@@ -3094,15 +3094,15 @@
 
           <!-- Summary Preview -->
           <div id="recurring-edit-summary"
-            style="background: rgba(59, 130, 246, 0.08); border: 1px dashed rgba(59, 130, 246, 0.3); border-radius: 12px; padding: 12px; margin-top: 4px; font-size: 13px; color: var(--text-primary); text-align: center; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px; font-family: 'Outfit', sans-serif;">
-            <i class="fa-solid fa-circle-info" style="color: #3b82f6;"></i>
+            style="background: rgba(var(--accent-rgb), 0.08); border: 1px dashed rgba(var(--accent-rgb), 0.3); border-radius: 12px; padding: 12px; margin-top: 4px; font-size: 13px; color: var(--text-primary); text-align: center; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px; font-family: 'Outfit', sans-serif;">
+            <i class="fa-solid fa-circle-info" style="color: var(--accent);"></i>
             <span id="recurring-edit-summary-text">Θα δημιουργούνται: Κάθε μήνα για πάντα</span>
           </div>
         </div>
         <div class="modal-footer"
           style="padding: 14px 18px; border-top: 1px solid var(--border-light, rgba(255,255,255,0.08)); background: transparent;">
           <button type="button" class="btn-primary" onclick="saveRecurringTemplateEdit()"
-            style="width: 100%; padding: 13px; border-radius: 12px; font-size: 14px; font-weight: 700; background: #3b82f6; color: white; border: none; cursor: pointer; text-align: center; font-family: 'Outfit', sans-serif; box-shadow: 0 4px 14px rgba(59, 130, 246, 0.35);">
+            style="width: 100%; padding: 13px; border-radius: 12px; font-size: 14px; font-weight: 700; background: var(--accent); color: white; border: none; cursor: pointer; text-align: center; font-family: 'Outfit', sans-serif; box-shadow: 0 4px 14px rgba(var(--accent-rgb), 0.35);">
             <i class="fa-solid fa-arrows-rotate" style="font-size: 14px; margin-right: 6px;"></i><span data-i18n="btn_save_recurring">Αποθήκευση &amp; Αναδημιουργία</span></button>
         </div>
       </div>
@@ -3134,7 +3134,7 @@
             </div>
           </div>
           <button type="button" onclick="closeModal('trash-bin-modal')"
-            style="background: rgba(255,255,255,0.06); border: 1px solid var(--border); color: var(--text-muted); width: 32px; height: 32px; border-radius: 8px; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-left: 8px;"
+            style="background: var(--overlay-060); border: 1px solid var(--border); color: var(--text-muted); width: 32px; height: 32px; border-radius: 8px; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-left: 8px;"
             title="Κλείσιμο">✕</button>
         </div>
         <div class="modal-body" style="padding: 16px 18px 24px 18px; display: flex; flex-direction: column; gap: 16px;">
@@ -3532,7 +3532,7 @@
           επιλεγμένες</span>
         <div style="display: flex; gap: 8px;">
           <button class="btn btn-secondary" onclick="clearSearchSelection()"
-            style="padding: 8px 16px; border-radius: 12px; font-size: 13px; font-weight: 600; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--text-main); cursor: pointer;">Ακύρωση</button>
+            style="padding: 8px 16px; border-radius: 12px; font-size: 13px; font-weight: 600; background: var(--overlay-050); border: 1px solid var(--border); color: var(--text-main); cursor: pointer;">Ακύρωση</button>
           <button class="btn btn-danger" onclick="deleteSelectedSearchTransactions()"
             style="padding: 8px 16px; border-radius: 12px; font-size: 13px; font-weight: 600; background: var(--danger); color: white; border: none; display: flex; align-items: center; gap: 6px; cursor: pointer;">
             <i class="fa-solid fa-trash"></i> Διαγραφή
@@ -3745,7 +3745,7 @@
           </div>
 
           <div class="export-period-card" id="export-opt-current-year" onclick="selectExportOption('current-year')">
-            <div class="export-period-icon-wrapper" style="background: rgba(59, 130, 246, 0.15); color: #3b82f6;">
+            <div class="export-period-icon-wrapper" style="background: rgba(var(--accent-rgb), 0.15); color: var(--accent);">
               <i class="fa-regular fa-calendar"></i>
             </div>
             <div class="export-period-info">
@@ -3793,7 +3793,7 @@
 
         <!-- Custom Date Range Sub-Form (Collapsible) -->
         <div id="export-custom-range-container"
-          style="display: none; margin: 0 14px 12px 14px; padding: 12px 14px; flex-direction: column; gap: 12px; border-radius: 12px; background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05);">
+          style="display: none; margin: 0 14px 12px 14px; padding: 12px 14px; flex-direction: column; gap: 12px; border-radius: 12px; background: var(--overlay-020); border: 1px solid var(--overlay-050);">
           <div style="display: flex; gap: 12px;">
             <div style="flex: 1; display: flex; flex-direction: column; gap: 6px;">
               <span
@@ -3936,7 +3936,7 @@
         <!-- Step 2 Actions -->
         <div style="margin-top: 12px; padding: 0 14px; display: flex; gap: 10px;">
           <button type="button" class="btn" onclick="goToExportStep1()"
-            style="flex: 1; font-size: 14.5px; font-weight: 600; padding: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 12px; background: rgba(255,255,255,0.06); color: var(--text-primary); border: 1px solid var(--border-light);">
+            style="flex: 1; font-size: 14.5px; font-weight: 600; padding: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 12px; background: var(--overlay-060); color: var(--text-primary); border: 1px solid var(--border-light);">
             <i class="fa-solid fa-arrow-left"></i>
             <span data-i18n="export_btn_back">Πίσω</span>
           </button>
@@ -3958,7 +3958,7 @@
         style="max-height: 85vh;">
         <!-- Pull handle -->
         <div
-          style="width: 36px; height: 4px; background: rgba(255,255,255,0.2); border-radius: 2px; align-self: center; margin-bottom: 16px;">
+          style="width: 36px; height: 4px; background: var(--overlay-200); border-radius: 2px; align-self: center; margin-bottom: 16px;">
         </div>
 
         <!-- Clickable Year Button Area -->
@@ -4012,7 +4012,7 @@
 
         <div class="modal-buttons" style="display: flex; gap: 10px;">
           <button type="button" class="btn btn-secondary" onclick="closePinModal()"
-            style="flex: 1; padding: 12px; font-size: 14px; font-weight: 600; border-radius: 10px; background: rgba(255,255,255,0.06); color: var(--text-primary); border: 1px solid var(--border-light);">
+            style="flex: 1; padding: 12px; font-size: 14px; font-weight: 600; border-radius: 10px; background: var(--overlay-060); color: var(--text-primary); border: 1px solid var(--border-light);">
             Ακύρωση
           </button>
           <button type="button" class="btn btn-primary" id="btn-pin-submit" onclick="submitPinSetup()"
@@ -4050,7 +4050,7 @@
 
         <div class="modal-buttons" style="display: flex; gap: 10px;">
           <button type="button" class="btn btn-secondary" onclick="closePinVerifyModal()"
-            style="flex: 1; padding: 12px; font-size: 14px; font-weight: 600; border-radius: 10px; background: rgba(255,255,255,0.06); color: var(--text-primary); border: 1px solid var(--border-light);">
+            style="flex: 1; padding: 12px; font-size: 14px; font-weight: 600; border-radius: 10px; background: var(--overlay-060); color: var(--text-primary); border: 1px solid var(--border-light);">
             Ακύρωση
           </button>
           <button type="button" class="btn btn-primary" onclick="submitPinVerification()"
@@ -4171,14 +4171,14 @@
             </div>
           </div>
           <button type="button" onclick="closeModal('currency-picker-modal')"
-            style="background: rgba(255,255,255,0.06); border: 1px solid var(--border); color: var(--text-muted); width: 32px; height: 32px; border-radius: 8px; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-left: 8px;"
+            style="background: var(--overlay-060); border: 1px solid var(--border); color: var(--text-muted); width: 32px; height: 32px; border-radius: 8px; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-left: 8px;"
             title="Κλείσιμο">✕</button>
         </div>
         <div class="modal-body"
           style="padding: 16px 18px 24px 18px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 14px;">
           <input type="text" id="currency-picker-search" class="form-row-input"
             placeholder="🔍 Αναζήτηση (κωδικός, όνομα, χώρα)..." data-i18n-placeholder="currency_search_placeholder"
-            style="width: 100%; box-sizing: border-box; padding: 12px 14px; border-radius: 12px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-light, rgba(255,255,255,0.08)); color: var(--text-primary); font-size: 14px; font-family: 'Outfit', sans-serif; outline: none;"
+            style="width: 100%; box-sizing: border-box; padding: 12px 14px; border-radius: 12px; background: var(--overlay-030); border: 1px solid var(--border-light, rgba(255,255,255,0.08)); color: var(--text-primary); font-size: 14px; font-family: 'Outfit', sans-serif; outline: none;"
             oninput="renderCurrencyPickerOptions()">
           <div id="currency-picker-list" class="account-picker-list"
             style="display: flex; flex-direction: column; gap: 10px;">
@@ -4211,7 +4211,7 @@
 
         <!-- Pull handle -->
         <div
-          style="width: 36px; height: 4px; background: rgba(255,255,255,0.2); border-radius: 2px; align-self: center; margin: 12px auto 6px auto;">
+          style="width: 36px; height: 4px; background: var(--overlay-200); border-radius: 2px; align-self: center; margin: 12px auto 6px auto;">
         </div>
 
         <!-- Header with Month Selector Navigation (matching Transactions structure) -->
@@ -4221,13 +4221,13 @@
           <!-- Month Selector with Prev/Next Chevrons -->
           <div class="month-selector" style="display: flex; align-items: center; gap: 8px; background: transparent; padding: 0; margin: 0;">
             <button type="button" class="icon-btn" onclick="event.stopPropagation(); adjustCustomDatePickerMonth(-1)"
-              style="width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: var(--text-primary); display: flex; align-items: center; justify-content: center; cursor: pointer;">
+              style="width: 32px; height: 32px; border-radius: 50%; background: var(--overlay-060); border: 1px solid var(--overlay-100); color: var(--text-primary); display: flex; align-items: center; justify-content: center; cursor: pointer;">
               <i class="fa-solid fa-chevron-left" style="font-size: 12px;"></i>
             </button>
 
             <!-- Clickable Month/Year Title -->
             <div id="custom-date-picker-month-title-btn"
-              style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 5px 12px; border-radius: 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);"
+              style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 5px 12px; border-radius: 12px; background: var(--overlay-050); border: 1px solid var(--overlay-080);"
               onclick="event.stopPropagation(); openCustomDatePickerBS(false)">
               <span id="custom-date-picker-month-large-label"
                 style="font-size: 18px; font-weight: 800; color: #ffffff; text-transform: uppercase; font-family: 'Outfit', sans-serif;">ΙΟΥΝ</span>
@@ -4238,13 +4238,13 @@
             </div>
 
             <button type="button" class="icon-btn" onclick="event.stopPropagation(); adjustCustomDatePickerMonth(1)"
-              style="width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: var(--text-primary); display: flex; align-items: center; justify-content: center; cursor: pointer;">
+              style="width: 32px; height: 32px; border-radius: 50%; background: var(--overlay-060); border: 1px solid var(--overlay-100); color: var(--text-primary); display: flex; align-items: center; justify-content: center; cursor: pointer;">
               <i class="fa-solid fa-chevron-right" style="font-size: 12px;"></i>
             </button>
           </div>
 
           <button type="button" onclick="closeModal('custom-date-picker-modal')"
-            style="width: 30px; height: 30px; border-radius: 50%; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08); color: var(--text-muted); font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;">✕</button>
+            style="width: 30px; height: 30px; border-radius: 50%; background: var(--overlay-060); border: 1px solid var(--overlay-080); color: var(--text-muted); font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;">✕</button>
         </div>
 
         <div class="modal-body"
@@ -4275,7 +4275,7 @@
                 style="font-size: 12px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.8px; margin: 0; font-family: 'Outfit', sans-serif;"
                 data-i18n="date_picker_time_label">ΩΡΑ</label>
               <div style="display: flex; gap: 6px;">
-                <button type="button" class="btn" style="padding: 3px 8px; font-size: 11px; font-weight: 700; border-radius: 8px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: var(--text-secondary); cursor: pointer;" onclick="setCustomDatePickerNowTime()">ΤΩΡΑ</button>
+                <button type="button" class="btn" style="padding: 3px 8px; font-size: 11px; font-weight: 700; border-radius: 8px; background: var(--overlay-060); border: 1px solid var(--overlay-100); color: var(--text-secondary); cursor: pointer;" onclick="setCustomDatePickerNowTime()">ΤΩΡΑ</button>
               </div>
             </div>
 
@@ -4307,7 +4307,7 @@
           style="display: flex; gap: 12px; padding: 16px; border-top: 1px solid rgba(255,255,255,0.08); background: rgba(0, 0, 0, 0.2);">
 
           <button type="button" class="btn-secondary" onclick="closeModal('custom-date-picker-modal')"
-            style="flex: 1; padding: 12px; border-radius: 14px; font-size: 14px; font-weight: 600; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.05); color: var(--text-secondary); font-family: 'Outfit', sans-serif;"
+            style="flex: 1; padding: 12px; border-radius: 14px; font-size: 14px; font-weight: 600; border: 1px solid var(--overlay-120); background: var(--overlay-050); color: var(--text-secondary); font-family: 'Outfit', sans-serif;"
             data-i18n="btn_cancel">Ακύρωση</button>
           <button type="button" class="btn-primary" id="custom-date-picker-confirm-btn" onclick="setCustomDatePickerValue()"
             style="flex: 1; padding: 12px; border-radius: 14px; font-size: 14px; font-weight: 700; background: var(--picker-btn-bg, var(--picker-accent, #3b82f6)); color: white; border: none; cursor: pointer; text-align: center; font-family: 'Outfit', sans-serif; box-shadow: 0 4px 14px var(--picker-btn-shadow, rgba(59, 130, 246, 0.35));"
@@ -4318,7 +4318,7 @@
         <div id="custom-date-picker-bs" class="google-bottom-sheet">
           <!-- Pull handle -->
           <div
-            style="width: 36px; height: 4px; background: rgba(255,255,255,0.2); border-radius: 2px; align-self: center; margin-bottom: 16px;">
+            style="width: 36px; height: 4px; background: var(--overlay-200); border-radius: 2px; align-self: center; margin-bottom: 16px;">
           </div>
 
           <!-- Clickable Year Button Area -->
@@ -4350,14 +4350,14 @@
     <div id="recurring-picker-modal" class="modal-overlay" style="z-index: 12000;">
       <div class="modal-content subscreen-card-standard"
         style="max-width: 480px; width: 94%; max-height: 90vh; padding: 0; border-radius: 18px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.4); display: flex; flex-direction: column;">
-        <!-- Card Header Band (Blue #3b82f6) -->
+        <!-- Card Header Band (Accent) -->
         <div
-          style="padding: 14px 18px; background: rgba(59, 130, 246, 0.08); border-bottom: 1px solid rgba(59, 130, 246, 0.25); display: flex; align-items: center; justify-content: space-between;">
+          style="padding: 14px 18px; background: rgba(var(--accent-rgb), 0.08); border-bottom: 1px solid rgba(var(--accent-rgb), 0.25); display: flex; align-items: center; justify-content: space-between;">
           <div style="display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1;">
             <button type="button" class="icon-btn" onclick="closeModal('recurring-picker-modal')"
               style="flex-shrink: 0;"><i class="fa-solid fa-arrow-left"></i></button>
             <div
-              style="width: 34px; height: 34px; border-radius: 10px; background: #3b82f6; color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; flex-shrink: 0; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35);">
+              style="width: 34px; height: 34px; border-radius: 10px; background: var(--accent); color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; flex-shrink: 0; box-shadow: 0 4px 12px rgba(var(--accent-rgb), 0.35);">
               <i class="fa-solid fa-arrows-spin"></i>
             </div>
             <div style="min-width: 0; flex: 1;">
@@ -4370,7 +4370,7 @@
             </div>
           </div>
           <button type="button" onclick="closeModal('recurring-picker-modal')"
-            style="background: rgba(255,255,255,0.06); border: 1px solid var(--border); color: var(--text-muted); width: 32px; height: 32px; border-radius: 8px; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center;"
+            style="background: var(--overlay-060); border: 1px solid var(--border); color: var(--text-muted); width: 32px; height: 32px; border-radius: 8px; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center;"
             title="Κλείσιμο">✕</button>
         </div>
         <div class="modal-body"
@@ -4382,7 +4382,7 @@
               Επανάληψης</span>
             <input type="hidden" id="recurring-simple-preset" value="monthly">
             <div id="recurring-frequency-trigger" onclick="toggleRecurringFrequencyList()"
-              style="margin-top: 6px; width: 100%; padding: 12px 14px; border-radius: 12px; background: rgba(255,255,255,0.04); color: var(--text-primary); border: 1px solid var(--border-light, rgba(255,255,255,0.08)); font-size: 14.5px; font-weight: 600; font-family: 'Outfit', sans-serif; cursor: pointer; display: flex; align-items: center; justify-content: space-between; box-sizing: border-box;">
+              style="margin-top: 6px; width: 100%; padding: 12px 14px; border-radius: 12px; background: var(--overlay-040); color: var(--text-primary); border: 1px solid var(--border-light, rgba(255,255,255,0.08)); font-size: 14.5px; font-weight: 600; font-family: 'Outfit', sans-serif; cursor: pointer; display: flex; align-items: center; justify-content: space-between; box-sizing: border-box;">
               <div style="display: flex; align-items: center; gap: 10px;">
                 <span id="recurring-frequency-icon" style="font-size: 18px;">📅</span>
                 <span id="recurring-frequency-label"
@@ -4408,7 +4408,7 @@
                   </div>
                 </div>
                 <i class="fa-solid fa-check freq-check-icon"
-                  style="color: #3b82f6; font-size: 14px; display: none;"></i>
+                  style="color: var(--accent); font-size: 14px; display: none;"></i>
               </div>
 
               <div class="freq-option-item" data-value="weekly" onclick="selectRecurringFrequencyOption('weekly')"
@@ -4424,12 +4424,12 @@
                   </div>
                 </div>
                 <i class="fa-solid fa-check freq-check-icon"
-                  style="color: #3b82f6; font-size: 14px; display: none;"></i>
+                  style="color: var(--accent); font-size: 14px; display: none;"></i>
               </div>
 
               <div class="freq-option-item selected" data-value="monthly"
                 onclick="selectRecurringFrequencyOption('monthly')"
-                style="padding: 10px 12px; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: background 0.2s; background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.3);">
+                style="padding: 10px 12px; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: background 0.2s; background: rgba(var(--accent-rgb), 0.12); border: 1px solid rgba(var(--accent-rgb), 0.3);">
                 <div style="display: flex; align-items: center; gap: 10px;">
                   <span style="font-size: 18px;">📅</span>
                   <div>
@@ -4441,7 +4441,7 @@
                   </div>
                 </div>
                 <i class="fa-solid fa-check freq-check-icon"
-                  style="color: #3b82f6; font-size: 14px; display: block;"></i>
+                  style="color: var(--accent); font-size: 14px; display: block;"></i>
               </div>
 
               <div class="freq-option-item" data-value="yearly" onclick="selectRecurringFrequencyOption('yearly')"
@@ -4457,7 +4457,7 @@
                   </div>
                 </div>
                 <i class="fa-solid fa-check freq-check-icon"
-                  style="color: #3b82f6; font-size: 14px; display: none;"></i>
+                  style="color: var(--accent); font-size: 14px; display: none;"></i>
               </div>
 
               <div class="freq-option-item" data-value="specific_months"
@@ -4474,7 +4474,7 @@
                   </div>
                 </div>
                 <i class="fa-solid fa-check freq-check-icon"
-                  style="color: #3b82f6; font-size: 14px; display: none;"></i>
+                  style="color: var(--accent); font-size: 14px; display: none;"></i>
               </div>
             </div>
           </div>
@@ -4510,9 +4510,9 @@
                 style="font-size: 10.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Ημερομηνία
                 Λήξης</span>
               <div id="recurring-end-date-picker-trigger" onclick="openCustomDatePicker('recurring-end-date')"
-                style="display: flex; align-items: center; justify-content: space-between; padding: 14px; border-radius: 12px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-light, rgba(255,255,255,0.08)); cursor: pointer; transition: all 0.2s;">
+                style="display: flex; align-items: center; justify-content: space-between; padding: 14px; border-radius: 12px; background: var(--overlay-030); border: 1px solid var(--border-light, rgba(255,255,255,0.08)); cursor: pointer; transition: all 0.2s;">
                 <div style="display: flex; align-items: center; gap: 10px;">
-                  <i class="fa-regular fa-calendar-days" style="color: #3b82f6; font-size: 16px;"></i>
+                  <i class="fa-regular fa-calendar-days" style="color: var(--accent); font-size: 16px;"></i>
                   <span id="recurring-end-date-label"
                     style="font-size: 14.5px; font-weight: 600; color: var(--text-primary); font-family: 'Outfit', sans-serif;">Επιλογή
                     ημερομηνίας...</span>
@@ -4525,15 +4525,15 @@
 
           <!-- Summary Preview -->
           <div id="recurring-summary-preview"
-            style="background: rgba(59, 130, 246, 0.08); border: 1px dashed rgba(59, 130, 246, 0.3); border-radius: 12px; padding: 12px; margin-top: 4px; font-size: 13px; color: var(--text-primary); text-align: center; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px; font-family: 'Outfit', sans-serif;">
-            <i class="fa-solid fa-circle-info" style="color: #3b82f6;"></i>
+            style="background: rgba(var(--accent-rgb), 0.08); border: 1px dashed rgba(var(--accent-rgb), 0.3); border-radius: 12px; padding: 12px; margin-top: 4px; font-size: 13px; color: var(--text-primary); text-align: center; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px; font-family: 'Outfit', sans-serif;">
+            <i class="fa-solid fa-circle-info" style="color: var(--accent);"></i>
             <span id="recurring-summary-text">Θα δημιουργούνται: <strong>Κάθε μήνα για πάντα</strong></span>
           </div>
         </div>
         <div class="modal-footer"
           style="padding: 14px 18px; border-top: 1px solid var(--border-light, rgba(255,255,255,0.08)); background: transparent;">
           <button type="button" class="btn-primary" onclick="saveRecurringSettings()"
-            style="width: 100%; padding: 13px; border-radius: 12px; font-size: 14px; font-weight: 700; background: #3b82f6; color: white; border: none; cursor: pointer; text-align: center; font-family: 'Outfit', sans-serif; box-shadow: 0 4px 14px rgba(59, 130, 246, 0.35);">
+            style="width: 100%; padding: 13px; border-radius: 12px; font-size: 14px; font-weight: 700; background: var(--accent); color: white; border: none; cursor: pointer; text-align: center; font-family: 'Outfit', sans-serif; box-shadow: 0 4px 14px rgba(var(--accent-rgb), 0.35);">
             <i class="fa-solid fa-check" style="font-size: 15px; margin-right: 6px;"></i><span data-i18n="btn_confirm">Επιβεβαίωση</span></button>
         </div>
       </div>
@@ -4544,7 +4544,7 @@
       <div class="modal-content"
         style="max-height: calc(var(--viewport-height, 100vh) * 0.95); display: flex; flex-direction: column; max-width: 440px; border-radius: 20px; overflow: hidden; background: var(--bg-card, #1c1f28); border: 1px solid var(--border);">
         <div class="modal-header"
-          style="position: relative; min-height: 54px; box-sizing: border-box; border-bottom: 1px solid var(--border); padding: 0 18px; display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.02);">
+          style="position: relative; min-height: 54px; box-sizing: border-box; border-bottom: 1px solid var(--border); padding: 0 18px; display: flex; align-items: center; justify-content: space-between; background: var(--overlay-020);">
           <h3 class="modal-title" style="margin: 0; font-size: 15px; font-weight: 800; color: #ffffff;"
             id="budget-modal-title" data-i18n="budget_modal_title_set">🎯 Ορισμός Προϋπολογισμού</h3>
           <span class="modal-close" onclick="closeModal('category-budget-modal')"
@@ -4594,7 +4594,7 @@
               Όριο (€)</span>
             <div style="position: relative; margin-top: 6px;">
               <input type="number" step="0.01" min="0" id="budget-modal-amount" placeholder="π.χ. 300"
-                style="width: 100%; padding: 14px 16px; border-radius: 14px; background: rgba(255,255,255,0.04); color: var(--text-primary); border: 1px solid var(--border); font-size: 18px; font-weight: 700; outline: none; box-sizing: border-box;">
+                style="width: 100%; padding: 14px 16px; border-radius: 14px; background: var(--overlay-040); color: var(--text-primary); border: 1px solid var(--border); font-size: 18px; font-weight: 700; outline: none; box-sizing: border-box;">
               <span
                 style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); color: var(--primary); font-weight: 800; font-size: 16px;">€</span>
             </div>
@@ -4607,15 +4607,15 @@
               Επιλογή</span>
             <div style="display: flex; gap: 6px; flex-wrap: wrap;">
               <button type="button" onclick="setBudgetAmountPreset(50)"
-                style="flex: 1; min-width: 60px; padding: 8px; border-radius: 10px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); color: var(--text-primary); font-size: 12.5px; font-weight: 600; cursor: pointer;">50€</button>
+                style="flex: 1; min-width: 60px; padding: 8px; border-radius: 10px; background: var(--overlay-040); border: 1px solid var(--border); color: var(--text-primary); font-size: 12.5px; font-weight: 600; cursor: pointer;">50€</button>
               <button type="button" onclick="setBudgetAmountPreset(100)"
-                style="flex: 1; min-width: 60px; padding: 8px; border-radius: 10px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); color: var(--text-primary); font-size: 12.5px; font-weight: 600; cursor: pointer;">100€</button>
+                style="flex: 1; min-width: 60px; padding: 8px; border-radius: 10px; background: var(--overlay-040); border: 1px solid var(--border); color: var(--text-primary); font-size: 12.5px; font-weight: 600; cursor: pointer;">100€</button>
               <button type="button" onclick="setBudgetAmountPreset(200)"
-                style="flex: 1; min-width: 60px; padding: 8px; border-radius: 10px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); color: var(--text-primary); font-size: 12.5px; font-weight: 600; cursor: pointer;">200€</button>
+                style="flex: 1; min-width: 60px; padding: 8px; border-radius: 10px; background: var(--overlay-040); border: 1px solid var(--border); color: var(--text-primary); font-size: 12.5px; font-weight: 600; cursor: pointer;">200€</button>
               <button type="button" onclick="setBudgetAmountPreset(300)"
-                style="flex: 1; min-width: 60px; padding: 8px; border-radius: 10px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); color: var(--text-primary); font-size: 12.5px; font-weight: 600; cursor: pointer;">300€</button>
+                style="flex: 1; min-width: 60px; padding: 8px; border-radius: 10px; background: var(--overlay-040); border: 1px solid var(--border); color: var(--text-primary); font-size: 12.5px; font-weight: 600; cursor: pointer;">300€</button>
               <button type="button" onclick="setBudgetAmountPreset(500)"
-                style="flex: 1; min-width: 60px; padding: 8px; border-radius: 10px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); color: var(--text-primary); font-size: 12.5px; font-weight: 600; cursor: pointer;">500€</button>
+                style="flex: 1; min-width: 60px; padding: 8px; border-radius: 10px; background: var(--overlay-040); border: 1px solid var(--border); color: var(--text-primary); font-size: 12.5px; font-weight: 600; cursor: pointer;">500€</button>
             </div>
           </div>
 
@@ -4638,7 +4638,7 @@
 
         </div>
         <div class="modal-footer"
-          style="padding: 14px 18px; border-top: 1px solid var(--border); background: rgba(255,255,255,0.02); display: flex; gap: 10px;">
+          style="padding: 14px 18px; border-top: 1px solid var(--border); background: var(--overlay-020); display: flex; gap: 10px;">
           <button type="button" id="budget-delete-btn" onclick="deleteSelectedCategoryBudget()"
             style="display: none; padding: 14px; border-radius: 16px; font-size: 14px; font-weight: 700; background: rgba(255, 91, 91, 0.15); border: 1px solid rgba(255, 91, 91, 0.3); color: var(--danger); cursor: pointer;"><i
               class="fa-regular fa-trash-can"></i></button>
@@ -4669,7 +4669,7 @@
               <input type="text" id="budget-picker-search" placeholder="Αναζήτηση..."
                 oninput="renderBudgetPickerOptions()"
                 data-i18n-placeholder="budget_picker_search_placeholder"
-                style="width: 100%; padding: 12px 14px 12px 38px; border-radius: 12px; background: rgba(255,255,255,0.04); color: var(--text-primary); border: 1px solid var(--border); font-size: 14px; outline: none; box-sizing: border-box;">
+                style="width: 100%; padding: 12px 14px 12px 38px; border-radius: 12px; background: var(--overlay-040); color: var(--text-primary); border: 1px solid var(--border); font-size: 14px; outline: none; box-sizing: border-box;">
             </div>
           </div>
           <div id="budget-picker-list" style="display: flex; flex-direction: column; gap: 6px;">
@@ -4703,7 +4703,7 @@
             </div>
           </div>
           <button type="button" onclick="closeModal('category-manager-modal')"
-            style="background: rgba(255,255,255,0.06); border: 1px solid var(--border); color: var(--text-muted); width: 32px; height: 32px; border-radius: 8px; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-left: 8px;"
+            style="background: var(--overlay-060); border: 1px solid var(--border); color: var(--text-muted); width: 32px; height: 32px; border-radius: 8px; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-left: 8px;"
             title="Κλείσιμο">✕</button>
         </div>
         <div class="modal-body"
@@ -4751,14 +4751,14 @@
             <h3 class="modal-title" id="new-cat-dialog-title" style="font-size: 15px; font-weight: 800; color: var(--text-primary); margin: 0;">Νέα Κατηγορία</h3>
           </div>
           <button type="button" class="modal-close" onclick="closeNewCategoryDialog()"
-            style="background: rgba(255,255,255,0.06); border: 1px solid var(--border); color: var(--text-muted); width: 30px; height: 30px; border-radius: 8px; font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center;"
+            style="background: var(--overlay-060); border: 1px solid var(--border); color: var(--text-muted); width: 30px; height: 30px; border-radius: 8px; font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center;"
             title="Κλείσιμο">✕</button>
         </div>
 
         <!-- Modal Body -->
         <div class="modal-body" style="padding: 16px 18px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; flex: 1;">
           <!-- Live Badge Preview Card -->
-          <div id="new-cat-live-preview-card" style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px;">
+          <div id="new-cat-live-preview-card" style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: rgba(0,0,0,0.3); border: 1px solid var(--overlay-080); border-radius: 12px;">
             <div id="new-cat-preview-icon-container"></div>
             <div style="flex: 1; min-width: 0;">
               <div id="new-cat-preview-name" style="font-size: 14px; font-weight: 700; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Όνομα κατηγορίας</div>
@@ -4795,7 +4795,7 @@
             </div>
 
             <!-- 216 Vector Icons Grid (bigger cells, fewer per row) -->
-            <div id="new-cat-emoji-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(46px, 1fr)); gap: 6px; max-height: 168px; overflow-y: auto; padding: 6px; background: rgba(0,0,0,0.2); border-radius: 10px; border: 1px solid rgba(255,255,255,0.06);">
+            <div id="new-cat-emoji-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(46px, 1fr)); gap: 6px; max-height: 168px; overflow-y: auto; padding: 6px; background: rgba(0,0,0,0.2); border-radius: 10px; border: 1px solid var(--overlay-060);">
               <!-- Vector icons injected by JS -->
             </div>
           </div>
@@ -4870,7 +4870,7 @@
           <div class="note-color-picker-container" id="note-color-palette">
             <button type="button" class="note-color-swatch active" data-color="default"
               onclick="selectNoteColor('default')"
-              style="background: rgba(255,255,255,0.1); border: 1px solid var(--border);" title="Default"><i
+              style="background: var(--overlay-100); border: 1px solid var(--border);" title="Default"><i
                 class="fa-solid fa-check"></i></button>
             <button type="button" class="note-color-swatch" data-color="amber" onclick="selectNoteColor('amber')"
               style="background: #f59e0b;" title="Amber Gold"></button>
@@ -5007,10 +5007,10 @@
         style="max-width:440px; width:92%; padding:0; border-radius:20px; overflow:hidden; background:var(--bg-card, #161622); border:1px solid var(--border, rgba(255,255,255,0.08)); box-shadow:0 20px 40px rgba(0,0,0,0.5);">
         <!-- Header -->
         <div
-          style="padding:16px 20px; background:linear-gradient(135deg, rgba(59,130,246,0.12), rgba(37,99,235,0.04)); border-bottom:1px solid rgba(59,130,246,0.2); display:flex; align-items:center; justify-content:space-between;">
+          style="padding:16px 20px; background:linear-gradient(135deg, rgba(var(--accent-rgb), 0.12), rgba(var(--accent-rgb), 0.04)); border-bottom:1px solid rgba(var(--accent-rgb), 0.2); display:flex; align-items:center; justify-content:space-between;">
           <div style="display:flex; align-items:center; gap:12px;">
             <div
-              style="width:36px; height:36px; border-radius:10px; background:#3b82f6; color:#fff; display:flex; align-items:center; justify-content:center; font-size:16px; box-shadow:0 4px 12px rgba(59,130,246,0.35);">
+              style="width:36px; height:36px; border-radius:10px; background:var(--accent); color:#fff; display:flex; align-items:center; justify-content:center; font-size:16px; box-shadow:0 4px 12px rgba(var(--accent-rgb), 0.35);">
               <i class="fa-solid fa-envelope"></i>
             </div>
             <div>
@@ -5033,7 +5033,7 @@
               style="font-size:12px; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px;"
               data-i18n="current_email_label">Τρέχον Email</label>
             <div id="change-email-current-display"
-              style="padding:12px 14px; background:rgba(255,255,255,0.04); border:1px solid var(--border, rgba(255,255,255,0.08)); border-radius:12px; font-size:13.5px; color:var(--text-muted); font-family:'Outfit',sans-serif; display:flex; align-items:center; gap:8px;">
+              style="padding:12px 14px; background:var(--overlay-040); border:1px solid var(--border, rgba(255,255,255,0.08)); border-radius:12px; font-size:13.5px; color:var(--text-muted); font-family:'Outfit',sans-serif; display:flex; align-items:center; gap:8px;">
               <i class="fa-regular fa-envelope" style="color:var(--text-muted);"></i>
               <span id="change-email-current-val">user@example.com</span>
             </div>
@@ -5055,9 +5055,9 @@
 
           <!-- Notice Info Box -->
           <div
-            style="background:rgba(59,130,246,0.08); border:1px solid rgba(59,130,246,0.2); border-radius:12px; padding:12px 14px; display:flex; gap:10px; align-items:flex-start;">
+            style="background:rgba(var(--accent-rgb), 0.08); border:1px solid rgba(var(--accent-rgb), 0.2); border-radius:12px; padding:12px 14px; display:flex; gap:10px; align-items:flex-start;">
             <i class="fa-solid fa-circle-info"
-              style="color:#3b82f6; font-size:14px; margin-top:2px; flex-shrink:0;"></i>
+              style="color:var(--accent); font-size:14px; margin-top:2px; flex-shrink:0;"></i>
             <span style="font-size:12px; color:var(--text-secondary); line-height:1.45;"
               data-i18n="change_email_notice">Θα λάβετε σύνδεσμο επιβεβαίωσης στο νέο email σας για να ενεργοποιηθεί η
               αλλαγή.</span>
@@ -5069,7 +5069,7 @@
               style="flex:1; padding:12px; border-radius:12px; font-weight:700; cursor:pointer;"
               data-i18n="btn_cancel">Ακύρωση</button>
             <button type="submit" id="btn-submit-change-email" class="btn-primary"
-              style="flex:1.6; padding:12px; border-radius:12px; font-weight:700; background:#3b82f6; border:none; color:#fff; cursor:pointer; box-shadow:0 4px 14px rgba(59,130,246,0.35); display:flex; align-items:center; justify-content:center; gap:8px;">
+              style="flex:1.6; padding:12px; border-radius:12px; font-weight:700; background:var(--accent); border:none; color:#fff; cursor:pointer; box-shadow:0 4px 14px rgba(var(--accent-rgb), 0.35); display:flex; align-items:center; justify-content:center; gap:8px;">
               <span data-i18n="btn_save_email">Αποστολή Επιβεβαίωσης</span>
             </button>
           </div>
@@ -5220,7 +5220,7 @@
               <div
                 style="display:flex; align-items:center; justify-content:center; gap:8px; margin-top:10px; flex-wrap:wrap;">
                 <button type="button" onclick="closeProfileSheet(); openChangeEmailModal();"
-                  style="padding:6px 14px; border-radius:14px; background:rgba(59,130,246,0.12); border:1px solid rgba(59,130,246,0.25); color:#3b82f6; font-size:11.5px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:5px; font-family:'Outfit',sans-serif;">
+                  style="padding:6px 14px; border-radius:14px; background:rgba(var(--accent-rgb), 0.12); border:1px solid rgba(var(--accent-rgb), 0.25); color:var(--accent); font-size:11.5px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:5px; font-family:'Outfit',sans-serif;">
                   <i class="fa-solid fa-envelope"></i> <span data-i18n="btn_change_email">Αλλαγή Email</span>
                 </button>
                 <button type="button" onclick="closeProfileSheet(); openChangePasswordModal();"
@@ -5234,7 +5234,7 @@
           <!-- Financial Quick Stats Grid -->
           <div class="profile-stats-grid">
             <div class="profile-stat-card">
-              <div class="profile-stat-icon" style="background:rgba(124,106,247,0.15); color:var(--accent);">
+              <div class="profile-stat-icon" style="background:rgba(var(--accent-rgb), 0.15); color:var(--accent);">
                 <i class="fa-solid fa-receipt"></i>
               </div>
               <div class="profile-stat-info">
@@ -5427,12 +5427,12 @@
           <span style="font-size: 15px; font-weight: 800; color: var(--text-primary); font-family: 'Outfit', sans-serif;"
             data-i18n="avatar_modal_title">Φωτογραφία Προφίλ</span>
           <button type="button" onclick="closeModal('avatar-viewer-modal')"
-            style="background: rgba(255,255,255,0.06); border: 1px solid var(--border); color: var(--text-muted); width: 30px; height: 30px; border-radius: 8px; font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center;">✕</button>
+            style="background: var(--overlay-060); border: 1px solid var(--border); color: var(--text-muted); width: 30px; height: 30px; border-radius: 8px; font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center;">✕</button>
         </div>
 
         <!-- Large Avatar Display Circle -->
         <div id="avatar-viewer-large-preview"
-          style="width: 140px; height: 140px; border-radius: 50%; overflow: hidden; display: flex; align-items: center; justify-content: center; border: 3px solid var(--accent); box-shadow: 0 8px 24px rgba(0,0,0,0.4); background: rgba(255,255,255,0.05); font-size: 48px; font-weight: 800; color: white;">
+          style="width: 140px; height: 140px; border-radius: 50%; overflow: hidden; display: flex; align-items: center; justify-content: center; border: 3px solid var(--accent); box-shadow: 0 8px 24px rgba(0,0,0,0.4); background: var(--overlay-050); font-size: 48px; font-weight: 800; color: white;">
           <!-- Image or initials injected dynamically -->
         </div>
 
@@ -5457,17 +5457,17 @@
     <div id="profile-photo-source-modal" class="modal-overlay" style="z-index: 10006;"
       onclick="handleProfilePhotoSourceOverlayClick(event)">
       <div class="modal-content photo-source-sheet"
-        style="max-width: 440px; width: 100%; border-radius: 26px 26px 0 0; padding: 10px 18px 26px; text-align: left; background: #161A24; border: 1px solid rgba(255,255,255,0.06); border-bottom: none; box-shadow: 0 -20px 50px rgba(0,0,0,0.6); display: flex; flex-direction: column; box-sizing: border-box; margin: 0 auto;">
+        style="max-width: 440px; width: 100%; border-radius: 26px 26px 0 0; padding: 10px 18px 26px; text-align: left; background: #161A24; border: 1px solid var(--overlay-060); border-bottom: none; box-shadow: 0 -20px 50px rgba(0,0,0,0.6); display: flex; flex-direction: column; box-sizing: border-box; margin: 0 auto;">
         
         <!-- Handle bar -->
-        <div style="width: 36px; height: 4px; border-radius: 4px; background: rgba(255,255,255,0.14); margin: 6px auto 16px;"></div>
+        <div style="width: 36px; height: 4px; border-radius: 4px; background: var(--overlay-140); margin: 6px auto 16px;"></div>
 
         <!-- Sheet Header -->
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; width: 100%;">
           <span style="font-family: 'Poppins', 'Outfit', sans-serif; font-weight: 600; font-size: 17px; color: #F2F4F8;"
             data-i18n="avatar_modal_title">Φωτογραφία Προφίλ</span>
           <button type="button" onclick="closeModal('profile-photo-source-modal')"
-            style="width: 30px; height: 30px; border-radius: 50%; background: #1F2531; border: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0;">
+            style="width: 30px; height: 30px; border-radius: 50%; background: #1F2531; border: 1px solid var(--overlay-060); display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0;">
             <svg viewBox="0 0 24 24" fill="none" stroke="#F2F4F8" stroke-width="2.4" stroke-linecap="round" style="width: 14px; height: 14px;">
               <line x1="5" y1="5" x2="19" y2="19"/>
               <line x1="19" y1="5" x2="5" y2="19"/>
@@ -5480,10 +5480,10 @@
 
           <!-- Camera Option -->
           <div onclick="triggerProfileCameraCapture(event)"
-            style="display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 16px; background: #1F2531; border: 1px solid rgba(255,255,255,0.06); cursor: pointer; transition: background 0.15s ease;"
+            style="display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 16px; background: #1F2531; border: 1px solid var(--overlay-060); cursor: pointer; transition: background 0.15s ease;"
             class="photo-source-opt">
-            <div style="width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: rgba(124, 106, 247, 0.15);">
-              <svg viewBox="0 0 24 24" fill="none" stroke="#7C6AF7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width: 22px; height: 22px;">
+            <div style="width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: rgba(var(--accent-rgb), 0.15);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width: 22px; height: 22px;">
                 <path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/>
                 <circle cx="12" cy="13.5" r="3.4"/>
               </svg>
@@ -5503,7 +5503,7 @@
 
           <!-- Gallery Option -->
           <div onclick="triggerProfileGalleryUpload(event)"
-            style="display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 16px; background: #1F2531; border: 1px solid rgba(255,255,255,0.06); cursor: pointer; transition: background 0.15s ease;"
+            style="display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 16px; background: #1F2531; border: 1px solid var(--overlay-060); cursor: pointer; transition: background 0.15s ease;"
             class="photo-source-opt">
             <div style="width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: rgba(31, 169, 122, 0.15);">
               <svg viewBox="0 0 24 24" fill="none" stroke="#1FA97A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width: 22px; height: 22px;">
@@ -5542,17 +5542,17 @@
     <div id="receipt-photo-source-modal" class="modal-overlay" style="z-index: 10005; align-items: flex-end; padding-bottom: 0;"
       onclick="handleReceiptPhotoSourceOverlayClick(event)">
       <div class="modal-content photo-source-sheet"
-        style="max-width: 440px; width: 100%; border-radius: 26px 26px 0 0; padding: 10px 18px 26px; text-align: left; background: #161A24; border: 1px solid rgba(255,255,255,0.06); border-bottom: none; box-shadow: 0 -20px 50px rgba(0,0,0,0.6); display: flex; flex-direction: column; box-sizing: border-box; margin: 0 auto;">
+        style="max-width: 440px; width: 100%; border-radius: 26px 26px 0 0; padding: 10px 18px 26px; text-align: left; background: #161A24; border: 1px solid var(--overlay-060); border-bottom: none; box-shadow: 0 -20px 50px rgba(0,0,0,0.6); display: flex; flex-direction: column; box-sizing: border-box; margin: 0 auto;">
         
         <!-- Handle bar -->
-        <div style="width: 36px; height: 4px; border-radius: 4px; background: rgba(255,255,255,0.14); margin: 6px auto 16px;"></div>
+        <div style="width: 36px; height: 4px; border-radius: 4px; background: var(--overlay-140); margin: 6px auto 16px;"></div>
 
         <!-- Sheet Header -->
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; width: 100%;">
           <span style="font-family: 'Poppins', 'Outfit', sans-serif; font-weight: 600; font-size: 17px; color: #F2F4F8;"
             data-i18n="photo_picker_title">Προσθήκη φωτογραφίας</span>
           <button type="button" onclick="closeModal('receipt-photo-source-modal')"
-            style="width: 30px; height: 30px; border-radius: 50%; background: #1F2531; border: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0;">
+            style="width: 30px; height: 30px; border-radius: 50%; background: #1F2531; border: 1px solid var(--overlay-060); display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0;">
             <svg viewBox="0 0 24 24" fill="none" stroke="#F2F4F8" stroke-width="2.4" stroke-linecap="round" style="width: 14px; height: 14px;">
               <line x1="5" y1="5" x2="19" y2="19"/>
               <line x1="19" y1="5" x2="5" y2="19"/>
@@ -5567,7 +5567,7 @@
           <div onclick="triggerReceiptAIScan(event)"
             style="display: flex; align-items: center; gap: 14px; padding: 16px; border-radius: 16px; background: linear-gradient(100deg, #6D42D6 0%, #3D7FD9 55%, #1FA97A 100%); border: none; cursor: pointer; transition: transform 0.15s ease, opacity 0.15s ease;"
             class="photo-source-opt-primary">
-            <div style="width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: rgba(255,255,255,0.18);">
+            <div style="width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: var(--overlay-180);">
               <svg viewBox="0 0 24 24" fill="none" style="width: 22px; height: 22px;">
                 <path d="M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6L12 3z" fill="#fff"/>
                 <path d="M19 14l0.8 2.2L22 17l-2.2 0.8L19 20l-0.8-2.2L16 17l2.2-0.8L19 14z" fill="#fff" opacity="0.85"/>
@@ -5577,7 +5577,7 @@
               <div style="font-family: 'Poppins', 'Outfit', sans-serif; font-weight: 600; font-size: 14.5px; color: #fff; display: flex; align-items: center; gap: 7px; margin-bottom: 2px;">
                 <span data-i18n="photo_picker_ai_scan">Σάρωση απόδειξης με AI</span>
                 <span class="badge" id="ai-scan-badge-quota"
-                  style="font-family: 'Inter', sans-serif; font-weight: 600; font-size: 10px; color: #fff; background: rgba(255,255,255,0.22); padding: 3px 8px; border-radius: 20px; white-space: nowrap;">5/5 δωρεάν</span>
+                  style="font-family: 'Inter', sans-serif; font-weight: 600; font-size: 10px; color: #fff; background: var(--overlay-220); padding: 3px 8px; border-radius: 20px; white-space: nowrap;">5/5 δωρεάν</span>
               </div>
               <div style="font-family: 'Inter', sans-serif; font-weight: 400; font-size: 11.5px; color: rgba(255,255,255,0.78); line-height: 1.35;"
                 data-i18n="photo_picker_ai_scan_desc">Διαβάζει αυτόματα ποσό, κατάστημα &amp; κατηγορία</div>
@@ -5586,9 +5586,9 @@
 
           <!-- Camera -->
           <div onclick="triggerReceiptCameraCapture(event)"
-            style="display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 16px; background: #1F2531; border: 1px solid rgba(255,255,255,0.06); cursor: pointer; transition: background 0.15s ease;"
+            style="display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 16px; background: #1F2531; border: 1px solid var(--overlay-060); cursor: pointer; transition: background 0.15s ease;"
             class="photo-source-opt">
-            <div style="width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: rgba(255,255,255,0.05);">
+            <div style="width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: var(--overlay-050);">
               <svg viewBox="0 0 24 24" fill="none" stroke="#F2F4F8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width: 22px; height: 22px;">
                 <path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/>
                 <circle cx="12" cy="13.5" r="3.4"/>
@@ -5609,9 +5609,9 @@
 
           <!-- Gallery -->
           <div onclick="triggerReceiptGalleryUpload(event)"
-            style="display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 16px; background: #1F2531; border: 1px solid rgba(255,255,255,0.06); cursor: pointer; transition: background 0.15s ease;"
+            style="display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 16px; background: #1F2531; border: 1px solid var(--overlay-060); cursor: pointer; transition: background 0.15s ease;"
             class="photo-source-opt">
-            <div style="width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: rgba(255,255,255,0.05);">
+            <div style="width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: var(--overlay-050);">
               <svg viewBox="0 0 24 24" fill="none" stroke="#F2F4F8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width: 22px; height: 22px;">
                 <rect x="3" y="5" width="14" height="14" rx="2.5"/>
                 <path d="M7 21h11a2 2 0 0 0 2-2V8"/>
@@ -5929,7 +5929,7 @@
           <div class="modal-content"
             style="max-width: 420px; max-height: 85vh; display: flex; flex-direction: column; border-radius: 24px; background: var(--bg-card); border: 1px solid var(--border); padding: 0; overflow: hidden;">
             <div class="modal-header"
-              style="border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; background: rgba(255, 255, 255, 0.01);">
+              style="border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; background: var(--overlay-010);">
               <h3 class="modal-title"
                 style="font-weight: 800; color: var(--text-primary); font-size: 15px; text-transform: uppercase; letter-spacing: 0.5px;"
                 data-i18n="fhs_modal_title">📊 Οικονομική Υγεία</h3>
@@ -5939,7 +5939,7 @@
 
             <!-- Modal Tabs -->
             <div class="fhs-modal-tabs"
-              style="display: flex; border-bottom: 1px solid rgba(255, 255, 255, 0.08); background: rgba(255, 255, 255, 0.02);">
+              style="display: flex; border-bottom: 1px solid rgba(255, 255, 255, 0.08); background: var(--overlay-020);">
               <button id="fhs-tab-breakdown" class="fhs-tab-btn active" onclick="showFhsTab('breakdown')"
                 style="flex: 1; padding: 14px; background: transparent; border: none; color: var(--text-primary); font-size: 12.5px; font-weight: 700; cursor: pointer; border-bottom: 2px solid var(--accent); outline: none;"
                 data-i18n="fhs_tab_breakdown">Ανάλυση</button>
@@ -5953,7 +5953,7 @@
               <!-- Tab 1 Contents: Breakdown -->
               <div id="fhs-content-breakdown" class="fhs-tab-content" style="width: 100%;">
                 <div id="fhs-modal-score-circle" class="fhs-circle"
-                  style="width: 76px; height: 76px; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 18px; font-weight: 800; color: #fff; margin-bottom: 12px; background: linear-gradient(135deg, var(--accent) 0%, rgba(124,106,247,0.4) 100%); border: none; box-shadow: 0 0 20px rgba(124,106,247,0.3); gap: 1px;">
+                  style="width: 76px; height: 76px; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 18px; font-weight: 800; color: #fff; margin-bottom: 12px; background: linear-gradient(135deg, var(--accent) 0%, rgba(var(--accent-rgb), 0.4) 100%); border: none; box-shadow: 0 0 20px rgba(var(--accent-rgb), 0.3); gap: 1px;">
                   <span id="fhs-modal-score-val-text" style="line-height: 1;">88%</span>
                 </div>
                 <div id="fhs-modal-score-label"
@@ -5963,7 +5963,7 @@
                 <div class="fhs-breakdown-items" style="display: flex; flex-direction: column; gap: 14px;">
                   <!-- Savings Rate -->
                   <div class="fhs-breakdown-item"
-                    style="background: rgba(255,255,255,0.02); padding: 14px; border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.06);">
+                    style="background: var(--overlay-020); padding: 14px; border-radius: 16px; border: 1px solid var(--overlay-060);">
                     <div
                       style="display: flex; justify-content: space-between; margin-bottom: 8px; align-items: center;">
                       <span style="font-weight: 700; font-size: 12px; color: var(--text-primary);"
@@ -5972,7 +5972,7 @@
                         style="font-weight: 800; font-size: 13px; color: var(--accent);">34 / 40</span>
                     </div>
                     <div class="forecast-progress-track"
-                      style="height: 6px; margin: 4px 0; background: rgba(255, 255, 255, 0.04);">
+                      style="height: 6px; margin: 4px 0; background: var(--overlay-040);">
                       <div id="fhs-breakdown-savings-bar"
                         style="height: 100%; border-radius: 10px; background: var(--accent); width: 85%;"></div>
                     </div>
@@ -5983,7 +5983,7 @@
 
                   <!-- Emergency Fund -->
                   <div class="fhs-breakdown-item"
-                    style="background: rgba(255,255,255,0.02); padding: 14px; border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.06);">
+                    style="background: var(--overlay-020); padding: 14px; border-radius: 16px; border: 1px solid var(--overlay-060);">
                     <div
                       style="display: flex; justify-content: space-between; margin-bottom: 8px; align-items: center;">
                       <span style="font-weight: 700; font-size: 12px; color: var(--text-primary);"
@@ -5992,7 +5992,7 @@
                         style="font-weight: 800; font-size: 13px; color: var(--blue-positive);">36 / 40</span>
                     </div>
                     <div class="forecast-progress-track"
-                      style="height: 6px; margin: 4px 0; background: rgba(255, 255, 255, 0.04);">
+                      style="height: 6px; margin: 4px 0; background: var(--overlay-040);">
                       <div id="fhs-breakdown-emergency-bar"
                         style="height: 100%; border-radius: 10px; background: var(--blue-positive); width: 90%;"></div>
                     </div>
@@ -6004,7 +6004,7 @@
 
                   <!-- Expense Trend -->
                   <div class="fhs-breakdown-item"
-                    style="background: rgba(255,255,255,0.02); padding: 14px; border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.06);">
+                    style="background: var(--overlay-020); padding: 14px; border-radius: 16px; border: 1px solid var(--overlay-060);">
                     <div
                       style="display: flex; justify-content: space-between; margin-bottom: 8px; align-items: center;">
                       <span style="font-weight: 700; font-size: 12px; color: var(--text-primary);"
@@ -6013,7 +6013,7 @@
                         style="font-weight: 800; font-size: 13px; color: var(--accent-orange, #f59e0b);">18 / 20</span>
                     </div>
                     <div class="forecast-progress-track"
-                      style="height: 6px; margin: 4px 0; background: rgba(255, 255, 255, 0.04);">
+                      style="height: 6px; margin: 4px 0; background: var(--overlay-040);">
                       <div id="fhs-breakdown-trend-bar"
                         style="height: 100%; border-radius: 10px; background: var(--accent-orange, #f59e0b); width: 90%;">
                       </div>
@@ -6027,7 +6027,7 @@
 
                 <!-- Collapsible Explainability Section -->
                 <div class="fhs-collapsible-header" id="fhs-explain-trigger" onclick="toggleFhsExplain()"
-                  style="display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; background: rgba(255, 255, 255, 0.03); border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.08); margin-top: 16px; cursor: pointer; transition: all 0.2s; user-select: none;">
+                  style="display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; background: var(--overlay-030); border-radius: 16px; border: 1px solid var(--overlay-080); margin-top: 16px; cursor: pointer; transition: all 0.2s; user-select: none;">
                   <span
                     style="font-weight: 800; font-size: 13px; color: var(--text-primary); letter-spacing: 0.5px; text-transform: uppercase;"
                     data-i18n="fhs_explain_title">💡 Πώς υπολογίστηκε;</span>
@@ -6038,7 +6038,7 @@
                 <div id="fhs-explain-content" style="display: none; margin-top: 16px;">
                   <!-- Conversational Raw Data Block -->
                   <div
-                    style="background: rgba(0, 0, 0, 0.2); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 16px; padding: 16px; font-family: monospace; font-size: 13px; line-height: 1.5; color: var(--text-primary); margin-bottom: 16px; display: flex; flex-direction: column; gap: 10px;">
+                    style="background: rgba(0, 0, 0, 0.2); border: 1px solid var(--overlay-060); border-radius: 16px; padding: 16px; font-family: monospace; font-size: 13px; line-height: 1.5; color: var(--text-primary); margin-bottom: 16px; display: flex; flex-direction: column; gap: 10px;">
                     <div
                       style="display: flex; justify-content: space-between; border-bottom: 1px dashed rgba(255, 255, 255, 0.15); padding-bottom: 8px;">
                       <span data-i18n="fhs_explain_liquid_balance_label">Διαθέσιμο Υπόλοιπο:</span>
@@ -6143,7 +6143,7 @@
           <div class="modal-content"
             style="max-width: 420px; max-height: 85vh; display: flex; flex-direction: column; border-radius: 24px; background: var(--bg-card); border: 1px solid var(--border); padding: 0; overflow: hidden;">
             <div class="modal-header"
-              style="border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; background: rgba(255, 255, 255, 0.01);">
+              style="border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; background: var(--overlay-010);">
               <h3 class="modal-title"
                 style="font-weight: 800; color: var(--text-primary); font-size: 15px; text-transform: uppercase; letter-spacing: 0.5px;"
                 data-i18n="forecast_modal_title">🔮 Ανάλυση & Σενάρια</h3>
@@ -6156,7 +6156,7 @@
 
               <!-- Current Status Card -->
               <div
-                style="background: rgba(255,255,255,0.02); padding: 16px; border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.06);">
+                style="background: var(--overlay-020); padding: 16px; border-radius: 16px; border: 1px solid var(--overlay-060);">
                 <h4
                   style="margin-top: 0; margin-bottom: 10px; font-size: 13px; font-weight: 800; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.5px;"
                   data-i18n="forecast_current_status_title">Τρέχουσα Πορεία</h4>
@@ -6166,7 +6166,7 @@
 
               <!-- Projection Scenarios Card -->
               <div
-                style="background: rgba(255,255,255,0.02); padding: 16px; border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.06); display: flex; flex-direction: column; gap: 12px;">
+                style="background: var(--overlay-020); padding: 16px; border-radius: 16px; border: 1px solid var(--overlay-060); display: flex; flex-direction: column; gap: 12px;">
                 <h4
                   style="margin: 0; font-size: 13px; font-weight: 800; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.5px;"
                   data-i18n="forecast_scenarios_title">🔮 ΣΕΝΑΡΙΑ ΕΞΕΛΙΞΗΣ (ΕΩΣ ΔΕΚΕΜΒΡΙΟ)</h4>
@@ -6186,7 +6186,7 @@
 
                   <!-- Expected Case -->
                   <div
-                    style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.02); padding: 6px 8px; border-radius: 8px;">
+                    style="display: flex; justify-content: space-between; align-items: center; background: var(--overlay-020); padding: 6px 8px; border-radius: 8px;">
                     <div style="display: flex; align-items: center; gap: 8px;">
                       <span
                         style="width: 8px; height: 8px; border-radius: 50%; background: var(--blue-positive);"></span>
@@ -6212,13 +6212,13 @@
 
               <!-- Annual Target Input -->
               <div
-                style="background: rgba(255,255,255,0.02); padding: 16px; border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.06); display: flex; flex-direction: column; gap: 10px;">
+                style="background: var(--overlay-020); padding: 16px; border-radius: 16px; border: 1px solid var(--overlay-060); display: flex; flex-direction: column; gap: 10px;">
                 <h4
                   style="margin: 0; font-size: 13px; font-weight: 800; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.5px;"
                   data-i18n="forecast_target_title">ΠΡΟΣΩΠΙΚΟΣ ΣΤΟΧΟΣ ΑΠΟΤΑΜΙΕΥΣΗΣ</h4>
                 <div style="display: flex; gap: 8px; width: 100%; box-sizing: border-box; align-items: center;">
                   <input type="number" id="forecast-target-input"
-                    style="flex: 1; min-width: 0; padding: 10px 14px; border-radius: 12px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); color: var(--text-primary); outline: none; font-family: 'Outfit', sans-serif; font-size: 14px; box-sizing: border-box;"
+                    style="flex: 1; min-width: 0; padding: 10px 14px; border-radius: 12px; background: var(--overlay-030); border: 1px solid var(--border); color: var(--text-primary); outline: none; font-family: 'Outfit', sans-serif; font-size: 14px; box-sizing: border-box;"
                     placeholder="e.g. 15000">
                   <button type="button" onclick="saveCustomSavingsTarget()"
                     style="flex-shrink: 0; padding: 10px 16px; border-radius: 12px; background: var(--accent); color: white; border: none; font-size: 13px; font-weight: 700; cursor: pointer; transition: transform 0.2s; box-sizing: border-box;"
@@ -6250,11 +6250,11 @@
             style="max-height: calc(var(--viewport-height, 100vh) * 0.90 - var(--keyboard-height, 0px)); display: flex; flex-direction: column; border-top-left-radius: 24px; border-top-right-radius: 24px;">
             <!-- Drag handle for native look -->
             <div class="bottom-sheet-drag-handle"
-              style="width: 36px; height: 4px; background: rgba(255,255,255,0.2); border-radius: 2px; margin: 8px auto 0 auto; flex-shrink: 0;">
+              style="width: 36px; height: 4px; background: var(--overlay-200); border-radius: 2px; margin: 8px auto 0 auto; flex-shrink: 0;">
             </div>
 
             <div class="modal-header"
-              style="border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding: 12px 20px 16px 20px; display: flex; align-items: center; justify-content: space-between; background: rgba(255, 255, 255, 0.01); flex-shrink: 0;">
+              style="border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding: 12px 20px 16px 20px; display: flex; align-items: center; justify-content: space-between; background: var(--overlay-010); flex-shrink: 0;">
               <div style="display: flex; align-items: center; gap: 8px;">
                 <span id="advisor-chat-back-btn" onclick="showAdvisorConversationList()"
                   style="cursor: pointer; font-size: 18px; color: var(--text-secondary); display: none; height: 28px; width: 28px; align-items: center; justify-content: center;">&#8592;</span>
@@ -6303,7 +6303,7 @@
             <div
               style="padding: 12px 16px 20px 16px; border-top: 1px solid rgba(255, 255, 255, 0.08); background: var(--bg-card); display: flex; gap: 8px; align-items: center; flex-shrink: 0;">
               <input type="text" id="advisor-chat-input"
-                style="flex: 1; min-width: 0; padding: 12px 16px; border-radius: 16px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); color: var(--text-primary); outline: none; font-family: 'Outfit', sans-serif; font-size: 14px; box-sizing: border-box;"
+                style="flex: 1; min-width: 0; padding: 12px 16px; border-radius: 16px; background: var(--overlay-030); border: 1px solid var(--border); color: var(--text-primary); outline: none; font-family: 'Outfit', sans-serif; font-size: 14px; box-sizing: border-box;"
                 placeholder="Ρωτήστε κάτι τον σύμβουλο..." data-i18n-placeholder="advisor_chat_placeholder" onkeydown="handleAdvisorChatKeydown(event)">
               <button type="button" id="advisor-chat-send-btn" onclick="submitCoachInput()"
                 style="flex-shrink: 0; height: 44px; width: 44px; border-radius: 16px; background: var(--accent); color: white; border: none; font-size: 16px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.2s;"><i
@@ -6359,14 +6359,14 @@
 
             <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px;">
               <label
-                style="display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 14px; background: rgba(255,255,255,0.03); border: 1px solid var(--border, rgba(255,255,255,0.08)); cursor: pointer; transition: background 0.2s;">
+                style="display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 14px; background: var(--overlay-030); border: 1px solid var(--border, rgba(255,255,255,0.08)); cursor: pointer; transition: background 0.2s;">
                 <input type="radio" name="recurring_delete_scope" value="single" checked
                   style="accent-color: var(--accent); width: 18px; height: 18px; cursor: pointer;">
                 <span data-i18n="recurring_delete_opt_single" style="font-size: 14px; font-weight: 700; color: var(--text-primary);">Μόνο αυτή την κίνηση</span>
               </label>
 
               <label
-                style="display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 14px; background: rgba(255,255,255,0.03); border: 1px solid var(--border, rgba(255,255,255,0.08)); cursor: pointer; transition: background 0.2s;">
+                style="display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 14px; background: var(--overlay-030); border: 1px solid var(--border, rgba(255,255,255,0.08)); cursor: pointer; transition: background 0.2s;">
                 <input type="radio" name="recurring_delete_scope" value="future"
                   style="accent-color: var(--accent); width: 18px; height: 18px; cursor: pointer;">
                 <span data-i18n="recurring_delete_opt_future" style="font-size: 14px; font-weight: 700; color: var(--text-primary);">Αυτή και οι
@@ -6374,7 +6374,7 @@
               </label>
 
               <label
-                style="display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 14px; background: rgba(255,255,255,0.03); border: 1px solid var(--border, rgba(255,255,255,0.08)); cursor: pointer; transition: background 0.2s;">
+                style="display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 14px; background: var(--overlay-030); border: 1px solid var(--border, rgba(255,255,255,0.08)); cursor: pointer; transition: background 0.2s;">
                 <input type="radio" name="recurring_delete_scope" value="all"
                   style="accent-color: var(--accent); width: 18px; height: 18px; cursor: pointer;">
                 <span data-i18n="recurring_delete_opt_all" style="font-size: 14px; font-weight: 700; color: var(--text-primary);">Όλες τις κινήσεις της
@@ -6667,7 +6667,7 @@
               </div>
             </div>
             <button type="button" onclick="closeForgotPasswordModal()"
-              style="background: rgba(255,255,255,0.06); border: 1px solid var(--border); color: var(--text-muted); width: 32px; height: 32px; border-radius: 50%; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center;">✕</button>
+              style="background: var(--overlay-060); border: 1px solid var(--border); color: var(--text-muted); width: 32px; height: 32px; border-radius: 50%; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center;">✕</button>
           </div>
 
           <!-- Description -->
@@ -6684,14 +6684,14 @@
               <label class="form-label" for="forgot-modal-email" data-i18n="auth_email_label" style="font-size: 12px; margin-bottom: 6px;">Email</label>
               <div style="position: relative; display: flex; align-items: center;">
                 <input type="email" id="forgot-modal-email" class="form-input" placeholder="name@example.com" required autocomplete="email"
-                  style="width: 100%; box-sizing: border-box; padding-left: 38px; border-radius: 14px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); color: var(--text-primary); font-size: 14.5px; height: 46px;">
+                  style="width: 100%; box-sizing: border-box; padding-left: 38px; border-radius: 14px; background: var(--overlay-040); border: 1px solid var(--border); color: var(--text-primary); font-size: 14.5px; height: 46px;">
                 <i class="fa-regular fa-envelope" style="position: absolute; left: 13px; color: var(--text-muted); font-size: 14px; pointer-events: none;"></i>
               </div>
             </div>
 
             <div style="display: flex; gap: 10px; margin-top: 4px;">
               <button type="button" class="btn btn-secondary" onclick="closeForgotPasswordModal()"
-                style="flex: 1; padding: 12px; border-radius: 12px; font-weight: 700; font-size: 14px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--text-primary);"
+                style="flex: 1; padding: 12px; border-radius: 12px; font-weight: 700; font-size: 14px; background: var(--overlay-050); border: 1px solid var(--border); color: var(--text-primary);"
                 data-i18n="modal_cancel">Ακύρωση</button>
               <button type="submit" id="forgot-modal-submit-btn" class="btn btn-primary"
                 style="flex: 2; padding: 12px; border-radius: 12px; font-weight: 800; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px;"

@@ -33,6 +33,24 @@
   --overlay-alpha: rgba(255, 255, 255, 0.05);
   --overlay-alpha-strong: rgba(255, 255, 255, 0.09);
 
+  /* Per-alpha theme-aware overlays (replaces inline rgba(255,255,255,A) tints).
+     Dark themes: white-alpha. Light themes (light/sakura): dark slate-alpha.
+     applyTheme() rewrites these inline based on each theme's isLight flag. */
+  --overlay-010: rgba(255,255,255,0.01);
+  --overlay-020: rgba(255,255,255,0.02);
+  --overlay-025: rgba(255,255,255,0.025);
+  --overlay-030: rgba(255,255,255,0.03);
+  --overlay-040: rgba(255,255,255,0.04);
+  --overlay-050: rgba(255,255,255,0.05);
+  --overlay-060: rgba(255,255,255,0.06);
+  --overlay-080: rgba(255,255,255,0.08);
+  --overlay-100: rgba(255,255,255,0.1);
+  --overlay-120: rgba(255,255,255,0.12);
+  --overlay-140: rgba(255,255,255,0.14);
+  --overlay-180: rgba(255,255,255,0.18);
+  --overlay-200: rgba(255,255,255,0.2);
+  --overlay-220: rgba(255,255,255,0.22);
+
   /* Safe Area Safe Insets */
   --safe-area-bottom: env(safe-area-inset-bottom, 0px);
   --bg-day-header: #1b1f28;
@@ -2133,7 +2151,7 @@ body.is-ios .modal-content {
 }
 
 .btn-secondary-continue:hover {
-  background-color: rgba(255, 255, 255, 0.05);
+  background-color: var(--overlay-alpha);
   border-color: var(--text-secondary);
 }
 
@@ -3474,6 +3492,21 @@ body.is-ios .modal-content {
   --shadow: 0 4px 12px rgba(244, 63, 94, 0.08);
   --shadow-lg: 0 10px 25px rgba(244, 63, 94, 0.12);
   --bg-day-header: #fce7f3;
+  /* Light theme: overlays become theme-tinted dark-alpha so surfaces stay visible. */
+  --overlay-010: rgba(131,24,67,0.01);
+  --overlay-020: rgba(131,24,67,0.02);
+  --overlay-025: rgba(131,24,67,0.025);
+  --overlay-030: rgba(131,24,67,0.03);
+  --overlay-040: rgba(131,24,67,0.04);
+  --overlay-050: rgba(131,24,67,0.05);
+  --overlay-060: rgba(131,24,67,0.06);
+  --overlay-080: rgba(131,24,67,0.08);
+  --overlay-100: rgba(131,24,67,0.1);
+  --overlay-120: rgba(131,24,67,0.12);
+  --overlay-140: rgba(131,24,67,0.14);
+  --overlay-180: rgba(131,24,67,0.18);
+  --overlay-200: rgba(131,24,67,0.2);
+  --overlay-220: rgba(131,24,67,0.22);
 }
 
 /* Rose Gold Luxury Dark Pink Theme */
@@ -3510,6 +3543,21 @@ body.is-ios .modal-content {
   --accent-light: rgba(46, 196, 182, 0.15);
   --accent-gradient: linear-gradient(135deg, #2ec4b6 0%, #2563eb 100%);
   --bg-day-header: #e9ecef;
+  /* Light theme: overlays become dark slate-alpha so surfaces stay visible. */
+  --overlay-010: rgba(15,23,42,0.01);
+  --overlay-020: rgba(15,23,42,0.02);
+  --overlay-025: rgba(15,23,42,0.025);
+  --overlay-030: rgba(15,23,42,0.03);
+  --overlay-040: rgba(15,23,42,0.04);
+  --overlay-050: rgba(15,23,42,0.05);
+  --overlay-060: rgba(15,23,42,0.06);
+  --overlay-080: rgba(15,23,42,0.08);
+  --overlay-100: rgba(15,23,42,0.1);
+  --overlay-120: rgba(15,23,42,0.12);
+  --overlay-140: rgba(15,23,42,0.14);
+  --overlay-180: rgba(15,23,42,0.18);
+  --overlay-200: rgba(15,23,42,0.2);
+  --overlay-220: rgba(15,23,42,0.22);
 }
 
 /* Emerald Forest Theme */
