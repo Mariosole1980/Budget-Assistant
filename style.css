@@ -8964,6 +8964,10 @@ mark.guide-highlight {
   z-index: 10000 !important;
 }
 
+#settings-picker-modal {
+  z-index: 15000 !important;
+}
+
 #custom-dialog-modal,
 #type-confirm-modal,
 #pin-prompt-modal,

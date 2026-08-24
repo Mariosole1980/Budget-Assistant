@@ -10678,7 +10678,7 @@ function closeModal(id, opts) {
     window._settingsSubscreenHistory = [];
   }
   el.classList.remove('active');
-  if (el.style) el.style.cssText = '';
+  if (id === 'transaction-modal' && el.style) el.style.cssText = '';
   const activeModals = document.querySelectorAll('.modal-overlay.active, .tx-modal-overlay.active, .profile-sheet-overlay.active');
   if (activeModals.length === 0) {
     document.body.classList.remove('modal-open');
