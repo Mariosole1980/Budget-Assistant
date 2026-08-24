@@ -25,6 +25,8 @@ import android.webkit.JavascriptInterface;
 import android.webkit.RenderProcessGoneDetail;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
+import android.widget.FrameLayout;
+import android.widget.ImageView;
 import androidx.core.view.WindowInsetsControllerCompat;
 import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.WebViewListener;
@@ -49,7 +51,8 @@ public class MainActivity extends BridgeActivity {
     // We add the overlay as a SEPARATE WINDOW via WindowManager
     // (TYPE_APPLICATION_PANEL) so it is composited ABOVE the WebView surface by
     // the system compositor, regardless of hardware acceleration quirks.
-    private View resumeOverlay;
+    private FrameLayout resumeOverlay;
+    private ImageView snapshotImageView;
     private Bitmap lastSnapshot;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
@@ -255,9 +258,7 @@ public class MainActivity extends BridgeActivity {
             return;
 
         // Try PixelCopy first (API 26+): captures the Window's Surface directly,
-        // including status bar and nav bar backgrounds, for a pixel-perfect match
-        // with what the user sees. PixelCopy is async but completes within 1 frame
-        // (~16ms), well before the app is fully backgrounded.
+        // using exact WebView bounds and window coordinates for a pixel-perfect match.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             try {
                 if (bridge != null && bridge.getWebView() != null) {
@@ -270,18 +271,24 @@ public class MainActivity extends BridgeActivity {
 
                         int[] location = new int[2];
                         wv.getLocationInWindow(location);
+                        final int posX = location[0];
+                        final int posY = location[1];
                         Rect rect = new Rect(
-                                location[0],
-                                location[1],
-                                location[0] + w,
-                                location[1] + h);
+                                posX,
+                                posY,
+                                posX + w,
+                                posY + h);
 
                         PixelCopy.request(getWindow(), rect, lastSnapshot, (result) -> {
-                            if (result == PixelCopy.SUCCESS && resumeOverlay != null) {
-                                BitmapDrawable bd = new BitmapDrawable(getResources(), lastSnapshot);
-                                resumeOverlay.setBackground(bd);
-                                Log.d(TAG, "Snapshot captured via PixelCopy (" + w + "x" + h + " at " + location[0]
-                                        + "," + location[1] + ")");
+                            if (result == PixelCopy.SUCCESS && snapshotImageView != null) {
+                                FrameLayout.LayoutParams imgLp = new FrameLayout.LayoutParams(w, h);
+                                imgLp.leftMargin = posX;
+                                imgLp.topMargin = posY;
+                                snapshotImageView.setLayoutParams(imgLp);
+                                snapshotImageView.setImageBitmap(lastSnapshot);
+                                snapshotImageView.setVisibility(View.VISIBLE);
+                                Log.d(TAG, "Snapshot captured via PixelCopy (" + w + "x" + h + " at " + posX
+                                        + "," + posY + ")");
                             } else {
                                 Log.w(TAG, "PixelCopy failed (result=" + result + "), trying Canvas");
                                 captureViaCanvas();
@@ -313,16 +320,25 @@ public class MainActivity extends BridgeActivity {
         if (w <= 0 || h <= 0)
             return;
 
+        int[] location = new int[2];
+        wv.getLocationInWindow(location);
+        final int posX = location[0];
+        final int posY = location[1];
+
         try {
             recycleSnapshot();
             lastSnapshot = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
             Canvas canvas = new Canvas(lastSnapshot);
             wv.draw(canvas);
 
-            if (resumeOverlay != null) {
-                BitmapDrawable bd = new BitmapDrawable(getResources(), lastSnapshot);
-                resumeOverlay.setBackground(bd);
-                Log.d(TAG, "Snapshot captured via Canvas (" + w + "x" + h + ")");
+            if (snapshotImageView != null) {
+                FrameLayout.LayoutParams imgLp = new FrameLayout.LayoutParams(w, h);
+                imgLp.leftMargin = posX;
+                imgLp.topMargin = posY;
+                snapshotImageView.setLayoutParams(imgLp);
+                snapshotImageView.setImageBitmap(lastSnapshot);
+                snapshotImageView.setVisibility(View.VISIBLE);
+                Log.d(TAG, "Snapshot captured via Canvas (" + w + "x" + h + " at " + posX + "," + posY + ")");
             }
         } catch (OutOfMemoryError | Exception e) {
             Log.w(TAG, "Canvas capture failed, keeping solid color fallback", e);
@@ -332,6 +348,10 @@ public class MainActivity extends BridgeActivity {
 
     /** Safely recycle the previous snapshot bitmap to prevent memory leaks. */
     private void recycleSnapshot() {
+        if (snapshotImageView != null) {
+            snapshotImageView.setImageDrawable(null);
+            snapshotImageView.setVisibility(View.GONE);
+        }
         if (lastSnapshot != null && !lastSnapshot.isRecycled()) {
             lastSnapshot.recycle();
         }
@@ -344,7 +364,7 @@ public class MainActivity extends BridgeActivity {
 
     private void createResumeOverlay() {
         try {
-            resumeOverlay = new View(this);
+            resumeOverlay = new FrameLayout(this);
             ViewGroup.LayoutParams lp = new ViewGroup.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.MATCH_PARENT);
@@ -356,6 +376,12 @@ public class MainActivity extends BridgeActivity {
             } catch (Exception e) {
                 resumeOverlay.setBackgroundColor(Color.parseColor("#171B26"));
             }
+
+            // Dedicated snapshot image view positioned with exact WebView bounds (x, y, w, h)
+            snapshotImageView = new ImageView(this);
+            snapshotImageView.setScaleType(ImageView.ScaleType.FIT_XY);
+            snapshotImageView.setVisibility(View.GONE);
+            resumeOverlay.addView(snapshotImageView);
 
             // Start GONE for cold start so it NEVER blocks or covers the HTML splash screen (splash.html).
             // It is only shown on onPause() -> onResume() with the captured bitmap snapshot.
@@ -370,6 +396,7 @@ public class MainActivity extends BridgeActivity {
         } catch (Throwable t) {
             Log.e(TAG, "Failed to create resume overlay", t);
             resumeOverlay = null;
+            snapshotImageView = null;
         }
     }
 
@@ -414,6 +441,10 @@ public class MainActivity extends BridgeActivity {
 
     /** Reset the overlay background to the splash drawable. */
     private void restoreOverlaySolidColor() {
+        if (snapshotImageView != null) {
+            snapshotImageView.setImageDrawable(null);
+            snapshotImageView.setVisibility(View.GONE);
+        }
         if (resumeOverlay == null)
             return;
         try {
@@ -605,6 +636,7 @@ public class MainActivity extends BridgeActivity {
                     decor.removeView(resumeOverlay);
                 }
                 resumeOverlay = null;
+                snapshotImageView = null;
             }
             recycleSnapshot();
         } catch (Throwable t) {
