@@ -11305,7 +11305,7 @@ body {
     -webkit-overflow-scrolling: touch;
   }
 
-  /* 3. Statistics Screen (#stats-screen) — 2-Column Split */
+  /* 3. Statistics Screen (#stats-screen) — Compact Headers & Visible Donut */
   #stats-screen.active {
     display: flex !important;
     flex-direction: column;
@@ -11316,23 +11316,26 @@ body {
   }
 
   #stats-screen .stats-header-bar {
-    padding: 4px 16px;
+    padding: 2px 14px;
+    margin: 0;
     flex-shrink: 0;
   }
 
   #stats-screen .stats-subheader-bar {
-    padding: 2px 16px;
+    padding: 2px 14px;
+    margin: 0;
     flex-shrink: 0;
   }
 
   #stats-screen .stats-subtab-bar {
-    padding: 2px 16px;
+    padding: 2px 14px;
+    margin: 0;
     flex-shrink: 0;
   }
 
   #stats-screen .stats-net-bar {
-    margin: 2px 16px 4px 16px;
-    padding: 6px 14px;
+    margin: 2px 14px 4px 14px;
+    padding: 4px 14px;
     flex-shrink: 0;
   }
 
@@ -11344,60 +11347,73 @@ body {
   }
 
   #stats-breakdown-container {
-    display: grid;
-    grid-template-columns: minmax(210px, 280px) 1fr;
-    gap: 16px;
-    align-items: start;
-    padding: 4px 16px 16px 16px;
-    box-sizing: border-box;
+    display: grid !important;
+    grid-template-columns: minmax(170px, 220px) 1fr !important;
+    gap: 14px !important;
+    align-items: start !important;
+    padding: 4px 14px 14px 14px !important;
+    box-sizing: border-box !important;
   }
 
   #stats-breakdown-container .chart-container {
     position: sticky;
     top: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 4px;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 2px !important;
   }
 
   #stats-breakdown-container .chart-wrapper {
-    width: 175px;
-    height: 175px;
-    max-width: 175px;
-    max-height: 175px;
-    margin: 0 auto;
+    width: 140px !important;
+    height: 140px !important;
+    max-width: 140px !important;
+    max-height: 140px !important;
+    margin: 0 auto !important;
   }
 
   #stats-breakdown-container #stats-breakdown-list {
     min-height: 0;
   }
 
-  /* 4. Accounts / Overview Screen (#accounts-screen) — 2-Column Split */
+  /* 4. Accounts / Overview Screen (#accounts-screen) — Clean Fluid Cards */
   #accounts-screen.active {
     display: flex !important;
     flex: 1;
     min-height: 0;
     height: auto;
     flex-direction: column;
+    overflow: hidden;
   }
 
   #accounts-screen .accounts-scroll-content {
     flex: 1;
     min-height: 0;
     overflow-y: auto;
-    display: grid;
-    grid-template-columns: minmax(260px, 340px) 1fr;
-    gap: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
     padding: 8px 16px;
-    align-items: start;
+    max-width: 780px;
+    width: 100%;
+    margin: 0 auto;
     box-sizing: border-box;
     -webkit-overflow-scrolling: touch;
   }
 
   #accounts-screen .accounts-overview-card {
-    position: sticky;
-    top: 0;
+    position: static !important;
+    width: 100% !important;
+    margin-bottom: 0 !important;
+  }
+
+  #accounts-screen .collapsible-sections-container {
+    position: static !important;
+    width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
   }
 
   /* 5. More / Settings Screen (#more-screen) */
