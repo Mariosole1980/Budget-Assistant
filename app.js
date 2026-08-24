@@ -16505,15 +16505,23 @@ function getSubcategoriesStatsForCategory(categoryName) {
 }
 
 function getSortedSubcategoriesForCategory(categoryName) {
+  if (!categoryName) return [];
   const stats = getSubcategoriesStatsForCategory(categoryName);
   const subcatKeys = new Set(Object.keys(stats));
 
-  const cleanedCat = stripLeadingEmoji(categoryName).toUpperCase().trim();
+  const rawClean = stripLeadingEmoji(categoryName).trim();
+  const cleanedCat = rawClean.toUpperCase();
+  const normCat = (typeof normalizeGreekString === 'function') ? normalizeGreekString(rawClean) : cleanedCat.toLowerCase();
+  const dispCat = (typeof getCategoryDisplayName === 'function') ? getCategoryDisplayName(categoryName).toUpperCase().trim() : '';
+  const normDisp = (typeof normalizeGreekString === 'function' && dispCat) ? normalizeGreekString(dispCat) : '';
 
   // 1. Merge default subcategories from DEFAULT_SUBCATEGORIES_MAP
   if (typeof DEFAULT_SUBCATEGORIES_MAP === 'object' && DEFAULT_SUBCATEGORIES_MAP) {
     Object.keys(DEFAULT_SUBCATEGORIES_MAP).forEach(key => {
-      if (stripLeadingEmoji(key).toUpperCase().trim() === cleanedCat) {
+      const keyClean = stripLeadingEmoji(key).trim().toUpperCase();
+      const keyNorm = (typeof normalizeGreekString === 'function') ? normalizeGreekString(key) : keyClean.toLowerCase();
+
+      if (keyClean === cleanedCat || keyClean === dispCat || keyNorm === normCat || (normDisp && keyNorm === normDisp)) {
         (DEFAULT_SUBCATEGORIES_MAP[key] || []).forEach(sub => {
           const s = String(sub || '').trim();
           if (s) subcatKeys.add(s);
@@ -16523,7 +16531,13 @@ function getSortedSubcategoriesForCategory(categoryName) {
   }
 
   // 2. Merge static subcategories from category object in state.categories
-  const cat = (state.categories || []).find(c => c && stripLeadingEmoji(c.name).toUpperCase().trim() === cleanedCat);
+  const cat = (state.categories || []).find(c => {
+    if (!c) return false;
+    const cClean = stripLeadingEmoji(c.name || '').trim().toUpperCase();
+    const cNorm = (typeof normalizeGreekString === 'function') ? normalizeGreekString(c.name || '') : cClean.toLowerCase();
+    return cClean === cleanedCat || cClean === dispCat || cNorm === normCat || (normDisp && cNorm === normDisp);
+  });
+
   if (cat && Array.isArray(cat.subcategories)) {
     cat.subcategories.forEach(sub => {
       const s = typeof sub === 'string' ? sub.trim() : (sub && sub.name ? String(sub.name).trim() : String(sub || '').trim());
@@ -30830,15 +30844,20 @@ function predictCategoryFromHistory(noteText) {
 
 function getSubcategoriesForCategory(category) {
   if (!category) return [];
-  const rawCat = stripLeadingEmoji(category).trim();
-  const cleanedCat = rawCat.toUpperCase();
+  const rawClean = stripLeadingEmoji(category).trim();
+  const cleanedCat = rawClean.toUpperCase();
+  const normCat = (typeof normalizeGreekString === 'function') ? normalizeGreekString(rawClean) : cleanedCat.toLowerCase();
+  const dispCat = (typeof getCategoryDisplayName === 'function') ? getCategoryDisplayName(category).toUpperCase().trim() : '';
+  const normDisp = (typeof normalizeGreekString === 'function' && dispCat) ? normalizeGreekString(dispCat) : '';
   const uniqueSubcats = new Set();
 
-  // 1. Match DEFAULT_SUBCATEGORIES_MAP case-insensitively
+  // 1. Match DEFAULT_SUBCATEGORIES_MAP case-insensitively & accent-insensitively
   if (typeof DEFAULT_SUBCATEGORIES_MAP === 'object' && DEFAULT_SUBCATEGORIES_MAP) {
     Object.keys(DEFAULT_SUBCATEGORIES_MAP).forEach(key => {
       const keyClean = stripLeadingEmoji(key).trim().toUpperCase();
-      if (keyClean === cleanedCat || key.toUpperCase() === cleanedCat) {
+      const keyNorm = (typeof normalizeGreekString === 'function') ? normalizeGreekString(key) : keyClean.toLowerCase();
+
+      if (keyClean === cleanedCat || keyClean === dispCat || keyNorm === normCat || (normDisp && keyNorm === normDisp)) {
         (DEFAULT_SUBCATEGORIES_MAP[key] || []).forEach(sub => uniqueSubcats.add(sub));
       }
     });
@@ -30846,15 +30865,17 @@ function getSubcategoriesForCategory(category) {
 
   // 2. Match custom subcategories attached to state.categories
   (state.categories || []).forEach(c => {
+    if (!c) return;
     const cClean = stripLeadingEmoji(c.name || '').trim().toUpperCase();
-    if (cClean === cleanedCat && Array.isArray(c.subcategories)) {
+    const cNorm = (typeof normalizeGreekString === 'function') ? normalizeGreekString(c.name || '') : cClean.toLowerCase();
+    if ((cClean === cleanedCat || cClean === dispCat || cNorm === normCat || (normDisp && cNorm === normDisp)) && Array.isArray(c.subcategories)) {
       c.subcategories.forEach(sub => uniqueSubcats.add(sub));
     }
   });
 
   // 3. Match subcategories from existing transactions
   (state.transactions || []).forEach(t => {
-    if (t.category && stripLeadingEmoji(t.category).trim().toUpperCase() === cleanedCat) {
+    if (t && t.category && stripLeadingEmoji(t.category).trim().toUpperCase() === cleanedCat) {
       if (t.subcategory && t.subcategory.trim() !== '') {
         uniqueSubcats.add(t.subcategory.trim());
       }
