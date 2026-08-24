@@ -3229,18 +3229,25 @@ function initSupabaseAuth() {
           // user whether to import them into their account instead of silently
           // syncing. This is the "auto-import saved data" option on entry.
           //
-          // FIX (dialog loop): Added a 24h cooldown after the user dismisses the
-          // dialog. If the sync fails for some items (e.g. schema mismatch), the
-          // dialog no longer re-appears on every app open — it silently retries
-          // instead. Also re-checks pending count AFTER sync to avoid re-prompting.
+          // FIX (dialog loop): The dialog is remembered after dismissal. We store
+          // the guest count the user last saw ("Keep Offline Only" / backdrop tap),
+          // so the dialog no longer re-appears on every app open. It only re-appears
+          // when NEW offline transactions are recorded (the pending count changes).
+          // If a sync/transfer fails for some items (e.g. schema mismatch), the
+          // transfer silently retries and only re-prompts when the set changes.
           // OFFLINE GUEST DATA PROMPT: If there are unowned transactions recorded
           // in offline guest mode, ask the user what to do with them for this specific account.
           try {
             const guestTxs = getOfflineGuestTransactions();
             if (guestTxs.length > 0) {
-              setTimeout(() => {
-                showOfflineImportPrompt(session.user.id, session.user.email);
-              }, 600);
+              // Only prompt when the pending set changed since the last dismissal,
+              // so users who chose "Keep Offline Only" are not nagged every login.
+              const lastDismissedCount = parseInt(localStorage.getItem('offline_guest_prompt_dismissed_count') || '-1', 10);
+              if (lastDismissedCount !== guestTxs.length) {
+                setTimeout(() => {
+                  showOfflineImportPrompt(session.user.id, session.user.email);
+                }, 600);
+              }
             }
           } catch (err) {
             console.warn('Offline data prompt check failed:', err);
@@ -3299,6 +3306,18 @@ function initSupabaseAuth() {
       state.familyProfiles = [];
       state.familyGroup = null;
       state.activeAccountMode = 'family';
+      // PRIVACY/ISOLATION: Also wipe the in-memory personal data (including the
+      // recurring templates) so no render/generation pass can leak the previous
+      // account's data — e.g. processRecurringTemplates() re-creating the main
+      // profile's recurring transactions into a later guest session. The cached
+      // copy stays in localStorage for offline reuse when the user signs back in.
+      state.transactions = [];
+      state.budgets = [];
+      state.recurringTemplates = [];
+      state.deletedRecurringDates = [];
+      state.trashTransactions = [];
+      state.notifications = [];
+      state.notes = [];
       localStorage.removeItem('account_view_mode');
       localStorage.removeItem('cached_current_user');
       localStorage.removeItem('cached_partner_profile');
@@ -4714,15 +4733,22 @@ function loadOfflineData() {
     deduplicateCategories();
   }
 
+  // PRIVACY/ISOLATION: Only load recurring templates into memory when there is an
+  // actual (cached or active) user. When the app is on the login screen / guest
+  // boot, a stale 'recurring_templates' cache from a previous account must never
+  // be loaded, otherwise processRecurringTemplates() below would regenerate that
+  // account's recurring transactions into the unowned guest cache
+  // (offline_guest_transactions) — leaking personal data into the next guest session.
+  const hasUserContext = !!(state.currentUser || localStorage.getItem('cached_current_user'));
   try {
-    const temps = localStorage.getItem('recurring_templates');
+    const temps = hasUserContext ? localStorage.getItem('recurring_templates') : null;
     state.recurringTemplates = temps ? JSON.parse(temps) : [];
   } catch (e) {
     console.error('Failed to parse recurring templates:', e);
     state.recurringTemplates = [];
   }
   try {
-    const deleted = localStorage.getItem('deleted_recurring_dates');
+    const deleted = hasUserContext ? localStorage.getItem('deleted_recurring_dates') : null;
     state.deletedRecurringDates = deleted ? JSON.parse(deleted) : [];
   } catch (e) {
     console.error('Failed to parse deleted recurring dates:', e);
@@ -4753,7 +4779,14 @@ function loadOfflineData() {
   loadBudgets();
 
   cleanCrossLanguageRecurringDuplicates();
-  processRecurringTemplates();
+  // PRIVACY/ISOLATION: Only generate recurring occurrences when an actual user is
+  // present. With no user (logged out / login screen / guest boot) this function
+  // would write the generated transactions into the unowned guest cache via
+  // saveTransactionOffline(), leaking a previous account's recurring data into the
+  // next guest session.
+  if (state.currentUser || localStorage.getItem('cached_current_user')) {
+    processRecurringTemplates();
+  }
   cleanCrossLanguageRecurringDuplicates();
   calculateInitialBalances();
   cleanDuplicateCategories().catch(e => console.warn('Offline automatic categories cleanup error:', e));
@@ -5925,23 +5958,29 @@ function _isAuthenticated() {
 window._isAuthenticated = _isAuthenticated;
 
 function _updateUIImpl() {
-  processRecurringTemplates();
-  cleanCrossLanguageRecurringDuplicates();
   updateHeaderAndSync();
   if (typeof updateHeaderDemoBadge === 'function') {
     updateHeaderDemoBadge();
   }
 
   // SECURITY: If the user is not authenticated (_authConfirmed not yet set), do
-  // NOT render any personal data. The content behind the login card must stay
-  // blank so a previous user's cached transactions/balances are never exposed
-  // before the current user logs in. We skip the tab rendering, modal restore,
-  // and the content-painted signal. The cached data stays in memory (state) so
-  // it renders immediately once the session is confirmed - it is just never
+  // NOT render any personal data, and DO NOT run recurring-template generation:
+  // processRecurringTemplates() creates transactions from state.recurringTemplates,
+  // and while unauthenticated (login screen / after logout) that array could still
+  // hold a previous account's templates — regenerating those recurring
+  // transactions into the offline/guest cache would leak account data into the
+  // next guest session. The content behind the login card must stay blank so a
+  // previous user's cached transactions/balances are never exposed before the
+  // current user logs in. We skip the tab rendering, modal restore, and the
+  // content-painted signal. The cached data stays in memory (state) so it
+  // renders immediately once the session is confirmed - it is just never
   // written to the DOM while unauthenticated.
   if (!_isAuthenticated()) {
     return;
   }
+
+  processRecurringTemplates();
+  cleanCrossLanguageRecurringDuplicates();
 
   const countEl = document.getElementById('recurring-templates-count-val');
   if (countEl) {
@@ -23748,6 +23787,25 @@ async function enterGuestMode() {
   // later signs into (the intended "auto-import saved data" flow).
   localStorage.removeItem('offline_transactions_owner');
 
+  // PRIVACY/ISOLATION (guest = clean slate): Wipe ALL in-memory account data from
+  // a previously signed-in user BEFORE the first UI flush. Otherwise the flush
+  // inside hideAuthOverlay() runs processRecurringTemplates() while
+  // state.recurringTemplates still holds the main profile's templates, which
+  // regenerates those recurring transactions into the guest's local cache
+  // (offline_guest_transactions) — leaking account data into the guest session.
+  state.currentUser = null;
+  state.userProfile = null;
+  state.partnerProfile = null;
+  state.familyProfiles = [];
+  state.familyGroup = null;
+  state.transactions = [];
+  state.budgets = [];
+  state.recurringTemplates = [];
+  state.deletedRecurringDates = [];
+  state.trashTransactions = [];
+  state.notifications = [];
+  state.notes = [];
+
   // Hide auth overlay cleanly FIRST so anyModalOpen check in _runScheduledRender doesn't block rendering
   hideAuthOverlay();
 
@@ -24263,6 +24321,14 @@ function showOfflineImportPrompt(userId, userEmail, isManual = false) {
       if (resolved) return;
       resolved = true;
       _offlinePromptInFlight = false;
+      // REMEMBER DISMISSAL: "Keep Offline Only" (or closing the dialog via backdrop)
+      // intentionally leaves the guest data on the device, so record the count we
+      // showed. The login-time prompt then stays silent until the pending set changes.
+      if (choice === 'keep') {
+        try {
+          localStorage.setItem('offline_guest_prompt_dismissed_count', String(count));
+        } catch (e) { /* storage unavailable — ignore */ }
+      }
       modal.classList.remove('active');
       modal.style.cssText = '';
       document.body.classList.remove('modal-open');
@@ -24298,6 +24364,7 @@ function showOfflineImportPrompt(userId, userEmail, isManual = false) {
       const ok = await showConfirm(confirmText, '', '🗑️');
       if (ok) {
         localStorage.removeItem('offline_guest_transactions');
+        localStorage.removeItem('offline_guest_prompt_dismissed_count');
         updateOfflineImportSettingsRow();
         closeModal('discard');
       }
@@ -24375,6 +24442,7 @@ async function transferOfflineDataToAccount(userId, userEmail) {
 
     // ONLY ON 100% SUCCESS: Clean guest storage
     localStorage.removeItem('offline_guest_transactions');
+    localStorage.removeItem('offline_guest_prompt_dismissed_count');
     updateOfflineImportSettingsRow();
 
     // Reload user data & update UI
@@ -25412,7 +25480,17 @@ let _forceSyncInFlight = null;
 
 async function forceSyncNow(silent = false) {
   if (!state.supabaseClient || !state.currentUser) {
-    if (!silent) alert(state.lang === 'en' ? 'Please log in first to sync.' : 'Παρακαλώ συνδεθείτε πρώτα για συγχρονισμό.');
+    if (!silent) {
+      const msg = (state.lang === 'el')
+        ? '☁️ Παρακαλώ συνδεθείτε πρώτα για συγχρονισμό στο Cloud.'
+        : '☁️ Please log in first to sync to the Cloud.';
+      if (typeof showSyncToast === 'function') {
+        showSyncToast(msg, 3500);
+      }
+      if (typeof openSupabaseSettings === 'function') {
+        openSupabaseSettings();
+      }
+    }
     return false;
   }
 
