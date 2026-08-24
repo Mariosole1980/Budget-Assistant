@@ -585,6 +585,54 @@ function mapTemplateFromDb(t) {
   };
 }
 
+function mergeAndDeduplicateTemplates(cloudTemplates = [], localTemplates = []) {
+  const templateMap = new Map();
+
+  // 1. First add all cloud templates
+  (cloudTemplates || []).forEach(t => {
+    if (t && t.id) {
+      templateMap.set(String(t.id), t);
+    }
+  });
+
+  // 2. Identify sync queue state
+  const queueStr = localStorage.getItem('money_manager_sync_queue');
+  const queuedTemplateIds = new Set();
+  const deletedTemplateIds = new Set();
+  if (queueStr) {
+    try {
+      const q = JSON.parse(queueStr) || [];
+      q.forEach(item => {
+        if (!item) return;
+        if (item.action === 'save_template' && item.payload && item.payload.id) {
+          queuedTemplateIds.add(String(item.payload.id));
+        } else if (item.action === 'delete_template') {
+          deletedTemplateIds.add(String(item.payload.id || item.payload));
+        }
+      });
+    } catch (e) { }
+  }
+
+  // 3. Merge local templates: keep if not in cloud yet, or if queued for save
+  (localTemplates || []).forEach(t => {
+    if (!t || !t.id) return;
+    const idStr = String(t.id);
+    if (deletedTemplateIds.has(idStr)) return;
+
+    if (!templateMap.has(idStr) || queuedTemplateIds.has(idStr)) {
+      templateMap.set(idStr, t);
+    }
+  });
+
+  // 4. Remove any template that has a pending delete
+  deletedTemplateIds.forEach(delId => {
+    templateMap.delete(delId);
+  });
+
+  return Array.from(templateMap.values());
+}
+window.mergeAndDeduplicateTemplates = mergeAndDeduplicateTemplates;
+
 // (NEON_PALETTE moved to js/constants.js)
 
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
@@ -4354,7 +4402,9 @@ async function loadData() {
       let categories = catsRes.data || [];
       let accounts = accsRes.data || [];
       if (tempsRes && tempsRes.data) {
-        state.recurringTemplates = tempsRes.data.map(mapTemplateFromDb);
+        const cloudTemps = tempsRes.data.map(mapTemplateFromDb);
+        state.recurringTemplates = mergeAndDeduplicateTemplates(cloudTemps, state.recurringTemplates);
+        cleanDuplicateTemplates();
         localStorage.setItem('recurring_templates', JSON.stringify(state.recurringTemplates));
       }
 
@@ -4517,6 +4567,12 @@ async function loadData() {
       localStorage.setItem('offline_transactions_owner', userId);
 
       updateHeaderSyncIcon('synced');
+      calculateInitialBalances();
+      pushNoTransition();
+      updateUI();
+      setTimeout(() => {
+        popNoTransition();
+      }, 1000);
 
       // Run automatic duplicate / corrupt category cleanup in background
       cleanDuplicateCategories().catch(e => console.warn('Automatic categories cleanup error:', e));
@@ -5314,6 +5370,10 @@ function processRecurringTemplates() {
             _markRecentlySaved(newTx.id);
           }
 
+          if (typeof enqueueSyncMutation === 'function') {
+            enqueueSyncMutation('save', newTx);
+          }
+
           if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
             const { description, is_shared, photo_local_uri, photo_url, receipt, fx_snapshot, ...dbPayload } = newTx;
             (async () => {
@@ -5325,9 +5385,11 @@ function processRecurringTemplates() {
                   12000
                 );
                 if (error) throw error;
+                if (typeof dequeueSyncMutation === 'function') {
+                  dequeueSyncMutation('save', newTx.id);
+                }
               } catch (err) {
-                console.warn(`Cloud save failed for recurring, queueing transaction: ${newTx.id}`, err);
-                enqueueSyncMutation('save', newTx);
+                console.warn(`Cloud save failed for recurring, transaction remains queued: ${newTx.id}`, err);
               }
             })();
           }
@@ -9167,6 +9229,12 @@ function setupEventListeners() {
           family_id: state.userProfile ? state.userProfile.family_id : null
         };
 
+        state.recurringTemplates.push(template);
+        localStorage.setItem('recurring_templates', JSON.stringify(state.recurringTemplates));
+        if (typeof enqueueSyncMutation === 'function') {
+          enqueueSyncMutation('save_template', template);
+        }
+
         if (state.supabaseClient && state.currentUser) {
           state.supabaseClient
             .from('recurring_templates')
@@ -9175,43 +9243,37 @@ function setupEventListeners() {
             .then(({ data, error }) => {
               if (error) {
                 console.error('Failed to sync new recurring template to cloud:', error);
-                // Enqueue to the offline sync queue so the template is not lost
-                // when the user is offline or the cloud insert fails.
-                enqueueSyncMutation('save_template', template);
-              } else if (data && data[0]) {
-                const idx = state.recurringTemplates.findIndex(t => t.id === template.id);
-                if (idx !== -1) {
-                  const dbTemplate = mapTemplateFromDb(data[0]);
-                  // Preserve the locally-entered schedule (days/months/years/preset)
-                  // in case the DB round-trip returned empty arrays for them. This
-                  // prevents a newly added recurring template from silently losing
-                  // its schedule (and therefore never generating transactions).
-                  if (dbTemplate && (!dbTemplate.days || dbTemplate.days.length === 0)) {
-                    dbTemplate.days = Array.isArray(template.days) ? template.days : [];
+              } else {
+                if (typeof dequeueSyncMutation === 'function') {
+                  dequeueSyncMutation('save_template', template.id);
+                }
+                if (data && data[0]) {
+                  const idx = state.recurringTemplates.findIndex(t => t.id === template.id);
+                  if (idx !== -1) {
+                    const dbTemplate = mapTemplateFromDb(data[0]);
+                    if (dbTemplate && (!dbTemplate.days || dbTemplate.days.length === 0)) {
+                      dbTemplate.days = Array.isArray(template.days) ? template.days : [];
+                    }
+                    if (dbTemplate && (!dbTemplate.months || dbTemplate.months.length === 0)) {
+                      dbTemplate.months = Array.isArray(template.months) ? template.months : [];
+                    }
+                    if (dbTemplate && (!dbTemplate.years || dbTemplate.years.length === 0)) {
+                      dbTemplate.years = Array.isArray(template.years) ? template.years : [];
+                    }
+                    if (dbTemplate && !dbTemplate.preset) {
+                      dbTemplate.preset = template.preset || 'monthly';
+                    }
+                    state.recurringTemplates[idx] = dbTemplate || template;
+                    localStorage.setItem('recurring_templates', JSON.stringify(state.recurringTemplates));
+                    processRecurringTemplates();
+                    updateUI();
                   }
-                  if (dbTemplate && (!dbTemplate.months || dbTemplate.months.length === 0)) {
-                    dbTemplate.months = Array.isArray(template.months) ? template.months : [];
-                  }
-                  if (dbTemplate && (!dbTemplate.years || dbTemplate.years.length === 0)) {
-                    dbTemplate.years = Array.isArray(template.years) ? template.years : [];
-                  }
-                  if (dbTemplate && !dbTemplate.preset) {
-                    dbTemplate.preset = template.preset || 'monthly';
-                  }
-                  state.recurringTemplates[idx] = dbTemplate || template;
-                  localStorage.setItem('recurring_templates', JSON.stringify(state.recurringTemplates));
-                  processRecurringTemplates();
-                  updateUI();
                 }
               }
+            }).catch(e => {
+              console.warn('Recurring template insert network error:', e);
             });
-        } else if (state.isSupabaseEnabled) {
-          // Supabase is enabled but the user is not logged in yet (e.g. offline/guest).
-          // Enqueue so the template syncs once a session is available.
-          enqueueSyncMutation('save_template', template);
         }
-        state.recurringTemplates.push(template);
-        localStorage.setItem('recurring_templates', JSON.stringify(state.recurringTemplates));
 
         processRecurringTemplates();
         updateUI();
@@ -25415,7 +25477,8 @@ async function forceSyncNow(silent = false) {
         localStorage.setItem('offline_accounts', JSON.stringify(state.accounts));
       }
       if (tempsRes && tempsRes.data) {
-        state.recurringTemplates = tempsRes.data.map(mapTemplateFromDb);
+        const cloudTemps = tempsRes.data.map(mapTemplateFromDb);
+        state.recurringTemplates = mergeAndDeduplicateTemplates(cloudTemps, state.recurringTemplates);
         cleanDuplicateTemplates();
         localStorage.setItem('recurring_templates', JSON.stringify(state.recurringTemplates));
       }
@@ -25581,14 +25644,12 @@ async function forceSyncNow(silent = false) {
         lastSyncEl.textContent = d.toLocaleTimeString(state.lang === 'el' ? 'el-GR' : 'en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
       }
 
-      if (dataChanged) {
-        calculateInitialBalances();
-        pushNoTransition();
-        updateUI();
-        setTimeout(() => {
-          popNoTransition();
-        }, 1000);
-      }
+      calculateInitialBalances();
+      pushNoTransition();
+      updateUI();
+      setTimeout(() => {
+        popNoTransition();
+      }, 1000);
 
       // Compute how many transactions are genuinely new
       const newCount = dedupedCombined.filter(t => !prevIdSet.has(String(t.id || ''))).length;
@@ -29750,13 +29811,22 @@ function saveRecurringSettings() {
       template.days = Array.isArray(_pendingRecurringSettings.days) ? [..._pendingRecurringSettings.days] : [];
       template.updated_at = new Date().toISOString();
       localStorage.setItem('recurring_templates', JSON.stringify(state.recurringTemplates));
+      if (typeof enqueueSyncMutation === 'function') {
+        enqueueSyncMutation('save_template', template);
+      }
       if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
         state.supabaseClient
           .from('recurring_templates')
           .upsert([mapTemplateToDb(template)])
           .then(({ error }) => {
-            if (error) console.warn('Cloud recurring template update warning:', error);
-          });
+            if (error) {
+              console.warn('Cloud recurring template update warning:', error);
+            } else {
+              if (typeof dequeueSyncMutation === 'function') {
+                dequeueSyncMutation('save_template', template.id);
+              }
+            }
+          }).catch(() => {});
       }
       processRecurringTemplates();
       updateUI();
@@ -31684,6 +31754,15 @@ window.submitCoachTransaction = async function (amount, type, category, subcateg
 function openRecurringTemplatesModal() {
   const container = document.getElementById('recurring-templates-list-container');
   if (!container) return;
+
+  if (!state.recurringTemplates || state.recurringTemplates.length === 0) {
+    try {
+      const cached = JSON.parse(localStorage.getItem('recurring_templates') || '[]');
+      if (Array.isArray(cached) && cached.length > 0) {
+        state.recurringTemplates = cached;
+      }
+    } catch (e) { }
+  }
 
   container.innerHTML = '';
   const templates = state.recurringTemplates || [];
