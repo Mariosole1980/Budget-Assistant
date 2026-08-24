@@ -9214,7 +9214,13 @@ function setupEventListeners() {
           preset: _pendingRecurringSettings.preset || 'monthly',
           years: [...(_pendingRecurringSettings.years || [])],
           endType: _pendingRecurringSettings.endType || 'perpetual',
-          endDate: _pendingRecurringSettings.endDate || null,
+          endDate: (() => {
+            if (_pendingRecurringSettings.endType === 'date') {
+              const hiddenInput = document.getElementById('recurring-end-date');
+              return (hiddenInput && hiddenInput.value) ? hiddenInput.value : (_pendingRecurringSettings.endDate || null);
+            }
+            return null;
+          })(),
           startDate: document.getElementById('trans-date').value || new Date().toISOString().split('T')[0],
           startYear: (() => {
             const dateElVal = document.getElementById('trans-date').value;
@@ -27759,6 +27765,15 @@ function setCustomDatePickerValue() {
       if (label) {
         label.textContent = `${dd}/${mm}/${yyyy}`;
       }
+      if (targetId === 'recurring-end-date') {
+        _pendingRecurringSettings.endDate = `${yyyy}-${mm}-${dd}`;
+        _pendingRecurringSettings.endType = 'date';
+        updateRecurringSummary();
+      } else if (targetId === 'recurring-edit-end') {
+        updateRecurringEditSummary();
+      } else if (targetId === 'recurring-edit-start') {
+        updateRecurringEditSummary();
+      }
     }
     dateInput.dispatchEvent(new Event('input', { bubbles: true }));
   }
@@ -29799,13 +29814,17 @@ function clearRecurringSettings(shouldCloseModal = true) {
 function saveRecurringSettings() {
   _pendingRecurringSettings.isActive = true;
   const lang = state.lang || 'el';
+  const hiddenInput = document.getElementById('recurring-end-date');
+  if (_pendingRecurringSettings.endType === 'date' && hiddenInput && hiddenInput.value) {
+    _pendingRecurringSettings.endDate = hiddenInput.value;
+  }
 
   if (_pendingRecurringSettings.templateId) {
     const template = (state.recurringTemplates || []).find(t => String(t.id) === String(_pendingRecurringSettings.templateId));
     if (template) {
       template.preset = _pendingRecurringSettings.preset || 'monthly';
       template.endType = _pendingRecurringSettings.endType || 'perpetual';
-      template.endDate = _pendingRecurringSettings.endDate || null;
+      template.endDate = (_pendingRecurringSettings.endType === 'date') ? (_pendingRecurringSettings.endDate || null) : null;
       template.endYear = _pendingRecurringSettings.endYear || null;
       template.months = Array.isArray(_pendingRecurringSettings.months) ? [..._pendingRecurringSettings.months] : [];
       template.days = Array.isArray(_pendingRecurringSettings.days) ? [..._pendingRecurringSettings.days] : [];
@@ -31795,10 +31814,21 @@ function openRecurringTemplatesModal() {
 
       let endDateLabel = '';
       if (t.endDate) {
-        const endD = new Date(t.endDate);
-        const formatOptions = { year: 'numeric', month: 'long' };
-        const formattedEnd = endD.toLocaleDateString(lang === 'el' ? 'el-GR' : 'en-US', formatOptions);
-        endDateLabel = lang === 'el' ? ` • Έως ${formattedEnd}` : ` • Until ${formattedEnd}`;
+        const parts = String(t.endDate).split('T')[0].split('-');
+        if (parts.length === 3) {
+          const dd = parts[2];
+          const mm = parts[1];
+          const yyyy = parts[0];
+          endDateLabel = lang === 'el' ? ` • Έως ${dd}/${mm}/${yyyy}` : ` • Until ${dd}/${mm}/${yyyy}`;
+        } else {
+          const endD = new Date(t.endDate);
+          if (!isNaN(endD.getTime())) {
+            const day = String(endD.getDate()).padStart(2, '0');
+            const month = String(endD.getMonth() + 1).padStart(2, '0');
+            const year = endD.getFullYear();
+            endDateLabel = lang === 'el' ? ` • Έως ${day}/${month}/${year}` : ` • Until ${day}/${month}/${year}`;
+          }
+        }
       }
 
       const itemHtml = `
