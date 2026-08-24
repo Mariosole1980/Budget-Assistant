@@ -518,8 +518,8 @@ public class MainActivity extends BridgeActivity {
 
     private void applySavedTheme() {
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-        String bgColor = prefs.getString(KEY_BG_COLOR, "#181b22"); // default dark
-        String statusBarColor = prefs.getString(KEY_STATUS_BAR_COLOR, "#222731");
+        String bgColor = prefs.getString(KEY_BG_COLOR, "#181b22"); // default dark bg-main
+        String statusBarColor = prefs.getString(KEY_STATUS_BAR_COLOR, "#181b22"); // Phase 3: status bar = bg-main
         String navBarColor = prefs.getString(KEY_NAV_BAR_COLOR, "#181b22");
         boolean isLight = prefs.getBoolean(KEY_IS_LIGHT, false);
 

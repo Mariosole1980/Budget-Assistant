@@ -21391,7 +21391,7 @@ function applyTheme(theme) {
   const metaThemeColor = document.querySelector('meta[name="theme-color"]');
   if (metaThemeColor) metaThemeColor.setAttribute('content', t.bgMain);
   const bgColor = t.bgMain;
-  const statusBarColor = t.bgCard;
+  const statusBarColor = bgColor; // Phase 3: status bar blends with body background (bg-main)
   const navBarColor = bgColor; // Match navigation bar to body background
   const isLight = !!t.isLight;
 

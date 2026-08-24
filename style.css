@@ -190,9 +190,9 @@ button:active,
   overflow-x: hidden;
 }
 
-/* Top App Bar Header */
+/* Top App Bar Header (Phase 3: blends with bg-main status bar) */
 .app-header {
-  background-color: var(--bg-card);
+  background-color: var(--bg-main);
   border-bottom: 1px solid var(--border);
   padding: 14px 16px;
   padding-top: calc(14px + env(safe-area-inset-top, 0px));
@@ -258,7 +258,7 @@ button:active,
   transform: translateX(-50%);
   width: 100%;
   max-width: 480px;
-  background-color: var(--bg-card);
+  background-color: var(--bg-main); /* Phase 3: blends with bg-main nav bar */
   border-top: 1px solid var(--border) !important;
   outline: none !important;
   display: flex;
@@ -276,7 +276,7 @@ button:active,
   left: 0;
   right: 0;
   height: 40px;
-  background-color: var(--bg-card);
+  background-color: var(--bg-main); /* Phase 3: blends with bg-main nav bar */
   transform: translateY(100%);
   pointer-events: none;
   z-index: -1;
