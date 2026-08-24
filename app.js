@@ -10815,6 +10815,29 @@ function toggleTransactionFormLock(locked) {
   }
 }
 
+function resolveRecurringTemplateForTx(tx) {
+  if (!tx) return null;
+  const templates = state.recurringTemplates || [];
+  if (tx.recurring_template_id) {
+    const found = templates.find(t => String(t.id) === String(tx.recurring_template_id));
+    if (found) return found;
+  }
+  const txAmount = (parseFloat(tx.amount) || 0).toFixed(2);
+  const txType = tx.type;
+  return templates.find(t => {
+    const tmAmount = (parseFloat(t.amount) || 0).toFixed(2);
+    return tmAmount === txAmount &&
+      t.type === txType &&
+      isSameCategory(t.category, tx.category);
+  }) || null;
+}
+window.resolveRecurringTemplateForTx = resolveRecurringTemplateForTx;
+
+function isTransactionRecurring(tx) {
+  return !!resolveRecurringTemplateForTx(tx);
+}
+window.isTransactionRecurring = isTransactionRecurring;
+
 function openAddTransactionModal({ instant = false } = {}) {
   if (typeof window.closeCalculatorKeypad === 'function') {
     window.closeCalculatorKeypad();
@@ -10822,7 +10845,11 @@ function openAddTransactionModal({ instant = false } = {}) {
 
   clearRecurringSettings(false);
   const repInstBtn = document.getElementById('btn-rep-inst');
-  if (repInstBtn) repInstBtn.style.display = 'flex';
+  if (repInstBtn) {
+    repInstBtn.style.display = 'flex';
+    resetRepInstButton();
+    repInstBtn.onclick = () => openRecurringModal();
+  }
 
   toggleTransactionFormLock(false);
   document.getElementById('transaction-form').reset();
@@ -10900,9 +10927,40 @@ function openEditTransactionModal(t, { instant = false } = {}) {
     window.closeCalculatorKeypad();
   }
 
-  clearRecurringSettings(false);
+  const recTemplate = resolveRecurringTemplateForTx(t);
   const repInstBtn = document.getElementById('btn-rep-inst');
-  if (repInstBtn) repInstBtn.style.display = 'none';
+  if (recTemplate && repInstBtn) {
+    _pendingRecurringSettings = {
+      isActive: true,
+      templateId: recTemplate.id,
+      preset: recTemplate.preset || 'monthly',
+      endType: recTemplate.endType || 'perpetual',
+      endDate: recTemplate.endDate || null,
+      endYear: recTemplate.endYear || null,
+      months: Array.isArray(recTemplate.months) ? [...recTemplate.months] : [],
+      days: Array.isArray(recTemplate.days) ? [...recTemplate.days] : []
+    };
+    repInstBtn.style.display = 'flex';
+    repInstBtn.style.background = '#3b82f6';
+    repInstBtn.style.color = '#ffffff';
+    repInstBtn.style.borderColor = '#3b82f6';
+    const isEl = (state.lang || 'el') === 'el';
+    const preset = recTemplate.preset || 'monthly';
+    let presetLabel = '';
+    if (preset === 'daily') presetLabel = isEl ? 'Ημερήσια' : 'Daily';
+    else if (preset === 'weekly') presetLabel = isEl ? 'Εβδομαδιαία' : 'Weekly';
+    else if (preset === 'monthly') presetLabel = isEl ? 'Μηνιαία' : 'Monthly';
+    else if (preset === 'yearly') presetLabel = isEl ? 'Ετήσια' : 'Yearly';
+    else if (preset === 'specific_months') presetLabel = isEl ? 'Μήνες' : 'Months';
+    else presetLabel = isEl ? 'Custom' : 'Custom';
+    repInstBtn.innerHTML = `<i class="fa-solid fa-arrows-spin"></i> ${isEl ? 'Επαναλαμβανόμενη' : 'Recurring'} (${presetLabel})`;
+    repInstBtn.onclick = () => {
+      openRecurringModal();
+    };
+  } else {
+    clearRecurringSettings(false);
+    if (repInstBtn) repInstBtn.style.display = 'none';
+  }
 
   const isFamilyMember = state.userProfile && state.userProfile.family_id;
   const isNotAdmin = state.userProfile && state.userProfile.role !== 'admin';
@@ -10945,7 +11003,7 @@ function openEditTransactionModal(t, { instant = false } = {}) {
   if (shouldLock) {
     document.getElementById('trans-delete-btn').style.display = 'none';
   } else {
-    document.getElementById('trans-delete-btn').style.display = 'block';
+    document.getElementById('trans-delete-btn').style.display = 'flex';
   }
 
   // Reset photo state and load existing photos if available
@@ -29673,9 +29731,35 @@ function clearRecurringSettings(shouldCloseModal = true) {
 
 function saveRecurringSettings() {
   _pendingRecurringSettings.isActive = true;
+  const lang = state.lang || 'el';
+
+  if (_pendingRecurringSettings.templateId) {
+    const template = (state.recurringTemplates || []).find(t => String(t.id) === String(_pendingRecurringSettings.templateId));
+    if (template) {
+      template.preset = _pendingRecurringSettings.preset || 'monthly';
+      template.endType = _pendingRecurringSettings.endType || 'perpetual';
+      template.endDate = _pendingRecurringSettings.endDate || null;
+      template.endYear = _pendingRecurringSettings.endYear || null;
+      template.months = Array.isArray(_pendingRecurringSettings.months) ? [..._pendingRecurringSettings.months] : [];
+      template.days = Array.isArray(_pendingRecurringSettings.days) ? [..._pendingRecurringSettings.days] : [];
+      template.updated_at = new Date().toISOString();
+      localStorage.setItem('recurring_templates', JSON.stringify(state.recurringTemplates));
+      if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
+        state.supabaseClient
+          .from('recurring_templates')
+          .upsert([mapTemplateToDb(template)])
+          .then(({ error }) => {
+            if (error) console.warn('Cloud recurring template update warning:', error);
+          });
+      }
+      processRecurringTemplates();
+      updateUI();
+      showSyncToast(lang === 'el' ? '✓ Οι ρυθμίσεις επανάληψης αποθηκεύτηκαν' : '✓ Recurring settings saved', 2500);
+    }
+  }
+
   const btn = document.getElementById('btn-rep-inst');
   if (btn) {
-    const lang = state.lang || 'el';
     const preset = _pendingRecurringSettings.preset || 'monthly';
 
     let presetLabel = '';
@@ -29689,7 +29773,8 @@ function saveRecurringSettings() {
     btn.style.background = '#3b82f6';
     btn.style.color = '#ffffff';
     btn.style.borderColor = '#3b82f6';
-    btn.innerHTML = `<i class="fa-solid fa-arrows-spin"></i> ${lang === 'el' ? 'Ενεργό' : 'Active'} (${presetLabel})`;
+    const isExisting = !!_pendingRecurringSettings.templateId;
+    btn.innerHTML = `<i class="fa-solid fa-arrows-spin"></i> ${isExisting ? (lang === 'el' ? 'Επαναλαμβανόμενη' : 'Recurring') : (lang === 'el' ? 'Ενεργό' : 'Active')} (${presetLabel})`;
   }
   closeModal('recurring-picker-modal');
 }
@@ -30383,6 +30468,11 @@ function submitCoachQuery(queryText) {
           }
         });
 
+        const currentYearStr = String(currentYear);
+        const ytdIncome = yearAgg[currentYearStr]?.income || 0;
+        const ytdExpense = yearAgg[currentYearStr]?.expense || 0;
+        const ytdNetBalance = ytdIncome - ytdExpense;
+
         const stats = {
           lang: state.lang,
           currentDate,
@@ -30391,6 +30481,10 @@ function submitCoachQuery(queryText) {
           currentBalance: pacing.totalBalance || 0,
           averageMonthlyIncome: pacing.avgIncome || 0,
           averageMonthlyExpense: pacing.avgExpense || 0,
+          averageMonthlyNetSavings: (pacing.avgIncome || 0) - (pacing.avgExpense || 0),
+          ytdCurrentYearIncome: ytdIncome,
+          ytdCurrentYearExpense: ytdExpense,
+          ytdCurrentYearNetBalance: ytdNetBalance,
           budgets: state.budgets || {},
           accounts,
           allTransactions,
@@ -31368,12 +31462,15 @@ function processCoachQuery(queryText) {
     return runCoachTargetMilestone(amt);
   }
 
+  const localizedAmt = typeof parseLocalizedAmount === 'function'
+    ? parseLocalizedAmount(queryText)
+    : (typeof window.parseLocalizedAmount === 'function' ? window.parseLocalizedAmount(queryText) : null);
+
   // 0. Action commands (add transaction)
   const isAddCommand = normQuery.includes('βαλε') || normQuery.includes('προσθεσε') || normQuery.includes('καταχωρησε') || normQuery.includes('χρεωσε') || normQuery.includes('ξοδεψα') || normQuery.includes('εδωσα') || normQuery.includes('πληρωσα') || normQuery.includes('χάλασα') || normQuery.includes('xalasa') || normQuery.includes('χάλασαμε') || normQuery.includes('xalasame') || normQuery.includes('add') || normQuery.includes('spent');
-  const numMatchAction = cleanQuery.replace(/\./g, '').match(/\d+/);
-  if (isAddCommand && numMatchAction) {
-    const amount = parseInt(numMatchAction[0], 10);
-    let noteText = queryText.replace(/\d+/g, '').replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?¿€]/g, '').trim();
+  if (isAddCommand && localizedAmt && localizedAmt > 0) {
+    const amount = localizedAmt;
+    let noteText = queryText.replace(/\d+(?:[.,]\d+)?/g, '').replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?¿€]/g, '').trim();
     const stopWords = ['βαλε', 'προσθεσε', 'καταχωρησε', 'χρεωσε', 'ξοδεψα', 'εδωσα', 'πληρωσα', 'χάλασα', 'xalasa', 'χάλασαμε', 'xalasame', 'ευρω', 'ευρω', 'euro', 'σε', 'στο', 'στην', 'στα', 'στον', 'για', 'απο', 'ενα', 'μια', 'add', 'spent', 'paid', 'for', 'on', 'euros'];
     const words = noteText.split(/\s+/).filter(w => w.length > 1 && !stopWords.includes(normalizeGreekString(w)));
     const cleanNote = words.join(' ') || '';
@@ -31405,11 +31502,10 @@ function processCoachQuery(queryText) {
   }
 
   // 2. What-If Simulator
-  const numMatch = cleanQuery.replace(/\./g, '').match(/\d+/);
   const isSimulation = normQuery.includes('αγορασ') || normQuery.includes('αγορα') || normQuery.includes('παρω') || normQuery.includes('buy') || normQuery.includes('purchase');
-  if (isSimulation && numMatch) {
-    const amount = parseInt(numMatch[0], 10);
-    let itemName = queryText.replace(/\d+/g, '').replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?¿€]/g, '').trim();
+  if (isSimulation && localizedAmt && localizedAmt > 0) {
+    const amount = localizedAmt;
+    let itemName = queryText.replace(/\d+(?:[.,]\d+)?/g, '').replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?¿€]/g, '').trim();
     const stopWords = ['αν', 'να', 'αγορασω', 'αγοράσω', 'παρω', 'πάρω', 'αγορα', 'αγορά', 'για', 'ευρω', 'ευρώ', 'euro', 'buy', 'purchase', 'a', 'an', 'the', 'what', 'if', 'i'];
     const words = itemName.split(/\s+/).filter(w => w.length > 2 && !stopWords.includes(normalizeGreekString(w)));
     const cleanItemName = words.join(' ') || null;
@@ -31417,10 +31513,9 @@ function processCoachQuery(queryText) {
   }
 
   // 3. Milestone Target
-  if (normQuery.includes('φτασω') || normQuery.includes('reach') || normQuery.includes('αποκτησω') || normQuery.includes('στοχο') || normQuery.includes('target') || normQuery.includes('μαζεψω') || normQuery.includes('εχω')) {
-    if (numMatch) {
-      const amt = parseInt(numMatch[0], 10);
-      return runCoachTargetMilestone(amt);
+  if (normQuery.includes('φτασω') || normQuery.includes('reach') || normQuery.includes('αποκτησω') || normQuery.includes('στοχο') || normQuery.includes('target') || normQuery.includes('μαζεψω') || normQuery.includes('εχω') || normQuery.includes('στην ακρη')) {
+    if (localizedAmt && localizedAmt > 0) {
+      return runCoachTargetMilestone(localizedAmt);
     }
   }
 

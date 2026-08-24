@@ -1834,16 +1834,59 @@ body.is-ios .modal-content {
 }
 
 .modal-header {
-  padding: 16px;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  padding: 14px 16px;
   border-bottom: 1px solid var(--border);
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 8px;
+  overflow: hidden;
 }
 
 .modal-title {
   font-size: 16px;
   font-weight: 700;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#transaction-modal .modal-header {
+  box-sizing: border-box !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  padding: 12px 16px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 8px !important;
+  flex-shrink: 0 !important;
+  overflow: hidden !important;
+}
+
+#transaction-modal #modal-trans-title {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  text-align: center !important;
+  margin: 0 !important;
+}
+
+#transaction-modal #trans-delete-btn {
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  min-height: 36px !important;
+  flex-shrink: 0 !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
 }
 
 .modal-close {

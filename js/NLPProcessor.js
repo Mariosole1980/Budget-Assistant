@@ -1,4 +1,4 @@
-window.NLPProcessor = (function () {
+(function (root) {
   const INTENT_CORPORA = {
     add_transaction: ["βαλε", "εδωσα", "εσκασα", "πληρωσα", "εφυγαν", "γεμισα", "αγορασα", "πηρα", "εφαγα", "ξοδεψα", "add", "spent"],
     affordability: ["μπορω", "αντεχω", "να παρω", "φτανουν", "βγαινω", "εξω", "afford", "buy"],
@@ -54,12 +54,50 @@ window.NLPProcessor = (function () {
     return { intent: bestIntent, confidence: intentScore > 0 ? 80 : 0 };
   }
 
+  function parseLocalizedAmount(rawStr) {
+    if (!rawStr) return null;
+    let s = rawStr.toString().trim();
+
+    // Check for "k" or "χιλ" multiplier e.g. "50k", "50 k", "50χιλ", "50 χιλιάδες"
+    const kMatch = s.match(/(\d+(?:[.,]\d+)?)\s*(?:k|χιλ|χιλιαδες|χιλιάδες|thousand)/i);
+    if (kMatch) {
+      const base = parseFloat(kMatch[1].replace(',', '.'));
+      if (!isNaN(base)) return base * 1000;
+    }
+
+    // Extract number candidate string e.g. "50.000,50" or "50,000.00" or "50.000" or "50000" or "50,50"
+    const candidateMatch = s.match(/\d{1,3}(?:[.,]\d{3})*(?:[.,]\d+)?|\d+(?:[.,]\d+)?/);
+    if (!candidateMatch) return null;
+    let numStr = candidateMatch[0];
+
+    // Case 1: EU thousands with dot and optional decimal comma: e.g. "50.000" or "1.500.000" or "50.000,50"
+    if (/^\d{1,3}(\.\d{3})+(,\d+)?$/.test(numStr)) {
+      numStr = numStr.replace(/\./g, '').replace(',', '.');
+      const val = parseFloat(numStr);
+      return isNaN(val) ? null : val;
+    }
+
+    // Case 2: US thousands with comma and optional decimal dot: e.g. "50,000" or "1,500,000" or "50,000.50"
+    if (/^\d{1,3}(,\d{3})+(\.\d+)?$/.test(numStr)) {
+      numStr = numStr.replace(/,/g, '');
+      const val = parseFloat(numStr);
+      return isNaN(val) ? null : val;
+    }
+
+    // Case 3: Simple decimal with comma: e.g. "50,50"
+    if (/^\d+,\d+$/.test(numStr)) {
+      numStr = numStr.replace(',', '.');
+      const val = parseFloat(numStr);
+      return isNaN(val) ? null : val;
+    }
+
+    // Case 4: Standard integer or float: e.g. "50" or "50000" or "50.5"
+    const val = parseFloat(numStr.replace(',', '.'));
+    return isNaN(val) ? null : val;
+  }
+
   function extractEntities(queryText, intent) {
-    // Extract the amount BEFORE stripping decimal separators so "12.50" / "12,50"
-    // is parsed correctly instead of becoming "1250". Match an optional integer
-    // part plus an optional decimal part (dot or comma), then parseFloat.
-    const numMatch = queryText.match(/\d+(?:[.,]\d+)?/);
-    const amount = numMatch ? parseFloat(numMatch[0].replace(',', '.')) : null;
+    const amount = parseLocalizedAmount(queryText);
     let merchant = null;
 
     if (intent === 'add_transaction') {
@@ -71,8 +109,15 @@ window.NLPProcessor = (function () {
     return { amount, merchant, note: merchant };
   }
 
-  return {
+  root.parseLocalizedAmount = parseLocalizedAmount;
+  const instance = {
     detectIntent,
-    extractEntities
+    extractEntities,
+    parseLocalizedAmount
   };
-})();
+
+  root.NLPProcessor = instance;
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = instance;
+  }
+})(typeof window !== 'undefined' ? window : global);
