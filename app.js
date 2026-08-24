@@ -11695,22 +11695,36 @@ function selectSubcategory(name) {
   closeModal('subcategory-picker-modal');
 }
 
+function openEditCategoryDialog(categoryName, type) {
+  const cat = state.categories.find(c => c.name === categoryName);
+  if (!cat) return;
 
-function showSubcatUndoSnackbar(message, undoCallback) {
-  let snackbar = document.getElementById('subcat-undo-snackbar');
-  if (!snackbar) {
-    snackbar = document.createElement('div');
-    snackbar.id = 'subcat-undo-snackbar';
-    snackbar.style.cssText = `
-      position: fixed; bottom: 24px; left: 50%; transform: translate(-50%, 80px); z-index: 99999;
-      background: #2a2c3a; color: var(--text-primary, #fff);
-      border: 1px solid var(--border, rgba(255,255,255,0.08)); border-radius: 16px;
-      padding: 12px 20px; font-size: 13.5px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-      display: flex; align-items: center; justify-content: space-between; gap: 16px;
-      opacity: 0;
-      transition: transform 0.3s cubic-bezier(.34,1.56,.64,1), opacity 0.3s ease;
-      wi  renderCategoryIconDialog('all', '');
+  editingCategoryName = categoryName;
+  newCategoryDialogType = type;
+
+  const visual = (typeof getCategoryVisual === 'function')
+    ? getCategoryVisual(cat, type)
+    : { iconClass: 'fa-solid fa-shapes', color: '#f59e0b' };
+
+  newCategorySelectedIcon = visual.iconClass || 'fa-solid fa-shapes';
+  newCategorySelectedColor = cat.color || visual.color || '#f59e0b';
+
+  const dialog = document.getElementById('new-category-inline-dialog');
+  const nameInput = document.getElementById('new-cat-name-input');
+  const titleEl = document.getElementById('new-cat-dialog-title');
+  const searchInput = document.getElementById('new-cat-icon-search');
+
+  if (!dialog || !nameInput) return;
+
+  if (titleEl) {
+    titleEl.textContent = state.lang === 'el' ? 'Επεξεργασία Κατηγορίας' : 'Edit Category';
+  }
+
+  if (searchInput) searchInput.value = '';
+  nameInput.value = getCategoryDisplayName(categoryName);
+  nameInput.placeholder = state.lang === 'el' ? 'Όνομα κατηγορίας' : 'Category name';
+
+  renderCategoryIconDialog('all', '');
 
   const saveBtn = dialog.querySelector('.btn-primary');
   if (saveBtn) saveBtn.textContent = state.lang === 'el' ? 'Αποθήκευση' : 'Save';
@@ -11924,252 +11938,6 @@ function saveNewCategoryFromPicker() {
         });
     } catch (e) {
       console.warn('Cloud category insert catch:', e);
-    }
-  }earchInput) searchInput.value = '';
-  nameInput.value = getCategoryDisplayName(categoryName);
-  nameInput.placeholder = state.lang === 'el' ? 'Όνομα κατηγορίας' : 'Category name';
-
-      btn.onclick = () => {
-        newCategorySelectedEmoji = emoji;
-        emojiGrid.querySelectorAll('span').forEach(s => {
-          s.style.borderColor = 'transparent';
-          s.style.background = 'transparent';
-        });
-        btn.style.borderColor = 'var(--accent)';
-        btn.style.background = 'var(--accent-light)';
-      };
-      emojiGrid.appendChild(btn);
-    });
-  }
-
-  const saveBtn = dialog.querySelector('.btn-primary');
-  if (saveBtn) saveBtn.textContent = state.lang === 'el' ? 'Αποθήκευση' : 'Save';
-  const cancelBtn = dialog.querySelector('.btn-secondary');
-  if (cancelBtn) cancelBtn.textContent = state.lang === 'el' ? 'Άκυρο' : 'Cancel';
-
-  renderEditCategorySubcategories(categoryName);
-  dialog.style.display = 'block';
-  nameInput.focus();
-}
-
-
-function openNewCategoryDialog(type) {
-  editingCategoryName = null; // ensure we are in create mode
-  newCategoryDialogType = type;
-  newCategorySelectedEmoji = type === 'income' ? '💰' : '💸';
-
-  const dialog = document.getElementById('new-category-inline-dialog');
-  const nameInput = document.getElementById('new-cat-name-input');
-  const titleEl = document.getElementById('new-cat-dialog-title');
-
-  if (!dialog || !nameInput) return;
-
-  // Update title based on type
-  if (titleEl) {
-    titleEl.textContent = type === 'income'
-      ? (state.lang === 'el' ? 'Νέα Κατηγορία Εσόδου' : 'New Income Category')
-      : (state.lang === 'el' ? 'Νέα Κατηγορία Εξόδου' : 'New Expense Category');
-  }
-
-  nameInput.value = '';
-  nameInput.placeholder = state.lang === 'el' ? 'Όνομα κατηγορίας' : 'Category name';
-
-  // Render emoji grid
-  const emojiGrid = document.getElementById('new-cat-emoji-grid');
-  if (emojiGrid) {
-    emojiGrid.innerHTML = '';
-    EMOJI_OPTIONS.forEach(emoji => {
-      const btn = document.createElement('span');
-      btn.textContent = emoji;
-      btn.style.cssText = `font-size:22px; padding:6px 8px; cursor:pointer; border-radius:8px; transition:all 0.15s; border:2px solid ${emoji === newCategorySelectedEmoji ? 'var(--accent)' : 'transparent'}; background:${emoji === newCategorySelectedEmoji ? 'var(--accent-light)' : 'transparent'};`;
-      btn.onclick = () => {
-        newCategorySelectedEmoji = emoji;
-        emojiGrid.querySelectorAll('span').forEach(s => {
-          s.style.borderColor = 'transparent';
-          s.style.background = 'transparent';
-        });
-        btn.style.borderColor = 'var(--accent)';
-        btn.style.background = 'var(--accent-light)';
-      };
-      emojiGrid.appendChild(btn);
-    });
-  }
-
-  // Update save button text
-  const saveBtn = dialog.querySelector('.btn-primary');
-  if (saveBtn) {
-    saveBtn.textContent = state.lang === 'el' ? 'Αποθήκευση' : 'Save';
-  }
-  const cancelBtn = dialog.querySelector('.btn-secondary');
-  if (cancelBtn) {
-    cancelBtn.textContent = state.lang === 'el' ? 'Άκυρο' : 'Cancel';
-  }
-
-  renderEditCategorySubcategories(null);
-  dialog.style.display = 'block';
-  nameInput.focus();
-}
-
-function closeNewCategoryDialog() {
-  const dialog = document.getElementById('new-category-inline-dialog');
-  if (dialog) dialog.style.display = 'none';
-  newCategoryDialogType = 'expense';
-  newCategorySelectedEmoji = '💸';
-  editingCategoryName = null;
-  renderEditCategorySubcategories(null);
-}
-
-function saveNewCategoryFromPicker() {
-  const nameInput = document.getElementById('new-cat-name-input');
-  const name = nameInput ? nameInput.value.trim() : '';
-
-  if (!name) {
-    alert(TRANSLATIONS[state.lang]['alert_enter_category_name']);
-    return;
-  }
-
-  // === EDIT MODE: Update existing category ===
-  if (editingCategoryName) {
-    const cat = state.categories.find(c => c.name === editingCategoryName);
-    if (!cat) {
-      closeNewCategoryDialog();
-      return;
-    }
-
-    const oldName = cat.name;
-    const currentDisplayName = getCategoryDisplayName(oldName);
-    const nameChanged = name !== currentDisplayName;
-    const iconChanged = newCategorySelectedEmoji !== cat.icon;
-
-    if (!nameChanged && !iconChanged) {
-      closeNewCategoryDialog();
-      return;
-    }
-
-    // Check for name collision with another category (only if name changed)
-    if (nameChanged) {
-      const collision = state.categories.find(c => c.name !== oldName && getCategoryDisplayName(c.name).toLowerCase() === name.toLowerCase() && c.type === cat.type);
-      if (collision) {
-        alert(state.lang === 'el' ? 'Υπάρχει ήδη κατηγορία με αυτό το όνομα!' : 'A category with this name already exists!');
-        return;
-      }
-    }
-
-    const now = new Date().toISOString();
-    cat.name = name;
-    cat.icon = newCategorySelectedEmoji;
-    cat.updated_at = now;
-
-    // Update transactions using old name
-    let transactionsUpdated = 0;
-    if (nameChanged) {
-      state.transactions.forEach(t => {
-        if (t.category === oldName) {
-          t.category = name;
-          transactionsUpdated++;
-        }
-      });
-      if (transactionsUpdated > 0) {
-        localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
-      }
-    }
-
-    saveCategoriesToStorage();
-
-    // Cloud sync
-    if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
-      try {
-        if (nameChanged) {
-          // Delete old, insert new
-          state.supabaseClient.from('categories').delete().match({ user_id: state.currentUser.id, name: oldName })
-            .then(() => {
-              state.supabaseClient.from('categories').insert({
-                id: cat.id || (typeof generateUUID === 'function' ? generateUUID() : crypto.randomUUID()),
-                user_id: state.currentUser.id,
-                family_id: state.userProfile ? state.userProfile.family_id : null,
-                name: cat.name,
-                type: cat.type,
-                icon: cat.icon,
-                color: cat.color,
-                hidden: !!cat.hidden,
-                created_at: cat.created_at || now,
-                updated_at: now
-              }).then(({ error }) => { if (error) console.warn('Cloud category rename insert warning:', error); });
-            });
-          if (transactionsUpdated > 0) {
-            state.supabaseClient.from('transactions').update({ category: name }).match({ user_id: state.currentUser.id, category: oldName })
-              .then(({ error }) => { if (error) console.warn('Cloud transactions rename warning:', error); });
-          }
-        } else {
-          // Only icon / details changed
-          state.supabaseClient.from('categories').update({
-            icon: cat.icon,
-            color: cat.color,
-            hidden: !!cat.hidden,
-            updated_at: now
-          }).match({ user_id: state.currentUser.id, name: cat.name })
-            .then(({ error }) => { if (error) console.warn('Cloud category update warning:', error); });
-        }
-      } catch (e) {
-        console.warn('Cloud category edit sync failed:', e);
-      }
-    }
-
-    closeNewCategoryDialog();
-    updateCategoryDropdowns(newCategoryDialogType, true);
-    updateUI();
-    showSyncToast(state.lang === 'el' ? '✓ Κατηγορία ενημερώθηκε' : '✓ Category updated', 2000);
-    return;
-  }
-
-  // === CREATE MODE: New category ===
-  // Check for duplicate
-  const exists = state.categories.find(c =>
-    c.name && c.name.toUpperCase() === name.toUpperCase()
-  );
-  if (exists) {
-    alert(TRANSLATIONS[state.lang]['alert_category_exists']);
-    return;
-  }
-
-  // Create new category
-  const now = new Date().toISOString();
-  const newCategory = {
-    id: typeof generateUUID === 'function' ? generateUUID() : crypto.randomUUID(),
-    name: name,
-    type: newCategoryDialogType,
-    icon: newCategorySelectedEmoji,
-    color: getRandomColor(),
-    user_id: state.currentUser ? state.currentUser.id : null,
-    family_id: state.userProfile ? state.userProfile.family_id : null,
-    created_at: now,
-    updated_at: now
-  };
-
-  state.categories.push(newCategory);
-  saveCategoriesToStorage();
-
-  // Sync to cloud if enabled
-  if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
-    try {
-      state.supabaseClient
-        .from('categories')
-        .insert({
-          id: newCategory.id,
-          user_id: state.currentUser.id,
-          family_id: state.userProfile ? state.userProfile.family_id : null,
-          name: newCategory.name,
-          type: newCategory.type,
-          icon: newCategory.icon,
-          color: newCategory.color,
-          created_at: newCategory.created_at,
-          updated_at: newCategory.updated_at
-        })
-        .then(({ error }) => {
-          if (error) console.warn('Cloud category insert warning:', error);
-        });
-    } catch (e) {
-      console.warn('Cloud category insert failed:', e);
     }
   }
 
