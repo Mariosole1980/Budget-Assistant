@@ -19142,10 +19142,16 @@ async function deleteNote(noteId) {
   if (!note) return;
 
   // Move the note into the local trash bin (kept even when offline).
+  // updated_at mirrors deleted_at so the local tombstone and the cloud tombstone
+  // (written below) agree on WHEN the note was deleted. Without this, a later
+  // LWW merge could read the stale updated_at as "edited after deletion" and
+  // resurrect the note from the cloud.
+  const deletedAt = new Date().toISOString();
   const deletedNote = {
     ...note,
     status: 'deleted',
-    deleted_at: new Date().toISOString(),
+    updated_at: deletedAt,
+    deleted_at: deletedAt,
     deleted_by: state.currentUser ? state.currentUser.id : null
   };
   const trash = loadNotesTrash();
@@ -19341,14 +19347,33 @@ async function syncNotes() {
 
     const { merged, notesToUpsert, tombstones } = mergeNotes(state.notes, remoteNotes);
 
-    state.notes = merged;
+    // The local trash bin is authoritative on this device: a note that was
+    // soft-deleted here must NOT come back into the active list, even if the
+    // remote copy is still active (e.g. the delete happened while offline or in
+    // guest mode and its tombstone never reached the cloud). Without this guard
+    // the very next sync resurrects trashed notes back into the Notes tab.
+    const trash = loadNotesTrash();
+    const trashById = new Map(trash.map(t => [String(t.id), t]));
+    const resurrected = [];
+    const activeNotes = [];
+    merged.forEach(n => {
+      const localTomb = trashById.get(String(n.id));
+      if (localTomb) {
+        // Remember the remote note's last-update time for the conflict check
+        // when we decide whether to re-assert the tombstone on the cloud.
+        resurrected.push({ tomb: localTomb, remoteUpdatedAt: n.updated_at || n.created_at });
+      } else {
+        activeNotes.push(n);
+      }
+    });
+
+    state.notes = activeNotes;
     saveNotes();
     renderNotesList();
 
     // Fold any remote tombstones into the local trash bin so a note deleted on
     // another device shows up here too.
     if (tombstones.length > 0) {
-      const trash = loadNotesTrash();
       const trashIds = new Set(trash.map(t => String(t.id)));
       tombstones.forEach(t => {
         if (!trashIds.has(String(t.id))) {
@@ -19359,8 +19384,30 @@ async function syncNotes() {
       saveNotesTrash(trash);
     }
 
-    if (notesToUpsert.length > 0) {
-      const records = notesToUpsert.map(n => mapNoteToDb(n, userId, state.userProfile ? state.userProfile.family_id : null));
+    // Push local changes (dirty active notes) plus re-asserted tombstones so the
+    // cloud ends up in the same state as this device. A tombstone is re-asserted
+    // only when this device's delete is newer than the remote note's last update
+    // (a newer edit/restore made on another device wins instead and is not
+    // clobbered — it stays out of the local active list all the same).
+    const familyId = state.userProfile ? state.userProfile.family_id : null;
+    const records = notesToUpsert.map(n => mapNoteToDb(n, userId, familyId));
+    if (resurrected.length > 0) {
+      const now = new Date().toISOString();
+      resurrected.forEach(({ tomb, remoteUpdatedAt }) => {
+        if (!tomb || !tomb.id) return;
+        const tombTime = new Date(tomb.deleted_at || tomb.updated_at || 0).getTime();
+        const remoteTime = new Date(remoteUpdatedAt || 0).getTime();
+        if (tombTime < remoteTime) return; // remote is newer — don't clobber
+        records.push(mapNoteToDb({
+          ...tomb,
+          status: 'deleted',
+          updated_at: now,
+          deleted_at: tomb.deleted_at || now,
+          deleted_by: tomb.deleted_by || userId
+        }, userId, familyId));
+      });
+    }
+    if (records.length > 0) {
       const { error: upsertError } = await state.supabaseClient
         .from('notes')
         .upsert(records);
@@ -19435,9 +19482,13 @@ async function restoreNote(noteId) {
   restored.status = 'active';
   restored.updated_at = new Date().toISOString();
 
-  // Remove from trash, add back to active list immediately
+  // Remove from trash, add back to active list immediately.
   saveNotesTrash(trash.filter(t => String(t.id) !== String(noteId)));
   if (!state.notes) state.notes = [];
+  // Defensive dedupe: if the note somehow already exists in the active list
+  // (e.g. restored on another device while it was still sitting in this trash),
+  // drop the old copy first so we never render two entries for one note.
+  state.notes = state.notes.filter(n => String(n.id) !== String(noteId));
   state.notes.push(restored);
   saveNotes();
   renderNotesList();
