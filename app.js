@@ -10937,37 +10937,42 @@ function openEditTransactionModal(t, { instant = false } = {}) {
 
   const recTemplate = resolveRecurringTemplateForTx(t);
   const repInstBtn = document.getElementById('btn-rep-inst');
-  if (recTemplate && repInstBtn) {
-    _pendingRecurringSettings = {
-      isActive: true,
-      templateId: recTemplate.id,
-      preset: recTemplate.preset || 'monthly',
-      endType: recTemplate.endType || 'perpetual',
-      endDate: recTemplate.endDate || null,
-      endYear: recTemplate.endYear || null,
-      months: Array.isArray(recTemplate.months) ? [...recTemplate.months] : [],
-      days: Array.isArray(recTemplate.days) ? [...recTemplate.days] : []
-    };
+  if (repInstBtn) {
     repInstBtn.style.display = 'flex';
-    repInstBtn.style.background = '#3b82f6';
-    repInstBtn.style.color = '#ffffff';
-    repInstBtn.style.borderColor = '#3b82f6';
-    const isEl = (state.lang || 'el') === 'el';
-    const preset = recTemplate.preset || 'monthly';
-    let presetLabel = '';
-    if (preset === 'daily') presetLabel = isEl ? 'Ημερήσια' : 'Daily';
-    else if (preset === 'weekly') presetLabel = isEl ? 'Εβδομαδιαία' : 'Weekly';
-    else if (preset === 'monthly') presetLabel = isEl ? 'Μηνιαία' : 'Monthly';
-    else if (preset === 'yearly') presetLabel = isEl ? 'Ετήσια' : 'Yearly';
-    else if (preset === 'specific_months') presetLabel = isEl ? 'Μήνες' : 'Months';
-    else presetLabel = isEl ? 'Custom' : 'Custom';
-    repInstBtn.innerHTML = `<i class="fa-solid fa-arrows-spin"></i> ${isEl ? 'Επαναλαμβανόμενη' : 'Recurring'} (${presetLabel})`;
-    repInstBtn.onclick = () => {
-      openRecurringModal();
-    };
-  } else {
-    clearRecurringSettings(false);
-    if (repInstBtn) repInstBtn.style.display = 'none';
+    if (recTemplate) {
+      _pendingRecurringSettings = {
+        isActive: true,
+        templateId: recTemplate.id,
+        preset: recTemplate.preset || 'monthly',
+        endType: recTemplate.endType || 'perpetual',
+        endDate: recTemplate.endDate || null,
+        endYear: recTemplate.endYear || null,
+        months: Array.isArray(recTemplate.months) ? [...recTemplate.months] : [],
+        days: Array.isArray(recTemplate.days) ? [...recTemplate.days] : []
+      };
+      repInstBtn.style.background = '#3b82f6';
+      repInstBtn.style.color = '#ffffff';
+      repInstBtn.style.borderColor = '#3b82f6';
+      const isEl = (state.lang || 'el') === 'el';
+      const preset = recTemplate.preset || 'monthly';
+      let presetLabel = '';
+      if (preset === 'daily') presetLabel = isEl ? 'Ημερήσια' : 'Daily';
+      else if (preset === 'weekly') presetLabel = isEl ? 'Εβδομαδιαία' : 'Weekly';
+      else if (preset === 'monthly') presetLabel = isEl ? 'Μηνιαία' : 'Monthly';
+      else if (preset === 'yearly') presetLabel = isEl ? 'Ετήσια' : 'Yearly';
+      else if (preset === 'specific_months') presetLabel = isEl ? 'Μήνες' : 'Months';
+      else presetLabel = isEl ? 'Custom' : 'Custom';
+      repInstBtn.innerHTML = `<i class="fa-solid fa-arrows-rotate"></i> ${isEl ? 'Επαναλαμβανόμενη' : 'Recurring'} (${presetLabel})`;
+      repInstBtn.onclick = () => {
+        openRecurringModal();
+      };
+    } else {
+      clearRecurringSettings(false);
+      resetRepInstButton();
+      repInstBtn.onclick = () => {
+        openRecurringModal();
+      };
+    }
   }
 
   const isFamilyMember = state.userProfile && state.userProfile.family_id;
@@ -29775,7 +29780,7 @@ function saveRecurringSettings() {
     btn.style.color = '#ffffff';
     btn.style.borderColor = '#3b82f6';
     const isExisting = !!_pendingRecurringSettings.templateId;
-    btn.innerHTML = `<i class="fa-solid fa-arrows-spin"></i> ${isExisting ? (lang === 'el' ? 'Επαναλαμβανόμενη' : 'Recurring') : (lang === 'el' ? 'Ενεργό' : 'Active')} (${presetLabel})`;
+    btn.innerHTML = `<i class="fa-solid fa-arrows-rotate"></i> ${isExisting ? (lang === 'el' ? 'Επαναλαμβανόμενη' : 'Recurring') : (lang === 'el' ? 'Ενεργό' : 'Active')} (${presetLabel})`;
   }
   closeModal('recurring-picker-modal');
 }
@@ -29786,7 +29791,7 @@ function resetRepInstButton() {
     btn.style.background = 'rgba(59, 130, 246, 0.15)';
     btn.style.color = '#3b82f6';
     btn.style.borderColor = 'rgba(59, 130, 246, 0.35)';
-    btn.innerHTML = `<i class="fa-solid fa-arrows-spin"></i> Rep/Inst.`;
+    btn.innerHTML = `<i class="fa-solid fa-arrows-rotate"></i> Rep/Inst.`;
   }
 }
 
@@ -30299,14 +30304,24 @@ function handleAdvisorChatKeydown(e) {
 
 function submitCoachQuery(queryText) {
   let userDisplay = queryText;
+  let actualQuery = queryText;
   if (queryText === 'overspending') {
     userDisplay = state.lang === 'el' ? "Πού ξοδεύω υπερβολικά;" : "Where am I overspending?";
+    actualQuery = userDisplay;
   } else if (queryText === 'savings') {
     userDisplay = state.lang === 'el' ? "Πώς μπορώ να αποταμιεύσω περισσότερο;" : "How can I save more?";
+    actualQuery = userDisplay;
   } else if (queryText === 'forecast_5y') {
     userDisplay = state.lang === 'el' ? "Αν συνεχίσω έτσι, πού θα είμαι σε 5 χρόνια;" : "If I continue like this, where will I be in 5 years?";
-  } else if (queryText === 'milestone_50k') {
+    actualQuery = userDisplay;
+  } else if (queryText === 'milestone_50k' || queryText === 'milestone_50000') {
     userDisplay = state.lang === 'el' ? "Πότε θα φτάσω τα 50.000€;" : "When will I reach €50,000?";
+    actualQuery = userDisplay;
+  } else if (queryText.startsWith('milestone_')) {
+    let amtStr = queryText.replace('milestone_', '');
+    let num = amtStr.endsWith('k') ? (parseFloat(amtStr) * 1000) : (parseInt(amtStr, 10) || 50000);
+    userDisplay = state.lang === 'el' ? `Πότε θα φτάσω τα ${formatCurrency(num)};` : `When will I reach ${formatCurrency(num)}?`;
+    actualQuery = userDisplay;
   }
 
   // Ensure an active conversation exists (e.g. when a suggestion chip is tapped from the list view)
@@ -30339,14 +30354,13 @@ function submitCoachQuery(queryText) {
   // Execute immediately without artificial delays
   (async () => {
     // 1. Check if we should use Online AI (Gemini)
-    const isHardcodedCmd = ['overspending', 'savings', 'forecast_5y'].includes(queryText) || queryText.startsWith('milestone_');
-    const norm = normalizeGreekString(queryText);
+    const norm = normalizeGreekString(actualQuery);
     const isLocalReport = norm.includes('προϋπολογισμ') || norm.includes('οριο') || norm.includes('ορια') || norm.includes('που ξοδευω τα περισσοτερα') || norm.includes('που ξοδευω τα') || norm.includes('που πανε τα λεφτα') || norm.includes('μεγαλυτερα εξοδα') || norm.includes('top spending');
 
     // Premium gate: only ONLINE advisor calls count toward the fair-use limit.
     // If the user is at their limit, skip the online call and fall through to
     // the free offline NLP fallback below (never leave the user without an answer).
-    const aiAllowed = (!isHardcodedCmd && !isLocalReport && window.OnlineAIProvider)
+    const aiAllowed = (!isLocalReport && window.OnlineAIProvider)
       ? await canUseOnlineAI()
       : false;
 
@@ -30514,7 +30528,7 @@ function submitCoachQuery(queryText) {
         // request body stays well under the server's 64 KB limit even if a large
         // history was loaded from a persisted conversation.
         const advisorHistory = state.advisorChatHistory.slice(-12);
-        const data = await window.OnlineAIProvider.processAdvisorQuery(queryText, stats, advisorHistory);
+        const data = await window.OnlineAIProvider.processAdvisorQuery(actualQuery, stats, advisorHistory);
 
         // Remove typing indicator AFTER fetch completes
         const temp = document.querySelector('.typing-temp');
@@ -30544,7 +30558,7 @@ function submitCoachQuery(queryText) {
           appendChatMessage('advisor', data.responseHtml);
 
           // Append to history
-          state.advisorChatHistory.push({ role: 'user', content: queryText });
+          state.advisorChatHistory.push({ role: 'user', content: actualQuery });
           state.advisorChatHistory.push({ role: 'model', content: data.responseHtml });
           if (state.advisorChatHistory.length > 12) {
             state.advisorChatHistory = state.advisorChatHistory.slice(-12);
@@ -30552,7 +30566,7 @@ function submitCoachQuery(queryText) {
           // Persist Gemini context to the active conversation
           persistAdvisorGeminiHistory(state.advisorChatHistory);
           const isExplicitAddIntent = data.classifiedIntent === 'add_transaction' || (function () {
-            const nq = normalizeGreekString(queryText);
+            const nq = normalizeGreekString(actualQuery);
             const hasAddVerb = nq.includes('βαλε') || nq.includes('προσθεσε') || nq.includes('καταχωρησε') || nq.includes('χρεωσε') || nq.includes('πληρωσα') || nq.includes('ξοδεψα') || nq.startsWith('add ') || nq.includes('spent ');
             const isQuestion = nq.includes('ποτε') || nq.includes('ποσα') || nq.includes('ποσο') || nq.includes('θα φτασω') || nq.includes('θα εχω') || nq.includes('when') || nq.includes('how much');
             return hasAddVerb && !isQuestion;
@@ -30632,7 +30646,7 @@ function submitCoachQuery(queryText) {
     if (temp) temp.remove();
 
     // 2. Offline Fallback
-    const responseHtml = processCoachQuery(queryText);
+    const responseHtml = processCoachQuery(actualQuery);
     appendChatMessage('advisor', responseHtml);
 
     if (suggestions) suggestions.style.display = 'block';
@@ -31455,17 +31469,21 @@ function processCoachQuery(queryText) {
   const normQuery = normalizeGreekString(queryText);
   const cleanQuery = queryText.toLowerCase().trim();
 
-  if (cleanQuery === 'overspending') {
+  if (cleanQuery === 'overspending' || normQuery.includes('υπερβολικα')) {
     return runCoachOverspendingAnalysis();
   }
-  if (cleanQuery === 'savings') {
+  if (cleanQuery === 'savings' || normQuery.includes('αποταμιευσω')) {
     return runCoachSavingsAdvice();
   }
-  if (cleanQuery === 'forecast_5y') {
+  if (cleanQuery === 'forecast_5y' || normQuery.includes('5 χρονια') || normQuery.includes('5 ετη')) {
     return runCoachFiveYearForecast();
   }
+  if (cleanQuery === 'milestone_50k' || cleanQuery === 'milestone_50000') {
+    return runCoachTargetMilestone(50000);
+  }
   if (cleanQuery.startsWith('milestone_')) {
-    const amt = parseInt(cleanQuery.replace('milestone_', ''), 10) || 50000;
+    let amtStr = cleanQuery.replace('milestone_', '');
+    const amt = amtStr.endsWith('k') ? (parseFloat(amtStr) * 1000) : (parseInt(amtStr, 10) || 50000);
     return runCoachTargetMilestone(amt);
   }
 

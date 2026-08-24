@@ -65,10 +65,13 @@
       if (!isNaN(base)) return base * 1000;
     }
 
-    // Extract number candidate string e.g. "50.000,50" or "50,000.00" or "50.000" or "50000" or "50,50"
-    const candidateMatch = s.match(/\d{1,3}(?:[.,]\d{3})*(?:[.,]\d+)?|\d+(?:[.,]\d+)?/);
-    if (!candidateMatch) return null;
-    let numStr = candidateMatch[0];
+    // Extract raw number tokens (strip currency symbols and trailing words)
+    // Matches patterns like: 1.500.000,50 | 1,500,000.50 | 50.000 | 50,000 | 50000 | 50,50 | 50.50 | 50
+    const matches = s.match(/\d+(?:[.,]\d+)*/g);
+    if (!matches || matches.length === 0) return null;
+
+    // Pick the longest number token
+    let numStr = matches.reduce((a, b) => (b.length > a.length ? b : a), matches[0]);
 
     // Case 1: EU thousands with dot and optional decimal comma: e.g. "50.000" or "1.500.000" or "50.000,50"
     if (/^\d{1,3}(\.\d{3})+(,\d+)?$/.test(numStr)) {
@@ -85,7 +88,7 @@
     }
 
     // Case 3: Simple decimal with comma: e.g. "50,50"
-    if (/^\d+,\d+$/.test(numStr)) {
+    if (/^\d+,\d{1,2}$/.test(numStr)) {
       numStr = numStr.replace(',', '.');
       const val = parseFloat(numStr);
       return isNaN(val) ? null : val;
