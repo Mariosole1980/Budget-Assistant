@@ -11565,6 +11565,9 @@ function inlineRenameCategory(categoryName, type) {
 
 window.inlineRenameCategory = inlineRenameCategory;
 window.openEditCategoryDialog = openEditCategoryDialog;
+window.openNewCategoryDialog = openNewCategoryDialog;
+window.closeNewCategoryDialog = closeNewCategoryDialog;
+window.openCategoryModal = openCategoryModal;
 
 let lastRenderedCategoryType = null;
 let lastRenderedCategoryEditMode = null;
@@ -11698,89 +11701,108 @@ function selectSubcategory(name) {
   closeModal('subcategory-picker-modal');
 }
 
+function openCategoryModal() {
+  if (window.autocompleteJustSelected) return;
+  const form = document.getElementById('transaction-form');
+  if (form && form.getAttribute('data-readonly') === 'true') return;
+  const activeTypeTab = document.querySelector('.type-tab-btn.active');
+  const currentType = activeTypeTab ? activeTypeTab.getAttribute('data-type') : 'expense';
+
+  // Reset edit mode on modal open
+  categoryPickerEditMode = false;
+  const btn = document.getElementById('btn-toggle-cat-edit');
+  if (btn) {
+    btn.textContent = state.lang === 'el' ? 'Διαχείριση' : 'Manage';
+    btn.style.borderColor = 'var(--border)';
+    btn.style.color = 'var(--text-secondary)';
+  }
+
+  // Force update to prevent any stale flash or lag when switching tabs
+  updateCategoryDropdowns(currentType, true);
+  closeNewCategoryDialog(); // Reset dialog state
+  openModal('category-picker-modal');
+}
+
 function openEditCategoryDialog(categoryName, type) {
   const cat = state.categories.find(c => c.name === categoryName);
   if (!cat) return;
 
   editingCategoryName = categoryName;
-  newCategoryDialogType = type;
+  newCategoryDialogType = type || cat.type || 'expense';
 
   const visual = (typeof getCategoryVisual === 'function')
-    ? getCategoryVisual(cat, type)
+    ? getCategoryVisual(cat, newCategoryDialogType)
     : { iconClass: 'fa-solid fa-shapes', color: '#f59e0b' };
 
   newCategorySelectedIcon = visual.iconClass || 'fa-solid fa-shapes';
   newCategorySelectedColor = cat.color || visual.color || '#f59e0b';
 
-  const dialog = document.getElementById('new-category-inline-dialog');
   const nameInput = document.getElementById('new-cat-name-input');
   const titleEl = document.getElementById('new-cat-dialog-title');
   const searchInput = document.getElementById('new-cat-icon-search');
-
-  if (!dialog || !nameInput) return;
 
   if (titleEl) {
     titleEl.textContent = state.lang === 'el' ? 'Επεξεργασία Κατηγορίας' : 'Edit Category';
   }
 
   if (searchInput) searchInput.value = '';
-  nameInput.value = getCategoryDisplayName(categoryName);
-  nameInput.placeholder = state.lang === 'el' ? 'Όνομα κατηγορίας' : 'Category name';
+  if (nameInput) {
+    nameInput.value = getCategoryDisplayName(categoryName);
+    nameInput.placeholder = state.lang === 'el' ? 'Όνομα κατηγορίας' : 'Category name';
+  }
 
   renderCategoryIconDialog('all', '');
 
-  const saveBtn = dialog.querySelector('.btn-primary');
+  const saveBtn = document.querySelector('#category-editor-modal .btn-primary');
   if (saveBtn) saveBtn.textContent = state.lang === 'el' ? 'Αποθήκευση' : 'Save';
-  const cancelBtn = dialog.querySelector('.btn-secondary');
+  const cancelBtn = document.querySelector('#category-editor-modal .btn-secondary');
   if (cancelBtn) cancelBtn.textContent = state.lang === 'el' ? 'Άκυρο' : 'Cancel';
 
   renderEditCategorySubcategories(categoryName);
-  dialog.style.display = 'block';
-  nameInput.focus();
+  openModal('category-editor-modal');
+  if (nameInput) setTimeout(() => nameInput.focus(), 150);
 }
 
 function openNewCategoryDialog(type) {
   editingCategoryName = null; // ensure we are in create mode
-  newCategoryDialogType = type;
-  newCategorySelectedIcon = type === 'income' ? 'fa-solid fa-wallet' : 'fa-solid fa-basket-shopping';
-  newCategorySelectedColor = type === 'income' ? '#4caf50' : '#f59e0b';
+  newCategoryDialogType = type || (window._categoryManagerType || 'expense');
+  newCategorySelectedIcon = newCategoryDialogType === 'income' ? 'fa-solid fa-wallet' : 'fa-solid fa-basket-shopping';
+  newCategorySelectedColor = newCategoryDialogType === 'income' ? '#4caf50' : '#f59e0b';
 
-  const dialog = document.getElementById('new-category-inline-dialog');
   const nameInput = document.getElementById('new-cat-name-input');
   const titleEl = document.getElementById('new-cat-dialog-title');
   const searchInput = document.getElementById('new-cat-icon-search');
 
-  if (!dialog || !nameInput) return;
-
   if (titleEl) {
-    titleEl.textContent = type === 'income'
+    titleEl.textContent = newCategoryDialogType === 'income'
       ? (state.lang === 'el' ? 'Νέα Κατηγορία Εσόδου' : 'New Income Category')
       : (state.lang === 'el' ? 'Νέα Κατηγορία Εξόδου' : 'New Expense Category');
   }
 
   if (searchInput) searchInput.value = '';
-  nameInput.value = '';
-  nameInput.placeholder = state.lang === 'el' ? 'Όνομα κατηγορίας' : 'Category name';
+  if (nameInput) {
+    nameInput.value = '';
+    nameInput.placeholder = state.lang === 'el' ? 'Όνομα κατηγορίας' : 'Category name';
+  }
 
   renderCategoryIconDialog('all', '');
 
-  const saveBtn = dialog.querySelector('.btn-primary');
+  const saveBtn = document.querySelector('#category-editor-modal .btn-primary');
   if (saveBtn) {
     saveBtn.textContent = state.lang === 'el' ? 'Αποθήκευση' : 'Save';
   }
-  const cancelBtn = dialog.querySelector('.btn-secondary');
+  const cancelBtn = document.querySelector('#category-editor-modal .btn-secondary');
   if (cancelBtn) {
     cancelBtn.textContent = state.lang === 'el' ? 'Άκυρο' : 'Cancel';
   }
 
   renderEditCategorySubcategories(null);
-  dialog.style.display = 'block';
-  nameInput.focus();
+  openModal('category-editor-modal');
+  if (nameInput) setTimeout(() => nameInput.focus(), 150);
 }
 
 function closeNewCategoryDialog() {
-  const dialog = document.getElementById('new-category-inline-dialog');
-  if (dialog) dialog.style.display = 'none';
+  closeModal('category-editor-modal');
   newCategoryDialogType = 'expense';
   newCategorySelectedIcon = 'fa-solid fa-basket-shopping';
   newCategorySelectedColor = '#f59e0b';
