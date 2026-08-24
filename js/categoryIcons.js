@@ -100,7 +100,7 @@
     { id: 'plane', icon: 'fa-solid fa-plane', library: 'transport', keywords: ['plane', 'αεροπλάνο', 'πτήση', 'ταξίδι', 'flight', 'travel'] },
     { id: 'plane-departure', icon: 'fa-solid fa-plane-departure', library: 'transport', keywords: ['flight', 'αναχώρηση', 'αεροδρόμιο', 'vacation'] },
     { id: 'motorcycle', icon: 'fa-solid fa-motorcycle', library: 'transport', keywords: ['moto', 'μηχανή', 'μηχανάκι', 'scooter'] },
-    { id: 'scooter', icon: '🛴', library: 'transport', keywords: ['scooter', 'πατίνι', 'ηλεκτρικό πατίνι', 'monopatin', 'micro'] },
+    { id: 'scooter', icon: 'fa-solid fa-scooter', library: 'transport', keywords: ['scooter', 'πατίνι', 'ηλεκτρικό πατίνι', 'monopatin', 'micro'] },
     { id: 'bicycle', icon: 'fa-solid fa-bicycle', library: 'transport', keywords: ['bike', 'ποδήλατο', 'cycling'] },
     { id: 'taxi', icon: 'fa-solid fa-taxi', library: 'transport', keywords: ['taxi', 'ταξί', 'uber', 'freenow'] },
     { id: 'ship', icon: 'fa-solid fa-ship', library: 'transport', keywords: ['ship', 'πλοίο', 'καράβι', 'ακτοπλοϊκά', 'ferry'] },
@@ -278,6 +278,7 @@
     '🍔': 'fa-solid fa-burger',
     '🛒': 'fa-solid fa-basket-shopping',
     '🚗': 'fa-solid fa-car-side',
+    '🛴': 'fa-solid fa-scooter',
     '❤️': 'fa-solid fa-heart-pulse',
     '🎓': 'fa-solid fa-graduation-cap',
     '🎉': 'fa-solid fa-icons',
@@ -576,17 +577,25 @@
   }
 
   /**
-   * True when an icon value is a FontAwesome class (renders as <i>), false when it is
-   * an emoji/glyph (renders as text — e.g. the 🛴 scooter, which has no FA Free icon).
+   * Custom Vector Icon Path for Kick-Scooter / Electric Scooter
+   * Conforms to Font Awesome 6 Solid grid specifications (512x512, solid fill, currentColor).
+   */
+  const SCOOTER_SVG_PATH = 'M344 32c-8.8 0-16 7.2-16 16v16h-40c-8.8 0-16 7.2-16 16s7.2 16 16 16h40v14.4l-34.9 232.8c-1.3 8.7 4.7 16.8 13.4 18.1s16.8-4.7 18.1-13.4l33.2-221.9H384c8.8 0 16-7.2 16-16s-7.2-16-16-16h-24V48c0-8.8-7.2-16-16-16zM112 336c-44.2 0-80 35.8-80 80s35.8 80 80 80 80-35.8 80-80c0-6.9-.9-13.6-2.5-20H344c8.8 0 16-7.2 16-16s-7.2-16-16-16H183.1c-14.8-14.8-35.2-24-57.1-24h-14zm288 0c-44.2 0-80 35.8-80 80s35.8 80 80 80 80-35.8 80-80s-35.8-80-80-80zm0 48a32 32 0 1 1 0 64 32 32 0 1 1 0-64zm-288 0a32 32 0 1 1 0 64 32 32 0 1 1 0-64z';
+
+  /**
+   * True when an icon value is a vector icon class (FontAwesome or custom SVG).
    */
   function isVectorIcon(iconClass) {
-    return !!iconClass && String(iconClass).startsWith('fa-');
+    return !!iconClass && (String(iconClass).startsWith('fa-') || iconClass === 'scooter');
   }
 
   /**
-   * Renders a single icon glyph (FontAwesome <i> or emoji text <span>).
+   * Renders a single icon glyph (FontAwesome <i>, Custom SVG, or emoji text <span>).
    */
   function renderIconGlyph(iconClass, customClass = '', extraStyle = '') {
+    if (iconClass === 'fa-solid fa-scooter' || iconClass === 'fa-scooter' || iconClass === 'scooter') {
+      return `<svg class="fa-svg-icon ${customClass}" viewBox="0 0 512 512" fill="currentColor" style="width: 1em; height: 1em; vertical-align: -0.125em; display: inline-block;" ${extraStyle} aria-hidden="true"><path d="${SCOOTER_SVG_PATH}"/></svg>`;
+    }
     if (isVectorIcon(iconClass)) {
       return `<i class="${iconClass} ${customClass}" ${extraStyle}></i>`;
     }

@@ -19,30 +19,29 @@ test('categoryIcons registry contains 216 icons and all FA icons exist in CSS', 
     assert.ok(item.library, 'item must have library');
     assert.ok(Array.isArray(item.keywords) && item.keywords.length > 0, 'item must have keywords');
 
-    // Emoji glyphs (e.g. the 🛴 scooter) are intentional — FA Free 6.4.0 has no vector
-    // icon for a scooter, so they render as emoji text via renderIconGlyph.
     if (String(item.icon).startsWith('fa-')) {
       const iconClass = item.icon.replace('fa-solid ', '').trim();
-      assert.ok(availableIcons.has(iconClass), `Icon class ${iconClass} must exist in fontawesome.min.css`);
-    } else {
-      assert.equal(BACategoryIcons.isVectorIcon(item.icon), false, `${item.icon} should be treated as an emoji glyph`);
+      if (iconClass !== 'fa-scooter') {
+        assert.ok(availableIcons.has(iconClass), `Icon class ${iconClass} must exist in fontawesome.min.css`);
+      }
     }
   });
 });
 
-test('categoryIcons scooter emoji is preserved and rendered as a glyph', () => {
+test('categoryIcons scooter is rendered as a clean vector SVG icon', () => {
   const scooter = BACategoryIcons.CATEGORY_ICON_REGISTRY.find(i => i.id === 'scooter');
   assert.ok(scooter, 'scooter entry must exist in the transport library');
-  assert.equal(scooter.icon, '🛴');
+  assert.equal(scooter.icon, 'fa-solid fa-scooter');
   assert.equal(scooter.library, 'transport');
 
   const visual = BACategoryIcons.getCategoryVisual({ icon: '🛴', name: 'ΠΑΤΙΝΙ' }, 'expense');
-  assert.equal(visual.iconClass, '🛴');
+  assert.equal(visual.iconClass, 'fa-solid fa-scooter');
   assert.equal(visual.color, '#ffa726');
 
   const badge = BACategoryIcons.renderCategoryIconHtml({ icon: '🛴', name: 'ΠΑΤΙΝΙ' }, { size: 'sm' });
-  assert.ok(badge.includes('<span'), 'emoji icon should render inside a <span>');
-  assert.ok(!badge.includes('<i class="🛴"'), 'emoji icon must NOT render as an <i class>');
+  assert.ok(badge.includes('<svg'), 'scooter icon should render as vector SVG');
+  assert.ok(badge.includes('viewBox="0 0 512 512"'), 'vector icon must have 512x512 viewBox');
+  assert.ok(badge.includes('fill="currentColor"'), 'vector icon must use currentColor');
 });
 
 test('categoryIcons search works in both Greek and English', () => {
