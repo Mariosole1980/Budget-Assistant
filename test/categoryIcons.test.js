@@ -38,16 +38,39 @@ test('categoryIcons search works in both Greek and English', () => {
 test('getCategoryVisual resolves legacy emojis, FA classes, and custom strings', () => {
   const burgerVisual = BACategoryIcons.getCategoryVisual('🍔 Τρόφιμα');
   assert.equal(burgerVisual.iconClass, 'fa-solid fa-burger');
+  assert.equal(burgerVisual.color, '#ffb300');
 
   const carVisual = BACategoryIcons.getCategoryVisual('🚗 Μεταφορές');
   assert.equal(carVisual.iconClass, 'fa-solid fa-car-side');
+  assert.equal(carVisual.color, '#ffa726');
 
   const superVisual = BACategoryIcons.getCategoryVisual('🛒 Σούπερ Μάρκετ');
   assert.equal(superVisual.iconClass, 'fa-solid fa-basket-shopping');
+  assert.equal(superVisual.color, '#f59e0b');
 
   const directFa = BACategoryIcons.getCategoryVisual({ icon: 'fa-solid fa-pizza-slice', color: '#ffb300' });
   assert.equal(directFa.iconClass, 'fa-solid fa-pizza-slice');
   assert.equal(directFa.color, '#ffb300');
+
+  // Plain strings from real user transactions
+  const housePlain = BACategoryIcons.getCategoryVisual('ΣΠΙΤΙ');
+  assert.equal(housePlain.iconClass, 'fa-solid fa-house');
+  assert.equal(housePlain.color, '#e05e55');
+
+  const healthPlain = BACategoryIcons.getCategoryVisual('ΥΓΕΙΑ');
+  assert.equal(healthPlain.iconClass, 'fa-solid fa-heart-pulse');
+  assert.equal(healthPlain.color, '#ef5350');
+
+  const foodPlain = BACategoryIcons.getCategoryVisual('ΔΙΑΤΡΟΦΗ');
+  assert.equal(foodPlain.iconClass, 'fa-solid fa-burger');
+  assert.equal(foodPlain.color, '#ffb300');
+
+  const autoPlain = BACategoryIcons.getCategoryVisual('ΑΥΤΟΚΙΝΗΤΟ');
+  assert.equal(autoPlain.iconClass, 'fa-solid fa-car-side');
+  assert.equal(autoPlain.color, '#ffa726');
+
+  const extraIncome = BACategoryIcons.getCategoryVisual('ΕΞΤΡΑ ΕΙΣΟΔΗΜΑ', 'income');
+  assert.equal(extraIncome.color, '#ffb300');
 });
 
 test('renderCategoryIconHtml produces valid HTML with neon glow styling', () => {
@@ -55,4 +78,5 @@ test('renderCategoryIconHtml produces valid HTML with neon glow styling', () => 
   assert.ok(html.includes('cat-vector-badge'));
   assert.ok(html.includes('fa-solid fa-burger'));
   assert.ok(html.includes('40px'));
+  assert.ok(html.includes('color: #ffb300'));
 });

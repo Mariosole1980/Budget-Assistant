@@ -345,6 +345,53 @@
     });
   }
 
+  // Default color map for emojis / categories
+  const EMOJI_DEFAULT_COLOR_MAP = {
+    '🛒': '#f59e0b',
+    '🍔': '#ffb300',
+    '🏠': '#e05e55',
+    '🚗': '#ffa726',
+    '❤️': '#ef5350',
+    '🎓': '#2196f3',
+    '🎉': '#26a69a',
+    '👕': '#7e57c2',
+    '📱': '#ec407a',
+    '🧾': '#26c6da',
+    '📦': '#5c6bc0',
+    '💼': '#4caf50',
+    '💸': '#ffb300',
+    '📈': '#8bc34a',
+    '🎁': '#66bb6a',
+    '💰': '#607d8b',
+    '➕': '#00bcd4',
+    '🏋️': '#ff7043',
+    '🚇': '#ab47bc',
+    '💻': '#5c6bc0',
+    '🎬': '#ec407a',
+    '🧩': '#7c6af7',
+    '🤑': '#4caf50',
+    '💶': '#4caf50',
+    '🏛️': '#26c6da',
+    '🏅': '#ffb300',
+    '👨': '#42a5f5',
+    '💵': '#4caf50',
+    '🔧': '#78909c',
+    '⭐': '#ffb300',
+    '🔥': '#ff5722',
+    '🎯': '#ef5350',
+    '☕': '#8d6e63',
+    '🎵': '#ab47bc',
+    '✈️': '#00bcd4',
+    '🏖️': '#ffb300',
+    '📚': '#2196f3',
+    '🐶': '#ff9800',
+    '🌱': '#4caf50',
+    '💡': '#ffeb3b',
+    '🗂️': '#607d8b',
+    '🛠️': '#78909c',
+    '🎮': '#9c27b0'
+  };
+
   /**
    * Universal Category Visual Resolver
    * Resolves category objects, legacy strings, or custom names into
@@ -363,75 +410,143 @@
       rawName = categoryInput;
     }
 
-    const fallbackColor = transType === 'income' ? '#4caf50' : (transType === 'transfer' ? '#3b82f6' : '#78909c');
-    const color = rawColor || '#78909c';
-    const bgGlow = hexToRgba(color, 0.14);
+    const norm = normalizeSearchText(rawName);
+
+    // 0. Search in known user/system categories (state.categories or DEFAULT_CATEGORIES)
+    const allKnown = [];
+    if (typeof state !== 'undefined' && Array.isArray(state.categories)) {
+      allKnown.push(...state.categories);
+    } else if (typeof window !== 'undefined' && window.state && Array.isArray(window.state.categories)) {
+      allKnown.push(...window.state.categories);
+    }
+    if (typeof DEFAULT_CATEGORIES !== 'undefined' && Array.isArray(DEFAULT_CATEGORIES)) {
+      allKnown.push(...DEFAULT_CATEGORIES);
+    } else if (typeof window !== 'undefined' && window.DEFAULT_CATEGORIES && Array.isArray(window.DEFAULT_CATEGORIES)) {
+      allKnown.push(...window.DEFAULT_CATEGORIES);
+    }
+
+    if (rawName && allKnown.length > 0) {
+      const match = allKnown.find(c => {
+        if (!c || !c.name) return false;
+        if (c.name === rawName) return true;
+        const cNorm = normalizeSearchText(c.name);
+        if (cNorm === norm) return true;
+        const cleanA = cNorm.replace(/^[\s\S]*?([a-z0-9α-ωά-ώ]+.*)$/i, '$1');
+        const cleanB = norm.replace(/^[\s\S]*?([a-z0-9α-ωά-ώ]+.*)$/i, '$1');
+        return cleanA && cleanA === cleanB;
+      });
+      if (match) {
+        if (!rawIcon && match.icon) rawIcon = match.icon;
+        if (!rawColor && match.color) rawColor = match.color;
+      }
+    }
 
     // 1. If explicit FontAwesome class provided in icon field
     if (rawIcon && rawIcon.startsWith('fa-')) {
       const fullClass = rawIcon.startsWith('fa-solid ') ? rawIcon : `fa-solid ${rawIcon}`;
-      return { iconClass: fullClass, color, bgGlow, rawName };
+      const color = rawColor || (transType === 'income' ? '#4caf50' : (transType === 'transfer' ? '#3b82f6' : '#7c6af7'));
+      return { iconClass: fullClass, color, bgGlow: hexToRgba(color, 0.15), rawName };
     }
 
     // 2. If emoji in icon field
     if (rawIcon && EMOJI_TO_FA_MAP[rawIcon]) {
-      return { iconClass: EMOJI_TO_FA_MAP[rawIcon], color, bgGlow, rawName };
+      const color = rawColor || EMOJI_DEFAULT_COLOR_MAP[rawIcon] || (transType === 'income' ? '#4caf50' : '#7c6af7');
+      return { iconClass: EMOJI_TO_FA_MAP[rawIcon], color, bgGlow: hexToRgba(color, 0.15), rawName };
     }
 
     // 3. Extract leading emoji from category name string (e.g. "🚗 ΜΕΤΑΦΟΡΕΣ")
     const leadingEmojiMatch = rawName.match(/^([\uD800-\uDBFF][\uDC00-\uDFFF]|\uD83C[\uDF00-\uDFFF]|\uD83D[\uDC00-\uDE4F]|\uD83D[\uDE80-\uDEFF]|[\u2600-\u27BF]|\uD83E[\uDD00-\uDDFF])/);
     if (leadingEmojiMatch && EMOJI_TO_FA_MAP[leadingEmojiMatch[0]]) {
-      return { iconClass: EMOJI_TO_FA_MAP[leadingEmojiMatch[0]], color, bgGlow, rawName };
+      const emoji = leadingEmojiMatch[0];
+      const color = rawColor || EMOJI_DEFAULT_COLOR_MAP[emoji] || (transType === 'income' ? '#4caf50' : '#7c6af7');
+      return { iconClass: EMOJI_TO_FA_MAP[emoji], color, bgGlow: hexToRgba(color, 0.15), rawName };
     }
 
     // 4. Match cleaned category name by keywords
-    const norm = normalizeSearchText(rawName);
     if (norm) {
-      if (norm.includes('σουπερ') || norm.includes('supermarket') || norm.includes('μαρκετ')) {
-        return { iconClass: 'fa-solid fa-basket-shopping', color: color || '#f59e0b', bgGlow, rawName };
+      if (norm.includes('σουπερ') || norm.includes('supermarket') || norm.includes('μαρκετ') || norm.includes('παντοπωλ') || norm.includes('μπακαλ')) {
+        const color = rawColor || '#f59e0b';
+        return { iconClass: 'fa-solid fa-basket-shopping', color, bgGlow: hexToRgba(color, 0.15), rawName };
       }
-      if (norm.includes('φαγητο') || norm.includes('food') || norm.includes('τροφιμα') || norm.includes('delivery')) {
-        return { iconClass: 'fa-solid fa-burger', color: color || '#ffb300', bgGlow, rawName };
+      if (norm.includes('φαγητο') || norm.includes('food') || norm.includes('τροφιμ') || norm.includes('διατροφ') || norm.includes('delivery') || norm.includes('εστιατορ') || norm.includes('ταβερν') || norm.includes('σουβλακ') || norm.includes('πιτσα') || norm.includes('pizza') || norm.includes('burger') || norm.includes('καφε') || norm.includes('coffee') || norm.includes('bar') || norm.includes('ποτο') || norm.includes('γλυκ') || norm.includes('φουρν') || norm.includes('bakery') || norm.includes('μαναβικ') || norm.includes('κρεοπωλ') || norm.includes('ψαραδικ')) {
+        const color = rawColor || '#ffb300';
+        return { iconClass: 'fa-solid fa-burger', color, bgGlow: hexToRgba(color, 0.15), rawName };
       }
-      if (norm.includes('σπιτι') || norm.includes('home') || norm.includes('ενοικιο') || norm.includes('rent')) {
-        return { iconClass: 'fa-solid fa-house', color: color || '#e05e55', bgGlow, rawName };
+      if (norm.includes('σπιτι') || norm.includes('home') || norm.includes('house') || (norm.includes('ενοικι') && transType !== 'income') || norm.includes('rent') || norm.includes('δεη') || norm.includes('ρευμα') || norm.includes('κοινοχρηστ') || norm.includes('νερο') || norm.includes('ευδαπ') || norm.includes('ιντερνετ') || norm.includes('τηλεφων') || norm.includes('cosmote') || norm.includes('vodafone') || norm.includes('nova') || norm.includes('καθαριστικ') || norm.includes('επιπλ')) {
+        const color = rawColor || '#e05e55';
+        return { iconClass: 'fa-solid fa-house', color, bgGlow: hexToRgba(color, 0.15), rawName };
       }
-      if (norm.includes('μεταφορ') || norm.includes('transport') || norm.includes('αυτοκινητ') || norm.includes('car')) {
-        return { iconClass: 'fa-solid fa-car-side', color: color || '#ffa726', bgGlow, rawName };
+      if (norm.includes('μεταφορ') || norm.includes('transport') || norm.includes('αυτοκινητ') || norm.includes('car') || norm.includes('βενζιν') || norm.includes('καυσιμ') || norm.includes('gas') || norm.includes('διοδι') || norm.includes('parking') || norm.includes('παρκινγκ') || norm.includes('ταξι') || norm.includes('taxi') || norm.includes('μετρο') || norm.includes('λεωφορει') || norm.includes('συνεργει') || norm.includes('ελαστικ') || norm.includes('λαστιχ') || norm.includes('κτεο') || norm.includes('τελη κυκλοφοριας')) {
+        const color = rawColor || '#ffa726';
+        return { iconClass: 'fa-solid fa-car-side', color, bgGlow: hexToRgba(color, 0.15), rawName };
       }
-      if (norm.includes('υγει') || norm.includes('health') || norm.includes('γιατρ') || norm.includes('φαρμακ')) {
-        return { iconClass: 'fa-solid fa-heart-pulse', color: color || '#ef5350', bgGlow, rawName };
+      if (norm.includes('υγει') || norm.includes('health') || norm.includes('γιατρ') || norm.includes('doctor') || norm.includes('φαρμακ') || norm.includes('pharmacy') || norm.includes('νοσοκομ') || norm.includes('οδοντιατρ') || norm.includes('ιατρ') || norm.includes('εξετασ') || norm.includes('θεραπει')) {
+        const color = rawColor || '#ef5350';
+        return { iconClass: 'fa-solid fa-heart-pulse', color, bgGlow: hexToRgba(color, 0.15), rawName };
       }
-      if (norm.includes('μισθο') || norm.includes('salary') || norm.includes('εργασια') || norm.includes('δουλει')) {
-        return { iconClass: 'fa-solid fa-briefcase', color: color || '#4caf50', bgGlow, rawName };
+      if (norm.includes('μισθο') || norm.includes('salary') || norm.includes('εργασι') || norm.includes('δουλει') || norm.includes('πληρωμ') || norm.includes('αμοιβ') || norm.includes('wage')) {
+        const color = rawColor || '#4caf50';
+        return { iconClass: 'fa-solid fa-briefcase', color, bgGlow: hexToRgba(color, 0.15), rawName };
       }
-      if (norm.includes('αγορ') || norm.includes('shopping') || norm.includes('ρουχ')) {
-        return { iconClass: 'fa-solid fa-bag-shopping', color: color || '#7e57c2', bgGlow, rawName };
+      if (norm.includes('bonus') || norm.includes('μπονουσ') || norm.includes('εξτρα') || norm.includes('extra') || norm.includes('freelance') || norm.includes('πωλησ') || norm.includes('sale') || norm.includes('εσοδ') || norm.includes('income')) {
+        const color = rawColor || (transType === 'income' ? '#ffb300' : '#4caf50');
+        return { iconClass: 'fa-solid fa-award', color, bgGlow: hexToRgba(color, 0.15), rawName };
       }
-      if (norm.includes('συνδρομ') || norm.includes('subscription') || norm.includes('netflix') || norm.includes('spotify')) {
-        return { iconClass: 'fa-solid fa-film', color: color || '#ec407a', bgGlow, rawName };
+      if (norm.includes('ενοικι') || norm.includes('rent')) {
+        const color = rawColor || '#00bcd4';
+        return { iconClass: 'fa-solid fa-key', color, bgGlow: hexToRgba(color, 0.15), rawName };
       }
-      if (norm.includes('φορο') || norm.includes('tax') || norm.includes('λογιστ')) {
-        return { iconClass: 'fa-solid fa-receipt', color: color || '#26c6da', bgGlow, rawName };
+      if (norm.includes('αγορ') || norm.includes('shopping') || norm.includes('ρουχ') || norm.includes('clothes') || norm.includes('παπουτσι') || norm.includes('shoes') || norm.includes('zara') || norm.includes('attica') || norm.includes('mall') || norm.includes('skroutz') || norm.includes('amazon') || norm.includes('dhl') || norm.includes('courier')) {
+        const color = rawColor || '#7e57c2';
+        return { iconClass: 'fa-solid fa-bag-shopping', color, bgGlow: hexToRgba(color, 0.15), rawName };
       }
-      if (norm.includes('επενδυσ') || norm.includes('invest')) {
-        return { iconClass: 'fa-solid fa-chart-line', color: color || '#8bc34a', bgGlow, rawName };
+      if (norm.includes('συνδρομ') || norm.includes('subscription') || norm.includes('netflix') || norm.includes('spotify') || norm.includes('youtube') || norm.includes('icloud') || norm.includes('google') || norm.includes('apple') || norm.includes('disney') || norm.includes('τηλεορασ') || norm.includes('tv')) {
+        const color = rawColor || '#ec407a';
+        return { iconClass: 'fa-solid fa-film', color, bgGlow: hexToRgba(color, 0.15), rawName };
       }
-      if (norm.includes('δωρ') || norm.includes('gift')) {
-        return { iconClass: 'fa-solid fa-gift', color: color || '#66bb6a', bgGlow, rawName };
+      if (norm.includes('τεχνολογ') || norm.includes('tech') || norm.includes('υπολογιστ') || norm.includes('laptop') || norm.includes('pc') || norm.includes('κινητο') || norm.includes('gadget') || norm.includes('πληροφορικ')) {
+        const color = rawColor || '#5c6bc0';
+        return { iconClass: 'fa-solid fa-laptop', color, bgGlow: hexToRgba(color, 0.15), rawName };
       }
-      if (norm.includes('διασκεδασ') || norm.includes('fun') || norm.includes('εξοδ')) {
-        return { iconClass: 'fa-solid fa-icons', color: color || '#26a69a', bgGlow, rawName };
+      if (norm.includes('φορο') || norm.includes('tax') || norm.includes('εφορι') || norm.includes('λογιστ') || norm.includes('ικα') || norm.includes('εφκα') || norm.includes('παραβολ') || norm.includes('δημοσ')) {
+        const color = rawColor || '#26c6da';
+        return { iconClass: 'fa-solid fa-receipt', color, bgGlow: hexToRgba(color, 0.15), rawName };
+      }
+      if (norm.includes('εκπαιδευσ') || norm.includes('education') || norm.includes('σχολ') || norm.includes('school') || norm.includes('φροντιστηρ') || norm.includes('πανεπιστημ') || norm.includes('παιδ') || norm.includes('kids') || norm.includes('κατοικιδι') || norm.includes('pet') || norm.includes('σκυλ') || norm.includes('γατ') || norm.includes('κτηνιατρ')) {
+        const color = rawColor || '#2196f3';
+        return { iconClass: 'fa-solid fa-graduation-cap', color, bgGlow: hexToRgba(color, 0.15), rawName };
+      }
+      if (norm.includes('επενδυσ') || norm.includes('invest') || norm.includes('μετοχ') || norm.includes('stock') || norm.includes('crypto') || norm.includes('ibkr') || norm.includes('τοκ') || norm.includes('interest') || norm.includes('μερισμ')) {
+        const color = rawColor || '#8bc34a';
+        return { iconClass: 'fa-solid fa-chart-line', color, bgGlow: hexToRgba(color, 0.15), rawName };
+      }
+      if (norm.includes('δωρ') || norm.includes('gift') || norm.includes('δωρεα') || norm.includes('χριστουγενν') || norm.includes('γενεθλι')) {
+        const color = rawColor || '#66bb6a';
+        return { iconClass: 'fa-solid fa-gift', color, bgGlow: hexToRgba(color, 0.15), rawName };
+      }
+      if (norm.includes('διασκεδασ') || norm.includes('fun') || norm.includes('γυμναστηρ') || norm.includes('gym') || norm.includes('αθλητισμ') || norm.includes('sport') || norm.includes('σινεμα') || norm.includes('cinema') || norm.includes('θεατρ') || norm.includes('hobby') || norm.includes('παιχνιδ') || norm.includes('game') || norm.includes('διακοπ') || norm.includes('vacation') || norm.includes('ταξιδ') || norm.includes('travel') || norm.includes('ξενοδοχει') || norm.includes('hotel') || norm.includes('εξοδ')) {
+        const color = rawColor || '#26a69a';
+        return { iconClass: 'fa-solid fa-icons', color, bgGlow: hexToRgba(color, 0.15), rawName };
+      }
+      if (norm.includes('διαφορ') || norm.includes('misc') || norm.includes('αλλο') || norm.includes('other')) {
+        const color = rawColor || '#78909c';
+        return { iconClass: 'fa-solid fa-shapes', color, bgGlow: hexToRgba(color, 0.15), rawName };
       }
     }
 
     // 5. Default Fallbacks by transaction type
-    let defaultClass = 'fa-solid fa-shapes';
-    if (transType === 'income') defaultClass = 'fa-solid fa-wallet';
-    else if (transType === 'transfer') defaultClass = 'fa-solid fa-arrow-right-arrow-left';
-    else defaultClass = 'fa-solid fa-tag';
+    let defaultClass = 'fa-solid fa-tag';
+    let defaultColor = '#7c6af7';
+    if (transType === 'income') {
+      defaultClass = 'fa-solid fa-wallet';
+      defaultColor = '#4caf50';
+    } else if (transType === 'transfer') {
+      defaultClass = 'fa-solid fa-arrow-right-arrow-left';
+      defaultColor = '#3b82f6';
+    }
 
-    return { iconClass: defaultClass, color: color || fallbackColor, bgGlow, rawName };
+    const finalColor = rawColor || defaultColor;
+    return { iconClass: defaultClass, color: finalColor, bgGlow: hexToRgba(finalColor, 0.15), rawName };
   }
 
   /**
