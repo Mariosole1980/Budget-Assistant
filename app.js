@@ -3181,6 +3181,18 @@ function initSupabaseAuth() {
       window._authConfirmed = true;
       localStorage.setItem('cached_current_user', JSON.stringify(session.user));
 
+      // Force-reset any in-memory profile that does not belong to the CURRENT
+      // session user. This is the final guard: even if loadOfflineData restored
+      // a previous account's cached premium/family data before the session was
+      // confirmed, it is discarded now so isPremium() can never report a stale
+      // entitlement for the wrong account.
+      if (state.userProfile && state.userProfile.id !== session.user.id) {
+        state.userProfile = null;
+      }
+      if (state.partnerProfile && state.partnerProfile.id !== session.user.id) {
+        state.partnerProfile = null;
+      }
+
       // Load cached partner and user profile if available
       try {
         const cachedPartner = localStorage.getItem('cached_partner_profile');
@@ -4798,7 +4810,15 @@ function loadOfflineData() {
   try {
     const cachedProfile = localStorage.getItem('cached_user_profile');
     if (cachedProfile) {
-      state.userProfile = JSON.parse(cachedProfile);
+      const parsedProfile = JSON.parse(cachedProfile);
+      // PRIVACY/ISOLATION: Only restore the cached profile if it belongs to the
+      // cached current user (loaded above). A previous account's premium/family
+      // state must never leak into an offline/guest session of another account.
+      if (parsedProfile && state.currentUser && parsedProfile.id === state.currentUser.id) {
+        state.userProfile = parsedProfile;
+      } else {
+        localStorage.removeItem('cached_user_profile');
+      }
     }
   } catch (e) {
     console.error('Failed to parse cached user profile:', e);
