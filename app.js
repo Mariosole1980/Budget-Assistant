@@ -3159,6 +3159,13 @@ function initSupabaseAuth() {
       if (previousUserId && previousUserId !== session.user.id) {
         // User account changed! Clean previous user's local caches & trash
         state.trashTransactions = [];
+        // IMPORTANT: Reset in-memory user/partner/family state immediately so a
+        // previous account's cached premium/family data cannot bleed into the
+        // new account (isPremium() reads state.userProfile).
+        state.userProfile = null;
+        state.partnerProfile = null;
+        state.familyProfiles = [];
+        state.familyGroup = null;
         localStorage.removeItem('deleted_transactions_trash');
         localStorage.removeItem('offline_transactions');
         localStorage.removeItem('cached_partner_profile');
@@ -3182,7 +3189,20 @@ function initSupabaseAuth() {
         }
         const cachedUser = localStorage.getItem('cached_user_profile');
         if (cachedUser) {
-          state.userProfile = JSON.parse(cachedUser);
+          try {
+            const parsedUser = JSON.parse(cachedUser);
+            // CRITICAL: Only restore the cached profile if it belongs to the
+            // CURRENT user. Without this check, a previous account's cached
+            // premium/family state can leak into a newly logged-in account
+            // (e.g. "already PRO" shown on an account that never paid).
+            if (parsedUser && parsedUser.id === session.user.id) {
+              state.userProfile = parsedUser;
+            } else {
+              localStorage.removeItem('cached_user_profile');
+            }
+          } catch (e) {
+            localStorage.removeItem('cached_user_profile');
+          }
         }
         const cachedFamily = localStorage.getItem('cached_family_profiles');
         if (cachedFamily) {
@@ -3504,6 +3524,11 @@ async function loadUserProfiles(user) {
         .then(r => r),
       8000
     ).catch(e => ({ data: null, error: e }));
+
+    // Guard against out-of-order responses when switching accounts quickly:
+    // if the active user changed while this request was in flight, discard the
+    // result so a previous account's premium/family state can't be applied.
+    if (!state.currentUser || state.currentUser.id !== user.id) return;
 
     if (error || !profile) {
       // Insert profile manually if trigger didn't do it
