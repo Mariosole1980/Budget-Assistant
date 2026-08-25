@@ -3125,6 +3125,29 @@ function initSupabaseAuth() {
       return;
     }
 
+    // ANTI-FLICKER FIX (resume flash): A background TOKEN_REFRESHED is NOT a login.
+    // It fires silently whenever the Supabase auth client auto-refreshes a
+    // near-expiry access token (e.g. after the app was backgrounded long enough
+    // that the token had to be rotated). Running the full login pipeline below
+    // (updateUI -> loadUserProfiles -> forceSyncNow) would trigger a full DOM
+    // re-render cascade right after resume - exactly when the user is watching -
+    // and the CSS transition guard (_RESUME_GUARD_MS) has already expired. For a
+    // silent token refresh we only keep the session identity in sync and silently
+    // refresh the authoritative profile, WITHOUT any visible re-render.
+    if (event === 'TOKEN_REFRESHED') {
+      if (session && session.user) {
+        state.currentUser = session.user;
+        window._authConfirmed = true;
+        localStorage.setItem('cached_current_user', JSON.stringify(session.user));
+        // Silent background refresh of the server-side profile (premium/family
+        // status). Updates state + small badge/banner elements only - never a
+        // full UI re-render, so it cannot cause a visible flash on resume.
+        loadUserProfiles(session.user);
+      }
+      logAuthDebug('TOKEN_REFRESHED: silent session keep-alive, no re-render.');
+      return;
+    }
+
     if (session && session.user) {
       processingRedirect = false;
       const cachedRawUser = localStorage.getItem('cached_current_user');
@@ -5948,6 +5971,16 @@ function popNoTransition() {
   if (_noTransitionCount === 0) {
     document.documentElement.classList.remove('no-transition');
   }
+}
+
+// ANTI-FLICKER FIX (resume flash): Returns true if the app resumed from the
+// background within the last `ms` milliseconds. The realtime handlers debounce
+// their re-renders by 5s, so events that arrive well after the short-lived
+// _appJustResumed flag (which expires at _RESUME_GUARD_MS) can still be part of
+// the resume-cycle reconnect burst - and must render with transitions suppressed.
+function _isWithinResumeWindow(ms) {
+  const t = window._lastResumeTimestamp || 0;
+  return t > 0 && (Date.now() - t) < ms;
 }
 
 function _runScheduledRender() {
@@ -25406,14 +25439,17 @@ function handleRealtimeTransactionChange(payload) {
     localStorage.setItem('offline_transactions', JSON.stringify(trans));
 
     calculateInitialBalances();
-    // ANTI-FLICKER: If the app just resumed, wrap the re-render in no-transition
-    // so a realtime event arriving during the resume window (after re-subscribing)
-    // does not cause a visible flash. updateUI() defers the render by 700ms when
-    // _appJustResumed is true, so keep no-transition active long enough to cover it.
-    // Uses the reference-counted guard so overlapping guards never race.
-    if (window._appJustResumed) pushNoTransition();
+    // ANTI-FLICKER FIX (resume flash): Wrap the re-render in no-transition so a
+    // realtime event arriving during the resume cycle (after re-subscribing) does
+    // not cause a visible flash. Previously this was gated only on the short-lived
+    // _appJustResumed flag, which expires at _RESUME_GUARD_MS (~1.7s) while the
+    // 5s debounce below still fires - leaving the reconnect batch re-render
+    // UNCOVERED with transitions enabled. _isWithinResumeWindow() covers the full
+    // reconnect window. Uses the reference-counted guard so guards never race.
+    const _inResumeWindow = _isWithinResumeWindow(_REALTIME_RESUME_GUARD_MS);
+    if (_inResumeWindow) pushNoTransition();
     updateUI();
-    if (window._appJustResumed) {
+    if (_inResumeWindow) {
       setTimeout(() => {
         popNoTransition();
       }, 800);
@@ -25450,13 +25486,14 @@ function handleRealtimeCategoryChange(payload) {
   state.categories = cats;
   localStorage.setItem('offline_categories', JSON.stringify(cats));
 
-  // ANTI-FLICKER: If the app just resumed, wrap the re-render in no-transition
-  // so a realtime category event arriving during the resume window does not
-  // cause a visible flash (same guard as handleRealtimeTransactionChange).
+  // ANTI-FLICKER FIX (resume flash): Same resume-cycle guard as
+  // handleRealtimeTransactionChange (see there for details). Covers the full
+  // 5s reconnect debounce window instead of the short-lived _appJustResumed flag.
   // Uses the reference-counted guard so overlapping guards never race.
-  if (window._appJustResumed) pushNoTransition();
+  const _inResumeWindow = _isWithinResumeWindow(_REALTIME_RESUME_GUARD_MS);
+  if (_inResumeWindow) pushNoTransition();
   updateUI();
-  if (window._appJustResumed) {
+  if (_inResumeWindow) {
     setTimeout(() => {
       popNoTransition();
     }, 800);
@@ -26305,7 +26342,22 @@ function handleAppForegroundSync() {
         // Refresh the Supabase session first so a stale/expired token from the
         // background period does not cause a false sync error on resume.
         await _refreshSessionIfNeeded();
-        forceSyncNow(true);
+        // ANTI-FLICKER FIX (resume flash): Keep the no-transition guard active
+        // until this sync's deferred re-render has actually run. forceSyncNow
+        // already wraps its own updateUI(), but this extra guard also covers any
+        // other render that happens while the sync is in-flight - so however long
+        // the network takes, the final DOM update is invisible to the user.
+        // Reference-counted (pushNoTransition/popNoTransition), so it can never
+        // race with the other resume guards. Capped at 6s so a hung network can
+        // never leave transitions disabled indefinitely.
+        pushNoTransition();
+        const _syncGuardTimer = setTimeout(() => { popNoTransition(); }, 6000);
+        try {
+          await forceSyncNow(true);
+        } finally {
+          clearTimeout(_syncGuardTimer);
+          setTimeout(() => { popNoTransition(); }, 500);
+        }
       }, 1500);
     }
   }
@@ -26323,6 +26375,12 @@ let _resumeDebounceTimer = null;
 // immediate render WITH transitions enabled → visible flash on resume.
 // We keep the guard active until the 1500ms foreground sync has completed.
 const _RESUME_GUARD_MS = 1700;
+
+// ANTI-FLICKER FIX (resume flash): The realtime handlers debounce their batch
+// re-renders by 5s. The resume-cycle no-transition guard must therefore stay
+// armed long enough to cover that debounce (resume happens at t=0, reconnect
+// burst ~t=0-1s, batch render ~t=5s), not just the 1.7s _RESUME_GUARD_MS.
+const _REALTIME_RESUME_GUARD_MS = 10000;
 function _handleAppResumed() {
   // FIX #1 (auto-lock): If the app was in the background longer than the
   // configured auto-lock delay, lock it immediately on resume. The foreground
@@ -26382,6 +26440,12 @@ function _handleAppResumed() {
   // Set guard to block spurious closeModal calls during the resume transition.
   window._appJustResumed = true;
   setTimeout(() => { window._appJustResumed = false; }, _RESUME_GUARD_MS);
+
+  // ANTI-FLICKER FIX (resume flash): Record the resume moment so
+  // _isWithinResumeWindow() can cover the entire resume cycle (including the 5s
+  // realtime debounce), even after the short-lived _appJustResumed flag above
+  // has expired.
+  window._lastResumeTimestamp = Date.now();
 
   // ANTI-FLICKER: Suppress CSS transitions during the entire resume window.
   // Uses reference-counted guard so overlapping guards never race.
