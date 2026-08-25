@@ -131,10 +131,11 @@ async function verifyPlayPurchase(accessToken, packageName, productId, purchaseT
     });
 
     if (!res.ok) {
-        // 404 = invalid/unknown token; 401/403 = auth problem. Treat non-OK as unverified.
+        // 404 = invalid/unknown token; 401/403 = auth/service-account problem.
+        // Surface the real Google reason so the client toast is actionable.
         const errText = await res.text();
         console.warn('Play purchase verification failed:', res.status, errText);
-        return null;
+        throw new Error(`Google Play API ${res.status}: ${(errText || 'no details').slice(0, 300)}`);
     }
 
     const data = await res.json();
@@ -143,8 +144,7 @@ async function verifyPlayPurchase(accessToken, packageName, productId, purchaseT
     // consumed) OR already consumed — for a one-time product, a valid token that
     // was purchased is sufficient to grant the entitlement.
     if (data.purchaseState !== 0) {
-        console.warn('Play purchase not in purchased state:', data.purchaseState);
-        return null;
+        throw new Error(`Purchase state is ${data.purchaseState} (expected 0 = purchased).`);
     }
     return data;
 }
@@ -303,7 +303,7 @@ export async function onRequestPost(context) {
         purchase = await verifyPlayPurchase(accessToken, packageName, productId, purchaseToken);
     } catch (err) {
         console.error('Play-billing: verification error:', err.message);
-        return new Response(JSON.stringify({ error: 'Failed to verify purchase.' }), {
+        return new Response(JSON.stringify({ error: `Failed to verify purchase: ${err.message}` }), {
             status: 502,
             headers: corsHeaders
         });

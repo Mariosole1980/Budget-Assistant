@@ -19,6 +19,11 @@ android/build/
 .capgo_key_v2.pub
 release.keystore
 
+# Local development env vars (wrangler/netlify) — NEVER commit real keys
+.dev.vars
+.env
+.env.*
+
 # Archive of stale duplicates (kept for reference, not part of the app)
 archive/
 

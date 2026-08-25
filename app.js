@@ -13067,6 +13067,7 @@ function updatePremiumUI() {
   const cardBtn = document.getElementById('premium-pay-card-btn');
   const paypalBtn = document.getElementById('premium-pay-paypal-btn');
   const gplayBtn = document.getElementById('premium-pay-gplay-btn');
+  const gpayBtn = document.getElementById('premium-pay-gpay-btn');
   const chooseHeading = document.querySelector('#premium-modal [data-i18n="premium_choose_payment"]');
   const badge = document.getElementById('hub-premium-badge');
   const subtitle = document.getElementById('hub-premium-subtitle');
@@ -13076,6 +13077,7 @@ function updatePremiumUI() {
   if (cardBtn) cardBtn.style.display = active ? 'none' : 'flex';
   if (paypalBtn) paypalBtn.style.display = active ? 'none' : 'flex';
   if (gplayBtn) gplayBtn.style.display = active ? 'none' : 'flex';
+  if (gpayBtn) gpayBtn.style.display = active ? 'none' : 'flex';
   if (chooseHeading && chooseHeading.parentElement) {
     chooseHeading.parentElement.style.display = active ? 'none' : 'flex';
   }
@@ -13118,7 +13120,7 @@ function updatePremiumUI() {
 // Starts the premium purchase flow.
 // - Native Android (Capacitor): Google Play Billing via the `capacitor-billing`
 //   plugin. The purchase token is verified server-side by /api/play-billing.
-// - Web / PWA: Stripe Checkout via /api/purchase.
+// - Web / PWA: Stripe Checkout via /api/purchase (Card / Google Pay) or PayPal.
 // Falls back to a manual-activation notice if the endpoint is not deployed.
 async function startPremiumPurchase(method = 'card') {
   if (isPremium()) {
@@ -13130,7 +13132,7 @@ async function startPremiumPurchase(method = 'card') {
     return;
   }
 
-  const btnId = method === 'paypal' ? 'premium-pay-paypal-btn' : (method === 'gplay' ? 'premium-pay-gplay-btn' : 'premium-pay-card-btn');
+  const btnId = method === 'paypal' ? 'premium-pay-paypal-btn' : (method === 'gplay' ? 'premium-pay-gplay-btn' : (method === 'gpay' ? 'premium-pay-gpay-btn' : 'premium-pay-card-btn'));
   const btn = document.getElementById(btnId) || document.getElementById('premium-purchase-btn');
   const originalHtml = btn ? btn.innerHTML : '';
   if (btn) {
@@ -13149,23 +13151,23 @@ async function startPremiumPurchase(method = 'card') {
         }
         showSyncToast(
           state.lang === 'el'
-            ? 'ℹ️ Η πληρωμή μέσω Google Play δεν είναι διαθέσιμη προς το παρόν. Παρακαλώ επιλέξτε «Πληρωμή με Κάρτα» ή «PayPal».'
-            : 'ℹ️ Google Play billing is currently unavailable. Please choose "Pay with Card" or "PayPal".',
+            ? 'ℹ️ Η πληρωμή μέσω Google Play δεν είναι διαθέσιμη προς το παρόν. Παρακαλώ επιλέξτε «Πληρωμή με Κάρτα», «PayPal» ή «Google Pay».'
+            : 'ℹ️ Google Play billing is currently unavailable. Please choose "Pay with Card", "PayPal" or "Google Pay".',
           4500
         );
         return;
       } else {
         showSyncToast(
           state.lang === 'el'
-            ? 'ℹ️ Το Google Play είναι διαθέσιμο μόνο στην Android εφαρμογή. Επιλέξτε «Πληρωμή με Κάρτα» ή «PayPal».'
-            : 'ℹ️ Google Play is only available in the Android app. Please choose "Pay with Card" or "PayPal".',
+            ? 'ℹ️ Το Google Play είναι διαθέσιμο μόνο στην Android εφαρμογή. Επιλέξτε «Πληρωμή με Κάρτα», «PayPal» ή «Google Pay».'
+            : 'ℹ️ Google Play is only available in the Android app. Please choose "Pay with Card", "PayPal" or "Google Pay".',
           4500
         );
         return;
       }
     }
 
-    // Card or PayPal web purchase flow
+    // Card, Google Pay or PayPal web purchase flow
     await startWebPremiumPurchase(method);
   } catch (err) {
     console.error('Premium purchase error:', err);
@@ -13227,6 +13229,232 @@ async function startWebPremiumPurchase(method = 'card') {
   );
 }
 
+// ============================================================
+// GOOGLE PAY (direct wallet flow — NO Stripe Checkout redirect)
+// ============================================================
+// Opens the native Google Pay sheet (Google Pay API), then charges the
+// returned Stripe token server-side via /api/gpay-purchase. The server
+// creates + confirms a PaymentIntent and grants the Premium entitlement only
+// after Stripe reports 'succeeded'.
+async function startGooglePayPurchase() {
+  if (isPremium()) {
+    showSyncToast(state.lang === 'el' ? '✓ Είσαι ήδη Premium!' : '✓ You are already Premium!', 2500);
+    return;
+  }
+  if (!state.currentUser) {
+    showSyncToast(state.lang === 'el' ? '⚠️ Συνδέσου πρώτα για να αγοράσεις Premium.' : '⚠️ Please sign in first to purchase Premium.', 3500);
+    return;
+  }
+
+  const btn = document.getElementById('premium-pay-gpay-btn') || document.getElementById('premium-purchase-btn');
+  const originalHtml = btn ? btn.innerHTML : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<span style="display:flex;align-items:center;gap:8px;margin:auto;"><i class="fa-solid fa-spinner fa-spin"></i><span>${state.lang === 'el' ? 'Προετοιμασία...' : 'Preparing...'}</span></span>`;
+  }
+
+  try {
+    // Google Pay sheet works on the web (Chrome/Android). On native Capacitor
+    // the Play Billing / Card options are the right path.
+    const isNative = typeof window.Capacitor !== 'undefined' &&
+      typeof window.Capacitor.isNativePlatform === 'function' &&
+      window.Capacitor.isNativePlatform();
+    if (isNative) {
+      showSyncToast(
+        state.lang === 'el'
+          ? 'ℹ️ Το Google Pay είναι διαθέσιμο στην web έκδοση. Επιλέξτε «Πληρωμή με Κάρτα» ή «Google Play».'
+          : 'ℹ️ Google Pay is available on the web version. Please choose "Pay with Card" or "Google Play".',
+        4500
+      );
+      return;
+    }
+
+    // 1. Resolve the session token (server validates it before any charge).
+    let accessToken = '';
+    if (state.supabaseClient) {
+      try {
+        const { data } = await state.supabaseClient.auth.getSession();
+        if (data && data.session && data.session.access_token) {
+          accessToken = data.session.access_token;
+        }
+      } catch (e) {
+        console.warn('Could not resolve session token for Google Pay:', e);
+      }
+    }
+    if (!accessToken) {
+      showSyncToast(state.lang === 'el' ? '⚠️ Συνδέσου πρώτα για να αγοράσεις Premium.' : '⚠️ Please sign in first to purchase Premium.', 3500);
+      return;
+    }
+
+    // 2. Fetch the Stripe publishable key + environment from the server.
+    const cfgRes = await fetch(getBackendApiUrl('/api/gpay-purchase'), {
+      method: 'GET',
+      headers: { 'Authorization': 'Bearer ' + accessToken }
+    });
+    const cfgData = await cfgRes.json().catch(() => ({}));
+    if (!cfgRes.ok || !cfgData.publishableKey) {
+      showSyncToast(
+        state.lang === 'el'
+          ? '⚠️ Το Google Pay δεν είναι έτοιμο ακόμα. Επιλέξτε «Κάρτα» ή «PayPal».'
+          : '⚠️ Google Pay is not ready yet. Please use Card or PayPal.',
+        4500
+      );
+      return;
+    }
+
+    // 3. Load the Google Pay JS SDK (idempotent).
+    await loadGooglePayScript();
+    const paymentsApi = window.google && window.google.payments && window.google.payments.api;
+    if (!paymentsApi) {
+      showSyncToast(
+        state.lang === 'el'
+          ? '⚠️ Το Google Pay δεν υποστηρίζεται σε αυτό το πρόγραμμα.'
+          : '⚠️ Google Pay is not supported on this browser.',
+        4000
+      );
+      return;
+    }
+
+    const client = new paymentsApi.PaymentsClient({ environment: cfgData.environment });
+    const cardMethod = buildGooglePayCardMethod(cfgData.publishableKey);
+
+    // 4. Check that Google Pay is available on this device/browser.
+    const ready = await client.isReadyToPay({
+      apiVersion: 2,
+      apiVersionMinor: 0,
+      allowedPaymentMethods: [cardMethod]
+    });
+    if (!ready || !ready.result) {
+      showSyncToast(
+        state.lang === 'el'
+          ? 'ℹ️ Το Google Pay δεν είναι διαθέσιμο σε αυτή τη συσκευή. Επιλέξτε «Κάρτα» ή «PayPal».'
+          : 'ℹ️ Google Pay is not available on this device. Please choose Card or PayPal.',
+        4500
+      );
+      return;
+    }
+
+    // 5. Open the native Google Pay sheet.
+    const paymentData = await client.loadPaymentData({
+      apiVersion: 2,
+      apiVersionMinor: 0,
+      allowedPaymentMethods: [cardMethod],
+      merchantInfo: { merchantName: 'MKlogic' },
+      transactionInfo: {
+        totalPriceStatus: 'FINAL',
+        totalPrice: '9.99',
+        currencyCode: 'EUR',
+        countryCode: 'GR'
+      }
+    });
+
+    // 6. Extract the Stripe token from the Google Pay response.
+    const tokenization = paymentData && paymentData.paymentMethodData && paymentData.paymentMethodData.tokenizationData;
+    const rawToken = tokenization && tokenization.token ? tokenization.token : '';
+    let gpayTokenId = rawToken;
+    try {
+      const parsed = JSON.parse(rawToken);
+      gpayTokenId = parsed.id || parsed;
+    } catch (e) { /* token is a plain string */ }
+    if (!gpayTokenId) {
+      showSyncToast(state.lang === 'el' ? '⚠️ Σφάλμα κατά την πληρωμή. Δοκιμάστε ξανά.' : '⚠️ Payment error. Please try again.', 4000);
+      return;
+    }
+
+    // 7. Charge server-side (PaymentIntent + entitlement grant).
+    const res = await fetch(getBackendApiUrl('/api/gpay-purchase'), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + accessToken
+      },
+      body: JSON.stringify({ userId: state.currentUser.id, token: gpayTokenId })
+    });
+    const data = await res.json().catch(() => ({}));
+
+    if (res.ok && data.success) {
+      showSyncToast(
+        state.lang === 'el'
+          ? '🎉 Το Premium ενεργοποιήθηκε μέσω Google Pay! Ευχαριστούμε!'
+          : '🎉 Premium activated via Google Pay! Thank you!',
+        5000
+      );
+      if (state.currentUser && typeof loadUserProfiles === 'function') {
+        try {
+          await loadUserProfiles(state.currentUser);
+          updatePremiumUI();
+        } catch (e) { console.warn('Profile refresh after Google Pay:', e); }
+      }
+    } else if (data.error === 'requires_action') {
+      showSyncToast(
+        state.lang === 'el'
+          ? '⚠️ Η τράπεζα ζήτησε επιπλέον επιβεβαίωση (3D Secure). Δοκιμάστε με «Πληρωμή με Κάρτα».'
+          : '⚠️ Your bank requested additional verification (3D Secure). Please try "Pay with Card".',
+        5000
+      );
+    } else {
+      const msg = data.error === 'payment_failed'
+        ? (state.lang === 'el' ? 'Η πληρωμή δεν ολοκληρώθηκε. Δοκιμάστε ξανά.' : 'Payment could not be completed. Please try again.')
+        : (data.error || (state.lang === 'el' ? 'Η πληρωμή δεν ολοκληρώθηκε.' : 'Payment could not be completed.'));
+      showSyncToast('⚠️ ' + msg, 5000);
+    }
+  } catch (err) {
+    // Google Pay sheet dismissed by the user → silent (no scary error).
+    if (err && (err.statusCode === 'CANCELED' || err.statusMessage === 'CANCELED')) {
+      console.log('Google Pay sheet dismissed by the user.');
+    } else {
+      console.error('Google Pay purchase error:', err);
+      showSyncToast(state.lang === 'el' ? '⚠️ Σφάλμα κατά την πληρωμή.' : '⚠️ Payment error.', 3500);
+    }
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = originalHtml;
+    }
+  }
+}
+
+// Build the CARD payment method for the Google Pay API (Stripe gateway).
+function buildGooglePayCardMethod(publishableKey) {
+  return {
+    type: 'CARD',
+    parameters: {
+      allowedAuthMethods: ['PAN_ONLY', 'CRYPTOGRAM_3DS'],
+      allowedCardNetworks: ['VISA', 'MASTERCARD', 'AMEX', 'DISCOVER']
+    },
+    tokenizationSpecification: {
+      type: 'PAYMENT_GATEWAY',
+      parameters: {
+        gateway: 'stripe',
+        'stripe:version': '2024-06-20',
+        'stripe:publishableKey': publishableKey
+      }
+    }
+  };
+}
+
+// Load the Google Pay JS SDK once (idempotent).
+function loadGooglePayScript() {
+  return new Promise((resolve, reject) => {
+    if (window.google && window.google.payments) {
+      resolve();
+      return;
+    }
+    const existing = document.querySelector('script[src="https://pay.google.com/gp/p/js/pay.js"]');
+    if (existing) {
+      existing.addEventListener('load', resolve);
+      existing.addEventListener('error', () => reject(new Error('Google Pay SDK failed to load.')));
+      return;
+    }
+    const s = document.createElement('script');
+    s.src = 'https://pay.google.com/gp/p/js/pay.js';
+    s.async = true;
+    s.onload = resolve;
+    s.onerror = () => reject(new Error('Google Pay SDK failed to load.'));
+    document.head.appendChild(s);
+  });
+}
+
 // Resolve the capacitor-billing plugin (BillingPlugin) if present on native.
 function getBillingPlugin() {
   if (typeof window.Capacitor === 'undefined') return null;
@@ -13278,14 +13506,24 @@ async function purchasePremiumViaPlayBilling(Billing) {
     }
 
     // Verify server-side and grant entitlement.
-    const ok = await verifyPlayBillingPurchase(purchaseToken, PRODUCT_ID);
-    if (ok) {
+    const ver = await verifyPlayBillingPurchase(purchaseToken, PRODUCT_ID);
+    if (ver.ok) {
       await loadUserProfiles(state.currentUser);
       updatePremiumUI();
       showSyncToast(state.lang === 'el' ? '✓ Το Premium ενεργοποιήθηκε!' : '✓ Premium activated!', 3000);
       return true;
     } else {
-      showSyncToast(state.lang === 'el' ? '⚠️ Δεν ήταν δυνατή η επαλήθευση της αγοράς.' : '⚠️ Could not verify the purchase.', 4000);
+      // The user HAS already been charged at this point — never imply it failed
+      // silently. Show the real server reason so the issue is diagnosable, and
+      // tell them the entitlement is not lost (restore/reconciliation can fix it).
+      const reason = ver.error || (state.lang === 'el' ? 'άγνωστο σφάλμα' : 'unknown error');
+      console.warn('Play Billing verification failed after purchase:', reason);
+      showSyncToast(
+        state.lang === 'el'
+          ? `⚠️ Η αγορά ολοκληρώθηκε, αλλά η ενεργοποίηση απέτυχε: ${reason}`
+          : `⚠️ Purchase completed, but activation failed: ${reason}`,
+        7000
+      );
       return true;
     }
   } catch (err) {
@@ -13295,6 +13533,19 @@ async function purchasePremiumViaPlayBilling(Billing) {
 
     if (errMsg.includes('user_canceled') || errMsg.includes('user canceled') || errMsg.includes('user cancelled') || errMsg.includes('purchase canceled')) {
       showSyncToast(state.lang === 'el' ? 'Η αγορά ακυρώθηκε.' : 'Purchase cancelled.', 3000);
+      return true;
+    }
+
+    if (errMsg.includes('error retrieving product details')) {
+      // queryProductDetailsAsync returned no product for 'premium_lifetime'.
+      // This is a Play Console configuration issue, not a code failure.
+      console.warn('Play Billing: product premium_lifetime not found:', rawMsg);
+      showSyncToast(
+        state.lang === 'el'
+          ? `⚠️ Το προϊόν «premium_lifetime» δεν βρέθηκε στο Google Play (Error retrieving product details). Βεβαιωθείτε ότι: 1) υπάρχει ως in-app product στο Play Console (Monetize → In-app products), 2) είναι ΕΝΕΡΓΟ (όχι draft/απενεργοποιημένο), 3) είναι τύπου «In-app product» (όχι συνδρομή), και 4) αυτή η έκδοση/λογαριασμός δοκιμής έχει πρόσβαση σε αυτό.`
+          : `⚠️ Product "premium_lifetime" was not found in Google Play (Error retrieving product details). Make sure: 1) it exists as an in-app product in Play Console (Monetize → In-app products), 2) it is ACTIVE (not draft/deactivated), 3) it is a one-time "In-app product" (not a subscription), and 4) this test build/account has access to it.`,
+        8000
+      );
       return true;
     }
 
@@ -13309,13 +13560,15 @@ async function purchasePremiumViaPlayBilling(Billing) {
 }
 
 // Verify a Google Play purchase token server-side (/api/play-billing) and grant
-// the Premium entitlement. Returns true when the server confirmed premium_active.
+// the Premium entitlement. Returns { ok, error } — ok=true only when the server
+// confirmed premium_active. The error is the server-provided reason (so the UI
+// can show exactly why activation failed).
 async function verifyPlayBillingPurchase(purchaseToken, productId) {
-  if (!state.currentUser || !state.supabaseClient) return false;
+  if (!state.currentUser || !state.supabaseClient) return { ok: false, error: 'not_authenticated' };
   try {
     const { data: sessionData } = await state.supabaseClient.auth.getSession();
     const token = sessionData && sessionData.session ? sessionData.session.access_token : null;
-    if (!token) return false;
+    if (!token) return { ok: false, error: 'no_session' };
 
     const res = await fetch(getBackendApiUrl('/api/play-billing'), {
       method: 'POST',
@@ -13325,11 +13578,17 @@ async function verifyPlayBillingPurchase(purchaseToken, productId) {
       },
       body: JSON.stringify({ purchaseToken, productId })
     });
-    const data = await res.json().catch(() => ({}));
-    return !!(res.ok && data && data.ok && data.premium_active);
+    let data = {};
+    try { data = await res.json(); } catch (e) { }
+    if (!res.ok) {
+      const reason = (data && data.error) || `HTTP ${res.status}`;
+      console.warn('Play Billing verification failed:', res.status, data);
+      return { ok: false, error: reason };
+    }
+    return { ok: !!(data.ok && data.premium_active), error: (data && data.error) || null };
   } catch (err) {
     console.warn('Play Billing verification error:', err.message);
-    return false;
+    return { ok: false, error: (err && err.message) || 'network_error' };
   }
 }
 
@@ -13407,6 +13666,7 @@ async function reconcilePremiumPurchase() {
 window.openPremiumModal = openPremiumModal;
 window.updatePremiumUI = updatePremiumUI;
 window.startPremiumPurchase = startPremiumPurchase;
+window.startGooglePayPurchase = startGooglePayPurchase;
 window.restorePremiumPurchase = restorePremiumPurchase;
 
 // Floating toast for background sync feedback
@@ -16360,18 +16620,41 @@ async function deleteSelectedTransactions() {
   const selectedIds = Array.from(state.selectedIds);
   if (selectedIds.length === 0) return;
 
-  // Single-item recurring check: If only 1 transaction is selected and it is recurring,
-  // route through openRecurringDeleteModal so the 3-option modal appears!
-  if (selectedIds.length === 1) {
-    const singleId = selectedIds[0];
-    const tx = (state.transactions || []).find(t => String(t.id) === String(singleId));
-    if (tx && (isTransactionRecurring(tx) || resolveRecurringTemplateForTx(tx))) {
-      exitSelectionMode();
-      setTimeout(() => {
-        openRecurringDeleteModal(tx, String(tx.date || '').split('T')[0].split(' ')[0], { instant: true });
-      }, 100);
-      return;
+  // Recurring-aware multi-delete:
+  // If the selection contains ANY recurring transaction, route it through the
+  // recurring delete modal so the 3 options (only selected / selected + future /
+  // whole series) ALWAYS appear — even when several recurring transactions are
+  // selected at once. Non-recurring selections are carried along and deleted
+  // together with the chosen scope.
+  const selectedTxns = (state.transactions || []).filter(t => selectedIds.some(id => String(id) === String(t.id)));
+  const recurringSelected = [];
+  const recurringIds = new Set();
+  selectedTxns.forEach(tx => {
+    if (tx && resolveRecurringTemplateForTx(tx)) {
+      recurringSelected.push(tx);
+      recurringIds.add(String(tx.id));
     }
+  });
+  const plainSelectedIds = selectedIds.filter(id => !recurringIds.has(String(id)));
+
+  if (recurringSelected.length === 1 && plainSelectedIds.length === 0) {
+    // Exactly one recurring transaction (nothing else selected) → keep the
+    // original single-item 3-option modal flow.
+    exitSelectionMode();
+    setTimeout(() => {
+      openRecurringDeleteModal(recurringSelected[0], String(recurringSelected[0].date || '').split('T')[0].split(' ')[0], { instant: true });
+    }, 100);
+    return;
+  }
+  if (recurringSelected.length >= 1) {
+    // Multiple recurring transactions and/or a mix of recurring + regular ones →
+    // use the bulk-aware 3-option modal so the user still chooses what happens
+    // to the recurring series (the regular selected ones are deleted too).
+    exitSelectionMode();
+    setTimeout(() => {
+      openRecurringDeleteModal(recurringSelected, null, { instant: true, plainSelectedIds: plainSelectedIds });
+    }, 100);
+    return;
   }
 
   const count = selectedIds.length;
@@ -34856,6 +35139,12 @@ function renderUserGuideContent(query = '') {
 window._activeRecurringDeleteContext = null;
 
 function openRecurringDeleteModal(target, occurrenceDateStr, opts) {
+  // Bulk selection (array of transaction objects): multiple recurring transactions
+  // selected at once. Route through the bulk-aware modal so the 3 options appear.
+  if (Array.isArray(target)) {
+    openBulkRecurringDeleteModal(target, opts || {});
+    return;
+  }
   let templateId = null;
   let txId = null;
   let anchorDate = occurrenceDateStr || '';
@@ -35119,6 +35408,14 @@ async function executeRecurringDelete(scope) {
   const ctx = window._activeRecurringDeleteContext;
   if (!ctx) return;
 
+  // Bulk recurring multi-delete (multiple selected recurring transactions):
+  // delegate to the bulk executor which applies the chosen scope to every
+  // involved recurring series and also deletes the regular selections.
+  if (ctx.bulkMode) {
+    await executeBulkRecurringDelete(scope, ctx);
+    return;
+  }
+
   const { templateId, txId, anchorDate } = ctx;
   const lang = state.lang || 'el';
   const template = (state.recurringTemplates || []).find(t => String(t.id) === String(templateId));
@@ -35347,6 +35644,358 @@ async function executeRecurringDelete(scope) {
   showSyncToast(successMsg, 3000);
 }
 window.executeRecurringDelete = executeRecurringDelete;
+
+// ============================================================
+// BULK RECURRING MULTI-DELETE (multiple selected recurring rows)
+// ============================================================
+// The 3-option recurring delete modal (single / future / all) is designed around
+// ONE recurring series. When the user selects SEVERAL recurring transactions at
+// once (or a mix of recurring + regular ones) from the multi-select delete bar,
+// we still want the 3 options to appear instead of a plain "delete N" confirm.
+// These two helpers bridge the modal to a bulk context:
+//   • openBulkRecurringDeleteModal() — builds a bulk _activeRecurringDeleteContext
+//     (one entry per selected occurrence + the regular selections).
+//   • executeBulkRecurringDelete(scope, ctx) — applies the chosen scope to every
+//     involved recurring series and also deletes the regular selections.
+
+function openBulkRecurringDeleteModal(selectedTxns, opts) {
+  const lang = state.lang || 'el';
+  const entries = [];
+  const seenTemplateIds = new Set();
+
+  selectedTxns.forEach(tx => {
+    if (!tx) return;
+    const template = resolveRecurringTemplateForTx(tx);
+    if (!template) return;
+    const date = String(tx.date || '').split('T')[0].split(' ')[0];
+    if (!date) return;
+    seenTemplateIds.add(String(template.id));
+    entries.push({ txId: tx.id, templateId: String(template.id), date, tx });
+  });
+
+  if (entries.length === 0) return;
+
+  const plainSelectedIds = (opts && opts.plainSelectedIds) || [];
+  const anchorDate = entries.map(e => e.date).sort()[0];
+  const firstTx = entries[0].tx;
+
+  window._activeRecurringDeleteContext = {
+    bulkMode: true,
+    bulkEntries: entries.map(({ txId, templateId, date }) => ({ txId, templateId, date })),
+    templateId: seenTemplateIds.size === 1 ? entries[0].templateId : null,
+    anchorDate: anchorDate,
+    note: firstTx.note || firstTx.description || '',
+    category: firstTx.category || '',
+    amount: parseFloat(firstTx.amount || 0),
+    type: firstTx.type || 'expense',
+    accountFrom: firstTx.account_from || '',
+    plainSelectedIds: plainSelectedIds
+  };
+
+  // Apply the standard i18n labels first...
+  const dict = (typeof TRANSLATIONS !== 'undefined' && TRANSLATIONS[lang]) ? TRANSLATIONS[lang] : {};
+  document.querySelectorAll('#recurring-delete-step1-modal [data-i18n], #recurring-delete-step2-modal [data-i18n]').forEach(el => {
+    const k = el.getAttribute('data-i18n');
+    if (k && dict[k]) el.textContent = dict[k];
+  });
+
+  // ...then override the description so it explains the multi-selection.
+  const descEl = document.querySelector('#recurring-delete-step1-modal [data-i18n="recurring_delete_desc"]');
+  if (descEl) {
+    let desc;
+    if (seenTemplateIds.size === 1) {
+      desc = lang === 'el'
+        ? `Επιλέχθηκαν ${entries.length} επαναλαμβανόμενες κινήσεις της ίδιας επανάληψης. Τι ακριβώς θέλετε να διαγραφεί;`
+        : `${entries.length} recurring transactions from the same series are selected. What would you like to delete?`;
+    } else {
+      desc = lang === 'el'
+        ? `Επιλέχθηκαν επαναλαμβανόμενες κινήσεις από ${seenTemplateIds.size} διαφορετικές επαναλήψεις. Τι ακριβώς θέλετε να διαγραφεί;`
+        : `Recurring transactions from ${seenTemplateIds.size} different series are selected. What would you like to delete?`;
+    }
+    if (plainSelectedIds.length > 0) {
+      desc += lang === 'el'
+        ? ` (Θα διαγραφούν επίσης ${plainSelectedIds.length} κανονικές επιλεγμένες κινήσεις.)`
+        : ` (Additionally, ${plainSelectedIds.length} selected regular transaction(s) will be deleted.)`;
+    }
+    descEl.textContent = desc;
+  }
+
+  const singleRadio = document.querySelector('input[name="recurring_delete_scope"][value="single"]');
+  if (singleRadio) singleRadio.checked = true;
+
+  openModal('recurring-delete-step1-modal', { instant: !!(opts && opts.instant) });
+}
+window.openBulkRecurringDeleteModal = openBulkRecurringDeleteModal;
+
+async function executeBulkRecurringDelete(scope, ctx) {
+  const lang = state.lang || 'el';
+  const entries = (ctx.bulkEntries || []).filter(e => e && e.templateId);
+  const plainIdSet = new Set((ctx.plainSelectedIds || []).map(String));
+  if (!state.deletedRecurringDates) state.deletedRecurringDates = [];
+
+  const affectedTransactions = [];
+  const affectedTransactionIds = [];
+  const collectedIds = new Set();
+  const deletedRecurringDatesBackup = [...(state.deletedRecurringDates || [])];
+
+  const collectAndRemove = (t) => {
+    if (!t) return false;
+    if (!collectedIds.has(String(t.id))) {
+      collectedIds.add(String(t.id));
+      affectedTransactions.push({ ...t });
+      affectedTransactionIds.push(t.id);
+    }
+    return false;
+  };
+
+  // Group the selected occurrences by recurring series.
+  const seriesByTemplate = new Map();
+  entries.forEach(entry => {
+    if (!seriesByTemplate.has(entry.templateId)) {
+      seriesByTemplate.set(entry.templateId, { templateId: entry.templateId, entries: [] });
+    }
+    seriesByTemplate.get(entry.templateId).entries.push(entry);
+  });
+
+  const ctxByTemplate = new Map();
+  const templateBackups = new Map();
+  seriesByTemplate.forEach(group => {
+    const template = (state.recurringTemplates || []).find(t => String(t.id) === String(group.templateId)) || null;
+    const sampleTx = (state.transactions || []).find(t => String(t.id) === String(group.entries[0].txId)) || template || {};
+    group.template = template;
+    group.anchorDate = group.entries.map(e => e.date).sort()[0];
+    const seriesCtx = {
+      templateId: group.templateId,
+      amount: parseFloat(template ? template.amount : (sampleTx.amount || 0)) || 0,
+      type: (template ? template.type : sampleTx.type) || 'expense',
+      category: (template ? template.category : sampleTx.category) || ''
+    };
+    group.ctx = seriesCtx;
+    ctxByTemplate.set(group.templateId, seriesCtx);
+    if (template) {
+      templateBackups.set(group.templateId, JSON.parse(JSON.stringify(template)));
+    }
+  });
+
+  suppressRealtimeFor(8000);
+
+  if (scope === 'single') {
+    // Delete ONLY the selected occurrence(s) — one per selected recurring row —
+    // and mark each date as deleted on its template so they never regenerate.
+    entries.forEach(entry => {
+      const key = `${entry.templateId}_${entry.date}`;
+      if (!state.deletedRecurringDates.includes(key)) {
+        state.deletedRecurringDates.push(key);
+      }
+      const template = (state.recurringTemplates || []).find(t => String(t.id) === String(entry.templateId));
+      if (template) {
+        addDeletedDateToTemplate(template, entry.date);
+      }
+      const seriesCtx = ctxByTemplate.get(entry.templateId);
+      state.transactions = (state.transactions || []).filter(t => {
+        const tDate = String(t.date || '').split('T')[0].split(' ')[0];
+        const match = String(t.id) === String(entry.txId) ||
+          (tDate === entry.date && seriesCtx && _txBelongsToRecurringSeries(t, seriesCtx));
+        return match ? collectAndRemove(t) : true;
+      });
+    });
+    localStorage.setItem('deleted_recurring_dates', JSON.stringify(state.deletedRecurringDates));
+    localStorage.setItem('recurring_templates', JSON.stringify(state.recurringTemplates));
+    if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
+      ctxByTemplate.forEach((_, tid) => {
+        const template = (state.recurringTemplates || []).find(t => String(t.id) === String(tid));
+        if (template) {
+          state.supabaseClient.from('recurring_templates').upsert([mapTemplateToDb(template)])
+            .then(({ error }) => {
+              if (error) console.warn('Failed to sync deleted recurring date to cloud:', error);
+            });
+        }
+      });
+    }
+  } else if (scope === 'future') {
+    // Delete from the earliest selected occurrence onwards for every involved series.
+    seriesByTemplate.forEach(group => {
+      const anchorDate = group.anchorDate;
+      const seriesCtx = group.ctx;
+      state.transactions = (state.transactions || []).filter(t => {
+        const tDate = String(t.date || '').split('T')[0].split(' ')[0];
+        const match = tDate >= anchorDate && seriesCtx && _txBelongsToRecurringSeries(t, seriesCtx);
+        return match ? collectAndRemove(t) : true;
+      });
+      if (group.template) {
+        const anchorD = new Date(anchorDate);
+        if (!isNaN(anchorD.getTime())) {
+          anchorD.setDate(anchorD.getDate() - 1);
+          group.template.endType = 'date';
+          group.template.endDate = anchorD.toISOString().split('T')[0];
+        }
+      }
+    });
+    localStorage.setItem('recurring_templates', JSON.stringify(state.recurringTemplates));
+    if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
+      seriesByTemplate.forEach(group => {
+        if (group.template) {
+          state.supabaseClient.from('recurring_templates').upsert([mapTemplateToDb(group.template)])
+            .then(() => { }, ({ error }) => {
+              if (error) console.warn('Failed to sync recurring end date to cloud:', error);
+            });
+        }
+      });
+    }
+  } else if (scope === 'all') {
+    // Delete the ENTIRE series for every involved template, including synthetic
+    // future occurrences so the trash reflects the full series.
+    seriesByTemplate.forEach(group => {
+      const seriesCtx = group.ctx;
+      state.transactions = (state.transactions || []).filter(t => {
+        const match = seriesCtx && _txBelongsToRecurringSeries(t, seriesCtx);
+        return match ? collectAndRemove(t) : true;
+      });
+      if (group.template) {
+        const seriesDates = _computeRecurringSeriesDates(group.template);
+        const existingDates = new Set(affectedTransactions
+          .filter(t => String(t.recurring_template_id) === String(group.template.id))
+          .map(t => String(t.date || '').split('T')[0]));
+        seriesDates.forEach(dateStr => {
+          if (existingDates.has(dateStr)) return;
+          affectedTransactions.push({
+            id: 'recurring_future_' + group.template.id + '_' + dateStr,
+            _synthetic: true,
+            recurring_template_id: group.template.id,
+            date: dateStr,
+            type: group.template.type,
+            amount: parseFloat(group.template.amount || 0),
+            category: group.template.category,
+            subcategory: group.template.subcategory || '',
+            account_from: group.template.account_from,
+            account_to: group.template.type === 'transfer' ? group.template.account_to : null,
+            note: group.template.note,
+            description: group.template.description || '',
+            user_id: group.template.user_id || (state.currentUser ? state.currentUser.id : null),
+            is_shared: group.template.is_shared !== undefined ? group.template.is_shared : (state.partnerProfile !== null),
+            family_id: group.template.family_id || (state.userProfile ? state.userProfile.family_id : null)
+          });
+        });
+      }
+    });
+    // Remove the recurring templates themselves.
+    const tidsToRemove = new Set();
+    seriesByTemplate.forEach(group => tidsToRemove.add(String(group.templateId)));
+    state.recurringTemplates = (state.recurringTemplates || []).filter(t => !tidsToRemove.has(String(t.id)));
+    localStorage.setItem('recurring_templates', JSON.stringify(state.recurringTemplates));
+  }
+
+  // Selected regular (non-recurring) transactions are always deleted too.
+  if (plainIdSet.size > 0) {
+    state.transactions = (state.transactions || []).filter(t => {
+      return plainIdSet.has(String(t.id)) ? collectAndRemove(t) : true;
+    });
+  }
+
+  localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
+
+  // ---------- Trash group ----------
+  const singleTemplateId = ctx.templateId || (seriesByTemplate.size === 1 ? String(seriesByTemplate.keys().next().value) : null);
+  const seriesCount = seriesByTemplate.size;
+  let subtitleText;
+  if (scope === 'single') {
+    subtitleText = lang === 'el'
+      ? `🔄 Επαναλαμβανόμενες • Μόνο οι ${entries.length} επιλεγμένες κινήσεις`
+      : `🔄 Recurring • Only the ${entries.length} selected occurrence(s)`;
+  } else if (scope === 'future') {
+    subtitleText = lang === 'el'
+      ? `🔄 Επαναλαμβανόμενες • Από την επιλογή και μετά (${seriesCount} σειρά/ές)`
+      : `🔄 Recurring • From the selection onwards (${seriesCount} series)`;
+  } else {
+    subtitleText = lang === 'el'
+      ? `🔄 Επαναλαμβανόμενες • Ολόκληρες οι σειρές (${seriesCount} σειρά/ές)`
+      : `🔄 Recurring • Full series (${seriesCount} series)`;
+  }
+  if (plainIdSet.size > 0) {
+    subtitleText += lang === 'el' ? ` + ${plainIdSet.size} κανονικές` : ` + ${plainIdSet.size} regular`;
+  }
+
+  const trashGroup = {
+    id: 'trash_group_' + Date.now(),
+    is_recurring_group: true,
+    scope: scope,
+    templateId: singleTemplateId,
+    anchorDate: ctx.anchorDate,
+    note: ctx.note || ctx.category || (lang === 'el' ? 'Επαναλαμβανόμενες' : 'Recurring'),
+    amount: ctx.amount,
+    category: ctx.category,
+    type: ctx.type,
+    subtitle: subtitleText,
+    affectedTransactionsSnapshot: affectedTransactions,
+    affectedTransactionIds: affectedTransactionIds,
+    templateBackup: singleTemplateId && templateBackups.has(singleTemplateId) ? templateBackups.get(singleTemplateId) : null,
+    deletedRecurringDatesBackup: deletedRecurringDatesBackup,
+    deleted_at: new Date().toISOString()
+  };
+  if (!state.trashTransactions) state.trashTransactions = [];
+  state.trashTransactions.unshift(trashGroup);
+  localStorage.setItem('deleted_transactions_trash', JSON.stringify(state.trashTransactions));
+
+  // ---------- Cloud sync ----------
+  if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
+    if (scope === 'all') {
+      seriesByTemplate.forEach(group => {
+        enqueueSyncMutation('delete_template', group.templateId);
+        state.supabaseClient.from('recurring_templates').delete().eq('id', group.templateId);
+      });
+    }
+    if (affectedTransactionIds.length > 0) {
+      affectedTransactionIds.forEach(dId => {
+        _markRecentlyDeleted(dId);
+        enqueueSyncMutation('delete', dId);
+      });
+      // Status model: soft-delete the affected transactions so they stay
+      // restorable in the trash across all devices.
+      state.supabaseClient.from('transactions')
+        .update({
+          status: 'deleted',
+          deleted_at: new Date().toISOString(),
+          deleted_by: state.currentUser.id
+        })
+        .in('id', affectedTransactionIds);
+    }
+  }
+  if (affectedTransactionIds.length > 0) {
+    affectedTransactionIds.forEach(dId => _markRecentlyDeleted(dId));
+  }
+
+  window._activeRecurringDeleteContext = null;
+  calculateInitialBalances();
+  updateUI();
+  // The recurring-delete modal's close animation can leave it `.active` for a
+  // moment, which makes updateUI() skip the tab re-render (see _updateUIImpl's
+  // `anyModalOpen` guard). Force the transactions list to reflect the deletion
+  // immediately so the bulk delete never leaves stale rows on screen.
+  if (typeof renderTransactionsTab === 'function') {
+    renderTransactionsTab();
+  }
+
+
+
+  // Re-run active search if the search overlay has a query so deleted items
+  // disappear immediately.
+  if (typeof executeSearch === 'function') {
+    const searchInput = document.getElementById('search-input');
+    if (searchInput && searchInput.value) {
+      executeSearch();
+    }
+  }
+
+  // If the trash bin modal is currently open, re-render it immediately.
+  const trashModal = document.getElementById('trash-bin-modal');
+  if (trashModal && trashModal.classList.contains('active')) {
+    renderTrashBinList();
+  }
+
+  const successMsg = lang === 'el' ? '🗑️ Η διαγραφή πραγματοποιήθηκε.' : '🗑️ Deletion completed.';
+  showSyncToast(successMsg, 3000);
+}
+window.executeBulkRecurringDelete = executeBulkRecurringDelete;
 
 async function deleteSingleTrashItem(id) {
   if (!id) return;

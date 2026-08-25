@@ -192,6 +192,11 @@ export async function onRequestPost(context) {
             body.append('payment_method_types[0]', 'paypal');
             body.append('payment_method_types[1]', 'card');
         } else {
+            // NOTE: 'gpay' (Google Pay) is handled by the dedicated
+            // /api/gpay-purchase flow (Google Pay API + PaymentIntent), never
+            // via Checkout payment_method_types — Stripe does not accept
+            // 'google_pay' as a Checkout payment method type. As a safe
+            // fallback for a stale cached client, fall through to plain card.
             body.append('payment_method_types[0]', 'card');
         }
 
@@ -206,8 +211,14 @@ export async function onRequestPost(context) {
 
         let data = await stripeRes.json().catch(() => ({}));
 
-        // If PayPal was requested but not enabled on Stripe account, retry with standard card
-        if (!stripeRes.ok && paymentMethod === 'paypal' && data.error && data.error.message && data.error.message.includes('paypal')) {
+        // If PayPal / Google Pay was requested but not enabled on the Stripe
+        // account, retry with standard card.
+        const walletError = data.error && data.error.message
+            ? (data.error.message.toLowerCase().includes('paypal') ||
+                data.error.message.toLowerCase().includes('google_pay') ||
+                data.error.message.toLowerCase().includes('google pay'))
+            : false;
+        if (!stripeRes.ok && paymentMethod !== 'card' && walletError) {
             const fallbackBody = new URLSearchParams(body);
             fallbackBody.delete('payment_method_types[0]');
             fallbackBody.delete('payment_method_types[1]');
