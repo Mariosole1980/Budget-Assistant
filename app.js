@@ -3302,6 +3302,9 @@ function initSupabaseAuth() {
         try {
           // 1. Load user profile and partner details (network request)
           await loadUserProfiles(session.user);
+          // Re-verify any locally-stored Play purchase that previously completed
+          // but failed activation (best-effort, capped retries).
+          try { await recoverPendingPlayPurchase(); } catch (e) { console.warn('Pending Play purchase recovery:', e); }
           applyWalletTheme();
           renderPartnerSection();
 
@@ -13609,6 +13612,21 @@ async function purchasePremiumViaPlayBilling(Billing) {
       // tell them the entitlement is not lost (restore/reconciliation can fix it).
       const reason = ver.error || (state.lang === 'el' ? 'άγνωστο σφάλμα' : 'unknown error');
       console.warn('Play Billing verification failed after purchase:', reason);
+
+      // PERSIST the purchase token so it can be re-verified later (Restore /
+      // next login) WITHOUT charging the user again. The token is removed only
+      // once the server confirms the entitlement.
+      try {
+        if (state.currentUser && purchaseToken) {
+          localStorage.setItem(
+            'pending_play_purchase_' + state.currentUser.id,
+            JSON.stringify({ purchaseToken, productId: PRODUCT_ID, at: new Date().toISOString(), attempts: 0 })
+          );
+        }
+      } catch (storeErr) {
+        console.warn('Could not store pending Play purchase token:', storeErr);
+      }
+
       showSyncToast(
         state.lang === 'el'
           ? `⚠️ Η αγορά ολοκληρώθηκε, αλλά η ενεργοποίηση απέτυχε: ${reason}`
@@ -13683,6 +13701,46 @@ async function verifyPlayBillingPurchase(purchaseToken, productId) {
   }
 }
 
+// Re-verifies any locally-stored Google Play purchase token that previously
+// completed but failed activation (e.g. a transient server/permissions error).
+// Idempotent and safe to call on restore and on login. The stored token is
+// removed only after the server confirms the entitlement.
+async function recoverPendingPlayPurchase() {
+  if (!state.currentUser || !state.supabaseClient) return false;
+  const key = 'pending_play_purchase_' + state.currentUser.id;
+  let stored = null;
+  try {
+    stored = JSON.parse(localStorage.getItem(key) || 'null');
+  } catch (e) { stored = null; }
+  if (!stored || !stored.purchaseToken) return false;
+
+  // Already entitled → nothing pending to recover; clean up the stale token.
+  if (isPremium()) {
+    try { localStorage.removeItem(key); } catch (e) { }
+    return true;
+  }
+
+  // Cap auto-retries to avoid hammering the endpoint on every login; the user
+  // can still trigger a manual retry via "Restore purchase".
+  if ((stored.attempts || 0) >= 10) return false;
+
+  const ver = await verifyPlayBillingPurchase(stored.purchaseToken, stored.productId || 'premium_lifetime');
+  if (ver.ok) {
+    try { localStorage.removeItem(key); } catch (e) { }
+    await loadUserProfiles(state.currentUser);
+    updatePremiumUI();
+    showSyncToast(state.lang === 'el' ? '✓ Το Premium ενεργοποιήθηκε!' : '✓ Premium activated!', 3000);
+    return true;
+  }
+  // Keep the token for a later retry.
+  try {
+    stored.attempts = (stored.attempts || 0) + 1;
+    stored.lastError = ver.error || 'unknown';
+    localStorage.setItem(key, JSON.stringify(stored));
+  } catch (e) { }
+  return false;
+}
+
 // Restores a previously purchased Premium (Android / Google Play).
 async function restorePremiumPurchase() {
   if (!state.currentUser) {
@@ -13695,7 +13753,10 @@ async function restorePremiumPurchase() {
   // That endpoint re-reads the profile (source of truth) and reconciles any
   // previously granted entitlement, so a reinstall / re-login picks it up.
   if (typeof window.Capacitor !== 'undefined' && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
-    const restored = await reconcilePremiumPurchase();
+    // First re-verify any locally-stored Play purchase that previously
+    // completed but failed activation, then run the server reconciliation.
+    const playRecovered = await recoverPendingPlayPurchase();
+    const restored = playRecovered || await reconcilePremiumPurchase();
     await loadUserProfiles(state.currentUser);
     updatePremiumUI();
     if (restored || isPremium()) {
