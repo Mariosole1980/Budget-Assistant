@@ -27,6 +27,14 @@ if (!version || typeof version !== 'number') {
 }
 console.log(`[INFO] Release for build v${version} (mode: ${mode})\n`);
 
+// Resolve the Capgo CLI (used for OTA bundle generation) directly via node.
+// The `npx @capgo/cli` bin shim can be missing from node_modules/.bin (e.g.
+// after an npx cleanup/temp-file mess), which makes `npx @capgo/cli` fail with
+// "'capgo' is not recognized" even though the package is installed. Calling
+// dist/index.js with node bypasses npx/bin-shim resolution entirely.
+const capgoCliPath = path.join(rootDir, 'node_modules', '@capgo', 'cli', 'dist', 'index.js');
+const capgoCliCmd = fs.existsSync(capgoCliPath) ? `node "${capgoCliPath}"` : 'npx @capgo/cli';
+
 // Helper: run a command in the background (streaming output) and return a
 // Promise that resolves on exit code 0 or rejects on failure.
 function runAsync(cmd, args, opts = {}) {
@@ -85,7 +93,7 @@ async function main() {
         });
 
         // OTA bundle (runs while gradle builds in the background)
-        const bundleCmd = `npx @capgo/cli bundle zip com.budgetassistant.app -b "1.0.${version}" -j --no-code-check --key-v2`;
+        const bundleCmd = `${capgoCliCmd} bundle zip com.budgetassistant.app -b "1.0.${version}" -j --no-code-check --key-v2`;
         const jsonOutput = execSync(bundleCmd, { cwd: rootDir, encoding: 'utf8' });
 
         const startIndex = jsonOutput.indexOf('{');
@@ -154,7 +162,7 @@ async function main() {
         // Pages deploy. All safety gates (version-check, verify-health, live
         // verification) are enforced by release-all.js on this path too.
         console.log('[STEP 5/6] Generating Capgo OTA bundle (web-only)...');
-        const bundleCmd = `npx @capgo/cli bundle zip com.budgetassistant.app -b "1.0.${version}" -j --no-code-check --key-v2`;
+        const bundleCmd = `${capgoCliCmd} bundle zip com.budgetassistant.app -b "1.0.${version}" -j --no-code-check --key-v2`;
         const jsonOutput = execSync(bundleCmd, { cwd: rootDir, encoding: 'utf8' });
 
         const startIndex = jsonOutput.indexOf('{');
