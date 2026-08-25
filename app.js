@@ -23006,6 +23006,16 @@ async function handleGoogleAuth() {
         }
       }
 
+      // Force the native Google account chooser EVERY time the user taps
+      // "Sign in with Google". signOut() clears the last-signed-in account;
+      // without it, Google silently re-selects the previous account and the
+      // user can never switch between multiple Google accounts.
+      try {
+        await GoogleAuth.signOut();
+      } catch (signOutErr) {
+        console.warn('[GoogleAuth] best-effort signOut before signIn:', signOutErr);
+      }
+
       const googleUser = await GoogleAuth.signIn();
       const idToken = googleUser?.authentication?.idToken || googleUser?.idToken;
 
@@ -23122,6 +23132,21 @@ async function handleLogout() {
       await state.supabaseClient.auth.signOut();
     } catch (signOutErr) {
       console.warn('Supabase signOut network error (probably offline):', signOutErr);
+    }
+
+    // Also clear the native Google Sign-In session so the next sign-in shows
+    // the account chooser again (otherwise Google silently re-selects the last
+    // account used on the device). Best-effort — only when the plugin was
+    // initialized earlier by a Google sign-in.
+    if (window._googleAuthInitialized && window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
+      const GoogleAuth = window.Capacitor?.Plugins?.GoogleAuth;
+      if (GoogleAuth && typeof GoogleAuth.signOut === 'function') {
+        try {
+          await GoogleAuth.signOut();
+        } catch (gErr) {
+          console.warn('[GoogleAuth] Native signOut during logout:', gErr);
+        }
+      }
     }
 
     // Clear user-specific cached data
