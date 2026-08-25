@@ -13072,14 +13072,32 @@ function updatePremiumUI() {
   const badge = document.getElementById('hub-premium-badge');
   const subtitle = document.getElementById('hub-premium-subtitle');
 
+  // NATIVE (Android): Google Play Billing is the ONLY payment channel. The Play
+  // purchase sheet itself offers Card (Google Wallet), Google Pay and PayPal, so
+  // the in-app Stripe/PayPal/web-Google-Pay options are hidden entirely.
+  const isNative = typeof window.Capacitor !== 'undefined' &&
+    typeof window.Capacitor.isNativePlatform === 'function' &&
+    window.Capacitor.isNativePlatform();
+
   if (banner) banner.style.display = active ? 'block' : 'none';
   if (buyBtn) buyBtn.style.display = active ? 'none' : 'block';
-  if (cardBtn) cardBtn.style.display = active ? 'none' : 'flex';
-  if (paypalBtn) paypalBtn.style.display = active ? 'none' : 'flex';
-  if (gplayBtn) gplayBtn.style.display = active ? 'none' : 'flex';
-  if (gpayBtn) gpayBtn.style.display = active ? 'none' : 'flex';
-  if (chooseHeading && chooseHeading.parentElement) {
-    chooseHeading.parentElement.style.display = active ? 'none' : 'flex';
+
+  if (isNative) {
+    if (cardBtn) cardBtn.style.display = 'none';
+    if (paypalBtn) paypalBtn.style.display = 'none';
+    if (gpayBtn) gpayBtn.style.display = 'none';
+    if (gplayBtn) gplayBtn.style.display = active ? 'none' : 'flex';
+    if (chooseHeading && chooseHeading.parentElement) {
+      chooseHeading.parentElement.style.display = 'none';
+    }
+  } else {
+    if (cardBtn) cardBtn.style.display = active ? 'none' : 'flex';
+    if (paypalBtn) paypalBtn.style.display = active ? 'none' : 'flex';
+    if (gpayBtn) gpayBtn.style.display = active ? 'none' : 'flex';
+    if (gplayBtn) gplayBtn.style.display = 'none';
+    if (chooseHeading && chooseHeading.parentElement) {
+      chooseHeading.parentElement.style.display = active ? 'none' : 'flex';
+    }
   }
   if (badge) {
     badge.textContent = active
@@ -13094,10 +13112,6 @@ function updatePremiumUI() {
       : (state.lang === 'el' ? 'Ξεκλείδωσε όλα τα features — εφάπαξ' : 'Unlock all features — one-time');
   }
 
-  const isNative = typeof window.Capacitor !== 'undefined' &&
-    typeof window.Capacitor.isNativePlatform === 'function' &&
-    window.Capacitor.isNativePlatform();
-
   const footnoteEl = document.querySelector('#premium-modal [data-i18n="premium_footnote"]');
   if (footnoteEl) {
     if (isNative) {
@@ -13111,6 +13125,26 @@ function updatePremiumUI() {
     }
   }
 
+  // The Google Play button is the ONLY purchase entry point on native, so its
+  // label advertises the actual payment methods the user can pay with — the
+  // Play purchase sheet itself offers Card (Google Wallet), Google Pay and
+  // PayPal. Set here so OTA-only app.js updates reach native users even with
+  // an old bundled translations file.
+  const gplayLabelEl = document.querySelector('#premium-modal [data-i18n="premium_pay_gplay"]');
+  const gplayDescEl = document.querySelector('#premium-modal [data-i18n="premium_pay_gplay_desc"]');
+  if (isNative) {
+    if (gplayLabelEl) {
+      gplayLabelEl.textContent = state.lang === 'el'
+        ? 'Πληρωμή με Κάρτα, Google Pay ή PayPal'
+        : 'Pay with Card, Google Pay or PayPal';
+    }
+    if (gplayDescEl) {
+      gplayDescEl.textContent = state.lang === 'el'
+        ? 'Ασφαλής πληρωμή μέσω Google Play'
+        : 'Secure checkout via Google Play';
+    }
+  }
+
   const restoreBtn = document.getElementById('premium-restore-btn');
   if (restoreBtn) {
     restoreBtn.style.display = (isNative && !active) ? 'block' : 'none';
@@ -13119,9 +13153,10 @@ function updatePremiumUI() {
 
 // Starts the premium purchase flow.
 // - Native Android (Capacitor): Google Play Billing via the `capacitor-billing`
-//   plugin. The purchase token is verified server-side by /api/play-billing.
+//   plugin is the ONLY payment channel — the Play purchase sheet itself offers
+//   Card (Google Wallet), Google Pay and PayPal. The purchase token is verified
+//   server-side by /api/play-billing.
 // - Web / PWA: Stripe Checkout via /api/purchase (Card / Google Pay) or PayPal.
-// Falls back to a manual-activation notice if the endpoint is not deployed.
 async function startPremiumPurchase(method = 'card') {
   if (isPremium()) {
     showSyncToast(state.lang === 'el' ? '✓ Είσαι ήδη Premium!' : '✓ You are already Premium!', 2500);
@@ -13141,30 +13176,39 @@ async function startPremiumPurchase(method = 'card') {
   }
 
   try {
-    if (method === 'gplay') {
-      const isNative = typeof window.Capacitor !== 'undefined' && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform();
-      if (isNative) {
-        const Billing = getBillingPlugin();
-        if (Billing) {
-          const handled = await purchasePremiumViaPlayBilling(Billing);
-          if (handled) return;
-        }
-        showSyncToast(
-          state.lang === 'el'
-            ? 'ℹ️ Η πληρωμή μέσω Google Play δεν είναι διαθέσιμη προς το παρόν. Παρακαλώ επιλέξτε «Πληρωμή με Κάρτα», «PayPal» ή «Google Pay».'
-            : 'ℹ️ Google Play billing is currently unavailable. Please choose "Pay with Card", "PayPal" or "Google Pay".',
-          4500
-        );
-        return;
-      } else {
-        showSyncToast(
-          state.lang === 'el'
-            ? 'ℹ️ Το Google Play είναι διαθέσιμο μόνο στην Android εφαρμογή. Επιλέξτε «Πληρωμή με Κάρτα», «PayPal» ή «Google Pay».'
-            : 'ℹ️ Google Play is only available in the Android app. Please choose "Pay with Card", "PayPal" or "Google Pay".',
-          4500
-        );
-        return;
+    const isNative = typeof window.Capacitor !== 'undefined' &&
+      typeof window.Capacitor.isNativePlatform === 'function' &&
+      window.Capacitor.isNativePlatform();
+
+    // NATIVE (Android): Google Play Billing is the ONLY payment channel. The
+    // method argument (card/paypal/gpay) is irrelevant in the app — those web
+    // payment options are hidden there (see updatePremiumUI). The Play purchase
+    // sheet itself offers Card (Google Wallet), Google Pay and PayPal.
+    if (isNative) {
+      const Billing = getBillingPlugin();
+      if (Billing) {
+        const handled = await purchasePremiumViaPlayBilling(Billing);
+        if (handled) return;
       }
+      showSyncToast(
+        state.lang === 'el'
+          ? '⚠️ Το Google Play δεν είναι διαθέσιμο προς το παρόν. Δοκιμάστε ξανά σε λίγο.'
+          : '⚠️ Google Play is currently unavailable. Please try again shortly.',
+        4500
+      );
+      return;
+    }
+
+    // Web / PWA: the Google Play option is Android-only (the button is hidden on
+    // web by updatePremiumUI; this branch guards old cached pages).
+    if (method === 'gplay') {
+      showSyncToast(
+        state.lang === 'el'
+          ? 'ℹ️ Το Google Play είναι διαθέσιμο μόνο στην Android εφαρμογή. Επιλέξτε «Κάρτα», «PayPal» ή «Google Pay».'
+          : 'ℹ️ Google Play is only available in the Android app. Please choose Card, PayPal or Google Pay.',
+        4500
+      );
+      return;
     }
 
     // Card, Google Pay or PayPal web purchase flow
@@ -13260,10 +13304,12 @@ async function startGooglePayPurchase() {
       typeof window.Capacitor.isNativePlatform === 'function' &&
       window.Capacitor.isNativePlatform();
     if (isNative) {
+      // The Google Play button is the only payment path in the Android app — the
+      // Play purchase sheet itself already offers Google Pay (plus Card/PayPal).
       showSyncToast(
         state.lang === 'el'
-          ? 'ℹ️ Το Google Pay είναι διαθέσιμο στην web έκδοση. Επιλέξτε «Πληρωμή με Κάρτα» ή «Google Play».'
-          : 'ℹ️ Google Pay is available on the web version. Please choose "Pay with Card" or "Google Play".',
+          ? 'ℹ️ Στο Android, η πληρωμή γίνεται μέσω Google Play (Κάρτα, Google Pay ή PayPal).'
+          : 'ℹ️ On Android, payments go through Google Play (Card, Google Pay or PayPal).',
         4500
       );
       return;
