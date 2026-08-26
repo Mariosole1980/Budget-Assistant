@@ -13832,6 +13832,161 @@ async function reconcilePremiumPurchase() {
   }
 }
 
+// ============================================================
+// ADMIN DASHBOARD (owner-only usage & user overview)
+// Visible only to the app owner (marios.ko@hotmail.com) via the
+// "Πίνακας Ελέγχου" row in the More tab. The server enforces the
+// admin gate inside the DB RPC (admin_get_usage) — this UI only
+// decides *visibility*, never *authorization*.
+// ============================================================
+
+function isAdminUser() {
+  if (!state || !state.currentUser) return false;
+  const email = String(state.currentUser.email || (state.currentUser.user_metadata && state.currentUser.user_metadata.email) || '').trim().toLowerCase();
+  return email === 'marios.ko@hotmail.com';
+}
+
+async function openAdminDashboard() {
+  // The server enforces the admin gate (admin_get_usage RPC). This UI only
+  // decides whether the row is visible — authorization happens on the server.
+  openModal('admin-dashboard-modal');
+  await refreshAdminDashboard();
+}
+
+async function refreshAdminDashboard() {
+  const container = document.getElementById('admin-dashboard-content');
+  if (!container) return;
+  const lang = state.lang || 'el';
+  container.innerHTML = `<div style="text-align:center; padding:24px 0; color:var(--text-muted); font-size:13px;"><i class="fa-solid fa-spinner fa-spin" style="font-size:22px;"></i><div style="margin-top:10px;">${lang === 'el' ? 'Φόρτωση στοιχείων…' : 'Loading data…'}</div></div>`;
+
+  let token = null;
+  try {
+    if (state.session && state.session.access_token) {
+      token = state.session.access_token;
+    } else if (state.supabaseClient && typeof state.supabaseClient.auth?.getSession === 'function') {
+      const sessRes = await state.supabaseClient.auth.getSession();
+      if (sessRes && sessRes.data && sessRes.data.session && sessRes.data.session.access_token) {
+        token = sessRes.data.session.access_token;
+      }
+    }
+  } catch (err) {
+    console.warn('Admin dashboard: could not resolve session token', err);
+  }
+  if (!token) {
+    container.innerHTML = adminErrorBox(lang === 'el' ? 'Συνδεθείτε πρώτα για να δείτε τον πίνακα.' : 'Sign in first to view the dashboard.');
+    return;
+  }
+
+  try {
+    const res = await fetch(getBackendApiUrl('/api/admin-usage'), { method: 'POST', headers: { 'Authorization': 'Bearer ' + token } });
+    if (res.status === 403) {
+      container.innerHTML = adminErrorBox(lang === 'el' ? '⛔ Δεν έχετε πρόσβαση (όχι διαχειριστής).' : '⛔ Access denied (not an administrator).');
+      return;
+    }
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok || !json || !json.ok || !json.data) {
+      const msg = (json && json.error === 'ADMIN_RPC_MISSING')
+        ? (lang === 'el' ? 'Το admin RPC δεν έχει εγκατασταθεί. Τρέξε το admin-dashboard-migration.sql στο Supabase SQL Editor.' : 'The admin RPC is not installed. Run admin-dashboard-migration.sql in the Supabase SQL Editor.')
+        : (json && json.error) || 'Failed to load admin data.';
+      container.innerHTML = adminErrorBox(msg);
+      return;
+    }
+    renderAdminUsage(json.data, container);
+  } catch (err) {
+    console.error('Admin dashboard fetch error:', err);
+    container.innerHTML = adminErrorBox(lang === 'el' ? 'Σφάλμα σύνδεσης με τον διακομιστή.' : 'Server connection error.');
+  }
+}
+
+function adminErrorBox(msg) {
+  return `<div style="text-align:center; padding:24px 0; color:var(--red-negative, #f43f5e); font-size:13.5px; line-height:1.5;">${msg}</div>`;
+}
+
+function adminBar(pct) {
+  const clamped = Math.max(0, Math.min(100, Math.round(pct)));
+  const color = clamped >= 80 ? 'var(--red-negative, #f43f5e)' : (clamped >= 50 ? '#f59e0b' : '#22c55e');
+  return `<div style="height:8px; border-radius:6px; background:var(--overlay-100, rgba(255,255,255,0.08)); overflow:hidden; margin-top:8px;"><div style="height:100%; width:${clamped}%; border-radius:6px; background:${color}; transition:width 0.3s ease;"></div></div>`;
+}
+
+function adminMeterCard(title, label, value, pct, subLabel, subValue, subPct) {
+  const lang = state.lang || 'el';
+  const mainColor = pct >= 80 ? 'var(--red-negative, #f43f5e)' : (pct >= 50 ? '#f59e0b' : '#22c55e');
+  let sub = '';
+  if (subLabel && subValue != null) {
+    sub = `<div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; font-size:12px; color:var(--text-secondary);"><span>${subLabel}</span><span style="font-weight:700; color:${mainColor};">${subValue}</span></div>${adminBar(subPct)}`;
+  }
+  return `<div style="background:var(--bg-card, #161622); border:1px solid var(--border); border-radius:16px; padding:14px 16px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2px;">
+      <div style="font-size:13.5px; color:var(--text-primary); font-weight:700;">${title}</div>
+      <div style="font-size:12px; color:var(--text-secondary);">${label}: <b>${value}</b></div>
+    </div>
+    <div style="font-size:12.5px; color:${mainColor}; font-weight:800; margin-top:4px;">${Math.round(pct)}% ${lang === 'el' ? 'χρήσης' : 'used'} (${lang === 'el' ? 'μένει' : 'left'} ${Math.max(0, 100 - Math.round(pct))}%)</div>
+    ${adminBar(pct)}
+    ${sub}
+  </div>`;
+}
+
+
+function renderAdminUsage(data, container) {
+  const lang = state.lang || 'el';
+  const dbUsed = (data.db_size_bytes || 0) / (1024 * 1024);
+  const dbLimit = (data.db_limit_bytes || 500 * 1024 * 1024) / (1024 * 1024);
+  const dbPct = dbLimit > 0 ? (dbUsed / dbLimit) * 100 : 0;
+  const users = Array.isArray(data.users) ? data.users : [];
+  const premiumCount = data.premium_count || 0;
+  const usersPct = ((data.users_count || 0) / (data.mau_limit || 50000)) * 100;
+  const aiChat = data.ai_chat_calls_month || 0;
+  const aiChatLimit = data.ai_chat_limit || 50;
+  const aiChatPct = aiChatLimit > 0 ? (aiChat / aiChatLimit) * 100 : 0;
+  const aiScans = data.ai_scan_calls_month || 0;
+  const aiScanLimit = data.ai_scan_limit || 100;
+  const aiScanPct = aiScanLimit > 0 ? (aiScans / aiScanLimit) * 100 : 0;
+  const nearLimit = dbPct >= 80 || usersPct >= 80 || aiChatPct >= 80 || aiScanPct >= 80;
+
+  const summary = `<div style="background:linear-gradient(135deg, rgba(99,102,241,0.14), rgba(79,70,229,0.05)); border:1px solid rgba(99,102,241,0.25); border-radius:16px; padding:14px 16px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
+      <div style="font-size:13px; color:var(--text-primary); font-weight:700;">${lang === 'el' ? 'Σύνοψη' : 'Summary'}</div>
+      <div style="font-size:12.5px; color:var(--text-secondary);">${lang === 'el' ? 'Χρήστες' : 'Users'}: <b>${data.users_count || 0}</b> &nbsp;•&nbsp; 👑 <b style="color:#fbbf24;">${premiumCount}</b> &nbsp;•&nbsp; ${lang === 'el' ? 'Συναλλαγές' : 'Transactions'}: <b>${data.transactions_count || 0}</b></div>
+    </div>
+  </div>`;
+
+  const supabaseCard = adminMeterCard('🗄️ Supabase', lang === 'el' ? 'Βάση' : 'DB', `${dbUsed.toFixed(1)} MB / ${dbLimit.toFixed(0)} MB`, dbPct, lang === 'el' ? 'Χρήστες' : 'Users', `${data.users_count || 0} / ${(data.mau_limit || 50000).toLocaleString('en-US')}`, usersPct);
+  const aiChatCard = adminMeterCard('💬 AI Chat', lang === 'el' ? 'Κλήσεις (μήνας)' : 'Calls (month)', `${aiChat} / ${aiChatLimit} PRO`, aiChatPct, null, null, null);
+  const aiScanCard = adminMeterCard('🧾 AI Receipts', lang === 'el' ? 'Σαρώσεις (μήνας)' : 'Scans (month)', `${aiScans} / ${aiScanLimit} PRO`, aiScanPct, null, null, null);
+
+  const upgradeHtml = (nearLimit || !isPremium())
+    ? `<button type="button" onclick="startPremiumPurchase('card')" style="width:100%; padding:14px; border-radius:14px; font-weight:800; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; background:linear-gradient(135deg,#f59e0b,#d97706); color:#fff; border:none; box-shadow:0 6px 18px rgba(245,158,11,0.35);"><i class="fa-solid fa-crown"></i> ${lang === 'el' ? '⭐ Αναβάθμισε σε PRO (Lifetime 9,99 €)' : '⭐ Upgrade to PRO (Lifetime €9.99)'}</button>`
+    : `<div style="text-align:center; font-size:12.5px; color:#22c55e; font-weight:700;">✓ ${lang === 'el' ? 'Είσαι Premium — όλα ξεκλειδωμένα' : 'You are Premium — everything unlocked'}</div>`;
+
+  const userRows = users.length === 0
+    ? `<div style="padding:10px 0; color:var(--text-muted); font-size:12.5px;">${lang === 'el' ? 'Δεν βρέθηκαν χρήστες.' : 'No users found.'}</div>`
+    : users.map(u => {
+        const isPro = !!u.premium_active;
+        const name = u.display_name || u.email || '—';
+        return `<div style="display:flex; align-items:center; gap:10px; padding:9px 2px; border-bottom:1px solid var(--overlay-060, rgba(255,255,255,0.05));">
+          <div style="min-width:0; flex:1; overflow:hidden;">
+            <div style="font-size:13px; color:var(--text-primary); font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(name)}</div>
+            <div style="font-size:11.5px; color:var(--text-muted); word-break:break-all;">${escapeHtml(u.email || '')}</div>
+          </div>
+          <span style="flex-shrink:0; font-size:10.5px; font-weight:800; padding:3px 9px; border-radius:12px; ${isPro ? 'background:rgba(245,158,11,0.18); color:#fbbf24; border:1px solid rgba(245,158,11,0.35);' : 'background:rgba(255,255,255,0.07); color:var(--text-secondary); border:1px solid rgba(255,255,255,0.08);'}">${isPro ? '👑 PRO' : (lang === 'el' ? 'Δωρεάν' : 'Free')}</span>
+        </div>`;
+      }).join('');
+
+  const usersCard = `<div style="background:var(--bg-card, #161622); border:1px solid var(--border); border-radius:16px; padding:14px 16px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+      <div style="font-size:13.5px; color:var(--text-primary); font-weight:700;">👥 ${lang === 'el' ? 'Χρήστες Εφαρμογής' : 'App Users'} (${users.length})</div>
+      <div style="font-size:12px; color:var(--text-secondary);">👑 <b style="color:#fbbf24;">${premiumCount}</b> PRO</div>
+    </div>
+    <div style="max-height:220px; overflow-y:auto;">${userRows}</div>
+  </div>`;
+
+  container.innerHTML = summary + supabaseCard + aiChatCard + aiScanCard + upgradeHtml + usersCard;
+}
+
+window.openAdminDashboard = openAdminDashboard;
+window.refreshAdminDashboard = refreshAdminDashboard;
+window.isAdminUser = isAdminUser;
+
 window.openPremiumModal = openPremiumModal;
 window.updatePremiumUI = updatePremiumUI;
 window.startPremiumPurchase = startPremiumPurchase;
@@ -27022,8 +27177,7 @@ function updateHeaderProfileBadge() {
 
   const devSettingsRow = document.getElementById('developer-settings-row');
   if (devSettingsRow) {
-    const isDev = state.currentUser && state.currentUser.email === 'marios.ko@hotmail.com';
-    devSettingsRow.style.display = isDev ? 'flex' : 'none';
+    devSettingsRow.style.display = isAdminUser() ? 'flex' : 'none';
   }
 
   // NOTE: The guest-connect-banner element was removed from index.html (the
