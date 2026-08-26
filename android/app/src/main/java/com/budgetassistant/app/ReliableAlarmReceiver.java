@@ -123,15 +123,6 @@ public class ReliableAlarmReceiver extends BroadcastReceiver {
             smallIconRes = context.getApplicationInfo().icon;
         }
 
-        // Load large icon (full color app logo)
-        android.graphics.Bitmap largeIcon = null;
-        try {
-            int largeIconRes = context.getResources().getIdentifier("ic_launcher", "mipmap", context.getPackageName());
-            if (largeIconRes != 0) {
-                largeIcon = android.graphics.BitmapFactory.decodeResource(context.getResources(), largeIconRes);
-            }
-        } catch (Exception ignored) {}
-
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
                 .setSmallIcon(smallIconRes)
                 .setContentTitle(title)
@@ -142,13 +133,9 @@ public class ReliableAlarmReceiver extends BroadcastReceiver {
                 .setCategory(NotificationCompat.CATEGORY_REMINDER)
                 .setAutoCancel(true)
                 .setSound(soundUri)
-                .setColor(Color.parseColor("#7c6af7"))
+                .setColor(Color.parseColor("#0F1219"))
                 .setContentIntent(pendingIntent)
                 .setDefaults(NotificationCompat.DEFAULT_ALL);
-
-        if (largeIcon != null) {
-            builder.setLargeIcon(largeIcon);
-        }
 
         NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
         try {

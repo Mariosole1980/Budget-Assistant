@@ -1533,8 +1533,7 @@ async function scheduleDailyReminder(enabled, timeString) {
             body: state.lang === 'el' ? 'Έχεις καταγράψει τα σημερινά έξοδά σου;' : 'Have you logged today\'s expenses?',
             channelId: 'budget_reminders',
             smallIcon: 'ic_stat_icon_config_sample',
-            largeIcon: 'ic_launcher',
-            iconColor: '#7c6af7',
+            iconColor: '#0F1219',
             schedule: {
               on: {
                 hour: hours,
@@ -1815,7 +1814,7 @@ async function scheduleNoteReminder(note) {
           body: note.title,
           channelId: 'budget_reminders',
           smallIcon: 'ic_stat_icon_config_sample',
-          iconColor: '#7c6af7',
+          iconColor: '#0F1219',
           schedule: { at: reminderTime, allowWhileIdle: true },
           sound: null,
           attachments: null,
@@ -5647,8 +5646,7 @@ function checkHighExpenseAlert(transaction) {
           title: title,
           body: body,
           smallIcon: 'ic_stat_icon_config_sample',
-          iconColor: '#7c6af7',
-          largeIcon: 'splash_logo',
+          iconColor: '#0F1219',
           schedule: { at: new Date(Date.now() + 50) },
           sound: null,
           attachments: null,
@@ -29495,7 +29493,7 @@ async function sendTestNotification() {
             body: body,
             channelId: 'budget_reminders',
             smallIcon: 'ic_stat_icon_config_sample',
-            iconColor: '#7c6af7',
+            iconColor: '#0F1219',
             schedule: { at: new Date(Date.now() + 400), allowWhileIdle: true },
             extra: { type: 'test' }
           }]
