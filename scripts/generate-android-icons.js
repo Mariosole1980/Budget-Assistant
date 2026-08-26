@@ -51,31 +51,45 @@ const resDir = path.join(ROOT, 'android', 'app', 'src', 'main', 'res');
         console.error('Source image not found:', SOURCE_IMAGE);
         process.exit(1);
     }
-    const imgBuf = fs.readFileSync(SOURCE_IMAGE);
+    const rawImgBuf = fs.readFileSync(SOURCE_IMAGE);
+    // Trim raw image so all asymmetrical margins are removed
+    const imgBuf = await sharp(rawImgBuf).trim().png().toBuffer();
 
     // 1. Generate Mipmap Launcher Icons
     for (const [density, size] of Object.entries(densities)) {
         const dir = path.join(resDir, `mipmap-${density}`);
         fs.mkdirSync(dir, { recursive: true });
 
+        // Safe zone sizing for standard launcher icons (0.64 for square/circle legacy icons)
+        const legacyFgSize = Math.round(size * 0.64);
+        const legacyFg = await sharp(imgBuf)
+            .resize(legacyFgSize, legacyFgSize, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+            .toBuffer();
+        const legacyMeta = await sharp(legacyFg).metadata();
+        const legacyLeft = Math.round((size - legacyMeta.width) / 2);
+        const legacyTop = Math.round((size - legacyMeta.height) / 2);
+
         // Square launcher icon
-        await sharp(imgBuf)
-            .resize(size, size, { fit: 'cover' })
+        await sharp({
+            create: { width: size, height: size, channels: 4, background: BG_COLOR }
+        })
+            .composite([{ input: legacyFg, left: legacyLeft, top: legacyTop }])
             .png()
             .toFile(path.join(dir, 'ic_launcher.png'));
         console.log('Wrote', path.join(`mipmap-${density}`, 'ic_launcher.png'), `(${size}x${size})`);
 
-        // Circular launcher icon with perfect circle alpha mask (eliminates white corner borders!)
-        const resizedSquare = await sharp(imgBuf)
-            .resize(size, size, { fit: 'cover' })
-            .png()
-            .toBuffer();
-
+        // Circular launcher icon with perfect circle alpha mask
         const circleMask = Buffer.from(
             `<svg width="${size}" height="${size}"><circle cx="${size / 2}" cy="${size / 2}" r="${size / 2}" fill="#fff"/></svg>`
         );
+        const squareBuf = await sharp({
+            create: { width: size, height: size, channels: 4, background: BG_COLOR }
+        })
+            .composite([{ input: legacyFg, left: legacyLeft, top: legacyTop }])
+            .png()
+            .toBuffer();
 
-        await sharp(resizedSquare)
+        await sharp(squareBuf)
             .composite([{ input: circleMask, blend: 'dest-in' }])
             .png()
             .toFile(path.join(dir, 'ic_launcher_round.png'));
@@ -91,12 +105,15 @@ const resDir = path.join(ROOT, 'android', 'app', 'src', 'main', 'res');
             },
         }).png().toFile(path.join(dir, 'ic_launcher_background.png'));
 
-        // Adaptive icon foreground (centered logo in safe-zone)
-        const fgSize = Math.round(size * 0.72);
-        const fg = await sharp(imgBuf)
-            .resize(fgSize, fgSize, { fit: 'cover' })
-            .png()
+        // Adaptive icon foreground (centered logo in Android standard safe-zone 0.58)
+        // Guarantees zero clipping on Samsung squircle, Google Pixel circle, or Xiaomi shapes!
+        const adaptiveFgSize = Math.round(size * 0.58);
+        const adaptiveFg = await sharp(imgBuf)
+            .resize(adaptiveFgSize, adaptiveFgSize, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
             .toBuffer();
+        const adaptiveMeta = await sharp(adaptiveFg).metadata();
+        const adaptiveLeft = Math.round((size - adaptiveMeta.width) / 2);
+        const adaptiveTop = Math.round((size - adaptiveMeta.height) / 2);
 
         await sharp({
             create: {
@@ -106,7 +123,7 @@ const resDir = path.join(ROOT, 'android', 'app', 'src', 'main', 'res');
                 background: { r: 0, g: 0, b: 0, alpha: 0 },
             },
         })
-            .composite([{ input: fg, left: Math.round((size - fgSize) / 2), top: Math.round((size - fgSize) / 2) }])
+            .composite([{ input: adaptiveFg, left: adaptiveLeft, top: adaptiveTop }])
             .png()
             .toFile(path.join(dir, 'ic_launcher_foreground.png'));
         console.log('Wrote', path.join(`mipmap-${density}`, 'ic_launcher_foreground.png'), `(${size}x${size})`);

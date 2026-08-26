@@ -228,14 +228,14 @@ public class ReliableAlarmReceiver extends BroadcastReceiver {
         );
 
         try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
-                    Log.w(TAG, "Exact alarms not allowed. Using setAndAllowWhileIdle fallback.");
-                    alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent);
-                } else {
-                    alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent);
-                    Log.d(TAG, "Armed setExactAndAllowWhileIdle for: " + calendar.getTime().toString());
-                }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                // setAlarmClock provides highest real-time CPU priority in Android kernel,
+                // firing on the exact second (:00.000) and bypassing all OEM battery batching windows.
+                AlarmManager.AlarmClockInfo alarmClockInfo = new AlarmManager.AlarmClockInfo(triggerAtMillis, pendingIntent);
+                alarmManager.setAlarmClock(alarmClockInfo, pendingIntent);
+                Log.d(TAG, "Armed setAlarmClock for exact time: " + calendar.getTime().toString());
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent);
             } else {
                 alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent);
             }
@@ -244,7 +244,14 @@ public class ReliableAlarmReceiver extends BroadcastReceiver {
             ReliableNotificationWorker.enqueueWatchdog(context);
 
         } catch (Exception e) {
-            Log.e(TAG, "Error scheduling alarm with AlarmManager", e);
+            Log.e(TAG, "Error scheduling alarm with setAlarmClock, falling back to setExactAndAllowWhileIdle", e);
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent);
+                } else {
+                    alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent);
+                }
+            } catch (Exception ignored) {}
         }
     }
 
