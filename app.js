@@ -9796,7 +9796,7 @@ function setupEventListeners() {
     const quota = getMonthlyAIScanUsage();
     if (!quota.isPro && quota.remaining <= 0) {
       const msg = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['ai_scan_quota_msg']) ||
-        'Έχετε χρησιμοποιήσει τις 5 δωρεάν σαρώσεις αυτού του μήνα. Αναβαθμίστε σε Lifetime PRO για απεριόριστες σαρώσεις!';
+        'Έχετε χρησιμοποιήσει τις 5 δωρεάν σαρώσεις αυτού του μήνα. Αναβαθμίστε σε Lifetime PRO για έως 100 σαρώσεις/μήνα!';
       showSyncToast(msg, 3500);
       if (typeof openPremiumModal === 'function') {
         setTimeout(() => openPremiumModal('receipts'), 200);
@@ -9921,7 +9921,7 @@ function setupEventListeners() {
     const quota = getMonthlyAIScanUsage();
     if (!quota.isPro && quota.remaining <= 0) {
       const msg = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['ai_scan_quota_msg']) ||
-        'Έχετε χρησιμοποιήσει τις 5 δωρεάν σαρώσεις αυτού του μήνα. Αναβαθμίστε σε Lifetime PRO για απεριόριστες σαρώσεις!';
+        'Έχετε χρησιμοποιήσει τις 5 δωρεάν σαρώσεις αυτού του μήνα. Αναβαθμίστε σε Lifetime PRO για έως 100 σαρώσεις/μήνα!';
       showSyncToast(msg, 3500);
       if (typeof openPremiumModal === 'function') {
         openPremiumModal('receipts');
@@ -9992,6 +9992,25 @@ function setupEventListeners() {
       });
 
       if (!res.ok) {
+        // Distinguish the server-side quota rejection (429) from a real OCR
+        // failure so the user sees the correct message instead of a generic
+        // "recognition failed" toast.
+        if (res.status === 429) {
+          let quotaMsg = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['ai_scan_quota_msg']) ||
+            'Έχετε χρησιμοποιήσει τις 5 δωρεάν σαρώσεις αυτού του μήνα. Αναβαθμίστε σε Lifetime PRO για έως 100 σαρώσεις/μήνα!';
+          try {
+            const errBody = await res.json();
+            if (errBody && errBody.error === 'SCAN_LIMIT_REACHED' && errBody.message) {
+              quotaMsg = errBody.message;
+            }
+          } catch (_) { /* ignore parse errors */ }
+          if (banner) banner.style.display = 'none';
+          showSyncToast(quotaMsg, 4000);
+          if (!isPremium() && typeof openPremiumModal === 'function') {
+            openPremiumModal('receipts');
+          }
+          throw new Error('AI_SCAN_QUOTA_REACHED');
+        }
         throw new Error(`HTTP ${res.status}`);
       }
 

@@ -34,8 +34,12 @@ export async function onRequestPost(context) {
   }
   const corsHeaders = sec.headers;
 
-  // 2. JWT Token Verification (Optional - supports Guest Mode & Logged-in users)
+  // 2. JWT Token Verification (Optional - supports Guest Mode & Logged-in users).
+  // When a token IS present it must be valid; invalid tokens are rejected.
+  // For authenticated users we also capture the user_id so we can enforce the
+  // AI receipt scan fair-use limit server-side (authoritative, not bypassable).
   const authHeader = request.headers.get('Authorization') || '';
+  let authenticatedUserId = null;
   if (authHeader.startsWith('Bearer ')) {
     const token = authHeader.substring(7);
     const supabase = getSupabasePublicConfig(env);
@@ -55,6 +59,12 @@ export async function onRequestPost(context) {
             headers: corsHeaders
           });
         }
+        try {
+          const userData = await userRes.json();
+          if (userData && userData.id) {
+            authenticatedUserId = userData.id;
+          }
+        } catch (_) { /* ignore parse errors */ }
       } catch (err) {
         console.warn('Session verification error:', err.message);
         return new Response(JSON.stringify({ error: 'Unauthorized: could not verify session' }), {
@@ -86,6 +96,75 @@ export async function onRequestPost(context) {
 
   // Strip data:image/...;base64, prefix if present
   const cleanBase64 = imageBase64.replace(/^data:image\/[a-zA-Z+]+;base64,/, '');
+
+  // --------------------------------------------------------------------------
+  // 3b. SCAN FAIR-USE LIMIT (server-side, authoritative)
+  // Only authenticated users are tracked server-side. Guest mode (no token)
+  // relies on the client-side gate.
+  // Free: 5/month. Premium: 100/month.
+  // --------------------------------------------------------------------------
+  if (authenticatedUserId) {
+    const supabase = getSupabasePublicConfig(env);
+    if (supabase) {
+      const { supabaseUrl, supabaseKey } = supabase;
+      const authToken = authHeader.startsWith('Bearer ') ? authHeader.substring(7) : '';
+
+      const rpcCall = async (rpcName) => {
+        try {
+          const res = await fetch(`${supabaseUrl}/rest/v1/rpc/${rpcName}`, {
+            method: 'POST',
+            headers: {
+              'apikey': supabaseKey,
+              'Authorization': `Bearer ${authToken}`,
+              'Content-Type': 'application/json'
+            },
+            body: '{}'
+          });
+          if (!res.ok) return null;
+          try { return await res.json(); } catch (_) { return null; }
+        } catch (_) { return null; }
+      };
+
+      // Determine the user's plan limit.
+      let premiumActive = false;
+      try {
+        const profileRes = await fetch(
+          `${supabaseUrl}/rest/v1/profiles?select=premium_active&id=eq.${authenticatedUserId}&limit=1`,
+          {
+            headers: {
+              'apikey': supabaseKey,
+              'Authorization': `Bearer ${authToken}`
+            }
+          }
+        );
+        if (profileRes.ok) {
+          const rows = await profileRes.json();
+          if (Array.isArray(rows) && rows.length > 0) {
+            premiumActive = rows[0].premium_active === true;
+          }
+        }
+      } catch (_) { /* ignore profile fetch errors */ }
+
+      const limit = premiumActive ? 100 : 5;
+      const currentUsage = await rpcCall('get_scan_usage');
+
+      if (currentUsage != null && currentUsage >= limit) {
+        return new Response(JSON.stringify({
+          error: 'SCAN_LIMIT_REACHED',
+          message: premiumActive
+            ? 'Monthly AI scan limit (100) reached.'
+            : 'Monthly AI scan limit (5) reached. Upgrade to Premium for 100/month.'
+        }), {
+          status: 429,
+          headers: corsHeaders
+        });
+      }
+
+      // Increment usage BEFORE calling Gemini so concurrent requests cannot
+      // exceed the limit. If the increment fails, still allow the call (best-effort).
+      await rpcCall('increment_scan_usage');
+    }
+  }
 
   // 4. Prepare Prompt for Gemini Vision
   const categoriesList = [
