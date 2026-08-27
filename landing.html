@@ -26,8 +26,7 @@
   <style>
     :root {
       --bg: #07080C;
-      --bg-card: #11141E;
-      --bg-card-hover: #161A28;
+      --bg-card: #10131E;
       --border: rgba(255, 255, 255, 0.08);
       --border-focus: rgba(124, 106, 247, 0.4);
       --text: #F3F4F6;
@@ -38,21 +37,16 @@
       --success: #10B981;
       --success-glow: rgba(16, 185, 129, 0.25);
       --cyan: #38BDF8;
-      --cyan-glow: rgba(56, 189, 248, 0.25);
-      --accent: #F59E0B;
-      --font-heading: 'Outfit', sans-serif;
-      --font-body: 'Inter', system-ui, -apple-system, sans-serif;
-      --radius-sm: 10px;
-      --radius-md: 16px;
-      --radius-lg: 24px;
-      --radius-xl: 32px;
+      --font-heading: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --font-body: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+      --radius-xl: 28px;
+      --radius-pill: 9999px;
     }
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
       background-color: var(--bg);
@@ -64,7 +58,7 @@
       -webkit-font-smoothing: antialiased;
     }
 
-    /* Ambient Cursor Background Glow */
+    /* Ambient Glow Follower */
     .ambient-glow {
       position: fixed;
       top: 0;
@@ -79,7 +73,6 @@
       filter: blur(40px);
     }
 
-    /* Noise Texture Overlay */
     .bg-grid {
       position: absolute;
       top: 0;
@@ -95,153 +88,159 @@
     }
 
     .container {
-      max-width: 1200px;
+      max-width: 1140px;
       margin: 0 auto;
       padding: 0 24px;
       position: relative;
       z-index: 1;
     }
 
-    /* Header / Navbar */
-    header {
+    /* ==========================================================================
+       FLOATING LUXURY PILL NAVBAR
+       ========================================================================== */
+    .navbar-wrapper {
       position: sticky;
-      top: 0;
-      z-index: 100;
-      background: rgba(7, 8, 12, 0.8);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border-bottom: 1px solid var(--border);
-      padding: 16px 0;
+      top: 14px;
+      z-index: 1000;
+      margin: 0 auto;
+      max-width: 1040px;
+      padding: 0 16px;
     }
 
     .nav-inner {
       display: flex;
       align-items: center;
       justify-content: space-between;
+      gap: 12px;
+      background: rgba(13, 16, 25, 0.85);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: var(--radius-pill);
+      padding: 6px 8px 6px 14px;
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6), 0 0 20px rgba(124, 106, 247, 0.08);
     }
 
     .logo-link {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
       text-decoration: none;
-      color: #fff;
+      white-space: nowrap;
+      flex-shrink: 0;
     }
 
     .logo-img {
-      width: 38px;
-      height: 38px;
-      border-radius: 10px;
-      box-shadow: 0 0 20px rgba(124, 106, 247, 0.4);
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      box-shadow: 0 0 14px rgba(124, 106, 247, 0.4);
     }
 
     .logo-text {
       font-family: var(--font-heading);
       font-weight: 700;
-      font-size: 20px;
-      letter-spacing: -0.5px;
-      background: linear-gradient(135deg, #FFFFFF 60%, #9CA3AF 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+      font-size: 16px;
+      letter-spacing: -0.3px;
+      color: #FFFFFF;
+      white-space: nowrap;
     }
 
     .nav-links {
       display: flex;
       align-items: center;
-      gap: 28px;
+      gap: 2px;
       list-style: none;
+      margin: 0;
+      padding: 0;
     }
 
     .nav-links a {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
       text-decoration: none;
-      color: var(--text-muted);
-      font-size: 14px;
+      color: #9CA3AF;
+      font-size: 13px;
       font-weight: 500;
-      transition: color 0.2s;
+      padding: 6px 11px;
+      border-radius: var(--radius-pill);
+      white-space: nowrap;
+      transition: all 0.2s ease;
     }
 
     .nav-links a:hover {
-      color: #fff;
+      color: #FFFFFF;
+      background: rgba(255, 255, 255, 0.06);
     }
 
     .badge-new {
-      font-size: 10px;
+      font-size: 9px;
       font-weight: 700;
       text-transform: uppercase;
-      background: rgba(124, 106, 247, 0.2);
-      color: var(--primary);
-      border: 1px solid rgba(124, 106, 247, 0.4);
-      padding: 2px 6px;
-      border-radius: 6px;
-      margin-left: 4px;
+      background: rgba(124, 106, 247, 0.25);
+      color: #C4B5FD;
+      border: 1px solid rgba(124, 106, 247, 0.5);
+      padding: 1px 5px;
+      border-radius: 5px;
     }
 
     .nav-cta-group {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 6px;
+      flex-shrink: 0;
     }
 
-    .btn {
+    .nav-btn-demo {
       display: inline-flex;
       align-items: center;
-      justify-content: center;
-      gap: 8px;
-      padding: 10px 20px;
-      border-radius: var(--radius-sm);
-      font-family: var(--font-body);
-      font-size: 14px;
+      gap: 5px;
+      padding: 6px 12px;
+      border-radius: var(--radius-pill);
+      font-size: 12.5px;
       font-weight: 600;
-      text-decoration: none;
-      cursor: pointer;
-      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-      border: 1px solid transparent;
-    }
-
-    .btn-secondary {
+      color: #E5E7EB;
       background: rgba(255, 255, 255, 0.05);
-      border-color: var(--border);
-      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      text-decoration: none;
+      white-space: nowrap;
+      transition: all 0.2s;
     }
 
-    .btn-secondary:hover {
+    .nav-btn-demo:hover {
       background: rgba(255, 255, 255, 0.1);
-      border-color: rgba(255, 255, 255, 0.2);
+      border-color: rgba(255, 255, 255, 0.25);
+      color: #FFF;
+    }
+
+    .nav-btn-app {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 6px 14px;
+      border-radius: var(--radius-pill);
+      font-size: 12.5px;
+      font-weight: 600;
+      color: #FFFFFF;
+      background: linear-gradient(135deg, #7C6AF7 0%, #6350E8 100%);
+      border: none;
+      text-decoration: none;
+      white-space: nowrap;
+      box-shadow: 0 2px 14px rgba(124, 106, 247, 0.4);
+      transition: all 0.2s;
+    }
+
+    .nav-btn-app:hover {
+      box-shadow: 0 4px 22px rgba(124, 106, 247, 0.6);
       transform: translateY(-1px);
     }
 
-    .btn-primary {
-      background: linear-gradient(135deg, #7C6AF7 0%, #6350E8 100%);
-      color: #fff;
-      box-shadow: 0 4px 20px var(--primary-glow);
-    }
-
-    .btn-primary:hover {
-      background: linear-gradient(135deg, #8B7AF8 0%, #705DF0 100%);
-      box-shadow: 0 6px 28px rgba(124, 106, 247, 0.45);
-      transform: translateY(-2px);
-    }
-
-    .btn-emerald {
-      background: linear-gradient(135deg, #10B981 0%, #059669 100%);
-      color: #fff;
-      box-shadow: 0 4px 20px var(--success-glow);
-    }
-
-    .btn-emerald:hover {
-      box-shadow: 0 6px 28px rgba(16, 185, 129, 0.45);
-      transform: translateY(-2px);
-    }
-
-    .btn-lg {
-      padding: 14px 28px;
-      font-size: 16px;
-      border-radius: var(--radius-md);
-    }
-
-    /* Hero Section */
+    /* ==========================================================================
+       HERO SECTION
+       ========================================================================== */
     .hero {
-      padding: 90px 0 60px;
+      padding: 70px 0 50px;
       text-align: center;
       position: relative;
     }
@@ -257,18 +256,18 @@
       font-size: 13px;
       font-weight: 600;
       color: #C4B5FD;
-      margin-bottom: 24px;
+      margin-bottom: 22px;
       box-shadow: 0 0 20px rgba(124, 106, 247, 0.15);
     }
 
     .hero h1 {
       font-family: var(--font-heading);
-      font-size: 56px;
-      line-height: 1.15;
+      font-size: 52px;
+      line-height: 1.16;
       font-weight: 800;
-      letter-spacing: -1.5px;
-      max-width: 920px;
-      margin: 0 auto 24px;
+      letter-spacing: -1.2px;
+      max-width: 860px;
+      margin: 0 auto 20px;
       background: linear-gradient(180deg, #FFFFFF 40%, #D1D5DB 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
@@ -281,10 +280,10 @@
     }
 
     .hero-subtitle {
-      font-size: 20px;
+      font-size: 18.5px;
       color: var(--text-muted);
-      max-width: 760px;
-      margin: 0 auto 36px;
+      max-width: 720px;
+      margin: 0 auto 32px;
       line-height: 1.6;
     }
 
@@ -293,87 +292,121 @@
       align-items: center;
       justify-content: center;
       gap: 16px;
-      margin-bottom: 36px;
+      margin-bottom: 34px;
       flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 24px;
+      border-radius: var(--radius-md);
+      font-family: var(--font-body);
+      font-size: 15px;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      border: 1px solid transparent;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #7C6AF7 0%, #6350E8 100%);
+      color: #fff;
+      box-shadow: 0 4px 20px var(--primary-glow);
+    }
+    .btn-primary:hover {
+      box-shadow: 0 6px 28px rgba(124, 106, 247, 0.45);
+      transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: var(--border);
+      color: #fff;
+    }
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.2);
+      transform: translateY(-1px);
+    }
+
+    .btn-emerald {
+      background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+      color: #fff;
+      box-shadow: 0 4px 20px var(--success-glow);
+    }
+    .btn-emerald:hover {
+      box-shadow: 0 6px 28px rgba(16, 185, 129, 0.45);
+      transform: translateY(-2px);
+    }
+
+    .btn-lg {
+      padding: 14px 28px;
+      font-size: 16px;
+      border-radius: var(--radius-md);
     }
 
     .trust-strip {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 32px;
+      gap: 30px;
       color: var(--text-dim);
       font-size: 13px;
       font-weight: 500;
       flex-wrap: wrap;
     }
 
-    .trust-item {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    /* Section Styling */
-    section {
-      padding: 80px 0;
-      position: relative;
-    }
+    /* ==========================================================================
+       SIMULATORS SECTION
+       ========================================================================== */
+    section { padding: 65px 0; position: relative; }
 
     .section-header {
       text-align: center;
       max-width: 680px;
-      margin: 0 auto 50px;
+      margin: 0 auto 44px;
     }
 
     .section-tag {
-      font-size: 12px;
+      font-size: 11.5px;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 1.5px;
       color: var(--primary);
-      margin-bottom: 12px;
+      margin-bottom: 10px;
       display: block;
     }
 
     .section-title {
       font-family: var(--font-heading);
-      font-size: 38px;
+      font-size: 34px;
       font-weight: 700;
       letter-spacing: -0.8px;
-      margin-bottom: 16px;
+      margin-bottom: 12px;
       color: #fff;
     }
 
-    .section-desc {
-      font-size: 17px;
-      color: var(--text-muted);
-    }
+    .section-desc { font-size: 15.5px; color: var(--text-muted); }
 
-    /* Interactive Simulators Grid */
     .simulators-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 32px;
-      margin-top: 20px;
+      gap: 26px;
     }
 
     .simulator-card {
       background: var(--bg-card);
       border: 1px solid var(--border);
       border-radius: var(--radius-xl);
-      padding: 32px;
-      position: relative;
-      overflow: hidden;
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+      padding: 30px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      transition: border-color 0.3s;
-    }
-
-    .simulator-card:hover {
-      border-color: rgba(255, 255, 255, 0.15);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
     }
 
     .card-glow-badge {
@@ -384,30 +417,28 @@
       font-weight: 700;
       padding: 4px 10px;
       border-radius: 999px;
-      margin-bottom: 16px;
-      width: fit-content;
+      margin-bottom: 12px;
     }
 
-    /* AI Scanner Simulator */
     .receipt-scanner-box {
       background: #0B0D14;
       border: 1px solid rgba(255, 255, 255, 0.06);
       border-radius: var(--radius-lg);
-      padding: 20px;
+      padding: 16px;
       position: relative;
-      margin: 20px 0;
-      min-height: 240px;
+      margin: 16px 0;
+      min-height: 210px;
     }
 
     .receipt-paper {
       background: #FAFAFA;
       color: #111;
-      padding: 16px;
+      padding: 14px;
       border-radius: 8px;
       font-family: monospace;
       font-size: 12px;
       position: relative;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.5);
       overflow: hidden;
     }
 
@@ -438,12 +469,11 @@
       background: rgba(16, 185, 129, 0.15);
       border: 1px solid rgba(16, 185, 129, 0.4);
       color: #34D399;
-      font-family: var(--font-body);
       font-size: 13px;
       font-weight: 600;
       padding: 8px 12px;
       border-radius: 8px;
-      margin-top: 14px;
+      margin-top: 12px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -452,26 +482,23 @@
       transition: all 0.3s ease;
     }
 
-    .ai-extracted-pill.show {
-      opacity: 1;
-      transform: translateY(0);
-    }
+    .ai-extracted-pill.show { opacity: 1; transform: translateY(0); }
 
     /* Dual Phone Simulator */
     .dual-phone-wrapper {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 16px;
-      margin: 20px 0;
+      gap: 14px;
+      margin: 16px 0;
     }
 
     .mini-phone {
       background: #090B10;
       border: 2px solid rgba(255, 255, 255, 0.1);
-      border-radius: 20px;
-      padding: 14px;
+      border-radius: 18px;
+      padding: 12px;
       position: relative;
-      min-height: 220px;
+      min-height: 200px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
@@ -491,8 +518,8 @@
     .push-notification-toast {
       background: rgba(124, 106, 247, 0.95);
       color: #fff;
-      padding: 8px 10px;
-      border-radius: 10px;
+      padding: 7px 10px;
+      border-radius: 8px;
       font-size: 11px;
       font-weight: 500;
       box-shadow: 0 6px 20px rgba(0,0,0,0.4);
@@ -501,10 +528,7 @@
       transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
-    .push-notification-toast.pop {
-      opacity: 1;
-      transform: translateY(0);
-    }
+    .push-notification-toast.pop { opacity: 1; transform: translateY(0); }
 
     /* Manifesto Box */
     .manifesto-section {
@@ -517,34 +541,32 @@
       background: #10131D;
       border: 1px solid rgba(124, 106, 247, 0.3);
       border-radius: var(--radius-xl);
-      padding: 48px;
+      padding: 40px;
       text-align: center;
-      max-width: 900px;
+      max-width: 860px;
       margin: 0 auto;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
     }
 
     .manifesto-quote {
       font-family: var(--font-heading);
-      font-size: 32px;
+      font-size: 28px;
       font-weight: 700;
       line-height: 1.35;
       color: #fff;
-      margin-bottom: 32px;
+      margin-bottom: 26px;
     }
 
     .comparison-table {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 24px;
+      gap: 18px;
       text-align: left;
-      margin-top: 24px;
     }
 
     .comp-col {
       background: #090B11;
       border-radius: var(--radius-md);
-      padding: 24px;
+      padding: 20px;
       border: 1px solid var(--border);
     }
 
@@ -553,54 +575,32 @@
       background: rgba(16, 185, 129, 0.03);
     }
 
-    .comp-header {
-      font-size: 14px;
-      font-weight: 700;
-      margin-bottom: 12px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
     .comp-price {
-      font-size: 28px;
+      font-size: 24px;
       font-weight: 800;
       font-family: var(--font-heading);
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }
+    .comp-col.winner .comp-price { color: #34D399; }
 
-    .comp-col.winner .comp-price {
-      color: #34D399;
-    }
-
-    .comp-list {
-      list-style: none;
-      font-size: 13px;
-      color: var(--text-muted);
-    }
-
-    .comp-list li {
-      margin-bottom: 8px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
+    .comp-list { list-style: none; font-size: 13px; color: var(--text-muted); }
+    .comp-list li { margin-bottom: 6px; }
 
     /* Pillars 3-Grid */
     .pillars-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 24px;
+      gap: 20px;
     }
 
     .pillar-card {
       background: var(--bg-card);
       border: 1px solid var(--border);
       border-radius: var(--radius-lg);
-      padding: 32px;
+      padding: 26px;
       text-decoration: none;
       color: inherit;
-      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: all 0.3s;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
@@ -609,53 +609,45 @@
     .pillar-card:hover {
       border-color: rgba(124, 106, 247, 0.4);
       transform: translateY(-4px);
-      box-shadow: 0 16px 40px rgba(0,0,0,0.5);
     }
 
     .pillar-icon {
-      width: 48px;
-      height: 48px;
-      border-radius: 12px;
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 24px;
-      margin-bottom: 20px;
+      font-size: 20px;
+      margin-bottom: 14px;
     }
 
     .pillar-title {
       font-family: var(--font-heading);
-      font-size: 22px;
+      font-size: 19px;
       font-weight: 700;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
       color: #fff;
     }
 
     .pillar-desc {
-      font-size: 14px;
+      font-size: 13.5px;
       color: var(--text-muted);
       line-height: 1.6;
-      margin-bottom: 20px;
+      margin-bottom: 14px;
     }
 
-    .pillar-link {
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--primary);
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
+    .pillar-link { font-size: 13px; font-weight: 600; color: var(--primary); }
 
     /* Quiz Banner */
     .quiz-banner {
       background: linear-gradient(135deg, rgba(124, 106, 247, 0.15) 0%, rgba(56, 189, 248, 0.08) 100%);
       border: 1px solid rgba(124, 106, 247, 0.3);
       border-radius: var(--radius-xl);
-      padding: 48px;
+      padding: 36px;
       display: grid;
       grid-template-columns: 1.2fr 0.8fr;
-      gap: 32px;
+      gap: 24px;
       align-items: center;
     }
 
@@ -663,18 +655,17 @@
       background: #090B12;
       border: 1px solid rgba(124, 106, 247, 0.4);
       border-radius: var(--radius-lg);
-      padding: 24px;
-      box-shadow: 0 0 30px rgba(124, 106, 247, 0.2);
+      padding: 20px;
       text-align: center;
     }
 
     .score-dial {
-      font-size: 56px;
+      font-size: 48px;
       font-weight: 800;
       font-family: var(--font-heading);
       color: #34D399;
       line-height: 1;
-      margin: 12px 0;
+      margin: 8px 0;
       text-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
     }
 
@@ -682,8 +673,8 @@
     .pricing-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 32px;
-      max-width: 900px;
+      gap: 24px;
+      max-width: 840px;
       margin: 0 auto;
     }
 
@@ -691,7 +682,7 @@
       background: var(--bg-card);
       border: 1px solid var(--border);
       border-radius: var(--radius-xl);
-      padding: 40px;
+      padding: 32px;
       position: relative;
     }
 
@@ -703,130 +694,60 @@
 
     .pricing-badge {
       position: absolute;
-      top: -14px;
+      top: -13px;
       left: 50%;
       transform: translateX(-50%);
       background: linear-gradient(135deg, #7C6AF7 0%, #38BDF8 100%);
       color: #fff;
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 700;
       text-transform: uppercase;
-      padding: 4px 16px;
+      padding: 3px 14px;
       border-radius: 999px;
-      letter-spacing: 0.5px;
-      box-shadow: 0 4px 14px rgba(124, 106, 247, 0.4);
     }
 
     .price-amount {
       font-family: var(--font-heading);
-      font-size: 48px;
+      font-size: 44px;
       font-weight: 800;
       color: #fff;
       line-height: 1;
-      margin: 16px 0 6px;
-    }
-
-    .price-period {
-      font-size: 13px;
-      color: var(--text-muted);
-      margin-bottom: 24px;
+      margin: 12px 0 6px;
     }
 
     .feature-list {
       list-style: none;
-      margin: 24px 0 32px;
-      font-size: 14px;
+      margin: 18px 0 26px;
+      font-size: 13.5px;
       color: var(--text-muted);
     }
-
-    .feature-list li {
-      margin-bottom: 12px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .feature-list li svg {
-      flex-shrink: 0;
-      color: #34D399;
-    }
-
-    .scarcity-counter {
-      background: rgba(245, 158, 11, 0.1);
-      border: 1px solid rgba(245, 158, 11, 0.3);
-      color: #FBBF24;
-      padding: 8px 12px;
-      border-radius: 8px;
-      font-size: 12px;
-      font-weight: 600;
-      text-align: center;
-      margin-bottom: 20px;
-    }
+    .feature-list li { margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+    .feature-list li svg { color: #34D399; flex-shrink: 0; }
 
     /* Footer */
     footer {
       border-top: 1px solid var(--border);
-      padding: 60px 0 30px;
+      padding: 44px 0 22px;
       background: #050608;
-      font-size: 14px;
+      font-size: 13px;
       color: var(--text-dim);
     }
 
     .footer-grid {
       display: grid;
       grid-template-columns: 2fr 1fr 1fr 1fr;
-      gap: 40px;
-      margin-bottom: 40px;
+      gap: 32px;
+      margin-bottom: 32px;
     }
 
-    .footer-brand p {
-      margin-top: 12px;
-      max-width: 300px;
-      color: var(--text-muted);
-      font-size: 13px;
-    }
+    .footer-col h4 { font-size: 13.5px; font-weight: 700; color: #fff; margin-bottom: 12px; }
+    .footer-col ul { list-style: none; }
+    .footer-col li { margin-bottom: 8px; }
+    .footer-col a { color: var(--text-muted); text-decoration: none; font-size: 13px; }
+    .footer-col a:hover { color: #fff; }
 
-    .footer-col h4 {
-      font-size: 14px;
-      font-weight: 700;
-      color: #fff;
-      margin-bottom: 16px;
-    }
-
-    .footer-col ul {
-      list-style: none;
-    }
-
-    .footer-col li {
-      margin-bottom: 10px;
-    }
-
-    .footer-col a {
-      color: var(--text-muted);
-      text-decoration: none;
-      transition: color 0.2s;
-      font-size: 13px;
-    }
-
-    .footer-col a:hover {
-      color: #fff;
-    }
-
-    .footer-bottom {
-      border-top: 1px solid rgba(255, 255, 255, 0.05);
-      padding-top: 24px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      font-size: 12px;
-      flex-wrap: wrap;
-      gap: 12px;
-    }
-
-    /* Mobile Responsiveness */
     @media (max-width: 900px) {
-      .hero h1 { font-size: 38px; }
-      .hero-subtitle { font-size: 16px; }
+      .hero h1 { font-size: 34px; }
       .simulators-grid, .pillars-grid, .pricing-grid, .comparison-table, .quiz-banner {
         grid-template-columns: 1fr;
       }
@@ -841,32 +762,30 @@
   <div class="ambient-glow" id="ambient-glow"></div>
   <div class="bg-grid"></div>
 
-  <!-- Header -->
-  <header>
-    <div class="container">
-      <div class="nav-inner">
-        <a href="/" class="logo-link">
-          <img src="icon.png" alt="Budget Assistant Logo" class="logo-img">
-          <span class="logo-text">Budget Assistant</span>
-        </a>
-        
-        <ul class="nav-links">
-          <li><a href="/features/ai-receipt-scan">AI Scanner</a></li>
-          <li><a href="/features/couples">Κοινό Ταμείο</a></li>
-          <li><a href="/features/health-score">Health Score</a></li>
-          <li><a href="/health-quiz">Health Quiz <span class="badge-new">NEW</span></a></li>
-          <li><a href="/pricing">Τιμολόγηση</a></li>
-          <li><a href="/security">Ασφάλεια</a></li>
-          <li><a href="/guides">Οδηγοί</a></li>
-        </ul>
+  <!-- Ultra-Sleek Floating Navbar -->
+  <div class="navbar-wrapper">
+    <header class="nav-inner">
+      <a href="/" class="logo-link">
+        <img src="icon.png" alt="Budget Assistant Logo" class="logo-img">
+        <span class="logo-text">Budget Assistant</span>
+      </a>
+      
+      <ul class="nav-links">
+        <li><a href="/features/ai-receipt-scan">AI Scanner</a></li>
+        <li><a href="/features/couples">Κοινό Ταμείο</a></li>
+        <li><a href="/features/health-score">Health Score</a></li>
+        <li><a href="/health-quiz">Health Quiz <span class="badge-new">NEW</span></a></li>
+        <li><a href="/pricing">Τιμολόγηση</a></li>
+        <li><a href="/security">Ασφάλεια</a></li>
+        <li><a href="/guides">Οδηγοί</a></li>
+      </ul>
 
-        <div class="nav-cta-group">
-          <a href="/app?demo=true" class="btn btn-secondary">🎮 Live Demo</a>
-          <a href="/app" class="btn btn-primary">Είσοδος στο App</a>
-        </div>
+      <div class="nav-cta-group">
+        <a href="/app?demo=true" class="nav-btn-demo">🎮 Live Demo</a>
+        <a href="/app" class="nav-btn-app">Άνοιγμα App</a>
       </div>
-    </div>
-  </header>
+    </header>
+  </div>
 
   <!-- Hero Section -->
   <main>
@@ -898,15 +817,9 @@
         </div>
 
         <div class="trust-strip">
-          <div class="trust-item">
-            <span>🔒</span> 100% Local-First & Κρυπτογραφημένο
-          </div>
-          <div class="trust-item">
-            <span>⚡</span> Real-time Sync σε Desktop & Mobile
-          </div>
-          <div class="trust-item">
-            <span>🛡️</span> Zero Data-Selling / Μηδέν Διαφημίσεις
-          </div>
+          <div>🔒 100% Local-First & Κρυπτογραφημένο</div>
+          <div>⚡ Real-time Sync σε Desktop & Mobile</div>
+          <div>🛡️ Zero Data-Selling / Μηδέν Διαφημίσεις</div>
         </div>
       </div>
     </section>
@@ -928,8 +841,8 @@
               <div class="card-glow-badge" style="background: rgba(56, 189, 248, 0.15); color: #38BDF8;">
                 <span>📸</span> AI VISION OCR ENGINE
               </div>
-              <h3 style="font-family: var(--font-heading); font-size: 22px; margin-bottom: 8px;">AI Σάρωση Απόδειξης</h3>
-              <p style="font-size: 14px; color: var(--text-muted);">
+              <h3 style="font-family: var(--font-heading); font-size: 21px; margin-bottom: 8px;">AI Σάρωση Απόδειξης</h3>
+              <p style="font-size: 13.5px; color: var(--text-muted);">
                 Πάτησε το κουμπί για να δεις το AI να διαβάζει αυτόματα το κατάστημα, το ποσό και την κατηγορία.
               </p>
 
@@ -954,7 +867,7 @@
                     <div style="font-size: 11px; opacity: 0.8;">ΕΠΙΤΥΧΗΣ ΣΑΡΩΣΗ (99.8%)</div>
                     <div>🛒 Σούπερ Μάρκετ • <strong>24,80 €</strong></div>
                   </div>
-                  <span style="font-size: 18px;">✅</span>
+                  <span style="font-size: 16px;">✅</span>
                 </div>
               </div>
             </div>
@@ -970,8 +883,8 @@
               <div class="card-glow-badge" style="background: rgba(124, 106, 247, 0.15); color: #C4B5FD;">
                 <span>👥</span> REAL-TIME PARTNER SYNC
               </div>
-              <h3 style="font-family: var(--font-heading); font-size: 22px; margin-bottom: 8px;">Κοινό Ταμείο Ζευγαριού</h3>
-              <p style="font-size: 14px; color: var(--text-muted);">
+              <h3 style="font-family: var(--font-heading); font-size: 21px; margin-bottom: 8px;">Κοινό Ταμείο Ζευγαριού</h3>
+              <p style="font-size: 13.5px; color: var(--text-muted);">
                 Κατάγραψε ένα έξοδο στο αριστερό κινητό και δες τη ζωντανή ειδοποίηση στο δεξί κινητό.
               </p>
 
@@ -983,10 +896,10 @@
                     <span style="color: #34D399;">● Live</span>
                   </div>
                   <div style="text-align: center; margin: auto 0;">
-                    <div style="font-size: 12px; color: var(--text-muted);">Κοινό Υπόλοιπο</div>
-                    <div style="font-size: 18px; font-weight: 700; font-family: var(--font-heading);" id="p1-balance">1.450,00 €</div>
+                    <div style="font-size: 11px; color: var(--text-muted);">Κοινό Υπόλοιπο</div>
+                    <div style="font-size: 17px; font-weight: 700; font-family: var(--font-heading);" id="p1-balance">1.450,00 €</div>
                   </div>
-                  <button class="btn btn-secondary" style="font-size: 11px; padding: 6px;" onclick="simulateExpense()">
+                  <button class="btn btn-secondary" style="font-size: 11px; padding: 5px 8px;" onclick="simulateExpense()">
                     + Πρόσθεσε 35€ (Εστιατόριο)
                   </button>
                 </div>
@@ -998,14 +911,14 @@
                     <span style="color: #34D399;">● Live</span>
                   </div>
                   <div class="push-notification-toast" id="partner-push">
-                    🔔 <strong>Μάριος:</strong> Νέο κοινό έξοδο 35,00€ (Εστιατόριο)
+                    🔔 <strong>Μάριος:</strong> Νέο έξοδο 35,00€ (Εστιατόριο)
                   </div>
                   <div style="text-align: center; margin: auto 0;">
-                    <div style="font-size: 12px; color: var(--text-muted);">Κοινό Υπόλοιπο</div>
-                    <div style="font-size: 18px; font-weight: 700; font-family: var(--font-heading);" id="p2-balance">1.450,00 €</div>
+                    <div style="font-size: 11px; color: var(--text-muted);">Κοινό Υπόλοιπο</div>
+                    <div style="font-size: 17px; font-weight: 700; font-family: var(--font-heading);" id="p2-balance">1.450,00 €</div>
                   </div>
                   <div style="font-size: 10px; text-align: center; color: var(--text-dim);">
-                    Συγχρονισμένο σε πραγματικό χρόνο
+                    Live Sync
                   </div>
                 </div>
               </div>
@@ -1035,8 +948,8 @@
 
           <div class="comparison-table">
             <div class="comp-col">
-              <div class="comp-header" style="color: #EF4444;">
-                <span>❌</span> Άλλα Finance Apps (YNAB, Copilot, Wallet)
+              <div style="color: #EF4444; font-weight: 700; margin-bottom: 8px;">
+                ❌ Άλλα Finance Apps (YNAB, Copilot, Wallet)
               </div>
               <div class="comp-price">~107 € / έτος</div>
               <ul class="comp-list">
@@ -1047,8 +960,8 @@
             </div>
 
             <div class="comp-col winner">
-              <div class="comp-header" style="color: #10B981;">
-                <span>✅</span> Budget Assistant (Launch Deal)
+              <div style="color: #10B981; font-weight: 700; margin-bottom: 8px;">
+                ✅ Budget Assistant (Launch Deal)
               </div>
               <div class="comp-price">9,99 € Εφάπαξ</div>
               <ul class="comp-list">
@@ -1116,10 +1029,10 @@
             <div class="pill-tag" style="background: rgba(16, 185, 129, 0.15); color: #34D399; border-color: rgba(16, 185, 129, 0.3);">
               🧠 ΔΩΡΕΑΝ ONLINE ΕΡΓΑΛΕΙΟ
             </div>
-            <h2 style="font-family: var(--font-heading); font-size: 34px; margin-bottom: 12px; color: #fff;">
+            <h2 style="font-family: var(--font-heading); font-size: 30px; margin-bottom: 10px; color: #fff;">
               Πόσο υγιή είναι τα οικονομικά σου;
             </h2>
-            <p style="color: var(--text-muted); font-size: 16px; margin-bottom: 24px; line-height: 1.6;">
+            <p style="color: var(--text-muted); font-size: 14.5px; margin-bottom: 20px; line-height: 1.6;">
               Απάντησε σε 8 γρήγορες ερωτήσεις και λάβε το δικό σου <strong>Financial Health Scorecard (0-100)</strong> με πρακτικά επόμενα βήματα βελτίωσης.
             </p>
             <a href="/health-quiz" class="btn btn-emerald btn-lg">
@@ -1128,10 +1041,10 @@
           </div>
 
           <div class="cyber-score-card">
-            <div style="font-size: 12px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px;">Financial Health Snapshot</div>
-            <div class="score-dial">88<span style="font-size: 24px; color: var(--text-muted);">/100</span></div>
-            <div style="font-weight: 700; color: #34D399; font-size: 16px; margin-bottom: 8px;">Εξαιρετική Οικονομική Υγεία</div>
-            <div style="font-size: 12px; color: var(--text-muted);">Emergency Runway: <strong>6.2 Μήνες</strong></div>
+            <div style="font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px;">Financial Health Snapshot</div>
+            <div class="score-dial">88<span style="font-size: 20px; color: var(--text-muted);">/100</span></div>
+            <div style="font-weight: 700; color: #34D399; font-size: 14.5px; margin-bottom: 4px;">Εξαιρετική Οικονομική Υγεία</div>
+            <div style="font-size: 11.5px; color: var(--text-muted);">Emergency Runway: <strong>6.2 Μήνες</strong></div>
           </div>
         </div>
       </div>
@@ -1150,9 +1063,9 @@
           
           <!-- Free Tier -->
           <div class="pricing-card">
-            <h3 style="font-family: var(--font-heading); font-size: 22px; color: #fff;">Free Tier</h3>
+            <h3 style="font-family: var(--font-heading); font-size: 21px; color: #fff;">Free Tier</h3>
             <div class="price-amount">0 €</div>
-            <div class="price-period">Δωρεάν για πάντα</div>
+            <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 18px;">Δωρεάν για πάντα</div>
 
             <ul class="feature-list">
               <li>
@@ -1181,14 +1094,14 @@
           <!-- Lifetime PRO (Launch Offer) -->
           <div class="pricing-card featured">
             <div class="pricing-badge">🔥 LIMITED LAUNCH OFFER</div>
-            <h3 style="font-family: var(--font-heading); font-size: 22px; color: #fff;">Lifetime PRO</h3>
+            <h3 style="font-family: var(--font-heading); font-size: 21px; color: #fff;">Lifetime PRO</h3>
             
-            <div class="scarcity-counter">
+            <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); color: #FBBF24; padding: 6px 12px; border-radius: 6px; font-size: 11.5px; font-weight: 600; text-align: center; margin: 10px 0 4px;">
               ⏳ 418 / 500 θέσεις έχουν καλυφθεί!
             </div>
 
             <div class="price-amount">9,99 €</div>
-            <div class="price-period"><strike style="color: var(--text-dim); margin-right: 6px;">29,99 €</strike> Μία φορά. Δικό σου για πάντα.</div>
+            <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 18px;"><strike style="color: var(--text-dim); margin-right: 6px;">29,99 €</strike> Μία φορά. Δικό σου για πάντα.</div>
 
             <ul class="feature-list">
               <li>
@@ -1227,13 +1140,13 @@
   <footer>
     <div class="container">
       <div class="footer-grid">
-        <div class="footer-brand">
+        <div>
           <div style="display: flex; align-items: center; gap: 10px;">
-            <img src="icon.png" alt="Budget Assistant" style="width: 32px; height: 32px; border-radius: 8px;">
-            <span style="font-family: var(--font-heading); font-weight: 700; font-size: 18px; color: #fff;">Budget Assistant</span>
+            <img src="icon.png" alt="Budget Assistant" style="width: 26px; height: 26px; border-radius: 6px;">
+            <span style="font-family: var(--font-heading); font-weight: 700; font-size: 15px; color: #fff;">Budget Assistant</span>
           </div>
-          <p>
-            Το σύγχρονο οικοσύστημα οικονομικής ελευθερίας. AI Receipt Scanning, Κοινό Ταμείο και Health Score χωρίς συνδρομές.
+          <p style="margin-top: 10px; max-width: 280px; font-size: 12.5px;">
+            AI Receipt Scanning, Κοινό Ταμείο και Health Score χωρίς συνδρομές.
           </p>
         </div>
 
@@ -1267,22 +1180,20 @@
         </div>
       </div>
 
-      <div class="footer-bottom">
+      <div style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px; display: flex; justify-content: space-between; font-size: 12px;">
         <div>© 2026 Budget Assistant. All rights reserved.</div>
-        <div style="color: var(--text-dim);">Designed with Cyber-Luxury Aesthetic & Privacy-First Architecture.</div>
+        <div>Cyber-Luxury Design & Privacy-First Architecture.</div>
       </div>
     </div>
   </footer>
 
   <!-- Interactive Scripts -->
   <script>
-    // Ambient Glow Follower
     const glow = document.getElementById('ambient-glow');
     window.addEventListener('mousemove', (e) => {
       glow.style.transform = `translate(${e.clientX}px, ${e.clientY}px) translate(-50%, -50%)`;
     });
 
-    // Scanner Simulator Logic
     function simulateScan() {
       const box = document.getElementById('scanner-box');
       const pill = document.getElementById('ai-pill');
@@ -1301,15 +1212,12 @@
       }, 1600);
     }
 
-    // Couple Sync Simulator Logic
     let currentBal = 1450.00;
     function simulateExpense() {
       currentBal -= 35.00;
       const formatted = currentBal.toLocaleString('el-GR', { minimumFractionDigits: 2 }) + ' €';
-      
       document.getElementById('p1-balance').innerText = formatted;
       
-      // Trigger partner phone push
       const push = document.getElementById('partner-push');
       push.classList.add('pop');
 
