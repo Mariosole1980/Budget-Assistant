@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <title>Ασφάλεια & Ιδιωτικότητα — Budget Assistant</title>
+  <meta name="description" content="Πώς προστατεύονται τα οικονομικά σας δεδομένα: Local-First αρχιτεκτονική, Supabase Row-Level Security και μηδενική πώληση δεδομένων.">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Budget Assistant — Ασφάλεια & Προστασία Δεδομένων">
+  <meta property="og:description" content="Τα χρήματά σας είναι δική σας υπόθεση. Local-first, End-to-End κρυπτογράφηση, Zero Ads.">
+  <meta property="og:image" content="https://budget-assistant-pwa.pages.dev/logo-mark.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="icon.png">
+
+  <!-- Google Fonts: Outfit & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #07080C;
+      --bg-card: #11141E;
+      --border: rgba(255, 255, 255, 0.08);
+      --text: #F3F4F6;
+      --text-muted: #9CA3AF;
+      --text-dim: #6B7280;
+      --primary: #7C6AF7;
+      --success: #10B981;
+      --cyan: #38BDF8;
+      --font-heading: 'Outfit', sans-serif;
+      --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+      --radius-md: 16px;
+      --radius-xl: 28px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container { max-width: 860px; margin: 0 auto; padding: 0 24px; }
+    
+    header {
+      padding: 20px 0;
+      border-bottom: 1px solid var(--border);
+      background: rgba(7, 8, 12, 0.8);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .nav-inner { display: flex; align-items: center; justify-content: space-between; }
+    .logo-link { display: flex; align-items: center; gap: 10px; text-decoration: none; color: #fff; font-family: var(--font-heading); font-weight: 700; font-size: 20px; }
+    .logo-img { width: 34px; height: 34px; border-radius: 8px; }
+
+    .hero-sec {
+      padding: 60px 0 40px;
+      text-align: center;
+    }
+
+    h1 {
+      font-family: var(--font-heading);
+      font-size: 42px;
+      font-weight: 800;
+      letter-spacing: -1px;
+      margin-bottom: 16px;
+      color: #fff;
+    }
+
+    .sec-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 24px;
+      margin: 40px 0 80px;
+    }
+
+    .sec-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 32px;
+    }
+
+    .sec-card h3 {
+      font-family: var(--font-heading);
+      font-size: 20px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .sec-card p {
+      font-size: 15px;
+      color: var(--text-muted);
+      line-height: 1.7;
+    }
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 30px 0;
+      text-align: center;
+      font-size: 13px;
+      color: var(--text-dim);
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="container">
+      <div class="nav-inner">
+        <a href="/" class="logo-link">
+          <img src="icon.png" alt="Logo" class="logo-img">
+          <span>Budget Assistant</span>
+        </a>
+        <a href="/" style="color: var(--text-muted); text-decoration: none; font-size: 14px;">← Αρχική</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="hero-sec">
+      <div style="font-size: 36px; margin-bottom: 12px;">🔒</div>
+      <h1>Ασφάλεια, Ιδιωτικότητα & Διαφάνεια</h1>
+      <p style="color: var(--text-muted); font-size: 18px;">
+        Τα οικονομικά σας δεδομένα ανήκουν αποκλειστικά σε εσάς. Δείτε ακριβώς πώς προστατεύονται.
+      </p>
+    </div>
+
+    <div class="sec-grid">
+      <div class="sec-card">
+        <h3><span>📱</span> 1. Local-First Αρχιτεκτονική</h3>
+        <p>
+          Όλες οι συναλλαγές και οι ρυθμίσεις σας αποθηκεύονται πρώτα τοπικά στη συσκευή σας (IndexedDB / Local Storage). Αυτό σημαίνει ότι η εφαρμογή λειτουργεί αστραπιαία, είναι 100% διαθέσιμη ακόμα και χωρίς σύνδεση στο internet, και τα δεδομένα σας δεν φεύγουν από το κινητό αν δεν το επιλέξετε εσείς.
+        </p>
+      </div>
+
+      <div class="sec-card">
+        <h3><span>🛡️</span> 2. Row-Level Security (RLS) & Cloud Encryption</h3>
+        <p>
+          Όταν συνδέεστε με λογαριασμό (Google / Email), ο συγχρονισμός προστατεύεται από το Supabase Enterprise Infrastructure με TLS 1.3 και αυστηρό Row-Level Security (RLS). Κανένας άλλος χρήστης δεν μπορεί να διαβάσει ή να τροποποιήσει τα δικά σας οικονομικά δεδομένα.
+        </p>
+      </div>
+
+      <div class="sec-card">
+        <h3><span>🤖</span> 3. Πώς επεξεργάζεται το AI τις αποδείξεις σας</h3>
+        <p>
+          Όταν χρησιμοποιείτε το AI Receipt Scanner, η εικόνα της απόδειξης στέλνεται με ασφάλεια στο Google Gemini API αποκλειστικά για την εξαγωγή του ποσού, του καταστήματος και της κατηγορίας. Η εικόνα δεν αποθηκεύεται μόνιμα και δεν χρησιμοποιείται για εκπαίδευση μοντέλων.
+        </p>
+      </div>
+
+      <div class="sec-card">
+        <h3><span>🚫</span> 4. Μηδενική Πώληση Δεδομένων & Μηδέν Διαφημίσεις</h3>
+        <p>
+          Το επιχειρηματικό μας μοντέλο είναι απλό: πουλάμε το λογισμικό μας (9,99€ Lifetime). Δεν πουλάμε, δεν ενοικιάζουμε και δεν μοιραζόμαστε ποτέ τα δεδομένα σας με διαφημιστικές εταιρείες ή τρίτους.
+        </p>
+      </div>
+
+      <div class="sec-card">
+        <h3><span>📤</span> 5. Πλήρης Έλεγχος & Διαγραφή</h3>
+        <p>
+          Μπορείτε ανά πάσα στιγμή να εξάγετε ολόκληρο το ιστορικό σας σε αρχείο Excel / CSV ή να διαγράψετε οριστικά τον λογαριασμό και όλα τα δεδομένα σας με ένα κλικ από τις Ρυθμίσεις.
+        </p>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="container">
+      © 2026 Budget Assistant. Όλα τα δικαιώματα διατηρούνται.
+    </div>
+  </footer>
+
+</body>
+</html>

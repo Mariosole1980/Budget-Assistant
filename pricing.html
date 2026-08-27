@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <title>Τιμολόγηση — Budget Assistant | 9,99€ Lifetime Launch Offer</title>
+  <meta name="description" content="Απλή, διάφανη τιμολόγηση χωρίς συνδρομές. 9,99€ εφάπαξ για απεριόριστα AI Scans, Partner Sync και Financial Health Score.">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Budget Assistant — Τιμολόγηση χωρίς συνδρομές (9,99€ Lifetime)">
+  <meta property="og:description" content="Μία πληρωμή. Δικό σου για πάντα. Όλα τα Pro features ξεκλείδωτα.">
+  <meta property="og:image" content="https://budget-assistant-pwa.pages.dev/logo-mark.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="icon.png">
+
+  <!-- Google Fonts: Outfit & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #07080C;
+      --bg-card: #11141E;
+      --border: rgba(255, 255, 255, 0.08);
+      --text: #F3F4F6;
+      --text-muted: #9CA3AF;
+      --text-dim: #6B7280;
+      --primary: #7C6AF7;
+      --primary-glow: rgba(124, 106, 247, 0.25);
+      --success: #10B981;
+      --font-heading: 'Outfit', sans-serif;
+      --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+      --radius-md: 16px;
+      --radius-xl: 28px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+    
+    header {
+      padding: 20px 0;
+      border-bottom: 1px solid var(--border);
+      background: rgba(7, 8, 12, 0.8);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .nav-inner { display: flex; align-items: center; justify-content: space-between; }
+    .logo-link { display: flex; align-items: center; gap: 10px; text-decoration: none; color: #fff; font-family: var(--font-heading); font-weight: 700; font-size: 20px; }
+    .logo-img { width: 34px; height: 34px; border-radius: 8px; }
+
+    .hero-pricing {
+      text-align: center;
+      padding: 70px 0 40px;
+    }
+
+    .pill-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(124, 106, 247, 0.1);
+      border: 1px solid rgba(124, 106, 247, 0.3);
+      padding: 6px 16px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #C4B5FD;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      font-family: var(--font-heading);
+      font-size: 48px;
+      font-weight: 800;
+      letter-spacing: -1px;
+      margin-bottom: 16px;
+    }
+
+    .subtitle {
+      font-size: 18px;
+      color: var(--text-muted);
+      max-width: 650px;
+      margin: 0 auto;
+    }
+
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.2fr;
+      gap: 32px;
+      margin: 50px 0 80px;
+      align-items: center;
+    }
+
+    .pricing-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      padding: 40px;
+      position: relative;
+    }
+
+    .pricing-card.featured {
+      border-color: rgba(124, 106, 247, 0.5);
+      background: linear-gradient(180deg, #141828 0%, #0D0F19 100%);
+      box-shadow: 0 0 50px rgba(124, 106, 247, 0.2);
+    }
+
+    .pricing-badge {
+      position: absolute;
+      top: -14px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(135deg, #7C6AF7 0%, #38BDF8 100%);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 4px 16px;
+      border-radius: 999px;
+      box-shadow: 0 4px 14px rgba(124, 106, 247, 0.4);
+    }
+
+    .price-val {
+      font-family: var(--font-heading);
+      font-size: 52px;
+      font-weight: 800;
+      color: #fff;
+      line-height: 1;
+      margin: 16px 0 6px;
+    }
+
+    .price-sub { font-size: 14px; color: var(--text-muted); margin-bottom: 24px; }
+
+    .scarcity-bar {
+      background: rgba(245, 158, 11, 0.1);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      color: #FBBF24;
+      padding: 10px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      padding: 14px;
+      border-radius: var(--radius-md);
+      font-size: 15px;
+      font-weight: 700;
+      text-decoration: none;
+      cursor: pointer;
+      border: none;
+      transition: transform 0.2s;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #7C6AF7 0%, #6350E8 100%);
+      color: #fff;
+      box-shadow: 0 4px 20px var(--primary-glow);
+    }
+
+    .btn-primary:hover { transform: translateY(-2px); }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      color: #fff;
+    }
+
+    .features-list {
+      list-style: none;
+      margin: 24px 0 32px;
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    .features-list li {
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .features-list li svg { color: #34D399; flex-shrink: 0; }
+
+    /* FAQ Section */
+    .faq-section {
+      padding: 60px 0;
+      border-top: 1px solid var(--border);
+    }
+
+    .faq-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-top: 36px;
+    }
+
+    .faq-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 24px;
+    }
+
+    .faq-item h4 {
+      font-size: 16px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+
+    .faq-item p {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 30px 0;
+      text-align: center;
+      font-size: 13px;
+      color: var(--text-dim);
+    }
+
+    @media (max-width: 800px) {
+      .pricing-grid, .faq-grid { grid-template-columns: 1fr; }
+      h1 { font-size: 36px; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="container">
+      <div class="nav-inner">
+        <a href="/" class="logo-link">
+          <img src="icon.png" alt="Logo" class="logo-img">
+          <span>Budget Assistant</span>
+        </a>
+        <div style="display: flex; gap: 12px;">
+          <a href="/" style="color: var(--text-muted); text-decoration: none; font-size: 14px; margin-top: 8px;">← Αρχική</a>
+          <a href="/app" class="btn btn-secondary" style="width: auto; padding: 8px 16px; font-size: 13px;">Άνοιγμα App</a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="hero-pricing">
+      <div class="pill-tag">💎 LIFETIME VALUE</div>
+      <h1>Μία πληρωμή. Δικό σου για πάντα.</h1>
+      <p class="subtitle">
+        Όχι μηνιαίες συνδρομές. Όχι κρυφά κόστη. Ξεκλείδωσε όλες τις AI δυνατότητες και το κοινό ταμείο με μία μόνο κίνηση.
+      </p>
+    </div>
+
+    <div class="pricing-grid">
+      
+      <!-- Free Tier -->
+      <div class="pricing-card">
+        <h3 style="font-size: 22px; font-family: var(--font-heading); color: #fff;">Free Tier</h3>
+        <div class="price-val">0 €</div>
+        <div class="price-sub">Δωρεάν για πάντα</div>
+
+        <ul class="features-list">
+          <li>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <span>Καταγραφή εξόδων & εσόδων</span>
+          </li>
+          <li>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <span>5 AI σαρώσεις αποδείξεων / μήνα</span>
+          </li>
+          <li>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <span>100% Offline & Local-first ασφάλεια</span>
+          </li>
+          <li>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <span>Βασικά γραφήματα & αναφορές</span>
+          </li>
+        </ul>
+
+        <a href="/app" class="btn btn-secondary">Έναρξη Δωρεάν</a>
+      </div>
+
+      <!-- Lifetime PRO (Featured) -->
+      <div class="pricing-card featured">
+        <div class="pricing-badge">🔥 LIMITED LAUNCH OFFER</div>
+        <h3 style="font-size: 24px; font-family: var(--font-heading); color: #fff;">Lifetime PRO</h3>
+        
+        <div class="scarcity-bar">
+          ⏳ 418 / 500 Early Bird θέσεις έχουν καλυφθεί!
+        </div>
+
+        <div class="price-val">9,99 €</div>
+        <div class="price-sub"><strike style="color: var(--text-dim); margin-right: 6px;">29,99 €</strike> Μία φορά. Για πάντα.</div>
+
+        <ul class="features-list">
+          <li>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <span><strong>Απεριόριστες AI Σαρώσεις Αποδείξεων (Gemini Vision)</strong></span>
+          </li>
+          <li>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <span><strong>Real-Time Partner / Couple Sync</strong></span>
+          </li>
+          <li>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <span><strong>Financial Health Score & Ετήσιο Forecasting</strong></span>
+          </li>
+          <li>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <span><strong>AI Financial Advisor</strong></span>
+          </li>
+          <li>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <span><strong>Multi-Currency & Cloud Backup Προτεραιότητας</strong></span>
+          </li>
+        </ul>
+
+        <a href="/app" class="btn btn-primary" style="padding: 16px; font-size: 16px;">
+          ⚡ Απόκτησε το Lifetime PRO (9,99€)
+        </a>
+      </div>
+
+    </div>
+
+    <!-- FAQ -->
+    <div class="faq-section">
+      <h2 style="font-family: var(--font-heading); font-size: 32px; text-align: center; color: #fff;">Συχνές Ερωτήσεις</h2>
+      
+      <div class="faq-grid">
+        <div class="faq-item">
+          <h4>Είναι όντως εφάπαξ πληρωμή;</h4>
+          <p>Ναι, απολύτως. Πληρώνεις 9,99€ μία φορά και ο λογαριασμός σου παραμένει PRO για πάντα, συμπεριλαμβανομένων όλων των μελλοντικών αναβαθμίσεων.</p>
+        </div>
+        <div class="faq-item">
+          <h4>Χρειάζεται και ο/η σύντροφός μου PRO για το Couple Sync;</h4>
+          <p>Όχι! Αρκεί ένας από τους δύο να έχει PRO, και η σύνδεση κοινού ταμείου λειτουργεί αυτόματα και για τους δύο σε πραγματικό χρόνο.</p>
+        </div>
+        <div class="faq-item">
+          <h4>Πώς λειτουργεί το AI σκανάρισμα;</h4>
+          <p>Βγάζεις φωτογραφία την απόδειξη ή ανεβάζεις εικόνα/PDF. Το AI αναλύει τα οπτικά δεδομένα και εξάγει αυτόματα κατάστημα, ημερομηνία και ποσό σε 2 δευτερόλεπτα.</p>
+        </div>
+        <div class="faq-item">
+          <h4>Είναι ασφαλή τα οικονομικά μου δεδομένα;</h4>
+          <p>100%. Η εφαρμογή ακολουθεί αρχιτεκτονική Local-First και κρυπτογραφημένο Supabase Cloud Sync. Δεν πουλάμε ποτέ δεδομένα και δεν προβάλλουμε διαφημίσεις.</p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="container">
+      © 2026 Budget Assistant. Όλα τα δικαιώματα διατηρούνται.
+    </div>
+  </footer>
+
+</body>
+</html>

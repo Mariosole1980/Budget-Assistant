@@ -1,0 +1,1326 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <title>Budget Assistant — Έξυπνη Διαχείριση Εξόδων, AI Σάρωση & Κοινό Ταμείο</title>
+  <meta name="description" content="AI σάρωση αποδείξεων σε 2'', κοινό ταμείο ζευγαριών σε πραγματικό χρόνο και Financial Health Score. 9,99€ εφάπαξ, ποτέ συνδρομή.">
+  
+  <!-- Open Graph / Social Meta -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://budgetassistant.org/">
+  <meta property="og:title" content="Budget Assistant — Φωτογράφισε μια απόδειξη. Δες πού πάνε τα λεφτά σου.">
+  <meta property="og:description" content="AI που διαβάζει αποδείξεις σε 2'', κοινό ταμείο ζευγαριών live και Financial Health Score. 9,99€ εφάπαξ, χωρίς συνδρομή.">
+  <meta property="og:image" content="https://budget-assistant-pwa.pages.dev/logo-mark.png">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="icon.png">
+  <link rel="apple-touch-icon" href="icon-192.png">
+
+  <!-- Google Fonts: Outfit & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #07080C;
+      --bg-card: #11141E;
+      --bg-card-hover: #161A28;
+      --border: rgba(255, 255, 255, 0.08);
+      --border-focus: rgba(124, 106, 247, 0.4);
+      --text: #F3F4F6;
+      --text-muted: #9CA3AF;
+      --text-dim: #6B7280;
+      --primary: #7C6AF7;
+      --primary-glow: rgba(124, 106, 247, 0.25);
+      --success: #10B981;
+      --success-glow: rgba(16, 185, 129, 0.25);
+      --cyan: #38BDF8;
+      --cyan-glow: rgba(56, 189, 248, 0.25);
+      --accent: #F59E0B;
+      --font-heading: 'Outfit', sans-serif;
+      --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+      --radius-sm: 10px;
+      --radius-md: 16px;
+      --radius-lg: 24px;
+      --radius-xl: 32px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      line-height: 1.6;
+      overflow-x: hidden;
+      position: relative;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Ambient Cursor Background Glow */
+    .ambient-glow {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(124, 106, 247, 0.12) 0%, rgba(56, 189, 248, 0.05) 45%, transparent 70%);
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      z-index: 0;
+      transition: transform 0.15s ease-out;
+      filter: blur(40px);
+    }
+
+    /* Noise Texture Overlay */
+    .bg-grid {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Header / Navbar */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(7, 8, 12, 0.8);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 0;
+    }
+
+    .nav-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo-link {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: #fff;
+    }
+
+    .logo-img {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      box-shadow: 0 0 20px rgba(124, 106, 247, 0.4);
+    }
+
+    .logo-text {
+      font-family: var(--font-heading);
+      font-weight: 700;
+      font-size: 20px;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, #FFFFFF 60%, #9CA3AF 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 28px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      text-decoration: none;
+      color: var(--text-muted);
+      font-size: 14px;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover {
+      color: #fff;
+    }
+
+    .badge-new {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      background: rgba(124, 106, 247, 0.2);
+      color: var(--primary);
+      border: 1px solid rgba(124, 106, 247, 0.4);
+      padding: 2px 6px;
+      border-radius: 6px;
+      margin-left: 4px;
+    }
+
+    .nav-cta-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border-radius: var(--radius-sm);
+      font-family: var(--font-body);
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      border: 1px solid transparent;
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: var(--border);
+      color: #fff;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.2);
+      transform: translateY(-1px);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #7C6AF7 0%, #6350E8 100%);
+      color: #fff;
+      box-shadow: 0 4px 20px var(--primary-glow);
+    }
+
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #8B7AF8 0%, #705DF0 100%);
+      box-shadow: 0 6px 28px rgba(124, 106, 247, 0.45);
+      transform: translateY(-2px);
+    }
+
+    .btn-emerald {
+      background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+      color: #fff;
+      box-shadow: 0 4px 20px var(--success-glow);
+    }
+
+    .btn-emerald:hover {
+      box-shadow: 0 6px 28px rgba(16, 185, 129, 0.45);
+      transform: translateY(-2px);
+    }
+
+    .btn-lg {
+      padding: 14px 28px;
+      font-size: 16px;
+      border-radius: var(--radius-md);
+    }
+
+    /* Hero Section */
+    .hero {
+      padding: 90px 0 60px;
+      text-align: center;
+      position: relative;
+    }
+
+    .pill-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(124, 106, 247, 0.1);
+      border: 1px solid rgba(124, 106, 247, 0.3);
+      padding: 6px 16px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #C4B5FD;
+      margin-bottom: 24px;
+      box-shadow: 0 0 20px rgba(124, 106, 247, 0.15);
+    }
+
+    .hero h1 {
+      font-family: var(--font-heading);
+      font-size: 56px;
+      line-height: 1.15;
+      font-weight: 800;
+      letter-spacing: -1.5px;
+      max-width: 920px;
+      margin: 0 auto 24px;
+      background: linear-gradient(180deg, #FFFFFF 40%, #D1D5DB 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero h1 span.gradient-highlight {
+      background: linear-gradient(135deg, #7C6AF7 0%, #38BDF8 50%, #10B981 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-subtitle {
+      font-size: 20px;
+      color: var(--text-muted);
+      max-width: 760px;
+      margin: 0 auto 36px;
+      line-height: 1.6;
+    }
+
+    .hero-actions {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      margin-bottom: 36px;
+      flex-wrap: wrap;
+    }
+
+    .trust-strip {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 32px;
+      color: var(--text-dim);
+      font-size: 13px;
+      font-weight: 500;
+      flex-wrap: wrap;
+    }
+
+    .trust-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Section Styling */
+    section {
+      padding: 80px 0;
+      position: relative;
+    }
+
+    .section-header {
+      text-align: center;
+      max-width: 680px;
+      margin: 0 auto 50px;
+    }
+
+    .section-tag {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--primary);
+      margin-bottom: 12px;
+      display: block;
+    }
+
+    .section-title {
+      font-family: var(--font-heading);
+      font-size: 38px;
+      font-weight: 700;
+      letter-spacing: -0.8px;
+      margin-bottom: 16px;
+      color: #fff;
+    }
+
+    .section-desc {
+      font-size: 17px;
+      color: var(--text-muted);
+    }
+
+    /* Interactive Simulators Grid */
+    .simulators-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+      margin-top: 20px;
+    }
+
+    .simulator-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      padding: 32px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: border-color 0.3s;
+    }
+
+    .simulator-card:hover {
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    .card-glow-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 999px;
+      margin-bottom: 16px;
+      width: fit-content;
+    }
+
+    /* AI Scanner Simulator */
+    .receipt-scanner-box {
+      background: #0B0D14;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      position: relative;
+      margin: 20px 0;
+      min-height: 240px;
+    }
+
+    .receipt-paper {
+      background: #FAFAFA;
+      color: #111;
+      padding: 16px;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 12px;
+      position: relative;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+      overflow: hidden;
+    }
+
+    .scan-laser {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 0;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, #38BDF8, #7C6AF7, #38BDF8, transparent);
+      box-shadow: 0 0 15px #38BDF8, 0 0 30px #7C6AF7;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .scanning .scan-laser {
+      opacity: 1;
+      animation: scanLaser 1.6s ease-in-out infinite;
+    }
+
+    @keyframes scanLaser {
+      0% { top: 0%; }
+      50% { top: 96%; }
+      100% { top: 0%; }
+    }
+
+    .ai-extracted-pill {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      color: #34D399;
+      font-family: var(--font-body);
+      font-size: 13px;
+      font-weight: 600;
+      padding: 8px 12px;
+      border-radius: 8px;
+      margin-top: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.3s ease;
+    }
+
+    .ai-extracted-pill.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Dual Phone Simulator */
+    .dual-phone-wrapper {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin: 20px 0;
+    }
+
+    .mini-phone {
+      background: #090B10;
+      border: 2px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      padding: 14px;
+      position: relative;
+      min-height: 220px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .phone-header {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      padding-bottom: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .push-notification-toast {
+      background: rgba(124, 106, 247, 0.95);
+      color: #fff;
+      padding: 8px 10px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 500;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+      opacity: 0;
+      transform: translateY(-20px);
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .push-notification-toast.pop {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Manifesto Box */
+    .manifesto-section {
+      background: linear-gradient(180deg, rgba(124, 106, 247, 0.06) 0%, rgba(7, 8, 12, 0) 100%);
+      border-top: 1px solid rgba(124, 106, 247, 0.2);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .manifesto-card {
+      background: #10131D;
+      border: 1px solid rgba(124, 106, 247, 0.3);
+      border-radius: var(--radius-xl);
+      padding: 48px;
+      text-align: center;
+      max-width: 900px;
+      margin: 0 auto;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    }
+
+    .manifesto-quote {
+      font-family: var(--font-heading);
+      font-size: 32px;
+      font-weight: 700;
+      line-height: 1.35;
+      color: #fff;
+      margin-bottom: 32px;
+    }
+
+    .comparison-table {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      text-align: left;
+      margin-top: 24px;
+    }
+
+    .comp-col {
+      background: #090B11;
+      border-radius: var(--radius-md);
+      padding: 24px;
+      border: 1px solid var(--border);
+    }
+
+    .comp-col.winner {
+      border-color: rgba(16, 185, 129, 0.4);
+      background: rgba(16, 185, 129, 0.03);
+    }
+
+    .comp-header {
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .comp-price {
+      font-size: 28px;
+      font-weight: 800;
+      font-family: var(--font-heading);
+      margin-bottom: 8px;
+    }
+
+    .comp-col.winner .comp-price {
+      color: #34D399;
+    }
+
+    .comp-list {
+      list-style: none;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .comp-list li {
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Pillars 3-Grid */
+    .pillars-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+
+    .pillar-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      text-decoration: none;
+      color: inherit;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .pillar-card:hover {
+      border-color: rgba(124, 106, 247, 0.4);
+      transform: translateY(-4px);
+      box-shadow: 0 16px 40px rgba(0,0,0,0.5);
+    }
+
+    .pillar-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+
+    .pillar-title {
+      font-family: var(--font-heading);
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 10px;
+      color: #fff;
+    }
+
+    .pillar-desc {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+
+    .pillar-link {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Quiz Banner */
+    .quiz-banner {
+      background: linear-gradient(135deg, rgba(124, 106, 247, 0.15) 0%, rgba(56, 189, 248, 0.08) 100%);
+      border: 1px solid rgba(124, 106, 247, 0.3);
+      border-radius: var(--radius-xl);
+      padding: 48px;
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 32px;
+      align-items: center;
+    }
+
+    .cyber-score-card {
+      background: #090B12;
+      border: 1px solid rgba(124, 106, 247, 0.4);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      box-shadow: 0 0 30px rgba(124, 106, 247, 0.2);
+      text-align: center;
+    }
+
+    .score-dial {
+      font-size: 56px;
+      font-weight: 800;
+      font-family: var(--font-heading);
+      color: #34D399;
+      line-height: 1;
+      margin: 12px 0;
+      text-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+    }
+
+    /* Pricing Section */
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .pricing-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      padding: 40px;
+      position: relative;
+    }
+
+    .pricing-card.featured {
+      border-color: rgba(124, 106, 247, 0.5);
+      background: linear-gradient(180deg, #131725 0%, #0E101A 100%);
+      box-shadow: 0 0 40px rgba(124, 106, 247, 0.15);
+    }
+
+    .pricing-badge {
+      position: absolute;
+      top: -14px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(135deg, #7C6AF7 0%, #38BDF8 100%);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 4px 16px;
+      border-radius: 999px;
+      letter-spacing: 0.5px;
+      box-shadow: 0 4px 14px rgba(124, 106, 247, 0.4);
+    }
+
+    .price-amount {
+      font-family: var(--font-heading);
+      font-size: 48px;
+      font-weight: 800;
+      color: #fff;
+      line-height: 1;
+      margin: 16px 0 6px;
+    }
+
+    .price-period {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+    }
+
+    .feature-list {
+      list-style: none;
+      margin: 24px 0 32px;
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    .feature-list li {
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .feature-list li svg {
+      flex-shrink: 0;
+      color: #34D399;
+    }
+
+    .scarcity-counter {
+      background: rgba(245, 158, 11, 0.1);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      color: #FBBF24;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 60px 0 30px;
+      background: #050608;
+      font-size: 14px;
+      color: var(--text-dim);
+    }
+
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 40px;
+      margin-bottom: 40px;
+    }
+
+    .footer-brand p {
+      margin-top: 12px;
+      max-width: 300px;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+
+    .footer-col h4 {
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 16px;
+    }
+
+    .footer-col ul {
+      list-style: none;
+    }
+
+    .footer-col li {
+      margin-bottom: 10px;
+    }
+
+    .footer-col a {
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 0.2s;
+      font-size: 13px;
+    }
+
+    .footer-col a:hover {
+      color: #fff;
+    }
+
+    .footer-bottom {
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      padding-top: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    /* Mobile Responsiveness */
+    @media (max-width: 900px) {
+      .hero h1 { font-size: 38px; }
+      .hero-subtitle { font-size: 16px; }
+      .simulators-grid, .pillars-grid, .pricing-grid, .comparison-table, .quiz-banner {
+        grid-template-columns: 1fr;
+      }
+      .nav-links { display: none; }
+      .footer-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Ambient Glow Follower -->
+  <div class="ambient-glow" id="ambient-glow"></div>
+  <div class="bg-grid"></div>
+
+  <!-- Header -->
+  <header>
+    <div class="container">
+      <div class="nav-inner">
+        <a href="/" class="logo-link">
+          <img src="icon.png" alt="Budget Assistant Logo" class="logo-img">
+          <span class="logo-text">Budget Assistant</span>
+        </a>
+        
+        <ul class="nav-links">
+          <li><a href="/features/ai-receipt-scan">AI Scanner</a></li>
+          <li><a href="/features/couples">Κοινό Ταμείο</a></li>
+          <li><a href="/features/health-score">Health Score</a></li>
+          <li><a href="/health-quiz">Health Quiz <span class="badge-new">NEW</span></a></li>
+          <li><a href="/pricing">Τιμολόγηση</a></li>
+          <li><a href="/security">Ασφάλεια</a></li>
+          <li><a href="/guides">Οδηγοί</a></li>
+        </ul>
+
+        <div class="nav-cta-group">
+          <a href="/app?demo=true" class="btn btn-secondary">🎮 Live Demo</a>
+          <a href="/app" class="btn btn-primary">Είσοδος στο App</a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <main>
+    <section class="hero">
+      <div class="container">
+        <div class="pill-tag">
+          <span>✨</span>
+          <span>AI-POWERED • REAL-TIME COUPLE SYNC • ZERO SUBSCRIPTION</span>
+        </div>
+
+        <h1>
+          Φωτογράφισε μια απόδειξη.<br>
+          Δες ακριβώς πού πάνε τα λεφτά σου — <span class="gradient-highlight">αυτόματα.</span>
+        </h1>
+
+        <p class="hero-subtitle">
+          AI που διαβάζει τις αποδείξεις σου σε 2 δευτερόλεπτα, ένα Health Score που σου λέει πού πραγματικά στέκεσαι, και — αν είσαι σε σχέση — το βλέπετε και οι δύο live. Μία πληρωμή, ποτέ συνδρομή.
+        </p>
+
+        <div class="hero-actions">
+          <a href="/app?demo=true" class="btn btn-primary btn-lg">
+            <span>🎮</span>
+            <span>Δοκίμασε το Live Demo (Χωρίς Εγγραφή)</span>
+          </a>
+          <a href="#pricing" class="btn btn-secondary btn-lg">
+            <span>⚡</span>
+            <span>Launch Offer (9,99€ Lifetime)</span>
+          </a>
+        </div>
+
+        <div class="trust-strip">
+          <div class="trust-item">
+            <span>🔒</span> 100% Local-First & Κρυπτογραφημένο
+          </div>
+          <div class="trust-item">
+            <span>⚡</span> Real-time Sync σε Desktop & Mobile
+          </div>
+          <div class="trust-item">
+            <span>🛡️</span> Zero Data-Selling / Μηδέν Διαφημίσεις
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Interactive Simulators Section -->
+    <section>
+      <div class="container">
+        <div class="section-header">
+          <span class="section-tag">ΖΩΝΤΑΝΗ ΔΟΚΙΜΗ</span>
+          <h2 class="section-title">Δες το να δουλεύει. Ζωντανά.</h2>
+          <p class="section-desc">Δοκίμασε τα δύο ισχυρότερα εργαλεία της εφαρμογής απευθείας στον browser σου.</p>
+        </div>
+
+        <div class="simulators-grid">
+          
+          <!-- Simulator 1: AI Receipt Scanner -->
+          <div class="simulator-card">
+            <div>
+              <div class="card-glow-badge" style="background: rgba(56, 189, 248, 0.15); color: #38BDF8;">
+                <span>📸</span> AI VISION OCR ENGINE
+              </div>
+              <h3 style="font-family: var(--font-heading); font-size: 22px; margin-bottom: 8px;">AI Σάρωση Απόδειξης</h3>
+              <p style="font-size: 14px; color: var(--text-muted);">
+                Πάτησε το κουμπί για να δεις το AI να διαβάζει αυτόματα το κατάστημα, το ποσό και την κατηγορία.
+              </p>
+
+              <div class="receipt-scanner-box" id="scanner-box">
+                <div class="receipt-paper" id="sample-receipt">
+                  <div class="scan-laser"></div>
+                  <div style="font-weight: 700; text-align: center; border-bottom: 1px dashed #999; padding-bottom: 4px; margin-bottom: 6px;">
+                    ΣΟΥΠΕΡ ΜΑΡΚΕΤ "ΑΛΦΑ"
+                  </div>
+                  <div>1x ΓΑΛΑ ΦΡΕΣΚΟ ........... 1,65€</div>
+                  <div>2x ΨΩΜΙ ΤΟΣΤ ............. 3,20€</div>
+                  <div>1x ΕΛΑΙΟΛΑΔΟ 1L ......... 11,50€</div>
+                  <div>1x ΑΠΟΡΡΥΠΑΝΤΙΚΟ ........ 8,45€</div>
+                  <div style="font-weight: 700; border-top: 1px solid #000; margin-top: 6px; padding-top: 4px; display: flex; justify-content: space-between;">
+                    <span>ΣΥΝΟΛΟ:</span>
+                    <span>24,80 €</span>
+                  </div>
+                </div>
+
+                <div class="ai-extracted-pill" id="ai-pill">
+                  <div>
+                    <div style="font-size: 11px; opacity: 0.8;">ΕΠΙΤΥΧΗΣ ΣΑΡΩΣΗ (99.8%)</div>
+                    <div>🛒 Σούπερ Μάρκετ • <strong>24,80 €</strong></div>
+                  </div>
+                  <span style="font-size: 18px;">✅</span>
+                </div>
+              </div>
+            </div>
+
+            <button class="btn btn-emerald" style="width: 100%;" id="btn-scan-sim" onclick="simulateScan()">
+              <span>⚡</span> Σάρωση Απόδειξης (Simulate Scan)
+            </button>
+          </div>
+
+          <!-- Simulator 2: Dual Phone Couple Sync -->
+          <div class="simulator-card">
+            <div>
+              <div class="card-glow-badge" style="background: rgba(124, 106, 247, 0.15); color: #C4B5FD;">
+                <span>👥</span> REAL-TIME PARTNER SYNC
+              </div>
+              <h3 style="font-family: var(--font-heading); font-size: 22px; margin-bottom: 8px;">Κοινό Ταμείο Ζευγαριού</h3>
+              <p style="font-size: 14px; color: var(--text-muted);">
+                Κατάγραψε ένα έξοδο στο αριστερό κινητό και δες τη ζωντανή ειδοποίηση στο δεξί κινητό.
+              </p>
+
+              <div class="dual-phone-wrapper">
+                <!-- Phone 1 (You) -->
+                <div class="mini-phone">
+                  <div class="phone-header">
+                    <span>📱 Εσύ (Μάριος)</span>
+                    <span style="color: #34D399;">● Live</span>
+                  </div>
+                  <div style="text-align: center; margin: auto 0;">
+                    <div style="font-size: 12px; color: var(--text-muted);">Κοινό Υπόλοιπο</div>
+                    <div style="font-size: 18px; font-weight: 700; font-family: var(--font-heading);" id="p1-balance">1.450,00 €</div>
+                  </div>
+                  <button class="btn btn-secondary" style="font-size: 11px; padding: 6px;" onclick="simulateExpense()">
+                    + Πρόσθεσε 35€ (Εστιατόριο)
+                  </button>
+                </div>
+
+                <!-- Phone 2 (Partner) -->
+                <div class="mini-phone">
+                  <div class="phone-header">
+                    <span>📱 Σύντροφος (Ελένη)</span>
+                    <span style="color: #34D399;">● Live</span>
+                  </div>
+                  <div class="push-notification-toast" id="partner-push">
+                    🔔 <strong>Μάριος:</strong> Νέο κοινό έξοδο 35,00€ (Εστιατόριο)
+                  </div>
+                  <div style="text-align: center; margin: auto 0;">
+                    <div style="font-size: 12px; color: var(--text-muted);">Κοινό Υπόλοιπο</div>
+                    <div style="font-size: 18px; font-weight: 700; font-family: var(--font-heading);" id="p2-balance">1.450,00 €</div>
+                  </div>
+                  <div style="font-size: 10px; text-align: center; color: var(--text-dim);">
+                    Συγχρονισμένο σε πραγματικό χρόνο
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <a href="/features/couples" class="btn btn-secondary" style="width: 100%;">
+              <span>📖</span> Δες πώς λειτουργεί το Κοινό Ταμείο
+            </a>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- The Anti-Subscription Manifesto -->
+    <section class="manifesto-section">
+      <div class="container">
+        <div class="manifesto-card">
+          <div class="pill-tag" style="background: rgba(245, 158, 11, 0.1); border-color: rgba(245, 158, 11, 0.3); color: #FBBF24;">
+            ✊ ΤΟ ΑΝΤΙ-ΣΥΝΔΡΟΜΗΤΙΚΟ ΜΑΝΙΦΕΣΤΟ
+          </div>
+          
+          <h2 class="manifesto-quote">
+            «Μια εφαρμογή που σου μαθαίνει να μην πετάς τα λεφτά σου...<br>
+            δεν θα σου ζητούσε ποτέ μηνιαία συνδρομή.»
+          </h2>
+
+          <div class="comparison-table">
+            <div class="comp-col">
+              <div class="comp-header" style="color: #EF4444;">
+                <span>❌</span> Άλλα Finance Apps (YNAB, Copilot, Wallet)
+              </div>
+              <div class="comp-price">~107 € / έτος</div>
+              <ul class="comp-list">
+                <li>❌ Πληρώνεις κάθε μήνα για πάντα</li>
+                <li>❌ Αν σταματήσεις, χάνεις την πρόσβαση</li>
+                <li>❌ Subscription fatigue</li>
+              </ul>
+            </div>
+
+            <div class="comp-col winner">
+              <div class="comp-header" style="color: #10B981;">
+                <span>✅</span> Budget Assistant (Launch Deal)
+              </div>
+              <div class="comp-price">9,99 € Εφάπαξ</div>
+              <ul class="comp-list">
+                <li>✅ Μία πληρωμή. Δικό σου για πάντα.</li>
+                <li>✅ Όλα τα AI scans, Partner Sync & Updates</li>
+                <li>✅ Μηδέν κρυφά κόστη ή συνδρομές</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3 Value Pillars -->
+    <section>
+      <div class="container">
+        <div class="section-header">
+          <span class="section-tag">ΔΥΝΑΤΟΤΗΤΕΣ</span>
+          <h2 class="section-title">Όλα όσα χρειάζεσαι για απόλυτο έλεγχο</h2>
+          <p class="section-desc">Χτισμένο από το μηδέν για ταχύτητα, ιδιωτικότητα και ευκολία.</p>
+        </div>
+
+        <div class="pillars-grid">
+          <a href="/features/ai-receipt-scan" class="pillar-card">
+            <div>
+              <div class="pillar-icon" style="background: rgba(56, 189, 248, 0.15); color: #38BDF8;">📸</div>
+              <h3 class="pillar-title">AI Σάρωση Αποδείξεων</h3>
+              <p class="pillar-desc">
+                Βγάλε φωτογραφία οποιαδήποτε απόδειξη. Το Gemini AI εξάγει το ποσό, την ημερομηνία και την κατηγορία αυτόματα σε 2''.
+              </p>
+            </div>
+            <div class="pillar-link">Μάθε περισσότερα →</div>
+          </a>
+
+          <a href="/features/couples" class="pillar-card">
+            <div>
+              <div class="pillar-icon" style="background: rgba(124, 106, 247, 0.15); color: #C4B5FD;">👥</div>
+              <h3 class="pillar-title">Κοινό Ταμείο Ζευγαριού</h3>
+              <p class="pillar-desc">
+                Συνδέστε τα κινητά σας με Partner Code. Ό,τι καταγράφει ο ένας εμφανίζεται ακαριαία στη συσκευή του άλλου με push notifications.
+              </p>
+            </div>
+            <div class="pillar-link">Μάθε περισσότερα →</div>
+          </a>
+
+          <a href="/features/health-score" class="pillar-card">
+            <div>
+              <div class="pillar-icon" style="background: rgba(16, 185, 129, 0.15); color: #34D399;">🛡️</div>
+              <h3 class="pillar-title">Financial Health Score</h3>
+              <p class="pillar-desc">
+                Βασισμένο στην επίσημη μεθοδολογία FHN / CFPB. Υπολογίζει αποταμίευση, emergency runway και σου δίνει καθαρές οδηγίες.
+              </p>
+            </div>
+            <div class="pillar-link">Μάθε περισσότερα →</div>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Quiz Banner Section -->
+    <section>
+      <div class="container">
+        <div class="quiz-banner">
+          <div>
+            <div class="pill-tag" style="background: rgba(16, 185, 129, 0.15); color: #34D399; border-color: rgba(16, 185, 129, 0.3);">
+              🧠 ΔΩΡΕΑΝ ONLINE ΕΡΓΑΛΕΙΟ
+            </div>
+            <h2 style="font-family: var(--font-heading); font-size: 34px; margin-bottom: 12px; color: #fff;">
+              Πόσο υγιή είναι τα οικονομικά σου;
+            </h2>
+            <p style="color: var(--text-muted); font-size: 16px; margin-bottom: 24px; line-height: 1.6;">
+              Απάντησε σε 8 γρήγορες ερωτήσεις και λάβε το δικό σου <strong>Financial Health Scorecard (0-100)</strong> με πρακτικά επόμενα βήματα βελτίωσης.
+            </p>
+            <a href="/health-quiz" class="btn btn-emerald btn-lg">
+              <span>🚀</span> Κάνε το Quiz (60 Δευτερόλεπτα)
+            </a>
+          </div>
+
+          <div class="cyber-score-card">
+            <div style="font-size: 12px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px;">Financial Health Snapshot</div>
+            <div class="score-dial">88<span style="font-size: 24px; color: var(--text-muted);">/100</span></div>
+            <div style="font-weight: 700; color: #34D399; font-size: 16px; margin-bottom: 8px;">Εξαιρετική Οικονομική Υγεία</div>
+            <div style="font-size: 12px; color: var(--text-muted);">Emergency Runway: <strong>6.2 Μήνες</strong></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section id="pricing">
+      <div class="container">
+        <div class="section-header">
+          <span class="section-tag">ΤΙΜΟΛΟΓΗΣΗ</span>
+          <h2 class="section-title">Απλή, Διάφανη, Εφάπαξ</h2>
+          <p class="section-desc">Ξεκίνα δωρεάν ή απόκτησε το Lifetime PRO στην ειδική τιμή εκκίνησης.</p>
+        </div>
+
+        <div class="pricing-grid">
+          
+          <!-- Free Tier -->
+          <div class="pricing-card">
+            <h3 style="font-family: var(--font-heading); font-size: 22px; color: #fff;">Free Tier</h3>
+            <div class="price-amount">0 €</div>
+            <div class="price-period">Δωρεάν για πάντα</div>
+
+            <ul class="feature-list">
+              <li>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                <span>Απεριόριστη καταγραφή εξόδων & εσόδων</span>
+              </li>
+              <li>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                <span>5 AI σαρώσεις αποδείξεων / μήνα</span>
+              </li>
+              <li>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                <span>100% Offline & Local-First ασφάλεια</span>
+              </li>
+              <li>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                <span>Βασικά διαγράμματα & αναφορές</span>
+              </li>
+            </ul>
+
+            <a href="/app" class="btn btn-secondary" style="width: 100%;">
+              Έναρξη Δωρεάν
+            </a>
+          </div>
+
+          <!-- Lifetime PRO (Launch Offer) -->
+          <div class="pricing-card featured">
+            <div class="pricing-badge">🔥 LIMITED LAUNCH OFFER</div>
+            <h3 style="font-family: var(--font-heading); font-size: 22px; color: #fff;">Lifetime PRO</h3>
+            
+            <div class="scarcity-counter">
+              ⏳ 418 / 500 θέσεις έχουν καλυφθεί!
+            </div>
+
+            <div class="price-amount">9,99 €</div>
+            <div class="price-period"><strike style="color: var(--text-dim); margin-right: 6px;">29,99 €</strike> Μία φορά. Δικό σου για πάντα.</div>
+
+            <ul class="feature-list">
+              <li>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                <span><strong>Απεριόριστες AI Σαρώσεις Αποδείξεων</strong></span>
+              </li>
+              <li>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                <span><strong>Real-time Partner / Couple Sync</strong></span>
+              </li>
+              <li>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                <span><strong>Financial Health Score & Forecasting</strong></span>
+              </li>
+              <li>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                <span><strong>Interactive AI Financial Advisor</strong></span>
+              </li>
+              <li>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                <span>Multi-Currency & Cloud Backup προτεραιότητας</span>
+              </li>
+            </ul>
+
+            <a href="/pricing" class="btn btn-primary btn-lg" style="width: 100%;">
+              ⚡ Απόκτησε το Lifetime PRO (9,99€)
+            </a>
+          </div>
+
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <img src="icon.png" alt="Budget Assistant" style="width: 32px; height: 32px; border-radius: 8px;">
+            <span style="font-family: var(--font-heading); font-weight: 700; font-size: 18px; color: #fff;">Budget Assistant</span>
+          </div>
+          <p>
+            Το σύγχρονο οικοσύστημα οικονομικής ελευθερίας. AI Receipt Scanning, Κοινό Ταμείο και Health Score χωρίς συνδρομές.
+          </p>
+        </div>
+
+        <div class="footer-col">
+          <h4>Προϊόν</h4>
+          <ul>
+            <li><a href="/features/ai-receipt-scan">AI Receipt Scanner</a></li>
+            <li><a href="/features/couples">Κοινό Ταμείο (Couples)</a></li>
+            <li><a href="/features/health-score">Financial Health Score</a></li>
+            <li><a href="/health-quiz">Health Quiz</a></li>
+            <li><a href="/pricing">Τιμολόγηση</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h4>Εμπιστοσύνη</h4>
+          <ul>
+            <li><a href="/security">Ασφάλεια & Privacy</a></li>
+            <li><a href="/privacy.html">Πολιτική Απορρήτου</a></li>
+            <li><a href="/guides">Οδηγοί & Άρθρα</a></li>
+            <li><a href="/download">Λήψη Εφαρμογής</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h4>Εφαρμογή</h4>
+          <ul>
+            <li><a href="/app">Web Dashboard</a></li>
+            <li><a href="/app?demo=true">Live Demo</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <div>© 2026 Budget Assistant. All rights reserved.</div>
+        <div style="color: var(--text-dim);">Designed with Cyber-Luxury Aesthetic & Privacy-First Architecture.</div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Interactive Scripts -->
+  <script>
+    // Ambient Glow Follower
+    const glow = document.getElementById('ambient-glow');
+    window.addEventListener('mousemove', (e) => {
+      glow.style.transform = `translate(${e.clientX}px, ${e.clientY}px) translate(-50%, -50%)`;
+    });
+
+    // Scanner Simulator Logic
+    function simulateScan() {
+      const box = document.getElementById('scanner-box');
+      const pill = document.getElementById('ai-pill');
+      const btn = document.getElementById('btn-scan-sim');
+
+      btn.disabled = true;
+      btn.innerHTML = '<span>⚡</span> Σάρωση σε εξέλιξη...';
+      box.classList.add('scanning');
+      pill.classList.remove('show');
+
+      setTimeout(() => {
+        box.classList.remove('scanning');
+        pill.classList.add('show');
+        btn.disabled = false;
+        btn.innerHTML = '<span>✅</span> Ολοκληρώθηκε! (Ξαναδοκίμασε)';
+      }, 1600);
+    }
+
+    // Couple Sync Simulator Logic
+    let currentBal = 1450.00;
+    function simulateExpense() {
+      currentBal -= 35.00;
+      const formatted = currentBal.toLocaleString('el-GR', { minimumFractionDigits: 2 }) + ' €';
+      
+      document.getElementById('p1-balance').innerText = formatted;
+      
+      // Trigger partner phone push
+      const push = document.getElementById('partner-push');
+      push.classList.add('pop');
+
+      setTimeout(() => {
+        document.getElementById('p2-balance').innerText = formatted;
+      }, 300);
+
+      setTimeout(() => {
+        push.classList.remove('pop');
+      }, 3500);
+    }
+  </script>
+</body>
+</html>

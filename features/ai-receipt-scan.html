@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <title>AI Σάρωση Αποδείξεων — Budget Assistant (Gemini Vision)</title>
+  <meta name="description" content="Φωτογράφισε την απόδειξη και δες το ποσό, το κατάστημα και την κατηγορία να συμπληρώνονται αυτόματα σε 2 δευτερόλεπτα με AI.">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="../icon.png">
+
+  <!-- Google Fonts: Outfit & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #07080C;
+      --bg-card: #11141E;
+      --border: rgba(255, 255, 255, 0.08);
+      --text: #F3F4F6;
+      --text-muted: #9CA3AF;
+      --primary: #7C6AF7;
+      --cyan: #38BDF8;
+      --font-heading: 'Outfit', sans-serif;
+      --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+      --radius-md: 16px;
+      --radius-xl: 28px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background-color: var(--bg); color: var(--text); font-family: var(--font-body); line-height: 1.6; }
+    .container { max-width: 860px; margin: 0 auto; padding: 0 24px; }
+    header { padding: 20px 0; border-bottom: 1px solid var(--border); background: rgba(7, 8, 12, 0.8); backdrop-filter: blur(12px); }
+    .nav-inner { display: flex; align-items: center; justify-content: space-between; }
+    .logo-link { display: flex; align-items: center; gap: 10px; text-decoration: none; color: #fff; font-family: var(--font-heading); font-weight: 700; font-size: 20px; }
+    .logo-img { width: 34px; height: 34px; border-radius: 8px; }
+    
+    .hero-feat { padding: 70px 0 40px; text-align: center; }
+    h1 { font-family: var(--font-heading); font-size: 44px; font-weight: 800; margin-bottom: 16px; color: #fff; }
+    .feat-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-xl); padding: 40px; margin-bottom: 30px; }
+    .feat-card h3 { font-family: var(--font-heading); font-size: 22px; margin-bottom: 12px; color: #fff; }
+    .feat-card p { font-size: 15px; color: var(--text-muted); line-height: 1.7; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 14px 28px; border-radius: var(--radius-md); font-size: 15px; font-weight: 700; text-decoration: none; background: linear-gradient(135deg, #7C6AF7, #6350E8); color: #fff; margin-top: 20px; }
+    footer { border-top: 1px solid var(--border); padding: 30px 0; text-align: center; font-size: 13px; color: #6B7280; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container">
+      <div class="nav-inner">
+        <a href="/" class="logo-link">
+          <img src="../icon.png" alt="Logo" class="logo-img">
+          <span>Budget Assistant</span>
+        </a>
+        <a href="/" style="color: var(--text-muted); text-decoration: none; font-size: 14px;">← Αρχική</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="hero-feat">
+      <div style="font-size: 40px; margin-bottom: 12px;">📸</div>
+      <h1>AI Σάρωση Αποδείξεων σε 2''</h1>
+      <p style="color: var(--text-muted); font-size: 18px; max-width: 600px; margin: 0 auto;">
+        Ξέχνα τη χειροκίνητη πληκτρολόγηση. Φωτογράφισε την απόδειξη και το Gemini AI αναλαμβάνει τα υπόλοιπα.
+      </p>
+      <a href="/app?demo=true" class="btn">🎮 Δοκίμασε το Live Demo</a>
+    </div>
+
+    <div class="feat-card">
+      <h3>⚡ Πώς λειτουργεί</h3>
+      <p>
+        Βγάζεις μια καθαρή φωτογραφία της απόδειξης από οποιοδήποτε σούπερ μάρκετ, βενζινάδικο, φαρμακείο ή εστιατόριο (ή σέρνεις το ψηφιακό PDF από το e-shop σου). Το AI Vision μοντέλο εντοπίζει άμεσα την επωνυμία του καταστήματος, το τελικό πληρωτέο ποσό, την ημερομηνία και προτείνει αυτόματα τη σωστή κατηγορία εξόδου.
+      </p>
+    </div>
+
+    <div class="feat-card">
+      <h3>🛡️ Ασφάλεια & Ιδιωτικότητα</h3>
+      <p>
+        Η επεξεργασία της εικόνας γίνεται σε κρυπτογραφημένο περιβάλλον. Η εικόνα δεν αποθηκεύεται σε μόνιμους διακομιστές και δεν πωλείται ποτέ σε τρίτους.
+      </p>
+    </div>
+  </main>
+
+  <footer>
+    <div class="container">© 2026 Budget Assistant. All rights reserved.</div>
+  </footer>
+</body>
+</html>

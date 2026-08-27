@@ -106,6 +106,11 @@ const filesToMirror = [
   'splash.html',
   'app.js',
   'index.html',
+  'landing.html',
+  'pricing.html',
+  'health-quiz.html',
+  'security.html',
+  'download.html',
   'style.css',
   'desktop.css',
   'web-ui.js',
@@ -132,7 +137,7 @@ filesToMirror.forEach(file => {
   }
 });
 
-const dirsToMirror = ['js', 'assets', 'webfonts', 'functions'];
+const dirsToMirror = ['js', 'assets', 'webfonts', 'functions', 'features', 'guides'];
 dirsToMirror.forEach(dir => {
   const src = path.join(rootDir, dir);
   const dst = path.join(wwwDir, dir);
