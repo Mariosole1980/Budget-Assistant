@@ -72,12 +72,24 @@ async function verifyLive() {
           attemptErrors.push(`${baseUrl}/sw.js does not contain // SW Version ${canonicalVersion}`);
         }
 
-        // 3. Check root / (index.html)
-        const indexRes = await fetchLiveUrl(`${baseUrl}/?_nocache=${timestamp}`);
-        if (indexRes.statusCode !== 200) {
-          attemptErrors.push(`${baseUrl}/ HTTP ${indexRes.statusCode}`);
-        } else if (!indexRes.data.includes(`const CURRENT_BUILD = ${canonicalVersion};`)) {
-          attemptErrors.push(`${baseUrl}/ does not contain CURRENT_BUILD = ${canonicalVersion}`);
+        // 3. Check /app (or /index.html) for web app build version
+        const appRes = await fetchLiveUrl(`${baseUrl}/app?_nocache=${timestamp}`);
+        if (appRes.statusCode !== 200) {
+          // Fallback check on /index.html
+          const indexRes = await fetchLiveUrl(`${baseUrl}/index.html?_nocache=${timestamp}`);
+          if (indexRes.statusCode !== 200 || !indexRes.data.includes(`const CURRENT_BUILD = ${canonicalVersion};`)) {
+            attemptErrors.push(`${baseUrl}/app HTTP ${appRes.statusCode}, /index.html check failed for build ${canonicalVersion}`);
+          }
+        } else if (!appRes.data.includes(`const CURRENT_BUILD = ${canonicalVersion};`)) {
+          attemptErrors.push(`${baseUrl}/app does not contain CURRENT_BUILD = ${canonicalVersion}`);
+        }
+
+        // 4. Check root / (landing.html) for live landing page
+        const rootRes = await fetchLiveUrl(`${baseUrl}/?_nocache=${timestamp}`);
+        if (rootRes.statusCode !== 200) {
+          attemptErrors.push(`${baseUrl}/ HTTP ${rootRes.statusCode}`);
+        } else if (!rootRes.data.includes(`Budget Assistant`)) {
+          attemptErrors.push(`${baseUrl}/ does not contain Budget Assistant branding`);
         }
 
         if (attemptErrors.length === 0) {
