@@ -7,6 +7,7 @@ const versionJsonPath = path.join(rootDir, 'version.json');
 const canonicalVersion = JSON.parse(fs.readFileSync(versionJsonPath, 'utf8')).version;
 
 const projects = [
+  'https://www.budgetassistant.org',
   'https://budget-assistant-pwa.pages.dev'
 ];
 

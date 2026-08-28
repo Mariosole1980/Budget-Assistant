@@ -3,11 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-  <title>Οδηγοί & Οικονομική Εκπαίδευση — Budget Assistant</title>
-  <meta name="description" content="Εξειδικευμένοι οδηγοί για διαχείριση κοινών εξόδων, Financial Health Score και αποταμίευση.">
+  <title>Οδηγός Χρήσης & Οικονομικής Διαχείρισης — Budget Assistant</title>
+  <meta name="description" content="Ο πλήρης επίσημος οδηγός χρήσης του Budget Assistant: από την πρώτη καταγραφή και το AI scanner έως το κοινό ταμείο ζευγαριού και το Health Score.">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://budgetassistant.org/guides">
+  <meta property="og:title" content="Οδηγός Χρήσης & Οικονομικής Διαχείρισης — Budget Assistant">
+  <meta property="og:description" content="Ο πλήρης οδηγός χρήσης: Καταγραφή εξόδων, AI σάρωση αποδείξεων, κοινό ταμείο ζευγαριού και Financial Health Score.">
+  <meta property="og:image" content="https://budget-assistant-pwa.pages.dev/logo-mark.png">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="../icon.png">
+  <link rel="apple-touch-icon" href="../icon-192.png">
 
   <!-- Google Fonts: Outfit & Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -16,87 +24,777 @@
 
   <style>
     :root {
-      --bg: #07080C;
-      --bg-card: #11141E;
+      --bg: #07090E;
+      --bg-card: #0D101A;
+      --bg-card-alt: #121624;
       --border: rgba(255, 255, 255, 0.08);
+      --border-light: rgba(255, 255, 255, 0.15);
       --text: #F3F4F6;
       --text-muted: #9CA3AF;
+      --text-dim: #6B7280;
       --primary: #7C6AF7;
-      --font-heading: 'Outfit', sans-serif;
-      --font-body: 'Inter', system-ui, -apple-system, sans-serif;
-      --radius-md: 16px;
-      --radius-xl: 28px;
+      --primary-glow: rgba(124, 106, 247, 0.35);
+      --success: #10B981;
+      --success-glow: rgba(16, 185, 129, 0.35);
+      --cyan: #38BDF8;
+      --amber: #F59E0B;
+      --font-heading: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --font-body: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 22px;
+      --radius-xl: 32px;
     }
+
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background-color: var(--bg); color: var(--text); font-family: var(--font-body); line-height: 1.6; }
-    .container { max-width: 860px; margin: 0 auto; padding: 0 24px; }
-    header { padding: 20px 0; border-bottom: 1px solid var(--border); background: rgba(7, 8, 12, 0.8); backdrop-filter: blur(12px); }
-    .nav-inner { display: flex; align-items: center; justify-content: space-between; }
-    .logo-link { display: flex; align-items: center; gap: 10px; text-decoration: none; color: #fff; font-family: var(--font-heading); font-weight: 700; font-size: 20px; }
-    .logo-img { width: 34px; height: 34px; border-radius: 8px; }
-    
-    .hero-guides { padding: 60px 0 40px; text-align: center; }
-    h1 { font-family: var(--font-heading); font-size: 42px; font-weight: 800; margin-bottom: 16px; color: #fff; }
-    .guides-list { display: grid; grid-template-columns: 1fr; gap: 20px; margin: 30px 0 60px; }
-    .guide-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 28px; text-decoration: none; color: inherit; transition: border-color 0.2s, transform 0.2s; }
-    .guide-card:hover { border-color: rgba(124, 106, 247, 0.4); transform: translateY(-2px); }
-    .guide-card h3 { font-family: var(--font-heading); font-size: 22px; color: #fff; margin-bottom: 8px; }
-    .guide-card p { font-size: 14px; color: var(--text-muted); line-height: 1.6; }
-    .read-more { font-size: 13px; font-weight: 600; color: var(--primary); margin-top: 12px; display: inline-block; }
-    footer { border-top: 1px solid var(--border); padding: 30px 0; text-align: center; font-size: 13px; color: #6B7280; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      background-color: var(--bg);
+      background-image: 
+        radial-gradient(circle at 50% 0%, rgba(124, 106, 247, 0.1) 0%, transparent 60%),
+        radial-gradient(circle at 85% 35%, rgba(56, 189, 248, 0.06) 0%, transparent 50%);
+      background-attachment: fixed;
+      color: var(--text);
+      font-family: var(--font-body);
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Top Full-Width Navigation */
+    header {
+      position: sticky;
+      top: 0;
+      width: 100%;
+      z-index: 1000;
+      background: rgba(7, 9, 14, 0.88);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-inner {
+      max-width: 1140px;
+      margin: 0 auto;
+      height: 68px;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo-link {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: #fff;
+      font-family: var(--font-heading);
+      font-weight: 700;
+      font-size: 16px;
+    }
+
+    .logo-img {
+      width: 34px;
+      height: 34px;
+      object-fit: contain;
+      filter: drop-shadow(0 0 10px rgba(124, 106, 247, 0.5));
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 13.5px;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover, .nav-links a.active {
+      color: #fff;
+    }
+
+    .nav-back {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 13.5px;
+      font-weight: 500;
+      padding: 6px 14px;
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      transition: all 0.2s;
+    }
+
+    .nav-back:hover {
+      color: #fff;
+      border-color: rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .container {
+      max-width: 1040px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* Hero Section */
+    .hero-sec {
+      padding: 70px 0 40px;
+      text-align: center;
+    }
+
+    .pill-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(124, 106, 247, 0.12);
+      border: 1px solid rgba(124, 106, 247, 0.35);
+      padding: 6px 16px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #C4B5FD;
+      margin-bottom: 22px;
+      letter-spacing: 0.5px;
+    }
+
+    .pill-tag .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #7C6AF7;
+      box-shadow: 0 0 8px #7C6AF7;
+    }
+
+    h1 {
+      font-family: var(--font-heading);
+      font-size: clamp(34px, 4.5vw, 48px);
+      font-weight: 800;
+      letter-spacing: -1px;
+      line-height: 1.15;
+      color: #fff;
+      margin-bottom: 20px;
+    }
+
+    .hero-desc {
+      font-size: 17.5px;
+      color: var(--text-muted);
+      max-width: 740px;
+      margin: 0 auto 28px;
+      line-height: 1.65;
+    }
+
+    .guide-meta-strip {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 40px;
+      font-size: 12.5px;
+      color: var(--text-dim);
+    }
+
+    .meta-bullet {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      padding: 4px 12px;
+      border-radius: 999px;
+      color: var(--text-muted);
+    }
+
+    .meta-bullet svg {
+      width: 13px;
+      height: 13px;
+      color: #7C6AF7;
+    }
+
+    /* Two-Column Master Guide Layout */
+    .guide-layout-grid {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 40px;
+      align-items: start;
+      margin-bottom: 70px;
+    }
+
+    /* Sticky Table of Contents (Left) */
+    .toc-sticky-sidebar {
+      position: sticky;
+      top: 90px;
+      background: #090B12;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 22px;
+    }
+
+    .toc-title {
+      font-family: var(--font-heading);
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .toc-title svg {
+      width: 16px;
+      height: 16px;
+      color: #7C6AF7;
+    }
+
+    .toc-nav-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      list-style: none;
+    }
+
+    .toc-nav-link {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--text-muted);
+      text-decoration: none;
+      padding: 8px 10px;
+      border-radius: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .toc-nav-link:hover {
+      color: #fff;
+      background: rgba(124, 106, 247, 0.12);
+    }
+
+    .toc-nav-link span.num {
+      font-family: var(--font-heading);
+      font-weight: 700;
+      color: #7C6AF7;
+      font-size: 12px;
+    }
+
+    /* Main Chapters Container (Right) */
+    .guide-chapters-container {
+      display: flex;
+      flex-direction: column;
+      gap: 36px;
+    }
+
+    .guide-chapter-card {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.035) 0%, rgba(255, 255, 255, 0.01) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: var(--radius-lg);
+      padding: 34px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .guide-chapter-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--chapter-accent, #7C6AF7);
+    }
+
+    .chapter-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    .chapter-icon-box {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: var(--icon-bg, rgba(124, 106, 247, 0.15));
+      border: 1px solid var(--icon-border, rgba(124, 106, 247, 0.3));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent-color, #C4B5FD);
+      flex-shrink: 0;
+    }
+
+    .chapter-icon-box svg {
+      width: 22px;
+      height: 22px;
+    }
+
+    .chapter-title-wrap h2 {
+      font-family: var(--font-heading);
+      font-size: 22px;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.3px;
+    }
+
+    .chapter-tag {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--accent-color, #C4B5FD);
+    }
+
+    .guide-chapter-card p {
+      font-size: 14.5px;
+      color: var(--text-muted);
+      line-height: 1.7;
+      margin-bottom: 16px;
+    }
+
+    .guide-chapter-card ul {
+      margin: 12px 0 18px 20px;
+      color: var(--text-muted);
+      font-size: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .guide-chapter-card ul li strong {
+      color: #fff;
+    }
+
+    /* Pro Tip Callout Box */
+    .pro-tip-box {
+      background: rgba(124, 106, 247, 0.08);
+      border: 1px solid rgba(124, 106, 247, 0.25);
+      border-left: 4px solid var(--chapter-accent, #7C6AF7);
+      border-radius: var(--radius-sm);
+      padding: 14px 18px;
+      font-size: 13.5px;
+      color: #E2E8F0;
+      margin-top: 18px;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .pro-tip-box svg {
+      width: 18px;
+      height: 18px;
+      color: var(--chapter-accent, #7C6AF7);
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    /* Step Sequence Inside Chapter */
+    .step-seq-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin: 18px 0;
+    }
+
+    .step-seq-item {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: var(--radius-md);
+      padding: 14px;
+    }
+
+    .seq-num {
+      font-family: var(--font-heading);
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--chapter-accent, #7C6AF7);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+
+    .seq-text strong {
+      display: block;
+      font-size: 13px;
+      color: #fff;
+      margin-bottom: 2px;
+    }
+
+    .seq-text span {
+      font-size: 11.5px;
+      color: var(--text-dim);
+      line-height: 1.5;
+    }
+
+    /* Final CTA Banner */
+    .cta-banner-card {
+      background: linear-gradient(135deg, rgba(124, 106, 247, 0.15) 0%, rgba(56, 189, 248, 0.08) 100%);
+      border: 1px solid rgba(124, 106, 247, 0.3);
+      border-radius: var(--radius-xl);
+      padding: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 30px;
+      margin-bottom: 70px;
+      flex-wrap: wrap;
+    }
+
+    .cta-banner-card h2 {
+      font-family: var(--font-heading);
+      font-size: 26px;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+
+    .cta-banner-btns {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 24px;
+      border-radius: var(--radius-md);
+      font-size: 14.5px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #7C6AF7 0%, #6350E8 100%);
+      color: #fff;
+      box-shadow: 0 4px 20px var(--primary-glow);
+    }
+    .btn-primary:hover {
+      box-shadow: 0 6px 28px rgba(124, 106, 247, 0.45);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      color: #fff;
+    }
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 36px 0;
+      text-align: center;
+      font-size: 13px;
+      color: var(--text-dim);
+    }
+
+    @media (max-width: 860px) {
+      .guide-layout-grid { grid-template-columns: 1fr; }
+      .toc-sticky-sidebar { display: none; }
+      .step-seq-grid { grid-template-columns: 1fr; }
+      .cta-banner-card { flex-direction: column; align-items: flex-start; padding: 26px; }
+    }
   </style>
 </head>
 <body>
+
+  <!-- Full-Width Navigation -->
   <header>
-    <div class="container">
-      <div class="nav-inner">
-        <a href="/" class="logo-link">
-          <img src="../icon.png" alt="Logo" class="logo-img">
-          <span>Budget Assistant</span>
-        </a>
-        <a href="/" style="color: var(--text-muted); text-decoration: none; font-size: 14px;">← Αρχική</a>
+    <div class="nav-inner">
+      <a href="/" class="logo-link">
+        <img src="../logo-mark.png" alt="Budget Assistant Logo" class="logo-img">
+        <span>Budget Assistant</span>
+      </a>
+
+      <ul class="nav-links">
+        <li><a href="/tools">Εργαλεία</a></li>
+        <li><a href="/guides" class="active" style="color: #fff; font-weight: 700;">Οδηγοί</a></li>
+        <li><a href="/security">Ασφάλεια</a></li>
+        <li><a href="/pricing">Τιμολόγηση</a></li>
+      </ul>
+
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <a href="/app" style="color: var(--text-muted); text-decoration: none; font-size: 13.5px; font-weight: 500;">Είσοδος</a>
+        <a href="/app?demo=true" class="nav-back" style="background: linear-gradient(135deg, #7C6AF7 0%, #6350E8 100%); color: #fff; border: none; font-weight: 600;">Εκκίνηση</a>
       </div>
     </div>
   </header>
 
   <main class="container">
-    <div class="hero-guides">
-      <div style="font-size: 40px; margin-bottom: 12px;">📚</div>
-      <h1>Οδηγοί Οικονομικής Ελευθερίας</h1>
-      <p style="color: var(--text-muted); font-size: 18px;">
-        Πρακτική γνώση, μεθοδολογία και στρατηγικές για να αποκτήσετε τον απόλυτο έλεγχο των χρημάτων σας.
+    <!-- Hero Section -->
+    <div class="hero-sec">
+      <div class="pill-tag">
+        <span class="status-dot"></span>
+        <span>MASTER USER GUIDE &amp; METHODOLOGY</span>
+      </div>
+      <h1>Οδηγός Χρήσης &amp; Οικονομικής Διαχείρισης</h1>
+      <p class="hero-desc">
+        Όλα όσα χρειάζεται να γνωρίζετε για να αξιοποιήσετε στο έπακρο το Budget Assistant: από την πρώτη καταγραφή και το AI scanner έως το κοινό ταμείο ζευγαριού και το Financial Health Score.
       </p>
+
+      <div class="guide-meta-strip">
+        <div class="meta-bullet">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+          <span>5 λεπτά ανάγνωση</span>
+        </div>
+        <div class="meta-bullet">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          <span>Επίσημη Τεκμηρίωση v1.5</span>
+        </div>
+        <div class="meta-bullet">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+          <span>100% Local-First Sandbox</span>
+        </div>
+      </div>
     </div>
 
-    <div class="guides-list">
-      <a href="/guides/how-health-score-works" class="guide-card">
-        <h3>1. Πώς Υπολογίζεται το Financial Health Score (CFPB & FHN Μεθοδολογία)</h3>
-        <p>Αναλυτική εξήγηση των 4 πυλώνων που καθορίζουν το σκορ οικονομικής υγείας 0-100 και πώς να το βελτιώσετε.</p>
-        <span class="read-more">Διαβάστε τον οδηγό →</span>
-      </a>
+    <!-- Master Guide Layout (TOC + Chapters) -->
+    <div class="guide-layout-grid">
+      <!-- Left: Sticky Table of Contents -->
+      <aside class="toc-sticky-sidebar">
+        <div class="toc-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+          <span>Περιεχόμενα</span>
+        </div>
+        <ul class="toc-nav-list">
+          <li><a href="#ch-1" class="toc-nav-link"><span class="num">01.</span> Γρήγορη Εκκίνηση</a></li>
+          <li><a href="#ch-2" class="toc-nav-link"><span class="num">02.</span> Καταγραφή &amp; Όρια</a></li>
+          <li><a href="#ch-3" class="toc-nav-link"><span class="num">03.</span> AI Σάρωση Αποδείξεων</a></li>
+          <li><a href="#ch-4" class="toc-nav-link"><span class="num">04.</span> Κοινό Ταμείο Ζευγαριού</a></li>
+          <li><a href="#ch-5" class="toc-nav-link"><span class="num">05.</span> Financial Health Score</a></li>
+          <li><a href="#ch-6" class="toc-nav-link"><span class="num">06.</span> Εξαγωγή Excel &amp; Backup</a></li>
+        </ul>
+      </aside>
 
-      <a href="/guides/couples-money-guide" class="guide-card">
-        <h3>2. Πώς να Διαχειρίζεστε τα Κοινά Έξοδα ως Ζευγάρι Χωρίς Καβγάδες</h3>
-        <p>Οδηγός διαφάνειας και κοινού προϋπολογισμού για σύγχρονα ζευγάρια με πραγματικό real-time συγχρονισμό.</p>
-        <span class="read-more">Διαβάστε τον οδηγό →</span>
-      </a>
+      <!-- Right: Detailed In-Depth Chapters -->
+      <div class="guide-chapters-container">
 
-      <a href="/guides/emergency-fund-guide" class="guide-card">
-        <h3>3. Πόσο Ταμείο Έκτακτης Ανάγκης (Emergency Fund) Χρειάζεστε Πραγματικά;</h3>
-        <p>Πώς να υπολογίσετε το ιδανικό ποσό ασφαλείας (3-6 μήνες) και πού να το αποθηκεύσετε.</p>
-        <span class="read-more">Διαβάστε τον οδηγό →</span>
-      </a>
+        <!-- Chapter 1: Quick Start -->
+        <article class="guide-chapter-card" id="ch-1" style="--chapter-accent: #7C6AF7; --icon-bg: rgba(124, 106, 247, 0.15); --icon-border: rgba(124, 106, 247, 0.3); --accent-color: #C4B5FD;">
+          <div class="chapter-header">
+            <div class="chapter-icon-box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+            </div>
+            <div class="chapter-title-wrap">
+              <span class="chapter-tag">ΚΕΦΑΛΑΙΟ 01</span>
+              <h2>Γρήγορη Εκκίνηση χωρίς Εγγραφή</h2>
+            </div>
+          </div>
+          <p>
+            Το Budget Assistant είναι σχεδιασμένο με φιλοσοφία <strong>Local-First</strong>. Δεν απαιτείται δημιουργία λογαριασμού, email ή πιστωτική κάρτα για να ξεκινήσετε.
+          </p>
+          <div class="step-seq-grid">
+            <div class="step-seq-item">
+              <div class="seq-num">Βήμα 1</div>
+              <div class="seq-text">
+                <strong>Άνοιγμα Εφαρμογής</strong>
+                <span>Η εφαρμογή είναι έτοιμη για χρήση άμεσα στον browser σας.</span>
+              </div>
+            </div>
+            <div class="step-seq-item">
+              <div class="seq-num">Βήμα 2</div>
+              <div class="seq-text">
+                <strong>Ορισμός Υπολοίπου</strong>
+                <span>Ορίζετε το αρχικό διαθέσιμο ταμείο σας στις Ρυθμίσεις.</span>
+              </div>
+            </div>
+            <div class="step-seq-item">
+              <div class="seq-num">Βήμα 3</div>
+              <div class="seq-text">
+                <strong>Πρώτη Συναλλαγή</strong>
+                <span>Πατάτε το «+» και καταγράφετε το πρώτο σας έξοδο σε 2''.</span>
+              </div>
+            </div>
+          </div>
+          <div class="pro-tip-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+            <div>
+              <strong>Pro Tip (Εγκατάσταση PWA):</strong> Πατήστε <em>«Προσθήκη στην Αρχική Οθόνη»</em> στο κινητό σας για να λειτουργεί το Budget Assistant σαν κανονικό native app, 100% offline.
+            </div>
+          </div>
+        </article>
 
-      <a href="/guides/50-30-20-rule" class="guide-card">
-        <h3>4. Ο Κανόνας 50/30/20: Τι Είναι και Πώς Εφαρμόζεται στην Πράξη</h3>
-        <p>Η απλούστερη μέθοδος κατανομής μισθού σε Ανάγκες (50%), Επιθυμίες (30%) και Αποταμίευση (20%).</p>
-        <span class="read-more">Διαβάστε τον οδηγό →</span>
-      </a>
+        <!-- Chapter 2: Logging & Category Budgets -->
+        <article class="guide-chapter-card" id="ch-2" style="--chapter-accent: #38BDF8; --icon-bg: rgba(56, 189, 248, 0.15); --icon-border: rgba(56, 189, 248, 0.3); --accent-color: #7DD3FC;">
+          <div class="chapter-header">
+            <div class="chapter-icon-box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
+            </div>
+            <div class="chapter-title-wrap">
+              <span class="chapter-tag">ΚΕΦΑΛΑΙΟ 02</span>
+              <h2>Καταγραφή Εξόδων &amp; Μηνιαία Όρια σε 2''</h2>
+            </div>
+          </div>
+          <p>
+            Η ταχύτητα καταχώρισης είναι το κλειδί για να διατηρήσετε τη συνήθεια. Με το Budget Assistant χρειάζεστε μόνο 2 δευτερόλεπτα:
+          </p>
+          <ul>
+            <li><strong>Πληκτρολόγηση Ποσού:</strong> Εισάγετε το ποσό με το μεγάλο numpad.</li>
+            <li><strong>Επιλογή Κατηγορίας:</strong> Επιλέγετε άμεσα από τα καθαρά vector icons (Σούπερ Μάρκετ, Βενζίνη, Εστίαση, Λογαριασμοί).</li>
+            <li><strong>Μέθοδος Πληρωμής:</strong> Επιλογή μεταξύ Κάρτας, Μετρητών ή Τραπεζικής Μεταφοράς.</li>
+            <li><strong>Μηνιαία Όρια (Budget Caps):</strong> Ορίζετε μέγιστο ποσό ανά κατηγορία (π.χ. 400€/μήνα Σούπερ Μάρκετ) και η εφαρμογή σας προειδοποιεί πριν το υπερβείτε.</li>
+          </ul>
+        </article>
+
+        <!-- Chapter 3: AI Receipt Scanner -->
+        <article class="guide-chapter-card" id="ch-3" style="--chapter-accent: #10B981; --icon-bg: rgba(16, 185, 129, 0.15); --icon-border: rgba(16, 185, 129, 0.3); --accent-color: #6EE7B7;">
+          <div class="chapter-header">
+            <div class="chapter-icon-box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+            </div>
+            <div class="chapter-title-wrap">
+              <span class="chapter-tag">ΚΕΦΑΛΑΙΟ 03</span>
+              <h2>AI Σάρωση Αποδείξεων (Vision OCR)</h2>
+            </div>
+          </div>
+          <p>
+            Ξεχάστε τη χειροκίνητη πληκτρολόγηση μακριών αποδείξεων. Ο ενσωματωμένος AI Vision OCR μηχανισμός εξάγει τα δεδομένα αυτόματα:
+          </p>
+          <ul>
+            <li><strong>Φωτογράφιση σε καλό φωτισμό:</strong> Πατήστε το εικονίδιο της κάμερας και τραβήξτε μια καθαρή φωτογραφία της απόδειξης.</li>
+            <li><strong>Αυτόματη Εξαγωγή σε &lt;1.8'':</strong> Το AI αναγνωρίζει την επωνυμία του εμπόρου, την ημερομηνία, το τελικό πληρωτέο ποσό και προτείνει αυτόματα τη σωστή κατηγορία.</li>
+            <li><strong>Zero Data Retention:</strong> Η εικόνα αναλύεται αποκλειστικά in-memory και δεν αποθηκεύεται σε δημόσιους διακομιστές.</li>
+          </ul>
+          <div class="pro-tip-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+            <div>
+              <strong>Υποστήριξη PDF:</strong> Μπορείτε επίσης να σύρετε ψηφιακά τιμολόγια ή PDF από e-shops απευθείας στον σαρωτή.
+            </div>
+          </div>
+        </article>
+
+        <!-- Chapter 4: Couples & Multi-Device Sync -->
+        <article class="guide-chapter-card" id="ch-4" style="--chapter-accent: #7C6AF7; --icon-bg: rgba(124, 106, 247, 0.15); --icon-border: rgba(124, 106, 247, 0.3); --accent-color: #C4B5FD;">
+          <div class="chapter-header">
+            <div class="chapter-icon-box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+            </div>
+            <div class="chapter-title-wrap">
+              <span class="chapter-tag">ΚΕΦΑΛΑΙΟ 04</span>
+              <h2>Κοινό Ταμείο Ζευγαριού (Real-Time Sync)</h2>
+            </div>
+          </div>
+          <p>
+            Συνδέστε όσες συσκευές χρειάζεται σε 1 απλό βήμα για πλήρη διαφάνεια στα κοινά έξοδα χωρίς παρεξηγήσεις:
+          </p>
+          <div class="step-seq-grid">
+            <div class="step-seq-item">
+              <div class="seq-num">Βήμα 1</div>
+              <div class="seq-text">
+                <strong>Δημιουργία Workspace</strong>
+                <span>Ο πρώτος χρήστης πατάει «Σύνδεση Συσκευών» και λαμβάνει τον ασφαλή κωδικό.</span>
+              </div>
+            </div>
+            <div class="step-seq-item">
+              <div class="seq-num">Βήμα 2</div>
+              <div class="seq-text">
+                <strong>Εισαγωγή Κωδικού</strong>
+                <span>Ο/Η σύντροφος πληκτρολογεί τον κωδικό στη δική του συσκευή.</span>
+              </div>
+            </div>
+            <div class="step-seq-item">
+              <div class="seq-num">Βήμα 3</div>
+              <div class="seq-text">
+                <strong>Live Συγχρονισμός</strong>
+                <span>Κάθε καταγραφή ενημερώνει και τις δύο οθόνες σε πραγματικό χρόνο (&lt;0.2'').</span>
+              </div>
+            </div>
+          </div>
+          <ul>
+            <li><strong>Προσωπικά vs Κοινά Έξοδα:</strong> Επιλέγετε ανά πάσα στιγμή αν μια δαπάνη ανήκει στο κοινό ταμείο ή παραμένει αυστηρά προσωπική.</li>
+            <li><strong>Αυτόματη Κατανομή:</strong> Βλέπετε σε πραγματικό χρόνο την αναλογία συνεισφοράς (π.χ. Αλέξανδρος 58% · Σοφία 42%).</li>
+          </ul>
+        </article>
+
+        <!-- Chapter 5: Financial Health Score -->
+        <article class="guide-chapter-card" id="ch-5" style="--chapter-accent: #10B981; --icon-bg: rgba(16, 185, 129, 0.15); --icon-border: rgba(16, 185, 129, 0.3); --accent-color: #6EE7B7;">
+          <div class="chapter-header">
+            <div class="chapter-icon-box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+            </div>
+            <div class="chapter-title-wrap">
+              <span class="chapter-tag">ΚΕΦΑΛΑΙΟ 05</span>
+              <h2>Κατανόηση του Financial Health Score (0–100)</h2>
+            </div>
+          </div>
+          <p>
+            Ο αλγόριθμος του Budget Assistant αξιολογεί αυτόματα την οικονομική σας ανθεκτικότητα βάσει του πλαισίου CFPB &amp; FHN:
+          </p>
+          <ul>
+            <li><strong>Ρυθμός Αποταμίευσης (Savings Rate):</strong> Ποσοστό καθαρού εισοδήματος που μένει στην άκρη κάθε μήνα (Στόχος: &gt;20%).</li>
+            <li><strong>Ταμείο Έκτακτης Ανάγκης (Emergency Runway):</strong> Πόσους μήνες ζωής καλύπτουν τα διαθέσιμα χρήματά σας χωρίς νέο εισόδημα (Στόχος: 3–6 μήνες).</li>
+            <li><strong>Τάση Δαπανών (Expense Momentum):</strong> Ανίχνευση αυξήσεων σε σχέση με τον κυλιόμενο μέσο όρο 3μήνου.</li>
+            <li><strong>Πειθαρχία Προϋπολογισμού (Budget Discipline):</strong> Συμμόρφωση με τα μηνιαία όρια ανά κατηγορία.</li>
+          </ul>
+          <div class="pro-tip-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+            <div>
+              <strong>Πώς να φτάσετε στο Tier 1 (80–100):</strong> Αυξήστε το emergency runway πάνω από 6 μήνες και διατηρήστε το savings rate σταθερά πάνω από 20%.
+            </div>
+          </div>
+        </article>
+
+        <!-- Chapter 6: Data Ownership & Backup -->
+        <article class="guide-chapter-card" id="ch-6" style="--chapter-accent: #F59E0B; --icon-bg: rgba(245, 158, 11, 0.15); --icon-border: rgba(245, 158, 11, 0.3); --accent-color: #FCD34D;">
+          <div class="chapter-header">
+            <div class="chapter-icon-box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            </div>
+            <div class="chapter-title-wrap">
+              <span class="chapter-tag">ΚΕΦΑΛΑΙΟ 06</span>
+              <h2>Εξαγωγή Δεδομένων σε Excel/CSV &amp; Backup</h2>
+            </div>
+          </div>
+          <p>
+            Τα χρήματά σας και τα δεδομένα σας ανήκουν 100% σε εσάς. Δεν υπάρχει κανένας περιορισμός (vendor lock-in):
+          </p>
+          <ul>
+            <li><strong>Εξαγωγή σε Excel / CSV:</strong> Με ένα κλικ από το μενού ρυθμίσεων κατεβάζετε πλήρες αρχείο με όλες τις συναλλαγές, κατηγορίες και ημερομηνίες.</li>
+            <li><strong>Μεταφορά σε Νέα Συσκευή:</strong> Εισάγετε το JSON backup ή συνδέεστε με τον κωδικό σας και όλα τα δεδομένα αποκαθίστανται άμεσα.</li>
+            <li><strong>Οριστική Διαγραφή:</strong> Μπορείτε ανά πάσα στιγμή να διαγράψετε οριστικά όλα τα δεδομένα σας από τη συσκευή και το cloud με 1 κλικ.</li>
+          </ul>
+        </article>
+
+      </div>
+    </div>
+
+    <!-- Final High-Converting CTA Banner -->
+    <div class="cta-banner-card">
+      <div>
+        <h2>Έτοιμοι να πάρετε τον έλεγχο των οικονομικών σας;</h2>
+        <p style="color: var(--text-muted); font-size: 15.5px; max-width: 580px; margin-top: 8px;">
+          Ξεκινήστε δωρεάν χωρίς εγγραφή ή αποκτήστε το Lifetime PRO με μία μόνο πληρωμή για απεριόριστες συσκευές.
+        </p>
+      </div>
+      <div class="cta-banner-btns">
+        <a href="/app?demo=true" class="btn btn-primary">Εκκίνηση Live Demo</a>
+        <a href="/#pricing" class="btn btn-secondary">Απόκτηση Lifetime PRO (9,99€)</a>
+      </div>
     </div>
   </main>
 
   <footer>
     <div class="container">© 2026 Budget Assistant. All rights reserved.</div>
   </footer>
+
 </body>
 </html>

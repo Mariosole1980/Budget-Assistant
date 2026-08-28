@@ -1,4 +1,4 @@
-﻿const sharp = require("sharp");
+const sharp = require("sharp");
 const path = require("path");
 const fs = require("fs");
 
@@ -105,11 +105,25 @@ async function run() {
 
     await sharp(icon512Buf).toFile(path.join(ROOT, "assets", "icon.png"));
     await sharp(icon512Buf).toFile(path.join(ROOT, "icon-512.png"));
+    await sharp(icon512Buf).toFile(path.join(ROOT, "icon.png"));
     await sharp(icon512Buf).resize(192, 192).toFile(path.join(ROOT, "icon-192.png"));
-    if (fs.existsSync(path.join(ROOT, "public"))) {
-        await sharp(icon512Buf).toFile(path.join(ROOT, "public", "icon-512.png"));
-        await sharp(icon512Buf).resize(192, 192).toFile(path.join(ROOT, "public", "icon-192.png"));
-        await sharp(icon512Buf).toFile(path.join(ROOT, "public", "assets", "icon.png"));
+
+    const syncDirs = [
+        path.join(ROOT, "www"),
+        path.join(ROOT, "public"),
+        path.join(ROOT, "android", "app", "src", "main", "assets", "public")
+    ];
+
+    for (const d of syncDirs) {
+        if (fs.existsSync(d)) {
+            await sharp(icon512Buf).toFile(path.join(d, "icon-512.png"));
+            await sharp(icon512Buf).toFile(path.join(d, "icon.png"));
+            await sharp(icon512Buf).resize(192, 192).toFile(path.join(d, "icon-192.png"));
+            const dAssets = path.join(d, "assets");
+            if (fs.existsSync(dAssets)) {
+                await sharp(icon512Buf).toFile(path.join(dAssets, "icon.png"));
+            }
+        }
     }
 
     // Generate a visual Samsung Squircle preview to show in artifact

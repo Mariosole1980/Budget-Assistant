@@ -147,4 +147,49 @@ dirsToMirror.forEach(dir => {
 });
 
 console.log('  [OK] Mirrored all root assets cleanly to www/');
+
+// 7. Automated Version Backup: backups/v<version>/
+const backupsRootDir = path.join(rootDir, 'backups');
+const versionBackupDir = path.join(backupsRootDir, `v${version}`);
+
+if (!fs.existsSync(versionBackupDir)) {
+  fs.mkdirSync(versionBackupDir, { recursive: true });
+}
+
+// Copy mirrored assets to version backup
+filesToMirror.forEach(file => {
+  const src = path.join(rootDir, file);
+  const dst = path.join(versionBackupDir, file);
+  if (fs.existsSync(src)) {
+    fs.copyFileSync(src, dst);
+  }
+});
+
+dirsToMirror.forEach(dir => {
+  const src = path.join(rootDir, dir);
+  const dst = path.join(versionBackupDir, dir);
+  if (fs.existsSync(src)) {
+    fs.cpSync(src, dst, { recursive: true });
+  }
+});
+
+// Also backup configuration files
+['package.json', 'capacitor.config.json'].forEach(file => {
+  const src = path.join(rootDir, file);
+  const dst = path.join(versionBackupDir, file);
+  if (fs.existsSync(src)) {
+    fs.copyFileSync(src, dst);
+  }
+});
+
+// Save backup metadata
+const backupMeta = {
+  version: version,
+  createdAt: new Date().toISOString(),
+  localTime: new Date().toLocaleString()
+};
+fs.writeFileSync(path.join(versionBackupDir, 'backup-info.json'), JSON.stringify(backupMeta, null, 2));
+
+console.log(`  [OK] Automated backup snapshot saved to backups/v${version}/`);
 console.log('[VERSION-SYNC] Synchronization complete.\n');
+

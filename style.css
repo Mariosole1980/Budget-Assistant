@@ -4380,6 +4380,30 @@ body.shared-wallet-active .day-header {
   box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
 }
 
+.header-lang-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  padding: 4px 8px;
+  color: var(--text-primary, #ffffff);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+.header-lang-btn:hover {
+  background: rgba(124, 106, 247, 0.25);
+  border-color: rgba(124, 106, 247, 0.5);
+  transform: translateY(-1px);
+}
+.header-lang-btn:active {
+  transform: translateY(0);
+}
+
 .header-app-logo {
   width: 34px;
   height: 34px;

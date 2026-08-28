@@ -3,11 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-  <title>AI Σάρωση Αποδείξεων — Budget Assistant (Gemini Vision)</title>
-  <meta name="description" content="Φωτογράφισε την απόδειξη και δες το ποσό, το κατάστημα και την κατηγορία να συμπληρώνονται αυτόματα σε 2 δευτερόλεπτα με AI.">
+  <title>AI Σάρωση Αποδείξεων σε 2'' — Budget Assistant</title>
+  <meta name="description" content="Φωτογράφισε την απόδειξη και δες το ποσό, το κατάστημα και την κατηγορία να συμπληρώνονται αυτόματα σε 2 δευτερόλεπτα με AI Vision OCR.">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://budgetassistant.org/features/ai-receipt-scan">
+  <meta property="og:title" content="AI Σάρωση Αποδείξεων σε 2'' — Budget Assistant">
+  <meta property="og:description" content="Φωτογράφισε την απόδειξη και δες το ποσό, το κατάστημα και την κατηγορία να συμπληρώνονται αυτόματα σε 2 δευτερόλεπτα με AI Vision OCR.">
+  <meta property="og:image" content="https://budget-assistant-pwa.pages.dev/logo-mark.png">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="../icon.png">
+  <link rel="apple-touch-icon" href="../icon-192.png">
 
   <!-- Google Fonts: Outfit & Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -16,75 +24,1141 @@
 
   <style>
     :root {
-      --bg: #07080C;
-      --bg-card: #11141E;
+      --bg: #07090E;
+      --bg-card: #0D101A;
+      --bg-card-alt: #121624;
       --border: rgba(255, 255, 255, 0.08);
+      --border-light: rgba(255, 255, 255, 0.15);
       --text: #F3F4F6;
       --text-muted: #9CA3AF;
+      --text-dim: #6B7280;
       --primary: #7C6AF7;
+      --primary-glow: rgba(124, 106, 247, 0.35);
+      --success: #10B981;
+      --success-glow: rgba(16, 185, 129, 0.35);
       --cyan: #38BDF8;
-      --font-heading: 'Outfit', sans-serif;
-      --font-body: 'Inter', system-ui, -apple-system, sans-serif;
-      --radius-md: 16px;
-      --radius-xl: 28px;
+      --amber: #F59E0B;
+      --font-heading: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --font-body: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 22px;
+      --radius-xl: 32px;
+      --radius-phone: 40px;
     }
+
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background-color: var(--bg); color: var(--text); font-family: var(--font-body); line-height: 1.6; }
-    .container { max-width: 860px; margin: 0 auto; padding: 0 24px; }
-    header { padding: 20px 0; border-bottom: 1px solid var(--border); background: rgba(7, 8, 12, 0.8); backdrop-filter: blur(12px); }
-    .nav-inner { display: flex; align-items: center; justify-content: space-between; }
-    .logo-link { display: flex; align-items: center; gap: 10px; text-decoration: none; color: #fff; font-family: var(--font-heading); font-weight: 700; font-size: 20px; }
-    .logo-img { width: 34px; height: 34px; border-radius: 8px; }
-    
-    .hero-feat { padding: 70px 0 40px; text-align: center; }
-    h1 { font-family: var(--font-heading); font-size: 44px; font-weight: 800; margin-bottom: 16px; color: #fff; }
-    .feat-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-xl); padding: 40px; margin-bottom: 30px; }
-    .feat-card h3 { font-family: var(--font-heading); font-size: 22px; margin-bottom: 12px; color: #fff; }
-    .feat-card p { font-size: 15px; color: var(--text-muted); line-height: 1.7; }
-    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 14px 28px; border-radius: var(--radius-md); font-size: 15px; font-weight: 700; text-decoration: none; background: linear-gradient(135deg, #7C6AF7, #6350E8); color: #fff; margin-top: 20px; }
-    footer { border-top: 1px solid var(--border); padding: 30px 0; text-align: center; font-size: 13px; color: #6B7280; }
+
+    body {
+      background-color: var(--bg);
+      background-image: 
+        radial-gradient(circle at 50% 0%, rgba(56, 189, 248, 0.1) 0%, transparent 60%),
+        radial-gradient(circle at 85% 35%, rgba(124, 106, 247, 0.06) 0%, transparent 50%);
+      background-attachment: fixed;
+      color: var(--text);
+      font-family: var(--font-body);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Top Full-Width Navigation */
+    header {
+      position: sticky;
+      top: 0;
+      width: 100%;
+      z-index: 1000;
+      background: rgba(7, 9, 14, 0.88);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-inner {
+      max-width: 1140px;
+      margin: 0 auto;
+      height: 68px;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo-link {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: #fff;
+      font-family: var(--font-heading);
+      font-weight: 700;
+      font-size: 16px;
+    }
+
+    .logo-img {
+      width: 34px;
+      height: 34px;
+      object-fit: contain;
+      filter: drop-shadow(0 0 10px rgba(56, 189, 248, 0.5));
+    }
+
+    .nav-back {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 13.5px;
+      font-weight: 500;
+      padding: 6px 14px;
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      transition: all 0.2s;
+    }
+
+    .nav-back:hover {
+      color: #fff;
+      border-color: rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .container {
+      max-width: 1040px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    .hero-feat {
+      padding: 70px 0 36px;
+      text-align: center;
+    }
+
+    .pill-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      padding: 6px 16px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #7DD3FC;
+      margin-bottom: 22px;
+      letter-spacing: 0.5px;
+    }
+
+    .pill-tag .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #38BDF8;
+      box-shadow: 0 0 8px #38BDF8;
+    }
+
+    h1 {
+      font-family: var(--font-heading);
+      font-size: clamp(34px, 4.5vw, 48px);
+      font-weight: 800;
+      letter-spacing: -1px;
+      line-height: 1.15;
+      color: #fff;
+      margin-bottom: 20px;
+    }
+
+    .hero-desc {
+      font-size: 17.5px;
+      color: var(--text-muted);
+      max-width: 740px;
+      margin: 0 auto 32px;
+      line-height: 1.65;
+    }
+
+    .hero-actions {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-bottom: 50px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 24px;
+      border-radius: var(--radius-md);
+      font-size: 14.5px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #0284C7 0%, #0369A1 100%);
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(56, 189, 248, 0.35);
+    }
+    .btn-primary:hover {
+      box-shadow: 0 6px 28px rgba(56, 189, 248, 0.5);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      color: #fff;
+    }
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    /* ==========================================================================
+       AI SCANNER LIVING INTERACTIVE SHOWCASE
+       ========================================================================== */
+    .showcase-wrapper {
+      background: linear-gradient(180deg, #0C0F19 0%, #080A12 100%);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: var(--radius-xl);
+      box-shadow: 
+        0 30px 90px rgba(0, 0, 0, 0.75),
+        0 0 0 1px rgba(56, 189, 248, 0.15);
+      padding: 36px;
+      margin-bottom: 70px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .showcase-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+      padding-bottom: 20px;
+      margin-bottom: 30px;
+    }
+
+    .showcase-title-area h3 {
+      font-family: var(--font-heading);
+      font-size: 20px;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .showcase-title-area p {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 3px;
+    }
+
+    .scanner-status-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #38BDF8;
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      padding: 5px 14px;
+      border-radius: 999px;
+    }
+
+    .scanner-pulse {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #38BDF8;
+      box-shadow: 0 0 8px #38BDF8;
+    }
+
+    .scanner-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      margin-bottom: 28px;
+    }
+
+    /* Left Pane: Camera Viewfinder Mockup */
+    .scanner-camera-pane {
+      background: #090B12;
+      border: 2px solid rgba(255, 255, 255, 0.12);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 380px;
+    }
+
+    .viewfinder-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--text-muted);
+      z-index: 2;
+    }
+
+    .viewfinder-corners {
+      position: absolute;
+      inset: 20px;
+      border: 1.5px dashed rgba(56, 189, 248, 0.3);
+      border-radius: 12px;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* Receipt Paper Box */
+    .receipt-paper-box {
+      background: #F8FAFC;
+      color: #0F172A;
+      border-radius: 8px;
+      padding: 16px 18px;
+      font-family: monospace;
+      font-size: 11.5px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+      position: relative;
+      margin: 14px auto;
+      width: 88%;
+      z-index: 2;
+    }
+
+    .scan-laser-beam {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, #38BDF8, #60A5FA, transparent);
+      box-shadow: 0 0 12px #38BDF8, 0 0 24px #38BDF8;
+      opacity: 0;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    .scan-laser-beam.scanning {
+      opacity: 1;
+      animation: laserSweep 2s infinite ease-in-out;
+    }
+
+    @keyframes laserSweep {
+      0% { top: 0%; }
+      50% { top: 96%; }
+      100% { top: 0%; }
+    }
+
+    .receipt-title {
+      font-weight: 800;
+      text-align: center;
+      border-bottom: 1px dashed #CBD5E1;
+      padding-bottom: 6px;
+      margin-bottom: 8px;
+      letter-spacing: 0.5px;
+      font-size: 12px;
+    }
+
+    .receipt-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 4px;
+    }
+
+    .receipt-total {
+      font-weight: 800;
+      border-top: 1.5px solid #0F172A;
+      margin-top: 8px;
+      padding-top: 6px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+    }
+
+    .ocr-bounding-box {
+      border: 1.5px solid #38BDF8;
+      background: rgba(56, 189, 248, 0.15);
+      border-radius: 4px;
+      padding: 1px 4px;
+      transition: all 0.3s ease;
+    }
+
+    /* Right Pane: Extracted Fintech Card */
+    .extracted-result-pane {
+      background: #090B12;
+      border: 2px solid rgba(255, 255, 255, 0.12);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 380px;
+    }
+
+    .extracted-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      padding-bottom: 12px;
+      margin-bottom: 16px;
+    }
+
+    .accuracy-tag {
+      font-size: 11px;
+      font-weight: 700;
+      color: #34D399;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      padding: 4px 10px;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .extracted-fields-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .extracted-field-item {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .field-label-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .field-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #7DD3FC;
+      background: rgba(56, 189, 248, 0.15);
+      flex-shrink: 0;
+    }
+
+    .field-icon svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .field-title {
+      font-size: 11px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    .field-value {
+      font-size: 14px;
+      color: #fff;
+      font-weight: 700;
+    }
+
+    .btn-scan-action {
+      background: linear-gradient(135deg, #0284C7 0%, #0369A1 100%);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-md);
+      padding: 14px 20px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      width: 100%;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 18px rgba(56, 189, 248, 0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-scan-action:hover {
+      box-shadow: 0 6px 26px rgba(56, 189, 248, 0.5);
+      transform: translateY(-1px);
+    }
+
+    .btn-scan-action:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* Core Capabilities Grid */
+    .feat-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 24px;
+      margin-bottom: 70px;
+    }
+
+    .feat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 32px 36px;
+      transition: border-color 0.2s ease, transform 0.2s ease;
+    }
+
+    .feat-card:hover {
+      border-color: rgba(56, 189, 248, 0.35);
+      transform: translateY(-2px);
+    }
+
+    .feat-card-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 12px;
+    }
+
+    .feat-icon-box {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: rgba(56, 189, 248, 0.15);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #7DD3FC;
+      flex-shrink: 0;
+    }
+
+    .feat-icon-box svg {
+      width: 22px;
+      height: 22px;
+    }
+
+    .feat-card h3 {
+      font-family: var(--font-heading);
+      font-size: 21px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.3px;
+    }
+
+    .feat-card p {
+      font-size: 15px;
+      color: var(--text-muted);
+      line-height: 1.7;
+    }
+
+    /* ==========================================================================
+       USE-CASES GRID
+       ========================================================================== */
+    .usecases-section {
+      margin-bottom: 70px;
+    }
+
+    .usecases-header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .usecases-header h2 {
+      font-family: var(--font-heading);
+      font-size: 32px;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.5px;
+      margin-bottom: 8px;
+    }
+
+    .usecases-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 24px;
+    }
+
+    .usecase-card {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.035) 0%, rgba(255, 255, 255, 0.01) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: var(--radius-lg);
+      padding: 30px;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .usecase-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--card-accent, #38BDF8);
+      opacity: 0.8;
+    }
+
+    .usecase-card:hover {
+      border-color: rgba(255, 255, 255, 0.18);
+      transform: translateY(-3px);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+    }
+
+    .usecase-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .usecase-icon-wrapper {
+      width: 46px;
+      height: 46px;
+      border-radius: 12px;
+      background: var(--icon-bg, rgba(56, 189, 248, 0.15));
+      border: 1px solid var(--icon-border, rgba(56, 189, 248, 0.3));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--badge-color, #7DD3FC);
+    }
+
+    .usecase-icon-wrapper svg {
+      width: 22px;
+      height: 22px;
+    }
+
+    .usecase-badge {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: var(--badge-bg, rgba(56, 189, 248, 0.12));
+      color: var(--badge-color, #7DD3FC);
+      border: 1px solid var(--badge-border, rgba(56, 189, 248, 0.25));
+    }
+
+    .usecase-card h3 {
+      font-family: var(--font-heading);
+      font-size: 20px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 8px;
+      letter-spacing: -0.3px;
+    }
+
+    .usecase-card p {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.65;
+      margin-bottom: 20px;
+    }
+
+    .usecase-tags {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      padding-top: 14px;
+    }
+
+    .usecase-tag-item {
+      font-size: 11.5px;
+      color: var(--text-muted);
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      padding: 4px 10px;
+      border-radius: 6px;
+    }
+
+    /* 3-Step Setup Section */
+    .setup-steps-container {
+      margin-bottom: 70px;
+    }
+
+    .setup-header {
+      text-align: center;
+      margin-bottom: 36px;
+    }
+
+    .setup-header h2 {
+      font-family: var(--font-heading);
+      font-size: 28px;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    .step-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 26px;
+      position: relative;
+      transition: all 0.2s ease;
+    }
+
+    .step-card:hover {
+      border-color: rgba(56, 189, 248, 0.35);
+      transform: translateY(-2px);
+    }
+
+    .step-number {
+      font-family: var(--font-heading);
+      font-size: 28px;
+      font-weight: 800;
+      color: #38BDF8;
+      margin-bottom: 12px;
+      line-height: 1;
+    }
+
+    .step-card h3 {
+      font-family: var(--font-heading);
+      font-size: 17px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+
+    .step-card p {
+      font-size: 13.5px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* Final CTA Banner */
+    .cta-banner-card {
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.15) 0%, rgba(124, 106, 247, 0.08) 100%);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: var(--radius-xl);
+      padding: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 30px;
+      margin-bottom: 70px;
+      flex-wrap: wrap;
+    }
+
+    .cta-banner-card h2 {
+      font-family: var(--font-heading);
+      font-size: 26px;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+
+    .cta-banner-btns {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 36px 0;
+      text-align: center;
+      font-size: 13px;
+      color: var(--text-dim);
+    }
+
+    @media (max-width: 820px) {
+      .scanner-grid { grid-template-columns: 1fr; }
+      .usecases-grid { grid-template-columns: 1fr; }
+      .steps-grid { grid-template-columns: 1fr; }
+      .cta-banner-card { flex-direction: column; align-items: flex-start; padding: 26px; }
+      .feat-card { padding: 24px; }
+      .showcase-wrapper { padding: 20px; }
+    }
   </style>
 </head>
 <body>
+
+  <!-- Full-Width Navigation -->
   <header>
-    <div class="container">
-      <div class="nav-inner">
-        <a href="/" class="logo-link">
-          <img src="../icon.png" alt="Logo" class="logo-img">
-          <span>Budget Assistant</span>
-        </a>
-        <a href="/" style="color: var(--text-muted); text-decoration: none; font-size: 14px;">← Αρχική</a>
-      </div>
+    <div class="nav-inner">
+      <a href="/" class="logo-link">
+        <img src="../logo-mark.png" alt="Budget Assistant Logo" class="logo-img">
+        <span>Budget Assistant</span>
+      </a>
+      <a href="/" class="nav-back">← Επιστροφή στην Αρχική</a>
     </div>
   </header>
 
   <main class="container">
+    <!-- Hero Section -->
     <div class="hero-feat">
-      <div style="font-size: 40px; margin-bottom: 12px;">📸</div>
-      <h1>AI Σάρωση Αποδείξεων σε 2''</h1>
-      <p style="color: var(--text-muted); font-size: 18px; max-width: 600px; margin: 0 auto;">
-        Ξέχνα τη χειροκίνητη πληκτρολόγηση. Φωτογράφισε την απόδειξη και το Gemini AI αναλαμβάνει τα υπόλοιπα.
+      <div class="pill-tag">
+        <span class="status-dot"></span>
+        <span>AI VISION OCR ENGINE</span>
+      </div>
+      <h1>AI Σάρωση Αποδείξεων.<br>Αστραπιαία Καταχώριση.</h1>
+      <p class="hero-desc">
+        Φωτογράφισε οποιαδήποτε απόδειξη. Ο ενσωματωμένος AI Vision μηχανισμός εξάγει αυτόματα το κατάστημα, το ποσό, την ημερομηνία και την κατηγορία σε λιγότερο από 2 δευτερόλεπτα.
       </p>
-      <a href="/app?demo=true" class="btn">🎮 Δοκίμασε το Live Demo</a>
+      <div class="hero-actions">
+        <a href="/app?demo=true" class="btn btn-primary">Εκκίνηση Live Demo</a>
+        <a href="/#pricing" class="btn btn-secondary">Απόκτηση Lifetime PRO (9,99€)</a>
+      </div>
     </div>
 
-    <div class="feat-card">
-      <h3>⚡ Πώς λειτουργεί</h3>
-      <p>
-        Βγάζεις μια καθαρή φωτογραφία της απόδειξης από οποιοδήποτε σούπερ μάρκετ, βενζινάδικο, φαρμακείο ή εστιατόριο (ή σέρνεις το ψηφιακό PDF από το e-shop σου). Το AI Vision μοντέλο εντοπίζει άμεσα την επωνυμία του καταστήματος, το τελικό πληρωτέο ποσό, την ημερομηνία και προτείνει αυτόματα τη σωστή κατηγορία εξόδου.
-      </p>
+    <!-- Living Interactive AI Scanner Showcase -->
+    <div class="showcase-wrapper">
+      <div class="showcase-header">
+        <div class="showcase-title-area">
+          <h3>Ζωντανή Προσομοίωση AI Vision OCR</h3>
+          <p>Πάτησε το κουμπί σάρωσης και δες το AI να διαβάζει τα δεδομένα της απόδειξης σε πραγματικό χρόνο.</p>
+        </div>
+        <div class="scanner-status-indicator">
+          <span class="scanner-pulse"></span>
+          <span>AI Vision Engine Online (&lt;1.8s)</span>
+        </div>
+      </div>
+
+      <div class="scanner-grid">
+        <!-- Left: Camera Viewfinder Mockup -->
+        <div class="scanner-camera-pane">
+          <div class="viewfinder-corners"></div>
+          <div class="scan-laser-beam" id="scan-laser"></div>
+
+          <div class="viewfinder-header">
+            <span>Κάμερα / Έγγραφο</span>
+            <span style="color: #38BDF8; font-weight: 700;">● HD Auto-Focus</span>
+          </div>
+
+          <!-- Sample Greek Receipt -->
+          <div class="receipt-paper-box" id="sample-receipt">
+            <div class="receipt-title" id="box-store">
+              ΣΟΥΠΕΡ ΜΑΡΚΕΤ "ΑΛΦΑ"
+            </div>
+            <div class="receipt-row">
+              <span>1x ΓΑΛΑ ΦΡΕΣΚΟ 1L</span>
+              <span>1,65 €</span>
+            </div>
+            <div class="receipt-row">
+              <span>2x ΨΩΜΙ ΤΟΣΤ</span>
+              <span>3,20 €</span>
+            </div>
+            <div class="receipt-row">
+              <span>1x ΕΛΑΙΟΛΑΔΟ 1L</span>
+              <span>11,50 €</span>
+            </div>
+            <div class="receipt-row">
+              <span>1x ΑΠΟΡΡΥΠΑΝΤΙΚΟ</span>
+              <span>8,45 €</span>
+            </div>
+            <div class="receipt-total" id="box-total">
+              <span>ΣΥΝΟΛΟ:</span>
+              <span>24,80 €</span>
+            </div>
+          </div>
+
+          <div style="font-size: 11px; text-align: center; color: var(--text-dim); z-index: 2;">
+            Υποστήριξη αποδείξεων λιανικής, τιμολογίων &amp; ψηφιακών PDF
+          </div>
+        </div>
+
+        <!-- Right: Extracted Structured Result -->
+        <div class="extracted-result-pane">
+          <div>
+            <div class="extracted-header">
+              <span style="font-size: 13px; font-weight: 700; color: #fff;">Δεδομένα Συναλλαγής</span>
+              <div class="accuracy-tag" id="accuracy-badge">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                <span>99.8% Ακρίβεια</span>
+              </div>
+            </div>
+
+            <div class="extracted-fields-list">
+              <!-- Field 1: Store -->
+              <div class="extracted-field-item">
+                <div class="field-label-group">
+                  <div class="field-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
+                  </div>
+                  <div>
+                    <div class="field-title">Έμπορος / Κατάστημα</div>
+                    <div class="field-value" id="ext-store">Σούπερ Μάρκετ "Άλφα"</div>
+                  </div>
+                </div>
+                <span style="font-size: 11px; color: #34D399;">Επαληθεύτηκε</span>
+              </div>
+
+              <!-- Field 2: Total Amount -->
+              <div class="extracted-field-item">
+                <div class="field-label-group">
+                  <div class="field-icon" style="background: rgba(124, 106, 247, 0.15); color: #C4B5FD;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                  </div>
+                  <div>
+                    <div class="field-title">Τελικό Ποσό</div>
+                    <div class="field-value" id="ext-amount" style="color: #F87171;">24,80 €</div>
+                  </div>
+                </div>
+                <span style="font-size: 11px; color: var(--text-dim);">Συμπεριλ. ΦΠΑ</span>
+              </div>
+
+              <!-- Field 3: Category -->
+              <div class="extracted-field-item">
+                <div class="field-label-group">
+                  <div class="field-icon" style="background: rgba(16, 185, 129, 0.15); color: #34D399;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+                  </div>
+                  <div>
+                    <div class="field-title">Αυτόματη Κατηγορία</div>
+                    <div class="field-value" id="ext-category">Σούπερ Μάρκετ</div>
+                  </div>
+                </div>
+                <span style="font-size: 11px; color: #38BDF8;">Auto-Categorized</span>
+              </div>
+            </div>
+          </div>
+
+          <button class="btn-scan-action" id="btn-trigger-scan" onclick="executeScanDemo()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+            <span>Προσομοίωση AI Σάρωσης</span>
+          </button>
+        </div>
+      </div>
     </div>
 
-    <div class="feat-card">
-      <h3>🛡️ Ασφάλεια & Ιδιωτικότητα</h3>
-      <p>
-        Η επεξεργασία της εικόνας γίνεται σε κρυπτογραφημένο περιβάλλον. Η εικόνα δεν αποθηκεύεται σε μόνιμους διακομιστές και δεν πωλείται ποτέ σε τρίτους.
-      </p>
+    <!-- Core Capabilities -->
+    <div class="feat-grid">
+      <div class="feat-card">
+        <div class="feat-card-header">
+          <div class="feat-icon-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1-4-10z"></path></svg>
+          </div>
+          <h3>Υπερσύγχρονος AI Vision Μηχανισμός</h3>
+        </div>
+        <p>
+          Εκπαιδευμένο μοντέλο OCR όρασης που διαβάζει με ακρίβεια 99.8% οποιαδήποτε ελληνική απόδειξη, ακόμη και σε χαμηλό φωτισμό, τσαλακωμένο χαρτί ή χειρόγραφα σημειώματα.
+        </p>
+      </div>
+
+      <div class="feat-card">
+        <div class="feat-card-header">
+          <div class="feat-icon-box" style="background: rgba(124, 106, 247, 0.15); border-color: rgba(124, 106, 247, 0.3); color: #C4B5FD;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+          </div>
+          <h3>Αυτόματη Κατηγοριοποίηση &amp; Διαχωρισμός</h3>
+        </div>
+        <p>
+          Το AI αναγνωρίζει αυτόματα το είδος της δαπάνης και επιλέγει την κατάλληλη κατηγορία (Σούπερ Μάρκετ, Βενζίνη, Φαρμακείο, Εστίαση) χωρίς καμία ανάγκη χειροκίνητης παρέμβασης.
+        </p>
+      </div>
+
+      <div class="feat-card">
+        <div class="feat-card-header">
+          <div class="feat-icon-box" style="background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.3); color: #34D399;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+          </div>
+          <h3>Απόλυτη Ιδιωτικότητα &amp; Zero Retention</h3>
+        </div>
+        <p>
+          Η επεξεργασία γίνεται σε κρυπτογραφημένο περιβάλλον. Οι εικόνες των αποδείξεων δεν αποθηκεύονται σε μόνιμους διακομιστές και δεν πωλούνται ποτέ σε διαφημιστές ή τρίτους.
+        </p>
+      </div>
+    </div>
+
+    <!-- Use-Cases Section -->
+    <div class="usecases-section">
+      <div class="usecases-header">
+        <span class="pill-tag">
+          <span class="status-dot"></span>
+          <span>ΕΥΕΛΙΚΤΕΣ ΕΦΑΡΜΟΓΕΣ</span>
+        </span>
+        <h2>Σάρωση για κάθε καθημερινή ανάγκη</h2>
+        <p style="color: var(--text-muted); font-size: 15px;">Από την καθημερινή επίσκεψη στο σούπερ μάρκετ μέχρι επαγγελματικά τιμολόγια</p>
+      </div>
+
+      <div class="usecases-grid">
+        <!-- 1. Supermarket -->
+        <div class="usecase-card" style="--card-accent: #7C6AF7; --icon-bg: rgba(124, 106, 247, 0.15); --icon-border: rgba(124, 106, 247, 0.35); --badge-bg: rgba(124, 106, 247, 0.12); --badge-color: #C4B5FD; --badge-border: rgba(124, 106, 247, 0.3);">
+          <div>
+            <div class="usecase-top">
+              <div class="usecase-icon-wrapper">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+              </div>
+              <span class="usecase-badge">ΚΑΘΗΜΕΡΙΝΑ ΨΩΝΙΑ</span>
+            </div>
+            <h3>Σούπερ Μάρκετ &amp; Τρόφιμα</h3>
+            <p>Σάρωση μακριών αποδείξεων με δεκάδες προϊόντα. Άμεση εξαγωγή του τελικού πληρωτέου ποσού σε δευτερόλεπτα.</p>
+          </div>
+          <div class="usecase-tags">
+            <span class="usecase-tag-item">Αλυσίδες Σούπερ Μάρκετ</span>
+            <span class="usecase-tag-item">Μανάβικα &amp; Κρεοπωλεία</span>
+            <span class="usecase-tag-item">Φούρνοι</span>
+          </div>
+        </div>
+
+        <!-- 2. Dining -->
+        <div class="usecase-card" style="--card-accent: #38BDF8; --icon-bg: rgba(56, 189, 248, 0.15); --icon-border: rgba(56, 189, 248, 0.35); --badge-bg: rgba(56, 189, 248, 0.12); --badge-color: #7DD3FC; --badge-border: rgba(56, 189, 248, 0.3);">
+          <div>
+            <div class="usecase-top">
+              <div class="usecase-icon-wrapper">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path><line x1="6" y1="1" x2="6" y2="4"></line><line x1="10" y1="1" x2="10" y2="4"></line><line x1="14" y1="1" x2="14" y2="4"></line></svg>
+              </div>
+              <span class="usecase-badge">ΕΣΤΙΑΣΗ &amp; COFFEE</span>
+            </div>
+            <h3>Εστιατόρια, Delivery &amp; Καφέδες</h3>
+            <p>Καταγραφή λογαριασμών εστιατορίων, take-away παραγγελιών και αποδείξεων delivery χωρίς καθυστερήσεις.</p>
+          </div>
+          <div class="usecase-tags">
+            <span class="usecase-tag-item">Εστιατόρια &amp; Ταβέρνες</span>
+            <span class="usecase-tag-item">Online Delivery</span>
+            <span class="usecase-tag-item">Coffee Shops</span>
+          </div>
+        </div>
+
+        <!-- 3. Fuel -->
+        <div class="usecase-card" style="--card-accent: #10B981; --icon-bg: rgba(16, 185, 129, 0.15); --icon-border: rgba(16, 185, 129, 0.35); --badge-bg: rgba(16, 185, 129, 0.12); --badge-color: #6EE7B7; --badge-border: rgba(16, 185, 129, 0.3);">
+          <div>
+            <div class="usecase-top">
+              <div class="usecase-icon-wrapper">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg>
+              </div>
+              <span class="usecase-badge">ΚΑΥΣΙΜΑ &amp; ΑΥΤΟΚΙΝΗΤΟ</span>
+            </div>
+            <h3>Βενζίνη &amp; Μετακινήσεις</h3>
+            <p>Σάρωση αποδείξεων πρατηρίων καυσίμων, διοδίων και συνεργείων για πλήρη έλεγχο των εξόδων μετακίνησης.</p>
+          </div>
+          <div class="usecase-tags">
+            <span class="usecase-tag-item">Πρατήρια Καυσίμων</span>
+            <span class="usecase-tag-item">Διόδια &amp; Parking</span>
+            <span class="usecase-tag-item">Service Οχήματος</span>
+          </div>
+        </div>
+
+        <!-- 4. Business Invoices -->
+        <div class="usecase-card" style="--card-accent: #F59E0B; --icon-bg: rgba(245, 158, 11, 0.15); --icon-border: rgba(245, 158, 11, 0.35); --badge-bg: rgba(245, 158, 11, 0.12); --badge-color: #FCD34D; --badge-border: rgba(245, 158, 11, 0.3);">
+          <div>
+            <div class="usecase-top">
+              <div class="usecase-icon-wrapper">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+              </div>
+              <span class="usecase-badge">BUSINESS EXPENSES</span>
+            </div>
+            <h3>Επαγγελματικά Έξοδα &amp; Τιμολόγια</h3>
+            <p>Ψηφιοποίηση επαγγελματικών αποδείξεων, εξοπλισμού γραφείου και δαπανών ταξιδιών για εύκολη φορολογική αρχειοθέτηση.</p>
+          </div>
+          <div class="usecase-tags">
+            <span class="usecase-tag-item">Τιμολόγια Εξοπλισμού</span>
+            <span class="usecase-tag-item">Business Travel</span>
+            <span class="usecase-tag-item">Συνδρομές &amp; Υπηρεσίες</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3-Step Setup Section -->
+    <div class="setup-steps-container">
+      <div class="setup-header">
+        <span class="pill-tag">
+          <span class="status-dot"></span>
+          <span>ΑΠΛΗ ΔΙΑΔΙΚΑΣΙΑ</span>
+        </span>
+        <h2>Καταγραφή σε 3 απλά βήματα</h2>
+        <p style="color: var(--text-muted); font-size: 15px;">Μηδενική χειροκίνητη πληκτρολόγηση, μέγιστη ταχύτητα.</p>
+      </div>
+
+      <div class="steps-grid">
+        <div class="step-card">
+          <div class="step-number">01</div>
+          <h3>Φωτογράφιση Απόδειξης</h3>
+          <p>Ανοίγετε την εφαρμογή και πατάτε το κουμπί σάρωσης για να τραβήξετε μια καθαρή φωτογραφία της απόδειξης.</p>
+        </div>
+
+        <div class="step-card">
+          <div class="step-number">02</div>
+          <h3>Αυτόματη Εξαγωγή AI</h3>
+          <p>Το προηγμένο AI Vision εντοπίζει ακαριαία το ποσό, την επωνυμία, την ημερομηνία και κατηγοριοποιεί τη δαπάνη.</p>
+        </div>
+
+        <div class="step-card">
+          <div class="step-number">03</div>
+          <h3>Αποθήκευση &amp; Συγχρονισμός</h3>
+          <p>Με ένα πάτημα η συναλλαγή αποθηκεύεται και συγχρονίζεται άμεσα σε όλες τις συνδεδεμένες συσκευές σας.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Final High-Converting CTA Banner -->
+    <div class="cta-banner-card">
+      <div>
+        <h2>Απόκτησε πλήρη έλεγχο των εξόδων σου</h2>
+        <p style="color: var(--text-muted); font-size: 15.5px; max-width: 580px; margin-top: 8px;">
+          Ξεκίνα δωρεάν με 5 AI σαρώσεις τον μήνα ή απόκτησε το Lifetime PRO για απεριόριστες σαρώσεις για πάντα.
+        </p>
+      </div>
+      <div class="cta-banner-btns">
+        <a href="/app?demo=true" class="btn btn-primary">Εκκίνηση Live Demo</a>
+        <a href="/#pricing" class="btn btn-secondary">Απόκτηση Lifetime PRO (9,99€)</a>
+      </div>
     </div>
   </main>
 
   <footer>
     <div class="container">© 2026 Budget Assistant. All rights reserved.</div>
   </footer>
+
+  <script>
+    function executeScanDemo() {
+      const laser = document.getElementById('scan-laser');
+      const btn = document.getElementById('btn-trigger-scan');
+      const boxStore = document.getElementById('box-store');
+      const boxTotal = document.getElementById('box-total');
+      const extStore = document.getElementById('ext-store');
+      const extAmount = document.getElementById('ext-amount');
+
+      laser.classList.add('scanning');
+      btn.disabled = true;
+      btn.innerHTML = '<span>Ανάλυση Εικόνας AI Vision...</span>';
+
+      setTimeout(() => {
+        boxStore.classList.add('ocr-bounding-box');
+      }, 500);
+
+      setTimeout(() => {
+        boxTotal.classList.add('ocr-bounding-box');
+      }, 1000);
+
+      setTimeout(() => {
+        laser.classList.remove('scanning');
+        btn.disabled = false;
+        btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg> <span>Επιτυχής Σάρωση (99.8%)</span>';
+      }, 2000);
+    }
+  </script>
+
 </body>
 </html>

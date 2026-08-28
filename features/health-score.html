@@ -3,11 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-  <title>Financial Health Score — Budget Assistant (FHN & CFPB Μεθοδολογία)</title>
-  <meta name="description" content="Πώς υπολογίζεται ο δείκτης οικονομικής υγείας 0-100: Savings Rate, Emergency Runway και Expense Trend.">
+  <title>Financial Health Score (0-100) — Budget Assistant</title>
+  <meta name="description" content="Υπολογισμός δείκτη οικονομικής υγείας 0-100 βάσει μεθοδολογίας CFPB & Financial Health Network: Savings Rate, Emergency Runway και Expense Trend.">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://budgetassistant.org/features/health-score">
+  <meta property="og:title" content="Financial Health Score (0-100) — Budget Assistant">
+  <meta property="og:description" content="Ένας αντικειμενικός αλγοριθμικός δείκτης 0-100 που αξιολογεί την οικονομική σας ανθεκτικότητα σε πραγματικό χρόνο.">
+  <meta property="og:image" content="https://budget-assistant-pwa.pages.dev/logo-mark.png">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="../icon.png">
+  <link rel="apple-touch-icon" href="../icon-192.png">
 
   <!-- Google Fonts: Outfit & Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -16,74 +24,1080 @@
 
   <style>
     :root {
-      --bg: #07080C;
-      --bg-card: #11141E;
+      --bg: #07090E;
+      --bg-card: #0D101A;
+      --bg-card-alt: #121624;
       --border: rgba(255, 255, 255, 0.08);
+      --border-light: rgba(255, 255, 255, 0.15);
       --text: #F3F4F6;
       --text-muted: #9CA3AF;
+      --text-dim: #6B7280;
       --primary: #7C6AF7;
+      --primary-glow: rgba(124, 106, 247, 0.35);
       --success: #10B981;
-      --font-heading: 'Outfit', sans-serif;
-      --font-body: 'Inter', system-ui, -apple-system, sans-serif;
-      --radius-md: 16px;
-      --radius-xl: 28px;
+      --success-glow: rgba(16, 185, 129, 0.35);
+      --cyan: #38BDF8;
+      --amber: #F59E0B;
+      --font-heading: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --font-body: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 22px;
+      --radius-xl: 32px;
     }
+
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background-color: var(--bg); color: var(--text); font-family: var(--font-body); line-height: 1.6; }
-    .container { max-width: 860px; margin: 0 auto; padding: 0 24px; }
-    header { padding: 20px 0; border-bottom: 1px solid var(--border); background: rgba(7, 8, 12, 0.8); backdrop-filter: blur(12px); }
-    .nav-inner { display: flex; align-items: center; justify-content: space-between; }
-    .logo-link { display: flex; align-items: center; gap: 10px; text-decoration: none; color: #fff; font-family: var(--font-heading); font-weight: 700; font-size: 20px; }
-    .logo-img { width: 34px; height: 34px; border-radius: 8px; }
-    
-    .hero-feat { padding: 70px 0 40px; text-align: center; }
-    h1 { font-family: var(--font-heading); font-size: 44px; font-weight: 800; margin-bottom: 16px; color: #fff; }
-    .feat-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-xl); padding: 40px; margin-bottom: 30px; }
-    .feat-card h3 { font-family: var(--font-heading); font-size: 22px; margin-bottom: 12px; color: #fff; }
-    .feat-card p { font-size: 15px; color: var(--text-muted); line-height: 1.7; }
-    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 14px 28px; border-radius: var(--radius-md); font-size: 15px; font-weight: 700; text-decoration: none; background: linear-gradient(135deg, #10B981, #059669); color: #fff; margin-top: 20px; }
-    footer { border-top: 1px solid var(--border); padding: 30px 0; text-align: center; font-size: 13px; color: #6B7280; }
+
+    body {
+      background-color: var(--bg);
+      background-image: 
+        radial-gradient(circle at 50% 0%, rgba(16, 185, 129, 0.1) 0%, transparent 60%),
+        radial-gradient(circle at 85% 35%, rgba(124, 106, 247, 0.06) 0%, transparent 50%);
+      background-attachment: fixed;
+      color: var(--text);
+      font-family: var(--font-body);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Top Full-Width Navigation */
+    header {
+      position: sticky;
+      top: 0;
+      width: 100%;
+      z-index: 1000;
+      background: rgba(7, 9, 14, 0.88);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-inner {
+      max-width: 1140px;
+      margin: 0 auto;
+      height: 68px;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo-link {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: #fff;
+      font-family: var(--font-heading);
+      font-weight: 700;
+      font-size: 16px;
+    }
+
+    .logo-img {
+      width: 34px;
+      height: 34px;
+      object-fit: contain;
+      filter: drop-shadow(0 0 10px rgba(16, 185, 129, 0.5));
+    }
+
+    .nav-back {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 13.5px;
+      font-weight: 500;
+      padding: 6px 14px;
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      transition: all 0.2s;
+    }
+
+    .nav-back:hover {
+      color: #fff;
+      border-color: rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .container {
+      max-width: 1040px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    .hero-feat {
+      padding: 70px 0 36px;
+      text-align: center;
+    }
+
+    .pill-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      padding: 6px 16px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #6EE7B7;
+      margin-bottom: 22px;
+      letter-spacing: 0.5px;
+    }
+
+    .pill-tag .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #10B981;
+      box-shadow: 0 0 8px #10B981;
+    }
+
+    h1 {
+      font-family: var(--font-heading);
+      font-size: clamp(34px, 4.5vw, 48px);
+      font-weight: 800;
+      letter-spacing: -1px;
+      line-height: 1.15;
+      color: #fff;
+      margin-bottom: 20px;
+    }
+
+    .hero-desc {
+      font-size: 17.5px;
+      color: var(--text-muted);
+      max-width: 740px;
+      margin: 0 auto 32px;
+      line-height: 1.65;
+    }
+
+    .hero-actions {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-bottom: 50px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 24px;
+      border-radius: var(--radius-md);
+      font-size: 14.5px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(16, 185, 129, 0.35);
+    }
+    .btn-primary:hover {
+      box-shadow: 0 6px 28px rgba(16, 185, 129, 0.5);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      color: #fff;
+    }
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    /* ==========================================================================
+       LIVING HEALTH SCORE GAUGE SHOWCASE
+       ========================================================================== */
+    .showcase-wrapper {
+      background: linear-gradient(180deg, #0C0F19 0%, #080A12 100%);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: var(--radius-xl);
+      box-shadow: 
+        0 30px 90px rgba(0, 0, 0, 0.75),
+        0 0 0 1px rgba(16, 185, 129, 0.15);
+      padding: 36px;
+      margin-bottom: 70px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .showcase-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+      padding-bottom: 20px;
+      margin-bottom: 30px;
+    }
+
+    .showcase-title-area h3 {
+      font-family: var(--font-heading);
+      font-size: 20px;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .showcase-title-area p {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 3px;
+    }
+
+    .score-status-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #10B981;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      padding: 5px 14px;
+      border-radius: 999px;
+    }
+
+    .score-pulse {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #10B981;
+      box-shadow: 0 0 8px #10B981;
+    }
+
+    .gauge-cockpit-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      margin-bottom: 28px;
+    }
+
+    /* Left: Radial Score Gauge Display */
+    .gauge-display-card {
+      background: #090B12;
+      border: 2px solid rgba(255, 255, 255, 0.12);
+      border-radius: var(--radius-lg);
+      padding: 28px 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      position: relative;
+    }
+
+    .radial-gauge-box {
+      position: relative;
+      width: 170px;
+      height: 170px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+    }
+
+    .gauge-svg-ring {
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg);
+    }
+
+    .gauge-bg-circle {
+      fill: none;
+      stroke: rgba(255, 255, 255, 0.08);
+      stroke-width: 12;
+    }
+
+    .gauge-fill-arc {
+      fill: none;
+      stroke: #10B981;
+      stroke-width: 12;
+      stroke-linecap: round;
+      stroke-dasharray: 440;
+      stroke-dashoffset: 70;
+      transition: stroke-dashoffset 1s cubic-bezier(0.16, 1, 0.3, 1), stroke 0.5s;
+    }
+
+    .gauge-center-content {
+      position: absolute;
+      text-align: center;
+    }
+
+    .gauge-number {
+      font-family: var(--font-heading);
+      font-size: 46px;
+      font-weight: 800;
+      color: #fff;
+      line-height: 1;
+      letter-spacing: -1px;
+    }
+
+    .gauge-max {
+      font-size: 13px;
+      color: var(--text-dim);
+      font-weight: 600;
+    }
+
+    .tier-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #34D399;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      padding: 5px 14px;
+      border-radius: 999px;
+      margin-bottom: 8px;
+    }
+
+    .tier-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      max-width: 320px;
+    }
+
+    /* Right: Sub-Metrics Breakdown */
+    .submetrics-card {
+      background: #090B12;
+      border: 2px solid rgba(255, 255, 255, 0.12);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .submetrics-list {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .submetric-row {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 10px;
+      padding: 10px 14px;
+    }
+
+    .submetric-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12.5px;
+      margin-bottom: 6px;
+    }
+
+    .submetric-top strong {
+      color: #fff;
+    }
+
+    .submetric-val {
+      font-weight: 700;
+      color: #10B981;
+    }
+
+    .submetric-bar {
+      height: 5px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .submetric-bar-fill {
+      height: 100%;
+      border-radius: 999px;
+      transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .btn-sim-boost {
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      color: #6EE7B7;
+      border-radius: var(--radius-md);
+      padding: 12px 18px;
+      font-size: 13.5px;
+      font-weight: 700;
+      cursor: pointer;
+      width: 100%;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-sim-boost:hover {
+      background: rgba(16, 185, 129, 0.22);
+      box-shadow: 0 4px 18px rgba(16, 185, 129, 0.25);
+    }
+
+    /* ==========================================================================
+       4 CORE ALGORITHMIC PILLARS
+       ========================================================================== */
+    .pillars-section {
+      margin-bottom: 70px;
+    }
+
+    .pillars-header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .pillars-header h2 {
+      font-family: var(--font-heading);
+      font-size: 32px;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.5px;
+      margin-bottom: 8px;
+    }
+
+    .pillars-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 24px;
+    }
+
+    .pillar-card {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.035) 0%, rgba(255, 255, 255, 0.01) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: var(--radius-lg);
+      padding: 30px;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .pillar-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--card-accent, #10B981);
+      opacity: 0.8;
+    }
+
+    .pillar-card:hover {
+      border-color: rgba(255, 255, 255, 0.18);
+      transform: translateY(-3px);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+    }
+
+    .pillar-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .pillar-icon-box {
+      width: 46px;
+      height: 46px;
+      border-radius: 12px;
+      background: var(--icon-bg, rgba(16, 185, 129, 0.15));
+      border: 1px solid var(--icon-border, rgba(16, 185, 129, 0.3));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--badge-color, #6EE7B7);
+    }
+
+    .pillar-icon-box svg {
+      width: 22px;
+      height: 22px;
+    }
+
+    .pillar-badge {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: var(--badge-bg, rgba(16, 185, 129, 0.12));
+      color: var(--badge-color, #6EE7B7);
+      border: 1px solid var(--badge-border, rgba(16, 185, 129, 0.25));
+    }
+
+    .pillar-card h3 {
+      font-family: var(--font-heading);
+      font-size: 20px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 8px;
+      letter-spacing: -0.3px;
+    }
+
+    .pillar-card p {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.65;
+      margin-bottom: 20px;
+    }
+
+    .pillar-tags {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      padding-top: 14px;
+    }
+
+    .pillar-tag-item {
+      font-size: 11.5px;
+      color: var(--text-muted);
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      padding: 4px 10px;
+      border-radius: 6px;
+    }
+
+    /* ==========================================================================
+       SCORE TIERS SCALE TABLE
+       ========================================================================== */
+    .tiers-section {
+      margin-bottom: 70px;
+    }
+
+    .tiers-header {
+      text-align: center;
+      margin-bottom: 36px;
+    }
+
+    .tiers-header h2 {
+      font-family: var(--font-heading);
+      font-size: 28px;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+
+    .tiers-table-wrapper {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow-x: auto;
+    }
+
+    .tiers-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 14px;
+    }
+
+    .tiers-table th {
+      padding: 16px 20px;
+      font-family: var(--font-heading);
+      font-weight: 700;
+      font-size: 13.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.02);
+      color: var(--text-muted);
+    }
+
+    .tiers-table td {
+      padding: 16px 20px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      color: var(--text-muted);
+    }
+
+    .tiers-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .tier-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 700;
+      font-size: 12px;
+      padding: 3px 10px;
+      border-radius: 999px;
+    }
+
+    /* 3-Step Setup Section */
+    .setup-steps-container {
+      margin-bottom: 70px;
+    }
+
+    .setup-header {
+      text-align: center;
+      margin-bottom: 36px;
+    }
+
+    .setup-header h2 {
+      font-family: var(--font-heading);
+      font-size: 28px;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    .step-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 26px;
+      position: relative;
+      transition: all 0.2s ease;
+    }
+
+    .step-card:hover {
+      border-color: rgba(16, 185, 129, 0.35);
+      transform: translateY(-2px);
+    }
+
+    .step-number {
+      font-family: var(--font-heading);
+      font-size: 28px;
+      font-weight: 800;
+      color: #10B981;
+      margin-bottom: 12px;
+      line-height: 1;
+    }
+
+    .step-card h3 {
+      font-family: var(--font-heading);
+      font-size: 17px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+
+    .step-card p {
+      font-size: 13.5px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* Final CTA Banner */
+    .cta-banner-card {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(124, 106, 247, 0.08) 100%);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: var(--radius-xl);
+      padding: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 30px;
+      margin-bottom: 70px;
+      flex-wrap: wrap;
+    }
+
+    .cta-banner-card h2 {
+      font-family: var(--font-heading);
+      font-size: 26px;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+
+    .cta-banner-btns {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 36px 0;
+      text-align: center;
+      font-size: 13px;
+      color: var(--text-dim);
+    }
+
+    @media (max-width: 820px) {
+      .gauge-cockpit-grid { grid-template-columns: 1fr; }
+      .pillars-grid { grid-template-columns: 1fr; }
+      .steps-grid { grid-template-columns: 1fr; }
+      .cta-banner-card { flex-direction: column; align-items: flex-start; padding: 26px; }
+      .showcase-wrapper { padding: 20px; }
+    }
   </style>
 </head>
 <body>
+
+  <!-- Full-Width Navigation -->
   <header>
-    <div class="container">
-      <div class="nav-inner">
-        <a href="/" class="logo-link">
-          <img src="../icon.png" alt="Logo" class="logo-img">
-          <span>Budget Assistant</span>
-        </a>
-        <a href="/" style="color: var(--text-muted); text-decoration: none; font-size: 14px;">← Αρχική</a>
-      </div>
+    <div class="nav-inner">
+      <a href="/" class="logo-link">
+        <img src="../logo-mark.png" alt="Budget Assistant Logo" class="logo-img">
+        <span>Budget Assistant</span>
+      </a>
+      <a href="/" class="nav-back">← Επιστροφή στην Αρχική</a>
     </div>
   </header>
 
   <main class="container">
+    <!-- Hero Section -->
     <div class="hero-feat">
-      <div style="font-size: 40px; margin-bottom: 12px;">🛡️</div>
-      <h1>Financial Health Score (0-100)</h1>
-      <p style="color: var(--text-muted); font-size: 18px; max-width: 600px; margin: 0 auto;">
-        Ένας αντικειμενικός επιστημονικός δείκτης που σου δείχνει πού πραγματικά στέκονται τα οικονομικά σου κάθε μήνα.
+      <div class="pill-tag">
+        <span class="status-dot"></span>
+        <span>ALGORITHMIC WEALTH DIAGNOSTICS</span>
+      </div>
+      <h1>Financial Health Score.<br>Ο Παλμός των Οικονομικών Σας.</h1>
+      <p class="hero-desc">
+        Ένας αντικειμενικός, δυναμικός δείκτης 0–100 βασισμένος στα πρότυπα CFPB &amp; Financial Health Network. Υπολογίζει αυτόματα το ρυθμό αποταμίευσης, την αντοχή εκτάκτων αναγκών και την πειθαρχία δαπανών.
       </p>
-      <a href="/health-quiz" class="btn">🧠 Κάνε το Online Quiz (60'')</a>
+      <div class="hero-actions">
+        <a href="/app?demo=true" class="btn btn-primary">Εκκίνηση Live Demo</a>
+        <a href="/#pricing" class="btn btn-secondary">Απόκτηση Lifetime PRO (9,99€)</a>
+      </div>
     </div>
 
-    <div class="feat-card">
-      <h3>🏛️ Μεθοδολογία CFPB & Financial Health Network</h3>
-      <p>
-        Ο αλγόριθμος του Budget Assistant βασίζεται στο αναγνωρισμένο πλαίσιο του Consumer Financial Protection Bureau (CFPB) και του Financial Health Network (FHN), αξιολογώντας 4 βασικούς πυλώνες:
-      </p>
-      <ul style="margin: 16px 0 0 20px; color: var(--text-muted); font-size: 14px;">
-        <li style="margin-bottom: 8px;"><strong>1. Ποσοστό Αποταμίευσης (% Savings Rate):</strong> Πόσο μέρος του εισοδήματός σου μένει στην άκρη.</li>
-        <li style="margin-bottom: 8px;"><strong>2. Ταμείο Έκτακτης Ανάγκης (Emergency Runway):</strong> Πόσους μήνες ζωής καλύπτουν τα διαθέσιμα χρήματά σου.</li>
-        <li style="margin-bottom: 8px;"><strong>3. Τάση Εξόδων (Expense Momentum):</strong> Αν τα έξοδά σου κινούνται ανοδικά ή καθοδικά σε σχέση με προηγούμενους μήνες.</li>
-        <li><strong>4. Συνέπεια Προϋπολογισμού:</strong> Αν παραμένεις εντός των ορίων που έχεις θέσει ανά κατηγορία.</li>
-      </ul>
+    <!-- Living Health Score Gauge Showcase -->
+    <div class="showcase-wrapper">
+      <div class="showcase-header">
+        <div class="showcase-title-area">
+          <h3>Ζωντανή Προσομοίωση Health Score Cockpit</h3>
+          <p>Δείτε πώς οι καθημερινές σας αποφάσεις βελτιώνουν τον συνολικό δείκτη οικονομικής ανθεκτικότητας.</p>
+        </div>
+        <div class="score-status-indicator">
+          <span class="score-pulse"></span>
+          <span>CFPB Index: Active</span>
+        </div>
+      </div>
+
+      <div class="gauge-cockpit-grid">
+        <!-- Left: Radial Gauge -->
+        <div class="gauge-display-card">
+          <div class="radial-gauge-box">
+            <svg class="gauge-svg-ring" viewBox="0 0 160 160">
+              <circle class="gauge-bg-circle" cx="80" cy="80" r="70"></circle>
+              <circle class="gauge-fill-arc" id="gauge-arc" cx="80" cy="80" r="70"></circle>
+            </svg>
+            <div class="gauge-center-content">
+              <div class="gauge-number" id="gauge-score-val">84</div>
+              <div class="gauge-max">/ 100</div>
+            </div>
+          </div>
+
+          <div class="tier-badge" id="tier-badge-label">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+            <span>Εξαιρετική Ανθεκτικότητα</span>
+          </div>
+          <p class="tier-desc">
+            Τα οικονομικά σας βρίσκονται στο κορυφαίο 15% σταθερότητας με 6+ μήνες κάλυψη εκτάκτων αναγκών.
+          </p>
+        </div>
+
+        <!-- Right: Sub-Metrics Breakdown -->
+        <div class="submetrics-card">
+          <div class="submetrics-list">
+            <!-- Metric 1: Savings Rate -->
+            <div class="submetric-row">
+              <div class="submetric-top">
+                <strong>Ρυθμός Αποταμίευσης (% Savings)</strong>
+                <span class="submetric-val" id="val-savings">28,4% (95/100)</span>
+              </div>
+              <div class="submetric-bar">
+                <div class="submetric-bar-fill" id="bar-savings" style="width: 95%; background: #10B981;"></div>
+              </div>
+            </div>
+
+            <!-- Metric 2: Emergency Runway -->
+            <div class="submetric-row">
+              <div class="submetric-top">
+                <strong>Ταμείο Έκτακτης Ανάγκης (Runway)</strong>
+                <span class="submetric-val" id="val-runway">6,2 Μήνες (90/100)</span>
+              </div>
+              <div class="submetric-bar">
+                <div class="submetric-bar-fill" id="bar-runway" style="width: 90%; background: #38BDF8;"></div>
+              </div>
+            </div>
+
+            <!-- Metric 3: Expense Trend -->
+            <div class="submetric-row">
+              <div class="submetric-top">
+                <strong>Τάση Δαπανών (Expense Momentum)</strong>
+                <span class="submetric-val" id="val-trend">−4,8% MoM (82/100)</span>
+              </div>
+              <div class="submetric-bar">
+                <div class="submetric-bar-fill" id="bar-trend" style="width: 82%; background: #7C6AF7;"></div>
+              </div>
+            </div>
+
+            <!-- Metric 4: Budget Discipline -->
+            <div class="submetric-row">
+              <div class="submetric-top">
+                <strong>Πειθαρχία Προϋπολογισμού (Adherence)</strong>
+                <span class="submetric-val" id="val-adherence">92% On-Target (88/100)</span>
+              </div>
+              <div class="submetric-bar">
+                <div class="submetric-bar-fill" id="bar-adherence" style="width: 88%; background: #F59E0B;"></div>
+              </div>
+            </div>
+          </div>
+
+          <button class="btn-sim-boost" id="btn-boost-sim" onclick="toggleScoreBoost()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
+            <span id="boost-btn-text">+ Προσομοίωση: Αποταμίευση +150€/μήνα</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4 Algorithmic Pillars -->
+    <div class="pillars-section">
+      <div class="pillars-header">
+        <span class="pill-tag">
+          <span class="status-dot"></span>
+          <span>ΕΠΙΣΤΗΜΟΝΙΚΗ ΜΕΘΟΔΟΛΟΓΙΑ</span>
+        </span>
+        <h2>Οι 4 Πυλώνες του Health Score</h2>
+        <p style="color: var(--text-muted); font-size: 15px;">Πλήρης συμμόρφωση με τις αρχές του Consumer Financial Protection Bureau</p>
+      </div>
+
+      <div class="pillars-grid">
+        <!-- 1. Savings Rate -->
+        <div class="pillar-card" style="--card-accent: #10B981; --icon-bg: rgba(16, 185, 129, 0.15); --icon-border: rgba(16, 185, 129, 0.35); --badge-bg: rgba(16, 185, 129, 0.12); --badge-color: #6EE7B7; --badge-border: rgba(16, 185, 129, 0.3);">
+          <div>
+            <div class="pillar-top">
+              <div class="pillar-icon-box">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"></path><line x1="12" y1="6" x2="12" y2="8"></line><line x1="12" y1="16" x2="12" y2="18"></line></svg>
+              </div>
+              <span class="pillar-badge">SAVINGS RATE</span>
+            </div>
+            <h3>1. Ποσοστό Αποταμίευσης (% Savings)</h3>
+            <p>
+              Υπολογίζει το ακριβές ποσοστό του καθαρού εισοδήματος που μένει στην άκρη μετά την αφαίρεση όλων των παγίων και μεταβλητών εξόδων κάθε μήνα.
+            </p>
+          </div>
+          <div class="pillar-tags">
+            <span class="pillar-tag-item">Καθαρό Πλεόνασμα</span>
+            <span class="pillar-tag-item">Στόχος: >20%</span>
+            <span class="pillar-tag-item">Μηνιαία Παρακολούθηση</span>
+          </div>
+        </div>
+
+        <!-- 2. Emergency Runway -->
+        <div class="pillar-card" style="--card-accent: #38BDF8; --icon-bg: rgba(56, 189, 248, 0.15); --icon-border: rgba(56, 189, 248, 0.35); --badge-bg: rgba(56, 189, 248, 0.12); --badge-color: #7DD3FC; --badge-border: rgba(56, 189, 248, 0.3);">
+          <div>
+            <div class="pillar-top">
+              <div class="pillar-icon-box">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+              </div>
+              <span class="pillar-badge">EMERGENCY RUNWAY</span>
+            </div>
+            <h3>2. Ταμείο Έκτακτης Ανάγκης (Runway)</h3>
+            <p>
+              Μετρά πόσους μήνες μπορείτε να διατηρήσετε τον τρόπο ζωής σας χωρίς κανένα ενεργό εισόδημα, με βάση τα πραγματικά μέσα μηνιαία έξοδά σας.
+            </p>
+          </div>
+          <div class="pillar-tags">
+            <span class="pillar-tag-item">Αντοχή σε Κρίσεις</span>
+            <span class="pillar-tag-item">Στόχος: 3-6 Μήνες</span>
+            <span class="pillar-tag-item">Liquid Safety Buffer</span>
+          </div>
+        </div>
+
+        <!-- 3. Expense Momentum -->
+        <div class="pillar-card" style="--card-accent: #7C6AF7; --icon-bg: rgba(124, 106, 247, 0.15); --icon-border: rgba(124, 106, 247, 0.35); --badge-bg: rgba(124, 106, 247, 0.12); --badge-color: #C4B5FD; --badge-border: rgba(124, 106, 247, 0.3);">
+          <div>
+            <div class="pillar-top">
+              <div class="pillar-icon-box">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
+              </div>
+              <span class="pillar-badge">EXPENSE MOMENTUM</span>
+            </div>
+            <h3>3. Τάση Εξόδων &amp; Lifestyle Inflation</h3>
+            <p>
+              Συγκρίνει τις δαπάνες του τρέχοντος μήνα με τον κυλιόμενο μέσο όρο τριμήνου, ανιχνεύοντας έγκαιρα ανεπιθύμητες ανοδικές τάσεις.
+            </p>
+          </div>
+          <div class="pillar-tags">
+            <span class="pillar-tag-item">3-Month Rolling Average</span>
+            <span class="pillar-tag-item">Έλεγχος Lifestyle Inflation</span>
+            <span class="pillar-tag-item">Early Warning Alert</span>
+          </div>
+        </div>
+
+        <!-- 4. Budget Adherence -->
+        <div class="pillar-card" style="--card-accent: #F59E0B; --icon-bg: rgba(245, 158, 11, 0.15); --icon-border: rgba(245, 158, 11, 0.35); --badge-bg: rgba(245, 158, 11, 0.12); --badge-color: #FCD34D; --badge-border: rgba(245, 158, 11, 0.3);">
+          <div>
+            <div class="pillar-top">
+              <div class="pillar-icon-box">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+              </div>
+              <span class="pillar-badge">BUDGET DISCIPLINE</span>
+            </div>
+            <h3>4. Πειθαρχία Ορίων Προϋπολογισμού</h3>
+            <p>
+              Ελέγχει αν παραμένετε εντός των ορίων που έχετε θέσει ανά κατηγορία (Σούπερ Μάρκετ, Εστίαση, Διασκέδαση) χωρίς υπερβάσεις.
+            </p>
+          </div>
+          <div class="pillar-tags">
+            <span class="pillar-tag-item">Συμμόρφωση Κατηγοριών</span>
+            <span class="pillar-tag-item">Αποφυγή Υπερβάσεων</span>
+            <span class="pillar-tag-item">Real-Time Caps</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Official Tiers Scale Matrix -->
+    <div class="tiers-section">
+      <div class="tiers-header">
+        <span class="pill-tag">
+          <span class="status-dot"></span>
+          <span>ΚΛΙΜΑΚΑ ΑΞΙΟΛΟΓΗΣΗΣ</span>
+        </span>
+        <h2>Κλίμακα &amp; Επίπεδα Οικονομικής Υγείας</h2>
+        <p style="color: var(--text-muted); font-size: 15px;">Πού κατατάσσεται το δικό σας σκορ και τι σημαίνει για το μέλλον σας</p>
+      </div>
+
+      <div class="tiers-table-wrapper">
+        <table class="tiers-table">
+          <thead>
+            <tr>
+              <th>Εύρος Σκορ</th>
+              <th>Κατάσταση (Tier)</th>
+              <th>Χαρακτηριστικά</th>
+              <th>Προτεινόμενη Δράση</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="color: #fff; font-weight: 700;">80 – 100</td>
+              <td><span class="tier-pill" style="background: rgba(16, 185, 129, 0.15); color: #34D399;">Ακλόνητη Ανθεκτικότητα</span></td>
+              <td>Emergency buffer >6 μήνες, Savings Rate >20%, απόλυτη πειθαρχία.</td>
+              <td>Επενδύσεις πλεονάσματος &amp; μακροχρόνια ανάπτυξη κεφαλαίου.</td>
+            </tr>
+            <tr>
+              <td style="color: #fff; font-weight: 700;">60 – 79</td>
+              <td><span class="tier-pill" style="background: rgba(56, 189, 248, 0.15); color: #38BDF8;">Ισχυρή Σταθερότητα</span></td>
+              <td>Θετικό μηνιαίο cashflow, κάλυψη 3–6 μηνών, ελεγχόμενα έξοδα.</td>
+              <td>Αύξηση αποταμιευτικού ρυθμού και βελτιστοποίηση παγίων.</td>
+            </tr>
+            <tr>
+              <td style="color: #fff; font-weight: 700;">40 – 59</td>
+              <td><span class="tier-pill" style="background: rgba(245, 158, 11, 0.15); color: #F59E0B;">Ευάλωτη Ζώνη</span></td>
+              <td>Οριακό μηνιαίο υπόλοιπο, buffer <2 μήνες, αυξητική τάση εξόδων.</td>
+              <td>Περικοπή μη αναγκαίων συνδρομών και δημιουργία ταμείου ανάγκης.</td>
+            </tr>
+            <tr>
+              <td style="color: #fff; font-weight: 700;">0 – 39</td>
+              <td><span class="tier-pill" style="background: rgba(239, 68, 68, 0.15); color: #F87171;">Κρίσιμη Κατάσταση</span></td>
+              <td>Μηνιαίο έλλειμμα (έξοδα > έσοδα), μηδενικό ταμείο ασφαλείας.</td>
+              <td>Άμεση θέσπιση αυστηρών ορίων προϋπολογισμού και αναδιάρθρωση.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 3-Step Setup Section -->
+    <div class="setup-steps-container">
+      <div class="setup-header">
+        <span class="pill-tag">
+          <span class="status-dot"></span>
+          <span>ΑΠΛΗ ΔΙΑΔΙΚΑΣΙΑ</span>
+        </span>
+        <h2>Έτοιμο σε 3 απλά βήματα</h2>
+        <p style="color: var(--text-muted); font-size: 15px;">Χωρίς περίπλοκα ερωτηματολόγια ή χειροκίνητους υπολογισμούς.</p>
+      </div>
+
+      <div class="steps-grid">
+        <div class="step-card">
+          <div class="step-number">01</div>
+          <h3>Καταγραφή Συναλλαγών</h3>
+          <p>Καταχωρείτε τα καθημερινά σας έσοδα και έξοδα (χειροκίνητα ή με AI σάρωση αποδείξεων).</p>
+        </div>
+
+        <div class="step-card">
+          <div class="step-number">02</div>
+          <h3>Αυτόματος Αλγόριθμος</h3>
+          <p>Το σύστημα αναλύει αυτόματα το cashflow, το buffer ασφαλείας και τις τάσεις δαπανών σας.</p>
+        </div>
+
+        <div class="step-card">
+          <div class="step-number">03</div>
+          <h3>Πρακτικές Συμβουλές</h3>
+          <p>Βλέπετε το Health Score σας και λαμβάνετε άμεσες οδηγίες για το πώς να το ανεβάσετε στο Tier 1.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Final High-Converting CTA Banner -->
+    <div class="cta-banner-card">
+      <div>
+        <h2>Μάθετε το δικό σας Financial Health Score</h2>
+        <p style="color: var(--text-muted); font-size: 15.5px; max-width: 580px; margin-top: 8px;">
+          Ξεκινήστε δωρεάν χωρίς εγγραφή ή πιστωτική κάρτα και αποκτήστε πλήρη επίγνωση των οικονομικών σας.
+        </p>
+      </div>
+      <div class="cta-banner-btns">
+        <a href="/app?demo=true" class="btn btn-primary">Εκκίνηση Live Demo</a>
+        <a href="/#pricing" class="btn btn-secondary">Απόκτηση Lifetime PRO (9,99€)</a>
+      </div>
     </div>
   </main>
 
   <footer>
     <div class="container">© 2026 Budget Assistant. All rights reserved.</div>
   </footer>
+
+  <script>
+    let isBoosted = false;
+    function toggleScoreBoost() {
+      const scoreVal = document.getElementById('gauge-score-val');
+      const arc = document.getElementById('gauge-arc');
+      const badge = document.getElementById('tier-badge-label');
+      const valSavings = document.getElementById('val-savings');
+      const barSavings = document.getElementById('bar-savings');
+      const btnText = document.getElementById('boost-btn-text');
+
+      if (!isBoosted) {
+        // Boost from 84 to 93
+        scoreVal.textContent = '93';
+        arc.style.strokeDashoffset = '30';
+        badge.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg> <span>Κορυφαίο Tier (93/100)</span>';
+        valSavings.textContent = '35,2% (100/100)';
+        barSavings.style.width = '100%';
+        btnText.textContent = '⟲ Επαναφορά στην Αρχική Κατάσταση';
+        isBoosted = true;
+      } else {
+        // Revert to 84
+        scoreVal.textContent = '84';
+        arc.style.strokeDashoffset = '70';
+        badge.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg> <span>Εξαιρετική Ανθεκτικότητα</span>';
+        valSavings.textContent = '28,4% (95/100)';
+        barSavings.style.width = '95%';
+        btnText.textContent = '+ Προσομοίωση: Αποταμίευση +150€/μήνα';
+        isBoosted = false;
+      }
+    }
+  </script>
+
 </body>
 </html>

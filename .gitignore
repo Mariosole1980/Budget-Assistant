@@ -27,6 +27,9 @@ release.keystore
 # Archive of stale duplicates (kept for reference, not part of the app)
 archive/
 
+# Version backups (local snapshots created per build)
+backups/
+
 # Scratch / diagnostic scripts (development only)
 scratch/
 

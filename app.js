@@ -395,9 +395,15 @@ const state = {
   selectionMode: false,
   selectedIds: new Set(),
   searchSelectMode: false,
-  selectedSearchIds: new Set(),
-  lang: localStorage.getItem('app_lang') || 'el',
-  currentUser: null,
+  lang: (function () {
+    if (localStorage.getItem('app_lang_user_set') === 'true' && localStorage.getItem('app_lang')) {
+      return localStorage.getItem('app_lang');
+    }
+    const saved = localStorage.getItem('app_lang');
+    if (saved) return saved;
+    const isGreekBrowser = (navigator.language || navigator.userLanguage || '').toLowerCase().startsWith('el');
+    return isGreekBrowser ? 'el' : 'en';
+  })(),
   userProfile: null,
   partnerProfile: null,
   familyProfiles: [],
@@ -968,6 +974,14 @@ function applyLanguage(lang) {
     authLangEn.classList.toggle('active', lang === 'en');
   }
 
+  // Update Header Language Button flag and label
+  const headerFlag = document.getElementById('header-lang-flag');
+  const headerLabel = document.getElementById('header-lang-label');
+  if (headerFlag && headerLabel) {
+    headerFlag.textContent = lang === 'en' ? '🇬🇧' : '🇬🇷';
+    headerLabel.textContent = lang === 'en' ? 'EN' : 'EL';
+  }
+
   // Update Header Profile Badge (includes Guest / User names and badges)
   if (typeof updateHeaderProfileBadge === 'function') {
     updateHeaderProfileBadge();
@@ -1017,12 +1031,33 @@ window.updateOTADiagnostic = updateOTADiagnostic;
 
 function toggleLanguageSetting() {
   const nextLang = state.lang === 'el' ? 'en' : 'el';
+  localStorage.setItem('app_lang_user_set', 'true');
   applyLanguage(nextLang);
   const msg = nextLang === 'en' ? '🇬🇧 Switched to English' : '🇬🇷 Αλλαγή σε Ελληνικά';
   showSyncToast(msg, 2500);
 }
 window.toggleLanguageSetting = toggleLanguageSetting;
 window.applyLanguage = applyLanguage;
+
+async function detectGeoLanguage() {
+  // If user has explicitly chosen a language, respect their preference
+  if (localStorage.getItem('app_lang_user_set') === 'true') {
+    return;
+  }
+  try {
+    const res = await fetch('/api/geo', { cache: 'no-store' });
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.recommendedLang && data.recommendedLang !== state.lang) {
+        console.log('[Geo-IP] Detected country:', data.country, '-> updating language to:', data.recommendedLang);
+        applyLanguage(data.recommendedLang);
+      }
+    }
+  } catch (e) {
+    console.warn('[Geo-IP] Detection error:', e);
+  }
+}
+window.detectGeoLanguage = detectGeoLanguage;
 
 function formatGreekDateTime(dateStr) {
   if (!dateStr) return '';
@@ -2479,6 +2514,7 @@ async function initApp() {
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('trans-date').value = today;
   applyLanguage(state.lang);
+  detectGeoLanguage();
 
   // Remove no-transition class after the first paint is committed.
   // This prevents CSS transitions from flashing during startup.
