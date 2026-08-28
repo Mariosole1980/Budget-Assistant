@@ -1012,10 +1012,13 @@
         
         <!-- Left: Realistic Titanium Smartphone Frame -->
         <div>
-          <!-- Switch mode: Screens vs Live Sandbox -->
+          <!-- Switch mode: Live Screencast Video vs Screenshots vs Live Sandbox -->
           <div class="phone-mode-switch">
-            <button type="button" class="phone-mode-btn active" id="btnModeScreens" onclick="setPhoneMode('screens')">
-              📸 Πραγματικές Οθόνες (Auto Flow)
+            <button type="button" class="phone-mode-btn active" id="btnModeVideo" onclick="setPhoneMode('video')">
+              ▶ Βίντεο Χρήσης (Screencast)
+            </button>
+            <button type="button" class="phone-mode-btn" id="btnModeScreens" onclick="setPhoneMode('screens')">
+              📸 Οθόνες
             </button>
             <button type="button" class="phone-mode-btn" id="btnModeLive" onclick="setPhoneMode('live')">
               ⚡ Live Web Demo
@@ -1033,12 +1036,30 @@
                 <span>5G 🔋</span>
               </div>
 
-              <!-- Screen Image Container -->
-              <div id="phoneScreenContainer" style="width: 100%; height: 100%; position: relative;">
+              <!-- 1. Real Screencast Video Player (Default) -->
+              <div id="phoneVideoContainer" style="width: 100%; height: 100%; position: relative; background: #000; display: flex; align-items: center; justify-content: center;">
+                <canvas id="screencastCanvas" width="412" height="890" style="width: 100%; height: 100%; object-fit: cover;"></canvas>
+                
+                <!-- Bottom Play/Pause Overlay Control -->
+                <div style="position: absolute; bottom: 12px; left: 16px; right: 16px; display: flex; align-items: center; justify-content: space-between; background: rgba(0,0,0,0.7); backdrop-filter: blur(10px); padding: 6px 12px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.15); z-index: 40;">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <button id="screencastPlayBtn" onclick="toggleScreencast()" style="background: none; border: none; color: #FFF; cursor: pointer; font-size: 11px;">
+                      <span id="screencastPlayIcon">⏸</span>
+                    </button>
+                    <span style="font-size: 10px; font-family: var(--font-mono); color: #34D399; font-weight: 700;">● LIVE SCREEN RECORDING</span>
+                  </div>
+                  <button onclick="restartScreencast()" style="background: none; border: none; color: #94A3B8; font-size: 10.5px; cursor: pointer;">
+                    ↺ Replay
+                  </button>
+                </div>
+              </div>
+
+              <!-- 2. Static Screens Container -->
+              <div id="phoneScreenContainer" style="width: 100%; height: 100%; position: relative; display: none;">
                 <img id="phoneScreenImg" src="assets/playstore/01_Real_Transactions.png" alt="Budget Assistant Live Screen" class="phone-screen-img">
               </div>
 
-              <!-- Live Interactive Sandbox (Hidden by default) -->
+              <!-- 3. Live Interactive Sandbox -->
               <div id="phoneSandboxContainer" style="width: 100%; height: 100%; display: none;">
                 <iframe src="/app?demo=true" class="phone-sandbox-iframe" title="Budget Assistant Live Sandbox"></iframe>
               </div>
@@ -1255,9 +1276,53 @@
     <div class="container">© 2026 Budget Assistant. All rights reserved. Sovereign Financial Operating System.</div>
   </footer>
 
-  <!-- Real App Interactive Phone Walkthrough Controller Script -->
+  <!-- Real App Interactive Screencast Video & Walkthrough Controller -->
   <script>
     (function() {
+      // 1. Screencast Live Video Engine
+      const TOTAL_FRAMES = 76;
+      const frameImages = [];
+      let currentFrameIdx = 0;
+      let isVideoPlaying = true;
+      let videoInterval = null;
+      const canvas = document.getElementById('screencastCanvas');
+      const ctx = canvas ? canvas.getContext('2d') : null;
+
+      // Preload captured real frames
+      for (let i = 0; i < TOTAL_FRAMES; i++) {
+        const img = new Image();
+        img.src = `assets/app_frames/frame_${String(i).padStart(3, '0')}.jpg`;
+        frameImages.push(img);
+      }
+
+      function drawFrame() {
+        if (!isVideoPlaying || !ctx || !canvas) return;
+        const img = frameImages[currentFrameIdx];
+        if (img && img.complete) {
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          currentFrameIdx = (currentFrameIdx + 1) % TOTAL_FRAMES;
+        }
+      }
+
+      function startScreencastLoop() {
+        clearInterval(videoInterval);
+        videoInterval = setInterval(drawFrame, 130); // ~8-10fps natural screen pacing
+      }
+
+      window.toggleScreencast = function() {
+        isVideoPlaying = !isVideoPlaying;
+        const icon = document.getElementById('screencastPlayIcon');
+        if (icon) icon.innerText = isVideoPlaying ? '⏸' : '▶';
+      };
+
+      window.restartScreencast = function() {
+        currentFrameIdx = 0;
+        isVideoPlaying = true;
+        const icon = document.getElementById('screencastPlayIcon');
+        if (icon) icon.innerText = '⏸';
+      };
+
+      // 2. Static Screens & Walkthrough Flow
       const screens = [
         { img: 'assets/playstore/01_Real_Transactions.png', alt: 'Συναλλαγές & Safe-to-Spend' },
         { img: 'assets/playstore/02_Real_Statistics.png', alt: 'Διαγράμματα & Στατιστικά' },
@@ -1267,12 +1332,12 @@
         { img: 'assets/playstore/05_Real_Accounts_Health.png', alt: 'Financial Health Score' }
       ];
 
-      let currentIndex = 0;
-      let autoTimer = null;
-      let isLiveSandbox = false;
+      let currentScreenIndex = 0;
+      let screenAutoTimer = null;
+      let currentMode = 'video'; // 'video' | 'screens' | 'live'
 
       function renderScreen(index) {
-        currentIndex = index;
+        currentScreenIndex = index;
         const imgEl = document.getElementById('phoneScreenImg');
         if (imgEl && screens[index]) {
           imgEl.style.opacity = '0';
@@ -1285,60 +1350,65 @@
           }, 150);
         }
 
-        // Update active class on items
         for (let i = 0; i < screens.length; i++) {
           const item = document.getElementById('walkItem' + i);
-          if (item) {
-            item.classList.toggle('active', i === index);
-          }
+          if (item) item.classList.toggle('active', i === index);
         }
       }
 
-      function startAutoPlay() {
-        clearInterval(autoTimer);
-        autoTimer = setInterval(() => {
-          if (!isLiveSandbox) {
-            let nextIndex = (currentIndex + 1) % screens.length;
+      function startScreenAutoPlay() {
+        clearInterval(screenAutoTimer);
+        screenAutoTimer = setInterval(() => {
+          if (currentMode === 'screens') {
+            let nextIndex = (currentScreenIndex + 1) % screens.length;
             renderScreen(nextIndex);
           }
         }, 4500);
       }
 
       window.selectWalkScreen = function(index) {
-        if (isLiveSandbox) {
+        if (currentMode !== 'screens') {
           window.setPhoneMode('screens');
         }
         renderScreen(index);
-        startAutoPlay(); // reset timer
+        startScreenAutoPlay();
       };
 
       window.setPhoneMode = function(mode) {
+        currentMode = mode;
+        const btnVideo = document.getElementById('btnModeVideo');
         const btnScreens = document.getElementById('btnModeScreens');
         const btnLive = document.getElementById('btnModeLive');
+        const videoBox = document.getElementById('phoneVideoContainer');
         const screenBox = document.getElementById('phoneScreenContainer');
         const sandboxBox = document.getElementById('phoneSandboxContainer');
 
-        if (mode === 'live') {
-          isLiveSandbox = true;
-          btnScreens.classList.remove('active');
-          btnLive.classList.add('active');
-          if (screenBox) screenBox.style.display = 'none';
-          if (sandboxBox) sandboxBox.style.display = 'block';
-          clearInterval(autoTimer);
-        } else {
-          isLiveSandbox = false;
-          btnLive.classList.remove('active');
-          btnScreens.classList.add('active');
-          if (sandboxBox) sandboxBox.style.display = 'none';
-          if (screenBox) screenBox.style.display = 'block';
-          renderScreen(currentIndex);
-          startAutoPlay();
+        // Reset active buttons
+        if (btnVideo) btnVideo.classList.toggle('active', mode === 'video');
+        if (btnScreens) btnScreens.classList.toggle('active', mode === 'screens');
+        if (btnLive) btnLive.classList.toggle('active', mode === 'live');
+
+        // Toggle containers
+        if (videoBox) videoBox.style.display = (mode === 'video') ? 'flex' : 'none';
+        if (screenBox) screenBox.style.display = (mode === 'screens') ? 'block' : 'none';
+        if (sandboxBox) sandboxBox.style.display = (mode === 'live') ? 'block' : 'none';
+
+        if (mode === 'video') {
+          isVideoPlaying = true;
+          startScreencastLoop();
+          clearInterval(screenAutoTimer);
+        } else if (mode === 'screens') {
+          clearInterval(videoInterval);
+          renderScreen(currentScreenIndex);
+          startScreenAutoPlay();
+        } else if (mode === 'live') {
+          clearInterval(videoInterval);
+          clearInterval(screenAutoTimer);
         }
       };
 
-      // Initialize
-      renderScreen(0);
-      startAutoPlay();
+      // Initial Start
+      startScreencastLoop();
     })();
   </script>
 </body>
