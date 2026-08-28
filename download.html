@@ -451,94 +451,199 @@
     }
 
     /* ------------------------------------------------------------
-       3.5 VIDEO REEL SHOWCASE
+       3.5 REAL APP INTERACTIVE PHONE WALKTHROUGH & SANDBOX
        ------------------------------------------------------------ */
-    .video-showcase-sec {
-      padding: 40px 0 70px;
+    .app-walkthrough-sec {
+      padding: 50px 0 80px;
       border-top: 1px solid var(--border);
     }
 
-    .video-stage-wrapper {
-      position: relative;
-      width: 100%;
-      max-width: 960px;
-      margin: 0 auto;
-      aspect-ratio: 16 / 9;
-      background: radial-gradient(circle at 50% 30%, #0F1523 0%, #05070D 100%);
-      border-radius: 24px;
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      box-shadow: 0 25px 80px rgba(0, 0, 0, 0.8), 0 0 50px rgba(124, 106, 247, 0.2);
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
+    .walkthrough-grid {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 40px;
+      align-items: center;
+      margin-top: 36px;
     }
 
-    .laser-beam {
+    /* Titanium Smartphone Frame */
+    .phone-mockup-frame {
+      width: 100%;
+      max-width: 340px;
+      margin: 0 auto;
+      background: #181D2A;
+      border-radius: 46px;
+      padding: 10px;
+      box-shadow: 0 25px 70px rgba(0, 0, 0, 0.9), 0 0 0 2px rgba(255, 255, 255, 0.15), 0 0 40px rgba(124, 106, 247, 0.25);
+      position: relative;
+    }
+
+    .phone-screen-inner {
+      background: #090D16;
+      border-radius: 36px;
+      overflow: hidden;
+      aspect-ratio: 9 / 19.5;
+      position: relative;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .phone-notch-bar {
       position: absolute;
+      top: 10px;
       left: 0;
       right: 0;
-      height: 3px;
-      background: linear-gradient(90deg, transparent, #10B981, #45E0D6, transparent);
-      box-shadow: 0 0 15px #10B981, 0 0 30px #45E0D6;
-      animation: laserSweep 2s ease-in-out infinite alternate;
-    }
-
-    @keyframes laserSweep {
-      0% { top: 15%; opacity: 0.8; }
-      100% { top: 85%; opacity: 1; }
-    }
-
-    .scene {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 30px;
-      opacity: 0;
-      visibility: hidden;
-      transform: scale(0.95);
-      transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    .scene.active {
-      opacity: 1;
-      visibility: visible;
-      transform: scale(1);
-    }
-
-    .ui-pill {
-      background: rgba(13, 18, 30, 0.85);
-      backdrop-filter: blur(16px);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 12px;
-      padding: 10px 16px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-    }
-
-    .video-timeline {
-      height: 5px;
-      background: rgba(255, 255, 255, 0.15);
-      width: 100%;
-      cursor: pointer;
-      position: relative;
-      overflow: hidden;
-    }
-    .video-progress {
-      height: 100%;
-      background: linear-gradient(90deg, #7C6AF7, #38BDF8, #10B981);
-      width: 0%;
-      transition: width 0.1s linear;
-    }
-
-    .glass-control-bar {
-      background: linear-gradient(180deg, transparent 0%, rgba(5, 7, 13, 0.95) 100%);
-      padding: 12px 20px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      z-index: 50;
+      padding: 0 20px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #FFFFFF;
+      z-index: 30;
+      pointer-events: none;
+    }
+
+    .dynamic-island {
+      width: 80px;
+      height: 22px;
+      background: #000000;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .phone-screen-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: top center;
+      transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .phone-sandbox-iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: #080A10;
+    }
+
+    /* Mode Pill Switch above phone */
+    .phone-mode-switch {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      background: rgba(13, 18, 30, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 999px;
+      padding: 4px;
+      margin-bottom: 18px;
+    }
+
+    .phone-mode-btn {
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #94A3B8;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .phone-mode-btn.active {
+      color: #FFFFFF;
+      background: linear-gradient(135deg, #7C6AF7, #6350E8);
+      box-shadow: 0 2px 10px rgba(124, 106, 247, 0.4);
+    }
+
+    /* Feature Selector Cards List */
+    .walkthrough-menu {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .walk-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 16px 20px;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
+      overflow: hidden;
+      text-align: left;
+    }
+
+    .walk-item:hover {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(124, 106, 247, 0.3);
+      transform: translateX(4px);
+    }
+
+    .walk-item.active {
+      background: rgba(124, 106, 247, 0.1);
+      border-color: rgba(124, 106, 247, 0.6);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(124, 106, 247, 0.2);
+    }
+
+    .walk-item-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 5px;
+    }
+
+    .walk-item-title {
+      font-family: var(--font-heading);
+      font-size: 15.5px;
+      font-weight: 700;
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .walk-item-tag {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 700;
+      color: #38BDF8;
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      padding: 2px 7px;
+      border-radius: 4px;
+    }
+
+    .walk-item-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .walk-progress-line {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      height: 3px;
+      width: 0%;
+      background: linear-gradient(90deg, #7C6AF7, #38BDF8, #10B981);
+    }
+    .walk-item.active .walk-progress-line {
+      width: 100%;
+      transition: width 4s linear;
+    }
+
+    @media (max-width: 900px) {
+      .walkthrough-grid {
+        grid-template-columns: 1fr;
+      }
     }
 
     /* ------------------------------------------------------------
@@ -893,214 +998,149 @@
       </div>
     </div>
 
-    <!-- 3.5 Official Animated Video Reel Section -->
-    <section class="video-showcase-sec">
+    <!-- 3.5 Real App Interactive Walkthrough & Simulator -->
+    <section class="app-walkthrough-sec">
       <div class="section-header">
         <div class="pill-badge" style="margin-bottom: 12px;">
-          <span>🎬 OFFICIAL PRODUCT VIDEO REEL</span>
+          <span>📱 LIVE INTERACTIVE WALKTHROUGH</span>
         </div>
-        <h2>Δείτε το Budget Assistant σε Δράση (Video 45'')</h2>
-        <p>Παρακολουθήστε τη σάρωση αποδείξεων σε 2'', τον ζωντανό συγχρονισμό ζευγαριών και τον δείκτη Financial Health.</p>
+        <h2>Δείτε την Πραγματική Εφαρμογή σε Χρήση</h2>
+        <p>Περιηγηθείτε στις πραγματικές οθόνες του Budget Assistant ή δοκιμάστε το live απευθείας μέσα από το smartphone simulator.</p>
       </div>
 
-      <div class="video-stage-wrapper" id="videoContainer">
-        <!-- Top Status Bar -->
-        <div style="position: absolute; top: 16px; left: 20px; right: 20px; display: flex; align-items: center; justify-content: space-between; z-index: 40; pointer-events: none;">
-          <div style="display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.6); backdrop-filter: blur(12px); padding: 6px 14px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.12);">
-            <img src="logo-mark.png" alt="Logo" style="width: 20px; height: 20px; object-fit: contain;">
-            <span style="font-family: var(--font-heading); font-weight: 700; color: #FFF; font-size: 13px;">Budget Assistant</span>
-            <span style="font-size: 9px; font-family: var(--font-mono); background: rgba(16,185,129,0.2); color: #34D399; padding: 1px 5px; border-radius: 4px; border: 1px solid rgba(16,185,129,0.4);">60 FPS REEL</span>
-          </div>
-          <div style="display: flex; align-items: center; gap: 8px; background: rgba(0,0,0,0.6); backdrop-filter: blur(12px); padding: 6px 14px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.12); font-size: 12px; font-family: var(--font-mono); color: #CBD5E1;">
-            <span id="chapterTitle" style="color: #38BDF8; font-weight: 700;">01. Εισαγωγή</span>
-            <span style="color: #64748B;">|</span>
-            <span id="timeCounter">00:00 / 00:45</span>
-          </div>
-        </div>
-
-        <!-- Scene 1: Intro -->
-        <div class="scene active" id="scene1">
-          <img src="logo-mark.png" alt="Logo" style="width: 64px; height: 64px; object-fit: contain; margin-bottom: 16px; filter: drop-shadow(0 0 20px rgba(124,106,247,0.8));">
-          <div style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); font-size: 12px; font-family: var(--font-mono); color: #CBD5E1; margin-bottom: 12px;">
-            <span>⚡ The Sovereign Financial Operating System</span>
-          </div>
-          <h3 style="font-family: var(--font-heading); font-size: 32px; font-weight: 900; color: #FFF; text-align: center; line-height: 1.2; margin-bottom: 10px;">
-            Όλα τα Οικονομικά σου.<br>
-            <span class="gradient-text">Σε Ένα Ενιαίο Cockpit.</span>
-          </h3>
-          <p style="font-size: 14px; color: var(--text-muted); text-align: center; max-width: 480px;">
-            Χωρίς χαοτικές λίστες. Χωρίς ακριβές μηνιαίες συνδρομές. 100% Δικό σας για Πάντα.
-          </p>
-        </div>
-
-        <!-- Scene 2: AI Scanner Demo -->
-        <div class="scene" id="scene2">
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: center; width: 100%; max-width: 780px;">
-            <div style="position: relative; background: rgba(0,0,0,0.75); border: 2px dashed rgba(16,185,129,0.6); border-radius: 16px; padding: 16px; overflow: hidden; height: 210px; display: flex; flex-direction: column; justify-content: space-between;">
-              <div class="laser-beam"></div>
-              <div style="display: flex; justify-content: space-between; font-size: 11px; font-family: var(--font-mono); color: #10B981;">
-                <span>📷 AI CAMERA OCR VIEW</span>
-                <span>● SCANNING...</span>
-              </div>
-              <div style="background: rgba(255,255,255,0.06); padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); font-family: var(--font-mono); font-size: 12px;">
-                <div style="display: flex; justify-content: space-between; color: #FFF; font-weight: bold; margin-bottom: 4px;">
-                  <span>🛒 ΣΚΛΑΒΕΝΙΤΗΣ Α.Ε.</span>
-                  <span style="color: #10B981;">43,20 €</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; color: #94A3B8; font-size: 10px;">
-                  <span>18/08/2026 · 14:22</span>
-                  <span>ΦΠΑ 13%: 4,97 €</span>
-                </div>
-              </div>
-              <div style="display: flex; align-items: center; gap: 8px; background: rgba(16,185,129,0.2); color: #34D399; border: 1px solid rgba(16,185,129,0.4); padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: bold;">
-                <span>✓</span>
-                <span>Αναγνώριση &amp; Κατηγοριοποίηση σε 1,8''!</span>
-              </div>
-            </div>
-
-            <div style="text-align: left;">
-              <span style="display: inline-block; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; background: rgba(124,106,247,0.2); color: #C4B5FD; border: 1px solid rgba(124,106,247,0.4); font-family: var(--font-mono); margin-bottom: 6px;">SUPERPOWER 01</span>
-              <h3 style="font-family: var(--font-heading); font-size: 22px; font-weight: 800; color: #FFF; margin-bottom: 8px;">AI Σάρωση Αποδείξεων</h3>
-              <p style="font-size: 13px; color: #CBD5E1; line-height: 1.5; margin-bottom: 12px;">
-                Φωτογραφίζετε την απόδειξη και το νευρωνικό AI εξάγει αυτόματα ποσά, ΦΠΑ, ημερομηνία και κατηγορία χωρίς πληκτρολόγηση.
-              </p>
-              <div style="font-size: 12px; color: #34D399; font-weight: 600;">
-                🔒 100% Offline &amp; Private — Μηδενική έκθεση σε τράπεζες
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Scene 3: Couples Live Sync -->
-        <div class="scene" id="scene3">
-          <div style="text-align: center; margin-bottom: 14px;">
-            <span style="display: inline-block; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; background: rgba(236,72,153,0.2); color: #F472B6; border: 1px solid rgba(236,72,153,0.4); font-family: var(--font-mono); margin-bottom: 6px;">SUPERPOWER 02</span>
-            <h3 style="font-family: var(--font-heading); font-size: 22px; font-weight: 800; color: #FFF;">Ζωντανό Κοινό Ταμείο Ζευγαριών</h3>
-          </div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; width: 100%; max-width: 680px;">
-            <div class="ui-pill" style="border-color: rgba(124,106,247,0.3); background: rgba(30,27,75,0.4);">
-              <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 8px;">
-                <strong style="color: #FFF;">👨 Μάριος</strong>
-                <span style="font-size: 10px; font-family: var(--font-mono); color: #38BDF8;">Πληρωμή</span>
-              </div>
-              <div style="background: rgba(0,0,0,0.5); padding: 8px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); font-size: 12px; margin-bottom: 6px;">
-                <div style="display: flex; justify-content: space-between; font-weight: bold; color: #FFF;">
-                  <span>⛽ Shell Βενζίνη</span>
-                  <span style="color: #F87171;">−65,00 €</span>
-                </div>
-              </div>
-              <div style="font-size: 11px; color: #94A3B8;">Κοινό Έξοδο (50/50)</div>
-            </div>
-
-            <div class="ui-pill" style="border-color: rgba(236,72,153,0.3); background: rgba(80,7,36,0.4);">
-              <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 8px;">
-                <strong style="color: #FFF;">👩 Ελένη</strong>
-                <span style="font-size: 10px; font-family: var(--font-mono); color: #34D399;">Live Sync</span>
-              </div>
-              <div style="background: rgba(16,185,129,0.2); border: 1px solid rgba(16,185,129,0.4); padding: 8px; border-radius: 8px; font-size: 12px; margin-bottom: 6px;">
-                <div style="display: flex; justify-content: space-between; font-weight: bold; color: #34D399;">
-                  <span>Οφειλή στον Μάριο</span>
-                  <span>+32,50 €</span>
-                </div>
-              </div>
-              <div style="font-size: 11px; color: #34D399; font-weight: bold;">✓ Υπολογίστηκε αυτόματα!</div>
-            </div>
-          </div>
-          <p style="font-size: 12.5px; color: var(--text-muted); margin-top: 14px; text-align: center;">
-            Τέρμα οι σημειώσεις και οι παρεξηγήσεις. Βλέπετε σε πραγματικό χρόνο ποιος πλήρωσε και ποιος χρωστάει.
-          </p>
-        </div>
-
-        <!-- Scene 4: Safe-to-Spend & Health Score -->
-        <div class="scene" id="scene4">
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: center; width: 100%; max-width: 780px;">
-            <div class="ui-pill" style="border-color: rgba(16,185,129,0.3); background: rgba(0,0,0,0.6); padding: 18px;">
-              <div style="display: flex; justify-content: space-between; font-size: 12px; color: #94A3B8; margin-bottom: 12px; font-family: var(--font-mono);">
-                <span>SAFE-TO-SPEND RADAR</span>
-                <span style="color: #34D399; font-weight: bold;">34,50 € / ΗΜΕΡΑ</span>
-              </div>
-              <div style="margin-bottom: 14px;">
-                <div style="display: flex; justify-content: space-between; font-size: 12px; color: #FFF; margin-bottom: 4px;">
-                  <span>Υπόλοιπο μετά από πάγια</span>
-                  <span style="font-weight: bold; color: #34D399;">1.069,50 €</span>
-                </div>
-                <div style="width: 100%; height: 8px; background: rgba(255,255,255,0.1); border-radius: 999px; overflow: hidden;">
-                  <div style="width: 72%; height: 100%; background: linear-gradient(90deg, #10B981, #38BDF8); border-radius: 999px;"></div>
-                </div>
-              </div>
-              <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.05); padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1);">
-                <div>
-                  <div style="font-size: 12px; font-weight: bold; color: #FFF;">Financial Health Score</div>
-                  <div style="font-size: 10px; color: #94A3B8;">Runway: 4,8 Μήνες · Άριστο</div>
-                </div>
-                <div style="width: 42px; height: 42px; border-radius: 50%; background: rgba(16,185,129,0.2); border: 2px solid #34D399; display: flex; align-items: center; justify-content: center; font-family: var(--font-heading); font-weight: 900; color: #34D399; font-size: 16px;">
-                  92
-                </div>
-              </div>
-            </div>
-
-            <div style="text-align: left;">
-              <span style="display: inline-block; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; background: rgba(16,185,129,0.2); color: #34D399; border: 1px solid rgba(16,185,129,0.4); font-family: var(--font-mono); margin-bottom: 6px;">SUPERPOWER 03</span>
-              <h3 style="font-family: var(--font-heading); font-size: 22px; font-weight: 800; color: #FFF; margin-bottom: 8px;">Προστασία Ρευστότητας</h3>
-              <p style="font-size: 13px; color: #CBD5E1; line-height: 1.5; margin-bottom: 12px;">
-                Γνωρίζετε κάθε πρωί ακριβώς πόσα μπορείτε να ξοδέψετε σήμερα χωρίς να διακινδυνεύσετε τους λογαριασμούς του τέλους του μήνα.
-              </p>
-              <div style="font-size: 12px; color: #38BDF8; font-weight: 600;">
-                📊 Αυτόματος υπολογισμός πάγιων &amp; ενοικίου
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Scene 5: Outro & CTA -->
-        <div class="scene" id="scene5">
-          <div style="text-align: center; max-width: 540px;">
-            <div style="display: inline-block; padding: 4px 14px; border-radius: 999px; background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.35); color: #34D399; font-size: 11px; font-weight: bold; font-family: var(--font-mono); margin-bottom: 10px;">
-              👑 LIFETIME SPECIAL OFFER · 9,99€ ΕΦΑΠΑΞ
-            </div>
-            <h3 style="font-family: var(--font-heading); font-size: 30px; font-weight: 900; color: #FFF; margin-bottom: 8px;">
-              Ξεκινήστε Σήμερα σε 30''.
-            </h3>
-            <p style="font-size: 13.5px; color: var(--text-muted); margin-bottom: 20px;">
-              Διαθέσιμο για Android (APK / Play Store) και Web Desktop Studio σε PC / Mac / iPhone.
-            </p>
-            <div style="display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap;">
-              <a href="/BudgetAssistant-Latest.apk" class="btn-download-primary" style="width: auto; padding: 10px 20px; font-size: 13px;" download="BudgetAssistant.apk">
-                <span>📲</span>
-                <span>Λήψη Android App</span>
-              </a>
-              <a href="/app?demo=true" class="btn-web-primary" style="width: auto; padding: 10px 20px; font-size: 13px;">
-                <span>✨</span>
-                <span>Δοκιμή Live Demo</span>
-              </a>
-            </div>
-          </div>
-        </div>
-
-        <!-- Video Player Controls & Progress -->
+      <div class="walkthrough-grid">
+        
+        <!-- Left: Realistic Titanium Smartphone Frame -->
         <div>
-          <div class="video-timeline" id="videoTimeline" onclick="seekVideo(event)">
-            <div class="video-progress" id="videoProgress"></div>
+          <!-- Switch mode: Screens vs Live Sandbox -->
+          <div class="phone-mode-switch">
+            <button type="button" class="phone-mode-btn active" id="btnModeScreens" onclick="setPhoneMode('screens')">
+              📸 Πραγματικές Οθόνες (Auto Flow)
+            </button>
+            <button type="button" class="phone-mode-btn" id="btnModeLive" onclick="setPhoneMode('live')">
+              ⚡ Live Web Demo
+            </button>
           </div>
-          <div class="glass-control-bar">
-            <div style="display: flex; align-items: center; gap: 12px;">
-              <button id="playBtn" onclick="togglePlay()" style="width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,0.1); border: none; color: #FFF; cursor: pointer; display: flex; align-items: center; justify-content: center;">
-                <svg id="playIcon" style="width: 14px; height: 14px; margin-left: 2px;" fill="currentColor" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                <svg id="pauseIcon" style="width: 14px; height: 14px; display: none;" fill="currentColor" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
-              </button>
-              <button onclick="restartVideo()" style="background: none; border: none; color: #94A3B8; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 4px;">
-                <span>↺</span> Επανεκκίνηση
-              </button>
-            </div>
-            <div style="display: flex; align-items: center; gap: 6px;">
-              <button onclick="jumpTo(1)" style="padding: 4px 8px; border-radius: 6px; background: rgba(255,255,255,0.06); border: none; color: #CBD5E1; font-size: 10px; font-family: var(--font-mono); cursor: pointer;">01 Intro</button>
-              <button onclick="jumpTo(2)" style="padding: 4px 8px; border-radius: 6px; background: rgba(255,255,255,0.06); border: none; color: #34D399; font-size: 10px; font-family: var(--font-mono); cursor: pointer;">02 AI Scanner</button>
-              <button onclick="jumpTo(3)" style="padding: 4px 8px; border-radius: 6px; background: rgba(255,255,255,0.06); border: none; color: #F472B6; font-size: 10px; font-family: var(--font-mono); cursor: pointer;">03 Κοινό Ταμείο</button>
-              <button onclick="jumpTo(4)" style="padding: 4px 8px; border-radius: 6px; background: rgba(255,255,255,0.06); border: none; color: #38BDF8; font-size: 10px; font-family: var(--font-mono); cursor: pointer;">04 Radar</button>
-              <button onclick="jumpTo(5)" style="padding: 4px 8px; border-radius: 6px; background: rgba(255,255,255,0.06); border: none; color: #C4B5FD; font-size: 10px; font-family: var(--font-mono); cursor: pointer;">05 CTA</button>
+
+          <div class="phone-mockup-frame">
+            <div class="phone-screen-inner">
+              <!-- Top Status Bar & Dynamic Island -->
+              <div class="phone-notch-bar">
+                <span>09:41</span>
+                <div class="dynamic-island">
+                  <span style="width: 8px; height: 8px; border-radius: 50%; background: #10B981;"></span>
+                </div>
+                <span>5G 🔋</span>
+              </div>
+
+              <!-- Screen Image Container -->
+              <div id="phoneScreenContainer" style="width: 100%; height: 100%; position: relative;">
+                <img id="phoneScreenImg" src="assets/playstore/01_Real_Transactions.png" alt="Budget Assistant Live Screen" class="phone-screen-img">
+              </div>
+
+              <!-- Live Interactive Sandbox (Hidden by default) -->
+              <div id="phoneSandboxContainer" style="width: 100%; height: 100%; display: none;">
+                <iframe src="/app?demo=true" class="phone-sandbox-iframe" title="Budget Assistant Live Sandbox"></iframe>
+              </div>
             </div>
           </div>
         </div>
+
+        <!-- Right: Feature Navigation Selector Menu -->
+        <div class="walkthrough-menu">
+          
+          <!-- Item 1: Transactions -->
+          <div class="walk-item active" id="walkItem0" onclick="selectWalkScreen(0)">
+            <div class="walk-item-header">
+              <div class="walk-item-title">
+                <span>📝</span>
+                <span>Καθημερινή Ρευστότητα &amp; Safe-to-Spend</span>
+              </div>
+              <span class="walk-item-tag">CORE COCKPIT</span>
+            </div>
+            <p class="walk-item-desc">
+              Πραγματικό timeline κινήσεων, υπόλοιπα πορτοφολιών και ζωντανός υπολογισμός ημερήσιου ορίου εξόδων.
+            </p>
+            <div class="walk-progress-line"></div>
+          </div>
+
+          <!-- Item 2: Statistics -->
+          <div class="walk-item" id="walkItem1" onclick="selectWalkScreen(1)">
+            <div class="walk-item-header">
+              <div class="walk-item-title">
+                <span>📊</span>
+                <span>Αναλυτικά Διαγράμματα &amp; Στατιστικά</span>
+              </div>
+              <span class="walk-item-tag">VISUAL ANALYTICS</span>
+            </div>
+            <p class="walk-item-desc">
+              Donut charts εξόδων ανά κατηγορία, μηνιαίες τάσεις και πλήρης σύγκριση εσόδων-εξόδων.
+            </p>
+            <div class="walk-progress-line"></div>
+          </div>
+
+          <!-- Item 3: Family Hub -->
+          <div class="walk-item" id="walkItem2" onclick="selectWalkScreen(2)">
+            <div class="walk-item-header">
+              <div class="walk-item-title">
+                <span>👥</span>
+                <span>Ζωντανό Κοινό Ταμείο Ζευγαριών</span>
+              </div>
+              <span class="walk-item-tag">MULTI-USER SYNC</span>
+            </div>
+            <p class="walk-item-desc">
+              Αυτόματος υπολογισμός «ποιος χρωστάει τι», διαχωρισμός κοινών λογαριασμών και άμεσος συγχρονισμός.
+            </p>
+            <div class="walk-progress-line"></div>
+          </div>
+
+          <!-- Item 4: Budgets -->
+          <div class="walk-item" id="walkItem3" onclick="selectWalkScreen(3)">
+            <div class="walk-item-header">
+              <div class="walk-item-title">
+                <span>🎯</span>
+                <span>Προϋπολογισμοί &amp; Όρια Κατηγοριών</span>
+              </div>
+              <span class="walk-item-tag">BUDGET TRACKER</span>
+            </div>
+            <p class="walk-item-desc">
+              Όρια για Supermarket, διασκέδαση και καύσιμα με έγκαιρες ειδοποιήσεις πριν την υπέρβαση.
+            </p>
+            <div class="walk-progress-line"></div>
+          </div>
+
+          <!-- Item 5: AI Advisor -->
+          <div class="walk-item" id="walkItem4" onclick="selectWalkScreen(4)">
+            <div class="walk-item-header">
+              <div class="walk-item-title">
+                <span>🤖</span>
+                <span>AI Οικονομικός Σύμβουλος</span>
+              </div>
+              <span class="walk-item-tag">INTELLIGENCE</span>
+            </div>
+            <p class="walk-item-desc">
+              Προσωποποιημένες συμβουλές εξοικονόμησης, ανάλυση επαναλαμβανόμενων εξόδων και πρόβλεψη υπολοίπου.
+            </p>
+            <div class="walk-progress-line"></div>
+          </div>
+
+          <!-- Item 6: Financial Health -->
+          <div class="walk-item" id="walkItem5" onclick="selectWalkScreen(5)">
+            <div class="walk-item-header">
+              <div class="walk-item-title">
+                <span>🩺</span>
+                <span>Financial Health Score (0-100)</span>
+              </div>
+              <span class="walk-item-tag">HEALTH METRICS</span>
+            </div>
+            <p class="walk-item-desc">
+              Δείκτης οικονομικής υγείας 0-100, αποταμιευτικός ρυθμός και μηνιαίο runway επιβίωσης.
+            </p>
+            <div class="walk-progress-line"></div>
+          </div>
+
+        </div>
+
       </div>
     </section>
 
@@ -1215,91 +1255,90 @@
     <div class="container">© 2026 Budget Assistant. All rights reserved. Sovereign Financial Operating System.</div>
   </footer>
 
-  <!-- Script for Video Reel Animation & Timing -->
+  <!-- Real App Interactive Phone Walkthrough Controller Script -->
   <script>
     (function() {
-      const DURATION = 45; // 45 seconds total
-      let currentTime = 0;
-      let isPlaying = true;
-      let animInterval = null;
-
-      const chapters = [
-        { start: 0, end: 8, id: 'scene1', title: '01. Εισαγωγή & Όραμα' },
-        { start: 8, end: 19, id: 'scene2', title: '02. 🤖 AI OCR Σάρωση σε 2\'' },
-        { start: 19, end: 30, id: 'scene3', title: '03. 👥 Ζωντανό Κοινό Ταμείο' },
-        { start: 30, end: 39, id: 'scene4', title: '04. 🎯 Safe-to-Spend & Health' },
-        { start: 39, end: 45, id: 'scene5', title: '05. 👑 Lifetime 9,99€ Offer' }
+      const screens = [
+        { img: 'assets/playstore/01_Real_Transactions.png', alt: 'Συναλλαγές & Safe-to-Spend' },
+        { img: 'assets/playstore/02_Real_Statistics.png', alt: 'Διαγράμματα & Στατιστικά' },
+        { img: 'assets/playstore/02_Real_Family_Hub.png', alt: 'Ζωντανό Κοινό Ταμείο' },
+        { img: 'assets/playstore/03_Real_Category_Budgets.png', alt: 'Προϋπολογισμοί Κατηγοριών' },
+        { img: 'assets/playstore/04_Real_AI_Advisor_Chat.png', alt: 'AI Οικονομικός Σύμβουλος' },
+        { img: 'assets/playstore/05_Real_Accounts_Health.png', alt: 'Financial Health Score' }
       ];
 
-      function update() {
-        if (!isPlaying) return;
-        currentTime += 0.1;
-        if (currentTime >= DURATION) {
-          currentTime = 0;
+      let currentIndex = 0;
+      let autoTimer = null;
+      let isLiveSandbox = false;
+
+      function renderScreen(index) {
+        currentIndex = index;
+        const imgEl = document.getElementById('phoneScreenImg');
+        if (imgEl && screens[index]) {
+          imgEl.style.opacity = '0';
+          imgEl.style.transform = 'scale(0.97)';
+          setTimeout(() => {
+            imgEl.src = screens[index].img;
+            imgEl.alt = screens[index].alt;
+            imgEl.style.opacity = '1';
+            imgEl.style.transform = 'scale(1)';
+          }, 150);
         }
 
-        const pct = (currentTime / DURATION) * 100;
-        const prog = document.getElementById('videoProgress');
-        if (prog) prog.style.width = pct + '%';
-
-        const curSec = Math.floor(currentTime);
-        const curStr = (curSec < 10 ? '0' : '') + curSec;
-        const timeEl = document.getElementById('timeCounter');
-        if (timeEl) timeEl.innerText = `00:${curStr} / 00:45`;
-
-        const activeChapter = chapters.find(c => currentTime >= c.start && currentTime < c.end) || chapters[0];
-        const chapEl = document.getElementById('chapterTitle');
-        if (chapEl) chapEl.innerText = activeChapter.title;
-
-        for (let i = 1; i <= 5; i++) {
-          const s = document.getElementById('scene' + i);
-          if (s) {
-            s.classList.toggle('active', 'scene' + i === activeChapter.id);
+        // Update active class on items
+        for (let i = 0; i < screens.length; i++) {
+          const item = document.getElementById('walkItem' + i);
+          if (item) {
+            item.classList.toggle('active', i === index);
           }
         }
       }
 
-      window.togglePlay = function() {
-        isPlaying = !isPlaying;
-        const pIcon = document.getElementById('playIcon');
-        const paIcon = document.getElementById('pauseIcon');
-        if (pIcon) pIcon.style.display = isPlaying ? 'none' : 'block';
-        if (paIcon) paIcon.style.display = isPlaying ? 'block' : 'none';
+      function startAutoPlay() {
+        clearInterval(autoTimer);
+        autoTimer = setInterval(() => {
+          if (!isLiveSandbox) {
+            let nextIndex = (currentIndex + 1) % screens.length;
+            renderScreen(nextIndex);
+          }
+        }, 4500);
+      }
+
+      window.selectWalkScreen = function(index) {
+        if (isLiveSandbox) {
+          window.setPhoneMode('screens');
+        }
+        renderScreen(index);
+        startAutoPlay(); // reset timer
       };
 
-      window.restartVideo = function() {
-        currentTime = 0;
-        isPlaying = true;
-        const pIcon = document.getElementById('playIcon');
-        const paIcon = document.getElementById('pauseIcon');
-        if (pIcon) pIcon.style.display = 'none';
-        if (paIcon) paIcon.style.display = 'block';
-      };
+      window.setPhoneMode = function(mode) {
+        const btnScreens = document.getElementById('btnModeScreens');
+        const btnLive = document.getElementById('btnModeLive');
+        const screenBox = document.getElementById('phoneScreenContainer');
+        const sandboxBox = document.getElementById('phoneSandboxContainer');
 
-      window.jumpTo = function(sceneNum) {
-        const ch = chapters[sceneNum - 1];
-        if (ch) {
-          currentTime = ch.start;
-          isPlaying = true;
-          const pIcon = document.getElementById('playIcon');
-          const paIcon = document.getElementById('pauseIcon');
-          if (pIcon) pIcon.style.display = 'none';
-          if (paIcon) paIcon.style.display = 'block';
-          update();
+        if (mode === 'live') {
+          isLiveSandbox = true;
+          btnScreens.classList.remove('active');
+          btnLive.classList.add('active');
+          if (screenBox) screenBox.style.display = 'none';
+          if (sandboxBox) sandboxBox.style.display = 'block';
+          clearInterval(autoTimer);
+        } else {
+          isLiveSandbox = false;
+          btnLive.classList.remove('active');
+          btnScreens.classList.add('active');
+          if (sandboxBox) sandboxBox.style.display = 'none';
+          if (screenBox) screenBox.style.display = 'block';
+          renderScreen(currentIndex);
+          startAutoPlay();
         }
       };
 
-      window.seekVideo = function(e) {
-        const timeline = document.getElementById('videoTimeline');
-        if (!timeline) return;
-        const rect = timeline.getBoundingClientRect();
-        const clickX = e.clientX - rect.left;
-        const pct = Math.max(0, Math.min(1, clickX / rect.width));
-        currentTime = pct * DURATION;
-        update();
-      };
-
-      animInterval = setInterval(update, 100);
+      // Initialize
+      renderScreen(0);
+      startAutoPlay();
     })();
   </script>
 </body>
