@@ -32381,17 +32381,26 @@ function appendChatMessage(sender, htmlContent, persist = true) {
   }
 }
 
+function handleAdvisorChatInput(el) {
+  if (!el) return;
+  el.style.height = 'auto';
+  const newHeight = Math.min(el.scrollHeight, 130);
+  el.style.height = (newHeight > 44 ? newHeight : 44) + 'px';
+}
+
 function submitCoachInput() {
   const inp = document.getElementById('advisor-chat-input');
   if (!inp) return;
   const val = inp.value.trim();
   if (!val) return;
   inp.value = '';
+  inp.style.height = '44px';
   submitCoachQuery(val);
 }
 
 function handleAdvisorChatKeydown(e) {
-  if (e.key === 'Enter') {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
     submitCoachInput();
   }
 }
