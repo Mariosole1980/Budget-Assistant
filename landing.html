@@ -498,77 +498,73 @@
       border-radius: var(--radius-md);
     }
 
-    .trust-strip {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 30px;
-      color: var(--text-dim);
-      font-size: 13px;
-      font-weight: 500;
-      flex-wrap: wrap;
-      margin-bottom: 48px;
-    }
-
     /* ==========================================================================
-       HERO BESPOKE PRODUCT SHOWCASE
+       HERO PREMIUM PRODUCT CANVAS SHOWCASE
        ========================================================================== */
-    .hero-product-showcase {
-      max-width: 960px;
+    .hero-canvas-wrap {
+      max-width: 1040px;
       margin: 0 auto;
-      perspective: 1000px;
+      position: relative;
     }
 
-    .product-window-frame {
-      background: #0D111A;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: var(--radius-lg);
+    .hero-canvas-glow {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 85%;
+      height: 75%;
+      background: radial-gradient(circle, rgba(124, 106, 247, 0.22) 0%, rgba(56, 189, 248, 0.08) 50%, transparent 75%);
+      filter: blur(60px);
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .hero-canvas-frame {
+      position: relative;
+      z-index: 1;
+      background: rgba(13, 17, 26, 0.95);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: var(--radius-xl);
       box-shadow: 
-        0 24px 70px rgba(0, 0, 0, 0.7),
-        0 0 0 1px rgba(124, 106, 247, 0.12),
-        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        0 24px 80px rgba(0, 0, 0, 0.8),
+        0 0 0 1px rgba(124, 106, 247, 0.18),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15);
       overflow: hidden;
       text-align: left;
     }
 
-    .window-header {
+    .canvas-topbar {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 12px 18px;
-      background: rgba(255, 255, 255, 0.02);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      padding: 14px 22px;
+      background: rgba(255, 255, 255, 0.025);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.07);
     }
 
-    .window-traffic-lights {
+    .canvas-topbar-left {
       display: flex;
-      gap: 6px;
+      align-items: center;
+      gap: 12px;
     }
 
-    .window-traffic-lights .light {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      display: inline-block;
-    }
-    .light.red { background: #EF4444; }
-    .light.yellow { background: #F59E0B; }
-    .light.green { background: #10B981; }
-
-    .window-title-chip {
+    .canvas-status-pill {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      font-size: 12px;
+      gap: 7px;
+      font-size: 11.5px;
       font-weight: 600;
-      color: var(--text-muted);
-      background: rgba(255, 255, 255, 0.04);
-      padding: 3px 12px;
+      color: #34D399;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.28);
+      padding: 4px 10px;
       border-radius: 999px;
-      border: 1px solid rgba(255, 255, 255, 0.06);
     }
 
-    .pulse-status {
+    .canvas-status-dot {
       width: 6px;
       height: 6px;
       border-radius: 50%;
@@ -576,372 +572,397 @@
       box-shadow: 0 0 8px #10B981;
     }
 
-    .tag-crypto {
+    .canvas-month-chip {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: rgba(255, 255, 255, 0.05);
+      padding: 4px 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .canvas-topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .canvas-quick-tag {
       font-size: 11px;
       font-weight: 600;
       color: var(--text-dim);
-    }
-
-    .window-content-grid {
-      display: grid;
-      grid-template-columns: 1.15fr 0.85fr;
-      gap: 20px;
-      padding: 24px;
-    }
-
-    .mockup-panel {
-      background: #090B10;
-      border: 1px solid rgba(255, 255, 255, 0.05);
-      border-radius: var(--radius-md);
-      padding: 20px;
-    }
-
-    .mockup-panel-header {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      margin-bottom: 18px;
-    }
-
-    .mockup-label {
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 1px;
-      color: var(--text-dim);
-      margin-bottom: 4px;
-    }
-
-    .mockup-big-val {
-      font-family: var(--font-heading);
-      font-size: 32px;
-      font-weight: 800;
-      color: #fff;
-      letter-spacing: -0.5px;
-    }
-
-    .mockup-trend-badge {
       display: inline-flex;
       align-items: center;
-      font-size: 11.5px;
-      font-weight: 600;
-      padding: 3px 8px;
-      border-radius: 6px;
-    }
-    .mockup-trend-badge.positive {
-      background: rgba(16, 185, 129, 0.15);
-      color: #34D399;
-      border: 1px solid rgba(16, 185, 129, 0.3);
+      gap: 5px;
     }
 
-    .mockup-budget-meter {
-      margin-bottom: 20px;
-    }
-
-    .meter-info {
+    .canvas-body {
+      padding: 24px;
       display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .canvas-metrics-grid {
+      display: grid;
+      grid-template-columns: 1.3fr 1.2fr 1fr;
+      gap: 16px;
+    }
+
+    .metric-card {
+      background: rgba(7, 9, 14, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: var(--radius-md);
+      padding: 18px 20px;
+      display: flex;
+      flex-direction: column;
       justify-content: space-between;
-      font-size: 12px;
-      color: var(--text-muted);
+      position: relative;
+    }
+
+    .metric-card.accent {
+      border-color: rgba(124, 106, 247, 0.35);
+      background: linear-gradient(135deg, rgba(124, 106, 247, 0.08) 0%, rgba(7, 9, 14, 0.9) 100%);
+    }
+
+    .metric-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .metric-val {
+      font-family: var(--font-heading);
+      font-size: 30px;
+      font-weight: 800;
+      color: #FFFFFF;
+      letter-spacing: -0.5px;
+      line-height: 1.1;
       margin-bottom: 6px;
     }
 
-    .meter-track {
-      height: 6px;
+    .metric-sub {
+      font-size: 11.5px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .metric-badge-good {
+      color: #34D399;
+      font-weight: 700;
+      font-size: 11.5px;
+    }
+
+    .canvas-lower-grid {
+      display: grid;
+      grid-template-columns: 1.1fr 1fr;
+      gap: 16px;
+    }
+
+    .canvas-panel {
+      background: rgba(7, 9, 14, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: var(--radius-md);
+      padding: 18px 20px;
+    }
+
+    .panel-title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    .panel-title {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: #FFFFFF;
+    }
+
+    .panel-meta {
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+
+    .budget-progress-track {
+      height: 8px;
       background: rgba(255, 255, 255, 0.06);
       border-radius: 999px;
       overflow: hidden;
+      margin: 10px 0 16px;
     }
 
-    .meter-fill {
+    .budget-progress-bar {
       height: 100%;
-      background: linear-gradient(90deg, #7C6AF7, #38BDF8);
+      background: linear-gradient(90deg, #7C6AF7 0%, #38BDF8 100%);
       border-radius: 999px;
     }
 
-    .mockup-categories {
+    .category-pills-row {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 8px;
     }
 
-    .cat-pill {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid rgba(255, 255, 255, 0.05);
-      border-radius: 8px;
-      padding: 8px 10px;
-      font-size: 12px;
-    }
-
-    .cat-name { flex: 1; color: var(--text-muted); }
-    .cat-amt { font-weight: 700; color: #fff; }
-
-    .mockup-side-panel {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .side-card {
-      background: #090B10;
-      border: 1px solid rgba(255, 255, 255, 0.05);
-      border-radius: var(--radius-md);
-      padding: 16px;
-    }
-
-    .side-card-top {
+    .cat-tag-pill {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      font-size: 12px;
-      font-weight: 700;
-      color: #fff;
-      margin-bottom: 12px;
-    }
-
-    .live-tag {
-      font-size: 10px;
-      font-weight: 700;
-      color: #10B981;
-      background: rgba(16, 185, 129, 0.12);
-      padding: 2px 6px;
-      border-radius: 4px;
-    }
-
-    .partner-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 11px;
-      padding: 6px 0;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.03);
-    }
-    .partner-row:last-child { border-bottom: none; }
-
-    .partner-text { flex: 1; display: flex; flex-direction: column; }
-    .partner-text strong { color: #fff; font-size: 11.5px; }
-    .partner-text span { color: var(--text-muted); font-size: 10.5px; }
-    .partner-time { color: var(--text-dim); font-size: 10px; }
-
-    .score-badge {
-      font-size: 12px;
-      font-weight: 800;
-      color: #34D399;
-      background: rgba(16, 185, 129, 0.15);
-      padding: 2px 8px;
-      border-radius: 6px;
-    }
-
-    .health-mini-desc {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      padding: 7px 10px;
       font-size: 11.5px;
     }
-    .health-mini-desc strong { color: #fff; }
-    .health-mini-desc span { color: var(--text-muted); }
+
+    .cat-tag-pill span:first-child { color: var(--text-muted); }
+    .cat-tag-pill span:last-child { color: #FFFFFF; font-weight: 700; }
+
+    .tx-stream-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .tx-stream-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 7px 10px;
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      font-size: 12px;
+    }
+
+    .tx-item-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .tx-icon-box {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.05);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+    }
+
+    .tx-info {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    .tx-name { color: #FFFFFF; font-weight: 600; font-size: 12px; }
+    .tx-category { color: var(--text-dim); font-size: 10.5px; }
+
+    .tx-item-right {
+      text-align: right;
+    }
+
+    .tx-amt-neg { color: #F87171; font-weight: 700; font-size: 12.5px; }
+    .tx-amt-pos { color: #34D399; font-weight: 700; font-size: 12.5px; }
+    .tx-tag-ai {
+      display: block;
+      font-size: 9.5px;
+      color: #38BDF8;
+      font-weight: 600;
+    }
 
     /* ==========================================================================
-       SIMULATORS SECTION
+       MODERN FINTECH BENTO GRID SECTION
        ========================================================================== */
-    section { padding: 65px 0; position: relative; }
+    section {
+      padding: 80px 0;
+      position: relative;
+    }
 
     .section-header {
       text-align: center;
-      max-width: 680px;
-      margin: 0 auto 44px;
+      max-width: 720px;
+      margin: 0 auto 52px;
     }
 
     .section-tag {
       font-size: 11.5px;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 1.5px;
+      letter-spacing: 1.6px;
       color: var(--primary);
-      margin-bottom: 10px;
+      margin-bottom: 12px;
       display: block;
     }
 
     .section-title {
       font-family: var(--font-heading);
-      font-size: 34px;
-      font-weight: 700;
+      font-size: 36px;
+      font-weight: 800;
       letter-spacing: -0.8px;
-      margin-bottom: 12px;
-      color: #fff;
+      margin-bottom: 14px;
+      color: #FFFFFF;
+      line-height: 1.2;
     }
 
-    .section-desc { font-size: 15.5px; color: var(--text-muted); }
+    .section-desc {
+      font-size: 16px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
 
-    .simulators-grid {
+    .bento-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 26px;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
     }
 
-    .simulator-card {
+    .bento-card {
       background: var(--bg-card);
       border: 1px solid var(--border);
-      border-radius: var(--radius-xl);
-      padding: 30px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
-    }
-
-    .card-glow-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 11px;
-      font-weight: 700;
-      padding: 4px 10px;
-      border-radius: 999px;
-      margin-bottom: 12px;
-    }
-
-    .receipt-scanner-box {
-      background: #0B0D14;
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      border-radius: var(--radius-lg);
-      padding: 16px;
-      position: relative;
-      margin: 16px 0;
-      min-height: 210px;
-    }
-
-    .receipt-paper {
-      background: #FAFAFA;
-      color: #111;
-      padding: 14px;
-      border-radius: 8px;
-      font-family: monospace;
-      font-size: 12px;
-      position: relative;
-      box-shadow: 0 6px 20px rgba(0,0,0,0.5);
-      overflow: hidden;
-    }
-
-    .scan-laser {
-      position: absolute;
-      left: 0;
-      right: 0;
-      top: 0;
-      height: 3px;
-      background: linear-gradient(90deg, transparent, #38BDF8, #7C6AF7, #38BDF8, transparent);
-      box-shadow: 0 0 15px #38BDF8, 0 0 30px #7C6AF7;
-      opacity: 0;
-      pointer-events: none;
-    }
-
-    .scanning .scan-laser {
-      opacity: 1;
-      animation: scanLaser 1.6s ease-in-out infinite;
-    }
-
-    @keyframes scanLaser {
-      0% { top: 0%; }
-      50% { top: 96%; }
-      100% { top: 0%; }
-    }
-
-    .ai-extracted-pill {
-      background: rgba(16, 185, 129, 0.15);
-      border: 1px solid rgba(16, 185, 129, 0.4);
-      color: #34D399;
-      font-size: 13px;
-      font-weight: 600;
-      padding: 8px 12px;
-      border-radius: 8px;
-      margin-top: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      opacity: 0;
-      transform: translateY(10px);
-      transition: all 0.3s ease;
-    }
-
-    .ai-extracted-pill.show { opacity: 1; transform: translateY(0); }
-
-    /* Dual Phone Simulator */
-    .dual-phone-wrapper {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
-      margin: 16px 0;
-    }
-
-    .mini-phone {
-      background: #090B10;
-      border: 2px solid rgba(255, 255, 255, 0.1);
-      border-radius: 18px;
-      padding: 12px;
-      position: relative;
-      min-height: 200px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-    }
-
-    .phone-header {
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--text-muted);
-      border-bottom: 1px solid rgba(255,255,255,0.06);
-      padding-bottom: 6px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .push-notification-toast {
-      background: rgba(124, 106, 247, 0.95);
-      color: #fff;
-      padding: 7px 10px;
-      border-radius: 8px;
-      font-size: 11px;
-      font-weight: 500;
-      box-shadow: 0 6px 20px rgba(0,0,0,0.4);
-      opacity: 0;
-      transform: translateY(-20px);
-      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-
-    .push-notification-toast.pop { opacity: 1; transform: translateY(0); }
-
-    /* Luxury Ownership Section */
-    .ownership-section {
-      background: linear-gradient(180deg, rgba(124, 106, 247, 0.05) 0%, rgba(7, 8, 12, 0) 100%);
-      border-top: 1px solid rgba(124, 106, 247, 0.15);
-      border-bottom: 1px solid var(--border);
-    }
-
-    .ownership-grid {
-      display: grid;
-      grid-template-columns: 1fr 1.15fr;
-      gap: 28px;
-      max-width: 940px;
-      margin: 0 auto;
-      align-items: stretch;
-    }
-
-    .comp-card-trap {
-      background: #0B0D14;
-      border: 1px solid rgba(239, 68, 68, 0.25);
       border-radius: var(--radius-xl);
       padding: 32px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
     }
 
-    .comp-card-freedom {
-      background: linear-gradient(180deg, #131726 0%, #0E111C 100%);
+    .bento-card:hover {
+      border-color: rgba(124, 106, 247, 0.4);
+      transform: translateY(-3px);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), 0 0 30px rgba(124, 106, 247, 0.15);
+    }
+
+    .bento-span-2 {
+      grid-column: span 2;
+    }
+
+    .bento-pill-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 999px;
+      margin-bottom: 16px;
+      width: fit-content;
+    }
+
+    .bento-title {
+      font-family: var(--font-heading);
+      font-size: 22px;
+      font-weight: 700;
+      color: #FFFFFF;
+      margin-bottom: 10px;
+      line-height: 1.25;
+    }
+
+    .bento-desc {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.6;
+      margin-bottom: 24px;
+    }
+
+    .bento-visual-box {
+      background: rgba(7, 9, 14, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: var(--radius-md);
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .ocr-scanner-visual {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .ocr-data-chip {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 12px;
+    }
+
+    .ocr-chip-label { font-size: 10px; color: var(--text-dim); text-transform: uppercase; margin-bottom: 2px; }
+    .ocr-chip-val { font-weight: 700; color: #FFFFFF; }
+
+    .radar-visual-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(245, 158, 11, 0.1);
+      border: 1px solid rgba(245, 158, 11, 0.25);
+      border-radius: 10px;
+      padding: 12px 16px;
+    }
+
+    .radar-val-num { font-family: var(--font-heading); font-size: 24px; font-weight: 800; color: #FBBF24; }
+
+    .health-gauge-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      border-radius: 10px;
+      padding: 12px 16px;
+    }
+
+    .health-score-dial { font-family: var(--font-heading); font-size: 28px; font-weight: 800; color: #34D399; }
+
+    /* ==========================================================================
+       OWNERSHIP VS SUBSCRIPTION (COMPARISON)
+       ========================================================================== */
+    .ownership-section {
+      background: linear-gradient(180deg, rgba(124, 106, 247, 0.04) 0%, rgba(7, 9, 14, 0) 100%);
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .comparison-grid-2col {
+      display: grid;
+      grid-template-columns: 1fr 1.15fr;
+      gap: 28px;
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    .comp-box-sub {
+      background: #0A0D15;
+      border: 1px solid rgba(239, 68, 68, 0.25);
+      border-radius: var(--radius-xl);
+      padding: 34px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .comp-box-pro {
+      background: linear-gradient(180deg, #111524 0%, #0C0F1A 100%);
       border: 1px solid rgba(16, 185, 129, 0.45);
       border-radius: var(--radius-xl);
       padding: 36px;
@@ -949,165 +970,59 @@
       flex-direction: column;
       justify-content: space-between;
       position: relative;
-      box-shadow: 0 0 50px rgba(16, 185, 129, 0.12), 0 20px 50px rgba(0,0,0,0.5);
+      box-shadow: 0 0 50px rgba(16, 185, 129, 0.1), 0 20px 50px rgba(0, 0, 0, 0.5);
     }
 
-    .comp-pill-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      padding: 4px 12px;
-      border-radius: 999px;
-      margin-bottom: 14px;
-      width: fit-content;
-    }
-
-    .comp-pill-trap {
-      background: rgba(239, 68, 68, 0.12);
-      border: 1px solid rgba(239, 68, 68, 0.3);
-      color: #F87171;
-    }
-
-    .comp-pill-freedom {
-      background: rgba(16, 185, 129, 0.15);
-      border: 1px solid rgba(16, 185, 129, 0.4);
-      color: #34D399;
-    }
-
-    .comp-card-title {
+    .comp-card-price-val {
       font-family: var(--font-heading);
-      font-size: 22px;
-      font-weight: 700;
-      color: #fff;
-      margin-bottom: 8px;
-    }
-
-    .comp-card-price {
-      font-family: var(--font-heading);
-      font-size: 38px;
+      font-size: 40px;
       font-weight: 800;
-      color: #fff;
+      color: #FFFFFF;
       line-height: 1;
-      margin: 14px 0 6px;
+      margin: 16px 0 8px;
     }
 
-    .comp-card-price span {
+    .comp-card-price-val span {
       font-size: 14px;
       font-weight: 500;
       color: var(--text-dim);
     }
 
-    .comp-card-freedom .comp-card-price {
-      color: #34D399;
-    }
-
-    .comp-features-list {
+    .comp-list-items {
       list-style: none;
-      margin: 20px 0;
-      font-size: 13.5px;
+      margin: 22px 0;
+      font-size: 14px;
       color: var(--text-muted);
-    }
-
-    .comp-features-list li {
-      margin-bottom: 10px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    /* Pillars 3-Grid */
-    .pillars-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 20px;
-    }
-
-    .pillar-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      padding: 26px;
-      text-decoration: none;
-      color: inherit;
-      transition: all 0.3s;
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
+      gap: 12px;
     }
 
-    .pillar-card:hover {
-      border-color: rgba(124, 106, 247, 0.4);
-      transform: translateY(-4px);
-    }
-
-    .pillar-icon {
-      width: 42px;
-      height: 42px;
-      border-radius: 10px;
+    .comp-list-items li {
       display: flex;
       align-items: center;
-      justify-content: center;
-      font-size: 20px;
-      margin-bottom: 14px;
+      gap: 12px;
     }
 
-    .pillar-title {
-      font-family: var(--font-heading);
-      font-size: 19px;
-      font-weight: 700;
-      margin-bottom: 8px;
-      color: #fff;
-    }
-
-    .pillar-desc {
-      font-size: 13.5px;
-      color: var(--text-muted);
-      line-height: 1.6;
-      margin-bottom: 14px;
-    }
-
-    .pillar-link { font-size: 13px; font-weight: 600; color: var(--primary); }
-
-    /* Quiz Banner */
-    .quiz-banner {
+    /* ==========================================================================
+       QUIZ BANNER & PRICING & FAQ
+       ========================================================================== */
+    .quiz-cta-banner {
       background: linear-gradient(135deg, rgba(124, 106, 247, 0.15) 0%, rgba(56, 189, 248, 0.08) 100%);
-      border: 1px solid rgba(124, 106, 247, 0.3);
+      border: 1px solid rgba(124, 106, 247, 0.35);
       border-radius: var(--radius-xl);
-      padding: 36px;
+      padding: 38px 42px;
       display: grid;
-      grid-template-columns: 1.2fr 0.8fr;
-      gap: 24px;
+      grid-template-columns: 1.3fr 0.7fr;
+      gap: 30px;
       align-items: center;
     }
 
-    .cyber-score-card {
-      background: #090B12;
-      border: 1px solid rgba(124, 106, 247, 0.4);
-      border-radius: var(--radius-lg);
-      padding: 20px;
-      text-align: center;
-    }
-
-    .score-dial {
-      font-size: 48px;
-      font-weight: 800;
-      font-family: var(--font-heading);
-      color: #34D399;
-      line-height: 1;
-      margin: 8px 0;
-      text-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
-    }
-
-    /* Pricing Section */
     .pricing-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 24px;
-      max-width: 840px;
+      grid-template-columns: 1fr 1.15fr;
+      gap: 28px;
+      max-width: 920px;
       margin: 0 auto;
     }
 
@@ -1115,55 +1030,102 @@
       background: var(--bg-card);
       border: 1px solid var(--border);
       border-radius: var(--radius-xl);
-      padding: 32px;
-      position: relative;
+      padding: 36px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
     }
 
     .pricing-card.featured {
+      background: linear-gradient(180deg, #131726 0%, #0E111C 100%);
       border-color: rgba(124, 106, 247, 0.5);
-      background: linear-gradient(180deg, #131725 0%, #0E101A 100%);
-      box-shadow: 0 0 40px rgba(124, 106, 247, 0.15);
+      box-shadow: 0 0 60px rgba(124, 106, 247, 0.16), 0 20px 50px rgba(0, 0, 0, 0.6);
+      position: relative;
     }
 
     .pricing-badge {
       position: absolute;
-      top: -13px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: linear-gradient(135deg, #7C6AF7 0%, #38BDF8 100%);
-      color: #fff;
-      font-size: 10px;
+      top: -12px;
+      right: 24px;
+      background: linear-gradient(135deg, #7C6AF7 0%, #6350E8 100%);
+      color: #FFFFFF;
+      font-size: 11px;
       font-weight: 700;
-      text-transform: uppercase;
-      padding: 3px 14px;
+      padding: 4px 12px;
       border-radius: 999px;
+      letter-spacing: 0.5px;
+      box-shadow: 0 4px 14px rgba(124, 106, 247, 0.4);
     }
 
     .price-amount {
       font-family: var(--font-heading);
       font-size: 44px;
       font-weight: 800;
-      color: #fff;
-      line-height: 1;
-      margin: 12px 0 6px;
+      color: #FFFFFF;
+      margin: 14px 0 4px;
     }
 
     .feature-list {
       list-style: none;
-      margin: 18px 0 26px;
-      font-size: 13.5px;
+      margin: 24px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      font-size: 14px;
       color: var(--text-muted);
     }
-    .feature-list li { margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
-    .feature-list li svg { color: #34D399; flex-shrink: 0; }
+
+    .feature-list li {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .feature-list svg {
+      color: #10B981;
+      flex-shrink: 0;
+    }
+
+    /* FAQ Section */
+    .faq-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      max-width: 820px;
+      margin: 0 auto;
+    }
+
+    .faq-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 20px 24px;
+      transition: border-color 0.2s;
+    }
+
+    .faq-item:hover {
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    .faq-item h3 {
+      font-family: var(--font-heading);
+      font-size: 16.5px;
+      font-weight: 700;
+      color: #FFFFFF;
+      margin-bottom: 8px;
+    }
+
+    .faq-item p {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
 
     /* Footer */
     footer {
-      border-top: 1px solid var(--border);
-      padding: 44px 0 22px;
-      background: #050608;
-      font-size: 13px;
-      color: var(--text-dim);
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 60px 0 30px;
+      background: #040508;
     }
 
     .footer-grid {
@@ -1181,9 +1143,10 @@
 
     @media (max-width: 900px) {
       .hero h1 { font-size: 34px; }
-      .simulators-grid, .pillars-grid, .pricing-grid, .comparison-table, .quiz-banner, .window-content-grid {
+      .canvas-metrics-grid, .canvas-lower-grid, .bento-grid, .comparison-grid-2col, .quiz-cta-banner, .pricing-grid {
         grid-template-columns: 1fr;
       }
+      .bento-span-2 { grid-column: span 1; }
       .nav-links { display: none; }
       .footer-grid { grid-template-columns: 1fr 1fr; }
     }
@@ -1297,106 +1260,152 @@
           </a>
         </div>
 
-        <!-- Bespoke Hero Product Showcase -->
-        <div class="hero-product-showcase">
-          <div class="product-window-frame">
-            <!-- Window Titlebar -->
-            <div class="window-header">
-              <div class="window-traffic-lights">
-                <span class="light red"></span>
-                <span class="light yellow"></span>
-                <span class="light green"></span>
+        <!-- Bespoke Hero Product Showcase Canvas -->
+        <div class="hero-canvas-wrap">
+          <div class="hero-canvas-glow"></div>
+          <div class="hero-canvas-frame">
+            <!-- Canvas Topbar -->
+            <div class="canvas-topbar">
+              <div class="canvas-topbar-left">
+                <span class="canvas-status-pill">
+                  <span class="canvas-status-dot"></span>
+                  <span>Live Encrypted Sync</span>
+                </span>
+                <span class="canvas-month-chip">Αύγουστος 2026</span>
               </div>
-              <div class="window-title-chip">
-                <span class="pulse-status"></span>
-                <span>Budget Assistant · Live Dashboard</span>
-              </div>
-              <div class="window-action-pills">
-                <span class="tag-crypto">🔒 AES-256</span>
+              <div class="canvas-topbar-right">
+                <span class="canvas-quick-tag">🔒 AES-256 Offline-First</span>
               </div>
             </div>
 
-            <!-- Window Core Content -->
-            <div class="window-content-grid">
-              <!-- Left: Balance & Quick Stats -->
-              <div class="mockup-panel">
-                <div class="mockup-panel-header">
+            <!-- Canvas Core Dashboard Content -->
+            <div class="canvas-body">
+              <!-- Top Metrics Grid -->
+              <div class="canvas-metrics-grid">
+                <!-- Card 1: Net Balance -->
+                <div class="metric-card accent">
                   <div>
-                    <div class="mockup-label">ΚΑΘΑΡΟ ΥΠΟΛΟΙΠΟ</div>
-                    <div class="mockup-big-val">2.847,50 €</div>
+                    <div class="metric-label">
+                      <span>ΚΑΘΑΡΟ ΥΠΟΛΟΙΠΟ</span>
+                      <span class="metric-badge-good">+12,4%</span>
+                    </div>
+                    <div class="metric-val">2.847,50 €</div>
                   </div>
-                  <div class="mockup-trend-badge positive">+12,4% αυτόν τον μήνα</div>
-                </div>
-
-                <!-- Monthly Spend Progress Bar -->
-                <div class="mockup-budget-meter">
-                  <div class="meter-info">
-                    <span>Μηνιαίος Προϋπολογισμός</span>
-                    <strong>1.240 € / 2.000 € (62%)</strong>
-                  </div>
-                  <div class="meter-track">
-                    <div class="meter-fill" style="width: 62%;"></div>
+                  <div class="metric-sub">
+                    <span>💳 Κάρτες: 1.420 €</span>
+                    <span>·</span>
+                    <span>🏦 Τράπεζα: 1.427,50 €</span>
                   </div>
                 </div>
 
-                <!-- Category Chips -->
-                <div class="mockup-categories">
-                  <div class="cat-pill">
-                    <span class="cat-icon">🛒</span>
-                    <span class="cat-name">Σούπερ Μάρκετ</span>
-                    <span class="cat-amt">380 €</span>
+                <!-- Card 2: Safe-to-Spend Radar -->
+                <div class="metric-card">
+                  <div>
+                    <div class="metric-label">
+                      <span>SAFE-TO-SPEND RADAR</span>
+                      <span style="color:#FBBF24; font-size:11px; font-weight:700;">🎯 Ενεργό</span>
+                    </div>
+                    <div class="metric-val" style="color: #FBBF24;">42,50 € <span style="font-size:14px; font-weight:500; color:var(--text-muted);">/ ημέρα</span></div>
                   </div>
-                  <div class="cat-pill">
-                    <span class="cat-icon">🏠</span>
-                    <span class="cat-name">Σπίτι & Πάγια</span>
-                    <span class="cat-amt">620 €</span>
+                  <div class="metric-sub">
+                    <span style="color:#34D399; font-weight:600;">✓ Όλα τα πάγια & λογαριασμοί καλυμμένα</span>
                   </div>
-                  <div class="cat-pill">
-                    <span class="cat-icon">🚗</span>
-                    <span class="cat-name">Μετακινήσεις</span>
-                    <span class="cat-amt">145 €</span>
+                </div>
+
+                <!-- Card 3: Financial Health Score -->
+                <div class="metric-card">
+                  <div>
+                    <div class="metric-label">
+                      <span>FINANCIAL HEALTH</span>
+                      <span style="color:#34D399; font-size:11px; font-weight:700;">ΑΡΙΣΤΟ</span>
+                    </div>
+                    <div class="metric-val" style="color: #34D399;">88 <span style="font-size:16px; color:var(--text-muted);">/ 100</span></div>
                   </div>
-                  <div class="cat-pill">
-                    <span class="cat-icon">☕</span>
-                    <span class="cat-name">Διασκέδαση</span>
-                    <span class="cat-amt">95 €</span>
+                  <div class="metric-sub">
+                    <span>Emergency Runway: <strong>6.2 Μήνες</strong></span>
                   </div>
                 </div>
               </div>
 
-              <!-- Right: Live Feed / Partner Sync & Health Snapshot -->
-              <div class="mockup-side-panel">
-                <div class="side-card partner-sync-card">
-                  <div class="side-card-top">
-                    <span>👥 Κοινό Ταμείο & Live Sync</span>
-                    <span class="live-tag">● Live Sync</span>
+              <!-- Lower Split Grid: Monthly Budget + Transactions Stream -->
+              <div class="canvas-lower-grid">
+                <!-- Monthly Budget Meter -->
+                <div class="canvas-panel">
+                  <div class="panel-title-row">
+                    <span class="panel-title">Μηνιαίος Προϋπολογισμός</span>
+                    <span class="panel-meta">1.240 € / 2.000 € (62%)</span>
                   </div>
-                  <div class="partner-row">
-                    <div class="partner-avatar">👨‍💻</div>
-                    <div class="partner-text">
-                      <strong>Μάριος</strong>
-                      <span>Πρόσθεσε: Σούπερ Μάρκετ (−47,30 €)</span>
-                    </div>
-                    <div class="partner-time">Πριν 2'</div>
+                  <div class="budget-progress-track">
+                    <div class="budget-progress-bar" style="width: 62%;"></div>
                   </div>
-                  <div class="partner-row">
-                    <div class="partner-avatar">👩‍💼</div>
-                    <div class="partner-text">
-                      <strong>Ελένη</strong>
-                      <span>Πρόσθεσε: Βενζίνη Shell (−62,00 €)</span>
+                  <div class="category-pills-row">
+                    <div class="cat-tag-pill">
+                      <span>🛒 Σούπερ Μάρκετ</span>
+                      <span>380 €</span>
                     </div>
-                    <div class="partner-time">Πριν 15'</div>
+                    <div class="cat-tag-pill">
+                      <span>🏠 Σπίτι & Πάγια</span>
+                      <span>620 €</span>
+                    </div>
+                    <div class="cat-tag-pill">
+                      <span>🚗 Μετακινήσεις</span>
+                      <span>145 €</span>
+                    </div>
+                    <div class="cat-tag-pill">
+                      <span>☕ Διασκέδαση</span>
+                      <span>95 €</span>
+                    </div>
                   </div>
                 </div>
 
-                <div class="side-card health-mini-card">
-                  <div class="side-card-top">
-                    <span>🛡️ Financial Health Score</span>
-                    <span class="score-badge">88 / 100</span>
+                <!-- Live Stream Transactions -->
+                <div class="canvas-panel">
+                  <div class="panel-title-row">
+                    <span class="panel-title">Πρόσφατες Κινήσεις</span>
+                    <span class="panel-meta">Αυτόματη Καταγραφή</span>
                   </div>
-                  <div class="health-mini-desc">
-                    <strong>Εξαιρετική Οικονομική Υγεία</strong>
-                    <span>Emergency Runway: 6.2 Μήνες</span>
+                  <div class="tx-stream-list">
+                    <div class="tx-stream-item">
+                      <div class="tx-item-left">
+                        <div class="tx-icon-box">🛒</div>
+                        <div class="tx-info">
+                          <span class="tx-name">Σκλαβενίτης</span>
+                          <span class="tx-category">Σούπερ Μάρκετ · Σήμερα</span>
+                        </div>
+                      </div>
+                      <div class="tx-item-right">
+                        <div class="tx-amt-neg">−34,20 €</div>
+                        <span class="tx-tag-ai">AI Scanned 📸</span>
+                      </div>
+                    </div>
+
+                    <div class="tx-stream-item">
+                      <div class="tx-item-left">
+                        <div class="tx-icon-box">⚡</div>
+                        <div class="tx-info">
+                          <span class="tx-name">ΔΕΗ Ηλεκτρικό</span>
+                          <span class="tx-category">Πάγια · Χθες</span>
+                        </div>
+                      </div>
+                      <div class="tx-item-right">
+                        <div class="tx-amt-neg">−68,00 €</div>
+                        <span class="tx-tag-ai" style="color:var(--text-dim);">Προγραμματισμένο 📅</span>
+                      </div>
+                    </div>
+
+                    <div class="tx-stream-item">
+                      <div class="tx-item-left">
+                        <div class="tx-icon-box">💰</div>
+                        <div class="tx-info">
+                          <span class="tx-name">Μισθοδοσία</span>
+                          <span class="tx-category">Εισόδημα · 25 Αυγ</span>
+                        </div>
+                      </div>
+                      <div class="tx-item-right">
+                        <div class="tx-amt-pos">+1.850,00 €</div>
+                        <span class="tx-tag-ai" style="color:#34D399;">Αυτόματο ✨</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1407,155 +1416,198 @@
       </div>
     </section>
 
-    <!-- Interactive Simulators Section -->
-    <section>
+    <!-- Core Capabilities: Modern FinTech Bento Grid -->
+    <section id="features">
       <div class="container">
         <div class="section-header">
-          <span class="section-tag">ΖΩΝΤΑΝΗ ΔΟΚΙΜΗ</span>
-          <h2 class="section-title">Δες το να δουλεύει. Ζωντανά.</h2>
-          <p class="section-desc">Δοκίμασε τα δύο ισχυρότερα εργαλεία της εφαρμογής απευθείας στον browser σου.</p>
+          <span class="section-tag">ΚΟΡΥΦΑΙΕΣ ΔΥΝΑΤΟΤΗΤΕΣ</span>
+          <h2 class="section-title">Όλα όσα χρειάζεσαι για απόλυτο έλεγχο</h2>
+          <p class="section-desc">Χτισμένο από το μηδέν για ταχύτητα, ακαριαία καταγραφή και πλήρη προστασία της ιδιωτικότητάς σου.</p>
         </div>
 
-        <div class="simulators-grid">
+        <div class="bento-grid">
           
-          <!-- Simulator 1: AI Receipt Scanner -->
-          <div class="simulator-card">
+          <!-- Bento 1 (Span 2): AI Vision OCR Scanner -->
+          <div class="bento-card bento-span-2">
             <div>
-              <div class="card-glow-badge" style="background: rgba(56, 189, 248, 0.15); color: #38BDF8;">
+              <div class="bento-pill-tag" style="background: rgba(56, 189, 248, 0.12); color: #38BDF8; border: 1px solid rgba(56, 189, 248, 0.3);">
                 <span>📸</span> AI VISION OCR ENGINE
               </div>
-              <h3 style="font-family: var(--font-heading); font-size: 21px; margin-bottom: 8px;">AI Σάρωση Απόδειξης</h3>
-              <p style="font-size: 13.5px; color: var(--text-muted);">
-                Πάτησε το κουμπί για να δεις το AI να διαβάζει αυτόματα το κατάστημα, το ποσό και την κατηγορία.
+              <h3 class="bento-title">Σάρωση Αποδείξεων σε 1.8 Δευτερόλεπτα</h3>
+              <p class="bento-desc">
+                Φωτογράφισε οποιαδήποτε απόδειξη, λογαριασμό ή ψηφιακό PDF. Ο ενσωματωμένος AI Vision μηχανισμός εξάγει αυτόματα το κατάστημα, το ποσό, την ημερομηνία και την κατηγορία με 99.8% ακρίβεια — χωρίς να πληκτρολογείς τίποτα χειροκίνητα.
               </p>
+            </div>
 
-              <div class="receipt-scanner-box" id="scanner-box">
-                <div class="receipt-paper" id="sample-receipt">
-                  <div class="scan-laser"></div>
-                  <div style="font-weight: 700; text-align: center; border-bottom: 1px dashed #999; padding-bottom: 4px; margin-bottom: 6px;">
-                    ΣΟΥΠΕΡ ΜΑΡΚΕΤ "ΑΛΦΑ"
-                  </div>
-                  <div>1x ΓΑΛΑ ΦΡΕΣΚΟ ........... 1,65€</div>
-                  <div>2x ΨΩΜΙ ΤΟΣΤ ............. 3,20€</div>
-                  <div>1x ΕΛΑΙΟΛΑΔΟ 1L ......... 11,50€</div>
-                  <div>1x ΑΠΟΡΡΥΠΑΝΤΙΚΟ ........ 8,45€</div>
-                  <div style="font-weight: 700; border-top: 1px solid #000; margin-top: 6px; padding-top: 4px; display: flex; justify-content: space-between;">
-                    <span>ΣΥΝΟΛΟ:</span>
-                    <span>24,80 €</span>
-                  </div>
+            <div class="bento-visual-box">
+              <div style="font-size: 11px; color: var(--text-dim); text-transform: uppercase; font-weight: 700; margin-bottom: 4px;">
+                Αυτόματη Αναγνώριση Δεδομένων (Live Extract)
+              </div>
+              <div class="ocr-scanner-visual">
+                <div class="ocr-data-chip">
+                  <div class="ocr-chip-label">Κατάστημα</div>
+                  <div class="ocr-chip-val">🛒 Σούπερ Μάρκετ "Σκλαβενίτης"</div>
                 </div>
-
-                <div class="ai-extracted-pill" id="ai-pill">
-                  <div>
-                    <div style="font-size: 11px; opacity: 0.8;">ΕΠΙΤΥΧΗΣ ΣΑΡΩΣΗ (99.8%)</div>
-                    <div>🛒 Σούπερ Μάρκετ • <strong>24,80 €</strong></div>
-                  </div>
-                  <span style="font-size: 16px;">✅</span>
+                <div class="ocr-data-chip">
+                  <div class="ocr-chip-label">Συνολικό Ποσό</div>
+                  <div class="ocr-chip-val" style="color: #34D399;">24,80 €</div>
+                </div>
+                <div class="ocr-data-chip">
+                  <div class="ocr-chip-label">Ημερομηνία</div>
+                  <div class="ocr-chip-val">📅 28 Αυγούστου 2026</div>
+                </div>
+                <div class="ocr-data-chip">
+                  <div class="ocr-chip-label">Κατηγορία AI</div>
+                  <div class="ocr-chip-val">🏷️ Διατροφή & Σπίτι</div>
                 </div>
               </div>
             </div>
-
-            <button class="btn btn-emerald" style="width: 100%;" id="btn-scan-sim" onclick="simulateScan()">
-              Σάρωση Απόδειξης (Simulate Scan)
-            </button>
           </div>
 
-          <!-- Simulator 2: Multi-User Real-time Sync -->
-          <div class="simulator-card">
+          <!-- Bento 2: Safe-to-Spend Radar -->
+          <div class="bento-card">
             <div>
-              <div class="card-glow-badge" style="background: rgba(124, 106, 247, 0.15); color: #C4B5FD;">
-                MULTI-USER REAL-TIME SYNC
+              <div class="bento-pill-tag" style="background: rgba(245, 158, 11, 0.12); color: #FBBF24; border: 1px solid rgba(245, 158, 11, 0.3);">
+                <span>🎯</span> ΠΡΟΒΛΕΨΗ ΠΑΓΙΩΝ
               </div>
-              <h3 style="font-family: var(--font-heading); font-size: 21px; margin-bottom: 8px;">Κοινός Προϋπολογισμός. Απόλυτος Συγχρονισμός.</h3>
-              <p style="font-size: 13.5px; color: var(--text-muted); line-height: 1.55;">
-                Κοινός προϋπολογισμός, ζωντανή ενημέρωση υπολοίπου και αυτόματη κατανομή δαπανών για ζευγάρια, οικογένειες, συγκατοίκους και επαγγελματικές ομάδες.
+              <h3 class="bento-title">Safe-to-Spend Radar</h3>
+              <p class="bento-desc">
+                Ξέρεις πάντα τι μπορείς να ξοδέψεις σήμερα. Υπολογίζει αυτόματα όλους τους μελλοντικούς λογαριασμούς και σε προστατεύει από εκπλήξεις στο τέλος του μήνα.
               </p>
-
-              <div class="dual-phone-wrapper">
-                <!-- Phone 1 (Alexandros) -->
-                <div class="mini-phone">
-                  <div class="phone-header">
-                    <span>Αλέξανδρος (Κινητό 1)</span>
-                    <span style="color: #34D399;">● Live</span>
-                  </div>
-                  <div style="text-align: center; margin: auto 0;">
-                    <div style="font-size: 11px; color: var(--text-muted);">Κοινό Υπόλοιπο</div>
-                    <div style="font-size: 17px; font-weight: 700; font-family: var(--font-heading);" id="p1-balance">1.450,00 €</div>
-                  </div>
-                  <button class="btn btn-secondary" style="font-size: 11px; padding: 5px 8px;" onclick="simulateExpense()">
-                    + Πρόσθεσε 35€ (Εστιατόριο)
-                  </button>
-                </div>
-
-                <!-- Phone 2 (Sofia) -->
-                <div class="mini-phone">
-                  <div class="phone-header">
-                    <span>Σοφία (Κινητό 2)</span>
-                    <span style="color: #34D399;">● Live</span>
-                  </div>
-                  <div class="push-notification-toast" id="partner-push">
-                    <strong>Αλέξανδρος:</strong> Νέο έξοδο 35,00€ (Εστιατόριο)
-                  </div>
-                  <div style="text-align: center; margin: auto 0;">
-                    <div style="font-size: 11px; color: var(--text-muted);">Κοινό Υπόλοιπο</div>
-                    <div style="font-size: 17px; font-weight: 700; font-family: var(--font-heading);" id="p2-balance">1.450,00 €</div>
-                  </div>
-                  <div style="font-size: 10px; text-align: center; color: var(--text-dim);">
-                    Live Sync
-                  </div>
-                </div>
-              </div>
             </div>
 
-            <a href="/features/couples" class="btn btn-secondary" style="width: 100%;">
-              Δες πώς λειτουργεί το Κοινό Ταμείο →
-            </a>
+            <div class="radar-visual-bar">
+              <div>
+                <div style="font-size: 11px; color: var(--text-muted);">Ημερήσιο Ασφαλές Όριο</div>
+                <div class="radar-val-num">42,50 €</div>
+              </div>
+              <div style="font-size: 11.5px; color: #34D399; font-weight: 700; text-align: right;">
+                ✓ 18 μέρες<br><span style="font-size: 10px; color: var(--text-muted); font-weight: normal;">πλήρως καλυμμένες</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bento 3: Financial Health Score -->
+          <div class="bento-card">
+            <div>
+              <div class="bento-pill-tag" style="background: rgba(16, 185, 129, 0.12); color: #34D399; border: 1px solid rgba(16, 185, 129, 0.3);">
+                <span>📊</span> FHN / CFPB ALGORITHM
+              </div>
+              <h3 class="bento-title">Financial Health Score</h3>
+              <p class="bento-desc">
+                Δείκτης 0-100 & Emergency Runway σε μήνες. Αλγοριθμική ανάλυση ανθεκτικότητας βασισμένη στα διεθνή πρότυπα του Financial Health Network.
+              </p>
+            </div>
+
+            <div class="health-gauge-row">
+              <div>
+                <div style="font-size: 11px; color: var(--text-muted);">Σκορ Ανθεκτικότητας</div>
+                <div class="health-score-dial">88 / 100</div>
+              </div>
+              <div style="text-align: right;">
+                <div style="font-size: 12px; font-weight: 700; color: #FFFFFF;">Runway</div>
+                <div style="font-size: 11.5px; color: #34D399; font-weight: 700;">6.2 Μήνες</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bento 4: 100% Offline-First & Privacy -->
+          <div class="bento-card">
+            <div>
+              <div class="bento-pill-tag" style="background: rgba(124, 106, 247, 0.12); color: #C4B5FD; border: 1px solid rgba(124, 106, 247, 0.3);">
+                <span>🔒</span> LOCAL-FIRST AES-256
+              </div>
+              <h3 class="bento-title">100% Offline & Ιδιωτικότητα</h3>
+              <p class="bento-desc">
+                Τα χρήματά σου, τα δεδομένα σου. Πλήρης λειτουργία χωρίς internet, zero trackers, μηδέν διαφημίσεις και καμία πώληση προσωπικών δεδομένων σε τρίτους.
+              </p>
+            </div>
+
+            <div class="bento-visual-box" style="flex-direction: row; align-items: center; justify-content: space-between;">
+              <div>
+                <div style="font-size: 12px; font-weight: 700; color: #FFFFFF;">Τοπική Κρυπτογράφηση</div>
+                <div style="font-size: 11px; color: var(--text-muted);">Zero Data Harvesting</div>
+              </div>
+              <span style="font-size: 20px;">🛡️</span>
+            </div>
+          </div>
+
+          <!-- Bento 5 (Span 2): Multi-Device & Collaboration -->
+          <div class="bento-card bento-span-2">
+            <div>
+              <div class="bento-pill-tag" style="background: rgba(56, 189, 248, 0.12); color: #38BDF8; border: 1px solid rgba(56, 189, 248, 0.3);">
+                <span>📲</span> MULTI-DEVICE & COLLABORATION
+              </div>
+              <h3 class="bento-title">Σε Όλες τις Συσκευές σου & Προαιρετικό Κοινό Ταμείο</h3>
+              <p class="bento-desc">
+                Απρόσκοπτος συγχρονισμός σε Κινητό (Android/PWA), Tablet και Desktop Web. Δυνατότητα προαιρετικής σύνδεσης κοινού ταμείου με ένα άτομο (σύντροφο, συγκάτοικο ή συνεργάτη) με ζωντανή ενημέρωση υπολοίπου σε πραγματικό χρόνο — χωρίς επιπλέον χρέωση.
+              </p>
+            </div>
+
+            <div class="bento-visual-box">
+              <div style="display: flex; align-items: center; justify-content: space-between; font-size: 12px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="font-size: 16px;">💻</span>
+                  <span>Web App & Desktop</span>
+                </div>
+                <span style="color: #34D399; font-weight: 700;">● Συγχρονισμένο</span>
+              </div>
+              <div style="display: flex; align-items: center; justify-content: space-between; font-size: 12px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 8px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="font-size: 16px;">📱</span>
+                  <span>Android & Mobile PWA</span>
+                </div>
+                <span style="color: #34D399; font-weight: 700;">● Συγχρονισμένο</span>
+              </div>
+            </div>
           </div>
 
         </div>
       </div>
     </section>
 
-    <!-- Luxury Ownership Section (Option 2) -->
-    <section class="ownership-section">
+    <!-- Ownership vs Subscription Section -->
+    <section class="ownership-section" id="ownership">
       <div class="container">
         <div class="section-header">
-          <span class="section-tag">ΙΔΙΟΚΤΗΣΙΑ VS ΣΥΝΔΡΟΜΗ</span>
-          <h2 class="section-title">Η Ελευθερία της Πραγματικής Ιδιοκτησίας</h2>
+          <span class="section-tag">ΠΡΑΓΜΑΤΙΚΗ ΙΔΙΟΚΤΗΣΙΑ</span>
+          <h2 class="section-title">Τέρμα στις Συνδρομές. Δικό σου για Πάντα.</h2>
           <p class="section-desc">Γιατί να πληρώνεις κάθε μήνα για τα εργαλεία που διαχειρίζονται τα δικά σου χρήματα;</p>
         </div>
 
-        <div class="ownership-grid">
+        <div class="comparison-grid-2col">
           
-          <!-- The Subscription Trap Card -->
-          <div class="comp-card-trap">
+          <!-- The Subscription Model -->
+          <div class="comp-box-sub">
             <div>
-              <div class="comp-pill-badge comp-pill-trap">
+              <div class="bento-pill-tag" style="background: rgba(239, 68, 68, 0.12); color: #F87171; border: 1px solid rgba(239, 68, 68, 0.3);">
                 <span>🚫</span> ΣΥΝΔΡΟΜΗΤΙΚΟ ΜΟΝΤΕΛΟ
               </div>
-              <h3 class="comp-card-title">Συνδρομητικές Εφαρμογές</h3>
-              <p style="font-size: 13.5px; color: var(--text-dim); margin-bottom: 12px;">Μηνιαίες & ετήσιες συνδρομές αγοράς</p>
+              <h3 style="font-family: var(--font-heading); font-size: 22px; font-weight: 700; color: #FFFFFF; margin-bottom: 6px;">
+                Συνδρομητικές Εφαρμογές
+              </h3>
+              <p style="font-size: 13.5px; color: var(--text-dim);">Κλασικό μοντέλο συνεχών χρεώσεων</p>
               
-              <div class="comp-card-price">
-                ~107 € <span>/ κάθε χρόνο</span>
+              <div class="comp-card-price-val">
+                ~120 € <span>/ κάθε χρόνο</span>
               </div>
 
-              <ul class="comp-features-list">
+              <ul class="comp-list-items">
                 <li>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                   <span>Συνεχής μηνιαία/ετήσια χρέωση για πάντα</span>
                 </li>
                 <li>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                  <span>Κλείδωμα των δεδομένων σου αν ακυρώσεις</span>
+                  <span>Κλείδωμα των δεδομένων σου αν ακυρώσεις τη συνδρομή</span>
                 </li>
                 <li>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                  <span>Subscription fatigue & αυξήσεις τιμών</span>
+                  <span>Subscription fatigue & συχνές αυξήσεις τιμών</span>
                 </li>
                 <li>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                  <span>Συνολικό κόστος 3ετίας: <strong>320+ €</strong></span>
+                  <span>Συνολικό κόστος 3ετίας: <strong>360+ €</strong></span>
                 </li>
               </ul>
             </div>
@@ -1565,20 +1617,22 @@
             </div>
           </div>
 
-          <!-- The Budget Assistant Freedom Card -->
-          <div class="comp-card-freedom">
+          <!-- The Budget Assistant Lifetime Pro Model -->
+          <div class="comp-box-pro">
             <div>
-              <div class="comp-pill-badge comp-pill-freedom">
+              <div class="bento-pill-tag" style="background: rgba(16, 185, 129, 0.15); color: #34D399; border: 1px solid rgba(16, 185, 129, 0.4);">
                 <span>👑</span> ΠΛΗΡΗΣ ΙΔΙΟΚΤΗΣΙΑ (LIFETIME)
               </div>
-              <h3 class="comp-card-title">Budget Assistant PRO</h3>
-              <p style="font-size: 13.5px; color: #34D399; margin-bottom: 12px;">Launch Offer Special</p>
+              <h3 style="font-family: var(--font-heading); font-size: 22px; font-weight: 700; color: #FFFFFF; margin-bottom: 6px;">
+                Budget Assistant PRO
+              </h3>
+              <p style="font-size: 13.5px; color: #34D399;">Launch Special Offer</p>
 
-              <div class="comp-card-price">
+              <div class="comp-card-price-val" style="color: #34D399;">
                 9,99 € <span>/ Εφάπαξ (Μία φορά)</span>
               </div>
 
-              <ul class="comp-features-list">
+              <ul class="comp-list-items">
                 <li>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
                   <span><strong>Μία πληρωμή. Δικό σου για πάντα.</strong></span>
@@ -1589,17 +1643,17 @@
                 </li>
                 <li>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                  <span><strong>Ζωντανό Κοινό Ταμείο (Multi-User Sync)</strong></span>
+                  <span><strong>Safe-to-Spend Radar & Financial Health Score</strong></span>
                 </li>
                 <li>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                  <span><strong>Financial Health Score & Όλα τα Updates</strong></span>
+                  <span><strong>Multi-Device Sync & Όλα τα Μελλοντικά Updates</strong></span>
                 </li>
               </ul>
             </div>
 
             <div>
-              <a href="#pricing" class="btn btn-emerald" style="width: 100%; font-weight: 700; padding: 14px;">
+              <a href="#pricing" class="btn btn-emerald" style="width: 100%; font-weight: 700; padding: 14px; text-align: center; justify-content: center;">
                 ⚡ Απόκτησε το Lifetime PRO (9,99€)
               </a>
             </div>
@@ -1609,75 +1663,29 @@
       </div>
     </section>
 
-    <!-- 3 Value Pillars -->
+    <!-- Quiz CTA Banner -->
     <section>
       <div class="container">
-        <div class="section-header">
-          <span class="section-tag">ΔΥΝΑΤΟΤΗΤΕΣ</span>
-          <h2 class="section-title">Όλα όσα χρειάζεσαι για απόλυτο έλεγχο</h2>
-          <p class="section-desc">Χτισμένο από το μηδέν για ταχύτητα, ιδιωτικότητα και ευκολία.</p>
-        </div>
-
-        <div class="pillars-grid">
-          <a href="/features/ai-receipt-scan" class="pillar-card">
-            <div>
-              <div class="pillar-icon" style="background: rgba(56, 189, 248, 0.15); color: #38BDF8;">📸</div>
-              <h3 class="pillar-title">AI Σάρωση Αποδείξεων</h3>
-              <p class="pillar-desc">
-                Βγάλε φωτογραφία οποιαδήποτε απόδειξη. Ο ενσωματωμένος AI Vision μηχανισμός εξάγει το ποσό, την ημερομηνία και την κατηγορία αυτόματα σε 2''.
-              </p>
-            </div>
-            <div class="pillar-link">Μάθε περισσότερα →</div>
-          </a>
-
-          <a href="/features/couples" class="pillar-card">
-            <div>
-              <div class="pillar-icon" style="background: rgba(124, 106, 247, 0.15); color: #C4B5FD;">👥</div>
-              <h3 class="pillar-title">Κοινό Ταμείο & Live Sync</h3>
-              <p class="pillar-desc">
-                Κοινός προϋπολογισμός, ζωντανή ενημέρωση υπολοίπου και αυτόματη κατανομή δαπανών για ζευγάρια, οικογένειες, συγκατοίκους και ομάδες.
-              </p>
-            </div>
-            <div class="pillar-link">Μάθε περισσότερα →</div>
-          </a>
-
-          <a href="/features/health-score" class="pillar-card">
-            <div>
-              <div class="pillar-icon" style="background: rgba(16, 185, 129, 0.15); color: #34D399;">🛡️</div>
-              <h3 class="pillar-title">Financial Health Score</h3>
-              <p class="pillar-desc">
-                Βασισμένο στην επίσημη μεθοδολογία FHN / CFPB. Υπολογίζει αποταμίευση, emergency runway και σου δίνει καθαρές οδηγίες.
-              </p>
-            </div>
-            <div class="pillar-link">Μάθε περισσότερα →</div>
-          </a>
-        </div>
-      </div>
-    </section>
-
-    <!-- Quiz Banner Section -->
-    <section>
-      <div class="container">
-        <div class="quiz-banner">
+        <div class="quiz-cta-banner">
           <div>
-            <div class="pill-tag" style="background: rgba(16, 185, 129, 0.15); color: #34D399; border-color: rgba(16, 185, 129, 0.3);">
+            <div class="pill-tag" style="background: rgba(16, 185, 129, 0.15); color: #34D399; border-color: rgba(16, 185, 129, 0.3); margin-bottom: 12px;">
               🧠 ΔΩΡΕΑΝ ONLINE ΕΡΓΑΛΕΙΟ
             </div>
-            <h2 style="font-family: var(--font-heading); font-size: 30px; margin-bottom: 10px; color: #fff;">
+            <h2 style="font-family: var(--font-heading); font-size: 30px; font-weight: 700; margin-bottom: 10px; color: #FFFFFF;">
               Πόσο υγιή είναι τα οικονομικά σου;
             </h2>
-            <p style="color: var(--text-muted); font-size: 14.5px; margin-bottom: 20px; line-height: 1.6;">
-              Απάντησε σε 8 γρήγορες ερωτήσεις και λάβε το δικό σου <strong>Financial Health Scorecard (0-100)</strong> με πρακτικά επόμενα βήματα βελτίωσης.
+            <p style="color: var(--text-muted); font-size: 14.5px; margin-bottom: 22px; line-height: 1.6;">
+              Απάντησε σε 8 γρήγορες ερωτήσεις και λάβε το δικό σου <strong>Financial Health Scorecard (0-100)</strong> με πρακτικά βήματα βελτίωσης.
             </p>
             <a href="/health-quiz" class="btn btn-emerald btn-lg">
               <span>🚀</span> Κάνε το Quiz (60 Δευτερόλεπτα)
             </a>
           </div>
 
-          <div class="cyber-score-card">
+          <div class="health-gauge-row" style="background: #090B12; border-color: rgba(124, 106, 247, 0.4); padding: 24px; text-align: center; flex-direction: column; gap: 8px;">
             <div style="font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px;">Financial Health Snapshot</div>
-            <div class="score-dial">88<span style="font-size: 20px; color: var(--text-muted);">/100</span></div>
-            <div style="font-weight: 700; color: #34D399; font-size: 14.5px; margin-bottom: 4px;">Εξαιρετική Οικονομική Υγεία</div>
+            <div class="health-score-dial" style="font-size: 42px;">88<span style="font-size: 18px; color: var(--text-muted);">/100</span></div>
+            <div style="font-weight: 700; color: #34D399; font-size: 14px;">Εξαιρετική Οικονομική Υγεία</div>
             <div style="font-size: 11.5px; color: var(--text-muted);">Emergency Runway: <strong>6.2 Μήνες</strong></div>
           </div>
         </div>
@@ -1697,30 +1705,32 @@
           
           <!-- Free Tier -->
           <div class="pricing-card">
-            <h3 style="font-family: var(--font-heading); font-size: 21px; color: #fff;">Free Tier</h3>
-            <div class="price-amount">0 €</div>
-            <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 18px;">Δωρεάν για πάντα</div>
+            <div>
+              <h3 style="font-family: var(--font-heading); font-size: 22px; color: #FFFFFF;">Free Tier</h3>
+              <div class="price-amount">0 €</div>
+              <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 18px;">Δωρεάν για πάντα</div>
 
-            <ul class="feature-list">
-              <li>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                <span>Απεριόριστη καταγραφή εξόδων & εσόδων</span>
-              </li>
-              <li>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                <span>5 AI σαρώσεις αποδείξεων / μήνα</span>
-              </li>
-              <li>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                <span>100% Offline & Local-First ασφάλεια</span>
-              </li>
-              <li>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                <span>Βασικά διαγράμματα & αναφορές</span>
-              </li>
-            </ul>
+              <ul class="feature-list">
+                <li>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  <span>Απεριόριστη καταγραφή εξόδων & εσόδων</span>
+                </li>
+                <li>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  <span>5 AI σαρώσεις αποδείξεων / μήνα</span>
+                </li>
+                <li>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  <span>100% Offline & Local-First ασφάλεια</span>
+                </li>
+                <li>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  <span>Βασικά διαγράμματα & αναφορές</span>
+                </li>
+              </ul>
+            </div>
 
-            <a href="/app" class="btn btn-secondary" style="width: 100%;">
+            <a href="/app" class="btn btn-secondary" style="width: 100%; text-align: center; justify-content: center;">
               Έναρξη Δωρεάν
             </a>
           </div>
@@ -1728,43 +1738,78 @@
           <!-- Lifetime PRO (Launch Offer) -->
           <div class="pricing-card featured">
             <div class="pricing-badge">🔥 LIMITED LAUNCH OFFER</div>
-            <h3 style="font-family: var(--font-heading); font-size: 21px; color: #fff;">Lifetime PRO</h3>
-            
-            <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); color: #FBBF24; padding: 6px 12px; border-radius: 6px; font-size: 11.5px; font-weight: 600; text-align: center; margin: 10px 0 4px;">
-              ⏳ 418 / 500 θέσεις έχουν καλυφθεί!
+            <div>
+              <h3 style="font-family: var(--font-heading); font-size: 22px; color: #FFFFFF;">Lifetime PRO</h3>
+              
+              <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); color: #FBBF24; padding: 6px 12px; border-radius: 6px; font-size: 11.5px; font-weight: 600; text-align: center; margin: 10px 0 4px;">
+                ⏳ Ειδική τιμή πρώιμης πρόσβασης
+              </div>
+
+              <div class="price-amount">9,99 €</div>
+              <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 18px;"><strike style="color: var(--text-dim); margin-right: 6px;">29,99 €</strike> Μία φορά. Δικό σου για πάντα.</div>
+
+              <ul class="feature-list">
+                <li>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  <span><strong>Απεριόριστες AI Σαρώσεις Αποδείξεων</strong></span>
+                </li>
+                <li>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  <span><strong>Real-Time Safe-to-Spend Radar & Health Score</strong></span>
+                </li>
+                <li>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  <span><strong>Multi-Device Cloud Sync & Κοινό Ταμείο</strong></span>
+                </li>
+                <li>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  <span><strong>Interactive AI Financial Advisor</strong></span>
+                </li>
+                <li>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  <span>Όλα τα μελλοντικά updates & features δωρεάν</span>
+                </li>
+              </ul>
             </div>
 
-            <div class="price-amount">9,99 €</div>
-            <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 18px;"><strike style="color: var(--text-dim); margin-right: 6px;">29,99 €</strike> Μία φορά. Δικό σου για πάντα.</div>
-
-            <ul class="feature-list">
-              <li>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                <span><strong>Απεριόριστες AI Σαρώσεις Αποδείξεων</strong></span>
-              </li>
-              <li>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                <span><strong>Real-Time Κοινό Ταμείο & Multi-Device Sync</strong></span>
-              </li>
-              <li>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                <span><strong>Financial Health Score & Forecasting</strong></span>
-              </li>
-              <li>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                <span><strong>Interactive AI Financial Advisor</strong></span>
-              </li>
-              <li>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                <span>Multi-Currency & Cloud Backup προτεραιότητας</span>
-              </li>
-            </ul>
-
-            <a href="/pricing" class="btn btn-primary btn-lg" style="width: 100%;">
+            <a href="/pricing" class="btn btn-primary btn-lg" style="width: 100%; text-align: center; justify-content: center;">
               ⚡ Απόκτησε το Lifetime PRO (9,99€)
             </a>
           </div>
 
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section>
+      <div class="container">
+        <div class="section-header">
+          <span class="section-tag">ΣΥΧΝΕΣ ΕΡΩΤΗΣΕΙΣ</span>
+          <h2 class="section-title">Όλα όσα θέλεις να γνωρίζεις</h2>
+          <p class="section-desc">Συγκεντρώσαμε τις απαντήσεις στις πιο συνηθισμένες ερωτήσεις για το Budget Assistant.</p>
+        </div>
+
+        <div class="faq-grid">
+          <div class="faq-item">
+            <h3>Είναι όντως εφάπαξ πληρωμή ή θα υπάρξουν κρυφές συνδρομές;</h3>
+            <p>Είναι 100% εφάπαξ πληρωμή 9,99€. Δεν υπάρχει καμία μηνιαία ή ετήσια συνδρομή, ούτε αυτόματη ανανέωση. Μετά την αγορά, η άδεια PRO και όλα τα μελλοντικά updates ανήκουν αποκλειστικά σε εσάς.</p>
+          </div>
+
+          <div class="faq-item">
+            <h3>Πώς λειτουργεί η AI σάρωση αποδείξεων;</h3>
+            <p>Ανοίγετε την κάμερα μέσα από την εφαρμογή ή επιλέγετε φωτογραφία/PDF απόδειξης. Το AI διαβάζει σε λιγότερο από 2 δευτερόλεπτα το κατάστημα, την ημερομηνία, το συνολικό ποσό και αντιστοιχεί αυτόματα τη σωστή κατηγορία εξόδου.</p>
+          </div>
+
+          <div class="faq-item">
+            <h3>Μπορώ να χρησιμοποιήσω την εφαρμογή και σε υπολογιστή και σε κινητό;</h3>
+            <p>Ναι, πλήρως! Μπορείτε να έχετε πρόσβαση από το κινητό σας (μέσω Android app ή Progressive Web App) και ταυτόχρονα από το web browser του υπολογιστή ή του tablet σας, με όλα τα δεδομένα συγχρονισμένα.</p>
+          </div>
+
+          <div class="faq-item">
+            <h3>Πόσο ασφαλή είναι τα οικονομικά μου δεδομένα;</h3>
+            <p>Η εφαρμογή ακολουθεί αρχιτεκτονική Local-First με κρυπτογράφηση. Τα δεδομένα σας αποθηκεύονται τοπικά στη συσκευή σας. Δεν πουλάμε ποτέ δεδομένα σε τρίτους και δεν υπάρχουν trackers διαφημίσεων.</p>
+          </div>
         </div>
       </div>
     </section>
@@ -1825,42 +1870,6 @@
 
   <!-- Interactive Scripts -->
   <script>
-    function simulateScan() {
-      const box = document.getElementById('scanner-box');
-      const pill = document.getElementById('ai-pill');
-      const btn = document.getElementById('btn-scan-sim');
-
-      btn.disabled = true;
-      btn.innerHTML = '<span>⚡</span> Σάρωση σε εξέλιξη...';
-      box.classList.add('scanning');
-      pill.classList.remove('show');
-
-      setTimeout(() => {
-        box.classList.remove('scanning');
-        pill.classList.add('show');
-        btn.disabled = false;
-        btn.innerHTML = '<span>✅</span> Ολοκληρώθηκε! (Ξαναδοκίμασε)';
-      }, 1600);
-    }
-
-    let currentBal = 1450.00;
-    function simulateExpense() {
-      currentBal -= 35.00;
-      const formatted = currentBal.toLocaleString('el-GR', { minimumFractionDigits: 2 }) + ' €';
-      document.getElementById('p1-balance').innerText = formatted;
-      
-      const push = document.getElementById('partner-push');
-      push.classList.add('pop');
-
-      setTimeout(() => {
-        document.getElementById('p2-balance').innerText = formatted;
-      }, 300);
-
-      setTimeout(() => {
-        push.classList.remove('pop');
-      }, 3500);
-    }
-
     function setLandingLanguage(lang) {
       localStorage.setItem('app_lang_user_set', 'true');
       localStorage.setItem('app_lang', lang);
