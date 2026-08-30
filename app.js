@@ -3412,22 +3412,12 @@ function initSupabaseAuth() {
           // when NEW offline transactions are recorded (the pending count changes).
           // If a sync/transfer fails for some items (e.g. schema mismatch), the
           // transfer silently retries and only re-prompts when the set changes.
-          // OFFLINE GUEST DATA PROMPT: If there are unowned transactions recorded
-          // in offline guest mode, ask the user what to do with them for this specific account.
+          // 3. Automatic and silent import of any locally-saved / guest transactions into the cloud account.
+          // ZERO POPUPS - ZERO USER EFFORT.
           try {
-            const guestTxs = getOfflineGuestTransactions();
-            if (guestTxs.length > 0) {
-              // Only prompt when the pending set changed since the last dismissal,
-              // so users who chose "Keep Offline Only" are not nagged every login.
-              const lastDismissedCount = parseInt(localStorage.getItem('offline_guest_prompt_dismissed_count') || '-1', 10);
-              if (lastDismissedCount !== guestTxs.length) {
-                setTimeout(() => {
-                  showOfflineImportPrompt(session.user.id, session.user.email);
-                }, 600);
-              }
-            }
+            await syncLocalTransactionsToCloud(session.user.id, { silent: true });
           } catch (err) {
-            console.warn('Offline data prompt check failed:', err);
+            console.warn('Auto-sync local transactions on login failed:', err);
           }
         } catch (err) {
           console.error('Error during background auth setup:', err);
@@ -25744,7 +25734,8 @@ let _syncLocalInFlight = false;
 async function syncLocalTransactionsToCloud(userId, options = {}) {
   const silent = !!options.silent;
   const transStr = localStorage.getItem('offline_transactions');
-  if (!transStr) return;
+  const guestTxs = (typeof getOfflineGuestTransactions === 'function') ? getOfflineGuestTransactions() : [];
+  if (!transStr && guestTxs.length === 0) return;
 
   if (_syncLocalInFlight) {
     return;
@@ -25752,12 +25743,19 @@ async function syncLocalTransactionsToCloud(userId, options = {}) {
   _syncLocalInFlight = true;
 
   try {
-    const allTrans = JSON.parse(transStr) || [];
+    let allTrans = [];
+    try {
+      allTrans = transStr ? (JSON.parse(transStr) || []) : [];
+    } catch (e) {
+      allTrans = [];
+    }
+    const combined = [...allTrans, ...guestTxs];
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    const localTrans = allTrans.filter(t => {
+    const localTrans = combined.filter(t => {
+      if (!t || !t.amount) return false;
       if (!t.id) return true;
       if (String(t.id).startsWith('local_')) return true;
-      if (t.user_id === userId) return true;
+      if (t.user_id === userId || !t.user_id || t.user_id === 'guest') return true;
       if (!uuidRegex.test(String(t.id))) return true;
       return false;
     });
@@ -25794,6 +25792,8 @@ async function syncLocalTransactionsToCloud(userId, options = {}) {
         const cleanOffline = allTrans.filter(t => !localTrans.includes(t));
         localStorage.setItem('offline_transactions', JSON.stringify(cleanOffline));
         localStorage.setItem('offline_transactions_owner', userId);
+        localStorage.removeItem('offline_guest_transactions');
+        localStorage.removeItem('offline_guest_prompt_dismissed_count');
       } finally {
         setTimeout(() => { _suppressRealtimeEvents = false; }, 5000);
       }
