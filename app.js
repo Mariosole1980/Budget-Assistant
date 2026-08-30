@@ -7240,63 +7240,70 @@ function renderStatsTab(skipChart = false) {
       });
 
       statsFragment.appendChild(subContainer);
-
-      let rowFeedbackTimer;
-      let rowTouchStartX = 0;
-      let rowTouchStartY = 0;
-      let rowTouchMoved = false;
-
-      row.addEventListener('touchstart', (e) => {
-        rowTouchMoved = false;
-        const touch = e.touches[0];
-        rowTouchStartX = touch.clientX;
-        rowTouchStartY = touch.clientY;
-
-        clearTimeout(rowFeedbackTimer);
-        rowFeedbackTimer = setTimeout(() => {
-          if (!rowTouchMoved && !state.isSwipingMonth) {
-            row.classList.add('pressed');
-          }
-        }, 100);
-      }, { passive: true });
-
-      row.addEventListener('touchmove', (e) => {
-        const touch = e.touches[0];
-        const dx = touch.clientX - rowTouchStartX;
-        const dy = touch.clientY - rowTouchStartY;
-        if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
-          rowTouchMoved = true;
-          clearTimeout(rowFeedbackTimer);
-          row.classList.remove('pressed');
-        }
-      }, { passive: true });
-
-      row.addEventListener('touchend', (e) => {
-        clearTimeout(rowFeedbackTimer);
-        row.classList.remove('pressed');
-        if (state.isSwipingMonth || rowTouchMoved) {
-          if (e.cancelable) e.preventDefault();
-        }
-      }, { passive: false });
-
-      row.addEventListener('touchcancel', () => {
-        clearTimeout(rowFeedbackTimer);
-        row.classList.remove('pressed');
-      });
-
-      row.addEventListener('click', () => {
-        if (state.isSwipingMonth || rowTouchMoved || (Date.now() - state.lastSwipeTime < 1500)) {
-          return;
-        }
-        const expanded = row.classList.toggle('expanded');
-        subContainer.classList.toggle('active', expanded);
-        if (expanded) {
-          state.expandedStatsCategories.add(item.name);
-        } else {
-          state.expandedStatsCategories.delete(item.name);
-        }
-      });
     }
+
+    let rowFeedbackTimer;
+    let rowTouchStartX = 0;
+    let rowTouchStartY = 0;
+    let rowTouchMoved = false;
+
+    row.addEventListener('touchstart', (e) => {
+      rowTouchMoved = false;
+      const touch = e.touches[0];
+      rowTouchStartX = touch.clientX;
+      rowTouchStartY = touch.clientY;
+
+      clearTimeout(rowFeedbackTimer);
+      rowFeedbackTimer = setTimeout(() => {
+        if (!rowTouchMoved && !state.isSwipingMonth) {
+          row.classList.add('pressed');
+        }
+      }, 100);
+    }, { passive: true });
+
+    row.addEventListener('touchmove', (e) => {
+      const touch = e.touches[0];
+      const dx = touch.clientX - rowTouchStartX;
+      const dy = touch.clientY - rowTouchStartY;
+      if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
+        rowTouchMoved = true;
+        clearTimeout(rowFeedbackTimer);
+        row.classList.remove('pressed');
+      }
+    }, { passive: true });
+
+    row.addEventListener('touchend', (e) => {
+      clearTimeout(rowFeedbackTimer);
+      row.classList.remove('pressed');
+      if (state.isSwipingMonth || rowTouchMoved) {
+        if (e.cancelable) e.preventDefault();
+      }
+    }, { passive: false });
+
+    row.addEventListener('touchcancel', () => {
+      clearTimeout(rowFeedbackTimer);
+      row.classList.remove('pressed');
+    });
+
+    row.addEventListener('click', () => {
+      if (state.isSwipingMonth || rowTouchMoved || (Date.now() - state.lastSwipeTime < 1500)) {
+        return;
+      }
+      if (hasSubcats) {
+        const subContainerEl = document.getElementById(catId);
+        if (subContainerEl) {
+          const expanded = row.classList.toggle('expanded');
+          subContainerEl.classList.toggle('active', expanded);
+          if (expanded) {
+            state.expandedStatsCategories.add(item.name);
+          } else {
+            state.expandedStatsCategories.delete(item.name);
+          }
+        }
+      } else {
+        openStatsTransactionsModal(item.name, null);
+      }
+    });
   });
 
   if (listContainer) listContainer.replaceChildren(statsFragment);
@@ -7960,10 +7967,14 @@ function renderSubcategoryTransactions(category, subcategory) {
   if (!listContainer) return;
   const displayCurrency = getDisplayCurrency();
 
-  const subDisplayName = subcategory ? getSubcategoryDisplayName(subcategory, category) : (state.lang === 'el' ? 'Χωρίς υποκατηγορία' : 'Uncategorized');
   const catDisplayName = getCategoryDisplayName(category);
   if (titleEl) {
-    titleEl.textContent = `${catDisplayName} · ${subDisplayName}`;
+    if (subcategory) {
+      const subDisplayName = getSubcategoryDisplayName(subcategory, category);
+      titleEl.textContent = `${catDisplayName} · ${subDisplayName}`;
+    } else {
+      titleEl.textContent = catDisplayName;
+    }
   }
 
   listContainer.innerHTML = '';
@@ -7989,6 +8000,8 @@ function renderSubcategoryTransactions(category, subcategory) {
     const catInfo = getCategoryInfo(t.category, t.type);
     const catName = catInfo.name || t.category || (state.lang === 'el' ? 'Άλλα' : 'Other');
     if (catName.toUpperCase() !== category.toUpperCase()) return false;
+
+    if (!subcategory) return true;
 
     const tSub = t.subcategory || '';
     return tSub.toUpperCase() === subcategory.toUpperCase();

@@ -1082,6 +1082,9 @@ button:active,
   padding: 10px 12px;
   border-bottom: 1px solid var(--border);
   min-height: 44px;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .stats-row-left {
