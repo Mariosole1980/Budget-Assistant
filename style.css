@@ -9089,6 +9089,16 @@ mark.guide-highlight {
 
 #transaction-modal,
 #transaction-modal .modal-overlay,
+.modal-overlay#transaction-modal,
+#recurring-delete-step1-modal,
+#recurring-delete-step2-modal,
+#bulk-recurring-delete-modal,
+#recurring-modal {
+  z-index: 10500 !important;
+}
+
+#transaction-modal,
+#transaction-modal .modal-overlay,
 .modal-overlay#transaction-modal {
   width: 100vw !important;
   max-width: 100vw !important;

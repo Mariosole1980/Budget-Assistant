@@ -395,6 +395,7 @@ const state = {
   selectionMode: false,
   selectedIds: new Set(),
   searchSelectMode: false,
+  selectedSearchIds: new Set(),
   lang: (function () {
     if (localStorage.getItem('app_lang_user_set') === 'true' && localStorage.getItem('app_lang')) {
       return localStorage.getItem('app_lang');
@@ -5949,10 +5950,10 @@ function deleteTransaction(id) {
   calculateInitialBalances();
   updateUI();
 
-  if (typeof executeSearch === 'function') {
-    const searchInput = document.getElementById('search-input');
-    if (searchInput && searchInput.value) {
-      executeSearch();
+  if (typeof handleSearchChange === 'function') {
+    const searchOverlay = document.getElementById('search-overlay');
+    if (searchOverlay && searchOverlay.classList.contains('active')) {
+      handleSearchChange(false);
     }
   }
 
@@ -16603,7 +16604,7 @@ function clearSearchSelection() {
 }
 
 async function deleteSelectedSearchTransactions() {
-  const selectedIds = Array.from(state.selectedSearchIds || state.searchSelectedIds || []);
+  const selectedIds = Array.from(state.selectedSearchIds || []);
   if (selectedIds.length === 0) return;
 
   if (selectedIds.length === 1) {
@@ -16621,8 +16622,8 @@ async function deleteSelectedSearchTransactions() {
   state.selectedIds = new Set(selectedIds);
   toggleSearchSelectMode();
   await deleteSelectedTransactions();
-  if (typeof renderSearchResults === 'function') {
-    renderSearchResults();
+  if (typeof handleSearchChange === 'function') {
+    handleSearchChange(false);
   }
 }
 
