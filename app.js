@@ -2428,6 +2428,19 @@ async function initApp() {
 
   // ALWAYS load cached local data immediately so the UI is never blank on refresh.
   // If Supabase is enabled, onAuthStateChange will call loadData() again with fresh cloud data.
+  //
+  // Self-healing migration for tombstone reconciliation / incremental cache drift.
+  // Resets stale sync cursors once so all clients perform a guaranteed full sync
+  // and reconcile any transactions hidden by stale localStorage tombstones.
+  try {
+    const HEAL_KEY = 'tombstone_reconcile_fix_v3';
+    if (!localStorage.getItem(HEAL_KEY)) {
+      if (typeof resetSyncCursors === 'function') resetSyncCursors();
+      localStorage.removeItem('permanent_deleted_tx_ids');
+      localStorage.setItem(HEAL_KEY, 'true');
+    }
+  } catch (_) { }
+
   loadOfflineData();
 
   // CRITICAL: Also run on pageshow — this fires for bfcache restores
@@ -3250,7 +3263,7 @@ function initSupabaseAuth() {
         window._authConfirmed = true;
         localStorage.setItem('cached_current_user', JSON.stringify(data.session.user));
         hideAuthOverlay();
-        forceSyncNow(true).catch(console.error);
+        loadData().catch(console.error);
       }
     }
   }).catch(err => {
@@ -3476,7 +3489,7 @@ function initSupabaseAuth() {
           // 2. Load fresh data from cloud immediately.
           _suppressRealtimeEvents = true;
           try {
-            await forceSyncNow(true);
+            await loadData();
 
             // Start automatic polling sync
             startPartnerSyncPolling();
@@ -5186,6 +5199,31 @@ async function loadData() {
       // ACCOUNT-ISOLATION: Attribute the local cache to the current user so a
       // later sign-in with a DIFFERENT account does not import/merge this data.
       localStorage.setItem('offline_transactions_owner', userId);
+
+      // Establish incremental sync cursor baseline from full fetch
+      try {
+        if (typeof getSyncCursors === 'function' && typeof saveSyncCursors === 'function') {
+          const cursors = getSyncCursors();
+          const nextCursors = { ...cursors };
+          if (allTransactions.length > 0) {
+            let maxTs = '';
+            let maxId = '';
+            for (let i = 0; i < allTransactions.length; i++) {
+              const tx = allTransactions[i];
+              const txTs = tx.updated_at || tx.created_at || '';
+              if (txTs && (!maxTs || txTs > maxTs)) {
+                maxTs = txTs;
+                maxId = tx.id || '';
+              }
+            }
+            nextCursors.transactions = maxTs ? { ts: maxTs, id: maxId } : { ts: new Date().toISOString(), id: '00000000-0000-0000-0000-000000000000' };
+          } else {
+            nextCursors.transactions = { ts: new Date(0).toISOString(), id: '00000000-0000-0000-0000-000000000000' };
+          }
+          saveSyncCursors(nextCursors);
+          if (typeof markFullSyncDone === 'function') markFullSyncDone();
+        }
+      } catch (_) { }
 
       updateHeaderSyncIcon('synced');
       calculateInitialBalances();
@@ -26639,21 +26677,33 @@ function handleRealtimeTransactionChange(payload) {
     let changed = false;
     let insertedByPartner = false;
 
-    // Durable tombstone guard: never re-add a permanently-deleted transaction to
-    // state via a stale realtime INSERT event.
-    let permanentlyDeletedSet = null;
+    // Collect active in-flight deletions
+    const inFlightDeletionIds = new Set();
+    const addInFlight = (id) => { if (id !== null && id !== undefined && id !== '') inFlightDeletionIds.add(String(id)); };
+    if (typeof _deletingTxIds !== 'undefined' && _deletingTxIds) _deletingTxIds.forEach(addInFlight);
+    if (typeof _recentlyDeletedTxIds !== 'undefined' && _recentlyDeletedTxIds) _recentlyDeletedTxIds.forEach(addInFlight);
     try {
-      permanentlyDeletedSet = new Set(Array.from(collectPermanentlyDeletedTxIds()).map(String));
-    } catch (err) {
-      console.warn('Failed to collect permanently deleted IDs in realtime handler:', err);
-    }
+      const queue = JSON.parse(localStorage.getItem('money_manager_sync_queue') || '[]') || [];
+      queue.forEach(item => {
+        if (item && (item.action === 'delete' || item.action === 'permanent_delete_tx') && item.payload) {
+          addInFlight(item.payload);
+        }
+      });
+    } catch (_) { }
 
     events.forEach(ev => {
       const eventType = ev.eventType;
       if (eventType === 'INSERT') {
         const newTrans = ev.new;
-        if (newTrans && permanentlyDeletedSet && permanentlyDeletedSet.has(String(newTrans.id))) {
-          return;
+        if (newTrans && newTrans.id) {
+          const idStr = String(newTrans.id);
+          if (inFlightDeletionIds.has(idStr)) {
+            return;
+          }
+          // Reconcile stale tombstone
+          try {
+            reconcileStaleTombstones([newTrans]);
+          } catch (_) { }
         }
         if (!trans.some(t => t.id === newTrans.id)) {
           trans.unshift(newTrans);
@@ -27154,24 +27204,32 @@ function applyIncrementalTransactions(newRows, tombstones) {
   const current = Array.isArray(state.transactions) ? state.transactions : [];
   const byId = new Map(current.map(t => [String(t.id), t]));
 
-  // DATA-INTEGRITY FIX (resurrection prevention): Never re-add a transaction that
-  // the user has deleted (trash, queued delete, offline cache with status='deleted',
-  // or permanent-delete tombstone). The incremental fetch only pulls rows with
-  // status='active', so a soft-delete that never reached the cloud (e.g. an offline
-  // delete whose cloud update failed) would otherwise be re-introduced into local
-  // state here, resurrecting it in the app while the web still shows it. This mirrors
-  // the same exclusion the full-sync merge path already applies via
-  // mergeAndDeduplicateTransactions -> collectDeletedIds.
-  let permanentlyDeletedSet = null;
+  // CLOUD-AUTHORITY PRINCIPLE: Rows returned by incremental fetch are active in
+  // the cloud (status='active'). Only skip if actively being deleted right now
+  // (in-flight, 30s grace window, or pending in sync queue).
+  const inFlightDeletionIds = new Set();
+  const addInFlight = (id) => { if (id !== null && id !== undefined && id !== '') inFlightDeletionIds.add(String(id)); };
+  if (typeof _deletingTxIds !== 'undefined' && _deletingTxIds) _deletingTxIds.forEach(addInFlight);
+  if (typeof _recentlyDeletedTxIds !== 'undefined' && _recentlyDeletedTxIds) _recentlyDeletedTxIds.forEach(addInFlight);
   try {
-    permanentlyDeletedSet = new Set(Array.from(collectPermanentlyDeletedTxIds()).map(String));
-  } catch (err) {
-    console.warn('[IncrementalSync] Failed to collect permanently deleted IDs in applyIncrementalTransactions:', err);
+    const queue = JSON.parse(localStorage.getItem('money_manager_sync_queue') || '[]') || [];
+    queue.forEach(item => {
+      if (item && (item.action === 'delete' || item.action === 'permanent_delete_tx') && item.payload) {
+        addInFlight(item.payload);
+      }
+    });
+  } catch (_) { }
+
+  // Reconcile stale tombstones for incoming active cloud rows
+  if (newRows && newRows.length > 0) {
+    try {
+      reconcileStaleTombstones(newRows);
+    } catch (_) { }
   }
 
-  // Upsert changed/new rows, skipping any that are locally deleted.
+  // Upsert changed/new rows, skipping only those actively being deleted.
   (newRows || []).forEach(t => {
-    if (t && t.id && permanentlyDeletedSet && permanentlyDeletedSet.has(String(t.id))) {
+    if (t && t.id && inFlightDeletionIds.has(String(t.id))) {
       return;
     }
     byId.set(String(t.id), t);
@@ -34470,9 +34528,16 @@ async function restoreTransaction(id) {
   const itemToRestore = (state.trashTransactions || []).find(t => String(t.id) === String(id));
   if (!itemToRestore) return;
 
-  // 1. Remove from trash
+  // 1. Remove from trash and permanent deleted tombstones
   state.trashTransactions = (state.trashTransactions || []).filter(t => String(t.id) !== String(id));
   localStorage.setItem('deleted_transactions_trash', JSON.stringify(state.trashTransactions));
+  try {
+    const perm = JSON.parse(localStorage.getItem('permanent_deleted_tx_ids') || '[]') || [];
+    const filtered = perm.filter(pId => String(pId) !== String(id));
+    if (filtered.length !== perm.length) {
+      localStorage.setItem('permanent_deleted_tx_ids', JSON.stringify(filtered));
+    }
+  } catch (_) { }
 
   // Remove deleted_at before saving back to transactions
   const cleanedItem = { ...itemToRestore };
@@ -37131,6 +37196,14 @@ async function restoreTrashGroup(groupId) {
       }
     });
     localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
+    try {
+      const perm = JSON.parse(localStorage.getItem('permanent_deleted_tx_ids') || '[]') || [];
+      const restoredIds = new Set(realSnapshot.map(t => String(t.id)));
+      const filtered = perm.filter(pId => !restoredIds.has(String(pId)));
+      if (filtered.length !== perm.length) {
+        localStorage.setItem('permanent_deleted_tx_ids', JSON.stringify(filtered));
+      }
+    } catch (_) { }
   }
 
   state.trashTransactions.splice(groupIndex, 1);

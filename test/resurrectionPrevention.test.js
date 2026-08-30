@@ -184,11 +184,14 @@ global.processRecurringTemplates = () => { };
 global.compareTransactions = (a, b) => String(a.id).localeCompare(String(b.id));
 // Called by handleRealtimeTransactionChange when a transaction is added.
 global.calculateInitialBalances = () => ({});
+global._isWithinResumeWindow = () => false;
+global._REALTIME_RESUME_GUARD_MS = 2500;
 
 // Load the real functions under test from app.js. All are eval'd together at
 // module top level so their declarations share the module scope and can
 // reference each other.
 eval([
+    'reconcileStaleTombstones',
     'collectPermanentlyDeletedTxIds',
     'purgePermanentlyDeletedTxIds',
     'autoSyncMissingTransactionsToCloud',
@@ -366,21 +369,28 @@ test('B5: processSyncQueue drops stale upsert (restore) mutation for permanently
     assert.ok(!cloud.updated.some(u => String(u.id) === 'perm-3' && u.patch.status === 'active'), 'stale restore dropped');
 });
 
-test('B6: handleRealtimeTransactionChange skips INSERT for permanently-deleted transaction', () => {
+test('B6: handleRealtimeTransactionChange skips INSERT when in-flight deleting and accepts active insert', () => {
     seedLocalStorage({ perm: ['perm-4'] });
     state.transactions = [];
     state.currentUser = { id: 'user-1' };
     _suppressRealtimeEvents = false;
     _pendingRealtimeEvents = [];
     _realtimeDebounceTimer = null;
+    _deletingTxIds = new Set(['in-flight-del-1']);
 
+    // 1. In-flight deleted tx is skipped
+    handleRealtimeTransactionChange({
+        eventType: 'INSERT',
+        new: makeTx('in-flight-del-1')
+    });
+    assert.ok(!state.transactions.some(t => String(t.id) === 'in-flight-del-1'), 'in-flight deleted tx skipped via realtime');
+
+    // 2. Active cloud row is accepted and stale tombstone is reconciled
     handleRealtimeTransactionChange({
         eventType: 'INSERT',
         new: makeTx('perm-4')
     });
-
-    // The perm-deleted tx must NOT be added to state.
-    assert.ok(!state.transactions.some(t => String(t.id) === 'perm-4'), 'perm-4 not re-added via realtime');
+    assert.ok(state.transactions.some(t => String(t.id) === 'perm-4'), 'cloud active row accepted via realtime');
 });
 
 test('B7: syncLocalTransactionsToCloud filters permanently-deleted IDs before upsert', async () => {
@@ -458,7 +468,7 @@ test('D: Android and Web converge on the same transaction set (dedup by id)', ()
 // ===========================================================================
 // TEST E: permanently-deleted on Android can't appear on Web.
 // ===========================================================================
-test('E: cloud-active perm-deleted ID is kept in Web merge (cloud authority) but skipped in realtime', () => {
+test('E: cloud-active perm-deleted ID is kept in Web merge and realtime (cloud authority)', () => {
     seedLocalStorage({ perm: ['perm-8'] });
     // CLOUD-AUTHORITY: the cloud reports perm-8 as active, so the web merge must
     // keep it (a stale local tombstone must not hide a cloud-active transaction).
@@ -466,21 +476,21 @@ test('E: cloud-active perm-deleted ID is kept in Web merge (cloud authority) but
     assert.ok(webMerged.some(t => String(t.id) === 'perm-8'), 'cloud-active perm-8 kept in web merge (cloud authority)');
     assert.ok(webMerged.some(t => String(t.id) === 'ok-1'), 'ok-1 kept');
 
-    // Web realtime INSERT of the perm-deleted tx is still skipped (realtime
-    // filtering is independent of the merge and remains a defense-in-depth).
+    // Web realtime INSERT of the cloud-active tx is accepted and tombstone reconciled.
     state.transactions = [];
     state.currentUser = { id: 'user-1' };
     _suppressRealtimeEvents = false;
     _pendingRealtimeEvents = [];
     _realtimeDebounceTimer = null;
+    _deletingTxIds = new Set();
     handleRealtimeTransactionChange({ eventType: 'INSERT', new: makeTx('perm-8') });
-    assert.ok(!state.transactions.some(t => String(t.id) === 'perm-8'), 'perm-8 not added via web realtime');
+    assert.ok(state.transactions.some(t => String(t.id) === 'perm-8'), 'perm-8 added via web realtime');
 });
 
 // ===========================================================================
 // TEST F: permanently-deleted on Web can't appear on Android.
 // ===========================================================================
-test('F: cloud-active perm-deleted ID is kept in Android merge (cloud authority) but skipped in realtime', () => {
+test('F: cloud-active perm-deleted ID is kept in Android merge and realtime (cloud authority)', () => {
     seedLocalStorage({ perm: ['perm-9'] });
     // CLOUD-AUTHORITY: the cloud reports perm-9 as active, so the Android merge
     // must keep it (a stale local tombstone must not hide a cloud-active tx).
@@ -488,41 +498,37 @@ test('F: cloud-active perm-deleted ID is kept in Android merge (cloud authority)
     assert.ok(androidMerged.some(t => String(t.id) === 'perm-9'), 'cloud-active perm-9 kept in android merge (cloud authority)');
     assert.ok(androidMerged.some(t => String(t.id) === 'ok-2'), 'ok-2 kept');
 
-    // Android realtime INSERT of the perm-deleted tx is still skipped.
+    // Android realtime INSERT of the cloud-active tx is accepted.
     state.transactions = [];
     state.currentUser = { id: 'user-1' };
     _suppressRealtimeEvents = false;
     _pendingRealtimeEvents = [];
     _realtimeDebounceTimer = null;
+    _deletingTxIds = new Set();
     handleRealtimeTransactionChange({ eventType: 'INSERT', new: makeTx('perm-9') });
-    assert.ok(!state.transactions.some(t => String(t.id) === 'perm-9'), 'perm-9 not added via android realtime');
+    assert.ok(state.transactions.some(t => String(t.id) === 'perm-9'), 'perm-9 added via android realtime');
 });
 
 // ===========================================================================
-// TEST G: applyIncrementalTransactions must NOT resurrect a deleted tx.
-//
-// Regression for the latent bug where the incremental sync path re-added a
-// soft-deleted transaction (e.g. an offline delete whose cloud update failed)
-// back into local state, resurrecting it in the app while the web still showed
-// it. The fix mirrors the full-sync merge exclusion via
-// collectPermanentlyDeletedTxIds().
+// TEST G: applyIncrementalTransactions
 // ===========================================================================
-test('G1: applyIncrementalTransactions does NOT re-add a permanently-deleted transaction', () => {
+test('G1: applyIncrementalTransactions skips in-flight deleted tx and applies active rows', () => {
     seedLocalStorage({
         trash: [{ id: 'perm-10', status: 'deleted' }],
         offline: [makeTx('perm-10', { status: 'deleted' })],
         perm: ['perm-10']
     });
-    // Local state currently excludes the deleted tx (as the app does after a
-    // local delete). The incremental fetch returns it as an active row because
-    // the soft-delete never reached the cloud.
     state.transactions = [makeTx('keep-1')];
     state.currentUser = { id: 'user-1' };
+    _deletingTxIds = new Set(['in-flight-del-2']);
 
-    applyIncrementalTransactions([makeTx('perm-10'), makeTx('keep-1')], []);
+    applyIncrementalTransactions([makeTx('perm-10'), makeTx('keep-1'), makeTx('in-flight-del-2')], []);
 
     const ids = state.transactions.map(t => String(t.id));
-    assert.ok(!ids.includes('perm-10'), 'perm-10 must NOT be resurrected by incremental sync');
+    // In-flight deleted tx must be skipped
+    assert.ok(!ids.includes('in-flight-del-2'), 'in-flight-del-2 must be skipped');
+    // Active cloud rows are applied
+    assert.ok(ids.includes('perm-10'), 'perm-10 applied from cloud');
     assert.ok(ids.includes('keep-1'), 'keep-1 stays in state');
 });
 
