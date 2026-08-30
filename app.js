@@ -6177,39 +6177,52 @@ async function saveTransaction(transaction) {
   calculateInitialBalances();
   updateUI();
 
-  // 3. Attempt to save to cloud in background
+  // 3. Save to cloud directly and reliably
   if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
-
     const { description, is_shared, photo_local_uri, photo_url, receipt, fx_snapshot, ...dbPayload } = mapTransactionToDb(transaction);
 
-    // Enqueue immediately before starting the cloud request to prevent data loss if the app is closed/killed
+    // Enqueue immediately before starting the cloud request to prevent data loss if offline
     enqueueSyncMutation('save', transaction);
 
-    (async () => {
-      try {
-        // Suppress realtime echo of our own upsert to prevent a second UI render ~5s after save.
-        _suppressRealtimeEvents = true;
-        const { error } = await promiseTimeout(
-          state.supabaseClient
-            .from('transactions')
-            .upsert([dbPayload]),
-          12000
-        );
-        if (error) throw error;
-        dequeueSyncMutation('save', transaction.id);
+    try {
+      _suppressRealtimeEvents = true;
+      let { error } = await promiseTimeout(
+        state.supabaseClient
+          .from('transactions')
+          .upsert([dbPayload]),
+        12000
+      );
 
-        // Notify partner via Cloudflare Function /api/push-notify if transaction is shared
-        if (state.partnerProfile && state.partnerProfile.user_id && transaction.family_id) {
-          sendPartnerPushNotification(transaction, state.partnerProfile.user_id);
-        }
-      } catch (err) {
-        console.warn(`Cloud save failed, keeping in queue: ${transaction.id}`, err);
-      } finally {
-        // Re-enable realtime after enough time for the echo to arrive and be discarded.
-        setTimeout(() => { _suppressRealtimeEvents = false; }, 8000);
+      // If token expired or auth error, attempt immediate token refresh and retry
+      if (error && (error.code === '401' || error.message?.includes('JWT') || error.message?.includes('token') || error.message?.includes('auth'))) {
+        try {
+          await state.supabaseClient.auth.refreshSession();
+          const retryRes = await promiseTimeout(
+            state.supabaseClient
+              .from('transactions')
+              .upsert([dbPayload]),
+            12000
+          );
+          error = retryRes.error;
+        } catch (_) {}
       }
-    })();
+
+      if (error) throw error;
+      dequeueSyncMutation('save', transaction.id);
+
+      // Notify partner via Cloudflare Function /api/push-notify if transaction is shared
+      if (state.partnerProfile && state.partnerProfile.user_id && transaction.family_id) {
+        sendPartnerPushNotification(transaction, state.partnerProfile.user_id);
+      }
+      return true;
+    } catch (err) {
+      console.warn(`Cloud save failed, keeping in queue: ${transaction.id}`, err);
+      return false;
+    } finally {
+      setTimeout(() => { _suppressRealtimeEvents = false; }, 3000);
+    }
   }
+  return true;
 }
 
 function saveTransactionOffline(transaction) {
@@ -26684,8 +26697,20 @@ function setupSupabaseRealtimeSubscription() {
   const partnerId = state.partnerProfile ? state.partnerProfile.id : null;
   const familyId = state.userProfile ? state.userProfile.family_id : null;
 
-  _supabaseRealtimeChannel = state.supabaseClient.channel('family-changes-channel');
+  _supabaseRealtimeChannel = state.supabaseClient.channel('realtime-sync-' + Date.now());
 
+  // 1. Always listen for personal changes by user_id
+  _supabaseRealtimeChannel.on(
+    'postgres_changes',
+    { event: '*', schema: 'public', table: 'transactions', filter: `user_id=eq.${userId}` },
+    handleRealtimeTransactionChange
+  ).on(
+    'postgres_changes',
+    { event: '*', schema: 'public', table: 'categories', filter: `user_id=eq.${userId}` },
+    handleRealtimeCategoryChange
+  );
+
+  // 2. If in family, also listen for family changes
   if (familyId) {
     _supabaseRealtimeChannel.on(
       'postgres_changes',
@@ -26696,32 +26721,22 @@ function setupSupabaseRealtimeSubscription() {
       { event: '*', schema: 'public', table: 'categories', filter: `family_id=eq.${familyId}` },
       handleRealtimeCategoryChange
     );
-  } else {
+  }
+
+  // 3. If partner present, also listen for partner changes
+  if (partnerId) {
     _supabaseRealtimeChannel.on(
       'postgres_changes',
-      { event: '*', schema: 'public', table: 'transactions', filter: `user_id=eq.${userId}` },
+      { event: '*', schema: 'public', table: 'transactions', filter: `user_id=eq.${partnerId}` },
       handleRealtimeTransactionChange
     ).on(
       'postgres_changes',
-      { event: '*', schema: 'public', table: 'categories', filter: `user_id=eq.${userId}` },
+      { event: '*', schema: 'public', table: 'categories', filter: `user_id=eq.${partnerId}` },
       handleRealtimeCategoryChange
     );
-
-    if (partnerId) {
-      _supabaseRealtimeChannel.on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'transactions', filter: `user_id=eq.${partnerId}` },
-        handleRealtimeTransactionChange
-      ).on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'categories', filter: `user_id=eq.${partnerId}` },
-        handleRealtimeCategoryChange
-      );
-    }
   }
 
-  _supabaseRealtimeChannel.subscribe((status) => {
-  });
+  _supabaseRealtimeChannel.subscribe();
 }
 
 function stopSupabaseRealtimeSubscription() {
@@ -26750,22 +26765,6 @@ Object.defineProperty(window, '_suppressRealtimeEvents', {
   },
   configurable: true
 });
-
-// ============================================================
-// FIX #3 (flicker): Safe, leak-proof realtime suppression helpers.
-//
-// PROBLEM: The counter-based _suppressRealtimeEvents above can get "stuck"
-// elevated if a code path sets it to true but throws/returns before the
-// setTimeout that sets it back to false runs. When stuck, realtime events are
-// permanently suppressed (no live partner updates) — or, worse, the counts
-// interleave when multiple syncs run concurrently, causing unpredictable
-// flickering numbers.
-//
-// SOLUTION: Two helpers that GUARANTEE the counter is always decremented:
-//   - suppressRealtimeFor(delayMs): increment now, always schedule the decrement.
-//   - withRealtimeSuppression(delayMs, fn): increment, run fn inside try/finally,
-//     and ALWAYS schedule the decrement even if fn throws.
-// ============================================================
 
 // Increment the suppression counter and ALWAYS schedule a matching decrement
 // after delayMs. Safe to call multiple times concurrently — each call adds its
@@ -26811,18 +26810,10 @@ function handleRealtimeTransactionChange(payload) {
     }
   }
 
-  // Accumulate events, then apply them all at once after a short delay.
-  // Partner events (someone else's transaction) must appear IMMEDIATELY so the
-  // other family member sees the change in ~300ms, not after the 5s batching
-  // window used for our own rapid-fire events (which would otherwise flicker).
+  // Accumulate events, then apply them all at once after a short delay (150ms for near-instant cross-device updates).
   _pendingRealtimeEvents.push(payload);
 
-  const hasPartnerEvent = _pendingRealtimeEvents.some(ev => {
-    if (ev.eventType === 'DELETE') return true; // partner delete (ours are suppressed above)
-    return ev.new && state.currentUser && ev.new.user_id !== state.currentUser.id;
-  });
-  // 300ms for partner events (near-instant), 5000ms for our own bulk events (anti-flicker batching).
-  const _realtimeDebounceMs = hasPartnerEvent ? 300 : 5000;
+  const _realtimeDebounceMs = 150;
 
   if (_realtimeDebounceTimer) clearTimeout(_realtimeDebounceTimer);
   _realtimeDebounceTimer = setTimeout(() => {
