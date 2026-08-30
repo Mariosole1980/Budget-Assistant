@@ -16,7 +16,7 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1609
-        versionName "1.0.0-v1609"
+        versionName "1.0.1609"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         ndk {
             abiFilters "armeabi-v7a", "arm64-v8a", "x86", "x86_64"
@@ -38,7 +38,13 @@ android {
     buildTypes {
         release {
             signingConfig signingConfigs.release
-            minifyEnabled true
+            // R8 minification DISABLED: enabling it (v1596) caused an immediate
+            // startup crash because R8 strips/renames reflection-accessed classes
+            // (WorkManager Worker, BroadcastReceivers, @JavascriptInterface
+            // anonymous classes, Capacitor plugins). The app relies heavily on
+            // reflection, so minification is unsafe here. Minification is an
+            // optimization, NOT a Play Store requirement.
+            minifyEnabled false
             shrinkResources false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
