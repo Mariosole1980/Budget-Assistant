@@ -116,8 +116,17 @@ html.web-mode .desktop-sidebar-user-card {
         display: none !important;
     }
 
-    html.web-mode .fab {
+    /* FAB visible ONLY on the Transactions tab. switchTab (app.js) toggles
+       body.trans-tab-active and hides the FAB on every other tab via inline
+       display:none — but without this scoping, the !important display:flex
+       below would override that inline rule and keep the + button floating over
+       the other tabs' cards in web-mode (e.g. iPhone Safari). Android/iOS
+       native is never affected (html.web-mode is not applied there). */
+    html.web-mode body.trans-tab-active .fab {
         display: flex !important;
+    }
+    html.web-mode body:not(.trans-tab-active) .fab {
+        display: none !important;
     }
 }
 
@@ -777,9 +786,17 @@ html.web-mode .desktop-sidebar-user-card {
 /* 8. MOBILE vs DESKTOP CONTROLS                                 */
 /* ------------------------------------------------------------ */
 
-/* On mobile (< 768px), ALWAYS show the FAB */
-html.web-mode .fab {
-    display: flex !important;
+/* Mobile (< 768px): show the FAB ONLY on the Transactions tab.
+   Scoped to body.trans-tab-active (toggled by switchTab in app.js) so the
+   + button no longer floats over the other tabs' cards in web-mode
+   (e.g. iPhone Safari). Android/iOS native is never affected. */
+@media (max-width: 767px) {
+    html.web-mode body.trans-tab-active .fab {
+        display: flex !important;
+    }
+    html.web-mode body:not(.trans-tab-active) .fab {
+        display: none !important;
+    }
 }
 
 /* On mobile (< 768px), ALWAYS hide the stats summary cards */

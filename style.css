@@ -11645,8 +11645,13 @@ body {
     -webkit-overflow-scrolling: touch;
   }
 
-  /* 6. Transaction Modal (#transaction-modal) — True 2-Column Split View */
-  #transaction-modal .modal-content {
+  /* 6. Transaction Modal (#transaction-modal) — True 2-Column Split View.
+     Scoped to html:not(.web-mode) so this native-app landscape layout NEVER
+     applies on the WEB (PWA/Safari/desktop browser). In web-mode the desktop
+     UI layer (desktop.css) renders the transaction modal as a centered card;
+     these ID-selector rules would otherwise override it (higher specificity)
+     and produce a broken 2-column grid with an empty 320px column. */
+  html:not(.web-mode) #transaction-modal .modal-content {
     display: grid !important;
     grid-template-columns: 1fr minmax(260px, 320px) !important;
     grid-template-rows: 1fr !important;
@@ -11658,7 +11663,7 @@ body {
     padding-right: env(safe-area-inset-right, 0px) !important;
   }
 
-  #transaction-modal form#transaction-form {
+  html:not(.web-mode) #transaction-modal form#transaction-form {
     display: flex !important;
     flex-direction: column !important;
     height: 100% !important;
@@ -11667,17 +11672,17 @@ body {
     border-right: 1px solid var(--border) !important;
   }
 
-  #transaction-modal .modal-header {
+  html:not(.web-mode) #transaction-modal .modal-header {
     flex-shrink: 0 !important;
     padding: 6px 12px !important;
   }
 
-  #transaction-modal .type-selector-tabs {
+  html:not(.web-mode) #transaction-modal .type-selector-tabs {
     margin: 0 12px 6px 12px !important;
     width: calc(100% - 24px) !important;
   }
 
-  #transaction-modal .modal-body {
+  html:not(.web-mode) #transaction-modal .modal-body {
     flex: 1 1 auto !important;
     min-height: 0 !important;
     overflow-y: auto !important;
@@ -11685,12 +11690,12 @@ body {
     gap: 4px !important;
   }
 
-  #transaction-modal .modal-action-buttons {
+  html:not(.web-mode) #transaction-modal .modal-action-buttons {
     padding: 6px 12px !important;
     flex-shrink: 0 !important;
   }
 
-  #transaction-modal .calc-keypad-container {
+  html:not(.web-mode) #transaction-modal .calc-keypad-container {
     display: flex !important;
     flex-direction: column !important;
     height: 100% !important;
@@ -11701,12 +11706,12 @@ body {
     background-color: #0f121a !important;
   }
 
-  #transaction-modal .calc-keypad-container.active {
+  html:not(.web-mode) #transaction-modal .calc-keypad-container.active {
     height: 100% !important;
     max-height: 100% !important;
   }
 
-  #transaction-modal .calc-key-btn {
+  html:not(.web-mode) #transaction-modal .calc-key-btn {
     min-height: 34px !important;
     font-size: 16px !important;
     border-radius: 8px !important;

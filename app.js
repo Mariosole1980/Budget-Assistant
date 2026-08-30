@@ -391,6 +391,7 @@ const state = {
   excelData: null,
   excelColumns: [],
   supabaseClient: null,
+  session: null,
   monthPickerYear: new Date().getFullYear(),
   selectionMode: false,
   selectedIds: new Set(),
@@ -3268,6 +3269,7 @@ function initSupabaseAuth() {
         }
       } else if (data.session && data.session.user) {
         // Fallback for browsers where INITIAL_SESSION event may be delayed/missed
+        state.session = data.session;
         state.currentUser = data.session.user;
         // SECURITY: Session verified valid - safe to render this user's data.
         window._authConfirmed = true;
@@ -3326,6 +3328,7 @@ function initSupabaseAuth() {
     // refresh the authoritative profile, WITHOUT any visible re-render.
     if (event === 'TOKEN_REFRESHED') {
       if (session && session.user) {
+        state.session = session;
         state.currentUser = session.user;
         window._authConfirmed = true;
         localStorage.setItem('cached_current_user', JSON.stringify(session.user));
@@ -3340,6 +3343,7 @@ function initSupabaseAuth() {
 
     if (session && session.user) {
       processingRedirect = false;
+      state.session = session;
       const cachedRawUser = localStorage.getItem('cached_current_user');
       let previousUserId = null;
       try {
@@ -14309,17 +14313,44 @@ async function refreshAdminDashboard() {
   try {
     if (state.session && state.session.access_token) {
       token = state.session.access_token;
-    } else if (state.supabaseClient && typeof state.supabaseClient.auth?.getSession === 'function') {
-      const sessRes = await state.supabaseClient.auth.getSession();
-      if (sessRes && sessRes.data && sessRes.data.session && sessRes.data.session.access_token) {
-        token = sessRes.data.session.access_token;
+    } else if (state.supabaseClient) {
+      // Prefer the synchronous session() accessor when available (supabase-js v2),
+      // then fall back to the async getSession().
+      if (typeof state.supabaseClient.auth?.session === 'function') {
+        const syncSession = state.supabaseClient.auth.session();
+        if (syncSession && syncSession.access_token) token = syncSession.access_token;
+      }
+      if (!token && typeof state.supabaseClient.auth?.getSession === 'function') {
+        const sessRes = await state.supabaseClient.auth.getSession();
+        if (sessRes && sessRes.data && sessRes.data.session && sessRes.data.session.access_token) {
+          token = sessRes.data.session.access_token;
+        }
+      }
+      // Last resort: the user is logged in (state.currentUser present) but no
+      // access token was resolved — try to refresh the session once before
+      // giving up. This fixes the "already logged in but dashboard asks to sign
+      // in" state (e.g. after a silent token expiry / expired cached session).
+      if (!token && state.currentUser && typeof state.supabaseClient.auth?.refreshSession === 'function') {
+        try {
+          const refreshRes = await state.supabaseClient.auth.refreshSession();
+          if (refreshRes && refreshRes.data && refreshRes.data.session && refreshRes.data.session.access_token) {
+            token = refreshRes.data.session.access_token;
+            state.session = refreshRes.data.session;
+          }
+        } catch (refreshErr) {
+          console.warn('Admin dashboard: session refresh failed', refreshErr);
+        }
       }
     }
   } catch (err) {
     console.warn('Admin dashboard: could not resolve session token', err);
   }
   if (!token) {
-    container.innerHTML = adminErrorBox(lang === 'el' ? 'Συνδεθείτε πρώτα για να δείτε τον πίνακα.' : 'Sign in first to view the dashboard.');
+    container.innerHTML = adminErrorBox(
+      state.currentUser
+        ? (lang === 'el' ? 'Η συνεδρία έληξε. Ανοίξτε την εφαρμογή ξανά ή συνδεθείτε εκ νέου.' : 'Your session expired. Reload the app or sign in again.')
+        : (lang === 'el' ? 'Συνδεθείτε πρώτα για να δείτε τον πίνακα.' : 'Sign in first to view the dashboard.')
+    );
     return;
   }
 
@@ -24034,6 +24065,7 @@ async function handleLogout() {
     state.deletedRecurringDates = [];
     state.notifications = [];
     state.guestMode = false;
+    state.session = null;
 
     // Reset AI advisor conversation DOM
     const chatLog = document.getElementById('advisor-chat-log');
@@ -25425,6 +25457,7 @@ async function enterGuestMode() {
   // regenerates those recurring transactions into the guest's local cache
   // (offline_guest_transactions) — leaking account data into the guest session.
   state.currentUser = null;
+  state.session = null;
   state.userProfile = null;
   state.partnerProfile = null;
   state.familyProfiles = [];
