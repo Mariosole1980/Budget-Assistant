@@ -62,10 +62,13 @@
       -webkit-font-smoothing: antialiased;
     }
 
-    /* Top Navigation */
-    header {
+    /* ==========================================================================
+       FULL-WIDTH BESPOKE TOP NAVIGATION BAR (MODERN FINTECH)
+       ========================================================================== */
+    .navbar-wrapper {
       position: sticky;
       top: 0;
+      left: 0;
       width: 100%;
       z-index: 1000;
       background: rgba(8, 10, 16, 0.85);
@@ -91,21 +94,32 @@
       align-items: center;
       gap: 10px;
       text-decoration: none;
-      color: #fff;
-      font-family: var(--font-heading);
-      font-weight: 700;
-      font-size: 16.5px;
-      letter-spacing: -0.3px;
-      transition: opacity 0.2s;
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: opacity 0.2s ease;
     }
 
-    .logo-link:hover { opacity: 0.9; }
+    .logo-link:hover {
+      opacity: 0.9;
+    }
 
     .logo-img {
       width: 36px;
       height: 36px;
       object-fit: contain;
+      background: transparent;
+      border-radius: 0;
+      border: none;
       filter: drop-shadow(0 0 12px rgba(124, 106, 247, 0.5));
+    }
+
+    .logo-text {
+      font-family: var(--font-heading);
+      font-weight: 700;
+      font-size: 16.5px;
+      letter-spacing: -0.3px;
+      color: #FFFFFF;
+      white-space: nowrap;
     }
 
     .nav-links {
@@ -121,31 +135,109 @@
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      color: #94A3B8;
       text-decoration: none;
+      color: #94A3B8;
       font-size: 13.5px;
       font-weight: 500;
       padding: 7px 13px;
       border-radius: 8px;
+      white-space: nowrap;
       transition: all 0.2s ease;
     }
 
     .nav-links a:hover {
-      color: #fff;
+      color: #FFFFFF;
       background: rgba(255, 255, 255, 0.06);
     }
 
     .nav-links a.active {
-      color: #fff;
+      color: #FFFFFF;
       font-weight: 600;
       background: rgba(255, 255, 255, 0.08);
     }
 
-    .nav-actions-group {
+    .badge-pricing-tag {
+      font-size: 10px;
+      font-weight: 700;
+      background: rgba(16, 185, 129, 0.15);
+      color: #34D399;
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      padding: 1px 6px;
+      border-radius: 999px;
+      letter-spacing: 0.2px;
+    }
+
+    .nav-cta-group {
       display: flex;
       align-items: center;
       gap: 10px;
       flex-shrink: 0;
+    }
+
+    .nav-lang-switcher {
+      display: inline-flex;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      padding: 2px 4px;
+      gap: 2px;
+    }
+
+    .nav-lang-sep {
+      color: rgba(255, 255, 255, 0.18);
+      font-size: 10px;
+      user-select: none;
+    }
+
+    .nav-lang-btn {
+      background: transparent;
+      border: 1px solid transparent;
+      color: #94A3B8;
+      font-size: 11px;
+      font-weight: 700;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace, sans-serif;
+      padding: 4px 7px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      user-select: none;
+      line-height: 1;
+    }
+
+    .nav-lang-btn:hover {
+      color: #ffffff;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .nav-lang-btn.active {
+      background: rgba(124, 106, 247, 0.22);
+      border-color: rgba(124, 106, 247, 0.4);
+      color: #C4B5FD;
+      box-shadow: 0 0 10px rgba(124, 106, 247, 0.3);
+    }
+
+    .nav-btn-app-download {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 7px 12px;
+      border-radius: 8px;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: #38BDF8;
+      background: rgba(56, 189, 248, 0.08);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      text-decoration: none;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+
+    .nav-btn-app-download:hover {
+      background: rgba(56, 189, 248, 0.16);
+      border-color: rgba(56, 189, 248, 0.45);
+      color: #7DD3FC;
+      transform: translateY(-1px);
     }
 
     .nav-btn-login {
@@ -203,10 +295,76 @@
       display: inline-block;
     }
 
-    .nav-back:hover {
-      color: #fff;
-      border-color: rgba(255, 255, 255, 0.2);
-      background: rgba(255, 255, 255, 0.04);
+    /* Features Dropdown Menu */
+    .nav-dropdown {
+      position: relative;
+    }
+    .nav-dropdown-trigger {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+    }
+    .nav-dropdown-menu {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      margin-top: 8px;
+      width: 290px;
+      background: rgba(13, 18, 29, 0.96);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 16px;
+      padding: 10px;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(124, 106, 247, 0.2);
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(6px);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 1100;
+      pointer-events: none;
+    }
+    .nav-dropdown:hover .nav-dropdown-menu,
+    .nav-dropdown:focus-within .nav-dropdown-menu {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+    .nav-drop-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 10px;
+      border-radius: 10px;
+      text-decoration: none;
+      transition: background 0.15s ease;
+    }
+    .nav-drop-item:hover {
+      background: rgba(255, 255, 255, 0.08);
+    }
+    .nav-drop-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      flex-shrink: 0;
+    }
+    .nav-drop-title {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: #FFFFFF;
+      line-height: 1.2;
+    }
+    .nav-drop-desc {
+      font-size: 11px;
+      color: #94A3B8;
+      line-height: 1.2;
+      margin-top: 2px;
     }
 
     .container {
@@ -545,34 +703,82 @@
 </head>
 <body>
 
-  <!-- Full-Width Navigation -->
-  <header>
-    <div class="nav-inner">
+  <!-- Modern FinTech Top Navbar -->
+  <div class="navbar-wrapper">
+    <header class="nav-inner">
       <a href="/" class="logo-link">
         <img src="logo-mark.png" alt="Budget Assistant Logo" class="logo-img">
-        <span>Budget Assistant</span>
+        <span class="logo-text">Budget Assistant</span>
       </a>
-
+      
       <ul class="nav-links">
-        <li><a href="/tools" class="active" style="color: #fff; font-weight: 700;">Εργαλεία</a></li>
-        <li><a href="/guides">Οδηγοί</a></li>
+        <li class="nav-dropdown">
+          <a href="/#features" class="nav-dropdown-trigger">
+            <span>Δυνατότητες</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="opacity:0.6;"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </a>
+          <div class="nav-dropdown-menu">
+            <a href="/features/ai-receipt-scan.html" class="nav-drop-item">
+              <div class="nav-drop-icon" style="background: rgba(124, 106, 247, 0.15);">🤖</div>
+              <div>
+                <div class="nav-drop-title">AI Σάρωση Αποδείξεων</div>
+                <div class="nav-drop-desc">Αυτόματη καταχώρηση σε 2''</div>
+              </div>
+            </a>
+            <a href="/features/couples.html" class="nav-drop-item">
+              <div class="nav-drop-icon" style="background: rgba(236, 72, 153, 0.15);">👥</div>
+              <div>
+                <div class="nav-drop-title">Κοινό Ταμείο Ζευγαριών</div>
+                <div class="nav-drop-desc">Live multi-user συγχρονισμός</div>
+              </div>
+            </a>
+            <a href="/#simulator" class="nav-drop-item">
+              <div class="nav-drop-icon" style="background: rgba(245, 158, 11, 0.15);">🎯</div>
+              <div>
+                <div class="nav-drop-title">Safe-to-Spend Radar</div>
+                <div class="nav-drop-desc">Ημερήσιο όριο &amp; πρόβλεψη παγίων</div>
+              </div>
+            </a>
+            <a href="/features/health-score.html" class="nav-drop-item">
+              <div class="nav-drop-icon" style="background: rgba(16, 185, 129, 0.15);">📊</div>
+              <div>
+                <div class="nav-drop-title">Financial Health Score</div>
+                <div class="nav-drop-desc">Δείκτης 0-100 &amp; μηνιαίο runway</div>
+              </div>
+            </a>
+          </div>
+        </li>
+        <li><a href="/tools" class="active">Εργαλεία &amp; Quiz</a></li>
         <li><a href="/security">Ασφάλεια</a></li>
-        <li><a href="/pricing">Τιμολόγηση</a></li>
+        <li><a href="/pricing">Τιμολόγηση <span class="badge-pricing-tag">9,99€</span></a></li>
       </ul>
 
-      <div class="nav-actions-group">
+      <div class="nav-cta-group">
+        <!-- Minimalist Monospace Language Toggle -->
+        <div class="nav-lang-switcher" id="landing-lang-switcher" title="Γλώσσα / Language">
+          <button type="button" class="nav-lang-btn active" id="landing-lang-el" onclick="setLandingLanguage('el')">EL</button>
+          <span class="nav-lang-sep">|</span>
+          <button type="button" class="nav-lang-btn" id="landing-lang-en" onclick="setLandingLanguage('en')">EN</button>
+        </div>
+        <!-- Download APK Button -->
+        <a href="/download.html" class="nav-btn-app-download">
+          <span>📲</span>
+          <span>App</span>
+        </a>
+        <!-- Sleek Ghost Button -->
         <a href="/app" class="nav-btn-login">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.85;"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
           <span>Είσοδος</span>
         </a>
+        <!-- Primary Glowing CTA -->
         <a href="/app?demo=true" class="nav-btn-cta">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="color:#C7D2FE;"><path d="M12 2L14.4 8.6L21 11L14.4 13.4L12 20L9.6 13.4L3 11L9.6 8.6L12 2Z"/></svg>
-          <span>Live Web Studio</span>
+          <span>Live Demo</span>
           <span class="cta-pulse-dot"></span>
         </a>
       </div>
-    </div>
-  </header>
+    </header>
+  </div>
 
   <main class="container">
     <!-- Hero -->
@@ -1178,6 +1384,19 @@
     calcGrowth();
     calcDebt();
     calcGoal();
+
+    function setLandingLanguage(lang) {
+      localStorage.setItem('app_lang_user_set', 'true');
+      localStorage.setItem('app_lang', lang);
+      document.getElementById('landing-lang-el')?.classList.toggle('active', lang === 'el');
+      document.getElementById('landing-lang-en')?.classList.toggle('active', lang === 'en');
+    }
+
+    (function initLandingLang() {
+      const saved = localStorage.getItem('app_lang') || (navigator.language?.startsWith('el') ? 'el' : 'en');
+      document.getElementById('landing-lang-el')?.classList.toggle('active', saved === 'el');
+      document.getElementById('landing-lang-en')?.classList.toggle('active', saved === 'en');
+    })();
   </script>
 
 </body>
