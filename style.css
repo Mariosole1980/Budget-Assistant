@@ -1790,6 +1790,11 @@ input:focus+.slider {
   z-index: 25000 !important;
 }
 
+/* Custom dialogs (confirm, alert) must ALWAYS appear on top of all other modals */
+#custom-dialog-modal {
+  z-index: 2147483647 !important;
+}
+
 .modal-overlay {
   position: fixed;
   top: 0;
