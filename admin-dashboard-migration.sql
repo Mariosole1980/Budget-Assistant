@@ -95,7 +95,6 @@ BEGIN
                 'email', u.email,
                 'display_name', COALESCE(p.full_name, ''),
                 'premium_active', COALESCE(p.premium_active, false),
-                'premium_purchased_at', p.premium_purchased_at,
                 'created_at', u.created_at
             ) ORDER BY u.created_at DESC
         ), '[]'::jsonb)
@@ -115,9 +114,11 @@ BEGIN
         'premium_count', v_premium_count,
         'transactions_count', v_tx_count,
         'ai_chat_calls_month', v_ai_chat_calls,
+        'ai_chat_platform_limit', 10000,
         'ai_scan_calls_month', v_ai_scan_calls,
-        'ai_chat_limit', 50,
-        'ai_scan_limit', 100,
+        'ai_scan_platform_limit', 10000,
+        'ai_chat_user_limit', 50,
+        'ai_scan_user_limit', 100,
         'users', v_users_list
     );
 

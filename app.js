@@ -14447,19 +14447,21 @@ function adminMeterCard(title, label, value, pct, subLabel, subValue, subPct) {
   const mainColor = pct >= 80 ? 'var(--red-negative, #f43f5e)' : (pct >= 50 ? '#f59e0b' : '#22c55e');
   let sub = '';
   if (subLabel && subValue != null) {
-    sub = `<div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; font-size:12px; color:var(--text-secondary);"><span>${subLabel}</span><span style="font-weight:700; color:${mainColor};">${subValue}</span></div>${adminBar(subPct)}`;
+    const subBar = (subPct != null) ? adminBar(subPct) : '';
+    sub = `<div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; font-size:12px; color:var(--text-secondary);"><span>${subLabel}</span><span style="font-weight:700; color:var(--text-primary);">${subValue}</span></div>${subBar}`;
   }
+  const pctDisplay = pct < 1 && pct > 0 ? pct.toFixed(1) : Math.round(pct);
+  const leftPct = (100 - pct).toFixed(pct < 1 && pct > 0 ? 1 : 0);
   return `<div style="background:var(--bg-card, #161622); border:1px solid var(--border); border-radius:16px; padding:14px 16px;">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2px;">
       <div style="font-size:13.5px; color:var(--text-primary); font-weight:700;">${title}</div>
       <div style="font-size:12px; color:var(--text-secondary);">${label}: <b>${value}</b></div>
     </div>
-    <div style="font-size:12.5px; color:${mainColor}; font-weight:800; margin-top:4px;">${Math.round(pct)}% ${lang === 'el' ? 'χρήσης' : 'used'} (${lang === 'el' ? 'μένει' : 'left'} ${Math.max(0, 100 - Math.round(pct))}%)</div>
+    <div style="font-size:12.5px; color:${mainColor}; font-weight:800; margin-top:4px;">${pctDisplay}% ${lang === 'el' ? 'χρήσης' : 'used'} (${lang === 'el' ? 'μένει' : 'left'} ${leftPct}%)</div>
     ${adminBar(pct)}
     ${sub}
   </div>`;
 }
-
 
 function renderAdminUsage(data, container) {
   const lang = state.lang || 'el';
@@ -14469,28 +14471,55 @@ function renderAdminUsage(data, container) {
   const users = Array.isArray(data.users) ? data.users : [];
   const premiumCount = data.premium_count || 0;
   const usersPct = ((data.users_count || 0) / (data.mau_limit || 50000)) * 100;
+
+  // AI Chat total platform calls
   const aiChat = data.ai_chat_calls_month || 0;
-  const aiChatLimit = data.ai_chat_limit || 50;
-  const aiChatPct = aiChatLimit > 0 ? (aiChat / aiChatLimit) * 100 : 0;
+  const aiChatPlatformLimit = data.ai_chat_platform_limit || 10000;
+  const aiChatPct = aiChatPlatformLimit > 0 ? (aiChat / aiChatPlatformLimit) * 100 : 0;
+  const aiChatUserLimit = data.ai_chat_user_limit || 50;
+
+  // AI Scans total platform scans
   const aiScans = data.ai_scan_calls_month || 0;
-  const aiScanLimit = data.ai_scan_limit || 100;
-  const aiScanPct = aiScanLimit > 0 ? (aiScans / aiScanLimit) * 100 : 0;
-  const nearLimit = dbPct >= 80 || usersPct >= 80 || aiChatPct >= 80 || aiScanPct >= 80;
+  const aiScanPlatformLimit = data.ai_scan_platform_limit || 10000;
+  const aiScanPct = aiScanPlatformLimit > 0 ? (aiScans / aiScanPlatformLimit) * 100 : 0;
+  const aiScanUserLimit = data.ai_scan_user_limit || 100;
 
   const summary = `<div style="background:linear-gradient(135deg, rgba(99,102,241,0.14), rgba(79,70,229,0.05)); border:1px solid rgba(99,102,241,0.25); border-radius:16px; padding:14px 16px;">
     <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
-      <div style="font-size:13px; color:var(--text-primary); font-weight:700;">${lang === 'el' ? 'Σύνοψη' : 'Summary'}</div>
-      <div style="font-size:12.5px; color:var(--text-secondary);">${lang === 'el' ? 'Χρήστες' : 'Users'}: <b>${data.users_count || 0}</b> &nbsp;•&nbsp; 👑 <b style="color:#fbbf24;">${premiumCount}</b> &nbsp;•&nbsp; ${lang === 'el' ? 'Συναλλαγές' : 'Transactions'}: <b>${data.transactions_count || 0}</b></div>
+      <div style="font-size:13px; color:var(--text-primary); font-weight:700;">${lang === 'el' ? 'Συνολική Σύνοψη Πλατφόρμας' : 'Global Platform Summary'}</div>
+      <div style="font-size:12.5px; color:var(--text-secondary);">${lang === 'el' ? 'Χρήστες' : 'Users'}: <b>${data.users_count || 0}</b> &nbsp;•&nbsp; 👑 <b style="color:#fbbf24;">${premiumCount} PRO</b> &nbsp;•&nbsp; ${lang === 'el' ? 'Συναλλαγές' : 'Transactions'}: <b>${data.transactions_count || 0}</b></div>
     </div>
   </div>`;
 
-  const supabaseCard = adminMeterCard('🗄️ Supabase', lang === 'el' ? 'Βάση' : 'DB', `${dbUsed.toFixed(1)} MB / ${dbLimit.toFixed(0)} MB`, dbPct, lang === 'el' ? 'Χρήστες' : 'Users', `${data.users_count || 0} / ${(data.mau_limit || 50000).toLocaleString('en-US')}`, usersPct);
-  const aiChatCard = adminMeterCard('💬 AI Chat', lang === 'el' ? 'Κλήσεις (μήνας)' : 'Calls (month)', `${aiChat} / ${aiChatLimit} PRO`, aiChatPct, null, null, null);
-  const aiScanCard = adminMeterCard('🧾 AI Receipts', lang === 'el' ? 'Σαρώσεις (μήνας)' : 'Scans (month)', `${aiScans} / ${aiScanLimit} PRO`, aiScanPct, null, null, null);
+  const supabaseCard = adminMeterCard(
+    '🗄️ Supabase Cloud Storage',
+    lang === 'el' ? 'Βάση' : 'DB',
+    `${dbUsed.toFixed(1)} MB / ${dbLimit.toFixed(0)} MB`,
+    dbPct,
+    lang === 'el' ? 'Συνολικοί Χρήστες (MAU)' : 'Total Users (MAU)',
+    `${data.users_count || 0} / ${(data.mau_limit || 50000).toLocaleString('en-US')}`,
+    usersPct
+  );
 
-  const upgradeHtml = (nearLimit || !isPremium())
-    ? `<button type="button" onclick="startPremiumPurchase('card')" style="width:100%; padding:14px; border-radius:14px; font-weight:800; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; background:linear-gradient(135deg,#f59e0b,#d97706); color:#fff; border:none; box-shadow:0 6px 18px rgba(245,158,11,0.35);"><i class="fa-solid fa-crown"></i> ${lang === 'el' ? '⭐ Αναβάθμισε σε PRO (Lifetime 9,99 €)' : '⭐ Upgrade to PRO (Lifetime €9.99)'}</button>`
-    : `<div style="text-align:center; font-size:12.5px; color:#22c55e; font-weight:700;">✓ ${lang === 'el' ? 'Είσαι Premium — όλα ξεκλειδωμένα' : 'You are Premium — everything unlocked'}</div>`;
+  const aiChatCard = adminMeterCard(
+    '💬 Gemini AI Chat (Σύνολο Πλατφόρμας)',
+    lang === 'el' ? 'Κλήσεις Μήνα' : 'Monthly Calls',
+    `${aiChat.toLocaleString('en-US')} / ${aiChatPlatformLimit.toLocaleString('en-US')}`,
+    aiChatPct,
+    lang === 'el' ? 'Ατομικό όριο ανά PRO χρήστη' : 'Per-user quota',
+    `${aiChatUserLimit} ${lang === 'el' ? 'κλήσεις/μήνα' : 'calls/mo'}`,
+    null
+  );
+
+  const aiScanCard = adminMeterCard(
+    '🧾 AI Receipts OCR (Σύνολο Πλατφόρμας)',
+    lang === 'el' ? 'Σαρώσεις Μήνα' : 'Monthly Scans',
+    `${aiScans.toLocaleString('en-US')} / ${aiScanPlatformLimit.toLocaleString('en-US')}`,
+    aiScanPct,
+    lang === 'el' ? 'Ατομικό όριο ανά PRO χρήστη' : 'Per-user quota',
+    `${aiScanUserLimit} ${lang === 'el' ? 'σαρώσεις/μήνα' : 'scans/mo'}`,
+    null
+  );
 
   const userRows = users.length === 0
     ? `<div style="padding:10px 0; color:var(--text-muted); font-size:12.5px;">${lang === 'el' ? 'Δεν βρέθηκαν χρήστες.' : 'No users found.'}</div>`
@@ -14508,13 +14537,13 @@ function renderAdminUsage(data, container) {
 
   const usersCard = `<div style="background:var(--bg-card, #161622); border:1px solid var(--border); border-radius:16px; padding:14px 16px;">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-      <div style="font-size:13.5px; color:var(--text-primary); font-weight:700;">👥 ${lang === 'el' ? 'Χρήστες Εφαρμογής' : 'App Users'} (${users.length})</div>
+      <div style="font-size:13.5px; color:var(--text-primary); font-weight:700;">👥 ${lang === 'el' ? 'Χρήστες Εφαρμογής' : 'App Users'} (${users.length || data.users_count || 0})</div>
       <div style="font-size:12px; color:var(--text-secondary);">👑 <b style="color:#fbbf24;">${premiumCount}</b> PRO</div>
     </div>
     <div style="max-height:220px; overflow-y:auto;">${userRows}</div>
   </div>`;
 
-  container.innerHTML = summary + supabaseCard + aiChatCard + aiScanCard + upgradeHtml + usersCard;
+  container.innerHTML = summary + supabaseCard + aiChatCard + aiScanCard + usersCard;
 }
 
 window.openAdminDashboard = openAdminDashboard;
