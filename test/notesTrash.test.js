@@ -75,7 +75,7 @@ test('syncNotes re-asserts newer offline deletes to the cloud but respects newer
     assert.match(body, /deleted_at: tomb\.deleted_at \|\| now,/);
     assert.match(body, /records\.push\(mapNoteToDb\(\{/);
     // Dirty active notes are still pushed alongside the tombstones.
-    assert.match(body, /const records = notesToUpsert\.map\(n => mapNoteToDb\(n, userId, familyId\)\);/);
+    assert.match(body, /const records = notesToUpsert\.filter\(n => !pendingDeleteNoteIds\.has\(String\(n\.id\)\)\)\.map\(n => mapNoteToDb\(n, userId, familyId\)\);/);
 });
 
 // ---------------------------------------------------------------------------
@@ -91,4 +91,19 @@ test('restoreNote dedupes the active list before re-adding the restored note', (
     assert.ok(dedupeSeg, 'restoreNote dedupe+push block not found');
     assert.match(dedupeSeg[0], /state\.notes = state\.notes\.filter\(n => String\(n\.id\) !== String\(noteId\)\);/);
     assert.match(dedupeSeg[0], /state\.notes\.push\(restored\);/);
+});
+
+// ---------------------------------------------------------------------------
+// deleteNotePermanently & emptyNotesTrash: must enqueue permanent_delete_note
+// mutations so notes permanently deleted locally while offline are never
+// resurrected on forced sync.
+// ---------------------------------------------------------------------------
+test('deleteNotePermanently and emptyNotesTrash enqueue permanent_delete_note mutations', () => {
+    const fn1 = appSrc.match(/async function deleteNotePermanently\(noteId\)\s*\{([\s\S]*?)\n\}/);
+    assert.ok(fn1, 'deleteNotePermanently body not found');
+    assert.match(fn1[1], /enqueueSyncMutation\('permanent_delete_note', noteId\);/);
+
+    const fn2 = appSrc.match(/async function emptyNotesTrash\(\)\s*\{([\s\S]*?)\n\}/);
+    assert.ok(fn2, 'emptyNotesTrash body not found');
+    assert.match(fn2[1], /enqueueSyncMutation\('permanent_delete_note', id\)/);
 });

@@ -20088,6 +20088,7 @@ async function deleteNote(noteId) {
 
   // Soft-delete on the cloud (status='deleted' + tombstone timestamps).
   if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
+    enqueueSyncMutation('delete_note', noteId);
     try {
       const { error } = await state.supabaseClient
         .from('notes')
@@ -20098,7 +20099,11 @@ async function deleteNote(noteId) {
           updated_at: deletedNote.deleted_at
         })
         .match({ id: noteId });
-      if (error) console.warn('Supabase note soft-delete error:', error);
+      if (error) {
+        console.warn('Supabase note soft-delete error:', error);
+      } else {
+        dequeueSyncMutation('delete_note', noteId);
+      }
     } catch (err) {
       console.warn('Supabase note soft-delete exception:', err);
     }
@@ -20182,9 +20187,14 @@ async function upsertNoteToCloud(note) {
   if (!state.isSupabaseEnabled || !state.supabaseClient || !state.currentUser) return;
   const familyId = state.userProfile ? state.userProfile.family_id : null;
   const record = mapNoteToDb(note, state.currentUser.id, familyId);
+  enqueueSyncMutation('save_note', note);
   try {
     const { error } = await state.supabaseClient.from('notes').upsert(record);
-    if (error) console.warn('[NotesRepo] upsert error:', error);
+    if (error) {
+      console.warn('[NotesRepo] upsert error:', error);
+    } else {
+      dequeueSyncMutation('save_note', note.id);
+    }
   } catch (err) {
     console.warn('[NotesRepo] upsert exception:', err);
   }
@@ -20263,6 +20273,18 @@ async function syncNotes() {
 
     if (!remoteNotes) return;
 
+    // Read pending sync queue deletions so notes permanently deleted locally while offline
+    // are NEVER resurrected by a cloud fetch.
+    let pendingDeleteNoteIds = new Set();
+    try {
+      const queue = JSON.parse(localStorage.getItem('money_manager_sync_queue') || '[]');
+      queue.forEach(item => {
+        if (item.action === 'permanent_delete_note' || item.action === 'delete_note') {
+          if (item.payload) pendingDeleteNoteIds.add(String(item.payload));
+        }
+      });
+    } catch (e) { }
+
     // Mark local notes as dirty so the merge knows which ones to push back.
     state.notes.forEach(n => { n._dirty = true; });
 
@@ -20278,6 +20300,10 @@ async function syncNotes() {
     const resurrected = [];
     const activeNotes = [];
     merged.forEach(n => {
+      if (pendingDeleteNoteIds.has(String(n.id))) {
+        // Excluded because user deleted it permanently or to trash!
+        return;
+      }
       const localTomb = trashById.get(String(n.id));
       if (localTomb) {
         // Remember the remote note's last-update time for the conflict check
@@ -20297,6 +20323,7 @@ async function syncNotes() {
     if (tombstones.length > 0) {
       const trashIds = new Set(trash.map(t => String(t.id)));
       tombstones.forEach(t => {
+        if (pendingDeleteNoteIds.has(String(t.id))) return;
         if (!trashIds.has(String(t.id))) {
           trash.push(t);
           trashIds.add(String(t.id));
@@ -20311,11 +20338,11 @@ async function syncNotes() {
     // (a newer edit/restore made on another device wins instead and is not
     // clobbered — it stays out of the local active list all the same).
     const familyId = state.userProfile ? state.userProfile.family_id : null;
-    const records = notesToUpsert.map(n => mapNoteToDb(n, userId, familyId));
+    const records = notesToUpsert.filter(n => !pendingDeleteNoteIds.has(String(n.id))).map(n => mapNoteToDb(n, userId, familyId));
     if (resurrected.length > 0) {
       const now = new Date().toISOString();
       resurrected.forEach(({ tomb, remoteUpdatedAt }) => {
-        if (!tomb || !tomb.id) return;
+        if (!tomb || !tomb.id || pendingDeleteNoteIds.has(String(tomb.id))) return;
         const tombTime = new Date(tomb.deleted_at || tomb.updated_at || 0).getTime();
         const remoteTime = new Date(remoteUpdatedAt || 0).getTime();
         if (tombTime < remoteTime) return; // remote is newer — don't clobber
@@ -20416,16 +20443,21 @@ async function restoreNote(noteId) {
   renderNotesTrashList(false);
   updateNotesTrashBadge();
 
+  enqueueSyncMutation('restore_note', noteId);
+
   if (typeof showToast === 'function') {
     showToast(state.lang === 'el' ? 'Η σημείωση επαναφέρθηκε' : 'Note restored');
   }
 
   if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
     try {
-      await state.supabaseClient
+      const { error } = await state.supabaseClient
         .from('notes')
         .update({ status: 'active', deleted_at: null, deleted_by: null, updated_at: restored.updated_at })
         .eq('id', noteId);
+      if (!error) {
+        dequeueSyncMutation('restore_note', noteId);
+      }
     } catch (err) {
       console.warn('[NotesTrash] restore exception:', err);
     }
@@ -20440,6 +20472,9 @@ async function deleteNotePermanently(noteId) {
   renderNotesTrashList(false);
   updateNotesTrashBadge();
 
+  // Enqueue mutation so permanent deletion is durable and survives offline/network retries
+  enqueueSyncMutation('permanent_delete_note', noteId);
+
   if (typeof showToast === 'function') {
     showToast(state.lang === 'el' ? 'Η σημείωση διαγράφηκε οριστικά' : 'Note permanently deleted');
   }
@@ -20447,7 +20482,10 @@ async function deleteNotePermanently(noteId) {
   // 2. Perform background deletion in cloud
   if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
     try {
-      await state.supabaseClient.from('notes').delete().eq('id', noteId);
+      const { error } = await state.supabaseClient.from('notes').delete().eq('id', noteId);
+      if (!error) {
+        dequeueSyncMutation('permanent_delete_note', noteId);
+      }
     } catch (err) {
       console.warn('[NotesTrash] permanent delete exception:', err);
     }
@@ -20481,6 +20519,9 @@ async function emptyNotesTrash() {
   renderNotesTrashList(false);
   updateNotesTrashBadge();
 
+  // Enqueue each deletion into the durable sync queue
+  ids.forEach(id => enqueueSyncMutation('permanent_delete_note', id));
+
   if (typeof showToast === 'function') {
     showToast(state.lang === 'el' ? 'Ο κάδος σημειώσεων άδειασε' : 'Notes trash emptied');
   }
@@ -20488,7 +20529,10 @@ async function emptyNotesTrash() {
   // 2. Perform batch deletion in cloud
   if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser && ids.length > 0) {
     try {
-      await state.supabaseClient.from('notes').delete().in('id', ids);
+      const { error } = await state.supabaseClient.from('notes').delete().in('id', ids);
+      if (!error) {
+        ids.forEach(id => dequeueSyncMutation('permanent_delete_note', id));
+      }
     } catch (err) {
       console.warn('[NotesTrash] empty trash exception:', err);
     }
@@ -25772,14 +25816,14 @@ window.showOfflineImportPrompt = showOfflineImportPrompt;
 function enqueueSyncMutation(action, payload) {
   try {
     const queue = JSON.parse(localStorage.getItem('money_manager_sync_queue') || '[]');
-    const isDelete = action === 'delete' || action === 'delete_template';
-    const itemId = isDelete ? payload : payload.id;
+    const isDelete = action === 'delete' || action === 'delete_template' || action === 'delete_note' || action === 'permanent_delete_note';
+    const itemId = isDelete ? payload : (payload && payload.id ? payload.id : payload);
 
     // Clean up duplicate saves/updates in queue if we are now deleting
     let cleanQueue = queue.filter(item => {
-      const itemIsDelete = item.action === 'delete' || item.action === 'delete_template';
-      const itemKey = itemIsDelete ? item.payload : item.payload.id;
-      const isSaveAction = item.action === 'save' || item.action === 'save_template';
+      const itemIsDelete = item.action === 'delete' || item.action === 'delete_template' || item.action === 'delete_note' || item.action === 'permanent_delete_note';
+      const itemKey = itemIsDelete ? item.payload : (item.payload && item.payload.id ? item.payload.id : item.payload);
+      const isSaveAction = item.action === 'save' || item.action === 'save_template' || item.action === 'save_note' || item.action === 'restore_note';
       return !(itemKey === itemId && isSaveAction && isDelete);
     });
 
@@ -25800,8 +25844,8 @@ function dequeueSyncMutation(action, itemId) {
   try {
     const queue = JSON.parse(localStorage.getItem('money_manager_sync_queue') || '[]');
     const cleanQueue = queue.filter(item => {
-      const itemIsDelete = item.action === 'delete' || item.action === 'delete_template';
-      const itemKey = itemIsDelete ? item.payload : item.payload.id;
+      const itemIsDelete = item.action === 'delete' || item.action === 'delete_template' || item.action === 'delete_note' || item.action === 'permanent_delete_note' || item.action === 'restore_note' || item.action === 'upsert';
+      const itemKey = itemIsDelete ? item.payload : (item.payload && item.payload.id ? item.payload.id : item.payload);
       return !(item.action === action && itemKey === itemId);
     });
     localStorage.setItem('money_manager_sync_queue', JSON.stringify(cleanQueue));
@@ -25993,6 +26037,107 @@ async function processSyncQueue(options = {}) {
             throw error;
           }
           console.warn(`Skipping invalid sync queue upsert item:`, error);
+          remaining.push(item);
+          continue;
+        }
+        itemSucceeded = true;
+      } else if (item.action === 'save_note') {
+        const note = item.payload;
+        if (!note || !note.id) {
+          console.warn('Skipping invalid save_note queue item:', item);
+          continue;
+        }
+        const familyId = state.userProfile ? state.userProfile.family_id : null;
+        const dbRecord = mapNoteToDb(note, state.currentUser.id, familyId);
+        const { error } = await promiseTimeout(
+          state.supabaseClient
+            .from('notes')
+            .upsert([dbRecord]),
+          15000
+        );
+        if (error) {
+          if (error.message && (error.message.includes('Fetch') || error.message.includes('network') || error.message.includes('timeout'))) {
+            throw error;
+          }
+          console.warn('Skipping invalid save_note queue item:', error);
+          remaining.push(item);
+          continue;
+        }
+        itemSucceeded = true;
+      } else if (item.action === 'delete_note') {
+        const noteId = item.payload;
+        if (!noteId) {
+          console.warn('Skipping invalid delete_note queue item:', item);
+          continue;
+        }
+        const now = new Date().toISOString();
+        const { error } = await promiseTimeout(
+          state.supabaseClient
+            .from('notes')
+            .update({
+              status: 'deleted',
+              deleted_at: now,
+              deleted_by: state.currentUser.id,
+              updated_at: now
+            })
+            .eq('id', noteId),
+          15000
+        );
+        if (error) {
+          if (error.message && (error.message.includes('Fetch') || error.message.includes('network') || error.message.includes('timeout'))) {
+            throw error;
+          }
+          console.warn('Skipping invalid delete_note queue item:', error);
+          remaining.push(item);
+          continue;
+        }
+        itemSucceeded = true;
+      } else if (item.action === 'permanent_delete_note') {
+        const noteId = item.payload;
+        if (!noteId) {
+          console.warn('Skipping invalid permanent_delete_note queue item:', item);
+          continue;
+        }
+        const { error } = await promiseTimeout(
+          state.supabaseClient
+            .from('notes')
+            .delete()
+            .eq('id', noteId),
+          15000
+        );
+        if (error) {
+          if (error.message && (error.message.includes('Fetch') || error.message.includes('network') || error.message.includes('timeout'))) {
+            throw error;
+          }
+          console.warn('Skipping invalid permanent_delete_note queue item:', error);
+          remaining.push(item);
+          continue;
+        }
+        itemSucceeded = true;
+      } else if (item.action === 'restore_note') {
+        const noteId = item.payload;
+        if (!noteId) {
+          console.warn('Skipping invalid restore_note queue item:', item);
+          continue;
+        }
+        const now = new Date().toISOString();
+        const { error } = await promiseTimeout(
+          state.supabaseClient
+            .from('notes')
+            .update({
+              status: 'active',
+              deleted_at: null,
+              deleted_by: null,
+              updated_at: now
+            })
+            .eq('id', noteId),
+          15000
+        );
+        if (error) {
+          if (error.message && (error.message.includes('Fetch') || error.message.includes('network') || error.message.includes('timeout'))) {
+            throw error;
+          }
+          console.warn('Skipping invalid restore_note queue item:', error);
           remaining.push(item);
           continue;
         }
