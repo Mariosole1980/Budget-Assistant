@@ -592,6 +592,43 @@ function mapTemplateFromDb(t) {
   };
 }
 
+function mapTransactionToDb(t) {
+  if (!t) return null;
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const id = (t.id && uuidRegex.test(String(t.id))) ? String(t.id) : (typeof generateUUID === 'function' ? generateUUID() : crypto.randomUUID());
+  const userId = t.user_id || (state.currentUser ? state.currentUser.id : null);
+  const familyId = t.family_id || (state.userProfile ? state.userProfile.family_id : null);
+
+  const { description, is_shared, photo_local_uri, photo_url, receipt, fx_snapshot, ...clean } = t;
+
+  const dbTx = {
+    ...clean,
+    id,
+    user_id: userId,
+    date: t.date ? String(t.date).slice(0, 19).replace(' ', 'T') : new Date().toISOString().slice(0, 10),
+    type: t.type || 'expense',
+    amount: parseFloat(t.amount) || 0,
+    category: t.category || '',
+    subcategory: t.subcategory || '',
+    account_from: t.account_from || '',
+    account_to: t.type === 'transfer' ? (t.account_to || null) : null,
+    note: t.note || '',
+    status: t.status || 'active'
+  };
+
+  if (familyId) dbTx.family_id = familyId;
+  if (t.recurring_template_id && uuidRegex.test(String(t.recurring_template_id))) {
+    dbTx.recurring_template_id = t.recurring_template_id;
+  }
+  if (t.created_at) dbTx.created_at = t.created_at;
+  if (t.updated_at) dbTx.updated_at = t.updated_at;
+  if (t.deleted_at) dbTx.deleted_at = t.deleted_at;
+  if (t.deleted_by) dbTx.deleted_by = t.deleted_by;
+
+  return dbTx;
+}
+window.mapTransactionToDb = mapTransactionToDb;
+
 function mergeAndDeduplicateTemplates(cloudTemplates = [], localTemplates = []) {
   const templateMap = new Map();
 
@@ -5689,7 +5726,7 @@ function processRecurringTemplates() {
           }
 
           if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
-            const { description, is_shared, photo_local_uri, photo_url, receipt, fx_snapshot, ...dbPayload } = newTx;
+            const { description, is_shared, photo_local_uri, photo_url, receipt, fx_snapshot, ...dbPayload } = mapTransactionToDb(newTx);
             (async () => {
               try {
                 const { error } = await promiseTimeout(
@@ -5879,13 +5916,7 @@ async function saveTransaction(transaction) {
   // 3. Attempt to save to cloud in background
   if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
 
-    // Note: description and is_shared are client-only fields that do NOT exist as
-    // columns in the transactions table (verified live: error 42703), so they MUST
-    // be stripped here or the upsert fails with a 400. recurring_template_id DOES
-    // exist as a column, so it is intentionally KEPT so cloud-loaded transactions
-    // retain their link to the recurring template (fixes recurring delete options
-    // not appearing from the transaction modal in the APK).
-    const { description, is_shared, photo_local_uri, photo_url, receipt, fx_snapshot, ...dbPayload } = transaction;
+    const { description, is_shared, photo_local_uri, photo_url, receipt, fx_snapshot, ...dbPayload } = mapTransactionToDb(transaction);
 
     // Enqueue immediately before starting the cloud request to prevent data loss if the app is closed/killed
     enqueueSyncMutation('save', transaction);
@@ -25744,25 +25775,11 @@ async function transferOfflineDataToAccount(userId, userEmail) {
 
   toggleLoader(true);
   try {
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     const toUpsert = guestTxs.map(t => {
-      const copy = { ...t };
-      // IDEMPOTENCY: Keep exact original UUID so repeated calls or network retries NEVER duplicate!
-      if (!copy.id || !uuidRegex.test(String(copy.id))) {
-        copy.id = generateUUID();
-      }
-      delete copy.description;
-      delete copy.is_shared;
-      delete copy.photo_local_uri;
-      delete copy.photo_url;
-      delete copy.receipt;
+      const copy = mapTransactionToDb(t);
       delete copy.fx_snapshot;
-      copy.user_id = userId;
-      if (state.userProfile && state.userProfile.family_id) {
-        copy.family_id = state.userProfile.family_id;
-      }
       return copy;
-    });
+    }).filter(Boolean);
 
     _suppressRealtimeEvents = true;
     for (let i = 0; i < toUpsert.length; i += 50) {
@@ -25828,23 +25845,11 @@ async function syncLocalTransactionsToCloud(userId, options = {}) {
     });
 
     if (localTrans.length > 0) {
-      let toInsert = localTrans.map(t => {
-        const copy = { ...t };
-        if (!copy.id || !uuidRegex.test(String(copy.id))) {
-          copy.id = generateUUID();
-        }
-        delete copy.description;
-        delete copy.is_shared;
-        delete copy.photo_local_uri;
-        delete copy.photo_url;
-        delete copy.receipt;
+      const toInsert = localTrans.map(t => {
+        const copy = mapTransactionToDb(t);
         delete copy.fx_snapshot;
-        copy.user_id = userId;
-        if (state.userProfile && state.userProfile.family_id) {
-          copy.family_id = state.userProfile.family_id;
-        }
         return copy;
-      });
+      }).filter(Boolean);
 
       _suppressRealtimeEvents = true;
       try {
@@ -25960,7 +25965,7 @@ async function processSyncQueue(options = {}) {
           console.warn('Skipping invalid sync queue item (missing payload or id):', item);
           continue;
         }
-        const { description, is_shared, photo_local_uri, photo_url, receipt, fx_snapshot, ...dbPayload } = transaction;
+        const { description, is_shared, photo_local_uri, photo_url, receipt, fx_snapshot, ...dbPayload } = mapTransactionToDb(transaction);
 
         // PREMIUM GATE: Free plan allows up to PREMIUM_LIMITS.cloudTxPerMonth
         // cloud-synced transactions per month. If at the limit and not Premium,
