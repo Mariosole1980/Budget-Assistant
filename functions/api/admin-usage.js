@@ -101,16 +101,30 @@ export async function onRequestPost(context) {
 
     if (!rpcRes.ok) {
       const errText = await rpcRes.text();
-      return new Response(JSON.stringify({ error: 'admin_usage_failed', details: errText.slice(0, 500) }), {
+      let parsedErr = errText;
+      try {
+        const p = JSON.parse(errText);
+        parsedErr = p.message || p.error || p.hint || errText;
+      } catch (_) {}
+      return new Response(JSON.stringify({
+        error: 'admin_usage_failed',
+        details: parsedErr.slice(0, 500)
+      }), {
         status: 500,
         headers: corsHeaders
       });
     }
 
     const data = await rpcRes.json();
-    if (data && data.error === 'forbidden') {
-      return new Response(JSON.stringify({ error: 'Forbidden: not an administrator' }), {
-        status: 403,
+    if (data && data.error) {
+      if (data.error === 'forbidden') {
+        return new Response(JSON.stringify({ error: 'Forbidden: not an administrator' }), {
+          status: 403,
+          headers: corsHeaders
+        });
+      }
+      return new Response(JSON.stringify({ error: 'admin_usage_failed', details: data.error }), {
+        status: 500,
         headers: corsHeaders
       });
     }

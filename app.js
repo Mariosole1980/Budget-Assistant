@@ -14421,7 +14421,7 @@ async function refreshAdminDashboard() {
     if (!res.ok || !json || !json.ok || !json.data) {
       const msg = (json && json.error === 'ADMIN_RPC_MISSING')
         ? (lang === 'el' ? 'Το admin RPC δεν έχει εγκατασταθεί. Τρέξε το admin-dashboard-migration.sql στο Supabase SQL Editor.' : 'The admin RPC is not installed. Run admin-dashboard-migration.sql in the Supabase SQL Editor.')
-        : (json && json.error) || 'Failed to load admin data.';
+        : ((json && json.details) ? (lang === 'el' ? `Σφάλμα RPC: ${json.details}` : `RPC Error: ${json.details}`) : (json && json.error) || 'Failed to load admin data.');
       container.innerHTML = adminErrorBox(msg);
       return;
     }
