@@ -26496,8 +26496,18 @@ function handleRealtimeTransactionChange(payload) {
     }
   }
 
-  // Accumulate events, then apply them all at once after a short delay
+  // Accumulate events, then apply them all at once after a short delay.
+  // Partner events (someone else's transaction) must appear IMMEDIATELY so the
+  // other family member sees the change in ~300ms, not after the 5s batching
+  // window used for our own rapid-fire events (which would otherwise flicker).
   _pendingRealtimeEvents.push(payload);
+
+  const hasPartnerEvent = _pendingRealtimeEvents.some(ev => {
+    if (ev.eventType === 'DELETE') return true; // partner delete (ours are suppressed above)
+    return ev.new && state.currentUser && ev.new.user_id !== state.currentUser.id;
+  });
+  // 300ms for partner events (near-instant), 5000ms for our own bulk events (anti-flicker batching).
+  const _realtimeDebounceMs = hasPartnerEvent ? 300 : 5000;
 
   if (_realtimeDebounceTimer) clearTimeout(_realtimeDebounceTimer);
   _realtimeDebounceTimer = setTimeout(() => {
@@ -26589,7 +26599,7 @@ function handleRealtimeTransactionChange(payload) {
     if (insertedByPartner) {
       showSyncToast('📥 Νέα κίνηση προστέθηκε από άλλο μέλος', 3000);
     }
-  }, 5000); // wait 5s before applying, to batch rapid events and prevent flickering
+  }, _realtimeDebounceMs); // 300ms for partner events (near-instant), 5000ms for own bulk events (anti-flicker batching)
 }
 
 function handleRealtimeCategoryChange(payload) {
@@ -26790,7 +26800,7 @@ function updateSyncStatusIndicator() {
 
 const SYNC_CURSORS_KEY = 'sync_cursors_v1';
 const SYNC_INCREMENTAL_FLAG = 'sync_incremental_enabled';
-const SYNC_FULL_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000; // full reconcile every 7 days
+const SYNC_FULL_INTERVAL_MS = 24 * 60 * 60 * 1000; // full reconcile every 24h (was 7 days) to self-heal lost realtime events faster
 
 function isIncrementalSyncEnabled() {
   try {

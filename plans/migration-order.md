@@ -61,6 +61,8 @@ Apply the files **in this exact order** on a fresh database:
 | 14 | `exchange-rates-security-fix.sql` | Exchange-rate security hardening | Requires `exchange_rates` |
 | 15 | `family-security-fixes-migration.sql` | Family RLS recursion fixes | Requires `family_groups` + `profiles` |
 | 16 | `family-security-fix2-recursion.sql` | Family RLS recursion fix (v2) | Requires `family_groups` + `profiles` |
+| 17 | `incremental-sync-migration.sql` | `updated_at` columns + triggers, `sync_tombstones`, composite indexes | Requires `transactions`/`accounts`/`categories`/`recurring_templates` |
+| 18 | `insert-updated-at-trigger-migration.sql` | `BEFORE INSERT` triggers + `DEFAULT now()` on `updated_at` (closes clock-skew gap) | **Must run after** `incremental-sync-migration.sql` (needs `set_updated_at()` fn + `updated_at` columns) |
 
 > **Note on Step 1 (`supabase-schema.sql`):** This canonical file already contains
 > `family_id` and `currency` FK columns in its `CREATE TABLE` statements. On a

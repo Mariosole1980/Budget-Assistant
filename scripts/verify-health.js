@@ -115,6 +115,7 @@ const CRITICAL_JS_ESM = [
     'functions/api/purchase.js',
     'functions/api/webhook.js',
     'functions/api/migrate-incremental-sync.js',
+    'functions/api/migrate-insert-updated-at.js',
     'functions/api/restore-transactions.js',
     'functions/api/scan-receipt.js',
 ];
