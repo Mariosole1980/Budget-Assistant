@@ -907,6 +907,9 @@ function mergeAndDeduplicateTransactions(cloudTransactions, localPendingTransact
     deletingTxIds: (typeof _deletingTxIds !== 'undefined' && _deletingTxIds) ? _deletingTxIds : null,
     recentlyDeletedTxIds: (typeof _recentlyDeletedTxIds !== 'undefined' && _recentlyDeletedTxIds) ? _recentlyDeletedTxIds : null,
     syncQueue: readSyncQueueForMerge(),
+    // DATA-INTEGRITY FIX: exclude permanently-deleted / trashed IDs from the
+    // merge so cachedMissingFromCloud can never reintroduce them into state.
+    permanentlyDeletedTxIds: (typeof collectPermanentlyDeletedTxIds === 'function') ? collectPermanentlyDeletedTxIds() : null,
   };
   return window.TransactionMerge.mergeAndDeduplicateTransactions(cloudTransactions, localPendingTransactions, deps);
 }
@@ -1594,7 +1597,7 @@ async function scheduleDailyReminder(enabled, timeString) {
       if (window.Capacitor.Plugins.LocalNotifications) {
         try {
           await window.Capacitor.Plugins.LocalNotifications.requestPermissions();
-        } catch (pErr) {}
+        } catch (pErr) { }
       }
 
       if (!enabled) {
@@ -2080,11 +2083,11 @@ async function initPushNotifications() {
         const title = notification.title || (state.lang === 'el' ? 'Νέα Ειδοποίηση' : 'New Notification');
         const body = notification.body || '';
         const data = notification.data || {};
-        
+
         if (data.type === 'partner_transaction' && typeof syncCloudTransactions === 'function') {
           syncCloudTransactions(true);
         }
-        
+
         if (typeof addInAppNotification === 'function') {
           addInAppNotification(title, body, { type: data.type || 'general' });
         }
@@ -4570,27 +4573,148 @@ function getPendingLocalTransactions(cachedTransactions) {
   return window.TransactionMerge.getPendingLocalTransactions(cachedTransactions, deps);
 }
 
+// ---------------------------------------------------------------------------
+// DATA-INTEGRITY HELPER: collect every transaction ID that must NEVER be
+// re-uploaded / re-activated / re-introduced into local state.
+//
+// Sources:
+//   1. The trash bin (deleted_transactions_trash) — the ONLY correct key.
+//   2. Any transaction in the offline cache with status='deleted'.
+//   3. The in-memory recently-deleted set (30s grace window).
+//   4. Any queued 'delete' mutation in the sync queue.
+//   5. The durable permanent-delete tombstone list (permanent_deleted_tx_ids).
+//
+// This is deliberately defensive: if the trash key is missing we log a warning
+// rather than silently treating the exclusion set as empty, so a future key
+// mismatch can never again silently resurrect deleted transactions.
+// ---------------------------------------------------------------------------
+const _PERMANENT_DELETED_LS_KEY = 'permanent_deleted_tx_ids';
+function collectPermanentlyDeletedTxIds() {
+  const excludedIds = new Set();
+  const add = (id) => { if (id !== null && id !== undefined && id !== '') excludedIds.add(String(id)); };
+
+  // 1. Trash bin (correct key). Log if the legacy wrong key is present so we
+  //    can detect any residual stale data from the old bug.
+  try {
+    const trash = JSON.parse(localStorage.getItem('deleted_transactions_trash') || '[]') || [];
+    trash.forEach(it => { if (it && it.id) add(it.id); });
+  } catch (e) { console.warn('[DataIntegrity] Failed to read deleted_transactions_trash:', e); }
+  try {
+    const legacyTrash = JSON.parse(localStorage.getItem('trash_transactions') || '[]') || [];
+    if (legacyTrash.length > 0) {
+      console.warn('[DataIntegrity] Legacy trash_transactions key found with', legacyTrash.length, 'items — migrating to deleted_transactions_trash semantics.');
+      legacyTrash.forEach(it => { if (it && it.id) add(it.id); });
+    }
+  } catch (e) { }
+
+  // 2. Offline cache items already marked deleted.
+  try {
+    const cache = JSON.parse(localStorage.getItem('offline_transactions') || '[]') || [];
+    cache.forEach(t => { if (t && t.status === 'deleted' && t.id) add(t.id); });
+  } catch (e) { }
+
+  // 3. Recently-deleted in-memory set.
+  if (typeof _recentlyDeletedTxIds !== 'undefined' && _recentlyDeletedTxIds) {
+    _recentlyDeletedTxIds.forEach(add);
+  }
+
+  // 4. Queued 'delete' mutations.
+  try {
+    const queue = JSON.parse(localStorage.getItem('money_manager_sync_queue') || '[]') || [];
+    queue.forEach(item => {
+      if (item && (item.action === 'delete' || item.action === 'permanent_delete_tx') && item.payload) {
+        add(item.payload);
+      }
+    });
+  } catch (e) { }
+
+  // 5. Durable permanent-delete tombstone list.
+  try {
+    const perm = JSON.parse(localStorage.getItem(_PERMANENT_DELETED_LS_KEY) || '[]') || [];
+    perm.forEach(add);
+  } catch (e) { }
+
+  return excludedIds;
+}
+
+// ---------------------------------------------------------------------------
+// DATA-INTEGRITY HELPER: purge permanently-deleted transaction IDs from every
+// local cache and queue so they can never be re-uploaded or re-introduced.
+//
+//   * state.transactions (in-memory)
+//   * offline_transactions (localStorage cache)
+//   * money_manager_sync_queue (stale save/upsert mutations for these IDs)
+//   * durable permanent-delete tombstone list (permanent_deleted_tx_ids)
+//
+// Also writes a durable tombstone to the cloud (sync_tombstones) so other
+// devices apply the permanent deletion. Best-effort; never blocks the delete.
+// ---------------------------------------------------------------------------
+function purgePermanentlyDeletedTxIds(ids, { writeCloudTombstone = false } = {}) {
+  if (!ids || ids.length === 0) return;
+  const idSet = new Set(ids.map(id => String(id)));
+
+  // 1. Remove from in-memory state.
+  if (Array.isArray(state.transactions)) {
+    const before = state.transactions.length;
+    state.transactions = state.transactions.filter(t => !(t && idSet.has(String(t.id))));
+    if (state.transactions.length !== before) {
+      console.info(`[DataIntegrity] Purged ${before - state.transactions.length} permanently-deleted tx from state.transactions.`);
+    }
+  }
+
+  // 2. Remove from offline_transactions cache.
+  try {
+    const cache = JSON.parse(localStorage.getItem('offline_transactions') || '[]') || [];
+    const before = cache.length;
+    const cleaned = cache.filter(t => !(t && idSet.has(String(t.id))));
+    if (cleaned.length !== before) {
+      localStorage.setItem('offline_transactions', JSON.stringify(cleaned));
+      console.info(`[DataIntegrity] Purged ${before - cleaned.length} permanently-deleted tx from offline_transactions.`);
+    }
+  } catch (e) { console.warn('[DataIntegrity] Failed to purge offline_transactions:', e); }
+
+  // 3. Remove stale save/upsert mutations for these IDs from the sync queue.
+  try {
+    const queue = JSON.parse(localStorage.getItem('money_manager_sync_queue') || '[]') || [];
+    const before = queue.length;
+    const cleaned = queue.filter(item => {
+      if (!item) return false;
+      const isDelete = item.action === 'delete' || item.action === 'permanent_delete_tx';
+      const itemId = isDelete ? item.payload : (item.payload && item.payload.id ? item.payload.id : item.payload);
+      return !(itemId && idSet.has(String(itemId)));
+    });
+    if (cleaned.length !== before) {
+      localStorage.setItem('money_manager_sync_queue', JSON.stringify(cleaned));
+      console.info(`[DataIntegrity] Purged ${before - cleaned.length} stale sync-queue mutations for permanently-deleted tx.`);
+    }
+  } catch (e) { console.warn('[DataIntegrity] Failed to purge sync queue:', e); }
+
+  // 4. Record durable permanent-delete tombstones locally.
+  try {
+    const perm = JSON.parse(localStorage.getItem(_PERMANENT_DELETED_LS_KEY) || '[]') || [];
+    const permSet = new Set(perm.map(id => String(id)));
+    let changed = false;
+    idSet.forEach(id => { if (!permSet.has(id)) { permSet.add(id); changed = true; } });
+    if (changed) {
+      localStorage.setItem(_PERMANENT_DELETED_LS_KEY, JSON.stringify(Array.from(permSet)));
+    }
+  } catch (e) { console.warn('[DataIntegrity] Failed to record permanent-delete tombstone:', e); }
+
+  // 5. Write durable tombstones to the cloud (best-effort).
+  if (writeCloudTombstone && state.supabaseClient && state.currentUser) {
+    writeSyncTombstones('transactions', Array.from(idSet)).catch(err => {
+      console.warn('[DataIntegrity] Failed to write permanent-delete tombstone to cloud:', err);
+    });
+  }
+}
+
 async function autoSyncMissingTransactionsToCloud(cloudTransactions, userId) {
   if (!state.supabaseClient || !userId) return [];
   const cloudIds = new Set((cloudTransactions || []).map(t => String(t.id)));
 
-  // Collect deleted IDs from trash and sync queue so we NEVER resurrect deleted items
-  const excludedIds = new Set();
-  try {
-    const trash = JSON.parse(localStorage.getItem('trash_transactions') || '[]') || [];
-    trash.forEach(it => { if (it && it.id) excludedIds.add(String(it.id)); });
-  } catch (e) {}
-  try {
-    const queue = JSON.parse(localStorage.getItem('money_manager_sync_queue') || '[]') || [];
-    queue.forEach(item => {
-      if (item && item.action === 'delete' && item.payload) {
-        excludedIds.add(String(item.payload));
-      }
-    });
-  } catch (e) {}
-  if (typeof _recentlyDeletedTxIds !== 'undefined' && _recentlyDeletedTxIds) {
-    _recentlyDeletedTxIds.forEach(id => excludedIds.add(String(id)));
-  }
+  // Collect deleted IDs from trash and sync queue so we NEVER resurrect deleted items.
+  // Uses the defensive helper (correct key + deleted-status cache + tombstones).
+  const excludedIds = collectPermanentlyDeletedTxIds();
 
   // Only consider active transactions currently in state.transactions
   const localTxs = Array.isArray(state.transactions) ? state.transactions : [];
@@ -4881,10 +5005,22 @@ async function loadData() {
       const cachedMissingFromCloud = cachedForMerge.filter(t =>
         !(t && t.id && updatedCloudIds.has(String(t.id)))
       );
-      const mergedTransactions = mergeAndDeduplicateTransactions(allTransactions, [...pendingLocal, ...cachedMissingFromCloud]);
+      // Durable tombstone guard: never reintroduce a permanently-deleted transaction
+      // from the offline cache into state (defense-in-depth; the merge also excludes
+      // these IDs via deps.permanentlyDeletedTxIds).
+      let permanentlyDeletedSet = null;
+      try {
+        permanentlyDeletedSet = new Set(Array.from(collectPermanentlyDeletedTxIds()).map(String));
+      } catch (err) {
+        console.warn('Failed to collect permanently deleted IDs in loadData merge:', err);
+      }
+      const safeCachedMissingFromCloud = permanentlyDeletedSet
+        ? cachedMissingFromCloud.filter(t => !(t && t.id && permanentlyDeletedSet.has(String(t.id))))
+        : cachedMissingFromCloud;
+      const mergedTransactions = mergeAndDeduplicateTransactions(allTransactions, [...pendingLocal, ...safeCachedMissingFromCloud]);
       mergedTransactions.sort(compareTransactions);
       state.transactions = mergedTransactions;
-      
+
       // Merge categories: retain any local custom categories that haven't synced to cloud yet
       const cloudCatNames = new Set((categories || []).map(c => c && c.name ? c.name.trim().toLowerCase() : ''));
       const localCustomCats = (state.categories || []).filter(c => c && c.name && !cloudCatNames.has(c.name.trim().toLowerCase()));
@@ -5410,150 +5546,18 @@ window.cleanCrossLanguageRecurringDuplicates = cleanCrossLanguageRecurringDuplic
 // AUTO-RESTORE RECOVERY: Restore any manual (non-recurring) transactions that may have
 // been mistakenly soft-deleted.
 async function autoRestoreMistakenlyDeletedManualTransactions() {
-  // 1. Check local trash
-  try {
-    const localTrash = JSON.parse(localStorage.getItem('deleted_transactions_trash') || '[]');
-    if (Array.isArray(localTrash) && localTrash.length > 0) {
-      const currentIdSet = new Set((state.transactions || []).map(t => String(t.id)));
-      let localRestored = false;
-      const remainingTrash = [];
-      for (const t of localTrash) {
-        if (t && t.id && !t.is_recurring_group && !t.recurring_template_id && !String(t.id).startsWith('recurring_') && !currentIdSet.has(String(t.id))) {
-          const restored = { ...t, status: 'active' };
-          delete restored.deleted_at;
-          delete restored.deleted_by;
-          state.transactions.push(restored);
-          currentIdSet.add(String(restored.id));
-          localRestored = true;
-        } else {
-          remainingTrash.push(t);
-        }
-      }
-      if (localRestored) {
-        state.trashTransactions = remainingTrash;
-        localStorage.setItem('deleted_transactions_trash', JSON.stringify(remainingTrash));
-        localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
-      }
-    }
-  } catch (e) { }
-
-  // 1.5. Call Cloudflare Pages server-side endpoint with service-role privileges (bypasses RLS)
-  if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
-    try {
-      const { data: sessionData } = await state.supabaseClient.auth.getSession();
-      const token = sessionData && sessionData.session ? sessionData.session.access_token : null;
-      if (token) {
-        const resp = await fetch(getBackendApiUrl('/api/restore-transactions'), {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        console.log('[AutoRestore API] Response status:', resp.status);
-        if (resp.ok) {
-          const result = await resp.json();
-          console.log('[AutoRestore API] Server response:', JSON.stringify(result.debug || {}), 'restoredCount:', result.restoredCount);
-          if (result && result.success && Array.isArray(result.restoredRows) && result.restoredRows.length > 0) {
-            console.log(`[AutoRestore API] Server restored ${result.restoredRows.length} transactions:`, result.restoredRows.map(r => `${r.id?.substring(0,8)} ${r.amount}`));
-            const currentIdMap = new Map((state.transactions || []).map(t => [String(t.id), t]));
-            let addedCount = 0;
-            for (const r of result.restoredRows) {
-              if (!currentIdMap.has(String(r.id))) {
-                state.transactions.push(r);
-                currentIdMap.set(String(r.id), r);
-                addedCount++;
-              }
-            }
-            if (addedCount > 0) {
-              state.transactions.sort(compareTransactions);
-              localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
-              saveSyncCursors({});
-              calculateInitialBalances();
-              updateUI();
-            }
-          }
-        } else {
-          const errBody = await resp.text();
-          console.warn('[AutoRestore API] Error response:', resp.status, errBody);
-        }
-      }
-    } catch (apiErr) {
-      console.warn('AutoRestore API call failed:', apiErr);
-    }
-  }
-
-  // 2. Check cloud trash if Supabase is enabled
-  if (!state.isSupabaseEnabled || !state.supabaseClient || !state.currentUser) return;
-  try {
-    // Rely on Supabase RLS to return all soft-deleted rows accessible to this user, partner, and family.
-    const query = state.supabaseClient
-      .from('transactions')
-      .select('*')
-      .eq('status', 'deleted');
-
-    const { data: deletedRows, error } = await promiseTimeout(query, 15000);
-    if (error || !deletedRows || deletedRows.length === 0) return;
-
-    // Filter in JS: ONLY restore manual, non-recurring transactions (or any transaction without a template)
-    const manualRows = deletedRows.filter(r => {
-      if (!r || !r.id) return false;
-      if (r.is_recurring_group) return false;
-      if (r.recurring_template_id) return false;
-      if (String(r.id).startsWith('recurring_')) return false;
-      return true;
-    });
-
-    if (manualRows.length === 0) return;
-
-    const currentIdMap = new Map((state.transactions || []).map(t => [String(t.id), t]));
-    const idsToRestoreInDb = [];
-
-    for (const row of manualRows) {
-      const rowId = String(row.id);
-      const restored = { ...row, status: 'active' };
-      delete restored.deleted_at;
-      delete restored.deleted_by;
-
-      if (!currentIdMap.has(rowId)) {
-        state.transactions.push(restored);
-        currentIdMap.set(rowId, restored);
-      }
-      idsToRestoreInDb.push(row.id);
-    }
-
-    if (idsToRestoreInDb.length > 0) {
-      console.log(`[AutoRestore] Restoring ${idsToRestoreInDb.length} manual transactions in Supabase & state:`, idsToRestoreInDb);
-      state.transactions.sort(compareTransactions);
-      localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
-
-      // Batch update in Supabase
-      await state.supabaseClient
-        .from('transactions')
-        .update({ status: 'active', deleted_at: null, deleted_by: null, updated_at: new Date().toISOString() })
-        .in('id', idsToRestoreInDb);
-
-      // Clean tombstones if table exists
-      try {
-        await state.supabaseClient
-          .from('transactions_tombstones')
-          .delete()
-          .in('row_id', idsToRestoreInDb);
-      } catch (tErr) { }
-
-      // Clear sync cursors so next sync fetches fresh active rows
-      saveSyncCursors({});
-
-      const restoredSet = new Set(idsToRestoreInDb.map(String));
-      state.trashTransactions = (state.trashTransactions || []).filter(t => !restoredSet.has(String(t.id)));
-      localStorage.setItem('deleted_transactions_trash', JSON.stringify(state.trashTransactions));
-
-      calculateInitialBalances();
-      updateUI();
-    }
-  } catch (err) {
-    console.warn('AutoRestore failed:', err);
-  }
+  // ⚠️ NEUTRALIZED (forensic data-integrity fix).
+  //
+  // This function was a resurrection vector: it re-activated ALL status='deleted'
+  // transactions (from local trash, the /api/restore-transactions backend endpoint,
+  // and the cloud trash query), which is exactly how permanently-deleted transactions
+  // were coming back. It is now a no-op. The window binding is preserved so any
+  // existing callers do not break, but no transaction is ever restored by it.
+  //
+  // Legitimate restore-from-trash is handled exclusively by restoreTrashGroup() /
+  // restoreTransaction(), which operate on the user's explicit intent.
+  console.warn('[AutoRestore] autoRestoreMistakenlyDeletedManualTransactions is DISABLED (neutralized) to prevent resurrection of permanently-deleted transactions.');
+  return;
 }
 window.autoRestoreMistakenlyDeletedManualTransactions = autoRestoreMistakenlyDeletedManualTransactions;
 
@@ -14208,16 +14212,16 @@ function renderAdminUsage(data, container) {
   const userRows = users.length === 0
     ? `<div style="padding:10px 0; color:var(--text-muted); font-size:12.5px;">${lang === 'el' ? 'Δεν βρέθηκαν χρήστες.' : 'No users found.'}</div>`
     : users.map(u => {
-        const isPro = !!u.premium_active;
-        const name = u.display_name || u.email || '—';
-        return `<div style="display:flex; align-items:center; gap:10px; padding:9px 2px; border-bottom:1px solid var(--overlay-060, rgba(255,255,255,0.05));">
+      const isPro = !!u.premium_active;
+      const name = u.display_name || u.email || '—';
+      return `<div style="display:flex; align-items:center; gap:10px; padding:9px 2px; border-bottom:1px solid var(--overlay-060, rgba(255,255,255,0.05));">
           <div style="min-width:0; flex:1; overflow:hidden;">
             <div style="font-size:13px; color:var(--text-primary); font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(name)}</div>
             <div style="font-size:11.5px; color:var(--text-muted); word-break:break-all;">${escapeHtml(u.email || '')}</div>
           </div>
           <span style="flex-shrink:0; font-size:10.5px; font-weight:800; padding:3px 9px; border-radius:12px; ${isPro ? 'background:rgba(245,158,11,0.18); color:#fbbf24; border:1px solid rgba(245,158,11,0.35);' : 'background:rgba(255,255,255,0.07); color:var(--text-secondary); border:1px solid rgba(255,255,255,0.08);'}">${isPro ? '👑 PRO' : (lang === 'el' ? 'Δωρεάν' : 'Free')}</span>
         </div>`;
-      }).join('');
+    }).join('');
 
   const usersCard = `<div style="background:var(--bg-card, #161622); border:1px solid var(--border); border-radius:16px; padding:14px 16px;">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
@@ -23676,10 +23680,10 @@ async function handleGoogleAuth() {
       if (data && data.session && data.session.user) {
         state.currentUser = data.session.user;
         localStorage.setItem('cached_current_user', JSON.stringify(data.session.user));
-        
+
         // Load user-scoped notes and chat history for the new account
         loadNotes();
-        
+
         // INSTANT ENTRY: Dismiss login screen immediately for zero perceived latency
         hideAuthOverlay();
         if (googleBtn) {
@@ -23689,7 +23693,7 @@ async function handleGoogleAuth() {
         if (typeof updateUI === 'function') updateUI();
         if (typeof updateHeaderProfileBadge === 'function') updateHeaderProfileBadge();
         if (typeof renderNotesList === 'function') renderNotesList();
-        
+
         // Background sync so user isn't kept waiting at the login screen
         forceSyncNow(true).catch(e => console.warn('Background post-login sync warning:', e));
       } else {
@@ -25910,8 +25914,20 @@ async function syncLocalTransactionsToCloud(userId, options = {}) {
       return false;
     });
 
-    if (localTrans.length > 0) {
-      const toInsert = localTrans.map(t => {
+    // Durable tombstone guard: never re-upload a permanently-deleted transaction to
+    // the cloud, even if it is still present in the offline cache.
+    let permanentlyDeletedSet = null;
+    try {
+      permanentlyDeletedSet = new Set(Array.from(collectPermanentlyDeletedTxIds()).map(String));
+    } catch (err) {
+      console.warn('Failed to collect permanently deleted IDs in syncLocalTransactionsToCloud:', err);
+    }
+    const filteredLocalTrans = permanentlyDeletedSet
+      ? localTrans.filter(t => !(t && t.id && permanentlyDeletedSet.has(String(t.id))))
+      : localTrans;
+
+    if (filteredLocalTrans.length > 0) {
+      const toInsert = filteredLocalTrans.map(t => {
         const copy = mapTransactionToDb(t);
         delete copy.fx_snapshot;
         return copy;
@@ -25927,7 +25943,7 @@ async function syncLocalTransactionsToCloud(userId, options = {}) {
           if (error) throw error;
         }
 
-        const cleanOffline = allTrans.filter(t => !localTrans.includes(t));
+        const cleanOffline = allTrans.filter(t => !filteredLocalTrans.includes(t));
         localStorage.setItem('offline_transactions', JSON.stringify(cleanOffline));
         localStorage.setItem('offline_transactions_owner', userId);
         localStorage.removeItem('offline_guest_transactions');
@@ -26018,6 +26034,16 @@ async function processSyncQueue(options = {}) {
 
   _isProcessingSyncQueue = true;
 
+  // Durable tombstone guard: any queued mutation whose target transaction has been
+  // permanently deleted must be dropped, so a stale queued 'save'/'upsert' can never
+  // resurrect a permanently-deleted transaction on the cloud.
+  let permanentlyDeletedSet = null;
+  try {
+    permanentlyDeletedSet = new Set(Array.from(collectPermanentlyDeletedTxIds()).map(String));
+  } catch (err) {
+    console.warn('Failed to collect permanently deleted IDs in processSyncQueue:', err);
+  }
+
   let successCount = 0;
   const remaining = [];
 
@@ -26029,6 +26055,11 @@ async function processSyncQueue(options = {}) {
         const transaction = item.payload;
         if (!transaction || !transaction.id) {
           console.warn('Skipping invalid sync queue item (missing payload or id):', item);
+          continue;
+        }
+        // Drop stale save mutations for permanently-deleted transactions.
+        if (permanentlyDeletedSet && permanentlyDeletedSet.has(String(transaction.id))) {
+          console.warn('Dropping stale sync queue save for permanently-deleted transaction:', transaction.id);
           continue;
         }
         const { description, is_shared, photo_local_uri, photo_url, receipt, fx_snapshot, ...dbPayload } = mapTransactionToDb(transaction);
@@ -26162,6 +26193,12 @@ async function processSyncQueue(options = {}) {
         const transId = item.payload;
         if (!transId) {
           console.warn('Skipping invalid sync queue upsert item (missing id):', item);
+          continue;
+        }
+        // Drop stale restore mutations for permanently-deleted transactions — a
+        // permanently-deleted transaction must never be re-activated.
+        if (permanentlyDeletedSet && permanentlyDeletedSet.has(String(transId))) {
+          console.warn('Dropping stale sync queue upsert (restore) for permanently-deleted transaction:', transId);
           continue;
         }
         const { error } = await promiseTimeout(
@@ -26472,10 +26509,22 @@ function handleRealtimeTransactionChange(payload) {
     let changed = false;
     let insertedByPartner = false;
 
+    // Durable tombstone guard: never re-add a permanently-deleted transaction to
+    // state via a stale realtime INSERT event.
+    let permanentlyDeletedSet = null;
+    try {
+      permanentlyDeletedSet = new Set(Array.from(collectPermanentlyDeletedTxIds()).map(String));
+    } catch (err) {
+      console.warn('Failed to collect permanently deleted IDs in realtime handler:', err);
+    }
+
     events.forEach(ev => {
       const eventType = ev.eventType;
       if (eventType === 'INSERT') {
         const newTrans = ev.new;
+        if (newTrans && permanentlyDeletedSet && permanentlyDeletedSet.has(String(newTrans.id))) {
+          return;
+        }
         if (!trans.some(t => t.id === newTrans.id)) {
           trans.unshift(newTrans);
           changed = true;
@@ -27234,7 +27283,12 @@ async function forceSyncNow(silent = false) {
       // 5. Update state
       const cachedForMerge = (JSON.parse(localStorage.getItem('offline_transactions') || '[]') || []);
       const updatedCloudIds = new Set(allTransactions.map(t => String(t.id)));
-      const cachedMissingFromCloud = cachedForMerge.filter(t => !(t && t.id && updatedCloudIds.has(String(t.id))));
+      let cachedMissingFromCloud = cachedForMerge.filter(t => !(t && t.id && updatedCloudIds.has(String(t.id))));
+      // Defense-in-depth: never reintroduce a permanently-deleted transaction from the offline cache.
+      const permanentlyDeletedSet = new Set(Array.from(collectPermanentlyDeletedTxIds()).map(id => String(id)));
+      if (permanentlyDeletedSet.size > 0) {
+        cachedMissingFromCloud = cachedMissingFromCloud.filter(t => !(t && t.id && permanentlyDeletedSet.has(String(t.id))));
+      }
       const dedupedCombined = mergeAndDeduplicateTransactions(allTransactions, [...localPending, ...cachedMissingFromCloud]);
       dedupedCombined.sort(compareTransactions);
 
@@ -31423,7 +31477,7 @@ function saveRecurringSettings() {
                 dequeueSyncMutation('save_template', template.id);
               }
             }
-          }).catch(() => {});
+          }).catch(() => { });
       }
       processRecurringTemplates();
       updateUI();
@@ -33434,8 +33488,8 @@ function openRecurringTemplatesModal() {
         <div class="recurring-template-row" style="display: flex; flex-direction: row; align-items: center; justify-content: space-between; padding: 12px 14px; border: 1px solid var(--border); border-radius: 14px; background: var(--bg-card); gap: 12px; margin-bottom: 0; min-height: 64px; box-sizing: border-box; width: 100%;">
           <div style="display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1; flex-direction: row;">
             ${(typeof renderCategoryIconHtml === 'function')
-              ? renderCategoryIconHtml(t.category, { size: 'md', customColor: color, transType: t.type })
-              : `<div style="width: 42px; height: 42px; border-radius: 12px; background: ${color}20; color: ${color}; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0;">${icon}</div>`}
+          ? renderCategoryIconHtml(t.category, { size: 'md', customColor: color, transType: t.type })
+          : `<div style="width: 42px; height: 42px; border-radius: 12px; background: ${color}20; color: ${color}; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0;">${icon}</div>`}
             <div style="display: flex; flex-direction: column; min-width: 0; text-align: left; flex: 1;">
               <span style="font-weight: 700; color: var(--text-primary); font-size: 14.5px; word-break: break-word; line-height: 1.3; display: flex; align-items: center; gap: 6px;">${t.note || t.category}<i class="fa-solid fa-arrows-rotate recurring-arrows-icon" style="font-size: 12px; color: var(--primary);" title="${lang === 'el' ? 'Επαναλαμβανόμενη' : 'Recurring'}"></i></span>
               <span style="font-size: 12px; color: var(--text-secondary); margin-top: 3px; word-break: break-word; line-height: 1.2;">${presetLabel} • ${getCurrencySymbol()} ${formatDisplayAmount(t.amount, t.currency || state.mainCurrency || 'EUR')}${endDateLabel}</span>
@@ -34335,6 +34389,26 @@ async function emptyTrashBin() {
     } catch (err) {
       console.warn('Failed to clear deleted transactions on Supabase:', err);
     }
+  }
+
+  // Durable tombstone: purge every emptied ID from all local caches (offline_transactions,
+  // sync queue, state) and record a cloud tombstone so no sync path can ever resurrect
+  // them (autoSyncMissingTransactionsToCloud, cachedMissingFromCloud, processSyncQueue,
+  // realtime, restore).
+  try {
+    const allEmptiedIds = [];
+    itemsBeingEmptied.forEach(t => {
+      if (Array.isArray(t.affectedTransactionIds) && t.affectedTransactionIds.length > 0) {
+        t.affectedTransactionIds.forEach(tid => allEmptiedIds.push(tid));
+      } else if (t.id) {
+        allEmptiedIds.push(t.id);
+      }
+    });
+    if (allEmptiedIds.length > 0) {
+      purgePermanentlyDeletedTxIds(allEmptiedIds, { writeCloudTombstone: true });
+    }
+  } catch (err) {
+    console.warn('Failed to purge permanently deleted transaction IDs:', err);
   }
 
   // Save notes of items in trash to dismissed_recovered_templates before emptying
@@ -36834,16 +36908,26 @@ async function deleteSingleTrashItem(id) {
   localStorage.setItem('deleted_transactions_trash', JSON.stringify(state.trashTransactions));
 
   // Hard-delete the transaction row(s) from the cloud (permanent delete).
+  const idsToDelete = Array.isArray(item.affectedTransactionIds) && item.affectedTransactionIds.length > 0
+    ? item.affectedTransactionIds
+    : [id];
   if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
     try {
-      const idsToDelete = Array.isArray(item.affectedTransactionIds) && item.affectedTransactionIds.length > 0
-        ? item.affectedTransactionIds
-        : [id];
       const { error } = await state.supabaseClient.from('transactions').delete().in('id', idsToDelete);
       if (error) console.warn('Failed to delete trash item on Supabase:', error);
     } catch (err) {
       console.warn('Failed to delete trash item on Supabase:', err);
     }
+  }
+
+  // Durable tombstone: purge these IDs from every local cache (offline_transactions,
+  // sync queue, state) and record a cloud tombstone so no sync path can ever
+  // resurrect them (autoSyncMissingTransactionsToCloud, cachedMissingFromCloud,
+  // processSyncQueue, realtime, restore).
+  try {
+    purgePermanentlyDeletedTxIds(idsToDelete, { writeCloudTombstone: true });
+  } catch (err) {
+    console.warn('Failed to purge permanently deleted transaction IDs:', err);
   }
 
   renderTrashBinList();

@@ -62,6 +62,11 @@
                 }
             });
         }
+        // DATA-INTEGRITY FIX: exclude permanently-deleted / trashed IDs so the
+        // merge can never reintroduce a transaction the user permanently deleted.
+        if (deps && deps.permanentlyDeletedTxIds) {
+            deps.permanentlyDeletedTxIds.forEach(add);
+        }
         return deletedIds;
     }
 
