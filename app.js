@@ -6207,23 +6207,7 @@ async function saveTransaction(transaction) {
         } catch (_) {}
       }
 
-      // If RLS or foreign key error with family_id, retry saving as personal transaction (family_id = null)
-      if (error && (error.code === '42501' || error.message?.includes('violates row-level security') || error.message?.includes('violates foreign key')) && dbPayload.family_id) {
-        try {
-          const fallbackPayload = { ...dbPayload };
-          delete fallbackPayload.family_id;
-          const retryRes = await promiseTimeout(
-            state.supabaseClient
-              .from('transactions')
-              .upsert([fallbackPayload]),
-            12000
-          );
-          if (!retryRes.error) {
-            error = null;
-            transaction.family_id = null;
-          }
-        } catch (_) {}
-      }
+
 
       if (error) {
         console.error(`[CloudSave] Supabase upsert error for ${transaction.id}:`, error);
