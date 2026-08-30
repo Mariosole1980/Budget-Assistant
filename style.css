@@ -145,12 +145,13 @@ button:active,
 .settings-list-item:active,
 .stats-tab-btn:active,
 .stats-dropdown-item:active,
+.keypad-btn:active,
 .transaction-item.pressed,
 .stats-row.pressed,
 .stats-sub-row.pressed {
-  transform: scale(0.94) !important;
-  opacity: 0.85 !important;
-  transition: transform 0.05s ease-out !important;
+  transform: scale(0.975) !important;
+  opacity: 0.88 !important;
+  transition: transform 0.02s ease-out !important;
 }
 
 /* Material-style Ripple Effect */
@@ -2236,7 +2237,7 @@ body.is-ios .modal-content {
 }
 
 .calc-key-btn:active {
-  transform: scale(0.94) !important;
+  transform: scale(0.975) !important;
   opacity: 1 !important;
   background-color: rgba(255, 255, 255, 0.14) !important;
   transition: none !important;
@@ -2258,7 +2259,7 @@ body.is-ios .modal-content {
 .calc-key-btn.op-key:active,
 .calc-key-btn.calc-op-key:active {
   background-color: rgba(var(--accent-rgb, 124, 106, 247), 0.22) !important;
-  transform: scale(0.94) !important;
+  transform: scale(0.975) !important;
   opacity: 1 !important;
   transition: none !important;
 }
@@ -2281,7 +2282,7 @@ body.is-ios .modal-content {
 }
 
 .calc-key-btn.done-key:active {
-  transform: scale(0.94) !important;
+  transform: scale(0.975) !important;
   opacity: 1 !important;
   filter: brightness(1.15) !important;
   transition: none !important;
@@ -3706,7 +3707,7 @@ body.is-ios .modal-content {
 
 .keypad-btn:active {
   background: var(--bg-input);
-  transform: scale(0.9);
+  transform: scale(0.975);
 }
 
 .keypad-btn.empty {
@@ -3793,7 +3794,7 @@ body.is-ios .modal-content {
 }
 
 .category-picker-item:active {
-  transform: scale(0.92);
+  transform: scale(0.975);
 }
 
 .category-picker-item.selected {
