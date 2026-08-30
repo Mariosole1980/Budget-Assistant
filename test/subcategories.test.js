@@ -103,7 +103,7 @@ test('getSortedSubcategoriesForCategory merges default subcategories from DEFAUL
   assert.ok(subs.includes('Κατοικίδια'));
 });
 
-test('deleteSubcategoryGlobally adds default subcategory to deleted_subcategories and excludes it', async () => {
+test('deleteSubcategoryGlobally adds default subcategory to deleted_subcategories and preserves transactions untouched', async () => {
   global.state = {
     categories: [{
       id: 'cat_1',
@@ -119,20 +119,21 @@ test('deleteSubcategoryGlobally adds default subcategory to deleted_subcategorie
 
   await deleteSubcategoryGlobally('🛒 Σούπερ Μάρκετ', 'Κατοικίδια');
 
-  // Transaction subcategory cleared
-  assert.strictEqual(global.state.transactions[0].subcategory, '');
+  // Existing transactions are preserved untouched (not deleted and subcategory not wiped)
+  assert.strictEqual(global.state.transactions.length, 1);
+  assert.strictEqual(global.state.transactions[0].subcategory, 'Κατοικίδια');
 
   // Category object has 'Κατοικίδια' in deleted_subcategories
   const cat = global.state.categories.find(c => c.name === '🛒 Σούπερ Μάρκετ');
   assert.ok(cat.deleted_subcategories.includes('Κατοικίδια'));
 
-  // getSortedSubcategoriesForCategory no longer includes 'Κατοικίδια'
+  // getSortedSubcategoriesForCategory no longer includes 'Κατοικίδια' for future choices
   const subs = getSortedSubcategoriesForCategory('🛒 Σούπερ Μάρκετ');
   assert.strictEqual(subs.includes('Κατοικίδια'), false);
   assert.ok(subs.includes('Τρόφιμα')); // Other defaults still present
 });
 
-test('undoLastSubcategoryDelete restores deleted subcategory in category and transactions', async () => {
+test('undoLastSubcategoryDelete restores deleted subcategory in category options', async () => {
   global.state = {
     categories: [{
       id: 'cat_1',
@@ -147,16 +148,14 @@ test('undoLastSubcategoryDelete restores deleted subcategory in category and tra
   };
 
   await deleteSubcategoryGlobally('🛒 Σούπερ Μάρκετ', 'Κατοικίδια');
-  assert.strictEqual(global.state.transactions[0].subcategory, '');
+  assert.strictEqual(getSortedSubcategoriesForCategory('🛒 Σούπερ Μάρκετ').includes('Κατοικίδια'), false);
 
   await undoLastSubcategoryDelete();
-
-  // Transaction restored
-  assert.strictEqual(global.state.transactions[0].subcategory, 'Κατοικίδια');
 
   // getSortedSubcategoriesForCategory includes 'Κατοικίδια' again
   const subs = getSortedSubcategoriesForCategory('🛒 Σούπερ Μάρκετ');
   assert.ok(subs.includes('Κατοικίδια'));
+  assert.strictEqual(global.state.transactions[0].subcategory, 'Κατοικίδια');
 });
 
 test('addSubcategoryToCategory un-deletes a previously deleted subcategory', () => {

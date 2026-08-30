@@ -3087,19 +3087,35 @@ function initSupabaseAuth() {
     const reason = event.reason;
     if (reason && (reason.message || reason.error_description || String(reason).includes('Auth') || String(reason).includes('token'))) {
       const msg = reason.message || reason.error_description || String(reason);
-      processingRedirect = false;
-      toggleLoader(false);
-      if (formsContainer) formsContainer.style.display = 'block';
-      showAuthStatus(((TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_error_unhandled']) || '❌ Σφάλμα (Unhandled): ') + msg);
+      // ONLY show auth error overlay if user is actively in the login flow / redirect
+      // and NOT already logged in with cached credentials or guest mode
+      const hasCachedUser = !!(localStorage.getItem('cached_current_user') || state.currentUser || state.guestMode);
+      if (processingRedirect || !hasCachedUser) {
+        processingRedirect = false;
+        toggleLoader(false);
+        if (formsContainer) formsContainer.style.display = 'block';
+        showAuthStatus(((TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_error_unhandled']) || '❌ Σφάλμα (Unhandled): ') + msg);
+      }
     }
   });
 
   logAuthDebug('Fetching current session...');
   // Fetch session explicitly to capture any errors during initialization or OAuth code/hash exchange
   state.supabaseClient.auth.getSession().then(({ data, error }) => {
+    const hasCachedUser = !!(localStorage.getItem('cached_current_user') || state.currentUser || state.guestMode);
     if (error) {
       logAuthDebug(`getSession error: ${error.message || error}`);
       console.error('Supabase getSession error:', error);
+      // If we have cached credentials / offline session, do NOT show the login overlay on getSession error!
+      if (hasCachedUser) {
+        logAuthDebug('getSession error ignored; maintaining offline cached session.');
+        hideAuthOverlay();
+        const earlyStyle = document.getElementById('early-auth-style');
+        if (earlyStyle) earlyStyle.remove();
+        const earlyHideStyle = document.getElementById('early-auth-hide-style');
+        if (earlyHideStyle) earlyHideStyle.remove();
+        return;
+      }
       processingRedirect = false;
       toggleLoader(false);
       // SECURITY/UX: Even on a session-check error the user is NOT authenticated,
@@ -3121,6 +3137,16 @@ function initSupabaseAuth() {
         window.history.replaceState(null, null, window.location.pathname);
       }
       if (!data || !data.session) {
+        // If we have cached credentials, keep the offline session active!
+        if (hasCachedUser) {
+          logAuthDebug('No active network session from getSession, but cached user exists -> keeping offline session active.');
+          hideAuthOverlay();
+          const earlyStyle = document.getElementById('early-auth-style');
+          if (earlyStyle) earlyStyle.remove();
+          const earlyHideStyle = document.getElementById('early-auth-hide-style');
+          if (earlyHideStyle) earlyHideStyle.remove();
+          return;
+        }
         // Only show login forms if onAuthStateChange hasn't already logged us in
         if (!state.currentUser && !state.guestMode) {
           showAuthOverlay();
@@ -3138,6 +3164,16 @@ function initSupabaseAuth() {
   }).catch(err => {
     logAuthDebug(`getSession catch error: ${err.message || err}`);
     console.error('Supabase getSession catch error:', err);
+    const hasCachedUser = !!(localStorage.getItem('cached_current_user') || state.currentUser || state.guestMode);
+    if (hasCachedUser) {
+      logAuthDebug('getSession catch error ignored; maintaining offline cached session.');
+      hideAuthOverlay();
+      const earlyStyle = document.getElementById('early-auth-style');
+      if (earlyStyle) earlyStyle.remove();
+      const earlyHideStyle = document.getElementById('early-auth-hide-style');
+      if (earlyHideStyle) earlyHideStyle.remove();
+      return;
+    }
     processingRedirect = false;
     toggleLoader(false);
     // SECURITY/UX: Same as the error path above - the user is NOT authenticated,
@@ -3397,30 +3433,35 @@ function initSupabaseAuth() {
         }
       })();
     } else {
-      // OFFLINE GUARD: When the device is offline, a null-session auth event is
-      // almost always a failed token refresh (the Supabase access token expired
-      // and could not be renewed without a network), NOT a genuine sign-out.
+      // OFFLINE & PERSISTENT SESSION GUARD:
+      // When a null-session or SIGNED_OUT auth event fires without an explicit
+      // user-initiated logout (state.isLoggingOut is false) and we have a cached
+      // user, it is almost always due to an expired token or failed background
+      // network refresh while offline, NOT a genuine user logout.
       // Treating it as a logout wipes cached_current_user and locks the user out
-      // of the app until they get back online. Instead, keep the cached session
-      // alive so the app remains fully usable offline.
-      const isOfflineNow = typeof navigator !== 'undefined' && !navigator.onLine;
+      // of the app. Instead, preserve the cached session so the app remains
+      // fully usable offline.
       const cachedUserRaw = localStorage.getItem('cached_current_user');
-      if (isOfflineNow && cachedUserRaw) {
-        logAuthDebug('Offline null-session event ignored; preserving cached user.');
+      if (!state.isLoggingOut && cachedUserRaw) {
+        logAuthDebug('Null-session event ignored without explicit logout; preserving cached user offline.');
         try {
           state.currentUser = JSON.parse(cachedUserRaw);
         } catch (e) {
           state.currentUser = null;
         }
-        // SECURITY: Offline with a cached user - the app intentionally allows
-        // offline access to the cached session, so mark it confirmed.
+        // SECURITY: Preserving existing cached session for offline access
         window._authConfirmed = true;
         // Keep the app usable offline: hide the auth overlay and render cached data.
         const authOverlayEl = document.getElementById('auth-overlay');
         if (authOverlayEl) authOverlayEl.style.display = 'none';
         toggleLoader(false);
-        if (formsContainer) formsContainer.style.display = 'block';
+        const formsContainerEl = document.getElementById('auth-forms-container');
+        if (formsContainerEl) formsContainerEl.style.display = 'block';
         updateHeaderSyncIcon('offline');
+        const earlyStyle = document.getElementById('early-auth-style');
+        if (earlyStyle) earlyStyle.remove();
+        const earlyHideStyle = document.getElementById('early-auth-hide-style');
+        if (earlyHideStyle) earlyHideStyle.remove();
         window._suppressTransitions = true;
         try {
           updateUI();
@@ -11773,14 +11814,14 @@ async function inlineDeleteCustomCategory(categoryName, type) {
     return;
   }
 
-  // Also check if any transactions use this category. If yes, warn the user
-  const count = state.transactions.filter(t => t.category === categoryName).length;
+  // Also check if any transactions use this category. If yes, inform the user clearly
+  const count = (state.transactions || []).filter(t => t && t.category === categoryName).length;
   if (count > 0) {
     const warningMsg = state.lang === 'el'
-      ? `Αυτή η κατηγορία χρησιμοποιείται σε ${count} συναλλαγές. Αν τη διαγράψετε, οι συναλλαγές θα παραμείνουν αλλά η κατηγορία δεν θα υπάρχει. Θέλετε να συνεχίσετε;`
-      : `This category is used in ${count} transactions. If you delete it, the transactions will remain but the category will not exist. Do you want to continue?`;
+      ? `Αυτή η κατηγορία χρησιμοποιείται σε ${count} συναλλαγές. Οι συναλλαγές σας θα παραμείνουν αποθηκευμένες κανονικά (δεν διαγράφονται). Θέλετε να αφαιρεθεί η κατηγορία από τη λίστα επιλογών;`
+      : `This category is used in ${count} transactions. Your transactions will remain safely stored (they will not be deleted). Do you want to remove the category from the options list?`;
 
-    const warningConfirmed = await showConfirm(warningMsg, state.lang === 'el' ? 'Προειδοποίηση' : 'Warning', '⚠️');
+    const warningConfirmed = await showConfirm(warningMsg, state.lang === 'el' ? 'Επιβεβαίωση' : 'Confirmation', '📂');
     if (!warningConfirmed) {
       return;
     }
@@ -18012,48 +18053,18 @@ async function deleteSubcategoryGlobally(categoryName, subToDelete) {
     }
   }
 
-  // 2. Remove from transactions
-  const backupItems = [];
-  (state.transactions || []).forEach(t => {
-    if (t && t.category && stripLeadingEmoji(t.category).toUpperCase().trim() === cleanedCat) {
-      if (t.subcategory && t.subcategory.trim().toLowerCase() === subToDelete.trim().toLowerCase()) {
-        backupItems.push({ txId: t.id, oldSub: t.subcategory });
-        t.subcategory = '';
-      }
-    }
-  });
-
+  // NOTE: Existing transactions are preserved untouched (their category & subcategory remain intact)
   _lastSubcatDeleteBackup = {
     categoryName: categoryName,
     subcategoryName: subToDelete,
-    items: backupItems,
     timestamp: Date.now()
   };
 
-  if (backupItems.length > 0) {
-    localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
-    calculateInitialBalances();
-    updateUI();
-
-    if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
-      try {
-        const { error } = await state.supabaseClient
-          .from('transactions')
-          .update({ subcategory: '' })
-          .match({ user_id: state.currentUser.id, category: categoryName, subcategory: subToDelete });
-
-        if (error) console.warn('Supabase subcategory delete sync error:', error);
-      } catch (err) {
-        console.warn('Supabase subcategory delete sync failed:', err);
-      }
-    }
-  } else {
-    updateUI();
-  }
+  updateUI();
 
   const msg = state.lang === 'el'
-    ? `Διαγράφηκε η υποκατηγορία "${subToDelete}"`
-    : `Deleted subcategory "${subToDelete}"`;
+    ? `Διαγράφηκε η υποκατηγορία "${subToDelete}" από τις επιλογές`
+    : `Deleted subcategory "${subToDelete}" from options`;
 
   showSubcatUndoSnackbar(msg, () => {
     undoLastSubcategoryDelete();
@@ -18070,8 +18081,7 @@ async function deleteSubcategoryGlobally(categoryName, subToDelete) {
 async function undoLastSubcategoryDelete() {
   if (!_lastSubcatDeleteBackup) return;
 
-  const { categoryName, subcategoryName, items } = _lastSubcatDeleteBackup;
-  let restoredCount = 0;
+  const { categoryName, subcategoryName } = _lastSubcatDeleteBackup;
 
   // Restore in category object
   const cleanedCat = stripLeadingEmoji(categoryName).toUpperCase().trim();
@@ -18117,36 +18127,6 @@ async function undoLastSubcategoryDelete() {
     }
   }
 
-  // Restore in transactions
-  items.forEach(backup => {
-    const t = state.transactions.find(tx => tx.id === backup.txId);
-    if (t) {
-      t.subcategory = backup.oldSub;
-      restoredCount++;
-    }
-  });
-
-  if (restoredCount > 0) {
-    localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
-    calculateInitialBalances();
-    updateUI();
-  }
-
-  if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser && restoredCount > 0) {
-    try {
-      const idsToRestore = items.map(item => item.txId);
-      const { error } = await state.supabaseClient
-        .from('transactions')
-        .update({ subcategory: subcategoryName })
-        .in('id', idsToRestore)
-        .eq('user_id', state.currentUser.id);
-
-      if (error) console.warn('Supabase subcategory undo sync error:', error);
-    } catch (err) {
-      console.warn('Supabase subcategory undo sync failed:', err);
-    }
-  }
-
   _lastSubcatDeleteBackup = null;
 
   if (typeof editingCategoryName !== 'undefined' && editingCategoryName) {
@@ -18159,6 +18139,7 @@ async function undoLastSubcategoryDelete() {
     renderCategoryManagerSubcategories(categoryName);
   }
 
+  updateUI();
   showSyncToast(state.lang === 'el' ? '✓ Η διαγραφή αναιρέθηκε' : '✓ Deletion undone', 2000);
 }
 
