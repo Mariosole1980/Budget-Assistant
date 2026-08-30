@@ -108,6 +108,7 @@ const filesToMirror = [
   'index.html',
   'landing.html',
   'pricing.html',
+  'tools.html',
   'health-quiz.html',
   'security.html',
   'download.html',
