@@ -6207,7 +6207,32 @@ async function saveTransaction(transaction) {
         } catch (_) {}
       }
 
-      if (error) throw error;
+      // If RLS or foreign key error with family_id, retry saving as personal transaction (family_id = null)
+      if (error && (error.code === '42501' || error.message?.includes('violates row-level security') || error.message?.includes('violates foreign key')) && dbPayload.family_id) {
+        try {
+          const fallbackPayload = { ...dbPayload };
+          delete fallbackPayload.family_id;
+          const retryRes = await promiseTimeout(
+            state.supabaseClient
+              .from('transactions')
+              .upsert([fallbackPayload]),
+            12000
+          );
+          if (!retryRes.error) {
+            error = null;
+            transaction.family_id = null;
+          }
+        } catch (_) {}
+      }
+
+      if (error) {
+        console.error(`[CloudSave] Supabase upsert error for ${transaction.id}:`, error);
+        if (typeof showSyncToast === 'function') {
+          showSyncToast(`⚠️ Cloud Sync: ${error.message || error.code || 'Failed to save to cloud'}`, 5000);
+        }
+        throw error;
+      }
+
       dequeueSyncMutation('save', transaction.id);
 
       // Notify partner via Cloudflare Function /api/push-notify if transaction is shared
@@ -27842,7 +27867,7 @@ function handleAppForegroundSync() {
   if (state.currentUser && state.supabaseClient) {
     if (_visibilitySyncTimer) clearTimeout(_visibilitySyncTimer);
     const timeSinceLastSync = Date.now() - (state.lastSyncTime || 0);
-    if (timeSinceLastSync > 30000) {
+    if (timeSinceLastSync > 2000) {
       // ANTI-FLICKER: Wait 1.5s after resume to ensure animations are complete
       // before updating UI.
       _visibilitySyncTimer = setTimeout(async () => {
