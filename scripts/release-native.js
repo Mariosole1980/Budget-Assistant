@@ -92,6 +92,17 @@ async function main() {
             shell: true
         });
 
+        // Clean up any stale zip files in root or www/ before bundling to prevent nested zips
+        const wwwDir = path.join(rootDir, 'www');
+        fs.readdirSync(rootDir).filter(f => f.endsWith('.zip')).forEach(f => {
+            try { fs.rmSync(path.join(rootDir, f), { force: true }); } catch (e) { }
+        });
+        if (fs.existsSync(wwwDir)) {
+            fs.readdirSync(wwwDir).filter(f => f.endsWith('.zip')).forEach(f => {
+                try { fs.rmSync(path.join(wwwDir, f), { force: true }); } catch (e) { }
+            });
+        }
+
         // OTA bundle (runs while gradle builds in the background)
         const bundleCmd = `${capgoCliCmd} bundle zip com.budgetassistant.app -b "1.0.${version}" -j --no-code-check --key-v2`;
         const jsonOutput = execSync(bundleCmd, { cwd: rootDir, encoding: 'utf8' });
@@ -108,7 +119,6 @@ async function main() {
         console.log(`  [PASS] OTA bundle generated: ${filename}`);
 
         // Copy the zip into www/ (so it is served from the CDN)
-        const wwwDir = path.join(rootDir, 'www');
         const zipSrc = path.join(rootDir, filename);
         const zipDst = path.join(wwwDir, filename);
         fs.copyFileSync(zipSrc, zipDst);
