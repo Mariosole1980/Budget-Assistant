@@ -32243,6 +32243,38 @@ function persistAdvisorGeminiHistory(history) {
   scheduleAdvisorConversationSync();
 }
 
+function updateAdvisorMessageSavedState(btnId) {
+  try {
+    const convId = getActiveAdvisorConversationId();
+    if (!convId) return;
+    const list = loadAdvisorConversations();
+    const conv = list.find(c => c.id === convId);
+    if (!conv || !Array.isArray(conv.messages)) return;
+
+    let modified = false;
+    const savedText = (state.lang === 'el') ? '✅ Καταχωρήθηκε!' : '✅ Saved!';
+    const replacementBtn = `<button id="${btnId}" class="btn btn-success" disabled style="width:100%; padding: 12px; font-weight: 700; border-radius: 8px; background-color: var(--success); color: white; border: none; cursor: default; opacity: 0.9;">${savedText}</button>`;
+
+    conv.messages.forEach(msg => {
+      if (typeof msg.content === 'string' && msg.content.includes(btnId)) {
+        msg.content = msg.content.replace(
+          new RegExp(`<button[^>]*id=["']${btnId}["'][^>]*>[\\s\\S]*?<\\/button>`, 'i'),
+          replacementBtn
+        );
+        modified = true;
+      }
+    });
+
+    if (modified) {
+      conv.updatedAt = Date.now();
+      saveAdvisorConversations(list);
+      scheduleAdvisorConversationSync();
+    }
+  } catch (err) {
+    console.warn('[AdvisorChat] Failed to update message saved state:', err);
+  }
+}
+
 // ============================================================
 // AI Σύμβουλος — Cloud Sync (backup των συνομιλιών στο Supabase)
 // ============================================================
@@ -33777,32 +33809,46 @@ window.submitCoachTransaction = async function (amount, type, category, subcateg
     return;
   }
 
+  const txId = id || generateUUID();
   const transaction = {
-    id: id || generateUUID(),
-    type: type,
+    id: txId,
+    type: type || 'expense',
     amount: parsedAmount,
-    category: category,
+    category: category || '🧩ΔΙΑΦΟΡΑ ΕΞΟΔΑ',
     subcategory: subcategory || '',
     account_from: accountFrom || 'Card',
     account_to: null,
     note: note || '',
     date: dateString ? new Date(dateString).toISOString() : new Date().toISOString(),
-    user_id: state.userId
+    user_id: state.currentUser ? state.currentUser.id : null,
+    family_id: (state.activeAccountMode !== 'personal' && state.userProfile && state.userProfile.family_id) ? state.userProfile.family_id : null
   };
 
-  saveTransaction(transaction).then(() => {
+  try {
+    await saveTransaction(transaction);
     if (btn) {
+      btn.disabled = true;
       btn.innerHTML = state.lang === 'el' ? '✅ Καταχωρήθηκε!' : '✅ Saved!';
       btn.style.backgroundColor = 'var(--success)';
+      btn.style.opacity = '0.9';
+      btn.style.cursor = 'default';
     }
-  }).catch(err => {
+
+    // 1. Permanently update the stored chat message in localStorage & Supabase
+    updateAdvisorMessageSavedState(btnId);
+
+    // 2. Trigger cloud sync immediately so Web / other devices receive it in real-time
+    if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
+      syncLocalTransactionsToCloud().catch(err => console.warn('[CoachTx] Sync to cloud error:', err));
+    }
+  } catch (err) {
     console.error('Error saving transaction from coach:', err);
     if (btn) {
       btn.disabled = false;
       btn.innerHTML = state.lang === 'el' ? '❌ Αποτυχία' : '❌ Failed';
       btn.style.backgroundColor = 'var(--danger)';
     }
-  });
+  }
 };
 
 function openRecurringTemplatesModal() {
