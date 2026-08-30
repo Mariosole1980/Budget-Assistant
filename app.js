@@ -11652,7 +11652,10 @@ function openAddTransactionModal({ instant = false } = {}) {
   if (repInstBtn) {
     repInstBtn.style.display = 'flex';
     resetRepInstButton();
-    repInstBtn.onclick = () => openRecurringModal();
+    repInstBtn.onclick = (e) => {
+      if (e && e.stopPropagation) e.stopPropagation();
+      openRecurringModal(e);
+    };
   }
 
   if (typeof clearRecurringSettings === 'function') {
@@ -11763,14 +11766,16 @@ function openEditTransactionModal(t, { instant = false } = {}) {
       else if (preset === 'specific_months') presetLabel = isEl ? 'Μήνες' : 'Months';
       else presetLabel = isEl ? 'Custom' : 'Custom';
       repInstBtn.innerHTML = `<i class="fa-solid fa-arrows-rotate"></i> ${isEl ? 'Επαναλαμβανόμενη' : 'Recurring'} (${presetLabel})`;
-      repInstBtn.onclick = () => {
-        openRecurringModal();
+      repInstBtn.onclick = (e) => {
+        if (e && e.stopPropagation) e.stopPropagation();
+        openRecurringModal(e);
       };
     } else {
       clearRecurringSettings(false);
       resetRepInstButton();
-      repInstBtn.onclick = () => {
-        openRecurringModal();
+      repInstBtn.onclick = (e) => {
+        if (e && e.stopPropagation) e.stopPropagation();
+        openRecurringModal(e);
       };
     }
   }
@@ -31316,7 +31321,8 @@ function showFhsTab(tabName) {
 // ============================================================
 let _customSelectedEndYear = null;
 
-function openRecurringModal() {
+function openRecurringModal(e) {
+  if (e && e.stopPropagation) e.stopPropagation();
   const monthsGrid = document.getElementById('recurring-specific-months-grid');
   if (!monthsGrid) return;
 

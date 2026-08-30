@@ -9097,6 +9097,29 @@ mark.guide-highlight {
   z-index: 10500 !important;
 }
 
+/* Pickers and sub-modals that open over transaction modal */
+#category-picker-modal,
+#account-picker-modal,
+#subcategory-picker-modal,
+#recurring-picker-modal,
+#category-manager-modal,
+#category-editor-modal,
+#budget-picker-modal {
+  z-index: 12000 !important;
+}
+
+#subcategory-picker-modal {
+  z-index: 12500 !important;
+}
+
+#category-manager-modal {
+  z-index: 12600 !important;
+}
+
+#category-editor-modal {
+  z-index: 12800 !important;
+}
+
 #transaction-modal,
 #transaction-modal .modal-overlay,
 .modal-overlay#transaction-modal {
