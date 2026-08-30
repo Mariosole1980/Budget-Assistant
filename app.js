@@ -599,27 +599,34 @@ function mapTransactionToDb(t) {
   const userId = t.user_id || (state.currentUser ? state.currentUser.id : null);
   const familyId = t.family_id || (state.userProfile ? state.userProfile.family_id : null);
 
-  const { description, is_shared, photo_local_uri, photo_url, receipt, fx_snapshot, ...clean } = t;
-
   const dbTx = {
-    ...clean,
     id,
     user_id: userId,
-    date: t.date ? String(t.date).slice(0, 19).replace(' ', 'T') : new Date().toISOString().slice(0, 10),
-    type: t.type || 'expense',
+    date: t.date ? String(t.date).slice(0, 19).replace(' ', 'T').slice(0, 10) : new Date().toISOString().slice(0, 10),
+    type: (t.type === 'income' || t.type === 'transfer') ? t.type : 'expense',
     amount: parseFloat(t.amount) || 0,
     category: t.category || '',
     subcategory: t.subcategory || '',
     account_from: t.account_from || '',
     account_to: t.type === 'transfer' ? (t.account_to || null) : null,
     note: t.note || '',
-    status: t.status || 'active'
+    status: t.status === 'deleted' ? 'deleted' : 'active'
   };
 
   if (familyId) dbTx.family_id = familyId;
   if (t.recurring_template_id && uuidRegex.test(String(t.recurring_template_id))) {
     dbTx.recurring_template_id = t.recurring_template_id;
   }
+  if (t.currency) dbTx.currency = t.currency;
+  if (t.base_currency) dbTx.base_currency = t.base_currency;
+  if (t.rate_to_base !== undefined && t.rate_to_base !== null) dbTx.rate_to_base = t.rate_to_base;
+  if (t.amount_base !== undefined && t.amount_base !== null) dbTx.amount_base = t.amount_base;
+  if (t.rate_source) dbTx.rate_source = t.rate_source;
+  if (t.rate_to_base_actual !== undefined && t.rate_to_base_actual !== null) dbTx.rate_to_base_actual = t.rate_to_base_actual;
+  if (t.rate_fetched_at) dbTx.rate_fetched_at = t.rate_fetched_at;
+  if (t.transfer_id && uuidRegex.test(String(t.transfer_id))) dbTx.transfer_id = t.transfer_id;
+  if (t.transfer_rate !== undefined && t.transfer_rate !== null) dbTx.transfer_rate = t.transfer_rate;
+
   if (t.created_at) dbTx.created_at = t.created_at;
   if (t.updated_at) dbTx.updated_at = t.updated_at;
   if (t.deleted_at) dbTx.deleted_at = t.deleted_at;
@@ -4566,26 +4573,40 @@ function getPendingLocalTransactions(cachedTransactions) {
 async function autoSyncMissingTransactionsToCloud(cloudTransactions, userId) {
   if (!state.supabaseClient || !userId) return [];
   const cloudIds = new Set((cloudTransactions || []).map(t => String(t.id)));
-  const localTxs = Array.isArray(state.transactions) ? state.transactions : [];
-  let cachedTxs = [];
-  try {
-    cachedTxs = JSON.parse(localStorage.getItem('offline_transactions') || '[]') || [];
-  } catch (e) {
-    cachedTxs = [];
-  }
-  const combinedLocal = [...localTxs, ...cachedTxs];
 
+  // Collect deleted IDs from trash and sync queue so we NEVER resurrect deleted items
+  const excludedIds = new Set();
+  try {
+    const trash = JSON.parse(localStorage.getItem('trash_transactions') || '[]') || [];
+    trash.forEach(it => { if (it && it.id) excludedIds.add(String(it.id)); });
+  } catch (e) {}
+  try {
+    const queue = JSON.parse(localStorage.getItem('money_manager_sync_queue') || '[]') || [];
+    queue.forEach(item => {
+      if (item && item.action === 'delete' && item.payload) {
+        excludedIds.add(String(item.payload));
+      }
+    });
+  } catch (e) {}
+  if (typeof _recentlyDeletedTxIds !== 'undefined' && _recentlyDeletedTxIds) {
+    _recentlyDeletedTxIds.forEach(id => excludedIds.add(String(id)));
+  }
+
+  // Only consider active transactions currently in state.transactions
+  const localTxs = Array.isArray(state.transactions) ? state.transactions : [];
   const missingInCloud = [];
   const seenMissingIds = new Set();
-  combinedLocal.forEach(t => {
+  localTxs.forEach(t => {
     if (t && t.id && !cloudIds.has(String(t.id)) && !seenMissingIds.has(String(t.id)) && !t.is_demo && !String(t.id).startsWith('demo_')) {
-      seenMissingIds.add(String(t.id));
-      missingInCloud.push(t);
+      if (t.status !== 'deleted' && !excludedIds.has(String(t.id))) {
+        seenMissingIds.add(String(t.id));
+        missingInCloud.push(t);
+      }
     }
   });
 
   if (missingInCloud.length > 0) {
-    console.info(`[AutoSync] Found ${missingInCloud.length} local transactions missing from cloud. Uploading now...`);
+    console.info(`[AutoSync] Uploading ${missingInCloud.length} active local transactions to cloud...`);
     const dbPayloads = missingInCloud.map(mapTransactionToDb).filter(Boolean);
     for (let i = 0; i < dbPayloads.length; i += 50) {
       const batch = dbPayloads.slice(i, i + 50);
@@ -4595,10 +4616,12 @@ async function autoSyncMissingTransactionsToCloud(cloudTransactions, userId) {
           30000
         );
         if (error) {
-          console.warn('[AutoSync] Cloud batch upload warning:', error);
+          console.error('[AutoSync] Cloud batch upload failed:', error);
+        } else {
+          console.info(`[AutoSync] Successfully uploaded batch of ${batch.length} transactions.`);
         }
       } catch (err) {
-        console.warn('[AutoSync] Cloud batch upload exception:', err);
+        console.error('[AutoSync] Cloud batch upload exception:', err);
       }
     }
     return missingInCloud;
