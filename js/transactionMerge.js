@@ -32,8 +32,13 @@
     'use strict';
 
     /**
-     * Build the set of transaction IDs that must be excluded from the merge
-     * because they are being deleted (in-flight, recently deleted, or queued).
+     * Build the set of transaction IDs that are being deleted RIGHT NOW and must
+     * be excluded from the merge regardless of source (cloud or local).
+     *
+     * This is the "in-flight / recent / queued" deletion set. It deliberately
+     * EXCLUDES the durable tombstone/trash set (permanentlyDeletedTxIds) so that
+     * a stale local tombstone can never hide a transaction that the cloud still
+     * reports as active. The cloud is the source of truth for what is active.
      *
      * @param {object} deps
      * @param {Set|Array} [deps.deletingTxIds]   IDs actively being deleted right now
@@ -41,7 +46,7 @@
      * @param {Array} [deps.syncQueue]           pending sync-queue mutations
      * @returns {Set<string>}
      */
-    function collectDeletedIds(deps) {
+    function collectActiveDeletionIds(deps) {
         const deletedIds = new Set();
         const add = (id) => {
             if (id !== null && id !== undefined && id !== '') {
@@ -62,10 +67,28 @@
                 }
             });
         }
+        return deletedIds;
+    }
+
+    /**
+     * Build the FULL set of transaction IDs that must never be re-introduced into
+     * local state, including the durable tombstone/trash set. This is used for
+     * LOCAL-ONLY transactions (not present in the cloud) so a permanently-deleted
+     * local transaction can never be re-uploaded or resurrected.
+     *
+     * @param {object} deps
+     * @returns {Set<string>}
+     */
+    function collectDeletedIds(deps) {
+        const deletedIds = collectActiveDeletionIds(deps);
         // DATA-INTEGRITY FIX: exclude permanently-deleted / trashed IDs so the
         // merge can never reintroduce a transaction the user permanently deleted.
         if (deps && deps.permanentlyDeletedTxIds) {
-            deps.permanentlyDeletedTxIds.forEach(add);
+            deps.permanentlyDeletedTxIds.forEach((id) => {
+                if (id !== null && id !== undefined && id !== '') {
+                    deletedIds.add(String(id));
+                }
+            });
         }
         return deletedIds;
     }
@@ -77,27 +100,40 @@
      * Two records with DIFFERENT ids are always both kept, even if their visible
      * contents are identical. This is the correct, data-preserving behaviour.
      *
+     * CLOUD-AUTHORITY PRINCIPLE: A transaction that the cloud reports as active
+     * (status='active') is the source of truth and is NEVER dropped because of a
+     * stale local tombstone/trash entry. It is only excluded while it is being
+     * deleted right now (in-flight, within the recent grace window, or with a
+     * pending delete in the sync queue). Local-only transactions (not present in
+     * the cloud) are still excluded by the full deleted set (including durable
+     * tombstones) so a permanently-deleted local transaction can never resurrect.
+     *
      * @param {Array} cloudTransactions
      * @param {Array} localPendingTransactions
      * @param {object} [deps]
      * @param {Set|Array} [deps.deletingTxIds]
      * @param {Set|Array} [deps.recentlyDeletedTxIds]
      * @param {Array} [deps.syncQueue]
+     * @param {Set|Array} [deps.permanentlyDeletedTxIds]
      * @returns {Array}
      */
     function mergeAndDeduplicateTransactions(cloudTransactions, localPendingTransactions, deps) {
-        const deletedIds = collectDeletedIds(deps || {});
+        const activeDeletionIds = collectActiveDeletionIds(deps || {});
+        const fullDeletedIds = collectDeletedIds(deps || {});
 
         const idMap = {};
 
+        // Cloud transactions: only excluded while being deleted right now.
         (cloudTransactions || []).forEach((t) => {
-            if (t && t.id && !deletedIds.has(String(t.id))) {
+            if (t && t.id && !activeDeletionIds.has(String(t.id))) {
                 idMap[t.id] = t;
             }
         });
 
+        // Local pending transactions: excluded by the full deleted set so a
+        // permanently-deleted local transaction can never be re-introduced.
         (localPendingTransactions || []).forEach((t) => {
-            if (t && t.id && !deletedIds.has(String(t.id))) {
+            if (t && t.id && !fullDeletedIds.has(String(t.id))) {
                 idMap[t.id] = t;
             }
         });
@@ -156,6 +192,7 @@
 
     return {
         collectDeletedIds: collectDeletedIds,
+        collectActiveDeletionIds: collectActiveDeletionIds,
         mergeAndDeduplicateTransactions: mergeAndDeduplicateTransactions,
         getPendingLocalTransactions: getPendingLocalTransactions,
     };

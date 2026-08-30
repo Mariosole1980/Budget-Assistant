@@ -197,7 +197,8 @@ eval([
     'processSyncQueue',
     'handleRealtimeTransactionChange',
     'syncLocalTransactionsToCloud',
-    'autoRestoreMistakenlyDeletedManualTransactions'
+    'autoRestoreMistakenlyDeletedManualTransactions',
+    'applyIncrementalTransactions'
 ].map(extractFn).join('\n'));
 
 // Load the real merge implementation from js/transactionMerge.js. It uses a UMD
@@ -314,13 +315,17 @@ test('B2: purgePermanentlyDeletedTxIds removes ID from state, offline cache, syn
     assert.ok(cloud.tombstones.some(t => t.table === 'transactions' && t.ids.includes('p1')), 'cloud tombstone written');
 });
 
-test('B3: mergeAndDeduplicateTransactions excludes permanently-deleted IDs from both cloud and local pending', () => {
+test('B3: mergeAndDeduplicateTransactions keeps cloud-active perm-deleted ID but excludes local-only copy (cloud authority)', () => {
     seedLocalStorage({ perm: ['perm-1'] });
     const cloudRows = [makeTx('perm-1'), makeTx('cloud-active')];
     const localPending = [makeTx('perm-1'), makeTx('local-active')];
     const merged = mergeAndDeduplicateTransactions(cloudRows, localPending);
     const ids = merged.map(t => String(t.id));
-    assert.ok(!ids.includes('perm-1'), 'perm-1 excluded from merge');
+    // CLOUD-AUTHORITY: the cloud reports perm-1 as active, so it is the source
+    // of truth and must NOT be hidden by a stale local tombstone. The local
+    // pending copy is deduplicated by id (cloud wins), so perm-1 appears once.
+    assert.ok(ids.includes('perm-1'), 'cloud-active perm-1 kept (cloud authority)');
+    assert.strictEqual(ids.filter(id => id === 'perm-1').length, 1, 'perm-1 appears exactly once (dedup by id)');
     assert.ok(ids.includes('cloud-active'), 'cloud-active kept');
     assert.ok(ids.includes('local-active'), 'local-active kept');
 });
@@ -453,14 +458,16 @@ test('D: Android and Web converge on the same transaction set (dedup by id)', ()
 // ===========================================================================
 // TEST E: permanently-deleted on Android can't appear on Web.
 // ===========================================================================
-test('E: permanently-deleted on Android is excluded from Web merge + realtime', () => {
+test('E: cloud-active perm-deleted ID is kept in Web merge (cloud authority) but skipped in realtime', () => {
     seedLocalStorage({ perm: ['perm-8'] });
-    // Web pulls cloud rows that (incorrectly) still contain the perm-deleted tx.
+    // CLOUD-AUTHORITY: the cloud reports perm-8 as active, so the web merge must
+    // keep it (a stale local tombstone must not hide a cloud-active transaction).
     const webMerged = mergeAndDeduplicateTransactions([makeTx('perm-8'), makeTx('ok-1')], []);
-    assert.ok(!webMerged.some(t => String(t.id) === 'perm-8'), 'perm-8 excluded from web merge');
+    assert.ok(webMerged.some(t => String(t.id) === 'perm-8'), 'cloud-active perm-8 kept in web merge (cloud authority)');
     assert.ok(webMerged.some(t => String(t.id) === 'ok-1'), 'ok-1 kept');
 
-    // Web realtime INSERT of the perm-deleted tx is skipped.
+    // Web realtime INSERT of the perm-deleted tx is still skipped (realtime
+    // filtering is independent of the merge and remains a defense-in-depth).
     state.transactions = [];
     state.currentUser = { id: 'user-1' };
     _suppressRealtimeEvents = false;
@@ -473,14 +480,15 @@ test('E: permanently-deleted on Android is excluded from Web merge + realtime', 
 // ===========================================================================
 // TEST F: permanently-deleted on Web can't appear on Android.
 // ===========================================================================
-test('F: permanently-deleted on Web is excluded from Android merge + realtime', () => {
+test('F: cloud-active perm-deleted ID is kept in Android merge (cloud authority) but skipped in realtime', () => {
     seedLocalStorage({ perm: ['perm-9'] });
-    // Android pulls cloud rows that (incorrectly) still contain the perm-deleted tx.
+    // CLOUD-AUTHORITY: the cloud reports perm-9 as active, so the Android merge
+    // must keep it (a stale local tombstone must not hide a cloud-active tx).
     const androidMerged = mergeAndDeduplicateTransactions([makeTx('perm-9'), makeTx('ok-2')], []);
-    assert.ok(!androidMerged.some(t => String(t.id) === 'perm-9'), 'perm-9 excluded from android merge');
+    assert.ok(androidMerged.some(t => String(t.id) === 'perm-9'), 'cloud-active perm-9 kept in android merge (cloud authority)');
     assert.ok(androidMerged.some(t => String(t.id) === 'ok-2'), 'ok-2 kept');
 
-    // Android realtime INSERT of the perm-deleted tx is skipped.
+    // Android realtime INSERT of the perm-deleted tx is still skipped.
     state.transactions = [];
     state.currentUser = { id: 'user-1' };
     _suppressRealtimeEvents = false;
@@ -488,4 +496,55 @@ test('F: permanently-deleted on Web is excluded from Android merge + realtime', 
     _realtimeDebounceTimer = null;
     handleRealtimeTransactionChange({ eventType: 'INSERT', new: makeTx('perm-9') });
     assert.ok(!state.transactions.some(t => String(t.id) === 'perm-9'), 'perm-9 not added via android realtime');
+});
+
+// ===========================================================================
+// TEST G: applyIncrementalTransactions must NOT resurrect a deleted tx.
+//
+// Regression for the latent bug where the incremental sync path re-added a
+// soft-deleted transaction (e.g. an offline delete whose cloud update failed)
+// back into local state, resurrecting it in the app while the web still showed
+// it. The fix mirrors the full-sync merge exclusion via
+// collectPermanentlyDeletedTxIds().
+// ===========================================================================
+test('G1: applyIncrementalTransactions does NOT re-add a permanently-deleted transaction', () => {
+    seedLocalStorage({
+        trash: [{ id: 'perm-10', status: 'deleted' }],
+        offline: [makeTx('perm-10', { status: 'deleted' })],
+        perm: ['perm-10']
+    });
+    // Local state currently excludes the deleted tx (as the app does after a
+    // local delete). The incremental fetch returns it as an active row because
+    // the soft-delete never reached the cloud.
+    state.transactions = [makeTx('keep-1')];
+    state.currentUser = { id: 'user-1' };
+
+    applyIncrementalTransactions([makeTx('perm-10'), makeTx('keep-1')], []);
+
+    const ids = state.transactions.map(t => String(t.id));
+    assert.ok(!ids.includes('perm-10'), 'perm-10 must NOT be resurrected by incremental sync');
+    assert.ok(ids.includes('keep-1'), 'keep-1 stays in state');
+});
+
+test('G2: applyIncrementalTransactions applies tombstones (deletes) for transactions', () => {
+    seedLocalStorage({});
+    state.transactions = [makeTx('tomb-1'), makeTx('keep-2')];
+    state.currentUser = { id: 'user-1' };
+
+    applyIncrementalTransactions([], [{ table_name: 'transactions', row_id: 'tomb-1' }]);
+
+    const ids = state.transactions.map(t => String(t.id));
+    assert.ok(!ids.includes('tomb-1'), 'tomb-1 removed via tombstone');
+    assert.ok(ids.includes('keep-2'), 'keep-2 stays in state');
+});
+
+test('G3: applyIncrementalTransactions still adds legitimate active transactions', () => {
+    seedLocalStorage({});
+    state.transactions = [];
+    state.currentUser = { id: 'user-1' };
+
+    applyIncrementalTransactions([makeTx('new-active-1')], []);
+
+    const ids = state.transactions.map(t => String(t.id));
+    assert.ok(ids.includes('new-active-1'), 'legitimate active tx added by incremental sync');
 });

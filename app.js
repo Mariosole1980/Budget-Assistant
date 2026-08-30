@@ -4638,6 +4638,116 @@ function collectPermanentlyDeletedTxIds() {
 }
 
 // ---------------------------------------------------------------------------
+// DATA-INTEGRITY SELF-HEALING: reconcileStaleTombstones
+//
+// The cloud is the source of truth for what is ACTIVE. If a transaction is
+// reported active by the cloud (status='active') but a stale local tombstone /
+// trash entry claims it was permanently deleted, that tombstone is WRONG and
+// must be cleaned up. Otherwise the stale tombstone would hide the transaction
+// from the UI (the bug that caused "dozens of transactions disappeared from
+// web after refresh").
+//
+// We NEVER clean a tombstone for a transaction that is being deleted RIGHT NOW:
+//   * in-flight (_deletingTxIds)
+//   * within the recent grace window (_recentlyDeletedTxIds / recently_deleted_tx_ids)
+//   * with a pending 'delete' / 'permanent_delete_tx' mutation in the sync queue
+//
+// Those are legitimate in-progress deletions and must keep their tombstones so
+// the cloud soft-delete can propagate. Only STALE tombstones (where the cloud
+// still reports the row active and no deletion is in flight) are removed.
+//
+// @param {Array<{id:string}>} cloudActiveTransactions  transactions the cloud
+//        reports as active (status='active')
+// @returns {number} number of stale tombstone entries cleaned
+// ---------------------------------------------------------------------------
+function reconcileStaleTombstones(cloudActiveTransactions) {
+  if (!cloudActiveTransactions || !Array.isArray(cloudActiveTransactions) || cloudActiveTransactions.length === 0) {
+    return 0;
+  }
+
+  // IDs the cloud reports as active.
+  const cloudActiveIds = new Set(cloudActiveTransactions.map(t => (t && t.id) ? String(t.id) : null).filter(Boolean));
+
+  // IDs that are legitimately being deleted right now (must keep tombstones).
+  const inFlightDeletionIds = new Set();
+  const addInFlight = (id) => { if (id !== null && id !== undefined && id !== '') inFlightDeletionIds.add(String(id)); };
+  if (typeof _deletingTxIds !== 'undefined' && _deletingTxIds) _deletingTxIds.forEach(addInFlight);
+  if (typeof _recentlyDeletedTxIds !== 'undefined' && _recentlyDeletedTxIds) _recentlyDeletedTxIds.forEach(addInFlight);
+  try {
+    const stored = JSON.parse(localStorage.getItem(_RECENTLY_DELETED_LS_KEY) || '{}');
+    Object.keys(stored).forEach(addInFlight);
+  } catch (_) { }
+  try {
+    const queue = JSON.parse(localStorage.getItem('money_manager_sync_queue') || '[]') || [];
+    queue.forEach(item => {
+      if (item && (item.action === 'delete' || item.action === 'permanent_delete_tx') && item.payload) {
+        addInFlight(item.payload);
+      }
+    });
+  } catch (_) { }
+
+  // A tombstone ID is stale if the cloud reports it active AND it is not being
+  // deleted right now.
+  const staleIds = new Set();
+  cloudActiveIds.forEach(id => {
+    if (!inFlightDeletionIds.has(id)) staleIds.add(id);
+  });
+
+  if (staleIds.size === 0) return 0;
+
+  let cleaned = 0;
+
+  // 1. Clean the durable permanent-delete tombstone list.
+  try {
+    const perm = JSON.parse(localStorage.getItem(_PERMANENT_DELETED_LS_KEY) || '[]') || [];
+    const before = perm.length;
+    const cleanedPerm = perm.filter(id => !(id && staleIds.has(String(id))));
+    if (cleanedPerm.length !== before) {
+      localStorage.setItem(_PERMANENT_DELETED_LS_KEY, JSON.stringify(cleanedPerm));
+      cleaned += (before - cleanedPerm.length);
+    }
+  } catch (e) { console.warn('[DataIntegrity] reconcileStaleTombstones: failed to clean permanent_deleted_tx_ids:', e); }
+
+  // 2. Clean the trash bin (deleted_transactions_trash).
+  try {
+    const trash = JSON.parse(localStorage.getItem('deleted_transactions_trash') || '[]') || [];
+    const before = trash.length;
+    const cleanedTrash = trash.filter(it => !(it && it.id && staleIds.has(String(it.id))));
+    if (cleanedTrash.length !== before) {
+      localStorage.setItem('deleted_transactions_trash', JSON.stringify(cleanedTrash));
+      cleaned += (before - cleanedTrash.length);
+    }
+  } catch (e) { console.warn('[DataIntegrity] reconcileStaleTombstones: failed to clean deleted_transactions_trash:', e); }
+
+  // 3. Clean the legacy trash key (trash_transactions) if present.
+  try {
+    const legacyTrash = JSON.parse(localStorage.getItem('trash_transactions') || '[]') || [];
+    const before = legacyTrash.length;
+    const cleanedLegacy = legacyTrash.filter(it => !(it && it.id && staleIds.has(String(it.id))));
+    if (cleanedLegacy.length !== before) {
+      localStorage.setItem('trash_transactions', JSON.stringify(cleanedLegacy));
+      cleaned += (before - cleanedLegacy.length);
+    }
+  } catch (e) { }
+
+  // 4. Clean status='deleted' entries from the offline cache.
+  try {
+    const cache = JSON.parse(localStorage.getItem('offline_transactions') || '[]') || [];
+    const before = cache.length;
+    const cleanedCache = cache.filter(t => !(t && t.status === 'deleted' && t.id && staleIds.has(String(t.id))));
+    if (cleanedCache.length !== before) {
+      localStorage.setItem('offline_transactions', JSON.stringify(cleanedCache));
+      cleaned += (before - cleanedCache.length);
+    }
+  } catch (e) { console.warn('[DataIntegrity] reconcileStaleTombstones: failed to clean offline_transactions:', e); }
+
+  if (cleaned > 0) {
+    console.info(`[DataIntegrity] reconcileStaleTombstones: cleaned ${cleaned} stale tombstone/trash entries for cloud-active transactions.`);
+  }
+  return cleaned;
+}
+
+// ---------------------------------------------------------------------------
 // DATA-INTEGRITY HELPER: purge permanently-deleted transaction IDs from every
 // local cache and queue so they can never be re-uploaded or re-introduced.
 //
@@ -4873,6 +4983,16 @@ async function loadData() {
         } else {
           hasMore = false;
         }
+      }
+
+      // DATA-INTEGRITY SELF-HEALING: The cloud is the source of truth for what is
+      // active. Clean any stale local tombstone/trash entries that claim a
+      // cloud-active transaction was permanently deleted (this is what caused
+      // "dozens of transactions disappeared from web after refresh").
+      try {
+        reconcileStaleTombstones(allTransactions);
+      } catch (reconcileErr) {
+        console.warn('[DataIntegrity] reconcileStaleTombstones failed in loadData:', reconcileErr);
       }
 
       let categories = catsRes.data || [];
@@ -27034,8 +27154,26 @@ function applyIncrementalTransactions(newRows, tombstones) {
   const current = Array.isArray(state.transactions) ? state.transactions : [];
   const byId = new Map(current.map(t => [String(t.id), t]));
 
-  // Upsert changed/new rows.
+  // DATA-INTEGRITY FIX (resurrection prevention): Never re-add a transaction that
+  // the user has deleted (trash, queued delete, offline cache with status='deleted',
+  // or permanent-delete tombstone). The incremental fetch only pulls rows with
+  // status='active', so a soft-delete that never reached the cloud (e.g. an offline
+  // delete whose cloud update failed) would otherwise be re-introduced into local
+  // state here, resurrecting it in the app while the web still shows it. This mirrors
+  // the same exclusion the full-sync merge path already applies via
+  // mergeAndDeduplicateTransactions -> collectDeletedIds.
+  let permanentlyDeletedSet = null;
+  try {
+    permanentlyDeletedSet = new Set(Array.from(collectPermanentlyDeletedTxIds()).map(String));
+  } catch (err) {
+    console.warn('[IncrementalSync] Failed to collect permanently deleted IDs in applyIncrementalTransactions:', err);
+  }
+
+  // Upsert changed/new rows, skipping any that are locally deleted.
   (newRows || []).forEach(t => {
+    if (t && t.id && permanentlyDeletedSet && permanentlyDeletedSet.has(String(t.id))) {
+      return;
+    }
     byId.set(String(t.id), t);
   });
 
@@ -27279,6 +27417,15 @@ async function forceSyncNow(silent = false) {
         }
         saveSyncCursors(nextCursors);
         markFullSyncDone();
+      }
+
+      // DATA-INTEGRITY SELF-HEALING: The cloud is the source of truth for what is
+      // active. Clean any stale local tombstone/trash entries that claim a
+      // cloud-active transaction was permanently deleted.
+      try {
+        reconcileStaleTombstones(allTransactions);
+      } catch (reconcileErr) {
+        console.warn('[DataIntegrity] reconcileStaleTombstones failed in forceSyncNow:', reconcileErr);
       }
 
       // Auto-rescue & sync any local transactions missing in the cloud
