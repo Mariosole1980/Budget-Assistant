@@ -13,6 +13,24 @@
 /index.html
   Cache-Control: no-cache, no-store, must-revalidate
 
+/landing.html
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/pricing.html
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/security.html
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/tools.html
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/download.html
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/health-quiz.html
+  Cache-Control: no-cache, no-store, must-revalidate
+
 /
   Cache-Control: no-cache, no-store, must-revalidate
 
