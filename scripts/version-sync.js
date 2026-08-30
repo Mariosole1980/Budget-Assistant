@@ -146,6 +146,12 @@ dirsToMirror.forEach(dir => {
   }
 });
 
+// Exclude developer-only Play Store marketing screenshots and promo graphics from production web assets
+const wwwPlaystoreDir = path.join(wwwDir, 'assets', 'playstore');
+if (fs.existsSync(wwwPlaystoreDir)) {
+  fs.rmSync(wwwPlaystoreDir, { recursive: true, force: true });
+}
+
 console.log('  [OK] Mirrored all root assets cleanly to www/');
 
 // 7. Automated Version Backup: backups/v<version>/
