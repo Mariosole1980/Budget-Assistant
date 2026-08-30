@@ -5859,7 +5859,7 @@
                       if (newWorker.state === 'installed') {
                         newWorker.postMessage({ type: 'SKIP_WAITING' });
                       }
-                      if (newWorker.state === 'activated') {
+                      if (newWorker.state === 'activated' && !window._initialDataLoaded) {
                         window.location.href = window.location.href.split('?')[0] + '?_sw=' + Date.now();
                       }
                     });
@@ -5877,15 +5877,15 @@
 
             // Listen for NEW_VERSION_AVAILABLE from service worker
             navigator.serviceWorker.addEventListener('message', function (event) {
-              if (event.data && event.data.type === 'NEW_VERSION_AVAILABLE') {
+              if (event.data && event.data.type === 'NEW_VERSION_AVAILABLE' && !window._initialDataLoaded) {
                 window.location.href = window.location.href.split('?')[0] + '?_new=' + Date.now();
               }
             });
 
-            // Hard reload when new SW takes control
+            // Hard reload when new SW takes control only on cold boot
             var refreshing = false;
             navigator.serviceWorker.addEventListener('controllerchange', function () {
-              if (!refreshing) {
+              if (!refreshing && !window._initialDataLoaded) {
                 refreshing = true;
                 window.location.href = window.location.href.split('?')[0] + '?_ctrl=' + Date.now();
               }

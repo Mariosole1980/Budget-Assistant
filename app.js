@@ -3263,7 +3263,9 @@ function initSupabaseAuth() {
         window._authConfirmed = true;
         localStorage.setItem('cached_current_user', JSON.stringify(data.session.user));
         hideAuthOverlay();
-        loadData().catch(console.error);
+        if (!window._initialDataLoaded) {
+          loadData().then(() => { window._initialDataLoaded = true; }).catch(console.error);
+        }
       }
     }
   }).catch(err => {
@@ -3334,7 +3336,26 @@ function initSupabaseAuth() {
         if (cachedRawUser) previousUserId = JSON.parse(cachedRawUser).id;
       } catch (e) { }
 
+      // ANTI-FLICKER: If this user is ALREADY active with data loaded in memory,
+      // subsequent SIGNED_IN / INITIAL_SESSION events (e.g. from tab resume/focus)
+      // are keep-alives and must NOT re-trigger the entire cold-boot login sequence
+      // or re-run loadData(), which would momentarily wipe and rebuild the DOM.
+      const isSameUserAlreadyLoaded = !!(
+        window._initialDataLoaded &&
+        previousUserId &&
+        previousUserId === session.user.id &&
+        state.currentUser &&
+        state.currentUser.id === session.user.id
+      );
+
+      if (isSameUserAlreadyLoaded) {
+        logAuthDebug(`${event}: session re-affirmed for active user, skipping full reload.`);
+        loadUserProfiles(session.user);
+        return;
+      }
+
       if (previousUserId && previousUserId !== session.user.id) {
+        window._initialDataLoaded = false;
         // User account changed! Clean previous user's local caches & trash
         state.trashTransactions = [];
         // IMPORTANT: Reset in-memory user/partner/family state immediately so a
@@ -5229,6 +5250,7 @@ async function loadData() {
       calculateInitialBalances();
       pushNoTransition();
       updateUI();
+      window._initialDataLoaded = true;
       setTimeout(() => {
         popNoTransition();
       }, 1000);
@@ -23938,6 +23960,7 @@ async function handleLogout() {
 
   try {
     state.isLoggingOut = true;
+    window._initialDataLoaded = false;
     try {
       await state.supabaseClient.auth.signOut();
     } catch (signOutErr) {
