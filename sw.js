@@ -118,9 +118,13 @@ self.addEventListener('fetch', (e) => {
         // Only use cache fallback for navigation (not for clear.html)
         if (path.endsWith('/clear.html')) return new Response('', { status: 503 });
         if (e.request.mode === 'navigate' || path === '/' || path === '' || path.endsWith('/index.html')) {
-          return caches.match('index.html');
+          return caches.match('index.html').then(function (indexResponse) {
+            return indexResponse || new Response('Offline', { status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
+          });
         }
-        return caches.match(e.request, { ignoreSearch: true });
+        return caches.match(e.request, { ignoreSearch: true }).then(function (cachedResponse) {
+          return cachedResponse || new Response('Offline', { status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
+        });
       })
     );
     return;
@@ -137,9 +141,17 @@ self.addEventListener('fetch', (e) => {
     }).catch(() => {
       return caches.match(e.request, { ignoreSearch: true }).then((cachedResponse) => {
         if (cachedResponse) return cachedResponse;
+        // Navigation: fall back to the cached app shell. If even that is
+        // missing, return a real Response so respondWith() never receives
+        // undefined (which throws a TypeError in the browser).
         if (e.request.mode === 'navigate' || path === '/' || path === '' || path.endsWith('/index.html')) {
-          return caches.match('index.html');
+          return caches.match('index.html').then(function (indexResponse) {
+            return indexResponse || new Response('Offline', { status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
+          });
         }
+        // Non-navigation asset with no cached copy: return a real 503 Response
+        // instead of undefined.
+        return new Response('Offline', { status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
       });
     })
   );

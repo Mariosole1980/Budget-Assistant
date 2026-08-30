@@ -5788,10 +5788,18 @@
                   return response.json();
                 })
                 .then(function (data) {
-                  if (data && data.version && data.version > CURRENT_BUILD) {
-                    console.log('[AutoUpdate] Server v' + data.version + ' > Local v' + CURRENT_BUILD + '. Forcing update...');
-                    // Mark that we are reloading for this build to prevent loops
-                    localStorage.setItem('_ba_last_reload_build', data.version.toString());
+                  // The deployed version.json is the Capgo OTA manifest where
+                  // `version` is a STRING like "1.0.1615". Comparing it directly
+                  // against the numeric CURRENT_BUILD ("1.0.1615" > 1615) is ALWAYS
+                  // false, so the web forced-reload update never fired. Normalize
+                  // it to the numeric build number before comparing.
+                  var serverBuild = (data && data.version) ? parseInt(String(data.version).split('.').pop(), 10) : 0;
+                  if (serverBuild && serverBuild > CURRENT_BUILD) {
+                    console.log('[AutoUpdate] Server v' + serverBuild + ' > Local v' + CURRENT_BUILD + '. Forcing update...');
+                    // Store the NUMERIC build so the loop guard below
+                    // (parseInt(lastReloaded) === CURRENT_BUILD) matches on the
+                    // next cold boot after the forced reload.
+                    localStorage.setItem('_ba_last_reload_build', String(serverBuild));
                     // Clear ALL caches then unregister SW then hard reload
                     var clearAndReload = function () {
                       if ('caches' in window) {

@@ -957,6 +957,15 @@ function getWeekdayName(index) {
   return state.lang === 'en' ? ENGLISH_WEEKDAYS_SHORT[index] : GREEK_WEEKDAYS_SHORT[index];
 }
 
+// Normalize a version value to its numeric build number so comparisons and
+// labels work with BOTH the plain numeric format (1615) and the Capgo OTA
+// format ("1.0.1615" -> 1615). Returns -1 when the value is not a version.
+function parseBuildNumber(v) {
+  if (v == null) return -1;
+  var n = parseInt(String(v).split('.').pop(), 10);
+  return isNaN(n) ? -1 : n;
+}
+
 // Returns the active build label for the version display.
 // Reads window.OTA_ACTIVE_VERSION (set by the boot loader after OTA load),
 // falling back to the bundled CURRENT_BUILD constant from index.html.
@@ -964,7 +973,8 @@ function getActiveBuildLabel() {
   var active = (typeof window.OTA_ACTIVE_VERSION !== 'undefined' && window.OTA_ACTIVE_VERSION != null)
     ? window.OTA_ACTIVE_VERSION : null;
   var bundled = (typeof CURRENT_BUILD !== 'undefined') ? CURRENT_BUILD : null;
-  var build = (active != null && parseInt(active, 10) > 0) ? active : bundled;
+  var activeBuild = parseBuildNumber(active);
+  var build = (activeBuild > 0) ? activeBuild : bundled;
   var label = (typeof TRANSLATIONS !== 'undefined' && TRANSLATIONS[state.lang])
     ? TRANSLATIONS[state.lang]['app_version'] : null;
   if (label && build != null) {
@@ -1106,7 +1116,7 @@ function updateOTADiagnostic() {
   var active = (typeof window.OTA_ACTIVE_VERSION !== 'undefined' && window.OTA_ACTIVE_VERSION != null)
     ? window.OTA_ACTIVE_VERSION : 'none';
   var bundled = (typeof CURRENT_BUILD !== 'undefined') ? CURRENT_BUILD : '?';
-  var source = (active !== 'none' && parseInt(active, 10) > parseInt(bundled, 10))
+  var source = (active !== 'none' && parseBuildNumber(active) > parseBuildNumber(bundled))
     ? 'OTA (IndexedDB)'
     : 'Bundled (APK)';
   if (activeEl) activeEl.textContent = 'v' + active;
