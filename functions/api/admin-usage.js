@@ -4,6 +4,8 @@ export async function onRequestOptions(context) {
   const { request } = context;
   const origin = request.headers.get('Origin');
   const allowedOrigins = [
+    'https://www.budgetassistant.org',
+    'https://budgetassistant.org',
     'https://budget-assistant-pwa.pages.dev',
     'capacitor://localhost',
     'http://localhost',

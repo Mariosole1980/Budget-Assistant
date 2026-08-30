@@ -14,6 +14,8 @@
 //   infrastructure. It is intentionally simple and self-contained.
 
 const ALLOWED_ORIGINS = [
+    'https://www.budgetassistant.org',
+    'https://budgetassistant.org',
     'https://budget-assistant-pwa.pages.dev',
     'capacitor://localhost',
     'http://localhost',
@@ -35,7 +37,7 @@ function getClientIp(request) {
 
 function isAllowedOrigin(origin) {
     if (!origin) return true;
-    return ALLOWED_ORIGINS.includes(origin) || origin.endsWith('.pages.dev') || origin.includes('localhost');
+    return ALLOWED_ORIGINS.includes(origin) || origin.endsWith('.pages.dev') || origin.includes('localhost') || origin.includes('budgetassistant.org');
 }
 
 function checkRateLimit(ip) {

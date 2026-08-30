@@ -14303,48 +14303,86 @@ async function openAdminDashboard() {
   await refreshAdminDashboard();
 }
 
+async function getValidSessionToken() {
+  let token = null;
+
+  // 1. Check in-memory session
+  if (state.session && state.session.access_token) {
+    token = state.session.access_token;
+  }
+
+  // 2. Query Supabase client getSession
+  if (!token && state.supabaseClient?.auth?.getSession) {
+    try {
+      const sessRes = await state.supabaseClient.auth.getSession();
+      if (sessRes?.data?.session?.access_token) {
+        token = sessRes.data.session.access_token;
+        state.session = sessRes.data.session;
+      }
+    } catch (_) {}
+  }
+
+  // 3. Direct localStorage scan for persisted Supabase tokens (Capacitor/WebView persistence)
+  let rawStoredSession = null;
+  if (!token) {
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && ((k.startsWith('sb-') && k.endsWith('-auth-token')) || k === 'supabase.auth.token')) {
+          const val = localStorage.getItem(k);
+          if (val) {
+            const parsed = JSON.parse(val);
+            rawStoredSession = parsed.currentSession || parsed;
+            if (rawStoredSession && rawStoredSession.access_token) {
+              token = rawStoredSession.access_token;
+              state.session = rawStoredSession;
+              break;
+            }
+          }
+        }
+      }
+    } catch (_) {}
+  }
+
+  // 4. If refresh token is available, attempt a session refresh / setSession to guarantee client is warm
+  if (state.supabaseClient?.auth) {
+    const refreshToken = state.session?.refresh_token || rawStoredSession?.refresh_token;
+    if (refreshToken) {
+      if (typeof state.supabaseClient.auth.refreshSession === 'function') {
+        try {
+          const refRes = await state.supabaseClient.auth.refreshSession({ refresh_token: refreshToken });
+          if (refRes?.data?.session?.access_token) {
+            token = refRes.data.session.access_token;
+            state.session = refRes.data.session;
+          }
+        } catch (_) {}
+      }
+      if (!token && typeof state.supabaseClient.auth.setSession === 'function') {
+        try {
+          const setRes = await state.supabaseClient.auth.setSession({
+            access_token: token || state.session?.access_token || '',
+            refresh_token: refreshToken
+          });
+          if (setRes?.data?.session?.access_token) {
+            token = setRes.data.session.access_token;
+            state.session = setRes.data.session;
+          }
+        } catch (_) {}
+      }
+    }
+  }
+
+  return token;
+}
+
 async function refreshAdminDashboard() {
   const container = document.getElementById('admin-dashboard-content');
   if (!container) return;
   const lang = state.lang || 'el';
   container.innerHTML = `<div style="text-align:center; padding:24px 0; color:var(--text-muted); font-size:13px;"><i class="fa-solid fa-spinner fa-spin" style="font-size:22px;"></i><div style="margin-top:10px;">${lang === 'el' ? 'Φόρτωση στοιχείων…' : 'Loading data…'}</div></div>`;
 
-  let token = null;
-  try {
-    if (state.session && state.session.access_token) {
-      token = state.session.access_token;
-    } else if (state.supabaseClient) {
-      // Prefer the synchronous session() accessor when available (supabase-js v2),
-      // then fall back to the async getSession().
-      if (typeof state.supabaseClient.auth?.session === 'function') {
-        const syncSession = state.supabaseClient.auth.session();
-        if (syncSession && syncSession.access_token) token = syncSession.access_token;
-      }
-      if (!token && typeof state.supabaseClient.auth?.getSession === 'function') {
-        const sessRes = await state.supabaseClient.auth.getSession();
-        if (sessRes && sessRes.data && sessRes.data.session && sessRes.data.session.access_token) {
-          token = sessRes.data.session.access_token;
-        }
-      }
-      // Last resort: the user is logged in (state.currentUser present) but no
-      // access token was resolved — try to refresh the session once before
-      // giving up. This fixes the "already logged in but dashboard asks to sign
-      // in" state (e.g. after a silent token expiry / expired cached session).
-      if (!token && state.currentUser && typeof state.supabaseClient.auth?.refreshSession === 'function') {
-        try {
-          const refreshRes = await state.supabaseClient.auth.refreshSession();
-          if (refreshRes && refreshRes.data && refreshRes.data.session && refreshRes.data.session.access_token) {
-            token = refreshRes.data.session.access_token;
-            state.session = refreshRes.data.session;
-          }
-        } catch (refreshErr) {
-          console.warn('Admin dashboard: session refresh failed', refreshErr);
-        }
-      }
-    }
-  } catch (err) {
-    console.warn('Admin dashboard: could not resolve session token', err);
-  }
+  let token = await getValidSessionToken();
+
   if (!token) {
     container.innerHTML = adminErrorBox(
       state.currentUser
@@ -14355,7 +14393,26 @@ async function refreshAdminDashboard() {
   }
 
   try {
-    const res = await fetch(getBackendApiUrl('/api/admin-usage'), { method: 'POST', headers: { 'Authorization': 'Bearer ' + token } });
+    let res = await fetch(getBackendApiUrl('/api/admin-usage'), {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+
+    // If 401 Unauthorized (token expired on server), attempt auto-refresh and retry
+    if (res.status === 401 && state.supabaseClient?.auth?.refreshSession) {
+      try {
+        const refRes = await state.supabaseClient.auth.refreshSession();
+        if (refRes?.data?.session?.access_token) {
+          token = refRes.data.session.access_token;
+          state.session = refRes.data.session;
+          res = await fetch(getBackendApiUrl('/api/admin-usage'), {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + token }
+          });
+        }
+      } catch (_) {}
+    }
+
     if (res.status === 403) {
       container.innerHTML = adminErrorBox(lang === 'el' ? '⛔ Δεν έχετε πρόσβαση (όχι διαχειριστής).' : '⛔ Access denied (not an administrator).');
       return;
