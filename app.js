@@ -4563,6 +4563,50 @@ function getPendingLocalTransactions(cachedTransactions) {
   return window.TransactionMerge.getPendingLocalTransactions(cachedTransactions, deps);
 }
 
+async function autoSyncMissingTransactionsToCloud(cloudTransactions, userId) {
+  if (!state.supabaseClient || !userId) return [];
+  const cloudIds = new Set((cloudTransactions || []).map(t => String(t.id)));
+  const localTxs = Array.isArray(state.transactions) ? state.transactions : [];
+  let cachedTxs = [];
+  try {
+    cachedTxs = JSON.parse(localStorage.getItem('offline_transactions') || '[]') || [];
+  } catch (e) {
+    cachedTxs = [];
+  }
+  const combinedLocal = [...localTxs, ...cachedTxs];
+
+  const missingInCloud = [];
+  const seenMissingIds = new Set();
+  combinedLocal.forEach(t => {
+    if (t && t.id && !cloudIds.has(String(t.id)) && !seenMissingIds.has(String(t.id)) && !t.is_demo && !String(t.id).startsWith('demo_')) {
+      seenMissingIds.add(String(t.id));
+      missingInCloud.push(t);
+    }
+  });
+
+  if (missingInCloud.length > 0) {
+    console.info(`[AutoSync] Found ${missingInCloud.length} local transactions missing from cloud. Uploading now...`);
+    const dbPayloads = missingInCloud.map(mapTransactionToDb).filter(Boolean);
+    for (let i = 0; i < dbPayloads.length; i += 50) {
+      const batch = dbPayloads.slice(i, i + 50);
+      try {
+        const { error } = await promiseTimeout(
+          state.supabaseClient.from('transactions').upsert(batch, { onConflict: 'id' }),
+          30000
+        );
+        if (error) {
+          console.warn('[AutoSync] Cloud batch upload warning:', error);
+        }
+      } catch (err) {
+        console.warn('[AutoSync] Cloud batch upload exception:', err);
+      }
+    }
+    return missingInCloud;
+  }
+  return [];
+}
+window.autoSyncMissingTransactionsToCloud = autoSyncMissingTransactionsToCloud;
+
 // ============================================================
 // DATA LOADING
 // ============================================================
@@ -4799,21 +4843,20 @@ async function loadData() {
       }
       */
 
+      // Auto-rescue & sync any local transactions missing in the cloud
+      const missingSynced = await autoSyncMissingTransactionsToCloud(allTransactions, userId);
+      if (missingSynced && missingSynced.length > 0) {
+        allTransactions = [...allTransactions, ...missingSynced];
+      }
+
       // Deduplicate merged transactions (ID-based only — content-based dedup was
       // removed because it destroyed legitimate identical transactions).
-      //
-      // DATA-PRESERVATION (refresh flicker fix): the cloud fetch above can be temporarily
-      // BEHIND (read-replica lag, slow device, pagination inconsistency), so it may miss
-      // transactions that ARE safely stored in the local cache. Preserve those cached
-      // transactions in the merge (the FRESH cloud version always wins when a transaction
-      // is present in both — only cache-missing ones are added) instead of dropping them,
-      // which made transactions "vanish for a while on refresh" until a later sync re-added
-      // them. Genuinely soft-deleted rows are still removed by the realtime handler.
       const cachedForMerge = cacheBelongsToCurrentUser
         ? (JSON.parse(localStorage.getItem('offline_transactions') || '[]') || [])
         : [];
+      const updatedCloudIds = new Set(allTransactions.map(t => String(t.id)));
       const cachedMissingFromCloud = cachedForMerge.filter(t =>
-        !(t && t.id && cloudIds.has(String(t.id)))
+        !(t && t.id && updatedCloudIds.has(String(t.id)))
       );
       const mergedTransactions = mergeAndDeduplicateTransactions(allTransactions, [...pendingLocal, ...cachedMissingFromCloud]);
       mergedTransactions.sort(compareTransactions);
@@ -27156,11 +27199,20 @@ async function forceSyncNow(silent = false) {
         markFullSyncDone();
       }
 
+      // Auto-rescue & sync any local transactions missing in the cloud
+      const missingSynced = await autoSyncMissingTransactionsToCloud(allTransactions, userId);
+      if (missingSynced && missingSynced.length > 0) {
+        allTransactions = [...allTransactions, ...missingSynced];
+      }
+
       // 4. Keep local pending transactions
       const localPending = getPendingLocalTransactions(state.transactions);
 
       // 5. Update state
-      const dedupedCombined = mergeAndDeduplicateTransactions(allTransactions, localPending);
+      const cachedForMerge = (JSON.parse(localStorage.getItem('offline_transactions') || '[]') || []);
+      const updatedCloudIds = new Set(allTransactions.map(t => String(t.id)));
+      const cachedMissingFromCloud = cachedForMerge.filter(t => !(t && t.id && updatedCloudIds.has(String(t.id))));
+      const dedupedCombined = mergeAndDeduplicateTransactions(allTransactions, [...localPending, ...cachedMissingFromCloud]);
       dedupedCombined.sort(compareTransactions);
 
       // Snapshot IDs that existed BEFORE the sync to detect truly new entries
