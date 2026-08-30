@@ -38,3 +38,11 @@ if (fs.existsSync(billingPluginPath)) {
   fs.writeFileSync(billingPluginPath, code, 'utf8');
   console.log('  [PASS] Patched capacitor-billing for Google Play Billing Library 8.0.0');
 }
+
+const billingGradlePath = path.resolve(__dirname, '..', 'node_modules', 'capacitor-billing', 'android', 'build.gradle');
+if (fs.existsSync(billingGradlePath)) {
+  let gradle = fs.readFileSync(billingGradlePath, 'utf8');
+  gradle = gradle.replace(/com\.android\.billingclient:billing:[\d\.]+/g, 'com.android.billingclient:billing:8.0.0');
+  fs.writeFileSync(billingGradlePath, gradle, 'utf8');
+  console.log('  [PASS] Patched capacitor-billing android/build.gradle to billing:8.0.0');
+}
