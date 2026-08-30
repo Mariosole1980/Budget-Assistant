@@ -636,7 +636,51 @@ function mergeAndDeduplicateTemplates(cloudTemplates = [], localTemplates = []) 
     templateMap.delete(delId);
   });
 
-  return Array.from(templateMap.values());
+  // 5. Deduplicate by content (note/title + amount + type + category + preset)
+  const normStr = (s) => (typeof normalizeGreekString === 'function') ? normalizeGreekString(s || '') : String(s || '').toLowerCase().trim();
+  const rawList = Array.from(templateMap.values());
+  const deduped = [];
+  const removedDuplicateTemplateIds = new Set();
+
+  rawList.forEach(t => {
+    if (!t) return;
+    const tNote = normStr(t.note || t.description || t.title || '');
+    const tAmount = (parseFloat(t.amount) || 0).toFixed(2);
+    const tType = t.type;
+    const tCat = t.category;
+    const tPreset = t.preset || 'custom';
+
+    const matchIdx = deduped.findIndex(other => {
+      if (!other) return false;
+      if (String(t.id) === String(other.id)) return true;
+      const oNote = normStr(other.note || other.description || other.title || '');
+      const oAmount = (parseFloat(other.amount) || 0).toFixed(2);
+      const oType = other.type;
+      const oCat = other.category;
+      const oPreset = other.preset || 'custom';
+
+      const sameNote = (tNote.length > 0 && oNote.length > 0) ? (tNote === oNote) : (tNote.length === 0 && oNote.length === 0);
+      const sameAmount = tAmount === oAmount;
+      const sameType = tType === oType;
+      const sameCat = (typeof isSameCategory === 'function') ? isSameCategory(tCat, oCat) : (tCat === oCat);
+      const samePreset = tPreset === oPreset;
+
+      return sameNote && sameAmount && sameType && sameCat && samePreset;
+    });
+
+    if (matchIdx === -1) {
+      deduped.push(t);
+    } else {
+      if (t.id) removedDuplicateTemplateIds.add(String(t.id));
+    }
+  });
+
+  // If duplicate templates were removed, purge synthetic occurrences belonging to the duplicate IDs
+  if (removedDuplicateTemplateIds.size > 0 && typeof state !== 'undefined' && Array.isArray(state.transactions)) {
+    state.transactions = state.transactions.filter(tx => !removedDuplicateTemplateIds.has(String(tx.recurring_template_id)));
+  }
+
+  return deduped;
 }
 window.mergeAndDeduplicateTemplates = mergeAndDeduplicateTemplates;
 
@@ -5087,23 +5131,45 @@ window.generateDeterministicUUID = generateDeterministicUUID;
 function cleanDuplicateTemplates() {
   if (!state.recurringTemplates || state.recurringTemplates.length < 2) return;
 
-  // Exact ID deduplication in memory only (safe safeguard against array duplicate insertions)
-  const seenIds = new Set();
-  const dedupedById = [];
+  const deduped = [];
+  const removedIds = new Set();
+
   for (const t of state.recurringTemplates) {
-    if (!t || !t.id) {
-      dedupedById.push(t);
-      continue;
-    }
-    const idStr = String(t.id);
-    if (!seenIds.has(idStr)) {
-      seenIds.add(idStr);
-      dedupedById.push(t);
+    if (!t) continue;
+    const tNote = normalizeGreekString(t.note || t.description || t.title || '');
+    const tAmount = (parseFloat(t.amount) || 0).toFixed(2);
+    const tType = t.type;
+    const tCat = t.category;
+    const tPreset = t.preset || 'custom';
+
+    const isDup = deduped.some(other => {
+      if (String(t.id) === String(other.id)) return true;
+      const oNote = normalizeGreekString(other.note || other.description || other.title || '');
+      const oAmount = (parseFloat(other.amount) || 0).toFixed(2);
+      const oType = other.type;
+      const oCat = other.category;
+      const oPreset = other.preset || 'custom';
+
+      const sameNote = (tNote.length > 0 && oNote.length > 0) ? (tNote === oNote) : (tNote.length === 0 && oNote.length === 0);
+      const sameAmount = tAmount === oAmount;
+      const sameType = tType === oType;
+      const sameCat = (typeof isSameCategory === 'function') ? isSameCategory(tCat, oCat) : (tCat === oCat);
+      const samePreset = tPreset === oPreset;
+
+      return sameNote && sameAmount && sameType && sameCat && samePreset;
+    });
+
+    if (!isDup) {
+      deduped.push(t);
     } else {
-      console.info('[TemplateAudit] Duplicate template ID in array collapsed:', idStr);
+      if (t.id) removedIds.add(String(t.id));
     }
   }
-  state.recurringTemplates = dedupedById;
+
+  state.recurringTemplates = deduped;
+  if (removedIds.size > 0 && Array.isArray(state.transactions)) {
+    state.transactions = state.transactions.filter(tx => !removedIds.has(String(tx.recurring_template_id)));
+  }
 }
 window.cleanDuplicateTemplates = cleanDuplicateTemplates;
 
@@ -5139,6 +5205,7 @@ function cleanCrossLanguageRecurringDuplicates() {
       const t1Type = t1.type;
       const t1Note = normalizeGreekString(t1.note || t1.description || '');
       const isRecurringPrefix1 = String(t1.id || '').startsWith('recurring_');
+      const isRecurring1 = !!(t1.recurring_template_id || isRecurringPrefix1);
 
       for (let j = i + 1; j < dayTxs.length; j++) {
         const t2 = dayTxs[j];
@@ -5147,19 +5214,19 @@ function cleanCrossLanguageRecurringDuplicates() {
         const t2Type = t2.type;
         const t2Note = normalizeGreekString(t2.note || t2.description || '');
         const isRecurringPrefix2 = String(t2.id || '').startsWith('recurring_');
+        const isRecurring2 = !!(t2.recurring_template_id || isRecurringPrefix2);
 
-        // CRITICAL DATA INTEGRITY: Only evaluate duplicate candidates if AT LEAST ONE
-        // transaction is provably generated from a recurring template or has a legacy recurring prefix.
+        // CRITICAL DATA INTEGRITY: Only evaluate duplicate candidates if BOTH
+        // transactions are provably generated from a recurring template or has a legacy recurring prefix.
         // NEVER EVER deduplicate or delete regular/manual user transactions!
-        const hasRecurringOrigin = !!(t1.recurring_template_id || t2.recurring_template_id || isRecurringPrefix1 || isRecurringPrefix2);
-        if (!hasRecurringOrigin) continue;
+        if (!isRecurring1 || !isRecurring2) continue;
 
         if (t1Amount === t2Amount && t1Type === t2Type) {
           const sameTemplate = t1.recurring_template_id && t2.recurring_template_id && (String(t1.recurring_template_id) === String(t2.recurring_template_id));
           const exactNoteMatch = (t1Note.length > 0 && t1Note === t2Note);
           const legacyPrefixMatch = (isRecurringPrefix1 || isRecurringPrefix2) && (t1Note.length === 0 || t2Note.length === 0 || t1Note === t2Note);
 
-          const isGenuineDuplicate = sameTemplate || (legacyPrefixMatch && exactNoteMatch);
+          const isGenuineDuplicate = sameTemplate || exactNoteMatch || legacyPrefixMatch;
 
           if (isGenuineDuplicate) {
             let duplicate = null;
@@ -5167,7 +5234,7 @@ function cleanCrossLanguageRecurringDuplicates() {
               duplicate = t1;
             } else if (isRecurringPrefix2 && !isRecurringPrefix1) {
               duplicate = t2;
-            } else if (t1.recurring_template_id && t2.recurring_template_id) {
+            } else {
               const isT1Newer = (t1.created_at && t2.created_at)
                 ? (new Date(t1.created_at) > new Date(t2.created_at))
                 : true;
@@ -5647,8 +5714,8 @@ function processRecurringTemplates() {
     }
   });
 
+  cleanCrossLanguageRecurringDuplicates();
   if (transactionsUpdated) {
-    cleanCrossLanguageRecurringDuplicates();
     calculateInitialBalances();
   }
 }
