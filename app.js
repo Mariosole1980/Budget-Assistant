@@ -26447,11 +26447,54 @@ async function processSyncQueue(options = {}) {
             throw error;
           }
           console.warn(`Skipping invalid sync queue item:`, error);
+          
+          const isFkFamily = error.message && error.message.includes('transactions_family_id_fkey');
+          if (isFkFamily && state.currentUser) {
+            // Auto-heal: The user's cached family_id is stale (e.g. they left or recreated a family on another device).
+            // We fetch their fresh profile, update the transaction to match their real current status, and keep it in the queue to retry.
+            console.log('[Auto-Heal] Refreshing profile to fix stale family_id constraint...');
+            if (typeof loadUserProfiles === 'function') {
+              await loadUserProfiles(state.currentUser);
+            }
+            // Update the transaction in local memory to use the correct family_id (or null if they have no family anymore)
+            const freshFamilyId = state.userProfile ? state.userProfile.family_id : null;
+            transaction.family_id = freshFamilyId;
+            transaction.is_shared = !!freshFamilyId;
+            item.payload = transaction;
+            
+            // Apply it to the local cache too so the UI updates
+            const localIndex = state.transactions.findIndex(t => t.id === transaction.id);
+            if (localIndex !== -1) {
+              state.transactions[localIndex].family_id = freshFamilyId;
+              state.transactions[localIndex].is_shared = !!freshFamilyId;
+              localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
+              if (typeof flushUI === 'function') flushUI();
+            }
+            
+            // Push back to remaining to retry on the next sync cycle
+            remaining.push(item);
+            continue;
+          }
+
           // Drop permanent schema / type errors (e.g. invalid UUID 22P02) so they don't block the queue forever
           const isPermanent = error.code === '22P02' ||
             (error.message && (error.message.includes('uuid') || error.message.includes('syntax') || error.message.includes('violates foreign key')));
+          
           if (!isPermanent) {
             remaining.push(item);
+          } else {
+            // It is an unrecoverable permanent error. Drop it from the queue AND remove the "ghost" from the UI.
+            console.error('[Sync] Dropping unrecoverable transaction from queue AND local cache:', transaction.id);
+            if (typeof deleteTransactionOffline === 'function') {
+              deleteTransactionOffline(transaction.id, true);
+              if (typeof flushUI === 'function') flushUI();
+            }
+            if (typeof showSyncToast === 'function') {
+              const msg = state.lang === 'el' 
+                ? '❌ Σφάλμα: Μία συναλλαγή διαγράφηκε λόγω μη έγκυρων δεδομένων.' 
+                : '❌ Sync failed: A transaction was deleted due to invalid data.';
+              showSyncToast(msg, 5000);
+            }
           }
           continue;
         }
