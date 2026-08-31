@@ -1024,6 +1024,25 @@
             </div>
             <div style="height:1px;background:var(--border);margin:0 16px;"></div>
 
+            <!-- Accounts row -->
+            <div class="settings-list-item" id="hub-row-accounts" onclick="openSettingsAccountManager()"
+              style="cursor: pointer; padding: 14px 16px;">
+              <div style="display:flex; align-items:center; gap:12px; flex:1;">
+                <div
+                  style="width:36px;height:36px;border-radius:10px;background:rgba(59,130,246,0.15);display:flex;align-items:center;justify-content:center;">
+                  <i class="fa-solid fa-wallet" style="color:#3b82f6;font-size:16px;"></i>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;">
+                  <span class="settings-item-label" data-i18n="settings_accounts_option"
+                    style="font-weight:700; font-family:'Outfit',sans-serif; font-size:15px; color:var(--text-primary);">���������� �����������</span>
+                  <span style="font-size:12px;color:var(--text-secondary);"
+                    data-i18n="settings_accounts_desc">��������, ������, ������� &amp; ����������</span>
+                </div>
+              </div>
+              <i class="fa-solid fa-chevron-right" style="color:var(--text-muted);font-size:12px;"></i>
+            </div>
+            <div style="height:1px;background:var(--border);margin:0 16px;"></div>
+
             <!-- Categories row -->
             <div class="settings-list-item" id="hub-row-categories" onclick="openSettingsCategoryManager()"
               style="cursor: pointer; padding: 14px 16px;">
@@ -4817,6 +4836,151 @@
               style="padding: 11px 18px; font-size: 13px; border-radius: 8px;" data-i18n="btn_cancel">Άκυρο</button>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- MODAL: ACCOUNT MANAGER MODAL -->
+    <div id="account-manager-modal" class="modal-overlay" style="z-index: 12600;">
+      <div class="modal-content subscreen-card-standard"
+        style="max-width: 580px; width: 94%; max-height: 85vh; padding: 0; border-radius: 18px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.4);">
+        <!-- Card Header Band (Blue #3b82f6) -->
+        <div
+          style="padding: 14px 18px; background: rgba(59, 130, 246, 0.08); border-bottom: 1px solid rgba(59, 130, 246, 0.25); display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1;">
+            <button type="button" class="icon-btn" onclick="closeModal('account-manager-modal')"
+              style="flex-shrink: 0;"><i class="fa-solid fa-arrow-left"></i></button>
+            <div
+              style="width: 34px; height: 34px; border-radius: 10px; background: #3b82f6; color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; flex-shrink: 0; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35);">
+              <i class="fa-solid fa-wallet"></i>
+            </div>
+            <div style="min-width: 0; flex: 1;">
+              <div data-i18n="accounts_title"
+                style="font-size: 15px; font-weight: 800; color: var(--text-primary); font-family: 'Outfit', sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                ���������� �����������</div>
+              <div data-i18n="accounts_subtitle"
+                style="font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                ��������, ������, ������� &amp; ����������</div>
+            </div>
+          </div>
+          <button type="button" onclick="closeModal('account-manager-modal')"
+            style="background: var(--overlay-060); border: 1px solid var(--border); color: var(--text-muted); width: 32px; height: 32px; border-radius: 8px; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-left: 8px;"
+            title="��������">?</button>
+        </div>
+        <div class="modal-body"
+          style="padding: 16px 18px 24px 18px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 16px;">
+          <!-- Top summary / Add button bar -->
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 13px; color: var(--text-muted); font-weight: 500; font-family:'Outfit',sans-serif;"
+              id="acc-mgr-count-label">�������...</span>
+            <button type="button" class="btn btn-primary" id="acc-mgr-add-btn"
+              style="padding: 8px 14px; font-size: 13px; font-weight: 600; border-radius: 10px; display: flex; align-items: center; gap: 6px; background: #3b82f6;"
+              onclick="openAccountEditorModal()">
+              <i class="fa-solid fa-plus"></i> <span data-i18n="accounts_add_account">���� �����������</span>
+            </button>
+          </div>
+
+          <!-- Accounts List -->
+          <div id="account-manager-list" style="display: flex; flex-direction: column; gap: 10px;">
+            <!-- Accounts injected here by JS -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: ACCOUNT EDITOR MODAL -->
+    <div id="account-editor-modal" class="modal-overlay" style="z-index: 12800;">
+      <div class="modal-content"
+        style="max-width: 480px; width: 94%; max-height: 88vh; display: flex; flex-direction: column; padding: 0; border-radius: 18px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+        <!-- Modal Header -->
+        <div
+          style="padding: 14px 18px; background: rgba(59, 130, 246, 0.08); border-bottom: 1px solid rgba(59, 130, 246, 0.25); display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div
+              style="width: 32px; height: 32px; border-radius: 8px; background: #3b82f6; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 15px;">
+              <i class="fa-solid fa-wallet"></i>
+            </div>
+            <h3 class="modal-title" id="acc-editor-title"
+              style="font-size: 15px; font-weight: 800; color: var(--text-primary); margin: 0;"
+              data-i18n="accounts_add_account">���� �����������</h3>
+          </div>
+          <button type="button" class="modal-close" onclick="closeModal('account-editor-modal')"
+            style="background: var(--overlay-060); border: 1px solid var(--border); color: var(--text-muted); width: 30px; height: 30px; border-radius: 8px; font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center;"
+            title="��������">?</button>
+        </div>
+
+        <!-- Modal Body -->
+        <form id="account-editor-form" onsubmit="saveAccountEditor(event)"
+          style="padding: 16px 18px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; flex: 1; margin: 0;">
+          <input type="hidden" id="acc-editor-id">
+          <input type="hidden" id="acc-editor-orig-name">
+
+          <!-- Account Name Input -->
+          <div>
+            <label style="font-size: 11px; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 6px;"
+              data-i18n="new_category_name_label">����� �����������</label>
+            <input type="text" id="acc-editor-name" class="form-input" placeholder="�.�. Eurobank, Revolut, Degiro"
+              data-i18n-placeholder="account_name_placeholder" required
+              style="font-size: 13px; padding: 10px 12px; border-radius: 8px; width: 100%; box-sizing: border-box;">
+          </div>
+
+          <!-- Account Type Selector (Cash, Bank, Card, Investment) -->
+          <div>
+            <label style="font-size: 11px; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 6px;">�����</label>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;" id="acc-editor-type-group">
+              <button type="button" class="acc-type-pill active" data-type="bank" onclick="selectAccountEditorType('bank')"
+                style="padding: 10px 8px; border-radius: 10px; border: 1px solid #3b82f6; background: rgba(59,130,246,0.15); color: var(--text-primary); font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 8px; cursor: pointer; transition: all 0.2s;">
+                <i class="fa-solid fa-building-columns" style="color: #3b82f6; font-size: 15px;"></i>
+                <span data-i18n="account_type_bank">�������</span>
+              </button>
+              <button type="button" class="acc-type-pill" data-type="card" onclick="selectAccountEditorType('card')"
+                style="padding: 10px 8px; border-radius: 10px; border: 1px solid var(--border); background: rgba(255,255,255,0.03); color: var(--text-secondary); font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 8px; cursor: pointer; transition: all 0.2s;">
+                <i class="fa-solid fa-credit-card" style="color: #f59e0b; font-size: 15px;"></i>
+                <span data-i18n="account_type_card">�����</span>
+              </button>
+              <button type="button" class="acc-type-pill" data-type="cash" onclick="selectAccountEditorType('cash')"
+                style="padding: 10px 8px; border-radius: 10px; border: 1px solid var(--border); background: rgba(255,255,255,0.03); color: var(--text-secondary); font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 8px; cursor: pointer; transition: all 0.2s;">
+                <i class="fa-solid fa-money-bill-wave" style="color: #10b981; font-size: 15px;"></i>
+                <span data-i18n="account_type_cash">�������</span>
+              </button>
+              <button type="button" class="acc-type-pill" data-type="investment" onclick="selectAccountEditorType('investment')"
+                style="padding: 10px 8px; border-radius: 10px; border: 1px solid var(--border); background: rgba(255,255,255,0.03); color: var(--text-secondary); font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 8px; cursor: pointer; transition: all 0.2s;">
+                <i class="fa-solid fa-chart-line" style="color: #8b5cf6; font-size: 15px;"></i>
+                <span data-i18n="account_type_investment">��������</span>
+              </button>
+            </div>
+            <input type="hidden" id="acc-editor-type" value="bank">
+          </div>
+
+          <!-- Currency & Initial Balance Row -->
+          <div style="display: grid; grid-template-columns: 1fr 1.2fr; gap: 10px;">
+            <div>
+              <label style="font-size: 11px; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 6px;"
+                data-i18n="account_currency">�������</label>
+              <select id="acc-editor-currency" class="form-input"
+                style="font-size: 13px; padding: 10px; border-radius: 8px; width: 100%; box-sizing: border-box;">
+                <option value="EUR">EUR (�)</option>
+                <option value="USD">USD ($)</option>
+                <option value="GBP">GBP (�)</option>
+                <option value="CHF">CHF</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size: 11px; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 6px;"
+                data-i18n="account_initial_balance">������ ��������</label>
+              <input type="number" step="0.01" id="acc-editor-balance" class="form-input" placeholder="0.00"
+                style="font-size: 13px; padding: 10px 12px; border-radius: 8px; width: 100%; box-sizing: border-box;">
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div style="display: flex; gap: 10px; margin-top: 10px;">
+            <button type="submit" class="btn btn-primary"
+              style="flex: 1; padding: 11px; font-size: 13px; font-weight: 700; border-radius: 8px; background: #3b82f6;"
+              data-i18n="btn_save">����������</button>
+            <button type="button" onclick="closeModal('account-editor-modal')" class="btn btn-secondary"
+              style="padding: 11px 18px; font-size: 13px; border-radius: 8px;" data-i18n="btn_cancel">�������</button>
+          </div>
+        </form>
       </div>
     </div>
 

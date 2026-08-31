@@ -37731,3 +37731,293 @@ setTimeout(() => {
     checkRecurringPaymentAlerts();
   }
 }, 2500);
+
+
+// ============================================================
+// ACCOUNT MANAGER & CUSTOM ACCOUNTS LOGIC
+// ============================================================
+
+function openSettingsAccountManager() {
+  renderAccountManagerList();
+  openModal('account-manager-modal');
+}
+
+function renderAccountManagerList() {
+  if (!state.accounts || state.accounts.length === 0) {
+    state.accounts = (typeof DEFAULT_ACCOUNTS !== 'undefined' ? DEFAULT_ACCOUNTS : [
+      { name: 'Cash', type: 'cash', balance: 0 },
+      { name: 'Bank Account', type: 'bank', balance: 0 },
+      { name: 'Card', type: 'card', balance: 0 }
+    ]).slice();
+  }
+
+  const container = document.getElementById('account-manager-list');
+  if (!container) return;
+
+  container.innerHTML = '';
+  const lang = state.lang || 'el';
+  const accounts = state.accounts.filter(a => a.is_active !== false);
+
+  const countLabel = document.getElementById('acc-mgr-count-label');
+  if (countLabel) {
+    countLabel.textContent = lang === 'el'
+      ? `������: ${accounts.length} �����������`
+      : `Total: ${accounts.length} accounts`;
+  }
+
+  if (accounts.length === 0) {
+    container.innerHTML = `
+      <div style="text-align: center; padding: 24px; color: var(--text-muted); font-size: 14px; font-style: italic;">
+        ${lang === 'el' ? '��� �������� �����������.' : 'No accounts found.'}
+      </div>
+    `;
+    return;
+  }
+
+  accounts.forEach(acc => {
+    const visual = getAccountVisualInfo(acc);
+    const displayName = getAccountDisplayName(acc);
+    const safeName = escapeHtml(displayName);
+    const balance = parseFloat(acc.balance) || 0;
+    const currency = acc.currency || (typeof getCurrencySymbol === 'function' ? getCurrencySymbol() : '�');
+
+    const card = document.createElement('div');
+    card.className = 'category-mgr-item';
+    card.setAttribute('data-account-name', acc.name);
+    card.style.cssText = 'background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; transition: background 0.2s;';
+
+    card.innerHTML = `
+      <div style="display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1;">
+        <i class="fa-solid fa-grip-lines drag-handle-acc" style="color: var(--text-muted); cursor: grab; padding: 4px; font-size: 14px;"></i>
+        <div style="width: 36px; height: 36px; border-radius: 10px; background: ${visual.color}22; border: 1px solid ${visual.color}44; color: ${visual.color}; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0;">
+          <i class="${visual.iconClass}"></i>
+        </div>
+        <div style="min-width: 0; flex: 1;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-weight: 700; font-size: 14px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${safeName}</span>
+            <span style="font-size: 10px; font-weight: 700; text-transform: uppercase; padding: 2px 6px; border-radius: 6px; background: ${visual.color}22; color: ${visual.color}; border: 1px solid ${visual.color}44;">${lang === 'el' ? visual.labelEl : visual.labelEn}</span>
+          </div>
+          <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+            ${(typeof formatDisplayAmount === 'function') ? formatDisplayAmount(balance, currency) : balance.toFixed(2)} ${currency}
+          </div>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+        <button type="button" class="icon-btn btn-edit-acc" style="font-size: 13px; color: var(--text-secondary); width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: none; background: transparent; cursor: pointer;" title="�����������">
+          <i class="fa-solid fa-pen"></i>
+        </button>
+        <button type="button" class="icon-btn btn-delete-acc" style="font-size: 13px; color: var(--red-negative); width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: none; background: transparent; cursor: pointer;" title="��������">
+          <i class="fa-solid fa-trash-can"></i>
+        </button>
+      </div>
+    `;
+
+    card.querySelector('.btn-edit-acc').onclick = () => openAccountEditorModal(acc);
+    card.querySelector('.btn-delete-acc').onclick = () => deleteAccountFromManager(acc);
+
+    container.appendChild(card);
+  });
+
+  if (window.Sortable) {
+    if (container._sortable) { container._sortable.destroy(); }
+    container._sortable = Sortable.create(container, {
+      animation: 150,
+      handle: '.drag-handle-acc',
+      onEnd: function () {
+        const newOrder = Array.from(container.children).map(el => el.getAttribute('data-account-name')).filter(Boolean);
+        const map = new Map(state.accounts.map(a => [a.name, a]));
+        const sorted = [];
+        newOrder.forEach(name => { if (map.has(name)) sorted.push(map.get(name)); });
+        state.accounts.forEach(a => { if (!newOrder.includes(a.name)) sorted.push(a); });
+        state.accounts = sorted;
+        localStorage.setItem('offline_accounts', JSON.stringify(state.accounts));
+      }
+    });
+  }
+}
+
+function openAccountEditorModal(acc = null) {
+  const form = document.getElementById('account-editor-form');
+  if (form) form.reset();
+
+  const titleEl = document.getElementById('acc-editor-title');
+  const idInput = document.getElementById('acc-editor-id');
+  const origNameInput = document.getElementById('acc-editor-orig-name');
+  const nameInput = document.getElementById('acc-editor-name');
+  const currencySelect = document.getElementById('acc-editor-currency');
+  const balanceInput = document.getElementById('acc-editor-balance');
+
+  if (acc) {
+    if (titleEl) titleEl.textContent = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['accounts_edit_account']) || '����������� �����������';
+    if (idInput) idInput.value = acc.id || '';
+    if (origNameInput) origNameInput.value = acc.name || '';
+    if (nameInput) nameInput.value = acc.name || '';
+    if (currencySelect) currencySelect.value = acc.currency || 'EUR';
+    if (balanceInput) balanceInput.value = acc.balance !== undefined ? acc.balance : '';
+    selectAccountEditorType(acc.type || 'bank');
+  } else {
+    if (titleEl) titleEl.textContent = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['accounts_add_account']) || '���� �����������';
+    if (idInput) idInput.value = '';
+    if (origNameInput) origNameInput.value = '';
+    if (nameInput) nameInput.value = '';
+    if (currencySelect) currencySelect.value = state.userProfile?.currency || 'EUR';
+    if (balanceInput) balanceInput.value = '';
+    selectAccountEditorType('bank');
+  }
+
+  openModal('account-editor-modal');
+}
+
+function selectAccountEditorType(type) {
+  const input = document.getElementById('acc-editor-type');
+  if (input) input.value = type;
+
+  document.querySelectorAll('#acc-editor-type-group .acc-type-pill').forEach(btn => {
+    if (btn.getAttribute('data-type') === type) {
+      btn.classList.add('active');
+      btn.style.borderColor = '#3b82f6';
+      btn.style.background = 'rgba(59,130,246,0.15)';
+      btn.style.color = 'var(--text-primary)';
+    } else {
+      btn.classList.remove('active');
+      btn.style.borderColor = 'var(--border)';
+      btn.style.background = 'rgba(255,255,255,0.03)';
+      btn.style.color = 'var(--text-secondary)';
+    }
+  });
+}
+
+async function saveAccountEditor(e) {
+  if (e) e.preventDefault();
+
+  const id = document.getElementById('acc-editor-id')?.value;
+  const origName = document.getElementById('acc-editor-orig-name')?.value;
+  const name = document.getElementById('acc-editor-name')?.value.trim();
+  const type = document.getElementById('acc-editor-type')?.value || 'bank';
+  const currency = document.getElementById('acc-editor-currency')?.value || 'EUR';
+  const balance = parseFloat(document.getElementById('acc-editor-balance')?.value) || 0;
+
+  if (!name) return;
+
+  if (!state.accounts) state.accounts = [];
+
+  let accountObj = null;
+  if (origName) {
+    accountObj = state.accounts.find(a => a.name === origName || (id && a.id === id));
+  }
+
+  const userId = state.currentUser ? state.currentUser.id : null;
+  const familyId = state.userProfile ? state.userProfile.family_id : null;
+
+  if (accountObj) {
+    // Update existing
+    const oldName = accountObj.name;
+    accountObj.name = name;
+    accountObj.type = type;
+    accountObj.currency = currency;
+    accountObj.balance = balance;
+
+    // If renamed, update transactions referencing old name
+    if (oldName !== name) {
+      (state.transactions || []).forEach(t => {
+        if (t.account_from === oldName) t.account_from = name;
+        if (t.account_to === oldName) t.account_to = name;
+      });
+    }
+
+    if (state.supabaseClient && userId) {
+      try {
+        if (accountObj.id) {
+          await state.supabaseClient.from('accounts').update({
+            name: accountObj.name,
+            type: accountObj.type,
+            currency: accountObj.currency,
+            balance: accountObj.balance
+          }).eq('id', accountObj.id);
+        }
+      } catch (err) {
+        console.warn('Failed to update account in cloud:', err);
+      }
+    }
+  } else {
+    // Create new
+    const newAcc = {
+      id: crypto.randomUUID ? crypto.randomUUID() : ('acc_' + Date.now()),
+      name,
+      type,
+      currency,
+      balance,
+      user_id: userId,
+      family_id: familyId,
+      is_active: true
+    };
+    state.accounts.push(newAcc);
+
+    if (state.supabaseClient && userId) {
+      try {
+        await state.supabaseClient.from('accounts').insert([newAcc]);
+      } catch (err) {
+        console.warn('Failed to insert account in cloud:', err);
+      }
+    }
+  }
+
+  localStorage.setItem('offline_accounts', JSON.stringify(state.accounts));
+
+  closeModal('account-editor-modal');
+  renderAccountManagerList();
+  renderAccountPickerOptions();
+  if (typeof updateAccountDropdowns === 'function') updateAccountDropdowns();
+  if (typeof updateUI === 'function') updateUI();
+
+  if (typeof showSyncToast === 'function') {
+    showSyncToast(state.lang === 'el' ? '? � ����������� ������������' : '? Account saved', 2000);
+  }
+}
+
+async function deleteAccountFromManager(acc) {
+  const name = typeof acc === 'string' ? acc : acc.name;
+  const confirmMsg = state.lang === 'el'
+    ? `����� �������� ��� ������ �� ���������� ��� ���������� "${getAccountDisplayName(name)}";`
+    : `Are you sure you want to delete account "${getAccountDisplayName(name)}"?`;
+
+  const confirmed = (typeof showConfirm === 'function')
+    ? await showConfirm(confirmMsg, state.lang === 'el' ? '�������� �����������' : 'Delete Account', '��������')
+    : confirm(confirmMsg);
+
+  if (!confirmed) return;
+
+  const targetAcc = state.accounts.find(a => a.name === name || (typeof acc === 'object' && acc.id && a.id === acc.id));
+  if (targetAcc) {
+    targetAcc.is_active = false;
+    state.accounts = state.accounts.filter(a => a !== targetAcc);
+  } else {
+    state.accounts = state.accounts.filter(a => a.name !== name);
+  }
+
+  if (state.supabaseClient && targetAcc && targetAcc.id) {
+    try {
+      await state.supabaseClient.from('accounts').delete().eq('id', targetAcc.id);
+    } catch (err) {
+      console.warn('Failed to delete account from cloud:', err);
+    }
+  }
+
+  localStorage.setItem('offline_accounts', JSON.stringify(state.accounts));
+
+  renderAccountManagerList();
+  renderAccountPickerOptions();
+  if (typeof updateAccountDropdowns === 'function') updateAccountDropdowns();
+  if (typeof updateUI === 'function') updateUI();
+
+  if (typeof showSyncToast === 'function') {
+    showSyncToast(state.lang === 'el' ? '? � ����������� ����������' : '? Account deleted', 2000);
+  }
+}
+
+window.openSettingsAccountManager = openSettingsAccountManager;
+window.renderAccountManagerList = renderAccountManagerList;
+window.openAccountEditorModal = openAccountEditorModal;
+window.selectAccountEditorType = selectAccountEditorType;
+window.saveAccountEditor = saveAccountEditor;
+window.deleteAccountFromManager = deleteAccountFromManager;
