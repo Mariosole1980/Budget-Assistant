@@ -12057,11 +12057,11 @@ function updateCategoryDisplay() {
 
   if (subcatText) {
     categoryDisplay.innerHTML = `
-      <div style="display: flex; align-items: center; gap: 6px; ${fontSizeStyle} white-space: nowrap;">
+      <div style="display: flex; align-items: center; gap: 6px; ${fontSizeStyle} min-width: 0; flex: 1;">
         <span style="font-size:14px; flex-shrink:0; display:inline-flex; align-items:center;">${iconHtml}</span>
-        <span style="font-weight:600;">${cleanName}</span>
+        <span style="font-weight:600; white-space: nowrap; flex-shrink:0;">${cleanName}</span>
         <span style="color: var(--text-muted); margin: 0 2px; flex-shrink:0;">&gt;</span>
-        <span style="font-weight:600;">${subcatText}</span>
+        <span style="font-weight:600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;">${subcatText}</span>
       </div>
     `;
   } else {
@@ -13428,13 +13428,13 @@ function selectCurrencyOption(code) {
     // currency, which requires Premium. The base currency itself is always
     // changeable via settings (that is the user's single currency).
     const baseCurrency = localStorage.getItem('app_currency') || 'EUR';
-    if (code !== baseCurrency && !isPremium()) {
+    if (code !== baseCurrency && code !== 'EUR' && code !== 'USD' && !isPremium()) {
       closeModal('currency-picker-modal');
       if (typeof openPremiumModal === 'function') openPremiumModal('currency');
       showSyncToast(
         state.lang === 'el'
-          ? 'Η χρήση πολλαπλών νομισμάτων είναι διαθέσιμη μόνο με το Premium.'
-          : 'Multi-currency is only available with Premium.',
+          ? 'Μόνο το Ευρώ (€) και το Δολάριο ($) είναι διαθέσιμα δωρεάν. Τα υπόλοιπα νομίσματα απαιτούν Premium.'
+          : 'Only Euro (€) and Dollar ($) are free. Other currencies require Premium.',
         4000
       );
       return;
@@ -30388,7 +30388,14 @@ function checkWeeklyAndMonthlyDigests(manualCheck = false) {
 
         (state.transactions || []).forEach(t => {
           if (!t.date || isTransferTransaction(t)) return;
-          const tDate = new Date(t.date);
+          const datePart = String(t.date || '').split('T')[0].split(' ')[0];
+          const parts = datePart.split('-');
+          if (parts.length !== 3) return;
+          const ty = parseInt(parts[0], 10);
+          const tm = parseInt(parts[1], 10) - 1;
+          const td = parseInt(parts[2], 10);
+          const tDate = new Date(ty, tm, td, 12, 0, 0);
+          
           const amt = CurrencyService.toBase(t);
           if (tDate >= sevenDaysAgo && tDate <= now) {
             if (t.type === 'expense') thisWeekExp += amt;
@@ -30428,8 +30435,9 @@ function checkWeeklyAndMonthlyDigests(manualCheck = false) {
       }
     }
 
-    // 2. Monthly Review Check (On day 1 of month or manual check on day 1)
-    if (monthlyEnabled && (currentDate === 1 || (manualCheck && currentDate <= 2))) {
+    // 2. Monthly Review Check (On day 1 of month or manual check)
+    const monthStartDay = parseInt(localStorage.getItem('app_month_start') || '1', 10);
+    if (monthlyEnabled && (currentDate === monthStartDay || manualCheck)) {
       const prevMonth = currentMonth === 0 ? 11 : currentMonth - 1;
       const prevYear = currentMonth === 0 ? currentYear - 1 : currentYear;
       const monthKey = `monthly_review_sent_${prevYear}_${prevMonth + 1}`;
@@ -30438,10 +30446,27 @@ function checkWeeklyAndMonthlyDigests(manualCheck = false) {
         let prevMonthExp = 0;
         let prevMonthInc = 0;
 
+        let startOfPrev, endOfPrev;
+        if (monthStartDay === 1) {
+          startOfPrev = new Date(prevYear, prevMonth, 1, 0, 0, 0);
+          endOfPrev = new Date(prevYear, prevMonth + 1, 0, 23, 59, 59);
+        } else {
+          startOfPrev = new Date(prevMonth === 0 ? prevYear - 1 : prevYear, prevMonth === 0 ? 11 : prevMonth - 1, monthStartDay, 0, 0, 0);
+          endOfPrev = new Date(prevYear, prevMonth, monthStartDay - 1, 23, 59, 59);
+        }
+
         (state.transactions || []).forEach(t => {
           if (!t.date || isTransferTransaction(t)) return;
-          const tDate = new Date(t.date);
-          if (tDate.getFullYear() === prevYear && tDate.getMonth() === prevMonth) {
+          // Robust local date parse
+          const datePart = String(t.date || '').split('T')[0].split(' ')[0];
+          const parts = datePart.split('-');
+          if (parts.length !== 3) return;
+          const ty = parseInt(parts[0], 10);
+          const tm = parseInt(parts[1], 10) - 1;
+          const td = parseInt(parts[2], 10);
+          const tDate = new Date(ty, tm, td, 12, 0, 0);
+
+          if (tDate >= startOfPrev && tDate <= endOfPrev) {
             const amt = CurrencyService.toBase(t);
             if (t.type === 'expense') prevMonthExp += amt;
             if (t.type === 'income') prevMonthInc += amt;
