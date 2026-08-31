@@ -12342,6 +12342,11 @@ window.openNewCategoryDialog = openNewCategoryDialog;
 window.closeNewCategoryDialog = closeNewCategoryDialog;
 window.openCategoryModal = openCategoryModal;
 
+function getCustomCategoryOrder(type) { try { return JSON.parse(localStorage.getItem(`custom_category_order_${type}`)) || []; } catch(e) { return []; } }
+function setCustomCategoryOrder(type, arr) { localStorage.setItem(`custom_category_order_${type}`, JSON.stringify(arr)); }
+function getCustomSubcategoryOrder(cat) { try { return JSON.parse(localStorage.getItem(`custom_subcategory_order_${cat}`)) || []; } catch(e) { return []; } }
+function setCustomSubcategoryOrder(cat, arr) { localStorage.setItem(`custom_subcategory_order_${cat}`, JSON.stringify(arr)); }
+
 let lastRenderedCategoryType = null;
 let lastRenderedCategoryEditMode = null;
 
@@ -12378,7 +12383,13 @@ function updateCategoryDropdowns(type = 'expense', force = false) {
 
   // Sort categories alphabetically based on display name in the active language
   const lang = state.lang || 'el';
+    const customOrder = getCustomCategoryOrder(type);
   visibleCategories.sort((a, b) => {
+    const idxA = customOrder.indexOf(a.name);
+    const idxB = customOrder.indexOf(b.name);
+    if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+    if (idxA !== -1) return -1;
+    if (idxB !== -1) return 1;
     const nameA = getCategoryDisplayName(a.name);
     const nameB = getCategoryDisplayName(b.name);
     return nameA.localeCompare(nameB, lang === 'el' ? 'el' : 'en', { sensitivity: 'base' });
@@ -12431,9 +12442,19 @@ function updateCategoryDropdowns(type = 'expense', force = false) {
   addBox.onclick = () => openNewCategoryDialog(type);
   grid.appendChild(addBox);
 
-  if (!categoryPickerEditMode && !categoryExists && currentCategory !== '') {
+    if (!categoryPickerEditMode && !categoryExists && currentCategory !== '') {
     document.getElementById('trans-category').value = '';
     updateCategoryDisplay();
+  }
+  if (window.Sortable) {
+    if (grid._sortable) { grid._sortable.destroy(); }
+    grid._sortable = Sortable.create(grid, {
+      animation: 150, delay: 250, delayOnTouchOnly: true, filter: '.category-picker-add',
+      onEnd: function (evt) {
+        const newOrder = Array.from(grid.children).filter(el => !el.classList.contains('category-picker-add')).map(el => el.getAttribute('data-category-name')).filter(Boolean);
+        setCustomCategoryOrder(type, newOrder);
+      }
+    });
   }
 }
 
@@ -18182,6 +18203,7 @@ function updateSubcategorySuggestions() {
   sortedSubs.forEach(sub => {
     const div = document.createElement('div');
     div.className = 'subcategory-item';
+    div.setAttribute('data-subcat-name', sub);
     if (sub === currentSubcategory) div.classList.add('selected');
     div.innerHTML = `<span>${getSubcategoryDisplayName(sub, category)}</span>`;
     div.onclick = () => selectSubcategory(sub);
@@ -18196,6 +18218,17 @@ function updateSubcategorySuggestions() {
     showSubcategorySelect();
   };
   subcatList.appendChild(newOpt);
+
+  if (window.Sortable) {
+    if (subcatList._sortable) { subcatList._sortable.destroy(); }
+    subcatList._sortable = Sortable.create(subcatList, {
+      animation: 150, delay: 250, delayOnTouchOnly: true, filter: '.none-subcat, .new-subcat',
+      onEnd: function (evt) {
+        const newOrder = Array.from(subcatList.children).map(el => el.getAttribute('data-subcat-name')).filter(Boolean);
+        setCustomSubcategoryOrder(category, newOrder);
+      }
+    });
+  }
 }
 
 function showSubcategorySelect() {
@@ -18362,10 +18395,15 @@ function getSortedSubcategoriesForCategory(categoryName) {
   // Sort them:
   // 1. By transaction count descending
   // 2. If counts are equal, alphabetically
+    const customOrder = getCustomSubcategoryOrder(categoryName);
   arr.sort((a, b) => {
+    const idxA = customOrder.indexOf(a);
+    const idxB = customOrder.indexOf(b);
+    if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+    if (idxA !== -1) return -1;
+    if (idxB !== -1) return 1;
     const countA = stats[a] ? stats[a].count : 0;
     const countB = stats[b] ? stats[b].count : 0;
-
     if (countB !== countA) {
       return countB - countA;
     }
@@ -18700,10 +18738,16 @@ function renderCategoryManagerList() {
 
   const list = (state.categories || []).filter(c => c && (c.type === type || (type === 'expense' && !c.type)));
 
-  const lang = state.lang || 'el';
+    const lang = state.lang || 'el';
+  const customOrder = getCustomCategoryOrder(type);
   list.sort((a, b) => {
     const rawA = typeof a === 'string' ? a : (a ? a.name : '');
     const rawB = typeof b === 'string' ? b : (b ? b.name : '');
+    const idxA = customOrder.indexOf(rawA);
+    const idxB = customOrder.indexOf(rawB);
+    if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+    if (idxA !== -1) return -1;
+    if (idxB !== -1) return 1;
     const nameA = getCategoryDisplayName(rawA) || '';
     const nameB = getCategoryDisplayName(rawB) || '';
     return nameA.localeCompare(nameB, lang === 'el' ? 'el' : 'en', { sensitivity: 'base' });
@@ -18741,8 +18785,10 @@ function renderCategoryManagerList() {
     const header = document.createElement('div');
     header.className = 'category-mgr-header';
     header.style.cssText = 'display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; cursor: pointer; transition: background 0.2s;';
+    card.setAttribute('data-category-name', rawName);
     header.innerHTML = `
       <div style="display: flex; align-items: center; gap: 12px; min-width: 0;">
+        <i class="fa-solid fa-grip-lines drag-handle" style="color: var(--text-muted); cursor: grab; padding: 4px; font-size: 14px;"></i>
         ${catBadgeHtml}
         <span style="font-weight: 600; font-size: 14px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${displayName}</span>
       </div>
@@ -18801,10 +18847,20 @@ function renderCategoryManagerList() {
       });
     }
 
-    card.appendChild(header);
+        card.appendChild(header);
     card.appendChild(details);
     container.appendChild(card);
   });
+  if (window.Sortable) {
+    if (container._sortable) { container._sortable.destroy(); }
+    container._sortable = Sortable.create(container, {
+      animation: 150, handle: '.drag-handle',
+      onEnd: function (evt) {
+        const newOrder = Array.from(container.children).map(el => el.getAttribute('data-category-name')).filter(Boolean);
+        setCustomCategoryOrder(type, newOrder);
+      }
+    });
+  }
 }
 
 function toggleCategoryManagerAccordion(categoryName) {
@@ -18877,10 +18933,13 @@ function renderCategoryManagerSubcategories(categoryName) {
         usageText = state.lang === 'el' ? 'Μη χρησιμοποιούμενη' : 'Unused';
       }
 
+      item.setAttribute('data-subcat-name', sub);
       const normalView = document.createElement('div');
       normalView.style = 'display: flex; align-items: center; justify-content: space-between; width: 100%;';
       normalView.innerHTML = `
-        <div style="display: flex; flex-direction: column; gap: 2px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <i class="fa-solid fa-grip-lines drag-handle-sub" style="color: var(--text-muted); cursor: grab; padding: 4px; font-size: 14px;"></i>
+          <div style="display: flex; flex-direction: column; gap: 2px;">
           <span style="font-weight: 500; font-size: 14px; color: var(--text-primary);">${sub}</span>
           <span style="font-size: 11px; color: var(--text-muted);">${usageText}</span>
         </div>
@@ -18942,12 +19001,22 @@ function renderCategoryManagerSubcategories(categoryName) {
         }
       };
 
-      item.appendChild(normalView);
+            item.appendChild(normalView);
       item.appendChild(editView);
       listEl.appendChild(item);
     });
 
     container.appendChild(listEl);
+    if (window.Sortable) {
+      if (listEl._sortable) { listEl._sortable.destroy(); }
+      listEl._sortable = Sortable.create(listEl, {
+        animation: 150, handle: '.drag-handle-sub',
+        onEnd: function (evt) {
+          const newOrder = Array.from(listEl.children).map(el => el.getAttribute('data-subcat-name')).filter(Boolean);
+          setCustomSubcategoryOrder(categoryName, newOrder);
+        }
+      });
+    }
   }
 
   const addForm = document.createElement('div');
