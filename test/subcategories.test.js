@@ -71,6 +71,8 @@ global.getSubcategoryDisplayName = function(sub) {
   return sub;
 };
 global.showSyncToast = function() {};
+global.getCustomSubcategoryOrder = function() { return []; };
+global.getCustomCategoryOrder = function() { return []; };
 global.calculateInitialBalances = function() {};
 global.updateUI = function() {};
 global.saveCategoriesToStorage = function() {};

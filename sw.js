@@ -1,6 +1,6 @@
-// SW Version 1624
+// SW Version 1625
 const CACHE_VERSION = 'v' + Date.now();
-const CACHE_NAME = 'money-manager-v1624-' + Date.now();
+const CACHE_NAME = 'money-manager-v1625-' + Date.now();
 const ASSETS = [
   'index.html',
   'splash.html',
@@ -14,6 +14,7 @@ const ASSETS = [
   'js/supabase.js',
   'js/chart.js',
   'js/chartjs-plugin-datalabels.js',
+  'js/sortable.min.js',
   'js/NLPProcessor.js',
   'js/MemoryEngine.js',
   'js/DecisionEngine.js',

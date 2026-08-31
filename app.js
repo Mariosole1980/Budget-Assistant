@@ -18395,7 +18395,7 @@ function getSortedSubcategoriesForCategory(categoryName) {
   // Sort them:
   // 1. By transaction count descending
   // 2. If counts are equal, alphabetically
-    const customOrder = getCustomSubcategoryOrder(categoryName);
+    const customOrder = (typeof getCustomSubcategoryOrder === 'function') ? getCustomSubcategoryOrder(categoryName) : [];
   arr.sort((a, b) => {
     const idxA = customOrder.indexOf(a);
     const idxB = customOrder.indexOf(b);
