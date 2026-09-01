@@ -2,15 +2,12 @@
 /* BUDGET ASSISTANT — DESKTOP WEB UX LAYER (desktop.css)         */
 /* ============================================================ */
 /* High-End Modern Fintech SaaS Desktop UI for the WEB version. */
-/*                                                               */
 /* SAFETY: Every rule is scoped behind `html.web-mode` so the    */
 /* Android/iOS native app (Capacitor) is NEVER affected.         */
-/* `html.web-mode` is added by index.html only when NOT running  */
-/* inside Capacitor (see index.html web-mode detection).         */
 /* ============================================================ */
 
 /* ------------------------------------------------------------ */
-/* 1. ROOT & FOUNDATION (Height chain & Smooth scrolling)        */
+/* 1. ROOT & FOUNDATION                                          */
 /* ------------------------------------------------------------ */
 html.web-mode {
     height: 100dvh !important;
@@ -22,13 +19,11 @@ html.web-mode body {
     height: 100dvh !important;
     min-height: 0 !important;
     overflow: hidden !important;
-    overflow-x: hidden !important;
     touch-action: auto !important;
     background-color: var(--bg-main, #0f1117) !important;
     display: block !important;
 }
 
-/* Text selection enabled on desktop */
 html.web-mode body,
 html.web-mode button,
 html.web-mode .nav-item,
@@ -36,9 +31,7 @@ html.web-mode .transaction-item,
 html.web-mode .settings-card,
 html.web-mode .settings-list-item,
 html.web-mode .stats-tab-btn,
-html.web-mode .stats-dropdown-item,
-html.web-mode .stats-row,
-html.web-mode .stats-sub-row {
+html.web-mode .stats-dropdown-item {
     user-select: text !important;
     -webkit-user-select: text !important;
 }
@@ -67,13 +60,11 @@ html.web-mode ::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.28) !important;
 }
 
-/* Cursor affordance */
 html.web-mode .nav-item,
 html.web-mode .transaction-item,
 html.web-mode .settings-card,
 html.web-mode .settings-list-item,
 html.web-mode .stats-tab-btn,
-html.web-mode .stats-dropdown-item,
 html.web-mode .desktop-topbar-search,
 html.web-mode .desktop-topbar-add,
 html.web-mode .desktop-sidebar-user-card {
@@ -81,7 +72,7 @@ html.web-mode .desktop-sidebar-user-card {
 }
 
 /* ------------------------------------------------------------ */
-/* MOBILE GUARD (< 768px): Hide all desktop-specific injected UI */
+/* MOBILE GUARD (< 768px)                                       */
 /* ------------------------------------------------------------ */
 @media (max-width: 767px) {
     .desktop-sidebar-brand,
@@ -106,7 +97,7 @@ html.web-mode .desktop-sidebar-user-card {
 }
 
 /* ------------------------------------------------------------ */
-/* 2. APP CONTAINER & GRID LAYOUT (>= 768px)                     */
+/* 2. DESKTOP GRID LAYOUT (>= 768px)                            */
 /* ------------------------------------------------------------ */
 @media (min-width: 768px) {
     html.web-mode .app-container {
@@ -127,7 +118,7 @@ html.web-mode .desktop-sidebar-user-card {
     }
 
     /* ------------------------------------------------------------ */
-    /* 3. SIDEBAR NAVIGATION (Modern SaaS Left Rail)                */
+    /* 3. SIDEBAR NAVIGATION                                        */
     /* ------------------------------------------------------------ */
     html.web-mode .bottom-nav {
         grid-area: sidebar !important;
@@ -156,7 +147,7 @@ html.web-mode .desktop-sidebar-user-card {
         display: none !important;
     }
 
-    /* Sidebar Brand Header */
+    /* Brand Header */
     html.web-mode .desktop-sidebar-brand {
         display: flex !important;
         align-items: center !important;
@@ -185,13 +176,6 @@ html.web-mode .desktop-sidebar-user-card {
         object-fit: contain !important;
     }
 
-    html.web-mode .desktop-brand-text {
-        display: flex !important;
-        flex-direction: column !important;
-        min-width: 0 !important;
-        gap: 2px !important;
-    }
-
     html.web-mode .desktop-brand-name {
         font-family: 'Outfit', sans-serif !important;
         font-size: 16px !important;
@@ -213,7 +197,6 @@ html.web-mode .desktop-sidebar-user-card {
         width: fit-content !important;
     }
 
-    /* Sidebar Nav Items */
     html.web-mode .bottom-nav .nav-item {
         flex: none !important;
         flex-direction: row !important;
@@ -239,7 +222,6 @@ html.web-mode .desktop-sidebar-user-card {
         height: 20px !important;
         margin-bottom: 0 !important;
         fill: currentColor !important;
-        transition: transform 0.18s ease !important;
     }
 
     html.web-mode .bottom-nav .nav-item:hover {
@@ -260,7 +242,7 @@ html.web-mode .desktop-sidebar-user-card {
         fill: var(--accent, #7c6af7) !important;
     }
 
-    /* Sidebar User Profile Card (Bottom of Sidebar) */
+    /* Sidebar User Profile Card */
     html.web-mode .desktop-sidebar-user-card {
         margin-top: auto !important;
         display: flex !important;
@@ -318,7 +300,7 @@ html.web-mode .desktop-sidebar-user-card {
     }
 
     /* ------------------------------------------------------------ */
-    /* 4. TOPBAR (Modern Header Bar)                                */
+    /* 4. TOPBAR                                                    */
     /* ------------------------------------------------------------ */
     html.web-mode .app-header {
         grid-area: header !important;
@@ -366,7 +348,6 @@ html.web-mode .desktop-sidebar-user-card {
         letter-spacing: -0.3px !important;
     }
 
-    /* Topbar Search & Add Buttons */
     html.web-mode .desktop-topbar-search {
         display: inline-flex !important;
         align-items: center !important;
@@ -430,7 +411,7 @@ html.web-mode .desktop-sidebar-user-card {
     }
 
     /* ------------------------------------------------------------ */
-    /* 5. APP CONTENT CONTAINER                                     */
+    /* 5. APP CONTENT SCROLL WRAPPER                                */
     /* ------------------------------------------------------------ */
     html.web-mode .app-content {
         grid-area: content !important;
@@ -444,14 +425,13 @@ html.web-mode .desktop-sidebar-user-card {
     }
 
     /* ------------------------------------------------------------ */
-    /* 6. TRANSACTIONS SCREEN (Modern 2-Column SaaS Feed)            */
+    /* 6. TRANSACTIONS SCREEN                                       */
     /* ------------------------------------------------------------ */
     html.web-mode #trans-screen.active {
-        display: grid !important;
-        grid-template-columns: 1fr 340px !important;
-        gap: 28px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 20px !important;
         padding: 28px 36px !important;
-        align-items: start !important;
         max-width: 1400px !important;
         margin: 0 auto !important;
         width: 100% !important;
@@ -459,37 +439,34 @@ html.web-mode .desktop-sidebar-user-card {
     }
 
     html.web-mode #trans-screen .stats-header-bar {
-        grid-column: 1 / -1 !important;
+        width: 100% !important;
         padding: 0 0 16px 0 !important;
         border-bottom: 1px solid var(--border, rgba(255, 255, 255, 0.06)) !important;
-        margin-bottom: 8px !important;
+        margin-bottom: 0 !important;
     }
 
-    /* Right Column: Sticky KPI Summary Cards */
+    /* Horizontal KPI Summary Banner (3 Cards) */
     html.web-mode #trans-screen .summary-bar {
-        grid-column: 2 !important;
-        grid-row: 2 !important;
-        display: flex !important;
-        flex-direction: column !important;
-        gap: 14px !important;
+        display: grid !important;
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 18px !important;
+        width: 100% !important;
         padding: 0 !important;
         background: transparent !important;
         border: none !important;
         box-shadow: none !important;
         height: auto !important;
-        position: sticky !important;
-        top: 24px !important;
+        position: static !important;
     }
 
     html.web-mode #trans-screen .summary-item {
         width: 100% !important;
-        padding: 20px 22px !important;
-        border-radius: 18px !important;
+        padding: 20px 24px !important;
+        border-radius: 20px !important;
         display: flex !important;
         flex-direction: column !important;
         align-items: flex-start !important;
         gap: 8px !important;
-        flex: none !important;
         box-sizing: border-box !important;
         transition: transform 0.18s ease, box-shadow 0.18s ease !important;
         box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2) !important;
@@ -508,7 +485,6 @@ html.web-mode .desktop-sidebar-user-card {
         font-weight: 800 !important;
         letter-spacing: 0.6px !important;
         text-transform: uppercase !important;
-        margin-bottom: 2px !important;
     }
 
     html.web-mode #trans-screen .summary-item span {
@@ -518,80 +494,60 @@ html.web-mode .desktop-sidebar-user-card {
         letter-spacing: -0.4px !important;
     }
 
-    /* Income Card */
     html.web-mode #trans-screen .summary-item:nth-child(1) {
         background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(16, 185, 129, 0.02)) !important;
         border: 1px solid rgba(16, 185, 129, 0.25) !important;
         border-left: 5px solid #10b981 !important;
     }
-    html.web-mode #trans-screen .summary-item:nth-child(1) div:first-child {
-        color: #10b981 !important;
-    }
-    html.web-mode #trans-screen .summary-item:nth-child(1) span {
-        color: #34d399 !important;
-    }
+    html.web-mode #trans-screen .summary-item:nth-child(1) div:first-child { color: #10b981 !important; }
+    html.web-mode #trans-screen .summary-item:nth-child(1) span { color: #34d399 !important; }
 
-    /* Expense Card */
     html.web-mode #trans-screen .summary-item:nth-child(2) {
         background: linear-gradient(135deg, rgba(239, 68, 68, 0.12), rgba(239, 68, 68, 0.02)) !important;
         border: 1px solid rgba(239, 68, 68, 0.25) !important;
         border-left: 5px solid #ef4444 !important;
     }
-    html.web-mode #trans-screen .summary-item:nth-child(2) div:first-child {
-        color: #ef4444 !important;
-    }
-    html.web-mode #trans-screen .summary-item:nth-child(2) span {
-        color: #f87171 !important;
-    }
+    html.web-mode #trans-screen .summary-item:nth-child(2) div:first-child { color: #ef4444 !important; }
+    html.web-mode #trans-screen .summary-item:nth-child(2) span { color: #f87171 !important; }
 
-    /* Net Balance Card */
     html.web-mode #trans-screen .summary-item:nth-child(3) {
         background: linear-gradient(135deg, rgba(var(--accent-rgb, 124, 106, 247), 0.14), rgba(var(--accent-rgb, 124, 106, 247), 0.03)) !important;
         border: 1px solid rgba(var(--accent-rgb, 124, 106, 247), 0.3) !important;
         border-left: 5px solid var(--accent, #7c6af7) !important;
     }
-    html.web-mode #trans-screen .summary-item:nth-child(3) div:first-child {
-        color: var(--accent, #7c6af7) !important;
-    }
-    html.web-mode #trans-screen .summary-item:nth-child(3) span {
-        color: #ffffff !important;
-    }
+    html.web-mode #trans-screen .summary-item:nth-child(3) div:first-child { color: var(--accent, #7c6af7) !important; }
+    html.web-mode #trans-screen .summary-item:nth-child(3) span { color: #ffffff !important; }
 
-    /* Left Column: Transaction Feed Table */
     html.web-mode #trans-screen .trans-scroll-content {
-        grid-column: 1 !important;
-        grid-row: 2 !important;
         width: 100% !important;
-        min-width: 0 !important;
     }
 
     html.web-mode #trans-screen #transactions-list {
-        margin-top: 0 !important;
         display: flex !important;
         flex-direction: column !important;
-        gap: 6px !important;
+        gap: 8px !important;
+        width: 100% !important;
     }
 
     html.web-mode .day-group-header {
         font-family: 'Outfit', sans-serif !important;
-        font-size: 13px !important;
+        font-size: 13.5px !important;
         font-weight: 700 !important;
         color: var(--text-secondary, #94a3b8) !important;
         padding: 16px 8px 8px 8px !important;
         border-bottom: 1px solid var(--border, rgba(255, 255, 255, 0.06)) !important;
-        margin-bottom: 6px !important;
+        margin-bottom: 4px !important;
         display: flex !important;
         align-items: center !important;
         justify-content: space-between !important;
     }
 
-    /* Desktop Structured Transaction Card Row */
     html.web-mode .transaction-item {
         background: var(--bg-card, #161b22) !important;
         border: 1px solid var(--border, rgba(255, 255, 255, 0.07)) !important;
         border-radius: 16px !important;
-        padding: 14px 20px !important;
-        margin-bottom: 6px !important;
+        padding: 14px 22px !important;
+        margin-bottom: 4px !important;
         transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1) !important;
         display: flex !important;
         align-items: center !important;
@@ -607,39 +563,62 @@ html.web-mode .desktop-sidebar-user-card {
     }
 
     /* ------------------------------------------------------------ */
-    /* 7. STATISTICS SCREEN (Desktop Analytics Studio)              */
+    /* 7. STATISTICS SCREEN (Analytics Studio)                      */
     /* ------------------------------------------------------------ */
     html.web-mode #stats-screen.active {
-        display: grid !important;
-        grid-template-columns: 1fr 1.15fr !important;
-        gap: 28px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 20px !important;
         padding: 28px 36px !important;
-        align-items: start !important;
         max-width: 1400px !important;
         margin: 0 auto !important;
         width: 100% !important;
         box-sizing: border-box !important;
     }
 
-    html.web-mode #stats-screen .stats-header-bar,
-    html.web-mode #stats-screen .stats-subheader-bar,
-    html.web-mode #stats-screen .stats-subtab-bar,
-    html.web-mode #stats-screen .stats-net-bar,
-    html.web-mode #stats-screen #stats-summary {
-        grid-column: 1 / span 2 !important;
+    html.web-mode #stats-screen .stats-header-bar {
+        width: 100% !important;
+        padding: 0 0 16px 0 !important;
+        border-bottom: 1px solid var(--border, rgba(255, 255, 255, 0.06)) !important;
+        margin-bottom: 0 !important;
     }
 
+    /* HIDE the redundant duplicate mobile bars on Desktop */
+    html.web-mode #stats-screen .stats-subheader-bar,
+    html.web-mode #stats-screen .stats-net-bar,
+    html.web-mode #stats-screen .stats-summary-recent {
+        display: none !important;
+    }
+
+    /* Style the subtab bar as a clean centered segmented control */
+    html.web-mode #stats-screen .stats-subtab-bar {
+        display: flex !important;
+        justify-content: center !important;
+        margin: 0 auto 6px auto !important;
+        max-width: 480px !important;
+        width: 100% !important;
+    }
+
+    html.web-mode #stats-screen .stats-scroll-content {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 24px !important;
+        width: 100% !important;
+    }
+
+    /* 4 Summary KPI Cards */
     html.web-mode .stats-summary-grid {
         display: grid !important;
         grid-template-columns: repeat(4, 1fr) !important;
         gap: 18px !important;
-        margin-bottom: 20px !important;
+        width: 100% !important;
+        margin-bottom: 4px !important;
     }
 
     html.web-mode .stats-summary-card {
         background: var(--bg-card, #161b22) !important;
         border: 1px solid var(--border, rgba(255, 255, 255, 0.08)) !important;
-        border-radius: 18px !important;
+        border-radius: 20px !important;
         padding: 20px 22px !important;
         box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18) !important;
         display: flex !important;
@@ -669,69 +648,70 @@ html.web-mode .desktop-sidebar-user-card {
         letter-spacing: -0.4px !important;
     }
 
-    html.web-mode .stats-summary-value.sum-income {
-        color: #34d399 !important;
-    }
+    html.web-mode .stats-summary-value.sum-income { color: #34d399 !important; }
+    html.web-mode .stats-summary-value.sum-expense { color: #f87171 !important; }
+    html.web-mode .stats-summary-value.sum-savings { color: #38bdf8 !important; }
 
-    html.web-mode .stats-summary-value.sum-expense {
-        color: #f87171 !important;
-    }
-
-    html.web-mode .stats-summary-value.sum-savings {
-        color: #38bdf8 !important;
+    /* Two-Column Analytics Studio: Left Chart, Right Breakdown List */
+    html.web-mode #stats-screen #stats-breakdown-container {
+        display: grid !important;
+        grid-template-columns: 1.1fr 1fr !important;
+        gap: 28px !important;
+        align-items: start !important;
+        width: 100% !important;
     }
 
     html.web-mode #stats-screen .chart-container {
-        grid-column: 1 !important;
         background: var(--bg-card, #161b22) !important;
         border: 1px solid var(--border, rgba(255, 255, 255, 0.08)) !important;
-        border-radius: 20px !important;
-        padding: 24px !important;
+        border-radius: 22px !important;
+        padding: 26px !important;
         box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2) !important;
-        min-height: 420px !important;
+        min-height: 440px !important;
         display: flex !important;
         flex-direction: column !important;
         justify-content: center !important;
     }
 
     html.web-mode #stats-screen #stats-breakdown-list {
-        grid-column: 2 !important;
         background: var(--bg-card, #161b22) !important;
         border: 1px solid var(--border, rgba(255, 255, 255, 0.08)) !important;
-        border-radius: 20px !important;
-        padding: 20px !important;
+        border-radius: 22px !important;
+        padding: 22px !important;
         box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2) !important;
         max-height: 75vh !important;
         overflow-y: auto !important;
     }
 
     html.web-mode #stats-screen #stats-budgets-container {
-        grid-column: 1 / span 2 !important;
         display: grid !important;
         grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)) !important;
         gap: 20px !important;
-        margin-top: 14px !important;
+        width: 100% !important;
     }
 
     /* ------------------------------------------------------------ */
-    /* 8. ACCOUNTS & WALLETS SCREEN (Fintech Wallet Cards Grid)      */
+    /* 8. ACCOUNTS & WALLETS SCREEN                                 */
     /* ------------------------------------------------------------ */
     html.web-mode #accounts-screen.active {
-        display: grid !important;
-        grid-template-columns: minmax(440px, 1.1fr) minmax(420px, 1fr) !important;
-        gap: 28px !important;
+        display: block !important;
         padding: 28px 36px !important;
-        align-items: start !important;
         max-width: 1400px !important;
         margin: 0 auto !important;
         width: 100% !important;
         box-sizing: border-box !important;
     }
 
-    /* Left Column: Net Worth & Executive Insights */
+    html.web-mode #accounts-screen .accounts-scroll-content {
+        display: grid !important;
+        grid-template-columns: minmax(440px, 1.1fr) minmax(420px, 1fr) !important;
+        gap: 28px !important;
+        align-items: start !important;
+        width: 100% !important;
+    }
+
     html.web-mode #accounts-screen .accounts-overview-card {
         grid-column: 1 !important;
-        grid-row: 1 !important;
         display: flex !important;
         flex-direction: column !important;
         gap: 18px !important;
@@ -741,32 +721,28 @@ html.web-mode .desktop-sidebar-user-card {
         padding: 0 !important;
     }
 
-    html.web-mode #accounts-screen .accounts-overview-card .overview-grid {
-        display: grid !important;
-        grid-template-columns: repeat(3, 1fr) !important;
-        gap: 14px !important;
-        text-align: center !important;
+    html.web-mode #accounts-screen .accounts-overview-card .stats-subheader-bar {
         background: var(--bg-card, #161b22) !important;
         border: 1px solid var(--border, rgba(255, 255, 255, 0.08)) !important;
         border-radius: 20px !important;
-        padding: 20px 22px !important;
+        padding: 14px 18px !important;
         box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2) !important;
     }
 
     html.web-mode #accounts-screen .accounts-overview-card .overview-health-card,
     html.web-mode #accounts-screen .accounts-overview-card .overview-forecast-card,
-    html.web-mode #accounts-screen .accounts-overview-card .advisor-card {
+    html.web-mode #accounts-screen .accounts-overview-card .advisor-card,
+    html.web-mode #accounts-screen .fhs-card-container,
+    html.web-mode #accounts-screen .forecast-card-container,
+    html.web-mode #accounts-screen .advisor-card-container {
         background: var(--bg-card, #161b22) !important;
         border: 1px solid var(--border, rgba(255, 255, 255, 0.08)) !important;
         border-radius: 20px !important;
-        padding: 20px 22px !important;
         box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2) !important;
     }
 
-    /* Right Column: Wallet Cards Grid & Sections */
     html.web-mode #accounts-screen .collapsible-sections-container {
         grid-column: 2 !important;
-        grid-row: 1 !important;
         display: flex !important;
         flex-direction: column !important;
         gap: 18px !important;
@@ -782,11 +758,9 @@ html.web-mode .desktop-sidebar-user-card {
         margin-bottom: 0 !important;
     }
 
-    /* Period breakdown placed in right column */
     html.web-mode #accounts-screen #accounts-periods-breakdown {
         grid-column: 2 !important;
-        grid-row: 2 !important;
-        margin-top: 0 !important;
+        margin-top: 18px !important;
         background: var(--bg-card, #161b22) !important;
         border: 1px solid var(--border, rgba(255, 255, 255, 0.08)) !important;
         border-radius: 20px !important;
@@ -794,28 +768,27 @@ html.web-mode .desktop-sidebar-user-card {
     }
 
     /* ------------------------------------------------------------ */
-    /* 9. MORE & SETTINGS SCREEN (SaaS Settings Hub)                */
+    /* 9. MORE & SETTINGS SCREEN                                    */
     /* ------------------------------------------------------------ */
     html.web-mode #more-screen.active {
-        display: grid !important;
-        grid-template-columns: 340px 1fr !important;
-        gap: 28px !important;
+        display: block !important;
         padding: 28px 36px !important;
         max-width: 1400px !important;
         margin: 0 auto !important;
         width: 100% !important;
         box-sizing: border-box !important;
-        align-items: start !important;
     }
 
     html.web-mode #more-screen .more-scroll-content {
-        display: contents !important;
+        display: grid !important;
+        grid-template-columns: 340px 1fr !important;
+        gap: 28px !important;
+        align-items: start !important;
+        width: 100% !important;
     }
 
-    /* Left Column: Profile Card */
     html.web-mode #more-screen .profile-header-card {
         grid-column: 1 !important;
-        grid-row: 1 !important;
         position: sticky !important;
         top: 24px !important;
         padding: 28px 24px !important;
@@ -841,8 +814,8 @@ html.web-mode .desktop-sidebar-user-card {
         display: none !important;
     }
 
-    /* Right Column: Categorized Settings Hub Grid */
-    html.web-mode #more-screen .more-scroll-content>div:not(.profile-header-card):not(#more-subscreens-container) {
+    /* Settings Hub Cards Grid */
+    html.web-mode #more-screen .more-scroll-content > div:not(.profile-header-card):not(#more-subscreens-container) {
         grid-column: 2 !important;
         display: grid !important;
         grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)) !important;
@@ -863,6 +836,8 @@ html.web-mode .desktop-sidebar-user-card {
         display: flex !important;
         align-items: center !important;
         justify-content: space-between !important;
+        height: 100% !important;
+        box-sizing: border-box !important;
     }
 
     html.web-mode #more-screen .settings-list-item:hover {
@@ -872,13 +847,17 @@ html.web-mode .desktop-sidebar-user-card {
         box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25) !important;
     }
 
+    html.web-mode #more-screen .more-scroll-content > div > div[style*="height:1px"] {
+        display: none !important;
+    }
+
     html.web-mode #more-screen #more-subscreens-container {
         grid-column: 1 / span 2 !important;
         width: 100% !important;
     }
 
     /* ------------------------------------------------------------ */
-    /* 10. DESKTOP MODALS (Centered, Elevated Floating Cards)        */
+    /* 10. DESKTOP MODALS                                           */
     /* ------------------------------------------------------------ */
     html.web-mode .modal-overlay {
         align-items: center !important;
@@ -927,7 +906,6 @@ html.web-mode .desktop-sidebar-user-card {
         transform: scale(1) !important;
     }
 
-    /* Subscreen Modal Full View */
     html.web-mode #settings-subscreen-modal .modal-card,
     html.web-mode .subscreen-card {
         max-width: 720px !important;
