@@ -12134,7 +12134,7 @@ function setTransactionFormType(type) {
       if (catGroup) catGroup.style.display = 'flex';
       updateSubcategoryRowVisibility();
       if (toAccGroup) toAccGroup.style.display = 'none';
-      if (fromAccLabel) fromAccLabel.textContent = langDict['label_account'] || 'Λογαριασμός';
+      if (fromAccLabel) fromAccLabel.textContent = langDict['row_account_from'] || langDict['label_account'] || 'Τρόπος πληρωμής';
       updateCategoryDropdowns(type);
       updateSubcategorySuggestions();
     }
@@ -13186,7 +13186,7 @@ function openAccountPickerModal(target) {
   const titleEl = document.getElementById('account-picker-title');
   if (titleEl) {
     const langDict = (typeof TRANSLATIONS !== 'undefined' && TRANSLATIONS[state.lang]) || {};
-    titleEl.textContent = langDict['account_picker_title'] || (state.lang === 'el' ? 'Επιλογή Λογαριασμού' : 'Select Account');
+    titleEl.textContent = langDict['account_picker_title'] || (state.lang === 'el' ? 'Επιλογή τρόπου πληρωμής' : 'Select Payment Method');
   }
 
   renderAccountPickerOptions();
@@ -35889,7 +35889,7 @@ async function deleteAccountConfirm() {
   if (hasPin) {
     const pin = await promptForPin(
       state.lang === 'el' ? 'Εισάγετε το PIN σας για να διαγράψετε τον λογαριασμό.' : 'Enter your PIN to delete your account.',
-      state.lang === 'el' ? 'Διαγραφή Λογαριασμού' : 'Delete Account'
+      state.lang === 'el' ? 'Διαγραφή Πορτοφολιού' : 'Delete Wallet'
     );
     if (!pin) return;
     const savedPin = localStorage.getItem('app_pin');
@@ -37807,14 +37807,14 @@ function renderAccountManagerList() {
   const countLabel = document.getElementById('acc-mgr-count-label');
   if (countLabel) {
     countLabel.textContent = lang === 'el'
-      ? `Σύνολο: ${accounts.length} λογαριασμοί`
-      : `Total: ${accounts.length} accounts`;
+      ? `Σύνολο: ${accounts.length} πορτοφόλια`
+      : `Total: ${accounts.length} wallets`;
   }
 
   if (accounts.length === 0) {
     container.innerHTML = `
       <div style="text-align: center; padding: 24px; color: var(--text-muted); font-size: 14px; font-style: italic;">
-        ${lang === 'el' ? 'Δεν βρέθηκαν λογαριασμοί.' : 'No accounts found.'}
+        ${lang === 'el' ? 'Δεν βρέθηκαν πορτοφόλια.' : 'No wallets found.'}
       </div>
     `;
     return;
@@ -37894,7 +37894,7 @@ function openAccountEditorModal(acc = null) {
   const balanceInput = document.getElementById('acc-editor-balance');
 
   if (acc) {
-    if (titleEl) titleEl.textContent = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['accounts_edit_account']) || 'Επεξεργασία Λογαριασμού';
+    if (titleEl) titleEl.textContent = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['accounts_edit_account']) || 'Επεξεργασία Πορτοφολιού';
     if (idInput) idInput.value = acc.id || '';
     if (origNameInput) origNameInput.value = acc.name || '';
     if (nameInput) nameInput.value = acc.name || '';
@@ -37902,7 +37902,7 @@ function openAccountEditorModal(acc = null) {
     if (balanceInput) balanceInput.value = acc.balance !== undefined ? acc.balance : '';
     selectAccountEditorType(acc.type || 'bank');
   } else {
-    if (titleEl) titleEl.textContent = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['accounts_add_account']) || 'Νέος Λογαριασμός';
+    if (titleEl) titleEl.textContent = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['accounts_add_account']) || 'Νέο Πορτοφόλι';
     if (idInput) idInput.value = '';
     if (origNameInput) origNameInput.value = '';
     if (nameInput) nameInput.value = '';
@@ -38017,15 +38017,15 @@ async function saveAccountEditor(e) {
   if (typeof updateUI === 'function') updateUI();
 
   if (typeof showSyncToast === 'function') {
-    showSyncToast(state.lang === 'el' ? '✓ Ο λογαριασμός αποθηκεύτηκε' : '✓ Account saved', 2000);
+    showSyncToast(state.lang === 'el' ? '✓ Το πορτοφόλι αποθηκεύτηκε' : '✓ Wallet saved', 2000);
   }
 }
 
 async function deleteAccountFromManager(acc) {
   const name = typeof acc === 'string' ? acc : acc.name;
   const confirmMsg = state.lang === 'el'
-    ? `Είσαι σίγουρος ότι θέλεις να διαγράψεις τον λογαριασμό "${getAccountDisplayName(name)}";`
-    : `Are you sure you want to delete account "${getAccountDisplayName(name)}"?`;
+    ? `Είσαι σίγουρος ότι θέλεις να διαγράψεις το πορτοφόλι "${getAccountDisplayName(name)}";`
+    : `Are you sure you want to delete wallet "${getAccountDisplayName(name)}"?`;
 
   const confirmed = (typeof showConfirm === 'function')
     ? await showConfirm(confirmMsg, state.lang === 'el' ? 'Διαγραφή Λογαριασμού' : 'Delete Account', 'Διαγραφή')
@@ -38057,7 +38057,7 @@ async function deleteAccountFromManager(acc) {
   if (typeof updateUI === 'function') updateUI();
 
   if (typeof showSyncToast === 'function') {
-    showSyncToast(state.lang === 'el' ? '✓ Ο λογαριασμός διαγράφηκε' : '✓ Account deleted', 2000);
+    showSyncToast(state.lang === 'el' ? '✓ Το πορτοφόλι διαγράφηκε' : '✓ Wallet deleted', 2000);
   }
 }
 
