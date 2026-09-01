@@ -9695,6 +9695,8 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
   height: 36px;
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.04);
+  overflow: hidden;
+  flex-shrink: 0;
 }
 
 .currency-card-details {

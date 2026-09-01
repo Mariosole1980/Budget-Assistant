@@ -13346,10 +13346,63 @@ function updateCurrencyTriggerDisplay() {
   const c = CurrencyService.getCurrency(code);
   const flag = c && c.flag ? c.flag : '';
   const name = c ? c.name : code;
-  triggerDisplay.innerHTML = `<span class="custom-select-icon" style="margin-right: 8px;">${flag}</span><span class="custom-select-text">${escapeHtml(name)}</span>`;
+  triggerDisplay.innerHTML = `<span class="custom-select-icon" style="margin-right: 8px;">${getFlagHtml(flag, code)}</span><span class="custom-select-text">${escapeHtml(name)}</span>`;
 }
 
-let _currencyPickerTarget = 'transaction';
+
+function getFlagHtml(flag, code) {
+  if (!flag || flag === '🌐' || flag === '🌍') {
+    return `<span style="font-size: 20px; line-height: 1;">${flag || '🌐'}</span>`;
+  }
+
+  let cc = null;
+  try {
+    const chars = [...flag];
+    if (chars.length >= 2) {
+      const c1 = chars[0].codePointAt(0) - 0x1F1E6;
+      const c2 = chars[1].codePointAt(0) - 0x1F1E6;
+      if (c1 >= 0 && c1 < 26 && c2 >= 0 && c2 < 26) {
+        cc = (String.fromCharCode(65 + c1) + String.fromCharCode(65 + c2)).toLowerCase();
+      }
+    }
+  } catch (_) {}
+
+  if (!cc && code) {
+    const codeMap = {
+      EUR: 'eu', USD: 'us', GBP: 'gb', JPY: 'jp', CHF: 'ch', CAD: 'ca', AUD: 'au',
+      NZD: 'nz', CNY: 'cn', INR: 'in', RUB: 'ru', BRL: 'br', MXN: 'mx', ZAR: 'za',
+      TRY: 'tr', SEK: 'se', NOK: 'no', DKK: 'dk', PLN: 'pl', CZK: 'cz', HUF: 'hu',
+      RON: 'ro', BGN: 'bg', UAH: 'ua', ILS: 'il', AED: 'ae', SAR: 'sa', QAR: 'qa',
+      KWD: 'kw', BHD: 'bh', OMR: 'om', JOD: 'jo', LBP: 'lb', EGP: 'eg', MAD: 'ma',
+      TND: 'tn', DZD: 'dz', LYD: 'ly', NGN: 'ng', GHS: 'gh', KES: 'ke', TZS: 'tz',
+      UGX: 'ug', ETB: 'et', ARS: 'ar', CLP: 'cl', COP: 'co', PEN: 'pe', UYU: 'uy',
+      PYG: 'py', BOB: 'bo', VES: 've', CRC: 'cr', PAB: 'pa', DOP: 'do', GTQ: 'gt',
+      HNL: 'hn', NIO: 'ni', SVC: 'sv', JMD: 'jm', TTD: 'tt', BSD: 'bs', BBD: 'bb',
+      CUP: 'cu', HTG: 'ht', AWG: 'aw', ANG: 'cw', KRW: 'kr', SGD: 'sg', HKD: 'hk',
+      TWD: 'tw', MYR: 'my', THB: 'th', IDR: 'id', PHP: 'ph', VND: 'vn', ISK: 'is',
+      RSD: 'rs', BAM: 'ba', MKD: 'mk', ALL: 'al', GEL: 'ge', AMD: 'am', AZN: 'az',
+      KZT: 'kz', UZS: 'uz', BYN: 'by', MDL: 'md', KGS: 'kg', TJS: 'tj', TMT: 'tm',
+      MNT: 'mn', NPR: 'np', LKR: 'lk', BDT: 'bd', PKR: 'pk', AFN: 'af', MMK: 'mm',
+      KHR: 'kh', LAK: 'la', BND: 'bn', MOP: 'mo', MVR: 'mv', SYP: 'sy', YER: 'ye',
+      IQD: 'iq', IRR: 'ir', NAD: 'na', BWP: 'bw', ZMW: 'zm', MZN: 'mz', AOA: 'ao',
+      CDF: 'cd', RWF: 'rw', BIF: 'bi', MWK: 'mw', MGA: 'mg', SCR: 'sc', MUR: 'mu',
+      ZWL: 'zw', SOS: 'so', DJF: 'dj', ERN: 'er', GMD: 'gm', SLL: 'sl', LRD: 'lr',
+      GNF: 'gn', CVE: 'cv', STD: 'st', STN: 'st', FJD: 'fj', PGK: 'pg', SBD: 'sb',
+      VUV: 'vu', WST: 'ws', TOP: 'to', XCD: 'ag', BZD: 'bz', GYD: 'gy', SRD: 'sr',
+      FKP: 'fk', GIP: 'gi', SHP: 'sh', JEP: 'je', GGP: 'gg', IMP: 'im',
+      XOF: 'sn', XAF: 'cm'
+    };
+    cc = codeMap[code.toUpperCase()];
+  }
+
+  if (cc) {
+    return `<img src="https://flagcdn.com/w40/${cc}.png" srcset="https://flagcdn.com/w80/${cc}.png 2x" width="24" height="18" alt="${escapeHtml(flag || code)}" style="border-radius: 3px; object-fit: cover; box-shadow: 0 1px 3px rgba(0,0,0,0.3); vertical-align: middle; display: inline-block;" onerror="this.onerror=null; this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='inline-block';"><span class="flag-fallback" style="display:none; font-size: 20px; line-height: 1;">${flag || ''}</span>`;
+  }
+
+  return `<span style="font-size: 20px; line-height: 1;">${flag || '🌐'}</span>`;
+}
+window.getFlagHtml = getFlagHtml;
+
 
 function openCurrencyPickerModal(options = {}) {
   try {
@@ -13460,7 +13513,7 @@ function appendCurrencyCardItem(container, c, currentVal, showMatchedCountries, 
 
   card.innerHTML = `
     <div class="currency-card-left">
-      <div class="currency-flag-box">${c.flag || '🌐'}</div>
+      <div class="currency-flag-box">${getFlagHtml(c.flag, c.code)}</div>
       <div class="currency-card-details">
         <div class="currency-card-main">
           <span class="currency-code-badge">${escapeHtml(c.code)}</span>
@@ -30923,7 +30976,7 @@ window.onSubscreenShow_preferences = function () {
   if (recurringAlertsCheckbox) recurringAlertsCheckbox.checked = recurringAlertsEnabled;
 
   const langVal = document.getElementById('lang-setting-val');
-  if (langVal) langVal.textContent = state.lang === 'el' ? 'Ελληνικά' : 'English';
+  if (langVal) langVal.textContent = state.lang === 'en' ? '🇬🇧 English' : '🇬🇷 Ελληνικά';
 };
 
 // Lifecycle hooks for the subscreens that were missing one. The feedback form

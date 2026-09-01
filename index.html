@@ -1851,7 +1851,7 @@
                 <!-- Row 1: Language Toggle -->
                 <div class="settings-list-item" id="preferences-lang-row"
                   style="cursor:pointer; padding:14px 16px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border, rgba(255,255,255,0.05)); margin:0;">
-                  <div style="display:flex; flex-direction:column; gap:3px;">
+                  <div style="display:flex; flex-direction:column; gap:3px; flex:1; min-width:0; padding-right:12px;">
                     <span class="settings-item-label"
                       style="font-weight:700; font-size:14px; color:var(--text-primary);"
                       data-i18n="item_language">Γλώσσα</span>
@@ -1860,10 +1860,10 @@
                       English)</span>
                   </div>
                   <div
-                    style="display:flex; align-items:center; gap:8px; background:rgba(var(--accent-rgb,124,106,247),0.12); border:1px solid rgba(var(--accent-rgb,124,106,247),0.3); padding:7px 14px; border-radius:20px;">
+                    style="display:inline-flex; align-items:center; gap:8px; background:rgba(var(--accent-rgb,124,106,247),0.12); border:1px solid rgba(var(--accent-rgb,124,106,247),0.3); padding:7px 14px; border-radius:20px; flex-shrink:0; white-space:nowrap;">
                     <span class="settings-item-value" id="lang-setting-val"
-                      style="font-size:13px; font-weight:800; color:var(--accent);">🇬🇷 Ελληνικά</span>
-                    <i class="fa-solid fa-arrows-rotate" style="color:var(--accent); font-size:12px;"></i>
+                      style="font-size:13px; font-weight:800; color:var(--accent); white-space:nowrap; display:inline-flex; align-items:center; gap:6px;">🇬🇷 Ελληνικά</span>
+                    <i class="fa-solid fa-arrows-rotate" style="color:var(--accent); font-size:12px; flex-shrink:0;"></i>
                   </div>
                 </div>
 
@@ -6641,8 +6641,7 @@
           <div id="auth-forms-container">
             <!-- Language Selector -->
             <div class="auth-lang-selector">
-              <button type="button" class="lang-pill active" id="auth-lang-el" onclick="applyLanguage('el')">🇬🇷
-                EL</button>
+              <button type="button" class="lang-pill active" id="auth-lang-el" onclick="applyLanguage('el')">🇬🇷 EL</button>
               <button type="button" class="lang-pill" id="auth-lang-en" onclick="applyLanguage('en')">🇬🇧 EN</button>
             </div>
 
