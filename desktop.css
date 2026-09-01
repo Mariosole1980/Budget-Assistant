@@ -771,6 +771,37 @@ html.web-mode .desktop-sidebar-user-card {
         margin-bottom: 0 !important;
     }
 
+    /* Force accounts breakdown sections to always be open & visible on desktop */
+    html.web-mode #accounts-screen .collapsible-content {
+        max-height: none !important;
+        overflow: visible !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 8px !important;
+        padding-top: 14px !important;
+    }
+
+    html.web-mode #accounts-screen .collapse-icon {
+        display: none !important;
+    }
+
+    html.web-mode #accounts-screen .account-row {
+        background: rgba(255, 255, 255, 0.03) !important;
+        border: 1px solid var(--border, rgba(255, 255, 255, 0.06)) !important;
+        border-radius: 14px !important;
+        padding: 14px 18px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        transition: all 0.18s ease !important;
+    }
+
+    html.web-mode #accounts-screen .account-row:hover {
+        background: rgba(255, 255, 255, 0.06) !important;
+        border-color: rgba(var(--accent-rgb, 124, 106, 247), 0.3) !important;
+        transform: translateY(-1px) !important;
+    }
+
     html.web-mode #accounts-screen #accounts-periods-breakdown {
         grid-column: 2 !important;
         margin-top: 18px !important;

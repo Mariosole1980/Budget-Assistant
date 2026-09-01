@@ -42,9 +42,9 @@
             en: 'Statistics & Analytics'
         },
         'accounts': {
-            icon: 'fa-credit-card',
-            el: 'Λογαριασμοί & Πορτοφόλια',
-            en: 'Accounts & Wallets'
+            icon: 'fa-chart-line',
+            el: 'Επισκόπηση',
+            en: 'Overview'
         },
         'more': {
             icon: 'fa-sliders',
