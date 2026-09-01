@@ -100,6 +100,12 @@ html.web-mode .desktop-sidebar-user-card {
 /* 2. DESKTOP GRID LAYOUT (>= 768px)                            */
 /* ------------------------------------------------------------ */
 @media (min-width: 768px) {
+    /* Hide floating mobile FABs on desktop */
+    html.web-mode .fab,
+    html.web-mode .fab-note {
+        display: none !important;
+    }
+
     html.web-mode .app-container {
         max-width: 100% !important;
         width: 100% !important;
@@ -109,7 +115,7 @@ html.web-mode .desktop-sidebar-user-card {
         border: none !important;
         box-shadow: none !important;
         display: grid !important;
-        grid-template-columns: 260px 1fr !important;
+        grid-template-columns: 250px 1fr !important;
         grid-template-rows: 68px 1fr !important;
         grid-template-areas:
             "sidebar header"
@@ -130,8 +136,8 @@ html.web-mode .desktop-sidebar-user-card {
         flex-direction: column !important;
         justify-content: flex-start !important;
         height: 100% !important;
-        width: 260px !important;
-        padding: 22px 16px 18px 16px !important;
+        width: 250px !important;
+        padding: 22px 14px 18px 14px !important;
         gap: 8px !important;
         border-top: none !important;
         border-right: 1px solid var(--border, rgba(255, 255, 255, 0.08)) !important;
@@ -174,6 +180,13 @@ html.web-mode .desktop-sidebar-user-card {
         width: 24px !important;
         height: 24px !important;
         object-fit: contain !important;
+    }
+
+    html.web-mode .desktop-brand-text {
+        display: flex !important;
+        flex-direction: column !important;
+        min-width: 0 !important;
+        gap: 2px !important;
     }
 
     html.web-mode .desktop-brand-name {
@@ -411,7 +424,7 @@ html.web-mode .desktop-sidebar-user-card {
     }
 
     /* ------------------------------------------------------------ */
-    /* 5. APP CONTENT SCROLL WRAPPER                                */
+    /* 5. APP CONTENT CONTAINER                                     */
     /* ------------------------------------------------------------ */
     html.web-mode .app-content {
         grid-area: content !important;
@@ -425,7 +438,7 @@ html.web-mode .desktop-sidebar-user-card {
     }
 
     /* ------------------------------------------------------------ */
-    /* 6. TRANSACTIONS SCREEN                                       */
+    /* 6. TRANSACTIONS SCREEN (Full Width Clean SaaS View)          */
     /* ------------------------------------------------------------ */
     html.web-mode #trans-screen.active {
         display: flex !important;
@@ -445,7 +458,7 @@ html.web-mode .desktop-sidebar-user-card {
         margin-bottom: 0 !important;
     }
 
-    /* Horizontal KPI Summary Banner (3 Cards) */
+    /* Horizontal KPI Summary Banner (3 Cards Across) */
     html.web-mode #trans-screen .summary-bar {
         display: grid !important;
         grid-template-columns: repeat(3, 1fr) !important;
@@ -768,7 +781,7 @@ html.web-mode .desktop-sidebar-user-card {
     }
 
     /* ------------------------------------------------------------ */
-    /* 9. MORE & SETTINGS SCREEN                                    */
+    /* 9. MORE & SETTINGS SCREEN (2-Column Grid Hub)                */
     /* ------------------------------------------------------------ */
     html.web-mode #more-screen.active {
         display: block !important;
@@ -781,7 +794,7 @@ html.web-mode .desktop-sidebar-user-card {
 
     html.web-mode #more-screen .more-scroll-content {
         display: grid !important;
-        grid-template-columns: 340px 1fr !important;
+        grid-template-columns: 320px 1fr !important;
         gap: 28px !important;
         align-items: start !important;
         width: 100% !important;
@@ -814,16 +827,17 @@ html.web-mode .desktop-sidebar-user-card {
         display: none !important;
     }
 
-    /* Settings Hub Cards Grid */
+    /* Settings Hub Cards Grid: Fills the entire right area with 2 columns */
     html.web-mode #more-screen .more-scroll-content > div:not(.profile-header-card):not(#more-subscreens-container) {
         grid-column: 2 !important;
         display: grid !important;
-        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)) !important;
+        grid-template-columns: repeat(2, 1fr) !important;
         gap: 16px !important;
         background: transparent !important;
         border: none !important;
         box-shadow: none !important;
         border-radius: 0 !important;
+        width: 100% !important;
     }
 
     html.web-mode #more-screen .settings-list-item {
@@ -838,6 +852,7 @@ html.web-mode .desktop-sidebar-user-card {
         justify-content: space-between !important;
         height: 100% !important;
         box-sizing: border-box !important;
+        margin: 0 !important;
     }
 
     html.web-mode #more-screen .settings-list-item:hover {
@@ -857,7 +872,36 @@ html.web-mode .desktop-sidebar-user-card {
     }
 
     /* ------------------------------------------------------------ */
-    /* 10. DESKTOP MODALS                                           */
+    /* 10. DESKTOP SEARCH MODAL (Spotlight Palette)                  */
+    /* ------------------------------------------------------------ */
+    html.web-mode .search-overlay-container {
+        position: fixed !important;
+        inset: 0 !important;
+        max-width: 680px !important;
+        max-height: 85vh !important;
+        height: 85vh !important;
+        margin: auto !important;
+        border-radius: 24px !important;
+        border: 1px solid rgba(255, 255, 255, 0.12) !important;
+        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.8) !important;
+        z-index: 10000 !important;
+        overflow: hidden !important;
+        transform: scale(0.96) !important;
+        opacity: 0 !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+        transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease, visibility 0.2s !important;
+    }
+
+    html.web-mode .search-overlay-container.active {
+        transform: scale(1) !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        pointer-events: auto !important;
+    }
+
+    /* ------------------------------------------------------------ */
+    /* 11. DESKTOP MODALS & SUBSCREENS                              */
     /* ------------------------------------------------------------ */
     html.web-mode .modal-overlay {
         align-items: center !important;
@@ -908,7 +952,7 @@ html.web-mode .desktop-sidebar-user-card {
 
     html.web-mode #settings-subscreen-modal .modal-card,
     html.web-mode .subscreen-card {
-        max-width: 720px !important;
+        max-width: 760px !important;
         width: 100% !important;
         border-radius: 24px !important;
         margin: 0 auto !important;
