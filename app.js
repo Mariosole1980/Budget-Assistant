@@ -13142,21 +13142,35 @@ function openSubcategoryModal() {
   openModal('subcategory-picker-modal');
 }
 
+function getAccountVisualInfo(accOrType) {
+  const type = typeof accOrType === 'object' && accOrType ? accOrType.type : accOrType;
+  switch (type) {
+    case 'cash':
+      return { iconClass: 'fa-solid fa-money-bill-wave', emoji: '💵', color: '#10b981', labelEl: 'Μετρητά', labelEn: 'Cash' };
+    case 'card':
+      return { iconClass: 'fa-solid fa-credit-card', emoji: '💳', color: '#f59e0b', labelEl: 'Κάρτα', labelEn: 'Card' };
+    case 'investment':
+      return { iconClass: 'fa-solid fa-chart-line', emoji: '📈', color: '#8b5cf6', labelEl: 'Επένδυση', labelEn: 'Investment' };
+    case 'bank':
+    default:
+      return { iconClass: 'fa-solid fa-building-columns', emoji: '🏦', color: '#3b82f6', labelEl: 'Τράπεζα', labelEn: 'Bank' };
+  }
+}
+
 function getAccountDisplayName(accOrName) {
   if (!accOrName) return '';
-  const name = typeof accOrName === 'string' ? accOrName : accOrName.name;
-  const type = typeof accOrName === 'object' ? accOrName.type : null;
+  const name = typeof accOrName === 'string' ? accOrName : (accOrName.name || '');
   const lowerName = name.toLowerCase().trim();
   const lang = state.lang || 'el';
 
   if (lang === 'el') {
-    if (lowerName === 'cash' || lowerName === 'μετρητά' || type === 'cash') return 'Μετρητά';
-    if (lowerName === 'bank account' || lowerName === 'bank' || lowerName === 'τράπεζα' || type === 'bank') return 'Τράπεζα';
-    if (lowerName === 'card' || lowerName === 'κάρτα' || type === 'card') return 'Κάρτα';
+    if (lowerName === 'cash' || lowerName === 'μετρητά') return 'Μετρητά';
+    if (lowerName === 'bank account' || lowerName === 'bank' || lowerName === 'τραπεζικός λογαριασμός' || lowerName === 'τράπεζα') return 'Τράπεζα';
+    if (lowerName === 'card' || lowerName === 'κάρτα') return 'Κάρτα';
   } else {
-    if (lowerName === 'cash' || lowerName === 'μετρητά' || type === 'cash') return 'Cash';
-    if (lowerName === 'bank account' || lowerName === 'bank' || lowerName === 'τράπεζα' || type === 'bank') return 'Bank Account';
-    if (lowerName === 'card' || lowerName === 'κάρτα' || type === 'card') return 'Card';
+    if (lowerName === 'cash' || lowerName === 'μετρητά') return 'Cash';
+    if (lowerName === 'bank account' || lowerName === 'bank' || lowerName === 'τραπεζικός λογαριασμός' || lowerName === 'τράπεζα') return 'Bank Account';
+    if (lowerName === 'card' || lowerName === 'κάρτα') return 'Card';
   }
   return name;
 }
@@ -13171,7 +13185,8 @@ function openAccountPickerModal(target) {
 
   const titleEl = document.getElementById('account-picker-title');
   if (titleEl) {
-    titleEl.textContent = state.lang === 'el' ? 'Επιλογή τρόπου πληρωμής' : 'Select Payment Method';
+    const langDict = (typeof TRANSLATIONS !== 'undefined' && TRANSLATIONS[state.lang]) || {};
+    titleEl.textContent = langDict['account_picker_title'] || (state.lang === 'el' ? 'Επιλογή Λογαριασμού' : 'Select Account');
   }
 
   renderAccountPickerOptions();
@@ -13180,7 +13195,11 @@ function openAccountPickerModal(target) {
 
 function renderAccountPickerOptions() {
   if (!state.accounts || state.accounts.length === 0) {
-    state.accounts = DEFAULT_ACCOUNTS.slice();
+    state.accounts = (typeof DEFAULT_ACCOUNTS !== 'undefined' ? DEFAULT_ACCOUNTS : [
+      { name: 'Cash', type: 'cash', balance: 0 },
+      { name: 'Bank Account', type: 'bank', balance: 0 },
+      { name: 'Card', type: 'card', balance: 0 }
+    ]).slice();
   }
   const container = document.getElementById('account-picker-list');
   if (!container) return;
@@ -13189,26 +13208,46 @@ function renderAccountPickerOptions() {
 
   const targetInput = document.getElementById(`trans-account-${_currentAccountPickerTarget}`);
   const currentVal = targetInput ? targetInput.value : '';
-  const icons = { cash: '💵', bank: '🏦', card: '💳' };
 
-  state.accounts.forEach(acc => {
+  state.accounts.filter(a => a.is_active !== false).forEach(acc => {
     const item = document.createElement('div');
     item.className = 'account-picker-item';
     if (acc.name === currentVal) {
       item.classList.add('selected');
     }
 
-    const icon = icons[acc.type] || '💳';
+    const visual = getAccountVisualInfo(acc);
     const displayName = getAccountDisplayName(acc);
 
     item.innerHTML = `
-      <span class="account-picker-item-icon">${icon}</span>
-      <span class="account-picker-item-name">${displayName}</span>
+      <div style="width: 32px; height: 32px; border-radius: 8px; background: ${visual.color}22; border: 1px solid ${visual.color}44; color: ${visual.color}; display: flex; align-items: center; justify-content: center; font-size: 14px; margin-right: 10px;">
+        <i class="${visual.iconClass}"></i>
+      </div>
+      <div style="flex: 1; min-width: 0;">
+        <div style="font-weight: 600; font-size: 14px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(displayName)}</div>
+        <div style="font-size: 11px; color: var(--text-muted);">${state.lang === 'el' ? visual.labelEl : visual.labelEn}</div>
+      </div>
     `;
 
     item.onclick = () => selectAccountOption(acc.name);
     container.appendChild(item);
   });
+
+  // + New Account option at the bottom
+  const newAccBtn = document.createElement('div');
+  newAccBtn.className = 'account-picker-item new-acc-item';
+  newAccBtn.style.cssText = 'border-top: 1px dashed var(--border); margin-top: 4px; padding-top: 12px; color: #3b82f6; font-weight: 600; display: flex; align-items: center; cursor: pointer;';
+  newAccBtn.innerHTML = `
+    <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(59,130,246,0.15); border: 1px solid rgba(59,130,246,0.3); color: #3b82f6; display: flex; align-items: center; justify-content: center; font-size: 14px; margin-right: 10px;">
+      <i class="fa-solid fa-plus"></i>
+    </div>
+    <span style="font-size: 13px;">${(TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['account_picker_new']) || '+ Νέος Λογαριασμός...'}</span>
+  `;
+  newAccBtn.onclick = () => {
+    closeModal('account-picker-modal');
+    openAccountEditorModal();
+  };
+  container.appendChild(newAccBtn);
 }
 
 function selectAccountOption(name) {
@@ -13228,7 +13267,11 @@ function updateAccountTriggerDisplay(target) {
 
   if (!value) {
     if (!state.accounts || state.accounts.length === 0) {
-      state.accounts = DEFAULT_ACCOUNTS.slice();
+      state.accounts = (typeof DEFAULT_ACCOUNTS !== 'undefined' ? DEFAULT_ACCOUNTS : [
+        { name: 'Cash', type: 'cash', balance: 0 },
+        { name: 'Bank Account', type: 'bank', balance: 0 },
+        { name: 'Card', type: 'card', balance: 0 }
+      ]).slice();
     }
     const defaultAcc = target === 'to' ? (state.accounts[1] || state.accounts[0]) : state.accounts[0];
     if (defaultAcc) {
@@ -13238,16 +13281,19 @@ function updateAccountTriggerDisplay(target) {
   }
 
   if (!value) {
-    triggerDisplay.innerHTML = `<span class="custom-select-placeholder">${state.lang === 'el' ? 'Επιλέξτε...' : 'Select...'}</span>`;
+    triggerDisplay.innerHTML = `<span class="custom-select-placeholder">${state.lang === 'el' ? 'Επιλογή...' : 'Select...'}</span>`;
   } else {
     if (!state.accounts || state.accounts.length === 0) {
-      state.accounts = DEFAULT_ACCOUNTS.slice();
+      state.accounts = (typeof DEFAULT_ACCOUNTS !== 'undefined' ? DEFAULT_ACCOUNTS : [
+        { name: 'Cash', type: 'cash', balance: 0 },
+        { name: 'Bank Account', type: 'bank', balance: 0 },
+        { name: 'Card', type: 'card', balance: 0 }
+      ]).slice();
     }
     const acc = state.accounts.find(a => a.name === value);
-    const icons = { cash: '💵', bank: '🏦', card: '💳' };
-    const icon = acc ? (icons[acc.type] || '💳') : '💳';
+    const visual = acc ? getAccountVisualInfo(acc) : { iconClass: 'fa-solid fa-wallet', color: '#3b82f6' };
     const name = acc ? getAccountDisplayName(acc) : value;
-    triggerDisplay.innerHTML = `<span class="custom-select-icon" style="margin-right: 8px;">${icon}</span><span class="custom-select-text">${name}</span>`;
+    triggerDisplay.innerHTML = `<span class="custom-select-icon" style="margin-right: 8px; color: ${visual.color};"><i class="${visual.iconClass}"></i></span><span class="custom-select-text">${escapeHtml(name)}</span>`;
   }
 }
 
@@ -37761,14 +37807,14 @@ function renderAccountManagerList() {
   const countLabel = document.getElementById('acc-mgr-count-label');
   if (countLabel) {
     countLabel.textContent = lang === 'el'
-      ? `������: ${accounts.length} �����������`
+      ? `Σύνολο: ${accounts.length} λογαριασμοί`
       : `Total: ${accounts.length} accounts`;
   }
 
   if (accounts.length === 0) {
     container.innerHTML = `
       <div style="text-align: center; padding: 24px; color: var(--text-muted); font-size: 14px; font-style: italic;">
-        ${lang === 'el' ? '��� �������� �����������.' : 'No accounts found.'}
+        ${lang === 'el' ? 'Δεν βρέθηκαν λογαριασμοί.' : 'No accounts found.'}
       </div>
     `;
     return;
@@ -37779,7 +37825,7 @@ function renderAccountManagerList() {
     const displayName = getAccountDisplayName(acc);
     const safeName = escapeHtml(displayName);
     const balance = parseFloat(acc.balance) || 0;
-    const currency = acc.currency || (typeof getCurrencySymbol === 'function' ? getCurrencySymbol() : '�');
+    const currency = acc.currency || (typeof getCurrencySymbol === 'function' ? getCurrencySymbol() : '€');
 
     const card = document.createElement('div');
     card.className = 'category-mgr-item';
@@ -37803,10 +37849,10 @@ function renderAccountManagerList() {
         </div>
       </div>
       <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
-        <button type="button" class="icon-btn btn-edit-acc" style="font-size: 13px; color: var(--text-secondary); width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: none; background: transparent; cursor: pointer;" title="�����������">
+        <button type="button" class="icon-btn btn-edit-acc" style="font-size: 13px; color: var(--text-secondary); width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: none; background: transparent; cursor: pointer;" title="Επεξεργασία">
           <i class="fa-solid fa-pen"></i>
         </button>
-        <button type="button" class="icon-btn btn-delete-acc" style="font-size: 13px; color: var(--red-negative); width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: none; background: transparent; cursor: pointer;" title="��������">
+        <button type="button" class="icon-btn btn-delete-acc" style="font-size: 13px; color: var(--red-negative); width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: none; background: transparent; cursor: pointer;" title="Διαγραφή">
           <i class="fa-solid fa-trash-can"></i>
         </button>
       </div>
@@ -37848,7 +37894,7 @@ function openAccountEditorModal(acc = null) {
   const balanceInput = document.getElementById('acc-editor-balance');
 
   if (acc) {
-    if (titleEl) titleEl.textContent = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['accounts_edit_account']) || '����������� �����������';
+    if (titleEl) titleEl.textContent = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['accounts_edit_account']) || 'Επεξεργασία Λογαριασμού';
     if (idInput) idInput.value = acc.id || '';
     if (origNameInput) origNameInput.value = acc.name || '';
     if (nameInput) nameInput.value = acc.name || '';
@@ -37856,7 +37902,7 @@ function openAccountEditorModal(acc = null) {
     if (balanceInput) balanceInput.value = acc.balance !== undefined ? acc.balance : '';
     selectAccountEditorType(acc.type || 'bank');
   } else {
-    if (titleEl) titleEl.textContent = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['accounts_add_account']) || '���� �����������';
+    if (titleEl) titleEl.textContent = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['accounts_add_account']) || 'Νέος Λογαριασμός';
     if (idInput) idInput.value = '';
     if (origNameInput) origNameInput.value = '';
     if (nameInput) nameInput.value = '';
@@ -37971,18 +38017,18 @@ async function saveAccountEditor(e) {
   if (typeof updateUI === 'function') updateUI();
 
   if (typeof showSyncToast === 'function') {
-    showSyncToast(state.lang === 'el' ? '? � ����������� ������������' : '? Account saved', 2000);
+    showSyncToast(state.lang === 'el' ? '✓ Ο λογαριασμός αποθηκεύτηκε' : '✓ Account saved', 2000);
   }
 }
 
 async function deleteAccountFromManager(acc) {
   const name = typeof acc === 'string' ? acc : acc.name;
   const confirmMsg = state.lang === 'el'
-    ? `����� �������� ��� ������ �� ���������� ��� ���������� "${getAccountDisplayName(name)}";`
+    ? `Είσαι σίγουρος ότι θέλεις να διαγράψεις τον λογαριασμό "${getAccountDisplayName(name)}";`
     : `Are you sure you want to delete account "${getAccountDisplayName(name)}"?`;
 
   const confirmed = (typeof showConfirm === 'function')
-    ? await showConfirm(confirmMsg, state.lang === 'el' ? '�������� �����������' : 'Delete Account', '��������')
+    ? await showConfirm(confirmMsg, state.lang === 'el' ? 'Διαγραφή Λογαριασμού' : 'Delete Account', 'Διαγραφή')
     : confirm(confirmMsg);
 
   if (!confirmed) return;
@@ -38011,7 +38057,7 @@ async function deleteAccountFromManager(acc) {
   if (typeof updateUI === 'function') updateUI();
 
   if (typeof showSyncToast === 'function') {
-    showSyncToast(state.lang === 'el' ? '? � ����������� ����������' : '? Account deleted', 2000);
+    showSyncToast(state.lang === 'el' ? '✓ Ο λογαριασμός διαγράφηκε' : '✓ Account deleted', 2000);
   }
 }
 
