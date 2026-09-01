@@ -568,6 +568,7 @@ public class MainActivity extends BridgeActivity {
     public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
         if (hasFocus) {
+            applySecureMode();
             lockWebViewSettings();
             // After Samsung Pass or any overlay dismisses and focus returns,
             // force-reset the WebView zoom to 100% via JavaScript.

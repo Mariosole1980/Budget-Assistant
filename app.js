@@ -23047,31 +23047,23 @@ let tempSetupPin = "";
 
 function showLockScreen() {
   const savedPin = localStorage.getItem('app_pin');
-  if (!savedPin || savedPin.length !== 4) {
-    localStorage.removeItem('app_lock_enabled');
-    localStorage.removeItem('app_biometrics_enabled');
-    localStorage.removeItem('biometric_cred_id');
+  const appLockEnabled = localStorage.getItem('app_lock_enabled') === 'true';
+  const biometricsEnabled = localStorage.getItem('app_biometrics_enabled') === 'true';
+
+  if (!savedPin || savedPin.length !== 4 || (!appLockEnabled && !biometricsEnabled)) {
     hideLockScreen();
     return;
   }
 
-  // SECURITY/UX FIX: Never show the lock screen OVER the login overlay.
-  // The lock screen has z-index 99999 while the auth overlay has z-index 20000,
-  // so showing it while the user is NOT authenticated would cover the login card
-  // and trap the user on the PIN screen (unable to reach the sign-in form).
-  // Only show the lock screen when there is a valid authenticated context:
-  // a cached user, guest mode, or an already-confirmed session.
-  const hasCachedUser = !!localStorage.getItem('cached_current_user');
-  const isGuestMode = localStorage.getItem('auth_guest_mode') === 'true';
-  const isConfirmed = !!window._authConfirmed;
-  if (!hasCachedUser && !isGuestMode && !isConfirmed) {
+  // Never show lock screen OVER the active auth modal/overlay
+  const authOverlay = document.getElementById('auth-overlay');
+  if (authOverlay && (authOverlay.classList.contains('active') || authOverlay.style.display === 'flex')) {
     hideLockScreen();
     return;
   }
 
   const lockScreen = document.getElementById('lock-screen');
   if (lockScreen) {
-    // FIX: Ensure the lock screen is a direct child of <body> before showing.
     ensureOverlayInBody(lockScreen);
     lockScreen.classList.add('active');
     enteredPin = [];
@@ -23079,13 +23071,13 @@ function showLockScreen() {
 
     // Show/hide biometric button based on settings
     const biometricBtn = document.getElementById('btn-biometric');
-    const biometricsEnabled = localStorage.getItem('app_biometrics_enabled') === 'true';
+    const isBioActive = localStorage.getItem('app_biometrics_enabled') === 'true';
     if (biometricBtn) {
-      biometricBtn.style.display = biometricsEnabled ? 'flex' : 'none';
+      biometricBtn.style.display = isBioActive ? 'flex' : 'none';
     }
 
     // Auto-trigger biometric auth if enabled
-    if (biometricsEnabled) {
+    if (isBioActive) {
       setTimeout(() => {
         triggerBiometricAuth();
       }, 300);
@@ -23156,7 +23148,7 @@ function verifyEnteredPin() {
   }
 }
 
-// Biometrics (WebAuthn Platform Authenticator & Native Biometrics API)
+// Biometrics (AndroidX Native Biometrics Prompt, Capgo NativeBiometric & WebAuthn Fallback)
 async function checkBiometricsSupport() {
   const container = document.getElementById('settings-biometrics-container');
   const toggle = document.getElementById('settings-biometrics');
@@ -23178,56 +23170,88 @@ async function checkBiometricsSupport() {
   }
 }
 
-async function registerBiometrics() {
+async function authenticateBiometricsNativeOrWeb() {
+  // 1. Try Custom SecurityPlugin (Direct AndroidX BiometricPrompt)
   try {
-    const randomChallenge = new Uint8Array(16);
-    window.crypto.getRandomValues(randomChallenge);
-    const userId = new Uint8Array(16);
-    window.crypto.getRandomValues(userId);
-
-    const rpId = window.location.hostname;
-    const credentialOptions = {
-      publicKey: {
-        challenge: randomChallenge,
-        rp: {
-          name: "Budget Assistant",
-          id: rpId
-        },
-        user: {
-          id: userId,
-          name: "user@moneymanager.local",
-          displayName: "Local User"
-        },
-        pubKeyCredParams: [
-          { type: "public-key", alg: -7 },   // ES256
-          { type: "public-key", alg: -257 }  // RS256
-        ],
-        authenticatorSelection: {
-          userVerification: "preferred", // preferred instead of required to maximize compatibility
-          authenticatorAttachment: "platform"
-        },
-        timeout: 60000
+    const secPlugin = getSecurityPlugin();
+    if (secPlugin && typeof secPlugin.authenticateBiometrics === 'function') {
+      const res = await secPlugin.authenticateBiometrics({
+        title: state.lang === 'el' ? 'Βιομετρικό Ξεκλείδωμα' : 'Biometric Unlock',
+        subtitle: state.lang === 'el' ? 'Χρησιμοποιήστε το δακτυλικό αποτύπωμα ή Face ID' : 'Use fingerprint or Face ID',
+        cancelButtonText: state.lang === 'el' ? 'Ακύρωση' : 'Cancel'
+      });
+      if (res && res.success) {
+        return true;
       }
-    };
+      if (res && res.error) {
+        return res.error;
+      }
+    }
+  } catch (e) {
+    console.warn('[SecurityPlugin] authenticate error:', e);
+  }
 
-    const credential = await navigator.credentials.create(credentialOptions);
-    if (credential) {
-      const credentialId = btoa(String.fromCharCode(...new Uint8Array(credential.rawId)));
-      localStorage.setItem('biometric_cred_id', credentialId);
+  // 2. Try Capgo NativeBiometric Plugin
+  try {
+    const nativeBio = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.NativeBiometric;
+    if (nativeBio && typeof nativeBio.verifyIdentity === 'function') {
+      await nativeBio.verifyIdentity({
+        reason: state.lang === 'el' ? 'Ξεκλείδωμα Budget Assistant' : 'Unlock Budget Assistant',
+        title: state.lang === 'el' ? 'Βιομετρικό Ξεκλείδωμα' : 'Biometric Unlock',
+        subtitle: state.lang === 'el' ? 'Επιβεβαιώστε την ταυτότητά σας' : 'Confirm your identity',
+        description: state.lang === 'el' ? 'Σαρώστε το δακτυλικό αποτύπωμα ή Face ID' : 'Scan fingerprint or Face ID'
+      });
       return true;
     }
-  } catch (err) {
-    console.error("Biometrics registration failed:", err);
-    return err.name || err.message || String(err);
+  } catch (e) {
+    console.warn('[NativeBiometric] verifyIdentity error:', e);
+    return (e && (e.message || e.name)) || String(e);
   }
-  return "Unknown error";
+
+  // 3. Fallback for Web/Desktop Browser (WebAuthn Platform Authenticator)
+  if (window.PublicKeyCredential && typeof navigator.credentials !== 'undefined' && window.isSecureContext) {
+    try {
+      const isAvailable = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+      if (!isAvailable) {
+        return state.lang === 'el' ? 'Μη διαθέσιμα βιομετρικά' : 'Biometrics not available';
+      }
+      return await verifyWebAuthnBiometrics();
+    } catch (e) {
+      return (e && (e.message || e.name)) || String(e);
+    }
+  }
+
+  return state.lang === 'el' ? 'Μη υποστηριζόμενη συσκευή' : 'Unsupported device';
 }
 
-async function verifyBiometrics() {
-  const credIdBase64 = localStorage.getItem('biometric_cred_id');
-  if (!credIdBase64) return false;
-
+async function verifyWebAuthnBiometrics() {
   try {
+    let credIdBase64 = localStorage.getItem('biometric_cred_id');
+    if (!credIdBase64) {
+      const randomChallenge = new Uint8Array(16);
+      window.crypto.getRandomValues(randomChallenge);
+      const userId = new Uint8Array(16);
+      window.crypto.getRandomValues(userId);
+
+      const credentialOptions = {
+        publicKey: {
+          challenge: randomChallenge,
+          rp: { name: "Budget Assistant", id: window.location.hostname },
+          user: { id: userId, name: "user@moneymanager.local", displayName: "Local User" },
+          pubKeyCredParams: [{ type: "public-key", alg: -7 }, { type: "public-key", alg: -257 }],
+          authenticatorSelection: { userVerification: "preferred", authenticatorAttachment: "platform" },
+          timeout: 60000
+        }
+      };
+      const credential = await navigator.credentials.create(credentialOptions);
+      if (credential) {
+        credIdBase64 = btoa(String.fromCharCode(...new Uint8Array(credential.rawId)));
+        localStorage.setItem('biometric_cred_id', credIdBase64);
+        return true;
+      }
+      return false;
+    }
+
     const rawId = new Uint8Array(atob(credIdBase64).split("").map(c => c.charCodeAt(0)));
     const randomChallenge = new Uint8Array(16);
     window.crypto.getRandomValues(randomChallenge);
@@ -23235,27 +23259,23 @@ async function verifyBiometrics() {
     const assertionOptions = {
       publicKey: {
         challenge: randomChallenge,
-        allowCredentials: [{
-          id: rawId,
-          type: "public-key"
-        }],
-        userVerification: "preferred", // preferred instead of required to match registration
+        allowCredentials: [{ id: rawId, type: "public-key" }],
+        userVerification: "preferred",
         timeout: 60000
       }
     };
-
     const assertion = await navigator.credentials.get(assertionOptions);
     return !!assertion;
   } catch (err) {
-    console.error("Biometrics verification failed:", err);
+    console.error("WebAuthn verification failed:", err);
     return false;
   }
 }
 
 async function triggerBiometricAuth() {
   if (localStorage.getItem('app_biometrics_enabled') !== 'true') return;
-  const verified = await verifyBiometrics();
-  if (verified) {
+  const verified = await authenticateBiometricsNativeOrWeb();
+  if (verified === true) {
     hideLockScreen();
   }
 }
@@ -23267,7 +23287,11 @@ function openPinModal() {
     modal.classList.add('active');
     document.getElementById('pin-modal-title').textContent = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['modal_pin_title']) || "Ορισμός PIN";
     document.getElementById('pin-modal-desc').textContent = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['modal_pin_desc']) || "Εισάγετε ένα 4ψήφιο PIN για το κλείδωμα της εφαρμογής.";
-    document.getElementById('pin-input-field').value = "";
+    const pinField = document.getElementById('pin-input-field');
+    if (pinField) {
+      pinField.value = "";
+      setTimeout(() => pinField.focus(), 100);
+    }
     pinSetupStep = 1;
     tempSetupPin = "";
   }
@@ -23288,7 +23312,7 @@ function closePinModal() {
 
 function submitPinSetup() {
   const pinField = document.getElementById('pin-input-field');
-  const pin = pinField.value;
+  const pin = pinField ? pinField.value : '';
 
   if (pin.length !== 4 || isNaN(pin)) {
     showSyncToast("❌ " + (state.lang === 'el' ? "Το PIN πρέπει να είναι ακριβώς 4 ψηφία!" : "PIN must be exactly 4 digits!"), 3000);
@@ -23301,13 +23325,17 @@ function submitPinSetup() {
     document.getElementById('pin-modal-title').textContent = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['pin_confirm_title']) || "Επιβεβαίωση PIN";
     document.getElementById('pin-modal-desc').textContent = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['pin_confirm_desc']) || "Πληκτρολογήστε ξανά το PIN για επιβεβαίωση.";
     pinSetupStep = 2;
+    setTimeout(() => pinField.focus(), 100);
   } else if (pinSetupStep === 2) {
     if (pin === tempSetupPin) {
       localStorage.setItem('app_pin', pin);
       localStorage.setItem('app_lock_enabled', 'true');
+      const lockCheckbox = document.getElementById('settings-app-lock');
+      if (lockCheckbox) lockCheckbox.checked = true;
       closePinModal();
       showSyncToast("✅ " + (state.lang === 'el' ? "Το κλείδωμα ενεργοποιήθηκε επιτυχώς!" : "App lock activated successfully!"), 3000);
       checkBiometricsSupport();
+      updateSettingsDisplay();
     } else {
       showSyncToast("❌ " + (state.lang === 'el' ? "Τα PIN δεν ταιριάζουν! Προσπαθήστε ξανά." : "PINs do not match! Try again."), 3000);
       pinSetupStep = 1;
@@ -23315,6 +23343,7 @@ function submitPinSetup() {
       pinField.value = "";
       document.getElementById('pin-modal-title').textContent = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['modal_pin_title']) || "Ορισμός PIN";
       document.getElementById('pin-modal-desc').textContent = (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['modal_pin_desc']) || "Εισάγετε ένα 4ψήφιο PIN για το κλείδωμα της εφαρμογής.";
+      setTimeout(() => pinField.focus(), 100);
     }
   }
 }
@@ -23326,7 +23355,7 @@ function openPinVerifyModal() {
     const input = document.getElementById('pin-verify-input');
     if (input) {
       input.value = '';
-      setTimeout(() => input.focus(), 50);
+      setTimeout(() => input.focus(), 100);
     }
   }
 }
@@ -23357,6 +23386,7 @@ function submitPinVerification() {
     localStorage.removeItem('app_pin');
     localStorage.removeItem('app_biometrics_enabled');
     localStorage.removeItem('biometric_cred_id');
+    localStorage.setItem('settings_auto_lock_delay', 'disabled');
 
     suppressLockToggle = true;
     const lockCheckbox = document.getElementById('settings-app-lock');
@@ -23365,6 +23395,7 @@ function submitPinVerification() {
     if (bioCheckbox) bioCheckbox.checked = false;
     suppressLockToggle = false;
 
+    updateSettingsDisplay();
     closePinVerifyModal();
     showSyncToast("🔓 " + (state.lang === 'el' ? "Το κλείδωμα απενεργοποιήθηκε." : "App lock disabled."), 3000);
     return;
@@ -23375,10 +23406,11 @@ function submitPinVerification() {
     localStorage.removeItem('app_pin');
     localStorage.removeItem('app_biometrics_enabled');
     localStorage.removeItem('biometric_cred_id');
+    localStorage.setItem('settings_auto_lock_delay', 'disabled');
 
-    // Hide biometric settings container
+    // Keep biometric settings container VISIBLE, just unchecked
     const bioContainer = document.getElementById('settings-biometrics-container');
-    if (bioContainer) bioContainer.style.display = 'none';
+    if (bioContainer) bioContainer.style.display = 'flex';
 
     const bioCheckbox = document.getElementById('settings-biometrics');
     if (bioCheckbox) bioCheckbox.checked = false;
@@ -23389,6 +23421,7 @@ function submitPinVerification() {
     if (lockCheckbox) lockCheckbox.checked = false;
     suppressLockToggle = false;
 
+    updateSettingsDisplay();
     closePinVerifyModal();
     const pinModal = document.getElementById('pin-modal');
     if (pinModal) pinModal.classList.remove('active');
@@ -23447,7 +23480,6 @@ function proceedToPinSetup() {
   }
   openPinModal();
 }
-
 
 function getSecurityPlugin() {
   if (!window.Capacitor) return null;
@@ -23546,33 +23578,35 @@ function toggleScreenshotBlockSetting(checked) {
 window.toggleScreenshotBlockSetting = toggleScreenshotBlockSetting;
 
 async function toggleBiometrics(checked) {
+  const bioCheckbox = document.getElementById('settings-biometrics');
   if (checked) {
     const savedPin = localStorage.getItem('app_pin');
     const validPin = savedPin && savedPin.length === 4;
     const appLockEnabled = localStorage.getItem('app_lock_enabled') === 'true';
 
     if (!validPin || !appLockEnabled) {
-      const bioCheckbox = document.getElementById('settings-biometrics');
       if (bioCheckbox) bioCheckbox.checked = false;
       showSyncToast("⚠️ " + (state.lang === 'el' ? "Πρέπει πρώτα να ενεργοποιήσετε το Κλείδωμα PIN!" : "Please enable PIN lock first!"), 3500);
       openPinModal();
       return;
     }
-    const result = await registerBiometrics();
+    const result = await authenticateBiometricsNativeOrWeb();
     if (result === true) {
       localStorage.setItem('app_biometrics_enabled', 'true');
+      if (bioCheckbox) bioCheckbox.checked = true;
       const msg = state.lang === 'el' ? 'Το Face ID / Αποτύπωμα ενεργοποιήθηκε επιτυχώς!' : 'Face ID / Fingerprint activated successfully!';
       showSyncToast("✅ " + msg, 3000);
     } else {
       localStorage.removeItem('app_biometrics_enabled');
-      const bioCheckbox = document.getElementById('settings-biometrics');
       if (bioCheckbox) bioCheckbox.checked = false;
-      const msg = state.lang === 'el' ? 'Αποτυχία σύνδεσης βιομετρικών. Αιτία: ' : 'Biometrics failed: ';
-      showSyncToast("❌ " + msg + result, 4000);
+      const errorStr = String(result || '');
+      const msg = state.lang === 'el' ? 'Αποτυχία σύνδεσης βιομετρικών: ' : 'Biometrics failed: ';
+      showSyncToast("❌ " + msg + errorStr, 4000);
     }
   } else {
     localStorage.removeItem('app_biometrics_enabled');
     localStorage.removeItem('biometric_cred_id');
+    if (bioCheckbox) bioCheckbox.checked = false;
     const msg = state.lang === 'el' ? 'Τα βιομετρικά απενεργοποιήθηκαν.' : 'Biometrics deactivated.';
     showSyncToast("🔓 " + msg, 3000);
   }
