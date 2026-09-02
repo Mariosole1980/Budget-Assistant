@@ -34313,13 +34313,55 @@ function openRecurringDetailsModal(templateId) {
 
   // Save button text
   const saveBtn = document.querySelector('#recurring-details-modal .modal-body button[onclick="saveRecurringTemplateName()"]');
-  if (saveBtn) saveBtn.textContent = lang === 'el' ? '💾 Αποθήκευση' : '💾 Save';
+  if (saveBtn) {
+    saveBtn.innerHTML = `<i class="fa-solid fa-floppy-disk" style="font-size: 12px; margin-right: 4px;"></i>${lang === 'el' ? 'Αποθήκευση' : 'Save'}`;
+  }
 
-  // Gather all repetitions (transactions linked to this template)
+  // Gather all repetitions (transactions linked to this template or belonging to its recurring series)
   const templateIdStr = String(template.id);
+  const ctx = {
+    templateId: template.id,
+    amount: template.amount,
+    type: template.type,
+    category: template.category
+  };
+  let updatedAnyLink = false;
   const repetitions = (state.transactions || []).filter(tx => {
-    return String(tx.recurring_template_id || '') === templateIdStr;
+    // 1. Direct link by recurring_template_id
+    if (String(tx.recurring_template_id || '') === templateIdStr) return true;
+
+    // 2. Belongs to recurring series (amount + type + category + series occurrence date)
+    if (typeof _txBelongsToRecurringSeries === 'function' && _txBelongsToRecurringSeries(tx, ctx)) {
+      tx.recurring_template_id = template.id;
+      updatedAnyLink = true;
+      return true;
+    }
+
+    // 3. Robust fallback: same amount + type + (matching note or matching category) within template active timeline
+    const txAmount = (parseFloat(tx.amount) || 0).toFixed(2);
+    const templAmount = (parseFloat(template.amount) || 0).toFixed(2);
+    if (txAmount === templAmount && tx.type === template.type) {
+      const txNote = normalizeGreekString(tx.note || tx.description || '');
+      const templNote = normalizeGreekString(template.note || template.description || '');
+      const notesMatch = txNote.length > 0 && templNote.length > 0 && (txNote === templNote || txNote.includes(templNote) || templNote.includes(txNote));
+      const catMatch = isSameCategory(tx.category, template.category);
+      if (notesMatch || catMatch) {
+        const txDate = String(tx.date || '').split('T')[0].split(' ')[0];
+        const templateStart = template.startDate ? String(template.startDate).split('T')[0] : '2000-01-01';
+        const templateEnd = template.endDate ? String(template.endDate).split('T')[0] : '2099-12-31';
+        if (txDate >= templateStart && txDate <= templateEnd) {
+          tx.recurring_template_id = template.id;
+          updatedAnyLink = true;
+          return true;
+        }
+      }
+    }
+    return false;
   });
+
+  if (updatedAnyLink) {
+    localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
+  }
 
   // Sort by date ascending
   repetitions.sort((a, b) => {
@@ -34813,7 +34855,7 @@ function regenerateRecurringTemplateTransactions(template) {
       if (deletedDates.includes(dateString)) return;
 
       const expectedDeterministicId = generateDeterministicUUID(template.id, dateString);
-      const exists = state.transactions.some(t => {
+      const matchingExisting = state.transactions.find(t => {
         const tDate = String(t.date || '').split('T')[0].split(' ')[0];
         if (tDate !== dateString) return false;
         if (t.id === expectedDeterministicId) return true;
@@ -34829,7 +34871,12 @@ function regenerateRecurringTemplateTransactions(template) {
         }
         return false;
       });
-      if (exists) return;
+      if (matchingExisting) {
+        if (!matchingExisting.recurring_template_id) {
+          matchingExisting.recurring_template_id = template.id;
+        }
+        return;
+      }
 
       const newTx = {
         id: expectedDeterministicId,
