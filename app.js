@@ -1473,7 +1473,8 @@ async function scheduleDailyReminder(enabled, timeString) {
             body: state.lang === 'el' ? 'Έχεις καταγράψει τα σημερινά έξοδά σου;' : 'Have you logged today\'s expenses?',
             channelId: 'budget_reminders',
             smallIcon: 'ic_stat_icon_config_sample',
-            iconColor: '#0F1219',
+            largeIcon: 'ic_launcher_round',
+            iconColor: '#7c6af7',
             schedule: {
               on: {
                 hour: hours,
@@ -1760,7 +1761,8 @@ async function scheduleNoteReminder(note) {
           body: note.title,
           channelId: 'budget_reminders',
           smallIcon: 'ic_stat_icon_config_sample',
-          iconColor: '#0F1219',
+          largeIcon: 'ic_launcher_round',
+          iconColor: '#7c6af7',
           schedule: { at: reminderTime, allowWhileIdle: true },
           sound: null,
           attachments: null,
@@ -6015,7 +6017,8 @@ function checkHighExpenseAlert(transaction) {
           title: title,
           body: body,
           smallIcon: 'ic_stat_icon_config_sample',
-          iconColor: '#0F1219',
+          largeIcon: 'ic_launcher_round',
+          iconColor: '#7c6af7',
           schedule: { at: new Date(Date.now() + 50) },
           sound: null,
           attachments: null,
@@ -8248,6 +8251,9 @@ function checkOverBudgetNotification(transaction) {
           id: Math.floor(Math.random() * 100000),
           title: title,
           body: body,
+          smallIcon: 'ic_stat_icon_config_sample',
+          largeIcon: 'ic_launcher_round',
+          iconColor: '#7c6af7',
           schedule: { at: new Date(Date.now() + 500) }
         }]
       }).catch(e => console.warn('Failed to schedule local notification:', e));
@@ -30594,6 +30600,9 @@ function checkRecurringPaymentAlerts() {
               id: 8000 + index,
               title: title,
               body: body,
+              smallIcon: 'ic_stat_icon_config_sample',
+              largeIcon: 'ic_launcher_round',
+              iconColor: '#7c6af7',
               schedule: { at: new Date(Date.now() + 1000) },
               extra: { type: 'recurring_alert' }
             }]
@@ -30677,6 +30686,9 @@ function checkWeeklyAndMonthlyDigests(manualCheck = false) {
                 id: 8500,
                 title: title,
                 body: body,
+                smallIcon: 'ic_stat_icon_config_sample',
+                largeIcon: 'ic_launcher_round',
+                iconColor: '#7c6af7',
                 schedule: { at: new Date(Date.now() + 1000) },
                 extra: { type: 'weekly_digest' }
               }]
@@ -30743,6 +30755,9 @@ function checkWeeklyAndMonthlyDigests(manualCheck = false) {
                 id: 8600,
                 title: title,
                 body: body,
+                smallIcon: 'ic_stat_icon_config_sample',
+                largeIcon: 'ic_launcher_round',
+                iconColor: '#7c6af7',
                 schedule: { at: new Date(Date.now() + 1000) },
                 extra: { type: 'monthly_review' }
               }]
@@ -30803,6 +30818,9 @@ function checkPartnerActivityAlerts(transactions) {
               id: 9000 + (idx % 100),
               title: title,
               body: body,
+              smallIcon: 'ic_stat_icon_config_sample',
+              largeIcon: 'ic_launcher_round',
+              iconColor: '#7c6af7',
               schedule: { at: new Date(Date.now() + 500) },
               extra: { type: 'partner_activity' }
             }]
@@ -30864,7 +30882,8 @@ async function sendTestNotification() {
             body: body,
             channelId: 'budget_reminders',
             smallIcon: 'ic_stat_icon_config_sample',
-            iconColor: '#0F1219',
+            largeIcon: 'ic_launcher_round',
+            iconColor: '#7c6af7',
             schedule: { at: new Date(Date.now() + 400), allowWhileIdle: true },
             extra: { type: 'test' }
           }]
