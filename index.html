@@ -241,6 +241,227 @@
   <script src="js/sortable.min.js" defer></script>
   <!-- SheetJS xlsx CDN for Excel Import/Export -->
   <script src="xlsx.full.min.js" defer></script>
+
+  <!-- ============================================================ -->
+  <!-- APPLICATION SCRIPTS (moved to <head> — Phase 1B refactor)   -->
+  <!-- Loading here ensures correct dependency order regardless of  -->
+  <!-- where UI sections appear in the body.                        -->
+  <!-- ============================================================ -->
+        <!-- Core Application Scripts -->
+        <!-- AI debug logging flag: gates verbose console.* output from the AI engine
+         modules (AIEngine, OnlineAIProvider, IntentCorpus, KnowledgeGraph,
+         MemoryEngine). The in-app AIDebugLog panel is unaffected. Set to true
+         only during local development. -->
+        <script>window.AI_DEBUG = false;</script>
+        <script src="js/NLPProcessor.js"></script>
+        <script src="js/MemoryEngine.js"></script>
+        <script src="js/DecisionEngine.js"></script>
+        <script src="js/OnlineAIProvider.js"></script>
+        <script src="js/AIEngine.js"></script>
+        <script src="js/IntentCorpus.js"></script>
+        <script src="js/KnowledgeGraph.js"></script>
+        <!-- Multi-Currency Service (single conversion mechanism) -->
+        <script src="js/CurrencyService.js"></script>
+
+        <!-- Register PWA Service Worker -->
+        <script>
+
+          // ============================================================
+          // AGGRESSIVE iOS PWA AUTO-UPDATE
+          // Uses localStorage (persists across sessions), cache:'no-store',
+          // and unregisters all SW + clears all caches before hard reload.
+          // Throttled to prevent infinite reload loops (30s cooldown).
+          //
+          // IMPORTANT: This JS updater is ONLY for the web/PWA. Inside the
+          // native APK (Capacitor) it is SKIPPED entirely, because there the
+          // Capgo CapacitorUpdater plugin is the single source of truth for
+          // OTA updates. Running both would cause a reload loop that never
+          // baked into the APK and never changes on a plain reload).
+          // ============================================================
+          const CURRENT_BUILD = 1634;
+          (function () {
+            // Skip entirely when running inside the native APK (Capacitor bridge
+            // present). Capgo handles OTA updates there.
+            var isNative = window.Capacitor &&
+              (typeof window.Capacitor.isNativePlatform === 'function'
+                ? window.Capacitor.isNativePlatform()
+                : !!window.Capacitor.isNativePlatform);
+            if (isNative) {
+              return;
+            }
+            try {
+              const COOLDOWN_MS = 30000; // 30 seconds between update checks
+              const lastCheck = localStorage.getItem('_ba_last_update_check');
+              const lastReloaded = localStorage.getItem('_ba_last_reload_build');
+              const now = Date.now();
+
+              // If we just reloaded for this exact build, don't loop
+              if (lastReloaded && parseInt(lastReloaded) === CURRENT_BUILD) {
+                localStorage.removeItem('_ba_last_reload_build');
+                // Still do a silent check for future sessions
+              }
+
+              // Throttle: skip check if within cooldown window
+              if (lastCheck && (now - parseInt(lastCheck)) < COOLDOWN_MS) {
+                return;
+              }
+              localStorage.setItem('_ba_last_update_check', now.toString());
+
+              // Fetch version.json bypassing ALL caches
+              const versionUrl = 'version.json?_=' + now + '&build=' + CURRENT_BUILD;
+              fetch(versionUrl, {
+                cache: 'no-store',
+                headers: {
+                  'Cache-Control': 'no-cache, no-store, must-revalidate',
+                  'Pragma': 'no-cache',
+                  'Expires': '0'
+                }
+              })
+                .then(function (response) {
+                  if (!response.ok) throw new Error('Network error');
+                  return response.json();
+                })
+                .then(function (data) {
+                  // The deployed version.json is the Capgo OTA manifest where
+                  // `version` is a STRING like "1.0.1615". Comparing it directly
+                  // against the numeric CURRENT_BUILD ("1.0.1615" > 1615) is ALWAYS
+                  // false, so the web forced-reload update never fired. Normalize
+                  // it to the numeric build number before comparing.
+                  var serverBuild = (data && data.version) ? parseInt(String(data.version).split('.').pop(), 10) : 0;
+                  if (serverBuild && serverBuild > CURRENT_BUILD) {
+                    console.log('[AutoUpdate] Server v' + serverBuild + ' > Local v' + CURRENT_BUILD + '. Forcing update...');
+                    // Store the NUMERIC build so the loop guard below
+                    // (parseInt(lastReloaded) === CURRENT_BUILD) matches on the
+                    // next cold boot after the forced reload.
+                    localStorage.setItem('_ba_last_reload_build', String(serverBuild));
+                    // Clear ALL caches then unregister SW then hard reload
+                    var clearAndReload = function () {
+                      if ('caches' in window) {
+                        caches.keys().then(function (names) {
+                          return Promise.all(names.map(function (n) { return caches.delete(n); }));
+                        }).then(function () {
+                          window.location.href = window.location.href.split('?')[0] + '?_r=' + Date.now();
+                        }).catch(function () {
+                          window.location.href = window.location.href.split('?')[0] + '?_r=' + Date.now();
+                        });
+                      } else {
+                        window.location.href = window.location.href.split('?')[0] + '?_r=' + Date.now();
+                      }
+                    };
+                    if ('serviceWorker' in navigator && navigator.serviceWorker.getRegistrations) {
+                      navigator.serviceWorker.getRegistrations().then(function (regs) {
+                        return Promise.all(regs.map(function (r) { return r.unregister(); }));
+                      }).then(clearAndReload).catch(clearAndReload);
+                    } else {
+                      clearAndReload();
+                    }
+                  }
+                })
+                .catch(function () {
+                  // Silently ignore network errors (offline mode)
+                });
+            } catch (err) {
+              console.error('[AutoUpdate] Error:', err);
+            }
+          })();
+
+          if ('serviceWorker' in navigator) {
+            // ============================================================
+            // STANDARD SECURE PWA REGISTRATION (Offline-Safe)
+            // We register the Service Worker directly using a clean URL.
+            // We DO NOT unregister the active service worker beforehand,
+            // as that destroys offline capability during version updates.
+            // ============================================================
+            const SW_URL = 'sw.js';
+
+            window.addEventListener('load', () => {
+              navigator.serviceWorker.register(SW_URL, { updateViaCache: 'none' }).then(function (reg) {
+                console.log('[SW] Registered v' + CURRENT_BUILD, reg.scope);
+
+                // Force immediate update check
+                reg.update().catch(function () { });
+
+                // Re-check on app foreground — ONLY in web-mode (browser/PWA).
+                // In the native Capacitor WebView the Service Worker does not run,
+                // and the SW 'activated' handler below forces a page reload, which
+                // itself is a flicker source on resume. Guarding this to web-mode
+                // keeps the native app's resume path clean.
+                document.addEventListener('visibilitychange', function () {
+                  if (document.visibilityState === 'visible' &&
+                    document.documentElement.classList.contains('web-mode')) {
+                    reg.update().catch(function () { });
+                  }
+                });
+
+                // Track new SW installation
+                reg.addEventListener('updatefound', function () {
+                  var newWorker = reg.installing;
+                  if (newWorker) {
+                    newWorker.addEventListener('statechange', function () {
+                      if (newWorker.state === 'installed') {
+                        newWorker.postMessage({ type: 'SKIP_WAITING' });
+                      }
+                      if (newWorker.state === 'activated' && !window._initialDataLoaded) {
+                        window.location.href = window.location.href.split('?')[0] + '?_sw=' + Date.now();
+                      }
+                    });
+                  }
+                });
+
+                // Activate waiting SW immediately
+                if (reg.waiting) {
+                  reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+                }
+              }).catch(function (err) {
+                console.error('[SW] Registration failed:', err);
+              });
+            });
+
+            // Listen for NEW_VERSION_AVAILABLE from service worker
+            navigator.serviceWorker.addEventListener('message', function (event) {
+              if (event.data && event.data.type === 'NEW_VERSION_AVAILABLE' && !window._initialDataLoaded) {
+                window.location.href = window.location.href.split('?')[0] + '?_new=' + Date.now();
+              }
+            });
+
+            // Hard reload when new SW takes control only on cold boot
+            var refreshing = false;
+            navigator.serviceWorker.addEventListener('controllerchange', function () {
+              if (!refreshing && !window._initialDataLoaded) {
+                refreshing = true;
+                window.location.href = window.location.href.split('?')[0] + '?_ctrl=' + Date.now();
+              }
+            });
+          }
+        </script>
+
+      <!-- Transaction merge/dedup logic (pure, testable; loaded before app.js) -->
+      <script src="js/transactionMerge.js"></script>
+      <!-- Pure utility/helper functions (extracted from app.js; loaded before app.js) -->
+      <script src="js/utils.js"></script>
+      <!-- Pure-data constants (extracted from app.js; loaded before app.js) -->
+      <script src="js/constants.js"></script>
+      <!-- Category Vector Icon Registry & System (loaded before app.js) -->
+      <script src="js/categoryIcons.js"></script>
+      <!-- Translation dictionary (extracted from app.js; loaded before app.js) -->
+      <script src="js/translations.js"></script>
+      <!-- Local receipt photo storage (IndexedDB; extracted from app.js; loaded before app.js) -->
+      <script src="js/receiptStorage.js"></script>
+      <!-- Pure transaction date-parsing & sort order (extracted from app.js; loaded before app.js) -->
+      <script src="js/transactionSorting.js"></script>
+      <!-- camelCase↔snake_case mappers for recurring templates (extracted from app.js; loaded before app.js) -->
+      <script src="js/recurringMappers.js"></script>
+      <!-- CSV/Excel import data parsers (extracted from app.js; loaded before app.js, after utils.js) -->
+      <script src="js/importParsers.js"></script>
+      <!-- Recurring template date helpers (extracted from app.js; loaded before app.js) -->
+      <script src="js/recurringDates.js"></script>
+      <!-- Pure calculator buffer evaluation (extracted from app.js; loaded before app.js) -->
+      <script src="js/calcKeypad.js"></script>
+      <script src="app.js?v=1634"></script>
+      <!-- Desktop Web UX Layer (defer so it runs after app.js; invoked via
+       initDesktopUI() hook at the end of initApp()). Self-guards on
+       html.web-mode so native Android/iOS is never affected. -->
+      <script src="web-ui.js?v=1634" defer></script>
 </head>
 
 <body style="background-color: #181b22; margin: 0; padding: 0; ">
@@ -5878,193 +6099,6 @@
       </div>
     </div>
 
-        <!-- Core Application Scripts -->
-        <!-- AI debug logging flag: gates verbose console.* output from the AI engine
-         modules (AIEngine, OnlineAIProvider, IntentCorpus, KnowledgeGraph,
-         MemoryEngine). The in-app AIDebugLog panel is unaffected. Set to true
-         only during local development. -->
-        <script>window.AI_DEBUG = false;</script>
-        <script src="js/NLPProcessor.js"></script>
-        <script src="js/MemoryEngine.js"></script>
-        <script src="js/DecisionEngine.js"></script>
-        <script src="js/OnlineAIProvider.js"></script>
-        <script src="js/AIEngine.js"></script>
-        <script src="js/IntentCorpus.js"></script>
-        <script src="js/KnowledgeGraph.js"></script>
-        <!-- Multi-Currency Service (single conversion mechanism) -->
-        <script src="js/CurrencyService.js"></script>
-
-        <!-- Register PWA Service Worker -->
-        <script>
-
-          // ============================================================
-          // AGGRESSIVE iOS PWA AUTO-UPDATE
-          // Uses localStorage (persists across sessions), cache:'no-store',
-          // and unregisters all SW + clears all caches before hard reload.
-          // Throttled to prevent infinite reload loops (30s cooldown).
-          //
-          // IMPORTANT: This JS updater is ONLY for the web/PWA. Inside the
-          // native APK (Capacitor) it is SKIPPED entirely, because there the
-          // Capgo CapacitorUpdater plugin is the single source of truth for
-          // OTA updates. Running both would cause a reload loop that never
-          // baked into the APK and never changes on a plain reload).
-          // ============================================================
-          const CURRENT_BUILD = 1634;
-          (function () {
-            // Skip entirely when running inside the native APK (Capacitor bridge
-            // present). Capgo handles OTA updates there.
-            var isNative = window.Capacitor &&
-              (typeof window.Capacitor.isNativePlatform === 'function'
-                ? window.Capacitor.isNativePlatform()
-                : !!window.Capacitor.isNativePlatform);
-            if (isNative) {
-              return;
-            }
-            try {
-              const COOLDOWN_MS = 30000; // 30 seconds between update checks
-              const lastCheck = localStorage.getItem('_ba_last_update_check');
-              const lastReloaded = localStorage.getItem('_ba_last_reload_build');
-              const now = Date.now();
-
-              // If we just reloaded for this exact build, don't loop
-              if (lastReloaded && parseInt(lastReloaded) === CURRENT_BUILD) {
-                localStorage.removeItem('_ba_last_reload_build');
-                // Still do a silent check for future sessions
-              }
-
-              // Throttle: skip check if within cooldown window
-              if (lastCheck && (now - parseInt(lastCheck)) < COOLDOWN_MS) {
-                return;
-              }
-              localStorage.setItem('_ba_last_update_check', now.toString());
-
-              // Fetch version.json bypassing ALL caches
-              const versionUrl = 'version.json?_=' + now + '&build=' + CURRENT_BUILD;
-              fetch(versionUrl, {
-                cache: 'no-store',
-                headers: {
-                  'Cache-Control': 'no-cache, no-store, must-revalidate',
-                  'Pragma': 'no-cache',
-                  'Expires': '0'
-                }
-              })
-                .then(function (response) {
-                  if (!response.ok) throw new Error('Network error');
-                  return response.json();
-                })
-                .then(function (data) {
-                  // The deployed version.json is the Capgo OTA manifest where
-                  // `version` is a STRING like "1.0.1615". Comparing it directly
-                  // against the numeric CURRENT_BUILD ("1.0.1615" > 1615) is ALWAYS
-                  // false, so the web forced-reload update never fired. Normalize
-                  // it to the numeric build number before comparing.
-                  var serverBuild = (data && data.version) ? parseInt(String(data.version).split('.').pop(), 10) : 0;
-                  if (serverBuild && serverBuild > CURRENT_BUILD) {
-                    console.log('[AutoUpdate] Server v' + serverBuild + ' > Local v' + CURRENT_BUILD + '. Forcing update...');
-                    // Store the NUMERIC build so the loop guard below
-                    // (parseInt(lastReloaded) === CURRENT_BUILD) matches on the
-                    // next cold boot after the forced reload.
-                    localStorage.setItem('_ba_last_reload_build', String(serverBuild));
-                    // Clear ALL caches then unregister SW then hard reload
-                    var clearAndReload = function () {
-                      if ('caches' in window) {
-                        caches.keys().then(function (names) {
-                          return Promise.all(names.map(function (n) { return caches.delete(n); }));
-                        }).then(function () {
-                          window.location.href = window.location.href.split('?')[0] + '?_r=' + Date.now();
-                        }).catch(function () {
-                          window.location.href = window.location.href.split('?')[0] + '?_r=' + Date.now();
-                        });
-                      } else {
-                        window.location.href = window.location.href.split('?')[0] + '?_r=' + Date.now();
-                      }
-                    };
-                    if ('serviceWorker' in navigator && navigator.serviceWorker.getRegistrations) {
-                      navigator.serviceWorker.getRegistrations().then(function (regs) {
-                        return Promise.all(regs.map(function (r) { return r.unregister(); }));
-                      }).then(clearAndReload).catch(clearAndReload);
-                    } else {
-                      clearAndReload();
-                    }
-                  }
-                })
-                .catch(function () {
-                  // Silently ignore network errors (offline mode)
-                });
-            } catch (err) {
-              console.error('[AutoUpdate] Error:', err);
-            }
-          })();
-
-          if ('serviceWorker' in navigator) {
-            // ============================================================
-            // STANDARD SECURE PWA REGISTRATION (Offline-Safe)
-            // We register the Service Worker directly using a clean URL.
-            // We DO NOT unregister the active service worker beforehand,
-            // as that destroys offline capability during version updates.
-            // ============================================================
-            const SW_URL = 'sw.js';
-
-            window.addEventListener('load', () => {
-              navigator.serviceWorker.register(SW_URL, { updateViaCache: 'none' }).then(function (reg) {
-                console.log('[SW] Registered v' + CURRENT_BUILD, reg.scope);
-
-                // Force immediate update check
-                reg.update().catch(function () { });
-
-                // Re-check on app foreground — ONLY in web-mode (browser/PWA).
-                // In the native Capacitor WebView the Service Worker does not run,
-                // and the SW 'activated' handler below forces a page reload, which
-                // itself is a flicker source on resume. Guarding this to web-mode
-                // keeps the native app's resume path clean.
-                document.addEventListener('visibilitychange', function () {
-                  if (document.visibilityState === 'visible' &&
-                    document.documentElement.classList.contains('web-mode')) {
-                    reg.update().catch(function () { });
-                  }
-                });
-
-                // Track new SW installation
-                reg.addEventListener('updatefound', function () {
-                  var newWorker = reg.installing;
-                  if (newWorker) {
-                    newWorker.addEventListener('statechange', function () {
-                      if (newWorker.state === 'installed') {
-                        newWorker.postMessage({ type: 'SKIP_WAITING' });
-                      }
-                      if (newWorker.state === 'activated' && !window._initialDataLoaded) {
-                        window.location.href = window.location.href.split('?')[0] + '?_sw=' + Date.now();
-                      }
-                    });
-                  }
-                });
-
-                // Activate waiting SW immediately
-                if (reg.waiting) {
-                  reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-                }
-              }).catch(function (err) {
-                console.error('[SW] Registration failed:', err);
-              });
-            });
-
-            // Listen for NEW_VERSION_AVAILABLE from service worker
-            navigator.serviceWorker.addEventListener('message', function (event) {
-              if (event.data && event.data.type === 'NEW_VERSION_AVAILABLE' && !window._initialDataLoaded) {
-                window.location.href = window.location.href.split('?')[0] + '?_new=' + Date.now();
-              }
-            });
-
-            // Hard reload when new SW takes control only on cold boot
-            var refreshing = false;
-            navigator.serviceWorker.addEventListener('controllerchange', function () {
-              if (!refreshing && !window._initialDataLoaded) {
-                refreshing = true;
-                window.location.href = window.location.href.split('?')[0] + '?_ctrl=' + Date.now();
-              }
-            });
-          }
-        </script>
 
 
         <!-- ============================================== -->
@@ -6739,23 +6773,6 @@
         </div>
       </div>
 
-      <!-- Transaction merge/dedup logic (pure, testable; loaded before app.js) -->
-      <script src="js/transactionMerge.js"></script>
-      <!-- Pure utility/helper functions (extracted from app.js; loaded before app.js) -->
-      <script src="js/utils.js"></script>
-      <!-- Pure-data constants (extracted from app.js; loaded before app.js) -->
-      <script src="js/constants.js"></script>
-      <!-- Category Vector Icon Registry & System (loaded before app.js) -->
-      <script src="js/categoryIcons.js"></script>
-      <!-- Translation dictionary (extracted from app.js; loaded before app.js) -->
-      <script src="js/translations.js"></script>
-      <!-- Local receipt photo storage (IndexedDB; extracted from app.js; loaded before app.js) -->
-      <script src="js/receiptStorage.js"></script>
-      <script src="app.js?v=1634"></script>
-      <!-- Desktop Web UX Layer (defer so it runs after app.js; invoked via
-       initDesktopUI() hook at the end of initApp()). Self-guards on
-       html.web-mode so native Android/iOS is never affected. -->
-      <script src="web-ui.js?v=1634" defer></script>
 
       <!-- MODAL: TYPE-TO-CONFIRM (for destructive actions) -->
       <div id="type-confirm-modal" class="modal-overlay" style="z-index: 2147483647;">

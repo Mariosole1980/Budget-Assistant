@@ -1,0 +1,12 @@
+﻿{
+  singleQuote: true,
+  semi: true,
+  tabWidth: 2,
+  trailingComma: es5,
+  printWidth: 100,
+  endOfLine: crlf,
+  overrides: [
+    { files: [*.html], options: { printWidth: 120 } },
+    { files: [*.json], options: { trailingComma: none } }
+  ]
+}

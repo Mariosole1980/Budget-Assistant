@@ -92,17 +92,21 @@ test('A2: normal transaction path calls computeCurrencyFields(t) instead of an i
 
 // ---------------------------------------------------------------------------
 // B/C. mapTemplateToDb / mapTemplateFromDb handle currency
+// (Phase 2, Extraction 2: these functions now live in js/recurringMappers.js)
 // ---------------------------------------------------------------------------
+const MAPPERS_JS = path.join(__dirname, '..', 'js', 'recurringMappers.js');
+const mappersSrc = fs.readFileSync(MAPPERS_JS, 'utf8');
+
 test('B: mapTemplateToDb writes currency (defaulting to EUR)', () => {
-    const fn = appSrc.match(/function mapTemplateToDb\(t\)\s*\{[\s\S]*?\n\}/);
+    const fn = mappersSrc.match(/function mapTemplateToDb\(t\)\s*\{[\s\S]*?\n  \}/);
     assert.ok(fn, 'mapTemplateToDb not found');
-    assert.match(fn[0], /currency: t\.currency \|\| 'EUR',/);
+    assert.match(fn[0], /currency:\s+t\.currency\s+\|\|\s+'EUR',/);
 });
 
 test('C: mapTemplateFromDb reads currency (defaulting to EUR)', () => {
-    const fn = appSrc.match(/function mapTemplateFromDb\(t\)\s*\{[\s\S]*?\n\}/);
+    const fn = mappersSrc.match(/function mapTemplateFromDb\(t\)\s*\{[\s\S]*?\n  \}/);
     assert.ok(fn, 'mapTemplateFromDb not found');
-    assert.match(fn[0], /currency: t\.currency \|\| 'EUR',/);
+    assert.match(fn[0], /currency:\s+t\.currency\s+\|\|\s+'EUR',/);
 });
 
 // ---------------------------------------------------------------------------

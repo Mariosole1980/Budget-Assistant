@@ -1,0 +1,14 @@
+﻿js/supabase.js
+js/chart.js
+js/chartjs-plugin-datalabels.js
+js/sortable.min.js
+xlsx.full.min.js
+js/fontawesome.min.css
+www/
+android/app/build/
+backups/
+archive/
+scratch/
+node_modules/
+ota-boot-loader.js
+js/OTAEngine.js

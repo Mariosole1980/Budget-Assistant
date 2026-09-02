@@ -71,22 +71,43 @@ global.mapTemplateToDb = (t) => t;
 global.openModal = () => {};
 global.TRANSLATIONS = {};
 
-// Load the real functions under test from app.js. All are eval'd together at
-// module top level (NOT inside a callback) so their declarations share the
-// module scope and can reference each other (same pattern as
-// test/templateMerge.test.js).
+// Load the real functions under test.
+// Phase 2 Extraction 5: getDeletedDatesFromTemplate, addDeletedDateToTemplate,
+// _computeRecurringSeriesDates were moved from app.js to js/recurringDates.js.
+// Extract them from their new home; the rest remain in app.js.
+const recurringDatesJs = fs.readFileSync(__dirname + '/../js/recurringDates.js', 'utf8');
+
+function extractFnFromSrc(src, name) {
+  let start = -1;
+  for (const prefix of ['async function ' + name + '(', 'function ' + name + '(']) {
+    start = src.indexOf(prefix);
+    if (start !== -1) break;
+  }
+  if (start === -1) throw new Error('function ' + name + ' not found in source');
+  const braceStart = src.indexOf('{', start);
+  let depth = 0;
+  let i = braceStart;
+  for (; i < src.length; i++) {
+    if (src[i] === '{') depth++;
+    else if (src[i] === '}') { depth--; if (depth === 0) break; }
+  }
+  return src.slice(start, i + 1);
+}
+
 eval([
-  'stripLeadingEmoji',
-  'isSameCategory',
-  'getDeletedDatesFromTemplate',
-  'addDeletedDateToTemplate',
-  '_computeRecurringSeriesDates',
-  '_txBelongsToRecurringSeries',
-  'resolveRecurringTemplateForTx',
-  'executeBulkRecurringDelete',
-  'openBulkRecurringDeleteModal',
-  'deleteSelectedTransactions'
-].map(extractFn).join('\n'));
+  extractFnFromSrc(recurringDatesJs, 'getDeletedDatesFromTemplate'),
+  extractFnFromSrc(recurringDatesJs, 'addDeletedDateToTemplate'),
+  extractFnFromSrc(recurringDatesJs, '_computeRecurringSeriesDates'),
+  ...[
+    'stripLeadingEmoji',
+    'isSameCategory',
+    '_txBelongsToRecurringSeries',
+    'resolveRecurringTemplateForTx',
+    'executeBulkRecurringDelete',
+    'openBulkRecurringDeleteModal',
+    'deleteSelectedTransactions'
+  ].map(extractFn)
+].join('\n'));
 
 function makeState() {
   return {
