@@ -42,3 +42,7 @@ recurring-recovery-*.md
 # release step; must never be swept into a release commit)
 ota-boot-loader.js
 js/OTAEngine.js
+
+# Generated code analysis artifacts (local tooling only)
+.analysis_deps.json
+.analysis_funcs.csv
