@@ -171,7 +171,11 @@
           localStorage.setItem('developer_mode_active', 'true');
           window.location.href = 'debug.html';
         } else {
-          alert('Μη έγκυρος κωδικός.');
+          if (typeof window.showAlert === 'function') {
+            window.showAlert('Μη έγκυρος κωδικός.', '', '⚠️');
+          } else {
+            alert('Μη έγκυρος κωδικός.');
+          }
         }
       } else {
         devTapTimer = setTimeout(function () { devTaps = 0; }, 2000);
@@ -1347,6 +1351,25 @@
                   style="background:var(--overlay-180); color:#f8fafc; font-size:11px; padding:2px 8px; border-radius:10px; font-weight:800; border:1px solid var(--overlay-200);">0</span>
                 <i class="fa-solid fa-chevron-right" style="color:var(--text-muted);font-size:12px;"></i>
               </div>
+            </div>
+            <div style="height:1px;background:var(--border);margin:0 16px;"></div>
+
+            <!-- Rate on Play Store row -->
+            <div class="settings-list-item" id="hub-row-rate"
+              onclick="if(typeof openPlayStoreRating === 'function') openPlayStoreRating(); else window.open('https://play.google.com/store/apps/details?id=com.budgetassistant.app', '_blank');"
+              style="cursor: pointer; padding: 14px 16px;">
+              <div style="display:flex; align-items:center; gap:12px; flex:1;">
+                <div
+                  style="width:36px;height:36px;border-radius:10px;background:rgba(251,191,36,0.15);display:flex;align-items:center;justify-content:center;">
+                  <i class="fa-solid fa-star" style="color:#fbbf24;font-size:16px;"></i>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;">
+                  <span class="settings-item-label" data-i18n="settings_rate_title"
+                    style="font-weight:700; font-family:'Outfit',sans-serif; font-size:15px; color:var(--text-primary);">Αξιολόγηση στο Play Store</span>
+                  <span style="font-size:12px;color:var(--text-secondary);" data-i18n="settings_rate_desc">Βαθμολογήστε μας και βοηθήστε την ανάπτυξη</span>
+                </div>
+              </div>
+              <i class="fa-solid fa-arrow-up-right-from-square" style="color:var(--text-muted);font-size:12px;"></i>
             </div>
             <div style="height:1px;background:var(--border);margin:0 16px;"></div>
 
@@ -6826,7 +6849,7 @@
           <h4 id="custom-dialog-title"
             style="font-weight: 700; margin-bottom: 8px; color: var(--text-main); font-size: 16px;">Επιβεβαίωση</h4>
           <p id="custom-dialog-message"
-            style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 24px; word-break: break-word; max-height: 45vh; overflow-y: auto; text-align: left; -webkit-overflow-scrolling: touch;">
+            style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 24px; word-break: break-word; max-height: 45vh; overflow-y: auto; text-align: left; -webkit-overflow-scrolling: touch; white-space: pre-wrap;">
           </p>
           <div class="custom-dialog-buttons" style="display: flex; gap: 12px; justify-content: center; width: 100%;">
             <button id="custom-dialog-btn-cancel" class="btn btn-secondary"

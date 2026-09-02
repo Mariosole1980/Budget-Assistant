@@ -2716,7 +2716,7 @@ if (document.readyState === 'loading') {
 // reason (e.g. an old cached HTML without the modal, or it was removed), it is
 // created on the fly as a top-level child of <body>. This guarantees the
 // confirmation/alert ALWAYS renders as an in-app centered dialog and NEVER
-// falls back to the native browser/WebView confirm()/alert() "separate window".
+// falls back to the native browser/WebView confirm()/window.showAlert() "separate window".
 function ensureCustomDialogModal() {
   let modal = document.getElementById('custom-dialog-modal');
   if (modal) {
@@ -2735,7 +2735,7 @@ function ensureCustomDialogModal() {
     '<div class="modal-content custom-dialog-content" style="max-width: 320px; text-align: center; padding: 24px; border-radius: 20px; background: var(--bg-card); border: 1px solid var(--border); box-shadow: 0 10px 30px rgba(0,0,0,0.5);">' +
     '<div id="custom-dialog-icon" style="font-size: 40px; margin-bottom: 16px;">💬</div>' +
     '<h4 id="custom-dialog-title" style="font-weight: 700; margin-bottom: 8px; color: var(--text-main); font-size: 16px;">Επιβεβαίωση</h4>' +
-    '<p id="custom-dialog-message" style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 24px; word-break: break-word; max-height: 45vh; overflow-y: auto; text-align: left; -webkit-overflow-scrolling: touch;"></p>' +
+    '<p id="custom-dialog-message" style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 24px; word-break: break-word; max-height: 45vh; overflow-y: auto; text-align: left; -webkit-overflow-scrolling: touch; white-space: pre-wrap;"></p>' +
     '<div class="custom-dialog-buttons" style="display: flex; gap: 12px; justify-content: center; width: 100%;">' +
     '<button id="custom-dialog-btn-cancel" class="btn btn-secondary" style="flex: 1; padding: 12px; font-weight: 700; border-radius: 12px; border: 1px solid var(--border); background: var(--bg-main); font-size: 13px;">Ακύρωση</button>' +
     '<button id="custom-dialog-btn-ok" class="btn btn-primary" style="flex: 1; padding: 12px; font-weight: 700; border-radius: 12px; font-size: 13px;">OK</button>' +
@@ -2820,6 +2820,146 @@ function showCustomDialog({ message, title = '', icon = '💬', showCancel = fal
 
 window.showConfirm = (message, title = '', icon = '❓') => showCustomDialog({ message, title, icon, showCancel: true });
 window.showAlert = (message, title = '', icon = 'ℹ️') => showCustomDialog({ message, title, icon, showCancel: false });
+
+// Global safety net: intercept any unhandled/legacy window.showAlert() call and route to custom styled modal
+window.alert = function (message) {
+  window.showAlert(String(message));
+};
+
+// ============================================================================
+// IN-APP REVIEW & RATING SUBSYSTEM (Prompt after 7 days of usage)
+// ============================================================================
+const REVIEW_STORAGE_KEYS = {
+  FIRST_LAUNCH: 'budget_assistant_first_launch_time',
+  STATUS: 'budget_assistant_review_status', // 'rated' | 'dismissed' | 'remind_later'
+  NEXT_PROMPT: 'budget_assistant_review_next_prompt_time'
+};
+
+const PLAY_STORE_URL_APP = 'market://details?id=com.budgetassistant.app';
+const PLAY_STORE_URL_WEB = 'https://play.google.com/store/apps/details?id=com.budgetassistant.app';
+
+function initReviewTracking() {
+  try {
+    if (!localStorage.getItem(REVIEW_STORAGE_KEYS.FIRST_LAUNCH)) {
+      localStorage.setItem(REVIEW_STORAGE_KEYS.FIRST_LAUNCH, Date.now().toString());
+    }
+  } catch (e) { }
+}
+
+function openPlayStoreRating() {
+  try {
+    localStorage.setItem(REVIEW_STORAGE_KEYS.STATUS, 'rated');
+  } catch (e) { }
+  const isNative = typeof window.Capacitor !== 'undefined' &&
+    typeof window.Capacitor.isNativePlatform === 'function' &&
+    window.Capacitor.isNativePlatform();
+
+  if (isNative) {
+    window.location.href = PLAY_STORE_URL_APP;
+  } else {
+    window.open(PLAY_STORE_URL_WEB, '_blank', 'noopener,noreferrer');
+  }
+}
+
+function checkAndPromptAppReview() {
+  try {
+    initReviewTracking();
+    const status = localStorage.getItem(REVIEW_STORAGE_KEYS.STATUS);
+    if (status === 'rated' || status === 'dismissed') return;
+
+    const firstLaunch = parseInt(localStorage.getItem(REVIEW_STORAGE_KEYS.FIRST_LAUNCH), 10);
+    if (!firstLaunch || isNaN(firstLaunch)) return;
+
+    const daysSinceFirstLaunch = (Date.now() - firstLaunch) / (1000 * 60 * 60 * 24);
+    if (daysSinceFirstLaunch < 7) return;
+
+    if (status === 'remind_later') {
+      const nextPrompt = parseInt(localStorage.getItem(REVIEW_STORAGE_KEYS.NEXT_PROMPT), 10);
+      if (nextPrompt && Date.now() < nextPrompt) return;
+    }
+
+    // Require active engagement: at least 3 transactions recorded
+    if (!state.transactions || state.transactions.length < 3) return;
+
+    // Show prompt after a short delay so the initial dashboard render is smooth
+    setTimeout(() => {
+      showReviewPromptModal();
+    }, 2500);
+  } catch (err) {
+    console.warn('[ReviewPrompt] check failed:', err);
+  }
+}
+
+function showReviewPromptModal() {
+  let modal = document.getElementById('in-app-review-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'in-app-review-modal';
+    modal.className = 'modal-overlay';
+    modal.style.zIndex = '2147483646';
+    document.body.appendChild(modal);
+  }
+
+  const isEl = (state.lang || 'el') === 'el';
+  const title = (typeof TRANSLATIONS !== 'undefined' && TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['review_prompt_title']) || (isEl ? 'Σας αρέσει το Budget Assistant;' : 'Enjoying Budget Assistant?');
+  const subtitle = (typeof TRANSLATIONS !== 'undefined' && TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['review_prompt_desc']) || (isEl
+    ? 'Η γνώμη σας μας βοηθά να εξελίσσουμε την εφαρμογή! Θα θέλατε να μας αφήσετε μια σύντομη αξιολόγηση στο Google Play Store;'
+    : 'Your feedback helps us continuously improve! Would you take a moment to leave a review on Google Play Store?');
+  const rateBtnText = (typeof TRANSLATIONS !== 'undefined' && TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['review_btn_rate']) || (isEl ? '⭐ Αξιολόγηση στο Play Store' : '⭐ Rate on Play Store');
+  const laterBtnText = (typeof TRANSLATIONS !== 'undefined' && TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['review_btn_later']) || (isEl ? 'Υπενθύμιση αργότερα' : 'Remind me later');
+  const dismissBtnText = (typeof TRANSLATIONS !== 'undefined' && TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['review_btn_dismiss']) || (isEl ? 'Όχι, ευχαριστώ' : 'No, thanks');
+
+  modal.innerHTML =
+    '<div class="modal-content" style="max-width: 340px; text-align: center; padding: 26px 22px; border-radius: 22px; background: var(--bg-card); border: 1px solid var(--border); box-shadow: 0 16px 36px rgba(0,0,0,0.5);">' +
+    '<div style="display: flex; justify-content: center; gap: 6px; font-size: 26px; color: #fbbf24; margin-bottom: 14px;">' +
+    '<span>⭐</span><span>⭐</span><span>⭐</span><span>⭐</span><span>⭐</span>' +
+    '</div>' +
+    '<h3 style="font-weight: 800; font-size: 17px; color: var(--text-main); margin-bottom: 8px;">' + title + '</h3>' +
+    '<p style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 22px;">' + subtitle + '</p>' +
+    '<div style="display: flex; flex-direction: column; gap: 10px; width: 100%;">' +
+    '<button id="review-btn-rate" class="btn btn-primary" style="width: 100%; padding: 13px; font-weight: 700; border-radius: 12px; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px;">' +
+    '<span>' + rateBtnText + '</span>' +
+    '</button>' +
+    '<button id="review-btn-later" class="btn btn-secondary" style="width: 100%; padding: 11px; font-weight: 600; border-radius: 12px; border: 1px solid var(--border); background: var(--bg-main); font-size: 13px; color: var(--text-main);">' +
+    laterBtnText +
+    '</button>' +
+    '<button id="review-btn-dismiss" style="background: none; border: none; padding: 8px; color: var(--text-secondary); font-size: 12px; cursor: pointer; text-decoration: underline;">' +
+    dismissBtnText +
+    '</button>' +
+    '</div></div>';
+
+  modal.classList.add('active');
+  document.body.classList.add('modal-open');
+
+  const closeReviewModal = () => {
+    modal.classList.remove('active');
+    document.body.classList.remove('modal-open');
+  };
+
+  document.getElementById('review-btn-rate').onclick = () => {
+    closeReviewModal();
+    openPlayStoreRating();
+  };
+
+  document.getElementById('review-btn-later').onclick = () => {
+    closeReviewModal();
+    try {
+      localStorage.setItem(REVIEW_STORAGE_KEYS.STATUS, 'remind_later');
+      localStorage.setItem(REVIEW_STORAGE_KEYS.NEXT_PROMPT, (Date.now() + 7 * 24 * 60 * 60 * 1000).toString());
+    } catch (e) { }
+  };
+
+  document.getElementById('review-btn-dismiss').onclick = () => {
+    closeReviewModal();
+    try {
+      localStorage.setItem(REVIEW_STORAGE_KEYS.STATUS, 'dismissed');
+    } catch (e) { }
+  };
+}
+
+window.openPlayStoreRating = openPlayStoreRating;
+window.checkAndPromptAppReview = checkAndPromptAppReview;
+window.showReviewPromptModal = showReviewPromptModal;
 
 function loadConfig() {
   // Database credentials are strictly hardcoded in state.supabaseConfig.
@@ -3084,7 +3224,8 @@ function initSupabaseAuth() {
         localStorage.setItem('cached_current_user', JSON.stringify(data.session.user));
         hideAuthOverlay();
         if (!window._initialDataLoaded) {
-          loadData().then(() => { window._initialDataLoaded = true; }).catch(console.error);
+          loadData().then(() => { window._initialDataLoaded = true;
+      if (typeof checkAndPromptAppReview === 'function') checkAndPromptAppReview(); }).catch(console.error);
         }
       }
     }
@@ -3686,9 +3827,9 @@ function showPendingInviteCodePrompt(inviteCode) {
           state.supabaseClient.rpc('join_family_group', { invite_code_input: inviteCode, invite_role_input: inviteRole })
             .then(({ data: joinData, error: joinErr }) => {
               if (joinErr) {
-                alert(state.lang === 'el' ? 'Σφάλμα κατά τη σύνδεση: ' + joinErr.message : 'Error joining family: ' + joinErr.message);
+                window.showAlert(state.lang === 'el' ? 'Σφάλμα κατά τη σύνδεση: ' + joinErr.message : 'Error joining family: ' + joinErr.message);
               } else {
-                alert(state.lang === 'el' ? '🎉 Συνδεθήκατε επιτυχώς στην οικογένεια!' : '🎉 Joined the family successfully!');
+                window.showAlert(state.lang === 'el' ? '🎉 Συνδεθήκατε επιτυχώς στην οικογένεια!' : '🎉 Joined the family successfully!');
                 window.location.reload();
               }
             });
@@ -3713,9 +3854,9 @@ function showPendingInvitationPrompt(invite) {
       state.supabaseClient.rpc('join_family_group', { invite_code_input: inviteCode, invite_role_input: inviteRole })
         .then(async ({ data, error }) => {
           if (error) {
-            alert(state.lang === 'el' ? 'Σφάλμα κατά τη σύνδεση: ' + error.message : 'Error joining family: ' + error.message);
+            window.showAlert(state.lang === 'el' ? 'Σφάλμα κατά τη σύνδεση: ' + error.message : 'Error joining family: ' + error.message);
           } else {
-            alert(state.lang === 'el' ? '🎉 Συνδεθήκατε επιτυχώς στην οικογένεια!' : '🎉 Joined the family successfully!');
+            window.showAlert(state.lang === 'el' ? '🎉 Συνδεθήκατε επιτυχώς στην οικογένεια!' : '🎉 Joined the family successfully!');
             window.location.reload();
           }
         });
@@ -10979,7 +11120,7 @@ function handleCustomPeriodSave() {
   if (startVal && endVal) {
     if (new Date(startVal) > new Date(endVal)) {
       const msg = TRANSLATIONS[state.lang]['alert_date_order'];
-      alert(msg);
+      window.showAlert(msg);
       return;
     }
     state.expandedStatsCategories.clear();
@@ -12064,7 +12205,7 @@ function inlineRenameCategory(categoryName, type) {
   if (newName === null) return; // User cancelled
   const trimmed = newName.trim();
   if (trimmed === '') {
-    alert(state.lang === 'el' ? 'Το όνομα δεν μπορεί να είναι κενό!' : 'Category name cannot be empty!');
+    window.showAlert(state.lang === 'el' ? 'Το όνομα δεν μπορεί να είναι κενό!' : 'Category name cannot be empty!');
     return;
   }
 
@@ -12074,7 +12215,7 @@ function inlineRenameCategory(categoryName, type) {
   // Check if another category with the same name and type already exists
   const exists = state.categories.find(c => c.type === type && getCategoryDisplayName(c.name).toLowerCase() === trimmed.toLowerCase());
   if (exists) {
-    alert(
+    window.showAlert(
       state.lang === 'el'
         ? 'Υπάρχει ήδη κατηγορία με αυτό το όνομα!'
         : 'A category with this name already exists!'
@@ -12753,7 +12894,7 @@ function saveNewCategoryFromPicker() {
   const name = nameInput ? nameInput.value.trim() : '';
 
   if (!name) {
-    alert(TRANSLATIONS[state.lang]['alert_enter_category_name']);
+    window.showAlert(TRANSLATIONS[state.lang]['alert_enter_category_name']);
     return;
   }
 
@@ -12780,7 +12921,7 @@ function saveNewCategoryFromPicker() {
     if (nameChanged) {
       const collision = state.categories.find(c => c.name !== oldName && getCategoryDisplayName(c.name).toLowerCase() === name.toLowerCase() && c.type === cat.type);
       if (collision) {
-        alert(state.lang === 'el' ? 'Υπάρχει ήδη κατηγορία με αυτό το όνομα!' : 'A category with this name already exists!');
+        window.showAlert(state.lang === 'el' ? 'Υπάρχει ήδη κατηγορία με αυτό το όνομα!' : 'A category with this name already exists!');
         return;
       }
     }
@@ -12861,7 +13002,7 @@ function saveNewCategoryFromPicker() {
     c.name && c.name.toUpperCase() === name.toUpperCase()
   );
   if (exists) {
-    alert(TRANSLATIONS[state.lang]['alert_category_exists']);
+    window.showAlert(TRANSLATIONS[state.lang]['alert_category_exists']);
     return;
   }
 
@@ -12937,7 +13078,7 @@ function openSubcategoryModal() {
   const form = document.getElementById('transaction-form');
   if (form && form.getAttribute('data-readonly') === 'true') return;
   if (!document.getElementById('trans-category').value) {
-    alert(TRANSLATIONS[state.lang]['alert_select_category_first']);
+    window.showAlert(TRANSLATIONS[state.lang]['alert_select_category_first']);
     return;
   }
   updateSubcategorySuggestions();
@@ -14790,11 +14931,11 @@ function goToExportStep2() {
     const fromStr = document.getElementById('export-custom-from')?.value;
     const toStr = document.getElementById('export-custom-to')?.value;
     if (!fromStr || !toStr) {
-      alert(state.lang === 'en' ? 'Please select both start and end dates!' : 'Παρακαλώ επιλέξτε ημερομηνία έναρξης και λήξης!');
+      window.showAlert(state.lang === 'en' ? 'Please select both start and end dates!' : 'Παρακαλώ επιλέξτε ημερομηνία έναρξης και λήξης!');
       return;
     }
     if (fromStr > toStr) {
-      alert(state.lang === 'en' ? 'Start date must be before end date!' : 'Η ημερομηνία έναρξης πρέπει να είναι προγενέστερη της ημερομηνίας λήξης!');
+      window.showAlert(state.lang === 'en' ? 'Start date must be before end date!' : 'Η ημερομηνία έναρξης πρέπει να είναι προγενέστερη της ημερομηνίας λήξης!');
       return;
     }
   }
@@ -14868,11 +15009,11 @@ function confirmExcelExport() {
     const fromStr = document.getElementById('export-custom-from').value;
     const toStr = document.getElementById('export-custom-to').value;
     if (!fromStr || !toStr) {
-      alert(state.lang === 'en' ? 'Please select both start and end dates!' : 'Παρακαλώ επιλέξτε ημερομηνία έναρξης και λήξης!');
+      window.showAlert(state.lang === 'en' ? 'Please select both start and end dates!' : 'Παρακαλώ επιλέξτε ημερομηνία έναρξης και λήξης!');
       return;
     }
     if (fromStr > toStr) {
-      alert(state.lang === 'en' ? 'Start date must be before end date!' : 'Η ημερομηνία έναρξης πρέπει να είναι προγενέστερη της ημερομηνίας λήξης!');
+      window.showAlert(state.lang === 'en' ? 'Start date must be before end date!' : 'Η ημερομηνία έναρξης πρέπει να είναι προγενέστερη της ημερομηνίας λήξης!');
       return;
     }
     exportToExcel(fromStr, toStr);
@@ -14888,7 +15029,7 @@ function confirmExcelExport() {
 function exportToExcel(startDate = null, endDate = null) {
   if (!state.transactions.length) {
     const msg = state.lang === 'en' ? 'No transactions to export!' : 'Δεν υπάρχουν συναλλαγές!';
-    alert(msg);
+    window.showAlert(msg);
     return;
   }
 
@@ -14905,7 +15046,7 @@ function exportToExcel(startDate = null, endDate = null) {
 
   if (!transactionsToExport.length) {
     const msg = TRANSLATIONS[state.lang]['export_no_data_range'] || 'Δεν υπάρχουν συναλλαγές σε αυτή την περίοδο!';
-    alert(msg);
+    window.showAlert(msg);
     return;
   }
 
@@ -14928,7 +15069,7 @@ function exportToExcel(startDate = null, endDate = null) {
       return;
     } catch (err) {
       console.error('[export] JSON export failed.', err);
-      alert(state.lang === 'en' ? 'JSON export failed!' : 'Η εξαγωγή JSON απέτυχε!');
+      window.showAlert(state.lang === 'en' ? 'JSON export failed!' : 'Η εξαγωγή JSON απέτυχε!');
       return;
     }
   }
@@ -14942,7 +15083,7 @@ function exportToExcel(startDate = null, endDate = null) {
       return;
     } catch (err) {
       console.error('[export] PDF export failed.', err);
-      alert(state.lang === 'en' ? 'PDF export failed!' : 'Η εξαγωγή PDF απέτυχε!');
+      window.showAlert(state.lang === 'en' ? 'PDF export failed!' : 'Η εξαγωγή PDF απέτυχε!');
       return;
     }
   }
@@ -19099,7 +19240,7 @@ async function saveCategoryManagerEdit() {
   const input = document.getElementById('cat-editor-name-input');
   const name = input ? input.value.trim() : '';
   if (!name) {
-    alert(state.lang === 'el' ? 'Παρακαλώ εισάγετε όνομα κατηγορίας!' : 'Please enter a category name!');
+    window.showAlert(state.lang === 'el' ? 'Παρακαλώ εισάγετε όνομα κατηγορίας!' : 'Please enter a category name!');
     return;
   }
 
@@ -19121,7 +19262,7 @@ async function saveCategoryManagerEdit() {
     if (nameChanged) {
       const collision = state.categories.find(c => c.name !== oldName && getCategoryDisplayName(c.name).toLowerCase() === name.toLowerCase() && c.type === type);
       if (collision) {
-        alert(state.lang === 'el' ? 'Υπάρχει ήδη κατηγορία με αυτό το όνομα!' : 'A category with this name already exists!');
+        window.showAlert(state.lang === 'el' ? 'Υπάρχει ήδη κατηγορία με αυτό το όνομα!' : 'A category with this name already exists!');
         return;
       }
     }
@@ -19181,7 +19322,7 @@ async function saveCategoryManagerEdit() {
   } else {
     const collision = state.categories.find(c => getCategoryDisplayName(c.name).toLowerCase() === name.toLowerCase() && c.type === type);
     if (collision) {
-      alert(state.lang === 'el' ? 'Υπάρχει ήδη κατηγορία με αυτό το όνομα!' : 'A category with this name already exists!');
+      window.showAlert(state.lang === 'el' ? 'Υπάρχει ήδη κατηγορία με αυτό το όνομα!' : 'A category with this name already exists!');
       return;
     }
 
@@ -23588,7 +23729,7 @@ function handleForgotPasswordOverlayClick(e) {
 async function submitForgotPasswordModal(e) {
   if (e) e.preventDefault();
   if (!state.supabaseClient) {
-    alert('Supabase is not initialized.');
+    window.showAlert('Supabase is not initialized.');
     return;
   }
 
@@ -23657,7 +23798,7 @@ function openChangeEmailModal() {
       ? 'Η λειτουργία αυτή απαιτεί σύνδεση σε λογαριασμό Cloud.'
       : 'This feature requires a signed-in Cloud account.';
     if (typeof showToast === 'function') showToast(msg, 'warning');
-    else alert(msg);
+    else window.showAlert(msg);
     return;
   }
 
@@ -23688,14 +23829,14 @@ async function handleUserEmailChange(event) {
 
   if (!newEmail || !newEmail.includes('@') || !newEmail.includes('.')) {
     const msg = state.lang === 'el' ? 'Παρακαλώ εισάγετε ένα έγκυρο email.' : 'Please enter a valid email address.';
-    alert(msg);
+    window.showAlert(msg);
     return;
   }
 
   const currentEmail = (state.currentUser.email || '').trim().toLowerCase();
   if (newEmail.toLowerCase() === currentEmail) {
     const msg = state.lang === 'el' ? 'Το νέο email είναι ίδιο με το τρέχον.' : 'The new email is identical to your current one.';
-    alert(msg);
+    window.showAlert(msg);
     return;
   }
 
@@ -23722,11 +23863,11 @@ async function handleUserEmailChange(event) {
     if (typeof showToast === 'function') {
       showToast(successMsg, 'success');
     }
-    alert(successMsg);
+    window.showAlert(successMsg);
   } catch (err) {
     console.error('Email update error:', err);
     const errMsg = (state.lang === 'el' ? 'Σφάλμα αλλαγής email: ' : 'Email update error: ') + (err.message || err);
-    alert(errMsg);
+    window.showAlert(errMsg);
   } finally {
     if (submitBtn) {
       submitBtn.disabled = false;
@@ -23741,7 +23882,7 @@ function openChangePasswordModal() {
       ? 'Η λειτουργία αυτή απαιτεί σύνδεση σε λογαριασμό Cloud.'
       : 'This feature requires a signed-in Cloud account.';
     if (typeof showToast === 'function') showToast(msg, 'warning');
-    else alert(msg);
+    else window.showAlert(msg);
     return;
   }
 
@@ -23773,14 +23914,14 @@ async function handleUserPasswordChange(event) {
 
   if (newPwd.length < 6) {
     const msg = state.lang === 'el' ? 'Ο κωδικός πρέπει να περιέχει τουλάχιστον 6 χαρακτήρες.' : 'Password must be at least 6 characters long.';
-    alert(msg);
+    window.showAlert(msg);
     if (newPwdInput) newPwdInput.focus();
     return;
   }
 
   if (newPwd !== confirmPwd) {
     const msg = state.lang === 'el' ? 'Οι κωδικοί δεν ταιριάζουν. Παρακαλώ ελέγξτε ξανά.' : 'Passwords do not match. Please verify and try again.';
-    alert(msg);
+    window.showAlert(msg);
     if (confirmPwdInput) confirmPwdInput.focus();
     return;
   }
@@ -23808,12 +23949,12 @@ async function handleUserPasswordChange(event) {
     if (typeof showToast === 'function') {
       showToast(successMsg, 'success');
     } else {
-      alert(successMsg);
+      window.showAlert(successMsg);
     }
   } catch (err) {
     console.error('Password update error:', err);
     const errMsg = (state.lang === 'el' ? 'Σφάλμα αλλαγής κωδικού: ' : 'Password update error: ') + (err.message || err);
-    alert(errMsg);
+    window.showAlert(errMsg);
   } finally {
     if (submitBtn) {
       submitBtn.disabled = false;
@@ -23893,7 +24034,7 @@ function clearAuthStatus() {
 async function handlePasswordAuth(e) {
   e.preventDefault();
   if (!state.supabaseClient) {
-    alert('Supabase is not initialized.');
+    window.showAlert('Supabase is not initialized.');
     return;
   }
 
@@ -25068,11 +25209,11 @@ async function createFamilyGroup() {
     const { data: newFamilyId, error } = await state.supabaseClient.rpc('create_family_group', { group_name: groupName });
     if (error) throw error;
 
-    alert(state.lang === 'el' ? '🎉 Η οικογένεια δημιουργήθηκε με επιτυχία!' : '🎉 Family group created successfully!');
+    window.showAlert(state.lang === 'el' ? '🎉 Η οικογένεια δημιουργήθηκε με επιτυχία!' : '🎉 Family group created successfully!');
     window.location.reload();
   } catch (err) {
     console.error('Error creating family group:', err);
-    alert(state.lang === 'el' ? 'Σφάλμα κατά τη δημιουργία: ' + err.message : 'Error creating group: ' + err.message);
+    window.showAlert(state.lang === 'el' ? 'Σφάλμα κατά τη δημιουργία: ' + err.message : 'Error creating group: ' + err.message);
   }
 }
 
@@ -25083,7 +25224,7 @@ async function joinFamilyGroup() {
 
   const code = codeInput.value.trim().toUpperCase();
   if (!code) {
-    alert(state.lang === 'el' ? 'Παρακαλώ εισάγετε τον κωδικό πρόσκλησης.' : 'Please enter the invite code.');
+    window.showAlert(state.lang === 'el' ? 'Παρακαλώ εισάγετε τον κωδικό πρόσκλησης.' : 'Please enter the invite code.');
     return;
   }
 
@@ -25091,11 +25232,11 @@ async function joinFamilyGroup() {
     const { data, error } = await state.supabaseClient.rpc('join_family_group', { invite_code_input: code });
     if (error) throw error;
 
-    alert(state.lang === 'el' ? '🎉 Συνδεθήκατε επιτυχώς στην οικογένεια!' : '🎉 Joined the family successfully!');
+    window.showAlert(state.lang === 'el' ? '🎉 Συνδεθήκατε επιτυχώς στην οικογένεια!' : '🎉 Joined the family successfully!');
     window.location.reload();
   } catch (err) {
     console.error('Error joining family group:', err);
-    alert(state.lang === 'el' ? 'Σφάλμα κατά τη σύνδεση: ' + err.message : 'Error joining family: ' + err.message);
+    window.showAlert(state.lang === 'el' ? 'Σφάλμα κατά τη σύνδεση: ' + err.message : 'Error joining family: ' + err.message);
   }
 }
 
@@ -25256,19 +25397,19 @@ async function inviteMemberByEmail() {
 
   const email = emailInput.value.trim().toLowerCase();
   if (!email) {
-    alert(state.lang === 'el' ? 'Παρακαλώ εισάγετε ένα έγκυρο email.' : 'Please enter a valid email.');
+    window.showAlert(state.lang === 'el' ? 'Παρακαλώ εισάγετε ένα έγκυρο email.' : 'Please enter a valid email.');
     return;
   }
 
   if (email === state.currentUser.email.toLowerCase()) {
-    alert(state.lang === 'el' ? 'Δεν μπορείτε να προσκαλέσετε το δικό σας email!' : 'You cannot invite your own email!');
+    window.showAlert(state.lang === 'el' ? 'Δεν μπορείτε να προσκαλέσετε το δικό σας email!' : 'You cannot invite your own email!');
     return;
   }
 
   try {
     const isAlreadyMember = state.familyProfiles.some(m => m.email.toLowerCase() === email);
     if (isAlreadyMember) {
-      alert(state.lang === 'el' ? 'Αυτός ο χρήστης είναι ήδη μέλος της οικογένειας!' : 'This user is already a member of your family!');
+      window.showAlert(state.lang === 'el' ? 'Αυτός ο χρήστης είναι ήδη μέλος της οικογένειας!' : 'This user is already a member of your family!');
       return;
     }
 
@@ -25321,14 +25462,14 @@ async function inviteMemberByEmail() {
     const mailtoUrl = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     window.location.href = mailtoUrl;
 
-    alert(state.lang === 'el'
+    window.showAlert(state.lang === 'el'
       ? '🎉 Η πρόσκληση καταχωρήθηκε στη βάση! Ανοίγει το πρόγραμμα email σας για την αποστολή του συνδέσμου.'
       : '🎉 Invitation saved! Your email client will now open to send the link.');
 
     emailInput.value = '';
   } catch (err) {
     console.error('Error inviting member:', err);
-    alert(state.lang === 'el' ? 'Σφάλμα κατά την πρόσκληση: ' + err.message : 'Error sending invitation: ' + err.message);
+    window.showAlert(state.lang === 'el' ? 'Σφάλμα κατά την πρόσκληση: ' + err.message : 'Error sending invitation: ' + err.message);
   }
 }
 
@@ -25795,7 +25936,7 @@ function showAuthDiagnosticPanel(checks, thrownError) {
     document.body.appendChild(panel);
   } catch (e) {
     console.error('[AuthDiag] Failed to render diagnostic panel:', e);
-    alert('Διαγνωστικά σύνδεσης:\n' + JSON.stringify(checks) + '\n' + (thrownError ? thrownError.message : ''));
+    window.showAlert('Διαγνωστικά σύνδεσης:\n' + JSON.stringify(checks) + '\n' + (thrownError ? thrownError.message : ''));
   }
 }
 
@@ -28703,7 +28844,7 @@ async function saveProfileName() {
 
     if (error) {
       console.error('Failed to update display_name:', error);
-      alert('⚠️ Αποτυχία ενημέρωσης ονόματος στη βάση δεδομένων.');
+      window.showAlert('⚠️ Αποτυχία ενημέρωσης ονόματος στη βάση δεδομένων.');
       nameInput.value = oldName;
     } else if (data) {
       state.userProfile = data;
@@ -31218,7 +31359,7 @@ async function submitUserFeedback() {
   const commentVal = document.getElementById('feedback-comment').value.trim();
 
   if (!rating) {
-    alert(state.lang === 'el' ? 'Παρακαλώ επιλέξτε μια βαθμολογία!' : 'Please select a rating!');
+    window.showAlert(state.lang === 'el' ? 'Παρακαλώ επιλέξτε μια βαθμολογία!' : 'Please select a rating!');
     return;
   }
 
@@ -33973,7 +34114,7 @@ window.submitCoachTransaction = async function (amount, type, category, subcateg
 
   const parsedAmount = parseFloat(amount);
   if (isNaN(parsedAmount) || parsedAmount <= 0) {
-    alert(state.lang === 'el' ? 'Παρακαλώ δώστε ένα έγκυρο ποσό.' : 'Please enter a valid amount.');
+    window.showAlert(state.lang === 'el' ? 'Παρακαλώ δώστε ένα έγκυρο ποσό.' : 'Please enter a valid amount.');
     if (btn) {
       btn.disabled = false;
       btn.innerHTML = state.lang === 'el' ? '✅ Καταχώρηση' : '✅ Register';
@@ -35290,7 +35431,7 @@ async function onboardingClearDemoData(isSilent = false) {
       ? '👋 Επιστρέψατε στα πραγματικά σας δεδομένα!'
       : '👋 Returned to your real account data!';
     if (typeof showToast === 'function') showToast(msg, 'info');
-    else alert(msg);
+    else window.showAlert(msg);
   } catch (err) {
     console.error('Failed to delete demo data:', err);
   }
@@ -35372,7 +35513,7 @@ function handleExcelUpload(event) {
     const msg = state.lang === 'en'
       ? 'Please select an Excel (.xlsx, .xls) or CSV file.'
       : 'Παρακαλώ επιλέξτε αρχείο Excel (.xlsx, .xls) ή CSV.';
-    alert(msg);
+    window.showAlert(msg);
     return;
   }
 
@@ -35394,14 +35535,14 @@ function handleExcelUpload(event) {
           const msg = state.lang === 'en'
             ? 'The Excel library is not loaded. Please try a CSV file instead.'
             : 'Η βιβλιοθήκη Excel δεν φορτώθηκε. Δοκιμάστε αρχείο CSV.';
-          alert(msg);
+          window.showAlert(msg);
           return;
         }
         const data = new Uint8Array(evt.target.result);
         const wb = XLSX.read(data, { type: 'array' });
         const firstSheet = wb.Sheets[wb.SheetNames[0]];
         if (!firstSheet) {
-          alert(state.lang === 'en' ? 'The file contains no sheets.' : 'Το αρχείο δεν περιέχει φύλλα εργασίας.');
+          window.showAlert(state.lang === 'en' ? 'The file contains no sheets.' : 'Το αρχείο δεν περιέχει φύλλα εργασίας.');
           return;
         }
         const sheetRows = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: '' });
@@ -35412,7 +35553,7 @@ function handleExcelUpload(event) {
       }
 
       if (headers.length === 0) {
-        alert(state.lang === 'en' ? 'The file appears to be empty.' : 'Το αρχείο φαίνεται να είναι κενό.');
+        window.showAlert(state.lang === 'en' ? 'The file appears to be empty.' : 'Το αρχείο φαίνεται να είναι κενό.');
         return;
       }
 
@@ -35441,7 +35582,7 @@ function handleExcelUpload(event) {
       if (typeof showToast === 'function') showToast(msg, 'info');
     } catch (err) {
       console.error('[import] Failed to parse file:', err);
-      alert(state.lang === 'en'
+      window.showAlert(state.lang === 'en'
         ? 'Failed to read the file. Please check that it is a valid Excel or CSV file.'
         : 'Αποτυχία ανάγνωσης του αρχείου. Βεβαιωθείτε ότι είναι έγκυρο αρχείο Excel ή CSV.');
     }
@@ -35490,7 +35631,7 @@ function autoMapColumns(headers) {
 // Main import routine: reads mapping, builds transactions, saves them.
 async function importExcelData() {
   if (!_importRows.length) {
-    alert(state.lang === 'en' ? 'No file loaded. Please select a file first.' : 'Δεν φορτώθηκε αρχείο. Επιλέξτε πρώτα ένα αρχείο.');
+    window.showAlert(state.lang === 'en' ? 'No file loaded. Please select a file first.' : 'Δεν φορτώθηκε αρχείο. Επιλέξτε πρώτα ένα αρχείο.');
     return;
   }
 
@@ -35514,7 +35655,7 @@ async function importExcelData() {
   };
 
   if (map.date == null) {
-    alert(state.lang === 'en' ? 'Please map the Date column (required).' : 'Παρακαλώ αντιστοιχίστε τη στήλη Ημερομηνία (απαιτείται).');
+    window.showAlert(state.lang === 'en' ? 'Please map the Date column (required).' : 'Παρακαλώ αντιστοιχίστε τη στήλη Ημερομηνία (απαιτείται).');
     return;
   }
 
@@ -35596,7 +35737,7 @@ async function importExcelData() {
   const msg = state.lang === 'en'
     ? `Import complete: ${imported} transactions added, ${skipped} skipped.`
     : `Η εισαγωγή ολοκληρώθηκε: προστέθηκαν ${imported} συναλλαγές, παραλείφθηκαν ${skipped}.`;
-  alert(msg);
+  window.showAlert(msg);
 
   // Refresh UI.
   calculateInitialBalances();

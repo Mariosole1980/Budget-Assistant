@@ -72,7 +72,7 @@ const gradlePath = path.join(rootDir, 'android', 'app', 'build.gradle');
 if (fs.existsSync(gradlePath)) {
   let gradleContent = fs.readFileSync(gradlePath, 'utf8');
   gradleContent = gradleContent.replace(/versionCode \d+/g, `versionCode ${version}`);
-  gradleContent = gradleContent.replace(/versionName "[^"]+"/g, `versionName "1.0.0-v${version}"`);
+  gradleContent = gradleContent.replace(/versionName "[^"]+"/g, `versionName "1.0.${version}"`);
   fs.writeFileSync(gradlePath, gradleContent);
   console.log('  [OK] android/app/build.gradle updated');
 }
