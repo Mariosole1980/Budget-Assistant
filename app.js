@@ -1,4 +1,4 @@
-﻿// ============================================================
+// ============================================================
 // CurrencyService BOOTSTRAP (self-sufficiency guard)
 // ------------------------------------------------------------
 // The OTA engine only downloads app.js + style.css, NOT index.html
@@ -5639,7 +5639,9 @@ function cleanCrossLanguageRecurringDuplicates() {
   if (toDeleteIds.size > 0) {
     console.log(`[RecurringCleanup] Removing ${toDeleteIds.size} duplicate recurring occurrences`);
     toDeleteIds.forEach(id => {
-      deleteTransactionOffline(id);
+      // FIX: Do NOT call deleteTransactionOffline(id) — it blacklists
+      // recurring dates on templates via addDeletedDateToTemplate(), permanently
+      // suppressing legitimate future occurrences the user never asked to delete.
       try {
         const queueStr = localStorage.getItem('money_manager_sync_queue');
         if (queueStr) {
@@ -5656,9 +5658,12 @@ function cleanCrossLanguageRecurringDuplicates() {
       } catch (e) { }
       if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
         if (!String(id).startsWith('recurring_')) {
+          // HARD-DELETE from cloud — automated cleanup duplicates must NEVER
+          // appear in the user's trash bin. Previously this was a soft-delete
+          // (status='deleted') which caused ghost items in the recycle bin.
           state.supabaseClient
             .from('transactions')
-            .update({ status: 'deleted', deleted_at: new Date().toISOString() })
+            .delete()
             .eq('id', id)
             .then(() => { }, () => { });
         }
@@ -35084,9 +35089,13 @@ async function restoreTransaction(id) {
     }
   } catch (_) { }
 
-  // Remove deleted_at before saving back to transactions
+  // Remove deletion markers and explicitly set status='active' before saving
+  // back to transactions. Without status='active', the transaction stays
+  // status='deleted' and collectPermanentlyDeletedTxIds() immediately excludes it.
   const cleanedItem = { ...itemToRestore };
   delete cleanedItem.deleted_at;
+  delete cleanedItem.deleted_by;
+  cleanedItem.status = 'active';
 
   // 2. Add back to transactions
   state.transactions.push(cleanedItem);
@@ -37543,7 +37552,9 @@ async function restoreTrashGroup(groupId) {
       if (!existingIds.has(String(tx.id))) {
         const cleaned = { ...tx };
         delete cleaned.deleted_at;
+        delete cleaned.deleted_by;
         delete cleaned._synthetic;
+        cleaned.status = 'active';
         state.transactions.push(cleaned);
       }
     });
@@ -37572,6 +37583,9 @@ async function restoreTrashGroup(groupId) {
         // (verified live: error 42703) so the upsert does not fail with a 400.
         const dbPayloads = realSnapshot.map(tx => {
           const { description, is_shared, photo_local_uri, photo_url, receipt, fx_snapshot, ...clean } = tx;
+          clean.status = 'active';
+          delete clean.deleted_at;
+          delete clean.deleted_by;
           return clean;
         });
         // Restore to cloud. If the server-side cloud limit trigger rejects the
