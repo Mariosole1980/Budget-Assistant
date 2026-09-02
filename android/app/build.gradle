@@ -15,8 +15,8 @@ android {
         applicationId "com.budgetassistant.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1638
-        versionName "1.0.1638"
+        versionCode 1639
+        versionName "1.0.1639"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         ndk {
             abiFilters "armeabi-v7a", "arm64-v8a", "x86", "x86_64"
