@@ -1,4 +1,4 @@
-// ============================================================
+﻿// ============================================================
 // CurrencyService BOOTSTRAP (self-sufficiency guard)
 // ------------------------------------------------------------
 // The OTA engine only downloads app.js + style.css, NOT index.html
@@ -535,63 +535,8 @@ async function canUseOnlineAI() {
   );
   return false;
 }
-
-// Database mappers for recurring templates to handle camelCase JS <-> snake_case Postgres mapping
-function mapTemplateToDb(t) {
-  if (!t) return null;
-  return {
-    id: t.id,
-    user_id: t.user_id || null,
-    family_id: t.family_id || null,
-    is_shared: !!t.is_shared,
-    amount: parseFloat(t.amount || 0),
-    currency: t.currency || 'EUR',
-    type: t.type,
-    category: t.category,
-    subcategory: t.subcategory || null,
-    account_from: t.account_from,
-    account_to: t.account_to || null,
-    note: t.note || null,
-    description: t.description || null,
-    preset: t.preset || 'monthly',
-    days: Array.isArray(t.days) ? t.days : [],
-    months: Array.isArray(t.months) ? t.months : [],
-    years: Array.isArray(t.years) ? t.years : [],
-    end_type: t.endType || 'perpetual',
-    end_date: t.endDate || null,
-    start_date: t.startDate || null,
-    start_year: t.startYear || null,
-    start_month: t.startMonth || null
-  };
-}
-
-function mapTemplateFromDb(t) {
-  if (!t) return null;
-  return {
-    id: t.id,
-    user_id: t.user_id,
-    family_id: t.family_id,
-    is_shared: !!t.is_shared,
-    amount: parseFloat(t.amount || 0),
-    currency: t.currency || 'EUR',
-    type: t.type,
-    category: t.category,
-    subcategory: t.subcategory || '',
-    account_from: t.account_from,
-    account_to: t.account_to || null,
-    note: t.note || '',
-    description: t.description || '',
-    preset: t.preset || 'monthly',
-    days: Array.isArray(t.days) ? t.days : [],
-    months: Array.isArray(t.months) ? t.months : [],
-    years: Array.isArray(t.years) ? t.years : [],
-    endType: t.end_type || 'perpetual',
-    endDate: t.end_date || null,
-    startDate: t.start_date || null,
-    startYear: t.start_year || null,
-    startMonth: t.start_month || null
-  };
-}
+// mapTemplateToDb → extracted to js/recurringMappers.js (Phase 2, Extraction 2)
+// mapTemplateFromDb → extracted to js/recurringMappers.js (Phase 2, Extraction 2)
 
 function mapTransactionToDb(t) {
   if (!t) return null;
@@ -740,105 +685,8 @@ function ensureHistoryPushed() {
     state.historyPushed = true;
   }
 }
-
-function getTransactionTime(t) {
-  if (!t) return 0;
-  // Prioritize user's explicitly chosen date and time (t.date) over system created_at timestamp
-  const ref = t.date || t.created_at;
-  if (!ref) return 0;
-  if (typeof ref === 'number') return ref;
-  if (ref instanceof Date) return ref.getTime();
-
-  let str = String(ref).trim()
-    .replace(/^(\d{4}-\d{2}-\d{2})\s+/, '$1T') // Normalize space separator
-    .replace(/\s+([+-])/, '$1') // Remove spaces before timezone offset
-    .replace(/\s+([Zz])/, '$1'); // Remove spaces before Z/z offset
-
-  if (!str) return 0;
-
-  // Check if it has any valid timezone offset (Z, z, +HH:MM, -HH:MM, +HHMM, -HHMM, +HH, -HH)
-  const hasTZ = /[Zz]|[+-]\d{2}(?::?\d{2})?$/.test(str);
-
-  // Force UTC parsing by appending Z if no timezone is present
-  if (!hasTZ) {
-    str += 'Z';
-  } else if (str.endsWith('z')) {
-    str = str.slice(0, -1) + 'Z';
-  }
-
-  // Normalize timezone offsets to +HH:MM / -HH:MM format
-  str = str.replace(/([+-]\d{2})$/, '$1:00');
-  str = str.replace(/([+-]\d{2})(\d{2})$/, '$1:$2');
-
-  // Robust regex-based manual parsing fallback for Safari compatibility and microsecond handling
-  const match = str.match(/^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2})(?::(\d{2}))?(?:\.(\d+))?)?(Z|[+-]\d{2}:\d{2})$/);
-  if (match) {
-    const year = parseInt(match[1], 10);
-    const month = parseInt(match[2], 10) - 1;
-    const day = parseInt(match[3], 10);
-    const hour = match[4] ? parseInt(match[4], 10) : 0;
-    const minute = match[5] ? parseInt(match[5], 10) : 0;
-    const second = match[6] ? parseInt(match[6], 10) : 0;
-
-    let ms = 0;
-    if (match[7]) {
-      const msStr = match[7].substring(0, 3).padEnd(3, '0');
-      ms = parseInt(msStr, 10);
-    }
-
-    const tzStr = match[8];
-    let utcMs = Date.UTC(year, month, day, hour, minute, second, ms);
-
-    if (tzStr !== 'Z') {
-      const tzSign = tzStr.charAt(0) === '+' ? 1 : -1;
-      const tzHours = parseInt(tzStr.substring(1, 3), 10);
-      const tzMinutes = parseInt(tzStr.substring(4, 6), 10);
-      const offsetMs = (tzHours * 60 + tzMinutes) * 60 * 1000;
-      utcMs -= tzSign * offsetMs;
-    }
-    return utcMs;
-  }
-
-  // Fallback to standard Date.parse if regex doesn't match
-  const fallback = Date.parse(str);
-  return isNaN(fallback) ? 0 : fallback;
-}
-
-function compareTransactions(a, b) {
-  if (!a && !b) return 0;
-  if (!a) return 1;
-  if (!b) return -1;
-
-  // Level 1: date descending (YYYY-MM-DD)
-  const dateA = String(a.date || '').split('T')[0].split(' ')[0];
-  const dateB = String(b.date || '').split('T')[0].split(' ')[0];
-  if (dateA !== dateB) {
-    return dateA < dateB ? 1 : -1;
-  }
-
-  // Level 2: User-selected transaction time descending (t.date timestamp ms)
-  const timeA = getTransactionTime(a);
-  const timeB = getTransactionTime(b);
-  if (timeA !== timeB) {
-    return timeB - timeA;
-  }
-
-  // Level 3: created_at timestamp descending (UTC epoch ms as tie-breaker)
-  const createdA = a.created_at ? getTransactionTime({ date: a.created_at }) : 0;
-  const createdB = b.created_at ? getTransactionTime({ date: b.created_at }) : 0;
-  if (createdA !== createdB) {
-    return createdB - createdA;
-  }
-
-  // Level 4: id ascending (unique fallback)
-  const idA = String(a.id || '');
-  const idB = String(b.id || '');
-  if (idA !== idB) {
-    return idA < idB ? -1 : 1;
-  }
-
-  return 0;
-}
+// getTransactionTime → extracted to js/transactionSorting.js (Phase 2, Extraction 3)
+// compareTransactions → extracted to js/transactionSorting.js (Phase 2, Extraction 3)
 
 const _deletingTxIds = new Set();
 
@@ -1179,44 +1027,8 @@ function formatGreekDateTime(dateStr) {
 
   return `${d}/${m}/${shortYear} (${shortDay}) ${hrs}:${mins}`;
 }
-
-function evaluateCalcBuffer(buf) {
-  if (!buf) return '0';
-  let cleanBuf = String(buf).trim();
-  while (cleanBuf.length > 0 && ['-', '+', '*', '/'].includes(cleanBuf.slice(-1))) {
-    cleanBuf = cleanBuf.slice(0, -1);
-  }
-  if (!cleanBuf) return '0';
-  try {
-    const tokens = cleanBuf.match(/(\d+\.?\d*|[-+*/])/g);
-    if (!tokens || tokens.length === 0) return '0';
-
-    let total = parseFloat(tokens[0]) || 0;
-    let currentOp = '+';
-
-    for (let i = 1; i < tokens.length; i++) {
-      const tok = tokens[i];
-      if (['+', '-', '*', '/'].includes(tok)) {
-        currentOp = tok;
-      } else {
-        const num = parseFloat(tok) || 0;
-        if (currentOp === '+') total += num;
-        else if (currentOp === '-') total -= num;
-        else if (currentOp === '*') total *= num;
-        else if (currentOp === '/') total = num !== 0 ? total / num : total;
-      }
-    }
-    return String(Math.round(total * 100) / 100);
-  } catch (e) {
-    console.error('Calculation error:', e);
-    return cleanBuf;
-  }
-}
-
-function hasPendingMathOperator(buf) {
-  if (!buf) return false;
-  return /[-+*/]/.test(String(buf));
-}
+// evaluateCalcBuffer → extracted to js/calcKeypad.js (Phase 2, Extraction 1)
+// hasPendingMathOperator → extracted to js/calcKeypad.js (Phase 2, Extraction 1)
 
 function updateKeypadDoneButton() {
   const doneBtn = document.getElementById('calc-done-btn');
@@ -1247,20 +1059,7 @@ function updateKeypadDoneButton() {
     }
   }
 }
-
-// Format a raw calculator buffer for display with thousands separators (Greek style, '.').
-// Only plain numeric buffers (digits + optional single decimal dot) are formatted;
-// expressions containing operators are shown as-is to avoid confusion.
-function formatCalcDisplay(buf) {
-  if (!buf) return buf;
-  const s = String(buf);
-  if (!/^\d*\.?\d*$/.test(s)) return s;
-  const dotIdx = s.indexOf('.');
-  let intPart = dotIdx === -1 ? s : s.slice(0, dotIdx);
-  const decPart = dotIdx === -1 ? '' : s.slice(dotIdx);
-  intPart = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-  return intPart + decPart;
-}
+// formatCalcDisplay → extracted to js/calcKeypad.js (Phase 2, Extraction 1)
 
 // Remove thousands separators ('.' followed by exactly 3 digits) so a formatted
 // display value like "5.000" or "1.234.56" can be parsed back to a raw number.
@@ -1607,6 +1406,9 @@ async function scheduleDailyReminder(enabled, timeString) {
       // Check / request POST_NOTIFICATIONS permission
       if (window.Capacitor.Plugins.LocalNotifications) {
         try {
+          if (typeof window.stabilizeLayoutBeforeNativePicker === 'function') {
+            window.stabilizeLayoutBeforeNativePicker();
+          }
           await window.Capacitor.Plugins.LocalNotifications.requestPermissions();
         } catch (pErr) { }
       }
@@ -1938,6 +1740,12 @@ async function scheduleNoteReminder(note) {
     if (reminderTime.getTime() <= Date.now()) {
       persistPendingNoteReminders();
       return;
+    }
+    // ANTI-FLICKER: The Android permission dialog fires visibilitychange→hidden
+    // + visualViewport resize, which re-flows the layout and causes a visible
+    // flash. Stabilize the layout before the native dialog appears.
+    if (typeof window.stabilizeLayoutBeforeNativePicker === 'function') {
+      window.stabilizeLayoutBeforeNativePicker();
     }
     const perm = await LocalNotifications.requestPermissions();
     if (perm.display !== 'granted') {
@@ -5486,26 +5294,8 @@ function autoRecoverTemplatesFromHistory() {
     localStorage.setItem('templates_autorecovered', 'true');
   } catch (e) { }
 }
-
-function getDeletedDatesFromTemplate(template) {
-  if (!template) return [];
-  const desc = template.description || '';
-  const match = desc.match(/\|\|deleted_dates:([^\s]+)/);
-  if (match) {
-    return match[1].split(',').filter(d => d);
-  }
-  return [];
-}
-
-function addDeletedDateToTemplate(template, dateString) {
-  if (!template) return;
-  const currentDates = getDeletedDatesFromTemplate(template);
-  if (!currentDates.includes(dateString)) {
-    currentDates.push(dateString);
-  }
-  let cleanDesc = (template.description || '').split('||deleted_dates:')[0].trim();
-  template.description = `${cleanDesc} ||deleted_dates:${currentDates.join(',')}`.trim();
-}
+// getDeletedDatesFromTemplate → extracted to js/recurringDates.js (Phase 2, Extraction 5)
+// addDeletedDateToTemplate → extracted to js/recurringDates.js (Phase 2, Extraction 5)
 
 // Cross-language and canonical category comparison helper:
 // Matches category names across Greek and English translations, emoji prefixes,
@@ -10251,6 +10041,10 @@ function setupEventListeners() {
       e.preventDefault();
       e.stopPropagation();
     }
+    // ANTI-FLICKER: stabilize BEFORE closeModal so the updateUI() that closeModal
+    // triggers internally (when no other modal is open) runs under no-transition,
+    // preventing the re-render flash before the camera activity opens.
+    stabilizeLayoutBeforeNativePicker();
     // userInitiated: the user explicitly chose this option, so closing the sheet
     // must NEVER be blocked by the resume anti-ghost-click guard — otherwise a
     // stuck full-screen overlay (z-index 25000) swallows every later tap on the
@@ -10277,7 +10071,6 @@ function setupEventListeners() {
       // on a second AI scan (a leftover value can make .click() a silent no-op).
       aiCameraInput.value = '';
       setTimeout(() => {
-        stabilizeLayoutBeforeNativePicker();
         aiCameraInput.click();
       }, 60);
     }
@@ -10288,6 +10081,10 @@ function setupEventListeners() {
       e.preventDefault();
       e.stopPropagation();
     }
+    // ANTI-FLICKER: stabilize BEFORE closeModal so the updateUI() that closeModal
+    // triggers internally (when no other modal is open) runs under no-transition,
+    // preventing the re-render flash before the camera activity opens.
+    stabilizeLayoutBeforeNativePicker();
     // userInitiated: never let the resume guard block closing the sheet.
     closeModal('receipt-photo-source-modal', { userInitiated: true });
     if (document.activeElement && typeof document.activeElement.blur === 'function') {
@@ -10298,7 +10095,6 @@ function setupEventListeners() {
       // Reset the hidden input so the camera re-opens reliably on a second use.
       cameraInput.value = '';
       setTimeout(() => {
-        stabilizeLayoutBeforeNativePicker();
         cameraInput.click();
       }, 60);
     }
@@ -10309,6 +10105,10 @@ function setupEventListeners() {
       e.preventDefault();
       e.stopPropagation();
     }
+    // ANTI-FLICKER: stabilize BEFORE closeModal so the updateUI() that closeModal
+    // triggers internally (when no other modal is open) runs under no-transition,
+    // preventing the re-render flash before the gallery picker opens.
+    stabilizeLayoutBeforeNativePicker();
     // userInitiated: never let the resume guard block closing the sheet.
     closeModal('receipt-photo-source-modal', { userInitiated: true });
     if (document.activeElement && typeof document.activeElement.blur === 'function') {
@@ -10318,26 +10118,28 @@ function setupEventListeners() {
     if (photoInput) {
       photoInput.value = '';
       setTimeout(() => {
-        stabilizeLayoutBeforeNativePicker();
         photoInput.click();
       }, 60);
     }
   }
 
-  // Called at the exact moment a native camera / file picker is about to cover the
-  // WebView. When the picker opens, Android fires visibilitychange→hidden and
+  // Called at the exact moment a native Android activity (camera, file picker,
+  // share sheet, browser, permission dialog) is about to cover the WebView.
+  // When the activity opens, Android fires visibilitychange→hidden and a
   // visualViewport resize, which blur the focused input, drop body.keyboard-active
   // and reset --keyboard-height. The transaction modal lays out with
   // padding-bottom: var(--keyboard-height), so those changes re-flow the modal and
-  // produce a visible flicker right before the camera opens and again when the
-  // Android permission / chooser dialog appears. Stabilize the layout to its final
-  // (no-keyboard) state and suppress CSS transitions for the handoff window so the
-  // native handoff is seamless.
+  // produce a visible flicker right before the native screen appears and again when
+  // an Android permission / chooser dialog is shown. Stabilize the layout to its
+  // final (no-keyboard) state and suppress CSS transitions for the handoff window
+  // so the native handoff is seamless.
+  // NOTE: 1000ms guard (was 700ms) — permission dialogs take slightly longer to
+  // surface than a file picker, so the extra margin prevents early uncovering.
   function stabilizeLayoutBeforeNativePicker() {
     document.body.classList.remove('keyboard-active');
     document.documentElement.style.setProperty('--keyboard-height', '0px');
     pushNoTransition();
-    setTimeout(() => popNoTransition(), 700);
+    setTimeout(() => popNoTransition(), 1000);
   }
   window.stabilizeLayoutBeforeNativePicker = stabilizeLayoutBeforeNativePicker;
 
@@ -13900,6 +13702,11 @@ async function startWebPremiumPurchase(method = 'card') {
     // If in Capacitor Native, open in system browser
     if (typeof window.Capacitor !== 'undefined' && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
       if (window.Capacitor.Plugins && window.Capacitor.Plugins.Browser) {
+        // ANTI-FLICKER: Opening the in-app browser fires visibilitychange->hidden
+        // + visualViewport resize, causing layout re-flow and visible flash.
+        if (typeof window.stabilizeLayoutBeforeNativePicker === 'function') {
+          window.stabilizeLayoutBeforeNativePicker();
+        }
         await window.Capacitor.Plugins.Browser.open({ url: data.url });
         return;
       }
@@ -15294,6 +15101,11 @@ function downloadBlob(blob, fileName) {
             recursive: true
           });
           const fileUri = result && result.uri ? result.uri : safeName;
+          // ANTI-FLICKER: The native share sheet fires visibilitychange->hidden
+          // + visualViewport resize, causing layout re-flow and visible flash.
+          if (typeof window.stabilizeLayoutBeforeNativePicker === 'function') {
+            window.stabilizeLayoutBeforeNativePicker();
+          }
           await Share.share({
             title: fileName,
             files: [fileUri],
@@ -22260,49 +22072,85 @@ function changeCurrencySetting(val) {
 }
 
 function changeAutoLockSetting(val) {
+  if (val !== 'disabled') {
+    const savedPin = localStorage.getItem('app_pin');
+    const validPin = savedPin && savedPin.length === 4;
+    if (!validPin) {
+      const pinMsg = (typeof TRANSLATIONS !== 'undefined' && TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auto_lock_requires_pin']) || (state.lang === 'el' ? 'Πρέπει πρώτα να ορίσετε ένα 4ψήφιο PIN!' : 'Please set a 4-digit PIN first!');
+      showSyncToast('⚠️ ' + pinMsg, 3500);
+      window._pendingAutoLockVal = val;
+      openPinModal();
+      return;
+    }
+    // PIN is valid: ensure app_lock_enabled is active
+    localStorage.setItem('app_lock_enabled', 'true');
+    const lockCheckbox = document.getElementById('settings-app-lock');
+    if (lockCheckbox) lockCheckbox.checked = true;
+  }
+
   localStorage.setItem('settings_auto_lock_delay', val);
   updateSettingsDisplay();
   // Restart the inactivity timer with the new delay (or stop if disabled).
   if (typeof _resetAutoLockTimer === 'function') {
     _resetAutoLockTimer();
   }
+
+  const toastText = (val === 'disabled')
+    ? ((typeof TRANSLATIONS !== 'undefined' && TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auto_lock_toast_disabled']) || (state.lang === 'el' ? 'Το αυτόματο κλείδωμα απενεργοποιήθηκε' : 'Auto-lock disabled'))
+    : ((typeof TRANSLATIONS !== 'undefined' && TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auto_lock_toast_enabled']) || (state.lang === 'el' ? 'Το αυτόματο κλείδωμα ενεργοποιήθηκε' : 'Auto-lock activated'));
+  showSyncToast((val === 'disabled' ? '🔓 ' : '⏱️ ') + toastText, 2500);
 }
 
 // ============================================================
-// AUTO-LOCK (inactivity timer)
+// AUTO-LOCK (inactivity timer & lifecycle security)
 // ============================================================
-// FIX: The auto-lock setting was stored and displayed but never actually
-// triggered a lock. This block implements a real inactivity timer that calls
-// showLockScreen() after the configured delay. showLockScreen() itself guards
-// against covering the login overlay (see bug #2 fix), so this is safe.
 let _autoLockTimer = null;
 let _lastUserActivity = Date.now();
+window._lastUserActivity = _lastUserActivity;
 
 function _getAutoLockDelayMs() {
   const val = localStorage.getItem('settings_auto_lock_delay') || 'disabled';
   switch (val) {
+    case 'immediate':
+    case '0': return 0;                // Immediate on exit / switch
     case '1': return 60 * 1000;        // 1 minute
     case '5': return 5 * 60 * 1000;    // 5 minutes
     case '10': return 10 * 60 * 1000;  // 10 minutes
-    default: return 0;                 // disabled
+    default: return -1;                // disabled
   }
 }
 
+function _recordUserActivity() {
+  const now = Date.now();
+  _lastUserActivity = now;
+  window._lastUserActivity = now;
+  try {
+    localStorage.setItem('last_user_activity_timestamp', String(now));
+  } catch (e) {}
+}
+
 function _resetAutoLockTimer() {
-  _lastUserActivity = Date.now();
+  _recordUserActivity();
   if (_autoLockTimer) { clearTimeout(_autoLockTimer); _autoLockTimer = null; }
   const delay = _getAutoLockDelayMs();
-  if (delay <= 0) return;
+  if (delay < 0) return; // disabled
+  
+  // For foreground inactivity timer while app is actively on screen:
+  // If set to immediate (0ms), use a 60s foreground idle safety threshold
+  // so reading/viewing doesn't lock mid-glance, while app switch locks instantly.
+  const foregroundDelay = (delay === 0) ? 60 * 1000 : delay;
   _autoLockTimer = setTimeout(() => {
     _autoLockTimer = null;
     _triggerAutoLock();
-  }, delay);
+  }, foregroundDelay);
 }
 
 function _triggerAutoLock() {
   // Only lock while the app is in the foreground. If it is hidden, the
   // background/resume path handles the lock (see _handleAppResumed).
   if (document.visibilityState === 'hidden') return;
+  const savedPin = localStorage.getItem('app_pin');
+  if (!savedPin || savedPin.length !== 4) return;
   if (typeof showLockScreen === 'function') {
     showLockScreen();
   }
@@ -22310,17 +22158,19 @@ function _triggerAutoLock() {
 
 function _initAutoLock() {
   // Reset the inactivity timer on any user interaction.
-  const events = ['touchstart', 'click', 'keydown', 'mousemove', 'scroll', 'wheel'];
+  const events = ['touchstart', 'touchend', 'pointerdown', 'click', 'keydown', 'mousemove', 'scroll', 'wheel'];
   const handler = () => _resetAutoLockTimer();
   events.forEach(ev => {
     document.addEventListener(ev, handler, { passive: true, capture: true });
   });
+  _recordUserActivity();
   _resetAutoLockTimer();
 }
 
 // Expose for the background/resume path.
 window._resetAutoLockTimer = _resetAutoLockTimer;
 window._getAutoLockDelayMs = _getAutoLockDelayMs;
+window._recordUserActivity = _recordUserActivity;
 window._lastUserActivity = _lastUserActivity;
 
 // Populates the "Νόμισμα εφαρμογής" select in settings with ALL currencies
@@ -22414,11 +22264,28 @@ function updateSettingsDisplay() {
     const autoLockDelay = localStorage.getItem('settings_auto_lock_delay') || 'disabled';
     const autoLockLabels = {
       'disabled': state.lang === 'el' ? 'Απενεργοποιημένο' : 'Disabled',
+      'immediate': state.lang === 'el' ? 'Άμεσα' : 'Immediately',
+      '0': state.lang === 'el' ? 'Άμεσα' : 'Immediately',
       '1': state.lang === 'el' ? '1 λεπτό' : '1 minute',
       '5': state.lang === 'el' ? '5 λεπτά' : '5 minutes',
       '10': state.lang === 'el' ? '10 λεπτά' : '10 minutes'
     };
     autoLockDisplay.textContent = autoLockLabels[autoLockDelay] || autoLockDelay;
+    const parentBadge = autoLockDisplay.parentElement;
+    const chevron = parentBadge ? parentBadge.querySelector('i') : null;
+    if (parentBadge) {
+      if (autoLockDelay === 'disabled') {
+        parentBadge.style.background = 'rgba(239,68,68,0.10)';
+        parentBadge.style.border = '1px solid rgba(239,68,68,0.25)';
+        autoLockDisplay.style.color = '#ef4444';
+        if (chevron) chevron.style.color = '#ef4444';
+      } else {
+        parentBadge.style.background = 'rgba(var(--accent-rgb, 46, 196, 182), 0.15)';
+        parentBadge.style.border = '1px solid rgba(var(--accent-rgb, 46, 196, 182), 0.35)';
+        autoLockDisplay.style.color = 'var(--accent)';
+        if (chevron) chevron.style.color = 'var(--accent)';
+      }
+    }
   }
 
   const fontSizeDisplay = document.getElementById('settings-font-size-display');
@@ -22651,6 +22518,12 @@ function openSettingsPicker(type) {
         icon: 'fa-lock-open'
       },
       {
+        value: 'immediate',
+        title: (typeof TRANSLATIONS !== 'undefined' && TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auto_lock_immediate']) || (state.lang === 'el' ? 'Άμεσα' : 'Immediately'),
+        sub: (typeof TRANSLATIONS !== 'undefined' && TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auto_lock_immediate_sub']) || (state.lang === 'el' ? 'Κλείδωμα κατά την έξοδο ή εναλλαγή εφαρμογής' : 'Locks upon exiting or switching apps'),
+        icon: 'fa-bolt'
+      },
+      {
         value: '1',
         title: state.lang === 'el' ? '1 λεπτό' : '1 minute',
         sub: state.lang === 'el' ? 'Κλείδωμα μετά από 1 λεπτό αδράνειας' : 'Locks after 1 min of inactivity',
@@ -22671,7 +22544,7 @@ function openSettingsPicker(type) {
     ];
 
     options.forEach(opt => {
-      const isSelected = opt.value === currentVal;
+      const isSelected = opt.value === currentVal || (opt.value === 'immediate' && currentVal === '0');
       const card = document.createElement('div');
       card.className = `settings-card-item ${isSelected ? 'selected' : ''}`;
       card.innerHTML = `
@@ -22770,10 +22643,12 @@ function initSettingsFromStorage() {
     localStorage.removeItem('app_lock_enabled');
     localStorage.removeItem('app_biometrics_enabled');
     localStorage.removeItem('biometric_cred_id');
+    localStorage.setItem('settings_auto_lock_delay', 'disabled');
   }
 
   let appLockEnabled = validPin && localStorage.getItem('app_lock_enabled') === 'true';
   let appBiometricsEnabled = validPin && localStorage.getItem('app_biometrics_enabled') === 'true';
+  const autoLockDelay = localStorage.getItem('settings_auto_lock_delay') || 'disabled';
 
   const appLockCheckbox = document.getElementById('settings-app-lock');
   if (appLockCheckbox) appLockCheckbox.checked = appLockEnabled;
@@ -22802,7 +22677,7 @@ function initSettingsFromStorage() {
   applyFontSize(fontSize);
   checkBiometricsSupport();
 
-  if (appLockEnabled || appBiometricsEnabled) {
+  if (appLockEnabled || appBiometricsEnabled || (validPin && autoLockDelay !== 'disabled')) {
     showLockScreen();
   }
 }
@@ -23047,10 +22922,12 @@ let tempSetupPin = "";
 
 function showLockScreen() {
   const savedPin = localStorage.getItem('app_pin');
+  const validPin = savedPin && savedPin.length === 4;
   const appLockEnabled = localStorage.getItem('app_lock_enabled') === 'true';
   const biometricsEnabled = localStorage.getItem('app_biometrics_enabled') === 'true';
+  const autoLockDelay = localStorage.getItem('settings_auto_lock_delay') || 'disabled';
 
-  if (!savedPin || savedPin.length !== 4 || (!appLockEnabled && !biometricsEnabled)) {
+  if (!validPin || (!appLockEnabled && !biometricsEnabled && autoLockDelay === 'disabled')) {
     hideLockScreen();
     return;
   }
@@ -23065,9 +22942,12 @@ function showLockScreen() {
   const lockScreen = document.getElementById('lock-screen');
   if (lockScreen) {
     ensureOverlayInBody(lockScreen);
+    const isAlreadyActive = lockScreen.classList.contains('active');
     lockScreen.classList.add('active');
-    enteredPin = [];
-    resetLockDots();
+    if (!isAlreadyActive) {
+      enteredPin = [];
+      resetLockDots();
+    }
 
     // Show/hide biometric button based on settings
     const biometricBtn = document.getElementById('btn-biometric');
@@ -23077,7 +22957,7 @@ function showLockScreen() {
     }
 
     // Auto-trigger biometric auth if enabled
-    if (isBioActive) {
+    if (isBioActive && !isAlreadyActive) {
       setTimeout(() => {
         triggerBiometricAuth();
       }, 300);
@@ -23089,6 +22969,11 @@ function hideLockScreen() {
   const lockScreen = document.getElementById('lock-screen');
   if (lockScreen) {
     lockScreen.classList.remove('active');
+  }
+  enteredPin = [];
+  resetLockDots();
+  if (typeof _resetAutoLockTimer === 'function') {
+    _resetAutoLockTimer();
   }
 }
 
@@ -23333,9 +23218,16 @@ function submitPinSetup() {
       const lockCheckbox = document.getElementById('settings-app-lock');
       if (lockCheckbox) lockCheckbox.checked = true;
       closePinModal();
+      if (window._pendingAutoLockVal) {
+        localStorage.setItem('settings_auto_lock_delay', window._pendingAutoLockVal);
+        window._pendingAutoLockVal = null;
+      }
       showSyncToast("✅ " + (state.lang === 'el' ? "Το κλείδωμα ενεργοποιήθηκε επιτυχώς!" : "App lock activated successfully!"), 3000);
       checkBiometricsSupport();
       updateSettingsDisplay();
+      if (typeof _resetAutoLockTimer === 'function') {
+        _resetAutoLockTimer();
+      }
     } else {
       showSyncToast("❌ " + (state.lang === 'el' ? "Τα PIN δεν ταιριάζουν! Προσπαθήστε ξανά." : "PINs do not match! Try again."), 3000);
       pinSetupStep = 1;
@@ -27998,13 +27890,14 @@ function startPartnerSyncPolling() {
 function saveCurrentUIStateToStorage() {
   try {
     window._appIsBackgrounding = true;
-    // FIX #1 (auto-lock): Record the exact moment the app went to the background.
-    // On resume, _handleAppResumed() compares this against the configured delay so
-    // the app locks even while it was in the background (where the foreground
-    // inactivity timer cannot fire).
-    window._lastUserActivity = Date.now();
-    if (typeof window._resetAutoLockTimer === 'function') {
-      window._resetAutoLockTimer();
+    const now = Date.now();
+    window._lastBackgroundTimestamp = now;
+    try {
+      localStorage.setItem('app_background_timestamp', String(now));
+    } catch (e) {}
+    // Ensure last user activity is tracked
+    if (!window._lastUserActivity) {
+      window._lastUserActivity = now;
     }
     // Blur any focused input so the keyboard doesn't re-appear on resume
     if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) {
@@ -28132,20 +28025,35 @@ const _RESUME_GUARD_MS = 1700;
 // burst ~t=0-1s, batch render ~t=5s), not just the 1.7s _RESUME_GUARD_MS.
 const _REALTIME_RESUME_GUARD_MS = 10000;
 function _handleAppResumed() {
-  // FIX #1 (auto-lock): If the app was in the background longer than the
-  // configured auto-lock delay, lock it immediately on resume. The foreground
-  // inactivity timer cannot fire while the app is hidden, so this covers the
-  // background case. showLockScreen() itself guards against covering the login
-  // overlay (see bug #2 fix), so this is safe even if the session is invalid.
+  // AUTO-LOCK: Check if the app should lock on resume based on user's auto-lock settings.
   try {
-    const delay = (typeof window._getAutoLockDelayMs === 'function')
-      ? window._getAutoLockDelayMs()
-      : 0;
-    if (delay > 0) {
-      const lastActivity = window._lastUserActivity || Date.now();
-      if (Date.now() - lastActivity >= delay) {
-        if (typeof showLockScreen === 'function') {
-          showLockScreen();
+    const autoLockSetting = localStorage.getItem('settings_auto_lock_delay') || 'disabled';
+    if (autoLockSetting !== 'disabled') {
+      const savedPin = localStorage.getItem('app_pin');
+      const validPin = savedPin && savedPin.length === 4;
+      if (validPin) {
+        if (autoLockSetting === 'immediate' || autoLockSetting === '0') {
+          if (typeof showLockScreen === 'function') {
+            showLockScreen();
+          }
+        } else {
+          const delayMs = (typeof window._getAutoLockDelayMs === 'function')
+            ? window._getAutoLockDelayMs()
+            : (parseInt(autoLockSetting, 10) * 60 * 1000);
+          if (delayMs > 0) {
+            const storedActivity = Number(localStorage.getItem('last_user_activity_timestamp')) || 0;
+            const lastActivity = storedActivity || window._lastUserActivity || Date.now();
+            const elapsed = Date.now() - lastActivity;
+            if (elapsed >= delayMs) {
+              if (typeof showLockScreen === 'function') {
+                showLockScreen();
+              }
+            } else {
+              if (typeof window._resetAutoLockTimer === 'function') {
+                window._resetAutoLockTimer();
+              }
+            }
+          }
         }
       }
     }
@@ -30800,6 +30708,12 @@ async function sendTestNotification() {
         }
       } catch (chanErr) { }
 
+      // ANTI-FLICKER: The Android permission dialog fires visibilitychange->hidden
+      // + visualViewport resize, which re-flows the layout and causes a visible
+      // flash. Stabilize the layout before the native dialog appears.
+      if (typeof window.stabilizeLayoutBeforeNativePicker === 'function') {
+        window.stabilizeLayoutBeforeNativePicker();
+      }
       const perm = await LocalNotifications.requestPermissions();
       if (perm.display === 'granted') {
         await LocalNotifications.schedule({
@@ -35540,48 +35454,7 @@ function handleExcelUpload(event) {
   }
 }
 window.handleExcelUpload = handleExcelUpload;
-
-// Simple CSV parser that handles quoted fields, commas and newlines inside quotes.
-function parseCSV(text) {
-  const rows = [];
-  let row = [];
-  let field = '';
-  let inQuotes = false;
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
-    if (inQuotes) {
-      if (ch === '"') {
-        if (text[i + 1] === '"') {
-          field += '"';
-          i++;
-        } else {
-          inQuotes = false;
-        }
-      } else {
-        field += ch;
-      }
-    } else if (ch === '"') {
-      inQuotes = true;
-    } else if (ch === ',') {
-      row.push(field);
-      field = '';
-    } else if (ch === '\n' || ch === '\r') {
-      if (ch === '\r' && text[i + 1] === '\n') i++;
-      row.push(field);
-      field = '';
-      if (row.some(c => c !== '')) rows.push(row);
-      row = [];
-    } else {
-      field += ch;
-    }
-  }
-  // Last field / row.
-  if (field !== '' || row.length > 0) {
-    row.push(field);
-    if (row.some(c => c !== '')) rows.push(row);
-  }
-  return rows;
-}
+// parseCSV → extracted to js/importParsers.js (Phase 2, Extraction 4)
 
 // Best-effort automatic column mapping based on common header names.
 function autoMapColumns(headers) {
@@ -35610,75 +35483,9 @@ function autoMapColumns(headers) {
   setMap('map-note', findIdx(['σημείωση', 'σημειωση', 'note', 'σχόλιο', 'σχολιο']));
   setMap('map-description', findIdx(['περιγραφή', 'περιγραφη', 'description', 'desc']));
 }
-
-// Normalize a date string into YYYY-MM-DD.
-function normalizeImportDate(value) {
-  if (value == null) return '';
-  let s = String(value).trim();
-  if (!s) return '';
-  // Excel serial date number.
-  if (/^\d+(\.\d+)?$/.test(s) && Number(s) > 20000 && Number(s) < 60000) {
-    const d = new Date(Math.round((Number(s) - 25569) * 86400 * 1000));
-    if (!isNaN(d.getTime())) return formatISODateLocal(d);
-  }
-  // Replace common separators.
-  s = s.replace(/[./]/g, '-');
-  // DD-MM-YYYY or DD/MM/YYYY -> YYYY-MM-DD
-  let m = s.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
-  if (m) {
-    return `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
-  }
-  // YYYY-MM-DD
-  m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
-  if (m) {
-    return `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}`;
-  }
-  // Try Date.parse fallback.
-  const d = new Date(s);
-  if (!isNaN(d.getTime())) return formatISODateLocal(d);
-  return s;
-}
-
-// Normalize amount: strip currency symbols, thousands separators, commas.
-function normalizeImportAmount(value) {
-  if (value == null) return 0;
-  let s = String(value).trim();
-  if (!s) return 0;
-  // If it's already a number (e.g. from Excel), return it.
-  if (typeof value === 'number') return value;
-  // Remove currency symbols and spaces.
-  s = s.replace(/[€$£¥\s]/g, '');
-  // Handle European format: 1.234,56 -> 1234.56 ; 1,234.56 -> 1234.56
-  if (s.includes(',') && s.includes('.')) {
-    if (s.lastIndexOf(',') > s.lastIndexOf('.')) {
-      // 1.234,56
-      s = s.replace(/\./g, '').replace(',', '.');
-    } else {
-      // 1,234.56
-      s = s.replace(/,/g, '');
-    }
-  } else if (s.includes(',')) {
-    s = s.replace(',', '.');
-  }
-  const n = parseFloat(s);
-  return isNaN(n) ? 0 : n;
-}
-
-// Determine transaction type from the mapped type column or inflow/outflow.
-function resolveImportType(row, map) {
-  const typeVal = map.type != null ? String(row[map.type] || '').trim().toLowerCase() : '';
-  if (typeVal) {
-    if (/income|εισόδ|εισοδ|credit|inflow|έσοδ|εσοδ/.test(typeVal)) return 'income';
-    if (/expense|εκρο|outflow|debit|έξοδ|εξοδ/.test(typeVal)) return 'expense';
-    if (/transfer|μεταφορά|μεταφορα/.test(typeVal)) return 'transfer';
-  }
-  // Fall back to inflow/outflow columns.
-  const inflow = map.inflow != null ? normalizeImportAmount(row[map.inflow]) : 0;
-  const outflow = map.outflow != null ? normalizeImportAmount(row[map.outflow]) : 0;
-  if (inflow > 0 && outflow <= 0) return 'income';
-  if (outflow > 0 && inflow <= 0) return 'expense';
-  return 'expense';
-}
+// normalizeImportDate → extracted to js/importParsers.js (Phase 2, Extraction 4)
+// normalizeImportAmount → extracted to js/importParsers.js (Phase 2, Extraction 4)
+// resolveImportType → extracted to js/importParsers.js (Phase 2, Extraction 4)
 
 // Main import routine: reads mapping, builds transactions, saves them.
 async function importExcelData() {
@@ -36897,93 +36704,7 @@ function _txBelongsToRecurringSeries(t, ctx) {
   const tDate = String(t.date || '').split('T')[0].split(' ')[0];
   return seriesDates.includes(tDate);
 }
-
-// Compute the FULL set of occurrence dates for a recurring template, from its
-// start date up to its end date (or up to the app's 12-month future horizon for
-// perpetual "forever" series), skipping any deleted dates. This mirrors the
-// recurring generator's own logic so the trash can reflect the whole series even
-// when only a few months have actually been materialized in state.transactions.
-function _computeRecurringSeriesDates(template) {
-  if (!template) return [];
-  const preset = template.preset || 'monthly';
-  const startDate = new Date(template.startDate || new Date().toISOString().split('T')[0]);
-  if (isNaN(startDate.getTime())) return [];
-  const startYear = startDate.getFullYear();
-  const startMonth = startDate.getMonth();
-  const startDay = startDate.getDate();
-  const endDateStr = template.endDate || null;
-  const endLimit = (endDateStr && !isNaN(new Date(endDateStr).getTime())) ? new Date(endDateStr) : null;
-  const today = new Date();
-  const maxFuture = new Date(today.getFullYear(), today.getMonth() + 12, 1);
-  const deletedDates = getDeletedDatesFromTemplate(template);
-  const dates = [];
-  let year = startYear;
-  let month = startMonth;
-
-  let maxIterations = 240; // Hard cap at 20 years to guarantee termination
-  while (maxIterations-- > 0) {
-    const yearMonth = new Date(year, month, 1);
-    if (yearMonth > maxFuture) break;
-    if (endLimit && yearMonth > endLimit) break;
-
-    const monthNum = month + 1;
-    const lastDay = new Date(year, month + 1, 0).getDate();
-    const monthDates = [];
-
-    if (preset === 'daily') {
-      for (let d = 1; d <= lastDay; d++) {
-        if (year === startYear && month === startMonth && d < startDay) continue;
-        monthDates.push(`${year}-${String(monthNum).padStart(2, '0')}-${String(d).padStart(2, '0')}`);
-      }
-    } else if (preset === 'weekly') {
-      const targetDayOfWeek = startDate.getDay();
-      for (let d = 1; d <= lastDay; d++) {
-        const dObj = new Date(year, month, d);
-        if (dObj.getDay() === targetDayOfWeek) {
-          if (year === startYear && month === startMonth && d < startDay) continue;
-          monthDates.push(`${year}-${String(monthNum).padStart(2, '0')}-${String(d).padStart(2, '0')}`);
-        }
-      }
-    } else if (preset === 'monthly') {
-      const day = Math.min(startDay, lastDay);
-      if (!(year === startYear && month === startMonth && day < startDay)) {
-        monthDates.push(`${year}-${String(monthNum).padStart(2, '0')}-${String(day).padStart(2, '0')}`);
-      }
-    } else if (preset === 'yearly') {
-      if (month === startMonth) {
-        const day = Math.min(startDay, lastDay);
-        monthDates.push(`${year}-${String(monthNum).padStart(2, '0')}-${String(day).padStart(2, '0')}`);
-      }
-    } else if (preset === 'specific_months') {
-      if (template.months && template.months.includes(monthNum)) {
-        const day = Math.min(startDay, lastDay);
-        if (!(year === startYear && month === startMonth && day < startDay)) {
-          monthDates.push(`${year}-${String(monthNum).padStart(2, '0')}-${String(day).padStart(2, '0')}`);
-        }
-      }
-    } else if (preset === 'custom') {
-      if (template.months && template.months.includes(monthNum) && template.days) {
-        template.days.forEach(day => {
-          if (day <= lastDay) {
-            if (year === startYear && month === startMonth && day < startDay) return;
-            monthDates.push(`${year}-${String(monthNum).padStart(2, '0')}-${String(day).padStart(2, '0')}`);
-          }
-        });
-      }
-    }
-
-    monthDates.forEach(ds => {
-      if (endLimit && ds > endDateStr) return;
-      if (deletedDates.includes(ds)) return;
-      dates.push(ds);
-    });
-
-    month++;
-    if (month > 11) { month = 0; year++; }
-  }
-
-  return dates;
-}
+// _computeRecurringSeriesDates → extracted to js/recurringDates.js (Phase 2, Extraction 5)
 
 async function executeRecurringDelete(scope) {
   const m1 = document.getElementById('recurring-delete-step1-modal');
