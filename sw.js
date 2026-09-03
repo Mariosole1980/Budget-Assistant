@@ -29,6 +29,8 @@ const ASSETS = [
   'js/recurringDates.js',
   'js/calcKeypad.js',
   'js/categoryIcons.js',
+  'js/PremiumService.js',
+  'js/SafeToSpendEngine.js',
   'js/fontawesome.min.css',
   'js/webfonts/fa-solid-900.woff2',
   'js/webfonts/fa-solid-900.ttf',

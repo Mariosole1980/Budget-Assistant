@@ -18,6 +18,8 @@
 
     const TRANSLATIONS = {
       el: {
+        "ai_check_title": "AI Οικονομικός Έλεγχος",
+        "ai_check_btn": "Έλεγχος",
         "nav_trans": "Κινήσεις",
         "nav_stats": "Στατιστικά",
         "nav_accounts": "Επισκόπηση",
@@ -758,6 +760,8 @@
         "recurring_delete_all_desc": "Θα διαγραφούν όλες οι κινήσεις αυτής της επανάληψης. Είστε σίγουρος/η ότι θέλετε να συνεχίσετε;"
 },
       en: {
+        "ai_check_title": "AI Financial Check",
+        "ai_check_btn": "Check",
         "nav_trans": "Transactions",
         "nav_stats": "Stats",
         "nav_accounts": "Overview",

@@ -432,34 +432,47 @@ window.state = state;
 // ============================================================
 // PREMIUM (Lifetime) — entitlement helpers & limits
 // ============================================================
-// Premium limits (Free vs Premium Lifetime). These are the CLIENT-side
-// (UX) limits. The authoritative enforcement happens SERVER-side (RLS/RPC
-// and the Cloudflare functions). The client limits only improve UX by
-// showing upgrade modals before the user hits a server rejection.
-const PREMIUM_LIMITS = {
-  familyMembers: 2,        // Free: user + 1. Premium: unlimited (3+)
-  cloudTxPerMonth: 75,     // Free: 75 cloud-synced tx/month. Premium: unlimited
-  currencies: 1,           // Free: 1 currency. Premium: unlimited
-  budgets: 2,              // Free: 2 category budgets. Premium: unlimited
-  aiCoachFree: 10,         // Free: 10 online AI calls/month
-  aiCoachPremium: 50,      // Premium: 50 online AI calls/month (fair-use)
-  aiReceiptsFree: 5,       // Free: 5 AI receipt scans/month
-  aiReceiptsPremium: 100   // Premium: 100 AI receipt scans/month (fair-use)
-};
+// Premium limits & pricing are defined authoritatively in js/PremiumService.js
+// and exposed globally as window.PremiumService / window.PREMIUM_LIMITS.
+const PREMIUM_LIMITS = (typeof window !== 'undefined' && window.PremiumService)
+  ? window.PremiumService.LIMITS
+  : {
+      familyMembers: 2,        // Free: user + 1. Premium: unlimited (3+)
+      cloudTxPerMonth: 75,     // Free: 75 cloud-synced tx/month. Premium: unlimited
+      currencies: 1,           // Free: 1 currency. Premium: unlimited
+      budgets: 2,              // Free: 2 category budgets. Premium: unlimited
+      aiCoachFree: 10,         // Free: 10 online AI calls/month
+      aiCoachPremium: 50,      // Premium: 50 online AI calls/month (fair-use)
+      aiReceiptsFree: 5,       // Free: 5 AI receipt scans/month
+      aiReceiptsPremium: 100   // Premium: 100 AI receipt scans/month (fair-use)
+    };
 
-// Premium price (one-time Lifetime). Adjustable constant.
-const PREMIUM_PRICE_EUR = 9.99;
+// Premium price (one-time Lifetime). Sourced from PremiumService.
+const PREMIUM_PRICE_EUR = (typeof window !== 'undefined' && window.PremiumService)
+  ? window.PremiumService.PRICE_EUR
+  : 9.99;
 
 // Returns true if the current user has an active Premium entitlement.
 // Source of truth is the server profile (state.userProfile.premium_active).
 // localStorage is only a cache for faster UI; it is NOT a security boundary.
 function isPremium() {
+  // If connected to family, 1 license covers the whole household
+  if (state.familyProfiles && state.familyProfiles.length > 0) {
+    const anyFamilyPro = state.familyProfiles.some(m => m.premium_active === true);
+    if (anyFamilyPro) return true;
+  }
+  if (typeof window !== 'undefined' && window.PremiumService) {
+    return window.PremiumService.isPremium(state.userProfile);
+  }
   const p = state.userProfile;
   return !!(p && p.premium_active === true);
 }
 
 // Returns the current user's premium status for UI display.
 function getPremiumStatus() {
+  if (typeof window !== 'undefined' && window.PremiumService) {
+    return window.PremiumService.getPremiumStatus(state.userProfile);
+  }
   return {
     active: isPremium(),
     purchasedAt: state.userProfile ? state.userProfile.premium_purchased_at : null
@@ -9459,6 +9472,11 @@ function renderAccountsTab() {
     } else {
       breakdownEl.style.display = 'none';
     }
+  }
+
+  // Update Safe-to-Spend Radar in Επισκόπηση
+  if (typeof updateSafeToSpendUI === 'function') {
+    updateSafeToSpendUI();
   }
 }
 
@@ -24580,6 +24598,63 @@ function renderPartnerSection() {
       ? renderMemberInviteCode(inviteCode)
       : '';
 
+    // Evaluate Household 14-day trial / Premium status
+    const isHouseholdPro = isPremium();
+    const familyCreatedAt = state.familyGroup ? state.familyGroup.created_at : null;
+    const trialStatus = (typeof window !== 'undefined' && window.PremiumService && typeof window.PremiumService.getFamilyTrialStatus === 'function')
+      ? window.PremiumService.getFamilyTrialStatus(familyCreatedAt, isHouseholdPro)
+      : { inTrial: true, daysRemaining: 14, expired: false, isPremium: isHouseholdPro };
+
+    let trialBannerHtml = '';
+    if (trialStatus.isPremium) {
+      trialBannerHtml = `
+        <div style="padding: 10px 14px; background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.25); border-radius: 14px; display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <i class="fa-solid fa-crown" style="color: #fbbf24; font-size: 14px;"></i>
+            <div>
+              <div style="font-size: 12.5px; font-weight: 700; color: #fbbf24;">${state.lang === 'el' ? 'Κοινό Ταμείο Ενεργό (Premium)' : 'Shared Budget Active (Premium)'}</div>
+              <div style="font-size: 10.5px; color: var(--text-secondary);">${state.lang === 'el' ? '1 άδεια καλύπτει όλο το σπίτι' : '1 license covers the entire household'}</div>
+            </div>
+          </div>
+          <span style="font-size: 10px; font-weight: 800; background: rgba(245,158,11,0.2); color: #fbbf24; padding: 3px 8px; border-radius: 6px;">LIFETIME</span>
+        </div>
+      `;
+    } else if (trialStatus.inTrial) {
+      trialBannerHtml = `
+        <div style="padding: 12px 14px; background: linear-gradient(135deg, rgba(99,102,241,0.12), rgba(168,85,247,0.08)); border: 1px solid rgba(99,102,241,0.3); border-radius: 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="width: 30px; height: 30px; border-radius: 8px; background: rgba(99,102,241,0.2); color: #a5b4fc; display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0;">
+              <i class="fa-solid fa-gift"></i>
+            </div>
+            <div>
+              <div style="font-size: 12.5px; font-weight: 800; color: #fff;">${state.lang === 'el' ? 'Δωρεάν Δοκιμή Κοινού Ταμείου' : 'Family Sync Free Trial'}</div>
+              <div style="font-size: 11px; color: #c7d2fe;">${state.lang === 'el' ? `Απομένουν <strong>${trialStatus.daysRemaining} ημέρες</strong> real-time συγχρονισμού` : `<strong>${trialStatus.daysRemaining} days</strong> remaining`}</div>
+            </div>
+          </div>
+          <button type="button" onclick="openPremiumModal('family')" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: #0f172a; border: none; padding: 6px 12px; border-radius: 10px; font-size: 11px; font-weight: 800; cursor: pointer; white-space: nowrap; box-shadow: 0 2px 8px rgba(245,158,11,0.3);">
+            ${state.lang === 'el' ? '€9,99 Για Πάντα' : '€9.99 Lifetime'}
+          </button>
+        </div>
+      `;
+    } else {
+      trialBannerHtml = `
+        <div style="padding: 12px 14px; background: rgba(244,63,94,0.12); border: 1px solid rgba(244,63,94,0.35); border-radius: 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="width: 30px; height: 30px; border-radius: 8px; background: rgba(244,63,94,0.2); color: #f43f5e; display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0;">
+              <i class="fa-solid fa-lock"></i>
+            </div>
+            <div>
+              <div style="font-size: 12.5px; font-weight: 800; color: #fff;">${state.lang === 'el' ? 'Η Δοκιμή Κοινού Ταμείου Έληξε' : 'Family Sync Trial Expired'}</div>
+              <div style="font-size: 11px; color: var(--text-secondary);">${state.lang === 'el' ? 'Κρατήστε το κοινό ταμείο ενεργό' : 'Keep your household synced'}</div>
+            </div>
+          </div>
+          <button type="button" onclick="openPremiumModal('family')" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: #0f172a; border: none; padding: 6px 12px; border-radius: 10px; font-size: 11px; font-weight: 800; cursor: pointer; white-space: nowrap; box-shadow: 0 2px 8px rgba(245,158,11,0.3);">
+            ${state.lang === 'el' ? 'Ξεκλείδωμα (€9,99)' : 'Unlock (€9.99)'}
+          </button>
+        </div>
+      `;
+    }
+
     // Last-activity indicator ("Ο Άρης πρόσθεσε έξοδο πριν 5 λεπτά")
     const lastActivity = getFamilyLastActivity();
     let lastActivityHtml = '';
@@ -24639,6 +24714,9 @@ function renderPartnerSection() {
             <i class="fa-solid fa-right-from-bracket" style="margin-right:5px;"></i>${state.lang === 'el' ? 'Αποχώρηση' : 'Leave'}
           </button>
         </div>
+
+        <!-- Household 14-Day Free Trial / Premium Status Banner -->
+        ${trialBannerHtml}
 
         <!-- Last Activity Indicator -->
         ${lastActivityHtml}
@@ -32228,6 +32306,205 @@ window.resetRepInstButton = resetRepInstButton;
 window.onSimplePresetChange = onSimplePresetChange;
 
 // ============================================================
+// FEATURE: SAFE-TO-SPEND & WHAT-IF ENGINE UI HOOKS
+// ============================================================
+
+function getLiquidBalance() {
+  if (!state.accounts || state.accounts.length === 0) return 0;
+  return state.accounts.reduce((sum, acc) => sum + (parseFloat(acc.balance) || 0), 0);
+}
+
+function getUnpaidRecurringBillsThisMonth() {
+  if (!state.recurringTemplates || state.recurringTemplates.length === 0) return 0;
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth();
+  const currentDay = now.getDate();
+  const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+
+  let unpaidTotal = 0;
+  state.recurringTemplates.forEach(tpl => {
+    if (tpl.type !== 'expense') return;
+    const dueDay = parseInt(tpl.due_day || tpl.day_of_month || 1, 10);
+    if (dueDay >= currentDay && dueDay <= lastDayOfMonth) {
+      unpaidTotal += sanitizeFloat(parseFloat(tpl.amount) || 0);
+    }
+  });
+  return unpaidTotal;
+}
+
+function getMonthlySavingsGoal() {
+  if (!state.budgets || state.budgets.length === 0) return 0;
+  const savingsBudget = state.budgets.find(b => {
+    const name = (b.name || b.category || '').toLowerCase();
+    return name.includes('αποταμ') || name.includes('saving');
+  });
+  return savingsBudget ? sanitizeFloat(parseFloat(savingsBudget.amount) || 0) : 0;
+}
+
+function updateSafeToSpendUI() {
+  if (typeof SafeToSpendEngine === 'undefined') return;
+
+  const balance = getLiquidBalance();
+  const unpaidBills = getUnpaidRecurringBillsThisMonth();
+  const savingsGoal = getMonthlySavingsGoal();
+
+  const stsResult = SafeToSpendEngine.calculateDailySafeToSpend({
+    currentBalance: balance,
+    unpaidRecurringBills: unpaidBills,
+    savingsGoal: savingsGoal
+  });
+
+  state._lastSafeToSpendResult = stsResult;
+
+  // Overview Card Elements (Επισκόπηση)
+  const dailyEl = document.getElementById('sts-daily-val');
+  const weeklyEl = document.getElementById('sts-weekly-val');
+  const subtitleEl = document.getElementById('sts-subtitle');
+  const badgeEl = document.getElementById('sts-badge');
+
+  const currSym = getCurrencySymbol();
+  if (dailyEl) dailyEl.textContent = `${currSym} ${formatDisplayAmount(stsResult.safeDaily)}`;
+  if (weeklyEl) weeklyEl.textContent = `${currSym} ${formatDisplayAmount(stsResult.safeWeekly)}`;
+  if (subtitleEl) {
+    subtitleEl.textContent = `${stsResult.daysRemaining} ημέρες απομένουν • Μετά από πάγιες (${currSym} ${formatDisplayAmount(unpaidBills)})`;
+  }
+
+  if (badgeEl) {
+    if (stsResult.status === 'caution') {
+      badgeEl.style.color = '#f59e0b';
+      badgeEl.style.borderColor = 'rgba(245, 158, 11, 0.4)';
+      badgeEl.style.background = 'rgba(245, 158, 11, 0.15)';
+    } else if (stsResult.status === 'critical') {
+      badgeEl.style.color = '#f43f5e';
+      badgeEl.style.borderColor = 'rgba(244, 63, 94, 0.4)';
+      badgeEl.style.background = 'rgba(244, 63, 94, 0.15)';
+    } else {
+      badgeEl.style.color = '#34d399';
+      badgeEl.style.borderColor = 'rgba(16, 185, 129, 0.35)';
+      badgeEl.style.background = 'rgba(16, 185, 129, 0.15)';
+    }
+  }
+}
+
+function openSafeToSpendModal() {
+  updateSafeToSpendUI();
+  const sts = state._lastSafeToSpendResult || {
+    safeDaily: 0,
+    safeWeekly: 0,
+    currentBalance: getLiquidBalance(),
+    committedExpenses: getUnpaidRecurringBillsThisMonth(),
+    discretionaryPool: 0,
+    daysRemaining: 0
+  };
+
+  const currSym = getCurrencySymbol();
+  const modalDaily = document.getElementById('modal-sts-daily-val');
+  const modalWeekly = document.getElementById('modal-sts-weekly-val');
+  const modalBal = document.getElementById('modal-sts-balance');
+  const modalBills = document.getElementById('modal-sts-bills');
+  const modalSav = document.getElementById('modal-sts-savings');
+  const modalPool = document.getElementById('modal-sts-pool');
+  const modalDays = document.getElementById('modal-sts-days');
+
+  if (modalDaily) modalDaily.textContent = `${currSym} ${formatDisplayAmount(sts.safeDaily)}`;
+  if (modalWeekly) modalWeekly.textContent = `ή ${currSym} ${formatDisplayAmount(sts.safeWeekly)} για αυτή την εβδομάδα`;
+  if (modalBal) modalBal.textContent = `${currSym} ${formatDisplayAmount(sts.currentBalance)}`;
+  if (modalBills) modalBills.textContent = `- ${currSym} ${formatDisplayAmount(getUnpaidRecurringBillsThisMonth())}`;
+  if (modalSav) modalSav.textContent = `- ${currSym} ${formatDisplayAmount(getMonthlySavingsGoal())}`;
+  if (modalPool) modalPool.textContent = `${currSym} ${formatDisplayAmount(sts.discretionaryPool)}`;
+  if (modalDays) modalDays.textContent = `${sts.daysRemaining} ημέρες`;
+
+  // Clear previous simulation result
+  const resBox = document.getElementById('sts-sim-result-box');
+  if (resBox) {
+    resBox.style.display = 'none';
+    resBox.innerHTML = '';
+  }
+
+  openModal('safe-to-spend-modal');
+}
+
+function runWhatIfSimulation() {
+  if (typeof SafeToSpendEngine === 'undefined') return;
+
+  const amtInput = document.getElementById('sts-sim-amount');
+  const instSelect = document.getElementById('sts-sim-installments');
+  const resBox = document.getElementById('sts-sim-result-box');
+  if (!amtInput || !resBox) return;
+
+  const amount = parseFloat(amtInput.value);
+  if (!amount || isNaN(amount) || amount <= 0) {
+    resBox.style.display = 'block';
+    resBox.style.background = 'rgba(239, 68, 68, 0.15)';
+    resBox.style.border = '1px solid rgba(239, 68, 68, 0.3)';
+    resBox.style.color = '#f87171';
+    resBox.innerHTML = 'Παρακαλώ εισάγετε έγκυρο ποσό αγοράς.';
+    return;
+  }
+
+  const installments = parseInt(instSelect ? instSelect.value : '1', 10) || 1;
+  const currState = state._lastSafeToSpendResult || SafeToSpendEngine.calculateDailySafeToSpend({
+    currentBalance: getLiquidBalance(),
+    unpaidRecurringBills: getUnpaidRecurringBillsThisMonth(),
+    savingsGoal: getMonthlySavingsGoal()
+  });
+
+  const sim = SafeToSpendEngine.simulatePurchase({
+    purchaseAmount: amount,
+    installments: installments,
+    safeToSpendState: currState
+  });
+
+  const currSym = getCurrencySymbol();
+  resBox.style.display = 'block';
+
+  if (!sim.isAffordable || sim.verdict === 'unaffordable') {
+    resBox.style.background = 'rgba(239, 68, 68, 0.18)';
+    resBox.style.border = '1px solid rgba(239, 68, 68, 0.35)';
+    resBox.style.color = '#ffffff';
+    resBox.innerHTML = `
+      <div style="font-weight: 800; color: #f87171; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <span>Μη Βιώσιμη Αγορά</span>
+      </div>
+      <div style="font-size: 11.5px; color: var(--text-secondary); line-height: 1.4;">
+        ${sim.recommendation}
+      </div>
+    `;
+  } else {
+    const isTight = sim.verdict === 'tight';
+    const accentColor = isTight ? '#fbbf24' : '#34d399';
+    const bg = isTight ? 'rgba(245, 158, 11, 0.18)' : 'rgba(16, 185, 129, 0.18)';
+    const border = isTight ? 'rgba(245, 158, 11, 0.35)' : 'rgba(16, 185, 129, 0.35)';
+
+    resBox.style.background = bg;
+    resBox.style.border = `1px solid ${border}`;
+    resBox.style.color = '#ffffff';
+    resBox.innerHTML = `
+      <div style="font-weight: 800; color: ${accentColor}; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+        <i class="fa-solid fa-circle-check"></i>
+        <span>${isTight ? 'Εφικτή αλλά απαιτείται προσοχή!' : 'Άνετη Αγορά!'}</span>
+      </div>
+      <div style="font-size: 11.5px; color: #cbd5e1; line-height: 1.4;">
+        Το Safe-to-Spend θα πέσει από <span style="text-decoration: line-through; color: var(--text-muted);">${currSym} ${formatDisplayAmount(currState.safeDaily)}</span> σε <strong style="color: #fff;">${currSym} ${formatDisplayAmount(sim.newSafeDaily)} / ημέρα</strong>.
+      </div>
+    `;
+  }
+}
+
+function openAiAdvisorFromBar() {
+  if (typeof openAdvisorChat === 'function') {
+    openAdvisorChat();
+  }
+}
+
+window.updateSafeToSpendUI = updateSafeToSpendUI;
+window.openSafeToSpendModal = openSafeToSpendModal;
+window.runWhatIfSimulation = runWhatIfSimulation;
+window.openAiAdvisorFromBar = openAiAdvisorFromBar;
+
+// ============================================================
 // FEATURE: AI FINANCIAL COACH CHAT LOGIC
 // ============================================================
 
@@ -32953,12 +33230,21 @@ function submitCoachQuery(queryText) {
         const ytdExpense = yearAgg[currentYearStr]?.expense || 0;
         const ytdNetBalance = ytdIncome - ytdExpense;
 
+        const currentSafeToSpend = (typeof SafeToSpendEngine !== 'undefined')
+          ? SafeToSpendEngine.calculateDailySafeToSpend({
+              currentBalance: getLiquidBalance(),
+              unpaidRecurringBills: getUnpaidRecurringBillsThisMonth(),
+              savingsGoal: getMonthlySavingsGoal()
+            })
+          : null;
+
         const stats = {
           lang: state.lang,
           currentDate,
           thisMonthIncome,
           thisMonthExpense,
           currentBalance: pacing.totalBalance || 0,
+          safeToSpend: currentSafeToSpend,
           averageMonthlyIncome: pacing.avgIncome || 0,
           averageMonthlyExpense: pacing.avgExpense || 0,
           averageMonthlyNetSavings: (pacing.avgIncome || 0) - (pacing.avgExpense || 0),

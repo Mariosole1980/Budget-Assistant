@@ -461,6 +461,10 @@
       <script src="js/recurringDates.js"></script>
       <!-- Pure calculator buffer evaluation (extracted from app.js; loaded before app.js) -->
       <script src="js/calcKeypad.js"></script>
+      <!-- Pure Premium entitlement & gating engine (extracted from app.js; loaded before app.js) -->
+      <script src="js/PremiumService.js"></script>
+      <!-- Safe-to-Spend & Cashflow Intelligence Engine (pure mathematical calculations; loaded before app.js) -->
+      <script src="js/SafeToSpendEngine.js"></script>
       <script src="app.js?v=1640"></script>
       <!-- Desktop Web UX Layer (defer so it runs after app.js; invoked via
        initDesktopUI() hook at the end of initApp()). Self-guards on
@@ -736,6 +740,26 @@
             <span id="summary-total-val" class="summary-total">€ 0,00</span>
           </div>
         </div>
+        <!-- AI Quick Advisor / Copilot Bar -->
+        <div id="ai-check-bar" class="ai-check-bar" onclick="openAiAdvisorFromBar()" style="cursor: pointer;">
+          <div class="ai-check-content">
+            <div class="ai-check-badge">
+              <i class="fa-solid fa-wand-magic-sparkles"></i>
+            </div>
+            <div class="ai-check-text">
+              <div class="ai-check-title">
+                <span data-i18n="ai_check_title">AI Οικονομικός Έλεγχος</span>
+                <span class="ai-pulse-dot"></span>
+              </div>
+              <div class="ai-check-prompt" id="ai-check-prompt-text">«Μπορώ να πάρω laptop €600;»</div>
+            </div>
+          </div>
+          <div class="ai-check-action">
+            <span class="ai-check-btn-text" data-i18n="ai_check_btn">Έλεγχος</span>
+            <i class="fa-solid fa-chevron-right" style="font-size: 10px;"></i>
+          </div>
+        </div>
+
         <!-- Scrollable transactions area -->
         <div class="trans-scroll-content">
           <!-- Grouped Transactions List -->
@@ -951,6 +975,29 @@
                 <span id="multi-currency-net-worth-val"
                   style="font-size: 15px; font-weight: 800; color: var(--text-primary); white-space: nowrap;">€
                   0,00</span>
+              </div>
+            </div>
+
+            <!-- Safe-to-Spend Hero Card (Executive Financial Radar) -->
+            <div id="safe-to-spend-overview-card" class="safe-to-spend-card" onclick="openSafeToSpendModal()" style="cursor: pointer;">
+              <div class="safe-to-spend-left">
+                <div class="safe-to-spend-badge" id="sts-badge">
+                  <span class="sts-pulse-dot"></span>
+                  <i class="fa-solid fa-shield-halved" style="font-size: 10px;"></i>
+                  <span id="sts-badge-text">Safe-to-Spend</span>
+                </div>
+                <div class="safe-to-spend-amount-group">
+                  <span id="sts-daily-val" class="sts-daily-amount">€ 0,00</span>
+                  <span class="sts-daily-suffix">/ ημέρα</span>
+                </div>
+                <div class="sts-subtitle" id="sts-subtitle">Υπολογισμός...</div>
+              </div>
+              <div class="safe-to-spend-right">
+                <div class="sts-meter" id="sts-meter">
+                  <div class="sts-meter-label">Εβδομάδα</div>
+                  <div id="sts-weekly-val" class="sts-weekly-val">€ 0,00</div>
+                </div>
+                <span class="sts-action-link">Ανάλυση & What-If ➔</span>
               </div>
             </div>
 
@@ -3046,6 +3093,18 @@
                 </div>
                 <span style="font-size:13px; font-weight:600; color:var(--text-primary);" data-i18n="premium_feat_receipt_scan">Αυτόματη Αναγνώριση & Σάρωση Αποδείξεων με AI (100/μήνα)</span>
               </div>
+              <div style="display:flex; gap:10px; align-items:center;">
+                <div style="width: 20px; height: 20px; border-radius: 50%; background: rgba(34,197,94,0.15); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                  <i class="fa-solid fa-check" style="color:#22c55e; font-size:11px;"></i>
+                </div>
+                <span style="font-size:13px; font-weight:600; color:var(--text-primary);">Safe-to-Spend & Πρόβλεψη Ρευστότητας Μήνα</span>
+              </div>
+              <div style="display:flex; gap:10px; align-items:center;">
+                <div style="width: 20px; height: 20px; border-radius: 50%; background: rgba(34,197,94,0.15); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                  <i class="fa-solid fa-check" style="color:#22c55e; font-size:11px;"></i>
+                </div>
+                <span style="font-size:13px; font-weight:600; color:var(--text-primary);">Αυτόματο Settle-Up ("Ποιος χρωστάει σε ποιον")</span>
+              </div>
             </div>
           </div>
 
@@ -3139,6 +3198,89 @@
 
           <div style="margin-top:12px; font-size:11px; color:var(--text-muted); text-align:center;"
             data-i18n="premium_footnote">Εφάπαξ πληρωμή. Χωρίς συνδρομή, χωρίς ανανέωση.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- MODAL: SAFE-TO-SPEND & WHAT-IF SIMULATOR      -->
+    <!-- ============================================== -->
+    <div id="safe-to-spend-modal" class="modal-overlay">
+      <div class="modal-content" style="max-width: 440px; max-height: 90vh; overflow-y: auto; padding: 0; border-radius: 24px; border: 1px solid rgba(16, 185, 129, 0.25); background: #0f172a; box-shadow: 0 20px 50px rgba(0,0,0,0.5);">
+        <div class="modal-header" style="padding: 16px 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="width: 32px; height: 32px; border-radius: 10px; background: rgba(16, 185, 129, 0.2); color: #34d399; display: flex; align-items: center; justify-content: center; font-size: 14px;">
+              <i class="fa-solid fa-shield-halved"></i>
+            </div>
+            <h3 class="modal-title" style="font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 16px; margin: 0; color: #fff;">Safe-to-Spend</h3>
+          </div>
+          <span class="modal-close" onclick="closeModal('safe-to-spend-modal')" style="cursor: pointer; font-size: 22px; color: var(--text-secondary);">&times;</span>
+        </div>
+
+        <div class="modal-body" style="padding: 18px 20px;">
+          <!-- Big Daily Display -->
+          <div style="text-align: center; padding: 16px; background: linear-gradient(145deg, rgba(16, 185, 129, 0.12) 0%, rgba(15, 23, 42, 0.6) 100%); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 18px; margin-bottom: 16px;">
+            <div style="font-size: 11.5px; font-weight: 700; color: #a7f3d0; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Ασφαλες για Ξοδεμα Σημερα</div>
+            <div id="modal-sts-daily-val" style="font-family: 'Outfit', sans-serif; font-size: 34px; font-weight: 900; color: #ffffff; letter-spacing: -0.5px;">€ 0,00</div>
+            <div id="modal-sts-weekly-val" style="font-size: 13px; font-weight: 600; color: #34d399; margin-top: 2px;">ή € 0,00 για αυτή την εβδομάδα</div>
+          </div>
+
+          <!-- Mathematical Breakdown -->
+          <div style="background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 16px; padding: 14px; margin-bottom: 16px; font-size: 12.5px; display: flex; flex-direction: column; gap: 8px;">
+            <div style="display: flex; justify-content: space-between; color: var(--text-secondary);">
+              <span>Ρευστό Διαθέσιμο Υπόλοιπο:</span>
+              <span id="modal-sts-balance" style="font-weight: 700; color: #fff;">€ 0,00</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; color: #f87171;">
+              <span>- Επερχόμενες Πάγιες Εντολές Μήνα:</span>
+              <span id="modal-sts-bills" style="font-weight: 700;">- € 0,00</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; color: #60a5fa;">
+              <span>- Στόχος Αποταμίευσης:</span>
+              <span id="modal-sts-savings" style="font-weight: 700;">- € 0,00</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; padding-top: 8px; border-top: 1px solid rgba(255, 255, 255, 0.08); font-weight: 800;">
+              <span style="color: #fff;">= Ελεύθερο Ποσό για Έξοδα:</span>
+              <span id="modal-sts-pool" style="color: #34d399;">€ 0,00</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-top: 2px;">
+              <span>Ημέρες που απομένουν στον μήνα:</span>
+              <span id="modal-sts-days">0 ημέρες</span>
+            </div>
+          </div>
+
+          <!-- What-If Purchase Simulator -->
+          <div style="background: linear-gradient(145deg, rgba(245, 158, 11, 0.08) 0%, rgba(15, 23, 42, 0.95) 100%); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 18px; padding: 16px; margin-bottom: 16px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+              <div style="display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 800; color: #fbbf24;">
+                <i class="fa-solid fa-wand-magic-sparkles"></i>
+                <span>Προσομοιωτής Αγορών (What-If)</span>
+              </div>
+              <span style="font-size: 9.5px; font-weight: 800; background: #fbbf24; color: #0f172a; padding: 2px 6px; border-radius: 6px; text-transform: uppercase;">PRO</span>
+            </div>
+            <div style="font-size: 11.5px; color: var(--text-secondary); margin-bottom: 12px; line-height: 1.4;">
+              Θέλετε να αγοράσετε κάτι; Δείτε αν σας παίρνει πριν το πληρώσετε:
+            </div>
+            <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+              <input type="number" id="sts-sim-amount" placeholder="Ποσό π.χ. 300" style="flex: 1; padding: 8px 12px; font-size: 13px; font-weight: 700; background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 12px; color: #fff; outline: none;">
+              <select id="sts-sim-installments" style="padding: 8px 10px; font-size: 12px; font-weight: 600; background: #1e293b; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 12px; color: #fff;">
+                <option value="1">Εφάπαξ</option>
+                <option value="3">3 Δόσεις</option>
+                <option value="6">6 Δόσεις</option>
+              </select>
+              <button type="button" onclick="runWhatIfSimulation()" style="padding: 8px 14px; font-size: 12px; font-weight: 800; background: linear-gradient(135deg, #f59e0b, #d97706); color: #0f172a; border: none; border-radius: 12px; cursor: pointer;">
+                Έλεγχος
+              </button>
+            </div>
+            <!-- Simulation Output Container -->
+            <div id="sts-sim-result-box" style="display: none; padding: 10px 12px; border-radius: 12px; font-size: 12px; margin-top: 8px;"></div>
+          </div>
+
+          <!-- Bottom CTA for Premium -->
+          <button type="button" onclick="closeModal('safe-to-spend-modal'); openPremiumModal('safetospend');" style="width: 100%; padding: 12px; border-radius: 14px; background: linear-gradient(135deg, #f59e0b, #d97706); border: none; font-family: 'Outfit', sans-serif; font-size: 13px; font-weight: 800; color: #0f172a; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; box-shadow: 0 4px 16px rgba(245, 158, 11, 0.3);">
+            <i class="fa-solid fa-crown"></i>
+            <span>Ξεκλείδωσε Πλήρη Πρόβλεψη & Κοινό Ταμείο (€9,99)</span>
+          </button>
         </div>
       </div>
     </div>
