@@ -40,7 +40,8 @@
       "forceCodeForRefreshToken": true
     },
     "LocalNotifications": {
-      "smallIcon": "ic_launcher_round"
+      "smallIcon": "ic_launcher_round",
+      "iconColor": "#0F1219"
     }
   }
 }
