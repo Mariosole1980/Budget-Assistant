@@ -32536,7 +32536,11 @@ function updateSafeToSpendUI() {
             subsPill.style.background = 'rgba(52, 211, 153, 0.12)';
           }
         } else {
-          subsPill.style.display = 'none';
+          subsPill.style.display = 'inline-flex';
+          subsPillText.textContent = lang === 'el' ? 'Πάγια & Συνδρομές' : 'Bills & Subscriptions';
+          subsPill.style.color = '#a78bfa';
+          subsPill.style.borderColor = 'rgba(167, 139, 250, 0.3)';
+          subsPill.style.background = 'rgba(167, 139, 250, 0.12)';
         }
       } catch (e) {
         subsPill.style.display = 'none';
