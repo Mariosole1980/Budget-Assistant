@@ -1,4 +1,4 @@
-import { validateRequest, corsHeadersFor, getSupabasePublicConfig } from './_security.js';
+import { validateRequest, corsHeadersFor, getSupabasePublicConfig, grantHouseholdPremium } from './_security.js';
 
 // Google Play Billing verification endpoint (native Android).
 //
@@ -316,41 +316,19 @@ export async function onRequestPost(context) {
         });
     }
 
-    // Purchase verified — grant the Premium Lifetime entitlement (idempotent).
-    try {
-        const updateRes = await fetch(`${supabaseUrl}/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}`, {
-            method: 'PATCH',
-            headers: {
-                'apikey': serviceRoleKey,
-                'Authorization': `Bearer ${serviceRoleKey}`,
-                'Content-Type': 'application/json',
-                'Prefer': 'return=minimal'
-            },
-            body: JSON.stringify({
-                premium_active: true,
-                premium_purchased_at: new Date().toISOString()
-            })
-        });
-
-        if (!updateRes.ok) {
-            const errText = await updateRes.text();
-            console.error('Play-billing: failed to grant premium:', updateRes.status, errText);
-            return new Response(JSON.stringify({ error: 'Failed to grant premium entitlement.' }), {
-                status: 500,
-                headers: corsHeaders
-            });
-        }
-
-        console.log(`Play-billing: granted Premium Lifetime to user ${userId} (product ${productId})`);
-        return new Response(JSON.stringify({ ok: true, premium_active: true }), {
-            status: 200,
-            headers: corsHeaders
-        });
-    } catch (err) {
-        console.error('Play-billing: error granting premium:', err.message);
+    // Purchase verified — grant the Premium Lifetime entitlement (household-wide).
+    const grantRes = await grantHouseholdPremium(supabaseUrl, serviceRoleKey, userId);
+    if (!grantRes.ok) {
+        console.error('Play-billing: failed to grant premium:', grantRes.status, grantRes.error);
         return new Response(JSON.stringify({ error: 'Failed to grant premium entitlement.' }), {
             status: 500,
             headers: corsHeaders
         });
     }
+
+    console.log(`Play-billing: granted Premium Lifetime to user ${userId} (product ${productId}, household unlocked)`);
+    return new Response(JSON.stringify({ ok: true, premium_active: true }), {
+        status: 200,
+        headers: corsHeaders
+    });
 }

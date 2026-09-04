@@ -1,3 +1,5 @@
+import { grantHouseholdPremium } from './_security.js';
+
 // Stripe webhook endpoint (web / PWA).
 //
 // Stripe calls this endpoint after a payment event. We verify the signature
@@ -71,34 +73,15 @@ export async function onRequestPost(context) {
             return new Response(JSON.stringify({ error: 'Missing user id in session.' }), { status: 400 });
         }
 
-        // Grant the Premium Lifetime entitlement.
-        try {
-            const updateRes = await fetch(`${supabaseUrl}/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}`, {
-                method: 'PATCH',
-                headers: {
-                    'apikey': serviceRoleKey,
-                    'Authorization': `Bearer ${serviceRoleKey}`,
-                    'Content-Type': 'application/json',
-                    'Prefer': 'return=minimal'
-                },
-                body: JSON.stringify({
-                    premium_active: true,
-                    premium_purchased_at: new Date().toISOString()
-                })
-            });
-
-            if (!updateRes.ok) {
-                const errText = await updateRes.text();
-                console.error('Webhook: failed to grant premium:', updateRes.status, errText);
-                // Return 500 so Stripe retries the webhook.
-                return new Response(JSON.stringify({ error: 'Failed to grant premium.' }), { status: 500 });
-            }
-
-            console.log(`Webhook: granted Premium Lifetime to user ${userId}`);
-        } catch (err) {
-            console.error('Webhook: error granting premium:', err.message);
+        // Grant the Premium Lifetime entitlement (household-wide).
+        const grantRes = await grantHouseholdPremium(supabaseUrl, serviceRoleKey, userId);
+        if (!grantRes.ok) {
+            console.error('Webhook: failed to grant premium:', grantRes.status, grantRes.error);
+            // Return 500 so Stripe retries the webhook.
             return new Response(JSON.stringify({ error: 'Failed to grant premium.' }), { status: 500 });
         }
+
+        console.log(`Webhook: granted Premium Lifetime to user ${userId} (household unlocked)`);
     }
 
     // Acknowledge the event (Stripe expects a 2xx to stop retrying).

@@ -1,4 +1,4 @@
-import { validateRequest, corsHeadersFor, getSupabasePublicConfig } from './_security.js';
+import { validateRequest, corsHeadersFor, getSupabasePublicConfig, grantHouseholdPremium } from './_security.js';
 
 // Google Pay direct-wallet purchase endpoint (web / PWA).
 //
@@ -207,27 +207,13 @@ export async function onRequestPost(context) {
             });
         }
 
-        // Payment succeeded — grant the Premium Lifetime entitlement (same as
-        // the webhook). Safe: Stripe confirmed the charge (status 'succeeded')
-        // before anything is written. Idempotent: re-setting the same values is
-        // harmless.
-        const updateRes = await fetch(`${supabaseUrl}/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}`, {
-            method: 'PATCH',
-            headers: {
-                'apikey': serviceRoleKey,
-                'Authorization': `Bearer ${serviceRoleKey}`,
-                'Content-Type': 'application/json',
-                'Prefer': 'return=minimal'
-            },
-            body: JSON.stringify({
-                premium_active: true,
-                premium_purchased_at: new Date().toISOString()
-            })
-        });
+        // Payment succeeded — grant the Premium Lifetime entitlement (household-wide).
+        // Safe: Stripe confirmed the charge (status 'succeeded') before anything is written.
+        // Idempotent: re-setting the same values is harmless.
+        const grantRes = await grantHouseholdPremium(supabaseUrl, serviceRoleKey, userId);
 
-        if (!updateRes.ok) {
-            const errText = await updateRes.text();
-            console.error('gpay-purchase: failed to grant premium:', updateRes.status, errText);
+        if (!grantRes.ok) {
+            console.error('gpay-purchase: failed to grant premium:', grantRes.status, grantRes.error);
             return new Response(JSON.stringify({ error: 'Failed to grant premium entitlement.' }), {
                 status: 500,
                 headers: corsHeaders

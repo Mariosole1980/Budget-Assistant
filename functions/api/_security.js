@@ -199,6 +199,80 @@ async function generateWithGeminiFallback({ env, modelNames, reqBody, timeoutMs 
     return { ok: false, status: response && response.status ? response.status : 502, errorText: lastErrText };
 }
 
+/**
+ * Grants Premium Lifetime to a purchasing user and automatically unlocks all
+ * other members belonging to the same household (family_id) directly in Supabase.
+ *
+ * @param {string} supabaseUrl
+ * @param {string} serviceRoleKey
+ * @param {string} userId
+ * @returns {Promise<{ ok: boolean, status?: number, error?: string, familyId?: string|null }>}
+ */
+async function grantHouseholdPremium(supabaseUrl, serviceRoleKey, userId) {
+    if (!supabaseUrl || !serviceRoleKey || !userId) {
+        return { ok: false, status: 500, error: 'Missing parameters for grantHouseholdPremium' };
+    }
+
+    const nowIso = new Date().toISOString();
+
+    try {
+        // 1. Grant to purchasing user and request the updated profile representation
+        const userRes = await fetch(`${supabaseUrl}/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}`, {
+            method: 'PATCH',
+            headers: {
+                'apikey': serviceRoleKey,
+                'Authorization': `Bearer ${serviceRoleKey}`,
+                'Content-Type': 'application/json',
+                'Prefer': 'return=representation'
+            },
+            body: JSON.stringify({
+                premium_active: true,
+                premium_purchased_at: nowIso
+            })
+        });
+
+        if (!userRes.ok) {
+            const errText = await userRes.text();
+            return { ok: false, status: userRes.status, error: errText };
+        }
+
+        let familyId = null;
+        try {
+            const data = await userRes.json();
+            const profile = (Array.isArray(data) && data[0]) ? data[0] : null;
+            familyId = profile ? profile.family_id : null;
+        } catch (parseErr) {
+            familyId = null;
+        }
+
+        // 2. If the user belongs to a household, unlock all other members in that family
+        if (familyId) {
+            try {
+                await fetch(`${supabaseUrl}/rest/v1/profiles?family_id=eq.${encodeURIComponent(familyId)}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'apikey': serviceRoleKey,
+                        'Authorization': `Bearer ${serviceRoleKey}`,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=minimal'
+                    },
+                    body: JSON.stringify({
+                        premium_active: true,
+                        premium_purchased_at: nowIso
+                    })
+                });
+                console.log(`[Household Premium] Successfully unlocked all profiles in family ${familyId}`);
+            } catch (famErr) {
+                console.warn('[Household Premium] Non-fatal error unlocking family members:', famErr);
+            }
+        }
+
+        return { ok: true, familyId };
+    } catch (err) {
+        return { ok: false, status: 500, error: err.message || String(err) };
+    }
+}
+
 export {
     corsHeadersFor,
     validateRequest,
@@ -206,5 +280,7 @@ export {
     ALLOWED_ORIGINS,
     getSupabasePublicConfig,
     getSupabaseServiceConfig,
-    generateWithGeminiFallback
+    generateWithGeminiFallback,
+    grantHouseholdPremium
 };
+

@@ -1,4 +1,4 @@
-import { validateRequest, corsHeadersFor, getSupabasePublicConfig } from './_security.js';
+import { validateRequest, corsHeadersFor, getSupabasePublicConfig, grantHouseholdPremium } from './_security.js';
 
 // Premium status / reconciliation endpoint (web / PWA).
 //
@@ -188,26 +188,13 @@ export async function onRequestGet(context) {
     }
 
     // A paid session exists but the profile is not premium — grant the
-    // entitlement (same as the webhook). Idempotent: setting the same values
+    // entitlement (household-wide, same as the webhook). Idempotent: setting the same values
     // again is harmless.
     try {
-        const updateRes = await fetch(`${supabaseUrl}/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}`, {
-            method: 'PATCH',
-            headers: {
-                'apikey': serviceRoleKey,
-                'Authorization': `Bearer ${serviceRoleKey}`,
-                'Content-Type': 'application/json',
-                'Prefer': 'return=minimal'
-            },
-            body: JSON.stringify({
-                premium_active: true,
-                premium_purchased_at: new Date().toISOString()
-            })
-        });
+        const grantRes = await grantHouseholdPremium(supabaseUrl, serviceRoleKey, userId);
 
-        if (!updateRes.ok) {
-            const errText = await updateRes.text();
-            console.error('Premium-status: failed to grant premium:', updateRes.status, errText);
+        if (!grantRes.ok) {
+            console.error('Premium-status: failed to grant premium:', grantRes.status, grantRes.error);
             return new Response(JSON.stringify({ error: 'Failed to reconcile premium entitlement.' }), {
                 status: 500,
                 headers: corsHeaders
