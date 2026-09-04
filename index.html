@@ -4819,7 +4819,7 @@
             </div>
           </div>
 
-          <!-- Time Picker Direct Input -->
+          <!-- Time Picker Direct Input & OLED Scroll Wheels -->
           <div id="custom-date-picker-time-container"
             style="display: flex; flex-direction: column; align-items: center; gap: 10px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 16px; width: 100%;">
             <div
@@ -4828,13 +4828,39 @@
                 style="font-size: 12px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.8px; margin: 0; font-family: 'Outfit', sans-serif;"
                 data-i18n="date_picker_time_label">ΩΡΑ</label>
               <div style="display: flex; gap: 6px;">
+                <button type="button" id="toggle-time-input-mode" class="btn"
+                  style="padding: 3px 8px; font-size: 11px; font-weight: 700; border-radius: 8px; background: var(--overlay-060); border: 1px solid var(--overlay-100); color: var(--text-secondary); cursor: pointer;"
+                  onclick="toggleTimeInputMode()" aria-label="Toggle Keyboard Input"><i class="fa-regular fa-keyboard"></i></button>
                 <button type="button" class="btn" style="padding: 3px 8px; font-size: 11px; font-weight: 700; border-radius: 8px; background: var(--overlay-060); border: 1px solid var(--overlay-100); color: var(--text-secondary); cursor: pointer;" onclick="setCustomDatePickerNowTime()">ΤΩΡΑ</button>
               </div>
             </div>
 
-            <!-- Direct Typable Time Display & Input Boxes -->
+            <!-- OLED Scroll Wheel (Default Tactile Wheels) -->
+            <div id="custom-date-picker-time-wheels-row"
+              style="display: flex; align-items: center; justify-content: center; gap: 16px; width: 100%;">
+              <!-- OLED Scroll Wheel for Hours -->
+              <div class="time-wheel-container">
+                <div class="time-wheel-scroll" id="scroll-hours">
+                  <!-- Hours 00 to 23 generated dynamically in JS -->
+                </div>
+                <div class="time-wheel-highlighter"></div>
+              </div>
+
+              <span
+                style="font-size: 24px; font-weight: 700; color: var(--picker-accent, #ef4444); line-height: 60px;">:</span>
+
+              <!-- OLED Scroll Wheel for Minutes -->
+              <div class="time-wheel-container">
+                <div class="time-wheel-scroll" id="scroll-minutes">
+                  <!-- Minutes 00 to 59 generated dynamically in JS -->
+                </div>
+                <div class="time-wheel-highlighter"></div>
+              </div>
+            </div>
+
+            <!-- Direct Typable Time Display & Input Boxes (Keyboard mode) -->
             <div id="custom-date-picker-time-inputs"
-              style="display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%;">
+              style="display: none; align-items: center; justify-content: center; gap: 12px; width: 100%;">
               <div style="display: flex; flex-direction: column; align-items: center; gap: 3px;">
                 <input type="tel" id="custom-time-input-hours" class="time-input-box" min="0" max="23" placeholder="00"
                   maxlength="2" pattern="[0-9]*" inputmode="numeric"

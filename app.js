@@ -12020,23 +12020,23 @@ function updateCategoryDisplay() {
   }
 
   const fullText = subcatText ? `${cleanName} > ${subcatText}` : cleanName;
-  const isLongText = fullText.length > 22;
+  const isLongText = fullText.length > 20;
   const fontSizeStyle = isLongText ? 'font-size: 11.5px;' : 'font-size: 13px;';
 
   if (subcatText) {
     categoryDisplay.innerHTML = `
-      <div style="display: flex; align-items: center; gap: 6px; ${fontSizeStyle} min-width: 0; flex: 1;">
+      <div style="display: flex; align-items: center; gap: 4px; ${fontSizeStyle} min-width: 0; flex: 1; overflow: hidden;">
         <span style="font-size:14px; flex-shrink:0; display:inline-flex; align-items:center;">${iconHtml}</span>
-        <span style="font-weight:600; white-space: nowrap; flex-shrink:0;">${cleanName}</span>
-        <span style="color: var(--text-muted); margin: 0 2px; flex-shrink:0;">&gt;</span>
-        <span style="font-weight:600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;">${subcatText}</span>
+        <span style="font-weight:600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 85px; flex-shrink: 0;">${cleanName}</span>
+        <span style="color: var(--text-muted); margin: 0 1px; flex-shrink:0;">&gt;</span>
+        <span style="font-weight:600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1;">${subcatText}</span>
       </div>
     `;
   } else {
     categoryDisplay.innerHTML = `
-      <div style="display: flex; align-items: center; gap: 6px; ${fontSizeStyle} white-space: nowrap;">
+      <div style="display: flex; align-items: center; gap: 5px; ${fontSizeStyle} min-width: 0; flex: 1; overflow: hidden;">
         <span style="font-size:14px; flex-shrink:0; display:inline-flex; align-items:center;">${iconHtml}</span>
-        <span style="font-weight:600;">${cleanName}</span>
+        <span style="font-weight:600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1;">${cleanName}</span>
       </div>
     `;
   }
@@ -29397,18 +29397,35 @@ function openCustomDatePicker(targetInputId = 'trans-date') {
   }
 
   // Setup listeners
+  setupTimeWheelScrollListeners();
   initTimeInputListeners();
 
+  const wheelsRow = document.getElementById('custom-date-picker-time-wheels-row');
   const inputsRow = document.getElementById('custom-date-picker-time-inputs');
-  if (inputsRow) inputsRow.style.display = 'flex';
+  const toggleBtn = document.getElementById('toggle-time-input-mode');
+  if (wheelsRow) wheelsRow.style.display = 'flex';
+  if (inputsRow) inputsRow.style.display = 'none';
+  if (toggleBtn) {
+    toggleBtn.innerHTML = '<i class="fa-regular fa-keyboard"></i>';
+    toggleBtn.setAttribute('aria-label', 'Switch to Keyboard Mode');
+  }
 
   renderCustomDatePickerCalendar();
 
   // Open the modal
   openModal('custom-date-picker-modal');
 
-  // Set input values to correct initial values
+  // Set input values and scroll wheels to correct initial values
   setTimeout(() => {
+    const hs = document.getElementById('scroll-hours');
+    if (hs) {
+      hs.scrollTop = (2 * 24 + currentDate.getHours()) * 60;
+    }
+    const ms = document.getElementById('scroll-minutes');
+    if (ms) {
+      ms.scrollTop = (2 * 60 + currentDate.getMinutes()) * 60;
+    }
+
     const inputHours = document.getElementById('custom-time-input-hours');
     if (inputHours) {
       inputHours.value = String(currentDate.getHours()).padStart(2, '0');
@@ -29884,12 +29901,12 @@ function setupTimeWheelScrollListeners() {
       if (scrollTop < cycleHeight * 0.8) {
         isAdjusting = true;
         scrollEl.scrollTop += cycleHeight * 2;
-        isAdjusting = false;
+        requestAnimationFrame(() => { isAdjusting = false; });
         return;
       } else if (scrollTop > cycleHeight * 3.2) {
         isAdjusting = true;
         scrollEl.scrollTop -= cycleHeight * 2;
-        isAdjusting = false;
+        requestAnimationFrame(() => { isAdjusting = false; });
         return;
       }
 
@@ -30283,6 +30300,80 @@ document.addEventListener('click', function (e) {
   }
 });
 
+function toggleTimeInputMode() {
+  const wheelsRow = document.getElementById('custom-date-picker-time-wheels-row');
+  const inputsRow = document.getElementById('custom-date-picker-time-inputs');
+  const toggleBtn = document.getElementById('toggle-time-input-mode');
+
+  if (!wheelsRow || !inputsRow) return;
+
+  const isWheelsMode = wheelsRow.style.display !== 'none';
+
+  if (isWheelsMode) {
+    // Switch to Manual INPUT Mode
+    wheelsRow.style.display = 'none';
+    inputsRow.style.display = 'flex';
+    if (toggleBtn) {
+      toggleBtn.innerHTML = '<i class="fa-solid fa-clock"></i>';
+      toggleBtn.setAttribute('aria-label', 'Switch to Wheels Mode');
+    }
+
+    // Sync inputs with wheel values
+    const hs = document.getElementById('scroll-hours');
+    const ms = document.getElementById('scroll-minutes');
+    let h = 0;
+    let m = 0;
+    if (hs) {
+      const totalIdx = Math.round(hs.scrollTop / 60);
+      h = ((totalIdx % 24) + 24) % 24;
+    }
+    if (ms) {
+      const totalIdx = Math.round(ms.scrollTop / 60);
+      m = ((totalIdx % 60) + 60) % 60;
+    }
+
+    const inputHours = document.getElementById('custom-time-input-hours');
+    const inputMinutes = document.getElementById('custom-time-input-minutes');
+    if (inputHours) {
+      inputHours.value = String(h).padStart(2, '0');
+      inputHours.dataset.fresh = 'true';
+    }
+    if (inputMinutes) {
+      inputMinutes.value = String(m).padStart(2, '0');
+      inputMinutes.dataset.fresh = 'true';
+    }
+    if (inputHours) {
+      setTimeout(() => {
+        inputHours.focus();
+        if (typeof inputHours.select === 'function') inputHours.select();
+      }, 50);
+    }
+  } else {
+    // Switch back to WHEELS Mode
+    inputsRow.style.display = 'none';
+    wheelsRow.style.display = 'flex';
+    if (toggleBtn) {
+      toggleBtn.innerHTML = '<i class="fa-regular fa-keyboard"></i>';
+      toggleBtn.setAttribute('aria-label', 'Switch to Keyboard Mode');
+    }
+
+    const inputHours = document.getElementById('custom-time-input-hours');
+    const inputMinutes = document.getElementById('custom-time-input-minutes');
+    let h = inputHours ? parseInt(inputHours.value, 10) : 0;
+    let m = inputMinutes ? parseInt(inputMinutes.value, 10) : 0;
+    if (isNaN(h) || h < 0) h = 0;
+    if (h > 23) h = 23;
+    if (isNaN(m) || m < 0) m = 0;
+    if (m > 59) m = 59;
+
+    const hs = document.getElementById('scroll-hours');
+    const ms = document.getElementById('scroll-minutes');
+    if (hs) hs.scrollTop = (2 * 24 + h) * 60;
+    if (ms) ms.scrollTop = (2 * 60 + m) * 60;
+  }
+}
+window.toggleTimeInputMode = toggleTimeInputMode;
+
 window.openCustomDatePickerBS = openCustomDatePickerBS;
 window.closeCustomDatePickerBS = closeCustomDatePickerBS;
 window.toggleCustomDatePickerBSYearView = toggleCustomDatePickerBSYearView;
@@ -30290,19 +30381,31 @@ window.toggleCustomDatePickerBSYearView = toggleCustomDatePickerBSYearView;
 function setCustomDatePickerValue() {
   const inputHours = document.getElementById('custom-time-input-hours');
   const inputMinutes = document.getElementById('custom-time-input-minutes');
+  const wheelsRow = document.getElementById('custom-date-picker-time-wheels-row');
+  const hs = document.getElementById('scroll-hours');
+  const ms = document.getElementById('scroll-minutes');
 
   let hours = 0;
   let minutes = 0;
 
-  if (inputHours) {
-    hours = parseInt(inputHours.value, 10);
-    if (isNaN(hours) || hours < 0) hours = 0;
-    if (hours > 23) hours = 23;
-  }
-  if (inputMinutes) {
-    minutes = parseInt(inputMinutes.value, 10);
-    if (isNaN(minutes) || minutes < 0) minutes = 0;
-    if (minutes > 59) minutes = 59;
+  const isWheelsMode = wheelsRow && wheelsRow.style.display !== 'none';
+
+  if (isWheelsMode && hs && ms) {
+    const totalH = Math.round(hs.scrollTop / 60);
+    hours = ((totalH % 24) + 24) % 24;
+    const totalM = Math.round(ms.scrollTop / 60);
+    minutes = ((totalM % 60) + 60) % 60;
+  } else {
+    if (inputHours) {
+      hours = parseInt(inputHours.value, 10);
+      if (isNaN(hours) || hours < 0) hours = 0;
+      if (hours > 23) hours = 23;
+    }
+    if (inputMinutes) {
+      minutes = parseInt(inputMinutes.value, 10);
+      if (isNaN(minutes) || minutes < 0) minutes = 0;
+      if (minutes > 59) minutes = 59;
+    }
   }
 
   customDatePickerSelectedDate.setHours(hours);

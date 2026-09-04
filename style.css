@@ -2052,11 +2052,13 @@ body.is-ios .modal-content {
 
 .form-row-value-container {
   flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   border-bottom: 1.5px solid var(--border-light);
   padding-bottom: 4px;
   transition: border-color 0.25s ease;
+  overflow: hidden;
 }
 
 /* Underline color based on modal active type */
@@ -3739,6 +3741,7 @@ body.is-ios .modal-content {
 .custom-select-trigger {
   width: 100%;
   min-width: 0;
+  overflow: hidden;
   background-color: var(--bg-input);
   border: 1px solid var(--border);
   color: var(--text-main);
@@ -3751,6 +3754,11 @@ body.is-ios .modal-content {
   cursor: pointer;
   transition: var(--transition);
   box-sizing: border-box;
+}
+
+.custom-select-trigger i.fa-chevron-down {
+  flex-shrink: 0;
+  margin-left: 6px;
 }
 
 .custom-select-trigger:active {
@@ -6124,6 +6132,7 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   height: 100%;
   overflow-y: scroll;
   overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
   /* Prevent horizontal scrolling */
   scroll-snap-type: y mandatory;
   padding-top: 0;
@@ -8253,6 +8262,7 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
   transform: translateY(100%) !important;
   transition: transform 0.3s cubic-bezier(0.1, 0.76, 0.55, 0.94) !important;
   max-height: 90vh !important;
+  overflow: hidden !important;
   overflow-y: auto !important;
   padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px)) !important;
 }
@@ -8278,12 +8288,16 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
   display: flex !important;
   flex-direction: column !important;
   padding: 16px !important;
-  transform: translateY(100%) !important;
-  transition: transform 0.3s cubic-bezier(0.1, 0.76, 0.55, 0.94) !important;
+  transform: translateY(110%) !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  transition: transform 0.3s cubic-bezier(0.1, 0.76, 0.55, 0.94), visibility 0.3s !important;
 }
 
 #custom-date-picker-bs.active {
+  visibility: visible !important;
   transform: translateY(0) !important;
+  pointer-events: auto !important;
 }
 
 /* ============================================================
