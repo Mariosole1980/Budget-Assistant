@@ -24655,6 +24655,109 @@ function renderPartnerSection() {
       `;
     }
 
+    // Calculate Couple Settle-Up ("Ποιος χρωστάει σε ποιον")
+    let settleUpHtml = '';
+    if (state.familyProfiles && state.familyProfiles.length >= 2) {
+      try {
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth();
+        const myId = state.currentUser ? state.currentUser.id : null;
+
+        const p1 = state.familyProfiles.find(p => p.id === myId) || state.familyProfiles[0];
+        const p2 = state.familyProfiles.find(p => p.id !== p1.id) || state.familyProfiles[1];
+        const members = [
+          { id: p1.id, name: p1.display_name || (p1.email ? p1.email.split('@')[0] : (state.lang === 'el' ? 'Εσύ' : 'You')) },
+          { id: p2.id, name: p2.display_name || (p2.email ? p2.email.split('@')[0] : (state.lang === 'el' ? 'Σύντροφος' : 'Partner')) }
+        ];
+
+        const sharedTxs = (state.transactions || []).filter(t => {
+          if (!t || t.type !== 'expense' || t.is_shared === false) return false;
+          if (!t.date) return false;
+          const dStr = String(t.date).split('T')[0];
+          const parts = dStr.split('-');
+          if (parts.length !== 3) return false;
+          return parseInt(parts[0], 10) === currentYear && (parseInt(parts[1], 10) - 1) === currentMonth;
+        });
+
+        const settleData = (typeof SafeToSpendEngine !== 'undefined' && typeof SafeToSpendEngine.calculateCoupleSettleUp === 'function')
+          ? SafeToSpendEngine.calculateCoupleSettleUp(sharedTxs, members)
+          : null;
+
+        if (settleData) {
+          const total = settleData.totalSharedExpenses;
+          const m1 = settleData.members[0];
+          const m2 = settleData.members[1];
+          const settlement = settleData.settlement;
+          const isEl = state.lang === 'el';
+
+          let debtText = '';
+          const isBalanced = settlement.amount === 0;
+
+          if (isBalanced) {
+            debtText = isEl
+              ? 'Είστε πάτσι! ⚖️ Κανείς δεν χρωστάει για αυτόν τον μήνα.'
+              : 'All settled up! ⚖️ No one owes anything this month.';
+          } else if (settlement.from.id === myId) {
+            debtText = isEl
+              ? `Χρωστάς <span class="settle-up-amount-highlight">€ ${settlement.amount.toFixed(2).replace('.', ',')}</span> στον/στην <strong>${escapeHtml(settlement.to.name)}</strong>`
+              : `You owe <span class="settle-up-amount-highlight">€ ${settlement.amount.toFixed(2)}</span> to <strong>${escapeHtml(settlement.to.name)}</strong>`;
+          } else {
+            debtText = isEl
+              ? `Ο/Η <strong>${escapeHtml(settlement.from.name)}</strong> σου χρωστάει <span class="settle-up-amount-highlight">€ ${settlement.amount.toFixed(2).replace('.', ',')}</span>`
+              : `<strong>${escapeHtml(settlement.from.name)}</strong> owes you <span class="settle-up-amount-highlight">€ ${settlement.amount.toFixed(2)}</span>`;
+          }
+
+          const pct1 = total > 0 ? Math.round((m1.paid / total) * 100) : 50;
+          const pct2 = 100 - pct1;
+
+          settleUpHtml = `
+            <div class="settle-up-card">
+              <div class="settle-up-header">
+                <div class="settle-up-title">
+                  <i class="fa-solid fa-scale-balanced" style="color: #818cf8; font-size: 15px;"></i>
+                  <span>${isEl ? 'Εκκαθάριση Κοινών Εξόδων (50/50)' : 'Shared Settle-Up (50/50)'}</span>
+                </div>
+                ${isBalanced ? `
+                  <span class="settle-up-balanced-badge">
+                    <i class="fa-solid fa-check"></i> ${isEl ? 'Πάτσι' : 'Settled'}
+                  </span>
+                ` : `
+                  <span style="font-size: 11px; font-weight: 700; color: #a5b4fc; background: rgba(99,102,241,0.15); padding: 3px 8px; border-radius: 10px;">
+                    ${isEl ? 'Εκκρεμεί' : 'Pending'}
+                  </span>
+                `}
+              </div>
+
+              <div class="settle-up-summary-box">
+                <div class="settle-up-debt-text">${debtText}</div>
+              </div>
+
+              <div>
+                <div class="settle-up-members-legend">
+                  <span>${escapeHtml(m1.name)}: € ${m1.paid.toFixed(2).replace('.', ',')} (${pct1}%)</span>
+                  <span>${escapeHtml(m2.name)}: € ${m2.paid.toFixed(2).replace('.', ',')} (${pct2}%)</span>
+                </div>
+                <div class="settle-up-comparison-bar" style="margin-top: 5px;">
+                  <div class="settle-up-bar-segment-1" style="width: ${pct1}%;"></div>
+                  <div class="settle-up-bar-segment-2" style="width: ${pct2}%;"></div>
+                </div>
+              </div>
+
+              <div class="settle-up-actions">
+                <button type="button" onclick="openSettleUpModal()" class="settle-up-btn-primary">
+                  <i class="fa-solid fa-magnifying-glass-chart"></i>
+                  <span>${isEl ? 'Ανάλυση & Εκκαθάριση' : 'Details & Settle Up'}</span>
+                </button>
+              </div>
+            </div>
+          `;
+        }
+      } catch (err) {
+        console.warn('Error calculating couple settle-up:', err);
+      }
+    }
+
     // Last-activity indicator ("Ο Άρης πρόσθεσε έξοδο πριν 5 λεπτά")
     const lastActivity = getFamilyLastActivity();
     let lastActivityHtml = '';
@@ -24717,6 +24820,9 @@ function renderPartnerSection() {
 
         <!-- Household 14-Day Free Trial / Premium Status Banner -->
         ${trialBannerHtml}
+
+        <!-- Couple Settle-Up Card -->
+        ${settleUpHtml}
 
         <!-- Last Activity Indicator -->
         ${lastActivityHtml}
@@ -33988,110 +34094,102 @@ function runCoachTransactionEntry(amount, noteText, type = 'expense', category =
     subOptionsHtml += `<option value="${sub}" ${selected}>${getSubcategoryDisplayName(sub, predictedCat)}</option>`;
   });
 
-  let html = "";
-  if (state.lang === 'el') {
-    html += id ? `🤖 **Επεξεργασία Συναλλαγής:**<br><br>` : `🤖 **Νέα Συναλλαγή:**<br><br>`;
+  const isEl = state.lang === 'el';
+  const badgeTitle = id
+    ? (isEl ? 'Επεξεργασία Συναλλαγής' : 'Edit Transaction')
+    : (isEl ? 'Προτεινόμενη Καταχώρηση' : 'Suggested Transaction');
+  const btnLabel = id
+    ? (isEl ? 'Αποθήκευση Αλλαγών' : 'Save Changes')
+    : (isEl ? 'Καταχώρηση Συναλλαγής' : 'Confirm Transaction');
 
-    html += `<div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; text-align: left;">`;
+  let html = `
+    <div class="ai-tx-luxury-card">
+      <div class="ai-tx-top-badge">
+        <span style="display: flex; align-items: center; gap: 6px;">
+          <i class="fa-solid fa-bolt" style="color: #818cf8;"></i>
+          ${badgeTitle}
+        </span>
+        <span style="font-size: 10px; color: var(--text-muted); font-weight: 500;">
+          ${dateStr ? String(dateStr).split('T')[0] : (isEl ? 'Σήμερα' : 'Today')}
+        </span>
+      </div>
 
-    // Amount & Note inputs (side-by-side)
-    html += `  <div style="display: flex; gap: 8px;">
-                 <div style="flex: 1; display: flex; flex-direction: column; gap: 3px;">
-                   <label style="font-size: 11px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">Ποσό (€)</label>
-                   <input type="number" step="0.01" id="${amtInputId}" value="${amount.toFixed(2)}" style="width:100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-family: inherit; font-size: 0.95rem;">
-                 </div>
-                 <div style="flex: 2; display: flex; flex-direction: column; gap: 3px;">
-                   <label style="font-size: 11px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">Τίτλος</label>
-                   <input type="text" id="${noteInputId}" value="${noteText.replace(/"/g, '&quot;')}" style="width:100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-family: inherit; font-size: 0.95rem;">
-                 </div>
-               </div>`;
+      <!-- Hero Amount & Note Row -->
+      <div class="ai-tx-hero-row">
+        <div style="flex: 1; min-width: 0; padding-right: 12px;">
+          <div style="font-size: 10px; font-weight: 600; text-transform: uppercase; color: var(--text-muted); margin-bottom: 3px;">
+            ${isEl ? 'Περιγραφή' : 'Description'}
+          </div>
+          <input type="text" id="${noteInputId}" value="${noteText.replace(/"/g, '&quot;')}" 
+            style="width: 100%; background: transparent; border: none; border-bottom: 1px dashed rgba(255,255,255,0.2); color: #fff; font-size: 15px; font-weight: 700; outline: none; padding: 2px 0;">
+        </div>
+        <div style="text-align: right; flex-shrink: 0;">
+          <div style="font-size: 10px; font-weight: 600; text-transform: uppercase; color: var(--text-muted); margin-bottom: 3px;">
+            ${isEl ? 'Ποσό' : 'Amount'}
+          </div>
+          <div style="display: flex; align-items: center; justify-content: flex-end; gap: 2px;">
+            <span style="font-family: 'Outfit', sans-serif; font-size: 18px; font-weight: 800; color: ${type === 'income' ? '#34d399' : '#f87171'};">${type === 'income' ? '+€' : '-€'}</span>
+            <input type="number" step="0.01" id="${amtInputId}" value="${amount.toFixed(2)}"
+              style="width: 85px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #fff; font-family: 'Outfit', sans-serif; font-size: 18px; font-weight: 800; text-align: right; padding: 2px 6px; outline: none;">
+          </div>
+        </div>
+      </div>
 
-    // Date & Time input
-    html += `  <div style="display: flex; flex-direction: column; gap: 3px;">
-                 <label style="font-size: 11px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">Ημερομηνία & Ώρα</label>
-                 <input type="datetime-local" id="${dateInputId}" value="${defaultDateTime}" style="width:100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-family: inherit; font-size: 0.95rem;">
-               </div>`;
+      <!-- Metadata Dropdowns Grid -->
+      <div class="ai-tx-meta-grid">
+        <div class="ai-tx-meta-pill">
+          <i class="fa-solid fa-shapes" style="color: #818cf8; font-size: 13px; flex-shrink: 0;"></i>
+          <div style="flex: 1; min-width: 0;">
+            <div class="ai-tx-meta-label">${isEl ? 'Κατηγορία' : 'Category'}</div>
+            <select id="${catSelectId}" onchange="window.updateCoachSubcategories('${catSelectId}', '${subcatSelectId}')"
+              style="width: 100%; background: transparent; border: none; color: #fff; font-size: 11.5px; font-weight: 700; outline: none; cursor: pointer; padding: 0;">
+              ${catOptionsHtml}
+            </select>
+          </div>
+        </div>
 
-    // Category & Subcategory selects
-    html += `  <div style="display: flex; gap: 8px;">
-                 <div style="flex: 1; display: flex; flex-direction: column; gap: 3px;">
-                   <label style="font-size: 11px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">Κατηγορία</label>
-                   <select id="${catSelectId}" onchange="window.updateCoachSubcategories('${catSelectId}', '${subcatSelectId}')" style="width:100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-family: inherit; font-size: 0.95rem;">
-                     ${catOptionsHtml}
-                   </select>
-                 </div>
-                 <div style="flex: 1; display: flex; flex-direction: column; gap: 3px;">
-                   <label style="font-size: 11px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">Υποκατηγορία</label>
-                   <select id="${subcatSelectId}" style="width:100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-family: inherit; font-size: 0.95rem;">
-                     ${subOptionsHtml}
-                   </select>
-                 </div>
-               </div>`;
+        <div class="ai-tx-meta-pill">
+          <i class="fa-solid fa-credit-card" style="color: #38bdf8; font-size: 13px; flex-shrink: 0;"></i>
+          <div style="flex: 1; min-width: 0;">
+            <div class="ai-tx-meta-label">${isEl ? 'Πληρωμή' : 'Account'}</div>
+            <select id="${accSelectId}"
+              style="width: 100%; background: transparent; border: none; color: #fff; font-size: 11.5px; font-weight: 700; outline: none; cursor: pointer; padding: 0;">
+              ${accOptionsHtml}
+            </select>
+          </div>
+        </div>
+      </div>
 
-    // Account select
-    html += `  <div style="display: flex; flex-direction: column; gap: 3px;">
-                 <label style="font-size: 11px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">Τρόπος πληρωμής</label>
-                 <select id="${accSelectId}" style="width:100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-family: inherit; font-size: 0.95rem;">
-                   ${accOptionsHtml}
-                 </select>
-               </div>`;
-    html += `</div>`;
+      <!-- Subcategory & Date (Secondary Row) -->
+      <div class="ai-tx-meta-grid">
+        <div class="ai-tx-meta-pill">
+          <i class="fa-solid fa-tag" style="color: #c084fc; font-size: 12px; flex-shrink: 0;"></i>
+          <div style="flex: 1; min-width: 0;">
+            <div class="ai-tx-meta-label">${isEl ? 'Υποκατηγορία' : 'Subcategory'}</div>
+            <select id="${subcatSelectId}"
+              style="width: 100%; background: transparent; border: none; color: #fff; font-size: 11px; font-weight: 600; outline: none; cursor: pointer; padding: 0;">
+              ${subOptionsHtml}
+            </select>
+          </div>
+        </div>
 
-    html += `<button id="${btnId}" class="btn btn-primary" style="width:100%; padding: 12px; font-weight: 700; border-radius: 8px;" onclick="window.submitCoachTransaction(document.getElementById('${amtInputId}').value, '${type}', document.getElementById('${catSelectId}').value, document.getElementById('${subcatSelectId}').value, document.getElementById('${accSelectId}').value, document.getElementById('${noteInputId}').value, document.getElementById('${dateInputId}').value, this.id, '${id || ''}')">
-               ✅ ${id ? 'Αποθήκευση Αλλαγών' : 'Καταχώρηση'}
-             </button>`;
-  } else {
-    html += id ? `🤖 **Edit Transaction:**<br><br>` : `🤖 **New Transaction:**<br><br>`;
+        <div class="ai-tx-meta-pill">
+          <i class="fa-regular fa-clock" style="color: #94a3b8; font-size: 12px; flex-shrink: 0;"></i>
+          <div style="flex: 1; min-width: 0;">
+            <div class="ai-tx-meta-label">${isEl ? 'Ημερομηνία' : 'Date'}</div>
+            <input type="datetime-local" id="${dateInputId}" value="${defaultDateTime}"
+              style="width: 100%; background: transparent; border: none; color: #fff; font-size: 11px; font-weight: 600; outline: none; padding: 0;">
+          </div>
+        </div>
+      </div>
 
-    html += `<div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; text-align: left;">`;
-
-    // Amount & Note inputs (side-by-side)
-    html += `  <div style="display: flex; gap: 8px;">
-                 <div style="flex: 1; display: flex; flex-direction: column; gap: 3px;">
-                   <label style="font-size: 11px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">Amount (€)</label>
-                   <input type="number" step="0.01" id="${amtInputId}" value="${amount.toFixed(2)}" style="width:100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-family: inherit; font-size: 0.95rem;">
-                 </div>
-                 <div style="flex: 2; display: flex; flex-direction: column; gap: 3px;">
-                   <label style="font-size: 11px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">Title</label>
-                   <input type="text" id="${noteInputId}" value="${noteText.replace(/"/g, '&quot;')}" style="width:100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-family: inherit; font-size: 0.95rem;">
-                 </div>
-               </div>`;
-
-    // Date & Time input
-    html += `  <div style="display: flex; flex-direction: column; gap: 3px;">
-                 <label style="font-size: 11px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">Date & Time</label>
-                 <input type="datetime-local" id="${dateInputId}" value="${defaultDateTime}" style="width:100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-family: inherit; font-size: 0.95rem;">
-               </div>`;
-
-    // Category & Subcategory selects
-    html += `  <div style="display: flex; gap: 8px;">
-                 <div style="flex: 1; display: flex; flex-direction: column; gap: 3px;">
-                   <label style="font-size: 11px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">Category</label>
-                   <select id="${catSelectId}" onchange="window.updateCoachSubcategories('${catSelectId}', '${subcatSelectId}')" style="width:100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-family: inherit; font-size: 0.95rem;">
-                     ${catOptionsHtml}
-                   </select>
-                 </div>
-                 <div style="flex: 1; display: flex; flex-direction: column; gap: 3px;">
-                   <label style="font-size: 11px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">Subcategory</label>
-                   <select id="${subcatSelectId}" style="width:100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-family: inherit; font-size: 0.95rem;">
-                     ${subOptionsHtml}
-                   </select>
-                 </div>
-               </div>`;
-
-    // Account select
-    html += `  <div style="display: flex; flex-direction: column; gap: 3px;">
-                 <label style="font-size: 11px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">Payment Method</label>
-                 <select id="${accSelectId}" style="width:100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-primary); font-family: inherit; font-size: 0.95rem;">
-                   ${accOptionsHtml}
-                 </select>
-               </div>`;
-    html += `</div>`;
-
-    html += `<button id="${btnId}" class="btn btn-primary" style="width:100%; padding: 12px; font-weight: 700; border-radius: 8px;" onclick="window.submitCoachTransaction(document.getElementById('${amtInputId}').value, '${type}', document.getElementById('${catSelectId}').value, document.getElementById('${subcatSelectId}').value, document.getElementById('${accSelectId}').value, document.getElementById('${noteInputId}').value, document.getElementById('${dateInputId}').value, this.id, '${id || ''}')">
-               ✅ ${id ? 'Save Changes' : 'Save Transaction'}
-             </button>`;
-  }
+      <!-- Luxury Confirm Action Button -->
+      <button id="${btnId}" class="ai-tx-save-btn" onclick="window.submitCoachTransaction(document.getElementById('${amtInputId}').value, '${type}', document.getElementById('${catSelectId}').value, document.getElementById('${subcatSelectId}').value, document.getElementById('${accSelectId}').value, document.getElementById('${noteInputId}').value, document.getElementById('${dateInputId}').value, this.id, '${id || ''}')">
+        <i class="fa-solid fa-check"></i>
+        <span>${btnLabel}</span>
+      </button>
+    </div>
+  `;
   return html;
 }
 
@@ -38408,3 +38506,137 @@ window.openAccountEditorModal = openAccountEditorModal;
 window.selectAccountEditorType = selectAccountEditorType;
 window.saveAccountEditor = saveAccountEditor;
 window.deleteAccountFromManager = deleteAccountFromManager;
+
+
+function openSettleUpModal() {
+  const modal = document.getElementById('settle-up-modal');
+  if (!modal) return;
+
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth();
+  const myId = state.currentUser ? state.currentUser.id : null;
+
+  if (!state.familyProfiles || state.familyProfiles.length < 2) return;
+
+  const p1 = state.familyProfiles.find(p => p.id === myId) || state.familyProfiles[0];
+  const p2 = state.familyProfiles.find(p => p.id !== p1.id) || state.familyProfiles[1];
+  const members = [
+    { id: p1.id, name: p1.display_name || (p1.email ? p1.email.split('@')[0] : (state.lang === 'el' ? 'Εσύ' : 'You')) },
+    { id: p2.id, name: p2.display_name || (p2.email ? p2.email.split('@')[0] : (state.lang === 'el' ? 'Σύντροφος' : 'Partner')) }
+  ];
+
+  const sharedTxs = (state.transactions || []).filter(t => {
+    if (!t || t.type !== 'expense' || t.is_shared === false) return false;
+    if (!t.date) return false;
+    const dStr = String(t.date).split('T')[0];
+    const parts = dStr.split('-');
+    if (parts.length !== 3) return false;
+    return parseInt(parts[0], 10) === currentYear && (parseInt(parts[1], 10) - 1) === currentMonth;
+  });
+
+  const settleData = (typeof SafeToSpendEngine !== 'undefined')
+    ? SafeToSpendEngine.calculateCoupleSettleUp(sharedTxs, members)
+    : null;
+
+  if (!settleData) return;
+
+  const total = settleData.totalSharedExpenses;
+  const m1 = settleData.members[0];
+  const m2 = settleData.members[1];
+  const settlement = settleData.settlement;
+  const isEl = state.lang === 'el';
+
+  const totalEl = document.getElementById('settle-up-modal-total');
+  if (totalEl) totalEl.textContent = `€ ${total.toFixed(2).replace('.', ',')}`;
+
+  const p1Label = document.getElementById('settle-up-modal-p1-label');
+  const p2Label = document.getElementById('settle-up-modal-p2-label');
+  const p1Bar = document.getElementById('settle-up-modal-p1-bar');
+  const p2Bar = document.getElementById('settle-up-modal-p2-bar');
+
+  const pct1 = total > 0 ? Math.round((m1.paid / total) * 100) : 50;
+  const pct2 = 100 - pct1;
+
+  if (p1Label) p1Label.textContent = `${m1.name}: € ${m1.paid.toFixed(2).replace('.', ',')} (${pct1}%)`;
+  if (p2Label) p2Label.textContent = `${m2.name}: € ${m2.paid.toFixed(2).replace('.', ',')} (${pct2}%)`;
+  if (p1Bar) p1Bar.style.width = `${pct1}%`;
+  if (p2Bar) p2Bar.style.width = `${pct2}%`;
+
+  const verdictBox = document.getElementById('settle-up-modal-verdict-box');
+  const recordBtn = document.getElementById('settle-up-record-btn');
+  if (verdictBox) {
+    if (settlement.amount === 0) {
+      verdictBox.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 10px; color: #10b981;">
+          <i class="fa-solid fa-circle-check" style="font-size: 24px;"></i>
+          <div>
+            <div style="font-weight: 800; font-size: 14px;">${isEl ? 'Πλήρης Ισορροπία (Πάτσι)' : 'Completely Balanced'}</div>
+            <div style="font-size: 11.5px; color: var(--text-secondary);">${isEl ? 'Οι συνεισφορές σας είναι 50/50. Δεν απαιτείται καμία πληρωμή.' : 'Contributions are exactly 50/50.'}</div>
+          </div>
+        </div>
+      `;
+      if (recordBtn) recordBtn.style.display = 'none';
+    } else {
+      const isOwed = settlement.to.id === myId;
+      verdictBox.innerHTML = `
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <div>
+            <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 2px;">
+              ${isOwed ? (isEl ? 'Σου οφείλονται:' : 'You are owed:') : (isEl ? 'Πρέπει να πληρώσεις:' : 'You need to pay:')}
+            </div>
+            <div style="font-size: 20px; font-weight: 800; font-family: 'Outfit', sans-serif; color: #fbbf24;">
+              € ${settlement.amount.toFixed(2).replace('.', ',')}
+            </div>
+          </div>
+          <div style="text-align: right; font-size: 12px; color: var(--text-secondary);">
+            <div>${escapeHtml(settlement.from.name)} ➔ ${escapeHtml(settlement.to.name)}</div>
+          </div>
+        </div>
+      `;
+      if (recordBtn) {
+        recordBtn.style.display = 'flex';
+        recordBtn.innerHTML = `
+          <i class="fa-solid fa-hand-holding-dollar"></i>
+          <span>${isEl ? `Εξόφληση € ${settlement.amount.toFixed(2).replace('.', ',')}` : `Settle Up € ${settlement.amount.toFixed(2)}`}</span>
+        `;
+      }
+    }
+  }
+
+  const listEl = document.getElementById('settle-up-modal-tx-list');
+  if (listEl) {
+    if (sharedTxs.length === 0) {
+      listEl.innerHTML = `<div style="text-align: center; color: var(--text-muted); font-size: 12px; padding: 10px;">${isEl ? 'Δεν υπάρχουν κοινές συναλλαγές αυτόν τον μήνα.' : 'No shared transactions this month.'}</div>`;
+    } else {
+      listEl.innerHTML = sharedTxs.slice(0, 15).map(tx => {
+        const payerName = tx.user_id === m1.id ? m1.name : m2.name;
+        const note = tx.note || tx.description || tx.category || (isEl ? 'Έξοδο' : 'Expense');
+        const amt = (typeof CurrencyService !== 'undefined' && typeof CurrencyService.toBase === 'function')
+          ? CurrencyService.toBase(tx)
+          : (typeof tx.amount === 'number' ? Math.abs(tx.amount) : parseFloat(tx.amount) || 0);
+        return `
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.04); border-radius: 10px; font-size: 12px;">
+            <div style="display: flex; flex-direction: column;">
+              <span style="font-weight: 600; color: #fff;">${escapeHtml(note)}</span>
+              <span style="font-size: 10.5px; color: var(--text-muted);">${escapeHtml(payerName)} • ${tx.date ? String(tx.date).split('T')[0] : ''}</span>
+            </div>
+            <span style="font-weight: 700; color: #f87171;">- € ${amt.toFixed(2).replace('.', ',')}</span>
+          </div>
+        `;
+      }).join('');
+    }
+  }
+
+  openModal('settle-up-modal');
+}
+
+function recordSettlementTransaction() {
+  closeModal('settle-up-modal');
+  if (typeof openAddTransactionModal === 'function') {
+    openAddTransactionModal('transfer');
+  }
+}
+
+window.openSettleUpModal = openSettleUpModal;
+window.recordSettlementTransaction = recordSettlementTransaction;
