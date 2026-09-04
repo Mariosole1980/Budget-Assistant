@@ -2745,19 +2745,21 @@ function ensureCustomDialogModal() {
   modal.className = 'modal-overlay';
   modal.style.zIndex = '2147483647';
   modal.innerHTML =
-    '<div class="modal-content custom-dialog-content" style="max-width: 320px; text-align: center; padding: 24px; border-radius: 20px; background: var(--bg-card); border: 1px solid var(--border); box-shadow: 0 10px 30px rgba(0,0,0,0.5);">' +
-    '<div id="custom-dialog-icon" style="font-size: 40px; margin-bottom: 16px;">💬</div>' +
-    '<h4 id="custom-dialog-title" style="font-weight: 700; margin-bottom: 8px; color: var(--text-main); font-size: 16px;">Επιβεβαίωση</h4>' +
-    '<p id="custom-dialog-message" style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 24px; word-break: break-word; max-height: 45vh; overflow-y: auto; text-align: left; -webkit-overflow-scrolling: touch; white-space: pre-wrap;"></p>' +
-    '<div class="custom-dialog-buttons" style="display: flex; gap: 12px; justify-content: center; width: 100%;">' +
-    '<button id="custom-dialog-btn-cancel" class="btn btn-secondary" style="flex: 1; padding: 12px; font-weight: 700; border-radius: 12px; border: 1px solid var(--border); background: var(--bg-main); font-size: 13px;">Ακύρωση</button>' +
-    '<button id="custom-dialog-btn-ok" class="btn btn-primary" style="flex: 1; padding: 12px; font-weight: 700; border-radius: 12px; font-size: 13px;">OK</button>' +
+    '<div class="modal-content custom-dialog-content">' +
+    '<div id="custom-dialog-icon-wrapper" class="custom-dialog-badge badge-cyan">' +
+    '<span id="custom-dialog-icon"><i class="fa-solid fa-trash-can"></i></span>' +
+    '</div>' +
+    '<h4 id="custom-dialog-title">Επιβεβαίωση</h4>' +
+    '<p id="custom-dialog-message"></p>' +
+    '<div class="custom-dialog-buttons">' +
+    '<button id="custom-dialog-btn-cancel" class="btn btn-secondary">Ακύρωση</button>' +
+    '<button id="custom-dialog-btn-ok" class="btn btn-primary btn-tone-cyan">Διαγραφή</button>' +
     '</div></div>';
   document.body.appendChild(modal);
   return modal;
 }
 
-function showCustomDialog({ message, title = '', icon = '💬', showCancel = false, confirmBtnText = '', cancelBtnText = '' }) {
+function showCustomDialog({ message, title = '', icon = '💬', showCancel = false, confirmBtnText = '', cancelBtnText = '', tone = '' }) {
   return new Promise((resolve) => {
     const modal = ensureCustomDialogModal();
     modal.style.zIndex = '2147483647';
@@ -2778,18 +2780,86 @@ function showCustomDialog({ message, title = '', icon = '💬', showCancel = fal
     const isEl = (state.lang || 'el') === 'el';
     const defaultTitle = showCancel ? (isEl ? 'Επιβεβαίωση' : 'Confirm') : (isEl ? 'Ειδοποίηση' : 'Alert');
     const defaultCancelText = isEl ? 'Ακύρωση' : 'Cancel';
-    const defaultOkText = 'OK';
 
-    document.getElementById('custom-dialog-title').textContent = title || defaultTitle;
-    document.getElementById('custom-dialog-message').innerHTML = message;
-    document.getElementById('custom-dialog-icon').textContent = icon;
+    // Tone determination:
+    // - tone === 'amber' or if note-related -> 'amber' (Amber Note Tone for note deletions)
+    // - tone === 'cyan' or if transaction/general -> 'cyan' (Cyan Brand for transactions)
+    // - tone === 'danger' -> 'danger'
+    let effectiveTone = tone;
+    if (!effectiveTone) {
+      const lowerTitle = (title || '').toLowerCase();
+      const lowerMsg = (message || '').toLowerCase();
+      if (lowerTitle.includes('σημείωσ') || lowerTitle.includes('note') || lowerMsg.includes('σημείωσ') || lowerMsg.includes('note')) {
+        effectiveTone = 'amber';
+      } else {
+        effectiveTone = 'cyan';
+      }
+    }
 
+    const titleEl = document.getElementById('custom-dialog-title');
+    const msgEl = document.getElementById('custom-dialog-message');
+    const iconWrapper = document.getElementById('custom-dialog-icon-wrapper');
+    const iconEl = document.getElementById('custom-dialog-icon');
     const btnCancel = document.getElementById('custom-dialog-btn-cancel');
     const btnOk = document.getElementById('custom-dialog-btn-ok');
 
+    if (titleEl) titleEl.textContent = title || defaultTitle;
+    if (msgEl) msgEl.innerHTML = message;
+
+    // Map raw emoji/strings to clean FontAwesome vector icons
+    let vectorIconHtml = '<i class="fa-solid fa-circle-info"></i>';
+    if (typeof icon === 'string') {
+      if (icon.includes('🗑') || icon.includes('trash') || icon.includes('διαγραφ') || icon.includes('delete')) {
+        vectorIconHtml = '<i class="fa-solid fa-trash-can"></i>';
+      } else if (icon.includes('⚠️') || icon.includes('warning') || icon.includes('alert')) {
+        vectorIconHtml = '<i class="fa-solid fa-triangle-exclamation"></i>';
+      } else if (icon.includes('👥') || icon.includes('family') || icon.includes('users')) {
+        vectorIconHtml = '<i class="fa-solid fa-users"></i>';
+      } else if (icon.includes('🚪') || icon.includes('leave') || icon.includes('kick')) {
+        vectorIconHtml = '<i class="fa-solid fa-arrow-right-from-bracket"></i>';
+      } else if (icon.includes('👤') || icon.includes('user')) {
+        vectorIconHtml = '<i class="fa-solid fa-user"></i>';
+      } else if (icon.includes('🔑') || icon.includes('key')) {
+        vectorIconHtml = '<i class="fa-solid fa-key"></i>';
+      } else if (icon.includes('🎉') || icon.includes('check') || icon.includes('success')) {
+        vectorIconHtml = '<i class="fa-solid fa-circle-check"></i>';
+      } else if (icon.includes('🔀') || icon.includes('shuffle')) {
+        vectorIconHtml = '<i class="fa-solid fa-shuffle"></i>';
+      } else if (icon.startsWith('<')) {
+        vectorIconHtml = icon;
+      } else {
+        vectorIconHtml = showCancel ? '<i class="fa-solid fa-trash-can"></i>' : '<i class="fa-solid fa-circle-info"></i>';
+      }
+    }
+
+    if (iconWrapper) {
+      iconWrapper.className = 'custom-dialog-badge badge-' + effectiveTone;
+      if (iconEl) {
+        iconEl.innerHTML = vectorIconHtml;
+      } else {
+        iconWrapper.innerHTML = '<span id="custom-dialog-icon">' + vectorIconHtml + '</span>';
+      }
+    } else if (iconEl) {
+      iconEl.innerHTML = vectorIconHtml;
+    }
+
     btnCancel.textContent = cancelBtnText || defaultCancelText;
-    btnOk.textContent = confirmBtnText || defaultOkText;
     btnCancel.style.display = showCancel ? 'block' : 'none';
+
+    // Set contextual Action Button Text & Tone Class (Never say generic "OK" for deletions!)
+    if (showCancel) {
+      const lowerTitle = (title || '').toLowerCase();
+      const lowerMsg = (message || '').toLowerCase();
+      const isDelete = lowerTitle.includes('διαγραφ') || lowerTitle.includes('delete') ||
+                       lowerTitle.includes('εκκαθάρισ') || lowerTitle.includes('empty') ||
+                       lowerMsg.includes('διαγραφ') || lowerMsg.includes('delete');
+      const defaultActionText = isDelete ? (isEl ? 'Διαγραφή' : 'Delete') : (isEl ? 'Επιβεβαίωση' : 'Confirm');
+      btnOk.textContent = confirmBtnText || defaultActionText;
+      btnOk.className = 'btn btn-primary btn-tone-' + effectiveTone;
+    } else {
+      btnOk.textContent = confirmBtnText || (isEl ? 'Εντάξει' : 'OK');
+      btnOk.className = 'btn btn-primary btn-tone-cyan';
+    }
 
     const newBtnCancel = btnCancel.cloneNode(true);
     const newBtnOk = btnOk.cloneNode(true);
@@ -2831,8 +2901,10 @@ function showCustomDialog({ message, title = '', icon = '💬', showCancel = fal
   });
 }
 
-window.showConfirm = (message, title = '', icon = '❓') => showCustomDialog({ message, title, icon, showCancel: true });
-window.showAlert = (message, title = '', icon = 'ℹ️') => showCustomDialog({ message, title, icon, showCancel: false });
+window.showConfirm = (message, title = '', icon = '❓', options = {}) =>
+  showCustomDialog({ message, title, icon, showCancel: true, ...(typeof options === 'object' ? options : {}) });
+window.showAlert = (message, title = '', icon = 'ℹ️', options = {}) =>
+  showCustomDialog({ message, title, icon, showCancel: false, ...(typeof options === 'object' ? options : {}) });
 
 // Global safety net: intercept any unhandled/legacy window.showAlert() call and route to custom styled modal
 window.alert = function (message) {
@@ -10042,7 +10114,7 @@ function setupEventListeners() {
       return;
     }
     const confirmMsg = TRANSLATIONS[state.lang]['confirm_delete_transaction'];
-    const confirmed = await showConfirm(confirmMsg, state.lang === 'el' ? 'Διαγραφή' : 'Delete', '🗑️');
+    const confirmed = await showConfirm(confirmMsg, state.lang === 'el' ? 'Διαγραφή Κίνησης' : 'Delete Transaction', '🗑️', { tone: 'cyan' });
     if (id && confirmed) {
       deleteTransaction(id);
       closeModal('transaction-modal');
@@ -20236,7 +20308,7 @@ async function triggerContextDelete() {
     : 'Are you sure you want to delete this note?';
 
   const confirmed = (typeof showConfirm === 'function')
-    ? await showConfirm(confirmMsg, state.lang === 'el' ? 'Διαγραφή Σημείωσης' : 'Delete Note', '🗑️')
+    ? await showConfirm(confirmMsg, state.lang === 'el' ? 'Διαγραφή Σημείωσης' : 'Delete Note', '🗑️', { tone: 'amber' })
     : confirm(confirmMsg);
 
   if (!confirmed) return;
@@ -20652,7 +20724,7 @@ async function deleteNoteFromEditor() {
     : 'Are you sure you want to delete this note?';
 
   const confirmed = (typeof showConfirm === 'function')
-    ? await showConfirm(confirmMsg, state.lang === 'el' ? 'Διαγραφή Σημείωσης' : 'Delete Note', '🗑️')
+    ? await showConfirm(confirmMsg, state.lang === 'el' ? 'Διαγραφή Σημείωσης' : 'Delete Note', '🗑️', { tone: 'amber' })
     : confirm(confirmMsg);
 
   if (!confirmed) return;
@@ -21134,7 +21206,7 @@ async function emptyNotesTrash() {
     : 'Are you sure you want to permanently empty all items from the notes trash bin?';
 
   const confirmed = (typeof showConfirm === 'function')
-    ? await showConfirm(confirmMsg, state.lang === 'el' ? 'Εκκαθάριση Κάδου' : 'Empty Trash', '🗑️')
+    ? await showConfirm(confirmMsg, state.lang === 'el' ? 'Εκκαθάριση Κάδου' : 'Empty Trash', '🗑️', { tone: 'amber' })
     : confirm(confirmMsg);
 
   if (!confirmed) return;

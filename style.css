@@ -12100,3 +12100,136 @@ body {
   background: var(--accent, #7c6af7);
   color: #ffffff;
 }
+
+/* ============================================================
+   NATIVE CONFIRMATION & ALERT DIALOG SYSTEM (Cyan & Amber)
+   ============================================================ */
+#custom-dialog-modal .custom-dialog-content {
+  max-width: 320px !important;
+  width: 90% !important;
+  text-align: center !important;
+  padding: 24px 20px 20px !important;
+  border-radius: 24px !important;
+  background: var(--bg-card, #222731) !important;
+  border: 1px solid var(--border-light, #384152) !important;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.75) !important;
+  box-sizing: border-box !important;
+  animation: dialogPopScale 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+@keyframes dialogPopScale {
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.custom-dialog-badge {
+  width: 52px !important;
+  height: 52px !important;
+  border-radius: 16px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 22px !important;
+  margin: 0 auto 16px !important;
+  transition: all 0.2s ease !important;
+}
+
+.custom-dialog-badge.badge-cyan {
+  background: rgba(56, 189, 248, 0.14) !important;
+  border: 1.5px solid rgba(56, 189, 248, 0.35) !important;
+  color: var(--accent, #38bdf8) !important;
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.25) !important;
+}
+
+.custom-dialog-badge.badge-amber {
+  background: rgba(245, 158, 11, 0.14) !important;
+  border: 1.5px solid rgba(245, 158, 11, 0.35) !important;
+  color: #f59e0b !important;
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.25) !important;
+}
+
+.custom-dialog-badge.badge-danger {
+  background: rgba(239, 68, 68, 0.14) !important;
+  border: 1.5px solid rgba(239, 68, 68, 0.35) !important;
+  color: var(--red-negative, #ef4444) !important;
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.25) !important;
+}
+
+#custom-dialog-title {
+  font-size: 17px !important;
+  font-weight: 800 !important;
+  color: var(--text-main, #e3e8f0) !important;
+  margin-bottom: 6px !important;
+  letter-spacing: -0.2px !important;
+  font-family: 'Outfit', sans-serif !important;
+}
+
+#custom-dialog-message {
+  font-size: 13.5px !important;
+  color: var(--text-secondary, #8a99ad) !important;
+  line-height: 1.5 !important;
+  margin-bottom: 22px !important;
+  text-align: center !important;
+  font-family: 'Outfit', sans-serif !important;
+  word-break: break-word !important;
+}
+
+.custom-dialog-buttons {
+  display: flex !important;
+  gap: 10px !important;
+  justify-content: center !important;
+  width: 100% !important;
+}
+
+#custom-dialog-btn-cancel {
+  flex: 1 !important;
+  padding: 12px !important;
+  border-radius: 14px !important;
+  background: var(--bg-main, #181b22) !important;
+  border: 1px solid var(--border, #2e3543) !important;
+  color: var(--text-secondary, #8a99ad) !important;
+  font-size: 13.5px !important;
+  font-weight: 700 !important;
+  font-family: 'Outfit', sans-serif !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+}
+
+#custom-dialog-btn-cancel:active {
+  background: var(--bg-input, #2b313d) !important;
+  transform: scale(0.97) !important;
+}
+
+#custom-dialog-btn-ok {
+  flex: 1.2 !important;
+  padding: 12px !important;
+  border-radius: 14px !important;
+  font-size: 13.5px !important;
+  font-weight: 800 !important;
+  font-family: 'Outfit', sans-serif !important;
+  border: none !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+}
+
+#custom-dialog-btn-ok:active {
+  transform: scale(0.97) !important;
+}
+
+#custom-dialog-btn-ok.btn-tone-cyan {
+  background: var(--accent, #38bdf8) !important;
+  color: #080b11 !important;
+  box-shadow: 0 4px 16px rgba(56, 189, 248, 0.4) !important;
+}
+
+#custom-dialog-btn-ok.btn-tone-amber {
+  background: #f59e0b !important;
+  color: #080b11 !important;
+  box-shadow: 0 4px 16px rgba(245, 158, 11, 0.35) !important;
+}
+
+#custom-dialog-btn-ok.btn-tone-danger {
+  background: var(--red-negative, #ef4444) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 16px rgba(239, 68, 68, 0.35) !important;
+}
