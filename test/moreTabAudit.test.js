@@ -30,7 +30,7 @@ test('#1: no hardcoded `.toFixed(2)}€` remains in app.js', () => {
 });
 
 test('#1: recurring preset list formats with getCurrencySymbol + formatDisplayAmount', () => {
-    assert.match(appSrc, /\$\{presetLabel\} • \$\{getCurrencySymbol\(\)\} \$\{formatDisplayAmount\(t\.amount, t\.currency \|\| state\.mainCurrency \|\| 'EUR'\)\}\$\{endDateLabel\}/);
+    assert.match(appSrc, /\$\{getCurrencySymbol\(\)\} \$\{formatDisplayAmount\(t\.amount, t\.currency \|\| state\.mainCurrency \|\| 'EUR'\)\}/);
 });
 
 test('#1: trash bin rows format with getCurrencySymbol + formatDisplayAmount', () => {
@@ -43,11 +43,9 @@ test('#1: trash bin rows format with getCurrencySymbol + formatDisplayAmount', (
 // ---------------------------------------------------------------------------
 // #2 — legacy purple accent removed from the More-tab JS-generated HTML
 // ---------------------------------------------------------------------------
-test('#2: recurring hover no longer uses rgba(124, 106, 247, ...)', () => {
-    // The More-tab recurring buttons (details + edit) must use the theme
-    // accent rgb var — exactly 2 buttons carry the accent hover.
-    const accentHoverButtons = (appSrc.match(/onmouseover="this\.style\.backgroundColor='rgba\(var\(--accent-rgb\), 0\.15\)'/g) || []);
-    assert.strictEqual(accentHoverButtons.length, 2, 'both recurring buttons (details + edit) must use the theme accent hover');
+test('#2: recurring template cards no longer use legacy hardcoded purple', () => {
+    const modalSlice = appSrc.slice(appSrc.indexOf('function openRecurringTemplatesModal'), appSrc.indexOf('function openRecurringDetailsModal'));
+    assert.ok(!modalSlice.includes('#7c6af7'), 'recurring templates modal must not use hardcoded purple #7c6af7');
 });
 
 test('#2: trash recurring-group badge resolves the active theme accent', () => {

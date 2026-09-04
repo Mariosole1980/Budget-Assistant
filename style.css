@@ -6362,37 +6362,54 @@ body.modal-open {
 }
 
 
-/* === Note Autocomplete Dropdown === */
+/* === Note Autocomplete Dropdown (Full-width Native Glass) === */
 .note-autocomplete-dropdown {
   position: absolute;
-  bottom: calc(100% + 6px);
+  bottom: calc(100% + 8px);
   top: auto;
+  left: 0;
   right: 0;
-  left: auto;
-  width: max-content;
-  min-width: 100%;
-  max-width: min(340px, calc(100vw - 32px));
+  width: 100%;
+  box-sizing: border-box;
   z-index: 9999;
-  background: var(--bg-card, #1e2130);
-  border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
-  border-radius: 12px;
-  box-shadow: 0 -8px 28px rgba(0, 0, 0, 0.55);
+  background: var(--bg-card, #1c222e);
+  border: 1px solid var(--border-light, rgba(255, 255, 255, 0.12));
+  border-radius: 16px;
+  box-shadow: 0 -14px 40px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.05);
   overflow-x: hidden;
-  max-height: 200px;
+  max-height: 220px;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.note-autocomplete-header {
+  padding: 8px 14px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--text-muted, #94a3b8);
+  border-bottom: 1px solid var(--border-light, rgba(255, 255, 255, 0.06));
+  background: rgba(0, 0, 0, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
 }
 
 .note-autocomplete-item {
-  padding: 11px 14px;
-  font-size: 13px;
-  font-weight: 500;
+  padding: 10px 14px;
+  font-size: 13.5px;
+  font-weight: 600;
   color: var(--text-main, #e3e8f0);
   cursor: pointer;
-  border-bottom: 1px solid var(--border-light, rgba(255, 255, 255, 0.05));
+  border-bottom: 1px solid var(--border-light, rgba(255, 255, 255, 0.04));
   transition: background 0.15s ease;
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: space-between;
+  gap: 10px;
   white-space: nowrap;
 }
 
@@ -6402,12 +6419,14 @@ body.modal-open {
 
 .note-autocomplete-item:hover,
 .note-autocomplete-item:active {
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(56, 189, 248, 0.1);
 }
 
 .note-autocomplete-item .note-match-highlight {
-  color: var(--accent, #e05e55);
-  font-weight: 700;
+  color: #38bdf8;
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 /* Mobile full-screen transaction modal */
@@ -6765,6 +6784,8 @@ body.modal-open {
   padding: 10px 14px !important;
   background-color: rgba(0, 0, 0, 0.2);
   transition: border-color 0.25s ease, box-shadow 0.25s ease;
+  overflow: visible !important;
+  position: relative !important;
 }
 
 .title-input-container #trans-note {
@@ -12232,4 +12253,124 @@ body {
   background: var(--red-negative, #ef4444) !important;
   color: #ffffff !important;
   box-shadow: 0 4px 16px rgba(239, 68, 68, 0.35) !important;
+}
+
+/* ============================================================
+   NATIVE RECURRING TRANSACTIONS MODAL & CARDS
+   ============================================================ */
+.recurring-modal-header {
+  padding: 16px 20px;
+  background: var(--bg-card, #1c222e);
+  border-bottom: 1px solid var(--border-light, rgba(255, 255, 255, 0.08));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.recurring-modal-badge {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  color: #38bdf8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.2);
+}
+
+.recurring-template-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 16px;
+  border: 1px solid var(--border-light, rgba(255, 255, 255, 0.08));
+  border-radius: 16px;
+  background: var(--bg-card, #1c222e);
+  gap: 12px;
+  box-sizing: border-box;
+  width: 100%;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.recurring-template-card:hover {
+  background: #232a38;
+  border-color: rgba(56, 189, 248, 0.35);
+  transform: translateY(-1px);
+}
+
+.recurring-template-card:active {
+  transform: scale(0.985);
+  background: #181d26;
+}
+
+.recurring-card-cat-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.recurring-freq-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  background: rgba(56, 189, 248, 0.12);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.22);
+}
+
+.recurring-amount-hero {
+  font-size: 15px;
+  font-weight: 800;
+  font-family: 'Outfit', sans-serif;
+  letter-spacing: -0.3px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.recurring-amount-hero.expense {
+  color: var(--red-negative, #ef4444);
+}
+
+.recurring-amount-hero.income {
+  color: var(--green-positive, #10b981);
+}
+
+.recurring-action-delete-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-muted, #94a3b8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+  margin-left: 6px;
+}
+
+.recurring-action-delete-btn:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #ef4444;
 }

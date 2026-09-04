@@ -3435,15 +3435,11 @@
     <div id="recurring-templates-modal" class="modal-overlay">
       <div class="modal-content subscreen-card-standard"
         style="max-width: 520px; width: 94%; max-height: 85vh; padding: 0; border-radius: 18px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.4);">
-        <!-- Card Header Band (Accent) -->
-        <div
-          style="padding: 14px 18px; background: rgba(var(--accent-rgb), 0.08); border-bottom: 1px solid rgba(var(--accent-rgb), 0.25); display: flex; align-items: center; justify-content: space-between;">
+        <!-- Modern Native Header -->
+        <div class="recurring-modal-header">
           <div style="display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1;">
-            <button type="button" class="icon-btn" onclick="closeModal('recurring-templates-modal')"
-              style="flex-shrink: 0;"><i class="fa-solid fa-arrow-left"></i></button>
-            <div
-              style="width: 34px; height: 34px; border-radius: 10px; background: var(--accent); color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; flex-shrink: 0; box-shadow: 0 4px 12px rgba(var(--accent-rgb), 0.35);">
-              <i class="fa-solid fa-arrows-spin"></i>
+            <div class="recurring-modal-badge">
+              <i class="fa-solid fa-arrows-rotate"></i>
             </div>
             <div style="min-width: 0; flex: 1;">
               <div data-i18n="item_recurring_templates"
@@ -3455,7 +3451,7 @@
             </div>
           </div>
           <button type="button" onclick="closeModal('recurring-templates-modal')"
-            style="background: var(--overlay-060); border: 1px solid var(--border); color: var(--text-muted); width: 32px; height: 32px; border-radius: 8px; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-left: 8px;"
+            style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-light); color: var(--text-muted); width: 32px; height: 32px; border-radius: 10px; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s ease;"
             title="Κλείσιμο">✕</button>
         </div>
         <div class="modal-body" style="padding: 16px 18px 24px 18px;">

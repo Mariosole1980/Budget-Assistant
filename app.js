@@ -30521,27 +30521,66 @@ function setCustomDatePickerValue() {
 
 window.setCustomDatePickerValue = setCustomDatePickerValue;
 
+// FEATURE: NOTE FIELD SMART AUTOCOMPLETE (GREEKLISH & MULTI-WORD)
 // ============================================================
-// FEATURE: NOTE FIELD SMART AUTOCOMPLETE
-// ============================================================
+
+function greekToGreeklish(text) {
+  if (!text) return '';
+  let str = text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const pairs = [
+    [/ου/g, 'ou'], [/αι/g, 'ai'], [/ει/g, 'ei'], [/οι/g, 'oi'],
+    [/υι/g, 'yi'], [/αυ/g, 'av'], [/ευ/g, 'ev'], [/ηυ/g, 'iv'],
+    [/μπ/g, 'b'], [/ντ/g, 'd'], [/γκ/g, 'g'], [/γγ/g, 'ng'],
+    [/τσ/g, 'ts'], [/τζ/g, 'tz'], [/θ/g, 'th'], [/ch/g, 'x'],
+    [/ph/g, 'f'], [/ps/g, 'ps'], [/ks/g, 'x'], [/sh/g, 's']
+  ];
+  pairs.forEach(([re, repl]) => { str = str.replace(re, repl); });
+  const map = {
+    'α':'a', 'β':'v', 'γ':'g', 'δ':'d', 'ε':'e', 'ζ':'z', 'η':'i', 'θ':'th',
+    'ι':'i', 'κ':'k', 'λ':'l', 'μ':'m', 'ν':'n', 'ξ':'x', 'ο':'o', 'π':'p',
+    'ρ':'r', 'σ':'s', 'ς':'s', 'τ':'t', 'υ':'y', 'φ':'f', 'χ':'x', 'ψ':'ps', 'ω':'o'
+  };
+  return str.split('').map(c => map[c] || c).join('');
+}
+
+function matchesQuery(target, query) {
+  if (!query) return true;
+  const normTargetGreek = target.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ς/g, 'σ');
+  const normTargetGlish = greekToGreeklish(target);
+
+  const rawWords = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  if (rawWords.length === 0) return true;
+
+  return rawWords.every(w => {
+    const wNorm = w.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ς/g, 'σ');
+    const wGlish = greekToGreeklish(w);
+    return normTargetGreek.includes(wNorm) || normTargetGlish.includes(wGlish) || normTargetGlish.includes(wNorm);
+  });
+}
 
 function highlightMatch(text, query) {
   if (!query) return text;
-  // Escape special regex chars
-  const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const regex = new RegExp(`(${escaped})`, 'gi');
-  return text.replace(regex, '<span class="note-match-highlight">$1</span>');
+  const rawWords = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  let result = text;
+  rawWords.forEach(w => {
+    const escaped = w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    try {
+      const regex = new RegExp('(' + escaped + ')', 'gi');
+      result = result.replace(regex, '<span class="note-match-highlight">$1</span>');
+    } catch (e) { }
+  });
+  return result;
 }
 
 function getAdvancedNotes(query) {
   const allTransactions = state.transactions || [];
   const noteDetails = new Map();
 
-  // Sort transactions by date (desc) and time/id (desc) to get the most recent first
+  // 1. Scan transactions (recent first, count frequency)
   const sortedTrans = [...allTransactions].sort(compareTransactions);
 
   for (const t of sortedTrans) {
-    const title = (t.note || '').trim();
+    const title = (t.note || t.description || '').trim();
     if (!title) continue;
     const titleLower = title.toLowerCase();
     if (!noteDetails.has(titleLower)) {
@@ -30549,42 +30588,60 @@ function getAdvancedNotes(query) {
         title: title,
         category: t.category || '',
         subcategory: t.subcategory || '',
-        account: t.account_from || t.account || ''
+        account: t.account_from || t.account || '',
+        count: 1
+      });
+    } else {
+      const existing = noteDetails.get(titleLower);
+      existing.count = (existing.count || 1) + 1;
+    }
+  }
+
+  // 2. Scan recurring templates to make sure items like "ΕΝΟΙΚΙΟ ΓΡΑΦΕΙΟΥ 2026", "ΕΝΦΙΑ" are suggested
+  const templates = state.recurringTemplates || [];
+  for (const tmpl of templates) {
+    const title = (tmpl.note || '').trim();
+    if (!title) continue;
+    const titleLower = title.toLowerCase();
+    if (!noteDetails.has(titleLower)) {
+      noteDetails.set(titleLower, {
+        title: title,
+        category: tmpl.category || '',
+        subcategory: tmpl.subcategory || '',
+        account: tmpl.account_from || '',
+        count: 5 // Prioritize recurring templates
       });
     }
   }
 
-  const q = normalizeText(query);
-  const suggestions = [];
+  const q = (query || '').trim();
+  const allItems = Array.from(noteDetails.values());
 
-  for (const [key, details] of noteDetails.entries()) {
-    const normKey = normalizeText(details.title);
-    if (!q || normKey.includes(q)) {
-      suggestions.push(details);
-    }
+  if (!q) {
+    // Quick Picks: Top 5 most frequent on empty query
+    return allItems.sort((a, b) => (b.count || 0) - (a.count || 0)).slice(0, 5);
   }
 
-  // Sort suggestions: if there is a query, prioritize matches that start with the query
-  if (q) {
-    suggestions.sort((a, b) => {
-      const aTitle = normalizeText(a.title);
-      const bTitle = normalizeText(b.title);
-      const aStarts = aTitle.startsWith(q);
-      const bStarts = bTitle.startsWith(q);
-      if (aStarts && !bStarts) return -1;
-      if (!aStarts && bStarts) return 1;
-      return aTitle.localeCompare(bTitle);
-    });
-  }
+  const suggestions = allItems.filter(item => matchesQuery(item.title, q));
 
-  return suggestions.slice(0, 7);
+  suggestions.sort((a, b) => {
+    const aNorm = a.title.toLowerCase();
+    const bNorm = b.title.toLowerCase();
+    const qLower = q.toLowerCase();
+    const aStarts = aNorm.startsWith(qLower);
+    const bStarts = bNorm.startsWith(qLower);
+    if (aStarts && !bStarts) return -1;
+    if (!aStarts && bStarts) return 1;
+    return (b.count || 0) - (a.count || 0);
+  });
+
+  return suggestions.slice(0, 6);
 }
 
 function renderNoteAutocomplete(query) {
   const dropdown = document.getElementById('note-autocomplete-dropdown');
   if (!dropdown) return;
 
-  // Respect setting switch
   const autocompleteEnabled = localStorage.getItem('settings_autocomplete_enabled') !== 'false';
   if (!autocompleteEnabled) {
     dropdown.style.display = 'none';
@@ -30592,13 +30649,6 @@ function renderNoteAutocomplete(query) {
   }
 
   const q = (query || '').trim();
-
-  // Always hide if empty query
-  if (q.length === 0) {
-    dropdown.style.display = 'none';
-    return;
-  }
-
   const filtered = getAdvancedNotes(q);
 
   if (filtered.length === 0) {
@@ -30606,31 +30656,57 @@ function renderNoteAutocomplete(query) {
     return;
   }
 
+  // Dynamic positioning: open downwards if container is near the top
+  const container = document.querySelector('.title-input-container');
+  if (container) {
+    const rect = container.getBoundingClientRect();
+    if (rect.top < 220) {
+      dropdown.style.bottom = 'auto';
+      dropdown.style.top = 'calc(100% + 8px)';
+      dropdown.style.boxShadow = '0 14px 40px rgba(0, 0, 0, 0.75)';
+    } else {
+      dropdown.style.bottom = 'calc(100% + 8px)';
+      dropdown.style.top = 'auto';
+      dropdown.style.boxShadow = '0 -14px 40px rgba(0, 0, 0, 0.75)';
+    }
+  }
+
   dropdown.innerHTML = '';
+
+  const isEl = (state.lang || 'el') === 'el';
+  const header = document.createElement('div');
+  header.className = 'note-autocomplete-header';
+  header.innerHTML = q
+    ? `<span>${isEl ? 'Προτάσεις' : 'Suggestions'}</span><span style="color:#38bdf8;font-size:10px;"><i class="fa-solid fa-wand-magic-sparkles"></i> Greeklish</span>`
+    : `<span>${isEl ? 'Συχνές κινήσεις (Quick Picks)' : 'Recent Quick Picks'}</span><span style="color:#38bdf8;font-size:10px;"><i class="fa-solid fa-bolt"></i> Auto-fill</span>`;
+  dropdown.appendChild(header);
+
   filtered.forEach(suggestion => {
     const item = document.createElement('div');
     item.className = 'note-autocomplete-item';
 
-    // Find category details to show badge
     let categoryBadgeHTML = '';
     if (suggestion.category) {
       const catCleanName = getCategoryDisplayName(suggestion.category);
       const iconHtml = (typeof renderCategoryIconHtml === 'function')
         ? renderCategoryIconHtml(suggestion.category, { size: 'inline' })
-        : `<i class="fa-solid fa-shapes"></i>`;
-      categoryBadgeHTML = `<span class="note-category-pill" style="font-size: 10px; opacity: 0.7; padding: 2px 6px; background: rgba(255,255,255,0.06); border-radius: 8px; margin-left: auto; flex-shrink: 0; display: flex; align-items: center; gap: 4px;">${iconHtml} ${catCleanName}</span>`;
+        : '<i class="fa-solid fa-shapes"></i>';
+      categoryBadgeHTML = `<span class="note-category-pill" style="font-size: 11px; opacity: 0.85; padding: 2px 7px; background: rgba(255,255,255,0.06); border-radius: 8px; flex-shrink: 0; display: inline-flex; align-items: center; gap: 4px;">${iconHtml} ${catCleanName}</span>`;
     }
 
-    item.innerHTML = `<i class="fa-solid fa-clock-rotate-left" style="color:var(--text-muted);font-size:11px;flex-shrink:0;"></i>
-                      <span style="white-space:nowrap;margin-right:8px;font-weight:600;">${highlightMatch(suggestion.title, q)}</span>
-                      ${categoryBadgeHTML}`;
+    item.innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px;min-width:0;overflow:hidden;">
+        <i class="fa-solid ${q ? 'fa-magnifying-glass' : 'fa-clock-rotate-left'}" style="color:var(--text-muted);font-size:11px;flex-shrink:0;"></i>
+        <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700;">${highlightMatch(suggestion.title, q)}</span>
+      </div>
+      ${categoryBadgeHTML}`;
 
-    // Use pointerdown only to prevent focus loss (prevent blur from closing dropdown)
+    // Prevent focus loss before selection on touch / click
     item.addEventListener('pointerdown', (e) => {
       e.preventDefault();
+      e.stopPropagation();
     });
 
-    // Handle click to perform the actual selection, fill fields, and close the dropdown safely
     item.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
@@ -30650,7 +30726,6 @@ function renderNoteAutocomplete(query) {
       if (suggestion.category) {
         let catObj = state.categories.find(c => c.name === suggestion.category);
         if (!catObj) {
-          // Robust matching: clean emojis & uppercase comparisons
           const cleanSug = stripLeadingEmoji(suggestion.category).trim().toUpperCase();
           catObj = state.categories.find(c => stripLeadingEmoji(c.name).trim().toUpperCase() === cleanSug);
         }
@@ -30661,8 +30736,6 @@ function renderNoteAutocomplete(query) {
         }
       }
       if (suggestion.subcategory) {
-        // Select the subcategory directly without opening the custom input row,
-        // regardless of whether it is a default subcategory.
         hideSubcategorySelect();
         selectSubcategory(suggestion.subcategory);
       }
@@ -30676,6 +30749,7 @@ function renderNoteAutocomplete(query) {
 
       closeNoteAutocomplete();
     });
+
     dropdown.appendChild(item);
   });
 
@@ -30706,15 +30780,14 @@ function initNoteAutocomplete() {
   });
 
   noteInput.addEventListener('blur', () => {
-    // Small delay to allow pointerdown on dropdown item to fire first
-    setTimeout(closeNoteAutocomplete, 150);
+    setTimeout(closeNoteAutocomplete, 220);
   });
 
-  // Close if user presses Escape
   noteInput.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') closeNoteAutocomplete();
   });
 }
+
 
 function toggleAutocompleteSetting(enabled) {
   localStorage.setItem('settings_autocomplete_enabled', enabled ? 'true' : 'false');
@@ -31720,7 +31793,11 @@ function initDescriptionAutoGrow() {
 
 document.addEventListener('DOMContentLoaded', () => {
   initDescriptionAutoGrow();
+  initNoteAutocomplete();
 });
+if (document.readyState !== 'loading') {
+  initNoteAutocomplete();
+}
 
 window.initDescriptionAutoGrow = initDescriptionAutoGrow;
 
@@ -35115,30 +35192,42 @@ function openRecurringTemplatesModal() {
         }
       }
 
+      const isIncome = t.type === 'income';
+      const amountPrefix = isIncome ? '+' : '-';
+      const amountClass = isIncome ? 'recurring-amount-hero income' : 'recurring-amount-hero expense';
+      const formattedAmount = `${amountPrefix} ${getCurrencySymbol()} ${formatDisplayAmount(t.amount, t.currency || state.mainCurrency || 'EUR')}`;
+
       const itemHtml = `
-        <div class="recurring-template-row" style="display: flex; flex-direction: row; align-items: center; justify-content: space-between; padding: 12px 14px; border: 1px solid var(--border); border-radius: 14px; background: var(--bg-card); gap: 12px; margin-bottom: 0; min-height: 64px; box-sizing: border-box; width: 100%;">
-          <div style="display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1; flex-direction: row;">
+        <div class="recurring-template-card" onclick="openRecurringDetailsModal('${t.id}')">
+          <div style="display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1;">
             ${(typeof renderCategoryIconHtml === 'function')
           ? renderCategoryIconHtml(t.category, { size: 'md', customColor: color, transType: t.type })
-          : `<div style="width: 42px; height: 42px; border-radius: 12px; background: ${color}20; color: ${color}; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0;">${icon}</div>`}
+          : `<div class="recurring-card-cat-icon" style="background: ${color}20; color: ${color};">${icon}</div>`}
             <div style="display: flex; flex-direction: column; min-width: 0; text-align: left; flex: 1;">
-              <span style="font-weight: 700; color: var(--text-primary); font-size: 14.5px; word-break: break-word; line-height: 1.3; display: flex; align-items: center; gap: 6px;">${t.note || t.category}<i class="fa-solid fa-arrows-rotate recurring-arrows-icon" style="font-size: 12px; color: var(--primary);" title="${lang === 'el' ? 'Επαναλαμβανόμενη' : 'Recurring'}"></i></span>
-              <span style="font-size: 12px; color: var(--text-secondary); margin-top: 3px; word-break: break-word; line-height: 1.2;">${presetLabel} • ${getCurrencySymbol()} ${formatDisplayAmount(t.amount, t.currency || state.mainCurrency || 'EUR')}${endDateLabel}</span>
+              <span style="font-weight: 700; color: var(--text-primary); font-size: 14.5px; word-break: break-word; line-height: 1.3;">
+                ${escapeHtml(t.note || t.category)}
+              </span>
+              <div style="display: flex; align-items: center; gap: 6px; margin-top: 4px; flex-wrap: wrap;">
+                <span class="recurring-freq-pill"><i class="fa-regular fa-calendar-check" style="font-size: 10px;"></i> ${escapeHtml(presetLabel)}</span>
+                ${endDateLabel ? `<span style="font-size: 11px; color: var(--text-muted);">${escapeHtml(endDateLabel.replace('•', '').trim())}</span>` : ''}
+              </div>
             </div>
           </div>
-          <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
-            <button class="details-btn" onclick="openRecurringDetailsModal('${t.id}')" title="${lang === 'el' ? 'Προβολή επαναλήψεων' : 'View repetitions'}" style="width: 34px; height: 34px; border-radius: 10px; border: 1px solid var(--border); background: rgba(255,255,255,0.03); color: var(--text-secondary); display: flex; align-items: center; justify-content: center; font-size: 14px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.backgroundColor='rgba(var(--accent-rgb), 0.15)'; this.style.color='var(--primary)';" onmouseout="this.style.backgroundColor='rgba(255,255,255,0.03)'; this.style.color='var(--text-secondary)';">
-              <i class="fa-regular fa-eye"></i>
-            </button>
-            <button class="edit-btn" onclick="openRecurringEditModal('${t.id}')" title="${lang === 'el' ? 'Επεξεργασία επανάληψης' : 'Edit recurring'}" style="width: 34px; height: 34px; border-radius: 10px; border: 1px solid var(--border); background: rgba(255,255,255,0.03); color: var(--text-secondary); display: flex; align-items: center; justify-content: center; font-size: 14px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.backgroundColor='rgba(var(--accent-rgb), 0.15)'; this.style.color='var(--primary)';" onmouseout="this.style.backgroundColor='rgba(255,255,255,0.03)'; this.style.color='var(--text-secondary)';">
-              <i class="fa-regular fa-pen-to-square"></i>
-            </button>
-            <button class="delete-btn" onclick="deleteRecurringTemplate('${t.id}')" title="${lang === 'el' ? 'Διαγραφή' : 'Delete'}" style="width: 34px; height: 34px; border-radius: 10px; border: 1px solid var(--border); background: rgba(255,255,255,0.03); color: var(--danger); display: flex; align-items: center; justify-content: center; font-size: 14px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.backgroundColor='rgba(255, 91, 91, 0.15)'; this.style.borderColor='rgba(255, 91, 91, 0.3)';" onmouseout="this.style.backgroundColor='rgba(255,255,255,0.03)'; this.style.borderColor='var(--border)';">
+          <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
+            <div style="text-align: right;">
+              <div class="${amountClass}">${formattedAmount}</div>
+              <div style="font-size: 10.5px; color: var(--text-muted); display: flex; align-items: center; justify-content: flex-end; gap: 3px; margin-top: 2px;">
+                <span>${lang === 'el' ? 'Λεπτομέρειες' : 'Details'}</span>
+                <i class="fa-solid fa-chevron-right" style="font-size: 8.5px; opacity: 0.6;"></i>
+              </div>
+            </div>
+            <button class="recurring-action-delete-btn" onclick="event.stopPropagation(); deleteRecurringTemplate('${t.id}')" title="${lang === 'el' ? 'Διαγραφή' : 'Delete'}">
               <i class="fa-regular fa-trash-can"></i>
             </button>
           </div>
         </div>
       `;
+
       container.insertAdjacentHTML('beforeend', itemHtml);
     });
   }
