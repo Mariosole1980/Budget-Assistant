@@ -465,6 +465,8 @@
       <script src="js/PremiumService.js"></script>
       <!-- Safe-to-Spend & Cashflow Intelligence Engine (pure mathematical calculations; loaded before app.js) -->
       <script src="js/SafeToSpendEngine.js"></script>
+      <!-- Recurring Expenses & Subscription Intelligence Engine (pure mathematical calculations; loaded before app.js) -->
+      <script src="js/SubscriptionEngine.js"></script>
       <script src="app.js?v=1643"></script>
       <!-- Desktop Web UX Layer (defer so it runs after app.js; invoked via
        initDesktopUI() hook at the end of initApp()). Self-guards on
@@ -991,6 +993,11 @@
                   <span class="sts-daily-suffix">/ ημέρα</span>
                 </div>
                 <div class="sts-subtitle" id="sts-subtitle">Υπολογισμός...</div>
+                <div class="sts-subs-pill" id="sts-subs-pill" onclick="event.stopPropagation(); openSubscriptionsHubModal();" style="display: none; align-items: center; gap: 5px; margin-top: 5px; font-size: 11px; font-weight: 600; color: #a78bfa; background: rgba(167, 139, 250, 0.12); padding: 2px 8px; border-radius: 8px; border: 1px solid rgba(167, 139, 250, 0.25); width: fit-content;">
+                  <i class="fa-solid fa-arrows-rotate" style="font-size: 10px;"></i>
+                  <span id="sts-subs-pill-text">0 Πάγια Εκκρεμούν</span>
+                  <span style="opacity: 0.7;">➔</span>
+                </div>
               </div>
               <div class="safe-to-spend-right">
                 <div class="sts-meter" id="sts-meter">
@@ -3359,6 +3366,72 @@
     <!-- ============================================== -->
     <!-- MODAL: RECURRING TEMPLATES MANAGEMENT -->
     <!-- ============================================== -->
+    <!-- ============================================== -->
+    <!-- MODAL: SMART SUBSCRIPTIONS & BILLS HUB        -->
+    <!-- ============================================== -->
+    <div id="subscriptions-hub-modal" class="modal-overlay" style="z-index: 12000;">
+      <div class="modal-content subscreen-card-standard"
+        style="max-width: 520px; width: 94%; max-height: 88vh; padding: 0; border-radius: 20px; overflow: hidden; box-shadow: 0 16px 40px rgba(0,0,0,0.55); display: flex; flex-direction: column;">
+        <!-- Header Band -->
+        <div style="padding: 16px 20px; background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(124, 106, 247, 0.08) 100%); border-bottom: 1px solid rgba(124, 106, 247, 0.25); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;">
+          <div style="display: flex; align-items: center; gap: 12px; min-width: 0;">
+            <button type="button" class="icon-btn" onclick="closeModal('subscriptions-hub-modal')" style="flex-shrink: 0;">
+              <i class="fa-solid fa-arrow-left"></i>
+            </button>
+            <div style="width: 38px; height: 38px; border-radius: 12px; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);">
+              <i class="fa-solid fa-arrows-rotate"></i>
+            </div>
+            <div style="display: flex; flex-direction: column; min-width: 0;">
+              <div style="font-family: 'Outfit', sans-serif; font-size: 16px; font-weight: 800; color: var(--text-primary); line-height: 1.2;" data-i18n="sub_hub_title">Πάγια &amp; Συνδρομές</div>
+              <div style="font-size: 11.5px; color: var(--text-secondary); margin-top: 2px;" data-i18n="sub_hub_subtitle">Μηνιαίες υποχρεώσεις &amp; προβλέψεις</div>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <button type="button" onclick="closeModal('subscriptions-hub-modal'); openModal('recurring-picker-modal');"
+              style="padding: 7px 12px; border-radius: 12px; background: var(--accent); color: white; border: none; font-family: 'Outfit', sans-serif; font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 5px; cursor: pointer;">
+              <i class="fa-solid fa-plus"></i> <span data-i18n="sub_hub_btn_add_suggested">+ Προσθήκη</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Body -->
+        <div style="padding: 16px 20px; overflow-y: auto; flex: 1; display: flex; flex-direction: column;">
+          <!-- 3-Metric Summary Bar -->
+          <div class="sub-hub-summary-row">
+            <div class="sub-hub-metric-card">
+              <span class="sub-hub-metric-label" data-i18n="sub_hub_total_month">Σύνολο Μήνα</span>
+              <span class="sub-hub-metric-val" id="sub-hub-total-val">€ 0,00</span>
+            </div>
+            <div class="sub-hub-metric-card paid">
+              <span class="sub-hub-metric-label" data-i18n="sub_hub_paid_month">Πληρώθηκαν</span>
+              <span class="sub-hub-metric-val" id="sub-hub-paid-val">€ 0,00</span>
+            </div>
+            <div class="sub-hub-metric-card pending">
+              <span class="sub-hub-metric-label" data-i18n="sub_hub_pending_month">Εκκρεμούν</span>
+              <span class="sub-hub-metric-val" id="sub-hub-pending-val">€ 0,00</span>
+            </div>
+          </div>
+
+          <!-- Smart Auto-Detection Container -->
+          <div id="sub-hub-detection-container" style="display: none;"></div>
+
+          <!-- Subscriptions Items List -->
+          <div id="sub-hub-items-list" style="display: flex; flex-direction: column; gap: 8px;">
+            <!-- Dynamically populated by renderSubscriptionsHub() -->
+          </div>
+
+          <!-- Manage Rules Link -->
+          <div style="margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); display: flex; justify-content: center;">
+            <button type="button" onclick="closeModal('subscriptions-hub-modal'); openRecurringTemplatesModal();"
+              style="background: transparent; border: none; color: var(--text-secondary); font-size: 12.5px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+              <i class="fa-solid fa-sliders"></i>
+              <span data-i18n="settings_recurring_option">Διαχείριση κανόνων &amp; προτύπων</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div id="recurring-templates-modal" class="modal-overlay">
       <div class="modal-content subscreen-card-standard"
         style="max-width: 520px; width: 94%; max-height: 85vh; padding: 0; border-radius: 18px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.4);">

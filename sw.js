@@ -31,6 +31,7 @@ const ASSETS = [
   'js/categoryIcons.js',
   'js/PremiumService.js',
   'js/SafeToSpendEngine.js',
+  'js/SubscriptionEngine.js',
   'js/fontawesome.min.css',
   'js/webfonts/fa-solid-900.woff2',
   'js/webfonts/fa-solid-900.ttf',

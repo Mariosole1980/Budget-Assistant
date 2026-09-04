@@ -757,7 +757,23 @@
         "recurring_delete_opt_future": "Αυτή και οι μελλοντικές",
         "recurring_delete_opt_all": "Όλες τις κινήσεις της επανάληψης",
         "recurring_delete_all_title": "Διαγραφή όλων των κινήσεων;",
-        "recurring_delete_all_desc": "Θα διαγραφούν όλες οι κινήσεις αυτής της επανάληψης. Είστε σίγουρος/η ότι θέλετε να συνεχίσετε;"
+        "recurring_delete_all_desc": "Θα διαγραφούν όλες οι κινήσεις αυτής της επανάληψης. Είστε σίγουρος/η ότι θέλετε να συνεχίσετε;",
+        "sub_hub_title": "Πάγια & Συνδρομές",
+        "sub_hub_subtitle": "Μηνιαίες υποχρεώσεις & προβλέψεις",
+        "sub_hub_total_month": "Σύνολο Μήνα",
+        "sub_hub_paid_month": "Πληρώθηκαν",
+        "sub_hub_pending_month": "Εκκρεμούν",
+        "sub_hub_status_paid": "Πληρώθηκε",
+        "sub_hub_status_pending": "Εκκρεμεί",
+        "sub_hub_status_overdue": "Καθυστέρηση",
+        "sub_hub_btn_pay": "Πληρωμή",
+        "sub_hub_smart_detection_title": "Έξυπνη Ανίχνευση Συνδρομών",
+        "sub_hub_smart_detection_desc": "Εντοπίστηκαν επαναλαμβανόμενα έξοδα στο ιστορικό σας:",
+        "sub_hub_btn_add_suggested": "+ Προσθήκη",
+        "sub_hub_no_subs": "Δεν υπάρχουν καταχωρημένες πάγιες υποχρεώσεις.",
+        "sub_hub_all_paid": "✓ Όλα τα πάγια αυτού του μήνα έχουν εξοφληθεί!",
+        "sub_hub_badge_pending_bills": "Πάγια Εκκρεμούν",
+        "sub_hub_view_bills": "Προβολή"
 },
       en: {
         "ai_check_title": "AI Financial Check",
@@ -1499,7 +1515,23 @@
         "recurring_delete_opt_future": "This and future transactions",
         "recurring_delete_opt_all": "All transactions in the series",
         "recurring_delete_all_title": "Delete all transactions?",
-        "recurring_delete_all_desc": "All transactions in this recurring series will be deleted. Are you sure you want to proceed?"
+        "recurring_delete_all_desc": "All transactions in this recurring series will be deleted. Are you sure you want to proceed?",
+        "sub_hub_title": "Bills & Subscriptions",
+        "sub_hub_subtitle": "Monthly commitments & forecasting",
+        "sub_hub_total_month": "Monthly Total",
+        "sub_hub_paid_month": "Paid",
+        "sub_hub_pending_month": "Pending",
+        "sub_hub_status_paid": "Paid",
+        "sub_hub_status_pending": "Pending",
+        "sub_hub_status_overdue": "Overdue",
+        "sub_hub_btn_pay": "Pay",
+        "sub_hub_smart_detection_title": "Smart Subscription Detection",
+        "sub_hub_smart_detection_desc": "Detected repeating expenses in your history:",
+        "sub_hub_btn_add_suggested": "+ Add",
+        "sub_hub_no_subs": "No recurring bills registered yet.",
+        "sub_hub_all_paid": "✓ All monthly bills have been paid!",
+        "sub_hub_badge_pending_bills": "Bills Pending",
+        "sub_hub_view_bills": "View"
 }
     };
 

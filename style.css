@@ -11948,3 +11948,141 @@ body {
 .ai-tx-save-btn:active {
   transform: scale(0.98);
 }
+
+/* ============================================================ */
+/* FEATURE: SMART RECURRING & SUBSCRIPTION TRACKER              */
+/* ============================================================ */
+.sub-hub-summary-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.sub-hub-metric-card {
+  background: var(--overlay-030, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  border-radius: 14px;
+  padding: 12px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+.sub-hub-metric-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary, #94a3b8);
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.sub-hub-metric-val {
+  font-family: 'Outfit', sans-serif;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text-primary, #ffffff);
+}
+.sub-hub-metric-card.paid .sub-hub-metric-val {
+  color: #34d399;
+}
+.sub-hub-metric-card.pending .sub-hub-metric-val {
+  color: #fbbf24;
+}
+
+.sub-detection-box {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(168, 85, 247, 0.08) 100%);
+  border: 1px solid rgba(124, 106, 247, 0.3);
+  border-radius: 16px;
+  padding: 14px;
+  margin-bottom: 16px;
+}
+.sub-detection-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 12.5px;
+  font-weight: 800;
+  color: #c4b5fd;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.sub-detection-desc {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  margin-bottom: 10px;
+}
+.sub-detection-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  margin-bottom: 6px;
+}
+.sub-detection-item:last-child {
+  margin-bottom: 0;
+}
+
+.sub-item-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  border-radius: 16px;
+  background: var(--bg-card, #161622);
+  margin-bottom: 10px;
+  gap: 12px;
+  transition: all 0.2s ease;
+}
+.sub-item-card:hover {
+  border-color: rgba(124, 106, 247, 0.3);
+}
+.sub-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 8px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+.sub-status-badge.paid {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+.sub-status-badge.pending {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+.sub-status-badge.overdue {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+.sub-quick-pay-btn {
+  padding: 6px 12px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(124, 106, 247, 0.3) 100%);
+  border: 1px solid rgba(124, 106, 247, 0.4);
+  color: #c4b5fd;
+  font-family: 'Outfit', sans-serif;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.sub-quick-pay-btn:hover {
+  background: var(--accent, #7c6af7);
+  color: #ffffff;
+}
