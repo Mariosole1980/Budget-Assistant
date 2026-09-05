@@ -1,6 +1,7 @@
 package com.budgetassistant.app;
 
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -126,6 +127,8 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(NativeThemePlugin.class);
         registerPlugin(SecurityPlugin.class);
         registerPlugin(ReliableNotificationPlugin.class);
+        registerPlugin(QuickAddNotificationPlugin.class);
+        handleIncomingQuickAction(getIntent());
 
         // Lock WebView text zoom and prevent Android autofill/system font scaling issues
         lockWebViewSettings();
@@ -664,6 +667,37 @@ public class MainActivity extends BridgeActivity {
         } catch (Exception e) {
             Log.w(TAG, "Could not reset WebView zoom", e);
         }
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        handleIncomingQuickAction(intent);
+    }
+
+    private void handleIncomingQuickAction(Intent intent) {
+        if (intent == null) return;
+        String action = intent.getStringExtra(QuickAddNotificationPlugin.EXTRA_QUICK_ACTION);
+        if (action != null && !action.isEmpty()) {
+            Log.d(TAG, "handleIncomingQuickAction: " + action);
+            QuickAddNotificationPlugin.setPendingAction(action);
+            dispatchQuickAction(action);
+        }
+    }
+
+    public void dispatchQuickAction(String action) {
+        if (action == null || action.isEmpty()) return;
+        mainHandler.postDelayed(() -> {
+            try {
+                if (bridge != null && bridge.getWebView() != null) {
+                    String js = "window.handleQuickAction && window.handleQuickAction('" + action + "');";
+                    bridge.getWebView().evaluateJavascript(js, null);
+                }
+            } catch (Exception e) {
+                Log.w(TAG, "Error dispatching quick action to WebView", e);
+            }
+        }, 150);
     }
 
     @Override

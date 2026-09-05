@@ -12414,3 +12414,124 @@ body {
   border-color: rgba(239, 68, 68, 0.4);
   color: #ef4444;
 }
+
+
+/* ==========================================================================
+   Voice AI Assistant («🎙️ Οικονομικός Βοηθός») & Waveform Animations
+   ========================================================================== */
+
+#voice-ai-modal.active {
+  display: flex !important;
+  align-items: flex-end;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.65) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+@media (min-width: 600px) {
+  #voice-ai-modal.active {
+    align-items: center;
+  }
+  #voice-ai-modal .voice-ai-sheet {
+    border-radius: 28px !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+  }
+}
+
+.voice-ai-sheet {
+  animation: voiceSheetSlideUp 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
+@keyframes voiceSheetSlideUp {
+  0% {
+    transform: translateY(100%);
+    opacity: 0.7;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.voice-ai-visualizer {
+  user-select: none;
+}
+
+.voice-wave-ring {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.voice-ai-listening .voice-wave-ring {
+  opacity: 1;
+}
+
+.voice-ai-listening .voice-wave-1 {
+  width: 96px;
+  height: 96px;
+  border: 2px solid rgba(99, 102, 241, 0.65);
+  animation: voiceWavePulse 1.8s infinite ease-out;
+}
+
+.voice-ai-listening .voice-wave-2 {
+  width: 124px;
+  height: 124px;
+  border: 2px solid rgba(139, 92, 246, 0.45);
+  animation: voiceWavePulse 1.8s infinite ease-out 0.45s;
+}
+
+.voice-ai-listening .voice-wave-3 {
+  width: 154px;
+  height: 154px;
+  border: 1.5px solid rgba(168, 85, 247, 0.3);
+  animation: voiceWavePulse 1.8s infinite ease-out 0.9s;
+}
+
+@keyframes voiceWavePulse {
+  0% {
+    transform: scale(0.85);
+    opacity: 0.95;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(1.35);
+    opacity: 0;
+  }
+}
+
+.voice-ai-listening #voice-ai-mic-btn {
+  animation: voiceMicGlow 1.4s infinite alternate ease-in-out;
+}
+
+@keyframes voiceMicGlow {
+  0% {
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.5);
+    transform: scale(1);
+  }
+  100% {
+    box-shadow: 0 0 42px rgba(168, 85, 247, 0.85);
+    transform: scale(1.06);
+  }
+}
+
+/* Header & Advisor mic buttons */
+.header-voice-btn {
+  font-size: 15px;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.header-voice-btn:active {
+  transform: scale(0.92);
+}
+
+#advisor-chat-mic-btn:active {
+  transform: scale(0.92);
+}
+

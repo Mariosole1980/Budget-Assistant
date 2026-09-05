@@ -104,7 +104,7 @@
               ${devButton}
             </div>
             <div style="font-size:11px;color:#8b949e;">
-              Budget Assistant • build v1649
+              Budget Assistant • build v1650
             </div>
           </div>
         `;
@@ -228,7 +228,7 @@
   <!-- Desktop Web UX Layer (loaded AFTER style.css so it can override).
        All rules are scoped behind html.web-mode, so Android/iOS native
        (Capacitor) layout is never affected. -->
-  <link rel="stylesheet" href="desktop.css?v=1649" id="desktop-stylesheet">
+  <link rel="stylesheet" href="desktop.css?v=1650" id="desktop-stylesheet">
 
   <!-- Capacitor Bridge
        NOTE: The native Capacitor runtime injects its bridge JS automatically into
@@ -282,7 +282,7 @@
           // OTA updates. Running both would cause a reload loop that never
           // baked into the APK and never changes on a plain reload).
           // ============================================================
-          const CURRENT_BUILD = 1649;
+          const CURRENT_BUILD = 1650;
           (function () {
             // Skip entirely when running inside the native APK (Capacitor bridge
             // present). Capgo handles OTA updates there.
@@ -467,11 +467,11 @@
       <script src="js/SafeToSpendEngine.js"></script>
       <!-- Recurring Expenses & Subscription Intelligence Engine (pure mathematical calculations; loaded before app.js) -->
       <script src="js/SubscriptionEngine.js"></script>
-      <script src="app.js?v=1649"></script>
+      <script src="app.js?v=1650"></script>
       <!-- Desktop Web UX Layer (defer so it runs after app.js; invoked via
        initDesktopUI() hook at the end of initApp()). Self-guards on
        html.web-mode so native Android/iOS is never affected. -->
-      <script src="web-ui.js?v=1649" defer></script>
+      <script src="web-ui.js?v=1650" defer></script>
 </head>
 
 <body style="background-color: #181b22; margin: 0; padding: 0; ">
@@ -683,6 +683,11 @@
             border:1.5px solid var(--app-bg,#0f0f1a);
             transition:background 0.3s;
           "></span>
+        </button>
+        <!-- Voice AI Quick Button -->
+        <button id="header-voice-ai-btn" class="icon-btn header-voice-btn" onclick="openVoiceAIModal({ autoStart: true })"
+          title="🎙️ Οικονομικός Βοηθός" aria-label="Οικονομικός Βοηθός" style="position:relative; color:var(--accent);">
+          <i class="fa-solid fa-microphone"></i>
         </button>
         <button class="icon-btn" onclick="openSupabaseSettings()" title="Λογαριασμός Cloud" id="btn-cloud-settings"
           style="display: none;">
@@ -1930,7 +1935,7 @@
                 data-i18n="item_user_guide">Οδηγός Χρήσης</h3>
               <div
                 style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; font-family: 'Outfit', sans-serif;">
-                <span id="user-guide-version-badge" style="font-size:10px; background:rgba(99,102,241,0.15); color:var(--primary); padding:2px 8px; border-radius:10px; font-weight:700; border:1px solid rgba(99,102,241,0.3);">v1649</span>
+                <span id="user-guide-version-badge" style="font-size:10px; background:rgba(99,102,241,0.15); color:var(--primary); padding:2px 8px; border-radius:10px; font-weight:700; border:1px solid rgba(99,102,241,0.3);">v1650</span>
                 <span>•</span>
                 <span id="user-guide-date-badge" data-i18n="user_guide_date_badge">Αύγουστος 2026</span>
               </div>
@@ -2326,7 +2331,7 @@
 
                 <!-- Row 2: Quick Notes Shortcut -->
                 <div class="settings-list-item"
-                  style="padding:14px 16px; display:flex; align-items:center; justify-content:space-between; margin:0;">
+                  style="padding:14px 16px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border, rgba(255,255,255,0.05)); margin:0;">
                   <div style="display:flex; flex-direction:column; gap:3px; flex:1; padding-right:12px;">
                     <span class="settings-item-label"
                       style="font-weight:700; font-size:14px; color:var(--text-primary);"
@@ -2337,6 +2342,23 @@
                   </div>
                   <label class="switch switch-amber">
                     <input type="checkbox" id="settings-note-shortcut">
+                    <span class="slider round"></span>
+                  </label>
+                </div>
+
+                <!-- Row 3: Quick Add Notification -->
+                <div class="settings-list-item"
+                  style="padding:14px 16px; display:flex; align-items:center; justify-content:space-between; margin:0;">
+                  <div style="display:flex; flex-direction:column; gap:3px; flex:1; padding-right:12px;">
+                    <span class="settings-item-label"
+                      style="font-weight:700; font-size:14px; color:var(--text-primary);"
+                      data-i18n="item_quick_add_notification">Γρήγορη καταχώρηση</span>
+                    <span style="font-size:12px; color:var(--text-muted);" data-i18n="item_quick_add_notification_desc">Εμφάνιση
+                      εργαλείων Budget Assistant στη γραμμή ειδοποιήσεων</span>
+                  </div>
+                  <label class="switch switch-amber">
+                    <input type="checkbox" id="settings-quick-add-notification"
+                      onchange="toggleQuickAddNotification(this.checked)">
                     <span class="slider round"></span>
                   </label>
                 </div>
@@ -2354,6 +2376,23 @@
               style="background:var(--bg-card, #161622); border:1px solid var(--border, rgba(255,255,255,0.08)); border-radius:16px; overflow:hidden; box-shadow:0 4px 16px rgba(0,0,0,0.2);">
               <!-- Card Items -->
               <div style="display:flex; flex-direction:column;">
+                <!-- Row 0: Quick Add Notification -->
+                <div class="settings-list-item"
+                  style="padding:14px 16px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border, rgba(255,255,255,0.05)); margin:0;">
+                  <div style="display:flex; flex-direction:column; gap:3px; flex:1; padding-right:12px;">
+                    <span class="settings-item-label"
+                      style="font-weight:700; font-size:14px; color:var(--text-primary);"
+                      data-i18n="item_quick_add_notification">Γρήγορη καταχώρηση</span>
+                    <span style="font-size:12px; color:var(--text-muted);"
+                      data-i18n="item_quick_add_notification_desc">Εμφάνιση εργαλείων Budget Assistant στη γραμμή ειδοποιήσεων</span>
+                  </div>
+                  <label class="switch">
+                    <input type="checkbox" id="settings-quick-add-notification-sync"
+                      onchange="toggleQuickAddNotification(this.checked)">
+                    <span class="slider round"></span>
+                  </label>
+                </div>
+
                 <!-- Row 1: Daily Logging Reminder -->
                 <div class="settings-list-item"
                   style="padding:14px 16px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border, rgba(255,255,255,0.05)); margin:0;">
@@ -2996,7 +3035,7 @@
             <div class="settings-list-item version-info-row"
               style="padding: 14px 16px; background: transparent; border-top: 1px solid var(--border); margin-top: 8px;">
               <span class="settings-item-label" style="color:var(--text-muted); font-size:12px;"
-                data-i18n="app_version">Έκδοση 1.0.0 (build v1649)</span>
+                data-i18n="app_version">Έκδοση 1.0.0 (build v1650)</span>
               <span class="settings-item-value" style="font-size:12px; color:var(--text-muted); font-weight:600;">Budget
                 Assistant</span>
             </div>
@@ -6861,6 +6900,9 @@
                 style="flex: 1; min-width: 0; min-height: 44px; max-height: 130px; height: 44px; padding: 11px 16px; border-radius: 18px; background: var(--overlay-030); border: 1px solid var(--border); color: var(--text-primary); outline: none; font-family: 'Outfit', sans-serif; font-size: 14px; line-height: 1.45; box-sizing: border-box; resize: none; overflow-y: auto;"
                 placeholder="Ρωτήστε κάτι τον σύμβουλο..." data-i18n-placeholder="advisor_chat_placeholder"
                 oninput="handleAdvisorChatInput(this)" onkeydown="handleAdvisorChatKeydown(event)"></textarea>
+              <button type="button" id="advisor-chat-mic-btn" onclick="openVoiceAIModal({ autoStart: true, target: 'advisor' })"
+                style="flex-shrink: 0; height: 44px; width: 44px; border-radius: 16px; background: rgba(var(--accent-rgb, 124, 106, 247), 0.18); color: var(--accent); border: 1px solid rgba(var(--accent-rgb, 124, 106, 247), 0.35); font-size: 16px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.2s;"
+                title="Ομιλία με μικρόφωνο"><i class="fa-solid fa-microphone"></i></button>
               <button type="button" id="advisor-chat-send-btn" onclick="submitCoachInput()"
                 style="flex-shrink: 0; height: 44px; width: 44px; border-radius: 16px; background: var(--accent); color: white; border: none; font-size: 16px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.2s;"><i
                   class="fa-solid fa-paper-plane"></i></button>
@@ -6868,6 +6910,74 @@
           </div>
         </div>
 
+
+
+    <!-- ============================================== -->
+    <!-- MODAL: VOICE AI ASSISTANT («🎙️ Οικονομικός Βοηθός») -->
+    <!-- ============================================== -->
+    <div id="voice-ai-modal" class="modal-overlay" style="display: none; z-index: 99999;">
+      <div class="modal-content voice-ai-sheet" style="max-width: 440px; width: 100%; border-radius: 28px 28px 0 0; padding: 18px 20px 24px; text-align: center; background: #141824; border: 1px solid rgba(255,255,255,0.1); border-bottom: none; box-shadow: 0 -20px 60px rgba(0,0,0,0.7); display: flex; flex-direction: column; box-sizing: border-box; margin: 0 auto;">
+        
+        <!-- Drag handle -->
+        <div style="width: 40px; height: 4px; border-radius: 4px; background: rgba(255,255,255,0.2); margin: 0 auto 14px;"></div>
+
+        <!-- Header -->
+        <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; margin-bottom: 20px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div class="voice-avatar-icon" style="width: 36px; height: 36px; border-radius: 12px; background: linear-gradient(135deg, #6366f1, #8b5cf6); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 16px;">
+              <i class="fa-solid fa-microphone"></i>
+            </div>
+            <div style="text-align: left;">
+              <h3 style="margin: 0; font-family: 'Outfit', sans-serif; font-size: 16px; font-weight: 800; color: var(--text-primary);" data-i18n="voice_ai_title">Οικονομικός Βοηθός</h3>
+              <span id="voice-ai-status-badge" style="font-size: 11px; color: var(--accent); font-weight: 600;">Έτοιμο για ακρόαση</span>
+            </div>
+          </div>
+          <button type="button" class="icon-btn" onclick="closeVoiceAIModal()" title="Κλείσιμο" style="width: 34px; height: 34px; border-radius: 50%; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text-primary);">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <!-- Animated Wave Rings & Center Mic Button -->
+        <div class="voice-ai-visualizer" id="voice-ai-visualizer" style="position: relative; width: 160px; height: 160px; margin: 10px auto 20px; display: flex; align-items: center; justify-content: center;">
+          <div class="voice-wave-ring voice-wave-1" id="voice-wave-1"></div>
+          <div class="voice-wave-ring voice-wave-2" id="voice-wave-2"></div>
+          <div class="voice-wave-ring voice-wave-3" id="voice-wave-3"></div>
+          <button type="button" id="voice-ai-mic-btn" onclick="toggleVoiceAIRecording()" style="position: relative; z-index: 5; width: 88px; height: 88px; border-radius: 50%; background: linear-gradient(135deg, #6366f1, #a855f7); border: none; box-shadow: 0 0 30px rgba(99,102,241,0.5); display: flex; align-items: center; justify-content: center; color: white; font-size: 32px; cursor: pointer; transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);">
+            <i class="fa-solid fa-microphone" id="voice-ai-mic-icon"></i>
+          </button>
+        </div>
+
+        <!-- Status Instruction / Hint -->
+        <div id="voice-ai-hint" style="font-size: 13.5px; font-weight: 600; color: var(--text-secondary); margin-bottom: 12px; min-height: 20px; line-height: 1.4;" data-i18n="voice_ai_listening">
+          Σας ακούω... Πείτε π.χ. «30€ βενζίνη από Alpha Bank»
+        </div>
+
+        <!-- Real-time Live Transcript Box -->
+        <div id="voice-ai-transcript-box" style="width: 100%; min-height: 72px; max-height: 120px; overflow-y: auto; background: rgba(0,0,0,0.28); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 12px 16px; text-align: left; font-size: 14.5px; color: var(--text-primary); font-family: 'Outfit', sans-serif; line-height: 1.45; box-sizing: border-box; margin-bottom: 14px;">
+          <span id="voice-ai-transcript-text" style="opacity: 0.6; font-style: italic;">Περιμένω να μιλήσετε...</span>
+        </div>
+
+        <!-- Fallback/Edit manual input -->
+        <div id="voice-ai-manual-row" style="display: flex; gap: 8px; width: 100%; margin-bottom: 18px;">
+          <input type="text" id="voice-ai-manual-input" style="flex: 1; height: 42px; border-radius: 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 0 14px; color: var(--text-primary); font-size: 13.5px; outline: none; box-sizing: border-box;" placeholder="Ή πληκτρολογήστε τη συναλλαγή εδώ…" data-i18n-placeholder="voice_ai_placeholder">
+          <button type="button" onclick="submitVoiceManualInput()" style="height: 42px; padding: 0 16px; border-radius: 12px; background: rgba(99,102,241,0.2); border: 1px solid rgba(99,102,241,0.4); color: #a5b4fc; font-weight: 700; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+            <i class="fa-solid fa-arrow-right"></i>
+          </button>
+        </div>
+
+        <!-- Action Controls (Cancel, Done) -->
+        <div style="display: flex; gap: 10px; width: 100%;">
+          <button type="button" onclick="closeVoiceAIModal()" style="flex: 1; height: 46px; border-radius: 14px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: var(--text-secondary); font-weight: 700; font-size: 14px; cursor: pointer;" data-i18n="voice_ai_btn_cancel">
+            Ακύρωση
+          </button>
+          <button type="button" id="voice-ai-action-btn" onclick="finishVoiceAIInput()" style="flex: 2; height: 46px; border-radius: 14px; background: linear-gradient(135deg, #6366f1, #8b5cf6); border: none; color: white; font-weight: 800; font-size: 14.5px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 16px rgba(99,102,241,0.4);" data-i18n="voice_ai_btn_done">
+            <i class="fa-solid fa-check"></i>
+            <span>Ολοκλήρωση</span>
+          </button>
+        </div>
+
+      </div>
+    </div>
 
         <script>
           // Aggressive Cache Buster for v423

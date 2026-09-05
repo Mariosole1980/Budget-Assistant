@@ -36,6 +36,20 @@ public class BootAndPackageReceiver extends BroadcastReceiver {
             } catch (Exception e) {
                 Log.e(TAG, "Error re-scheduling alarm on boot/update", e);
             }
+
+            try {
+                SharedPreferences quickPrefs = context.getSharedPreferences(
+                        QuickAddNotificationPlugin.PREFS_NAME,
+                        Context.MODE_PRIVATE
+                );
+                boolean quickEnabled = quickPrefs.getBoolean(QuickAddNotificationPlugin.KEY_ENABLED, false);
+                if (quickEnabled) {
+                    Log.d(TAG, "Re-showing Quick Add persistent notification after " + action);
+                    QuickAddNotificationPlugin.showNotification(context);
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Error re-showing quick add notification on boot/update", e);
+            }
         }
     }
 }
