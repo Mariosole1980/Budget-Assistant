@@ -55,8 +55,9 @@ test('Quick Add Notification & Voice Assistant Unit Tests', async (t) => {
   const manifestContent = fs.readFileSync(manifestPath, 'utf8');
 
   await t.test('1. Android Native Layer verification', () => {
-    // Plugin exists and has all 4 actions
-    assert.ok(pluginContent.includes('@CapacitorPlugin(name = "QuickAddNotification")'));
+    // Plugin exists and has all 4 actions and microphone permission
+    assert.ok(pluginContent.includes('name = "QuickAddNotification"'));
+    assert.ok(pluginContent.includes('requestMicrophonePermission'));
     assert.ok(pluginContent.includes('ACTION_VOICE_AI = "VOICE_AI"'));
     assert.ok(pluginContent.includes('ACTION_ADD_EXPENSE = "ADD_EXPENSE"'));
     assert.ok(pluginContent.includes('ACTION_ADD_INCOME = "ADD_INCOME"'));
@@ -72,8 +73,9 @@ test('Quick Add Notification & Voice Assistant Unit Tests', async (t) => {
     assert.ok(mainActivityContent.includes('handleIncomingQuickAction'));
     assert.ok(mainActivityContent.includes('dispatchQuickAction'));
 
-    // AndroidManifest has RECORD_AUDIO
+    // AndroidManifest has RECORD_AUDIO and MODIFY_AUDIO_SETTINGS
     assert.ok(manifestContent.includes('android.permission.RECORD_AUDIO'));
+    assert.ok(manifestContent.includes('android.permission.MODIFY_AUDIO_SETTINGS'));
   });
 
   await t.test('2. Web UI Elements verification', () => {

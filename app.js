@@ -2286,36 +2286,32 @@ async function initApp() {
     }
   });
 
-  // If the device is offline, bypass Supabase auth and render local cached data immediately.
-  // supabase.js now loads locally so !state.supabaseClient alone is not reliable.
-  // navigator.onLine gives us the actual network state.
-  const isOffline = !navigator.onLine;
-  if (isOffline || !state.supabaseClient) {
-    const hasCachedUser = localStorage.getItem('cached_current_user');
-    const isGuestMode = localStorage.getItem('auth_guest_mode') === 'true';
+  // INSTANT COLD-START RENDERING (0ms):
+  // Always render cached transactions and balances immediately, regardless of online/offline status.
+  // This guarantees the user sees all cached transactions immediately on app launch, instead of an empty
+  // screen or partial list while waiting for network auth and cloud synchronization to complete.
+  const hasCachedUser = localStorage.getItem('cached_current_user');
+  const isGuestMode = localStorage.getItem('auth_guest_mode') === 'true';
 
-    if (hasCachedUser || isGuestMode) {
-      hideAuthOverlay();
-      if (hasCachedUser) {
-        try { state.currentUser = JSON.parse(hasCachedUser); } catch (e) { }
-      }
-      if (isGuestMode) state.guestMode = true;
-      // SECURITY: Offline startup with a cached user or guest mode - the app
-      // intentionally allows offline access, so mark the session confirmed.
-      window._authConfirmed = true;
-    } else {
-      // No cached session — show login
-      showAuthOverlay();
+  if (hasCachedUser || isGuestMode) {
+    hideAuthOverlay();
+    if (hasCachedUser && !state.currentUser) {
+      try { state.currentUser = JSON.parse(hasCachedUser); } catch (e) { }
     }
-    // ANTI-FLICKER: This offline render is deferred by updateUI() (150ms), which
-    // runs AFTER the startup double-rAF removes the 'no-transition' class from
-    // <html> (~32ms). Suppress transitions so the first paint is invisible.
+    if (isGuestMode) state.guestMode = true;
+    window._authConfirmed = true;
+
+    // Suppress transitions so the instant first paint is invisible and smooth
     window._suppressTransitions = true;
     try {
+      calculateInitialBalances();
       updateUI();
     } finally {
       setTimeout(() => { window._suppressTransitions = false; }, 1500);
     }
+  } else if (!navigator.onLine || !state.supabaseClient) {
+    // No cached session and offline — show login
+    showAuthOverlay();
   }
 
   function restoreActiveModalsFromStorage() {
@@ -2411,41 +2407,10 @@ async function initApp() {
   updateHeaderProfileBadge();
 
   // If device is offline, bypass Supabase auth and render cached data immediately.
-  // supabase.js is now bundled locally so !state.supabaseClient is no longer reliable.
-  // navigator.onLine gives the real network state.
+  // Ensure early styles are cleaned up if offline
   if (!navigator.onLine || !state.supabaseClient) {
-    const hasCachedUser = localStorage.getItem('cached_current_user');
-    const isGuestMode = localStorage.getItem('auth_guest_mode') === 'true';
-    const authOverlay = document.getElementById('auth-overlay');
-    if (hasCachedUser || isGuestMode) {
-      if (authOverlay) authOverlay.style.display = 'none';
-      if (hasCachedUser) {
-        try { state.currentUser = JSON.parse(hasCachedUser); } catch (e) { }
-      }
-      if (isGuestMode) state.guestMode = true;
-      // SECURITY: Offline startup with a cached user or guest mode - the app
-      // intentionally allows offline access, so mark the session confirmed.
-      window._authConfirmed = true;
-    } else {
-      const formsContainer = document.getElementById('auth-forms-container');
-      const authCard = document.getElementById('auth-card');
-      const loadingState = document.getElementById('auth-loading-state');
-      if (authOverlay) authOverlay.style.display = 'flex';
-      if (formsContainer) formsContainer.style.display = 'block';
-      if (authCard) authCard.style.display = 'flex';
-      if (loadingState) loadingState.style.display = 'none';
-      const earlyStyle = document.getElementById('early-auth-style');
-      if (earlyStyle) earlyStyle.remove();
-    }
-    // ANTI-FLICKER: Same as above — this offline render is deferred by updateUI()
-    // (150ms) which runs after 'no-transition' is removed from <html> (~32ms).
-    // Suppress transitions so the first paint is invisible.
-    window._suppressTransitions = true;
-    try {
-      updateUI();
-    } finally {
-      setTimeout(() => { window._suppressTransitions = false; }, 1500);
-    }
+    const earlyStyle = document.getElementById('early-auth-style');
+    if (earlyStyle) earlyStyle.remove();
   }
 
   const today = new Date().toISOString().split('T')[0];
@@ -3436,7 +3401,7 @@ function initSupabaseAuth() {
       if (state.userProfile && state.userProfile.id !== session.user.id) {
         state.userProfile = null;
       }
-      if (state.partnerProfile && state.partnerProfile.id !== session.user.id) {
+      if (state.partnerProfile && state.partnerProfile.id === session.user.id) {
         state.partnerProfile = null;
       }
 
@@ -3984,10 +3949,22 @@ function applyWalletTheme() {
 window.applyWalletTheme = applyWalletTheme;
 
 function getActiveTransactions() {
-  const currentUserId = state.currentUser ? state.currentUser.id : null;
+  const cachedUserStr = localStorage.getItem('cached_current_user');
+  let fallbackUid = null;
+  try { if (cachedUserStr) fallbackUid = JSON.parse(cachedUserStr).id; } catch (_) {}
+  const currentUserId = state.currentUser ? state.currentUser.id : fallbackUid;
   const partnerId = state.partnerProfile ? state.partnerProfile.id : null;
   const familyId = state.userProfile ? state.userProfile.family_id : null;
   const isPersonalMode = state.activeAccountMode === 'personal';
+
+  // Collect all known family member IDs
+  const familyMemberIds = new Set();
+  if (partnerId) familyMemberIds.add(partnerId);
+  if (Array.isArray(state.familyProfiles)) {
+    state.familyProfiles.forEach(p => {
+      if (p && p.id && p.id !== currentUserId) familyMemberIds.add(p.id);
+    });
+  }
 
   const filtered = state.transactions.filter(t => {
     if (t.user_id === undefined) {
@@ -4003,11 +3980,11 @@ function getActiveTransactions() {
       if (familyId) {
         return t.family_id === familyId ||
           t.user_id === currentUserId ||
-          t.user_id === partnerId ||
+          familyMemberIds.has(t.user_id) ||
           (t.id && String(t.id).startsWith('local_'));
       }
       return t.user_id === currentUserId ||
-        t.user_id === partnerId ||
+        familyMemberIds.has(t.user_id) ||
         (t.id && String(t.id).startsWith('local_'));
     } else {
       // Guest mode: show unowned/legacy transactions AND guest-owned demo data
@@ -5395,12 +5372,15 @@ function loadOfflineData() {
     if (cachedProfile) {
       const parsedProfile = JSON.parse(cachedProfile);
       // PRIVACY/ISOLATION: Only restore the cached profile if it belongs to the
-      // cached current user (loaded above). A previous account's premium/family
-      // state must never leak into an offline/guest session of another account.
-      if (parsedProfile && state.currentUser && parsedProfile.id === state.currentUser.id) {
+      // cached current user. A previous account's state must not leak.
+      if (parsedProfile && state.currentUser && state.currentUser.id) {
+        if (parsedProfile.id === state.currentUser.id) {
+          state.userProfile = parsedProfile;
+        } else {
+          localStorage.removeItem('cached_user_profile');
+        }
+      } else if (parsedProfile) {
         state.userProfile = parsedProfile;
-      } else {
-        localStorage.removeItem('cached_user_profile');
       }
     }
   } catch (e) {
@@ -39520,7 +39500,41 @@ function toggleVoiceAIRecording() {
 }
 window.toggleVoiceAIRecording = toggleVoiceAIRecording;
 
-function startVoiceAIRecording() {
+async function ensureMicrophonePermission() {
+  // 1. Android Capacitor Native:
+  if (window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform()) {
+    try {
+      const QuickAdd = window.Capacitor.Plugins && window.Capacitor.Plugins.QuickAddNotification;
+      if (QuickAdd && typeof QuickAdd.requestMicrophonePermission === 'function') {
+        const res = await QuickAdd.requestMicrophonePermission();
+        if (res && res.granted) return true;
+        if (res && res.granted === false) return false;
+      }
+    } catch (e) {
+      console.warn('[VoiceAI] Native mic permission error:', e);
+    }
+  }
+
+  // 2. Web / PWA fallback: prompt user using getUserMedia before SpeechRecognition starts
+  if (navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === 'function') {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      if (stream) {
+        stream.getTracks().forEach(track => {
+          try { track.stop(); } catch (_) {}
+        });
+        return true;
+      }
+    } catch (err) {
+      console.warn('[VoiceAI] getUserMedia permission error:', err);
+      return false;
+    }
+  }
+
+  return true;
+}
+
+async function startVoiceAIRecording() {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   const hint = document.getElementById('voice-ai-hint');
   const badge = document.getElementById('voice-ai-status-badge');
@@ -39543,6 +39557,22 @@ function startVoiceAIRecording() {
     if (_voiceAIRecognition) {
       try { _voiceAIRecognition.abort(); } catch (e) {}
       _voiceAIRecognition = null;
+    }
+
+    if (badge) badge.textContent = state.lang === 'el' ? 'Έλεγχος…' : 'Checking…';
+    const hasPermission = await ensureMicrophonePermission();
+    if (!hasPermission) {
+      _voiceAIIsListening = false;
+      if (visualizer) visualizer.classList.remove('voice-ai-listening');
+      if (badge) badge.textContent = state.lang === 'el' ? 'Άδεια' : 'Permission';
+      if (hint) {
+        hint.textContent = state.lang === 'el'
+          ? '⚠️ Απαιτείται άδεια μικροφώνου. Επιτρέψτε την πρόσβαση στις Ρυθμίσεις ή πληκτρολογήστε παρακάτω:'
+          : '⚠️ Microphone permission is required. Allow access in settings or type below:';
+      }
+      const manualInput = document.getElementById('voice-ai-manual-input');
+      if (manualInput) manualInput.focus();
+      return;
     }
 
     const recognition = new SpeechRecognition();
@@ -39607,8 +39637,8 @@ function startVoiceAIRecording() {
       if (hint) {
         if (event.error === 'not-allowed') {
           hint.textContent = state.lang === 'el'
-            ? '⚠️ Απαιτείται άδεια μικροφώνου για φωνητική καταγραφή.'
-            : '⚠️ Microphone permission is required.';
+            ? '⚠️ Απαιτείται άδεια μικροφώνου. Επιτρέψτε την πρόσβαση στις Ρυθμίσεις ή πληκτρολογήστε παρακάτω:'
+            : '⚠️ Microphone permission is required. Allow access in Settings or type below:';
         } else if (event.error === 'no-speech') {
           hint.textContent = state.lang === 'el'
             ? 'Δεν ακούστηκε ομιλία. Πατήστε το μικρόφωνο για δοκιμή ξανά.'

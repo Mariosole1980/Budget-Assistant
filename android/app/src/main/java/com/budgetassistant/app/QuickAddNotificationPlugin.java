@@ -1,21 +1,34 @@
 package com.budgetassistant.app;
 
+import android.Manifest;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.os.Build;
 import android.util.Log;
 import androidx.core.app.NotificationCompat;
+import androidx.core.content.ContextCompat;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
+import com.getcapacitor.annotation.Permission;
+import com.getcapacitor.annotation.PermissionCallback;
 
-@CapacitorPlugin(name = "QuickAddNotification")
+@CapacitorPlugin(
+    name = "QuickAddNotification",
+    permissions = {
+        @Permission(
+            alias = "microphone",
+            strings = { Manifest.permission.RECORD_AUDIO }
+        )
+    }
+)
 public class QuickAddNotificationPlugin extends Plugin {
 
     private static final String TAG = "BA-QuickAddPlugin";
@@ -108,6 +121,51 @@ public class QuickAddNotificationPlugin extends Plugin {
         } catch (Exception e) {
             call.reject("Failed to get pending action: " + e.getMessage());
         }
+    }
+
+    @PluginMethod
+    public void checkMicrophonePermission(PluginCall call) {
+        try {
+            boolean granted = ContextCompat.checkSelfPermission(
+                    getContext(),
+                    Manifest.permission.RECORD_AUDIO
+            ) == PackageManager.PERMISSION_GRANTED;
+            JSObject ret = new JSObject();
+            ret.put("granted", granted);
+            call.resolve(ret);
+        } catch (Exception e) {
+            call.reject("Failed to check microphone permission: " + e.getMessage());
+        }
+    }
+
+    @PluginMethod
+    public void requestMicrophonePermission(PluginCall call) {
+        try {
+            if (ContextCompat.checkSelfPermission(
+                    getContext(),
+                    Manifest.permission.RECORD_AUDIO
+            ) == PackageManager.PERMISSION_GRANTED) {
+                JSObject ret = new JSObject();
+                ret.put("granted", true);
+                call.resolve(ret);
+                return;
+            }
+
+            requestPermissionForAlias("microphone", call, "microphonePermsCallback");
+        } catch (Exception e) {
+            call.reject("Failed to request microphone permission: " + e.getMessage());
+        }
+    }
+
+    @PermissionCallback
+    private void microphonePermsCallback(PluginCall call) {
+        boolean granted = ContextCompat.checkSelfPermission(
+                getContext(),
+                Manifest.permission.RECORD_AUDIO
+        ) == PackageManager.PERMISSION_GRANTED;
+        JSObject ret = new JSObject();
+        ret.put("granted", granted);
+        call.resolve(ret);
     }
 
     public static void createNotificationChannel(Context context) {
