@@ -33692,6 +33692,49 @@ function appendChatMessage(sender, htmlContent, persist = true) {
   }
 }
 
+function coachFilterCategory(catName) {
+  closeModal('advisor-chat-modal');
+  setTimeout(() => {
+    if (catName) {
+      const catFilter = document.getElementById('search-filter-category');
+      if (catFilter) {
+        catFilter.value = catName;
+        if (typeof handleSearchChange === 'function') handleSearchChange();
+      }
+    }
+    if (typeof switchTab === 'function') switchTab('trans');
+  }, 120);
+}
+window.coachFilterCategory = coachFilterCategory;
+
+function coachOpenBudgets(catName) {
+  closeModal('advisor-chat-modal');
+  setTimeout(() => {
+    if (typeof openCategoryBudgetModal === 'function') {
+      openCategoryBudgetModal(catName || null);
+    }
+  }, 120);
+}
+window.coachOpenBudgets = coachOpenBudgets;
+
+function coachOpenReports() {
+  closeModal('advisor-chat-modal');
+  setTimeout(() => {
+    if (typeof switchTab === 'function') switchTab('stats');
+  }, 120);
+}
+window.coachOpenReports = coachOpenReports;
+
+function coachOpenRecurring() {
+  closeModal('advisor-chat-modal');
+  setTimeout(() => {
+    if (typeof openRecurringTransactionsModal === 'function') {
+      openRecurringTransactionsModal();
+    }
+  }, 120);
+}
+window.coachOpenRecurring = coachOpenRecurring;
+
 function handleAdvisorChatInput(el) {
   if (!el) return;
   el.style.height = 'auto';
@@ -33990,7 +34033,9 @@ function submitCoachQuery(queryText) {
           persistAdvisorGeminiHistory(state.advisorChatHistory);
           const isExplicitAddIntent = data.classifiedIntent === 'add_transaction' || (function () {
             const nq = normalizeGreekString(actualQuery);
-            const hasAddVerb = nq.includes('βαλε') || nq.includes('προσθεσε') || nq.includes('καταχωρησε') || nq.includes('χρεωσε') || nq.includes('πληρωσα') || nq.includes('ξοδεψα') || nq.startsWith('add ') || nq.includes('spent ');
+            const hasExpenseVerb = nq.includes('βαλε') || nq.includes('προσθεσε') || nq.includes('καταχωρησε') || nq.includes('χρεωσε') || nq.includes('πληρωσα') || nq.includes('ξοδεψα') || nq.includes('εδωσα') || nq.includes('χαλασα') || nq.startsWith('add ') || nq.includes('spent ') || nq.includes('paid ');
+            const hasIncomeVerb = nq.includes('πηρα') || nq.includes('μπηκε') || nq.includes('μισθος') || nq.includes('εισπραξη') || nq.includes('επιστροφη') || nq.includes('κερδισα') || nq.includes('εσοδο') || nq.includes('καταθεση') || nq.includes('received') || nq.includes('earned') || nq.includes('salary');
+            const hasAddVerb = hasExpenseVerb || hasIncomeVerb;
             const isQuestion = nq.includes('ποτε') || nq.includes('ποσα') || nq.includes('ποσο') || nq.includes('θα φτασω') || nq.includes('θα εχω') || nq.includes('when') || nq.includes('how much');
             return hasAddVerb && !isQuestion;
           })();
@@ -33998,7 +34043,11 @@ function submitCoachQuery(queryText) {
           if (isExplicitAddIntent && data.transactionsToAdd && Array.isArray(data.transactionsToAdd)) {
             data.transactionsToAdd.forEach(tx => {
               if (tx.amount && tx.amount > 0) {
-                const txHtml = runCoachTransactionEntry(tx.amount, tx.note || '', tx.type || 'expense', tx.category, tx.subcategory, tx.account_from, tx.date);
+                const txType = tx.type || ((function () {
+                  const nq = normalizeGreekString(actualQuery);
+                  return (nq.includes('πηρα') || nq.includes('μπηκε') || nq.includes('μισθος') || nq.includes('εισπραξη') || nq.includes('επιστροφη') || nq.includes('κερδισα') || nq.includes('εσοδο')) ? 'income' : 'expense';
+                })());
+                const txHtml = runCoachTransactionEntry(tx.amount, tx.note || '', txType, tx.category, tx.subcategory, tx.account_from, tx.date);
                 appendChatMessage('advisor', txHtml);
               }
             });
@@ -34582,40 +34631,62 @@ function runCoachTransactionEntry(amount, noteText, type = 'expense', category =
     return state.lang === 'el' ? "🤖 Παρακαλώ δώσε ένα έγκυρο ποσό (π.χ. 'βάλε 40 για ρεύμα')." : "🤖 Please provide a valid amount (e.g., 'add 40 for electric bill').";
   }
 
+  const isIncome = type === 'income';
   let predictedCat = category || predictCategoryFromHistory(noteText);
 
   if (!predictedCat) {
     const cleanNote = normalizeGreekString(noteText);
-    if (cleanNote.includes('βενζινη') || cleanNote.includes('αμαξι') || cleanNote.includes('διοδια') || cleanNote.includes('παρκινγκ')) predictedCat = '🚗 ΑΥΤΟΚΙΝΗΤΟ';
-    else if (cleanNote.includes('σουπερ') || cleanNote.includes('super') || cleanNote.includes('καφε') || cleanNote.includes('φαγητο') || cleanNote.includes('delivery') || cleanNote.includes('ντελιβερι') || cleanNote.includes('εστιατοριο') || cleanNote.includes('ταβερνα') || cleanNote.includes('φουρν') || cleanNote.includes('αρτοποι')) predictedCat = '🛒 ΔΙΑΤΡΟΦΗ';
-    else if (cleanNote.includes('ρευμα') || cleanNote.includes('δεη') || cleanNote.includes('νερο') || cleanNote.includes('τηλεφωνο') || cleanNote.includes('κοινοχρηστα') || cleanNote.includes('ενοικιο')) predictedCat = '🏡 ΣΠΙΤΙ';
-    else if (cleanNote.includes('γιατρο') || cleanNote.includes('φαρμακειο') || cleanNote.includes('υγεία') || cleanNote.includes('εξετασεις')) predictedCat = '❤️ ΥΓΕΙΑ';
-    else if (cleanNote.includes('ποτο') || cleanNote.includes('μπυρες') || cleanNote.includes('σινεμα') || cleanNote.includes('εξοδος')) predictedCat = '🎉ΔΙΑΣΚΕΔΑΣΗ/ΕΞΟΔΟΙ';
-    else if (cleanNote.includes('κομμωτηριο') || cleanNote.includes('κουρειο') || cleanNote.includes('νυχια')) predictedCat = '👕 ΠΡΟΣΩΠΙΚΗ ΦΡΟΝΤΙΔΑ';
-    else if (cleanNote.includes('γυμναστηριο')) predictedCat = '🏋️ΓΥΜΝΑΣΤΗΡΙΟ';
+    if (isIncome) {
+      if (cleanNote.includes('μισθο') || cleanNote.includes('salary') || cleanNote.includes('δουλεια') || cleanNote.includes('εργασια')) predictedCat = '💼 ΜΙΣΘΟΣ';
+      else if (cleanNote.includes('ενοικιο') || cleanNote.includes('rent')) predictedCat = '🏠 ΕΝΟΙΚΙΑ';
+      else if (cleanNote.includes('επιστροφη') || cleanNote.includes('refund')) predictedCat = '🔄 ΕΠΙΣΤΡΟΦΕΣ';
+      else if (cleanNote.includes('επενδυσ') || cleanNote.includes('μερισμα')) predictedCat = '📈 ΕΠΕΝΔΥΣΕΙΣ';
+      else if (cleanNote.includes('δωρο') || cleanNote.includes('gift')) predictedCat = '🎁 ΔΩΡΑ';
+    } else {
+      if (cleanNote.includes('βενζινη') || cleanNote.includes('αμαξι') || cleanNote.includes('διοδια') || cleanNote.includes('παρκινγκ')) predictedCat = '🚗 ΑΥΤΟΚΙΝΗΤΟ';
+      else if (cleanNote.includes('σουπερ') || cleanNote.includes('super') || cleanNote.includes('καφε') || cleanNote.includes('φαγητο') || cleanNote.includes('delivery') || cleanNote.includes('ντελιβερι') || cleanNote.includes('εστιατοριο') || cleanNote.includes('ταβερνα') || cleanNote.includes('φουρν') || cleanNote.includes('αρτοποι')) predictedCat = '🛒 ΔΙΑΤΡΟΦΗ';
+      else if (cleanNote.includes('ρευμα') || cleanNote.includes('δεη') || cleanNote.includes('νερο') || cleanNote.includes('τηλεφωνο') || cleanNote.includes('κοινοχρηστα') || cleanNote.includes('ενοικιο')) predictedCat = '🏡 ΣΠΙΤΙ';
+      else if (cleanNote.includes('γιατρο') || cleanNote.includes('φαρμακειο') || cleanNote.includes('υγεία') || cleanNote.includes('εξετασεις')) predictedCat = '❤️ ΥΓΕΙΑ';
+      else if (cleanNote.includes('ποτο') || cleanNote.includes('μπυρες') || cleanNote.includes('σινεμα') || cleanNote.includes('εξοδος')) predictedCat = '🎉ΔΙΑΣΚΕΔΑΣΗ/ΕΞΟΔΟΙ';
+      else if (cleanNote.includes('κομμωτηριο') || cleanNote.includes('κουρειο') || cleanNote.includes('νυχια')) predictedCat = '👕 ΠΡΟΣΩΠΙΚΗ ΦΡΟΝΤΙΔΑ';
+      else if (cleanNote.includes('γυμναστηριο')) predictedCat = '🏋️ΓΥΜΝΑΣΤΗΡΙΟ';
+    }
   }
 
-  const expenseCats = (state.categories || []).filter(c => c.type === 'expense');
-  if (expenseCats.length === 0) expenseCats.push({ name: '🧩ΔΙΑΦΟΡΑ ΕΞΟΔΑ' });
+  const targetCats = (state.categories || []).filter(c => isIncome ? c.type === 'income' : c.type === 'expense');
+  if (targetCats.length === 0) targetCats.push({ name: isIncome ? '💰 ΕΣΟΔΑ' : '🧩ΔΙΑΦΟΡΑ ΕΞΟΔΑ' });
 
-  if (predictedCat && !expenseCats.some(c => c.name === predictedCat)) {
+  if (predictedCat && !targetCats.some(c => c.name === predictedCat)) {
     predictedCat = null;
   }
 
   if (!predictedCat) {
-    predictedCat = expenseCats[0].name;
+    predictedCat = targetCats[0].name;
   }
 
   const predictedSub = subcategory !== null ? subcategory : predictSubcategoryFromHistory(predictedCat, noteText);
 
-  // Find accounts options
+  // Find accounts options with smart matching for accountFrom
   let accOptionsHtml = '';
   let defaultAccount = 'Card';
   if (state.accounts && state.accounts.length > 0) {
-    const cardAcc = state.accounts.find(acc => acc.type === 'card' || acc.name.toLowerCase().trim() === 'card' || acc.name.trim() === 'Κάρτα');
-    const cashAcc = state.accounts.find(acc => acc.type === 'cash' || acc.name.toLowerCase().trim() === 'cash' || acc.name.trim() === 'Μετρητά');
-    const defaultAcc = cardAcc || cashAcc || state.accounts[0];
-    defaultAccount = accountFrom || defaultAcc.name;
+    let matchedAcc = null;
+    if (accountFrom) {
+      const normAf = normalizeGreekString(accountFrom);
+      matchedAcc = state.accounts.find(acc => {
+        const na = normalizeGreekString(acc.name || '');
+        return na === normAf || na.includes(normAf) || normAf.includes(na);
+      });
+    }
+
+    if (matchedAcc) {
+      defaultAccount = matchedAcc.name;
+    } else {
+      const cardAcc = state.accounts.find(acc => acc.type === 'card' || acc.name.toLowerCase().trim() === 'card' || acc.name.trim() === 'Κάρτα');
+      const cashAcc = state.accounts.find(acc => acc.type === 'cash' || acc.name.toLowerCase().trim() === 'cash' || acc.name.trim() === 'Μετρητά');
+      const defaultAcc = cardAcc || cashAcc || state.accounts[0];
+      defaultAccount = defaultAcc ? defaultAcc.name : 'Card';
+    }
 
     state.accounts.forEach(acc => {
       const selected = acc.name === defaultAccount ? 'selected' : '';
@@ -34648,7 +34719,7 @@ function runCoachTransactionEntry(amount, noteText, type = 'expense', category =
   const btnId = 'coach-tx-btn-' + seed;
 
   let catOptionsHtml = '';
-  expenseCats.forEach(c => {
+  targetCats.forEach(c => {
     const selected = c.name === predictedCat ? 'selected' : '';
     catOptionsHtml += `<option value="${c.name}" ${selected}>${getCategoryDisplayName(c.name)}</option>`;
   });
@@ -34663,7 +34734,11 @@ function runCoachTransactionEntry(amount, noteText, type = 'expense', category =
   const isEl = state.lang === 'el';
   const badgeTitle = id
     ? (isEl ? 'Επεξεργασία Συναλλαγής' : 'Edit Transaction')
-    : (isEl ? 'Προτεινόμενη Καταχώρηση' : 'Suggested Transaction');
+    : isIncome
+      ? (isEl ? 'Προτεινόμενο Έσοδο' : 'Suggested Income')
+      : (isEl ? 'Προτεινόμενη Καταχώρηση' : 'Suggested Transaction');
+  const badgeIcon = isIncome ? 'fa-arrow-trend-up' : 'fa-bolt';
+  const badgeColor = isIncome ? '#34d399' : '#818cf8';
   const btnLabel = id
     ? (isEl ? 'Αποθήκευση Αλλαγών' : 'Save Changes')
     : (isEl ? 'Καταχώρηση Συναλλαγής' : 'Confirm Transaction');
@@ -34672,7 +34747,7 @@ function runCoachTransactionEntry(amount, noteText, type = 'expense', category =
     <div class="ai-tx-luxury-card">
       <div class="ai-tx-top-badge">
         <span style="display: flex; align-items: center; gap: 6px;">
-          <i class="fa-solid fa-bolt" style="color: #818cf8;"></i>
+          <i class="fa-solid ${badgeIcon}" style="color: ${badgeColor};"></i>
           ${badgeTitle}
         </span>
         <span style="font-size: 10px; color: var(--text-muted); font-weight: 500;">
@@ -34927,18 +35002,48 @@ function processCoachQuery(queryText) {
     ? parseLocalizedAmount(queryText)
     : (typeof window.parseLocalizedAmount === 'function' ? window.parseLocalizedAmount(queryText) : null);
 
-  // 0. Action commands (add transaction)
-  const isAddCommand = normQuery.includes('βαλε') || normQuery.includes('προσθεσε') || normQuery.includes('καταχωρησε') || normQuery.includes('χρεωσε') || normQuery.includes('ξοδεψα') || normQuery.includes('εδωσα') || normQuery.includes('πληρωσα') || normQuery.includes('χάλασα') || normQuery.includes('xalasa') || normQuery.includes('χάλασαμε') || normQuery.includes('xalasame') || normQuery.includes('add') || normQuery.includes('spent');
+  // 0. Action commands (add transaction: expense or income)
+  const hasExpenseVerb = normQuery.includes('βαλε') || normQuery.includes('προσθεσε') || normQuery.includes('καταχωρησε') || normQuery.includes('χρεωσε') || normQuery.includes('ξοδεψα') || normQuery.includes('εδωσα') || normQuery.includes('πληρωσα') || normQuery.includes('χαλασα') || normQuery.includes('xalasa') || normQuery.includes('χαλασαμε') || normQuery.includes('xalasame') || normQuery.includes('add') || normQuery.includes('spent') || normQuery.includes('paid');
+  const hasIncomeVerb = normQuery.includes('πηρα') || normQuery.includes('μπηκε') || normQuery.includes('μισθος') || normQuery.includes('εισπραξη') || normQuery.includes('επιστροφη') || normQuery.includes('κερδισα') || normQuery.includes('εσοδο') || normQuery.includes('καταθεση') || normQuery.includes('received') || normQuery.includes('earned') || normQuery.includes('salary');
+  const isAddCommand = hasExpenseVerb || hasIncomeVerb;
+
   if (isAddCommand && localizedAmt && localizedAmt > 0) {
     const amount = localizedAmt;
+    const detectedType = hasIncomeVerb ? 'income' : 'expense';
+
+    // Relative date detection (e.g. χθες, προχθες, yesterday)
+    let detectedDate = null;
+    if (normQuery.includes('προχθες') || normQuery.includes('day before yesterday')) {
+      const d = new Date(Date.now() - 2 * 86400000);
+      detectedDate = d.toISOString();
+    } else if (normQuery.includes('χθες') || normQuery.includes('yesterday')) {
+      const d = new Date(Date.now() - 86400000);
+      detectedDate = d.toISOString();
+    }
+
+    // Account detection
+    let detectedAccount = null;
+    if (state.accounts && state.accounts.length > 0) {
+      for (const acc of state.accounts) {
+        const na = normalizeGreekString(acc.name || '');
+        if (na && na.length > 2 && normQuery.includes(na)) {
+          detectedAccount = acc.name;
+          break;
+        }
+      }
+    }
+
     let noteText = queryText.replace(/\d+(?:[.,]\d+)?/g, '').replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?¿€]/g, '').trim();
-    const stopWords = ['βαλε', 'προσθεσε', 'καταχωρησε', 'χρεωσε', 'ξοδεψα', 'εδωσα', 'πληρωσα', 'χάλασα', 'xalasa', 'χάλασαμε', 'xalasame', 'ευρω', 'ευρω', 'euro', 'σε', 'στο', 'στην', 'στα', 'στον', 'για', 'απο', 'ενα', 'μια', 'add', 'spent', 'paid', 'for', 'on', 'euros'];
+    const stopWords = ['βαλε', 'προσθεσε', 'καταχωρησε', 'χρεωσε', 'ξοδεψα', 'εδωσα', 'πληρωσα', 'χαλασα', 'xalasa', 'χαλασαμε', 'xalasame', 'πηρα', 'μπηκε', 'εισπραξη', 'κερδισα', 'εσοδο', 'καταθεση', 'ευρω', 'euro', 'σε', 'στο', 'στην', 'στα', 'στον', 'για', 'απο', 'με', 'ενα', 'μια', 'add', 'spent', 'paid', 'for', 'on', 'euros', 'χθες', 'προχθες', 'yesterday'];
+    if (detectedAccount) {
+      stopWords.push(normalizeGreekString(detectedAccount));
+    }
     const words = noteText.split(/\s+/).filter(w => w.length > 1 && !stopWords.includes(normalizeGreekString(w)));
-    const cleanNote = words.join(' ') || '';
+    const cleanNote = words.join(' ') || (detectedType === 'income' ? 'Έσοδο' : 'Έξοδο');
 
     // Distinguish between sum search "ποσα ξοδεψα" and action "ξοδεψα 40"
     if (!normQuery.includes('ποσα') && !normQuery.includes('ποσο') && !normQuery.includes('how much') && !normQuery.includes('τι ')) {
-      return runCoachTransactionEntry(amount, cleanNote);
+      return runCoachTransactionEntry(amount, cleanNote, detectedType, null, null, detectedAccount, detectedDate);
     }
   }
 

@@ -26,8 +26,11 @@ window.OnlineAIProvider = (function () {
     return '/api/ai';
   }
 
-  async function processQuery(queryText, categoriesArr) {
-    const categoriesStr = categoriesArr.map(c => c.name).join(', ');
+  async function processQuery(queryText, categoriesArr = [], accountsArr = [], subcategoriesArr = [], currentDate = null) {
+    const categoriesStr = (categoriesArr || []).map(c => (typeof c === 'string' ? c : c.name)).filter(Boolean).join(', ');
+    const accountsStr = (accountsArr || []).map(a => (typeof a === 'string' ? a : a.name)).filter(Boolean).join(', ');
+    const subcategoriesStr = (subcategoriesArr || []).map(s => (typeof s === 'string' ? s : s.name)).filter(Boolean).join(', ');
+    const currDate = currentDate || new Date().toISOString().split('T')[0];
 
     window.AIDebugLog = window.AIDebugLog || [];
     const log = (msg) => {
@@ -49,7 +52,13 @@ window.OnlineAIProvider = (function () {
       const response = await fetch(targetUrl, {
         method: 'POST',
         headers: headers,
-        body: JSON.stringify({ queryText, categoriesStr })
+        body: JSON.stringify({
+          queryText,
+          categoriesStr,
+          accountsStr,
+          subcategoriesStr,
+          currentDate: currDate
+        })
       });
 
       log(`Response status: ${response.status}`);

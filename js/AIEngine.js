@@ -19,23 +19,28 @@ window.AIEngine = (function () {
     // 1. TRY ONLINE AI FIRST (Gemini)
     if (window.OnlineAIProvider) {
       log("Attempting Online AI Provider...");
-      const expenseCats = (systemState.categories || []).filter(c => c.type === 'expense');
-      const onlineResult = await window.OnlineAIProvider.processQuery(input, expenseCats);
+      const allCats = systemState.categories || [];
+      const allAccounts = systemState.accounts || [];
+      const allSubcats = systemState.subcategories || [];
+      const todayIso = new Date().toISOString().split('T')[0];
+      const onlineResult = await window.OnlineAIProvider.processQuery(input, allCats, allAccounts, allSubcats, todayIso);
 
       if (onlineResult && onlineResult.amount) {
-        log(`Online AI parsed successfully: Amount=${onlineResult.amount}, Merchant=${onlineResult.merchant}, Category=${onlineResult.category}`);
+        log(`Online AI parsed successfully: Amount=${onlineResult.amount}, Merchant=${onlineResult.merchant}, Category=${onlineResult.category}, Type=${onlineResult.type}, Account=${onlineResult.account_from}, Date=${onlineResult.date}`);
 
         // ONLINE-TO-OFFLINE LEARNING LOOP
-        if (onlineResult.merchant && onlineResult.category && window.MemoryEngine.addTokenToMemory) {
+        if (onlineResult.merchant && onlineResult.category && window.MemoryEngine && window.MemoryEngine.addTokenToMemory) {
           window.MemoryEngine.addTokenToMemory(onlineResult.merchant, onlineResult.category, 3.0);
           log(`Learned token offline: "${onlineResult.merchant}" -> "${onlineResult.category}"`);
         }
 
-        const inference = window.MemoryEngine.inferCategoryProbabilities(onlineResult.merchant || 'Γενικό Έξοδο', onlineResult.amount, systemState);
+        const inference = window.MemoryEngine ? window.MemoryEngine.inferCategoryProbabilities(onlineResult.merchant || 'Γενικό Έξοδο', onlineResult.amount, systemState) : {};
         // Force the predicted category from the AI, but keep habit UI flow
-        inference[onlineResult.category] = (inference[onlineResult.category] || 0) + 10;
+        if (onlineResult.category) {
+          inference[onlineResult.category] = (inference[onlineResult.category] || 0) + 10;
+        }
 
-        const decision = window.DecisionEngine.getDecisionPolicy(inference);
+        const decision = window.DecisionEngine ? window.DecisionEngine.getDecisionPolicy(inference) : { action: 'AUTO_ACCEPT', bestCategory: onlineResult.category };
         // Override best category with the one AI found
         decision.bestCategory = onlineResult.category || decision.bestCategory;
 
@@ -44,7 +49,15 @@ window.AIEngine = (function () {
         return {
           action: decision.action,
           intent: 'add_transaction',
-          entities: { amount: onlineResult.amount, merchant: onlineResult.merchant },
+          entities: {
+            amount: onlineResult.amount,
+            merchant: onlineResult.merchant,
+            type: onlineResult.type || 'expense',
+            category: onlineResult.category,
+            subcategory: onlineResult.subcategory || null,
+            account_from: onlineResult.account_from || null,
+            date: onlineResult.date || null
+          },
           decision
         };
       } else {

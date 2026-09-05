@@ -151,41 +151,12 @@ ${contextBlock}
   const promptText = `${SYSTEM_PROMPT}\n\nΕρώτηση χρήστη: "${question}"`;
 
   try {
-    let flashModelName = null;
+    const modelNames = [
+      "models/gemini-2.5-flash",
+      "models/gemini-1.5-flash",
+      "models/gemini-flash-latest"
+    ];
 
-    // Fetch available models dynamically using the API key
-    const modelsUrl = `https://generativelanguage.googleapis.com/v1beta/models?key=${env.GEMINI_API_KEY}`;
-    const mRes = await fetch(modelsUrl);
-    if (mRes.ok) {
-      const mData = await mRes.json();
-
-      // 1. Prefer gemini-flash-latest
-      let selectedModel = mData.models.find(m => m.name === "models/gemini-flash-latest" && m.supportedGenerationMethods.includes("generateContent"));
-      // 2. Then gemini-1.5-flash
-      if (!selectedModel) {
-        selectedModel = mData.models.find(m => m.name.includes("gemini-1.5-flash") && m.supportedGenerationMethods.includes("generateContent"));
-      }
-      // 3. Then gemini-2.0-flash
-      if (!selectedModel) {
-        selectedModel = mData.models.find(m => m.name.includes("gemini-2.0-flash") && !m.name.includes("lite") && m.supportedGenerationMethods.includes("generateContent"));
-      }
-      // 4. Then any flash model
-      if (!selectedModel) {
-        selectedModel = mData.models.find(m => m.name.includes("flash") && m.supportedGenerationMethods.includes("generateContent"));
-      }
-
-      if (selectedModel) {
-        flashModelName = selectedModel.name;
-      }
-    }
-
-    // Fallback to a hardcoded standard model if dynamic listing failed or returned nothing
-    if (!flashModelName) {
-      flashModelName = "models/gemini-1.5-flash";
-    }
-
-    // Try the discovered model first, then fall back to gemini-1.5-flash.
-    // The shared helper tries each model in order and returns the first success.
     const reqBody = {
       contents: [{ parts: [{ text: promptText }] }],
       generationConfig: {
@@ -194,9 +165,6 @@ ${contextBlock}
         maxOutputTokens: 512
       }
     };
-    const modelNames = flashModelName === "models/gemini-1.5-flash"
-      ? [flashModelName]
-      : [flashModelName, "models/gemini-1.5-flash"];
 
     const result = await generateWithGeminiFallback({ env, modelNames, reqBody });
 

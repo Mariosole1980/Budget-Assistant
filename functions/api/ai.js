@@ -236,7 +236,17 @@ ${statsStr}
    - Για αναζήτηση ή επεξεργασία συγκεκριμένων πρόσφατων κινήσεων, χρησιμοποίησε το 'allTransactions'.
 
 5. ΑΥΣΤΗΡΟΙ ΚΑΝΟΝΕΣ ΓΙΑ ACTIONS (transactionsToAdd, transactionsToUpdate, transactionsToDelete):
-   - "transactionsToAdd": ΠΡΕΠΕΙ ΝΑ ΕΙΝΑΙ ΑΔΕΙΟ [] ΕΚΤΟΣ ΑΝ Ο ΧΡΗΣΤΗΣ ΖΗΤΗΣΕ ΡΗΤΑ ΚΑΙ ΞΕΚΑΘΑΡΑ ΤΗΝ ΚΑΤΑΓΡΑΦΗ ΝΕΟΥ ΕΞΟΔΟΥ/ΕΣΟΔΟΥ (π.χ. "βάλε 15€ βενζίνη", "πρόσθεσε 50€ έξοδο"). Σε ερωτήσεις, στόχους, υπολογισμούς ή προβλέψεις παραμένει αυστηρά [].
+   - "transactionsToAdd": ΠΡΕΠΕΙ ΝΑ ΕΙΝΑΙ ΑΔΕΙΟ [] ΕΚΤΟΣ ΑΝ Ο ΧΡΗΣΤΗΣ ΖΗΤΗΣΕ ΡΗΤΑ ΚΑΙ ΞΕΚΑΘΑΡΑ ΤΗΝ ΚΑΤΑΓΡΑΦΗ ΝΕΟΥ ΕΞΟΔΟΥ/ΕΣΟΔΟΥ (π.χ. "βάλε 15€ βενζίνη", "πλήρωσα 50€", "μπήκε ο μισθός 1200€ στην Alpha", "πήρα 50€ επιστροφή μετρητά"). Σε ερωτήσεις, στόχους, υπολογισμούς ή προβλέψεις παραμένει αυστηρά [].
+     Όταν περιέχει συναλλαγή, κάθε αντικείμενο πρέπει να έχει τα εξής πεδία:
+     {
+       "amount": 50.0,
+       "note": "περιγραφή / έμπορος",
+       "type": "expense" | "income" (αν αναφέρεται μισθός, είσπραξη, κέρδος, επιστροφή, κατάθεση, πήρα, μπήκε τότε "income", αλλιώς "expense"),
+       "category": "όνομα κατηγορίας από τις διαθέσιμες ή κατάλληλη κατηγορία",
+       "subcategory": "όνομα υποκατηγορίας αν ταιριάζει ή null",
+       "account_from": "όνομα λογαριασμού αν αναφέρθηκε (π.χ. Alpha Bank, Revolut, Μετρητά) ή null",
+       "date": "ISO ημερομηνία YYYY-MM-DD αν αναφέρθηκε σχετική ημερομηνία όπως χθες, προχθές, αλλιώς null"
+     }
    - "transactionsToUpdate": Συμπληρώνεται μόνο αν ο χρήστης ζήτησε ρητά να αλλάξει/διορθώσει υπάρχουσα συναλλαγή (περιέχει το "id" από το allTransactions και τις αλλαγές).
    - "transactionsToDelete": Συμπληρώνεται μόνο αν ο χρήστης ζήτησε ρητά διαγραφή υπάρχουσας συναλλαγής.
 
@@ -249,9 +259,16 @@ ${statsStr}
      * Αν το ποσό υπερβαίνει το discretionaryPool ή ρίχνει το ημερήσιο κάτω από 10€, πρότεινε πληρωμή με 3-6 δόσεις (π.χ. 'με 3 άτοκες δόσεις των Χ€, το ημερήσιο όριο παραμένει ασφαλές').
    - Στις ερωτήσεις what-if το 'transactionsToAdd' ΠΡΕΠΕΙ ΝΑ ΕΙΝΑΙ ΑΥΣΤΗΡΑ [].
 
+7. ΔΙΑΔΡΑΣΤΙΚΑ ΚΟΥΜΠΙΑ ΕΝΕΡΓΕΙΩΝ (QUICK ACTION BUTTONS) ΣΤΟ RESPONSE_HTML:
+   Μην περιορίζεσαι μόνο σε στατικό κείμενο. Όπου η απάντησή σου αναφέρεται σε συγκεκριμένη κατηγορία, όριο, αναφορά ή πάγιες εντολές, συμπερίλαβε διακριτικά, χρήσιμα διαδραστικά κουμπιά ενεργειών:
+   - Για προβολή κινήσεων κατηγορίας: <button type="button" class="coach-action-btn" onclick="coachFilterCategory('ΟΝΟΜΑ_ΚΑΤΗΓΟΡΙΑΣ')">🔍 Προβολή ΟΝΟΜΑ_ΚΑΤΗΓΟΡΙΑΣ</button>
+   - Για ρύθμιση ή έλεγχο ορίου/προϋπολογισμού: <button type="button" class="coach-action-btn" onclick="coachOpenBudgets()">⚙️ Ρύθμιση Ορίου</button>
+   - Για άνοιγμα μηνιαίας αναφοράς: <button type="button" class="coach-action-btn" onclick="coachOpenReports()">📊 Άνοιγμα Αναφοράς</button>
+   - Για προβολή επαναλαμβανόμενων πάγιων: <button type="button" class="coach-action-btn" onclick="coachOpenRecurring()">⚡ Προβολή Πάγιων</button>
+
 Η απάντησή σου ΠΡΕΠΕΙ να είναι ΑΥΣΤΗΡΑ ένα έγκυρο JSON object (χωρίς markdown backticks, χωρίς έξτρα κείμενο) με τα εξής πεδία:
 {
-  "responseHtml": "Η απάντησή σου σε μορφή HTML/markdown (χρησιμοποίησε <strong> για έντονα γράμματα, <br> για αλλαγή γραμμής, • για bullet points).",
+  "responseHtml": "Η απάντησή σου σε μορφή HTML/markdown (χρησιμοποίησε <strong> για έντονα γράμματα, <br> για αλλαγή γραμμής, • για bullet points και <button class='coach-action-btn' ...> για γρήγορες ενέργειες).",
   "classifiedIntent": "Η πρόθεση της ερώτησης: 'milestone', 'savings_advice', 'forecast', 'category_spending', 'budget_status', 'what_if', 'search_query', 'add_transaction', 'update_transaction', 'delete_transaction', 'unknown'.",
   "alternativePhrasings": ["3 διαφορετικοί εναλλακτικοί τρόποι (στα Ελληνικά) για να ρωτήσει κανείς το ίδιο πράγμα."],
   "extractedEntities": [
@@ -265,25 +282,43 @@ ${statsStr}
 Ερώτηση χρήστη: "${queryText}"`;
   } else {
     const categoriesStr = body.categoriesStr || '';
-    const SYSTEM_PROMPT = `Είσαι ένας οικονομικός βοηθός (Expense Tracker AI). 
-Ο χρήστης θα σου δώσει μια πρόταση (συνήθως στα Ελληνικά) σχετικά με κάποιο έξοδο.
-Η δουλειά σου είναι να εξάγεις το ποσό (amount), την τοποθεσία/έμπορο (merchant) και την κατηγορία (category).
+    const accountsStr = body.accountsStr || '';
+    const subcategoriesStr = body.subcategoriesStr || '';
+    const currentDate = body.currentDate || new Date().toISOString().split('T')[0];
 
-ΚΑΝΟΝΕΣ:
-1. Το "amount" πρέπει να είναι νούμερο (float). Αν δεν υπάρχει, βάλε null.
-2. Το "merchant" πρέπει να είναι ένα μικρό string (π.χ. "Σκλαβενίτης", "ΔΕΗ"). Αν δεν αναφέρεται, βάλε null.
-3. Το "category" ΠΡΕΠΕΙ ΟΠΩΣΔΗΠΟΤΕ να είναι μία από τις διαθέσιμες κατηγορίες που θα σου δοθούν. Αν δεν ταιριάζει καμία, διάλεξε την πιο κοντινή ή "Γενικά Έξοδα".
-4. Η απάντησή σου ΠΡΕΠΕΙ να είναι ΑΥΣΤΗΡΑ ένα έγκυρο JSON object, χωρίς markdown, χωρίς backticks, χωρίς έξτρα κείμενο. Παράδειγμα: {"amount": 50, "merchant": "Σκλαβενίτης", "category": "ΤΡΟΦΙΜΑ"}
+    const SYSTEM_PROMPT = `Είσαι ένας έξυπνος οικονομικός βοηθός (Expense & Income Tracker AI). 
+Ο χρήστης θα σου δώσει μια πρόταση (συνήθως στα Ελληνικά ή Αγγλικά) σχετικά με κάποια συναλλαγή (έξοδο ή έσοδο).
+Η δουλειά σου είναι να εξάγεις με ακρίβεια όλα τα στοιχεία της συναλλαγής.
+
+ΣΤΟΙΧΕΙΑ ΠΡΟΣ ΕΞΑΓΩΓΗ:
+1. "amount": Αριθμός (float). Αν δεν υπάρχει, βάλε null. Στα Ελληνικά η τελεία '.' είναι διαχωριστικό χιλιάδων και το κόμμα ',' υποδιαστολή (π.χ. 50.000 = 50000, 15,50 = 15.50).
+2. "merchant": Μικρό string περιγραφής ή εμπόρου (π.χ. "Σκλαβενίτης", "ΔΕΗ", "Μισθοδοσία", "Βενζίνη"). Αν δεν αναφέρεται, βάλε null.
+3. "type": "income" (αν αναφέρεται έσοδο, μισθός, είσπραξη, κέρδος, επιστροφή χρημάτων, κατάθεση, πήρα, μπήκε, salary, earned) ή "expense" (αν αναφέρεται έξοδο, πληρωμή, αγορά, χρέωση, έδωσα, πλήρωσα, χάλασα, spent, paid). Προεπιλογή: "expense".
+4. "category": ΠΡΕΠΕΙ να ταιριάζει με μία από τις διαθέσιμες κατηγορίες. Αν καμία δεν ταιριάζει απόλυτα, διάλεξε την πιο κοντινή.
+5. "subcategory": Αν αναφέρεται συγκεκριμένη υποκατηγορία από τις διαθέσιμες, επίλεξέ την, αλλιώς null.
+6. "account_from": Αν αναφέρεται συγκεκριμένος λογαριασμός ή μέθοδος (π.χ. "Alpha Bank", "Revolut", "Μετρητά", "Πειραιώς", "Eurobank", "Cash", "Card") από τους διαθέσιμους, επίλεξέ τον, αλλιώς null.
+7. "date": Αν αναφέρεται σχετική ημερομηνία (π.χ. "χθες", "προχθές", "την Τρίτη", "yesterday"), υπολόγισε τη συγκεκριμένη ημερομηνία σε μορφή YYYY-MM-DD με βάση το σημερινό currentDate (${currentDate}), αλλιώς null.
+
+Η απάντησή σου ΠΡΕΠΕΙ να είναι ΑΥΣΤΗΡΑ ένα έγκυρο JSON object, χωρίς markdown, χωρίς backticks, χωρίς έξτρα κείμενο:
+{
+  "amount": 50.0,
+  "merchant": "Σκλαβενίτης",
+  "type": "expense",
+  "category": "🛒 ΔΙΑΤΡΟΦΗ",
+  "subcategory": "Σούπερ Μάρκετ",
+  "account_from": "Alpha Bank",
+  "date": "2026-09-04"
+}
 `;
-    prompt = `${SYSTEM_PROMPT}\nΔιαθέσιμες κατηγορίες: ${categoriesStr}\n\nΠρόταση χρήστη: "${queryText}"`;
+    prompt = `${SYSTEM_PROMPT}\nΔιαθέσιμες κατηγορίες: ${categoriesStr}\nΔιαθέσιμοι λογαριασμοί: ${accountsStr}\nΔιαθέσιμες υποκατηγορίες: ${subcategoriesStr}\nΣημερινή ημερομηνία: ${currentDate}\n\nΠρόταση χρήστη: "${queryText}"`;
   }
 
   try {
     const modelsToTry = [
-      'models/gemini-flash-lite-latest',
-      'models/gemini-3.1-flash-lite',
       'models/gemini-2.5-flash',
-      'models/gemini-3.5-flash'
+      'models/gemini-flash-lite-latest',
+      'models/gemini-1.5-flash',
+      'models/gemini-flash-latest'
     ];
     // Build request body dynamically
     const reqBody = {

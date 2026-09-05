@@ -8433,6 +8433,46 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
   color: #ffffff;
 }
 
+/* AI Coach Quick Action Buttons */
+.coach-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 6px 4px 0;
+  padding: 6px 13px;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  border-radius: 20px;
+  color: #38bdf8;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  text-decoration: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  vertical-align: middle;
+}
+
+.coach-action-btn:hover {
+  background: rgba(56, 189, 248, 0.22);
+  border-color: rgba(56, 189, 248, 0.6);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(56, 189, 248, 0.25);
+  color: #e0f2fe;
+}
+
+.coach-action-btn:active {
+  transform: translateY(1px) scale(0.97);
+  background: rgba(56, 189, 248, 0.3);
+}
+
+.coach-action-btn i {
+  font-size: 11px;
+}
+
 /* Typing Indicator Animation */
 .chat-typing-indicator {
   display: flex;
