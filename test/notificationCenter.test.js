@@ -38,6 +38,8 @@ test('NotificationCenter exports expected functions', () => {
   assert.strictEqual(typeof NotificationCenter.renderNotificationList, 'function');
   assert.strictEqual(typeof NotificationCenter.clearNotifications, 'function');
   assert.strictEqual(typeof NotificationCenter.handleNotificationAction, 'function');
+  assert.strictEqual(typeof NotificationCenter.initLocalNotifications, 'function');
+  assert.strictEqual(typeof global.window.initLocalNotifications, 'function');
 });
 
 test('uuidToNotificationId generates numeric hash', () => {

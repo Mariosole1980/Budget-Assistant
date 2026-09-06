@@ -1509,16 +1509,36 @@ async function initApp() {
     _initAutoLock();
   }
   initMultiCurrency();
-  loadNotifications();
-  initLocalNotifications();
+  if (typeof loadNotifications === 'function') {
+    loadNotifications();
+  } else if (typeof window !== 'undefined' && typeof window.loadNotifications === 'function') {
+    window.loadNotifications();
+  }
+  if (typeof initLocalNotifications === 'function') {
+    initLocalNotifications();
+  } else if (typeof window !== 'undefined' && typeof window.initLocalNotifications === 'function') {
+    window.initLocalNotifications();
+  }
   initSupabase();
   setupEventListeners();
-  initPullToRefresh();
-  initSwipeToBack();
+  if (typeof initPullToRefresh === 'function') {
+    initPullToRefresh();
+  } else if (typeof window !== 'undefined' && typeof window.initPullToRefresh === 'function') {
+    window.initPullToRefresh();
+  }
+  if (typeof initSwipeToBack === 'function') {
+    initSwipeToBack();
+  } else if (typeof window !== 'undefined' && typeof window.initSwipeToBack === 'function') {
+    window.initSwipeToBack();
+  }
   initTabSwipeNavigation();
   resetAllTabScreenStyles();
   initRippleEffects();
-  initLightboxPinchZoom();
+  if (typeof initLightboxPinchZoom === 'function') {
+    initLightboxPinchZoom();
+  } else if (typeof window !== 'undefined' && typeof window.initLightboxPinchZoom === 'function') {
+    window.initLightboxPinchZoom();
+  }
 
   // ALWAYS load cached local data immediately so the UI is never blank on refresh.
   // If Supabase is enabled, onAuthStateChange will call loadData() again with fresh cloud data.

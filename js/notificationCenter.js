@@ -776,6 +776,14 @@ window.clearNotifications = clearNotifications;
     window.clearNotifications = clearNotifications;
     window.handleNotificationAction = handleNotificationAction;
     window.handleIncomingLocalNotification = handleIncomingLocalNotification;
+    window.initLocalNotifications = initLocalNotifications;
+    window.initPushNotifications = initPushNotifications;
+    window.scheduleNoteReminder = scheduleNoteReminder;
+    window.cancelNoteReminder = cancelNoteReminder;
+    window.rescheduleAllNoteReminders = rescheduleAllNoteReminders;
+    window.persistPendingNoteReminders = persistPendingNoteReminders;
+    window.sendPartnerPushNotification = sendPartnerPushNotification;
+    window.syncFcmTokenToProfile = syncFcmTokenToProfile;
     if (typeof scheduleDailyReminder === 'function') {
       window.scheduleDailyReminder = scheduleDailyReminder;
     }
@@ -795,6 +803,14 @@ window.clearNotifications = clearNotifications;
     clearNotifications: clearNotifications,
     handleNotificationAction: handleNotificationAction,
     handleIncomingLocalNotification: handleIncomingLocalNotification,
+    initLocalNotifications: initLocalNotifications,
+    initPushNotifications: initPushNotifications,
+    scheduleNoteReminder: scheduleNoteReminder,
+    cancelNoteReminder: cancelNoteReminder,
+    rescheduleAllNoteReminders: rescheduleAllNoteReminders,
+    persistPendingNoteReminders: persistPendingNoteReminders,
+    sendPartnerPushNotification: sendPartnerPushNotification,
+    syncFcmTokenToProfile: syncFcmTokenToProfile,
     scheduleDailyReminder: typeof scheduleDailyReminder === 'function' ? scheduleDailyReminder : undefined,
     dispatchPartnerTransactionPush: typeof dispatchPartnerTransactionPush === 'function' ? dispatchPartnerTransactionPush : undefined
   };

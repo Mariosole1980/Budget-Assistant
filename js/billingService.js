@@ -752,9 +752,8 @@ async function reconcilePremiumPurchase() {
     window.startPremiumPurchase = startPremiumPurchase;
     window.startGooglePayPurchase = startGooglePayPurchase;
     window.restorePremiumPurchase = restorePremiumPurchase;
-    if (typeof reconcileCloudPremiumStatus === 'function') {
-      window.reconcileCloudPremiumStatus = reconcileCloudPremiumStatus;
-    }
+    window.reconcilePremiumPurchase = reconcilePremiumPurchase;
+    window.reconcileCloudPremiumStatus = reconcilePremiumPurchase;
   }
 
   return {
@@ -763,6 +762,7 @@ async function reconcilePremiumPurchase() {
     startPremiumPurchase: startPremiumPurchase,
     startGooglePayPurchase: startGooglePayPurchase,
     restorePremiumPurchase: restorePremiumPurchase,
-    reconcileCloudPremiumStatus: typeof reconcileCloudPremiumStatus === 'function' ? reconcileCloudPremiumStatus : undefined
+    reconcilePremiumPurchase: reconcilePremiumPurchase,
+    reconcileCloudPremiumStatus: reconcilePremiumPurchase
   };
 }));
