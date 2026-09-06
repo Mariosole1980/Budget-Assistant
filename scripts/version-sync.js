@@ -67,6 +67,15 @@ if (fs.existsSync(translationsPath)) {
   console.log('  [OK] js/translations.js updated');
 }
 
+// 4c. Sync js/userGuide.js
+const userGuidePath = path.join(rootDir, 'js', 'userGuide.js');
+if (fs.existsSync(userGuidePath)) {
+  let userGuideContent = fs.readFileSync(userGuidePath, 'utf8');
+  userGuideContent = userGuideContent.replace(/build v\d+/g, `build v${version}`);
+  fs.writeFileSync(userGuidePath, userGuideContent);
+  console.log('  [OK] js/userGuide.js updated');
+}
+
 // 5. Sync android/app/build.gradle
 const gradlePath = path.join(rootDir, 'android', 'app', 'build.gradle');
 if (fs.existsSync(gradlePath)) {

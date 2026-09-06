@@ -89,6 +89,7 @@ const CRITICAL_JS = [
     'js/transactionMerge.js',
     'js/SafeToSpendEngine.js',
     'js/SubscriptionEngine.js',
+    'js/userGuide.js',
     // Build/release scripts (including this file itself)
     'scripts/generate-android-icons.js',
     'scripts/generate-app-icon-variants.js',
