@@ -25,24 +25,28 @@ const fs = require('fs');
 // ---------------------------------------------------------------------------
 
 const appJs = fs.readFileSync(__dirname + '/../app.js', 'utf8');
+const selectionJs = fs.existsSync(__dirname + '/../js/selectionService.js')
+  ? fs.readFileSync(__dirname + '/../js/selectionService.js', 'utf8')
+  : '';
+const combinedSrc = appJs + '\n' + selectionJs;
 
 // Extract a top-level function by name (handles `async function X(`).
 function extractFn(name) {
   let start = -1;
   for (const prefix of ['async function ' + name + '(', 'function ' + name + '(']) {
-    start = appJs.indexOf(prefix);
+    start = combinedSrc.indexOf(prefix);
     if (start !== -1) break;
   }
-  if (start === -1) throw new Error('function ' + name + ' not found in app.js');
+  if (start === -1) throw new Error('function ' + name + ' not found in app.js or selectionService.js');
 
-  const braceStart = appJs.indexOf('{', start);
+  const braceStart = combinedSrc.indexOf('{', start);
   let depth = 0;
   let i = braceStart;
-  for (; i < appJs.length; i++) {
-    if (appJs[i] === '{') depth++;
-    else if (appJs[i] === '}') { depth--; if (depth === 0) break; }
+  for (; i < combinedSrc.length; i++) {
+    if (combinedSrc[i] === '{') depth++;
+    else if (combinedSrc[i] === '}') { depth--; if (depth === 0) break; }
   }
-  return appJs.slice(start, i + 1);
+  return combinedSrc.slice(start, i + 1);
 }
 
 // ---- Global mocks ---------------------------------------------------------
