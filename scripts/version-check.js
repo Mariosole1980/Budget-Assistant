@@ -50,14 +50,22 @@ const appTxt = fs.readFileSync(appPath, 'utf8');
 if (!appTxt.includes(`(build v' + (build != null ? build : '?') + ')'`)) {
   errors.push(`app.js: dynamic app_version build label template missing (expected getActiveBuildLabel fallback)`);
 }
+
+// 3b. Check js/userGuide.js
 // NOTE: The Greek guide title/version strings are now DYNAMIC (read CURRENT_BUILD
 // at runtime via template literals), so they self-sync. Verify the dynamic pattern
 // exists rather than a static version, to avoid false failures.
-if (!appTxt.includes(`1. Έκδοση & Τι Νέο Υπάρχει (v\${typeof CURRENT_BUILD`)) {
-  errors.push(`app.js: Greek guide title is not dynamic (expected CURRENT_BUILD template)`);
-}
-if (!appTxt.includes(`<strong>Τρέχουσα Έκδοση Εφαρμογής:</strong> v\${typeof CURRENT_BUILD`)) {
-  errors.push(`app.js: Greek guide version string is not dynamic (expected CURRENT_BUILD template)`);
+const userGuidePath = path.join(rootDir, 'js', 'userGuide.js');
+if (fs.existsSync(userGuidePath)) {
+  const userGuideTxt = fs.readFileSync(userGuidePath, 'utf8');
+  if (!userGuideTxt.includes(`1. Έκδοση & Τι Νέο Υπάρχει (v\${typeof CURRENT_BUILD`)) {
+    errors.push(`js/userGuide.js: Greek guide title is not dynamic (expected CURRENT_BUILD template)`);
+  }
+  if (!userGuideTxt.includes(`<strong>Τρέχουσα Έκδοση Εφαρμογής:</strong> v\${typeof CURRENT_BUILD`)) {
+    errors.push(`js/userGuide.js: Greek guide version string is not dynamic (expected CURRENT_BUILD template)`);
+  }
+} else {
+  errors.push(`js/userGuide.js missing`);
 }
 
 // 4. Check Root vs www parity

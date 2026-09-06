@@ -47,13 +47,6 @@ const appPath = path.join(rootDir, 'app.js');
 let appContent = fs.readFileSync(appPath, 'utf8');
 
 appContent = appContent.replace(/build v\d+/g, `build v${version}`);
-// NOTE: The Greek guide title/version strings are now DYNAMIC (read CURRENT_BUILD
-// at runtime via template literals), so they self-sync and need no static replace.
-// Only the English guide strings remain static and require sync below.
-appContent = appContent.replace(/title: '1\. Version & What\\'s New \(v\d+\)'/g, `title: '1. Version & What\\'s New (v${version})'`);
-appContent = appContent.replace(/<strong>Guide Version:<\/strong> v\d+/g, `<strong>Guide Version:</strong> v${version}`);
-appContent = appContent.replace(/<strong>Synchronized App Version:<\/strong> v\d+/g, `<strong>Synchronized App Version:</strong> v${version}`);
-
 fs.writeFileSync(appPath, appContent);
 console.log('  [OK] app.js updated');
 
@@ -72,6 +65,12 @@ const userGuidePath = path.join(rootDir, 'js', 'userGuide.js');
 if (fs.existsSync(userGuidePath)) {
   let userGuideContent = fs.readFileSync(userGuidePath, 'utf8');
   userGuideContent = userGuideContent.replace(/build v\d+/g, `build v${version}`);
+  // NOTE: The Greek guide title/version strings are now DYNAMIC (read CURRENT_BUILD
+  // at runtime via template literals), so they self-sync and need no static replace.
+  // Only the English guide strings remain static and require sync below.
+  userGuideContent = userGuideContent.replace(/title: '1\. Version & What\\'s New \(v\d+\)'/g, `title: '1. Version & What\\'s New (v${version})'`);
+  userGuideContent = userGuideContent.replace(/<strong>Guide Version:<\/strong> v\d+/g, `<strong>Guide Version:</strong> v${version}`);
+  userGuideContent = userGuideContent.replace(/<strong>Synchronized App Version:<\/strong> v\d+/g, `<strong>Synchronized App Version:</strong> v${version}`);
   fs.writeFileSync(userGuidePath, userGuideContent);
   console.log('  [OK] js/userGuide.js updated');
 }
