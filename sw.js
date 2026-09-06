@@ -41,6 +41,7 @@ const ASSETS = [
   'js/notesService.js',
   'js/notificationHub.js',
   'js/monthGridPicker.js',
+  'js/aiCoachService.js',
   'js/fontawesome.min.css',
   'js/webfonts/fa-solid-900.woff2',
   'js/webfonts/fa-solid-900.ttf',
