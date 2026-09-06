@@ -5,8 +5,10 @@ const fs = require('fs');
 // Load constants and utils
 const BAConstants = require('../js/constants.js');
 const BAUtils = require('../js/utils.js');
+const dialogService = require('../js/dialogService.js');
 Object.assign(global, BAConstants);
 Object.assign(global, BAUtils);
+Object.assign(global, dialogService);
 global.BAConstants = BAConstants;
 global.BAUtils = BAUtils;
 
@@ -88,8 +90,6 @@ eval(extractFn('deleteSubcategoryGlobally'));
 eval(extractFn('undoLastSubcategoryDelete'));
 eval(extractFn('addSubcategoryToCategory'));
 eval(extractFn('renameSubcategoryGlobally'));
-eval(extractFn('ensureCustomDialogModal'));
-eval(extractFn('showCustomDialog'));
 
 test('getSortedSubcategoriesForCategory merges default subcategories from DEFAULT_SUBCATEGORIES_MAP', () => {
   global.state = {

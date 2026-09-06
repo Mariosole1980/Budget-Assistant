@@ -35,6 +35,7 @@ const ASSETS = [
   'js/userGuide.js',
   'js/exportService.js',
   'js/timePicker.js',
+  'js/dialogService.js',
   'js/fontawesome.min.css',
   'js/webfonts/fa-solid-900.woff2',
   'js/webfonts/fa-solid-900.ttf',
