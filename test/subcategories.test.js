@@ -13,7 +13,10 @@ global.BAConstants = BAConstants;
 global.BAUtils = BAUtils;
 
 const catMgrPath = __dirname + '/../js/categoryManager.js';
-const appJs = fs.readFileSync(__dirname + '/../app.js', 'utf8') + (fs.existsSync(catMgrPath) ? ('\n' + fs.readFileSync(catMgrPath, 'utf8')) : '');
+const subcatMgrPath = __dirname + '/../js/subcategoryManager.js';
+const appJs = fs.readFileSync(__dirname + '/../app.js', 'utf8') + 
+  (fs.existsSync(catMgrPath) ? ('\n' + fs.readFileSync(catMgrPath, 'utf8')) : '') +
+  (fs.existsSync(subcatMgrPath) ? ('\n' + fs.readFileSync(subcatMgrPath, 'utf8')) : '');
 
 function extractFn(name) {
   let start = -1;

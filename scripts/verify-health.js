@@ -116,6 +116,10 @@ const CRITICAL_JS = [
     'js/adminDashboardService.js',
     'js/selectionService.js',
     'js/customDatePicker.js',
+    'js/subcategoryManager.js',
+    'js/receiptService.js',
+    'js/dropdownFilterService.js',
+    'js/settingsSubscreenManager.js',
     // Build/release scripts (including this file itself)
     'scripts/generate-android-icons.js',
     'scripts/generate-app-icon-variants.js',

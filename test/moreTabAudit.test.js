@@ -20,7 +20,10 @@ const path = require('node:path');
 
 const APP_JS = path.join(__dirname, '..', 'app.js');
 const TRASH_JS = path.join(__dirname, '..', 'js', 'trashBinService.js');
-const appSrc = fs.readFileSync(APP_JS, 'utf8') + (fs.existsSync(TRASH_JS) ? ('\n' + fs.readFileSync(TRASH_JS, 'utf8')) : '');
+const SETTINGS_SUBSCREEN_JS = path.join(__dirname, '..', 'js', 'settingsSubscreenManager.js');
+const appSrc = fs.readFileSync(APP_JS, 'utf8') +
+    (fs.existsSync(TRASH_JS) ? ('\n' + fs.readFileSync(TRASH_JS, 'utf8')) : '') +
+    (fs.existsSync(SETTINGS_SUBSCREEN_JS) ? ('\n' + fs.readFileSync(SETTINGS_SUBSCREEN_JS, 'utf8')) : '');
 
 // ---------------------------------------------------------------------------
 // #1 — hardcoded € replaced with getCurrencySymbol() + formatDisplayAmount()
