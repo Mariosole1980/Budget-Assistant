@@ -39,6 +39,7 @@ const ASSETS = [
   'js/searchFilterService.js',
   'js/autocompleteService.js',
   'js/notesService.js',
+  'js/notificationHub.js',
   'js/fontawesome.min.css',
   'js/webfonts/fa-solid-900.woff2',
   'js/webfonts/fa-solid-900.ttf',

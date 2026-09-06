@@ -117,6 +117,7 @@ const releaseFiles = [
     'js/searchFilterService.js',
     'js/autocompleteService.js',
     'js/notesService.js',
+    'js/notificationHub.js',
     'android/app/build.gradle',
     'android/build.gradle',
     'android/variables.gradle',
