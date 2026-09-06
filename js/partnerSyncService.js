@@ -1375,6 +1375,11 @@ function selectInviteRole(role) {
   window.promptRenameFamilyGroup = promptRenameFamilyGroup;
   window.toggleMemberMenu = toggleMemberMenu;
   window.selectInviteRole = selectInviteRole;
+  window.getMemberBadgeHTML = getMemberBadgeHTML;
+  window.getMemberInitials = getMemberInitials;
+  window.getMemberColorGradient = getMemberColorGradient;
+  window.getMemberPresence = getMemberPresence;
+  window.getFamilyLastActivity = getFamilyLastActivity;
 
   return {
     renderPartnerSection: renderPartnerSection,
@@ -1394,6 +1399,11 @@ function selectInviteRole(role) {
     submitRenameFamily: submitRenameFamily,
     promptRenameFamilyGroup: promptRenameFamilyGroup,
     toggleMemberMenu: toggleMemberMenu,
-    selectInviteRole: selectInviteRole
+    selectInviteRole: selectInviteRole,
+    getMemberBadgeHTML: getMemberBadgeHTML,
+    getMemberInitials: getMemberInitials,
+    getMemberColorGradient: getMemberColorGradient,
+    getMemberPresence: getMemberPresence,
+    getFamilyLastActivity: getFamilyLastActivity
   };
 }));

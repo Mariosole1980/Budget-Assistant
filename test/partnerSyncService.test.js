@@ -83,3 +83,36 @@ test('PartnerSyncService.renderFamilyFeatures produces feature cards', () => {
   assert.ok(typeof html === 'string');
   assert.ok(html.length > 50);
 });
+
+test('PartnerSyncService exports getMemberBadgeHTML and partner utilities', () => {
+  assert.strictEqual(typeof PartnerSyncService.getMemberBadgeHTML, 'function');
+  assert.strictEqual(typeof PartnerSyncService.getMemberInitials, 'function');
+  assert.strictEqual(typeof PartnerSyncService.getMemberColorGradient, 'function');
+  assert.strictEqual(typeof global.getMemberBadgeHTML, 'function');
+});
+
+test('getMemberBadgeHTML handles various transaction ownership scenarios', () => {
+  // Scenario 1: No family profile, no partner -> empty string
+  global.state.userProfile = {};
+  global.state.familyProfiles = [];
+  global.state.partnerProfile = null;
+  assert.strictEqual(PartnerSyncService.getMemberBadgeHTML({ id: 'tx-1' }), '');
+
+  // Scenario 2: Family active, personal transaction (t.user_id set, but not t.family_id)
+  global.state.userProfile = { family_id: 'fam-1' };
+  const personalBadge = PartnerSyncService.getMemberBadgeHTML({ id: 'tx-2', user_id: 'u1' });
+  assert.ok(personalBadge.includes('trans-personal-badge'));
+
+  // Scenario 3: Family active, shared transaction with known creator
+  global.state.familyProfiles = [{ id: 'u2', display_name: 'Maria K', email: 'maria@example.com' }];
+  const memberBadge = PartnerSyncService.getMemberBadgeHTML({ id: 'tx-3', user_id: 'u2', family_id: 'fam-1' });
+  assert.ok(memberBadge.includes('trans-member-badge'));
+  assert.ok(memberBadge.includes('MK'));
+
+  // Scenario 4: Direct partner entry
+  global.state.userProfile = {};
+  global.state.familyProfiles = [];
+  global.state.partnerProfile = { id: 'partner-99' };
+  const partnerBadge = PartnerSyncService.getMemberBadgeHTML({ id: 'tx-4', user_id: 'partner-99' });
+  assert.ok(partnerBadge.includes('partner-badge-icon'));
+});

@@ -1832,7 +1832,11 @@ function renderGroupedTransactions(transactions, container) {
           : (translatedSub && translatedSub.trim()) ? translatedSub.trim()
             : (translatedCat || '');
 
-      const memberBadge = getMemberBadgeHTML(t);
+      const memberBadge = (typeof getMemberBadgeHTML === 'function')
+        ? getMemberBadgeHTML(t)
+        : (typeof PartnerSyncService !== 'undefined' && typeof PartnerSyncService.getMemberBadgeHTML === 'function')
+          ? PartnerSyncService.getMemberBadgeHTML(t)
+          : '';
       const datePart = (t.date || '').split('T')[0];
 
       const catSubLine = t.subcategory

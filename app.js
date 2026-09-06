@@ -5777,7 +5777,11 @@ function renderTransactionsTab(containerOverride, yearOverride, monthOverride) {
           : (translatedSub && translatedSub.trim()) ? translatedSub.trim()
             : (translatedCat || '');
 
-      const memberBadge = getMemberBadgeHTML(t);
+      const memberBadge = (typeof getMemberBadgeHTML === 'function')
+        ? getMemberBadgeHTML(t)
+        : (typeof PartnerSyncService !== 'undefined' && typeof PartnerSyncService.getMemberBadgeHTML === 'function')
+          ? PartnerSyncService.getMemberBadgeHTML(t)
+          : '';
 
       const catBadgeHtml = (typeof renderCategoryIconHtml === 'function')
         ? renderCategoryIconHtml(t.category, { size: 'sm', transType: t.type })
@@ -9749,6 +9753,10 @@ function initTabSwipeNavigation() {
     const activeModals = document.querySelectorAll('.modal-overlay.active, .tx-modal-overlay.active');
     const searchOverlay = document.getElementById('search-overlay');
     const isSearchActive = searchOverlay && searchOverlay.classList.contains('active');
+    if (state.isSwipingMonth && (Date.now() - (state.lastSwipeTime || 0) > 350)) {
+      state.isSwipingMonth = false;
+      document.body.classList.remove('is-swiping-month');
+    }
     if (activeModals.length > 0 || isSearchActive || state.selectionMode || state.isSwipingMonth) {
       touchActive = false;
       return;
@@ -9868,18 +9876,33 @@ function animateSwipeTransition(direction, callback) {
   state.isSwipingMonth = true;
   document.body.classList.add('is-swiping-month');
 
+  const cleanup = () => {
+    state.isSwipingMonth = false;
+    state.touchDidMove = false;
+    state.lastSwipeTime = Date.now();
+    document.body.classList.remove('is-swiping-month');
+  };
+
+  // Safety watchdog: ensure swipe lock is always cleared within 300ms even if an error occurs
+  const watchdogTimer = setTimeout(cleanup, 300);
+
   // Immediately execute the state change & render (0ms pre-delay)
-  callback();
+  try {
+    callback();
+  } catch (err) {
+    console.error('[animateSwipeTransition] callback failed:', err);
+    clearTimeout(watchdogTimer);
+    cleanup();
+    return;
+  }
 
   const currentListEl = state.activeTab === 'trans'
     ? document.getElementById('transactions-list')
     : document.getElementById('stats-breakdown-list');
 
   if (!currentListEl) {
-    state.isSwipingMonth = false;
-    state.touchDidMove = false;
-    state.lastSwipeTime = Date.now();
-    document.body.classList.remove('is-swiping-month');
+    clearTimeout(watchdogTimer);
+    cleanup();
     return;
   }
 
@@ -9897,14 +9920,12 @@ function animateSwipeTransition(direction, callback) {
     currentListEl.style.opacity = '1';
 
     setTimeout(() => {
+      clearTimeout(watchdogTimer);
       currentListEl.style.transition = '';
       currentListEl.style.transform = '';
       currentListEl.style.opacity = '';
 
-      state.isSwipingMonth = false;
-      state.touchDidMove = false;
-      state.lastSwipeTime = Date.now();
-      document.body.classList.remove('is-swiping-month');
+      cleanup();
 
       if (state.activeTab === 'stats') {
         renderStatsTab(false);
@@ -19485,6 +19506,15 @@ function recordSettlementTransaction() {
 
 window.openSettleUpModal = openSettleUpModal;
 window.recordSettlementTransaction = recordSettlementTransaction;
+
+if (typeof window.getMemberBadgeHTML !== 'function') {
+  window.getMemberBadgeHTML = function(t) {
+    if (typeof PartnerSyncService !== 'undefined' && typeof PartnerSyncService.getMemberBadgeHTML === 'function') {
+      return PartnerSyncService.getMemberBadgeHTML(t);
+    }
+    return '';
+  };
+}
 
 
 // =============================================================================

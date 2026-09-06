@@ -1231,7 +1231,11 @@ function renderSubcategoryTransactions(category, subcategory) {
         : (translatedSub && translatedSub.trim()) ? translatedSub.trim()
           : (translatedCat || '');
 
-    const memberBadge = getMemberBadgeHTML(t);
+    const memberBadge = (typeof getMemberBadgeHTML === 'function')
+      ? getMemberBadgeHTML(t)
+      : (typeof PartnerSyncService !== 'undefined' && typeof PartnerSyncService.getMemberBadgeHTML === 'function')
+        ? PartnerSyncService.getMemberBadgeHTML(t)
+        : '';
 
     // Format short date
     let dateLabel = '';
