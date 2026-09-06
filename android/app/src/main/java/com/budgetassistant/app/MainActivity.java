@@ -130,6 +130,15 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(QuickAddNotificationPlugin.class);
         handleIncomingQuickAction(getIntent());
 
+        try {
+            SharedPreferences quickPrefs = getSharedPreferences(QuickAddNotificationPlugin.PREFS_NAME, Context.MODE_PRIVATE);
+            if (quickPrefs.getBoolean(QuickAddNotificationPlugin.KEY_ENABLED, false)) {
+                QuickAddNotificationPlugin.showNotification(this);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to restore quick add notification on startup", e);
+        }
+
         // Lock WebView text zoom and prevent Android autofill/system font scaling issues
         lockWebViewSettings();
 
@@ -242,6 +251,13 @@ public class MainActivity extends BridgeActivity {
         applySecureMode();
         // Re-apply the saved theme background on every resume.
         applySavedTheme();
+
+        try {
+            SharedPreferences quickPrefs = getSharedPreferences(QuickAddNotificationPlugin.PREFS_NAME, Context.MODE_PRIVATE);
+            if (quickPrefs.getBoolean(QuickAddNotificationPlugin.KEY_ENABLED, false)) {
+                QuickAddNotificationPlugin.showNotification(this);
+            }
+        } catch (Exception ignored) {}
 
         // The overlay was shown (with bitmap snapshot) in onPause() and is already
         // covering the WebView. Start the fallback timer. The JS onFirstPaint

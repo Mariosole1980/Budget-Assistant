@@ -39327,21 +39327,41 @@ window.recordSettlementTransaction = recordSettlementTransaction;
 // =============================================================================
 
 async function toggleQuickAddNotification(enabled) {
-  localStorage.setItem('quick_add_notification_enabled', enabled ? 'true' : 'false');
   const cb1 = document.getElementById('settings-quick-add-notification');
-  if (cb1) cb1.checked = enabled;
   const cb2 = document.getElementById('settings-quick-add-notification-sync');
-  if (cb2) cb2.checked = enabled;
 
-  if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.QuickAddNotification) {
+  const isNative = !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform());
+
+  if (isNative && window.Capacitor.Plugins && window.Capacitor.Plugins.QuickAddNotification) {
     const plugin = window.Capacitor.Plugins.QuickAddNotification;
     try {
       if (enabled) {
-        await plugin.enableQuickAdd();
+        const res = await plugin.enableQuickAdd();
+        if (res && res.permissionDenied) {
+          localStorage.setItem('quick_add_notification_enabled', 'false');
+          if (cb1) cb1.checked = false;
+          if (cb2) cb2.checked = false;
+          if (typeof showToast === 'function') {
+            showToast(state.lang === 'el'
+              ? '⚠️ Απαιτείται άδεια ειδοποιήσεων στο Android. Παρακαλώ επιτρέψτε τις ειδοποιήσεις στις Ρυθμίσεις.'
+              : '⚠️ Notification permission is required in Android. Please allow notifications in Settings.',
+              'warning',
+              6000
+            );
+          }
+          return;
+        }
+
+        localStorage.setItem('quick_add_notification_enabled', 'true');
+        if (cb1) cb1.checked = true;
+        if (cb2) cb2.checked = true;
         if (typeof showToast === 'function') {
           showToast(state.lang === 'el' ? '✅ Η μόνιμη ειδοποίηση γρήγορης καταχώρησης ενεργοποιήθηκε' : '✅ Quick Add persistent notification enabled', 'success');
         }
       } else {
+        localStorage.setItem('quick_add_notification_enabled', 'false');
+        if (cb1) cb1.checked = false;
+        if (cb2) cb2.checked = false;
         await plugin.disableQuickAdd();
         if (typeof showToast === 'function') {
           showToast(state.lang === 'el' ? 'Η μόνιμη ειδοποίηση απενεργοποιήθηκε' : 'Quick Add persistent notification disabled', 'info');
@@ -39351,12 +39371,24 @@ async function toggleQuickAddNotification(enabled) {
       console.warn('[QuickAdd] Error toggling notification:', err);
     }
   } else {
-    if (typeof showToast === 'function') {
-      showToast(enabled
-        ? (state.lang === 'el' ? '✅ Η γρήγορη καταχώρηση ενεργοποιήθηκε' : '✅ Quick Add enabled')
-        : (state.lang === 'el' ? 'Η γρήγορη καταχώρηση απενεργοποιήθηκε' : 'Quick Add disabled'),
-        'info'
-      );
+    // Running in Web Browser / PWA (outside native Android wrapper)
+    localStorage.setItem('quick_add_notification_enabled', enabled ? 'true' : 'false');
+    if (cb1) cb1.checked = enabled;
+    if (cb2) cb2.checked = enabled;
+
+    if (enabled) {
+      if (typeof showToast === 'function') {
+        showToast(state.lang === 'el'
+          ? 'ℹ️ Η μόνιμη ειδοποίηση υποστηρίζεται στην εγκατεστημένη εφαρμογή Android (APK).'
+          : 'ℹ️ Persistent notification bar is supported in the installed Android app (APK).',
+          'info',
+          6000
+        );
+      }
+    } else {
+      if (typeof showToast === 'function') {
+        showToast(state.lang === 'el' ? 'Η γρήγορη καταχώρηση απενεργοποιήθηκε' : 'Quick Add disabled', 'info');
+      }
     }
   }
 }
