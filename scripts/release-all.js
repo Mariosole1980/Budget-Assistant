@@ -118,6 +118,7 @@ const releaseFiles = [
     'js/autocompleteService.js',
     'js/notesService.js',
     'js/notificationHub.js',
+    'js/monthGridPicker.js',
     'android/app/build.gradle',
     'android/build.gradle',
     'android/variables.gradle',
