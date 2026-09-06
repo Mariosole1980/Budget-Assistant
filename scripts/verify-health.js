@@ -90,6 +90,7 @@ const CRITICAL_JS = [
     'js/SafeToSpendEngine.js',
     'js/SubscriptionEngine.js',
     'js/userGuide.js',
+    'js/exportService.js',
     // Build/release scripts (including this file itself)
     'scripts/generate-android-icons.js',
     'scripts/generate-app-icon-variants.js',

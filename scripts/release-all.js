@@ -111,6 +111,7 @@ const releaseFiles = [
     'app.js',
     'js/translations.js',
     'js/userGuide.js',
+    'js/exportService.js',
     'android/app/build.gradle',
     'android/build.gradle',
     'android/variables.gradle',

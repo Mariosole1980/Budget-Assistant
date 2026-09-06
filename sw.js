@@ -33,6 +33,7 @@ const ASSETS = [
   'js/SafeToSpendEngine.js',
   'js/SubscriptionEngine.js',
   'js/userGuide.js',
+  'js/exportService.js',
   'js/fontawesome.min.css',
   'js/webfonts/fa-solid-900.woff2',
   'js/webfonts/fa-solid-900.ttf',
