@@ -12,7 +12,8 @@ Object.assign(global, dialogService);
 global.BAConstants = BAConstants;
 global.BAUtils = BAUtils;
 
-const appJs = fs.readFileSync(__dirname + '/../app.js', 'utf8');
+const catMgrPath = __dirname + '/../js/categoryManager.js';
+const appJs = fs.readFileSync(__dirname + '/../app.js', 'utf8') + (fs.existsSync(catMgrPath) ? ('\n' + fs.readFileSync(catMgrPath, 'utf8')) : '');
 
 function extractFn(name) {
   let start = -1;

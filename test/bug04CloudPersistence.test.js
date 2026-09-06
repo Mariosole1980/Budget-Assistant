@@ -31,7 +31,11 @@ const path = require('node:path');
 const CurrencyService = require('../js/CurrencyService.js');
 
 const APP_JS = path.join(__dirname, '..', 'app.js');
-const appSrc = fs.readFileSync(APP_JS, 'utf8');
+const TRASH_JS = path.join(__dirname, '..', 'js', 'trashBinService.js');
+const IMPORT_JS = path.join(__dirname, '..', 'js', 'importService.js');
+let appSrc = fs.readFileSync(APP_JS, 'utf8');
+if (fs.existsSync(TRASH_JS)) appSrc += '\n' + fs.readFileSync(TRASH_JS, 'utf8');
+if (fs.existsSync(IMPORT_JS)) appSrc += '\n' + fs.readFileSync(IMPORT_JS, 'utf8');
 
 // The 9 currency columns that must now be persisted to Supabase.
 const CURRENCY_COLUMNS = [

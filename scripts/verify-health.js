@@ -100,6 +100,10 @@ const CRITICAL_JS = [
     'js/monthGridPicker.js',
     'js/aiCoachService.js',
     'js/onboardingWizard.js',
+    'js/trashBinService.js',
+    'js/importService.js',
+    'js/financialHealthEngine.js',
+    'js/categoryManager.js',
     // Build/release scripts (including this file itself)
     'scripts/generate-android-icons.js',
     'scripts/generate-app-icon-variants.js',
