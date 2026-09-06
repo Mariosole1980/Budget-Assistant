@@ -108,6 +108,10 @@ const CRITICAL_JS = [
     'js/partnerSyncService.js',
     'js/statsView.js',
     'js/accountsView.js',
+    'js/notificationCenter.js',
+    'js/feedbackReviewService.js',
+    'js/gestureEngine.js',
+    'js/voiceAssistantService.js',
     // Build/release scripts (including this file itself)
     'scripts/generate-android-icons.js',
     'scripts/generate-app-icon-variants.js',

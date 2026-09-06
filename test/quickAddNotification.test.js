@@ -8,7 +8,9 @@ test('Quick Add Notification & Voice Assistant Unit Tests', async (t) => {
   const indexContent = fs.readFileSync(indexPath, 'utf8');
 
   const appJsPath = path.join(__dirname, '..', 'app.js');
-  const appJsContent = fs.readFileSync(appJsPath, 'utf8');
+  const voiceJsPath = path.join(__dirname, '..', 'js', 'voiceAssistantService.js');
+  const appJsContent = fs.readFileSync(appJsPath, 'utf8') +
+    (fs.existsSync(voiceJsPath) ? ('\n' + fs.readFileSync(voiceJsPath, 'utf8')) : '');
 
   const translationsPath = path.join(__dirname, '..', 'js', 'translations.js');
   const translationsContent = fs.readFileSync(translationsPath, 'utf8');
