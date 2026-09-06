@@ -94,6 +94,7 @@ const CRITICAL_JS = [
     'js/timePicker.js',
     'js/dialogService.js',
     'js/searchFilterService.js',
+    'js/autocompleteService.js',
     // Build/release scripts (including this file itself)
     'scripts/generate-android-icons.js',
     'scripts/generate-app-icon-variants.js',

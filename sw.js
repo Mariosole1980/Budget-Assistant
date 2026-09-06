@@ -37,6 +37,7 @@ const ASSETS = [
   'js/timePicker.js',
   'js/dialogService.js',
   'js/searchFilterService.js',
+  'js/autocompleteService.js',
   'js/fontawesome.min.css',
   'js/webfonts/fa-solid-900.woff2',
   'js/webfonts/fa-solid-900.ttf',

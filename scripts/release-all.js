@@ -115,6 +115,7 @@ const releaseFiles = [
     'js/timePicker.js',
     'js/dialogService.js',
     'js/searchFilterService.js',
+    'js/autocompleteService.js',
     'android/app/build.gradle',
     'android/build.gradle',
     'android/variables.gradle',
