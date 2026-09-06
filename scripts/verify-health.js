@@ -104,6 +104,10 @@ const CRITICAL_JS = [
     'js/importService.js',
     'js/financialHealthEngine.js',
     'js/categoryManager.js',
+    'js/securityLockService.js',
+    'js/partnerSyncService.js',
+    'js/statsView.js',
+    'js/accountsView.js',
     // Build/release scripts (including this file itself)
     'scripts/generate-android-icons.js',
     'scripts/generate-app-icon-variants.js',
