@@ -95,6 +95,7 @@ const CRITICAL_JS = [
     'js/dialogService.js',
     'js/searchFilterService.js',
     'js/autocompleteService.js',
+    'js/notesService.js',
     // Build/release scripts (including this file itself)
     'scripts/generate-android-icons.js',
     'scripts/generate-app-icon-variants.js',

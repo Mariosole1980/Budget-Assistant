@@ -116,6 +116,7 @@ const releaseFiles = [
     'js/dialogService.js',
     'js/searchFilterService.js',
     'js/autocompleteService.js',
+    'js/notesService.js',
     'android/app/build.gradle',
     'android/build.gradle',
     'android/variables.gradle',

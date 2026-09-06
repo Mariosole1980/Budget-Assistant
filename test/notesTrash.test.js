@@ -18,8 +18,9 @@ const assert = require('node:assert');
 const fs = require('node:fs');
 const path = require('node:path');
 
+const NOTES_JS = path.join(__dirname, '..', 'js', 'notesService.js');
 const APP_JS = path.join(__dirname, '..', 'app.js');
-const appSrc = fs.readFileSync(APP_JS, 'utf8');
+const appSrc = fs.existsSync(NOTES_JS) ? fs.readFileSync(NOTES_JS, 'utf8') : fs.readFileSync(APP_JS, 'utf8');
 
 // ---------------------------------------------------------------------------
 // deleteNote: the local tombstone must carry updated_at === deleted_at so a
