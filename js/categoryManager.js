@@ -14,8 +14,9 @@
 }(typeof globalThis !== 'undefined' ? globalThis : typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
-  var windowObj = typeof window !== 'undefined' ? window : (typeof global !== 'undefined' ? global : {});
-  var window = windowObj;
+  var rootObj = (typeof globalThis !== 'undefined' ? globalThis : (typeof window !== 'undefined' ? window : (typeof global !== 'undefined' ? global : {})));
+  var window = rootObj;
+  var windowObj = rootObj;
 
 function openSettingsCategoryManager() {
   window._categoryManagerType = 'expense';
