@@ -120,6 +120,7 @@ const releaseFiles = [
     'js/notificationHub.js',
     'js/monthGridPicker.js',
     'js/aiCoachService.js',
+    'js/onboardingWizard.js',
     'android/app/build.gradle',
     'android/build.gradle',
     'android/variables.gradle',
