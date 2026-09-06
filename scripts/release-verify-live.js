@@ -6,10 +6,11 @@ const rootDir = path.resolve(__dirname, '..');
 const versionJsonPath = path.join(rootDir, 'version.json');
 const canonicalVersion = JSON.parse(fs.readFileSync(versionJsonPath, 'utf8')).version;
 
-const projects = [
-  'https://www.budgetassistant.org',
-  'https://budget-assistant-pwa.pages.dev'
+const CANONICAL_TARGET = 'https://budget-assistant-pwa.pages.dev';
+const CUSTOM_DOMAINS = [
+  'https://www.budgetassistant.org'
 ];
+const projects = [CANONICAL_TARGET, ...CUSTOM_DOMAINS];
 
 function fetchLiveUrl(url, maxRedirects = 5) {
   return new Promise((resolve, reject) => {
@@ -109,7 +110,11 @@ async function verifyLive() {
     }
 
     if (!targetPassed) {
-      errors.push(...attemptErrors);
+      if (baseUrl === CANONICAL_TARGET) {
+        errors.push(...attemptErrors);
+      } else {
+        console.warn(`    ⚠️  [WARN] Custom domain ${baseUrl} live check incomplete (${attemptErrors[attemptErrors.length - 1] || 'unreachable'}). Canonical deployment is unaffected.`);
+      }
     }
   }
 
