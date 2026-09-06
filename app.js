@@ -3136,16 +3136,6 @@ function initSupabaseAuth() {
   const formsContainer = document.getElementById('auth-forms-container');
   const authCard = document.getElementById('auth-card');
 
-  function toggleLoader(show) {
-    if (show) {
-      if (loadingState) loadingState.style.display = 'flex';
-      if (authCard) authCard.style.display = 'none';
-    } else {
-      if (loadingState) loadingState.style.display = 'none';
-      if (authCard) authCard.style.display = 'flex';
-    }
-  }
-
   if (isAuthRedirect) {
     if (authOverlay) authOverlay.style.display = 'flex';
     toggleLoader(true);
@@ -5137,43 +5127,6 @@ async function loadData() {
         ? getPendingLocalTransactions(JSON.parse(localStorage.getItem('offline_transactions') || '[]'))
         : [];
 
-      // 4.5. RECOVERY: Rescue local transactions that were dropped from the sync queue due to schema errors (e.g., recurring_template_id)
-      const cloudIds = new Set(allTransactions.map(t => t.id));
-      /*
-      const toRecover = (() => {
-        try {
-          const cached = JSON.parse(localStorage.getItem('offline_transactions') || '[]');
-          return cached.filter(t => {
-            if (!t.id || String(t.id).startsWith('local_')) return false;
-            if (t.user_id !== user.id) return false;
-            if (cloudIds.has(t.id)) return false;
-            // Only recover transactions from the last 30 days
-            if (!t.created_at || new Date(t.created_at).getTime() < Date.now() - 30 * 24 * 60 * 60 * 1000) return false;
-            return true;
-          });
-        } catch (_) {
-          return [];
-        }
-      })();
-      */
-
-      // 4.5. RECOVERY: Disabled - was causing infinite loops and duplicate clutter
-      /*
-      if (toRecover.length > 0) {
-        const payloads = toRecover.map(t => {
-          const { description, is_shared, recurring_template_id, photo_local_uri, photo_url, receipt, currency, base_currency, rate_to_base, amount_base, rate_source, fx_snapshot, rate_to_base_actual, rate_fetched_at, transfer_id, transfer_rate, ...dbPayload } = t;
-          return dbPayload;
-        });
-        try {
-          for (let i = 0; i < payloads.length; i += 50) {
-            await state.supabaseClient.from('transactions').upsert(payloads.slice(i, i + 50));
-          }
-        } catch (recoverErr) {
-          console.error("Failed to recover dropped transactions:", recoverErr);
-        }
-      }
-      */
-
       // Auto-rescue & sync any local transactions missing in the cloud
       const missingSynced = await autoSyncMissingTransactionsToCloud(allTransactions, userId);
       if (missingSynced && missingSynced.length > 0) {
@@ -6872,38 +6825,6 @@ function updateHeaderAndSync() {
 // ============================================================
 // TAB 1: TRANSACTIONS
 // ============================================================
-// Determine whether a transaction belongs to a recurring template.
-// Uses recurring_template_id when present, otherwise falls back to a
-// content-key match (date + amount + type + category + account_from)
-// because recurring_template_id is a client-only field stripped before
-// cloud upsert, so fetched transactions arrive with it null.
-function isTransactionRecurring(tx) {
-  if (!tx) return false;
-  const templates = state.recurringTemplates || [];
-  if (templates.length === 0) return false;
-
-  if (tx.recurring_template_id) {
-    const found = templates.some(t => String(t.id) === String(tx.recurring_template_id));
-    if (found) return true;
-  }
-
-  const txAmount = (parseFloat(tx.amount) || 0).toFixed(2);
-  const txType = tx.type;
-
-  return templates.some(template => {
-    if (tx.recurring_template_id && String(tx.recurring_template_id) === String(template.id)) {
-      return true;
-    }
-    const tAmount = (parseFloat(template.amount) || 0).toFixed(2);
-    const tType = template.type;
-
-    if (txAmount === tAmount && txType === tType && isSameCategory(tx.category, template.category)) {
-      return true;
-    }
-    return false;
-  });
-}
-
 // Resolve the recurring template a transaction belongs to, using recurring_template_id
 // when present, otherwise falling back to a content-key match (amount + type + category).
 // Returns the matching template object or null. Used by the transaction delete handler
@@ -6936,6 +6857,13 @@ function resolveRecurringTemplateForTx(tx) {
     return false;
   }) || null;
 }
+window.resolveRecurringTemplateForTx = resolveRecurringTemplateForTx;
+
+// Determine whether a transaction belongs to a recurring template.
+function isTransactionRecurring(tx) {
+  return !!resolveRecurringTemplateForTx(tx);
+}
+window.isTransactionRecurring = isTransactionRecurring;
 
 // Backfill recurring_template_id on existing transactions that were saved before
 // the column was persisted (it was previously stripped before cloud upsert, so
@@ -9452,20 +9380,6 @@ function renderAccountsTab() {
   }
 
 
-  // Helper function to translate account display names
-  const getAccountDisplayName = (acc) => {
-    if (state.lang === 'el') {
-      if (acc.type === 'cash') return 'Μετρητά';
-      if (acc.type === 'bank') return 'Τράπεζα';
-      if (acc.type === 'card') return 'Κάρτα';
-    } else {
-      if (acc.type === 'cash') return 'Cash';
-      if (acc.type === 'bank') return 'Bank';
-      if (acc.type === 'card') return 'Card';
-    }
-    return acc.name;
-  };
-
   const icons = { cash: '💵', bank: '🏦', card: '💳' };
 
   // Payment method breakdown removed as requested
@@ -11864,29 +11778,6 @@ function toggleTransactionFormLock(locked) {
   }
 }
 
-function resolveRecurringTemplateForTx(tx) {
-  if (!tx) return null;
-  const templates = state.recurringTemplates || [];
-  if (tx.recurring_template_id) {
-    const found = templates.find(t => String(t.id) === String(tx.recurring_template_id));
-    if (found) return found;
-  }
-  const txAmount = (parseFloat(tx.amount) || 0).toFixed(2);
-  const txType = tx.type;
-  return templates.find(t => {
-    const tmAmount = (parseFloat(t.amount) || 0).toFixed(2);
-    return tmAmount === txAmount &&
-      t.type === txType &&
-      isSameCategory(t.category, tx.category);
-  }) || null;
-}
-window.resolveRecurringTemplateForTx = resolveRecurringTemplateForTx;
-
-function isTransactionRecurring(tx) {
-  return !!resolveRecurringTemplateForTx(tx);
-}
-window.isTransactionRecurring = isTransactionRecurring;
-
 function openAddTransactionModal({ instant = false } = {}) {
   if (typeof window.closeCalculatorKeypad === 'function') {
     window.closeCalculatorKeypad();
@@ -12351,37 +12242,6 @@ function toggleCategoryPickerEditMode() {
     ? (window._categoryPickerSettingsType || 'expense')
     : document.querySelector('.type-tab-btn.active').getAttribute('data-type');
   updateCategoryDropdowns(currentType, true);
-}
-
-function inlineToggleCategoryHidden(categoryName, type) {
-  const cat = state.categories.find(c => c.name === categoryName);
-  if (cat) {
-    cat.hidden = !cat.hidden;
-    const now = new Date().toISOString();
-    cat.updated_at = now;
-    saveCategoriesToStorage();
-
-    // Sync to cloud if enabled
-    if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
-      try {
-        state.supabaseClient
-          .from('categories')
-          .update({
-            hidden: !!cat.hidden,
-            updated_at: now
-          })
-          .eq('id', cat.id)
-          .then(({ error }) => {
-            if (error) console.warn('Cloud category sync warning:', error);
-          });
-      } catch (e) {
-        console.warn('Cloud category sync failed:', e);
-      }
-    }
-
-    updateCategoryDropdowns(type);
-    updateUI();
-  }
 }
 
 async function inlineDeleteCustomCategory(categoryName, type) {
@@ -13347,17 +13207,18 @@ function getAccountVisualInfo(accOrType) {
 function getAccountDisplayName(accOrName) {
   if (!accOrName) return '';
   const name = typeof accOrName === 'string' ? accOrName : (accOrName.name || '');
+  const type = typeof accOrName === 'object' && accOrName ? (accOrName.type || '') : '';
   const lowerName = name.toLowerCase().trim();
   const lang = state.lang || 'el';
 
   if (lang === 'el') {
-    if (lowerName === 'cash' || lowerName === 'μετρητά') return 'Μετρητά';
-    if (lowerName === 'bank account' || lowerName === 'bank' || lowerName === 'τραπεζικός λογαριασμός' || lowerName === 'τράπεζα') return 'Τράπεζα';
-    if (lowerName === 'card' || lowerName === 'κάρτα') return 'Κάρτα';
+    if (lowerName === 'cash' || lowerName === 'μετρητά' || (!lowerName && type === 'cash')) return 'Μετρητά';
+    if (lowerName === 'bank account' || lowerName === 'bank' || lowerName === 'τραπεζικός λογαριασμός' || lowerName === 'τράπεζα' || (!lowerName && type === 'bank')) return 'Τράπεζα';
+    if (lowerName === 'card' || lowerName === 'κάρτα' || (!lowerName && type === 'card')) return 'Κάρτα';
   } else {
-    if (lowerName === 'cash' || lowerName === 'μετρητά') return 'Cash';
-    if (lowerName === 'bank account' || lowerName === 'bank' || lowerName === 'τραπεζικός λογαριασμός' || lowerName === 'τράπεζα') return 'Bank Account';
-    if (lowerName === 'card' || lowerName === 'κάρτα') return 'Card';
+    if (lowerName === 'cash' || lowerName === 'μετρητά' || (!lowerName && type === 'cash')) return 'Cash';
+    if (lowerName === 'bank account' || lowerName === 'bank' || lowerName === 'τραπεζικός λογαριασμός' || lowerName === 'τράπεζα' || (!lowerName && type === 'bank')) return 'Bank Account';
+    if (lowerName === 'card' || lowerName === 'κάρτα' || (!lowerName && type === 'card')) return 'Card';
   }
   return name;
 }
@@ -15827,12 +15688,6 @@ function selectCategoryChipFilter(catName, element) {
     }
   }
   handleSearchChange();
-}
-
-// Category tag checkmark helper
-function getCategorySelectionIconHTML(catName) {
-  const selectedCat = document.getElementById('search-filter-category').value;
-  return selectedCat === catName ? ' <i class="fa-solid fa-check" style="font-size:10px; margin-left: 2px;"></i>' : '';
 }
 
 function selectSubcategoryChipFilter(subName, element) {
@@ -19445,30 +19300,6 @@ function addSubcategoryToCategory(categoryName, subcatName) {
   }
 }
 
-function renderCategoryEditorEmojiGrid(selectedEmoji) {
-  const grid = document.getElementById('cat-editor-emoji-grid');
-  if (!grid) return;
-  grid.innerHTML = '';
-
-  const list = EMOJI_OPTIONS.includes(selectedEmoji) ? EMOJI_OPTIONS : [selectedEmoji, ...EMOJI_OPTIONS];
-  list.forEach(emoji => {
-    const span = document.createElement('span');
-    span.textContent = emoji;
-    span.style.cssText = `font-size: 22px; padding: 6px; text-align: center; cursor: pointer; border-radius: 8px; transition: all 0.15s; border: 2px solid ${emoji === selectedEmoji ? 'var(--accent)' : 'transparent'}; background: ${emoji === selectedEmoji ? 'rgba(224, 94, 85, 0.1)' : 'transparent'};`;
-
-    span.onclick = () => {
-      window._categoryManagerSelectedEmoji = emoji;
-      grid.querySelectorAll('span').forEach(s => {
-        s.style.border = '2px solid transparent';
-        s.style.background = 'transparent';
-      });
-      span.style.border = '2px solid var(--accent)';
-      span.style.background = 'rgba(224, 94, 85, 0.1)';
-    };
-    grid.appendChild(span);
-  });
-}
-
 function openCategoryManagerAddDialog() {
   const type = window._categoryManagerType || 'expense';
   openNewCategoryDialog(type);
@@ -19478,141 +19309,6 @@ function openCategoryEditorModal(categoryName) {
   const cat = state.categories.find(c => c.name === categoryName);
   const type = cat ? cat.type : (window._categoryManagerType || 'expense');
   openEditCategoryDialog(categoryName, type);
-}
-
-async function saveCategoryManagerEdit() {
-  const input = document.getElementById('cat-editor-name-input');
-  const name = input ? input.value.trim() : '';
-  if (!name) {
-    window.showAlert(state.lang === 'el' ? 'Παρακαλώ εισάγετε όνομα κατηγορίας!' : 'Please enter a category name!');
-    return;
-  }
-
-  const type = window._categoryManagerType || 'expense';
-
-  if (window._editingCategoryManagerName) {
-    const oldName = window._editingCategoryManagerName;
-    const cat = state.categories.find(c => c.name === oldName);
-    if (!cat) return;
-
-    const nameChanged = name !== getCategoryDisplayName(oldName);
-    const iconChanged = window._categoryManagerSelectedEmoji !== cat.icon;
-
-    if (!nameChanged && !iconChanged) {
-      closeModal('category-editor-modal');
-      return;
-    }
-
-    if (nameChanged) {
-      const collision = state.categories.find(c => c.name !== oldName && getCategoryDisplayName(c.name).toLowerCase() === name.toLowerCase() && c.type === type);
-      if (collision) {
-        window.showAlert(state.lang === 'el' ? 'Υπάρχει ήδη κατηγορία με αυτό το όνομα!' : 'A category with this name already exists!');
-        return;
-      }
-    }
-
-    const now = new Date().toISOString();
-    cat.name = name;
-    cat.icon = window._categoryManagerSelectedEmoji;
-    cat.updated_at = now;
-
-    let transactionsUpdated = 0;
-    if (nameChanged) {
-      state.transactions.forEach(t => {
-        if (t.category === oldName) {
-          t.category = name;
-          transactionsUpdated++;
-        }
-      });
-      if (transactionsUpdated > 0) {
-        localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
-      }
-    }
-
-    saveCategoriesToStorage();
-
-    if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
-      try {
-        if (nameChanged) {
-          await state.supabaseClient.from('categories').update({
-            name: cat.name,
-            icon: cat.icon,
-            color: cat.color,
-            hidden: !!cat.hidden,
-            updated_at: now
-          }).eq('id', cat.id);
-          
-          if (transactionsUpdated > 0) {
-             let query = state.supabaseClient.from('transactions').update({ category: name }).eq('category', oldName);
-             if (state.userProfile && state.userProfile.family_id) {
-               query = query.eq('family_id', state.userProfile.family_id);
-             } else {
-               query = query.eq('user_id', state.currentUser.id);
-             }
-             await query;
-          }
-        } else {
-          await state.supabaseClient.from('categories').update({
-            icon: cat.icon,
-            color: cat.color,
-            hidden: !!cat.hidden,
-            updated_at: now
-          }).eq('id', cat.id);
-        }
-      } catch (err) {
-        console.warn('Supabase category edit sync error:', err);
-      }
-    }
-  } else {
-    const collision = state.categories.find(c => getCategoryDisplayName(c.name).toLowerCase() === name.toLowerCase() && c.type === type);
-    if (collision) {
-      window.showAlert(state.lang === 'el' ? 'Υπάρχει ήδη κατηγορία με αυτό το όνομα!' : 'A category with this name already exists!');
-      return;
-    }
-
-    const now = new Date().toISOString();
-    const newCat = {
-      id: typeof generateUUID === 'function' ? generateUUID() : crypto.randomUUID(),
-      name: name,
-      type: type,
-      icon: window._categoryManagerSelectedEmoji,
-      color: window._categoryManagerSelectedEmoji === '💸' ? '#ef4444' : '#10b981',
-      hidden: false,
-      user_id: state.currentUser ? state.currentUser.id : null,
-      family_id: state.userProfile ? state.userProfile.family_id : null,
-      created_at: now,
-      updated_at: now,
-      subcategories: []
-    };
-
-    state.categories.push(newCat);
-    saveCategoriesToStorage();
-
-    if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
-      try {
-        await state.supabaseClient.from('categories').insert({
-          id: newCat.id,
-          user_id: state.currentUser.id,
-          family_id: state.userProfile ? state.userProfile.family_id : null,
-          name: newCat.name,
-          type: newCat.type,
-          icon: newCat.icon,
-          color: newCat.color,
-          hidden: !!newCat.hidden,
-          created_at: newCat.created_at,
-          updated_at: newCat.updated_at
-        });
-      } catch (err) {
-        console.warn('Supabase category insert sync error:', err);
-      }
-    }
-  }
-
-  closeModal('category-editor-modal');
-  renderCategoryManagerList();
-  updateCategoryDropdowns(type, true);
-  updateUI();
-  showSyncToast(state.lang === 'el' ? '✓ Κατηγορία αποθηκεύτηκε' : '✓ Category saved', 2000);
 }
 
 async function deleteCategoryFromManager(categoryName) {
@@ -19626,7 +19322,6 @@ window.setCategoryManagerType = setCategoryManagerType;
 window.toggleCategoryManagerAccordion = toggleCategoryManagerAccordion;
 window.openCategoryManagerAddDialog = openCategoryManagerAddDialog;
 window.openCategoryEditorModal = openCategoryEditorModal;
-window.saveCategoryManagerEdit = saveCategoryManagerEdit;
 window.deleteCategoryFromManager = deleteCategoryFromManager;
 
 
@@ -27550,20 +27245,6 @@ function suppressRealtimeFor(delayMs) {
   setTimeout(() => {
     _suppressRealtimeEvents = false;
   }, delayMs);
-}
-
-// Run fn while realtime is suppressed, then schedule the decrement after
-// delayMs. The decrement is scheduled in a finally block, so it runs even if
-// fn throws or returns early. Returns fn's return value (or undefined).
-async function withRealtimeSuppression(delayMs, fn) {
-  _suppressRealtimeEvents = true;
-  try {
-    return await fn();
-  } finally {
-    setTimeout(() => {
-      _suppressRealtimeEvents = false;
-    }, delayMs);
-  }
 }
 
 function handleRealtimeTransactionChange(payload) {
