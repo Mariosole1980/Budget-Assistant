@@ -3810,6 +3810,11 @@ async function loadUserProfiles(user) {
         state.familyGroup = null;
         localStorage.removeItem('cached_family_group');
       }
+
+      // Re-register realtime subscription so family and partner channels are active
+      if (typeof setupSupabaseRealtimeSubscription === 'function' && state.currentUser && state.supabaseClient) {
+        setupSupabaseRealtimeSubscription();
+      }
     } else {
       state.familyProfiles = [];
       state.familyGroup = null;
@@ -5193,9 +5198,29 @@ async function loadData() {
       } catch (err) {
         console.warn('Failed to collect permanently deleted IDs in loadData merge:', err);
       }
-      const safeCachedMissingFromCloud = permanentlyDeletedSet
+      const safeCachedMissingFromCloud = (permanentlyDeletedSet
         ? cachedMissingFromCloud.filter(t => !(t && t.id && permanentlyDeletedSet.has(String(t.id))))
-        : cachedMissingFromCloud;
+        : cachedMissingFromCloud
+      ).filter(t => {
+        if (!t || !t.id) return false;
+        const isRecurringOrigin = !!(t.recurring_template_id || String(t.id).startsWith('recurring_') || (typeof isTransactionRecurring === 'function' && isTransactionRecurring(t)));
+        if (isRecurringOrigin && t.date) {
+          const tMonth = String(t.date).slice(0, 7);
+          const tAmount = (parseFloat(t.amount) || 0).toFixed(2);
+          const tNote = normalizeGreekString(t.note || t.description || '');
+          const hasCloudOccurrenceInSameMonth = allTransactions.some(cTx => {
+            if (!cTx || !cTx.date || String(cTx.date).slice(0, 7) !== tMonth) return false;
+            if (t.recurring_template_id && cTx.recurring_template_id && String(t.recurring_template_id) === String(cTx.recurring_template_id)) return true;
+            const cAmount = (parseFloat(cTx.amount) || 0).toFixed(2);
+            const cNote = normalizeGreekString(cTx.note || cTx.description || '');
+            return cAmount === tAmount && cTx.type === t.type && isSameCategory(cTx.category, t.category) && tNote.length > 0 && cNote === tNote;
+          });
+          if (hasCloudOccurrenceInSameMonth) {
+            return false;
+          }
+        }
+        return true;
+      });
       const mergedTransactions = mergeAndDeduplicateTransactions(allTransactions, [...pendingLocal, ...safeCachedMissingFromCloud]);
       mergedTransactions.sort(compareTransactions);
       state.transactions = mergedTransactions;
@@ -5699,6 +5724,106 @@ function cleanCrossLanguageRecurringDuplicates() {
     }
   }
 
+  // =========================================================================
+  // MONTHLY RECURRING SINGLE-OCCURRENCE ENFORCEMENT
+  // A monthly recurring template (preset === 'monthly' or default) must have
+  // at most ONE occurrence per calendar month (YYYY-MM). If multiple occurrences
+  // exist in the same month on DIFFERENT dates (e.g. 15 Sep & 24 Sep "Αλλαγή Ελαστικών"),
+  // retain only the canonical occurrence matching the template's target day
+  // (or the newest) and mark orphaned occurrences for deletion.
+  // =========================================================================
+  const allTemplates = state.recurringTemplates || [];
+  allTemplates.forEach(template => {
+    const preset = template.preset || 'monthly';
+    if (preset !== 'monthly' && preset !== 'specific_months' && preset !== 'yearly') return;
+
+    let targetDay = null;
+    if (template.startDate) {
+      const d = new Date(template.startDate);
+      if (!isNaN(d.getTime())) targetDay = d.getDate();
+    } else if (template.days && template.days.length > 0) {
+      targetDay = template.days[0];
+    }
+
+    const templIdStr = String(template.id);
+    const templAmount = (parseFloat(template.amount) || 0).toFixed(2);
+    const templType = template.type;
+    const templNote = normalizeGreekString(template.note || template.description || '');
+
+    const occurrences = [];
+    for (let i = 0; i < txs.length; i++) {
+      const t = txs[i];
+      if (toDeleteIds.has(t.id)) continue;
+      const isRecurringOrigin = !!(t.recurring_template_id || String(t.id || '').startsWith('recurring_') || (typeof isTransactionRecurring === 'function' && isTransactionRecurring(t)));
+      if (!isRecurringOrigin) continue;
+
+      let isMatch = false;
+      if (t.recurring_template_id && String(t.recurring_template_id) === templIdStr) {
+        isMatch = true;
+      } else {
+        const tAmount = (parseFloat(t.amount) || 0).toFixed(2);
+        const tType = t.type;
+        const tNote = normalizeGreekString(t.note || t.description || '');
+        if (tAmount === templAmount && tType === templType && isSameCategory(t.category, template.category)) {
+          if (templNote.length > 0 && (tNote === templNote || tNote.includes(templNote) || templNote.includes(tNote))) {
+            isMatch = true;
+          }
+        }
+      }
+
+      if (isMatch) {
+        occurrences.push(t);
+      }
+    }
+
+    const periodGroups = new Map();
+    occurrences.forEach(tx => {
+      const dStr = String(tx.date || '').split('T')[0].split(' ')[0];
+      if (!dStr) return;
+      const periodKey = preset === 'yearly' ? dStr.slice(0, 4) : dStr.slice(0, 7);
+      if (!periodGroups.has(periodKey)) periodGroups.set(periodKey, []);
+      periodGroups.get(periodKey).push(tx);
+    });
+
+    periodGroups.forEach((group) => {
+      if (group.length <= 1) return;
+
+      let canonical = null;
+      if (targetDay !== null) {
+        canonical = group.find(tx => {
+          const dStr = String(tx.date || '').split('T')[0].split(' ')[0];
+          const txDay = parseInt(dStr.split('-')[2], 10);
+          return txDay === targetDay;
+        });
+      }
+
+      if (!canonical) {
+        canonical = group.reduce((prev, curr) => {
+          if (!prev) return curr;
+          const prevTime = curr.created_at ? new Date(curr.created_at).getTime() : 0;
+          const currTime = prev.created_at ? new Date(prev.created_at).getTime() : 0;
+          return prevTime >= currTime ? curr : prev;
+        }, null);
+      }
+
+      group.forEach(tx => {
+        if (canonical && tx.id !== canonical.id) {
+          toDeleteIds.add(tx.id);
+          try {
+            const perm = JSON.parse(localStorage.getItem('permanent_deleted_tx_ids') || '[]') || [];
+            if (!perm.includes(String(tx.id))) {
+              perm.push(String(tx.id));
+              localStorage.setItem('permanent_deleted_tx_ids', JSON.stringify(perm));
+            }
+          } catch (_) {}
+          if (typeof _recentlyDeletedTxIds !== 'undefined' && _recentlyDeletedTxIds) {
+            _recentlyDeletedTxIds.add(String(tx.id));
+          }
+        }
+      });
+    });
+  });
+
   if (toDeleteIds.size > 0) {
     console.log(`[RecurringCleanup] Removing ${toDeleteIds.size} duplicate recurring occurrences`);
     toDeleteIds.forEach(id => {
@@ -5933,6 +6058,41 @@ function processRecurringTemplates() {
         });
 
         if (!duplicateExists) {
+          // In monthly mode, check if a displaced occurrence for this template exists in the same month on an old date
+          if (preset === 'monthly') {
+            const targetMonth = dateString.slice(0, 7);
+            const oldOccurrenceInSameMonth = state.transactions.find(t => {
+              const tDate = String(t.date || '').split('T')[0].split(' ')[0];
+              if (!tDate || tDate.slice(0, 7) !== targetMonth || tDate === dateString) return false;
+              if (t.recurring_template_id && String(t.recurring_template_id) === String(template.id)) return true;
+              const isRecurringOrigin = !!(t.recurring_template_id || String(t.id || '').startsWith('recurring_'));
+              if (!isRecurringOrigin) return false;
+              const tAmount = (parseFloat(t.amount) || 0).toFixed(2);
+              const templAmount = (parseFloat(template.amount) || 0).toFixed(2);
+              if (tAmount === templAmount && t.type === template.type) {
+                const tNote = normalizeGreekString(t.note || t.description || '');
+                const templNote = normalizeGreekString(template.note || template.description || '');
+                if (tNote.length > 0 && templNote.length > 0 && (tNote === templNote || tNote.includes(templNote) || templNote.includes(tNote))) {
+                  return true;
+                }
+              }
+              return false;
+            });
+            if (oldOccurrenceInSameMonth) {
+              state.transactions = state.transactions.filter(t => t.id !== oldOccurrenceInSameMonth.id);
+              try {
+                const perm = JSON.parse(localStorage.getItem('permanent_deleted_tx_ids') || '[]') || [];
+                if (!perm.includes(String(oldOccurrenceInSameMonth.id))) {
+                  perm.push(String(oldOccurrenceInSameMonth.id));
+                  localStorage.setItem('permanent_deleted_tx_ids', JSON.stringify(perm));
+                }
+              } catch (_) {}
+              if (typeof _recentlyDeletedTxIds !== 'undefined' && _recentlyDeletedTxIds) {
+                _recentlyDeletedTxIds.add(String(oldOccurrenceInSameMonth.id));
+              }
+            }
+          }
+
           const deterministicId = expectedDeterministicId;
 
           // Also check if this deterministic ID already exists (belt-and-suspenders)
@@ -6221,8 +6381,9 @@ async function saveTransaction(transaction) {
       dequeueSyncMutation('save', transaction.id);
 
       // Notify partner via Cloudflare Function /api/push-notify if transaction is shared
-      if (state.partnerProfile && state.partnerProfile.user_id && transaction.family_id) {
-        sendPartnerPushNotification(transaction, state.partnerProfile.user_id);
+      const partnerUid = state.partnerProfile ? (state.partnerProfile.id || state.partnerProfile.user_id) : null;
+      if (partnerUid && transaction.family_id) {
+        sendPartnerPushNotification(transaction, partnerUid);
       }
       return true;
     } catch (err) {
@@ -27216,18 +27377,81 @@ async function processSyncQueue(options = {}) {
 }
 
 let _supabaseRealtimeChannel = null;
+let _realtimeReconnectTimer = null;
+let _realtimeWatchdogInterval = null;
+let _syncQueueWorkerInterval = null;
+
+function _scheduleRealtimeReconnect(delayMs = 3000) {
+  if (_realtimeReconnectTimer) return;
+  _realtimeReconnectTimer = setTimeout(() => {
+    _realtimeReconnectTimer = null;
+    if (state.supabaseClient && state.currentUser && navigator.onLine !== false) {
+      console.info('[Realtime] Attempting automatic reconnect...');
+      setupSupabaseRealtimeSubscription();
+    }
+  }, delayMs);
+}
+
+function _startRealtimeWatchdog() {
+  if (_realtimeWatchdogInterval) return;
+  _realtimeWatchdogInterval = setInterval(() => {
+    if (!state.supabaseClient || !state.currentUser || navigator.onLine === false) return;
+    if (document.visibilityState === 'hidden') return;
+
+    const isJoined = _supabaseRealtimeChannel && _supabaseRealtimeChannel.state === 'joined';
+    if (!isJoined) {
+      console.info('[RealtimeWatchdog] Channel not joined (state=' + (_supabaseRealtimeChannel ? _supabaseRealtimeChannel.state : 'null') + '), reconnecting...');
+      setupSupabaseRealtimeSubscription();
+    }
+  }, 25000);
+}
+
+function _startSyncQueueWorker() {
+  if (_syncQueueWorkerInterval) return;
+  _syncQueueWorkerInterval = setInterval(async () => {
+    if (!state.supabaseClient || !state.currentUser || navigator.onLine === false) return;
+    try {
+      const queueStr = localStorage.getItem('money_manager_sync_queue');
+      if (queueStr) {
+        const q = JSON.parse(queueStr) || [];
+        if (q.length > 0 && typeof processSyncQueue === 'function' && !_isProcessingSyncQueue) {
+          console.info(`[SyncQueueWorker] Flushing ${q.length} pending mutations...`);
+          await processSyncQueue({ skipReload: true });
+        }
+      }
+    } catch (_) {}
+  }, 12000);
+}
 
 function setupSupabaseRealtimeSubscription() {
   if (!state.supabaseClient || !state.currentUser) return;
 
   if (_supabaseRealtimeChannel) {
-    state.supabaseClient.removeChannel(_supabaseRealtimeChannel);
+    try {
+      state.supabaseClient.removeChannel(_supabaseRealtimeChannel);
+    } catch (_) {}
     _supabaseRealtimeChannel = null;
   }
 
   const userId = state.currentUser.id;
-  const partnerId = state.partnerProfile ? state.partnerProfile.id : null;
-  const familyId = state.userProfile ? state.userProfile.family_id : null;
+  let partnerId = state.partnerProfile ? (state.partnerProfile.id || state.partnerProfile.user_id) : null;
+  let familyId = state.userProfile ? state.userProfile.family_id : null;
+
+  // Fallback to cached profiles if not yet loaded in memory
+  if (!familyId) {
+    try {
+      const cached = JSON.parse(localStorage.getItem('cached_user_profile') || '{}');
+      if (cached && cached.family_id) familyId = cached.family_id;
+    } catch (_) {}
+  }
+  if (!partnerId) {
+    try {
+      const cachedPartner = JSON.parse(localStorage.getItem('cached_partner_profile') || '{}');
+      if (cachedPartner && (cachedPartner.id || cachedPartner.user_id)) {
+        partnerId = cachedPartner.id || cachedPartner.user_id;
+      }
+    } catch (_) {}
+  }
 
   _supabaseRealtimeChannel = state.supabaseClient.channel('realtime-sync-' + Date.now());
 
@@ -27256,7 +27480,7 @@ function setupSupabaseRealtimeSubscription() {
   }
 
   // 3. If partner present, also listen for partner changes
-  if (partnerId) {
+  if (partnerId && partnerId !== userId) {
     _supabaseRealtimeChannel.on(
       'postgres_changes',
       { event: '*', schema: 'public', table: 'transactions', filter: `user_id=eq.${partnerId}` },
@@ -27268,13 +27492,33 @@ function setupSupabaseRealtimeSubscription() {
     );
   }
 
-  _supabaseRealtimeChannel.subscribe();
+  _supabaseRealtimeChannel.subscribe((status, err) => {
+    if (status === 'SUBSCRIBED') {
+      console.info('[Realtime] Subscribed to sync channel successfully');
+    } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+      console.warn(`[Realtime] Subscription status: ${status}`, err);
+      _scheduleRealtimeReconnect(3000);
+    }
+  });
+
+  _startRealtimeWatchdog();
+  _startSyncQueueWorker();
 }
 
 function stopSupabaseRealtimeSubscription() {
   if (_supabaseRealtimeChannel && state.supabaseClient) {
-    state.supabaseClient.removeChannel(_supabaseRealtimeChannel);
+    try {
+      state.supabaseClient.removeChannel(_supabaseRealtimeChannel);
+    } catch (_) {}
     _supabaseRealtimeChannel = null;
+  }
+  if (_realtimeWatchdogInterval) {
+    clearInterval(_realtimeWatchdogInterval);
+    _realtimeWatchdogInterval = null;
+  }
+  if (_realtimeReconnectTimer) {
+    clearTimeout(_realtimeReconnectTimer);
+    _realtimeReconnectTimer = null;
   }
 }
 
@@ -27530,6 +27774,9 @@ window.addEventListener('online', () => {
 
   refreshSessionAndProfile().finally(() => {
     processSyncQueue();
+    if (typeof setupSupabaseRealtimeSubscription === 'function') {
+      setupSupabaseRealtimeSubscription();
+    }
   });
 });
 
@@ -28276,13 +28523,19 @@ function stopPartnerSyncPolling() {
 }
 
 function startPartnerSyncPolling() {
-  // DISABLED: Background polling was causing flickering numbers.
-  // Sync only happens on: (1) login, (2) manual tap of sync button, (3) tab visibility change.
-  // if (_partnerSyncInterval) clearInterval(_partnerSyncInterval);
-  // _partnerSyncInterval = setInterval(() => {
-  //   if (!state.supabaseClient || !state.currentUser) return;
-  //   forceSyncNow(true);
-  // }, 300000); // every 5 minutes
+  if (_partnerSyncInterval) clearInterval(_partnerSyncInterval);
+  _partnerSyncInterval = setInterval(async () => {
+    if (!state.supabaseClient || !state.currentUser || navigator.onLine === false) return;
+    if (document.visibilityState === 'hidden') return;
+    // Quiet partner sync: only runs if user is not currently interacting or submitting
+    if (typeof _isSubmittingTransaction !== 'undefined' && _isSubmittingTransaction) return;
+    if (typeof _isProcessingSyncQueue !== 'undefined' && _isProcessingSyncQueue) return;
+    try {
+      if (typeof forceSyncNow === 'function') {
+        await forceSyncNow(true);
+      }
+    } catch (_) {}
+  }, 90000); // every 90 seconds as gentle fallback
 }
 
 function saveCurrentUIStateToStorage() {
