@@ -2311,6 +2311,17 @@
 
               <!-- Card Items -->
               <div style="display:flex; flex-direction:column;">
+                <!-- Row 0: Quick-Start Baseline Setup -->
+                <div class="settings-list-item" onclick="openQuickStartModal(1)"
+                  style="padding:14px 16px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border, rgba(255,255,255,0.05)); margin:0; cursor:pointer;">
+                  <div style="display:flex; flex-direction:column; gap:3px; flex:1; padding-right:12px;">
+                    <span class="settings-item-label"
+                      style="font-weight:700; font-size:14px; color:var(--text-primary);">Ρύθμιση εισοδήματος &amp; παγίων</span>
+                    <span style="font-size:12px; color:var(--text-muted);">Υπολογισμός ημερήσιου ορίου εξόδων σε 1 λεπτό</span>
+                  </div>
+                  <i class="fa-solid fa-chevron-right" style="color:var(--text-muted); font-size:12px;"></i>
+                </div>
+
                 <!-- Row 1: Autocomplete -->
                 <div class="settings-list-item"
                   style="padding:14px 16px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border, rgba(255,255,255,0.05)); margin:0;">
@@ -3328,6 +3339,16 @@
             <span>Ξεκλείδωσε Πλήρη Πρόβλεψη & Κοινό Ταμείο (€9,99)</span>
           </button>
         </div>
+      </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- MODAL: QUICK-START 60" ONBOARDING WIZARD        -->
+    <!-- ============================================== -->
+    <div id="quick-start-modal" class="modal-overlay" style="z-index: 12500;">
+      <div class="modal-content subscreen-card-standard"
+        style="max-width: 440px; width: 94%; max-height: 90vh; padding: 0; border-radius: 24px; overflow: hidden; background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.12); box-shadow: 0 20px 50px rgba(0,0,0,0.65);">
+        <div id="quick-start-body" style="padding: 22px 20px;"></div>
       </div>
     </div>
 

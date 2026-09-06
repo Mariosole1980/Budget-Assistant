@@ -6677,10 +6677,11 @@ function _updateUIImpl() {
   // Onboarding auto-trigger
   const authOverlay = document.getElementById('auth-overlay');
   const isAuthVisible = authOverlay && authOverlay.style.display !== 'none';
-  if (!isAuthVisible && (!state.transactions || state.transactions.length === 0) && !localStorage.getItem('onboarding_welcomed')) {
-    localStorage.setItem('onboarding_welcomed', 'true');
+  if (!isAuthVisible && (!state.transactions || state.transactions.length === 0) && !localStorage.getItem('ba_ftux_status')) {
     setTimeout(() => {
-      openModal('onboarding-modal');
+      if (!localStorage.getItem('ba_ftux_status') && (!state.transactions || state.transactions.length === 0)) {
+        openQuickStartModal(0);
+      }
     }, 800);
   }
 
@@ -6906,13 +6907,18 @@ function renderTransactionsTab(containerOverride, yearOverride, monthOverride) {
           <h3 class="stats-empty-title">${title}</h3>
           <p class="stats-empty-desc">${desc}</p>
         </div>
-        <div class="stats-empty-actions">
-          <button class="stats-empty-btn-primary" onclick="openAddTransactionModal()">
-            <span>${addBtnText}</span>
+        <div class="stats-empty-actions" style="display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 320px; margin-top: 10px;">
+          <button class="stats-empty-btn-primary" onclick="openQuickStartModal(0)" style="width: 100%; justify-content: center; font-size: 14px; font-weight: 700; padding: 12px 18px; border-radius: 12px; background: linear-gradient(135deg, var(--accent, #6366f1) 0%, #4f46e5 100%); border: none; color: #fff; cursor: pointer; box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);">
+            <span>${state.lang === 'el' ? 'Υπολογισμός ορίου σε 1′' : 'Calculate limit in 1 min'}</span>
           </button>
-          <button class="stats-empty-btn-secondary" onclick="onboardingAddDemoData()">
-            <span>${demoBtnText}</span>
-          </button>
+          <div style="display: flex; gap: 8px; width: 100%;">
+            <button class="stats-empty-btn-secondary" onclick="openAddTransactionModal()" style="flex: 1; justify-content: center; font-size: 12.5px; padding: 10px 10px; border-radius: 10px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: var(--text-primary); cursor: pointer;">
+              <span>${addBtnText}</span>
+            </button>
+            <button class="stats-empty-btn-secondary" onclick="onboardingAddDemoData()" style="flex: 1; justify-content: center; font-size: 12.5px; padding: 10px 10px; border-radius: 10px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: var(--text-secondary); cursor: pointer;">
+              <span>${demoBtnText}</span>
+            </button>
+          </div>
         </div>
       </div>`;
     return;
@@ -32666,7 +32672,31 @@ window.onSimplePresetChange = onSimplePresetChange;
 
 function getLiquidBalance() {
   if (!state.accounts || state.accounts.length === 0) return 0;
-  return state.accounts.reduce((sum, acc) => sum + (parseFloat(acc.balance) || 0), 0);
+  const accBalance = state.accounts.reduce((sum, acc) => sum + (parseFloat(acc.balance) || 0), 0);
+
+  // If accounts have not yet been manually funded (balance <= 0), use Quick-Start baseline income
+  try {
+    const qsRaw = localStorage.getItem('ba_quick_start_profile');
+    if (qsRaw) {
+      const qs = JSON.parse(qsRaw);
+      if (qs && qs.monthly_income > 0 && accBalance <= 0) {
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth();
+        const spentThisMonth = (state.transactions || []).reduce((sum, t) => {
+          if (!t || t.type !== 'expense') return sum;
+          const d = new Date(t.date);
+          if (d.getFullYear() === currentYear && d.getMonth() === currentMonth) {
+            return sum + (parseFloat(t.amount) || 0);
+          }
+          return sum;
+        }, 0);
+        return Math.max(0, qs.monthly_income - spentThisMonth);
+      }
+    }
+  } catch (e) { }
+
+  return accBalance;
 }
 
 function getUnpaidRecurringBillsThisMonth() {
@@ -32703,12 +32733,21 @@ function getUnpaidRecurringBillsThisMonth() {
 }
 
 function getMonthlySavingsGoal() {
-  if (!state.budgets || state.budgets.length === 0) return 0;
-  const savingsBudget = state.budgets.find(b => {
-    const name = (b.name || b.category || '').toLowerCase();
-    return name.includes('αποταμ') || name.includes('saving');
-  });
-  return savingsBudget ? sanitizeFloat(parseFloat(savingsBudget.amount) || 0) : 0;
+  if (state.budgets && state.budgets.length > 0) {
+    const savingsBudget = state.budgets.find(b => {
+      const name = (b.name || b.category || '').toLowerCase();
+      return name.includes('αποταμ') || name.includes('saving');
+    });
+    if (savingsBudget) return sanitizeFloat(parseFloat(savingsBudget.amount) || 0);
+  }
+  try {
+    const qsRaw = localStorage.getItem('ba_quick_start_profile');
+    if (qsRaw) {
+      const qs = JSON.parse(qsRaw);
+      if (qs && qs.target_savings > 0) return sanitizeFloat(parseFloat(qs.target_savings) || 0);
+    }
+  } catch (e) { }
+  return 0;
 }
 
 function updateSafeToSpendUI() {
@@ -36380,6 +36419,479 @@ window.openTrashBinModal = openTrashBinModal;
 window.renderTrashBinList = renderTrashBinList;
 window.restoreTransaction = restoreTransaction;
 window.emptyTrashBin = emptyTrashBin;
+
+// ============================================================
+// QUICK-START 60" ONBOARDING WIZARD & BASELINE PROFILE ENGINE
+// ============================================================
+let _qsDraft = {
+  monthly_income: 1200,
+  is_household: false,
+  rent: 450,
+  utilities: 150,
+  transport: 80,
+  subscriptions: 30,
+  target_savings: 100
+};
+
+function getQuickStartProfile() {
+  try {
+    const raw = localStorage.getItem('ba_quick_start_profile');
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function openQuickStartModal(step = 0) {
+  const existing = getQuickStartProfile();
+  if (existing) {
+    if (typeof existing.monthly_income === 'number') _qsDraft.monthly_income = existing.monthly_income;
+    if (typeof existing.is_household === 'boolean') _qsDraft.is_household = existing.is_household;
+    if (existing.fixed_bills) {
+      if (typeof existing.fixed_bills.rent === 'number') _qsDraft.rent = existing.fixed_bills.rent;
+      if (typeof existing.fixed_bills.utilities === 'number') _qsDraft.utilities = existing.fixed_bills.utilities;
+      if (typeof existing.fixed_bills.transport === 'number') _qsDraft.transport = existing.fixed_bills.transport;
+      if (typeof existing.fixed_bills.subscriptions === 'number') _qsDraft.subscriptions = existing.fixed_bills.subscriptions;
+    }
+    if (typeof existing.target_savings === 'number') _qsDraft.target_savings = existing.target_savings;
+  }
+  renderQuickStartStep(step);
+  openModal('quick-start-modal');
+}
+
+function closeQuickStartModal(markSkipped = false) {
+  if (markSkipped) {
+    localStorage.setItem('ba_ftux_status', 'skipped');
+  }
+  closeModal('quick-start-modal');
+}
+
+function setQsIncomeChip(amount) {
+  _qsDraft.monthly_income = Number(amount) || 0;
+  const input = document.getElementById('qs-income-input');
+  if (input) input.value = _qsDraft.monthly_income;
+  renderQuickStartStep(1);
+}
+
+function onQsIncomeInputChange(val) {
+  _qsDraft.monthly_income = Math.max(0, parseFloat(val) || 0);
+}
+
+function nextQsStepFromIncome() {
+  const input = document.getElementById('qs-income-input');
+  if (input) {
+    _qsDraft.monthly_income = Math.max(0, parseFloat(input.value) || 0);
+  }
+  const toggle = document.getElementById('qs-household-toggle');
+  if (toggle) {
+    _qsDraft.is_household = !!toggle.checked;
+  }
+  if (_qsDraft.monthly_income <= 0) {
+    if (typeof showSyncToast === 'function') {
+      showSyncToast(state.lang === 'el' ? 'Παρακαλώ συμπληρώστε ένα ποσό εισοδήματος' : 'Please enter an income amount', 3000);
+    }
+    return;
+  }
+  openQuickStartModal(2);
+}
+
+function updateQsFixedTotal() {
+  const rentInput = document.getElementById('qs-rent');
+  const utilInput = document.getElementById('qs-utilities');
+  const transInput = document.getElementById('qs-transport');
+  const subsInput = document.getElementById('qs-subs');
+  const savInput = document.getElementById('qs-savings');
+
+  const rent = rentInput ? (parseFloat(rentInput.value) || 0) : _qsDraft.rent;
+  const util = utilInput ? (parseFloat(utilInput.value) || 0) : _qsDraft.utilities;
+  const trans = transInput ? (parseFloat(transInput.value) || 0) : _qsDraft.transport;
+  const subs = subsInput ? (parseFloat(subsInput.value) || 0) : _qsDraft.subscriptions;
+  const sav = savInput ? (parseFloat(savInput.value) || 0) : _qsDraft.target_savings;
+
+  const total = rent + util + trans + subs + sav;
+  const totalEl = document.getElementById('qs-fixed-total-val');
+  if (totalEl) {
+    totalEl.textContent = formatDisplayAmount(total) + ' €';
+  }
+}
+
+function nextQsStepFromFixed() {
+  const rentInput = document.getElementById('qs-rent');
+  const utilInput = document.getElementById('qs-utilities');
+  const transInput = document.getElementById('qs-transport');
+  const subsInput = document.getElementById('qs-subs');
+  const savInput = document.getElementById('qs-savings');
+
+  if (rentInput) _qsDraft.rent = Math.max(0, parseFloat(rentInput.value) || 0);
+  if (utilInput) _qsDraft.utilities = Math.max(0, parseFloat(utilInput.value) || 0);
+  if (transInput) _qsDraft.transport = Math.max(0, parseFloat(transInput.value) || 0);
+  if (subsInput) _qsDraft.subscriptions = Math.max(0, parseFloat(subsInput.value) || 0);
+  if (savInput) _qsDraft.target_savings = Math.max(0, parseFloat(savInput.value) || 0);
+
+  openQuickStartModal(3);
+}
+
+function renderQuickStartStep(step) {
+  const body = document.getElementById('quick-start-body');
+  if (!body) return;
+
+  if (step === 0) {
+    // Screen 0: Welcome Gate
+    body.innerHTML = `
+      <div style="display: flex; flex-direction: column; align-items: center; text-align: center; gap: 16px; padding: 6px 4px;">
+        <div style="width: 58px; height: 58px; border-radius: 18px; background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.3); display: flex; align-items: center; justify-content: center; font-size: 24px; color: var(--accent); margin-top: 4px;">
+          <i class="fa-solid fa-calculator"></i>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <h3 style="font-family: 'Outfit', sans-serif; font-size: 20px; font-weight: 800; color: #fff; margin: 0; line-height: 1.3;">Ξέρεις πόσα σου μένουν για ξόδεμα;</h3>
+          <p style="font-size: 13.5px; color: var(--text-secondary); margin: 0; line-height: 1.5;">Βάλε τα έσοδα και τα πάγια έξοδά σου. Σε ένα λεπτό θα έχεις ένα καθαρό ημερήσιο όριο για να μην ξεμένεις ποτέ.</p>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 10px; width: 100%; margin-top: 10px;">
+          <button type="button" onclick="openQuickStartModal(1)" style="width: 100%; padding: 14px 20px; border-radius: 14px; background: linear-gradient(135deg, var(--accent, #6366f1) 0%, #4f46e5 100%); border: none; color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 16px rgba(99, 102, 241, 0.35);">
+            Υπολογισμός σε 1′
+          </button>
+          <button type="button" onclick="closeQuickStartModal(); onboardingAddDemoData();" style="width: 100%; padding: 13px 20px; border-radius: 14px; background: rgba(255, 255, 255, 0.07); border: 1px solid rgba(255, 255, 255, 0.12); color: var(--text-primary); font-size: 14px; font-weight: 600; cursor: pointer;">
+            Δες πώς λειτουργεί (Demo)
+          </button>
+          <button type="button" onclick="closeQuickStartModal(true)" style="background: transparent; border: none; color: var(--text-muted); font-size: 13px; cursor: pointer; padding: 6px; text-decoration: underline;">
+            Όχι τώρα
+          </button>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  if (step === 1) {
+    // Step 1: Inflow
+    const chips = [900, 1200, 1800, 2500];
+    body.innerHTML = `
+      <div style="display: flex; flex-direction: column; gap: 18px; padding: 4px 2px;">
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <span style="font-size: 12px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.5px;">1 από 3</span>
+          <span onclick="closeQuickStartModal(true)" style="cursor: pointer; font-size: 20px; color: var(--text-muted); line-height: 1;">&times;</span>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <h3 style="font-family: 'Outfit', sans-serif; font-size: 20px; font-weight: 800; color: #fff; margin: 0;">Πόσα χρήματα μπαίνουν κάθε μήνα;</h3>
+          <p style="font-size: 13px; color: var(--text-secondary); margin: 0;">Ο καθαρός μισθός σου ή το κοινό εισόδημα του σπιτιού.</p>
+        </div>
+
+        <div style="display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 18px; padding: 16px 20px; gap: 8px;">
+          <input id="qs-income-input" type="number" step="10" min="0" value="${_qsDraft.monthly_income || 1200}" placeholder="1200" style="font-family: 'Outfit', sans-serif; font-size: 32px; font-weight: 800; color: #fff; background: transparent; border: none; outline: none; width: 160px; text-align: right;" oninput="onQsIncomeInputChange(this.value)">
+          <span style="font-family: 'Outfit', sans-serif; font-size: 26px; font-weight: 700; color: var(--accent);">€</span>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
+          ${chips.map(amt => `
+            <button type="button" onclick="setQsIncomeChip(${amt})" style="padding: 9px 4px; border-radius: 10px; background: ${_qsDraft.monthly_income === amt ? 'var(--accent, #6366f1)' : 'rgba(255, 255, 255, 0.06)'}; border: 1px solid ${_qsDraft.monthly_income === amt ? 'var(--accent, #6366f1)' : 'rgba(255, 255, 255, 0.1)'}; color: ${_qsDraft.monthly_income === amt ? '#fff' : 'var(--text-primary)'}; font-size: 13px; font-weight: 700; cursor: pointer;">
+              ${amt} €
+            </button>
+          `).join('')}
+        </div>
+
+        <label style="display: flex; align-items: center; gap: 12px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px; padding: 12px 14px; cursor: pointer;">
+          <input type="checkbox" id="qs-household-toggle" ${_qsDraft.is_household ? 'checked' : ''} onchange="_qsDraft.is_household = this.checked" style="width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer;">
+          <span style="font-size: 13.5px; font-weight: 600; color: var(--text-primary);">Κοινό ταμείο με σύντροφο</span>
+        </label>
+
+        <button type="button" onclick="nextQsStepFromIncome()" style="width: 100%; padding: 14px 20px; border-radius: 14px; background: linear-gradient(135deg, var(--accent, #6366f1) 0%, #4f46e5 100%); border: none; color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);">
+          Συνέχεια
+        </button>
+      </div>
+    `;
+    return;
+  }
+
+  if (step === 2) {
+    // Step 2: Fixed expenses & savings
+    const fixedTotal = _qsDraft.rent + _qsDraft.utilities + _qsDraft.transport + _qsDraft.subscriptions + _qsDraft.target_savings;
+    body.innerHTML = `
+      <div style="display: flex; flex-direction: column; gap: 15px; padding: 4px 2px;">
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <span style="font-size: 12px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.5px;">2 από 3</span>
+          <span onclick="closeQuickStartModal(true)" style="cursor: pointer; font-size: 20px; color: var(--text-muted); line-height: 1;">&times;</span>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <h3 style="font-family: 'Outfit', sans-serif; font-size: 20px; font-weight: 800; color: #fff; margin: 0;">Ποια είναι τα σταθερά σου έξοδα;</h3>
+          <p style="font-size: 13px; color: var(--text-secondary); margin: 0;">Όσα πληρώνεις στάνταρ κάθε μήνα.</p>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 9px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 10px 14px;">
+            <div style="display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: var(--text-primary); font-weight: 600;">
+              <span>🏠</span> <span>Ενοίκιο ή δόση</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 4px;">
+              <input id="qs-rent" type="number" step="10" min="0" value="${_qsDraft.rent}" oninput="updateQsFixedTotal()" style="width: 80px; text-align: right; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.12); color: #fff; border-radius: 8px; padding: 6px 8px; font-size: 14px; font-weight: 700; outline: none;">
+              <span style="color: var(--text-muted); font-size: 13px;">€</span>
+            </div>
+          </div>
+
+          <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 10px 14px;">
+            <div style="display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: var(--text-primary); font-weight: 600;">
+              <span>⚡</span> <span>Ρεύμα &amp; λογαριασμοί</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 4px;">
+              <input id="qs-utilities" type="number" step="5" min="0" value="${_qsDraft.utilities}" oninput="updateQsFixedTotal()" style="width: 80px; text-align: right; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.12); color: #fff; border-radius: 8px; padding: 6px 8px; font-size: 14px; font-weight: 700; outline: none;">
+              <span style="color: var(--text-muted); font-size: 13px;">€</span>
+            </div>
+          </div>
+
+          <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 10px 14px;">
+            <div style="display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: var(--text-primary); font-weight: 600;">
+              <span>🚗</span> <span>Μετακίνηση</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 4px;">
+              <input id="qs-transport" type="number" step="5" min="0" value="${_qsDraft.transport}" oninput="updateQsFixedTotal()" style="width: 80px; text-align: right; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.12); color: #fff; border-radius: 8px; padding: 6px 8px; font-size: 14px; font-weight: 700; outline: none;">
+              <span style="color: var(--text-muted); font-size: 13px;">€</span>
+            </div>
+          </div>
+
+          <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 10px 14px;">
+            <div style="display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: var(--text-primary); font-weight: 600;">
+              <span>📱</span> <span>Συνδρομές (Netflix κ.ά.)</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 4px;">
+              <input id="qs-subs" type="number" step="5" min="0" value="${_qsDraft.subscriptions}" oninput="updateQsFixedTotal()" style="width: 80px; text-align: right; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.12); color: #fff; border-radius: 8px; padding: 6px 8px; font-size: 14px; font-weight: 700; outline: none;">
+              <span style="color: var(--text-muted); font-size: 13px;">€</span>
+            </div>
+          </div>
+
+          <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(52, 211, 153, 0.06); border: 1px solid rgba(52, 211, 153, 0.2); border-radius: 12px; padding: 10px 14px;">
+            <div style="display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: #a7f3d0; font-weight: 600;">
+              <span>🎯</span> <span>Στόχος αποταμίευσης</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 4px;">
+              <input id="qs-savings" type="number" step="10" min="0" value="${_qsDraft.target_savings}" oninput="updateQsFixedTotal()" style="width: 80px; text-align: right; background: rgba(0,0,0,0.3); border: 1px solid rgba(52, 211, 153, 0.3); color: #34d399; border-radius: 8px; padding: 6px 8px; font-size: 14px; font-weight: 700; outline: none;">
+              <span style="color: #34d399; font-size: 13px;">€</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="padding: 10px 14px; border-radius: 12px; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: space-between; font-size: 13px;">
+          <span style="color: var(--text-secondary);">Σύνολο δεσμευμένων:</span>
+          <span id="qs-fixed-total-val" style="font-family: 'Outfit', sans-serif; font-weight: 800; color: #fff; font-size: 15px;">${formatDisplayAmount(fixedTotal)} €</span>
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-top: 2px;">
+          <button type="button" onclick="openQuickStartModal(1)" style="flex: 1; padding: 13px; border-radius: 12px; background: rgba(255, 255, 255, 0.07); border: 1px solid rgba(255, 255, 255, 0.12); color: var(--text-primary); font-size: 14px; font-weight: 600; cursor: pointer;">
+            Πίσω
+          </button>
+          <button type="button" onclick="nextQsStepFromFixed()" style="flex: 2; padding: 13px; border-radius: 12px; background: linear-gradient(135deg, var(--accent, #6366f1) 0%, #4f46e5 100%); border: none; color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);">
+            Συνέχεια
+          </button>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  if (step === 3) {
+    // Step 3: Result
+    const now = new Date();
+    const totalDays = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const daysRemaining = Math.max(1, totalDays - now.getDate() + 1);
+    const income = _qsDraft.monthly_income;
+    const fixedSum = _qsDraft.rent + _qsDraft.utilities + _qsDraft.transport + _qsDraft.subscriptions;
+    const savings = _qsDraft.target_savings;
+    const committed = fixedSum + savings;
+    const pool = Math.max(0, income - committed);
+    const dailySafe = Math.round((pool / daysRemaining) * 100) / 100;
+    const weeklySafe = Math.round((dailySafe * Math.min(7, daysRemaining)) * 100) / 100;
+
+    body.innerHTML = `
+      <div style="display: flex; flex-direction: column; gap: 16px; text-align: center; padding: 4px 2px;">
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <span style="font-size: 12px; font-weight: 700; color: #34d399; text-transform: uppercase; letter-spacing: 0.5px;">3 από 3</span>
+          <span onclick="closeQuickStartModal(true)" style="cursor: pointer; font-size: 20px; color: var(--text-muted); line-height: 1;">&times;</span>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <h3 style="font-family: 'Outfit', sans-serif; font-size: 20px; font-weight: 800; color: #fff; margin: 0;">Αυτό είναι το ημερήσιο όριό σου</h3>
+          <p style="font-size: 13px; color: var(--text-secondary); margin: 0; line-height: 1.4;">Αν μένεις σε αυτό το ποσό, καλύπτεις όλα τα πάγια του μήνα και σου μένουν και στην άκρη.</p>
+        </div>
+
+        <div style="padding: 18px 16px; border-radius: 20px; background: linear-gradient(145deg, rgba(16, 185, 129, 0.15) 0%, rgba(15, 23, 42, 0.7) 100%); border: 1px solid rgba(16, 185, 129, 0.3); display: flex; flex-direction: column; align-items: center; gap: 6px;">
+          <div style="font-family: 'Outfit', sans-serif; font-size: 36px; font-weight: 900; color: #ffffff; letter-spacing: -0.5px;">
+            ${formatDisplayAmount(dailySafe)} € <span style="font-size: 16px; font-weight: 600; color: #a7f3d0;">/ μέρα</span>
+          </div>
+          <div style="font-size: 13px; font-weight: 600; color: #34d399;">
+            ή ${formatDisplayAmount(weeklySafe)} € αυτή την εβδομάδα
+          </div>
+        </div>
+
+        <div style="background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 14px; padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; font-size: 13px; text-align: left;">
+          <div style="display: flex; justify-content: space-between;">
+            <span style="color: var(--text-secondary);">Μηνιαίο εισόδημα:</span>
+            <span style="font-weight: 700; color: #34d399;">+${formatDisplayAmount(income)} €</span>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span style="color: var(--text-secondary);">Σταθερά πάγια:</span>
+            <span style="font-weight: 700; color: #f87171;">-${formatDisplayAmount(fixedSum)} €</span>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span style="color: var(--text-secondary);">Στόχος αποταμίευσης:</span>
+            <span style="font-weight: 700; color: #fbbf24;">-${formatDisplayAmount(savings)} €</span>
+          </div>
+          <div style="height: 1px; background: rgba(255,255,255,0.08); margin: 2px 0;"></div>
+          <div style="display: flex; justify-content: space-between;">
+            <span style="color: #fff; font-weight: 600;">Ελεύθερο για τον μήνα:</span>
+            <span style="font-weight: 800; color: #fff;">${formatDisplayAmount(pool)} €</span>
+          </div>
+        </div>
+
+        <button type="button" onclick="applyQuickStartProfile()" style="width: 100%; padding: 15px 20px; border-radius: 14px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none; color: #fff; font-size: 15px; font-weight: 800; cursor: pointer; box-shadow: 0 4px 16px rgba(16, 185, 129, 0.35);">
+          Πάμε στην εφαρμογή
+        </button>
+      </div>
+    `;
+    return;
+  }
+}
+
+function applyQuickStartProfile() {
+  const profile = {
+    monthly_income: _qsDraft.monthly_income,
+    is_household: _qsDraft.is_household,
+    fixed_bills: {
+      rent: _qsDraft.rent,
+      utilities: _qsDraft.utilities,
+      transport: _qsDraft.transport,
+      subscriptions: _qsDraft.subscriptions
+    },
+    target_savings: _qsDraft.target_savings,
+    updated_at: new Date().toISOString()
+  };
+
+  localStorage.setItem('ba_quick_start_profile', JSON.stringify(profile));
+  localStorage.setItem('ba_ftux_status', 'completed_wizard');
+
+  // Register Recurring Templates for fixed bills
+  if (!state.recurringTemplates) state.recurringTemplates = [];
+  state.recurringTemplates = state.recurringTemplates.filter(t => !(t && t.is_quick_start));
+
+  const uid = state.currentUser ? state.currentUser.id : 'guest';
+  const nowStr = new Date().toISOString().slice(0, 10);
+
+  if (_qsDraft.rent > 0) {
+    state.recurringTemplates.push({
+      id: 'qs_tpl_rent_' + Date.now(),
+      name: 'Ενοίκιο',
+      title: 'Ενοίκιο',
+      category: '🏠 Σπίτι',
+      subcategory: 'Ενοίκιο',
+      amount: _qsDraft.rent,
+      type: 'expense',
+      preset: 'monthly',
+      due_day: 1,
+      day_of_month: 1,
+      startDate: nowStr,
+      endType: 'perpetual',
+      user_id: uid,
+      is_quick_start: true,
+      created_at: new Date().toISOString()
+    });
+  }
+
+  if (_qsDraft.utilities > 0) {
+    state.recurringTemplates.push({
+      id: 'qs_tpl_util_' + Date.now(),
+      name: 'Ρεύμα & λογαριασμοί',
+      title: 'Ρεύμα & λογαριασμοί',
+      category: '🏠 Σπίτι',
+      subcategory: 'Ρεύμα',
+      amount: _qsDraft.utilities,
+      type: 'expense',
+      preset: 'monthly',
+      due_day: 5,
+      day_of_month: 5,
+      startDate: nowStr,
+      endType: 'perpetual',
+      user_id: uid,
+      is_quick_start: true,
+      created_at: new Date().toISOString()
+    });
+  }
+
+  if (_qsDraft.transport > 0) {
+    state.recurringTemplates.push({
+      id: 'qs_tpl_trans_' + Date.now(),
+      name: 'Μετακίνηση',
+      title: 'Μετακίνηση',
+      category: '🚗 Μεταφορές',
+      subcategory: 'Καύσιμα',
+      amount: _qsDraft.transport,
+      type: 'expense',
+      preset: 'monthly',
+      due_day: 1,
+      day_of_month: 1,
+      startDate: nowStr,
+      endType: 'perpetual',
+      user_id: uid,
+      is_quick_start: true,
+      created_at: new Date().toISOString()
+    });
+  }
+
+  if (_qsDraft.subscriptions > 0) {
+    state.recurringTemplates.push({
+      id: 'qs_tpl_subs_' + Date.now(),
+      name: 'Συνδρομές',
+      title: 'Συνδρομές',
+      category: '📱 Συνδρομές',
+      subcategory: 'Streaming',
+      amount: _qsDraft.subscriptions,
+      type: 'expense',
+      preset: 'monthly',
+      due_day: 1,
+      day_of_month: 1,
+      startDate: nowStr,
+      endType: 'perpetual',
+      user_id: uid,
+      is_quick_start: true,
+      created_at: new Date().toISOString()
+    });
+  }
+
+  localStorage.setItem('recurring_templates', JSON.stringify(state.recurringTemplates));
+
+  // If Savings Goal set, ensure a savings budget exists
+  if (!state.budgets) state.budgets = [];
+  state.budgets = state.budgets.filter(b => !(b && b.is_quick_start));
+  if (_qsDraft.target_savings > 0) {
+    state.budgets.push({
+      id: 'qs_budget_savings_' + Date.now(),
+      user_id: uid,
+      category: '🎯 Αποταμίευση',
+      amount: _qsDraft.target_savings,
+      is_quick_start: true,
+      created_at: new Date().toISOString()
+    });
+    localStorage.setItem('cached_budgets', JSON.stringify(state.budgets));
+  }
+
+  closeModal('quick-start-modal');
+  updateSafeToSpendUI();
+  updateUI();
+
+  if (typeof showSyncToast === 'function') {
+    showSyncToast(state.lang === 'el' ? '✓ Το ημερήσιο όριο ρυθμίστηκε με επιτυχία' : '✓ Daily spending limit configured', 3500);
+  }
+}
+
+// Window bindings
+window.getQuickStartProfile = getQuickStartProfile;
+window.openQuickStartModal = openQuickStartModal;
+window.closeQuickStartModal = closeQuickStartModal;
+window.setQsIncomeChip = setQsIncomeChip;
+window.onQsIncomeInputChange = onQsIncomeInputChange;
+window.nextQsStepFromIncome = nextQsStepFromIncome;
+window.updateQsFixedTotal = updateQsFixedTotal;
+window.nextQsStepFromFixed = nextQsStepFromFixed;
+window.renderQuickStartStep = renderQuickStartStep;
+window.applyQuickStartProfile = applyQuickStartProfile;
 
 // ============================================================
 // ONBOARDING & SAMPLE DATA GENERATOR (15 TX + 5 BUDGETS)
