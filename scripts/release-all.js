@@ -112,6 +112,7 @@ const releaseFiles = [
     'js/translations.js',
     'js/userGuide.js',
     'js/exportService.js',
+    'js/timePicker.js',
     'android/app/build.gradle',
     'android/build.gradle',
     'android/variables.gradle',

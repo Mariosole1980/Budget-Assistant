@@ -91,6 +91,7 @@ const CRITICAL_JS = [
     'js/SubscriptionEngine.js',
     'js/userGuide.js',
     'js/exportService.js',
+    'js/timePicker.js',
     // Build/release scripts (including this file itself)
     'scripts/generate-android-icons.js',
     'scripts/generate-app-icon-variants.js',
