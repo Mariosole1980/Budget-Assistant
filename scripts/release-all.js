@@ -114,6 +114,7 @@ const releaseFiles = [
     'js/exportService.js',
     'js/timePicker.js',
     'js/dialogService.js',
+    'js/searchFilterService.js',
     'android/app/build.gradle',
     'android/build.gradle',
     'android/variables.gradle',
