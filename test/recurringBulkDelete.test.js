@@ -58,6 +58,7 @@ global.localStorage = {
   clear() { this.store = {}; }
 };
 global.window = global;
+global.getState = () => global.state;
 global.document = {
   getElementById: () => null,
   querySelector: (sel) => (sel.includes('recurring_delete_scope') ? { checked: false } : null),
@@ -80,6 +81,7 @@ global.TRANSLATIONS = {};
 // _computeRecurringSeriesDates were moved from app.js to js/recurringDates.js.
 // Extract them from their new home; the rest remain in app.js.
 const recurringDatesJs = fs.readFileSync(__dirname + '/../js/recurringDates.js', 'utf8');
+const templateAssocJs = fs.readFileSync(__dirname + '/../js/templateAssociationService.js', 'utf8');
 
 function extractFnFromSrc(src, name) {
   let start = -1;
@@ -102,11 +104,11 @@ eval([
   extractFnFromSrc(recurringDatesJs, 'getDeletedDatesFromTemplate'),
   extractFnFromSrc(recurringDatesJs, 'addDeletedDateToTemplate'),
   extractFnFromSrc(recurringDatesJs, '_computeRecurringSeriesDates'),
+  extractFnFromSrc(templateAssocJs, 'isSameCategory'),
+  extractFnFromSrc(templateAssocJs, 'resolveRecurringTemplateForTx'),
   ...[
     'stripLeadingEmoji',
-    'isSameCategory',
     '_txBelongsToRecurringSeries',
-    'resolveRecurringTemplateForTx',
     'executeBulkRecurringDelete',
     'openBulkRecurringDeleteModal',
     'deleteSelectedTransactions'

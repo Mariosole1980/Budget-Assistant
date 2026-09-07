@@ -7,6 +7,7 @@ const { normalizeGreekString, normalizeString, normalizeCategoryName } = utils;
 global.normalizeGreekString = normalizeGreekString;
 global.normalizeString = normalizeString;
 global.normalizeCategoryName = normalizeCategoryName;
+global.TemplateAssociationService = require('../js/templateAssociationService.js');
 
 const appJs = fs.readFileSync(__dirname + '/../app.js', 'utf8');
 
