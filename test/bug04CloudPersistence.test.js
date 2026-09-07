@@ -33,9 +33,11 @@ const CurrencyService = require('../js/CurrencyService.js');
 const APP_JS = path.join(__dirname, '..', 'app.js');
 const TRASH_JS = path.join(__dirname, '..', 'js', 'trashBinService.js');
 const IMPORT_JS = path.join(__dirname, '..', 'js', 'importService.js');
+const ALERT_JS = path.join(__dirname, '..', 'js', 'highExpenseAlertService.js');
 let appSrc = fs.readFileSync(APP_JS, 'utf8');
 if (fs.existsSync(TRASH_JS)) appSrc += '\n' + fs.readFileSync(TRASH_JS, 'utf8');
 if (fs.existsSync(IMPORT_JS)) appSrc += '\n' + fs.readFileSync(IMPORT_JS, 'utf8');
+const alertSrc = fs.existsSync(ALERT_JS) ? fs.readFileSync(ALERT_JS, 'utf8') : '';
 
 // The 9 currency columns that must now be persisted to Supabase.
 const CURRENCY_COLUMNS = [
@@ -63,7 +65,7 @@ test('A: computeCurrencyFields(t) helper is defined in app.js', () => {
 test('A: computeCurrencyFields reproduces the canonical EUR 1:1 behavior', () => {
     // The helper must set base_currency, rate_to_base=1, amount_base=amount,
     // rate_source='api' when tx currency === base currency.
-    const helper = appSrc.match(/function computeCurrencyFields\(t\)\s*\{([\s\S]*?)\n\}/);
+    const helper = (alertSrc || appSrc).match(/function computeCurrencyFields\(t\)\s*\{([\s\S]*?)\n\}/);
     assert.ok(helper, 'computeCurrencyFields body not found');
     const body = helper[1];
     assert.match(body, /t\.base_currency = baseCurrency;/);
@@ -88,7 +90,7 @@ test('A2: normal transaction path calls computeCurrencyFields(t) instead of an i
     const inlineBlockPattern = /const userPreferredCurrency = state\.userProfile\?\.base_currency[\s\S]*?let rate = 1;[\s\S]*?t\.fx_snapshot = \{/;
     // There should be exactly ONE occurrence of the canonical computation
     // (inside the helper), not a second inline copy in the save path.
-    const matches = appSrc.match(/const userPreferredCurrency = state\.userProfile\?\.base_currency/g) || [];
+    const matches = (appSrc + alertSrc).match(/const userPreferredCurrency = state\.userProfile\?\.base_currency/g) || [];
     assert.strictEqual(matches.length, 1, 'expected exactly one canonical computation (in the helper)');
     // The save path must call the helper.
     assert.match(appSrc, /computeCurrencyFields\(t\);/);
