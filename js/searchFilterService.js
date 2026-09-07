@@ -20,6 +20,7 @@
     // Browser: attach to root (window)
     var exports = factory();
     Object.assign(root, exports);
+    root.SearchFilterService = exports;
   }
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
@@ -1386,9 +1387,15 @@ function populateSearchFilterDropdowns() {
   }
 
   // Sync custom dropdowns!
-  syncCustomSelect('type');
-  syncCustomSelect('account');
-  syncCustomSelect('category');
+  if (typeof syncCustomSelect === 'function') {
+    syncCustomSelect('type');
+    syncCustomSelect('account');
+    syncCustomSelect('category');
+  } else if (typeof window !== 'undefined' && typeof window.syncCustomSelect === 'function') {
+    window.syncCustomSelect('type');
+    window.syncCustomSelect('account');
+    window.syncCustomSelect('category');
+  }
 
   // Populate subcategory filter (all subcats initially)
   populateSearchSubcategoryDropdown('');
@@ -1415,7 +1422,11 @@ function populateSearchSubcategoryDropdown(filterByCat) {
   });
 
   // Sync subcategory custom select!
-  syncCustomSelect('subcategory');
+  if (typeof syncCustomSelect === 'function') {
+    syncCustomSelect('subcategory');
+  } else if (typeof window !== 'undefined' && typeof window.syncCustomSelect === 'function') {
+    window.syncCustomSelect('subcategory');
+  }
 }
 
 
@@ -1475,7 +1486,11 @@ function resetSearchFilters() {
   populateSearchSubcategoryDropdown('');
 
   // Sync the custom UI trigger labels and selections
-  updateCustomSelectTriggers();
+  if (typeof updateCustomSelectTriggers === 'function') {
+    updateCustomSelectTriggers();
+  } else if (typeof window !== 'undefined' && typeof window.updateCustomSelectTriggers === 'function') {
+    window.updateCustomSelectTriggers();
+  }
 
   // Reset visual chip elements to default labels
   resetAllSearchChips();

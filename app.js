@@ -5944,25 +5944,26 @@ function saveCategoriesToStorage() {
 
 // Universal forwarders for extracted modular services
 function openSettingsCategoryManager() {
-  if (typeof window !== 'undefined' && typeof window.openSettingsCategoryManager === 'function') {
-    return window.openSettingsCategoryManager.apply(this, arguments);
+  if (typeof CategoryManager !== 'undefined' && typeof CategoryManager.openSettingsCategoryManager === 'function') {
+    return CategoryManager.openSettingsCategoryManager.apply(this, arguments);
   }
 }
 window.openSettingsCategoryManager = openSettingsCategoryManager;
 
 function openTrashBinModal() {
-  if (typeof window !== 'undefined' && typeof window.openTrashBinModal === 'function') {
-    return window.openTrashBinModal.apply(this, arguments);
+  if (typeof TrashBinService !== 'undefined' && typeof TrashBinService.openTrashBinModal === 'function') {
+    return TrashBinService.openTrashBinModal.apply(this, arguments);
   }
 }
 window.openTrashBinModal = openTrashBinModal;
 
 function openSearchOverlay() {
-  if (typeof window !== 'undefined' && typeof window.openSearchOverlay === 'function') {
-    return window.openSearchOverlay.apply(this, arguments);
+  if (typeof SearchFilterService !== 'undefined' && typeof SearchFilterService.openSearchOverlay === 'function') {
+    return SearchFilterService.openSearchOverlay.apply(this, arguments);
   }
 }
 window.openSearchOverlay = openSearchOverlay;
+
 
 function setupEventListeners() {
   document.querySelectorAll('.nav-item').forEach(item => {

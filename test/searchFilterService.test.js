@@ -293,4 +293,59 @@ test('searchFilterService Module Tests', async (t) => {
     assert.strictEqual(emptyTotals.totalTransfer, 0);
   });
 
+  await t.test('5. openSearchOverlay delegation and execution safety', () => {
+    assert.strictEqual(typeof searchFilterService.openSearchOverlay, 'function');
+    assert.strictEqual(typeof searchFilterService.closeSearchOverlay, 'function');
+
+    // Simulate forwarder as in app.js
+    global.SearchFilterService = searchFilterService;
+    function openSearchOverlayForwarder() {
+      if (typeof SearchFilterService !== 'undefined' && typeof SearchFilterService.openSearchOverlay === 'function') {
+        return SearchFilterService.openSearchOverlay.apply(this, arguments);
+      }
+    }
+
+    // Verify calling forwarder does not throw recursion or RangeError
+    assert.doesNotThrow(() => {
+      // Mock minimal environment
+      global.document = {
+        getElementById: () => ({
+          classList: { toggle: () => false, add: () => {}, remove: () => {} },
+          style: { setProperty: () => {} },
+          appendChild: () => {},
+          addEventListener: () => {},
+          querySelector: () => ({ textContent: '', classList: { remove: () => {} } }),
+          querySelectorAll: () => [],
+          value: ''
+        }),
+        querySelector: () => ({ classList: { remove: () => {} } }),
+        querySelectorAll: () => [],
+        createElement: () => ({ tagName: 'div', classList: { add: () => {} } })
+      };
+      global.state = {
+        selectedSearchIds: new Set(),
+        lang: 'el',
+        accounts: [],
+        categories: [],
+        transactions: []
+      };
+      global.TRANSLATIONS = { el: {} };
+      global.getAccountDisplayName = (a) => a.name;
+      global.getActiveTransactions = () => [];
+      global.formatDisplayAmount = (x) => String(x);
+      global.getCurrencySymbol = () => '€';
+      global.getDisplayCurrency = () => 'EUR';
+      global.CurrencyService = { displayAmount: (t) => t.amount, sumInCurrency: () => 0 };
+      global.compareTransactions = () => 0;
+      global.getCategoryInfo = () => ({ icon: '', color: '' });
+      global.getCategoryDisplayName = (c) => c;
+      global.getSubcategoryDisplayName = (s) => s;
+      global.escapeHtml = (s) => s;
+      global.ensureHistoryPushed = () => {};
+      global.ensureOverlayInBody = () => {};
+
+      openSearchOverlayForwarder();
+    });
+  });
+
 });
