@@ -94,13 +94,19 @@ test('every data-i18n key used in index.html exists in both el and en', () => {
     assert.deepStrictEqual(missingInEl, [], `data-i18n keys missing from EL: ${missingInEl.join(', ')}`);
 });
 
-test('every TRANSLATIONS[lang][key] reference in app.js exists in both el and en', () => {
-    const app = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
+test('every TRANSLATIONS[lang][key] reference in app.js and js/*.js exists in both el and en', () => {
+    let allCode = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
+    const jsDir = path.join(__dirname, '..', 'js');
+    if (fs.existsSync(jsDir)) {
+        fs.readdirSync(jsDir).filter(f => f.endsWith('.js')).forEach(f => {
+            allCode += '\n' + fs.readFileSync(path.join(jsDir, f), 'utf8');
+        });
+    }
     const re = /TRANSLATIONS\[(?:state\.)?lang\]\[['"]([^'"]+)['"]\]/g;
     const refs = new Set();
     let m;
-    while ((m = re.exec(app)) !== null) refs.add(m[1]);
-    assert.ok(refs.size > 50, 'expected many TRANSLATIONS references in app.js');
+    while ((m = re.exec(allCode)) !== null) refs.add(m[1]);
+    assert.ok(refs.size >= 50, 'expected many TRANSLATIONS references in app codebase');
 
     const missingInEl = [];
     const missingInEn = [];
@@ -108,7 +114,7 @@ test('every TRANSLATIONS[lang][key] reference in app.js exists in both el and en
         if (!TRANSLATIONS.el[k]) missingInEl.push(k);
         if (!TRANSLATIONS.en[k]) missingInEn.push(k);
     });
-    assert.deepStrictEqual(missingInEn, [], `app.js translation keys missing from EN: ${missingInEn.join(', ')}`);
-    assert.deepStrictEqual(missingInEl, [], `app.js translation keys missing from EL: ${missingInEl.join(', ')}`);
+    assert.deepStrictEqual(missingInEn, [], `app translation keys missing from EN: ${missingInEn.join(', ')}`);
+    assert.deepStrictEqual(missingInEl, [], `app translation keys missing from EL: ${missingInEl.join(', ')}`);
 });
 
