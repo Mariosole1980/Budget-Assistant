@@ -7709,166 +7709,17 @@ function renderEditCategorySubcategories(categoryName) { return CategoryPickerVi
 function saveNewCategoryFromPicker() { return CategoryPickerView.saveNewCategoryFromPicker(); }
 function openSubcategoryModal() { return CategoryPickerView.openSubcategoryModal(); }
 
-function getAccountVisualInfo(accOrType) {
-  const type = typeof accOrType === 'object' && accOrType ? accOrType.type : accOrType;
-  switch (type) {
-    case 'cash':
-      return { iconClass: 'fa-solid fa-money-bill-wave', emoji: '💵', color: '#10b981', labelEl: 'Μετρητά', labelEn: 'Cash' };
-    case 'card':
-      return { iconClass: 'fa-solid fa-credit-card', emoji: '💳', color: '#f59e0b', labelEl: 'Κάρτα', labelEn: 'Card' };
-    case 'investment':
-      return { iconClass: 'fa-solid fa-chart-line', emoji: '📈', color: '#8b5cf6', labelEl: 'Επένδυση', labelEn: 'Investment' };
-    case 'bank':
-    default:
-      return { iconClass: 'fa-solid fa-building-columns', emoji: '🏦', color: '#3b82f6', labelEl: 'Τράπεζα', labelEn: 'Bank' };
-  }
-}
-
-function getAccountDisplayName(accOrName) {
-  if (!accOrName) return '';
-  const name = typeof accOrName === 'string' ? accOrName : (accOrName.name || '');
-  const type = typeof accOrName === 'object' && accOrName ? (accOrName.type || '') : '';
-  const lowerName = name.toLowerCase().trim();
-  const lang = state.lang || 'el';
-
-  if (lang === 'el') {
-    if (lowerName === 'cash' || lowerName === 'μετρητά' || (!lowerName && type === 'cash')) return 'Μετρητά';
-    if (lowerName === 'bank account' || lowerName === 'bank' || lowerName === 'τραπεζικός λογαριασμός' || lowerName === 'τράπεζα' || (!lowerName && type === 'bank')) return 'Τράπεζα';
-    if (lowerName === 'card' || lowerName === 'κάρτα' || (!lowerName && type === 'card')) return 'Κάρτα';
-  } else {
-    if (lowerName === 'cash' || lowerName === 'μετρητά' || (!lowerName && type === 'cash')) return 'Cash';
-    if (lowerName === 'bank account' || lowerName === 'bank' || lowerName === 'τραπεζικός λογαριασμός' || lowerName === 'τράπεζα' || (!lowerName && type === 'bank')) return 'Bank Account';
-    if (lowerName === 'card' || lowerName === 'κάρτα' || (!lowerName && type === 'card')) return 'Card';
-  }
-  return name;
-}
-
-let _currentAccountPickerTarget = 'from';
-
-function openAccountPickerModal(target) {
-  if (window.autocompleteJustSelected) return;
-  const form = document.getElementById('transaction-form');
-  if (form && form.getAttribute('data-readonly') === 'true') return;
-  _currentAccountPickerTarget = target;
-
-  const titleEl = document.getElementById('account-picker-title');
-  if (titleEl) {
-    const langDict = (typeof TRANSLATIONS !== 'undefined' && TRANSLATIONS[state.lang]) || {};
-    titleEl.textContent = langDict['account_picker_title'] || (state.lang === 'el' ? 'Επιλογή τρόπου πληρωμής' : 'Select Payment Method');
-  }
-
-  renderAccountPickerOptions();
-  openModal('account-picker-modal');
-}
-
-function renderAccountPickerOptions() {
-  if (!state.accounts || state.accounts.length === 0) {
-    state.accounts = (typeof DEFAULT_ACCOUNTS !== 'undefined' ? DEFAULT_ACCOUNTS : [
-      { name: 'Cash', type: 'cash', balance: 0 },
-      { name: 'Bank Account', type: 'bank', balance: 0 },
-      { name: 'Card', type: 'card', balance: 0 }
-    ]).slice();
-  }
-  const container = document.getElementById('account-picker-list');
-  if (!container) return;
-
-  container.innerHTML = '';
-
-  const targetInput = document.getElementById(`trans-account-${_currentAccountPickerTarget}`);
-  const currentVal = targetInput ? targetInput.value : '';
-
-  state.accounts.filter(a => a.is_active !== false).forEach(acc => {
-    const item = document.createElement('div');
-    item.className = 'account-picker-item';
-    if (acc.name === currentVal) {
-      item.classList.add('selected');
-    }
-
-    const visual = getAccountVisualInfo(acc);
-    const displayName = getAccountDisplayName(acc);
-
-    item.innerHTML = `
-      <div style="width: 32px; height: 32px; border-radius: 8px; background: ${visual.color}22; border: 1px solid ${visual.color}44; color: ${visual.color}; display: flex; align-items: center; justify-content: center; font-size: 14px; margin-right: 10px;">
-        <i class="${visual.iconClass}"></i>
-      </div>
-      <div style="flex: 1; min-width: 0;">
-        <div style="font-weight: 600; font-size: 14px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(displayName)}</div>
-        <div style="font-size: 11px; color: var(--text-muted);">${state.lang === 'el' ? visual.labelEl : visual.labelEn}</div>
-      </div>
-    `;
-
-    item.onclick = () => selectAccountOption(acc.name);
-    container.appendChild(item);
-  });
-
-  // + New Account option at the bottom
-  const newAccBtn = document.createElement('div');
-  newAccBtn.className = 'account-picker-item new-acc-item';
-  newAccBtn.style.cssText = 'border-top: 1px dashed var(--border); margin-top: 4px; padding-top: 12px; color: #3b82f6; font-weight: 600; display: flex; align-items: center; cursor: pointer;';
-  newAccBtn.innerHTML = `
-    <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(59,130,246,0.15); border: 1px solid rgba(59,130,246,0.3); color: #3b82f6; display: flex; align-items: center; justify-content: center; font-size: 14px; margin-right: 10px;">
-      <i class="fa-solid fa-plus"></i>
-    </div>
-    <span style="font-size: 13px;">${(TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['account_picker_new']) || '+ Νέος Λογαριασμός...'}</span>
-  `;
-  newAccBtn.onclick = () => {
-    closeModal('account-picker-modal');
-    openAccountEditorModal();
-  };
-  container.appendChild(newAccBtn);
-}
-
-function selectAccountOption(name) {
-  const targetId = `trans-account-${_currentAccountPickerTarget}`;
-  document.getElementById(targetId).value = name;
-
-  updateAccountTriggerDisplay(_currentAccountPickerTarget);
-  closeModal('account-picker-modal');
-}
-
-function updateAccountTriggerDisplay(target) {
-  const input = document.getElementById(`trans-account-${target}`);
-  if (!input) return;
-  let value = input.value;
-  const triggerDisplay = document.getElementById(`trans-account-${target}-display`);
-  if (!triggerDisplay) return;
-
-  if (!value) {
-    if (!state.accounts || state.accounts.length === 0) {
-      state.accounts = (typeof DEFAULT_ACCOUNTS !== 'undefined' ? DEFAULT_ACCOUNTS : [
-        { name: 'Cash', type: 'cash', balance: 0 },
-        { name: 'Bank Account', type: 'bank', balance: 0 },
-        { name: 'Card', type: 'card', balance: 0 }
-      ]).slice();
-    }
-    const defaultAcc = target === 'to' ? (state.accounts[1] || state.accounts[0]) : state.accounts[0];
-    if (defaultAcc) {
-      input.value = defaultAcc.name;
-      value = defaultAcc.name;
-    }
-  }
-
-  if (!value) {
-    triggerDisplay.innerHTML = `<span class="custom-select-placeholder">${state.lang === 'el' ? 'Επιλογή...' : 'Select...'}</span>`;
-  } else {
-    if (!state.accounts || state.accounts.length === 0) {
-      state.accounts = (typeof DEFAULT_ACCOUNTS !== 'undefined' ? DEFAULT_ACCOUNTS : [
-        { name: 'Cash', type: 'cash', balance: 0 },
-        { name: 'Bank Account', type: 'bank', balance: 0 },
-        { name: 'Card', type: 'card', balance: 0 }
-      ]).slice();
-    }
-    const acc = state.accounts.find(a => a.name === value);
-    const visual = acc ? getAccountVisualInfo(acc) : { iconClass: 'fa-solid fa-wallet', color: '#3b82f6' };
-    const name = acc ? getAccountDisplayName(acc) : value;
-    triggerDisplay.innerHTML = `<span class="custom-select-icon" style="margin-right: 8px; color: ${visual.color};"><i class="${visual.iconClass}"></i></span><span class="custom-select-text">${escapeHtml(name)}</span>`;
-  }
-}
-
-function updateAccountDropdowns() {
-  updateAccountTriggerDisplay('from');
-  updateAccountTriggerDisplay('to');
-}
+// ============================================================
+// ACCOUNT PICKER VIEW SUBSYSTEM
+// Extracted to js/accountPickerView.js (Phase 19C Architectural Modularization)
+// ============================================================
+function getAccountVisualInfo(accOrType) { return AccountPickerView.getAccountVisualInfo(accOrType); }
+function getAccountDisplayName(accOrName) { return AccountPickerView.getAccountDisplayName(accOrName); }
+function openAccountPickerModal(target) { return AccountPickerView.openAccountPickerModal(target); }
+function renderAccountPickerOptions() { return AccountPickerView.renderAccountPickerOptions(); }
+function selectAccountOption(name) { return AccountPickerView.selectAccountOption(name); }
+function updateAccountTriggerDisplay(target) { return AccountPickerView.updateAccountTriggerDisplay(target); }
+function updateAccountDropdowns() { return AccountPickerView.updateAccountDropdowns(); }
 
 window.getAccountDisplayName = getAccountDisplayName;
 window.openAccountPickerModal = openAccountPickerModal;
