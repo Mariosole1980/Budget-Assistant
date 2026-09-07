@@ -790,16 +790,10 @@ function readSyncQueueForMerge() {
 
 
 // (GREEK_MONTHS moved to js/constants.js)
-const GREEK_MONTHS_SHORT = [
-  'Ιαν', 'Φεβ', 'Μαρ', 'Απρ', 'Μαΐ', 'Ιουν', 'Ιουλ', 'Αυγ', 'Σεπ', 'Οκτ', 'Νοε', 'Δεκ'
-];
-const GREEK_WEEKDAYS_SHORT = ['Κυρ', 'Δευ', 'Τρί', 'Τετ', 'Πέμ', 'Παρ', 'Σάβ'];
-
-// (ENGLISH_MONTHS moved to js/constants.js)
-const ENGLISH_MONTHS_SHORT = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-];
-const ENGLISH_WEEKDAYS_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const GREEK_MONTHS_SHORT = (typeof I18nService !== 'undefined' && I18nService.GREEK_MONTHS_SHORT) || window.GREEK_MONTHS_SHORT;
+const GREEK_WEEKDAYS_SHORT = (typeof I18nService !== 'undefined' && I18nService.GREEK_WEEKDAYS_SHORT) || window.GREEK_WEEKDAYS_SHORT;
+const ENGLISH_MONTHS_SHORT = (typeof I18nService !== 'undefined' && I18nService.ENGLISH_MONTHS_SHORT) || window.ENGLISH_MONTHS_SHORT;
+const ENGLISH_WEEKDAYS_SHORT = (typeof I18nService !== 'undefined' && I18nService.ENGLISH_WEEKDAYS_SHORT) || window.ENGLISH_WEEKDAYS_SHORT;
 
 // Pending receipt files for the current transaction form session
 let _pendingReceiptFiles = [];
@@ -823,238 +817,29 @@ let _pendingRecurringSettings = { isActive: false, days: [], months: [], years: 
 
 // (DEFAULT_SUBCATEGORIES_MAP moved to js/constants.js)
 
-function getMonthName(index, short = false) {
-  if (state.lang === 'en') {
-    return short ? ENGLISH_MONTHS_SHORT[index] : ENGLISH_MONTHS[index];
-  }
-  return short ? GREEK_MONTHS_SHORT[index] : GREEK_MONTHS[index];
-}
+// ============================================================
+// INTERNATIONALIZATION (i18n), LANGUAGE & BUILD LABEL SUBSYSTEM
+// Extracted to js/i18nService.js (Phase 24A Architectural Modularization)
+// ============================================================
+function getMonthName(index, short = false) { return I18nService.getMonthName(index, short); }
+function getWeekdayName(index) { return I18nService.getWeekdayName(index); }
+function parseBuildNumber(v) { return I18nService.parseBuildNumber(v); }
+function getActiveBuildLabel() { return I18nService.getActiveBuildLabel(); }
+function applyLanguage(lang) { return I18nService.applyLanguage(lang); }
+function updateOTADiagnostic() { return I18nService.updateOTADiagnostic(); }
+function toggleLanguageSetting() { return I18nService.toggleLanguageSetting(); }
+function detectGeoLanguage() { return I18nService.detectGeoLanguage(); }
+function formatGreekDateTime(dateStr) { return I18nService.formatGreekDateTime(dateStr); }
 
-function getWeekdayName(index) {
-  return state.lang === 'en' ? ENGLISH_WEEKDAYS_SHORT[index] : GREEK_WEEKDAYS_SHORT[index];
-}
-
-// Normalize a version value to its numeric build number so comparisons and
-// labels work with BOTH the plain numeric format (1615) and the Capgo OTA
-// format ("1.0.1615" -> 1615). Returns -1 when the value is not a version.
-function parseBuildNumber(v) {
-  if (v == null) return -1;
-  var n = parseInt(String(v).split('.').pop(), 10);
-  return isNaN(n) ? -1 : n;
-}
-
-// Returns the active build label for the version display.
-// Reads window.OTA_ACTIVE_VERSION (set by the boot loader after OTA load),
-// falling back to the bundled CURRENT_BUILD constant from index.html.
-function getActiveBuildLabel() {
-  var active = (typeof window.OTA_ACTIVE_VERSION !== 'undefined' && window.OTA_ACTIVE_VERSION != null)
-    ? window.OTA_ACTIVE_VERSION : null;
-  var bundled = (typeof CURRENT_BUILD !== 'undefined') ? CURRENT_BUILD : null;
-  var activeBuild = parseBuildNumber(active);
-  var build = (activeBuild > 0) ? activeBuild : bundled;
-  var label = (typeof TRANSLATIONS !== 'undefined' && TRANSLATIONS[state.lang])
-    ? TRANSLATIONS[state.lang]['app_version'] : null;
-  if (label && build != null) {
-    label = label.replace(/v\d+/, 'v' + build);
-  }
-  return label || ('Έκδοση 1.0.0 (build v' + (build != null ? build : '?') + ')');
-}
+window.getMonthName = getMonthName;
+window.getWeekdayName = getWeekdayName;
+window.parseBuildNumber = parseBuildNumber;
 window.getActiveBuildLabel = getActiveBuildLabel;
-
-function applyLanguage(lang) {
-  state.lang = lang;
-  localStorage.setItem('app_lang', lang);
-
-  // Update DOM elements with data-i18n
-  document.querySelectorAll('[data-i18n]').forEach(el => {
-    const key = el.getAttribute('data-i18n');
-    // The app_version label is dynamic (reflects the active OTA/bundled build).
-    const translation = key === 'app_version' ? getActiveBuildLabel() : (TRANSLATIONS[lang] ? TRANSLATIONS[lang][key] : null);
-    if (translation) {
-      if (el.children.length === 0) {
-        el.textContent = translation;
-      } else {
-        let updated = false;
-        for (let i = 0; i < el.childNodes.length; i++) {
-          const node = el.childNodes[i];
-          if (node.nodeType === Node.TEXT_NODE && node.nodeValue.trim() !== '') {
-            node.nodeValue = translation;
-            updated = true;
-            break;
-          }
-        }
-        if (!updated) {
-          el.textContent = translation;
-        }
-      }
-    }
-  });
-
-  // Update DOM elements with data-i18n-html
-  document.querySelectorAll('[data-i18n-html]').forEach(el => {
-    const key = el.getAttribute('data-i18n-html');
-    const translation = TRANSLATIONS[lang] ? TRANSLATIONS[lang][key] : null;
-    if (translation) el.innerHTML = translation;
-  });
-
-  // Update elements with data-i18n-title
-  document.querySelectorAll('[data-i18n-title]').forEach(el => {
-    const key = el.getAttribute('data-i18n-title');
-    const translation = TRANSLATIONS[lang] ? TRANSLATIONS[lang][key] : null;
-    if (translation) el.title = translation;
-  });
-
-  // Update elements with data-i18n-placeholder
-  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
-    const key = el.getAttribute('data-i18n-placeholder');
-    const translation = TRANSLATIONS[lang] ? TRANSLATIONS[lang][key] : null;
-    if (translation) el.placeholder = translation;
-  });
-
-  // Update settings subscreen title and subtitle if active
-  const titleEl = document.getElementById('settings-subscreen-title');
-  if (titleEl && window._currentSettingsSubscreenTitleKey) {
-    const titleKey = window._currentSettingsSubscreenTitleKey;
-    titleEl.textContent = (TRANSLATIONS[lang] && TRANSLATIONS[lang][titleKey]) || titleKey;
-  }
-  const subtitleEl = document.getElementById('settings-subscreen-subtitle');
-  if (subtitleEl && window._currentSettingsSubscreenId) {
-    const subscreenMeta = {
-      preferences: 'settings_pref_desc',
-      notifications: 'settings_notif_desc',
-      sync: 'settings_data_desc',
-      security: 'settings_security_desc',
-      family: 'settings_family_desc',
-      legal: 'settings_legal_desc',
-      feedback: 'settings_feedback_desc'
-    };
-    const subKey = subscreenMeta[window._currentSettingsSubscreenId];
-    if (subKey && TRANSLATIONS[lang] && TRANSLATIONS[lang][subKey]) {
-      subtitleEl.textContent = TRANSLATIONS[lang][subKey];
-    }
-  }
-
-  // Update Settings Summary Displays (Font size, week start, auto lock, etc.)
-  if (typeof updateSettingsDisplay === 'function') {
-    updateSettingsDisplay();
-  }
-
-  // Update Language Settings UI value
-  const langValEl = document.getElementById('lang-setting-val');
-  if (langValEl) {
-    langValEl.textContent = lang === 'en' ? '🇬🇧 English' : '🇬🇷 Ελληνικά';
-  }
-
-  // Update auth overlay lang pills active class
-  const authLangEl = document.getElementById('auth-lang-el');
-  const authLangEn = document.getElementById('auth-lang-en');
-  if (authLangEl && authLangEn) {
-    authLangEl.classList.toggle('active', lang === 'el');
-    authLangEn.classList.toggle('active', lang === 'en');
-  }
-
-  // Update Header Language Button flag and label
-  const headerFlag = document.getElementById('header-lang-flag');
-  const headerLabel = document.getElementById('header-lang-label');
-  if (headerFlag && headerLabel) {
-    headerFlag.textContent = lang === 'en' ? '🇬🇧' : '🇬🇷';
-    headerLabel.textContent = lang === 'en' ? 'EN' : 'EL';
-  }
-
-  // Update Header Profile Badge (includes Guest / User names and badges)
-  if (typeof updateHeaderProfileBadge === 'function') {
-    updateHeaderProfileBadge();
-  }
-
-  // Re-render UI dynamic elements and screens
-  if (typeof updateUI === 'function') {
-    updateUI();
-  }
-
-  if (typeof translateNotepadUI === 'function') {
-    translateNotepadUI();
-  }
-
-  // Update OTA diagnostic (shows active build source)
-  if (typeof updateOTADiagnostic === 'function') {
-    updateOTADiagnostic();
-  }
-}
-
-// OTA diagnostic: shows which build is actually active (bundled vs OTA).
-// Reads window.OTA_ACTIVE_VERSION (set by the boot loader after OTA load)
-// and CURRENT_BUILD (the bundled build constant from index.html).
-function updateOTADiagnostic() {
-  var diag = document.getElementById('ota-diagnostic');
-  if (!diag) return;
-  var activeEl = document.getElementById('ota-diag-active');
-  var bundledEl = document.getElementById('ota-diag-bundled');
-  var sourceEl = document.getElementById('ota-diag-source');
-  var active = (typeof window.OTA_ACTIVE_VERSION !== 'undefined' && window.OTA_ACTIVE_VERSION != null)
-    ? window.OTA_ACTIVE_VERSION : 'none';
-  var bundled = (typeof CURRENT_BUILD !== 'undefined') ? CURRENT_BUILD : '?';
-  var source = (active !== 'none' && parseBuildNumber(active) > parseBuildNumber(bundled))
-    ? 'OTA (IndexedDB)'
-    : 'Bundled (APK)';
-  if (activeEl) activeEl.textContent = 'v' + active;
-  if (bundledEl) bundledEl.textContent = 'v' + bundled;
-  if (sourceEl) sourceEl.textContent = source;
-  diag.style.display = 'block';
-  // NOTE: Do NOT call applyLanguage() here. applyLanguage() already calls
-  // updateOTADiagnostic() at its end, so calling it back here would create
-  // infinite mutual recursion -> "Maximum call stack size exceeded".
-  // The version display label is already refreshed by applyLanguage() itself
-  // via getActiveBuildLabel().
-}
-window.updateOTADiagnostic = updateOTADiagnostic;
-
-function toggleLanguageSetting() {
-  const nextLang = state.lang === 'el' ? 'en' : 'el';
-  localStorage.setItem('app_lang_user_set', 'true');
-  applyLanguage(nextLang);
-  const msg = nextLang === 'en' ? '🇬🇧 Switched to English' : '🇬🇷 Αλλαγή σε Ελληνικά';
-  showSyncToast(msg, 2500);
-}
-window.toggleLanguageSetting = toggleLanguageSetting;
 window.applyLanguage = applyLanguage;
-
-async function detectGeoLanguage() {
-  // If user has explicitly chosen a language, respect their preference
-  if (localStorage.getItem('app_lang_user_set') === 'true') {
-    return;
-  }
-  try {
-    const res = await fetch('/api/geo', { cache: 'no-store' });
-    if (res.ok) {
-      const data = await res.json();
-      if (data && data.recommendedLang && data.recommendedLang !== state.lang) {
-        console.log('[Geo-IP] Detected country:', data.country, '-> updating language to:', data.recommendedLang);
-        applyLanguage(data.recommendedLang);
-      }
-    }
-  } catch (e) {
-    console.warn('[Geo-IP] Detection error:', e);
-  }
-}
+window.updateOTADiagnostic = updateOTADiagnostic;
+window.toggleLanguageSetting = toggleLanguageSetting;
 window.detectGeoLanguage = detectGeoLanguage;
-
-function formatGreekDateTime(dateStr) {
-  if (!dateStr) return '';
-  const dateObj = new Date(dateStr.replace(' ', 'T'));
-  if (isNaN(dateObj.getTime())) return dateStr;
-
-  const y = dateObj.getFullYear();
-  const m = dateObj.getMonth() + 1;
-  const d = dateObj.getDate();
-  const dayOfWeek = dateObj.getDay();
-  const hrs = String(dateObj.getHours()).padStart(2, '0');
-  const mins = String(dateObj.getMinutes()).padStart(2, '0');
-
-  const shortYear = String(y).slice(-2);
-  const shortDay = getWeekdayName(dayOfWeek);
-
-  return `${d}/${m}/${shortYear} (${shortDay}) ${hrs}:${mins}`;
-}
+window.formatGreekDateTime = formatGreekDateTime;
 // evaluateCalcBuffer → extracted to js/calcKeypad.js (Phase 2, Extraction 1)
 // hasPendingMathOperator → extracted to js/calcKeypad.js (Phase 2, Extraction 1)
 
