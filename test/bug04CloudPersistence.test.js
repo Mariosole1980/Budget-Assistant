@@ -43,6 +43,8 @@ if (fs.existsSync(OFFLINE_IMPORT_JS)) appSrc += '\n' + fs.readFileSync(OFFLINE_I
 if (fs.existsSync(SYNC_QUEUE_JS)) appSrc += '\n' + fs.readFileSync(SYNC_QUEUE_JS, 'utf8');
 const TX_MUTATION_JS = path.join(__dirname, '..', 'js', 'transactionMutationService.js');
 if (fs.existsSync(TX_MUTATION_JS)) appSrc += '\n' + fs.readFileSync(TX_MUTATION_JS, 'utf8');
+const RECURRING_TEMPLATE_MODAL_JS = path.join(__dirname, '..', 'js', 'recurringTemplateModalService.js');
+if (fs.existsSync(RECURRING_TEMPLATE_MODAL_JS)) appSrc += '\n' + fs.readFileSync(RECURRING_TEMPLATE_MODAL_JS, 'utf8');
 const alertSrc = fs.existsSync(ALERT_JS) ? fs.readFileSync(ALERT_JS, 'utf8') : '';
 
 // The 9 currency columns that must now be persisted to Supabase.
