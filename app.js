@@ -4560,89 +4560,11 @@ function copyDirectInviteLink(inviteCode) { return AuthControllerService.copyDir
 // Extracted to js/partnerSyncService.js (Phase 12B Architectural Extraction)
 // ============================================================
 
-async function forceAppUpdate() {
-  const confirmMsg = state.lang === 'en' ? 'Force update and reload the app?' : 'Θέλετε να επιβάλλετε ενημέρωση και επαναφόρτωση της εφαρμογής;';
-  const confirmed = await showConfirm(confirmMsg, state.lang === 'el' ? 'Αναγκαστική Ενημέρωση' : 'Force Update', '🔄');
-  if (!confirmed) return;
-
-  if (typeof showSyncToast === 'function') {
-    showSyncToast(state.lang === 'el' ? 'Έλεγχος & λήψη ενημέρωσης...' : 'Checking & downloading update...', 10000);
-  }
-
-  if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorUpdater) {
-    try {
-      const manifestRes = await fetch("https://budget-assistant-pwa.pages.dev/version.json?_t=" + Date.now());
-      const manifest = await manifestRes.json();
-
-      if (!manifest || !manifest.url) {
-        throw new Error("Invalid version.json format");
-      }
-
-      if (typeof showSyncToast === 'function') {
-        showSyncToast((state.lang === 'el' ? 'Λήψη έκδοσης ' : 'Downloading version ') + (manifest.version || 'νέας') + '...', 10000);
-      }
-
-      // Wrap the native download in a timeout so it can never hang forever
-      // (Capgo's download() has no built-in timeout and can stall silently,
-      // leaving the user stuck on "Downloading version...").
-      const DOWNLOAD_TIMEOUT_MS = 90000;
-      const downloadPromise = window.Capacitor.Plugins.CapacitorUpdater.download({
-        url: manifest.url,
-        version: manifest.version || Date.now().toString(),
-        checksum: manifest.checksum || undefined
-      });
-      const update = await Promise.race([
-        downloadPromise,
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Download timed out')), DOWNLOAD_TIMEOUT_MS))
-      ]);
-
-      await window.Capacitor.Plugins.CapacitorUpdater.set({ id: update.id });
-
-      if (typeof showSyncToast === 'function') {
-        showSyncToast(state.lang === 'el' ? 'Εφαρμογή ενημέρωσης & επανεκκίνηση...' : 'Applying update & reloading...', 3000);
-      }
-
-      setTimeout(async () => {
-        try {
-          if (window.Capacitor.Plugins.CapacitorUpdater.reload) {
-            await window.Capacitor.Plugins.CapacitorUpdater.reload();
-          } else {
-            window.location.reload(true);
-          }
-        } catch (_) {
-          window.location.reload(true);
-        }
-      }, 500);
-      return;
-    } catch (e) {
-      console.error('[ForceUpdate] Capgo update failed; falling back to classic reload:', e);
-    }
-  }
-
-  // Classic path (plain web/PWA or no OTA update available): clear SW + cache
-  // and reload the bundled app.
-  if ('serviceWorker' in navigator) {
-    try {
-      const registrations = await navigator.serviceWorker.getRegistrations();
-      for (let registration of registrations) {
-        await registration.unregister();
-      }
-    } catch (e) {
-      console.error('Failed to unregister SW:', e);
-    }
-  }
-  if ('caches' in window) {
-    try {
-      const keys = await caches.keys();
-      for (let key of keys) {
-        await caches.delete(key);
-      }
-    } catch (e) {
-      console.error('Failed to clear cache:', e);
-    }
-  }
-  window.location.reload(true);
-}
+// ============================================================
+// APP UPDATE SUBSYSTEM
+// Extracted to js/appUpdateService.js (Phase 27B Architectural Modularization)
+// ============================================================
+async function forceAppUpdate() { return AppUpdateService.forceAppUpdate(); }
 
 // Bind new functions to window for HTML element access
 window.forceAppUpdate = forceAppUpdate;
@@ -4672,59 +4594,7 @@ window.handleLogout = handleLogout;
 // GUEST MODE & OFFLINE CLOUD SYNC
 // ============================================================
 
-async function enterGuestMode() {
-  state.guestMode = true;
-  window._authConfirmed = true;
-  localStorage.setItem('auth_guest_mode', 'true');
-  // ACCOUNT-ISOLATION: Guest data is unowned — clear any previous account's owner
-  // marker so guest transactions can be imported into whichever account the user
-  // later signs into (the intended "auto-import saved data" flow).
-  localStorage.removeItem('offline_transactions_owner');
-
-  // PRIVACY/ISOLATION (guest = clean slate): Wipe ALL in-memory account data from
-  // a previously signed-in user BEFORE the first UI flush. Otherwise the flush
-  // inside hideAuthOverlay() runs processRecurringTemplates() while
-  // state.recurringTemplates still holds the main profile's templates, which
-  // regenerates those recurring transactions into the guest's local cache
-  // (offline_guest_transactions) — leaking account data into the guest session.
-  state.currentUser = null;
-  state.session = null;
-  state.userProfile = null;
-  state.partnerProfile = null;
-  state.familyProfiles = [];
-  state.familyGroup = null;
-  state.transactions = [];
-  state.budgets = [];
-  state.recurringTemplates = [];
-  state.deletedRecurringDates = [];
-  state.trashTransactions = [];
-  state.notifications = [];
-  state.notes = [];
-
-  // Hide auth overlay cleanly FIRST so anyModalOpen check in _runScheduledRender doesn't block rendering
-  hideAuthOverlay();
-
-  // Show premium splash loader immediately
-  toggleLoader(true);
-
-  // Hide switcher in header (guest has no shared wallet)
-  const switcher = document.getElementById('wallet-switcher-container');
-  if (switcher) switcher.style.display = 'none';
-
-  // Show lock icon user badge in header to connect/sign up
-  updateHeaderProfileBadge();
-
-  // Load data & update UI
-  window._suppressTransitions = true;
-  try {
-    await loadData();
-    flushUI();
-  } finally {
-    setTimeout(() => { window._suppressTransitions = false; }, 1500);
-  }
-  renderPartnerSection();
-  toggleLoader(false);
-}
+async function enterGuestMode() { return AppUpdateService.enterGuestMode(); }
 
 // Tracks whether the auth overlay was explicitly opened by the user (e.g. by
 // tapping the lock icon in the header). When true, a null-session auth event
