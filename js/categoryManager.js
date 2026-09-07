@@ -510,6 +510,20 @@ async function deleteCategoryFromManager(categoryName) {
   renderCategoryManagerList();
 }
 
+function deduplicateCategories() {
+  const s = (typeof state !== 'undefined') ? state : ((typeof window !== 'undefined' && window.state) ? window.state : null);
+  if (!s || !s.categories) return;
+  const seen = new Set();
+  s.categories = s.categories.filter(c => {
+    if (!c || !c.name) return false;
+    const key = `${c.type || 'expense'}|${c.name.trim().toLowerCase()}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+window.deduplicateCategories = deduplicateCategories;
+
 window.openSettingsCategoryManager = openSettingsCategoryManager;
 window.setCategoryManagerType = setCategoryManagerType;
 window.toggleCategoryManagerAccordion = toggleCategoryManagerAccordion;
@@ -540,6 +554,7 @@ window.deleteCategoryFromManager = deleteCategoryFromManager;
     addSubcategoryToCategory: addSubcategoryToCategory,
     openCategoryManagerAddDialog: openCategoryManagerAddDialog,
     openCategoryEditorModal: openCategoryEditorModal,
-    deleteCategoryFromManager: deleteCategoryFromManager
+    deleteCategoryFromManager: deleteCategoryFromManager,
+    deduplicateCategories: deduplicateCategories
   };
 }));

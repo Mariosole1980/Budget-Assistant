@@ -524,17 +524,8 @@ window._recentlyDeletedTxIds = _recentlyDeletedTxIds;
 window._markRecentlyDeleted = _markRecentlyDeleted;
 
 
-function deduplicateCategories() {
-  if (!state.categories) return;
-  const seen = new Set();
-  state.categories = state.categories.filter(c => {
-    if (!c || !c.name) return false;
-    const key = `${c.type || 'expense'}|${c.name.trim().toLowerCase()}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
-}
+function deduplicateCategories() { return CategoryManager.deduplicateCategories(); }
+window.deduplicateCategories = deduplicateCategories;
 
 function mergeAndDeduplicateTransactions(cloudTransactions, localPendingTransactions) {
   // DATA-INTEGRITY: Deduplication is performed ONLY by primary key `id`
@@ -553,17 +544,8 @@ function mergeAndDeduplicateTransactions(cloudTransactions, localPendingTransact
   return window.TransactionMerge.mergeAndDeduplicateTransactions(cloudTransactions, localPendingTransactions, deps);
 }
 
-function readSyncQueueForMerge() {
-  try {
-    const queueStr = localStorage.getItem('money_manager_sync_queue');
-    if (queueStr) {
-      return JSON.parse(queueStr) || [];
-    }
-  } catch (e) {
-    console.error('Failed to parse sync queue in mergeAndDeduplicateTransactions:', e);
-  }
-  return [];
-}
+function readSyncQueueForMerge() { return window.TransactionMerge.readSyncQueueForMerge(); }
+window.readSyncQueueForMerge = readSyncQueueForMerge;
 
 
 // (GREEK_MONTHS moved to js/constants.js)

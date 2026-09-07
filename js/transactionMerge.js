@@ -190,10 +190,25 @@
         });
     }
 
+
+    function readSyncQueueForMerge() {
+        try {
+            if (typeof localStorage !== 'undefined') {
+                const queueStr = localStorage.getItem('money_manager_sync_queue');
+                if (queueStr) {
+                    return JSON.parse(queueStr) || [];
+                }
+            }
+        } catch (e) {
+            console.error('Failed to parse sync queue in mergeAndDeduplicateTransactions:', e);
+        }
+        return [];
+    }
     return {
         collectDeletedIds: collectDeletedIds,
         collectActiveDeletionIds: collectActiveDeletionIds,
         mergeAndDeduplicateTransactions: mergeAndDeduplicateTransactions,
         getPendingLocalTransactions: getPendingLocalTransactions,
+        readSyncQueueForMerge: readSyncQueueForMerge,
     };
 });

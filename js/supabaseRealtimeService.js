@@ -17,6 +17,26 @@
   'use strict';
 
   let _supabaseRealtimeChannel = null;
+  // Dynamic state accessor proxy to ensure safe access in all environments
+  const state = new Proxy({}, {
+    get(target, prop) {
+      const s = (typeof window !== 'undefined' && window.state)
+        ? window.state
+        : (typeof global !== 'undefined' && global.state
+          ? global.state
+          : (typeof getState === 'function' ? getState() : {}));
+      return s ? s[prop] : undefined;
+    },
+    set(target, prop, val) {
+      const s = (typeof window !== 'undefined' && window.state)
+        ? window.state
+        : (typeof global !== 'undefined' && global.state
+          ? global.state
+          : (typeof getState === 'function' ? getState() : null));
+      if (s) s[prop] = val;
+      return true;
+    }
+  });
 let _realtimeReconnectTimer = null;
 let _realtimeWatchdogInterval = null;
 let _syncQueueWorkerInterval = null;
@@ -413,11 +433,17 @@ if (typeof window !== 'undefined' && typeof window.addEventListener === 'functio
 let _partnerSyncInterval = null;
 
 // Sync status tracking
-state.lastSyncTime = state.lastSyncTime || null;
-state.syncStatus = state.syncStatus || 'idle'; // 'idle' | 'syncing' | 'success' | 'error'
-state.syncPendingCount = state.syncPendingCount || 0;
+function _ensureSyncStateFields() {
+  if (state && (typeof window !== 'undefined' && window.state || typeof global !== 'undefined' && global.state)) {
+    if (state.lastSyncTime === undefined) state.lastSyncTime = null;
+    if (state.syncStatus === undefined) state.syncStatus = 'idle';
+    if (state.syncPendingCount === undefined) state.syncPendingCount = 0;
+  }
+}
+_ensureSyncStateFields();
 
 function updateSyncStatusIndicator() {
+  _ensureSyncStateFields();
   const dot = document.getElementById('header-sync-dot');
   const icon = document.getElementById('header-sync-cloud-icon');
   const btn = document.getElementById('header-sync-icon');
