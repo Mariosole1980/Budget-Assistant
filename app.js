@@ -1110,90 +1110,17 @@ window.syncStatsDate = syncStatsDate;
 window.formatStatsPeriodTitle = formatStatsPeriodTitle;
 window.wrapPeriodTitleWithSpans = wrapPeriodTitleWithSpans;
 
-// ====================================================================================================================
-function stripLeadingEmoji(str) {
-  if (!str) return '';
-  let i = 0;
-  const codes = [];
-  for (let j = 0; j < str.length; j++) {
-    codes.push(str.charCodeAt(j));
-  }
-  while (i < codes.length) {
-    const c = codes[i];
-    // High surrogate (emoji start)
-    if (c >= 0xD800 && c <= 0xDBFF) {
-      i += 2; // skip surrogate pair (2 code units)
-      // Skip trailing space after emoji
-      while (i < codes.length && codes[i] === 0x20) i++;
-    }
-    // BMP private use area
-    else if (c >= 0xE000 && c <= 0xF8FF) {
-      i += 1;
-      while (i < codes.length && codes[i] === 0x20) i++;
-    }
-    // BMP symbols / dingbats (like U+2764 heart, etc.)
-    else if (c >= 0x2600 && c <= 0x27BF) {
-      i += 1;
-      while (i < codes.length && codes[i] === 0x20) i++;
-    }
-    // Variation selector or replacement char
-    else if (c === 0xFFFD || (c >= 0xFE00 && c <= 0xFE0F)) {
-      i += 1;
-      while (i < codes.length && codes[i] === 0x20) i++;
-    }
-    // Regular character - stop stripping
-    else {
-      break;
-    }
-  }
-  return str.substring(i).trim();
-}
+// ============================================================
+// CATEGORY HELPER, NORMALIZATION & EMOJI RESOLUTION SUBSYSTEM
+// Extracted to js/categoryHelperService.js (Phase 23B Architectural Modularization)
+// ============================================================
+function stripLeadingEmoji(str) { return CategoryHelperService.stripLeadingEmoji(str); }
+function getFirstEmojiCodepoint(str) { return CategoryHelperService.getFirstEmojiCodepoint(str); }
+function resolveCategoryInfo(rawCategory, transType) { return CategoryHelperService.resolveCategoryInfo(rawCategory, transType); }
 
-// Get emoji codepoint from first surrogate pair (for category lookup)
-function getFirstEmojiCodepoint(str) {
-  if (!str || str.length < 2) return null;
-  const high = str.charCodeAt(0);
-  const low = str.charCodeAt(1);
-  if (high >= 0xD800 && high <= 0xDBFF && low >= 0xDC00 && low <= 0xDFFF) {
-    const cp = 0x10000 + ((high - 0xD800) * 0x400) + (low - 0xDC00);
-    return cp.toString(16).toUpperCase().padStart(5, '0');
-  }
-  return null;
-}
-
-// Resolve category from raw Excel string.
-// Strategy: Keep emoji-prefixed names intact to align with user's Excel files.
-function resolveCategoryInfo(rawCategory, transType) {
-  if (!rawCategory) return null;
-
-  const trimmed = rawCategory.trim();
-  const upperName = trimmed.toUpperCase();
-
-  // 1. Find exact match in state.categories
-  let cat = state.categories.find(c =>
-    c.name && c.name.toUpperCase() === upperName
-  );
-  if (cat) return cat;
-
-  // 2. Find match in CATEGORY_EMOJI_MAP by codepoint
-  const cp = getFirstEmojiCodepoint(trimmed);
-  const emojiInfo = cp ? CATEGORY_EMOJI_MAP[cp] : null;
-  if (emojiInfo) {
-    let mappedCat = state.categories.find(c =>
-      c.name && c.name.toUpperCase() === emojiInfo.name.toUpperCase()
-    );
-    if (mappedCat) return mappedCat;
-    return emojiInfo;
-  }
-
-  // 3. Not found - return info to create new category
-  return {
-    name: trimmed,
-    type: transType,
-    icon: transType === 'income' ? '💰' : '💸',
-    color: getRandomColor(),
-  };
-}
+window.stripLeadingEmoji = stripLeadingEmoji;
+window.getFirstEmojiCodepoint = getFirstEmojiCodepoint;
+window.resolveCategoryInfo = resolveCategoryInfo;
 
 // ============================================================
 // NOTIFICATION CENTER & LOCAL NOTIFICATIONS
@@ -4032,111 +3959,17 @@ function renderTransactionsTab(containerOverride, yearOverride, monthOverride) {
   listContainer.replaceChildren(fragment);
 }
 
-// Get category display info (icon, name, color) from stored category or emoji map
-// Normalize a category name for fuzzy matching: strip leading emoji, lowercase,
-// remove Greek accents, and trim. Used to match e.g. "Αυτοκίνητο" against "🚗 ΑΥΤΟΚΙΝΗΤΟ".
-function normalizeCategoryName(name) {
-  if (!name) return '';
-  return normalizeString(stripLeadingEmoji(String(name)).trim());
-}
+function normalizeCategoryName(name) { return CategoryHelperService.normalizeCategoryName(name); }
+function getCategoryInfo(categoryName, transType) { return CategoryHelperService.getCategoryInfo(categoryName, transType); }
+function getCategoryDisplayName(categoryName) { return CategoryHelperService.getCategoryDisplayName(categoryName); }
+function isDefaultSubcategory(categoryName, subcategoryName) { return CategoryHelperService.isDefaultSubcategory(categoryName, subcategoryName); }
+function getSubcategoryDisplayName(subName, categoryName) { return CategoryHelperService.getSubcategoryDisplayName(subName, categoryName); }
 
-function getCategoryInfo(categoryName, transType) {
-  if (!categoryName) return { icon: transType === 'income' ? '💰' : '💸', name: '', color: '#78909c' };
-
-  // Try stored categories first (already cleaned)
-  const stored = state.categories.find(c =>
-    c.name && c.name.toUpperCase() === (categoryName || '').toUpperCase()
-  );
-  if (stored) return stored;
-
-  // Try emoji map via codepoint
-  const cp = getFirstEmojiCodepoint(categoryName);
-  if (cp && CATEGORY_EMOJI_MAP[cp]) return CATEGORY_EMOJI_MAP[cp];
-
-  // Strip and match
-  const cleaned = stripLeadingEmoji(categoryName).trim();
-  const cleaned2 = state.categories.find(c =>
-    c.name && c.name.toUpperCase() === cleaned.toUpperCase()
-  );
-  if (cleaned2) return cleaned2;
-
-  // Fuzzy match: normalize both sides (strip emoji + case/accents) so that
-  // "Αυτοκίνητο" matches the stored "🚗 ΑΥΤΟΚΙΝΗΤΟ" category.
-  const normInput = normalizeCategoryName(categoryName);
-  if (normInput) {
-    const fuzzy = state.categories.find(c => c.name && normalizeCategoryName(c.name) === normInput);
-    if (fuzzy) return fuzzy;
-  }
-
-  return { icon: transType === 'income' ? '💰' : '💸', name: cleaned || categoryName, color: '#78909c' };
-}
-
-// (CATEGORY_NAME_TRANSLATIONS moved to js/constants.js)
-
-// Get category display name - translates default categories, preserves custom/user categories
-function getCategoryDisplayName(categoryName) {
-  if (!categoryName) return '';
-  const stripped = stripLeadingEmoji(categoryName).trim();
-  const normInput = normalizeCategoryName(categoryName);
-  if (!normInput) return stripped;
-  const lang = state.lang || 'el';
-
-  const translations = (typeof CATEGORY_NAME_TRANSLATIONS !== 'undefined')
-    ? CATEGORY_NAME_TRANSLATIONS
-    : ((typeof window !== 'undefined' && window.CATEGORY_NAME_TRANSLATIONS) || {});
-
-  for (const [elKey, enVal] of Object.entries(translations)) {
-    const normEl = normalizeCategoryName(elKey);
-    const normEn = normalizeCategoryName(enVal);
-
-    if (normInput === normEl || normInput === normEn) {
-      const target = lang === 'en' ? enVal : elKey;
-      return stripLeadingEmoji(target).trim();
-    }
-  }
-  return stripped;
-}
-
-function isDefaultSubcategory(categoryName, subcategoryName) {
-  if (!subcategoryName) return false;
-
-  const normSub = normalizeCategoryName(subcategoryName);
-  if (!normSub) return false;
-
-  for (const subcats of Object.values(DEFAULT_SUBCATEGORIES_MAP)) {
-    const found = subcats.some(s => normalizeCategoryName(s) === normSub);
-    if (found) return true;
-  }
-
-  return false;
-}
-
-function getSubcategoryDisplayName(subName, categoryName) {
-  if (!subName) return '';
-  const stripped = stripLeadingEmoji(subName).trim();
-  const normInput = normalizeCategoryName(subName);
-  if (!normInput) return stripped;
-  const lang = state.lang || 'el';
-
-  if (!isDefaultSubcategory(categoryName, subName)) {
-    return subName; // Custom entries are never translated
-  }
-
-  const translations = (typeof SUBCATEGORY_NAME_TRANSLATIONS !== 'undefined')
-    ? SUBCATEGORY_NAME_TRANSLATIONS
-    : ((typeof window !== 'undefined' && window.SUBCATEGORY_NAME_TRANSLATIONS) || {});
-
-  for (const [elKey, enVal] of Object.entries(translations)) {
-    const normEl = normalizeCategoryName(elKey);
-    const normEn = normalizeCategoryName(enVal);
-
-    if (normInput === normEl || normInput === normEn) {
-      const target = lang === 'en' ? enVal : elKey;
-      return stripLeadingEmoji(target).trim();
-    }
-  }
-  return subName;
-}
+window.normalizeCategoryName = normalizeCategoryName;
+window.getCategoryInfo = getCategoryInfo;
+window.getCategoryDisplayName = getCategoryDisplayName;
+window.isDefaultSubcategory = isDefaultSubcategory;
+window.getSubcategoryDisplayName = getSubcategoryDisplayName;
 
 
 
