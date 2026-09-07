@@ -710,9 +710,10 @@ async function onboardingClearDemoData(isSilent = false) {
   }
 }
 
-window.onSubscreenShow_sync = function () {
+function onSubscreenShow_sync() {
   updateHeaderDemoBadge();
-};
+}
+window.onSubscreenShow_sync = onSubscreenShow_sync;
 
 // Bind to window for HTML access
 window.hasDemoData = hasDemoData;

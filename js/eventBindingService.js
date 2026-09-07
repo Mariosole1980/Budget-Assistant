@@ -26,6 +26,30 @@
   }
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
+  function openCalculatorKeypad() {
+    if (typeof CalculatorKeypadService !== 'undefined') return CalculatorKeypadService.openCalculatorKeypad();
+  }
+  function closeCalculatorKeypad() {
+    if (typeof CalculatorKeypadService !== 'undefined') return CalculatorKeypadService.closeCalculatorKeypad();
+  }
+  function handleCalculatorKeyPress(val) {
+    if (typeof CalculatorKeypadService !== 'undefined') return CalculatorKeypadService.handleCalculatorKeyPress(val);
+  }
+  function handleAmountRowClick(e) {
+    if (e && e.target && e.target.closest && (e.target.closest('.currency-symbol-tappable') || e.target.closest('.currency-symbol'))) {
+      if (typeof openCurrencyPickerModal === 'function') openCurrencyPickerModal();
+    } else {
+      openCalculatorKeypad();
+    }
+  }
+
+  if (typeof window !== 'undefined') {
+    window.openCalculatorKeypad = openCalculatorKeypad;
+    window.closeCalculatorKeypad = closeCalculatorKeypad;
+    window.handleCalculatorKeyPress = handleCalculatorKeyPress;
+    window.handleAmountRowClick = handleAmountRowClick;
+  }
+
 
   function setupEventListeners() {
     if (typeof document === 'undefined') return;

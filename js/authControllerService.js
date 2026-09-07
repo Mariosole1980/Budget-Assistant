@@ -808,7 +808,7 @@ async function handleLogout() {
   }
 }
 
-window.sendFamilyInviteVia = function (channel, inviteCode) {
+function sendFamilyInviteVia(channel, inviteCode) {
   const isEl = state.lang === 'el';
   const roleSelect = document.getElementById('invite-role-select');
   const role = roleSelect ? roleSelect.value : 'member';
@@ -850,9 +850,9 @@ window.sendFamilyInviteVia = function (channel, inviteCode) {
   }
 };
 
-window.shareFamilyInviteCode = (inviteCode) => window.sendFamilyInviteVia('native', inviteCode);
+function shareFamilyInviteCode(inviteCode) { return sendFamilyInviteVia('native', inviteCode); }
 
-window.copyDirectInviteLink = function (inviteCode) {
+function copyDirectInviteLink(inviteCode) {
   const isEl = state.lang === 'el';
   const roleSelect = document.getElementById('invite-role-select');
   const role = roleSelect ? roleSelect.value : 'member';

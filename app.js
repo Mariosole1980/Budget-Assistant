@@ -1526,6 +1526,9 @@ function handleCustomPeriodSave() {
 
 window.adjustStatsPeriod = adjustStatsPeriod;
 window.handleCustomPeriodSave = handleCustomPeriodSave;
+function scrollToToday(behavior = 'smooth') {
+  if (typeof TransactionListService !== 'undefined') return TransactionListService.scrollToToday(behavior);
+}
 window.scrollToToday = scrollToToday;
 
 // ============================================================
@@ -2119,6 +2122,16 @@ function deleteRecurringTemplate(id) { return RecurringTemplateModalService.dele
 // ============================================================
 
 // Bind to window for HTML access
+function openAdvisorChat() { if (typeof AICoachService !== 'undefined') return AICoachService.openAdvisorChat(); }
+function closeAdvisorChat() { if (typeof AICoachService !== 'undefined') return AICoachService.closeAdvisorChat(); }
+function submitCoachInput() { if (typeof AICoachService !== 'undefined') return AICoachService.submitCoachInput(); }
+function submitCoachQuery(q) { if (typeof AICoachService !== 'undefined') return AICoachService.submitCoachQuery(q); }
+function handleAdvisorChatKeydown(e) { if (typeof AICoachService !== 'undefined') return AICoachService.handleAdvisorChatKeydown(e); }
+function startNewAdvisorConversation() { if (typeof AICoachService !== 'undefined') return AICoachService.startNewAdvisorConversation(); }
+function showAdvisorConversationList() { if (typeof AICoachService !== 'undefined') return AICoachService.showAdvisorConversationList(); }
+function deleteAdvisorConversation(id) { if (typeof AICoachService !== 'undefined') return AICoachService.deleteAdvisorConversation(id); }
+function openAdvisorConversation(id) { if (typeof AICoachService !== 'undefined') return AICoachService.openAdvisorConversation(id); }
+
 window.openAdvisorChat = openAdvisorChat;
 window.closeAdvisorChat = closeAdvisorChat;
 window.submitCoachInput = submitCoachInput;

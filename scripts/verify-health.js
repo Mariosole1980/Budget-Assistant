@@ -34,6 +34,7 @@
 const fs = require('fs');
 const path = require('path');
 const { spawnSync } = require('child_process');
+const vm = require('vm');
 
 const rootDir = path.resolve(__dirname, '..');
 
@@ -413,6 +414,145 @@ function runBalanceHeuristic() {
 // ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// 6. Sequential Headless Script Evaluation Gate
+// ---------------------------------------------------------------------------
+function runScriptEvaluationGate() {
+    section('6. Sequential Headless Script Evaluation (Load-Order & Isolation)');
+    const indexPath = path.join(rootDir, 'index.html');
+    if (!fs.existsSync(indexPath)) {
+        fail('eval: index.html not found');
+        return;
+    }
+    const indexHtml = fs.readFileSync(indexPath, 'utf8');
+    const scriptSrcMatches = indexHtml.match(/<script\s+src=['"]([^'"]+)['"]/gi) || [];
+    const scriptPaths = scriptSrcMatches.map(m => {
+        const match = m.match(/src=['"]([^'"]+)['"]/i);
+        return match ? match[1].split('?')[0] : null;
+    }).filter(Boolean);
+
+    const mockWindow = { addEventListener: () => {}, removeEventListener: () => {} };
+    const mockDoc = {
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        querySelector: () => null,
+        querySelectorAll: () => [],
+        getElementById: () => null,
+        createElement: () => ({ style: {}, setAttribute: () => {}, appendChild: () => {} }),
+        documentElement: { classList: { contains: () => false, add: () => {}, remove: () => {} }, style: {} },
+        body: { classList: { contains: () => false, add: () => {}, remove: () => {} }, style: {} },
+        readyState: 'loading'
+    };
+
+    const sandbox = {
+        self: mockWindow,
+        window: mockWindow,
+        globalThis: mockWindow,
+        document: mockDoc,
+        navigator: { userAgent: 'Mozilla/5.0 (Linux; Android 14) Mobile', onLine: true },
+        localStorage: { getItem: () => null, setItem: () => {}, removeItem: () => {}, clear: () => {} },
+        sessionStorage: { getItem: () => null, setItem: () => {}, removeItem: () => {}, clear: () => {} },
+        setTimeout: (fn) => fn,
+        clearTimeout: () => {},
+        setInterval: () => {},
+        clearInterval: () => {},
+        requestAnimationFrame: (fn) => fn,
+        cancelAnimationFrame: () => {},
+        console: console,
+        Date: Date,
+        Math: Math,
+        JSON: JSON,
+        Set: Set,
+        Map: Map,
+        Array: Array,
+        Object: Object,
+        String: String,
+        Number: Number,
+        Boolean: Boolean,
+        RegExp: RegExp,
+        Error: Error,
+        TypeError: TypeError,
+        ReferenceError: ReferenceError
+    };
+    mockWindow.window = mockWindow;
+    mockWindow.document = mockDoc;
+
+    const ctx = vm.createContext(sandbox);
+    let evalErrors = 0;
+
+    scriptPaths.forEach((relPath) => {
+        const absPath = path.join(rootDir, relPath);
+        if (!fs.existsSync(absPath)) return;
+        // Skip external / heavy non-pure libs
+        if (relPath.includes('chartjs-plugin-datalabels') || relPath.includes('xlsx.full.min.js') || relPath.includes('sortable.min.js')) {
+            return;
+        }
+        const code = fs.readFileSync(absPath, 'utf8');
+        try {
+            vm.runInContext(code, ctx, { filename: relPath });
+        } catch (err) {
+            evalErrors++;
+            fail(`eval: ${relPath} threw error during load evaluation: ${err.message}`);
+        }
+    });
+
+    if (evalErrors === 0) {
+        pass(`all ${scriptPaths.length} scripts evaluated cleanly in sequence without ReferenceErrors`);
+    }
+
+    // Pass sandbox to next gate
+    return { sandbox, mockWindow, indexHtml };
+}
+
+// ---------------------------------------------------------------------------
+// 7. Inline Event Handlers Parity Gate
+// ---------------------------------------------------------------------------
+function runInlineHandlerParityGate(evalContext) {
+    section('7. Inline Event Handlers Parity Gate (DOM → Window Binding)');
+    if (!evalContext || !evalContext.indexHtml) {
+        warn('inline: skipped (eval context not available)');
+        return;
+    }
+    const { indexHtml, mockWindow, sandbox } = evalContext;
+    const handlerRegex = /\bon[a-z]+=['"]([^'"]+)['"]/gi;
+    let match;
+    const calledFns = new Set();
+    const standardMethods = new Set([
+        'if', 'for', 'void', 'alert', 'confirm', 'prompt', 'parseInt', 'parseFloat',
+        'Boolean', 'String', 'Number', 'Date', 'Math', 'console',
+        'preventDefault', 'stopPropagation', 'blur', 'focus', 'click', 'submit',
+        'setSelectionRange', 'getElementById', 'querySelector', 'querySelectorAll',
+        'now', 'catch', 'then', 'indexOf', 'includes', 'trim'
+    ]);
+
+    while ((match = handlerRegex.exec(indexHtml)) !== null) {
+        const hContent = match[1];
+        const fnMatches = hContent.matchAll(/([a-zA-Z0-9_$]+)\s*\(/g);
+        for (const fm of fnMatches) {
+            const fnName = fm[1];
+            if (!standardMethods.has(fnName)) {
+                calledFns.add(fnName);
+            }
+        }
+    }
+
+    let missing = 0;
+    calledFns.forEach(fn => {
+        // Also check if declared in inline scripts inside index.html (e.g. handleRecoveryReload)
+        const inHtmlScript = indexHtml.includes(`function ${fn}`) || indexHtml.includes(`window.${fn}`);
+        const exists = typeof mockWindow[fn] !== 'undefined' || typeof sandbox[fn] !== 'undefined' || inHtmlScript;
+        if (!exists) {
+            missing++;
+            fail(`inline handler references missing function: "${fn}()"`);
+        }
+    });
+
+    if (missing === 0) {
+        pass(`all ${calledFns.size} distinct functions referenced in inline HTML handlers exist on window`);
+    }
+}
+
 function main() {
     console.log('====================================================');
     console.log('🩺 VERIFY-HEALTH — Static pre-deploy safety gate');
@@ -423,6 +563,8 @@ function main() {
     runDependencyCheck();
     runVersionCheck();
     runBalanceHeuristic();
+    const evalCtx = runScriptEvaluationGate();
+    runInlineHandlerParityGate(evalCtx);
 
     console.log('\n====================================================');
     console.log(`RESULT: ${failures} FAIL, ${warnings} WARN`);
