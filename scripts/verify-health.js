@@ -294,7 +294,7 @@ function runDependencyCheck() {
         }
     }
 
-    // Cross-check with sw.js ASSETS list (every sw.js asset must exist).
+    // Cross-check with sw.js ASSETS list (every sw.js asset must exist on disk AND cover all index.html assets).
     const swPath = path.join(rootDir, 'sw.js');
     if (fs.existsSync(swPath)) {
         const swAssets = extractSwAssets(fs.readFileSync(swPath, 'utf8'));
@@ -307,6 +307,30 @@ function runDependencyCheck() {
         });
         if (swMissing === 0) {
             pass(`all ${swAssets.length} sw.js ASSETS entries exist on disk`);
+        }
+
+        // Parity check: ensure all local scripts & stylesheets in index.html are in sw.js ASSETS
+        const indexHtml = fs.readFileSync(path.join(rootDir, 'index.html'), 'utf8');
+        const htmlScripts = [];
+        const sRegex = /<script\s+[^>]*src="([^"]+)"/gi;
+        let sm;
+        while ((sm = sRegex.exec(indexHtml)) !== null) {
+            const clean = sm[1].split('?')[0].replace(/^\.\//, '');
+            if (!clean.startsWith('http')) htmlScripts.push(clean);
+        }
+        const htmlStyles = [];
+        const lRegex = /<link\s+[^>]*href="([^"]+)"/gi;
+        let lm;
+        while ((lm = lRegex.exec(indexHtml)) !== null) {
+            const clean = lm[1].split('?')[0].replace(/^\.\//, '');
+            if (clean.endsWith('.css') && !clean.startsWith('http')) htmlStyles.push(clean);
+        }
+        const requiredAssets = [...new Set([...htmlScripts, ...htmlStyles])];
+        const missingFromSw = requiredAssets.filter(a => !swAssets.includes(a));
+        if (missingFromSw.length > 0) {
+            fail(`sw.js ASSETS is missing ${missingFromSw.length} files required by index.html: ${missingFromSw.join(', ')}`);
+        } else {
+            pass(`sw.js ASSETS contains all ${requiredAssets.length} local scripts & stylesheets from index.html (100% offline parity)`);
         }
     } else {
         warn('dependency: sw.js not found (skipping ASSETS cross-check)');
