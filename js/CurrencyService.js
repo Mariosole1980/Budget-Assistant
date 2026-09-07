@@ -168,6 +168,32 @@ class CurrencyService {
         };
         const todayKey = new Date().toISOString().slice(0, 10);
         this._ingestRates('EUR', todayKey, DEFAULT_RATES_EUR, 'cached');
+
+        // Bind methods to guarantee 'this' stability even if invoked detached
+        this.round = this.round.bind(this);
+        this.toDateKey = this.toDateKey.bind(this);
+        this.setCurrencies = this.setCurrencies.bind(this);
+        this.getCurrencies = this.getCurrencies.bind(this);
+        this.getCurrency = this.getCurrency.bind(this);
+        this.getSymbol = this.getSymbol.bind(this);
+        this.getDecimals = this.getDecimals.bind(this);
+        this.getCountries = this.getCountries.bind(this);
+        this.getCurrenciesByCountry = this.getCurrenciesByCountry.bind(this);
+        this.convert = this.convert.bind(this);
+        this.computeAmountBase = this.computeAmountBase.bind(this);
+        this.toBase = this.toBase.bind(this);
+        this.displayAmount = this.displayAmount.bind(this);
+        this.sumInCurrency = this.sumInCurrency.bind(this);
+        this.getRate = this.getRate.bind(this);
+        this.setManualRate = this.setManualRate.bind(this);
+        this.correctActualAmount = this.correctActualAmount.bind(this);
+        this.conversionStatus = this.conversionStatus.bind(this);
+        this.fetchTodayRates = this.fetchTodayRates.bind(this);
+        this.setRateProvider = this.setRateProvider.bind(this);
+        this.setRatePersist = this.setRatePersist.bind(this);
+        this.setManualRateSink = this.setManualRateSink.bind(this);
+        this.isEnabled = this.isEnabled.bind(this);
+        this.setEnabled = this.setEnabled.bind(this);
     }
 
     // ===== Βοηθητικά =====
@@ -279,20 +305,31 @@ class CurrencyService {
      */
     displayAmount(tx, targetCurrency) {
         if (!tx) return 0;
+        const self = (this && typeof this.toBase === 'function')
+            ? this
+            : ((typeof CurrencyServiceInstance !== 'undefined' && CurrencyServiceInstance)
+                ? CurrencyServiceInstance
+                : ((typeof window !== 'undefined' && window.CurrencyService) ? window.CurrencyService : null));
         const txCurrency = tx.currency || 'EUR';
         const baseCurrency = tx.base_currency || 'EUR';
         if (targetCurrency === txCurrency) return Number(tx.amount);
 
         let baseAmount;
         if (tx.fx_snapshot && typeof tx.fx_snapshot.rate === 'number' && tx.fx_snapshot.rate > 0) {
-            baseAmount = this.round(Number(tx.amount) / tx.fx_snapshot.rate, 4);
+            baseAmount = (self && typeof self.round === 'function')
+                ? self.round(Number(tx.amount) / tx.fx_snapshot.rate, 4)
+                : (Number(tx.amount) / tx.fx_snapshot.rate);
         } else {
-            baseAmount = this.toBase(tx);
+            baseAmount = (self && typeof self.toBase === 'function')
+                ? self.toBase(tx)
+                : (parseFloat(tx.amount) || 0);
         }
 
         if (targetCurrency === baseCurrency) return baseAmount;
 
-        const converted = this.convert(baseAmount, baseCurrency, targetCurrency, tx.date);
+        const converted = (self && typeof self.convert === 'function')
+            ? self.convert(baseAmount, baseCurrency, targetCurrency, tx.date)
+            : null;
         return converted != null ? converted : baseAmount;
     }
 
@@ -322,9 +359,17 @@ class CurrencyService {
      * Αυτός είναι ο ΜΟΝΟΣ σωστός τρόπος για μικτά base_currency.
      */
     sumInCurrency(transactions, targetCurrency) {
-        if (!Array.isArray(transactions)) return 0;
+        if (!Array.isArray(transactions) || transactions.length === 0) return 0;
+        const self = (this && typeof this.displayAmount === 'function')
+            ? this
+            : ((typeof CurrencyServiceInstance !== 'undefined' && CurrencyServiceInstance)
+                ? CurrencyServiceInstance
+                : ((typeof window !== 'undefined' && window.CurrencyService) ? window.CurrencyService : null));
         return transactions.reduce((sum, tx) => {
-            return sum + this.displayAmount(tx, targetCurrency);
+            const amt = (self && typeof self.displayAmount === 'function')
+                ? self.displayAmount(tx, targetCurrency)
+                : (parseFloat(tx && tx.amount) || 0);
+            return sum + (amt || 0);
         }, 0);
     }
 
@@ -570,4 +615,7 @@ if (typeof window !== 'undefined') {
     if (!existingComplete) {
         window.CurrencyService = CurrencyServiceInstance;
     }
+}
+if (typeof globalThis !== 'undefined' && !globalThis.CurrencyService) {
+    globalThis.CurrencyService = (typeof window !== 'undefined' && window.CurrencyService) ? window.CurrencyService : CurrencyServiceInstance;
 }

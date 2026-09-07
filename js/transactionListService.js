@@ -82,17 +82,36 @@
       : function () { return (typeof CurrencyService !== 'undefined' && typeof CurrencyService.getAppCurrency === 'function') ? CurrencyService.getAppCurrency() : 'EUR'; };
 
     var displayCurrency = getDispCurr();
-    var sumInCurr = (typeof CurrencyService !== 'undefined' && typeof CurrencyService.sumInCurrency === 'function')
-      ? CurrencyService.sumInCurrency
-      : function (arr) { return arr.reduce(function (sum, t) { return sum + (parseFloat(t.amount) || 0); }, 0); };
+    var cs = (typeof CurrencyService !== 'undefined' && CurrencyService)
+      ? CurrencyService
+      : ((typeof window !== 'undefined' && window.CurrencyService) ? window.CurrencyService : null);
+
+    var sumInCurr = function (arr, cur) {
+      if (cs && typeof cs.sumInCurrency === 'function') {
+        try {
+          return cs.sumInCurrency(arr, cur);
+        } catch (_) {}
+      }
+      return (arr || []).reduce(function (sum, t) {
+        var amt = (cs && typeof cs.displayAmount === 'function')
+          ? cs.displayAmount(t, cur)
+          : (parseFloat(t && t.amount) || 0);
+        return sum + (amt || 0);
+      }, 0);
+    };
 
     var monthlyIncome = sumInCurr(sortedTrans.filter(function (t) { return t.type === 'income'; }), displayCurrency);
     var monthlyExpense = sumInCurr(sortedTrans.filter(function (t) { return t.type === 'expense'; }), displayCurrency);
     var groups = {};
 
-    var dispAmt = (typeof CurrencyService !== 'undefined' && typeof CurrencyService.displayAmount === 'function')
-      ? CurrencyService.displayAmount
-      : function (t) { return parseFloat(t.amount) || 0; };
+    var dispAmt = function (t, cur) {
+      if (cs && typeof cs.displayAmount === 'function') {
+        try {
+          return cs.displayAmount(t, cur);
+        } catch (_) {}
+      }
+      return parseFloat(t && t.amount) || 0;
+    };
 
     sortedTrans.forEach(function (t) {
       var amt = dispAmt(t, displayCurrency);

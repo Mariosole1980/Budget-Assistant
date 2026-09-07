@@ -184,12 +184,15 @@
   };
   FallbackCurrencyService.prototype.displayAmount = function (tx, targetCurrency) {
     if (!tx) return 0;
+    var self = (this && typeof this.toBase === 'function')
+      ? this
+      : ((typeof window !== 'undefined' && window.CurrencyService) ? window.CurrencyService : this);
     var txCurrency = tx.currency || 'EUR';
     var baseCurrency = tx.base_currency || 'EUR';
     if (targetCurrency === txCurrency) return Number(tx.amount);
-    if (targetCurrency === baseCurrency) return this.toBase(tx);
-    var baseAmount = this.toBase(tx);
-    var converted = this.convert(baseAmount, baseCurrency, targetCurrency, tx.date);
+    if (targetCurrency === baseCurrency) return (self && typeof self.toBase === 'function') ? self.toBase(tx) : (parseFloat(tx.amount) || 0);
+    var baseAmount = (self && typeof self.toBase === 'function') ? self.toBase(tx) : (parseFloat(tx.amount) || 0);
+    var converted = (self && typeof self.convert === 'function') ? self.convert(baseAmount, baseCurrency, targetCurrency, tx.date) : null;
     // Fall back to the base amount when the exchange rate is unavailable, so
     // the UI never shows 0 for a real transaction (e.g. offline, or before
     // today's rates have been fetched).
@@ -197,14 +200,24 @@
   };
   FallbackCurrencyService.prototype.convert = function (amount, fromCurrency, toCurrency, date) {
     if (fromCurrency === toCurrency) return amount;
-    var rate = this.getRate(fromCurrency, toCurrency, date);
+    var self = (this && typeof this.getRate === 'function')
+      ? this
+      : ((typeof window !== 'undefined' && window.CurrencyService) ? window.CurrencyService : this);
+    var rate = (self && typeof self.getRate === 'function') ? self.getRate(fromCurrency, toCurrency, date) : null;
     if (rate == null || rate === 0) return null;
-    return this.round(amount * rate, 4);
+    return (self && typeof self.round === 'function') ? self.round(amount * rate, 4) : Math.round((amount * rate) * 10000) / 10000;
   };
   FallbackCurrencyService.prototype.sumInCurrency = function (transactions, targetCurrency) {
-    if (!Array.isArray(transactions)) return 0;
-    var self = this;
-    return transactions.reduce(function (sum, tx) { return sum + self.displayAmount(tx, targetCurrency); }, 0);
+    if (!Array.isArray(transactions) || transactions.length === 0) return 0;
+    var self = (this && typeof this.displayAmount === 'function')
+      ? this
+      : ((typeof window !== 'undefined' && window.CurrencyService) ? window.CurrencyService : this);
+    return transactions.reduce(function (sum, tx) {
+      var amt = (self && typeof self.displayAmount === 'function')
+        ? self.displayAmount(tx, targetCurrency)
+        : (parseFloat(tx && tx.amount) || 0);
+      return sum + (amt || 0);
+    }, 0);
   };
   FallbackCurrencyService.prototype.setManualRate = function (base, quote, date, rate) {
     var dateKey = this.toDateKey(date) || new Date().toISOString().slice(0, 10);

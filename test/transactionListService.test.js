@@ -183,3 +183,31 @@ test('goToMonth updates state and calls updateUI', () => {
   assert.equal(uiUpdated, true);
 });
 
+test('renderTransactionsTab succeeds with strict-mode CurrencyService instance', () => {
+  const realCs = require('../js/CurrencyService.js');
+  const prevCs = global.CurrencyService;
+  const prevWinCs = global.window.CurrencyService;
+  try {
+    global.CurrencyService = realCs;
+    global.window.CurrencyService = realCs;
+    global.state.transactions = [
+      { id: 'tx-curr-1', date: '2026-09-08T10:00:00', amount: 100, type: 'income', category: 'Salary' },
+      { id: 'tx-curr-2', date: '2026-09-08T12:00:00', amount: 25, type: 'expense', category: 'Food' }
+    ];
+    const list = document.getElementById('transactions-list');
+    list._lastRenderSignature = null;
+    assert.doesNotThrow(() => {
+      TransactionListService.renderTransactionsTab();
+    });
+    // Test detached sumInCurrency directly
+    const sumFn = realCs.sumInCurrency;
+    assert.equal(sumFn([{ amount: 50 }], 'EUR'), 50);
+    // Test call with null this
+    assert.equal(realCs.sumInCurrency.call(null, [{ amount: 75 }], 'EUR'), 75);
+  } finally {
+    global.CurrencyService = prevCs;
+    global.window.CurrencyService = prevWinCs;
+  }
+});
+
+
