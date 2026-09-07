@@ -7,7 +7,10 @@ const path = require('node:path');
 
 const APP_JS = path.join(__dirname, '..', 'app.js');
 const LOCK_JS = path.join(__dirname, '..', 'js', 'securityLockService.js');
-const appSrc = fs.readFileSync(APP_JS, 'utf8') + (fs.existsSync(LOCK_JS) ? ('\n' + fs.readFileSync(LOCK_JS, 'utf8')) : '');
+const PIN_JS = path.join(__dirname, '..', 'js', 'securityPinService.js');
+const appSrc = fs.readFileSync(APP_JS, 'utf8') +
+  (fs.existsSync(LOCK_JS) ? ('\n' + fs.readFileSync(LOCK_JS, 'utf8')) : '') +
+  (fs.existsSync(PIN_JS) ? ('\n' + fs.readFileSync(PIN_JS, 'utf8')) : '');
 
 test('autoLock: _getAutoLockDelayMs handles immediate, intervals, and disabled', () => {
     assert.match(appSrc, /function _getAutoLockDelayMs\(\)/);
