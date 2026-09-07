@@ -9,10 +9,12 @@ const APP_JS = path.join(__dirname, '..', 'app.js');
 const LOCK_JS = path.join(__dirname, '..', 'js', 'securityLockService.js');
 const PIN_JS = path.join(__dirname, '..', 'js', 'securityPinService.js');
 const FORMAT_JS = path.join(__dirname, '..', 'js', 'currencyFormattingService.js');
+const LIFECYCLE_JS = path.join(__dirname, '..', 'js', 'appLifecycleService.js');
 const appSrc = fs.readFileSync(APP_JS, 'utf8') +
   (fs.existsSync(LOCK_JS) ? ('\n' + fs.readFileSync(LOCK_JS, 'utf8')) : '') +
   (fs.existsSync(PIN_JS) ? ('\n' + fs.readFileSync(PIN_JS, 'utf8')) : '') +
-  (fs.existsSync(FORMAT_JS) ? ('\n' + fs.readFileSync(FORMAT_JS, 'utf8')) : '');
+  (fs.existsSync(FORMAT_JS) ? ('\n' + fs.readFileSync(FORMAT_JS, 'utf8')) : '') +
+  (fs.existsSync(LIFECYCLE_JS) ? ('\n' + fs.readFileSync(LIFECYCLE_JS, 'utf8')) : '');
 
 test('autoLock: _getAutoLockDelayMs handles immediate, intervals, and disabled', () => {
     assert.match(appSrc, /function _getAutoLockDelayMs\(\)/);
