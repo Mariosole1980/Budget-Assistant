@@ -430,169 +430,26 @@ const state = {
 window.state = state;
 
 // ============================================================
-// PREMIUM (Lifetime) — entitlement helpers & limits
+// PREMIUM ENTITLEMENTS & API RESOLUTION SUBSYSTEM
+// Extracted to js/premiumEntitlementService.js (Phase 26A Architectural Modularization)
 // ============================================================
-// Premium limits & pricing are defined authoritatively in js/PremiumService.js
-// and exposed globally as window.PremiumService / window.PREMIUM_LIMITS.
-const PREMIUM_LIMITS = (typeof window !== 'undefined' && window.PremiumService)
-  ? window.PremiumService.LIMITS
-  : {
-      familyMembers: 2,        // Free: user + 1. Premium: unlimited (3+)
-      cloudTxPerMonth: 75,     // Free: 75 cloud-synced tx/month. Premium: unlimited
-      currencies: 1,           // Free: 1 currency. Premium: unlimited
-      budgets: 2,              // Free: 2 category budgets. Premium: unlimited
-      aiCoachFree: 10,         // Free: 10 online AI calls/month
-      aiCoachPremium: 50,      // Premium: 50 online AI calls/month (fair-use)
-      aiReceiptsFree: 5,       // Free: 5 AI receipt scans/month
-      aiReceiptsPremium: 100   // Premium: 100 AI receipt scans/month (fair-use)
-    };
+const PREMIUM_LIMITS = (typeof PremiumEntitlementService !== 'undefined' && PremiumEntitlementService.PREMIUM_LIMITS) || (typeof window !== 'undefined' && window.PREMIUM_LIMITS) || {};
+const PREMIUM_PRICE_EUR = (typeof PremiumEntitlementService !== 'undefined' && PremiumEntitlementService.PREMIUM_PRICE_EUR) || 9.99;
 
-// Premium price (one-time Lifetime). Sourced from PremiumService.
-const PREMIUM_PRICE_EUR = (typeof window !== 'undefined' && window.PremiumService)
-  ? window.PremiumService.PRICE_EUR
-  : 9.99;
+function isPremium() { return PremiumEntitlementService.isPremium(); }
+function getPremiumStatus() { return PremiumEntitlementService.getPremiumStatus(); }
+function requirePremium(featureKey) { return PremiumEntitlementService.requirePremium(featureKey); }
+function getBackendApiUrl(endpoint) { return PremiumEntitlementService.getBackendApiUrl(endpoint); }
+function getAiUsageCount() { return PremiumEntitlementService.getAiUsageCount(); }
+function getAiUsageLimit() { return PremiumEntitlementService.getAiUsageLimit(); }
+function canUseOnlineAI() { return PremiumEntitlementService.canUseOnlineAI(); }
+function mapTransactionToDb(t) { return PremiumEntitlementService.mapTransactionToDb(t); }
 
-// Returns true if the current user has an active Premium entitlement.
-// Source of truth is the server profile (state.userProfile.premium_active).
-// localStorage is only a cache for faster UI; it is NOT a security boundary.
-function isPremium() {
-  // If connected to family, 1 license covers the whole household
-  if (state.familyProfiles && state.familyProfiles.length > 0) {
-    const anyFamilyPro = state.familyProfiles.some(m => m.premium_active === true);
-    if (anyFamilyPro) return true;
-  }
-  if (typeof window !== 'undefined' && window.PremiumService) {
-    return window.PremiumService.isPremium(state.userProfile);
-  }
-  const p = state.userProfile;
-  return !!(p && p.premium_active === true);
-}
-
-// Returns the current user's premium status for UI display.
-function getPremiumStatus() {
-  if (typeof window !== 'undefined' && window.PremiumService) {
-    return window.PremiumService.getPremiumStatus(state.userProfile);
-  }
-  return {
-    active: isPremium(),
-    purchasedAt: state.userProfile ? state.userProfile.premium_purchased_at : null
-  };
-}
-
-// Shows the Premium upgrade modal (used by all gated features).
-// If the user is already premium, does nothing.
-function requirePremium(featureKey) {
-  if (isPremium()) return true;
-  if (typeof openPremiumModal === 'function') {
-    openPremiumModal(featureKey);
-  }
-  return false;
-}
-
-// ---------------------------------------------------------------------------
-// BACKEND API ENDPOINT RESOLVER
-// Resolves relative API routes (/api/...) to the Cloudflare Pages backend
-// when running inside Capacitor (native Android/iOS) or local environment.
-// ---------------------------------------------------------------------------
-function getBackendApiUrl(endpoint) {
-  const cleanEndpoint = endpoint.startsWith('/') ? endpoint : '/' + endpoint;
-  const isCapacitorOrLocal = (typeof window.Capacitor !== 'undefined' && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) ||
-    window.location.protocol === 'capacitor:' ||
-    window.location.hostname === 'localhost' ||
-    window.location.hostname === '127.0.0.1';
-  const base = isCapacitorOrLocal ? 'https://budget-assistant-pwa.pages.dev' : '';
-  return `${base}${cleanEndpoint}`;
-}
-
-// ---------------------------------------------------------------------------
-// AI COACH USAGE (client-side helper)
-// Only ONLINE advisor calls count toward the fair-use limit (they cost money).
-// The offline NLP fallback is free and unlimited for everyone.
-// The authoritative enforcement happens server-side in functions/api/ai.js;
-// this client-side helper is used for UX (showing the upgrade modal early).
-// ---------------------------------------------------------------------------
-
-// Returns the current month's online AI call count for the logged-in user,
-// or null when not authenticated (guest mode) / the RPC is unavailable.
-async function getAiUsageCount() {
-  try {
-    if (!state.supabaseClient || !state.currentUser) return null;
-    const { data, error } = await state.supabaseClient.rpc('get_ai_usage');
-    if (error) return null;
-    return typeof data === 'number' ? data : null;
-  } catch (e) {
-    return null;
-  }
-}
-
-// Returns the online AI call limit for the current user (10 free / 50 premium).
-function getAiUsageLimit() {
-  return isPremium() ? PREMIUM_LIMITS.aiCoachPremium : PREMIUM_LIMITS.aiCoachFree;
-}
-
-// Checks whether the user may make another online AI call. Returns true if
-// allowed. If at the limit, shows the upgrade modal + toast and returns false.
-async function canUseOnlineAI() {
-  const limit = getAiUsageLimit();
-  const usage = await getAiUsageCount();
-  // If we cannot determine usage (guest/offline), allow the call — the
-  // server-side enforcement still protects the limit for authenticated users.
-  if (usage == null) return true;
-  if (usage < limit) return true;
-  if (typeof openPremiumModal === 'function') openPremiumModal('ai');
-  showSyncToast(
-    state.lang === 'el'
-      ? `Έχετε φτάσει το μηνιαίο όριο του Online AI Coach (${limit}). Αναβαθμίστε σε Premium για 50/μήνα.`
-      : `You have reached your monthly Online AI Coach limit (${limit}). Upgrade to Premium for 50/month.`,
-    5000
-  );
-  return false;
-}
-// mapTemplateToDb → extracted to js/recurringMappers.js (Phase 2, Extraction 2)
-// mapTemplateFromDb → extracted to js/recurringMappers.js (Phase 2, Extraction 2)
-
-function mapTransactionToDb(t) {
-  if (!t) return null;
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  const id = (t.id && uuidRegex.test(String(t.id))) ? String(t.id) : (typeof generateUUID === 'function' ? generateUUID() : crypto.randomUUID());
-  const userId = t.user_id || (state.currentUser ? state.currentUser.id : null);
-  const familyId = t.family_id || (state.userProfile ? state.userProfile.family_id : null);
-
-  const dbTx = {
-    id,
-    user_id: userId,
-    date: t.date ? String(t.date).slice(0, 19).replace(' ', 'T').slice(0, 10) : new Date().toISOString().slice(0, 10),
-    type: (t.type === 'income' || t.type === 'transfer') ? t.type : 'expense',
-    amount: parseFloat(t.amount) || 0,
-    category: t.category || '',
-    subcategory: t.subcategory || '',
-    account_from: t.account_from || '',
-    account_to: t.type === 'transfer' ? (t.account_to || null) : null,
-    note: t.note || '',
-    status: t.status === 'deleted' ? 'deleted' : 'active'
-  };
-
-  if (familyId) dbTx.family_id = familyId;
-  if (t.recurring_template_id && uuidRegex.test(String(t.recurring_template_id))) {
-    dbTx.recurring_template_id = t.recurring_template_id;
-  }
-  if (t.currency) dbTx.currency = t.currency;
-  if (t.base_currency) dbTx.base_currency = t.base_currency;
-  if (t.rate_to_base !== undefined && t.rate_to_base !== null) dbTx.rate_to_base = t.rate_to_base;
-  if (t.amount_base !== undefined && t.amount_base !== null) dbTx.amount_base = t.amount_base;
-  if (t.rate_source) dbTx.rate_source = t.rate_source;
-  if (t.rate_to_base_actual !== undefined && t.rate_to_base_actual !== null) dbTx.rate_to_base_actual = t.rate_to_base_actual;
-  if (t.rate_fetched_at) dbTx.rate_fetched_at = t.rate_fetched_at;
-  if (t.transfer_id && uuidRegex.test(String(t.transfer_id))) dbTx.transfer_id = t.transfer_id;
-  if (t.transfer_rate !== undefined && t.transfer_rate !== null) dbTx.transfer_rate = t.transfer_rate;
-
-  if (t.created_at) dbTx.created_at = t.created_at;
-  if (t.updated_at) dbTx.updated_at = t.updated_at;
-  if (t.deleted_at) dbTx.deleted_at = t.deleted_at;
-  if (t.deleted_by) dbTx.deleted_by = t.deleted_by;
-
-  return dbTx;
-}
+window.isPremium = isPremium;
+window.getPremiumStatus = getPremiumStatus;
+window.requirePremium = requirePremium;
+window.getBackendApiUrl = getBackendApiUrl;
+window.canUseOnlineAI = canUseOnlineAI;
 window.mapTransactionToDb = mapTransactionToDb;
 
 function mergeAndDeduplicateTemplates(cloudTemplates = [], localTemplates = []) {
