@@ -1289,159 +1289,22 @@ function resolveCategoryInfo(rawCategory, transType) {
 // out smoothly once the initial content render has painted, so the launch screen
 // transitions into the app content without an abrupt black flash.
 // ============================================================
-// LUXURY SPLASH & COLD-START OVERLAY (smooth branded launch)
+// LUXURY SPLASH & COLD-START OVERLAY
+// Extracted to js/splashLifecycleService.js (Phase 22A Architectural Modularization)
 // ============================================================
-const _splashAppStartTime = (typeof window._pageLoadTimestamp === 'number') ? window._pageLoadTimestamp : Date.now();
-let _coldStartFadeDone = false;
-// COLD START FIX: On Index cold start the native Android launch window stays on
-// screen while the WebView loads index.html + splash.html together, so the branded
-// splash is NOT actually visible to the user until considerably later than the
-// index.html parse timestamp. The old timer started at _splashAppStartTime
-// (index.html), so by the time the splash appeared the 2000ms budget had mostly
-// elapsed and the fade-out fired almost immediately by cutting it off abruptly.
-// _splashFrameStartMs is recorded by the iframe onload hook in index.html the
-// moment the splash sub-document is actually ready to be painted; the countdown
-// is anchored to that, so the full mark -> wordmark -> tagline -> loader sequence
-// (~1.95s) gets to play out before the handoff begins.
-let _splashFrameStartMs = 0;
+function _markSplashFrameLoaded() { return SplashLifecycleService._markSplashFrameLoaded(); }
+function _markLaunchWindowGone() { return SplashLifecycleService._markLaunchWindowGone(); }
+function fadeOutColdStartOverlay() { return SplashLifecycleService.fadeOutColdStartOverlay(); }
+function showResumeOverlay() { return SplashLifecycleService.showResumeOverlay(); }
+function hideResumeOverlay() { return SplashLifecycleService.hideResumeOverlay(); }
+function _notifyNativeContentPainted() { return SplashLifecycleService._notifyNativeContentPainted(); }
 
-function _markSplashFrameLoaded() {
-  if (!_splashFrameStartMs) _splashFrameStartMs = Date.now();
-}
 window._markSplashFrameLoaded = _markSplashFrameLoaded;
-
-// LAUNCH-WINDOW-DONE ANCHOR (native Android):
-// The native MainActivity signals this the moment its launch window is dismissed
-// and the user can actually SEE the WebView (first window focus). The HTML
-// splash countdown anchors to the LATEST of (splash-frame-load, launch-window-gone)
-// so the animated splash always plays its full sequence once it is truly visible —
-// instead of being cut short by a timer that started while the native window
-// (system splash on Android 12+) still covered the screen. On web/PWA there is no
-// native launch window, so this stays 0 and the iframe onload anchor is used.
-// window.__launchGoneAt is set by an inline script in index.html <head> so the
-// timestamp survives even if app.js was still loading when the signal arrived.
-let _launchWindowGoneMs = 0;
-function _markLaunchWindowGone() {
-  if (!_launchWindowGoneMs) _launchWindowGoneMs = Date.now();
-  if (!window.__launchGoneAt) window.__launchGoneAt = _launchWindowGoneMs;
-}
 window._markLaunchWindowGone = _markLaunchWindowGone;
-
-function fadeOutColdStartOverlay() {
-  if (_coldStartFadeDone) return;
-  const frame = document.getElementById('cold-start-frame') || document.getElementById('cold-start-overlay');
-  if (!frame) {
-    _coldStartFadeDone = true;
-    return;
-  }
-
-  // Anchor to the real in-page/native load time (fallback: page parse time).
-  // On native Android, _launchWindowGoneMs is the moment the native launch window
-  // was dismissed and the splash became actually visible to the user — the
-  // countdown must start from the LATEST of all candidates (never before the user
-  // can see the splash), otherwise the animated splash gets cut short by a timer
-  // that started while the native window still covered the screen.
-  const anchor = Math.max(
-    _splashFrameStartMs || window._splashFrameStartMs || 0,
-    _launchWindowGoneMs || window.__launchGoneAt || 0,
-    _splashAppStartTime
-  );
-  const elapsed = Date.now() - anchor;
-  // v6_fast splash: full sequence (mark -> wordmark -> tagline -> loader) is ~0.9s.
-  // 1500ms lets the loader sweep play briefly before the fade-out starts.
-  const minVisibleMs = 1500;
-  if (elapsed < minVisibleMs) {
-    setTimeout(fadeOutColdStartOverlay, minVisibleMs - elapsed);
-    return;
-  }
-
-  _coldStartFadeDone = true;
-  frame.style.pointerEvents = 'none';
-  // Smooth fade-out before removing iframe from DOM
-  frame.style.transition = 'opacity 0.45s ease';
-  frame.style.opacity = '0';
-  setTimeout(() => {
-    if (frame.parentNode) frame.parentNode.removeChild(frame);
-  }, 450);
-}
 window.fadeOutColdStartOverlay = fadeOutColdStartOverlay;
-
-// ============================================================
-// RESUME OVERLAY (anti blank/black flash on background -> resume)
-// ============================================================
-// On native Android the WebView surface can be blank for 1-3 frames while it
-// recomposites after returning from background. The native MainActivity overlay
-// covers that gap at the framework level. This JS overlay is the complementary
-// layer: it covers the Web/PWA case (no native layer) and any JS-level re-render
-// flash during the resume window. It is shown on resume and faded out after the
-// recompositing window so the user never sees a blank/black flash.
-let _resumeOverlayTimer = null;
-function showResumeOverlay() {
-  if (document.documentElement.classList.contains('web-mode')) return; // Web browsers keep DOM alive; no black flash overlay needed
-  const overlay = document.getElementById('resume-overlay');
-  if (!overlay) return;
-  // Sync background to the current theme color in case it changed while backgrounded.
-  const savedTheme = localStorage.getItem('app_theme') || 'dark';
-  const bgColor = (typeof window.getThemeBgColor === 'function')
-    ? window.getThemeBgColor(savedTheme)
-    : '#181b22';
-  overlay.style.backgroundColor = bgColor;
-  // Show instantly (no fade-in) — must be visible before any blank frame.
-  overlay.style.transition = 'none';
-  overlay.style.opacity = '1';
-  overlay.style.visibility = 'visible';
-  // Schedule the fade-out (web/PWA only — native hides via JS interface signal).
-  if (_resumeOverlayTimer) clearTimeout(_resumeOverlayTimer);
-  _resumeOverlayTimer = setTimeout(() => {
-    _resumeOverlayTimer = null;
-    hideResumeOverlay();
-  }, 450);
-}
-function hideResumeOverlay() {
-  const overlay = document.getElementById('resume-overlay');
-  if (!overlay) return;
-  overlay.style.transition = 'opacity 0.25s ease';
-  overlay.style.opacity = '0';
-  setTimeout(() => {
-    overlay.style.visibility = 'hidden';
-  }, 280);
-}
 window.showResumeOverlay = showResumeOverlay;
 window.hideResumeOverlay = hideResumeOverlay;
-
-// CONTENT-PAINTED SIGNAL (native Android): The native MainActivity overlay must
-// stay visible until the WebView has actually RENDERED the real UI content
-// (transactions, numbers, colors) -- not merely committed a blank first frame.
-// A double-rAF alone only confirms the browser committed *a* frame, which may
-// still be the blank WebView surface recompositing gap. So we call this ONLY
-// after _updateUIImpl() has written the real content into the DOM, then wait a
-// double-rAF (so that content frame is composited to screen) plus a small safety
-// delay before signalling the native layer to hide the overlay. This guarantees
-// the user never sees a black OR a blank/monochrome frame on resume.
-function _notifyNativeContentPainted() {
-  const _isNativeAndroid = !!(window.Capacitor &&
-    window.Capacitor.isNativePlatform &&
-    window.Capacitor.isNativePlatform());
-  if (!_isNativeAndroid) return;
-  if (!window.NativeApp || typeof window.NativeApp.onFirstPaint !== 'function') return;
-  // Coalesce multiple render passes in the same resume cycle into one signal.
-  // The flag lives on window so _handleAppResumed() can re-arm it each resume.
-  if (window._contentPaintNotified) return;
-  window._contentPaintNotified = true;
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      try { window.NativeApp.onFirstPaint(); } catch (e) { /* fail silently */ }
-    });
-  });
-}
 window._notifyNativeContentPainted = _notifyNativeContentPainted;
-
-// SAFETY FALLBACK: If initApp() fails before reaching its fade-out trigger
-// (and recovery mode doesn't fire), force the cold-start overlay away after a
-// maximum delay so it never permanently blocks the UI.
-setTimeout(() => {
-  fadeOutColdStartOverlay();
-}, 5000);
 
 // ============================================================
 async function initApp() {
