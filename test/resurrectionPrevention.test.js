@@ -37,6 +37,8 @@ const OFFLINE_IMPORT_JS = __dirname + '/../js/offlineImportService.js';
 if (fs.existsSync(OFFLINE_IMPORT_JS)) appJs += '\n' + fs.readFileSync(OFFLINE_IMPORT_JS, 'utf8');
 const SYNC_QUEUE_JS = __dirname + '/../js/syncQueueService.js';
 if (fs.existsSync(SYNC_QUEUE_JS)) appJs += '\n' + fs.readFileSync(SYNC_QUEUE_JS, 'utf8');
+const REALTIME_JS = __dirname + '/../js/supabaseRealtimeService.js';
+if (fs.existsSync(REALTIME_JS)) appJs += '\n' + fs.readFileSync(REALTIME_JS, 'utf8');
 
 // Extract a top-level function by name (handles `async function X(`).
 function extractFn(name) {
@@ -215,6 +217,7 @@ eval([
 global.TransactionMerge = require(__dirname + '/../js/transactionMerge.js');
 global.OfflineImportService = require(__dirname + '/../js/offlineImportService.js');
 global.SyncQueueService = require(__dirname + '/../js/syncQueueService.js');
+global.SupabaseRealtimeService = require(__dirname + '/../js/supabaseRealtimeService.js');
 
 // ---- Test helpers ---------------------------------------------------------
 function seedLocalStorage({ trash = [], offline = [], queue = [], perm = [] } = {}) {
