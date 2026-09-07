@@ -32,7 +32,11 @@ const fs = require('fs');
 //   • autoRestoreMistakenlyDeletedManualTransactions() — neutralized (no-op).
 // ---------------------------------------------------------------------------
 
-const appJs = fs.readFileSync(__dirname + '/../app.js', 'utf8');
+let appJs = fs.readFileSync(__dirname + '/../app.js', 'utf8');
+const OFFLINE_IMPORT_JS = __dirname + '/../js/offlineImportService.js';
+if (fs.existsSync(OFFLINE_IMPORT_JS)) appJs += '\n' + fs.readFileSync(OFFLINE_IMPORT_JS, 'utf8');
+const SYNC_QUEUE_JS = __dirname + '/../js/syncQueueService.js';
+if (fs.existsSync(SYNC_QUEUE_JS)) appJs += '\n' + fs.readFileSync(SYNC_QUEUE_JS, 'utf8');
 
 // Extract a top-level function by name (handles `async function X(`).
 function extractFn(name) {
@@ -191,6 +195,7 @@ global._REALTIME_RESUME_GUARD_MS = 2500;
 // module top level so their declarations share the module scope and can
 // reference each other.
 eval([
+    'getOfflineGuestTransactions',
     'reconcileStaleTombstones',
     'collectPermanentlyDeletedTxIds',
     'purgePermanentlyDeletedTxIds',
@@ -208,6 +213,7 @@ eval([
 // wrapper that exports via CommonJS in Node (module.exports), so we require it
 // and attach to global (global.window === global) for window.TransactionMerge.
 global.TransactionMerge = require(__dirname + '/../js/transactionMerge.js');
+global.OfflineImportService = require(__dirname + '/../js/offlineImportService.js');
 
 // ---- Test helpers ---------------------------------------------------------
 function seedLocalStorage({ trash = [], offline = [], queue = [], perm = [] } = {}) {
