@@ -706,35 +706,14 @@ window.formatGreekDateTime = formatGreekDateTime;
 // evaluateCalcBuffer → extracted to js/calcKeypad.js (Phase 2, Extraction 1)
 // hasPendingMathOperator → extracted to js/calcKeypad.js (Phase 2, Extraction 1)
 
-function updateKeypadDoneButton() {
-  const doneBtn = document.getElementById('calc-done-btn');
-  const liveFormula = document.getElementById('calc-live-formula');
-  const buf = state.calcBuffer || '';
-  const isExpression = hasPendingMathOperator(buf);
+// ============================================================
+// CALCULATOR KEYPAD CONTROLLER SUBSYSTEM
+// Extracted to js/calculatorKeypadService.js (Phase 26C Architectural Modularization)
+// ============================================================
+function updateKeypadDoneButton() { return CalculatorKeypadService.updateKeypadDoneButton(); }
+window.updateKeypadDoneButton = updateKeypadDoneButton;
 
-  if (liveFormula) {
-    if (isExpression) {
-      const evaluated = evaluateCalcBuffer(buf);
-      liveFormula.textContent = `= ${formatCalcDisplay(evaluated)} €`;
-      liveFormula.style.display = 'inline';
-    } else {
-      liveFormula.textContent = '';
-      liveFormula.style.display = 'none';
-    }
-  }
 
-  if (doneBtn) {
-    if (isExpression) {
-      doneBtn.textContent = '=';
-      doneBtn.setAttribute('data-mode', 'equals');
-    } else {
-      const lang = localStorage.getItem('bg_language') || 'el';
-      const label = lang === 'en' ? 'Done' : 'Τέλος';
-      doneBtn.textContent = label;
-      doneBtn.setAttribute('data-mode', 'done');
-    }
-  }
-}
 // formatCalcDisplay → extracted to js/calcKeypad.js (Phase 2, Extraction 1)
 
 // Remove thousands separators ('.' followed by exactly 3 digits) so a formatted
@@ -3937,43 +3916,7 @@ function setupEventListeners() {
     window.initReceiptEventListeners();
   }
 
-  function openCalculatorKeypad() {
-    if (window.autocompleteJustSelected) return;
-    const form = document.getElementById('transaction-form');
-    if (form && form.getAttribute('data-readonly') === 'true') return;
-    ensureHistoryPushed();
-    const keypad = document.getElementById('custom-calculator-keypad');
-    if (keypad) {
-      keypad.classList.add('active');
-    }
-    const modal = document.getElementById('transaction-modal');
-    if (modal) {
-      modal.classList.add('keypad-active');
-    }
-    const amountRow = document.getElementById('form-row-amount');
-    if (amountRow) {
-      amountRow.querySelector('.form-row-value-container').classList.add('focused');
-      // Scroll amount row to center of modal body
-      const body = amountRow.closest('.modal-body');
-      if (body) {
-        setTimeout(() => {
-          window.scrollTo(0, 0);
-          document.body.scrollTop = 0;
-          const bodyRect = body.getBoundingClientRect();
-          const rowRect = amountRow.getBoundingClientRect();
-          const relativeTop = rowRect.top - bodyRect.top + body.scrollTop;
-          const targetScrollTop = relativeTop - (bodyRect.height / 2) + (rowRect.height / 2);
-          body.scrollTo({
-            top: targetScrollTop,
-            behavior: 'smooth'
-          });
-        }, 300);
-      }
-    }
-    state.calcBuffer = stripThousandsSeparators(document.getElementById('trans-amount').value).replace(/\,/g, '.') || '';
-    updateKeypadDoneButton();
-  }
-
+  function openCalculatorKeypad() { return CalculatorKeypadService.openCalculatorKeypad(); }
   window.openCalculatorKeypad = openCalculatorKeypad;
 
   // Routes taps on the amount row: tapping the currency symbol opens the
@@ -4025,76 +3968,11 @@ function setupEventListeners() {
     }
   }, true);
 
-  function closeCalculatorKeypad() {
-    const keypad = document.getElementById('custom-calculator-keypad');
-    if (keypad) {
-      keypad.classList.remove('active');
-    }
-    const modal = document.getElementById('transaction-modal');
-    if (modal) {
-      modal.classList.remove('keypad-active');
-    }
-    const amountRow = document.getElementById('form-row-amount');
-    if (amountRow) {
-      amountRow.querySelector('.form-row-value-container').classList.remove('focused');
-    }
-  }
+  function closeCalculatorKeypad() { return CalculatorKeypadService.closeCalculatorKeypad(); }
+  function handleCalculatorKeyPress(val) { return CalculatorKeypadService.handleCalculatorKeyPress(val); }
 
   window.closeCalculatorKeypad = closeCalculatorKeypad;
-
-  function handleCalculatorKeyPress(val) {
-    let buf = state.calcBuffer || '0';
-
-    if (val === 'done') {
-      const isExpression = hasPendingMathOperator(buf);
-      if (isExpression) {
-        // Pressing '=' evaluates the math expression first
-        buf = evaluateCalcBuffer(buf);
-        state.calcBuffer = buf;
-        document.getElementById('trans-amount').value = formatCalcDisplay(buf);
-        updateAmountCurrencySymbol();
-        updateKeypadDoneButton();
-        return;
-      } else {
-        // Clean result: close keypad
-        buf = evaluateCalcBuffer(buf);
-        document.getElementById('trans-amount').value = formatCalcDisplay(buf);
-        state.calcBuffer = buf;
-        updateAmountCurrencySymbol();
-        closeCalculatorKeypad();
-        return;
-      }
-    }
-
-    if (val === 'backspace') {
-      if (buf.length > 0) {
-        buf = buf.slice(0, -1);
-      }
-      if (buf === '') buf = '0';
-    } else if (val === '+' || val === '-') {
-      if (buf.length > 0 && !['-', '+', '*', '/'].includes(buf.slice(-1))) {
-        buf += val;
-      }
-    } else if (val === 'calc') {
-      buf = evaluateCalcBuffer(buf);
-    } else if (val === '.') {
-      const lastNumPart = buf.split(/[-+*/]/).pop();
-      if (!lastNumPart.includes('.')) {
-        buf += '.';
-      }
-    } else {
-      if (buf === '0' && val !== '00') {
-        buf = val;
-      } else {
-        buf += val;
-      }
-    }
-
-    state.calcBuffer = buf;
-    document.getElementById('trans-amount').value = formatCalcDisplay(buf);
-    updateAmountCurrencySymbol();
-    updateKeypadDoneButton();
-  }
+  window.handleCalculatorKeyPress = handleCalculatorKeyPress;
 
   // Stats period navigation
   document.getElementById('stats-period-prev').addEventListener('click', () => {
