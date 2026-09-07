@@ -4262,54 +4262,19 @@ window.openModal = openModal;
 
 // Removed initMainScreenSwipeGestures call and adjustMainPeriod
 
+// ============================================================
+// STATS PERIOD NAVIGATION SUBSYSTEM
+// Extracted to js/statsPeriodService.js (Phase 26B Architectural Modularization)
+// ============================================================
 function adjustStatsPeriod(direction, startingDeltaX = 0) {
-  animateSwipeTransition(direction, () => {
-    if (state.statsPeriodType === 'weekly') {
-      state.statsDate.setDate(state.statsDate.getDate() + direction * 7);
-    } else if (state.statsPeriodType === 'monthly') {
-      state.statsDate.setDate(15);
-      state.statsDate.setMonth(state.statsDate.getMonth() + direction);
-      state.selectedMonth = state.statsDate.getMonth();
-      state.selectedYear = state.statsDate.getFullYear();
-      updateHeaderAndSync();
-    } else if (state.statsPeriodType === 'annually') {
-      state.statsDate.setDate(15);
-      state.statsDate.setFullYear(state.statsDate.getFullYear() + direction);
-    } else if (state.statsPeriodType === 'period') {
-      const start = new Date(state.statsCustomStart + 'T00:00:00');
-      const end = new Date(state.statsCustomEnd + 'T23:59:59');
-      const durationMs = end - start + 1; // inclusive
-      const newStart = new Date(start.getTime() + direction * durationMs);
-      const newEnd = new Date(end.getTime() + direction * durationMs);
-      state.statsCustomStart = newStart.toISOString().split('T')[0];
-      state.statsCustomEnd = newEnd.toISOString().split('T')[0];
-    }
-    renderStatsTab(true);
-  }, startingDeltaX);
+  return StatsPeriodService.adjustStatsPeriod(direction, startingDeltaX);
 }
-
-
 function handleCustomPeriodSave() {
-  const startVal = document.getElementById('custom-period-start').value;
-  const endVal = document.getElementById('custom-period-end').value;
-  if (startVal && endVal) {
-    if (new Date(startVal) > new Date(endVal)) {
-      const msg = TRANSLATIONS[state.lang]['alert_date_order'];
-      window.showAlert(msg);
-      return;
-    }
-    state.expandedStatsCategories.clear();
-    state.statsCustomStart = startVal;
-    state.statsCustomEnd = endVal;
-    state.statsPeriodType = 'period';
-    closeModal('custom-period-modal');
-    renderStatsTab();
-  }
+  return StatsPeriodService.handleCustomPeriodSave();
 }
 
-function scrollToToday(behavior = 'smooth') {
-  return TransactionListService.scrollToToday(behavior);
-}
+window.adjustStatsPeriod = adjustStatsPeriod;
+window.handleCustomPeriodSave = handleCustomPeriodSave;
 window.scrollToToday = scrollToToday;
 
 // ============================================================
@@ -4431,137 +4396,19 @@ function openSupabaseSettings() {
 
 // Premium window bindings moved to js/billingService.js
 
-// Floating toast for background sync feedback
-let _syncToastTimer = null;
+// ============================================================
+// HEADER SYNC & TOAST FEEDBACK SUBSYSTEM
+// Extracted to js/statsPeriodService.js (Phase 26B Architectural Modularization)
+// ============================================================
 function showSyncToast(message, autoDismissMs = 0) {
-  let toast = document.getElementById('sync-toast');
-  if (!toast) {
-    toast = document.createElement('div');
-    toast.id = 'sync-toast';
-    toast.style.cssText = `
-      position: fixed; bottom: 24px; right: 20px; z-index: 99999;
-      background: var(--card-bg, #1e1e2e); color: var(--text-primary, #fff);
-      border: 1px solid var(--accent, #7c6af7); border-radius: 14px;
-      padding: 12px 18px; font-size: 13px; font-weight: 600;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
-      display: flex; align-items: center; gap: 10px;
-      transform: translateY(80px); opacity: 0;
-      transition: transform 0.3s cubic-bezier(.34,1.56,.64,1), opacity 0.3s ease;
-      max-width: 280px;
-    `;
-    document.body.appendChild(toast);
-  }
-  // Animated pulse dot
-  toast.innerHTML = `<span style="width:8px;height:8px;border-radius:50%;background:var(--accent,#7c6af7);display:inline-block;animation:syncPulse 1s infinite;flex-shrink:0;"></span><span>${message}</span>`;
-  // Inject keyframes if not already
-  if (!document.getElementById('sync-toast-styles')) {
-    const s = document.createElement('style');
-    s.id = 'sync-toast-styles';
-    s.textContent = `@keyframes syncPulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(1.4)} }`;
-    document.head.appendChild(s);
-  }
-  // Show
-  requestAnimationFrame(() => {
-    toast.style.transform = 'translateY(0)';
-    toast.style.opacity = '1';
-  });
-  // Update header sync icon based on message type
-  if (message.startsWith('✅')) {
-    updateHeaderSyncIcon('synced');
-    const dot = toast.querySelector('span');
-    if (dot) dot.style.animation = 'none';
-  } else if (message.startsWith('⚠️')) {
-    updateHeaderSyncIcon('error');
-    const dot = toast.querySelector('span');
-    if (dot) dot.style.animation = 'none';
-  } else if (message.startsWith('☁️')) {
-    updateHeaderSyncIcon('syncing');
-  }
-  if (_syncToastTimer) clearTimeout(_syncToastTimer);
-  if (autoDismissMs > 0) {
-    _syncToastTimer = setTimeout(() => {
-      toast.style.transform = 'translateY(80px)';
-      toast.style.opacity = '0';
-    }, autoDismissMs);
-  }
+  return StatsPeriodService.showSyncToast(message, autoDismissMs);
 }
 function updateHeaderSyncIcon(state_) {
-  state.syncStatus = state_;
-  // state_: 'offline' | 'idle' | 'syncing' | 'synced' | 'success' | 'error'
-  const dot = document.getElementById('header-sync-dot');
-  const icon = document.getElementById('header-sync-cloud-icon');
-  if (!dot || !icon) return;
-
-  // Normalize state for visual elements and translations
-  let normalized = state_;
-  if (state_ === 'success') normalized = 'synced';
-  if (state_ === 'idle') normalized = 'offline';
-
-  const colors = {
-    offline: '#9e9e9e',
-    syncing: '#ffd600',
-    synced: '#4caf50',
-    error: '#ef5350'
-  };
-  dot.style.background = colors[normalized] || '#9e9e9e';
-
-  // Animate dot on sync
-  if (normalized === 'syncing') {
-    dot.style.animation = 'syncDotPulse 0.8s infinite alternate';
-  } else {
-    dot.style.animation = 'none';
-  }
-
-  // Inject dot keyframes once
-  if (!document.getElementById('sync-dot-styles')) {
-    const s = document.createElement('style');
-    s.id = 'sync-dot-styles';
-    s.textContent = `@keyframes syncDotPulse{from{opacity:1;transform:scale(1)}to{opacity:.3;transform:scale(1.6)}}`;
-    document.head.appendChild(s);
-  }
-
-  // Tooltip
-  const btn = document.getElementById('header-sync-icon');
-  const lang = state.lang || 'el';
-  const labels = lang === 'en' ? {
-    offline: 'Local Storage',
-    syncing: 'Syncing...',
-    synced: 'Synced ✅',
-    error: 'Sync Error ⚠️'
-  } : {
-    offline: 'Τοπική αποθήκευση',
-    syncing: 'Συγχρονισμός...',
-    synced: 'Συγχρονισμένο ✅',
-    error: 'Σφάλμα συγχρονισμού ⚠️'
-  };
-  if (btn) btn.title = labels[normalized] || (lang === 'en' ? 'Sync' : 'Συγχρονισμός');
-
-  // Update sync status text in settings
-  const syncStatusEl = document.getElementById('val_sync_status');
-  if (syncStatusEl) {
-    const statusLabels = lang === 'en' ? {
-      offline: 'Local Storage',
-      syncing: 'Syncing...',
-      synced: 'Active',
-      error: 'Error'
-    } : {
-      offline: 'Τοπική Αποθήκευση',
-      syncing: 'Συγχρονισμός...',
-      synced: 'Ενεργός',
-      error: 'Σφάλμα'
-    };
-    syncStatusEl.textContent = statusLabels[normalized] || (lang === 'en' ? 'Local Storage' : 'Τοπική Αποθήκευση');
-
-    // Update color based on status
-    if (normalized === 'synced') {
-      syncStatusEl.style.color = '#4caf50'; // Green for active
-    } else if (normalized === 'error') {
-      syncStatusEl.style.color = '#ef5350'; // Red for error
-    } else {
-      syncStatusEl.style.color = 'var(--text-secondary)';
-    }
-  }
+  return StatsPeriodService.updateHeaderSyncIcon(state_);
 }
+
+window.showSyncToast = showSyncToast;
+window.updateHeaderSyncIcon = updateHeaderSyncIcon;
 
 function promiseTimeout(promise, ms) {
   let timeout = new Promise((resolve, reject) => {
