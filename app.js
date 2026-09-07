@@ -2097,281 +2097,31 @@ window.deleteTransactionOffline = deleteTransactionOffline;
 // ============================================================
 
 // ============================================================
-// FIX #4 (flicker): Central render scheduler.
-// All UI renders funnel through updateUI() which coalesces bursts
-// into a single pass. Key improvements over the old scheduler:
-//   1. A single updateUI() call flushes on the NEXT animation frame
-//      (no artificial 150ms latency for isolated renders).
-//   2. A burst of updateUI() calls within the debounce window collapses
-//      into ONE render (no more 32+ concurrent DOM mutations racing).
-//   3. flushUI() cancels any pending scheduled render and renders
-//      immediately — used by switchTab so a tab switch never races
-//      against a background-sync render.
+// CENTRAL RENDER SCHEDULER & ANTI-FLICKER TRANSITIONS
+// Extracted to js/renderOrchestrationService.js (Phase 30A Architectural Modularization)
 // ============================================================
-let _updateUITimer = null;
-let _updateUIRAF = null;
-let _updateUIDirty = false;
+function pushNoTransition() { return RenderOrchestrationService.pushNoTransition(); }
+function popNoTransition() { return RenderOrchestrationService.popNoTransition(); }
+function _isWithinResumeWindow(ms) { return RenderOrchestrationService._isWithinResumeWindow(ms); }
+function _runScheduledRender() { return RenderOrchestrationService._runScheduledRender(); }
+function updateUI() { return RenderOrchestrationService.updateUI(); }
+function flushUI() { return RenderOrchestrationService.flushUI(); }
+function getActiveScrollContainer() { return RenderOrchestrationService.getActiveScrollContainer(); }
+function _isAuthenticated() { return RenderOrchestrationService._isAuthenticated(); }
+function _updateUIImpl() { return RenderOrchestrationService._updateUIImpl(); }
+function updateHeaderAndSync() { return RenderOrchestrationService.updateHeaderAndSync(); }
 
-// ============================================================
-// ANTI-FLICKER: Reference-counted no-transition guard.
-//
-// PROBLEM: Multiple independent code paths (resume handler, forceSyncNow,
-// realtime handlers, modal restore) each add/remove the 'no-transition' class
-// on their own setTimeout. When they overlap (e.g. the resume handler's 1700ms
-// removal fires while forceSyncNow's deferred render is still pending), one
-// path can prematurely remove the class that another path is relying on,
-// leaving a deferred re-render UNCOVERED → visible flash on resume.
-//
-// SOLUTION: A counter. pushNoTransition() increments and adds the class;
-// popNoTransition() decrements and only removes the class when the counter
-// reaches zero. This guarantees the class stays active until EVERY guard has
-// released it, so no deferred render ever runs with transitions enabled.
-// ============================================================
-let _noTransitionCount = 0;
-function pushNoTransition() {
-  _noTransitionCount++;
-  document.documentElement.classList.add('no-transition');
-}
-function popNoTransition() {
-  _noTransitionCount = Math.max(0, _noTransitionCount - 1);
-  if (_noTransitionCount === 0) {
-    document.documentElement.classList.remove('no-transition');
-  }
-}
-
-// ANTI-FLICKER FIX (resume flash): Returns true if the app resumed from the
-// background within the last `ms` milliseconds. The realtime handlers debounce
-// their re-renders by 5s, so events that arrive well after the short-lived
-// _appJustResumed flag (which expires at _RESUME_GUARD_MS) can still be part of
-// the resume-cycle reconnect burst - and must render with transitions suppressed.
-function _isWithinResumeWindow(ms) {
-  const t = window._lastResumeTimestamp || 0;
-  return t > 0 && (Date.now() - t) < ms;
-}
-
-function _runScheduledRender() {
-  _updateUITimer = null;
-  _updateUIRAF = null;
-  _updateUIDirty = false;
-  // ANTI-FLICKER: When _suppressTransitions is set (e.g. during the
-  // startup loadData() re-render after a long background where the OS
-  // reloaded the WebView), wrap the DOM wipe/re-render in no-transition
-  // so the tab content does not visibly flash. This covers the full-reload
-  // path that forceSyncNow's own guard cannot reach.
-  const suppress = !!window._suppressTransitions;
-  if (suppress) pushNoTransition();
-  try {
-    _updateUIImpl();
-  } finally {
-    if (suppress) {
-      setTimeout(() => {
-        popNoTransition();
-      }, 1000);
-    }
-  }
-}
-
-function updateUI() {
-  // If a render is already scheduled (either the resume-delay timer or the
-  // pending animation-frame), just mark it dirty and let the existing
-  // scheduled pass handle it — coalescing bursts into a single render.
-  if (_updateUITimer || _updateUIRAF) {
-    _updateUIDirty = true;
-    return;
-  }
-  _updateUIDirty = true;
-
-  // INSTANT-RESUME: Always flush on the next animation frame so that multiple
-  // synchronous updateUI() calls in the same tick still coalesce into a single
-  // render (avoids redundant DOM wipes). We deliberately do NOT defer the render
-  // on resume — the user wants to return straight to where they were (like
-  // Messenger/Facebook) without seeing any background/splash flash. The
-  // no-transitions guard (_RESUME_GUARD_MS) already suppresses CSS transitions
-  // during the resume window, so an immediate render is flicker-free.
-  if (_updateUIRAF) cancelAnimationFrame(_updateUIRAF);
-  _updateUIRAF = requestAnimationFrame(_runScheduledRender);
-}
-
-// Immediately cancel any pending scheduled render and run the render NOW.
-// Used by switchTab() so a tab switch never races against a queued
-// background-sync render (which would cause a visible flash/jitter).
-function flushUI() {
-  if (_updateUITimer) {
-    clearTimeout(_updateUITimer);
-    _updateUITimer = null;
-  }
-  if (_updateUIRAF) {
-    cancelAnimationFrame(_updateUIRAF);
-    _updateUIRAF = null;
-  }
-  _updateUIDirty = false;
-  _runScheduledRender();
-}
-
-function getActiveScrollContainer() {
-  if (state.activeTab === 'trans') return document.querySelector('.trans-scroll-content');
-  if (state.activeTab === 'stats') return document.querySelector('.stats-scroll-content');
-  if (state.activeTab === 'accounts') return document.querySelector('.accounts-scroll-content');
-  if (state.activeTab === 'more') return document.querySelector('.more-scroll-content');
-  return null;
-}
-
-// SECURITY GUARD: Returns true only when the user is actually authenticated and
-// the auth overlay is hidden. When the auth overlay is visible (the user is being
-// asked to log in / sign up), we must NEVER render personal data (transactions,
-// stats, accounts) or restore modals - otherwise a previous user's cached data
-// would flash on screen before the login card appears.
-// SECURITY: _authConfirmed is set to true ONLY once the user's session has been
-// verified as valid (or guest mode / offline-with-cached-user is active). Until
-// it is true, the app must never render or restore personal data, so a previous
-// user's cached transactions can never flash before the login card appears.
-function _isAuthenticated() {
-  return !!window._authConfirmed || !!state.guestMode || localStorage.getItem('auth_guest_mode') === 'true';
-}
+// Bind to window for global runtime access
+window.pushNoTransition = pushNoTransition;
+window.popNoTransition = popNoTransition;
+window._isWithinResumeWindow = _isWithinResumeWindow;
+window._runScheduledRender = _runScheduledRender;
+window.updateUI = updateUI;
+window.flushUI = flushUI;
+window.getActiveScrollContainer = getActiveScrollContainer;
 window._isAuthenticated = _isAuthenticated;
-
-function _updateUIImpl() {
-  updateHeaderAndSync();
-  if (typeof updateHeaderDemoBadge === 'function') {
-    updateHeaderDemoBadge();
-  }
-
-  // SECURITY: If the user is not authenticated (_authConfirmed not yet set), do
-  // NOT render any personal data, and DO NOT run recurring-template generation:
-  // processRecurringTemplates() creates transactions from state.recurringTemplates,
-  // and while unauthenticated (login screen / after logout) that array could still
-  // hold a previous account's templates — regenerating those recurring
-  // transactions into the offline/guest cache would leak account data into the
-  // next guest session. The content behind the login card must stay blank so a
-  // previous user's cached transactions/balances are never exposed before the
-  // current user logs in. We skip the tab rendering, modal restore, and the
-  // content-painted signal. The cached data stays in memory (state) so it
-  // renders immediately once the session is confirmed - it is just never
-  // written to the DOM while unauthenticated.
-  if (!_isAuthenticated()) {
-    return;
-  }
-
-  processRecurringTemplates();
-  cleanCrossLanguageRecurringDuplicates();
-
-  const countEl = document.getElementById('recurring-templates-count-val');
-  if (countEl) {
-    countEl.textContent = state.recurringTemplates ? state.recurringTemplates.length : 0;
-  }
-  const trashCount = state.trashTransactions ? state.trashTransactions.length : 0;
-  // Update the trash badge used in index.html (hub-trash-count).
-  const hubTrashCountEl = document.getElementById('hub-trash-count');
-  if (hubTrashCountEl) {
-    hubTrashCountEl.textContent = trashCount;
-  }
-
-  // Save current month/year to localStorage so they are preserved on app resume/reload
-  localStorage.setItem('selected_month', state.selectedMonth);
-  localStorage.setItem('selected_year', state.selectedYear);
-
-  // If ANY modal is currently open, skip the full tab re-render.
-  // A background sync (forceSyncNow) firing while a modal is visible would otherwise
-  // cause the tab content behind the modal to flash/reload — visible and jarring on Android.
-  // The re-render will happen naturally the next time the user closes the modal (closeModal
-  // calls updateUI) or switches tabs.
-  const anyModalOpen = !!document.querySelector(
-    '.modal-overlay.active, .tx-modal-overlay.active, .profile-sheet-overlay.active'
-  );
-
-  if (!anyModalOpen) {
-    // Save current scroll position before rendering to prevent scroll-jump
-    const scrollContainer = getActiveScrollContainer();
-    const currentScrollTop = scrollContainer ? scrollContainer.scrollTop : 0;
-
-    // Render only the active tab to optimize performance and prevent background rendering lag
-    if (state.activeTab === 'trans') {
-      renderTransactionsTab();
-    } else if (state.activeTab === 'stats') {
-      renderStatsTab();
-    } else if (state.activeTab === 'accounts') {
-      renderAccountsTab();
-    } else if (state.activeTab === 'more') {
-      renderPartnerSection();
-      renderNotesList();
-      updateOfflineImportSettingsRow();
-    }
-
-    // Restore scroll position
-    const restoredScrollContainer = getActiveScrollContainer();
-    if (restoredScrollContainer) {
-      const bgScrollTop = localStorage.getItem('bg_scroll_top');
-      if (bgScrollTop !== null) {
-        restoredScrollContainer.scrollTop = parseInt(bgScrollTop, 10);
-        localStorage.removeItem('bg_scroll_top');
-      } else {
-        restoredScrollContainer.scrollTop = currentScrollTop;
-      }
-    }
-  }
-
-  // Clear category render cache on UI refresh to pick up updates
-  lastRenderedCategoryType = null;
-
-  const activeTypeBtn = document.querySelector('.type-tab-btn.active');
-  const currentType = activeTypeBtn ? activeTypeBtn.getAttribute('data-type') : 'expense';
-
-  // FIX #2: Skip rebuilding dropdowns when the transaction modal is open.
-  // Rebuilding category/account dropdowns while the modal is visible causes
-  // the form fields to flicker (innerHTML reset) even though the modal itself
-  // is correctly open. We only need to rebuild them when the modal is closed,
-  // or when it is first opened (handled inside openAddTransactionModal /
-  // openEditTransactionModal via updateCategoryDropdowns/updateAccountDropdowns).
-  const txModalOpen = document.getElementById('transaction-modal') &&
-    document.getElementById('transaction-modal').classList.contains('active');
-  if (!txModalOpen) {
-    updateCategoryDropdowns(currentType);
-    updateAccountDropdowns();
-  }
-  updateCurrencySymbols();
-
-  // Scroll to today on startup once transactions are loaded
-  const list = document.getElementById('transactions-list');
-  if (!state.hasInitialScrollDone && list && list.children.length > 0) {
-    state.hasInitialScrollDone = true;
-    setTimeout(() => {
-      scrollToToday('auto');
-    }, 300);
-  }
-
-  // Onboarding auto-trigger
-  const authOverlay = document.getElementById('auth-overlay');
-  const isAuthVisible = authOverlay && authOverlay.style.display !== 'none';
-  if (!isAuthVisible && (!state.transactions || state.transactions.length === 0) && !localStorage.getItem('ba_ftux_status')) {
-    setTimeout(() => {
-      if (!localStorage.getItem('ba_ftux_status') && (!state.transactions || state.transactions.length === 0)) {
-        openQuickStartModal(0);
-      }
-    }, 800);
-  }
-
-  // CONTENT-PAINTED SIGNAL: The real UI content has now been written into the
-  // DOM. Signal the native overlay to hide (after the content frame is
-  // composited via double-rAF inside _notifyNativeContentPainted). This is the
-  // ONLY point we consider the UI "actually painted" — a plain double-rAF in
-  // _handleAppResumed could fire on a still-blank frame.
-  if (typeof window._notifyNativeContentPainted === 'function') {
-    window._notifyNativeContentPainted();
-  }
-}
-
-function updateHeaderAndSync() {
-  const rawText = `${getMonthName(state.selectedMonth, true)} ${state.selectedYear}`;
-  const periodEl = document.getElementById('current-period-title');
-  if (periodEl) periodEl.innerHTML = wrapPeriodTitleWithSpans(rawText);
-  updateHeaderProfileBadge();
-  if (typeof updateSyncStatusIndicator === 'function') {
-    updateSyncStatusIndicator();
-  }
-  if (typeof window.updateDesktopSidebarUser === 'function') {
-    window.updateDesktopSidebarUser();
-  }
-}
+window._updateUIImpl = _updateUIImpl;
+window.updateHeaderAndSync = updateHeaderAndSync;
 
 // ============================================================
 // TAB 1: TRANSACTIONS
