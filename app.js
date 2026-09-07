@@ -2006,161 +2006,18 @@ function showPendingInvitationPrompt(invite) { return AuthService.showPendingInv
 
 window.toggleLoader = toggleLoader;
 
-function applyWalletTheme() {
-  if (state.partnerProfile) {
-    document.body.classList.add('shared-wallet-active');
-  } else {
-    document.body.classList.remove('shared-wallet-active');
-  }
+// ============================================================
+// TRANSACTION SCOPE & BALANCE ENGINE SUBSYSTEM
+// Extracted to js/transactionScopeService.js (Phase 21B Architectural Modularization)
+// ============================================================
+function applyWalletTheme() { return TransactionScopeService.applyWalletTheme(); }
+function getActiveTransactions() { return TransactionScopeService.getActiveTransactions(); }
+function isTransferTransaction(t) { return TransactionScopeService.isTransferTransaction(t); }
+function calculateInitialBalances() { return TransactionScopeService.calculateInitialBalances(); }
 
-  // IMPORTANT: Always re-apply the user's chosen theme so that shared-wallet-active
-  // never overrides the colour scheme. The theme is the single source of truth.
-  // Clean ALL theme classes on BOTH <body> and <html> (same set as applyTheme),
-  // then re-apply the full token set from the central THEMES config.
-  const savedTheme = localStorage.getItem('app_theme') || 'dark';
-  const themeClasses = ['theme-oled', 'theme-light', 'theme-emerald', 'theme-ocean', 'theme-pink', 'theme-sakura', 'theme-rosegold', 'theme-cyber'];
-  themeClasses.forEach(cls => {
-    document.body.classList.remove(cls);
-    document.documentElement.classList.remove(cls);
-  });
-  if (savedTheme !== 'dark') {
-    document.body.classList.add(`theme-${savedTheme}`);
-    document.documentElement.classList.add(`theme-${savedTheme}`);
-  }
-  if (typeof applyTheme === 'function') applyTheme(savedTheme);
-}
-
-
-// Bind to window
 window.applyWalletTheme = applyWalletTheme;
-
-function getActiveTransactions() {
-  const cachedUserStr = localStorage.getItem('cached_current_user');
-  let fallbackUid = null;
-  try { if (cachedUserStr) fallbackUid = JSON.parse(cachedUserStr).id; } catch (_) {}
-  const currentUserId = state.currentUser ? state.currentUser.id : fallbackUid;
-  const partnerId = state.partnerProfile ? state.partnerProfile.id : null;
-  const familyId = state.userProfile ? state.userProfile.family_id : null;
-  const isPersonalMode = state.activeAccountMode === 'personal';
-
-  // Collect all known family member IDs
-  const familyMemberIds = new Set();
-  if (partnerId) familyMemberIds.add(partnerId);
-  if (Array.isArray(state.familyProfiles)) {
-    state.familyProfiles.forEach(p => {
-      if (p && p.id && p.id !== currentUserId) familyMemberIds.add(p.id);
-    });
-  }
-
-  const filtered = state.transactions.filter(t => {
-    if (t.user_id === undefined) {
-      return true;
-    }
-
-    if (currentUserId) {
-      if (isPersonalMode) {
-        return (t.user_id === currentUserId && (!t.family_id || t.family_id === null)) ||
-          (t.id && String(t.id).startsWith('local_') && (!t.family_id || t.family_id === null));
-      }
-
-      if (familyId) {
-        return t.family_id === familyId ||
-          t.user_id === currentUserId ||
-          familyMemberIds.has(t.user_id) ||
-          (t.id && String(t.id).startsWith('local_'));
-      }
-      return t.user_id === currentUserId ||
-        familyMemberIds.has(t.user_id) ||
-        (t.id && String(t.id).startsWith('local_'));
-    } else {
-      // Guest mode: show unowned/legacy transactions AND guest-owned demo data
-      // (user_id === 'guest' or is_demo / demo_ id). Demo transactions created via
-      // onboardingAddDemoData() carry user_id 'guest', so without this they would be
-      // silently filtered out and Demo Mode would appear empty for guests.
-      return t.user_id === null || t.user_id === undefined ||
-        t.user_id === 'guest' || t.is_demo === true ||
-        (t.id && String(t.id).startsWith('demo_'));
-    }
-  });
-
-  // Deduplicate by ID only (provable identity). Content-based dedup was REMOVED:
-  // it dropped local_ transactions whose contents matched a cloud transaction,
-  // which destroyed legitimate distinct transactions (same date/amount/category).
-  // Per data-integrity policy we never drop a record based on content heuristics.
-  const seenIds = new Set();
-  return filtered.filter(t => {
-    const id = t.id;
-    if (!id) return true;
-    if (seenIds.has(id)) return false;
-    seenIds.add(id);
-    return true;
-  });
-}
-
-// Central helper that decides whether a transaction is a transfer.
-// A transaction is a transfer when its type is 'transfer'. We ALSO treat a
-// transaction as a transfer when its category is a transfer category (e.g.
-// 'ΜΕΤΑΦΟΡΑ' / 'transfer'), which covers legacy records that were stored with
-// type='expense' but a transfer category. Using this single helper everywhere
-// keeps the exclusion from income/expense reports consistent across the app.
-function isTransferTransaction(t) {
-  if (!t) return false;
-  if (t.type === 'transfer') return true;
-  const cat = t.category ? String(t.category).toLowerCase() : '';
-  return cat.includes('μεταφ') || cat.includes('transfer');
-}
-
-function calculateInitialBalances() {
-  if (!state.accounts) return;
-  state.accounts.forEach(acc => {
-    let netSum = 0;
-    // The account balance is stored in the account's own currency (acc.currency),
-    // so every transaction must be converted into that currency before being
-    // added/subtracted. Using CurrencyService.toBase(t) here would be wrong for
-    // multi-currency accounts, because it returns the amount in the transaction's
-    // base_currency rather than the account's currency.
-    const accCurrency = acc.currency || getDisplayCurrency();
-    // For family accounts during Personal Mode, calculate balance using all family transactions to avoid zero/distorted balances
-    let activeTrans = getActiveTransactions();
-    if (state.activeAccountMode === 'personal' && (acc.scope === 'family' || acc.family_id)) {
-      const familyId = state.userProfile ? state.userProfile.family_id : null;
-      const currentUserId = state.currentUser ? state.currentUser.id : null;
-      const partnerId = state.partnerProfile ? state.partnerProfile.id : null;
-      activeTrans = state.transactions.filter(t => {
-        if (familyId) return t.family_id === familyId || t.user_id === currentUserId || t.user_id === partnerId;
-        return t.user_id === currentUserId;
-      });
-    }
-    activeTrans.forEach(t => {
-      // displayAmount(t, accCurrency) converts the transaction amount into the
-      // target account's currency (handles fx_snapshot / amount_base / rates).
-      const amt = CurrencyService.displayAmount(t, accCurrency);
-      // Use the same isTransferTransaction() helper as the reports so a legacy
-      // record stored as type='expense' with a transfer category is treated as a
-      // transfer here too (subtract from source, add to destination) instead of
-      // being counted as an expense.
-      if (isTransferTransaction(t)) {
-        if (t.account_from === acc.name) netSum -= amt;
-        if (t.account_to === acc.name) netSum += amt;
-      } else {
-        if (t.account_from === acc.name) {
-          if (t.type === 'expense') netSum -= amt;
-          else if (t.type === 'income') netSum += amt;
-        }
-      }
-    });
-    acc.initial_balance = sanitizeFloat((parseFloat(acc.balance) || 0) - netSum);
-  });
-}
-
-// ============================================================
-// FINANCIAL HEALTH SCORE (FHS) & FORECASTING ENGINE (classifyCategory, calculateFinancialHealthScore, calculateForecasting)
-// Extracted to js/financialHealthEngine.js (Phase 11C Architectural Extraction)
-// ============================================================
-
-
-// Bind to window
 window.getActiveTransactions = getActiveTransactions;
+window.isTransferTransaction = isTransferTransaction;
 window.calculateInitialBalances = calculateInitialBalances;
 
 // Scan categories and transactions to clean up duplicates (e.g. Chinese characters)
