@@ -204,11 +204,23 @@
         }
         return [];
     }
-    return {
+
+    const service = {
         collectDeletedIds: collectDeletedIds,
         collectActiveDeletionIds: collectActiveDeletionIds,
         mergeAndDeduplicateTransactions: mergeAndDeduplicateTransactions,
         getPendingLocalTransactions: getPendingLocalTransactions,
         readSyncQueueForMerge: readSyncQueueForMerge,
     };
+
+    if (typeof window !== 'undefined') {
+        window.TransactionMerge = service;
+        window.mergeAndDeduplicateTransactions = mergeAndDeduplicateTransactions;
+        window.getPendingLocalTransactions = getPendingLocalTransactions;
+        window.collectDeletedIds = collectDeletedIds;
+        window.collectActiveDeletionIds = collectActiveDeletionIds;
+        window.readSyncQueueForMerge = readSyncQueueForMerge;
+    }
+
+    return service;
 });

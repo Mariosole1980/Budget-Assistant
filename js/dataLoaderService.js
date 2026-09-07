@@ -247,8 +247,15 @@ async function loadData() {
       // when the cache belongs to the current user (or is unowned guest/legacy data).
       const cachedOwner = localStorage.getItem('offline_transactions_owner');
       const cacheBelongsToCurrentUser = !cachedOwner || cachedOwner === userId;
+      const getPendingFn = (typeof getPendingLocalTransactions === 'function')
+        ? getPendingLocalTransactions
+        : ((typeof window !== 'undefined' && typeof window.getPendingLocalTransactions === 'function')
+          ? window.getPendingLocalTransactions
+          : ((typeof TransactionMerge !== 'undefined' && typeof TransactionMerge.getPendingLocalTransactions === 'function')
+            ? TransactionMerge.getPendingLocalTransactions
+            : () => []));
       const pendingLocal = cacheBelongsToCurrentUser
-        ? getPendingLocalTransactions(JSON.parse(localStorage.getItem('offline_transactions') || '[]'))
+        ? getPendingFn(JSON.parse(localStorage.getItem('offline_transactions') || '[]'))
         : [];
 
       // Auto-rescue & sync any local transactions missing in the cloud
@@ -271,7 +278,11 @@ async function loadData() {
       // these IDs via deps.permanentlyDeletedTxIds).
       let permanentlyDeletedSet = null;
       try {
-        permanentlyDeletedSet = new Set(Array.from(collectPermanentlyDeletedTxIds()).map(String));
+        if (typeof collectPermanentlyDeletedTxIds === 'function') {
+          permanentlyDeletedSet = new Set(Array.from(collectPermanentlyDeletedTxIds()).map(String));
+        } else if (typeof window !== 'undefined' && typeof window.collectPermanentlyDeletedTxIds === 'function') {
+          permanentlyDeletedSet = new Set(Array.from(window.collectPermanentlyDeletedTxIds()).map(String));
+        }
       } catch (err) {
         console.warn('Failed to collect permanently deleted IDs in loadData merge:', err);
       }
@@ -298,8 +309,21 @@ async function loadData() {
         }
         return true;
       });
-      const mergedTransactions = mergeAndDeduplicateTransactions(allTransactions, [...pendingLocal, ...safeCachedMissingFromCloud]);
-      mergedTransactions.sort(compareTransactions);
+      const mergeFn = (typeof mergeAndDeduplicateTransactions === 'function')
+        ? mergeAndDeduplicateTransactions
+        : ((typeof window !== 'undefined' && typeof window.mergeAndDeduplicateTransactions === 'function')
+          ? window.mergeAndDeduplicateTransactions
+          : ((typeof TransactionMerge !== 'undefined' && typeof TransactionMerge.mergeAndDeduplicateTransactions === 'function')
+            ? TransactionMerge.mergeAndDeduplicateTransactions
+            : (c, l) => [...(c || []), ...(l || [])]));
+      const compareFn = (typeof compareTransactions === 'function')
+        ? compareTransactions
+        : ((typeof window !== 'undefined' && typeof window.compareTransactions === 'function')
+          ? window.compareTransactions
+          : (a, b) => new Date((b && b.date) || 0) - new Date((a && a.date) || 0));
+
+      const mergedTransactions = mergeFn(allTransactions, [...pendingLocal, ...safeCachedMissingFromCloud]);
+      mergedTransactions.sort(compareFn);
       state.transactions = mergedTransactions;
 
       // Merge categories: retain any local custom categories that haven't synced to cloud yet

@@ -101,3 +101,23 @@ test('TransactionScopeService.applyWalletTheme toggles shared wallet class', () 
   TransactionScopeService.applyWalletTheme();
   assert.strictEqual(bodyClassList.has('shared-wallet-active'), false);
 });
+
+test('TransactionScopeService resolves state from window.state resiliently', () => {
+  const origState = global.state;
+  delete global.state;
+  global.window.state = {
+    currentUser: { id: 'u1' },
+    activeAccountMode: 'personal',
+    transactions: [
+      { id: 'tx-win1', user_id: 'u1', amount: 35 }
+    ]
+  };
+
+  const active = TransactionScopeService.getActiveTransactions();
+  assert.strictEqual(active.length, 1);
+  assert.strictEqual(active[0].id, 'tx-win1');
+
+  global.state = origState;
+  global.window.state = origState;
+});
+

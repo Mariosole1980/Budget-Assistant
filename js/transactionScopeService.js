@@ -20,11 +20,19 @@
 }(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
+  function _getState() {
+    if (typeof state !== 'undefined' && state) return state;
+    if (typeof window !== 'undefined' && window.state) return window.state;
+    if (typeof globalThis !== 'undefined' && globalThis.state) return globalThis.state;
+    return {};
+  }
+
   function applyWalletTheme() {
-    if (typeof state === 'undefined') return;
+    const s = _getState();
+    if (!s) return;
     if (typeof document === 'undefined' || !document.body) return;
 
-    if (state.partnerProfile) {
+    if (s.partnerProfile) {
       document.body.classList.add('shared-wallet-active');
     } else {
       document.body.classList.remove('shared-wallet-active');
@@ -52,7 +60,8 @@
   }
 
   function getActiveTransactions() {
-    if (typeof state === 'undefined' || !state.transactions) return [];
+    const s = _getState();
+    if (!s || !s.transactions) return [];
 
     let fallbackUid = null;
     try {
@@ -62,21 +71,21 @@
       }
     } catch (_) {}
 
-    const currentUserId = state.currentUser ? state.currentUser.id : fallbackUid;
-    const partnerId = state.partnerProfile ? state.partnerProfile.id : null;
-    const familyId = state.userProfile ? state.userProfile.family_id : null;
-    const isPersonalMode = state.activeAccountMode === 'personal';
+    const currentUserId = s.currentUser ? s.currentUser.id : fallbackUid;
+    const partnerId = s.partnerProfile ? s.partnerProfile.id : null;
+    const familyId = s.userProfile ? s.userProfile.family_id : null;
+    const isPersonalMode = s.activeAccountMode === 'personal';
 
     // Collect all known family member IDs
     const familyMemberIds = new Set();
     if (partnerId) familyMemberIds.add(partnerId);
-    if (Array.isArray(state.familyProfiles)) {
-      state.familyProfiles.forEach(p => {
+    if (Array.isArray(s.familyProfiles)) {
+      s.familyProfiles.forEach(p => {
         if (p && p.id && p.id !== currentUserId) familyMemberIds.add(p.id);
       });
     }
 
-    const filtered = state.transactions.filter(t => {
+    const filtered = s.transactions.filter(t => {
       if (!t) return false;
       if (t.user_id === undefined) {
         return true;
@@ -128,9 +137,10 @@
   }
 
   function calculateInitialBalances() {
-    if (typeof state === 'undefined' || !state.accounts) return;
+    const s = _getState();
+    if (!s || !s.accounts) return;
 
-    state.accounts.forEach(acc => {
+    s.accounts.forEach(acc => {
       let netSum = 0;
       // The account balance is stored in the account's own currency (acc.currency),
       // so every transaction must be converted into that currency before being
@@ -148,11 +158,11 @@
 
       // For family accounts during Personal Mode, calculate balance using all family transactions to avoid zero/distorted balances
       let activeTrans = getActiveTransactions();
-      if (state.activeAccountMode === 'personal' && (acc.scope === 'family' || acc.family_id)) {
-        const familyId = state.userProfile ? state.userProfile.family_id : null;
-        const currentUserId = state.currentUser ? state.currentUser.id : null;
-        const partnerId = state.partnerProfile ? state.partnerProfile.id : null;
-        activeTrans = state.transactions.filter(t => {
+      if (s.activeAccountMode === 'personal' && (acc.scope === 'family' || acc.family_id)) {
+        const familyId = s.userProfile ? s.userProfile.family_id : null;
+        const currentUserId = s.currentUser ? s.currentUser.id : null;
+        const partnerId = s.partnerProfile ? s.partnerProfile.id : null;
+        activeTrans = (s.transactions || []).filter(t => {
           if (!t) return false;
           if (familyId) return t.family_id === familyId || t.user_id === currentUserId || t.user_id === partnerId;
           return t.user_id === currentUserId;

@@ -543,6 +543,15 @@ function mergeAndDeduplicateTransactions(cloudTransactions, localPendingTransact
   };
   return window.TransactionMerge.mergeAndDeduplicateTransactions(cloudTransactions, localPendingTransactions, deps);
 }
+window.mergeAndDeduplicateTransactions = mergeAndDeduplicateTransactions;
+
+function getPendingLocalTransactions(transactions) {
+  if (typeof window.TransactionMerge !== 'undefined' && typeof window.TransactionMerge.getPendingLocalTransactions === 'function') {
+    return window.TransactionMerge.getPendingLocalTransactions(transactions);
+  }
+  return [];
+}
+window.getPendingLocalTransactions = getPendingLocalTransactions;
 
 function readSyncQueueForMerge() { return window.TransactionMerge.readSyncQueueForMerge(); }
 window.readSyncQueueForMerge = readSyncQueueForMerge;
