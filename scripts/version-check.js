@@ -47,8 +47,11 @@ const appTxt = fs.readFileSync(appPath, 'utf8');
 // (fallback template: 'Έκδοση 1.0.0 (build v' + ...). There is no static
 // "(build vN)" literal in app.js anymore, so we verify the dynamic template
 // pattern exists instead of a hard-coded version (avoids false failures).
-if (!appTxt.includes(`(build v' + (build != null ? build : '?') + ')'`)) {
-  errors.push(`app.js: dynamic app_version build label template missing (expected getActiveBuildLabel fallback)`);
+const i18nPath = path.join(rootDir, 'js', 'i18nService.js');
+const i18nTxt = fs.existsSync(i18nPath) ? fs.readFileSync(i18nPath, 'utf8') : '';
+const combinedAppTxt = appTxt + '\n' + i18nTxt;
+if (!combinedAppTxt.includes(`(build v' + (build != null ? build : '?') + ')'`)) {
+  errors.push(`app.js / i18nService.js: dynamic app_version build label template missing (expected getActiveBuildLabel fallback)`);
 }
 
 // 3b. Check js/userGuide.js

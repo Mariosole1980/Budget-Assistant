@@ -354,10 +354,13 @@ function runVersionCheck() {
     // static "(build vN)" marker no longer exists in app.js or translations.js,
     // so we verify the dynamic template pattern exists in app.js instead.
     const appTxt = fs.readFileSync(path.join(rootDir, 'app.js'), 'utf8');
-    if (!appTxt.includes(`(build v' + (build != null ? build : '?') + ')'`)) {
-        fail(`version: app.js dynamic app_version build label template missing`);
+    const i18nPath = path.join(rootDir, 'js', 'i18nService.js');
+    const i18nTxt = fs.existsSync(i18nPath) ? fs.readFileSync(i18nPath, 'utf8') : '';
+    const combinedTxt = appTxt + '\n' + i18nTxt;
+    if (!combinedTxt.includes(`(build v' + (build != null ? build : '?') + ')'`)) {
+        fail(`version: dynamic app_version build label template missing`);
     } else {
-        pass(`version: app.js dynamic app_version build label template present`);
+        pass(`version: dynamic app_version build label template present (app.js / i18nService.js)`);
     }
 }
 

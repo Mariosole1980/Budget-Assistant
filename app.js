@@ -824,7 +824,13 @@ let _pendingRecurringSettings = { isActive: false, days: [], months: [], years: 
 function getMonthName(index, short = false) { return I18nService.getMonthName(index, short); }
 function getWeekdayName(index) { return I18nService.getWeekdayName(index); }
 function parseBuildNumber(v) { return I18nService.parseBuildNumber(v); }
-function getActiveBuildLabel() { return I18nService.getActiveBuildLabel(); }
+function getActiveBuildLabel() {
+  if (typeof I18nService !== 'undefined' && typeof I18nService.getActiveBuildLabel === 'function') {
+    return I18nService.getActiveBuildLabel();
+  }
+  var build = (typeof CURRENT_BUILD !== 'undefined') ? CURRENT_BUILD : null;
+  return ('Έκδοση 1.0.0 (build v' + (build != null ? build : '?') + ')');
+}
 function applyLanguage(lang) { return I18nService.applyLanguage(lang); }
 function updateOTADiagnostic() { return I18nService.updateOTADiagnostic(); }
 function toggleLanguageSetting() { return I18nService.toggleLanguageSetting(); }
@@ -4870,255 +4876,17 @@ function scrollToToday(behavior = 'smooth') {
   }
 }
 
-function resetAllTabScreenStyles() {
-  document.querySelectorAll('.tab-screen').forEach(screen => {
-    screen.style.position = '';
-    screen.style.top = '';
-    screen.style.left = '';
-    screen.style.width = '';
-    screen.style.zIndex = '';
-    screen.style.transform = '';
-    screen.style.opacity = '';
-    screen.style.transition = '';
-    screen.style.willChange = '';
-    screen.style.display = '';
-    screen.style.visibility = '';
-  });
-  // Clear any leftover inline transforms/opacities on month titles and transaction lists
-  ['current-period-title', 'stats-period-title', 'transactions-list', 'stats-breakdown-list'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) {
-      el.style.transition = '';
-      el.style.transform = '';
-      el.style.opacity = '';
-    }
-  });
-}
+// ============================================================
+// TAB NAVIGATION & SCREEN TRANSITION SUBSYSTEM
+// Extracted to js/tabNavigationService.js (Phase 24B Architectural Modularization)
+// ============================================================
+function resetAllTabScreenStyles() { return TabNavigationService.resetAllTabScreenStyles(); }
+function switchTab(tab, instant = false) { return TabNavigationService.switchTab(tab, instant); }
+function toggleStatsType(type) { return TabNavigationService.toggleStatsType(type); }
+
 window.resetAllTabScreenStyles = resetAllTabScreenStyles;
-let _isTabSwipeAnimating = false;
-
-function switchTab(tab, instant = false) {
-  resetAllTabScreenStyles();
-  ensureHistoryPushed();
-  // Allow re-tapping 'trans' or 'stats' tab to reset month even if already active
-  if (state.activeTab === tab) {
-    if (tab === 'trans') {
-      const today = new Date();
-      state.selectedMonth = today.getMonth();
-      state.selectedYear = today.getFullYear();
-      syncStatsDate();
-      updateUI();
-      setTimeout(() => scrollToToday('smooth'), 50);
-    } else if (tab === 'stats') {
-      const today = new Date();
-      const isAlreadyCurrent = (state.selectedMonth === today.getMonth() && state.selectedYear === today.getFullYear());
-      if (!isAlreadyCurrent) {
-        state.selectedMonth = today.getMonth();
-        state.selectedYear = today.getFullYear();
-        state.statsDate = new Date();
-        state.statsDate.setDate(15);
-        state.expandedStatsCategories.clear();
-        renderStatsTab();
-      } else {
-        const scrollContainer = document.querySelector('.stats-scroll-content');
-        if (scrollContainer) {
-          scrollContainer.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-      }
-    } else if (tab === 'accounts') {
-      // Re-tapping the Overview tab returns to the current year.
-      const currentYear = new Date().getFullYear();
-      if ((state.overviewYear || currentYear) !== currentYear) {
-        state.overviewYear = currentYear;
-        renderAccountsTab();
-      }
-      const accountsScroll = document.querySelector('.accounts-scroll-content');
-      if (accountsScroll) {
-        accountsScroll.scrollTo({ top: 0, behavior: 'smooth' });
-      }
-    }
-    return;
-  }
-
-  const prevTabName = state.activeTab;
-  state.activeTab = tab;
-  try {
-    history.pushState({ appState: 'active', tab: tab }, '', window.location.pathname + window.location.search);
-    state.historyPushed = true;
-  } catch (e) { }
-
-  // Clear expanded categories on active tab change
-  state.expandedStatsCategories.clear();
-
-  if (tab === 'stats') {
-    state.statsSubtab = 'breakdown';
-    if (typeof switchStatsSubtab === 'function') {
-      switchStatsSubtab('breakdown');
-    }
-  }
-
-  // Cancel any pending deferred UI rendering for a previous tab switch
-  if (state.tabRenderTimeoutId) {
-    clearTimeout(state.tabRenderTimeoutId);
-    state.tabRenderTimeoutId = null;
-  }
-
-  // If there is an active transition in progress, force-complete it immediately to prevent race conditions & jitter
-  if (typeof state.activeTransitionCleanup === 'function') {
-    try {
-      if (state.activeTransitionTimeoutId) {
-        clearTimeout(state.activeTransitionTimeoutId);
-        state.activeTransitionTimeoutId = null;
-      }
-      if (state.activeTransitionAnimEndTarget && state.activeTransitionAnimEndListener) {
-        state.activeTransitionAnimEndTarget.removeEventListener('animationend', state.activeTransitionAnimEndListener);
-      }
-      state.activeTransitionCleanup();
-    } catch (err) {
-      console.error("Error cleaning up active tab transition:", err);
-    }
-    state.activeTransitionCleanup = null;
-    state.activeTransitionAnimEndTarget = null;
-    state.activeTransitionAnimEndListener = null;
-  }
-
-  if (state.selectionMode) {
-    state.selectionMode = false;
-    state.selectedIds.clear();
-    const bar = document.getElementById('selection-bar');
-    if (bar) bar.classList.remove('active');
-    const fab = document.getElementById('fab-btn');
-    if (fab) fab.classList.remove('hidden');
-    updateNoteShortcutVisibility();
-  }
-
-  // Fail-safe: Hide back-swipe indicator on tab switch
-  const bsInd = document.getElementById('back-swipe-indicator');
-  if (bsInd) bsInd.style.display = 'none';
-
-  // FIX #1 (flicker): state.activeTab was already set to the NEW tab at line 8102,
-  // so reading it here would make oldTab === tab (oldScreen === newScreen), causing
-  // the fade-in-premium animation to re-run on the already-active screen and flicker.
-  // Use prevTabName (captured at line 8101) which holds the actual previous tab.
-  const oldTab = prevTabName;
-  state.activeTab = tab;
-  localStorage.setItem('active_tab', tab);
-
-  // Toggle body class for scroll isolation on mobile
-  document.body.classList.toggle('trans-tab-active', tab === 'trans');
-  document.body.classList.toggle('stats-tab-active', tab === 'stats');
-  document.body.classList.toggle('accounts-tab-active', tab === 'accounts');
-  document.body.classList.toggle('more-tab-active', tab === 'more');
-
-  const oldScreen = document.getElementById(`${oldTab}-screen`);
-  const newScreen = document.getElementById(`${tab}-screen`);
-
-  // Manage FAB visibility based on active tab
-  const fab = document.getElementById('fab-btn');
-  if (fab) {
-    if (tab === 'trans') {
-      fab.style.display = 'flex';
-    } else {
-      fab.style.display = 'none';
-    }
-  }
-  updateNoteShortcutVisibility();
-
-  if (oldScreen && newScreen) {
-    // Hide old screen instantly, remove fade-in class from all screens
-    document.querySelectorAll('.tab-screen').forEach(s => {
-      s.classList.remove('fade-in-premium');
-      if (s.id !== `${tab}-screen`) {
-        s.classList.remove('active');
-        s.style.display = 'none';
-        s.style.visibility = 'hidden';
-        s.style.opacity = '0';
-      }
-    });
-
-    if (instant) {
-      newScreen.style.display = '';
-      newScreen.style.visibility = '';
-      newScreen.style.opacity = '';
-      newScreen.classList.add('active');
-    } else {
-      // Display and trigger animation on new screen
-      newScreen.style.display = '';
-      newScreen.style.visibility = '';
-      newScreen.style.opacity = '';
-      newScreen.classList.add('active', 'fade-in-premium');
-
-      const cleanupHandler = () => {
-        newScreen.classList.remove('fade-in-premium');
-        state.activeTransitionCleanup = null;
-        state.activeTransitionAnimEndTarget = null;
-        state.activeTransitionAnimEndListener = null;
-        state.activeTransitionTimeoutId = null;
-      };
-
-      state.activeTransitionCleanup = cleanupHandler;
-      state.activeTransitionAnimEndTarget = newScreen;
-
-      const onAnimEnd = (e) => {
-        if (e.target === newScreen) {
-          newScreen.removeEventListener('animationend', onAnimEnd);
-          cleanupHandler();
-        }
-      };
-      state.activeTransitionAnimEndListener = onAnimEnd;
-      newScreen.addEventListener('animationend', onAnimEnd);
-
-      state.activeTransitionTimeoutId = setTimeout(() => {
-        newScreen.removeEventListener('animationend', onAnimEnd);
-        cleanupHandler();
-      }, 200);
-    }
-  } else {
-    document.querySelectorAll('.tab-screen').forEach(s => s.classList.toggle('active', s.id === `${tab}-screen`));
-  }
-
-  document.querySelectorAll('.nav-item').forEach(i => i.classList.toggle('active', i.getAttribute('data-tab') === tab));
-
-  if (tab !== 'trans') {
-    ensureHistoryPushed();
-  }
-
-  // Render tab contents immediately to guarantee zero lag/blank states.
-  // FIX #4: Use flushUI() instead of calling _updateUIImpl() directly so that
-  // any pending scheduled render (e.g. from a background sync) is cancelled
-  // first — preventing two concurrent DOM mutations from racing and flickering.
-  if (tab === 'trans') {
-    const today = new Date();
-    state.selectedMonth = today.getMonth();
-    state.selectedYear = today.getFullYear();
-    syncStatsDate();
-    flushUI();
-    setTimeout(() => scrollToToday('smooth'), 50);
-  } else {
-    flushUI();
-  }
-
-  if (tab === 'more') {
-    updateHeaderProfileBadge();
-    if (state.currentUser) {
-      const emailDisplay = document.getElementById('settings-user-email-value');
-      if (emailDisplay) {
-        emailDisplay.textContent = state.currentUser.email;
-        emailDisplay.title = state.currentUser.email;
-      }
-    }
-    renderNotesList();
-  }
-}
 window.switchTab = switchTab;
-
-function toggleStatsType(type) {
-  state.expandedStatsCategories.clear();
-  state.statsType = type;
-  document.getElementById('stats-tab-expense').classList.toggle('active', type === 'expense');
-  document.getElementById('stats-tab-income').classList.toggle('active', type === 'income');
-  renderStatsTab();
-}
+window.toggleStatsType = toggleStatsType;
 
 function forceViewportReset(syncOnly = false) {
   if (!isIOS) return;
