@@ -214,6 +214,7 @@ eval([
 // and attach to global (global.window === global) for window.TransactionMerge.
 global.TransactionMerge = require(__dirname + '/../js/transactionMerge.js');
 global.OfflineImportService = require(__dirname + '/../js/offlineImportService.js');
+global.SyncQueueService = require(__dirname + '/../js/syncQueueService.js');
 
 // ---- Test helpers ---------------------------------------------------------
 function seedLocalStorage({ trash = [], offline = [], queue = [], perm = [] } = {}) {
