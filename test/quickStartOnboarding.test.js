@@ -9,7 +9,9 @@ test('Quick-Start 60-Second Onboarding Wizard Unit Tests', async (t) => {
 
   const appJsPath = path.join(__dirname, '..', 'app.js');
   const wizardJsPath = path.join(__dirname, '..', 'js', 'onboardingWizard.js');
-  const targetJs = fs.existsSync(wizardJsPath) ? fs.readFileSync(wizardJsPath, 'utf8') : '';
+  const stsViewPath = path.join(__dirname, '..', 'js', 'safeToSpendView.js');
+  const targetJs = (fs.existsSync(wizardJsPath) ? fs.readFileSync(wizardJsPath, 'utf8') : '') +
+    (fs.existsSync(stsViewPath) ? '\n' + fs.readFileSync(stsViewPath, 'utf8') : '');
   const appJsContent = fs.readFileSync(appJsPath, 'utf8') + '\n' + targetJs;
 
   await t.test('1. index.html contains quick-start modal and settings entry', () => {
