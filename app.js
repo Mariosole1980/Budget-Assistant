@@ -4332,96 +4332,15 @@ function formatCurrency(val) {
 // Swipe-to-Back navigation extracted to js/gestureEngine.js (Phase 13C)
 
 
-function updateSubcategorySuggestions() {
-  const categoryHidden = document.getElementById('trans-category');
-  const subcatList = document.getElementById('subcategory-picker-list');
-  if (!categoryHidden || !subcatList) return;
+// ============================================================
+// SUBCATEGORY SUGGESTIONS & SELECTION UI SUBSYSTEM
+// Extracted to js/subcategorySuggestionService.js (Phase 27C Architectural Modularization)
+// ============================================================
+function updateSubcategorySuggestions() { return SubcategorySuggestionService.updateSubcategorySuggestions(); }
+function showSubcategorySelect() { return SubcategorySuggestionService.showSubcategorySelect(); }
+function hideSubcategorySelect() { return SubcategorySuggestionService.hideSubcategorySelect(); }
 
-  const category = categoryHidden.value;
-  subcatList.innerHTML = '';
-
-  const currentSubcategory = document.getElementById('trans-subcategory-select').value;
-
-  if (!category) {
-    subcatList.innerHTML = `<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:12px;">${(TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['select_category_first']) || 'Επιλέξτε πρώτα κατηγορία'}</div>`;
-    return;
-  }
-
-  const sortedSubs = getSortedSubcategoriesForCategory(category);
-
-  // Add "No subcategory" option at the top
-  const noneOpt = document.createElement('div');
-  noneOpt.className = 'subcategory-item none-subcat';
-  if (currentSubcategory === '') noneOpt.classList.add('selected');
-  noneOpt.innerHTML = `<div style="display:flex;align-items:center;gap:8px;"><i class="fa-solid fa-ban" style="color:var(--text-muted);font-size:12px;"></i> <span style="font-weight: 500; color: var(--text-secondary);">${state.lang === 'en' ? 'No subcategory' : 'Χωρίς υποκατηγορία'}</span></div>`;
-  noneOpt.onclick = () => selectSubcategory('');
-  subcatList.appendChild(noneOpt);
-
-  sortedSubs.forEach(sub => {
-    const div = document.createElement('div');
-    div.className = 'subcategory-item';
-    div.setAttribute('data-subcat-name', sub);
-    if (sub === currentSubcategory) div.classList.add('selected');
-    div.innerHTML = `<span>${getSubcategoryDisplayName(sub, category)}</span>`;
-    div.onclick = () => selectSubcategory(sub);
-    subcatList.appendChild(div);
-  });
-
-  const newOpt = document.createElement('div');
-  newOpt.className = 'subcategory-item new-subcat';
-  newOpt.innerHTML = `<div style="display:flex;align-items:center;gap:8px;"><i class="fa-solid fa-plus"></i> <span>${TRANSLATIONS[state.lang]['option_new_subcategory'] || 'Νέα υποκατηγορία...'}</span></div>`;
-  newOpt.onclick = () => {
-    closeModal('subcategory-picker-modal');
-    showSubcategorySelect();
-  };
-  subcatList.appendChild(newOpt);
-
-  if (window.Sortable) {
-    if (subcatList._sortable) { subcatList._sortable.destroy(); }
-    subcatList._sortable = Sortable.create(subcatList, {
-      animation: 150, delay: 250, delayOnTouchOnly: true, filter: '.none-subcat, .new-subcat',
-      onEnd: function (evt) {
-        const newOrder = Array.from(subcatList.children).map(el => el.getAttribute('data-subcat-name')).filter(Boolean);
-        setCustomSubcategoryOrder(category, newOrder);
-      }
-    });
-  }
-}
-
-function showSubcategorySelect() {
-  const trigger = document.getElementById('trans-subcategory-trigger');
-  const custom = document.getElementById('trans-subcategory-custom');
-  const cancelBtn = document.getElementById('btn-cancel-custom-sub');
-
-  if (trigger && custom && cancelBtn) {
-    trigger.style.display = 'none';
-    custom.style.display = 'block';
-    cancelBtn.style.display = 'block';
-    document.getElementById('trans-subcategory-select').value = '__NEW__';
-    updateSubcategoryRowVisibility();
-    custom.focus();
-  }
-}
-
-function hideSubcategorySelect() {
-  const trigger = document.getElementById('trans-subcategory-trigger');
-  const custom = document.getElementById('trans-subcategory-custom');
-  const cancelBtn = document.getElementById('btn-cancel-custom-sub');
-
-  if (trigger && custom && cancelBtn) {
-    trigger.style.display = 'flex';
-    custom.style.display = 'none';
-    cancelBtn.style.display = 'none';
-
-    // Clear input
-    custom.value = '';
-    document.getElementById('trans-subcategory-select').value = '';
-    document.getElementById('trans-subcategory-display').innerHTML = `<span class="custom-select-placeholder" data-i18n="placeholder_subcategory">Πατήστε για επιλογή</span>`;
-    updateSubcategoryRowVisibility();
-  }
-}
-
-// Bind to window
+window.updateSubcategorySuggestions = updateSubcategorySuggestions;
 window.showSubcategorySelect = showSubcategorySelect;
 window.hideSubcategorySelect = hideSubcategorySelect;
 
