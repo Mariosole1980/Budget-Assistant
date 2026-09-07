@@ -1098,93 +1098,19 @@ if (window.Chart && window.ChartDataLabels) {
 
 // ============================================================
 // STATS DATE AND PERIOD NAVIGATION HELPERS
+// Extracted to js/statsDateService.js (Phase 23A Architectural Modularization)
 // ============================================================
-function getStatsDateRange() {
-  let start, end;
-  if (state.statsPeriodType === 'weekly') {
-    start = new Date(state.statsDate);
-    const day = start.getDay();
-    const weekStartDay = parseInt(localStorage.getItem('app_week_start') || '1', 10);
-    let diff = day - weekStartDay;
-    if (diff < 0) {
-      diff += 7;
-    }
-    start.setDate(start.getDate() - diff);
-    start.setHours(0, 0, 0, 0);
+function getStatsDateRange() { return StatsDateService.getStatsDateRange(); }
+function syncStatsDate() { return StatsDateService.syncStatsDate(); }
+function formatStatsPeriodTitle(start, end) { return StatsDateService.formatStatsPeriodTitle(start, end); }
+function wrapPeriodTitleWithSpans(titleText) { return StatsDateService.wrapPeriodTitleWithSpans(titleText); }
 
-    end = new Date(start);
-    end.setDate(start.getDate() + 6);
-    end.setHours(23, 59, 59, 999);
-  } else if (state.statsPeriodType === 'monthly') {
-    const monthStartDay = parseInt(localStorage.getItem('app_month_start') || '1', 10);
-    if (monthStartDay === 1) {
-      start = new Date(state.statsDate.getFullYear(), state.statsDate.getMonth(), 1, 0, 0, 0, 0);
-      end = new Date(state.statsDate.getFullYear(), state.statsDate.getMonth() + 1, 0, 23, 59, 59, 999);
-    } else {
-      start = new Date(state.statsDate.getFullYear(), state.statsDate.getMonth(), monthStartDay, 0, 0, 0, 0);
-      end = new Date(state.statsDate.getFullYear(), state.statsDate.getMonth() + 1, monthStartDay - 1, 23, 59, 59, 999);
-    }
-  } else if (state.statsPeriodType === 'annually') {
-    start = new Date(state.statsDate.getFullYear(), 0, 1, 0, 0, 0, 0);
-    end = new Date(state.statsDate.getFullYear(), 11, 31, 23, 59, 59, 999);
-  } else if (state.statsPeriodType === 'period') {
-    start = new Date(state.statsCustomStart + 'T00:00:00');
-    end = new Date(state.statsCustomEnd + 'T23:59:59');
-  }
-  return { start, end };
-}
+window.getStatsDateRange = getStatsDateRange;
+window.syncStatsDate = syncStatsDate;
+window.formatStatsPeriodTitle = formatStatsPeriodTitle;
+window.wrapPeriodTitleWithSpans = wrapPeriodTitleWithSpans;
 
-function syncStatsDate() {
-  state.statsDate.setDate(15);
-  state.statsDate.setFullYear(state.selectedYear);
-  state.statsDate.setMonth(state.selectedMonth);
-}
-
-function formatStatsPeriodTitle(start, end) {
-  if (state.statsPeriodType === 'monthly') {
-    return `${getMonthName(start.getMonth(), true)} ${start.getFullYear()}`;
-  }
-  if (state.statsPeriodType === 'annually') {
-    return `${start.getFullYear()}`;
-  }
-
-  // Weekly or Custom Period
-  const startDay = start.getDate();
-  const startMonthShort = getMonthName(start.getMonth(), true);
-  const startYear = start.getFullYear();
-
-  const endDay = end.getDate();
-  const endMonthShort = getMonthName(end.getMonth(), true);
-  const endYear = end.getFullYear();
-
-  if (startYear !== endYear) {
-    return `${startDay} ${startMonthShort} ${startYear} - ${endDay} ${endMonthShort} ${endYear}`;
-  } else if (start.getMonth() !== end.getMonth()) {
-    return `${startDay} ${startMonthShort} - ${endDay} ${endMonthShort} ${startYear}`;
-  } else {
-    return `${startDay} - ${endDay} ${startMonthShort} ${startYear}`;
-  }
-}
-
-function wrapPeriodTitleWithSpans(titleText) {
-  if (!titleText) return '';
-  const match = titleText.trim().match(/^(.*?)(?:\s+)?(\d{4})$/);
-  if (match && match[1]) {
-    const mainPart = match[1].trim();
-    const yearPart = match[2];
-    return `<span class="month-part">${mainPart}</span><span class="year-part" style="color: var(--text-secondary); margin-left: 6px;">${yearPart}</span>`;
-  }
-  if (/^\d{4}$/.test(titleText.trim())) {
-    return `<span class="year-part">${titleText.trim()}</span>`;
-  }
-  return `<span class="month-part">${titleText}</span>`;
-}
-
-// ============================================================
-// EMOJI STRIPPING - handles surrogate pairs correctly
-// Excel exports emoji as surrogate pairs (2 UTF-16 code units)
-// We need to skip past them to get the Greek text
-// ============================================================
+// ====================================================================================================================
 function stripLeadingEmoji(str) {
   if (!str) return '';
   let i = 0;
