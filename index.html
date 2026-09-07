@@ -609,6 +609,10 @@
   <script src="js/renderOrchestrationService.js"></script>
   <!-- Template Association & Deduplication Subsystem (loaded before app.js) -->
   <script src="js/templateAssociationService.js"></script>
+  <!-- Event Binding & DOM Event Listeners Subsystem (loaded before app.js) -->
+  <script src="js/eventBindingService.js"></script>
+  <!-- App Boot & Lifecycle Initialization Subsystem (loaded before app.js) -->
+  <script src="js/appInitService.js"></script>
       <script src="app.js?v=1691"></script>
       <!-- Desktop Web UX Layer (defer so it runs after app.js; invoked via
        initDesktopUI() hook at the end of initApp()). Self-guards on
