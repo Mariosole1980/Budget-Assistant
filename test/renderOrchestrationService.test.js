@@ -95,11 +95,25 @@ describe('RenderOrchestrationService Module Tests', () => {
 
     global.window._authConfirmed = false;
     global.window.state.guestMode = false;
+    global.window.state.currentUser = null;
+    global.localStorage.removeItem('cached_current_user');
     global.localStorage.removeItem('auth_guest_mode');
     assert.strictEqual(RenderOrchestrationService._isAuthenticated(), false);
 
     global.window.state.guestMode = true;
     assert.strictEqual(RenderOrchestrationService._isAuthenticated(), true);
+
+    global.window.state.guestMode = false;
+    global.window._authConfirmed = false;
+    global.window.state.currentUser = { id: 'u1', email: 'u1@test.com' };
+    assert.strictEqual(RenderOrchestrationService._isAuthenticated(), true);
+    assert.strictEqual(global.window._authConfirmed, true);
+
+    global.window.state.currentUser = null;
+    global.window._authConfirmed = false;
+    global.localStorage.setItem('cached_current_user', JSON.stringify({ id: 'u2' }));
+    assert.strictEqual(RenderOrchestrationService._isAuthenticated(), true);
+    assert.strictEqual(global.window._authConfirmed, true);
   });
 
   test('flushUI cancels pending timers and resets dirty flag', () => {

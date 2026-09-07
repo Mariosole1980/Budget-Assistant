@@ -121,3 +121,21 @@ test('TransactionScopeService resolves state from window.state resiliently', () 
   global.window.state = origState;
 });
 
+test('TransactionScopeService preserves unassigned transactions with null/undefined/empty user_id', () => {
+  global.state = {
+    currentUser: { id: 'u1' },
+    activeAccountMode: 'family',
+    transactions: [
+      { id: 'tx-assigned', user_id: 'u1', amount: 100 },
+      { id: 'tx-null', user_id: null, amount: 50 },
+      { id: 'tx-undef', user_id: undefined, amount: 25 },
+      { id: 'tx-empty', user_id: '', amount: 10 }
+    ]
+  };
+
+  const active = TransactionScopeService.getActiveTransactions();
+  assert.strictEqual(active.length, 4);
+  assert.deepStrictEqual(active.map(t => t.id), ['tx-assigned', 'tx-null', 'tx-undef', 'tx-empty']);
+});
+
+

@@ -110,9 +110,13 @@
   function _isAuthenticated() {
     const appState = getState();
     const isAuthConfirmed = (typeof window !== 'undefined' && !!window._authConfirmed);
-    const guestMode = !!appState.guestMode;
+    const guestMode = !!(appState && appState.guestMode);
     const storageGuest = (typeof localStorage !== 'undefined' && localStorage.getItem('auth_guest_mode') === 'true');
-    return isAuthConfirmed || guestMode || storageGuest;
+    const hasUser = !!((appState && appState.currentUser) || (typeof localStorage !== 'undefined' && localStorage.getItem('cached_current_user')));
+    if (hasUser && typeof window !== 'undefined' && !window._authConfirmed) {
+      window._authConfirmed = true;
+    }
+    return isAuthConfirmed || guestMode || storageGuest || hasUser;
   }
 
   function _updateUIImpl() {

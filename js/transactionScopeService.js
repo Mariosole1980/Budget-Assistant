@@ -87,31 +87,34 @@
 
     const filtered = s.transactions.filter(t => {
       if (!t) return false;
-      if (t.user_id === undefined) {
+      if (t.user_id === undefined || t.user_id === null || t.user_id === '') {
         return true;
       }
 
       if (currentUserId) {
         if (isPersonalMode) {
           return (t.user_id === currentUserId && (!t.family_id || t.family_id === null)) ||
-            (t.id && String(t.id).startsWith('local_') && (!t.family_id || t.family_id === null));
+            (t.id && String(t.id).startsWith('local_') && (!t.family_id || t.family_id === null)) ||
+            (t.user_id === null || t.user_id === undefined || t.user_id === '');
         }
 
         if (familyId) {
           return t.family_id === familyId ||
             t.user_id === currentUserId ||
             familyMemberIds.has(t.user_id) ||
-            (t.id && String(t.id).startsWith('local_'));
+            (t.id && String(t.id).startsWith('local_')) ||
+            (t.user_id === null || t.user_id === undefined || t.user_id === '');
         }
         return t.user_id === currentUserId ||
           familyMemberIds.has(t.user_id) ||
-          (t.id && String(t.id).startsWith('local_'));
+          (t.id && String(t.id).startsWith('local_')) ||
+          (t.user_id === null || t.user_id === undefined || t.user_id === '');
       } else {
         // Guest mode: show unowned/legacy transactions AND guest-owned demo data
         // (user_id === 'guest' or is_demo / demo_ id). Demo transactions created via
         // onboardingAddDemoData() carry user_id 'guest', so without this they would be
         // silently filtered out and Demo Mode would appear empty for guests.
-        return t.user_id === null || t.user_id === undefined ||
+        return t.user_id === null || t.user_id === undefined || t.user_id === '' ||
           t.user_id === 'guest' || t.is_demo === true ||
           (t.id && String(t.id).startsWith('demo_'));
       }
@@ -164,6 +167,7 @@
         const partnerId = s.partnerProfile ? s.partnerProfile.id : null;
         activeTrans = (s.transactions || []).filter(t => {
           if (!t) return false;
+          if (t.user_id === null || t.user_id === undefined || t.user_id === '') return true;
           if (familyId) return t.family_id === familyId || t.user_id === currentUserId || t.user_id === partnerId;
           return t.user_id === currentUserId;
         });

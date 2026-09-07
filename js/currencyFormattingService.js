@@ -823,6 +823,20 @@ function initSettingsFromStorage() {
   const theme = localStorage.getItem('app_theme') || 'dark';
   const fontSize = localStorage.getItem('app_font_size') || 'normal';
 
+  try {
+    const savedY = parseInt(localStorage.getItem('selected_year'), 10);
+    const savedM = parseInt(localStorage.getItem('selected_month'), 10);
+    const appState = (typeof state !== 'undefined' && state) ? state : ((typeof window !== 'undefined' && window.state) ? window.state : null);
+    if (appState) {
+      if (!isNaN(savedY) && savedY >= 2000 && savedY <= 2100) {
+        appState.selectedYear = savedY;
+      }
+      if (!isNaN(savedM) && savedM >= 0 && savedM <= 11) {
+        appState.selectedMonth = savedM;
+      }
+    }
+  } catch (_) {}
+
   const savedPin = localStorage.getItem('app_pin');
   const validPin = savedPin && savedPin.length === 4;
   if (!validPin) {

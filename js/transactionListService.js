@@ -130,6 +130,39 @@
       var addBtnText = (translations[lang] && translations[lang]['trans_empty_btn_add']) || (lang === 'el' ? '➕ Προσθήκη Συναλλαγής' : '➕ Add Transaction');
       var demoBtnText = (translations[lang] && translations[lang]['trans_empty_btn_demo']) || (lang === 'el' ? '📊 Δοκιμή με Δείγματα (Demo)' : '📊 Try Demo Mode');
 
+      var jumpBtnHtml = '';
+      if (walletTrans && walletTrans.length > 0) {
+        var latestWithData = null;
+        for (var i = 0; i < walletTrans.length; i++) {
+          var tx = walletTrans[i];
+          if (tx && tx.date) {
+            var dParts = String(tx.date).split('T')[0].split(' ')[0].split('-');
+            if (dParts.length === 3) {
+              var ty = parseInt(dParts[0], 10);
+              var tm = parseInt(dParts[1], 10) - 1;
+              if (!isNaN(ty) && !isNaN(tm)) {
+                if (!latestWithData || ty > latestWithData.year || (ty === latestWithData.year && tm > latestWithData.month)) {
+                  latestWithData = { year: ty, month: tm };
+                }
+              }
+            }
+          }
+        }
+        if (latestWithData && (latestWithData.year !== selectedYear || latestWithData.month !== selectedMonth)) {
+          var getMoName = (typeof getMonthName === 'function')
+            ? getMonthName
+            : (typeof window !== 'undefined' && typeof window.getMonthName === 'function' ? window.getMonthName : function (m) { return String(m + 1); });
+          var targetMonthLabel = getMoName(latestWithData.month, false) + ' ' + latestWithData.year;
+          var jumpText = (lang === 'el')
+            ? ('📅 Μετάβαση σε ' + targetMonthLabel + ' (προηγούμενες κινήσεις)')
+            : ('📅 Jump to ' + targetMonthLabel + ' (previous data)');
+          jumpBtnHtml =
+            '<button class="stats-empty-btn-primary" onclick="if(window.goToMonth)window.goToMonth(' + latestWithData.year + ', ' + latestWithData.month + ')" style="width: 100%; justify-content: center; font-size: 13px; font-weight: 700; padding: 11px 16px; border-radius: 12px; background: rgba(99, 102, 241, 0.2); border: 1px solid rgba(99, 102, 241, 0.4); color: #fff; cursor: pointer; margin-bottom: 2px;">' +
+              '<span>' + jumpText + '</span>' +
+            '</button>';
+        }
+      }
+
       listContainer.innerHTML =
         '<div class="stats-empty-card" style="margin: 28px 14px;">' +
           '<div style="width: 76px; height: 76px; border-radius: 24px; background: rgba(99, 102, 241, 0.12); border: 1px solid rgba(99, 102, 241, 0.3); display: flex; align-items: center; justify-content: center; font-size: 32px; color: var(--accent); box-shadow: 0 0 25px rgba(99, 102, 241, 0.25); margin-bottom: 2px;">' +
@@ -140,6 +173,7 @@
             '<p class="stats-empty-desc">' + desc + '</p>' +
           '</div>' +
           '<div class="stats-empty-actions" style="display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 320px; margin-top: 10px;">' +
+            jumpBtnHtml +
             '<button class="stats-empty-btn-primary" onclick="openQuickStartModal(0)" style="width: 100%; justify-content: center; font-size: 14px; font-weight: 700; padding: 12px 18px; border-radius: 12px; background: linear-gradient(135deg, var(--accent, #6366f1) 0%, #4f46e5 100%); border: none; color: #fff; cursor: pointer; box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);">' +
               '<span>' + (lang === 'el' ? 'Υπολογισμός ορίου σε 1′' : 'Calculate limit in 1 min') + '</span>' +
             '</button>' +
@@ -441,15 +475,36 @@
     }
   }
 
+  function goToMonth(year, month) {
+    var s = _getState();
+    if (s) {
+      s.selectedYear = year;
+      s.selectedMonth = month;
+      if (typeof localStorage !== 'undefined') {
+        try {
+          localStorage.setItem('selected_year', year);
+          localStorage.setItem('selected_month', month);
+        } catch (_) {}
+      }
+      if (typeof updateUI === 'function') {
+        updateUI();
+      } else if (typeof window !== 'undefined' && typeof window.updateUI === 'function') {
+        window.updateUI();
+      }
+    }
+  }
+
   var service = {
     renderTransactionsTab: renderTransactionsTab,
-    scrollToToday: scrollToToday
+    scrollToToday: scrollToToday,
+    goToMonth: goToMonth
   };
 
   if (typeof window !== 'undefined') {
     window.TransactionListService = service;
     window.renderTransactionsTab = renderTransactionsTab;
     window.scrollToToday = scrollToToday;
+    window.goToMonth = goToMonth;
   }
 
   return service;

@@ -155,3 +155,31 @@ test('scrollToToday does not throw when called with empty or populated list', ()
     TransactionListService.scrollToToday('smooth');
   });
 });
+
+test('renderTransactionsTab shows smart jump button when other months have transactions', () => {
+  global.state.selectedYear = 2026;
+  global.state.selectedMonth = 8; // September
+  // Only transactions in August 2026
+  global.state.transactions = [
+    { id: 'tx-aug-1', date: '2026-08-25T10:00:00', amount: 45.00, type: 'expense', category: 'Food' }
+  ];
+  const list = document.getElementById('transactions-list');
+  list._lastRenderSignature = null;
+  TransactionListService.renderTransactionsTab();
+
+  assert.ok(list.innerHTML.includes('stats-empty-card'));
+  assert.ok(list.innerHTML.includes('Μετάβαση σε'));
+  assert.ok(list.innerHTML.includes('goToMonth(2026, 7)'));
+});
+
+test('goToMonth updates state and calls updateUI', () => {
+  let uiUpdated = false;
+  global.updateUI = () => { uiUpdated = true; };
+  global.window.updateUI = global.updateUI;
+
+  TransactionListService.goToMonth(2026, 7);
+  assert.equal(global.state.selectedYear, 2026);
+  assert.equal(global.state.selectedMonth, 7);
+  assert.equal(uiUpdated, true);
+});
+

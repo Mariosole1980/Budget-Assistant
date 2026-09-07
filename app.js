@@ -381,8 +381,24 @@ const state = {
   activeTab: 'trans',
   hasInitialScrollDone: false,
   syncStatus: 'offline',
-  selectedYear: new Date().getFullYear(),
-  selectedMonth: new Date().getMonth(),
+  selectedYear: (function () {
+    try {
+      if (typeof localStorage !== 'undefined') {
+        const y = parseInt(localStorage.getItem('selected_year'), 10);
+        if (!isNaN(y) && y >= 2000 && y <= 2100) return y;
+      }
+    } catch (_) {}
+    return new Date().getFullYear();
+  })(),
+  selectedMonth: (function () {
+    try {
+      if (typeof localStorage !== 'undefined') {
+        const m = parseInt(localStorage.getItem('selected_month'), 10);
+        if (!isNaN(m) && m >= 0 && m <= 11) return m;
+      }
+    } catch (_) {}
+    return new Date().getMonth();
+  })(),
   overviewYear: new Date().getFullYear(),
   statsType: 'expense',
   statsPeriodType: 'monthly',
@@ -750,6 +766,22 @@ window.applyWalletTheme = applyWalletTheme;
 window.getActiveTransactions = getActiveTransactions;
 window.isTransferTransaction = isTransferTransaction;
 window.calculateInitialBalances = calculateInitialBalances;
+
+function goToMonth(year, month) {
+  if (typeof TransactionListService !== 'undefined' && typeof TransactionListService.goToMonth === 'function') {
+    return TransactionListService.goToMonth(year, month);
+  }
+  state.selectedYear = year;
+  state.selectedMonth = month;
+  if (typeof localStorage !== 'undefined') {
+    try {
+      localStorage.setItem('selected_year', year);
+      localStorage.setItem('selected_month', month);
+    } catch (_) {}
+  }
+  if (typeof updateUI === 'function') updateUI();
+}
+window.goToMonth = goToMonth;
 
 // ============================================================
 // DATA INTEGRITY, DEDUPLICATION & TOMBSTONE SUBSYSTEM
