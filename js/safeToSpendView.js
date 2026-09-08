@@ -301,8 +301,12 @@ function runWhatIfSimulation() {
 }
 
 function openAiAdvisorFromBar() {
+  const promptEl = document.getElementById('ai-check-prompt-text');
+  let query = promptEl ? promptEl.textContent.trim().replace(/^«|»$/g, '').trim() : null;
   if (typeof openAdvisorChat === 'function') {
-    openAdvisorChat();
+    openAdvisorChat(query);
+  } else if (typeof window !== 'undefined' && typeof window.openAdvisorChat === 'function') {
+    window.openAdvisorChat(query);
   }
 }
 

@@ -830,6 +830,11 @@
             transition:background 0.3s;
           "></span>
         </button>
+        <!-- AI Chat Assistant Quick Button -->
+        <button id="header-ai-chat-btn" class="icon-btn header-ai-chat-btn" onclick="openAdvisorChat()"
+          title="Οικονομικός Βοηθός" aria-label="Οικονομικός Βοηθός" style="position:relative; color:var(--accent);">
+          <i class="fa-solid fa-comment-dots"></i>
+        </button>
         <!-- Voice AI Quick Button -->
         <button id="header-voice-ai-btn" class="icon-btn header-voice-btn" onclick="openVoiceAIModal({ autoStart: true })"
           title="🎙️ Οικονομικός Βοηθός" aria-label="Οικονομικός Βοηθός" style="position:relative; color:var(--accent);">
@@ -7006,73 +7011,77 @@
                   class="ai-header-btn" style="display: none;" title="Πίσω">
                   <i class="fa-solid fa-arrow-left"></i>
                 </button>
-                <div class="ai-sparkle-avatar">
-                  <i class="fa-solid fa-wand-magic-sparkles"></i>
+                <div class="advisor-chat-avatar">
+                  <i class="fa-solid fa-comments"></i>
                 </div>
                 <div>
                   <div style="display: flex; align-items: center; gap: 6px;">
                     <h3 class="modal-title"
-                      style="margin: 0; font-family: 'Outfit', sans-serif; font-weight: 800; color: var(--text-primary); font-size: 15px; letter-spacing: 0.2px;"
+                      style="margin: 0; font-family: 'Outfit', sans-serif; font-weight: 700; color: var(--text-primary); font-size: 15px; letter-spacing: 0.2px;"
                       data-i18n="advisor_chat_title">Οικονομικός Βοηθός</h3>
-                    <span style="font-size: 9.5px; font-weight: 800; background: rgba(99, 102, 241, 0.2); color: #a5b4fc; border: 1px solid rgba(99, 102, 241, 0.3); padding: 1px 5px; border-radius: 6px; text-transform: uppercase;">PRO</span>
                   </div>
-                  <div style="display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-secondary); margin-top: 1px;">
+                  <div class="advisor-status-pill">
                     <span class="ai-status-pulse-dot"></span>
-                    <span>Σε πραγματικό χρόνο</span>
+                    <span style="font-size: 11px; color: var(--text-secondary);">Προσωπική καθοδήγηση</span>
                   </div>
                 </div>
               </div>
               <div style="display: flex; align-items: center; gap: 6px;">
-                <button type="button" id="advisor-chat-new-btn" onclick="startNewAdvisorConversation()" class="ai-header-btn" title="Νέα συνομιλία">
-                  <i class="fa-solid fa-plus"></i>
+                <button type="button" id="advisor-chat-history-btn" onclick="toggleAdvisorHistory()" class="ai-header-btn" title="Ιστορικό συνομιλιών" aria-label="Ιστορικό συνομιλιών">
+                  <i class="fa-solid fa-clock-rotate-left"></i>
                 </button>
-                <button type="button" class="ai-header-btn" onclick="closeAdvisorChat()" title="Κλείσιμο">
+                <button type="button" id="advisor-chat-new-btn" onclick="startNewAdvisorConversation()" class="ai-header-btn" title="Νέα συνομιλία" aria-label="Νέα συνομιλία">
+                  <i class="fa-solid fa-pen-to-square"></i>
+                </button>
+                <button type="button" class="ai-header-btn" onclick="closeAdvisorChat()" title="Κλείσιμο" aria-label="Κλείσιμο">
                   <i class="fa-solid fa-xmark"></i>
                 </button>
               </div>
             </div>
 
-            <!-- Conversation List Area (shown when no active conversation) -->
+            <!-- Conversation List Area (shown when history is toggled) -->
             <div id="advisor-conversation-list" class="modal-body"
-              style="padding: 16px 20px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; background: rgba(0, 0, 0, 0.15);">
+              style="padding: 16px 20px; flex: 1; overflow-y: auto; display: none; flex-direction: column; gap: 10px; background: rgba(0, 0, 0, 0.15);">
               <!-- Conversation cards dynamically populated -->
             </div>
 
             <!-- Chat Log Area -->
             <div id="advisor-chat-log" class="modal-body"
-              style="padding: 16px 20px; flex: 1; overflow-y: auto; display: none; flex-direction: column; gap: 12px; background: rgba(0, 0, 0, 0.15);">
+              style="padding: 16px 20px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; background: rgba(0, 0, 0, 0.15);">
               <!-- Messages dynamically populated -->
             </div>
 
-            <!-- Interactive Suggestions Area (HIDDEN - zero clutter) -->
-            <div id="advisor-chat-suggestions-container"
-              style="display: none !important; padding: 0; margin: 0; border: none; height: 0;">
-              <div id="advisor-chat-suggestions" style="display: inline-flex; gap: 8px;">
-                <!-- Quick action chips -->
-                <button type="button" class="advisor-suggestion-chip" onclick="submitCoachQuery('overspending')"
-                  data-i18n="advisor_suggest_overspending">🔍 Πού ξοδεύω υπερβολικά;</button>
-                <button type="button" class="advisor-suggestion-chip" onclick="submitCoachQuery('savings')"
-                  data-i18n="advisor_suggest_savings">💡 Πώς να αποταμιεύσω περισσότερο;</button>
-                <button type="button" class="advisor-suggestion-chip" onclick="submitCoachQuery('forecast_5y')"
-                  data-i18n="advisor_suggest_forecast_5y">📈 Πού θα είμαι σε 5 χρόνια;</button>
-                <button type="button" class="advisor-suggestion-chip" onclick="submitCoachQuery('milestone_50k')"
-                  data-i18n="advisor_suggest_milestone_50k">🎯 Πότε θα φτάσω τα 50.000€;</button>
+            <!-- Interactive Suggestions Area -->
+            <div id="advisor-chat-suggestions-container" class="advisor-chips-wrapper">
+              <div id="advisor-chat-suggestions" class="advisor-chips-scroll">
+                <button type="button" class="advisor-suggestion-chip" onclick="submitCoachQuery('overspending')">
+                  <i class="fa-solid fa-chart-pie" style="color:var(--accent);"></i>
+                  <span>Πού ξοδεύω υπερβολικά;</span>
+                </button>
+                <button type="button" class="advisor-suggestion-chip" onclick="submitCoachQuery('savings')">
+                  <i class="fa-solid fa-piggy-bank" style="color:#10b981;"></i>
+                  <span>Πώς να αποταμιεύσω;</span>
+                </button>
+                <button type="button" class="advisor-suggestion-chip" onclick="submitCoachQuery('forecast_5y')">
+                  <i class="fa-solid fa-arrow-trend-up" style="color:#38bdf8;"></i>
+                  <span>Πρόβλεψη 5ετίας</span>
+                </button>
+                <button type="button" class="advisor-suggestion-chip" onclick="submitCoachQuery('milestone_50k')">
+                  <i class="fa-solid fa-bullseye" style="color:#f59e0b;"></i>
+                  <span>Στόχος 50.000€</span>
+                </button>
               </div>
             </div>
 
             <!-- Input Area -->
-            <div
-              style="padding: 12px 16px max(16px, env(safe-area-inset-bottom, 16px)) 16px; border-top: 1px solid rgba(255, 255, 255, 0.08); background: var(--bg-card); display: flex; gap: 8px; align-items: flex-end; flex-shrink: 0;">
+            <div class="advisor-chat-input-bar">
               <textarea id="advisor-chat-input" rows="1"
-                style="flex: 1; min-width: 0; min-height: 44px; max-height: 130px; height: 44px; padding: 11px 16px; border-radius: 18px; background: var(--overlay-030); border: 1px solid var(--border); color: var(--text-primary); outline: none; font-family: 'Outfit', sans-serif; font-size: 14px; line-height: 1.45; box-sizing: border-box; resize: none; overflow-y: auto;"
-                placeholder="Ρωτήστε κάτι τον σύμβουλο..." data-i18n-placeholder="advisor_chat_placeholder"
+                placeholder="Ρωτήστε για τα οικονομικά σας..." data-i18n-placeholder="advisor_chat_placeholder"
                 oninput="handleAdvisorChatInput(this)" onkeydown="handleAdvisorChatKeydown(event)"></textarea>
-              <button type="button" id="advisor-chat-mic-btn" onclick="openVoiceAIModal({ autoStart: true, target: 'advisor' })"
-                style="flex-shrink: 0; height: 44px; width: 44px; border-radius: 16px; background: rgba(var(--accent-rgb, 124, 106, 247), 0.18); color: var(--accent); border: 1px solid rgba(var(--accent-rgb, 124, 106, 247), 0.35); font-size: 16px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.2s;"
-                title="Ομιλία με μικρόφωνο"><i class="fa-solid fa-microphone"></i></button>
-              <button type="button" id="advisor-chat-send-btn" onclick="submitCoachInput()"
-                style="flex-shrink: 0; height: 44px; width: 44px; border-radius: 16px; background: var(--accent); color: white; border: none; font-size: 16px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.2s;"><i
-                  class="fa-solid fa-paper-plane"></i></button>
+              <button type="button" id="advisor-chat-mic-btn" class="advisor-input-action-btn advisor-mic-btn" onclick="openVoiceAIModal({ autoStart: true, target: 'advisor' })"
+                title="Φωνητική ερώτηση" aria-label="Φωνητική ερώτηση"><i class="fa-solid fa-microphone"></i></button>
+              <button type="button" id="advisor-chat-send-btn" class="advisor-input-action-btn advisor-send-btn" onclick="submitCoachInput()"
+                title="Αποστολή" aria-label="Αποστολή"><i class="fa-solid fa-arrow-up"></i></button>
             </div>
           </div>
         </div>

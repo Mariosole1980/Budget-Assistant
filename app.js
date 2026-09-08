@@ -2176,15 +2176,33 @@ function deleteRecurringTemplate(id) { return RecurringTemplateModalService.dele
 // ============================================================
 
 // Bind to window for HTML access
-function openAdvisorChat() { if (typeof AICoachService !== 'undefined') return AICoachService.openAdvisorChat(); }
-function closeAdvisorChat() { if (typeof AICoachService !== 'undefined') return AICoachService.closeAdvisorChat(); }
-function submitCoachInput() { if (typeof AICoachService !== 'undefined') return AICoachService.submitCoachInput(); }
-function submitCoachQuery(q) { if (typeof AICoachService !== 'undefined') return AICoachService.submitCoachQuery(q); }
-function handleAdvisorChatKeydown(e) { if (typeof AICoachService !== 'undefined') return AICoachService.handleAdvisorChatKeydown(e); }
-function startNewAdvisorConversation() { if (typeof AICoachService !== 'undefined') return AICoachService.startNewAdvisorConversation(); }
-function showAdvisorConversationList() { if (typeof AICoachService !== 'undefined') return AICoachService.showAdvisorConversationList(); }
-function deleteAdvisorConversation(id) { if (typeof AICoachService !== 'undefined') return AICoachService.deleteAdvisorConversation(id); }
-function openAdvisorConversation(id) { if (typeof AICoachService !== 'undefined') return AICoachService.openAdvisorConversation(id); }
+var _getAiCoach = function () {
+  if (typeof AICoachService !== 'undefined' && AICoachService) return AICoachService;
+  if (typeof window !== 'undefined' && window.AICoachService) return window.AICoachService;
+  return null;
+};
+function openAdvisorChat(initialQuery) {
+  var cs = _getAiCoach();
+  if (cs && typeof cs.openAdvisorChat === 'function') return cs.openAdvisorChat(initialQuery);
+  if (typeof window !== 'undefined' && typeof window.openModal === 'function') {
+    window.openModal('advisor-chat-modal');
+  }
+}
+function closeAdvisorChat() {
+  var cs = _getAiCoach();
+  if (cs && typeof cs.closeAdvisorChat === 'function') return cs.closeAdvisorChat();
+  if (typeof window !== 'undefined' && typeof window.closeModal === 'function') {
+    window.closeModal('advisor-chat-modal');
+  }
+}
+function submitCoachInput() { var cs = _getAiCoach(); if (cs && typeof cs.submitCoachInput === 'function') return cs.submitCoachInput(); }
+function submitCoachQuery(q) { var cs = _getAiCoach(); if (cs && typeof cs.submitCoachQuery === 'function') return cs.submitCoachQuery(q); }
+function handleAdvisorChatKeydown(e) { var cs = _getAiCoach(); if (cs && typeof cs.handleAdvisorChatKeydown === 'function') return cs.handleAdvisorChatKeydown(e); }
+function startNewAdvisorConversation() { var cs = _getAiCoach(); if (cs && typeof cs.startNewAdvisorConversation === 'function') return cs.startNewAdvisorConversation(); }
+function showAdvisorConversationList() { var cs = _getAiCoach(); if (cs && typeof cs.showAdvisorConversationList === 'function') return cs.showAdvisorConversationList(); }
+function deleteAdvisorConversation(id) { var cs = _getAiCoach(); if (cs && typeof cs.deleteAdvisorConversation === 'function') return cs.deleteAdvisorConversation(id); }
+function openAdvisorConversation(id) { var cs = _getAiCoach(); if (cs && typeof cs.openAdvisorConversation === 'function') return cs.openAdvisorConversation(id); }
+function toggleAdvisorHistory() { var cs = _getAiCoach(); if (cs && typeof cs.toggleAdvisorHistory === 'function') return cs.toggleAdvisorHistory(); }
 
 window.openAdvisorChat = openAdvisorChat;
 window.closeAdvisorChat = closeAdvisorChat;
@@ -2195,6 +2213,7 @@ window.startNewAdvisorConversation = startNewAdvisorConversation;
 window.showAdvisorConversationList = showAdvisorConversationList;
 window.deleteAdvisorConversation = deleteAdvisorConversation;
 window.openAdvisorConversation = openAdvisorConversation;
+window.toggleAdvisorHistory = toggleAdvisorHistory;
 
 // Delegated fallback for the AI advisor trigger. The inline onclick on
 // #advisor-chat-trigger should work, but if for any reason the click/tap does not

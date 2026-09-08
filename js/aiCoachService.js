@@ -18,6 +18,9 @@
     // Browser: attach to root (window)
     var exports = factory();
     Object.assign(root, exports);
+    root.AICoachService = exports;
+    if (typeof globalThis !== 'undefined') globalThis.AICoachService = exports;
+    if (typeof window !== 'undefined') window.AICoachService = exports;
   }
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
@@ -60,24 +63,16 @@ function openAdvisorChat(initialQuery = null) {
   }
 
   try {
-    // If we have an active conversation, load it; otherwise show the conversation list.
-    // Guard against a stale active ID (points to a conversation that no longer exists,
-    // e.g. after local storage was cleared or a conversation was removed). Without this,
-    // openAdvisorConversation() returns early and the modal opens blank — appearing as
-    // if the AI advisor "doesn't open".
     const activeId = getActiveAdvisorConversationId();
     const activeConv = activeId ? getActiveAdvisorConversation() : null;
-    if (activeConv) {
+    if (activeConv && !initialQuery) {
       openAdvisorConversation(activeId, false);
     } else {
-      // Clear any stale active ID so the next open starts fresh.
-      if (activeId) setActiveAdvisorConversationId(null);
-      showAdvisorConversationList();
+      startNewAdvisorConversation();
     }
   } catch (e) {
     console.error('[AdvisorChat] conversation load failed:', e);
-    // Ensure the conversation list is shown so the modal is never blank.
-    try { showAdvisorConversationList(); } catch (e2) { console.error(e2); }
+    try { startNewAdvisorConversation(); } catch (e2) { console.error(e2); }
   }
 
   setTimeout(() => {
@@ -156,20 +151,41 @@ function getConversationTitle(messages) {
   return state.lang === 'el' ? 'Νέα συνομιλία' : 'New conversation';
 }
 
+function toggleAdvisorHistory() {
+  const listEl = document.getElementById('advisor-conversation-list');
+  const isListVisible = listEl && listEl.style.display === 'flex';
+  if (isListVisible) {
+    const activeId = getActiveAdvisorConversationId();
+    if (activeId) {
+      openAdvisorConversation(activeId, true);
+    } else {
+      startNewAdvisorConversation();
+    }
+  } else {
+    showAdvisorConversationList();
+  }
+}
+window.toggleAdvisorHistory = toggleAdvisorHistory;
+
 function showAdvisorConversationList() {
   const listEl = document.getElementById('advisor-conversation-list');
   const chatLog = document.getElementById('advisor-chat-log');
   const backBtn = document.getElementById('advisor-chat-back-btn');
   const newBtn = document.getElementById('advisor-chat-new-btn');
+  const historyBtn = document.getElementById('advisor-chat-history-btn');
   const suggestions = document.getElementById('advisor-chat-suggestions-container');
   const inputArea = document.getElementById('advisor-chat-input');
 
   if (listEl) listEl.style.display = 'flex';
   if (chatLog) chatLog.style.display = 'none';
-  if (backBtn) backBtn.style.display = 'none';
-  if (newBtn) newBtn.style.display = 'none';
+  if (backBtn) backBtn.style.display = 'flex';
+  if (newBtn) newBtn.style.display = 'flex';
+  if (historyBtn) historyBtn.classList.add('active');
   if (suggestions) suggestions.style.display = 'none';
-  if (inputArea) inputArea.disabled = true;
+  if (inputArea) {
+    inputArea.disabled = true;
+    inputArea.placeholder = state.lang === 'el' ? 'Επιλέξτε συνομιλία...' : 'Select conversation...';
+  }
 
   renderAdvisorConversationList();
 }
@@ -183,8 +199,8 @@ function renderAdvisorConversationList() {
 
   // New conversation button at top
   const newCard = document.createElement('div');
-  newCard.style.cssText = 'display:flex; align-items:center; gap:10px; padding:14px 16px; border-radius:14px; background:var(--accent); color:#fff; font-weight:700; cursor:pointer; font-size:14px;';
-  newCard.innerHTML = `<span style="font-size:16px;">&#10133;</span> ${state.lang === 'el' ? 'Νέα συνομιλία' : 'New conversation'}`;
+  newCard.style.cssText = 'display:flex; align-items:center; gap:10px; padding:12px 16px; border-radius:14px; background:var(--accent); color:#fff; font-weight:700; cursor:pointer; font-size:13.5px; transition:transform 0.15s;';
+  newCard.innerHTML = `<i class="fa-solid fa-pen-to-square" style="font-size:14px;"></i> ${state.lang === 'el' ? 'Νέα συνομιλία' : 'New conversation'}`;
   newCard.onclick = () => startNewAdvisorConversation();
   listEl.appendChild(newCard);
 
@@ -192,25 +208,26 @@ function renderAdvisorConversationList() {
     const empty = document.createElement('div');
     empty.style.cssText = 'text-align:center; color:var(--text-secondary); font-size:13px; padding:24px 12px;';
     empty.textContent = state.lang === 'el'
-      ? 'Δεν υπάρχουν ακόμα συνομιλίες. Ξεκίνησε μία νέα!'
-      : 'No conversations yet. Start a new one!';
+      ? 'Δεν υπάρχουν ακόμα αποθηκευμένες συνομιλίες.'
+      : 'No saved conversations yet.';
     listEl.appendChild(empty);
     return;
   }
 
-  // Sort by updatedAt descending (most recent first)
   const sorted = [...list].sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
 
   sorted.forEach(conv => {
     const card = document.createElement('div');
-    card.style.cssText = 'display:flex; align-items:center; gap:10px; padding:14px 16px; border-radius:14px; background:var(--bg-card); border:1px solid var(--border); cursor:pointer;';
+    card.style.cssText = 'display:flex; align-items:center; gap:12px; padding:12px 14px; border-radius:14px; background:var(--bg-card); border:1px solid var(--border); cursor:pointer; transition:background 0.2s;';
     card.innerHTML = `
-      <span style="font-size:16px; flex-shrink:0;">💬</span>
+      <i class="fa-solid fa-comments" style="font-size:14px; color:var(--accent); flex-shrink:0;"></i>
       <div style="flex:1; min-width:0;">
         <div style="font-weight:600; font-size:13.5px; color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(conv.title || '')}</div>
         <div style="font-size:11px; color:var(--text-secondary); margin-top:2px;">${formatConversationTime(conv.updatedAt)}</div>
       </div>
-      <span class="advisor-conv-delete" onclick="event.stopPropagation(); deleteAdvisorConversation('${conv.id}')" title="${state.lang === 'el' ? 'Διαγραφή' : 'Delete'}" style="cursor:pointer; font-size:15px; color:var(--text-secondary); flex-shrink:0; padding:4px;">&#128465;</span>
+      <button type="button" class="icon-btn advisor-conv-delete" onclick="event.stopPropagation(); deleteAdvisorConversation('${conv.id}')" title="${state.lang === 'el' ? 'Διαγραφή' : 'Delete'}" style="background:transparent; border:none; cursor:pointer; font-size:13px; color:var(--text-muted); flex-shrink:0; padding:6px;">
+        <i class="fa-solid fa-trash-can"></i>
+      </button>
     `;
     card.onclick = () => openAdvisorConversation(conv.id);
     listEl.appendChild(card);
@@ -232,7 +249,10 @@ function formatConversationTime(ts) {
 function openAdvisorConversation(id, focusInput = true) {
   const list = loadAdvisorConversations();
   const conv = list.find(c => c.id === id);
-  if (!conv) return;
+  if (!conv) {
+    startNewAdvisorConversation();
+    return;
+  }
 
   setActiveAdvisorConversationId(id);
 
@@ -240,6 +260,7 @@ function openAdvisorConversation(id, focusInput = true) {
   const chatLog = document.getElementById('advisor-chat-log');
   const backBtn = document.getElementById('advisor-chat-back-btn');
   const newBtn = document.getElementById('advisor-chat-new-btn');
+  const historyBtn = document.getElementById('advisor-chat-history-btn');
   const suggestions = document.getElementById('advisor-chat-suggestions-container');
   const inputArea = document.getElementById('advisor-chat-input');
 
@@ -248,17 +269,21 @@ function openAdvisorConversation(id, focusInput = true) {
     chatLog.style.display = 'flex';
     chatLog.innerHTML = '';
   }
-  if (backBtn) backBtn.style.display = 'flex';
+  if (backBtn) backBtn.style.display = 'none';
   if (newBtn) newBtn.style.display = 'flex';
+  if (historyBtn) historyBtn.classList.remove('active');
   if (suggestions) suggestions.style.display = 'block';
-  if (inputArea) inputArea.disabled = false;
+  if (inputArea) {
+    inputArea.disabled = false;
+    inputArea.placeholder = state.lang === 'el' ? 'Ρωτήστε για τα οικονομικά σας...' : 'Ask about your finances...';
+  }
 
   // Restore messages
   (conv.messages || []).forEach(m => {
     appendChatMessage(m.sender, m.html, false);
   });
 
-  // Restore Gemini context history
+  // Restore context history
   if (Array.isArray(conv.geminiHistory)) {
     state.advisorChatHistory = conv.geminiHistory.slice();
   } else {
@@ -295,22 +320,27 @@ function startNewAdvisorConversation() {
   state.advisorChatHistory = [];
 
   const welcome = state.lang === 'el'
-    ? "Γεια σου! Είμαι ο προσωπικός σου **Οικονομικός Σύμβουλος AI**. 🤖<br><br>Μπορώ να αναλύσω τις συναλλαγές σου και να σε βοηθήσω να αποταμιεύσεις περισσότερο. Επιλέξτε μία από τις παρακάτω προτάσεις ή ρωτήστε με ό,τι θέλετε!"
-    : "Hello! I am your personal **AI Financial Coach**. 🤖<br><br>I can analyze your transactions and help you save more. Select one of the suggestions below or ask me anything!";
+    ? "Γεια σου! Είμαι ο **Οικονομικός σου Βοηθός**.<br><br>Μπορώ να αναλύσω τις συναλλαγές σου, να εντοπίσω πού ξοδεύεις περισσότερα και να σου προτείνω τρόπους αποταμίευσης. Επίλεξε μία από τις προτάσεις παρακάτω ή ρώτησέ με ό,τι χρειάζεσαι!"
+    : "Hello! I am your **Financial Assistant**.<br><br>I can analyze your transactions, identify your top expenses, and suggest ways to save. Pick a suggestion below or ask me anything!";
   appendChatMessage('advisor', welcome);
 
   // Switch view to chat
   const listEl = document.getElementById('advisor-conversation-list');
   const backBtn = document.getElementById('advisor-chat-back-btn');
   const newBtn = document.getElementById('advisor-chat-new-btn');
+  const historyBtn = document.getElementById('advisor-chat-history-btn');
   const suggestions = document.getElementById('advisor-chat-suggestions-container');
   const inputArea = document.getElementById('advisor-chat-input');
   if (listEl) listEl.style.display = 'none';
   if (chatLog) chatLog.style.display = 'flex';
-  if (backBtn) backBtn.style.display = 'flex';
+  if (backBtn) backBtn.style.display = 'none';
   if (newBtn) newBtn.style.display = 'flex';
+  if (historyBtn) historyBtn.classList.remove('active');
   if (suggestions) suggestions.style.display = 'block';
-  if (inputArea) inputArea.disabled = false;
+  if (inputArea) {
+    inputArea.disabled = false;
+    inputArea.placeholder = state.lang === 'el' ? 'Ρωτήστε για τα οικονομικά σας...' : 'Ask about your finances...';
+  }
 
   setTimeout(() => {
     if (window._appJustResumed) return;
@@ -867,8 +897,8 @@ function submitCoachQuery(queryText) {
           console.warn('[AIEngine] Online Advisor returned error:', data.error);
           if (data.error.includes('GEMINI_API_KEY')) {
             const msg = state.lang === 'el'
-              ? `⚠️ **Ο Οικονομικός Σύμβουλος AI δεν έχει ρυθμιστεί ακόμα.**<br><br>Παρακαλώ προσθέστε τη μεταβλητή περιβάλλοντος **GEMINI_API_KEY** στις ρυθμίσεις του project σας στο Cloudflare Pages και κάντε ξανά deploy.`
-              : `⚠️ **AI Financial Advisor is not configured yet.**<br><br>Please add the **GEMINI_API_KEY** environment variable in your Cloudflare Pages project settings and redeploy.`;
+              ? `⚠️ **Ο Οικονομικός Σύμβουλος AI δεν έχει ρυθμιστεί ακόμα.**<br><br>Παρακαλώ επικοινωνήστε με τον διαχειριστή για την ενεργοποίηση της online υπηρεσίας.`
+              : `⚠️ **AI Financial Advisor is not configured yet.**<br><br>Please contact the administrator to activate the online service.`;
             appendChatMessage('advisor', msg);
             if (suggestions) suggestions.style.display = 'block';
             return;
@@ -2109,6 +2139,7 @@ var submitCoachTransaction = async function (amount, type, category, subcategory
   windowObj.getActiveAdvisorConversation = getActiveAdvisorConversation;
   windowObj.getConversationTitle = getConversationTitle;
   windowObj.showAdvisorConversationList = showAdvisorConversationList;
+  windowObj.toggleAdvisorHistory = toggleAdvisorHistory;
   windowObj.renderAdvisorConversationList = renderAdvisorConversationList;
   windowObj.formatConversationTime = formatConversationTime;
   windowObj.openAdvisorConversation = openAdvisorConversation;
@@ -2154,6 +2185,7 @@ var submitCoachTransaction = async function (amount, type, category, subcategory
     getActiveAdvisorConversation: getActiveAdvisorConversation,
     getConversationTitle: getConversationTitle,
     showAdvisorConversationList: showAdvisorConversationList,
+    toggleAdvisorHistory: toggleAdvisorHistory,
     renderAdvisorConversationList: renderAdvisorConversationList,
     formatConversationTime: formatConversationTime,
     openAdvisorConversation: openAdvisorConversation,

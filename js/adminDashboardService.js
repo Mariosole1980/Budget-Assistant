@@ -233,7 +233,7 @@ function renderAdminUsage(data, container) {
   );
 
   const aiChatCard = adminMeterCard(
-    '💬 Gemini AI Chat (Σύνολο Πλατφόρμας)',
+    '💬 AI Chat Assistant (Σύνολο Πλατφόρμας)',
     lang === 'el' ? 'Κλήσεις Μήνα' : 'Monthly Calls',
     `${aiChat.toLocaleString('en-US')} / ${aiChatPlatformLimit.toLocaleString('en-US')}`,
     aiChatPct,
