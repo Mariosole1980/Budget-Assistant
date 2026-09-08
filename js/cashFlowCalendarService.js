@@ -520,10 +520,19 @@
     _viewYear = (typeof targetYear === 'number') ? targetYear : now.getFullYear();
     _viewMonth = (typeof targetMonth === 'number') ? targetMonth : now.getMonth();
 
-    renderCashFlowCalendar(_viewYear, _viewMonth);
-
     if (typeof window !== 'undefined' && typeof window.openModal === 'function') {
       window.openModal('cash-flow-calendar-modal');
+    } else {
+      var m = document.getElementById('cash-flow-calendar-modal');
+      if (m) m.classList.add('active');
+    }
+
+    try {
+      renderCashFlowCalendar(_viewYear, _viewMonth);
+    } catch (err) {
+      if (typeof console !== 'undefined' && console.error) {
+        console.error('[CashFlowCalendar] Error rendering calendar:', err);
+      }
     }
   }
 
@@ -531,6 +540,9 @@
     triggerHaptic('light');
     if (typeof window !== 'undefined' && typeof window.closeModal === 'function') {
       window.closeModal('cash-flow-calendar-modal');
+    } else {
+      var m = document.getElementById('cash-flow-calendar-modal');
+      if (m) m.classList.remove('active');
     }
   }
 

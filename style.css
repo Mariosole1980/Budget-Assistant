@@ -12649,6 +12649,27 @@ body {
 /* ============================================================
    CASH FLOW CALENDAR & UPCOMING BILLS ENGINE
    ============================================================ */
+#cash-flow-calendar-modal.active {
+  display: flex !important;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.cash-flow-sheet {
+  border-radius: 28px 28px 0 0 !important;
+  max-height: 90vh !important;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+@media (min-width: 600px) {
+  #cash-flow-calendar-modal.active {
+    align-items: center;
+  }
+  .cash-flow-sheet {
+    border-radius: 28px !important;
+  }
+}
+
 .cf-month-nav-bar {
   display: flex;
   align-items: center;

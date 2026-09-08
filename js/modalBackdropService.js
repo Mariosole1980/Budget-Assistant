@@ -36,7 +36,8 @@
     'forecast-details-modal',
     'advisor-chat-modal',
     'profile-settings-modal',
-    'settings-subscreen-modal'
+    'settings-subscreen-modal',
+    'cash-flow-calendar-modal'
   ];
 
   /**
