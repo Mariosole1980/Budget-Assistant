@@ -1559,7 +1559,10 @@ window.setupEventListeners = setupEventListeners;
 function ensureOverlayInBody(el) { return ModalBackdropService.ensureOverlayInBody(el); }
 const FULLSCREEN_OVERLAY_IDS = typeof ModalBackdropService !== 'undefined' ? ModalBackdropService.FULLSCREEN_OVERLAY_IDS : [];
 function initOverlayPlacement() { return ModalBackdropService.initOverlayPlacement(); }
-function openModal(id, opts) { return ModalBackdropService.openModal(id, opts); }
+function openModal(id, opts) {
+  if (typeof triggerHaptic === 'function') triggerHaptic('light');
+  return ModalBackdropService.openModal(id, opts);
+}
 
 window.ensureOverlayInBody = ensureOverlayInBody;
 window.initOverlayPlacement = initOverlayPlacement;
@@ -1590,7 +1593,10 @@ window.scrollToToday = scrollToToday;
 // Extracted to js/tabNavigationService.js (Phase 24B Architectural Modularization)
 // ============================================================
 function resetAllTabScreenStyles() { return TabNavigationService.resetAllTabScreenStyles(); }
-function switchTab(tab, instant = false) { return TabNavigationService.switchTab(tab, instant); }
+function switchTab(tab, instant = false) {
+  if (typeof triggerHaptic === 'function') triggerHaptic('light');
+  return TabNavigationService.switchTab(tab, instant);
+}
 function toggleStatsType(type) { return TabNavigationService.toggleStatsType(type); }
 
 window.resetAllTabScreenStyles = resetAllTabScreenStyles;
@@ -2246,6 +2252,53 @@ window.saveRecurringTemplateEdit = saveRecurringTemplateEdit;
 window.onRecurringEditPresetChange = onRecurringEditPresetChange;
 window.selectRecurringEditEndType = selectRecurringEditEndType;
 window.regenerateRecurringTemplateTransactions = regenerateRecurringTemplateTransactions;
+
+// ============================================================
+// CASH FLOW CALENDAR & HAPTIC SETTINGS WRAPPERS
+// ============================================================
+var _getCashFlow = function () {
+  if (typeof CashFlowCalendarService !== 'undefined' && CashFlowCalendarService) return CashFlowCalendarService;
+  if (typeof window !== 'undefined' && window.CashFlowCalendarService) return window.CashFlowCalendarService;
+  return null;
+};
+function openCashFlowCalendarModal(y, m) {
+  var cs = _getCashFlow();
+  if (cs && typeof cs.openCashFlowCalendarModal === 'function') return cs.openCashFlowCalendarModal(y, m);
+  if (typeof window !== 'undefined' && typeof window.openModal === 'function') window.openModal('cash-flow-calendar-modal');
+}
+function closeCashFlowCalendarModal() {
+  var cs = _getCashFlow();
+  if (cs && typeof cs.closeCashFlowCalendarModal === 'function') return cs.closeCashFlowCalendarModal();
+  if (typeof window !== 'undefined' && typeof window.closeModal === 'function') window.closeModal('cash-flow-calendar-modal');
+}
+function navCashFlowMonth(dir) { var cs = _getCashFlow(); if (cs && typeof cs.navCashFlowMonth === 'function') return cs.navCashFlowMonth(dir); }
+function selectCashFlowDay(d) { var cs = _getCashFlow(); if (cs && typeof cs.selectCashFlowDay === 'function') return cs.selectCashFlowDay(d); }
+function quickPayCalendarBill(id, dt) { var cs = _getCashFlow(); if (cs && typeof cs.quickPayCalendarBill === 'function') return cs.quickPayCalendarBill(id, dt); }
+
+function toggleHapticSetting(forceVal) {
+  var hs = (typeof HapticFeedbackService !== 'undefined') ? HapticFeedbackService : (typeof window !== 'undefined' ? window.HapticFeedbackService : null);
+  if (hs) {
+    var el = document.getElementById('setting-haptic-toggle');
+    var newState;
+    if (typeof forceVal === 'boolean') {
+      newState = forceVal;
+    } else if (el) {
+      newState = el.checked;
+    } else {
+      newState = !hs.isEnabled();
+    }
+    hs.setEnabled(newState);
+    if (el) el.checked = newState;
+    if (newState && typeof triggerHaptic === 'function') triggerHaptic('success');
+  }
+}
+
+window.openCashFlowCalendarModal = openCashFlowCalendarModal;
+window.closeCashFlowCalendarModal = closeCashFlowCalendarModal;
+window.navCashFlowMonth = navCashFlowMonth;
+window.selectCashFlowDay = selectCashFlowDay;
+window.quickPayCalendarBill = quickPayCalendarBill;
+window.toggleHapticSetting = toggleHapticSetting;
 
 // ============================================================
 // QUICK-START 60" ONBOARDING WIZARD & BASELINE PROFILE ENGINE

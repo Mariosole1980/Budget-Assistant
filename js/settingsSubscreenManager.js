@@ -183,6 +183,12 @@ window.onSubscreenShow_preferences = function () {
   const quickAddCheckbox = document.getElementById('settings-quick-add-notification');
   if (quickAddCheckbox) quickAddCheckbox.checked = quickAddEnabled;
 
+  const hapticCheckbox = document.getElementById('setting-haptic-toggle');
+  if (hapticCheckbox) {
+    const hs = (typeof HapticFeedbackService !== 'undefined') ? HapticFeedbackService : (typeof window !== 'undefined' ? window.HapticFeedbackService : null);
+    hapticCheckbox.checked = hs ? hs.isEnabled() : (localStorage.getItem('haptic_feedback_enabled') !== 'false');
+  }
+
   const savedTheme = localStorage.getItem('app_theme') || 'dark';
   const themeSelect = document.getElementById('settings-theme');
   if (themeSelect) themeSelect.value = savedTheme;

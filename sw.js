@@ -118,6 +118,8 @@ const ASSETS = [
   'js/templateAssociationService.js',
   'js/eventBindingService.js',
   'js/appInitService.js',
+  'js/hapticFeedbackService.js',
+  'js/cashFlowCalendarService.js',
   'app.js',
   'web-ui.js'
 ];

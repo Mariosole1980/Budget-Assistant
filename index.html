@@ -613,6 +613,10 @@
   <script src="js/eventBindingService.js"></script>
   <!-- App Boot & Lifecycle Initialization Subsystem (loaded before app.js) -->
   <script src="js/appInitService.js"></script>
+  <!-- Universal Haptic Feedback Engine (loaded before app.js) -->
+  <script src="js/hapticFeedbackService.js"></script>
+  <!-- Cash Flow Calendar Subsystem (loaded before app.js) -->
+  <script src="js/cashFlowCalendarService.js"></script>
       <script src="app.js?v=1699"></script>
       <!-- Desktop Web UX Layer (defer so it runs after app.js; invoked via
        initDesktopUI() hook at the end of initApp()). Self-guards on
@@ -874,6 +878,9 @@
             <button class="icon-btn" id="period-next"><i class="fa-solid fa-chevron-right"></i></button>
           </div>
           <div style="display: flex; gap: 8px;">
+            <button class="icon-btn" id="trans-calendar-btn" title="Ημερολόγιο Cash Flow" onclick="openCashFlowCalendarModal()">
+              <i class="fa-solid fa-calendar-days" style="font-size: 16px; color: var(--accent);"></i>
+            </button>
             <button class="icon-btn" id="trans-select-btn" title="Επιλογή" onclick="enterSelectionMode()">
               <i class="fa-solid fa-list-check" style="font-size: 15px;"></i>
             </button>
@@ -1456,6 +1463,23 @@
                   style="background:var(--accent); color:#ffffff; font-size:11px; padding:2px 8px; border-radius:10px; font-weight:800;">0</span>
                 <i class="fa-solid fa-chevron-right" style="color:var(--text-muted);font-size:12px;"></i>
               </div>
+            <div style="height:1px;background:var(--border);margin:0 16px;"></div>
+
+            <!-- Cash Flow Calendar row -->
+            <div class="settings-list-item" id="hub-row-cash-flow" onclick="openCashFlowCalendarModal()"
+              style="cursor: pointer; padding: 14px 16px;">
+              <div style="display:flex; align-items:center; gap:12px; flex:1;">
+                <div
+                  style="width:36px;height:36px;border-radius:10px;background:rgba(99,102,241,0.15);display:flex;align-items:center;justify-content:center;">
+                  <i class="fa-solid fa-calendar-days" style="color:#6366f1;font-size:16px;"></i>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;">
+                  <span class="settings-item-label"
+                    style="font-weight:700; font-family:'Outfit',sans-serif; font-size:15px; color:var(--text-primary);">Ημερολόγιο Cash Flow</span>
+                  <span style="font-size:12px;color:var(--text-secondary);">Πρόβλεψη υπολοίπου, λογαριασμοί &amp; ημερήσια ροή</span>
+                </div>
+              </div>
+              <i class="fa-solid fa-chevron-right" style="color:var(--text-muted);font-size:12px;"></i>
             </div>
             <div style="height:1px;background:var(--border);margin:0 16px;"></div>
 
@@ -2521,6 +2545,21 @@
                   <label class="switch switch-amber">
                     <input type="checkbox" id="settings-quick-add-notification"
                       onchange="toggleQuickAddNotification(this.checked)">
+                    <span class="slider round"></span>
+                  </label>
+                </div>
+
+                <!-- Row 4: Universal Haptic Feedback -->
+                <div class="settings-list-item"
+                  style="padding:14px 16px; display:flex; align-items:center; justify-content:space-between; margin:0; border-top:1px solid var(--border, rgba(255,255,255,0.05));">
+                  <div style="display:flex; flex-direction:column; gap:3px; flex:1; padding-right:12px;">
+                    <span class="settings-item-label"
+                      style="font-weight:700; font-size:14px; color:var(--text-primary);">Απτική Ανάδραση (Haptic Feedback)</span>
+                    <span style="font-size:12px; color:var(--text-muted);">Δονήσεις κατά το πάτημα κουμπιών, καρτελών και αποθήκευση</span>
+                  </div>
+                  <label class="switch switch-amber">
+                    <input type="checkbox" id="setting-haptic-toggle"
+                      onchange="toggleHapticSetting(this.checked)">
                     <span class="slider round"></span>
                   </label>
                 </div>
@@ -7548,6 +7587,79 @@
               <div style="margin-top:10px;" data-i18n="admin_dash_loading">Φόρτωση στοιχείων…</div>
             </div>
           </div>
+        </div>
+      </div>
+      <!-- ============================================================ -->
+      <!-- MODAL: CASH FLOW CALENDAR & UPCOMING BILLS                   -->
+      <!-- ============================================================ -->
+      <div id="cash-flow-calendar-modal" class="modal-overlay" style="display: none; z-index: 13500;">
+        <div class="modal-content cash-flow-sheet"
+          style="max-width: 540px; width: 100%; border-radius: 28px; padding: 20px 18px 24px; background: #141824; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 16px 48px rgba(0,0,0,0.7); max-height: 90vh; display: flex; flex-direction: column; box-sizing: border-box; margin: 0 auto;">
+
+          <!-- Top Grabber / Handle (Mobile Friendly) -->
+          <div class="cf-drag-handle" style="width: 40px; height: 4px; border-radius: 4px; background: rgba(255,255,255,0.2); margin: 0 auto 12px;"></div>
+
+          <!-- Header -->
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div style="width: 36px; height: 36px; border-radius: 12px; background: linear-gradient(135deg, #6366f1, #3b82f6); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 16px;">
+                <i class="fa-solid fa-calendar-days"></i>
+              </div>
+              <div>
+                <h3 style="margin: 0; font-family: 'Outfit', sans-serif; font-size: 16px; font-weight: 800; color: var(--text-primary);" data-i18n="cash_flow_calendar_title">Ημερολόγιο Cash Flow</h3>
+                <span style="font-size: 11px; color: var(--text-muted);">Ροή εσόδων, εξόδων &amp; προβλέψεις</span>
+              </div>
+            </div>
+            <button type="button" class="icon-btn" onclick="closeCashFlowCalendarModal()" title="Κλείσιμο" style="width: 34px; height: 34px; border-radius: 50%; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text-primary);">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+
+          <!-- Scrollable Body -->
+          <div style="flex: 1; overflow-y: auto; padding-right: 2px; display: flex; flex-direction: column; gap: 14px;">
+
+            <!-- Month Navigation Bar -->
+            <div class="cf-month-nav-bar">
+              <button type="button" class="cf-nav-btn" onclick="navCashFlowMonth(-1)" aria-label="Προηγούμενος μήνας">
+                <i class="fa-solid fa-chevron-left"></i>
+              </button>
+              <div id="cash-flow-month-title" class="cf-month-title">Μάιος 2026</div>
+              <button type="button" class="cf-nav-btn" onclick="navCashFlowMonth(1)" aria-label="Επόμενος μήνας">
+                <i class="fa-solid fa-chevron-right"></i>
+              </button>
+            </div>
+
+            <!-- Month Summary Ribbon -->
+            <div class="cf-summary-ribbon">
+              <div class="cf-summary-card">
+                <span class="cf-summary-lbl">Έσοδα</span>
+                <span id="cf-summary-income" class="cf-summary-val positive">+0,00 €</span>
+              </div>
+              <div class="cf-summary-card">
+                <span class="cf-summary-lbl">Έξοδα</span>
+                <span id="cf-summary-expense" class="cf-summary-val negative">-0,00 €</span>
+              </div>
+              <div class="cf-summary-card">
+                <span class="cf-summary-lbl">Υποχρεώσεις</span>
+                <span id="cf-summary-remaining-bills" class="cf-summary-val warning">0,00 €</span>
+              </div>
+              <div class="cf-summary-card highlight">
+                <span class="cf-summary-lbl">Πρόβλεψη Τέλους</span>
+                <span id="cf-summary-net" class="cf-summary-val positive">+0,00 €</span>
+              </div>
+            </div>
+
+            <!-- Calendar Box -->
+            <div class="cf-calendar-box">
+              <div id="cash-flow-weekdays" class="cf-weekdays-row"></div>
+              <div id="cash-flow-days-grid" class="cf-days-grid"></div>
+            </div>
+
+            <!-- Selected Day Drawer -->
+            <div id="cash-flow-day-drawer" class="cf-day-drawer"></div>
+
+          </div>
+
         </div>
       </div>
 </body>

@@ -784,7 +784,9 @@
         "sub_hub_no_subs": "Δεν υπάρχουν καταχωρημένες πάγιες υποχρεώσεις.",
         "sub_hub_all_paid": "✓ Όλα τα πάγια αυτού του μήνα έχουν εξοφληθεί!",
         "sub_hub_badge_pending_bills": "Πάγια Εκκρεμούν",
-        "sub_hub_view_bills": "Προβολή"
+        "sub_hub_view_bills": "Προβολή",
+        "cash_flow_calendar_title": "Ημερολόγιο Cash Flow",
+        "cash_flow_calendar_desc": "Ροή εσόδων, εξόδων & προβλέψεις"
 },
       en: {
         "ai_check_title": "AI Financial Check",
@@ -1553,7 +1555,9 @@
         "sub_hub_no_subs": "No recurring bills registered yet.",
         "sub_hub_all_paid": "✓ All monthly bills have been paid!",
         "sub_hub_badge_pending_bills": "Bills Pending",
-        "sub_hub_view_bills": "View"
+        "sub_hub_view_bills": "View",
+        "cash_flow_calendar_title": "Cash Flow Calendar",
+        "cash_flow_calendar_desc": "Income, expense flow & projections"
 }
     };
 

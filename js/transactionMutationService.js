@@ -160,6 +160,12 @@ function saveTransactionOffline(transaction) {
   if (typeof checkOverBudgetNotification === 'function') {
     if (typeof checkOverBudgetNotification === 'function') checkOverBudgetNotification(transaction); else if (typeof window !== 'undefined' && typeof window.checkOverBudgetNotification === 'function') window.checkOverBudgetNotification(transaction);
   }
+
+  if (typeof triggerHaptic === 'function') {
+    triggerHaptic('success');
+  } else if (typeof window !== 'undefined' && typeof window.triggerHaptic === 'function') {
+    window.triggerHaptic('success');
+  }
 }
 
 function deleteTransaction(id) {
@@ -307,6 +313,11 @@ function deleteTransactionOffline(id, skipSave = false) {
   state.transactions = state.transactions.filter(t => t.id !== id);
   if (!skipSave) {
     localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
+  }
+  if (typeof triggerHaptic === 'function') {
+    triggerHaptic('error');
+  } else if (typeof window !== 'undefined' && typeof window.triggerHaptic === 'function') {
+    window.triggerHaptic('error');
   }
 }
 

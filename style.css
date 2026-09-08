@@ -12646,3 +12646,436 @@ body {
   transform: scale(0.92);
 }
 
+/* ============================================================
+   CASH FLOW CALENDAR & UPCOMING BILLS ENGINE
+   ============================================================ */
+.cf-month-nav-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.cf-month-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text-primary, #ffffff);
+  font-family: 'Outfit', sans-serif;
+  letter-spacing: 0.2px;
+}
+
+.cf-nav-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: none;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--text-primary, #ffffff);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 13px;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.cf-nav-btn:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.cf-nav-btn:active {
+  transform: scale(0.92);
+}
+
+.cf-summary-ribbon {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+@media (max-width: 480px) {
+  .cf-summary-ribbon {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.cf-summary-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  text-align: center;
+}
+
+.cf-summary-card.highlight {
+  background: rgba(99, 102, 241, 0.12);
+  border-color: rgba(99, 102, 241, 0.32);
+}
+
+.cf-summary-lbl {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted, #94a3b8);
+  font-weight: 600;
+}
+
+.cf-summary-val {
+  font-size: 13px;
+  font-weight: 800;
+  font-family: 'Outfit', sans-serif;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cf-summary-val.positive {
+  color: #10b981;
+}
+
+.cf-summary-val.negative {
+  color: #ef4444;
+}
+
+.cf-summary-val.warning {
+  color: #f59e0b;
+}
+
+.cf-calendar-box {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 18px;
+  padding: 12px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cf-weekdays-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
+  text-align: center;
+}
+
+.cf-weekday-cell {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted, #94a3b8);
+  padding: 3px 0;
+  text-transform: uppercase;
+}
+
+.cf-days-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
+}
+
+.cf-day-cell {
+  min-height: 52px;
+  padding: 4px 6px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-sizing: border-box;
+}
+
+.cf-day-cell:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.cf-day-cell.blank {
+  background: transparent;
+  border-color: transparent;
+  cursor: default;
+  pointer-events: none;
+}
+
+.cf-day-cell.today {
+  border-color: rgba(99, 102, 241, 0.65);
+  background: rgba(99, 102, 241, 0.1);
+}
+
+.cf-day-cell.selected {
+  border-color: var(--accent, #6366f1) !important;
+  background: rgba(99, 102, 241, 0.24) !important;
+  box-shadow: 0 0 14px rgba(99, 102, 241, 0.35);
+}
+
+.cf-day-cell.future {
+  opacity: 0.88;
+}
+
+.cf-day-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.cf-day-number {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--text-primary, #ffffff);
+}
+
+.cf-day-net {
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.cf-day-net.pos {
+  color: #10b981;
+}
+
+.cf-day-net.neg {
+  color: #ef4444;
+}
+
+.cf-day-dots {
+  display: flex;
+  gap: 3px;
+  justify-content: flex-end;
+  align-items: center;
+  min-height: 6px;
+}
+
+.cf-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.cf-dot.income {
+  background: #10b981;
+  box-shadow: 0 0 4px #10b981;
+}
+
+.cf-dot.expense {
+  background: #ef4444;
+}
+
+.cf-dot.bill {
+  background: #f59e0b;
+  box-shadow: 0 0 4px #f59e0b;
+}
+
+.cf-day-drawer {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cf-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.cf-drawer-date {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary, #ffffff);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cf-drawer-net {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text-secondary, #94a3b8);
+}
+
+.cf-drawer-empty {
+  padding: 20px 10px;
+  text-align: center;
+  color: var(--text-muted, #94a3b8);
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.cf-drawer-section-title {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted, #94a3b8);
+  margin-top: 4px;
+}
+
+.cf-bill-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.cf-bill-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: rgba(245, 158, 11, 0.2);
+  color: #f59e0b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.cf-bill-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.cf-bill-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary, #ffffff);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cf-bill-cat {
+  font-size: 11px;
+  color: var(--text-muted, #94a3b8);
+}
+
+.cf-bill-amount {
+  font-size: 13px;
+  font-weight: 800;
+  color: #ef4444;
+  margin-right: 6px;
+}
+
+.cf-quick-pay-btn {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: transform 0.1s ease, filter 0.15s ease;
+  flex-shrink: 0;
+}
+
+.cf-quick-pay-btn:hover {
+  filter: brightness(1.1);
+}
+
+.cf-quick-pay-btn:active {
+  transform: scale(0.94);
+}
+
+.cf-tx-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.cf-tx-card:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.cf-tx-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.cf-tx-icon.pos {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+}
+
+.cf-tx-icon.neg {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+.cf-tx-icon.transfer {
+  background: rgba(59, 130, 246, 0.15);
+  color: #3b82f6;
+}
+
+.cf-tx-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.cf-tx-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary, #ffffff);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cf-tx-cat {
+  font-size: 10px;
+  color: var(--text-muted, #94a3b8);
+}
+
+.cf-tx-amount {
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.cf-tx-amount.pos {
+  color: #10b981;
+}
+
+.cf-tx-amount.neg {
+  color: #ef4444;
+}
+
+.cf-tx-amount.transfer {
+  color: #3b82f6;
+}
+
+
