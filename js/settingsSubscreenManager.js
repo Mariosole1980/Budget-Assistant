@@ -246,6 +246,9 @@ function saveCustomSavingsTarget() {
       localStorage.setItem('overview_savings_target', val.toString());
       closeModal('forecast-details-modal');
       renderAccountsTab();
+      if (typeof updateSafeToSpendUI === 'function') {
+        updateSafeToSpendUI();
+      }
     }
   }
 }

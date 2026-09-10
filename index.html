@@ -104,7 +104,7 @@
               ${devButton}
             </div>
             <div style="font-size:11px;color:#8b949e;">
-              Budget Assistant • build v1707
+              Budget Assistant • build v1708
             </div>
           </div>
         `;
@@ -228,7 +228,7 @@
   <!-- Desktop Web UX Layer (loaded AFTER style.css so it can override).
        All rules are scoped behind html.web-mode, so Android/iOS native
        (Capacitor) layout is never affected. -->
-  <link rel="stylesheet" href="desktop.css?v=1707" id="desktop-stylesheet">
+  <link rel="stylesheet" href="desktop.css?v=1708" id="desktop-stylesheet">
 
   <!-- Capacitor Bridge
        NOTE: The native Capacitor runtime injects its bridge JS automatically into
@@ -282,7 +282,7 @@
           // OTA updates. Running both would cause a reload loop that never
           // baked into the APK and never changes on a plain reload).
           // ============================================================
-          const CURRENT_BUILD = 1707;
+          const CURRENT_BUILD = 1708;
           (function () {
             // Skip entirely when running inside the native APK (Capacitor bridge
             // present). Capgo handles OTA updates there.
@@ -617,11 +617,11 @@
   <script src="js/hapticFeedbackService.js"></script>
   <!-- Cash Flow Calendar Subsystem (loaded before app.js) -->
   <script src="js/cashFlowCalendarService.js"></script>
-      <script src="app.js?v=1707"></script>
+      <script src="app.js?v=1708"></script>
       <!-- Desktop Web UX Layer (defer so it runs after app.js; invoked via
        initDesktopUI() hook at the end of initApp()). Self-guards on
        html.web-mode so native Android/iOS is never affected. -->
-      <script src="web-ui.js?v=1707" defer></script>
+      <script src="web-ui.js?v=1708" defer></script>
 </head>
 
 <body style="background-color: #181b22; margin: 0; padding: 0; ">
@@ -2110,7 +2110,7 @@
                 data-i18n="item_user_guide">Οδηγός Χρήσης</h3>
               <div
                 style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; font-family: 'Outfit', sans-serif;">
-                <span id="user-guide-version-badge" style="font-size:10px; background:rgba(99,102,241,0.15); color:var(--primary); padding:2px 8px; border-radius:10px; font-weight:700; border:1px solid rgba(99,102,241,0.3);">v1707</span>
+                <span id="user-guide-version-badge" style="font-size:10px; background:rgba(99,102,241,0.15); color:var(--primary); padding:2px 8px; border-radius:10px; font-weight:700; border:1px solid rgba(99,102,241,0.3);">v1708</span>
                 <span>•</span>
                 <span id="user-guide-date-badge" data-i18n="user_guide_date_badge">Αύγουστος 2026</span>
               </div>
@@ -3236,7 +3236,7 @@
             <div class="settings-list-item version-info-row"
               style="padding: 14px 16px; background: transparent; border-top: 1px solid var(--border); margin-top: 8px;">
               <span class="settings-item-label" style="color:var(--text-muted); font-size:12px;"
-                data-i18n="app_version">Έκδοση 1.0.0 (build v1707)</span>
+                data-i18n="app_version">Έκδοση 1.0.0 (build v1708)</span>
               <span class="settings-item-value" style="font-size:12px; color:var(--text-muted); font-weight:600;">Budget
                 Assistant</span>
             </div>
@@ -3482,9 +3482,49 @@
               <span>- Επερχόμενες Πάγιες Εντολές Μήνα:</span>
               <span id="modal-sts-bills" style="font-weight: 700;">- € 0,00</span>
             </div>
-            <div style="display: flex; justify-content: space-between; color: #60a5fa;">
-              <span>- Στόχος Αποταμίευσης:</span>
-              <span id="modal-sts-savings" style="font-weight: 700;">- € 0,00</span>
+            <div style="display: flex; justify-content: space-between; align-items: center; color: #60a5fa; cursor: pointer; padding: 4px 6px; margin: -2px -6px; border-radius: 8px; transition: background 0.15s;" onclick="toggleStsSavingsGoalEditor()" title="Κλικ για ορισμό ή αλλαγή στόχου αποταμίευσης" onmouseover="this.style.background='rgba(96, 165, 250, 0.08)'" onmouseout="this.style.background='transparent'">
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span>- Στόχος Αποταμίευσης:</span>
+                <i class="fa-solid fa-pen-to-square" style="font-size: 11px; opacity: 0.75;"></i>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span id="modal-sts-savings" style="font-weight: 700;">- € 0,00</span>
+                <span id="modal-sts-savings-btn" style="font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 6px; background: rgba(96, 165, 250, 0.18); border: 1px solid rgba(96, 165, 250, 0.35); color: #93c5fd; transition: all 0.2s;">Ορισμός</span>
+              </div>
+            </div>
+
+            <!-- Inline Savings Goal Editor -->
+            <div id="sts-savings-editor-container" style="display: none; margin: 6px 0; padding: 12px 14px; border-radius: 14px; background: rgba(96, 165, 250, 0.08); border: 1px solid rgba(96, 165, 250, 0.28); box-shadow: 0 4px 16px rgba(0,0,0,0.25);">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: #93c5fd;">
+                  <i class="fa-solid fa-piggy-bank"></i>
+                  <span id="sts-savings-editor-title" data-i18n="sts_savings_target_title">Μηνιαίος Στόχος Αποταμίευσης</span>
+                </div>
+                <button type="button" onclick="event.stopPropagation(); toggleStsSavingsGoalEditor(false)" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 18px; line-height: 1; padding: 0 4px;">&times;</button>
+              </div>
+              <div id="sts-savings-editor-desc" data-i18n="sts_savings_target_desc" style="font-size: 11px; color: var(--text-secondary); margin-bottom: 10px; line-height: 1.35;">
+                Ορίστε πόσα χρήματα θέλετε να μένουν στην άκρη κάθε μήνα. Το ποσό αυτό προστατεύεται αυτόματα από το ημερήσιο όριο εξόδων.
+              </div>
+              <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+                <div style="position: relative; flex: 1;">
+                  <span id="sts-savings-curr-symbol" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #93c5fd; font-weight: 700; font-size: 13px;">€</span>
+                  <input type="number" id="sts-savings-input" min="0" step="10" placeholder="0" onkeydown="if(event.key==='Enter'){event.preventDefault();saveStsSavingsGoal();}" style="width: 100%; box-sizing: border-box; padding: 8px 10px 8px 26px; border-radius: 10px; background: rgba(0, 0, 0, 0.45); border: 1px solid rgba(96, 165, 250, 0.4); color: #fff; font-size: 14px; font-weight: 700; outline: none;">
+                </div>
+                <button type="button" onclick="saveStsSavingsGoal()" style="padding: 8px 14px; border-radius: 10px; background: #3b82f6; color: white; border: none; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 5px; transition: transform 0.15s;">
+                  <i class="fa-solid fa-check"></i>
+                  <span id="sts-savings-save-label" data-i18n="sts_savings_save_btn">Αποθήκευση</span>
+                </button>
+              </div>
+              <!-- Quick Preset Chips -->
+              <div style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
+                <span style="font-size: 10px; color: var(--text-muted); font-weight: 600;">Προτάσεις:</span>
+                <button type="button" onclick="setStsSavingsInputValue(0)" style="padding: 2px 8px; border-radius: 6px; font-size: 10.5px; font-weight: 600; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); color: #cbd5e1; cursor: pointer;">0€</button>
+                <button type="button" onclick="setStsSavingsInputValue(50)" style="padding: 2px 8px; border-radius: 6px; font-size: 10.5px; font-weight: 600; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); color: #cbd5e1; cursor: pointer;">50€</button>
+                <button type="button" onclick="setStsSavingsInputValue(100)" style="padding: 2px 8px; border-radius: 6px; font-size: 10.5px; font-weight: 600; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); color: #cbd5e1; cursor: pointer;">100€</button>
+                <button type="button" onclick="setStsSavingsInputValue(200)" style="padding: 2px 8px; border-radius: 6px; font-size: 10.5px; font-weight: 600; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); color: #cbd5e1; cursor: pointer;">200€</button>
+                <button type="button" onclick="setStsSavingsInputValue(300)" style="padding: 2px 8px; border-radius: 6px; font-size: 10.5px; font-weight: 600; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); color: #cbd5e1; cursor: pointer;">300€</button>
+                <button type="button" onclick="setStsSavingsInputValue(500)" style="padding: 2px 8px; border-radius: 6px; font-size: 10.5px; font-weight: 600; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); color: #cbd5e1; cursor: pointer;">500€</button>
+              </div>
             </div>
             <div style="display: flex; justify-content: space-between; padding-top: 8px; border-top: 1px solid rgba(255, 255, 255, 0.08); font-weight: 800;">
               <span style="color: #fff;">= Ελεύθερο Ποσό για Έξοδα:</span>

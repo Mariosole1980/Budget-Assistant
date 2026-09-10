@@ -118,13 +118,27 @@ function getUnpaidRecurringBillsThisMonth() {
 }
 
 function getMonthlySavingsGoal() {
-  if (state.budgets && state.budgets.length > 0) {
+  // 1. Explicit monthly goal set by user (highest precedence)
+  try {
+    const explicit = localStorage.getItem('ba_monthly_savings_goal');
+    if (explicit !== null && explicit !== undefined && explicit.trim() !== '') {
+      const parsed = parseFloat(explicit);
+      if (!isNaN(parsed) && parsed >= 0) return sanitizeFloat(parsed);
+    }
+  } catch (e) { }
+
+  // 2. Budget category for savings / piggy bank
+  if (state && state.budgets && state.budgets.length > 0) {
     const savingsBudget = state.budgets.find(b => {
       const name = (b.name || b.category || '').toLowerCase();
-      return name.includes('αποταμ') || name.includes('saving');
+      return name.includes('αποταμ') || name.includes('saving') || name.includes('κουμπαρ') || name.includes('piggy');
     });
-    if (savingsBudget) return sanitizeFloat(parseFloat(savingsBudget.amount) || 0);
+    if (savingsBudget && parseFloat(savingsBudget.amount) > 0) {
+      return sanitizeFloat(parseFloat(savingsBudget.amount) || 0);
+    }
   }
+
+  // 3. Quick-Start profile target_savings
   try {
     const qsRaw = localStorage.getItem('ba_quick_start_profile');
     if (qsRaw) {
@@ -132,6 +146,18 @@ function getMonthlySavingsGoal() {
       if (qs && qs.target_savings > 0) return sanitizeFloat(parseFloat(qs.target_savings) || 0);
     }
   } catch (e) { }
+
+  // 4. Annual savings target (overview_savings_target / 12)
+  try {
+    const customTarget = localStorage.getItem('overview_savings_target');
+    if (customTarget) {
+      const annualVal = parseFloat(customTarget);
+      if (!isNaN(annualVal) && annualVal > 0) {
+        return sanitizeFloat(Math.round(annualVal / 12));
+      }
+    }
+  } catch (e) { }
+
   return 0;
 }
 
@@ -277,14 +303,29 @@ function openSafeToSpendModal() {
   const modalSav = document.getElementById('modal-sts-savings');
   const modalPool = document.getElementById('modal-sts-pool');
   const modalDays = document.getElementById('modal-sts-days');
+  const savGoal = getMonthlySavingsGoal();
 
   if (modalDaily) modalDaily.textContent = `${currSym} ${formatDisplayAmount(sts.safeDaily)}`;
   if (modalWeekly) modalWeekly.textContent = `ή ${currSym} ${formatDisplayAmount(sts.safeWeekly)} για αυτή την εβδομάδα`;
   if (modalBal) modalBal.textContent = `${currSym} ${formatDisplayAmount(sts.currentBalance)}`;
   if (modalBills) modalBills.textContent = `- ${currSym} ${formatDisplayAmount(getUnpaidRecurringBillsThisMonth())}`;
-  if (modalSav) modalSav.textContent = `- ${currSym} ${formatDisplayAmount(getMonthlySavingsGoal())}`;
+  if (modalSav) modalSav.textContent = `- ${currSym} ${formatDisplayAmount(savGoal)}`;
   if (modalPool) modalPool.textContent = `${currSym} ${formatDisplayAmount(sts.discretionaryPool)}`;
   if (modalDays) modalDays.textContent = `${sts.daysRemaining} ημέρες`;
+
+  const lang = (state && state.lang) || 'el';
+  const translations = (typeof TRANSLATIONS !== 'undefined' ? TRANSLATIONS : (typeof window !== 'undefined' ? window.TRANSLATIONS : null)) || {};
+  const t = (translations && translations[lang]) || {};
+  const savBtn = document.getElementById('modal-sts-savings-btn');
+  if (savBtn) {
+    savBtn.textContent = savGoal > 0 ? (t['sts_savings_edit_btn'] || (lang === 'el' ? 'Αλλαγή' : 'Edit')) : (t['sts_savings_set_btn'] || (lang === 'el' ? 'Ορισμός' : 'Set'));
+  }
+
+  // Ensure editor starts collapsed
+  const editorContainer = document.getElementById('sts-savings-editor-container');
+  if (editorContainer) {
+    editorContainer.style.display = 'none';
+  }
 
   // Clear previous simulation result
   const resBox = document.getElementById('sts-sim-result-box');
@@ -294,6 +335,109 @@ function openSafeToSpendModal() {
   }
 
   openModal('safe-to-spend-modal');
+}
+
+function toggleStsSavingsGoalEditor(force) {
+  const container = document.getElementById('sts-savings-editor-container');
+  if (!container) return;
+  const isHidden = container.style.display === 'none' || !container.style.display;
+  const shouldOpen = typeof force === 'boolean' ? force : isHidden;
+
+  if (shouldOpen) {
+    const currGoal = getMonthlySavingsGoal();
+    const input = document.getElementById('sts-savings-input');
+    const currSymEl = document.getElementById('sts-savings-curr-symbol');
+    if (input) input.value = currGoal > 0 ? currGoal : '';
+    if (currSymEl) currSymEl.textContent = getCurrencySymbol();
+
+    const lang = (state && state.lang) || 'el';
+    const translations = (typeof TRANSLATIONS !== 'undefined' ? TRANSLATIONS : (typeof window !== 'undefined' ? window.TRANSLATIONS : null)) || {};
+    const t = (translations && translations[lang]) || {};
+    const titleEl = document.getElementById('sts-savings-editor-title');
+    const descEl = document.getElementById('sts-savings-editor-desc');
+    const saveLabel = document.getElementById('sts-savings-save-label');
+    if (titleEl) titleEl.textContent = t['sts_savings_target_title'] || (lang === 'el' ? 'Μηνιαίος Στόχος Αποταμίευσης' : 'Monthly Savings Target');
+    if (descEl) descEl.textContent = t['sts_savings_target_desc'] || (lang === 'el' ? 'Ορίστε πόσα χρήματα θέλετε να μένουν στην άκρη κάθε μήνα. Το ποσό αυτό προστατεύεται αυτόματα από το ημερήσιο όριο εξόδων.' : 'Set how much money you want to keep aside each month. This amount is automatically protected from your daily spending allowance.');
+    if (saveLabel) saveLabel.textContent = t['sts_savings_save_btn'] || (lang === 'el' ? 'Αποθήκευση' : 'Save');
+
+    container.style.display = 'block';
+    if (input && typeof input.focus === 'function') setTimeout(() => input.focus(), 50);
+  } else {
+    container.style.display = 'none';
+  }
+}
+
+function setStsSavingsInputValue(val) {
+  const input = document.getElementById('sts-savings-input');
+  if (input) {
+    input.value = val;
+    if (typeof input.focus === 'function') {
+      try { input.focus(); } catch (e) { }
+    }
+  }
+}
+
+function saveStsSavingsGoal() {
+  const input = document.getElementById('sts-savings-input');
+  const val = input ? Math.max(0, sanitizeFloat(parseFloat(input.value) || 0)) : 0;
+
+  try {
+    localStorage.setItem('ba_monthly_savings_goal', val.toString());
+  } catch (e) {
+    console.warn('Unable to persist ba_monthly_savings_goal:', e);
+  }
+  if (typeof state !== 'undefined' && state) {
+    state.monthlySavingsGoal = val;
+  }
+
+  // Update Safe-to-Spend UI across dashboard & tabs
+  updateSafeToSpendUI();
+
+  // Refresh active modal values
+  const currSym = getCurrencySymbol();
+  const sts = (typeof SafeToSpendEngine !== 'undefined')
+    ? SafeToSpendEngine.calculateDailySafeToSpend({
+        currentBalance: getLiquidBalance(),
+        unpaidRecurringBills: getUnpaidRecurringBillsThisMonth(),
+        savingsGoal: val
+      })
+    : (state && state._lastSafeToSpendResult);
+
+  if (sts) {
+    const modalDaily = document.getElementById('modal-sts-daily-val');
+    const modalWeekly = document.getElementById('modal-sts-weekly-val');
+    const modalSav = document.getElementById('modal-sts-savings');
+    const modalPool = document.getElementById('modal-sts-pool');
+    const modalDays = document.getElementById('modal-sts-days');
+
+    if (modalDaily) modalDaily.textContent = `${currSym} ${formatDisplayAmount(sts.safeDaily)}`;
+    if (modalWeekly) modalWeekly.textContent = `ή ${currSym} ${formatDisplayAmount(sts.safeWeekly)} για αυτή την εβδομάδα`;
+    if (modalSav) modalSav.textContent = `- ${currSym} ${formatDisplayAmount(val)}`;
+    if (modalPool) modalPool.textContent = `${currSym} ${formatDisplayAmount(sts.discretionaryPool)}`;
+    if (modalDays) modalDays.textContent = `${sts.daysRemaining} ημέρες`;
+  }
+
+  const lang = (state && state.lang) || 'el';
+  const translations = (typeof TRANSLATIONS !== 'undefined' ? TRANSLATIONS : (typeof window !== 'undefined' ? window.TRANSLATIONS : null)) || {};
+  const t = (translations && translations[lang]) || {};
+  const savBtn = document.getElementById('modal-sts-savings-btn');
+  if (savBtn) {
+    savBtn.textContent = val > 0 ? (t['sts_savings_edit_btn'] || (lang === 'el' ? 'Αλλαγή' : 'Edit')) : (t['sts_savings_set_btn'] || (lang === 'el' ? 'Ορισμός' : 'Set'));
+  }
+
+  // Close editor smoothly
+  toggleStsSavingsGoalEditor(false);
+
+  // Re-render accounts overview if active to keep hero card in sync
+  if (typeof renderAccountsTab === 'function') {
+    try { renderAccountsTab(); } catch (e) { }
+  }
+
+  // Provide user feedback toast
+  if (typeof showToast === 'function') {
+    const toastPrefix = t['sts_savings_saved_toast'] || (lang === 'el' ? 'Ο μηνιαίος στόχος αποταμίευσης ορίστηκε σε' : 'Monthly savings goal updated to');
+    showToast(`${toastPrefix} ${currSym} ${formatDisplayAmount(val)}`);
+  }
 }
 
 function runWhatIfSimulation() {
@@ -646,6 +790,9 @@ window.quickPaySubscription = quickPaySubscription;
   window.renderSubscriptionsHub = renderSubscriptionsHub;
   window.acceptDetectedSubscription = acceptDetectedSubscription;
   window.quickPaySubscription = quickPaySubscription;
+  window.toggleStsSavingsGoalEditor = toggleStsSavingsGoalEditor;
+  window.setStsSavingsInputValue = setStsSavingsInputValue;
+  window.saveStsSavingsGoal = saveStsSavingsGoal;
 
   return {
     getLiquidBalance: getLiquidBalance,
@@ -658,6 +805,9 @@ window.quickPaySubscription = quickPaySubscription;
     openSubscriptionsHubModal: openSubscriptionsHubModal,
     renderSubscriptionsHub: renderSubscriptionsHub,
     acceptDetectedSubscription: acceptDetectedSubscription,
-    quickPaySubscription: quickPaySubscription
+    quickPaySubscription: quickPaySubscription,
+    toggleStsSavingsGoalEditor: toggleStsSavingsGoalEditor,
+    setStsSavingsInputValue: setStsSavingsInputValue,
+    saveStsSavingsGoal: saveStsSavingsGoal
   };
 }));

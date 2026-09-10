@@ -106,7 +106,10 @@ test('SafeToSpendView: exports all expected functions', () => {
     'openSubscriptionsHubModal',
     'renderSubscriptionsHub',
     'acceptDetectedSubscription',
-    'quickPaySubscription'
+    'quickPaySubscription',
+    'toggleStsSavingsGoalEditor',
+    'setStsSavingsInputValue',
+    'saveStsSavingsGoal'
   ];
 
   expectedFns.forEach(fn => {
@@ -120,12 +123,42 @@ test('SafeToSpendView: getLiquidBalance calculates total balance of accounts', (
 });
 
 test('SafeToSpendView: getMonthlySavingsGoal returns saved goal or default', () => {
+  localStorage.removeItem('ba_monthly_savings_goal');
+  localStorage.removeItem('ba_quick_start_profile');
+  localStorage.removeItem('overview_savings_target');
+
   state.budgets = [{ name: 'Αποταμίευση', amount: 250 }];
-  const goal = SafeToSpendView.getMonthlySavingsGoal();
+  let goal = SafeToSpendView.getMonthlySavingsGoal();
   assert.strictEqual(goal, 250);
 
   state.budgets = [];
   assert.strictEqual(SafeToSpendView.getMonthlySavingsGoal(), 0);
+
+  // Test ba_monthly_savings_goal priority
+  localStorage.setItem('ba_monthly_savings_goal', '320');
+  assert.strictEqual(SafeToSpendView.getMonthlySavingsGoal(), 320);
+
+  // Test annual target fallback
+  localStorage.removeItem('ba_monthly_savings_goal');
+  localStorage.setItem('overview_savings_target', '2400');
+  assert.strictEqual(SafeToSpendView.getMonthlySavingsGoal(), 200);
+
+  localStorage.removeItem('overview_savings_target');
+});
+
+test('SafeToSpendView: savings goal editor helper functions operate correctly', () => {
+  // setStsSavingsInputValue sets input value
+  const inputEl = getMockElement('sts-savings-input');
+  SafeToSpendView.setStsSavingsInputValue(450);
+  assert.strictEqual(inputEl.value, 450);
+
+  // saveStsSavingsGoal persists to localStorage
+  SafeToSpendView.saveStsSavingsGoal();
+  assert.strictEqual(localStorage.getItem('ba_monthly_savings_goal'), '450');
+  assert.strictEqual(SafeToSpendView.getMonthlySavingsGoal(), 450);
+
+  // Clean up
+  localStorage.removeItem('ba_monthly_savings_goal');
 });
 
 test('SafeToSpendView: openSafeToSpendModal and openSubscriptionsHubModal trigger openModal', () => {
