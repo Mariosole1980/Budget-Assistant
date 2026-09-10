@@ -834,16 +834,19 @@
             transition:background 0.3s;
           "></span>
         </button>
-        <!-- AI Chat Assistant Quick Button -->
-        <button id="header-ai-chat-btn" class="icon-btn header-ai-chat-btn" onclick="openAdvisorChat()"
-          title="Οικονομικός Βοηθός" aria-label="Οικονομικός Βοηθός" style="position:relative; color:var(--accent);">
-          <i class="fa-solid fa-comment-dots"></i>
+        <!-- Unified AI Assistant Pill (Option 2C: Minimal Message Concierge) -->
+        <button id="header-ai-pill-btn" class="header-ai-pill-btn" onclick="openAdvisorChat()"
+          title="Οικονομικός Βοηθός" aria-label="Οικονομικός Βοηθός">
+          <svg class="header-ai-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            <circle cx="9" cy="10" r="1" fill="currentColor"></circle>
+            <circle cx="12" cy="10" r="1" fill="currentColor"></circle>
+            <circle cx="15" cy="10" r="1" fill="currentColor"></circle>
+          </svg>
+          <span class="header-ai-text" data-i18n="header_assistant_btn">Βοηθός</span>
         </button>
-        <!-- Voice AI Quick Button -->
-        <button id="header-voice-ai-btn" class="icon-btn header-voice-btn" onclick="openVoiceAIModal({ autoStart: true })"
-          title="🎙️ Οικονομικός Βοηθός" aria-label="Οικονομικός Βοηθός" style="position:relative; color:var(--accent);">
-          <i class="fa-solid fa-microphone"></i>
-        </button>
+        <!-- Hidden Voice AI button fallback for programmatic shortcuts & tests -->
+        <button id="header-voice-ai-btn" style="display: none;" aria-hidden="true" onclick="openVoiceAIModal({ autoStart: true })"></button>
         <button class="icon-btn" onclick="openSupabaseSettings()" title="Λογαριασμός Cloud" id="btn-cloud-settings"
           style="display: none;">
           <i class="fa-solid fa-cloud"></i>
@@ -880,9 +883,6 @@
           <div style="display: flex; gap: 8px;">
             <button class="icon-btn" id="trans-calendar-btn" title="Ημερολόγιο Cash Flow" onclick="openCashFlowCalendarModal()">
               <i class="fa-solid fa-calendar-days" style="font-size: 16px; color: var(--accent);"></i>
-            </button>
-            <button class="icon-btn" id="trans-select-btn" title="Επιλογή" onclick="enterSelectionMode()">
-              <i class="fa-solid fa-list-check" style="font-size: 15px;"></i>
             </button>
             <button class="icon-btn" id="trans-search-btn" title="Αναζήτηση" onclick="openSearchOverlay()">
               <i class="fa-solid fa-magnifying-glass" style="font-size: 18px;"></i>
