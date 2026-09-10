@@ -132,6 +132,11 @@
       if (incValEl) incValEl.textContent = getCurrSym() + ' ' + fmtDispAmt(monthlyIncome, displayCurrency);
       if (expValEl) expValEl.textContent = getCurrSym() + ' ' + fmtDispAmt(monthlyExpense, displayCurrency);
       if (totValEl) totValEl.textContent = getCurrSym() + ' ' + fmtDispAmt(monthlyIncome - monthlyExpense, displayCurrency);
+      if (typeof updateSafeToSpendUI === 'function') {
+        try { updateSafeToSpendUI(); } catch (_) {}
+      } else if (typeof window !== 'undefined' && typeof window.updateSafeToSpendUI === 'function') {
+        try { window.updateSafeToSpendUI(); } catch (_) {}
+      }
     }
 
     var lang = appState.lang || 'el';

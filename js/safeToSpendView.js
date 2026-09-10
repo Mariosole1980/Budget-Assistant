@@ -29,25 +29,55 @@ function getLiquidBalance() {
   if (!state.accounts || state.accounts.length === 0) return 0;
   const accBalance = state.accounts.reduce((sum, acc) => sum + (parseFloat(acc.balance) || 0), 0);
 
-  // If accounts have not yet been manually funded (balance <= 0), use Quick-Start baseline income
+  // Calculate available discretionary funds for the current calendar month
   try {
-    const qsRaw = localStorage.getItem('ba_quick_start_profile');
-    if (qsRaw) {
-      const qs = JSON.parse(qsRaw);
-      if (qs && qs.monthly_income > 0 && accBalance <= 0) {
-        const now = new Date();
-        const currentYear = now.getFullYear();
-        const currentMonth = now.getMonth();
-        const spentThisMonth = (state.transactions || []).reduce((sum, t) => {
-          if (!t || t.type !== 'expense') return sum;
-          const d = new Date(t.date);
-          if (d.getFullYear() === currentYear && d.getMonth() === currentMonth) {
-            return sum + (parseFloat(t.amount) || 0);
-          }
-          return sum;
-        }, 0);
-        return Math.max(0, qs.monthly_income - spentThisMonth);
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+
+    const monthlyIncome = (state.transactions || []).reduce((sum, t) => {
+      if (!t || t.type !== 'income') return sum;
+      const d = new Date(t.date);
+      if (d.getFullYear() === currentYear && d.getMonth() === currentMonth) {
+        return sum + (parseFloat(t.amount) || 0);
       }
+      return sum;
+    }, 0);
+
+    const totalBudget = (state.budgets || []).reduce((sum, b) => sum + (parseFloat(b.amount) || 0), 0);
+
+    let qs = null;
+    let baseline = 0;
+    if (monthlyIncome > 0) {
+      baseline = monthlyIncome;
+    } else if (totalBudget > 0) {
+      baseline = totalBudget;
+    } else {
+      const qsRaw = localStorage.getItem('ba_quick_start_profile');
+      if (qsRaw) {
+        qs = JSON.parse(qsRaw);
+        if (qs && qs.monthly_income > 0) {
+          baseline = parseFloat(qs.monthly_income) || 0;
+        }
+      }
+    }
+
+    if (baseline > 0) {
+      const spentThisMonth = (state.transactions || []).reduce((sum, t) => {
+        if (!t || t.type !== 'expense') return sum;
+        const d = new Date(t.date);
+        if (d.getFullYear() === currentYear && d.getMonth() === currentMonth) {
+          return sum + (parseFloat(t.amount) || 0);
+        }
+        return sum;
+      }, 0);
+
+      // Support baseline income fallback (qs.monthly_income - spentThisMonth)
+      const remainingFromBaseline = Math.max(0, (qs ? qs.monthly_income - spentThisMonth : baseline - spentThisMonth));
+      if (accBalance > 0) {
+        return Math.min(accBalance, remainingFromBaseline);
+      }
+      return remainingFromBaseline;
     }
   } catch (e) { }
 
@@ -146,6 +176,40 @@ function updateSafeToSpendUI() {
       badgeEl.style.color = '#34d399';
       badgeEl.style.borderColor = 'rgba(16, 185, 129, 0.35)';
       badgeEl.style.background = 'rgba(16, 185, 129, 0.15)';
+    }
+  }
+
+  // Transactions Tab Status Bar Elements (Option B)
+  const transDailyEl = document.getElementById('trans-sts-daily-val');
+  const transSubtitleEl = document.getElementById('trans-sts-subtitle');
+  const transStatusBadge = document.getElementById('ai-check-status-badge');
+  const lang = (state && state.lang) || 'el';
+  const translations = (typeof TRANSLATIONS !== 'undefined' ? TRANSLATIONS : (typeof window !== 'undefined' ? window.TRANSLATIONS : null)) || {};
+  const t = (translations && translations[lang]) || {};
+
+  if (transDailyEl) {
+    transDailyEl.textContent = `${currSym} ${formatDisplayAmount(stsResult.safeDaily)}`;
+  }
+  if (transSubtitleEl) {
+    const dayLabel = lang === 'el' ? 'ημ. απομένουν' : 'days left';
+    transSubtitleEl.textContent = `• ${stsResult.daysRemaining} ${dayLabel}`;
+  }
+  if (transStatusBadge) {
+    if (stsResult.status === 'caution') {
+      transStatusBadge.textContent = t['sts_status_caution'] || (lang === 'el' ? 'Προσοχή' : 'Caution');
+      transStatusBadge.style.color = '#f59e0b';
+      transStatusBadge.style.borderColor = 'rgba(245, 158, 11, 0.4)';
+      transStatusBadge.style.background = 'rgba(245, 158, 11, 0.15)';
+    } else if (stsResult.status === 'critical') {
+      transStatusBadge.textContent = t['sts_status_critical'] || (lang === 'el' ? 'Υπέρβαση' : 'Over Budget');
+      transStatusBadge.style.color = '#f43f5e';
+      transStatusBadge.style.borderColor = 'rgba(244, 63, 94, 0.4)';
+      transStatusBadge.style.background = 'rgba(244, 63, 94, 0.15)';
+    } else {
+      transStatusBadge.textContent = t['sts_status_healthy'] || (lang === 'el' ? 'Εντός στόχου' : 'On Track');
+      transStatusBadge.style.color = '#34d399';
+      transStatusBadge.style.borderColor = 'rgba(16, 185, 129, 0.35)';
+      transStatusBadge.style.background = 'rgba(16, 185, 129, 0.15)';
     }
   }
 
@@ -301,12 +365,12 @@ function runWhatIfSimulation() {
 }
 
 function openAiAdvisorFromBar() {
-  const promptEl = document.getElementById('ai-check-prompt-text');
-  let query = promptEl ? promptEl.textContent.trim().replace(/^«|»$/g, '').trim() : null;
-  if (typeof openAdvisorChat === 'function') {
-    openAdvisorChat(query);
-  } else if (typeof window !== 'undefined' && typeof window.openAdvisorChat === 'function') {
-    window.openAdvisorChat(query);
+  if (typeof openSafeToSpendModal === 'function') {
+    openSafeToSpendModal();
+  } else if (typeof window !== 'undefined' && typeof window.openSafeToSpendModal === 'function') {
+    window.openSafeToSpendModal();
+  } else if (typeof openAdvisorChat === 'function') {
+    openAdvisorChat();
   }
 }
 

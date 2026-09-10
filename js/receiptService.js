@@ -290,8 +290,6 @@
   function stabilizeLayoutBeforeNativePicker() {
     document.body.classList.remove('keyboard-active');
     document.documentElement.style.setProperty('--keyboard-height', '0px');
-    pushNoTransition();
-    setTimeout(() => popNoTransition(), 1000);
   }
   window.stabilizeLayoutBeforeNativePicker = stabilizeLayoutBeforeNativePicker;
 

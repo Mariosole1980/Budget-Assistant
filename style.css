@@ -12225,13 +12225,13 @@ body {
 
 
 /* ============================================================ */
-/* AI CHECK BAR (Transactions Screen)                          */
+/* SAFE-TO-SPEND STATUS BAR (Transactions Screen - Option B)    */
 /* ============================================================ */
 .ai-check-bar {
   margin: 6px 10px 10px 10px;
   padding: 10px 14px;
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(168, 85, 247, 0.08) 50%, rgba(15, 23, 42, 0.8) 100%);
-  border: 1px solid rgba(99, 102, 241, 0.3);
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(99, 102, 241, 0.08) 50%, rgba(15, 23, 42, 0.85) 100%);
+  border: 1px solid rgba(16, 185, 129, 0.28);
   border-radius: 16px;
   display: flex;
   align-items: center;
@@ -12243,7 +12243,7 @@ body {
 }
 .ai-check-bar:active {
   transform: scale(0.985);
-  border-color: rgba(99, 102, 241, 0.6);
+  border-color: rgba(16, 185, 129, 0.5);
 }
 .ai-check-content {
   display: flex;
@@ -12252,23 +12252,23 @@ body {
   min-width: 0;
 }
 .ai-check-badge {
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   border-radius: 10px;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  background: linear-gradient(135deg, #10b981, #059669);
   display: flex;
   align-items: center;
   justify-content: center;
   color: #fff;
-  font-size: 13px;
+  font-size: 13.5px;
   flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.35);
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35);
 }
 .ai-check-text {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
 }
 .ai-check-title {
   display: flex;
@@ -12276,9 +12276,21 @@ body {
   gap: 6px;
   font-size: 11px;
   font-weight: 800;
-  color: #a5b4fc;
+  color: #94a3b8;
   letter-spacing: 0.3px;
   text-transform: uppercase;
+}
+.ai-check-status-badge {
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 1.5px 7px;
+  border-radius: 8px;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  text-transform: none;
+  letter-spacing: 0;
+  line-height: 1.2;
 }
 .ai-pulse-dot {
   width: 6px;
@@ -12290,22 +12302,36 @@ body {
   animation: sts-pulse 2s infinite;
 }
 .ai-check-prompt {
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 700;
   color: #f1f5f9;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+}
+.trans-sts-daily-amount {
+  font-size: 14px;
+  font-weight: 800;
+  color: #34d399;
+  letter-spacing: -0.2px;
+}
+.trans-sts-subtitle-text {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: #94a3b8;
 }
 .ai-check-action {
   display: flex;
   align-items: center;
   gap: 5px;
-  padding: 5px 10px;
-  background: rgba(99, 102, 241, 0.18);
-  border: 1px solid rgba(99, 102, 241, 0.35);
+  padding: 5px 11px;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.35);
   border-radius: 10px;
-  color: #c7d2fe;
+  color: #6ee7b7;
   font-size: 11.5px;
   font-weight: 700;
   flex-shrink: 0;

@@ -104,7 +104,7 @@
               ${devButton}
             </div>
             <div style="font-size:11px;color:#8b949e;">
-              Budget Assistant • build v1705
+              Budget Assistant • build v1706
             </div>
           </div>
         `;
@@ -228,7 +228,7 @@
   <!-- Desktop Web UX Layer (loaded AFTER style.css so it can override).
        All rules are scoped behind html.web-mode, so Android/iOS native
        (Capacitor) layout is never affected. -->
-  <link rel="stylesheet" href="desktop.css?v=1705" id="desktop-stylesheet">
+  <link rel="stylesheet" href="desktop.css?v=1706" id="desktop-stylesheet">
 
   <!-- Capacitor Bridge
        NOTE: The native Capacitor runtime injects its bridge JS automatically into
@@ -282,7 +282,7 @@
           // OTA updates. Running both would cause a reload loop that never
           // baked into the APK and never changes on a plain reload).
           // ============================================================
-          const CURRENT_BUILD = 1705;
+          const CURRENT_BUILD = 1706;
           (function () {
             // Skip entirely when running inside the native APK (Capacitor bridge
             // present). Capgo handles OTA updates there.
@@ -617,11 +617,11 @@
   <script src="js/hapticFeedbackService.js"></script>
   <!-- Cash Flow Calendar Subsystem (loaded before app.js) -->
   <script src="js/cashFlowCalendarService.js"></script>
-      <script src="app.js?v=1705"></script>
+      <script src="app.js?v=1706"></script>
       <!-- Desktop Web UX Layer (defer so it runs after app.js; invoked via
        initDesktopUI() hook at the end of initApp()). Self-guards on
        html.web-mode so native Android/iOS is never affected. -->
-      <script src="web-ui.js?v=1705" defer></script>
+      <script src="web-ui.js?v=1706" defer></script>
 </head>
 
 <body style="background-color: #181b22; margin: 0; padding: 0; ">
@@ -905,22 +905,25 @@
             <span id="summary-total-val" class="summary-total">€ 0,00</span>
           </div>
         </div>
-        <!-- AI Quick Advisor / Copilot Bar -->
-        <div id="ai-check-bar" class="ai-check-bar" onclick="openAiAdvisorFromBar()" style="cursor: pointer;">
+        <!-- Safe-to-Spend Smart Status Bar (Option B) -->
+        <div id="ai-check-bar" class="ai-check-bar" onclick="openSafeToSpendModal()" style="cursor: pointer;" role="button" aria-label="Ημερήσιο Περιθώριο Δαπανών">
           <div class="ai-check-content">
             <div class="ai-check-badge">
-              <i class="fa-solid fa-wand-magic-sparkles"></i>
+              <i class="fa-solid fa-shield-halved"></i>
             </div>
             <div class="ai-check-text">
               <div class="ai-check-title">
-                <span data-i18n="ai_check_title">AI Οικονομικός Έλεγχος</span>
-                <span class="ai-pulse-dot"></span>
+                <span data-i18n="sts_bar_title">Ημερήσιο Περιθώριο</span>
+                <span class="ai-check-status-badge" id="ai-check-status-badge" data-i18n="sts_status_healthy">Εντός στόχου</span>
               </div>
-              <div class="ai-check-prompt" id="ai-check-prompt-text">«Μπορώ να πάρω laptop €600;»</div>
+              <div class="ai-check-prompt" id="ai-check-prompt-text">
+                <span id="trans-sts-daily-val" class="trans-sts-daily-amount">€ 0,00</span>
+                <span id="trans-sts-subtitle" class="trans-sts-subtitle-text">• υπολογισμός...</span>
+              </div>
             </div>
           </div>
           <div class="ai-check-action">
-            <span class="ai-check-btn-text" data-i18n="ai_check_btn">Έλεγχος</span>
+            <span class="ai-check-btn-text" data-i18n="sts_bar_action">Ανάλυση</span>
             <i class="fa-solid fa-chevron-right" style="font-size: 10px;"></i>
           </div>
         </div>
@@ -2107,7 +2110,7 @@
                 data-i18n="item_user_guide">Οδηγός Χρήσης</h3>
               <div
                 style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; font-family: 'Outfit', sans-serif;">
-                <span id="user-guide-version-badge" style="font-size:10px; background:rgba(99,102,241,0.15); color:var(--primary); padding:2px 8px; border-radius:10px; font-weight:700; border:1px solid rgba(99,102,241,0.3);">v1705</span>
+                <span id="user-guide-version-badge" style="font-size:10px; background:rgba(99,102,241,0.15); color:var(--primary); padding:2px 8px; border-radius:10px; font-weight:700; border:1px solid rgba(99,102,241,0.3);">v1706</span>
                 <span>•</span>
                 <span id="user-guide-date-badge" data-i18n="user_guide_date_badge">Αύγουστος 2026</span>
               </div>
@@ -3233,7 +3236,7 @@
             <div class="settings-list-item version-info-row"
               style="padding: 14px 16px; background: transparent; border-top: 1px solid var(--border); margin-top: 8px;">
               <span class="settings-item-label" style="color:var(--text-muted); font-size:12px;"
-                data-i18n="app_version">Έκδοση 1.0.0 (build v1705)</span>
+                data-i18n="app_version">Έκδοση 1.0.0 (build v1706)</span>
               <span class="settings-item-value" style="font-size:12px; color:var(--text-muted); font-weight:600;">Budget
                 Assistant</span>
             </div>

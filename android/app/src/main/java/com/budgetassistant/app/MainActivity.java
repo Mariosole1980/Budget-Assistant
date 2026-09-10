@@ -80,6 +80,7 @@ public class MainActivity extends BridgeActivity {
     private static final long RESUME_OVERLAY_HIDE_DELAY_MS_LONG = 2500;
     private long backgroundStartTime = 0;
     private boolean longBackgroundResume = false;
+    private volatile boolean isLaunchingChildActivity = false;
 
     // COLD-START LAUNCH WINDOW GUARD:
     // While true, applySavedTheme() must NOT replace the branded splash PNG
@@ -236,9 +237,40 @@ public class MainActivity extends BridgeActivity {
     }
 
     @Override
+    public void startActivityForResult(Intent intent, int requestCode, Bundle options) {
+        isLaunchingChildActivity = true;
+        super.startActivityForResult(intent, requestCode, options);
+    }
+
+    @Override
+    public void startActivity(Intent intent) {
+        isLaunchingChildActivity = true;
+        super.startActivity(intent);
+    }
+
+    @Override
+    public void startActivity(Intent intent, Bundle options) {
+        isLaunchingChildActivity = true;
+        super.startActivity(intent, options);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        isLaunchingChildActivity = false;
+        hideResumeOverlayFast();
+    }
+
+    @Override
     public void onResume() {
         super.onResume();
         Log.d(TAG, "onResume");
+        if (isLaunchingChildActivity) {
+            isLaunchingChildActivity = false;
+            hideResumeOverlayFast();
+            return;
+        }
+
         // Record when this resume started so onFirstPaint() can enforce the
         // minimum visible time for the overlay.
         resumeTimestamp = SystemClock.uptimeMillis();
@@ -272,18 +304,25 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onPause() {
         super.onPause();
-        Log.d(TAG, "onPause — capturing snapshot and showing overlay");
-        // Record when the app went to the background so onResume() can detect a
-        // long background (deep sleep / hours away) and hold the snapshot overlay
-        // longer, preventing the small one-time flash when the WebView surface
-        // needs extra time to recomposite.
+        Log.d(TAG, "onPause");
         backgroundStartTime = SystemClock.uptimeMillis();
-        // Capture a bitmap snapshot of the WebView BEFORE showing the overlay.
-        // This snapshot becomes the overlay's background, making the resume
-        // transition seamless because the overlay shows the exact last frame
-        // the user saw — regardless of what theme/colors the app uses.
+        // If an internal child activity (e.g. Camera, File Picker, Share) is launching,
+        // do NOT show any overlay. The WebView remains intact underneath and Android's
+        // native window transition handles the visual layering seamlessly.
+        if (isLaunchingChildActivity) {
+            Log.d(TAG, "onPause — child activity launching, skipping overlay");
+            return;
+        }
         captureWebViewSnapshot();
-        showResumeOverlay();
+    }
+
+    private void hideResumeOverlayFast() {
+        mainHandler.removeCallbacks(hideResumeOverlayRunnable);
+        if (resumeOverlay != null) {
+            resumeOverlay.animate().cancel();
+            resumeOverlay.setVisibility(View.GONE);
+            recycleSnapshot();
+        }
     }
 
     private final Runnable hideResumeOverlayRunnable = () -> {
@@ -339,6 +378,7 @@ public class MainActivity extends BridgeActivity {
                                 snapshotImageView.setLayoutParams(imgLp);
                                 snapshotImageView.setImageBitmap(lastSnapshot);
                                 snapshotImageView.setVisibility(View.VISIBLE);
+                                showResumeOverlay();
                                 Log.d(TAG, "Snapshot captured via PixelCopy (" + w + "x" + h + " at " + posX
                                         + "," + posY + ")");
                             } else {
@@ -390,6 +430,7 @@ public class MainActivity extends BridgeActivity {
                 snapshotImageView.setLayoutParams(imgLp);
                 snapshotImageView.setImageBitmap(lastSnapshot);
                 snapshotImageView.setVisibility(View.VISIBLE);
+                showResumeOverlay();
                 Log.d(TAG, "Snapshot captured via Canvas (" + w + "x" + h + " at " + posX + "," + posY + ")");
             }
         } catch (OutOfMemoryError | Exception e) {
@@ -422,16 +463,8 @@ public class MainActivity extends BridgeActivity {
                     ViewGroup.LayoutParams.MATCH_PARENT);
             resumeOverlay.setLayoutParams(lp);
 
-            // Set initial solid background matching the saved theme (prevents any splash glow leakage)
-            SharedPreferences earlyPrefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-            String earlyBg = earlyPrefs.getString(KEY_BG_COLOR, "#181b22");
-            int initialBgColor = Color.parseColor("#181b22");
-            try {
-                initialBgColor = Color.parseColor(earlyBg);
-            } catch (Exception e) {
-                // Fallback to default dark
-            }
-            resumeOverlay.setBackgroundColor(initialBgColor);
+            // Transparent background ensures zero black/flash box when attached
+            resumeOverlay.setBackgroundColor(Color.TRANSPARENT);
 
             // Dedicated snapshot image view positioned with exact WebView bounds (x, y, w, h)
             snapshotImageView = new ImageView(this);
@@ -495,7 +528,7 @@ public class MainActivity extends BridgeActivity {
                 .start();
     }
 
-    /** Reset the overlay background to the solid theme color. Never use R.drawable.splash. */
+    /** Reset the overlay background to transparent. Never use solid color or splash. */
     private void restoreOverlaySolidColor() {
         if (snapshotImageView != null) {
             snapshotImageView.setImageDrawable(null);
@@ -503,15 +536,7 @@ public class MainActivity extends BridgeActivity {
         }
         if (resumeOverlay == null)
             return;
-        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-        String bgColor = prefs.getString(KEY_BG_COLOR, "#181b22");
-        int bgVal = Color.parseColor("#181b22");
-        try {
-            bgVal = Color.parseColor(bgColor);
-        } catch (Exception e) {
-            // Fallback to default dark
-        }
-        resumeOverlay.setBackgroundColor(bgVal);
+        resumeOverlay.setBackgroundColor(Color.TRANSPARENT);
     }
 
     // =========================================================================
