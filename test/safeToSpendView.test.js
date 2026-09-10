@@ -145,6 +145,17 @@ test('SafeToSpendView: getMonthlySavingsGoal returns saved goal or default', () 
   assert.strictEqual(SafeToSpendView.getMonthlySavingsGoal(), 200);
 
   localStorage.removeItem('overview_savings_target');
+
+  // Test year savings rate fallback from transactions
+  const thisYear = new Date().getFullYear();
+  state.transactions = [
+    { type: 'income', amount: 3000, date: `${thisYear}-01-15` },
+    { type: 'expense', amount: 1000, date: `${thisYear}-01-20` }
+  ];
+  const elapsedMonths = Math.max(1, new Date().getMonth() + 1);
+  const expectedRate = Math.round(2000 / elapsedMonths);
+  assert.strictEqual(SafeToSpendView.getMonthlySavingsGoal(), expectedRate);
+  state.transactions = [];
 });
 
 test('SafeToSpendView: savings goal editor helper functions operate correctly', () => {

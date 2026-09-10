@@ -62,6 +62,25 @@ function getLiquidBalance() {
       }
     }
 
+    // If current month has no income yet, use average past monthly income of the year
+    if (baseline === 0 && state && state.transactions && state.transactions.length > 0) {
+      const monthlyTotals = {};
+      state.transactions.forEach(t => {
+        if (!t || t.type !== 'income' || !t.date) return;
+        if (typeof isTransferTransaction === 'function' && isTransferTransaction(t)) return;
+        const d = new Date(t.date);
+        if (d.getFullYear() === currentYear && d.getMonth() < currentMonth) {
+          const mKey = d.getMonth();
+          monthlyTotals[mKey] = (monthlyTotals[mKey] || 0) + (parseFloat(t.amount) || 0);
+        }
+      });
+      const monthsCount = Object.keys(monthlyTotals).length;
+      if (monthsCount > 0) {
+        const sumPast = Object.values(monthlyTotals).reduce((a, b) => a + b, 0);
+        baseline = sumPast / monthsCount;
+      }
+    }
+
     if (baseline > 0) {
       const spentThisMonth = (state.transactions || []).reduce((sum, t) => {
         if (!t || t.type !== 'expense') return sum;
@@ -154,6 +173,33 @@ function getMonthlySavingsGoal() {
       const annualVal = parseFloat(customTarget);
       if (!isNaN(annualVal) && annualVal > 0) {
         return sanitizeFloat(Math.round(annualVal / 12));
+      }
+    }
+  } catch (e) { }
+
+  // 5. Intelligent Fallback from Year Savings Rate (Current Year Net Savings / Elapsed Months)
+  try {
+    if (state && state.transactions && state.transactions.length > 0) {
+      const now = new Date();
+      const currYear = now.getFullYear();
+      const currMonth = now.getMonth();
+      const elapsedMonths = Math.max(1, currMonth + 1);
+
+      let yearIncome = 0;
+      let yearExpense = 0;
+      state.transactions.forEach(t => {
+        if (!t || !t.date) return;
+        if (typeof isTransferTransaction === 'function' && isTransferTransaction(t)) return;
+        const d = new Date(t.date);
+        if (d.getFullYear() === currYear) {
+          const amt = parseFloat(t.amount) || 0;
+          if (t.type === 'income') yearIncome += amt;
+          else if (t.type === 'expense') yearExpense += amt;
+        }
+      });
+      const yearNet = yearIncome - yearExpense;
+      if (yearNet > 0) {
+        return sanitizeFloat(Math.round(yearNet / elapsedMonths));
       }
     }
   } catch (e) { }
