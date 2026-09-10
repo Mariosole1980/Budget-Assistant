@@ -1356,306 +1356,295 @@
               style="color: var(--text-muted); font-size: 13px; margin-left: auto;"></i>
           </div>
 
-          <!-- Settings Hub: clickable nav rows -->
-          <div
-            style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; margin-bottom: 12px; overflow: hidden; display: flex; flex-direction: column; flex-shrink: 0;">
-
-            <!-- ⭐ Premium row (highlighted, at top of Settings Hub) -->
-            <div class="settings-list-item" id="hub-row-premium" onclick="openPremiumModal()"
-              style="cursor: pointer; padding: 14px 16px; background: linear-gradient(135deg, rgba(245,158,11,0.14) 0%, rgba(217,119,6,0.05) 100%); border-bottom: 1px solid rgba(245,158,11,0.25);">
-              <div style="display:flex; align-items:center; gap:12px; flex:1;">
-                <div
-                  style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#f59e0b,#d97706);color:#ffffff;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(245,158,11,0.35);">
-                  <i class="fa-solid fa-crown" style="font-size:16px;"></i>
+          <!-- Settings Groups Container -->
+          <div class="settings-groups-container">
+            <!-- ⭐ Premium Card (Standalone VIP Banner) -->
+            <div class="settings-group-card premium-banner-card">
+              <div class="settings-list-item" id="hub-row-premium" onclick="openPremiumModal()"
+                style="cursor: pointer; padding: 14px 16px;">
+                <div style="display:flex; align-items:center; gap:12px; flex:1;">
+                  <div
+                    style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#f59e0b,#d97706);color:#ffffff;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(245,158,11,0.35);">
+                    <i class="fa-solid fa-crown" style="font-size:16px;"></i>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;">
+                    <span class="settings-item-label" data-i18n="settings_premium_title"
+                      style="font-weight:800; font-family:'Outfit',sans-serif; font-size:15px; color:#fbbf24;">⭐ Premium
+                      Lifetime</span>
+                    <span id="hub-premium-subtitle" style="font-size:12px;color:var(--text-secondary);"
+                      data-i18n="settings_premium_desc">Ξεκλείδωσε όλα τα features — εφάπαξ</span>
+                  </div>
                 </div>
-                <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;">
-                  <span class="settings-item-label" data-i18n="settings_premium_title"
-                    style="font-weight:800; font-family:'Outfit',sans-serif; font-size:15px; color:#fbbf24;">⭐ Premium
-                    Lifetime</span>
-                  <span id="hub-premium-subtitle" style="font-size:12px;color:var(--text-secondary);"
-                    data-i18n="settings_premium_desc">Ξεκλείδωσε όλα τα features — εφάπαξ</span>
-                </div>
+                <span id="hub-premium-badge"
+                  style="font-size:11px;font-weight:800;padding:4px 10px;border-radius:12px;background:rgba(245,158,11,0.22);color:#fbbf24;border:1px solid rgba(245,158,11,0.35);flex-shrink:0;"
+                  data-i18n="btn_upgrade_pro">Αναβάθμισε</span>
+                <i class="fa-solid fa-chevron-right" style="color:var(--text-muted);font-size:12px;margin-left:4px;"></i>
               </div>
-              <span id="hub-premium-badge"
-                style="font-size:11px;font-weight:800;padding:4px 10px;border-radius:12px;background:rgba(245,158,11,0.22);color:#fbbf24;border:1px solid rgba(245,158,11,0.35);flex-shrink:0;"
-                data-i18n="btn_upgrade_pro">Αναβάθμισε</span>
-              <i class="fa-solid fa-chevron-right" style="color:var(--text-muted);font-size:12px;margin-left:4px;"></i>
             </div>
-            <div style="height:1px;background:var(--border);margin:0 16px;"></div>
 
-            <!-- Preferences row -->
-            <div class="settings-list-item" id="hub-row-preferences"
-              onclick="openSettingsSubscreen('preferences', 'settings_pref_title')"
-              style="cursor: pointer; padding: 14px 16px;">
-              <div style="display:flex; align-items:center; gap:12px; flex:1;">
-                <div
-                  style="width:36px;height:36px;border-radius:10px;background:rgba(33,150,243,0.15);display:flex;align-items:center;justify-content:center;">
-                  <i class="fa-solid fa-sliders" style="color:#2196f3;font-size:16px;"></i>
+            <!-- Group: Οικονομικά Εργαλεία -->
+            <div class="settings-group-heading" data-i18n="settings_group_financial">Οικονομικά Εργαλεία</div>
+            <div class="settings-group-card">
+              <!-- Accounts row -->
+              <div class="settings-list-item" id="hub-row-accounts" onclick="openSettingsAccountManager()">
+                <div style="display:flex; align-items:center; gap:12px; flex:1;">
+                  <div
+                    style="width:36px;height:36px;border-radius:10px;background:rgba(59,130,246,0.15);display:flex;align-items:center;justify-content:center;">
+                    <i class="fa-solid fa-wallet" style="color:#3b82f6;font-size:16px;"></i>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;">
+                    <span class="settings-item-label" data-i18n="settings_accounts_option"
+                      style="font-weight:700; font-family:'Outfit',sans-serif; font-size:15px; color:var(--text-primary);">Διαχείριση Πορτοφολιών</span>
+                    <span style="font-size:12px;color:var(--text-secondary);"
+                      data-i18n="settings_accounts_desc">Τράπεζες, Κάρτες, Μετρητά &amp; Επενδύσεις</span>
+                  </div>
                 </div>
-                <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;">
-                  <span class="settings-item-label" data-i18n="settings_pref_title"
-                    style="font-weight:700; font-family:'Outfit',sans-serif; font-size:15px; color:var(--text-primary);">Προτιμήσεις
-                    Εφαρμογής</span>
-                  <span style="font-size:12px;color:var(--text-secondary);" data-i18n="settings_pref_desc">Θέμα
-                    εμφανίσης, κύριο νόμισμα &amp; έξυπνος τίτλος</span>
+                <i class="fa-solid fa-chevron-right" style="color:var(--text-muted);font-size:12px;"></i>
+              </div>
+
+              <!-- Categories row -->
+              <div class="settings-list-item" id="hub-row-categories" onclick="openSettingsCategoryManager()">
+                <div style="display:flex; align-items:center; gap:12px; flex:1;">
+                  <div
+                    style="width:36px;height:36px;border-radius:10px;background:rgba(245,158,11,0.15);display:flex;align-items:center;justify-content:center;">
+                    <i class="fa-solid fa-tags" style="color:#f59e0b;font-size:16px;"></i>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;">
+                    <span class="settings-item-label" data-i18n="settings_categories_option"
+                      style="font-weight:700; font-family:'Outfit',sans-serif; font-size:15px; color:var(--text-primary);">Διαχείριση
+                      Κατηγοριών</span>
+                    <span style="font-size:12px;color:var(--text-secondary);"
+                      data-i18n="settings_categories_desc">Κατηγορίες &amp; υποκατηγορίες</span>
+                  </div>
+                </div>
+                <i class="fa-solid fa-chevron-right" style="color:var(--text-muted);font-size:12px;"></i>
+              </div>
+
+              <!-- Recurring row -->
+              <div class="settings-list-item" id="hub-row-recurring" onclick="openSubscriptionsHubModal()">
+                <div style="display:flex; align-items:center; gap:12px; flex:1;">
+                  <div
+                    style="width:36px;height:36px;border-radius:10px;background:rgba(var(--accent-rgb), 0.15);display:flex;align-items:center;justify-content:center;">
+                    <i class="fa-solid fa-arrows-spin" style="color:var(--accent);font-size:16px;"></i>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;">
+                    <span class="settings-item-label" data-i18n="settings_recurring_option"
+                      style="font-weight:700; font-family:'Outfit',sans-serif; font-size:15px; color:var(--text-primary);">Επαναλαμβανόμενες
+                      Συναλλαγές</span>
+                    <span style="font-size:12px;color:var(--text-secondary);"
+                      data-i18n="settings_recurring_desc">Προγραμματισμένα έξοδα, έσοδα &amp; πάγιες εντολές</span>
+                  </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <span class="badge" id="recurring-templates-count-val"
+                    style="background:var(--accent); color:#ffffff; font-size:11px; padding:2px 8px; border-radius:10px; font-weight:800;">0</span>
+                  <i class="fa-solid fa-chevron-right" style="color:var(--text-muted);font-size:12px;"></i>
                 </div>
               </div>
-              <i class="fa-solid fa-chevron-right" style="color:var(--text-muted);font-size:12px;"></i>
-            </div>
-            <div style="height:1px;background:var(--border);margin:0 16px;"></div>
 
-            <!-- Notifications row -->
-            <div class="settings-list-item" id="hub-row-notifications"
-              onclick="openSettingsSubscreen('notifications', 'settings_notif_title')"
-              style="cursor: pointer; padding: 14px 16px;">
-              <div style="display:flex; align-items:center; gap:12px; flex:1;">
-                <div
-                  style="width:36px;height:36px;border-radius:10px;background:rgba(239,68,68,0.15);display:flex;align-items:center;justify-content:center;">
-                  <i class="fa-solid fa-bell" style="color:#ef4444;font-size:16px;"></i>
+              <!-- Notes / Σημειωματάριο row -->
+              <div class="settings-list-item" id="hub-row-notes" onclick="openNotesManager()">
+                <div style="display:flex; align-items:center; gap:12px; flex:1;">
+                  <div
+                    style="width:36px;height:36px;border-radius:10px;background:rgba(245,158,11,0.15);display:flex;align-items:center;justify-content:center;">
+                    <i class="fa-solid fa-note-sticky" style="color:#f59e0b;font-size:16px;"></i>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;">
+                    <span class="settings-item-label" data-i18n="notes_manager_title"
+                      style="font-weight:700; font-family:'Outfit',sans-serif; font-size:15px; color:var(--text-primary);">Σημειωματάριο
+                      &amp; Checklists</span>
+                    <span style="font-size:12px;color:var(--text-secondary);"
+                      data-i18n="notes_manager_subtitle">Προσωπικές σημειώσεις, λίστες &amp; υπενθυμίσεις</span>
+                  </div>
                 </div>
-                <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;">
-                  <span class="settings-item-label" data-i18n="settings_notif_title"
-                    style="font-weight:700; font-family:'Outfit',sans-serif; font-size:15px; color:var(--text-primary);">Ειδοποιήσεις
-                    &amp; Υπενθυμίσεις</span>
-                  <span style="font-size:12px;color:var(--text-secondary);" data-i18n="settings_notif_desc">Ημερήσια
-                    υπενθύμιση καταγραφής &amp; ειδοποιήσεις πληρωμών</span>
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <span class="badge" id="hub-notes-count-badge"
+                    style="background:#f59e0b; color:#ffffff; font-size:11px; padding:2px 8px; border-radius:10px; font-weight:800; display:none;">0</span>
+                  <i class="fa-solid fa-chevron-right" style="color:var(--text-muted);font-size:12px;"></i>
                 </div>
               </div>
-              <i class="fa-solid fa-chevron-right" style="color:var(--text-muted);font-size:12px;"></i>
-            </div>
-            <div style="height:1px;background:var(--border);margin:0 16px;"></div>
 
-            <!-- Notes / Σημειωματάριο row -->
-            <div class="settings-list-item" id="hub-row-notes" onclick="openNotesManager()"
-              style="cursor: pointer; padding: 14px 16px;">
-              <div style="display:flex; align-items:center; gap:12px; flex:1;">
-                <div
-                  style="width:36px;height:36px;border-radius:10px;background:rgba(245,158,11,0.15);display:flex;align-items:center;justify-content:center;">
-                  <i class="fa-solid fa-note-sticky" style="color:#f59e0b;font-size:16px;"></i>
+              <!-- Cash Flow Calendar row -->
+              <div class="settings-list-item" id="hub-row-cash-flow" onclick="openCashFlowCalendarModal()">
+                <div style="display:flex; align-items:center; gap:12px; flex:1;">
+                  <div
+                    style="width:36px;height:36px;border-radius:10px;background:rgba(99,102,241,0.15);display:flex;align-items:center;justify-content:center;">
+                    <i class="fa-solid fa-calendar-days" style="color:#6366f1;font-size:16px;"></i>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;">
+                    <span class="settings-item-label"
+                      style="font-weight:700; font-family:'Outfit',sans-serif; font-size:15px; color:var(--text-primary);">Ημερολόγιο Cash Flow</span>
+                    <span style="font-size:12px;color:var(--text-secondary);">Πρόβλεψη υπολοίπου, λογαριασμοί &amp; ημερήσια ροή</span>
+                  </div>
                 </div>
-                <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;">
-                  <span class="settings-item-label" data-i18n="notes_manager_title"
-                    style="font-weight:700; font-family:'Outfit',sans-serif; font-size:15px; color:var(--text-primary);">Σημειωματάριο
-                    &amp; Checklists</span>
-                  <span style="font-size:12px;color:var(--text-secondary);"
-                    data-i18n="notes_manager_subtitle">Προσωπικές σημειώσεις, λίστες &amp; υπενθυμίσεις</span>
-                </div>
-              </div>
-              <div style="display:flex; align-items:center; gap:8px;">
-                <span class="badge" id="hub-notes-count-badge"
-                  style="background:#f59e0b; color:#ffffff; font-size:11px; padding:2px 8px; border-radius:10px; font-weight:800; display:none;">0</span>
                 <i class="fa-solid fa-chevron-right" style="color:var(--text-muted);font-size:12px;"></i>
               </div>
             </div>
-            <div style="height:1px;background:var(--border);margin:0 16px;"></div>
 
-            <!-- Recurring row -->
-            <div class="settings-list-item" id="hub-row-recurring" onclick="openSubscriptionsHubModal()"
-              style="cursor: pointer; padding: 14px 16px;">
-              <div style="display:flex; align-items:center; gap:12px; flex:1;">
-                <div
-                  style="width:36px;height:36px;border-radius:10px;background:rgba(var(--accent-rgb), 0.15);display:flex;align-items:center;justify-content:center;">
-                  <i class="fa-solid fa-arrows-spin" style="color:var(--accent);font-size:16px;"></i>
+            <!-- Group: Προτιμήσεις & Οικογένεια -->
+            <div class="settings-group-heading" data-i18n="settings_group_preferences">Προτιμήσεις & Οικογένεια</div>
+            <div class="settings-group-card">
+              <!-- Preferences row -->
+              <div class="settings-list-item" id="hub-row-preferences"
+                onclick="openSettingsSubscreen('preferences', 'settings_pref_title')">
+                <div style="display:flex; align-items:center; gap:12px; flex:1;">
+                  <div
+                    style="width:36px;height:36px;border-radius:10px;background:rgba(33,150,243,0.15);display:flex;align-items:center;justify-content:center;">
+                    <i class="fa-solid fa-sliders" style="color:#2196f3;font-size:16px;"></i>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;">
+                    <span class="settings-item-label" data-i18n="settings_pref_title"
+                      style="font-weight:700; font-family:'Outfit',sans-serif; font-size:15px; color:var(--text-primary);">Προτιμήσεις
+                      Εφαρμογής</span>
+                    <span style="font-size:12px;color:var(--text-secondary);" data-i18n="settings_pref_desc">Θέμα
+                      εμφανίσης, κύριο νόμισμα &amp; έξυπνος τίτλος</span>
+                  </div>
                 </div>
-                <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;">
-                  <span class="settings-item-label" data-i18n="settings_recurring_option"
-                    style="font-weight:700; font-family:'Outfit',sans-serif; font-size:15px; color:var(--text-primary);">Επαναλαμβανόμενες
-                    Συναλλαγές</span>
-                  <span style="font-size:12px;color:var(--text-secondary);"
-                    data-i18n="settings_recurring_desc">Προγραμματισμένα έξοδα, έσοδα &amp; πάγιες εντολές</span>
-                </div>
+                <i class="fa-solid fa-chevron-right" style="color:var(--text-muted);font-size:12px;"></i>
               </div>
-              <div style="display:flex; align-items:center; gap:8px;">
-                <span class="badge" id="recurring-templates-count-val"
-                  style="background:var(--accent); color:#ffffff; font-size:11px; padding:2px 8px; border-radius:10px; font-weight:800;">0</span>
+
+              <!-- Notifications row -->
+              <div class="settings-list-item" id="hub-row-notifications"
+                onclick="openSettingsSubscreen('notifications', 'settings_notif_title')">
+                <div style="display:flex; align-items:center; gap:12px; flex:1;">
+                  <div
+                    style="width:36px;height:36px;border-radius:10px;background:rgba(239,68,68,0.15);display:flex;align-items:center;justify-content:center;">
+                    <i class="fa-solid fa-bell" style="color:#ef4444;font-size:16px;"></i>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;">
+                    <span class="settings-item-label" data-i18n="settings_notif_title"
+                      style="font-weight:700; font-family:'Outfit',sans-serif; font-size:15px; color:var(--text-primary);">Ειδοποιήσεις
+                      &amp; Υπενθυμίσεις</span>
+                    <span style="font-size:12px;color:var(--text-secondary);" data-i18n="settings_notif_desc">Ημερήσια
+                      υπενθύμιση καταγραφής &amp; ειδοποιήσεις πληρωμών</span>
+                  </div>
+                </div>
+                <i class="fa-solid fa-chevron-right" style="color:var(--text-muted);font-size:12px;"></i>
+              </div>
+
+              <!-- Family row -->
+              <div class="settings-list-item" id="hub-row-family"
+                onclick="openSettingsSubscreen('family', 'settings_family_title')">
+                <div style="display:flex; align-items:center; gap:12px; flex:1;">
+                  <div
+                    style="width:36px;height:36px;border-radius:10px;background:rgba(99,102,241,0.15);display:flex;align-items:center;justify-content:center;">
+                    <i class="fa-solid fa-users" style="color:#6366f1;font-size:16px;"></i>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;">
+                    <span class="settings-item-label" data-i18n="settings_family_title"
+                      style="font-weight:700; font-family:'Outfit',sans-serif; font-size:15px; color:var(--text-primary);">Διαχείριση
+                      Οικογένειας</span>
+                    <span style="font-size:12px;color:var(--text-secondary);" data-i18n="settings_family_desc">Σύνδεση
+                      μελών &amp; κοινό πορτοφόλι</span>
+                  </div>
+                </div>
                 <i class="fa-solid fa-chevron-right" style="color:var(--text-muted);font-size:12px;"></i>
               </div>
             </div>
-            <div style="height:1px;background:var(--border);margin:0 16px;"></div>
 
-            <!-- Cash Flow Calendar row -->
-            <div class="settings-list-item" id="hub-row-cash-flow" onclick="openCashFlowCalendarModal()"
-              style="cursor: pointer; padding: 14px 16px;">
-              <div style="display:flex; align-items:center; gap:12px; flex:1;">
-                <div
-                  style="width:36px;height:36px;border-radius:10px;background:rgba(99,102,241,0.15);display:flex;align-items:center;justify-content:center;">
-                  <i class="fa-solid fa-calendar-days" style="color:#6366f1;font-size:16px;"></i>
+            <!-- Group: Ασφάλεια & Δεδομένα -->
+            <div class="settings-group-heading" data-i18n="settings_group_security_data">Ασφάλεια & Δεδομένα</div>
+            <div class="settings-group-card">
+              <!-- Security row -->
+              <div class="settings-list-item" id="hub-row-security"
+                onclick="openSettingsSubscreen('security', 'settings_security_title')">
+                <div style="display:flex; align-items:center; gap:12px; flex:1;">
+                  <div
+                    style="width:36px;height:36px;border-radius:10px;background:rgba(239,68,68,0.15);display:flex;align-items:center;justify-content:center;">
+                    <i class="fa-solid fa-shield-halved" style="color:#ef4444;font-size:16px;"></i>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;">
+                    <span class="settings-item-label" data-i18n="settings_security_title"
+                      style="font-weight:700; font-family:'Outfit',sans-serif; font-size:15px; color:var(--text-primary);">Ασφάλεια
+                      &amp; Ιδιωτικότητα</span>
+                    <span style="font-size:12px;color:var(--text-secondary);" data-i18n="settings_security_desc">Κλείδωμα
+                      με PIN, Βιομετρικά &amp; αυτόματο κλείδωμα</span>
+                  </div>
                 </div>
-                <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;">
-                  <span class="settings-item-label"
-                    style="font-weight:700; font-family:'Outfit',sans-serif; font-size:15px; color:var(--text-primary);">Ημερολόγιο Cash Flow</span>
-                  <span style="font-size:12px;color:var(--text-secondary);">Πρόβλεψη υπολοίπου, λογαριασμοί &amp; ημερήσια ροή</span>
-                </div>
-              </div>
-              <i class="fa-solid fa-chevron-right" style="color:var(--text-muted);font-size:12px;"></i>
-            </div>
-            <div style="height:1px;background:var(--border);margin:0 16px;"></div>
-
-            <!-- Accounts row -->
-            <div class="settings-list-item" id="hub-row-accounts" onclick="openSettingsAccountManager()"
-              style="cursor: pointer; padding: 14px 16px;">
-              <div style="display:flex; align-items:center; gap:12px; flex:1;">
-                <div
-                  style="width:36px;height:36px;border-radius:10px;background:rgba(59,130,246,0.15);display:flex;align-items:center;justify-content:center;">
-                  <i class="fa-solid fa-wallet" style="color:#3b82f6;font-size:16px;"></i>
-                </div>
-                <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;">
-                  <span class="settings-item-label" data-i18n="settings_accounts_option"
-                    style="font-weight:700; font-family:'Outfit',sans-serif; font-size:15px; color:var(--text-primary);">Διαχείριση Πορτοφολιών</span>
-                  <span style="font-size:12px;color:var(--text-secondary);"
-                    data-i18n="settings_accounts_desc">Τράπεζες, Κάρτες, Μετρητά &amp; Επενδύσεις</span>
-                </div>
-              </div>
-              <i class="fa-solid fa-chevron-right" style="color:var(--text-muted);font-size:12px;"></i>
-            </div>
-            <div style="height:1px;background:var(--border);margin:0 16px;"></div>
-
-            <!-- Categories row -->
-            <div class="settings-list-item" id="hub-row-categories" onclick="openSettingsCategoryManager()"
-              style="cursor: pointer; padding: 14px 16px;">
-              <div style="display:flex; align-items:center; gap:12px; flex:1;">
-                <div
-                  style="width:36px;height:36px;border-radius:10px;background:rgba(245,158,11,0.15);display:flex;align-items:center;justify-content:center;">
-                  <i class="fa-solid fa-tags" style="color:#f59e0b;font-size:16px;"></i>
-                </div>
-                <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;">
-                  <span class="settings-item-label" data-i18n="settings_categories_option"
-                    style="font-weight:700; font-family:'Outfit',sans-serif; font-size:15px; color:var(--text-primary);">Διαχείριση
-                    Κατηγοριών</span>
-                  <span style="font-size:12px;color:var(--text-secondary);"
-                    data-i18n="settings_categories_desc">Κατηγορίες &amp; υποκατηγορίες</span>
-                </div>
-              </div>
-              <i class="fa-solid fa-chevron-right" style="color:var(--text-muted);font-size:12px;"></i>
-            </div>
-            <div style="height:1px;background:var(--border);margin:0 16px;"></div>
-
-            <!-- Sync row -->
-            <div class="settings-list-item" id="hub-row-sync"
-              onclick="openSettingsSubscreen('sync', 'settings_data_title')"
-              style="cursor: pointer; padding: 14px 16px;">
-              <div style="display:flex; align-items:center; gap:12px; flex:1;">
-                <div
-                  style="width:36px;height:36px;border-radius:10px;background:rgba(16,185,129,0.15);display:flex;align-items:center;justify-content:center;">
-                  <i class="fa-solid fa-cloud-arrow-up" style="color:#10b981;font-size:16px;"></i>
-                </div>
-                <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;">
-                  <span class="settings-item-label" data-i18n="settings_data_title"
-                    style="font-weight:700; font-family:'Outfit',sans-serif; font-size:15px; color:var(--text-primary);">Δεδομένα
-                    &amp; Συγχρονισμός</span>
-                  <span style="font-size:12px;color:var(--text-secondary);" data-i18n="settings_data_desc">Συγχρονισμός
-                    Cloud, Εισαγωγή &amp; Εξαγωγή δεδομένων</span>
-                </div>
-              </div>
-              <i class="fa-solid fa-chevron-right" style="color:var(--text-muted);font-size:12px;"></i>
-            </div>
-            <div style="height:1px;background:var(--border);margin:0 16px;"></div>
-
-            <!-- Security row -->
-            <div class="settings-list-item" id="hub-row-security"
-              onclick="openSettingsSubscreen('security', 'settings_security_title')"
-              style="cursor: pointer; padding: 14px 16px;">
-              <div style="display:flex; align-items:center; gap:12px; flex:1;">
-                <div
-                  style="width:36px;height:36px;border-radius:10px;background:rgba(239,68,68,0.15);display:flex;align-items:center;justify-content:center;">
-                  <i class="fa-solid fa-shield-halved" style="color:#ef4444;font-size:16px;"></i>
-                </div>
-                <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;">
-                  <span class="settings-item-label" data-i18n="settings_security_title"
-                    style="font-weight:700; font-family:'Outfit',sans-serif; font-size:15px; color:var(--text-primary);">Ασφάλεια
-                    &amp; Ιδιωτικότητα</span>
-                  <span style="font-size:12px;color:var(--text-secondary);" data-i18n="settings_security_desc">Κλείδωμα
-                    με PIN, Βιομετρικά &amp; αυτόματο κλείδωμα</span>
-                </div>
-              </div>
-              <i class="fa-solid fa-chevron-right" style="color:var(--text-muted);font-size:12px;"></i>
-            </div>
-            <div style="height:1px;background:var(--border);margin:0 16px;"></div>
-
-            <!-- Trash Bin row -->
-            <div class="settings-list-item" id="hub-row-trash" onclick="openTrashBinModal()"
-              style="cursor: pointer; padding: 14px 16px;">
-              <div style="display:flex; align-items:center; gap:12px; flex:1;">
-                <div
-                  style="width:36px;height:36px;border-radius:10px;background:var(--overlay-120);display:flex;align-items:center;justify-content:center;">
-                  <i class="fa-solid fa-trash-can" style="color:#f1f5f9;font-size:16px;"></i>
-                </div>
-                <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;">
-                  <span class="settings-item-label"
-                    style="font-weight:700; font-family:'Outfit',sans-serif; font-size:15px; color:var(--text-primary);"
-                    data-i18n="item_trash_bin">Κάδος Ανακύκλωσης</span>
-                  <span style="font-size:12px;color:var(--text-secondary);" data-i18n="settings_trash_desc">Επαναφορά ή
-                    οριστική διαγραφή συναλλαγών</span>
-                </div>
-              </div>
-              <div style="display:flex; align-items:center; gap:8px;">
-                <span class="badge" id="hub-trash-count"
-                  style="background:var(--overlay-180); color:#f8fafc; font-size:11px; padding:2px 8px; border-radius:10px; font-weight:800; border:1px solid var(--overlay-200);">0</span>
                 <i class="fa-solid fa-chevron-right" style="color:var(--text-muted);font-size:12px;"></i>
               </div>
-            </div>
-            <div style="height:1px;background:var(--border);margin:0 16px;"></div>
 
-            <!-- Rate on Play Store row -->
-            <div class="settings-list-item" id="hub-row-rate"
-              onclick="if(typeof openPlayStoreRating === 'function') openPlayStoreRating(); else window.open('https://play.google.com/store/apps/details?id=com.budgetassistant.app', '_blank');"
-              style="cursor: pointer; padding: 14px 16px;">
-              <div style="display:flex; align-items:center; gap:12px; flex:1;">
-                <div
-                  style="width:36px;height:36px;border-radius:10px;background:rgba(251,191,36,0.15);display:flex;align-items:center;justify-content:center;">
-                  <i class="fa-solid fa-star" style="color:#fbbf24;font-size:16px;"></i>
+              <!-- Sync row -->
+              <div class="settings-list-item" id="hub-row-sync"
+                onclick="openSettingsSubscreen('sync', 'settings_data_title')">
+                <div style="display:flex; align-items:center; gap:12px; flex:1;">
+                  <div
+                    style="width:36px;height:36px;border-radius:10px;background:rgba(16,185,129,0.15);display:flex;align-items:center;justify-content:center;">
+                    <i class="fa-solid fa-cloud-arrow-up" style="color:#10b981;font-size:16px;"></i>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;">
+                    <span class="settings-item-label" data-i18n="settings_data_title"
+                      style="font-weight:700; font-family:'Outfit',sans-serif; font-size:15px; color:var(--text-primary);">Δεδομένα
+                      &amp; Συγχρονισμός</span>
+                    <span style="font-size:12px;color:var(--text-secondary);" data-i18n="settings_data_desc">Συγχρονισμός
+                      Cloud, Εισαγωγή &amp; Εξαγωγή δεδομένων</span>
+                  </div>
                 </div>
-                <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;">
-                  <span class="settings-item-label" data-i18n="settings_rate_title"
-                    style="font-weight:700; font-family:'Outfit',sans-serif; font-size:15px; color:var(--text-primary);">Αξιολόγηση στο Play Store</span>
-                  <span style="font-size:12px;color:var(--text-secondary);" data-i18n="settings_rate_desc">Βαθμολογήστε μας και βοηθήστε την ανάπτυξη</span>
+                <i class="fa-solid fa-chevron-right" style="color:var(--text-muted);font-size:12px;"></i>
+              </div>
+
+              <!-- Trash Bin row -->
+              <div class="settings-list-item" id="hub-row-trash" onclick="openTrashBinModal()">
+                <div style="display:flex; align-items:center; gap:12px; flex:1;">
+                  <div
+                    style="width:36px;height:36px;border-radius:10px;background:var(--overlay-120);display:flex;align-items:center;justify-content:center;">
+                    <i class="fa-solid fa-trash-can" style="color:#f1f5f9;font-size:16px;"></i>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;">
+                    <span class="settings-item-label"
+                      style="font-weight:700; font-family:'Outfit',sans-serif; font-size:15px; color:var(--text-primary);"
+                      data-i18n="item_trash_bin">Κάδος Ανακύκλωσης</span>
+                    <span style="font-size:12px;color:var(--text-secondary);" data-i18n="settings_trash_desc">Επαναφορά ή
+                      οριστική διαγραφή συναλλαγών</span>
+                  </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <span class="badge" id="hub-trash-count"
+                    style="background:var(--overlay-180); color:#f8fafc; font-size:11px; padding:2px 8px; border-radius:10px; font-weight:800; border:1px solid var(--overlay-200);">0</span>
+                  <i class="fa-solid fa-chevron-right" style="color:var(--text-muted);font-size:12px;"></i>
                 </div>
               </div>
-              <i class="fa-solid fa-arrow-up-right-from-square" style="color:var(--text-muted);font-size:12px;"></i>
             </div>
-            <div style="height:1px;background:var(--border);margin:0 16px;"></div>
 
-            <!-- Family row -->
-            <div class="settings-list-item" id="hub-row-family"
-              onclick="openSettingsSubscreen('family', 'settings_family_title')"
-              style="cursor: pointer; padding: 14px 16px;">
-              <div style="display:flex; align-items:center; gap:12px; flex:1;">
-                <div
-                  style="width:36px;height:36px;border-radius:10px;background:rgba(99,102,241,0.15);display:flex;align-items:center;justify-content:center;">
-                  <i class="fa-solid fa-users" style="color:#6366f1;font-size:16px;"></i>
+            <!-- Group: Λογαριασμός & Υποστήριξη -->
+            <div class="settings-group-heading" data-i18n="settings_group_support">Λογαριασμός & Υποστήριξη</div>
+            <div class="settings-group-card">
+              <!-- Legal / Account row -->
+              <div class="settings-list-item" id="hub-row-legal"
+                onclick="openSettingsSubscreen('legal', 'settings_account_legal_title')">
+                <div style="display:flex; align-items:center; gap:12px; flex:1;">
+                  <div
+                    style="width:36px;height:36px;border-radius:10px;background:rgba(148,163,184,0.15);display:flex;align-items:center;justify-content:center;">
+                    <i class="fa-solid fa-circle-info" style="color:#94a3b8;font-size:16px;"></i>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;">
+                    <span class="settings-item-label" data-i18n="settings_account_legal_title"
+                      style="font-weight:700; font-family:'Outfit',sans-serif; font-size:15px; color:var(--text-primary);">Λογαριασμός
+                      &amp; Νομικά</span>
+                    <span style="font-size:12px;color:var(--text-secondary);" data-i18n="settings_legal_desc">Πληροφορίες
+                      έκδοσης, έλεγχος ενημερώσεων &amp; αποσύνδεση</span>
+                  </div>
                 </div>
-                <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;">
-                  <span class="settings-item-label" data-i18n="settings_family_title"
-                    style="font-weight:700; font-family:'Outfit',sans-serif; font-size:15px; color:var(--text-primary);">Διαχείριση
-                    Οικογένειας</span>
-                  <span style="font-size:12px;color:var(--text-secondary);" data-i18n="settings_family_desc">Σύνδεση
-                    μελών &amp; κοινό πορτοφόλι</span>
-                </div>
+                <i class="fa-solid fa-chevron-right" style="color:var(--text-muted);font-size:12px;"></i>
               </div>
-              <i class="fa-solid fa-chevron-right" style="color:var(--text-muted);font-size:12px;"></i>
-            </div>
-            <div style="height:1px;background:var(--border);margin:0 16px;"></div>
 
-            <!-- Legal / Account row -->
-            <div class="settings-list-item" id="hub-row-legal"
-              onclick="openSettingsSubscreen('legal', 'settings_account_legal_title')"
-              style="cursor: pointer; padding: 14px 16px;">
-              <div style="display:flex; align-items:center; gap:12px; flex:1;">
-                <div
-                  style="width:36px;height:36px;border-radius:10px;background:rgba(148,163,184,0.15);display:flex;align-items:center;justify-content:center;">
-                  <i class="fa-solid fa-circle-info" style="color:#94a3b8;font-size:16px;"></i>
+              <!-- Rate on Play Store row -->
+              <div class="settings-list-item" id="hub-row-rate"
+                onclick="if(typeof openPlayStoreRating === 'function') openPlayStoreRating(); else window.open('https://play.google.com/store/apps/details?id=com.budgetassistant.app', '_blank');">
+                <div style="display:flex; align-items:center; gap:12px; flex:1;">
+                  <div
+                    style="width:36px;height:36px;border-radius:10px;background:rgba(251,191,36,0.15);display:flex;align-items:center;justify-content:center;">
+                    <i class="fa-solid fa-star" style="color:#fbbf24;font-size:16px;"></i>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;">
+                    <span class="settings-item-label" data-i18n="settings_rate_title"
+                      style="font-weight:700; font-family:'Outfit',sans-serif; font-size:15px; color:var(--text-primary);">Αξιολόγηση στο Play Store</span>
+                    <span style="font-size:12px;color:var(--text-secondary);" data-i18n="settings_rate_desc">Βαθμολογήστε μας και βοηθήστε την ανάπτυξη</span>
+                  </div>
                 </div>
-                <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;">
-                  <span class="settings-item-label" data-i18n="settings_account_legal_title"
-                    style="font-weight:700; font-family:'Outfit',sans-serif; font-size:15px; color:var(--text-primary);">Λογαριασμός
-                    &amp; Νομικά</span>
-                  <span style="font-size:12px;color:var(--text-secondary);" data-i18n="settings_legal_desc">Πληροφορίες
-                    έκδοσης, έλεγχος ενημερώσεων &amp; αποσύνδεση</span>
-                </div>
+                <i class="fa-solid fa-arrow-up-right-from-square" style="color:var(--text-muted);font-size:12px;"></i>
               </div>
-              <i class="fa-solid fa-chevron-right" style="color:var(--text-muted);font-size:12px;"></i>
             </div>
-
           </div>
 
           <!-- Hidden legacy elements for JS bindings compatibility -->
