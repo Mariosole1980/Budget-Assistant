@@ -3508,7 +3508,7 @@
               <div style="display: flex; gap: 8px; margin-bottom: 10px;">
                 <div style="position: relative; flex: 1;">
                   <span id="sts-savings-curr-symbol" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #93c5fd; font-weight: 700; font-size: 13px;">€</span>
-                  <input type="number" id="sts-savings-input" min="0" step="10" placeholder="0" onkeydown="if(event.key==='Enter'){event.preventDefault();saveStsSavingsGoal();}" style="width: 100%; box-sizing: border-box; padding: 8px 10px 8px 26px; border-radius: 10px; background: rgba(0, 0, 0, 0.45); border: 1px solid rgba(96, 165, 250, 0.4); color: #fff; font-size: 14px; font-weight: 700; outline: none;">
+                  <input type="number" id="sts-savings-input" min="0" step="10" placeholder="0" oninput="updateStsSavingsAnnualHint(this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();saveStsSavingsGoal();}" style="width: 100%; box-sizing: border-box; padding: 8px 10px 8px 26px; border-radius: 10px; background: rgba(0, 0, 0, 0.45); border: 1px solid rgba(96, 165, 250, 0.4); color: #fff; font-size: 14px; font-weight: 700; outline: none;">
                 </div>
                 <button type="button" onclick="saveStsSavingsGoal()" style="padding: 8px 14px; border-radius: 10px; background: #3b82f6; color: white; border: none; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 5px; transition: transform 0.15s;">
                   <i class="fa-solid fa-check"></i>
@@ -3524,6 +3524,10 @@
                 <button type="button" onclick="setStsSavingsInputValue(200)" style="padding: 2px 8px; border-radius: 6px; font-size: 10.5px; font-weight: 600; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); color: #cbd5e1; cursor: pointer;">200€</button>
                 <button type="button" onclick="setStsSavingsInputValue(300)" style="padding: 2px 8px; border-radius: 6px; font-size: 10.5px; font-weight: 600; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); color: #cbd5e1; cursor: pointer;">300€</button>
                 <button type="button" onclick="setStsSavingsInputValue(500)" style="padding: 2px 8px; border-radius: 6px; font-size: 10.5px; font-weight: 600; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); color: #cbd5e1; cursor: pointer;">500€</button>
+              </div>
+              <div id="sts-savings-annual-hint" style="font-size: 11px; color: #93c5fd; margin-top: 8px; display: flex; align-items: center; gap: 5px; opacity: 0.95;">
+                <i class="fa-solid fa-arrows-rotate" style="font-size: 10px;"></i>
+                <span id="sts-savings-annual-hint-text">Συγχρονίζεται αυτόματα με τον Στόχο Έτους στην Επισκόπηση</span>
               </div>
             </div>
             <div style="display: flex; justify-content: space-between; padding-top: 8px; border-top: 1px solid rgba(255, 255, 255, 0.08); font-weight: 800;">

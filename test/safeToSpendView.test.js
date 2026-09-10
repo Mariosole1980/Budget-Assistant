@@ -109,7 +109,8 @@ test('SafeToSpendView: exports all expected functions', () => {
     'quickPaySubscription',
     'toggleStsSavingsGoalEditor',
     'setStsSavingsInputValue',
-    'saveStsSavingsGoal'
+    'saveStsSavingsGoal',
+    'updateStsSavingsAnnualHint'
   ];
 
   expectedFns.forEach(fn => {

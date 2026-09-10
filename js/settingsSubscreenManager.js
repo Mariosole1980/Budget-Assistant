@@ -244,6 +244,7 @@ function saveCustomSavingsTarget() {
     const val = parseFloat(inputEl.value);
     if (!isNaN(val) && val >= 0) {
       localStorage.setItem('overview_savings_target', val.toString());
+      localStorage.setItem('ba_monthly_savings_goal', Math.round(val / 12).toString());
       closeModal('forecast-details-modal');
       renderAccountsTab();
       if (typeof updateSafeToSpendUI === 'function') {

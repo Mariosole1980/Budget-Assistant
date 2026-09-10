@@ -360,10 +360,32 @@ function toggleStsSavingsGoalEditor(force) {
     if (descEl) descEl.textContent = t['sts_savings_target_desc'] || (lang === 'el' ? 'Ορίστε πόσα χρήματα θέλετε να μένουν στην άκρη κάθε μήνα. Το ποσό αυτό προστατεύεται αυτόματα από το ημερήσιο όριο εξόδων.' : 'Set how much money you want to keep aside each month. This amount is automatically protected from your daily spending allowance.');
     if (saveLabel) saveLabel.textContent = t['sts_savings_save_btn'] || (lang === 'el' ? 'Αποθήκευση' : 'Save');
 
+    if (input) {
+      input.value = currGoal > 0 ? currGoal : '';
+      updateStsSavingsAnnualHint(currGoal);
+    }
     container.style.display = 'block';
     if (input && typeof input.focus === 'function') setTimeout(() => input.focus(), 50);
   } else {
     container.style.display = 'none';
+  }
+}
+
+function updateStsSavingsAnnualHint(val) {
+  const hintEl = document.getElementById('sts-savings-annual-hint-text');
+  if (!hintEl) return;
+  const num = parseFloat(val) || 0;
+  const currSym = getCurrencySymbol();
+  const lang = (state && state.lang) || 'el';
+  if (num > 0) {
+    const annual = Math.round(num * 12);
+    hintEl.textContent = lang === 'el'
+      ? `Ισοδυναμεί με ${currSym} ${formatDisplayAmount(annual)} / έτος στην Επισκόπηση`
+      : `Equates to ${currSym} ${formatDisplayAmount(annual)} / year in Overview`;
+  } else {
+    hintEl.textContent = lang === 'el'
+      ? 'Συγχρονίζεται αυτόματα με τον Στόχο Έτους στην Επισκόπηση'
+      : 'Auto-syncs with the Year Target in Overview';
   }
 }
 
@@ -374,6 +396,7 @@ function setStsSavingsInputValue(val) {
     if (typeof input.focus === 'function') {
       try { input.focus(); } catch (e) { }
     }
+    updateStsSavingsAnnualHint(val);
   }
 }
 
@@ -383,6 +406,9 @@ function saveStsSavingsGoal() {
 
   try {
     localStorage.setItem('ba_monthly_savings_goal', val.toString());
+    if (val > 0) {
+      localStorage.setItem('overview_savings_target', Math.round(val * 12).toString());
+    }
   } catch (e) {
     console.warn('Unable to persist ba_monthly_savings_goal:', e);
   }
@@ -793,6 +819,7 @@ window.quickPaySubscription = quickPaySubscription;
   window.toggleStsSavingsGoalEditor = toggleStsSavingsGoalEditor;
   window.setStsSavingsInputValue = setStsSavingsInputValue;
   window.saveStsSavingsGoal = saveStsSavingsGoal;
+  window.updateStsSavingsAnnualHint = updateStsSavingsAnnualHint;
 
   return {
     getLiquidBalance: getLiquidBalance,
@@ -808,6 +835,7 @@ window.quickPaySubscription = quickPaySubscription;
     quickPaySubscription: quickPaySubscription,
     toggleStsSavingsGoalEditor: toggleStsSavingsGoalEditor,
     setStsSavingsInputValue: setStsSavingsInputValue,
-    saveStsSavingsGoal: saveStsSavingsGoal
+    saveStsSavingsGoal: saveStsSavingsGoal,
+    updateStsSavingsAnnualHint: updateStsSavingsAnnualHint
   };
 }));

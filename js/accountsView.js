@@ -634,8 +634,11 @@ function renderAccountsTab() {
 
   // Check localstorage custom target first
   const customTarget = localStorage.getItem('overview_savings_target');
+  const monthlyGoal = localStorage.getItem('ba_monthly_savings_goal');
   if (customTarget && parseFloat(customTarget) > 0) {
     targetSavings = parseFloat(customTarget);
+  } else if (monthlyGoal && parseFloat(monthlyGoal) > 0) {
+    targetSavings = parseFloat(monthlyGoal) * 12;
   } else if (prevYearSavings > 0) {
     targetSavings = Math.round(prevYearSavings);
   }
