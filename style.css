@@ -1832,6 +1832,224 @@ button:active,
   color: var(--text-secondary);
 }
 
+/* ============================================================
+   OVERVIEW SCREEN: MODERN COLLAPSIBLE SECTIONS & ACCOUNT ROWS
+   ============================================================ */
+#accounts-screen .collapsible-section {
+  background: linear-gradient(145deg, rgba(20, 24, 38, 0.65) 0%, rgba(15, 23, 42, 0.88) 100%);
+  border: 1px solid rgba(124, 106, 247, 0.2);
+  border-radius: 20px;
+  overflow: hidden;
+  margin-bottom: 12px;
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+#accounts-screen .collapsible-section:hover {
+  border-color: rgba(124, 106, 247, 0.38);
+}
+
+#accounts-screen .account-section-title {
+  padding: 14px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+  background: transparent;
+  border: none;
+}
+
+#accounts-screen .section-title-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+#accounts-screen .section-title-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+#accounts-screen .income-icon-circle {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #34d399;
+}
+
+#accounts-screen .expense-icon-circle {
+  background: rgba(244, 63, 94, 0.15);
+  border: 1px solid rgba(244, 63, 94, 0.3);
+  color: #f43f5e;
+}
+
+#accounts-screen .history-icon-circle {
+  background: rgba(99, 102, 241, 0.15);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  color: #818cf8;
+}
+
+#accounts-screen .section-title-text-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+#accounts-screen .section-main-heading {
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-family: 'Outfit', sans-serif;
+}
+
+#accounts-screen .income-section-title .section-main-heading {
+  color: #34d399;
+}
+
+#accounts-screen .expense-section-title .section-main-heading {
+  color: #f43f5e;
+}
+
+#accounts-screen .history-section-title .section-main-heading {
+  color: #e2e8f0;
+}
+
+#accounts-screen .section-sub-heading {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  font-family: 'Outfit', sans-serif;
+}
+
+#accounts-screen .section-title-right {
+  display: flex;
+  align-items: center;
+}
+
+#accounts-screen .collapse-icon {
+  font-size: 12px;
+  color: var(--text-secondary);
+  transition: transform 0.25s ease, color 0.2s ease;
+}
+
+#accounts-screen .collapse-icon.active {
+  color: var(--text-primary);
+}
+
+/* Modern Account Row Cards Inside */
+#accounts-screen .collapsible-content {
+  padding: 0;
+}
+
+#accounts-screen .collapsible-content.active {
+  padding-bottom: 6px;
+}
+
+#accounts-screen .account-row {
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 14px;
+  margin: 0 12px 8px 12px;
+  padding: 10px 14px !important;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: background 0.2s ease, transform 0.15s ease, border-color 0.2s ease;
+  box-sizing: border-box;
+}
+
+#accounts-screen .account-row:hover {
+  background: rgba(30, 41, 59, 0.6);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+#accounts-screen .account-name-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+#accounts-screen .account-icon {
+  font-size: 18px;
+  width: 36px;
+  height: 36px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+}
+
+#accounts-screen .account-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: 0.2px;
+}
+
+#accounts-screen .account-value {
+  font-size: 15px;
+  font-weight: 800;
+  font-family: 'Outfit', sans-serif;
+  letter-spacing: -0.2px;
+  text-align: right;
+}
+
+#accounts-screen .account-value.positive {
+  color: #34d399;
+}
+
+#accounts-screen .account-value.negative {
+  color: #f43f5e;
+}
+
+/* Period History Cards */
+#accounts-screen .period-history-item {
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 14px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  transition: background 0.2s, border-color 0.2s;
+  box-sizing: border-box;
+}
+
+#accounts-screen .period-history-item:hover {
+  background: rgba(30, 41, 59, 0.6);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+#accounts-screen .period-item-title {
+  color: var(--text-primary);
+  font-weight: 700;
+  font-size: 14px;
+  font-family: 'Outfit', sans-serif;
+}
+
+#accounts-screen .period-item-amount {
+  font-weight: 800;
+  font-family: 'Outfit', sans-serif;
+  font-size: 15px;
+}
+
+#accounts-screen .period-item-amount.positive {
+  color: #34d399;
+}
+
+#accounts-screen .period-item-amount.negative {
+  color: #f43f5e;
+}
+
 .forecast-card-container {
   padding: 0;
   margin-bottom: 0;

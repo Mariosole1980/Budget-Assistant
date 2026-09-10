@@ -127,6 +127,11 @@ function renderAccountsTab() {
     netElContainer.className = overallNet >= 0 ? 'overview-val' : 'overview-val negative';
   }
 
+  const incomeSecTotal = document.getElementById('income-section-total');
+  if (incomeSecTotal) incomeSecTotal.textContent = `${getCurrencySymbol()} ${formatDisplayAmount(overallIncome, displayCurrency)}`;
+  const expenseSecTotal = document.getElementById('expense-section-total');
+  if (expenseSecTotal) expenseSecTotal.textContent = `${getCurrencySymbol()} ${formatDisplayAmount(overallExpense, displayCurrency)}`;
+
   // 3b. Multi-currency: Net Worth across all accounts (converted to base currency).
   // Only shown when multi-currency is enabled AND at least one account uses a
   // different currency than the base currency.
@@ -1126,37 +1131,25 @@ function renderAccountsTab() {
         if (data.income === 0 && data.expense === 0) return; // Skip if no transaction data
 
         const container = document.createElement('div');
-        container.style.display = 'flex';
-        container.style.flexDirection = 'column';
-        container.style.width = '100%';
-        if (visibleYearIdx > 0) {
-          container.style.borderTop = '1px solid var(--border)';
-          container.style.paddingTop = '12px';
-          container.style.marginTop = '12px';
-        }
+        container.className = 'period-history-item';
         visibleYearIdx++;
 
         const row = document.createElement('div');
         row.style.display = 'flex';
         row.style.justifyContent = 'space-between';
         row.style.alignItems = 'center';
-        row.style.fontSize = '16px';
         row.style.cursor = 'pointer';
-        row.style.padding = '4px 0';
         row.style.userSelect = 'none';
-        row.style.fontFamily = "'Outfit', sans-serif";
 
         const label = TRANSLATIONS[state.lang]['period_label'] + ' ' + yearNum;
-        const colorStyle = data.net >= 0
-          ? 'color: var(--blue-positive); font-weight: 700; font-family: \'Outfit\', sans-serif;'
-          : 'color: var(--red-negative); font-weight: 700; font-family: \'Outfit\', sans-serif;';
         const sign = data.net >= 0 ? '+' : '-';
+        const amountClass = data.net >= 0 ? 'period-item-amount positive' : 'period-item-amount negative';
 
         row.innerHTML = `
-          <span style="color: var(--text-secondary); font-weight: 700; font-size: 16px;">${label}</span>
+          <span class="period-item-title">${label}</span>
           <div style="display: flex; align-items: center; gap: 12px;">
-            <span style="${colorStyle} font-size: 16px;">${sign}${getCurrencySymbol()}${formatDisplayAmount(Math.abs(data.net), displayCurrency)}</span>
-            <i class="fa-solid fa-chevron-right archive-collapse-icon" style="font-size: 14px; color: var(--text-muted); transition: transform 0.25s;"></i>
+            <span class="${amountClass}">${sign}${getCurrencySymbol()}${formatDisplayAmount(Math.abs(data.net), displayCurrency)}</span>
+            <i class="fa-solid fa-chevron-right archive-collapse-icon" style="font-size: 13px; color: var(--text-muted); transition: transform 0.25s;"></i>
           </div>
         `;
 
@@ -1171,14 +1164,14 @@ function renderAccountsTab() {
         dropdown.style.transition = 'max-height 0.25s ease';
 
         dropdown.innerHTML = `
-          <div style="padding: 10px 0 4px 0; display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; color: var(--text-secondary); opacity: 0.9; font-family: 'Outfit', sans-serif;">
+          <div style="padding: 10px 0 2px 0; margin-top: 8px; border-top: 1px solid rgba(255, 255, 255, 0.06); display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--text-secondary); opacity: 0.95; font-family: 'Outfit', sans-serif;">
             <div style="display: flex; justify-content: space-between;">
               <span>${incomeLabel}:</span>
-              <span style="font-weight: 700; color: var(--blue-positive);">${getCurrencySymbol()}${formatDisplayAmount(data.income, displayCurrency)}</span>
+              <span style="font-weight: 700; color: #34d399;">${getCurrencySymbol()}${formatDisplayAmount(data.income, displayCurrency)}</span>
             </div>
             <div style="display: flex; justify-content: space-between;">
               <span>${expenseLabel}:</span>
-              <span style="font-weight: 700; color: var(--red-negative);">${getCurrencySymbol()}${formatDisplayAmount(data.expense, displayCurrency)}</span>
+              <span style="font-weight: 700; color: #f43f5e;">${getCurrencySymbol()}${formatDisplayAmount(data.expense, displayCurrency)}</span>
             </div>
             <div style="display: flex; justify-content: space-between;">
               <span>${savingsRateLabel}:</span>

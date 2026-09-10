@@ -1275,11 +1275,20 @@
 
           <div class="collapsible-sections-container" style="display: flex; flex-direction: column; gap: 12px;">
             <!-- Income Collapsible List -->
-            <div class="collapsible-section">
+            <div class="collapsible-section" id="collapsible-section-income">
               <div class="account-section-title income-section-title" id="collapse-trigger-income">
-                <span data-i18n="accounts_header_title">Έσοδα</span>
-                <i class="fa-solid fa-chevron-down collapse-icon" id="collapse-icon-income"
-                  style="font-size: 10px; transition: transform 0.25s;"></i>
+                <div class="section-title-left">
+                  <div class="section-title-icon income-icon-circle">
+                    <i class="fa-solid fa-arrow-down"></i>
+                  </div>
+                  <div class="section-title-text-group">
+                    <span class="section-main-heading" data-i18n="accounts_header_title">Έσοδα</span>
+                    <span class="section-sub-heading" id="income-section-total">€ 0,00</span>
+                  </div>
+                </div>
+                <div class="section-title-right">
+                  <i class="fa-solid fa-chevron-down collapse-icon" id="collapse-icon-income"></i>
+                </div>
               </div>
               <div id="accounts-assets-list" class="collapsible-content">
                 <!-- Dynamically populated assets (Cash, Bank) -->
@@ -1287,11 +1296,20 @@
             </div>
 
             <!-- Expense Collapsible List -->
-            <div class="collapsible-section">
+            <div class="collapsible-section" id="collapsible-section-expense">
               <div class="account-section-title expense-section-title" id="collapse-trigger-expense">
-                <span data-i18n="cards_header_title">Έξοδα</span>
-                <i class="fa-solid fa-chevron-down collapse-icon" id="collapse-icon-expense"
-                  style="font-size: 10px; transition: transform 0.25s;"></i>
+                <div class="section-title-left">
+                  <div class="section-title-icon expense-icon-circle">
+                    <i class="fa-solid fa-arrow-up"></i>
+                  </div>
+                  <div class="section-title-text-group">
+                    <span class="section-main-heading" data-i18n="cards_header_title">Έξοδα</span>
+                    <span class="section-sub-heading" id="expense-section-total">€ 0,00</span>
+                  </div>
+                </div>
+                <div class="section-title-right">
+                  <i class="fa-solid fa-chevron-down collapse-icon" id="collapse-icon-expense"></i>
+                </div>
               </div>
               <div id="accounts-liabilities-list" class="collapsible-content">
                 <!-- Dynamically populated liabilities (Cards) -->
@@ -1299,13 +1317,17 @@
             </div>
           </div>
 
-          <!-- Period Breakdown Section (NEW STANDALONE CARD) -->
-          <div id="accounts-periods-breakdown" class="collapsible-section"
-            style="display: none; background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 12px 16px; margin-bottom: 12px; box-sizing: border-box;">
-            <div
-              style="font-size: 11px; color: var(--text-secondary); margin-bottom: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; font-family: 'Outfit', sans-serif;"
-              data-i18n="yearly_savings_title">Ιστορικό Προηγούμενων Ετών</div>
-            <div id="accounts-periods-list" style="display: flex; flex-direction: column; gap: 0;"></div>
+          <!-- Period Breakdown Section -->
+          <div id="accounts-periods-breakdown" class="collapsible-section" style="display: none;">
+            <div class="account-section-title history-section-title" style="cursor: default;">
+              <div class="section-title-left">
+                <div class="section-title-icon history-icon-circle">
+                  <i class="fa-solid fa-clock-rotate-left"></i>
+                </div>
+                <span class="section-main-heading" data-i18n="yearly_savings_title">Ιστορικό Προηγούμενων Ετών</span>
+              </div>
+            </div>
+            <div id="accounts-periods-list" style="display: flex; flex-direction: column; gap: 8px; padding: 4px 12px 14px 12px;"></div>
           </div>
 
         </div>
