@@ -87,3 +87,46 @@ test('StatsView.renderStatsTab can be called without errors', () => {
     StatsView.renderStatsTab(true);
   });
 });
+
+test('StatsView.checkOverBudgetNotification respects user toggle and triggers at 80% and 100%', () => {
+  let inAppNotifs = [];
+  let toasts = [];
+  global.addInAppNotification = (title, body) => { inAppNotifs.push({ title, body }); };
+  global.showToast = (msg, type) => { toasts.push({ msg, type }); };
+  global.getCategoryInfo = (cat) => ({ name: 'Supermarket', icon: 'fa-cart-shopping' });
+
+  const storage = {};
+  global.localStorage = {
+    getItem: (k) => storage[k] || null,
+    setItem: (k, v) => { storage[k] = String(v); }
+  };
+
+  global.state.budgets = [{ id: 'b1', category: 'Supermarket', amount: 100, currency: 'EUR' }];
+  global.state.selectedYear = 2026;
+  global.state.selectedMonth = 8; // September
+
+  // 1. When user disabled budget alerts:
+  storage['settings_budget_limit_alerts_enabled'] = 'false';
+  global.state.transactions = [
+    { type: 'expense', category: 'Supermarket', amount: 120, date: '2026-09-10' }
+  ];
+  global.checkOverBudgetNotification({ type: 'expense', category: 'Supermarket', amount: 120, date: '2026-09-10' });
+  assert.strictEqual(inAppNotifs.length, 0, 'Should not trigger alert when disabled');
+
+  // 2. When enabled and spending reaches 85% (>= 80%):
+  storage['settings_budget_limit_alerts_enabled'] = 'true';
+  global.state.transactions = [
+    { type: 'expense', category: 'Supermarket', amount: 85, date: '2026-09-10' }
+  ];
+  global.checkOverBudgetNotification({ type: 'expense', category: 'Supermarket', amount: 85, date: '2026-09-10' });
+  assert.strictEqual(inAppNotifs.length, 1, 'Should trigger 80% warning');
+  assert.ok(toasts.some(t => t.type === 'warning'));
+
+  // 3. When spending reaches 110% (>= 100%):
+  global.state.transactions = [
+    { type: 'expense', category: 'Supermarket', amount: 110, date: '2026-09-10' }
+  ];
+  global.checkOverBudgetNotification({ type: 'expense', category: 'Supermarket', amount: 110, date: '2026-09-10' });
+  assert.strictEqual(inAppNotifs.length, 2, 'Should trigger 100% exceeded alert');
+  assert.ok(toasts.some(t => t.type === 'error'));
+});

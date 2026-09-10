@@ -856,7 +856,9 @@ async function triggerContextDelete() {
 
   const confirmed = (typeof showConfirm === 'function')
     ? await showConfirm(confirmMsg, state.lang === 'el' ? 'Διαγραφή Σημείωσης' : 'Delete Note', '🗑️', { tone: 'amber' })
-    : confirm(confirmMsg);
+    : ((typeof window !== 'undefined' && typeof window.showConfirm === 'function')
+      ? await window.showConfirm(confirmMsg, state.lang === 'el' ? 'Διαγραφή Σημείωσης' : 'Delete Note', '🗑️', { tone: 'amber' })
+      : true);
 
   if (!confirmed) return;
 
@@ -1272,7 +1274,9 @@ async function deleteNoteFromEditor() {
 
   const confirmed = (typeof showConfirm === 'function')
     ? await showConfirm(confirmMsg, state.lang === 'el' ? 'Διαγραφή Σημείωσης' : 'Delete Note', '🗑️', { tone: 'amber' })
-    : confirm(confirmMsg);
+    : ((typeof window !== 'undefined' && typeof window.showConfirm === 'function')
+      ? await window.showConfirm(confirmMsg, state.lang === 'el' ? 'Διαγραφή Σημείωσης' : 'Delete Note', '🗑️', { tone: 'amber' })
+      : true);
 
   if (!confirmed) return;
 
@@ -1754,7 +1758,9 @@ async function emptyNotesTrash() {
 
   const confirmed = (typeof showConfirm === 'function')
     ? await showConfirm(confirmMsg, state.lang === 'el' ? 'Εκκαθάριση Κάδου' : 'Empty Trash', '🗑️', { tone: 'amber' })
-    : confirm(confirmMsg);
+    : ((typeof window !== 'undefined' && typeof window.showConfirm === 'function')
+      ? await window.showConfirm(confirmMsg, state.lang === 'el' ? 'Εκκαθάριση Κάδου' : 'Empty Trash', '🗑️', { tone: 'amber' })
+      : true);
 
   if (!confirmed) return;
 

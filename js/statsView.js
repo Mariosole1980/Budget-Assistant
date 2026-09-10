@@ -1052,46 +1052,130 @@ window.deleteSelectedCategoryBudget = deleteSelectedCategoryBudget;
 function checkOverBudgetNotification(transaction) {
   if (!transaction || transaction.type !== 'expense' || !state.budgets || state.budgets.length === 0) return;
 
+  // Check if user has disabled budget limit alerts
+  if (typeof localStorage !== 'undefined' && localStorage.getItem('settings_budget_limit_alerts_enabled') === 'false') {
+    return;
+  }
+
   const catInfo = getCategoryInfo(transaction.category, 'expense');
-  const catName = catInfo.name || transaction.category;
-  const budget = state.budgets.find(b => !b.is_deleted && (b.category === catName || getCategoryInfo(b.category).name === catName));
+  const catName = (catInfo && catInfo.name) ? catInfo.name : transaction.category;
+  const budget = state.budgets.find(b => !b.is_deleted && (b.category === catName || (getCategoryInfo(b.category) && getCategoryInfo(b.category).name === catName)));
 
-  if (!budget) return;
+  if (!budget || !budget.amount || budget.amount <= 0) return;
 
-  const displayCurrency = getDisplayCurrency();
-  const symbol = getCurrencySymbol();
+  // Extract transaction year and month to scope category spending
+  let txYear = (typeof state !== 'undefined' && state.selectedYear) || new Date().getFullYear();
+  let txMonth = (typeof state !== 'undefined' && typeof state.selectedMonth === 'number') ? state.selectedMonth : new Date().getMonth();
+  if (transaction.date) {
+    const parts = String(transaction.date).split('T')[0].split(' ')[0].split('-');
+    if (parts.length === 3) {
+      const y = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10) - 1;
+      if (!isNaN(y) && !isNaN(m)) {
+        txYear = y;
+        txMonth = m;
+      }
+    }
+  }
+
+  const displayCurrency = (typeof getDisplayCurrency === 'function') ? getDisplayCurrency() : 'EUR';
+  const symbol = (typeof getCurrencySymbol === 'function') ? getCurrencySymbol() : '€';
+
   const catSpent = (state.transactions || []).reduce((sum, t) => {
-    if (t.type === 'expense' && (getCategoryInfo(t.category).name === catName)) {
-      return sum + CurrencyService.displayAmount(t, displayCurrency);
+    if (t.type === 'expense' && (typeof isTransferTransaction === 'function' ? !isTransferTransaction(t) : true) && (getCategoryInfo(t.category).name === catName)) {
+      if (t.date) {
+        const p = String(t.date).split('T')[0].split(' ')[0].split('-');
+        if (p.length === 3 && parseInt(p[0], 10) === txYear && (parseInt(p[1], 10) - 1) === txMonth) {
+          const amt = (window.CurrencyService && typeof window.CurrencyService.displayAmount === 'function')
+            ? window.CurrencyService.displayAmount(t, displayCurrency)
+            : (Number(t.amount) || 0);
+          return sum + amt;
+        }
+      }
     }
     return sum;
   }, 0);
 
-  const budgetInDisplay = window.CurrencyService
+  const budgetInDisplay = (window.CurrencyService && typeof window.CurrencyService.convert === 'function')
     ? window.CurrencyService.convert(budget.amount, budget.currency || 'EUR', displayCurrency)
     : budget.amount;
 
-  if (budgetInDisplay > 0 && catSpent >= budgetInDisplay) {
-    const lang = state.lang || 'el';
-    const overAmt = (catSpent - budgetInDisplay).toFixed(2);
-    const title = lang === 'el' ? '⚠️ Υπέρβαση Προϋπολογισμού!' : '⚠️ Budget Limit Exceeded!';
-    const body = lang === 'el'
-      ? `Έχετε υπερβεί το όριο στην κατηγορία "${catName}" κατά ${symbol}${overAmt}`
-      : `You have exceeded the limit for "${catName}" by ${symbol}${overAmt}`;
+  if (!budgetInDisplay || budgetInDisplay <= 0) return;
 
-    addInAppNotification(title, body, { type: 'open_analytics' });
+  const lang = (typeof state !== 'undefined' && state.lang) || 'el';
+  const isEl = lang === 'el';
+  const safeCatKey = encodeURIComponent(catName);
 
-    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.LocalNotifications) {
-      window.Capacitor.Plugins.LocalNotifications.schedule({
-        notifications: [{
-          id: Math.floor(Math.random() * 100000),
-          title: title,
-          body: body,
-          smallIcon: 'ic_launcher_round',
-            iconColor: '#0F1219',
-          schedule: { at: new Date(Date.now() + 500) }
-        }]
-      }).catch(e => console.warn('Failed to schedule local notification:', e));
+  // 1. Check 100% Exceeded Threshold
+  if (catSpent >= budgetInDisplay) {
+    const alertKey100 = `budget_alert_100_${txYear}_${txMonth}_${safeCatKey}`;
+    if (typeof localStorage !== 'undefined' && !localStorage.getItem(alertKey100)) {
+      try { localStorage.setItem(alertKey100, 'true'); } catch (e) { }
+
+      const overAmt = (catSpent - budgetInDisplay).toFixed(2);
+      const title = isEl ? '🚨 Εξαντλήθηκε το Όριο Προϋπολογισμού!' : '🚨 Budget Limit Exceeded!';
+      const body = isEl
+        ? `Υπέρβαση κατά ${symbol}${overAmt} στην κατηγορία "${catName}" (${symbol}${catSpent.toFixed(2)} / ${symbol}${budgetInDisplay.toFixed(2)})`
+        : `Exceeded by ${symbol}${overAmt} for "${catName}" (${symbol}${catSpent.toFixed(2)} / ${symbol}${budgetInDisplay.toFixed(2)})`;
+
+      if (typeof addInAppNotification === 'function') {
+        addInAppNotification(title, body, { type: 'open_analytics' });
+      }
+      if (typeof showToast === 'function') {
+        showToast(body, 'error');
+      }
+      if (typeof triggerHaptic === 'function') {
+        triggerHaptic('warning');
+      }
+      if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.LocalNotifications) {
+        window.Capacitor.Plugins.LocalNotifications.schedule({
+          notifications: [{
+            id: Math.floor(Math.random() * 100000),
+            title: title,
+            body: body,
+            smallIcon: 'ic_launcher_round',
+            iconColor: '#ef4444',
+            schedule: { at: new Date(Date.now() + 500) }
+          }]
+        }).catch(e => console.warn('Failed to schedule local notification:', e));
+      }
+    }
+    return;
+  }
+
+  // 2. Check 80% Warning Threshold
+  const pct = Math.round((catSpent / budgetInDisplay) * 100);
+  if (pct >= 80) {
+    const alertKey80 = `budget_alert_80_${txYear}_${txMonth}_${safeCatKey}`;
+    if (typeof localStorage !== 'undefined' && !localStorage.getItem(alertKey80)) {
+      try { localStorage.setItem(alertKey80, 'true'); } catch (e) { }
+
+      const title = isEl ? '⚠️ Πλησιάζεις το Όριο Προϋπολογισμού' : '⚠️ Approaching Budget Limit';
+      const body = isEl
+        ? `Έφτασες το ${pct}% του ορίου στην κατηγορία "${catName}" (${symbol}${catSpent.toFixed(2)} / ${symbol}${budgetInDisplay.toFixed(2)})`
+        : `You reached ${pct}% of your budget for "${catName}" (${symbol}${catSpent.toFixed(2)} / ${symbol}${budgetInDisplay.toFixed(2)})`;
+
+      if (typeof addInAppNotification === 'function') {
+        addInAppNotification(title, body, { type: 'open_analytics' });
+      }
+      if (typeof showToast === 'function') {
+        showToast(body, 'warning');
+      }
+      if (typeof triggerHaptic === 'function') {
+        triggerHaptic('warning');
+      }
+      if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.LocalNotifications) {
+        window.Capacitor.Plugins.LocalNotifications.schedule({
+          notifications: [{
+            id: Math.floor(Math.random() * 100000),
+            title: title,
+            body: body,
+            smallIcon: 'ic_launcher_round',
+            iconColor: '#f59e0b',
+            schedule: { at: new Date(Date.now() + 500) }
+          }]
+        }).catch(e => console.warn('Failed to schedule local notification:', e));
+      }
     }
   }
 }

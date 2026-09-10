@@ -92,15 +92,20 @@
   });
 
   document.getElementById('period-prev').addEventListener('click', () => {
+    if (typeof triggerHaptic === 'function') triggerHaptic('selection');
     navigateMonth(-1);
   });
   document.getElementById('period-next').addEventListener('click', () => {
+    if (typeof triggerHaptic === 'function') triggerHaptic('selection');
     navigateMonth(1);
   });
 
   document.getElementById('stats-tab-expense').addEventListener('click', () => toggleStatsType('expense'));
   document.getElementById('stats-tab-income').addEventListener('click', () => toggleStatsType('income'));
-  document.getElementById('fab-btn').addEventListener('click', openAddTransactionModal);
+  document.getElementById('fab-btn').addEventListener('click', () => {
+    if (typeof triggerHaptic === 'function') triggerHaptic('medium');
+    openAddTransactionModal();
+  });
 
   const fabNoteBtn = document.getElementById('fab-note-btn');
   if (fabNoteBtn) {
@@ -709,9 +714,11 @@
 
   // Stats period navigation
   document.getElementById('stats-period-prev').addEventListener('click', () => {
+    if (typeof triggerHaptic === 'function') triggerHaptic('selection');
     adjustStatsPeriod(-1);
   });
   document.getElementById('stats-period-next').addEventListener('click', () => {
+    if (typeof triggerHaptic === 'function') triggerHaptic('selection');
     adjustStatsPeriod(1);
   });
 

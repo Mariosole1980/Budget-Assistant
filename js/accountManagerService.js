@@ -271,7 +271,9 @@ async function deleteAccountFromManager(acc) {
 
   const confirmed = (typeof showConfirm === 'function')
     ? await showConfirm(confirmMsg, state.lang === 'el' ? 'Διαγραφή Λογαριασμού' : 'Delete Account', 'Διαγραφή')
-    : confirm(confirmMsg);
+    : ((typeof window !== 'undefined' && typeof window.showConfirm === 'function')
+      ? await window.showConfirm(confirmMsg, state.lang === 'el' ? 'Διαγραφή Λογαριασμού' : 'Delete Account', 'Διαγραφή')
+      : true);
 
   if (!confirmed) return;
 

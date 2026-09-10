@@ -62,6 +62,11 @@
   }
 
   function switchTab(tab, instant = false) {
+    if (typeof triggerHaptic === 'function') {
+      triggerHaptic('light');
+    } else if (typeof window !== 'undefined' && typeof window.triggerHaptic === 'function') {
+      window.triggerHaptic('light');
+    }
     const appState = getState();
     resetAllTabScreenStyles();
     callSafe('ensureHistoryPushed');

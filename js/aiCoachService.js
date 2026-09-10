@@ -349,7 +349,7 @@ function startNewAdvisorConversation() {
   }, 300);
 }
 
-function deleteAdvisorConversation(id) {
+async function deleteAdvisorConversation(id) {
   const list = loadAdvisorConversations();
   const idx = list.findIndex(c => c.id === id);
   if (idx === -1) return;
@@ -359,7 +359,13 @@ function deleteAdvisorConversation(id) {
     ? `Να διαγραφεί η συνομιλία «${conv.title || ''}»;`
     : `Delete conversation "${conv.title || ''}"?`;
 
-  if (typeof window.confirm === 'function' && !window.confirm(confirmMsg)) return;
+  const confirmed = (typeof showConfirm === 'function')
+    ? await showConfirm(confirmMsg, state.lang === 'el' ? 'Διαγραφή Συνομιλίας' : 'Delete Conversation', '🗑️', { tone: 'amber' })
+    : ((typeof window !== 'undefined' && typeof window.showConfirm === 'function')
+      ? await window.showConfirm(confirmMsg, state.lang === 'el' ? 'Διαγραφή Συνομιλίας' : 'Delete Conversation', '🗑️', { tone: 'amber' })
+      : true);
+
+  if (!confirmed) return;
 
   list.splice(idx, 1);
   saveAdvisorConversations(list);

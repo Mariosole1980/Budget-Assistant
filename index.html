@@ -2642,6 +2642,40 @@
                   </label>
                 </div>
 
+                <!-- Row 2b: Category Budget Limit Alerts (80% & 100%) -->
+                <div class="settings-list-item"
+                  style="padding:14px 16px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border, rgba(255,255,255,0.05)); margin:0;">
+                  <div style="display:flex; flex-direction:column; gap:3px; flex:1; padding-right:12px;">
+                    <span class="settings-item-label"
+                      style="font-weight:700; font-size:14px; color:var(--text-primary);"
+                      data-i18n="item_budget_limit_alerts">Όρια Προϋπολογισμών (80% & 100%)</span>
+                    <span style="font-size:12px; color:var(--text-muted);"
+                      data-i18n="item_budget_limit_alerts_desc">Ειδοποίηση όταν ένα έξοδο πλησιάζει ή ξεπερνά το όριο κατηγορίας</span>
+                  </div>
+                  <label class="switch">
+                    <input type="checkbox" id="settings-budget-limit-alerts"
+                      onchange="toggleBudgetLimitAlerts(this.checked)">
+                    <span class="slider round"></span>
+                  </label>
+                </div>
+
+                <!-- Row 2c: Bank Push Notifications Auto-Capture -->
+                <div class="settings-list-item"
+                  style="padding:14px 16px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border, rgba(255,255,255,0.05)); margin:0;">
+                  <div style="display:flex; flex-direction:column; gap:3px; flex:1; padding-right:12px;">
+                    <span class="settings-item-label"
+                      style="font-weight:700; font-size:14px; color:var(--text-primary);"
+                      data-i18n="item_bank_notifications">Αυτόματη Καταγραφή από Τράπεζες</span>
+                    <span style="font-size:12px; color:var(--text-muted);"
+                      data-i18n="item_bank_notifications_desc">Αναγνώριση κινήσεων από Eurobank, Εθνική, Πειραιώς, Alpha, Revolut</span>
+                  </div>
+                  <label class="switch">
+                    <input type="checkbox" id="settings-bank-notifications-toggle"
+                      onchange="toggleBankNotifications(this.checked)">
+                    <span class="slider round"></span>
+                  </label>
+                </div>
+
                 <!-- Row 3: Single High Expense Alert -->
                 <div class="settings-list-item"
                   style="padding:14px 16px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border, rgba(255,255,255,0.05)); margin:0;">

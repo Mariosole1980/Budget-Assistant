@@ -86,8 +86,10 @@
         var msg = (translations[lang] && translations[lang]['alert_date_order']) || 'Invalid date range';
         if (typeof window !== 'undefined' && typeof window.showAlert === 'function') {
           window.showAlert(msg);
-        } else if (typeof alert === 'function') {
-          alert(msg);
+        } else if (typeof showToast === 'function') {
+          showToast(msg, 'warning');
+        } else if (typeof window !== 'undefined' && typeof window.showToast === 'function') {
+          window.showToast(msg, 'warning');
         }
         return;
       }

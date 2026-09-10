@@ -166,6 +166,11 @@
    * Handle calculator keypad press event
    */
   function handleCalculatorKeyPress(val) {
+    if (typeof triggerHaptic === 'function') {
+      triggerHaptic(val === 'done' ? 'medium' : 'light');
+    } else if (typeof window !== 'undefined' && typeof window.triggerHaptic === 'function') {
+      window.triggerHaptic(val === 'done' ? 'medium' : 'light');
+    }
     var appState = _getState();
     var buf = appState.calcBuffer || '0';
 

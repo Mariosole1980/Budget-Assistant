@@ -17,6 +17,8 @@ test('notificationHub Module Tests', async (t) => {
       'toggleDailyReminder',
       'saveDailyReminderTime',
       'toggleRecurringAlerts',
+      'toggleBudgetLimitAlerts',
+      'toggleBankNotifications',
       'toggleExpenseAlert',
       'saveExpenseLimit',
       'toggleWeeklyDigest',

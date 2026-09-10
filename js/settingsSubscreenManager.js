@@ -208,9 +208,17 @@ window.onSubscreenShow_preferences = function () {
   const dailyReminderTimeRow = document.getElementById('settings-daily-reminder-time-row');
   if (dailyReminderTimeRow) dailyReminderTimeRow.style.display = dailyReminderEnabled ? 'flex' : 'none';
 
-  const recurringAlertsEnabled = localStorage.getItem('settings_recurring_alerts_enabled') !== 'false';
+   const recurringAlertsEnabled = localStorage.getItem('settings_recurring_alerts_enabled') !== 'false';
   const recurringAlertsCheckbox = document.getElementById('settings-recurring-alerts');
   if (recurringAlertsCheckbox) recurringAlertsCheckbox.checked = recurringAlertsEnabled;
+
+  const budgetLimitAlertsEnabled = localStorage.getItem('settings_budget_limit_alerts_enabled') !== 'false';
+  const budgetLimitAlertsCheckbox = document.getElementById('settings-budget-limit-alerts');
+  if (budgetLimitAlertsCheckbox) budgetLimitAlertsCheckbox.checked = budgetLimitAlertsEnabled;
+
+  const bankNotificationsEnabled = localStorage.getItem('bank_notifications_reader_enabled') === 'true';
+  const bankNotificationsCheckbox = document.getElementById('settings-bank-notifications-toggle');
+  if (bankNotificationsCheckbox) bankNotificationsCheckbox.checked = bankNotificationsEnabled;
 
   const langVal = document.getElementById('lang-setting-val');
   if (langVal) langVal.textContent = state.lang === 'en' ? '🇬🇧 English' : '🇬🇷 Ελληνικά';

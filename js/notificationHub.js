@@ -118,6 +118,14 @@ window.onSubscreenShow_notifications = function () {
   const partnerAlertsCheckbox = document.getElementById('settings-partner-alerts');
   if (partnerAlertsCheckbox) partnerAlertsCheckbox.checked = partnerAlertsEnabled;
 
+  const budgetLimitAlertsEnabled = localStorage.getItem('settings_budget_limit_alerts_enabled') !== 'false';
+  const budgetLimitAlertsCheckbox = document.getElementById('settings-budget-limit-alerts');
+  if (budgetLimitAlertsCheckbox) budgetLimitAlertsCheckbox.checked = budgetLimitAlertsEnabled;
+
+  const bankNotificationsEnabled = localStorage.getItem('bank_notifications_reader_enabled') === 'true';
+  const bankNotificationsCheckbox = document.getElementById('settings-bank-notifications-toggle');
+  if (bankNotificationsCheckbox) bankNotificationsCheckbox.checked = bankNotificationsEnabled;
+
   if (typeof window.renderNotificationHistory === 'function') {
     window.renderNotificationHistory();
   }
@@ -509,6 +517,49 @@ window.toggleRecurringAlerts = function (checked) {
   }
 };
 
+window.toggleBudgetLimitAlerts = function (checked) {
+  localStorage.setItem('settings_budget_limit_alerts_enabled', checked ? 'true' : 'false');
+  if (typeof showSyncToast === 'function') {
+    showSyncToast(
+      checked
+        ? (state.lang === 'el' ? '✓ Ειδοποιήσεις ορίων (80% & 100%) ενεργοποιήθηκαν' : '✓ Budget limit alerts (80% & 100%) enabled')
+        : (state.lang === 'el' ? '✕ Ειδοποιήσεις ορίων απενεργοποιήθηκαν' : '✕ Budget limit alerts disabled'),
+      2000
+    );
+  }
+};
+
+window.toggleBankNotifications = function (checked) {
+  localStorage.setItem('bank_notifications_reader_enabled', checked ? 'true' : 'false');
+  if (checked) {
+    var isEl = !state || state.lang === 'el';
+    var isAndroid = typeof window !== 'undefined' && window.Capacitor && typeof window.Capacitor.getPlatform === 'function' && window.Capacitor.getPlatform() === 'android';
+    if (typeof showCustomDialog === 'function') {
+      showCustomDialog({
+        title: isEl ? '🏦 Αυτόματη Καταγραφή από Τράπεζες' : '🏦 Bank Push Notifications',
+        icon: '🏦',
+        body: isEl
+          ? '<div style="text-align:left; font-size:13px; line-height:1.5; color:var(--text-secondary);">' +
+            '<p style="margin-bottom:8px;">Το Budget Assistant υποστηρίζει αυτόματη αναγνώριση κινήσεων από τα notifications των <b>Eurobank, Εθνική NBG, Τράπεζα Πειραιώς, Alpha Bank & Revolut</b>!</p>' +
+            '<p style="margin-bottom:8px;">🔒 <b>Απόλυτη Ασφάλεια:</b> Δεν απαιτούνται κωδικοί τραπεζών. Η εφαρμογή διαβάζει μόνο το ποσό και το κατάστημα από τις τοπικές ειδοποιήσεις της συσκευής σας.</p>' +
+            '<p style="margin:0; font-size:12px; color:var(--text-muted);">' + (isAndroid ? 'Βεβαιωθείτε ότι έχετε δώσει άδεια πρόσβασης στις ειδοποιήσεις στις Ρυθμίσεις του Android.' : 'Η αυτόματη ανάγνωση ειδοποιήσεων ενεργοποιείται στις συσκευές Android.') + '</p>' +
+            '</div>'
+          : '<div style="text-align:left; font-size:13px; line-height:1.5; color:var(--text-secondary);">' +
+            '<p style="margin-bottom:8px;">Budget Assistant detects incoming transactions from bank push notifications!</p>' +
+            '<p style="margin:0; font-size:12px; color:var(--text-muted);">Ensure notification access permission is granted on Android settings.</p>' +
+            '</div>',
+        primaryBtn: isEl ? 'Κατάλαβα' : 'Got it'
+      });
+    } else if (typeof showSyncToast === 'function') {
+      showSyncToast(isEl ? '✓ Αυτόματη καταγραφή τραπεζών ενεργοποιήθηκε' : '✓ Bank notifications auto-capture enabled', 2000);
+    }
+  } else {
+    if (typeof showSyncToast === 'function') {
+      showSyncToast(state.lang === 'el' ? '✕ Αυτόματη καταγραφή τραπεζών απενεργοποιήθηκε' : '✕ Bank notifications auto-capture disabled', 2000);
+    }
+  }
+};
+
 window.toggleExpenseAlert = function (checked) {
   localStorage.setItem('settings_expense_alert_enabled', checked ? 'true' : 'false');
   const limitRow = document.getElementById('settings-expense-alert-limit-row');
@@ -560,7 +611,14 @@ window.renderNotificationHistory = function () {
   if (!container) return;
 
   if (!state.notifications || state.notifications.length === 0) {
-    container.innerHTML = `<div style="font-size:12px; color:var(--text-muted); text-align:center; padding:16px 0;">${state.lang === 'el' ? 'Δεν υπάρχουν πρόσφατες ειδοποιήσεις.' : 'No recent notifications.'}</div>`;
+    container.innerHTML = `
+      <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px 16px; text-align:center; gap:8px;">
+        <div style="width:44px; height:44px; border-radius:14px; background:rgba(255,255,255,0.04); border:1px solid var(--border, rgba(255,255,255,0.08)); display:flex; align-items:center; justify-content:center; font-size:18px; color:var(--text-muted);">
+          <i class="fa-regular fa-bell"></i>
+        </div>
+        <div style="font-size:13px; font-weight:600; color:var(--text-secondary);">${state.lang === 'el' ? 'Δεν υπάρχουν πρόσφατες ειδοποιήσεις' : 'No recent notifications'}</div>
+        <div style="font-size:11px; color:var(--text-muted); max-width:240px;">${state.lang === 'el' ? 'Εδώ θα εμφανίζονται τα όρια εξόδων, οι υπενθυμίσεις και οι ανασκοπήσεις σας.' : 'Your budget alerts, due reminders and digests will appear here.'}</div>
+      </div>`;
     return;
   }
 
@@ -617,6 +675,8 @@ window.clearNotificationHistory = function () {
     toggleDailyReminder: windowObj.toggleDailyReminder,
     saveDailyReminderTime: windowObj.saveDailyReminderTime,
     toggleRecurringAlerts: windowObj.toggleRecurringAlerts,
+    toggleBudgetLimitAlerts: windowObj.toggleBudgetLimitAlerts,
+    toggleBankNotifications: windowObj.toggleBankNotifications,
     toggleExpenseAlert: windowObj.toggleExpenseAlert,
     saveExpenseLimit: windowObj.saveExpenseLimit,
     toggleWeeklyDigest: windowObj.toggleWeeklyDigest,

@@ -211,7 +211,11 @@
       newBtnDiscard.onclick = async (e) => {
         e.stopPropagation();
         const confirmText = ((translations[lang] && translations[lang]['offline_discard_confirm']) || 'Είστε σίγουροι ότι θέλετε να διαγράψετε τις {count} offline κινήσεις;').replace('{count}', count);
-        const ok = (typeof showConfirm === 'function') ? await showConfirm(confirmText, '', '🗑️') : confirm(confirmText);
+        const ok = (typeof showConfirm === 'function')
+          ? await showConfirm(confirmText, '', '🗑️')
+          : ((typeof window !== 'undefined' && typeof window.showConfirm === 'function')
+            ? await window.showConfirm(confirmText, '', '🗑️')
+            : true);
         if (ok) {
           localStorage.removeItem('offline_guest_transactions');
           localStorage.removeItem('offline_guest_prompt_dismissed_count');
