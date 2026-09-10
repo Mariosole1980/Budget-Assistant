@@ -250,6 +250,13 @@ function saveCustomSavingsTarget() {
   }
 }
 
+function openSavingsRunwayModal() {
+  if (typeof openModal === 'function') {
+    openModal('forecast-details-modal');
+  }
+}
+
+window.openSavingsRunwayModal = openSavingsRunwayModal;
 window.saveCustomSavingsTarget = saveCustomSavingsTarget;
 window.changeOverviewYear = changeOverviewYear;
 
@@ -614,6 +621,7 @@ function showFhsTab(tabName) {
     window.openSettingsSubscreen = openSettingsSubscreen;
     window.openNotesManager = openNotesManager;
     window.changeOverviewYear = changeOverviewYear;
+    window.openSavingsRunwayModal = openSavingsRunwayModal;
     window.saveCustomSavingsTarget = saveCustomSavingsTarget;
     window.initDescriptionAutoGrow = initDescriptionAutoGrow;
     window.initSettingsSubscreenAndFhs = initSettingsSubscreenAndFhs;
@@ -626,6 +634,7 @@ function showFhsTab(tabName) {
     openSettingsSubscreen,
     openNotesManager,
     changeOverviewYear,
+    openSavingsRunwayModal,
     saveCustomSavingsTarget,
     initDescriptionAutoGrow,
     initSettingsSubscreenAndFhs,

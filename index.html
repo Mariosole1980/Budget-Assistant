@@ -1171,117 +1171,102 @@
               </div>
             </div>
 
-            <!-- Financial Health Score Card (NEW) -->
-            <div class="fhs-card-container">
-              <div class="fhs-card" onclick="openFinancialHealthModal('breakdown')" style="cursor: pointer;">
-                <div class="fhs-help-icon" id="fhs-help-trigger" onclick="event.stopPropagation(); openFinancialHealthModal('methodology')">
-                  <i class="fa-regular fa-circle-question"></i>
+            <!-- Savings Runway & Milestones Card (Unified Card) -->
+            <div id="savings-runway-overview-card" class="runway-goal-card" onclick="openSavingsRunwayModal()">
+              <div class="runway-ambient-glow"></div>
+              
+              <!-- Card Header: Title & Health Score Badge -->
+              <div class="runway-header">
+                <div class="runway-title-wrap">
+                  <div class="runway-icon-circle">
+                    <i class="fa-solid fa-shield-heart"></i>
+                  </div>
+                  <div class="runway-title-text">
+                    <span class="runway-main-title" id="runway-card-title">Στόχος Αποταμίευσης &amp; Μαξιλάρι</span>
+                    <span class="runway-sub-title" id="runway-card-subtitle">Ετήσια Πορεία &amp; Ανεξαρτησία</span>
+                  </div>
                 </div>
-                <div class="fhs-glowing-bg"></div>
-                <div class="fhs-circle"
-                  style="display: flex; align-items: center; justify-content: center; flex-shrink: 0; width: 62px; height: 62px;">
-                  <span id="fhs-score-value"
-                    style="font-size: 14px; font-weight: 800; color: var(--text-primary); line-height: 1;">-</span>
-                </div>
-                <div class="fhs-details">
-                  <span id="fhs-label">Υπολογισμός...</span>
-                  <span id="fhs-hint">-</span>
+
+                <!-- Financial Health Score Badge (taps open FHS breakdown directly) -->
+                <div class="runway-health-badge" id="runway-health-badge" onclick="event.stopPropagation(); openFinancialHealthModal('breakdown');" title="Ανάλυση Οικονομικής Υγείας">
+                  <span class="runway-health-dot" id="runway-health-dot"></span>
+                  <span class="runway-health-label" id="runway-health-label">Σκορ:</span>
+                  <span class="runway-health-score" id="runway-health-score-val">--</span>
+                  <i class="fa-solid fa-chevron-right" style="font-size: 9px; opacity: 0.6; margin-left: 2px;"></i>
                 </div>
               </div>
-            </div>
 
-            <!-- Year-End Forecasting Card (NEW) -->
-            <div class="forecast-card-container">
-              <div class="forecast-card" onclick="openModal('forecast-details-modal')" style="cursor: pointer;">
-                <div class="forecast-header">
-                  <span class="forecast-title-group">
-                    <i class="fa-solid fa-chart-line forecast-icon"></i>
-                    <span data-i18n="forecast_title">Εκτίμηση Έτους</span>
-                  </span>
-                  <span id="forecast-target-year">-</span>
+              <!-- Main Metrics Grid -->
+              <div class="runway-metrics-grid">
+                <!-- Runway Metric -->
+                <div class="runway-metric-box">
+                  <div class="runway-metric-label">
+                    <i class="fa-solid fa-umbrella" style="color: #38bdf8;"></i>
+                    <span id="runway-months-label">Μαξιλάρι Ασφαλείας</span>
+                  </div>
+                  <div class="runway-metric-value-wrap">
+                    <span class="runway-metric-num" id="runway-months-val">0,0</span>
+                    <span class="runway-metric-unit" id="runway-months-unit">Μήνες</span>
+                  </div>
+                  <div class="runway-metric-subtext" id="runway-months-sub">Βασική επιβίωση χωρίς έσοδα</div>
                 </div>
 
-                <!-- Projection (Normal state) -->
-                <div id="forecast-normal-state">
-                  <div class="forecast-row"
-                    style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px; margin-bottom: 8px;">
-                    <span class="forecast-row-label" data-i18n="forecast_projected_savings"
-                      style="font-size: 13.5px; color: var(--text-secondary); font-weight: 600;">Προβλεπόμενη
-                      Αποταμίευση:</span>
-                    <span id="forecast-projected-val"
-                      style="font-size: 18px; font-weight: 800; color: var(--blue-positive); font-family: 'Outfit', sans-serif;">-</span>
-                  </div>
+                <div class="runway-metric-divider"></div>
 
-                  <div class="forecast-progress-track"
-                    style="height: 12px; position: relative; border-radius: 6px; background: var(--overlay-060); width: 100%; margin-top: 12px; overflow: visible; display: flex; align-items: center;">
-                    <div id="forecast-progress-bar"
-                      style="position: absolute; left: 0; top: 0; height: 100%; border-radius: 6px; width: 0%; z-index: 1; background: linear-gradient(90deg, var(--accent), var(--blue-positive));">
-                    </div>
-                    <div id="forecast-progress-badge"
-                      style="position: absolute; top: 50%; transform: translate(-50%, -50%); z-index: 2; background: #2b303c; color: var(--text-primary); font-size: 10.5px; font-weight: 700; padding: 2px 6px; border-radius: 6px; border: 1px solid var(--border); font-family: 'Outfit', sans-serif; white-space: nowrap;">
-                      0%</div>
+                <!-- Savings Goal Metric -->
+                <div class="runway-metric-box">
+                  <div class="runway-metric-label">
+                    <i class="fa-solid fa-bullseye" style="color: #34d399;"></i>
+                    <span id="runway-goal-label">Αποταμίευση Έτους</span>
                   </div>
-                </div>
-
-                <!-- Year-End Review (December state) -->
-                <div id="forecast-yearend-state" style="display: none;">
-                  <p id="forecast-yearend-msg">—</p>
+                  <div class="runway-metric-value-wrap">
+                    <span class="runway-metric-num" id="runway-saved-val">€ 0</span>
+                    <span class="runway-metric-target" id="runway-target-val">/ € 0</span>
+                  </div>
+                  <div class="runway-metric-subtext" id="runway-target-sub">0% του ετήσιου στόχου</div>
                 </div>
               </div>
-            </div>
 
-            <!-- Spending Advisor Card (NEW) -->
-            <div class="advisor-card-container" id="advisor-card-container">
-              <div class="advisor-card" id="advisor-card">
-                <div class="advisor-header">
-                  <span class="advisor-title-group">
-                    <span class="advisor-icon">💡</span>
-                    <span data-i18n="advisor_title">Έξυπνος Σύμβουλος</span>
-                  </span>
-                  <i class="fa-solid fa-chevron-down advisor-chevron" id="advisor-chevron"
-                    style="font-size: 11px; color: #ffa726; transition: transform 0.3s ease; display: none;"></i>
+              <!-- Progress Bar -->
+              <div class="runway-progress-container">
+                <div class="runway-progress-track">
+                  <div class="runway-progress-fill" id="runway-progress-bar" style="width: 0%;"></div>
                 </div>
-                <div class="advisor-body">
-                  <p id="advisor-text" style="margin: 0; line-height: 1.5; font-size: 12.5px;">—</p>
+              </div>
 
-                  <div class="advisor-chat-trigger" id="advisor-chat-trigger"
-                    onclick="event.stopPropagation(); openAdvisorChat();">
-                    <span data-i18n="advisor_chat_trigger">💬 Ρώτα τον Σύμβουλο...</span>
+              <!-- Milestone Pill Footer -->
+              <div class="runway-milestone-footer" id="runway-milestone-footer">
+                <div class="runway-milestone-pill" id="runway-milestone-pill">
+                  <span class="milestone-badge-icon" id="runway-milestone-icon">🏆</span>
+                  <span class="milestone-badge-title" id="runway-milestone-title">Ορόσημο 1: Ταμείο Ανάγκης (3 μήνες)</span>
+                  <span class="milestone-badge-status" id="runway-milestone-status">Σε εξέλιξη</span>
+                </div>
+                <div class="runway-details-cta">
+                  <span>Ανάλυση</span>
+                  <i class="fa-solid fa-arrow-right" style="font-size: 10px;"></i>
+                </div>
+              </div>
+
+              <!-- Hidden fallbacks for legacy references -->
+              <div style="display: none;" aria-hidden="true">
+                <span id="fhs-score-value"></span>
+                <span id="fhs-label"></span>
+                <span id="fhs-hint"></span>
+                <span id="forecast-target-year"></span>
+                <span id="forecast-projected-val"></span>
+                <div id="forecast-progress-bar"></div>
+                <div id="forecast-progress-badge"></div>
+                <div id="forecast-normal-state"></div>
+                <div id="forecast-yearend-state"></div>
+                <p id="forecast-yearend-msg"></p>
+                <div id="advisor-card-container">
+                  <div id="advisor-card">
+                    <p id="advisor-text"></p>
+                    <i id="advisor-chevron"></i>
+                    <div id="advisor-comparison-bars"></div>
+                    <div id="advisor-top-transactions-list"></div>
+                    <button id="advisor-action-btn"></button>
                   </div>
-
-                  <!-- Accordion Expanded Drill-down details -->
-                  <div id="advisor-expanded-content" class="advisor-expanded-content">
-                    <!-- Month comparison bars -->
-                    <div id="advisor-chart-section" class="advisor-expanded-section"
-                      style="margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(255, 167, 38, 0.1);">
-                      <div class="advisor-section-title" data-i18n="advisor_comparison_title"
-                        style="font-size: 10.5px; font-weight: 800; color: #ffa726; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">
-                        ΣΥΓΚΡΙΣΗ ΜΗΝΩΝ</div>
-                      <div id="advisor-comparison-bars" style="display: flex; flex-direction: column; gap: 8px;">
-                        <!-- Populated dynamically -->
-                      </div>
-                    </div>
-
-                    <!-- Top 3 Transactions list -->
-                    <div id="advisor-transactions-section" class="advisor-expanded-section"
-                      style="margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(255, 167, 38, 0.1);">
-                      <div class="advisor-section-title" data-i18n="advisor_top_trans_title"
-                        style="font-size: 10.5px; font-weight: 800; color: #ffa726; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">
-                        ΜΕΓΑΛΥΤΕΡΕΣ ΣΥΝΑΛΛΑΓΕΣ ΜΗΝΑ</div>
-                      <div id="advisor-top-transactions-list" style="display: flex; flex-direction: column; gap: 6px;">
-                        <!-- Populated dynamically -->
-                      </div>
-                    </div>
-
-                    <!-- Quick Action Link -->
-                    <div style="margin-top: 12px; text-align: right;">
-                      <button id="advisor-action-btn" type="button" class="advisor-action-btn">
-                        <span data-i18n="advisor_action_text">Προβολή όλων στο Ιστορικό</span> <i
-                          class="fa-solid fa-arrow-right"></i>
-                      </button>
-                    </div>
-                  </div>
-
                 </div>
               </div>
             </div>
@@ -6930,21 +6915,107 @@
           </div>
         </div>
 
-        <!-- MODAL: YEAR-END FORECAST DETAILS & TARGET -->
+        <!-- MODAL: YEAR-END FORECAST & SAVINGS RUNWAY DETAILS -->
         <div id="forecast-details-modal" class="modal-overlay" style="z-index: 10008;">
           <div class="modal-content"
-            style="max-width: 420px; max-height: 85vh; display: flex; flex-direction: column; border-radius: 24px; background: var(--bg-card); border: 1px solid var(--border); padding: 0; overflow: hidden;">
+            style="max-width: 440px; max-height: 85vh; display: flex; flex-direction: column; border-radius: 24px; background: var(--bg-card); border: 1px solid var(--border); padding: 0; overflow: hidden;">
             <div class="modal-header"
               style="border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; background: var(--overlay-010);">
               <h3 class="modal-title"
                 style="font-weight: 800; color: var(--text-primary); font-size: 15px; text-transform: uppercase; letter-spacing: 0.5px;"
-                data-i18n="forecast_modal_title">🔮 Ανάλυση & Σενάρια</h3>
+                data-i18n="forecast_modal_title">🛡️ Στόχος Αποταμίευσης &amp; Μαξιλάρι</h3>
               <span class="modal-close" onclick="closeModal('forecast-details-modal')"
                 style="cursor: pointer; font-size: 24px; color: var(--text-secondary); font-weight: 300; line-height: 1;">&times;</span>
             </div>
 
             <div class="modal-body"
               style="padding: 20px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; background: rgba(0, 0, 0, 0.1);">
+
+              <!-- Annual Target Input -->
+              <div
+                style="background: var(--overlay-020); padding: 16px; border-radius: 16px; border: 1px solid var(--overlay-060); display: flex; flex-direction: column; gap: 10px;">
+                <h4
+                  style="margin: 0; font-size: 13px; font-weight: 800; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.5px;"
+                  data-i18n="forecast_target_title">ΠΡΟΣΩΠΙΚΟΣ ΣΤΟΧΟΣ ΑΠΟΤΑΜΙΕΥΣΗΣ</h4>
+                <div style="display: flex; gap: 8px; width: 100%; box-sizing: border-box; align-items: center;">
+                  <input type="number" id="forecast-target-input"
+                    style="flex: 1; min-width: 0; padding: 10px 14px; border-radius: 12px; background: var(--overlay-030); border: 1px solid var(--border); color: var(--text-primary); outline: none; font-family: 'Outfit', sans-serif; font-size: 14px; box-sizing: border-box;"
+                    placeholder="e.g. 5000">
+                  <button type="button" onclick="saveCustomSavingsTarget()"
+                    style="flex-shrink: 0; padding: 10px 16px; border-radius: 12px; background: var(--accent); color: white; border: none; font-size: 13px; font-weight: 700; cursor: pointer; transition: transform 0.2s; box-sizing: border-box;"
+                    data-i18n="forecast_target_save_btn">Αποθήκευση</button>
+                </div>
+                <div id="forecast-required-monthly-container"
+                  style="font-size: 11.5px; color: var(--text-secondary); opacity: 0.85; margin-top: 4px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255, 255, 255, 0.06); padding-top: 8px;">
+                  <span data-i18n="forecast_required_monthly_label">Απαιτούμενη Μηνιαία Αποταμίευση:</span>
+                  <span id="forecast-required-monthly-val"
+                    style="font-weight: 700; color: var(--accent); font-family: 'Outfit';">—</span>
+                </div>
+                <div id="forecast-goal-timeline-container"
+                  style="font-size: 11.5px; color: var(--text-secondary); opacity: 0.85; margin-top: 6px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255, 255, 255, 0.04); padding-top: 6px;">
+                  <span data-i18n="forecast_goal_timeline_label">Εκτιμώμενος Χρόνος Επίτευξης:</span>
+                  <span id="forecast-goal-timeline-val"
+                    style="font-weight: 700; color: var(--text-primary); font-family: 'Outfit';">—</span>
+                </div>
+              </div>
+
+              <!-- 4 Milestones Ladder -->
+              <div
+                style="background: var(--overlay-020); padding: 16px; border-radius: 16px; border: 1px solid var(--overlay-060); display: flex; flex-direction: column; gap: 10px;">
+                <h4
+                  style="margin: 0; font-size: 13px; font-weight: 800; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.5px;">
+                  🏆 ΤΑ 4 ΣΚΑΛΟΠΑΤΙΑ ΑΣΦΑΛΕΙΑΣ
+                </h4>
+                <div id="milestones-ladder-list" class="milestone-ladder-container">
+                  <!-- Level 1 -->
+                  <div class="milestone-step-card" id="milestone-step-1">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                      <span style="font-size: 18px;" id="milestone-step-1-icon">🚨</span>
+                      <div>
+                        <div style="font-size: 12px; font-weight: 700; color: var(--text-primary);">Επίπεδο 1: Ταμείο Ανάγκης</div>
+                        <div style="font-size: 10.5px; color: var(--text-secondary);" id="milestone-step-1-desc">3 Μήνες Βασικών Εξόδων</div>
+                      </div>
+                    </div>
+                    <span class="milestone-step-badge" id="milestone-step-1-badge">--</span>
+                  </div>
+
+                  <!-- Level 2 -->
+                  <div class="milestone-step-card" id="milestone-step-2">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                      <span style="font-size: 18px;" id="milestone-step-2-icon">🛡️</span>
+                      <div>
+                        <div style="font-size: 12px; font-weight: 700; color: var(--text-primary);">Επίπεδο 2: Ισχυρό Μαξιλάρι</div>
+                        <div style="font-size: 10.5px; color: var(--text-secondary);" id="milestone-step-2-desc">6 Μήνες Τρέχουσας Ζωής</div>
+                      </div>
+                    </div>
+                    <span class="milestone-step-badge" id="milestone-step-2-badge">--</span>
+                  </div>
+
+                  <!-- Level 3 -->
+                  <div class="milestone-step-card" id="milestone-step-3">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                      <span style="font-size: 18px;" id="milestone-step-3-icon">🚀</span>
+                      <div>
+                        <div style="font-size: 12px; font-weight: 700; color: var(--text-primary);">Επίπεδο 3: 1 Έτος Ελευθερίας</div>
+                        <div style="font-size: 10.5px; color: var(--text-secondary);" id="milestone-step-3-desc">12 Μήνες Ανεξαρτησίας</div>
+                      </div>
+                    </div>
+                    <span class="milestone-step-badge" id="milestone-step-3-badge">--</span>
+                  </div>
+
+                  <!-- Level 4 -->
+                  <div class="milestone-step-card" id="milestone-step-4">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                      <span style="font-size: 18px;" id="milestone-step-4-icon">👑</span>
+                      <div>
+                        <div style="font-size: 12px; font-weight: 700; color: var(--text-primary);">Επίπεδο 4: Πλήρης Αυτονομία</div>
+                        <div style="font-size: 10.5px; color: var(--text-secondary);" id="milestone-step-4-desc">&gt; 12 Μήνες &amp; Παθητική Κάλυψη</div>
+                      </div>
+                    </div>
+                    <span class="milestone-step-badge" id="milestone-step-4-badge">--</span>
+                  </div>
+                </div>
+              </div>
 
               <!-- Current Status Card -->
               <div
@@ -7001,36 +7072,6 @@
                   </div>
                 </div>
               </div>
-
-              <!-- Annual Target Input -->
-              <div
-                style="background: var(--overlay-020); padding: 16px; border-radius: 16px; border: 1px solid var(--overlay-060); display: flex; flex-direction: column; gap: 10px;">
-                <h4
-                  style="margin: 0; font-size: 13px; font-weight: 800; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.5px;"
-                  data-i18n="forecast_target_title">ΠΡΟΣΩΠΙΚΟΣ ΣΤΟΧΟΣ ΑΠΟΤΑΜΙΕΥΣΗΣ</h4>
-                <div style="display: flex; gap: 8px; width: 100%; box-sizing: border-box; align-items: center;">
-                  <input type="number" id="forecast-target-input"
-                    style="flex: 1; min-width: 0; padding: 10px 14px; border-radius: 12px; background: var(--overlay-030); border: 1px solid var(--border); color: var(--text-primary); outline: none; font-family: 'Outfit', sans-serif; font-size: 14px; box-sizing: border-box;"
-                    placeholder="e.g. 15000">
-                  <button type="button" onclick="saveCustomSavingsTarget()"
-                    style="flex-shrink: 0; padding: 10px 16px; border-radius: 12px; background: var(--accent); color: white; border: none; font-size: 13px; font-weight: 700; cursor: pointer; transition: transform 0.2s; box-sizing: border-box;"
-                    data-i18n="forecast_target_save_btn">Αποθήκευση</button>
-                </div>
-                <div id="forecast-required-monthly-container"
-                  style="font-size: 11.5px; color: var(--text-secondary); opacity: 0.85; margin-top: 4px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255, 255, 255, 0.06); padding-top: 8px;">
-                  <span data-i18n="forecast_required_monthly_label">Απαιτούμενη Μηνιαία Αποταμίευση:</span>
-                  <span id="forecast-required-monthly-val"
-                    style="font-weight: 700; color: var(--accent); font-family: 'Outfit';">—</span>
-                </div>
-                <div id="forecast-goal-timeline-container"
-                  style="font-size: 11.5px; color: var(--text-secondary); opacity: 0.85; margin-top: 6px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255, 255, 255, 0.04); padding-top: 6px;">
-                  <span data-i18n="forecast_goal_timeline_label">Εκτιμώμενος Χρόνος Επίτευξης:</span>
-                  <span id="forecast-goal-timeline-val"
-                    style="font-weight: 700; color: var(--text-primary); font-family: 'Outfit';">—</span>
-                </div>
-              </div>
-
-
 
             </div>
           </div>

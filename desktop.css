@@ -745,6 +745,7 @@ html.web-mode .desktop-sidebar-user-card {
     html.web-mode #accounts-screen .accounts-overview-card .overview-health-card,
     html.web-mode #accounts-screen .accounts-overview-card .overview-forecast-card,
     html.web-mode #accounts-screen .accounts-overview-card .advisor-card,
+    html.web-mode #accounts-screen .runway-goal-card,
     html.web-mode #accounts-screen .fhs-card-container,
     html.web-mode #accounts-screen .forecast-card-container,
     html.web-mode #accounts-screen .advisor-card-container {

@@ -737,6 +737,254 @@ function renderAccountsTab() {
     }
   }
 
+  // ============================================================
+  // UNIFIED RUNWAY & SAVINGS GOAL CARD + MILESTONES LADDER
+  // ============================================================
+  const stsOverviewCard = document.getElementById('safe-to-spend-overview-card');
+  const runwayCardTitle = document.getElementById('runway-card-title');
+  const runwayCardSubtitle = document.getElementById('runway-card-subtitle');
+  const runwayHealthBadge = document.getElementById('runway-health-badge');
+  const runwayHealthDot = document.getElementById('runway-health-dot');
+  const runwayHealthScoreVal = document.getElementById('runway-health-score-val');
+  const runwayMonthsLabel = document.getElementById('runway-months-label');
+  const runwayMonthsVal = document.getElementById('runway-months-val');
+  const runwayMonthsUnit = document.getElementById('runway-months-unit');
+  const runwayMonthsSub = document.getElementById('runway-months-sub');
+  const runwayGoalLabel = document.getElementById('runway-goal-label');
+  const runwaySavedVal = document.getElementById('runway-saved-val');
+  const runwayTargetVal = document.getElementById('runway-target-val');
+  const runwayTargetSub = document.getElementById('runway-target-sub');
+  const runwayProgressBar = document.getElementById('runway-progress-bar');
+  const runwayMilestoneIcon = document.getElementById('runway-milestone-icon');
+  const runwayMilestoneTitle = document.getElementById('runway-milestone-title');
+  const runwayMilestoneStatus = document.getElementById('runway-milestone-status');
+
+  const isHistoricalYear = currentYearOverview < currentYear;
+
+  if (isHistoricalYear) {
+    // 1. In historical year (e.g. 2025), hide Safe-to-Spend
+    if (stsOverviewCard) {
+      stsOverviewCard.style.display = 'none';
+    }
+
+    if (runwayCardTitle) {
+      runwayCardTitle.textContent = state.lang === 'el' ? `Απολογισμός Έτους ${currentYearOverview}` : `Year Review ${currentYearOverview}`;
+    }
+    if (runwayCardSubtitle) {
+      runwayCardSubtitle.textContent = state.lang === 'el' ? 'Ιστορικό Αποταμίευσης' : 'Historical Savings';
+    }
+    if (runwayHealthBadge) {
+      runwayHealthBadge.style.display = 'none';
+    }
+
+    if (runwayMonthsLabel) {
+      runwayMonthsLabel.textContent = state.lang === 'el' ? 'Καθαρή Αποταμίευση' : 'Net Savings';
+    }
+    if (runwayMonthsVal) {
+      runwayMonthsVal.textContent = formatDisplayAmount(overallNet, displayCurrency);
+      runwayMonthsVal.style.color = overallNet >= 0 ? 'var(--blue-positive)' : 'var(--red-negative)';
+    }
+    if (runwayMonthsUnit) {
+      runwayMonthsUnit.textContent = getCurrencySymbol();
+      runwayMonthsUnit.style.color = overallNet >= 0 ? 'var(--blue-positive)' : 'var(--red-negative)';
+    }
+    if (runwayMonthsSub) {
+      runwayMonthsSub.textContent = overallNet >= 0
+        ? (state.lang === 'el' ? 'Θετικό κλείσιμο έτους' : 'Positive year close')
+        : (state.lang === 'el' ? 'Έλλειμμα έτους' : 'Year deficit');
+    }
+
+    if (runwayGoalLabel) {
+      runwayGoalLabel.textContent = state.lang === 'el' ? 'Στόχος Έτους' : 'Year Target';
+    }
+    if (runwaySavedVal) {
+      runwaySavedVal.textContent = `${getCurrencySymbol()} ${formatDisplayAmount(overallNet, displayCurrency)}`;
+    }
+    if (runwayTargetVal) {
+      runwayTargetVal.textContent = `/ ${getCurrencySymbol()} ${formatDisplayAmount(targetSavings, displayCurrency)}`;
+    }
+
+    const histPct = targetSavings > 0 ? Math.max(0, Math.min(100, Math.round((overallNet / targetSavings) * 100))) : (overallNet > 0 ? 100 : 0);
+    if (runwayTargetSub) {
+      runwayTargetSub.textContent = `${histPct}% ${state.lang === 'el' ? 'επίτευξη στόχου' : 'goal achieved'}`;
+    }
+    if (runwayProgressBar) {
+      runwayProgressBar.style.width = `${histPct}%`;
+    }
+
+    if (runwayMilestoneIcon) {
+      runwayMilestoneIcon.textContent = overallNet >= targetSavings ? '🎉' : (overallNet > 0 ? '👍' : '⚠️');
+    }
+    if (runwayMilestoneTitle) {
+      runwayMilestoneTitle.textContent = state.lang === 'el' ? `Απολογισμός ${currentYearOverview}` : `Summary ${currentYearOverview}`;
+    }
+    if (runwayMilestoneStatus) {
+      runwayMilestoneStatus.textContent = overallNet >= targetSavings
+        ? (state.lang === 'el' ? 'Επιτεύχθηκε! ✅' : 'Achieved! ✅')
+        : (overallNet > 0 ? (state.lang === 'el' ? 'Πλεόνασμα' : 'Surplus') : (state.lang === 'el' ? 'Έλλειμμα' : 'Deficit'));
+    }
+  } else {
+    // 2. Current Year: Safe-to-Spend is visible
+    if (stsOverviewCard) {
+      stsOverviewCard.style.display = 'flex';
+    }
+
+    if (runwayCardTitle) {
+      runwayCardTitle.textContent = state.lang === 'el' ? 'Στόχος Αποταμίευσης & Μαξιλάρι' : 'Savings Goal & Runway';
+    }
+    if (runwayCardSubtitle) {
+      runwayCardSubtitle.textContent = state.lang === 'el' ? `Οικονομική Ασφάλεια ${currentYear}` : `Financial Security ${currentYear}`;
+    }
+    if (runwayHealthBadge) {
+      runwayHealthBadge.style.display = 'inline-flex';
+    }
+
+    // Financial Health Score
+    const scoreVal = typeof fhs.score === 'number' ? Math.round(fhs.score) : null;
+    if (runwayHealthScoreVal) {
+      runwayHealthScoreVal.textContent = scoreVal != null ? `${scoreVal}/100` : (fhs.displayScore || '--');
+      const scoreColor = scoreVal != null ? (scoreVal >= 75 ? '#34d399' : (scoreVal >= 50 ? '#f59e0b' : '#f43f5e')) : '#34d399';
+      runwayHealthScoreVal.style.color = scoreColor;
+      if (runwayHealthDot) {
+        runwayHealthDot.style.background = scoreColor;
+        runwayHealthDot.style.boxShadow = `0 0 8px ${scoreColor}`;
+      }
+    }
+
+    // Runway Months
+    const rawRunway = fhs.lifestyleRunway || 0;
+    const monthsNum = isFinite(rawRunway) ? Math.min(99, Math.max(0, Math.round(rawRunway * 10) / 10)) : 0;
+    if (runwayMonthsLabel) {
+      runwayMonthsLabel.textContent = state.lang === 'el' ? 'Μαξιλάρι Ασφαλείας' : 'Safety Runway';
+    }
+    if (runwayMonthsVal) {
+      runwayMonthsVal.textContent = fhs.isNoData ? '--' : monthsNum.toLocaleString(state.lang === 'el' ? 'el-GR' : 'en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+      runwayMonthsVal.style.color = 'var(--text-primary)';
+    }
+    if (runwayMonthsUnit) {
+      runwayMonthsUnit.textContent = state.lang === 'el' ? 'Μήνες' : 'Months';
+      runwayMonthsUnit.style.color = '#818cf8';
+    }
+    if (runwayMonthsSub) {
+      const survMonths = isFinite(fhs.survivalRunway) ? Math.round(fhs.survivalRunway * 10) / 10 : 0;
+      runwayMonthsSub.textContent = state.lang === 'el'
+        ? `Βασική επιβίωση: ${survMonths.toFixed(1)} μήνες`
+        : `Survival: ${survMonths.toFixed(1)} mo`;
+    }
+
+    // Savings Goal
+    if (runwayGoalLabel) {
+      runwayGoalLabel.textContent = state.lang === 'el' ? 'Αποταμίευση Έτους' : 'Year Savings';
+    }
+    if (runwaySavedVal) {
+      runwaySavedVal.textContent = `${getCurrencySymbol()} ${formatDisplayAmount(overallNet, displayCurrency)}`;
+    }
+    if (runwayTargetVal) {
+      runwayTargetVal.textContent = `/ ${getCurrencySymbol()} ${formatDisplayAmount(targetSavings, displayCurrency)}`;
+    }
+
+    let progressPct = 0;
+    if (targetSavings > 0 && overallNet > 0) {
+      progressPct = Math.max(0, Math.min(100, Math.round((overallNet / targetSavings) * 100)));
+    }
+    if (runwayTargetSub) {
+      runwayTargetSub.textContent = `${progressPct}% ${state.lang === 'el' ? 'του ετήσιου στόχου' : 'of annual target'}`;
+    }
+    if (runwayProgressBar) {
+      runwayProgressBar.style.width = `${progressPct}%`;
+    }
+
+    // Active Milestone Pill
+    let mIcon = '🛡️';
+    let mTitle = state.lang === 'el' ? 'Ορόσημο 1: Ταμείο Ανάγκης (3 μήνες)' : 'Milestone 1: Emergency Fund (3 mo)';
+    let mStatus = state.lang === 'el' ? 'Σε εξέλιξη' : 'In progress';
+
+    if (monthsNum >= 12) {
+      mIcon = '👑';
+      mTitle = state.lang === 'el' ? 'Ορόσημο 4: Πλήρης Αυτονομία' : 'Milestone 4: Full Autonomy';
+      mStatus = state.lang === 'el' ? 'Εξαιρετικό (>12 μήνες)' : 'Excellent (>12 mo)';
+    } else if (monthsNum >= 6) {
+      mIcon = '🚀';
+      mTitle = state.lang === 'el' ? 'Ορόσημο 3: 1 Έτος Ελευθερίας (12 μήνες)' : 'Milestone 3: 1 Year Runway (12 mo)';
+      const pctL3 = Math.min(100, Math.round((monthsNum / 12) * 100));
+      mStatus = `${pctL3}% (${monthsNum.toFixed(1)}/12 μ.)`;
+    } else if (monthsNum >= 3) {
+      mIcon = '🏆';
+      mTitle = state.lang === 'el' ? 'Ορόσημο 2: Ισχυρό Μαξιλάρι (6 μήνες)' : 'Milestone 2: Strong Cushion (6 mo)';
+      const pctL2 = Math.min(100, Math.round((monthsNum / 6) * 100));
+      mStatus = `${pctL2}% (${monthsNum.toFixed(1)}/6 μ.)`;
+    } else {
+      mIcon = '🛡️';
+      mTitle = state.lang === 'el' ? 'Ορόσημο 1: Ταμείο Ανάγκης (3 μήνες)' : 'Milestone 1: Emergency Fund (3 mo)';
+      const pctL1 = Math.min(100, Math.round((monthsNum / 3) * 100));
+      mStatus = `${pctL1}% (${monthsNum.toFixed(1)}/3 μ.)`;
+    }
+
+    if (runwayMilestoneIcon) runwayMilestoneIcon.textContent = mIcon;
+    if (runwayMilestoneTitle) runwayMilestoneTitle.textContent = mTitle;
+    if (runwayMilestoneStatus) runwayMilestoneStatus.textContent = mStatus;
+  }
+
+  // Update Milestones Ladder in Modal
+  const m1Card = document.getElementById('milestone-step-1');
+  const m1Badge = document.getElementById('milestone-step-1-badge');
+  const m2Card = document.getElementById('milestone-step-2');
+  const m2Badge = document.getElementById('milestone-step-2-badge');
+  const m3Card = document.getElementById('milestone-step-3');
+  const m3Badge = document.getElementById('milestone-step-3-badge');
+  const m4Card = document.getElementById('milestone-step-4');
+  const m4Badge = document.getElementById('milestone-step-4-badge');
+
+  const curMonths = fhs.lifestyleRunway || 0;
+
+  if (m1Card && m1Badge) {
+    if (curMonths >= 3) {
+      m1Card.className = 'milestone-step-card achieved';
+      m1Badge.textContent = '100% ✓';
+    } else {
+      m1Card.className = 'milestone-step-card active';
+      m1Badge.textContent = `${Math.min(100, Math.round((curMonths / 3) * 100))}% ⏳`;
+    }
+  }
+
+  if (m2Card && m2Badge) {
+    if (curMonths >= 6) {
+      m2Card.className = 'milestone-step-card achieved';
+      m2Badge.textContent = '100% ✓';
+    } else if (curMonths >= 3) {
+      m2Card.className = 'milestone-step-card active';
+      m2Badge.textContent = `${Math.min(100, Math.round((curMonths / 6) * 100))}% ⏳`;
+    } else {
+      m2Card.className = 'milestone-step-card locked';
+      m2Badge.textContent = state.lang === 'el' ? 'Κλειδωμένο 🔒' : 'Locked 🔒';
+    }
+  }
+
+  if (m3Card && m3Badge) {
+    if (curMonths >= 12) {
+      m3Card.className = 'milestone-step-card achieved';
+      m3Badge.textContent = '100% ✓';
+    } else if (curMonths >= 6) {
+      m3Card.className = 'milestone-step-card active';
+      m3Badge.textContent = `${Math.min(100, Math.round((curMonths / 12) * 100))}% ⏳`;
+    } else {
+      m3Card.className = 'milestone-step-card locked';
+      m3Badge.textContent = state.lang === 'el' ? 'Κλειδωμένο 🔒' : 'Locked 🔒';
+    }
+  }
+
+  if (m4Card && m4Badge) {
+    if (curMonths >= 24) {
+      m4Card.className = 'milestone-step-card achieved';
+      m4Badge.textContent = '100% ✓';
+    } else if (curMonths >= 12) {
+      m4Card.className = 'milestone-step-card active';
+      m4Badge.textContent = state.lang === 'el' ? 'Σε εξέλιξη ⏳' : 'In progress ⏳';
+    } else {
+      m4Card.className = 'milestone-step-card locked';
+      m4Badge.textContent = state.lang === 'el' ? 'Κλειδωμένο 🔒' : 'Locked 🔒';
+    }
+  }
 
   const icons = { cash: '💵', bank: '🏦', card: '💳' };
 
@@ -968,6 +1216,12 @@ function renderAccountsTab() {
   // Update Safe-to-Spend Radar in Επισκόπηση
   if (typeof updateSafeToSpendUI === 'function') {
     updateSafeToSpendUI();
+  }
+
+  // Ensure Safe-to-Spend is hidden when browsing historical years
+  const stsRadarCard = document.getElementById('safe-to-spend-overview-card');
+  if (stsRadarCard) {
+    stsRadarCard.style.display = currentYearOverview < currentYear ? 'none' : 'flex';
   }
 }
 
