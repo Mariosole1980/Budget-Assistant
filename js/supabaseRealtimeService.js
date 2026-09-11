@@ -40,16 +40,27 @@
 let _realtimeReconnectTimer = null;
 let _realtimeWatchdogInterval = null;
 let _syncQueueWorkerInterval = null;
+let _channelGeneration = 0;       // Monotonically increasing — captured in subscribe closure for identity
+let _isSettingUp = false;          // Single-flight guard for setupSupabaseRealtimeSubscription()
+let _reconnectAttempts = 0;        // Exponential backoff counter (reset on SUBSCRIBED)
+let _setupSafetyTimer = null;      // Safety timeout: releases _isSettingUp if callback never fires
 
 function _scheduleRealtimeReconnect(delayMs = 3000) {
   if (_realtimeReconnectTimer) return;
+  if (_isSettingUp) return;
+
+  // Exponential backoff (3s, 6s, 12s, 24s, cap at 60s)
+  _reconnectAttempts++;
+  const backoffDelay = Math.min(delayMs * Math.pow(2, _reconnectAttempts - 1), 60000);
+
+  console.info(`[Realtime] Scheduling reconnect #${_reconnectAttempts} in ${backoffDelay}ms`);
+
   _realtimeReconnectTimer = setTimeout(() => {
     _realtimeReconnectTimer = null;
     if (state.supabaseClient && state.currentUser && navigator.onLine !== false) {
-      console.info('[Realtime] Attempting automatic reconnect...');
       setupSupabaseRealtimeSubscription();
     }
-  }, delayMs);
+  }, backoffDelay);
 }
 
 function _startRealtimeWatchdog() {
@@ -57,11 +68,15 @@ function _startRealtimeWatchdog() {
   _realtimeWatchdogInterval = setInterval(() => {
     if (!state.supabaseClient || !state.currentUser || navigator.onLine === false) return;
     if (document.visibilityState === 'hidden') return;
+    if (_isSettingUp) return;
 
-    const isJoined = _supabaseRealtimeChannel && _supabaseRealtimeChannel.state === 'joined';
-    if (!isJoined) {
-      console.info('[RealtimeWatchdog] Channel not joined (state=' + (_supabaseRealtimeChannel ? _supabaseRealtimeChannel.state : 'null') + '), reconnecting...');
-      setupSupabaseRealtimeSubscription();
+    const channelState = _supabaseRealtimeChannel ? _supabaseRealtimeChannel.state : null;
+    const isJoined = channelState === 'joined';
+    const isJoining = channelState === 'joining';
+
+    if (!isJoined && !isJoining) {
+      console.info('[RealtimeWatchdog] Channel not joined (state=' + (channelState || 'null') + '), scheduling reconnect...');
+      _scheduleRealtimeReconnect(3000);
     }
   }, 25000);
 }
@@ -85,12 +100,25 @@ function _startSyncQueueWorker() {
 
 function setupSupabaseRealtimeSubscription() {
   if (!state.supabaseClient || !state.currentUser) return;
+  if (_isSettingUp) return;  // Single-flight guard
+  _isSettingUp = true;
+
+  // Increment generation — invalidates all callbacks from previous channels
+  const thisGeneration = ++_channelGeneration;
 
   if (_supabaseRealtimeChannel) {
     try {
       state.supabaseClient.removeChannel(_supabaseRealtimeChannel);
+      // removeChannel() fires CLOSED callback asynchronously,
+      // but thisGeneration > old generation, so it will be ignored
     } catch (_) {}
     _supabaseRealtimeChannel = null;
+  }
+
+  // Clear any pending reconnect since we're re-establishing now
+  if (_realtimeReconnectTimer) {
+    clearTimeout(_realtimeReconnectTimer);
+    _realtimeReconnectTimer = null;
   }
 
   const userId = state.currentUser.id;
@@ -113,7 +141,8 @@ function setupSupabaseRealtimeSubscription() {
     } catch (_) {}
   }
 
-  _supabaseRealtimeChannel = state.supabaseClient.channel('realtime-sync-' + Date.now());
+  // Stable channel name (enables SDK deduplication via leaveOpenTopic)
+  _supabaseRealtimeChannel = state.supabaseClient.channel('realtime-sync');
 
   // 1. Always listen for personal changes by user_id
   _supabaseRealtimeChannel.on(
@@ -152,11 +181,38 @@ function setupSupabaseRealtimeSubscription() {
     );
   }
 
+  // Safety timeout: if subscribe callback never fires, release lock after 30s
+  if (_setupSafetyTimer) clearTimeout(_setupSafetyTimer);
+  _setupSafetyTimer = setTimeout(() => {
+    if (_isSettingUp && thisGeneration === _channelGeneration) {
+      console.warn('[Realtime] Setup safety timeout — releasing lock after 30s');
+      _isSettingUp = false;
+      _scheduleRealtimeReconnect(3000);
+    }
+  }, 30000);
+
   _supabaseRealtimeChannel.subscribe((status, err) => {
+    // Ignore callbacks from stale channel generations
+    if (thisGeneration !== _channelGeneration) {
+      console.info(`[Realtime] Ignoring stale callback (gen ${thisGeneration}, current ${_channelGeneration}): ${status}`);
+      return;
+    }
+
     if (status === 'SUBSCRIBED') {
       console.info('[Realtime] Subscribed to sync channel successfully');
-    } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-      console.warn(`[Realtime] Subscription status: ${status}`, err);
+      _reconnectAttempts = 0;
+      _isSettingUp = false;
+      if (_setupSafetyTimer) { clearTimeout(_setupSafetyTimer); _setupSafetyTimer = null; }
+    } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+      console.warn(`[Realtime] Subscription error: ${status}`, err);
+      _isSettingUp = false;
+      if (_setupSafetyTimer) { clearTimeout(_setupSafetyTimer); _setupSafetyTimer = null; }
+      _scheduleRealtimeReconnect(3000);
+    } else if (status === 'CLOSED') {
+      // CLOSED on the CURRENT generation = unexpected server close → reconnect
+      console.warn('[Realtime] Channel closed unexpectedly, scheduling reconnect');
+      _isSettingUp = false;
+      if (_setupSafetyTimer) { clearTimeout(_setupSafetyTimer); _setupSafetyTimer = null; }
       _scheduleRealtimeReconnect(3000);
     }
   });
@@ -166,6 +222,11 @@ function setupSupabaseRealtimeSubscription() {
 }
 
 function stopSupabaseRealtimeSubscription() {
+  // Increment generation to invalidate any pending async CLOSED callbacks
+  _channelGeneration++;
+  _isSettingUp = false;
+  if (_setupSafetyTimer) { clearTimeout(_setupSafetyTimer); _setupSafetyTimer = null; }
+
   if (_supabaseRealtimeChannel && state.supabaseClient) {
     try {
       state.supabaseClient.removeChannel(_supabaseRealtimeChannel);
@@ -180,6 +241,7 @@ function stopSupabaseRealtimeSubscription() {
     clearTimeout(_realtimeReconnectTimer);
     _realtimeReconnectTimer = null;
   }
+  _reconnectAttempts = 0;
 }
 
 // Debounce timer for realtime changes — prevents rapid-fire UI re-renders when
@@ -1218,6 +1280,9 @@ function startPartnerSyncPolling() {
     startPartnerSyncPolling,
     stopPartnerSyncPolling,
     getChannel: function () { return _supabaseRealtimeChannel; },
-    isForceSyncInFlight: function () { return !!_forceSyncInFlight; }
+    isForceSyncInFlight: function () { return !!_forceSyncInFlight; },
+    _getChannelGeneration: function () { return _channelGeneration; },
+    _getIsSettingUp: function () { return _isSettingUp; },
+    _getReconnectAttempts: function () { return _reconnectAttempts; },
   };
 }));

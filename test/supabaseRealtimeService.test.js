@@ -71,3 +71,113 @@ test('SupabaseRealtimeService.suppressRealtimeFor toggles _suppressRealtimeEvent
   await new Promise(r => setTimeout(r, 70));
   assert.strictEqual(global.window._suppressRealtimeEvents, false);
 });
+
+// === Reconnect lifecycle fix tests ===
+
+test('SupabaseRealtimeService exports new test getters for reconnect state', () => {
+  assert.strictEqual(typeof SupabaseRealtimeService._getChannelGeneration, 'function');
+  assert.strictEqual(typeof SupabaseRealtimeService._getIsSettingUp, 'function');
+  assert.strictEqual(typeof SupabaseRealtimeService._getReconnectAttempts, 'function');
+});
+
+test('SupabaseRealtimeService._getChannelGeneration starts at 0 and increments on setup', () => {
+  // Reset state
+  SupabaseRealtimeService.stopSupabaseRealtimeSubscription();
+  const genAfterStop = SupabaseRealtimeService._getChannelGeneration();
+  // gen should have incremented from stop()
+  assert.strictEqual(typeof genAfterStop, 'number');
+  assert.ok(genAfterStop >= 1, 'Generation should be >= 1 after stop()');
+});
+
+test('SupabaseRealtimeService.stopSupabaseRealtimeSubscription increments generation and resets state', () => {
+  const genBefore = SupabaseRealtimeService._getChannelGeneration();
+  SupabaseRealtimeService.stopSupabaseRealtimeSubscription();
+  const genAfter = SupabaseRealtimeService._getChannelGeneration();
+  assert.strictEqual(genAfter, genBefore + 1, 'stop() should increment generation by 1');
+  assert.strictEqual(SupabaseRealtimeService._getIsSettingUp(), false, '_isSettingUp should be false after stop');
+  assert.strictEqual(SupabaseRealtimeService._getReconnectAttempts(), 0, 'reconnectAttempts should be 0 after stop');
+});
+
+test('SupabaseRealtimeService.setupSupabaseRealtimeSubscription respects single-flight guard', () => {
+  // Create a mock supabase client with channel() and removeChannel()
+  let subscribeCallCount = 0;
+  const mockChannel = {
+    state: 'closed',
+    on: function () { return this; },
+    subscribe: function (cb) { subscribeCallCount++; return this; }
+  };
+  global.state.supabaseClient = {
+    channel: () => mockChannel,
+    removeChannel: () => {}
+  };
+  global.state.currentUser = { id: 'test-user-123' };
+  global.navigator = { onLine: true };
+  global.document = { visibilityState: 'visible' };
+
+  // First call should proceed
+  SupabaseRealtimeService.stopSupabaseRealtimeSubscription(); // clean state
+  SupabaseRealtimeService.setupSupabaseRealtimeSubscription();
+  assert.strictEqual(subscribeCallCount, 1, 'First setup should call subscribe');
+
+  // Second call should be blocked by _isSettingUp guard
+  SupabaseRealtimeService.setupSupabaseRealtimeSubscription();
+  assert.strictEqual(subscribeCallCount, 1, 'Second setup should be blocked by single-flight guard');
+
+  // Clean up
+  SupabaseRealtimeService.stopSupabaseRealtimeSubscription();
+  global.state.supabaseClient = null;
+  global.state.currentUser = null;
+});
+
+test('SupabaseRealtimeService.setupSupabaseRealtimeSubscription increments generation on each call', () => {
+  let mockChannel = {
+    state: 'closed',
+    on: function () { return this; },
+    subscribe: function () { return this; }
+  };
+  global.state.supabaseClient = {
+    channel: () => mockChannel,
+    removeChannel: () => {}
+  };
+  global.state.currentUser = { id: 'test-user-456' };
+  global.navigator = { onLine: true };
+  global.document = { visibilityState: 'visible' };
+
+  SupabaseRealtimeService.stopSupabaseRealtimeSubscription(); // reset
+  const genBefore = SupabaseRealtimeService._getChannelGeneration();
+
+  SupabaseRealtimeService.setupSupabaseRealtimeSubscription();
+  const genAfterSetup = SupabaseRealtimeService._getChannelGeneration();
+  assert.strictEqual(genAfterSetup, genBefore + 1, 'setup() should increment generation by 1');
+
+  // Clean up
+  SupabaseRealtimeService.stopSupabaseRealtimeSubscription();
+  global.state.supabaseClient = null;
+  global.state.currentUser = null;
+});
+
+test('SupabaseRealtimeService uses stable channel name "realtime-sync"', () => {
+  let createdChannelName = null;
+  const mockChannel = {
+    state: 'closed',
+    on: function () { return this; },
+    subscribe: function () { return this; }
+  };
+  global.state.supabaseClient = {
+    channel: (name) => { createdChannelName = name; return mockChannel; },
+    removeChannel: () => {}
+  };
+  global.state.currentUser = { id: 'test-user-789' };
+  global.navigator = { onLine: true };
+  global.document = { visibilityState: 'visible' };
+
+  SupabaseRealtimeService.stopSupabaseRealtimeSubscription(); // reset
+  SupabaseRealtimeService.setupSupabaseRealtimeSubscription();
+
+  assert.strictEqual(createdChannelName, 'realtime-sync', 'Channel name should be stable "realtime-sync"');
+
+  // Clean up
+  SupabaseRealtimeService.stopSupabaseRealtimeSubscription();
+  global.state.supabaseClient = null;
+  global.state.currentUser = null;
+});
