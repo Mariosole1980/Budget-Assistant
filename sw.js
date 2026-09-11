@@ -120,6 +120,8 @@ const ASSETS = [
   'js/appInitService.js',
   'js/hapticFeedbackService.js',
   'js/cashFlowCalendarService.js',
+  'js/bankNotificationParser.js',
+  'js/bankNotificationService.js',
   'app.js',
   'web-ui.js'
 ];

@@ -617,6 +617,9 @@
   <script src="js/hapticFeedbackService.js"></script>
   <!-- Cash Flow Calendar Subsystem (loaded before app.js) -->
   <script src="js/cashFlowCalendarService.js"></script>
+  <!-- Bank Push Notification Parser & Service Subsystem (loaded before app.js) -->
+  <script src="js/bankNotificationParser.js"></script>
+  <script src="js/bankNotificationService.js"></script>
       <script src="app.js?v=1713"></script>
       <!-- Desktop Web UX Layer (defer so it runs after app.js; invoked via
        initDesktopUI() hook at the end of initApp()). Self-guards on
@@ -3606,6 +3609,62 @@
             <i class="fa-solid fa-crown" style="flex-shrink: 0;"></i>
             <span style="white-space: normal;">Ξεκλείδωσε Πλήρη Πρόβλεψη &amp; Κοινό Ταμείο (€9,99)</span>
           </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- MODAL: BANK TRANSACTION AUTO-CAPTURE REVIEW   -->
+    <!-- ============================================== -->
+    <div id="bank-tx-review-modal" class="modal-overlay" style="z-index: 13000;">
+      <div class="modal-content subscreen-card-standard"
+        style="max-width: 420px; width: 92%; max-height: 90vh; padding: 0; border-radius: 24px; background: #141824; border: 1px solid rgba(56, 189, 248, 0.3); box-shadow: 0 20px 50px rgba(0,0,0,0.7); margin: 0 auto; box-sizing: border-box; overflow: hidden;">
+        <!-- Header -->
+        <div style="padding: 16px 20px; background: linear-gradient(135deg, rgba(56, 189, 248, 0.15) 0%, rgba(20, 24, 36, 0.95) 100%); border-bottom: 1px solid rgba(56, 189, 248, 0.25); display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="width: 36px; height: 36px; border-radius: 12px; background: rgba(56, 189, 248, 0.2); color: #38bdf8; display: flex; align-items: center; justify-content: center; font-size: 16px;">
+              <i class="fa-solid fa-building-columns"></i>
+            </div>
+            <div>
+              <div style="font-size: 11px; font-weight: 700; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.5px;">Αυτοματη Καταγραφη</div>
+              <h3 id="bank-tx-review-bank" style="margin: 0; font-family: 'Outfit', sans-serif; font-size: 15px; font-weight: 800; color: #fff;">Eurobank</h3>
+            </div>
+          </div>
+          <button type="button" class="icon-btn" onclick="BankNotificationService.dismissTransaction()" style="width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: var(--text-secondary); display: flex; align-items: center; justify-content: center; cursor: pointer;">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <div class="modal-body" style="padding: 20px 18px; display: flex; flex-direction: column; gap: 14px; text-align: center;">
+          <!-- Amount Display -->
+          <div>
+            <div style="font-size: 11.5px; color: var(--text-muted); margin-bottom: 4px;">Ποσό Συναλλαγής</div>
+            <div id="bank-tx-review-amount" style="font-family: 'Outfit', sans-serif; font-size: 32px; font-weight: 900; color: #f87171; letter-spacing: -0.5px;">- € 0,00</div>
+          </div>
+
+          <!-- Merchant / Note Card -->
+          <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 16px; padding: 12px 14px; text-align: left; display: flex; flex-direction: column; gap: 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 12px; color: var(--text-secondary);">Έμπορος:</span>
+              <span id="bank-tx-review-merchant" style="font-size: 13px; font-weight: 700; color: #fff;">MIKEL</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 12px; color: var(--text-secondary);">Προτεινόμενη Κατηγορία:</span>
+              <span id="bank-tx-review-category" style="font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 8px; background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3);">Καφές / Έξω</span>
+            </div>
+            <div id="bank-tx-review-card" style="font-size: 11px; color: var(--text-muted); text-align: right; display: none;">Κάρτα: ...1234</div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div style="display: flex; gap: 10px; margin-top: 4px;">
+            <button type="button" onclick="BankNotificationService.dismissTransaction()" style="flex: 1; padding: 12px; border-radius: 14px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: var(--text-secondary); font-weight: 700; font-size: 13px; cursor: pointer;">
+              Απόρριψη
+            </button>
+            <button type="button" onclick="BankNotificationService.acceptTransaction()" style="flex: 1.5; padding: 12px; border-radius: 14px; background: linear-gradient(135deg, #0284c7, #0ea5e9); border: none; color: #fff; font-weight: 800; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 16px rgba(14, 165, 233, 0.4);">
+              <i class="fa-solid fa-check"></i>
+              <span>Καταχώρηση</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>

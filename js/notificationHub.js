@@ -530,32 +530,19 @@ window.toggleBudgetLimitAlerts = function (checked) {
 };
 
 window.toggleBankNotifications = function (checked) {
+  if (typeof BankNotificationService !== 'undefined' && typeof BankNotificationService.handleToggle === 'function') {
+    BankNotificationService.handleToggle(checked);
+    return;
+  }
   localStorage.setItem('bank_notifications_reader_enabled', checked ? 'true' : 'false');
+  var isEl = !state || state.lang === 'el';
   if (checked) {
-    var isEl = !state || state.lang === 'el';
-    var isAndroid = typeof window !== 'undefined' && window.Capacitor && typeof window.Capacitor.getPlatform === 'function' && window.Capacitor.getPlatform() === 'android';
-    if (typeof showCustomDialog === 'function') {
-      showCustomDialog({
-        title: isEl ? '🏦 Αυτόματη Καταγραφή από Τράπεζες' : '🏦 Bank Push Notifications',
-        icon: '🏦',
-        body: isEl
-          ? '<div style="text-align:left; font-size:13px; line-height:1.5; color:var(--text-secondary);">' +
-            '<p style="margin-bottom:8px;">Το Budget Assistant υποστηρίζει αυτόματη αναγνώριση κινήσεων από τα notifications των <b>Eurobank, Εθνική NBG, Τράπεζα Πειραιώς, Alpha Bank & Revolut</b>!</p>' +
-            '<p style="margin-bottom:8px;">🔒 <b>Απόλυτη Ασφάλεια:</b> Δεν απαιτούνται κωδικοί τραπεζών. Η εφαρμογή διαβάζει μόνο το ποσό και το κατάστημα από τις τοπικές ειδοποιήσεις της συσκευής σας.</p>' +
-            '<p style="margin:0; font-size:12px; color:var(--text-muted);">' + (isAndroid ? 'Βεβαιωθείτε ότι έχετε δώσει άδεια πρόσβασης στις ειδοποιήσεις στις Ρυθμίσεις του Android.' : 'Η αυτόματη ανάγνωση ειδοποιήσεων ενεργοποιείται στις συσκευές Android.') + '</p>' +
-            '</div>'
-          : '<div style="text-align:left; font-size:13px; line-height:1.5; color:var(--text-secondary);">' +
-            '<p style="margin-bottom:8px;">Budget Assistant detects incoming transactions from bank push notifications!</p>' +
-            '<p style="margin:0; font-size:12px; color:var(--text-muted);">Ensure notification access permission is granted on Android settings.</p>' +
-            '</div>',
-        primaryBtn: isEl ? 'Κατάλαβα' : 'Got it'
-      });
-    } else if (typeof showSyncToast === 'function') {
+    if (typeof showSyncToast === 'function') {
       showSyncToast(isEl ? '✓ Αυτόματη καταγραφή τραπεζών ενεργοποιήθηκε' : '✓ Bank notifications auto-capture enabled', 2000);
     }
   } else {
     if (typeof showSyncToast === 'function') {
-      showSyncToast(state.lang === 'el' ? '✕ Αυτόματη καταγραφή τραπεζών απενεργοποιήθηκε' : '✕ Bank notifications auto-capture disabled', 2000);
+      showSyncToast(isEl ? '✕ Αυτόματη καταγραφή τραπεζών απενεργοποιήθηκε' : '✕ Bank notifications auto-capture disabled', 2000);
     }
   }
 };

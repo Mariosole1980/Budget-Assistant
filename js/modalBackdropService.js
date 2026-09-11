@@ -38,7 +38,8 @@
     'profile-settings-modal',
     'settings-subscreen-modal',
     'cash-flow-calendar-modal',
-    'safe-to-spend-modal'
+    'safe-to-spend-modal',
+    'bank-tx-review-modal'
   ];
 
   /**

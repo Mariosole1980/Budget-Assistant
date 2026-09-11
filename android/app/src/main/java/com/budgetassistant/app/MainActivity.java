@@ -129,6 +129,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(SecurityPlugin.class);
         registerPlugin(ReliableNotificationPlugin.class);
         registerPlugin(QuickAddNotificationPlugin.class);
+        registerPlugin(BankNotificationPlugin.class);
         handleIncomingQuickAction(getIntent());
 
         try {
