@@ -87,17 +87,18 @@ const USER_GUIDE_DATA = {
       {
         id: 'changelog',
         icon: 'fa-box-archive',
-        title: `1. Έκδοση & Τι Νέο Υπάρχει (v${typeof CURRENT_BUILD !== "undefined" ? CURRENT_BUILD : 1499})`,
+        title: `1. Έκδοση & Τι Νέο Υπάρχει (v${typeof CURRENT_BUILD !== "undefined" ? CURRENT_BUILD : 1715})`,
         content: `
-          <p><strong>Τρέχουσα Έκδοση Εφαρμογής:</strong> v${typeof CURRENT_BUILD !== "undefined" ? CURRENT_BUILD : 1499} | <strong>Ενημερώθηκε:</strong> Αύγουστος 2026</p>
+          <p><strong>Τρέχουσα Έκδοση Εφαρμογής:</strong> v${typeof CURRENT_BUILD !== "undefined" ? CURRENT_BUILD : 1715} | <strong>Ενημερώθηκε:</strong> Σεπτέμβριος 2026</p>
           <div class="guide-feature-box">
-            <h5 style="margin:0 0 6px; color:var(--accent);">✨ Τι νέο υπάρχει στην τελευταία έκδοση:</h5>
+            <h5 style="margin:0 0 6px; color:var(--accent);">✨ Τι νέο υπάρχει στις τελευταίες εκδόσεις:</h5>
             <ul style="margin:0; padding-left:18px;">
-              <li><strong>🤖 AI Οικονομικός Σύμβουλος:</strong> Έξυπνος ψηφιακός σύμβουλος με ανάλυση των οικονομικών σας, συμβουλές εξοικονόμησης και πλήρη απομόνωση ιστορικού ανά λογαριασμό.</li>
+              <li><strong>🏦 Αυτόματη Καταγραφή από Τράπεζες (Android):</strong> Αυτόματη ανάγνωση push ειδοποιήσεων από Eurobank, winbank (Πειραιώς), Alpha Bank, Εθνική Τράπεζα (NBG) και Revolut με έξυπνη συμπλήρωση ποσού, εμπόρου και κατηγορίας με 1 πάτημα (λειτουργεί και με κλειστή εφαρμογή).</li>
+              <li><strong>📅 Ημερολόγιο Cash Flow & Πρόβλεψη Ροής:</strong> Οπτική επισκόπηση ημερήσιων εισπράξεων/δαπανών, πρόβλεψη υπολοίπου τέλους μήνα (Projected Balance), παρακολούθηση προσεχών πάγιων οφειλών και ανάλυση κινήσεων ανά ημέρα.</li>
+              <li><strong>🛡️ Ασφαλές Ποσό για Έξοδα (Safe-to-Spend) & What-If:</strong> Υπολογισμός πραγματικά διαθέσιμου ποσού για καθημερινές αγορές αφού αφαιρεθούν πάγια και αποταμίευση, με προσομοιωτή μελλοντικών αγορών.</li>
+              <li><strong>🔔 Βελτιστοποιημένα Εικονίδια & Ειδοποιήσεις:</strong> Νέο ενιαίο σκούρο εικονίδιο (#0F1217) χωρίς λευκά περιθώρια, μεγεθυμένο σύμβολο και άμεσες ειδοποιήσεις καταγραφής.</li>
+              <li><strong>🤖 AI Οικονομικός Σύμβουλος & AI Σάρωση Αποδείξεων:</strong> Έξυπνος ψηφιακός σύμβουλος με ανάλυση των οικονομικών σας και αυτόματη καταχώρηση αποδείξεων σε 2 δευτερόλεπτα.</li>
               <li><strong>📝 Σημειωματάριο & Checklists:</strong> Αυτόνομη διαχείριση προσωπικών σημειώσεων και λιστών αγορών με κουτάκια επιλογής (Checkboxes) και κάδο ανάκτησης.</li>
-              <li><strong>📅 Σύγχρονο Bottom Sheet Ημερολόγιο:</strong> Εύχρηστη επιλογή ημερομηνίας με δυναμική χρωματική προσαρμογή ανάλογα με τον τύπο της συναλλαγής (Έξοδο 🔴, Έσοδο 🟢, Μεταφορά 🔵).</li>
-              <li><strong>🔒 100% Απομόνωση Δεδομένων:</strong> Αυστηρός διαχωρισμός σημειώσεων και συνομιλιών ανά χρήστη για απόλυτη ιδιωτικότητα κατά την εναλλαγή λογαριασμών Google.</li>
-              <li><strong>🚀 Edge-to-Edge Splash Screen:</strong> Αστραπιαία εκκίνηση με 3D νέον λογότυπο, ομαλό ambient glow και αυτόνομη offline λειτουργία.</li>
             </ul>
           </div>
         `
@@ -198,8 +199,22 @@ const USER_GUIDE_DATA = {
       {
         id: 'budgeting',
         icon: 'fa-piggy-bank',
-        title: '7. Προϋπολογισμός & Όρια Δαπανών',
+        title: '7. Προϋπολογισμός, Safe-to-Spend & Cash Flow',
         content: `
+          <div class="guide-feature-box">
+            <h5 style="margin:0 0 6px; color:var(--text-main);">🛡️ Ασφαλές Ποσό για Έξοδα (Safe-to-Spend):</h5>
+            <p style="margin:0 0 6px;">Το <strong>Safe-to-Spend</strong> υπολογίζει δυναμικά πόσα χρήματα μπορείτε να ξοδεύετε καθημερινά για τον υπόλοιπο μήνα, αφού αφαιρεθούν όλες οι μελλοντικές πάγιες υποχρεώσεις και ο στόχος αποταμίευσης.</p>
+            <p style="margin:0;"><strong>🔮 Προσομοιωτής Αγορών (What-If):</strong> Δοκιμάστε ένα υποθετικό έξοδο (π.χ. 120€ για ρούχα) και δείτε άμεσα πώς επηρεάζει το ημερήσιο διαθέσιμο ποσό σας, χωρίς να αλλοιωθούν τα πραγματικά σας δεδομένα!</p>
+          </div>
+          <div class="guide-feature-box">
+            <h5 style="margin:0 0 6px; color:var(--text-main);">📅 Ημερολόγιο Cash Flow & Πρόβλεψη:</h5>
+            <p style="margin:0 0 6px;">Πατήστε το εικονίδιο ημερολογίου στην κορυφή για να δείτε αναλυτικά τις ταμειακές ροές κάθε ημέρας του μήνα:</p>
+            <ul class="guide-step-list">
+              <li><strong>Πρόβλεψη Τέλους Μήνα:</strong> Εκτιμώμενο τελικό ταμειακό υπόλοιπο βάσει πραγματικών κινήσεων και προγραμματισμένων υποχρεώσεων.</li>
+              <li><strong>Εκκρεμείς Πάγιες Οφειλές:</strong> Αυτόματος εντοπισμός απλήρωτων λογαριασμών με κουμπί άμεσης εξόφλησης (Quick Pay).</li>
+              <li><strong>Ανάλυση Ημέρας:</strong> Πατώντας σε οποιαδήποτε ημέρα, βλέπετε όλες τις κινήσεις που πραγματοποιήθηκαν ή προβλέπονται.</li>
+            </ul>
+          </div>
           <div class="guide-feature-box">
             <h5 style="margin:0 0 6px; color:var(--text-main);">⚠️ Όριο Μεμονωμένης Δαπάνης (€):</h5>
             <p style="margin:0 0 6px;">Στις <em>Ρυθμίσεις -> Ειδοποιήσεις</em> μπορείτε να ενεργοποιήσετε το Όριο Μεμονωμένης Δαπάνης και να ορίσετε ένα ποσό (π.χ. <strong>500.00€</strong>).</p>
@@ -213,9 +228,20 @@ const USER_GUIDE_DATA = {
       {
         id: 'notifications',
         icon: 'fa-bell',
-        title: '8. Ειδοποιήσεις & Υπενθυμίσεις',
+        title: '8. Ειδοποιήσεις, Υπενθυμίσεις & Αυτόματη Καταγραφή Τραπεζών',
         content: `
-          <p>Το σύστημα ειδοποιήσεων περιλαμβάνει 3 διακριτούς μηχανισμούς:</p>
+          <div class="guide-feature-box">
+            <h5 style="margin:0 0 6px; color:var(--accent);">🏦 Αυτόματη Καταγραφή από Push Ειδοποιήσεις Τραπεζών (Android):</h5>
+            <p style="margin:0 0 6px;">Το Budget Assistant διαβάζει αυτόματα τις ειδοποιήσεις συναλλαγών από τις μεγαλύτερες ελληνικές τράπεζες και τη Revolut:</p>
+            <ul class="guide-step-list">
+              <li><strong>Υποστηριζόμενες Τράπεζες:</strong> Eurobank, winbank (Τράπεζα Πειραιώς), Alpha Bank, Εθνική Τράπεζα (NBG) και Revolut.</li>
+              <li><strong>Ενεργοποίηση:</strong> Πηγαίνετε στις <em>Ρυθμίσεις -> Ειδοποιήσεις -> Αυτόματη Καταγραφή από Τράπεζες</em> και ενεργοποιήστε το διακόπτη.</li>
+              <li><strong>Άδεια Android:</strong> Απαιτείται παραχώρηση της άδειας «Πρόσβαση σε Ειδοποιήσεις» (Notification Access) στις ρυθμίσεις του Android.</li>
+              <li><strong>1-Tap Καταγραφή:</strong> Μόλις κάνετε μια αγορά, το app διαβάζει το ποσό, τον έμπορο (π.χ. Σκλαβενίτης, Efood, Wolt, Shell) και προτείνει την κατηγορία με έτοιμη φόρμα για αποθήκευση με 1 κλικ.</li>
+              <li><strong>Λειτουργία με Κλειστή Εφαρμογή:</strong> Η ανίχνευση γίνεται στο παρασκήνιο σε επίπεδο συστήματος και λαμβάνετε διακριτική ειδοποίηση στο κινητό σας για άμεσο άνοιγμα.</li>
+            </ul>
+          </div>
+          <p>Επιπλέον μηχανισμοί ειδοποιήσεων:</p>
           <ul class="guide-step-list">
             <li><strong>📝 Καθημερινή Υπενθύμιση:</strong> Σας υπενθυμίζει την ώρα που επιλέγετε (π.χ. 21:00) να καταγράψετε τα σημερινά έξοδα.</li>
             <li><strong>⏳ Ειδοποίηση Πάγιων (1 μέρα πριν):</strong> Σας ειδοποιεί αυτόματα 1 ημέρα πριν την πληρωμή μιας προγραμματισμένης πάγιας δαπάνης.</li>
@@ -291,6 +317,14 @@ const USER_GUIDE_DATA = {
             </ul>
           </div>
           <div class="guide-callout-warning">
+            ❓ <strong>"Δεν καταγράφονται αυτόματα οι ειδοποιήσεις της τράπεζάς μου":</strong>
+            <ul style="margin:4px 0 0; padding-left:16px;">
+              <li>Ελέγξτε αν ο διακόπτης "Αυτόματη Καταγραφή από Τράπεζες" είναι ενεργός στις <em>Ρυθμίσεις -> Ειδοποιήσεις</em>.</li>
+              <li>Βεβαιωθείτε ότι έχετε δώσει άδεια <strong>«Πρόσβαση σε Ειδοποιήσεις» (Notification Access)</strong> στο Budget Assistant στις Ρυθμίσεις της συσκευής σας Android.</li>
+              <li>Σε συσκευές Samsung, Xiaomi, Huawei, ορίστε τη χρήση μπαταρίας της εφαρμογής σε <strong>«Χωρίς περιορισμούς» (Unrestricted)</strong> ώστε το λειτουργικό σύστημα να μην καθυστερεί τις background διεργασίες.</li>
+            </ul>
+          </div>
+          <div class="guide-callout-warning">
             ❓ <strong>"Ξέχασα το PIN κλειδώματος":</strong>
             <ul style="margin:4px 0 0; padding-left:16px;">
               <li>Μπορείτε να χρησιμοποιήσετε τα Βιομετρικά (Δακτυλικό Αποτύπωμα) ή να κάνετε αποσύνδεση/επανασύνδεση λογαριασμού.</li>
@@ -336,17 +370,18 @@ const USER_GUIDE_DATA = {
       {
         id: 'changelog',
         icon: 'fa-box-archive',
-        title: `1. Version & What's New (v${typeof CURRENT_BUILD !== "undefined" ? CURRENT_BUILD : 1499})`,
+        title: `1. Version & What's New (v${typeof CURRENT_BUILD !== "undefined" ? CURRENT_BUILD : 1715})`,
         content: `
-          <p><strong>Guide Version:</strong> v${typeof CURRENT_BUILD !== "undefined" ? CURRENT_BUILD : 1499} | <strong>Synchronized App Version:</strong> v${typeof CURRENT_BUILD !== "undefined" ? CURRENT_BUILD : 1499}</p>
+          <p><strong>Guide Version:</strong> v${typeof CURRENT_BUILD !== "undefined" ? CURRENT_BUILD : 1715} | <strong>Updated:</strong> September 2026</p>
           <div class="guide-feature-box">
-            <h5 style="margin:0 0 6px; color:var(--primary);">✨ What's new in the latest version:</h5>
+            <h5 style="margin:0 0 6px; color:var(--primary);">✨ What's new in the latest releases:</h5>
             <ul style="margin:0; padding-left:18px;">
-              <li><strong>🤖 AI Financial Advisor:</strong> Intelligent financial advisor providing personalized insights and strict per-user chat privacy.</li>
+              <li><strong>🏦 Bank Notification Auto-Capture (Android):</strong> Automatic detection of push transaction alerts from Eurobank, winbank (Piraeus), Alpha Bank, NBG, and Revolut with auto-predicted merchant, amount & category, and 1-tap logging (even when the app is closed).</li>
+              <li><strong>📅 Cash Flow Calendar & Forecast:</strong> Interactive daily cash flow map, month-end projected balance, upcoming recurring bills tracker, and day drawer breakdown.</li>
+              <li><strong>🛡️ Safe-to-Spend & What-If Simulator:</strong> Real-time calculation of daily spending allowance after recurring bills and savings targets, with instant What-If purchase simulator.</li>
+              <li><strong>🔔 Redesigned Notification & App Icons:</strong> Clean dark icon design (#0F1217) without white borders, enlarged neon logo symbol, and instant Android notification alerts.</li>
+              <li><strong>🤖 AI Advisor & Smart Receipt Scanner:</strong> Intelligent AI financial insights and instant receipt OCR in 2 seconds.</li>
               <li><strong>📝 Notepad & Checklists:</strong> Standalone notes and shopping checklists with checkboxes, custom tags, and dedicated trash bin.</li>
-              <li><strong>📅 Modern Bottom Sheet Calendar:</strong> Dynamic date picker with type-based styling (Expense 🔴, Income 🟢, Transfer 🔵).</li>
-              <li><strong>🔒 Per-User Data Isolation:</strong> Complete separation of notes and AI conversations per Google account.</li>
-              <li><strong>🚀 Edge-to-Edge Splash Screen:</strong> Ultra-fast startup with 3D neon logo, ambient glow, and 100% offline WOFF2 fonts.</li>
             </ul>
           </div>
         `
@@ -445,8 +480,22 @@ const USER_GUIDE_DATA = {
       {
         id: 'budgeting',
         icon: 'fa-piggy-bank',
-        title: '7. Budgeting & Expense Limits',
+        title: '7. Budgeting, Safe-to-Spend & Cash Flow',
         content: `
+          <div class="guide-feature-box">
+            <h5 style="margin:0 0 6px; color:var(--text-main);">🛡️ Safe-to-Spend Allowance:</h5>
+            <p style="margin:0 0 6px;"><strong>Safe-to-Spend</strong> dynamically calculates how much you can safely spend per day for the rest of the month, after accounting for all scheduled bills and your monthly savings target.</p>
+            <p style="margin:0;"><strong>🔮 What-If Simulator:</strong> Test potential purchases (e.g. €120 for clothes) to immediately preview how your daily allowance adjusts—without modifying your actual data!</p>
+          </div>
+          <div class="guide-feature-box">
+            <h5 style="margin:0 0 6px; color:var(--text-main);">📅 Cash Flow Calendar & Forecast:</h5>
+            <p style="margin:0 0 6px;">Tap the calendar icon on the top bar to open the Cash Flow Calendar:</p>
+            <ul class="guide-step-list">
+              <li><strong>Month-End Projection:</strong> See your estimated final balance based on actual cash flows and scheduled obligations.</li>
+              <li><strong>Pending Recurring Bills:</strong> Auto-detects unpaid obligations with 1-tap Quick Pay action.</li>
+              <li><strong>Day-by-Day Breakdown:</strong> Tap any day to inspect all historical or projected transactions.</li>
+            </ul>
+          </div>
           <div class="guide-feature-box">
             <h5 style="margin:0 0 6px; color:var(--text-main);">⚠️ Single Expense Alert (€):</h5>
             <p style="margin:0 0 6px;">In <em>Settings -> Notifications</em> enable Single Expense Alert and set a threshold (e.g. <strong>€500.00</strong>).</p>
@@ -457,9 +506,20 @@ const USER_GUIDE_DATA = {
       {
         id: 'notifications',
         icon: 'fa-bell',
-        title: '8. Notification Center & Reminders',
+        title: '8. Notification Center & Bank Auto-Capture',
         content: `
-          <p>The notification system operates on 3 distinct triggers:</p>
+          <div class="guide-feature-box">
+            <h5 style="margin:0 0 6px; color:var(--accent);">🏦 Bank Push Notification Auto-Capture (Android):</h5>
+            <p style="margin:0 0 6px;">Budget Assistant automatically captures push payment alerts from Greek banks and Revolut:</p>
+            <ul class="guide-step-list">
+              <li><strong>Supported Banks:</strong> Eurobank, winbank (Piraeus Bank), Alpha Bank, National Bank of Greece (NBG), and Revolut.</li>
+              <li><strong>Activation:</strong> Enable the toggle under <em>Settings -> Notifications -> Bank Notifications Reader</em>.</li>
+              <li><strong>Android Permission:</strong> Grant "Notification Access" in Android Settings when prompted.</li>
+              <li><strong>1-Tap Review:</strong> When a payment occurs, the app extracts the merchant name, amount, and suggests a category for 1-tap confirmation.</li>
+              <li><strong>Background Support:</strong> Operates at the OS system level even when Budget Assistant is completely closed.</li>
+            </ul>
+          </div>
+          <p>Additional notification triggers:</p>
           <ul class="guide-step-list">
             <li><strong>📝 Daily Reminder:</strong> Reminds you at your designated time (e.g. 21:00) to log daily expenses.</li>
             <li><strong>⏳ Recurring Payment Alert (1-day prior):</strong> Automatically notifies you 1 day before a recurring payment is due.</li>
@@ -516,6 +576,14 @@ const USER_GUIDE_DATA = {
             <ul style="margin:4px 0 0; padding-left:16px;">
               <li>Verify you are signed in under Settings -> Account.</li>
               <li>Tap <strong>"Force Update"</strong> in Legal & Info.</li>
+            </ul>
+          </div>
+          <div class="guide-callout-warning">
+            ❓ <strong>"Bank notifications are not captured automatically":</strong>
+            <ul style="margin:4px 0 0; padding-left:16px;">
+              <li>Verify that "Bank Notifications Reader" is enabled in <em>Settings -> Notifications</em>.</li>
+              <li>Ensure <strong>"Notification Access"</strong> permission is granted to Budget Assistant in Android Settings.</li>
+              <li>On Samsung, Xiaomi, or Huawei devices, set Battery usage to <strong>"Unrestricted"</strong> to prevent OS background suspension.</li>
             </ul>
           </div>
           <div class="guide-callout-warning">
