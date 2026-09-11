@@ -18,6 +18,19 @@
   <link rel="icon" type="image/png" href="icon.png">
   <link rel="apple-touch-icon" href="icon-192.png">
 
+  <!-- Schema.org Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "Budget Assistant Interactive Tools",
+    "url": "https://www.budgetassistant.org/tools",
+    "description": "Δωρεάν online οικονομικά εργαλεία: Υπολογιστής καταμερισμού εξόδων ζευγαριού, Emergency Runway, κατανεμητής 50/30/20, ανατοκισμός, αποπληρωμή χρεών και στόχοι αποταμίευσης.",
+    "applicationCategory": "FinanceApplication",
+    "operatingSystem": "Web, Android, iOS"
+  }
+  </script>
+
   <!-- Google Fonts: Outfit & Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -686,6 +699,109 @@
       transition: width 0.3s ease;
     }
 
+    /* Action Button inside Tools Result Panel */
+    .calc-action-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 12px;
+      padding: 11px 18px;
+      background: rgba(124, 106, 247, 0.12);
+      border: 1px solid rgba(124, 106, 247, 0.35);
+      border-radius: var(--radius-md);
+      color: #C4B5FD;
+      font-size: 13.5px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      text-align: center;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .calc-action-btn:hover {
+      background: rgba(124, 106, 247, 0.25);
+      border-color: rgba(124, 106, 247, 0.6);
+      color: #FFFFFF;
+      transform: translateY(-1px);
+    }
+    .calc-action-btn svg {
+      width: 15px;
+      height: 15px;
+      flex-shrink: 0;
+    }
+
+    /* Bottom Tools Conversion CTA */
+    .tools-bottom-cta {
+      margin: 60px 0 30px;
+      background: linear-gradient(135deg, rgba(124, 106, 247, 0.15) 0%, rgba(16, 185, 129, 0.08) 100%);
+      border: 1px solid rgba(124, 106, 247, 0.3);
+      border-radius: var(--radius-xl);
+      padding: 48px 32px;
+      text-align: center;
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
+      position: relative;
+      overflow: hidden;
+    }
+    .tools-bottom-cta h2 {
+      font-family: var(--font-heading);
+      font-size: 28px;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 12px;
+    }
+    .tools-bottom-cta p {
+      color: var(--text-muted);
+      font-size: 15px;
+      max-width: 600px;
+      margin: 0 auto 28px;
+      line-height: 1.6;
+    }
+    .tools-cta-actions {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .tools-cta-btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: linear-gradient(135deg, #7C6AF7 0%, #6350E8 100%);
+      color: #fff;
+      font-weight: 700;
+      font-size: 15px;
+      padding: 13px 26px;
+      border-radius: var(--radius-md);
+      text-decoration: none;
+      box-shadow: 0 4px 20px var(--primary-glow);
+      transition: all 0.2s ease;
+    }
+    .tools-cta-btn-primary:hover {
+      box-shadow: 0 6px 28px rgba(124, 106, 247, 0.45);
+      transform: translateY(-1px);
+    }
+    .tools-cta-btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #fff;
+      font-weight: 600;
+      font-size: 15px;
+      padding: 13px 26px;
+      border-radius: var(--radius-md);
+      text-decoration: none;
+      transition: all 0.2s ease;
+    }
+    .tools-cta-btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: rgba(255, 255, 255, 0.25);
+    }
+
     /* Footer */
     footer {
       border-top: 1px solid var(--border);
@@ -1202,6 +1318,11 @@
               <strong id="c-total-val">950,00 €</strong>
             </div>
           </div>
+
+          <a href="/app?demo=true" class="calc-action-btn">
+            <span>👥 Άνοιγμα Κοινού Ταμείου στο Live Demo</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </a>
         </div>
       </div>
     </section>
@@ -1265,6 +1386,11 @@
               <strong id="r-diff-target" style="color: #34D399;">-600,00 €</strong>
             </div>
           </div>
+
+          <a href="/app?demo=true" class="calc-action-btn" style="background: rgba(56, 189, 248, 0.12); border-color: rgba(56, 189, 248, 0.35); color: #7DD3FC;">
+            <span>🛡️ Παρακολούθηση Runway στο App</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </a>
         </div>
       </div>
     </section>
@@ -1327,6 +1453,11 @@
               <strong id="s-savings" style="color: #34D399; font-size: 18px;">270,00 €</strong>
             </div>
           </div>
+
+          <a href="/app?demo=true" class="calc-action-btn" style="background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.35); color: #6EE7B7;">
+            <span>🎯 Αυτόματη Κατανομή 50/30/20 στο App</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </a>
         </div>
       </div>
     </section>
@@ -1390,6 +1521,11 @@
               <strong id="g-res-20y" style="color: #34D399; font-size: 16px;">69.146,00 €</strong>
             </div>
           </div>
+
+          <a href="/app?demo=true" class="calc-action-btn" style="background: rgba(245, 158, 11, 0.12); border-color: rgba(245, 158, 11, 0.35); color: #FCD34D;">
+            <span>📈 Παρακολούθηση Καθαρής Θέσης (Net Worth) στο App</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </a>
         </div>
       </div>
     </section>
@@ -1463,6 +1599,11 @@
               <strong id="d-res-total">3.638,20 €</strong>
             </div>
           </div>
+
+          <a href="/app?demo=true" class="calc-action-btn" style="background: rgba(244, 63, 94, 0.12); border-color: rgba(244, 63, 94, 0.35); color: #FDA4AF;">
+            <span>💳 Διαχείριση Οφειλών & Πιστωτικών στο App</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </a>
         </div>
       </div>
     </section>
@@ -1536,7 +1677,28 @@
               <strong id="g-res-pct" style="color: #34D399;">15.0%</strong>
             </div>
           </div>
+
+          <a href="/app?demo=true" class="calc-action-btn" style="background: rgba(52, 211, 153, 0.12); border-color: rgba(52, 211, 153, 0.35); color: #6EE7B7;">
+            <span>🎯 Δημιουργία Στόχου Αποταμίευσης στο App</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </a>
         </div>
+      </div>
+    </section>
+
+    <!-- Bottom Tools Conversion CTA -->
+    <section class="tools-bottom-cta">
+      <span class="tool-tag" style="background: rgba(124, 106, 247, 0.2); color: #C4B5FD; border-color: rgba(124, 106, 247, 0.4); margin-bottom: 14px; display: inline-block;">ΟΛΑ ΣΕ ΜΙΑ ΕΦΑΡΜΟΓΗ</span>
+      <h2>Όλα τα οικονομικά εργαλεία αυτόματα στο Budget Assistant</h2>
+      <p>Ξεχάστε τα περίπλοκα excel και τους χειροκίνητους υπολογισμούς. Αυτόματη καταγραφή, AI σάρωση αποδείξεων και κοινό ταμείο ζευγαριών σε πραγματικό χρόνο. 9,99€ εφάπαξ για πάντα.</p>
+      <div class="tools-cta-actions">
+        <a href="/app?demo=true" class="tools-cta-btn-primary">
+          <span>⚡ Δοκιμάστε το Live Demo (Δωρεάν)</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        </a>
+        <a href="/pricing" class="tools-cta-btn-secondary">
+          <span>Απόκτηση Lifetime PRO (9,99€)</span>
+        </a>
       </div>
     </section>
   </main>
@@ -1688,11 +1850,23 @@
     calcDebt();
     calcGoal();
 
-    function setLandingLanguage(lang) {
+    function setLandingLanguage(lang, notify = true) {
       localStorage.setItem('app_lang_user_set', 'true');
       localStorage.setItem('app_lang', lang);
-      document.getElementById('landing-lang-el')?.classList.toggle('active', lang === 'el');
-      document.getElementById('landing-lang-en')?.classList.toggle('active', lang === 'en');
+      document.querySelectorAll('#landing-lang-el, .landing-lang-el').forEach(el => el.classList.toggle('active', lang === 'el'));
+      document.querySelectorAll('#landing-lang-en, .landing-lang-en').forEach(el => el.classList.toggle('active', lang === 'en'));
+      if (notify) {
+        const old = document.getElementById('lang-toast');
+        if (old) old.remove();
+        const t = document.createElement('div');
+        t.id = 'lang-toast';
+        t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#10131E;border:1px solid #7C6AF7;color:#F3F4F6;padding:10px 20px;border-radius:999px;font-size:13px;font-weight:600;box-shadow:0 10px 30px rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;gap:10px;';
+        t.innerHTML = lang === 'en' 
+          ? '<span>🌐 English set for Web App · <a href="/app?demo=true" style="color:#38BDF8;font-weight:700;text-decoration:underline;">Launch Live Demo</a></span>'
+          : '<span>🌐 Επιλέχθηκαν τα Ελληνικά για το Web App · <a href="/app?demo=true" style="color:#38BDF8;font-weight:700;text-decoration:underline;">Άνοιγμα Live Demo</a></span>';
+        document.body.appendChild(t);
+        setTimeout(() => { if (t.parentNode) t.remove(); }, 4000);
+      }
     }
 
     (function initLandingLang() {

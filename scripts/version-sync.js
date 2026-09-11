@@ -137,7 +137,8 @@ const filesToMirror = [
   'icon.png',
   'icon-192.png',
   'robots.txt',
-  'sitemap.xml'
+  'sitemap.xml',
+  'BudgetAssistant-Latest.apk'
 ];
 
 filesToMirror.forEach(file => {

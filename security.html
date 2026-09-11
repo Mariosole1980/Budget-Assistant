@@ -1561,11 +1561,23 @@
       }, 1200);
     }
 
-    function setLandingLanguage(lang) {
+    function setLandingLanguage(lang, notify = true) {
       localStorage.setItem('app_lang_user_set', 'true');
       localStorage.setItem('app_lang', lang);
-      document.getElementById('landing-lang-el')?.classList.toggle('active', lang === 'el');
-      document.getElementById('landing-lang-en')?.classList.toggle('active', lang === 'en');
+      document.querySelectorAll('#landing-lang-el, .landing-lang-el').forEach(el => el.classList.toggle('active', lang === 'el'));
+      document.querySelectorAll('#landing-lang-en, .landing-lang-en').forEach(el => el.classList.toggle('active', lang === 'en'));
+      if (notify) {
+        const old = document.getElementById('lang-toast');
+        if (old) old.remove();
+        const t = document.createElement('div');
+        t.id = 'lang-toast';
+        t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#10131E;border:1px solid #7C6AF7;color:#F3F4F6;padding:10px 20px;border-radius:999px;font-size:13px;font-weight:600;box-shadow:0 10px 30px rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;gap:10px;';
+        t.innerHTML = lang === 'en' 
+          ? '<span>🌐 English set for Web App · <a href="/app?demo=true" style="color:#38BDF8;font-weight:700;text-decoration:underline;">Launch Live Demo</a></span>'
+          : '<span>🌐 Επιλέχθηκαν τα Ελληνικά για το Web App · <a href="/app?demo=true" style="color:#38BDF8;font-weight:700;text-decoration:underline;">Άνοιγμα Live Demo</a></span>';
+        document.body.appendChild(t);
+        setTimeout(() => { if (t.parentNode) t.remove(); }, 4000);
+      }
     }
 
     (function initLandingLang() {
