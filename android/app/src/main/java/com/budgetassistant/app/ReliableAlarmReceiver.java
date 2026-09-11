@@ -147,7 +147,7 @@ public class ReliableAlarmReceiver extends BroadcastReceiver {
                 .setCategory(NotificationCompat.CATEGORY_REMINDER)
                 .setAutoCancel(true)
                 .setSound(soundUri)
-                .setColor(Color.parseColor("#0F1217"))
+                .setColor(Color.parseColor("#0F1219"))
                 .setContentIntent(pendingIntent)
                 .setDefaults(NotificationCompat.DEFAULT_ALL);
 

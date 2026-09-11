@@ -362,7 +362,7 @@ public class QuickAddNotificationPlugin extends Plugin {
                     .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                     .setCategory(NotificationCompat.CATEGORY_SERVICE)
                     .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-                    .setColor(Color.parseColor("#0F1217"))
+                    .setColor(Color.parseColor("#0F1219"))
                     .addAction(0, "🎙️ Βοηθός", voicePendingIntent)
                     .addAction(0, "➕ Έξοδο", expensePendingIntent)
                     .addAction(0, "💰 Έσοδο", incomePendingIntent)

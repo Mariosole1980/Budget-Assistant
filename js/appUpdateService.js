@@ -46,7 +46,8 @@
 
     if (typeof window !== 'undefined' && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorUpdater) {
       try {
-        const manifestRes = await fetch("https://budget-assistant-pwa.pages.dev/version.json?_t=" + Date.now());
+        const fetchFn = (typeof window !== 'undefined' && window.fetch) ? window.fetch : fetch;
+        const manifestRes = await fetchFn("https://budget-assistant-pwa.pages.dev/version.json?_t=" + Date.now());
         const manifest = await manifestRes.json();
 
         if (!manifest || !manifest.url) {
