@@ -8,6 +8,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Color;
 import android.os.Build;
 import android.util.Log;
 import androidx.core.app.NotificationCompat;
@@ -336,6 +339,18 @@ public class QuickAddNotificationPlugin extends Plugin {
                 smallIconRes = context.getApplicationInfo().icon;
             }
 
+            int largeIconRes = context.getResources().getIdentifier(
+                    "ic_notification_large",
+                    "drawable",
+                    context.getPackageName()
+            );
+            Bitmap largeIcon = null;
+            if (largeIconRes != 0) {
+                try {
+                    largeIcon = BitmapFactory.decodeResource(context.getResources(), largeIconRes);
+                } catch (Exception ignored) {}
+            }
+
             NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
                     .setSmallIcon(smallIconRes)
                     .setContentTitle("Budget Assistant")
@@ -347,10 +362,15 @@ public class QuickAddNotificationPlugin extends Plugin {
                     .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                     .setCategory(NotificationCompat.CATEGORY_SERVICE)
                     .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                    .setColor(Color.parseColor("#0F1217"))
                     .addAction(0, "🎙️ Βοηθός", voicePendingIntent)
                     .addAction(0, "➕ Έξοδο", expensePendingIntent)
                     .addAction(0, "💰 Έσοδο", incomePendingIntent)
                     .addAction(0, "📷 Scan", scanPendingIntent);
+
+            if (largeIcon != null) {
+                builder.setLargeIcon(largeIcon);
+            }
 
             NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
             if (nm != null) {

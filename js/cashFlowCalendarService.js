@@ -330,10 +330,10 @@
         if (d.hasUpcomingBill) dotsHtml += '<span class="cf-dot bill" title="Πάγια Υποχρέωση"></span>';
 
         cell.innerHTML =
-          '<div class="cf-day-header">' +
+          '<div class="cf-day-top">' +
             '<span class="cf-day-number">' + d.dayNum + '</span>' +
-            netDisplay +
           '</div>' +
+          '<div class="cf-day-net-row">' + (netDisplay || '&nbsp;') + '</div>' +
           '<div class="cf-day-dots">' + dotsHtml + '</div>';
 
         cell.onclick = function () {

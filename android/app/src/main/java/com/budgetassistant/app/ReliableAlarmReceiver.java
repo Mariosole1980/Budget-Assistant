@@ -8,6 +8,8 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.media.AudioAttributes;
 import android.media.RingtoneManager;
@@ -123,6 +125,18 @@ public class ReliableAlarmReceiver extends BroadcastReceiver {
             smallIconRes = context.getApplicationInfo().icon;
         }
 
+        int largeIconRes = context.getResources().getIdentifier(
+                "ic_notification_large",
+                "drawable",
+                context.getPackageName()
+        );
+        Bitmap largeIcon = null;
+        if (largeIconRes != 0) {
+            try {
+                largeIcon = BitmapFactory.decodeResource(context.getResources(), largeIconRes);
+            } catch (Exception ignored) {}
+        }
+
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
                 .setSmallIcon(smallIconRes)
                 .setContentTitle(title)
@@ -133,9 +147,13 @@ public class ReliableAlarmReceiver extends BroadcastReceiver {
                 .setCategory(NotificationCompat.CATEGORY_REMINDER)
                 .setAutoCancel(true)
                 .setSound(soundUri)
-                .setColor(Color.parseColor("#0F1219"))
+                .setColor(Color.parseColor("#0F1217"))
                 .setContentIntent(pendingIntent)
                 .setDefaults(NotificationCompat.DEFAULT_ALL);
+
+        if (largeIcon != null) {
+            builder.setLargeIcon(largeIcon);
+        }
 
         NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
         try {

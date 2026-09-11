@@ -7,7 +7,18 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.service.notification.NotificationListenerService;
 import android.service.notification.StatusBarNotification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Color;
+import android.media.RingtoneManager;
+import android.net.Uri;
+import android.os.Build;
 import android.util.Log;
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import java.util.Arrays;
@@ -35,6 +46,7 @@ public class BankNotificationListenerService extends NotificationListenerService
     public static final String PREFS_NAME = "BankNotificationPrefs";
     public static final String KEY_ENABLED = "bank_notifications_enabled";
     public static final String KEY_PENDING_QUEUE = "pending_bank_notifications_queue";
+    public static final String BANK_CHANNEL_ID = "budget_assistant_bank_alerts_channel";
 
     private static final Set<String> SUPPORTED_PACKAGES = new HashSet<>(Arrays.asList(
         "gr.eurobank.ebanking",
@@ -126,8 +138,106 @@ public class BankNotificationListenerService extends NotificationListenerService
             broadcast.putExtra(EXTRA_NOTIFICATION_PAYLOAD, notifObj.toString());
             sendBroadcast(broadcast);
 
+            // 3. Post notification so user can tap to record even when app is closed
+            showBankTransactionNotification(context, title, text);
+
         } catch (Exception e) {
             Log.e(TAG, "Failed to process bank notification", e);
+        }
+    }
+
+    private void showBankTransactionNotification(Context context, String bankTitle, String bankText) {
+        try {
+            createBankNotificationChannel(context);
+
+            Intent openAppIntent = new Intent(context, MainActivity.class);
+            openAppIntent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            openAppIntent.putExtra("from_notification", true);
+            openAppIntent.putExtra("notification_type", "bank_transaction");
+
+            int flags = PendingIntent.FLAG_UPDATE_CURRENT;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                flags |= PendingIntent.FLAG_IMMUTABLE;
+            }
+
+            int notifId = (int) (System.currentTimeMillis() & 0xfffffff);
+            PendingIntent pendingIntent = PendingIntent.getActivity(
+                    context,
+                    notifId,
+                    openAppIntent,
+                    flags
+            );
+
+            int smallIconRes = context.getResources().getIdentifier(
+                    "ic_stat_icon_config_sample",
+                    "drawable",
+                    context.getPackageName()
+            );
+            if (smallIconRes == 0) {
+                smallIconRes = context.getApplicationInfo().icon;
+            }
+
+            int largeIconRes = context.getResources().getIdentifier(
+                    "ic_notification_large",
+                    "drawable",
+                    context.getPackageName()
+            );
+            Bitmap largeIcon = null;
+            if (largeIconRes != 0) {
+                try {
+                    largeIcon = BitmapFactory.decodeResource(context.getResources(), largeIconRes);
+                } catch (Exception ignored) {}
+            }
+
+            String notifTitle = "Budget Assistant • Νέα Συναλλαγή";
+            String notifBody = (bankText != null && !bankText.trim().isEmpty())
+                    ? bankText + "\nΠάτησε εδώ για καταγραφή"
+                    : "Εντοπίστηκε νέα τραπεζική συναλλαγή. Πάτησε για καταγραφή.";
+
+            Uri soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+
+            NotificationCompat.Builder builder = new NotificationCompat.Builder(context, BANK_CHANNEL_ID)
+                    .setSmallIcon(smallIconRes)
+                    .setContentTitle(notifTitle)
+                    .setContentText(bankText != null ? bankText : "")
+                    .setStyle(new NotificationCompat.BigTextStyle().bigText(notifBody))
+                    .setPriority(NotificationCompat.PRIORITY_HIGH)
+                    .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                    .setCategory(NotificationCompat.CATEGORY_STATUS)
+                    .setAutoCancel(true)
+                    .setSound(soundUri)
+                    .setColor(Color.parseColor("#0F1217"))
+                    .setContentIntent(pendingIntent)
+                    .setDefaults(NotificationCompat.DEFAULT_ALL);
+
+            if (largeIcon != null) {
+                builder.setLargeIcon(largeIcon);
+            }
+
+            NotificationManagerCompat nm = NotificationManagerCompat.from(context);
+            nm.notify(notifId, builder.build());
+            Log.i(TAG, "Dispatched user bank review notification (" + notifId + ")");
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to dispatch bank review notification", e);
+        }
+    }
+
+    private static void createBankNotificationChannel(Context context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+            if (nm != null && nm.getNotificationChannel(BANK_CHANNEL_ID) == null) {
+                NotificationChannel channel = new NotificationChannel(
+                        BANK_CHANNEL_ID,
+                        "Αυτόματη Καταγραφή Τραπεζών",
+                        NotificationManager.IMPORTANCE_HIGH
+                );
+                channel.setDescription("Ειδοποιήσεις για άμεση επιβεβαίωση και καταγραφή συναλλαγών από τράπεζες");
+                channel.enableLights(true);
+                channel.setLightColor(Color.parseColor("#10B981"));
+                channel.enableVibration(true);
+                channel.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
+                nm.createNotificationChannel(channel);
+            }
         }
     }
 
