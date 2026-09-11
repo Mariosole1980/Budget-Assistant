@@ -39,6 +39,25 @@ test('isPremium detects userProfile and family entitlements accurately', () => {
   global.state.userProfile = { premium_active: false };
   global.state.familyProfiles = [{ id: 'fam-1', premium_active: true }];
   assert.equal(PremiumEntitlementService.isPremium(), true);
+
+  // Resilient localStorage fallback when state.userProfile is null
+  global.state.userProfile = null;
+  global.state.familyProfiles = [];
+  global.localStorage = {
+    _store: { premium_active: 'true' },
+    getItem(k) { return this._store[k] || null; }
+  };
+  assert.equal(PremiumEntitlementService.isPremium(), true);
+
+  global.localStorage._store = { cached_user_profile: JSON.stringify({ premium_active: true }) };
+  assert.equal(PremiumEntitlementService.isPremium(), true);
+
+  global.localStorage._store = { cached_family_profiles: JSON.stringify([{ premium_active: true }]) };
+  assert.equal(PremiumEntitlementService.isPremium(), true);
+
+  global.localStorage._store = {};
+  assert.equal(PremiumEntitlementService.isPremium(), false);
+  delete global.localStorage;
 });
 
 test('getBackendApiUrl normalizes endpoints for native and web', () => {

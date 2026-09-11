@@ -58,10 +58,30 @@
       if (anyFamilyPro) return true;
     }
     if (typeof window !== 'undefined' && window.PremiumService) {
-      return window.PremiumService.isPremium(appState.userProfile);
+      if (window.PremiumService.isPremium(appState.userProfile)) return true;
     }
     var p = appState.userProfile;
-    return !!(p && p.premium_active === true);
+    if (p && p.premium_active === true) return true;
+
+    // Resilient offline/cache fallback
+    if (typeof localStorage !== 'undefined') {
+      if (localStorage.getItem('premium_active') === 'true') return true;
+      try {
+        var cachedProfile = localStorage.getItem('cached_user_profile');
+        if (cachedProfile) {
+          var parsed = JSON.parse(cachedProfile);
+          if (parsed && parsed.premium_active === true) return true;
+        }
+      } catch (e) {}
+      try {
+        var cachedFamily = localStorage.getItem('cached_family_profiles');
+        if (cachedFamily) {
+          var parsedFamily = JSON.parse(cachedFamily);
+          if (Array.isArray(parsedFamily) && parsedFamily.some(function (m) { return m && m.premium_active === true; })) return true;
+        }
+      } catch (e) {}
+    }
+    return false;
   }
 
   /**

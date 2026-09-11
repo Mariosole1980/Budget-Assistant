@@ -37,7 +37,8 @@
     'advisor-chat-modal',
     'profile-settings-modal',
     'settings-subscreen-modal',
-    'cash-flow-calendar-modal'
+    'cash-flow-calendar-modal',
+    'safe-to-spend-modal'
   ];
 
   /**

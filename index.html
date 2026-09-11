@@ -3486,49 +3486,49 @@
     <!-- ============================================== -->
     <!-- MODAL: SAFE-TO-SPEND & WHAT-IF SIMULATOR      -->
     <!-- ============================================== -->
-    <div id="safe-to-spend-modal" class="modal-overlay">
-      <div class="modal-content" style="max-width: 440px; max-height: 90vh; overflow-y: auto; padding: 0; border-radius: 24px; border: 1px solid rgba(16, 185, 129, 0.25); background: #0f172a; box-shadow: 0 20px 50px rgba(0,0,0,0.5);">
-        <div class="modal-header" style="padding: 16px 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); display: flex; align-items: center; justify-content: space-between;">
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <div style="width: 32px; height: 32px; border-radius: 10px; background: rgba(16, 185, 129, 0.2); color: #34d399; display: flex; align-items: center; justify-content: center; font-size: 14px;">
+    <div id="safe-to-spend-modal" class="modal-overlay" style="z-index: 12000;">
+      <div class="modal-content subscreen-card-standard" style="max-width: 440px; width: 94%; max-height: 90vh; overflow-y: auto; padding: 0; border-radius: 24px; border: 1px solid rgba(16, 185, 129, 0.25); background: #0f172a; box-shadow: 0 20px 50px rgba(0,0,0,0.5); margin: 0 auto; box-sizing: border-box;">
+        <div class="modal-header" style="padding: 16px 18px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); display: flex; align-items: center; justify-content: space-between; box-sizing: border-box;">
+          <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
+            <div style="width: 32px; height: 32px; border-radius: 10px; background: rgba(16, 185, 129, 0.2); color: #34d399; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0;">
               <i class="fa-solid fa-shield-halved"></i>
             </div>
-            <h3 class="modal-title" style="font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 16px; margin: 0; color: #fff;">Safe-to-Spend</h3>
+            <h3 class="modal-title" style="font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 16px; margin: 0; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Safe-to-Spend</h3>
           </div>
-          <span class="modal-close" onclick="closeModal('safe-to-spend-modal')" style="cursor: pointer; font-size: 22px; color: var(--text-secondary);">&times;</span>
+          <span class="modal-close" onclick="closeModal('safe-to-spend-modal')" style="cursor: pointer; font-size: 22px; color: var(--text-secondary); line-height: 1; padding: 2px 6px;">&times;</span>
         </div>
 
-        <div class="modal-body" style="padding: 18px 20px;">
+        <div class="modal-body" style="padding: 16px 14px; box-sizing: border-box; overflow-x: hidden;">
           <!-- Big Daily Display -->
-          <div style="text-align: center; padding: 16px; background: linear-gradient(145deg, rgba(16, 185, 129, 0.12) 0%, rgba(15, 23, 42, 0.6) 100%); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 18px; margin-bottom: 16px;">
+          <div style="text-align: center; padding: 16px 12px; background: linear-gradient(145deg, rgba(16, 185, 129, 0.12) 0%, rgba(15, 23, 42, 0.6) 100%); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 18px; margin-bottom: 14px; box-sizing: border-box;">
             <div style="font-size: 11.5px; font-weight: 700; color: #a7f3d0; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Ασφαλες για Ξοδεμα Σημερα</div>
-            <div id="modal-sts-daily-val" style="font-family: 'Outfit', sans-serif; font-size: 34px; font-weight: 900; color: #ffffff; letter-spacing: -0.5px;">€ 0,00</div>
-            <div id="modal-sts-weekly-val" style="font-size: 13px; font-weight: 600; color: #34d399; margin-top: 2px;">ή € 0,00 για αυτή την εβδομάδα</div>
+            <div id="modal-sts-daily-val" style="font-family: 'Outfit', sans-serif; font-size: 32px; font-weight: 900; color: #ffffff; letter-spacing: -0.5px; word-break: break-word;">€ 0,00</div>
+            <div id="modal-sts-weekly-val" style="font-size: 12.5px; font-weight: 600; color: #34d399; margin-top: 2px; word-break: break-word;">ή € 0,00 για αυτή την εβδομάδα</div>
           </div>
 
           <!-- Mathematical Breakdown -->
-          <div style="background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 16px; padding: 14px; margin-bottom: 16px; font-size: 12.5px; display: flex; flex-direction: column; gap: 8px;">
-            <div style="display: flex; justify-content: space-between; color: var(--text-secondary);">
-              <span>Ρευστό Διαθέσιμο Υπόλοιπο:</span>
-              <span id="modal-sts-balance" style="font-weight: 700; color: #fff;">€ 0,00</span>
+          <div style="background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 16px; padding: 12px 10px; margin-bottom: 14px; font-size: 12px; display: flex; flex-direction: column; gap: 8px; box-sizing: border-box;">
+            <div style="display: flex; justify-content: space-between; align-items: center; color: var(--text-secondary); gap: 6px;">
+              <span style="min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Ρευστό Διαθέσιμο Υπόλοιπο:</span>
+              <span id="modal-sts-balance" style="font-weight: 700; color: #fff; flex-shrink: 0;">€ 0,00</span>
             </div>
-            <div style="display: flex; justify-content: space-between; color: #f87171;">
-              <span>- Επερχόμενες Πάγιες Εντολές Μήνα:</span>
-              <span id="modal-sts-bills" style="font-weight: 700;">- € 0,00</span>
+            <div style="display: flex; justify-content: space-between; align-items: center; color: #f87171; gap: 6px;">
+              <span style="min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">- Επερχόμενες Πάγιες Εντολές Μήνα:</span>
+              <span id="modal-sts-bills" style="font-weight: 700; flex-shrink: 0;">- € 0,00</span>
             </div>
-            <div style="display: flex; justify-content: space-between; align-items: center; color: #60a5fa; cursor: pointer; padding: 4px 6px; margin: -2px -6px; border-radius: 8px; transition: background 0.15s;" onclick="toggleStsSavingsGoalEditor()" title="Κλικ για ορισμό ή αλλαγή στόχου αποταμίευσης" onmouseover="this.style.background='rgba(96, 165, 250, 0.08)'" onmouseout="this.style.background='transparent'">
-              <div style="display: flex; align-items: center; gap: 6px;">
-                <span>- Στόχος Αποταμίευσης:</span>
-                <i class="fa-solid fa-pen-to-square" style="font-size: 11px; opacity: 0.75;"></i>
+            <div style="display: flex; justify-content: space-between; align-items: center; color: #60a5fa; cursor: pointer; padding: 4px 6px; border-radius: 8px; transition: background 0.15s; gap: 6px;" onclick="toggleStsSavingsGoalEditor()" title="Κλικ για ορισμό ή αλλαγή στόχου αποταμίευσης" onmouseover="this.style.background='rgba(96, 165, 250, 0.08)'" onmouseout="this.style.background='transparent'">
+              <div style="display: flex; align-items: center; gap: 6px; min-width: 0; overflow: hidden;">
+                <span style="min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">- Στόχος Αποταμίευσης:</span>
+                <i class="fa-solid fa-pen-to-square" style="font-size: 11px; opacity: 0.75; flex-shrink: 0;"></i>
               </div>
-              <div style="display: flex; align-items: center; gap: 8px;">
+              <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
                 <span id="modal-sts-savings" style="font-weight: 700;">- € 0,00</span>
-                <span id="modal-sts-savings-btn" style="font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 6px; background: rgba(96, 165, 250, 0.18); border: 1px solid rgba(96, 165, 250, 0.35); color: #93c5fd; transition: all 0.2s;">Ορισμός</span>
+                <span id="modal-sts-savings-btn" style="font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 6px; background: rgba(96, 165, 250, 0.18); border: 1px solid rgba(96, 165, 250, 0.35); color: #93c5fd; transition: all 0.2s; white-space: nowrap;">Ορισμός</span>
               </div>
             </div>
 
             <!-- Inline Savings Goal Editor -->
-            <div id="sts-savings-editor-container" style="display: none; margin: 6px 0; padding: 12px 14px; border-radius: 14px; background: rgba(96, 165, 250, 0.08); border: 1px solid rgba(96, 165, 250, 0.28); box-shadow: 0 4px 16px rgba(0,0,0,0.25);">
+            <div id="sts-savings-editor-container" style="display: none; margin: 6px 0; padding: 12px 10px; border-radius: 14px; background: rgba(96, 165, 250, 0.08); border: 1px solid rgba(96, 165, 250, 0.28); box-shadow: 0 4px 16px rgba(0,0,0,0.25); box-sizing: border-box;">
               <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
                 <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: #93c5fd;">
                   <i class="fa-solid fa-piggy-bank"></i>
@@ -3544,7 +3544,7 @@
                   <span id="sts-savings-curr-symbol" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #93c5fd; font-weight: 700; font-size: 13px;">€</span>
                   <input type="number" id="sts-savings-input" min="0" step="10" placeholder="0" oninput="updateStsSavingsAnnualHint(this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();saveStsSavingsGoal();}" style="width: 100%; box-sizing: border-box; padding: 8px 10px 8px 26px; border-radius: 10px; background: rgba(0, 0, 0, 0.45); border: 1px solid rgba(96, 165, 250, 0.4); color: #fff; font-size: 14px; font-weight: 700; outline: none;">
                 </div>
-                <button type="button" onclick="saveStsSavingsGoal()" style="padding: 8px 14px; border-radius: 10px; background: #3b82f6; color: white; border: none; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 5px; transition: transform 0.15s;">
+                <button type="button" onclick="saveStsSavingsGoal()" style="padding: 8px 14px; border-radius: 10px; background: #3b82f6; color: white; border: none; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 5px; transition: transform 0.15s; flex-shrink: 0;">
                   <i class="fa-solid fa-check"></i>
                   <span id="sts-savings-save-label" data-i18n="sts_savings_save_btn">Αποθήκευση</span>
                 </button>
@@ -3564,47 +3564,47 @@
                 <span id="sts-savings-annual-hint-text">Συγχρονίζεται αυτόματα με τον Στόχο Έτους στην Επισκόπηση</span>
               </div>
             </div>
-            <div style="display: flex; justify-content: space-between; padding-top: 8px; border-top: 1px solid rgba(255, 255, 255, 0.08); font-weight: 800;">
-              <span style="color: #fff;">= Ελεύθερο Ποσό για Έξοδα:</span>
-              <span id="modal-sts-pool" style="color: #34d399;">€ 0,00</span>
+            <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 8px; border-top: 1px solid rgba(255, 255, 255, 0.08); font-weight: 800; gap: 6px;">
+              <span style="color: #fff; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">= Ελεύθερο Ποσό για Έξοδα:</span>
+              <span id="modal-sts-pool" style="color: #34d399; flex-shrink: 0;">€ 0,00</span>
             </div>
-            <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-top: 2px;">
-              <span>Ημέρες που απομένουν στον μήνα:</span>
-              <span id="modal-sts-days">0 ημέρες</span>
+            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--text-muted); margin-top: 2px; gap: 6px;">
+              <span style="min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Ημέρες που απομένουν στον μήνα:</span>
+              <span id="modal-sts-days" style="flex-shrink: 0;">0 ημέρες</span>
             </div>
           </div>
 
           <!-- What-If Purchase Simulator -->
-          <div style="background: linear-gradient(145deg, rgba(245, 158, 11, 0.08) 0%, rgba(15, 23, 42, 0.95) 100%); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 18px; padding: 16px; margin-bottom: 16px;">
+          <div style="background: linear-gradient(145deg, rgba(245, 158, 11, 0.08) 0%, rgba(15, 23, 42, 0.95) 100%); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 18px; padding: 14px 12px; margin-bottom: 14px; box-sizing: border-box;">
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
               <div style="display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 800; color: #fbbf24;">
                 <i class="fa-solid fa-wand-magic-sparkles"></i>
                 <span>Προσομοιωτής Αγορών (What-If)</span>
               </div>
-              <span style="font-size: 9.5px; font-weight: 800; background: #fbbf24; color: #0f172a; padding: 2px 6px; border-radius: 6px; text-transform: uppercase;">PRO</span>
+              <span id="sts-sim-pro-badge" style="font-size: 9.5px; font-weight: 800; background: #fbbf24; color: #0f172a; padding: 2px 6px; border-radius: 6px; text-transform: uppercase; transition: all 0.2s;">PRO</span>
             </div>
-            <div style="font-size: 11.5px; color: var(--text-secondary); margin-bottom: 12px; line-height: 1.4;">
+            <div style="font-size: 11.5px; color: var(--text-secondary); margin-bottom: 10px; line-height: 1.4;">
               Θέλετε να αγοράσετε κάτι; Δείτε αν σας παίρνει πριν το πληρώσετε:
             </div>
-            <div style="display: flex; gap: 8px; margin-bottom: 10px;">
-              <input type="number" id="sts-sim-amount" placeholder="Ποσό π.χ. 300" style="flex: 1; padding: 8px 12px; font-size: 13px; font-weight: 700; background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 12px; color: #fff; outline: none;">
-              <select id="sts-sim-installments" style="padding: 8px 10px; font-size: 12px; font-weight: 600; background: #1e293b; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 12px; color: #fff;">
+            <div style="display: flex; gap: 6px; margin-bottom: 10px; align-items: center;">
+              <input type="number" id="sts-sim-amount" placeholder="Ποσό π.χ. 300" style="flex: 1 1 100px; min-width: 0; padding: 8px 10px; font-size: 13px; font-weight: 700; background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 12px; color: #fff; outline: none; box-sizing: border-box;">
+              <select id="sts-sim-installments" style="padding: 8px 8px; font-size: 12px; font-weight: 600; background: #1e293b; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 12px; color: #fff; flex-shrink: 0; box-sizing: border-box;">
                 <option value="1">Εφάπαξ</option>
                 <option value="3">3 Δόσεις</option>
                 <option value="6">6 Δόσεις</option>
               </select>
-              <button type="button" onclick="runWhatIfSimulation()" style="padding: 8px 14px; font-size: 12px; font-weight: 800; background: linear-gradient(135deg, #f59e0b, #d97706); color: #0f172a; border: none; border-radius: 12px; cursor: pointer;">
+              <button type="button" onclick="runWhatIfSimulation()" style="padding: 8px 12px; font-size: 12px; font-weight: 800; background: linear-gradient(135deg, #f59e0b, #d97706); color: #0f172a; border: none; border-radius: 12px; cursor: pointer; flex-shrink: 0; white-space: nowrap;">
                 Έλεγχος
               </button>
             </div>
             <!-- Simulation Output Container -->
-            <div id="sts-sim-result-box" style="display: none; padding: 10px 12px; border-radius: 12px; font-size: 12px; margin-top: 8px;"></div>
+            <div id="sts-sim-result-box" style="display: none; padding: 10px 12px; border-radius: 12px; font-size: 12px; margin-top: 8px; box-sizing: border-box;"></div>
           </div>
 
-          <!-- Bottom CTA for Premium -->
-          <button type="button" onclick="closeModal('safe-to-spend-modal'); openPremiumModal('safetospend');" style="width: 100%; padding: 12px; border-radius: 14px; background: linear-gradient(135deg, #f59e0b, #d97706); border: none; font-family: 'Outfit', sans-serif; font-size: 13px; font-weight: 800; color: #0f172a; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; box-shadow: 0 4px 16px rgba(245, 158, 11, 0.3);">
-            <i class="fa-solid fa-crown"></i>
-            <span>Ξεκλείδωσε Πλήρη Πρόβλεψη & Κοινό Ταμείο (€9,99)</span>
+          <!-- Bottom CTA for Premium (dynamically toggled if user already has PRO) -->
+          <button id="sts-premium-cta-btn" type="button" onclick="closeModal('safe-to-spend-modal'); openPremiumModal('safetospend');" style="width: 100%; padding: 12px 10px; border-radius: 14px; background: linear-gradient(135deg, #f59e0b, #d97706); border: none; font-family: 'Outfit', sans-serif; font-size: 12.5px; font-weight: 800; color: #0f172a; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; box-shadow: 0 4px 16px rgba(245, 158, 11, 0.3); box-sizing: border-box; text-align: center; line-height: 1.3;">
+            <i class="fa-solid fa-crown" style="flex-shrink: 0;"></i>
+            <span style="white-space: normal;">Ξεκλείδωσε Πλήρη Πρόβλεψη &amp; Κοινό Ταμείο (€9,99)</span>
           </button>
         </div>
       </div>
@@ -7728,7 +7728,7 @@
       <!-- ============================================================ -->
       <div id="cash-flow-calendar-modal" class="modal-overlay" style="z-index: 13500;">
         <div class="modal-content cash-flow-sheet"
-          style="max-width: 540px; width: 100%; border-radius: 28px; padding: 20px 18px 24px; background: #141824; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 16px 48px rgba(0,0,0,0.7); max-height: 90vh; display: flex; flex-direction: column; box-sizing: border-box; margin: 0 auto;">
+          style="max-width: 480px; width: 95%; border-radius: 24px; padding: 16px 12px 20px; background: #141824; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 16px 48px rgba(0,0,0,0.7); max-height: 90vh; display: flex; flex-direction: column; box-sizing: border-box; margin: 0 auto;">
 
           <!-- Top Grabber / Handle (Mobile Friendly) -->
           <div class="cf-drag-handle" style="width: 40px; height: 4px; border-radius: 4px; background: rgba(255,255,255,0.2); margin: 0 auto 12px;"></div>

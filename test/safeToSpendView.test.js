@@ -182,3 +182,29 @@ test('SafeToSpendView: openSafeToSpendModal and openSubscriptionsHubModal trigge
   SafeToSpendView.openSubscriptionsHubModal();
   assert.strictEqual(openedModal, 'subscriptions-hub-modal');
 });
+
+test('SafeToSpendView: openSafeToSpendModal adapts UI according to PRO entitlement', () => {
+  const ctaBtn = getMockElement('sts-premium-cta-btn');
+  const proBadge = getMockElement('sts-sim-pro-badge');
+
+  // Case 1: Free user
+  global.isPremium = () => false;
+  state.userProfile = { premium_active: false };
+  localStorage.removeItem('premium_active');
+  SafeToSpendView.openSafeToSpendModal();
+  assert.strictEqual(ctaBtn.style.display, 'flex');
+  assert.strictEqual(proBadge.textContent, 'PRO');
+
+  // Case 2: PRO user
+  global.isPremium = () => true;
+  state.userProfile = { premium_active: true };
+  localStorage.setItem('premium_active', 'true');
+  SafeToSpendView.openSafeToSpendModal();
+  assert.strictEqual(ctaBtn.style.display, 'none');
+  assert.strictEqual(proBadge.textContent, '✓ PRO');
+
+  // Clean up
+  delete global.isPremium;
+  delete state.userProfile;
+  localStorage.removeItem('premium_active');
+});

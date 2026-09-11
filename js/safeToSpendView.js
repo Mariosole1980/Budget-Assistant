@@ -380,6 +380,37 @@ function openSafeToSpendModal() {
     resBox.innerHTML = '';
   }
 
+  // Dynamic PRO check: Hide bottom upsell CTA button & update What-If badge when user already has PRO
+  try {
+    const isPro = (typeof isPremium === 'function')
+      ? isPremium()
+      : (typeof window !== 'undefined' && typeof window.isPremium === 'function'
+        ? window.isPremium()
+        : ((typeof localStorage !== 'undefined' && (localStorage.getItem('premium_active') === 'true' || !!(state && state.userProfile && state.userProfile.premium_active))) ? true : false));
+
+    const ctaBtn = document.getElementById('sts-premium-cta-btn');
+    if (ctaBtn) {
+      ctaBtn.style.display = isPro ? 'none' : 'flex';
+    }
+
+    const proBadge = document.getElementById('sts-sim-pro-badge');
+    if (proBadge) {
+      if (isPro) {
+        proBadge.textContent = '✓ PRO';
+        proBadge.style.background = '#10b981';
+        proBadge.style.color = '#ffffff';
+      } else {
+        proBadge.textContent = 'PRO';
+        proBadge.style.background = '#fbbf24';
+        proBadge.style.color = '#0f172a';
+      }
+    }
+  } catch (err) {
+    if (typeof console !== 'undefined' && console.warn) {
+      console.warn('[SafeToSpendView] PRO status check error:', err);
+    }
+  }
+
   openModal('safe-to-spend-modal');
 }
 
