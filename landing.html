@@ -1447,6 +1447,64 @@
       .nav-btn-cta { padding: 6px 10px !important; font-size: 12px !important; gap: 5px !important; }
       .nav-inner { padding: 0 12px !important; gap: 8px !important; }
     }
+
+    /* Mobile Sticky Conversion Bar */
+    .mobile-sticky-cta-bar {
+      display: none;
+    }
+    @media (max-width: 768px) {
+      .mobile-sticky-cta-bar {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        background: rgba(8, 10, 16, 0.94);
+        backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 9px 14px;
+        display: flex;
+        gap: 10px;
+        z-index: 990;
+        box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.6);
+        box-sizing: border-box;
+      }
+      .mobile-sticky-btn-demo {
+        flex: 1;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        color: #fff;
+        padding: 10px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 700;
+        text-align: center;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+      }
+      .mobile-sticky-btn-buy {
+        flex: 1.25;
+        background: linear-gradient(135deg, #7C6AF7 0%, #6350E8 100%);
+        color: #fff;
+        padding: 10px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 700;
+        text-align: center;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        box-shadow: 0 2px 14px rgba(124, 106, 247, 0.4);
+      }
+      body {
+        padding-bottom: 64px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -2085,7 +2143,7 @@
               Πόσο υγιή είναι τα οικονομικά σας;
             </h2>
             <p style="color: var(--text-muted); font-size: 14.5px; margin-bottom: 22px; line-height: 1.6;">
-              Απαντήστε σε 8 γρήγορες ερωτήσεις και δείτε το προσωπικό σας <strong>Financial Health Scorecard (0-100)</strong> με πρακτικά βήματα βελτίωσης.
+              Απαντήστε σε 5 γρήγορες ερωτήσεις (σε 60 δευτερόλεπτα) και δείτε το προσωπικό σας <strong>Financial Health Scorecard (0-100)</strong> με πρακτικά βήματα βελτίωσης.
             </p>
             <a href="/health-quiz" class="btn btn-emerald btn-lg">
               <span>🚀</span> Κάντε το Quiz (60 Δευτερόλεπτα)
@@ -2368,5 +2426,15 @@
       if (e.key === 'Escape') toggleMobileMenu(false);
     });
   </script>
+
+  <!-- Mobile Sticky Conversion Bar -->
+  <div class="mobile-sticky-cta-bar" aria-label="Γρήγορη Πρόσβαση">
+    <a href="/app?demo=true" class="mobile-sticky-btn-demo">
+      <span>⚡ Live Demo</span>
+    </a>
+    <a href="/pricing" class="mobile-sticky-btn-buy">
+      <span>Απόκτηση PRO (9,99€)</span>
+    </a>
+  </div>
 </body>
 </html>
