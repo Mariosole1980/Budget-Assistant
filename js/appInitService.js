@@ -490,6 +490,60 @@
         console.error('[DesktopUI] init failed:', e);
       }
     }
+
+    // Web-only Live Demo auto-boot & Upgrade action handler
+    (function handleWebParams() {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const isDemo = params.get('demo') === 'true' || params.get('demo') === '1' || localStorage.getItem('ba_web_demo_active') === 'true';
+        const action = params.get('action');
+        const open = params.get('open');
+
+        if (isDemo) {
+          localStorage.setItem('ba_ftux_status', 'demo_active');
+          if (typeof onboardingAddDemoData === 'function') {
+            const curState = (typeof getState === 'function') ? getState() : (window.state || {});
+            if (!curState.transactions || curState.transactions.length === 0) {
+              onboardingAddDemoData(true);
+            }
+          }
+          if (!document.getElementById('web-demo-banner')) {
+            const banner = document.createElement('div');
+            banner.id = 'web-demo-banner';
+            banner.style.cssText = 'position:sticky; top:0; z-index:99999; background:linear-gradient(90deg, #1e1b4b, #312e81); border-bottom:1px solid rgba(124,106,247,0.4); color:#fff; padding:8px 16px; font-family:"Outfit",sans-serif; font-size:13px; display:flex; align-items:center; justify-content:space-between; box-shadow:0 4px 16px rgba(0,0,0,0.4); flex-wrap:wrap; gap:8px;';
+            banner.innerHTML = `
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="background:#10B981; color:#0f172a; padding:2px 8px; border-radius:99px; font-weight:800; font-size:11px;">LIVE DEMO</span>
+                <span>Δοκιμαστική λειτουργία με προφορτωμένα δεδομένα.</span>
+              </div>
+              <div style="display:flex; align-items:center; gap:10px;">
+                <button type="button" onclick="if(typeof openPremiumModal==='function') openPremiumModal();" style="background:#10B981; color:#0f172a; border:none; padding:5px 12px; border-radius:8px; font-weight:700; font-size:12px; cursor:pointer;">⚡ Απόκτηση Lifetime PRO (9,99€)</button>
+                <button type="button" onclick="exitWebDemo()" style="background:rgba(255,255,255,0.1); color:#cbd5e1; border:1px solid rgba(255,255,255,0.2); padding:5px 10px; border-radius:8px; font-size:12px; cursor:pointer;">Έξοδος</button>
+              </div>
+            `;
+            document.body.prepend(banner);
+          }
+          window.exitWebDemo = function() {
+            localStorage.removeItem('ba_web_demo_active');
+            localStorage.removeItem('auth_guest_mode');
+            if (typeof onboardingClearDemoData === 'function') {
+              onboardingClearDemoData(true);
+            }
+            window.location.href = '/app';
+          };
+        }
+
+        if (action === 'upgrade' || open === 'premium') {
+          setTimeout(() => {
+            if (typeof openPremiumModal === 'function') {
+              openPremiumModal();
+            }
+          }, 600);
+        }
+      } catch (e) {
+        console.warn('Web entry params handler error:', e);
+      }
+    })();
   }
   }
 

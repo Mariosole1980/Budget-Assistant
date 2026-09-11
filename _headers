@@ -51,3 +51,9 @@
 
 /icon-192.png
   Cache-Control: max-age=0, no-cache, no-store, must-revalidate
+
+/robots.txt
+  Cache-Control: public, max-age=86400
+
+/sitemap.xml
+  Cache-Control: public, max-age=86400

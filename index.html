@@ -210,6 +210,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
+  <link rel="canonical" href="https://www.budgetassistant.org/app">
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icon.png" type="image/png">
   <link rel="apple-touch-icon" href="icon.png">
@@ -648,6 +649,14 @@
       const isNative = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
       if (!isNative) {
         document.documentElement.classList.add('web-mode');
+      }
+
+      // Check URL parameters for web-only demo mode
+      const urlParams = new URLSearchParams(window.location.search);
+      const isWebDemoParam = !isNative && (urlParams.get('demo') === 'true' || urlParams.get('demo') === '1');
+      if (isWebDemoParam) {
+        localStorage.setItem('auth_guest_mode', 'true');
+        localStorage.setItem('ba_web_demo_active', 'true');
       }
 
       // Only pre-activate backgrounded modals for logged-in / guest users.

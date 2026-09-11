@@ -135,7 +135,9 @@ const filesToMirror = [
   'ota-boot-loader.js',
   'logo-mark.png',
   'icon.png',
-  'icon-192.png'
+  'icon-192.png',
+  'robots.txt',
+  'sitemap.xml'
 ];
 
 filesToMirror.forEach(file => {

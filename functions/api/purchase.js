@@ -104,15 +104,16 @@ export async function onRequestPost(context) {
     const successUrl = `${origin}/?premium=success`;
     const cancelUrl = `${origin}/?premium=cancelled`;
 
-    // Direct PayPal Flow (using user's PayPal Developer credentials)
+    // Direct PayPal Flow (using PayPal Developer credentials from environment)
     if (paymentMethod === 'paypal') {
-        const paypalClientId = env.PAYPAL_CLIENT_ID || 'BAAPrv586Eftb2ZZpvcJSO30qDGRzULdVaOOhAZ-4jUIsZC5-lq6Ungx5EsGgBYwA0bAi2WnzYayxofCkQ';
-        const paypalSecret = env.PAYPAL_CLIENT_SECRET || 'ELf0xoqbR0qgDpRA-PqrGKrn5k1eg307kH2rl9p22MdoCyu3lxkexOWtV7js5rhuZDZj2cg9MceAOcCe';
+        const paypalClientId = env.PAYPAL_CLIENT_ID;
+        const paypalSecret = env.PAYPAL_CLIENT_SECRET;
         const isSandbox = (env.PAYPAL_MODE || '').toLowerCase() === 'sandbox';
         const paypalBaseUrl = isSandbox ? 'https://api-m.sandbox.paypal.com' : 'https://api-m.paypal.com';
 
-        try {
-            const basicAuth = btoa(`${paypalClientId}:${paypalSecret}`);
+        if (paypalClientId && paypalSecret) {
+            try {
+                const basicAuth = btoa(`${paypalClientId}:${paypalSecret}`);
             const tokenRes = await fetch(`${paypalBaseUrl}/v1/oauth2/token`, {
                 method: 'POST',
                 headers: {
@@ -170,6 +171,7 @@ export async function onRequestPost(context) {
             }
         } catch (paypalErr) {
             console.warn('Direct PayPal Order creation error:', paypalErr);
+        }
         }
     }
 

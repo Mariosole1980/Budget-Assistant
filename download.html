@@ -14,6 +14,7 @@
   <meta property="og:image" content="https://budgetassistant.org/assets/playstore/feature_graphic.png">
 
   <!-- Favicon -->
+  <link rel="canonical" href="https://www.budgetassistant.org/download">
   <link rel="icon" type="image/png" href="icon.png">
   <link rel="apple-touch-icon" href="icon-192.png">
 
@@ -968,12 +969,222 @@
       color: var(--text-dim);
     }
 
+    /* ==========================================================================
+       MOBILE RESPONSIVE NAVIGATION & DRAWER
+       ========================================================================== */
+    .mobile-menu-btn {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      width: 38px;
+      height: 38px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 9px;
+      color: #F3F4F6;
+      cursor: pointer;
+      padding: 0;
+      flex-shrink: 0;
+      transition: all 0.2s ease;
+    }
+    .mobile-menu-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.25);
+      color: #FFFFFF;
+    }
+
+    .mobile-nav-backdrop {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(4, 6, 10, 0.75);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      z-index: 1998;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+    .mobile-nav-backdrop.open {
+      display: block;
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .mobile-nav-drawer {
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: 320px;
+      max-width: 86vw;
+      height: 100vh;
+      background: #0B0E17;
+      border-left: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: -10px 0 40px rgba(0, 0, 0, 0.8);
+      z-index: 1999;
+      transform: translateX(100%);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      overflow: hidden;
+    }
+    .mobile-nav-drawer.open {
+      transform: translateX(0);
+    }
+
+    .mobile-drawer-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(13, 18, 29, 0.7);
+    }
+    .mobile-drawer-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .mobile-drawer-close {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #94A3B8;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      font-size: 15px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+    .mobile-drawer-close:hover {
+      color: #FFF;
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    .mobile-drawer-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px;
+      -webkit-overflow-scrolling: touch;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .mobile-drawer-section-title {
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      color: #64748B;
+      padding: 10px 10px 4px;
+      text-transform: uppercase;
+    }
+    .mobile-drawer-link {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 9px 12px;
+      border-radius: 10px;
+      text-decoration: none;
+      color: #CBD5E1;
+      font-size: 13.5px;
+      font-weight: 500;
+      transition: all 0.15s ease;
+    }
+    .mobile-drawer-link:hover, .mobile-drawer-link.active {
+      background: rgba(255, 255, 255, 0.06);
+      color: #FFFFFF;
+    }
+    .drawer-icon {
+      width: 22px;
+      font-size: 16px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .drawer-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #F1F5F9;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .drawer-desc {
+      font-size: 11px;
+      color: #64748B;
+      line-height: 1.3;
+      margin-top: 1px;
+    }
+    .mobile-drawer-divider {
+      height: 1px;
+      background: rgba(255, 255, 255, 0.07);
+      margin: 8px 6px;
+    }
+
+    .mobile-drawer-footer {
+      padding: 14px 16px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(13, 18, 29, 0.7);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .btn-demo-drawer {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      width: 100%;
+      padding: 10px;
+      background: linear-gradient(135deg, #7C6AF7 0%, #6350E8 100%);
+      color: #FFFFFF;
+      font-size: 13px;
+      font-weight: 700;
+      border-radius: 9px;
+      text-decoration: none;
+      box-shadow: 0 4px 14px rgba(124, 106, 247, 0.35);
+    }
+    .btn-login-drawer {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      width: 100%;
+      padding: 9px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #E2E8F0;
+      font-size: 12.5px;
+      font-weight: 600;
+      border-radius: 9px;
+      text-decoration: none;
+    }
+
     @media (max-width: 900px) {
       .platform-grid, .gallery-grid, .steps-grid {
         grid-template-columns: 1fr;
       }
       .hero-down h1 { font-size: 34px; }
-      .nav-links { display: none; }
+      .nav-links { display: none !important; }
+      .nav-btn-app-download,
+      .nav-btn-login { display: none !important; }
+      .mobile-menu-btn { display: inline-flex !important; }
+      .nav-inner { height: 60px !important; padding: 0 16px !important; }
+    }
+
+    @media (max-width: 480px) {
+      .nav-lang-switcher { display: none !important; }
+      .logo-text { font-size: 14px !important; }
+      .logo-img { width: 30px !important; height: 30px !important; }
+      .nav-btn-cta { padding: 6px 10px !important; font-size: 12px !important; gap: 5px !important; }
+      .nav-inner { padding: 0 12px !important; gap: 8px !important; }
     }
   </style>
 </head>
@@ -1052,8 +1263,97 @@
           <span>Live Demo</span>
           <span class="cta-pulse-dot"></span>
         </a>
+
+        <!-- Hamburger Menu Button (Mobile) -->
+        <button type="button" class="mobile-menu-btn" onclick="toggleMobileMenu()" aria-label="Μενού" aria-expanded="false">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="4" y1="6" x2="20" y2="6"></line>
+            <line x1="4" y1="12" x2="20" y2="12"></line>
+            <line x1="4" y1="18" x2="20" y2="18"></line>
+          </svg>
+        </button>
       </div>
     </header>
+
+    <!-- Mobile Navigation Backdrop & Drawer -->
+    <div class="mobile-nav-backdrop" id="mobileNavBackdrop" onclick="toggleMobileMenu(false)"></div>
+    <aside class="mobile-nav-drawer" id="mobileNavDrawer" aria-hidden="true" aria-label="Μενού Πλοήγησης">
+      <div class="mobile-drawer-header">
+        <div class="mobile-drawer-brand">
+          <img src="logo-mark.png" alt="Budget Assistant Logo" class="logo-img" style="width:28px;height:28px;">
+          <span class="logo-text" style="font-size:15px;">Budget Assistant</span>
+        </div>
+        <button type="button" class="mobile-drawer-close" onclick="toggleMobileMenu(false)" aria-label="Κλείσιμο Μενού">✕</button>
+      </div>
+      <div class="mobile-drawer-body">
+        <div class="mobile-drawer-section-title">ΔΥΝΑΤΟΤΗΤΕΣ</div>
+        <a href="/#features-automation" class="mobile-drawer-link" onclick="toggleMobileMenu(false)">
+          <span class="drawer-icon">⚡</span>
+          <div>
+            <div class="drawer-title">Αυτόματη Καταγραφή &amp; AI</div>
+            <div class="drawer-desc">Ειδοποιήσεις τραπεζών &amp; σάρωση αποδείξεων</div>
+          </div>
+        </a>
+        <a href="/#features-cashflow" class="mobile-drawer-link" onclick="toggleMobileMenu(false)">
+          <span class="drawer-icon">📅</span>
+          <div>
+            <div class="drawer-title">Cash Flow &amp; Safe-to-Spend</div>
+            <div class="drawer-desc">Ημερήσιο όριο &amp; πρόβλεψη λογαριασμών</div>
+          </div>
+        </a>
+        <a href="/#features-couples" class="mobile-drawer-link" onclick="toggleMobileMenu(false)">
+          <span class="drawer-icon">👥</span>
+          <div>
+            <div class="drawer-title">Κοινό Ταμείο Ζευγαριών</div>
+            <div class="drawer-desc">Συγχρονισμός εξόδων σε πραγματικό χρόνο</div>
+          </div>
+        </a>
+        <a href="/#features-health" class="mobile-drawer-link" onclick="toggleMobileMenu(false)">
+          <span class="drawer-icon">📊</span>
+          <div>
+            <div class="drawer-title">Financial Health Score</div>
+            <div class="drawer-desc">Δείκτης οικονομικής υγείας 0-100</div>
+          </div>
+        </a>
+
+        <div class="mobile-drawer-divider"></div>
+        <div class="mobile-drawer-section-title">ΣΕΛΙΔΕΣ</div>
+        <a href="/pricing" class="mobile-drawer-link" onclick="toggleMobileMenu(false)">
+          <span class="drawer-icon">💎</span>
+          <div class="drawer-title">Τιμολόγηση <span class="badge-pricing-tag">9,99€</span></div>
+        </a>
+        <a href="/tools" class="mobile-drawer-link" onclick="toggleMobileMenu(false)">
+          <span class="drawer-icon">🧮</span>
+          <div class="drawer-title">Εργαλεία &amp; Quiz</div>
+        </a>
+        <a href="/health-quiz" class="mobile-drawer-link" onclick="toggleMobileMenu(false)">
+          <span class="drawer-icon">📝</span>
+          <div class="drawer-title">Financial Health Quiz</div>
+        </a>
+        <a href="/security" class="mobile-drawer-link" onclick="toggleMobileMenu(false)">
+          <span class="drawer-icon">🔒</span>
+          <div class="drawer-title">Ασφάλεια &amp; Zero-Knowledge</div>
+        </a>
+        <a href="/guides" class="mobile-drawer-link" onclick="toggleMobileMenu(false)">
+          <span class="drawer-icon">📚</span>
+          <div class="drawer-title">Οδηγοί &amp; Άρθρα</div>
+        </a>
+        <a href="/download.html" class="mobile-drawer-link active" onclick="toggleMobileMenu(false)">
+          <span class="drawer-icon">📲</span>
+          <div class="drawer-title">Λήψη Android App (APK)</div>
+        </a>
+      </div>
+      <div class="mobile-drawer-footer">
+        <a href="/app?demo=true" class="btn-demo-drawer" onclick="toggleMobileMenu(false)">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L14.4 8.6L21 11L14.4 13.4L12 20L9.6 13.4L3 11L9.6 8.6L12 2Z"/></svg>
+          <span>Live Demo (χωρίς λογαριασμό)</span>
+        </a>
+        <a href="/app" class="btn-login-drawer" onclick="toggleMobileMenu(false)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+          <span>Είσοδος στην Εφαρμογή</span>
+        </a>
+      </div>
+    </aside>
   </div>
 
   <main class="container">
@@ -1609,6 +1909,30 @@
       document.getElementById('landing-lang-el')?.classList.toggle('active', saved === 'el');
       document.getElementById('landing-lang-en')?.classList.toggle('active', saved === 'en');
     })();
+
+    function toggleMobileMenu(force) {
+      var drawer = document.getElementById('mobileNavDrawer');
+      var backdrop = document.getElementById('mobileNavBackdrop');
+      var btn = document.querySelector('.mobile-menu-btn');
+      if (!drawer || !backdrop) return;
+      var isOpen = typeof force === 'boolean' ? !force : drawer.classList.contains('open');
+      if (isOpen) {
+        drawer.classList.remove('open');
+        backdrop.classList.remove('open');
+        drawer.setAttribute('aria-hidden', 'true');
+        if (btn) btn.setAttribute('aria-expanded', 'false');
+        document.body.style.overflow = '';
+      } else {
+        drawer.classList.add('open');
+        backdrop.classList.add('open');
+        drawer.setAttribute('aria-hidden', 'false');
+        if (btn) btn.setAttribute('aria-expanded', 'true');
+        document.body.style.overflow = 'hidden';
+      }
+    }
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') toggleMobileMenu(false);
+    });
   </script>
 </body>
 </html>

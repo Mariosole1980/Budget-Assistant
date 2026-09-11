@@ -37,7 +37,14 @@ function getClientIp(request) {
 
 function isAllowedOrigin(origin) {
     if (!origin) return true;
-    return ALLOWED_ORIGINS.includes(origin) || origin.endsWith('.pages.dev') || origin.includes('localhost') || origin.includes('budgetassistant.org');
+    if (ALLOWED_ORIGINS.includes(origin)) return true;
+    try {
+        const u = new URL(origin);
+        if (u.hostname === 'budgetassistant.org' || u.hostname === 'www.budgetassistant.org') return true;
+        if (u.hostname.endsWith('.pages.dev')) return true;
+        if (u.hostname === 'localhost' || u.hostname === '127.0.0.1') return true;
+    } catch (e) {}
+    return false;
 }
 
 function checkRateLimit(ip) {
