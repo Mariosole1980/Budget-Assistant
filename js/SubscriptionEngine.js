@@ -127,11 +127,18 @@
     /**
      * Checks if a logged transaction matches a recurring template.
      */
-    function isTransactionMatchingTemplate(tx, template, year, monthIndex) {
+    function isTransactionMatchingTemplate(tx, template, year, monthIndex, referenceDate) {
         if (!tx || !template) return false;
 
         var txDate = parseDate(tx.date);
         if (txDate.getFullYear() !== year || txDate.getMonth() !== monthIndex) {
+            return false;
+        }
+
+        // Μην μετράς μελλοντικές συναλλαγές ως "ήδη πληρωμένες" — δεν έχουν γίνει ακόμα
+        var refD = (referenceDate instanceof Date && !isNaN(referenceDate)) ? referenceDate : new Date();
+        var refDEnd = new Date(refD.getFullYear(), refD.getMonth(), refD.getDate(), 23, 59, 59, 999);
+        if (txDate > refDEnd) {
             return false;
         }
 
@@ -213,7 +220,7 @@
                 var txId = tx.id ? String(tx.id) : ('tx_' + i);
                 if (matchedTxIds.has(txId)) continue;
 
-                if (isTransactionMatchingTemplate(tx, tpl, year, monthIndex)) {
+                if (isTransactionMatchingTemplate(tx, tpl, year, monthIndex, refDate)) {
                     matchedTx = tx;
                     matchedTxIds.add(txId);
                     break;
