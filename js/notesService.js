@@ -382,6 +382,89 @@ function getUserScopedKey(baseKey) {
 }
 window.getUserScopedKey = getUserScopedKey;
 
+const PERMANENT_DELETED_NOTES_KEY = 'permanent_deleted_note_ids';
+
+function collectPermanentlyDeletedNoteIds() {
+  const excludedIds = new Set();
+  const add = (id) => { if (id !== null && id !== undefined && id !== '') excludedIds.add(String(id)); };
+
+  // 1. Durable permanent-delete tombstone list (user-scoped + fallback)
+  try {
+    const key = getUserScopedKey(PERMANENT_DELETED_NOTES_KEY);
+    let raw = localStorage.getItem(key);
+    if (!raw && !state.currentUser) {
+      raw = localStorage.getItem(PERMANENT_DELETED_NOTES_KEY);
+    }
+    const perm = raw ? JSON.parse(raw) : [];
+    (Array.isArray(perm) ? perm : []).forEach(add);
+  } catch (e) { }
+
+  // 2. Any queued 'permanent_delete_note' in the sync queue
+  try {
+    const queue = JSON.parse(localStorage.getItem('money_manager_sync_queue') || '[]') || [];
+    queue.forEach(item => {
+      if (item && item.action === 'permanent_delete_note' && item.payload) {
+        add(item.payload);
+      }
+    });
+  } catch (e) { }
+
+  return excludedIds;
+}
+window.collectPermanentlyDeletedNoteIds = collectPermanentlyDeletedNoteIds;
+
+function recordPermanentlyDeletedNoteIds(ids, { writeCloudTombstone = true } = {}) {
+  if (!ids || ids.length === 0) return;
+  const idSet = new Set(ids.map(id => String(id)));
+
+  // 1. Remove immediately from in-memory state.notes
+  if (Array.isArray(state.notes)) {
+    state.notes = state.notes.filter(n => !(n && idSet.has(String(n.id))));
+    saveNotes();
+    if (typeof renderNotesList === 'function') renderNotesList();
+  }
+
+  // 2. Remove immediately from offline_notes in localStorage
+  try {
+    const key = getUserScopedKey('offline_notes');
+    const cached = JSON.parse(localStorage.getItem(key) || '[]') || [];
+    const cleaned = cached.filter(n => !(n && idSet.has(String(n.id))));
+    localStorage.setItem(key, JSON.stringify(cleaned));
+  } catch (e) { }
+
+  // 3. Remove from deleted_notes_trash in localStorage
+  try {
+    if (typeof loadNotesTrash === 'function' && typeof saveNotesTrash === 'function') {
+      const trash = loadNotesTrash().filter(t => !(t && idSet.has(String(t.id))));
+      saveNotesTrash(trash);
+    }
+  } catch (e) { }
+
+  // 4. Save to durable permanent-delete list (cap at 1000 items)
+  try {
+    const key = getUserScopedKey(PERMANENT_DELETED_NOTES_KEY);
+    let raw = localStorage.getItem(key);
+    if (!raw && !state.currentUser) {
+      raw = localStorage.getItem(PERMANENT_DELETED_NOTES_KEY);
+    }
+    const existing = raw ? JSON.parse(raw) : [];
+    const set = new Set(Array.isArray(existing) ? existing.map(String) : []);
+    idSet.forEach(id => set.add(id));
+    const arr = Array.from(set).slice(-1000); // retain last 1000 tombstones
+    localStorage.setItem(key, JSON.stringify(arr));
+  } catch (e) {
+    console.warn('[NotesService] Failed to record permanent-delete note tombstone:', e);
+  }
+
+  // 5. Best-effort cloud sync tombstone write
+  if (writeCloudTombstone && typeof writeSyncTombstones === 'function' && state.supabaseClient && state.currentUser) {
+    writeSyncTombstones('notes', Array.from(idSet)).catch(err => {
+      console.warn('[NotesService] Failed to write permanent-delete note tombstone to cloud:', err);
+    });
+  }
+}
+window.recordPermanentlyDeletedNoteIds = recordPermanentlyDeletedNoteIds;
+
 function loadNotes() {
   try {
     const key = getUserScopedKey('offline_notes');
@@ -390,12 +473,13 @@ function loadNotes() {
       cached = localStorage.getItem('offline_notes');
     }
     const all = cached ? JSON.parse(cached) : [];
-    // Separate any soft-deleted notes into the trash bin so they don't
-    // reappear in the active list after a reload.
+    const permDeleted = collectPermanentlyDeletedNoteIds();
+    // Separate any soft-deleted notes into the trash bin and exclude permanently deleted
     const active = [];
     const deleted = [];
     (Array.isArray(all) ? all : []).forEach(n => {
-      if (n && n.status === 'deleted') {
+      if (!n || !n.id || permDeleted.has(String(n.id))) return;
+      if (n.status === 'deleted') {
         deleted.push(n);
       } else {
         active.push(n);
@@ -1523,9 +1607,12 @@ async function syncNotes() {
 
     if (!remoteNotes) return;
 
-    // Read pending sync queue deletions so notes permanently deleted locally while offline
+    // Read pending sync queue deletions AND durable permanent-delete tombstones
+    // so notes permanently deleted locally while offline or in past sessions
     // are NEVER resurrected by a cloud fetch.
-    let pendingDeleteNoteIds = new Set();
+    let pendingDeleteNoteIds = typeof collectPermanentlyDeletedNoteIds === 'function'
+      ? collectPermanentlyDeletedNoteIds()
+      : new Set();
     try {
       const queue = JSON.parse(localStorage.getItem('money_manager_sync_queue') || '[]');
       queue.forEach(item => {
@@ -1534,6 +1621,23 @@ async function syncNotes() {
         }
       });
     } catch (e) { }
+
+    // Clean up orphaned remote notes that were permanently deleted locally
+    const orphanedCloudIds = (remoteNotes || [])
+      .filter(n => n && n.id && pendingDeleteNoteIds.has(String(n.id)))
+      .map(n => n.id);
+    if (orphanedCloudIds.length > 0 && state.supabaseClient) {
+      state.supabaseClient
+        .from('notes')
+        .delete()
+        .in('id', orphanedCloudIds)
+        .then(() => {
+          console.log(`[NotesSync] Cleaned up ${orphanedCloudIds.length} orphaned permanently-deleted notes from cloud.`);
+        })
+        .catch(err => {
+          console.warn('[NotesSync] Failed background cleanup of orphaned notes:', err);
+        });
+    }
 
     // Mark local notes as dirty so the merge knows which ones to push back.
     state.notes.forEach(n => { n._dirty = true; });
@@ -1716,7 +1820,10 @@ async function restoreNote(noteId) {
 
 // Permanently delete a single note from the trash (local + cloud).
 async function deleteNotePermanently(noteId) {
-  // 1. Immediately remove locally and re-render without cloud roundtrip
+  // 1. Immediately remove locally, record durable tombstone, and re-render without cloud roundtrip
+  if (typeof recordPermanentlyDeletedNoteIds === 'function') {
+    recordPermanentlyDeletedNoteIds([noteId]);
+  }
   const trash = loadNotesTrash().filter(t => String(t.id) !== String(noteId));
   saveNotesTrash(trash);
   renderNotesTrashList(false);
@@ -1766,7 +1873,10 @@ async function emptyNotesTrash() {
 
   const ids = trash.map(t => t.id).filter(Boolean);
 
-  // 1. Immediately clear locally and update UI
+  // 1. Immediately record durable tombstones, clear locally and update UI
+  if (typeof recordPermanentlyDeletedNoteIds === 'function') {
+    recordPermanentlyDeletedNoteIds(ids);
+  }
   saveNotesTrash([]);
   renderNotesTrashList(false);
   updateNotesTrashBadge();
@@ -2182,7 +2292,8 @@ window.triggerContextDelete = triggerContextDelete;
   windowObj.toggleNoteEditorPin = toggleNoteEditorPin;
   windowObj.updateNoteEditorPinUI = updateNoteEditorPinUI;
   windowObj.toggleNotePinInline = toggleNotePinInline;
-  windowObj.toggleChecklistItemInline = toggleChecklistItemInline;
+  windowObj.collectPermanentlyDeletedNoteIds = collectPermanentlyDeletedNoteIds;
+  windowObj.recordPermanentlyDeletedNoteIds = recordPermanentlyDeletedNoteIds;
   windowObj.getAuthorInitials = getAuthorInitials;
   windowObj.formatNoteTimestamp = formatNoteTimestamp;
 
@@ -2197,6 +2308,8 @@ window.triggerContextDelete = triggerContextDelete;
     applyNoteReminderString: applyNoteReminderString,
     triggerCustomReminderInput: triggerCustomReminderInput,
     getUserScopedKey: getUserScopedKey,
+    collectPermanentlyDeletedNoteIds: collectPermanentlyDeletedNoteIds,
+    recordPermanentlyDeletedNoteIds: recordPermanentlyDeletedNoteIds,
     loadNotes: loadNotes,
     saveNotes: saveNotes,
     setNotesFilterCategory: setNotesFilterCategory,

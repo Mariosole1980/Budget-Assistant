@@ -103,8 +103,22 @@ test('deleteNotePermanently and emptyNotesTrash enqueue permanent_delete_note mu
     const fn1 = appSrc.match(/async function deleteNotePermanently\(noteId\)\s*\{([\s\S]*?)\n\}/);
     assert.ok(fn1, 'deleteNotePermanently body not found');
     assert.match(fn1[1], /enqueueSyncMutation\('permanent_delete_note', noteId\);/);
+    assert.match(fn1[1], /recordPermanentlyDeletedNoteIds\(\[noteId\]\);/);
 
     const fn2 = appSrc.match(/async function emptyNotesTrash\(\)\s*\{([\s\S]*?)\n\}/);
     assert.ok(fn2, 'emptyNotesTrash body not found');
     assert.match(fn2[1], /enqueueSyncMutation\('permanent_delete_note', id\)/);
+    assert.match(fn2[1], /recordPermanentlyDeletedNoteIds\(ids\);/);
+});
+
+// ---------------------------------------------------------------------------
+// Durable note tombstones: syncNotes must consult collectPermanentlyDeletedNoteIds
+// so notes permanently deleted in past sessions are never resurrected by a cloud fetch.
+// ---------------------------------------------------------------------------
+test('syncNotes consults collectPermanentlyDeletedNoteIds and cleans up cloud orphans', () => {
+    const fn = appSrc.match(/async function syncNotes\(\)\s*\{([\s\S]*?)\n\}/);
+    assert.ok(fn, 'syncNotes body not found');
+    const body = fn[1];
+    assert.match(body, /collectPermanentlyDeletedNoteIds/);
+    assert.match(body, /orphanedCloudIds/);
 });
