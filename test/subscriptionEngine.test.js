@@ -78,6 +78,52 @@ describe('SubscriptionEngine Unit Tests', () => {
             assert.strictEqual(netflixItem.daysUntilDue, 5); // 15 - 10 = 5 days
         });
 
+        test('correctly normalizes and matches Greek subscription notes and categories (Tier 2/3 matching)', () => {
+            assert.strictEqual(SubscriptionEngine.normalizeText('ΔΟΣΗ ΔΑΝΕΙΟΥ'), 'δοση δανειου');
+            assert.strictEqual(SubscriptionEngine.normalizeText('🏡 ΣΠΙΤΙ'), 'σπιτι');
+            assert.strictEqual(SubscriptionEngine.normalizeText('Ενοίκιο Γραφείου!'), 'ενοικιο γραφειου');
+            assert.strictEqual(SubscriptionEngine.normalizeText('Καφές'), 'καφεσ');
+
+            const templates = [
+                {
+                    id: 'loan_new_tpl_id',
+                    type: 'expense',
+                    category: '🏡 ΣΠΙΤΙ',
+                    note: 'ΔΟΣΗ ΔΑΝΕΙΟΥ',
+                    amount: 524.38,
+                    startDate: '2025-06-01',
+                    preset: 'monthly',
+                    days: [1]
+                }
+            ];
+
+            // Transaction has a DIFFERENT/OLD recurring_template_id, but note and amount match
+            const transactions = [
+                {
+                    id: 'tx_loan_sept',
+                    type: 'expense',
+                    category: '🏡 ΣΠΙΤΙ',
+                    note: 'ΔΟΣΗ ΔΑΝΕΙΟΥ',
+                    amount: 524.38,
+                    date: '2026-09-01',
+                    recurring_template_id: 'loan_old_deleted_tpl_id'
+                }
+            ];
+
+            const result = SubscriptionEngine.analyzeMonthlySubscriptions({
+                templates: templates,
+                transactions: transactions,
+                referenceDate: '2026-09-12'
+            });
+
+            assert.strictEqual(result.countPaid, 1);
+            assert.strictEqual(result.countPending, 0);
+            assert.strictEqual(result.totalPending, 0);
+            assert.strictEqual(result.items[0].isPaid, true);
+            assert.strictEqual(result.items[0].status, 'paid');
+            assert.strictEqual(result.items[0].matchedTransaction.id, 'tx_loan_sept');
+        });
+
         test('flags overdue subscriptions when currentDay > dueDay and not paid', () => {
             const templates = [
                 {

@@ -54,7 +54,8 @@
             .toLowerCase()
             .normalize('NFD')
             .replace(/[\u0300-\u036f]/g, '') // remove diacritics / accents
-            .replace(/[^\w\s]/g, ' ') // replace punctuation with spaces
+            .replace(/ς/g, 'σ') // normalize Greek final sigma
+            .replace(/[^\p{L}\p{N}\s]/gu, ' ') // replace punctuation and emojis with spaces, keep unicode letters and digits
             .replace(/\s+/g, ' ')
             .trim();
     }
@@ -388,6 +389,7 @@
 
     return {
         parseDate: parseDate,
+        normalizeText: normalizeText,
         getDueDayForMonth: getDueDayForMonth,
         isTransactionMatchingTemplate: isTransactionMatchingTemplate,
         analyzeMonthlySubscriptions: analyzeMonthlySubscriptions,
