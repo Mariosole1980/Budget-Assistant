@@ -237,6 +237,10 @@ function stopSupabaseRealtimeSubscription() {
     clearInterval(_realtimeWatchdogInterval);
     _realtimeWatchdogInterval = null;
   }
+  if (_syncQueueWorkerInterval) {
+    clearInterval(_syncQueueWorkerInterval);
+    _syncQueueWorkerInterval = null;
+  }
   if (_realtimeReconnectTimer) {
     clearTimeout(_realtimeReconnectTimer);
     _realtimeReconnectTimer = null;
