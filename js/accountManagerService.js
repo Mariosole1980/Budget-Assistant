@@ -175,8 +175,20 @@ function selectAccountEditorType(type) {
   });
 }
 
+function generateSafeUUID() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    try {
+      return crypto.randomUUID();
+    } catch (e) {}
+  }
+  return 'acc_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+}
+
 async function saveAccountEditor(e) {
-  if (e) e.preventDefault();
+  if (e) {
+    if (typeof e.preventDefault === 'function') e.preventDefault();
+    if (typeof e.stopPropagation === 'function') e.stopPropagation();
+  }
 
   const id = document.getElementById('acc-editor-id')?.value;
   const origName = document.getElementById('acc-editor-orig-name')?.value;
@@ -185,13 +197,27 @@ async function saveAccountEditor(e) {
   const currency = document.getElementById('acc-editor-currency')?.value || 'EUR';
   const balance = parseFloat(document.getElementById('acc-editor-balance')?.value) || 0;
 
-  if (!name) return;
+  if (!name) return false;
 
   if (!state.accounts) state.accounts = [];
 
   let accountObj = null;
   if (origName) {
     accountObj = state.accounts.find(a => a.name === origName || (id && a.id === id));
+  }
+
+  // Duplicate name check when creating or renaming to existing
+  const duplicate = state.accounts.find(a => a.name.toLowerCase() === name.toLowerCase() && a !== accountObj);
+  if (duplicate) {
+    const warnMsg = (state.lang === 'el')
+      ? 'Υπάρχει ήδη πορτοφόλι με αυτό το όνομα.'
+      : 'A wallet with this name already exists.';
+    if (typeof showSyncToast === 'function') {
+      showSyncToast('⚠️ ' + warnMsg, 3000);
+    } else {
+      alert(warnMsg);
+    }
+    return false;
   }
 
   const userId = state.currentUser ? state.currentUser.id : null;
@@ -230,7 +256,7 @@ async function saveAccountEditor(e) {
   } else {
     // Create new
     const newAcc = {
-      id: crypto.randomUUID ? crypto.randomUUID() : ('acc_' + Date.now()),
+      id: generateSafeUUID(),
       name,
       type,
       currency,
@@ -250,7 +276,11 @@ async function saveAccountEditor(e) {
     }
   }
 
-  localStorage.setItem('offline_accounts', JSON.stringify(state.accounts));
+  try {
+    localStorage.setItem('offline_accounts', JSON.stringify(state.accounts));
+  } catch (err) {
+    console.warn('Failed to save offline_accounts to localStorage:', err);
+  }
 
   closeModal('account-editor-modal');
   renderAccountManagerList();
@@ -258,9 +288,22 @@ async function saveAccountEditor(e) {
   if (typeof updateAccountDropdowns === 'function') updateAccountDropdowns();
   if (typeof updateUI === 'function') updateUI();
 
+  // If transaction modal is open, auto-select the new/updated account into the active picker target
+  const txModal = typeof document !== 'undefined' ? document.getElementById('transaction-modal') : null;
+  const isTxModalOpen = txModal && txModal.classList.contains('active');
+  if (isTxModalOpen) {
+    if (typeof AccountPickerView !== 'undefined' && typeof AccountPickerView.selectAccountOption === 'function') {
+      AccountPickerView.selectAccountOption(name);
+    } else if (typeof selectAccountOption === 'function') {
+      selectAccountOption(name);
+    }
+  }
+
   if (typeof showSyncToast === 'function') {
     showSyncToast(state.lang === 'el' ? '✓ Το πορτοφόλι αποθηκεύτηκε' : '✓ Wallet saved', 2000);
   }
+
+  return false;
 }
 
 async function deleteAccountFromManager(acc) {

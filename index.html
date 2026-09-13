@@ -3597,17 +3597,26 @@
             <div style="font-size: 11.5px; color: var(--text-secondary); margin-bottom: 10px; line-height: 1.4;">
               Θέλετε να αγοράσετε κάτι; Δείτε αν σας παίρνει πριν το πληρώσετε:
             </div>
-            <div style="display: flex; gap: 6px; margin-bottom: 10px; align-items: center;">
-              <input type="number" id="sts-sim-amount" placeholder="Ποσό π.χ. 300" style="flex: 1 1 100px; min-width: 0; padding: 8px 10px; font-size: 13px; font-weight: 700; background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 12px; color: #fff; outline: none; box-sizing: border-box;">
-              <select id="sts-sim-installments" style="padding: 8px 8px; font-size: 12px; font-weight: 600; background: #1e293b; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 12px; color: #fff; flex-shrink: 0; box-sizing: border-box;">
-                <option value="1">Εφάπαξ</option>
-                <option value="3">3 Δόσεις</option>
-                <option value="6">6 Δόσεις</option>
-              </select>
-              <button type="button" onclick="runWhatIfSimulation()" style="padding: 8px 12px; font-size: 12px; font-weight: 800; background: linear-gradient(135deg, #f59e0b, #d97706); color: #0f172a; border: none; border-radius: 12px; cursor: pointer; flex-shrink: 0; white-space: nowrap;">
-                Έλεγχος
+            <div style="display: flex; gap: 8px; margin-bottom: 8px; align-items: center;">
+              <input type="number" id="sts-sim-amount" placeholder="Ποσό π.χ. 300" onkeydown="if(event.key==='Enter'){event.preventDefault();runWhatIfSimulation();}"
+                style="flex: 1; min-width: 0; padding: 10px 12px; font-size: 13.5px; font-weight: 700; background: rgba(0, 0, 0, 0.45); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 12px; color: #fff; outline: none; box-sizing: border-box;">
+              <button type="button" onclick="runWhatIfSimulation()"
+                style="padding: 10px 16px; font-size: 12.5px; font-weight: 800; background: linear-gradient(135deg, #f59e0b, #d97706); color: #0f172a; border: none; border-radius: 12px; cursor: pointer; flex-shrink: 0; white-space: nowrap; box-shadow: 0 4px 14px rgba(245, 158, 11, 0.3);">
+                <i class="fa-solid fa-calculator" style="margin-right: 5px;"></i>Έλεγχος
               </button>
             </div>
+            <div class="sts-sim-inst-group" id="sts-sim-inst-group">
+              <button type="button" class="sts-sim-inst-btn active" data-value="1" onclick="setStsSimInstallments(1, this)">
+                <span data-i18n="sts_sim_one_off">Εφάπαξ</span>
+              </button>
+              <button type="button" class="sts-sim-inst-btn" data-value="3" onclick="setStsSimInstallments(3, this)">
+                <span data-i18n="sts_sim_3_installments">3 Δόσεις</span>
+              </button>
+              <button type="button" class="sts-sim-inst-btn" data-value="6" onclick="setStsSimInstallments(6, this)">
+                <span data-i18n="sts_sim_6_installments">6 Δόσεις</span>
+              </button>
+            </div>
+            <input type="hidden" id="sts-sim-installments" value="1">
             <!-- Simulation Output Container -->
             <div id="sts-sim-result-box" style="display: none; padding: 10px 12px; border-radius: 12px; font-size: 12px; margin-top: 8px; box-sizing: border-box;"></div>
           </div>
@@ -5856,7 +5865,7 @@
         </div>
 
         <!-- Modal Body -->
-        <form id="account-editor-form" onsubmit="saveAccountEditor(event)"
+        <form id="account-editor-form" onsubmit="event.preventDefault(); saveAccountEditor(event); return false;"
           style="padding: 16px 18px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; flex: 1; margin: 0;">
           <input type="hidden" id="acc-editor-id">
           <input type="hidden" id="acc-editor-orig-name">
@@ -5864,7 +5873,7 @@
           <!-- Account Name Input -->
           <div>
             <label style="font-size: 11px; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 6px;"
-              data-i18n="new_category_name_label">Όνομα Πορτοφολιού</label>
+              data-i18n="account_name_label">Όνομα Πορτοφολιού</label>
             <input type="text" id="acc-editor-name" class="form-input" placeholder="π.χ. Eurobank, Revolut, Degiro"
               data-i18n-placeholder="account_name_placeholder" required
               style="font-size: 13px; padding: 10px 12px; border-radius: 8px; width: 100%; box-sizing: border-box;">

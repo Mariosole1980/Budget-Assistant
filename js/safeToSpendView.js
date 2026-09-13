@@ -543,6 +543,25 @@ function saveStsSavingsGoal() {
   }
 }
 
+function setStsSimInstallments(val, btn) {
+  const input = document.getElementById('sts-sim-installments');
+  if (input) input.value = String(val);
+
+  document.querySelectorAll('#sts-sim-inst-group .sts-sim-inst-btn, .sts-sim-inst-btn').forEach(b => {
+    b.classList.remove('active');
+  });
+
+  if (btn) {
+    btn.classList.add('active');
+  }
+
+  // If amount is already entered, live re-run simulation
+  const amtInput = document.getElementById('sts-sim-amount');
+  if (amtInput && parseFloat(amtInput.value) > 0) {
+    runWhatIfSimulation();
+  }
+}
+
 function runWhatIfSimulation() {
   if (typeof SafeToSpendEngine === 'undefined') return;
 
@@ -623,6 +642,7 @@ function openAiAdvisorFromBar() {
 
 window.updateSafeToSpendUI = updateSafeToSpendUI;
 window.openSafeToSpendModal = openSafeToSpendModal;
+window.setStsSimInstallments = setStsSimInstallments;
 window.runWhatIfSimulation = runWhatIfSimulation;
 window.openAiAdvisorFromBar = openAiAdvisorFromBar;
 
@@ -887,6 +907,7 @@ window.quickPaySubscription = quickPaySubscription;
   window.getMonthlySavingsGoal = getMonthlySavingsGoal;
   window.updateSafeToSpendUI = updateSafeToSpendUI;
   window.openSafeToSpendModal = openSafeToSpendModal;
+  window.setStsSimInstallments = setStsSimInstallments;
   window.runWhatIfSimulation = runWhatIfSimulation;
   window.openAiAdvisorFromBar = openAiAdvisorFromBar;
   window.openSubscriptionsHubModal = openSubscriptionsHubModal;
@@ -904,6 +925,7 @@ window.quickPaySubscription = quickPaySubscription;
     getMonthlySavingsGoal: getMonthlySavingsGoal,
     updateSafeToSpendUI: updateSafeToSpendUI,
     openSafeToSpendModal: openSafeToSpendModal,
+    setStsSimInstallments: setStsSimInstallments,
     runWhatIfSimulation: runWhatIfSimulation,
     openAiAdvisorFromBar: openAiAdvisorFromBar,
     openSubscriptionsHubModal: openSubscriptionsHubModal,

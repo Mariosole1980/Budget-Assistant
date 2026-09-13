@@ -9569,12 +9569,57 @@ mark.guide-highlight {
   z-index: 12500 !important;
 }
 
-#category-manager-modal {
+#category-manager-modal,
+#account-manager-modal {
   z-index: 12600 !important;
 }
 
-#category-editor-modal {
+#category-editor-modal,
+#account-editor-modal {
   z-index: 12800 !important;
+}
+
+/* Safe-to-Spend What-If Purchase Simulator Segmented Pills */
+.sts-sim-inst-group {
+  display: flex;
+  position: relative;
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 12px;
+  padding: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.sts-sim-inst-btn {
+  flex: 1;
+  text-align: center;
+  padding: 8px 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  border-radius: 9px;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: inherit;
+}
+
+.sts-sim-inst-btn:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-primary);
+}
+
+.sts-sim-inst-btn.active {
+  color: #fbbf24;
+  background: rgba(245, 158, 11, 0.18);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.2);
 }
 
 #transaction-modal,

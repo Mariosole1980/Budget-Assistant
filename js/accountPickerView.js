@@ -130,7 +130,11 @@
       </div>
       <span style="font-size: 13px;">${(translations[appState.lang] && translations[appState.lang]['account_picker_new']) || '+ Νέος Λογαριασμός...'}</span>
     `;
-    newAccBtn.onclick = () => {
+    newAccBtn.onclick = (e) => {
+      if (e) {
+        if (typeof e.preventDefault === 'function') e.preventDefault();
+        if (typeof e.stopPropagation === 'function') e.stopPropagation();
+      }
       if (typeof closeModal === 'function') closeModal('account-picker-modal');
       if (typeof openAccountEditorModal === 'function') openAccountEditorModal();
     };

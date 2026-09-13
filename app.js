@@ -3188,7 +3188,7 @@ function openSettingsAccountManager() { return AccountManagerService.openSetting
 function renderAccountManagerList() { return AccountManagerService.renderAccountManagerList(); }
 function openAccountEditorModal(index) { return AccountManagerService.openAccountEditorModal(index); }
 function selectAccountEditorType(type) { return AccountManagerService.selectAccountEditorType(type); }
-function saveAccountEditor() { return AccountManagerService.saveAccountEditor(); }
+function saveAccountEditor(e) { return AccountManagerService.saveAccountEditor(e); }
 function deleteAccountFromManager(index) { return AccountManagerService.deleteAccountFromManager(index); }
 function openSettleUpModal() { return AccountManagerService.openSettleUpModal(); }
 function recordSettlementTransaction() { return AccountManagerService.recordSettlementTransaction(); }
