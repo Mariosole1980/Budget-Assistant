@@ -115,10 +115,16 @@ function getSubcategoriesForCategory(category) {
     return cClean === cleanedCat || cClean === dispCat || cNorm === normCat || (normDisp && cNorm === normDisp);
   });
 
-  const deletedSubs = new Set(
-    ((cat && Array.isArray(cat.deleted_subcategories)) ? cat.deleted_subcategories : [])
-      .map(s => String(s || '').trim().toLowerCase())
-  );
+  const registryDeleted = (typeof getDeletedSubcategoriesForCategory === 'function')
+    ? getDeletedSubcategoriesForCategory(category)
+    : ((typeof window !== 'undefined' && typeof window.getDeletedSubcategoriesForCategory === 'function')
+      ? window.getDeletedSubcategoriesForCategory(category)
+      : []);
+
+  const deletedSubs = new Set([
+    ...((cat && Array.isArray(cat.deleted_subcategories)) ? cat.deleted_subcategories : []),
+    ...registryDeleted
+  ].map(s => String(s || '').trim().toLowerCase()));
 
   // 1. Match DEFAULT_SUBCATEGORIES_MAP case-insensitively & accent-insensitively
   if (typeof DEFAULT_SUBCATEGORIES_MAP === 'object' && DEFAULT_SUBCATEGORIES_MAP) {
@@ -175,10 +181,16 @@ function getSortedSubcategoriesForCategory(categoryName) {
     return cClean === cleanedCat || cClean === dispCat || cNorm === normCat || (normDisp && cNorm === normDisp);
   });
 
-  const deletedSubs = new Set(
-    ((cat && Array.isArray(cat.deleted_subcategories)) ? cat.deleted_subcategories : [])
-      .map(s => String(s || '').trim().toLowerCase())
-  );
+  const registryDeleted = (typeof getDeletedSubcategoriesForCategory === 'function')
+    ? getDeletedSubcategoriesForCategory(categoryName)
+    : ((typeof window !== 'undefined' && typeof window.getDeletedSubcategoriesForCategory === 'function')
+      ? window.getDeletedSubcategoriesForCategory(categoryName)
+      : []);
+
+  const deletedSubs = new Set([
+    ...((cat && Array.isArray(cat.deleted_subcategories)) ? cat.deleted_subcategories : []),
+    ...registryDeleted
+  ].map(s => String(s || '').trim().toLowerCase()));
 
   // 2. Merge default subcategories from DEFAULT_SUBCATEGORIES_MAP (unless deleted)
   if (typeof DEFAULT_SUBCATEGORIES_MAP === 'object' && DEFAULT_SUBCATEGORIES_MAP) {
@@ -279,6 +291,20 @@ async function renameSubcategoryGlobally(categoryName, oldSub, newSub) {
   cat.updated_at = now;
   saveCategoriesToStorage();
 
+  const recDelFn = (typeof recordDeletedSubcategory === 'function')
+    ? recordDeletedSubcategory
+    : ((typeof window !== 'undefined' && typeof window.recordDeletedSubcategory === 'function')
+      ? window.recordDeletedSubcategory
+      : null);
+  if (recDelFn) recDelFn(categoryName, oldSub);
+
+  const remDelFn = (typeof removeDeletedSubcategoryTombstone === 'function')
+    ? removeDeletedSubcategoryTombstone
+    : ((typeof window !== 'undefined' && typeof window.removeDeletedSubcategoryTombstone === 'function')
+      ? window.removeDeletedSubcategoryTombstone
+      : null);
+  if (remDelFn) remDelFn(categoryName, newSub);
+
   if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
     try {
       await state.supabaseClient.from('categories').upsert({
@@ -291,7 +317,6 @@ async function renameSubcategoryGlobally(categoryName, oldSub, newSub) {
         color: cat.color || '',
         hidden: !!cat.hidden,
         subcategories: cat.subcategories,
-        deleted_subcategories: cat.deleted_subcategories,
         updated_at: now
       });
     } catch (err) {
@@ -381,6 +406,13 @@ async function deleteSubcategoryGlobally(categoryName, subToDelete) {
   cat.updated_at = now;
   saveCategoriesToStorage();
 
+  const recDelFn = (typeof recordDeletedSubcategory === 'function')
+    ? recordDeletedSubcategory
+    : ((typeof window !== 'undefined' && typeof window.recordDeletedSubcategory === 'function')
+      ? window.recordDeletedSubcategory
+      : null);
+  if (recDelFn) recDelFn(categoryName, subToDelete);
+
   if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
     try {
       await state.supabaseClient.from('categories').upsert({
@@ -393,7 +425,6 @@ async function deleteSubcategoryGlobally(categoryName, subToDelete) {
         color: cat.color || '',
         hidden: !!cat.hidden,
         subcategories: cat.subcategories,
-        deleted_subcategories: cat.deleted_subcategories,
         updated_at: now
       });
     } catch (err) {
@@ -458,6 +489,13 @@ async function undoLastSubcategoryDelete() {
     cat.updated_at = now;
     saveCategoriesToStorage();
 
+    const remDelFn = (typeof removeDeletedSubcategoryTombstone === 'function')
+      ? removeDeletedSubcategoryTombstone
+      : ((typeof window !== 'undefined' && typeof window.removeDeletedSubcategoryTombstone === 'function')
+        ? window.removeDeletedSubcategoryTombstone
+        : null);
+    if (remDelFn) remDelFn(categoryName, subcategoryName);
+
     if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
       state.supabaseClient.from('categories').upsert({
         id: cat.id || (typeof generateUUID === 'function' ? generateUUID() : crypto.randomUUID()),
@@ -469,7 +507,6 @@ async function undoLastSubcategoryDelete() {
         color: cat.color || '',
         hidden: !!cat.hidden,
         subcategories: cat.subcategories,
-        deleted_subcategories: cat.deleted_subcategories,
         updated_at: now
       }).then(() => { }, err => console.warn('Supabase categories undo update error:', err));
     }

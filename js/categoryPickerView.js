@@ -198,6 +198,23 @@ async function inlineDeleteCustomCategory(categoryName, type) {
   state.categories = state.categories.filter(c => c.name !== categoryName);
   saveCategoriesToStorage();
 
+  // Record durable tombstone locally & on cloud
+  const recCatTombFn = (typeof recordDeletedCategory === 'function')
+    ? recordDeletedCategory
+    : ((typeof window !== 'undefined' && typeof window.recordDeletedCategory === 'function')
+      ? window.recordDeletedCategory
+      : null);
+  if (recCatTombFn) {
+    recCatTombFn(catToDelete.id, catToDelete.name, type);
+  }
+
+  // Queue delete mutation for offline resilience
+  if (catToDelete.id && typeof enqueueSyncMutation === 'function') {
+    enqueueSyncMutation('delete_category', catToDelete.id);
+  } else if (catToDelete.id && typeof window !== 'undefined' && typeof window.enqueueSyncMutation === 'function') {
+    window.enqueueSyncMutation('delete_category', catToDelete.id);
+  }
+
   // Sync delete to cloud if enabled
   if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser && catToDelete.id) {
     try {
@@ -206,7 +223,15 @@ async function inlineDeleteCustomCategory(categoryName, type) {
         .delete()
         .eq('id', catToDelete.id)
         .then(({ error }) => {
-          if (error) console.warn('Cloud category delete warning:', error);
+          if (error) {
+            console.warn('Cloud category delete warning:', error);
+          } else {
+            if (typeof dequeueSyncMutation === 'function') {
+              dequeueSyncMutation('delete_category', catToDelete.id);
+            } else if (typeof window !== 'undefined' && typeof window.dequeueSyncMutation === 'function') {
+              window.dequeueSyncMutation('delete_category', catToDelete.id);
+            }
+          }
         });
     } catch (e) {
       console.warn('Cloud category delete failed:', e);
@@ -344,12 +369,19 @@ function updateCategoryDropdowns(type = 'expense', force = false) {
   // Filter by type. In edit mode, show all. Otherwise, hide hidden categories.
   let visibleCategories = state.categories.filter(c => c.type === type && (categoryPickerEditMode || !c.hidden));
 
-  // Fallback: If no categories found for this type, inject defaults for this type
+  // Fallback: If no categories found for this type, inject defaults for this type (skipping user-deleted defaults)
   if (visibleCategories.length === 0) {
-    const defaultsForType = DEFAULT_CATEGORIES.filter(c => c.type === type);
-    state.categories.push(...defaultsForType);
-    deduplicateCategories();
-    visibleCategories = state.categories.filter(c => c.type === type && (categoryPickerEditMode || !c.hidden));
+    const isCatDeletedFn = (typeof isCategoryDeleted === 'function')
+      ? isCategoryDeleted
+      : ((typeof window !== 'undefined' && typeof window.isCategoryDeleted === 'function')
+        ? window.isCategoryDeleted
+        : () => false);
+    const defaultsForType = DEFAULT_CATEGORIES.filter(c => c.type === type && !isCatDeletedFn(c.id, c.name, c.type));
+    if (defaultsForType.length > 0) {
+      state.categories.push(...defaultsForType);
+      deduplicateCategories();
+      visibleCategories = state.categories.filter(c => c.type === type && (categoryPickerEditMode || !c.hidden));
+    }
   }
 
   // Sort categories alphabetically based on display name in the active language
@@ -1050,6 +1082,16 @@ function saveNewCategoryFromPicker() {
 
   state.categories.push(newCategory);
   saveCategoriesToStorage();
+
+  // Clear any previous deletion tombstone for this category
+  const remCatTombFn = (typeof removeDeletedCategoryTombstone === 'function')
+    ? removeDeletedCategoryTombstone
+    : ((typeof window !== 'undefined' && typeof window.removeDeletedCategoryTombstone === 'function')
+      ? window.removeDeletedCategoryTombstone
+      : null);
+  if (remCatTombFn) {
+    remCatTombFn(name, newCategoryDialogType);
+  }
 
   // Sync to cloud if enabled
   if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {

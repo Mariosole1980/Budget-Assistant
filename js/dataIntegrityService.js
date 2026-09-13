@@ -475,9 +475,238 @@ async function autoSyncMissingTransactionsToCloud(cloudTransactions, userId) {
 }
 window.autoSyncMissingTransactionsToCloud = autoSyncMissingTransactionsToCloud;
 
+  // ---------------------------------------------------------------------------
+  // CATEGORY & SUBCATEGORY TOMBSTONE REGISTRY
+  // Durable local & cloud tombstone tracking to permanently prevent
+  // deleted categories and subcategories from resurrecting.
+  // ---------------------------------------------------------------------------
+  const _DELETED_CATEGORIES_LS_KEY = 'ba_deleted_categories';
+  const _DELETED_SUBCATEGORIES_LS_KEY = 'ba_deleted_subcategories';
+
+  function _cleanStr(str) {
+    if (!str) return '';
+    let s = String(str);
+    try {
+      s = s.replace(/^[\p{Emoji}\p{Emoji_Presentation}\p{Emoji_Modifier}\p{Emoji_Component}\s]+/gu, '').trim();
+    } catch (_) {
+      if (typeof stripLeadingEmoji === 'function') {
+        s = stripLeadingEmoji(s);
+      } else if (typeof window !== 'undefined' && typeof window.stripLeadingEmoji === 'function') {
+        s = window.stripLeadingEmoji(s);
+      }
+    }
+    if (typeof normalizeGreekString === 'function') {
+      return normalizeGreekString(s);
+    } else if (typeof window !== 'undefined' && typeof window.normalizeGreekString === 'function') {
+      return window.normalizeGreekString(s);
+    }
+    return s.trim().toLowerCase();
+  }
+
+  function _getCategoryKey(name, type) {
+    const cleanName = _cleanStr(name);
+    const cleanType = String(type || 'expense').trim().toLowerCase();
+    return cleanType + ':::' + cleanName;
+  }
+
+  function getDeletedCategoryIds() {
+    try {
+      const raw = localStorage.getItem(_DELETED_CATEGORIES_LS_KEY);
+      if (!raw) return new Set();
+      const list = JSON.parse(raw);
+      if (!Array.isArray(list)) return new Set();
+      const ids = new Set();
+      list.forEach(item => {
+        if (typeof item === 'string' && item.length > 20 && !item.includes(':::')) {
+          ids.add(item);
+        } else if (item && item.id) {
+          ids.add(String(item.id));
+        }
+      });
+      return ids;
+    } catch (e) {
+      return new Set();
+    }
+  }
+
+  function getDeletedCategoryKeys() {
+    try {
+      const raw = localStorage.getItem(_DELETED_CATEGORIES_LS_KEY);
+      if (!raw) return new Set();
+      const list = JSON.parse(raw);
+      if (!Array.isArray(list)) return new Set();
+      const keys = new Set();
+      list.forEach(item => {
+        if (typeof item === 'string') {
+          if (item.includes(':::')) keys.add(item);
+        } else if (item && (item.key || item.name)) {
+          keys.add(item.key || _getCategoryKey(item.name, item.type));
+        }
+      });
+      return keys;
+    } catch (e) {
+      return new Set();
+    }
+  }
+
+  function recordDeletedCategory(id, name, type, { writeCloudTombstone = true } = {}) {
+    try {
+      const raw = localStorage.getItem(_DELETED_CATEGORIES_LS_KEY);
+      const list = raw ? JSON.parse(raw) : [];
+      const cleanList = Array.isArray(list) ? list : [];
+      const key = _getCategoryKey(name, type);
+      const item = {
+        id: id ? String(id) : null,
+        key: key,
+        name: name || '',
+        type: type || 'expense',
+        deleted_at: new Date().toISOString()
+      };
+      const exists = cleanList.some(c => (id && c.id && String(c.id) === String(id)) || (key && c.key === key));
+      if (!exists) {
+        cleanList.push(item);
+        localStorage.setItem(_DELETED_CATEGORIES_LS_KEY, JSON.stringify(cleanList.slice(-500)));
+      }
+      if (writeCloudTombstone) {
+        const tombstoneId = id || key;
+        const tombFn = (typeof writeSyncTombstones === 'function')
+          ? writeSyncTombstones
+          : ((typeof window !== 'undefined' && typeof window.writeSyncTombstones === 'function')
+            ? window.writeSyncTombstones
+            : null);
+        if (tombFn) {
+          tombFn('categories', [String(tombstoneId)]).catch(e => console.warn('[DataIntegrity] Category tombstone write failed:', e));
+        }
+      }
+    } catch (e) {
+      console.warn('[DataIntegrity] recordDeletedCategory failed:', e);
+    }
+  }
+
+  function isCategoryDeleted(id, name, type) {
+    if (id && getDeletedCategoryIds().has(String(id))) return true;
+    if (name) {
+      const key = _getCategoryKey(name, type);
+      const keys = getDeletedCategoryKeys();
+      if (keys.has(key)) return true;
+      const cleanName = _cleanStr(name);
+      if (keys.has('expense:::' + cleanName) || keys.has('income:::' + cleanName)) return true;
+    }
+    return false;
+  }
+
+  function removeDeletedCategoryTombstone(name, type) {
+    try {
+      const raw = localStorage.getItem(_DELETED_CATEGORIES_LS_KEY);
+      if (!raw) return;
+      const list = JSON.parse(raw);
+      if (!Array.isArray(list)) return;
+      const targetKey = _getCategoryKey(name, type);
+      const cleanName = _cleanStr(name);
+      const filtered = list.filter(item => {
+        const itemKey = (typeof item === 'string') ? item : (item && (item.key || _getCategoryKey(item.name, item.type)));
+        if (itemKey === targetKey || (itemKey && itemKey.endsWith(':::' + cleanName))) return false;
+        return true;
+      });
+      localStorage.setItem(_DELETED_CATEGORIES_LS_KEY, JSON.stringify(filtered));
+    } catch (e) {
+      console.warn('[DataIntegrity] removeDeletedCategoryTombstone failed:', e);
+    }
+  }
+
+  function recordDeletedSubcategory(categoryName, subcategoryName, { writeCloudTombstone = true } = {}) {
+    if (!categoryName || !subcategoryName) return;
+    try {
+      const raw = localStorage.getItem(_DELETED_SUBCATEGORIES_LS_KEY);
+      let registry = {};
+      try {
+        const parsed = raw ? JSON.parse(raw) : null;
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+          registry = parsed;
+        }
+      } catch (_) { registry = {}; }
+
+      const catKey = _cleanStr(categoryName);
+      const subKey = _cleanStr(subcategoryName);
+      if (!Array.isArray(registry[catKey])) {
+        registry[catKey] = [];
+      }
+      if (!registry[catKey].some(s => _cleanStr(s) === subKey)) {
+        registry[catKey].push(subcategoryName.trim());
+      }
+      localStorage.setItem(_DELETED_SUBCATEGORIES_LS_KEY, JSON.stringify(registry));
+
+      if (writeCloudTombstone) {
+        const slug = `${catKey}:::${subKey}`;
+        const tombFn = (typeof writeSyncTombstones === 'function')
+          ? writeSyncTombstones
+          : ((typeof window !== 'undefined' && typeof window.writeSyncTombstones === 'function')
+            ? window.writeSyncTombstones
+            : null);
+        if (tombFn) {
+          tombFn('subcategories', [slug]).catch(e => console.warn('[DataIntegrity] Subcategory tombstone write failed:', e));
+        }
+      }
+    } catch (e) {
+      console.warn('[DataIntegrity] recordDeletedSubcategory failed:', e);
+    }
+  }
+
+  function isSubcategoryDeleted(categoryName, subcategoryName) {
+    if (!categoryName || !subcategoryName) return false;
+    const list = getDeletedSubcategoriesForCategory(categoryName);
+    const cleanSub = _cleanStr(subcategoryName);
+    return list.some(s => _cleanStr(s) === cleanSub);
+  }
+
+  function getDeletedSubcategoriesForCategory(categoryName) {
+    if (!categoryName) return [];
+    try {
+      const raw = localStorage.getItem(_DELETED_SUBCATEGORIES_LS_KEY);
+      if (!raw) return [];
+      const registry = JSON.parse(raw);
+      if (!registry || typeof registry !== 'object') return [];
+      const targetCat = _cleanStr(categoryName);
+      for (const [key, subs] of Object.entries(registry)) {
+        if (_cleanStr(key) === targetCat && Array.isArray(subs)) {
+          return subs;
+        }
+      }
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function removeDeletedSubcategoryTombstone(categoryName, subcategoryName) {
+    if (!categoryName || !subcategoryName) return;
+    try {
+      const raw = localStorage.getItem(_DELETED_SUBCATEGORIES_LS_KEY);
+      if (!raw) return;
+      const registry = JSON.parse(raw);
+      if (!registry || typeof registry !== 'object') return;
+      const targetCat = _cleanStr(categoryName);
+      const targetSub = _cleanStr(subcategoryName);
+      let changed = false;
+      for (const [key, subs] of Object.entries(registry)) {
+        if (_cleanStr(key) === targetCat && Array.isArray(subs)) {
+          registry[key] = subs.filter(s => _cleanStr(s) !== targetSub);
+          changed = true;
+        }
+      }
+      if (changed) {
+        localStorage.setItem(_DELETED_SUBCATEGORIES_LS_KEY, JSON.stringify(registry));
+      }
+    } catch (e) {
+      console.warn('[DataIntegrity] removeDeletedSubcategoryTombstone failed:', e);
+    }
+  }
+
   // Global browser exports
   if (typeof window !== 'undefined') {
     window._PERMANENT_DELETED_LS_KEY = _PERMANENT_DELETED_LS_KEY;
+    window._DELETED_CATEGORIES_LS_KEY = _DELETED_CATEGORIES_LS_KEY;
+    window._DELETED_SUBCATEGORIES_LS_KEY = _DELETED_SUBCATEGORIES_LS_KEY;
     window.cleanDuplicateCategories = cleanDuplicateCategories;
     window.cleanDuplicateTransactions = cleanDuplicateTransactions;
     window.getPendingLocalTransactions = getPendingLocalTransactions;
@@ -485,17 +714,37 @@ window.autoSyncMissingTransactionsToCloud = autoSyncMissingTransactionsToCloud;
     window.reconcileStaleTombstones = reconcileStaleTombstones;
     window.purgePermanentlyDeletedTxIds = purgePermanentlyDeletedTxIds;
     window.autoSyncMissingTransactionsToCloud = autoSyncMissingTransactionsToCloud;
+    window.recordDeletedCategory = recordDeletedCategory;
+    window.isCategoryDeleted = isCategoryDeleted;
+    window.getDeletedCategoryIds = getDeletedCategoryIds;
+    window.getDeletedCategoryKeys = getDeletedCategoryKeys;
+    window.removeDeletedCategoryTombstone = removeDeletedCategoryTombstone;
+    window.recordDeletedSubcategory = recordDeletedSubcategory;
+    window.isSubcategoryDeleted = isSubcategoryDeleted;
+    window.getDeletedSubcategoriesForCategory = getDeletedSubcategoriesForCategory;
+    window.removeDeletedSubcategoryTombstone = removeDeletedSubcategoryTombstone;
   }
 
   return {
     _PERMANENT_DELETED_LS_KEY,
     _RECENTLY_DELETED_LS_KEY,
+    _DELETED_CATEGORIES_LS_KEY,
+    _DELETED_SUBCATEGORIES_LS_KEY,
     cleanDuplicateCategories,
     cleanDuplicateTransactions,
     getPendingLocalTransactions,
     collectPermanentlyDeletedTxIds,
     reconcileStaleTombstones,
     purgePermanentlyDeletedTxIds,
-    autoSyncMissingTransactionsToCloud
+    autoSyncMissingTransactionsToCloud,
+    recordDeletedCategory,
+    isCategoryDeleted,
+    getDeletedCategoryIds,
+    getDeletedCategoryKeys,
+    removeDeletedCategoryTombstone,
+    recordDeletedSubcategory,
+    isSubcategoryDeleted,
+    getDeletedSubcategoriesForCategory,
+    removeDeletedSubcategoryTombstone
   };
 }));

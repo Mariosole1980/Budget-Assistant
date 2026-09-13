@@ -476,6 +476,13 @@ function addSubcategoryToCategory(categoryName, subcatName) {
   cat.updated_at = now;
   saveCategoriesToStorage();
 
+  const remDelFn = (typeof removeDeletedSubcategoryTombstone === 'function')
+    ? removeDeletedSubcategoryTombstone
+    : ((typeof window !== 'undefined' && typeof window.removeDeletedSubcategoryTombstone === 'function')
+      ? window.removeDeletedSubcategoryTombstone
+      : null);
+  if (remDelFn) remDelFn(categoryName, cleanSub);
+
   if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
     state.supabaseClient.from('categories').upsert({
       id: cat.id || (typeof generateUUID === 'function' ? generateUUID() : crypto.randomUUID()),
@@ -487,7 +494,6 @@ function addSubcategoryToCategory(categoryName, subcatName) {
       color: cat.color || '',
       hidden: !!cat.hidden,
       subcategories: cat.subcategories,
-      deleted_subcategories: cat.deleted_subcategories,
       updated_at: now
     }).then(() => { }, err => console.warn('Sync categories subcategories warning:', err));
   }

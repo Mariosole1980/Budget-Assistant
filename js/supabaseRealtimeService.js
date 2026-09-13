@@ -417,17 +417,46 @@ function handleRealtimeCategoryChange(payload) {
   let cats = [...state.categories];
   const eventType = payload.eventType;
 
+  const isCatDeletedFn = (typeof isCategoryDeleted === 'function')
+    ? isCategoryDeleted
+    : ((typeof window !== 'undefined' && typeof window.isCategoryDeleted === 'function')
+      ? window.isCategoryDeleted
+      : () => false);
+  const getDelSubsFn = (typeof getDeletedSubcategoriesForCategory === 'function')
+    ? getDeletedSubcategoriesForCategory
+    : ((typeof window !== 'undefined' && typeof window.getDeletedSubcategoriesForCategory === 'function')
+      ? window.getDeletedSubcategoriesForCategory
+      : () => []);
+
   if (eventType === 'INSERT') {
     const newCat = payload.new;
-    if (!cats.some(c => c.id === newCat.id)) {
-      cats.push(newCat);
+    if (newCat && !isCatDeletedFn(newCat.id, newCat.name, newCat.type)) {
+      const regDeleted = getDelSubsFn(newCat.name);
+      newCat.deleted_subcategories = Array.from(new Set([...(newCat.deleted_subcategories || []), ...regDeleted]));
+      if (!cats.some(c => c.id === newCat.id)) {
+        cats.push(newCat);
+      }
     }
   } else if (eventType === 'UPDATE') {
     const updatedCat = payload.new;
-    cats = cats.map(c => c.id === updatedCat.id ? updatedCat : c);
+    if (updatedCat && !isCatDeletedFn(updatedCat.id, updatedCat.name, updatedCat.type)) {
+      const regDeleted = getDelSubsFn(updatedCat.name);
+      updatedCat.deleted_subcategories = Array.from(new Set([...(updatedCat.deleted_subcategories || []), ...regDeleted]));
+      cats = cats.map(c => c.id === updatedCat.id ? updatedCat : c);
+    } else if (updatedCat) {
+      cats = cats.filter(c => c.id !== updatedCat.id);
+    }
   } else if (eventType === 'DELETE') {
     const deletedId = payload.old.id;
     cats = cats.filter(c => c.id !== deletedId);
+    const recCatTombFn = (typeof recordDeletedCategory === 'function')
+      ? recordDeletedCategory
+      : ((typeof window !== 'undefined' && typeof window.recordDeletedCategory === 'function')
+        ? window.recordDeletedCategory
+        : null);
+    if (recCatTombFn && payload.old) {
+      recCatTombFn(deletedId, payload.old.name, payload.old.type, { writeCloudTombstone: false });
+    }
   }
 
   state.categories = cats;
@@ -973,21 +1002,43 @@ async function forceSyncNow(silent = false) {
       );
 
       if (!catsRes.error && catsRes.data) {
+        const isCatDeletedFn = (typeof isCategoryDeleted === 'function')
+          ? isCategoryDeleted
+          : ((typeof window !== 'undefined' && typeof window.isCategoryDeleted === 'function')
+            ? window.isCategoryDeleted
+            : () => false);
+        const getDelSubsFn = (typeof getDeletedSubcategoriesForCategory === 'function')
+          ? getDeletedSubcategoriesForCategory
+          : ((typeof window !== 'undefined' && typeof window.getDeletedSubcategoriesForCategory === 'function')
+            ? window.getDeletedSubcategoriesForCategory
+            : () => []);
+
         if (Array.isArray(catsRes.data) && catsRes.data.length > 0) {
-          // Cloud has categories -> keep cloud categories, and merge any unsynced local custom categories
-          const cloudNames = new Set(catsRes.data.map(c => (c && c.name ? c.name.trim().toLowerCase() : '')));
-          const localCustom = (state.categories || []).filter(c => c && c.name && !cloudNames.has(c.name.trim().toLowerCase()) && !c.is_deleted);
-          state.categories = [...catsRes.data, ...localCustom];
+          // Cloud has categories -> keep non-deleted cloud categories, and merge any unsynced local custom categories
+          const activeCloudCats = catsRes.data.filter(c => !c || !isCatDeletedFn(c.id, c.name, c.type));
+          const cloudNames = new Set(activeCloudCats.map(c => (c && c.name ? c.name.trim().toLowerCase() : '')));
+          const localCustom = (state.categories || []).filter(c => {
+            if (!c || !c.name || c.is_deleted) return false;
+            if (isCatDeletedFn(c.id, c.name, c.type)) return false;
+            return !cloudNames.has(c.name.trim().toLowerCase());
+          });
+          state.categories = [...activeCloudCats, ...localCustom];
+          state.categories.forEach(cat => {
+            if (!cat) return;
+            const regDeleted = getDelSubsFn(cat.name);
+            const existingDeleted = Array.isArray(cat.deleted_subcategories) ? cat.deleted_subcategories : [];
+            cat.deleted_subcategories = Array.from(new Set([...existingDeleted, ...regDeleted]));
+          });
           deduplicateCategories();
         } else {
-          // Cloud categories empty (e.g. newly registered account) -> preserve local categories or seed with defaults
+          // Cloud categories empty (e.g. newly registered account) -> preserve local categories or seed with non-deleted defaults
           if (!state.categories || state.categories.length === 0) {
-            state.categories = DEFAULT_CATEGORIES.slice();
+            state.categories = DEFAULT_CATEGORIES.filter(c => !c || !isCatDeletedFn(c.id, c.name, c.type));
           }
           // Seed defaults in Supabase in background for this new user
           if (state.currentUser && state.currentUser.id && state.categories.length > 0) {
             const now = new Date().toISOString();
-            const catsToInsert = state.categories.map(c => ({
+            const catsToInsert = state.categories.filter(c => !isCatDeletedFn(c.id, c.name, c.type)).map(c => ({
               id: c.id || (typeof generateUUID === 'function' ? generateUUID() : crypto.randomUUID()),
               name: c.name,
               type: c.type || 'expense',
@@ -998,9 +1049,11 @@ async function forceSyncNow(silent = false) {
               created_at: c.created_at || now,
               updated_at: now
             }));
-            state.supabaseClient.from('categories').insert(catsToInsert).then(({ error }) => {
-              if (error) console.warn('Background category seeding warning:', error);
-            });
+            if (catsToInsert.length > 0) {
+              state.supabaseClient.from('categories').insert(catsToInsert).then(({ error }) => {
+                if (error) console.warn('Background category seeding warning:', error);
+              });
+            }
           }
         }
         localStorage.setItem('offline_categories', JSON.stringify(state.categories));

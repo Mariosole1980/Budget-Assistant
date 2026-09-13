@@ -327,14 +327,38 @@ async function loadData() {
       state.transactions = mergedTransactions;
 
       // Merge categories: retain any local custom categories that haven't synced to cloud yet
-      const cloudCatNames = new Set((categories || []).map(c => c && c.name ? c.name.trim().toLowerCase() : ''));
-      const localCustomCats = (state.categories || []).filter(c => c && c.name && !cloudCatNames.has(c.name.trim().toLowerCase()));
-      state.categories = [...(categories || []), ...localCustomCats];
+      const isCatDeletedFn = (typeof isCategoryDeleted === 'function')
+        ? isCategoryDeleted
+        : ((typeof window !== 'undefined' && typeof window.isCategoryDeleted === 'function')
+          ? window.isCategoryDeleted
+          : () => false);
+      const getDelSubsFn = (typeof getDeletedSubcategoriesForCategory === 'function')
+        ? getDeletedSubcategoriesForCategory
+        : ((typeof window !== 'undefined' && typeof window.getDeletedSubcategoriesForCategory === 'function')
+          ? window.getDeletedSubcategoriesForCategory
+          : () => []);
+
+      const activeCloudCategories = (categories || []).filter(c => !c || !isCatDeletedFn(c.id, c.name, c.type));
+      const cloudCatNames = new Set(activeCloudCategories.map(c => c && c.name ? c.name.trim().toLowerCase() : ''));
+      const localCustomCats = (state.categories || []).filter(c => {
+        if (!c || !c.name) return false;
+        if (isCatDeletedFn(c.id, c.name, c.type)) return false;
+        return !cloudCatNames.has(c.name.trim().toLowerCase());
+      });
+
+      state.categories = [...activeCloudCategories, ...localCustomCats];
+      state.categories.forEach(cat => {
+        if (!cat) return;
+        const registryDeleted = getDelSubsFn(cat.name);
+        const existingDeleted = Array.isArray(cat.deleted_subcategories) ? cat.deleted_subcategories : [];
+        cat.deleted_subcategories = Array.from(new Set([...existingDeleted, ...registryDeleted]));
+      });
       deduplicateCategories();
 
-      // If there are unsynced local categories, sync them to cloud in background
+      // If there are unsynced local categories, sync them to cloud in background (never sync deleted categories)
       if (localCustomCats.length > 0 && state.supabaseClient && userId) {
         localCustomCats.forEach(localCat => {
+          if (isCatDeletedFn(localCat.id, localCat.name, localCat.type)) return;
           const now = new Date().toISOString();
           state.supabaseClient.from('categories').insert({
             id: localCat.id || (typeof generateUUID === 'function' ? generateUUID() : crypto.randomUUID()),
@@ -549,7 +573,29 @@ function loadOfflineData() {
   try {
     const cats = localStorage.getItem('offline_categories');
     const parsedCats = cats ? JSON.parse(cats) : null;
-    state.categories = (Array.isArray(parsedCats) && parsedCats.length > 0) ? parsedCats : DEFAULT_CATEGORIES.slice();
+    const isCatDeletedFn = (typeof isCategoryDeleted === 'function')
+      ? isCategoryDeleted
+      : ((typeof window !== 'undefined' && typeof window.isCategoryDeleted === 'function')
+        ? window.isCategoryDeleted
+        : () => false);
+    const getDelSubsFn = (typeof getDeletedSubcategoriesForCategory === 'function')
+      ? getDeletedSubcategoriesForCategory
+      : ((typeof window !== 'undefined' && typeof window.getDeletedSubcategoriesForCategory === 'function')
+        ? window.getDeletedSubcategoriesForCategory
+        : () => []);
+
+    let baseCats = (Array.isArray(parsedCats) && parsedCats.length > 0)
+      ? parsedCats.filter(c => !c || !isCatDeletedFn(c.id, c.name, c.type))
+      : DEFAULT_CATEGORIES.filter(c => !c || !isCatDeletedFn(c.id, c.name, c.type));
+
+    baseCats.forEach(cat => {
+      if (!cat) return;
+      const registryDeleted = getDelSubsFn(cat.name);
+      const existingDeleted = Array.isArray(cat.deleted_subcategories) ? cat.deleted_subcategories : [];
+      cat.deleted_subcategories = Array.from(new Set([...existingDeleted, ...registryDeleted]));
+    });
+
+    state.categories = baseCats;
     deduplicateCategories();
   } catch (e) {
     console.error('Failed to parse offline categories:', e);

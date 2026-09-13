@@ -18,13 +18,13 @@
   function enqueueSyncMutation(action, payload) {
   try {
     const queue = JSON.parse(localStorage.getItem('money_manager_sync_queue') || '[]');
-    const isDelete = action === 'delete' || action === 'delete_template' || action === 'delete_note' || action === 'permanent_delete_note';
-    const itemId = isDelete ? payload : (payload && payload.id ? payload.id : payload);
+    const isDelete = action === 'delete' || action === 'delete_template' || action === 'delete_note' || action === 'permanent_delete_note' || action === 'delete_category';
+    const itemId = isDelete ? (payload && payload.id ? payload.id : payload) : (payload && payload.id ? payload.id : payload);
 
     // Clean up duplicate saves/updates in queue if we are now deleting
     let cleanQueue = queue.filter(item => {
-      const itemIsDelete = item.action === 'delete' || item.action === 'delete_template' || item.action === 'delete_note' || item.action === 'permanent_delete_note';
-      const itemKey = itemIsDelete ? item.payload : (item.payload && item.payload.id ? item.payload.id : item.payload);
+      const itemIsDelete = item.action === 'delete' || item.action === 'delete_template' || item.action === 'delete_note' || item.action === 'permanent_delete_note' || item.action === 'delete_category';
+      const itemKey = itemIsDelete ? (item.payload && item.payload.id ? item.payload.id : item.payload) : (item.payload && item.payload.id ? item.payload.id : item.payload);
       const isSaveAction = item.action === 'save' || item.action === 'save_template' || item.action === 'save_note' || item.action === 'restore_note';
       return !(itemKey === itemId && isSaveAction && isDelete);
     });
@@ -46,8 +46,8 @@ function dequeueSyncMutation(action, itemId) {
   try {
     const queue = JSON.parse(localStorage.getItem('money_manager_sync_queue') || '[]');
     const cleanQueue = queue.filter(item => {
-      const itemIsDelete = item.action === 'delete' || item.action === 'delete_template' || item.action === 'delete_note' || item.action === 'permanent_delete_note' || item.action === 'restore_note' || item.action === 'upsert';
-      const itemKey = itemIsDelete ? item.payload : (item.payload && item.payload.id ? item.payload.id : item.payload);
+      const itemIsDelete = item.action === 'delete' || item.action === 'delete_template' || item.action === 'delete_note' || item.action === 'permanent_delete_note' || item.action === 'restore_note' || item.action === 'upsert' || item.action === 'delete_category';
+      const itemKey = itemIsDelete ? (item.payload && item.payload.id ? item.payload.id : item.payload) : (item.payload && item.payload.id ? item.payload.id : item.payload);
       return !(item.action === action && itemKey === itemId);
     });
     localStorage.setItem('money_manager_sync_queue', JSON.stringify(cleanQueue));
@@ -405,6 +405,32 @@ async function processSyncQueue(options = {}) {
           }
           console.warn('Skipping invalid restore_note queue item:', error);
           remaining.push(item);
+          continue;
+        }
+        itemSucceeded = true;
+      } else if (item.action === 'delete_category') {
+        const catPayload = item.payload;
+        const catId = (catPayload && typeof catPayload === 'object' && catPayload.id) ? catPayload.id : catPayload;
+        if (!catId) {
+          console.warn('Skipping invalid delete_category queue item:', item);
+          continue;
+        }
+        const { error } = await promiseTimeout(
+          state.supabaseClient
+            .from('categories')
+            .delete()
+            .eq('id', catId),
+          15000
+        );
+        if (error) {
+          if (error.message && (error.message.includes('Fetch') || error.message.includes('network') || error.message.includes('timeout'))) {
+            throw error;
+          }
+          console.warn('Skipping invalid delete_category queue item:', error);
+          const isPermanent = error.code === '22P02' || (error.message && error.message.includes('uuid'));
+          if (!isPermanent) {
+            remaining.push(item);
+          }
           continue;
         }
         itemSucceeded = true;
