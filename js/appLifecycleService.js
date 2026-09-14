@@ -239,6 +239,12 @@
       }
     }
 
+    if (typeof resetRealtimeCircuitBreaker === 'function') {
+      resetRealtimeCircuitBreaker();
+    } else if (typeof window !== 'undefined' && typeof window.resetRealtimeCircuitBreaker === 'function') {
+      window.resetRealtimeCircuitBreaker();
+    }
+
     if (typeof setupSupabaseRealtimeSubscription === 'function') {
       setupSupabaseRealtimeSubscription();
     } else if (typeof window !== 'undefined' && typeof window.setupSupabaseRealtimeSubscription === 'function') {

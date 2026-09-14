@@ -44,10 +44,26 @@ let _channelGeneration = 0;       // Monotonically increasing — captured in su
 let _isSettingUp = false;          // Single-flight guard for setupSupabaseRealtimeSubscription()
 let _reconnectAttempts = 0;        // Exponential backoff counter (reset on SUBSCRIBED)
 let _setupSafetyTimer = null;      // Safety timeout: releases _isSettingUp if callback never fires
+let _currentChannelScope = null;   // Active subscription scope: `${userId}:${familyId || ''}:${partnerId || ''}`
+const MAX_RECONNECT_ATTEMPTS = 5;  // Production circuit breaker cap
+
+function resetRealtimeCircuitBreaker() {
+  _reconnectAttempts = 0;
+  if (_realtimeReconnectTimer) {
+    clearTimeout(_realtimeReconnectTimer);
+    _realtimeReconnectTimer = null;
+  }
+}
 
 function _scheduleRealtimeReconnect(delayMs = 3000) {
   if (_realtimeReconnectTimer) return;
   if (_isSettingUp) return;
+
+  // Circuit breaker: halt reconnects after MAX_RECONNECT_ATTEMPTS
+  if (_reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+    console.warn(`[Realtime] Max reconnect attempts (${MAX_RECONNECT_ATTEMPTS}) reached. Circuit breaker active. Pausing automatic retries.`);
+    return;
+  }
 
   // Exponential backoff (3s, 6s, 12s, 24s, cap at 60s)
   _reconnectAttempts++;
@@ -69,6 +85,7 @@ function _startRealtimeWatchdog() {
     if (!state.supabaseClient || !state.currentUser || navigator.onLine === false) return;
     if (document.visibilityState === 'hidden') return;
     if (_isSettingUp) return;
+    if (_reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) return; // Respect circuit breaker
 
     const channelState = _supabaseRealtimeChannel ? _supabaseRealtimeChannel.state : null;
     const isJoined = channelState === 'joined';
@@ -78,7 +95,7 @@ function _startRealtimeWatchdog() {
       console.info('[RealtimeWatchdog] Channel not joined (state=' + (channelState || 'null') + '), scheduling reconnect...');
       _scheduleRealtimeReconnect(3000);
     }
-  }, 25000);
+  }, 30000);
 }
 
 function _startSyncQueueWorker() {
@@ -101,25 +118,6 @@ function _startSyncQueueWorker() {
 function setupSupabaseRealtimeSubscription() {
   if (!state.supabaseClient || !state.currentUser) return;
   if (_isSettingUp) return;  // Single-flight guard
-  _isSettingUp = true;
-
-  // Increment generation — invalidates all callbacks from previous channels
-  const thisGeneration = ++_channelGeneration;
-
-  if (_supabaseRealtimeChannel) {
-    try {
-      state.supabaseClient.removeChannel(_supabaseRealtimeChannel);
-      // removeChannel() fires CLOSED callback asynchronously,
-      // but thisGeneration > old generation, so it will be ignored
-    } catch (_) {}
-    _supabaseRealtimeChannel = null;
-  }
-
-  // Clear any pending reconnect since we're re-establishing now
-  if (_realtimeReconnectTimer) {
-    clearTimeout(_realtimeReconnectTimer);
-    _realtimeReconnectTimer = null;
-  }
 
   const userId = state.currentUser.id;
   let partnerId = state.partnerProfile ? (state.partnerProfile.id || state.partnerProfile.user_id) : null;
@@ -141,8 +139,42 @@ function setupSupabaseRealtimeSubscription() {
     } catch (_) {}
   }
 
-  // Stable channel name (enables SDK deduplication via leaveOpenTopic)
-  _supabaseRealtimeChannel = state.supabaseClient.channel('realtime-sync');
+  // ACTIVE CONNECTION GUARD: If channel is already joined/joining and scope is unchanged, DO NOT touch it!
+  const targetScope = `${userId}:${familyId || ''}:${partnerId || ''}`;
+  const channelState = _supabaseRealtimeChannel ? _supabaseRealtimeChannel.state : null;
+  const isHealthy = channelState === 'joined' || channelState === 'joining';
+
+  if (isHealthy && _currentChannelScope === targetScope) {
+    return;
+  }
+
+  _isSettingUp = true;
+  _currentChannelScope = targetScope;
+
+  // Increment generation — invalidates all callbacks from previous channels
+  const thisGeneration = ++_channelGeneration;
+
+  if (_supabaseRealtimeChannel) {
+    try {
+      state.supabaseClient.removeChannel(_supabaseRealtimeChannel);
+      // removeChannel() fires CLOSED callback asynchronously,
+      // but thisGeneration > old generation, so it will be ignored
+    } catch (_) {}
+    _supabaseRealtimeChannel = null;
+  }
+
+  // Clear any pending reconnect since we're re-establishing now
+  if (_realtimeReconnectTimer) {
+    clearTimeout(_realtimeReconnectTimer);
+    _realtimeReconnectTimer = null;
+  }
+
+  // Multi-tenant scoped channel naming for production scalability and isolation from stale builds
+  const channelName = familyId
+    ? `sync:family:${familyId}`
+    : `sync:user:${userId}`;
+
+  _supabaseRealtimeChannel = state.supabaseClient.channel(channelName);
 
   // 1. Always listen for personal changes by user_id
   _supabaseRealtimeChannel.on(
@@ -207,6 +239,14 @@ function setupSupabaseRealtimeSubscription() {
       console.warn(`[Realtime] Subscription error: ${status}`, err);
       _isSettingUp = false;
       if (_setupSafetyTimer) { clearTimeout(_setupSafetyTimer); _setupSafetyTimer = null; }
+
+      // Check if error is a quota / 402 restriction
+      const errMsg = (err && (err.message || String(err))) || '';
+      if (errMsg.includes('402') || errMsg.includes('quota') || errMsg.includes('restricted')) {
+        console.error('[Realtime] Supabase project quota restriction detected. Halting reconnects.');
+        _reconnectAttempts = MAX_RECONNECT_ATTEMPTS; // Trip circuit breaker immediately
+        return;
+      }
       _scheduleRealtimeReconnect(3000);
     } else if (status === 'CLOSED') {
       // CLOSED on the CURRENT generation = unexpected server close → reconnect
@@ -225,6 +265,7 @@ function stopSupabaseRealtimeSubscription() {
   // Increment generation to invalidate any pending async CLOSED callbacks
   _channelGeneration++;
   _isSettingUp = false;
+  _currentChannelScope = null;
   if (_setupSafetyTimer) { clearTimeout(_setupSafetyTimer); _setupSafetyTimer = null; }
 
   if (_supabaseRealtimeChannel && state.supabaseClient) {
@@ -246,6 +287,17 @@ function stopSupabaseRealtimeSubscription() {
     _realtimeReconnectTimer = null;
   }
   _reconnectAttempts = 0;
+}
+
+// Auto-reset circuit breaker when network connectivity recovers
+if (typeof window !== 'undefined' && window.addEventListener) {
+  window.addEventListener('online', () => {
+    console.info('[Realtime] Network online detected — resetting circuit breaker');
+    resetRealtimeCircuitBreaker();
+    if (typeof state !== 'undefined' && state.supabaseClient && state.currentUser) {
+      setupSupabaseRealtimeSubscription();
+    }
+  });
 }
 
 // Debounce timer for realtime changes — prevents rapid-fire UI re-renders when
@@ -481,6 +533,7 @@ if (typeof enqueueSyncMutation !== 'undefined') window.enqueueSyncMutation = enq
 if (typeof processSyncQueue !== 'undefined') window.processSyncQueue = processSyncQueue;
 window.setupSupabaseRealtimeSubscription = setupSupabaseRealtimeSubscription;
 window.stopSupabaseRealtimeSubscription = stopSupabaseRealtimeSubscription;
+window.resetRealtimeCircuitBreaker = resetRealtimeCircuitBreaker;
 
 // Handle online connectivity restore events
 if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') window.addEventListener('online', () => {
@@ -1341,5 +1394,7 @@ function startPartnerSyncPolling() {
     _getChannelGeneration: function () { return _channelGeneration; },
     _getIsSettingUp: function () { return _isSettingUp; },
     _getReconnectAttempts: function () { return _reconnectAttempts; },
+    resetRealtimeCircuitBreaker,
+    _getCurrentChannelScope: function () { return _currentChannelScope; },
   };
 }));

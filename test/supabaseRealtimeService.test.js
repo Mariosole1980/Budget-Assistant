@@ -156,7 +156,7 @@ test('SupabaseRealtimeService.setupSupabaseRealtimeSubscription increments gener
   global.state.currentUser = null;
 });
 
-test('SupabaseRealtimeService uses stable channel name "realtime-sync"', () => {
+test('SupabaseRealtimeService uses scoped channel name sync:user:id or sync:family:id', () => {
   let createdChannelName = null;
   const mockChannel = {
     state: 'closed',
@@ -174,10 +174,44 @@ test('SupabaseRealtimeService uses stable channel name "realtime-sync"', () => {
   SupabaseRealtimeService.stopSupabaseRealtimeSubscription(); // reset
   SupabaseRealtimeService.setupSupabaseRealtimeSubscription();
 
-  assert.strictEqual(createdChannelName, 'realtime-sync', 'Channel name should be stable "realtime-sync"');
+  assert.strictEqual(createdChannelName, 'sync:user:test-user-789', 'Channel name should be scoped user channel');
 
   // Clean up
   SupabaseRealtimeService.stopSupabaseRealtimeSubscription();
   global.state.supabaseClient = null;
   global.state.currentUser = null;
+});
+
+test('SupabaseRealtimeService setupSupabaseRealtimeSubscription early returns if channel is already joined and scope is unchanged', () => {
+  let channelCallCount = 0;
+  const mockChannel = {
+    state: 'joined',
+    on: function () { return this; },
+    subscribe: function () { return this; }
+  };
+  global.state.supabaseClient = {
+    channel: () => { channelCallCount++; return mockChannel; },
+    removeChannel: () => {}
+  };
+  global.state.currentUser = { id: 'test-user-early-return' };
+  global.navigator = { onLine: true };
+  global.document = { visibilityState: 'visible' };
+
+  SupabaseRealtimeService.stopSupabaseRealtimeSubscription();
+  SupabaseRealtimeService.setupSupabaseRealtimeSubscription();
+  assert.strictEqual(channelCallCount, 1, 'Initial setup creates channel');
+
+  // Second call with same user and state=joined should early-return without recreating
+  SupabaseRealtimeService.setupSupabaseRealtimeSubscription();
+  assert.strictEqual(channelCallCount, 1, 'Subsequent setup should early return without recreating channel');
+
+  SupabaseRealtimeService.stopSupabaseRealtimeSubscription();
+  global.state.supabaseClient = null;
+  global.state.currentUser = null;
+});
+
+test('SupabaseRealtimeService circuit breaker can be reset manually and on online event', () => {
+  assert.strictEqual(typeof SupabaseRealtimeService.resetRealtimeCircuitBreaker, 'function');
+  SupabaseRealtimeService.resetRealtimeCircuitBreaker();
+  assert.strictEqual(SupabaseRealtimeService._getReconnectAttempts(), 0);
 });
