@@ -24,6 +24,14 @@
     return (typeof window !== 'undefined' && window.state) ? window.state : (typeof state !== 'undefined' ? state : {});
   }
 
+  function setSuppressRealtime(val) {
+    if (typeof window !== 'undefined') {
+      window._suppressRealtimeEvents = val;
+    } else if (typeof globalThis !== 'undefined') {
+      globalThis._suppressRealtimeEvents = val;
+    }
+  }
+
 async function saveTransaction(transaction) {
   transaction.amount = parseFloat(transaction.amount);
 
@@ -60,60 +68,62 @@ async function saveTransaction(transaction) {
   if (typeof calculateInitialBalances === 'function') calculateInitialBalances(); else if (typeof window !== 'undefined' && typeof window.calculateInitialBalances === 'function') window.calculateInitialBalances();
   if (typeof updateUI === 'function') updateUI(); else if (typeof window !== 'undefined' && typeof window.updateUI === 'function') window.updateUI();
 
-  // 3. Save to cloud directly and reliably
+  // 3. Save to cloud directly and reliably (asynchronous background sync)
   if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
     const { description, is_shared, photo_local_uri, photo_url, receipt, fx_snapshot, ...dbPayload } = mapTransactionToDb(transaction);
 
     // Enqueue immediately before starting the cloud request to prevent data loss if offline
     if (typeof enqueueSyncMutation === 'function') enqueueSyncMutation('save', transaction); else if (typeof window !== 'undefined' && typeof window.enqueueSyncMutation === 'function') window.enqueueSyncMutation('save', transaction);
 
-    try {
-      _suppressRealtimeEvents = true;
-      let { error } = await promiseTimeout(
-        state.supabaseClient
-          .from('transactions')
-          .upsert([dbPayload]),
-        12000
-      );
+    (async () => {
+      try {
+        setSuppressRealtime(true);
+        let { error } = await promiseTimeout(
+          state.supabaseClient
+            .from('transactions')
+            .upsert([dbPayload]),
+          10000
+        );
 
-      // If token expired or auth error, attempt immediate token refresh and retry
-      if (error && (error.code === '401' || error.message?.includes('JWT') || error.message?.includes('token') || error.message?.includes('auth'))) {
-        try {
-          await state.supabaseClient.auth.refreshSession();
-          const retryRes = await promiseTimeout(
-            state.supabaseClient
-              .from('transactions')
-              .upsert([dbPayload]),
-            12000
-          );
-          error = retryRes.error;
-        } catch (_) {}
-      }
-
-
-
-      if (error) {
-        console.error(`[CloudSave] Supabase upsert error for ${transaction.id}:`, error);
-        if (typeof showSyncToast === 'function') {
-          showSyncToast(`⚠️ Cloud Sync: ${error.message || error.code || 'Failed to save to cloud'}`, 5000);
+        // If token expired or auth error, attempt immediate token refresh and retry
+        if (error && (error.code === '401' || error.message?.includes('JWT') || error.message?.includes('token') || error.message?.includes('auth'))) {
+          try {
+            await state.supabaseClient.auth.refreshSession();
+            const retryRes = await promiseTimeout(
+              state.supabaseClient
+                .from('transactions')
+                .upsert([dbPayload]),
+              10000
+            );
+            error = retryRes.error;
+          } catch (_) {}
         }
-        throw error;
-      }
 
-      if (typeof dequeueSyncMutation === 'function') dequeueSyncMutation('save', transaction.id); else if (typeof window !== 'undefined' && typeof window.dequeueSyncMutation === 'function') window.dequeueSyncMutation('save', transaction.id);
+        if (error) {
+          console.warn(`[CloudSave] Supabase upsert failed for ${transaction.id}, keeping in offline queue:`, error);
+          if (typeof updateHeaderSyncIcon === 'function') updateHeaderSyncIcon('error');
+          else if (typeof window !== 'undefined' && typeof window.updateHeaderSyncIcon === 'function') window.updateHeaderSyncIcon('error');
+          return;
+        }
 
-      // Notify partner via Cloudflare Function /api/push-notify if transaction is shared
-      const partnerUid = state.partnerProfile ? (state.partnerProfile.id || state.partnerProfile.user_id) : null;
-      if (partnerUid && transaction.family_id) {
-        sendPartnerPushNotification(transaction, partnerUid);
+        if (typeof dequeueSyncMutation === 'function') dequeueSyncMutation('save', transaction.id); else if (typeof window !== 'undefined' && typeof window.dequeueSyncMutation === 'function') window.dequeueSyncMutation('save', transaction.id);
+
+        if (typeof updateHeaderSyncIcon === 'function') updateHeaderSyncIcon('synced');
+        else if (typeof window !== 'undefined' && typeof window.updateHeaderSyncIcon === 'function') window.updateHeaderSyncIcon('synced');
+
+        // Notify partner via Cloudflare Function /api/push-notify if transaction is shared
+        const partnerUid = state.partnerProfile ? (state.partnerProfile.id || state.partnerProfile.user_id) : null;
+        if (partnerUid && transaction.family_id) {
+          sendPartnerPushNotification(transaction, partnerUid);
+        }
+      } catch (err) {
+        console.warn(`Cloud save failed, keeping in queue: ${transaction.id}`, err);
+        if (typeof updateHeaderSyncIcon === 'function') updateHeaderSyncIcon('error');
+        else if (typeof window !== 'undefined' && typeof window.updateHeaderSyncIcon === 'function') window.updateHeaderSyncIcon('error');
+      } finally {
+        setTimeout(() => { setSuppressRealtime(false); }, 3000);
       }
-      return true;
-    } catch (err) {
-      console.warn(`Cloud save failed, keeping in queue: ${transaction.id}`, err);
-      return false;
-    } finally {
-      setTimeout(() => { _suppressRealtimeEvents = false; }, 3000);
-    }
+    })();
   }
   return true;
 }
@@ -228,7 +238,7 @@ function deleteTransaction(id) {
 
     (async () => {
       try {
-        _suppressRealtimeEvents = true;
+        setSuppressRealtime(true);
         // Instead of hard-deleting, mark the transaction as deleted so it can be
         // restored from the trash and stays consistent across all devices.
         const { error } = await promiseTimeout(
@@ -256,7 +266,7 @@ function deleteTransaction(id) {
         console.warn(`Cloud delete failed, keeping in queue:`, idsToDelete, err);
       } finally {
         idsToDelete.forEach(dId => (typeof _deletingTxIds !== 'undefined' ? _deletingTxIds : ((typeof window !== 'undefined' && window._deletingTxIds) ? window._deletingTxIds : (globalThis._deletingTxIds = globalThis._deletingTxIds || new Set()))).delete(dId));
-        setTimeout(() => { _suppressRealtimeEvents = false; }, 8000);
+        setTimeout(() => { setSuppressRealtime(false); }, 8000);
       }
     })();
   } else {

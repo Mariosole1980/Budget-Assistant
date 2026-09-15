@@ -119,15 +119,15 @@
       toast = document.createElement('div');
       toast.id = 'sync-toast';
       toast.style.cssText =
-        'position: fixed; bottom: 24px; right: 20px; z-index: 99999;' +
+        'position: fixed; bottom: calc(72px + env(safe-area-inset-bottom, 0px)); left: 50%; z-index: 99999;' +
         'background: var(--card-bg, #1e1e2e); color: var(--text-primary, #fff);' +
         'border: 1px solid var(--accent, #7c6af7); border-radius: 14px;' +
-        'padding: 12px 18px; font-size: 13px; font-weight: 600;' +
+        'padding: 10px 16px; font-size: 13px; font-weight: 600;' +
         'box-shadow: 0 8px 32px rgba(0,0,0,0.4);' +
-        'display: flex; align-items: center; gap: 10px;' +
-        'transform: translateY(80px); opacity: 0;' +
+        'display: none; align-items: center; gap: 10px;' +
+        'transform: translate(-50%, 80px); opacity: 0;' +
         'transition: transform 0.3s cubic-bezier(.34,1.56,.64,1), opacity 0.3s ease;' +
-        'max-width: 280px;';
+        'max-width: 90vw; width: max-content; pointer-events: none !important; user-select: none;';
       document.body.appendChild(toast);
     }
 
@@ -136,12 +136,15 @@
     if (!document.getElementById('sync-toast-styles')) {
       var s = document.createElement('style');
       s.id = 'sync-toast-styles';
-      s.textContent = '@keyframes syncPulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(1.4)} }';
+      s.textContent = '@keyframes syncPulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(1.4)} } #sync-toast { pointer-events: none !important; }';
       document.head.appendChild(s);
     }
 
+    toast.style.display = 'flex';
+    toast.style.pointerEvents = 'none';
+
     var show = function () {
-      toast.style.transform = 'translateY(0)';
+      toast.style.transform = 'translate(-50%, 0)';
       toast.style.opacity = '1';
     };
 
@@ -166,8 +169,14 @@
     if (_syncToastTimer) clearTimeout(_syncToastTimer);
     if (autoDismissMs > 0) {
       _syncToastTimer = setTimeout(function () {
-        toast.style.transform = 'translateY(80px)';
+        toast.style.transform = 'translate(-50%, 80px)';
         toast.style.opacity = '0';
+        toast.style.pointerEvents = 'none';
+        setTimeout(function () {
+          if (toast && toast.style && toast.style.opacity === '0') {
+            toast.style.display = 'none';
+          }
+        }, 350);
       }, autoDismissMs);
     }
   }

@@ -145,10 +145,14 @@ function openAddTransactionModal({ instant = false } = {}) {
   if (creatorRow) creatorRow.style.display = 'none';
 
   // Reset photo state
-  _pendingReceiptFiles.forEach(p => {
+  const pendingAddPhotos = (typeof _pendingReceiptFiles !== 'undefined' && Array.isArray(_pendingReceiptFiles))
+    ? _pendingReceiptFiles
+    : ((typeof window !== 'undefined' && Array.isArray(window._pendingReceiptFiles)) ? window._pendingReceiptFiles : []);
+  pendingAddPhotos.forEach(p => {
     if (p.url && !p.isExisting) URL.revokeObjectURL(p.url);
   });
-  _pendingReceiptFiles = [];
+  if (typeof _pendingReceiptFiles !== 'undefined') _pendingReceiptFiles = [];
+  if (typeof window !== 'undefined') window._pendingReceiptFiles = [];
   _pendingReceiptDeleted = false;
   const photoInput = document.getElementById('trans-photo-input');
   if (photoInput) photoInput.value = '';
@@ -288,10 +292,14 @@ function openEditTransactionModal(t, { instant = false } = {}) {
   }
 
   // Reset photo state and load existing photos if available
-  _pendingReceiptFiles.forEach(p => {
+  const pendingEditPhotos = (typeof _pendingReceiptFiles !== 'undefined' && Array.isArray(_pendingReceiptFiles))
+    ? _pendingReceiptFiles
+    : ((typeof window !== 'undefined' && Array.isArray(window._pendingReceiptFiles)) ? window._pendingReceiptFiles : []);
+  pendingEditPhotos.forEach(p => {
     if (p.url && !p.isExisting) URL.revokeObjectURL(p.url);
   });
-  _pendingReceiptFiles = [];
+  if (typeof _pendingReceiptFiles !== 'undefined') _pendingReceiptFiles = [];
+  if (typeof window !== 'undefined') window._pendingReceiptFiles = [];
   _pendingReceiptDeleted = false;
   const photoInput = document.getElementById('trans-photo-input');
   if (photoInput) photoInput.value = '';
@@ -317,7 +325,10 @@ function openEditTransactionModal(t, { instant = false } = {}) {
       if (blobs && blobs.length > 0) {
         blobs.forEach(blob => {
           const url = URL.createObjectURL(blob);
-          _pendingReceiptFiles.push({
+          const targetPhotoList = (typeof _pendingReceiptFiles !== 'undefined' && Array.isArray(_pendingReceiptFiles))
+            ? _pendingReceiptFiles
+            : ((typeof window !== 'undefined') ? (window._pendingReceiptFiles = window._pendingReceiptFiles || []) : []);
+          targetPhotoList.push({
             id: Date.now() + '-' + Math.random().toString(36).substr(2, 9),
             file: blob,
             url: url,

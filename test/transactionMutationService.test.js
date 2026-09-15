@@ -91,3 +91,59 @@ test('deleteTransaction removes transaction and archives to trash', () => {
   assert.equal(global.state.trashTransactions[0].id, 'tx-to-delete');
   assert.ok(storage.has('deleted_transactions_trash'));
 });
+
+test('saveTransaction performs non-blocking optimistic save and enqueues to sync queue when cloud fails', async () => {
+  const storage = new Map();
+  global.localStorage = {
+    getItem: (k) => storage.get(k) || null,
+    setItem: (k, v) => storage.set(k, v),
+    removeItem: (k) => storage.delete(k)
+  };
+
+  let enqueuedAction = null;
+  let enqueuedPayload = null;
+  let syncStatus = null;
+
+  global.enqueueSyncMutation = (action, payload) => {
+    enqueuedAction = action;
+    enqueuedPayload = payload;
+  };
+  global.promiseTimeout = async () => ({ error: { message: 'Payment Required', code: '402' } });
+  global.mapTransactionToDb = (tx) => ({ ...tx });
+
+  global.state = {
+    transactions: [],
+    currentUser: { id: 'user-1' },
+    userProfile: { family_id: 'fam-1' },
+    isSupabaseEnabled: true,
+    supabaseClient: {
+      from: () => ({
+        upsert: () => Promise.resolve({ error: { message: 'Payment Required', code: '402' } })
+      })
+    }
+  };
+
+  global.window = {
+    state: global.state,
+    _markRecentlySaved: () => {},
+    calculateInitialBalances: () => {},
+    updateUI: () => {},
+    updateHeaderSyncIcon: (icon) => { syncStatus = icon; },
+    enqueueSyncMutation: global.enqueueSyncMutation
+  };
+  global.generateUUID = () => 'tx-offline-101';
+
+  const tx = { amount: 120, category: 'Groceries' };
+  const res = await TransactionMutationService.saveTransaction(tx);
+
+  assert.equal(res, true, 'saveTransaction should immediately return true without blocking');
+  assert.equal(global.state.transactions.length, 1, 'Transaction must be in local state');
+  assert.equal(global.state.transactions[0].id, 'tx-offline-101');
+  assert.equal(enqueuedAction, 'save');
+  assert.equal(enqueuedPayload.id, 'tx-offline-101');
+
+  // Let background async task run
+  await new Promise(r => setTimeout(r, 30));
+  assert.equal(syncStatus, 'error', 'Header sync status should reflect background error');
+});
+

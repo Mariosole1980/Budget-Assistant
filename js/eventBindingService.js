@@ -517,17 +517,21 @@
         processRecurringTemplates();
         updateUI();
 
-        _pendingReceiptFiles.forEach(p => {
+        const pendingRecFiles = (typeof _pendingReceiptFiles !== 'undefined' && Array.isArray(_pendingReceiptFiles))
+          ? _pendingReceiptFiles
+          : ((typeof window !== 'undefined' && Array.isArray(window._pendingReceiptFiles)) ? window._pendingReceiptFiles : []);
+        pendingRecFiles.forEach(p => {
           if (p.url && !p.isExisting) URL.revokeObjectURL(p.url);
         });
-        _pendingReceiptFiles = [];
+        if (typeof _pendingReceiptFiles !== 'undefined') _pendingReceiptFiles = [];
+        if (typeof window !== 'undefined') window._pendingReceiptFiles = [];
         _pendingReceiptDeleted = false;
 
         if (typeof clearRecurringSettings === 'function') {
           clearRecurringSettings(false);
         }
 
-        closeModal('transaction-modal');
+        closeModal('transaction-modal', { userInitiated: true });
         return;
       }
 
@@ -584,9 +588,13 @@
       await saveTransaction(t);
 
       // Save or delete receipt photos in IndexedDB
-      if (_pendingReceiptFiles.length > 0 && t.id) {
+      const pendingFiles = (typeof _pendingReceiptFiles !== 'undefined' && Array.isArray(_pendingReceiptFiles))
+        ? _pendingReceiptFiles
+        : ((typeof window !== 'undefined' && Array.isArray(window._pendingReceiptFiles)) ? window._pendingReceiptFiles : []);
+
+      if (pendingFiles.length > 0 && t.id) {
         try {
-          const blobsToSave = _pendingReceiptFiles.map(p => p.file).filter(f => f instanceof Blob);
+          const blobsToSave = pendingFiles.map(p => p.file).filter(f => f instanceof Blob);
           await ReceiptStorage.save(t.id, blobsToSave);
           t.photo_local_uri = 'local-file://' + t.id;
           saveTransactionOffline(t);
@@ -603,13 +611,14 @@
         }
       }
 
-      _pendingReceiptFiles.forEach(p => {
+      pendingFiles.forEach(p => {
         if (p.url && !p.isExisting) URL.revokeObjectURL(p.url);
       });
-      _pendingReceiptFiles = [];
+      if (typeof _pendingReceiptFiles !== 'undefined') _pendingReceiptFiles = [];
+      if (typeof window !== 'undefined') window._pendingReceiptFiles = [];
       _pendingReceiptDeleted = false;
 
-      closeModal('transaction-modal');
+      closeModal('transaction-modal', { userInitiated: true });
     } finally {
       _isSubmittingTransaction = false;
     }
