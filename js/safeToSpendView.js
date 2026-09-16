@@ -25,9 +25,35 @@
 // FEATURE: SAFE-TO-SPEND & WHAT-IF ENGINE UI HOOKS
 // ============================================================
 
+// Helper: Safe date parsing without UTC timezone day-shifting
+function parseDate(d) {
+  if (!d) return new Date();
+  if (d instanceof Date) return new Date(d.getTime());
+  const str = String(d).trim();
+  const parts = str.split('T')[0].split(' ')[0].split('-');
+  if (parts.length === 3) {
+    const y = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10) - 1;
+    const day = parseInt(parts[2], 10);
+    return new Date(y, m, day);
+  }
+  const parsed = new Date(str);
+  return isNaN(parsed.getTime()) ? new Date() : parsed;
+}
+
 function getLiquidBalance() {
-  if (!state.accounts || state.accounts.length === 0) return 0;
-  const accBalance = state.accounts.reduce((sum, acc) => sum + (parseFloat(acc.balance) || 0), 0);
+  // If state.accounts is not yet in memory, attempt reading cached accounts
+  if ((!state.accounts || state.accounts.length === 0) && typeof localStorage !== 'undefined') {
+    try {
+      const cachedAccs = JSON.parse(localStorage.getItem('offline_accounts') || '[]');
+      if (Array.isArray(cachedAccs) && cachedAccs.length > 0) {
+        state.accounts = cachedAccs;
+      }
+    } catch (_) {}
+  }
+
+  const rawAccounts = (state && state.accounts) || [];
+  const accBalance = rawAccounts.reduce((sum, acc) => sum + (parseFloat(acc.balance) || 0), 0);
 
   // Calculate available discretionary funds for the current calendar month
   try {
@@ -35,16 +61,40 @@ function getLiquidBalance() {
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth();
 
-    const monthlyIncome = (state.transactions || []).reduce((sum, t) => {
-      if (!t || t.type !== 'income') return sum;
-      const d = new Date(t.date);
+    // Source transactions: prefer active/scoped transactions, fallback to offline cache during sync
+    let txs = [];
+    if (typeof TransactionScopeService !== 'undefined' && typeof TransactionScopeService.getActiveTransactions === 'function') {
+      txs = TransactionScopeService.getActiveTransactions((state && state.transactions) || []);
+    } else if (typeof getActiveTransactions === 'function') {
+      txs = getActiveTransactions((state && state.transactions) || []);
+    } else {
+      txs = (state && state.transactions) || [];
+    }
+
+    if ((!txs || txs.length === 0) && typeof localStorage !== 'undefined') {
+      try {
+        const cached = JSON.parse(localStorage.getItem('offline_transactions') || '[]');
+        if (Array.isArray(cached) && cached.length > 0) {
+          if (typeof TransactionScopeService !== 'undefined' && typeof TransactionScopeService.getActiveTransactions === 'function') {
+            txs = TransactionScopeService.getActiveTransactions(cached);
+          } else {
+            txs = cached;
+          }
+        }
+      } catch (_) {}
+    }
+
+    const monthlyIncome = (txs || []).reduce((sum, t) => {
+      if (!t || t.type !== 'income' || !t.date) return sum;
+      if (typeof isTransferTransaction === 'function' && isTransferTransaction(t)) return sum;
+      const d = parseDate(t.date);
       if (d.getFullYear() === currentYear && d.getMonth() === currentMonth) {
         return sum + (parseFloat(t.amount) || 0);
       }
       return sum;
     }, 0);
 
-    const totalBudget = (state.budgets || []).reduce((sum, b) => sum + (parseFloat(b.amount) || 0), 0);
+    const totalBudget = ((state && state.budgets) || []).reduce((sum, b) => sum + (parseFloat(b.amount) || 0), 0);
 
     let qs = null;
     let baseline = 0;
@@ -53,24 +103,27 @@ function getLiquidBalance() {
     } else if (totalBudget > 0) {
       baseline = totalBudget;
     } else {
-      const qsRaw = localStorage.getItem('ba_quick_start_profile');
+      const qsRaw = (typeof localStorage !== 'undefined') ? localStorage.getItem('ba_quick_start_profile') : null;
       if (qsRaw) {
-        qs = JSON.parse(qsRaw);
-        if (qs && qs.monthly_income > 0) {
-          baseline = parseFloat(qs.monthly_income) || 0;
-        }
+        try {
+          qs = JSON.parse(qsRaw);
+          if (qs && qs.monthly_income > 0) {
+            baseline = parseFloat(qs.monthly_income) || 0;
+          }
+        } catch (_) {}
       }
     }
 
     // If current month has no income yet, use average past monthly income of the year
-    if (baseline === 0 && state && state.transactions && state.transactions.length > 0) {
+    if (baseline === 0 && txs && txs.length > 0) {
       const monthlyTotals = {};
-      state.transactions.forEach(t => {
+      txs.forEach(t => {
         if (!t || t.type !== 'income' || !t.date) return;
         if (typeof isTransferTransaction === 'function' && isTransferTransaction(t)) return;
-        const d = new Date(t.date);
-        if (d.getFullYear() === currentYear && d.getMonth() < currentMonth) {
-          const mKey = d.getMonth();
+        const d = parseDate(t.date);
+        if ((d.getFullYear() === currentYear && d.getMonth() < currentMonth) ||
+            (d.getFullYear() === currentYear - 1 && currentMonth === 0)) {
+          const mKey = `${d.getFullYear()}_${d.getMonth()}`;
           monthlyTotals[mKey] = (monthlyTotals[mKey] || 0) + (parseFloat(t.amount) || 0);
         }
       });
@@ -82,35 +135,52 @@ function getLiquidBalance() {
     }
 
     if (baseline > 0) {
-      const spentThisMonth = (state.transactions || []).reduce((sum, t) => {
-        if (!t || t.type !== 'expense') return sum;
-        const d = new Date(t.date);
+      const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+      const spentThisMonth = (txs || []).reduce((sum, t) => {
+        if (!t || t.type !== 'expense' || !t.date) return sum;
+        if (typeof isTransferTransaction === 'function' && isTransferTransaction(t)) return sum;
+        const d = parseDate(t.date);
         if (d.getFullYear() === currentYear && d.getMonth() === currentMonth) {
-          return sum + (parseFloat(t.amount) || 0);
+          // Only count expenses incurred up to today (d <= todayEnd).
+          // Future recurring expenses are already counted as unpaid bills in getUnpaidRecurringBillsThisMonth().
+          // Counting them here too would double-deduct and falsely zero-out the daily margin.
+          if (d.getTime() <= todayEnd.getTime()) {
+            return sum + (parseFloat(t.amount) || 0);
+          }
         }
         return sum;
       }, 0);
 
       // Support baseline income fallback (qs.monthly_income - spentThisMonth)
-      const remainingFromBaseline = Math.max(0, (qs ? qs.monthly_income - spentThisMonth : baseline - spentThisMonth));
-      if (accBalance > 0) {
-        return Math.min(accBalance, remainingFromBaseline);
-      }
+      const baselineIncome = (qs && qs.monthly_income > 0) ? parseFloat(qs.monthly_income) : baseline;
+      const remainingFromBaseline = Math.max(0, baselineIncome - spentThisMonth);
+
+      // If baseline cashflow yields remaining discretionary funds, use that as the primary pool.
       return remainingFromBaseline;
     }
   } catch (e) { }
 
-  return accBalance;
+  return Math.max(0, accBalance);
 }
 
 function getUnpaidRecurringBillsThisMonth() {
   if (!state.recurringTemplates || state.recurringTemplates.length === 0) return 0;
 
+  // Source scoped active transactions
+  let txs = [];
+  if (typeof TransactionScopeService !== 'undefined' && typeof TransactionScopeService.getActiveTransactions === 'function') {
+    txs = TransactionScopeService.getActiveTransactions((state && state.transactions) || []);
+  } else if (typeof getActiveTransactions === 'function') {
+    txs = getActiveTransactions((state && state.transactions) || []);
+  } else {
+    txs = (state && state.transactions) || [];
+  }
+
   if (typeof SubscriptionEngine !== 'undefined') {
     try {
       const analysis = SubscriptionEngine.analyzeMonthlySubscriptions({
         templates: state.recurringTemplates,
-        transactions: state.transactions || [],
+        transactions: txs,
         referenceDate: new Date()
       });
       return sanitizeFloat(parseFloat(analysis.totalPending) || 0);
@@ -127,7 +197,7 @@ function getUnpaidRecurringBillsThisMonth() {
 
   let unpaidTotal = 0;
   state.recurringTemplates.forEach(tpl => {
-    if (tpl.type !== 'expense') return;
+    if (!tpl || tpl.type !== 'expense' || tpl.is_active === false) return;
     const dueDay = parseInt(tpl.due_day || tpl.day_of_month || 1, 10);
     if (dueDay >= currentDay && dueDay <= lastDayOfMonth) {
       unpaidTotal += sanitizeFloat(parseFloat(tpl.amount) || 0);
@@ -136,7 +206,9 @@ function getUnpaidRecurringBillsThisMonth() {
   return unpaidTotal;
 }
 
-function getMonthlySavingsGoal() {
+function getMonthlySavingsGoal(options) {
+  const opts = options || {};
+
   // 1. Explicit monthly goal set by user (highest precedence)
   try {
     const explicit = localStorage.getItem('ba_monthly_savings_goal');
@@ -178,37 +250,49 @@ function getMonthlySavingsGoal() {
   } catch (e) { }
 
   // 5. Intelligent Fallback from Year Savings Rate (Current Year Net Savings / Elapsed Months)
-  try {
-    if (state && state.transactions && state.transactions.length > 0) {
-      const now = new Date();
-      const currYear = now.getFullYear();
-      const currMonth = now.getMonth();
-      const elapsedMonths = Math.max(1, currMonth + 1);
+  // CRITICAL FIX: The historical year savings rate is an ESTIMATE / RECOMMENDATION, NOT a committed debt.
+  // When calculating Safe-to-Spend, committed expenses should only include real bills and EXPLICIT user goals.
+  // If the user never set a savings goal, deducting a phantom historical average drives the discretionary pool
+  // below 0 (causing safe-to-spend to jump to 0 and display false "Υπέρβαση" / Over Budget warnings).
+  // Therefore, only return this estimate when explicitly requested (opts.includeEstimate === true).
+  if (opts.includeEstimate) {
+    try {
+      const txs = (state && state.transactions) ? state.transactions : [];
+      if (txs.length > 0) {
+        const now = new Date();
+        const currYear = now.getFullYear();
+        const currMonth = now.getMonth();
+        const elapsedMonths = Math.max(1, currMonth + 1);
 
-      let yearIncome = 0;
-      let yearExpense = 0;
-      state.transactions.forEach(t => {
-        if (!t || !t.date) return;
-        if (typeof isTransferTransaction === 'function' && isTransferTransaction(t)) return;
-        const d = new Date(t.date);
-        if (d.getFullYear() === currYear) {
-          const amt = parseFloat(t.amount) || 0;
-          if (t.type === 'income') yearIncome += amt;
-          else if (t.type === 'expense') yearExpense += amt;
+        let yearIncome = 0;
+        let yearExpense = 0;
+        txs.forEach(t => {
+          if (!t || !t.date) return;
+          if (typeof isTransferTransaction === 'function' && isTransferTransaction(t)) return;
+          const d = parseDate(t.date);
+          if (d.getFullYear() === currYear) {
+            const amt = parseFloat(t.amount) || 0;
+            if (t.type === 'income') yearIncome += amt;
+            else if (t.type === 'expense') yearExpense += amt;
+          }
+        });
+        const yearNet = yearIncome - yearExpense;
+        if (yearNet > 0) {
+          return sanitizeFloat(Math.round(yearNet / elapsedMonths));
         }
-      });
-      const yearNet = yearIncome - yearExpense;
-      if (yearNet > 0) {
-        return sanitizeFloat(Math.round(yearNet / elapsedMonths));
       }
-    }
-  } catch (e) { }
+    } catch (e) { }
+  }
 
   return 0;
 }
 
 function updateSafeToSpendUI() {
   if (typeof SafeToSpendEngine === 'undefined') return;
+
+  const isSyncInFlight = (typeof SupabaseRealtimeService !== 'undefined' &&
+    typeof SupabaseRealtimeService.isForceSyncInFlight === 'function' &&
+    SupabaseRealtimeService.isForceSyncInFlight()) || false;
 
   const balance = getLiquidBalance();
   const unpaidBills = getUnpaidRecurringBillsThisMonth();
@@ -220,7 +304,25 @@ function updateSafeToSpendUI() {
     savingsGoal: savingsGoal
   });
 
+  // Anti-glitch / anti-flicker guard:
+  // If calculation yields 0, but previously we had a valid positive safeDaily result,
+  // check if this 0 is transient (e.g., sync is running in flight, or transactions array is momentarily empty,
+  // or balance temporarily evaluated to 0 while cached offline transactions exist).
+  const hasLocalTxs = !!(state && state.transactions && state.transactions.length > 0);
+  const hadPositiveResult = !!(state._lastSafeToSpendResult && state._lastSafeToSpendResult.safeDaily > 0);
+  if (stsResult.safeDaily === 0 && hadPositiveResult) {
+    if (isSyncInFlight || !hasLocalTxs || balance === 0) {
+      // Retain the last known stable result during background sync / transient reload
+      return;
+    }
+  }
+
   state._lastSafeToSpendResult = stsResult;
+  try {
+    if (typeof localStorage !== 'undefined' && stsResult && stsResult.safeDaily > 0) {
+      localStorage.setItem('ba_last_sts_daily', String(stsResult.safeDaily));
+    }
+  } catch (_) {}
 
   // Overview Card Elements (Επισκόπηση)
   const dailyEl = document.getElementById('sts-daily-val');
@@ -460,9 +562,16 @@ function updateStsSavingsAnnualHint(val) {
       ? `Ισοδυναμεί με ${currSym} ${formatDisplayAmount(annual)} / έτος στην Επισκόπηση`
       : `Equates to ${currSym} ${formatDisplayAmount(annual)} / year in Overview`;
   } else {
-    hintEl.textContent = lang === 'el'
-      ? 'Συγχρονίζεται αυτόματα με τον Στόχο Έτους στην Επισκόπηση'
-      : 'Auto-syncs with the Year Target in Overview';
+    const suggested = getMonthlySavingsGoal({ includeEstimate: true });
+    if (suggested > 0) {
+      hintEl.textContent = lang === 'el'
+        ? `Προτεινόμενο: ${currSym} ${formatDisplayAmount(suggested)} / μήνα (βάσει ιστορικού)`
+        : `Suggested: ${currSym} ${formatDisplayAmount(suggested)} / month (based on history)`;
+    } else {
+      hintEl.textContent = lang === 'el'
+        ? 'Συγχρονίζεται αυτόματα με τον Στόχο Έτους στην Επισκόπηση'
+        : 'Auto-syncs with the Year Target in Overview';
+    }
   }
 }
 

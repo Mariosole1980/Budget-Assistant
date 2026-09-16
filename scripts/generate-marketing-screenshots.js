@@ -79,6 +79,15 @@ const slides = [
     subtitle: 'Δόσεις, πάγιες εντολές, σημειώσεις και αυτόματη κατηγοριοποίηση σε δευτερόλεπτα.',
     bgGradient: 'radial-gradient(circle at 50% 20%, #7c2d12 0%, #0f172a 60%, #050811 100%)',
     accentColor: '#fb923c'
+  },
+  {
+    file: '07_Real_Premium_Lifetime.png',
+    outName: '08_Marketing_Lifetime_Deal.png',
+    badge: '👑 ΠΡΟΣΦΟΡΑ ΠΡΩΤΩΝ 100',
+    title: 'PREMIUM LIFETIME<br>ΜΟΝΟ 9,99€ ΕΦΑΠΑΞ',
+    subtitle: 'Ειδική τιμή γνωριμίας για τους πρώτους 100 χρήστες (μετά 29,99€). Χωρίς συνδρομές!',
+    bgGradient: 'radial-gradient(circle at 50% 20%, #78350f 0%, #0f172a 60%, #050811 100%)',
+    accentColor: '#f59e0b'
   }
 ];
 

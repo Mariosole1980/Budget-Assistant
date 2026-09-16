@@ -88,18 +88,18 @@ async function capture() {
   const mStr = String(m + 1).padStart(2, '0');
 
   const cleanTxs = [
-    { id: 'tx_income_new', amount: 350.00, type: 'income', category: 'Επιπλέον Εισόδημα', subcategory: 'Freelance', date: `${y}-${mStr}-16T10:15:00Z`, note: 'Freelance Project / Bonus', description: '', account_from: 'Τράπεζα', account_to: '', user_id: 'u1', created_by: 'u1' },
-    { id: 'tx_11', amount: 95.00, type: 'expense', category: 'Αγορές', subcategory: 'Ρούχα', date: `${y}-${mStr}-16T18:00:00Z`, note: 'Zara', description: '', account_from: 'Κάρτα', account_to: '', user_id: 'u2', created_by: 'u2' },
-    { id: 'tx_income_refund', amount: 180.00, type: 'income', category: 'Επιστροφές', subcategory: 'Cashback', date: `${y}-${mStr}-15T14:30:00Z`, note: 'Επιστροφή Φόρου & Bonus', description: '', account_from: 'Κάρτα', account_to: '', user_id: 'u2', created_by: 'u2' },
-    { id: 'tx_10', amount: 85.00, type: 'expense', category: 'Λογαριασμοί', subcategory: 'Ρεύμα', date: `${y}-${mStr}-15T10:30:00Z`, note: 'ΔΕΗ / Ηλεκτρικό', description: '', account_from: 'Τράπεζα', account_to: '', user_id: 'u1', created_by: 'u1' },
-    { id: 'tx_9', amount: 12.99, type: 'expense', category: 'Συνδρομές', subcategory: 'Streaming', date: `${y}-${mStr}-14T15:00:00Z`, note: 'Netflix Premium', description: '', account_from: 'Κάρτα', account_to: '', user_id: 'u1', created_by: 'u1' },
-    { id: 'tx_8', amount: 28.00, type: 'expense', category: 'Υγεία', subcategory: 'Φαρμακείο', date: `${y}-${mStr}-12T12:00:00Z`, note: 'Βιταμίνες & Φάρμακα', description: '', account_from: 'Μετρητά', account_to: '', user_id: 'u1', created_by: 'u1' },
-    { id: 'tx_7', amount: 3.80, type: 'expense', category: 'Καφές', subcategory: '', date: `${y}-${mStr}-10T08:30:00Z`, note: 'Καφές & Τοστ', description: '', account_from: 'Μετρητά', account_to: '', user_id: 'u1', created_by: 'u1' },
-    { id: 'tx_6', amount: 46.50, type: 'expense', category: 'Εστίαση', subcategory: 'Εστιατόριο', date: `${y}-${mStr}-09T21:15:00Z`, note: 'Βραδινό Φαγητό', description: '', account_from: 'Κάρτα', account_to: '', user_id: 'u2', created_by: 'u2' },
-    { id: 'tx_5', amount: 65.00, type: 'expense', category: 'Μεταφορές', subcategory: 'Καύσιμα', date: `${y}-${mStr}-07T14:20:00Z`, note: 'Βενζίνη (AVIN)', description: '', account_from: 'Κάρτα', account_to: '', user_id: 'u1', created_by: 'u1' },
-    { id: 'tx_4', amount: 142.80, type: 'expense', category: 'Τρόφιμα', subcategory: 'Σούπερμάρκετ', date: `${y}-${mStr}-05T17:45:00Z`, note: 'Σκλαβενίτης', description: 'Εβδομαδιαία ψώνια', account_from: 'Κάρτα', account_to: '', user_id: 'u2', created_by: 'u2' },
-    { id: 'tx_3', amount: 550.00, type: 'expense', category: 'Σπίτι', subcategory: 'Ενοίκιο', date: `${y}-${mStr}-02T10:00:00Z`, note: 'Ενοίκιο Διαμερίσματος', description: '', account_from: 'Τράπεζα', account_to: '', user_id: 'u1', created_by: 'u1' },
-    { id: 'tx_1', amount: 2600.00, type: 'income', category: 'Μισθός', subcategory: '', date: `${y}-${mStr}-01T09:00:00Z`, note: 'Μισθοδοσία', description: 'Μηνιαίος μισθός', account_from: 'Τράπεζα', account_to: '', user_id: 'u1', created_by: 'u1' }
+    { id: 'tx_income_new', amount: 350.00, type: 'income', category: '💼 Μισθός', subcategory: 'Freelance', date: `${y}-${mStr}-16T10:15:00Z`, note: 'Freelance Project / Bonus', description: '', account_from: 'Τράπεζα', account_to: '', user_id: 'u1', created_by: 'u1' },
+    { id: 'tx_11', amount: 95.00, type: 'expense', category: '👕 Αγορές', subcategory: 'Ρούχα', date: `${y}-${mStr}-16T18:00:00Z`, note: 'Zara - Ρούχα & Αξεσουάρ', description: '', account_from: 'Κάρτα', account_to: '', user_id: 'u2', created_by: 'u2' },
+    { id: 'tx_income_refund', amount: 180.00, type: 'income', category: '💸 Bonus', subcategory: 'Cashback', date: `${y}-${mStr}-15T14:30:00Z`, note: 'Επιστροφή Φόρου & Bonus', description: '', account_from: 'Κάρτα', account_to: '', user_id: 'u2', created_by: 'u2' },
+    { id: 'tx_10', amount: 85.00, type: 'expense', category: '🏠 Σπίτι', subcategory: 'Ρεύμα', date: `${y}-${mStr}-15T10:30:00Z`, note: 'ΔΕΗ / Ηλεκτρικό', description: '', account_from: 'Τράπεζα', account_to: '', user_id: 'u1', created_by: 'u1' },
+    { id: 'tx_9', amount: 12.99, type: 'expense', category: '📱 Συνδρομές', subcategory: 'Streaming', date: `${y}-${mStr}-14T15:00:00Z`, note: 'Netflix Premium', description: '', account_from: 'Κάρτα', account_to: '', user_id: 'u1', created_by: 'u1' },
+    { id: 'tx_8', amount: 28.00, type: 'expense', category: '❤️ Υγεία', subcategory: 'Φαρμακείο', date: `${y}-${mStr}-12T12:00:00Z`, note: 'Βιταμίνες & Φάρμακα', description: '', account_from: 'Μετρητά', account_to: '', user_id: 'u1', created_by: 'u1' },
+    { id: 'tx_7', amount: 3.80, type: 'expense', category: '🍔 Τρόφιμα', subcategory: 'Καφές', date: `${y}-${mStr}-10T08:30:00Z`, note: 'Καφές & Τοστ', description: '', account_from: 'Μετρητά', account_to: '', user_id: 'u1', created_by: 'u1' },
+    { id: 'tx_6', amount: 46.50, type: 'expense', category: '🎉 Διασκέδαση', subcategory: 'Εστιατόριο', date: `${y}-${mStr}-09T21:15:00Z`, note: 'Βραδινό Φαγητό', description: '', account_from: 'Κάρτα', account_to: '', user_id: 'u2', created_by: 'u2' },
+    { id: 'tx_5', amount: 65.00, type: 'expense', category: '🚗 Μεταφορές', subcategory: 'Καύσιμα', date: `${y}-${mStr}-07T14:20:00Z`, note: 'Βενζίνη (AVIN)', description: '', account_from: 'Κάρτα', account_to: '', user_id: 'u1', created_by: 'u1' },
+    { id: 'tx_4', amount: 142.80, type: 'expense', category: '🍔 Τρόφιμα', subcategory: 'Σούπερμάρκετ', date: `${y}-${mStr}-05T17:45:00Z`, note: 'Σκλαβενίτης', description: 'Εβδομαδιαία ψώνια', account_from: 'Κάρτα', account_to: '', user_id: 'u2', created_by: 'u2' },
+    { id: 'tx_3', amount: 550.00, type: 'expense', category: '🏠 Σπίτι', subcategory: 'Ενοίκιο', date: `${y}-${mStr}-02T10:00:00Z`, note: 'Ενοίκιο Διαμερίσματος', description: '', account_from: 'Τράπεζα', account_to: '', user_id: 'u1', created_by: 'u1' },
+    { id: 'tx_1', amount: 2600.00, type: 'income', category: '💼 Μισθός', subcategory: '', date: `${y}-${mStr}-01T09:00:00Z`, note: 'Μισθοδοσία', description: 'Μηνιαίος μισθός', account_from: 'Τράπεζα', account_to: '', user_id: 'u1', created_by: 'u1' }
   ];
 
   const cleanAccounts = [
@@ -120,16 +120,17 @@ async function capture() {
       },
       {
         sender: 'bot',
-        html: '<div style="line-height: 1.55;"><strong>📊 Έξυπνη Ανάλυση Αυγούστου:</strong><br><br>1. <strong>🍽️ Εστίαση & Delivery:</strong> Έχεις ξοδέψει 46,50€ αυτή την εβδομάδα. Περιορίζοντας 1 έξοδο, εξοικονομείς <strong>+60€/μήνα</strong>.<br><br>2. <strong>🍔 Τρόφιμα (Σούπερ Μάρκετ):</strong> Βρίσκεσαι στο 32% του budget (142,80€ / 450€). Με προγραμματισμένες αγορές κερδίζεις <strong>+80€</strong>.<br><br>3. <strong>🚗 Καύσιμα:</strong> Συνδυασμός διαδρομών εξοικονομεί <strong>+60€</strong>.<br><br>🎯 <em>Με αυτές τις 3 κινήσεις επιτυγχάνεις άμεσα τον στόχο των <strong>+200€</strong>!</em></div>'
+        html: '<div style="line-height: 1.55;"><strong>📊 Έξυπνη Ανάλυση Σεπτεμβρίου:</strong><br><br>1. <strong>🍽️ Εστίαση & Delivery:</strong> Έχεις ξοδέψει 46,50€ αυτή την εβδομάδα. Περιορίζοντας 1 έξοδο, εξοικονομείς <strong>+60€/μήνα</strong>.<br><br>2. <strong>🍔 Τρόφιμα (Σούπερ Μάρκετ):</strong> Βρίσκεσαι στο 32% του budget (142,80€ / 450€). Με προγραμματισμένες αγορές κερδίζεις <strong>+80€</strong>.<br><br>3. <strong>🚗 Καύσιμα:</strong> Συνδυασμός διαδρομών εξοικονομεί <strong>+60€</strong>.<br><br>🎯 <em>Με αυτές τις 3 κινήσεις επιτυγχάνεις άμεσα τον στόχο των <strong>+200€</strong>!</em></div>'
       }
     ]
   };
 
   const demoBudgets = [
-    { id: 'b1', category: 'Τρόφιμα', subcategory: '', amount: 450, currency: 'EUR', is_deleted: false, updated_at: new Date().toISOString() },
-    { id: 'b2', category: 'Σπίτι', subcategory: '', amount: 600, currency: 'EUR', is_deleted: false, updated_at: new Date().toISOString() },
-    { id: 'b3', category: 'Μεταφορές', subcategory: '', amount: 150, currency: 'EUR', is_deleted: false, updated_at: new Date().toISOString() },
-    { id: 'b4', category: 'Εστίαση', subcategory: '', amount: 120, currency: 'EUR', is_deleted: false, updated_at: new Date().toISOString() }
+    { id: 'b1', category: '🍔 Τρόφιμα', subcategory: '', amount: 450, currency: 'EUR', is_deleted: false, updated_at: new Date().toISOString() },
+    { id: 'b2', category: '🏠 Σπίτι', subcategory: '', amount: 650, currency: 'EUR', is_deleted: false, updated_at: new Date().toISOString() },
+    { id: 'b3', category: '🚗 Μεταφορές', subcategory: '', amount: 150, currency: 'EUR', is_deleted: false, updated_at: new Date().toISOString() },
+    { id: 'b4', category: '👕 Αγορές', subcategory: '', amount: 180, currency: 'EUR', is_deleted: false, updated_at: new Date().toISOString() },
+    { id: 'b5', category: '🎉 Διασκέδαση', subcategory: '', amount: 120, currency: 'EUR', is_deleted: false, updated_at: new Date().toISOString() }
   ];
 
   const avatarPath = path.join(__dirname, '..', 'avatar_user.jpg');
@@ -172,9 +173,11 @@ async function capture() {
     localStorage.setItem('has_seen_onboarding', 'true');
     localStorage.setItem('settings_app_lock_enabled', 'false');
     localStorage.setItem('app_lang', 'el');
+    localStorage.setItem('account_view_mode', 'all');
     localStorage.setItem('offline_transactions', JSON.stringify(txs));
     localStorage.setItem('offline_accounts', JSON.stringify(accs));
-    localStorage.setItem('offline_budgets', JSON.stringify(budgets));
+    localStorage.setItem('cached_budgets', JSON.stringify(budgets));
+    localStorage.setItem('money_manager_budgets', JSON.stringify(budgets));
     localStorage.setItem('cached_family_profiles', JSON.stringify(famProfiles));
     localStorage.setItem('cached_family_group', JSON.stringify(famGroup));
     localStorage.setItem('cached_partner_profile', JSON.stringify(famProfiles[1]));
@@ -192,7 +195,9 @@ async function capture() {
   await page.goto('http://localhost:8085/', { waitUntil: 'networkidle0' });
 
   await page.evaluate((txs, accs, budgets, famProfiles, famGroup, avatarB64, y, m) => {
-    // Completely remove overlays
+    // Completely remove overlays and splash iframe
+    document.getElementById('cold-start-frame')?.remove();
+    document.getElementById('cold-start-overlay')?.remove();
     document.getElementById('auth-overlay')?.remove();
     document.getElementById('pin-lock-modal')?.remove();
     document.getElementById('onboarding-modal')?.remove();
@@ -205,6 +210,7 @@ async function capture() {
       window.state.transactions = txs;
       window.state.accounts = accs;
       window.state.budgets = budgets;
+      window.state.accountViewMode = 'all';
       window.state.familyProfiles = famProfiles;
       window.state.familyGroup = famGroup;
       window.state.partnerProfile = famProfiles[1];
@@ -237,9 +243,14 @@ async function capture() {
   // 1. Transactions Tab Screenshot
   console.log('📸 1. Capturing Transactions Screen...');
   await page.evaluate(() => {
+    document.getElementById('cold-start-frame')?.remove();
+    document.getElementById('cold-start-overlay')?.remove();
     if (typeof switchTab === 'function') switchTab('trans');
+    if (typeof renderTransactionsTab === 'function') renderTransactionsTab();
+    if (typeof updateHeaderStats === 'function') updateHeaderStats();
+    if (typeof updateUI === 'function') updateUI();
   });
-  await new Promise(r => setTimeout(r, 1000));
+  await new Promise(r => setTimeout(r, 1200));
   await page.screenshot({ path: path.join(OUT_DIR, '01_Real_Transactions.png') });
 
   // 1b. Family Hub Management Screen Screenshot
@@ -275,10 +286,12 @@ async function capture() {
 
   // 3. Category Budgets Tab Screenshot
   console.log('📸 3. Capturing Category Budgets Screen...');
-  await page.evaluate(() => {
+  await page.evaluate((budgets) => {
+    window.state.budgets = budgets;
     if (typeof switchTab === 'function') switchTab('stats');
     if (typeof switchStatsSubtab === 'function') switchStatsSubtab('budgets');
-  });
+    if (typeof renderStatsTab === 'function') renderStatsTab(true);
+  }, demoBudgets);
   await new Promise(r => setTimeout(r, 1500));
   await page.screenshot({ path: path.join(OUT_DIR, '03_Real_Category_Budgets.png') });
 
@@ -372,6 +385,34 @@ async function capture() {
   });
   await new Promise(r => setTimeout(r, 1200));
   await page.screenshot({ path: path.join(OUT_DIR, '06_Real_Transaction_Modal.png') });
+
+  // 7. Premium Lifetime Modal
+  console.log('📸 7. Capturing Premium Lifetime Modal...');
+  await page.evaluate(() => {
+    // Close transaction modal
+    if (typeof closeModal === 'function') closeModal('transaction-modal');
+    const txModal = document.getElementById('transaction-modal');
+    if (txModal) {
+      txModal.classList.remove('active');
+      txModal.style.display = 'none';
+    }
+
+    const activeBanner = document.getElementById('premium-active-banner');
+    if (activeBanner) activeBanner.style.display = 'none';
+
+    if (typeof openModal === 'function') {
+      openModal('premium-modal', { instant: true });
+    }
+    const premModal = document.getElementById('premium-modal');
+    if (premModal) {
+      premModal.classList.add('active');
+      premModal.style.display = 'flex';
+      premModal.style.opacity = '1';
+      premModal.style.visibility = 'visible';
+    }
+  });
+  await new Promise(r => setTimeout(r, 1200));
+  await page.screenshot({ path: path.join(OUT_DIR, '07_Real_Premium_Lifetime.png') });
 
   await browser.close();
   server.close();

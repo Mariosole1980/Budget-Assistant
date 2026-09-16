@@ -146,7 +146,7 @@ test('SafeToSpendView: getMonthlySavingsGoal returns saved goal or default', () 
 
   localStorage.removeItem('overview_savings_target');
 
-  // Test year savings rate fallback from transactions
+  // Test year savings rate fallback from transactions (must only apply when { includeEstimate: true })
   const thisYear = new Date().getFullYear();
   state.transactions = [
     { type: 'income', amount: 3000, date: `${thisYear}-01-15` },
@@ -154,8 +154,95 @@ test('SafeToSpendView: getMonthlySavingsGoal returns saved goal or default', () 
   ];
   const elapsedMonths = Math.max(1, new Date().getMonth() + 1);
   const expectedRate = Math.round(2000 / elapsedMonths);
-  assert.strictEqual(SafeToSpendView.getMonthlySavingsGoal(), expectedRate);
+  // Unconfigured goal must return 0 by default to prevent false overdrafts
+  assert.strictEqual(SafeToSpendView.getMonthlySavingsGoal(), 0);
+  // Must return expected rate when explicitly requesting estimate
+  assert.strictEqual(SafeToSpendView.getMonthlySavingsGoal({ includeEstimate: true }), expectedRate);
   state.transactions = [];
+});
+
+test('SafeToSpendView: getLiquidBalance uses cashflow baseline when accounts balance is 0', () => {
+  const savedAccs = state.accounts;
+  const savedTxs = state.transactions;
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = String(now.getMonth() + 1).padStart(2, '0');
+
+  state.accounts = [
+    { name: 'Cash', balance: 0 },
+    { name: 'Bank Account', balance: 0 }
+  ];
+  state.transactions = [
+    { type: 'income', amount: 1500, date: `${currentYear}-${currentMonth}-01` },
+    { type: 'expense', amount: 300, date: `${currentYear}-${currentMonth}-05` }
+  ];
+
+  const liquid = SafeToSpendView.getLiquidBalance();
+  assert.strictEqual(liquid, 1200);
+
+  state.accounts = savedAccs;
+  state.transactions = savedTxs;
+});
+
+test('SafeToSpendView: getLiquidBalance does not double-count future-dated recurring transactions', () => {
+  const savedAccs = state.accounts;
+  const savedTxs = state.transactions;
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = String(now.getMonth() + 1).padStart(2, '0');
+
+  state.accounts = [{ name: 'Cash', balance: 0 }];
+  state.transactions = [
+    { type: 'income', amount: 1000, date: `${currentYear}-${currentMonth}-01` },
+    { type: 'expense', amount: 200, date: `${currentYear}-${currentMonth}-02` },
+    // Future-dated recurring expense on the 28th (should NOT be deducted from spentThisMonth)
+    { type: 'expense', amount: 150, date: `${currentYear}-${currentMonth}-28` }
+  ];
+
+  // If today is before the 28th, the future expense should not be deducted from cashflow baseline
+  const today = now.getDate();
+  const liquid = SafeToSpendView.getLiquidBalance();
+  if (today < 28) {
+    assert.strictEqual(liquid, 800); // 1000 - 200 (150 is preserved for unpaid bills)
+  }
+
+  state.accounts = savedAccs;
+  state.transactions = savedTxs;
+});
+
+test('SafeToSpendView: updateSafeToSpendUI anti-glitch guard prevents flicker to 0 during in-flight sync', () => {
+  // Setup stable state
+  state._lastSafeToSpendResult = {
+    safeDaily: 21.08,
+    safeWeekly: 147.56,
+    daysRemaining: 15,
+    status: 'healthy'
+  };
+
+  const dailyEl = getMockElement('trans-sts-daily-val');
+  dailyEl.textContent = '€ 21,08';
+
+  // Mock in-flight sync flag
+  global.SupabaseRealtimeService = {
+    isForceSyncInFlight: () => true
+  };
+
+  // Temporarily empty transactions (as during sync)
+  const savedTxs = state.transactions;
+  const savedAccs = state.accounts;
+  state.transactions = [];
+  state.accounts = [{ name: 'Cash', balance: 0 }];
+
+  SafeToSpendView.updateSafeToSpendUI();
+
+  // The daily display should NOT have been wiped to 0
+  assert.strictEqual(dailyEl.textContent, '€ 21,08');
+  assert.strictEqual(state._lastSafeToSpendResult.safeDaily, 21.08);
+
+  // Restore
+  delete global.SupabaseRealtimeService;
+  state.transactions = savedTxs;
+  state.accounts = savedAccs;
 });
 
 test('SafeToSpendView: savings goal editor helper functions operate correctly', () => {
