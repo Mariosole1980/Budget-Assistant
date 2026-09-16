@@ -215,3 +215,49 @@ test('SupabaseRealtimeService circuit breaker can be reset manually and on onlin
   SupabaseRealtimeService.resetRealtimeCircuitBreaker();
   assert.strictEqual(SupabaseRealtimeService._getReconnectAttempts(), 0);
 });
+
+test('SupabaseRealtimeService.stopSupabaseRealtimeSubscription calls client.realtime.disconnect()', () => {
+  let disconnectCalled = false;
+  global.state.supabaseClient = {
+    realtime: {
+      disconnect: () => { disconnectCalled = true; }
+    }
+  };
+
+  SupabaseRealtimeService.stopSupabaseRealtimeSubscription();
+  assert.strictEqual(disconnectCalled, true, 'realtime.disconnect should be called when stopping subscription');
+
+  global.state.supabaseClient = null;
+});
+
+test('SupabaseRealtimeService.resetRealtimeCircuitBreaker respects persistent restriction unless forced', () => {
+  global.localStorage.setItem('supabase_realtime_restricted', 'true');
+
+  // Should not reset attempts if restricted and not forced
+  SupabaseRealtimeService.resetRealtimeCircuitBreaker(false);
+
+  // Forced reset should clear attempts even if restricted flag was set
+  SupabaseRealtimeService.resetRealtimeCircuitBreaker(true);
+  assert.strictEqual(SupabaseRealtimeService._getReconnectAttempts(), 0);
+
+  global.localStorage.removeItem('supabase_realtime_restricted');
+});
+
+test('SupabaseRealtimeService.setupSupabaseRealtimeSubscription skips when restricted flag is active', () => {
+  global.localStorage.setItem('supabase_realtime_restricted', 'true');
+  global.localStorage.setItem('supabase_realtime_restricted_at', String(Date.now()));
+
+  let channelCreated = false;
+  global.state.supabaseClient = {
+    channel: () => { channelCreated = true; return { state: 'closed', on: () => {}, subscribe: () => {} }; }
+  };
+  global.state.currentUser = { id: 'test-user-restricted' };
+
+  SupabaseRealtimeService.setupSupabaseRealtimeSubscription();
+  assert.strictEqual(channelCreated, false, 'Should not create channel when quota restriction is active');
+
+  global.localStorage.removeItem('supabase_realtime_restricted');
+  global.localStorage.removeItem('supabase_realtime_restricted_at');
+  global.state.supabaseClient = null;
+  global.state.currentUser = null;
+});

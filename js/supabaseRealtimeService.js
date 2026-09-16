@@ -47,7 +47,14 @@ let _setupSafetyTimer = null;      // Safety timeout: releases _isSettingUp if c
 let _currentChannelScope = null;   // Active subscription scope: `${userId}:${familyId || ''}:${partnerId || ''}`
 const MAX_RECONNECT_ATTEMPTS = 5;  // Production circuit breaker cap
 
-function resetRealtimeCircuitBreaker() {
+function resetRealtimeCircuitBreaker(force = false) {
+  if (!force) {
+    try {
+      if (typeof localStorage !== 'undefined' && localStorage.getItem('supabase_realtime_restricted') === 'true') {
+        return;
+      }
+    } catch (_) {}
+  }
   _reconnectAttempts = 0;
   if (_realtimeReconnectTimer) {
     clearTimeout(_realtimeReconnectTimer);
@@ -118,6 +125,20 @@ function _startSyncQueueWorker() {
 function setupSupabaseRealtimeSubscription() {
   if (!state.supabaseClient || !state.currentUser) return;
   if (_isSettingUp) return;  // Single-flight guard
+
+  // Check persistent quota restriction flag
+  try {
+    if (typeof localStorage !== 'undefined' && localStorage.getItem('supabase_realtime_restricted') === 'true') {
+      const restrictedAt = Number(localStorage.getItem('supabase_realtime_restricted_at') || 0);
+      if (Date.now() - restrictedAt < 3600000) {
+        console.warn('[Realtime] Quota restriction active. Skipping subscription to conserve quota.');
+        return;
+      } else {
+        localStorage.removeItem('supabase_realtime_restricted');
+        localStorage.removeItem('supabase_realtime_restricted_at');
+      }
+    }
+  } catch (_) {}
 
   const userId = state.currentUser.id;
   let partnerId = state.partnerProfile ? (state.partnerProfile.id || state.partnerProfile.user_id) : null;
@@ -235,6 +256,12 @@ function setupSupabaseRealtimeSubscription() {
       _reconnectAttempts = 0;
       _isSettingUp = false;
       if (_setupSafetyTimer) { clearTimeout(_setupSafetyTimer); _setupSafetyTimer = null; }
+      try {
+        if (typeof localStorage !== 'undefined') {
+          localStorage.removeItem('supabase_realtime_restricted');
+          localStorage.removeItem('supabase_realtime_restricted_at');
+        }
+      } catch (_) {}
     } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
       console.warn(`[Realtime] Subscription error: ${status}`, err);
       _isSettingUp = false;
@@ -245,6 +272,15 @@ function setupSupabaseRealtimeSubscription() {
       if (errMsg.includes('402') || errMsg.includes('quota') || errMsg.includes('restricted')) {
         console.error('[Realtime] Supabase project quota restriction detected. Halting reconnects.');
         _reconnectAttempts = MAX_RECONNECT_ATTEMPTS; // Trip circuit breaker immediately
+        try {
+          if (typeof localStorage !== 'undefined') {
+            localStorage.setItem('supabase_realtime_restricted', 'true');
+            localStorage.setItem('supabase_realtime_restricted_at', String(Date.now()));
+          }
+        } catch (_) {}
+        if (state.supabaseClient && state.supabaseClient.realtime && typeof state.supabaseClient.realtime.disconnect === 'function') {
+          try { state.supabaseClient.realtime.disconnect(); } catch (_) {}
+        }
         return;
       }
       _scheduleRealtimeReconnect(3000);
@@ -274,6 +310,11 @@ function stopSupabaseRealtimeSubscription() {
     } catch (_) {}
     _supabaseRealtimeChannel = null;
   }
+  if (state.supabaseClient && state.supabaseClient.realtime && typeof state.supabaseClient.realtime.disconnect === 'function') {
+    try {
+      state.supabaseClient.realtime.disconnect();
+    } catch (_) {}
+  }
   if (_realtimeWatchdogInterval) {
     clearInterval(_realtimeWatchdogInterval);
     _realtimeWatchdogInterval = null;
@@ -293,7 +334,13 @@ function stopSupabaseRealtimeSubscription() {
 if (typeof window !== 'undefined' && window.addEventListener) {
   window.addEventListener('online', () => {
     console.info('[Realtime] Network online detected — resetting circuit breaker');
-    resetRealtimeCircuitBreaker();
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem('supabase_realtime_restricted');
+        localStorage.removeItem('supabase_realtime_restricted_at');
+      }
+    } catch (_) {}
+    resetRealtimeCircuitBreaker(true);
     if (typeof state !== 'undefined' && state.supabaseClient && state.currentUser) {
       setupSupabaseRealtimeSubscription();
     }

@@ -254,6 +254,15 @@
     handleAppForegroundSync();
   }
 
+  function _handleAppBackgrounded() {
+    saveCurrentUIStateToStorage();
+    if (typeof stopSupabaseRealtimeSubscription === 'function') {
+      stopSupabaseRealtimeSubscription();
+    } else if (typeof window !== 'undefined' && typeof window.stopSupabaseRealtimeSubscription === 'function') {
+      window.stopSupabaseRealtimeSubscription();
+    }
+  }
+
   function initLifecycleListeners() {
     if (typeof document === 'undefined') return;
 
@@ -261,7 +270,7 @@
       if (document.visibilityState === 'visible') {
         _handleAppResumed();
       } else if (document.visibilityState === 'hidden') {
-        saveCurrentUIStateToStorage();
+        _handleAppBackgrounded();
       }
     });
 
@@ -273,7 +282,7 @@
             if (appState.isActive) {
               _handleAppResumed();
             } else {
-              saveCurrentUIStateToStorage();
+              _handleAppBackgrounded();
             }
           });
         }
@@ -306,6 +315,7 @@
 
   return {
     saveCurrentUIStateToStorage,
+    _handleAppBackgrounded,
     _refreshSessionIfNeeded,
     handleAppForegroundSync,
     _handleAppResumed,

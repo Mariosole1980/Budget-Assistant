@@ -21,6 +21,7 @@ const AppLifecycleService = require('../js/appLifecycleService.js');
 
 test('AppLifecycleService exports all expected functions', () => {
   assert.strictEqual(typeof AppLifecycleService.saveCurrentUIStateToStorage, 'function');
+  assert.strictEqual(typeof AppLifecycleService._handleAppBackgrounded, 'function');
   assert.strictEqual(typeof AppLifecycleService._refreshSessionIfNeeded, 'function');
   assert.strictEqual(typeof AppLifecycleService.handleAppForegroundSync, 'function');
   assert.strictEqual(typeof AppLifecycleService._handleAppResumed, 'function');
@@ -38,6 +39,19 @@ test('AppLifecycleService.saveCurrentUIStateToStorage saves background timestamp
   const ts = global.localStorage.getItem('app_background_timestamp');
   assert.ok(ts, 'app_background_timestamp should be saved');
   assert.ok(Number(ts) > 0, 'timestamp should be a positive number');
+});
+
+test('AppLifecycleService._handleAppBackgrounded stops realtime and saves state', () => {
+  let realtimeStopped = false;
+  global.stopSupabaseRealtimeSubscription = () => { realtimeStopped = true; };
+  global.localStorage.clear();
+
+  AppLifecycleService._handleAppBackgrounded();
+
+  assert.strictEqual(realtimeStopped, true, 'stopSupabaseRealtimeSubscription should be called on backgrounding');
+  const ts = global.localStorage.getItem('app_background_timestamp');
+  assert.ok(ts, 'background timestamp should be recorded');
+  delete global.stopSupabaseRealtimeSubscription;
 });
 
 test('AppLifecycleService._handleAppResumed executes safely', () => {
