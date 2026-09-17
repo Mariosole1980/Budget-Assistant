@@ -1427,8 +1427,34 @@
       text-decoration: none;
     }
 
-    @media (max-width: 900px) {
-      .hero h1 { font-size: 34px; }
+    /* Strict desktop lock: mobile drawer and backdrop can NEVER render on desktop */
+    @media (min-width: 1041px) {
+      .mobile-nav-drawer,
+      .mobile-nav-backdrop,
+      .mobile-menu-btn {
+        display: none !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+      }
+    }
+
+    /* Responsive styling in strict descending order */
+    @media (max-width: 1200px) {
+      .nav-links a {
+        padding: 6px 8px;
+        font-size: 13px;
+      }
+      .nav-inner {
+        padding: 0 16px;
+        gap: 8px;
+      }
+      .nav-btn-app-download {
+        display: none !important;
+      }
+    }
+
+    @media (max-width: 1040px) {
+      .hero h1 { font-size: 38px; }
       .canvas-metrics-grid, .canvas-lower-grid, .bento-grid, .comparison-grid-2col, .quiz-cta-banner, .pricing-grid {
         grid-template-columns: 1fr;
       }
@@ -1439,14 +1465,6 @@
       .mobile-menu-btn { display: inline-flex !important; }
       .nav-inner { height: 60px !important; padding: 0 16px !important; }
       .footer-grid { grid-template-columns: 1fr 1fr; }
-    }
-
-    @media (max-width: 480px) {
-      .nav-lang-switcher { display: none !important; }
-      .logo-text { font-size: 14px !important; }
-      .logo-img { width: 30px !important; height: 30px !important; }
-      .nav-btn-cta { padding: 6px 10px !important; font-size: 12px !important; gap: 5px !important; }
-      .nav-inner { padding: 0 12px !important; gap: 8px !important; }
     }
 
     /* Mobile Sticky Conversion Bar */
@@ -1505,6 +1523,48 @@
       body {
         padding-bottom: 64px;
       }
+    }
+
+    @media (max-width: 600px) {
+      .canvas-topbar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 12px 16px;
+      }
+      .canvas-topbar-left {
+        width: 100%;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .canvas-topbar-right {
+        width: 100%;
+        justify-content: flex-start;
+      }
+      .indie-dev-card {
+        padding: 24px 20px !important;
+        gap: 16px !important;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .nav-lang-switcher { display: none !important; }
+      .logo-text { font-size: 14px !important; }
+      .logo-img { width: 30px !important; height: 30px !important; }
+      .nav-btn-cta { padding: 6px 10px !important; font-size: 12px !important; gap: 5px !important; }
+      .nav-inner { padding: 0 12px !important; gap: 8px !important; }
+      .hero h1 { font-size: 30px; }
+      .ocr-scanner-visual { grid-template-columns: 1fr !important; }
+      .category-pills-row { grid-template-columns: 1fr !important; }
+      .canvas-body { padding: 16px 14px; }
+      .canvas-panel { padding: 14px; }
+      .metric-card { padding: 14px 16px; }
+      .metric-val { font-size: 26px; }
+      .bento-card { padding: 24px 20px; }
+      .comp-box-sub, .comp-box-pro, .pricing-card { padding: 24px 20px; }
+      .quiz-cta-banner { padding: 24px 20px; }
+      .footer-grid { grid-template-columns: 1fr; gap: 24px; }
     }
   </style>
 </head>
@@ -1912,7 +1972,6 @@
 
           <!-- Bento 2: Cash Flow Calendar & Safe-to-Spend -->
           <div class="bento-card" id="features-cashflow">
-            <span id="simulator" style="display:block; position:relative; top:-90px; visibility:hidden;"></span>
             <div>
               <div class="bento-pill-tag" style="background: rgba(245, 158, 11, 0.12); color: #FBBF24; border: 1px solid rgba(245, 158, 11, 0.3);">
                 <span>📅</span> CASH FLOW & SAFE-TO-SPEND
@@ -1979,8 +2038,8 @@
             </div>
           </div>
 
-          <!-- Bento 5 (Span 2): Multi-Device & Couples -->
-          <div class="bento-card bento-span-2" id="features-couples">
+          <!-- Bento 5: Multi-Device & Couples -->
+          <div class="bento-card" id="features-couples">
             <div>
               <div class="bento-pill-tag" style="background: rgba(236, 72, 153, 0.12); color: #F472B6; border: 1px solid rgba(236, 72, 153, 0.3);">
                 <span>👥</span> ΚΟΙΝΟ ΤΑΜΕΙΟ ΖΕΥΓΑΡΙΩΝ & ΟΙΚΟΓΕΝΕΙΑΣ
@@ -2013,22 +2072,22 @@
       </div>
     </section>
 
-    <!-- Indie Developer Trust Section -->
+    <!-- Autonomy & Philosophy Section -->
     <section style="padding: 40px 0;">
       <div class="container">
-        <div style="background: rgba(124, 106, 247, 0.06); border: 1px solid rgba(124, 106, 247, 0.25); border-radius: var(--radius-xl); padding: 34px 38px; display: flex; align-items: center; gap: 28px; flex-wrap: wrap;">
-          <div style="font-size: 40px;">👨‍💻</div>
-          <div style="flex: 1; min-width: 280px;">
+        <div class="indie-dev-card" style="background: rgba(124, 106, 247, 0.06); border: 1px solid rgba(124, 106, 247, 0.25); border-radius: var(--radius-xl); padding: 34px 38px; display: flex; align-items: center; gap: 24px; flex-wrap: wrap;">
+          <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(124, 106, 247, 0.15); border: 1px solid rgba(124, 106, 247, 0.35); display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0;">💎</div>
+          <div style="flex: 1; min-width: 240px; max-width: 100%;">
             <h3 style="font-family: var(--font-heading); font-size: 20px; font-weight: 700; color: #FFFFFF; margin-bottom: 6px;">
-              Ανεξάρτητη Εφαρμογή, Φτιαγμένη με Μεράκι
+              Δεν είμαστε τράπεζα. Δεν είμαστε data brokers. Σας δίνουμε απλώς τον έλεγχο.
             </h3>
             <p style="font-size: 13.5px; color: var(--text-muted); line-height: 1.6;">
-              Χωρίς πιέσεις για μηνιαίες συνδρομές. Χωρίς διαφημίσεις, χωρίς trackers και χωρίς πώληση των δεδομένων σας σε τρίτους. Ένα ταχύτατο, καθαρό και αξιόπιστο εργαλείο για ανθρώπους που θέλουν ουσιαστικό έλεγχο των χρημάτων τους.
+              Ένα καθαρό, αθόρυβο εργαλείο που κάνει ακριβώς αυτό που υπόσχεται. Πληρώνετε 9,99€ μία φορά, το εργαλείο σας ανήκει για πάντα και τα οικονομικά σας μένουν αποκλειστικά δικά σας.
             </p>
           </div>
           <div style="display: flex; gap: 10px;">
-            <span style="font-size: 12px; font-weight: 600; color: #34D399; background: rgba(16, 185, 129, 0.12); padding: 6px 12px; border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.3);">
-              ✓ 100% Ανεξάρτητο & Ασφαλές
+            <span style="font-size: 12px; font-weight: 600; color: #34D399; background: rgba(16, 185, 129, 0.12); padding: 6px 12px; border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.3); white-space: nowrap;">
+              ✓ 9,99€ Εφάπαξ · Καμία Δέσμευση
             </span>
           </div>
         </div>
@@ -2367,17 +2426,259 @@
 
   <!-- Interactive Scripts -->
   <script>
+    const LANDING_EN_SELECTORS = [
+  // Nav
+  ['.nav-dropdown-trigger span:first-child', 'Features'],
+  ['a[href="#features-automation"] .nav-drop-title', 'Bank Auto-Capture & AI'],
+  ['a[href="#features-automation"] .nav-drop-desc', 'Push notifications & receipt OCR'],
+  ['a[href="#features-cashflow"] .nav-drop-title', 'Cash Flow & Safe-to-Spend'],
+  ['a[href="#features-cashflow"] .nav-drop-desc', 'Daily limit & recurring bills projection'],
+  ['a[href="#features-couples"] .nav-drop-title', 'Couples & Shared Finances'],
+  ['a[href="#features-couples"] .nav-drop-desc', 'Real-time shared expense sync'],
+  ['a[href="#features-health"] .nav-drop-title', 'Financial Health Score'],
+  ['a[href="#features-health"] .nav-drop-desc', 'Financial resilience index (0-100)'],
+  ['.nav-links a[href="/tools"]', 'Tools & Quiz'],
+  ['.nav-links a[href="/security"]', 'Security'],
+  ['.nav-links a[href="/pricing"]', 'Pricing <span class="badge-pricing-tag">9.99€</span>'],
+  ['.nav-btn-login span', 'Login'],
+  ['.nav-btn-cta span', 'Live Demo'],
+
+  // Drawer
+  ['.mobile-drawer-body .mobile-drawer-section-title:nth-of-type(1)', 'FEATURES'],
+  ['.mobile-drawer-body .mobile-drawer-section-title:nth-of-type(2)', 'PAGES'],
+  ['a.mobile-drawer-link[href="#features-automation"] .drawer-title', 'Bank Auto-Capture & AI'],
+  ['a.mobile-drawer-link[href="#features-automation"] .drawer-desc', 'Push notifications & receipt OCR'],
+  ['a.mobile-drawer-link[href="#features-cashflow"] .drawer-title', 'Cash Flow & Safe-to-Spend'],
+  ['a.mobile-drawer-link[href="#features-cashflow"] .drawer-desc', 'Daily limit & recurring bills projection'],
+  ['a.mobile-drawer-link[href="#features-couples"] .drawer-title', 'Couples & Shared Finances'],
+  ['a.mobile-drawer-link[href="#features-couples"] .drawer-desc', 'Real-time shared expense sync'],
+  ['a.mobile-drawer-link[href="#features-health"] .drawer-title', 'Financial Health Score'],
+  ['a.mobile-drawer-link[href="#features-health"] .drawer-desc', 'Financial resilience index (0-100)'],
+  ['a.mobile-drawer-link[href="/pricing"] .drawer-title', 'Pricing <span class="badge-pricing-tag">9.99€</span>'],
+  ['a.mobile-drawer-link[href="/tools"] .drawer-title', 'Tools & Quiz'],
+  ['a.mobile-drawer-link[href="/health-quiz"] .drawer-title', 'Financial Health Quiz'],
+  ['a.mobile-drawer-link[href="/security"] .drawer-title', 'Security & Zero-Knowledge'],
+  ['a.mobile-drawer-link[href="/guides"] .drawer-title', 'Guides & Articles'],
+  ['a.mobile-drawer-link[href="/download.html"] .drawer-title', 'Download Android App (APK)'],
+  ['.btn-demo-drawer span', 'Live Demo (no account required)'],
+  ['.btn-login-drawer span', 'Sign In to App'],
+
+  // Hero
+  ['.hero .pill-tag span:last-child', 'Bank Auto-Capture · Cash Flow · Couples Sync'],
+  ['.hero h1', 'Know exactly where your money goes.<br><span class="gradient-highlight">No stress. No monthly subscriptions.</span>'],
+  ['.hero-subtitle', 'Budget Assistant simplifies your finances: automatic transaction capture from bank push alerts and AI receipt scanning, cash flow calendar, and Safe-to-Spend daily limit. 100% private, works fully offline.'],
+  ['.hero-actions a.btn-primary span', 'Try Live Demo (Free)'],
+  ['.hero-actions a.btn-secondary span', '9.99€ Lifetime (One-Time)'],
+
+  // Hero Canvas
+  ['.canvas-status-pill span:last-child', 'Local-First · Real-Time Sync'],
+  ['.canvas-month-chip', 'September 2026'],
+  ['.canvas-quick-tag', '🔒 AES-256 Local Encryption'],
+  ['.canvas-metrics-grid .metric-card:nth-child(1) .metric-label span:first-child', 'NET BALANCE'],
+  ['.canvas-metrics-grid .metric-card:nth-child(1) .metric-sub', '<span>💳 Cards: 1,420 €</span><span>·</span><span>🏦 Cash/Vault: 1,427.50 €</span>'],
+  ['.canvas-metrics-grid .metric-card:nth-child(2) .metric-label span:first-child', 'DAILY LIMIT (SAFE-TO-SPEND)'],
+  ['.canvas-metrics-grid .metric-card:nth-child(2) .metric-label span:last-child', '🎯 Active'],
+  ['.canvas-metrics-grid .metric-card:nth-child(2) .metric-sub', '<span style="color:#34D399; font-weight:600;">✓ All upcoming bills fully covered</span>'],
+  ['.canvas-metrics-grid .metric-card:nth-child(3) .metric-label span:first-child', 'FINANCIAL HEALTH'],
+  ['.canvas-metrics-grid .metric-card:nth-child(3) .metric-label span:last-child', 'EXCELLENT'],
+  ['.canvas-metrics-grid .metric-card:nth-child(3) .metric-sub', '<span>Emergency Runway: <strong>6.2 Months</strong></span>'],
+  ['.canvas-panel:nth-child(1) .panel-title', 'Monthly Budget'],
+  ['.cat-tag-pill:nth-child(1) span:first-child', '🛒 Groceries'],
+  ['.cat-tag-pill:nth-child(2) span:first-child', '🏠 Housing & Bills'],
+  ['.cat-tag-pill:nth-child(3) span:first-child', '🚗 Transport'],
+  ['.cat-tag-pill:nth-child(4) span:first-child', '☕ Leisure & Dining'],
+  ['.canvas-panel:nth-child(2) .panel-title', 'Recent Transactions'],
+  ['.canvas-panel:nth-child(2) .panel-meta', 'Auto-Captured'],
+  ['.tx-stream-item:nth-child(1) .tx-name', 'Supermarket'],
+  ['.tx-stream-item:nth-child(1) .tx-category', 'Groceries · Today'],
+  ['.tx-stream-item:nth-child(2) .tx-name', 'Electric Utility'],
+  ['.tx-stream-item:nth-child(2) .tx-category', 'Utilities · Yesterday'],
+  ['.tx-stream-item:nth-child(2) .tx-tag-ai', 'Scheduled 📅'],
+  ['.tx-stream-item:nth-child(3) .tx-name', 'Payroll Income'],
+  ['.tx-stream-item:nth-child(3) .tx-category', 'Income · Sep 1'],
+  ['.tx-stream-item:nth-child(3) .tx-tag-ai', 'Automatic ✨'],
+
+  // Bento
+  ['#features .section-tag', 'CORE CAPABILITIES'],
+  ['#features .section-title', 'Everything you need in one clean view'],
+  ['#features .section-desc', 'Engineered for speed, total expense control, and 100% data privacy.'],
+  ['#features-automation .bento-pill-tag', '<span>⚡</span> AUTO-CAPTURE & AI'],
+  ['#features-automation .bento-title', 'Bank Push Alerts & AI Receipt OCR'],
+  ['#features-automation .bento-desc', '<strong>Paid by card?</strong> On Android, the app automatically detects push notifications from major banks and Revolut, preparing your transaction in 1 tap!<br><strong>Have a paper receipt?</strong> Snap a photo and AI parses merchant, amount, date, and category in under 2 seconds.'],
+  ['#features-automation .bento-visual-box > div:first-child', 'Instant Detection & Entry (Zero Effort)'],
+  ['#features-automation .ocr-data-chip:nth-child(1) .ocr-chip-label', 'Bank Push Alert'],
+  ['#features-automation .ocr-data-chip:nth-child(1) .ocr-chip-val', '💳 Card: Supermarket 34.20 €'],
+  ['#features-automation .ocr-data-chip:nth-child(2) .ocr-chip-label', 'Status'],
+  ['#features-automation .ocr-data-chip:nth-child(2) .ocr-chip-val', '⚡ Ready for 1-tap entry'],
+  ['#features-automation .ocr-data-chip:nth-child(3) .ocr-chip-label', 'AI Receipt Scan'],
+  ['#features-automation .ocr-data-chip:nth-child(3) .ocr-chip-val', '📸 Gas Station: 45.00 €'],
+  ['#features-automation .ocr-data-chip:nth-child(4) .ocr-chip-label', 'AI Parsing'],
+  ['#features-automation .ocr-data-chip:nth-child(4) .ocr-chip-val', '🏷️ Auto-category verified'],
+
+  ['#features-cashflow .bento-title', 'Cash Flow Calendar & Daily Limit'],
+  ['#features-cashflow .bento-desc', 'Know exactly how much you can safely spend today. Automatically projects upcoming bills to protect you from cash flow surprises.'],
+  ['#features-cashflow .radar-visual-bar > div:first-child > div:first-child', 'Safe Daily Spending Limit'],
+  ['#features-cashflow .radar-visual-bar > div:last-child', '✓ All upcoming bills<br><span style="font-size: 10px; color: var(--text-muted); font-weight: normal;">fully covered</span>'],
+
+  ['#features-health .bento-title', 'Financial Health Score (0–100)'],
+  ['#features-health .bento-desc', 'Algorithmic assessment of your financial resilience and emergency runway in months, with actionable guidance to build your savings cushion.'],
+  ['#features-health .health-gauge-row > div:first-child > div:first-child', 'Health Index'],
+  ['#features-health .health-gauge-row > div:last-child > div:last-child', '6.2 Months'],
+
+  ['.bento-grid .bento-card:nth-child(4) .bento-pill-tag', '<span>🔒</span> 100% PRIVACY & SECURITY'],
+  ['.bento-grid .bento-card:nth-child(4) .bento-title', 'Zero Bank Credentials Needed'],
+  ['.bento-grid .bento-card:nth-child(4) .bento-desc', 'We never ask for or store banking credentials. All your data stays locally encrypted on your device with zero ads, zero tracking, and no data sales.'],
+  ['.bento-grid .bento-card:nth-child(4) .bento-visual-box div:first-child > div:first-child', 'On-Device Local Storage'],
+  ['.bento-grid .bento-card:nth-child(4) .bento-visual-box div:first-child > div:last-child', 'Complete Privacy (Zero Trackers)'],
+
+  ['#features-couples .bento-pill-tag', '<span>👥</span> COUPLES & SHARED FINANCES'],
+  ['#features-couples .bento-title', 'Couples Shared Vault & Multi-Device'],
+  ['#features-couples .bento-desc', 'Pair your devices with a simple code. Track shared household expenses live, see who paid what, and keep personal spending completely private. Works seamlessly across mobile and desktop.'],
+  ['#features-couples .bento-visual-box > div:nth-child(1) span:nth-child(2)', 'Desktop & Web Browser'],
+  ['#features-couples .bento-visual-box > div:nth-child(1) > span:last-child', '● Available Now'],
+  ['#features-couples .bento-visual-box > div:nth-child(2) span:nth-child(2)', 'Mobile Phone (Android & iOS)'],
+  ['#features-couples .bento-visual-box > div:nth-child(2) > span:last-child', '● Available Now'],
+
+  // Autonomy
+  ['.indie-dev-card h3', 'We are not a bank. We are not data brokers. We simply give you back control.'],
+  ['.indie-dev-card p', 'A clean, quiet tool that does exactly what it promises. Pay 9.99€ once, own it forever, and keep your finances strictly your own.'],
+  ['.indie-dev-card span[style*="white-space"]', '✓ 9.99€ One-Time · Zero Commitments'],
+
+  // Ownership
+  ['#ownership .section-tag', 'TRUE OWNERSHIP'],
+  ['#ownership .section-title', 'End Subscription Fatigue. Yours Forever.'],
+  ['#ownership .section-desc', 'Why pay recurring monthly fees just to track and manage your own money?'],
+  ['.comp-box-sub .bento-pill-tag', '<span>🚫</span> SUBSCRIPTION MODEL'],
+  ['.comp-box-sub h3', 'Subscription Apps'],
+  ['.comp-box-sub p', 'Continuous monthly or yearly charges'],
+  ['.comp-box-sub .comp-card-price-val span', '/ every year'],
+  ['.comp-box-sub .comp-list-items li:nth-child(1) span', 'Endless recurring charges with zero actual ownership'],
+  ['.comp-box-sub .comp-list-items li:nth-child(2) span', 'Locked out of your own data if you cancel'],
+  ['.comp-box-sub .comp-list-items li:nth-child(3) span', 'Subscription fatigue and sudden unannounced price hikes'],
+  ['.comp-box-sub .comp-list-items li:nth-child(4) span', 'Total cost over 3 years: <strong>360+ €</strong>'],
+  ['.comp-box-sub > div:last-child', 'Continuously charged just to view your own expenses.'],
+
+  ['.comp-box-pro .bento-pill-tag', '<span>👑</span> LIFETIME OWNERSHIP'],
+  ['.comp-box-pro h3', 'Budget Assistant PRO'],
+  ['.comp-box-pro p', 'One-time payment. Yours forever.'],
+  ['.comp-box-pro .comp-card-price-val span', '/ One-Time'],
+  ['.comp-box-pro .comp-list-items li:nth-child(1) span', '<strong>One-time payment. Yours forever with zero hidden fees.</strong>'],
+  ['.comp-box-pro .comp-list-items li:nth-child(2) span', '<strong>Bank Notification Auto-Capture & 100 AI Scans / month</strong>'],
+  ['.comp-box-pro .comp-list-items li:nth-child(3) span', '<strong>Cash Flow Calendar, Safe-to-Spend & Financial Health Score</strong>'],
+  ['.comp-box-pro .comp-list-items li:nth-child(4) span', '<strong>Couples Shared Vault, Multi-Device Sync & All Future Updates</strong>'],
+  ['.comp-box-pro a.btn', '⚡ Get Lifetime PRO (9.99€)'],
+
+  // Quiz
+  ['.quiz-cta-banner .pill-tag', '🧠 FREE ONLINE TOOL'],
+  ['.quiz-cta-banner h2', 'How healthy are your personal finances?'],
+  ['.quiz-cta-banner p', 'Answer 5 quick questions (in 60 seconds) and reveal your personalized <strong>Financial Health Scorecard (0-100)</strong> with actionable next steps.'],
+  ['.quiz-cta-banner a.btn', '<span>🚀</span> Take the Quiz (60 Seconds)'],
+  ['.quiz-cta-banner .health-gauge-row div[style*="font-weight: 700"]', 'Excellent Financial Resilience'],
+  ['.quiz-cta-banner .health-gauge-row div:last-child', 'Emergency Runway: <strong>6.2 Months</strong>'],
+
+  // Pricing
+  ['#pricing .section-tag', 'PRICING'],
+  ['#pricing .section-title', 'Simple, Transparent, One-Time'],
+  ['#pricing .section-desc', 'Start free or unlock Lifetime PRO with a single one-off payment.'],
+  ['.pricing-card:not(.featured) div[style*="color: var(--text-muted)"]', 'Free forever'],
+  ['.pricing-card:not(.featured) .feature-list li:nth-child(1) span', 'Unlimited expense & income tracking'],
+  ['.pricing-card:not(.featured) .feature-list li:nth-child(2) span', '5 AI receipt scans / month'],
+  ['.pricing-card:not(.featured) .feature-list li:nth-child(3) span', '100% Local Storage & Offline capability'],
+  ['.pricing-card:not(.featured) .feature-list li:nth-child(4) span', 'Essential charts & analytics'],
+  ['.pricing-card:not(.featured) a.btn', 'Start for Free'],
+
+  ['.pricing-card.featured div[style*="background: rgba(245, 158, 11"]', '🔥 9.99€ early bird price (regular price 29.99€)'],
+  ['.pricing-card.featured div[style*="text-align:center"]:nth-of-type(2)', 'One-off lifetime payment. Zero recurring subscriptions.'],
+  ['.pricing-card.featured .feature-list li:nth-child(1) span', '<strong>Bank Notification Auto-Capture (Android)</strong>'],
+  ['.pricing-card.featured .feature-list li:nth-child(2) span', '<strong>100 AI Receipt Scans / month</strong>'],
+  ['.pricing-card.featured .feature-list li:nth-child(3) span', '<strong>Cash Flow Calendar, Safe-to-Spend & Health Score</strong>'],
+  ['.pricing-card.featured .feature-list li:nth-child(4) span', '<strong>Couples Shared Vault & Multi-Device Sync</strong>'],
+  ['.pricing-card.featured .feature-list li:nth-child(5) span', '<strong>Smart AI Financial Advisor</strong>'],
+  ['.pricing-card.featured .feature-list li:nth-child(6) span', 'All future updates & releases included free'],
+  ['.pricing-card.featured a.btn-primary', '⚡ Get Lifetime PRO (9.99€)'],
+  ['.pricing-card.featured div[style*="color: #34D399"] span', '14-Day Money-Back Guarantee (100% Risk-Free)'],
+  ['.pricing-card.featured div[style*="color: var(--text-dim)"] > div:last-child span', 'Secure one-time checkout · Zero recurring charges'],
+
+  // FAQs
+  ['#pricing + section .section-tag', 'FREQUENTLY ASKED QUESTIONS'],
+  ['#pricing + section .section-title', 'Everything you need to know'],
+  ['#pricing + section .section-desc', 'Answers to the most common questions about Budget Assistant.'],
+  ['.faq-grid .faq-item:nth-child(1) h3', 'Does the app connect to my bank account or require online banking credentials?'],
+  ['.faq-grid .faq-item:nth-child(1) p', '<strong>Never, absolutely not.</strong> Budget Assistant never connects to bank servers and never asks for your e-banking credentials. You retain 100% anonymity and complete privacy.'],
+  ['.faq-grid .faq-item:nth-child(2) h3', 'How does automatic transaction capture from banks work?'],
+  ['.faq-grid .faq-item:nth-child(2) p', 'On Android, the app securely detects payment push notifications from your banking apps and Revolut. Processing occurs <strong>100% locally on your device</strong>. As soon as you tap your card, the transaction is prepared with merchant and amount for instant 1-tap logging — zero banking connection required.'],
+  ['.faq-grid .faq-item:nth-child(3) h3', 'When I scan a receipt, where is the image processed?'],
+  ['.faq-grid .faq-item:nth-child(3) p', 'The image is transmitted over an encrypted channel (TLS 1.3) solely for real-time OCR extraction. <strong>It is never permanently stored on servers</strong>, never used for AI training, and immediately deleted from memory. All transaction data remains stored locally on your device.'],
+  ['.faq-grid .faq-item:nth-child(4) h3', 'Is it genuinely a 9.99€ one-time payment or are there hidden renewals?'],
+  ['.faq-grid .faq-item:nth-child(4) p', 'It is 100% a single one-time payment. There are no monthly or yearly subscriptions, and no automatic renewals. Your PRO license and all future updates belong to you forever.'],
+  ['.faq-grid .faq-item:nth-child(5) h3', 'Which devices can I use Budget Assistant on?'],
+  ['.faq-grid .faq-item:nth-child(5) p', 'Budget Assistant runs instantly in any modern desktop web browser (Windows, Mac, Linux), as well as on Android and iOS mobile devices with seamless synchronization.'],
+  ['.faq-grid .faq-item:nth-child(6) h3', 'Is there a money-back guarantee?'],
+  ['.faq-grid .faq-item:nth-child(6) p', 'Yes. We offer a <strong>14-day 100% money-back guarantee</strong>. If you are not completely satisfied for any reason, you can request a full refund without questions.'],
+
+  // Footer
+  ['footer .container p', 'Bank Auto-Capture, AI Receipt Scanning & Couples Vault without subscriptions.'],
+  ['.footer-col:nth-child(2) h4', 'Product'],
+  ['.footer-col:nth-child(2) li:nth-child(1) a', 'Bank Auto-Capture & AI'],
+  ['.footer-col:nth-child(2) li:nth-child(2) a', 'Cash Flow Calendar'],
+  ['.footer-col:nth-child(2) li:nth-child(3) a', 'Couples Vault'],
+  ['.footer-col:nth-child(2) li:nth-child(4) a', 'Financial Health Score'],
+  ['.footer-col:nth-child(3) h4', 'Tools'],
+  ['.footer-col:nth-child(3) li:nth-child(1) a', 'Couples Split Calculator'],
+  ['.footer-col:nth-child(3) li:nth-child(2) a', 'Emergency Runway'],
+  ['.footer-col:nth-child(3) li:nth-child(3) a', '50/30/20 Calculator'],
+  ['.footer-col:nth-child(3) li:nth-child(4) a', 'Compound Growth'],
+  ['.footer-col:nth-child(4) h4', 'Resources & Security'],
+  ['.footer-col:nth-child(4) li:nth-child(1) a', 'User Guide'],
+  ['.footer-col:nth-child(4) li:nth-child(2) a', 'Pricing'],
+  ['.footer-col:nth-child(4) li:nth-child(3) a', 'Security & Privacy'],
+  ['.footer-col:nth-child(4) li:nth-child(4) a', 'Privacy Policy'],
+  ['footer div[style*="border-top"] div:last-child', 'Clean Design & 100% Privacy Respect.'],
+
+  // Mobile sticky
+  ['.mobile-sticky-btn-buy span', 'Get Lifetime PRO (9.99€)']
+];
+
+    function applyLandingTranslations(lang) {
+      if (lang === 'en') {
+        document.documentElement.lang = 'en';
+        document.title = 'Budget Assistant — Smart Expense Tracking, AI OCR & Shared Vault';
+        LANDING_EN_SELECTORS.forEach(([sel, enHtml]) => {
+          try {
+            const el = document.querySelector(sel);
+            if (el) {
+              if (!el.hasAttribute('data-i18n-orig')) {
+                el.setAttribute('data-i18n-orig', el.innerHTML);
+              }
+              el.innerHTML = enHtml;
+            }
+          } catch (e) {
+            console.warn('i18n error on:', sel, e);
+          }
+        });
+      } else {
+        document.documentElement.lang = 'el';
+        document.title = 'Budget Assistant — Έξυπνη Διαχείριση Εξόδων, AI OCR & Κοινό Ταμείο';
+        document.querySelectorAll('[data-i18n-orig]').forEach(el => {
+          el.innerHTML = el.getAttribute('data-i18n-orig');
+        });
+      }
+    }
+
     function setLandingLanguage(lang, notify = true) {
       localStorage.setItem('app_lang_user_set', 'true');
       localStorage.setItem('app_lang', lang);
       document.querySelectorAll('#landing-lang-el, .landing-lang-el').forEach(el => el.classList.toggle('active', lang === 'el'));
       document.querySelectorAll('#landing-lang-en, .landing-lang-en').forEach(el => el.classList.toggle('active', lang === 'en'));
+      applyLandingTranslations(lang);
       if (notify) {
         const old = document.getElementById('lang-toast');
         if (old) old.remove();
+        const isMobile = window.innerWidth <= 768;
+        const bottomOffset = isMobile ? '78px' : '24px';
         const t = document.createElement('div');
         t.id = 'lang-toast';
-        t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#10131E;border:1px solid #7C6AF7;color:#F3F4F6;padding:10px 20px;border-radius:999px;font-size:13px;font-weight:600;box-shadow:0 10px 30px rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;gap:10px;';
+        t.style.cssText = 'position:fixed;bottom:' + bottomOffset + ';left:50%;transform:translateX(-50%);background:#10131E;border:1px solid #7C6AF7;color:#F3F4F6;padding:10px 20px;border-radius:999px;font-size:13px;font-weight:600;box-shadow:0 10px 30px rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;gap:10px;max-width:92vw;box-sizing:border-box;text-align:center;';
         t.innerHTML = lang === 'en' 
           ? '<span>🌐 English set for Web App · <a href="/app?demo=true" style="color:#38BDF8;font-weight:700;text-decoration:underline;">Launch Live Demo</a></span>'
           : '<span>🌐 Επιλέχθηκαν τα Ελληνικά για το Web App · <a href="/app?demo=true" style="color:#38BDF8;font-weight:700;text-decoration:underline;">Άνοιγμα Live Demo</a></span>';
@@ -2390,8 +2691,9 @@
       const saved = localStorage.getItem('app_lang');
       const userSet = localStorage.getItem('app_lang_user_set') === 'true';
       if (userSet && saved) {
-        document.getElementById('landing-lang-el')?.classList.toggle('active', saved === 'el');
-        document.getElementById('landing-lang-en')?.classList.toggle('active', saved === 'en');
+        document.querySelectorAll('#landing-lang-el, .landing-lang-el').forEach(el => el.classList.toggle('active', saved === 'el'));
+        document.querySelectorAll('#landing-lang-en, .landing-lang-en').forEach(el => el.classList.toggle('active', saved === 'en'));
+        if (saved === 'en') applyLandingTranslations('en');
         return;
       }
       try {
@@ -2399,12 +2701,26 @@
         if (res.ok) {
           const data = await res.json();
           const targetLang = data?.recommendedLang || (navigator.language?.startsWith('el') ? 'el' : 'en');
-          document.getElementById('landing-lang-el')?.classList.toggle('active', targetLang === 'el');
-          document.getElementById('landing-lang-en')?.classList.toggle('active', targetLang === 'en');
+          document.querySelectorAll('#landing-lang-el, .landing-lang-el').forEach(el => el.classList.toggle('active', targetLang === 'el'));
+          document.querySelectorAll('#landing-lang-en, .landing-lang-en').forEach(el => el.classList.toggle('active', targetLang === 'en'));
           localStorage.setItem('app_lang', targetLang);
+          if (targetLang === 'en') applyLandingTranslations('en');
         }
-      } catch (e) {}
+      } catch (e) {
+        if (navigator.language && !navigator.language.startsWith('el')) {
+          document.querySelectorAll('#landing-lang-el, .landing-lang-el').forEach(el => el.classList.toggle('active', false));
+          document.querySelectorAll('#landing-lang-en, .landing-lang-en').forEach(el => el.classList.toggle('active', true));
+          applyLandingTranslations('en');
+        }
+      }
     })();
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const saved = localStorage.getItem('app_lang');
+      if (saved === 'en') {
+        applyLandingTranslations('en');
+      }
+    });
 
     function toggleMobileMenu(force) {
       var drawer = document.getElementById('mobileNavDrawer');
@@ -2428,6 +2744,11 @@
     }
     document.addEventListener('keydown', function(e) {
       if (e.key === 'Escape') toggleMobileMenu(false);
+    });
+    window.addEventListener('resize', function() {
+      if (window.innerWidth > 1040) {
+        toggleMobileMenu(false);
+      }
     });
   </script>
 
