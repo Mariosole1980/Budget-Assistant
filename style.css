@@ -130,27 +130,45 @@ button {
 button,
 .nav-item,
 .transaction-item,
+.category-picker-item,
+.subcategory-item,
 .calc-key-btn,
+.keypad-btn,
 .fab,
+.period-btn,
+.type-tab-btn,
+.stats-row,
+.stats-sub-row,
 .settings-card,
 .settings-list-item,
 .stats-tab-btn,
 .stats-dropdown-item {
   transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease !important;
+  touch-action: manipulation !important;
+  -webkit-tap-highlight-color: transparent !important;
 }
 
 button:active,
 .nav-item:active,
 .calc-key-btn:active,
+.keypad-btn:active,
 .fab:active,
+.period-btn:active,
+.type-tab-btn:active,
 .settings-card:active,
 .settings-list-item:active,
 .stats-tab-btn:active,
 .stats-dropdown-item:active,
-.keypad-btn:active,
+.transaction-item:active,
 .transaction-item.pressed,
+.stats-row:active,
 .stats-row.pressed,
-.stats-sub-row.pressed {
+.stats-sub-row:active,
+.stats-sub-row.pressed,
+.category-picker-item:active,
+.category-picker-item.pressed,
+.subcategory-item:active,
+.subcategory-item.pressed {
   transform: scale(0.975) !important;
   opacity: 0.88 !important;
   transition: transform 0.02s ease-out !important;
@@ -284,6 +302,8 @@ button:active,
   color: var(--text-secondary);
   transition: var(--transition);
   padding: 4px;
+  touch-action: manipulation !important;
+  -webkit-tap-highlight-color: transparent !important;
 }
 
 .icon-btn:hover {
@@ -569,6 +589,10 @@ button:active,
   cursor: pointer;
   transition: var(--transition);
   min-height: 48px;
+  touch-action: manipulation !important;
+  -webkit-tap-highlight-color: transparent !important;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 @media (hover: hover) {
@@ -1136,6 +1160,7 @@ button:active,
   cursor: pointer;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation !important;
 }
 
 .stats-row-left {
@@ -1242,6 +1267,8 @@ button:active,
   position: relative;
   cursor: pointer;
   user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation !important;
 }
 
 .stats-sub-row.pressed {
@@ -2610,6 +2637,10 @@ body.is-ios .modal-content {
   transition: var(--transition);
   border: 1.5px solid transparent;
   background: transparent;
+  touch-action: manipulation !important;
+  -webkit-tap-highlight-color: transparent !important;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .type-tab-btn.active[data-type="expense"] {
@@ -4397,9 +4428,13 @@ body.is-ios .modal-content {
   border-radius: 12px;
   padding: 12px 8px;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
   text-align: center;
   gap: 8px;
+  touch-action: manipulation !important;
+  -webkit-tap-highlight-color: transparent !important;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .category-picker-item:hover {
@@ -4407,8 +4442,11 @@ body.is-ios .modal-content {
   border-color: rgba(255, 255, 255, 0.15);
 }
 
-.category-picker-item:active {
-  transform: scale(0.975);
+.category-picker-item:active,
+.category-picker-item.pressed {
+  transform: scale(0.975) !important;
+  opacity: 0.88 !important;
+  transition: transform 0.02s ease-out !important;
 }
 
 .category-picker-item.selected {
@@ -4620,10 +4658,14 @@ body.is-ios .modal-content {
   font-weight: 500;
   color: var(--text-main);
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  touch-action: manipulation !important;
+  -webkit-tap-highlight-color: transparent !important;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .subcategory-item:hover {
@@ -4631,8 +4673,11 @@ body.is-ios .modal-content {
   border-color: rgba(255, 255, 255, 0.15);
 }
 
-.subcategory-item:active {
-  transform: scale(0.98);
+.subcategory-item:active,
+.subcategory-item.pressed {
+  transform: scale(0.975) !important;
+  opacity: 0.88 !important;
+  transition: transform 0.02s ease-out !important;
 }
 
 .subcategory-item.selected {

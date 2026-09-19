@@ -446,6 +446,11 @@ function updateCategoryDropdowns(type = 'expense', force = false) {
         categoryExists = true;
       }
       div.innerHTML = `${catBadge}<span class="category-picker-name">${displayName}</span>`;
+      if (div.addEventListener) {
+        div.addEventListener('touchstart', () => div.classList && div.classList.add('pressed'), { passive: true });
+        div.addEventListener('touchend', () => div.classList && div.classList.remove('pressed'), { passive: true });
+        div.addEventListener('touchcancel', () => div.classList && div.classList.remove('pressed'), { passive: true });
+      }
       div.onclick = () => selectCategory(c.name, c.icon, c.color, true);
     }
 
@@ -456,6 +461,11 @@ function updateCategoryDropdowns(type = 'expense', force = false) {
   const addBox = document.createElement('div');
   addBox.className = 'category-picker-item category-picker-add';
   addBox.innerHTML = `<div class="cat-vector-badge" style="width:28px; height:28px; border-radius:8px; background:rgba(124,106,247,0.15); border:1px solid rgba(124,106,247,0.3); color:var(--accent); display:inline-flex; align-items:center; justify-content:center; font-size:14px;"><i class="fa-solid fa-plus"></i></div><span class="category-picker-name">${state.lang === 'el' ? 'Νέα Κατηγορία' : 'New Category'}</span>`;
+  if (addBox.addEventListener) {
+    addBox.addEventListener('touchstart', () => addBox.classList && addBox.classList.add('pressed'), { passive: true });
+    addBox.addEventListener('touchend', () => addBox.classList && addBox.classList.remove('pressed'), { passive: true });
+    addBox.addEventListener('touchcancel', () => addBox.classList && addBox.classList.remove('pressed'), { passive: true });
+  }
   addBox.onclick = () => openNewCategoryDialog(type);
   grid.appendChild(addBox);
 
@@ -464,14 +474,19 @@ function updateCategoryDropdowns(type = 'expense', force = false) {
     updateCategoryDisplay();
   }
   if (window.Sortable) {
-    if (grid._sortable) { grid._sortable.destroy(); }
-    grid._sortable = Sortable.create(grid, {
-      animation: 150, delay: 250, delayOnTouchOnly: true, filter: '.category-picker-add',
-      onEnd: function (evt) {
-        const newOrder = Array.from(grid.children).filter(el => !el.classList.contains('category-picker-add')).map(el => el.getAttribute('data-category-name')).filter(Boolean);
-        setCustomCategoryOrder(type, newOrder);
-      }
-    });
+    if (grid._sortable) {
+      grid._sortable.destroy();
+      grid._sortable = null;
+    }
+    if (categoryPickerEditMode) {
+      grid._sortable = Sortable.create(grid, {
+        animation: 150, delay: 250, delayOnTouchOnly: true, touchStartThreshold: 5, filter: '.category-picker-add',
+        onEnd: function (evt) {
+          const newOrder = Array.from(grid.children).filter(el => !el.classList.contains('category-picker-add')).map(el => el.getAttribute('data-category-name')).filter(Boolean);
+          setCustomCategoryOrder(type, newOrder);
+        }
+      });
+    }
   }
 }
 

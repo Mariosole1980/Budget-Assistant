@@ -289,11 +289,13 @@
         var pressTimer;
         var feedbackTimer;
         var isLongPress = false;
+        var itemTouchMoved = false;
         var touchStartX = 0;
         var touchStartY = 0;
 
         item.addEventListener('touchstart', function (e) {
           isLongPress = false;
+          itemTouchMoved = false;
           appState.touchDidMove = false;
           if (e.touches && e.touches[0]) {
             touchStartX = e.touches[0].clientX;
@@ -302,10 +304,10 @@
 
           clearTimeout(feedbackTimer);
           feedbackTimer = setTimeout(function () {
-            if (!appState.touchDidMove && !appState.isSwipingMonth) {
+            if (!itemTouchMoved && !appState.touchDidMove && !appState.isSwipingMonth) {
               item.classList.add('pressed');
             }
-          }, 80);
+          }, 20);
 
           if (appState.selectionMode) return;
           pressTimer = setTimeout(function () {
@@ -322,16 +324,18 @@
           if (e.touches && e.touches[0]) {
             var dx = e.touches[0].clientX - touchStartX;
             var dy = e.touches[0].clientY - touchStartY;
-            if (Math.hypot(dx, dy) > 10) {
+            if (Math.hypot(dx, dy) > 14) {
               clearTimeout(pressTimer);
               clearTimeout(feedbackTimer);
               item.classList.remove('pressed');
+              itemTouchMoved = true;
               appState.touchDidMove = true;
             }
           } else {
             clearTimeout(pressTimer);
             clearTimeout(feedbackTimer);
             item.classList.remove('pressed');
+            itemTouchMoved = true;
             appState.touchDidMove = true;
           }
         }, { passive: true });
@@ -340,7 +344,7 @@
           clearTimeout(pressTimer);
           clearTimeout(feedbackTimer);
           item.classList.remove('pressed');
-          if (appState.isSwipingMonth || appState.touchDidMove) {
+          if (appState.isSwipingMonth || itemTouchMoved) {
             if (e.cancelable) e.preventDefault();
           }
         }, { passive: false });
@@ -349,6 +353,7 @@
           clearTimeout(pressTimer);
           clearTimeout(feedbackTimer);
           item.classList.remove('pressed');
+          itemTouchMoved = false;
         });
 
         item.addEventListener('mousedown', function () {
@@ -373,8 +378,9 @@
         });
 
         item.onclick = function () {
-          if (appState.isSwipingMonth || appState.touchDidMove || (Date.now() - (appState.lastSwipeTime || 0) < 1500)) {
+          if (appState.isSwipingMonth || itemTouchMoved || (Date.now() - (appState.lastSwipeTime || 0) < 200)) {
             isLongPress = false;
+            itemTouchMoved = false;
             appState.touchDidMove = false;
             return;
           }

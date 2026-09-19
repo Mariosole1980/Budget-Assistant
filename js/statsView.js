@@ -346,14 +346,14 @@ function renderStatsTab(skipChart = false) {
             if (!subTouchMoved && !state.isSwipingMonth) {
               subRow.classList.add('pressed');
             }
-          }, 100);
+          }, 20);
         }, { passive: true });
 
         subRow.addEventListener('touchmove', (e) => {
           const touch = e.touches[0];
           const dx = touch.clientX - subTouchStartX;
           const dy = touch.clientY - subTouchStartY;
-          if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
+          if (Math.abs(dx) > 14 || Math.abs(dy) > 14) {
             subTouchMoved = true;
             clearTimeout(subFeedbackTimer);
             subRow.classList.remove('pressed');
@@ -375,7 +375,7 @@ function renderStatsTab(skipChart = false) {
 
         subRow.addEventListener('click', (e) => {
           e.stopPropagation();
-          if (state.isSwipingMonth || subTouchMoved || (Date.now() - state.lastSwipeTime < 1500)) {
+          if (state.isSwipingMonth || subTouchMoved || (Date.now() - (state.lastSwipeTime || 0) < 200)) {
             return;
           }
           openStatsTransactionsModal(item.name, sub.name);
@@ -403,14 +403,14 @@ function renderStatsTab(skipChart = false) {
         if (!rowTouchMoved && !state.isSwipingMonth) {
           row.classList.add('pressed');
         }
-      }, 100);
+      }, 20);
     }, { passive: true });
 
     row.addEventListener('touchmove', (e) => {
       const touch = e.touches[0];
       const dx = touch.clientX - rowTouchStartX;
       const dy = touch.clientY - rowTouchStartY;
-      if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
+      if (Math.abs(dx) > 14 || Math.abs(dy) > 14) {
         rowTouchMoved = true;
         clearTimeout(rowFeedbackTimer);
         row.classList.remove('pressed');
@@ -431,7 +431,7 @@ function renderStatsTab(skipChart = false) {
     });
 
     row.addEventListener('click', () => {
-      if (state.isSwipingMonth || rowTouchMoved || (Date.now() - state.lastSwipeTime < 1500)) {
+      if (state.isSwipingMonth || rowTouchMoved || (Date.now() - (state.lastSwipeTime || 0) < 200)) {
         return;
       }
       if (hasSubcats) {
@@ -1265,14 +1265,14 @@ function renderSubcategoryTransactions(category, subcategory) {
         if (!modalTouchMoved && !state.isSwipingMonth) {
           item.classList.add('pressed');
         }
-      }, 100);
+      }, 20);
     }, { passive: true });
 
     item.addEventListener('touchmove', (e) => {
       const touch = e.touches[0];
       const dx = touch.clientX - modalTouchStartX;
       const dy = touch.clientY - modalTouchStartY;
-      if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
+      if (Math.abs(dx) > 14 || Math.abs(dy) > 14) {
         modalTouchMoved = true;
         clearTimeout(modalFeedbackTimer);
         item.classList.remove('pressed');
@@ -1293,7 +1293,7 @@ function renderSubcategoryTransactions(category, subcategory) {
     });
 
     item.onclick = () => {
-      if (state.isSwipingMonth || modalTouchMoved || (Date.now() - state.lastSwipeTime < 1500)) return;
+      if (state.isSwipingMonth || modalTouchMoved || (Date.now() - (state.lastSwipeTime || 0) < 200)) return;
       openEditTransactionModal(t);
     };
 

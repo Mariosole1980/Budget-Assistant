@@ -1750,18 +1750,24 @@ function renderGroupedTransactions(transactions, container) {
       let feedbackTimer;
       let isLongPress = false;
       let touchDidMove = false;
+      let touchStartX = 0;
+      let touchStartY = 0;
 
       // touchstart listener for long-press selection initiation
       item.addEventListener('touchstart', (e) => {
         isLongPress = false;
         touchDidMove = false;
+        if (e.touches && e.touches[0]) {
+          touchStartX = e.touches[0].clientX;
+          touchStartY = e.touches[0].clientY;
+        }
 
         clearTimeout(feedbackTimer);
         feedbackTimer = setTimeout(() => {
           if (!touchDidMove) {
             item.classList.add('pressed');
           }
-        }, 80);
+        }, 20);
 
         if (state.searchSelectMode) return;
         pressTimer = setTimeout(() => {
@@ -1776,10 +1782,21 @@ function renderGroupedTransactions(transactions, container) {
 
       // touchmove listener - scrolling cancels selection
       item.addEventListener('touchmove', (e) => {
-        clearTimeout(pressTimer);
-        clearTimeout(feedbackTimer);
-        item.classList.remove('pressed');
-        touchDidMove = true;
+        if (e.touches && e.touches[0]) {
+          const dx = e.touches[0].clientX - touchStartX;
+          const dy = e.touches[0].clientY - touchStartY;
+          if (Math.hypot(dx, dy) > 14) {
+            clearTimeout(pressTimer);
+            clearTimeout(feedbackTimer);
+            item.classList.remove('pressed');
+            touchDidMove = true;
+          }
+        } else {
+          clearTimeout(pressTimer);
+          clearTimeout(feedbackTimer);
+          item.classList.remove('pressed');
+          touchDidMove = true;
+        }
       }, { passive: true });
 
       // touchend listener
@@ -1819,7 +1836,10 @@ function renderGroupedTransactions(transactions, container) {
       });
 
       item.onclick = (e) => {
-        if (touchDidMove) return;
+        if (touchDidMove) {
+          touchDidMove = false;
+          return;
+        }
         if (isLongPress) {
           e.preventDefault();
           e.stopPropagation();
