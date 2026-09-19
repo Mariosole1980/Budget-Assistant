@@ -595,17 +595,29 @@ window.autoSyncMissingTransactionsToCloud = autoSyncMissingTransactionsToCloud;
     return false;
   }
 
-  function removeDeletedCategoryTombstone(name, type) {
+  function removeDeletedCategoryTombstone(name, type, id) {
     try {
       const raw = localStorage.getItem(_DELETED_CATEGORIES_LS_KEY);
       if (!raw) return;
       const list = JSON.parse(raw);
       if (!Array.isArray(list)) return;
-      const targetKey = _getCategoryKey(name, type);
-      const cleanName = _cleanStr(name);
+      const targetKey = name ? _getCategoryKey(name, type) : null;
+      const cleanName = name ? _cleanStr(name) : '';
+      const targetId = id ? String(id).trim() : null;
       const filtered = list.filter(item => {
-        const itemKey = (typeof item === 'string') ? item : (item && (item.key || _getCategoryKey(item.name, item.type)));
-        if (itemKey === targetKey || (itemKey && itemKey.endsWith(':::' + cleanName))) return false;
+        if (!item) return false;
+        if (typeof item === 'string') {
+          const s = item.trim();
+          if (targetId && s === targetId) return false;
+          if (targetKey && s === targetKey) return false;
+          if (cleanName && (s.endsWith(':::' + cleanName) || s === cleanName)) return false;
+          return true;
+        }
+        if (targetId && item.id && String(item.id).trim() === targetId) return false;
+        const itemKey = item.key || (item.name ? _getCategoryKey(item.name, item.type) : '');
+        if (targetKey && itemKey === targetKey) return false;
+        if (cleanName && itemKey && itemKey.endsWith(':::' + cleanName)) return false;
+        if (cleanName && item.name && _cleanStr(item.name) === cleanName) return false;
         return true;
       });
       localStorage.setItem(_DELETED_CATEGORIES_LS_KEY, JSON.stringify(filtered));

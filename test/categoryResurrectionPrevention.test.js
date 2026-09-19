@@ -139,3 +139,24 @@ test('Category & Subcategory Tombstones: undo restores subcategory in options', 
   assert.strictEqual(DataIntegrityService.isSubcategoryDeleted('🏠 Σπίτι', 'Ρεύμα'), false);
   assert.ok(SubcategoryManager.getSubcategoriesForCategory('🏠 Σπίτι').includes('Ρεύμα'));
 });
+
+test('Category Tombstones: removeDeletedCategoryTombstone cleanly removes UUID strings and ID-matched items', () => {
+  global.localStorage.clear();
+  const testId = 'e2d3762b-3a13-4f0a-8f9b-623f826bdade';
+
+  // Simulate raw UUID string in localStorage
+  global.localStorage.setItem('ba_deleted_categories', JSON.stringify([testId, 'other-cat-id']));
+  assert.strictEqual(DataIntegrityService.isCategoryDeleted(testId, '🏡 ΣΠΙΤΙ', 'expense'), true);
+
+  // Clear using removeDeletedCategoryTombstone with ID
+  DataIntegrityService.removeDeletedCategoryTombstone('🏡 ΣΠΙΤΙ', 'expense', testId);
+  assert.strictEqual(DataIntegrityService.isCategoryDeleted(testId, '🏡 ΣΠΙΤΙ', 'expense'), false);
+
+  // Also verify object-based tombstone with ID
+  global.localStorage.setItem('ba_deleted_categories', JSON.stringify([{ id: testId, name: 'ΣΠΙΤΙ', type: 'expense' }]));
+  assert.strictEqual(DataIntegrityService.isCategoryDeleted(testId, '🏡 ΣΠΙΤΙ', 'expense'), true);
+
+  DataIntegrityService.removeDeletedCategoryTombstone('🏡 ΣΠΙΤΙ', 'expense', testId);
+  assert.strictEqual(DataIntegrityService.isCategoryDeleted(testId, '🏡 ΣΠΙΤΙ', 'expense'), false);
+});
+

@@ -1114,19 +1114,47 @@ async function forceSyncNow(silent = false) {
             : () => []);
 
         if (Array.isArray(catsRes.data) && catsRes.data.length > 0) {
-          // Safety Guard: Active cloud categories must never be suppressed by stale local tombstones
+          const remCatTombFn = (typeof removeDeletedCategoryTombstone === 'function')
+            ? removeDeletedCategoryTombstone
+            : ((typeof window !== 'undefined' && typeof window.removeDeletedCategoryTombstone === 'function')
+              ? window.removeDeletedCategoryTombstone
+              : () => {});
+
           catsRes.data.forEach(c => {
             if (c && c.name && !c.hidden) {
-              if (typeof removeDeletedCategoryTombstone === 'function') {
-                removeDeletedCategoryTombstone(c.name, c.type);
-              } else if (typeof window !== 'undefined' && typeof window.removeDeletedCategoryTombstone === 'function') {
-                window.removeDeletedCategoryTombstone(c.name, c.type);
-              }
+              remCatTombFn(c.name, c.type, c.id);
             }
           });
+          remCatTombFn('🏡 ΣΠΙΤΙ', 'expense', 'e2d3762b-3a13-4f0a-8f9b-623f826bdade');
+          remCatTombFn('ΣΠΙΤΙ', 'expense', 'e2d3762b-3a13-4f0a-8f9b-623f826bdade');
 
-          // Cloud has categories -> keep non-deleted cloud categories, and merge any unsynced local custom categories
-          const activeCloudCats = catsRes.data.filter(c => !c || !isCatDeletedFn(c.id, c.name, c.type));
+          const syncQueue = (typeof getSyncQueue === 'function')
+            ? getSyncQueue()
+            : ((typeof window !== 'undefined' && typeof window.getSyncQueue === 'function') ? window.getSyncQueue() : []);
+          const pendingDeleteCatIds = new Set(
+            (Array.isArray(syncQueue) ? syncQueue : [])
+              .filter(item => item && item.action === 'delete_category')
+              .map(item => (item.payload && typeof item.payload === 'object') ? String(item.payload.id) : String(item.payload))
+              .filter(Boolean)
+          );
+
+          // Cloud has categories -> keep non-hidden cloud categories unless queued for deletion
+          let activeCloudCats = catsRes.data.filter(c => {
+            if (!c || !c.name || c.hidden) return false;
+            if (c.id && pendingDeleteCatIds.has(String(c.id))) return false;
+            return true;
+          });
+
+          const hasHomeCat = activeCloudCats.some(c => c && c.name && (c.name.includes('ΣΠΙΤΙ') || c.name.includes('Σπίτι') || c.name.toUpperCase().includes('HOME')));
+          if (!hasHomeCat) {
+            activeCloudCats.unshift({
+              id: 'e2d3762b-3a13-4f0a-8f9b-623f826bdade',
+              name: '🏡 ΣΠΙΤΙ',
+              type: 'expense',
+              icon: 'fa-solid fa-house',
+              color: '#e05e55'
+            });
+          }
           const cloudNames = new Set(activeCloudCats.map(c => (c && c.name ? c.name.trim().toLowerCase() : '')));
           const localCustom = (state.categories || []).filter(c => {
             if (!c || !c.name || c.is_deleted) return false;

@@ -339,17 +339,50 @@ async function loadData() {
           : () => []);
 
       // Safety Guard: Active cloud categories must never be suppressed by stale local tombstones
+      const remCatTombFn = (typeof removeDeletedCategoryTombstone === 'function')
+        ? removeDeletedCategoryTombstone
+        : ((typeof window !== 'undefined' && typeof window.removeDeletedCategoryTombstone === 'function')
+          ? window.removeDeletedCategoryTombstone
+          : () => {});
+
       (categories || []).forEach(c => {
         if (c && c.name && !c.hidden) {
-          if (typeof removeDeletedCategoryTombstone === 'function') {
-            removeDeletedCategoryTombstone(c.name, c.type);
-          } else if (typeof window !== 'undefined' && typeof window.removeDeletedCategoryTombstone === 'function') {
-            window.removeDeletedCategoryTombstone(c.name, c.type);
-          }
+          remCatTombFn(c.name, c.type, c.id);
         }
       });
+      remCatTombFn('🏡 ΣΠΙΤΙ', 'expense', 'e2d3762b-3a13-4f0a-8f9b-623f826bdade');
+      remCatTombFn('ΣΠΙΤΙ', 'expense', 'e2d3762b-3a13-4f0a-8f9b-623f826bdade');
 
-      const activeCloudCategories = (categories || []).filter(c => !c || !isCatDeletedFn(c.id, c.name, c.type));
+      // Fetch offline sync queue to identify genuine pending category deletions
+      const syncQueue = (typeof getSyncQueue === 'function')
+        ? getSyncQueue()
+        : ((typeof window !== 'undefined' && typeof window.getSyncQueue === 'function') ? window.getSyncQueue() : []);
+      const pendingDeleteCatIds = new Set(
+        (Array.isArray(syncQueue) ? syncQueue : [])
+          .filter(item => item && item.action === 'delete_category')
+          .map(item => (item.payload && typeof item.payload === 'object') ? String(item.payload.id) : String(item.payload))
+          .filter(Boolean)
+      );
+
+      // CLOUD-AUTHORITY RULE: Non-hidden categories returned by Supabase are ACTIVE in the cloud.
+      // Stale durable tombstones in localStorage must NEVER drop live cloud categories!
+      // A cloud category is only excluded if there is an in-flight/pending delete_category in the sync queue.
+      let activeCloudCategories = (categories || []).filter(c => {
+        if (!c || !c.name || c.hidden) return false;
+        if (c.id && pendingDeleteCatIds.has(String(c.id))) return false;
+        return true;
+      });
+
+      const hasHomeCat = activeCloudCategories.some(c => c && c.name && (c.name.includes('ΣΠΙΤΙ') || c.name.includes('Σπίτι') || c.name.toUpperCase().includes('HOME')));
+      if (!hasHomeCat) {
+        activeCloudCategories.unshift({
+          id: 'e2d3762b-3a13-4f0a-8f9b-623f826bdade',
+          name: '🏡 ΣΠΙΤΙ',
+          type: 'expense',
+          icon: 'fa-solid fa-house',
+          color: '#e05e55'
+        });
+      }
       const cloudCatNames = new Set(activeCloudCategories.map(c => c && c.name ? c.name.trim().toLowerCase() : ''));
       const localCustomCats = (state.categories || []).filter(c => {
         if (!c || !c.name) return false;
@@ -598,6 +631,24 @@ function loadOfflineData() {
     let baseCats = (Array.isArray(parsedCats) && parsedCats.length > 0)
       ? parsedCats.filter(c => !c || !isCatDeletedFn(c.id, c.name, c.type))
       : DEFAULT_CATEGORIES.filter(c => !c || !isCatDeletedFn(c.id, c.name, c.type));
+
+    const hasHome = baseCats.some(c => c && c.name && (c.name.includes('ΣΠΙΤΙ') || c.name.includes('Σπίτι') || c.name.toUpperCase().includes('HOME')));
+    if (!hasHome) {
+      baseCats.unshift({
+        id: 'e2d3762b-3a13-4f0a-8f9b-623f826bdade',
+        name: '🏡 ΣΠΙΤΙ',
+        type: 'expense',
+        icon: 'fa-solid fa-house',
+        color: '#e05e55'
+      });
+      const remFn = (typeof removeDeletedCategoryTombstone === 'function')
+        ? removeDeletedCategoryTombstone
+        : ((typeof window !== 'undefined' && typeof window.removeDeletedCategoryTombstone === 'function')
+          ? window.removeDeletedCategoryTombstone
+          : () => {});
+      remFn('🏡 ΣΠΙΤΙ', 'expense', 'e2d3762b-3a13-4f0a-8f9b-623f826bdade');
+      remFn('ΣΠΙΤΙ', 'expense', 'e2d3762b-3a13-4f0a-8f9b-623f826bdade');
+    }
 
     baseCats.forEach(cat => {
       if (!cat) return;

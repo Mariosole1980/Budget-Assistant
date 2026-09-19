@@ -179,6 +179,61 @@
     }
   } catch (_) { }
 
+  // Self-healing migration: restore home category and clear any stale category tombstone
+  try {
+    const CAT_HEAL_KEY = 'restore_home_category_heal_v1';
+    if (!localStorage.getItem(CAT_HEAL_KEY)) {
+      const remFn = (typeof removeDeletedCategoryTombstone === 'function')
+        ? removeDeletedCategoryTombstone
+        : ((typeof window !== 'undefined' && typeof window.removeDeletedCategoryTombstone === 'function')
+          ? window.removeDeletedCategoryTombstone
+          : null);
+      if (remFn) {
+        remFn('🏡 ΣΠΙΤΙ', 'expense', 'e2d3762b-3a13-4f0a-8f9b-623f826bdade');
+        remFn('ΣΠΙΤΙ', 'expense', 'e2d3762b-3a13-4f0a-8f9b-623f826bdade');
+        remFn('🏠 Σπίτι', 'expense', 'e2d3762b-3a13-4f0a-8f9b-623f826bdade');
+      }
+      try {
+        const raw = localStorage.getItem('ba_deleted_categories');
+        if (raw) {
+          const list = JSON.parse(raw);
+          if (Array.isArray(list)) {
+            const clean = list.filter(item => {
+              if (typeof item === 'string') {
+                return item !== 'e2d3762b-3a13-4f0a-8f9b-623f826bdade' && !item.toLowerCase().includes('σπιτι');
+              }
+              if (item && item.id === 'e2d3762b-3a13-4f0a-8f9b-623f826bdade') return false;
+              if (item && item.name && (item.name.includes('ΣΠΙΤΙ') || item.name.includes('Σπίτι'))) return false;
+              return true;
+            });
+            localStorage.setItem('ba_deleted_categories', JSON.stringify(clean));
+          }
+        }
+      } catch (_) { }
+
+      try {
+        const rawCats = localStorage.getItem('offline_categories');
+        const cats = rawCats ? JSON.parse(rawCats) : [];
+        if (Array.isArray(cats)) {
+          const hasHome = cats.some(c => c && c.name && (c.name.includes('ΣΠΙΤΙ') || c.name.includes('Σπίτι') || c.name.toUpperCase().includes('HOME')));
+          if (!hasHome) {
+            cats.unshift({
+              id: 'e2d3762b-3a13-4f0a-8f9b-623f826bdade',
+              name: '🏡 ΣΠΙΤΙ',
+              type: 'expense',
+              icon: 'fa-solid fa-house',
+              color: '#e05e55'
+            });
+            localStorage.setItem('offline_categories', JSON.stringify(cats));
+          }
+        }
+      } catch (_) { }
+
+      if (typeof resetSyncCursors === 'function') resetSyncCursors();
+      localStorage.setItem(CAT_HEAL_KEY, 'true');
+    }
+  } catch (_) { }
+
   loadOfflineData();
 
   // CRITICAL: Also run on pageshow — this fires for bfcache restores
