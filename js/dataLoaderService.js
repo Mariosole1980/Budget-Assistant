@@ -338,6 +338,17 @@ async function loadData() {
           ? window.getDeletedSubcategoriesForCategory
           : () => []);
 
+      // Safety Guard: Active cloud categories must never be suppressed by stale local tombstones
+      (categories || []).forEach(c => {
+        if (c && c.name && !c.hidden) {
+          if (typeof removeDeletedCategoryTombstone === 'function') {
+            removeDeletedCategoryTombstone(c.name, c.type);
+          } else if (typeof window !== 'undefined' && typeof window.removeDeletedCategoryTombstone === 'function') {
+            window.removeDeletedCategoryTombstone(c.name, c.type);
+          }
+        }
+      });
+
       const activeCloudCategories = (categories || []).filter(c => !c || !isCatDeletedFn(c.id, c.name, c.type));
       const cloudCatNames = new Set(activeCloudCategories.map(c => c && c.name ? c.name.trim().toLowerCase() : ''));
       const localCustomCats = (state.categories || []).filter(c => {

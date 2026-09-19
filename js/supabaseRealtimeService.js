@@ -1114,6 +1114,17 @@ async function forceSyncNow(silent = false) {
             : () => []);
 
         if (Array.isArray(catsRes.data) && catsRes.data.length > 0) {
+          // Safety Guard: Active cloud categories must never be suppressed by stale local tombstones
+          catsRes.data.forEach(c => {
+            if (c && c.name && !c.hidden) {
+              if (typeof removeDeletedCategoryTombstone === 'function') {
+                removeDeletedCategoryTombstone(c.name, c.type);
+              } else if (typeof window !== 'undefined' && typeof window.removeDeletedCategoryTombstone === 'function') {
+                window.removeDeletedCategoryTombstone(c.name, c.type);
+              }
+            }
+          });
+
           // Cloud has categories -> keep non-deleted cloud categories, and merge any unsynced local custom categories
           const activeCloudCats = catsRes.data.filter(c => !c || !isCatDeletedFn(c.id, c.name, c.type));
           const cloudNames = new Set(activeCloudCats.map(c => (c && c.name ? c.name.trim().toLowerCase() : '')));

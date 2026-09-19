@@ -169,24 +169,38 @@ function toggleCategoryPickerEditMode() {
 }
 
 async function inlineDeleteCustomCategory(categoryName, type) {
-  const confirmMsg = state.lang === 'el'
-    ? 'Είστε σίγουροι ότι θέλετε να διαγράψετε αυτή την κατηγορία;'
-    : 'Are you sure you want to delete this category?';
-
-  const confirmed = await showConfirm(confirmMsg, state.lang === 'el' ? 'Διαγραφή Κατηγορίας' : 'Delete Category', '📂');
-  if (!confirmed) {
-    return;
-  }
-
-  // Also check if any transactions use this category. If yes, inform the user clearly
+  const cleanName = (typeof stripLeadingEmoji === 'function' ? stripLeadingEmoji(categoryName) : categoryName).toUpperCase().trim();
+  const isCoreCategory = ['ΣΠΙΤΙ', 'HOME', 'ΓΡΑΦΕΙΟ', 'ΑΥΤΟΚΙΝΗΤΟ', 'ΔΙΑΤΡΟΦΗ', 'ΦΑΓΗΤΟ', 'ΜΕΤΑΚΙΝΗΣΗ', 'ΦΟΡΟΙ', 'ΜΙΣΘΟΣ'].some(k => cleanName.includes(k));
+  const subCount = (typeof getSortedSubcategoriesForCategory === 'function') ? getSortedSubcategoriesForCategory(categoryName).length : 0;
   const count = (state.transactions || []).filter(t => t && t.category === categoryName).length;
-  if (count > 0) {
-    const warningMsg = state.lang === 'el'
-      ? `Αυτή η κατηγορία χρησιμοποιείται σε ${count} συναλλαγές. Οι συναλλαγές σας θα παραμείνουν αποθηκευμένες κανονικά (δεν διαγράφονται). Θέλετε να αφαιρεθεί η κατηγορία από τη λίστα επιλογών;`
-      : `This category is used in ${count} transactions. Your transactions will remain safely stored (they will not be deleted). Do you want to remove the category from the options list?`;
 
-    const warningConfirmed = await showConfirm(warningMsg, state.lang === 'el' ? 'Επιβεβαίωση' : 'Confirmation', '📂');
-    if (!warningConfirmed) {
+  if (isCoreCategory || subCount > 0 || count > 0) {
+    const requiredWord = (state.lang || 'el') === 'el' ? 'ΔΙΑΓΡΑΦΗ' : 'DELETE';
+    const warningMsg = (state.lang || 'el') === 'el'
+      ? `🔒 ΔΙΚΛΕΙΔΑ ΑΣΦΑΛΕΙΑΣ: Η κατηγορία "${categoryName}" ${subCount > 0 ? `περιέχει ${subCount} υποκατηγορίες` : ''}${count > 0 ? ` και ${count} συναλλαγές` : ''}. Για να αποφευχθεί τυχαία διαγραφή, πληκτρολογήστε τη λέξη "${requiredWord}" για επιβεβαίωση:`
+      : `🔒 SAFETY GUARD: Category "${categoryName}" ${subCount > 0 ? `contains ${subCount} subcategories` : ''}${count > 0 ? ` and ${count} transactions` : ''}. To prevent accidental deletion, please type "${requiredWord}" to confirm:`;
+
+    const promptFn = (typeof promptForTypedConfirmation === 'function')
+      ? promptForTypedConfirmation
+      : ((typeof window !== 'undefined' && typeof window.promptForTypedConfirmation === 'function')
+        ? window.promptForTypedConfirmation
+        : null);
+
+    if (promptFn) {
+      const typedConfirmed = await promptFn(warningMsg, requiredWord, state.lang === 'el' ? 'Ασφαλής Διαγραφή' : 'Safe Deletion', state.lang === 'el' ? 'Διαγραφή' : 'Delete');
+      if (!typedConfirmed) {
+        return;
+      }
+    } else {
+      const confirmed = await showConfirm(warningMsg, state.lang === 'el' ? 'Επιβεβαίωση' : 'Confirmation', '⚠️');
+      if (!confirmed) return;
+    }
+  } else {
+    const confirmMsg = state.lang === 'el'
+      ? `Είστε σίγουροι ότι θέλετε να διαγράψετε την κατηγορία "${categoryName}";`
+      : `Are you sure you want to delete category "${categoryName}"?`;
+    const confirmed = await showConfirm(confirmMsg, state.lang === 'el' ? 'Διαγραφή Κατηγορίας' : 'Delete Category', '📂');
+    if (!confirmed) {
       return;
     }
   }
