@@ -514,7 +514,7 @@
         clearInterval(_coldStartPoll);
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
-            setTimeout(() => { fadeOutColdStartOverlay(); }, 120);
+            fadeOutColdStartOverlay();
           });
         });
       }
@@ -522,9 +522,7 @@
   } else {
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        setTimeout(() => {
-          fadeOutColdStartOverlay();
-        }, 120);
+        fadeOutColdStartOverlay();
       });
     });
   }

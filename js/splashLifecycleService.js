@@ -58,7 +58,7 @@
       _splashAppStartTime
     );
     const elapsed = Date.now() - anchor;
-    const minVisibleMs = 1500;
+    const minVisibleMs = 0;
     if (elapsed < minVisibleMs) {
       setTimeout(fadeOutColdStartOverlay, minVisibleMs - elapsed);
       return;
@@ -66,11 +66,11 @@
 
     _coldStartFadeDone = true;
     frame.style.pointerEvents = 'none';
-    frame.style.transition = 'opacity 0.45s ease';
+    frame.style.transition = 'opacity 0.2s ease';
     frame.style.opacity = '0';
     setTimeout(() => {
       if (frame.parentNode) frame.parentNode.removeChild(frame);
-    }, 450);
+    }, 200);
   }
 
   let _resumeOverlayTimer = null;
