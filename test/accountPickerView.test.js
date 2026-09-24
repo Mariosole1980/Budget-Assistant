@@ -51,6 +51,45 @@ test('AccountPickerView.getAccountDisplayName translates correctly for Greek and
   assert.strictEqual(AccountPickerView.getAccountDisplayName('card'), 'Card');
 });
 
+test('AccountPickerView.getAccountDisplayName translates Other Bank correctly', () => {
+  global.state.lang = 'el';
+  assert.strictEqual(AccountPickerView.getAccountDisplayName('Other Bank'), 'Άλλη Τράπεζα');
+  assert.strictEqual(AccountPickerView.getAccountDisplayName('other bank'), 'Άλλη Τράπεζα');
+  assert.strictEqual(AccountPickerView.getAccountDisplayName('άλλη τράπεζα'), 'Άλλη Τράπεζα');
+
+  global.state.lang = 'en';
+  assert.strictEqual(AccountPickerView.getAccountDisplayName('Other Bank'), 'Other Bank');
+  assert.strictEqual(AccountPickerView.getAccountDisplayName('other bank'), 'Other Bank');
+  assert.strictEqual(AccountPickerView.getAccountDisplayName('άλλη τράπεζα'), 'Other Bank');
+});
+
+test('AccountPickerView.selectAccountOption auto-resolves identical bank to Other Bank', () => {
+  global.state.accounts = [
+    { name: 'Bank Account', type: 'bank', is_active: true },
+    { name: 'Other Bank', type: 'bank', is_active: true }
+  ];
+  global.state.lang = 'el';
+
+  const mockFromInput = { value: 'Bank Account' };
+  const mockToInput = { value: '' };
+
+  global.document = {
+    getElementById: (id) => {
+      if (id === 'trans-account-from') return mockFromInput;
+      if (id === 'trans-account-to') return mockToInput;
+      if (id === 'trans-account-to-display') return { innerHTML: '' };
+      return null;
+    }
+  };
+
+  AccountPickerView.setCurrentTarget('to');
+  // User selects 'Bank Account' as destination while source is also 'Bank Account'
+  AccountPickerView.selectAccountOption('Bank Account');
+
+  // Should have automatically switched destination to 'Other Bank'
+  assert.strictEqual(mockToInput.value, 'Other Bank');
+});
+
 test('AccountPickerView manages current picker target', () => {
   AccountPickerView.setCurrentTarget('to');
   assert.strictEqual(AccountPickerView.getCurrentTarget(), 'to');

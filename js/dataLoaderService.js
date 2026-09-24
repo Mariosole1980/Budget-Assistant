@@ -610,6 +610,22 @@ function loadOfflineData() {
     const accs = localStorage.getItem('offline_accounts');
     const parsedAccs = accs ? JSON.parse(accs) : null;
     state.accounts = (Array.isArray(parsedAccs) && parsedAccs.length > 0) ? parsedAccs : DEFAULT_ACCOUNTS.slice();
+
+    // Auto-ensure second bank account exists so bank-to-bank transfer is always available
+    const bankAccounts = state.accounts.filter(a => a && (a.type === 'bank' || (a.name && a.name.toLowerCase().includes('bank'))));
+    if (bankAccounts.length === 1) {
+      const hasOtherBank = state.accounts.some(a => a && a.name && (a.name.toLowerCase() === 'other bank' || a.name === 'Άλλη Τράπεζα'));
+      if (!hasOtherBank) {
+        state.accounts.push({
+          id: 'acc_other_bank',
+          name: 'Other Bank',
+          type: 'bank',
+          balance: 0,
+          is_active: true
+        });
+        try { localStorage.setItem('offline_accounts', JSON.stringify(state.accounts)); } catch (_) {}
+      }
+    }
   } catch (e) {
     console.error('Failed to parse offline accounts:', e);
     state.accounts = DEFAULT_ACCOUNTS.slice();

@@ -35,6 +35,7 @@ function renderAccountManagerList() {
     state.accounts = (typeof DEFAULT_ACCOUNTS !== 'undefined' ? DEFAULT_ACCOUNTS : [
       { name: 'Cash', type: 'cash', balance: 0 },
       { name: 'Bank Account', type: 'bank', balance: 0 },
+      { name: 'Other Bank', type: 'bank', balance: 0 },
       { name: 'Card', type: 'card', balance: 0 }
     ]).slice();
   }

@@ -295,3 +295,14 @@ test('SafeToSpendView: openSafeToSpendModal adapts UI according to PRO entitleme
   delete state.userProfile;
   localStorage.removeItem('premium_active');
 });
+
+test('SafeToSpendView: updateStsSavingsAnnualHint clarifies annual basis', () => {
+  const hintEl = getMockElement('sts-savings-annual-hint-text');
+  SafeToSpendView.updateStsSavingsAnnualHint(200);
+  assert.ok(hintEl.textContent.includes('2.400') || hintEl.textContent.includes('2400'), 'Hint must show annual amount');
+  assert.ok(hintEl.textContent.includes('Ετήσιο Στόχο') || hintEl.textContent.includes('Επισκόπηση'), 'Hint must reference annual overview target');
+
+  // When value is 0
+  SafeToSpendView.updateStsSavingsAnnualHint(0);
+  assert.ok(hintEl.textContent.includes('Προτεινόμενο') || hintEl.textContent.includes('Ετήσια Αποταμίευση') || hintEl.textContent.includes('Επισκόπηση'), 'Hint must reference either suggested goal or annual sync');
+});

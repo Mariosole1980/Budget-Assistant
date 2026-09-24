@@ -84,10 +84,11 @@
         { name: '➕ Άλλα έσοδα', type: 'income', icon: 'fa-solid fa-plus', color: '#90a4ae' }
     ];
 
-    // Default Accounts - 3 real accounts from Excel: Cash, Card, Accounts (= Bank Account)
+    // Default Accounts - Cash, Bank Account, Other Bank, Card
     const DEFAULT_ACCOUNTS = [
         { name: 'Cash', type: 'cash', balance: 0 },
         { name: 'Bank Account', type: 'bank', balance: 0 },
+        { name: 'Other Bank', type: 'bank', balance: 0 },
         { name: 'Card', type: 'card', balance: 0 },
     ];
 

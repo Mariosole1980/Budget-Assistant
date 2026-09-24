@@ -132,6 +132,19 @@ function setTransactionFormType(type) {
       updateSubcategoryRowVisibility();
       if (toAccGroup) toAccGroup.style.display = 'flex';
       if (fromAccLabel) fromAccLabel.textContent = langDict['label_from'] || 'Από';
+
+      // Ensure from and to accounts are distinct
+      const fromEl = document.getElementById('trans-account-from');
+      const toEl = document.getElementById('trans-account-to');
+      if (fromEl && toEl && fromEl.value && fromEl.value === toEl.value) {
+        const altAcc = (state.accounts || []).find(a => a.name !== fromEl.value && a.is_active !== false);
+        if (altAcc) {
+          toEl.value = altAcc.name;
+          if (typeof updateAccountTriggerDisplay === 'function') {
+            updateAccountTriggerDisplay('to');
+          }
+        }
+      }
     } else {
       if (catGroup) catGroup.style.display = 'flex';
       updateSubcategoryRowVisibility();

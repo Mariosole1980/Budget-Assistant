@@ -239,6 +239,13 @@
     } else if (typeof window !== 'undefined' && typeof window.updateOTADiagnostic === 'function') {
       window.updateOTADiagnostic();
     }
+
+    // Refresh Premium UI and badge to prevent stale labels
+    if (typeof updatePremiumUI === 'function') {
+      updatePremiumUI();
+    } else if (typeof window !== 'undefined' && typeof window.updatePremiumUI === 'function') {
+      window.updatePremiumUI();
+    }
   }
 
   function updateOTADiagnostic() {

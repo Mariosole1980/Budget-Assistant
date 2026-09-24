@@ -468,6 +468,10 @@ function openSafeToSpendModal() {
   if (savBtn) {
     savBtn.textContent = savGoal > 0 ? (t['sts_savings_edit_btn'] || (lang === 'el' ? 'Αλλαγή' : 'Edit')) : (t['sts_savings_set_btn'] || (lang === 'el' ? 'Ορισμός' : 'Set'));
   }
+  const savLabelEl = document.getElementById('modal-sts-savings-label');
+  if (savLabelEl) {
+    savLabelEl.textContent = t['sts_savings_goal_row_label'] || (lang === 'el' ? '- Στόχος Αποταμίευσης (Ετήσια βάση):' : '- Savings Goal (Annual basis):');
+  }
 
   // Ensure editor starts collapsed
   const editorContainer = document.getElementById('sts-savings-editor-container');
@@ -535,8 +539,8 @@ function toggleStsSavingsGoalEditor(force) {
     const titleEl = document.getElementById('sts-savings-editor-title');
     const descEl = document.getElementById('sts-savings-editor-desc');
     const saveLabel = document.getElementById('sts-savings-save-label');
-    if (titleEl) titleEl.textContent = t['sts_savings_target_title'] || (lang === 'el' ? 'Μηνιαίος Στόχος Αποταμίευσης' : 'Monthly Savings Target');
-    if (descEl) descEl.textContent = t['sts_savings_target_desc'] || (lang === 'el' ? 'Ορίστε πόσα χρήματα θέλετε να μένουν στην άκρη κάθε μήνα. Το ποσό αυτό προστατεύεται αυτόματα από το ημερήσιο όριο εξόδων.' : 'Set how much money you want to keep aside each month. This amount is automatically protected from your daily spending allowance.');
+    if (titleEl) titleEl.textContent = t['sts_savings_target_title'] || (lang === 'el' ? 'Στόχος Αποταμίευσης (Ετήσια Βάση)' : 'Savings Goal (Annual Basis)');
+    if (descEl) descEl.textContent = t['sts_savings_target_desc'] || (lang === 'el' ? 'Ορίστε το μηνιαίο ποσό αποταμίευσης. Συγχρονίζεται αυτόματα με τον Ετήσιο Στόχο Αποταμίευσης (ποσό x 12) στην Επισκόπηση και προστατεύεται από το ημερήσιο όριο εξόδων.' : 'Set your monthly savings goal. This syncs automatically with your Annual Savings Goal (amount x 12) in Overview and is protected from daily spending allowance.');
     if (saveLabel) saveLabel.textContent = t['sts_savings_save_btn'] || (lang === 'el' ? 'Αποθήκευση' : 'Save');
 
     if (input) {
@@ -559,8 +563,8 @@ function updateStsSavingsAnnualHint(val) {
   if (num > 0) {
     const annual = Math.round(num * 12);
     hintEl.textContent = lang === 'el'
-      ? `Ισοδυναμεί με ${currSym} ${formatDisplayAmount(annual)} / έτος στην Επισκόπηση`
-      : `Equates to ${currSym} ${formatDisplayAmount(annual)} / year in Overview`;
+      ? `Ισοδυναμεί με ${currSym} ${formatDisplayAmount(annual)} / έτος στον Ετήσιο Στόχο της Επισκόπησης`
+      : `Equates to ${currSym} ${formatDisplayAmount(annual)} / year in Annual Overview Target`;
   } else {
     const suggested = getMonthlySavingsGoal({ includeEstimate: true });
     if (suggested > 0) {
@@ -569,8 +573,8 @@ function updateStsSavingsAnnualHint(val) {
         : `Suggested: ${currSym} ${formatDisplayAmount(suggested)} / month (based on history)`;
     } else {
       hintEl.textContent = lang === 'el'
-        ? 'Συγχρονίζεται αυτόματα με τον Στόχο Έτους στην Επισκόπηση'
-        : 'Auto-syncs with the Year Target in Overview';
+        ? 'Συγχρονίζεται αυτόματα με την Ετήσια Αποταμίευση στην Επισκόπηση'
+        : 'Auto-syncs with Annual Savings in Overview';
     }
   }
 }

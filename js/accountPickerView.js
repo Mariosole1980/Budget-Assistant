@@ -44,10 +44,12 @@
       if (lowerName === 'cash' || lowerName === 'μετρητά' || (!lowerName && type === 'cash')) return 'Μετρητά';
       if (lowerName === 'bank account' || lowerName === 'bank' || lowerName === 'τραπεζικός λογαριασμός' || lowerName === 'τράπεζα' || (!lowerName && type === 'bank')) return 'Τράπεζα';
       if (lowerName === 'card' || lowerName === 'κάρτα' || (!lowerName && type === 'card')) return 'Κάρτα';
+      if (lowerName === 'other bank' || lowerName === 'άλλη τράπεζα' || lowerName === 'bank 2' || lowerName === 'bank account 2') return 'Άλλη Τράπεζα';
     } else {
       if (lowerName === 'cash' || lowerName === 'μετρητά' || (!lowerName && type === 'cash')) return 'Cash';
       if (lowerName === 'bank account' || lowerName === 'bank' || lowerName === 'τραπεζικός λογαριασμός' || lowerName === 'τράπεζα' || (!lowerName && type === 'bank')) return 'Bank Account';
       if (lowerName === 'card' || lowerName === 'κάρτα' || (!lowerName && type === 'card')) return 'Card';
+      if (lowerName === 'other bank' || lowerName === 'άλλη τράπεζα' || lowerName === 'bank 2' || lowerName === 'bank account 2') return 'Other Bank';
     }
     return name;
   }
@@ -80,6 +82,7 @@
     const defaultAccounts = (typeof DEFAULT_ACCOUNTS !== 'undefined' ? DEFAULT_ACCOUNTS : window.DEFAULT_ACCOUNTS) || [
       { name: 'Cash', type: 'cash', balance: 0 },
       { name: 'Bank Account', type: 'bank', balance: 0 },
+      { name: 'Other Bank', type: 'bank', balance: 0 },
       { name: 'Card', type: 'card', balance: 0 }
     ];
 
@@ -119,8 +122,74 @@
       container.appendChild(item);
     });
 
-    // + New Account option at the bottom
     const translations = (typeof TRANSLATIONS !== 'undefined' ? TRANSLATIONS : window.TRANSLATIONS) || {};
+
+    // Quick Bank presets when selecting destination for a Transfer
+    if (_currentAccountPickerTarget === 'to') {
+      const bankPresets = [
+        { name: 'Eurobank', color: '#ef4444' },
+        { name: 'Εθνική', color: '#0ea5e9' },
+        { name: 'Πειραιώς', color: '#eab308' },
+        { name: 'Alpha Bank', color: '#3b82f6' },
+        { name: 'Revolut', color: '#ec4899' },
+        { name: (appState.lang === 'el' ? 'Άλλη Τράπεζα' : 'Other Bank'), keyName: 'Other Bank', color: '#10b981' }
+      ];
+
+      const bankSection = document.createElement('div');
+      bankSection.style.cssText = 'margin: 10px 0 6px; padding: 10px; background: rgba(59,130,246,0.06); border: 1px solid rgba(59,130,246,0.2); border-radius: 12px;';
+
+      const bankTitle = document.createElement('div');
+      bankTitle.style.cssText = 'font-size: 11px; font-weight: 700; color: #93c5fd; text-transform: uppercase; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;';
+      bankTitle.innerHTML = `<i class="fa-solid fa-building-columns"></i> <span>${(translations[appState.lang] && translations[appState.lang]['account_picker_bank_transfer']) || (appState.lang === 'el' ? '🏦 Μεταφορά σε Τράπεζα:' : '🏦 Transfer to Bank:')}</span>`;
+      bankSection.appendChild(bankTitle);
+
+      const chipsRow = document.createElement('div');
+      chipsRow.style.cssText = 'display: flex; flex-wrap: wrap; gap: 6px;';
+
+      bankPresets.forEach(preset => {
+        const chipBtn = document.createElement('button');
+        chipBtn.type = 'button';
+        chipBtn.style.cssText = 'padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: 600; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: var(--text-primary); cursor: pointer; display: flex; align-items: center; gap: 5px; transition: all 0.15s;';
+        chipBtn.innerHTML = `<span style="color:${preset.color}; font-size:10px;">●</span> <span>${escapeFn(preset.name)}</span>`;
+        chipBtn.onclick = (e) => {
+          if (e) {
+            if (typeof e.preventDefault === 'function') e.preventDefault();
+            if (typeof e.stopPropagation === 'function') e.stopPropagation();
+          }
+          const targetName = preset.keyName || preset.name;
+          let acc = appState.accounts.find(a => a.name.toLowerCase() === targetName.toLowerCase() || (preset.keyName && a.name.toLowerCase() === preset.keyName.toLowerCase()));
+          if (!acc) {
+            acc = {
+              id: (typeof generateSafeUUID === 'function' ? generateSafeUUID() : ('acc_' + Date.now())),
+              name: targetName,
+              type: 'bank',
+              balance: 0,
+              is_active: true
+            };
+            appState.accounts.push(acc);
+            try { localStorage.setItem('offline_accounts', JSON.stringify(appState.accounts)); } catch (_) {}
+            if (appState.supabaseClient && appState.currentUser) {
+              try {
+                appState.supabaseClient.from('accounts').insert({
+                  id: acc.id,
+                  name: acc.name,
+                  type: acc.type,
+                  balance: 0,
+                  user_id: appState.currentUser.id,
+                  is_active: true
+                });
+              } catch (_) {}
+            }
+          }
+          selectAccountOption(acc.name);
+        };
+        chipsRow.appendChild(chipBtn);
+      });
+      bankSection.appendChild(chipsRow);
+      container.appendChild(bankSection);
+    }
+
+    // + New Account option at the bottom
     const newAccBtn = document.createElement('div');
     newAccBtn.className = 'account-picker-item new-acc-item';
     newAccBtn.style.cssText = 'border-top: 1px dashed var(--border); margin-top: 4px; padding-top: 12px; color: #3b82f6; font-weight: 600; display: flex; align-items: center; cursor: pointer;';
@@ -143,6 +212,40 @@
 
   function selectAccountOption(name) {
     if (typeof document === 'undefined') return;
+    const appState = (typeof state !== 'undefined' ? state : window.state) || {};
+
+    // Bank-to-Bank Guard & Auto-resolver:
+    // If selecting destination ('to') for a transfer and user chooses the same account as source ('from')
+    if (_currentAccountPickerTarget === 'to') {
+      const fromEl = document.getElementById('trans-account-from');
+      const fromVal = fromEl ? fromEl.value : '';
+      if (fromVal && fromVal === name) {
+        const acc = (appState.accounts || []).find(a => a.name === name);
+        if (acc && (acc.type === 'bank' || (acc.name && acc.name.toLowerCase().includes('bank')) || acc.name === 'Τράπεζα')) {
+          let otherBank = (appState.accounts || []).find(a => a.name !== fromVal && (a.type === 'bank' || (a.name && a.name.toLowerCase().includes('bank')) || a.name === 'Other Bank' || a.name === 'Άλλη Τράπεζα'));
+          if (!otherBank) {
+            otherBank = {
+              id: 'acc_other_bank',
+              name: 'Other Bank',
+              type: 'bank',
+              balance: 0,
+              is_active: true
+            };
+            if (!appState.accounts) appState.accounts = [];
+            appState.accounts.push(otherBank);
+            try { localStorage.setItem('offline_accounts', JSON.stringify(appState.accounts)); } catch (_) {}
+          }
+          name = otherBank.name;
+          const notice = appState.lang === 'el'
+            ? '🏦 Επιλέχθηκε "Άλλη Τράπεζα" για τη μεταφορά μεταξύ τραπεζών.'
+            : '🏦 Selected "Other Bank" for bank-to-bank transfer.';
+          if (typeof showSyncToast === 'function') {
+            showSyncToast(notice, 2500);
+          }
+        }
+      }
+    }
+
     const targetId = `trans-account-${_currentAccountPickerTarget}`;
     const el = document.getElementById(targetId);
     if (el) el.value = name;
@@ -163,6 +266,7 @@
     const defaultAccounts = (typeof DEFAULT_ACCOUNTS !== 'undefined' ? DEFAULT_ACCOUNTS : window.DEFAULT_ACCOUNTS) || [
       { name: 'Cash', type: 'cash', balance: 0 },
       { name: 'Bank Account', type: 'bank', balance: 0 },
+      { name: 'Other Bank', type: 'bank', balance: 0 },
       { name: 'Card', type: 'card', balance: 0 }
     ];
 
@@ -170,7 +274,10 @@
       if (!appState.accounts || appState.accounts.length === 0) {
         appState.accounts = defaultAccounts.slice();
       }
-      const defaultAcc = target === 'to' ? (appState.accounts[1] || appState.accounts[0]) : appState.accounts[0];
+      const fromVal = document.getElementById('trans-account-from')?.value;
+      const defaultAcc = target === 'to'
+        ? (appState.accounts.find(a => a.name !== fromVal) || appState.accounts[1] || appState.accounts[0])
+        : appState.accounts[0];
       if (defaultAcc) {
         input.value = defaultAcc.name;
         value = defaultAcc.name;

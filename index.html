@@ -1387,13 +1387,11 @@
                     <span class="settings-item-label" data-i18n="settings_premium_title"
                       style="font-weight:800; font-family:'Outfit',sans-serif; font-size:15px; color:#fbbf24;">⭐ Premium
                       Lifetime</span>
-                    <span id="hub-premium-subtitle" style="font-size:12px;color:var(--text-secondary);"
-                      data-i18n="settings_premium_desc">Ξεκλείδωσε όλα τα features — εφάπαξ</span>
+                    <span id="hub-premium-subtitle" style="font-size:12px;color:var(--text-secondary);">Ξεκλείδωσε όλα τα features — εφάπαξ</span>
                   </div>
                 </div>
                 <span id="hub-premium-badge"
-                  style="font-size:11px;font-weight:800;padding:4px 10px;border-radius:12px;background:rgba(245,158,11,0.22);color:#fbbf24;border:1px solid rgba(245,158,11,0.35);flex-shrink:0;"
-                  data-i18n="btn_upgrade_pro">Αναβάθμισε</span>
+                  style="font-size:11px;font-weight:800;padding:4px 10px;border-radius:12px;background:rgba(245,158,11,0.22);color:#fbbf24;border:1px solid rgba(245,158,11,0.35);flex-shrink:0;">Αναβάθμισε</span>
                 <i class="fa-solid fa-chevron-right" style="color:var(--text-muted);font-size:12px;margin-left:4px;"></i>
               </div>
             </div>
@@ -3546,7 +3544,7 @@
             </div>
             <div style="display: flex; justify-content: space-between; align-items: center; color: #60a5fa; cursor: pointer; padding: 4px 6px; border-radius: 8px; transition: background 0.15s; gap: 6px;" onclick="toggleStsSavingsGoalEditor()" title="Κλικ για ορισμό ή αλλαγή στόχου αποταμίευσης" onmouseover="this.style.background='rgba(96, 165, 250, 0.08)'" onmouseout="this.style.background='transparent'">
               <div style="display: flex; align-items: center; gap: 6px; min-width: 0; overflow: hidden;">
-                <span style="min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">- Στόχος Αποταμίευσης:</span>
+                <span id="modal-sts-savings-label" data-i18n="sts_savings_goal_row_label" style="min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">- Στόχος Αποταμίευσης (Ετήσια βάση):</span>
                 <i class="fa-solid fa-pen-to-square" style="font-size: 11px; opacity: 0.75; flex-shrink: 0;"></i>
               </div>
               <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
@@ -3560,12 +3558,12 @@
               <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
                 <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: #93c5fd;">
                   <i class="fa-solid fa-piggy-bank"></i>
-                  <span id="sts-savings-editor-title" data-i18n="sts_savings_target_title">Μηνιαίος Στόχος Αποταμίευσης</span>
+                  <span id="sts-savings-editor-title" data-i18n="sts_savings_target_title">Στόχος Αποταμίευσης (Ετήσια Βάση)</span>
                 </div>
                 <button type="button" onclick="event.stopPropagation(); toggleStsSavingsGoalEditor(false)" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 18px; line-height: 1; padding: 0 4px;">&times;</button>
               </div>
               <div id="sts-savings-editor-desc" data-i18n="sts_savings_target_desc" style="font-size: 11px; color: var(--text-secondary); margin-bottom: 10px; line-height: 1.35;">
-                Ορίστε πόσα χρήματα θέλετε να μένουν στην άκρη κάθε μήνα. Το ποσό αυτό προστατεύεται αυτόματα από το ημερήσιο όριο εξόδων.
+                Ορίστε το μηνιαίο ποσό αποταμίευσης. Συγχρονίζεται αυτόματα με τον Ετήσιο Στόχο Αποταμίευσης (ποσό x 12) στην Επισκόπηση και προστατεύεται από το ημερήσιο όριο εξόδων.
               </div>
               <div style="display: flex; gap: 8px; margin-bottom: 10px;">
                 <div style="position: relative; flex: 1;">

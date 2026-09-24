@@ -282,6 +282,7 @@
     }
 
     if (tab === 'more') {
+      callSafe('updatePremiumUI');
       callSafe('updateHeaderProfileBadge');
       if (appState.currentUser && typeof document !== 'undefined') {
         const emailDisplay = document.getElementById('settings-user-email-value');
