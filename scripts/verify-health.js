@@ -121,6 +121,7 @@ const CRITICAL_JS = [
     'js/receiptService.js',
     'js/dropdownFilterService.js',
     'js/settingsSubscreenManager.js',
+    'js/instantTouchService.js',
     // Build/release scripts (including this file itself)
     'scripts/generate-android-icons.js',
     'scripts/generate-app-icon-variants.js',

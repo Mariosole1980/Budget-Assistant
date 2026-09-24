@@ -119,6 +119,7 @@ const ASSETS = [
   'js/eventBindingService.js',
   'js/appInitService.js',
   'js/hapticFeedbackService.js',
+  'js/instantTouchService.js',
   'js/cashFlowCalendarService.js',
   'js/bankNotificationParser.js',
   'js/bankNotificationService.js',

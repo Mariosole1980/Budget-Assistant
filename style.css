@@ -126,52 +126,132 @@ button {
   cursor: pointer;
 }
 
-/* Premium Tactile Tap Animations & Scale Feedback */
+/* Messenger-Grade Instant Tactile Tap & Spring Feedback System (0ms Latency) */
 button,
+.btn,
+.icon-btn,
 .nav-item,
-.transaction-item,
-.category-picker-item,
-.subcategory-item,
+.fab,
+.fab-note,
 .calc-key-btn,
 .keypad-btn,
-.fab,
 .period-btn,
 .type-tab-btn,
+.stats-tab-btn,
+.stats-period-btn,
+.stats-dropdown-item,
+.category-picker-item,
+.subcategory-item,
+.account-picker-item,
+.budget-picker-item,
+.filter-chip,
+.search-chip,
+.time-preset-chip,
+.advisor-suggestion-chip,
+.custom-select-trigger,
+.bottom-sheet-option,
+.photo-source-opt,
+.transaction-item,
 .stats-row,
 .stats-sub-row,
 .settings-card,
 .settings-list-item,
-.stats-tab-btn,
-.stats-dropdown-item {
-  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease !important;
+.modern-note-card,
+.recurring-template-card,
+.clickable,
+[role="button"] {
   touch-action: manipulation !important;
   -webkit-tap-highlight-color: transparent !important;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  will-change: transform;
+  /* Instant spring-release rebound */
+  transition: transform 0.12s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.12s ease !important;
 }
 
+/* Fast 0ms press for buttons, icons, pills, FAB, keypad */
 button:active,
+button.is-pressed,
+.btn:active,
+.btn.is-pressed,
+.icon-btn:active,
+.icon-btn.is-pressed,
 .nav-item:active,
-.calc-key-btn:active,
-.keypad-btn:active,
+.nav-item.is-pressed,
 .fab:active,
+.fab.is-pressed,
+.fab-note:active,
+.fab-note.is-pressed,
+.calc-key-btn:active,
+.calc-key-btn.is-pressed,
+.keypad-btn:active,
+.keypad-btn.is-pressed,
 .period-btn:active,
+.period-btn.is-pressed,
 .type-tab-btn:active,
-.settings-card:active,
-.settings-list-item:active,
+.type-tab-btn.is-pressed,
 .stats-tab-btn:active,
+.stats-tab-btn.is-pressed,
+.stats-period-btn:active,
+.stats-period-btn.is-pressed,
 .stats-dropdown-item:active,
-.transaction-item:active,
-.transaction-item.pressed,
-.stats-row:active,
-.stats-row.pressed,
-.stats-sub-row:active,
-.stats-sub-row.pressed,
+.stats-dropdown-item.is-pressed,
 .category-picker-item:active,
 .category-picker-item.pressed,
+.category-picker-item.is-pressed,
 .subcategory-item:active,
-.subcategory-item.pressed {
-  transform: scale(0.975) !important;
+.subcategory-item.pressed,
+.subcategory-item.is-pressed,
+.account-picker-item:active,
+.account-picker-item.is-pressed,
+.budget-picker-item:active,
+.budget-picker-item.is-pressed,
+.filter-chip:active,
+.filter-chip.is-pressed,
+.search-chip:active,
+.search-chip.is-pressed,
+.time-preset-chip:active,
+.time-preset-chip.is-pressed,
+.advisor-suggestion-chip:active,
+.advisor-suggestion-chip.is-pressed,
+.custom-select-trigger:active,
+.custom-select-trigger.is-pressed,
+.bottom-sheet-option:active,
+.bottom-sheet-option.is-pressed,
+.photo-source-opt:active,
+.photo-source-opt.is-pressed,
+.clickable:active,
+.clickable.is-pressed,
+[role="button"]:active,
+[role="button"].is-pressed {
+  /* Immediate 0ms tactile compression */
+  transform: scale(0.93) !important;
+  opacity: 0.80 !important;
+  transition: transform 0.04s cubic-bezier(0, 0, 0.2, 1), opacity 0.04s ease-out !important;
+}
+
+/* Row & Card items: subtle scale (0.985) + background highlight */
+.transaction-item:active,
+.transaction-item.pressed,
+.transaction-item.is-pressed,
+.stats-row:active,
+.stats-row.pressed,
+.stats-row.is-pressed,
+.stats-sub-row:active,
+.stats-sub-row.pressed,
+.stats-sub-row.is-pressed,
+.settings-card:active,
+.settings-card.is-pressed,
+.settings-list-item:active,
+.settings-list-item.is-pressed,
+.modern-note-card:active,
+.modern-note-card.is-pressed,
+.recurring-template-card:active,
+.recurring-template-card.is-pressed {
+  transform: scale(0.985) !important;
   opacity: 0.88 !important;
-  transition: transform 0.02s ease-out !important;
+  background-color: var(--overlay-050) !important;
+  transition: transform 0.04s cubic-bezier(0, 0, 0.2, 1), opacity 0.04s ease-out !important;
 }
 
 /* Material-style Ripple Effect */
@@ -300,14 +380,16 @@ button:active,
 .icon-btn {
   font-size: 18px;
   color: var(--text-secondary);
-  transition: var(--transition);
+  transition: transform 0.12s cubic-bezier(0.2, 0.9, 0.3, 1), color 0.12s ease, opacity 0.12s ease;
   padding: 4px;
   touch-action: manipulation !important;
   -webkit-tap-highlight-color: transparent !important;
 }
 
-.icon-btn:hover {
-  color: var(--accent);
+@media (hover: hover) and (pointer: fine) {
+  .icon-btn:hover {
+    color: var(--accent);
+  }
 }
 
 /* App Main Content Area */
@@ -365,7 +447,7 @@ button:active,
   flex: 1;
   min-height: 44px;
   justify-content: center;
-  transition: var(--transition);
+  transition: transform 0.12s cubic-bezier(0.2, 0.9, 0.3, 1), color 0.12s ease, opacity 0.12s ease;
   gap: 4px;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
@@ -377,7 +459,7 @@ button:active,
   width: 20px;
   height: 20px;
   fill: currentColor;
-  transition: var(--transition);
+  transition: transform 0.12s cubic-bezier(0.2, 0.9, 0.3, 1), fill 0.12s ease;
 }
 
 .nav-item.active {
@@ -756,11 +838,13 @@ button:active,
   box-shadow: 0 6px 20px rgba(56, 189, 248, 0.4);
   font-size: 24px;
   z-index: 99;
-  transition: var(--transition);
+  transition: transform 0.12s cubic-bezier(0.2, 0.9, 0.3, 1), box-shadow 0.12s ease, opacity 0.12s ease;
 }
 
-.fab:hover {
-  transform: translateY(-2px) scale(1.05);
+@media (hover: hover) and (pointer: fine) {
+  .fab:hover {
+    transform: translateY(-2px) scale(1.04);
+  }
 }
 
 .fab-note {
@@ -779,18 +863,16 @@ button:active,
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   font-size: 18px;
   z-index: 99;
-  transition: var(--transition);
+  transition: transform 0.12s cubic-bezier(0.2, 0.9, 0.3, 1), background-color 0.12s ease, color 0.12s ease, opacity 0.12s ease;
   cursor: pointer;
 }
 
-.fab-note:hover {
-  transform: translateY(-2px) scale(1.05);
-  background-color: var(--accent);
-  color: white;
-}
-
-.fab-note:active {
-  transform: scale(0.92);
+@media (hover: hover) and (pointer: fine) {
+  .fab-note:hover {
+    transform: translateY(-2px) scale(1.04);
+    background-color: var(--accent);
+    color: white;
+  }
 }
 
 /* STATS SCREEN STYLES */
@@ -2634,7 +2716,7 @@ body.is-ios .modal-content {
   color: var(--text-secondary);
   border-radius: 6px;
   font-size: 13.5px;
-  transition: var(--transition);
+  transition: transform 0.12s cubic-bezier(0.2, 0.9, 0.3, 1), background-color 0.12s ease, border-color 0.12s ease, color 0.12s ease, opacity 0.12s ease;
   border: 1.5px solid transparent;
   background: transparent;
   touch-action: manipulation !important;
@@ -2966,7 +3048,7 @@ body.is-ios .modal-content {
   border-radius: 8px;
   font-weight: 700;
   text-align: center;
-  transition: var(--transition);
+  transition: transform 0.12s cubic-bezier(0.2, 0.9, 0.3, 1), background-color 0.12s ease, opacity 0.12s ease;
 }
 
 .btn-secondary {
@@ -2980,8 +3062,10 @@ body.is-ios .modal-content {
   color: white;
 }
 
-.btn-primary:hover {
-  background-color: #f16f66;
+@media (hover: hover) and (pointer: fine) {
+  .btn-primary:hover {
+    background-color: #f16f66;
+  }
 }
 
 /* Stats category icon */
