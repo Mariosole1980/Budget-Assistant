@@ -39,3 +39,25 @@ test('forceSyncNow shows pending count toast when items remain queued', () => {
   const realtimeSrc = fs.readFileSync(path.join(__dirname, '..', 'js', 'supabaseRealtimeService.js'), 'utf8');
   assert.ok(realtimeSrc.includes('state.syncPendingCount > 0'), 'forceSyncNow must check syncPendingCount before showing up-to-date toast');
 });
+
+// Test 6: Verify promptReauthForPendingSync prompts user when pending queue exists and session is unauthenticated
+test('promptReauthForPendingSync is triggered when sync has pending items but session lacks active token', () => {
+  const realtimeSrc = fs.readFileSync(path.join(__dirname, '..', 'js', 'supabaseRealtimeService.js'), 'utf8');
+  assert.ok(realtimeSrc.includes('promptReauthForPendingSync'), 'supabaseRealtimeService must define promptReauthForPendingSync');
+  assert.ok(realtimeSrc.includes('hasValidCloudSession'), 'supabaseRealtimeService must verify valid cloud session before completing sync');
+});
+
+// Test 7: Verify auth overlay prefills user email on open for quick password re-entry
+test('showAuthOverlay prefills cached user email for frictionless re-authentication', () => {
+  const overlaySrc = fs.readFileSync(path.join(__dirname, '..', 'js', 'authOverlayService.js'), 'utf8');
+  assert.ok(overlaySrc.includes('currentUserEmail'), 'authOverlayService must retrieve user email');
+  assert.ok(overlaySrc.includes('emailInput.value = currentUserEmail'), 'authOverlayService must set email input value');
+});
+
+// Test 8: Verify profile sheet shows actionable warning when cloud session is expired with pending items
+test('profile sheet updates cloud status to indicate re-authentication needed when pending items exist', () => {
+  const profileSrc = fs.readFileSync(path.join(__dirname, '..', 'js', 'userProfileService.js'), 'utf8');
+  assert.ok(profileSrc.includes('hasActiveToken'), 'userProfileService must inspect token validity');
+  assert.ok(profileSrc.includes('hasPendingCount'), 'userProfileService must check pending count');
+  assert.ok(profileSrc.includes('showAuthOverlay'), 'clicking cloud warning in profile sheet must open auth overlay');
+});

@@ -360,7 +360,17 @@ function setAuthMode(mode) {
 
   const emailInput = document.getElementById('auth-email');
   const pwdInput = document.getElementById('auth-password');
-  if (emailInput) emailInput.value = '';
+  let currentUserEmail = '';
+  try {
+    if (typeof state !== 'undefined' && state && state.currentUser && state.currentUser.email) {
+      currentUserEmail = state.currentUser.email;
+    } else if (typeof localStorage !== 'undefined') {
+      const raw = localStorage.getItem('cached_current_user');
+      if (raw) { const parsed = JSON.parse(raw); if (parsed && parsed.email) currentUserEmail = parsed.email; }
+    }
+  } catch (_) {}
+  if (emailInput && !emailInput.value && currentUserEmail) emailInput.value = currentUserEmail;
+  else if (emailInput && !currentUserEmail) emailInput.value = '';
   if (pwdInput) pwdInput.value = '';
 
   const forgotContainer = document.getElementById('forgot-password-container');
@@ -432,6 +442,7 @@ async function handlePasswordAuth(e) {
       if (error) throw error;
       if (data && data.session && data.session.user) {
         state.currentUser = data.session.user;
+        state.session = data.session;
         localStorage.setItem('cached_current_user', JSON.stringify(data.session.user));
         hideAuthOverlay();
         forceSyncNow(true).catch(console.error);

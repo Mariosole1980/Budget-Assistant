@@ -318,7 +318,31 @@ function showAuthOverlay() {
     if (txModal) txModal.style.display = 'none';
 
     const emailInput = document.getElementById('auth-email');
-    if (emailInput && !emailInput.value) {
+    const pwdInput = document.getElementById('auth-password');
+    let currentUserEmail = '';
+    try {
+      if (typeof state !== 'undefined' && state && state.currentUser && state.currentUser.email) {
+        currentUserEmail = state.currentUser.email;
+      } else if (typeof localStorage !== 'undefined') {
+        const raw = localStorage.getItem('cached_current_user');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && parsed.email) currentUserEmail = parsed.email;
+        }
+      }
+    } catch (_) {}
+
+    if (emailInput && currentUserEmail && !emailInput.value) {
+      emailInput.value = currentUserEmail;
+    }
+
+    if (typeof setAuthMode === 'function') {
+      try { setAuthMode('login'); } catch (e) {}
+    }
+
+    if (emailInput && emailInput.value && pwdInput) {
+      setTimeout(() => { try { pwdInput.focus(); } catch (e) { } }, 150);
+    } else if (emailInput && !emailInput.value) {
       setTimeout(() => { try { emailInput.focus(); } catch (e) { } }, 150);
     }
   } catch (err) {

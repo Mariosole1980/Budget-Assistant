@@ -1049,6 +1049,25 @@ function applyIncrementalTransactions(newRows, tombstones) {
   }
 }
 
+
+async function promptReauthForPendingSync(count) {
+  const isEl = (typeof state !== 'undefined' && state.lang === 'el');
+  const countStr = count || (typeof state !== 'undefined' && state.syncPendingCount) || '';
+  const msg = isEl
+    ? `Εκκρεμούν ${countStr} κινήσεις προς συγχρονισμό στο Cloud.\n\nΗ σύνδεσή σας χρειάζεται επιβεβαίωση κωδικού για να ολοκληρωθεί η αποστολή τους.\n\nΘέλετε να εισάγετε τον κωδικό σας τώρα;`
+    : `${countStr} transactions are pending Cloud sync.\n\nYour session needs password verification to finish uploading them.\n\nWould you like to enter your password now?`;
+  const title = isEl ? '🔐 Επιβεβαίωση Σύνδεσης Cloud' : '🔐 Cloud Session Verification';
+
+  if (typeof window !== 'undefined' && typeof window.showConfirm === 'function') {
+    const proceed = await window.showConfirm(msg, title, '🔐');
+    if (proceed && typeof window.showAuthOverlay === 'function') {
+      window.showAuthOverlay();
+    }
+  } else if (typeof window !== 'undefined' && typeof window.showAuthOverlay === 'function') {
+    window.showAuthOverlay();
+  }
+}
+if (typeof window !== 'undefined') window.promptReauthForPendingSync = promptReauthForPendingSync;
 let _forceSyncInFlight = null;
 
 async function forceSyncNow(silent = false) {
@@ -1082,12 +1101,13 @@ async function forceSyncNow(silent = false) {
       const userId = state.currentUser.id;
 
       // Ensure active/refreshed session before proceeding
+      let activeSession = null;
       if (typeof ensureAuthenticatedSession === 'function') {
-        await ensureAuthenticatedSession();
+        activeSession = await ensureAuthenticatedSession();
       } else if (typeof window !== 'undefined' && typeof window.ensureAuthenticatedSession === 'function') {
-        await window.ensureAuthenticatedSession();
+        activeSession = await window.ensureAuthenticatedSession();
       } else if (state.supabaseClient?.auth) {
-        try { await state.supabaseClient.auth.refreshSession(); } catch (_) {}
+        try { const r = await state.supabaseClient.auth.refreshSession(); activeSession = r?.data?.session; } catch (_) {}
       }
 
       // Auto-sync any stuck local transactions (e.g. from guest mode or legacy local_ items)
@@ -1436,9 +1456,14 @@ async function forceSyncNow(silent = false) {
       const newCount = dedupedCombined.filter(t => !prevIdSet.has(String(t.id || ''))).length;
       if (!silent) {
         if (state.syncPendingCount > 0) {
-          showSyncToast(state.lang === 'en'
-            ? '⏳ ' + state.syncPendingCount + ' changes pending sync'
-            : '⏳ ' + state.syncPendingCount + ' κινήσεις εκκρεμούν προς συγχρονισμό', 3000);
+          const hasValidCloudSession = !!(activeSession && activeSession.access_token) || !!(state.session && state.session.access_token);
+          if (!hasValidCloudSession && typeof promptReauthForPendingSync === 'function') {
+            promptReauthForPendingSync(state.syncPendingCount);
+          } else {
+            showSyncToast(state.lang === 'en'
+              ? '⏳ ' + state.syncPendingCount + ' changes pending sync'
+              : '⏳ ' + state.syncPendingCount + ' κινήσεις εκκρεμούν προς συγχρονισμό', 3000);
+          }
         } else if (newCount > 0) {
           showSyncToast('✅ +' + newCount + ' ' + (state.lang === 'en' ? 'new transactions synced' : 'νέες κινήσεις συγχρονίστηκαν'), 3000);
         } else {

@@ -270,12 +270,31 @@ function openProfileSheet() {
   if (cloudStatus) {
     const icon = cloudStatus.querySelector('i');
     const span = cloudStatus.querySelector('span');
-    if (navigator.onLine) {
+    const hasActiveToken = !!(state.session && state.session.access_token);
+    const hasPendingCount = (state.syncPendingCount > 0);
+    if (state.currentUser && (!hasActiveToken || hasPendingCount)) {
+      cloudStatus.className = 'profile-cloud-status offline';
+      cloudStatus.style.cursor = 'pointer';
+      if (icon) icon.className = 'fa-solid fa-triangle-exclamation';
+      if (span) {
+        span.textContent = state.lang === 'en'
+          ? (hasPendingCount ? `⚠️ ${state.syncPendingCount} pending - Tap to Reconnect` : '⚠️ Cloud: Tap to Verify Login')
+          : (hasPendingCount ? `⚠️ ${state.syncPendingCount} εκκρεμούν - Πάτησε για Σύνδεση` : '⚠️ Cloud: Πάτησε για Επιβεβαίωση Σύνδεσης');
+      }
+      cloudStatus.onclick = function() {
+        closeProfileSheet();
+        if (typeof showAuthOverlay === 'function') showAuthOverlay();
+      };
+    } else if (navigator.onLine) {
       cloudStatus.className = 'profile-cloud-status online';
+      cloudStatus.style.cursor = 'default';
+      cloudStatus.onclick = null;
       if (icon) icon.className = 'fa-solid fa-cloud-check';
       if (span) span.textContent = state.lang === 'en' ? 'Cloud Sync: Active' : 'Συγχρονισμός Cloud: Ενεργός';
     } else {
       cloudStatus.className = 'profile-cloud-status offline';
+      cloudStatus.style.cursor = 'default';
+      cloudStatus.onclick = null;
       if (icon) icon.className = 'fa-solid fa-cloud-slash';
       if (span) span.textContent = state.lang === 'en' ? 'Cloud Sync: Offline' : 'Συγχρονισμός Cloud: Εκτός σύνδεσης';
     }

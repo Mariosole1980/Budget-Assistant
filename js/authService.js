@@ -459,6 +459,9 @@ function initSupabaseAuth() {
       if (isSameUserAlreadyLoaded) {
         logAuthDebug(`${event}: session re-affirmed for active user, skipping full reload.`);
         loadUserProfiles(session.user);
+        if (typeof forceSyncNow === 'function') {
+          forceSyncNow(true).catch(console.error);
+        }
         return;
       }
 
