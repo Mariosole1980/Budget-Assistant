@@ -145,12 +145,41 @@ async function processSyncQueue(options = {}) {
           }
         }
 
-        const { error } = await promiseTimeout(
+        let { error } = await promiseTimeout(
           state.supabaseClient
             .from('transactions')
             .upsert([dbPayload]),
           15000
         );
+
+        if (error) {
+          const isAuthOrRls = (
+            (typeof isSupabaseAuthOrRlsError === 'function' && isSupabaseAuthOrRlsError(error)) ||
+            (typeof window !== 'undefined' && typeof window.isSupabaseAuthOrRlsError === 'function' && window.isSupabaseAuthOrRlsError(error)) ||
+            error.code === '401' || error.code === '403' || error.code === '42501' ||
+            (error.message && (error.message.includes('row-level security') || error.message.includes('JWT') || error.message.includes('token') || error.message.includes('auth') || error.message.includes('security policy')))
+          );
+          if (isAuthOrRls) {
+            try {
+              let refreshedSession = null;
+              if (typeof ensureAuthenticatedSession === 'function') {
+                refreshedSession = await ensureAuthenticatedSession();
+              } else if (typeof window !== 'undefined' && typeof window.ensureAuthenticatedSession === 'function') {
+                refreshedSession = await window.ensureAuthenticatedSession();
+              } else if (state.supabaseClient?.auth) {
+                const r = await state.supabaseClient.auth.refreshSession();
+                refreshedSession = r?.data?.session;
+              }
+              if (refreshedSession) {
+                const retryRes = await promiseTimeout(
+                  state.supabaseClient.from('transactions').upsert([dbPayload]),
+                  15000
+                );
+                error = retryRes.error;
+              }
+            } catch (_) {}
+          }
+        }
 
         if (error) {
           if (error.message && (error.message.includes('Fetch') || error.message.includes('network') || error.message.includes('timeout'))) {

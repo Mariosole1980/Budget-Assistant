@@ -85,17 +85,34 @@ async function saveTransaction(transaction) {
           10000
         );
 
-        // If token expired or auth error, attempt immediate token refresh and retry
-        if (error && (error.code === '401' || error.message?.includes('JWT') || error.message?.includes('token') || error.message?.includes('auth'))) {
+        // If token expired, RLS policy error (42501), or auth error, attempt immediate token refresh and retry
+        const isAuthOrRlsErr = error && (
+          (typeof isSupabaseAuthOrRlsError === 'function' && isSupabaseAuthOrRlsError(error)) ||
+          (typeof window !== 'undefined' && typeof window.isSupabaseAuthOrRlsError === 'function' && window.isSupabaseAuthOrRlsError(error)) ||
+          error.code === '401' || error.code === '403' || error.code === '42501' ||
+          (error.message && (error.message.includes('row-level security') || error.message.includes('JWT') || error.message.includes('token') || error.message.includes('auth') || error.message.includes('security policy')))
+        );
+
+        if (isAuthOrRlsErr) {
           try {
-            await state.supabaseClient.auth.refreshSession();
-            const retryRes = await promiseTimeout(
-              state.supabaseClient
-                .from('transactions')
-                .upsert([dbPayload]),
-              10000
-            );
-            error = retryRes.error;
+            let refreshedSession = null;
+            if (typeof ensureAuthenticatedSession === 'function') {
+              refreshedSession = await ensureAuthenticatedSession();
+            } else if (typeof window !== 'undefined' && typeof window.ensureAuthenticatedSession === 'function') {
+              refreshedSession = await window.ensureAuthenticatedSession();
+            } else if (state.supabaseClient?.auth) {
+              const r = await state.supabaseClient.auth.refreshSession();
+              refreshedSession = r?.data?.session;
+            }
+            if (refreshedSession) {
+              const retryRes = await promiseTimeout(
+                state.supabaseClient
+                  .from('transactions')
+                  .upsert([dbPayload]),
+                10000
+              );
+              error = retryRes.error;
+            }
           } catch (_) {}
         }
 

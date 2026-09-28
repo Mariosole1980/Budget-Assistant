@@ -583,6 +583,21 @@ window.stopSupabaseRealtimeSubscription = stopSupabaseRealtimeSubscription;
 window.resetRealtimeCircuitBreaker = resetRealtimeCircuitBreaker;
 
 // Handle online connectivity restore events
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && state.supabaseClient && state.currentUser) {
+      const ensureFn = (typeof ensureAuthenticatedSession === 'function') ? ensureAuthenticatedSession : ((typeof window !== 'undefined') ? window.ensureAuthenticatedSession : null);
+      if (typeof ensureFn === 'function') {
+        ensureFn().then(s => {
+          if (s && typeof processSyncQueue === 'function') {
+            processSyncQueue();
+          }
+        }).catch(() => {});
+      }
+    }
+  });
+}
+
 if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') window.addEventListener('online', () => {
 
   // Re-establish the Supabase session now that we are online again. If the
@@ -593,8 +608,17 @@ if (typeof window !== 'undefined' && typeof window.addEventListener === 'functio
   const refreshSessionAndProfile = async () => {
     if (!state.supabaseClient) return;
     try {
-      const { data } = await state.supabaseClient.auth.getSession();
-      if (data && data.session && data.session.user) {
+      let session = null;
+      if (typeof ensureAuthenticatedSession === 'function') {
+        session = await ensureAuthenticatedSession();
+      } else if (typeof window !== 'undefined' && typeof window.ensureAuthenticatedSession === 'function') {
+        session = await window.ensureAuthenticatedSession();
+      } else {
+        const { data } = await state.supabaseClient.auth.refreshSession();
+        session = data && data.session;
+      }
+      if (session && session.user) {
+        const data = { session: session };
         state.currentUser = data.session.user;
         localStorage.setItem('cached_current_user', JSON.stringify(data.session.user));
         updateHeaderSyncIcon('synced');
@@ -1057,6 +1081,15 @@ async function forceSyncNow(silent = false) {
     try {
       const userId = state.currentUser.id;
 
+      // Ensure active/refreshed session before proceeding
+      if (typeof ensureAuthenticatedSession === 'function') {
+        await ensureAuthenticatedSession();
+      } else if (typeof window !== 'undefined' && typeof window.ensureAuthenticatedSession === 'function') {
+        await window.ensureAuthenticatedSession();
+      } else if (state.supabaseClient?.auth) {
+        try { await state.supabaseClient.auth.refreshSession(); } catch (_) {}
+      }
+
       // Auto-sync any stuck local transactions (e.g. from guest mode or legacy local_ items)
       await syncLocalTransactionsToCloud(userId, { silent: true });
 
@@ -1401,10 +1434,16 @@ async function forceSyncNow(silent = false) {
 
       // Compute how many transactions are genuinely new
       const newCount = dedupedCombined.filter(t => !prevIdSet.has(String(t.id || ''))).length;
-      if (!silent && newCount > 0) {
-        showSyncToast('✅ +' + newCount + ' ' + (state.lang === 'en' ? 'new transactions synced' : 'νέες κινήσεις συγχρονίστηκαν'), 3000);
-      } else if (!silent && newCount === 0) {
-        showSyncToast('✅ ' + (state.lang === 'en' ? 'Everything is up to date' : 'Όλα είναι ενημερωμένα'), 2000);
+      if (!silent) {
+        if (state.syncPendingCount > 0) {
+          showSyncToast(state.lang === 'en'
+            ? '⏳ ' + state.syncPendingCount + ' changes pending sync'
+            : '⏳ ' + state.syncPendingCount + ' κινήσεις εκκρεμούν προς συγχρονισμό', 3000);
+        } else if (newCount > 0) {
+          showSyncToast('✅ +' + newCount + ' ' + (state.lang === 'en' ? 'new transactions synced' : 'νέες κινήσεις συγχρονίστηκαν'), 3000);
+        } else {
+          showSyncToast('✅ ' + (state.lang === 'en' ? 'Everything is up to date' : 'Όλα είναι ενημερωμένα'), 2000);
+        }
       }
 
       return true;

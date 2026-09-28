@@ -30,6 +30,74 @@
     ]);
   }
 
+  function isSupabaseAuthOrRlsError(error) {
+    if (!error) return false;
+    const code = String(error.code || '');
+    const msg = String(error.message || '').toLowerCase();
+    return (
+      code === '401' ||
+      code === '403' ||
+      code === '42501' ||
+      msg.includes('violates row-level security policy') ||
+      msg.includes('row-level security') ||
+      msg.includes('jwt') ||
+      msg.includes('token') ||
+      msg.includes('expired') ||
+      msg.includes('not authorized') ||
+      msg.includes('unauthorized') ||
+      msg.includes('permission denied')
+    );
+  }
+
+  let _refreshSessionInFlight = null;
+  async function ensureAuthenticatedSession() {
+    const client = (typeof state !== 'undefined' && state.supabaseClient) ||
+      (typeof window !== 'undefined' && window.state && window.state.supabaseClient);
+    if (!client || !client.auth) return null;
+
+    if (_refreshSessionInFlight) {
+      return _refreshSessionInFlight;
+    }
+
+    _refreshSessionInFlight = (async () => {
+      try {
+        const { data } = await client.auth.getSession();
+        const currentSession = data && data.session;
+        if (currentSession && currentSession.access_token) {
+          const now = Math.floor(Date.now() / 1000);
+          if (currentSession.expires_at && (currentSession.expires_at - now > 60)) {
+            return currentSession;
+          }
+        }
+
+        const refreshRes = await client.auth.refreshSession();
+        if (refreshRes && refreshRes.data && refreshRes.data.session) {
+          const freshSession = refreshRes.data.session;
+          if (typeof state !== 'undefined') {
+            state.session = freshSession;
+            if (freshSession.user) {
+              state.currentUser = freshSession.user;
+              localStorage.setItem('cached_current_user', JSON.stringify(freshSession.user));
+            }
+          }
+          return freshSession;
+        }
+      } catch (err) {
+        console.warn('[Auth] Silent session auto-refresh warning:', err);
+      } finally {
+        _refreshSessionInFlight = null;
+      }
+      return null;
+    })();
+
+    return _refreshSessionInFlight;
+  }
+
+  if (typeof window !== 'undefined') {
+    window.isSupabaseAuthOrRlsError = isSupabaseAuthOrRlsError;
+    window.ensureAuthenticatedSession = ensureAuthenticatedSession;
+  }
+
 function loadConfig() {
   // Database credentials are strictly hardcoded in state.supabaseConfig.
   state.isSupabaseEnabled = true;
@@ -262,12 +330,30 @@ function initSupabaseAuth() {
       if (!data || !data.session) {
         // If we have cached credentials, keep the offline session active!
         if (hasCachedUser) {
-          logAuthDebug('No active network session from getSession, but cached user exists -> keeping offline session active.');
+          logAuthDebug('No active network session from getSession, but cached user exists -> keeping offline session active and auto-refreshing in background.');
           hideAuthOverlay();
           const earlyStyle = document.getElementById('early-auth-style');
           if (earlyStyle) earlyStyle.remove();
           const earlyHideStyle = document.getElementById('early-auth-hide-style');
           if (earlyHideStyle) earlyHideStyle.remove();
+          // SILENT AUTO-HEAL: Refresh session in background and flush pending queue
+          (async () => {
+            try {
+              const freshSession = await ensureAuthenticatedSession();
+              if (freshSession && freshSession.user) {
+                logAuthDebug('Silent background session auto-refresh succeeded on startup.');
+                updateHeaderSyncIcon('synced');
+                if (typeof processSyncQueue === 'function') {
+                  processSyncQueue();
+                }
+                if (typeof syncLocalTransactionsToCloud === 'function' && state.currentUser) {
+                  syncLocalTransactionsToCloud(state.currentUser.id, { silent: true });
+                }
+              }
+            } catch (silentErr) {
+              logAuthDebug('Silent background session auto-refresh deferred: ' + silentErr);
+            }
+          })();
           return;
         }
         // Only show login forms if onAuthStateChange hasn't already logged us in
@@ -939,6 +1025,8 @@ function showPendingInvitationPrompt(invite) {
     initSupabaseAuth,
     loadUserProfiles,
     showPendingInviteCodePrompt,
-    showPendingInvitationPrompt
+    showPendingInvitationPrompt,
+    isSupabaseAuthOrRlsError,
+    ensureAuthenticatedSession
   };
 }));

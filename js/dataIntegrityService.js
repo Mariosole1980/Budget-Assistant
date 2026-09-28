@@ -453,23 +453,56 @@ async function autoSyncMissingTransactionsToCloud(cloudTransactions, userId) {
   if (missingInCloud.length > 0) {
     console.info(`[AutoSync] Uploading ${missingInCloud.length} active local transactions to cloud...`);
     const dbPayloads = missingInCloud.map(mapTransactionToDb).filter(Boolean);
+    const successfullyUploaded = [];
     for (let i = 0; i < dbPayloads.length; i += 50) {
       const batch = dbPayloads.slice(i, i + 50);
       try {
-        const { error } = await _promiseTimeout(
+        let { error } = await _promiseTimeout(
           state.supabaseClient.from('transactions').upsert(batch, { onConflict: 'id' }),
           30000
         );
+        const isAuthOrRls = error && (
+          (typeof isSupabaseAuthOrRlsError === 'function' && isSupabaseAuthOrRlsError(error)) ||
+          (typeof window !== 'undefined' && typeof window.isSupabaseAuthOrRlsError === 'function' && window.isSupabaseAuthOrRlsError(error)) ||
+          error.code === '401' || error.code === '403' || error.code === '42501' ||
+          (error.message && (error.message.includes('row-level security') || error.message.includes('JWT') || error.message.includes('token') || error.message.includes('auth') || error.message.includes('security policy')))
+        );
+        if (isAuthOrRls) {
+          try {
+            let refreshedSession = null;
+            if (typeof ensureAuthenticatedSession === 'function') {
+              refreshedSession = await ensureAuthenticatedSession();
+            } else if (typeof window !== 'undefined' && typeof window.ensureAuthenticatedSession === 'function') {
+              refreshedSession = await window.ensureAuthenticatedSession();
+            } else if (state.supabaseClient?.auth) {
+              const r = await state.supabaseClient.auth.refreshSession();
+              refreshedSession = r?.data?.session;
+            }
+            if (refreshedSession) {
+              const retryRes = await _promiseTimeout(
+                state.supabaseClient.from('transactions').upsert(batch, { onConflict: 'id' }),
+                30000
+              );
+              error = retryRes.error;
+            }
+          } catch (_) {}
+        }
         if (error) {
           console.error('[AutoSync] Cloud batch upload failed:', error);
         } else {
           console.info(`[AutoSync] Successfully uploaded batch of ${batch.length} transactions.`);
+          const batchIds = new Set(batch.map(b => String(b.id)));
+          missingInCloud.forEach(t => {
+            if (t && t.id && batchIds.has(String(t.id))) {
+              successfullyUploaded.push(t);
+            }
+          });
         }
       } catch (err) {
         console.error('[AutoSync] Cloud batch upload exception:', err);
       }
     }
-    return missingInCloud;
+    return successfullyUploaded;
   }
   return [];
 }

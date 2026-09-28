@@ -373,9 +373,34 @@
         try {
           for (let i = 0; i < toInsert.length; i += 50) {
             const batch = toInsert.slice(i, i + 50);
-            const { error } = await timeoutFn(appState.supabaseClient
+            let { error } = await timeoutFn(appState.supabaseClient
               .from('transactions')
               .upsert(batch, { onConflict: 'id' }).then(r => r), 60000);
+            const isAuthOrRls = error && (
+              (typeof isSupabaseAuthOrRlsError === 'function' && isSupabaseAuthOrRlsError(error)) ||
+              (typeof window !== 'undefined' && typeof window.isSupabaseAuthOrRlsError === 'function' && window.isSupabaseAuthOrRlsError(error)) ||
+              error.code === '401' || error.code === '403' || error.code === '42501' ||
+              (error.message && (error.message.includes('row-level security') || error.message.includes('JWT') || error.message.includes('token') || error.message.includes('auth') || error.message.includes('security policy')))
+            );
+            if (isAuthOrRls) {
+              try {
+                let refreshedSession = null;
+                if (typeof ensureAuthenticatedSession === 'function') {
+                  refreshedSession = await ensureAuthenticatedSession();
+                } else if (typeof window !== 'undefined' && typeof window.ensureAuthenticatedSession === 'function') {
+                  refreshedSession = await window.ensureAuthenticatedSession();
+                } else if (appState.supabaseClient?.auth) {
+                  const r = await appState.supabaseClient.auth.refreshSession();
+                  refreshedSession = r?.data?.session;
+                }
+                if (refreshedSession) {
+                  const retryRes = await timeoutFn(appState.supabaseClient
+                    .from('transactions')
+                    .upsert(batch, { onConflict: 'id' }).then(r => r), 60000);
+                  error = retryRes.error;
+                }
+              } catch (_) {}
+            }
             if (error) throw error;
           }
 
