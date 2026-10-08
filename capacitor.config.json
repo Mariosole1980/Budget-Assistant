@@ -37,7 +37,9 @@
         "email"
       ],
       "serverClientId": "331220079759-nrguc2ujof9u9mqhbn2mouhpga2iniqj.apps.googleusercontent.com",
-      "forceCodeForRefreshToken": true
+      "clientId": "331220079759-nrguc2ujof9u9mqhbn2mouhpga2iniqj.apps.googleusercontent.com",
+      "androidClientId": "331220079759-nrguc2ujof9u9mqhbn2mouhpga2iniqj.apps.googleusercontent.com",
+      "forceCodeForRefreshToken": false
     },
     "LocalNotifications": {
       "smallIcon": "ic_launcher_round",

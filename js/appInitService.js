@@ -132,6 +132,9 @@
   if (typeof _initAutoLock === 'function') {
     _initAutoLock();
   }
+  if (typeof applyNativeSecureMode === 'function') {
+    applyNativeSecureMode();
+  }
   initMultiCurrency();
   if (typeof loadNotifications === 'function') {
     loadNotifications();

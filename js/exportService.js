@@ -378,75 +378,223 @@ function exportToExcel(startDate = null, endDate = null) {
   closeExportPeriodSheet();
 }
 
-// Generate a valid, dependency-free PDF document from the export rows.
-// Uses PDF content-stream text operators (BT/Tf/Td/Tj) to draw a simple table.
+// Greek-to-Latin transliteration helper so Greek characters render
+// reliably in standard PDF Type1 fonts (Helvetica) without mojibake or missing glyphs.
+function transliterateGreek(text) {
+  if (text == null) return '';
+  const s = String(text);
+  const map = {
+    'α': 'a', 'ά': 'a', 'Α': 'A', 'Ά': 'A',
+    'β': 'v', 'Β': 'V',
+    'γ': 'g', 'Γ': 'G',
+    'δ': 'd', 'Δ': 'D',
+    'ε': 'e', 'έ': 'e', 'Ε': 'E', 'Έ': 'E',
+    'ζ': 'z', 'Ζ': 'Z',
+    'η': 'i', 'ή': 'i', 'Η': 'I', 'Ή': 'I',
+    'θ': 'th', 'Θ': 'Th',
+    'ι': 'i', 'ί': 'i', 'ϊ': 'i', 'ΐ': 'i', 'Ι': 'I', 'Ί': 'I', 'Ϊ': 'I',
+    'κ': 'k', 'Κ': 'K',
+    'λ': 'l', 'Λ': 'L',
+    'μ': 'm', 'Μ': 'M',
+    'ν': 'n', 'Ν': 'N',
+    'ξ': 'x', 'Ξ': 'X',
+    'ο': 'o', 'ό': 'o', 'Ο': 'O', 'Ό': 'O',
+    'π': 'p', 'Π': 'P',
+    'ρ': 'r', 'Ρ': 'R',
+    'σ': 's', 'ς': 's', 'Σ': 'S',
+    'τ': 't', 'Τ': 'T',
+    'υ': 'y', 'ύ': 'y', 'ϋ': 'y', 'ΰ': 'y', 'Υ': 'Y', 'Ύ': 'Y', 'Ϋ': 'Y',
+    'φ': 'f', 'Φ': 'F',
+    'χ': 'ch', 'Χ': 'Ch',
+    'ψ': 'ps', 'Ψ': 'Ps',
+    'ω': 'o', 'ώ': 'o', 'Ω': 'O', 'Ώ': 'O',
+    '€': 'EUR'
+  };
+  return s
+    .replace(/ου/g, 'ou').replace(/Ου/g, 'Ou').replace(/ΟΥ/g, 'OU')
+    .replace(/αυ([θκξπσςτφχ])/gi, 'af$1').replace(/αυ/gi, 'av')
+    .replace(/ευ([θκξπσςτφχ])/gi, 'ef$1').replace(/ευ/gi, 'ev')
+    .replace(/μπ/g, 'b').replace(/Μπ/g, 'B').replace(/ΜΠ/g, 'B')
+    .replace(/ντ/g, 'd').replace(/Ντ/g, 'D').replace(/ΝΤ/g, 'D')
+    .replace(/γκ/g, 'g').replace(/Γκ/g, 'G').replace(/ΓΚ/g, 'G')
+    .replace(/[^\x00-\x7F]/g, ch => map[ch] !== undefined ? map[ch] : '');
+}
+
+function getPdfByteLength(str) {
+  if (typeof TextEncoder !== 'undefined') {
+    return new TextEncoder().encode(str).length;
+  }
+  return Buffer.byteLength(str, 'utf8');
+}
+
+// Generate a valid, multi-page, dependency-free PDF document from the export rows.
+// Uses PDF content-stream operators with accurate object graphs and precise byte offsets.
 function generatePdfBlob(rows, baseName) {
-  const headers = Object.keys(rows[0] || {});
-  const pageWidth = 612;
-  const pageHeight = 792;
-  const margin = 40;
+  if (!rows || !rows.length) {
+    rows = [];
+  }
+
+  const pageWidth = 612;   // Standard US Letter width in points
+  const pageHeight = 792;  // Standard US Letter height in points
+  const margin = 36;
+  const printableWidth = pageWidth - margin * 2; // 540 pt
   const fontSize = 8;
-  const lineHeight = 12;
-  const colWidth = Math.floor((pageWidth - margin * 2) / Math.max(headers.length, 1));
+  const headerFontSize = 8.5;
+  const lineHeight = 14;
 
-  // Escape a string for a PDF literal string (parentheses and backslashes).
-  const escPdf = (v) => String(v == null ? '' : v).replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+  const rawHeaders = Object.keys(rows[0] || {});
+  if (!rawHeaders.length) {
+    rawHeaders.push('Date', 'Type', 'Amount', 'Category', 'Note');
+  }
 
-  // Truncate text to fit the column width (approx 5.5 chars per 8pt char per 44px col).
-  const fit = (v) => {
-    const s = String(v == null ? '' : v);
-    const maxChars = Math.max(1, Math.floor(colWidth / 4.8));
-    return s.length > maxChars ? s.substring(0, maxChars - 1) + '…' : s;
+  const headers = rawHeaders.map(h => transliterateGreek(h));
+
+  // Determine smart column widths (proportional to typical budget assistant fields)
+  let colWidths = [];
+  if (headers.length === 7) {
+    colWidths = [65, 50, 55, 80, 75, 75, 140];
+  } else {
+    const baseW = Math.floor(printableWidth / Math.max(headers.length, 1));
+    colWidths = headers.map(() => baseW);
+  }
+
+  const escPdf = (v) => {
+    const clean = transliterateGreek(v);
+    return clean.replace(/\\/g, '\\\\').replace(/\(/g, '\(').replace(/\)/g, '\)');
   };
 
-  let content = '';
+  const fit = (v, width) => {
+    const s = transliterateGreek(v);
+    const maxChars = Math.max(1, Math.floor(width / 4.6));
+    return s.length > maxChars ? s.substring(0, maxChars - 1) + '..' : s;
+  };
+
+  const pages = [];
+  let currentPageContent = '';
   let y = pageHeight - margin;
 
-  const drawLine = (cells, bold) => {
-    if (y < margin) return; // skip overflow (single page)
-    content += 'BT /F' + (bold ? '2' : '1') + ' ' + fontSize + ' Tf ' + margin + ' ' + y + ' Td\n';
-    cells.forEach((c, i) => {
-      const x = i * colWidth;
-      content += '1 0 0 1 ' + x + ' 0 Tm (' + escPdf(fit(c)) + ') Tj\n';
+  const startNewPage = () => {
+    if (currentPageContent) {
+      pages.push(currentPageContent);
+    }
+    currentPageContent = '';
+    y = pageHeight - margin;
+
+    // Header block
+    if (pages.length === 0) {
+      const cleanTitle = transliterateGreek(baseName || 'Budget Assistant Report');
+      currentPageContent += 'BT /F2 13 Tf 1 0 0 1 ' + margin + ' ' + (y - 4) + ' Tm (' + escPdf(cleanTitle) + ') Tj ET\n';
+      const nowStr = new Date().toISOString().split('T')[0];
+      currentPageContent += 'BT /F1 8 Tf 1 0 0 1 ' + margin + ' ' + (y - 18) + ' Tm (Generated: ' + escPdf(nowStr) + ' | Total Transactions: ' + rows.length + ') Tj ET\n';
+      y -= 32;
+    } else {
+      currentPageContent += 'BT /F1 8 Tf 1 0 0 1 ' + margin + ' ' + (y - 2) + ' Tm (Budget Assistant Export - Continued) Tj ET\n';
+      y -= 16;
+    }
+
+    // Table Header Band (draw background and text)
+    const headerY = y;
+    currentPageContent += '0.92 0.93 0.95 rg ' + margin + ' ' + (headerY - 10) + ' ' + printableWidth + ' 14 re f 0 g\n';
+
+    currentPageContent += 'BT /F2 ' + headerFontSize + ' Tf\n';
+    let curX = margin;
+    headers.forEach((h, i) => {
+      const w = colWidths[i] || 60;
+      currentPageContent += '1 0 0 1 ' + (curX + 3) + ' ' + (headerY - 7) + ' Tm (' + escPdf(fit(h, w)) + ') Tj\n';
+      curX += w;
     });
-    content += 'ET\n';
-    y -= lineHeight;
+    currentPageContent += 'ET\n';
+
+    // Header bottom border
+    currentPageContent += '0.5 w 0.7 0.7 0.7 RG ' + margin + ' ' + (headerY - 10) + ' m ' + (pageWidth - margin) + ' ' + (headerY - 10) + ' l S\n';
+    y -= 14;
   };
 
-  // Title
-  content += 'BT /F2 14 Tf ' + margin + ' ' + y + ' Td (' + escPdf(baseName) + ') Tj ET\n';
-  y -= 20;
+  // Start initial page
+  startNewPage();
 
-  // Header row
-  drawLine(headers, true);
-  // Separator line
-  content += '0.7 w ' + margin + ' ' + (y + 3) + ' m ' + (pageWidth - margin) + ' ' + (y + 3) + ' l S\n';
-  y -= 4;
+  // Draw rows
+  rows.forEach((row, rowIndex) => {
+    if (y - lineHeight < margin + 20) {
+      startNewPage();
+    }
 
-  // Data rows
-  rows.forEach(r => {
-    drawLine(headers.map(h => r[h]), false);
+    // Subtle alternating row background
+    if (rowIndex % 2 === 1) {
+      currentPageContent += '0.97 0.98 0.99 rg ' + margin + ' ' + (y - 10) + ' ' + printableWidth + ' ' + lineHeight + ' re f 0 g\n';
+    }
+
+    // Draw cells
+    currentPageContent += 'BT /F1 ' + fontSize + ' Tf\n';
+    let cellX = margin;
+    rawHeaders.forEach((rawH, i) => {
+      const val = row[rawH];
+      const w = colWidths[i] || 60;
+      currentPageContent += '1 0 0 1 ' + (cellX + 3) + ' ' + (y - 7) + ' Tm (' + escPdf(fit(val, w)) + ') Tj\n';
+      cellX += w;
+    });
+    currentPageContent += 'ET\n';
+
+    // Row divider
+    currentPageContent += '0.2 w 0.88 0.88 0.88 RG ' + margin + ' ' + (y - 10) + ' m ' + (pageWidth - margin) + ' ' + (y - 10) + ' l S\n';
+    y -= lineHeight;
   });
 
+  // Push final page
+  if (currentPageContent) {
+    pages.push(currentPageContent);
+  }
+
+  // Stamp footer page numbers on all pages
+  const totalPages = pages.length;
+  pages.forEach((pContent, pageIdx) => {
+    const pageNumStr = 'Page ' + (pageIdx + 1) + ' of ' + totalPages;
+    const footer = 'BT /F1 7.5 Tf 1 0 0 1 ' + (pageWidth / 2 - 25) + ' 20 Tm (' + pageNumStr + ') Tj ET\n';
+    pages[pageIdx] = pContent + footer;
+  });
+
+  // Construct valid PDF Objects:
+  // 1: Catalog
+  // 2: Pages
+  // 3: Font F1 (Helvetica)
+  // 4: Font F2 (Helvetica-Bold)
+  // 5 + 2*p: Page object
+  // 6 + 2*p: Stream content object
   const objects = [];
   const addObj = (body) => {
     objects.push(body);
     return objects.length;
   };
-  addObj('<< /Type /Catalog /Pages 2 0 R >>');
-  addObj('<< /Type /Pages /Kids [3 0 R] /Count 1 >>');
-  addObj('<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' + pageWidth + ' ' + pageHeight + '] /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> /Contents 7 0 R >>');
-  addObj('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');
-  addObj('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>');
-  addObj('<< /Length ' + content.length + ' >>\nstream\n' + content + 'endstream');
 
+  addObj('<< /Type /Catalog /Pages 2 0 R >>'); // Obj 1
+  addObj(''); // Obj 2 (placeholder for Pages object)
+  addObj('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>'); // Obj 3
+  addObj('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>'); // Obj 4
+
+  const pageObjIds = [];
+  pages.forEach((pStream) => {
+    const pageObjId = objects.length + 1;
+    const streamObjId = pageObjId + 1;
+    pageObjIds.push(pageObjId);
+
+    const streamBytes = getPdfByteLength(pStream);
+    addObj('<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' + pageWidth + ' ' + pageHeight + '] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ' + streamObjId + ' 0 R >>');
+    addObj('<< /Length ' + streamBytes + ' >>\nstream\n' + pStream + 'endstream');
+  });
+
+  // Update Object 2 with actual kids
+  const kidsStr = pageObjIds.map(id => id + ' 0 R').join(' ');
+  objects[1] = '<< /Type /Pages /Kids [' + kidsStr + '] /Count ' + totalPages + ' >>';
+
+  // Build binary PDF string with exact byte offsets
   let pdf = '%PDF-1.4\n';
   const offsets = [];
   objects.forEach((body, i) => {
-    offsets.push(pdf.length);
+    offsets.push(getPdfByteLength(pdf));
     pdf += (i + 1) + ' 0 obj\n' + body + '\nendobj\n';
   });
-  const xrefPos = pdf.length;
+
+  const xrefPos = getPdfByteLength(pdf);
   pdf += 'xref\n0 ' + (objects.length + 1) + '\n';
   pdf += '0000000000 65535 f \n';
   offsets.forEach(off => {

@@ -349,6 +349,12 @@ function initSwipeToBack() {
                 state.currentUser = sessionData.session.user;
                 localStorage.setItem('cached_current_user', JSON.stringify(sessionData.session.user));
                 hideAuthOverlay();
+                if (window.Capacitor?.Plugins?.Browser?.close) {
+                  window.Capacitor.Plugins.Browser.close().catch(() => {});
+                }
+                if (typeof updateUI === 'function') updateUI();
+                if (typeof updateHeaderProfileBadge === 'function') updateHeaderProfileBadge();
+                if (typeof renderNotesList === 'function') renderNotesList();
                 await forceSyncNow(true);
                 toggleLoader(false);
               } else {
@@ -372,6 +378,12 @@ function initSwipeToBack() {
                 state.currentUser = sessionData.session.user;
                 localStorage.setItem('cached_current_user', JSON.stringify(sessionData.session.user));
                 hideAuthOverlay();
+                if (window.Capacitor?.Plugins?.Browser?.close) {
+                  window.Capacitor.Plugins.Browser.close().catch(() => {});
+                }
+                if (typeof updateUI === 'function') updateUI();
+                if (typeof updateHeaderProfileBadge === 'function') updateHeaderProfileBadge();
+                if (typeof renderNotesList === 'function') renderNotesList();
                 await forceSyncNow(true);
                 toggleLoader(false);
               } else {

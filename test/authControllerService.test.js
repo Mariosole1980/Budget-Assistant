@@ -123,6 +123,25 @@ test('AuthControllerService: formatAuthErrorMessage localizes known error messag
   state.lang = 'en';
   const enErr = AuthControllerService.formatAuthErrorMessage('over_email_send_rate_limit');
   assert.ok(enErr.includes('Email rate limit reached'), 'Must translate rate limit in English');
+
+  // Google Error Code 10 (DEVELOPER_ERROR)
+  state.lang = 'el';
+  const elDevErr = AuthControllerService.formatAuthErrorMessage({ message: 'Something went wrong', code: '10' });
+  assert.ok(elDevErr.includes('Code 10: DEVELOPER_ERROR') && elDevErr.includes('SHA-1'), 'Must translate code 10 in Greek');
+
+  state.lang = 'en';
+  const enDevErr = AuthControllerService.formatAuthErrorMessage({ message: 'Something went wrong', code: '10' });
+  assert.ok(enDevErr.includes('Code 10: DEVELOPER_ERROR') && enDevErr.includes('SHA-1'), 'Must translate code 10 in English');
+
+  // Google Error Code 12500 (SIGN_IN_FAILED)
+  state.lang = 'el';
+  const elSignErr = AuthControllerService.formatAuthErrorMessage({ message: 'Something went wrong', code: '12500' });
+  assert.ok(elSignErr.includes('Code 12500: SIGN_IN_FAILED'), 'Must translate code 12500 in Greek');
+
+  // Google Error Code 7 (NETWORK_ERROR)
+  state.lang = 'el';
+  const elNetErr = AuthControllerService.formatAuthErrorMessage({ message: 'network_error', code: '7' });
+  assert.ok(elNetErr.includes('Code 7: NETWORK_ERROR'), 'Must translate code 7 in Greek');
 });
 
 test('AuthControllerService: showAuthStatus and clearAuthStatus update status message', () => {

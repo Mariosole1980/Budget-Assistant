@@ -1879,7 +1879,7 @@ function closeBiometricsPinModal() { return SecurityPinService.closeBiometricsPi
 function proceedToPinSetup() { return SecurityPinService.proceedToPinSetup(); }
 function getSecurityPlugin() { return SecurityPinService.getSecurityPlugin(); }
 function getPrivacyScreenPlugin() { return SecurityPinService.getPrivacyScreenPlugin(); }
-function applyNativeSecureMode() { return SecurityPinService.applyNativeSecureMode(); }
+function applyNativeSecureMode(e) { return SecurityPinService.applyNativeSecureMode(e); }
 function toggleHideAmountsSetting(e) { return SecurityPinService.toggleHideAmountsSetting(e); }
 function toggleScreenshotBlockSetting(e) { return SecurityPinService.toggleScreenshotBlockSetting(e); }
 function toggleBiometrics(e) { return SecurityPinService.toggleBiometrics(e); }

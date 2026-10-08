@@ -393,12 +393,38 @@ function setAuthMode(mode) {
 
 function formatAuthErrorMessage(err) {
   if (!err) return (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_fail_auth']) || 'Αποτυχία ταυτοποίησης.';
+  const rawCode = err && err.code != null ? String(err.code) : '';
   const msg = typeof err === 'string' ? err : (err.message || err.error_description || err.msg || (err.error && (typeof err.error === 'string' ? err.error : err.error.message)) || '');
   const lower = String(msg).toLowerCase();
   if (lower.includes('rate limit') || lower.includes('over_email_send_rate_limit')) {
     return state.lang === 'el'
       ? 'Υπέρβαση ορίου αποστολής email. Παρακαλούμε περιμένετε 60 δευτερόλεπτα ή συνδεθείτε άμεσα με Κωδικό ή Google.'
       : 'Email rate limit reached. Please wait 60 seconds or sign in directly with Password or Google.';
+  }
+  if (rawCode === '10' || lower.includes('developer_error')) {
+    return state.lang === 'el'
+      ? 'Σφάλμα διαμόρφωσης Google (Code 10: DEVELOPER_ERROR). Το αποτύπωμα SHA-1 της εφαρμογής ή το Web Client ID δεν έχει καταχωρηθεί στο Google Cloud Console.'
+      : 'Google configuration error (Code 10: DEVELOPER_ERROR). The app\'s SHA-1 fingerprint or Web Client ID is not registered in Google Cloud Console.';
+  }
+  if (rawCode === '12500' || lower.includes('sign_in_failed')) {
+    return state.lang === 'el'
+      ? 'Αποτυχία σύνδεσης Google (Code 12500: SIGN_IN_FAILED). Ελέγξτε την οθόνη συγκατάθεσης OAuth στο Google Cloud Console.'
+      : 'Google sign-in failed (Code 12500: SIGN_IN_FAILED). Check the OAuth consent screen in Google Cloud Console.';
+  }
+  if (rawCode === '7' || lower.includes('network_error')) {
+    return state.lang === 'el'
+      ? 'Σφάλμα δικτύου Google (Code 7: NETWORK_ERROR). Παρακαλούμε ελέγξτε τη σύνδεσή σας στο διαδίκτυο.'
+      : 'Google network error (Code 7: NETWORK_ERROR). Please check your internet connection.';
+  }
+  if (lower.includes('something went wrong')) {
+    if (rawCode) {
+      return state.lang === 'el'
+        ? `Σφάλμα σύνδεσης Google (Κωδικός: ${rawCode}). Βεβαιωθείτε ότι το SHA-1 fingerprint είναι καταχωρημένο στο Google Cloud Console.`
+        : `Google sign-in error (Code: ${rawCode}). Ensure your SHA-1 fingerprint is registered in Google Cloud Console.`;
+    }
+    return state.lang === 'el'
+      ? 'Σφάλμα σύνδεσης Google. Βεβαιωθείτε ότι το SHA-1 fingerprint είναι καταχωρημένο στο Google Cloud Console.'
+      : 'Google sign-in error. Ensure your SHA-1 fingerprint is registered in Google Cloud Console.';
   }
   if (msg && msg !== '{}' && String(msg).trim() !== '') return msg;
   return (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_fail_auth']) || 'Αποτυχία ταυτοποίησης.';
@@ -648,13 +674,11 @@ async function handleGoogleAuth() {
       }
       return;
     } catch (err) {
-      if (googleBtn) {
-        googleBtn.disabled = false;
-        googleBtn.innerHTML = origGoogleBtnHtml;
-      }
+      const rawCode = err && err.code != null ? String(err.code) : '';
       const errMsg = (err?.message || '').toLowerCase();
       // If user explicitly dismissed or canceled the native picker, exit cleanly
       if (
+        rawCode === '12501' ||
         errMsg.includes('cancel') ||
         errMsg.includes('canceled') ||
         errMsg.includes('cancelled') ||
@@ -663,10 +687,48 @@ async function handleGoogleAuth() {
         errMsg.includes('12501') ||
         errMsg.includes('abort')
       ) {
+        if (googleBtn) {
+          googleBtn.disabled = false;
+          googleBtn.innerHTML = origGoogleBtnHtml;
+        }
         console.log('[GoogleAuth] User dismissed native prompt.');
         return;
       }
-      console.error('[GoogleAuth] Native auth failed:', err);
+
+      console.warn('[GoogleAuth] Native auth failed (code: ' + (rawCode || 'none') + '), attempting browser OAuth fallback:', err);
+
+      // Resilient Dual-Strategy Fallback: If native Google Sign-In fails
+      // (e.g. SHA-1 fingerprint mismatch in Google Cloud Console, Code 10, or Code 12500),
+      // seamlessly fall back to secure Web OAuth via Custom Tabs so the user is never blocked!
+      const Browser = window.Capacitor?.Plugins?.Browser;
+      if (Browser && typeof Browser.open === 'function') {
+        try {
+          if (googleBtn) {
+            googleBtn.innerHTML = `<i class="fa-brands fa-google google-icon"></i> <span>${state.lang === 'el' ? 'Μετάβαση σε Browser...' : 'Redirecting...'}</span>`;
+          }
+          const nativeRedirectUrl = 'https://budget-assistant-pwa.pages.dev';
+          const { data, error } = await state.supabaseClient.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+              redirectTo: nativeRedirectUrl,
+              skipBrowserRedirect: true,
+              queryParams: { prompt: 'select_account' }
+            }
+          });
+          if (error) throw error;
+          if (data && data.url) {
+            await Browser.open({ url: data.url });
+            return;
+          }
+        } catch (fallbackErr) {
+          console.error('[GoogleAuth] Browser OAuth fallback also failed:', fallbackErr);
+        }
+      }
+
+      if (googleBtn) {
+        googleBtn.disabled = false;
+        googleBtn.innerHTML = origGoogleBtnHtml;
+      }
       showAuthStatus(((TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang]['auth_error_prefix']) || '❌ Σφάλμα: ') + formatAuthErrorMessage(err));
       return;
     }

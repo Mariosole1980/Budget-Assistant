@@ -513,10 +513,18 @@ window.getPrivacyScreenPlugin = getPrivacyScreenPlugin;
 
 function applyNativeSecureMode(enabled) {
   try {
+    if (typeof enabled === 'undefined') {
+      try {
+        enabled = localStorage.getItem('settings_screenshot_block') === 'true';
+      } catch (_) {
+        enabled = false;
+      }
+    }
+
     // 1. Apply via custom SecurityPlugin
     const secPlugin = getSecurityPlugin();
     if (secPlugin && typeof secPlugin.setSecureMode === 'function') {
-      secPlugin.setSecureMode({ enabled: enabled }).catch(e => console.warn('[SecurityPlugin] setSecureMode error:', e));
+      secPlugin.setSecureMode({ enabled: !!enabled }).catch(e => console.warn('[SecurityPlugin] setSecureMode error:', e));
     }
 
     // 2. Apply via official PrivacyScreen plugin

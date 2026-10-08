@@ -106,6 +106,9 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        // Apply secure mode flags immediately at the start of onCreate
+        applySecureMode();
+
         try {
             androidx.core.splashscreen.SplashScreen.installSplashScreen(this);
         } catch (Throwable t) {
@@ -551,7 +554,7 @@ public class MainActivity extends BridgeActivity {
             Window window = getWindow();
             if (window != null) {
                 if (secureMode) {
-                    window.addFlags(WindowManager.LayoutParams.FLAG_SECURE);
+                    window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE);
                 } else {
                     window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE);
                 }
