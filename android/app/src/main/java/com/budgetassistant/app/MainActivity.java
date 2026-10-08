@@ -215,6 +215,18 @@ public class MainActivity extends BridgeActivity {
                     }
                     longBackgroundResume = false;
                 }
+
+                @JavascriptInterface
+                public void setSecureMode(boolean enabled) {
+                    try {
+                        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+                        prefs.edit().putBoolean(KEY_SECURE_MODE, enabled).commit();
+                        applySecureMode();
+                        Log.d(TAG, "NativeApp.setSecureMode applied: " + enabled);
+                    } catch (Exception e) {
+                        Log.e(TAG, "Error in NativeApp.setSecureMode", e);
+                    }
+                }
             }, "NativeApp");
         }
 
@@ -310,6 +322,7 @@ public class MainActivity extends BridgeActivity {
         super.onPause();
         Log.d(TAG, "onPause");
         backgroundStartTime = SystemClock.uptimeMillis();
+        applySecureMode();
         // If an internal child activity (e.g. Camera, File Picker, Share) is launching,
         // do NOT show any overlay. The WebView remains intact underneath and Android's
         // native window transition handles the visual layering seamlessly.
@@ -351,6 +364,13 @@ public class MainActivity extends BridgeActivity {
     private void captureWebViewSnapshot() {
         if (DIAGNOSTIC_OVERLAY_COLOR)
             return;
+
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        if (prefs.getBoolean(KEY_SECURE_MODE, false)) {
+            Log.d(TAG, "captureWebViewSnapshot skipped because secure mode is active");
+            recycleSnapshot();
+            return;
+        }
 
         // Try PixelCopy first (API 26+): captures the Window's Surface directly,
         // using exact WebView bounds and window coordinates for a pixel-perfect match.
@@ -548,19 +568,27 @@ public class MainActivity extends BridgeActivity {
     // =========================================================================
 
     private void applySecureMode() {
-        try {
-            SharedPreferences prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-            boolean secureMode = prefs.getBoolean(KEY_SECURE_MODE, false);
-            Window window = getWindow();
-            if (window != null) {
-                if (secureMode) {
-                    window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE);
-                } else {
-                    window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE);
+        Runnable r = () -> {
+            try {
+                SharedPreferences prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+                boolean secureMode = prefs.getBoolean(KEY_SECURE_MODE, false);
+                Window window = getWindow();
+                if (window != null) {
+                    if (secureMode) {
+                        window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE);
+                        window.addFlags(WindowManager.LayoutParams.FLAG_SECURE);
+                    } else {
+                        window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE);
+                    }
                 }
+            } catch (Exception e) {
+                // Fail silently
             }
-        } catch (Exception e) {
-            // Fail silently
+        };
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            r.run();
+        } else {
+            mainHandler.post(r);
         }
     }
 
@@ -615,8 +643,8 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
+        applySecureMode();
         if (hasFocus) {
-            applySecureMode();
             lockWebViewSettings();
             // After Samsung Pass or any overlay dismisses and focus returns,
             // force-reset the WebView zoom to 100% via JavaScript.

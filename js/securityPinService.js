@@ -511,6 +511,18 @@ function getPrivacyScreenPlugin() {
 }
 window.getPrivacyScreenPlugin = getPrivacyScreenPlugin;
 
+function isAndroidNativePlatform() {
+  if (typeof window !== 'undefined' && window.NativeApp) return true;
+  var cap = (typeof window !== 'undefined' && window.Capacitor) || (typeof Capacitor !== 'undefined' ? Capacitor : null);
+  if (cap) {
+    if (typeof cap.getPlatform === 'function' && cap.getPlatform() === 'android') return true;
+    if (typeof cap.isNativePlatform === 'function' && cap.isNativePlatform()) return true;
+    if (cap.platform === 'android') return true;
+  }
+  return false;
+}
+window.isAndroidNativePlatform = isAndroidNativePlatform;
+
 function applyNativeSecureMode(enabled) {
   try {
     if (typeof enabled === 'undefined') {
@@ -520,19 +532,29 @@ function applyNativeSecureMode(enabled) {
         enabled = false;
       }
     }
+    const isSecured = !!enabled;
 
-    // 1. Apply via custom SecurityPlugin
-    const secPlugin = getSecurityPlugin();
-    if (secPlugin && typeof secPlugin.setSecureMode === 'function') {
-      secPlugin.setSecureMode({ enabled: !!enabled }).catch(e => console.warn('[SecurityPlugin] setSecureMode error:', e));
+    // 1. Direct synchronous call to NativeApp bridge if available (most reliable, zero latency)
+    if (typeof window !== 'undefined' && window.NativeApp && typeof window.NativeApp.setSecureMode === 'function') {
+      try {
+        window.NativeApp.setSecureMode(isSecured);
+      } catch (err) {
+        console.warn('[NativeApp] setSecureMode error:', err);
+      }
     }
 
-    // 2. Apply via official PrivacyScreen plugin
+    // 2. Apply via custom SecurityPlugin (Capacitor bridge)
+    const secPlugin = getSecurityPlugin();
+    if (secPlugin && typeof secPlugin.setSecureMode === 'function') {
+      secPlugin.setSecureMode({ enabled: isSecured }).catch(e => console.warn('[SecurityPlugin] setSecureMode error:', e));
+    }
+
+    // 3. Apply via official PrivacyScreen plugin (Capacitor bridge)
     const privPlugin = getPrivacyScreenPlugin();
     if (privPlugin) {
-      if (enabled && typeof privPlugin.enable === 'function') {
+      if (isSecured && typeof privPlugin.enable === 'function') {
         privPlugin.enable().catch(e => console.warn('[PrivacyScreen] enable error:', e));
-      } else if (!enabled && typeof privPlugin.disable === 'function') {
+      } else if (!isSecured && typeof privPlugin.disable === 'function') {
         privPlugin.disable().catch(e => console.warn('[PrivacyScreen] disable error:', e));
       }
     }
@@ -563,7 +585,7 @@ window.toggleHideAmountsSetting = toggleHideAmountsSetting;
 
 function toggleScreenshotBlockSetting(checked) {
   try {
-    const isAndroid = typeof Capacitor !== 'undefined' && Capacitor.getPlatform && Capacitor.getPlatform() === 'android';
+    const isAndroid = isAndroidNativePlatform();
     if (!isAndroid) {
       const row = document.getElementById('settings-screenshot-block-row');
       if (row) row.style.display = 'none';
@@ -645,6 +667,12 @@ async function toggleBiometrics(checked) {
   window.toggleHideAmountsSetting = toggleHideAmountsSetting;
   window.toggleScreenshotBlockSetting = toggleScreenshotBlockSetting;
   window.toggleBiometrics = toggleBiometrics;
+  window.isAndroidNativePlatform = isAndroidNativePlatform;
+
+  // Auto-apply secure mode on service initialization
+  try {
+    applyNativeSecureMode();
+  } catch (_) {}
 
   return {
     showLockScreen: showLockScreen,
@@ -672,6 +700,7 @@ async function toggleBiometrics(checked) {
     applyNativeSecureMode: applyNativeSecureMode,
     toggleHideAmountsSetting: toggleHideAmountsSetting,
     toggleScreenshotBlockSetting: toggleScreenshotBlockSetting,
-    toggleBiometrics: toggleBiometrics
+    toggleBiometrics: toggleBiometrics,
+    isAndroidNativePlatform: isAndroidNativePlatform
   };
 }));

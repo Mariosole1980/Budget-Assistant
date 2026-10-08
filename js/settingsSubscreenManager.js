@@ -140,7 +140,9 @@ window.onSubscreenShow_security = function () {
   const hideAmountsCheckbox = document.getElementById('settings-hide-amounts');
   if (hideAmountsCheckbox) hideAmountsCheckbox.checked = hideAmountsEnabled;
 
-  const isAndroid = typeof Capacitor !== 'undefined' && Capacitor.getPlatform && Capacitor.getPlatform() === 'android';
+  const isAndroid = (typeof isAndroidNativePlatform === 'function')
+    ? isAndroidNativePlatform()
+    : (!!((typeof window !== 'undefined' && window.NativeApp) || ((typeof window !== 'undefined' && window.Capacitor && ((window.Capacitor.getPlatform && window.Capacitor.getPlatform() === 'android') || (window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform())))) || (typeof Capacitor !== 'undefined' && Capacitor.getPlatform && Capacitor.getPlatform() === 'android')));
   const screenshotRow = document.getElementById('settings-screenshot-block-row');
   if (!isAndroid) {
     if (screenshotRow) screenshotRow.style.display = 'none';

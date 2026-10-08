@@ -153,3 +153,20 @@ test('SecurityPinService: toggleScreenshotBlockSetting toggles local storage', (
   SecurityPinService.toggleScreenshotBlockSetting(false);
   assert.strictEqual(localStorage.getItem('settings_screenshot_block'), 'false');
 });
+
+test('SecurityPinService: isAndroidNativePlatform detects NativeApp and Capacitor', () => {
+  assert.strictEqual(SecurityPinService.isAndroidNativePlatform(), true);
+});
+
+test('SecurityPinService: applyNativeSecureMode calls NativeApp.setSecureMode if present', () => {
+  let calledWith = null;
+  global.window.NativeApp = {
+    setSecureMode: (val) => { calledWith = val; }
+  };
+  SecurityPinService.applyNativeSecureMode(true);
+  assert.strictEqual(calledWith, true);
+  SecurityPinService.applyNativeSecureMode(false);
+  assert.strictEqual(calledWith, false);
+  delete global.window.NativeApp;
+});
+

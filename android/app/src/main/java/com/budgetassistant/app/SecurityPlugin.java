@@ -165,13 +165,14 @@ public class SecurityPlugin extends Plugin {
     @PluginMethod
     public void setSecureMode(final PluginCall call) {
         final Boolean enabled = call.getBoolean("enabled", false);
+        final boolean isEnabled = (enabled != null && enabled);
 
         try {
             Context context = getContext();
             SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-            prefs.edit().putBoolean(KEY_SECURE_MODE, enabled).apply();
+            prefs.edit().putBoolean(KEY_SECURE_MODE, isEnabled).commit();
 
-            applySecureMode(enabled);
+            applySecureMode(isEnabled);
             call.resolve();
         } catch (Exception e) {
             call.reject("Failed to set secure mode: " + e.getMessage());
@@ -190,6 +191,7 @@ public class SecurityPlugin extends Plugin {
                     if (window != null) {
                         if (enabled) {
                             window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE);
+                            window.addFlags(WindowManager.LayoutParams.FLAG_SECURE);
                         } else {
                             window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE);
                         }
