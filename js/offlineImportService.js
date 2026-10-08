@@ -362,7 +362,10 @@
         const mapFn = typeof mapTransactionToDb === 'function' ? mapTransactionToDb : (t => Object.assign({}, t));
         const toInsert = filteredLocalTrans.map(t => {
           const copy = mapFn(t);
-          delete copy.fx_snapshot;
+          if (copy) {
+            delete copy.fx_snapshot;
+            if (userId) copy.user_id = userId;
+          }
           return copy;
         }).filter(Boolean);
 

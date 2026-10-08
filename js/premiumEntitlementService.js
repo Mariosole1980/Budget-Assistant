@@ -188,7 +188,14 @@
     var uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     var genUuid = typeof generateUUID === 'function' ? generateUUID : (typeof FormatUtils !== 'undefined' && typeof FormatUtils.generateUUID === 'function' ? FormatUtils.generateUUID : null);
     var id = (t.id && uuidRegex.test(String(t.id))) ? String(t.id) : (genUuid ? genUuid() : (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : 'tx_' + Date.now()));
-    var userId = t.user_id || (appState.currentUser ? appState.currentUser.id : null);
+    var currentUid = (appState.currentUser && appState.currentUser.id && uuidRegex.test(String(appState.currentUser.id))) ? appState.currentUser.id : null;
+    var rawUid = (t.user_id && typeof t.user_id === 'string') ? t.user_id.trim() : '';
+    var isValidUserUuid = rawUid && rawUid !== 'guest' && rawUid !== 'offline-user' && uuidRegex.test(rawUid);
+    var userId = isValidUserUuid ? rawUid : currentUid;
+    // When syncing to cloud as authenticated user, RLS strictly requires user_id = auth.uid()
+    if (currentUid && userId !== currentUid) {
+      userId = currentUid;
+    }
     var familyId = t.family_id || (appState.userProfile ? appState.userProfile.family_id : null);
 
     var dbTx = {

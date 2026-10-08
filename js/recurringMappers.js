@@ -36,9 +36,21 @@
    */
   function mapTemplateToDb(t) {
     if (!t) return null;
+    var uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    var genUuid = typeof generateUUID === 'function' ? generateUUID : (typeof FormatUtils !== 'undefined' && typeof FormatUtils.generateUUID === 'function' ? FormatUtils.generateUUID : null);
+    var templateId = t.id ? String(t.id) : (genUuid ? genUuid() : (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : '00000000-0000-4000-8000-' + Date.now().toString(16).padStart(12, '0')));
+    var appState = (typeof state !== 'undefined' ? state : (typeof window !== 'undefined' ? window.state : {})) || {};
+    var currentUid = (appState.currentUser && appState.currentUser.id && uuidRegex.test(String(appState.currentUser.id))) ? appState.currentUser.id : null;
+    var rawUid = (t.user_id && typeof t.user_id === 'string') ? t.user_id.trim() : '';
+    var isValidUserUuid = rawUid && rawUid !== 'guest' && rawUid !== 'offline-user' && uuidRegex.test(rawUid);
+    var templateUid = isValidUserUuid ? rawUid : currentUid;
+    if (currentUid && templateUid !== currentUid) {
+      templateUid = currentUid;
+    }
+
     return {
-      id:           t.id,
-      user_id:      t.user_id      || null,
+      id:           templateId,
+      user_id:      templateUid,
       family_id:    t.family_id    || null,
       is_shared:    !!t.is_shared,
       amount:       parseFloat(t.amount || 0),

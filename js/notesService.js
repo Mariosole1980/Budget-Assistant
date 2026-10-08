@@ -1482,13 +1482,19 @@ function saveNotesTrash(trash) {
 
 // Build the DB record for a note (single source of truth for the upsert shape).
 function mapNoteToDb(n, userId, familyId) {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const genUuid = typeof generateUUID === 'function' ? generateUUID : (typeof FormatUtils !== 'undefined' && typeof FormatUtils.generateUUID === 'function' ? FormatUtils.generateUUID : null);
+  const noteId = n.id ? String(n.id) : (genUuid ? genUuid() : (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : '00000000-0000-4000-8000-' + Date.now().toString(16).padStart(12, '0')));
+  const rawUid = (n.user_id && typeof n.user_id === 'string') ? n.user_id.trim() : '';
+  const isValidUserUuid = rawUid && rawUid !== 'guest' && rawUid !== 'offline-user' && uuidRegex.test(rawUid);
+  const noteUid = isValidUserUuid ? rawUid : userId;
   return {
-    id: n.id,
+    id: noteId,
     title: n.title,
     body: n.body,
     type: n.type,
     pinned: !!n.pinned,
-    user_id: n.user_id === 'offline-user' ? userId : n.user_id,
+    user_id: noteUid,
     family_id: familyId,
     reminder_at: n.reminder_at || null,
     status: n.status || 'active',

@@ -452,7 +452,11 @@ async function autoSyncMissingTransactionsToCloud(cloudTransactions, userId) {
 
   if (missingInCloud.length > 0) {
     console.info(`[AutoSync] Uploading ${missingInCloud.length} active local transactions to cloud...`);
-    const dbPayloads = missingInCloud.map(mapTransactionToDb).filter(Boolean);
+    const dbPayloads = missingInCloud.map(t => {
+      const p = mapTransactionToDb(t);
+      if (p && userId) p.user_id = userId;
+      return p;
+    }).filter(Boolean);
     const successfullyUploaded = [];
     for (let i = 0; i < dbPayloads.length; i += 50) {
       const batch = dbPayloads.slice(i, i + 50);

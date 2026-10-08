@@ -706,7 +706,7 @@ async function handleGoogleAuth() {
           if (googleBtn) {
             googleBtn.innerHTML = `<i class="fa-brands fa-google google-icon"></i> <span>${state.lang === 'el' ? 'Μετάβαση σε Browser...' : 'Redirecting...'}</span>`;
           }
-          const nativeRedirectUrl = 'https://budget-assistant-pwa.pages.dev';
+          const nativeRedirectUrl = 'budgetassistant://auth-callback';
           const { data, error } = await state.supabaseClient.auth.signInWithOAuth({
             provider: 'google',
             options: {

@@ -111,6 +111,18 @@ async function processSyncQueue(options = {}) {
         }
         const { description, is_shared, photo_local_uri, photo_url, receipt, fx_snapshot, ...dbPayload } = mapTransactionToDb(transaction);
 
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (state.currentUser && state.currentUser.id) {
+          dbPayload.user_id = state.currentUser.id;
+          if (transaction) transaction.user_id = state.currentUser.id;
+        }
+        if (!uuidRegex.test(String(dbPayload.id))) {
+          const genUuid = typeof generateUUID === 'function' ? generateUUID : (typeof FormatUtils !== 'undefined' && typeof FormatUtils.generateUUID === 'function' ? FormatUtils.generateUUID : null);
+          const newId = genUuid ? genUuid() : (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : '00000000-0000-4000-8000-' + Date.now().toString(16).padStart(12, '0'));
+          dbPayload.id = newId;
+          if (transaction) transaction.id = newId;
+        }
+
         // PREMIUM GATE: Free plan allows up to PREMIUM_LIMITS.cloudTxPerMonth
         // cloud-synced transactions per month. If at the limit and not Premium,
         // defer this save (keep it in the queue for later) instead of syncing.
@@ -240,8 +252,10 @@ async function processSyncQueue(options = {}) {
         itemSucceeded = true;
       } else if (item.action === 'delete') {
         const transId = item.payload;
-        if (!transId || String(transId).startsWith('recurring_')) {
-          console.warn('Skipping invalid sync queue delete item (missing or non-uuid id):', item);
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (!transId || String(transId).startsWith('recurring_') || !uuidRegex.test(String(transId))) {
+          console.warn('Skipping invalid or non-UUID sync queue delete item:', item);
+          itemSucceeded = true;
           continue;
         }
         // Status model: offline deletes soft-delete via status='deleted' so the
@@ -272,10 +286,15 @@ async function processSyncQueue(options = {}) {
         itemSucceeded = true;
       } else if (item.action === 'save_template') {
         const template = item.payload;
+        const dbTemplate = mapTemplateToDb(template);
+        if (state.currentUser && state.currentUser.id && dbTemplate) {
+          dbTemplate.user_id = state.currentUser.id;
+          if (template) template.user_id = state.currentUser.id;
+        }
         const { error } = await promiseTimeout(
           state.supabaseClient
             .from('recurring_templates')
-            .upsert([mapTemplateToDb(template)]),
+            .upsert([dbTemplate]),
           15000
         );
         if (error) {
@@ -283,7 +302,10 @@ async function processSyncQueue(options = {}) {
             throw error;
           }
           console.warn(`Skipping invalid save_template queue item:`, error);
-          remaining.push(item);
+          const isPermanent = error.code === '22P02' || (error.message && (error.message.includes('uuid') || error.message.includes('foreign key') || error.message.includes('syntax')));
+          if (!isPermanent) {
+            remaining.push(item);
+          }
           continue;
         }
         itemSucceeded = true;
@@ -355,7 +377,10 @@ async function processSyncQueue(options = {}) {
             throw error;
           }
           console.warn('Skipping invalid save_note queue item:', error);
-          remaining.push(item);
+          const isPermanent = error.code === '22P02' || (error.message && (error.message.includes('uuid') || error.message.includes('foreign key') || error.message.includes('syntax')));
+          if (!isPermanent) {
+            remaining.push(item);
+          }
           continue;
         }
         itemSucceeded = true;
