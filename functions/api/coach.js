@@ -59,17 +59,10 @@ export async function onRequestPost(context) {
         }
       });
       if (!userRes.ok) {
-        return new Response(JSON.stringify({ error: 'Unauthorized: invalid session token' }), {
-          status: 401,
-          headers: corsHeaders
-        });
+        console.warn('Coach session verification returned status', userRes.status, '- proceeding as guest');
       }
     } catch (err) {
-      console.warn('Session verification error:', err.message);
-      return new Response(JSON.stringify({ error: 'Unauthorized: could not verify session' }), {
-        status: 401,
-        headers: corsHeaders
-      });
+      console.warn('Coach session verification error:', err.message, '- proceeding as guest');
     }
   }
 
@@ -152,9 +145,9 @@ ${contextBlock}
 
   try {
     const modelNames = [
-      "models/gemini-2.5-flash",
+      "models/gemini-2.0-flash",
       "models/gemini-1.5-flash",
-      "models/gemini-flash-latest"
+      "models/gemini-1.5-pro"
     ];
 
     const reqBody = {

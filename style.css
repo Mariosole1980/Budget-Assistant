@@ -9171,6 +9171,8 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
   resize: none;
   overflow-y: auto;
   transition: border-color 0.2s ease;
+  user-select: text !important;
+  -webkit-user-select: text !important;
 }
 
 #advisor-chat-input:focus {
@@ -9195,6 +9197,16 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
   transform: scale(0.92);
 }
 
+.advisor-paste-btn {
+  background: var(--overlay-050, rgba(255, 255, 255, 0.05));
+  color: var(--text-secondary, #94a3b8);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+}
+
+.advisor-paste-btn:hover {
+  color: var(--accent, #38bdf8);
+}
+
 .advisor-mic-btn {
   background: var(--overlay-050, rgba(255, 255, 255, 0.05));
   color: var(--text-secondary, #94a3b8);
@@ -9211,6 +9223,16 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
   box-shadow: 0 4px 12px rgba(var(--accent-rgb, 56, 189, 248), 0.25);
 }
 
+#advisor-chat-log,
+.chat-msg-row,
+.chat-msg-bubble,
+.chat-msg-bubble * {
+  user-select: text !important;
+  -webkit-user-select: text !important;
+  -moz-user-select: text !important;
+  -ms-user-select: text !important;
+}
+
 .chat-msg-row {
   display: flex;
   width: 100%;
@@ -9223,6 +9245,47 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
 
 .chat-msg-row.advisor {
   justify-content: flex-start;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.chat-msg-copy-btn {
+  background: var(--overlay-050, rgba(255, 255, 255, 0.06));
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+  border-radius: 8px;
+  color: var(--text-secondary, #94a3b8);
+  font-size: 11px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.18s ease;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  flex-shrink: 0;
+  margin-bottom: 4px;
+  opacity: 0.75;
+}
+
+.chat-msg-copy-btn:hover {
+  background: rgba(56, 189, 248, 0.15);
+  border-color: rgba(56, 189, 248, 0.4);
+  color: #38bdf8;
+  opacity: 1;
+}
+
+.chat-msg-copy-btn:active {
+  transform: scale(0.92);
+}
+
+.chat-msg-copy-btn.copied {
+  background: rgba(34, 197, 94, 0.15);
+  border-color: rgba(34, 197, 94, 0.4);
+  color: #22c55e;
+  opacity: 1;
 }
 
 .chat-msg-bubble {

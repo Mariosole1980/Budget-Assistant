@@ -61,24 +61,21 @@ export async function onRequestPost(context) {
           'Authorization': `Bearer ${token}`
         }
       });
-      if (!userRes.ok) {
-        return new Response(JSON.stringify({ error: 'Unauthorized: invalid session token' }), {
-          status: 401,
-          headers: corsHeaders
-        });
+      if (userRes.ok) {
+        try {
+          const userData = await userRes.json();
+          if (userData && userData.id) {
+            authenticatedUserId = userData.id;
+          }
+        } catch (_) { /* ignore parse errors */ }
+      } else {
+        // Token expired or invalid: proceed as unauthenticated / guest rather than failing with 401
+        console.warn('Session verification returned status', userRes.status, '- proceeding as guest');
+        authenticatedUserId = null;
       }
-      try {
-        const userData = await userRes.json();
-        if (userData && userData.id) {
-          authenticatedUserId = userData.id;
-        }
-      } catch (_) { /* ignore parse errors */ }
     } catch (err) {
-      console.warn('Session verification error:', err.message);
-      return new Response(JSON.stringify({ error: 'Unauthorized: could not verify session' }), {
-        status: 401,
-        headers: corsHeaders
-      });
+      console.warn('Session verification error:', err.message, '- proceeding as guest');
+      authenticatedUserId = null;
     }
   }
 
@@ -315,10 +312,9 @@ ${statsStr}
 
   try {
     const modelsToTry = [
-      'models/gemini-2.5-flash',
-      'models/gemini-flash-lite-latest',
+      'models/gemini-2.0-flash',
       'models/gemini-1.5-flash',
-      'models/gemini-flash-latest'
+      'models/gemini-1.5-pro'
     ];
     // Build request body dynamically
     const reqBody = {
@@ -358,7 +354,7 @@ ${statsStr}
         headers: corsHeaders
       });
     } else {
-      return new Response(JSON.stringify({ error: "Gemini API failure" }), {
+      return new Response(JSON.stringify({ error: result.errorText ? `Gemini API failure: ${result.errorText.substring(0, 300)}` : "Gemini API failure" }), {
         status: result.status,
         headers: corsHeaders
       });

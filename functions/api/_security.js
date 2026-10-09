@@ -199,9 +199,18 @@ async function generateWithGeminiFallback({ env, modelNames, reqBody, timeoutMs 
         }
     }
     if (response && response.ok) {
-        const data = await response.json();
-        const text = data.candidates[0].content.parts[0].text;
-        return { ok: true, text };
+        try {
+            const data = await response.json();
+            const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (text) {
+                return { ok: true, text };
+            }
+            lastErrText = data?.promptFeedback?.blockReason
+                ? `Prompt blocked by safety filter: ${data.promptFeedback.blockReason}`
+                : 'Gemini returned empty candidate text';
+        } catch (jsonErr) {
+            lastErrText = 'Error parsing Gemini JSON: ' + jsonErr.message;
+        }
     }
     return { ok: false, status: response && response.status ? response.status : 502, errorText: lastErrText };
 }

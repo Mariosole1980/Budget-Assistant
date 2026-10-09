@@ -566,6 +566,113 @@ async function syncAdvisorConversations() {
 }
 window.syncAdvisorConversations = syncAdvisorConversations;
 
+async function copyTextToClipboard(text) {
+  if (!text) return false;
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch (e) {
+    console.warn('[Clipboard] navigator.clipboard.writeText failed:', e);
+  }
+  try {
+    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Clipboard) {
+      await window.Capacitor.Plugins.Clipboard.write({ string: text });
+      return true;
+    }
+  } catch (e) {
+    console.warn('[Clipboard] Capacitor Clipboard.write failed:', e);
+  }
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    ta.style.top = '0';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    const successful = document.execCommand('copy');
+    document.body.removeChild(ta);
+    return successful;
+  } catch (err) {
+    console.error('[Clipboard] Fallback copy failed:', err);
+    return false;
+  }
+}
+window.copyTextToClipboard = copyTextToClipboard;
+
+async function copyAdvisorMessage(bubbleEl, btnEl) {
+  if (!bubbleEl) return;
+  const text = (bubbleEl.innerText || bubbleEl.textContent || '').trim();
+  if (!text) return;
+
+  const success = await copyTextToClipboard(text);
+  if (success) {
+    if (btnEl) {
+      btnEl.classList.add('copied');
+      btnEl.innerHTML = '<i class="fa-solid fa-check"></i>';
+      setTimeout(() => {
+        btnEl.classList.remove('copied');
+        btnEl.innerHTML = '<i class="fa-solid fa-copy"></i>';
+      }, 2000);
+    }
+    const copiedMsg = (window.TRANSLATIONS && window.TRANSLATIONS[state.lang || 'el'] && window.TRANSLATIONS[state.lang || 'el']['advisor_chat_copied']) || (state.lang === 'el' ? '✓ Αντιγράφηκε στο πρόχειρο' : '✓ Copied to clipboard');
+    if (typeof showToast === 'function') {
+      showToast(copiedMsg, 'info');
+    }
+  }
+}
+window.copyAdvisorMessage = copyAdvisorMessage;
+
+async function pasteToAdvisorInput() {
+  const inp = document.getElementById('advisor-chat-input');
+  if (!inp) return;
+  try {
+    let clipText = '';
+    if (navigator.clipboard && navigator.clipboard.readText) {
+      try {
+        clipText = await navigator.clipboard.readText();
+      } catch (clipErr) {
+        console.warn('[AdvisorChat] navigator.clipboard.readText error:', clipErr);
+      }
+    }
+    if (!clipText && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Clipboard) {
+      try {
+        const res = await window.Capacitor.Plugins.Clipboard.read();
+        clipText = res ? (res.value || res.string || '') : '';
+      } catch (capErr) {
+        console.warn('[AdvisorChat] Capacitor Clipboard.read error:', capErr);
+      }
+    }
+    if (clipText) {
+      const start = inp.selectionStart != null ? inp.selectionStart : inp.value.length;
+      const end = inp.selectionEnd != null ? inp.selectionEnd : inp.value.length;
+      const before = inp.value.substring(0, start);
+      const after = inp.value.substring(end);
+      inp.value = before + clipText + after;
+      inp.selectionStart = inp.selectionEnd = start + clipText.length;
+      inp.focus();
+      handleAdvisorChatInput(inp);
+      const pasteMsg = (window.TRANSLATIONS && window.TRANSLATIONS[state.lang || 'el'] && window.TRANSLATIONS[state.lang || 'el']['advisor_chat_paste']) || (state.lang === 'el' ? '✓ Επικολλήθηκε' : '✓ Pasted');
+      if (typeof showToast === 'function') {
+        showToast(pasteMsg, 'info');
+      }
+    } else {
+      const emptyMsg = state.lang === 'el' ? 'Το πρόχειρο είναι άδειο' : 'Clipboard is empty';
+      if (typeof showToast === 'function') {
+        showToast(emptyMsg, 'warning');
+      }
+      inp.focus();
+    }
+  } catch (err) {
+    console.warn('[AdvisorChat] pasteToAdvisorInput error:', err);
+    inp.focus();
+  }
+}
+window.pasteToAdvisorInput = pasteToAdvisorInput;
+
 function appendChatMessage(sender, htmlContent, persist = true) {
   const chatLog = document.getElementById('advisor-chat-log');
   if (!chatLog) return;
@@ -582,6 +689,22 @@ function appendChatMessage(sender, htmlContent, persist = true) {
   }
 
   row.appendChild(bubble);
+
+  if (sender === 'advisor') {
+    const copyBtn = document.createElement('button');
+    copyBtn.type = 'button';
+    copyBtn.className = 'chat-msg-copy-btn';
+    const copyTitle = (window.TRANSLATIONS && window.TRANSLATIONS[state.lang || 'el'] && window.TRANSLATIONS[state.lang || 'el']['advisor_chat_copy']) || (state.lang === 'el' ? 'Αντιγραφή' : 'Copy');
+    copyBtn.setAttribute('title', copyTitle);
+    copyBtn.setAttribute('aria-label', copyTitle);
+    copyBtn.innerHTML = '<i class="fa-solid fa-copy"></i>';
+    copyBtn.onclick = function (e) {
+      e.stopPropagation();
+      copyAdvisorMessage(bubble, copyBtn);
+    };
+    row.appendChild(copyBtn);
+  }
+
   chatLog.appendChild(row);
 
   chatLog.scrollTop = chatLog.scrollHeight;
@@ -2179,6 +2302,9 @@ var submitCoachTransaction = async function (amount, type, category, subcategory
   windowObj.runCoachWhatIfSimulation = runCoachWhatIfSimulation;
   windowObj.runCoachSearchQuery = runCoachSearchQuery;
   windowObj.processCoachQuery = processCoachQuery;
+  windowObj.copyTextToClipboard = copyTextToClipboard;
+  windowObj.copyAdvisorMessage = copyAdvisorMessage;
+  windowObj.pasteToAdvisorInput = pasteToAdvisorInput;
   windowObj.submitCoachTransaction = submitCoachTransaction;
 
   return {
@@ -2202,6 +2328,9 @@ var submitCoachTransaction = async function (amount, type, category, subcategory
     updateAdvisorMessageSavedState: updateAdvisorMessageSavedState,
     scheduleAdvisorConversationSync: scheduleAdvisorConversationSync,
     appendChatMessage: appendChatMessage,
+    copyTextToClipboard: copyTextToClipboard,
+    copyAdvisorMessage: copyAdvisorMessage,
+    pasteToAdvisorInput: pasteToAdvisorInput,
     coachFilterCategory: coachFilterCategory,
     coachOpenBudgets: coachOpenBudgets,
     coachOpenReports: coachOpenReports,

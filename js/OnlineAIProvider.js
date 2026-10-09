@@ -5,6 +5,17 @@ window.OnlineAIProvider = (function () {
       try {
         const { data } = await window.state.supabaseClient.auth.getSession();
         if (data && data.session) {
+          const nowSec = Math.floor(Date.now() / 1000);
+          if (data.session.expires_at && data.session.expires_at < nowSec + 60) {
+            try {
+              const refreshRes = await window.state.supabaseClient.auth.refreshSession();
+              if (refreshRes && refreshRes.data && refreshRes.data.session) {
+                return `Bearer ${refreshRes.data.session.access_token}`;
+              }
+            } catch (refErr) {
+              console.warn('[OnlineAIProvider] Session refresh error:', refErr);
+            }
+          }
           return `Bearer ${data.session.access_token}`;
         }
       } catch (e) {
@@ -49,17 +60,28 @@ window.OnlineAIProvider = (function () {
       if (authHeader) {
         headers['Authorization'] = authHeader;
       }
-      const response = await fetch(targetUrl, {
+      const payload = {
+        queryText,
+        categoriesStr,
+        accountsStr,
+        subcategoriesStr,
+        currentDate: currDate
+      };
+      let response = await fetch(targetUrl, {
         method: 'POST',
         headers: headers,
-        body: JSON.stringify({
-          queryText,
-          categoriesStr,
-          accountsStr,
-          subcategoriesStr,
-          currentDate: currDate
-        })
+        body: JSON.stringify(payload)
       });
+
+      // Defensive fallback: if 401 returned due to invalid/expired token, retry once as guest
+      if (response.status === 401 && headers['Authorization']) {
+        log('Got 401 with Authorization header, retrying once as guest...');
+        response = await fetch(targetUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+      }
 
       log(`Response status: ${response.status}`);
 
@@ -96,11 +118,22 @@ window.OnlineAIProvider = (function () {
       if (authHeader) {
         headers['Authorization'] = authHeader;
       }
-      const response = await fetch(targetUrl, {
+      const payload = { mode: 'advisor', queryText, stats, history };
+      let response = await fetch(targetUrl, {
         method: 'POST',
         headers: headers,
-        body: JSON.stringify({ mode: 'advisor', queryText, stats, history })
+        body: JSON.stringify(payload)
       });
+
+      // Defensive fallback: if 401 returned due to invalid/expired token, retry once as guest
+      if (response.status === 401 && headers['Authorization']) {
+        log('Got 401 with Authorization header in Advisor, retrying once as guest...');
+        response = await fetch(targetUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+      }
 
       log(`Advisor Response status: ${response.status}`);
 

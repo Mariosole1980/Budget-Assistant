@@ -7,6 +7,8 @@
         <item name="colorPrimary">@color/colorPrimary</item>
         <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
         <item name="colorAccent">@color/colorAccent</item>
+        <item name="android:windowActionModeOverlay">true</item>
+        <item name="windowActionModeOverlay">true</item>
         <!-- The main theme keeps a SOLID COLOR window background (matching the
              saved theme) for maximum compatibility — a large bitmap window
              background on the post-splash main theme is not needed: the branded

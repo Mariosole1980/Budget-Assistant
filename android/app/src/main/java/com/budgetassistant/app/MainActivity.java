@@ -16,6 +16,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
 import android.util.Log;
+import android.view.ActionMode;
 import android.view.Gravity;
 import android.view.PixelCopy;
 import android.view.View;
@@ -720,16 +721,13 @@ public class MainActivity extends BridgeActivity {
                 android.webkit.WebView wv = bridge.getWebView();
                 // Force scale back to 100%
                 wv.setInitialScale(100);
-                // Use JS to forcefully reset the viewport meta tag and scroll position
+                // Use JS to forcefully reset the viewport meta tag without resetting page scroll
                 wv.evaluateJavascript(
                     "(function(){" +
                     "  var vp = document.querySelector('meta[name=viewport]');" +
                     "  if(vp){" +
                     "    vp.setAttribute('content','width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no,shrink-to-fit=no,viewport-fit=cover');" +
                     "  }" +
-                    "  window.scrollTo(0,0);" +
-                    "  document.body.scrollTop=0;" +
-                    "  document.documentElement.scrollTop=0;" +
                     "  if(window.visualViewport && window.visualViewport.scale !== 1){" +
                     "    document.body.style.zoom='1';" +
                     "  }" +
@@ -739,6 +737,64 @@ public class MainActivity extends BridgeActivity {
             }
         } catch (Exception e) {
             Log.w(TAG, "Could not reset WebView zoom", e);
+        }
+    }
+
+    // =========================================================================
+    // ACTION MODE SAFETY (Crash prevention on Samsung / Android long-press)
+    // =========================================================================
+    // When a user long-presses in an input/textarea, Android/Samsung attempts to
+    // start a floating ActionMode toolbar. On some OEM builds / Chromium versions,
+    // this can throw InflateException, Resources$NotFoundException, or BadTokenException
+    // which kills the WebView renderer process. These overrides safely intercept
+    // and degrade gracefully to primary ActionMode or null instead of crashing.
+    // =========================================================================
+
+    @Override
+    public ActionMode onWindowStartingActionMode(ActionMode.Callback callback, int type) {
+        try {
+            return super.onWindowStartingActionMode(callback, type);
+        } catch (Throwable t) {
+            Log.w(TAG, "Suppressed crash in onWindowStartingActionMode(type=" + type + ")", t);
+            try {
+                return super.onWindowStartingActionMode(callback, ActionMode.TYPE_PRIMARY);
+            } catch (Throwable t2) {
+                return null;
+            }
+        }
+    }
+
+    @Override
+    public ActionMode onWindowStartingActionMode(ActionMode.Callback callback) {
+        try {
+            return super.onWindowStartingActionMode(callback);
+        } catch (Throwable t) {
+            Log.w(TAG, "Suppressed crash in onWindowStartingActionMode", t);
+            return null;
+        }
+    }
+
+    @Override
+    public ActionMode startActionMode(ActionMode.Callback callback) {
+        try {
+            return super.startActionMode(callback);
+        } catch (Throwable t) {
+            Log.w(TAG, "Suppressed crash in startActionMode", t);
+            return null;
+        }
+    }
+
+    @Override
+    public ActionMode startActionMode(ActionMode.Callback callback, int type) {
+        try {
+            return super.startActionMode(callback, type);
+        } catch (Throwable t) {
+            Log.w(TAG, "Suppressed crash in startActionMode(type=" + type + ")", t);
+            try {
+                return super.startActionMode(callback, ActionMode.TYPE_PRIMARY);
+            } catch (Throwable t2) {
+                return null;
+            }
         }
     }
 
