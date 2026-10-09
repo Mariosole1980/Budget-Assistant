@@ -694,16 +694,22 @@ public class MainActivity extends BridgeActivity {
                 settings.setMinimumLogicalFontSize(1);
                 // Force initial scale to 100% — prevents Samsung Pass autofill zoom
                 wv.setInitialScale(100);
-                // SAMSUNG PASS FIX: Disable the Android AutofillManager for
-                // this WebView. Samsung Pass (and other autofill providers)
-                // trigger an unwanted zoom when the AutofillManager focuses
-                // input fields. This is the ROOT CAUSE that CSS/JS/viewport
-                // meta cannot fix — the zoom happens at the native framework
-                // level before any web code runs. Samsung Pass still works
-                // via keyboard integration (Samsung Keyboard suggestions).
+                // SAMSUNG PASS & LONG-PRESS FIX:
+                // Set IMPORTANT_FOR_AUTOFILL_YES (or keep child accessibility/autofill enabled).
+                // Using IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS stripped the virtual DOM
+                // hierarchy from Samsung's SemClipboardManager / SemFloatingToolbar on long-press,
+                // causing an uncaught exception in the framework and crashing the WebView renderer!
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    wv.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS);
+                    wv.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_YES);
                 }
+                // Clear any native context menu to avoid unwanted native popups / inflation crashes
+                wv.setOnCreateContextMenuListener((menu, v, menuInfo) -> {
+                    if (menu != null) {
+                        try {
+                            menu.clear();
+                        } catch (Throwable ignored) {}
+                    }
+                });
             }
         } catch (Exception e) {
             Log.w(TAG, "Could not lock WebView settings", e);

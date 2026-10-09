@@ -7342,7 +7342,12 @@
               <textarea id="advisor-chat-input" rows="1"
                 placeholder="Ρωτήστε για τα οικονομικά σας..." data-i18n-placeholder="advisor_chat_placeholder"
                 spellcheck="false" autocorrect="off" autocapitalize="sentences"
-                oninput="handleAdvisorChatInput(this)" onkeydown="handleAdvisorChatKeydown(event)"></textarea>
+                oninput="handleAdvisorChatInput(this)" onkeydown="handleAdvisorChatKeydown(event)"
+                oncontextmenu="if(typeof handleAdvisorInputContextMenu==='function'){return handleAdvisorInputContextMenu(event);} else { event.preventDefault(); return false; }"
+                ontouchstart="if(typeof handleAdvisorInputTouchStart==='function'){handleAdvisorInputTouchStart(event);}"
+                ontouchmove="if(typeof handleAdvisorInputTouchMove==='function'){handleAdvisorInputTouchMove(event);}"
+                ontouchend="if(typeof handleAdvisorInputTouchEnd==='function'){handleAdvisorInputTouchEnd(event);}"
+                ontouchcancel="if(typeof handleAdvisorInputTouchEnd==='function'){handleAdvisorInputTouchEnd(event);}"></textarea>
               <button type="button" id="advisor-chat-paste-btn" class="advisor-input-action-btn advisor-paste-btn" onclick="pasteToAdvisorInput()"
                 title="Επικόλληση" aria-label="Επικόλληση" data-i18n-title="advisor_chat_paste"><i class="fa-solid fa-paste"></i></button>
               <button type="button" id="advisor-chat-mic-btn" class="advisor-input-action-btn advisor-mic-btn" onclick="openVoiceAIModal({ autoStart: true, target: 'advisor' })"

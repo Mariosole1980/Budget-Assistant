@@ -9173,6 +9173,7 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
   transition: border-color 0.2s ease;
   user-select: text !important;
   -webkit-user-select: text !important;
+  -webkit-touch-callout: none !important;
 }
 
 #advisor-chat-input:focus {

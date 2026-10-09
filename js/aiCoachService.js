@@ -626,19 +626,74 @@ async function copyAdvisorMessage(bubbleEl, btnEl) {
 }
 window.copyAdvisorMessage = copyAdvisorMessage;
 
+let _advisorTouchTimer = null;
+let _advisorTouchStartPos = { x: 0, y: 0 };
+let _lastAdvisorPasteTime = 0;
+
+function handleAdvisorInputTouchStart(e) {
+  if (!e || !e.touches || e.touches.length !== 1) return;
+  const touch = e.touches[0];
+  _advisorTouchStartPos = { x: touch.clientX, y: touch.clientY };
+  if (_advisorTouchTimer) {
+    clearTimeout(_advisorTouchTimer);
+    _advisorTouchTimer = null;
+  }
+  _advisorTouchTimer = setTimeout(() => {
+    _advisorTouchTimer = null;
+    const now = Date.now();
+    if (now - _lastAdvisorPasteTime > 800) {
+      _lastAdvisorPasteTime = now;
+      if (typeof pasteToAdvisorInput === 'function') {
+        pasteToAdvisorInput();
+      }
+    }
+  }, 400);
+}
+
+function handleAdvisorInputTouchMove(e) {
+  if (!_advisorTouchTimer || !e || !e.touches || !e.touches[0]) return;
+  const touch = e.touches[0];
+  const dx = Math.abs(touch.clientX - _advisorTouchStartPos.x);
+  const dy = Math.abs(touch.clientY - _advisorTouchStartPos.y);
+  if (dx > 12 || dy > 12) {
+    clearTimeout(_advisorTouchTimer);
+    _advisorTouchTimer = null;
+  }
+}
+
+function handleAdvisorInputTouchEnd() {
+  if (_advisorTouchTimer) {
+    clearTimeout(_advisorTouchTimer);
+    _advisorTouchTimer = null;
+  }
+}
+
+function handleAdvisorInputContextMenu(e) {
+  if (e) {
+    if (typeof e.preventDefault === 'function') e.preventDefault();
+    if (typeof e.stopPropagation === 'function') e.stopPropagation();
+  }
+  if (_advisorTouchTimer) {
+    clearTimeout(_advisorTouchTimer);
+    _advisorTouchTimer = null;
+  }
+  const now = Date.now();
+  if (now - _lastAdvisorPasteTime > 800) {
+    _lastAdvisorPasteTime = now;
+    if (typeof pasteToAdvisorInput === 'function') {
+      pasteToAdvisorInput();
+    }
+  }
+  return false;
+}
+
 async function pasteToAdvisorInput() {
   const inp = document.getElementById('advisor-chat-input');
   if (!inp) return;
   try {
     let clipText = '';
-    if (navigator.clipboard && navigator.clipboard.readText) {
-      try {
-        clipText = await navigator.clipboard.readText();
-      } catch (clipErr) {
-        console.warn('[AdvisorChat] navigator.clipboard.readText error:', clipErr);
-      }
-    }
-    if (!clipText && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Clipboard) {
+    // Priority: Capacitor Clipboard plugin on native mobile
+    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Clipboard) {
       try {
         const res = await window.Capacitor.Plugins.Clipboard.read();
         clipText = res ? (res.value || res.string || '') : '';
@@ -646,7 +701,23 @@ async function pasteToAdvisorInput() {
         console.warn('[AdvisorChat] Capacitor Clipboard.read error:', capErr);
       }
     }
+    // Fallback: standard web navigator.clipboard
+    if (!clipText && navigator.clipboard && navigator.clipboard.readText) {
+      try {
+        clipText = await navigator.clipboard.readText();
+      } catch (clipErr) {
+        console.warn('[AdvisorChat] navigator.clipboard.readText error:', clipErr);
+      }
+    }
     if (clipText) {
+      try {
+        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Haptics) {
+          window.Capacitor.Plugins.Haptics.impact({ style: 'LIGHT' });
+        } else if (navigator.vibrate) {
+          navigator.vibrate(35);
+        }
+      } catch (_) {}
+
       const start = inp.selectionStart != null ? inp.selectionStart : inp.value.length;
       const end = inp.selectionEnd != null ? inp.selectionEnd : inp.value.length;
       const before = inp.value.substring(0, start);
@@ -672,6 +743,10 @@ async function pasteToAdvisorInput() {
   }
 }
 window.pasteToAdvisorInput = pasteToAdvisorInput;
+window.handleAdvisorInputTouchStart = handleAdvisorInputTouchStart;
+window.handleAdvisorInputTouchMove = handleAdvisorInputTouchMove;
+window.handleAdvisorInputTouchEnd = handleAdvisorInputTouchEnd;
+window.handleAdvisorInputContextMenu = handleAdvisorInputContextMenu;
 
 function appendChatMessage(sender, htmlContent, persist = true) {
   const chatLog = document.getElementById('advisor-chat-log');
@@ -2305,6 +2380,10 @@ var submitCoachTransaction = async function (amount, type, category, subcategory
   windowObj.copyTextToClipboard = copyTextToClipboard;
   windowObj.copyAdvisorMessage = copyAdvisorMessage;
   windowObj.pasteToAdvisorInput = pasteToAdvisorInput;
+  windowObj.handleAdvisorInputTouchStart = handleAdvisorInputTouchStart;
+  windowObj.handleAdvisorInputTouchMove = handleAdvisorInputTouchMove;
+  windowObj.handleAdvisorInputTouchEnd = handleAdvisorInputTouchEnd;
+  windowObj.handleAdvisorInputContextMenu = handleAdvisorInputContextMenu;
   windowObj.submitCoachTransaction = submitCoachTransaction;
 
   return {
@@ -2331,6 +2410,10 @@ var submitCoachTransaction = async function (amount, type, category, subcategory
     copyTextToClipboard: copyTextToClipboard,
     copyAdvisorMessage: copyAdvisorMessage,
     pasteToAdvisorInput: pasteToAdvisorInput,
+    handleAdvisorInputTouchStart: handleAdvisorInputTouchStart,
+    handleAdvisorInputTouchMove: handleAdvisorInputTouchMove,
+    handleAdvisorInputTouchEnd: handleAdvisorInputTouchEnd,
+    handleAdvisorInputContextMenu: handleAdvisorInputContextMenu,
     coachFilterCategory: coachFilterCategory,
     coachOpenBudgets: coachOpenBudgets,
     coachOpenReports: coachOpenReports,
