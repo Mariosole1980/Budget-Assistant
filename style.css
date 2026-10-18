@@ -8768,8 +8768,30 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
 
   .bottom-nav {
     bottom: 0 !important;
-    padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px)) !important;
+    padding: 4px 0 0 0 !important;
+    padding-bottom: env(safe-area-inset-bottom, 0px) !important;
     box-sizing: border-box !important;
+  }
+
+  .bottom-nav::after {
+    display: none !important;
+  }
+
+  .bottom-nav .nav-item {
+    min-height: 36px !important;
+    height: auto !important;
+    padding: 2px 0 !important;
+    gap: 1px !important;
+  }
+
+  .bottom-nav .nav-item svg {
+    width: 20px !important;
+    height: 20px !important;
+  }
+
+  .bottom-nav .nav-item span {
+    font-size: 10px !important;
+    line-height: 1 !important;
   }
 
   body:has(#transaction-modal.active) {
@@ -8815,7 +8837,7 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
   }
 
   .fab {
-    bottom: calc(62px + env(safe-area-inset-bottom, 0px)) !important;
+    bottom: calc(46px + env(safe-area-inset-bottom, 0px)) !important;
   }
 
   .tx-modal-overlay {
