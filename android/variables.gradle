@@ -1,5 +1,8 @@
 ext {
-    minSdkVersion = 23
+    // Play Console "Automatic protection" rejects bundles targeting
+    // minSdk < 24 (v1743 was rejected with: "requires minimum SDK 24").
+    // Android 7.0+ (API 24) is the minimum now accepted for new uploads.
+    minSdkVersion = 24
     compileSdkVersion = 36
     targetSdkVersion = 36
     androidxActivityVersion = '1.8.0'
