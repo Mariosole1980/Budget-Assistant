@@ -223,4 +223,271 @@ describe('SubscriptionEngine Unit Tests', () => {
             assert.strictEqual(suggestions.length, 0);
         });
     });
+
+    describe('3. Cadence presets, multi-occurrence & partial payments', () => {
+
+        test('getDueDaysForMonth honours every cadence preset', () => {
+            // Sept 2026: the 1st is a Tuesday
+            assert.strictEqual(
+                SubscriptionEngine.getDueDaysForMonth({ preset: 'daily', startDate: '2026-09-01' }, 2026, 8).length,
+                30
+            );
+            assert.deepStrictEqual(
+                SubscriptionEngine.getDueDaysForMonth({ preset: 'weekly', startDate: '2026-09-02' }, 2026, 8),
+                [2, 9, 16, 23, 30]
+            );
+            assert.deepStrictEqual(
+                SubscriptionEngine.getDueDaysForMonth({ preset: 'monthly', startDate: '2026-09-15' }, 2026, 8),
+                [15]
+            );
+            // Yearly only fires in the start month
+            assert.deepStrictEqual(
+                SubscriptionEngine.getDueDaysForMonth({ preset: 'yearly', startDate: '2026-03-12' }, 2026, 9),
+                []
+            );
+            assert.deepStrictEqual(
+                SubscriptionEngine.getDueDaysForMonth({ preset: 'yearly', startDate: '2026-10-12' }, 2026, 9),
+                [12]
+            );
+            // Specific months only fires in the selected month (numeric or string months)
+            assert.deepStrictEqual(
+                SubscriptionEngine.getDueDaysForMonth({ preset: 'specific_months', startDate: '2026-01-10', months: [10] }, 2026, 8),
+                []
+            );
+            assert.deepStrictEqual(
+                SubscriptionEngine.getDueDaysForMonth({ preset: 'specific_months', startDate: '2026-01-10', months: ['10'] }, 2026, 9),
+                [10]
+            );
+            // Custom supports multiple days per month
+            assert.deepStrictEqual(
+                SubscriptionEngine.getDueDaysForMonth({ preset: 'custom', months: [9], days: [5, 20] }, 2026, 8),
+                [5, 20]
+            );
+            // Legacy monthly wrapper still returns the first due day
+            assert.strictEqual(
+                SubscriptionEngine.getDueDayForMonth({ preset: 'weekly', startDate: '2026-09-02' }, 2026, 8),
+                2
+            );
+        });
+
+        test('getDueDaysForMonth clamps short months, respects start/end dates and deleted dates', () => {
+            // 31st clamped to the last day of February
+            assert.deepStrictEqual(
+                SubscriptionEngine.getDueDaysForMonth({ preset: 'monthly', startDate: '2026-01-31' }, 2026, 1),
+                [28]
+            );
+            // Occurrences before the start date are dropped
+            assert.deepStrictEqual(
+                SubscriptionEngine.getDueDaysForMonth({ preset: 'weekly', startDate: '2026-09-16' }, 2026, 8),
+                [16, 23, 30]
+            );
+            // Occurrences after the end date are dropped
+            assert.deepStrictEqual(
+                SubscriptionEngine.getDueDaysForMonth({ preset: 'weekly', startDate: '2026-09-02', endDate: '2026-09-16' }, 2026, 8),
+                [2, 9, 16]
+            );
+            // Deleted occurrences (inline marker in description) are skipped
+            assert.deepStrictEqual(
+                SubscriptionEngine.getDueDaysForMonth({
+                    preset: 'custom',
+                    days: [5, 20],
+                    description: 'Pella ||deleted_dates:2026-09-20'
+                }, 2026, 8),
+                [5]
+            );
+            // Year restrictions
+            assert.deepStrictEqual(
+                SubscriptionEngine.getDueDaysForMonth({ preset: 'monthly', startDate: '2026-09-05', years: [2027] }, 2026, 8),
+                []
+            );
+        });
+
+        test('weekly cadence counts the remaining occurrences of the month', () => {
+            const templates = [{
+                id: 'cleaner_tpl',
+                type: 'expense',
+                category: 'Bills',
+                note: 'Cleaner',
+                amount: 20,
+                startDate: '2026-09-02',
+                preset: 'weekly'
+            }];
+
+            const result = SubscriptionEngine.analyzeMonthlySubscriptions({
+                templates: templates,
+                transactions: [],
+                referenceDate: '2026-09-15'
+            });
+
+            const item = result.items[0];
+            assert.strictEqual(item.preset, 'weekly');
+            assert.strictEqual(item.occurrenceCount, 3); // 16, 23, 30 remain (2 & 9 elapsed)
+            assert.strictEqual(item.expectedTotal, 60);
+            assert.strictEqual(item.pendingAmount, 60);
+            assert.strictEqual(item.dueDay, 16);
+            assert.strictEqual(item.isOverdue, false);
+            assert.strictEqual(result.totalMonthly, 60);
+            assert.strictEqual(result.totalPending, 60);
+        });
+
+        test('daily cadence budgets the remaining days of the month', () => {
+            const templates = [{
+                id: 'daily_tpl',
+                type: 'expense',
+                category: 'Bills',
+                note: 'Parking',
+                amount: 10,
+                startDate: '2026-09-01',
+                preset: 'daily'
+            }];
+
+            const result = SubscriptionEngine.analyzeMonthlySubscriptions({
+                templates: templates,
+                transactions: [],
+                referenceDate: '2026-09-25'
+            });
+
+            const item = result.items[0];
+            assert.strictEqual(item.occurrenceCount, 6); // 25..30
+            assert.strictEqual(item.pendingAmount, 60);
+            assert.strictEqual(result.totalPending, 60);
+        });
+
+        test('keeps overdue low-frequency bills pending (monthly/yearly/custom)', () => {
+            const templates = [
+                { id: 'rent_tpl', type: 'expense', category: 'Housing', note: 'Rent', amount: 450, startDate: '2026-09-01', preset: 'monthly' },
+                { id: 'custom_tpl', type: 'expense', category: 'Bills', note: 'Pella', amount: 30, preset: 'custom', months: [9], days: [2, 19] }
+            ];
+
+            const result = SubscriptionEngine.analyzeMonthlySubscriptions({
+                templates: templates,
+                transactions: [],
+                referenceDate: '2026-09-25'
+            });
+
+            const rent = result.items.find(i => i.id === 'rent_tpl');
+            assert.strictEqual(rent.isOverdue, true);
+            assert.strictEqual(rent.pendingAmount, 450);
+
+            const custom = result.items.find(i => i.id === 'custom_tpl');
+            assert.strictEqual(custom.occurrenceCount, 2);
+            assert.strictEqual(custom.expectedTotal, 60);
+            assert.strictEqual(custom.pendingAmount, 60);
+            assert.strictEqual(custom.isOverdue, true);
+        });
+
+        test('pairs one transaction per occurrence and keeps the remainder pending', () => {
+            const templates = [{
+                id: 'custom_tpl',
+                type: 'expense',
+                category: 'Bills',
+                note: 'Pella',
+                amount: 50,
+                preset: 'custom',
+                months: [9],
+                days: [5, 20]
+            }];
+
+            const result = SubscriptionEngine.analyzeMonthlySubscriptions({
+                templates: templates,
+                transactions: [
+                    { id: 'tx_1', type: 'expense', category: 'Bills', note: 'Pella', amount: 50, date: '2026-09-07' }
+                ],
+                referenceDate: '2026-09-25'
+            });
+
+            const item = result.items[0];
+            assert.strictEqual(item.status, 'partial');
+            assert.strictEqual(item.expectedTotal, 100);
+            assert.strictEqual(item.paidAmount, 50);
+            assert.strictEqual(item.pendingAmount, 50);
+            assert.strictEqual(item.matchedTransactions.length, 1);
+            assert.strictEqual(result.totalPaid, 50);
+            assert.strictEqual(result.totalPending, 50);
+        });
+
+        test('matches partial payments of a single bill instead of dropping them', () => {
+            const templates = [{
+                id: 'loan_tpl',
+                type: 'expense',
+                category: 'Loans',
+                note: 'Δόση Δανείου',
+                amount: 100,
+                startDate: '2026-09-10',
+                preset: 'monthly'
+            }];
+
+            const partial = SubscriptionEngine.analyzeMonthlySubscriptions({
+                templates: templates,
+                transactions: [
+                    { id: 'tx_partial', type: 'expense', category: 'Loans', note: 'Δόση Δανείου', amount: 60, date: '2026-09-05' }
+                ],
+                referenceDate: '2026-09-12'
+            });
+
+            const partialItem = partial.items[0];
+            assert.strictEqual(partialItem.status, 'partial');
+            assert.strictEqual(partialItem.isPaid, false);
+            assert.strictEqual(partialItem.expectedTotal, 100);
+            assert.strictEqual(partialItem.paidAmount, 60);
+            assert.strictEqual(partialItem.pendingAmount, 40);
+            assert.strictEqual(partialItem.matchedTransaction.id, 'tx_partial');
+            assert.strictEqual(partial.countPaid, 0);
+            assert.strictEqual(partial.countPending, 1);
+
+            // Unrelated amounts in the same category must not be treated as this bill
+            const unrelated = SubscriptionEngine.analyzeMonthlySubscriptions({
+                templates: templates,
+                transactions: [
+                    { id: 'tx_other', type: 'expense', category: 'Loans', note: 'Κάτι άλλο', amount: 60, date: '2026-09-05' }
+                ],
+                referenceDate: '2026-09-12'
+            });
+            assert.strictEqual(unrelated.items[0].paidAmount, 0);
+            assert.strictEqual(unrelated.items[0].pendingAmount, 100);
+        });
+
+        test('full payment still closes a bill that also has a partial instalment', () => {
+            const templates = [{
+                id: 'loan_tpl',
+                type: 'expense',
+                category: 'Loans',
+                note: 'Δόση Δανείου',
+                amount: 100,
+                startDate: '2026-09-10',
+                preset: 'monthly'
+            }];
+
+            const result = SubscriptionEngine.analyzeMonthlySubscriptions({
+                templates: templates,
+                transactions: [
+                    { id: 'tx_full', type: 'expense', category: 'Loans', note: 'Δόση Δανείου', amount: 100, date: '2026-09-10' },
+                    { id: 'tx_partial_noise', type: 'expense', category: 'Loans', note: 'Δόση Δανείου', amount: 60, date: '2026-09-05' }
+                ],
+                referenceDate: '2026-09-12'
+            });
+
+            const item = result.items[0];
+            assert.strictEqual(item.status, 'paid');
+            assert.strictEqual(item.paidAmount, 100);
+            assert.strictEqual(item.pendingAmount, 0);
+            assert.strictEqual(result.totalPending, 0);
+        });
+
+        test('templates restricted to other months or years are ignored', () => {
+            const templates = [
+                { id: 'oct_tpl', type: 'expense', category: 'Bills', note: 'Service', amount: 40, preset: 'specific_months', months: [10], startDate: '2026-01-08' },
+                { id: 'next_year_tpl', type: 'expense', category: 'Bills', note: 'Insurance', amount: 200, preset: 'yearly', startDate: '2027-09-01', years: [2027] }
+            ];
+
+            const result = SubscriptionEngine.analyzeMonthlySubscriptions({
+                templates: templates,
+                transactions: [],
+                referenceDate: '2026-09-25'
+            });
+
+            assert.strictEqual(result.countTotal, 0);
+            assert.strictEqual(result.totalMonthly, 0);
+        });
+    });
 });

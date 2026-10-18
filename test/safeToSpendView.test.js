@@ -88,15 +88,27 @@ global.sanitizeFloat = (num) => Math.round(Number(num) * 100) / 100;
 global.getCurrencySymbol = () => '€';
 global.formatDisplayAmount = (amt) => String(amt);
 global.escapeHtml = (str) => String(str || '');
+global.getCategoryDisplayName = (cat) => String(cat || '');
 global.generateUUID = () => 'uuid-' + Math.random().toString(36).slice(2);
 global.updateUI = () => {};
 global.showToast = () => {};
 
 const SafeToSpendView = require('../js/safeToSpendView.js');
+// Expose browser globals that safeToSpendView.js expects at call time
+global.TRANSLATIONS = require('../js/translations.js');
+global.isTransferTransaction = (t) => !!(t && (t.is_transfer === true || t.type === 'transfer'));
+// Expose the engine so getUnpaidRecurringBillsThisMonth() takes the real
+// multi-occurrence path instead of its simplified fallback.
+global.SubscriptionEngine = require('../js/SubscriptionEngine.js');
 
 test('SafeToSpendView: exports all expected functions', () => {
   const expectedFns = [
     'getLiquidBalance',
+    'computeLiquidBalance',
+    'getSafeToSpendInputs',
+    'getDiscretionaryBudgets',
+    'isSavingsBudget',
+    'isRecurringTemplateCoveredByBudget',
     'getUnpaidRecurringBillsThisMonth',
     'getMonthlySavingsGoal',
     'updateSafeToSpendUI',
@@ -305,4 +317,130 @@ test('SafeToSpendView: updateStsSavingsAnnualHint clarifies annual basis', () =>
   // When value is 0
   SafeToSpendView.updateStsSavingsAnnualHint(0);
   assert.ok(hintEl.textContent.includes('Προτεινόμενο') || hintEl.textContent.includes('Ετήσια Αποταμίευση') || hintEl.textContent.includes('Επισκόπηση'), 'Hint must reference either suggested goal or annual sync');
+});
+
+// ---------------------------------------------------------------------------
+// Budget baseline / savings / recurring-bill double deduction guards
+// ---------------------------------------------------------------------------
+
+function resetStsInputsState() {
+  localStorage.removeItem('ba_monthly_savings_goal');
+  localStorage.removeItem('ba_quick_start_profile');
+  localStorage.removeItem('overview_savings_target');
+}
+
+test('SafeToSpendView: savings budgets are excluded from the discretionary baseline', () => {
+  const savedBudgets = state.budgets;
+  const savedTxs = state.transactions;
+
+  resetStsInputsState();
+  state.transactions = [];
+  state.budgets = [
+    { name: 'Αποταμίευση', amount: 250 },
+    { name: 'ΣΠΙΤΙ', amount: 800 }
+  ];
+
+  const discretionary = SafeToSpendView.getDiscretionaryBudgets();
+  assert.strictEqual(discretionary.length, 1);
+  assert.strictEqual(discretionary[0].name, 'ΣΠΙΤΙ');
+
+  // Budget baseline must not include the savings envelope (it is deducted once as the goal)
+  const liquid = SafeToSpendView.computeLiquidBalance();
+  assert.strictEqual(liquid.mode, 'budget');
+  assert.strictEqual(liquid.balance, 800);
+  assert.strictEqual(SafeToSpendView.getMonthlySavingsGoal(), 250);
+
+  state.budgets = savedBudgets;
+  state.transactions = savedTxs;
+  resetStsInputsState();
+});
+
+test('SafeToSpendView: computeLiquidBalance reports the baseline source', () => {
+  const savedBudgets = state.budgets;
+  const savedTxs = state.transactions;
+  const savedAccounts = state.accounts;
+
+  resetStsInputsState();
+
+  // No income, no budgets -> cash in accounts
+  state.budgets = [];
+  state.transactions = [];
+  state.accounts = [{ name: 'Cash', balance: 2000 }];
+  assert.deepStrictEqual(SafeToSpendView.computeLiquidBalance(), { balance: 2000, mode: 'accounts' });
+
+  // Current-month income -> income baseline minus what is already spent
+  const now = new Date();
+  const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  state.transactions = [
+    { type: 'income', amount: 1000, date: `${monthKey}-01` },
+    { type: 'expense', amount: 250, date: `${monthKey}-02` }
+  ];
+  const incomeLiquid = SafeToSpendView.computeLiquidBalance();
+  assert.strictEqual(incomeLiquid.mode, 'income');
+  assert.strictEqual(incomeLiquid.balance, 750);
+
+  state.budgets = savedBudgets;
+  state.transactions = savedTxs;
+  state.accounts = savedAccounts;
+});
+
+test('SafeToSpendView: recurring templates already covered by a budget are detected', () => {
+  const savedBudgets = state.budgets;
+  state.budgets = [
+    { name: 'ΣΠΙΤΙ', amount: 800 },
+    { name: 'Αποταμίευση', amount: 200 }
+  ];
+
+  assert.strictEqual(SafeToSpendView.isRecurringTemplateCoveredByBudget({ category: 'ΣΠΙΤΙ', note: 'Ενοίκιο' }), true);
+  assert.strictEqual(SafeToSpendView.isRecurringTemplateCoveredByBudget({ category: 'Λογαριασμοί', note: 'ΔΕΗ' }), false);
+  // Savings envelopes must never swallow a bill
+  assert.strictEqual(SafeToSpendView.isRecurringTemplateCoveredByBudget({ category: 'Αποταμίευση', note: 'Κουμπαράς' }), false);
+  assert.strictEqual(SafeToSpendView.isRecurringTemplateCoveredByBudget(null), false);
+
+  state.budgets = savedBudgets;
+});
+
+test('SafeToSpendView: getSafeToSpendInputs is consistent and skips budget-covered bills', () => {
+  const savedBudgets = state.budgets;
+  const savedTemplates = state.recurringTemplates;
+  const savedTxs = state.transactions;
+  const savedAccounts = state.accounts;
+
+  resetStsInputsState();
+  state.transactions = [];
+  state.accounts = [{ name: 'Cash', balance: 2000 }];
+  state.budgets = [
+    { name: 'Αποταμίευση', amount: 250 },
+    { name: 'ΣΠΙΤΙ', amount: 800 }
+  ];
+  state.recurringTemplates = [
+    { id: 'rent', type: 'expense', category: 'ΣΠΙΤΙ', note: 'Ενοίκιο', amount: 500, startDate: '2026-01-05', preset: 'monthly' },
+    { id: 'netflix', type: 'expense', category: 'Bills', note: 'Netflix', amount: 50, startDate: '2026-01-15', preset: 'monthly' }
+  ];
+
+  // All bills are still owed when the baseline comes from real accounts
+  assert.strictEqual(SafeToSpendView.getUnpaidRecurringBillsThisMonth(), 550);
+  assert.strictEqual(SafeToSpendView.getUnpaidRecurringBillsThisMonth({ excludeBudgetCovered: true }), 50);
+
+  const inputs = SafeToSpendView.getSafeToSpendInputs();
+  assert.strictEqual(inputs.mode, 'budget');
+  assert.strictEqual(inputs.balance, 800);
+  assert.strictEqual(inputs.unpaidBills, 50); // rent is already inside the ΣΠΙΤΙ budget
+  assert.strictEqual(inputs.savingsGoal, 250);
+  assert.strictEqual(inputs.balance, SafeToSpendView.getLiquidBalance());
+  assert.strictEqual(inputs.savingsGoal, SafeToSpendView.getMonthlySavingsGoal());
+
+  // Accounts baseline: every bill is deducted, regardless of budgets
+  state.budgets = [];
+  const accountsInputs = SafeToSpendView.getSafeToSpendInputs();
+  assert.strictEqual(accountsInputs.mode, 'accounts');
+  assert.strictEqual(accountsInputs.balance, 2000);
+  assert.strictEqual(accountsInputs.unpaidBills, 550);
+  assert.strictEqual(accountsInputs.savingsGoal, 0);
+
+  state.budgets = savedBudgets;
+  state.recurringTemplates = savedTemplates;
+  state.transactions = savedTxs;
+  state.accounts = savedAccounts;
+  resetStsInputsState();
 });

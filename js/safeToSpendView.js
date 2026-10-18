@@ -41,7 +41,62 @@ function parseDate(d) {
   return isNaN(parsed.getTime()) ? new Date() : parsed;
 }
 
-function getLiquidBalance() {
+function normalizeBudgetKey(text) {
+  return String(text || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/ς/g, 'σ')
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// A savings / piggy-bank budget is a target, NOT a spending envelope:
+// it is deducted once through getMonthlySavingsGoal() and must never inflate
+// the monthly baseline (which would double-deduct the same money).
+function isSavingsBudget(budget) {
+  if (!budget) return false;
+  const name = normalizeBudgetKey(budget.name || budget.category);
+  if (!name) return false;
+  return name.includes('αποταμ') || name.includes('saving') || name.includes('κουμπαρ') || name.includes('piggy');
+}
+
+function getDiscretionaryBudgets() {
+  const budgets = (state && state.budgets) || [];
+  return budgets.filter(b => b && !isSavingsBudget(b) && b.is_deleted !== true);
+}
+
+// True when a recurring template belongs to a category that already has a
+// spending budget (e.g. rent → "ΣΠΙΤΙ" budget). In budget-baseline mode the
+// whole budget is already deducted as committed money, so the same bill must
+// not be deducted a second time.
+function isRecurringTemplateCoveredByBudget(template) {
+  if (!template) return false;
+  const budgets = getDiscretionaryBudgets();
+  if (budgets.length === 0) return false;
+
+  const templateKeys = [
+    normalizeBudgetKey(template.category),
+    normalizeBudgetKey(template.note || template.title)
+  ].filter(Boolean);
+  if (templateKeys.length === 0) return false;
+
+  return budgets.some(b => {
+    const budgetKey = normalizeBudgetKey(b.name || b.category);
+    if (!budgetKey) return false;
+    return templateKeys.some(tplKey => (
+      tplKey === budgetKey || tplKey.includes(budgetKey) || budgetKey.includes(tplKey)
+    ));
+  });
+}
+
+/**
+ * Computes the discretionary pool of the current month together with the source
+ * that produced it ('income' | 'budget' | 'accounts'). The mode matters because
+ * budget baselines already cover their recurring bills.
+ */
+function computeLiquidBalance() {
   // If state.accounts is not yet in memory, attempt reading cached accounts
   if ((!state.accounts || state.accounts.length === 0) && typeof localStorage !== 'undefined') {
     try {
@@ -94,14 +149,18 @@ function getLiquidBalance() {
       return sum;
     }, 0);
 
-    const totalBudget = ((state && state.budgets) || []).reduce((sum, b) => sum + (parseFloat(b.amount) || 0), 0);
+    // Savings/piggy-bank budgets are goals, not spending envelopes: they are
+    // deducted separately by getMonthlySavingsGoal() (avoids double-deduction).
+    const totalBudget = getDiscretionaryBudgets().reduce((sum, b) => sum + (parseFloat(b.amount) || 0), 0);
 
     let qs = null;
     let baseline = 0;
+    let baselineMode = 'income';
     if (monthlyIncome > 0) {
       baseline = monthlyIncome;
     } else if (totalBudget > 0) {
       baseline = totalBudget;
+      baselineMode = 'budget';
     } else {
       const qsRaw = (typeof localStorage !== 'undefined') ? localStorage.getItem('ba_quick_start_profile') : null;
       if (qsRaw) {
@@ -156,15 +215,36 @@ function getLiquidBalance() {
       const remainingFromBaseline = Math.max(0, baselineIncome - spentThisMonth);
 
       // If baseline cashflow yields remaining discretionary funds, use that as the primary pool.
-      return remainingFromBaseline;
+      return { balance: remainingFromBaseline, mode: baselineMode };
     }
   } catch (e) { }
 
-  return Math.max(0, accBalance);
+  return { balance: Math.max(0, accBalance), mode: 'accounts' };
 }
 
-function getUnpaidRecurringBillsThisMonth() {
+function getLiquidBalance() {
+  return computeLiquidBalance().balance;
+}
+
+/**
+ * Monthly unpaid recurring bills (what Safe-to-Spend must still reserve).
+ *
+ * options.excludeBudgetCovered: skip templates whose category is already part of
+ * a spending budget. Used only when the discretionary pool is derived from
+ * budgets, because those budgets are deducted in full as committed money.
+ */
+function getUnpaidRecurringBillsThisMonth(options) {
+  const opts = options || {};
   if (!state.recurringTemplates || state.recurringTemplates.length === 0) return 0;
+
+  const activeTemplates = state.recurringTemplates.filter(tpl => tpl && tpl.is_active !== false && tpl.is_deleted !== true);
+  if (activeTemplates.length === 0) return 0;
+
+  let templatesToCount = activeTemplates;
+  if (opts.excludeBudgetCovered) {
+    templatesToCount = activeTemplates.filter(tpl => !isRecurringTemplateCoveredByBudget(tpl));
+    if (templatesToCount.length === 0) return 0;
+  }
 
   // Source scoped active transactions
   let txs = [];
@@ -179,7 +259,7 @@ function getUnpaidRecurringBillsThisMonth() {
   if (typeof SubscriptionEngine !== 'undefined') {
     try {
       const analysis = SubscriptionEngine.analyzeMonthlySubscriptions({
-        templates: state.recurringTemplates,
+        templates: templatesToCount,
         transactions: txs,
         referenceDate: new Date()
       });
@@ -195,15 +275,56 @@ function getUnpaidRecurringBillsThisMonth() {
   const currentDay = now.getDate();
   const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
 
+  // Fallback (SubscriptionEngine unavailable): count remaining occurrences per preset
   let unpaidTotal = 0;
-  state.recurringTemplates.forEach(tpl => {
-    if (!tpl || tpl.type !== 'expense' || tpl.is_active === false) return;
-    const dueDay = parseInt(tpl.due_day || tpl.day_of_month || 1, 10);
+  templatesToCount.forEach(tpl => {
+    if (!tpl || tpl.type !== 'expense') return;
+    const amount = sanitizeFloat(parseFloat(tpl.amount) || 0);
+    if (amount <= 0) return;
+
+    const preset = String(tpl.preset || 'monthly').toLowerCase();
+    const startDateStr = tpl.startDate || tpl.start_date;
+    const startDate = startDateStr ? parseDate(startDateStr) : null;
+    const startDay = startDate ? startDate.getDate() : null;
+
+    if (preset === 'daily') {
+      unpaidTotal += amount * Math.max(0, lastDayOfMonth - currentDay + 1);
+      return;
+    }
+    if (preset === 'weekly') {
+      const weekday = startDate ? startDate.getDay() : now.getDay();
+      for (let d = currentDay; d <= lastDayOfMonth; d++) {
+        if (new Date(currentYear, currentMonth, d).getDay() === weekday) unpaidTotal += amount;
+      }
+      return;
+    }
+
+    let dueDay = startDay;
+    if (dueDay === null && Array.isArray(tpl.days) && tpl.days.length > 0) {
+      dueDay = parseInt(tpl.days[0], 10);
+    }
+    if (!dueDay) {
+      dueDay = parseInt(tpl.due_day || tpl.day_of_month || 1, 10);
+    }
     if (dueDay >= currentDay && dueDay <= lastDayOfMonth) {
-      unpaidTotal += sanitizeFloat(parseFloat(tpl.amount) || 0);
+      unpaidTotal += amount;
     }
   });
   return unpaidTotal;
+}
+
+/**
+ * Single source of truth for the Safe-to-Spend inputs, so the card, the modal
+ * breakdown and the what-if simulator always agree with each other.
+ */
+function getSafeToSpendInputs() {
+  const liquid = computeLiquidBalance();
+  return {
+    balance: liquid.balance,
+    mode: liquid.mode,
+    unpaidBills: getUnpaidRecurringBillsThisMonth({ excludeBudgetCovered: liquid.mode === 'budget' }),
+    savingsGoal: getMonthlySavingsGoal()
+  };
 }
 
 function getMonthlySavingsGoal(options) {
@@ -220,10 +341,7 @@ function getMonthlySavingsGoal(options) {
 
   // 2. Budget category for savings / piggy bank
   if (state && state.budgets && state.budgets.length > 0) {
-    const savingsBudget = state.budgets.find(b => {
-      const name = (b.name || b.category || '').toLowerCase();
-      return name.includes('αποταμ') || name.includes('saving') || name.includes('κουμπαρ') || name.includes('piggy');
-    });
+    const savingsBudget = state.budgets.find(b => isSavingsBudget(b));
     if (savingsBudget && parseFloat(savingsBudget.amount) > 0) {
       return sanitizeFloat(parseFloat(savingsBudget.amount) || 0);
     }
@@ -294,9 +412,10 @@ function updateSafeToSpendUI() {
     typeof SupabaseRealtimeService.isForceSyncInFlight === 'function' &&
     SupabaseRealtimeService.isForceSyncInFlight()) || false;
 
-  const balance = getLiquidBalance();
-  const unpaidBills = getUnpaidRecurringBillsThisMonth();
-  const savingsGoal = getMonthlySavingsGoal();
+  const stsInputs = getSafeToSpendInputs();
+  const balance = stsInputs.balance;
+  const unpaidBills = stsInputs.unpaidBills;
+  const savingsGoal = stsInputs.savingsGoal;
 
   const stsResult = SafeToSpendEngine.calculateDailySafeToSpend({
     currentBalance: balance,
@@ -306,12 +425,14 @@ function updateSafeToSpendUI() {
 
   // Anti-glitch / anti-flicker guard:
   // If calculation yields 0, but previously we had a valid positive safeDaily result,
-  // check if this 0 is transient (e.g., sync is running in flight, or transactions array is momentarily empty,
-  // or balance temporarily evaluated to 0 while cached offline transactions exist).
+  // retain the previous value ONLY while the inputs are genuinely transient
+  // (background sync in flight or the local transactions cache momentarily empty).
+  // A real zero (balance exhausted, month fully spent) must render as 0/critical —
+  // otherwise the UI keeps a stale positive allowance forever.
   const hasLocalTxs = !!(state && state.transactions && state.transactions.length > 0);
   const hadPositiveResult = !!(state._lastSafeToSpendResult && state._lastSafeToSpendResult.safeDaily > 0);
   if (stsResult.safeDaily === 0 && hadPositiveResult) {
-    if (isSyncInFlight || !hasLocalTxs || balance === 0) {
+    if (isSyncInFlight || !hasLocalTxs) {
       // Retain the last known stable result during background sync / transient reload
       return;
     }
@@ -444,6 +565,7 @@ function openSafeToSpendModal() {
   };
 
   const currSym = getCurrencySymbol();
+  const stsInputs = getSafeToSpendInputs();
   const modalDaily = document.getElementById('modal-sts-daily-val');
   const modalWeekly = document.getElementById('modal-sts-weekly-val');
   const modalBal = document.getElementById('modal-sts-balance');
@@ -451,12 +573,12 @@ function openSafeToSpendModal() {
   const modalSav = document.getElementById('modal-sts-savings');
   const modalPool = document.getElementById('modal-sts-pool');
   const modalDays = document.getElementById('modal-sts-days');
-  const savGoal = getMonthlySavingsGoal();
+  const savGoal = stsInputs.savingsGoal;
 
   if (modalDaily) modalDaily.textContent = `${currSym} ${formatDisplayAmount(sts.safeDaily)}`;
   if (modalWeekly) modalWeekly.textContent = `ή ${currSym} ${formatDisplayAmount(sts.safeWeekly)} για αυτή την εβδομάδα`;
-  if (modalBal) modalBal.textContent = `${currSym} ${formatDisplayAmount(sts.currentBalance)}`;
-  if (modalBills) modalBills.textContent = `- ${currSym} ${formatDisplayAmount(getUnpaidRecurringBillsThisMonth())}`;
+  if (modalBal) modalBal.textContent = `${currSym} ${formatDisplayAmount(stsInputs.balance)}`;
+  if (modalBills) modalBills.textContent = `- ${currSym} ${formatDisplayAmount(stsInputs.unpaidBills)}`;
   if (modalSav) modalSav.textContent = `- ${currSym} ${formatDisplayAmount(savGoal)}`;
   if (modalPool) modalPool.textContent = `${currSym} ${formatDisplayAmount(sts.discretionaryPool)}`;
   if (modalDays) modalDays.textContent = `${sts.daysRemaining} ημέρες`;
@@ -464,6 +586,13 @@ function openSafeToSpendModal() {
   const lang = (state && state.lang) || 'el';
   const translations = (typeof TRANSLATIONS !== 'undefined' ? TRANSLATIONS : (typeof window !== 'undefined' ? window.TRANSLATIONS : null)) || {};
   const t = (translations && translations[lang]) || {};
+
+  // The amount below is the month's discretionary pool (income/budgets minus
+  // expenses), NOT the cash sitting in accounts. Label it accordingly.
+  const balLabelEl = document.getElementById('modal-sts-balance-label');
+  if (balLabelEl) {
+    balLabelEl.textContent = t['sts_liquid_balance'] || (lang === 'el' ? 'Διαθέσιμο Υπόλοιπο Μήνα:' : 'Available Balance This Month:');
+  }
   const savBtn = document.getElementById('modal-sts-savings-btn');
   if (savBtn) {
     savBtn.textContent = savGoal > 0 ? (t['sts_savings_edit_btn'] || (lang === 'el' ? 'Αλλαγή' : 'Edit')) : (t['sts_savings_set_btn'] || (lang === 'el' ? 'Ορισμός' : 'Set'));
@@ -975,6 +1104,18 @@ function quickPaySubscription(templateId) {
   const tpl = (state.recurringTemplates || []).find(t => String(t.id) === String(templateId));
   if (!tpl) return;
 
+  // Pay the next uncovered occurrence only: an occurrence amount capped by the
+  // analyzed remaining amount (supports partial payments and multi-occurrence
+  // cadences such as weekly/daily without overpaying the whole month at once).
+  const analysis = state._lastSubscriptionsAnalysis;
+  const analysisItem = (analysis && Array.isArray(analysis.items))
+    ? analysis.items.find(item => String(item.id) === String(templateId))
+    : null;
+  const occurrenceAmount = sanitizeFloat(parseFloat(tpl.amount) || 0);
+  const amountToPay = analysisItem && analysisItem.remainingAmount > 0
+    ? sanitizeFloat(Math.min(occurrenceAmount, analysisItem.remainingAmount))
+    : occurrenceAmount;
+
   const todayStr = (typeof formatISODateLocal === 'function') ? formatISODateLocal(new Date()) : new Date().toISOString().slice(0, 10);
   const now = new Date();
   const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
@@ -985,7 +1126,7 @@ function quickPaySubscription(templateId) {
     time: timeStr,
     type: 'expense',
     category: tpl.category || 'Bills',
-    amount: sanitizeFloat(parseFloat(tpl.amount) || 0),
+    amount: amountToPay,
     note: tpl.note || tpl.category || 'Recurring Payment',
     recurring_template_id: tpl.id,
     is_recurring: true,
@@ -1016,6 +1157,11 @@ window.quickPaySubscription = quickPaySubscription;
 
   // Window Bindings
   window.getLiquidBalance = getLiquidBalance;
+  window.computeLiquidBalance = computeLiquidBalance;
+  window.getSafeToSpendInputs = getSafeToSpendInputs;
+  window.getDiscretionaryBudgets = getDiscretionaryBudgets;
+  window.isSavingsBudget = isSavingsBudget;
+  window.isRecurringTemplateCoveredByBudget = isRecurringTemplateCoveredByBudget;
   window.getUnpaidRecurringBillsThisMonth = getUnpaidRecurringBillsThisMonth;
   window.getMonthlySavingsGoal = getMonthlySavingsGoal;
   window.updateSafeToSpendUI = updateSafeToSpendUI;
@@ -1034,6 +1180,11 @@ window.quickPaySubscription = quickPaySubscription;
 
   return {
     getLiquidBalance: getLiquidBalance,
+    computeLiquidBalance: computeLiquidBalance,
+    getSafeToSpendInputs: getSafeToSpendInputs,
+    getDiscretionaryBudgets: getDiscretionaryBudgets,
+    isSavingsBudget: isSavingsBudget,
+    isRecurringTemplateCoveredByBudget: isRecurringTemplateCoveredByBudget,
     getUnpaidRecurringBillsThisMonth: getUnpaidRecurringBillsThisMonth,
     getMonthlySavingsGoal: getMonthlySavingsGoal,
     updateSafeToSpendUI: updateSafeToSpendUI,
