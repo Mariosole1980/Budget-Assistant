@@ -160,3 +160,71 @@ test('Category Tombstones: removeDeletedCategoryTombstone cleanly removes UUID s
   assert.strictEqual(DataIntegrityService.isCategoryDeleted(testId, '🏡 ΣΠΙΤΙ', 'expense'), false);
 });
 
+test('Category tombstones are scoped per account and guest session', () => {
+  global.localStorage.clear();
+
+  // Account A deletes ΣΠΙΤΙ.
+  global.state = { guestMode: false, currentUser: { id: 'user-a' } };
+  DataIntegrityService.recordDeletedCategory('cat-home-a', '🏡 ΣΠΙΤΙ', 'expense', { writeCloudTombstone: false });
+  assert.strictEqual(DataIntegrityService.isCategoryDeleted('cat-home-a'), true);
+
+  // Logging out does not erase A's tombstone (same-account login must stay clean).
+  global.state = { guestMode: false, currentUser: null };
+  assert.ok(global.localStorage.getItem('ba_deleted_categories::user-a'),
+    'logout must not delete the account-scoped tombstone');
+
+  // Guest browsing does not inherit A's tombstones and keeps its own.
+  global.state = { guestMode: true, currentUser: null };
+  assert.strictEqual(DataIntegrityService.isCategoryDeleted('cat-home-a'), false);
+  DataIntegrityService.recordDeletedCategory('cat-guest', 'Guest Only', 'expense', { writeCloudTombstone: false });
+  assert.strictEqual(DataIntegrityService.isCategoryDeleted('cat-guest'), true);
+
+  // A still has their deletion; B never inherits A's or the guest's tombstones.
+  global.state = { guestMode: false, currentUser: { id: 'user-a' } };
+  assert.strictEqual(DataIntegrityService.isCategoryDeleted('cat-home-a'), true);
+  assert.strictEqual(DataIntegrityService.isCategoryDeleted('cat-guest'), false);
+
+  global.state = { guestMode: false, currentUser: { id: 'user-b' } };
+  assert.strictEqual(DataIntegrityService.isCategoryDeleted('cat-home-a'), false);
+  assert.strictEqual(DataIntegrityService.isCategoryDeleted('cat-guest'), false);
+});
+
+test('Subcategory tombstones are scoped per account', () => {
+  global.localStorage.clear();
+
+  global.state = { guestMode: false, currentUser: { id: 'user-a' } };
+  DataIntegrityService.recordDeletedSubcategory('🛒 Σούπερ Μάρκετ', 'Snacks', { writeCloudTombstone: false });
+  assert.strictEqual(DataIntegrityService.isSubcategoryDeleted('🛒 Σούπερ Μάρκετ', 'Snacks'), true);
+
+  global.state = { guestMode: false, currentUser: { id: 'user-b' } };
+  assert.strictEqual(DataIntegrityService.isSubcategoryDeleted('🛒 Σούπερ Μάρκετ', 'Snacks'), false);
+});
+
+test('Legacy unscoped tombstones migrate to the active account exactly once', () => {
+  global.localStorage.clear();
+  global.localStorage.setItem('ba_deleted_categories', JSON.stringify([
+    { id: 'legacy-home', key: 'expense:::σπιτι', name: '🏡 ΣΠΙΤΙ', type: 'expense' }
+  ]));
+
+  // Guest must not consume a legacy user tombstone; leave it for the owner.
+  global.state = { guestMode: true, currentUser: null };
+  assert.strictEqual(DataIntegrityService.isCategoryDeleted('legacy-home'), false);
+  assert.ok(global.localStorage.getItem('ba_deleted_categories'),
+    'a guest must not migrate the legacy key into guest scope');
+
+  global.state = { guestMode: false, currentUser: { id: 'user-a' } };
+  assert.strictEqual(DataIntegrityService.isCategoryDeleted('legacy-home'), true);
+  assert.strictEqual(global.localStorage.getItem('ba_deleted_categories'), null,
+    'the legacy key is migrated into the active account scope');
+  assert.ok(global.localStorage.getItem('ba_deleted_categories::user-a'));
+
+  // Another account does not inherit the migrated tombstone.
+  global.state = { guestMode: false, currentUser: { id: 'user-b' } };
+  assert.strictEqual(DataIntegrityService.isCategoryDeleted('legacy-home'), false);
+
+  // Returning to the original account restores it.
+  global.state = { guestMode: false, currentUser: { id: 'user-a' } };
+  assert.strictEqual(DataIntegrityService.isCategoryDeleted('legacy-home'), true);
+});
+
+

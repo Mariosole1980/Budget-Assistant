@@ -869,6 +869,18 @@ async function processSyncQueue(options = {}) {
           continue;
         }
         itemSucceeded = true;
+        // Persist the cloud tombstone when the queued delete finally lands (e.g.
+        // the user was offline when deleting). Without it, another device that
+        // reconciles later could treat its cached copy as a local-only category
+        // and re-insert the deleted row.
+        try {
+          const realtimeService = (typeof window !== 'undefined') ? window.SupabaseRealtimeService : null;
+          if (realtimeService && typeof realtimeService.writeSyncTombstones === 'function') {
+            await realtimeService.writeSyncTombstones('categories', [String(catId)]);
+          }
+        } catch (tombErr) {
+          console.warn('Failed to record cloud category tombstone:', tombErr);
+        }
       } else {
         console.warn(`Unknown sync queue action, dropping item:`, item.action);
         continue;

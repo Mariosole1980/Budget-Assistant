@@ -520,6 +520,58 @@ window.autoSyncMissingTransactionsToCloud = autoSyncMissingTransactionsToCloud;
   const _DELETED_CATEGORIES_LS_KEY = 'ba_deleted_categories';
   const _DELETED_SUBCATEGORIES_LS_KEY = 'ba_deleted_subcategories';
 
+  // Tombstones are scoped per account (and separately for guest sessions) so that
+  // logout never wipes a user's delete history, while one account's deleted
+  // categories can never hide another account's (or a guest's) same-named ones.
+  function _getTombstoneScope() {
+    try {
+      let currentState = null;
+      if (typeof state !== 'undefined' && state) {
+        currentState = state;
+      } else if (typeof window !== 'undefined' && window.state) {
+        currentState = window.state;
+      }
+      if (!currentState) return '';
+      if (currentState.guestMode) return 'guest';
+      const userId = currentState.currentUser && currentState.currentUser.id;
+      return userId ? String(userId) : '';
+    } catch (_) {
+      return '';
+    }
+  }
+
+  function _tombstoneStorageKey(baseKey) {
+    const scope = _getTombstoneScope();
+    return scope ? `${baseKey}::${scope}` : baseKey;
+  }
+
+  // Read the active scope, falling back to (and one-time migrating) the legacy
+  // unscoped key written by older app versions.
+  function _readTombstoneRaw(baseKey) {
+    try {
+      const scope = _getTombstoneScope();
+      const scopedKey = scope ? `${baseKey}::${scope}` : baseKey;
+      const scoped = localStorage.getItem(scopedKey);
+      if (scoped !== null) return scoped;
+      if (scopedKey === baseKey) return null;
+      // A guest session must never consume (or expose) a legacy user tombstone.
+      // Leave the unscoped key untouched so the next signed-in account migrates it.
+      if (scope === 'guest') return null;
+      const legacy = localStorage.getItem(baseKey);
+      if (legacy !== null) {
+        localStorage.setItem(scopedKey, legacy);
+        localStorage.removeItem(baseKey);
+      }
+      return legacy;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function _writeTombstoneRaw(baseKey, value) {
+    localStorage.setItem(_tombstoneStorageKey(baseKey), value);
+  }
+
   function _cleanStr(str) {
     if (!str) return '';
     let s = String(str);
@@ -548,7 +600,7 @@ window.autoSyncMissingTransactionsToCloud = autoSyncMissingTransactionsToCloud;
 
   function getDeletedCategoryIds() {
     try {
-      const raw = localStorage.getItem(_DELETED_CATEGORIES_LS_KEY);
+      const raw = _readTombstoneRaw(_DELETED_CATEGORIES_LS_KEY);
       if (!raw) return new Set();
       const list = JSON.parse(raw);
       if (!Array.isArray(list)) return new Set();
@@ -568,7 +620,7 @@ window.autoSyncMissingTransactionsToCloud = autoSyncMissingTransactionsToCloud;
 
   function getDeletedCategoryKeys() {
     try {
-      const raw = localStorage.getItem(_DELETED_CATEGORIES_LS_KEY);
+      const raw = _readTombstoneRaw(_DELETED_CATEGORIES_LS_KEY);
       if (!raw) return new Set();
       const list = JSON.parse(raw);
       if (!Array.isArray(list)) return new Set();
@@ -588,10 +640,12 @@ window.autoSyncMissingTransactionsToCloud = autoSyncMissingTransactionsToCloud;
 
   function recordDeletedCategory(id, name, type, { writeCloudTombstone = true } = {}) {
     try {
-      const raw = localStorage.getItem(_DELETED_CATEGORIES_LS_KEY);
+      const raw = _readTombstoneRaw(_DELETED_CATEGORIES_LS_KEY);
       const list = raw ? JSON.parse(raw) : [];
       const cleanList = Array.isArray(list) ? list : [];
-      const key = _getCategoryKey(name, type);
+      // Cloud-propagated tombstones only carry an id, with no name/type. Keep the
+      // key null in that case so we do not register a meaningless "expense:::" key.
+      const key = name ? _getCategoryKey(name, type) : null;
       const item = {
         id: id ? String(id) : null,
         key: key,
@@ -602,7 +656,7 @@ window.autoSyncMissingTransactionsToCloud = autoSyncMissingTransactionsToCloud;
       const exists = cleanList.some(c => (id && c.id && String(c.id) === String(id)) || (key && c.key === key));
       if (!exists) {
         cleanList.push(item);
-        localStorage.setItem(_DELETED_CATEGORIES_LS_KEY, JSON.stringify(cleanList.slice(-500)));
+        _writeTombstoneRaw(_DELETED_CATEGORIES_LS_KEY, JSON.stringify(cleanList.slice(-500)));
       }
       if (writeCloudTombstone) {
         const tombstoneId = id || key;
@@ -610,7 +664,9 @@ window.autoSyncMissingTransactionsToCloud = autoSyncMissingTransactionsToCloud;
           ? writeSyncTombstones
           : ((typeof window !== 'undefined' && typeof window.writeSyncTombstones === 'function')
             ? window.writeSyncTombstones
-            : null);
+            : ((typeof window !== 'undefined' && window.SupabaseRealtimeService && typeof window.SupabaseRealtimeService.writeSyncTombstones === 'function')
+              ? window.SupabaseRealtimeService.writeSyncTombstones
+              : null));
         if (tombFn) {
           tombFn('categories', [String(tombstoneId)]).catch(e => console.warn('[DataIntegrity] Category tombstone write failed:', e));
         }
@@ -634,7 +690,7 @@ window.autoSyncMissingTransactionsToCloud = autoSyncMissingTransactionsToCloud;
 
   function removeDeletedCategoryTombstone(name, type, id) {
     try {
-      const raw = localStorage.getItem(_DELETED_CATEGORIES_LS_KEY);
+      const raw = _readTombstoneRaw(_DELETED_CATEGORIES_LS_KEY);
       if (!raw) return;
       const list = JSON.parse(raw);
       if (!Array.isArray(list)) return;
@@ -657,7 +713,7 @@ window.autoSyncMissingTransactionsToCloud = autoSyncMissingTransactionsToCloud;
         if (cleanName && item.name && _cleanStr(item.name) === cleanName) return false;
         return true;
       });
-      localStorage.setItem(_DELETED_CATEGORIES_LS_KEY, JSON.stringify(filtered));
+      _writeTombstoneRaw(_DELETED_CATEGORIES_LS_KEY, JSON.stringify(filtered));
     } catch (e) {
       console.warn('[DataIntegrity] removeDeletedCategoryTombstone failed:', e);
     }
@@ -666,7 +722,7 @@ window.autoSyncMissingTransactionsToCloud = autoSyncMissingTransactionsToCloud;
   function recordDeletedSubcategory(categoryName, subcategoryName, { writeCloudTombstone = true } = {}) {
     if (!categoryName || !subcategoryName) return;
     try {
-      const raw = localStorage.getItem(_DELETED_SUBCATEGORIES_LS_KEY);
+      const raw = _readTombstoneRaw(_DELETED_SUBCATEGORIES_LS_KEY);
       let registry = {};
       try {
         const parsed = raw ? JSON.parse(raw) : null;
@@ -683,7 +739,7 @@ window.autoSyncMissingTransactionsToCloud = autoSyncMissingTransactionsToCloud;
       if (!registry[catKey].some(s => _cleanStr(s) === subKey)) {
         registry[catKey].push(subcategoryName.trim());
       }
-      localStorage.setItem(_DELETED_SUBCATEGORIES_LS_KEY, JSON.stringify(registry));
+      _writeTombstoneRaw(_DELETED_SUBCATEGORIES_LS_KEY, JSON.stringify(registry));
 
       if (writeCloudTombstone) {
         const slug = `${catKey}:::${subKey}`;
@@ -691,7 +747,9 @@ window.autoSyncMissingTransactionsToCloud = autoSyncMissingTransactionsToCloud;
           ? writeSyncTombstones
           : ((typeof window !== 'undefined' && typeof window.writeSyncTombstones === 'function')
             ? window.writeSyncTombstones
-            : null);
+            : ((typeof window !== 'undefined' && window.SupabaseRealtimeService && typeof window.SupabaseRealtimeService.writeSyncTombstones === 'function')
+              ? window.SupabaseRealtimeService.writeSyncTombstones
+              : null));
         if (tombFn) {
           tombFn('subcategories', [slug]).catch(e => console.warn('[DataIntegrity] Subcategory tombstone write failed:', e));
         }
@@ -711,7 +769,7 @@ window.autoSyncMissingTransactionsToCloud = autoSyncMissingTransactionsToCloud;
   function getDeletedSubcategoriesForCategory(categoryName) {
     if (!categoryName) return [];
     try {
-      const raw = localStorage.getItem(_DELETED_SUBCATEGORIES_LS_KEY);
+      const raw = _readTombstoneRaw(_DELETED_SUBCATEGORIES_LS_KEY);
       if (!raw) return [];
       const registry = JSON.parse(raw);
       if (!registry || typeof registry !== 'object') return [];
@@ -730,7 +788,7 @@ window.autoSyncMissingTransactionsToCloud = autoSyncMissingTransactionsToCloud;
   function removeDeletedSubcategoryTombstone(categoryName, subcategoryName) {
     if (!categoryName || !subcategoryName) return;
     try {
-      const raw = localStorage.getItem(_DELETED_SUBCATEGORIES_LS_KEY);
+      const raw = _readTombstoneRaw(_DELETED_SUBCATEGORIES_LS_KEY);
       if (!raw) return;
       const registry = JSON.parse(raw);
       if (!registry || typeof registry !== 'object') return;
@@ -744,7 +802,7 @@ window.autoSyncMissingTransactionsToCloud = autoSyncMissingTransactionsToCloud;
         }
       }
       if (changed) {
-        localStorage.setItem(_DELETED_SUBCATEGORIES_LS_KEY, JSON.stringify(registry));
+        _writeTombstoneRaw(_DELETED_SUBCATEGORIES_LS_KEY, JSON.stringify(registry));
       }
     } catch (e) {
       console.warn('[DataIntegrity] removeDeletedSubcategoryTombstone failed:', e);

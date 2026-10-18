@@ -1378,11 +1378,18 @@ function submitCoachQuery(queryText) {
         const ytdExpense = yearAgg[currentYearStr]?.expense || 0;
         const ytdNetBalance = ytdIncome - ytdExpense;
 
+        // Use the same inputs as the UI so the advisor never quotes a different
+        // daily allowance (the savings goal may be prorated against the annual
+        // target and can be 0 once that target is met).
+        let coachStsInputs = null;
+        if (typeof getSafeToSpendInputs === 'function') {
+          try { coachStsInputs = getSafeToSpendInputs(); } catch (e) { coachStsInputs = null; }
+        }
         const currentSafeToSpend = (typeof SafeToSpendEngine !== 'undefined')
           ? SafeToSpendEngine.calculateDailySafeToSpend({
-              currentBalance: getLiquidBalance(),
-              unpaidRecurringBills: getUnpaidRecurringBillsThisMonth(),
-              savingsGoal: getMonthlySavingsGoal()
+              currentBalance: coachStsInputs ? coachStsInputs.balance : getLiquidBalance(),
+              unpaidRecurringBills: coachStsInputs ? coachStsInputs.unpaidBills : getUnpaidRecurringBillsThisMonth(),
+              savingsGoal: coachStsInputs ? coachStsInputs.savingsGoal : getMonthlySavingsGoal()
             })
           : null;
 

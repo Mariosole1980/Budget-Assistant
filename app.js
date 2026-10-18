@@ -1498,7 +1498,14 @@ window.getSubcategoryDisplayName = getSubcategoryDisplayName;
 
 function saveCategoriesToStorage() {
   deduplicateCategories();
-  localStorage.setItem('offline_categories', JSON.stringify(state.categories));
+  // Guest mode never reads the account cache (privacy isolation), so guest-owned
+  // categories are persisted in a dedicated key. This makes deletions/edits made
+  // while browsing as a guest survive an app reload instead of resetting to defaults.
+  if (state.guestMode) {
+    localStorage.setItem('guest_categories', JSON.stringify(state.categories));
+  } else {
+    localStorage.setItem('offline_categories', JSON.stringify(state.categories));
+  }
   lastRenderedCategoryType = null;
 }
 

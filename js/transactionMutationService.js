@@ -276,7 +276,7 @@ function deleteTransaction(id) {
         idsToDelete.forEach(dId => dequeueSyncMutation('delete', dId));
         // Incremental sync: record a durable tombstone so other devices can apply
         // this deletion without a full re-fetch. Best-effort; never blocks the delete.
-        (typeof writeSyncTombstones === 'function' ? writeSyncTombstones('transactions', idsToDelete) : ((typeof window !== 'undefined' && typeof window.writeSyncTombstones === 'function') ? window.writeSyncTombstones('transactions', idsToDelete) : Promise.resolve())).catch(err => {
+        (typeof writeSyncTombstones === 'function' ? writeSyncTombstones('transactions', idsToDelete) : ((typeof window !== 'undefined' && typeof window.writeSyncTombstones === 'function') ? window.writeSyncTombstones('transactions', idsToDelete) : ((typeof window !== 'undefined' && window.SupabaseRealtimeService && typeof window.SupabaseRealtimeService.writeSyncTombstones === 'function') ? window.SupabaseRealtimeService.writeSyncTombstones('transactions', idsToDelete) : Promise.resolve()))).catch(err => {
           console.warn('Failed to write transaction tombstone:', err);
         });
       } catch (err) {

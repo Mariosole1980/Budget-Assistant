@@ -444,3 +444,100 @@ test('SafeToSpendView: getSafeToSpendInputs is consistent and skips budget-cover
   state.accounts = savedAccounts;
   resetStsInputsState();
 });
+
+// ---------------------------------------------------------------------------
+// Annual target progress -> prorated monthly reservation (Safe-to-Spend fix)
+// ---------------------------------------------------------------------------
+
+function setStsYearTransactions(income, expense) {
+  const year = new Date().getFullYear();
+  state.transactions = [
+    { id: 'inc-ytd', type: 'income', amount: income, date: `${year}-01-01`, note: 'Income' },
+    { id: 'exp-ytd', type: 'expense', amount: expense, date: `${year}-01-01`, note: 'Expenses' }
+  ];
+}
+
+test('SafeToSpendView: annual target already met stops the monthly reservation', () => {
+  resetStsInputsState();
+  const savedTxs = state.transactions;
+  const savedBudgets = state.budgets;
+  const savedTemplates = state.recurringTemplates;
+
+  state.budgets = [];
+  state.recurringTemplates = [];
+  // 10.512 € target, 12.535 € already saved (119%) -> nothing left to reserve.
+  setStsYearTransactions(20000, 7465);
+  localStorage.setItem('ba_monthly_savings_goal', '876');
+  localStorage.setItem('overview_savings_target', '10512');
+
+  const inputs = SafeToSpendView.getSafeToSpendInputs();
+  assert.strictEqual(inputs.baseSavingsGoal, 876);
+  assert.strictEqual(inputs.savingsProgress.annualTarget, 10512);
+  assert.strictEqual(inputs.savingsProgress.savedYtd, 12535);
+  assert.strictEqual(inputs.savingsProgress.remaining, 0);
+  assert.strictEqual(inputs.savingsProgress.progressPct, 119);
+  assert.strictEqual(inputs.savingsGoal, 0);
+  assert.strictEqual(inputs.savingsCapped, true);
+
+  // Row renders a single minus-free zero and explains why.
+  SafeToSpendView.renderStsSavingsRow(inputs);
+  const valueEl = getMockElement('modal-sts-savings');
+  const labelEl = getMockElement('modal-sts-savings-label');
+  const progressEl = getMockElement('modal-sts-savings-progress');
+  assert.strictEqual(valueEl.textContent, '€ 0');
+  assert.ok(!labelEl.textContent.startsWith('-'), 'Label must not add a second minus sign');
+  assert.ok(progressEl.textContent.includes('10512') || progressEl.textContent.includes('10.512'), 'Progress must show the annual target');
+  assert.ok(progressEl.textContent.includes('12535') || progressEl.textContent.includes('12.535'), 'Progress must show year-to-date savings');
+  assert.ok(progressEl.textContent.includes('καλύφθηκε'), 'Progress must explain that the target is met');
+
+  state.transactions = savedTxs;
+  state.budgets = savedBudgets;
+  state.recurringTemplates = savedTemplates;
+  resetStsInputsState();
+});
+
+test('SafeToSpendView: remaining annual target is prorated across the months left', () => {
+  resetStsInputsState();
+  const savedTxs = state.transactions;
+  const savedBudgets = state.budgets;
+  const savedTemplates = state.recurringTemplates;
+
+  state.budgets = [];
+  state.recurringTemplates = [];
+  // 512 € still missing: always below the 876 € monthly goal, whatever the month.
+  setStsYearTransactions(12000, 2000);
+  localStorage.setItem('ba_monthly_savings_goal', '876');
+  localStorage.setItem('overview_savings_target', '10512');
+
+  const monthsRemaining = Math.max(1, 12 - new Date().getMonth());
+  const expected = Math.round((512 / monthsRemaining) * 100) / 100;
+
+  const inputs = SafeToSpendView.getSafeToSpendInputs();
+  assert.strictEqual(inputs.savingsProgress.remaining, 512);
+  assert.strictEqual(inputs.savingsGoal, expected);
+  assert.strictEqual(inputs.savingsCapped, true);
+  assert.ok(inputs.savingsGoal < inputs.baseSavingsGoal);
+
+  state.transactions = savedTxs;
+  state.budgets = savedBudgets;
+  state.recurringTemplates = savedTemplates;
+  resetStsInputsState();
+});
+
+test('SafeToSpendView: missing annual target falls back to monthly x 12 without capping', () => {
+  resetStsInputsState();
+  const savedTxs = state.transactions;
+
+  state.transactions = [];
+  localStorage.setItem('ba_monthly_savings_goal', '876');
+  localStorage.removeItem('overview_savings_target');
+
+  const inputs = SafeToSpendView.getSafeToSpendInputs();
+  assert.strictEqual(inputs.savingsProgress.annualTarget, 10512);
+  assert.strictEqual(inputs.savingsProgress.savedYtd, 0);
+  assert.strictEqual(inputs.savingsGoal, 876);
+  assert.strictEqual(inputs.savingsCapped, false);
+
+  state.transactions = savedTxs;
+  resetStsInputsState();
+});

@@ -341,3 +341,30 @@ test('free-plan limit defers the saves, caches the usage query and sets a retry 
   assert.strictEqual(SyncQueueService.hasDueSyncItems(), false);
 });
 
+test('queued category delete persists a cloud tombstone after the delete succeeds', async () => {
+  resetTestEnv();
+  const tombstoneCalls = [];
+  const originalRealtimeService = global.SupabaseRealtimeService;
+  global.SupabaseRealtimeService = {
+    writeSyncTombstones: async (table, ids) => {
+      tombstoneCalls.push({ table, ids });
+      return { error: null };
+    }
+  };
+
+  try {
+    global.state.supabaseClient = createSupabaseMock(() => ({ error: null }));
+    SyncQueueService.enqueueSyncMutation('delete_category', 'cat-home');
+
+    const result = await SyncQueueService.processSyncQueue({ skipReload: true });
+
+    assert.strictEqual(result.processed, 1);
+    assert.deepStrictEqual(tombstoneCalls, [{ table: 'categories', ids: ['cat-home'] }],
+      'the queued delete must leave a durable cloud tombstone');
+    assert.strictEqual(readQueue().length, 0);
+  } finally {
+    global.SupabaseRealtimeService = originalRealtimeService;
+  }
+});
+
+

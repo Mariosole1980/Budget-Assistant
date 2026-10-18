@@ -218,11 +218,13 @@ async function inlineDeleteCustomCategory(categoryName, type) {
     }
   }
 
-  // Find the category to get its ID before removing it
-  const catToDelete = state.categories.find(c => c.name === categoryName);
+  // Find the category to get its ID before removing it (type-aware: the same name
+  // can exist once as an expense and once as an income category).
+  const catType = type || 'expense';
+  const catToDelete = state.categories.find(c => c && c.name === categoryName && (c.type || 'expense') === catType);
   if (!catToDelete) return;
 
-  state.categories = state.categories.filter(c => c.name !== categoryName);
+  state.categories = state.categories.filter(c => !(c && c.name === categoryName && (c.type || 'expense') === catType));
   saveCategoriesToStorage();
 
   // Record durable tombstone locally & on cloud
@@ -375,7 +377,16 @@ let lastRenderedCategoryEditMode = null;
 
 function updateCategoryDropdowns(type = 'expense', force = false) {
   if (!state.categories || state.categories.length === 0) {
-    state.categories = DEFAULT_CATEGORIES.slice();
+    // Seed defaults only for categories the user never deleted (durable tombstones win).
+    const isCatDeletedFn = (typeof isCategoryDeleted === 'function')
+      ? isCategoryDeleted
+      : ((typeof window !== 'undefined' && typeof window.isCategoryDeleted === 'function')
+        ? window.isCategoryDeleted
+        : () => false);
+    const defaults = (typeof DEFAULT_CATEGORIES !== 'undefined' && Array.isArray(DEFAULT_CATEGORIES)) ? DEFAULT_CATEGORIES : [];
+    state.categories = defaults
+      .filter(c => !c || !isCatDeletedFn(c.id, c.name, c.type))
+      .map(c => (c ? { ...c } : c));
   }
   deduplicateCategories();
   const grid = document.getElementById('category-picker-grid');
@@ -403,7 +414,9 @@ function updateCategoryDropdowns(type = 'expense', force = false) {
       : ((typeof window !== 'undefined' && typeof window.isCategoryDeleted === 'function')
         ? window.isCategoryDeleted
         : () => false);
-    const defaultsForType = DEFAULT_CATEGORIES.filter(c => c.type === type && !isCatDeletedFn(c.id, c.name, c.type));
+    const defaultsForType = (typeof DEFAULT_CATEGORIES !== 'undefined' && Array.isArray(DEFAULT_CATEGORIES) ? DEFAULT_CATEGORIES : [])
+      .filter(c => c && c.type === type && !isCatDeletedFn(c.id, c.name, c.type))
+      .map(c => ({ ...c }));
     if (defaultsForType.length > 0) {
       state.categories.push(...defaultsForType);
       deduplicateCategories();

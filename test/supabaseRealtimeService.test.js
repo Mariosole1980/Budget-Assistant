@@ -19,8 +19,11 @@ global.state = {
   lang: 'el'
 };
 
-const SupabaseRealtimeService = require('../js/supabaseRealtimeService.js');
+// Category tombstone helpers are resolved from global scope by the service.
+const DataIntegrityService = require('../js/dataIntegrityService.js');
+Object.assign(global, DataIntegrityService);
 
+const SupabaseRealtimeService = require('../js/supabaseRealtimeService.js');
 test('SupabaseRealtimeService exports all expected functions', () => {
   assert.strictEqual(typeof SupabaseRealtimeService.setupSupabaseRealtimeSubscription, 'function');
   assert.strictEqual(typeof SupabaseRealtimeService.stopSupabaseRealtimeSubscription, 'function');
@@ -32,6 +35,9 @@ test('SupabaseRealtimeService exports all expected functions', () => {
   assert.strictEqual(typeof SupabaseRealtimeService.setIncrementalSyncEnabled, 'function');
   assert.strictEqual(typeof SupabaseRealtimeService.getSyncCursors, 'function');
   assert.strictEqual(typeof SupabaseRealtimeService.saveSyncCursors, 'function');
+  assert.strictEqual(typeof SupabaseRealtimeService.fetchCategoryTombstones, 'function');
+  assert.strictEqual(typeof SupabaseRealtimeService.applyCategoryTombstones, 'function');
+  assert.strictEqual(typeof SupabaseRealtimeService.writeSyncTombstones, 'function');
   assert.strictEqual(typeof SupabaseRealtimeService.forceSyncNow, 'function');
   assert.strictEqual(typeof SupabaseRealtimeService.startPartnerSyncPolling, 'function');
   assert.strictEqual(typeof SupabaseRealtimeService.stopPartnerSyncPolling, 'function');
@@ -261,3 +267,118 @@ test('SupabaseRealtimeService.setupSupabaseRealtimeSubscription skips when restr
   global.state.supabaseClient = null;
   global.state.currentUser = null;
 });
+
+// === Durable category deletion regressions ===
+
+function _prepareRealtimeCategoryState(categories) {
+  global.localStorage.clear();
+  global.state.categories = categories;
+  global.updateUI = () => {};
+  global.pushNoTransition = () => {};
+  global.popNoTransition = () => {};
+  global._isWithinResumeWindow = () => false;
+  global._REALTIME_RESUME_GUARD_MS = 1000;
+}
+
+test('handleRealtimeCategoryChange ignores INSERT for a category id that was deliberately deleted', () => {
+  _prepareRealtimeCategoryState([{ id: 'keep', name: 'Food', type: 'expense' }]);
+  DataIntegrityService.recordDeletedCategory('cat_home', '🏡 ΣΠΙΤΙ', 'expense', { writeCloudTombstone: false });
+
+  SupabaseRealtimeService.handleRealtimeCategoryChange({
+    eventType: 'INSERT',
+    new: { id: 'cat_home', name: '🏡 ΣΠΙΤΙ', type: 'expense' }
+  });
+
+  assert.deepStrictEqual(global.state.categories.map(c => c.id), ['keep'],
+    'a tombstoned category must not be re-added by a realtime INSERT');
+  assert.strictEqual(JSON.parse(global.localStorage.getItem('offline_categories')).length, 1);
+});
+
+test('handleRealtimeCategoryChange accepts explicit re-creation of a deleted category with a new id', () => {
+  _prepareRealtimeCategoryState([{ id: 'keep', name: 'Food', type: 'expense' }]);
+  DataIntegrityService.recordDeletedCategory('cat_home', '🏡 ΣΠΙΤΙ', 'expense', { writeCloudTombstone: false });
+
+  SupabaseRealtimeService.handleRealtimeCategoryChange({
+    eventType: 'INSERT',
+    new: { id: 'cat_home_new', name: '🏡 ΣΠΙΤΙ', type: 'expense' }
+  });
+
+  assert.deepStrictEqual(global.state.categories.map(c => c.id), ['keep', 'cat_home_new'],
+    'identity-only tombstone matching must allow an intentional re-creation');
+});
+
+test('handleRealtimeCategoryChange records a tombstone when a category DELETE arrives from the cloud', () => {
+  _prepareRealtimeCategoryState([
+    { id: 'keep', name: 'Food', type: 'expense' },
+    { id: 'cat_home', name: '🏡 ΣΠΙΤΙ', type: 'expense' }
+  ]);
+
+  SupabaseRealtimeService.handleRealtimeCategoryChange({
+    eventType: 'DELETE',
+    old: { id: 'cat_home', name: '🏡 ΣΠΙΤΙ', type: 'expense' }
+  });
+
+  assert.deepStrictEqual(global.state.categories.map(c => c.id), ['keep']);
+  assert.strictEqual(DataIntegrityService.isCategoryDeleted('cat_home'), true,
+    'the deleted id must be tombstoned so reloads cannot resurrect it');
+});
+
+test('applyCategoryTombstones persists cloud tombstones in the active account scope', () => {
+  _prepareRealtimeCategoryState([{ id: 'keep', name: 'Food', type: 'expense' }]);
+  global.state.guestMode = false;
+  global.state.currentUser = { id: 'user-sync' };
+
+  const applied = SupabaseRealtimeService.applyCategoryTombstones([
+    { id: 'tomb-1', table_name: 'categories', row_id: 'cat_home', deleted_at: '2026-10-19T10:00:00Z' },
+    { id: 'tomb-2', table_name: 'transactions', row_id: 'tx-1', deleted_at: '2026-10-19T10:00:00Z' }
+  ]);
+
+  assert.strictEqual(applied, 1, 'only category tombstones are applied');
+  assert.strictEqual(DataIntegrityService.isCategoryDeleted('cat_home'), true);
+  assert.ok(global.localStorage.getItem('ba_deleted_categories::user-sync'),
+    'a cloud tombstone must be stored in the current account scope');
+
+  global.state.currentUser = { id: 'user-other' };
+  assert.strictEqual(DataIntegrityService.isCategoryDeleted('cat_home'), false,
+    'another account must not inherit the tombstone');
+  global.state.currentUser = null;
+});
+
+test('fetchCategoryTombstones queries only the categories tombstones in account scope', async () => {
+  global.localStorage.clear();
+  global.state.guestMode = false;
+  global.state.currentUser = { id: 'user-sync' };
+  global.state.userProfile = null;
+  global.state.partnerProfile = null;
+
+  const calls = [];
+  const rows = [
+    { id: 'tomb-1', table_name: 'categories', row_id: 'cat_home', deleted_at: '2026-10-19T10:00:00Z', user_id: 'user-sync' }
+  ];
+  const query = {
+    select(col) { calls.push(['select', col]); return this; },
+    eq(col, val) { calls.push(['eq', col, val]); return this; },
+    or(expr) { calls.push(['or', expr]); return this; },
+    order(col, opts) { calls.push(['order', col]); return this; },
+    limit(n) { calls.push(['limit', n]); return this; },
+    then(resolve) { resolve({ data: rows, error: null }); }
+  };
+  global.state.supabaseClient = {
+    from(table) { calls.push(['from', table]); return query; }
+  };
+  const originalPromiseTimeout = global.promiseTimeout;
+  global.promiseTimeout = (promise) => Promise.resolve(promise);
+
+  try {
+    const result = await SupabaseRealtimeService.fetchCategoryTombstones();
+    assert.deepStrictEqual(result, rows);
+    assert.deepStrictEqual(calls[0], ['from', 'sync_tombstones']);
+    assert.ok(calls.some(c => c[0] === 'eq' && c[1] === 'table_name' && c[2] === 'categories'));
+    assert.ok(calls.some(c => c[0] === 'or' && c[1] === 'user_id.eq.user-sync'));
+  } finally {
+    global.promiseTimeout = originalPromiseTimeout;
+    global.state.supabaseClient = null;
+    global.state.currentUser = null;
+  }
+});
+

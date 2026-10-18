@@ -812,6 +812,10 @@ async function handleLogout() {
     localStorage.removeItem('offline_transactions');
     localStorage.removeItem('offline_accounts');
     localStorage.removeItem('offline_categories');
+    // Category/subcategory tombstones are deliberately NOT cleared here: they are
+    // scoped per account (and separately for guest sessions) inside
+    // dataIntegrityService, so logout cannot make a deleted category resurrect on
+    // the next login, while other accounts/guests never inherit these tombstones.
     localStorage.removeItem('offline_transactions_owner');
     localStorage.removeItem('deleted_transactions_trash');
     localStorage.removeItem('sync_cursors_v1');

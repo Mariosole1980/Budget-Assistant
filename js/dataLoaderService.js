@@ -41,6 +41,13 @@
     return (typeof window !== 'undefined' && window.state) ? window.state : {};
   }
 
+  // Returns fresh copies of the default categories so UI edits (rename/icon/type)
+  // can never mutate the shared DEFAULT_CATEGORIES objects and get re-seeded later.
+  function getDefaultCategories() {
+    if (typeof DEFAULT_CATEGORIES === 'undefined' || !Array.isArray(DEFAULT_CATEGORIES)) return [];
+    return DEFAULT_CATEGORIES.map(c => (c ? { ...c } : c));
+  }
+
 async function loadData() {
   // Cancel any pending realtime debounce timer to prevent stale DB events
   // from overwriting the fresh data we are about to fetch.
@@ -182,31 +189,44 @@ async function loadData() {
         localStorage.setItem('recurring_templates', JSON.stringify(state.recurringTemplates));
       }
 
-      // Pre-populate standard categories in the cloud for this user if they don't have any
+      // Pre-populate standard categories in the cloud for this user if they don't have any.
+      // DURABLE-DELETE RULE: never re-seed a default category the user deliberately deleted
+      // (it may be absent from the cloud precisely because the delete was applied).
       if (!categories || categories.length === 0) {
-        const now = new Date().toISOString();
-        const catsToInsert = DEFAULT_CATEGORIES.map(c => ({
-          id: typeof generateUUID === 'function' ? generateUUID() : crypto.randomUUID(),
-          name: c.name,
-          type: c.type,
-          icon: c.icon,
-          color: c.color,
-          user_id: userId,
-          family_id: familyId,
-          created_at: now,
-          updated_at: now
-        }));
-        try {
-          const { data: newCats, error: catErr } = await state.supabaseClient.from('categories').insert(catsToInsert).select();
-          if (!catErr && newCats && newCats.length > 0) {
-            categories = newCats;
-          } else {
-            console.warn('Failed to pre-populate categories:', catErr);
-            categories = DEFAULT_CATEGORIES.slice();
+        const isCatDeletedForSeed = (typeof isCategoryDeleted === 'function')
+          ? isCategoryDeleted
+          : ((typeof window !== 'undefined' && typeof window.isCategoryDeleted === 'function')
+            ? window.isCategoryDeleted
+            : () => false);
+        const seedCategories = getDefaultCategories().filter(c => !c || !isCatDeletedForSeed(c.id, c.name, c.type));
+        if (seedCategories.length === 0) {
+          // Everything was deleted on purpose: keep the empty list instead of resurrecting defaults.
+          categories = [];
+        } else {
+          const now = new Date().toISOString();
+          const catsToInsert = seedCategories.map(c => ({
+            id: typeof generateUUID === 'function' ? generateUUID() : crypto.randomUUID(),
+            name: c.name,
+            type: c.type,
+            icon: c.icon,
+            color: c.color,
+            user_id: userId,
+            family_id: familyId,
+            created_at: now,
+            updated_at: now
+          }));
+          try {
+            const { data: newCats, error: catErr } = await state.supabaseClient.from('categories').insert(catsToInsert).select();
+            if (!catErr && newCats && newCats.length > 0) {
+              categories = newCats;
+            } else {
+              console.warn('Failed to pre-populate categories:', catErr);
+              categories = seedCategories.slice();
+            }
+          } catch (e) {
+            console.warn('Failed to pre-populate categories catch:', e);
+            categories = seedCategories.slice();
           }
-        } catch (e) {
-          console.warn('Failed to pre-populate categories catch:', e);
-          categories = DEFAULT_CATEGORIES.slice();
         }
       }
 
@@ -338,21 +358,6 @@ async function loadData() {
           ? window.getDeletedSubcategoriesForCategory
           : () => []);
 
-      // Safety Guard: Active cloud categories must never be suppressed by stale local tombstones
-      const remCatTombFn = (typeof removeDeletedCategoryTombstone === 'function')
-        ? removeDeletedCategoryTombstone
-        : ((typeof window !== 'undefined' && typeof window.removeDeletedCategoryTombstone === 'function')
-          ? window.removeDeletedCategoryTombstone
-          : () => {});
-
-      (categories || []).forEach(c => {
-        if (c && c.name && !c.hidden) {
-          remCatTombFn(c.name, c.type, c.id);
-        }
-      });
-      remCatTombFn('🏡 ΣΠΙΤΙ', 'expense', 'e2d3762b-3a13-4f0a-8f9b-623f826bdade');
-      remCatTombFn('ΣΠΙΤΙ', 'expense', 'e2d3762b-3a13-4f0a-8f9b-623f826bdade');
-
       // Fetch offline sync queue to identify genuine pending category deletions
       const syncQueue = (typeof getSyncQueue === 'function')
         ? getSyncQueue()
@@ -364,25 +369,17 @@ async function loadData() {
           .filter(Boolean)
       );
 
-      // CLOUD-AUTHORITY RULE: Non-hidden categories returned by Supabase are ACTIVE in the cloud.
-      // Stale durable tombstones in localStorage must NEVER drop live cloud categories!
-      // A cloud category is only excluded if there is an in-flight/pending delete_category in the sync queue.
+      // DURABLE-DELETE RULE: a locally deleted category must stay deleted even when its
+      // cloud row is still present (delete still in flight, offline, RLS error, etc.).
+      // Tombstones are only cleared when the user explicitly re-creates the category.
+      // ID matching is used for cloud rows so that a category re-created elsewhere
+      // (new id) is not hidden by an old name-only tombstone.
       let activeCloudCategories = (categories || []).filter(c => {
         if (!c || !c.name || c.hidden) return false;
+        if (c.id && isCatDeletedFn(c.id)) return false;
         if (c.id && pendingDeleteCatIds.has(String(c.id))) return false;
         return true;
       });
-
-      const hasHomeCat = activeCloudCategories.some(c => c && c.name && (c.name.includes('ΣΠΙΤΙ') || c.name.includes('Σπίτι') || c.name.toUpperCase().includes('HOME')));
-      if (!hasHomeCat) {
-        activeCloudCategories.unshift({
-          id: 'e2d3762b-3a13-4f0a-8f9b-623f826bdade',
-          name: '🏡 ΣΠΙΤΙ',
-          type: 'expense',
-          icon: 'fa-solid fa-house',
-          color: '#e05e55'
-        });
-      }
       const cloudCatNames = new Set(activeCloudCategories.map(c => c && c.name ? c.name.trim().toLowerCase() : ''));
       const localCustomCats = (state.categories || []).filter(c => {
         if (!c || !c.name) return false;
@@ -535,7 +532,22 @@ function loadOfflineData() {
       state.budgets = [];
     }
     state.accounts = DEFAULT_ACCOUNTS.slice();
-    state.categories = DEFAULT_CATEGORIES.slice();
+    // GUEST CATEGORY PERSISTENCE: Guest-created/deleted categories live in a dedicated
+    // key (never the previous account's cache) so deletions survive a reload.
+    try {
+      const isGuestCatDeletedFn = (typeof isCategoryDeleted === 'function')
+        ? isCategoryDeleted
+        : ((typeof window !== 'undefined' && typeof window.isCategoryDeleted === 'function')
+          ? window.isCategoryDeleted
+          : () => false);
+      const rawGuestCats = localStorage.getItem('guest_categories');
+      const parsedGuestCats = rawGuestCats ? JSON.parse(rawGuestCats) : null;
+      const baseGuestCats = Array.isArray(parsedGuestCats) ? parsedGuestCats : getDefaultCategories();
+      state.categories = baseGuestCats.filter(c => !c || !isGuestCatDeletedFn(c.id, c.name, c.type));
+    } catch (e) {
+      console.warn('Failed to parse guest categories:', e);
+      state.categories = getDefaultCategories();
+    }
     state.recurringTemplates = [];
     state.deletedRecurringDates = [];
     state.trashTransactions = [];
@@ -644,27 +656,11 @@ function loadOfflineData() {
         ? window.getDeletedSubcategoriesForCategory
         : () => []);
 
-    let baseCats = (Array.isArray(parsedCats) && parsedCats.length > 0)
+    // DURABLE-DELETE RULE: cached categories (or defaults) are filtered by tombstones.
+    // Deleted categories are never re-injected here, even if they are "core" ones.
+    const baseCats = (Array.isArray(parsedCats) && parsedCats.length > 0)
       ? parsedCats.filter(c => !c || !isCatDeletedFn(c.id, c.name, c.type))
-      : DEFAULT_CATEGORIES.filter(c => !c || !isCatDeletedFn(c.id, c.name, c.type));
-
-    const hasHome = baseCats.some(c => c && c.name && (c.name.includes('ΣΠΙΤΙ') || c.name.includes('Σπίτι') || c.name.toUpperCase().includes('HOME')));
-    if (!hasHome) {
-      baseCats.unshift({
-        id: 'e2d3762b-3a13-4f0a-8f9b-623f826bdade',
-        name: '🏡 ΣΠΙΤΙ',
-        type: 'expense',
-        icon: 'fa-solid fa-house',
-        color: '#e05e55'
-      });
-      const remFn = (typeof removeDeletedCategoryTombstone === 'function')
-        ? removeDeletedCategoryTombstone
-        : ((typeof window !== 'undefined' && typeof window.removeDeletedCategoryTombstone === 'function')
-          ? window.removeDeletedCategoryTombstone
-          : () => {});
-      remFn('🏡 ΣΠΙΤΙ', 'expense', 'e2d3762b-3a13-4f0a-8f9b-623f826bdade');
-      remFn('ΣΠΙΤΙ', 'expense', 'e2d3762b-3a13-4f0a-8f9b-623f826bdade');
-    }
+      : getDefaultCategories().filter(c => !c || !isCatDeletedFn(c.id, c.name, c.type));
 
     baseCats.forEach(cat => {
       if (!cat) return;
@@ -677,7 +673,12 @@ function loadOfflineData() {
     deduplicateCategories();
   } catch (e) {
     console.error('Failed to parse offline categories:', e);
-    state.categories = DEFAULT_CATEGORIES.slice();
+    const isCatDeletedFn = (typeof isCategoryDeleted === 'function')
+      ? isCategoryDeleted
+      : ((typeof window !== 'undefined' && typeof window.isCategoryDeleted === 'function')
+        ? window.isCategoryDeleted
+        : () => false);
+    state.categories = getDefaultCategories().filter(c => !c || !isCatDeletedFn(c.id, c.name, c.type));
     deduplicateCategories();
   }
 

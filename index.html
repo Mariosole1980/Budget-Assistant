@@ -104,7 +104,7 @@
               ${devButton}
             </div>
             <div style="font-size:11px;color:#8b949e;">
-              Budget Assistant • build v1748
+              Budget Assistant • build v1749
             </div>
           </div>
         `;
@@ -229,7 +229,7 @@
   <!-- Desktop Web UX Layer (loaded AFTER style.css so it can override).
        All rules are scoped behind html.web-mode, so Android/iOS native
        (Capacitor) layout is never affected. -->
-  <link rel="stylesheet" href="desktop.css?v=1748" id="desktop-stylesheet">
+  <link rel="stylesheet" href="desktop.css?v=1749" id="desktop-stylesheet">
 
   <!-- Capacitor Bridge
        NOTE: The native Capacitor runtime injects its bridge JS automatically into
@@ -283,7 +283,7 @@
           // OTA updates. Running both would cause a reload loop that never
           // baked into the APK and never changes on a plain reload).
           // ============================================================
-          const CURRENT_BUILD = 1748;
+          const CURRENT_BUILD = 1749;
           (function () {
             // Skip entirely when running inside the native APK (Capacitor bridge
             // present). Capgo handles OTA updates there.
@@ -623,11 +623,11 @@
   <!-- Bank Push Notification Parser & Service Subsystem (loaded before app.js) -->
   <script src="js/bankNotificationParser.js"></script>
   <script src="js/bankNotificationService.js"></script>
-      <script src="app.js?v=1748"></script>
+      <script src="app.js?v=1749"></script>
       <!-- Desktop Web UX Layer (defer so it runs after app.js; invoked via
        initDesktopUI() hook at the end of initApp()). Self-guards on
        html.web-mode so native Android/iOS is never affected. -->
-      <script src="web-ui.js?v=1748" defer></script>
+      <script src="web-ui.js?v=1749" defer></script>
 </head>
 
 <body style="background-color: #181b22; margin: 0; padding: 0; ">
@@ -2143,7 +2143,7 @@
                 data-i18n="item_user_guide">Οδηγός Χρήσης</h3>
               <div
                 style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; font-family: 'Outfit', sans-serif;">
-                <span id="user-guide-version-badge" style="font-size:10px; background:rgba(99,102,241,0.15); color:var(--primary); padding:2px 8px; border-radius:10px; font-weight:700; border:1px solid rgba(99,102,241,0.3);">v1748</span>
+                <span id="user-guide-version-badge" style="font-size:10px; background:rgba(99,102,241,0.15); color:var(--primary); padding:2px 8px; border-radius:10px; font-weight:700; border:1px solid rgba(99,102,241,0.3);">v1749</span>
                 <span>•</span>
                 <span id="user-guide-date-badge" data-i18n="user_guide_date_badge">Αύγουστος 2026</span>
               </div>
@@ -3303,7 +3303,7 @@
             <div class="settings-list-item version-info-row"
               style="padding: 14px 16px; background: transparent; border-top: 1px solid var(--border); margin-top: 8px;">
               <span class="settings-item-label" style="color:var(--text-muted); font-size:12px;"
-                data-i18n="app_version">Έκδοση 1.0.0 (build v1748)</span>
+                data-i18n="app_version">Έκδοση 1.0.0 (build v1749)</span>
               <span class="settings-item-value" style="font-size:12px; color:var(--text-muted); font-weight:600;">Budget
                 Assistant</span>
             </div>
@@ -3566,7 +3566,7 @@
             </div>
             <div style="display: flex; justify-content: space-between; align-items: center; color: #60a5fa; cursor: pointer; padding: 4px 6px; border-radius: 8px; transition: background 0.15s; gap: 6px;" onclick="toggleStsSavingsGoalEditor()" title="Κλικ για ορισμό ή αλλαγή στόχου αποταμίευσης" onmouseover="this.style.background='rgba(96, 165, 250, 0.08)'" onmouseout="this.style.background='transparent'">
               <div style="display: flex; align-items: center; gap: 6px; min-width: 0; overflow: hidden;">
-                <span id="modal-sts-savings-label" data-i18n="sts_savings_goal_row_label" style="min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">- Στόχος Αποταμίευσης (Ετήσια βάση):</span>
+                <span id="modal-sts-savings-label" data-i18n="sts_savings_goal_row_label" style="min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Στόχος Αποταμίευσης (Μηνιαία δόση):</span>
                 <i class="fa-solid fa-pen-to-square" style="font-size: 11px; opacity: 0.75; flex-shrink: 0;"></i>
               </div>
               <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
@@ -3574,18 +3574,19 @@
                 <span id="modal-sts-savings-btn" style="font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 6px; background: rgba(96, 165, 250, 0.18); border: 1px solid rgba(96, 165, 250, 0.35); color: #93c5fd; transition: all 0.2s; white-space: nowrap;">Ορισμός</span>
               </div>
             </div>
+            <div id="modal-sts-savings-progress" style="display: none; margin: 0 6px; padding: 6px 8px; border-radius: 8px; background: rgba(96, 165, 250, 0.07); border: 1px dashed rgba(96, 165, 250, 0.22); font-size: 10.5px; line-height: 1.4; color: #93c5fd;"></div>
 
             <!-- Inline Savings Goal Editor -->
             <div id="sts-savings-editor-container" style="display: none; margin: 6px 0; padding: 12px 10px; border-radius: 14px; background: rgba(96, 165, 250, 0.08); border: 1px solid rgba(96, 165, 250, 0.28); box-shadow: 0 4px 16px rgba(0,0,0,0.25); box-sizing: border-box;">
               <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
                 <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: #93c5fd;">
                   <i class="fa-solid fa-piggy-bank"></i>
-                  <span id="sts-savings-editor-title" data-i18n="sts_savings_target_title">Στόχος Αποταμίευσης (Ετήσια Βάση)</span>
+                  <span id="sts-savings-editor-title" data-i18n="sts_savings_target_title">Στόχος Αποταμίευσης (Μηνιαία Δόση)</span>
                 </div>
                 <button type="button" onclick="event.stopPropagation(); toggleStsSavingsGoalEditor(false)" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 18px; line-height: 1; padding: 0 4px;">&times;</button>
               </div>
               <div id="sts-savings-editor-desc" data-i18n="sts_savings_target_desc" style="font-size: 11px; color: var(--text-secondary); margin-bottom: 10px; line-height: 1.35;">
-                Ορίστε το μηνιαίο ποσό αποταμίευσης. Συγχρονίζεται αυτόματα με τον Ετήσιο Στόχο Αποταμίευσης (ποσό x 12) στην Επισκόπηση και προστατεύεται από το ημερήσιο όριο εξόδων.
+                Ορίστε τον μηνιαίο στόχο αποταμίευσης. Συγχρονίζεται αυτόματα με τον Ετήσιο Στόχο της Επισκόπησης (ποσό × 12) και προσαρμόζεται στους μήνες που απομένουν, ώστε να μη δεσμεύεται δόση όταν ο ετήσιος στόχος έχει καλυφθεί.
               </div>
               <div style="display: flex; gap: 8px; margin-bottom: 10px;">
                 <div style="position: relative; flex: 1;">

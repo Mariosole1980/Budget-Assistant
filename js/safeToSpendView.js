@@ -319,11 +319,19 @@ function getUnpaidRecurringBillsThisMonth(options) {
  */
 function getSafeToSpendInputs() {
   const liquid = computeLiquidBalance();
+  const baseSavingsGoal = getMonthlySavingsGoal();
+  const savingsProgress = getYearSavingsProgress();
+  const savingsPlan = getEffectiveMonthlySavingsGoal(baseSavingsGoal, savingsProgress);
   return {
     balance: liquid.balance,
     mode: liquid.mode,
     unpaidBills: getUnpaidRecurringBillsThisMonth({ excludeBudgetCovered: liquid.mode === 'budget' }),
-    savingsGoal: getMonthlySavingsGoal()
+    // The amount actually reserved this month (may be prorated when the
+    // annual target is already met or nearly met).
+    savingsGoal: savingsPlan.effective,
+    baseSavingsGoal: savingsPlan.base,
+    savingsCapped: savingsPlan.capped,
+    savingsProgress: savingsProgress
   };
 }
 
@@ -403,6 +411,114 @@ function getMonthlySavingsGoal(options) {
   }
 
   return 0;
+}
+
+/**
+ * Annual savings target that the Overview card compares against year-to-date
+ * net savings. `overview_savings_target` is the source of truth; when it is
+ * missing we derive it from an explicitly configured monthly goal (x12) so the
+ * Safe-to-Spend row and the Overview progress bar always describe the same plan.
+ */
+function getAnnualSavingsTarget() {
+  try {
+    const raw = localStorage.getItem('overview_savings_target');
+    if (raw !== null && raw !== undefined && String(raw).trim() !== '') {
+      const annual = parseFloat(raw);
+      if (!isNaN(annual) && annual > 0) return sanitizeFloat(annual);
+    }
+  } catch (e) { }
+
+  try {
+    const monthlyRaw = localStorage.getItem('ba_monthly_savings_goal');
+    if (monthlyRaw !== null && monthlyRaw !== undefined && String(monthlyRaw).trim() !== '') {
+      const monthly = parseFloat(monthlyRaw);
+      if (!isNaN(monthly) && monthly > 0) return sanitizeFloat(Math.round(monthly * 12));
+    }
+  } catch (e) { }
+
+  return 0;
+}
+
+/**
+ * Year-to-date savings progress (income - expenses, transfers excluded), the
+ * same realized-savings metric rendered by the Overview savings progress bar.
+ * Only transactions up to today are counted: future (scheduled) entries are not
+ * money saved yet.
+ */
+function getYearSavingsProgress() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const todayEnd = new Date(year, now.getMonth(), now.getDate(), 23, 59, 59, 999);
+  const annualTarget = getAnnualSavingsTarget();
+
+  let txs = [];
+  if (typeof TransactionScopeService !== 'undefined' && typeof TransactionScopeService.getActiveTransactions === 'function') {
+    txs = TransactionScopeService.getActiveTransactions((state && state.transactions) || []);
+  } else if (typeof getActiveTransactions === 'function') {
+    txs = getActiveTransactions((state && state.transactions) || []);
+  } else {
+    txs = (state && state.transactions) || [];
+  }
+
+  const displayCurrency = (typeof getDisplayCurrency === 'function') ? getDisplayCurrency() : undefined;
+  let income = 0;
+  let expense = 0;
+
+  (txs || []).forEach(t => {
+    if (!t || !t.date) return;
+    if (typeof isTransferTransaction === 'function' && isTransferTransaction(t)) return;
+    const d = parseDate(t.date);
+    if (d.getFullYear() !== year || d.getTime() > todayEnd.getTime()) return;
+
+    let amt = parseFloat(t.amount) || 0;
+    if (typeof CurrencyService !== 'undefined' && CurrencyService && typeof CurrencyService.displayAmount === 'function') {
+      try {
+        const converted = CurrencyService.displayAmount(t, displayCurrency);
+        if (typeof converted === 'number' && !isNaN(converted)) amt = converted;
+      } catch (e) { }
+    }
+
+    if (t.type === 'income') income += amt;
+    else if (t.type === 'expense') expense += amt;
+  });
+
+  const savedYtd = sanitizeFloat(income - expense);
+  const remaining = annualTarget > 0 ? Math.max(0, sanitizeFloat(annualTarget - savedYtd)) : 0;
+  const progressPct = annualTarget > 0 ? Math.round((savedYtd / annualTarget) * 100) : 0;
+  // The current month can still be saved into, so it counts as remaining.
+  const monthsRemaining = Math.max(1, 12 - now.getMonth());
+
+  return {
+    year: year,
+    annualTarget: annualTarget,
+    savedYtd: savedYtd,
+    remaining: remaining,
+    progressPct: progressPct,
+    monthsRemaining: monthsRemaining
+  };
+}
+
+/**
+ * Prorates the monthly reservation against what is still missing from the
+ * annual target: min(monthly goal, remaining annual / months left). A user who
+ * is ahead of the annual target therefore stops reserving money that is no
+ * longer needed instead of seeing an artificial negative pool.
+ */
+function getEffectiveMonthlySavingsGoal(baseGoal, progress) {
+  const base = sanitizeFloat(baseGoal || 0);
+  if (base <= 0) return { base: base, effective: 0, capped: false };
+
+  const p = progress || getYearSavingsProgress();
+  if (!(p.annualTarget > 0)) return { base: base, effective: base, capped: false };
+
+  const neededPerMonth = sanitizeFloat(p.remaining / p.monthsRemaining);
+  const effective = sanitizeFloat(Math.min(base, neededPerMonth));
+
+  return {
+    base: base,
+    effective: effective,
+    capped: effective + 0.005 < base
+  };
 }
 
 function updateSafeToSpendUI() {
@@ -553,6 +669,81 @@ function updateSafeToSpendUI() {
   }
 }
 
+/**
+ * Renders the savings-goal row and its annual-target context line:
+ * - the value is the amount actually reserved this month (single minus sign),
+ * - the sub-line explains target, year-to-date progress and any prorating.
+ */
+function renderStsSavingsRow(inputs) {
+  const data = inputs || getSafeToSpendInputs();
+  const currSym = getCurrencySymbol();
+  const lang = (state && state.lang) || 'el';
+  const translations = (typeof TRANSLATIONS !== 'undefined' ? TRANSLATIONS : (typeof window !== 'undefined' ? window.TRANSLATIONS : null)) || {};
+  const t = (translations && translations[lang]) || {};
+
+  const modalSav = document.getElementById('modal-sts-savings');
+  if (modalSav) {
+    if (data.savingsGoal > 0) {
+      modalSav.textContent = `- ${currSym} ${formatDisplayAmount(data.savingsGoal)}`;
+      modalSav.style.color = '#60a5fa';
+    } else {
+      // Nothing is reserved (no goal or annual target already met): no minus.
+      modalSav.textContent = `${currSym} ${formatDisplayAmount(0)}`;
+      modalSav.style.color = '#34d399';
+    }
+  }
+
+  const savLabelEl = document.getElementById('modal-sts-savings-label');
+  if (savLabelEl) {
+    savLabelEl.textContent = t['sts_savings_goal_row_label'] || (lang === 'el' ? 'Στόχος Αποταμίευσης (Μηνιαία δόση):' : 'Savings Goal (Monthly installment):');
+  }
+
+  const savBtn = document.getElementById('modal-sts-savings-btn');
+  if (savBtn) {
+    savBtn.textContent = data.baseSavingsGoal > 0
+      ? (t['sts_savings_edit_btn'] || (lang === 'el' ? 'Αλλαγή' : 'Edit'))
+      : (t['sts_savings_set_btn'] || (lang === 'el' ? 'Ορισμός' : 'Set'));
+  }
+
+  const progressEl = document.getElementById('modal-sts-savings-progress');
+  if (!progressEl) return;
+
+  const progress = data.savingsProgress || {};
+  if (!(progress.annualTarget > 0)) {
+    progressEl.style.display = 'none';
+    progressEl.textContent = '';
+    return;
+  }
+
+  const fmtTarget = `${currSym} ${formatDisplayAmount(progress.annualTarget)}`;
+  const fmtSaved = `${currSym} ${formatDisplayAmount(progress.savedYtd)}`;
+  const fmtRemaining = `${currSym} ${formatDisplayAmount(progress.remaining)}`;
+  const pct = progress.progressPct;
+
+  let text;
+  if (lang === 'el') {
+    text = `Ετήσιος στόχος ${fmtTarget} • Έχεις ήδη ${fmtSaved} (${pct}%) • Απομένουν ${fmtRemaining}`;
+    if (progress.remaining <= 0) {
+      text += ' — ✓ Ο ετήσιος στόχος καλύφθηκε, δεν δεσμεύεται μηνιαία δόση.';
+    } else if (data.savingsCapped) {
+      text += ` • Δεσμεύεται ${currSym} ${formatDisplayAmount(data.savingsGoal)}/μήνα από ${currSym} ${formatDisplayAmount(data.baseSavingsGoal)} για τους ${progress.monthsRemaining} μήνες που απομένουν.`;
+    }
+  } else {
+    text = `Annual target ${fmtTarget} • Already saved ${fmtSaved} (${pct}%) • Remaining ${fmtRemaining}`;
+    if (progress.remaining <= 0) {
+      text += ' — ✓ Annual target reached, no monthly amount is reserved.';
+    } else if (data.savingsCapped) {
+      text += ` • Reserving ${currSym} ${formatDisplayAmount(data.savingsGoal)}/month instead of ${currSym} ${formatDisplayAmount(data.baseSavingsGoal)} for the ${progress.monthsRemaining} months left.`;
+    }
+  }
+
+  progressEl.textContent = text;
+  progressEl.style.display = 'block';
+  progressEl.style.color = progress.remaining <= 0 ? '#34d399' : '#93c5fd';
+  progressEl.style.background = progress.remaining <= 0 ? 'rgba(16, 185, 129, 0.10)' : 'rgba(96, 165, 250, 0.07)';
+  progressEl.style.borderColor = progress.remaining <= 0 ? 'rgba(16, 185, 129, 0.30)' : 'rgba(96, 165, 250, 0.22)';
+}
+
 function openSafeToSpendModal() {
   updateSafeToSpendUI();
   const sts = state._lastSafeToSpendResult || {
@@ -570,37 +761,28 @@ function openSafeToSpendModal() {
   const modalWeekly = document.getElementById('modal-sts-weekly-val');
   const modalBal = document.getElementById('modal-sts-balance');
   const modalBills = document.getElementById('modal-sts-bills');
-  const modalSav = document.getElementById('modal-sts-savings');
   const modalPool = document.getElementById('modal-sts-pool');
   const modalDays = document.getElementById('modal-sts-days');
-  const savGoal = stsInputs.savingsGoal;
 
   if (modalDaily) modalDaily.textContent = `${currSym} ${formatDisplayAmount(sts.safeDaily)}`;
   if (modalWeekly) modalWeekly.textContent = `ή ${currSym} ${formatDisplayAmount(sts.safeWeekly)} για αυτή την εβδομάδα`;
   if (modalBal) modalBal.textContent = `${currSym} ${formatDisplayAmount(stsInputs.balance)}`;
   if (modalBills) modalBills.textContent = `- ${currSym} ${formatDisplayAmount(stsInputs.unpaidBills)}`;
-  if (modalSav) modalSav.textContent = `- ${currSym} ${formatDisplayAmount(savGoal)}`;
   if (modalPool) modalPool.textContent = `${currSym} ${formatDisplayAmount(sts.discretionaryPool)}`;
   if (modalDays) modalDays.textContent = `${sts.daysRemaining} ημέρες`;
-
-  const lang = (state && state.lang) || 'el';
-  const translations = (typeof TRANSLATIONS !== 'undefined' ? TRANSLATIONS : (typeof window !== 'undefined' ? window.TRANSLATIONS : null)) || {};
-  const t = (translations && translations[lang]) || {};
 
   // The amount below is the month's discretionary pool (income/budgets minus
   // expenses), NOT the cash sitting in accounts. Label it accordingly.
   const balLabelEl = document.getElementById('modal-sts-balance-label');
   if (balLabelEl) {
+    const lang = (state && state.lang) || 'el';
+    const translations = (typeof TRANSLATIONS !== 'undefined' ? TRANSLATIONS : (typeof window !== 'undefined' ? window.TRANSLATIONS : null)) || {};
+    const t = (translations && translations[lang]) || {};
     balLabelEl.textContent = t['sts_liquid_balance'] || (lang === 'el' ? 'Διαθέσιμο Υπόλοιπο Μήνα:' : 'Available Balance This Month:');
   }
-  const savBtn = document.getElementById('modal-sts-savings-btn');
-  if (savBtn) {
-    savBtn.textContent = savGoal > 0 ? (t['sts_savings_edit_btn'] || (lang === 'el' ? 'Αλλαγή' : 'Edit')) : (t['sts_savings_set_btn'] || (lang === 'el' ? 'Ορισμός' : 'Set'));
-  }
-  const savLabelEl = document.getElementById('modal-sts-savings-label');
-  if (savLabelEl) {
-    savLabelEl.textContent = t['sts_savings_goal_row_label'] || (lang === 'el' ? '- Στόχος Αποταμίευσης (Ετήσια βάση):' : '- Savings Goal (Annual basis):');
-  }
+
+  // Savings row + annual-target progress (prorated reservation included).
+  renderStsSavingsRow(stsInputs);
 
   // Ensure editor starts collapsed
   const editorContainer = document.getElementById('sts-savings-editor-container');
@@ -668,8 +850,8 @@ function toggleStsSavingsGoalEditor(force) {
     const titleEl = document.getElementById('sts-savings-editor-title');
     const descEl = document.getElementById('sts-savings-editor-desc');
     const saveLabel = document.getElementById('sts-savings-save-label');
-    if (titleEl) titleEl.textContent = t['sts_savings_target_title'] || (lang === 'el' ? 'Στόχος Αποταμίευσης (Ετήσια Βάση)' : 'Savings Goal (Annual Basis)');
-    if (descEl) descEl.textContent = t['sts_savings_target_desc'] || (lang === 'el' ? 'Ορίστε το μηνιαίο ποσό αποταμίευσης. Συγχρονίζεται αυτόματα με τον Ετήσιο Στόχο Αποταμίευσης (ποσό x 12) στην Επισκόπηση και προστατεύεται από το ημερήσιο όριο εξόδων.' : 'Set your monthly savings goal. This syncs automatically with your Annual Savings Goal (amount x 12) in Overview and is protected from daily spending allowance.');
+    if (titleEl) titleEl.textContent = t['sts_savings_target_title'] || (lang === 'el' ? 'Στόχος Αποταμίευσης (Μηνιαία Δόση)' : 'Savings Goal (Monthly Installment)');
+    if (descEl) descEl.textContent = t['sts_savings_target_desc'] || (lang === 'el' ? 'Ορίστε τον μηνιαίο στόχο αποταμίευσης. Συγχρονίζεται αυτόματα με τον Ετήσιο Στόχο της Επισκόπησης (ποσό × 12) και προσαρμόζεται στους μήνες που απομένουν, ώστε να μη δεσμεύεται δόση όταν ο ετήσιος στόχος έχει καλυφθεί.' : 'Set your monthly savings goal. It syncs automatically with your Annual Savings Goal in Overview (amount × 12) and is prorated across the remaining months, so nothing is reserved once the annual target is met.');
     if (saveLabel) saveLabel.textContent = t['sts_savings_save_btn'] || (lang === 'el' ? 'Αποθήκευση' : 'Save');
 
     if (input) {
@@ -691,9 +873,16 @@ function updateStsSavingsAnnualHint(val) {
   const lang = (state && state.lang) || 'el';
   if (num > 0) {
     const annual = Math.round(num * 12);
-    hintEl.textContent = lang === 'el'
+    const progress = getYearSavingsProgress();
+    let hint = lang === 'el'
       ? `Ισοδυναμεί με ${currSym} ${formatDisplayAmount(annual)} / έτος στον Ετήσιο Στόχο της Επισκόπησης`
       : `Equates to ${currSym} ${formatDisplayAmount(annual)} / year in Annual Overview Target`;
+    if (progress.annualTarget > 0) {
+      hint += lang === 'el'
+        ? ` • Έχεις ήδη ${currSym} ${formatDisplayAmount(progress.savedYtd)} (${progress.progressPct}%)`
+        : ` • Already saved ${currSym} ${formatDisplayAmount(progress.savedYtd)} (${progress.progressPct}%)`;
+    }
+    hintEl.textContent = hint;
   } else {
     const suggested = getMonthlySavingsGoal({ includeEstimate: true });
     if (suggested > 0) {
@@ -738,37 +927,34 @@ function saveStsSavingsGoal() {
   // Update Safe-to-Spend UI across dashboard & tabs
   updateSafeToSpendUI();
 
-  // Refresh active modal values
+  // Refresh active modal values with the effective (possibly prorated) goal
   const currSym = getCurrencySymbol();
+  const stsInputs = getSafeToSpendInputs();
   const sts = (typeof SafeToSpendEngine !== 'undefined')
     ? SafeToSpendEngine.calculateDailySafeToSpend({
-        currentBalance: getLiquidBalance(),
-        unpaidRecurringBills: getUnpaidRecurringBillsThisMonth(),
-        savingsGoal: val
+        currentBalance: stsInputs.balance,
+        unpaidRecurringBills: stsInputs.unpaidBills,
+        savingsGoal: stsInputs.savingsGoal
       })
     : (state && state._lastSafeToSpendResult);
 
   if (sts) {
     const modalDaily = document.getElementById('modal-sts-daily-val');
     const modalWeekly = document.getElementById('modal-sts-weekly-val');
-    const modalSav = document.getElementById('modal-sts-savings');
     const modalPool = document.getElementById('modal-sts-pool');
     const modalDays = document.getElementById('modal-sts-days');
 
     if (modalDaily) modalDaily.textContent = `${currSym} ${formatDisplayAmount(sts.safeDaily)}`;
     if (modalWeekly) modalWeekly.textContent = `ή ${currSym} ${formatDisplayAmount(sts.safeWeekly)} για αυτή την εβδομάδα`;
-    if (modalSav) modalSav.textContent = `- ${currSym} ${formatDisplayAmount(val)}`;
     if (modalPool) modalPool.textContent = `${currSym} ${formatDisplayAmount(sts.discretionaryPool)}`;
     if (modalDays) modalDays.textContent = `${sts.daysRemaining} ημέρες`;
   }
 
+  renderStsSavingsRow(stsInputs);
+
   const lang = (state && state.lang) || 'el';
   const translations = (typeof TRANSLATIONS !== 'undefined' ? TRANSLATIONS : (typeof window !== 'undefined' ? window.TRANSLATIONS : null)) || {};
   const t = (translations && translations[lang]) || {};
-  const savBtn = document.getElementById('modal-sts-savings-btn');
-  if (savBtn) {
-    savBtn.textContent = val > 0 ? (t['sts_savings_edit_btn'] || (lang === 'el' ? 'Αλλαγή' : 'Edit')) : (t['sts_savings_set_btn'] || (lang === 'el' ? 'Ορισμός' : 'Set'));
-  }
 
   // Close editor smoothly
   toggleStsSavingsGoalEditor(false);
@@ -823,10 +1009,11 @@ function runWhatIfSimulation() {
   }
 
   const installments = parseInt(instSelect ? instSelect.value : '1', 10) || 1;
+  const simInputs = getSafeToSpendInputs();
   const currState = state._lastSafeToSpendResult || SafeToSpendEngine.calculateDailySafeToSpend({
-    currentBalance: getLiquidBalance(),
-    unpaidRecurringBills: getUnpaidRecurringBillsThisMonth(),
-    savingsGoal: getMonthlySavingsGoal()
+    currentBalance: simInputs.balance,
+    unpaidRecurringBills: simInputs.unpaidBills,
+    savingsGoal: simInputs.savingsGoal
   });
 
   const sim = SafeToSpendEngine.simulatePurchase({
@@ -1164,6 +1351,10 @@ window.quickPaySubscription = quickPaySubscription;
   window.isRecurringTemplateCoveredByBudget = isRecurringTemplateCoveredByBudget;
   window.getUnpaidRecurringBillsThisMonth = getUnpaidRecurringBillsThisMonth;
   window.getMonthlySavingsGoal = getMonthlySavingsGoal;
+  window.getAnnualSavingsTarget = getAnnualSavingsTarget;
+  window.getYearSavingsProgress = getYearSavingsProgress;
+  window.getEffectiveMonthlySavingsGoal = getEffectiveMonthlySavingsGoal;
+  window.renderStsSavingsRow = renderStsSavingsRow;
   window.updateSafeToSpendUI = updateSafeToSpendUI;
   window.openSafeToSpendModal = openSafeToSpendModal;
   window.setStsSimInstallments = setStsSimInstallments;
@@ -1187,6 +1378,10 @@ window.quickPaySubscription = quickPaySubscription;
     isRecurringTemplateCoveredByBudget: isRecurringTemplateCoveredByBudget,
     getUnpaidRecurringBillsThisMonth: getUnpaidRecurringBillsThisMonth,
     getMonthlySavingsGoal: getMonthlySavingsGoal,
+    getAnnualSavingsTarget: getAnnualSavingsTarget,
+    getYearSavingsProgress: getYearSavingsProgress,
+    getEffectiveMonthlySavingsGoal: getEffectiveMonthlySavingsGoal,
+    renderStsSavingsRow: renderStsSavingsRow,
     updateSafeToSpendUI: updateSafeToSpendUI,
     openSafeToSpendModal: openSafeToSpendModal,
     setStsSimInstallments: setStsSimInstallments,

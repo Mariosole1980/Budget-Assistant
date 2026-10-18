@@ -538,7 +538,9 @@ function handleRealtimeCategoryChange(payload) {
 
   if (eventType === 'INSERT') {
     const newCat = payload.new;
-    if (newCat && !isCatDeletedFn(newCat.id, newCat.name, newCat.type)) {
+    // Identity check only: an old name-based tombstone must not block a cloud row
+    // that was deliberately re-created (new id) by the user or a partner.
+    if (newCat && !isCatDeletedFn(newCat.id)) {
       const regDeleted = getDelSubsFn(newCat.name);
       newCat.deleted_subcategories = Array.from(new Set([...(newCat.deleted_subcategories || []), ...regDeleted]));
       if (!cats.some(c => c.id === newCat.id)) {
@@ -547,7 +549,7 @@ function handleRealtimeCategoryChange(payload) {
     }
   } else if (eventType === 'UPDATE') {
     const updatedCat = payload.new;
-    if (updatedCat && !isCatDeletedFn(updatedCat.id, updatedCat.name, updatedCat.type)) {
+    if (updatedCat && !isCatDeletedFn(updatedCat.id)) {
       const regDeleted = getDelSubsFn(updatedCat.name);
       updatedCat.deleted_subcategories = Array.from(new Set([...(updatedCat.deleted_subcategories || []), ...regDeleted]));
       cats = cats.map(c => c.id === updatedCat.id ? updatedCat : c);
@@ -1014,6 +1016,72 @@ async function fetchIncrementalTombstones(cursor) {
   };
 }
 
+// Fetch every category tombstone visible in the current account/family scope.
+// Full category reconciliation always re-fetches categories, so it also needs
+// the matching tombstones; otherwise a category deleted on another device while
+// this device was offline would be retained as a "local custom" category and
+// re-inserted into the cloud. Best-effort: callers treat failures as no tombstones.
+async function fetchCategoryTombstones() {
+  const pageSize = 1000;
+  let allTombstones = [];
+  let lastTs = null;
+  let lastId = null;
+  let hasMore = true;
+  const scopeStr = buildIncrementalScopeString();
+
+  while (hasMore) {
+    let q = state.supabaseClient
+      .from('sync_tombstones')
+      .select('*')
+      .eq('table_name', 'categories')
+      .order('deleted_at', { ascending: true })
+      .order('id', { ascending: true })
+      .limit(pageSize);
+
+    q = q.or(buildIncrementalFilter(scopeStr, 'deleted_at', lastTs, lastId));
+
+    const { data, error } = await promiseTimeout(q, 15000);
+    if (error) throw error;
+
+    const page = data || [];
+    if (page.length === 0) {
+      hasMore = false;
+    } else {
+      allTombstones = allTombstones.concat(page);
+      const lastRow = page[page.length - 1];
+      lastTs = lastRow.deleted_at;
+      lastId = lastRow.id;
+      if (page.length < pageSize) hasMore = false;
+    }
+  }
+
+  return allTombstones;
+}
+
+// Merge cloud category tombstones into the local tombstone registry. Only the
+// row id is available from sync_tombstones; identity matching is enough because
+// cache entries, cloud rows and queue payloads all carry the same category id.
+function applyCategoryTombstones(tombstoneRows) {
+  if (!Array.isArray(tombstoneRows) || tombstoneRows.length === 0) return 0;
+
+  const recCatTombFn = (typeof recordDeletedCategory === 'function')
+    ? recordDeletedCategory
+    : ((typeof window !== 'undefined' && typeof window.recordDeletedCategory === 'function')
+      ? window.recordDeletedCategory
+      : ((typeof window !== 'undefined' && window.DataIntegrityService && typeof window.DataIntegrityService.recordDeletedCategory === 'function')
+        ? window.DataIntegrityService.recordDeletedCategory
+        : null));
+  if (!recCatTombFn) return 0;
+
+  let applied = 0;
+  tombstoneRows.forEach(tb => {
+    if (!tb || tb.table_name !== 'categories' || !tb.row_id) return;
+    recCatTombFn(String(tb.row_id), null, null, { writeCloudTombstone: false });
+    applied++;
+  });
+  return applied;
+}
+
 // Apply incremental transaction rows + tombstones into local state.
 function applyIncrementalTransactions(newRows, tombstones) {
   const current = Array.isArray(state.transactions) ? state.transactions : [];
@@ -1161,15 +1229,26 @@ async function forceSyncNow(silent = false) {
         tempsQuery = tempsQuery.eq('user_id', userId);
       }
 
-      // 1. Fetch categories, accounts, and recurring templates
-      const [catsRes, accsRes, tempsRes] = await promiseTimeout(
+      // 1. Fetch categories, accounts, recurring templates, and category tombstones.
+      // Tombstones are fetched in parallel and treated as best-effort so an older
+      // schema without sync_tombstones cannot break the full category reconcile.
+      const categoryTombstonesPromise = fetchCategoryTombstones()
+        .then(rows => ({ data: rows, error: null }))
+        .catch(error => ({ data: [], error }));
+      const [catsRes, accsRes, tempsRes, catTombRes] = await promiseTimeout(
         Promise.all([
           catsQuery,
           accsQuery,
-          tempsQuery.then(r => r, () => ({ data: [], error: null }))
+          tempsQuery.then(r => r, () => ({ data: [], error: null })),
+          categoryTombstonesPromise
         ]),
         15000
       );
+
+      if (catTombRes && catTombRes.error) {
+        console.warn('[DataIntegrity] Category tombstone fetch warning:', catTombRes.error.message || catTombRes.error);
+      }
+      applyCategoryTombstones(catTombRes && catTombRes.data);
 
       if (!catsRes.error && catsRes.data) {
         const isCatDeletedFn = (typeof isCategoryDeleted === 'function')
@@ -1184,20 +1263,6 @@ async function forceSyncNow(silent = false) {
             : () => []);
 
         if (Array.isArray(catsRes.data) && catsRes.data.length > 0) {
-          const remCatTombFn = (typeof removeDeletedCategoryTombstone === 'function')
-            ? removeDeletedCategoryTombstone
-            : ((typeof window !== 'undefined' && typeof window.removeDeletedCategoryTombstone === 'function')
-              ? window.removeDeletedCategoryTombstone
-              : () => {});
-
-          catsRes.data.forEach(c => {
-            if (c && c.name && !c.hidden) {
-              remCatTombFn(c.name, c.type, c.id);
-            }
-          });
-          remCatTombFn('🏡 ΣΠΙΤΙ', 'expense', 'e2d3762b-3a13-4f0a-8f9b-623f826bdade');
-          remCatTombFn('ΣΠΙΤΙ', 'expense', 'e2d3762b-3a13-4f0a-8f9b-623f826bdade');
-
           const syncQueue = (typeof getSyncQueue === 'function')
             ? getSyncQueue()
             : ((typeof window !== 'undefined' && typeof window.getSyncQueue === 'function') ? window.getSyncQueue() : []);
@@ -1208,23 +1273,18 @@ async function forceSyncNow(silent = false) {
               .filter(Boolean)
           );
 
-          // Cloud has categories -> keep non-hidden cloud categories unless queued for deletion
+          // DURABLE-DELETE RULE: a locally deleted category must stay deleted even while its
+          // cloud row is still present (delete in flight / offline / RLS failure). Tombstones
+          // are only cleared when the user explicitly re-creates the category.
+          // ID matching is used for cloud rows so an old name-only tombstone cannot hide a
+          // category that was deliberately re-created with a new id.
           let activeCloudCats = catsRes.data.filter(c => {
             if (!c || !c.name || c.hidden) return false;
+            if (c.id && isCatDeletedFn(c.id)) return false;
             if (c.id && pendingDeleteCatIds.has(String(c.id))) return false;
             return true;
           });
 
-          const hasHomeCat = activeCloudCats.some(c => c && c.name && (c.name.includes('ΣΠΙΤΙ') || c.name.includes('Σπίτι') || c.name.toUpperCase().includes('HOME')));
-          if (!hasHomeCat) {
-            activeCloudCats.unshift({
-              id: 'e2d3762b-3a13-4f0a-8f9b-623f826bdade',
-              name: '🏡 ΣΠΙΤΙ',
-              type: 'expense',
-              icon: 'fa-solid fa-house',
-              color: '#e05e55'
-            });
-          }
           const cloudNames = new Set(activeCloudCats.map(c => (c && c.name ? c.name.trim().toLowerCase() : '')));
           const localCustom = (state.categories || []).filter(c => {
             if (!c || !c.name || c.is_deleted) return false;
@@ -1242,7 +1302,9 @@ async function forceSyncNow(silent = false) {
         } else {
           // Cloud categories empty (e.g. newly registered account) -> preserve local categories or seed with non-deleted defaults
           if (!state.categories || state.categories.length === 0) {
-            state.categories = DEFAULT_CATEGORIES.filter(c => !c || !isCatDeletedFn(c.id, c.name, c.type));
+            state.categories = (typeof DEFAULT_CATEGORIES !== 'undefined' ? DEFAULT_CATEGORIES : [])
+              .filter(c => !c || !isCatDeletedFn(c.id, c.name, c.type))
+              .map(c => (c ? { ...c } : c));
           }
           // Seed defaults in Supabase in background for this new user
           if (state.currentUser && state.currentUser.id && state.categories.length > 0) {
@@ -1513,6 +1575,14 @@ function stopPartnerSyncPolling() {
   }
 }
 
+// Cross-script exports used by the data-integrity and sync-queue subsystems.
+// This service is wrapped in an IIFE, so these must be attached explicitly to
+// window for classic scripts to see them.
+if (typeof window !== 'undefined') {
+  window.fetchCategoryTombstones = fetchCategoryTombstones;
+  window.applyCategoryTombstones = applyCategoryTombstones;
+}
+
 function startPartnerSyncPolling() {
   if (_partnerSyncInterval) clearInterval(_partnerSyncInterval);
   _partnerSyncInterval = setInterval(async () => {
@@ -1552,6 +1622,9 @@ function startPartnerSyncPolling() {
     applyIncrementalTransactions,
     fetchIncrementalTransactions,
     fetchIncrementalTombstones,
+    fetchCategoryTombstones,
+    applyCategoryTombstones,
+    writeSyncTombstones,
     ensureIncrementalSyncCapability,
     forceSyncNow,
     startPartnerSyncPolling,
