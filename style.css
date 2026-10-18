@@ -8767,8 +8767,33 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
   }
 
   .bottom-nav {
-    padding-bottom: calc(5px + env(safe-area-inset-bottom, 0px)) !important;
-    bottom: calc(-1 * env(safe-area-inset-bottom, 0px)) !important;
+    bottom: 0 !important;
+    padding-top: 6px !important;
+    padding-bottom: calc(4px + env(safe-area-inset-bottom, 0px)) !important;
+    min-height: calc(48px + env(safe-area-inset-bottom, 0px)) !important;
+    height: auto !important;
+    box-sizing: border-box !important;
+  }
+
+  .bottom-nav::after {
+    display: none !important;
+  }
+
+  .bottom-nav .nav-item {
+    min-height: unset !important;
+    height: 38px !important;
+    padding: 0 !important;
+    gap: 2px !important;
+  }
+
+  .bottom-nav .nav-item svg {
+    width: 19px !important;
+    height: 19px !important;
+  }
+
+  .bottom-nav .nav-item span {
+    font-size: 10.5px !important;
+    line-height: 1.1 !important;
   }
 
   body:has(#transaction-modal.active) {
@@ -8803,20 +8828,18 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
   }
 
   .app-header {
-    padding-bottom: 8px !important;
-    padding-top: calc(8px + env(safe-area-inset-top, 0px)) !important;
+    padding-bottom: 10px !important;
+    padding-top: calc(14px + env(safe-area-inset-top, 0px)) !important;
   }
 
-
-
   .selection-bar-container {
-    padding-top: calc(8px + env(safe-area-inset-top, 0px)) !important;
+    padding-top: calc(14px + env(safe-area-inset-top, 0px)) !important;
     min-height: calc(54px + env(safe-area-inset-top, 0px)) !important;
     height: auto !important;
   }
 
   .fab {
-    bottom: 70px !important;
+    bottom: calc(56px + env(safe-area-inset-bottom, 0px)) !important;
   }
 
   .tx-modal-overlay {
