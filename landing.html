@@ -3,6 +3,36 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Budget Assistant">
+  <link rel="manifest" href="manifest.json">
+  <script>
+    (function () {
+      try {
+        var params = new URLSearchParams(window.location.search);
+        if (params.has('landing') || params.has('home') || params.has('noredirect')) {
+          return;
+        }
+
+        var isIosStandalone = window.navigator && window.navigator.standalone === true;
+        var isPwaStandalone = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
+
+        var hasSession = false;
+        try {
+          hasSession = !!(
+            localStorage.getItem('offline_transactions_owner') ||
+            localStorage.getItem('currentUser') ||
+            Object.keys(localStorage).some(function (k) { return k.startsWith('sb-') && k.endsWith('-auth-token'); })
+          );
+        } catch (_) {}
+
+        if (isIosStandalone || isPwaStandalone || hasSession) {
+          window.location.replace('/app' + window.location.search + window.location.hash);
+        }
+      } catch (e) {}
+    })();
+  </script>
   <title>Budget Assistant — Έξυπνη Διαχείριση Εξόδων, AI Σάρωση & Κοινό Ταμείο</title>
   <meta name="description" content="AI σάρωση αποδείξεων σε 2'', κοινό ταμείο ζευγαριών σε πραγματικό χρόνο και Financial Health Score. 9,99€ εφάπαξ, ποτέ συνδρομή.">
   
