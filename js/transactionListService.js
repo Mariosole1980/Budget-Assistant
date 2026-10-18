@@ -344,7 +344,9 @@
           clearTimeout(pressTimer);
           clearTimeout(feedbackTimer);
           item.classList.remove('pressed');
-          if (appState.isSwipingMonth || itemTouchMoved) {
+          // Only a drag of THIS gesture must suppress the synthetic click.
+          // A lingering month-swipe flag must never eat a genuine tap.
+          if (itemTouchMoved) {
             if (e.cancelable) e.preventDefault();
           }
         }, { passive: false });
@@ -378,7 +380,9 @@
         });
 
         item.onclick = function () {
-          if (appState.isSwipingMonth || itemTouchMoved || (Date.now() - (appState.lastSwipeTime || 0) < 200)) {
+          // itemTouchMoved is per-gesture: it only suppresses the ghost click of
+          // the drag that just ended, never a deliberate tap that follows it.
+          if (itemTouchMoved) {
             isLongPress = false;
             itemTouchMoved = false;
             appState.touchDidMove = false;

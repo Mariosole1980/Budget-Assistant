@@ -8117,6 +8117,16 @@ body.modal-open {
   position: relative;
 }
 
+/* Month-swipe surfaces: vertical scrolling stays native/compositor-driven while
+   horizontal drags are reserved for the month pager. Without this the WebView's
+   scroll recognizer can cancel (pointercancel) a horizontal swipe mid-gesture,
+   which made swiping months feel dead. */
+#transactions-list,
+#stats-breakdown-list,
+#stats-transactions-modal .modal-body {
+  touch-action: pan-y;
+}
+
 .swipe-peek-list {
   position: absolute;
   top: 0;

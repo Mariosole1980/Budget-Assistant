@@ -484,12 +484,11 @@ function initSwipeToBack() {
     return false;
   }
 
-  // Full-screen modals (e.g. the transaction modal) fill the entire screen and
-  // have NO visible background behind them. Dragging them away via the edge
-  // swipe-back gesture is jarring and pointless (there is nothing to reveal), so
-  // the swipe-back must be disabled while one of these is open.
+  // Modals that own the horizontal gesture themselves. Full-screen sheets have
+  // nothing behind them to reveal, and the stats "Κινήσεις" modal changes the
+  // period on swipe — the edge swipe-back must not fight either of them.
   function hasFullScreenModalActive() {
-    const fullScreenModals = ['transaction-modal', 'profile-settings-modal'];
+    const fullScreenModals = ['transaction-modal', 'profile-settings-modal', 'stats-transactions-modal'];
     const activeModals = document.querySelectorAll('.modal-overlay.active, .tx-modal-overlay.active, .profile-sheet-overlay.active');
     for (let i = 0; i < activeModals.length; i++) {
       if (fullScreenModals.includes(activeModals[i].id)) return true;

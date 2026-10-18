@@ -363,7 +363,9 @@ function renderStatsTab(skipChart = false) {
         subRow.addEventListener('touchend', (e) => {
           clearTimeout(subFeedbackTimer);
           subRow.classList.remove('pressed');
-          if (state.isSwipingMonth || subTouchMoved) {
+          // Only this gesture's drag suppresses the click; a month-swipe flag
+          // must never swallow the next deliberate tap.
+          if (subTouchMoved) {
             if (e.cancelable) e.preventDefault();
           }
         }, { passive: false });
@@ -375,7 +377,7 @@ function renderStatsTab(skipChart = false) {
 
         subRow.addEventListener('click', (e) => {
           e.stopPropagation();
-          if (state.isSwipingMonth || subTouchMoved || (Date.now() - (state.lastSwipeTime || 0) < 200)) {
+          if (subTouchMoved) {
             return;
           }
           openStatsTransactionsModal(item.name, sub.name);
@@ -420,7 +422,7 @@ function renderStatsTab(skipChart = false) {
     row.addEventListener('touchend', (e) => {
       clearTimeout(rowFeedbackTimer);
       row.classList.remove('pressed');
-      if (state.isSwipingMonth || rowTouchMoved) {
+      if (rowTouchMoved) {
         if (e.cancelable) e.preventDefault();
       }
     }, { passive: false });
@@ -431,7 +433,7 @@ function renderStatsTab(skipChart = false) {
     });
 
     row.addEventListener('click', () => {
-      if (state.isSwipingMonth || rowTouchMoved || (Date.now() - (state.lastSwipeTime || 0) < 200)) {
+      if (rowTouchMoved) {
         return;
       }
       if (hasSubcats) {
@@ -1282,7 +1284,7 @@ function renderSubcategoryTransactions(category, subcategory) {
     item.addEventListener('touchend', (e) => {
       clearTimeout(modalFeedbackTimer);
       item.classList.remove('pressed');
-      if (state.isSwipingMonth || modalTouchMoved) {
+      if (modalTouchMoved) {
         if (e.cancelable) e.preventDefault();
       }
     }, { passive: false });
@@ -1293,7 +1295,7 @@ function renderSubcategoryTransactions(category, subcategory) {
     });
 
     item.onclick = () => {
-      if (state.isSwipingMonth || modalTouchMoved || (Date.now() - (state.lastSwipeTime || 0) < 200)) return;
+      if (modalTouchMoved) return;
       openEditTransactionModal(t);
     };
 
