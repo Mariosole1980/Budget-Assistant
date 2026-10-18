@@ -670,6 +670,19 @@ function initProfileSheetSwipeDismiss() {
   let startY = 0;
   let currentY = 0;
   let isDragging = false;
+  let moveInterceptor = null;
+
+  function attachMoveInterceptor() {
+    if (moveInterceptor) return;
+    moveInterceptor = handleTouchMove;
+    sheetContent.addEventListener('touchmove', moveInterceptor, { passive: false });
+  }
+
+  function detachMoveInterceptor() {
+    if (!moveInterceptor) return;
+    sheetContent.removeEventListener('touchmove', moveInterceptor, { passive: false });
+    moveInterceptor = null;
+  }
 
   const handleTouchStart = (e) => {
     const body = sheetContent.querySelector('.profile-sheet-body');
@@ -678,6 +691,8 @@ function initProfileSheetSwipeDismiss() {
     startY = e.touches[0].clientY;
     isDragging = true;
     sheetContent.classList.add('dragging');
+    // Only now does a scroll-blocking listener exist (and only for this gesture)
+    attachMoveInterceptor();
   };
 
   const handleTouchMove = (e) => {
@@ -686,7 +701,7 @@ function initProfileSheetSwipeDismiss() {
     const deltaY = currentY - startY;
 
     if (deltaY > 0) {
-      e.preventDefault();
+      if (moveInterceptor && e.cancelable) e.preventDefault();
       sheetContent.style.transform = `translateY(${deltaY}px)`;
     } else {
       sheetContent.style.transform = '';
@@ -696,6 +711,7 @@ function initProfileSheetSwipeDismiss() {
   const handleTouchEnd = (e) => {
     if (!isDragging) return;
     isDragging = false;
+    detachMoveInterceptor();
     sheetContent.classList.remove('dragging');
     const deltaY = currentY - startY;
 
@@ -709,8 +725,9 @@ function initProfileSheetSwipeDismiss() {
     currentY = 0;
   };
 
-  sheetContent.addEventListener('touchstart', handleTouchStart, { passive: false });
-  sheetContent.addEventListener('touchmove', handleTouchMove, { passive: false });
+  // touchstart is passive (it never called preventDefault) and touchmove is attached
+  // lazily by attachMoveInterceptor() only while a dismiss-drag is actually possible.
+  sheetContent.addEventListener('touchstart', handleTouchStart, { passive: true });
   sheetContent.addEventListener('touchend', handleTouchEnd);
 }
 

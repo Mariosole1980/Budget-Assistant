@@ -91,7 +91,6 @@ test('aiCoachService Module Tests', async (t) => {
       getActiveAdvisorConversationId,
       setActiveAdvisorConversationId,
       getConversationTitle,
-      startNewAdvisorConversation,
       deleteAdvisorConversation
     } = aiCoachService;
 
@@ -234,5 +233,89 @@ test('aiCoachService Module Tests', async (t) => {
       assert.ok(milestoneHtml.includes('Στόχου'));
     });
   });
+  await t.test('14. chat text selection helpers (in-app copy bar)', async (st) => {
+    const { getChatSelectionText, computeChatSelectionBarPosition } = aiCoachService;
+
+    const bubbleNode = { nodeType: 1 };
+    const container = { contains: (node) => node === bubbleNode };
+    const makeSelection = (text, node, rangeCount = 1) => ({
+      toString: () => text,
+      rangeCount,
+      getRangeAt: () => ({ commonAncestorContainer: node })
+    });
+
+    await st.test('returns trimmed text for a selection inside the chat', () => {
+      assert.strictEqual(getChatSelectionText(makeSelection('  γεια σου  ', bubbleNode), container), 'γεια σου');
+    });
+
+    await st.test('resolves a text node to its parent element', () => {
+      const textNode = { nodeType: 3, parentNode: bubbleNode };
+      assert.strictEqual(getChatSelectionText(makeSelection('ποσό 12€', textNode), container), 'ποσό 12€');
+    });
+
+    await st.test('ignores empty or whitespace-only selections', () => {
+      assert.strictEqual(getChatSelectionText(makeSelection('   ', bubbleNode), container), '');
+      assert.strictEqual(getChatSelectionText(makeSelection('', bubbleNode), container), '');
+      assert.strictEqual(getChatSelectionText(null, container), '');
+    });
+
+    await st.test('ignores selections anchored outside the chat', () => {
+      const outside = { nodeType: 1 };
+      assert.strictEqual(getChatSelectionText(makeSelection('έξω', outside), container), '');
+    });
+
+    await st.test('ignores collapsed selections without ranges', () => {
+      assert.strictEqual(getChatSelectionText(makeSelection('κείμενο', bubbleNode, 0), container), '');
+      assert.strictEqual(getChatSelectionText({ toString: () => 'κείμενο', rangeCount: 1 }, container), '');
+      assert.strictEqual(getChatSelectionText(makeSelection('κείμενο', bubbleNode), null), '');
+    });
+
+    await st.test('places the bar above the selection, centred', () => {
+      const pos = computeChatSelectionBarPosition(
+        { top: 400, bottom: 420, left: 100, width: 200 },
+        { width: 400, height: 800 },
+        { width: 160, height: 42 }
+      );
+      assert.deepStrictEqual(pos, { top: 348, left: 120 });
+    });
+
+    await st.test('flips the bar below when there is no room above', () => {
+      const pos = computeChatSelectionBarPosition(
+        { top: 12, bottom: 30, left: 40, width: 120 },
+        { width: 400, height: 800 },
+        { width: 160, height: 42 }
+      );
+      assert.deepStrictEqual(pos, { top: 40, left: 20 });
+    });
+
+    await st.test('clamps the bar inside the viewport edges', () => {
+      const right = computeChatSelectionBarPosition(
+        { top: 300, bottom: 320, left: 360, width: 80 },
+        { width: 400, height: 800 },
+        { width: 180, height: 40 }
+      );
+      assert.strictEqual(right.left, 212);
+
+      const left = computeChatSelectionBarPosition(
+        { top: 300, bottom: 320, left: 0, width: 20 },
+        { width: 400, height: 800 },
+        { width: 180, height: 40 }
+      );
+      assert.strictEqual(left.left, 8);
+
+      const bottom = computeChatSelectionBarPosition(
+        { top: 5, bottom: 760, left: 100, width: 100 },
+        { width: 400, height: 800 },
+        { width: 180, height: 40 }
+      );
+      assert.strictEqual(bottom.top, 752);
+    });
+
+    await st.test('is defensive with missing geometry', () => {
+      assert.deepStrictEqual(computeChatSelectionBarPosition(null, null, null), { top: 8, left: 8 });
+    });
+  });
+
+
 
 });

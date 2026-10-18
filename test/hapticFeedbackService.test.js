@@ -58,7 +58,7 @@ test('HapticFeedbackService toggles enabled state correctly', () => {
   }
 });
 
-test('HapticFeedbackService invokes navigator.vibrate when available', () => {
+test('HapticFeedbackService invokes navigator.vibrate for meaningful events only', () => {
   let vibrateArgs = null;
   const originalVibrate = global.navigator ? global.navigator.vibrate : undefined;
 
@@ -76,15 +76,19 @@ test('HapticFeedbackService invokes navigator.vibrate when available', () => {
   };
 
   try {
-    const res = HapticFeedbackService.trigger('light');
+    const res = HapticFeedbackService.trigger('medium');
     assert.strictEqual(res, true);
-    assert.strictEqual(vibrateArgs, 12);
+    assert.strictEqual(vibrateArgs, 22);
 
     HapticFeedbackService.trigger('success');
     assert.deepStrictEqual(vibrateArgs, [15, 40, 20]);
 
-    HapticFeedbackService.trigger('selection');
-    assert.strictEqual(vibrateArgs, 8);
+    // Tap-level ticks are native-only: the vibration-motor fallback must stay silent,
+    // otherwise every tap buzzes like a cheap web wrapper.
+    vibrateArgs = null;
+    assert.strictEqual(HapticFeedbackService.trigger('selection'), false);
+    assert.strictEqual(HapticFeedbackService.trigger('light'), false);
+    assert.strictEqual(vibrateArgs, null);
   } finally {
     if (originalVibrate !== undefined) {
       global.navigator.vibrate = originalVibrate;

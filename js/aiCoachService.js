@@ -90,6 +90,7 @@ function openAdvisorChat(initialQuery = null) {
 }
 
 function closeAdvisorChat() {
+  hideChatSelectionBar();
   closeModal('advisor-chat-modal');
 }
 
@@ -568,8 +569,26 @@ window.syncAdvisorConversations = syncAdvisorConversations;
 
 async function copyTextToClipboard(text) {
   if (!text) return false;
+
+  // Native first: the Capacitor Clipboard plugin writes straight to the system
+  // clipboard. The legacy textarea fallback at the bottom calls .select(), which
+  // is exactly what makes Android inflate the system selection toolbar.
+  const isNative = !!(typeof window !== 'undefined' && window.Capacitor &&
+    typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform());
+  if (isNative) {
+    try {
+      const clip = window.Capacitor.Plugins && window.Capacitor.Plugins.Clipboard;
+      if (clip && typeof clip.write === 'function') {
+        await clip.write({ string: text });
+        return true;
+      }
+    } catch (e) {
+      console.warn('[Clipboard] Capacitor Clipboard.write failed:', e);
+    }
+  }
+
   try {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
+    if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
       await navigator.clipboard.writeText(text);
       return true;
     }
@@ -587,6 +606,7 @@ async function copyTextToClipboard(text) {
   try {
     const ta = document.createElement('textarea');
     ta.value = text;
+    ta.setAttribute('readonly', 'readonly');
     ta.style.position = 'fixed';
     ta.style.left = '-9999px';
     ta.style.top = '0';
@@ -626,46 +646,370 @@ async function copyAdvisorMessage(bubbleEl, btnEl) {
 }
 window.copyAdvisorMessage = copyAdvisorMessage;
 
-let _advisorTouchTimer = null;
-let _advisorTouchStartPos = { x: 0, y: 0 };
-let _lastAdvisorPasteTime = 0;
+// ============================================================
+// IN-APP TEXT SELECTION BAR (crash-proof copy inside the chat)
+// ============================================================
+// Android WebView delegates a long-press on selectable text to the system
+// ActionMode (the floating «Αντιγραφή / Επιλογή όλων» toolbar). On several OEM
+// WebView builds inflating that toolbar throws; the exception escapes the
+// WebView and kills the renderer (see the ACTION MODE SAFETY block in
+// android/.../MainActivity.java). Capacitor then reloads https://localhost,
+// which replays the full-screen branded splash — the user perceives a crash
+// with the huge app logo.
+//
+// The chat therefore never lets that toolbar start while the sheet is open:
+//   1. NativeApp.setTextActionModeSuppressed(true) is sent as soon as the sheet
+//      becomes visible (native returns null instead of inflating the toolbar).
+//   2. The context menu is suppressed inside the chat.
+//   3. Copying is handled by this tiny in-app bar, driven by the DOM Selection
+//      API — long-press / drag selects text exactly as before, then tap
+//      «Αντιγραφή».
+const CHAT_SELECTION_BAR_ID = 'advisor-selection-bar';
 
-function handleAdvisorInputTouchStart(e) {
-  if (!e || !e.touches || e.touches.length !== 1) return;
-  const touch = e.touches[0];
-  _advisorTouchStartPos = { x: touch.clientX, y: touch.clientY };
-  if (_advisorTouchTimer) {
-    clearTimeout(_advisorTouchTimer);
-    _advisorTouchTimer = null;
+let _chatSelectionBar = null;
+let _chatSelectionText = '';
+let _chatSelectionBubbleEl = null;
+let _chatSelectionUpdateRaf = null;
+let _chatSelectionPointerHandledAt = 0;
+let _advisorSelectionUiReady = false;
+
+function getChatSelectionContainer() {
+  if (typeof document === 'undefined' || !document.getElementById) return null;
+  return document.getElementById('advisor-chat-modal');
+}
+
+/**
+ * Returns the trimmed selected text when the current selection is a real,
+ * non-empty range that lives inside `container`; otherwise an empty string.
+ * Kept free of DOM lookups so it can be unit-tested with plain objects.
+ */
+function getChatSelectionText(selection, container) {
+  if (!selection || !container) return '';
+  let text = '';
+  try {
+    text = String(selection.toString ? selection.toString() : '').trim();
+  } catch (e) {
+    return '';
   }
-  _advisorTouchTimer = setTimeout(() => {
-    _advisorTouchTimer = null;
-    const now = Date.now();
-    if (now - _lastAdvisorPasteTime > 800) {
-      _lastAdvisorPasteTime = now;
-      if (typeof pasteToAdvisorInput === 'function') {
-        pasteToAdvisorInput();
-      }
+  if (!text) return '';
+  try {
+    if (!selection.rangeCount || typeof selection.getRangeAt !== 'function') return '';
+    const range = selection.getRangeAt(0);
+    let node = range ? range.commonAncestorContainer : null;
+    if (node && node.nodeType === 3) node = node.parentNode;
+    if (!node || typeof container.contains !== 'function' || !container.contains(node)) return '';
+  } catch (e) {
+    return '';
+  }
+  return text;
+}
+
+/**
+ * Places the bar just above the selection, flipping below it when there is no
+ * room and clamping it inside the viewport. Pure math → unit-testable.
+ */
+function computeChatSelectionBarPosition(rect, viewport, barSize) {
+  const margin = 8;
+  const gap = 10;
+  const vw = (viewport && viewport.width) || 0;
+  const vh = (viewport && viewport.height) || 0;
+  const bw = (barSize && barSize.width) || 0;
+  const bh = (barSize && barSize.height) || 0;
+  const r = rect || { top: 0, bottom: 0, left: 0, width: 0 };
+
+  let top = r.top - bh - gap;
+  if (top < margin) top = r.bottom + gap;
+  if (top + bh > vh - margin) top = Math.max(margin, vh - bh - margin);
+
+  let left = r.left + ((r.width || 0) / 2) - (bw / 2);
+  if (left < margin) left = margin;
+  if (left + bw > vw - margin) left = Math.max(margin, vw - bw - margin);
+
+  return { top: Math.round(top), left: Math.round(left) };
+}
+
+function _chatSelectionCurrentLang() {
+  return (typeof state !== 'undefined' && state && state.lang) ? state.lang : 'el';
+}
+
+function _chatSelectionLabel(key, fallbackEl, fallbackEn) {
+  const lang = _chatSelectionCurrentLang();
+  let dict = null;
+  try {
+    if (typeof TRANSLATIONS !== 'undefined' && TRANSLATIONS) dict = TRANSLATIONS[lang] || null;
+  } catch (e) {
+    dict = null;
+  }
+  if (dict && dict[key]) return dict[key];
+  return lang === 'el' ? fallbackEl : fallbackEn;
+}
+
+function _notifyChatCopied() {
+  const copiedMsg = _chatSelectionLabel('advisor_chat_copied', '✓ Αντιγράφηκε στο πρόχειρο', '✓ Copied to clipboard');
+  if (typeof showToast === 'function') showToast(copiedMsg, 'info');
+  try {
+    if (typeof window !== 'undefined' && typeof window.triggerHaptic === 'function') {
+      window.triggerHaptic('light');
     }
-  }, 400);
+  } catch (e) { }
 }
 
-function handleAdvisorInputTouchMove(e) {
-  if (!_advisorTouchTimer || !e || !e.touches || !e.touches[0]) return;
-  const touch = e.touches[0];
-  const dx = Math.abs(touch.clientX - _advisorTouchStartPos.x);
-  const dy = Math.abs(touch.clientY - _advisorTouchStartPos.y);
-  if (dx > 12 || dy > 12) {
-    clearTimeout(_advisorTouchTimer);
-    _advisorTouchTimer = null;
+function ensureChatSelectionBar() {
+  if (_chatSelectionBar && _chatSelectionBar.parentNode) return _chatSelectionBar;
+  if (typeof document === 'undefined' || !document.body) return null;
+
+  const bar = document.createElement('div');
+  bar.id = CHAT_SELECTION_BAR_ID;
+  bar.className = 'chat-selection-bar';
+  bar.setAttribute('role', 'toolbar');
+  bar.setAttribute('aria-label', _chatSelectionLabel('advisor_chat_copy', 'Αντιγραφή', 'Copy'));
+  bar.style.display = 'none';
+
+  const copyBtn = document.createElement('button');
+  copyBtn.type = 'button';
+  copyBtn.className = 'chat-selection-bar-btn primary';
+  copyBtn.setAttribute('data-chat-selection-action', 'copy');
+  copyBtn.textContent = _chatSelectionLabel('advisor_chat_copy', 'Αντιγραφή', 'Copy');
+
+  const messageBtn = document.createElement('button');
+  messageBtn.type = 'button';
+  messageBtn.className = 'chat-selection-bar-btn';
+  messageBtn.setAttribute('data-chat-selection-action', 'copy-message');
+  messageBtn.textContent = _chatSelectionLabel('advisor_chat_copy_all', 'Όλο το μήνυμα', 'Whole message');
+  messageBtn.style.display = 'none';
+
+  const closeBtn = document.createElement('button');
+  closeBtn.type = 'button';
+  closeBtn.className = 'chat-selection-bar-btn icon';
+  closeBtn.setAttribute('data-chat-selection-action', 'close');
+  closeBtn.setAttribute('aria-label', 'Κλείσιμο');
+  closeBtn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+
+  bar.appendChild(copyBtn);
+  bar.appendChild(messageBtn);
+  bar.appendChild(closeBtn);
+  bar.setAttribute('data-lang', _chatSelectionCurrentLang());
+  document.body.appendChild(bar);
+  _chatSelectionBar = bar;
+  return bar;
+}
+
+/** Keeps the bar labels in sync when the user switches language at runtime. */
+function refreshChatSelectionBarLabels(bar) {
+  if (!bar) return;
+  bar.setAttribute('data-lang', _chatSelectionCurrentLang());
+  const copyBtn = bar.querySelector('[data-chat-selection-action="copy"]');
+  if (copyBtn) copyBtn.textContent = _chatSelectionLabel('advisor_chat_copy', 'Αντιγραφή', 'Copy');
+  const messageBtn = bar.querySelector('[data-chat-selection-action="copy-message"]');
+  if (messageBtn) messageBtn.textContent = _chatSelectionLabel('advisor_chat_copy_all', 'Όλο το μήνυμα', 'Whole message');
+}
+
+function hideChatSelectionBar() {
+  if (_chatSelectionUpdateRaf && typeof cancelAnimationFrame === 'function') {
+    cancelAnimationFrame(_chatSelectionUpdateRaf);
+    _chatSelectionUpdateRaf = null;
+  }
+  _chatSelectionText = '';
+  _chatSelectionBubbleEl = null;
+  if (_chatSelectionBar) _chatSelectionBar.style.display = 'none';
+}
+
+function positionChatSelectionBar(rect) {
+  if (!_chatSelectionBar || !rect) return;
+  let size = { width: 0, height: 0 };
+  try {
+    const r = _chatSelectionBar.getBoundingClientRect();
+    size = { width: r.width || 0, height: r.height || 0 };
+  } catch (e) { }
+  const viewport = {
+    width: (typeof window !== 'undefined' && window.innerWidth) || 0,
+    height: (typeof window !== 'undefined' && window.innerHeight) || 0
+  };
+  const pos = computeChatSelectionBarPosition(rect, viewport, size);
+  _chatSelectionBar.style.top = pos.top + 'px';
+  _chatSelectionBar.style.left = pos.left + 'px';
+}
+
+function updateChatSelectionBar() {
+  if (typeof window === 'undefined' || typeof document === 'undefined') return;
+  const container = getChatSelectionContainer();
+  if (!container || !container.classList || !container.classList.contains('active')) {
+    hideChatSelectionBar();
+    return;
+  }
+
+  const selection = window.getSelection ? window.getSelection() : null;
+  const text = getChatSelectionText(selection, container);
+  if (!text) {
+    hideChatSelectionBar();
+    return;
+  }
+
+  let rect = null;
+  try {
+    rect = selection.getRangeAt(0).getBoundingClientRect();
+  } catch (e) {
+    rect = null;
+  }
+  if (!rect || (!rect.width && !rect.height)) {
+    hideChatSelectionBar();
+    return;
+  }
+
+  const bar = ensureChatSelectionBar();
+  if (!bar) return;
+
+  if (bar.getAttribute('data-lang') !== _chatSelectionCurrentLang()) {
+    refreshChatSelectionBarLabels(bar);
+  }
+
+  _chatSelectionText = text;
+  try {
+    const node = selection.getRangeAt(0).commonAncestorContainer;
+    const el = (node && node.nodeType === 3) ? node.parentNode : node;
+    _chatSelectionBubbleEl = (el && el.closest) ? el.closest('.chat-msg-bubble') : null;
+  } catch (e) {
+    _chatSelectionBubbleEl = null;
+  }
+
+  const messageBtn = bar.querySelector('[data-chat-selection-action="copy-message"]');
+  if (messageBtn) messageBtn.style.display = _chatSelectionBubbleEl ? 'inline-flex' : 'none';
+
+  bar.style.display = 'flex';
+  positionChatSelectionBar(rect);
+}
+
+function scheduleChatSelectionUpdate() {
+  if (typeof requestAnimationFrame !== 'function') {
+    updateChatSelectionBar();
+    return;
+  }
+  if (_chatSelectionUpdateRaf) return;
+  _chatSelectionUpdateRaf = requestAnimationFrame(() => {
+    _chatSelectionUpdateRaf = null;
+    updateChatSelectionBar();
+  });
+}
+
+function clearChatTextSelection() {
+  try {
+    if (typeof window !== 'undefined' && window.getSelection) {
+      const sel = window.getSelection();
+      if (sel && typeof sel.removeAllRanges === 'function') sel.removeAllRanges();
+    }
+  } catch (e) { }
+}
+
+function copyChatSelection() {
+  const text = _chatSelectionText;
+  if (!text) return;
+  Promise.resolve(copyTextToClipboard(text)).then((ok) => {
+    if (!ok) return;
+    _notifyChatCopied();
+    clearChatTextSelection();
+    hideChatSelectionBar();
+  }).catch((err) => {
+    console.warn('[AdvisorChat] copy selection failed:', err);
+  });
+}
+
+function copyChatSelectionBubble() {
+  const el = _chatSelectionBubbleEl;
+  if (!el) return;
+  const text = (el.innerText || el.textContent || '').trim();
+  if (!text) return;
+  Promise.resolve(copyTextToClipboard(text)).then((ok) => {
+    if (!ok) return;
+    _notifyChatCopied();
+    clearChatTextSelection();
+    hideChatSelectionBar();
+  }).catch((err) => {
+    console.warn('[AdvisorChat] copy message failed:', err);
+  });
+}
+
+function runChatSelectionAction(action) {
+  if (action === 'copy') copyChatSelection();
+  else if (action === 'copy-message') copyChatSelectionBubble();
+  else hideChatSelectionBar();
+}
+
+function handleChatSelectionContextMenu(e) {
+  const container = getChatSelectionContainer();
+  if (!container || !e || !e.target || !container.contains(e.target)) return;
+  // Never let Android inflate the system selection toolbar inside the chat.
+  if (typeof e.preventDefault === 'function') e.preventDefault();
+  scheduleChatSelectionUpdate();
+}
+
+function handleChatSelectionPointerDown(e) {
+  if (!_chatSelectionBar || _chatSelectionBar.style.display === 'none') return;
+  const target = e && e.target;
+  if (target && _chatSelectionBar.contains(target)) {
+    // Act immediately: a normal click would collapse the selection first, which
+    // would leave the bar with nothing to copy.
+    if (e.cancelable && typeof e.preventDefault === 'function') e.preventDefault();
+    if (typeof e.stopPropagation === 'function') e.stopPropagation();
+    const directAction = (target.getAttribute && target.getAttribute('data-chat-selection-action')) || '';
+    const btn = directAction ? target : (target.closest ? target.closest('[data-chat-selection-action]') : null);
+    const action = directAction || (btn ? btn.getAttribute('data-chat-selection-action') : '');
+    const now = Date.now();
+    if (action && now - _chatSelectionPointerHandledAt > 250) {
+      _chatSelectionPointerHandledAt = now;
+      runChatSelectionAction(action);
+    }
+    return;
+  }
+  const container = getChatSelectionContainer();
+  if (container && target && container.contains(target)) return;
+  hideChatSelectionBar();
+}
+
+/**
+ * Mirrors the chat sheet's open state to the native layer so the Android
+ * text-selection toolbar is suppressed only while the chat is on screen.
+ */
+function setNativeTextActionModeSuppressed(suppressed) {
+  try {
+    const nativeApp = (typeof window !== 'undefined') ? window.NativeApp : null;
+    if (nativeApp && typeof nativeApp.setTextActionModeSuppressed === 'function') {
+      nativeApp.setTextActionModeSuppressed(!!suppressed);
+    }
+  } catch (e) {
+    console.warn('[AdvisorChat] native text selection guard failed:', e);
   }
 }
 
-function handleAdvisorInputTouchEnd() {
-  if (_advisorTouchTimer) {
-    clearTimeout(_advisorTouchTimer);
-    _advisorTouchTimer = null;
+function applyChatTextSelectionGuard() {
+  const modal = getChatSelectionContainer();
+  const isOpen = !!(modal && modal.classList && modal.classList.contains('active'));
+  if (!isOpen) hideChatSelectionBar();
+  setNativeTextActionModeSuppressed(isOpen);
+}
+
+function initAdvisorSelectionUi() {
+  if (_advisorSelectionUiReady || typeof document === 'undefined') return;
+  _advisorSelectionUiReady = true;
+
+  document.addEventListener('selectionchange', scheduleChatSelectionUpdate, { passive: true });
+  document.addEventListener('contextmenu', handleChatSelectionContextMenu, { passive: false });
+  document.addEventListener('pointerdown', handleChatSelectionPointerDown, { capture: true, passive: false });
+
+  if (typeof window !== 'undefined') {
+    window.addEventListener('scroll', scheduleChatSelectionUpdate, { capture: true, passive: true });
+    window.addEventListener('resize', scheduleChatSelectionUpdate, { passive: true });
   }
+
+  const modal = getChatSelectionContainer();
+  if (modal && typeof MutationObserver === 'function') {
+    try {
+      const observer = new MutationObserver(applyChatTextSelectionGuard);
+      observer.observe(modal, { attributes: true, attributeFilter: ['class'] });
+    } catch (e) {
+      console.warn('[AdvisorChat] selection guard observer failed:', e);
+    }
+  }
+  applyChatTextSelectionGuard();
 }
 
 function handleAdvisorInputContextMenu(e) {
@@ -673,17 +1017,10 @@ function handleAdvisorInputContextMenu(e) {
     if (typeof e.preventDefault === 'function') e.preventDefault();
     if (typeof e.stopPropagation === 'function') e.stopPropagation();
   }
-  if (_advisorTouchTimer) {
-    clearTimeout(_advisorTouchTimer);
-    _advisorTouchTimer = null;
-  }
-  const now = Date.now();
-  if (now - _lastAdvisorPasteTime > 800) {
-    _lastAdvisorPasteTime = now;
-    if (typeof pasteToAdvisorInput === 'function') {
-      pasteToAdvisorInput();
-    }
-  }
+  // Do NOT auto-paste here: a long-press must stay a normal text selection in
+  // the composer. Copying uses the in-app selection bar, pasting uses the
+  // dedicated paste button — both avoid the crashing system toolbar.
+  scheduleChatSelectionUpdate();
   return false;
 }
 
@@ -743,10 +1080,9 @@ async function pasteToAdvisorInput() {
   }
 }
 window.pasteToAdvisorInput = pasteToAdvisorInput;
-window.handleAdvisorInputTouchStart = handleAdvisorInputTouchStart;
-window.handleAdvisorInputTouchMove = handleAdvisorInputTouchMove;
-window.handleAdvisorInputTouchEnd = handleAdvisorInputTouchEnd;
 window.handleAdvisorInputContextMenu = handleAdvisorInputContextMenu;
+window.initAdvisorSelectionUi = initAdvisorSelectionUi;
+window.hideChatSelectionBar = hideChatSelectionBar;
 
 function appendChatMessage(sender, htmlContent, persist = true) {
   const chatLog = document.getElementById('advisor-chat-log');
@@ -2380,11 +2716,22 @@ var submitCoachTransaction = async function (amount, type, category, subcategory
   windowObj.copyTextToClipboard = copyTextToClipboard;
   windowObj.copyAdvisorMessage = copyAdvisorMessage;
   windowObj.pasteToAdvisorInput = pasteToAdvisorInput;
-  windowObj.handleAdvisorInputTouchStart = handleAdvisorInputTouchStart;
-  windowObj.handleAdvisorInputTouchMove = handleAdvisorInputTouchMove;
-  windowObj.handleAdvisorInputTouchEnd = handleAdvisorInputTouchEnd;
   windowObj.handleAdvisorInputContextMenu = handleAdvisorInputContextMenu;
+  windowObj.initAdvisorSelectionUi = initAdvisorSelectionUi;
+  windowObj.hideChatSelectionBar = hideChatSelectionBar;
+  windowObj.getChatSelectionText = getChatSelectionText;
+  windowObj.computeChatSelectionBarPosition = computeChatSelectionBarPosition;
   windowObj.submitCoachTransaction = submitCoachTransaction;
+
+  // Initialize the in-app chat selection bar (and the native ActionMode guard)
+  // as soon as the DOM is ready.
+  if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initAdvisorSelectionUi);
+    } else {
+      initAdvisorSelectionUi();
+    }
+  }
 
   return {
     openAdvisorChat: openAdvisorChat,
@@ -2410,10 +2757,11 @@ var submitCoachTransaction = async function (amount, type, category, subcategory
     copyTextToClipboard: copyTextToClipboard,
     copyAdvisorMessage: copyAdvisorMessage,
     pasteToAdvisorInput: pasteToAdvisorInput,
-    handleAdvisorInputTouchStart: handleAdvisorInputTouchStart,
-    handleAdvisorInputTouchMove: handleAdvisorInputTouchMove,
-    handleAdvisorInputTouchEnd: handleAdvisorInputTouchEnd,
     handleAdvisorInputContextMenu: handleAdvisorInputContextMenu,
+    initAdvisorSelectionUi: initAdvisorSelectionUi,
+    hideChatSelectionBar: hideChatSelectionBar,
+    getChatSelectionText: getChatSelectionText,
+    computeChatSelectionBarPosition: computeChatSelectionBarPosition,
     coachFilterCategory: coachFilterCategory,
     coachOpenBudgets: coachOpenBudgets,
     coachOpenReports: coachOpenReports,

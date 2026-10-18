@@ -114,6 +114,15 @@ function _startSyncQueueWorker() {
       if (queueStr) {
         const q = JSON.parse(queueStr) || [];
         if (q.length > 0 && typeof processSyncQueue === 'function' && !_isProcessingSyncQueue) {
+          // Backoff guard: when every queued mutation is waiting for its next
+          // retry window, skip the whole tick. This stops a permanently failing
+          // row from spending Supabase requests (and quota) every 12 seconds.
+          const queueService = (typeof SyncQueueService !== 'undefined' && SyncQueueService)
+            ? SyncQueueService
+            : (typeof window !== 'undefined' ? window.SyncQueueService : null);
+          if (queueService && typeof queueService.hasDueSyncItems === 'function' && !queueService.hasDueSyncItems()) {
+            return;
+          }
           console.info(`[SyncQueueWorker] Flushing ${q.length} pending mutations...`);
           await processSyncQueue({ skipReload: true });
         }
@@ -638,6 +647,14 @@ if (typeof window !== 'undefined' && typeof window.addEventListener === 'functio
   };
 
   refreshSessionAndProfile().finally(() => {
+    // Connectivity is back: clear the per-item backoff so pending mutations
+    // retry immediately instead of waiting for their (possibly 30min) window.
+    const queueService = (typeof SyncQueueService !== 'undefined' && SyncQueueService)
+      ? SyncQueueService
+      : (typeof window !== 'undefined' ? window.SyncQueueService : null);
+    if (queueService && typeof queueService.resetSyncQueueBackoff === 'function') {
+      queueService.resetSyncQueueBackoff();
+    }
     processSyncQueue();
     if (typeof setupSupabaseRealtimeSubscription === 'function') {
       setupSupabaseRealtimeSubscription();

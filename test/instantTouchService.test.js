@@ -64,7 +64,8 @@ test('InstantTouchService.clearPressedState removes is-pressed class', () => {
     }
   };
 
-  InstantTouchService.clearPressedState(mockEl, true);
+  // No second argument: release is always immediate (the CSS rebound handles the feel)
+  InstantTouchService.clearPressedState(mockEl);
   assert.strictEqual(classes.has('is-pressed'), false);
 });
 

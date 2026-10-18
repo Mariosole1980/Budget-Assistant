@@ -167,23 +167,85 @@ public class SecurityPlugin extends Plugin {
         final Boolean enabled = call.getBoolean("enabled", false);
         final boolean isEnabled = (enabled != null && enabled);
 
+        // Persist first: this preference is what MainActivity reads on cold
+        // start, before the WebView (and therefore this plugin) exists.
         try {
             Context context = getContext();
             SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
             prefs.edit().putBoolean(KEY_SECURE_MODE, isEnabled).commit();
-
-            applySecureMode(isEnabled);
-            call.resolve();
         } catch (Exception e) {
-            call.reject("Failed to set secure mode: " + e.getMessage());
+            call.reject("Failed to persist secure mode: " + e.getMessage());
+            return;
+        }
+
+        final android.app.Activity activity = getActivity() != null ? getActivity() : (getBridge() != null ? getBridge().getActivity() : null);
+        if (activity == null) {
+            android.util.Log.w("SecurityPlugin", "setSecureMode: no activity attached yet");
+            call.resolve(buildSecureModeState());
+            return;
+        }
+
+        // Apply on the UI thread and answer AFTER the window flags changed, so
+        // the JS layer can trust the returned state when it verifies FLAG_SECURE.
+        activity.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    applySecureMode(isEnabled);
+                    call.resolve(buildSecureModeState());
+                } catch (Exception e) {
+                    call.reject("Failed to set secure mode: " + e.getMessage());
+                }
+            }
+        });
+    }
+
+    @PluginMethod
+    public void getSecureMode(PluginCall call) {
+        call.resolve(buildSecureModeState());
+    }
+
+    /**
+     * enabled      → persisted native preference (applied on cold start)
+     * windowSecure → the real FLAG_SECURE bit on the activity window
+     */
+    private JSObject buildSecureModeState() {
+        boolean prefEnabled = false;
+        try {
+            Context context = getContext();
+            if (context != null) {
+                SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+                prefEnabled = prefs.getBoolean(KEY_SECURE_MODE, false);
+            }
+        } catch (Exception e) {
+            android.util.Log.e("SecurityPlugin", "Failed to read secure mode pref", e);
+        }
+
+        JSObject ret = new JSObject();
+        ret.put("enabled", prefEnabled);
+        ret.put("windowSecure", isWindowSecure());
+        return ret;
+    }
+
+    private boolean isWindowSecure() {
+        try {
+            android.app.Activity activity = getActivity() != null ? getActivity() : (getBridge() != null ? getBridge().getActivity() : null);
+            if (activity == null) return false;
+            Window window = activity.getWindow();
+            return window != null && (window.getAttributes().flags & WindowManager.LayoutParams.FLAG_SECURE) != 0;
+        } catch (Exception e) {
+            return false;
         }
     }
 
-    public void applySecureMode(final boolean enabled) {
+    public boolean applySecureMode(final boolean enabled) {
         final android.app.Activity activity = getActivity() != null ? getActivity() : (getBridge() != null ? getBridge().getActivity() : null);
-        if (activity == null) return;
+        if (activity == null) {
+            android.util.Log.w("SecurityPlugin", "applySecureMode: no activity attached");
+            return false;
+        }
 
-        activity.runOnUiThread(new Runnable() {
+        Runnable apply = new Runnable() {
             @Override
             public void run() {
                 try {
@@ -192,6 +254,12 @@ public class SecurityPlugin extends Plugin {
                         if (enabled) {
                             window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE);
                             window.addFlags(WindowManager.LayoutParams.FLAG_SECURE);
+                            if ((window.getAttributes().flags & WindowManager.LayoutParams.FLAG_SECURE) == 0) {
+                                // Retry once: a few OEM ROMs ignore the first request
+                                // while the window is still being attached.
+                                window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE);
+                                android.util.Log.w("SecurityPlugin", "FLAG_SECURE did not stick on first attempt - re-applied");
+                            }
                         } else {
                             window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE);
                         }
@@ -200,6 +268,14 @@ public class SecurityPlugin extends Plugin {
                     android.util.Log.e("SecurityPlugin", "Failed to apply FLAG_SECURE", e);
                 }
             }
-        });
+        };
+
+        if (android.os.Looper.myLooper() == android.os.Looper.getMainLooper()) {
+            apply.run();
+        } else {
+            activity.runOnUiThread(apply);
+        }
+
+        return enabled ? isWindowSecure() : true;
     }
 }

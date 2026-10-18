@@ -170,3 +170,76 @@ test('SecurityPinService: applyNativeSecureMode calls NativeApp.setSecureMode if
   delete global.window.NativeApp;
 });
 
+test('SecurityPinService: applyNativeSecureMode retries once when the native state is not applied', async () => {
+  let calls = 0;
+  let state = { enabled: false, windowSecure: false };
+  global.window.NativeApp = {
+    setSecureMode: (val) => {
+      calls++;
+      // Simulate an OEM WebView that silently drops the first bridge call.
+      if (calls > 1) state = { enabled: val !== false, windowSecure: val !== false };
+    },
+    getSecureModeState: () => JSON.stringify(state)
+  };
+
+  const ok = await SecurityPinService.applyNativeSecureMode(true);
+  assert.strictEqual(calls, 2, 'must retry exactly once');
+  assert.strictEqual(ok, true);
+
+  delete global.window.NativeApp;
+});
+
+test('SecurityPinService: applyNativeSecureMode reports false when the device refuses FLAG_SECURE', async () => {
+  global.window.NativeApp = {
+    setSecureMode: () => {},
+    getSecureModeState: () => JSON.stringify({ enabled: false, windowSecure: false })
+  };
+
+  const ok = await SecurityPinService.applyNativeSecureMode(true);
+  assert.strictEqual(ok, false);
+
+  delete global.window.NativeApp;
+});
+
+test('SecurityPinService: applyNativeSecureMode() mirrors the native preference into localStorage', async () => {
+  localStorage.removeItem('settings_screenshot_block');
+  let applied = null;
+  global.window.NativeApp = {
+    setSecureMode: (val) => { applied = val; },
+    getSecureModeState: () => JSON.stringify({ enabled: true, windowSecure: true })
+  };
+
+  const ok = await SecurityPinService.applyNativeSecureMode();
+  assert.strictEqual(applied, true, 'native preference must be re-applied at startup');
+  assert.strictEqual(localStorage.getItem('settings_screenshot_block'), 'true');
+  assert.strictEqual(ok, true);
+
+  delete global.window.NativeApp;
+});
+
+test('SecurityPinService: applyNativeSecureMode() keeps the window unprotected when the native preference is off', async () => {
+  localStorage.setItem('settings_screenshot_block', 'false');
+  let applied = null;
+  global.window.NativeApp = {
+    setSecureMode: (val) => { applied = val; },
+    getSecureModeState: () => JSON.stringify({ enabled: false, windowSecure: false })
+  };
+
+  const ok = await SecurityPinService.applyNativeSecureMode();
+  assert.strictEqual(applied, false);
+  assert.strictEqual(ok, true);
+
+  delete global.window.NativeApp;
+});
+
+test('SecurityPinService: getNativeSecureModeState parses the NativeApp bridge payload', async () => {
+  global.window.NativeApp = {
+    getSecureModeState: () => JSON.stringify({ enabled: true, windowSecure: false })
+  };
+
+  const state = await SecurityPinService.getNativeSecureModeState();
+  assert.deepStrictEqual(state, { enabled: true, windowSecure: false });
+
+  delete global.window.NativeApp;
+});
+

@@ -5,7 +5,9 @@
  *
  * Provides tactile haptic feedback for mobile app interactions:
  * - Capacitor Haptics plugin on native iOS & Android (Taptic Engine)
- * - Web Vibration API (navigator.vibrate) on mobile browsers / Android PWA
+ * - Web Vibration API (navigator.vibrate) for MEANINGFUL events only (save, delete,
+ *   error, refresh). Tap-level ticks ("selection"/"light") are native-only: faking them
+ *   with the vibration motor is exactly what makes a wrapper feel cheap.
  * - Graceful silent fallback on desktop / unsupported environments
  *
  * Semantic trigger types:
@@ -155,11 +157,11 @@
       try {
         switch (normalizedType) {
           case 'selection':
-            navigator.vibrate(8);
-            return true;
+            // Native-only semantic tick: stay silent on the web fallback
+            return false;
           case 'light':
-            navigator.vibrate(12);
-            return true;
+            // A 12ms motor pulse is a buzz, not a tap tick: native-only
+            return false;
           case 'medium':
             navigator.vibrate(22);
             return true;

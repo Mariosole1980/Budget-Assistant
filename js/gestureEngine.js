@@ -74,10 +74,14 @@ function initPullToRefresh() {
     if (ptrIcon) ptrIcon.style.display = 'none';
     if (ptrSpinner) ptrSpinner.style.display = 'flex';
 
-    if (navigator.vibrate) {
-      try {
+    try {
+      if (typeof window !== 'undefined' && typeof window.triggerHaptic === 'function') {
+        window.triggerHaptic('medium');
+      } else if (typeof navigator !== 'undefined' && navigator.vibrate) {
         navigator.vibrate(15);
-      } catch (err) { }
+      }
+    } catch (err) {
+      // Best-effort haptic
     }
 
     try {
@@ -122,9 +126,50 @@ function initPullToRefresh() {
   }
 
   // TOUCH EVENTS
+  //
+  // SCROLL PERFORMANCE (critical): a non-passive 'touchmove' listener anywhere on the
+  // ancestor chain of a scroller forces Chromium/WebView off the compositor fast-path,
+  // so EVERY scroll frame has to wait for the main thread — which is exactly what makes
+  // scrolling feel laggy and "webby". Pull-to-refresh therefore uses:
+  //   1. a permanent PASSIVE touchmove listener that only DETECTS a downward pull, and
+  //   2. a non-passive listener attached only while a pull is actually live (it exists
+  //      purely to call preventDefault) which is removed again on release.
+  // Normal list scrolling stays fully compositor-driven.
+  let pullMoveInterceptor = null;
+
+  function onPullMove(e) {
+    if (pulling !== true) return;
+    const touch = e.touches[0];
+    if (!touch) return;
+    currentY = touch.pageY;
+    const diff = currentY - startY;
+    if (diff > 0) {
+      if (e.cancelable) {
+        e.preventDefault();
+      }
+      updatePull(diff);
+    } else {
+      pulling = false;
+      detachPullMoveInterceptor();
+      cancelPull();
+    }
+  }
+
+  function attachPullMoveInterceptor() {
+    if (pullMoveInterceptor) return;
+    pullMoveInterceptor = onPullMove;
+    container.addEventListener('touchmove', pullMoveInterceptor, { passive: false });
+  }
+
+  function detachPullMoveInterceptor() {
+    if (!pullMoveInterceptor) return;
+    container.removeEventListener('touchmove', pullMoveInterceptor, { passive: false });
+    pullMoveInterceptor = null;
+  }
+
   container.addEventListener('touchstart', (e) => {
     const activeScrollEl = document.querySelector(`.tab-screen.active .${state.activeTab}-scroll-content`);
-    let isScrollAtTop = activeScrollEl ? (activeScrollEl.scrollTop === 0) : (container.scrollTop === 0);
+    const isScrollAtTop = activeScrollEl ? (activeScrollEl.scrollTop === 0) : (container.scrollTop === 0);
 
     if (isScrollAtTop) {
       const touch = e.touches[0];
@@ -133,26 +178,31 @@ function initPullToRefresh() {
       currentY = startY;
       pulling = null; // Undetermined at first touch
     } else {
+      detachPullMoveInterceptor();
       pulling = false;
     }
   }, { passive: true });
 
   container.addEventListener('touchmove', (e) => {
-    if (pulling === false) return;
+    if (pulling === false || pullMoveInterceptor) return; // the interceptor owns the pull once attached
 
     const touch = e.touches[0];
+    if (!touch) return;
     const dx = touch.pageX - startX;
     const dy = touch.pageY - startY;
 
     if (pulling === null) {
       // Must drag at least 8px to determine intention
       if (Math.abs(dy) > 8 || Math.abs(dx) > 8) {
-        if (Math.abs(dy) > Math.abs(dx) && dy > 0) {
+        // Vertical dominance is required: diagonal/horizontal gestures (month swipe)
+        // must never be mistaken for a pull-to-refresh.
+        if (Math.abs(dy) > Math.abs(dx) * 1.2 && dy > 0) {
           pulling = true;
           ptr.classList.add('pulling');
           ptr.classList.remove('refreshing');
           if (ptrIcon) ptrIcon.style.display = 'flex';
           if (ptrSpinner) ptrSpinner.style.display = 'none';
+          attachPullMoveInterceptor();
         } else {
           pulling = false;
           return;
@@ -166,18 +216,17 @@ function initPullToRefresh() {
       currentY = touch.pageY;
       const diff = currentY - startY;
       if (diff > 0) {
-        if (e.cancelable) {
-          e.preventDefault();
-        }
         updatePull(diff);
       } else {
         pulling = false;
+        detachPullMoveInterceptor();
         cancelPull();
       }
     }
-  }, { passive: false });
+  }, { passive: true });
 
   container.addEventListener('touchend', () => {
+    detachPullMoveInterceptor();
     if (pulling !== true) {
       pulling = false;
       return;
@@ -190,6 +239,12 @@ function initPullToRefresh() {
     } else {
       cancelPull();
     }
+  }, { passive: true });
+
+  container.addEventListener('touchcancel', () => {
+    detachPullMoveInterceptor();
+    pulling = false;
+    cancelPull();
   }, { passive: true });
 }
 
@@ -539,49 +594,29 @@ function initSwipeToBack() {
   // --- Interactive drag-to-go-back gesture (overlays/modals only) ---
   let screenWidth = 0;
 
-  document.addEventListener('touchstart', (e) => {
-    // Only handle swipe back gesture when an overlay/modal/sheet is actively open!
-    if (!hasActiveOverlay() || hasFullScreenModalActive()) {
-      bsActive = false;
-      return;
-    }
 
-    if (e.target.closest('#trans-photo-previews-list, .lightbox-zoom-container, #statsChart, canvas')) {
-      bsActive = false;
-      return;
-    }
+  // See the pull-to-refresh note above: a document-level non-passive touchmove
+  // listener disables compositor scrolling for the WHOLE page. This one is attached
+  // only while an overlay is open (the only time the gesture can possibly apply),
+  // so normal tab scrolling is never penalised.
+  let bsMoveInterceptor = null;
 
-    const img = document.getElementById('photo-lightbox-img');
-    const isZoomed = img && parseFloat(img.dataset.scale || '1') > 1;
-    if (isZoomed) {
-      bsActive = false;
-      return;
-    }
-
-    const touch = e.touches[0];
-    bsStartX = touch.clientX;
-    bsStartY = touch.clientY;
-    bsSwiping = null;
-    bsDragging = false;
-
-    // Allow swipe back starting from the left 150px of an active overlay
-    bsActive = bsStartX <= 150;
-
-    screenWidth = window.innerWidth;
-    activeOverlayEl = null;
-    activeOverlayParent = null;
-  }, { passive: true });
-
-  document.addEventListener('touchmove', (e) => {
+  function onBackDragMove(e) {
     if (!bsActive || !hasActiveOverlay()) return;
     const touch = e.touches[0];
+    if (!touch) return;
     const dx = touch.clientX - bsStartX;
     const dy = touch.clientY - bsStartY;
 
     if (bsSwiping === null) {
       if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
-        bsSwiping = Math.abs(dx) > Math.abs(dy) && dx > 0;
-        if (!bsSwiping) { bsActive = false; return; }
+        // Clear horizontal dominance only: diagonal drags stay with the scroller
+        bsSwiping = Math.abs(dx) > Math.abs(dy) * 1.2 && dx > 0;
+        if (!bsSwiping) {
+          bsActive = false;
+          detachBackDragInterceptor();
+          return;
+        }
       } else return;
     }
 
@@ -611,7 +646,59 @@ function initSwipeToBack() {
         activeOverlayParent.style.opacity = String(1 - progress * 0.5);
       }
     }
-  }, { passive: false });
+  }
+
+  function attachBackDragInterceptor() {
+    if (bsMoveInterceptor) return;
+    bsMoveInterceptor = onBackDragMove;
+    document.addEventListener('touchmove', bsMoveInterceptor, { passive: false });
+  }
+
+  function detachBackDragInterceptor() {
+    if (!bsMoveInterceptor) return;
+    document.removeEventListener('touchmove', bsMoveInterceptor, { passive: false });
+    bsMoveInterceptor = null;
+  }
+
+  document.addEventListener('touchstart', (e) => {
+    // A stale interceptor must never leak into a new gesture
+    detachBackDragInterceptor();
+
+    // Only handle swipe back gesture when an overlay/modal/sheet is actively open!
+    if (!hasActiveOverlay() || hasFullScreenModalActive()) {
+      bsActive = false;
+      return;
+    }
+
+    if (e.target.closest('#trans-photo-previews-list, .lightbox-zoom-container, #statsChart, canvas')) {
+      bsActive = false;
+      return;
+    }
+
+    const img = document.getElementById('photo-lightbox-img');
+    const isZoomed = img && parseFloat(img.dataset.scale || '1') > 1;
+    if (isZoomed) {
+      bsActive = false;
+      return;
+    }
+
+    const touch = e.touches[0];
+    bsStartX = touch.clientX;
+    bsStartY = touch.clientY;
+    bsSwiping = null;
+    bsDragging = false;
+
+    // Allow swipe back starting from the left 150px of an active overlay
+    bsActive = bsStartX <= 150;
+
+    if (bsActive) {
+      attachBackDragInterceptor();
+    }
+
+    screenWidth = window.innerWidth;
+    activeOverlayEl = null;
+    activeOverlayParent = null;
+  }, { passive: true });
 
   function finishDrag(committed) {
     if (!bsDragging) return;
@@ -652,6 +739,7 @@ function initSwipeToBack() {
   }
 
   document.addEventListener('touchend', (e) => {
+    detachBackDragInterceptor();
     if (!bsActive || !bsSwiping) {
       bsActive = false; bsSwiping = null;
       if (bsDragging) finishDrag(false);
@@ -670,6 +758,7 @@ function initSwipeToBack() {
   }, { passive: false });
 
   document.addEventListener('touchcancel', () => {
+    detachBackDragInterceptor();
     if (bsDragging) finishDrag(false);
     bsActive = false;
     bsSwiping = null;

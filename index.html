@@ -782,6 +782,28 @@
     style="position: fixed; inset: 0; width: 100vw; height: 100vh; border: 0; background: radial-gradient(130% 85% at 50% 8%, #232A3B 0%, #171B26 48%, #0F1219 100%); z-index: 2147483647;"
     onload="window._splashFrameStartMs=window._splashFrameStartMs||Date.now();try{window._markSplashFrameLoaded&&window._markSplashFrameLoaded()}catch(e){}"></iframe>
 
+  <!-- WARM-BOOT GUARD: only a genuine cold start may show the branded splash.
+       If the page is reloaded inside an already-booted WebView (e.g. Capacitor's
+       onRenderProcessGone recovery reload, an OTA reload, or the user pulling the
+       page), the splash iframe would otherwise flash the big app logo over the
+       whole screen and look like a crash. sessionStorage lives as long as the
+       WebView session, so it is empty exactly on a real cold start. -->
+  <script>
+    (function () {
+      try {
+        var WARM_BOOT_KEY = 'ba_webview_booted_v1';
+        if (sessionStorage.getItem(WARM_BOOT_KEY) === '1') {
+          var splashFrame = document.getElementById('cold-start-frame');
+          if (splashFrame && splashFrame.parentNode) {
+            splashFrame.parentNode.removeChild(splashFrame);
+          }
+        } else {
+          sessionStorage.setItem(WARM_BOOT_KEY, '1');
+        }
+      } catch (e) { /* private mode / storage disabled: keep the splash */ }
+    })();
+  </script>
+
   <!-- Resume overlay: covers the screen with the theme background color during the
        brief window after the app returns from background. On native Android the
        WebView surface can be blank for 1-3 frames while it recomposites; on Web/PWA
@@ -7343,11 +7365,7 @@
                 placeholder="Ρωτήστε για τα οικονομικά σας..." data-i18n-placeholder="advisor_chat_placeholder"
                 spellcheck="false" autocorrect="off" autocapitalize="sentences"
                 oninput="handleAdvisorChatInput(this)" onkeydown="handleAdvisorChatKeydown(event)"
-                oncontextmenu="if(typeof handleAdvisorInputContextMenu==='function'){return handleAdvisorInputContextMenu(event);} else { event.preventDefault(); return false; }"
-                ontouchstart="if(typeof handleAdvisorInputTouchStart==='function'){handleAdvisorInputTouchStart(event);}"
-                ontouchmove="if(typeof handleAdvisorInputTouchMove==='function'){handleAdvisorInputTouchMove(event);}"
-                ontouchend="if(typeof handleAdvisorInputTouchEnd==='function'){handleAdvisorInputTouchEnd(event);}"
-                ontouchcancel="if(typeof handleAdvisorInputTouchEnd==='function'){handleAdvisorInputTouchEnd(event);}"></textarea>
+                oncontextmenu="if(typeof handleAdvisorInputContextMenu==='function'){return handleAdvisorInputContextMenu(event);} else { event.preventDefault(); return false; }"></textarea>
               <button type="button" id="advisor-chat-paste-btn" class="advisor-input-action-btn advisor-paste-btn" onclick="pasteToAdvisorInput()"
                 title="Επικόλληση" aria-label="Επικόλληση" data-i18n-title="advisor_chat_paste"><i class="fa-solid fa-paste"></i></button>
               <button type="button" id="advisor-chat-mic-btn" class="advisor-input-action-btn advisor-mic-btn" onclick="openVoiceAIModal({ autoStart: true, target: 'advisor' })"

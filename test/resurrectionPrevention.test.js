@@ -199,6 +199,20 @@ global._REALTIME_RESUME_GUARD_MS = 2500;
 // module top level so their declarations share the module scope and can
 // reference each other.
 eval([
+    // Module-private state/helpers of js/syncQueueService.js that the extracted
+    // processSyncQueue() relies on (they live outside the function in the module).
+    "var SYNC_QUEUE_KEY = 'money_manager_sync_queue';",
+    "var SYNC_DEAD_QUEUE_KEY = 'money_manager_sync_queue_dead';",
+    "var MAX_QUARANTINED_ITEMS = 25;",
+    "var RETRY_BASE_DELAY_MS = 15000;",
+    "var RETRY_MAX_DELAY_MS = 1800000;",
+    "var CLOUD_TX_LIMIT_TTL_MS = 600000;",
+    "var QUARANTINE_TOAST_THROTTLE_MS = 600000;",
+    "var PREMIUM_TOAST_THROTTLE_MS = 1800000;",
+    "var _cloudTxLimitCache = { key: null, at: 0, atLimit: false };",
+    "var _lastQuarantineToastAt = 0;",
+    "var _lastPremiumDeferralToastAt = 0;",
+    "var _isProcessingSyncQueue = false;",
     'getOfflineGuestTransactions',
     'reconcileStaleTombstones',
     'collectPermanentlyDeletedTxIds',
@@ -206,12 +220,24 @@ eval([
     'autoSyncMissingTransactionsToCloud',
     'mergeAndDeduplicateTransactions',
     'readSyncQueueForMerge',
+    '_queueItemId',
+    '_errorText',
+    '_isConnectivityError',
+    '_isAuthError',
+    '_classifySyncError',
+    '_scheduleRetry',
+    '_isItemDue',
+    '_quarantineItem',
+    '_notifyQuarantine',
+    '_freeCloudTxLimitReached',
     'processSyncQueue',
     'handleRealtimeTransactionChange',
     'syncLocalTransactionsToCloud',
     'autoRestoreMistakenlyDeletedManualTransactions',
     'applyIncrementalTransactions'
-].map(extractFn).join('\n'));
+].map(function (entry) {
+    return entry.indexOf('var ') === 0 ? entry : extractFn(entry);
+}).join('\n'));
 
 // Load the real merge implementation from js/transactionMerge.js. It uses a UMD
 // wrapper that exports via CommonJS in Node (module.exports), so we require it

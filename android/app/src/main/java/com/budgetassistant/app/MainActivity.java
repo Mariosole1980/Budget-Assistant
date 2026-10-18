@@ -32,6 +32,8 @@ import android.widget.ImageView;
 import androidx.core.view.WindowInsetsControllerCompat;
 import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.WebViewListener;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends BridgeActivity {
 
@@ -82,6 +84,18 @@ public class MainActivity extends BridgeActivity {
     private long backgroundStartTime = 0;
     private boolean longBackgroundResume = false;
     private volatile boolean isLaunchingChildActivity = false;
+
+    // TEXT SELECTION TOOLBAR GUARD:
+    // The AI chat sheet enables real text selection on its message bubbles. When
+    // Android tries to inflate the floating ActionMode (the «Αντιγραφή /
+    // Επιλογή όλων» toolbar) for that selection, some OEM WebView builds throw
+    // while creating it and the renderer process dies — the app then reloads and
+    // replays the branded splash, which looks like a crash. The web layer flips
+    // this flag while the chat sheet is visible (NativeApp.setTextActionModeSuppressed);
+    // the ActionMode overrides below then return null instead of ever attempting
+    // to build that toolbar. The chat supplies its own in-app copy bar
+    // (js/aiCoachService.js) so copying still works.
+    private volatile boolean suppressTextActionMode = false;
 
     // COLD-START LAUNCH WINDOW GUARD:
     // While true, applySavedTheme() must NOT replace the branded splash PNG
@@ -218,15 +232,55 @@ public class MainActivity extends BridgeActivity {
                 }
 
                 @JavascriptInterface
+                public void setTextActionModeSuppressed(boolean suppressed) {
+                    suppressTextActionMode = suppressed;
+                    Log.d(TAG, "setTextActionModeSuppressed: " + suppressed);
+                }
+
+                @JavascriptInterface
                 public void setSecureMode(boolean enabled) {
                     try {
                         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
                         prefs.edit().putBoolean(KEY_SECURE_MODE, enabled).commit();
-                        applySecureMode();
+                        // This bridge method runs on the JavaBridge thread, but window
+                        // flags may only change on the UI thread. Wait (bounded) for the
+                        // UI thread to finish so the JS read-back that follows sees the
+                        // real FLAG_SECURE bit instead of racing the main looper.
+                        if (Looper.myLooper() == Looper.getMainLooper()) {
+                            applySecureMode();
+                        } else {
+                            final CountDownLatch applied = new CountDownLatch(1);
+                            mainHandler.post(() -> {
+                                try {
+                                    applySecureMode();
+                                } finally {
+                                    applied.countDown();
+                                }
+                            });
+                            applied.await(500, TimeUnit.MILLISECONDS);
+                        }
                         Log.d(TAG, "NativeApp.setSecureMode applied: " + enabled);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        Log.w(TAG, "NativeApp.setSecureMode interrupted waiting for UI thread");
                     } catch (Exception e) {
                         Log.e(TAG, "Error in NativeApp.setSecureMode", e);
                     }
+                }
+
+                // Report the native state back to the web layer so JS can verify
+                // that FLAG_SECURE was really applied (securityPinService reads it
+                // via getNativeSecureModeState).
+                @JavascriptInterface
+                public String getSecureModeState() {
+                    boolean enabled = false;
+                    try {
+                        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+                        enabled = prefs.getBoolean(KEY_SECURE_MODE, false);
+                    } catch (Exception e) {
+                        Log.e(TAG, "Error reading secure mode pref", e);
+                    }
+                    return "{\"enabled\":" + enabled + ",\"windowSecure\":" + isWindowSecure() + "}";
                 }
             }, "NativeApp");
         }
@@ -316,6 +370,16 @@ public class MainActivity extends BridgeActivity {
                 ? RESUME_OVERLAY_HIDE_DELAY_MS_LONG
                 : RESUME_OVERLAY_HIDE_DELAY_MS;
         mainHandler.postDelayed(hideResumeOverlayRunnable, hideDelay);
+    }
+
+    @Override
+    protected void onPostResume() {
+        super.onPostResume();
+        // A few OEM ROMs reset the window flags when the activity window is
+        // re-attached (multi-window, split screen, PiP, display changes). Re-assert
+        // the screenshot protection AFTER the window is fully resumed so the
+        // switch can never be "on" while the window is screen-capturable.
+        applySecureMode();
     }
 
     @Override
@@ -578,6 +642,15 @@ public class MainActivity extends BridgeActivity {
                     if (secureMode) {
                         window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE);
                         window.addFlags(WindowManager.LayoutParams.FLAG_SECURE);
+                        // Some OEMs ignore the request while the window is still being
+                        // attached (cold start, multi-window, PiP). Verify it stuck and
+                        // retry once, otherwise the toggle could be "on" while the
+                        // window is still screen-capturable.
+                        if (!isWindowSecure()) {
+                            window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE);
+                            Log.w(TAG, "FLAG_SECURE did not stick on first attempt - re-applied"
+                                    + (isWindowSecure() ? " (ok)" : " (still not set!)"));
+                        }
                     } else {
                         window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE);
                     }
@@ -590,6 +663,16 @@ public class MainActivity extends BridgeActivity {
             r.run();
         } else {
             mainHandler.post(r);
+        }
+    }
+
+    private boolean isWindowSecure() {
+        try {
+            Window window = getWindow();
+            return window != null
+                    && (window.getAttributes().flags & WindowManager.LayoutParams.FLAG_SECURE) != 0;
+        } catch (Exception e) {
+            return false;
         }
     }
 
@@ -758,6 +841,10 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     public ActionMode onWindowStartingActionMode(ActionMode.Callback callback, int type) {
+        if (suppressTextActionMode) {
+            Log.d(TAG, "onWindowStartingActionMode(type=" + type + ") suppressed by chat guard");
+            return null;
+        }
         try {
             return super.onWindowStartingActionMode(callback, type);
         } catch (Throwable t) {
@@ -772,6 +859,10 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     public ActionMode onWindowStartingActionMode(ActionMode.Callback callback) {
+        if (suppressTextActionMode) {
+            Log.d(TAG, "onWindowStartingActionMode suppressed by chat guard");
+            return null;
+        }
         try {
             return super.onWindowStartingActionMode(callback);
         } catch (Throwable t) {
@@ -782,6 +873,7 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     public ActionMode startActionMode(ActionMode.Callback callback) {
+        if (suppressTextActionMode) return null;
         try {
             return super.startActionMode(callback);
         } catch (Throwable t) {
@@ -792,6 +884,7 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     public ActionMode startActionMode(ActionMode.Callback callback, int type) {
+        if (suppressTextActionMode) return null;
         try {
             return super.startActionMode(callback, type);
         } catch (Throwable t) {

@@ -40,10 +40,31 @@
     let isSwipingHorizontal = null;
 
     const edgeThreshold = 40; // Avoid edge gesture conflicts with system back gesture
-    const triggerThreshold = 18; // Instant 18px threshold
-    const flingVelocity = 0.22; // Very responsive flick velocity
+    const triggerThreshold = 26; // Deliberate travel: tiny vertical-ish wobbles never switch month
+    const flingVelocity = 0.4; // A flick must be genuinely fast (px/ms)
+    const HORIZONTAL_DOMINANCE = 1.4; // |dx| must beat 1.4x |dy| before we claim a swipe
 
-    appContent.addEventListener('touchstart', (e) => {
+    // POINTER EVENTS (instead of touchmove + preventDefault):
+    // A non-passive touchmove listener forces the WebView to run scrolling on the
+    // main thread, which is what made scrolling stutter. Pointer events keep the
+    // compositor fast-path intact, and the browser tells us "this became a scroll"
+    // through pointercancel — which is exactly how vertical scrolls stay untouched.
+    let activePointerId = null;
+    let suppressClickUntil = 0;
+
+    // A horizontal drag must not synthesize a tap on the row/element underneath.
+    appContent.addEventListener('click', (e) => {
+      if (Date.now() < suppressClickUntil) {
+        suppressClickUntil = 0;
+        e.stopPropagation();
+        if (e.cancelable && e.preventDefault) e.preventDefault();
+      }
+    }, true);
+
+    appContent.addEventListener('pointerdown', (e) => {
+      // Desktop pointers use the chevron buttons; a drag-to-select must never switch month
+      if (e.pointerType === 'mouse') return;
+
       const activeModals = document.querySelectorAll('.modal-overlay.active, .tx-modal-overlay.active');
       const searchOverlay = document.getElementById('search-overlay');
       const isSearchActive = searchOverlay && searchOverlay.classList.contains('active');
@@ -55,81 +76,91 @@
       }
       if (activeModals.length > 0 || isSearchActive || state.selectionMode || state.isSwipingMonth) {
         touchActive = false;
+        activePointerId = null;
         return;
       }
 
       if (e.target && e.target.closest && e.target.closest('.category-quick-filters, .quick-filter-chips, .filters-panel-header, #statsChart, canvas, .stats-subcategories-container')) {
         touchActive = false;
+        activePointerId = null;
         return;
       }
 
-      const touch = (e.touches && e.touches[0]) ? e.touches[0] : { clientX: 0, clientY: 0 };
-      startX = touch.clientX;
-      startY = touch.clientY;
-      lastMoveX = startX;
+      const x = typeof e.clientX === 'number' ? e.clientX : 0;
+      const y = typeof e.clientY === 'number' ? e.clientY : 0;
+      startX = x;
+      startY = y;
+      lastMoveX = x;
       lastMoveTime = Date.now();
       velocity = 0;
       startTime = lastMoveTime;
 
       const windowWidth = (typeof window !== 'undefined' && window.innerWidth) ? window.innerWidth : 360;
-      if (startX <= edgeThreshold || startX >= windowWidth - edgeThreshold) {
+      if (x <= edgeThreshold || x >= windowWidth - edgeThreshold) {
         touchActive = false;
+        activePointerId = null;
         return;
       }
 
       touchActive = true;
       isSwipingHorizontal = null;
+      activePointerId = e.pointerId;
     }, { passive: true });
 
-    appContent.addEventListener('touchmove', (e) => {
-      if (!touchActive || state.isSwipingMonth) return;
-      const touch = (e.touches && e.touches[0]) ? e.touches[0] : { clientX: 0, clientY: 0 };
-      const deltaX = touch.clientX - startX;
-      const deltaY = touch.clientY - startY;
+    appContent.addEventListener('pointermove', (e) => {
+      if (!touchActive || e.pointerId !== activePointerId || state.isSwipingMonth) return;
+
+      const deltaX = e.clientX - startX;
+      const deltaY = e.clientY - startY;
 
       if (isSwipingHorizontal === null) {
         if (Math.abs(deltaX) > 6 || Math.abs(deltaY) > 6) {
-          if (Math.abs(deltaX) > Math.abs(deltaY) * 0.7) {
+          // Horizontal dominance is required: a vertical (or diagonal) scroll is
+          // NEVER converted into a month change.
+          if (Math.abs(deltaX) > Math.abs(deltaY) * HORIZONTAL_DOMINANCE) {
             if (state.activeTab === 'trans' || state.activeTab === 'stats') {
               isSwipingHorizontal = true;
               state.touchDidMove = true;
             } else {
               isSwipingHorizontal = false;
               touchActive = false;
+              activePointerId = null;
             }
           } else {
+            // Vertical intent: hand the gesture back to the native scroller
             isSwipingHorizontal = false;
+            touchActive = false;
+            activePointerId = null;
           }
         }
       }
 
       if (isSwipingHorizontal === true) {
-        if (e.cancelable && e.preventDefault) e.preventDefault();
         const now = Date.now();
         const dt = now - lastMoveTime;
         if (dt > 0) {
-          velocity = (touch.clientX - lastMoveX) / dt;
+          velocity = (e.clientX - lastMoveX) / dt;
         }
-        lastMoveX = touch.clientX;
+        lastMoveX = e.clientX;
         lastMoveTime = now;
       }
-    }, { passive: false });
+    }, { passive: true });
 
-    appContent.addEventListener('touchend', (e) => {
-      if (!touchActive) return;
+    appContent.addEventListener('pointerup', (e) => {
+      if (!touchActive || e.pointerId !== activePointerId) return;
       touchActive = false;
+      activePointerId = null;
 
       if (isSwipingHorizontal === true && !state.isSwipingMonth) {
-        if (e.cancelable && e.preventDefault) e.preventDefault();
-        state.lastSwipeTime = Date.now();
-        const touch = (e.changedTouches && e.changedTouches[0]) || (e.touches && e.touches[0]) || { clientX: 0, clientY: 0 };
-        const deltaX = touch.clientX - startX;
+        const deltaX = (typeof e.clientX === 'number' ? e.clientX : lastMoveX) - startX;
         const absDelta = Math.abs(deltaX);
         const absVelocity = Math.abs(velocity);
 
         const shouldTrigger = absDelta >= triggerThreshold || absVelocity >= flingVelocity;
 
         if (shouldTrigger) {
+          state.lastSwipeTime = Date.now();
+          suppressClickUntil = Date.now() + 350;
           const direction = deltaX < 0 ? 1 : -1; // 1 = next month, -1 = prev month
           if (state.activeTab === 'trans') {
             navigateMonth(direction);
@@ -143,10 +174,11 @@
 
       isSwipingHorizontal = null;
       setTimeout(() => { state.touchDidMove = false; }, 200);
-    }, { passive: false });
+    }, { passive: true });
 
-    appContent.addEventListener('touchcancel', () => {
+    appContent.addEventListener('pointercancel', () => {
       touchActive = false;
+      activePointerId = null;
       isSwipingHorizontal = null;
       setTimeout(() => { state.touchDidMove = false; }, 100);
     }, { passive: true });

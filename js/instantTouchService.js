@@ -5,18 +5,21 @@
  * Eliminates mobile touch latency and mimics native app (Messenger/iOS) responsiveness:
  *
  * 1. 0ms Immediate Feedback:
- *    On pointerdown/touchstart, immediately applies .is-pressed class, scaling and dimming
- *    the button in <40ms without waiting for WebView's delayed :active state.
+ *    On pointerdown/touchstart, immediately applies .is-pressed — a subtle press
+ *    compression with NO opacity dimming — instead of waiting for the WebView's
+ *    delayed :active state.
  *
- * 2. Instant Micro-Haptic Tick:
- *    Fires a subtle tactile tick (native linear motor / Web Vibration) on down.
+ * 2. Native-Only Haptic Tick:
+ *    Native engines tick through the Capacitor Haptics plugin. In a plain WebView we
+ *    deliberately stay silent: a raw vibration-motor "bzz" on every tap is the single
+ *    most obvious "cheap Android wrapper" tell (Messenger never vibrates on a tap).
  *
  * 3. 0ms Scroll Cancellation:
  *    If the finger moves > 8px (scrolling a list), the pressed state is cleanly cancelled.
  *
- * 4. Human-Eye Dwell Guarantee:
- *    Even on ultra-rapid 20ms taps, holds .is-pressed for a minimum of 70ms so the user's
- *    eye visibly registers the mechanical compression, then rebounds smoothly.
+ * 4. No Artificial Dwell:
+ *    The pressed state is released the instant the finger lifts. HOLDING it for a
+ *    minimum dwell made fast taps feel sticky and out of sync with the finger.
  *
  * 5. Input Safety:
  *    Excludes text inputs, textareas, selects, sliders, and form editing controls.
@@ -38,13 +41,10 @@
   'use strict';
 
   var SCROLL_CANCEL_THRESHOLD = 8; // px
-  var MIN_PRESS_DWELL_MS = 70; // ms
 
   var currentPressedEl = null;
-  var pressStartTime = 0;
   var startX = 0;
   var startY = 0;
-  var releaseTimer = null;
   var lastHapticTime = 0;
   var isInitialized = false;
 
@@ -106,36 +106,21 @@
     lastHapticTime = now;
 
     try {
+      // Native haptics only — never fall back to navigator.vibrate() on touch-down.
       if (typeof window !== 'undefined' && typeof window.triggerHaptic === 'function') {
         window.triggerHaptic('selection');
-      } else if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
-        navigator.vibrate(8);
       }
     } catch (e) {
       // Best-effort haptic
     }
   }
 
-  function clearPressedState(el, immediate) {
+  function clearPressedState(el) {
     if (!el) return;
-    if (releaseTimer) {
-      clearTimeout(releaseTimer);
-      releaseTimer = null;
-    }
 
-    if (immediate) {
-      el.classList.remove('is-pressed');
-    } else {
-      var elapsed = Date.now() - pressStartTime;
-      if (elapsed < MIN_PRESS_DWELL_MS) {
-        releaseTimer = setTimeout(function () {
-          el.classList.remove('is-pressed');
-          releaseTimer = null;
-        }, MIN_PRESS_DWELL_MS - elapsed);
-      } else {
-        el.classList.remove('is-pressed');
-      }
-    }
+    // Release immediately: the CSS rebound transition already provides the visible
+    // "spring back", so an artificial minimum dwell only adds lag and desync.
+    el.classList.remove('is-pressed');
   }
 
   function handlePointerDown(e) {
@@ -146,11 +131,10 @@
     if (!target) return;
 
     if (currentPressedEl && currentPressedEl !== target) {
-      clearPressedState(currentPressedEl, true);
+      clearPressedState(currentPressedEl);
     }
 
     currentPressedEl = target;
-    pressStartTime = Date.now();
     startX = e.clientX || 0;
     startY = e.clientY || 0;
 
@@ -167,20 +151,20 @@
 
     // If movement exceeds threshold, user is scrolling or dragging: cancel active state immediately
     if (Math.sqrt(dx * dx + dy * dy) > SCROLL_CANCEL_THRESHOLD) {
-      clearPressedState(currentPressedEl, true);
+      clearPressedState(currentPressedEl);
       currentPressedEl = null;
     }
   }
 
   function handlePointerUp() {
     if (!currentPressedEl) return;
-    clearPressedState(currentPressedEl, false);
+    clearPressedState(currentPressedEl);
     currentPressedEl = null;
   }
 
   function handlePointerCancel() {
     if (!currentPressedEl) return;
-    clearPressedState(currentPressedEl, true);
+    clearPressedState(currentPressedEl);
     currentPressedEl = null;
   }
 
@@ -210,7 +194,7 @@
     if (typeof window !== 'undefined') {
       window.addEventListener('blur', function () {
         if (currentPressedEl) {
-          clearPressedState(currentPressedEl, true);
+          clearPressedState(currentPressedEl);
           currentPressedEl = null;
         }
       });
@@ -229,10 +213,6 @@
     if (currentPressedEl) {
       currentPressedEl.classList.remove('is-pressed');
       currentPressedEl = null;
-    }
-    if (releaseTimer) {
-      clearTimeout(releaseTimer);
-      releaseTimer = null;
     }
   }
 

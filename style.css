@@ -162,11 +162,9 @@ button,
 [role="button"] {
   touch-action: manipulation !important;
   -webkit-tap-highlight-color: transparent !important;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-  will-change: transform;
-  /* Instant spring-release rebound */
-  transition: transform 0.12s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.12s ease !important;
+  /* No per-element will-change: promoting every row to its own GPU layer costs
+     memory and is a known cause of scroll stutter on mid-range Android devices. */
+  transition: transform 0.14s cubic-bezier(0.22, 0.61, 0.36, 1) !important;
 }
 
 /* Fast 0ms press for buttons, icons, pills, FAB, keypad */
@@ -225,9 +223,9 @@ button.is-pressed,
 [role="button"]:active,
 [role="button"].is-pressed {
   /* Immediate 0ms tactile compression */
-  transform: scale(0.93) !important;
-  opacity: 0.80 !important;
-  transition: transform 0.04s cubic-bezier(0, 0, 0.2, 1), opacity 0.04s ease-out !important;
+  /* Native-style press: subtle compression, no opacity dimming */
+  transform: scale(0.96) !important;
+  transition: transform 0.09s cubic-bezier(0.2, 0, 0, 1) !important;
 }
 
 /* Row & Card items: subtle scale (0.985) + background highlight */
@@ -248,10 +246,10 @@ button.is-pressed,
 .modern-note-card.is-pressed,
 .recurring-template-card:active,
 .recurring-template-card.is-pressed {
-  transform: scale(0.985) !important;
-  opacity: 0.88 !important;
+  transform: scale(0.99) !important;
+  /* Native "state layer": tint the row, never fade the content */
   background-color: var(--overlay-050) !important;
-  transition: transform 0.04s cubic-bezier(0, 0, 0.2, 1), opacity 0.04s ease-out !important;
+  transition: transform 0.09s cubic-bezier(0.2, 0, 0, 1) !important;
 }
 
 /* Material-style Ripple Effect */
@@ -9232,6 +9230,78 @@ body.keyboard-active #transaction-modal .modal-action-buttons {
   -webkit-user-select: text !important;
   -moz-user-select: text !important;
   -ms-user-select: text !important;
+  /* Never let the platform offer its own callout/selection toolbar here: on
+     several OEM WebViews inflating it kills the renderer. The in-app selection
+     bar in js/aiCoachService.js provides the copy action instead. */
+  -webkit-touch-callout: none !important;
+}
+
+/* In-app text selection bar (js/aiCoachService.js) ------------------------- */
+.chat-selection-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 12050;
+  display: none;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 12px;
+  background: rgba(22, 27, 38, 0.97);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5);
+  user-select: none;
+  -webkit-user-select: none;
+  pointer-events: auto;
+  animation: chatSelectionBarIn 0.12s ease-out;
+}
+
+.chat-selection-bar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text-primary, #ffffff);
+  font-family: 'Outfit', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.chat-selection-bar-btn:active {
+  transform: scale(0.96);
+}
+
+.chat-selection-bar-btn.primary {
+  background: var(--accent, #38bdf8);
+  color: #0b1220;
+}
+
+.chat-selection-bar-btn.icon {
+  width: 34px;
+  padding: 0;
+  color: var(--text-secondary, #94a3b8);
+}
+
+@keyframes chatSelectionBarIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .chat-msg-row {
@@ -9709,7 +9779,7 @@ mark.guide-highlight {
   pointer-events: auto !important;
   user-select: none;
   -webkit-user-select: none;
-  -webkit-tap-highlight-color: rgba(124, 106, 247, 0.15);
+  -webkit-tap-highlight-color: transparent;
 }
 
 .subscreen-section.active {
@@ -14106,5 +14176,49 @@ body {
   border-bottom: 1px solid var(--border);
 }
 
+/* ============================================================================
+   TOUCH DEVICES — HOVER RESIDUE NEUTRALISER
+   ----------------------------------------------------------------------------
+   Android/WebView keeps :hover applied to the last tapped element, so "lift"
+   transforms (translateY / scale) are left stuck after a tap and the UI looks
+   broken. On devices without a real pointer we neutralise those transforms.
+   ============================================================================ */
+@media (hover: none) {
 
-
+  .header-ai-pill-btn:hover,
+  .fab:hover,
+  .fab-note:hover,
+  .fhs-card:hover,
+  .user-profile-badge:hover,
+  .header-lang-btn:hover,
+  .profile-avatar-edit-badge:hover,
+  .profile-name-edit-icon:hover,
+  .profile-stat-card:hover,
+  .profile-shortcut-btn:hover,
+  .preset-avatar-option:hover,
+  .category-delete-badge:hover,
+  .cat-action-btn:hover,
+  .emoji-rate-btn:hover,
+  .feedback-chip:hover,
+  .feedback-btn:hover,
+  .advisor-suggestion-chip:hover,
+  .coach-action-btn:hover,
+  .guide-toc-card:hover,
+  .theme-card-option:hover,
+  .notes-filter-chip:hover,
+  .note-custom-checkbox:hover,
+  .modern-note-card:hover,
+  .modern-note-card .note-card-pin-btn:hover,
+  .note-color-swatch:hover,
+  .note-header-icon-btn:hover,
+  .note-done-btn:hover,
+  .note-context-action-btn:hover,
+  .modern-time-close-btn:hover,
+  .header-demo-badge:hover,
+  .photo-source-opt-primary:hover,
+  .stats-empty-btn-primary:hover,
+  .stats-empty-btn-secondary:hover,
+  .recurring-template-card:hover {
+    transform: none !important;
+  }
+}

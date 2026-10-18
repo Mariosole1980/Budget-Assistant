@@ -523,43 +523,188 @@ function isAndroidNativePlatform() {
 }
 window.isAndroidNativePlatform = isAndroidNativePlatform;
 
-function applyNativeSecureMode(enabled) {
+// ---------------------------------------------------------------------------
+// SCREENSHOT BLOCKING (FLAG_SECURE) — verification + reconciliation
+// ---------------------------------------------------------------------------
+// The setting lives in TWO places:
+//   1. localStorage `settings_screenshot_block` → drives the settings switch.
+//   2. native SharedPreferences `NativeThemePrefs/secure_mode` → lets
+//      MainActivity apply FLAG_SECURE on cold start, before the WebView loads.
+//
+// On a few devices the JS→Native call is silently dropped (OEM WebView build,
+// activity not attached yet, WebView renderer just restarted). The switch then
+// showed "enabled" while the window stayed fully screen-capturable. To make
+// that impossible we now read the native state back, retry once, and reconcile
+// localStorage with the native preference at startup (one of the two storages
+// can survive while the other is reset).
+
+function _readScreenshotBlockFlag() {
   try {
-    if (typeof enabled === 'undefined') {
-      try {
-        enabled = localStorage.getItem('settings_screenshot_block') === 'true';
-      } catch (_) {
-        enabled = false;
-      }
-    }
-    const isSecured = !!enabled;
+    return localStorage.getItem('settings_screenshot_block') === 'true';
+  } catch (_) {
+    return false;
+  }
+}
 
-    // 1. Direct synchronous call to NativeApp bridge if available (most reliable, zero latency)
-    if (typeof window !== 'undefined' && window.NativeApp && typeof window.NativeApp.setSecureMode === 'function') {
-      try {
-        window.NativeApp.setSecureMode(isSecured);
-      } catch (err) {
-        console.warn('[NativeApp] setSecureMode error:', err);
-      }
-    }
+function _writeScreenshotBlockFlag(enabled) {
+  try {
+    localStorage.setItem('settings_screenshot_block', enabled ? 'true' : 'false');
+  } catch (_) {
+    /* ignore */
+  }
+}
 
-    // 2. Apply via custom SecurityPlugin (Capacitor bridge)
-    const secPlugin = getSecurityPlugin();
-    if (secPlugin && typeof secPlugin.setSecureMode === 'function') {
-      secPlugin.setSecureMode({ enabled: isSecured }).catch(e => console.warn('[SecurityPlugin] setSecureMode error:', e));
-    }
+function _syncScreenshotBlockSwitch(enabled) {
+  try {
+    const checkbox = document.getElementById('settings-screenshot-block');
+    if (checkbox) checkbox.checked = !!enabled;
+  } catch (_) {
+    /* ignore */
+  }
+}
 
-    // 3. Apply via official PrivacyScreen plugin (Capacitor bridge)
-    const privPlugin = getPrivacyScreenPlugin();
-    if (privPlugin) {
-      if (isSecured && typeof privPlugin.enable === 'function') {
-        privPlugin.enable().catch(e => console.warn('[PrivacyScreen] enable error:', e));
-      } else if (!isSecured && typeof privPlugin.disable === 'function') {
-        privPlugin.disable().catch(e => console.warn('[PrivacyScreen] disable error:', e));
+/**
+ * Reads the *native* protection state.
+ *   enabled      → persisted native preference (applied on cold start)
+ *   windowSecure → the real FLAG_SECURE bit on the activity window
+ * Resolves to `null` when there is no native bridge (PWA) or the installed
+ * APK predates these methods.
+ */
+function getNativeSecureModeState() {
+  // 1. Synchronous JS→Native bridge (Android WebView)
+  try {
+    if (typeof window !== 'undefined' && window.NativeApp && typeof window.NativeApp.getSecureModeState === 'function') {
+      const raw = window.NativeApp.getSecureModeState();
+      if (raw) {
+        const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+        if (parsed && typeof parsed.enabled === 'boolean') {
+          return Promise.resolve({
+            enabled: parsed.enabled,
+            windowSecure: parsed.windowSecure !== false
+          });
+        }
       }
     }
   } catch (err) {
+    console.warn('[NativeApp] getSecureModeState error:', err);
+  }
+
+  // 2. Capacitor Security plugin
+  const secPlugin = getSecurityPlugin();
+  if (secPlugin && typeof secPlugin.getSecureMode === 'function') {
+    try {
+      return Promise.resolve(secPlugin.getSecureMode())
+        .then(res => (res && typeof res.enabled === 'boolean')
+          ? { enabled: res.enabled, windowSecure: res.windowSecure !== false }
+          : null)
+        .catch(() => null);
+    } catch (_) {
+      /* fall through */
+    }
+  }
+  return Promise.resolve(null);
+}
+window.getNativeSecureModeState = getNativeSecureModeState;
+
+// Actually talks to the native layer (all three channels, feature-detected).
+function _applySecureModeNatively(isSecured) {
+  // 1. Direct synchronous call to NativeApp bridge if available (most reliable, zero latency)
+  if (typeof window !== 'undefined' && window.NativeApp && typeof window.NativeApp.setSecureMode === 'function') {
+    try {
+      window.NativeApp.setSecureMode(isSecured);
+    } catch (err) {
+      console.warn('[NativeApp] setSecureMode error:', err);
+    }
+  }
+
+  // 2. Apply via custom SecurityPlugin (Capacitor bridge)
+  const secPlugin = getSecurityPlugin();
+  if (secPlugin && typeof secPlugin.setSecureMode === 'function') {
+    try {
+      const res = secPlugin.setSecureMode({ enabled: isSecured });
+      if (res && typeof res.catch === 'function') {
+        res.catch(e => console.warn('[SecurityPlugin] setSecureMode error:', e));
+      }
+    } catch (err) {
+      console.warn('[SecurityPlugin] setSecureMode error:', err);
+    }
+  }
+
+  // 3. Apply via official PrivacyScreen plugin (Capacitor bridge)
+  const privPlugin = getPrivacyScreenPlugin();
+  if (privPlugin) {
+    try {
+      if (isSecured && typeof privPlugin.enable === 'function') {
+        const res = privPlugin.enable();
+        if (res && typeof res.catch === 'function') {
+          res.catch(e => console.warn('[PrivacyScreen] enable error:', e));
+        }
+      } else if (!isSecured && typeof privPlugin.disable === 'function') {
+        const res = privPlugin.disable();
+        if (res && typeof res.catch === 'function') {
+          res.catch(e => console.warn('[PrivacyScreen] disable error:', e));
+        }
+      }
+    } catch (err) {
+      console.warn('[PrivacyScreen] toggle error:', err);
+    }
+  }
+}
+
+function _isNativeSecureModeVerified(nativeState) {
+  // No readable native state → nothing to verify (PWA or older APK).
+  if (!nativeState) return true;
+  // The preference must have reached the native side…
+  if (nativeState.enabled !== true) return false;
+  // …and the flag must really be set on the window.
+  return nativeState.windowSecure !== false;
+}
+
+function _applyAndVerifySecureMode(isSecured) {
+  try {
+    _applySecureModeNatively(isSecured);
+  } catch (err) {
     console.error('[NativeSecureMode] Failed to apply secure mode:', err);
+    return Promise.resolve(false);
+  }
+  if (!isSecured) return Promise.resolve(true);
+
+  return getNativeSecureModeState().then(nativeState => {
+    if (_isNativeSecureModeVerified(nativeState)) return true;
+    // First attempt did not stick (activity not attached yet, or an OEM ROM
+    // dropped the flag) → re-apply once and report the real outcome.
+    console.warn('[NativeSecureMode] FLAG_SECURE not verified, retrying…', nativeState);
+    try {
+      _applySecureModeNatively(true);
+    } catch (err) {
+      console.error('[NativeSecureMode] Retry failed:', err);
+      return false;
+    }
+    return getNativeSecureModeState().then(retryState => _isNativeSecureModeVerified(retryState));
+  }).catch(() => true);
+}
+
+function applyNativeSecureMode(enabled) {
+  try {
+    if (typeof enabled === 'undefined') {
+      const localEnabled = _readScreenshotBlockFlag();
+      return getNativeSecureModeState().then(nativeState => {
+        // The native preference is what protects the window at cold start, so
+        // it wins: mirror it into the web layer instead of letting a reset
+        // localStorage silently disable an already active protection.
+        if (nativeState && nativeState.enabled === true && !localEnabled) {
+          _writeScreenshotBlockFlag(true);
+          _syncScreenshotBlockSwitch(true);
+          return _applyAndVerifySecureMode(true);
+        }
+        return _applyAndVerifySecureMode(localEnabled);
+      }).catch(() => _applyAndVerifySecureMode(localEnabled));
+    }
+
+    return _applyAndVerifySecureMode(!!enabled);
+  } catch (err) {
+    console.error('[NativeSecureMode] Failed to apply secure mode:', err);
+    return Promise.resolve(false);
   }
 }
 window.applyNativeSecureMode = applyNativeSecureMode;
@@ -592,15 +737,34 @@ function toggleScreenshotBlockSetting(checked) {
       return;
     }
 
-    localStorage.setItem('settings_screenshot_block', checked ? 'true' : 'false');
-    applyNativeSecureMode(checked);
+    checked = !!checked;
+    _writeScreenshotBlockFlag(checked);
 
     const msg = checked
       ? (state.lang === 'el' ? 'Ο αποκλεισμός στιγμιότυπων ενεργοποιήθηκε.' : 'Screenshot blocking enabled.')
       : (state.lang === 'el' ? 'Ο αποκλεισμός στιγμιότυπων απενεργοποιήθηκε.' : 'Screenshot blocking disabled.');
-    showSyncToast((checked ? "🔒 " : "🔓 ") + msg, 3000);
+    const icon = checked ? "\uD83D\uDD12 " : "\uD83D\uDD13 ";
+
+    const promise = applyNativeSecureMode(checked);
+    if (!promise || typeof promise.then !== 'function') {
+      showSyncToast(icon + msg, 3000);
+      return;
+    }
+
+    // On some OEM devices the bridge call is silently dropped, so report the
+    // real outcome instead of a success toast for protection that is not on.
+    promise.then(ok => {
+      if (ok === false) {
+        const failMsg = state.lang === 'el'
+          ? 'Η συσκευή δεν εφάρμοσε την προστασία. Κάντε επανεκκίνηση της εφαρμογής.'
+          : 'This device did not apply the protection. Please restart the app.';
+        showSyncToast("\u26A0\uFE0F " + failMsg, 5000);
+      } else {
+        showSyncToast(icon + msg, 3000);
+      }
+    }).catch(() => showSyncToast(icon + msg, 3000));
   } catch (err) {
-    console.error("[ScreenshotBlock] Error in toggleScreenshotBlockSetting:", err);
+    console.error('[ScreenshotBlock] Error in toggleScreenshotBlockSetting:', err);
   }
 }
 window.toggleScreenshotBlockSetting = toggleScreenshotBlockSetting;
@@ -698,6 +862,8 @@ async function toggleBiometrics(checked) {
     getSecurityPlugin: getSecurityPlugin,
     getPrivacyScreenPlugin: getPrivacyScreenPlugin,
     applyNativeSecureMode: applyNativeSecureMode,
+    getNativeSecureModeState: getNativeSecureModeState,
+
     toggleHideAmountsSetting: toggleHideAmountsSetting,
     toggleScreenshotBlockSetting: toggleScreenshotBlockSetting,
     toggleBiometrics: toggleBiometrics,
