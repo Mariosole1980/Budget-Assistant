@@ -342,18 +342,16 @@ function renderStatsTab(skipChart = false) {
           subTouchStartY = touch.clientY;
 
           clearTimeout(subFeedbackTimer);
-          subFeedbackTimer = setTimeout(() => {
-            if (!subTouchMoved && !state.isSwipingMonth) {
-              subRow.classList.add('pressed');
-            }
-          }, 20);
+          if (!subTouchMoved && !state.isSwipingMonth) {
+            subRow.classList.add('pressed');
+          }
         }, { passive: true });
 
         subRow.addEventListener('touchmove', (e) => {
           const touch = e.touches[0];
           const dx = touch.clientX - subTouchStartX;
           const dy = touch.clientY - subTouchStartY;
-          if (Math.abs(dx) > 14 || Math.abs(dy) > 14) {
+          if (Math.abs(dx) > 24 || Math.abs(dy) > 24) {
             subTouchMoved = true;
             clearTimeout(subFeedbackTimer);
             subRow.classList.remove('pressed');
@@ -401,18 +399,16 @@ function renderStatsTab(skipChart = false) {
       rowTouchStartY = touch.clientY;
 
       clearTimeout(rowFeedbackTimer);
-      rowFeedbackTimer = setTimeout(() => {
-        if (!rowTouchMoved && !state.isSwipingMonth) {
-          row.classList.add('pressed');
-        }
-      }, 20);
+      if (!rowTouchMoved && !state.isSwipingMonth) {
+        row.classList.add('pressed');
+      }
     }, { passive: true });
 
     row.addEventListener('touchmove', (e) => {
       const touch = e.touches[0];
       const dx = touch.clientX - rowTouchStartX;
       const dy = touch.clientY - rowTouchStartY;
-      if (Math.abs(dx) > 14 || Math.abs(dy) > 14) {
+      if (Math.abs(dx) > 24 || Math.abs(dy) > 24) {
         rowTouchMoved = true;
         clearTimeout(rowFeedbackTimer);
         row.classList.remove('pressed');
@@ -1263,18 +1259,16 @@ function renderSubcategoryTransactions(category, subcategory) {
       modalTouchStartY = touch.clientY;
 
       clearTimeout(modalFeedbackTimer);
-      modalFeedbackTimer = setTimeout(() => {
-        if (!modalTouchMoved && !state.isSwipingMonth) {
-          item.classList.add('pressed');
-        }
-      }, 20);
+      if (!modalTouchMoved && !state.isSwipingMonth) {
+        item.classList.add('pressed');
+      }
     }, { passive: true });
 
     item.addEventListener('touchmove', (e) => {
       const touch = e.touches[0];
       const dx = touch.clientX - modalTouchStartX;
       const dy = touch.clientY - modalTouchStartY;
-      if (Math.abs(dx) > 14 || Math.abs(dy) > 14) {
+      if (Math.abs(dx) > 24 || Math.abs(dy) > 24) {
         modalTouchMoved = true;
         clearTimeout(modalFeedbackTimer);
         item.classList.remove('pressed');

@@ -1763,11 +1763,9 @@ function renderGroupedTransactions(transactions, container) {
         }
 
         clearTimeout(feedbackTimer);
-        feedbackTimer = setTimeout(() => {
-          if (!touchDidMove) {
-            item.classList.add('pressed');
-          }
-        }, 20);
+        if (!touchDidMove) {
+          item.classList.add('pressed');
+        }
 
         if (state.searchSelectMode) return;
         pressTimer = setTimeout(() => {
@@ -1785,7 +1783,7 @@ function renderGroupedTransactions(transactions, container) {
         if (e.touches && e.touches[0]) {
           const dx = e.touches[0].clientX - touchStartX;
           const dy = e.touches[0].clientY - touchStartY;
-          if (Math.hypot(dx, dy) > 14) {
+          if (Math.hypot(dx, dy) > 24) {
             clearTimeout(pressTimer);
             clearTimeout(feedbackTimer);
             item.classList.remove('pressed');

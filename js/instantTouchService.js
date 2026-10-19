@@ -40,7 +40,7 @@
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
-  var SCROLL_CANCEL_THRESHOLD = 8; // px
+  var SCROLL_CANCEL_THRESHOLD = 20; // px (avoids false cancellations from natural thumb flattening/jitter)
 
   var currentPressedEl = null;
   var startX = 0;
@@ -50,6 +50,7 @@
 
   var INTERACTIVE_SELECTOR = [
     'button',
+    'a',
     '.btn',
     '.icon-btn',
     '.nav-item',
@@ -97,7 +98,11 @@
   function findInteractiveTarget(target) {
     if (!target || typeof target.closest !== 'function') return null;
     if (target.closest(EXCLUDED_SELECTOR)) return null;
-    return target.closest(INTERACTIVE_SELECTOR);
+    var el = target.closest(INTERACTIVE_SELECTOR);
+    if (el) return el;
+    var clickable = target.closest('[onclick], [role="button"], .clickable');
+    if (clickable && !clickable.closest(EXCLUDED_SELECTOR)) return clickable;
+    return null;
   }
 
   function triggerInstantHaptic() {

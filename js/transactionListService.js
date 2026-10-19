@@ -303,11 +303,9 @@
           }
 
           clearTimeout(feedbackTimer);
-          feedbackTimer = setTimeout(function () {
-            if (!itemTouchMoved && !appState.touchDidMove && !appState.isSwipingMonth) {
-              item.classList.add('pressed');
-            }
-          }, 20);
+          if (!itemTouchMoved && !appState.touchDidMove && !appState.isSwipingMonth) {
+            item.classList.add('pressed');
+          }
 
           if (appState.selectionMode) return;
           pressTimer = setTimeout(function () {
@@ -324,7 +322,7 @@
           if (e.touches && e.touches[0]) {
             var dx = e.touches[0].clientX - touchStartX;
             var dy = e.touches[0].clientY - touchStartY;
-            if (Math.hypot(dx, dy) > 14) {
+            if (Math.hypot(dx, dy) > 24) {
               clearTimeout(pressTimer);
               clearTimeout(feedbackTimer);
               item.classList.remove('pressed');
