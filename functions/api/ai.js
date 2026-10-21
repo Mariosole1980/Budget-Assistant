@@ -312,9 +312,11 @@ ${statsStr}
 
   try {
     const modelsToTry = [
-      'models/gemini-2.0-flash',
-      'models/gemini-1.5-flash',
-      'models/gemini-1.5-pro'
+      'models/gemini-2.5-flash',
+      'models/gemini-flash-latest',
+      'models/gemini-flash-lite-latest',
+      'models/gemini-2.5-flash-lite',
+      'models/gemini-2.5-pro'
     ];
     // Build request body dynamically
     const reqBody = {
@@ -354,7 +356,7 @@ ${statsStr}
         headers: corsHeaders
       });
     } else {
-      return new Response(JSON.stringify({ error: result.errorText ? `Gemini API failure: ${result.errorText.substring(0, 300)}` : "Gemini API failure" }), {
+      return new Response(JSON.stringify({ error: result.errorText ? `Gemini API failure: ${result.errorText.substring(0, 3000)}` : "Gemini API failure" }), {
         status: result.status,
         headers: corsHeaders
       });

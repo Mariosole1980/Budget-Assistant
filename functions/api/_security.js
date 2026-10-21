@@ -171,13 +171,14 @@ function getSupabaseServiceConfig(env) {
 // discovery), so each endpoint keeps its own strategy.
 //
 // Returns { ok: true, text } on success, or { ok: false, status, errorText }.
-async function generateWithGeminiFallback({ env, modelNames, reqBody, timeoutMs = 8000 }) {
+async function generateWithGeminiFallback({ env, modelNames, reqBody, timeoutMs = 10000 }) {
     if (!env?.GEMINI_API_KEY) {
         return { ok: false, status: 500, errorText: 'GEMINI_API_KEY missing from environment' };
     }
     let response;
     let lastErrText = '';
-    for (const modelName of modelNames) {
+    for (const rawModelName of modelNames) {
+        const modelName = rawModelName.startsWith('models/') ? rawModelName : `models/${rawModelName}`;
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
         try {
@@ -196,6 +197,7 @@ async function generateWithGeminiFallback({ env, modelNames, reqBody, timeoutMs 
             }
         } catch (e) {
             clearTimeout(timeoutId);
+            lastErrText = e.message;
         }
     }
     if (response && response.ok) {
