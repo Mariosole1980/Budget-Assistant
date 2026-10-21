@@ -63,7 +63,7 @@ test('BankNotificationService: handleRawNotification parses and populates review
   assert.equal(openedModalId, 'bank-tx-review-modal');
   assert.equal(getMockEl('bank-tx-review-bank').textContent, 'Eurobank');
   assert.equal(getMockEl('bank-tx-review-merchant').textContent, 'MIKEL');
-  assert.equal(getMockEl('bank-tx-review-category').textContent, 'Καφές / Έξω');
+  assert.equal(getMockEl('bank-tx-review-category').textContent, '🍔 Τρόφιμα');
 });
 
 test('BankNotificationService: acceptTransaction pre-fills add transaction modal', (t, done) => {

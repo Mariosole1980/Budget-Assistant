@@ -30,31 +30,33 @@
     'com.revolut.revolut': 'Revolut'
   };
 
-  // Known merchant patterns and mapping to default category names
+  // Known merchant patterns and mapping to default category names.
+  // NOTE: the names below must match DEFAULT_CATEGORIES (constants.js) so the
+  // detected category can be auto-selected in the Add Transaction modal.
   var MERCHANT_CATEGORIES = [
     // Supermarkets & Groceries
-    { keywords: ['sklavenitis', 'σκλαβενιτησ', 'σκλαβενιτης', 'ab vassilopoulos', 'αβ βασιλοπουλος', 'lidl', 'mymarket', 'my market', 'μασουτης', 'masoutis', 'γαλαξιας', 'galaxias', 'bazaar', 'market in', 'kritikos', 'κριτικος'], category: 'Σούπερ Μάρκετ' },
+    { keywords: ['sklavenitis', 'σκλαβενιτησ', 'σκλαβενιτης', 'ab vassilopoulos', 'αβ βασιλοπουλος', 'lidl', 'mymarket', 'my market', 'μασουτης', 'masoutis', 'γαλαξιας', 'galaxias', 'bazaar', 'market in', 'kritikos', 'κριτικος'], category: '🛒 Σούπερ Μάρκετ' },
     
     // Coffee & Bakeries
-    { keywords: ['mikel', 'coffee island', 'gregorys', 'γρηγορης', 'everest', 'starbucks', 'coffee lab', 'veneti', 'βενετη', 'κουλουραδες', 'bread factory', 'mon kulur'], category: 'Καφές / Έξω' },
+    { keywords: ['mikel', 'coffee island', 'gregorys', 'γρηγορης', 'everest', 'starbucks', 'coffee lab', 'veneti', 'βενετη', 'κουλουραδες', 'bread factory', 'mon kulur'], category: '🍔 Τρόφιμα' },
     
     // Food Delivery & Restaurants
-    { keywords: ['efood', 'e-food', 'wolt', 'box delivery', 'mcdonalds', 'kfc', 'goodys', 'dominos', 'pizza fan'], category: 'Φαγητό / Delivery' },
+    { keywords: ['efood', 'e-food', 'wolt', 'box delivery', 'mcdonalds', 'kfc', 'goodys', 'dominos', 'pizza fan'], category: '🍔 Τρόφιμα' },
     
     // Gas & Transportation
-    { keywords: ['shell', 'eko', 'εκο', 'bp', 'avin', 'revoil', 'cyclon', 'ελιν', 'elin', 'oasa', 'οασα', 'uber', 'taxi', 'beat', 'freenow', 'aegean', 'ryanair'], category: 'Καύσιμα / Μετακίνηση' },
+    { keywords: ['shell', 'eko', 'εκο', 'bp', 'avin', 'revoil', 'cyclon', 'ελιν', 'elin', 'oasa', 'οασα', 'uber', 'taxi', 'beat', 'freenow', 'aegean', 'ryanair'], category: '🚗 Μεταφορές' },
     
     // Utilities & Bills
-    { keywords: ['dei', 'δεη', 'protergia', 'elpedison', 'heron', 'ηρων', 'zenith', 'eydap', 'ευδαπ', 'cosmote', 'vodafone', 'nova', 'wind'], category: 'Λογαριασμοί' },
+    { keywords: ['dei', 'δεη', 'protergia', 'elpedison', 'heron', 'ηρων', 'zenith', 'eydap', 'ευδαπ', 'cosmote', 'vodafone', 'nova', 'wind'], category: '🏠 Σπίτι' },
     
     // Pharmacy & Health
-    { keywords: ['farmakeio', 'φαρμακειο', 'pharmacy', 'care market'], category: 'Φαρμακείο / Υγεία' },
+    { keywords: ['farmakeio', 'φαρμακειο', 'pharmacy', 'care market'], category: '❤️ Υγεία' },
     
     // Shopping & Electronics
-    { keywords: ['zara', 'h&m', 'public', 'plaisio', 'πλαισιο', 'kotsovolos', 'κωτσοβολος', 'amazon', 'skroutz', 'ikea', 'jumbo', 'attica', 'intersport'], category: 'Αγορές' },
+    { keywords: ['zara', 'h&m', 'public', 'plaisio', 'πλαισιο', 'kotsovolos', 'κωτσοβολος', 'amazon', 'skroutz', 'ikea', 'jumbo', 'attica', 'intersport'], category: '👕 Αγορές' },
 
     // Subscriptions / Digital
-    { keywords: ['netflix', 'spotify', 'youtube', 'apple.com', 'google *', 'play store', 'disney', 'playstation', 'steam'], category: 'Συνδρομές' }
+    { keywords: ['netflix', 'spotify', 'youtube', 'apple.com', 'google *', 'play store', 'disney', 'playstation', 'steam'], category: '📱 Συνδρομές' }
   ];
 
   /**
@@ -213,7 +215,7 @@
         }
       }
     }
-    return 'Άλλα';
+    return '📦 Διάφορα';
   }
 
   /**
@@ -238,7 +240,7 @@
     var type = detectTransactionType(fullContent);
     var merchant = extractMerchant(fullContent, bank);
     var cardSuffix = extractCardSuffix(fullContent);
-    var category = (type === 'income') ? 'Μισθοδοσία / Έσοδα' : predictCategory(merchant, fullContent);
+    var category = (type === 'income') ? '💼 Μισθός' : predictCategory(merchant, fullContent);
 
     return {
       isValid: true,

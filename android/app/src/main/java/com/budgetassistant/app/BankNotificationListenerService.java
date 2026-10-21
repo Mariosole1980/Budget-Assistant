@@ -86,7 +86,23 @@ public class BankNotificationListenerService extends NotificationListenerService
             return;
         }
 
+        // Never react to our own notifications: BankNotificationPlugin re-posts the
+        // captured bank text with the bank name inside it ("Eurobank", "Revolut"...),
+        // so without this guard the listener would capture its own notification and
+        // re-post it forever.
+        if (packageName.equals(context.getPackageName())) {
+            return;
+        }
+
         Notification notification = sbn.getNotification();
+
+        // Group summaries and ongoing/progress notifications duplicate the real
+        // notification (and would enqueue the same transaction twice).
+        if ((notification.flags & Notification.FLAG_GROUP_SUMMARY) != 0 ||
+            (notification.flags & Notification.FLAG_ONGOING_EVENT) != 0) {
+            return;
+        }
+
         Bundle extras = notification.extras;
         if (extras == null) {
             return;
@@ -100,10 +116,27 @@ public class BankNotificationListenerService extends NotificationListenerService
         String text = textCs != null ? textCs.toString() : "";
         String bigText = bigTextCs != null ? bigTextCs.toString() : "";
 
+        // Several banking apps only expose the transaction details in the expanded
+        // InboxStyle lines (EXTRA_TEXT_LINES) and leave EXTRA_BIG_TEXT empty.
+        StringBuilder textLines = new StringBuilder();
+        CharSequence[] textLinesCs = extras.getCharSequenceArray(Notification.EXTRA_TEXT_LINES);
+        if (textLinesCs != null) {
+            for (CharSequence line : textLinesCs) {
+                if (line == null) continue;
+                String value = line.toString().trim();
+                if (value.isEmpty()) continue;
+                if (textLines.length() > 0) textLines.append(' ');
+                textLines.append(value);
+            }
+        }
+        if (bigText.isEmpty() && textLines.length() > 0) {
+            bigText = textLines.toString();
+        }
+
         // Check if package is explicitly supported or title/text indicates a bank
         boolean isSupported = SUPPORTED_PACKAGES.contains(packageName);
         if (!isSupported) {
-            String combined = (title + " " + text + " " + bigText).toLowerCase();
+            String combined = (title + " " + text + " " + bigText + " " + textLines).toLowerCase();
             if (combined.contains("eurobank") || combined.contains("winbank") ||
                 combined.contains("alpha bank") || combined.contains("nbg") ||
                 combined.contains("εθνική") || combined.contains("πειραιώς") ||

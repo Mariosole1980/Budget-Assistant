@@ -28,7 +28,7 @@ test('BankNotificationParser: parses Eurobank notification accurately', () => {
   assert.equal(result.type, 'expense');
   assert.equal(result.merchant, 'SKLAVENITIS');
   assert.equal(result.cardSuffix, '...1234');
-  assert.equal(result.suggestedCategory, 'Σούπερ Μάρκετ');
+  assert.equal(result.suggestedCategory, '🛒 Σούπερ Μάρκετ');
 });
 
 test('BankNotificationParser: parses Piraeus winbank notification accurately', () => {
@@ -45,7 +45,7 @@ test('BankNotificationParser: parses Piraeus winbank notification accurately', (
   assert.equal(result.type, 'expense');
   assert.equal(result.merchant, 'AB VASSILOPOULOS');
   assert.equal(result.cardSuffix, '...5678');
-  assert.equal(result.suggestedCategory, 'Σούπερ Μάρκετ');
+  assert.equal(result.suggestedCategory, '🛒 Σούπερ Μάρκετ');
 });
 
 test('BankNotificationParser: parses Alpha Bank notification accurately', () => {
@@ -61,7 +61,7 @@ test('BankNotificationParser: parses Alpha Bank notification accurately', () => 
   assert.equal(result.amount, 8.5);
   assert.equal(result.type, 'expense');
   assert.equal(result.merchant, 'GREGORYS');
-  assert.equal(result.suggestedCategory, 'Καφές / Έξω');
+  assert.equal(result.suggestedCategory, '🍔 Τρόφιμα');
 });
 
 test('BankNotificationParser: parses NBG (Εθνική Τράπεζα) notification accurately', () => {
@@ -77,7 +77,7 @@ test('BankNotificationParser: parses NBG (Εθνική Τράπεζα) notificat
   assert.equal(result.amount, 18.9);
   assert.equal(result.type, 'expense');
   assert.equal(result.merchant, 'EFOOD');
-  assert.equal(result.suggestedCategory, 'Φαγητό / Delivery');
+  assert.equal(result.suggestedCategory, '🍔 Τρόφιμα');
 });
 
 test('BankNotificationParser: parses Revolut notifications (Greek & English)', () => {
@@ -91,7 +91,7 @@ test('BankNotificationParser: parses Revolut notifications (Greek & English)', (
   assert.equal(resGr.amount, 5.2);
   assert.equal(resGr.bank, 'Revolut');
   assert.equal(resGr.merchant, 'Coffee Island');
-  assert.equal(resGr.suggestedCategory, 'Καφές / Έξω');
+  assert.equal(resGr.suggestedCategory, '🍔 Τρόφιμα');
 
   const notifEn = {
     packageName: 'com.revolut.revolut',
@@ -102,7 +102,7 @@ test('BankNotificationParser: parses Revolut notifications (Greek & English)', (
   assert.ok(resEn);
   assert.equal(resEn.amount, 12.5);
   assert.equal(resEn.merchant, 'Zara');
-  assert.equal(resEn.suggestedCategory, 'Αγορές');
+  assert.equal(resEn.suggestedCategory, '👕 Αγορές');
 });
 
 test('BankNotificationParser: handles income notifications correctly', () => {
@@ -115,7 +115,7 @@ test('BankNotificationParser: handles income notifications correctly', () => {
   assert.ok(res);
   assert.equal(res.amount, 1250);
   assert.equal(res.type, 'income');
-  assert.equal(res.suggestedCategory, 'Μισθοδοσία / Έσοδα');
+  assert.equal(res.suggestedCategory, '💼 Μισθός');
 });
 
 test('BankNotificationParser: returns null for non-transaction notifications', () => {

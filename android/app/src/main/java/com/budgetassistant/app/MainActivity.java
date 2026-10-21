@@ -124,6 +124,19 @@ public class MainActivity extends BridgeActivity {
         // Apply secure mode flags immediately at the start of onCreate
         applySecureMode();
 
+        // CRITICAL: app-local Capacitor plugins MUST be registered BEFORE
+        // super.onCreate(). BridgeActivity.onCreate() creates the Bridge, and the
+        // Bridge only instantiates the plugins that were added to the builder up
+        // to that point. Registering them afterwards (the previous behaviour)
+        // silently did nothing: "Capacitor.Plugins.BankNotification" was never
+        // injected into the WebView, so the JS side could not read the queue or
+        // request Notification Access — making "Αυτόματη Καταγραφή" a no-op.
+        registerPlugin(NativeThemePlugin.class);
+        registerPlugin(SecurityPlugin.class);
+        registerPlugin(ReliableNotificationPlugin.class);
+        registerPlugin(QuickAddNotificationPlugin.class);
+        registerPlugin(BankNotificationPlugin.class);
+
         try {
             androidx.core.splashscreen.SplashScreen.installSplashScreen(this);
         } catch (Throwable t) {
@@ -143,11 +156,6 @@ public class MainActivity extends BridgeActivity {
         } catch (Exception e) {
             // Ignore
         }
-        registerPlugin(NativeThemePlugin.class);
-        registerPlugin(SecurityPlugin.class);
-        registerPlugin(ReliableNotificationPlugin.class);
-        registerPlugin(QuickAddNotificationPlugin.class);
-        registerPlugin(BankNotificationPlugin.class);
         handleIncomingQuickAction(getIntent());
 
         try {
