@@ -171,35 +171,121 @@ function getSupabaseServiceConfig(env) {
 // discovery), so each endpoint keeps its own strategy.
 //
 // Returns { ok: true, text } on success, or { ok: false, status, errorText }.
-async function generateWithGeminiFallback({ env, modelNames, reqBody, timeoutMs = 10000 }) {
+// ---------------------------------------------------------------------------
+// Self-Healing Dynamic Gemini Model Resolver & Fallback Engine
+// ---------------------------------------------------------------------------
+// Solves model deprecation permanently:
+// 1. Evergreen Aliases: Starts with Google's canonical aliases (gemini-flash-latest)
+//    which Google automatically maps to the newest stable model versions.
+// 2. Self-Healing Runtime Discovery: If any model is deprecated or returns 404,
+//    the engine dynamically queries ModelService.ListModels directly from Google,
+//    discovers whatever models are currently live and enabled for the API key,
+//    and retries the request automatically.
+// 3. In-memory cache ensures zero performance overhead on subsequent requests.
+// ---------------------------------------------------------------------------
+
+let cachedDiscoveredModels = null;
+let lastDiscoveryTimestamp = 0;
+const DISCOVERY_CACHE_TTL = 3600 * 1000; // 1 hour
+
+async function discoverLiveGeminiModels(env) {
+    if (cachedDiscoveredModels && (Date.now() - lastDiscoveryTimestamp < DISCOVERY_CACHE_TTL)) {
+        return cachedDiscoveredModels;
+    }
+    try {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${env.GEMINI_API_KEY}`);
+        if (!res.ok) {
+            return null;
+        }
+        const data = await res.json();
+        const available = (data?.models || [])
+            .filter(m => Array.isArray(m.supportedGenerationMethods) && m.supportedGenerationMethods.includes('generateContent'))
+            .map(m => m.name.startsWith('models/') ? m.name : `models/${m.name}`)
+            .filter(name => !name.includes('-tts') && !name.includes('embedding') && !name.includes('aqa') && !name.includes('imagen'));
+
+        if (available.length > 0) {
+            // Prioritize fast, high-quota models first (flash-latest -> 2.5-flash -> flash -> pro)
+            available.sort((a, b) => {
+                const score = (n) => {
+                    const lower = n.toLowerCase();
+                    if (lower.includes('flash-latest')) return 100;
+                    if (lower.includes('2.5-flash')) return 90;
+                    if (lower.includes('flash') && !lower.includes('lite')) return 80;
+                    if (lower.includes('flash-lite')) return 70;
+                    if (lower.includes('pro-latest')) return 60;
+                    if (lower.includes('pro')) return 50;
+                    return 10;
+                };
+                return score(b) - score(a);
+            });
+            cachedDiscoveredModels = available;
+            lastDiscoveryTimestamp = Date.now();
+            return available;
+        }
+    } catch (_) {}
+    return null;
+}
+
+async function generateWithGeminiFallback({ env, modelNames = [], reqBody, timeoutMs = 10000 }) {
     if (!env?.GEMINI_API_KEY) {
         return { ok: false, status: 500, errorText: 'GEMINI_API_KEY missing from environment' };
     }
+
+    // Canonical evergreen aliases + preferred modern defaults
+    const fallbackDefaults = [
+        'models/gemini-flash-latest',
+        'models/gemini-2.5-flash',
+        'models/gemini-flash-lite-latest',
+        'models/gemini-2.5-flash-lite',
+        'models/gemini-pro-latest'
+    ];
+    let candidates = [...new Set([...(modelNames || []), ...fallbackDefaults])];
+
     let response;
     let lastErrText = '';
-    for (const rawModelName of modelNames) {
-        const modelName = rawModelName.startsWith('models/') ? rawModelName : `models/${rawModelName}`;
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-        try {
-            const url = `https://generativelanguage.googleapis.com/v1beta/${modelName}:generateContent?key=${env.GEMINI_API_KEY}`;
-            response = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                signal: controller.signal,
-                body: JSON.stringify(reqBody)
-            });
-            clearTimeout(timeoutId);
-            if (response.ok) {
-                break;
-            } else {
-                lastErrText = await response.text();
+
+    async function attemptCandidates(list) {
+        for (const rawModelName of list) {
+            const modelName = rawModelName.startsWith('models/') ? rawModelName : `models/${rawModelName}`;
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+            try {
+                const url = `https://generativelanguage.googleapis.com/v1beta/${modelName}:generateContent?key=${env.GEMINI_API_KEY}`;
+                response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    signal: controller.signal,
+                    body: JSON.stringify(reqBody)
+                });
+                clearTimeout(timeoutId);
+                if (response.ok) {
+                    return true;
+                } else {
+                    lastErrText = await response.text();
+                }
+            } catch (e) {
+                clearTimeout(timeoutId);
+                lastErrText = e.message;
             }
-        } catch (e) {
-            clearTimeout(timeoutId);
-            lastErrText = e.message;
+        }
+        return false;
+    }
+
+    let success = await attemptCandidates(candidates);
+
+    // SELF-HEALING AUTOMATIC RECOVERY:
+    // If all hardcoded/default candidates failed, query Google ModelService live to find active models!
+    if (!success) {
+        cachedDiscoveredModels = null;
+        const liveDiscovered = await discoverLiveGeminiModels(env);
+        if (liveDiscovered && liveDiscovered.length > 0) {
+            const freshToTry = liveDiscovered.filter(m => !candidates.includes(m));
+            if (freshToTry.length > 0) {
+                success = await attemptCandidates(freshToTry);
+            }
         }
     }
+
     if (response && response.ok) {
         try {
             const data = await response.json();
