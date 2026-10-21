@@ -328,16 +328,17 @@ function exportToExcel(startDate = null, endDate = null) {
     }
   }
 
-  // PDF export: generate a simple, readable table-based PDF without external libs.
+  // PDF export: render professional printable report with full Greek Unicode support.
   if (format === 'pdf') {
     try {
+      closeExportPeriodSheet();
+      openFinancialReportModal(transactionsToExport, baseName, startDate, endDate);
+      return;
+    } catch (err) {
+      console.error('[export] PDF report modal failed, falling back to direct download.', err);
       const blob = generatePdfBlob(rows, baseName);
       downloadBlob(blob, `${baseName}.pdf`);
       closeExportPeriodSheet();
-      return;
-    } catch (err) {
-      console.error('[export] PDF export failed.', err);
-      window.showAlert(state.lang === 'en' ? 'PDF export failed!' : 'Η εξαγωγή PDF απέτυχε!');
       return;
     }
   }
@@ -744,8 +745,163 @@ function exportRowsAsCSV(rows, fileName) {
 }
 
 
+
+let _currentReportTransactions = [];
+let _currentReportBaseName = '';
+
+function openFinancialReportModal(transactions, baseName, startDate, endDate) {
+  _currentReportTransactions = transactions || [];
+  _currentReportBaseName = baseName || `Budget_Assistant_Report_${new Date().toISOString().split('T')[0]}`;
+
+  const modal = document.getElementById('financial-report-modal');
+  if (!modal) {
+    console.warn('[export] #financial-report-modal not found');
+    return;
+  }
+
+  // 1. Calculate KPI totals
+  let totalIncome = 0;
+  let totalExpense = 0;
+  _currentReportTransactions.forEach(t => {
+    const amt = parseFloat(t.amount) || 0;
+    if (t.type === 'income') {
+      totalIncome += amt;
+    } else if (t.type === 'expense') {
+      totalExpense += amt;
+    }
+  });
+  const netBalance = totalIncome - totalExpense;
+
+  // 2. Format Period Label
+  let periodDisplay = 'Όλες οι συναλλαγές';
+  if (selectedExportPeriod === 'current-month') {
+    const now = new Date();
+    const monthNamesEl = ['Ιανουάριος', 'Φεβρουάριος', 'Μάρτιος', 'Απρίλιος', 'Μάιος', 'Ιούνιος', 'Ιούλιος', 'Αύγουστος', 'Σεπτέμβριος', 'Οκτώβριος', 'Νοέμβριος', 'Δεκέμβριος'];
+    periodDisplay = `${monthNamesEl[now.getMonth()]} ${now.getFullYear()}`;
+  } else if (selectedExportPeriod === 'prev-month') {
+    const now = new Date();
+    const prevM = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const monthNamesEl = ['Ιανουάριος', 'Φεβρουάριος', 'Μάρτιος', 'Απρίλιος', 'Μάιος', 'Ιούνιος', 'Ιούλιος', 'Αύγουστος', 'Σεπτέμβριος', 'Οκτώβριος', 'Νοέμβριος', 'Δεκέμβριος'];
+    periodDisplay = `${monthNamesEl[prevM.getMonth()]} ${prevM.getFullYear()}`;
+  } else if (selectedExportPeriod === 'current-year') {
+    periodDisplay = `Έτος ${new Date().getFullYear()}`;
+  } else if (selectedExportPeriod === 'prev-year') {
+    periodDisplay = `Έτος ${new Date().getFullYear() - 1}`;
+  } else if (startDate || endDate) {
+    periodDisplay = `${startDate || 'Αρχή'} έως ${endDate || 'Σήμερα'}`;
+  }
+
+  // 3. Update Header & KPI elements
+  const periodEl = document.getElementById('report-header-period');
+  if (periodEl) periodEl.textContent = `Περίοδος: ${periodDisplay}`;
+
+  const dateEl = document.getElementById('report-header-date');
+  if (dateEl) dateEl.textContent = new Date().toLocaleDateString('el-GR');
+
+  const countEl = document.getElementById('report-header-count');
+  if (countEl) countEl.textContent = String(_currentReportTransactions.length);
+
+  const incEl = document.getElementById('report-kpi-income');
+  if (incEl) incEl.textContent = `+${typeof formatCurrency === 'function' ? formatCurrency(totalIncome) : totalIncome.toFixed(2)} €`;
+
+  const expEl = document.getElementById('report-kpi-expense');
+  if (expEl) expEl.textContent = `-${typeof formatCurrency === 'function' ? formatCurrency(totalExpense) : totalExpense.toFixed(2)} €`;
+
+  const netEl = document.getElementById('report-kpi-net');
+  if (netEl) {
+    const formattedNet = typeof formatCurrency === 'function' ? formatCurrency(netBalance) : netBalance.toFixed(2);
+    netEl.textContent = `${netBalance >= 0 ? '+' : ''}${formattedNet} €`;
+    netEl.style.color = netBalance >= 0 ? '#15803d' : '#b91c1c';
+  }
+
+  // 4. Build Table Rows with real Greek text
+  const tbody = document.getElementById('report-table-body');
+  if (tbody) {
+    if (!_currentReportTransactions.length) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:24px; color:#64748b;">Δεν υπάρχουν κινήσεις για τη συγκεκριμένη περίοδο.</td></tr>';
+    } else {
+      let rowsHtml = '';
+      _currentReportTransactions.forEach(t => {
+        const isIncome = t.type === 'income';
+        const isTransfer = t.type === 'transfer';
+        const typeBadge = isIncome
+          ? '<span style="background:#dcfce7; color:#15803d; padding:2px 6px; border-radius:4px; font-weight:700; font-size:10px;">Έσοδο</span>'
+          : (isTransfer
+            ? '<span style="background:#e0f2fe; color:#0369a1; padding:2px 6px; border-radius:4px; font-weight:700; font-size:10px;">Μεταφορά</span>'
+            : '<span style="background:#fee2e2; color:#b91c1c; padding:2px 6px; border-radius:4px; font-weight:700; font-size:10px;">Έξοδο</span>');
+
+        const amtColor = isIncome ? '#15803d' : (isTransfer ? '#0284c7' : '#b91c1c');
+        const amtSign = isIncome ? '+' : (isTransfer ? '' : '-');
+        const rawAmt = typeof formatCurrency === 'function' ? formatCurrency(t.amount || 0) : Number(t.amount || 0).toFixed(2);
+        const amtStr = `${amtSign}${rawAmt} €`;
+
+        const rawDate = t.date ? String(t.date).split('T')[0].split(' ')[0] : '-';
+        const esc = (s) => (typeof escapeHtml === 'function' ? escapeHtml(s) : String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'));
+        const catStr = esc(t.category || 'Διάφορα');
+        const subStr = t.subcategory ? `<span style="color:#64748b; font-size:10px;"> · ${esc(t.subcategory)}</span>` : '';
+        const accStr = esc(t.account_from || t.account || '-');
+        const noteStr = esc(t.note || '-');
+
+        rowsHtml += `<tr>
+          <td style="font-size:11px; color:#334155; white-space:nowrap;">${rawDate}</td>
+          <td>${typeBadge}</td>
+          <td style="font-weight:600; color:#0f172a;">${catStr}${subStr}</td>
+          <td style="color:#475569;">${accStr}</td>
+          <td style="color:#334155; max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${noteStr}">${noteStr}</td>
+          <td style="font-weight:700; text-align:right; color:${amtColor}; white-space:nowrap;">${amtStr}</td>
+        </tr>`;
+      });
+      tbody.innerHTML = rowsHtml;
+    }
+  }
+
+  if (typeof openModal === 'function') {
+    openModal('financial-report-modal');
+  } else {
+    modal.style.display = 'flex';
+    modal.classList.add('active');
+  }
+}
+
+function printFinancialReport() {
+  window.print();
+}
+
+function downloadDirectPdfFromReport() {
+  if (!_currentReportTransactions || !_currentReportTransactions.length) {
+    if (typeof window.showAlert === 'function') {
+      window.showAlert('Δεν υπάρχουν συναλλαγές για λήψη!');
+    }
+    return;
+  }
+  const rows = _currentReportTransactions.map(t => ({
+    'Ημερομηνία': t.date,
+    'Τύπος': t.type === 'expense' ? 'Expense' : (t.type === 'income' ? 'Income' : 'Transfer'),
+    'Ποσό': t.amount,
+    'Κατηγορία': t.category,
+    'Υποκατηγορία': t.subcategory || '',
+    'Λογαριασμός': t.account_from,
+    'Σημείωση': t.note || ''
+  }));
+  const blob = generatePdfBlob(rows, _currentReportBaseName);
+  downloadBlob(blob, `${_currentReportBaseName}.pdf`);
+}
+
+windowObj.openFinancialReportModal = openFinancialReportModal;
+windowObj.printFinancialReport = printFinancialReport;
+windowObj.downloadDirectPdfFromReport = downloadDirectPdfFromReport;
+if (typeof window !== 'undefined') {
+  window.openFinancialReportModal = openFinancialReportModal;
+  window.printFinancialReport = printFinancialReport;
+  window.downloadDirectPdfFromReport = downloadDirectPdfFromReport;
+}
+
+
   // CommonJS / Node exports for testing
   return {
+    openFinancialReportModal,
+    printFinancialReport,
+    downloadDirectPdfFromReport,
     updateExportSheetDateLabels,
     get selectedExportPeriod() { return selectedExportPeriod; },
     set selectedExportPeriod(val) { selectedExportPeriod = val; },
