@@ -538,7 +538,7 @@
       showCustomDialog({
         title: isEl ? '🔒 Απαιτείται Άδεια Ειδοποιήσεων' : '🔒 Notification Access Required',
         icon: '🏦',
-        body: isEl
+        message: isEl
           ? '<div style="text-align:left; font-size:13px; line-height:1.5; color:var(--text-secondary);">' +
             '<p style="margin-bottom:8px;">Για να αναγνωρίζει αυτόματα τις πληρωμές από <b>Eurobank, Πειραιώς, Alpha, Εθνική και Revolut</b>, το Android απαιτεί ενεργοποίηση της επιλογής <b>«Πρόσβαση σε ειδοποιήσεις»</b>.</p>' +
             '<p style="margin:0; font-size:12px; color:var(--text-muted);">Πατήστε παρακάτω για να μεταβείτε απευθείας στη σχετική ρύθμιση του κινητού σας.</p>' +
@@ -547,9 +547,11 @@
             '<p style="margin-bottom:8px;">To automatically capture transactions from your bank notifications, Android requires <b>Notification Access</b> permission.</p>' +
             '<p style="margin:0; font-size:12px; color:var(--text-muted);">Tap below to open Android Settings and enable Budget Assistant.</p>' +
             '</div>',
-        primaryBtn: isEl ? '⚙️ Άνοιγμα Ρυθμίσεων' : '⚙️ Open Settings',
-        secondaryBtn: isEl ? 'Αργότερα' : 'Later',
-        onPrimary: function () {
+        showCancel: true,
+        confirmBtnText: isEl ? '⚙️ Άνοιγμα Ρυθμίσεων' : '⚙️ Open Settings',
+        cancelBtnText: isEl ? 'Αργότερα' : 'Later'
+      }).then(function (confirmed) {
+        if (confirmed) {
           var plugin = getPlugin();
           if (plugin && typeof plugin.requestNotificationAccess === 'function') {
             plugin.requestNotificationAccess();

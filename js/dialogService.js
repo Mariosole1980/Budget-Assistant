@@ -106,7 +106,8 @@
     return modal;
   }
 
-  function showCustomDialog({ message, title = '', icon = '💬', showCancel = false, confirmBtnText = '', cancelBtnText = '', tone = '' }) {
+  function showCustomDialog({ message, body, title = '', icon = '💬', showCancel = false, confirmBtnText = '', cancelBtnText = '', tone = '' }) {
+    const dialogMessage = typeof message === 'string' ? message : (typeof body === 'string' ? body : (message || body || ''));
     return new Promise((resolve) => {
       const modal = ensureCustomDialogModal();
       if (!modal) {
@@ -133,7 +134,7 @@
       const defaultTitle = showCancel ? (isEl ? 'Επιβεβαίωση' : 'Confirm') : (isEl ? 'Ειδοποίηση' : 'Alert');
       const defaultCancelText = isEl ? 'Ακύρωση' : 'Cancel';
 
-      const effectiveTone = getDialogEffectiveTone(tone, title, message);
+      const effectiveTone = getDialogEffectiveTone(tone, title, dialogMessage);
 
       const titleEl = document.getElementById('custom-dialog-title');
       const msgEl = document.getElementById('custom-dialog-message');
@@ -143,7 +144,7 @@
       const btnOk = document.getElementById('custom-dialog-btn-ok');
 
       if (titleEl) titleEl.textContent = title || defaultTitle;
-      if (msgEl) msgEl.innerHTML = message;
+      if (msgEl) msgEl.innerHTML = dialogMessage;
 
       const vectorIconHtml = getDialogVectorIcon(icon, showCancel);
 
@@ -166,7 +167,7 @@
       if (btnOk) {
         if (showCancel) {
           const lowerTitle = (title || '').toLowerCase();
-          const lowerMsg = (message || '').toLowerCase();
+          const lowerMsg = (dialogMessage || '').toLowerCase();
           const isDelete = lowerTitle.includes('διαγραφ') || lowerTitle.includes('delete') ||
                            lowerTitle.includes('εκκαθάρισ') || lowerTitle.includes('empty') ||
                            lowerMsg.includes('διαγραφ') || lowerMsg.includes('delete');

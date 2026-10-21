@@ -100,4 +100,39 @@ describe('DialogService Module Tests', () => {
       global.document.getElementById = origGet;
     });
   });
+
+  describe('4. showCustomDialog message handling', () => {
+    it('supports body alias and never sets undefined innerHTML', async () => {
+      const titleEl = { textContent: '' };
+      const msgEl = { innerHTML: '' };
+      const btnCancel = { style: {} };
+      const btnOk = {};
+      const fakeModal = {
+        id: 'custom-dialog-modal',
+        style: {},
+        classList: { add: () => {}, remove: () => {} }
+      };
+
+      const origGet = global.document.getElementById;
+      global.document.getElementById = (id) => {
+        if (id === 'custom-dialog-modal') return fakeModal;
+        if (id === 'custom-dialog-title') return titleEl;
+        if (id === 'custom-dialog-message') return msgEl;
+        if (id === 'custom-dialog-btn-cancel') return btnCancel;
+        if (id === 'custom-dialog-btn-ok') return btnOk;
+        return null;
+      };
+
+      // Call with body instead of message
+      const p = dialogService.showCustomDialog({ body: '<b>Test Body</b>', title: 'Test Title' });
+      assert.strictEqual(msgEl.innerHTML, '<b>Test Body</b>');
+      assert.notStrictEqual(msgEl.innerHTML, 'undefined');
+
+      // Call with no message and no body -> empty string, never undefined
+      dialogService.showCustomDialog({ title: 'Empty' });
+      assert.strictEqual(msgEl.innerHTML, '');
+
+      global.document.getElementById = origGet;
+    });
+  });
 });
