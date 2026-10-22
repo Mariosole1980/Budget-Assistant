@@ -74,11 +74,11 @@ export async function onRequestPost(context) {
   if (!sec.ok) {
     return new Response(sec.body, { status: sec.status, headers: sec.headers });
   }
-  const corsHeaders = sec.corsHeaders;
+  const corsHeaders = sec.headers;
 
   const supabasePublic = getSupabasePublicConfig(env);
   const supabaseService = getSupabaseServiceConfig(env);
-  if (!supabasePublic.ok || !supabaseService.ok) {
+  if (!supabasePublic || !supabaseService) {
     return new Response(JSON.stringify({ error: 'Server misconfigured' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }

@@ -21,7 +21,7 @@ export async function onRequestGet(context) {
   if (!sec.ok) {
     return new Response(sec.body, { status: sec.status, headers: sec.headers });
   }
-  const corsHeaders = sec.corsHeaders;
+  const corsHeaders = sec.headers;
 
   try {
     const bankService = new BankService(env);
