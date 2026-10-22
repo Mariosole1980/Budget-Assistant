@@ -151,19 +151,53 @@
     var code = urlParams.get('code') || urlParams.get('mock_auth_code');
     var isCallback = urlParams.get('bank_auth_callback') || urlParams.get('bank_auth') || code;
 
-    if (!code && !isCallback) return;
+    // If no URL params, check if we have a pending callback stored from a previous load
+    if (!code && !isCallback) {
+      try {
+        var pending = localStorage.getItem('ob_pending_callback');
+        if (pending) {
+          var parsed = JSON.parse(pending);
+          // Only retry within 5 minutes
+          if (Date.now() - parsed.timestamp < 300000) {
+            code = parsed.code;
+            isCallback = true;
+          } else {
+            localStorage.removeItem('ob_pending_callback');
+          }
+        }
+      } catch (e) { /* ignore */ }
+      if (!code && !isCallback) return;
+    }
 
-    var bankName = urlParams.get('bank') || 'Τραπεζικός Λογαριασμός';
+    var bankName = urlParams.get('bank') || '';
+    // Retrieve saved bank name from auth initiation if not in URL
+    if (!bankName) {
+      try { bankName = localStorage.getItem('ob_auth_bank') || ''; } catch (e) { /* ignore */ }
+    }
+    if (!bankName) bankName = 'Τραπεζικός Λογαριασμός';
 
     // Clean URL query parameters to avoid re-triggering on refresh
-    var cleanUrl = window.location.origin + window.location.pathname;
-    window.history.replaceState({}, document.title, cleanUrl);
+    if (window.location.search) {
+      var cleanUrl = window.location.origin + window.location.pathname;
+      window.history.replaceState({}, document.title, cleanUrl);
+    }
 
     var token = await getAuthToken();
     if (!token) {
+      // Store callback data so it can be retried after login
+      try {
+        localStorage.setItem('ob_pending_callback', JSON.stringify({
+          code: code,
+          bankName: bankName,
+          timestamp: Date.now()
+        }));
+      } catch (e) { /* ignore */ }
       notify('Παρακαλούμε συνδεθείτε στο λογαριασμό σας για ολοκλήρωση της σύνδεσης.', 'warning');
       return;
     }
+
+    // Clear pending since we have a token now
+    try { localStorage.removeItem('ob_pending_callback'); } catch (e) { /* ignore */ }
 
     notify('Ολοκλήρωση σύνδεσης με την τράπεζα...', 'info');
 
@@ -246,10 +280,21 @@
         // Close modal if open
         closeConnectModal();
 
+        // Save bank name so callback can use it (URL params may not include it)
+        try {
+          localStorage.setItem('ob_auth_bank', bankName);
+        } catch (e) { /* ignore */ }
+
         // Redirect user to the secure Bank portal for SCA
         if (typeof window !== 'undefined' && window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
-          // In Android native app, open browser
-          window.open(data.url, '_system');
+          // In Android native app, use Capacitor Browser plugin if available
+          // so it opens an in-app browser that redirects back to the app
+          if (window.Capacitor.Plugins && window.Capacitor.Plugins.Browser) {
+            window.Capacitor.Plugins.Browser.open({ url: data.url });
+          } else {
+            // Fallback: open in system browser — deep link will bring user back
+            window.open(data.url, '_system');
+          }
         } else {
           window.location.href = data.url;
         }

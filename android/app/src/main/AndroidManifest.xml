@@ -28,6 +28,14 @@
                 <data android:scheme="https" android:host="budget-assistant-pwa.pages.dev" />
             </intent-filter>
 
+            <!-- Deep link for www.budgetassistant.org (Open Banking callback + general) -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="www.budgetassistant.org" />
+            </intent-filter>
+
             <!-- OAuth callback for Google sign-in (redirectTo = https://localhost).
                  NOTE: no autoVerify here because localhost cannot be verified via
                  Android App Links; the callback is delivered as a deep link. -->
