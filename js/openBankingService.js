@@ -70,16 +70,49 @@
   ];
 
   async function getAuthToken() {
-    if (typeof window !== 'undefined' && window.supabaseClient && window.supabaseClient.auth) {
+    var appState = (typeof window !== 'undefined' && window.state) ? window.state : ((typeof state !== 'undefined') ? state : null);
+
+    // 1. In-memory state session
+    if (appState && appState.session && appState.session.access_token) {
+      return appState.session.access_token;
+    }
+
+    // 2. Query Supabase client on state
+    var client = (appState && appState.supabaseClient) || (typeof window !== 'undefined' && (window.supabaseClient || window.supabase));
+    if (client && client.auth && typeof client.auth.getSession === 'function') {
       try {
-        var sessRes = await window.supabaseClient.auth.getSession();
-        if (sessRes && sessRes.data && sessRes.data.session) {
+        var sessRes = await client.auth.getSession();
+        if (sessRes && sessRes.data && sessRes.data.session && sessRes.data.session.access_token) {
+          if (appState) appState.session = sessRes.data.session;
           return sessRes.data.session.access_token;
         }
       } catch (e) {
-        console.warn('[OpenBanking] Failed to get session token:', e);
+        console.warn('[OpenBanking] Error in client.auth.getSession:', e);
       }
     }
+
+    // 3. Direct localStorage scan for persisted Supabase tokens (Android WebView persistence)
+    if (typeof localStorage !== 'undefined') {
+      try {
+        for (var i = 0; i < localStorage.length; i++) {
+          var k = localStorage.key(i);
+          if (k && ((k.startsWith('sb-') && k.endsWith('-auth-token')) || k === 'supabase.auth.token')) {
+            var val = localStorage.getItem(k);
+            if (val) {
+              var parsed = JSON.parse(val);
+              var rawSession = parsed.currentSession || parsed;
+              if (rawSession && rawSession.access_token) {
+                if (appState) appState.session = rawSession;
+                return rawSession.access_token;
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('[OpenBanking] Error scanning localStorage for token:', err);
+      }
+    }
+
     return null;
   }
 
