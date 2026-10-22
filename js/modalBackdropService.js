@@ -182,16 +182,6 @@
       return;
     }
 
-    if (typeof document !== 'undefined') {
-      setTimeout(function () {
-        document.body.style.pointerEvents = '';
-      }, 100);
-
-      if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) {
-        document.activeElement.blur();
-      }
-    }
-
     var el = typeof document !== 'undefined' ? document.getElementById(id) : null;
     if (!el) {
       if (typeof console !== 'undefined' && console.warn) {
@@ -206,9 +196,27 @@
       window._settingsSubscreenHistory = [];
     }
 
+    // ── INSTANT VISUAL CLOSE ──
+    // Remove 'active' class FIRST so the modal visually disappears immediately,
+    // before any heavy work (blur, updateUI, cleanup) can block the main thread.
     el.classList.remove('active');
     if (id === 'transaction-modal' && el.style) {
       el.style.cssText = '';
+    }
+
+    // ── DEFERRED WORK ──
+    // All remaining work is deferred so the browser can paint the closed state
+    // in the very next frame, giving the user instant tactile feedback.
+    if (typeof document !== 'undefined') {
+      setTimeout(function () {
+        document.body.style.pointerEvents = '';
+      }, 100);
+    }
+
+    // Defer keyboard dismiss so the visual close paints first
+    if (typeof document !== 'undefined' && document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) {
+      var activeEl = document.activeElement;
+      requestAnimationFrame(function () { activeEl.blur(); });
     }
 
     var activeModals = typeof document !== 'undefined'
@@ -236,10 +244,16 @@
         } catch (e) {}
       }
 
-      if (typeof updateUI === 'function') {
-        updateUI();
-      } else if (typeof window !== 'undefined' && typeof window.updateUI === 'function') {
-        window.updateUI();
+      // Defer updateUI so the close renders before the heavy re-render runs
+      var runUpdate = (typeof updateUI === 'function') ? updateUI
+        : (typeof window !== 'undefined' && typeof window.updateUI === 'function') ? window.updateUI
+        : null;
+      if (runUpdate) {
+        if (typeof requestAnimationFrame === 'function') {
+          requestAnimationFrame(function () { setTimeout(runUpdate, 0); });
+        } else {
+          setTimeout(runUpdate, 16);
+        }
       }
     } else {
       var topModal = activeModals[activeModals.length - 1];
