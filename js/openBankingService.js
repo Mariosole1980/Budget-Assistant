@@ -69,6 +69,21 @@
     }
   ];
 
+  function getApiUrl(endpoint) {
+    var cleanEndpoint = endpoint.startsWith('/') ? endpoint : '/' + endpoint;
+    if (typeof window !== 'undefined' && typeof window.getBackendApiUrl === 'function') {
+      return window.getBackendApiUrl(cleanEndpoint);
+    }
+    var isCapacitorOrLocal = (typeof window !== 'undefined' && typeof window.Capacitor !== 'undefined' && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) ||
+      (typeof window !== 'undefined' && (
+        window.location.protocol === 'capacitor:' ||
+        window.location.hostname === 'localhost' ||
+        window.location.hostname === '127.0.0.1'
+      ));
+    var base = isCapacitorOrLocal ? 'https://www.budgetassistant.org' : '';
+    return base + cleanEndpoint;
+  }
+
   async function getAuthToken() {
     var appState = (typeof window !== 'undefined' && window.state) ? window.state : ((typeof state !== 'undefined') ? state : null);
 
@@ -153,7 +168,7 @@
     notify('Ολοκλήρωση σύνδεσης με την τράπεζα...', 'info');
 
     try {
-      var res = await fetch('/api/bank-callback', {
+      var res = await fetch(getApiUrl('/api/bank-callback'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -165,9 +180,16 @@
         })
       });
 
+      var resText = await res.text();
+      var data = {};
+      try {
+        data = JSON.parse(resText);
+      } catch (_) {
+        data = { error: resText.slice(0, 100) };
+      }
+
       if (!res.ok) {
-        var errData = await res.json().catch(function () { return {}; });
-        throw new Error(errData.error || 'Αποτυχία σύνδεσης');
+        throw new Error(data.error || 'Αποτυχία σύνδεσης');
       }
 
       notify('Η τράπεζα συνδέθηκε επιτυχώς! Γίνεται αυτόματος συγχρονισμός...', 'success');
@@ -194,8 +216,8 @@
     notify('Επικοινωνία με την τράπεζα...', 'info');
 
     try {
-      var redirectUrl = window.location.origin + (window.location.pathname.endsWith('.html') ? window.location.pathname : '/index.html');
-      var res = await fetch('/api/bank-auth', {
+      var redirectUrl = 'https://www.budgetassistant.org/index.html';
+      var res = await fetch(getApiUrl('/api/bank-auth'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -208,17 +230,29 @@
         })
       });
 
-      if (!res.ok) {
-        var errData = await res.json().catch(function () { return {}; });
-        throw new Error(errData.error || 'Σφάλμα κατά την έναρξη σύνδεσης');
+      var resText = await res.text();
+      var data = {};
+      try {
+        data = JSON.parse(resText);
+      } catch (_) {
+        data = { error: resText.slice(0, 100) };
       }
 
-      var data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Σφάλμα κατά την έναρξη σύνδεσης');
+      }
+
       if (data && data.url) {
         // Close modal if open
         closeConnectModal();
+
         // Redirect user to the secure Bank portal for SCA
-        window.location.href = data.url;
+        if (typeof window !== 'undefined' && window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
+          // In Android native app, open browser
+          window.open(data.url, '_system');
+        } else {
+          window.location.href = data.url;
+        }
       } else {
         throw new Error('Δεν ελήφθη έγκυρος σύνδεσμος τράπεζας.');
       }
@@ -244,7 +278,7 @@
     }
 
     try {
-      var res = await fetch('/api/bank-sync', {
+      var res = await fetch(getApiUrl('/api/bank-sync'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -252,12 +286,18 @@
         }
       });
 
-      if (!res.ok) {
-        var errData = await res.json().catch(function () { return {}; });
-        throw new Error(errData.error || 'Σφάλμα συγχρονισμού');
+      var resText = await res.text();
+      var data = {};
+      try {
+        data = JSON.parse(resText);
+      } catch (_) {
+        data = { error: resText.slice(0, 100) };
       }
 
-      var data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Σφάλμα συγχρονισμού');
+      }
+
       var count = data.syncedCount || 0;
 
       if (!opts.silent) {
