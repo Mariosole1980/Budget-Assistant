@@ -624,6 +624,8 @@
   <!-- Bank Push Notification Parser & Service Subsystem (loaded before app.js) -->
   <script src="js/bankNotificationParser.js"></script>
   <script src="js/bankNotificationService.js"></script>
+  <!-- Open Banking (PSD2) Client Service -->
+  <script src="js/openBankingService.js"></script>
       <script src="app.js?v=1758"></script>
       <!-- Desktop Web UX Layer (defer so it runs after app.js; invoked via
        initDesktopUI() hook at the end of initApp()). Self-guards on
@@ -2708,6 +2710,31 @@
                       onchange="toggleBankNotifications(this.checked)">
                     <span class="slider round"></span>
                   </label>
+                </div>
+
+                <!-- Row 2d: Direct Open Banking (PSD2) Bank Connection -->
+                <div class="settings-list-item" id="open-banking-settings-row"
+                  style="padding:14px 16px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border, rgba(255,255,255,0.05)); margin:0; background:rgba(56,189,248,0.03);">
+                  <div style="display:flex; flex-direction:column; gap:3px; flex:1; padding-right:12px;">
+                    <div style="display:flex; align-items:center; gap:6px;">
+                      <span class="settings-item-label"
+                        style="font-weight:700; font-size:14px; color:var(--text-primary);">
+                        Σύνδεση Τραπέζης (Open Banking)
+                      </span>
+                      <span style="font-size:10px; font-weight:700; background:rgba(56,189,248,0.15); color:var(--primary,#38bdf8); padding:2px 6px; border-radius:6px;">PSD2</span>
+                    </div>
+                    <span style="font-size:12px; color:var(--text-muted);">
+                      Αυτόματη ανάγνωση κινήσεων απευθείας από Εθνική, Eurobank, Alpha, Πειραιώς, Revolut
+                    </span>
+                  </div>
+                  <div style="display:flex; gap:8px; align-items:center;">
+                    <button type="button" class="btn btn-secondary" onclick="OpenBankingService.syncTransactions()" title="Συγχρονισμός τώρα" style="padding:6px 10px; font-size:12px; border-radius:8px; display:flex; align-items:center; gap:4px; cursor:pointer;">
+                      <i class="fa-solid fa-rotate"></i>
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="OpenBankingService.openConnectModal()" style="padding:6px 12px; font-size:12px; font-weight:600; border-radius:8px; white-space:nowrap; cursor:pointer;">
+                      <i class="fa-solid fa-link" style="margin-right:4px;"></i> Σύνδεση
+                    </button>
+                  </div>
                 </div>
 
                 <!-- Row 3: Single High Expense Alert -->
