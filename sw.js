@@ -123,6 +123,7 @@ const ASSETS = [
   'js/cashFlowCalendarService.js',
   'js/bankNotificationParser.js',
   'js/bankNotificationService.js',
+  'js/openBankingService.js',
   'app.js',
   'web-ui.js'
 ];
