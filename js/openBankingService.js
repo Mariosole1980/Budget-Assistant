@@ -142,14 +142,25 @@
   }
 
   /**
-   * Check for redirect callback from bank OAuth on application load
+   * Check for redirect callback from bank OAuth on application load or deep link
    */
-  async function checkForAuthCallback() {
+  async function checkForAuthCallback(customUrl) {
     if (typeof window === 'undefined') return;
 
-    var urlParams = new URLSearchParams(window.location.search);
+    var urlString = customUrl || (window.location ? window.location.href : '');
+    var searchStr = '';
+    var qIdx = urlString.indexOf('?');
+    if (qIdx !== -1) {
+      var hIdx = urlString.indexOf('#', qIdx);
+      searchStr = hIdx !== -1 ? urlString.substring(qIdx, hIdx) : urlString.substring(qIdx);
+    } else if (window.location && window.location.search) {
+      searchStr = window.location.search;
+    }
+
+    var urlParams = new URLSearchParams(searchStr);
     var code = urlParams.get('code') || urlParams.get('mock_auth_code');
-    var isCallback = urlParams.get('bank_auth_callback') || urlParams.get('bank_auth') || code;
+    var stateParam = urlParams.get('state');
+    var isCallback = urlParams.get('bank_auth_callback') || urlParams.get('bank_auth') || urlParams.get('bank') || code;
 
     // If no URL params, check if we have a pending callback stored from a previous load
     if (!code && !isCallback) {
@@ -157,9 +168,9 @@
         var pending = localStorage.getItem('ob_pending_callback');
         if (pending) {
           var parsed = JSON.parse(pending);
-          // Only retry within 5 minutes
           if (Date.now() - parsed.timestamp < 300000) {
             code = parsed.code;
+            stateParam = parsed.state;
             isCallback = true;
           } else {
             localStorage.removeItem('ob_pending_callback');
@@ -170,25 +181,28 @@
     }
 
     var bankName = urlParams.get('bank') || '';
-    // Retrieve saved bank name from auth initiation if not in URL
     if (!bankName) {
       try { bankName = localStorage.getItem('ob_auth_bank') || ''; } catch (e) { /* ignore */ }
     }
     if (!bankName) bankName = 'Τραπεζικός Λογαριασμός';
 
-    // Clean URL query parameters to avoid re-triggering on refresh
-    if (window.location.search) {
-      var cleanUrl = window.location.origin + window.location.pathname;
-      window.history.replaceState({}, document.title, cleanUrl);
+    // Clean URL query parameters if on web to avoid re-triggering on refresh
+    if (!customUrl && window.location && window.location.search) {
+      try {
+        var cleanUrl = window.location.origin + window.location.pathname;
+        window.history.replaceState({}, document.title, cleanUrl);
+      } catch (e) {}
     }
 
     var token = await getAuthToken();
-    if (!token) {
-      // Store callback data so it can be retried after login
+
+    // If no token AND no state parameter, store and ask user to log in
+    if (!token && !stateParam) {
       try {
         localStorage.setItem('ob_pending_callback', JSON.stringify({
           code: code,
           bankName: bankName,
+          state: stateParam,
           timestamp: Date.now()
         }));
       } catch (e) { /* ignore */ }
@@ -196,21 +210,23 @@
       return;
     }
 
-    // Clear pending since we have a token now
     try { localStorage.removeItem('ob_pending_callback'); } catch (e) { /* ignore */ }
 
     notify('Ολοκλήρωση σύνδεσης με την τράπεζα...', 'info');
 
     try {
+      var headers = { 'Content-Type': 'application/json' };
+      if (token) {
+        headers['Authorization'] = 'Bearer ' + token;
+      }
+
       var res = await fetch(getApiUrl('/api/bank-callback'), {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + token
-        },
+        headers: headers,
         body: JSON.stringify({
           code: code || 'auth_completed',
-          bankName: bankName
+          bankName: bankName,
+          state: stateParam || null
         })
       });
 
@@ -228,13 +244,65 @@
 
       notify('Η τράπεζα συνδέθηκε επιτυχώς! Γίνεται αυτόματος συγχρονισμός...', 'success');
 
-      // Trigger immediate sync of transactions
+      // Refresh app data so new accounts and balances appear immediately
+      try {
+        if (window.dataLoaderService && typeof window.dataLoaderService.loadAllData === 'function') {
+          await window.dataLoaderService.loadAllData();
+        }
+        if (typeof window.renderAll === 'function') window.renderAll();
+        if (typeof window.renderAccountsTab === 'function') window.renderAccountsTab();
+      } catch (e) {
+        console.warn('[OpenBanking] Error refreshing local app data:', e);
+      }
+
+      // Trigger transaction sync
       await syncTransactions({ silent: false });
+
+      // If running on the web in an external browser (e.g. mobile Chrome), offer to return to the native app
+      var isNativeApp = typeof window !== 'undefined' && window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform();
+      if (!isNativeApp && !customUrl) {
+        showReturnToAppBanner();
+      }
 
     } catch (err) {
       console.error('[OpenBanking] Callback error:', err);
       notify('Σφάλμα σύνδεσης τράπεζας: ' + (err.message || 'Δοκιμάστε ξανά'), 'error');
     }
+  }
+
+  function showReturnToAppBanner() {
+    var banner = document.createElement('div');
+    banner.style.position = 'fixed';
+    banner.style.top = '20px';
+    banner.style.left = '50%';
+    banner.style.transform = 'translateX(-50%)';
+    banner.style.zIndex = '2147483647';
+    banner.style.backgroundColor = '#1e293b';
+    banner.style.border = '1px solid #38bdf8';
+    banner.style.borderRadius = '16px';
+    banner.style.padding = '18px 24px';
+    banner.style.boxShadow = '0 20px 40px rgba(0,0,0,0.6)';
+    banner.style.textAlign = 'center';
+    banner.style.maxWidth = '90%';
+    banner.style.width = '380px';
+    banner.style.fontFamily = "'Outfit', sans-serif";
+
+    banner.innerHTML = (
+      '<div style="font-size:24px; margin-bottom:8px;">🎉</div>' +
+      '<div style="font-size:16px; font-weight:700; color:#fff; margin-bottom:6px;">Η σύνδεση ολοκληρώθηκε!</div>' +
+      '<div style="font-size:13px; color:#94a3b8; margin-bottom:16px;">Ο τραπεζικός σας λογαριασμός συνδέθηκε επιτυχώς.</div>' +
+      '<a href="budgetassistant://bank-callback?success=true" style="display:inline-block; background:#38bdf8; color:#0f172a; font-weight:700; padding:10px 20px; border-radius:10px; text-decoration:none; font-size:14px; box-shadow:0 4px 12px rgba(56,189,248,0.3);">' +
+        'Άνοιγμα στην Εφαρμογή' +
+      '</a>' +
+      '<div style="margin-top:10px;"><button onclick="this.parentElement.parentElement.remove()" style="background:none; border:none; color:#64748b; font-size:12px; cursor:pointer;">Κλείσιμο</button></div>'
+    );
+
+    document.body.appendChild(banner);
+
+    // Try auto-opening custom scheme
+    try {
+      window.location.href = 'budgetassistant://bank-callback?success=true';
+    } catch (_) {}
   }
 
   /**
@@ -373,9 +441,63 @@
   }
 
   /**
-   * UI: Open modal to pick a Greek Bank
+   * Fetch connected banks for the current user
    */
-  function openConnectModal() {
+  async function getConnectedBanks() {
+    var token = await getAuthToken();
+    if (!token) return [];
+    try {
+      var res = await fetch(getApiUrl('/api/bank-connections'), {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      if (!res.ok) return [];
+      var data = await res.json();
+      return data.connections || [];
+    } catch (e) {
+      console.warn('[OpenBanking] Error fetching connections:', e);
+      return [];
+    }
+  }
+
+  /**
+   * Disconnect a bank connection
+   */
+  async function disconnectBank(connectionId, bankName) {
+    if (!confirm('Είστε βέβαιοι ότι θέλετε να αποσυνδέσετε την τράπεζα ' + (bankName || '') + ';')) {
+      return;
+    }
+    var token = await getAuthToken();
+    if (!token) return;
+
+    notify('Αποσύνδεση τράπεζας...', 'info');
+    try {
+      var res = await fetch(getApiUrl('/api/bank-connections?id=' + encodeURIComponent(connectionId)), {
+        method: 'DELETE',
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      if (!res.ok) throw new Error('Αποτυχία αποσύνδεσης');
+
+      notify('Η τράπεζα αποσυνδέθηκε επιτυχώς.', 'success');
+
+      // Refresh app data
+      if (window.dataLoaderService && typeof window.dataLoaderService.loadAllData === 'function') {
+        await window.dataLoaderService.loadAllData();
+      }
+      if (typeof window.renderAll === 'function') window.renderAll();
+      if (typeof window.renderAccountsTab === 'function') window.renderAccountsTab();
+
+      // Refresh modal
+      openConnectModal();
+    } catch (e) {
+      console.error('[OpenBanking] Disconnect error:', e);
+      notify('Σφάλμα: ' + e.message, 'error');
+    }
+  }
+
+  /**
+   * UI: Open modal to manage / connect Greek Banks
+   */
+  async function openConnectModal() {
     var modalId = 'open-banking-modal';
     var modal = document.getElementById(modalId);
 
@@ -396,24 +518,72 @@
       document.body.appendChild(modal);
     }
 
+    var connections = [];
+    try {
+      connections = await getConnectedBanks();
+    } catch (_) {}
+
+    var connectedHtml = '';
+    if (connections.length > 0) {
+      connectedHtml = (
+        '<div style="margin-bottom:16px;">' +
+          '<div style="font-size:12px; font-weight:700; color:var(--primary, #38bdf8); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">' +
+            'Συνδεδεμενες Τραπεζες' +
+          '</div>' +
+          connections.map(function (c) {
+            var accs = c.bank_accounts || [];
+            var totalBal = accs.reduce(function (sum, a) { return sum + (parseFloat(a.balance) || 0); }, 0);
+            var subtitle = accs.length > 0
+              ? (accs.length === 1 ? '1 λογαριασμός' : accs.length + ' λογαριασμοί') + ' • Υπόλοιπο: ' + totalBal.toFixed(2) + ' €'
+              : 'Ενεργή σύνδεση';
+
+            return (
+              '<div style="display:flex; align-items:center; justify-content:space-between; padding:12px 14px; margin-bottom:8px; ' +
+              'background:rgba(56, 189, 248, 0.08); border:1px solid rgba(56, 189, 248, 0.25); border-radius:12px;">' +
+                '<div style="display:flex; align-items:center; gap:12px;">' +
+                  '<div style="width:36px; height:36px; border-radius:8px; background:var(--primary, #38bdf8); display:flex; align-items:center; justify-content:center; color:#0f172a; font-size:16px;">' +
+                    '<i class="fa-solid fa-check"></i>' +
+                  '</div>' +
+                  '<div>' +
+                    '<div style="font-weight:700; font-size:14px; color:#fff;">' + (c.aspsp_name || 'Τράπεζα') + '</div>' +
+                    '<div style="font-size:12px; color:#94a3b8;">' + subtitle + '</div>' +
+                  '</div>' +
+                '</div>' +
+                '<div style="display:flex; gap:6px;">' +
+                  '<button type="button" onclick="OpenBankingService.syncTransactions()" title="Συγχρονισμός" ' +
+                  'style="background:rgba(255,255,255,0.08); border:none; color:#38bdf8; width:32px; height:32px; border-radius:8px; cursor:pointer;">' +
+                    '<i class="fa-solid fa-rotate"></i>' +
+                  '</button>' +
+                  '<button type="button" onclick="OpenBankingService.disconnectBank(\'' + c.id + '\', \'' + (c.aspsp_name || '') + '\')" title="Αποσύνδεση" ' +
+                  'style="background:rgba(239,68,68,0.12); border:none; color:#ef4444; width:32px; height:32px; border-radius:8px; cursor:pointer;">' +
+                    '<i class="fa-solid fa-trash-can"></i>' +
+                  '</button>' +
+                '</div>' +
+              '</div>'
+            );
+          }).join('') +
+        '</div>'
+      );
+    }
+
     var banksHtml = GREEK_BANKS.map(function (bank) {
       return (
         '<div class="bank-card-item" onclick="OpenBankingService.startConnection(\'' + bank.name + '\')" ' +
-        'style="display:flex; align-items:center; justify-content:space-between; padding:14px 16px; margin-bottom:10px; ' +
+        'style="display:flex; align-items:center; justify-content:space-between; padding:12px 14px; margin-bottom:8px; ' +
         'background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:12px; cursor:pointer; ' +
         'transition:all 0.2s ease;" ' +
         'onmouseover="this.style.background=\'rgba(255,255,255,0.08)\'; this.style.borderColor=\'var(--primary, #38bdf8)\';" ' +
         'onmouseout="this.style.background=\'rgba(255,255,255,0.04)\'; this.style.borderColor=\'rgba(255,255,255,0.08)\';">' +
-          '<div style="display:flex; align-items:center; gap:14px;">' +
-            '<div style="width:42px; height:42px; border-radius:10px; background:' + bank.color + '; display:flex; align-items:center; justify-content:center; color:#fff; font-size:18px;">' +
+          '<div style="display:flex; align-items:center; gap:12px;">' +
+            '<div style="width:38px; height:38px; border-radius:10px; background:' + bank.color + '; display:flex; align-items:center; justify-content:center; color:#fff; font-size:16px;">' +
               '<i class="' + bank.icon + '"></i>' +
             '</div>' +
             '<div>' +
-              '<div style="font-weight:700; font-size:15px; color:var(--text-primary, #fff);">' + bank.displayName + '</div>' +
-              '<div style="font-size:12px; color:var(--text-muted, #94a3b8);">' + bank.badge + ' • PSD2 Open Banking</div>' +
+              '<div style="font-weight:700; font-size:14.5px; color:var(--text-primary, #fff);">' + bank.displayName + '</div>' +
+              '<div style="font-size:11.5px; color:var(--text-muted, #94a3b8);">' + bank.badge + ' • PSD2 Open Banking</div>' +
             '</div>' +
           '</div>' +
-          '<div style="color:var(--text-muted, #94a3b8); font-size:14px;">' +
+          '<div style="color:var(--text-muted, #94a3b8); font-size:13px;">' +
             '<i class="fa-solid fa-chevron-right"></i>' +
           '</div>' +
         '</div>'
@@ -421,15 +591,15 @@
     }).join('');
 
     modal.innerHTML = (
-      '<div style="background:var(--bg-card, #1e293b); border:1px solid rgba(255,255,255,0.1); border-radius:20px; max-width:440px; width:100%; padding:24px; box-shadow:0 20px 40px rgba(0,0,0,0.5); font-family:\'Outfit\',sans-serif; animation:modalPop 0.25s ease;">' +
-        '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">' +
+      '<div style="background:var(--bg-card, #1e293b); border:1px solid rgba(255,255,255,0.1); border-radius:20px; max-width:440px; width:100%; padding:22px; box-shadow:0 20px 40px rgba(0,0,0,0.5); font-family:\'Outfit\',sans-serif; animation:modalPop 0.25s ease;">' +
+        '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">' +
           '<div style="display:flex; align-items:center; gap:10px;">' +
             '<div style="width:36px; height:36px; border-radius:10px; background:rgba(56, 189, 248, 0.15); display:flex; align-items:center; justify-content:center; color:var(--primary, #38bdf8); font-size:18px;">' +
               '<i class="fa-solid fa-shield-halved"></i>' +
             '</div>' +
             '<div>' +
-              '<h3 style="margin:0; font-size:18px; font-weight:700; color:var(--text-primary, #fff);">Σύνδεση με Τράπεζα</h3>' +
-              '<p style="margin:2px 0 0; font-size:12px; color:var(--text-muted, #94a3b8);">Ασφαλής ανάγνωση κινήσεων (PSD2 AIS)</p>' +
+              '<h3 style="margin:0; font-size:17px; font-weight:700; color:var(--text-primary, #fff);">Σύνδεση Τραπεζών</h3>' +
+              '<p style="margin:2px 0 0; font-size:11.5px; color:var(--text-muted, #94a3b8);">Ασφαλής ανάγνωση κινήσεων (PSD2 AIS)</p>' +
             '</div>' +
           '</div>' +
           '<button onclick="OpenBankingService.closeConnectModal()" style="background:none; border:none; color:var(--text-muted, #94a3b8); font-size:18px; cursor:pointer; padding:6px;">' +
@@ -437,17 +607,19 @@
           '</button>' +
         '</div>' +
 
-        '<div style="background:rgba(56, 189, 248, 0.08); border-left:3px solid var(--primary, #38bdf8); padding:10px 14px; border-radius:8px; margin-bottom:18px; font-size:12px; color:var(--text-secondary, #cbd5e1); line-height:1.4;">' +
+        '<div style="background:rgba(56, 189, 248, 0.08); border-left:3px solid var(--primary, #38bdf8); padding:10px 14px; border-radius:8px; margin-bottom:16px; font-size:12px; color:var(--text-secondary, #cbd5e1); line-height:1.4;">' +
           'Η σύνδεση γίνεται απευθείας στο ασφαλές e-banking της τράπεζάς σας. Η εφαρμογή έχει πρόσβαση <strong>μόνο για ανάγνωση</strong> κινήσεων και υπολοίπου.' +
         '</div>' +
 
-        '<div style="max-height:340px; overflow-y:auto; margin-bottom:16px; padding-right:4px;">' +
+        '<div style="max-height:360px; overflow-y:auto; margin-bottom:16px; padding-right:4px;">' +
+          connectedHtml +
+          (connections.length > 0 ? '<div style="font-size:12px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:0.5px; margin:12px 0 8px;">Συνδεση Νεας Τραπεζας</div>' : '') +
           banksHtml +
         '</div>' +
 
         '<div style="text-align:center;">' +
           '<button onclick="OpenBankingService.closeConnectModal()" style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:var(--text-secondary, #cbd5e1); font-weight:600; padding:10px 20px; border-radius:10px; width:100%; cursor:pointer;">' +
-            'Ακύρωση' +
+            'Κλείσιμο' +
           '</button>' +
         '</div>' +
       '</div>'
@@ -478,6 +650,8 @@
     closeConnectModal: closeConnectModal,
     startConnection: startConnection,
     syncTransactions: syncTransactions,
-    checkForAuthCallback: checkForAuthCallback
+    checkForAuthCallback: checkForAuthCallback,
+    getConnectedBanks: getConnectedBanks,
+    disconnectBank: disconnectBank
   };
 });

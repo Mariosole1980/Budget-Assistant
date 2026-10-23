@@ -246,19 +246,65 @@ export class BankService {
     }
 
     const data = await res.json();
-    const accounts = (data.accounts || []).map(acc => ({
-      uid: acc.uid,
-      iban: acc.account_id ? acc.account_id.iban : null,
-      currency: acc.currency || 'EUR',
-      accountName: acc.details || 'Τραπεζικός Λογαριασμός',
-      balance: 0.0
-    }));
+    const rawAccounts = data.accounts || [];
+    const accounts = [];
+
+    for (const acc of rawAccounts) {
+      let bal = 0.0;
+      if (acc.uid) {
+        try {
+          bal = await this.getAccountBalances(acc.uid);
+        } catch (e) {
+          console.warn('[BankService] Error fetching balances for account:', acc.uid, e);
+        }
+      }
+      accounts.push({
+        uid: acc.uid,
+        iban: acc.account_id ? acc.account_id.iban : null,
+        currency: acc.currency || 'EUR',
+        accountName: acc.details || acc.name || 'Τραπεζικός Λογαριασμός',
+        balance: bal
+      });
+    }
 
     return {
       sessionId: data.session_id,
       accessValidUntil: data.access ? data.access.valid_until : null,
       accounts
     };
+  }
+
+  async getAccountBalances(accountUid) {
+    if (!this.isConfigured || String(accountUid).startsWith('mock_acc_')) {
+      return 1420.50;
+    }
+
+    try {
+      const jwt = await this.getJwt();
+      const res = await fetch(`${ENABLE_BANKING_API_BASE}/accounts/${accountUid}/balances`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${jwt}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!res.ok) {
+        console.warn(`[BankService] getAccountBalances failed (${res.status})`);
+        return 0.0;
+      }
+
+      const data = await res.json();
+      const balances = data.balances || [];
+      const primaryBal = balances.find(b => b.name === 'closingBooked' || b.name === 'expected' || b.name === 'interimAvailable') || balances[0];
+      if (primaryBal && primaryBal.balance_amount && primaryBal.balance_amount.amount) {
+        return parseFloat(primaryBal.balance_amount.amount) || 0.0;
+      }
+      return 0.0;
+    } catch (err) {
+      console.warn('[BankService] Failed to get balances:', err);
+      return 0.0;
+    }
   }
 
   async getAccountTransactions(accountUid) {

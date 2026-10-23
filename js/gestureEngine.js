@@ -391,6 +391,19 @@ function initSwipeToBack() {
           const accessToken = hashParams.get('access_token') || searchParams.get('access_token');
           const refreshToken = hashParams.get('refresh_token') || searchParams.get('refresh_token');
 
+          // Check if this deep link is for Open Banking callback
+          const isBankCallback = data.url.includes('bank') || searchParams.has('state') || searchParams.has('bank');
+          if (isBankCallback) {
+            console.log('[DeepLink] Open Banking callback intercepted:', data.url);
+            if (window.Capacitor?.Plugins?.Browser?.close) {
+              window.Capacitor.Plugins.Browser.close().catch(() => {});
+            }
+            if (window.OpenBankingService && typeof window.OpenBankingService.checkForAuthCallback === 'function') {
+              window.OpenBankingService.checkForAuthCallback(data.url);
+            }
+            return;
+          }
+
           if (!state.supabaseClient) return;
 
           if (code) {

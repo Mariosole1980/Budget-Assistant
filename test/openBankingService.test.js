@@ -70,6 +70,8 @@ test('OpenBankingService: exports expected API methods', () => {
   assert.equal(typeof OpenBankingService.startConnection, 'function');
   assert.equal(typeof OpenBankingService.syncTransactions, 'function');
   assert.equal(typeof OpenBankingService.checkForAuthCallback, 'function');
+  assert.equal(typeof OpenBankingService.getConnectedBanks, 'function');
+  assert.equal(typeof OpenBankingService.disconnectBank, 'function');
 });
 
 test('OpenBankingService: supportedBanks contains all Greek systemic banks and Revolut', () => {
@@ -81,10 +83,8 @@ test('OpenBankingService: supportedBanks contains all Greek systemic banks and R
   assert.ok(bankNames.includes('Revolut'));
 });
 
-test('OpenBankingService: openConnectModal creates and displays modal without throwing', () => {
-  assert.doesNotThrow(() => {
-    OpenBankingService.openConnectModal();
-  });
+test('OpenBankingService: openConnectModal creates and displays modal without throwing', async () => {
+  await OpenBankingService.openConnectModal();
   const modal = global.document.getElementById('open-banking-modal');
   assert.ok(modal);
   assert.equal(modal.style.display, 'flex');
