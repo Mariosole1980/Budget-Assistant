@@ -15,6 +15,9 @@ export default [
       'backups/**',
       'archive/**',
       'scratch/**',
+      // Legacy ad-hoc dump of app.js kept at the repo root (v1387 snapshot).
+      // Not shipped; only produced a parse error that broke `npm run lint`.
+      'scratch_*.js',
       'node_modules/**',
       'js/supabase.js',
       'js/chart.js',
