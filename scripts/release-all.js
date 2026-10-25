@@ -69,7 +69,14 @@ function detectNativeChange() {
     return nativeChanged;
 }
 
-const nativeChanged = detectNativeChange();
+// Explicit escape hatch: RELEASE_FORCE_NATIVE=1 forces the FULL NATIVE path
+// (signed APK + AAB) even when the diff since the last release only touches web
+// files. Needed whenever a Play Store build must ship from a web-only change.
+const forceNative = /^(1|true|yes|full)$/i.test(String(process.env.RELEASE_FORCE_NATIVE || '').trim());
+if (forceNative) {
+    console.log('  [INFO] RELEASE_FORCE_NATIVE override -> forcing FULL native build (APK + AAB).');
+}
+const nativeChanged = forceNative || detectNativeChange();
 process.env.RELEASE_NATIVE_MODE = nativeChanged ? 'full' : 'web';
 console.log(`  [PASS] Release mode: ${nativeChanged ? 'FULL NATIVE' : 'WEB-ONLY'}\n`);
 
