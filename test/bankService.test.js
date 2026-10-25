@@ -11,6 +11,12 @@ test('BankService: loads and provides Greek institutions and mock sandbox', asyn
   assert.ok(nbg);
   assert.equal(nbg.country, 'GR');
 
+  // Logos must be the banks' official artwork published by the PSD2 provider —
+  // never third-party/stock placeholders that go stale.
+  SUPPORTED_GREEK_BANKS.forEach((bank) => {
+    assert.match(bank.logo, /^https:\/\/enablebanking\.com\/brands\/GR\//, bank.name + ' should use the provider logo, got: ' + bank.logo);
+  });
+
   // Test sandbox behavior when unconfigured
   const service = new BankService({});
   assert.equal(service.isConfigured, false);

@@ -84,6 +84,191 @@
     return base + cleanEndpoint;
   }
 
+  // ── Bank logos (live from the provider, never bundled) ────────────────────
+  // The logo shown for every bank is the one published by the bank-data provider
+  // (Enable Banking) through /api/bank-institutions, so it is always the current
+  // official artwork instead of a locally stored/outdated copy. The name → URL
+  // mapping is cached (12h) so repeat openings are instant and offline-safe.
+  var INSTITUTIONS_CACHE_KEY = 'ba_bank_institutions_logos_v1';
+  var INSTITUTIONS_CACHE_TTL = 12 * 60 * 60 * 1000; // 12 hours
+  var _logoCache = null;   // { at: number, map: { normalizedName: logoUrl } }
+  var _logoPromise = null;
+
+  function normalizeBankName(name) {
+    var raw = String(name == null ? '' : name);
+    try {
+      raw = raw.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    } catch (_) { /* very old engines: keep raw */ }
+    return raw.toLowerCase().replace(/[^a-z0-9\u0370-\u03ff]+/g, '');
+  }
+
+  function isSafeLogoUrl(url) {
+    if (typeof url !== 'string' || !url) return false;
+    // Only https images: blocks javascript:, data: and mixed-content sources.
+    return /^https:\/\/[^\s"'<>]+$/i.test(url);
+  }
+
+  function escapeAttr(value) {
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
+  /**
+   * The provider serves brand images with `Cache-Control: immutable, max-age=1y`,
+   * so a bare URL could keep an outdated logo pinned in the browser cache for a
+   * year. A monthly tag makes the browser re-check the artwork at most once a
+   * month per bank (the provider's own route ignores the extra param).
+   */
+  function withLogoTtl(url) {
+    if (!isSafeLogoUrl(url)) return '';
+    var now = new Date();
+    var month = now.getUTCMonth() + 1;
+    var tag = now.getUTCFullYear() + '-' + (month < 10 ? '0' + month : String(month));
+    return url + (url.indexOf('?') === -1 ? '?' : '&') + 'v=' + tag;
+  }
+
+  function readLogoCache() {
+    if (_logoCache) return _logoCache;
+    try {
+      if (typeof localStorage !== 'undefined') {
+        var raw = localStorage.getItem(INSTITUTIONS_CACHE_KEY);
+        if (raw) {
+          var parsed = JSON.parse(raw);
+          if (parsed && parsed.map && typeof parsed.at === 'number') {
+            _logoCache = parsed;
+          }
+        }
+      }
+    } catch (_) { /* corrupt cache: ignore */ }
+    return _logoCache;
+  }
+
+  function writeLogoCache(entry) {
+    _logoCache = entry;
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(INSTITUTIONS_CACHE_KEY, JSON.stringify(entry));
+      }
+    } catch (_) { /* private mode / quota: cache stays in memory */ }
+  }
+
+  /**
+   * Fetch the current provider logo URL for every bank (ASPSP).
+   * @returns {Promise<Object<string,string>>} normalized bank name → official logo URL
+   */
+  async function getInstitutionLogos() {
+    var cached = readLogoCache();
+    if (cached && (Date.now() - cached.at) < INSTITUTIONS_CACHE_TTL) return cached.map;
+    if (_logoPromise) return _logoPromise;
+
+    _logoPromise = (async function () {
+      try {
+        var res = await fetch(getApiUrl('/api/bank-institutions'), {
+          headers: { 'Accept': 'application/json' }
+        });
+        if (!res || !res.ok) throw new Error('HTTP ' + (res ? res.status : 'n/a'));
+        var data = await res.json();
+        var institutions = (data && data.institutions) || [];
+        var map = {};
+        institutions.forEach(function (inst) {
+          if (!inst || !inst.name || !isSafeLogoUrl(inst.logo)) return;
+          var key = normalizeBankName(inst.name);
+          var versioned = withLogoTtl(inst.logo);
+          if (key && versioned) map[key] = versioned;
+        });
+        writeLogoCache({ at: Date.now(), map: map });
+        return map;
+      } catch (e) {
+        console.warn('[OpenBanking] Could not load bank logos from provider:', e && e.message ? e.message : e);
+        // Serve the last known good mapping instead of showing nothing.
+        return cached ? cached.map : {};
+      } finally {
+        _logoPromise = null;
+      }
+    })();
+
+    return _logoPromise;
+  }
+
+  /**
+   * Resolve the provider logo URL for a bank name (connection name or ASPSP name).
+   * @param {string} name
+   * @param {Object<string,string>} [map] optional pre-fetched map
+   * @returns {string} logo URL or '' when unknown/unsafe
+   */
+  function resolveBankLogo(name, map) {
+    var logos = (map && typeof map === 'object') ? map : (function () {
+      var cache = readLogoCache();
+      return cache && cache.map ? cache.map : {};
+    })();
+
+    var key = normalizeBankName(name);
+    if (!key) return '';
+    if (isSafeLogoUrl(logos[key])) return logos[key];
+
+    // Loose match: a connection may store "ALPHA BANK S.A." while the provider
+    // lists "Alpha Bank" (or vice versa), so compare normalized substrings.
+    var keys = Object.keys(logos);
+    for (var i = 0; i < keys.length; i++) {
+      var candidate = keys[i];
+      if (!candidate || candidate === key) continue;
+      if (key.indexOf(candidate) !== -1 || candidate.indexOf(key) !== -1) {
+        if (isSafeLogoUrl(logos[candidate])) return logos[candidate];
+      }
+    }
+    return '';
+  }
+
+  /**
+   * Render a bank logo tile. The official logo sits on a light tile (provider
+   * artwork is transparent, sometimes dark), with the brand icon as placeholder
+   * while the image loads and as fallback when it cannot be fetched (offline).
+   */
+  function bankLogoHtml(opts) {
+    var o = opts || {};
+    var size = o.size || 38;
+    var radius = o.radius || 10;
+    var icon = o.icon || 'fa-solid fa-building-columns';
+    var color = o.color || '#475569';
+    var logo = isSafeLogoUrl(o.logo) ? o.logo : '';
+
+    var tileStyle = 'position:relative; width:' + size + 'px; height:' + size + 'px; ' +
+      'border-radius:' + radius + 'px; overflow:hidden; background:#fff; ' +
+      'display:flex; align-items:center; justify-content:center;';
+
+    var placeholder = '<span aria-hidden="true" style="position:absolute; inset:0; display:flex; ' +
+      'align-items:center; justify-content:center; background:#fff; color:' + escapeAttr(color) + '; ' +
+      'font-size:' + Math.round(size * 0.42) + 'px;">' +
+      '<i class="' + escapeAttr(icon) + '"></i>' +
+      '</span>';
+
+    var tile;
+    if (!logo) {
+      tile = '<div style="' + tileStyle + '">' + placeholder + '</div>';
+    } else {
+      tile = '<div style="' + tileStyle + '">' + placeholder +
+        '<img src="' + escapeAttr(logo) + '" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" ' +
+        'style="position:absolute; inset:0; width:100%; height:100%; object-fit:contain; ' +
+        'padding:' + Math.max(3, Math.round(size * 0.1)) + 'px; box-sizing:border-box; background:#fff; ' +
+        'opacity:0; transition:opacity 0.25s ease;" ' +
+        'onload="this.style.opacity=\'1\';" ' +
+        'onerror="this.style.display=\'none\';" />' +
+        '</div>';
+    }
+
+    var badge = o.badge
+      ? '<span aria-hidden="true" style="position:absolute; right:-3px; bottom:-3px; width:15px; height:15px; ' +
+        'border-radius:50%; background:#22c55e; color:#0f172a; font-size:8px; line-height:1; display:flex; ' +
+        'align-items:center; justify-content:center; border:2px solid var(--bg-card, #1e293b);">' +
+        '<i class="fa-solid fa-check"></i></span>'
+      : '';
+
+    return '<div style="position:relative; flex:0 0 auto; display:inline-flex;">' + tile + badge + '</div>';
+  }
+
   async function getAuthToken() {
     var appState = (typeof window !== 'undefined' && window.state) ? window.state : ((typeof state !== 'undefined') ? state : null);
 
@@ -718,8 +903,16 @@
     }
 
     var connections = [];
+    var bankLogos = {};
     try {
-      connections = await getConnectedBanks();
+      // Logos come live from the provider (cached 12h) — fetched in parallel with
+      // the connections so opening the modal adds no extra latency.
+      var bootstrap = await Promise.all([
+        getConnectedBanks().catch(function () { return []; }),
+        getInstitutionLogos().catch(function () { return {}; })
+      ]);
+      connections = bootstrap[0] || [];
+      bankLogos = bootstrap[1] || {};
     } catch (_) {}
 
     var connectedHtml = '';
@@ -740,9 +933,7 @@
               '<div style="display:flex; align-items:center; justify-content:space-between; padding:12px 14px; margin-bottom:8px; ' +
               'background:rgba(56, 189, 248, 0.08); border:1px solid rgba(56, 189, 248, 0.25); border-radius:12px;">' +
                 '<div style="display:flex; align-items:center; gap:12px;">' +
-                  '<div style="width:36px; height:36px; border-radius:8px; background:var(--primary, #38bdf8); display:flex; align-items:center; justify-content:center; color:#0f172a; font-size:16px;">' +
-                    '<i class="fa-solid fa-check"></i>' +
-                  '</div>' +
+                  bankLogoHtml({ logo: resolveBankLogo(c.aspsp_name, bankLogos), size: 36, radius: 9, icon: 'fa-solid fa-check', color: '#16a34a', badge: true }) +
                   '<div>' +
                     '<div style="font-weight:700; font-size:14px; color:#fff;">' + (c.aspsp_name || 'Τράπεζα') + '</div>' +
                     '<div style="font-size:12px; color:#94a3b8;">' + subtitle + '</div>' +
@@ -774,9 +965,7 @@
         'onmouseover="this.style.background=\'rgba(255,255,255,0.08)\'; this.style.borderColor=\'var(--primary, #38bdf8)\';" ' +
         'onmouseout="this.style.background=\'rgba(255,255,255,0.04)\'; this.style.borderColor=\'rgba(255,255,255,0.08)\';">' +
           '<div style="display:flex; align-items:center; gap:12px;">' +
-            '<div style="width:38px; height:38px; border-radius:10px; background:' + bank.color + '; display:flex; align-items:center; justify-content:center; color:#fff; font-size:16px;">' +
-              '<i class="' + bank.icon + '"></i>' +
-            '</div>' +
+            bankLogoHtml({ logo: resolveBankLogo(bank.name, bankLogos), size: 38, radius: 10, icon: bank.icon, color: bank.color }) +
             '<div>' +
               '<div style="font-weight:700; font-size:14.5px; color:var(--text-primary, #fff);">' + bank.displayName + '</div>' +
               '<div style="font-size:11.5px; color:var(--text-muted, #94a3b8);">' + bank.badge + ' • PSD2 Open Banking</div>' +
@@ -857,6 +1046,8 @@
     syncTransactions: syncTransactions,
     checkForAuthCallback: checkForAuthCallback,
     getConnectedBanks: getConnectedBanks,
+    getInstitutionLogos: getInstitutionLogos,
+    resolveBankLogo: resolveBankLogo,
     disconnectBank: disconnectBank,
     recoverPendingConnection: recoverPendingConnection
   };

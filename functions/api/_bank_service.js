@@ -11,14 +11,17 @@
 
 const ENABLE_BANKING_API_BASE = 'https://api.enablebanking.com';
 
-// Built-in registry of Greek ASPSPs (banks)
+// Built-in registry of Greek ASPSPs (banks).
+// `logo` points to the bank's own artwork published by the PSD2 provider
+// (Enable Banking brand assets), so the UI always shows the official logo
+// instead of a third-party/stock placeholder.
 export const SUPPORTED_GREEK_BANKS = [
   {
     name: 'National Bank of Greece',
     name_el: 'Εθνική Τράπεζα (NBG)',
     code: 'NBG',
     country: 'GR',
-    logo: 'https://images.unsplash.com/photo-1541354329998-f4d9a9f9297f?w=64&q=80',
+    logo: 'https://enablebanking.com/brands/GR/National%20Bank%20of%20Greece/',
     color: '#004f80'
   },
   {
@@ -26,7 +29,7 @@ export const SUPPORTED_GREEK_BANKS = [
     name_el: 'Eurobank',
     code: 'EUROBANK',
     country: 'GR',
-    logo: 'https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?w=64&q=80',
+    logo: 'https://enablebanking.com/brands/GR/Eurobank/',
     color: '#d6001c'
   },
   {
@@ -34,7 +37,7 @@ export const SUPPORTED_GREEK_BANKS = [
     name_el: 'Alpha Bank',
     code: 'ALPHA',
     country: 'GR',
-    logo: 'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?w=64&q=80',
+    logo: 'https://enablebanking.com/brands/GR/Alpha%20Bank/',
     color: '#002663'
   },
   {
@@ -42,7 +45,7 @@ export const SUPPORTED_GREEK_BANKS = [
     name_el: 'Τράπεζα Πειραιώς',
     code: 'PIRAEUS',
     country: 'GR',
-    logo: 'https://images.unsplash.com/photo-1501167786227-4cba60f6d58f?w=64&q=80',
+    logo: 'https://enablebanking.com/brands/GR/Piraeus%20Bank/',
     color: '#fdb913'
   },
   {
@@ -50,7 +53,7 @@ export const SUPPORTED_GREEK_BANKS = [
     name_el: 'Revolut',
     code: 'REVOLUT',
     country: 'GB',
-    logo: 'https://images.unsplash.com/photo-1616077168079-7e09a677fb2c?w=64&q=80',
+    logo: 'https://enablebanking.com/brands/GR/Revolut/',
     color: '#0075eb'
   }
 ];
