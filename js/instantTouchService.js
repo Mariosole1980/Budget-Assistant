@@ -15,7 +15,10 @@
  *    most obvious "cheap Android wrapper" tell (Messenger never vibrates on a tap).
  *
  * 3. 0ms Scroll Cancellation:
- *    If the finger moves > 8px (scrolling a list), the pressed state is cleanly cancelled.
+ *    If the finger moves > 20px (scrolling a list) the pressed state is cleanly
+ *    cancelled. A horizontal drag needs no such tolerance: it is a pager/month
+ *    swipe from the first pixels, so it cancels at 6px and the row never stays
+ *    greyed out mid-swipe.
  *
  * 4. No Artificial Dwell:
  *    The pressed state is released the instant the finger lifts. HOLDING it for a
@@ -41,6 +44,7 @@
   'use strict';
 
   var SCROLL_CANCEL_THRESHOLD = 20; // px (avoids false cancellations from natural thumb flattening/jitter)
+  var HORIZONTAL_CANCEL_THRESHOLD = 6; // px — a horizontal drag is a month swipe, not a tap
 
   var currentPressedEl = null;
   var startX = 0;
@@ -151,14 +155,24 @@
     if (!currentPressedEl) return;
     var x = e.clientX || 0;
     var y = e.clientY || 0;
-    var dx = x - startX;
-    var dy = y - startY;
 
-    // If movement exceeds threshold, user is scrolling or dragging: cancel active state immediately
-    if (Math.sqrt(dx * dx + dy * dy) > SCROLL_CANCEL_THRESHOLD) {
+    // If the gesture is a drag/swipe, cancel the active state immediately
+    if (shouldCancelPress(x - startX, y - startY)) {
       clearPressedState(currentPressedEl);
       currentPressedEl = null;
     }
+  }
+
+  /**
+   * A press is cancelled by any real movement. Vertical/diagonal scrolling keeps the
+   * generous 20px tolerance (thumb flattening), but a horizontal drag is a month
+   * swipe / pager gesture from the very first pixels: waiting for 20px left the row
+   * greyed out at the start of every swipe, which looked like a selection.
+   */
+  function shouldCancelPress(dx, dy) {
+    var distance = Math.sqrt(dx * dx + dy * dy);
+    if (distance > SCROLL_CANCEL_THRESHOLD) return true;
+    return Math.abs(dx) >= HORIZONTAL_CANCEL_THRESHOLD && Math.abs(dx) > Math.abs(dy);
   }
 
   function handlePointerUp() {
@@ -235,6 +249,7 @@
     destroy: destroy,
     findInteractiveTarget: findInteractiveTarget,
     triggerInstantHaptic: triggerInstantHaptic,
-    clearPressedState: clearPressedState
+    clearPressedState: clearPressedState,
+    shouldCancelPress: shouldCancelPress
   };
 });

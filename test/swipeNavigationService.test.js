@@ -116,6 +116,7 @@ function makeFakeElement() {
       (listeners[type] = listeners[type] || []).push(fn);
     },
     removeEventListener() {},
+    querySelectorAll() { return []; },
     dispatch(type, event) {
       (listeners[type] || []).forEach(fn => fn(event));
     }
@@ -140,7 +141,7 @@ function setupSwipeHarness(appState) {
     querySelector: (sel) => (sel === '.app-content' ? appContent : null),
     querySelectorAll: () => [],
     getElementById: (id) => (id === 'transactions-list' ? listEl : null),
-    body: { classList: { add: () => {}, remove: () => {} } }
+    body: makeFakeElement()
   };
 
   SwipeNavigationService.initTabSwipeNavigation();
@@ -249,5 +250,84 @@ test('stats "Κινήσεις" modal swipe moves the stats period', () => {
   surface.dispatch('pointerup', { pointerId: 8, clientX: 302, clientY: 250 });
 
   assert.deepEqual(calls, [[1, 0]], 'a vertical scroll does not change the period');
+});
+
+// ---------------------------------------------------------------------------
+// Row press state during a month drag
+// ---------------------------------------------------------------------------
+
+test('a horizontal month drag suspends the row press state until release', () => {
+  const appState = makeState();
+  const appContent = setupSwipeHarness(appState);
+  const bodyClasses = global.document.body.classList;
+
+  appContent.dispatch('pointerdown', { pointerType: 'touch', pointerId: 11, clientX: 300, clientY: 200 });
+  assert.equal(bodyClasses.contains('month-swipe-dragging'), false, 'a touch-down is still a potential tap');
+
+  appContent.dispatch('pointermove', { pointerId: 11, clientX: 280, clientY: 202 });
+  assert.equal(bodyClasses.contains('month-swipe-dragging'), true, 'horizontal intent cancels the press visuals mid-swipe');
+
+  appContent.dispatch('pointerup', { pointerId: 11, clientX: 280 });
+  assert.equal(bodyClasses.contains('month-swipe-dragging'), false, 'rows get their press feedback back after the swipe');
+  assert.equal(appState.selectedMonth, 6, 'the swipe itself still changes the month');
+});
+
+test('a vertical scroll never enables the drag guard', () => {
+  const appState = makeState();
+  const appContent = setupSwipeHarness(appState);
+  const bodyClasses = global.document.body.classList;
+
+  appContent.dispatch('pointerdown', { pointerType: 'touch', pointerId: 12, clientX: 200, clientY: 300 });
+  appContent.dispatch('pointermove', { pointerId: 12, clientX: 203, clientY: 250 });
+  appContent.dispatch('pointerup', { pointerId: 12, clientX: 203, clientY: 250 });
+
+  assert.equal(bodyClasses.contains('month-swipe-dragging'), false, 'scrolling keeps the normal press behaviour');
+  assert.equal(appState.selectedMonth, 5);
+});
+
+test('stats "Κινήσεις" modal drag suspends the row press state and strips leftovers', () => {
+  const calls = [];
+  const modal = makeFakeElement();
+  const surface = makeFakeElement();
+  const pressedRow = makeFakeElement();
+  pressedRow.classList.add('pressed');
+  pressedRow.classList.add('is-pressed');
+  modal.querySelector = (sel) => (sel === '.modal-body' ? surface : null);
+  modal.querySelectorAll = () => [pressedRow];
+
+  const appState = makeState({
+    activeTab: 'stats',
+    activeSubcategoryTransactions: { category: 'Food', subcategory: 'Coffee' }
+  });
+
+  global.state = appState;
+  global.window = {
+    state: appState,
+    syncStatsDate: () => {},
+    scrollToToday: () => {},
+    processRecurringTemplates: () => {},
+    updateHeaderAndSync: () => {},
+    renderTransactionsTab: () => {},
+    adjustStatsPeriod: (direction, deltaX) => { calls.push([direction, deltaX]); }
+  };
+  global.document = {
+    getElementById: (id) => (id === 'stats-transactions-modal' ? modal : null),
+    body: makeFakeElement()
+  };
+  const bodyClasses = global.document.body.classList;
+
+  SwipeNavigationService.initStatsTransactionsModalSwipe();
+
+  surface.dispatch('pointerdown', { pointerType: 'touch', pointerId: 21, clientX: 300, clientY: 300 });
+  assert.equal(bodyClasses.contains('month-swipe-dragging'), false);
+
+  surface.dispatch('pointermove', { pointerId: 21, clientX: 270, clientY: 301 });
+  assert.equal(bodyClasses.contains('month-swipe-dragging'), true, 'modal rows keep their normal look during the drag');
+
+  surface.dispatch('pointerup', { pointerId: 21, clientX: 270 });
+  assert.equal(bodyClasses.contains('month-swipe-dragging'), false);
+  assert.equal(pressedRow.classList.contains('pressed'), false, 'no grey highlight may survive the swipe');
+  assert.equal(pressedRow.classList.contains('is-pressed'), false);
+  assert.deepEqual(calls, [[1, 0]], 'the modal swipe still moves the stats period');
 });
 

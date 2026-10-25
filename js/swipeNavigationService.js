@@ -52,6 +52,28 @@
     let activePointerId = null;
     let suppressClickUntil = 0;
 
+    // Drag-phase guard: the moment the gesture turns horizontal the rows under the
+    // finger must stop looking pressed — a month swipe is not a tap. The class only
+    // neutralises the press visuals (style.css), never pointer-events, so the
+    // gesture keeps flowing to this handler.
+    let dragGuardTimer = null;
+
+    const setDragVisuals = (active) => {
+      clearTimeout(dragGuardTimer);
+      if (typeof document === 'undefined' || !document.body || !document.body.classList) return;
+      if (active) {
+        document.body.classList.add('month-swipe-dragging');
+        // Safety net: never leave the guard on if pointerup/cancel is lost.
+        dragGuardTimer = setTimeout(() => {
+          if (document.body && document.body.classList) {
+            document.body.classList.remove('month-swipe-dragging');
+          }
+        }, 1500);
+      } else {
+        document.body.classList.remove('month-swipe-dragging');
+      }
+    };
+
     // A horizontal drag must not synthesize a tap on the row/element underneath.
     appContent.addEventListener('click', (e) => {
       if (Date.now() < suppressClickUntil) {
@@ -125,6 +147,7 @@
             if (state.activeTab === 'trans' || state.activeTab === 'stats') {
               isSwipingHorizontal = true;
               state.touchDidMove = true;
+              setDragVisuals(true);
             } else {
               isSwipingHorizontal = false;
               touchActive = false;
@@ -181,6 +204,7 @@
       touchActive = false;
       activePointerId = null;
       isSwipingHorizontal = null;
+      setDragVisuals(false);
 
       if (wasHorizontal) commitSwipe(e.clientX);
 
@@ -192,6 +216,7 @@
       touchActive = false;
       activePointerId = null;
       isSwipingHorizontal = null;
+      setDragVisuals(false);
 
       if (wasHorizontal) commitSwipe(lastMoveX);
 
@@ -232,6 +257,33 @@
     var tracking = false;
     var horizontal = null;
     var suppressClickUntil = 0;
+    var dragGuardTimer = null;
+
+    // Same guard as the tab pager: swiping the list for a period change must not
+    // flash the row's press state. On release any leftover highlight is stripped
+    // by hand, because the row's own touchend can be swallowed once the drag owns
+    // the gesture.
+    function setDragVisuals(active) {
+      clearTimeout(dragGuardTimer);
+      var body = (typeof document !== 'undefined') ? document.body : null;
+      if (!body || !body.classList) return;
+      if (active) {
+        body.classList.add('month-swipe-dragging');
+        dragGuardTimer = setTimeout(function () { setDragVisuals(false); }, 1500);
+        return;
+      }
+      body.classList.remove('month-swipe-dragging');
+      var pressedRows = (typeof modal.querySelectorAll === 'function')
+        ? modal.querySelectorAll('.transaction-item.pressed, .transaction-item.is-pressed')
+        : null;
+      if (!pressedRows || !pressedRows.length) return;
+      for (var i = 0; i < pressedRows.length; i++) {
+        var pressedRow = pressedRows[i];
+        if (!pressedRow || !pressedRow.classList) continue;
+        pressedRow.classList.remove('pressed');
+        pressedRow.classList.remove('is-pressed');
+      }
+    }
 
     // A period swipe must not leave a ghost tap on the transaction underneath.
     modal.addEventListener('click', function (e) {
@@ -269,6 +321,7 @@
           pointerId = null;
           return;
         }
+        setDragVisuals(true);
       }
 
       var now = Date.now();
@@ -282,6 +335,7 @@
       tracking = false;
       pointerId = null;
       if (horizontal !== true) return;
+      setDragVisuals(false);
 
       var dx = e.clientX - startX;
       if (Math.abs(dx) < SWIPE_THRESHOLD && Math.abs(velocity) < FLING_VELOCITY) return;
@@ -294,6 +348,7 @@
       tracking = false;
       pointerId = null;
       horizontal = null;
+      setDragVisuals(false);
     }, { passive: true });
   }
 

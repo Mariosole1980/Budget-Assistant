@@ -11,6 +11,16 @@ test('InstantTouchService exports all expected methods', () => {
   assert.strictEqual(typeof InstantTouchService.findInteractiveTarget, 'function');
   assert.strictEqual(typeof InstantTouchService.triggerInstantHaptic, 'function');
   assert.strictEqual(typeof InstantTouchService.clearPressedState, 'function');
+  assert.strictEqual(typeof InstantTouchService.shouldCancelPress, 'function');
+});
+
+test('InstantTouchService.shouldCancelPress drops the press on the first horizontal pixels', () => {
+  assert.strictEqual(InstantTouchService.shouldCancelPress(0, 0), false);
+  assert.strictEqual(InstantTouchService.shouldCancelPress(4, 1), false, 'finger jitter keeps the press');
+  assert.strictEqual(InstantTouchService.shouldCancelPress(8, 1), true, 'a horizontal swipe (month pager) cancels early');
+  assert.strictEqual(InstantTouchService.shouldCancelPress(-9, 2), true, 'both swipe directions cancel early');
+  assert.strictEqual(InstantTouchService.shouldCancelPress(0, 12), false, 'vertical scrolling keeps its 20px tolerance');
+  assert.strictEqual(InstantTouchService.shouldCancelPress(0, 25), true, 'a real scroll still cancels the press');
 });
 
 test('InstantTouchService.findInteractiveTarget identifies buttons, icons, tabs, FAB and cards', () => {

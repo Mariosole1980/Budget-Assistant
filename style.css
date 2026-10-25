@@ -1315,6 +1315,11 @@ button.is-pressed,
   transform: rotate(90deg);
 }
 
+.stats-row-right .stats-row-chevron {
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
 .stats-subcategories-container {
   display: none;
   background-color: rgba(9, 11, 16, 0.35);
@@ -1376,6 +1381,8 @@ button.is-pressed,
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
+  flex: 1;
 }
 
 .stats-sub-pct {
@@ -1393,13 +1400,54 @@ button.is-pressed,
   font-weight: 500;
   color: rgba(255, 255, 255, 0.75);
   letter-spacing: 0.1px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .stats-sub-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
   font-weight: 700;
   font-size: 13.5px;
   color: var(--text-main);
   font-feature-settings: "tnum";
+  flex-shrink: 0;
+}
+
+.stats-sub-amount {
+  line-height: 1.2;
+}
+
+.stats-sub-count {
+  font-size: 9.5px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--text-secondary);
+  letter-spacing: 0.1px;
+  white-space: nowrap;
+}
+
+/* Category-level "all transactions" row inside the expanded subcategory list */
+.stats-all-row {
+  background: rgba(99, 102, 241, 0.07);
+}
+
+.stats-all-row .stats-sub-name {
+  color: var(--text-main);
+  font-weight: 700;
+}
+
+.stats-all-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  flex-shrink: 0;
+  font-size: 11px;
 }
 
 /* ACCOUNTS SCREEN STYLES */
@@ -2595,6 +2643,83 @@ body.is-ios .modal-content {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Header of the stats "Κινήσεις" modal: title + "N κινήσεις · total" subtitle */
+.stats-tx-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.stats-tx-subtitle {
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.1px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Breadcrumb back to the category-level list (fixed above the scroll area) */
+.stats-tx-breadcrumb {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--accent);
+  background: rgba(99, 102, 241, 0.07);
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation !important;
+}
+
+.stats-tx-breadcrumb i {
+  font-size: 10px;
+  flex-shrink: 0;
+}
+
+.stats-tx-breadcrumb span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Empty state inside the modal (kept open after a period swipe) */
+.stats-tx-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 36px 16px;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.stats-tx-empty i {
+  font-size: 26px;
+  opacity: 0.5;
+  margin-bottom: 6px;
+}
+
+.stats-tx-empty-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.stats-tx-empty-desc {
+  font-size: 11.5px;
+  font-weight: 500;
 }
 
 #transaction-modal .modal-header {
@@ -8185,6 +8310,38 @@ body.is-swiping-month .stats-sub-row:hover,
 body.is-swiping-month .stats-sub-row.pressed {
   background-color: transparent !important;
 }
+
+/* While a horizontal month drag is in flight (tab pager and the stats "Κινήσεις"
+   modal) the row under the finger must never look pressed: the WebView keeps
+   :active / .pressed / .is-pressed on it for the whole drag, which read as "the
+   transaction is about to be selected" instead of a month swipe. Unlike
+   .is-swiping-month this guard touches no pointer-events, so the gesture keeps
+   flowing to the swipe handlers untouched. */
+body.month-swipe-dragging .transaction-item,
+body.month-swipe-dragging .transaction-item:hover,
+body.month-swipe-dragging .transaction-item:active,
+body.month-swipe-dragging .transaction-item.pressed,
+body.month-swipe-dragging .transaction-item.is-pressed {
+  transform: none !important;
+  background-color: var(--bg-card) !important;
+  transition: none !important;
+}
+
+body.month-swipe-dragging .stats-row,
+body.month-swipe-dragging .stats-row:hover,
+body.month-swipe-dragging .stats-row:active,
+body.month-swipe-dragging .stats-row.pressed,
+body.month-swipe-dragging .stats-row.is-pressed,
+body.month-swipe-dragging .stats-sub-row,
+body.month-swipe-dragging .stats-sub-row:hover,
+body.month-swipe-dragging .stats-sub-row:active,
+body.month-swipe-dragging .stats-sub-row.pressed,
+body.month-swipe-dragging .stats-sub-row.is-pressed {
+  transform: none !important;
+  background-color: transparent !important;
+  transition: none !important;
+}
+
 
 /* FHS Modal Tabs styling */
 .fhs-tab-btn {

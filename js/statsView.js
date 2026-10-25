@@ -19,6 +19,30 @@
   var windowObj = rootObj;
   var statsChartInstance = window.statsChartInstance || null;
 
+  // Normalizes a subcategory label into a comparison key. The SAME helper is used
+  // by the breakdown grouping and by the "Κινήσεις" modal filter, so the total on
+  // a subcategory row always equals the sum of the transactions it opens. Only
+  // cosmetic differences collapse ("Ινστα", "Ινστα ", "ινστα"); genuinely
+  // different labels ("Ινστα (Αντ)") stay separate.
+  function normalizeSubcategoryKey(name) {
+    var raw = String(name == null ? '' : name);
+    var normalized = '';
+    if (typeof normalizeCategoryName === 'function') {
+      normalized = normalizeCategoryName(raw);
+    } else if (typeof window !== 'undefined' && window && typeof window.normalizeCategoryName === 'function') {
+      normalized = window.normalizeCategoryName(raw);
+    } else {
+      normalized = raw.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
+    }
+    return normalized.replace(/\s+/g, ' ').trim();
+  }
+
+  function formatTransactionCount(count) {
+    var n = Number(count) || 0;
+    if (state.lang === 'en') return n === 1 ? '1 transaction' : n + ' transactions';
+    return n === 1 ? '1 κίνηση' : n + ' κινήσεις';
+  }
+
 function renderStatsTab(skipChart = false) {
   const { start, end } = getStatsDateRange();
   // Declared here (before the anti-flicker signature below) so it is available
@@ -31,7 +55,10 @@ function renderStatsTab(skipChart = false) {
   // after resuming from background) would wipe the breakdown list and rebuild
   // the chart with a 700ms rotate animation — a visible flash on the Stats tab.
   const statsSig = [
-    (state.transactions || []).map(t => `${t.id}_${t.date}_${t.amount}_${t.category}_${t.type}_${t.user_id || ''}`).join('|'),
+    // Include subcategory/note/description: renaming a subcategory (or editing a
+    // note) must rebuild the breakdown, otherwise the row totals stay stale while
+    // the "Κινήσεις" modal (which filters live data) shows different amounts.
+    (state.transactions || []).map(t => `${t.id}_${t.date}_${t.amount}_${t.category}_${t.type}_${t.subcategory || ''}_${t.note || ''}_${t.description || ''}_${t.user_id || ''}`).join('|'),
     state.statsType || 'expense',
     state.statsPeriodType || 'monthly',
     state.lang || 'el',
@@ -176,31 +203,41 @@ function renderStatsTab(skipChart = false) {
     if (!catGroups[key]) {
       catGroups[key] = {
         amount: 0,
+        count: 0,
         icon: catInfo.icon,
         color: catInfo.color,
         subcategories: {}
       };
     }
-    catGroups[key].amount += CurrencyService.displayAmount(t, displayCurrency);
+    const txDisplayAmount = CurrencyService.displayAmount(t, displayCurrency);
+    catGroups[key].amount += txDisplayAmount;
+    catGroups[key].count += 1;
 
-    const subcatName = t.subcategory || '';
-    if (!catGroups[key].subcategories[subcatName]) {
-      catGroups[key].subcategories[subcatName] = 0;
+    // Group by a normalized key so cosmetic variants ("Ινστα", "Ινστα ", "ινστα")
+    // collapse into one row. Real differences ("Ινστα (Αντ)") stay separate.
+    const subcatName = String(t.subcategory || '').trim();
+    const subcatKey = normalizeSubcategoryKey(subcatName);
+    if (!catGroups[key].subcategories[subcatKey]) {
+      catGroups[key].subcategories[subcatKey] = { name: subcatName, amount: 0, count: 0 };
     }
-    catGroups[key].subcategories[subcatName] += CurrencyService.displayAmount(t, displayCurrency);
+    catGroups[key].subcategories[subcatKey].amount += txDisplayAmount;
+    catGroups[key].subcategories[subcatKey].count += 1;
   });
 
   const breakdownList = Object.entries(catGroups).map(([name, d]) => ({
     name,
     amount: d.amount,
+    count: d.count,
     percentage: totalSum > 0 ? (d.amount / totalSum) * 100 : 0,
     icon: d.icon,
     color: d.color,
-    subcategories: Object.entries(d.subcategories)
-      .map(([subName, subAmt]) => ({
-        name: subName,
-        amount: subAmt,
-        percentage: d.amount > 0 ? (subAmt / d.amount) * 100 : 0
+    subcategories: Object.values(d.subcategories)
+      .map(sub => ({
+        key: normalizeSubcategoryKey(sub.name),
+        name: sub.name,
+        amount: sub.amount,
+        count: sub.count,
+        percentage: d.amount > 0 ? (sub.amount / d.amount) * 100 : 0
       }))
       .sort((a, b) => b.amount - a.amount)
   })).sort((a, b) => b.amount - a.amount);
@@ -286,6 +323,85 @@ function renderStatsTab(skipChart = false) {
     }
   }
 
+  const lang = state.lang || 'el';
+  const allTransactionsLabel = lang === 'el' ? 'Όλες οι κινήσεις' : 'All transactions';
+  const uncategorizedLabel = lang === 'el' ? 'Χωρίς υποκατηγορία' : 'Uncategorized';
+
+  // Builds a subcategory row (or the category-level "all transactions" row) with
+  // the same instant press feedback as the other rows. `opts.subName === null`
+  // means "whole category"; `''` means "only transactions without a subcategory".
+  function buildStatsSubRow(opts) {
+    const subRow = document.createElement('div');
+    subRow.className = 'stats-sub-row' + (opts.isAllRow ? ' stats-all-row' : '');
+
+    const badgeHtml = opts.isAllRow
+      ? `<span class="stats-all-icon" style="color: ${opts.catColor};"><i class="fa-solid fa-layer-group" aria-hidden="true"></i></span>`
+      : `<span class="stats-sub-pct" style="background-color: ${opts.catColor}26; color: ${opts.catColor}; border: 1px solid ${opts.catColor}33;">${Math.round(opts.percentage)}%</span>`;
+
+    subRow.innerHTML = `
+      <div class="stats-sub-left">
+        ${badgeHtml}
+        <span class="stats-sub-name">${escapeHtml(opts.label)}</span>
+      </div>
+      <div class="stats-sub-right">
+        <span class="stats-sub-amount">${getCurrencySymbol()} ${formatDisplayAmount(opts.amount, displayCurrency)}</span>
+        <span class="stats-sub-count">${formatTransactionCount(opts.count)}</span>
+      </div>`;
+
+    let feedbackTimer;
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchMoved = false;
+
+    subRow.addEventListener('touchstart', (e) => {
+      touchMoved = false;
+      const touch = e.touches[0];
+      touchStartX = touch.clientX;
+      touchStartY = touch.clientY;
+
+      clearTimeout(feedbackTimer);
+      if (!touchMoved && !state.isSwipingMonth) {
+        subRow.classList.add('pressed');
+      }
+    }, { passive: true });
+
+    subRow.addEventListener('touchmove', (e) => {
+      const touch = e.touches[0];
+      const dx = touch.clientX - touchStartX;
+      const dy = touch.clientY - touchStartY;
+      if (Math.abs(dx) > 24 || Math.abs(dy) > 24) {
+        touchMoved = true;
+        clearTimeout(feedbackTimer);
+        subRow.classList.remove('pressed');
+      }
+    }, { passive: true });
+
+    subRow.addEventListener('touchend', (e) => {
+      clearTimeout(feedbackTimer);
+      subRow.classList.remove('pressed');
+      // Only this gesture's drag suppresses the click; a month-swipe flag
+      // must never swallow the next deliberate tap.
+      if (touchMoved) {
+        if (e.cancelable) e.preventDefault();
+      }
+    }, { passive: false });
+
+    subRow.addEventListener('touchcancel', () => {
+      clearTimeout(feedbackTimer);
+      subRow.classList.remove('pressed');
+    });
+
+    subRow.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (touchMoved) {
+        return;
+      }
+      openStatsTransactionsModal(opts.categoryName, opts.subName);
+    });
+
+    return subRow;
+  }
+
   displayList.forEach((item, idx) => {
     const catId = `stats-cat-${idx}-${Date.now()}`;
     const row = document.createElement('div');
@@ -303,7 +419,7 @@ function renderStatsTab(skipChart = false) {
         <span class="stats-cat-icon" style="font-size:14px; margin-right:4px; display:inline-flex; align-items:center;">${statsIconHtml}</span>
         <span class="stats-category-name">${getCategoryDisplayName(stripLeadingEmoji(item.name))}</span>
       </div>
-      <div class="stats-row-right">${getCurrencySymbol()} ${formatDisplayAmount(item.amount, displayCurrency)}</div>`;
+      <div class="stats-row-right">${getCurrencySymbol()} ${formatDisplayAmount(item.amount, displayCurrency)}${hasSubcats ? '<i class="fa-solid fa-chevron-right stats-row-chevron" aria-hidden="true"></i>' : ''}</div>`;
     statsFragment.appendChild(row);
 
     if (hasSubcats) {
@@ -317,71 +433,31 @@ function renderStatsTab(skipChart = false) {
         subContainer.classList.add('active');
       }
 
+      // Category-level entry: makes the whole category reachable even when it
+      // has subcategories (until now the row only toggled the expansion).
+      subContainer.appendChild(buildStatsSubRow({
+        categoryName: item.name,
+        subName: null,
+        label: allTransactionsLabel,
+        amount: item.amount,
+        percentage: 100,
+        count: item.count,
+        catColor,
+        isAllRow: true
+      }));
+
       item.subcategories.forEach(sub => {
-        const subDisplayName = sub.name ? getSubcategoryDisplayName(sub.name, item.name) : (state.lang === 'el' ? 'Χωρίς υποκατηγορία' : 'Uncategorized');
-        const subRow = document.createElement('div');
-        subRow.className = 'stats-sub-row';
-
-        subRow.innerHTML = `
-          <div class="stats-sub-left">
-            <span class="stats-sub-pct" style="background-color: ${catColor}26; color: ${catColor}; border: 1px solid ${catColor}33;">${Math.round(sub.percentage)}%</span>
-            <span class="stats-sub-name">${subDisplayName}</span>
-          </div>
-          <div class="stats-sub-right">${getCurrencySymbol()} ${formatDisplayAmount(sub.amount, displayCurrency)}</div>
-        `;
-
-        let subFeedbackTimer;
-        let subTouchStartX = 0;
-        let subTouchStartY = 0;
-        let subTouchMoved = false;
-
-        subRow.addEventListener('touchstart', (e) => {
-          subTouchMoved = false;
-          const touch = e.touches[0];
-          subTouchStartX = touch.clientX;
-          subTouchStartY = touch.clientY;
-
-          clearTimeout(subFeedbackTimer);
-          if (!subTouchMoved && !state.isSwipingMonth) {
-            subRow.classList.add('pressed');
-          }
-        }, { passive: true });
-
-        subRow.addEventListener('touchmove', (e) => {
-          const touch = e.touches[0];
-          const dx = touch.clientX - subTouchStartX;
-          const dy = touch.clientY - subTouchStartY;
-          if (Math.abs(dx) > 24 || Math.abs(dy) > 24) {
-            subTouchMoved = true;
-            clearTimeout(subFeedbackTimer);
-            subRow.classList.remove('pressed');
-          }
-        }, { passive: true });
-
-        subRow.addEventListener('touchend', (e) => {
-          clearTimeout(subFeedbackTimer);
-          subRow.classList.remove('pressed');
-          // Only this gesture's drag suppresses the click; a month-swipe flag
-          // must never swallow the next deliberate tap.
-          if (subTouchMoved) {
-            if (e.cancelable) e.preventDefault();
-          }
-        }, { passive: false });
-
-        subRow.addEventListener('touchcancel', () => {
-          clearTimeout(subFeedbackTimer);
-          subRow.classList.remove('pressed');
-        });
-
-        subRow.addEventListener('click', (e) => {
-          e.stopPropagation();
-          if (subTouchMoved) {
-            return;
-          }
-          openStatsTransactionsModal(item.name, sub.name);
-        });
-
-        subContainer.appendChild(subRow);
+        const subDisplayName = sub.name ? getSubcategoryDisplayName(sub.name, item.name) : uncategorizedLabel;
+        subContainer.appendChild(buildStatsSubRow({
+          categoryName: item.name,
+          subName: sub.name,
+          label: subDisplayName,
+          amount: sub.amount,
+          percentage: sub.percentage,
+          count: sub.count,
+          catColor,
+          isAllRow: false
+        }));
       });
 
       statsFragment.appendChild(subContainer);
@@ -518,7 +594,10 @@ function renderCategoryBudgetsView(catGroups = {}) {
     const catInfo = getCategoryInfo(b.category, 'expense');
     let spent = 0;
     if (b.subcategory) {
-      spent = catGroups[catInfo.name || b.category]?.subcategories?.[b.subcategory] || 0;
+      const subEntry = catGroups[catInfo.name || b.category]?.subcategories?.[normalizeSubcategoryKey(b.subcategory)];
+      // Subcategory buckets are { name, amount, count } objects; the numeric
+      // fallback keeps callers passing the legacy shape working.
+      spent = (subEntry && typeof subEntry === 'object') ? (subEntry.amount || 0) : (subEntry || 0);
     } else {
       spent = catGroups[catInfo.name || b.category]?.amount || 0;
     }
@@ -1192,17 +1271,40 @@ function closeStatsTransactionsModal() {
 
 function renderSubcategoryTransactions(category, subcategory) {
   const titleEl = document.getElementById('stats-transactions-title');
+  const subtitleEl = document.getElementById('stats-transactions-subtitle');
+  const breadcrumbEl = document.getElementById('stats-transactions-back');
   const listContainer = document.getElementById('stats-transactions-list');
   if (!listContainer) return;
   const displayCurrency = getDisplayCurrency();
+  const lang = state.lang || 'el';
+  const uncategorizedLabel = lang === 'el' ? 'Χωρίς υποκατηγορία' : 'Uncategorized';
+  const allTransactionsLabel = lang === 'el' ? 'Όλες οι κινήσεις' : 'All transactions';
+
+  // null/undefined = whole category, '' = only transactions WITHOUT a
+  // subcategory, anything else = that specific (normalized) subcategory.
+  const hasSubcatFilter = subcategory !== null && subcategory !== undefined;
+  const subcatKey = hasSubcatFilter ? normalizeSubcategoryKey(subcategory) : '';
+  const isUncategorized = hasSubcatFilter && subcatKey === '';
 
   const catDisplayName = getCategoryDisplayName(category);
+  const subDisplayName = hasSubcatFilter
+    ? (isUncategorized ? uncategorizedLabel : getSubcategoryDisplayName(subcategory, category))
+    : '';
   if (titleEl) {
-    if (subcategory) {
-      const subDisplayName = getSubcategoryDisplayName(subcategory, category);
-      titleEl.textContent = `${catDisplayName} · ${subDisplayName}`;
+    titleEl.textContent = hasSubcatFilter ? `${catDisplayName} · ${subDisplayName}` : catDisplayName;
+  }
+
+  // Breadcrumb back to the category-level list. It lives between the modal
+  // header and the scrollable body, so it never scrolls away.
+  if (breadcrumbEl) {
+    if (hasSubcatFilter) {
+      breadcrumbEl.style.display = 'flex';
+      breadcrumbEl.innerHTML = `<i class="fa-solid fa-chevron-left" aria-hidden="true"></i><span>${escapeHtml(allTransactionsLabel + ' · ' + catDisplayName)}</span>`;
+      breadcrumbEl.onclick = () => openStatsTransactionsModal(category, null);
     } else {
-      titleEl.textContent = catDisplayName;
+      breadcrumbEl.style.display = 'none';
+      breadcrumbEl.innerHTML = '';
+      breadcrumbEl.onclick = null;
     }
   }
 
@@ -1227,22 +1329,39 @@ function renderSubcategoryTransactions(category, subcategory) {
     if (t.type !== state.statsType) return false;
 
     const catInfo = getCategoryInfo(t.category, t.type);
-    const catName = catInfo.name || t.category || (state.lang === 'el' ? 'Άλλα' : 'Other');
-    if (catName.toUpperCase() !== category.toUpperCase()) return false;
+    const catName = catInfo.name || t.category || (lang === 'el' ? 'Άλλα' : 'Other');
+    if (catName.toUpperCase() !== String(category || '').toUpperCase()) return false;
 
-    if (!subcategory) return true;
+    if (!hasSubcatFilter) return true;
 
-    const tSub = t.subcategory || '';
-    return tSub.toUpperCase() === subcategory.toUpperCase();
+    // Same normalized key as the breakdown grouping, so the row total always
+    // matches the transactions rendered here.
+    return normalizeSubcategoryKey(t.subcategory) === subcatKey;
   }).sort(compareTransactions);
 
+  const periodTotal = subcatTrans.reduce((sum, t) => sum + CurrencyService.displayAmount(t, displayCurrency), 0);
+  if (subtitleEl) {
+    subtitleEl.textContent = `${formatTransactionCount(subcatTrans.length)} · ${getCurrencySymbol()} ${formatDisplayAmount(periodTotal, displayCurrency)}`;
+  }
+
   if (subcatTrans.length === 0) {
-    closeStatsTransactionsModal();
+    // Keep the modal open (filter + breadcrumb still visible) instead of closing
+    // it: after a month swipe an empty result is normal and auto-closing feels
+    // like a random dismissal.
+    listContainer.innerHTML = `
+      <div class="stats-tx-empty">
+        <i class="fa-regular fa-folder-open" aria-hidden="true"></i>
+        <div class="stats-tx-empty-title">${lang === 'el' ? 'Καμία κίνηση σε αυτή την περίοδο' : 'No transactions in this period'}</div>
+        <div class="stats-tx-empty-desc">${lang === 'el' ? 'Σύρε αριστερά/δεξιά για άλλη περίοδο' : 'Swipe left/right for another period'}</div>
+      </div>`;
     return;
   }
 
   subcatTrans.forEach(t => {
     const catInfo = getCategoryInfo(t.category, t.type);
+    // In the category-level view each row shows its subcategory under the icon,
+    // so it is obvious why a transaction is in the list.
+    const rowSubLabel = hasSubcatFilter ? '' : String(getSubcategoryDisplayName(t.subcategory, t.category) || '').trim();
     const item = document.createElement('div');
     item.className = 'transaction-item';
     item.setAttribute('data-id', t.id);
@@ -1329,6 +1448,7 @@ function renderSubcategoryTransactions(category, subcategory) {
       <div class="trans-left">
         <div class="trans-category-container">
           <div class="trans-cat-icon">${catInfo.icon || '💰'}</div>
+          ${rowSubLabel ? `<div class="trans-sub-name">${escapeHtml(rowSubLabel)}</div>` : ''}
         </div>
         <div class="trans-details">
           <span class="trans-title">${escapeHtml(displayTitle)}${isTransactionRecurring(t) ? '<i class="fa-solid fa-arrows-rotate recurring-arrows-icon" title="' + (state.lang === 'el' ? 'Επαναλαμβανόμενη κίνηση' : 'Recurring transaction') + '"></i>' : ''}${memberBadge}</span>
