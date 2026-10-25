@@ -11,9 +11,21 @@
     (function () {
       try {
         var params = new URLSearchParams(window.location.search);
+        var hash = window.location.hash || '';
         if (params.has('landing') || params.has('home') || params.has('noredirect')) {
           return;
         }
+
+        // Auth callbacks must be handled by the APP document (/app -> index.html),
+        // never by this landing page. This is reachable in production because the
+        // open-banking redirect URL is /index.html, which Cloudflare Pages
+        // 308-redirects to "/" *with the query string intact* - so ?code=&state=
+        // ends up here. The same applies to Supabase PKCE / Google OAuth results
+        // that land on "/". Without this, the bounce logic in index.html never runs
+        // and a bank connection is silently lost.
+        var hasAuthParams = params.has('code') || params.has('state') ||
+          params.has('bank_auth_callback') || params.has('bank_auth') ||
+          hash.indexOf('access_token=') !== -1 || hash.indexOf('id_token=') !== -1;
 
         var isIosStandalone = window.navigator && window.navigator.standalone === true;
         var isPwaStandalone = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
@@ -27,7 +39,7 @@
           );
         } catch (_) {}
 
-        if (isIosStandalone || isPwaStandalone || hasSession) {
+        if (isIosStandalone || isPwaStandalone || hasSession || hasAuthParams) {
           window.location.replace('/app' + window.location.search + window.location.hash);
         }
       } catch (e) {}

@@ -388,3 +388,210 @@ export class BankService {
     return transactions;
   }
 }
+
+// ---------------------------------------------------------------------------
+// Shared transaction import helpers
+//
+// Used by both /api/bank-sync (manual / background sync) and /api/bank-callback
+// (right after a bank authorization is completed) so a freshly connected bank
+// already has its transactions in Supabase, no matter which client version
+// triggered the callback.
+// ---------------------------------------------------------------------------
+
+export function inferCategoryFromDescription(desc, isIncome) {
+  const s = String(desc || '').toLowerCase();
+
+  if (isIncome) {
+    if (s.includes('μισθοδοσ') || s.includes('salary') || s.includes('payroll')) return 'Μισθός';
+    if (s.includes('ενοικ') || s.includes('rent')) return 'Ενοίκια';
+    if (s.includes('επιστροφ') || s.includes('refund') || s.includes('cashback')) return 'Cashback / Επιστροφή';
+    return 'Άλλα Έσοδα';
+  }
+
+  // Supermarkets
+  if (s.includes('sklavenitis') || s.includes('σκλαβενιτ') || s.includes('ab ') || s.includes('vassilopoulos') ||
+      s.includes('βασιλοπουλ') || s.includes('lidl') || s.includes('mymarket') || s.includes('masoutis') ||
+      s.includes('μασουτ') || s.includes('market in') || s.includes('galaxias') || s.includes('γαλαξιας') ||
+      s.includes('bazaar') || s.includes('supermarket') || s.includes('σουπερ μαρκετ')) {
+    return 'Σούπερ Μάρκετ';
+  }
+  // Coffee & Dining
+  if (s.includes('coffee') || s.includes('kafe') || s.includes('everest') || s.includes('gregorys') ||
+      s.includes('mikel') || s.includes('starbucks') || s.includes('flocaf') || s.includes('e-food') ||
+      s.includes('efood') || s.includes('wolt') || s.includes('σουβλακ') || s.includes('pizza') ||
+      s.includes('tavern') || s.includes('restaurant') || s.includes('burger')) {
+    return 'Φαγητό';
+  }
+  // Transport & Fuel
+  if (s.includes('eko') || s.includes('shell') || s.includes('bp ') || s.includes('avet') ||
+      s.includes('avinoil') || s.includes('revoil') || s.includes('cyclon') || s.includes('βενζιν') ||
+      s.includes('fuel') || s.includes('oasa') || s.includes('attiki odos') || s.includes('διοδια') ||
+      s.includes('taxi') || s.includes('uber') || s.includes('freenow')) {
+    return 'Μετακινήσεις';
+  }
+  // Bills & Utilities
+  if (s.includes('dei') || s.includes('δεη') || s.includes('protergia') || s.includes('heron') ||
+      s.includes('ηρων') || s.includes('cosmote') || s.includes('vodafone') || s.includes('nova') ||
+      s.includes('eydap') || s.includes('ευδαπ') || s.includes('dpa') || s.includes('enoseis') ||
+      s.includes('ote') || s.includes('wind')) {
+    return 'Λογαριασμοί';
+  }
+  // Health
+  if (s.includes('pharm') || s.includes('φαρμακ') || s.includes('doctor') || s.includes('iatreio') ||
+      s.includes('ιατρ') || s.includes('dentist') || s.includes('νοσοκομ')) {
+    return 'Υγεία';
+  }
+  // Entertainment & Shopping
+  if (s.includes('netflix') || s.includes('spotify') || s.includes('cinema') || s.includes('village') ||
+      s.includes('theatre') || s.includes('zara') || s.includes('h&m') || s.includes('public') ||
+      s.includes('plaisio') || s.includes('amazon') || s.includes('skroutz')) {
+    return 'Ψώνια';
+  }
+
+  return 'Γενικά Έξοδα';
+}
+
+async function insertTransactionRows({ supabaseUrl, serviceRoleKey, rows }) {
+  if (!rows.length) return [];
+
+  const insertRes = await fetch(`${supabaseUrl}/rest/v1/transactions`, {
+    method: 'POST',
+    headers: {
+      'apikey': serviceRoleKey,
+      'Authorization': `Bearer ${serviceRoleKey}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation'
+    },
+    body: JSON.stringify(rows)
+  });
+
+  if (insertRes.ok) {
+    const created = await insertRes.json();
+    return Array.isArray(created) ? created : [];
+  }
+
+  // Batch insert failed (e.g. one conflicting row) → retry one by one so a single
+  // bad transaction never blocks the rest of the import.
+  console.warn('[BankService] Batch transaction insert failed, falling back to per-row:', (await insertRes.text()).slice(0, 200));
+  const createdRows = [];
+  for (const row of rows) {
+    try {
+      const singleRes = await fetch(`${supabaseUrl}/rest/v1/transactions`, {
+        method: 'POST',
+        headers: {
+          'apikey': serviceRoleKey,
+          'Authorization': `Bearer ${serviceRoleKey}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation'
+        },
+        body: JSON.stringify(row)
+      });
+      if (singleRes.ok) {
+        const [createdRow] = await singleRes.json();
+        if (createdRow) createdRows.push(createdRow);
+      }
+    } catch (e) {
+      console.warn('[BankService] Failed to insert bank transaction:', e);
+    }
+  }
+  return createdRows;
+}
+
+/**
+ * Import bank transactions for the given bank account rows into public.transactions.
+ *
+ * @param {object}      opts
+ * @param {string}      opts.supabaseUrl
+ * @param {string}      opts.serviceRoleKey
+ * @param {string}      opts.userId
+ * @param {BankService} opts.bankService
+ * @param {Array}       opts.bankAccounts Rows with at least `account_uid` (optionally `id`, `account_name`)
+ * @param {number}      [opts.maxPerAccount=400]
+ * @returns {Promise<{syncedCount:number, transactions:Array}>}
+ */
+export async function importBankTransactions({
+  supabaseUrl,
+  serviceRoleKey,
+  userId,
+  bankService,
+  bankAccounts,
+  maxPerAccount = 400
+}) {
+  const result = { syncedCount: 0, transactions: [] };
+  const headers = {
+    'apikey': serviceRoleKey,
+    'Authorization': `Bearer ${serviceRoleKey}`
+  };
+
+  for (const acct of (bankAccounts || [])) {
+    if (!acct || !acct.account_uid) continue;
+
+    try {
+      const rawTxs = await bankService.getAccountTransactions(acct.account_uid);
+      if (!Array.isArray(rawTxs) || rawTxs.length === 0) continue;
+
+      const recentTxs = rawTxs.slice(0, maxPerAccount);
+      const txIds = recentTxs.map(t => t && t.transactionId).filter(Boolean);
+
+      // Deduplicate against already imported bank transactions
+      const existing = new Set();
+      for (let i = 0; i < txIds.length; i += 80) {
+        const chunk = txIds.slice(i, i + 80);
+        const existingRes = await fetch(
+          `${supabaseUrl}/rest/v1/transactions?user_id=eq.${encodeURIComponent(userId)}` +
+          `&bank_transaction_id=in.(${chunk.map(encodeURIComponent).join(',')})&select=bank_transaction_id`,
+          { headers }
+        );
+        if (existingRes.ok) {
+          const rows = await existingRes.json();
+          if (Array.isArray(rows)) rows.forEach(r => existing.add(r.bank_transaction_id));
+        }
+      }
+
+      const accountName = acct.account_name || 'Τράπεζα';
+      const rows = [];
+      for (const t of recentTxs) {
+        if (!t || !t.transactionId || existing.has(t.transactionId)) continue;
+        const amount = Number(t.amount);
+        if (!Number.isFinite(amount) || amount === 0) continue;
+
+        const isIncome = amount > 0;
+        rows.push({
+          user_id: userId,
+          date: t.date,
+          type: isIncome ? 'income' : 'expense',
+          amount: Math.abs(amount),
+          category: inferCategoryFromDescription(t.description || '', isIncome),
+          account_from: accountName,
+          note: t.description || 'Τραπεζική Συναλλαγή',
+          currency: t.currency || 'EUR',
+          bank_transaction_id: t.transactionId,
+          bank_account_uid: acct.account_uid,
+          status: 'active'
+        });
+        existing.add(t.transactionId);
+      }
+
+      if (rows.length > 0) {
+        const created = await insertTransactionRows({ supabaseUrl, serviceRoleKey, rows });
+        result.transactions.push(...created);
+        result.syncedCount += created.length;
+      }
+
+      // Mark the bank account as freshly synced
+      const syncFilter = acct.id
+        ? `id=eq.${encodeURIComponent(acct.id)}`
+        : `account_uid=eq.${encodeURIComponent(acct.account_uid)}&user_id=eq.${encodeURIComponent(userId)}`;
+      await fetch(`${supabaseUrl}/rest/v1/bank_accounts?${syncFilter}`, {
+        method: 'PATCH',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ last_synced_at: new Date().toISOString() })
+      });
+    } catch (acctErr) {
+      console.warn(`[BankService] Error importing transactions for account ${acct.account_uid}:`, acctErr);
+    }
+  }
+
+  return result;
+}
+

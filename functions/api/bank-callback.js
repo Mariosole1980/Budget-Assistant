@@ -1,5 +1,53 @@
 import { validateRequest, corsHeadersFor, getSupabasePublicConfig, getSupabaseServiceConfig } from './_security.js';
-import { BankService } from './_bank_service.js';
+import { BankService, importBankTransactions } from './_bank_service.js';
+
+/**
+ * The bank authorization code is single-use. When the same callback is delivered
+ * twice (WebView + external browser, retried request, user re-opening the deep
+ * link, ...) the second exchange fails even though the connection was created by
+ * the first one. In that case we reuse the very recent connection so the flow
+ * still reports success and still (re)imports the transactions.
+ */
+async function findRecentlyConnectedBank({ supabaseUrl, serviceRoleKey, userId, bankName }) {
+  const headers = {
+    'apikey': serviceRoleKey,
+    'Authorization': `Bearer ${serviceRoleKey}`
+  };
+
+  const cutoff = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+
+  try {
+    const connRes = await fetch(
+      `${supabaseUrl}/rest/v1/bank_connections?user_id=eq.${encodeURIComponent(userId)}` +
+      `&status=eq.active&last_synced_at=gte.${cutoff}` +
+      `&select=id,aspsp_name,last_synced_at&order=last_synced_at.desc&limit=5`,
+      { headers }
+    );
+    if (!connRes.ok) return null;
+
+    const conns = await connRes.json();
+    if (!Array.isArray(conns) || conns.length === 0) return null;
+
+    const wanted = String(bankName || '').toLowerCase().trim();
+    const conn = (wanted && conns.find(c => String(c.aspsp_name || '').toLowerCase().includes(wanted))) || conns[0];
+
+    const accRes = await fetch(
+      `${supabaseUrl}/rest/v1/bank_accounts?connection_id=eq.${encodeURIComponent(conn.id)}` +
+      `&select=id,account_uid,account_name,currency,balance`,
+      { headers }
+    );
+    const accounts = accRes.ok ? await accRes.json() : [];
+
+    return {
+      connectionId: conn.id,
+      aspspName: conn.aspsp_name,
+      accounts: Array.isArray(accounts) ? accounts : []
+    };
+  } catch (e) {
+    console.warn('[bank-callback] Existing connection lookup failed:', e);
+    return null;
+  }
+}
 
 export async function onRequestOptions(context) {
   const { request } = context;
@@ -61,22 +109,41 @@ export async function onRequestPost(context) {
     });
   }
 
-  const { code, bankName, state } = body || {};
+  let { code, bankName, state } = body || {};
+
+  // The `state` blob produced by /api/bank-auth is { userId, bankName, timestamp }.
+  // It is needed twice: to recover the user when the flow returns through an
+  // external browser (no Authorization header) and to recover the bank name when
+  // the bounce page cannot provide it (otherwise the connection is stored as a
+  // generic "Bank" and later name-based lookups fail).
+  let parsedState = null;
+  if (state) {
+    if (typeof state !== 'string') {
+      parsedState = state;
+    } else {
+      try {
+        parsedState = JSON.parse(state);
+      } catch (e) {
+        try {
+          parsedState = JSON.parse(decodeURIComponent(state));
+        } catch (e2) {
+          parsedState = null;
+        }
+      }
+    }
+  }
+
+  if (parsedState && parsedState.bankName && !bankName) {
+    bankName = String(parsedState.bankName);
+  }
 
   // Resilient fallback: if Bearer token was absent (user returned via external browser),
   // extract and verify userId from state
-  if (!userId && state) {
-    try {
-      const parsedState = typeof state === 'string' ? JSON.parse(state) : state;
-      if (parsedState && parsedState.userId && parsedState.timestamp) {
-        const ageMs = Date.now() - Number(parsedState.timestamp);
-        // Valid for up to 30 minutes
-        if (ageMs >= 0 && ageMs < 30 * 60 * 1000) {
-          userId = parsedState.userId;
-        }
-      }
-    } catch (e) {
-      console.warn('[bank-callback] State fallback parse error:', e);
+  if (!userId && parsedState && parsedState.userId && parsedState.timestamp) {
+    const ageMs = Date.now() - Number(parsedState.timestamp);
+    // Valid for up to 30 minutes
+    if (ageMs >= 0 && ageMs < 30 * 60 * 1000) {
+      userId = parsedState.userId;
     }
   }
 
@@ -96,9 +163,40 @@ export async function onRequestPost(context) {
 
   try {
     const bankService = new BankService(env);
-    const sessionData = await bankService.exchangeSession(code);
-
     const { supabaseUrl, serviceRoleKey } = supabaseService;
+
+    let sessionData = null;
+
+    try {
+      sessionData = await bankService.exchangeSession(code);
+    } catch (exchangeErr) {
+      console.warn('[bank-callback] Code exchange failed:', exchangeErr.message);
+
+      const recent = await findRecentlyConnectedBank({ supabaseUrl, serviceRoleKey, userId, bankName });
+      if (!recent) throw exchangeErr;
+
+      // The connection already exists (code was consumed by an earlier callback
+      // delivery) → import whatever is missing and report success.
+      const imported = await importBankTransactions({
+        supabaseUrl,
+        serviceRoleKey,
+        userId,
+        bankService,
+        bankAccounts: recent.accounts
+      });
+
+      return new Response(JSON.stringify({
+        ok: true,
+        alreadyConnected: true,
+        connectionId: recent.connectionId,
+        aspspName: recent.aspspName,
+        accounts: recent.accounts,
+        syncedCount: imported.syncedCount
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
 
     // 1. Insert or update bank_connections
     let connectionId = null;
@@ -272,10 +370,22 @@ export async function onRequestPost(context) {
       accountsProcessed.push(bankAccRecord);
     }
 
+    // 3. Import the first batch of transactions right away so the user sees data
+    //    even if the client never comes back (lost deep link, killed app, ...).
+    const imported = await importBankTransactions({
+      supabaseUrl,
+      serviceRoleKey,
+      userId,
+      bankService,
+      bankAccounts: accountsProcessed
+    });
+
     return new Response(JSON.stringify({
       ok: true,
+      alreadyConnected: false,
       connectionId: connectionId,
-      accounts: accountsProcessed
+      accounts: accountsProcessed,
+      syncedCount: imported.syncedCount
     }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }

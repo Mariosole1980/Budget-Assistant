@@ -141,6 +141,142 @@
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // Pending connection bookkeeping
+  //
+  // The bank flow leaves the app (Custom Tab / external browser). If the deep
+  // link back never arrives (or the installed build cannot parse it) the
+  // connection is still completed server-side by the web bounce page, so the app
+  // detects it as soon as it becomes visible again.
+  // ---------------------------------------------------------------------------
+  var AUTH_PENDING_KEY = 'ob_auth_pending';
+  var AUTH_PENDING_TTL = 20 * 60 * 1000;
+  var recoveryInFlight = false;
+  var resumeListenersInstalled = false;
+
+  function markAuthPending(bankName) {
+    try {
+      localStorage.setItem(AUTH_PENDING_KEY, JSON.stringify({
+        bankName: bankName || '',
+        timestamp: Date.now()
+      }));
+      localStorage.setItem('ob_auth_bank', bankName || '');
+    } catch (e) { /* ignore */ }
+  }
+
+  function clearAuthPending() {
+    try {
+      localStorage.removeItem(AUTH_PENDING_KEY);
+      localStorage.removeItem('ob_auth_bank');
+    } catch (e) { /* ignore */ }
+  }
+
+  function readAuthPending() {
+    try {
+      var raw = localStorage.getItem(AUTH_PENDING_KEY);
+      if (!raw) return null;
+      var parsed = JSON.parse(raw);
+      if (!parsed || !parsed.timestamp) return null;
+      if (Date.now() - parsed.timestamp > AUTH_PENDING_TTL) {
+        clearAuthPending();
+        return null;
+      }
+      return parsed;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  async function isBankConnected(bankName) {
+    try {
+      var connections = await getConnectedBanks();
+      if (!Array.isArray(connections) || connections.length === 0) return false;
+      var wanted = String(bankName || '').toLowerCase().trim();
+      // Placeholder names carry no useful information → any connection counts
+      if (!wanted || wanted === 'τραπεζικός λογαριασμός') return true;
+      return connections.some(function (conn) {
+        var name = String(conn && conn.aspsp_name ? conn.aspsp_name : '').toLowerCase();
+        if (!name) return false;
+        return name.indexOf(wanted) !== -1 || wanted.indexOf(name) !== -1;
+      });
+    } catch (e) {
+      return false;
+    }
+  }
+
+  async function refreshAfterConnection() {
+    notify('Η τράπεζα συνδέθηκε επιτυχώς! Γίνεται αυτόματος συγχρονισμός...', 'success');
+
+    // Refresh app data so new accounts and balances appear immediately
+    try {
+      if (window.dataLoaderService && typeof window.dataLoaderService.loadAllData === 'function') {
+        await window.dataLoaderService.loadAllData();
+      }
+      if (typeof window.renderAll === 'function') window.renderAll();
+      if (typeof window.renderAccountsTab === 'function') window.renderAccountsTab();
+    } catch (e) {
+      console.warn('[OpenBanking] Error refreshing local app data:', e);
+    }
+
+    // Trigger transaction sync
+    await syncTransactions({ silent: false });
+    clearAuthPending();
+  }
+
+  /**
+   * Called when the app becomes visible again: if a bank connection was started
+   * and the bank flow is already completed server-side, finish the flow locally.
+   */
+  async function recoverPendingConnection(trigger) {
+    if (recoveryInFlight || typeof window === 'undefined') return;
+    var pending = readAuthPending();
+    if (!pending) return;
+
+    var token = await getAuthToken();
+    if (!token) return;
+
+    recoveryInFlight = true;
+    try {
+      // Poll briefly: the browser's fire-and-forget callback POST may still be
+      // in flight when the app regains focus.
+      for (var attempt = 0; attempt < 3; attempt++) {
+        await new Promise(function (resolve) { setTimeout(resolve, attempt === 0 ? 1200 : 1500); });
+
+        if (await isBankConnected(pending.bankName)) {
+          console.log('[OpenBanking] Bank connection completed while away (' + (trigger || 'resume') + ')');
+          await refreshAfterConnection();
+          return;
+        }
+
+        if (!readAuthPending()) return; // already handled elsewhere
+      }
+      console.log('[OpenBanking] No completed connection found yet (' + (trigger || 'resume') + ')');
+    } catch (e) {
+      console.warn('[OpenBanking] Pending connection recovery failed:', e);
+    } finally {
+      recoveryInFlight = false;
+    }
+  }
+
+  function installResumeListeners() {
+    if (resumeListenersInstalled || typeof window === 'undefined') return;
+    resumeListenersInstalled = true;
+
+    var isNative = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+    if (isNative && window.Capacitor.Plugins && window.Capacitor.Plugins.App &&
+        typeof window.Capacitor.Plugins.App.addListener === 'function') {
+      window.Capacitor.Plugins.App.addListener('appStateChange', function (state) {
+        if (state && state.isActive) recoverPendingConnection('app-resume');
+      });
+    }
+
+    if (typeof document !== 'undefined' && document.addEventListener) {
+      document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'visible') recoverPendingConnection('visibility');
+      });
+    }
+  }
+
   /**
    * Check for redirect callback from bank OAuth on application load or deep link
    */
@@ -149,35 +285,73 @@
 
     var urlString = customUrl || (window.location ? window.location.href : '');
     var searchStr = '';
+    var hashStr = '';
     var qIdx = urlString.indexOf('?');
+    var hIdx = urlString.indexOf('#');
     if (qIdx !== -1) {
-      var hIdx = urlString.indexOf('#', qIdx);
-      searchStr = hIdx !== -1 ? urlString.substring(qIdx, hIdx) : urlString.substring(qIdx);
-    } else if (window.location && window.location.search) {
-      searchStr = window.location.search;
+      var qEnd = (hIdx !== -1 && hIdx > qIdx) ? hIdx : urlString.length;
+      searchStr = urlString.substring(qIdx, qEnd);
+    }
+    if (hIdx !== -1) {
+      hashStr = urlString.substring(hIdx);
+    }
+    if (!searchStr && !hashStr && window.location) {
+      searchStr = window.location.search || '';
+      hashStr = window.location.hash || '';
     }
 
     var urlParams = new URLSearchParams(searchStr);
-    var code = urlParams.get('code') || urlParams.get('mock_auth_code');
-    var stateParam = urlParams.get('state');
-    var isCallback = urlParams.get('bank_auth_callback') || urlParams.get('bank_auth') || urlParams.get('bank') || code;
-
-    // If no URL params, check if we have a pending callback stored from a previous load
-    if (!code && !isCallback) {
+    var hashParams = new URLSearchParams(hashStr.replace(/^#/, ''));
+    var code = urlParams.get('code') || hashParams.get('code') || urlParams.get('mock_auth_code');
+    var stateParam = urlParams.get('state') || hashParams.get('state');
+    var successFlag = urlParams.get('success') === 'true' || hashParams.get('success') === 'true';
+    // A Supabase PKCE login also returns `?code=`, so `code` alone is not proof
+    // of a bank callback. The bank flow always carries the JSON `state` blob
+    // produced by /api/bank-auth ({ userId, bankName, timestamp }).
+    var hasBankState = false;
+    if (stateParam) {
       try {
-        var pending = localStorage.getItem('ob_pending_callback');
-        if (pending) {
-          var parsed = JSON.parse(pending);
-          if (Date.now() - parsed.timestamp < 300000) {
-            code = parsed.code;
-            stateParam = parsed.state;
-            isCallback = true;
-          } else {
-            localStorage.removeItem('ob_pending_callback');
-          }
+        var stateJson = JSON.parse(stateParam);
+        hasBankState = !!(stateJson && stateJson.userId);
+      } catch (e) {
+        try {
+          var decodedState = JSON.parse(decodeURIComponent(stateParam));
+          hasBankState = !!(decodedState && decodedState.userId);
+        } catch (e2) {
+          hasBankState = false;
         }
-      } catch (e) { /* ignore */ }
-      if (!code && !isCallback) return;
+      }
+    }
+    var isCallback = urlParams.get('bank_auth_callback') || urlParams.get('bank_auth') || urlParams.get('bank') ||
+      (!!code && hasBankState);
+
+    // Plain success signal (e.g. com.budgetassistant.app://bank-callback?success=true):
+    // the connection was completed while the app was in the background.
+    if (successFlag && !code) {
+      await recoverPendingConnection('success-flag');
+      return;
+    }
+
+    // A bare `code` without bank state/flags belongs to a Supabase PKCE login
+    // (both flows return `?code=`), so it must NOT be sent to /api/bank-callback.
+    // Only a stored pending callback from a previous load can still qualify.
+    if (!isCallback) {
+      if (!code) {
+        try {
+          var pending = localStorage.getItem('ob_pending_callback');
+          if (pending) {
+            var parsed = JSON.parse(pending);
+            if (parsed && (Date.now() - parsed.timestamp) < 300000) {
+              code = parsed.code;
+              stateParam = parsed.state;
+              isCallback = true;
+            } else {
+              localStorage.removeItem('ob_pending_callback');
+            }
+          }
+        } catch (e) { /* ignore */ }
+      }
+      if (!isCallback) return;
     }
 
     var bankName = urlParams.get('bank') || '';
@@ -212,6 +386,29 @@
 
     try { localStorage.removeItem('ob_pending_callback'); } catch (e) { /* ignore */ }
 
+    // Guard against duplicate deliveries of the same authorization code
+    // (appUrlOpen + launch URL + browser bounce all point at the same callback).
+    if (code && code !== 'auth_completed') {
+      var alreadyProcessed = false;
+      try {
+        var processedRaw = localStorage.getItem('ob_processed_code');
+        var processed = processedRaw ? JSON.parse(processedRaw) : null;
+        if (processed && processed.code === code && (Date.now() - processed.at) < 10 * 60 * 1000) {
+          alreadyProcessed = true;
+        }
+      } catch (e) { /* ignore */ }
+
+      if (alreadyProcessed) {
+        console.log('[OpenBanking] Callback code already processed, refreshing data instead');
+        await refreshAfterConnection();
+        return;
+      }
+
+      try {
+        localStorage.setItem('ob_processed_code', JSON.stringify({ code: code, at: Date.now() }));
+      } catch (e) { /* ignore */ }
+    }
+
     notify('Ολοκλήρωση σύνδεσης με την τράπεζα...', 'info');
 
     try {
@@ -239,24 +436,17 @@
       }
 
       if (!res.ok) {
+        // The connection may still have been created by another delivery of the
+        // callback (web bounce page). Verify before reporting a failure.
+        if (await isBankConnected(bankName)) {
+          console.log('[OpenBanking] Callback reported an error but the bank is connected:', data.error);
+          await refreshAfterConnection();
+          return;
+        }
         throw new Error(data.error || 'Αποτυχία σύνδεσης');
       }
 
-      notify('Η τράπεζα συνδέθηκε επιτυχώς! Γίνεται αυτόματος συγχρονισμός...', 'success');
-
-      // Refresh app data so new accounts and balances appear immediately
-      try {
-        if (window.dataLoaderService && typeof window.dataLoaderService.loadAllData === 'function') {
-          await window.dataLoaderService.loadAllData();
-        }
-        if (typeof window.renderAll === 'function') window.renderAll();
-        if (typeof window.renderAccountsTab === 'function') window.renderAccountsTab();
-      } catch (e) {
-        console.warn('[OpenBanking] Error refreshing local app data:', e);
-      }
-
-      // Trigger transaction sync
-      await syncTransactions({ silent: false });
+      await refreshAfterConnection();
 
       // If running on the web in an external browser (e.g. mobile Chrome), offer to return to the native app
       var isNativeApp = typeof window !== 'undefined' && window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform();
@@ -291,7 +481,7 @@
       '<div style="font-size:24px; margin-bottom:8px;">🎉</div>' +
       '<div style="font-size:16px; font-weight:700; color:#fff; margin-bottom:6px;">Η σύνδεση ολοκληρώθηκε!</div>' +
       '<div style="font-size:13px; color:#94a3b8; margin-bottom:16px;">Ο τραπεζικός σας λογαριασμός συνδέθηκε επιτυχώς.</div>' +
-      '<a href="budgetassistant://bank-callback?success=true" style="display:inline-block; background:#38bdf8; color:#0f172a; font-weight:700; padding:10px 20px; border-radius:10px; text-decoration:none; font-size:14px; box-shadow:0 4px 12px rgba(56,189,248,0.3);">' +
+      '<a href="com.budgetassistant.app://bank-callback?success=true" style="display:inline-block; background:#38bdf8; color:#0f172a; font-weight:700; padding:10px 20px; border-radius:10px; text-decoration:none; font-size:14px; box-shadow:0 4px 12px rgba(56,189,248,0.3);">' +
         'Άνοιγμα στην Εφαρμογή' +
       '</a>' +
       '<div style="margin-top:10px;"><button onclick="this.parentElement.parentElement.remove()" style="background:none; border:none; color:#64748b; font-size:12px; cursor:pointer;">Κλείσιμο</button></div>'
@@ -299,9 +489,9 @@
 
     document.body.appendChild(banner);
 
-    // Try auto-opening custom scheme
+    // Try auto-opening the native app (same scheme as the web bounce page)
     try {
-      window.location.href = 'budgetassistant://bank-callback?success=true';
+      window.location.href = 'com.budgetassistant.app://bank-callback?success=true';
     } catch (_) {}
   }
 
@@ -318,6 +508,10 @@
     notify('Επικοινωνία με την τράπεζα...', 'info');
 
     try {
+      // Enable Banking requires an exactly registered redirect URL, so this stays
+      // /index.html. Cloudflare Pages 308-redirects /index.html -> / with the query
+      // string intact, and landing.html forwards any ?code=&state= payload to /app,
+      // where the bank-callback bounce in index.html completes the connection.
       var redirectUrl = 'https://www.budgetassistant.org/index.html';
       var res = await fetch(getApiUrl('/api/bank-auth'), {
         method: 'POST',
@@ -348,16 +542,21 @@
         // Close modal if open
         closeConnectModal();
 
-        // Save bank name so callback can use it (URL params may not include it)
-        try {
-          localStorage.setItem('ob_auth_bank', bankName);
-        } catch (e) { /* ignore */ }
+        // Remember the bank and that an authorization is in flight, so that the
+        // app can finish the flow when it comes back (even without a deep link).
+        markAuthPending(bankName);
+        installResumeListeners();
 
         // Redirect user to the secure Bank portal for SCA
         if (typeof window !== 'undefined' && window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
           // In Android native app, use Capacitor Browser plugin if available
           // so it opens an in-app browser that redirects back to the app
           if (window.Capacitor.Plugins && window.Capacitor.Plugins.Browser) {
+            if (typeof window.Capacitor.Plugins.Browser.addListener === 'function') {
+              window.Capacitor.Plugins.Browser.addListener('browserFinished', function () {
+                recoverPendingConnection('browser-finished');
+              });
+            }
             window.Capacitor.Plugins.Browser.open({ url: data.url });
           } else {
             // Fallback: open in system browser — deep link will bring user back
@@ -638,9 +837,15 @@
   // Auto-init on script load
   if (typeof window !== 'undefined') {
     if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', checkForAuthCallback);
+      document.addEventListener('DOMContentLoaded', function () {
+        installResumeListeners();
+        checkForAuthCallback();
+      });
     } else {
-      setTimeout(checkForAuthCallback, 500);
+      setTimeout(function () {
+        installResumeListeners();
+        checkForAuthCallback();
+      }, 500);
     }
   }
 
@@ -652,6 +857,7 @@
     syncTransactions: syncTransactions,
     checkForAuthCallback: checkForAuthCallback,
     getConnectedBanks: getConnectedBanks,
-    disconnectBank: disconnectBank
+    disconnectBank: disconnectBank,
+    recoverPendingConnection: recoverPendingConnection
   };
 });

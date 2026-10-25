@@ -29,25 +29,81 @@
       }
     })();
 
-    // 1.5. Mobile In-App Browser OAuth Bounce to Native App
+    // 1.5. Mobile In-App Browser OAuth / Open Banking Bounce to Native App
     (function () {
       const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
       const isNative = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
-      const hasAuthParams = window.location.hash.includes('access_token=') || window.location.search.includes('code=');
-      if (isMobile && !isNative && hasAuthParams) {
+      const search = window.location.search || '';
+      const hash = window.location.hash || '';
+      const params = new URLSearchParams(search);
+      const hashParams = new URLSearchParams(hash.replace(/^#/, ''));
+
+      const code = params.get('code') || hashParams.get('code');
+      const stateParam = params.get('state') || hashParams.get('state');
+      const hasAuthParams = hash.indexOf('access_token=') !== -1 || hash.indexOf('id_token=') !== -1 || !!code;
+      if (!isMobile || isNative || !hasAuthParams) return;
+
+      // A bank callback always carries `code` + the JSON `state` that
+      // /api/bank-auth generated (Supabase logins use PKCE codes without state).
+      const isBankCallback = !!(code && stateParam) ||
+        params.has('bank_auth_callback') || params.has('bank_auth') || params.has('bank');
+
+      // (a) Complete the connection server-side right away. This makes the flow
+      //     work even when the installed app build cannot handle the deep link:
+      //     the deep link then only has to refresh the UI and sync.
+      if (isBankCallback && code) {
         try {
-          const customSchemeUrl = 'com.budgetassistant.app://login-callback' + window.location.search + window.location.hash;
-          console.log('[OAuth Bounce] Redirecting to native app:', customSchemeUrl);
-          window.location.replace(customSchemeUrl);
-          setTimeout(function () {
-            if (document.body) {
-              document.body.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:#181b22;color:#fff;font-family:sans-serif;text-align:center;padding:24px;"><h2 style="color:#4ade80;margin-bottom:12px;">✅ Επιτυχής Σύνδεση!</h2><p style="color:#94a3b8;margin-bottom:28px;">Πατήστε παρακάτω για επιστροφή στην εφαρμογή:</p><a href="' + customSchemeUrl + '" style="background:#4f46e5;color:#fff;padding:14px 28px;border-radius:12px;text-decoration:none;font-weight:bold;font-size:16px;box-shadow:0 4px 12px rgba(79,70,229,0.4);">📲 Άνοιγμα Εφαρμογής</a></div>';
-            }
-          }, 400);
+          fetch('/api/bank-callback', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              code: code,
+              state: stateParam || null,
+              bankName: params.get('bank') || undefined
+            }),
+            keepalive: true
+          }).catch(function () { /* the app retries via its own deep link */ });
         } catch (e) {
-          console.warn('[OAuth Bounce] Failed:', e);
+          console.warn('[Bank Bounce] Server-side completion failed:', e);
         }
       }
+
+      // (b) Hand the payload back to the native app. A custom scheme is used
+      //     because the https App Links are not verified (no assetlinks.json).
+      const customSchemeUrl = 'com.budgetassistant.app://login-callback' + search + hash;
+      // intent:// cannot carry a fragment, so it is only useful for query payloads.
+      const intentUrl = 'intent://login-callback' + search + '#Intent;scheme=com.budgetassistant.app;package=com.budgetassistant.app;end';
+
+      // Both forms are tried: Chrome sometimes ignores intent:// without a user
+      // gesture, while some builds only resolve the intent form.
+      const attempts = (hash.length > 1)
+        ? [customSchemeUrl, intentUrl]
+        : [intentUrl, customSchemeUrl];
+
+      try {
+        console.log('[App Bounce] Redirecting to native app:', attempts[0]);
+        window.location.href = attempts[0];
+      } catch (e) {
+        console.warn('[App Bounce] Failed:', e);
+      }
+
+      // If the tab is still visible after the first attempt, try the other form.
+      setTimeout(function () {
+        try {
+          console.log('[App Bounce] Second attempt:', attempts[1]);
+          window.location.href = attempts[1];
+        } catch (e) {
+          console.warn('[App Bounce] Second attempt failed:', e);
+        }
+      }, 900);
+
+      setTimeout(function () {
+        if (!document.body) return;
+        const subtitle = isBankCallback
+          ? 'Η τράπεζα συνδέθηκε και οι συναλλαγές συγχρονίζονται. Επιστρέψτε στην εφαρμογή:'
+          : 'Πατήστε παρακάτω για επιστροφή στην εφαρμογή:';
+        document.body.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:#181b22;color:#fff;font-family:sans-serif;text-align:center;padding:24px;"><h2 style="color:#4ade80;margin-bottom:12px;">✅ Επιτυχής Σύνδεση!</h2><p style="color:#94a3b8;margin-bottom:28px;">' + subtitle + '</p><a href="' + customSchemeUrl + '" style="background:#4f46e5;color:#fff;padding:14px 28px;border-radius:12px;text-decoration:none;font-weight:bold;font-size:16px;box-shadow:0 4px 12px rgba(79,70,229,0.4);">📲 Άνοιγμα Εφαρμογής</a></div>';
+      }, 1800);
     })();
 
     // 2. Recovery Mode Bootloader

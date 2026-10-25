@@ -368,8 +368,21 @@ function initSwipeToBack() {
     if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
       const App = window.Capacitor.Plugins.App;
       if (App && typeof App.addListener === 'function') {
-        App.addListener('appUrlOpen', async (data) => {
-          if (!data || !data.url) return;
+        // Deduplicate: the same URL can arrive through appUrlOpen, the launch
+        // URL and the WebView resume, all within a few seconds.
+        let lastHandledUrl = '';
+        let lastHandledAt = 0;
+
+        const handleDeepLink = async (rawUrl) => {
+          if (!rawUrl) return;
+          const now = Date.now();
+          if (rawUrl === lastHandledUrl && (now - lastHandledAt) < 3000) {
+            console.log('[DeepLink] Ignoring duplicate URL:', rawUrl);
+            return;
+          }
+          lastHandledUrl = rawUrl;
+          lastHandledAt = now;
+          const data = { url: rawUrl };
           console.log('[DeepLink] Received URL:', data.url);
 
           const hashIndex = data.url.indexOf('#');
@@ -392,7 +405,14 @@ function initSwipeToBack() {
           const refreshToken = hashParams.get('refresh_token') || searchParams.get('refresh_token');
 
           // Check if this deep link is for Open Banking callback
-          const isBankCallback = data.url.includes('bank') || searchParams.has('state') || searchParams.has('bank');
+          // Bank callbacks always carry the JSON `state` produced by /api/bank-auth
+          // (a Supabase PKCE login only carries `code`), plus our own explicit flags.
+          const isBankCallback = data.url.includes('bank') ||
+            searchParams.has('bank') || hashParams.has('bank') ||
+            searchParams.has('bank_auth') || hashParams.has('bank_auth') ||
+            searchParams.has('bank_auth_callback') || hashParams.has('bank_auth_callback') ||
+            searchParams.has('state') || hashParams.has('state') ||
+            searchParams.has('success') || hashParams.has('success');
           if (isBankCallback) {
             console.log('[DeepLink] Open Banking callback intercepted:', data.url);
             if (window.Capacitor?.Plugins?.Browser?.close) {
@@ -400,6 +420,19 @@ function initSwipeToBack() {
             }
             if (window.OpenBankingService && typeof window.OpenBankingService.checkForAuthCallback === 'function') {
               window.OpenBankingService.checkForAuthCallback(data.url);
+            } else {
+              // On a cold start the service script may still be loading.
+              let attempts = 0;
+              const timer = setInterval(() => {
+                attempts++;
+                if (window.OpenBankingService && typeof window.OpenBankingService.checkForAuthCallback === 'function') {
+                  clearInterval(timer);
+                  window.OpenBankingService.checkForAuthCallback(data.url);
+                } else if (attempts > 100) {
+                  clearInterval(timer);
+                  console.warn('[DeepLink] OpenBankingService never became available');
+                }
+              }, 100);
             }
             return;
           }
@@ -462,7 +495,26 @@ function initSwipeToBack() {
               toggleLoader(false);
             }
           }
+        };
+
+        App.addListener('appUrlOpen', (data) => {
+          if (data && data.url) handleDeepLink(data.url);
         });
+
+        // Cold start: the app may have been launched BY the deep link, in which
+        // case onNewIntent is never called and appUrlOpen may not fire.
+        try {
+          if (typeof App.getLaunchUrl === 'function') {
+            Promise.resolve(App.getLaunchUrl())
+              .then((launch) => {
+                if (launch && launch.url) handleDeepLink(launch.url);
+              })
+              .catch(() => {});
+          }
+        } catch (e) {
+          console.warn('[DeepLink] getLaunchUrl unavailable:', e);
+        }
+
         return true;
       }
     }
