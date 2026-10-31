@@ -66,11 +66,11 @@
 
     _coldStartFadeDone = true;
     frame.style.pointerEvents = 'none';
-    frame.style.transition = 'opacity 0.2s ease';
+    frame.style.transition = 'opacity 0.12s ease';
     frame.style.opacity = '0';
     setTimeout(() => {
       if (frame.parentNode) frame.parentNode.removeChild(frame);
-    }, 200);
+    }, 120);
   }
 
   let _resumeOverlayTimer = null;

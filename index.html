@@ -276,8 +276,15 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
+    rel="preload" as="style"
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Inter:wght@400;500;600;700&family=Poppins:wght@400;600;700&display=swap">
+  <link rel="stylesheet"
     href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Inter:wght@400;500;600;700&family=Poppins:wght@400;600;700&display=swap"
-    rel="stylesheet">
+    media="print" onload="this.media='all'">
+  <noscript>
+    <link rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Inter:wght@400;500;600;700&family=Poppins:wght@400;600;700&display=swap">
+  </noscript>
   <link rel="stylesheet" href="js/fontawesome.min.css">
 
   <!-- Core Stylesheet -->
@@ -297,9 +304,9 @@
   <!-- Supabase client JS CDN -->
   <script src="js/supabase.js"></script>
   <!-- Chart.js CDN for Statistics -->
-  <script src="js/chart.js"></script>
+  <script src="js/chart.js" defer></script>
   <!-- Chart.js Datalabels Plugin CDN -->
-  <script src="js/chartjs-plugin-datalabels.js"></script>
+  <script src="js/chartjs-plugin-datalabels.js" defer></script>
   <script src="js/sortable.min.js" defer></script>
   <!-- SheetJS xlsx CDN for Excel Import/Export -->
   <script src="xlsx.full.min.js" defer></script>
@@ -315,13 +322,13 @@
          MemoryEngine). The in-app AIDebugLog panel is unaffected. Set to true
          only during local development. -->
         <script>window.AI_DEBUG = false;</script>
-        <script src="js/NLPProcessor.js"></script>
-        <script src="js/MemoryEngine.js"></script>
-        <script src="js/DecisionEngine.js"></script>
-        <script src="js/OnlineAIProvider.js"></script>
-        <script src="js/AIEngine.js"></script>
-        <script src="js/IntentCorpus.js"></script>
-        <script src="js/KnowledgeGraph.js"></script>
+        <script src="js/NLPProcessor.js" defer></script>
+        <script src="js/MemoryEngine.js" defer></script>
+        <script src="js/DecisionEngine.js" defer></script>
+        <script src="js/OnlineAIProvider.js" defer></script>
+        <script src="js/AIEngine.js" defer></script>
+        <script src="js/IntentCorpus.js" defer></script>
+        <script src="js/KnowledgeGraph.js" defer></script>
         <!-- Multi-Currency Service (single conversion mechanism) -->
         <script src="js/CurrencyService.js"></script>
 

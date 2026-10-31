@@ -141,11 +141,13 @@
   } else if (typeof window !== 'undefined' && typeof window.loadNotifications === 'function') {
     window.loadNotifications();
   }
-  if (typeof initLocalNotifications === 'function') {
-    initLocalNotifications();
-  } else if (typeof window !== 'undefined' && typeof window.initLocalNotifications === 'function') {
-    window.initLocalNotifications();
-  }
+  setTimeout(() => {
+    if (typeof initLocalNotifications === 'function') {
+      initLocalNotifications();
+    } else if (typeof window !== 'undefined' && typeof window.initLocalNotifications === 'function') {
+      window.initLocalNotifications();
+    }
+  }, 800);
   initSupabase();
   setupEventListeners();
   if (typeof initPullToRefresh === 'function') {
@@ -161,11 +163,13 @@
   initTabSwipeNavigation();
   resetAllTabScreenStyles();
   initRippleEffects();
-  if (typeof initLightboxPinchZoom === 'function') {
-    initLightboxPinchZoom();
-  } else if (typeof window !== 'undefined' && typeof window.initLightboxPinchZoom === 'function') {
-    window.initLightboxPinchZoom();
-  }
+  setTimeout(() => {
+    if (typeof initLightboxPinchZoom === 'function') {
+      initLightboxPinchZoom();
+    } else if (typeof window !== 'undefined' && typeof window.initLightboxPinchZoom === 'function') {
+      window.initLightboxPinchZoom();
+    }
+  }, 800);
 
   // ALWAYS load cached local data immediately so the UI is never blank on refresh.
   // If Supabase is enabled, onAuthStateChange will call loadData() again with fresh cloud data.
@@ -219,7 +223,11 @@
     window._suppressTransitions = true;
     try {
       calculateInitialBalances();
-      updateUI();
+      if (typeof flushUI === 'function') {
+        flushUI();
+      } else {
+        updateUI();
+      }
     } finally {
       setTimeout(() => { window._suppressTransitions = false; }, 1500);
     }
@@ -333,7 +341,11 @@
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('trans-date').value = today;
   applyLanguage(state.lang);
-  detectGeoLanguage();
+  setTimeout(() => {
+    if (typeof detectGeoLanguage === 'function') {
+      detectGeoLanguage();
+    }
+  }, 1500);
 
   // Remove no-transition class after the first paint is committed.
   // This prevents CSS transitions from flashing during startup.
@@ -477,9 +489,7 @@
     }, 80);
   } else {
     requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        fadeOutColdStartOverlay();
-      });
+      fadeOutColdStartOverlay();
     });
   }
 
