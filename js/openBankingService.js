@@ -488,10 +488,12 @@
 
     // Refresh app data so new accounts and balances appear immediately
     try {
-      if (window.dataLoaderService && typeof window.dataLoaderService.loadAllData === 'function') {
-        await window.dataLoaderService.loadAllData();
+      if (window.DataLoaderService && typeof window.DataLoaderService.loadData === 'function') {
+        await window.DataLoaderService.loadData();
+      } else if (typeof window.forceSyncNow === 'function') {
+        await window.forceSyncNow(true);
       }
-      if (typeof window.renderAll === 'function') window.renderAll();
+      if (typeof window.updateUI === 'function') window.updateUI();
       if (typeof window.renderAccountsTab === 'function') window.renderAccountsTab();
     } catch (e) {
       console.warn('[OpenBanking] Error refreshing local app data:', e);
@@ -537,6 +539,28 @@
     }
   }
 
+  var _lastAutoSyncTime = 0;
+  var AUTO_SYNC_COOLDOWN_MS = 3 * 60 * 1000; // at most once every 3 minutes
+
+  /**
+   * Silently sync bank transactions on app resume / startup if the user has active connections.
+   */
+  async function maybeAutoSyncBankTransactions() {
+    if (typeof window === 'undefined') return;
+    var now = Date.now();
+    if (now - _lastAutoSyncTime < AUTO_SYNC_COOLDOWN_MS) return;
+
+    var token = await getAuthToken();
+    if (!token) return;
+
+    var banks = await getConnectedBanks();
+    if (!Array.isArray(banks) || banks.length === 0) return;
+
+    _lastAutoSyncTime = now;
+    console.log('[OpenBanking] Auto-syncing bank transactions in background...');
+    await syncTransactions({ silent: true });
+  }
+
   function installResumeListeners() {
     if (resumeListenersInstalled || typeof window === 'undefined') return;
     resumeListenersInstalled = true;
@@ -545,13 +569,19 @@
     if (isNative && window.Capacitor.Plugins && window.Capacitor.Plugins.App &&
         typeof window.Capacitor.Plugins.App.addListener === 'function') {
       window.Capacitor.Plugins.App.addListener('appStateChange', function (state) {
-        if (state && state.isActive) recoverPendingConnection('app-resume');
+        if (state && state.isActive) {
+          recoverPendingConnection('app-resume');
+          maybeAutoSyncBankTransactions();
+        }
       });
     }
 
     if (typeof document !== 'undefined' && document.addEventListener) {
       document.addEventListener('visibilitychange', function () {
-        if (document.visibilityState === 'visible') recoverPendingConnection('visibility');
+        if (document.visibilityState === 'visible') {
+          recoverPendingConnection('visibility');
+          maybeAutoSyncBankTransactions();
+        }
       });
     }
   }
@@ -918,14 +948,22 @@
         }
       }
 
-      // Refresh app data if loader exists
+      // Refresh app data so imported transactions & balances immediately appear in UI
       if (count > 0) {
-        if (window.dataLoaderService && typeof window.dataLoaderService.loadAllData === 'function') {
-          await window.dataLoaderService.loadAllData();
-        } else if (typeof window.fetchTransactionsFromSupabase === 'function') {
-          await window.fetchTransactionsFromSupabase();
-        } else if (typeof window.renderAll === 'function') {
-          window.renderAll();
+        try {
+          if (window.DataLoaderService && typeof window.DataLoaderService.loadData === 'function') {
+            await window.DataLoaderService.loadData();
+          } else if (typeof window.forceSyncNow === 'function') {
+            await window.forceSyncNow(true);
+          }
+          if (typeof window.updateUI === 'function') {
+            window.updateUI();
+          }
+          if (typeof window.renderAccountsTab === 'function') {
+            window.renderAccountsTab();
+          }
+        } catch (uiErr) {
+          console.warn('[OpenBanking] Error refreshing UI after sync:', uiErr);
         }
       }
 
@@ -1183,16 +1221,25 @@
           '</button>' +
         '</div>' +
 
-        '<div style="background:rgba(56, 189, 248, 0.08); border-left:3px solid var(--primary, #38bdf8); padding:10px 14px; border-radius:8px; margin-bottom:16px; font-size:12px; color:var(--text-secondary, #cbd5e1); line-height:1.4;">' +
+        '<div style="background:rgba(56, 189, 248, 0.08); border-left:3px solid var(--primary, #38bdf8); padding:10px 14px; border-radius:8px; margin-bottom:12px; font-size:12px; color:var(--text-secondary, #cbd5e1); line-height:1.4;">' +
           'Η σύνδεση γίνεται απευθείας στο ασφαλές e-banking της τράπεζάς σας. Η εφαρμογή έχει πρόσβαση <strong>μόνο για ανάγνωση</strong> κινήσεων και υπολοίπου.' +
         '</div>' +
 
-        '<label style="display:flex; align-items:center; gap:8px; margin:0 0 14px; font-size:12px; color:var(--text-secondary, #cbd5e1); cursor:pointer;">' +
-          '<input type="checkbox" ' + (readPsuType() === 'business' ? 'checked' : '') +
-          ' onchange="OpenBankingService.setPsuType(this.checked ? \'business\' : \'personal\')" ' +
-          'style="width:15px; height:15px; accent-color:var(--primary, #38bdf8); cursor:pointer;">' +
-          '<span>Σύνδεση με <strong>επαγγελματικό</strong> λογαριασμό</span>' +
-        '</label>' +
+        '<div style="display:flex; background:rgba(0,0,0,0.3); border-radius:10px; padding:3px; margin-bottom:8px;">' +
+          '<button type="button" onclick="OpenBankingService.setPsuType(\'personal\'); OpenBankingService.openConnectModal();" style="flex:1; border:none; padding:7px 4px; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; ' + (readPsuType() === 'personal' ? 'background:var(--primary, #38bdf8); color:#0f172a;' : 'background:transparent; color:#94a3b8;') + '">' +
+            '<i class="fa-solid fa-user" style="margin-right:5px;"></i>Ιδιώτης' +
+          '</button>' +
+          '<button type="button" onclick="OpenBankingService.setPsuType(\'business\'); OpenBankingService.openConnectModal();" style="flex:1; border:none; padding:7px 4px; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; ' + (readPsuType() === 'business' ? 'background:var(--primary, #38bdf8); color:#0f172a;' : 'background:transparent; color:#94a3b8;') + '">' +
+            '<i class="fa-solid fa-briefcase" style="margin-right:5px;"></i>Επιχείρηση' +
+          '</button>' +
+        '</div>' +
+
+        '<div style="font-size:11px; color:#94a3b8; margin-bottom:14px; line-height:1.35; background:rgba(255,255,255,0.03); padding:8px 10px; border-radius:8px;">' +
+          (readPsuType() === 'business'
+            ? '<span>Σύνδεση με <strong>επαγγελματικό</strong> λογαριασμό (Business e-Banking).</span>'
+            : '<span>Σύνδεση με <strong>προσωπικό</strong> λογαριασμό (Ιδιώτης). Για εταιρικό, επιλέξτε Σύνδεση με <strong>επαγγελματικό</strong> λογαριασμό παραπάνω.</span>') +
+          '<br><span style="color:#64748b; font-size:10.5px;">ℹ️ Η ειδοποίηση/SMS έγκρισης αποστέλλεται από την τράπεζα στην κύρια συσκευή του e-banking σας.</span>' +
+        '</div>' +
 
         '<div style="max-height:360px; overflow-y:auto; margin-bottom:16px; padding-right:4px;">' +
           connectedHtml +
@@ -1224,11 +1271,13 @@
       document.addEventListener('DOMContentLoaded', function () {
         installResumeListeners();
         checkForAuthCallback();
+        setTimeout(maybeAutoSyncBankTransactions, 3500);
       });
     } else {
       setTimeout(function () {
         installResumeListeners();
         checkForAuthCallback();
+        setTimeout(maybeAutoSyncBankTransactions, 3500);
       }, 500);
     }
   }
@@ -1247,6 +1296,7 @@
     resolveBankLogo: resolveBankLogo,
     setPsuType: setPsuType,
     disconnectBank: disconnectBank,
-    recoverPendingConnection: recoverPendingConnection
+    recoverPendingConnection: recoverPendingConnection,
+    maybeAutoSyncBankTransactions: maybeAutoSyncBankTransactions
   };
 });

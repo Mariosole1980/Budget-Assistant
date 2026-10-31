@@ -290,17 +290,27 @@ function defaultTransactionsDateFrom(days = TRANSACTIONS_LOOKBACK_DAYS) {
 export function pickPrimaryBalance(balances) {
   if (!Array.isArray(balances) || balances.length === 0) return null;
 
-  const withAmount = balances.filter((b) => b && b.balance_amount && b.balance_amount.amount != null);
+  const withAmount = balances.filter((b) => {
+    if (!b) return false;
+    const amt = b.balance_amount || b.balanceAmount;
+    return amt && (amt.amount != null || amt.value != null);
+  });
   if (withAmount.length === 0) return null;
 
   const rank = (balance) => {
-    const raw = String(balance.balance_type || balance.name || '').trim().toLowerCase();
+    const raw = String(balance.balance_type || balance.balanceType || balance.name || '').trim().toLowerCase();
     const type = BALANCE_TYPE_ALIASES[raw] || raw.toUpperCase();
     const index = BALANCE_TYPE_PRIORITY.indexOf(type);
     return index === -1 ? BALANCE_TYPE_PRIORITY.length : index;
   };
 
-  return withAmount.slice().sort((a, b) => rank(a) - rank(b))[0];
+  const primary = withAmount.slice().sort((a, b) => rank(a) - rank(b))[0];
+  const amtObj = primary.balance_amount || primary.balanceAmount;
+  return {
+    ...primary,
+    balance_amount: amtObj,
+    balance_type: primary.balance_type || primary.balanceType
+  };
 }
 
 /**
@@ -314,46 +324,63 @@ export function pickPrimaryBalance(balances) {
  * Pending rows (`status: PEND`) are skipped on purpose: once booked they are
  * re-published with a different `entry_reference`, which would duplicate them.
  */
-export function mapProviderTransaction(tx) {
+export function mapProviderTransaction(tx, options = {}) {
   if (!tx) return null;
 
   const status = String(tx.status || '').trim().toUpperCase();
-  if (status === 'PEND') return null;
+  if (status === 'PEND' && !options.includePending) return null;
 
-  const amountObj = tx.transaction_amount || {};
-  const rawAmount = Number.parseFloat(amountObj.amount);
+  const amountObj = tx.transaction_amount || tx.transactionAmount || (typeof tx.amount === 'object' ? tx.amount : { amount: tx.amount }) || {};
+  const rawAmount = Number.parseFloat(amountObj.amount != null ? amountObj.amount : (amountObj.value != null ? amountObj.value : tx.amount));
   if (!Number.isFinite(rawAmount) || rawAmount === 0) return null;
 
-  const indicator = String(tx.credit_debit_indicator || '').trim().toUpperCase();
+  const indicator = String(
+    tx.credit_debit_indicator ||
+    tx.creditDebitIndicator ||
+    tx.credit_or_debit ||
+    amountObj.credit_debit_indicator ||
+    amountObj.creditDebitIndicator ||
+    ''
+  ).trim().toUpperCase();
+
   let amount = rawAmount;
   if (indicator === 'DBIT') amount = -Math.abs(rawAmount);
   else if (indicator === 'CRDT') amount = Math.abs(rawAmount);
+  else if (rawAmount < 0) amount = rawAmount;
 
-  const remittance = Array.isArray(tx.remittance_information)
-    ? tx.remittance_information.filter(Boolean).join(' ').trim()
-    : String(tx.remittance_information || '').trim();
+  const rawRemittance = tx.remittance_information || tx.remittanceInformation || tx.remittance_info || tx.remittanceInfo;
+  const remittance = Array.isArray(rawRemittance)
+    ? rawRemittance.filter(Boolean).join(' ').trim()
+    : String(rawRemittance || '').trim();
 
-  const codeDescription = tx.bank_transaction_code && tx.bank_transaction_code.description;
+  const codeDescription = (tx.bank_transaction_code && (tx.bank_transaction_code.description || tx.bank_transaction_code.code)) ||
+    (tx.bankTransactionCode && (tx.bankTransactionCode.description || tx.bankTransactionCode.code));
+
   const description = remittance ||
-    (tx.creditor && tx.creditor.name) ||
-    (tx.debtor && tx.debtor.name) ||
+    (tx.creditor && (tx.creditor.name || tx.creditor.name_el)) ||
+    (tx.debtor && (tx.debtor.name || tx.debtor.name_el)) ||
+    (tx.merchant && (tx.merchant.name || tx.merchant)) ||
     codeDescription ||
     tx.note ||
     'Τραπεζική Συναλλαγή';
 
-  const date = tx.booking_date || tx.value_date || tx.transaction_date ||
+  const date = tx.booking_date || tx.bookingDate ||
+    tx.value_date || tx.valueDate ||
+    tx.transaction_date || tx.transactionDate ||
     new Date().toISOString().split('T')[0];
 
   // `entry_reference` is the ASPSP's stable archive id and the only value that
   // survives a re-authorisation, so it is the dedupe key whenever present.
-  const transactionId = tx.entry_reference || tx.transaction_id ||
-    `tx_${date}_${Math.abs(amount)}_${String(description).slice(0, 32)}`;
+  const transactionId = tx.entry_reference || tx.entryReference ||
+    tx.resource_id || tx.resourceId ||
+    tx.transaction_id || tx.transactionId ||
+    `tx_${String(date).slice(0, 10)}_${Math.abs(amount)}_${String(description).slice(0, 32)}`;
 
   return {
     transactionId: String(transactionId),
-    date,
+    date: String(date).slice(0, 10),
     amount,
-    currency: amountObj.currency || 'EUR',
+    currency: amountObj.currency || tx.currency || 'EUR',
     description: String(description).slice(0, 500),
     status: status || 'BOOK'
   };
@@ -615,17 +642,18 @@ export class BankService {
     const accounts = [];
 
     for (const acc of rawAccounts) {
+      const uid = acc.uid || acc.accountId || acc.account_uid || (acc.account_id && acc.account_id.iban);
       let bal = 0.0;
-      if (acc.uid) {
+      if (uid) {
         try {
-          bal = await this.getAccountBalances(acc.uid);
+          bal = await this.getAccountBalances(uid);
         } catch (e) {
-          console.warn('[BankService] Error fetching balances for account:', acc.uid, e);
+          console.warn('[BankService] Error fetching balances for account:', uid, e);
         }
       }
       accounts.push({
-        uid: acc.uid,
-        iban: acc.account_id ? acc.account_id.iban : null,
+        uid: uid,
+        iban: (acc.account_id && acc.account_id.iban) || acc.iban || null,
         currency: acc.currency || 'EUR',
         accountName: acc.details || acc.name || 'Τραπεζικός Λογαριασμός',
         balance: bal
@@ -657,8 +685,9 @@ export class BankService {
 
       const data = await res.json();
       const primaryBal = pickPrimaryBalance(data.balances || []);
-      if (primaryBal) {
-        return parseFloat(primaryBal.balance_amount.amount) || 0.0;
+      if (primaryBal && primaryBal.balance_amount) {
+        const amt = primaryBal.balance_amount.amount != null ? primaryBal.balance_amount.amount : primaryBal.balance_amount.value;
+        return parseFloat(amt) || 0.0;
       }
       return 0.0;
     } catch (err) {

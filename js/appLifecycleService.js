@@ -167,6 +167,9 @@
         } else if (typeof window !== 'undefined' && typeof window.forceSyncNow === 'function') {
           await window.forceSyncNow(true);
         }
+        if (typeof window !== 'undefined' && window.OpenBankingService && typeof window.OpenBankingService.maybeAutoSyncBankTransactions === 'function') {
+          window.OpenBankingService.maybeAutoSyncBankTransactions().catch(() => {});
+        }
       } finally {
         clearTimeout(_syncGuardTimer);
         setTimeout(() => { popNoTrans(); }, 500);
