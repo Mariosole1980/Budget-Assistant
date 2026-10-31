@@ -20,11 +20,17 @@
  *    swipe from the first pixels, so it cancels at 6px and the row never stays
  *    greyed out mid-swipe.
  *
- * 4. No Artificial Dwell:
+ * 4. Delayed Press for Swipeable Rows:
+ *    Rows that double as swipe targets (transaction-item, stats-row) defer the
+ *    .is-pressed class by SWIPEABLE_PRESS_DELAY_MS ms.  If horizontal movement
+ *    is detected within that window the timer is cancelled and the class is never
+ *    added — eliminating the grey flash on month-swipe gestures.
+ *
+ * 5. No Artificial Dwell:
  *    The pressed state is released the instant the finger lifts. HOLDING it for a
  *    minimum dwell made fast taps feel sticky and out of sync with the finger.
  *
- * 5. Input Safety:
+ * 6. Input Safety:
  *    Excludes text inputs, textareas, selects, sliders, and form editing controls.
  */
 
@@ -43,14 +49,24 @@
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
-  var SCROLL_CANCEL_THRESHOLD = 20; // px (avoids false cancellations from natural thumb flattening/jitter)
+  var SCROLL_CANCEL_THRESHOLD = 20;   // px (avoids false cancellations from natural thumb flattening/jitter)
   var HORIZONTAL_CANCEL_THRESHOLD = 6; // px — a horizontal drag is a month swipe, not a tap
+  // How long to wait before adding .is-pressed on swipeable rows (transaction-item etc.).
+  // During this window a horizontal move cancels the pending press before the class is
+  // ever applied, so swiping months never briefly highlights a transaction row.
+  var SWIPEABLE_PRESS_DELAY_MS = 60; // ms
 
   var currentPressedEl = null;
+  var pendingPressEl = null;      // element waiting for the delayed press timer
+  var pendingPressTimer = null;   // setTimeout id for the delayed .is-pressed
   var startX = 0;
   var startY = 0;
   var lastHapticTime = 0;
   var isInitialized = false;
+
+  // Selectors for rows that can be BOTH tapped AND horizontally swiped (month pager).
+  // For these we delay .is-pressed so horizontal movement is detected first.
+  var SWIPEABLE_ROW_SELECTOR = '.transaction-item, .stats-row, .stats-sub-row';
 
   var INTERACTIVE_SELECTOR = [
     'button',
@@ -132,6 +148,15 @@
     el.classList.remove('is-pressed');
   }
 
+  /** Cancel the delayed-press timer (used for swipeable rows). */
+  function cancelPendingPress() {
+    if (pendingPressTimer !== null) {
+      clearTimeout(pendingPressTimer);
+      pendingPressTimer = null;
+    }
+    pendingPressEl = null;
+  }
+
   function handlePointerDown(e) {
     // Only respond to main left click or touch/pen
     if (e.pointerType === 'mouse' && e.button !== 0) return;
@@ -139,25 +164,60 @@
     var target = findInteractiveTarget(e.target);
     if (!target) return;
 
+    // Clear any previous state
     if (currentPressedEl && currentPressedEl !== target) {
       clearPressedState(currentPressedEl);
     }
+    cancelPendingPress();
 
-    currentPressedEl = target;
+    currentPressedEl = null;
     startX = e.clientX || 0;
     startY = e.clientY || 0;
 
-    target.classList.add('is-pressed');
-    triggerInstantHaptic();
+    // Check if this element is a swipeable row that needs the delayed press treatment.
+    var isSwipeable = typeof target.matches === 'function' && target.matches(SWIPEABLE_ROW_SELECTOR);
+
+    if (isSwipeable) {
+      // Defer .is-pressed: a horizontal swipe within SWIPEABLE_PRESS_DELAY_MS will
+      // cancel the timer before the class is ever applied.
+      pendingPressEl = target;
+      pendingPressTimer = setTimeout(function () {
+        pendingPressTimer = null;
+        if (pendingPressEl) {
+          currentPressedEl = pendingPressEl;
+          pendingPressEl = null;
+          currentPressedEl.classList.add('is-pressed');
+          triggerInstantHaptic();
+        }
+      }, SWIPEABLE_PRESS_DELAY_MS);
+    } else {
+      // Immediate press for all other interactive elements.
+      currentPressedEl = target;
+      target.classList.add('is-pressed');
+      triggerInstantHaptic();
+    }
   }
 
   function handlePointerMove(e) {
-    if (!currentPressedEl) return;
     var x = e.clientX || 0;
     var y = e.clientY || 0;
+    var dx = x - startX;
+    var dy = y - startY;
+
+    // If a delayed press is pending, a horizontal movement cancels it before
+    // the class is applied — this is the fix for the swipe-greying bug.
+    if (pendingPressEl) {
+      var isHorizontalSwipe = Math.abs(dx) >= HORIZONTAL_CANCEL_THRESHOLD && Math.abs(dx) > Math.abs(dy);
+      if (isHorizontalSwipe || shouldCancelPress(dx, dy)) {
+        cancelPendingPress();
+      }
+      return;
+    }
+
+    if (!currentPressedEl) return;
 
     // If the gesture is a drag/swipe, cancel the active state immediately
-    if (shouldCancelPress(x - startX, y - startY)) {
+    if (shouldCancelPress(dx, dy)) {
       clearPressedState(currentPressedEl);
       currentPressedEl = null;
     }
@@ -176,12 +236,14 @@
   }
 
   function handlePointerUp() {
+    cancelPendingPress();
     if (!currentPressedEl) return;
     clearPressedState(currentPressedEl);
     currentPressedEl = null;
   }
 
   function handlePointerCancel() {
+    cancelPendingPress();
     if (!currentPressedEl) return;
     clearPressedState(currentPressedEl);
     currentPressedEl = null;
@@ -212,6 +274,7 @@
 
     if (typeof window !== 'undefined') {
       window.addEventListener('blur', function () {
+        cancelPendingPress();
         if (currentPressedEl) {
           clearPressedState(currentPressedEl);
           currentPressedEl = null;
@@ -229,6 +292,7 @@
     document.removeEventListener('pointerup', handlePointerUp, { capture: true });
     document.removeEventListener('pointercancel', handlePointerCancel, { capture: true });
 
+    cancelPendingPress();
     if (currentPressedEl) {
       currentPressedEl.classList.remove('is-pressed');
       currentPressedEl = null;

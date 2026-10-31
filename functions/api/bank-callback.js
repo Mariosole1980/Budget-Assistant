@@ -1,5 +1,5 @@
 import { validateRequest, corsHeadersFor, getSupabasePublicConfig, getSupabaseServiceConfig } from './_security.js';
-import { BankService, importBankTransactions } from './_bank_service.js';
+import { BankService, importBankTransactions, psuHeadersFromRequest } from './_bank_service.js';
 
 /**
  * The bank authorization code is single-use. When the same callback is delivered
@@ -162,8 +162,9 @@ export async function onRequestPost(context) {
   }
 
   try {
-    const bankService = new BankService(env);
+    const bankService = new BankService(env, { psuHeaders: psuHeadersFromRequest(request) });
     const { supabaseUrl, serviceRoleKey } = supabaseService;
+    const aspspCountry = String((parsedState && parsedState.country) || 'GR').trim().toUpperCase();
 
     let sessionData = null;
 
@@ -240,7 +241,7 @@ export async function onRequestPost(context) {
         body: JSON.stringify({
           user_id: userId,
           aspsp_name: bankName || 'Τραπεζικός Λογαριασμός',
-          aspsp_country: 'GR',
+          aspsp_country: aspspCountry,
           session_id: sessionData.sessionId,
           access_valid_until: sessionData.accessValidUntil,
           status: 'active',

@@ -286,11 +286,14 @@
       restoreActiveModalsFromStorage();
       // ANTI-FLICKER: Keep no-transition for the full resume guard window
       // (_RESUME_GUARD_MS, ~1700ms) to cover the deferred updateUI render
-      // (700ms baseDelay when _appJustResumed is true) AND the 1500ms
-      // foreground sync. This ensures the tab re-render from the deferred
-      // updateUI is also invisible to the user, eliminating the second flash
-      // on resume. Uses the reference-counted guard so overlapping guards
-      // never prematurely remove the class.
+      // (700ms baseDelay when _appJustResumed is true). The foreground sync is
+      // intentionally NOT covered by this window any more: it now starts at the
+      // first quiet moment after the guard (>=2100ms, see
+      // handleAppForegroundSync) and wraps itself in its own
+      // pushNoTransition()/popNoTransition() pair. This ensures the tab
+      // re-render from the deferred updateUI is invisible to the user,
+      // eliminating the second flash on resume. Uses the reference-counted
+      // guard so overlapping guards never prematurely remove the class.
       setTimeout(() => {
         popNoTransition();
         document.documentElement.classList.remove('modal-prerender');

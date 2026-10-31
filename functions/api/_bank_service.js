@@ -58,6 +58,136 @@ export const SUPPORTED_GREEK_BANKS = [
   }
 ];
 
+// ---------------------------------------------------------------------------
+// ASPSP (bank) resolution
+//
+// Enable Banking identifies a bank by the *exact* `name` + `country` pair it
+// publishes on GET /aspsps — nothing else. Both values differ subtly from what
+// the app shows to users ("NBG" is published as "National Bank of Greece",
+// Revolut operates under GB and not under GR), and a mismatch is rejected with
+// HTTP 422, which is why some banks could never be connected. Every
+// authorization therefore resolves the bank against the live ASPSP list first
+// and only falls back to the built-in registry when the provider is
+// unreachable (offline / sandbox mode).
+// ---------------------------------------------------------------------------
+
+// PSD2 caps consents at 90 days; stay just below the ceiling so the value
+// never lands on the ASPSP's "one second too long" boundary.
+const DEFAULT_CONSENT_SECONDS = 89 * 24 * 60 * 60;
+const CONSENT_SAFETY_MARGIN_SECONDS = 60;
+// ASPSP metadata (limits, required PSU headers, supported auth methods) changes
+// rarely, so one hour of per-isolate caching avoids a round-trip per request.
+const ASPSP_CACHE_TTL_MS = 60 * 60 * 1000;
+
+const _aspspCache = new Map();
+
+/** Strip accents/punctuation so "Εθνική Τράπεζα" == "εθνικη τραπεζα". */
+export function normalizeBankName(name) {
+  let raw = String(name == null ? '' : name);
+  try {
+    raw = raw.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  } catch (_) { /* very old engines: keep raw */ }
+  return raw.toLowerCase().replace(/[^a-z0-9\u0370-\u03ff]+/g, '');
+}
+
+// Alternative names users (and older app versions) may send for an ASPSP.
+const BANK_NAME_ALIASES = [
+  { canonical: 'nationalbankofgreece', names: ['nbg', 'εθνικη', 'εθνικητραπεζα', 'εθνικητραπεζαελλαδος', 'nationalbank'] },
+  { canonical: 'eurobank', names: ['eurobankergasias'] },
+  { canonical: 'alphabank', names: ['alpha', 'alphabanksa'] },
+  { canonical: 'piraeusbank', names: ['piraeus', 'πειραιως', 'τραπεζαπειραιως', 'piraeusbanksa'] },
+  { canonical: 'revolut', names: ['revolutbank', 'revolutbankuab'] }
+];
+
+/** Canonical key used to compare a user-facing bank name with a provider name. */
+export function canonicalBankKey(name) {
+  const normalized = normalizeBankName(name);
+  if (!normalized) return '';
+  for (const alias of BANK_NAME_ALIASES) {
+    if (alias.canonical === normalized || alias.names.includes(normalized)) return alias.canonical;
+  }
+  return normalized;
+}
+
+function findAspsp(list, wantedName) {
+  if (!Array.isArray(list) || list.length === 0) return null;
+  const wantedRaw = String(wantedName || '').trim().toLowerCase();
+  const wantedKey = canonicalBankKey(wantedName);
+  if (!wantedKey) return null;
+
+  // 1. Byte-for-byte provider name (what the UI shows when it uses /aspsps).
+  const exact = list.find((a) => a && String(a.name || '').trim().toLowerCase() === wantedRaw);
+  if (exact) return exact;
+
+  // 2. Same name ignoring case, accents and punctuation.
+  const normalized = list.find((a) => a && normalizeBankName(a.name) === normalizeBankName(wantedName));
+  if (normalized) return normalized;
+
+  // 3. Known aliases ("NBG" → "National Bank of Greece").
+  return list.find((a) => a && canonicalBankKey(a.name) === wantedKey) || null;
+}
+
+/** 'business' | 'personal' — anything else falls back to a private account. */
+export function normalizePsuType(value) {
+  return String(value || '').trim().toLowerCase() === 'business' ? 'business' : 'personal';
+}
+
+function normalizeLanguage(value) {
+  const lang = String(value || '').trim().toLowerCase();
+  return /^[a-z]{2}$/.test(lang) ? lang : 'el';
+}
+
+/**
+ * Consent expiry that the ASPSP will actually accept.
+ *
+ * `access.valid_until` may not be later than now + the ASPSP's
+ * `maximum_consent_validity` (returned by GET /aspsps); sending a flat 90 days
+ * for every bank was accepted by the big four but rejected by connectors with a
+ * shorter ceiling — one of the reasons only "some banks" worked.
+ */
+export function computeConsentValidUntil(maximumConsentValidity) {
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  const maxSeconds = Number(maximumConsentValidity);
+  const ceilingSeconds = Number.isFinite(maxSeconds) && maxSeconds > CONSENT_SAFETY_MARGIN_SECONDS * 2
+    ? Math.floor(maxSeconds - CONSENT_SAFETY_MARGIN_SECONDS)
+    : DEFAULT_CONSENT_SECONDS;
+  return new Date((nowSeconds + Math.min(DEFAULT_CONSENT_SECONDS, ceilingSeconds)) * 1000).toISOString();
+}
+
+/**
+ * PSU context headers (IP / User-Agent / language). ASPSPs listed with
+ * `required_psu_headers` reject /auth, /balances and /transactions when the PSU
+ * context is missing, so it is forwarded whenever Cloudflare gives it to us.
+ */
+export function normalizePsuHeaders(headers) {
+  const out = {};
+  if (!headers || typeof headers !== 'object') return out;
+
+  const push = (name, value, maxLength) => {
+    const clean = String(value == null ? '' : value).replace(/[\r\n]+/g, ' ').trim().slice(0, maxLength);
+    if (clean) out[name] = clean;
+  };
+
+  push('Psu-Ip-Address', headers['Psu-Ip-Address'] || headers.ip, 64);
+  push('Psu-User-Agent', headers['Psu-User-Agent'] || headers.userAgent, 512);
+  push('Psu-Accept-Language', headers['Psu-Accept-Language'] || headers.language, 35);
+  return out;
+}
+
+export function psuHeadersFromRequest(request) {
+  if (!request || !request.headers || typeof request.headers.get !== 'function') return {};
+  const forwarded = String(
+    request.headers.get('CF-Connecting-IP') ||
+    request.headers.get('X-Forwarded-For') ||
+    ''
+  );
+  return normalizePsuHeaders({
+    'Psu-Ip-Address': request.headers.get('Psu-Ip-Address') || forwarded.split(',')[0],
+    'Psu-User-Agent': request.headers.get('Psu-User-Agent') || request.headers.get('User-Agent'),
+    'Psu-Accept-Language': request.headers.get('Psu-Accept-Language') || request.headers.get('Accept-Language')
+  });
+}
+
 function base64UrlEncode(strOrBuffer) {
   let base64;
   if (typeof strOrBuffer === 'string') {
@@ -128,12 +258,121 @@ async function createEnableBankingJwt(appId, privateKeyPem) {
   return `${encodedHeader}.${encodedPayload}.${base64UrlEncode(signature)}`;
 }
 
+// ---------------------------------------------------------------------------
+// Provider payload mapping
+// ---------------------------------------------------------------------------
+
+// Booked balances first: a budgeting app wants the settled amount, while
+// `interim*` values include holds and pending card authorizations. Banks report
+// the type in `balance_type` (ISO 20022 codes); the legacy `name` labels are
+// accepted too because some connectors still send them.
+const BALANCE_TYPE_ALIASES = {
+  closingbooked: 'CLBD',
+  interimbooked: 'ITBD',
+  closingavailable: 'CLAV',
+  interimavailable: 'ITAV',
+  expected: 'XPCD',
+  previouslyclosedbooked: 'PRCD',
+  forwardavailable: 'FWAV'
+};
+const BALANCE_TYPE_PRIORITY = ['CLBD', 'ITBD', 'CLAV', 'ITAV', 'XPCD', 'PRCD', 'FWAV', 'OTHR'];
+
+// Some ASPSPs return only the current day when `date_from` is omitted, others
+// reject the call, so a rolling window is always sent explicitly.
+const TRANSACTIONS_LOOKBACK_DAYS = 90;
+
+function defaultTransactionsDateFrom(days = TRANSACTIONS_LOOKBACK_DAYS) {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() - days);
+  return d.toISOString().split('T')[0];
+}
+
+export function pickPrimaryBalance(balances) {
+  if (!Array.isArray(balances) || balances.length === 0) return null;
+
+  const withAmount = balances.filter((b) => b && b.balance_amount && b.balance_amount.amount != null);
+  if (withAmount.length === 0) return null;
+
+  const rank = (balance) => {
+    const raw = String(balance.balance_type || balance.name || '').trim().toLowerCase();
+    const type = BALANCE_TYPE_ALIASES[raw] || raw.toUpperCase();
+    const index = BALANCE_TYPE_PRIORITY.indexOf(type);
+    return index === -1 ? BALANCE_TYPE_PRIORITY.length : index;
+  };
+
+  return withAmount.slice().sort((a, b) => rank(a) - rank(b))[0];
+}
+
+/**
+ * Map an Enable Banking transaction to the app's internal shape.
+ *
+ * The direction lives in `credit_debit_indicator` (DBIT/CRDT) while
+ * `transaction_amount.amount` is an unsigned monetary sum for most ASPSPs, so
+ * relying on the sign alone imported every card payment as income at exactly
+ * those banks.
+ *
+ * Pending rows (`status: PEND`) are skipped on purpose: once booked they are
+ * re-published with a different `entry_reference`, which would duplicate them.
+ */
+export function mapProviderTransaction(tx) {
+  if (!tx) return null;
+
+  const status = String(tx.status || '').trim().toUpperCase();
+  if (status === 'PEND') return null;
+
+  const amountObj = tx.transaction_amount || {};
+  const rawAmount = Number.parseFloat(amountObj.amount);
+  if (!Number.isFinite(rawAmount) || rawAmount === 0) return null;
+
+  const indicator = String(tx.credit_debit_indicator || '').trim().toUpperCase();
+  let amount = rawAmount;
+  if (indicator === 'DBIT') amount = -Math.abs(rawAmount);
+  else if (indicator === 'CRDT') amount = Math.abs(rawAmount);
+
+  const remittance = Array.isArray(tx.remittance_information)
+    ? tx.remittance_information.filter(Boolean).join(' ').trim()
+    : String(tx.remittance_information || '').trim();
+
+  const codeDescription = tx.bank_transaction_code && tx.bank_transaction_code.description;
+  const description = remittance ||
+    (tx.creditor && tx.creditor.name) ||
+    (tx.debtor && tx.debtor.name) ||
+    codeDescription ||
+    tx.note ||
+    'Τραπεζική Συναλλαγή';
+
+  const date = tx.booking_date || tx.value_date || tx.transaction_date ||
+    new Date().toISOString().split('T')[0];
+
+  // `entry_reference` is the ASPSP's stable archive id and the only value that
+  // survives a re-authorisation, so it is the dedupe key whenever present.
+  const transactionId = tx.entry_reference || tx.transaction_id ||
+    `tx_${date}_${Math.abs(amount)}_${String(description).slice(0, 32)}`;
+
+  return {
+    transactionId: String(transactionId),
+    date,
+    amount,
+    currency: amountObj.currency || 'EUR',
+    description: String(description).slice(0, 500),
+    status: status || 'BOOK'
+  };
+}
+
 export class BankService {
-  constructor(env) {
+  constructor(env, options = {}) {
     this.env = env || {};
     this.appId = this.env.ENABLE_BANKING_APP_ID;
     this.privateKey = this.env.ENABLE_BANKING_PRIVATE_KEY;
     this.isConfigured = Boolean(this.appId && this.privateKey);
+    // PSU context (IP / User-Agent / language) is collected once per request in
+    // the endpoint and replayed on every provider call of that request.
+    this.psuHeaders = normalizePsuHeaders(options.psuHeaders);
+  }
+
+  setPsuHeaders(headers) {
+    this.psuHeaders = Object.assign({}, this.psuHeaders, normalizePsuHeaders(headers));
+    return this.psuHeaders;
   }
 
   async getJwt() {
@@ -143,75 +382,202 @@ export class BankService {
     return await createEnableBankingJwt(this.appId, this.privateKey);
   }
 
-  async getInstitutions(country = 'GR') {
+  async authHeaders() {
+    return Object.assign({
+      'Authorization': `Bearer ${await this.getJwt()}`,
+      'Content-Type': 'application/json'
+    }, this.psuHeaders);
+  }
+
+  /**
+   * ASPSP list with the provider metadata (country, consent ceiling, required
+   * PSU headers). Cached per isolate for an hour; falls back to the built-in
+   * registry when the provider is unreachable or not configured.
+   * @returns {Promise<{list: Array, live: boolean}>}
+   */
+  async _loadAspsps({ country, psuType } = {}) {
     if (!this.isConfigured) {
-      return SUPPORTED_GREEK_BANKS;
+      return { list: SUPPORTED_GREEK_BANKS, live: false };
     }
 
+    const countryCode = country ? String(country).trim().toUpperCase() : '';
+    const psu = psuType ? normalizePsuType(psuType) : '';
+    const cacheKey = `${countryCode || '*'}|${psu || '*'}`;
+
+    const cached = _aspspCache.get(cacheKey);
+    if (cached && (Date.now() - cached.at) < ASPSP_CACHE_TTL_MS) {
+      return { list: cached.list, live: cached.live };
+    }
+
+    const params = new URLSearchParams();
+    if (countryCode) params.set('country', countryCode);
+    if (psu) params.set('psu_type', psu);
+    const query = params.toString();
+
     try {
-      const jwt = await this.getJwt();
-      const res = await fetch(`${ENABLE_BANKING_API_BASE}/aspsps?country=${country}`, {
-        headers: {
-          'Authorization': `Bearer ${jwt}`,
-          'Content-Type': 'application/json'
-        }
+      const res = await fetch(`${ENABLE_BANKING_API_BASE}/aspsps${query ? `?${query}` : ''}`, {
+        headers: await this.authHeaders()
       });
       if (!res.ok) {
-        console.warn('[BankService] Failed to fetch ASPSPs from Enable Banking, falling back to built-in list.');
-        return SUPPORTED_GREEK_BANKS;
+        console.warn(`[BankService] /aspsps failed (${res.status}), using the built-in bank list.`);
+        return { list: SUPPORTED_GREEK_BANKS, live: false };
       }
+
       const data = await res.json();
-      return data.aspsps || SUPPORTED_GREEK_BANKS;
+      const list = Array.isArray(data && data.aspsps) && data.aspsps.length > 0
+        ? data.aspsps
+        : SUPPORTED_GREEK_BANKS;
+      const live = list !== SUPPORTED_GREEK_BANKS;
+      _aspspCache.set(cacheKey, { at: Date.now(), list, live });
+      return { list, live };
     } catch (err) {
       console.warn('[BankService] Error fetching ASPSPs:', err);
-      return SUPPORTED_GREEK_BANKS;
+      return { list: SUPPORTED_GREEK_BANKS, live: false };
     }
   }
 
-  async startAuth({ bankName, country = 'GR', redirectUrl, state }) {
-    if (!this.isConfigured) {
-      // Mock Sandbox authorization flow for testing without API keys
-      const sep = redirectUrl.includes('?') ? '&' : '?';
+  async getAspspList(options = {}) {
+    return (await this._loadAspsps(options)).list;
+  }
+
+  /**
+   * Resolve the provider's exact `{ name, country }` for the bank the user
+   * picked, plus the metadata that bank requires (consent ceiling, PSU headers).
+   * @returns {Promise<null|{name:string,country:string,maximumConsentValidity:number|null,requiredPsuHeaders:string[],psuTypes:string[],logo:string|null}>}
+   */
+  async resolveAspsp({ bankName, country = 'GR' } = {}) {
+    const wantedName = String(bankName || '').trim();
+    if (!canonicalBankKey(wantedName)) return null;
+
+    const preferred = await this._loadAspsps({ country });
+    let live = preferred.live;
+    let match = findAspsp(preferred.list, wantedName);
+
+    if (!match) {
+      // Revolut and other digital banks are published under their own country,
+      // so a second, country-agnostic lookup is required before giving up.
+      const anywhere = await this._loadAspsps({});
+      live = live || anywhere.live;
+      match = findAspsp(anywhere.list, wantedName);
+    }
+
+    if (match) {
+      const maxValidity = Number(match.maximum_consent_validity);
       return {
-        url: `${redirectUrl}${sep}mock_auth_code=mock_code_${Date.now()}&bank=${encodeURIComponent(bankName)}`,
-        sessionId: `mock_session_${Date.now()}`
+        name: String(match.name || wantedName),
+        country: String(match.country || country || 'GR').toUpperCase(),
+        maximumConsentValidity: Number.isFinite(maxValidity) ? maxValidity : null,
+        requiredPsuHeaders: Array.isArray(match.required_psu_headers) ? match.required_psu_headers : [],
+        psuTypes: Array.isArray(match.psu_types) ? match.psu_types : [],
+        logo: match.logo || null
       };
     }
 
-    const jwt = await this.getJwt();
-    // PSD2 consent validity: 90 days from now
-    const validUntil = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString();
+    // Provider unreachable → the built-in registry still describes the bank.
+    if (!live) {
+      const registryBank = SUPPORTED_GREEK_BANKS.find(
+        (b) => canonicalBankKey(b.name) === canonicalBankKey(wantedName) ||
+               canonicalBankKey(b.name_el) === canonicalBankKey(wantedName)
+      );
+      if (registryBank) {
+        return {
+          name: registryBank.name,
+          country: registryBank.country,
+          maximumConsentValidity: null,
+          requiredPsuHeaders: [],
+          psuTypes: [],
+          logo: registryBank.logo
+        };
+      }
+    }
+
+    return null;
+  }
+
+  async getInstitutions(country = 'GR') {
+    const detailed = await this.getInstitutionsDetailed(country);
+    return detailed.institutions;
+  }
+
+  /** Institutions plus where they came from, so the UI can flag a fallback. */
+  async getInstitutionsDetailed(country = 'GR') {
+    if (!this.isConfigured) {
+      return { institutions: SUPPORTED_GREEK_BANKS, source: 'builtin', configured: false };
+    }
+    const { list, live } = await this._loadAspsps({ country });
+    return { institutions: list, source: live ? 'provider' : 'builtin', configured: true };
+  }
+
+  async startAuth({ bankName, country = 'GR', redirectUrl, state, psuType, language, psuHeaders }) {
+    if (psuHeaders) this.setPsuHeaders(psuHeaders);
+
+    if (!this.isConfigured) {
+      // Mock Sandbox authorization flow for testing without API keys
+      const sep = String(redirectUrl).includes('?') ? '&' : '?';
+      return {
+        url: `${redirectUrl}${sep}mock_auth_code=mock_code_${Date.now()}&bank=${encodeURIComponent(bankName)}`,
+        sessionId: `mock_session_${Date.now()}`,
+        authorizationId: null,
+        aspsp: { name: bankName, country: String(country || 'GR').toUpperCase() },
+        mock: true
+      };
+    }
+
+    const aspsp = await this.resolveAspsp({ bankName, country });
+    if (!aspsp) {
+      const err = new Error(
+        `Η τράπεζα "${bankName}" δεν είναι διαθέσιμη μέσω Open Banking (${country}). ` +
+        'Επιλέξτε την τράπεζα από τη λίστα της εφαρμογής.'
+      );
+      err.code = 'ASPSP_NOT_FOUND';
+      throw err;
+    }
 
     const body = {
       access: {
-        valid_until: validUntil
+        // Explicitly request both data sets: without them some ASPSPs grant an
+        // empty consent and then reject /balances and /transactions.
+        balances: true,
+        transactions: true,
+        valid_until: computeConsentValidUntil(aspsp.maximumConsentValidity)
       },
       aspsp: {
-        name: bankName,
-        country: country
+        name: aspsp.name,
+        country: aspsp.country
       },
       state: state || 'default_state',
-      redirect_url: redirectUrl
+      redirect_url: redirectUrl,
+      // Personal vs business login page. A mismatch makes the bank's SCA fail
+      // or hides the user's accounts, which looks like a broken connection.
+      psu_type: normalizePsuType(psuType),
+      language: normalizeLanguage(language)
     };
 
     const res = await fetch(`${ENABLE_BANKING_API_BASE}/auth`, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${jwt}`,
-        'Content-Type': 'application/json'
-      },
+      headers: await this.authHeaders(),
       body: JSON.stringify(body)
     });
 
     if (!res.ok) {
       const errText = await res.text();
-      throw new Error(`Enable Banking auth failed (${res.status}): ${errText}`);
+      const err = new Error(`Enable Banking auth failed (${res.status}): ${errText}`);
+      err.code = 'AUTH_FAILED';
+      err.providerStatus = res.status;
+      err.aspsp = aspsp;
+      throw err;
     }
 
     const data = await res.json();
+    // Enable Banking answers /auth with `authorization_id`; `session_id` only
+    // exists on /sessions. Keep both keys for existing callers.
+    const authorizationId = data.authorization_id || data.session_id || null;
     return {
       url: data.url,
-      sessionId: data.session_id
+      authorizationId,
+      sessionId: authorizationId,
+      aspsp: { name: aspsp.name, country: aspsp.country },
+      mock: false
     };
   }
 
@@ -233,13 +599,9 @@ export class BankService {
       };
     }
 
-    const jwt = await this.getJwt();
     const res = await fetch(`${ENABLE_BANKING_API_BASE}/sessions`, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${jwt}`,
-        'Content-Type': 'application/json'
-      },
+      headers: await this.authHeaders(),
       body: JSON.stringify({ code })
     });
 
@@ -283,13 +645,9 @@ export class BankService {
     }
 
     try {
-      const jwt = await this.getJwt();
       const res = await fetch(`${ENABLE_BANKING_API_BASE}/accounts/${accountUid}/balances`, {
         method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${jwt}`,
-          'Content-Type': 'application/json'
-        }
+        headers: await this.authHeaders()
       });
 
       if (!res.ok) {
@@ -298,9 +656,8 @@ export class BankService {
       }
 
       const data = await res.json();
-      const balances = data.balances || [];
-      const primaryBal = balances.find(b => b.name === 'closingBooked' || b.name === 'expected' || b.name === 'interimAvailable') || balances[0];
-      if (primaryBal && primaryBal.balance_amount && primaryBal.balance_amount.amount) {
+      const primaryBal = pickPrimaryBalance(data.balances || []);
+      if (primaryBal) {
         return parseFloat(primaryBal.balance_amount.amount) || 0.0;
       }
       return 0.0;
@@ -310,7 +667,7 @@ export class BankService {
     }
   }
 
-  async getAccountTransactions(accountUid) {
+  async getAccountTransactions(accountUid, options = {}) {
     if (!this.isConfigured || String(accountUid).startsWith('mock_acc_')) {
       // Return realistic mock Greek transactions for demonstration
       const today = new Date();
@@ -356,39 +713,47 @@ export class BankService {
       ];
     }
 
-    const jwt = await this.getJwt();
-    const res = await fetch(`${ENABLE_BANKING_API_BASE}/accounts/${accountUid}/transactions`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${jwt}`,
-        'Content-Type': 'application/json'
-      }
-    });
+    const { dateFrom, dateTo, maxPages = 5 } = options || {};
+    const from = dateFrom || defaultTransactionsDateFrom();
+    const collected = [];
+    let continuationKey = null;
 
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(`Enable Banking get transactions failed: ${errText}`);
+    for (let page = 0; page < Math.max(1, maxPages); page++) {
+      const params = new URLSearchParams({ date_from: String(from) });
+      if (dateTo) params.set('date_to', String(dateTo));
+      if (continuationKey) params.set('continuation_key', continuationKey);
+
+      const res = await fetch(
+        `${ENABLE_BANKING_API_BASE}/accounts/${accountUid}/transactions?${params.toString()}`,
+        {
+          method: 'GET',
+          headers: await this.authHeaders()
+        }
+      );
+
+      if (!res.ok) {
+        const errText = await res.text();
+        const err = new Error(`Enable Banking get transactions failed (${res.status}): ${errText}`);
+        err.providerStatus = res.status;
+        throw err;
+      }
+
+      const data = await res.json();
+      const pageTransactions = Array.isArray(data.transactions) ? data.transactions : [];
+      for (const raw of pageTransactions) {
+        const mapped = mapProviderTransaction(raw);
+        if (mapped) collected.push(mapped);
+      }
+
+      // Banks paginate with an opaque continuation_key; ignoring it imported
+      // only the first page, which looked like "missing transactions".
+      continuationKey = data.continuation_key || null;
+      if (!continuationKey || pageTransactions.length === 0) break;
     }
 
-    const data = await res.json();
-    const transactions = (data.transactions || []).map(tx => {
-      const amtObj = tx.transaction_amount || {};
-      const rawAmount = parseFloat(amtObj.amount || 0);
-      const desc = (tx.remittance_information && tx.remittance_information[0]) ||
-                   tx.creditor_name ||
-                   tx.debtor_name ||
-                   'Τραπεζική Συναλλαγή';
-
-      return {
-        transactionId: tx.entry_reference || tx.transaction_id || `tx_${Math.random()}`,
-        date: tx.booking_date || tx.value_date || new Date().toISOString().split('T')[0],
-        amount: rawAmount,
-        currency: amtObj.currency || 'EUR',
-        description: desc
-      };
-    });
-
-    return transactions;
+    // Newest first: importBankTransactions() keeps only the first N rows, so the
+    // order decides whether the user's latest activity is imported at all.
+    return collected.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
   }
 }
 
@@ -510,7 +875,10 @@ async function insertTransactionRows({ supabaseUrl, serviceRoleKey, rows }) {
  * @param {BankService} opts.bankService
  * @param {Array}       opts.bankAccounts Rows with at least `account_uid` (optionally `id`, `account_name`)
  * @param {number}      [opts.maxPerAccount=400]
- * @returns {Promise<{syncedCount:number, transactions:Array}>}
+ * @returns {Promise<{syncedCount:number, transactions:Array, errors:Array<{account_uid:string,status:number|null,message:string}>}>}
+ *   `errors` lists the accounts that could not be imported (revoked/insufficient
+ *   consent, provider outage) so callers can warn the user instead of reporting
+ *   a successful "all up to date" sync.
  */
 export async function importBankTransactions({
   supabaseUrl,
@@ -520,7 +888,7 @@ export async function importBankTransactions({
   bankAccounts,
   maxPerAccount = 400
 }) {
-  const result = { syncedCount: 0, transactions: [] };
+  const result = { syncedCount: 0, transactions: [], errors: [] };
   const headers = {
     'apikey': serviceRoleKey,
     'Authorization': `Bearer ${serviceRoleKey}`
@@ -591,6 +959,15 @@ export async function importBankTransactions({
         body: JSON.stringify({ last_synced_at: new Date().toISOString() })
       });
     } catch (acctErr) {
+      // Keep syncing the remaining accounts, but report the failure: a 403 here
+      // means the consent does not include transactions (or has expired) and
+      // the user has to re-authorise the bank instead of seeing "up to date".
+      const message = acctErr && acctErr.message ? acctErr.message : String(acctErr);
+      result.errors.push({
+        account_uid: acct.account_uid,
+        status: (acctErr && acctErr.providerStatus) || null,
+        message: message.slice(0, 300)
+      });
       console.warn(`[BankService] Error importing transactions for account ${acct.account_uid}:`, acctErr);
     }
   }

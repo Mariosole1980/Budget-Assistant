@@ -1,5 +1,5 @@
 import { validateRequest, corsHeadersFor, getSupabasePublicConfig } from './_security.js';
-import { BankService } from './_bank_service.js';
+import { BankService, psuHeadersFromRequest } from './_bank_service.js';
 
 export async function onRequestOptions(context) {
   const { request } = context;
@@ -67,7 +67,7 @@ export async function onRequestPost(context) {
 
   try {
     const body = await request.json();
-    const { bankName, country = 'GR', redirectUrl } = body;
+    const { bankName, country = 'GR', redirectUrl, psuType, language } = body;
 
     if (!bankName) {
       return new Response(JSON.stringify({ error: 'Missing bankName' }), {
@@ -77,12 +77,19 @@ export async function onRequestPost(context) {
     }
 
     const bankService = new BankService(env);
-    const state = JSON.stringify({ userId, bankName, timestamp: Date.now() });
+    // `country` is carried in the state blob so the callback stores the bank's
+    // real country (Revolut is published as GB, not GR).
+    const aspspCountry = String(country || 'GR').trim().toUpperCase();
+    const state = JSON.stringify({ userId, bankName, country: aspspCountry, timestamp: Date.now() });
+
     const authResult = await bankService.startAuth({
       bankName,
-      country,
+      country: aspspCountry,
       redirectUrl: redirectUrl || 'https://www.budgetassistant.org/index.html',
-      state
+      state,
+      psuType,
+      language,
+      psuHeaders: psuHeadersFromRequest(request)
     });
 
     return new Response(JSON.stringify(authResult), {
@@ -91,8 +98,12 @@ export async function onRequestPost(context) {
     });
   } catch (err) {
     console.error('[bank-auth] Error:', err);
+    // A bank the provider does not offer for this country is a client-side
+    // choice problem, not a server failure — surface it as 422 so the app can
+    // tell the user instead of showing a generic "try again".
+    const status = err && err.code === 'ASPSP_NOT_FOUND' ? 422 : 500;
     return new Response(JSON.stringify({ error: err.message || 'Failed to start bank auth' }), {
-      status: 500,
+      status,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }

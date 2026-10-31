@@ -18,6 +18,15 @@
 
   const _RESUME_GUARD_MS = 1700;
   const _REALTIME_RESUME_GUARD_MS = 10000;
+  // FOREGROUND SYNC SCHEDULING (resume tap latency) — see handleAppForegroundSync().
+  // The sync is never fired 1.5s after the resume any more (that landed exactly on
+  // the "I'm back, let me open Περισσότερα / Επισκόπηση" tap). It now waits for the
+  // resume guard to expire AND for a quiet moment (no touch/scroll in the last
+  // _FOREGROUND_SYNC_QUIET_MS), retrying every _FOREGROUND_SYNC_POLL_MS.
+  const _FOREGROUND_SYNC_MIN_DELAY_MS = 2100;
+  const _FOREGROUND_SYNC_QUIET_MS = 900;
+  const _FOREGROUND_SYNC_POLL_MS = 700;
+  const _FOREGROUND_SYNC_MAX_DEFER_MS = 12000;
   let _visibilitySyncTimer = null;
   let _resumeDebounceTimer = null;
 
@@ -110,40 +119,88 @@
     }
   }
 
+  /**
+   * ANTI-FREEZE (resume tap latency): the foreground sync ends with a full
+   * updateUI() render pass that holds the main thread. Firing it 1.5s after the
+   * resume meant a tap landing in that window (the natural "I'm back, let me open
+   * Περισσότερα / Επισκόπηση" moment) was queued behind the network sync + render
+   * and only opened 1-2s later, with no press feedback. The sync is now started at
+   * the first quiet moment after the resume guard window and keeps being pushed
+   * back while the user is touching/scrolling, so the first tap after returning is
+   * served immediately.
+   */
+  function _isScreenBeingTouched() {
+    if (typeof window === 'undefined') return false;
+    // _lastUserActivity is fed by securityLockService on touchstart/pointerdown/
+    // click/scroll/keydown, so it is a reliable "finger is on the screen" signal.
+    const lastActivity = Number(window._lastUserActivity) || 0;
+    return lastActivity > 0 && (Date.now() - lastActivity) < _FOREGROUND_SYNC_QUIET_MS;
+  }
+
   function handleAppForegroundSync() {
     const appState = (typeof state !== 'undefined' ? state : (typeof window !== 'undefined' ? window.state : {})) || {};
-    if (appState.currentUser && appState.supabaseClient) {
-      if (_visibilitySyncTimer) clearTimeout(_visibilitySyncTimer);
-      const timeSinceLastSync = Date.now() - (appState.lastSyncTime || 0);
-      if (timeSinceLastSync > 2000) {
-        _visibilitySyncTimer = setTimeout(async () => {
-          _visibilitySyncTimer = null;
-          await _refreshSessionIfNeeded();
-          const pushNoTrans = (typeof pushNoTransition === 'function')
-            ? pushNoTransition
-            : (typeof window !== 'undefined' && typeof window.pushNoTransition === 'function' ? window.pushNoTransition : () => {});
-          const popNoTrans = (typeof popNoTransition === 'function')
-            ? popNoTransition
-            : (typeof window !== 'undefined' && typeof window.popNoTransition === 'function' ? window.popNoTransition : () => {});
+    if (!appState.currentUser || !appState.supabaseClient) return;
 
-          pushNoTrans();
-          const _syncGuardTimer = setTimeout(() => { popNoTrans(); }, 6000);
-          try {
-            if (typeof forceSyncNow === 'function') {
-              await forceSyncNow(true);
-            } else if (typeof window !== 'undefined' && typeof window.forceSyncNow === 'function') {
-              await window.forceSyncNow(true);
-            }
-          } finally {
-            clearTimeout(_syncGuardTimer);
-            setTimeout(() => { popNoTrans(); }, 500);
-          }
-        }, 1500);
+    if (_visibilitySyncTimer) clearTimeout(_visibilitySyncTimer);
+    _visibilitySyncTimer = null;
+
+    const timeSinceLastSync = Date.now() - (appState.lastSyncTime || 0);
+    // Fresh enough already — nothing to do.
+    if (timeSinceLastSync <= 2000) return;
+
+    const scheduledAt = Date.now();
+
+    const runForegroundSync = async () => {
+      await _refreshSessionIfNeeded();
+      const pushNoTrans = (typeof pushNoTransition === 'function')
+        ? pushNoTransition
+        : (typeof window !== 'undefined' && typeof window.pushNoTransition === 'function' ? window.pushNoTransition : () => {});
+      const popNoTrans = (typeof popNoTransition === 'function')
+        ? popNoTransition
+        : (typeof window !== 'undefined' && typeof window.popNoTransition === 'function' ? window.popNoTransition : () => {});
+
+      pushNoTrans();
+      const _syncGuardTimer = setTimeout(() => { popNoTrans(); }, 6000);
+      try {
+        if (typeof forceSyncNow === 'function') {
+          await forceSyncNow(true);
+        } else if (typeof window !== 'undefined' && typeof window.forceSyncNow === 'function') {
+          await window.forceSyncNow(true);
+        }
+      } finally {
+        clearTimeout(_syncGuardTimer);
+        setTimeout(() => { popNoTrans(); }, 500);
       }
-    }
+    };
+
+    const startWhenQuiet = () => {
+      _visibilitySyncTimer = null;
+      const deferredFor = Date.now() - scheduledAt;
+      // Never start the heavy sync under the user's finger: retry until the screen
+      // has been idle for _FOREGROUND_SYNC_QUIET_MS (with a hard cap so a user who
+      // keeps scrolling still gets fresh data eventually).
+      if (_isScreenBeingTouched() && deferredFor < _FOREGROUND_SYNC_MAX_DEFER_MS) {
+        _visibilitySyncTimer = setTimeout(startWhenQuiet, _FOREGROUND_SYNC_POLL_MS);
+        return;
+      }
+      _visibilitySyncTimer = setTimeout(() => {
+        _visibilitySyncTimer = null;
+        runForegroundSync();
+      }, 0);
+    };
+
+    _visibilitySyncTimer = setTimeout(startWhenQuiet, _FOREGROUND_SYNC_MIN_DELAY_MS);
   }
 
   function _handleAppResumed() {
+    // FIX (duplicate resume work): Android fires BOTH visibilitychange and the
+    // Capacitor appStateChange for a single resume. Everything below is expensive
+    // (auto-lock check, modal restore, a fresh realtime WebSocket, the deferred
+    // full sync), so the whole handler — not only its tail — runs once per resume
+    // cycle. The 800ms window is far shorter than any real background trip.
+    if (_resumeDebounceTimer) return;
+    _resumeDebounceTimer = setTimeout(() => { _resumeDebounceTimer = null; }, 800);
+
     // AUTO-LOCK: Check if the app should lock on resume based on user's auto-lock settings.
     try {
       const autoLockSetting = localStorage.getItem('settings_auto_lock_delay') || 'disabled';
@@ -194,9 +251,6 @@
     if (!_isNativeAndroid && !_isWebMode && typeof window !== 'undefined' && typeof window.showResumeOverlay === 'function') {
       window.showResumeOverlay();
     }
-
-    if (_resumeDebounceTimer) return;
-    _resumeDebounceTimer = setTimeout(() => { _resumeDebounceTimer = null; }, 800);
 
     if (_isNativeAndroid && typeof window !== 'undefined') {
       window._contentPaintNotified = false;

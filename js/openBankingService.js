@@ -26,11 +26,16 @@
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
+  // Built-in fallback catalogue. `name` must stay byte-identical to the name
+  // Enable Banking publishes on GET /aspsps, because that exact string is what
+  // POST /auth accepts; `country` matters just as much (Revolut is registered
+  // under GB, not GR) and used to be hardcoded to GR for every bank.
   var GREEK_BANKS = [
     {
       id: 'nbg',
       name: 'National Bank of Greece',
       displayName: 'Εθνική Τράπεζα (NBG)',
+      country: 'GR',
       color: '#004f80',
       icon: 'fa-solid fa-building-columns',
       badge: 'Ελλάδα'
@@ -39,6 +44,7 @@
       id: 'eurobank',
       name: 'Eurobank',
       displayName: 'Eurobank',
+      country: 'GR',
       color: '#d6001c',
       icon: 'fa-solid fa-building-columns',
       badge: 'Ελλάδα'
@@ -47,6 +53,7 @@
       id: 'alpha',
       name: 'Alpha Bank',
       displayName: 'Alpha Bank',
+      country: 'GR',
       color: '#002663',
       icon: 'fa-solid fa-building-columns',
       badge: 'Ελλάδα'
@@ -55,6 +62,7 @@
       id: 'piraeus',
       name: 'Piraeus Bank',
       displayName: 'Τράπεζα Πειραιώς',
+      country: 'GR',
       color: '#d49b00',
       icon: 'fa-solid fa-building-columns',
       badge: 'Ελλάδα'
@@ -63,6 +71,7 @@
       id: 'revolut',
       name: 'Revolut',
       displayName: 'Revolut',
+      country: 'GB',
       color: '#0075eb',
       icon: 'fa-solid fa-credit-card',
       badge: 'EU / Digital'
@@ -89,10 +98,13 @@
   // (Enable Banking) through /api/bank-institutions, so it is always the current
   // official artwork instead of a locally stored/outdated copy. The name → URL
   // mapping is cached (12h) so repeat openings are instant and offline-safe.
-  var INSTITUTIONS_CACHE_KEY = 'ba_bank_institutions_logos_v1';
+  var INSTITUTIONS_CACHE_KEY = 'ba_bank_institutions_logos_v2';
   var INSTITUTIONS_CACHE_TTL = 12 * 60 * 60 * 1000; // 12 hours
-  var _logoCache = null;   // { at: number, map: { normalizedName: logoUrl } }
+  var _logoCache = null;   // { at: number, map: { normalizedName: logoUrl }, list: Array }
   var _logoPromise = null;
+  // normalizedName → ISO country of the provider's ASPSP entry. /api/bank-auth
+  // needs it because a bank's country is part of its identity (Revolut = GB).
+  var _institutionCountries = {};
 
   function normalizeBankName(name) {
     var raw = String(name == null ? '' : name);
@@ -161,7 +173,11 @@
    */
   async function getInstitutionLogos() {
     var cached = readLogoCache();
-    if (cached && (Date.now() - cached.at) < INSTITUTIONS_CACHE_TTL) return cached.map;
+    if (cached && (Date.now() - cached.at) < INSTITUTIONS_CACHE_TTL) {
+      // Warm the country map even on a cache hit (e.g. after an app restart).
+      if (Array.isArray(cached.list)) indexInstitutionCountries(cached.list);
+      return cached.map;
+    }
     if (_logoPromise) return _logoPromise;
 
     _logoPromise = (async function () {
@@ -179,7 +195,8 @@
           var versioned = withLogoTtl(inst.logo);
           if (key && versioned) map[key] = versioned;
         });
-        writeLogoCache({ at: Date.now(), map: map });
+        indexInstitutionCountries(institutions);
+        writeLogoCache({ at: Date.now(), map: map, list: institutions });
         return map;
       } catch (e) {
         console.warn('[OpenBanking] Could not load bank logos from provider:', e && e.message ? e.message : e);
@@ -191,6 +208,59 @@
     })();
 
     return _logoPromise;
+  }
+
+  /**
+   * The provider's live ASPSP catalogue (names, countries, logos, consent
+   * ceilings). The connect modal uses it so the bank the user taps is exactly
+   * the one POST /auth will be asked for — a name/country mismatch is rejected
+   * by Enable Banking with HTTP 422.
+   * @returns {Promise<Array>} empty array when the catalogue is unavailable
+   */
+  async function getInstitutions() {
+    var cached = readLogoCache();
+    if (cached && Array.isArray(cached.list) && (Date.now() - cached.at) < INSTITUTIONS_CACHE_TTL) {
+      indexInstitutionCountries(cached.list);
+      return cached.list;
+    }
+
+    await getInstitutionLogos();
+    cached = readLogoCache();
+    var list = cached && Array.isArray(cached.list) ? cached.list : [];
+    indexInstitutionCountries(list);
+    return list;
+  }
+
+  function indexInstitutionCountries(list) {
+    var map = {};
+    (list || []).forEach(function (inst) {
+      if (!inst || !inst.name) return;
+      var key = normalizeBankName(inst.name);
+      if (!key) return;
+      map[key] = String(inst.country || '').toUpperCase();
+    });
+    if (Object.keys(map).length > 0) _institutionCountries = map;
+    return map;
+  }
+
+  /** Country the provider publishes for a bank (falls back to the registry). */
+  function resolveBankCountry(bankName) {
+    var key = normalizeBankName(bankName);
+    if (key && _institutionCountries[key]) return _institutionCountries[key];
+    var registryBank = findRegistryBank(bankName);
+    return (registryBank && registryBank.country) || 'GR';
+  }
+
+  function findRegistryBank(bankName) {
+    var key = normalizeBankName(bankName);
+    if (!key) return null;
+    for (var i = 0; i < GREEK_BANKS.length; i++) {
+      var bank = GREEK_BANKS[i];
+      if (normalizeBankName(bank.name) === key || normalizeBankName(bank.displayName) === key) {
+        return bank;
+      }
+    }
+    return null;
   }
 
   /**
@@ -334,6 +404,30 @@
   // connection is still completed server-side by the web bounce page, so the app
   // detects it as soon as it becomes visible again.
   // ---------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
+  // PSU type (private vs business account)
+  //
+  // Enable Banking asks the ASPSP for the matching login flow. When the PSU type
+  // does not match the account the bank either fails the SCA or returns an
+  // account list without the user's accounts — which looks like a broken
+  // connection for business customers.
+  // ---------------------------------------------------------------------------
+  var PSU_TYPE_KEY = 'ob_psu_type';
+
+  function readPsuType() {
+    try {
+      return localStorage.getItem(PSU_TYPE_KEY) === 'business' ? 'business' : 'personal';
+    } catch (e) {
+      return 'personal';
+    }
+  }
+
+  function setPsuType(value) {
+    var next = value === 'business' ? 'business' : 'personal';
+    try { localStorage.setItem(PSU_TYPE_KEY, next); } catch (e) { /* ignore */ }
+    return next;
+  }
+
   var AUTH_PENDING_KEY = 'ob_auth_pending';
   var AUTH_PENDING_TTL = 20 * 60 * 1000;
   var recoveryInFlight = false;
@@ -684,6 +778,15 @@
    * Start bank connection OAuth flow
    */
   async function startConnection(bankName) {
+    // Accepts a bank name (legacy callers / inline onclick) or the bank object
+    // rendered by the modal (which also carries the provider's country).
+    var bank = (bankName && typeof bankName === 'object') ? bankName : null;
+    var name = String((bank && bank.name) || bankName || '').trim();
+    if (!name) {
+      notify('Δεν επιλέχθηκε τράπεζα.', 'warning');
+      return;
+    }
+
     var token = await getAuthToken();
     if (!token) {
       notify('Απαιτείται σύνδεση στο Budget Assistant.', 'warning');
@@ -705,8 +808,12 @@
           'Authorization': 'Bearer ' + token
         },
         body: JSON.stringify({
-          bankName: bankName,
-          country: 'GR',
+          bankName: name,
+          // The provider identifies a bank by name + country; both are sent
+          // explicitly (Revolut, for example, is published under GB).
+          country: (bank && bank.country) || resolveBankCountry(name),
+          psuType: readPsuType(),
+          language: 'el',
           redirectUrl: redirectUrl
         })
       });
@@ -729,7 +836,7 @@
 
         // Remember the bank and that an authorization is in flight, so that the
         // app can finish the flow when it comes back (even without a deep link).
-        markAuthPending(bankName);
+        markAuthPending(name);
         installResumeListeners();
 
         // Redirect user to the secure Bank portal for SCA
@@ -796,12 +903,18 @@
       }
 
       var count = data.syncedCount || 0;
+      var bankErrors = Array.isArray(data.errors) ? data.errors : [];
 
       if (!opts.silent) {
         if (count > 0) {
           notify('Συγχρονίστηκαν ' + count + ' νέες τραπεζικές κινήσεις!', 'success');
-        } else {
+        } else if (bankErrors.length === 0) {
           notify('Όλες οι τραπεζικές κινήσεις είναι ενημερωμένες.', 'info');
+        }
+        if (bankErrors.length > 0) {
+          // A failed account is almost always an expired or insufficient
+          // consent: say so instead of pretending everything is up to date.
+          notify('Κάποιοι τραπεζικοί λογαριασμοί δεν συγχρονίστηκαν. Δοκιμάστε αποσύνδεση και επανασύνδεση της τράπεζας.', 'warning');
         }
       }
 
@@ -878,6 +991,76 @@
     }
   }
 
+  function countryBadge(country) {
+    var code = String(country || '').toUpperCase();
+    if (code === 'GR') return 'Ελλάδα';
+    if (code === 'GB') return 'Ην. Βασίλειο';
+    if (code === 'CY') return 'Κύπρος';
+    return code || 'ΕΕ';
+  }
+
+  /**
+   * Merge the provider catalogue with the built-in registry: every provider
+   * ASPSP is listed (including banks the app never hardcoded), and registry
+   * banks missing from the catalogue are kept so a temporarily incomplete
+   * response cannot hide e.g. Revolut.
+   */
+  function buildAvailableBanks(liveInstitutions) {
+    var live = Array.isArray(liveInstitutions) ? liveInstitutions : [];
+    var seen = {};
+    var banks = [];
+
+    live.forEach(function (inst) {
+      var name = String((inst && inst.name) || '').trim();
+      if (!name) return;
+      var key = normalizeBankName(name);
+      if (!key || seen[key]) return;
+      seen[key] = true;
+      var reg = findRegistryBank(name);
+      var country = String((inst && inst.country) || (reg && reg.country) || 'GR').toUpperCase();
+      banks.push({
+        id: (reg && reg.id) || key,
+        name: name,
+        displayName: (reg && reg.displayName) || name,
+        country: country,
+        color: (reg && reg.color) || '#38bdf8',
+        icon: (reg && reg.icon) || 'fa-solid fa-building-columns',
+        badge: countryBadge(country)
+      });
+    });
+
+    GREEK_BANKS.forEach(function (bank) {
+      var key = normalizeBankName(bank.name);
+      if (!key || seen[key]) return;
+      seen[key] = true;
+      banks.push({
+        id: bank.id,
+        name: bank.name,
+        displayName: bank.displayName,
+        country: bank.country,
+        color: bank.color,
+        icon: bank.icon,
+        badge: bank.badge
+      });
+    });
+
+    var order = {};
+    GREEK_BANKS.forEach(function (bank, index) {
+      order[normalizeBankName(bank.name)] = index;
+    });
+
+    banks.sort(function (a, b) {
+      var aKey = normalizeBankName(a.name);
+      var bKey = normalizeBankName(b.name);
+      var aRank = Object.prototype.hasOwnProperty.call(order, aKey) ? order[aKey] : 999;
+      var bRank = Object.prototype.hasOwnProperty.call(order, bKey) ? order[bKey] : 999;
+      if (aRank !== bRank) return aRank - bRank;
+      return a.displayName.localeCompare(b.displayName, 'el');
+    });
+
+    return banks;
+  }
+
   /**
    * UI: Open modal to manage / connect Greek Banks
    */
@@ -904,15 +1087,20 @@
 
     var connections = [];
     var bankLogos = {};
+    var availableBanks = GREEK_BANKS.slice();
     try {
-      // Logos come live from the provider (cached 12h) — fetched in parallel with
-      // the connections so opening the modal adds no extra latency.
+      // The provider catalogue (names + countries + logos, cached 12h) is
+      // fetched in parallel with the connections so opening the modal adds no
+      // extra latency, and it guarantees every row matches an ASPSP /auth
+      // accepts.
       var bootstrap = await Promise.all([
         getConnectedBanks().catch(function () { return []; }),
-        getInstitutionLogos().catch(function () { return {}; })
+        getInstitutionLogos().catch(function () { return {}; }),
+        getInstitutions().catch(function () { return []; })
       ]);
       connections = bootstrap[0] || [];
       bankLogos = bootstrap[1] || {};
+      availableBanks = buildAvailableBanks(bootstrap[2]);
     } catch (_) {}
 
     var connectedHtml = '';
@@ -956,7 +1144,7 @@
       );
     }
 
-    var banksHtml = GREEK_BANKS.map(function (bank) {
+    var banksHtml = availableBanks.map(function (bank) {
       return (
         '<div class="bank-card-item" onclick="OpenBankingService.startConnection(\'' + bank.name + '\')" ' +
         'style="display:flex; align-items:center; justify-content:space-between; padding:12px 14px; margin-bottom:8px; ' +
@@ -998,6 +1186,13 @@
         '<div style="background:rgba(56, 189, 248, 0.08); border-left:3px solid var(--primary, #38bdf8); padding:10px 14px; border-radius:8px; margin-bottom:16px; font-size:12px; color:var(--text-secondary, #cbd5e1); line-height:1.4;">' +
           'Η σύνδεση γίνεται απευθείας στο ασφαλές e-banking της τράπεζάς σας. Η εφαρμογή έχει πρόσβαση <strong>μόνο για ανάγνωση</strong> κινήσεων και υπολοίπου.' +
         '</div>' +
+
+        '<label style="display:flex; align-items:center; gap:8px; margin:0 0 14px; font-size:12px; color:var(--text-secondary, #cbd5e1); cursor:pointer;">' +
+          '<input type="checkbox" ' + (readPsuType() === 'business' ? 'checked' : '') +
+          ' onchange="OpenBankingService.setPsuType(this.checked ? \'business\' : \'personal\')" ' +
+          'style="width:15px; height:15px; accent-color:var(--primary, #38bdf8); cursor:pointer;">' +
+          '<span>Σύνδεση με <strong>επαγγελματικό</strong> λογαριασμό</span>' +
+        '</label>' +
 
         '<div style="max-height:360px; overflow-y:auto; margin-bottom:16px; padding-right:4px;">' +
           connectedHtml +
@@ -1047,7 +1242,10 @@
     checkForAuthCallback: checkForAuthCallback,
     getConnectedBanks: getConnectedBanks,
     getInstitutionLogos: getInstitutionLogos,
+    getInstitutions: getInstitutions,
+    resolveBankCountry: resolveBankCountry,
     resolveBankLogo: resolveBankLogo,
+    setPsuType: setPsuType,
     disconnectBank: disconnectBank,
     recoverPendingConnection: recoverPendingConnection
   };

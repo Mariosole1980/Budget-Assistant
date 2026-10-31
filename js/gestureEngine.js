@@ -404,15 +404,39 @@ function initSwipeToBack() {
           const accessToken = hashParams.get('access_token') || searchParams.get('access_token');
           const refreshToken = hashParams.get('refresh_token') || searchParams.get('refresh_token');
 
-          // Check if this deep link is for Open Banking callback
-          // Bank callbacks always carry the JSON `state` produced by /api/bank-auth
-          // (a Supabase PKCE login only carries `code`), plus our own explicit flags.
-          const isBankCallback = data.url.includes('bank') ||
+          // Check if this deep link is for Open Banking callback.
+          //
+          // Detection rules (ordered from most to least specific):
+          //   1. Explicit bank flags in the URL (?bank=, ?bank_auth=, ?bank_auth_callback=).
+          //   2. `state` param that looks like our bank JSON payload { userId, bankName, timestamp }.
+          //      — Supabase PKCE OAuth also uses `state`, but as an opaque random string,
+          //        NOT a JSON object with userId/bankName. So we parse it to distinguish.
+          //   3. Plain `success=true` with no access_token (our custom scheme bounce page).
+          //
+          // A URL is NOT a bank callback if it carries access_token or refresh_token
+          // (that is a completed Supabase OAuth session redirect, handle it below).
+          const stateVal = searchParams.get('state') || hashParams.get('state') || '';
+          let hasBankState = false;
+          if (stateVal) {
+            try {
+              const parsed = JSON.parse(stateVal);
+              hasBankState = !!(parsed && parsed.userId && parsed.bankName);
+            } catch (_) {
+              try {
+                const parsed2 = JSON.parse(decodeURIComponent(stateVal));
+                hasBankState = !!(parsed2 && parsed2.userId && parsed2.bankName);
+              } catch (__) { /* not our JSON state */ }
+            }
+          }
+
+          const isBankCallback = !accessToken && !refreshToken && (
+            data.url.includes('bank') ||
             searchParams.has('bank') || hashParams.has('bank') ||
             searchParams.has('bank_auth') || hashParams.has('bank_auth') ||
             searchParams.has('bank_auth_callback') || hashParams.has('bank_auth_callback') ||
-            searchParams.has('state') || hashParams.has('state') ||
-            searchParams.has('success') || hashParams.has('success');
+            hasBankState ||
+            (searchParams.get('success') === 'true' || hashParams.get('success') === 'true')
+          );
           if (isBankCallback) {
             console.log('[DeepLink] Open Banking callback intercepted:', data.url);
             if (window.Capacitor?.Plugins?.Browser?.close) {

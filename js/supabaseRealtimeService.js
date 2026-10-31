@@ -1155,6 +1155,24 @@ async function promptReauthForPendingSync(count) {
 if (typeof window !== 'undefined') window.promptReauthForPendingSync = promptReauthForPendingSync;
 let _forceSyncInFlight = null;
 
+/**
+ * Cheap structural signature of the non-transaction UI state that the sync tail
+ * re-renders (categories, accounts, recurring templates, budgets, notes). It lets
+ * forceSyncNow() skip a pointless full updateUI() pass when a resume sync came
+ * back with exactly the same data set.
+ */
+function _buildSidecarSignature() {
+  // Accounts/categories are keyed by name in some code paths, so fall back to it.
+  const idList = (arr) => (arr || []).map(x => (x && (x.id || x.name)) || '').join(',');
+  return [
+    (state.categories || []).length, idList(state.categories),
+    (state.accounts || []).length, idList(state.accounts),
+    (state.recurringTemplates || []).length, idList(state.recurringTemplates),
+    (state.budgets || []).length, idList(state.budgets),
+    (state.notes || []).length, idList(state.notes)
+  ].join('|');
+}
+
 async function forceSyncNow(silent = false) {
   if (!state.supabaseClient || !state.currentUser) {
     if (!silent) {
@@ -1178,6 +1196,9 @@ async function forceSyncNow(silent = false) {
   _forceSyncInFlight = (async () => {
     state.syncStatus = 'syncing';
     updateSyncStatusIndicator();
+
+    // Snapshot before the sync mutates state (see the resume-freeze guard at the tail).
+    const _sidecarSigBefore = _buildSidecarSignature();
 
     // Suppress realtime events for the duration of this sync
     suppressRealtimeFor(4000);
@@ -1488,9 +1509,29 @@ async function forceSyncNow(silent = false) {
       cleanCrossLanguageRecurringDuplicates();
       processRecurringTemplates();
       cleanCrossLanguageRecurringDuplicates();
-      localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
-      if (state.currentUser && state.currentUser.id) {
-        localStorage.setItem('offline_transactions_owner', state.currentUser.id);
+
+      // Recurring materialisation can append rows after the id comparison above,
+      // so the "did anything change" check is re-evaluated once it has run.
+      const txSetChanged = dataChanged || (state.transactions || []).length !== dedupedCombined.length;
+
+      // ANTI-FREEZE: rewriting the offline cache means serialising EVERY transaction
+      // (a multi-MB string on long histories) synchronously on the main thread. Only
+      // do that when something actually changed; otherwise hand it to an idle slot so
+      // a tap that is already queued gets served first.
+      const persistOfflineTransactions = () => {
+        try {
+          localStorage.setItem('offline_transactions', JSON.stringify(state.transactions));
+          if (state.currentUser && state.currentUser.id) {
+            localStorage.setItem('offline_transactions_owner', state.currentUser.id);
+          }
+        } catch (e) { }
+      };
+      if (txSetChanged) {
+        persistOfflineTransactions();
+      } else if (typeof requestIdleCallback === 'function') {
+        requestIdleCallback(persistOfflineTransactions, { timeout: 3000 });
+      } else {
+        setTimeout(persistOfflineTransactions, 800);
       }
 
       // Sync notes, budgets & AI conversations. These are independent of each
@@ -1524,12 +1565,25 @@ async function forceSyncNow(silent = false) {
         lastSyncEl.textContent = d.toLocaleTimeString(state.lang === 'el' ? 'el-GR' : 'en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
       }
 
-      calculateInitialBalances();
-      pushNoTransition();
-      updateUI();
-      setTimeout(() => {
-        popNoTransition();
-      }, 1000);
+      // ANTI-FREEZE (resume tap latency): the full updateUI() pass is what kept the
+      // main thread busy and made the first tap after returning from the background
+      // feel ignored for 1-2s. When the round-trip produced no changes (the normal
+      // outcome after a short background trip) only the header / sync badge is
+      // refreshed: the tab DOM is left untouched and the next tap re-renders from the
+      // already-updated state, so nothing is ever shown stale for longer than a tap.
+      const sidecarChanged = _sidecarSigBefore !== _buildSidecarSignature();
+      if (txSetChanged || sidecarChanged) {
+        calculateInitialBalances();
+        pushNoTransition();
+        updateUI();
+        setTimeout(() => {
+          popNoTransition();
+        }, 1000);
+      } else if (typeof updateHeaderAndSync === 'function') {
+        updateHeaderAndSync();
+      } else if (typeof window !== 'undefined' && typeof window.updateHeaderAndSync === 'function') {
+        window.updateHeaderAndSync();
+      }
 
       // Compute how many transactions are genuinely new
       const newCount = dedupedCombined.filter(t => !prevIdSet.has(String(t.id || ''))).length;

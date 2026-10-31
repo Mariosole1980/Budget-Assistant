@@ -24,12 +24,23 @@ export async function onRequestGet(context) {
   const corsHeaders = sec.headers;
 
   try {
-    const bankService = new BankService(env);
-    const institutions = await bankService.getInstitutions('GR');
+    const url = new URL(request.url);
+    const requested = (url.searchParams.get('country') || 'GR').trim().toUpperCase();
+    const country = /^[A-Z]{2}$/.test(requested) ? requested : 'GR';
 
-    return new Response(JSON.stringify({ institutions }), {
+    const bankService = new BankService(env);
+    const { institutions, source, configured } = await bankService.getInstitutionsDetailed(country);
+
+    // `source`/`configured` let the app warn when it is showing the built-in
+    // list instead of the provider's live catalogue (a bank picked from a stale
+    // list is exactly what makes /auth fail with "ASPSP not found").
+    return new Response(JSON.stringify({ institutions, source, configured }), {
       status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/json',
+        'Cache-Control': 'public, max-age=300'
+      }
     });
   } catch (err) {
     console.error('[bank-institutions] Error:', err);

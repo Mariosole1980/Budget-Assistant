@@ -201,6 +201,9 @@ const providerInstitutionFixtures = [
   { name: 'Eurobank', country: 'GR', logo: 'https://enablebanking.com/brands/GR/Eurobank/' },
   { name: 'Alpha Bank', country: 'GR', logo: 'https://enablebanking.com/brands/GR/Alpha%20Bank/' },
   { name: 'Piraeus Bank', country: 'GR', logo: 'https://enablebanking.com/brands/GR/Piraeus%20Bank/' },
+  // A bank the app never hardcoded: the catalogue must still offer it, because
+  // a bank missing from the list simply cannot be connected.
+  { name: 'Optima Bank', country: 'GR', logo: 'https://enablebanking.com/brands/GR/Optima%20Bank/' },
   { name: 'Revolut', country: 'GR', logo: 'https://enablebanking.com/brands/GR/Revolut/' },
   // Must be dropped by the https-only sanitizer:
   { name: 'Evil Bank', country: 'GR', logo: 'javascript:alert(1)' },
@@ -295,4 +298,68 @@ test('OpenBankingService: connect modal renders provider logos for connected and
   // Banks without a resolved logo still render an icon tile instead of nothing.
   assert.ok(html.includes('fa-solid fa-building-columns'));
   assert.ok(OpenBankingService.resolveBankLogo('Eurobank').startsWith(eurobankLogo));
+});
+
+test('OpenBankingService: connect modal lists banks known only to the provider catalogue', async () => {
+  const originalFetch = global.fetch;
+  global.fetch = stubBankApi([], []);
+  try {
+    await OpenBankingService.openConnectModal();
+  } finally {
+    global.fetch = originalFetch;
+  }
+
+  const html = global.document.getElementById('open-banking-modal').innerHTML;
+  assert.ok(html.includes('Optima Bank'), 'the provider catalogue must be rendered, not just the hardcoded five');
+  assert.ok(html.includes('Σύνδεση με <strong>επαγγελματικό</strong> λογαριασμό'),
+    'business accounts need the PSU-type switch, otherwise the bank shows no accounts');
+});
+
+test('OpenBankingService: startConnection sends the ASPSP country and the PSU type', async () => {
+  const originalFetch = global.fetch;
+  const originalHref = global.window.location.href;
+  const calls = [];
+
+  global.fetch = async (url, options) => {
+    calls.push({
+      url: String(url),
+      body: options && options.body ? JSON.parse(options.body) : null
+    });
+    const payload = JSON.stringify({ url: 'https://auth.enablebanking.com/ais/start?x=1' });
+    return { ok: true, status: 200, text: async () => payload, json: async () => JSON.parse(payload) };
+  };
+  global.window.state = { session: { access_token: 'test-token' } };
+  global.localStorage.setItem('ob_psu_type', 'business');
+
+  try {
+    // The modal passes the bank object, which carries the provider's country.
+    await OpenBankingService.startConnection({ name: 'Revolut', country: 'GB' });
+  } finally {
+    global.fetch = originalFetch;
+    delete global.window.state;
+    global.window.location.href = originalHref;
+    global.localStorage.removeItem('ob_psu_type');
+    global.localStorage.removeItem('ob_auth_pending');
+    global.localStorage.removeItem('ob_auth_bank');
+  }
+
+  const posted = calls.filter((call) => call.url.includes('/api/bank-auth'));
+  assert.equal(posted.length, 1, 'expected exactly one /api/bank-auth call');
+  assert.equal(posted[0].body.bankName, 'Revolut');
+  assert.equal(posted[0].body.country, 'GB', 'Revolut is published under GB — sending GR makes /auth fail');
+  assert.equal(posted[0].body.psuType, 'business');
+  assert.equal(posted[0].body.language, 'el');
+  assert.equal(posted[0].body.redirectUrl, 'https://www.budgetassistant.org/index.html');
+});
+
+test('OpenBankingService: registry keeps each bank country (Revolut is GB)', () => {
+  const countries = {};
+  OpenBankingService.supportedBanks.forEach((bank) => { countries[bank.id] = bank.country; });
+
+  assert.equal(countries.nbg, 'GR');
+  assert.equal(countries.eurobank, 'GR');
+  assert.equal(countries.alpha, 'GR');
+  assert.equal(countries.piraeus, 'GR');
+  assert.equal(countries.revolut, 'GB');
+  assert.equal(OpenBankingService.resolveBankCountry('Eurobank'), 'GR');
 });

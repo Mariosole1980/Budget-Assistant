@@ -1,5 +1,5 @@
 import { validateRequest, corsHeadersFor, getSupabasePublicConfig, getSupabaseServiceConfig } from './_security.js';
-import { BankService, importBankTransactions } from './_bank_service.js';
+import { BankService, importBankTransactions, psuHeadersFromRequest } from './_bank_service.js';
 
 export async function onRequestOptions(context) {
   const { request } = context;
@@ -68,7 +68,7 @@ export async function onRequestPost(context) {
 
   try {
     const { supabaseUrl, serviceRoleKey } = supabaseService;
-    const bankService = new BankService(env);
+    const bankService = new BankService(env, { psuHeaders: psuHeadersFromRequest(request) });
 
     // 1. Fetch user's active bank connections & accounts
     const acctsRes = await fetch(`${supabaseUrl}/rest/v1/bank_accounts?user_id=eq.${encodeURIComponent(userId)}&select=*,bank_connections!inner(status,aspsp_name)`, {
@@ -96,7 +96,7 @@ export async function onRequestPost(context) {
       });
     }
 
-    const { syncedCount, transactions } = await importBankTransactions({
+    const { syncedCount, transactions, errors } = await importBankTransactions({
       supabaseUrl,
       serviceRoleKey,
       userId,
@@ -107,7 +107,8 @@ export async function onRequestPost(context) {
     return new Response(JSON.stringify({
       ok: true,
       syncedCount,
-      transactions
+      transactions,
+      errors: errors || []
     }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
