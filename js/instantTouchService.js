@@ -178,23 +178,10 @@
     var isSwipeable = typeof target.matches === 'function' && target.matches(SWIPEABLE_ROW_SELECTOR);
 
     if (isSwipeable) {
-      var isSwiping = typeof document !== 'undefined' && document.body && (document.body.classList.contains('month-swipe-dragging') || document.body.classList.contains('is-swiping-month'));
-      var s = (typeof window !== 'undefined' && window.state) ? window.state : {};
-      if (isSwiping || (s && (s.isSwipingMonth || s.touchDidMove))) {
-        return;
-      }
-      // Defer .is-pressed: a horizontal swipe within SWIPEABLE_PRESS_DELAY_MS will
-      // cancel the timer before the class is ever applied.
-      pendingPressEl = target;
-      pendingPressTimer = setTimeout(function () {
-        pendingPressTimer = null;
-        if (pendingPressEl) {
-          currentPressedEl = pendingPressEl;
-          pendingPressEl = null;
-          currentPressedEl.classList.add('is-pressed');
-          triggerInstantHaptic();
-        }
-      }, SWIPEABLE_PRESS_DELAY_MS);
+      // Swipeable rows (.transaction-item, .stats-row, .stats-sub-row) double as swipe
+      // and scroll surfaces. They deliberately never get a pressed highlight or haptic tick
+      // on touch-down, completely eliminating the grey flash and "accidental selection" feeling during month swipe.
+      return;
     } else {
       // Immediate press for all other interactive elements.
       currentPressedEl = target;

@@ -230,13 +230,8 @@ button.is-pressed,
 }
 
 /* Row & Card items: subtle scale (0.985) + background highlight */
-/* Swipeable rows do not use CSS :active to prevent immediate touch grey flash */
-.transaction-item.pressed,
-.transaction-item.is-pressed,
-.stats-row.pressed,
-.stats-row.is-pressed,
-.stats-sub-row.pressed,
-.stats-sub-row.is-pressed,
+/* Swipeable rows (.transaction-item, .stats-row, .stats-sub-row) NEVER scale or turn grey on touch,
+   allowing smooth, distraction-free horizontal month swiping and vertical scrolling. */
 .settings-card:active,
 .settings-card.is-pressed,
 .settings-list-item:active,
@@ -674,7 +669,7 @@ button.is-pressed,
   -webkit-user-select: none;
 }
 
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
   .transaction-item:hover {
     background-color: var(--border);
   }
@@ -1298,9 +1293,6 @@ button.is-pressed,
   user-select: none;
 }
 
-.stats-row.pressed {
-  background-color: var(--bg-item-active, rgba(255, 255, 255, 0.05)) !important;
-}
 
 .stats-row-chevron {
   font-size: 12px;
@@ -1355,9 +1347,6 @@ button.is-pressed,
   touch-action: manipulation !important;
 }
 
-.stats-sub-row.pressed {
-  background-color: rgba(255, 255, 255, 0.03) !important;
-}
 
 .stats-sub-row:last-child {
   border-bottom: none;
