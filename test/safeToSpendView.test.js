@@ -186,7 +186,7 @@ test('SafeToSpendView: getLiquidBalance uses cashflow baseline when accounts bal
   ];
   state.transactions = [
     { type: 'income', amount: 1500, date: `${currentYear}-${currentMonth}-01` },
-    { type: 'expense', amount: 300, date: `${currentYear}-${currentMonth}-05` }
+    { type: 'expense', amount: 300, date: `${currentYear}-${currentMonth}-01` }
   ];
 
   const liquid = SafeToSpendView.getLiquidBalance();

@@ -187,7 +187,7 @@
       state.lastSwipeTime = Date.now();
       // Only the synthetic click of THIS gesture must be swallowed. A new tap
       // resets this guard in pointerdown, so the next real tap is never eaten.
-      suppressClickUntil = Date.now() + 120;
+      suppressClickUntil = Date.now() + 160;
       const direction = deltaX < 0 ? 1 : -1; // 1 = next month, -1 = prev month
       if (state.activeTab === 'trans') {
         navigateMonth(direction);
@@ -269,10 +269,27 @@
       if (!body || !body.classList) return;
       if (active) {
         body.classList.add('month-swipe-dragging');
+        var appState = getState();
+        if (appState) appState.isSwipingMonth = true;
+        var pressedRows = (typeof modal.querySelectorAll === 'function')
+          ? modal.querySelectorAll('.transaction-item.pressed, .transaction-item.is-pressed')
+          : null;
+        if (pressedRows && pressedRows.length) {
+          for (var i = 0; i < pressedRows.length; i++) {
+            var pr = pressedRows[i];
+            if (!pr || !pr.classList) continue;
+            pr.classList.remove('pressed');
+            pr.classList.remove('is-pressed');
+          }
+        }
         dragGuardTimer = setTimeout(function () { setDragVisuals(false); }, 1500);
         return;
       }
       body.classList.remove('month-swipe-dragging');
+      var appState = getState();
+      if (appState) {
+        setTimeout(function () { appState.isSwipingMonth = false; }, 100);
+      }
       var pressedRows = (typeof modal.querySelectorAll === 'function')
         ? modal.querySelectorAll('.transaction-item.pressed, .transaction-item.is-pressed')
         : null;

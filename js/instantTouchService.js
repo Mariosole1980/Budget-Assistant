@@ -54,7 +54,7 @@
   // How long to wait before adding .is-pressed on swipeable rows (transaction-item etc.).
   // During this window a horizontal move cancels the pending press before the class is
   // ever applied, so swiping months never briefly highlights a transaction row.
-  var SWIPEABLE_PRESS_DELAY_MS = 60; // ms
+  var SWIPEABLE_PRESS_DELAY_MS = 80; // ms
 
   var currentPressedEl = null;
   var pendingPressEl = null;      // element waiting for the delayed press timer
@@ -178,6 +178,11 @@
     var isSwipeable = typeof target.matches === 'function' && target.matches(SWIPEABLE_ROW_SELECTOR);
 
     if (isSwipeable) {
+      var isSwiping = typeof document !== 'undefined' && document.body && (document.body.classList.contains('month-swipe-dragging') || document.body.classList.contains('is-swiping-month'));
+      var s = (typeof window !== 'undefined' && window.state) ? window.state : {};
+      if (isSwiping || (s && (s.isSwipingMonth || s.touchDidMove))) {
+        return;
+      }
       // Defer .is-pressed: a horizontal swipe within SWIPEABLE_PRESS_DELAY_MS will
       // cancel the timer before the class is ever applied.
       pendingPressEl = target;

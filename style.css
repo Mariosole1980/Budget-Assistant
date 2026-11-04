@@ -230,13 +230,11 @@ button.is-pressed,
 }
 
 /* Row & Card items: subtle scale (0.985) + background highlight */
-.transaction-item:active,
+/* Swipeable rows do not use CSS :active to prevent immediate touch grey flash */
 .transaction-item.pressed,
 .transaction-item.is-pressed,
-.stats-row:active,
 .stats-row.pressed,
 .stats-row.is-pressed,
-.stats-sub-row:active,
 .stats-sub-row.pressed,
 .stats-sub-row.is-pressed,
 .settings-card:active,
@@ -8285,12 +8283,15 @@ body.modal-open {
 body.is-swiping-month .transaction-item,
 body.is-swiping-month .transaction-item:hover,
 body.is-swiping-month .transaction-item.pressed,
+body.is-swiping-month .transaction-item.is-pressed,
 body.is-swiping-month .stats-sub-row,
 body.is-swiping-month .stats-sub-row:hover,
 body.is-swiping-month .stats-sub-row.pressed,
+body.is-swiping-month .stats-sub-row.is-pressed,
 body.is-swiping-month .stats-row,
 body.is-swiping-month .stats-row:hover,
-body.is-swiping-month .stats-row.pressed {
+body.is-swiping-month .stats-row.pressed,
+body.is-swiping-month .stats-row.is-pressed {
   pointer-events: none !important;
   transform: none !important;
   opacity: 1 !important;
@@ -8298,7 +8299,8 @@ body.is-swiping-month .stats-row.pressed {
 
 body.is-swiping-month .transaction-item,
 body.is-swiping-month .transaction-item:hover,
-body.is-swiping-month .transaction-item.pressed {
+body.is-swiping-month .transaction-item.pressed,
+body.is-swiping-month .transaction-item.is-pressed {
   background-color: var(--bg-card) !important;
 }
 

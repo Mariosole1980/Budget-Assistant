@@ -303,9 +303,6 @@
           }
 
           clearTimeout(feedbackTimer);
-          if (!itemTouchMoved && !appState.touchDidMove && !appState.isSwipingMonth) {
-            item.classList.add('pressed');
-          }
 
           if (appState.selectionMode) return;
           pressTimer = setTimeout(function () {
@@ -322,7 +319,7 @@
           if (e.touches && e.touches[0]) {
             var dx = e.touches[0].clientX - touchStartX;
             var dy = e.touches[0].clientY - touchStartY;
-            if (Math.hypot(dx, dy) > 24) {
+            if (Math.abs(dx) >= 6 || Math.abs(dy) >= 16) {
               clearTimeout(pressTimer);
               clearTimeout(feedbackTimer);
               item.classList.remove('pressed');
@@ -380,7 +377,7 @@
         item.onclick = function () {
           // itemTouchMoved is per-gesture: it only suppresses the ghost click of
           // the drag that just ended, never a deliberate tap that follows it.
-          if (itemTouchMoved) {
+          if (itemTouchMoved || appState.touchDidMove || appState.isSwipingMonth) {
             isLongPress = false;
             itemTouchMoved = false;
             appState.touchDidMove = false;
