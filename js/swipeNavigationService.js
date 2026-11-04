@@ -455,7 +455,6 @@
 
     currentListEl.style.transition = 'none';
     currentListEl.style.transform = 'translateX(' + inX + 'px)';
-    currentListEl.style.opacity = '0.75';
 
     const rAF = (typeof requestAnimationFrame === 'function')
       ? requestAnimationFrame
@@ -463,15 +462,13 @@
 
     // Instant snap into place (60ms GPU transition)
     rAF(() => {
-      currentListEl.style.transition = 'transform 65ms cubic-bezier(0.1, 0.9, 0.2, 1), opacity 65ms ease';
+      currentListEl.style.transition = 'transform 65ms cubic-bezier(0.1, 0.9, 0.2, 1)';
       currentListEl.style.transform = 'translateX(0)';
-      currentListEl.style.opacity = '1';
 
       setTimeout(() => {
         clearTimeout(watchdogTimer);
         currentListEl.style.transition = '';
         currentListEl.style.transform = '';
-        currentListEl.style.opacity = '';
 
         cleanup();
 
