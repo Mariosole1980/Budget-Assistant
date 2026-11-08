@@ -64,9 +64,29 @@
   var lastHapticTime = 0;
   var isInitialized = false;
 
-  // Selectors for rows that can be BOTH tapped AND horizontally swiped (month pager).
-  // For these we delay .is-pressed so horizontal movement is detected first.
-  var SWIPEABLE_ROW_SELECTOR = '.transaction-item, .stats-row, .stats-sub-row';
+  // Selectors for rows and cards that double as scroll and swipe surfaces.
+  // These deliberately never get a pressed highlight or haptic tick on touch-down,
+  // completely eliminating the grey flash and accidental selection feeling during scrolling & swiping.
+  var SWIPEABLE_ROW_SELECTOR = [
+    '.transaction-item',
+    '.stats-row',
+    '.stats-sub-row',
+    '.settings-card',
+    '.settings-list-item',
+    '.modern-note-card',
+    '.recurring-template-card',
+    '.category-picker-item',
+    '.subcategory-item',
+    '.account-picker-item',
+    '.budget-picker-item',
+    '.bottom-sheet-option',
+    '.photo-source-opt',
+    '.search-result-item',
+    '.search-filter-row',
+    '.settings-picker-item',
+    '.theme-card-option',
+    '.custom-select-trigger'
+  ].join(', ');
 
   var INTERACTIVE_SELECTOR = [
     'button',
@@ -174,13 +194,13 @@
     startX = e.clientX || 0;
     startY = e.clientY || 0;
 
-    // Check if this element is a swipeable row that needs the delayed press treatment.
+    // Check if this element is a scrollable/swipeable row or card that doubles as a touch/scroll surface.
     var isSwipeable = typeof target.matches === 'function' && target.matches(SWIPEABLE_ROW_SELECTOR);
 
     if (isSwipeable) {
-      // Swipeable rows (.transaction-item, .stats-row, .stats-sub-row) double as swipe
-      // and scroll surfaces. They deliberately never get a pressed highlight or haptic tick
-      // on touch-down, completely eliminating the grey flash and "accidental selection" feeling during month swipe.
+      // Scrollable rows and cards (.transaction-item, .settings-list-item, .modern-note-card, etc.)
+      // double as scroll and swipe surfaces. They deliberately never get a pressed highlight or haptic tick
+      // on touch-down, completely eliminating the grey flash and "accidental selection" feeling during scrolling and swiping.
       return;
     } else {
       // Immediate press for all other interactive elements.

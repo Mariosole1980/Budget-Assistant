@@ -1763,9 +1763,6 @@ function renderGroupedTransactions(transactions, container) {
         }
 
         clearTimeout(feedbackTimer);
-        if (!touchDidMove) {
-          item.classList.add('pressed');
-        }
 
         if (state.searchSelectMode) return;
         pressTimer = setTimeout(() => {

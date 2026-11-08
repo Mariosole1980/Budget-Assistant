@@ -75,11 +75,6 @@
         ? window.getSubcategoryDisplayName(sub, category)
         : sub;
       div.innerHTML = '<span>' + dispName + '</span>';
-      if (div.addEventListener) {
-        div.addEventListener('touchstart', () => div.classList && div.classList.add('pressed'), { passive: true });
-        div.addEventListener('touchend', () => div.classList && div.classList.remove('pressed'), { passive: true });
-        div.addEventListener('touchcancel', () => div.classList && div.classList.remove('pressed'), { passive: true });
-      }
       div.onclick = () => {
         if (typeof window !== 'undefined' && typeof window.selectSubcategory === 'function') {
           window.selectSubcategory(sub);
@@ -92,11 +87,6 @@
     newOpt.className = 'subcategory-item new-subcat';
     newOpt.innerHTML = '<div style="display:flex;align-items:center;gap:8px;"><i class="fa-solid fa-plus"></i> <span>' +
       (langDict['option_new_subcategory'] || 'Νέα υποκατηγορία...') + '</span></div>';
-    if (newOpt.addEventListener) {
-      newOpt.addEventListener('touchstart', () => newOpt.classList && newOpt.classList.add('pressed'), { passive: true });
-      newOpt.addEventListener('touchend', () => newOpt.classList && newOpt.classList.remove('pressed'), { passive: true });
-      newOpt.addEventListener('touchcancel', () => newOpt.classList && newOpt.classList.remove('pressed'), { passive: true });
-    }
     newOpt.onclick = () => {
       if (typeof window !== 'undefined' && typeof window.closeModal === 'function') {
         window.closeModal('subcategory-picker-modal');

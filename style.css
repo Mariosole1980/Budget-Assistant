@@ -195,6 +195,34 @@ button.is-pressed,
 .stats-period-btn.is-pressed,
 .stats-dropdown-item:active,
 .stats-dropdown-item.is-pressed,
+.filter-chip:active,
+.filter-chip.is-pressed,
+.search-chip:active,
+.search-chip.is-pressed,
+.time-preset-chip:active,
+.time-preset-chip.is-pressed,
+.advisor-suggestion-chip:active,
+.advisor-suggestion-chip.is-pressed,
+.clickable:active,
+.clickable.is-pressed,
+[role="button"]:active,
+[role="button"].is-pressed {
+  /* Immediate 0ms tactile compression for standalone action controls */
+  transform: scale(0.96) !important;
+  transition: transform 0.09s cubic-bezier(0.2, 0, 0, 1) !important;
+}
+
+/* Scrollable & swipeable rows, cards, and options:
+   Deliberately NEVER scale or turn grey on touch/scroll, allowing clean, distraction-free
+   vertical scrolling (scroll down / swipe up) and horizontal swiping without accidental selection visuals. */
+.settings-card:active,
+.settings-card.is-pressed,
+.settings-list-item:active,
+.settings-list-item.is-pressed,
+.modern-note-card:active,
+.modern-note-card.is-pressed,
+.recurring-template-card:active,
+.recurring-template-card.is-pressed,
 .category-picker-item:active,
 .category-picker-item.pressed,
 .category-picker-item.is-pressed,
@@ -205,45 +233,22 @@ button.is-pressed,
 .account-picker-item.is-pressed,
 .budget-picker-item:active,
 .budget-picker-item.is-pressed,
-.filter-chip:active,
-.filter-chip.is-pressed,
-.search-chip:active,
-.search-chip.is-pressed,
-.time-preset-chip:active,
-.time-preset-chip.is-pressed,
-.advisor-suggestion-chip:active,
-.advisor-suggestion-chip.is-pressed,
-.custom-select-trigger:active,
-.custom-select-trigger.is-pressed,
 .bottom-sheet-option:active,
 .bottom-sheet-option.is-pressed,
 .photo-source-opt:active,
 .photo-source-opt.is-pressed,
-.clickable:active,
-.clickable.is-pressed,
-[role="button"]:active,
-[role="button"].is-pressed {
-  /* Immediate 0ms tactile compression */
-  /* Native-style press: subtle compression, no opacity dimming */
-  transform: scale(0.96) !important;
-  transition: transform 0.09s cubic-bezier(0.2, 0, 0, 1) !important;
-}
-
-/* Row & Card items: subtle scale (0.985) + background highlight */
-/* Swipeable rows (.transaction-item, .stats-row, .stats-sub-row) NEVER scale or turn grey on touch,
-   allowing smooth, distraction-free horizontal month swiping and vertical scrolling. */
-.settings-card:active,
-.settings-card.is-pressed,
-.settings-list-item:active,
-.settings-list-item.is-pressed,
-.modern-note-card:active,
-.modern-note-card.is-pressed,
-.recurring-template-card:active,
-.recurring-template-card.is-pressed {
-  transform: scale(0.985) !important;
-  /* Native state layer: visible dark-mode press highlight */
-  background-color: var(--overlay-120) !important;
-  transition: transform 0.08s cubic-bezier(0.2, 0, 0, 1) !important;
+.custom-select-trigger:active,
+.custom-select-trigger.is-pressed,
+.search-result-item:active,
+.search-result-item.pressed,
+.search-result-item.is-pressed,
+.search-filter-row:active,
+.settings-picker-item:active,
+.theme-card-option:active {
+  transform: none !important;
+  opacity: 1 !important;
+  transition: none !important;
+  -webkit-tap-highlight-color: transparent !important;
 }
 
 /* Material-style Ripple Effect */
@@ -3643,7 +3648,8 @@ body.is-ios .modal-content {
 
 .bottom-sheet-option:hover,
 .bottom-sheet-option:active {
-  background: rgba(255, 255, 255, 0.04);
+  background: transparent !important;
+  transform: none !important;
 }
 
 .bottom-sheet-option.active {
@@ -4612,7 +4618,7 @@ body.is-ios .modal-content {
 }
 
 .custom-select-trigger:active {
-  background-color: var(--border);
+  background-color: transparent !important;
 }
 
 .custom-select-trigger-content {
@@ -4665,9 +4671,8 @@ body.is-ios .modal-content {
 
 .category-picker-item:active,
 .category-picker-item.pressed {
-  transform: scale(0.975) !important;
-  opacity: 0.88 !important;
-  transition: transform 0.02s ease-out !important;
+  transform: none !important;
+  opacity: 1 !important;
 }
 
 .category-picker-item.selected {
@@ -4736,7 +4741,7 @@ body.is-ios .modal-content {
 }
 
 .account-picker-item:active {
-  transform: scale(0.98);
+  transform: none !important;
 }
 
 .account-picker-item.selected {
@@ -4824,7 +4829,7 @@ body.is-ios .modal-content {
 }
 
 .budget-picker-item:active {
-  transform: scale(0.98);
+  transform: none !important;
 }
 
 .budget-picker-item.selected {
@@ -4896,9 +4901,8 @@ body.is-ios .modal-content {
 
 .subcategory-item:active,
 .subcategory-item.pressed {
-  transform: scale(0.975) !important;
-  opacity: 0.88 !important;
-  transition: transform 0.02s ease-out !important;
+  transform: none !important;
+  opacity: 1 !important;
 }
 
 .subcategory-item.selected {
@@ -7956,7 +7960,7 @@ body.modal-open {
 }
 
 .search-filter-row:active {
-  background-color: rgba(255, 255, 255, 0.06);
+  background-color: transparent !important;
 }
 
 .filter-row-label {
@@ -8130,7 +8134,7 @@ body.modal-open {
 }
 
 .search-result-item:active {
-  background: rgba(255, 255, 255, 0.04);
+  background: transparent !important;
 }
 
 .search-item-left {
@@ -13595,8 +13599,7 @@ body {
 }
 
 .recurring-template-card:active {
-  transform: scale(0.985);
-  background: #181d26;
+  transform: none !important;
 }
 
 .recurring-card-cat-icon {
@@ -14327,12 +14330,14 @@ body {
   border-bottom: none;
 }
 
-#more-screen .settings-group-card .settings-list-item:hover {
-  background: rgba(255, 255, 255, 0.04);
+@media (hover: hover) and (pointer: fine) {
+  html.web-mode #more-screen .settings-group-card .settings-list-item:hover {
+    background: rgba(255, 255, 255, 0.04);
+  }
 }
 
 #more-screen .settings-group-card .settings-list-item:active {
-  background: rgba(255, 255, 255, 0.08);
+  background: transparent !important;
 }
 
 #more-screen .profile-header-card {
