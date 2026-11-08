@@ -262,12 +262,12 @@ export async function onRequestPost(context) {
       connectionId = connection.id;
     }
 
-    // If the bank returned 0 authorized accounts (user did not tick any account checkbox on bank portal)
+    // If the bank returned 0 authorized accounts or cards (user did not tick any checkbox on bank portal)
     if (!sessionData.accounts || sessionData.accounts.length === 0) {
       return new Response(JSON.stringify({
         ok: true,
         warning: 'NO_ACCOUNTS_SELECTED',
-        message: 'Η σύνδεση εγκρίθηκε, αλλά δεν επιλέχθηκε κανένας λογαριασμός στη σελίδα της τράπεζας. Παρακαλούμε συνδεθείτε ξανά και επιλέξτε (τικ) τον λογαριασμό ή την κάρτα σας.',
+        message: 'Η σύνδεση εγκρίθηκε, αλλά δεν επιλέχθηκε κανένας λογαριασμός ή κάρτα στη σελίδα της τράπεζας. Παρακαλούμε συνδεθείτε ξανά και επιλέξτε (τικ) τον λογαριασμό ή την κάρτα σας.',
         connectionId: connectionId,
         accounts: [],
         syncedCount: 0
@@ -280,8 +280,15 @@ export async function onRequestPost(context) {
     // 2. Link or create accounts in public.accounts AND record in public.bank_accounts
     const accountsProcessed = [];
     for (const acc of sessionData.accounts) {
-      const displayName = acc.accountName || `${bankName || 'Τράπεζα'} (${acc.iban ? acc.iban.slice(-4) : 'Λογαριασμός'})`;
+      const isCard = Boolean(acc.isCard || acc.accountType === 'card');
+      const fallbackName = isCard
+        ? `${bankName || 'Κάρτα'} (•••• ${acc.cardMask || 'Κάρτα'})`
+        : `${bankName || 'Τράπεζα'} (${acc.iban ? acc.iban.slice(-4) : 'Λογαριασμός'})`;
+      const displayName = acc.accountName || fallbackName;
       const balanceVal = typeof acc.balance === 'number' ? acc.balance : 0.0;
+      const appAccType = isCard ? 'card' : 'bank';
+      const appAccColor = isCard ? '#f59e0b' : '#00D2FF';
+      const appAccIcon = isCard ? 'fa-credit-card' : 'fa-university';
 
       // 2a. Check if account already exists in public.accounts for this user
       let appAccountId = null;
@@ -296,7 +303,7 @@ export async function onRequestPost(context) {
         const appAccs = await appAccCheckRes.json();
         if (Array.isArray(appAccs) && appAccs.length > 0) {
           appAccountId = appAccs[0].id;
-          if (balanceVal > 0) {
+          if (balanceVal !== 0) {
             await fetch(`${supabaseUrl}/rest/v1/accounts?id=eq.${encodeURIComponent(appAccountId)}`, {
               method: 'PATCH',
               headers: {
@@ -322,11 +329,13 @@ export async function onRequestPost(context) {
           },
           body: JSON.stringify({
             name: displayName,
-            type: 'bank',
+            type: appAccType,
             balance: balanceVal,
             user_id: userId,
             currency: acc.currency || 'EUR',
-            is_active: true
+            is_active: true,
+            color: appAccColor,
+            icon: appAccIcon
           })
         });
 
@@ -339,11 +348,12 @@ export async function onRequestPost(context) {
       }
 
       // 2b. Insert or update in public.bank_accounts
+      const bankAccIban = acc.iban || (isCard && acc.cardMask ? `CARD-****${acc.cardMask}` : null);
       const bankAccRecord = {
         connection_id: connectionId,
         user_id: userId,
         account_uid: acc.uid,
-        iban: acc.iban,
+        iban: bankAccIban,
         currency: acc.currency || 'EUR',
         account_name: displayName,
         balance: balanceVal,

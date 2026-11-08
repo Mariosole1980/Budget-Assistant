@@ -347,6 +347,84 @@ test('provider mapping helpers: names, consent ceiling, PSU headers', async () =
   assert.equal(mapProviderTransaction({ transaction_amount: { amount: '0' } }), null);
 });
 
+test('credit card helpers: extractAccountUid, isCardAccount, extractCardMask, formatAccountDisplayName, collectRawAccountsFromSession', async () => {
+  const {
+    extractAccountUid,
+    isCardAccount,
+    extractCardMask,
+    formatAccountDisplayName,
+    collectRawAccountsFromSession
+  } = await import('../functions/api/_bank_service.js');
+
+  // 1. extractAccountUid
+  assert.equal(extractAccountUid('str-uid-1'), 'str-uid-1');
+  assert.equal(extractAccountUid({ uid: 'uid-2' }), 'uid-2');
+  assert.equal(extractAccountUid({ id: 'id-3' }), 'id-3');
+  assert.equal(extractAccountUid({ resource_id: 'res-4' }), 'res-4');
+  assert.equal(extractAccountUid({ card_id: 'card-5' }), 'card-5');
+  assert.equal(extractAccountUid({ account_id: { iban: 'GR12345' } }), 'GR12345');
+  assert.equal(extractAccountUid({ account_id: { masked_pan: '4532XXXXXXXX1234' } }), '4532XXXXXXXX1234');
+  assert.equal(extractAccountUid({ account_id: { other: { identification: 'ident-6' } } }), 'ident-6');
+  assert.equal(extractAccountUid({ masked_pan: '************5678' }), '************5678');
+  assert.equal(extractAccountUid(null), null);
+
+  // 2. isCardAccount
+  assert.equal(isCardAccount({ cash_account_type: 'CARD' }), true);
+  assert.equal(isCardAccount({ account_type: 'CREDIT_CARD' }), true);
+  assert.equal(isCardAccount({ product: 'Visa Gold' }), true);
+  assert.equal(isCardAccount({ details: 'Πιστωτική Κάρτα Eurobank' }), true);
+  assert.equal(isCardAccount({ account_id: { masked_pan: '4532XXXXXXXX9999' } }), true);
+  assert.equal(isCardAccount({ cash_account_type: 'CACC', iban: 'GR111' }), false);
+
+  // 3. extractCardMask
+  assert.equal(extractCardMask({ account_id: { masked_pan: '4532XXXXXXXX1234' } }), '1234');
+  assert.equal(extractCardMask({ masked_pan: '************7890' }), '7890');
+  assert.equal(extractCardMask({ iban: 'GR111' }), null);
+
+  // 4. formatAccountDisplayName
+  assert.equal(
+    formatAccountDisplayName({ cash_account_type: 'CARD', masked_pan: '************1234' }, {}, 'Eurobank'),
+    'Eurobank Πιστωτική Κάρτα (•••• 1234)'
+  );
+  assert.equal(
+    formatAccountDisplayName({ product: 'Visa Platinum', masked_pan: '************5678' }),
+    'Visa Platinum (•••• 5678)'
+  );
+  assert.equal(
+    formatAccountDisplayName({ iban: 'GR12345678901234' }),
+    'Λογαριασμός (1234)'
+  );
+
+  // 5. collectRawAccountsFromSession
+  const sessionWithCardsOnly = {
+    accounts: [],
+    card_accounts: [
+      { uid: 'card-uid-1', cash_account_type: 'CARD', masked_pan: '************1111' }
+    ]
+  };
+  const collectedCards = collectRawAccountsFromSession(sessionWithCardsOnly);
+  assert.equal(collectedCards.length, 1);
+  assert.equal(collectedCards[0].uid, 'card-uid-1');
+
+  const sessionMixed = {
+    accounts: [
+      { uid: 'acc-1', iban: 'GR111' }
+    ],
+    card_accounts: [
+      { uid: 'card-1', masked_pan: '************2222' }
+    ]
+  };
+  const collectedMixed = collectRawAccountsFromSession(sessionMixed);
+  assert.equal(collectedMixed.length, 2);
+
+  // Deduplication
+  const sessionDupes = {
+    accounts: [{ uid: 'same-uid' }],
+    card_accounts: [{ uid: 'same-uid' }]
+  };
+  assert.equal(collectRawAccountsFromSession(sessionDupes).length, 1);
+});
+
 test('importBankTransactions: keeps syncing other accounts but reports the failed ones', async () => {
   const { importBankTransactions } = await import('../functions/api/_bank_service.js');
 

@@ -314,6 +314,228 @@ export function pickPrimaryBalance(balances) {
 }
 
 /**
+ * Robustly extract unique account identifier from any Open Banking/PSD2 payload shape.
+ * Supports standard checking accounts (IBAN/BBAN) and credit/debit card accounts
+ * (masked PAN, PAN, card_id, resource_id, other identifier objects).
+ */
+export function extractAccountUid(acc) {
+  if (!acc) return null;
+  if (typeof acc === 'string') {
+    const s = acc.trim();
+    return s || null;
+  }
+  if (typeof acc !== 'object') return null;
+
+  // 1. Direct top-level ID fields
+  const directFields = [
+    acc.uid,
+    acc.id,
+    acc.accountId,
+    acc.account_uid,
+    acc.account_id_string,
+    acc.resource_id,
+    acc.resourceId,
+    acc.card_id,
+    acc.cardId
+  ];
+  for (const f of directFields) {
+    if (typeof f === 'string' && f.trim()) return f.trim();
+    if (typeof f === 'number') return String(f);
+  }
+
+  // 2. Nested account_id object or string
+  const accId = acc.account_id || acc.accountIdObject || acc.card_account_id;
+  if (typeof accId === 'string' && accId.trim()) return accId.trim();
+  if (accId && typeof accId === 'object') {
+    if (accId.iban && typeof accId.iban === 'string' && accId.iban.trim()) return accId.iban.trim();
+    if (accId.masked_pan && typeof accId.masked_pan === 'string' && accId.masked_pan.trim()) return accId.masked_pan.trim();
+    if (accId.pan && typeof accId.pan === 'string' && accId.pan.trim()) return accId.pan.trim();
+    if (accId.card_number && typeof accId.card_number === 'string' && accId.card_number.trim()) return accId.card_number.trim();
+    if (accId.bban && typeof accId.bban === 'string' && accId.bban.trim()) return accId.bban.trim();
+    if (accId.other) {
+      if (typeof accId.other === 'string' && accId.other.trim()) return accId.other.trim();
+      if (typeof accId.other === 'object' && accId.other.identification) return String(accId.other.identification).trim();
+    }
+  }
+
+  // 3. Fallbacks on the account object itself
+  if (acc.iban && typeof acc.iban === 'string' && acc.iban.trim()) return acc.iban.trim();
+  if (acc.masked_pan && typeof acc.masked_pan === 'string' && acc.masked_pan.trim()) return acc.masked_pan.trim();
+  if (acc.pan && typeof acc.pan === 'string' && acc.pan.trim()) return acc.pan.trim();
+  if (acc.card_number && typeof acc.card_number === 'string' && acc.card_number.trim()) return acc.card_number.trim();
+
+  return null;
+}
+
+/**
+ * Detect whether an account is a credit, debit, or prepaid card.
+ */
+export function isCardAccount(acc = {}, details = {}) {
+  const combined = { ...acc, ...details };
+
+  // Explicit type indicator
+  const typeStr = String(
+    combined.cash_account_type ||
+    combined.cashAccountType ||
+    combined.account_type ||
+    combined.accountType ||
+    combined.type ||
+    ''
+  ).toUpperCase();
+
+  if (typeStr.includes('CARD') || typeStr.includes('CRED') || typeStr.includes('DEBT')) return true;
+
+  // Name or product indicates card
+  const productStr = String(
+    combined.product ||
+    combined.product_name ||
+    combined.details ||
+    combined.name ||
+    combined.account_name ||
+    ''
+  ).toLowerCase();
+
+  if (
+    productStr.includes('κάρτα') ||
+    productStr.includes('καρτα') ||
+    productStr.includes('πιστωτικ') ||
+    productStr.includes('χρεωστικ') ||
+    productStr.includes('προπληρωμ') ||
+    productStr.includes('card') ||
+    productStr.includes('credit') ||
+    productStr.includes('debit') ||
+    productStr.includes('prepaid') ||
+    productStr.includes('mastercard') ||
+    productStr.includes('visa')
+  ) {
+    return true;
+  }
+
+  // Has masked_pan or pan or card_number but no IBAN
+  const accId = combined.account_id;
+  const hasCardNum = Boolean(
+    combined.masked_pan ||
+    combined.pan ||
+    combined.card_number ||
+    (accId && typeof accId === 'object' && (accId.masked_pan || accId.pan || accId.card_number))
+  );
+  const hasIban = Boolean(
+    combined.iban ||
+    (accId && typeof accId === 'object' && accId.iban)
+  );
+
+  return hasCardNum && !hasIban;
+}
+
+/**
+ * Extract 4-digit card mask from an account / details object.
+ */
+export function extractCardMask(acc = {}, details = {}) {
+  const sources = [
+    acc?.masked_pan,
+    acc?.pan,
+    acc?.card_number,
+    acc?.account_id?.masked_pan,
+    acc?.account_id?.pan,
+    acc?.account_id?.card_number,
+    details?.masked_pan,
+    details?.pan,
+    details?.card_number,
+    details?.account_id?.masked_pan,
+    details?.account_id?.pan,
+    details?.account_id?.card_number
+  ];
+
+  for (const s of sources) {
+    if (s && typeof s === 'string' && s.trim()) {
+      const clean = s.trim();
+      const digits = clean.replace(/\D/g, '');
+      if (digits.length >= 4) {
+        return digits.slice(-4);
+      }
+      return clean.slice(-4);
+    }
+  }
+  return null;
+}
+
+/**
+ * Format a human-friendly display name for an account or card.
+ */
+export function formatAccountDisplayName(acc = {}, details = {}, bankName = '') {
+  const isCard = isCardAccount(acc, details);
+  const cardMask = isCard ? extractCardMask(acc, details) : null;
+  const iban = (details && details.account_id && details.account_id.iban) ||
+               (acc && typeof acc === 'object' && acc.account_id && acc.account_id.iban) ||
+               (acc && typeof acc === 'object' && acc.iban) || null;
+
+  const rawProductName = (details && (details.product || details.name)) ||
+                         (acc && typeof acc === 'object' && (acc.details || acc.name || acc.product)) || null;
+
+  if (isCard) {
+    if (rawProductName && rawProductName.trim()) {
+      const prod = rawProductName.trim();
+      if (cardMask && !prod.includes(cardMask)) {
+        return `${prod} (•••• ${cardMask})`;
+      }
+      return prod;
+    }
+    const bankPrefix = bankName ? `${bankName} ` : '';
+    return cardMask
+      ? `${bankPrefix}Πιστωτική Κάρτα (•••• ${cardMask})`
+      : `${bankPrefix}Πιστωτική Κάρτα`;
+  }
+
+  // Regular bank account
+  if (rawProductName && rawProductName.trim()) {
+    return rawProductName.trim();
+  }
+  if (iban) {
+    return `Λογαριασμός (${iban.slice(-4)})`;
+  }
+  return bankName ? `${bankName} (Λογαριασμός)` : 'Τραπεζικός Λογαριασμός';
+}
+
+/**
+ * Collect all account and card candidates returned by Enable Banking /sessions or /sessions/{id}.
+ * PSD2 AIS can return accounts in accounts, accounts_data, card_accounts, cards, etc.
+ */
+export function collectRawAccountsFromSession(data) {
+  if (!data || typeof data !== 'object') return [];
+
+  const candidateArrays = [
+    data.accounts_data,
+    data.accounts,
+    data.card_accounts,
+    data.cardAccounts,
+    data.cards,
+    data.credit_cards
+  ];
+
+  const rawAccounts = [];
+  const seenUids = new Set();
+
+  for (const list of candidateArrays) {
+    if (Array.isArray(list)) {
+      for (const item of list) {
+        if (!item) continue;
+        const uid = extractAccountUid(item);
+        if (uid) {
+          if (!seenUids.has(uid)) {
+            seenUids.add(uid);
+            rawAccounts.push(item);
+          }
+        } else {
+          rawAccounts.push(item);
+        }
+      }
+    }
+  }
+
+  return rawAccounts;
+}
+
+/**
  * Map an Enable Banking transaction to the app's internal shape.
  *
  * The direction lives in `credit_debit_indicator` (DBIT/CRDT) while
@@ -357,10 +579,17 @@ export function mapProviderTransaction(tx, options = {}) {
   const codeDescription = (tx.bank_transaction_code && (tx.bank_transaction_code.description || tx.bank_transaction_code.code)) ||
     (tx.bankTransactionCode && (tx.bankTransactionCode.description || tx.bankTransactionCode.code));
 
+  const merchantName = (tx.merchant && (tx.merchant.name || tx.merchant)) ||
+    (tx.card_transaction_details && (tx.card_transaction_details.merchant_name || tx.card_transaction_details.terminal_id)) ||
+    (tx.cardTransactionDetails && (tx.cardTransactionDetails.merchantName || tx.cardTransactionDetails.terminalId)) ||
+    tx.merchant_name ||
+    tx.creditor_name ||
+    null;
+
   const description = remittance ||
     (tx.creditor && (tx.creditor.name || tx.creditor.name_el)) ||
     (tx.debtor && (tx.debtor.name || tx.debtor.name_el)) ||
-    (tx.merchant && (tx.merchant.name || tx.merchant)) ||
+    merchantName ||
     codeDescription ||
     tx.note ||
     'Τραπεζική Συναλλαγή';
@@ -639,15 +868,11 @@ export class BankService {
     }
 
     const data = await res.json();
-    const rawAccounts = (Array.isArray(data.accounts_data) && data.accounts_data.length > 0)
-      ? data.accounts_data
-      : (Array.isArray(data.accounts) ? data.accounts : []);
+    const rawAccounts = collectRawAccountsFromSession(data);
     const accounts = [];
 
     for (const acc of rawAccounts) {
-      const uid = typeof acc === 'string'
-        ? acc
-        : (acc && (acc.uid || acc.accountId || acc.account_uid || (acc.account_id && (acc.account_id.iban || acc.account_id.other))));
+      const uid = extractAccountUid(acc);
       if (!uid) continue;
 
       let bal = 0.0;
@@ -663,19 +888,23 @@ export class BankService {
         console.warn('[BankService] Error fetching details for account:', uid, e);
       }
 
+      const isCard = isCardAccount(acc, details);
+      const cardMask = isCard ? extractCardMask(acc, details) : null;
       const iban = (details && details.account_id && details.account_id.iban) ||
                    (acc && typeof acc === 'object' && acc.account_id && acc.account_id.iban) ||
                    (acc && typeof acc === 'object' && acc.iban) || null;
       const currency = (details && details.currency) || (acc && typeof acc === 'object' && acc.currency) || 'EUR';
-      const productName = (details && (details.product || details.name)) || (acc && typeof acc === 'object' && (acc.details || acc.name));
-      const accountName = productName || (iban ? `Λογαριασμός (${iban.slice(-4)})` : 'Τραπεζικός Λογαριασμός');
+      const accountName = formatAccountDisplayName(acc, details);
 
       accounts.push({
         uid: String(uid),
         iban,
         currency,
         accountName,
-        balance: bal
+        balance: bal,
+        isCard,
+        accountType: isCard ? 'card' : 'bank',
+        cardMask
       });
     }
 

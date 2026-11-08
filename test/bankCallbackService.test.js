@@ -212,3 +212,68 @@ test('bank-callback: duplicate delivery reports the existing connection instead 
   );
   assert.equal(connectionInsert, undefined, 'a duplicate delivery must not create a second connection');
 });
+
+test('bank-callback: credit card account is linked with type card and card icon', async () => {
+  const state = JSON.stringify({ userId: 'user-card-1', bankName: 'Eurobank', timestamp: Date.now() });
+
+  const { fetchMock, calls } = makeFetchMock();
+  const originalFetch = global.fetch;
+  global.fetch = fetchMock;
+
+  try {
+    const { BankService } = await import('../functions/api/_bank_service.js');
+    const origExchange = BankService.prototype.exchangeSession;
+    BankService.prototype.exchangeSession = async function() {
+      return {
+        sessionId: 'sess-card-1',
+        accessValidUntil: new Date(Date.now() + 86400000).toISOString(),
+        accounts: [
+          {
+            uid: 'card-uid-99',
+            iban: null,
+            currency: 'EUR',
+            accountName: 'Eurobank Πιστωτική Κάρτα (•••• 4321)',
+            balance: -150.50,
+            isCard: true,
+            accountType: 'card',
+            cardMask: '4321'
+          }
+        ]
+      };
+    };
+
+    try {
+      const { onRequestPost } = await import('../functions/api/bank-callback.js');
+      const response = await onRequestPost({
+        request: makeRequest({ code: 'card-code-1', state }),
+        env: BASE_ENV
+      });
+      const payload = await response.json();
+
+      assert.equal(response.status, 200);
+      assert.equal(payload.ok, true);
+
+      // Verify public.accounts was created with type 'card'
+      const appAccountInsert = calls.find(
+        (call) => call.method === 'POST' && call.url.endsWith('/rest/v1/accounts')
+      );
+      assert.ok(appAccountInsert, 'expected public.accounts insertion for credit card');
+      assert.equal(appAccountInsert.body.type, 'card');
+      assert.equal(appAccountInsert.body.icon, 'fa-credit-card');
+      assert.equal(appAccountInsert.body.color, '#f59e0b');
+      assert.equal(appAccountInsert.body.name, 'Eurobank Πιστωτική Κάρτα (•••• 4321)');
+
+      // Verify public.bank_accounts has CARD-****4321
+      const bankAccountInsert = calls.find(
+        (call) => call.method === 'POST' && call.url.endsWith('/rest/v1/bank_accounts')
+      );
+      assert.ok(bankAccountInsert, 'expected public.bank_accounts insertion for credit card');
+      assert.equal(bankAccountInsert.body.iban, 'CARD-****4321');
+      assert.equal(bankAccountInsert.body.account_uid, 'card-uid-99');
+    } finally {
+      BankService.prototype.exchangeSession = origExchange;
+    }
+  } finally {
+    global.fetch = originalFetch;
+  }
+});

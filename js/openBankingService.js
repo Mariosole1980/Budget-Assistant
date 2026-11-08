@@ -758,7 +758,7 @@
       await refreshAfterConnection();
 
       if (data && data.warning === 'NO_ACCOUNTS_SELECTED') {
-        notify('⚠️ ' + (data.message || 'Δεν επιλέχθηκε λογαριασμός κατά την έγκριση. Συνδεθείτε ξανά και επιλέξτε τον λογαριασμό σας.'), 'warning');
+        notify('⚠️ ' + (data.message || 'Δεν επιλέχθηκε λογαριασμός ή κάρτα κατά την έγκριση. Συνδεθείτε ξανά και επιλέξτε τον λογαριασμό ή την κάρτα σας.'), 'warning');
       }
 
       // If running on the web in an external browser (e.g. mobile Chrome), offer to return to the native app
@@ -945,7 +945,7 @@
 
       if (!opts.silent) {
         if (data && data.warning === 'NO_ACCOUNTS_SELECTED') {
-          notify('⚠️ ' + (data.message || 'Δεν βρέθηκαν επιλεγμένοι λογαριασμοί. Αποσυνδέστε και επανασυνδέστε την τράπεζα.'), 'warning');
+          notify('⚠️ ' + (data.message || 'Δεν βρέθηκαν επιλεγμένοι λογαριασμοί ή κάρτες. Αποσυνδέστε και επανασυνδέστε την τράπεζα.'), 'warning');
         } else if (count > 0) {
           notify('Συγχρονίστηκαν ' + count + ' νέες τραπεζικές κινήσεις!', 'success');
         } else if (bankErrors.length === 0) {
@@ -1161,8 +1161,17 @@
           connections.map(function (c) {
             var accs = c.bank_accounts || [];
             var totalBal = accs.reduce(function (sum, a) { return sum + (parseFloat(a.balance) || 0); }, 0);
+            var cardCount = accs.filter(function (a) {
+              var name = (a.account_name || '').toLowerCase();
+              return name.includes('κάρτα') || name.includes('card') || (a.iban && a.iban.startsWith('CARD-'));
+            }).length;
+            var accCount = accs.length - cardCount;
+            var parts = [];
+            if (accCount > 0) parts.push(accCount === 1 ? '1 λογαριασμός' : accCount + ' λογαριασμοί');
+            if (cardCount > 0) parts.push(cardCount === 1 ? '1 κάρτα' : cardCount + ' κάρτες');
+            var countDesc = parts.length > 0 ? parts.join(', ') : (accs.length === 1 ? '1 λογαριασμός' : accs.length + ' λογαριασμοί');
             var subtitle = accs.length > 0
-              ? (accs.length === 1 ? '1 λογαριασμός' : accs.length + ' λογαριασμοί') + ' • Υπόλοιπο: ' + totalBal.toFixed(2) + ' €'
+              ? countDesc + ' • Υπόλοιπο: ' + totalBal.toFixed(2) + ' €'
               : 'Ενεργή σύνδεση';
 
             return (
@@ -1253,7 +1262,7 @@
         '<div style="background:rgba(234, 179, 8, 0.08); border-left:3px solid #eab308; padding:8px 12px; border-radius:8px; margin-bottom:14px; font-size:11px; color:#fde047; line-height:1.45;">' +
           '<strong>💡 Οδηγίες Επιτυχούς Σύνδεσης:</strong><br>' +
           '• <strong>Ειδοποίηση Έγκρισης:</strong> Αν δεν εμφανιστεί άμεσα ειδοποίηση στο κινητό, πατήστε στη σελίδα της τράπεζας <em>«Αποστολή κωδικού με SMS (OTP)»</em> ή ανοίξτε απευθείας την εφαρμογή της τράπεζάς σας.<br>' +
-          '• <strong>Επιλογή Λογαριασμών (Υποχρεωτικό):</strong> Στην οθόνη της τράπεζας, <u>τικάρετε το κουτάκι</u> δίπλα στον λογαριασμό ή την κάρτα σας πριν πατήσετε «Έγκριση»!' +
+          '• <strong>Επιλογή Λογαριασμών ή Καρτών (Υποχρεωτικό):</strong> Στην οθόνη της τράπεζας, <u>τικάρετε το κουτάκι</u> δίπλα στον λογαριασμό ή την κάρτα (πιστωτική / χρεωστική) σας πριν πατήσετε «Έγκριση»!' +
         '</div>' +
 
         (function() {

@@ -1,5 +1,14 @@
 import { validateRequest, corsHeadersFor, getSupabasePublicConfig, getSupabaseServiceConfig } from './_security.js';
-import { BankService, importBankTransactions, psuHeadersFromRequest } from './_bank_service.js';
+import {
+  BankService,
+  importBankTransactions,
+  psuHeadersFromRequest,
+  collectRawAccountsFromSession,
+  extractAccountUid,
+  isCardAccount,
+  extractCardMask,
+  formatAccountDisplayName
+} from './_bank_service.js';
 
 export async function onRequestOptions(context) {
   const { request } = context;
@@ -101,9 +110,7 @@ export async function onRequestPost(context) {
       for (const conn of conns) {
         if (!conn.session_id) continue;
         const session = await bankService.getSession(conn.session_id);
-        const rawAccounts = (session && Array.isArray(session.accounts_data) && session.accounts_data.length > 0)
-          ? session.accounts_data
-          : (session && Array.isArray(session.accounts) ? session.accounts : []);
+        const rawAccounts = collectRawAccountsFromSession(session);
 
         if (rawAccounts.length === 0) {
           hadEmptySession = true;
@@ -111,9 +118,7 @@ export async function onRequestPost(context) {
         }
 
         for (const rawAcc of rawAccounts) {
-          const uid = typeof rawAcc === 'string'
-            ? rawAcc
-            : (rawAcc && (rawAcc.uid || rawAcc.accountId || rawAcc.account_uid || (rawAcc.account_id && (rawAcc.account_id.iban || rawAcc.account_id.other))));
+          const uid = extractAccountUid(rawAcc);
           if (!uid) continue;
 
           let bal = 0.0;
@@ -125,21 +130,66 @@ export async function onRequestPost(context) {
             details = await bankService.getAccountDetails(uid);
           } catch (_) {}
 
+          const isCard = isCardAccount(rawAcc, details);
+          const cardMask = isCard ? extractCardMask(rawAcc, details) : null;
           const iban = (details && details.account_id && details.account_id.iban) ||
                        (rawAcc && typeof rawAcc === 'object' && rawAcc.account_id && rawAcc.account_id.iban) ||
                        (rawAcc && typeof rawAcc === 'object' && rawAcc.iban) || null;
           const currency = (details && details.currency) || (rawAcc && typeof rawAcc === 'object' && rawAcc.currency) || 'EUR';
-          const productName = (details && (details.product || details.name)) || (rawAcc && typeof rawAcc === 'object' && (rawAcc.details || rawAcc.name));
-          const displayName = productName || (iban ? `Λογαριασμός (${iban.slice(-4)})` : (conn.aspsp_name || 'Τραπεζικός Λογαριασμός'));
+          const displayName = formatAccountDisplayName(rawAcc, details, conn.aspsp_name);
 
+          // Ensure linked public.accounts entry exists so card/account appears in wallet list
+          let appAccountId = null;
+          try {
+            const appAccCheckRes = await fetch(`${supabaseUrl}/rest/v1/accounts?user_id=eq.${encodeURIComponent(userId)}&name=eq.${encodeURIComponent(displayName)}&select=id`, {
+              headers: {
+                'apikey': serviceRoleKey,
+                'Authorization': `Bearer ${serviceRoleKey}`
+              }
+            });
+            if (appAccCheckRes.ok) {
+              const appAccs = await appAccCheckRes.json();
+              if (Array.isArray(appAccs) && appAccs.length > 0) {
+                appAccountId = appAccs[0].id;
+              }
+            }
+            if (!appAccountId) {
+              const createRes = await fetch(`${supabaseUrl}/rest/v1/accounts`, {
+                method: 'POST',
+                headers: {
+                  'apikey': serviceRoleKey,
+                  'Authorization': `Bearer ${serviceRoleKey}`,
+                  'Content-Type': 'application/json',
+                  'Prefer': 'return=representation'
+                },
+                body: JSON.stringify({
+                  name: displayName,
+                  type: isCard ? 'card' : 'bank',
+                  balance: bal,
+                  user_id: userId,
+                  currency: currency || 'EUR',
+                  is_active: true,
+                  color: isCard ? '#f59e0b' : '#00D2FF',
+                  icon: isCard ? 'fa-credit-card' : 'fa-university'
+                })
+              });
+              if (createRes.ok) {
+                const [createdAppAcc] = await createRes.json();
+                if (createdAppAcc) appAccountId = createdAppAcc.id;
+              }
+            }
+          } catch (_) {}
+
+          const bankAccIban = iban || (isCard && cardMask ? `CARD-****${cardMask}` : null);
           const bankAccRecord = {
             connection_id: conn.id,
             user_id: userId,
             account_uid: String(uid),
-            iban,
+            iban: bankAccIban,
             currency,
             account_name: displayName,
             balance: bal,
+            linked_app_account_id: appAccountId,
             last_synced_at: new Date().toISOString()
           };
 
@@ -162,8 +212,8 @@ export async function onRequestPost(context) {
 
       if (accounts.length === 0) {
         const errorMsg = hadEmptySession
-          ? 'Δεν βρέθηκαν επιλεγμένοι λογαριασμοί στη σύνδεση. Αποσυνδέστε και επανασυνδέστε την τράπεζα, φροντίζοντας να επιλέξετε (τικ) τον λογαριασμό σας στην οθόνη της τράπεζας.'
-          : 'Δεν βρέθηκαν συνδεδεμένοι τραπεζικοί λογαριασμοί. Παρακαλούμε συνδέστε την τράπεζά σας πρώτα.';
+          ? 'Δεν βρέθηκαν επιλεγμένοι λογαριασμοί ή κάρτες στη σύνδεση. Αποσυνδέστε και επανασυνδέστε την τράπεζα, φροντίζοντας να επιλέξετε (τικ) τον λογαριασμό ή την κάρτα σας στην οθόνη της τράπεζας.'
+          : 'Δεν βρέθηκαν συνδεδεμένοι τραπεζικοί λογαριασμοί ή κάρτες. Παρακαλούμε συνδέστε την τράπεζά σας πρώτα.';
         return new Response(JSON.stringify({
           ok: true,
           message: errorMsg,
