@@ -760,6 +760,131 @@ async function sendPartnerPushNotification(transaction, partnerUserId) {
   }
 }
 
+function notifyPartnerTransaction(transaction) {
+  if (!transaction || typeof transaction !== 'object') return;
+  const currentUser = (typeof state !== 'undefined' && state.currentUser) || (typeof window !== 'undefined' && window.state && window.state.currentUser);
+  if (!currentUser || !currentUser.id) return;
+  if (transaction.user_id === currentUser.id) return;
+
+  const txId = String(transaction.id || '');
+  if (!txId) return;
+
+  const s = (typeof state !== 'undefined' ? state : (typeof window !== 'undefined' ? window.state : {}));
+  s.notifications = s.notifications || [];
+
+  // Deduplication check: Do not re-notify if a notification for this transaction already exists
+  const alreadyNotified = s.notifications.some(n =>
+    n && n.action && n.action.type === 'open_transactions' && String(n.action.transactionId) === txId
+  );
+  if (alreadyNotified) return;
+
+  // Resolve member display name from family profiles or partner profile
+  let memberName = '';
+  if (s.familyProfiles && Array.isArray(s.familyProfiles)) {
+    const member = s.familyProfiles.find(p => p && p.id === transaction.user_id);
+    if (member) {
+      memberName = member.display_name || (member.email ? member.email.split('@')[0] : '');
+    }
+  }
+  if (!memberName && s.partnerProfile && (s.partnerProfile.id === transaction.user_id || s.partnerProfile.user_id === transaction.user_id)) {
+    memberName = s.partnerProfile.display_name || s.partnerProfile.full_name || (s.partnerProfile.email ? s.partnerProfile.email.split('@')[0] : '');
+  }
+  if (!memberName) {
+    memberName = s.lang === 'el' ? 'Μέλος οικογένειας' : 'Family member';
+  }
+
+  const isIncome = transaction.type === 'income';
+  const isTransfer = transaction.type === 'transfer';
+  const typeLabel = isIncome
+    ? (s.lang === 'el' ? 'έσοδο' : 'income')
+    : (isTransfer ? (s.lang === 'el' ? 'μεταφορά' : 'transfer') : (s.lang === 'el' ? 'έξοδο' : 'expense'));
+
+  const currencySymbol = (typeof getCurrencySymbol === 'function' ? getCurrencySymbol(transaction.currency || s.mainCurrency || 'EUR') : '€');
+  const amountStr = `${Number(transaction.amount || 0).toFixed(2)} ${currencySymbol}`;
+  const getCatName = typeof getCategoryDisplayName === 'function'
+    ? getCategoryDisplayName
+    : (typeof window !== 'undefined' && typeof window.getCategoryDisplayName === 'function' ? window.getCategoryDisplayName : (c) => c);
+  const category = getCatName(transaction.category) || '';
+  const note = transaction.notes || transaction.note || transaction.description || '';
+
+  const title = s.lang === 'el' ? `👥 Νέο ${typeLabel} από ${memberName}` : `👥 New ${typeLabel} from ${memberName}`;
+  const body = `${category ? category + ' — ' : ''}${amountStr}${note ? ' (' + note + ')' : ''}`;
+
+  addInAppNotification(title, body, { type: 'open_transactions', transactionId: txId });
+
+  // Native Android Local Notification banner (if on Capacitor platform)
+  try {
+    const cap = typeof window !== 'undefined' ? window.Capacitor : (typeof Capacitor !== 'undefined' ? Capacitor : null);
+    if (cap && cap.Plugins && cap.Plugins.LocalNotifications) {
+      const notifId = Math.floor(Math.random() * 899999) + 100000;
+      cap.Plugins.LocalNotifications.schedule({
+        notifications: [{
+          id: notifId,
+          title: title,
+          body: body,
+          smallIcon: 'ic_launcher_round',
+          iconColor: '#0F1219',
+          schedule: { at: new Date(Date.now() + 50) },
+          actionTypeId: '',
+          extra: { type: 'partner_transaction', transactionId: txId }
+        }]
+      }).catch(() => {});
+    }
+  } catch (_) {}
+}
+
+function notifyPartnerTransactionsSummary(transactions) {
+  if (!Array.isArray(transactions) || transactions.length === 0) return;
+  const currentUser = (typeof state !== 'undefined' && state.currentUser) || (typeof window !== 'undefined' && window.state && window.state.currentUser);
+  if (!currentUser || !currentUser.id) return;
+
+  const s = (typeof state !== 'undefined' ? state : (typeof window !== 'undefined' ? window.state : {}));
+  const count = transactions.length;
+
+  const memberNames = new Set();
+  let totalAmount = 0;
+  transactions.forEach(t => {
+    totalAmount += Math.abs(Number(t.amount || 0));
+    let name = '';
+    if (s.familyProfiles && Array.isArray(s.familyProfiles)) {
+      const m = s.familyProfiles.find(p => p && p.id === t.user_id);
+      if (m) name = m.display_name || (m.email ? m.email.split('@')[0] : '');
+    }
+    if (name) memberNames.add(name);
+  });
+
+  const namesList = Array.from(memberNames);
+  const namesStr = namesList.length > 0 ? namesList.join(', ') : (s.lang === 'el' ? 'μέλη της οικογένειας' : 'family members');
+  const currencySymbol = (typeof getCurrencySymbol === 'function' ? getCurrencySymbol(s.mainCurrency || 'EUR') : '€');
+  const title = s.lang === 'el'
+    ? `👥 ${count} νέες κινήσεις από ${namesStr}`
+    : `👥 ${count} new transactions from ${namesStr}`;
+  const body = s.lang === 'el'
+    ? `Συνολικό ποσό: ${totalAmount.toFixed(2)} ${currencySymbol}`
+    : `Total amount: ${totalAmount.toFixed(2)} ${currencySymbol}`;
+
+  addInAppNotification(title, body, { type: 'open_transactions' });
+
+  try {
+    const cap = typeof window !== 'undefined' ? window.Capacitor : (typeof Capacitor !== 'undefined' ? Capacitor : null);
+    if (cap && cap.Plugins && cap.Plugins.LocalNotifications) {
+      const notifId = Math.floor(Math.random() * 899999) + 100000;
+      cap.Plugins.LocalNotifications.schedule({
+        notifications: [{
+          id: notifId,
+          title: title,
+          body: body,
+          smallIcon: 'ic_launcher_round',
+          iconColor: '#0F1219',
+          schedule: { at: new Date(Date.now() + 50) },
+          actionTypeId: '',
+          extra: { type: 'partner_transactions_summary' }
+        }]
+      }).catch(() => {});
+    }
+  } catch (_) {}
+}
+
 // Bind to window for HTML accessibility
 window.openNotificationCenterModal = openNotificationCenterModal;
 window.clearNotifications = clearNotifications;
@@ -784,6 +909,8 @@ window.clearNotifications = clearNotifications;
     window.persistPendingNoteReminders = persistPendingNoteReminders;
     window.sendPartnerPushNotification = sendPartnerPushNotification;
     window.syncFcmTokenToProfile = syncFcmTokenToProfile;
+    window.notifyPartnerTransaction = notifyPartnerTransaction;
+    window.notifyPartnerTransactionsSummary = notifyPartnerTransactionsSummary;
     if (typeof scheduleDailyReminder === 'function') {
       window.scheduleDailyReminder = scheduleDailyReminder;
     }
@@ -811,6 +938,8 @@ window.clearNotifications = clearNotifications;
     persistPendingNoteReminders: persistPendingNoteReminders,
     sendPartnerPushNotification: sendPartnerPushNotification,
     syncFcmTokenToProfile: syncFcmTokenToProfile,
+    notifyPartnerTransaction: notifyPartnerTransaction,
+    notifyPartnerTransactionsSummary: notifyPartnerTransactionsSummary,
     scheduleDailyReminder: typeof scheduleDailyReminder === 'function' ? scheduleDailyReminder : undefined,
     dispatchPartnerTransactionPush: typeof dispatchPartnerTransactionPush === 'function' ? dispatchPartnerTransactionPush : undefined
   };

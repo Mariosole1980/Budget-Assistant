@@ -454,6 +454,11 @@ function handleRealtimeTransactionChange(payload) {
           changed = true;
           if (newTrans && state.currentUser && newTrans.user_id !== state.currentUser.id) {
             insertedByPartner = true;
+            if (typeof notifyPartnerTransaction === 'function') {
+              notifyPartnerTransaction(newTrans);
+            } else if (typeof window !== 'undefined' && typeof window.notifyPartnerTransaction === 'function') {
+              window.notifyPartnerTransaction(newTrans);
+            }
             if (newTrans.type === 'expense') {
               checkHighExpenseAlert(newTrans);
             }
@@ -1526,6 +1531,29 @@ async function forceSyncNow(silent = false) {
       // Recurring materialisation can append rows after the id comparison above,
       // so the "did anything change" check is re-evaluated once it has run.
       const txSetChanged = dataChanged || (state.transactions || []).length !== dedupedCombined.length;
+
+      // Notify for newly synced partner/family transactions (if not initial cold load)
+      if (prevIdSet.size > 0 && state.currentUser) {
+        const newPartnerTxs = dedupedCombined.filter(t =>
+          t && t.id && !prevIdSet.has(String(t.id)) &&
+          t.user_id && t.user_id !== state.currentUser.id &&
+          t.status !== 'deleted'
+        );
+        const recentNewPartnerTxs = newPartnerTxs.filter(t => {
+          const ts = t.created_at ? new Date(t.created_at).getTime() : (t.date ? new Date(t.date).getTime() : 0);
+          return ts > 0 && (Date.now() - ts) < 48 * 3600 * 1000;
+        });
+
+        if (recentNewPartnerTxs.length > 0 && recentNewPartnerTxs.length <= 3) {
+          recentNewPartnerTxs.forEach(tx => {
+            if (typeof notifyPartnerTransaction === 'function') notifyPartnerTransaction(tx);
+            else if (typeof window !== 'undefined' && typeof window.notifyPartnerTransaction === 'function') window.notifyPartnerTransaction(tx);
+          });
+        } else if (recentNewPartnerTxs.length > 3) {
+          if (typeof notifyPartnerTransactionsSummary === 'function') notifyPartnerTransactionsSummary(recentNewPartnerTxs);
+          else if (typeof window !== 'undefined' && typeof window.notifyPartnerTransactionsSummary === 'function') window.notifyPartnerTransactionsSummary(recentNewPartnerTxs);
+        }
+      }
 
       // ANTI-FREEZE: rewriting the offline cache means serialising EVERY transaction
       // (a multi-MB string on long histories) synchronously on the main thread. Only
