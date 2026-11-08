@@ -670,9 +670,35 @@ button.is-pressed,
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .transaction-item:hover {
+  html.web-mode .transaction-item:hover {
     background-color: var(--border);
   }
+}
+
+/* Mobile & Touch: transaction rows never turn grey or scale on hover/active/touch,
+   preventing visual flashes during horizontal month swipes and vertical scrolls. */
+.transaction-item,
+.transaction-item:hover,
+.transaction-item:active,
+.transaction-item:focus {
+  background-color: var(--bg-card) !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+#stats-transactions-modal .transaction-item,
+#stats-transactions-modal .transaction-item:hover,
+#stats-transactions-modal .transaction-item:active,
+#stats-transactions-modal .transaction-item:focus,
+#stats-transactions-modal .transaction-item.pressed,
+#stats-transactions-modal .transaction-item.is-pressed {
+  background-color: var(--bg-card) !important;
+  transform: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+  touch-action: pan-y !important;
+}
+
+#stats-transactions-modal .transaction-item * {
+  -webkit-tap-highlight-color: transparent !important;
 }
 
 .trans-left {

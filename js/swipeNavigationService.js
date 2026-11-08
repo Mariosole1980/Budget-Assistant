@@ -133,6 +133,31 @@
       activePointerId = e.pointerId;
     }, { passive: true });
 
+    appContent.addEventListener('pointerup', (e) => {
+      if (!touchActive || e.pointerId !== activePointerId) return;
+      const wasHorizontal = isSwipingHorizontal === true;
+      touchActive = false;
+      activePointerId = null;
+      isSwipingHorizontal = null;
+      setDragVisuals(false);
+
+      if (wasHorizontal) commitSwipe(e.clientX);
+
+      setTimeout(() => { state.touchDidMove = false; }, 120);
+    }, { passive: true });
+
+    appContent.addEventListener('pointercancel', () => {
+      const wasHorizontal = touchActive && isSwipingHorizontal === true;
+      touchActive = false;
+      activePointerId = null;
+      isSwipingHorizontal = null;
+      setDragVisuals(false);
+
+      if (wasHorizontal) commitSwipe(lastMoveX);
+
+      setTimeout(() => { state.touchDidMove = false; }, 100);
+    }, { passive: true });
+
     appContent.addEventListener('pointermove', (e) => {
       if (!touchActive || e.pointerId !== activePointerId || state.isSwipingMonth) return;
 
@@ -197,31 +222,6 @@
         }
       }
     }
-
-    appContent.addEventListener('pointerup', (e) => {
-      if (!touchActive || e.pointerId !== activePointerId) return;
-      const wasHorizontal = isSwipingHorizontal === true;
-      touchActive = false;
-      activePointerId = null;
-      isSwipingHorizontal = null;
-      setDragVisuals(false);
-
-      if (wasHorizontal) commitSwipe(e.clientX);
-
-      setTimeout(() => { state.touchDidMove = false; }, 120);
-    }, { passive: true });
-
-    appContent.addEventListener('pointercancel', () => {
-      const wasHorizontal = touchActive && isSwipingHorizontal === true;
-      touchActive = false;
-      activePointerId = null;
-      isSwipingHorizontal = null;
-      setDragVisuals(false);
-
-      if (wasHorizontal) commitSwipe(lastMoveX);
-
-      setTimeout(() => { state.touchDidMove = false; }, 100);
-    }, { passive: true });
 
     initStatsTransactionsModalSwipe();
   }
@@ -330,7 +330,8 @@
       var dy = e.clientY - startY;
 
       if (horizontal === null) {
-        if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+        // Snappy horizontal detection: 4px threshold
+        if (Math.abs(dx) < 4 && Math.abs(dy) < 4) return;
         horizontal = Math.abs(dx) > Math.abs(dy) * DOMINANCE;
         if (!horizontal) {
           // Vertical scroll: hand the gesture back to the native scroller.
