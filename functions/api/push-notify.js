@@ -83,8 +83,8 @@ export async function onRequestPost(context) {
       });
     }
 
-    // Lookup recipient's FCM token from Supabase user_profiles
-    const profileRes = await fetch(`${supabaseUrl}/rest/v1/user_profiles?user_id=eq.${recipient_user_id}&select=fcm_token`, {
+    // Lookup recipient's FCM token from Supabase profiles
+    const profileRes = await fetch(`${supabaseUrl}/rest/v1/profiles?id=eq.${recipient_user_id}&select=fcm_token`, {
       method: 'GET',
       headers: {
         'apikey': supabaseKey,

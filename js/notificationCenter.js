@@ -655,17 +655,24 @@ async function initPushNotifications() {
   if (!PushNotifications) return;
 
   try {
-    // Note: PushNotifications.register() requires Firebase google-services.json which is not configured.
-    // Local notifications and exact alarms are handled reliably via ReliableNotificationPlugin.
-    const perm = await PushNotifications.checkPermissions();
+    let perm = await PushNotifications.checkPermissions();
+    if (perm && perm.receive !== 'granted') {
+      perm = await PushNotifications.requestPermissions();
+    }
     if (perm && perm.receive === 'granted') {
-      // Intentionally do not call PushNotifications.register() to avoid FirebaseApp initialization crashes.
+      try {
+        await PushNotifications.register();
+        console.log('[PushNotifications] Registered for push notifications');
+      } catch (regErr) {
+        console.warn('[PushNotifications] register warning:', regErr);
+      }
     }
 
     // Listen for FCM Device Token registration
     if (typeof PushNotifications.addListener === 'function') {
       PushNotifications.addListener('registration', async (token) => {
         if (token && token.value) {
+          console.log('[PushNotifications] Device token received:', token.value.substring(0, 15) + '...');
           localStorage.setItem('fcm_token', token.value);
           if (typeof syncFcmTokenToProfile === 'function') {
             syncFcmTokenToProfile(token.value);
@@ -708,17 +715,24 @@ async function initPushNotifications() {
 
 async function syncFcmTokenToProfile(token) {
   if (!token) token = localStorage.getItem('fcm_token');
-  if (!token || !window.supabase || !state.user || !state.user.id) return;
+  if (!token) return;
+  const user = (typeof state !== 'undefined' && (state.currentUser || state.user)) || (typeof window !== 'undefined' && window.state && (window.state.currentUser || window.state.user));
+  if (!user || !user.id) return;
+  const client = (typeof state !== 'undefined' && state.supabaseClient) || (typeof window !== 'undefined' && (window.state?.supabaseClient || window.supabase));
+  if (!client) return;
+
   try {
-    const { error } = await window.supabase
-      .from('user_profiles')
-      .update({ fcm_token: token, updated_at: new Date().toISOString() })
-      .eq('user_id', state.user.id);
+    const { error } = await client
+      .from('profiles')
+      .update({ fcm_token: token })
+      .eq('id', user.id);
     if (!error) {
-      console.log('FCM token synced with user profile');
+      console.log('[FCM] Token synced with profiles');
+    } else {
+      console.warn('[FCM] Token sync warning:', error.message);
     }
   } catch (e) {
-    console.warn('Error syncing FCM token:', e);
+    console.warn('[FCM] Error syncing FCM token:', e);
   }
 }
 

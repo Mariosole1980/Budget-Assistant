@@ -128,10 +128,20 @@ async function saveTransaction(transaction) {
         if (typeof updateHeaderSyncIcon === 'function') updateHeaderSyncIcon('synced');
         else if (typeof window !== 'undefined' && typeof window.updateHeaderSyncIcon === 'function') window.updateHeaderSyncIcon('synced');
 
-        // Notify partner via Cloudflare Function /api/push-notify if transaction is shared
-        const partnerUid = state.partnerProfile ? (state.partnerProfile.id || state.partnerProfile.user_id) : null;
-        if (partnerUid && transaction.family_id) {
-          sendPartnerPushNotification(transaction, partnerUid);
+        // Notify family / partner via Cloudflare Function /api/push-notify if transaction is shared
+        if (transaction.family_id && typeof sendPartnerPushNotification === 'function') {
+          const myId = state.currentUser ? state.currentUser.id : null;
+          const otherMembers = (state.familyProfiles || []).filter(p => p && p.id && p.id !== myId);
+          if (otherMembers.length > 0) {
+            otherMembers.forEach(m => {
+              sendPartnerPushNotification(transaction, m.id);
+            });
+          } else if (state.partnerProfile) {
+            const partnerUid = state.partnerProfile.id || state.partnerProfile.user_id;
+            if (partnerUid && partnerUid !== myId) {
+              sendPartnerPushNotification(transaction, partnerUid);
+            }
+          }
         }
       } catch (err) {
         console.warn(`Cloud save failed, keeping in queue: ${transaction.id}`, err);
