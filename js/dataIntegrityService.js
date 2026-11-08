@@ -659,7 +659,9 @@ window.autoSyncMissingTransactionsToCloud = autoSyncMissingTransactionsToCloud;
         _writeTombstoneRaw(_DELETED_CATEGORIES_LS_KEY, JSON.stringify(cleanList.slice(-500)));
       }
       if (writeCloudTombstone) {
-        const tombstoneId = id || key;
+        const tombstoneIds = [];
+        if (id) tombstoneIds.push(String(id));
+        if (key) tombstoneIds.push(String(key));
         const tombFn = (typeof writeSyncTombstones === 'function')
           ? writeSyncTombstones
           : ((typeof window !== 'undefined' && typeof window.writeSyncTombstones === 'function')
@@ -667,8 +669,8 @@ window.autoSyncMissingTransactionsToCloud = autoSyncMissingTransactionsToCloud;
             : ((typeof window !== 'undefined' && window.SupabaseRealtimeService && typeof window.SupabaseRealtimeService.writeSyncTombstones === 'function')
               ? window.SupabaseRealtimeService.writeSyncTombstones
               : null));
-        if (tombFn) {
-          tombFn('categories', [String(tombstoneId)]).catch(e => console.warn('[DataIntegrity] Category tombstone write failed:', e));
+        if (tombFn && tombstoneIds.length > 0) {
+          tombFn('categories', tombstoneIds).catch(e => console.warn('[DataIntegrity] Category tombstone write failed:', e));
         }
       }
     } catch (e) {

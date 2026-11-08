@@ -19,6 +19,9 @@ global.state = {
   lang: 'el'
 };
 
+const BAUtils = require('../js/utils.js');
+Object.assign(global, BAUtils);
+
 // Category tombstone helpers are resolved from global scope by the service.
 const DataIntegrityService = require('../js/dataIntegrityService.js');
 Object.assign(global, DataIntegrityService);
@@ -382,3 +385,40 @@ test('fetchCategoryTombstones queries only the categories tombstones in account 
   }
 });
 
+
+test('applyCategoryTombstones parses and applies key-based cloud tombstones across devices', () => {
+  global.localStorage.clear();
+  global.state.guestMode = false;
+  global.state.currentUser = { id: 'user-sync' };
+
+  const applied = SupabaseRealtimeService.applyCategoryTombstones([
+    { id: 'tomb-key-1', table_name: 'categories', row_id: 'expense:::διασκεδαση', deleted_at: '2026-11-08T10:00:00Z' }
+  ]);
+
+  assert.strictEqual(applied, 1, 'key-based tombstone is applied');
+  assert.strictEqual(DataIntegrityService.isCategoryDeleted(null, '🎉 Διασκέδαση', 'expense'), true,
+    'category name must be recognized as deleted from cloud key tombstone');
+  assert.strictEqual(DataIntegrityService.isCategoryDeleted('random-cloud-uuid', '🎉 Διασκέδαση', 'expense'), true,
+    'cloud category with newly generated UUID must be blocked by name/type tombstone');
+  global.state.currentUser = null;
+});
+
+test('Category durable deletion: cloud categories with different IDs are filtered out by name and type', () => {
+  global.localStorage.clear();
+  global.state.guestMode = false;
+  global.state.currentUser = { id: 'user-sync' };
+
+  // User deleted default category with no ID
+  DataIntegrityService.recordDeletedCategory(null, '🎉 Διασκέδαση', 'expense', { writeCloudTombstone: false });
+
+  const cloudCategories = [
+    { id: 'uuid-keep-1', name: '🛒 Σούπερ Μάρκετ', type: 'expense' },
+    { id: 'uuid-partner-entertainment', name: '🎉 Διασκέδαση', type: 'expense' }
+  ];
+
+  const activeCategories = cloudCategories.filter(c => !DataIntegrityService.isCategoryDeleted(c.id, c.name, c.type));
+
+  assert.deepStrictEqual(activeCategories.map(c => c.name), ['🛒 Σούπερ Μάρκετ'],
+    'deleted category must be filtered out even if cloud row has a new/different UUID');
+  global.state.currentUser = null;
+});

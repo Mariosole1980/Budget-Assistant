@@ -237,31 +237,45 @@ async function inlineDeleteCustomCategory(categoryName, type) {
     recCatTombFn(catToDelete.id, catToDelete.name, type);
   }
 
-  // Queue delete mutation for offline resilience
-  if (catToDelete.id && typeof enqueueSyncMutation === 'function') {
-    enqueueSyncMutation('delete_category', catToDelete.id);
-  } else if (catToDelete.id && typeof window !== 'undefined' && typeof window.enqueueSyncMutation === 'function') {
-    window.enqueueSyncMutation('delete_category', catToDelete.id);
+  // Queue delete mutation for offline resilience (with object payload so name/type are preserved)
+  const catDeletePayload = { id: catToDelete.id, name: catToDelete.name, type: catType };
+  if (typeof enqueueSyncMutation === 'function') {
+    enqueueSyncMutation('delete_category', catDeletePayload);
+  } else if (typeof window !== 'undefined' && typeof window.enqueueSyncMutation === 'function') {
+    window.enqueueSyncMutation('delete_category', catDeletePayload);
   }
 
   // Sync delete to cloud if enabled
-  if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser && catToDelete.id) {
+  if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
     try {
-      state.supabaseClient
+      if (catToDelete.id) {
+        state.supabaseClient
+          .from('categories')
+          .delete()
+          .eq('id', catToDelete.id)
+          .then(({ error }) => {
+            if (error) {
+              console.warn('Cloud category delete warning:', error);
+            } else {
+              if (typeof dequeueSyncMutation === 'function') {
+                dequeueSyncMutation('delete_category', catDeletePayload);
+              } else if (typeof window !== 'undefined' && typeof window.dequeueSyncMutation === 'function') {
+                window.dequeueSyncMutation('delete_category', catDeletePayload);
+              }
+            }
+          });
+      }
+      // Also delete any duplicate rows in Supabase matching this category name and type for current user/family
+      let nameDeleteQuery = state.supabaseClient
         .from('categories')
         .delete()
-        .eq('id', catToDelete.id)
-        .then(({ error }) => {
-          if (error) {
-            console.warn('Cloud category delete warning:', error);
-          } else {
-            if (typeof dequeueSyncMutation === 'function') {
-              dequeueSyncMutation('delete_category', catToDelete.id);
-            } else if (typeof window !== 'undefined' && typeof window.dequeueSyncMutation === 'function') {
-              window.dequeueSyncMutation('delete_category', catToDelete.id);
-            }
-          }
-        });
+        .eq('name', catToDelete.name);
+      if (catToDelete.type) {
+        nameDeleteQuery = nameDeleteQuery.eq('type', catToDelete.type);
+      }
+      nameDeleteQuery.then(({ error }) => {
+        if (error) console.warn('Cloud category delete by name warning:', error);
+      });
     } catch (e) {
       console.warn('Cloud category delete failed:', e);
     }
@@ -1136,6 +1150,19 @@ function saveNewCategoryFromPicker() {
       : null);
   if (remCatTombFn) {
     remCatTombFn(name, newCategoryDialogType);
+  }
+
+  // Clear cloud tombstone if any existed previously
+  if (state.isSupabaseEnabled && state.supabaseClient && state.currentUser) {
+    try {
+      const tombstoneKey = `${newCategoryDialogType || 'expense'}:::${String(name).toLowerCase()}`;
+      state.supabaseClient
+        .from('sync_tombstones')
+        .delete()
+        .eq('table_name', 'categories')
+        .in('row_id', [newCategory.id, tombstoneKey])
+        .then(() => {}).catch(() => {});
+    } catch (_) {}
   }
 
   // Sync to cloud if enabled

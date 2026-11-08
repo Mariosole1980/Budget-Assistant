@@ -840,25 +840,45 @@ async function processSyncQueue(options = {}) {
         itemSucceeded = true;
       } else if (item.action === 'delete_category') {
         const catPayload = item.payload;
-        const catId = (catPayload && typeof catPayload === 'object' && catPayload.id) ? catPayload.id : catPayload;
-        if (!catId) {
+        const catId = (catPayload && typeof catPayload === 'object' && catPayload.id) ? catPayload.id : (typeof catPayload === 'string' ? catPayload : null);
+        const catName = (catPayload && typeof catPayload === 'object' && catPayload.name) ? catPayload.name : null;
+        const catType = (catPayload && typeof catPayload === 'object' && catPayload.type) ? catPayload.type : null;
+
+        if (!catId && !catName) {
           console.warn('Skipping invalid delete_category queue item:', item);
           continue;
         }
-        const { error } = await promiseTimeout(
-          state.supabaseClient
-            .from('categories')
-            .delete()
-            .eq('id', catId),
-          15000
-        );
-        if (error) {
-          if (_isConnectivityError(error)) {
-            throw error;
+
+        let deleteError = null;
+        if (catId) {
+          const { error } = await promiseTimeout(
+            state.supabaseClient
+              .from('categories')
+              .delete()
+              .eq('id', catId),
+            15000
+          );
+          if (error) deleteError = error;
+        }
+
+        if (catName) {
+          try {
+            let nameQuery = state.supabaseClient
+              .from('categories')
+              .delete()
+              .eq('name', catName);
+            if (catType) nameQuery = nameQuery.eq('type', catType);
+            await promiseTimeout(nameQuery, 15000);
+          } catch (_) {}
+        }
+
+        if (deleteError) {
+          if (_isConnectivityError(deleteError)) {
+            throw deleteError;
           }
-          console.warn('Skipping invalid delete_category queue item:', error);
-          if (_classifySyncError(error) === 'permanent') {
-            _quarantineItem(item, error);
+          console.warn('Skipping invalid delete_category queue item:', deleteError);
+          if (_classifySyncError(deleteError) === 'permanent') {
+            _quarantineItem(item, deleteError);
             quarantinedCount++;
           } else {
             _scheduleRetry(item);
@@ -876,7 +896,16 @@ async function processSyncQueue(options = {}) {
         try {
           const realtimeService = (typeof window !== 'undefined') ? window.SupabaseRealtimeService : null;
           if (realtimeService && typeof realtimeService.writeSyncTombstones === 'function') {
-            await realtimeService.writeSyncTombstones('categories', [String(catId)]);
+            const tombstonesToWrite = [];
+            if (catId) tombstonesToWrite.push(String(catId));
+            if (catName) {
+              const cleanType = String(catType || 'expense').trim().toLowerCase();
+              const cleanName = (typeof normalizeGreekString === 'function') ? normalizeGreekString(catName) : String(catName).trim().toLowerCase();
+              tombstonesToWrite.push(`${cleanType}:::${cleanName}`);
+            }
+            if (tombstonesToWrite.length > 0) {
+              await realtimeService.writeSyncTombstones('categories', tombstonesToWrite);
+            }
           }
         } catch (tombErr) {
           console.warn('Failed to record cloud category tombstone:', tombErr);

@@ -1076,7 +1076,15 @@ function applyCategoryTombstones(tombstoneRows) {
   let applied = 0;
   tombstoneRows.forEach(tb => {
     if (!tb || tb.table_name !== 'categories' || !tb.row_id) return;
-    recCatTombFn(String(tb.row_id), null, null, { writeCloudTombstone: false });
+    const rowIdStr = String(tb.row_id);
+    if (rowIdStr.includes(':::')) {
+      const parts = rowIdStr.split(':::');
+      const tombType = parts[0] || 'expense';
+      const tombName = parts.slice(1).join(':::');
+      recCatTombFn(null, tombName, tombType, { writeCloudTombstone: false });
+    } else {
+      recCatTombFn(rowIdStr, null, null, { writeCloudTombstone: false });
+    }
     applied++;
   });
   return applied;
@@ -1293,16 +1301,21 @@ async function forceSyncNow(silent = false) {
               .map(item => (item.payload && typeof item.payload === 'object') ? String(item.payload.id) : String(item.payload))
               .filter(Boolean)
           );
+          const pendingDeleteCatNames = new Set(
+            (Array.isArray(syncQueue) ? syncQueue : [])
+              .filter(item => item && item.action === 'delete_category')
+              .map(item => (item.payload && typeof item.payload === 'object' && item.payload.name) ? item.payload.name.trim().toLowerCase() : '')
+              .filter(Boolean)
+          );
 
           // DURABLE-DELETE RULE: a locally deleted category must stay deleted even while its
           // cloud row is still present (delete in flight / offline / RLS failure). Tombstones
           // are only cleared when the user explicitly re-creates the category.
-          // ID matching is used for cloud rows so an old name-only tombstone cannot hide a
-          // category that was deliberately re-created with a new id.
           let activeCloudCats = catsRes.data.filter(c => {
             if (!c || !c.name || c.hidden) return false;
-            if (c.id && isCatDeletedFn(c.id)) return false;
+            if (isCatDeletedFn(c.id, c.name, c.type)) return false;
             if (c.id && pendingDeleteCatIds.has(String(c.id))) return false;
+            if (c.name && pendingDeleteCatNames.has(c.name.trim().toLowerCase())) return false;
             return true;
           });
 

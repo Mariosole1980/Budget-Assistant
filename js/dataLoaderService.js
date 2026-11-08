@@ -368,16 +368,21 @@ async function loadData() {
           .map(item => (item.payload && typeof item.payload === 'object') ? String(item.payload.id) : String(item.payload))
           .filter(Boolean)
       );
+      const pendingDeleteCatNames = new Set(
+        (Array.isArray(syncQueue) ? syncQueue : [])
+          .filter(item => item && item.action === 'delete_category')
+          .map(item => (item.payload && typeof item.payload === 'object' && item.payload.name) ? item.payload.name.trim().toLowerCase() : '')
+          .filter(Boolean)
+      );
 
       // DURABLE-DELETE RULE: a locally deleted category must stay deleted even when its
       // cloud row is still present (delete still in flight, offline, RLS error, etc.).
       // Tombstones are only cleared when the user explicitly re-creates the category.
-      // ID matching is used for cloud rows so that a category re-created elsewhere
-      // (new id) is not hidden by an old name-only tombstone.
       let activeCloudCategories = (categories || []).filter(c => {
         if (!c || !c.name || c.hidden) return false;
-        if (c.id && isCatDeletedFn(c.id)) return false;
+        if (isCatDeletedFn(c.id, c.name, c.type)) return false;
         if (c.id && pendingDeleteCatIds.has(String(c.id))) return false;
+        if (c.name && pendingDeleteCatNames.has(c.name.trim().toLowerCase())) return false;
         return true;
       });
       const cloudCatNames = new Set(activeCloudCategories.map(c => c && c.name ? c.name.trim().toLowerCase() : ''));
