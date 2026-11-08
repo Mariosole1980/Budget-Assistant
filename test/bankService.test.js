@@ -41,3 +41,24 @@ test('BankService: loads and provides Greek institutions and mock sandbox', asyn
   assert.ok(txs.length > 0);
   assert.ok(txs.some(t => t.description.includes('ΣΚΛΑΒΕΝΙΤΗΣ')));
 });
+
+test('BankService: mapProviderTransaction supports pending transactions when includePending is true', async () => {
+  const { mapProviderTransaction } = await import('../functions/api/_bank_service.js');
+
+  const pendingTx = {
+    status: 'PEND',
+    transaction_amount: { amount: '45.50', currency: 'EUR' },
+    booking_date: '2026-11-08',
+    remittance_information: ['ΑΓΟΡΑ POS ALPHA']
+  };
+
+  // Default skips pending to prevent ledger duplication
+  assert.equal(mapProviderTransaction(pendingTx), null);
+
+  // When includePending: true, it maps correctly
+  const mapped = mapProviderTransaction(pendingTx, { includePending: true });
+  assert.ok(mapped);
+  assert.equal(mapped.amount, 45.50);
+  assert.equal(mapped.status, 'PENDING');
+  assert.equal(mapped.description, 'ΑΓΟΡΑ POS ALPHA');
+});

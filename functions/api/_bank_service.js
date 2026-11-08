@@ -328,7 +328,8 @@ export function mapProviderTransaction(tx, options = {}) {
   if (!tx) return null;
 
   const status = String(tx.status || '').trim().toUpperCase();
-  if (status === 'PEND' && !options.includePending) return null;
+  const isPending = status === 'PEND' || status === 'PDNG' || status === 'PENDING';
+  if (isPending && !options.includePending) return null;
 
   const amountObj = tx.transaction_amount || tx.transactionAmount || (typeof tx.amount === 'object' ? tx.amount : { amount: tx.amount }) || {};
   const rawAmount = Number.parseFloat(amountObj.amount != null ? amountObj.amount : (amountObj.value != null ? amountObj.value : tx.amount));
@@ -382,7 +383,7 @@ export function mapProviderTransaction(tx, options = {}) {
     amount,
     currency: amountObj.currency || tx.currency || 'EUR',
     description: String(description).slice(0, 500),
-    status: status || 'BOOK'
+    status: isPending ? 'PENDING' : (status || 'BOOK')
   };
 }
 
@@ -638,24 +639,42 @@ export class BankService {
     }
 
     const data = await res.json();
-    const rawAccounts = data.accounts || [];
+    const rawAccounts = (Array.isArray(data.accounts_data) && data.accounts_data.length > 0)
+      ? data.accounts_data
+      : (Array.isArray(data.accounts) ? data.accounts : []);
     const accounts = [];
 
     for (const acc of rawAccounts) {
-      const uid = acc.uid || acc.accountId || acc.account_uid || (acc.account_id && acc.account_id.iban);
+      const uid = typeof acc === 'string'
+        ? acc
+        : (acc && (acc.uid || acc.accountId || acc.account_uid || (acc.account_id && (acc.account_id.iban || acc.account_id.other))));
+      if (!uid) continue;
+
       let bal = 0.0;
-      if (uid) {
-        try {
-          bal = await this.getAccountBalances(uid);
-        } catch (e) {
-          console.warn('[BankService] Error fetching balances for account:', uid, e);
-        }
+      let details = null;
+      try {
+        bal = await this.getAccountBalances(uid);
+      } catch (e) {
+        console.warn('[BankService] Error fetching balances for account:', uid, e);
       }
+      try {
+        details = await this.getAccountDetails(uid);
+      } catch (e) {
+        console.warn('[BankService] Error fetching details for account:', uid, e);
+      }
+
+      const iban = (details && details.account_id && details.account_id.iban) ||
+                   (acc && typeof acc === 'object' && acc.account_id && acc.account_id.iban) ||
+                   (acc && typeof acc === 'object' && acc.iban) || null;
+      const currency = (details && details.currency) || (acc && typeof acc === 'object' && acc.currency) || 'EUR';
+      const productName = (details && (details.product || details.name)) || (acc && typeof acc === 'object' && (acc.details || acc.name));
+      const accountName = productName || (iban ? `Λογαριασμός (${iban.slice(-4)})` : 'Τραπεζικός Λογαριασμός');
+
       accounts.push({
-        uid: uid,
-        iban: (acc.account_id && acc.account_id.iban) || acc.iban || null,
-        currency: acc.currency || 'EUR',
-        accountName: acc.details || acc.name || 'Τραπεζικός Λογαριασμός',
+        uid: String(uid),
+        iban,
+        currency,
+        accountName,
         balance: bal
       });
     }
@@ -665,6 +684,43 @@ export class BankService {
       accessValidUntil: data.access ? data.access.valid_until : null,
       accounts
     };
+  }
+
+  async getSession(sessionId) {
+    if (!this.isConfigured || !sessionId || String(sessionId).startsWith('mock_sess_')) {
+      return null;
+    }
+    try {
+      const res = await fetch(`${ENABLE_BANKING_API_BASE}/sessions/${sessionId}`, {
+        method: 'GET',
+        headers: await this.authHeaders()
+      });
+      if (!res.ok) return null;
+      return await res.json();
+    } catch (err) {
+      console.warn(`[BankService] getSession failed for ${sessionId}:`, err);
+      return null;
+    }
+  }
+
+  async getAccountDetails(accountUid) {
+    if (!this.isConfigured || !accountUid || String(accountUid).startsWith('mock_acc_')) {
+      return null;
+    }
+    try {
+      const res = await fetch(`${ENABLE_BANKING_API_BASE}/accounts/${accountUid}/details`, {
+        method: 'GET',
+        headers: await this.authHeaders()
+      });
+      if (!res.ok) {
+        console.warn(`[BankService] getAccountDetails failed (${res.status}) for ${accountUid}`);
+        return null;
+      }
+      return await res.json();
+    } catch (err) {
+      console.warn(`[BankService] Failed to get details for ${accountUid}:`, err);
+      return null;
+    }
   }
 
   async getAccountBalances(accountUid) {
@@ -742,7 +798,7 @@ export class BankService {
       ];
     }
 
-    const { dateFrom, dateTo, maxPages = 5 } = options || {};
+    const { dateFrom, dateTo, maxPages = 5, includePending = false } = options || {};
     const from = dateFrom || defaultTransactionsDateFrom();
     const collected = [];
     let continuationKey = null;
@@ -770,7 +826,7 @@ export class BankService {
       const data = await res.json();
       const pageTransactions = Array.isArray(data.transactions) ? data.transactions : [];
       for (const raw of pageTransactions) {
-        const mapped = mapProviderTransaction(raw);
+        const mapped = mapProviderTransaction(raw, { includePending });
         if (mapped) collected.push(mapped);
       }
 

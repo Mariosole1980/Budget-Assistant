@@ -84,16 +84,96 @@ export async function onRequestPost(context) {
       throw new Error(`Failed to query bank accounts: ${errBody}`);
     }
 
-    const accounts = await acctsRes.json();
-    if (!Array.isArray(accounts) || accounts.length === 0) {
-      return new Response(JSON.stringify({
-        ok: true,
-        message: 'No bank accounts found. Please connect your bank first.',
-        syncedCount: 0
-      }), {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    let accounts = await acctsRes.json();
+    if (!Array.isArray(accounts)) accounts = [];
+
+    // Auto-recovery: If no bank_accounts exist in DB, discover from active bank_connections
+    if (accounts.length === 0) {
+      const connsRes = await fetch(`${supabaseUrl}/rest/v1/bank_connections?user_id=eq.${encodeURIComponent(userId)}&status=eq.active&select=*`, {
+        headers: {
+          'apikey': serviceRoleKey,
+          'Authorization': `Bearer ${serviceRoleKey}`
+        }
       });
+      const conns = (connsRes.ok && (await connsRes.json())) || [];
+      let hadEmptySession = false;
+
+      for (const conn of conns) {
+        if (!conn.session_id) continue;
+        const session = await bankService.getSession(conn.session_id);
+        const rawAccounts = (session && Array.isArray(session.accounts_data) && session.accounts_data.length > 0)
+          ? session.accounts_data
+          : (session && Array.isArray(session.accounts) ? session.accounts : []);
+
+        if (rawAccounts.length === 0) {
+          hadEmptySession = true;
+          continue;
+        }
+
+        for (const rawAcc of rawAccounts) {
+          const uid = typeof rawAcc === 'string'
+            ? rawAcc
+            : (rawAcc && (rawAcc.uid || rawAcc.accountId || rawAcc.account_uid || (rawAcc.account_id && (rawAcc.account_id.iban || rawAcc.account_id.other))));
+          if (!uid) continue;
+
+          let bal = 0.0;
+          let details = null;
+          try {
+            bal = await bankService.getAccountBalances(uid);
+          } catch (_) {}
+          try {
+            details = await bankService.getAccountDetails(uid);
+          } catch (_) {}
+
+          const iban = (details && details.account_id && details.account_id.iban) ||
+                       (rawAcc && typeof rawAcc === 'object' && rawAcc.account_id && rawAcc.account_id.iban) ||
+                       (rawAcc && typeof rawAcc === 'object' && rawAcc.iban) || null;
+          const currency = (details && details.currency) || (rawAcc && typeof rawAcc === 'object' && rawAcc.currency) || 'EUR';
+          const productName = (details && (details.product || details.name)) || (rawAcc && typeof rawAcc === 'object' && (rawAcc.details || rawAcc.name));
+          const displayName = productName || (iban ? `Λογαριασμός (${iban.slice(-4)})` : (conn.aspsp_name || 'Τραπεζικός Λογαριασμός'));
+
+          const bankAccRecord = {
+            connection_id: conn.id,
+            user_id: userId,
+            account_uid: String(uid),
+            iban,
+            currency,
+            account_name: displayName,
+            balance: bal,
+            last_synced_at: new Date().toISOString()
+          };
+
+          const insRes = await fetch(`${supabaseUrl}/rest/v1/bank_accounts`, {
+            method: 'POST',
+            headers: {
+              'apikey': serviceRoleKey,
+              'Authorization': `Bearer ${serviceRoleKey}`,
+              'Content-Type': 'application/json',
+              'Prefer': 'return=representation'
+            },
+            body: JSON.stringify(bankAccRecord)
+          });
+          if (insRes.ok) {
+            const [created] = await insRes.json();
+            if (created) accounts.push(created);
+          }
+        }
+      }
+
+      if (accounts.length === 0) {
+        const errorMsg = hadEmptySession
+          ? 'Δεν βρέθηκαν επιλεγμένοι λογαριασμοί στη σύνδεση. Αποσυνδέστε και επανασυνδέστε την τράπεζα, φροντίζοντας να επιλέξετε (τικ) τον λογαριασμό σας στην οθόνη της τράπεζας.'
+          : 'Δεν βρέθηκαν συνδεδεμένοι τραπεζικοί λογαριασμοί. Παρακαλούμε συνδέστε την τράπεζά σας πρώτα.';
+        return new Response(JSON.stringify({
+          ok: true,
+          message: errorMsg,
+          warning: hadEmptySession ? 'NO_ACCOUNTS_SELECTED' : undefined,
+          syncedCount: 0
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
     }
 
     const { syncedCount, transactions, errors } = await importBankTransactions({

@@ -262,6 +262,21 @@ export async function onRequestPost(context) {
       connectionId = connection.id;
     }
 
+    // If the bank returned 0 authorized accounts (user did not tick any account checkbox on bank portal)
+    if (!sessionData.accounts || sessionData.accounts.length === 0) {
+      return new Response(JSON.stringify({
+        ok: true,
+        warning: 'NO_ACCOUNTS_SELECTED',
+        message: 'Η σύνδεση εγκρίθηκε, αλλά δεν επιλέχθηκε κανένας λογαριασμός στη σελίδα της τράπεζας. Παρακαλούμε συνδεθείτε ξανά και επιλέξτε (τικ) τον λογαριασμό ή την κάρτα σας.',
+        connectionId: connectionId,
+        accounts: [],
+        syncedCount: 0
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
     // 2. Link or create accounts in public.accounts AND record in public.bank_accounts
     const accountsProcessed = [];
     for (const acc of sessionData.accounts) {

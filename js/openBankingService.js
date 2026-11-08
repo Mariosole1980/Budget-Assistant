@@ -757,6 +757,10 @@
 
       await refreshAfterConnection();
 
+      if (data && data.warning === 'NO_ACCOUNTS_SELECTED') {
+        notify('⚠️ ' + (data.message || 'Δεν επιλέχθηκε λογαριασμός κατά την έγκριση. Συνδεθείτε ξανά και επιλέξτε τον λογαριασμό σας.'), 'warning');
+      }
+
       // If running on the web in an external browser (e.g. mobile Chrome), offer to return to the native app
       var isNativeApp = typeof window !== 'undefined' && window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform();
       if (!isNativeApp && !customUrl) {
@@ -870,10 +874,14 @@
         installResumeListeners();
 
         // Redirect user to the secure Bank portal for SCA
-        if (typeof window !== 'undefined' && window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
-          // In Android native app, use Capacitor Browser plugin if available
-          // so it opens an in-app browser that redirects back to the app
-          if (window.Capacitor.Plugins && window.Capacitor.Plugins.Browser) {
+        var isNativePlatform = typeof window !== 'undefined' && window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform();
+        var preferExternal = false;
+        try {
+          preferExternal = localStorage.getItem('ob_prefer_system_browser') === 'true';
+        } catch (_) {}
+
+        if (isNativePlatform) {
+          if (!preferExternal && window.Capacitor.Plugins && window.Capacitor.Plugins.Browser) {
             if (typeof window.Capacitor.Plugins.Browser.addListener === 'function') {
               window.Capacitor.Plugins.Browser.addListener('browserFinished', function () {
                 recoverPendingConnection('browser-finished');
@@ -881,7 +889,7 @@
             }
             window.Capacitor.Plugins.Browser.open({ url: data.url });
           } else {
-            // Fallback: open in system browser — deep link will bring user back
+            // Open in system browser (Chrome/Samsung Internet) for direct App-to-App support
             window.open(data.url, '_system');
           }
         } else {
@@ -936,7 +944,9 @@
       var bankErrors = Array.isArray(data.errors) ? data.errors : [];
 
       if (!opts.silent) {
-        if (count > 0) {
+        if (data && data.warning === 'NO_ACCOUNTS_SELECTED') {
+          notify('⚠️ ' + (data.message || 'Δεν βρέθηκαν επιλεγμένοι λογαριασμοί. Αποσυνδέστε και επανασυνδέστε την τράπεζα.'), 'warning');
+        } else if (count > 0) {
           notify('Συγχρονίστηκαν ' + count + ' νέες τραπεζικές κινήσεις!', 'success');
         } else if (bankErrors.length === 0) {
           notify('Όλες οι τραπεζικές κινήσεις είναι ενημερωμένες.', 'info');
@@ -1234,12 +1244,28 @@
           '</button>' +
         '</div>' +
 
-        '<div style="font-size:11px; color:#94a3b8; margin-bottom:14px; line-height:1.35; background:rgba(255,255,255,0.03); padding:8px 10px; border-radius:8px;">' +
+        '<div style="font-size:11px; color:#94a3b8; margin-bottom:12px; line-height:1.35; background:rgba(255,255,255,0.03); padding:8px 10px; border-radius:8px;">' +
           (readPsuType() === 'business'
             ? '<span>Σύνδεση με <strong>επαγγελματικό</strong> λογαριασμό (Business e-Banking).</span>'
             : '<span>Σύνδεση με <strong>προσωπικό</strong> λογαριασμό (Ιδιώτης). Για εταιρικό, επιλέξτε Σύνδεση με <strong>επαγγελματικό</strong> λογαριασμό παραπάνω.</span>') +
-          '<br><span style="color:#64748b; font-size:10.5px;">ℹ️ Η ειδοποίηση/SMS έγκρισης αποστέλλεται από την τράπεζα στην κύρια συσκευή του e-banking σας.</span>' +
         '</div>' +
+
+        '<div style="background:rgba(234, 179, 8, 0.08); border-left:3px solid #eab308; padding:8px 12px; border-radius:8px; margin-bottom:14px; font-size:11px; color:#fde047; line-height:1.45;">' +
+          '<strong>💡 Οδηγίες Επιτυχούς Σύνδεσης:</strong><br>' +
+          '• <strong>Ειδοποίηση Έγκρισης:</strong> Αν δεν εμφανιστεί άμεσα ειδοποίηση στο κινητό, πατήστε στη σελίδα της τράπεζας <em>«Αποστολή κωδικού με SMS (OTP)»</em> ή ανοίξτε απευθείας την εφαρμογή της τράπεζάς σας.<br>' +
+          '• <strong>Επιλογή Λογαριασμών (Υποχρεωτικό):</strong> Στην οθόνη της τράπεζας, <u>τικάρετε το κουτάκι</u> δίπλα στον λογαριασμό ή την κάρτα σας πριν πατήσετε «Έγκριση»!' +
+        '</div>' +
+
+        (function() {
+          var isNative = typeof window !== 'undefined' && window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform();
+          if (!isNative) return '';
+          var preferExt = false;
+          try { preferExt = localStorage.getItem('ob_prefer_system_browser') === 'true'; } catch (_) {}
+          return '<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; background:rgba(255,255,255,0.03); padding:8px 10px; border-radius:8px;">' +
+            '<span style="font-size:11px; color:#cbd5e1;"><i class="fa-brands fa-chrome" style="margin-right:6px; color:#38bdf8;"></i>Άνοιγμα στο Chrome (προτείνεται για bank apps)</span>' +
+            '<input type="checkbox" ' + (preferExt ? 'checked' : '') + ' onchange="try{localStorage.setItem(\'ob_prefer_system_browser\', this.checked ? \'true\' : \'false\');}catch(_){}" style="accent-color:#38bdf8; width:16px; height:16px; cursor:pointer;">' +
+          '</div>';
+        })() +
 
         '<div style="max-height:360px; overflow-y:auto; margin-bottom:16px; padding-right:4px;">' +
           connectedHtml +
