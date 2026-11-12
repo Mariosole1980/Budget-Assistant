@@ -681,6 +681,20 @@ window.autoSyncMissingTransactionsToCloud = autoSyncMissingTransactionsToCloud;
   function isCategoryDeleted(id, name, type) {
     if (id && getDeletedCategoryIds().has(String(id))) return true;
     if (name) {
+      // User custom categories must never be suppressed by loose cleanName matching
+      // of deleted default categories (e.g. deleting default '🏠 Σπίτι' must not hide '🏡 ΣΠΙΤΙ')
+      const isCustomUserCat = (typeof CANONICAL_USER_CATEGORIES !== 'undefined' && Array.isArray(CANONICAL_USER_CATEGORIES))
+        ? CANONICAL_USER_CATEGORIES.some(u => u && u.name === name)
+        : ((typeof window !== 'undefined' && window.CANONICAL_USER_CATEGORIES && Array.isArray(window.CANONICAL_USER_CATEGORIES))
+          ? window.CANONICAL_USER_CATEGORIES.some(u => u && u.name === name)
+          : false);
+
+      if (isCustomUserCat) {
+        const exactKey = `${type || 'expense'}:::EXACT:::${String(name).trim()}`;
+        const keys = getDeletedCategoryKeys();
+        return keys.has(exactKey);
+      }
+
       const key = _getCategoryKey(name, type);
       const keys = getDeletedCategoryKeys();
       if (keys.has(key)) return true;

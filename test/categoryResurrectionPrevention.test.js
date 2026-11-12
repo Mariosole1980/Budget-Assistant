@@ -227,4 +227,59 @@ test('Legacy unscoped tombstones migrate to the active account exactly once', ()
   assert.strictEqual(DataIntegrityService.isCategoryDeleted('legacy-home'), true);
 });
 
+test('User custom categories (e.g. 🏡 ΣΠΙΤΙ, 🎬 ΣΥΝΔΡΟΜΕΣ) are not suppressed by tombstones of deleted default categories', () => {
+  global.localStorage.clear();
+  global.state = { guestMode: false, currentUser: { id: 'user-a' } };
+
+  // Simulate user deleting default category '🏠 Σπίτι' -> stores key expense:::σπιτι
+  DataIntegrityService.recordDeletedCategory('def-home-id', '🏠 Σπίτι', 'expense', { writeCloudTombstone: false });
+  DataIntegrityService.recordDeletedCategory('def-subs-id', '📱 Συνδρομές', 'expense', { writeCloudTombstone: false });
+
+  // Default categories MUST be reported as deleted
+  assert.strictEqual(DataIntegrityService.isCategoryDeleted('def-home-id', '🏠 Σπίτι', 'expense'), true);
+  assert.strictEqual(DataIntegrityService.isCategoryDeleted('def-subs-id', '📱 Συνδρομές', 'expense'), true);
+
+  // BUT custom categories MUST NOT be reported as deleted!
+  assert.strictEqual(DataIntegrityService.isCategoryDeleted('custom-home-uuid', '🏡 ΣΠΙΤΙ', 'expense'), false);
+  assert.strictEqual(DataIntegrityService.isCategoryDeleted('custom-subs-uuid', '🎬 ΣΥΝΔΡΟΜΕΣ', 'expense'), false);
+  assert.strictEqual(DataIntegrityService.isCategoryDeleted('custom-health-uuid', '❤️ ΥΓΕΙΑ', 'expense'), false);
+  assert.strictEqual(DataIntegrityService.isCategoryDeleted('custom-sal-uuid', '💼 ΜΙΣΘΟΣ', 'income'), false);
+});
+
+test('autoHealUserCategories restores all 17 custom categories and purges default system categories', () => {
+  global.localStorage.clear();
+  const DataLoaderService = require('../js/dataLoaderService.js');
+  global.state = {
+    guestMode: false,
+    currentUser: { id: 'user-heal' },
+    // Simulate some accidental default category present in state
+    categories: [
+      { id: 'def-1', name: '🏠 Σπίτι', type: 'expense' },
+      { id: 'def-2', name: '🛒 Σούπερ Μάρκετ', type: 'expense' }
+    ]
+  };
+
+  DataLoaderService.autoHealUserCategories();
+
+  // All 17 canonical custom categories must now be present
+  assert.strictEqual(global.state.categories.length, 17, 'must contain exactly 17 categories');
+
+  // Verify none of the default categories are present
+  const names = global.state.categories.map(c => c.name);
+  assert.strictEqual(names.includes('🏠 Σπίτι'), false, 'default 🏠 Σπίτι must be purged');
+  assert.strictEqual(names.includes('🛒 Σούπερ Μάρκετ'), false, 'default 🛒 Σούπερ Μάρκετ must be purged');
+
+  // Verify custom categories are present
+  assert.strictEqual(names.includes('🏡 ΣΠΙΤΙ'), true, 'custom 🏡 ΣΠΙΤΙ must be present');
+  assert.strictEqual(names.includes('🎬 ΣΥΝΔΡΟΜΕΣ'), true, 'custom 🎬 ΣΥΝΔΡΟΜΕΣ must be present');
+  assert.strictEqual(names.includes('💼 ΜΙΣΘΟΣ'), true, 'custom 💼 ΜΙΣΘΟΣ must be present');
+
+  // Verify subcategories on 🏡 ΣΠΙΤΙ
+  const homeCat = global.state.categories.find(c => c.name === '🏡 ΣΠΙΤΙ');
+  assert.ok(homeCat.subcategories.includes('ΔΕΗ'));
+  assert.ok(homeCat.subcategories.includes('Vodafone'));
+});
+
+
+
 

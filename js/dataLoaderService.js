@@ -48,6 +48,106 @@
     return DEFAULT_CATEGORIES.map(c => (c ? { ...c } : c));
   }
 
+  function autoHealUserCategories() {
+    const catsList = (typeof CANONICAL_USER_CATEGORIES !== 'undefined' && Array.isArray(CANONICAL_USER_CATEGORIES))
+      ? CANONICAL_USER_CATEGORIES
+      : ((typeof window !== 'undefined' && window.CANONICAL_USER_CATEGORIES && Array.isArray(window.CANONICAL_USER_CATEGORIES))
+        ? window.CANONICAL_USER_CATEGORIES
+        : []);
+    if (!catsList || catsList.length === 0) return;
+
+    const s = getState();
+    if (!s) return;
+    if (!Array.isArray(s.categories)) s.categories = [];
+
+    const now = new Date().toISOString();
+    const userId = (s.currentUser && s.currentUser.id) ? s.currentUser.id : null;
+    const familyId = (s.userProfile && s.userProfile.family_id) ? s.userProfile.family_id : null;
+    let didChange = false;
+
+    // Safety: Purge any default system categories that the user explicitly deleted
+    const defaultCats = (typeof DEFAULT_CATEGORIES !== 'undefined' && Array.isArray(DEFAULT_CATEGORIES))
+      ? DEFAULT_CATEGORIES
+      : ((typeof window !== 'undefined' && window.DEFAULT_CATEGORIES && Array.isArray(window.DEFAULT_CATEGORIES))
+        ? window.DEFAULT_CATEGORIES
+        : []);
+    const defaultNames = new Set(defaultCats.map(d => (d && d.name) ? d.name.trim().toLowerCase() : ''));
+    const beforeCount = s.categories.length;
+    s.categories = s.categories.filter(c => {
+      if (!c || !c.name) return false;
+      return !defaultNames.has(c.name.trim().toLowerCase());
+    });
+    if (s.categories.length !== beforeCount) didChange = true;
+
+    const remCatTombFn = (typeof removeDeletedCategoryTombstone === 'function')
+      ? removeDeletedCategoryTombstone
+      : ((typeof window !== 'undefined' && typeof window.removeDeletedCategoryTombstone === 'function')
+        ? window.removeDeletedCategoryTombstone
+        : null);
+
+    catsList.forEach(canonical => {
+      // 1. Remove any accidental tombstone for this custom category
+      if (remCatTombFn) {
+        remCatTombFn(canonical.name, canonical.type);
+      }
+      if (s.isSupabaseEnabled && s.supabaseClient && userId) {
+        try {
+          s.supabaseClient
+            .from('sync_tombstones')
+            .delete()
+            .eq('table_name', 'categories')
+            .in('row_id', [canonical.name, `${canonical.type || 'expense'}:::${canonical.name.toLowerCase()}`])
+            .then(() => {}).catch(() => {});
+        } catch (_) {}
+      }
+
+      // 2. Find existing category in state
+      let existing = s.categories.find(c => c && c.name && c.name.trim().toLowerCase() === canonical.name.trim().toLowerCase());
+      if (!existing) {
+        // Missing! Re-create it
+        const newCat = {
+          id: typeof generateUUID === 'function' ? generateUUID() : crypto.randomUUID(),
+          name: canonical.name,
+          type: canonical.type || 'expense',
+          icon: canonical.icon || '💸',
+          color: canonical.color || '#78909c',
+          subcategories: Array.isArray(canonical.subcategories) ? canonical.subcategories.slice() : [],
+          deleted_subcategories: [],
+          user_id: userId,
+          family_id: familyId,
+          created_at: now,
+          updated_at: now
+        };
+        s.categories.push(newCat);
+        didChange = true;
+
+        if (s.isSupabaseEnabled && s.supabaseClient && userId) {
+          s.supabaseClient
+            .from('categories')
+            .insert(newCat)
+            .then(({ error }) => { if (error) console.warn('[AutoHeal] Cloud category insert warning:', error); });
+        }
+      } else {
+        // Exists: merge canonical subcategories
+        if (!Array.isArray(existing.subcategories)) existing.subcategories = [];
+        const existingSubs = new Set(existing.subcategories.map(s => String(s).trim().toLowerCase()));
+        let subsAdded = false;
+        (canonical.subcategories || []).forEach(sub => {
+          if (!existingSubs.has(String(sub).trim().toLowerCase())) {
+            existing.subcategories.push(sub);
+            subsAdded = true;
+          }
+        });
+        if (subsAdded) didChange = true;
+      }
+    });
+
+    if (didChange) {
+      deduplicateCategories();
+      try { localStorage.setItem('offline_categories', JSON.stringify(s.categories)); } catch (_) {}
+    }
+  }
+
 async function loadData() {
   // Cancel any pending realtime debounce timer to prevent stale DB events
   // from overwriting the fresh data we are about to fetch.
@@ -393,6 +493,7 @@ async function loadData() {
       });
 
       state.categories = [...activeCloudCategories, ...localCustomCats];
+      autoHealUserCategories();
       state.categories.forEach(cat => {
         if (!cat) return;
         const registryDeleted = getDelSubsFn(cat.name);
@@ -675,6 +776,7 @@ function loadOfflineData() {
     });
 
     state.categories = baseCats;
+    autoHealUserCategories();
     deduplicateCategories();
   } catch (e) {
     console.error('Failed to parse offline categories:', e);
@@ -684,6 +786,7 @@ function loadOfflineData() {
         ? window.isCategoryDeleted
         : () => false);
     state.categories = getDefaultCategories().filter(c => !c || !isCatDeletedFn(c.id, c.name, c.type));
+    autoHealUserCategories();
     deduplicateCategories();
   }
 
@@ -746,8 +849,13 @@ function loadOfflineData() {
   if (typeof cleanDuplicateCategories === 'function') { cleanDuplicateCategories().catch(e => console.warn('Offline automatic categories cleanup error:', e)); } else if (typeof window !== 'undefined' && typeof window.cleanDuplicateCategories === 'function') { window.cleanDuplicateCategories().catch(e => console.warn('Offline automatic categories cleanup error:', e)); }
 }
 
+  if (typeof window !== 'undefined') {
+    window.autoHealUserCategories = autoHealUserCategories;
+  }
+
   return {
     loadData,
-    loadOfflineData
+    loadOfflineData,
+    autoHealUserCategories
   };
 }));

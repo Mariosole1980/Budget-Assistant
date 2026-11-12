@@ -84,6 +84,27 @@
         { name: '➕ Άλλα έσοδα', type: 'income', icon: 'fa-solid fa-plus', color: '#90a4ae' }
     ];
 
+    // Canonical User Custom Categories (17 categories: 14 expense, 3 income)
+    const CANONICAL_USER_CATEGORIES = [
+        { name: '🏡 ΣΠΙΤΙ', type: 'expense', icon: 'fa-solid fa-house', color: '#e05e55', subcategories: ['Vodafone', 'ΔΕΗ', 'ΕΥΔΑΠ', 'Στεγαστικό Δάνειο', 'Συντήρηση Σπιτιού', 'Συσκευές Σπιτιού', 'Έπιπλα/Διακόσμηση', 'Οικιακά Είδη'] },
+        { name: '🚗 ΑΥΤΟΚΙΝΗΤΟ', type: 'expense', icon: 'fa-solid fa-car-side', color: '#ffa726', subcategories: ['Parking', 'Service/Ανταλλακτικά', 'Αγορά αυτοκινήτου/Δόσεις', 'Ασφάλεια αυτοκινήτου', 'Βενζίνες', 'Διόδια e-pass', 'Τέλη κυκλοφορίας'] },
+        { name: '🛒 ΔΙΑΤΡΟΦΗ', type: 'expense', icon: 'fa-solid fa-basket-shopping', color: '#f59e0b', subcategories: ['Delivery/φαγητό απέξω/γλυκά', 'Κρεοπωλείο', 'Λαϊκή', 'Νερό rainbow', 'Σουπερμάρκετ'] },
+        { name: '🚇 ΜΕΤΑΚΙΝΗΣΗ', type: 'expense', icon: 'fa-solid fa-train-subway', color: '#ab47bc', subcategories: ['Taxi', 'Μετρό - Λεωφορείο'] },
+        { name: '👕 ΠΡΟΣΩΠΙΚΗ ΦΡΟΝΤΙΔΑ', type: 'expense', icon: 'fa-solid fa-bag-shopping', color: '#7e57c2', subcategories: ['Accessories', 'Makeup', 'Εσώρουχα', 'Καλλυντικά', 'Κομμωτήριο', 'Παπούτσια', 'Ρούχα', 'Τσάντες/Τσαντάκια', 'Υπηρεσίες'] },
+        { name: '🎬 ΣΥΝΔΡΟΜΕΣ', type: 'expense', icon: 'fa-solid fa-film', color: '#ec407a', subcategories: ['Apple Music', 'Icloud', 'Streaming', 'Διάφορες', 'Εφαρμογές/Appstore', 'Συνδρομές Τραπεζικών Καρτών'] },
+        { name: '🎉ΔΙΑΣΚΕΔΑΣΗ/ΕΞΟΔΟΙ', type: 'expense', icon: 'fa-solid fa-icons', color: '#26a69a', subcategories: ['Έξοδος/Βόλτα', 'Ταξίδια'] },
+        { name: '❤️ ΥΓΕΙΑ', type: 'expense', icon: 'fa-solid fa-heart-pulse', color: '#ef5350', subcategories: ['Γιατρός', 'Εξετάσεις', 'Συμπληρώματα διατροφής', 'Φάρμακα'] },
+        { name: '🎓 ΕΚΠΑΙΔΕΥΣΗ', type: 'expense', icon: 'fa-solid fa-graduation-cap', color: '#2196f3', subcategories: ['Βιβλία'] },
+        { name: '🧾ΦΟΡΟΙ/ΛΟΓΙΣΤΗΣ', type: 'expense', icon: 'fa-solid fa-receipt', color: '#26c6da', subcategories: ['ΕΝΦΙΑ', 'ΛΟΓΙΣΤΗΣ', 'ΠΑΡΑΒΟΛΑ/ΚΡΑΤΗΣΕΙΣ'] },
+        { name: '🧩ΔΙΑΦΟΡΑ ΕΞΟΔΑ', type: 'expense', icon: 'fa-solid fa-shapes', color: '#78909c', subcategories: ['Tips/Προμήθειες', 'Διαφήμιση', 'Μικροέξοδα', 'Μισθώματα Αποθήκης Ι. Σούτσου 18', 'Στοίχημα/Καζίνο'] },
+        { name: '🏋️ΓΥΜΝΑΣΤΗΡΙΟ', type: 'expense', icon: 'fa-solid fa-icons', color: '#26a69a', subcategories: [] },
+        { name: '🏠ΓΡΑΦΕΙΟ Β2', type: 'expense', icon: 'fa-solid fa-house', color: '#e05e55', subcategories: ['ΔΙΑΦΟΡΑ Β2', 'ΕΝΟΙΚΙΟ Β2', 'ΦΟΡΟΛΟΓΊΑ Β2'] },
+        { name: '🏛️ΜΕΡΙΔΙΟ ΔΟΣΗΣ ΔΑΝΕΙΟΥ (ΓΟΝΕΙΣ)', type: 'expense', icon: 'fa-solid fa-tag', color: '#7c6af7', subcategories: [] },
+        { name: '💼 ΜΙΣΘΟΣ', type: 'income', icon: 'fa-solid fa-briefcase', color: '#4caf50', subcategories: ['ΜΙΣΘΟΣ ΒΑΣΟΥΛΑ', 'ΜΙΣΘΟΣ ΓΡΑΦΕΙΩΝ ΒΑΣΟΥΛΑ', 'ΜΙΣΘΟΣ ΜΑΡΙΟΣ'] },
+        { name: '🤑 ΕΞΤΡΑ ΕΙΣΟΔΗΜΑΤΑ', type: 'income', icon: 'fa-solid fa-sack-dollar', color: '#4caf50', subcategories: ['🎁ΑΛΛΑ ΕΞΤΡΑ', '🏅 BONUS', '👨‍👩‍👦ΟΙΚΟΓΕΝΕΙΑ/ΒΟΗΘΕΙΑ', '💰ΤΟΚΟΙ/CASHBACK/ΤΡΑΠΕΖΕΣ', '💻ΙΝΣΤΑ', '📦VINTED', '🧑‍🎓ΕΠΙΔΟΜΑΤΑ/ΣΕΜΙΝΑΡΙΑ'] },
+        { name: '💶  ΕΝΟΙΚΙΟ Β2 (Έσοδο)', type: 'income', icon: 'fa-solid fa-money-bill-wave', color: '#4caf50', subcategories: [] }
+    ];
+
     // Default Accounts - Cash, Bank Account, Other Bank, Card
     const DEFAULT_ACCOUNTS = [
         { name: 'Cash', type: 'cash', balance: 0 },
@@ -321,6 +342,7 @@
     const BAConstants = {
         CATEGORY_EMOJI_MAP: CATEGORY_EMOJI_MAP,
         DEFAULT_CATEGORIES: DEFAULT_CATEGORIES,
+        CANONICAL_USER_CATEGORIES: CANONICAL_USER_CATEGORIES,
         DEFAULT_ACCOUNTS: DEFAULT_ACCOUNTS,
         NEON_PALETTE: NEON_PALETTE,
         GREEK_MONTHS: GREEK_MONTHS,
@@ -334,6 +356,7 @@
     if (typeof window !== 'undefined') {
         window.CATEGORY_EMOJI_MAP = CATEGORY_EMOJI_MAP;
         window.DEFAULT_CATEGORIES = DEFAULT_CATEGORIES;
+        window.CANONICAL_USER_CATEGORIES = CANONICAL_USER_CATEGORIES;
         window.DEFAULT_ACCOUNTS = DEFAULT_ACCOUNTS;
         window.NEON_PALETTE = NEON_PALETTE;
         window.GREEK_MONTHS = GREEK_MONTHS;
